@@ -8,20 +8,7 @@
 
 {
   imports = [
-    ({
-      config = lib.mkMerge [
-        {
-          claude.code.enable = true;
-          claude.code.hooks = {
-            PostToolUse = {
-              command = ''
-                cd "$DEVENV_ROOT" && lefthook run
-              '';
-            };
-          };
-        }
-      ];
-    })
+    ./claude.nix
   ];
   # https://devenv.sh/basics/
   env.GREET = "devenv";

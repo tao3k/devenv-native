@@ -9,3 +9,7 @@ devenv.local.nix
 .pre-commit-config.yaml
 
 .data
+
+.mcp.json
+
+.claude/settings.json
