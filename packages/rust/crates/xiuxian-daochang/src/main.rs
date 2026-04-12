@@ -1,3 +1,4 @@
+#![recursion_limit = "256"]
 //! omni-agent CLI: gateway, stdio, or repl mode.
 //!
 //! External tool servers are loaded from `.tool.json` by default.
