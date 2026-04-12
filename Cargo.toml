@@ -54,6 +54,7 @@ description = "CyberXiuXian Artisan Workshop - High-performance Agentic OS with 
 [workspace.dependencies]
 # Core dependencies
 tokio = { version = "1.49.0", features = ["full"] }
+tokio-stream = { version = "0.1" }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.149"
 serde_yaml = "0.9"

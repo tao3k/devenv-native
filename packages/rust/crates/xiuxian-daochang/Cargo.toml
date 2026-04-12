@@ -67,7 +67,7 @@ xiuxian-tokenizer = { path = "../xiuxian-tokenizer" }
 xiuxian-zhixing = { path = "../xiuxian-zhixing" }
 xiuxian-testing = { path = "../xiuxian-testing" }
 axum = { workspace = true, features = ["multipart"] }
-tokio-stream = "0.1"
+tokio-stream = { workspace = true }
 uuid = { workspace = true }
 clap = { workspace = true }
 xiuxian-macros = { path = "../xiuxian-macros" }
