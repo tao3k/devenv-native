@@ -29,6 +29,8 @@ mod tool_runtime_state;
 pub(crate) mod tool_startup;
 mod turn_execution;
 mod turn_support;
+
+pub use turn_execution::AgentStreamEvent;
 pub(crate) mod zhenfa;
 
 use std::collections::HashMap;

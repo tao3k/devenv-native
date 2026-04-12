@@ -31,7 +31,8 @@ mod tools;
 pub mod warmup_options;
 
 pub use agent::{
-    Agent, MemoryRecallLatencyBucketsSnapshot, MemoryRecallMetricsSnapshot, NativeToolRegistry,
+    Agent, AgentStreamEvent, MemoryRecallLatencyBucketsSnapshot, MemoryRecallMetricsSnapshot,
+    NativeToolRegistry,
     NotificationDispatcher, NotificationProvider, SessionContextBudgetClassSnapshot,
     SessionContextBudgetSnapshot, SessionContextMode, SessionContextSnapshotInfo,
     SessionContextStats, SessionContextWindowInfo, SessionMemoryRecallDecision,
