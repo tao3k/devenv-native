@@ -3,6 +3,7 @@
 //! Request validation (400 for empty `session_id` or message), 500 on agent error.
 //! Each request is limited by a timeout to avoid stuck connections.
 
+mod ai_sdk_stream;
 pub(crate) mod handlers;
 pub(crate) mod llm_proxy;
 pub(crate) mod runtime;
@@ -19,6 +20,7 @@ use tokio::sync::Semaphore;
 
 use crate::agent::Agent;
 
+use self::ai_sdk_stream::handle_vercel_stream;
 use self::handlers::{
     handle_embed, handle_embed_batch, handle_health, handle_message, handle_openai_embeddings,
 };
@@ -86,6 +88,7 @@ pub fn router_with_embedding_runtime(
     Router::new()
         .route("/health", get(handle_health))
         .route("/message", post(handle_message))
+        .route("/vercel/stream", post(handle_vercel_stream))
         .merge(embedding_routes::<GatewayState>())
         .merge(proxy_routes::<GatewayState>())
         .layer(Extension(embedding_runtime))
