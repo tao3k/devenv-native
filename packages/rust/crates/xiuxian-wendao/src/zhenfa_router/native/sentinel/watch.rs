@@ -4,7 +4,7 @@ use std::time::Duration;
 
 use log::{error, info, warn};
 use notify::{Event, RecommendedWatcher, RecursiveMode};
-use notify_debouncer_full::{DebounceEventResult, Debouncer, FileIdMap, new_debouncer};
+use notify_debouncer_full::{DebounceEventResult, Debouncer, RecommendedCache, new_debouncer};
 use tokio::sync::mpsc;
 
 use xiuxian_zhenfa::ZhenfaContext;
@@ -41,7 +41,7 @@ impl Default for SentinelConfig {
 pub struct Sentinel {
     _ctx: Arc<ZhenfaContext>,
     _config: SentinelConfig,
-    _debouncer: Debouncer<RecommendedWatcher, FileIdMap>,
+    _debouncer: Debouncer<RecommendedWatcher, RecommendedCache>,
 }
 
 impl Sentinel {

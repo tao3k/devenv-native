@@ -29,3 +29,9 @@ pub enum IoError {
     #[error("UTF-8 decoding error")]
     Encoding,
 }
+
+/// Convenience alias for results within the I/O crate.
+///
+/// Only available when the `assembler` feature is enabled.
+#[cfg(feature = "assembler")]
+pub type Result<T> = std::result::Result<T, IoError>;
