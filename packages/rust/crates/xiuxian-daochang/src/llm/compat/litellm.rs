@@ -84,6 +84,142 @@ impl LiteLlmRuntime {
         }
     }
 
+    /// Streaming variant of [`Self::chat`].
+    ///
+    /// Emits [`AgentStreamEvent::TextDelta`] through `event_tx` as text
+    /// chunks arrive. Tool call deltas are accumulated and returned in the
+    /// final [`AssistantMessage`].
+    pub(in crate::llm) async fn chat_stream(
+        &self,
+        config: LiteLlmDispatchConfig<'_>,
+        messages: Vec<ChatMessage>,
+        tools: Vec<PreparedTool>,
+        event_tx: &tokio::sync::mpsc::Sender<crate::agent::AgentStreamEvent>,
+    ) -> Result<AssistantMessage> {
+        // Streaming is currently only implemented for the OpenAI provider mode
+        // (which covers OpenAI-like custom bases). Anthropic and Minimax
+        // streaming require provider-specific stream parsing not yet wired.
+        if !matches!(config.provider_mode, LiteLlmProviderMode::OpenAi) {
+            return Err(anyhow::anyhow!(
+                "chat_stream is not yet supported for provider mode {:?}; \
+                 falling back to non-streaming is the caller's responsibility",
+                config.provider_mode
+            ));
+        }
+
+        let mut request =
+            Self::build_request(config, config.model, config.max_tokens, messages, &tools)?;
+        request.stream = true;
+
+        // Build the provider (reuses cached OnceCell instances)
+        let api_key = resolve_api_key_with_env(
+            config.api_key,
+            config.litellm_api_key_env,
+            DEFAULT_OPENAI_KEY_ENV,
+        );
+        let api_base = normalize_optional_base_override(Some(config.inference_api_base))
+            .unwrap_or_else(|| config.inference_api_base.to_string());
+
+        let provider = self
+            .openai_like
+            .get_or_try_init(|| async {
+                build_openai_like_provider(api_base.clone(), api_key.clone(), config.timeout_secs)
+                    .await
+            })
+            .await?;
+
+        let mut stream =
+            LLMProvider::chat_completion_stream(provider, request, LiteRequestContext::new())
+                .await
+                .map_err(|e| anyhow::anyhow!("litellm-rs stream failed: {e}"))?;
+
+        let mut content = String::new();
+        let mut tool_calls: BTreeMap<u32, StreamingToolCallAccumulator> = BTreeMap::new();
+
+        while let Some(item) = stream.next().await {
+            let chunk = item
+                .map_err(|e| anyhow::anyhow!("litellm-rs stream chunk failed: {e}"))?;
+            for choice in chunk.choices {
+                if let Some(delta_content) = choice.delta.content {
+                    if !delta_content.is_empty() {
+                        let _ = event_tx
+                            .send(crate::agent::AgentStreamEvent::TextDelta(
+                                delta_content.clone(),
+                            ))
+                            .await;
+                        content.push_str(&delta_content);
+                    }
+                }
+                if let Some(delta_tool_calls) = choice.delta.tool_calls {
+                    for delta in delta_tool_calls {
+                        let entry = tool_calls.entry(delta.index).or_default();
+                        if let Some(id) = delta.id {
+                            entry.id = Some(id);
+                        }
+                        if let Some(tool_type) = delta.tool_type {
+                            entry.tool_type = Some(tool_type);
+                        }
+                        if let Some(function) = delta.function {
+                            if let Some(name) = function.name {
+                                entry.function_name = Some(name);
+                            }
+                            if let Some(arguments) = function.arguments {
+                                entry.function_arguments.push_str(&arguments);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Assemble the final AssistantMessage (same logic as
+        // assistant_from_openai_like_stream_chunks)
+        let content = if content.trim().is_empty() {
+            None
+        } else {
+            Some(content)
+        };
+
+        let mut normalized_tool_calls = Vec::new();
+        for (index, call) in tool_calls {
+            let Some(function_name) = call.function_name else {
+                continue;
+            };
+            normalized_tool_calls.push(LiteToolCall {
+                id: call.id.unwrap_or_else(|| format!("call_{index}")),
+                tool_type: call
+                    .tool_type
+                    .unwrap_or_else(|| "function".to_string()),
+                function: LiteFunctionCall {
+                    name: function_name,
+                    arguments: call.function_arguments,
+                },
+            });
+        }
+
+        let tool_calls = if normalized_tool_calls.is_empty() {
+            None
+        } else {
+            Some(
+                normalized_tool_calls
+                    .into_iter()
+                    .map(tool_call_from_litellm)
+                    .collect(),
+            )
+        };
+
+        if content.is_none() && tool_calls.is_none() {
+            return Err(anyhow::anyhow!(
+                "litellm-rs stream completed without content or tool calls"
+            ));
+        }
+
+        Ok(AssistantMessage {
+            content,
+            tool_calls,
+        })
+    }
+
     fn build_request(
         config: LiteLlmDispatchConfig<'_>,
         model: &str,
