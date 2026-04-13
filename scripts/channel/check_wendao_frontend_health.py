@@ -109,16 +109,17 @@ def is_frontend_healthy(
         pid_issue = f"wendao-frontend process from pidfile is not alive: {expected_pid}"
 
     listener_pid = listener_pid_for_port(port)
-    if listener_pid is None:
-        return False, pid_issue or f"wendao-frontend is not listening on {host}:{port}"
+    if listener_pid is not None:
+        listener_command = process_command_for_pid(listener_pid)
+        if listener_command and not is_wendao_frontend_command(listener_command):
+            return (
+                False,
+                f"wendao-frontend listener on {host}:{port} is owned by unexpected process {listener_pid}: {listener_command}",
+            )
 
-    listener_command = process_command_for_pid(listener_pid)
-    if listener_command and not is_wendao_frontend_command(listener_command):
-        return (
-            False,
-            f"wendao-frontend listener on {host}:{port} is owned by unexpected process {listener_pid}: {listener_command}",
-        )
-
+    # Primary health signal: HTTP reachability.
+    # The lsof-based listener check above is advisory (lsof may not be
+    # available in minimal environments such as OCI containers).
     frontend_url = f"http://{host}:{port}/"
     try:
         with opener(frontend_url, timeout=timeout_secs) as response:
