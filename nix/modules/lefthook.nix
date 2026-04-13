@@ -72,7 +72,7 @@ let
         (config.omnibus.ops.mkNixago initConfigs.nixago-lefthook)
           initConfigs.lefthook.nix
           initConfigs.lefthook.shell
-          initConfigs.lefthook.prettier
+          # initConfigs.lefthook.prettier # uses removed nixpkgs.nodePackages
           {
             data = {
               pre-commit.commands = {
