@@ -91,6 +91,47 @@ impl UnifiedSymbolIndex {
         self.add_symbols_batch(vec![symbol]);
     }
 
+    /// Add multiple symbols in one batch to avoid repeated Tantivy writer commits.
+    pub(crate) fn add_symbols_batch(&mut self, symbols: Vec<UnifiedSymbol>) {
+        if symbols.is_empty() {
+            return;
+        }
+
+        // 1. In-memory fallback
+        let start_idx = self.symbols.len();
+        for (offset, symbol) in symbols.into_iter().enumerate() {
+            let idx = start_idx + offset;
+            let key = symbol.name.to_lowercase();
+            self.symbols.push(symbol);
+            self.by_name.entry(key).or_default().push(idx);
+        }
+
+        // 2. Shared search indexing (bulk)
+        let mut documents = Vec::with_capacity(self.symbols.len() - start_idx);
+        for idx in start_idx..self.symbols.len() {
+            let stored = &self.symbols[idx];
+            let source_str = match &stored.source {
+                SymbolSource::Project => "project",
+                SymbolSource::External(_) => "external",
+            };
+            documents.push(SearchDocument {
+                id: idx.to_string(),
+                title: stored.name.clone(),
+                kind: stored.kind.clone(),
+                path: stored.location.clone(),
+                scope: source_str.to_string(),
+                namespace: stored.crate_name.clone(),
+                terms: vec![
+                    stored.crate_name.clone(),
+                    stored.kind.clone(),
+                    stored.location.clone(),
+                    source_str.to_string(),
+                ],
+            });
+        }
+        let _ = self.search_index.add_documents(documents);
+    }
+
     /// Clear all symbols.
     pub fn clear(&mut self) {
         self.by_name.clear();
