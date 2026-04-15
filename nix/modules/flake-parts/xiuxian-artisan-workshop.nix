@@ -70,9 +70,11 @@
         # };
         "xiuxian-wendao" = {
           drvConfig.mkDerivation.nativeBuildInputs = [ pkgs.protobuf ];
+          profiles.release.runTests = false;
         };
         "xiuxian-daochang" = {
           drvConfig.mkDerivation.nativeBuildInputs = [ pkgs.protobuf ];
+          profiles.release.runTests = false;
         };
         "xiuxian-zhenfa" = {
           depsDrvConfig.mkDerivation = {
