@@ -16,7 +16,7 @@ runs:
     - uses: wimpysworld/nothing-but-nix@main
       if: runner.os == 'Linux'
       with:
-        hatchet-protocol: 'cleave'
+        hatchet-protocol: 'carve'
 
     - name: Install nix
       uses: cachix/install-nix-action@master    
