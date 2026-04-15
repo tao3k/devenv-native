@@ -23,6 +23,8 @@
 
     nci.url = "github:90-008/nix-cargo-integration";
     nci.inputs.nixpkgs.follows = "nixpkgs";
+    nix2container.url = "github:nlewo/nix2container";
+    nix2container.inputs.nixpkgs.follows = "nixpkgs";
     parts.url = "github:hercules-ci/flake-parts";
     parts.inputs.nixpkgs-lib.follows = "nixpkgs";
   };
@@ -55,6 +57,7 @@
               };
           }
           inputs.nci.flakeModule
+          ./nix/modules/flake-parts/containers.nix
           ./nix/modules/flake-parts/xiuxian-artisan-workshop-py.nix
           ./nix/modules/flake-parts/xiuxian-artisan-workshop.nix
         ];
