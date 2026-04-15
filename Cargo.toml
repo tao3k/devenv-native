@@ -151,8 +151,7 @@ insta = { version = "1.46.3", features = ["json", "redactions"] }
 # Performance optimization - Thin LTO for reduced memory
 [profile.release]
 opt-level = 3
-lto = "fat"
-codegen-units = 1
+lto = "thin"
 strip = true
 panic = "abort"
 
