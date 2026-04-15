@@ -4,7 +4,7 @@ use crate::gateway::studio::search::handlers::tests::test_studio_state_with_cach
 #[tokio::test]
 async fn build_code_search_cache_key_is_stable_for_reordered_repo_config() {
     let studio = test_studio_state_with_cache();
-    studio.apply_ui_config(
+    studio.seed_configured_owners_for_tests(
         crate::gateway::studio::types::UiConfig {
             projects: Vec::new(),
             repo_projects: vec![
@@ -32,7 +32,7 @@ async fn build_code_search_cache_key_is_stable_for_reordered_repo_config() {
         .await
         .unwrap_or_else(|error| panic!("left code-search cache key: {error:?}"));
 
-    studio.apply_ui_config(
+    studio.seed_configured_owners_for_tests(
         crate::gateway::studio::types::UiConfig {
             projects: Vec::new(),
             repo_projects: vec![

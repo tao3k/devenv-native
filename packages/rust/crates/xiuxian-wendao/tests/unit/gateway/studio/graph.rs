@@ -79,10 +79,13 @@ fn push_ui_config_from_toml(fixture: &GraphFixture, toml_content: &str) {
         )
         .collect::<Vec<_>>();
 
-    fixture.state.studio.apply_eager_ui_config(UiConfig {
-        projects,
-        repo_projects: Vec::new(),
-    });
+    fixture
+        .state
+        .studio
+        .seed_eager_configured_owners_for_tests(UiConfig {
+            projects,
+            repo_projects: Vec::new(),
+        });
 }
 
 fn sorted_graph_nodes_payload(nodes: Vec<GraphNode>) -> Vec<serde_json::Value> {

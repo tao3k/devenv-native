@@ -29,7 +29,7 @@ async fn graph_index_refreshes_after_document_title_changes() {
     let mut studio = StudioState::new();
     studio.project_root = temp_dir.path().to_path_buf();
     studio.config_root = temp_dir.path().to_path_buf();
-    studio.apply_eager_ui_config(UiConfig {
+    studio.seed_eager_configured_owners_for_tests(UiConfig {
         projects: vec![UiProjectConfig {
             name: "kernel".to_string(),
             root: ".".to_string(),
@@ -132,7 +132,7 @@ async fn graph_neighbors_prefers_kernel_project_docs_over_repo_root_docs() {
     let mut studio = StudioState::new();
     studio.project_root = temp_dir.path().to_path_buf();
     studio.config_root = config_root.clone();
-    studio.apply_eager_ui_config(UiConfig {
+    studio.seed_eager_configured_owners_for_tests(UiConfig {
         projects: vec![
             UiProjectConfig {
                 name: "kernel".to_string(),

@@ -70,7 +70,7 @@ pub use fuzzy::{
 #[cfg(feature = "search-runtime")]
 pub(crate) use knowledge_section::KnowledgeSectionSearchError;
 #[cfg(feature = "search-runtime")]
-pub(crate) use local_symbol::LocalSymbolSearchError;
+pub(crate) use local_symbol::{LocalSymbolSearchError, restore_local_symbol_hits};
 #[cfg(feature = "search-runtime")]
 pub(crate) use manifest::SearchRepoPublicationInput;
 #[cfg(feature = "search-runtime")]

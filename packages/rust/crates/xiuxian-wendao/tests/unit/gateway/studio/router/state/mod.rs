@@ -4,7 +4,9 @@ use crate::gateway::studio::router::state::lifecycle::{
     gateway_start_bootstrap_background_indexing_with_lookup,
 };
 use crate::gateway::studio::router::state::{GatewayState, StudioState, supported_code_kinds};
-use crate::gateway::studio::types::{UiConfig, UiProjectConfig};
+use crate::gateway::studio::types::{
+    AstSearchHit, StudioNavigationTarget, UiConfig, UiProjectConfig,
+};
 use crate::search::{
     SearchCorpusKind, SearchMaintenancePolicy, SearchManifestKeyspace, SearchPlanePhase,
     SearchPlaneService,
@@ -295,7 +297,7 @@ async fn warm_started_local_corpora_do_not_record_spurious_index_started_events(
         reader,
     );
 
-    studio.apply_eager_ui_config(UiConfig {
+    studio.seed_eager_configured_owners_for_tests(UiConfig {
         projects: projects.clone(),
         repo_projects: Vec::new(),
     });
@@ -333,7 +335,94 @@ async fn warm_started_local_corpora_do_not_record_spurious_index_started_events(
 }
 
 #[tokio::test]
-async fn config_apply_starts_local_search_plane_indexes_for_configured_projects() {
+async fn seed_eager_configured_owners_for_tests_warms_symbol_index_from_local_symbol_artifact() {
+    let temp_dir = tempfile::tempdir().unwrap_or_else(|error| panic!("temp dir: {error}"));
+    let project_root = temp_dir.path().join("workspace");
+    let storage_root = temp_dir.path().join("search_plane");
+    std::fs::create_dir_all(project_root.join("src"))
+        .unwrap_or_else(|error| panic!("create src dir: {error}"));
+    std::fs::write(
+        project_root.join("src/lib.rs"),
+        "pub fn ArtifactWarmSymbol() {}\n",
+    )
+    .unwrap_or_else(|error| panic!("write source: {error}"));
+
+    let writer = SearchPlaneService::with_paths(
+        project_root.clone(),
+        storage_root.clone(),
+        SearchManifestKeyspace::new("xiuxian:test:studio-state:symbol-warm-writer"),
+        SearchMaintenancePolicy::default(),
+    );
+    writer
+        .publish_local_symbol_hits(
+            "fp-studio-symbol-warm",
+            &[AstSearchHit {
+                name: "ArtifactWarmSymbol".to_string(),
+                signature: "fn ArtifactWarmSymbol()".to_string(),
+                path: "src/lib.rs".to_string(),
+                language: "rust".to_string(),
+                crate_name: "kernel".to_string(),
+                project_name: None,
+                root_label: None,
+                node_kind: Some("function".to_string()),
+                owner_title: None,
+                navigation_target: StudioNavigationTarget {
+                    path: "src/lib.rs".to_string(),
+                    category: "symbol".to_string(),
+                    project_name: None,
+                    root_label: None,
+                    line: Some(11),
+                    line_end: Some(11),
+                    column: Some(1),
+                },
+                line_start: 11,
+                line_end: 11,
+                score: 0.0,
+            }],
+        )
+        .await
+        .unwrap_or_else(|error| panic!("publish local symbol hits: {error}"));
+
+    let plugin_registry = Arc::new(
+        crate::analyzers::bootstrap_builtin_registry()
+            .unwrap_or_else(|error| panic!("bootstrap registry: {error}")),
+    );
+    let reader = SearchPlaneService::with_paths(
+        project_root.clone(),
+        storage_root,
+        SearchManifestKeyspace::new("xiuxian:test:studio-state:symbol-warm-reader"),
+        SearchMaintenancePolicy::default(),
+    );
+    let studio = StudioState::new_with_bootstrap_ui_config_for_roots_and_search_plane(
+        plugin_registry,
+        project_root.clone(),
+        project_root,
+        reader,
+    );
+
+    studio.seed_eager_configured_owners_for_tests(UiConfig {
+        projects: vec![UiProjectConfig {
+            name: "kernel".to_string(),
+            root: ".".to_string(),
+            dirs: vec!["src".to_string()],
+        }],
+        repo_projects: Vec::new(),
+    });
+    wait_for_symbol_index_ready(&studio).await;
+
+    let symbol_index = studio
+        .current_symbol_index()
+        .unwrap_or_else(|| panic!("studio symbol index should warm from artifact"));
+    let results = symbol_index.search_unified("ArtifactWarmSymbol", 10);
+
+    assert_eq!(results.len(), 1);
+    assert_eq!(results[0].name, "ArtifactWarmSymbol");
+    assert!(results[0].location.starts_with("src/lib.rs:"));
+}
+
+#[tokio::test]
+async fn seed_eager_configured_owners_for_tests_starts_local_search_plane_indexes_for_configured_projects()
+ {
     let temp_dir = tempfile::tempdir().unwrap_or_else(|error| panic!("temp dir: {error}"));
     let project_root = temp_dir.path().join("workspace");
     let storage_root = temp_dir.path().join("search_plane");
@@ -366,7 +455,7 @@ async fn config_apply_starts_local_search_plane_indexes_for_configured_projects(
         search_plane,
     );
 
-    studio.apply_eager_ui_config(UiConfig {
+    studio.seed_eager_configured_owners_for_tests(UiConfig {
         projects: vec![UiProjectConfig {
             name: "kernel".to_string(),
             root: ".".to_string(),
@@ -401,14 +490,17 @@ async fn config_apply_starts_local_search_plane_indexes_for_configured_projects(
     let telemetry = studio.bootstrap_background_indexing_telemetry();
     let cold_start = studio.search_cold_start_telemetry();
     assert!(telemetry.deferred_activation_observed());
-    assert_eq!(telemetry.deferred_activation_source(), Some("config_apply"));
+    assert_eq!(
+        telemetry.deferred_activation_source(),
+        Some("test_configured_owner_seed")
+    );
     for corpus in &cold_start.corpora {
         assert_eq!(
             corpus
                 .first_index_started
                 .as_ref()
                 .and_then(|event| event.source.as_deref()),
-            Some("config_apply")
+            Some("test_configured_owner_seed")
         );
         assert_eq!(
             corpus
@@ -430,7 +522,7 @@ async fn config_apply_starts_local_search_plane_indexes_for_configured_projects(
 }
 
 #[tokio::test]
-async fn config_apply_uses_shared_scan_bundle_for_local_corpus_startup() {
+async fn seed_eager_configured_owners_for_tests_uses_shared_scan_bundle_for_local_corpus_startup() {
     let temp_dir = tempfile::tempdir().unwrap_or_else(|error| panic!("temp dir: {error}"));
     let project_root = temp_dir.path().join("workspace");
     let storage_root = temp_dir.path().join("search_plane");
@@ -463,7 +555,7 @@ async fn config_apply_uses_shared_scan_bundle_for_local_corpus_startup() {
         search_plane,
     );
 
-    studio.apply_eager_ui_config(UiConfig {
+    studio.seed_eager_configured_owners_for_tests(UiConfig {
         projects: vec![UiProjectConfig {
             name: "kernel".to_string(),
             root: ".".to_string(),
@@ -480,25 +572,110 @@ async fn config_apply_uses_shared_scan_bundle_for_local_corpus_startup() {
     let telemetry = studio.search_plane.repeat_work_telemetry();
     assert!(
         telemetry.source_operations.iter().any(|entry| {
-            entry.source == "config_apply"
+            entry.source == "test_configured_owner_seed"
                 && entry.operation == "scan_supported_project_files"
                 && entry.file_observation_count >= 2
         }),
-        "startup should record the shared configured-project scan bundle"
+        "fixture seeding should record the shared configured-project scan bundle"
     );
     assert!(
         telemetry.source_operations.iter().all(|entry| {
-            !((entry.source == "knowledge_section.fingerprint"
-                && entry.operation == "scan_note_project_files")
-                || (entry.source == "attachment.fingerprint"
-                    && entry.operation == "scan_note_project_files")
-                || (entry.source == "local_symbol.fingerprint"
-                    && entry.operation == "scan_symbol_project_files")
-                || (entry.source == "reference_occurrence.fingerprint"
-                    && entry.operation == "scan_source_project_files"))
+            let is_per_corpus_scan = match entry.source.as_str() {
+                "knowledge_section.fingerprint" | "attachment.fingerprint" => {
+                    entry.operation == "scan_note_project_files"
+                }
+                "local_symbol.fingerprint" => entry.operation == "scan_symbol_project_files",
+                "reference_occurrence.fingerprint" => {
+                    entry.operation == "scan_source_project_files"
+                }
+                _ => false,
+            };
+            !is_per_corpus_scan
         }),
-        "optimized startup should avoid one filesystem walk per corpus"
+        "fixture seeding should avoid one filesystem walk per corpus"
     );
+}
+
+#[tokio::test]
+async fn eager_bootstrap_uses_studio_bootstrap_source_instead_of_test_configured_owner_seed() {
+    let temp_dir = tempfile::tempdir().unwrap_or_else(|error| panic!("temp dir: {error}"));
+    let project_root = temp_dir.path().join("workspace");
+    let storage_root = temp_dir.path().join("search_plane");
+    std::fs::create_dir_all(project_root.join("docs"))
+        .unwrap_or_else(|error| panic!("create docs dir: {error}"));
+    std::fs::create_dir_all(project_root.join("src"))
+        .unwrap_or_else(|error| panic!("create src dir: {error}"));
+    std::fs::write(
+        project_root.join("docs/intro.md"),
+        "# Studio Bootstrap\n\nStartup should own configured projects directly.\n",
+    )
+    .unwrap_or_else(|error| panic!("write note: {error}"));
+    std::fs::write(
+        project_root.join("src/lib.rs"),
+        "pub fn studio_bootstrap() {}\n",
+    )
+    .unwrap_or_else(|error| panic!("write source: {error}"));
+    let config_path = project_root.join("wendao.toml");
+    std::fs::write(
+        &config_path,
+        r#"[link_graph.projects.kernel]
+root = "."
+dirs = ["docs", "src"]
+"#,
+    )
+    .unwrap_or_else(|error| panic!("write wendao config: {error}"));
+
+    let plugin_registry = Arc::new(
+        crate::analyzers::bootstrap_builtin_registry()
+            .unwrap_or_else(|error| panic!("bootstrap registry: {error}")),
+    );
+    let search_plane = SearchPlaneService::with_paths(
+        project_root.clone(),
+        storage_root,
+        SearchManifestKeyspace::new("xiuxian:test:studio-state:bootstrap-runtime-source"),
+        SearchMaintenancePolicy::default(),
+    );
+    let studio = StudioState::new_with_bootstrap_ui_config_for_roots_and_search_plane_and_path_and_background_indexing(
+        plugin_registry,
+        project_root.clone(),
+        project_root.clone(),
+        Some(config_path.as_path()),
+        search_plane,
+        true,
+    );
+
+    wait_for_local_corpus_ready(&studio, SearchCorpusKind::KnowledgeSection).await;
+    wait_for_local_corpus_ready(&studio, SearchCorpusKind::LocalSymbol).await;
+    wait_for_local_corpus_ready(&studio, SearchCorpusKind::Attachment).await;
+    wait_for_local_corpus_ready(&studio, SearchCorpusKind::ReferenceOccurrence).await;
+
+    let repeat_work = studio.search_plane.repeat_work_telemetry();
+    assert!(
+        repeat_work.source_operations.iter().any(|entry| {
+            entry.source == "studio_bootstrap"
+                && entry.operation == "scan_supported_project_files"
+                && entry.file_observation_count >= 2
+        }),
+        "bootstrap startup should record the shared configured-project scan bundle"
+    );
+    assert!(
+        repeat_work
+            .source_operations
+            .iter()
+            .all(|entry| entry.source != "test_configured_owner_seed"),
+        "bootstrap startup should not reuse the retired config-apply source"
+    );
+
+    let cold_start = studio.search_cold_start_telemetry();
+    for corpus in &cold_start.corpora {
+        assert_eq!(
+            corpus
+                .first_index_started
+                .as_ref()
+                .and_then(|event| event.source.as_deref()),
+            Some("studio_bootstrap")
+        );
+    }
 }
 
 #[tokio::test]
@@ -532,7 +709,7 @@ async fn knowledge_search_uses_shared_note_scan_bundle_and_primes_attachment() {
         search_plane,
         false,
     );
-    studio.apply_ui_config(
+    studio.seed_configured_owners_for_tests(
         UiConfig {
             projects: vec![UiProjectConfig {
                 name: "kernel".to_string(),
@@ -575,10 +752,11 @@ async fn knowledge_search_uses_shared_note_scan_bundle_and_primes_attachment() {
     );
     assert!(
         telemetry.source_operations.iter().all(|entry| {
-            !((entry.source == "knowledge_section.fingerprint"
-                && entry.operation == "scan_note_project_files")
-                || (entry.source == "attachment.fingerprint"
-                    && entry.operation == "scan_note_project_files"))
+            let is_per_corpus_note_scan = matches!(
+                entry.source.as_str(),
+                "knowledge_section.fingerprint" | "attachment.fingerprint"
+            ) && entry.operation == "scan_note_project_files";
+            !is_per_corpus_note_scan
         }),
         "paired note route startup should avoid per-corpus note scans"
     );
@@ -634,7 +812,7 @@ async fn reference_search_uses_shared_code_scan_bundle_and_primes_local_symbol()
         search_plane,
         false,
     );
-    studio.apply_ui_config(
+    studio.seed_configured_owners_for_tests(
         UiConfig {
             projects: vec![UiProjectConfig {
                 name: "kernel".to_string(),
@@ -728,4 +906,16 @@ async fn wait_for_search_plane_corpus_ready(
         tokio::time::sleep(std::time::Duration::from_millis(20)).await;
     }
     panic!("search-plane corpus `{corpus}` did not reach ready state");
+}
+
+async fn wait_for_symbol_index_ready(studio: &StudioState) {
+    for _ in 0..200 {
+        if studio.current_symbol_index().is_some()
+            && matches!(studio.symbol_index_status(), Ok(status) if status.phase == crate::gateway::studio::symbol_index::SymbolIndexPhase::Ready)
+        {
+            return;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+    }
+    panic!("studio symbol index did not reach ready state");
 }

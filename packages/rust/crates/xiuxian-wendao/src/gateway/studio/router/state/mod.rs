@@ -10,6 +10,8 @@ mod ui;
 #[path = "../../../../../tests/unit/gateway/studio/router/state/mod.rs"]
 mod tests;
 
+#[cfg(any(test, feature = "performance"))]
+pub(crate) use cold_start::StudioSearchColdStartTelemetryState;
 pub use cold_start::{
     StudioSearchColdStartCorpusTelemetry, StudioSearchColdStartEvent,
     StudioSearchColdStartTelemetry,

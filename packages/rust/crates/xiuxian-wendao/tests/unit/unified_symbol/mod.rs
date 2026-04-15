@@ -99,6 +99,38 @@ fn test_unified_search_merges_tantivy_and_memory_hits_without_duplicates() {
 }
 
 #[test]
+fn test_add_symbols_batch_indexes_memory_and_search_documents() {
+    let mut index = UnifiedSymbolIndex::new();
+    index.add_symbols_batch(vec![
+        UnifiedSymbol::new_project("AlphaService", "struct", "src/lib.rs:1", "demo"),
+        UnifiedSymbol::new_project("alpha_handler", "fn", "src/lib.rs:2", "demo"),
+        UnifiedSymbol::new_external("spawn_local", "fn", "lib.rs:1", "tokio"),
+    ]);
+
+    let unified_results = index.search_unified("alpha", 10);
+    assert_eq!(unified_results.len(), 2);
+    assert!(
+        unified_results
+            .iter()
+            .any(|symbol| symbol.name == "AlphaService")
+    );
+    assert!(
+        unified_results
+            .iter()
+            .any(|symbol| symbol.name == "alpha_handler")
+    );
+
+    let external_results = index.search_external("spawn", 10);
+    assert_eq!(external_results.len(), 1);
+    assert_eq!(external_results[0].name, "spawn_local");
+
+    let stats = index.stats();
+    assert_eq!(stats.total_symbols, 3);
+    assert_eq!(stats.project_symbols, 2);
+    assert_eq!(stats.external_symbols, 1);
+}
+
+#[test]
 fn test_stats() {
     let mut index = UnifiedSymbolIndex::new();
     index.add_project_symbol("f1", "fn", "loc", "c1");

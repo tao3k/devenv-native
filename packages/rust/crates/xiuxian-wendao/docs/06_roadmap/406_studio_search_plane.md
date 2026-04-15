@@ -54,6 +54,11 @@ Replace Studio request-path search hot spots with a background-built search plan
 - non-code `search_intent` now merges `knowledge_section`, `local_symbol`, and repo-content hits into a single hybrid response path instead of treating intent as a pure knowledge lookup
 - code-biased Studio search now queries `repo_entity` before repo-content fallback, and hybrid intent merges repo-entity hits into the same ranked response path
 - `search::cache` now fronts repeat autocomplete, knowledge, non-repo intent, repo-scoped code search, and code-biased hybrid intent requests with corpus-aware Valkey keys and silent fallback to direct Lance reads when Valkey is unavailable
+- Studio runtime bootstrap no longer routes eager repo/local-corpus startup
+  through backend `apply_ui_config(...)`. `StudioState` now stores configured
+  local-project and repository owners directly, eager startup records the
+  `studio_bootstrap` source, and test fixtures now seed configured owners
+  through owner-clear helper names instead of config-apply compatibility shims
 - TOML-first search cache precedence is now collapsed into
   `xiuxian-config-core`. `search/cache/config.rs` and
   `search/cache/runtime.rs` consume the shared `toml_first_env!` helper

@@ -69,7 +69,7 @@ pub(crate) fn configure_local_workspace(
 ) {
     studio.project_root = root.to_path_buf();
     studio.config_root = root.to_path_buf();
-    studio.apply_eager_ui_config(UiConfig {
+    studio.seed_eager_configured_owners_for_tests(UiConfig {
         projects: vec![UiProjectConfig {
             name: "kernel".to_string(),
             root: ".".to_string(),

@@ -33,7 +33,7 @@ async fn studio_intent_flight_provider_reads_repo_backed_hits() {
     .unwrap_or_else(|error| panic!("write project: {error}"));
 
     let studio = Arc::new(test_studio_state());
-    studio.apply_eager_ui_config(crate::gateway::studio::types::UiConfig {
+    studio.seed_eager_configured_owners_for_tests(crate::gateway::studio::types::UiConfig {
         projects: Vec::new(),
         repo_projects: vec![crate::gateway::studio::types::UiRepoProjectConfig {
             id: "valid".to_string(),

@@ -52,7 +52,7 @@ fn studio_display_path_prefixes_configured_project_for_relative_paths() {
     let mut state = StudioState::new();
     state.project_root = temp_dir.path().to_path_buf();
     state.config_root = temp_dir.path().to_path_buf();
-    state.apply_eager_ui_config(UiConfig {
+    state.seed_eager_configured_owners_for_tests(UiConfig {
         projects: vec![UiProjectConfig {
             name: "main".to_string(),
             root: ".".to_string(),
@@ -73,7 +73,7 @@ fn studio_display_path_keeps_existing_project_prefixes() {
     let mut state = StudioState::new();
     state.project_root = temp_dir.path().to_path_buf();
     state.config_root = temp_dir.path().to_path_buf();
-    state.apply_eager_ui_config(UiConfig {
+    state.seed_eager_configured_owners_for_tests(UiConfig {
         projects: vec![UiProjectConfig {
             name: "main".to_string(),
             root: ".".to_string(),
@@ -94,7 +94,7 @@ fn studio_display_path_strips_relative_project_root_prefixes() {
     let mut state = StudioState::new();
     state.project_root = temp_dir.path().to_path_buf();
     state.config_root = temp_dir.path().to_path_buf();
-    state.apply_eager_ui_config(UiConfig {
+    state.seed_eager_configured_owners_for_tests(UiConfig {
         projects: vec![UiProjectConfig {
             name: "kernel".to_string(),
             root: "frontend".to_string(),
@@ -115,7 +115,7 @@ fn studio_display_path_prefers_project_root_relative_prefix_for_kernel_docs() {
     let mut state = StudioState::new();
     state.project_root = temp_dir.path().to_path_buf();
     state.config_root = temp_dir.path().join(".data/wendao-frontend");
-    state.apply_eager_ui_config(UiConfig {
+    state.seed_eager_configured_owners_for_tests(UiConfig {
         projects: vec![
             UiProjectConfig {
                 name: "kernel".to_string(),
@@ -147,7 +147,7 @@ fn studio_display_path_prefixes_repo_project_id_for_managed_checkout_paths() {
     init_git_repository(source.path());
     let repo_id = format!("repo-pathing-{}", Uuid::new_v4());
     let state = StudioState::new();
-    state.apply_eager_ui_config(UiConfig {
+    state.seed_eager_configured_owners_for_tests(UiConfig {
         projects: Vec::new(),
         repo_projects: vec![UiRepoProjectConfig {
             id: repo_id.clone(),

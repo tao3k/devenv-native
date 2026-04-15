@@ -21,7 +21,7 @@ fn build_state_for_nested_frontend_config() -> (tempfile::TempDir, StudioState) 
     let mut state = StudioState::new();
     state.project_root = repo_root;
     state.config_root = frontend_root;
-    state.apply_eager_ui_config(UiConfig {
+    state.seed_eager_configured_owners_for_tests(UiConfig {
         projects: vec![
             UiProjectConfig {
                 name: "kernel".to_string(),

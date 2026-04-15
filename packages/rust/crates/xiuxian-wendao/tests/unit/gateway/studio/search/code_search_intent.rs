@@ -41,17 +41,20 @@ async fn search_intent_routes_code_search_to_plain_julia_plugin_repository()
         &registry,
     )?;
 
-    fixture.state.studio.apply_eager_ui_config(UiConfig {
-        projects: fixture.state.studio.configured_projects(),
-        repo_projects: vec![UiRepoProjectConfig {
-            id: repository.id.clone(),
-            root: Some(repo_dir.display().to_string()),
-            url: None,
-            git_ref: None,
-            refresh: None,
-            plugins: vec!["julia".to_string()],
-        }],
-    });
+    fixture
+        .state
+        .studio
+        .seed_eager_configured_owners_for_tests(UiConfig {
+            projects: fixture.state.studio.configured_projects(),
+            repo_projects: vec![UiRepoProjectConfig {
+                id: repository.id.clone(),
+                root: Some(repo_dir.display().to_string()),
+                url: None,
+                git_ref: None,
+                refresh: None,
+                plugins: vec!["julia".to_string()],
+            }],
+        });
     publish_repository_snapshot(
         &fixture.state,
         &repository.id,
@@ -113,17 +116,20 @@ async fn search_intent_routes_code_search_to_plain_modelica_plugin_repository()
         &registry,
     )?;
 
-    fixture.state.studio.apply_eager_ui_config(UiConfig {
-        projects: fixture.state.studio.configured_projects(),
-        repo_projects: vec![UiRepoProjectConfig {
-            id: repository.id.clone(),
-            root: Some(repo_dir.display().to_string()),
-            url: None,
-            git_ref: None,
-            refresh: None,
-            plugins: vec!["modelica".to_string()],
-        }],
-    });
+    fixture
+        .state
+        .studio
+        .seed_eager_configured_owners_for_tests(UiConfig {
+            projects: fixture.state.studio.configured_projects(),
+            repo_projects: vec![UiRepoProjectConfig {
+                id: repository.id.clone(),
+                root: Some(repo_dir.display().to_string()),
+                url: None,
+                git_ref: None,
+                refresh: None,
+                plugins: vec!["modelica".to_string()],
+            }],
+        });
     publish_repository_snapshot(
         &fixture.state,
         &repository.id,
@@ -169,17 +175,20 @@ async fn search_intent_routes_code_search_to_search_only_rust_repo_from_plain_se
     let fixture = make_state_with_docs(Vec::new());
     let repo_dir = create_sample_rust_repo(fixture.temp_dir.path(), "SearchRust")?;
 
-    fixture.state.studio.apply_eager_ui_config(UiConfig {
-        projects: fixture.state.studio.configured_projects(),
-        repo_projects: vec![UiRepoProjectConfig {
-            id: "lance".to_string(),
-            root: Some(repo_dir.display().to_string()),
-            url: Some("https://github.com/lance-format/lance".to_string()),
-            git_ref: None,
-            refresh: None,
-            plugins: vec!["ast-grep".to_string()],
-        }],
-    });
+    fixture
+        .state
+        .studio
+        .seed_eager_configured_owners_for_tests(UiConfig {
+            projects: fixture.state.studio.configured_projects(),
+            repo_projects: vec![UiRepoProjectConfig {
+                id: "lance".to_string(),
+                root: Some(repo_dir.display().to_string()),
+                url: Some("https://github.com/lance-format/lance".to_string()),
+                git_ref: None,
+                refresh: None,
+                plugins: vec!["ast-grep".to_string()],
+            }],
+        });
 
     let (response, _metadata) = load_intent_search_response_with_metadata(
         fixture.state.studio.as_ref(),
@@ -219,17 +228,20 @@ async fn search_intent_routes_code_search_to_search_only_rust_and_toml_hits()
     let fixture = make_state_with_docs(Vec::new());
     let repo_dir = create_sample_rust_repo(fixture.temp_dir.path(), "SearchRust")?;
 
-    fixture.state.studio.apply_eager_ui_config(UiConfig {
-        projects: fixture.state.studio.configured_projects(),
-        repo_projects: vec![UiRepoProjectConfig {
-            id: "lance".to_string(),
-            root: Some(repo_dir.display().to_string()),
-            url: Some("https://github.com/lance-format/lance".to_string()),
-            git_ref: None,
-            refresh: None,
-            plugins: vec!["ast-grep".to_string()],
-        }],
-    });
+    fixture
+        .state
+        .studio
+        .seed_eager_configured_owners_for_tests(UiConfig {
+            projects: fixture.state.studio.configured_projects(),
+            repo_projects: vec![UiRepoProjectConfig {
+                id: "lance".to_string(),
+                root: Some(repo_dir.display().to_string()),
+                url: Some("https://github.com/lance-format/lance".to_string()),
+                git_ref: None,
+                refresh: None,
+                plugins: vec!["ast-grep".to_string()],
+            }],
+        });
 
     let (rust_response, _metadata) = load_intent_search_response_with_metadata(
         fixture.state.studio.as_ref(),
@@ -296,17 +308,20 @@ async fn search_intent_snapshots_search_only_ast_grep_query_payloads()
     let fixture = make_state_with_docs(Vec::new());
     let repo_dir = create_sample_rust_repo(fixture.temp_dir.path(), "SearchRust")?;
 
-    fixture.state.studio.apply_eager_ui_config(UiConfig {
-        projects: fixture.state.studio.configured_projects(),
-        repo_projects: vec![UiRepoProjectConfig {
-            id: "lance".to_string(),
-            root: Some(repo_dir.display().to_string()),
-            url: Some("https://github.com/lance-format/lance".to_string()),
-            git_ref: None,
-            refresh: None,
-            plugins: vec!["ast-grep".to_string()],
-        }],
-    });
+    fixture
+        .state
+        .studio
+        .seed_eager_configured_owners_for_tests(UiConfig {
+            projects: fixture.state.studio.configured_projects(),
+            repo_projects: vec![UiRepoProjectConfig {
+                id: "lance".to_string(),
+                root: Some(repo_dir.display().to_string()),
+                url: Some("https://github.com/lance-format/lance".to_string()),
+                git_ref: None,
+                refresh: None,
+                plugins: vec!["ast-grep".to_string()],
+            }],
+        });
 
     let plain_seed = load_code_search_intent_response(fixture.state.studio.as_ref(), "lance").await;
     let rust_filter =

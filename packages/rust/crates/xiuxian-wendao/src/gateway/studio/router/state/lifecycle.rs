@@ -9,9 +9,10 @@ use crate::gateway::studio::router::config::{
     resolve_studio_config_root,
 };
 use crate::gateway::studio::router::state::cold_start::StudioSearchColdStartTelemetryState;
-use crate::gateway::studio::router::state::types::{GatewayState, StudioState};
+use crate::gateway::studio::router::state::types::{
+    GatewayState, StudioConfiguredOwners, StudioState,
+};
 use crate::gateway::studio::symbol_index::SymbolIndexCoordinator;
-use crate::gateway::studio::types::UiConfig;
 use crate::link_graph::LinkGraphIndex;
 use crate::repo_index::start_repo_index_coordinator;
 use crate::search::SearchPlaneService;
@@ -120,6 +121,7 @@ impl StudioState {
         let symbol_index_coordinator = Arc::new(SymbolIndexCoordinator::new(
             project_root.clone(),
             config_root.clone(),
+            search_plane.clone(),
         ));
         let state = Self {
             project_root,
@@ -133,10 +135,7 @@ impl StudioState {
             bootstrap_background_indexing_deferred_activation: Arc::new(std::sync::RwLock::new(
                 None,
             )),
-            ui_config: Arc::new(std::sync::RwLock::new(UiConfig {
-                projects: Vec::new(),
-                repo_projects: Vec::new(),
-            })),
+            configured_owners: Arc::new(std::sync::RwLock::new(StudioConfiguredOwners::default())),
             graph_index: Arc::new(std::sync::RwLock::new(None)),
             symbol_index: Arc::new(std::sync::RwLock::new(None)),
             symbol_index_coordinator,
@@ -283,7 +282,7 @@ impl StudioState {
                     "deferred"
                 }
             );
-            state.apply_ui_config(config, eager_background_indexing);
+            state.bootstrap_runtime_ui_config(config, eager_background_indexing);
         }
         state
     }

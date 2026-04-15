@@ -6,21 +6,30 @@ use xiuxian_ast::Lang;
 use crate::gateway::studio::router::repository::configured_repositories;
 use crate::gateway::studio::router::sanitization::{sanitize_projects, sanitize_repo_projects};
 use crate::gateway::studio::router::state::helpers::supported_code_kinds;
-use crate::gateway::studio::router::state::types::StudioState;
+use crate::gateway::studio::router::state::types::{StudioConfiguredOwners, StudioState};
 use crate::gateway::studio::types::{
     UiCapabilities, UiConfig, UiProjectConfig, UiRepoProjectConfig,
 };
 use crate::repo_index::RepoIndexStatusResponse;
 use crate::search::SearchCorpusKind;
 
-const CONFIG_APPLY_SOURCE: &str = "config_apply";
+const BOOTSTRAP_RUNTIME_SOURCE: &str = "studio_bootstrap";
+#[cfg(test)]
+const TEST_CONFIGURED_OWNER_SEED_SOURCE: &str = "test_configured_owner_seed";
 
 impl StudioState {
+    pub(crate) fn configured_owners_from_ui_config(config: UiConfig) -> StudioConfiguredOwners {
+        StudioConfiguredOwners {
+            projects: sanitize_projects(config.projects),
+            repo_projects: sanitize_repo_projects(config.repo_projects),
+        }
+    }
+
     pub(crate) fn ui_config(&self) -> UiConfig {
-        self.ui_config
+        self.configured_owners
             .read()
             .unwrap_or_else(std::sync::PoisonError::into_inner)
-            .clone()
+            .ui_config()
     }
 
     pub(crate) fn ui_capabilities(&self) -> UiCapabilities {
@@ -69,8 +78,20 @@ impl StudioState {
     }
 
     #[cfg(test)]
-    pub(crate) fn apply_eager_ui_config(&self, config: UiConfig) {
-        self.apply_ui_config(config, true);
+    pub(crate) fn seed_eager_configured_owners_for_tests(&self, config: UiConfig) {
+        self.seed_configured_owners_for_tests(config, true);
+    }
+
+    pub(crate) fn bootstrap_runtime_ui_config(
+        &self,
+        config: UiConfig,
+        eager_background_indexing: bool,
+    ) {
+        self.sync_configured_runtime_owners(
+            config,
+            eager_background_indexing,
+            BOOTSTRAP_RUNTIME_SOURCE,
+        );
     }
 
     fn ensure_repo_background_indexing_started(&self, source: &'static str) {
@@ -99,7 +120,7 @@ impl StudioState {
             let note_files = scan_inventory.note_files();
             let source_files = scan_inventory.source_files();
             self.symbol_index_coordinator
-                .sync_projects(configured_projects, Arc::clone(&self.symbol_index));
+                .sync_projects(search_projects.clone(), Arc::clone(&self.symbol_index));
             if self
                 .search_plane
                 .ensure_knowledge_section_index_started_with_scanned_files(
@@ -151,22 +172,25 @@ impl StudioState {
         self.ensure_repo_background_indexing_started(source);
     }
 
-    pub(crate) fn apply_ui_config(&self, config: UiConfig, eager_background_indexing: bool) {
-        let sanitized_projects = sanitize_projects(config.projects);
-        let sanitized_repo_projects = sanitize_repo_projects(config.repo_projects);
+    fn sync_configured_runtime_owners(
+        &self,
+        config: UiConfig,
+        eager_background_indexing: bool,
+        source: &'static str,
+    ) {
+        let configured_owners = Self::configured_owners_from_ui_config(config);
         let mut guard = self
-            .ui_config
+            .configured_owners
             .write()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
-        if guard.projects == sanitized_projects && guard.repo_projects == sanitized_repo_projects {
+        if *guard == configured_owners {
             drop(guard);
             if eager_background_indexing {
-                self.ensure_background_indexes_started(CONFIG_APPLY_SOURCE);
+                self.ensure_background_indexes_started(source);
             }
             return;
         }
-        guard.projects = sanitized_projects;
-        guard.repo_projects = sanitized_repo_projects;
+        *guard = configured_owners;
         drop(guard);
 
         let mut graph_guard = self
@@ -191,8 +215,21 @@ impl StudioState {
         drop(vfs_guard);
 
         if eager_background_indexing {
-            self.ensure_background_indexes_started(CONFIG_APPLY_SOURCE);
+            self.ensure_background_indexes_started(source);
         }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn seed_configured_owners_for_tests(
+        &self,
+        config: UiConfig,
+        eager_background_indexing: bool,
+    ) {
+        self.sync_configured_runtime_owners(
+            config,
+            eager_background_indexing,
+            TEST_CONFIGURED_OWNER_SEED_SOURCE,
+        );
     }
 
     pub(crate) fn repo_index_status(&self, repo: Option<&str>) -> RepoIndexStatusResponse {
@@ -206,7 +243,7 @@ impl StudioState {
     }
 
     pub(crate) fn configured_projects(&self) -> Vec<UiProjectConfig> {
-        self.ui_config
+        self.configured_owners
             .read()
             .unwrap_or_else(std::sync::PoisonError::into_inner)
             .projects
@@ -214,7 +251,7 @@ impl StudioState {
     }
 
     pub(crate) fn configured_repo_projects(&self) -> Vec<UiRepoProjectConfig> {
-        self.ui_config
+        self.configured_owners
             .read()
             .unwrap_or_else(std::sync::PoisonError::into_inner)
             .repo_projects

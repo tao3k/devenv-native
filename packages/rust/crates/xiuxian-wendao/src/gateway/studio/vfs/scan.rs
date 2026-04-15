@@ -5,7 +5,7 @@ use std::time::Instant;
 use walkdir::{DirEntry, WalkDir};
 
 use crate::gateway::studio::router::StudioState;
-use crate::gateway::studio::types::{UiConfig, VfsScanEntry, VfsScanResult};
+use crate::gateway::studio::types::{VfsScanEntry, VfsScanResult};
 
 use super::categories::guess_category;
 use super::filters::ProjectFileFilter;
@@ -22,7 +22,6 @@ pub(crate) fn scan_all_roots(state: &StudioState) -> VfsScanResult {
     let mut counters = VfsCounters { files: 0, dirs: 0 };
 
     let roots = resolve_all_vfs_roots(state);
-    let config = state.ui_config();
 
     for root in roots {
         scan_directory(
@@ -31,7 +30,6 @@ pub(crate) fn scan_all_roots(state: &StudioState) -> VfsScanResult {
             root.root_label.as_deref(),
             root.request_root.as_str(),
             root.filter_prefix.as_str(),
-            &config,
             &mut counters,
             &root.file_filters,
             &mut entries,
@@ -79,7 +77,6 @@ fn scan_directory(
     root_label: Option<&str>,
     request_root: &str,
     filter_prefix: &str,
-    _config: &UiConfig,
     counters: &mut VfsCounters,
     filters: &[ProjectFileFilter],
     entries: &mut Vec<VfsScanEntry>,

@@ -15,7 +15,7 @@ use crate::search::{SearchCorpusKind, SearchQueryTelemetrySource};
 #[tokio::test]
 async fn build_code_search_response_returns_repo_entity_hits_from_search_plane() {
     let studio = test_studio_state();
-    studio.apply_eager_ui_config(crate::gateway::studio::types::UiConfig {
+    studio.seed_eager_configured_owners_for_tests(crate::gateway::studio::types::UiConfig {
         projects: Vec::new(),
         repo_projects: vec![crate::gateway::studio::types::UiRepoProjectConfig {
             id: "valid".to_string(),
@@ -82,7 +82,7 @@ async fn build_code_search_response_returns_repo_entity_hits_from_search_plane()
 #[tokio::test]
 async fn build_code_search_response_prefers_repo_entity_hits_before_repo_content_fallback() {
     let studio = test_studio_state();
-    studio.apply_eager_ui_config(crate::gateway::studio::types::UiConfig {
+    studio.seed_eager_configured_owners_for_tests(crate::gateway::studio::types::UiConfig {
         projects: Vec::new(),
         repo_projects: vec![crate::gateway::studio::types::UiRepoProjectConfig {
             id: "valid".to_string(),
@@ -159,7 +159,7 @@ async fn build_code_search_response_prefers_repo_entity_hits_before_repo_content
 #[tokio::test]
 async fn repo_entity_search_hits_record_query_core_telemetry_into_search_plane_status() {
     let studio = test_studio_state();
-    studio.apply_eager_ui_config(crate::gateway::studio::types::UiConfig {
+    studio.seed_eager_configured_owners_for_tests(crate::gateway::studio::types::UiConfig {
         projects: Vec::new(),
         repo_projects: vec![crate::gateway::studio::types::UiRepoProjectConfig {
             id: "valid".to_string(),

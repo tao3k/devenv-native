@@ -21,6 +21,28 @@ impl UnifiedSymbolIndex {
         self.add_symbol(symbol);
     }
 
+    /// Add multiple symbols and index them in a single Tantivy batch.
+    pub fn add_symbols_batch(&mut self, symbols: Vec<UnifiedSymbol>) {
+        if symbols.is_empty() {
+            return;
+        }
+
+        let base_idx = self.symbols.len();
+        let mut documents = Vec::with_capacity(symbols.len());
+
+        for (offset, symbol) in symbols.into_iter().enumerate() {
+            let idx = base_idx + offset;
+            self.by_name
+                .entry(symbol.name.to_lowercase())
+                .or_default()
+                .push(idx);
+            documents.push(search_document_for_symbol(idx, &symbol));
+            self.symbols.push(symbol);
+        }
+
+        let _ = self.search_index.add_documents(documents);
+    }
+
     /// Add a symbol from `repo_intelligence` analysis.
     pub fn add_symbol_record(&mut self, record: &crate::analyzers::SymbolRecord) {
         let kind_str = match record.kind {
@@ -66,32 +88,7 @@ impl UnifiedSymbolIndex {
     }
 
     pub(crate) fn add_symbol(&mut self, symbol: UnifiedSymbol) {
-        // 1. In-memory fallback
-        let idx = self.symbols.len();
-        let key = symbol.name.to_lowercase();
-        self.symbols.push(symbol);
-        self.by_name.entry(key).or_default().push(idx);
-
-        // 2. Shared search indexing
-        let stored = &self.symbols[idx];
-        let source_str = match &stored.source {
-            SymbolSource::Project => "project",
-            SymbolSource::External(_) => "external",
-        };
-        let _ = self.search_index.add_document(&SearchDocument {
-            id: idx.to_string(),
-            title: stored.name.clone(),
-            kind: stored.kind.clone(),
-            path: stored.location.clone(),
-            scope: source_str.to_string(),
-            namespace: stored.crate_name.clone(),
-            terms: vec![
-                stored.crate_name.clone(),
-                stored.kind.clone(),
-                stored.location.clone(),
-                source_str.to_string(),
-            ],
-        });
+        self.add_symbols_batch(vec![symbol]);
     }
 
     /// Clear all symbols.
@@ -101,5 +98,27 @@ impl UnifiedSymbolIndex {
         self.external_usage.clear();
         self.project_files.clear();
         self.search_index = crate::SearchDocumentIndex::new();
+    }
+}
+
+fn search_document_for_symbol(id: usize, symbol: &UnifiedSymbol) -> SearchDocument {
+    let scope = match &symbol.source {
+        SymbolSource::Project => "project",
+        SymbolSource::External(_) => "external",
+    };
+
+    SearchDocument {
+        id: id.to_string(),
+        title: symbol.name.clone(),
+        kind: symbol.kind.clone(),
+        path: symbol.location.clone(),
+        scope: scope.to_string(),
+        namespace: symbol.crate_name.clone(),
+        terms: vec![
+            symbol.crate_name.clone(),
+            symbol.kind.clone(),
+            symbol.location.clone(),
+            scope.to_string(),
+        ],
     }
 }

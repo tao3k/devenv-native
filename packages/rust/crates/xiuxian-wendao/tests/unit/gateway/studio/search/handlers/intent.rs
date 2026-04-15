@@ -25,7 +25,7 @@ use crate::repo_index::{
 #[tokio::test]
 async fn build_intent_cache_key_is_stable_for_reordered_repo_config() {
     let studio = test_studio_state_with_cache();
-    studio.apply_ui_config(
+    studio.seed_configured_owners_for_tests(
         crate::gateway::studio::types::UiConfig {
             projects: Vec::new(),
             repo_projects: vec![
@@ -60,7 +60,7 @@ async fn build_intent_cache_key_is_stable_for_reordered_repo_config() {
     )
     .await
     .unwrap_or_else(|error| panic!("left intent cache key: {error:?}"));
-    studio.apply_ui_config(
+    studio.seed_configured_owners_for_tests(
         crate::gateway::studio::types::UiConfig {
             projects: Vec::new(),
             repo_projects: vec![
@@ -116,7 +116,7 @@ async fn build_intent_search_response_includes_repo_content_hits_for_debug_looku
     .unwrap_or_else(|error| panic!("write project: {error}"));
 
     let studio = test_studio_state();
-    studio.apply_eager_ui_config(crate::gateway::studio::types::UiConfig {
+    studio.seed_eager_configured_owners_for_tests(crate::gateway::studio::types::UiConfig {
         projects: Vec::new(),
         repo_projects: vec![crate::gateway::studio::types::UiRepoProjectConfig {
             id: "valid".to_string(),
@@ -201,7 +201,7 @@ async fn load_intent_search_response_reports_repo_content_flight_transport_metad
     .unwrap_or_else(|error| panic!("write project: {error}"));
 
     let studio = test_studio_state();
-    studio.apply_eager_ui_config(crate::gateway::studio::types::UiConfig {
+    studio.seed_eager_configured_owners_for_tests(crate::gateway::studio::types::UiConfig {
         projects: Vec::new(),
         repo_projects: vec![crate::gateway::studio::types::UiRepoProjectConfig {
             id: "valid".to_string(),
@@ -354,7 +354,7 @@ threads = 2
     .unwrap_or_else(|error| panic!("write project: {error}"));
 
     let studio = test_studio_state();
-    studio.apply_eager_ui_config(crate::gateway::studio::types::UiConfig {
+    studio.seed_eager_configured_owners_for_tests(crate::gateway::studio::types::UiConfig {
         projects: Vec::new(),
         repo_projects: vec![crate::gateway::studio::types::UiRepoProjectConfig {
             id: "valid".to_string(),
@@ -413,7 +413,7 @@ threads = 2
 #[tokio::test]
 async fn build_intent_search_response_includes_repo_entity_hits_for_debug_lookup() {
     let studio = test_studio_state();
-    studio.apply_eager_ui_config(crate::gateway::studio::types::UiConfig {
+    studio.seed_eager_configured_owners_for_tests(crate::gateway::studio::types::UiConfig {
         projects: Vec::new(),
         repo_projects: vec![crate::gateway::studio::types::UiRepoProjectConfig {
             id: "valid".to_string(),

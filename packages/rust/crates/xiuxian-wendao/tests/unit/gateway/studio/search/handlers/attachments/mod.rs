@@ -23,7 +23,7 @@ async fn studio_attachment_search_flight_provider_uses_attachment_contract() {
     let mut studio = crate::gateway::studio::search::handlers::tests::test_studio_state();
     studio.project_root = project_root.path().to_path_buf();
     studio.config_root = project_root.path().to_path_buf();
-    studio.apply_eager_ui_config(crate::gateway::studio::types::UiConfig {
+    studio.seed_eager_configured_owners_for_tests(crate::gateway::studio::types::UiConfig {
         projects: vec![crate::gateway::studio::types::UiProjectConfig {
             name: "kernel".to_string(),
             root: ".".to_string(),

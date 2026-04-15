@@ -7,7 +7,7 @@ use serde::Serialize;
 use crate::analyzers::registry::PluginRegistry;
 use crate::gateway::studio::router::state::cold_start::StudioSearchColdStartTelemetryState;
 use crate::gateway::studio::symbol_index::{SymbolIndexCoordinator, timestamp_now};
-use crate::gateway::studio::types::UiConfig;
+use crate::gateway::studio::types::{UiConfig, UiProjectConfig, UiRepoProjectConfig};
 use crate::link_graph::LinkGraphIndex;
 use crate::repo_index::RepoIndexCoordinator;
 use crate::search::SearchPlaneService;
@@ -70,6 +70,21 @@ impl StudioBootstrapBackgroundIndexingTelemetry {
     }
 }
 
+#[derive(Clone, Default, PartialEq, Eq)]
+pub(crate) struct StudioConfiguredOwners {
+    pub(crate) projects: Vec<UiProjectConfig>,
+    pub(crate) repo_projects: Vec<UiRepoProjectConfig>,
+}
+
+impl StudioConfiguredOwners {
+    pub(crate) fn ui_config(&self) -> UiConfig {
+        UiConfig {
+            projects: self.projects.clone(),
+            repo_projects: self.repo_projects.clone(),
+        }
+    }
+}
+
 /// Shared state for the Studio API.
 ///
 /// Contains configuration, VFS roots, and cached graph index.
@@ -82,7 +97,7 @@ pub struct StudioState {
     pub(crate) cold_start_telemetry: Arc<RwLock<StudioSearchColdStartTelemetryState>>,
     pub(crate) bootstrap_background_indexing_deferred_activation:
         Arc<RwLock<Option<DeferredBootstrapBackgroundIndexingActivation>>>,
-    pub(crate) ui_config: Arc<RwLock<UiConfig>>,
+    pub(crate) configured_owners: Arc<RwLock<StudioConfiguredOwners>>,
     pub(crate) graph_index: Arc<RwLock<Option<Arc<LinkGraphIndex>>>>,
     pub(crate) symbol_index: Arc<RwLock<Option<Arc<UnifiedSymbolIndex>>>>,
     pub(crate) symbol_index_coordinator: Arc<SymbolIndexCoordinator>,

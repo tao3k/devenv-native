@@ -35,7 +35,7 @@ fn scan_all_roots_includes_repo_project_checkout_entries() {
     init_git_repository(source.path());
     let repo_id = format!("repo-vfs-{}", Uuid::new_v4());
     let state = StudioState::new();
-    state.apply_eager_ui_config(UiConfig {
+    state.seed_eager_configured_owners_for_tests(UiConfig {
         projects: Vec::new(),
         repo_projects: vec![UiRepoProjectConfig {
             id: repo_id.clone(),
@@ -76,7 +76,7 @@ fn resolve_vfs_path_supports_repo_project_checkout_files() {
     init_git_repository(source.path());
     let repo_id = format!("repo-vfs-resolve-{}", Uuid::new_v4());
     let state = StudioState::new();
-    state.apply_eager_ui_config(UiConfig {
+    state.seed_eager_configured_owners_for_tests(UiConfig {
         projects: Vec::new(),
         repo_projects: vec![UiRepoProjectConfig {
             id: repo_id.clone(),
@@ -117,7 +117,7 @@ fn scan_roots_reuses_cached_entries_until_ui_config_changes() {
         .unwrap_or_else(|error| panic!("write guide: {error}"));
 
     let state = StudioState::new();
-    state.apply_eager_ui_config(UiConfig {
+    state.seed_eager_configured_owners_for_tests(UiConfig {
         projects: vec![crate::gateway::studio::types::UiProjectConfig {
             name: "kernel".to_string(),
             root: project_root.display().to_string(),
@@ -143,7 +143,7 @@ fn scan_roots_reuses_cached_entries_until_ui_config_changes() {
     fs::write(notes_dir.join("todo.md"), "# todo\n")
         .unwrap_or_else(|error| panic!("write note: {error}"));
 
-    state.apply_eager_ui_config(UiConfig {
+    state.seed_eager_configured_owners_for_tests(UiConfig {
         projects: vec![crate::gateway::studio::types::UiProjectConfig {
             name: "kernel".to_string(),
             root: project_root.display().to_string(),

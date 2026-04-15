@@ -21,7 +21,7 @@ fn resolve_registered_repository_id_prefers_toml_repository_id() {
 #[test]
 fn configured_repository_accepts_toml_repository_id() {
     let state = StudioState::new();
-    state.apply_eager_ui_config(UiConfig {
+    state.seed_eager_configured_owners_for_tests(UiConfig {
         projects: Vec::new(),
         repo_projects: vec![UiRepoProjectConfig {
             id: "lance".to_string(),

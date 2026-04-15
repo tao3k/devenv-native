@@ -39,7 +39,7 @@ async fn build_code_search_response_returns_hits_for_plain_julia_plugin_reposito
         analyze_registered_repository_with_registry(&repository, temp.path(), &registry)?;
 
     let studio = test_studio_state();
-    studio.apply_eager_ui_config(crate::gateway::studio::types::UiConfig {
+    studio.seed_eager_configured_owners_for_tests(crate::gateway::studio::types::UiConfig {
         projects: Vec::new(),
         repo_projects: vec![crate::gateway::studio::types::UiRepoProjectConfig {
             id: repository.id.clone(),
@@ -100,7 +100,7 @@ async fn build_code_search_response_returns_hits_for_plain_modelica_plugin_repos
         analyze_registered_repository_with_registry(&repository, temp.path(), &registry)?;
 
     let studio = test_studio_state();
-    studio.apply_eager_ui_config(crate::gateway::studio::types::UiConfig {
+    studio.seed_eager_configured_owners_for_tests(crate::gateway::studio::types::UiConfig {
         projects: Vec::new(),
         repo_projects: vec![crate::gateway::studio::types::UiRepoProjectConfig {
             id: repository.id.clone(),
@@ -149,7 +149,7 @@ async fn build_code_search_response_supports_repo_scoped_ast_grep_without_publis
     let repo_dir = create_sample_rust_repo(temp.path(), "SearchRust")?;
 
     let studio = test_studio_state();
-    studio.apply_eager_ui_config(crate::gateway::studio::types::UiConfig {
+    studio.seed_eager_configured_owners_for_tests(crate::gateway::studio::types::UiConfig {
         projects: Vec::new(),
         repo_projects: vec![crate::gateway::studio::types::UiRepoProjectConfig {
             id: "rust-live".to_string(),
@@ -193,7 +193,7 @@ async fn build_code_search_response_supports_repo_scoped_generic_ast_analysis_wi
     let repo_dir = create_sample_rust_repo(temp.path(), "SearchRust")?;
 
     let studio = test_studio_state();
-    studio.apply_eager_ui_config(crate::gateway::studio::types::UiConfig {
+    studio.seed_eager_configured_owners_for_tests(crate::gateway::studio::types::UiConfig {
         projects: Vec::new(),
         repo_projects: vec![crate::gateway::studio::types::UiRepoProjectConfig {
             id: "rust-live".to_string(),
@@ -234,7 +234,7 @@ async fn build_code_search_response_treats_placeholder_ast_pattern_as_generic_an
     let repo_dir = create_sample_rust_repo(temp.path(), "SearchRust")?;
 
     let studio = test_studio_state();
-    studio.apply_eager_ui_config(crate::gateway::studio::types::UiConfig {
+    studio.seed_eager_configured_owners_for_tests(crate::gateway::studio::types::UiConfig {
         projects: Vec::new(),
         repo_projects: vec![crate::gateway::studio::types::UiRepoProjectConfig {
             id: "rust-live".to_string(),
@@ -278,7 +278,7 @@ async fn build_code_search_response_treats_search_only_repo_seed_as_generic_anal
     let repo_dir = create_sample_rust_repo(temp.path(), "SearchRust")?;
 
     let studio = test_studio_state();
-    studio.apply_eager_ui_config(crate::gateway::studio::types::UiConfig {
+    studio.seed_eager_configured_owners_for_tests(crate::gateway::studio::types::UiConfig {
         projects: Vec::new(),
         repo_projects: vec![crate::gateway::studio::types::UiRepoProjectConfig {
             id: "lance".to_string(),
@@ -318,7 +318,7 @@ async fn build_code_search_response_returns_rust_hits_for_search_only_repo_seed_
     let repo_dir = create_sample_rust_repo(temp.path(), "SearchRust")?;
 
     let studio = test_studio_state();
-    studio.apply_eager_ui_config(crate::gateway::studio::types::UiConfig {
+    studio.seed_eager_configured_owners_for_tests(crate::gateway::studio::types::UiConfig {
         projects: Vec::new(),
         repo_projects: vec![crate::gateway::studio::types::UiRepoProjectConfig {
             id: "lance".to_string(),
@@ -358,7 +358,7 @@ async fn build_code_search_response_returns_toml_hits_for_search_only_repo_seed_
     let repo_dir = create_sample_rust_repo(temp.path(), "SearchRust")?;
 
     let studio = test_studio_state();
-    studio.apply_eager_ui_config(crate::gateway::studio::types::UiConfig {
+    studio.seed_eager_configured_owners_for_tests(crate::gateway::studio::types::UiConfig {
         projects: Vec::new(),
         repo_projects: vec![crate::gateway::studio::types::UiRepoProjectConfig {
             id: "lance".to_string(),
@@ -398,7 +398,7 @@ async fn build_code_search_response_snapshots_search_only_ast_grep_query_payload
     let repo_dir = create_sample_rust_repo(temp.path(), "SearchRust")?;
 
     let studio = test_studio_state();
-    studio.apply_eager_ui_config(crate::gateway::studio::types::UiConfig {
+    studio.seed_eager_configured_owners_for_tests(crate::gateway::studio::types::UiConfig {
         projects: Vec::new(),
         repo_projects: vec![crate::gateway::studio::types::UiRepoProjectConfig {
             id: "lance".to_string(),
@@ -439,7 +439,7 @@ async fn build_code_search_response_treats_repo_alias_search_term_as_scope_for_p
     let repo_dir = create_sample_rust_repo(temp.path(), "SearchRust")?;
 
     let studio = test_studio_state();
-    studio.apply_eager_ui_config(crate::gateway::studio::types::UiConfig {
+    studio.seed_eager_configured_owners_for_tests(crate::gateway::studio::types::UiConfig {
         projects: Vec::new(),
         repo_projects: vec![crate::gateway::studio::types::UiRepoProjectConfig {
             id: "lancd".to_string(),
@@ -483,7 +483,7 @@ async fn build_code_search_response_infers_repo_scope_from_repository_url_alias(
     let repo_dir = create_sample_rust_repo(temp.path(), "SearchRust")?;
 
     let studio = test_studio_state();
-    studio.apply_eager_ui_config(crate::gateway::studio::types::UiConfig {
+    studio.seed_eager_configured_owners_for_tests(crate::gateway::studio::types::UiConfig {
         projects: Vec::new(),
         repo_projects: vec![crate::gateway::studio::types::UiRepoProjectConfig {
             id: "lancd".to_string(),
@@ -527,7 +527,7 @@ async fn build_code_search_response_supports_repo_scoped_ast_grep_for_html_witho
     let repo_dir = create_sample_html_repo(temp.path(), "SearchHtml")?;
 
     let studio = test_studio_state();
-    studio.apply_eager_ui_config(crate::gateway::studio::types::UiConfig {
+    studio.seed_eager_configured_owners_for_tests(crate::gateway::studio::types::UiConfig {
         projects: Vec::new(),
         repo_projects: vec![crate::gateway::studio::types::UiRepoProjectConfig {
             id: "html-live".to_string(),
@@ -571,7 +571,7 @@ async fn build_code_search_response_excludes_language_owned_by_non_ast_plugin_fr
     let repo_dir = create_sample_toml_repo(temp.path(), "OwnedToml")?;
 
     let studio = test_studio_state();
-    studio.apply_eager_ui_config(crate::gateway::studio::types::UiConfig {
+    studio.seed_eager_configured_owners_for_tests(crate::gateway::studio::types::UiConfig {
         projects: Vec::new(),
         repo_projects: vec![crate::gateway::studio::types::UiRepoProjectConfig {
             id: "toml-owned".to_string(),
@@ -612,7 +612,7 @@ async fn build_code_search_response_rejects_ast_grep_without_explicit_repository
     let repo_dir = create_sample_rust_repo(temp.path(), "SearchRust")?;
 
     let studio = test_studio_state();
-    studio.apply_eager_ui_config(crate::gateway::studio::types::UiConfig {
+    studio.seed_eager_configured_owners_for_tests(crate::gateway::studio::types::UiConfig {
         projects: Vec::new(),
         repo_projects: vec![crate::gateway::studio::types::UiRepoProjectConfig {
             id: "rust-live".to_string(),

@@ -24,7 +24,7 @@ fn resolve_navigation_target_prefixes_configured_project_for_relative_docs_path(
     let mut state = StudioState::new();
     state.project_root = temp_dir.path().to_path_buf();
     state.config_root = temp_dir.path().to_path_buf();
-    state.apply_eager_ui_config(UiConfig {
+    state.seed_eager_configured_owners_for_tests(UiConfig {
         projects: vec![UiProjectConfig {
             name: "main".to_string(),
             root: ".".to_string(),
@@ -45,7 +45,7 @@ fn resolve_navigation_target_sets_repo_project_name_for_managed_checkout_paths()
     init_git_repository(source.path());
     let repo_id = format!("repo-nav-{}", Uuid::new_v4());
     let state = StudioState::new();
-    state.apply_eager_ui_config(UiConfig {
+    state.seed_eager_configured_owners_for_tests(UiConfig {
         projects: Vec::new(),
         repo_projects: vec![UiRepoProjectConfig {
             id: repo_id.clone(),

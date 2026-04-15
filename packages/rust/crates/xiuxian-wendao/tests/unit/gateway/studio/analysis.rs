@@ -86,7 +86,7 @@ Reference [[guide]].
     let mut state = StudioState::new();
     state.project_root = temp_dir.path().to_path_buf();
     state.config_root = temp_dir.path().to_path_buf();
-    state.apply_eager_ui_config(UiConfig {
+    state.seed_eager_configured_owners_for_tests(UiConfig {
         projects: vec![UiProjectConfig {
             name: "main".to_string(),
             root: ".".to_string(),

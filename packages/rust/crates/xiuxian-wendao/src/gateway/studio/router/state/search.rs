@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use std::time::Duration;
 
 use crate::gateway::studio::router::error::StudioApiError;
@@ -79,44 +80,48 @@ impl StudioState {
         configured_projects: &[crate::gateway::studio::types::UiProjectConfig],
         source: &'static str,
     ) {
-        if self.local_corpus_bundle_active_or_inflight(&[
+        let bundle_active_or_inflight = self.local_corpus_bundle_active_or_inflight(&[
             SearchCorpusKind::LocalSymbol,
             SearchCorpusKind::ReferenceOccurrence,
-        ]) {
-            return;
+        ]);
+        if !bundle_active_or_inflight {
+            let scan_inventory = self
+                .search_plane
+                .scan_supported_projects_with_repeat_work_details(
+                    CODE_SEARCH_BUNDLE_SOURCE,
+                    self.project_root.as_path(),
+                    self.config_root.as_path(),
+                    configured_projects,
+                );
+            let source_files = scan_inventory.source_files();
+            if self
+                .search_plane
+                .ensure_local_symbol_index_started_with_scanned_files(
+                    self.project_root.as_path(),
+                    self.config_root.as_path(),
+                    configured_projects,
+                    scan_inventory.symbol_files(),
+                )
+            {
+                self.record_local_corpus_index_started(SearchCorpusKind::LocalSymbol, source);
+            }
+            if self
+                .search_plane
+                .ensure_reference_occurrence_index_started_with_scanned_files(
+                    self.project_root.as_path(),
+                    self.config_root.as_path(),
+                    configured_projects,
+                    source_files.as_slice(),
+                )
+            {
+                self.record_local_corpus_index_started(
+                    SearchCorpusKind::ReferenceOccurrence,
+                    source,
+                );
+            }
         }
-
-        let scan_inventory = self
-            .search_plane
-            .scan_supported_projects_with_repeat_work_details(
-                CODE_SEARCH_BUNDLE_SOURCE,
-                self.project_root.as_path(),
-                self.config_root.as_path(),
-                configured_projects,
-            );
-        let source_files = scan_inventory.source_files();
-        if self
-            .search_plane
-            .ensure_local_symbol_index_started_with_scanned_files(
-                self.project_root.as_path(),
-                self.config_root.as_path(),
-                configured_projects,
-                scan_inventory.symbol_files(),
-            )
-        {
-            self.record_local_corpus_index_started(SearchCorpusKind::LocalSymbol, source);
-        }
-        if self
-            .search_plane
-            .ensure_reference_occurrence_index_started_with_scanned_files(
-                self.project_root.as_path(),
-                self.config_root.as_path(),
-                configured_projects,
-                source_files.as_slice(),
-            )
-        {
-            self.record_local_corpus_index_started(SearchCorpusKind::ReferenceOccurrence, source);
-        }
+        self.symbol_index_coordinator
+            .sync_projects(configured_projects.to_vec(), Arc::clone(&self.symbol_index));
     }
 
     async fn wait_for_initial_local_corpus_ready(

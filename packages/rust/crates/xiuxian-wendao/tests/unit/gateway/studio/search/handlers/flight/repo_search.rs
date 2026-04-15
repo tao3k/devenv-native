@@ -322,7 +322,7 @@ async fn studio_repo_search_flight_provider_falls_back_to_search_only_checkout_c
         SearchMaintenancePolicy::default(),
     ));
     let studio = Arc::new(StudioState::new());
-    studio.apply_eager_ui_config(UiConfig {
+    studio.seed_eager_configured_owners_for_tests(UiConfig {
         projects: Vec::new(),
         repo_projects: vec![UiRepoProjectConfig {
             id: "lance".to_string(),
@@ -387,7 +387,7 @@ async fn build_studio_flight_service_accepts_runtime_studio_providers() {
     let mut studio = test_studio_state(project_root.join("studio-flight-service"));
     studio.project_root = project_root.clone();
     studio.config_root = project_root.clone();
-    studio.apply_eager_ui_config(UiConfig {
+    studio.seed_eager_configured_owners_for_tests(UiConfig {
         projects: vec![UiProjectConfig {
             name: "kernel".to_string(),
             root: ".".to_string(),

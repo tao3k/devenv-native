@@ -30,7 +30,7 @@ use xiuxian_wendao_builtin::{
 };
 
 #[test]
-fn apply_eager_ui_config_preserves_cached_state_when_effectively_unchanged() {
+fn seed_eager_configured_owners_for_tests_preserves_cached_state_when_effectively_unchanged() {
     let studio = StudioState::new();
     let config = UiConfig {
         projects: vec![UiProjectConfig {
@@ -40,7 +40,7 @@ fn apply_eager_ui_config_preserves_cached_state_when_effectively_unchanged() {
         }],
         repo_projects: vec![repo_project("sciml")],
     };
-    studio.apply_eager_ui_config(config.clone());
+    studio.seed_eager_configured_owners_for_tests(config.clone());
 
     *studio
         .symbol_index
@@ -57,7 +57,7 @@ fn apply_eager_ui_config_preserves_cached_state_when_effectively_unchanged() {
         scan_duration_ms: 0,
     });
 
-    studio.apply_eager_ui_config(config);
+    studio.seed_eager_configured_owners_for_tests(config);
 
     assert!(
         studio
@@ -76,10 +76,10 @@ fn apply_eager_ui_config_preserves_cached_state_when_effectively_unchanged() {
 }
 
 #[test]
-fn apply_ui_config_without_eager_background_indexing_keeps_indexes_idle() {
+fn seed_configured_owners_for_tests_without_eager_background_indexing_keeps_indexes_idle() {
     let studio = StudioState::new();
 
-    studio.apply_ui_config(
+    studio.seed_configured_owners_for_tests(
         UiConfig {
             projects: vec![UiProjectConfig {
                 name: "kernel".to_string(),
@@ -101,10 +101,10 @@ fn apply_ui_config_without_eager_background_indexing_keeps_indexes_idle() {
 }
 
 #[tokio::test]
-async fn apply_eager_ui_config_still_eagerly_enqueues_background_indexes() {
+async fn seed_eager_configured_owners_for_tests_still_eagerly_enqueues_background_indexes() {
     let studio = StudioState::new();
 
-    studio.apply_eager_ui_config(UiConfig {
+    studio.seed_eager_configured_owners_for_tests(UiConfig {
         projects: vec![UiProjectConfig {
             name: "kernel".to_string(),
             root: ".".to_string(),
@@ -259,7 +259,7 @@ dirs = ["src"]
 async fn repo_index_status_bootstraps_deferred_repo_indexing() {
     let studio = StudioState::new();
 
-    studio.apply_ui_config(
+    studio.seed_configured_owners_for_tests(
         UiConfig {
             projects: vec![UiProjectConfig {
                 name: "kernel".to_string(),
@@ -306,7 +306,7 @@ async fn ui_capabilities_reports_builtin_plugin_languages() {
     expected.extend(registry_languages);
     let expected = expected.into_iter().collect::<Vec<_>>();
     let studio = StudioState::new_with_bootstrap_ui_config(Arc::new(registry));
-    studio.apply_ui_config(
+    studio.seed_configured_owners_for_tests(
         UiConfig {
             projects: Vec::new(),
             repo_projects: vec![repo_project("kernel"), repo_project("sciml")],
@@ -348,7 +348,7 @@ async fn ui_capabilities_reports_builtin_plugin_languages() {
 #[tokio::test]
 async fn symbol_index_status_records_first_deferred_bootstrap_activation() {
     let studio = StudioState::new();
-    studio.apply_ui_config(
+    studio.seed_configured_owners_for_tests(
         UiConfig {
             projects: vec![UiProjectConfig {
                 name: "kernel".to_string(),

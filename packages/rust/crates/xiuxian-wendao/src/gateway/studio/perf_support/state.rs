@@ -36,14 +36,19 @@ pub(crate) fn gateway_state_for_project(project_root: &Path) -> Result<Arc<Gatew
             bootstrap_background_indexing: false,
             cold_start_process_started_at: crate::gateway::studio::symbol_index::timestamp_now(),
             cold_start_process_started_instant: std::time::Instant::now(),
-            cold_start_telemetry: Arc::new(RwLock::new(Default::default())),
+            cold_start_telemetry: Arc::new(RwLock::new(
+                crate::gateway::studio::router::StudioSearchColdStartTelemetryState::default(),
+            )),
             bootstrap_background_indexing_deferred_activation: Arc::new(RwLock::new(None)),
-            ui_config: Arc::new(RwLock::new(ui_config)),
+            configured_owners: Arc::new(RwLock::new(
+                StudioState::configured_owners_from_ui_config(ui_config),
+            )),
             graph_index: Arc::new(RwLock::new(None)),
             symbol_index: Arc::new(RwLock::new(None)),
             symbol_index_coordinator: Arc::new(SymbolIndexCoordinator::new(
                 project_root.to_path_buf(),
                 config_root.clone(),
+                search_plane.clone(),
             )),
             search_plane,
             vfs_scan: Arc::new(RwLock::new(None)),

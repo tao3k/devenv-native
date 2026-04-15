@@ -540,7 +540,7 @@ end
         Arc::clone(&registry),
         temp_dir.path().join("search_plane").join(keyspace),
     );
-    studio.apply_eager_ui_config(UiConfig {
+    studio.seed_eager_configured_owners_for_tests(UiConfig {
         projects: Vec::new(),
         repo_projects: vec![UiRepoProjectConfig {
             id: "sciml/imports".to_string(),

@@ -10,7 +10,7 @@ use crate::repo_index::{RepoIndexEntryStatus, RepoIndexPhase};
 #[tokio::test]
 async fn build_code_search_response_marks_partial_when_repo_wide_budget_expires() {
     let studio = test_studio_state();
-    studio.apply_eager_ui_config(crate::gateway::studio::types::UiConfig {
+    studio.seed_eager_configured_owners_for_tests(crate::gateway::studio::types::UiConfig {
         projects: Vec::new(),
         repo_projects: vec![crate::gateway::studio::types::UiRepoProjectConfig {
             id: "valid".to_string(),

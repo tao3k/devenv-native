@@ -38,6 +38,8 @@ pub use routes::{studio_router, studio_routes};
 pub use sanitization::{
     sanitize_path_like, sanitize_path_list, sanitize_projects, sanitize_repo_projects,
 };
+#[cfg(any(test, feature = "performance"))]
+pub(crate) use state::StudioSearchColdStartTelemetryState;
 pub use state::{
     GatewayState, StudioBootstrapBackgroundIndexingTelemetry, StudioSearchColdStartCorpusTelemetry,
     StudioSearchColdStartEvent, StudioSearchColdStartTelemetry, StudioState,

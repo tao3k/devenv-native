@@ -54,7 +54,7 @@ pub(super) fn make_gateway_state_with_docs(docs: &[(&str, &str)]) -> GatewayStat
     let mut studio = test_studio_state();
     studio.project_root = temp_dir.path().to_path_buf();
     studio.config_root = temp_dir.path().to_path_buf();
-    studio.apply_eager_ui_config(UiConfig {
+    studio.seed_eager_configured_owners_for_tests(UiConfig {
         projects: vec![UiProjectConfig {
             name: "kernel".to_string(),
             root: ".".to_string(),
@@ -93,7 +93,7 @@ pub(super) async fn make_gateway_state_with_search_routes() -> GatewayStateFixtu
     let mut studio = test_studio_state();
     studio.project_root = temp_dir.path().to_path_buf();
     studio.config_root = temp_dir.path().to_path_buf();
-    studio.apply_eager_ui_config(UiConfig {
+    studio.seed_eager_configured_owners_for_tests(UiConfig {
         projects: vec![UiProjectConfig {
             name: "kernel".to_string(),
             root: ".".to_string(),
@@ -203,7 +203,7 @@ pub(super) fn make_gateway_state_with_repo(repo_files: &[(&str, &str)]) -> Gatew
     let mut studio = test_studio_state();
     studio.project_root = temp_dir.path().to_path_buf();
     studio.config_root = temp_dir.path().to_path_buf();
-    studio.apply_eager_ui_config(UiConfig {
+    studio.seed_eager_configured_owners_for_tests(UiConfig {
         projects: vec![UiProjectConfig {
             name: "kernel".to_string(),
             root: ".".to_string(),
@@ -235,7 +235,7 @@ pub(super) async fn make_gateway_state_with_attachments() -> GatewayStateFixture
     let mut studio = test_studio_state();
     studio.project_root = temp_dir.path().to_path_buf();
     studio.config_root = temp_dir.path().to_path_buf();
-    studio.apply_eager_ui_config(UiConfig {
+    studio.seed_eager_configured_owners_for_tests(UiConfig {
         projects: vec![UiProjectConfig {
             name: "kernel".to_string(),
             root: ".".to_string(),

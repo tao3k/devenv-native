@@ -66,7 +66,7 @@ fn make_state_with_docs(docs: Vec<(&str, &str)>) -> StudioStateFixture {
     studio_state.project_root = temp_dir.path().to_path_buf();
     studio_state.config_root = temp_dir.path().to_path_buf();
     studio_state.search_plane = SearchPlaneService::new(temp_dir.path().to_path_buf());
-    studio_state.apply_eager_ui_config(UiConfig {
+    studio_state.seed_eager_configured_owners_for_tests(UiConfig {
         projects: vec![UiProjectConfig {
             name: "kernel".to_string(),
             root: ".".to_string(),
@@ -541,7 +541,7 @@ async fn search_knowledge_returns_partial_response_before_initial_index_publicat
 }
 
 #[tokio::test]
-async fn search_index_status_handler_includes_cold_start_telemetry() {
+async fn search_index_status_reports_test_configured_owner_seed_repeat_work() {
     let fixture = make_state_with_docs(vec![(
         "alpha.md",
         "# Alpha\n\nThis note contains search target keyword: wendao.\n",
@@ -664,13 +664,13 @@ async fn search_index_status_handler_includes_cold_start_telemetry() {
             entry
                 .get("source")
                 .and_then(serde_json::Value::as_str)
-                .is_some_and(|source| source == "config_apply")
+                .is_some_and(|source| source == "test_configured_owner_seed")
                 && entry
                     .get("operation")
                     .and_then(serde_json::Value::as_str)
                     .is_some_and(|operation| operation == "scan_supported_project_files")
         }),
-        "repeat-work telemetry should capture the eager config-apply shared scan"
+        "repeat-work telemetry should capture the eager configured-owner seed shared scan"
     );
     assert_eq!(
         repeat_work
@@ -817,17 +817,20 @@ async fn search_intent_includes_repo_content_hits_for_code_biased_intent() {
     )
     .unwrap_or_else(|error| panic!("write project file: {error}"));
 
-    fixture.state.studio.apply_eager_ui_config(UiConfig {
-        projects: fixture.state.studio.configured_projects(),
-        repo_projects: vec![UiRepoProjectConfig {
-            id: "valid".to_string(),
-            root: Some(repo_root.display().to_string()),
-            url: None,
-            git_ref: None,
-            refresh: None,
-            plugins: vec!["julia".to_string()],
-        }],
-    });
+    fixture
+        .state
+        .studio
+        .seed_eager_configured_owners_for_tests(UiConfig {
+            projects: fixture.state.studio.configured_projects(),
+            repo_projects: vec![UiRepoProjectConfig {
+                id: "valid".to_string(),
+                root: Some(repo_root.display().to_string()),
+                url: None,
+                git_ref: None,
+                refresh: None,
+                plugins: vec!["julia".to_string()],
+            }],
+        });
     let snapshot = Arc::new(RepoIndexSnapshot {
         repo_id: "valid".to_string(),
         analysis: Arc::new(crate::analyzers::RepositoryAnalysisOutput::default()),
@@ -969,21 +972,24 @@ async fn search_knowledge_uses_project_scoped_display_paths_for_duplicate_roots(
             "# Main\n\nThis note also contains search target keyword: wendao.\n",
         ),
     ]);
-    fixture.state.studio.apply_eager_ui_config(UiConfig {
-        projects: vec![
-            UiProjectConfig {
-                name: "kernel".to_string(),
-                root: ".".to_string(),
-                dirs: vec!["docs".to_string()],
-            },
-            UiProjectConfig {
-                name: "main".to_string(),
-                root: ".data/wendao-frontend".to_string(),
-                dirs: vec!["docs".to_string()],
-            },
-        ],
-        repo_projects: Vec::new(),
-    });
+    fixture
+        .state
+        .studio
+        .seed_eager_configured_owners_for_tests(UiConfig {
+            projects: vec![
+                UiProjectConfig {
+                    name: "kernel".to_string(),
+                    root: ".".to_string(),
+                    dirs: vec!["docs".to_string()],
+                },
+                UiProjectConfig {
+                    name: "main".to_string(),
+                    root: ".data/wendao-frontend".to_string(),
+                    dirs: vec!["docs".to_string()],
+                },
+            ],
+            repo_projects: Vec::new(),
+        });
     publish_knowledge_section_index(&fixture.state).await;
 
     let result = build_knowledge_search_response(
@@ -1046,14 +1052,17 @@ async fn search_attachments_returns_payload() {
         ),
         ("docs/beta.md", "# Beta\n\n![Avatar](images/avatar.jpg)\n"),
     ]);
-    fixture.state.studio.apply_eager_ui_config(UiConfig {
-        projects: vec![UiProjectConfig {
-            name: "kernel".to_string(),
-            root: ".".to_string(),
-            dirs: vec!["docs".to_string()],
-        }],
-        repo_projects: Vec::new(),
-    });
+    fixture
+        .state
+        .studio
+        .seed_eager_configured_owners_for_tests(UiConfig {
+            projects: vec![UiProjectConfig {
+                name: "kernel".to_string(),
+                root: ".".to_string(),
+                dirs: vec!["docs".to_string()],
+            }],
+            repo_projects: Vec::new(),
+        });
     publish_attachment_index(&fixture.state).await;
 
     let result = load_attachment_search_response_from_studio(
@@ -1104,14 +1113,17 @@ async fn search_attachments_returns_partial_response_before_initial_index_public
         "docs/alpha.md",
         "# Alpha\n\n![Topology](assets/topology.png)\n\n[Spec](files/spec.pdf)\n",
     )]);
-    fixture.state.studio.apply_eager_ui_config(UiConfig {
-        projects: vec![UiProjectConfig {
-            name: "kernel".to_string(),
-            root: ".".to_string(),
-            dirs: vec!["docs".to_string()],
-        }],
-        repo_projects: Vec::new(),
-    });
+    fixture
+        .state
+        .studio
+        .seed_eager_configured_owners_for_tests(UiConfig {
+            projects: vec![UiProjectConfig {
+                name: "kernel".to_string(),
+                root: ".".to_string(),
+                dirs: vec!["docs".to_string()],
+            }],
+            repo_projects: Vec::new(),
+        });
 
     let result = load_attachment_search_response_from_studio(
         fixture.state.studio.as_ref(),
@@ -1141,14 +1153,17 @@ async fn search_attachments_respects_extension_and_kind_filters() {
         "docs/alpha.md",
         "# Alpha\n\n![Topology](assets/topology.png)\n\n[Spec](files/spec.pdf)\n",
     )]);
-    fixture.state.studio.apply_eager_ui_config(UiConfig {
-        projects: vec![UiProjectConfig {
-            name: "kernel".to_string(),
-            root: ".".to_string(),
-            dirs: vec!["docs".to_string()],
-        }],
-        repo_projects: Vec::new(),
-    });
+    fixture
+        .state
+        .studio
+        .seed_eager_configured_owners_for_tests(UiConfig {
+            projects: vec![UiProjectConfig {
+                name: "kernel".to_string(),
+                root: ".".to_string(),
+                dirs: vec!["docs".to_string()],
+            }],
+            repo_projects: Vec::new(),
+        });
     publish_attachment_index(&fixture.state).await;
 
     let result = load_attachment_search_response_from_studio(
@@ -1355,14 +1370,17 @@ async fn search_ast_includes_markdown_outline_hits() {
         "docs/03_features/204_gateway_api_contracts.md",
         "# Gateway API Contracts\n\n## AST Search\n\n- [ ] Verify docs AST alignment.\n",
     )]);
-    fixture.state.studio.apply_eager_ui_config(UiConfig {
-        projects: vec![UiProjectConfig {
-            name: "kernel".to_string(),
-            root: ".".to_string(),
-            dirs: vec!["docs".to_string()],
-        }],
-        repo_projects: Vec::new(),
-    });
+    fixture
+        .state
+        .studio
+        .seed_eager_configured_owners_for_tests(UiConfig {
+            projects: vec![UiProjectConfig {
+                name: "kernel".to_string(),
+                root: ".".to_string(),
+                dirs: vec!["docs".to_string()],
+            }],
+            repo_projects: Vec::new(),
+        });
     publish_local_symbol_index(&fixture.state).await;
 
     let result = search_ast(
@@ -1419,14 +1437,17 @@ async fn search_ast_includes_markdown_property_drawer_hits() {
         "docs/index.md",
         "# Studio Functional Ledger\n:PROPERTIES:\n:ID: SearchBarProtocol\n:OBSERVE: lang:typescript scope:\"src/components/SearchBar/**\" \"export const SearchBar: React.FC<SearchBarProps> = ({ $$$ })\"\n:END:\n\n## Runtime Contract\n",
     )]);
-    fixture.state.studio.apply_eager_ui_config(UiConfig {
-        projects: vec![UiProjectConfig {
-            name: "main".to_string(),
-            root: ".".to_string(),
-            dirs: vec!["docs".to_string()],
-        }],
-        repo_projects: Vec::new(),
-    });
+    fixture
+        .state
+        .studio
+        .seed_eager_configured_owners_for_tests(UiConfig {
+            projects: vec![UiProjectConfig {
+                name: "main".to_string(),
+                root: ".".to_string(),
+                dirs: vec!["docs".to_string()],
+            }],
+            repo_projects: Vec::new(),
+        });
     publish_local_symbol_index(&fixture.state).await;
 
     let result = search_ast(
@@ -2012,14 +2033,17 @@ async fn search_symbols_respects_glob_dir_filters() {
         ),
     ]);
 
-    fixture.state.studio.apply_eager_ui_config(UiConfig {
-        projects: vec![UiProjectConfig {
-            name: "kernel".to_string(),
-            root: ".".to_string(),
-            dirs: vec!["packages".to_string(), "packages/alpha/**/*.rs".to_string()],
-        }],
-        repo_projects: Vec::new(),
-    });
+    fixture
+        .state
+        .studio
+        .seed_eager_configured_owners_for_tests(UiConfig {
+            projects: vec![UiProjectConfig {
+                name: "kernel".to_string(),
+                root: ".".to_string(),
+                dirs: vec!["packages".to_string(), "packages/alpha/**/*.rs".to_string()],
+            }],
+            repo_projects: Vec::new(),
+        });
     publish_local_symbol_index(&fixture.state).await;
 
     let result = load_symbol_search_response(
