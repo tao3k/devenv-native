@@ -139,7 +139,7 @@ rmcp = { version = "0.16", default-features = false, features = [
   "transport-child-process",
 ] }
 reqwest = { version = "0.13", default-features = false, features = ["json", "rustls"] }
-litellm-rs = { git = "https://github.com/majiayu000/litellm-rs", rev = "22b71f5bf640873e8ad8beaf62756a485f224315", default-features = false }
+litellm-rs = { git = "https://github.com/tao3k/litellm-rs", branch = "xiuxian", default-features = false }
 
 # CLI and HTTP (xiuxian-daochang gateway)
 clap = { version = "4.5", features = ["derive"] }
