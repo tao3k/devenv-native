@@ -51,11 +51,14 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=sha
 
-      - name: Build and push to GHCR
+      - name: Build image and copyTo script
+        run: nix build .#${{ matrix.image.flake-attr }}.copyTo
+
+      - name: Push to GHCR
         run: |
           while IFS= read -r tag; do
             [ -z "$tag" ] && continue
             echo "::group::Pushing $tag"
-            nix run .#${{ matrix.image.flake-attr }}.copyToRegistry -- "docker://${tag}"
+            ./result/bin/copy-to "docker://${tag}"
             echo "::endgroup::"
           done <<< "${{ steps.meta.outputs.tags }}"
