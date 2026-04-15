@@ -143,6 +143,11 @@ Markdown section extraction is now split across five explicit contracts:
 6. property-relation parsing can consume the parser-owned section contract
    because it only needs heading scope and parser-owned metadata attributes
 7. note parsing that assembles `LinkGraphDocument` remains Wendao-owned
+8. `xiuxian_wendao_parsers::sections::extract_sections` now owns parser-level
+   Markdown heading discovery and section-boundary construction through
+   `comrak` traversal plus source-position ranges
+9. property drawer and `:LOGBOOK:` parsing remain parser-owned line helpers
+   layered beneath the same shared section contract
 
 ## Code Observation Boundary
 
@@ -203,6 +208,52 @@ Markdown note parsing is now split across four explicit contracts:
    `MarkdownSection` rows, then adapts the same parser-owned note into
    Wendao `ParsedNote` for knowledge-section and attachment consumers without
    reparsing the markdown body
+8. `xiuxian_wendao_parsers::note::fingerprint_markdown_note` now owns the
+   parser-level semantic fingerprint for `MarkdownNote`, and
+   `xiuxian_wendao::search::markdown_snapshot` plus the note-based
+   `knowledge_section` and `attachment` planners consume that parser-owned
+   fingerprint for incremental reuse instead of rebuilding Wendao-owned rows or
+   hit payloads just to compare unchanged markdown semantics
+9. `xiuxian_wendao_parsers::note::fingerprint_markdown_symbol_surface` now
+   owns the parser-level Markdown symbol fingerprint for headings, task items,
+   property drawers, and `:OBSERVE:` entries at parser-owned `comrak`
+   structural granularity
+10. `xiuxian_wendao::search::markdown_snapshot` now keeps markdown AST hits as
+    a lazy Wendao-owned derivative over the cached parser-owned note parse and
+    symbol fingerprint, so the markdown branch of `local_symbol` can compare
+    parser-owned symbol identity before materializing Wendao-owned hit payloads
+11. `parse_markdown_toc(...)` and `parse_markdown_note(...)` now share the
+    same parser-owned `comrak` section extraction path, so heading-like text
+    inside fenced code blocks no longer participates in parser-owned section
+    discovery
+12. `xiuxian_wendao_parsers::note::parse_markdown_note_artifacts(...)` now
+    owns a parser-level single-pass path that returns `MarkdownNote` plus the
+    symbol fingerprint derived from the same structural traversal
+13. `xiuxian_wendao::search::markdown_snapshot` now consumes that parser-owned
+    single-pass note artifact instead of reparsing one markdown body only to
+    rebuild the symbol-fingerprint surface
+14. the same parser-owned single-pass markdown scan now also feeds
+    `extract_references(...)` and `extract_targets(...)`, so note aggregation
+    and the standalone shared extractors no longer own separate `comrak`
+    parse loops for ordinary references and raw target occurrences
+15. `parse_markdown_note(...)` and `parse_markdown_toc(...)` now assemble
+    fallback document titles from the same parser-owned structural heading scan
+    they already use for section discovery, so fenced code-block text no longer
+    participates in title fallback on those hot paths
+16. those same hot paths now also assemble fallback document leads from the
+    parser-owned structural scan rather than a separate line-based lead path,
+    so fenced code content no longer participates in note/TOC lead snippets
+17. `parse_markdown_document(...)` now also consumes that parser-owned
+    structural title and lead scan directly, so standalone Markdown document
+    parsing no longer keeps a separate historical line-scan fallback for those
+    metadata fields
+18. the standalone document path now uses a lighter parser-owned metadata scan
+    for title and lead, while note/TOC/full-structure consumers keep the
+    richer `MarkdownStructure` path for references, targets, and
+    heading/task-driven section discovery
+19. `parse_markdown_note(...)` now uses a true note-only parser path, while
+    `parse_markdown_note_artifacts(...)` remains the richer direct-consumer
+    surface for callers that still need the symbol fingerprint
 
 ## TOC Boundary
 

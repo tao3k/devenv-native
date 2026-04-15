@@ -1,5 +1,45 @@
 use super::*;
+use std::fmt::Write;
 use std::fs;
+
+fn write_file(root: &Path, relative_path: &str, content: &str) {
+    let path = root.join(relative_path);
+    let Some(parent) = path.parent() else {
+        panic!("fixture path should have parent: {path:?}");
+    };
+    fs::create_dir_all(parent).unwrap_or_else(|error| panic!("parent should exist: {error}"));
+    fs::write(path, content).unwrap_or_else(|error| panic!("fixture should be written: {error}"));
+}
+
+fn make_unit_test_fixture(test_count: usize, helper_lines: usize) -> String {
+    let mut content = String::from("use super::*;\n\n");
+    for index in 0..helper_lines {
+        let _ = writeln!(content, "const LINE_{index}: usize = {index};");
+    }
+    content.push('\n');
+    for index in 0..test_count {
+        let _ = writeln!(
+            content,
+            "#[test]\nfn case_{index}() {{\n    assert_eq!(LINE_0, 0);\n}}\n"
+        );
+    }
+    content
+}
+
+fn make_integration_test_fixture(test_count: usize, helper_lines: usize) -> String {
+    let mut content = String::from("use super::*;\n\n");
+    for index in 0..helper_lines {
+        let _ = writeln!(content, "const CASE_LINE_{index}: usize = {index};");
+    }
+    content.push('\n');
+    for index in 0..test_count {
+        let _ = writeln!(
+            content,
+            "#[test]\nfn contract_case_{index}() {{\n    assert_eq!(CASE_LINE_0, 0);\n}}\n"
+        );
+    }
+    content
+}
 
 #[test]
 fn test_is_allowed_root_file() {
@@ -110,4 +150,93 @@ fn test_format_violation_report_with_violations() {
     assert!(report.contains("Found 1"));
     assert!(report.contains("test_entity.rs"));
     assert!(report.contains("Move to tests/unit/entity.rs"));
+}
+
+#[test]
+fn test_validate_crate_tests_flags_bloated_unit_test_leaf() {
+    let temp = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir should exist: {error}"));
+    write_file(
+        temp.path(),
+        "tests/unit/policy.rs",
+        &make_unit_test_fixture(8, 240),
+    );
+
+    let violations = validate_crate_tests(temp.path());
+    assert_eq!(
+        violations.len(),
+        1,
+        "expected one violation: {violations:?}"
+    );
+    assert_eq!(violations[0].kind, ViolationKind::BloatedUnitTestFile);
+    assert!(
+        violations[0]
+            .path
+            .to_string_lossy()
+            .ends_with("tests/unit/policy.rs"),
+        "unexpected path: {:?}",
+        violations[0].path
+    );
+    assert!(violations[0].suggestion.contains("testing-gate harness"));
+}
+
+#[test]
+fn test_validate_crate_tests_accepts_focused_unit_test_leaf() {
+    let temp = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir should exist: {error}"));
+    write_file(
+        temp.path(),
+        "tests/unit/policy.rs",
+        &make_unit_test_fixture(4, 24),
+    );
+
+    let violations = validate_crate_tests(temp.path());
+    assert!(
+        violations.is_empty(),
+        "expected no violations for focused unit file: {violations:?}"
+    );
+}
+
+#[test]
+fn test_validate_crate_tests_flags_bloated_integration_test_leaf() {
+    let temp = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir should exist: {error}"));
+    write_file(
+        temp.path(),
+        "tests/integration/contracts_modularity.rs",
+        &make_integration_test_fixture(12, 390),
+    );
+
+    let violations = validate_crate_tests(temp.path());
+    assert_eq!(
+        violations.len(),
+        1,
+        "expected one violation: {violations:?}"
+    );
+    assert_eq!(
+        violations[0].kind,
+        ViolationKind::BloatedIntegrationTestFile
+    );
+    assert!(
+        violations[0]
+            .path
+            .to_string_lossy()
+            .ends_with("tests/integration/contracts_modularity.rs"),
+        "unexpected path: {:?}",
+        violations[0].path
+    );
+    assert!(violations[0].suggestion.contains("testing-gate harness"));
+}
+
+#[test]
+fn test_validate_crate_tests_accepts_focused_integration_test_leaf() {
+    let temp = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir should exist: {error}"));
+    write_file(
+        temp.path(),
+        "tests/integration/contracts_runner.rs",
+        &make_integration_test_fixture(5, 40),
+    );
+
+    let violations = validate_crate_tests(temp.path());
+    assert!(
+        violations.is_empty(),
+        "expected no violations for focused integration file: {violations:?}"
+    );
 }

@@ -33,7 +33,7 @@ pub(crate) fn build_hits_for_file(
     let mut file_hits = if is_markdown_path(file.absolute_path.as_path()) {
         markdown_snapshot
             .entry(file.normalized_path.as_str())
-            .map_or_else(Vec::new, |entry| entry.ast_hits.clone())
+            .map_or_else(Vec::new, |entry| entry.clone_ast_hits())
     } else {
         service
             .shared_source_snapshot_entry(project_root, file)

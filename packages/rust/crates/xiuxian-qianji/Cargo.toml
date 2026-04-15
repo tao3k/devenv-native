@@ -70,7 +70,7 @@ required-features = ["llm"]
 # Integration tests requiring llm feature
 [[test]]
 name = "llm_augmented_formal_audit"
-path = "tests/integration/llm_augmented_formal_audit.rs"
+path = "tests/integration/llm_augmented_formal_audit/mod.rs"
 required-features = ["llm"]
 
 [[test]]
@@ -85,7 +85,7 @@ required-features = ["llm"]
 
 [[test]]
 name = "runtime_config"
-path = "tests/integration/runtime_config.rs"
+path = "tests/integration/runtime_config/mod.rs"
 
 [[test]]
 name = "formal_audit_advisory_llm"
@@ -103,7 +103,7 @@ path = "tests/integration/contract_feedback_pipeline.rs"
 
 [[test]]
 name = "flowhub_contracts"
-path = "tests/integration/flowhub_contracts.rs"
+path = "tests/integration/flowhub_contracts/mod.rs"
 
 [[test]]
 name = "flowhub_manifest_contracts"

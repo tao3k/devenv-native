@@ -576,28 +576,28 @@ fn validate_mermaid_case_files(
                 }
 
                 let topology = analyze_mermaid_flowchart_topology(&flowchart);
-                if let Some(graph_contract) = declared_graph {
-                    if topology.topology != graph_contract.topology {
-                        diagnostics.push(FlowhubDiagnostic {
-                            title: "Invalid scenario-case topology".to_string(),
-                            location: scenario_case.clone(),
-                            problem: format!(
-                                "module `{}` declares `[[graph]] path = \"{}\"` with topology `{}`, but petgraph analysis resolved `{}`",
-                                module.module_ref,
-                                graph_contract.path,
-                                graph_contract.topology.as_str(),
-                                topology.topology.as_str(),
-                            ),
-                            why_it_blocks:
-                                "Qianji cannot trust the scenario-case graph as a correctly typed Flowhub topology surface"
-                                    .to_string(),
-                            fix: format!(
-                                "repair `{}` so it matches `{}`, or update `[[graph]] topology` to the analyzed graph shape",
-                                graph_contract.path,
-                                graph_contract.topology.as_str(),
-                            ),
-                        });
-                    }
+                if let Some(graph_contract) = declared_graph
+                    && topology.topology != graph_contract.topology
+                {
+                    diagnostics.push(FlowhubDiagnostic {
+                        title: "Invalid scenario-case topology".to_string(),
+                        location: scenario_case.clone(),
+                        problem: format!(
+                            "module `{}` declares `[[graph]] path = \"{}\"` with topology `{}`, but petgraph analysis resolved `{}`",
+                            module.module_ref,
+                            graph_contract.path,
+                            graph_contract.topology.as_str(),
+                            topology.topology.as_str(),
+                        ),
+                        why_it_blocks:
+                            "Qianji cannot trust the scenario-case graph as a correctly typed Flowhub topology surface"
+                                .to_string(),
+                        fix: format!(
+                            "repair `{}` so it matches `{}`, or update `[[graph]] topology` to the analyzed graph shape",
+                            graph_contract.path,
+                            graph_contract.topology.as_str(),
+                        ),
+                    });
                 }
             }
             Err(error) => diagnostics.push(FlowhubDiagnostic {

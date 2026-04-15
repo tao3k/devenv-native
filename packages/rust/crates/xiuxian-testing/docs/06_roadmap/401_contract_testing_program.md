@@ -96,6 +96,16 @@ Delivered seed in this pass:
     several child-owner modules instead of converging on one canonical owner
   - `MOD-R020`: internal root seams that already expose one canonical visible
     owner but whose root doc still inventories every declared child module
+  - `MOD-R021`: internal root seams that already expose one canonical visible
+    owner but whose root doc mentions a secondary child module before that
+    owner
+  - `MOD-R022`: internal root seams that already expose one canonical visible
+    owner but whose root doc still names more than one secondary child module
+  - `MOD-R023`: internal root seams that already expose one canonical visible
+    owner but whose remaining secondary child module is a helper/detail bucket
+  - `MOD-R024`: internal root seams that already expose one canonical visible
+    owner but whose root doc still hints that owner with alias wording instead
+    of the real child-module path
 - current bounded implementation note: `MOD-R001` now proves the `mod.rs`
   contract from native Rust syntax parsing inside `xiuxian-testing`, so
   visible module declarations, block-bodied inline modules, private `use`
@@ -131,7 +141,16 @@ Delivered seed in this pass:
   keeps the remaining restricted visible seam curated by preferring one
   canonical child-owner module instead of a small internal peer list; and
   `MOD-R020` then keeps the matching root doc from regressing into a prose
-  mirror of the folder tree once the canonical visible owner is already clear
+  mirror of the folder tree once the canonical visible owner is already clear;
+  and `MOD-R021` then keeps the remaining root hint order aligned with that
+  same owner so coding agents see the primary seam first in both code and doc;
+  and `MOD-R022` then keeps the same hint under a tight secondary-seam budget
+  so the root doc does not expand back into a mini directory summary; and
+  `MOD-R023` then keeps the last remaining secondary seam canonical instead of
+  steering coding agents into `internal/detail/helper` support buckets; and
+  `MOD-R024` then keeps the canonical owner itself named with the real
+  child-module path so coding agents do not have to translate alias wording
+  back into the sibling tree
 
 Suggested first consumers:
 

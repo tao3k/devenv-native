@@ -130,7 +130,10 @@ fn resolve_qianji_runtime_llm_with_llm_feature(
             .openai_api_base
             .clone()
             .or_else(|| env_var_or_override(runtime_env, "OPENAI_API_BASE")),
-        api_key_override: runtime_env.openai_api_key.clone(),
+        api_key_override: runtime_env
+            .openai_api_key
+            .clone()
+            .or_else(|| env_var_or_override(runtime_env, "OPENAI_API_KEY")),
         wire_api_override: runtime_env
             .qianji_llm_wire_api
             .clone()
@@ -155,12 +158,18 @@ fn resolve_qianji_runtime_llm_with_llm_feature(
             };
             io::Error::new(kind, message)
         })?;
+    let api_key = runtime_env
+        .openai_api_key
+        .clone()
+        .or_else(|| env_var_or_override(runtime_env, "OPENAI_API_KEY"))
+        .filter(|value| !value.trim().is_empty())
+        .unwrap_or(resolved.api_key);
     Ok(QianjiRuntimeLlmConfig {
         model: resolved.model,
         base_url: resolved.base_url,
         api_key_env: resolved.api_key_env,
         wire_api: resolved.wire_api.as_str().to_string(),
-        api_key: resolved.api_key,
+        api_key,
     })
 }
 
@@ -204,8 +213,8 @@ fn resolve_qianji_runtime_llm_without_llm_feature(
         .unwrap_or_else(|| DEFAULT_API_KEY_ENV.to_string());
     let maybe_api_key = string_first_non_empty!(
         runtime_env.openai_api_key.as_deref(),
-        env_var_or_override(runtime_env, api_key_env.as_str()).as_deref(),
         env_var_or_override(runtime_env, "OPENAI_API_KEY").as_deref(),
+        env_var_or_override(runtime_env, api_key_env.as_str()).as_deref(),
         if api_key_env == key_selector {
             None
         } else {

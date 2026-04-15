@@ -116,7 +116,7 @@ fn bootstrap_background_indexing_telemetry_reports_default_deferred_state() {
             .diagnostics
             .repeat_work
             .summary
-            .repeated_file_observation_count,
+            .repeated_file_observations,
         0
     );
     assert!(

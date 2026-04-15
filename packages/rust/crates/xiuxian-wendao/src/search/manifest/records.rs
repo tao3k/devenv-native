@@ -73,14 +73,14 @@ impl SearchManifestRecord {
         status.phase = SearchPlanePhase::Ready;
         status.active_epoch = Some(active_epoch);
         status.schema_version = self.schema_version;
-        status.fingerprint = self.fingerprint.clone();
+        status.fingerprint.clone_from(&self.fingerprint);
         status.row_count = self.row_count;
         status.fragment_count = self.fragment_count;
-        status.build_finished_at = self.build_finished_at.clone();
-        status.updated_at = self
-            .updated_at
-            .clone()
-            .or_else(|| self.build_finished_at.clone());
+        status.build_finished_at.clone_from(&self.build_finished_at);
+        status.updated_at.clone_from(&self.updated_at);
+        if status.updated_at.is_none() {
+            status.updated_at.clone_from(&self.build_finished_at);
+        }
         Some(status)
     }
 }

@@ -34,10 +34,11 @@ pub fn wendao_docs_search_document_structure(
     ctx: &ZhenfaContext,
     args: WendaoDocsSearchDocumentStructureArgs,
 ) -> Result<String, ZhenfaError> {
-    let query = require_non_empty_argument(&args.query, "query")?;
+    let WendaoDocsSearchDocumentStructureArgs { query, kind, limit } = args;
+    let query = require_non_empty_argument(&query, "query")?;
     let runtime = resolve_docs_tool_runtime(ctx)?;
     let result = runtime
-        .search_document_structure(&query, args.kind, args.limit.unwrap_or(10).max(1))
+        .search_document_structure(&query, kind, limit.unwrap_or(10).max(1))
         .map_err(|error| ZhenfaError::execution(error.to_string()))?;
     serialize_payload(&result)
 }

@@ -1,5 +1,6 @@
 use futures::TryStreamExt;
 use lance_index::scalar::FullTextSearchQuery;
+use num_traits::ToPrimitive;
 use serde_json::Value;
 use xiuxian_types::VectorSearchResult;
 
@@ -37,7 +38,13 @@ fn f64_to_f32_saturating(value: f64) -> f32 {
     if value < f64::from(f32::MIN) {
         return f32::MIN;
     }
-    value as f32
+    value.to_f32().unwrap_or_else(|| {
+        if value.is_sign_negative() {
+            f32::MIN
+        } else {
+            f32::MAX
+        }
+    })
 }
 
 pub(crate) fn search_results_to_ipc_for_test(

@@ -8,6 +8,7 @@ use crate::gateway::studio::router::config::{
     load_ui_config_from_wendao_toml, load_ui_config_from_wendao_toml_path,
     resolve_studio_config_root,
 };
+use crate::gateway::studio::router::state::cold_start::StudioSearchColdStartTelemetryState;
 use crate::gateway::studio::router::state::types::{GatewayState, StudioState};
 use crate::gateway::studio::symbol_index::SymbolIndexCoordinator;
 use crate::gateway::studio::types::UiConfig;
@@ -126,7 +127,9 @@ impl StudioState {
             bootstrap_background_indexing,
             cold_start_process_started_at: crate::gateway::studio::symbol_index::timestamp_now(),
             cold_start_process_started_instant: std::time::Instant::now(),
-            cold_start_telemetry: Arc::new(std::sync::RwLock::new(Default::default())),
+            cold_start_telemetry: Arc::new(std::sync::RwLock::new(
+                StudioSearchColdStartTelemetryState::default(),
+            )),
             bootstrap_background_indexing_deferred_activation: Arc::new(std::sync::RwLock::new(
                 None,
             )),

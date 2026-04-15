@@ -32,11 +32,7 @@ pub(crate) fn build_markdown_document_metadata(
     let note = parse_markdown_note(content, fallback_title);
     let raw_metadata = note.document.raw_metadata.as_ref();
     let document_core = &note.document.core;
-    let doc_attributes = note
-        .core
-        .sections
-        .first()
-        .map(|section| section.attributes());
+    let doc_attributes = note.core.sections.first().map(MarkdownSection::attributes);
     let current_doc_id = index.and_then(|graph| resolve_current_doc_id(state, graph, path));
     let current_path = normalize_path_like(path).unwrap_or_else(|| path.trim().to_string());
     let current_title = document_core.title.clone();
@@ -111,7 +107,7 @@ fn extract_updated_string(
 
     if let Some(Value::Mapping(mapping)) = raw_metadata {
         for key in UPDATED_KEYS {
-            let Some(value) = mapping.get(&Value::String((*key).to_string())) else {
+            let Some(value) = mapping.get(Value::String((*key).to_string())) else {
                 continue;
             };
             match value {
@@ -148,16 +144,19 @@ fn extract_parent_link(
         .iter()
         .find_map(|section| section.attributes().get("PARENT"))?;
     let parsed = parse_wikilink_literal(raw_parent.trim())?;
-
-    Some(link_from_wikilink(
+    let link_context = LinkBuildContext {
         state,
         index,
-        MarkdownAnalysisDocumentLinkKind::Parent,
-        None,
-        None,
         current_doc_id,
         current_path,
         current_title,
+    };
+
+    Some(link_from_wikilink(
+        &link_context,
+        MarkdownAnalysisDocumentLinkKind::Parent,
+        None,
+        None,
         &parsed,
     ))
 }
@@ -172,14 +171,17 @@ fn collect_outgoing_links(
 ) -> Vec<MarkdownAnalysisDocumentLink> {
     let mut rows = Vec::new();
     let mut seen = HashSet::new();
+    let link_context = LinkBuildContext {
+        state,
+        index,
+        current_doc_id,
+        current_path,
+        current_title,
+    };
 
     for relation in parse_property_relations(content) {
         let mut row = link_from_relation_target(
-            state,
-            index,
-            current_doc_id,
-            current_path,
-            current_title,
+            &link_context,
             relation.target.note_target.as_deref(),
             relation
                 .target
@@ -198,14 +200,10 @@ fn collect_outgoing_links(
     if let Some(links_line) = parse_relations_links_line(lines.as_slice()) {
         for wikilink in extract_wikilinks(links_line.value) {
             let row = link_from_wikilink(
-                state,
-                index,
+                &link_context,
                 MarkdownAnalysisDocumentLinkKind::Index,
                 None,
                 Some("Index Relations".to_string()),
-                current_doc_id,
-                current_path,
-                current_title,
                 &wikilink,
             );
             push_unique_link(&mut rows, &mut seen, row);
@@ -266,103 +264,98 @@ fn push_unique_link(
 }
 
 fn link_from_wikilink(
-    state: &StudioState,
-    index: Option<&LinkGraphIndex>,
+    context: &LinkBuildContext<'_>,
     kind: MarkdownAnalysisDocumentLinkKind,
     relation_type: Option<String>,
     metadata_owner: Option<String>,
-    current_doc_id: Option<&str>,
-    current_path: &str,
-    current_title: &str,
     wikilink: &MarkdownWikiLink,
 ) -> MarkdownAnalysisDocumentLink {
     let alias_label = extract_wikilink_alias(wikilink.original.as_str());
-    let original = Some(wikilink.original.clone());
     let target = &wikilink.addressed_target;
     build_link_row(
-        state,
-        index,
-        kind,
-        relation_type,
-        metadata_owner,
-        current_doc_id,
-        current_path,
-        current_title,
-        target.target.as_deref(),
-        target.target_address.clone(),
-        alias_label,
-        original,
+        context,
+        LinkRowSeed {
+            kind,
+            relation_type,
+            metadata_owner,
+            note_target: target.target.as_deref(),
+            target_address: target.target_address.clone(),
+            alias_label,
+            literal: Some(wikilink.original.clone()),
+        },
     )
 }
 
 fn link_from_relation_target(
-    state: &StudioState,
-    index: Option<&LinkGraphIndex>,
-    current_doc_id: Option<&str>,
-    current_path: &str,
-    current_title: &str,
+    context: &LinkBuildContext<'_>,
     note_target: Option<&str>,
     target_address: Option<String>,
     original: String,
 ) -> MarkdownAnalysisDocumentLink {
     build_link_row(
-        state,
-        index,
-        MarkdownAnalysisDocumentLinkKind::Relation,
-        None,
-        None,
-        current_doc_id,
-        current_path,
-        current_title,
-        note_target,
-        target_address,
-        None,
-        Some(original),
+        context,
+        LinkRowSeed {
+            kind: MarkdownAnalysisDocumentLinkKind::Relation,
+            relation_type: None,
+            metadata_owner: None,
+            note_target,
+            target_address,
+            alias_label: None,
+            literal: Some(original),
+        },
     )
 }
 
-#[allow(clippy::too_many_arguments)]
-fn build_link_row(
-    state: &StudioState,
-    index: Option<&LinkGraphIndex>,
+struct LinkBuildContext<'a> {
+    state: &'a StudioState,
+    index: Option<&'a LinkGraphIndex>,
+    current_doc_id: Option<&'a str>,
+    current_path: &'a str,
+    current_title: &'a str,
+}
+
+struct LinkRowSeed<'a> {
     kind: MarkdownAnalysisDocumentLinkKind,
     relation_type: Option<String>,
     metadata_owner: Option<String>,
-    current_doc_id: Option<&str>,
-    current_path: &str,
-    current_title: &str,
-    note_target: Option<&str>,
+    note_target: Option<&'a str>,
     target_address: Option<String>,
     alias_label: Option<String>,
     literal: Option<String>,
+}
+
+fn build_link_row(
+    context: &LinkBuildContext<'_>,
+    seed: LinkRowSeed<'_>,
 ) -> MarkdownAnalysisDocumentLink {
     let resolved = resolve_link_target(
-        state,
-        index,
-        current_doc_id,
-        current_path,
-        current_title,
-        note_target,
-        target_address.clone(),
+        context.state,
+        context.index,
+        context.current_doc_id,
+        context.current_path,
+        context.current_title,
+        seed.note_target,
+        seed.target_address.clone(),
     );
 
-    let label = alias_label
+    let label = seed
+        .alias_label
         .or_else(|| resolved.title.clone())
         .or_else(|| resolved.path.clone())
-        .or_else(|| note_target.map(ToOwned::to_owned))
-        .or_else(|| target_address.clone())
-        .unwrap_or_else(|| literal.clone().unwrap_or_else(|| "link".to_string()));
+        .or_else(|| seed.note_target.map(ToOwned::to_owned))
+        .or_else(|| seed.target_address.clone())
+        .unwrap_or_else(|| seed.literal.clone().unwrap_or_else(|| "link".to_string()));
 
     MarkdownAnalysisDocumentLink {
         label,
-        kind,
-        literal,
-        relation_type,
-        metadata_owner,
+        kind: seed.kind,
+        literal: seed.literal,
+        relation_type: seed.relation_type,
+        metadata_owner: seed.metadata_owner,
         doc_id: resolved.doc_id,
         path: resolved.path,
         title: resolved.title,
-        target_address: target_address.or(resolved.target_address),
+        target_address: seed.target_address.or(resolved.target_address),
     }
 }
 
@@ -409,16 +402,13 @@ fn resolve_link_target(
         };
     };
 
-    let doc = match graph.get_doc(doc_id.as_str()) {
-        Some(doc) => doc,
-        None => {
-            return ResolvedLinkTarget {
-                doc_id: Some(doc_id),
-                path: Some(raw_target.to_string()),
-                title: None,
-                target_address,
-            };
-        }
+    let Some(doc) = graph.get_doc(doc_id.as_str()) else {
+        return ResolvedLinkTarget {
+            doc_id: Some(doc_id),
+            path: Some(raw_target.to_string()),
+            title: None,
+            target_address,
+        };
     };
 
     ResolvedLinkTarget {

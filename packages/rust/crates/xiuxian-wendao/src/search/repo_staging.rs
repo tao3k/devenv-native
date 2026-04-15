@@ -165,17 +165,14 @@ pub(crate) fn versioned_repo_table_name(
         payload.push(':');
         payload.push_str(fingerprint.partition_id.as_deref().unwrap_or_default());
         payload.push(':');
-        match fingerprint.blake3.as_deref() {
-            Some(blake3) => {
-                payload.push_str("semantic:");
-                payload.push_str(blake3);
-            }
-            None => {
-                payload.push_str("metadata:");
-                payload.push_str(fingerprint.size_bytes.to_string().as_str());
-                payload.push(':');
-                payload.push_str(fingerprint.modified_unix_ms.to_string().as_str());
-            }
+        if let Some(blake3) = fingerprint.blake3.as_deref() {
+            payload.push_str("semantic:");
+            payload.push_str(blake3);
+        } else {
+            payload.push_str("metadata:");
+            payload.push_str(fingerprint.size_bytes.to_string().as_str());
+            payload.push(':');
+            payload.push_str(fingerprint.modified_unix_ms.to_string().as_str());
         }
     }
     let token = blake3::hash(payload.as_bytes()).to_hex().to_string();

@@ -76,10 +76,10 @@ pub struct StudioSearchColdStartTelemetry {
 
 #[derive(Debug, Clone, Default)]
 pub(crate) struct StudioSearchColdStartCorpusState {
-    pub(crate) first_index_started: Option<StudioSearchColdStartEvent>,
-    pub(crate) first_ready_observed: Option<StudioSearchColdStartEvent>,
-    pub(crate) first_partial_search_response: Option<StudioSearchColdStartEvent>,
-    pub(crate) first_ready_search_response: Option<StudioSearchColdStartEvent>,
+    pub(crate) index_started: Option<StudioSearchColdStartEvent>,
+    pub(crate) ready_observed: Option<StudioSearchColdStartEvent>,
+    pub(crate) partial_search_response: Option<StudioSearchColdStartEvent>,
+    pub(crate) ready_search_response: Option<StudioSearchColdStartEvent>,
 }
 
 #[derive(Debug, Default)]
@@ -109,10 +109,10 @@ impl StudioState {
                 let state = telemetry.corpora.get(&corpus).cloned().unwrap_or_default();
                 StudioSearchColdStartCorpusTelemetry {
                     corpus: corpus.as_str().to_string(),
-                    first_index_started: state.first_index_started,
-                    first_ready_observed: state.first_ready_observed,
-                    first_partial_search_response: state.first_partial_search_response,
-                    first_ready_search_response: state.first_ready_search_response,
+                    first_index_started: state.index_started,
+                    first_ready_observed: state.ready_observed,
+                    first_partial_search_response: state.partial_search_response,
+                    first_ready_search_response: state.ready_search_response,
                 }
             })
             .collect();
@@ -134,7 +134,7 @@ impl StudioState {
         source: &'static str,
     ) {
         self.record_local_cold_start_event(corpus, source, |state, event| {
-            record_first_event(&mut state.first_index_started, event);
+            record_first_event(&mut state.index_started, event);
         });
     }
 
@@ -144,7 +144,7 @@ impl StudioState {
         source: &'static str,
     ) {
         self.record_local_cold_start_event(corpus, source, |state, event| {
-            record_first_event(&mut state.first_ready_observed, event);
+            record_first_event(&mut state.ready_observed, event);
         });
     }
 
@@ -158,7 +158,7 @@ impl StudioState {
             .cold_start_event_from_recorded_at(recorded_at, source)
             .unwrap_or_else(|| self.cold_start_event_now(source));
         self.record_local_cold_start_event_with_value(corpus, event, |state, event| {
-            record_first_event(&mut state.first_ready_observed, event);
+            record_first_event(&mut state.ready_observed, event);
         });
     }
 
@@ -168,7 +168,7 @@ impl StudioState {
         source: &'static str,
     ) {
         self.record_local_cold_start_event(corpus, source, |state, event| {
-            record_first_event(&mut state.first_partial_search_response, event);
+            record_first_event(&mut state.partial_search_response, event);
         });
     }
 
@@ -178,7 +178,7 @@ impl StudioState {
         source: &'static str,
     ) {
         self.record_local_cold_start_event(corpus, source, |state, event| {
-            record_first_event(&mut state.first_ready_search_response, event);
+            record_first_event(&mut state.ready_search_response, event);
         });
     }
 

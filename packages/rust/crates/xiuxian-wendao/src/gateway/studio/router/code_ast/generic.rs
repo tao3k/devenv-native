@@ -84,14 +84,14 @@ pub(crate) fn build_generic_code_ast_analysis_response(
         );
     }
 
-    if supports_generic_code_blocks(lang) {
-        if let Some(focus_item) = focus_item {
-            retrieval_atoms.extend(build_code_block_retrieval_atoms(
-                path.as_str(),
-                Some(focus_item.line_start),
-                source_content,
-            ));
-        }
+    if supports_generic_code_blocks(lang)
+        && let Some(focus_item) = focus_item
+    {
+        retrieval_atoms.extend(build_code_block_retrieval_atoms(
+            path.as_str(),
+            Some(focus_item.line_start),
+            source_content,
+        ));
     }
 
     CodeAstAnalysisResponse {

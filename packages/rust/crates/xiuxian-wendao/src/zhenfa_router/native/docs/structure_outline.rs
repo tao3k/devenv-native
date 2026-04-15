@@ -29,7 +29,8 @@ pub fn wendao_docs_get_document_structure_outline(
     ctx: &ZhenfaContext,
     args: WendaoDocsGetDocumentStructureOutlineArgs,
 ) -> Result<String, ZhenfaError> {
-    let page_id = require_non_empty_argument(&args.page_id, "page_id")?;
+    let WendaoDocsGetDocumentStructureOutlineArgs { page_id } = args;
+    let page_id = require_non_empty_argument(&page_id, "page_id")?;
     let runtime = resolve_docs_tool_runtime(ctx)?;
     let result = runtime
         .get_document_structure_outline(&page_id)

@@ -18,12 +18,18 @@ const MAX_TELEMETRY_FINDINGS: usize = 20;
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct SearchBuildRepeatWorkSummaryTelemetry {
-    pub total_file_observation_count: u64,
-    pub total_unique_path_count: usize,
-    pub repeated_file_observation_count: u64,
-    pub source_operation_count: usize,
-    pub hot_path_count: usize,
-    pub finding_count: usize,
+    #[serde(rename = "totalFileObservationCount")]
+    pub file_observations_total: u64,
+    #[serde(rename = "totalUniquePathCount")]
+    pub unique_paths_total: usize,
+    #[serde(rename = "repeatedFileObservationCount")]
+    pub repeated_file_observations: u64,
+    #[serde(rename = "sourceOperationCount")]
+    pub source_operations: usize,
+    #[serde(rename = "hotPathCount")]
+    pub hot_paths: usize,
+    #[serde(rename = "findingCount")]
+    pub findings: usize,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -424,13 +430,13 @@ fn build_summary(
     findings: &[SearchBuildRepeatWorkFindingTelemetry],
 ) -> SearchBuildRepeatWorkSummaryTelemetry {
     SearchBuildRepeatWorkSummaryTelemetry {
-        total_file_observation_count,
-        total_unique_path_count,
-        repeated_file_observation_count: total_file_observation_count
+        file_observations_total: total_file_observation_count,
+        unique_paths_total: total_unique_path_count,
+        repeated_file_observations: total_file_observation_count
             .saturating_sub(total_unique_path_count as u64),
-        source_operation_count: source_operations.len(),
-        hot_path_count: hot_paths.len(),
-        finding_count: findings.len(),
+        source_operations: source_operations.len(),
+        hot_paths: hot_paths.len(),
+        findings: findings.len(),
     }
 }
 

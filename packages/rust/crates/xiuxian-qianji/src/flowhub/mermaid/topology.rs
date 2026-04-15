@@ -18,6 +18,10 @@ pub(crate) struct MermaidTopologyAnalysis {
     pub(crate) cyclic_components: Vec<Vec<String>>,
 }
 
+type MermaidLabelGraph = StableGraph<String, (), Directed>;
+type MermaidComponentGraph = StableGraph<(), (), Directed>;
+type MermaidCyclicComponents = Vec<(Vec<String>, bool)>;
+
 pub(crate) fn analyze_mermaid_flowchart_topology(
     flowchart: &MermaidFlowchart,
 ) -> MermaidTopologyAnalysis {
@@ -81,11 +85,11 @@ pub(crate) fn analyze_mermaid_flowchart_topology(
 fn build_topology_state(
     flowchart: &MermaidFlowchart,
 ) -> (
-    StableGraph<String, (), Directed>,
-    StableGraph<(), (), Directed>,
-    Vec<(Vec<String>, bool)>,
+    MermaidLabelGraph,
+    MermaidComponentGraph,
+    MermaidCyclicComponents,
 ) {
-    let mut graph = StableGraph::<String, (), Directed>::new();
+    let mut graph = MermaidLabelGraph::new();
     let mut node_indices = BTreeMap::<&str, NodeIndex>::new();
     for node in &flowchart.nodes {
         let index = graph.add_node(node.label.clone());
@@ -101,7 +105,7 @@ fn build_topology_state(
     }
 
     let sccs = kosaraju_scc(&graph);
-    let mut component_graph = StableGraph::<(), (), Directed>::new();
+    let mut component_graph = MermaidComponentGraph::new();
     let component_nodes = sccs
         .iter()
         .map(|_| component_graph.add_node(()))
@@ -139,7 +143,7 @@ fn build_topology_state(
     (graph, component_graph, cyclic_components)
 }
 
-fn component_is_cyclic(graph: &StableGraph<String, (), Directed>, component: &[NodeIndex]) -> bool {
+fn component_is_cyclic(graph: &MermaidLabelGraph, component: &[NodeIndex]) -> bool {
     if component.len() > 1 {
         return true;
     }

@@ -267,13 +267,13 @@ impl VectorStore {
     ///
     /// # Errors
     ///
-    /// Returns no errors; the remaining runtime path is Lance FTS only.
+    /// Returns an error when called in `:memory:` mode because enabling the
+    /// keyword index requires a filesystem-backed table.
     pub fn set_keyword_backend(
         &mut self,
         backend: KeywordSearchBackend,
     ) -> Result<(), VectorStoreError> {
         self.keyword_backend = backend;
-        self.keyword_search_enabled = true;
-        Ok(())
+        self.enable_keyword_index()
     }
 }

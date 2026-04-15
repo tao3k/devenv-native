@@ -1044,5 +1044,5 @@ pub fn load_expected_json(scenario_dir: &Path, file: &str) -> Result<Value, Box<
 // ============================================================================
 
 #[cfg(test)]
-#[path = "../tests/unit/scenario.rs"]
+#[path = "../tests/unit/scenario/mod.rs"]
 mod tests;

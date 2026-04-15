@@ -33,7 +33,9 @@ fn find_insertion_point_tracks_previous_sibling_context() {
 
     assert_eq!(result.start_level, 2);
     assert!(result.next_sibling.is_none());
-    let prev_sibling = result.prev_sibling.expect("expected previous sibling");
+    let Some(prev_sibling) = result.prev_sibling else {
+        panic!("expected previous sibling");
+    };
     assert_eq!(prev_sibling.title, "Beta");
 }
 

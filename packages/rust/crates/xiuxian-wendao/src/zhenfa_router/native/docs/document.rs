@@ -29,7 +29,8 @@ pub fn wendao_docs_get_document(
     ctx: &ZhenfaContext,
     args: WendaoDocsGetDocumentArgs,
 ) -> Result<String, ZhenfaError> {
-    let page_id = require_non_empty_argument(&args.page_id, "page_id")?;
+    let WendaoDocsGetDocumentArgs { page_id } = args;
+    let page_id = require_non_empty_argument(&page_id, "page_id")?;
     let runtime = resolve_docs_tool_runtime(ctx)?;
     let result = runtime
         .get_document(&page_id)

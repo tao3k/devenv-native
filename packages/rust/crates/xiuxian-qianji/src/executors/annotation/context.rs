@@ -71,24 +71,21 @@ impl ContextAnnotator {
         let mut segments = Vec::new();
 
         for entry in snapshot.narrative_context.entries {
-            Self::push_compacted_segment(
-                &mut segments,
-                Self::normalize_narrative_block_with_depth(entry.as_str(), depth + 1),
-            );
+            let normalized_entry =
+                Self::normalize_narrative_block_with_depth(entry.as_str(), depth + 1);
+            Self::push_compacted_segment(&mut segments, normalized_entry.as_str());
         }
 
-        Self::push_compacted_segment(
-            &mut segments,
-            Self::normalize_narrative_block_with_depth(
-                snapshot.working_history.as_str(),
-                depth + 1,
-            ),
+        let normalized_history = Self::normalize_narrative_block_with_depth(
+            snapshot.working_history.as_str(),
+            depth + 1,
         );
+        Self::push_compacted_segment(&mut segments, normalized_history.as_str());
 
         (!segments.is_empty()).then(|| segments.join("\n\n"))
     }
 
-    fn push_compacted_segment(segments: &mut Vec<String>, segment: String) {
+    fn push_compacted_segment(segments: &mut Vec<String>, segment: &str) {
         let trimmed = segment.trim();
         if trimmed.is_empty() || segments.iter().any(|existing| existing == trimmed) {
             return;
@@ -102,20 +99,16 @@ impl ContextAnnotator {
             if key.trim_start().starts_with('$') {
                 let text = resolve_semantic_content(key, context)?;
                 if !text.trim().is_empty() {
-                    Self::push_compacted_segment(
-                        &mut blocks,
-                        Self::normalize_narrative_block(text.as_str()),
-                    );
+                    let normalized_block = Self::normalize_narrative_block(text.as_str());
+                    Self::push_compacted_segment(&mut blocks, normalized_block.as_str());
                 }
                 continue;
             }
             if let Some(value) = lookup_context_path(context, key)
                 && let Some(text) = context_value_to_text(value)
             {
-                Self::push_compacted_segment(
-                    &mut blocks,
-                    Self::normalize_narrative_block(text.as_str()),
-                );
+                let normalized_block = Self::normalize_narrative_block(text.as_str());
+                Self::push_compacted_segment(&mut blocks, normalized_block.as_str());
             }
         }
 
@@ -123,10 +116,8 @@ impl ContextAnnotator {
             match context.get("raw_facts") {
                 Some(value) => {
                     if let Some(text) = context_value_to_text(value) {
-                        Self::push_compacted_segment(
-                            &mut blocks,
-                            Self::normalize_narrative_block(text.as_str()),
-                        );
+                        let normalized_block = Self::normalize_narrative_block(text.as_str());
+                        Self::push_compacted_segment(&mut blocks, normalized_block.as_str());
                     }
                 }
                 None => blocks.push(String::new()),

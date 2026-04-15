@@ -15,7 +15,9 @@ section payload, one nested `SectionMetadata` owns parser-side metadata, and
 one nested `SectionScope` owns heading ancestry and source ranges.
 `MarkdownSection` is now only the Markdown-local naming surface over that
 shared section core. `xiuxian-wendao` keeps only the enriched `ParsedSection`
-adapter that adds domain-side entities and code observations.
+adapter that adds domain-side entities and code observations. Heading
+discovery and section-boundary construction now come from parser-owned
+`comrak` traversal instead of line-scanned `#` detection.
 
 ## Contract
 
@@ -43,11 +45,14 @@ without inventing a fake heading.
 
 The shared extractor follows these rules:
 
-1. Markdown headings establish section boundaries outside code fences
+1. parser-owned `comrak` heading nodes establish section boundaries outside
+   code fences
 2. fenced code blocks do not open or close sections even when they contain `#`
-3. property drawers are parsed from the section body owned by one heading
-4. `:LOGBOOK:` blocks are parsed from that same section scope
-5. Org-style `:PROPERTIES:` ... `:END:` blocks are preserved as a supported
+3. section line and byte ranges come from heading source positions plus the
+   next parser-owned heading boundary
+4. property drawers are parsed from the section body owned by one heading
+5. `:LOGBOOK:` blocks are parsed from that same section scope
+6. Org-style `:PROPERTIES:` ... `:END:` blocks are preserved as a supported
    metadata shape inside Markdown sections
 
 ## Consumer Boundary
@@ -83,5 +88,5 @@ Coverage for this contract lives in:
 ---
 
 :FOOTER:
-:LAST_SYNC: 2026-04-12
+:LAST_SYNC: 2026-04-14
 :END:

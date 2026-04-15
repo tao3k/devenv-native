@@ -79,3 +79,39 @@ Some task content here.
     assert_eq!(metadata.logbook.len(), 2);
     assert_eq!(metadata.logbook[0].timestamp, "2025-03-14");
 }
+
+#[test]
+fn extract_sections_builds_nested_heading_paths_from_comrak_headings() {
+    let body = concat!(
+        "# Root\n\n",
+        "Root body.\n\n",
+        "## Child\n\n",
+        "Child body.\n\n",
+        "### Leaf\n\n",
+        "Leaf body.\n",
+    );
+
+    let sections = extract_sections(body);
+
+    assert_eq!(sections.len(), 3);
+    assert_eq!(sections[0].heading_path(), "Root");
+    assert_eq!(sections[1].heading_path(), "Root / Child");
+    assert_eq!(sections[2].heading_path(), "Root / Child / Leaf");
+}
+
+#[test]
+fn extract_sections_ignores_heading_like_lines_inside_code_fences() {
+    let body = concat!(
+        "# Root\n\n",
+        "```md\n",
+        "## Not a section\n",
+        "```\n\n",
+        "Body after fence.\n",
+    );
+
+    let sections = extract_sections(body);
+
+    assert_eq!(sections.len(), 1);
+    assert_eq!(sections[0].heading_title(), "Root");
+    assert!(sections[0].section_text.contains("## Not a section"));
+}

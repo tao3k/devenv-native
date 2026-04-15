@@ -463,6 +463,106 @@ fn touches_supported_code_paths(changes: &[RevisionPathChange]) -> bool {
     })
 }
 
+fn previous_change_path(change: &RevisionPathChange) -> &str {
+    change
+        .previous_path
+        .as_deref()
+        .unwrap_or(change.path.as_str())
+}
+
+fn uses_contents_fingerprint_mode(repository: &RegisteredRepository, path: &str) -> bool {
+    matches!(
+        analysis_fingerprint_mode(path, &sorted_plugin_ids(repository)),
+        Some(FingerprintMode::Contents)
+    )
+}
+
+fn read_checked_out_source_text(
+    repository: &RegisteredRepository,
+    file_path: &Path,
+) -> Result<String, RepoIntelligenceError> {
+    std::fs::read_to_string(file_path).map_err(|error| RepoIntelligenceError::AnalysisFailed {
+        message: format!(
+            "repo `{}` failed to read changed source `{}`: {error}",
+            repository.id,
+            file_path.display()
+        ),
+    })
+}
+
+fn read_revision_source_text(
+    repository: &RegisteredRepository,
+    checkout_root: &Path,
+    previous_revision: &str,
+    path: &str,
+) -> Result<Option<String>, RepoIntelligenceError> {
+    let Some(previous_bytes) =
+        read_checkout_file_bytes_at_revision(checkout_root, previous_revision, path).map_err(
+            |error| RepoIntelligenceError::AnalysisFailed {
+                message: format!(
+                    "repo `{}` failed to read previous revision source `{path}` at `{previous_revision}`: {error}",
+                    repository.id,
+                ),
+            },
+        )?
+    else {
+        return Ok(None);
+    };
+    String::from_utf8(previous_bytes)
+        .map(Some)
+        .map_err(|error| RepoIntelligenceError::AnalysisFailed {
+            message: format!(
+                "repo `{}` previous revision source `{path}` is not utf8: {error}",
+                repository.id,
+            ),
+        })
+}
+
+fn julia_change_supports_safe_incremental(
+    repository: &RegisteredRepository,
+    change: &RevisionPathChange,
+) -> bool {
+    matches!(
+        change.kind,
+        RevisionChangeKind::Added | RevisionChangeKind::Modified
+    ) && change.path.starts_with("src/")
+        && is_supported_code_path(change.path.as_str())
+        && uses_contents_fingerprint_mode(repository, change.path.as_str())
+}
+
+fn modified_julia_change_requires_rebuild(
+    repository: &RegisteredRepository,
+    checkout_root: &Path,
+    previous_revision: &str,
+    change: &RevisionPathChange,
+    current_contents: &str,
+) -> Result<Option<bool>, RepoIntelligenceError> {
+    let previous_path = previous_change_path(change);
+    let Some(previous_contents) =
+        read_revision_source_text(repository, checkout_root, previous_revision, previous_path)?
+    else {
+        return Ok(None);
+    };
+    if !julia_parser_summary_allows_safe_incremental_file_for_repository(
+        repository,
+        previous_path,
+        &previous_contents,
+    )? {
+        return Ok(None);
+    }
+    let previous_fingerprint = julia_parser_summary_file_semantic_fingerprint_for_repository(
+        repository,
+        previous_path,
+        &previous_contents,
+    )?;
+    let current_fingerprint = julia_parser_summary_file_semantic_fingerprint_for_repository(
+        repository,
+        change.path.as_str(),
+        current_contents,
+    )?;
+    Ok(Some(previous_fingerprint != current_fingerprint))
+}
+
 fn collect_safe_incremental_julia_files(
     repository: &RegisteredRepository,
     checkout_root: &Path,
@@ -472,32 +572,12 @@ fn collect_safe_incremental_julia_files(
     let mut files = Vec::new();
 
     for change in changes {
-        if !matches!(
-            change.kind,
-            RevisionChangeKind::Added | RevisionChangeKind::Modified
-        ) {
-            return Ok(None);
-        }
-        if !change.path.starts_with("src/") || !is_supported_code_path(change.path.as_str()) {
-            return Ok(None);
-        }
-        if !matches!(
-            analysis_fingerprint_mode(change.path.as_str(), &sorted_plugin_ids(repository)),
-            Some(FingerprintMode::Contents)
-        ) {
+        if !julia_change_supports_safe_incremental(repository, change) {
             return Ok(None);
         }
 
         let file_path = checkout_root.join(change.path.as_str());
-        let contents = std::fs::read_to_string(&file_path).map_err(|error| {
-            RepoIntelligenceError::AnalysisFailed {
-                message: format!(
-                    "repo `{}` failed to read changed source `{}`: {error}",
-                    repository.id,
-                    file_path.display()
-                ),
-            }
-        })?;
+        let contents = read_checked_out_source_text(repository, &file_path)?;
         if !julia_parser_summary_allows_safe_incremental_file_for_repository(
             repository,
             change.path.as_str(),
@@ -506,64 +586,17 @@ fn collect_safe_incremental_julia_files(
             return Ok(None);
         }
         if matches!(change.kind, RevisionChangeKind::Modified) {
-            let Some(previous_bytes) = read_checkout_file_bytes_at_revision(
+            let Some(requires_rebuild) = modified_julia_change_requires_rebuild(
+                repository,
                 checkout_root,
                 previous_revision,
-                change
-                    .previous_path
-                    .as_deref()
-                    .unwrap_or(change.path.as_str()),
-            )
-            .map_err(|error| RepoIntelligenceError::AnalysisFailed {
-                message: format!(
-                    "repo `{}` failed to read previous revision source `{}` at `{previous_revision}`: {error}",
-                    repository.id,
-                    change
-                        .previous_path
-                        .as_deref()
-                        .unwrap_or(change.path.as_str())
-                ),
-            })? else {
+                change,
+                &contents,
+            )?
+            else {
                 return Ok(None);
             };
-            let previous_contents = String::from_utf8(previous_bytes).map_err(|error| {
-                RepoIntelligenceError::AnalysisFailed {
-                    message: format!(
-                        "repo `{}` previous revision source `{}` is not utf8: {error}",
-                        repository.id,
-                        change
-                            .previous_path
-                            .as_deref()
-                            .unwrap_or(change.path.as_str())
-                    ),
-                }
-            })?;
-            if !julia_parser_summary_allows_safe_incremental_file_for_repository(
-                repository,
-                change
-                    .previous_path
-                    .as_deref()
-                    .unwrap_or(change.path.as_str()),
-                &previous_contents,
-            )? {
-                return Ok(None);
-            }
-            let previous_fingerprint =
-                julia_parser_summary_file_semantic_fingerprint_for_repository(
-                    repository,
-                    change
-                        .previous_path
-                        .as_deref()
-                        .unwrap_or(change.path.as_str()),
-                    &previous_contents,
-                )?;
-            let current_fingerprint =
-                julia_parser_summary_file_semantic_fingerprint_for_repository(
-                    repository,
-                    change.path.as_str(),
-                    &contents,
-                )?;
-            if previous_fingerprint == current_fingerprint {
+            if !requires_rebuild {
                 continue;
             }
         }
@@ -576,6 +609,140 @@ fn collect_safe_incremental_julia_files(
     Ok(Some(files))
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ModelicaIncrementalShape {
+    Leaf,
+    RootPackage,
+    NestedPackage,
+}
+
+#[derive(Clone, Copy)]
+struct ModelicaIncrementalVersion<'a> {
+    path: &'a str,
+    contents: &'a str,
+    shape: ModelicaIncrementalShape,
+}
+
+fn modelica_change_supports_safe_incremental(
+    repository: &RegisteredRepository,
+    change: &RevisionPathChange,
+) -> bool {
+    matches!(change.kind, RevisionChangeKind::Modified)
+        && Path::new(change.path.as_str())
+            .extension()
+            .and_then(std::ffi::OsStr::to_str)
+            .is_some_and(|extension| extension.eq_ignore_ascii_case("mo"))
+        && uses_contents_fingerprint_mode(repository, change.path.as_str())
+}
+
+fn detect_modelica_incremental_shape(
+    repository: &RegisteredRepository,
+    checkout_root: &Path,
+    path: &str,
+    contents: &str,
+    allow_package_overlay: bool,
+) -> Result<Option<ModelicaIncrementalShape>, RepoIntelligenceError> {
+    if modelica_parser_summary_allows_safe_incremental_file_for_repository(
+        repository,
+        checkout_root,
+        path,
+        contents,
+    )? {
+        return Ok(Some(ModelicaIncrementalShape::Leaf));
+    }
+    if allow_package_overlay
+        && modelica_parser_summary_allows_safe_root_package_incremental_file_for_repository(
+            repository,
+            checkout_root,
+            path,
+            contents,
+        )?
+    {
+        return Ok(Some(ModelicaIncrementalShape::RootPackage));
+    }
+    if allow_package_overlay
+        && modelica_parser_summary_allows_safe_package_incremental_file_for_repository(
+            repository,
+            checkout_root,
+            path,
+            contents,
+        )?
+    {
+        return Ok(Some(ModelicaIncrementalShape::NestedPackage));
+    }
+    Ok(None)
+}
+
+fn validate_modelica_incremental_shapes(
+    repository: &RegisteredRepository,
+    checkout_root: &Path,
+    current: ModelicaIncrementalVersion<'_>,
+    previous: ModelicaIncrementalVersion<'_>,
+) -> Result<bool, RepoIntelligenceError> {
+    match (current.shape, previous.shape) {
+        (ModelicaIncrementalShape::RootPackage, ModelicaIncrementalShape::RootPackage) => Ok(
+            modelica_parser_summary_root_package_name_matches_repository_context(
+                repository,
+                checkout_root,
+                current.path,
+                current.contents,
+            )? && modelica_parser_summary_root_package_name_matches_repository_context(
+                repository,
+                checkout_root,
+                previous.path,
+                previous.contents,
+            )?,
+        ),
+        (ModelicaIncrementalShape::NestedPackage, ModelicaIncrementalShape::NestedPackage)
+        | (ModelicaIncrementalShape::Leaf, ModelicaIncrementalShape::Leaf) => Ok(true),
+        _ => Ok(false),
+    }
+}
+
+fn modelica_incremental_fingerprint_for_shape(
+    repository: &RegisteredRepository,
+    checkout_root: &Path,
+    path: &str,
+    contents: &str,
+    shape: ModelicaIncrementalShape,
+) -> Result<String, RepoIntelligenceError> {
+    match shape {
+        ModelicaIncrementalShape::Leaf => {
+            modelica_parser_summary_file_semantic_fingerprint_for_repository(
+                repository, path, contents,
+            )
+        }
+        ModelicaIncrementalShape::RootPackage => {
+            modelica_root_package_incremental_semantic_fingerprint_for_repository(
+                repository,
+                checkout_root,
+                path,
+                contents,
+            )?
+            .ok_or_else(|| RepoIntelligenceError::AnalysisFailed {
+                message: format!(
+                    "repo `{}` safe root Modelica overlay fingerprint missing for `{path}`",
+                    repository.id
+                ),
+            })
+        }
+        ModelicaIncrementalShape::NestedPackage => {
+            modelica_package_incremental_semantic_fingerprint_for_repository(
+                repository,
+                checkout_root,
+                path,
+                contents,
+            )?
+            .ok_or_else(|| RepoIntelligenceError::AnalysisFailed {
+                message: format!(
+                    "repo `{}` safe Modelica package overlay fingerprint missing for `{path}`",
+                    repository.id
+                ),
+            })
+        }
+    }
+}
+
 fn collect_safe_incremental_modelica_files(
     repository: &RegisteredRepository,
     checkout_root: &Path,
@@ -586,199 +753,69 @@ fn collect_safe_incremental_modelica_files(
     let allow_package_overlay = changes.len() == 1;
 
     for change in changes {
-        if !matches!(change.kind, RevisionChangeKind::Modified) {
-            return Ok(None);
-        }
-        if !change.path.ends_with(".mo") {
-            return Ok(None);
-        }
-        if !matches!(
-            analysis_fingerprint_mode(change.path.as_str(), &sorted_plugin_ids(repository)),
-            Some(FingerprintMode::Contents)
-        ) {
+        if !modelica_change_supports_safe_incremental(repository, change) {
             return Ok(None);
         }
 
         let file_path = checkout_root.join(change.path.as_str());
-        let contents = std::fs::read_to_string(&file_path).map_err(|error| {
-            RepoIntelligenceError::AnalysisFailed {
-                message: format!(
-                    "repo `{}` failed to read changed source `{}`: {error}",
-                    repository.id,
-                    file_path.display()
-                ),
-            }
-        })?;
-        let current_is_safe_leaf =
-            modelica_parser_summary_allows_safe_incremental_file_for_repository(
-                repository,
-                checkout_root,
-                change.path.as_str(),
-                &contents,
-            )?;
-        let current_is_safe_root_package = allow_package_overlay
-            && modelica_parser_summary_allows_safe_root_package_incremental_file_for_repository(
-                repository,
-                checkout_root,
-                change.path.as_str(),
-                &contents,
-            )?;
-        let current_is_safe_package_file = allow_package_overlay
-            && modelica_parser_summary_allows_safe_package_incremental_file_for_repository(
-                repository,
-                checkout_root,
-                change.path.as_str(),
-                &contents,
-            )?;
-        let current_is_safe_nested_package =
-            current_is_safe_package_file && !current_is_safe_root_package;
-        if !current_is_safe_leaf && !current_is_safe_root_package && !current_is_safe_nested_package
-        {
-            return Ok(None);
-        }
-
-        let previous_path = change
-            .previous_path
-            .as_deref()
-            .unwrap_or(change.path.as_str());
-        let Some(previous_bytes) =
-            read_checkout_file_bytes_at_revision(checkout_root, previous_revision, previous_path)
-                .map_err(|error| RepoIntelligenceError::AnalysisFailed {
-                    message: format!(
-                        "repo `{}` failed to read previous revision source `{previous_path}` at `{previous_revision}`: {error}",
-                        repository.id,
-                    ),
-                })?
+        let contents = read_checked_out_source_text(repository, &file_path)?;
+        let Some(current_shape) = detect_modelica_incremental_shape(
+            repository,
+            checkout_root,
+            change.path.as_str(),
+            &contents,
+            allow_package_overlay,
+        )?
         else {
             return Ok(None);
         };
-        let previous_contents = String::from_utf8(previous_bytes).map_err(|error| {
-            RepoIntelligenceError::AnalysisFailed {
-                message: format!(
-                    "repo `{}` previous revision source `{previous_path}` is not utf8: {error}",
-                    repository.id,
-                ),
-            }
-        })?;
-        let previous_is_safe_leaf =
-            modelica_parser_summary_allows_safe_incremental_file_for_repository(
-                repository,
-                checkout_root,
-                previous_path,
-                &previous_contents,
-            )?;
-        let previous_is_safe_root_package = allow_package_overlay
-            && modelica_parser_summary_allows_safe_root_package_incremental_file_for_repository(
-                repository,
-                checkout_root,
-                previous_path,
-                &previous_contents,
-            )?;
-        let previous_is_safe_package_file = allow_package_overlay
-            && modelica_parser_summary_allows_safe_package_incremental_file_for_repository(
-                repository,
-                checkout_root,
-                previous_path,
-                &previous_contents,
-            )?;
-        let previous_is_safe_nested_package =
-            previous_is_safe_package_file && !previous_is_safe_root_package;
-        if !previous_is_safe_leaf
-            && !previous_is_safe_root_package
-            && !previous_is_safe_nested_package
-        {
+
+        let previous_path = previous_change_path(change);
+        let Some(previous_contents) =
+            read_revision_source_text(repository, checkout_root, previous_revision, previous_path)?
+        else {
+            return Ok(None);
+        };
+        let Some(previous_shape) = detect_modelica_incremental_shape(
+            repository,
+            checkout_root,
+            previous_path,
+            &previous_contents,
+            allow_package_overlay,
+        )?
+        else {
+            return Ok(None);
+        };
+        if !validate_modelica_incremental_shapes(
+            repository,
+            checkout_root,
+            ModelicaIncrementalVersion {
+                path: change.path.as_str(),
+                contents: &contents,
+                shape: current_shape,
+            },
+            ModelicaIncrementalVersion {
+                path: previous_path,
+                contents: &previous_contents,
+                shape: previous_shape,
+            },
+        )? {
             return Ok(None);
         }
-        if current_is_safe_root_package || previous_is_safe_root_package {
-            if !(current_is_safe_root_package && previous_is_safe_root_package) {
-                return Ok(None);
-            }
-            if !modelica_parser_summary_root_package_name_matches_repository_context(
-                repository,
-                checkout_root,
-                change.path.as_str(),
-                &contents,
-            )? || !modelica_parser_summary_root_package_name_matches_repository_context(
-                repository,
-                checkout_root,
-                previous_path,
-                &previous_contents,
-            )? {
-                return Ok(None);
-            }
-        } else if current_is_safe_nested_package || previous_is_safe_nested_package {
-            if !(current_is_safe_nested_package && previous_is_safe_nested_package) {
-                return Ok(None);
-            }
-        } else if !previous_is_safe_leaf {
-            return Ok(None);
-        }
-        let previous_fingerprint = if current_is_safe_root_package {
-            modelica_root_package_incremental_semantic_fingerprint_for_repository(
-                repository,
-                checkout_root,
-                previous_path,
-                &previous_contents,
-            )?
-            .ok_or_else(|| RepoIntelligenceError::AnalysisFailed {
-                message: format!(
-                    "repo `{}` safe root Modelica overlay fingerprint missing for `{previous_path}`",
-                    repository.id
-                ),
-            })?
-        } else if current_is_safe_nested_package {
-            modelica_package_incremental_semantic_fingerprint_for_repository(
-                repository,
-                checkout_root,
-                previous_path,
-                &previous_contents,
-            )?
-            .ok_or_else(|| RepoIntelligenceError::AnalysisFailed {
-                message: format!(
-                    "repo `{}` safe Modelica package overlay fingerprint missing for `{previous_path}`",
-                    repository.id
-                ),
-            })?
-        } else {
-            modelica_parser_summary_file_semantic_fingerprint_for_repository(
-                repository,
-                previous_path,
-                &previous_contents,
-            )?
-        };
-        let current_fingerprint = if current_is_safe_root_package {
-            modelica_root_package_incremental_semantic_fingerprint_for_repository(
-                repository,
-                checkout_root,
-                change.path.as_str(),
-                &contents,
-            )?
-            .ok_or_else(|| RepoIntelligenceError::AnalysisFailed {
-                message: format!(
-                    "repo `{}` safe root Modelica overlay fingerprint missing for `{}`",
-                    repository.id, change.path
-                ),
-            })?
-        } else if current_is_safe_nested_package {
-            modelica_package_incremental_semantic_fingerprint_for_repository(
-                repository,
-                checkout_root,
-                change.path.as_str(),
-                &contents,
-            )?
-            .ok_or_else(|| RepoIntelligenceError::AnalysisFailed {
-                message: format!(
-                    "repo `{}` safe Modelica package overlay fingerprint missing for `{}`",
-                    repository.id, change.path
-                ),
-            })?
-        } else {
-            modelica_parser_summary_file_semantic_fingerprint_for_repository(
-                repository,
-                change.path.as_str(),
-                &contents,
-            )?
-        };
+        let previous_fingerprint = modelica_incremental_fingerprint_for_shape(
+            repository,
+            checkout_root,
+            previous_path,
+            &previous_contents,
+            previous_shape,
+        )?;
+        let current_fingerprint = modelica_incremental_fingerprint_for_shape(
+            repository,
+            checkout_root,
+            change.path.as_str(),
+            &contents,
+            current_shape,
+        )?;
         if previous_fingerprint == current_fingerprint {
             continue;
         }
@@ -801,7 +838,7 @@ fn analysis_changes_are_semantically_equivalent_semantic_owner_files(
 ) -> Result<bool, RepoIntelligenceError> {
     for change in changes {
         let Some(candidate_paths) =
-            semantic_owner_candidate_paths_for_change(checkout_root, change, plugin_ids)?
+            semantic_owner_candidate_paths_for_change(checkout_root, change, plugin_ids)
         else {
             return Ok(false);
         };
@@ -870,15 +907,15 @@ fn semantic_owner_candidate_paths_for_change(
     checkout_root: &Path,
     change: &RevisionPathChange,
     plugin_ids: &[String],
-) -> Result<Option<Vec<SemanticOwnerCandidatePath>>, RepoIntelligenceError> {
+) -> Option<Vec<SemanticOwnerCandidatePath>> {
     if !matches!(change.kind, RevisionChangeKind::Modified) {
-        return Ok(None);
+        return None;
     }
     if !matches!(
         analysis_fingerprint_mode(change.path.as_str(), plugin_ids),
         Some(FingerprintMode::Contents)
     ) {
-        return Ok(None);
+        return None;
     }
 
     let file_path = checkout_root.join(change.path.as_str());
@@ -888,13 +925,13 @@ fn semantic_owner_candidate_paths_for_change(
             .as_deref()
             .unwrap_or(change.path.as_str())
             .to_string();
-        return Ok(Some(vec![SemanticOwnerCandidatePath {
+        return Some(vec![SemanticOwnerCandidatePath {
             current_path: change.path.clone(),
             previous_path,
-        }]));
+        }]);
     }
     if !file_path.is_dir() {
-        return Ok(None);
+        return None;
     }
 
     let mut candidates = WalkDir::new(&file_path)
@@ -919,7 +956,7 @@ fn semantic_owner_candidate_paths_for_change(
         })
         .collect::<Vec<_>>();
     candidates.sort_by(|left, right| left.current_path.cmp(&right.current_path));
-    Ok(Some(candidates))
+    Some(candidates)
 }
 
 fn semantic_owner_fingerprint_for_path(

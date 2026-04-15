@@ -192,6 +192,40 @@ The full crate gate rejects both:
 `test_api` remains the narrow exception for exposing private helpers to the
 externalized unit test file.
 
+### Post-Harness Leaf Curation
+
+Harness migration is not the end-state by itself. Once a suite already lives in
+`tests/unit/...` or `tests/integration/...`, the leaf files there must still
+stay focused enough to act as clear ownership seams.
+
+The current kernel now treats oversized post-harness Rust leaves under
+`tests/unit/...` and `tests/integration/...` as a structure-policy violation
+when they simultaneously:
+
+- accumulate roughly monolithic size (bounded by effective code lines), and
+- carry a dense cluster of tests that now reads more like a miniature suite
+  directory than a single leaf file
+
+The integration branch intentionally uses a looser threshold than unit leaves
+so fixture builders and repeated contract setup do not create noisy debt.
+
+Preferred remediation:
+
+- keep the same canonical `tests/unit/...` or `tests/integration/...` tree
+- split the large leaf into a feature folder such as
+  `tests/unit/policy/{mod.rs,workspace_config.rs,harness.rs}` or
+  `tests/integration/contracts_modularity/{mod.rs,root_facade.rs,root_hint.rs}`
+- keep `mod.rs` as the local test-suite seam and move scenario/config/harness
+  clusters into focused sibling files
+
+`xiuxian-testing` now self-hosts this pattern in
+`tests/unit/policy/`, `tests/unit/scenario/`, and
+`tests/integration/contracts_modularity/`: the old large leaf files were split
+into folder-first suites after the harness migration, so the crate proves that
+canonical `tests/unit/...` and `tests/integration/...` layouts can coexist with
+post-harness leaf curation without reintroducing root-level scatter or inline
+`#[cfg(test)]` blocks.
+
 ## Proposed V1 Layers
 
 ### 1. Structure Policy Layer

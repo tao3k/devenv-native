@@ -90,7 +90,7 @@ impl VectorStore {
     ///
     /// # Errors
     ///
-    /// Returns no errors; Lance FTS derives its searchable state from table data.
+    /// Returns an error when keyword search is not enabled for the store.
     pub fn index_keyword(
         &self,
         _name: &str,
@@ -99,6 +99,7 @@ impl VectorStore {
         _keywords: &[String],
         _intents: &[String],
     ) -> Result<(), VectorStoreError> {
+        self.ensure_keyword_index_hook_ready()?;
         Ok(())
     }
 
@@ -106,12 +107,22 @@ impl VectorStore {
     ///
     /// # Errors
     ///
-    /// Returns no errors; Lance FTS derives its searchable state from table data.
+    /// Returns an error when keyword search is not enabled for the store.
     pub fn bulk_index_keywords<I>(&self, docs: I) -> Result<(), VectorStoreError>
     where
         I: IntoIterator<Item = (String, String, String, Vec<String>, Vec<String>)>,
     {
+        self.ensure_keyword_index_hook_ready()?;
         let _ = docs.into_iter().count();
+        Ok(())
+    }
+
+    fn ensure_keyword_index_hook_ready(&self) -> Result<(), VectorStoreError> {
+        if !self.keyword_search_enabled {
+            return Err(VectorStoreError::General(
+                "Keyword search is not enabled.".to_string(),
+            ));
+        }
         Ok(())
     }
 }

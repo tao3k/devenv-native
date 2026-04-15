@@ -24,17 +24,22 @@ pub fn wendao_docs_get_navigation(
     ctx: &ZhenfaContext,
     args: WendaoDocsGetNavigationArgs,
 ) -> Result<String, ZhenfaError> {
-    let page_id = require_non_empty_argument(&args.page_id, "page_id")?;
+    let DocsNavigationToolArgs {
+        page_id,
+        node_id,
+        family_kind,
+        related_limit,
+        family_limit,
+    } = args;
+    let page_id = require_non_empty_argument(&page_id, "page_id")?;
     let runtime = resolve_docs_tool_runtime(ctx)?;
-    let mut options = DocsNavigationOptions::default();
-    options.node_id = optional_non_empty_argument(args.node_id, "node_id")?;
-    options.family_kind = args.family_kind;
-    if let Some(limit) = args.related_limit {
-        options.related_limit = limit;
-    }
-    if let Some(limit) = args.family_limit {
-        options.family_limit = limit;
-    }
+    let defaults = DocsNavigationOptions::default();
+    let options = DocsNavigationOptions {
+        node_id: optional_non_empty_argument(node_id, "node_id")?,
+        family_kind,
+        related_limit: related_limit.unwrap_or(defaults.related_limit),
+        family_limit: family_limit.unwrap_or(defaults.family_limit),
+    };
     let result = runtime
         .get_navigation_with_options(&page_id, options)
         .map_err(|error| ZhenfaError::execution(error.to_string()))?;

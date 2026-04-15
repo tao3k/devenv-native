@@ -123,7 +123,11 @@ pub(crate) fn build_incremental_doc_relations(
             Some((source_path, suffix)) => (source_path, Some(suffix)),
             None => (doc.path.as_str(), None),
         };
-        if source_path.ends_with(".jl") || doc.format.as_deref() == Some("julia_docstring") {
+        let is_julia_source = Path::new(source_path)
+            .extension()
+            .and_then(|extension| extension.to_str())
+            .is_some_and(|extension| extension.eq_ignore_ascii_case("jl"));
+        if is_julia_source || doc.format.as_deref() == Some("julia_docstring") {
             continue;
         }
 

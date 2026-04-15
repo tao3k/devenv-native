@@ -103,7 +103,7 @@ pub struct AnalysisEdge {
 /// Shared retrieval chunk used by markdown analysis surfaces.
 pub type MarkdownRetrievalAtom = RetrievalChunk;
 
-/// DeepWiki-style document link kind emitted by markdown analysis.
+/// `DeepWiki`-style document link kind emitted by markdown analysis.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Type, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum MarkdownAnalysisDocumentLinkKind {
@@ -119,7 +119,7 @@ pub enum MarkdownAnalysisDocumentLinkKind {
     Backlink,
 }
 
-/// One DeepWiki-style document link row.
+/// One `DeepWiki`-style document link row.
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct MarkdownAnalysisDocumentLink {
@@ -150,7 +150,7 @@ pub struct MarkdownAnalysisDocumentLink {
     pub target_address: Option<String>,
 }
 
-/// DeepWiki-style document identity payload emitted by markdown analysis.
+/// `DeepWiki`-style document identity payload emitted by markdown analysis.
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct MarkdownAnalysisDocumentMetadata {
@@ -200,7 +200,7 @@ pub struct MarkdownAnalysisResponse {
     /// Compact retrieval atoms for document / section surfaces.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub retrieval_atoms: Vec<MarkdownRetrievalAtom>,
-    /// Backend-owned DeepWiki document identity and link metadata.
+    /// Backend-owned `DeepWiki` document identity and link metadata.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub document_metadata: Option<MarkdownAnalysisDocumentMetadata>,
     /// Analysis diagnostics.

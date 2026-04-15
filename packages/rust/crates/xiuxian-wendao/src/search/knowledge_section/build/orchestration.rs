@@ -249,15 +249,14 @@ fn plan_knowledge_section_build_with_scanned_files(
             continue;
         }
 
-        let file_rows = markdown_snapshot
-            .entry(file.normalized_path.as_str())
-            .map_or_else(Vec::new, |entry| {
-                build_knowledge_section_rows_for_entry(project_root, config_root, projects, entry)
-            });
+        let entry = markdown_snapshot.entry(file.normalized_path.as_str());
+        let semantic_fingerprint = entry
+            .and_then(|entry| entry.note_fingerprint.clone())
+            .unwrap_or_else(|| knowledge_section_rows_fingerprint(&[]));
         let fingerprint = file.to_semantic_file_fingerprint(
             KNOWLEDGE_SECTION_EXTRACTOR_VERSION,
             SearchCorpusKind::KnowledgeSection.schema_version(),
-            knowledge_section_rows_fingerprint(&file_rows),
+            semantic_fingerprint,
         );
         let changed = !can_incremental_reuse
             || previous_fingerprints
@@ -265,6 +264,9 @@ fn plan_knowledge_section_build_with_scanned_files(
                 .is_none_or(|previous| !previous.equivalent_for_incremental(&fingerprint));
         file_fingerprints.insert(file.normalized_path.clone(), fingerprint);
         if changed {
+            let file_rows = entry.map_or_else(Vec::new, |entry| {
+                build_knowledge_section_rows_for_entry(project_root, config_root, projects, entry)
+            });
             changed_files.push(file.clone());
             changed_rows.extend(file_rows);
         }

@@ -548,5 +548,5 @@ pub fn assert_crate_tests_structure_with_workspace_config(crate_root: &Path) {
 }
 
 #[cfg(test)]
-#[path = "../tests/unit/policy.rs"]
+#[path = "../tests/unit/policy/mod.rs"]
 mod tests;

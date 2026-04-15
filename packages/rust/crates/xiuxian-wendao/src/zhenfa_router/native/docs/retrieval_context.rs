@@ -25,13 +25,18 @@ pub fn wendao_docs_get_retrieval_context(
     ctx: &ZhenfaContext,
     args: WendaoDocsGetRetrievalContextArgs,
 ) -> Result<String, ZhenfaError> {
-    let page_id = require_non_empty_argument(&args.page_id, "page_id")?;
+    let DocsRetrievalContextToolArgs {
+        page_id,
+        node_id,
+        related_limit,
+    } = args;
+    let page_id = require_non_empty_argument(&page_id, "page_id")?;
     let runtime = resolve_docs_tool_runtime(ctx)?;
-    let mut options = DocsRetrievalContextOptions::default();
-    options.node_id = optional_non_empty_argument(args.node_id, "node_id")?;
-    if let Some(limit) = args.related_limit {
-        options.related_limit = limit;
-    }
+    let defaults = DocsRetrievalContextOptions::default();
+    let options = DocsRetrievalContextOptions {
+        node_id: optional_non_empty_argument(node_id, "node_id")?,
+        related_limit: related_limit.unwrap_or(defaults.related_limit),
+    };
     let result = runtime
         .get_retrieval_context_with_options(&page_id, options)
         .map_err(|error| ZhenfaError::execution(error.to_string()))?;

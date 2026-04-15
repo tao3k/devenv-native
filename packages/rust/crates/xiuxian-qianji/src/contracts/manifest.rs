@@ -85,5 +85,5 @@ fn default_node_weight() -> f32 {
 }
 
 fn default_node_params() -> Value {
-    Value::Object(Default::default())
+    Value::Object(serde_json::Map::default())
 }

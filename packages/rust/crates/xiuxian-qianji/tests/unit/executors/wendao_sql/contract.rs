@@ -2,8 +2,8 @@ use crate::executors::wendao_sql::contract::{parse_sql_author_spec_xml, parse_su
 
 #[test]
 fn parses_surface_bundle_xml_contract() {
-    let bundle = parse_surface_bundle_xml(
-        r#"
+    let bundle = match parse_surface_bundle_xml(
+        r"
         <surface_bundle>
           <project_root>/tmp/project</project_root>
           <catalog_table_name>wendao_sql_tables</catalog_table_name>
@@ -34,9 +34,11 @@ fn parses_surface_bundle_xml_contract() {
             </object>
           </objects>
         </surface_bundle>
-        "#,
-    )
-    .expect("surface bundle should parse");
+        ",
+    ) {
+        Ok(bundle) => bundle,
+        Err(error) => panic!("surface bundle should parse: {error}"),
+    };
 
     assert_eq!(bundle.policy.max_limit, 8);
     assert_eq!(bundle.objects.len(), 1);
@@ -45,8 +47,8 @@ fn parses_surface_bundle_xml_contract() {
 
 #[test]
 fn parses_sql_author_spec_xml_contract() {
-    let spec = parse_sql_author_spec_xml(
-        r#"
+    let spec = match parse_sql_author_spec_xml(
+        r"
         <sql_author_spec>
           <target_object>repo_entity</target_object>
           <projection>
@@ -69,9 +71,11 @@ fn parses_sql_author_spec_xml_contract() {
           <limit>5</limit>
           <sql_draft>SELECT path FROM repo_entity</sql_draft>
         </sql_author_spec>
-        "#,
-    )
-    .expect("author spec should parse");
+        ",
+    ) {
+        Ok(spec) => spec,
+        Err(error) => panic!("author spec should parse: {error}"),
+    };
 
     assert_eq!(spec.target_object, "repo_entity");
     assert_eq!(spec.projection, vec!["path", "title"]);

@@ -20,6 +20,10 @@ use self::root_child_visibility::RootChildVisibilityCheck;
 use self::root_doc_curation::RootDocCurationCheck;
 use self::root_doc_hint::RootDocHintCheck;
 use self::root_doc_owner_alignment::RootDocOwnerAlignmentCheck;
+use self::root_doc_owner_name::RootDocOwnerNameCheck;
+use self::root_doc_priority::RootDocPriorityCheck;
+use self::root_doc_secondary_budget::RootDocSecondaryBudgetCheck;
+use self::root_doc_secondary_owner::RootDocSecondaryOwnerCheck;
 use self::root_entry_curation::RootEntryCurationCheck;
 use self::root_entry_focus::RootEntryFocusCheck;
 use self::root_entry_owner::RootEntryOwnerCheck;
@@ -37,6 +41,10 @@ mod root_child_visibility;
 mod root_doc_curation;
 mod root_doc_hint;
 mod root_doc_owner_alignment;
+mod root_doc_owner_name;
+mod root_doc_priority;
+mod root_doc_secondary_budget;
+mod root_doc_secondary_owner;
 mod root_entry_curation;
 mod root_entry_focus;
 mod root_entry_owner;
@@ -66,6 +74,10 @@ const MOD_R017: &str = "MOD-R017";
 const MOD_R018: &str = "MOD-R018";
 const MOD_R019: &str = "MOD-R019";
 const MOD_R020: &str = "MOD-R020";
+const MOD_R021: &str = "MOD-R021";
+const MOD_R022: &str = "MOD-R022";
+const MOD_R023: &str = "MOD-R023";
+const MOD_R024: &str = "MOD-R024";
 
 /// Deterministic V1 modularity checks over Rust source files.
 #[derive(Debug, Default, Clone, Copy)]
@@ -144,6 +156,10 @@ impl RulePack for ModularityRulePack {
             findings.extend(check_root_entry_visibility(path, text, &file_texts));
             findings.extend(check_root_entry_curation(path, text, &file_texts));
             findings.extend(check_root_doc_curation(path, text, &file_texts));
+            findings.extend(check_root_doc_priority(path, text, &file_texts));
+            findings.extend(check_root_doc_secondary_budget(path, text, &file_texts));
+            findings.extend(check_root_doc_secondary_owner(path, text, &file_texts));
+            findings.extend(check_root_doc_owner_name(path, text, &file_texts));
             findings.extend(check_root_entry_owner(path, text));
             findings.extend(check_root_child_visibility(path, text));
             findings.extend(check_relative_import_clarity(path, text));
@@ -805,6 +821,191 @@ fn check_root_doc_curation(
                 format!(
                     "visible_owner={}, named_modules={}",
                     metrics.visible_owner, metrics.named_modules
+                ),
+            ));
+            vec![finding]
+        }
+    }
+}
+
+fn check_root_doc_priority(
+    path: &Path,
+    text: &str,
+    file_texts: &BTreeMap<PathBuf, String>,
+) -> Vec<ContractFinding> {
+    match root_doc_priority::check_root_doc_priority(path, text, file_texts) {
+        RootDocPriorityCheck::NotApplicable | RootDocPriorityCheck::OwnerFirst => Vec::new(),
+        RootDocPriorityCheck::SecondaryMentionedFirst(metrics) => {
+            let mut finding = base_finding(
+                MOD_R021,
+                FindingSeverity::Warning,
+                path,
+                "Internal root doc should mention the canonical owner first",
+                format!(
+                    "`{}` is declared from its parent as `{}` and exposes canonical visible owner `{}`, but the root `//!` doc at line {} mentions secondary module `{}` before that owner. Coding agents usually treat the first named module as the first hop.",
+                    display_path(path),
+                    metrics.parent_visibility,
+                    metrics.visible_owner,
+                    metrics.doc_line_number,
+                    metrics.leading_module
+                ),
+            );
+            finding.why_it_matters = "Even when the root doc and visible seam name the same modules, ordering still shapes navigation. If a secondary seam appears before the canonical visible owner, Codex can open the wrong leaf file first.".to_string();
+            finding.remediation = "Rewrite the root `//!` hint so the canonical visible owner module appears before any secondary seams such as `parser` or `runtime`. Keep secondary context after the first-hop owner.".to_string();
+            finding.examples.good.push(
+                "`//! Start in service; parser stays leaf-owned.` keeps the primary seam first."
+                    .to_string(),
+            );
+            finding.examples.bad.push(
+                "`//! Parser handles syntax; start in service.` puts the secondary seam ahead of the canonical visible owner."
+                    .to_string(),
+            );
+            finding.evidence.push(FindingEvidenceEntry::source_span(
+                path,
+                metrics.doc_line_number,
+                format!(
+                    "visible_owner={}, leading_module={}",
+                    metrics.visible_owner, metrics.leading_module
+                ),
+            ));
+            vec![finding]
+        }
+    }
+}
+
+fn check_root_doc_secondary_budget(
+    path: &Path,
+    text: &str,
+    file_texts: &BTreeMap<PathBuf, String>,
+) -> Vec<ContractFinding> {
+    match root_doc_secondary_budget::check_root_doc_secondary_budget(path, text, file_texts) {
+        RootDocSecondaryBudgetCheck::NotApplicable | RootDocSecondaryBudgetCheck::WithinBudget => {
+            Vec::new()
+        }
+        RootDocSecondaryBudgetCheck::TooManySecondaryMentions(metrics) => {
+            let mut finding = base_finding(
+                MOD_R022,
+                FindingSeverity::Warning,
+                path,
+                "Internal root doc should limit secondary seam mentions",
+                format!(
+                    "`{}` is declared from its parent as `{}` and already exposes canonical visible owner `{}`, but the root `//!` doc at line {} still names {} secondary seams ({}). Coding agents can read the sibling tree directly, so the root hint should stay short.",
+                    display_path(path),
+                    metrics.parent_visibility,
+                    metrics.visible_owner,
+                    metrics.doc_line_number,
+                    metrics.secondary_mentions,
+                    metrics.secondary_modules
+                ),
+            );
+            finding.why_it_matters = "Even when ordering is correct, naming several secondary seams in the root doc adds token noise and encourages coding agents to treat the root hint like a mini README. One canonical owner plus at most one secondary seam is usually enough.".to_string();
+            finding.remediation = "Keep the root `//!` doc centered on the canonical visible owner and at most one secondary seam that genuinely needs extra context. Let the sibling folder structure carry the rest.".to_string();
+            finding.examples.good.push(
+                "`//! Start in service; parser handles syntax.` keeps the root hint compact."
+                    .to_string(),
+            );
+            finding.examples.bad.push(
+                "`//! Start in service; parser handles syntax; runtime executes; storage persists.` turns the root hint into a directory summary."
+                    .to_string(),
+            );
+            finding.evidence.push(FindingEvidenceEntry::source_span(
+                path,
+                metrics.doc_line_number,
+                format!(
+                    "visible_owner={}, secondary_modules={}, secondary_mentions={}",
+                    metrics.visible_owner, metrics.secondary_modules, metrics.secondary_mentions
+                ),
+            ));
+            vec![finding]
+        }
+    }
+}
+
+fn check_root_doc_secondary_owner(
+    path: &Path,
+    text: &str,
+    file_texts: &BTreeMap<PathBuf, String>,
+) -> Vec<ContractFinding> {
+    match root_doc_secondary_owner::check_root_doc_secondary_owner(path, text, file_texts) {
+        RootDocSecondaryOwnerCheck::NotApplicable
+        | RootDocSecondaryOwnerCheck::CanonicalSecondary => Vec::new(),
+        RootDocSecondaryOwnerCheck::SuspiciousSecondary(metrics) => {
+            let mut finding = base_finding(
+                MOD_R023,
+                FindingSeverity::Warning,
+                path,
+                "Internal root doc should avoid helper-bucket secondary seams",
+                format!(
+                    "`{}` is declared from its parent as `{}` and already exposes canonical visible owner `{}`, but the root `//!` doc at line {} still names helper/detail bucket `{}` as the secondary seam. If Codex needs one extra hop, it should still be a canonical feature seam.",
+                    display_path(path),
+                    metrics.parent_visibility,
+                    metrics.visible_owner,
+                    metrics.doc_line_number,
+                    metrics.secondary_module
+                ),
+            );
+            finding.why_it_matters = "A short root doc is only useful if the extra secondary seam still points at a real feature boundary. Naming `internal`, `detail`, or `helper` in the root hint can steer coding agents into support buckets instead of the real leaf owner path.".to_string();
+            finding.remediation = "Keep the root `//!` hint on the canonical visible owner and, if one extra seam is still needed, name a canonical feature seam such as `parser`, `runtime`, or `service` instead of `internal` or `detail` buckets.".to_string();
+            finding.examples.good.push(
+                "`//! Start in service; parser handles syntax.` keeps the secondary seam meaningful."
+                    .to_string(),
+            );
+            finding.examples.bad.push(
+                "`//! Start in service; internal handles glue.` points the secondary hint at a support bucket."
+                    .to_string(),
+            );
+            finding.evidence.push(FindingEvidenceEntry::source_span(
+                path,
+                metrics.doc_line_number,
+                format!(
+                    "visible_owner={}, secondary_module={}",
+                    metrics.visible_owner, metrics.secondary_module
+                ),
+            ));
+            vec![finding]
+        }
+    }
+}
+
+fn check_root_doc_owner_name(
+    path: &Path,
+    text: &str,
+    file_texts: &BTreeMap<PathBuf, String>,
+) -> Vec<ContractFinding> {
+    match root_doc_owner_name::check_root_doc_owner_name(path, text, file_texts) {
+        RootDocOwnerNameCheck::NotApplicable | RootDocOwnerNameCheck::CanonicalOwnerName => {
+            Vec::new()
+        }
+        RootDocOwnerNameCheck::DriftedOwnerName(metrics) => {
+            let mut finding = base_finding(
+                MOD_R024,
+                FindingSeverity::Warning,
+                path,
+                "Internal root doc should name the canonical owner module directly",
+                format!(
+                    "`{}` is declared from its parent as `{}` and already exposes canonical visible owner `{}`, but the root `//!` doc at line {} hints the first hop as `{}` instead of naming the real child module. When the root hint uses inline-code owner wording, Codex should see the actual owner path.",
+                    display_path(path),
+                    metrics.parent_visibility,
+                    metrics.visible_owner,
+                    metrics.doc_line_number,
+                    metrics.hinted_owner
+                ),
+            );
+            finding.why_it_matters = "A short root hint is most useful when its owner wording matches the real child module path that owns the feature. Alias or marketing-style owner names force coding agents to translate the hint back into the folder tree before they can open the right file.".to_string();
+            finding.remediation = "When an internal root doc points to the canonical visible owner, name that owner with the real child module path such as `service` or `parser`. Avoid replacing the module name with type aliases or marketing labels in the root `//!` hint.".to_string();
+            finding.examples.good.push(
+                "`//! Start in `service`.` names the real owner module directly.".to_string(),
+            );
+            finding.examples.bad.push(
+                "`//! Start in `FeatureService`.` makes Codex translate an alias back to the real `service` module."
+                    .to_string(),
+            );
+            finding.evidence.push(FindingEvidenceEntry::source_span(
+                path,
+                metrics.doc_line_number,
+                format!(
+                    "visible_owner={}, hinted_owner={}",
+                    metrics.visible_owner, metrics.hinted_owner
                 ),
             ));
             vec![finding]

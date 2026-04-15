@@ -46,26 +46,47 @@ filesystem timestamps, saliency defaults, or graph records.
 The shared extractor follows these rules for Markdown:
 
 1. frontmatter is split before metadata extraction
-2. title prefers frontmatter `title`, then the first Markdown `# ` heading,
-   then the caller-provided fallback
-3. tags follow the historical note-parser contract and only read top-level
+2. title prefers frontmatter `title`, then the first parser-owned structural
+   heading, then the caller-provided fallback
+3. standalone document parsing, note parsing, and TOC parsing all assemble
+   `MarkdownDocument` with the same parser-owned structural heading candidate,
+   so heading-like text inside fenced code blocks does not leak into parser-owned
+   fallback titles
+4. tags follow the historical note-parser contract and only read top-level
    frontmatter `tags`
-4. `type` and `kind` are normalized into one optional `doc_type`
-5. lead text skips blank lines, headings, and code-fence markers
-6. `DocumentCore.format` is set to `markdown`
+5. `type` and `kind` are normalized into one optional `doc_type`
+6. lead is derived from the first parser-owned structural paragraph snippet
+   rather than a line-based fallback, so fenced code content does not leak into
+   parser-owned lead snippets
+7. standalone document parsing uses a light parser-owned structural metadata
+   scan for title and lead, while note and TOC parsing continue to consume the
+   richer full-structure scan that also carries references, targets, and
+   section-driving heading/task items
+8. `DocumentCore.format` is set to `markdown`
 
 ## Consumer Boundary
 
 `xiuxian-wendao` now consumes these parser-owned document contracts:
 
-1. `parse_note` consumes `MarkdownDocument.core` through the parser-owned
+1. `parse_markdown_document` now assembles standalone Markdown document
+   metadata from the same parser-owned structural heading and paragraph
+   semantics already shared by note and TOC parsing, but through a lighter
+   document-only metadata scan that avoids full reference/target/task
+   collection
+2. `parse_note` consumes `MarkdownDocument.core` through the parser-owned
    `MarkdownNote` aggregate for title, tags, doc type, lead, body, and word
    count
-2. Wendao still consumes `MarkdownDocument.raw_metadata` for saliency and
+3. `parse_markdown_toc` and `parse_markdown_note` now assemble
+   `MarkdownDocument` with fallback titles sourced from the same parser-owned
+   structural heading scan that drives their section discovery
+4. standalone document parsing plus those same hot paths now also assemble
+   `MarkdownDocument.lead` from the parser-owned structural scan instead of a
+   separate line-based fallback
+5. Wendao still consumes `MarkdownDocument.raw_metadata` for saliency and
    timestamp adapters that are still Markdown-specific today
-3. Wendao still owns `doc_id`, `path`, timestamps, saliency defaults, and
+6. Wendao still owns `doc_id`, `path`, timestamps, saliency defaults, and
    `LinkGraphDocument` assembly
-4. link extraction and section enrichment still happen in Wendao because they
+7. link extraction and section enrichment still happen in Wendao because they
    require workspace-aware and domain-aware adapters
 
 ## Regression Coverage
@@ -83,5 +104,5 @@ Coverage for this contract lives in:
 ---
 
 :FOOTER:
-:LAST_SYNC: 2026-04-11
+:LAST_SYNC: 2026-04-14
 :END:

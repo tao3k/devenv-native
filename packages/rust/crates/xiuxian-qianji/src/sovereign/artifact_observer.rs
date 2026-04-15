@@ -259,5 +259,5 @@ impl ArtifactObserverBuilder<NoopWendaoIngestionSink> {
 }
 
 #[cfg(test)]
-#[path = "../../tests/unit/sovereign/artifact_observer.rs"]
+#[path = "../../tests/unit/sovereign/artifact_observer/mod.rs"]
 mod tests;

@@ -59,7 +59,7 @@ pub(crate) async fn load_code_ast_analysis_response(
                 source_content,
                 lang,
             );
-            response.path = request_path.clone();
+            response.path.clone_from(&request_path);
             return Ok(response);
         }
 
@@ -69,7 +69,7 @@ pub(crate) async fn load_code_ast_analysis_response(
             &plugin_registry,
             repo_path.as_str(),
         )
-        .map_err(|error| map_repo_intelligence_error(error))?;
+        .map_err(map_repo_intelligence_error)?;
         let mut response = build_code_ast_analysis_response(
             repo_id,
             repo_path,

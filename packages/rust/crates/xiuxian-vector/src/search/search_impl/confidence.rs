@@ -115,10 +115,10 @@ pub(super) fn input_schema_digest(input_schema: &Value) -> String {
         return "fnv1a64:empty".to_string();
     }
     let canonical = canonicalize_json_value(&normalized);
-    let mut digest = 0xcbf29ce484222325_u64;
+    let mut digest = 0xcbf2_9ce4_8422_2325_u64;
     for byte in canonical.to_string().bytes() {
         digest ^= u64::from(byte);
-        digest = digest.wrapping_mul(0x100000001b3);
+        digest = digest.wrapping_mul(0x0100_0000_01b3);
     }
     format!("fnv1a64:{digest:016x}")
 }

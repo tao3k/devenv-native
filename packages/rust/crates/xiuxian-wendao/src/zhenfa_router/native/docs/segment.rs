@@ -34,10 +34,15 @@ pub fn wendao_docs_get_document_segment(
     ctx: &ZhenfaContext,
     args: WendaoDocsGetDocumentSegmentArgs,
 ) -> Result<String, ZhenfaError> {
-    let page_id = require_non_empty_argument(&args.page_id, "page_id")?;
+    let WendaoDocsGetDocumentSegmentArgs {
+        page_id,
+        line_start,
+        line_end,
+    } = args;
+    let page_id = require_non_empty_argument(&page_id, "page_id")?;
     let runtime = resolve_docs_tool_runtime(ctx)?;
     let result = runtime
-        .get_document_segment(&page_id, args.line_start, args.line_end)
+        .get_document_segment(&page_id, line_start, line_end)
         .map_err(|error| ZhenfaError::execution(error.to_string()))?;
     serialize_payload(&result)
 }

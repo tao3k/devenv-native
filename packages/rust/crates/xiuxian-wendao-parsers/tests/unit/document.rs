@@ -22,7 +22,10 @@ fn parse_markdown_document_extracts_frontmatter_and_body_metadata() {
     assert_eq!(document.core.title, "Parser Contract");
     assert_eq!(document.core.tags, vec!["parser", "rust"]);
     assert_eq!(document.core.doc_type.as_deref(), Some("design"));
-    assert_eq!(document.core.lead, "First paragraph line.");
+    assert_eq!(
+        document.core.lead,
+        "First paragraph line. Second paragraph line."
+    );
     assert_eq!(document.core.word_count, 6);
     assert_eq!(
         document.core.body,
@@ -38,6 +41,17 @@ fn parse_markdown_document_uses_heading_then_fallback_title() {
 
     let fallback_document = parse_markdown_document("Body only.\n", "fallback");
     assert_eq!(fallback_document.core.title, "fallback");
+}
+
+#[test]
+fn parse_markdown_document_uses_structural_title_and_lead_not_code_fence_text() {
+    let document = parse_markdown_document(
+        concat!("```md\n", "# Not a heading\n", "Body text.\n", "```\n",),
+        "fallback",
+    );
+
+    assert_eq!(document.core.title, "fallback");
+    assert!(document.core.lead.is_empty());
 }
 
 #[test]

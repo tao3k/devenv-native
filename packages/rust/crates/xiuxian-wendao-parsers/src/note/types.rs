@@ -43,3 +43,12 @@ pub struct NoteAggregate<Document, Reference, Target, Section> {
 /// Parser-owned aggregate for one Markdown note body.
 pub type MarkdownNote =
     NoteAggregate<MarkdownDocument, MarkdownReference, MarkdownTargetOccurrence, MarkdownSection>;
+
+/// Parser-owned single-pass markdown parse artifacts for direct consumers.
+#[derive(Debug, Clone, PartialEq)]
+pub struct MarkdownNoteParseArtifacts {
+    /// Parser-owned note aggregate assembled from one markdown body.
+    pub note: MarkdownNote,
+    /// Parser-owned symbol fingerprint derived from the same structural pass.
+    pub symbol_fingerprint: String,
+}

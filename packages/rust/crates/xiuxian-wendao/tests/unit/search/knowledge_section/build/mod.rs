@@ -199,6 +199,14 @@ fn note_corpora_and_local_symbol_share_markdown_snapshot_entries() {
             .iter()
             .any(|row| row.path == "docs/design.md")
     );
+    let snapshot_entry = service.shared_markdown_snapshot_entry(
+        project_root,
+        &crate::search::scan_note_project_files(project_root, project_root, &projects)[0],
+    );
+    assert!(
+        snapshot_entry.note_fingerprint.is_some(),
+        "markdown snapshot should cache the parser-owned note fingerprint"
+    );
 
     let attachment = crate::search::attachment::plan_attachment_build(
         &service,

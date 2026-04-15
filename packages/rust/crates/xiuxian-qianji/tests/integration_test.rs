@@ -6,7 +6,7 @@ xiuxian_testing::crate_test_policy_harness!();
 mod executors_annotation;
 #[path = "integration/executors_formal_audit.rs"]
 mod executors_formal_audit;
-#[path = "integration/llm_augmented_formal_audit.rs"]
+#[path = "integration/llm_augmented_formal_audit/mod.rs"]
 mod llm_augmented_formal_audit;
 #[path = "integration/manifest_requires_llm.rs"]
 mod manifest_requires_llm;
@@ -16,7 +16,7 @@ mod runtime_live_llm;
 mod test_agenda_validation_pipeline;
 #[path = "integration/test_bootcamp_api.rs"]
 mod test_bootcamp_api;
-#[path = "integration/test_compiler_dispatch_routes.rs"]
+#[path = "integration/test_compiler_dispatch_routes/mod.rs"]
 mod test_compiler_dispatch_routes;
 #[path = "integration/test_compiler_dispatch_routes_llm.rs"]
 mod test_compiler_dispatch_routes_llm;

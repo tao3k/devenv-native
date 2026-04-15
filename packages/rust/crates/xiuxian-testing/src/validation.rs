@@ -43,6 +43,8 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use syn::Item;
+
 /// Optional structure policy overrides loaded from crate-level configuration.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct TestsStructurePolicy {
@@ -78,6 +80,10 @@ pub enum ViolationKind {
     ScatteredTestFile,
     /// Directory not in the allowed list.
     UnexpectedDirectory,
+    /// Nested unit-test file has regressed into a monolithic suite.
+    BloatedUnitTestFile,
+    /// Nested integration-test file has regressed into a monolithic suite.
+    BloatedIntegrationTestFile,
 }
 
 impl std::fmt::Display for ViolationKind {
@@ -89,6 +95,8 @@ impl std::fmt::Display for ViolationKind {
             Self::PySuffixInRoot => write!(f, "_py.rs suffix in tests root"),
             Self::ScatteredTestFile => write!(f, "scattered test file in root"),
             Self::UnexpectedDirectory => write!(f, "unexpected directory"),
+            Self::BloatedUnitTestFile => write!(f, "bloated unit test file"),
+            Self::BloatedIntegrationTestFile => write!(f, "bloated integration test file"),
         }
     }
 }
@@ -115,6 +123,11 @@ const ALLOWED_ROOT_FILE_PATTERNS: &[&str] = &[
     "scenarios_test.rs",
     "xiuxian-testing-gate.rs",
 ];
+
+const MAX_UNIT_TEST_EFFECTIVE_LINES: usize = 260;
+const MIN_UNIT_TEST_FUNCTIONS: usize = 8;
+const MAX_INTEGRATION_TEST_EFFECTIVE_LINES: usize = 420;
+const MIN_INTEGRATION_TEST_FUNCTIONS: usize = 12;
 
 /// Check if a file name matches an allowed root file pattern.
 fn is_allowed_root_file(name: &str, policy: Option<&TestsStructurePolicy>) -> bool {
@@ -300,7 +313,147 @@ pub fn validate_crate_tests_with_policy(
     crate_path: &Path,
     policy: Option<&TestsStructurePolicy>,
 ) -> Vec<StructureViolation> {
-    validate_tests_structure_with_policy(&crate_path.join("tests"), policy)
+    let tests_dir = crate_path.join("tests");
+    let mut violations = validate_tests_structure_with_policy(&tests_dir, policy);
+    violations.extend(validate_test_leaf_files(
+        crate_path,
+        "unit",
+        ViolationKind::BloatedUnitTestFile,
+        MAX_UNIT_TEST_EFFECTIVE_LINES,
+        MIN_UNIT_TEST_FUNCTIONS,
+    ));
+    violations.extend(validate_test_leaf_files(
+        crate_path,
+        "integration",
+        ViolationKind::BloatedIntegrationTestFile,
+        MAX_INTEGRATION_TEST_EFFECTIVE_LINES,
+        MIN_INTEGRATION_TEST_FUNCTIONS,
+    ));
+    violations
+}
+
+fn validate_test_leaf_files(
+    crate_root: &Path,
+    suite_name: &'static str,
+    kind: ViolationKind,
+    max_effective_lines: usize,
+    min_test_functions: usize,
+) -> Vec<StructureViolation> {
+    let suite_dir = crate_root.join("tests").join(suite_name);
+    if !suite_dir.exists() {
+        return Vec::new();
+    }
+
+    let mut files = Vec::new();
+    collect_test_rust_files(&suite_dir, &mut files);
+    files
+        .into_iter()
+        .filter_map(|path| {
+            check_test_leaf_file(
+                crate_root,
+                &path,
+                suite_name,
+                kind,
+                max_effective_lines,
+                min_test_functions,
+            )
+        })
+        .collect()
+}
+
+fn collect_test_rust_files(dir: &Path, files: &mut Vec<PathBuf>) {
+    let Ok(entries) = fs::read_dir(dir) else {
+        return;
+    };
+
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if path.is_dir() {
+            collect_test_rust_files(&path, files);
+        } else if path
+            .extension()
+            .is_some_and(|ext| ext.eq_ignore_ascii_case("rs"))
+        {
+            files.push(path);
+        }
+    }
+}
+
+fn check_test_leaf_file(
+    crate_root: &Path,
+    path: &Path,
+    suite_name: &'static str,
+    kind: ViolationKind,
+    max_effective_lines: usize,
+    min_test_functions: usize,
+) -> Option<StructureViolation> {
+    let content = fs::read_to_string(path).ok()?;
+    let effective_code_lines = count_effective_code_lines(&content);
+    if effective_code_lines < max_effective_lines {
+        return None;
+    }
+
+    let parsed = syn::parse_file(&content).ok()?;
+    let test_functions = count_test_functions(&parsed.items);
+    if test_functions < min_test_functions {
+        return None;
+    }
+
+    let rendered_path = path
+        .strip_prefix(crate_root)
+        .unwrap_or(path)
+        .display()
+        .to_string();
+    let stem = path.file_stem().and_then(|stem| stem.to_str())?;
+    let split_target = path.with_extension("");
+    let split_target = split_target
+        .strip_prefix(crate_root)
+        .unwrap_or(&split_target)
+        .display()
+        .to_string();
+    let suite_label = format!("post-harness {suite_name} tree");
+
+    Some(StructureViolation {
+        path: path.to_path_buf(),
+        kind,
+        suggestion: format!(
+            "`{rendered_path}` carries {effective_code_lines} effective code lines across {test_functions} test functions. Split it into a folder-first {suite_name} suite such as `{split_target}/mod.rs` plus focused leaves (`{stem}` helpers, config, or rule-family shards) so the {suite_label} stays navigable under the testing-gate harness."
+        ),
+    })
+}
+
+fn count_effective_code_lines(text: &str) -> usize {
+    text.lines()
+        .map(str::trim)
+        .filter(|line| {
+            !line.is_empty()
+                && !line.starts_with("//")
+                && !line.starts_with("/*")
+                && !line.starts_with('*')
+                && !line.starts_with("*/")
+                && !line.starts_with("#[")
+                && !line.starts_with("#![")
+        })
+        .count()
+}
+
+fn count_test_functions(items: &[Item]) -> usize {
+    items
+        .iter()
+        .map(|item| match item {
+            Item::Fn(item_fn) => usize::from(item_fn.attrs.iter().any(|attr| {
+                attr.path()
+                    .segments
+                    .last()
+                    .is_some_and(|segment| segment.ident == "test")
+            })),
+            Item::Mod(item_mod) => item_mod
+                .content
+                .as_ref()
+                .map_or(0, |(_, nested_items)| count_test_functions(nested_items)),
+            _ => 0,
+        })
+        .sum()
 }
 
 /// Get a summary report of violations.

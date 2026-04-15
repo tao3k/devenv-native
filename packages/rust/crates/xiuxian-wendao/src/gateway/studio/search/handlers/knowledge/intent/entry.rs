@@ -73,7 +73,7 @@ pub(crate) async fn build_intent_search_response_with_metadata(
             .map(|response| (response, IntentSearchTransportMetadata::default()));
     }
 
-    let index_state = ensure_intent_indices(studio)?;
+    let index_state = ensure_intent_indices(studio);
     let candidate_limit = intent_candidate_limit(limit);
     let intent_ref = intent.as_deref();
     let code_biased = is_code_biased_intent(intent_ref, query_text, repo_hint);

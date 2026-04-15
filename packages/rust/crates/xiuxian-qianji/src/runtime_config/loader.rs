@@ -32,11 +32,15 @@ fn qianji_toml_candidates(
     project_root: &Path,
     config_home: &Path,
 ) -> Vec<PathBuf> {
-    let mut candidates = vec![
-        project_root.join("packages/rust/crates/xiuxian-qianji/resources/config/qianji.toml"),
-        config_home.join("xiuxian-artisan-workshop/xiuxian.toml"),
-        config_home.join("xiuxian-artisan-workshop/qianji.toml"),
-    ];
+    let mut candidates =
+        vec![project_root.join("packages/rust/crates/xiuxian-qianji/resources/config/qianji.toml")];
+
+    let user_qianji_toml = config_home.join("xiuxian-artisan-workshop/qianji.toml");
+    if user_qianji_toml.exists() {
+        candidates.push(user_qianji_toml);
+    } else {
+        candidates.push(config_home.join("xiuxian-artisan-workshop/xiuxian.toml"));
+    }
 
     if let Some(explicit) = resolve_explicit_qianji_config_path(runtime_env) {
         candidates.push(explicit);

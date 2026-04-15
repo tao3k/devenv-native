@@ -1,16 +1,14 @@
-use crate::gateway::studio::router::{StudioApiError, StudioState};
+use crate::gateway::studio::router::StudioState;
 use crate::gateway::studio::search::handlers::knowledge::intent::types::IntentIndexState;
 use crate::search::SearchCorpusKind;
 
-pub(crate) fn ensure_intent_indices(
-    studio: &StudioState,
-) -> Result<IntentIndexState, StudioApiError> {
+pub(crate) fn ensure_intent_indices(studio: &StudioState) -> IntentIndexState {
     let configured_projects = studio.configured_projects();
     if configured_projects.is_empty() {
-        return Ok(IntentIndexState {
+        return IntentIndexState {
             knowledge_config_missing: true,
             symbol_config_missing: true,
-        });
+        };
     }
 
     let scan_inventory = studio
@@ -48,8 +46,8 @@ pub(crate) fn ensure_intent_indices(
         studio.record_local_corpus_index_started(SearchCorpusKind::LocalSymbol, "symbol_search");
     }
 
-    Ok(IntentIndexState {
+    IntentIndexState {
         knowledge_config_missing: false,
         symbol_config_missing: false,
-    })
+    }
 }

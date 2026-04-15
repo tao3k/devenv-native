@@ -480,8 +480,7 @@ async fn knowledge_intent_uses_shared_scan_bundle_to_start_indices() {
         ),
     ]);
 
-    let index_state = ensure_intent_indices(fixture.state.studio.as_ref())
-        .unwrap_or_else(|error| panic!("intent index bootstrap should succeed: {error:?}"));
+    let index_state = ensure_intent_indices(fixture.state.studio.as_ref());
     assert!(!index_state.knowledge_config_missing);
     assert!(!index_state.symbol_config_missing);
 

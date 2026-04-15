@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
 use std::path::Path;
+use std::sync::{Arc, OnceLock};
 
 use crate::gateway::studio::compile_markdown_nodes;
 use crate::gateway::studio::search::source_index::{
@@ -7,7 +8,9 @@ use crate::gateway::studio::search::source_index::{
 };
 use crate::gateway::studio::types::AstSearchHit;
 use crate::parsers::markdown::{ParsedNote, adapt_markdown_note, is_supported_note};
-use xiuxian_wendao_parsers::parse_markdown_note;
+use xiuxian_wendao_parsers::{
+    fingerprint_markdown_note, parse_markdown_note_artifacts, sections::MarkdownSection,
+};
 
 use super::ProjectScannedFile;
 
@@ -33,11 +36,53 @@ impl MarkdownProjectSnapshot {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub(crate) struct MarkdownSnapshotEntry {
     pub(crate) file: ProjectScannedFile,
     pub(crate) parsed_note: Option<ParsedNote>,
-    pub(crate) ast_hits: Vec<AstSearchHit>,
+    pub(crate) note_fingerprint: Option<String>,
+    pub(crate) symbol_fingerprint: Option<String>,
+    content: Option<Arc<str>>,
+    parser_sections: Vec<MarkdownSection>,
+    ast_hits: OnceLock<Vec<AstSearchHit>>,
+}
+
+impl MarkdownSnapshotEntry {
+    #[must_use]
+    pub(crate) fn clone_ast_hits(&self) -> Vec<AstSearchHit> {
+        self.ast_hits.get_or_init(|| self.build_ast_hits()).clone()
+    }
+
+    fn build_ast_hits(&self) -> Vec<AstSearchHit> {
+        let Some(content) = &self.content else {
+            return Vec::new();
+        };
+
+        let nodes = compile_markdown_nodes(self.file.normalized_path.as_str(), content.as_ref());
+        let crate_name = markdown_scope_name(Path::new(self.file.normalized_path.as_str()));
+        let mut ast_hits = build_markdown_ast_hits_from_sections(
+            self.file.normalized_path.as_str(),
+            crate_name.as_str(),
+            &nodes,
+            self.parser_sections.as_slice(),
+        );
+        for hit in &mut ast_hits {
+            if self.file.project_name.is_some() {
+                hit.project_name.clone_from(&self.file.project_name);
+                hit.navigation_target
+                    .project_name
+                    .clone_from(&self.file.project_name);
+            }
+            if self.file.root_label.is_some() {
+                hit.root_label.clone_from(&self.file.root_label);
+                hit.navigation_target
+                    .root_label
+                    .clone_from(&self.file.root_label);
+            }
+        }
+
+        ast_hits
+    }
 }
 
 #[must_use]
@@ -68,7 +113,11 @@ pub(crate) fn build_markdown_snapshot_entry(
         return MarkdownSnapshotEntry {
             file: file.clone(),
             parsed_note: None,
-            ast_hits: Vec::new(),
+            note_fingerprint: None,
+            symbol_fingerprint: None,
+            content: None,
+            parser_sections: Vec::new(),
+            ast_hits: OnceLock::new(),
         };
     }
 
@@ -76,7 +125,11 @@ pub(crate) fn build_markdown_snapshot_entry(
         return MarkdownSnapshotEntry {
             file: file.clone(),
             parsed_note: None,
-            ast_hits: Vec::new(),
+            note_fingerprint: None,
+            symbol_fingerprint: None,
+            content: None,
+            parser_sections: Vec::new(),
+            ast_hits: OnceLock::new(),
         };
     };
 
@@ -86,34 +139,20 @@ pub(crate) fn build_markdown_snapshot_entry(
         .and_then(|stem| stem.to_str())
         .filter(|stem| !stem.is_empty())
         .unwrap_or("page");
-    let parser_note = parse_markdown_note(&content, fallback_title);
-    let nodes = compile_markdown_nodes(file.normalized_path.as_str(), &content);
-    let crate_name = markdown_scope_name(Path::new(file.normalized_path.as_str()));
-    let mut ast_hits = build_markdown_ast_hits_from_sections(
-        file.normalized_path.as_str(),
-        crate_name.as_str(),
-        &nodes,
-        parser_note.core.sections.as_slice(),
-    );
+    let parser_artifacts = parse_markdown_note_artifacts(&content, fallback_title);
+    let note_fingerprint = fingerprint_markdown_note(&parser_artifacts.note);
+    let symbol_fingerprint = parser_artifacts.symbol_fingerprint.clone();
+    let parser_note = parser_artifacts.note;
+    let parser_sections = parser_note.core.sections.clone();
     let parsed_note = adapt_markdown_note(file.absolute_path.as_path(), project_root, parser_note);
-    for hit in &mut ast_hits {
-        if file.project_name.is_some() {
-            hit.project_name.clone_from(&file.project_name);
-            hit.navigation_target
-                .project_name
-                .clone_from(&file.project_name);
-        }
-        if file.root_label.is_some() {
-            hit.root_label.clone_from(&file.root_label);
-            hit.navigation_target
-                .root_label
-                .clone_from(&file.root_label);
-        }
-    }
 
     MarkdownSnapshotEntry {
         file: file.clone(),
         parsed_note,
-        ast_hits,
+        note_fingerprint: Some(note_fingerprint),
+        symbol_fingerprint: Some(symbol_fingerprint),
+        content: Some(Arc::<str>::from(content)),
+        parser_sections,
+        ast_hits: OnceLock::new(),
     }
 }

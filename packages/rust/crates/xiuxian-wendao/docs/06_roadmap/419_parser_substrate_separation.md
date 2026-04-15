@@ -20,7 +20,7 @@ The answer is not "leave parsers under Wendao forever," and it is also not
 independent parser crate, tentatively `xiuxian-wendao-parsers`, achieved
 through contract refactoring rather than a directory lift.
 
-As of 2026-04-14, twenty-five bounded implementation slices are already landed:
+As of 2026-04-14, thirty-three bounded implementation slices are already landed:
 frontmatter parsing, cross-format block-core extraction, cross-format
 addressed-target extraction, cross-format literal-addressed-target
 extraction, cross-format reference-core extraction, cross-format document core
@@ -39,7 +39,32 @@ ownership from `zhenfa_router`, plus the local
 `src/parsers/semantic_check/` cutover that removes semantic-check grammar
 ownership from `zhenfa_router`, plus the parser-owned
 `xiuxian-wendao-parsers::section_create` cutover that removes Markdown
-section-create parsing and rendering ownership from `zhenfa_router`.
+section-create parsing and rendering ownership from `zhenfa_router`, plus the
+parser-owned Markdown note semantic-fingerprint cutover, plus the note-based
+`knowledge_section` and `attachment` incremental cutover that reuses that
+parser fingerprint instead of rebuilding Wendao-owned row or hit payloads.
+The newest landed additions in this phase are the parser-owned Markdown
+symbol-fingerprint substrate, the markdown `local_symbol` incremental cutover
+that consumes that parser-owned symbol identity before AST-hit materialization,
+and the parser-owned Markdown `comrak` section-extraction cutover that removes
+line-scanned heading discovery from shared `toc` and `note` parsing, plus the
+parser-owned Markdown single-pass structural cutover that stops
+`markdown_snapshot` from reparsing the same body only to rebuild the
+symbol-fingerprint surface, plus the parser-owned Markdown single-pass
+note-scan cutover that stops note aggregation and the shared
+`extract_references(...)` / `extract_targets(...)` helpers from owning their
+own duplicate `comrak` parse loops, plus the parser-owned structural document
+title cutover that keeps note and TOC fallback titles on the same `comrak`
+heading surface instead of a separate line-scan path, plus the parser-owned
+structural document lead cutover that keeps note and TOC lead snippets on the
+same `comrak` structural scan instead of a separate line-based fallback, plus
+the standalone Markdown document structural-alignment cutover that routes the
+public `parse_markdown_document(...)` surface through that same parser-owned
+title and lead scan, plus the standalone document light-metadata cutover that
+keeps those structural semantics while avoiding full reference/target/task
+collection on the document-only path, plus the Markdown note artifact split
+that lets note-only callers stop before symbol-fingerprint work while
+`parse_markdown_note_artifacts(...)` remains the richer direct-consumer path.
 Parser-only contracts that are already proven
 cross-crate now live in `xiuxian-wendao-parsers`, while `xiuxian-wendao`
 keeps Wendao-owned adapters, domain-side Markdown note adaptation, and local
@@ -313,6 +338,21 @@ temporarily and extract a smaller parser-owned contract first.
   or explicit Org implementation slice needs it
 - status: deferred
 
+23. Markdown note semantic-fingerprint extraction
+
+- introduce one parser-owned `fingerprint_markdown_note(...)` surface over
+  `MarkdownNote`
+- keep the fingerprint semantic by ignoring layout-only byte and line churn
+  while invalidating on parser-owned note semantic changes
+- status: landed
+
+24. Note-corpora incremental fingerprint cutover
+
+- store the parser-owned note fingerprint in `search::markdown_snapshot`
+- cut `knowledge_section` and `attachment` incremental equivalence over to that
+  parser-owned fingerprint before row or hit materialization
+- status: landed
+
 ## Current Implementation Snapshot
 
 After the frontmatter, cross-format block-core, cross-format addressed-target,
@@ -406,6 +446,26 @@ cutover slices:
 20. Org remains a documented placeholder boundary only; no Org parser
     implementation slice is active until a direct consumer or explicit parser
     requirement appears
+21. `xiuxian_wendao_parsers::note::fingerprint_markdown_note` now owns one
+    parser-level semantic fingerprint for `MarkdownNote`, so parser consumers
+    can compare note semantics without hashing Wendao-owned row or hit payloads
+22. `search::markdown_snapshot` now caches that parser-owned note fingerprint
+    beside the parser-owned parse result and the adapted Wendao `ParsedNote`,
+    so note-based consumers do not need to recompute row or hit digests just to
+    detect unchanged markdown semantics
+23. `knowledge_section` and `attachment` incremental planning now reuse the
+    parser-owned Markdown note fingerprint before row or hit materialization, so
+    metadata-only note edits stop before row or attachment-hit rebuild while
+    semantic note changes still invalidate as expected
+24. `xiuxian_wendao_parsers::note::fingerprint_markdown_symbol_surface` now
+    owns one parser-level Markdown symbol fingerprint for headings, task
+    items, property drawers, and `:OBSERVE:` entries instead of leaving the
+    markdown symbol surface coupled to Wendao-owned `AstSearchHit` hashing
+25. `search::markdown_snapshot` now caches that parser-owned symbol
+    fingerprint and lazily materializes markdown AST hits, so the markdown
+    branch of `local_symbol` can compare parser-owned symbol identity first and
+    only build Wendao-owned hit payloads when the symbol surface actually
+    changed
 
 ## Migration Bias
 

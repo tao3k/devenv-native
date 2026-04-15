@@ -3,6 +3,8 @@
 
 xiuxian_testing::crate_test_policy_source_harness!("../tests/unit/lib_policy.rs");
 
+mod markdown_structure;
+
 /// Parser-owned reusable target plus scoped-address contract.
 pub mod addressed_target;
 /// Shared Markdown block parsing and parser-owned block contracts.
@@ -45,7 +47,11 @@ pub use document::{
 };
 pub use frontmatter::{NoteFrontmatter, parse_frontmatter, split_frontmatter};
 pub use literal_addressed_target::LiteralAddressedTarget;
-pub use note::{MarkdownNote, MarkdownNoteCore, NoteAggregate, NoteCore, parse_markdown_note};
+pub use note::{
+    MarkdownNote, MarkdownNoteCore, MarkdownNoteParseArtifacts, NoteAggregate, NoteCore,
+    fingerprint_markdown_note, fingerprint_markdown_symbol_surface, parse_markdown_note,
+    parse_markdown_note_artifacts,
+};
 pub use reference_core::ReferenceCore;
 pub use references::{
     MarkdownReference, MarkdownReferenceKind, extract_references, parse_reference_literal,

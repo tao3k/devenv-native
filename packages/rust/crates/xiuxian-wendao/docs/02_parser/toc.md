@@ -36,12 +36,16 @@ None of these contracts include repo identifiers, filesystem-root-relative
 
 The shared TOC aggregate follows these rules for Markdown:
 
-1. `parse_markdown_toc` first parses `MarkdownDocument`
-2. section extraction runs against `MarkdownDocument.core.body`
+1. `parse_markdown_toc` first splits frontmatter and parser-owned body content
+2. the hot path then runs one parser-owned structural heading scan over that
+   body and reuses it for section extraction plus fallback title/lead assembly
 3. the resulting `MarkdownTocDocument` preserves parser-owned section scope,
    section metadata, and source ranges without Wendao repo semantics
 4. parser-owned TOC parsing does not resolve workspace-relative identities or
    graph-facing relations
+5. heading-like text inside fenced code blocks stays outside the structural
+   TOC and does not leak into fallback document titles or leads because both
+   metadata fields now follow parser-owned `comrak` structure
 
 ## Consumer Boundary
 
@@ -81,5 +85,5 @@ Coverage for this contract lives in:
 ---
 
 :FOOTER:
-:LAST_SYNC: 2026-04-13
+:LAST_SYNC: 2026-04-14
 :END:

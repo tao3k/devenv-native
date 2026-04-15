@@ -943,14 +943,11 @@ fn parse_show_target(args: &[String]) -> io::Result<ShowCliTarget> {
         (Some(dir), None, None) => Ok(ShowCliTarget::Dir(dir)),
         (None, Some(graph), None) => Ok(ShowCliTarget::Graph(graph)),
         (None, None, Some(contract_name)) => Ok(ShowCliTarget::Contract(contract_name)),
-        (Some(_), Some(_), None)
-        | (Some(_), None, Some(_))
-        | (None, Some(_), Some(_))
-        | (Some(_), Some(_), Some(_)) => Err(invalid_input(
-            "`show` command requires exactly one of `--dir <path>`, `--graph <path>`, or `--contract <name>`",
-        )),
         (None, None, None) => Err(invalid_input(
             "missing `--dir <path>`, `--graph <path>`, or `--contract <name>` for `show` command",
+        )),
+        _ => Err(invalid_input(
+            "`show` command requires exactly one of `--dir <path>`, `--graph <path>`, or `--contract <name>`",
         )),
     }
 }
@@ -1093,5 +1090,5 @@ fn inject_llm_model_fallback_if_missing(context: &mut serde_json::Value, default
 }
 
 #[cfg(test)]
-#[path = "../../tests/unit/bin/qianji.rs"]
+#[path = "../../tests/unit/bin/qianji/mod.rs"]
 mod tests;

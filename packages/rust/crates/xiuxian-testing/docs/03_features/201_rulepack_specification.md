@@ -246,6 +246,34 @@ Initial rule set:
   module even though the canonical owner is already visible, because Codex can
   read the sibling file tree directly. This is a repository-local coding-agent
   doc-curation policy rather than a universal Rust rule.
+- `MOD-R021`: when an internal root seam already exposes one canonical visible
+  owner and the root `//!` doc still mentions secondary seams, that canonical
+  owner should be named first. The rule warns when a secondary child module is
+  mentioned before the canonical visible owner, because coding agents often
+  treat the first named module as the first hop. This is a repository-local
+  coding-agent doc-priority policy rather than a universal Rust rule.
+- `MOD-R022`: when an internal root seam already exposes one canonical visible
+  owner and the root `//!` doc mentions secondary seams, that doc should stay
+  within a very small secondary-seam budget. The rule warns when more than one
+  secondary child module is named, because coding agents can read the sibling
+  file tree directly and do not need a mini directory summary in the root doc.
+  This is a repository-local coding-agent doc-budget policy rather than a
+  universal Rust rule.
+- `MOD-R023`: when an internal root seam already exposes one canonical visible
+  owner and the root `//!` doc still keeps one secondary seam, that secondary
+  seam should still be a canonical feature seam rather than `internal`,
+  `detail`, or `helper` buckets. The rule warns when the remaining secondary
+  seam names one of those support buckets, because coding agents can be pulled
+  into the wrong leaf owner path. This is a repository-local coding-agent
+  secondary-owner policy rather than a universal Rust rule.
+- `MOD-R024`: when an internal root seam already exposes one canonical visible
+  owner and the root `//!` doc uses inline-code owner wording, that wording
+  should still name the real child module path rather than an alias or
+  marketing label. The rule warns when the root hint says something like
+  `FeatureService` instead of `service`, because coding agents should not have
+  to translate prose aliases back into the sibling tree. This is a
+  repository-local coding-agent owner-name policy rather than a universal Rust
+  rule.
 
 ### `knowledge_feedback`
 

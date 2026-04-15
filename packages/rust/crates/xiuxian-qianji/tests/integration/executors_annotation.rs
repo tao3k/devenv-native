@@ -86,7 +86,7 @@ async fn context_annotator_compacts_nested_prompt_snapshots_in_input_blocks() {
         output_key: "annotated_prompt".to_string(),
     };
 
-    let nested_snapshot = r#"
+    let nested_snapshot = r"
 <system_prompt_injection>
   <genesis_rules>Safety rules</genesis_rules>
   <persona_steering>
@@ -98,7 +98,7 @@ async fn context_annotator_compacts_nested_prompt_snapshots_in_input_blocks() {
   </narrative_context>
   <working_history>delta</working_history>
 </system_prompt_injection>
-"#;
+";
 
     let output = annotator
         .execute(&json!({
@@ -153,14 +153,14 @@ async fn context_annotator_deduplicates_normalized_blocks_across_input_keys() {
         output_key: "annotated_prompt".to_string(),
     };
 
-    let duplicate_snapshot = r#"
+    let duplicate_snapshot = r"
 <system_prompt_injection>
   <narrative_context>
     <entry>dedup-marker-narrative-71e3</entry>
   </narrative_context>
   <working_history>dedup-marker-history-acde</working_history>
 </system_prompt_injection>
-"#;
+";
 
     let output = annotator
         .execute(&json!({

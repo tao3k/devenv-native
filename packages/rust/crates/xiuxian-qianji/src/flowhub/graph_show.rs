@@ -11,12 +11,12 @@ use crate::error::QianjiError;
 use crate::markdown::{MarkdownShowSection, render_show_surface};
 
 use super::discover::{
-    find_flowhub_root_for_module_dir, load_flowhub_module_candidate, module_candidate_from_dir,
-    module_candidate_from_ref,
+    FlowhubDiscoveredModule, find_flowhub_root_for_module_dir, load_flowhub_module_candidate,
+    module_candidate_from_dir, module_candidate_from_ref,
 };
 use super::load::load_flowhub_root_manifest;
 use super::mermaid::{
-    MermaidNodeKind, analyze_mermaid_flowchart_topology, parse_mermaid_flowchart,
+    MermaidFlowchart, MermaidNodeKind, analyze_mermaid_flowchart_topology, parse_mermaid_flowchart,
     scenario_graph_label_is_allowed,
 };
 
@@ -133,144 +133,44 @@ pub enum FlowhubGraphNodeKind {
 pub fn show_flowhub_graph(graph_path: impl AsRef<Path>) -> Result<FlowhubGraphShow, QianjiError> {
     let graph_path = graph_path.as_ref();
     validate_graph_path(graph_path)?;
-
-    let module_dir = graph_path.parent().ok_or_else(|| {
-        QianjiError::Topology(format!(
-            "Flowhub Mermaid graph `{}` has no parent module directory",
-            graph_path.display()
-        ))
-    })?;
-    let module_candidate = module_candidate_from_dir(module_dir)?;
-    let owning_module = load_flowhub_module_candidate(&module_candidate)?;
-    let flowhub_root = find_flowhub_root_for_module_dir(module_dir)?;
-    let root_manifest = load_flowhub_root_manifest(flowhub_root.join("qianji.toml"))?;
-    let registered_modules = root_manifest.contract.register;
-    let module_exports = load_registered_module_exports(&flowhub_root, &registered_modules)?;
-    let owning_module_manifest_toml =
-        fs::read_to_string(&owning_module.manifest_path).map_err(|error| {
-            QianjiError::Topology(format!(
-                "Failed to read Flowhub module manifest `{}`: {error}",
-                owning_module.manifest_path.display()
-            ))
-        })?;
-
-    let source = fs::read_to_string(graph_path).map_err(|error| {
-        QianjiError::Topology(format!(
-            "Failed to read Flowhub Mermaid graph `{}`: {error}",
-            graph_path.display()
-        ))
-    })?;
-    let fallback_graph_name = graph_path
-        .file_stem()
-        .and_then(|stem| stem.to_str())
-        .ok_or_else(|| {
-            QianjiError::Topology(format!(
-                "Failed to derive Mermaid graph name from `{}`",
-                graph_path.display()
-            ))
-        })?;
-    let declared_graph = declared_graph_contract(&owning_module, graph_path);
-    let merimind_graph_name = declared_graph.map_or(fallback_graph_name, |graph| {
-        graph.resolved_name_or(fallback_graph_name)
-    });
-    let flowchart = parse_mermaid_flowchart(&source, merimind_graph_name, &registered_modules)
-        .map_err(|error| {
-            QianjiError::Topology(format!(
-                "Failed to parse Flowhub Mermaid graph `{}`: {error}",
-                graph_path.display()
-            ))
-        })?;
-    let topology_analysis = analyze_mermaid_flowchart_topology(&flowchart);
+    let LoadedFlowhubGraphContext {
+        owning_module,
+        flowhub_root,
+        module_exports,
+        owning_module_manifest_toml,
+        source,
+        flowchart,
+        topology,
+        cyclic_components,
+        declared_topology,
+    } = load_flowhub_graph_context(graph_path)?;
 
     let nodes_by_id = flowchart
         .nodes
         .iter()
         .map(|node| (node.id.as_str(), node.label.as_str()))
         .collect::<BTreeMap<_, _>>();
-    let unknown_graph_nodes = flowchart
-        .nodes
-        .iter()
-        .filter(|node| node.kind != MermaidNodeKind::Module)
-        .filter(|node| !scenario_graph_label_is_allowed(node.label.as_str()))
-        .map(|node| node.label.clone())
-        .collect::<BTreeSet<_>>()
-        .into_iter()
-        .collect::<Vec<_>>();
+    let unknown_graph_nodes = collect_unknown_graph_nodes(&flowchart);
     let next_by_node_id = build_next_labels_by_node_id(&flowchart.edges, &nodes_by_id);
-
-    let nodes = flowchart
-        .nodes
-        .iter()
-        .map(|node| {
-            let module_ref = match node.kind {
-                MermaidNodeKind::Module => Some(node.label.clone()),
-                MermaidNodeKind::Scenario => None,
-            };
-            let exports = module_ref
-                .as_deref()
-                .and_then(|module_name| module_exports.get(module_name));
-            let is_allowed_graph_node = scenario_graph_label_is_allowed(node.label.as_str());
-            let kind = classify_graph_node_kind(
-                node.label.as_str(),
-                module_ref.as_deref(),
-                is_allowed_graph_node,
-            );
-            let role = graph_node_role(node.label.as_str(), kind).to_string();
-            let agent_action = graph_node_agent_action(node.label.as_str(), kind).to_string();
-
-            FlowhubGraphNodeSummary {
-                id: node.id.clone(),
-                label: node.label.clone(),
-                kind,
-                role,
-                agent_action,
-                next: next_by_node_id
-                    .get(node.id.as_str())
-                    .cloned()
-                    .unwrap_or_default(),
-                module_ref,
-                exports_entry: exports.map(|value| value.entry.clone()),
-                exports_ready: exports.map(|value| value.ready.clone()),
-            }
-        })
-        .collect::<Vec<_>>();
-
-    let edges = flowchart
-        .edges
-        .iter()
-        .map(|edge| FlowhubGraphEdgeSummary {
-            from_label: nodes_by_id
-                .get(edge.from.as_str())
-                .copied()
-                .unwrap_or(edge.from.as_str())
-                .to_string(),
-            to_label: nodes_by_id
-                .get(edge.to.as_str())
-                .copied()
-                .unwrap_or(edge.to.as_str())
-                .to_string(),
-        })
-        .collect::<Vec<_>>();
-
-    let missing_registered_modules = Vec::new();
-
+    let nodes = build_graph_node_summaries(&flowchart, &module_exports, &next_by_node_id);
+    let edges = build_graph_edge_summaries(&flowchart, &nodes_by_id);
     let expected_work_surface = expected_work_surface(&owning_module);
 
     Ok(FlowhubGraphShow {
         graph_path: graph_path.to_path_buf(),
         merimind_graph_name: flowchart.merimind_graph_name,
         kind: "scenario".to_string(),
-        topology: topology_analysis.topology,
-        declared_topology: declared_graph.map(|graph| graph.topology),
+        topology,
+        declared_topology,
         mermaid: source,
         owning_module_ref: owning_module.module_ref,
         flowhub_root,
         direction: flowchart.direction,
         nodes,
         edges,
-        missing_registered_modules,
+        missing_registered_modules: Vec::new(),
         unknown_graph_nodes,
-        cyclic_components: topology_analysis.cyclic_components,
+        cyclic_components,
         expected_work_surface,
         owning_module_manifest_toml,
     })
@@ -317,6 +217,19 @@ struct ModuleExports {
     ready: String,
 }
 
+#[derive(Debug)]
+struct LoadedFlowhubGraphContext {
+    owning_module: FlowhubDiscoveredModule,
+    flowhub_root: PathBuf,
+    module_exports: BTreeMap<String, ModuleExports>,
+    owning_module_manifest_toml: String,
+    source: String,
+    flowchart: MermaidFlowchart,
+    topology: FlowhubGraphTopology,
+    cyclic_components: Vec<Vec<String>>,
+    declared_topology: Option<FlowhubGraphTopology>,
+}
+
 fn validate_graph_path(graph_path: &Path) -> Result<(), QianjiError> {
     if !graph_path.is_file() {
         return Err(QianjiError::Topology(format!(
@@ -335,6 +248,67 @@ fn validate_graph_path(graph_path: &Path) -> Result<(), QianjiError> {
         )));
     }
     Ok(())
+}
+
+fn load_flowhub_graph_context(graph_path: &Path) -> Result<LoadedFlowhubGraphContext, QianjiError> {
+    let module_dir = graph_path.parent().ok_or_else(|| {
+        QianjiError::Topology(format!(
+            "Flowhub Mermaid graph `{}` has no parent module directory",
+            graph_path.display()
+        ))
+    })?;
+    let module_candidate = module_candidate_from_dir(module_dir)?;
+    let owning_module = load_flowhub_module_candidate(&module_candidate)?;
+    let flowhub_root = find_flowhub_root_for_module_dir(module_dir)?;
+    let root_manifest = load_flowhub_root_manifest(flowhub_root.join("qianji.toml"))?;
+    let registered_modules = root_manifest.contract.register;
+    let module_exports = load_registered_module_exports(&flowhub_root, &registered_modules)?;
+    let owning_module_manifest_toml =
+        fs::read_to_string(&owning_module.manifest_path).map_err(|error| {
+            QianjiError::Topology(format!(
+                "Failed to read Flowhub module manifest `{}`: {error}",
+                owning_module.manifest_path.display()
+            ))
+        })?;
+    let source = fs::read_to_string(graph_path).map_err(|error| {
+        QianjiError::Topology(format!(
+            "Failed to read Flowhub Mermaid graph `{}`: {error}",
+            graph_path.display()
+        ))
+    })?;
+    let fallback_graph_name = graph_path
+        .file_stem()
+        .and_then(|stem| stem.to_str())
+        .ok_or_else(|| {
+            QianjiError::Topology(format!(
+                "Failed to derive Mermaid graph name from `{}`",
+                graph_path.display()
+            ))
+        })?;
+    let declared_topology =
+        declared_graph_contract(&owning_module, graph_path).map(|graph| graph.topology);
+    let merimind_graph_name = declared_graph_name(&owning_module, graph_path, fallback_graph_name);
+    let flowchart =
+        parse_mermaid_flowchart(&source, merimind_graph_name.as_str(), &registered_modules)
+            .map_err(|error| {
+                QianjiError::Topology(format!(
+                    "Failed to parse Flowhub Mermaid graph `{}`: {error}",
+                    graph_path.display()
+                ))
+            })?;
+    let topology_analysis = analyze_mermaid_flowchart_topology(&flowchart);
+
+    Ok(LoadedFlowhubGraphContext {
+        owning_module,
+        flowhub_root,
+        module_exports,
+        owning_module_manifest_toml,
+        source,
+        flowchart,
+        topology: topology_analysis.topology,
+        cyclic_components: topology_analysis.cyclic_components,
+        declared_topology,
+    })
 }
 
 fn load_registered_module_exports(
@@ -359,6 +333,18 @@ fn load_registered_module_exports(
         .collect()
 }
 
+fn collect_unknown_graph_nodes(flowchart: &MermaidFlowchart) -> Vec<String> {
+    flowchart
+        .nodes
+        .iter()
+        .filter(|node| node.kind != MermaidNodeKind::Module)
+        .filter(|node| !scenario_graph_label_is_allowed(node.label.as_str()))
+        .map(|node| node.label.clone())
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect()
+}
+
 fn build_next_labels_by_node_id<'a>(
     edges: &'a [super::mermaid::MermaidEdge],
     nodes_by_id: &BTreeMap<&'a str, &'a str>,
@@ -378,6 +364,69 @@ fn build_next_labels_by_node_id<'a>(
     }
 
     next_by_node_id
+}
+
+fn build_graph_node_summaries(
+    flowchart: &MermaidFlowchart,
+    module_exports: &BTreeMap<String, ModuleExports>,
+    next_by_node_id: &BTreeMap<&str, Vec<String>>,
+) -> Vec<FlowhubGraphNodeSummary> {
+    flowchart
+        .nodes
+        .iter()
+        .map(|node| {
+            let module_ref = match node.kind {
+                MermaidNodeKind::Module => Some(node.label.clone()),
+                MermaidNodeKind::Scenario => None,
+            };
+            let exports = module_ref
+                .as_deref()
+                .and_then(|module_name| module_exports.get(module_name));
+            let is_allowed_graph_node = scenario_graph_label_is_allowed(node.label.as_str());
+            let kind = classify_graph_node_kind(
+                node.label.as_str(),
+                module_ref.as_deref(),
+                is_allowed_graph_node,
+            );
+
+            FlowhubGraphNodeSummary {
+                id: node.id.clone(),
+                label: node.label.clone(),
+                kind,
+                role: graph_node_role(node.label.as_str(), kind).to_string(),
+                agent_action: graph_node_agent_action(node.label.as_str(), kind).to_string(),
+                next: next_by_node_id
+                    .get(node.id.as_str())
+                    .cloned()
+                    .unwrap_or_default(),
+                module_ref,
+                exports_entry: exports.map(|value| value.entry.clone()),
+                exports_ready: exports.map(|value| value.ready.clone()),
+            }
+        })
+        .collect()
+}
+
+fn build_graph_edge_summaries(
+    flowchart: &MermaidFlowchart,
+    nodes_by_id: &BTreeMap<&str, &str>,
+) -> Vec<FlowhubGraphEdgeSummary> {
+    flowchart
+        .edges
+        .iter()
+        .map(|edge| FlowhubGraphEdgeSummary {
+            from_label: nodes_by_id
+                .get(edge.from.as_str())
+                .copied()
+                .unwrap_or(edge.from.as_str())
+                .to_string(),
+            to_label: nodes_by_id
+                .get(edge.to.as_str())
+                .copied()
+                .unwrap_or(edge.to.as_str())
+                .to_string(),
+        })
+        .collect()
 }
 
 fn render_mermaid_section_lines(show: &FlowhubGraphShow) -> Vec<String> {
@@ -473,15 +522,15 @@ fn render_next_labels(values: &[String]) -> String {
 
 fn display_graph_path(path: &Path) -> String {
     if path.is_absolute() {
-        if let Some(project_root) = resolve_project_root() {
-            if let Ok(relative) = path.strip_prefix(&project_root) {
-                return format!("./{}", relative.display());
-            }
+        if let Some(project_root) = resolve_project_root()
+            && let Ok(relative) = path.strip_prefix(&project_root)
+        {
+            return format!("./{}", relative.display());
         }
-        if let Ok(current_dir) = std::env::current_dir() {
-            if let Ok(relative) = path.strip_prefix(&current_dir) {
-                return format!("./{}", relative.display());
-            }
+        if let Ok(current_dir) = std::env::current_dir()
+            && let Ok(relative) = path.strip_prefix(&current_dir)
+        {
+            return format!("./{}", relative.display());
         }
         return path.display().to_string();
     }
@@ -495,7 +544,7 @@ fn display_graph_path(path: &Path) -> String {
 }
 
 fn declared_graph_contract<'a>(
-    owning_module: &'a super::discover::FlowhubDiscoveredModule,
+    owning_module: &'a FlowhubDiscoveredModule,
     graph_path: &Path,
 ) -> Option<&'a FlowhubGraphContract> {
     let file_name = graph_path.file_name()?.to_str()?;
@@ -504,6 +553,17 @@ fn declared_graph_contract<'a>(
         .graph
         .iter()
         .find(|graph| graph.path == file_name)
+}
+
+fn declared_graph_name(
+    owning_module: &FlowhubDiscoveredModule,
+    graph_path: &Path,
+    fallback_graph_name: &str,
+) -> String {
+    declared_graph_contract(owning_module, graph_path).map_or_else(
+        || fallback_graph_name.to_string(),
+        |graph| graph.resolved_name_or(fallback_graph_name).to_string(),
+    )
 }
 
 fn classify_graph_node_kind(
@@ -663,7 +723,6 @@ fn canonicalize_node_label(label: &str) -> String {
         .map(|character| match character {
             'A'..='Z' => character.to_ascii_lowercase(),
             'a'..='z' | '0'..='9' => character,
-            '-' | ' ' | '/' => '_',
             _ => '_',
         })
         .collect::<String>()

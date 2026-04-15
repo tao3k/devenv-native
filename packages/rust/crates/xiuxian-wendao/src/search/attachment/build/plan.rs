@@ -92,13 +92,14 @@ pub(crate) fn plan_attachment_build_with_scanned_files(
             continue;
         }
 
-        let file_hits = markdown_snapshot
-            .entry(file.normalized_path.as_str())
-            .map_or_else(Vec::new, |entry| build_attachment_hits_for_entry(entry));
+        let entry = markdown_snapshot.entry(file.normalized_path.as_str());
+        let semantic_fingerprint = entry
+            .and_then(|entry| entry.note_fingerprint.clone())
+            .unwrap_or_else(|| attachment_hits_fingerprint(&[]));
         let fingerprint = file.to_semantic_file_fingerprint(
             ATTACHMENT_EXTRACTOR_VERSION,
             SearchCorpusKind::Attachment.schema_version(),
-            attachment_hits_fingerprint(&file_hits),
+            semantic_fingerprint,
         );
         let changed = !can_incremental_reuse
             || previous_fingerprints
@@ -106,6 +107,8 @@ pub(crate) fn plan_attachment_build_with_scanned_files(
                 .is_none_or(|previous| !previous.equivalent_for_incremental(&fingerprint));
         file_fingerprints.insert(file.normalized_path.clone(), fingerprint);
         if changed {
+            let file_hits =
+                entry.map_or_else(Vec::new, |entry| build_attachment_hits_for_entry(entry));
             changed_files.push(file.clone());
             changed_hits.extend(file_hits);
         }

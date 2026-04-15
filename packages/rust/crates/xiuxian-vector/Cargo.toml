@@ -79,6 +79,7 @@ log = { workspace = true }
 
 # Time for cleanup_old_versions (Lance API)
 chrono = { version = "0.4", default-features = false, features = ["std"] }
+num-traits = "0.2"
 
 [dev-dependencies]
 lance = { workspace = true }

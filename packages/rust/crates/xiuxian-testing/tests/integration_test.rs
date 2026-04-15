@@ -6,7 +6,7 @@ xiuxian_testing::crate_test_policy_harness!();
 mod contracts_kernel;
 #[path = "integration/contracts_knowledge_export.rs"]
 mod contracts_knowledge_export;
-#[path = "integration/contracts_modularity.rs"]
+#[path = "integration/contracts_modularity/mod.rs"]
 mod contracts_modularity;
 #[path = "integration/contracts_rest_docs.rs"]
 mod contracts_rest_docs;

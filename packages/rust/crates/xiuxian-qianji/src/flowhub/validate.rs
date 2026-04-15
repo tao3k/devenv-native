@@ -1,4 +1,5 @@
 use std::collections::BTreeSet;
+use std::path::Path;
 
 use crate::contracts::{
     FlowhubGraphContract, FlowhubModuleManifest, FlowhubRootManifest, FlowhubScenarioManifest,
@@ -327,7 +328,11 @@ fn validate_graph_contract_path(graph: &FlowhubGraphContract) -> Result<(), Qian
             graph.path
         )));
     }
-    if !path.ends_with(".mmd") {
+    let has_mermaid_extension = Path::new(path)
+        .extension()
+        .and_then(|extension| extension.to_str())
+        .is_some_and(|extension| extension.eq_ignore_ascii_case("mmd"));
+    if !has_mermaid_extension {
         return Err(QianjiError::Topology(format!(
             "Flowhub module manifest `[[graph]] path = \"{}\"` must target a `.mmd` file",
             graph.path

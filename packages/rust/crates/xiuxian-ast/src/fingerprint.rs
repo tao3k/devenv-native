@@ -33,7 +33,8 @@ pub fn semantic_fingerprint(content: &str, lang: Lang) -> Option<String> {
         return None;
     }
 
-    let skeleton = normalize_skeleton(extract_skeleton(content, lang));
+    let skeleton_source = extract_skeleton(content, lang);
+    let skeleton = normalize_skeleton(skeleton_source.as_str());
     if skeleton.is_empty() {
         return None;
     }
@@ -46,7 +47,7 @@ pub fn semantic_fingerprint(content: &str, lang: Lang) -> Option<String> {
     Some(hasher.finalize().to_hex().to_string())
 }
 
-fn normalize_skeleton(skeleton: String) -> String {
+fn normalize_skeleton(skeleton: &str) -> String {
     skeleton
         .lines()
         .map(str::trim)

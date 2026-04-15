@@ -241,6 +241,12 @@ and `src/sovereign/` into `tests/unit/executors/` plus
 `tests/unit/sovereign/`. The shared crate-test-policy harness for
 `xiuxian-qianji` now passes end-to-end again, without changing the `show` /
 `check` behavior of the Flowhub lane.
+The same shared gate now also curates post-harness test leaves: large consumer
+suites should move into folder-first roots such as
+`tests/integration/test_compiler_dispatch_routes/{mod.rs,core_dispatch.rs,...}`,
+`tests/integration/runtime_config/{mod.rs,llm_config.rs,...}`, or
+`tests/unit/bin/qianji/{mod.rs,dir_runtime.rs,...}` instead of regressing into
+one monolithic `tests/unit/*.rs` or `tests/integration/*.rs` file.
 
 ---
 
