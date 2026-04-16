@@ -1,7 +1,8 @@
 use std::collections::HashSet;
 
 use crate::search::repo_content_chunk::query::{
-    RepoContentChunkSearchFilters, build_repo_content_stage1_sql,
+    RepoContentChunkCandidate, RepoContentChunkSearchFilters, build_repo_content_detail_sql,
+    build_repo_content_stage1_sql,
 };
 
 #[test]
@@ -30,7 +31,7 @@ fn build_repo_content_stage1_sql_includes_sql_native_filters() {
         "{sql}"
     );
     assert!(
-        sql.contains("SELECT path, language, line_number, line_text, exact_match FROM (SELECT"),
+        sql.contains("SELECT path, language, line_number, exact_match FROM (SELECT"),
         "{sql}"
     );
     assert!(
@@ -47,7 +48,31 @@ fn build_repo_content_stage1_sql_includes_sql_native_filters() {
         ),
         "{sql}"
     );
-    assert!(!sql.contains("line_text_folded,"), "{sql}");
+    assert!(!sql.contains(" LIMIT "), "{sql}");
+    assert!(
+        !sql.contains("SELECT path, language, line_number, line_text_folded"),
+        "{sql}"
+    );
+    assert!(
+        !sql.contains("SELECT path, language, line_number, line_text"),
+        "{sql}"
+    );
+}
+
+#[test]
+fn build_repo_content_stage1_sql_uses_strpos_for_long_query_tokens() {
+    let sql = build_repo_content_stage1_sql(
+        "repo_content_chunk_alpha_repo",
+        "needle_token",
+        "needle_token",
+        &HashSet::new(),
+        &RepoContentChunkSearchFilters::default(),
+    );
+
+    assert!(
+        sql.contains("strpos(line_text_folded, 'needle_token') > 0"),
+        "{sql}"
+    );
 }
 
 #[test]
@@ -65,6 +90,45 @@ fn build_repo_content_stage1_sql_includes_title_filters() {
 
     assert!(
         sql.contains("path_folded LIKE '%readme%' ESCAPE '\\'"),
+        "{sql}"
+    );
+}
+
+#[test]
+fn build_repo_content_detail_sql_targets_specific_path_line_pairs() {
+    let sql = build_repo_content_detail_sql(
+        "repo_content_chunk_alpha_repo",
+        &[
+            RepoContentChunkCandidate {
+                path: "src/alpha.jl".to_string(),
+                language: Some("julia".to_string()),
+                line_number: 7,
+                line_text: String::new(),
+                score: 0.73,
+                exact_match: true,
+            },
+            RepoContentChunkCandidate {
+                path: "src/beta.jl".to_string(),
+                language: Some("julia".to_string()),
+                line_number: 11,
+                line_text: String::new(),
+                score: 0.72,
+                exact_match: false,
+            },
+        ],
+    )
+    .expect("detail sql");
+
+    assert!(
+        sql.contains("SELECT path, line_number, line_text FROM repo_content_chunk_alpha_repo"),
+        "{sql}"
+    );
+    assert!(
+        sql.contains("(path = 'src/alpha.jl' AND line_number = 7)"),
+        "{sql}"
+    );
+    assert!(
+        sql.contains("(path = 'src/beta.jl' AND line_number = 11)"),
         "{sql}"
     );
 }

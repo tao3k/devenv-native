@@ -7,7 +7,10 @@ use crate::search::ranking::{RetainedWindow, StreamingRerankSource, StreamingRer
 use super::candidates::RepoContentChunkCandidate;
 use super::error::RepoContentChunkSearchError;
 use super::filters::RepoContentChunkSearchFilters;
-use super::scan::{build_repo_content_stage1_sql, collect_candidates};
+use super::scan::{
+    build_repo_content_detail_sql, build_repo_content_stage1_sql, collect_candidates,
+    hydrate_candidate_line_texts,
+};
 
 pub(super) struct RepoContentChunkSearchExecution {
     pub(super) candidates: Vec<RepoContentChunkCandidate>,
@@ -51,4 +54,28 @@ pub(super) async fn execute_repo_content_search(
         telemetry,
         source: StreamingRerankSource::Scan,
     })
+}
+
+pub(super) async fn hydrate_repo_content_search_candidates(
+    query_engine: &ParquetQueryEngine,
+    table_name: &str,
+    candidates: &mut [RepoContentChunkCandidate],
+) -> Result<(), RepoContentChunkSearchError> {
+    let Some(detail_sql) = build_repo_content_detail_sql(table_name, candidates) else {
+        return Ok(());
+    };
+    let mut candidates_by_key = candidates
+        .iter()
+        .enumerate()
+        .map(|(index, candidate)| ((candidate.path.clone(), candidate.line_number), index))
+        .collect::<HashMap<_, _>>();
+
+    for batch in query_engine.query_batches(detail_sql.as_str()).await? {
+        hydrate_candidate_line_texts(&batch, &mut candidates_by_key, candidates)?;
+        if candidates_by_key.is_empty() {
+            break;
+        }
+    }
+
+    Ok(())
 }

@@ -9,10 +9,11 @@ use super::candidates::RepoContentChunkCandidate;
 use super::error::RepoContentChunkSearchError;
 use super::filters::RepoContentChunkSearchFilters;
 use super::helpers::{
-    candidate_path_key, compare_candidates, engine_string_column, engine_u64_column,
-    exact_match_expression, exact_match_projection_column, filename_filter_expression,
-    language_filter_expression, path_prefix_filter_expression, projected_repo_content_columns,
-    query_text_filter_expression, stage1_path_rank_expression, title_filter_expression,
+    candidate_path_key, compare_candidates, detail_projected_repo_content_columns,
+    engine_string_column, engine_u64_column, exact_match_expression, exact_match_projection_column,
+    filename_filter_expression, language_filter_expression, path_prefix_filter_expression,
+    query_text_filter_expression, repo_content_detail_filter_expression,
+    stage1_path_rank_expression, stage1_projected_repo_content_columns, title_filter_expression,
 };
 
 const MIN_RETAINED_PATHS: usize = 128;
@@ -25,7 +26,7 @@ pub(crate) fn build_repo_content_stage1_sql(
     language_filters: &HashSet<String>,
     filters: &RepoContentChunkSearchFilters,
 ) -> String {
-    let projections = projected_repo_content_columns().join(", ");
+    let projections = stage1_projected_repo_content_columns().join(", ");
     let predicates = [
         query_text_filter_expression(query_lower),
         language_filter_expression(language_filters),
@@ -50,13 +51,24 @@ pub(crate) fn build_repo_content_stage1_sql(
     )
 }
 
+pub(crate) fn build_repo_content_detail_sql(
+    table_name: &str,
+    candidates: &[RepoContentChunkCandidate],
+) -> Option<String> {
+    let where_clause = repo_content_detail_filter_expression(candidates)?;
+    let projections = detail_projected_repo_content_columns().join(", ");
+    Some(format!(
+        "SELECT {projections} FROM {table_name} WHERE {where_clause}",
+    ))
+}
+
 pub(crate) fn retained_window(limit: usize) -> RetainedWindow {
     RetainedWindow::new(limit, RETAINED_PATH_MULTIPLIER, MIN_RETAINED_PATHS)
 }
 
 pub(crate) fn collect_candidates(
     batch: &EngineRecordBatch,
-    raw_needle: &str,
+    _raw_needle: &str,
     best_by_path: &mut HashMap<String, RepoContentChunkCandidate>,
     window: RetainedWindow,
     telemetry: &mut StreamingRerankTelemetry,
@@ -65,23 +77,20 @@ pub(crate) fn collect_candidates(
     let path = engine_string_column(batch, "path")?;
     let language = engine_string_column(batch, "language")?;
     let line_number = engine_u64_column(batch, "line_number")?;
-    let line_text = engine_string_column(batch, "line_text")?;
     let exact_match_column = batch
         .column_by_name(exact_match_projection_column())
         .and_then(|column| column.as_any().downcast_ref::<BooleanArray>());
 
     for row in 0..batch.num_rows() {
-        let exact_match = exact_match_column.map_or_else(
-            || !line_text.is_null(row) && line_text.value(row).contains(raw_needle),
-            |column| !column.is_null(row) && column.value(row),
-        );
+        let exact_match = exact_match_column
+            .map_or_else(|| false, |column| !column.is_null(row) && column.value(row));
         telemetry.observe_match();
         let candidate = RepoContentChunkCandidate {
             path: path.value(row).to_string(),
             language: (!language.is_null(row) && !language.value(row).trim().is_empty())
                 .then(|| language.value(row).to_string()),
             line_number: usize::try_from(line_number.value(row)).unwrap_or(usize::MAX),
-            line_text: line_text.value(row).to_string(),
+            line_text: String::new(),
             score: if exact_match { 0.73 } else { 0.72 },
             exact_match,
         };
@@ -105,6 +114,32 @@ pub(crate) fn collect_candidates(
                     telemetry.observe_trim(before_len, best_by_path.len());
                 }
             }
+        }
+    }
+
+    Ok(())
+}
+
+pub(crate) fn hydrate_candidate_line_texts(
+    batch: &EngineRecordBatch,
+    candidates_by_key: &mut HashMap<(String, usize), usize>,
+    candidates: &mut [RepoContentChunkCandidate],
+) -> Result<(), RepoContentChunkSearchError> {
+    let path = engine_string_column(batch, "path")?;
+    let line_number = engine_u64_column(batch, "line_number")?;
+    let line_text = engine_string_column(batch, "line_text")?;
+
+    for row in 0..batch.num_rows() {
+        let candidate_key = (
+            path.value(row).to_string(),
+            usize::try_from(line_number.value(row)).unwrap_or(usize::MAX),
+        );
+        if let Some(index) = candidates_by_key.remove(&candidate_key) {
+            candidates[index].line_text = if line_text.is_null(row) {
+                String::new()
+            } else {
+                line_text.value(row).to_string()
+            };
         }
     }
 

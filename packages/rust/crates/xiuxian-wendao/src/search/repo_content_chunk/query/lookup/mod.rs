@@ -13,4 +13,6 @@ pub(crate) use filters::RepoContentChunkSearchFilters;
 pub(crate) use helpers::{candidate_path_key, compare_candidates};
 pub(crate) use route::search_repo_content_chunks_with_filters;
 #[cfg(test)]
-pub(crate) use scan::{build_repo_content_stage1_sql, retained_window};
+pub(crate) use scan::{
+    build_repo_content_detail_sql, build_repo_content_stage1_sql, retained_window,
+};
