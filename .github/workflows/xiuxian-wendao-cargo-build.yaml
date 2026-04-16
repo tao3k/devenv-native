@@ -75,21 +75,10 @@ jobs:
       - name: Check xiuxian-wendao targets
         run: cargo check -p xiuxian-wendao --locked --all-targets
 
-  cargo-build:
-    name: Cargo build - ${{ matrix.name }}
-    if: ${{ github.event_name != 'pull_request' || matrix.run_on_pr }}
-    runs-on: ${{ matrix.os }}
+  cargo-build-ubuntu:
+    name: Cargo build - Ubuntu
+    runs-on: ubuntu-latest
     timeout-minutes: 45
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: Ubuntu
-            os: ubuntu-latest
-            run_on_pr: true
-          - name: macOS
-            os: macos-latest
-            run_on_pr: false
     defaults:
       run:
         working-directory: packages/rust
@@ -112,7 +101,6 @@ jobs:
           echo "channel=${channel}" >> "$GITHUB_OUTPUT"
 
       - name: Install Linux build dependencies
-        if: ${{ runner.os == 'Linux' }}
         run: |
           set -euo pipefail
           sudo apt-get update
@@ -137,11 +125,57 @@ jobs:
       - name: Build xiuxian-wendao
         run: cargo build -p xiuxian-wendao --locked
 
+  cargo-build-macos:
+    name: Cargo build - macOS
+    if: ${{ github.event_name != 'pull_request' }}
+    runs-on: macos-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: packages/rust
+        shell: bash
+    env:
+      CARGO_INCREMENTAL: "0"
+      CARGO_TERM_COLOR: always
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Read Rust toolchain channel
+        id: rust
+        run: |
+          set -euo pipefail
+          channel="$(awk -F'"' '/^channel = / { print $2 }' rust-toolchain.toml)"
+          if [[ -z "${channel}" ]]; then
+            echo "Failed to resolve Rust toolchain channel from rust-toolchain.toml"
+            exit 1
+          fi
+          echo "channel=${channel}" >> "$GITHUB_OUTPUT"
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ steps.rust.outputs.channel }}
+
+      - name: Cache cargo artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            packages/rust -> target
+          shared-key: xiuxian-wendao-cargo-build-${{ runner.os }}
+          cache-on-failure: true
+
+      - name: Fetch workspace dependencies
+        run: cargo fetch --locked
+
+      - name: Build xiuxian-wendao
+        run: cargo build -p xiuxian-wendao --locked
+
   results:
     name: Cargo build results (required)
     needs:
       - cargo-check
-      - cargo-build
+      - cargo-build-ubuntu
+      - cargo-build-macos
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -149,12 +183,17 @@ jobs:
         shell: bash
         run: |
           echo "cargo-check: ${{ needs.cargo-check.result }}"
-          echo "cargo-build: ${{ needs.cargo-build.result }}"
+          echo "cargo-build-ubuntu: ${{ needs.cargo-build-ubuntu.result }}"
+          echo "cargo-build-macos: ${{ needs.cargo-build-macos.result }}"
           [[ '${{ needs.cargo-check.result }}' == 'success' ]] || {
             echo 'xiuxian-wendao cargo check failed'
             exit 1
           }
-          [[ '${{ needs.cargo-build.result }}' == 'success' ]] || {
-            echo 'xiuxian-wendao cargo build matrix failed'
+          [[ '${{ needs.cargo-build-ubuntu.result }}' == 'success' ]] || {
+            echo 'xiuxian-wendao cargo build failed on Ubuntu'
+            exit 1
+          }
+          [[ '${{ needs.cargo-build-macos.result }}' == 'success' || '${{ needs.cargo-build-macos.result }}' == 'skipped' ]] || {
+            echo 'xiuxian-wendao cargo build failed on macOS'
             exit 1
           }

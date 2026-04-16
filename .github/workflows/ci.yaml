@@ -87,7 +87,7 @@ jobs:
             fi
           fi
           secretspec run --provider env --profile default -- \
-            just check-commits-range "${base_sha}" "${head_sha}"
+            devenv shell -- just check-commits-range "${base_sha}" "${head_sha}"
 
   test:
     runs-on: ${{ matrix.os }}
