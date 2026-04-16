@@ -18,5 +18,6 @@ in
     nixpkgs-latest.nickel
     nixpkgs-latest.nushell
     nixpkgs-latest.shellcheck
+    nixpkgs-latest.worktrunk
   ];
 }

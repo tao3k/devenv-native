@@ -23,7 +23,10 @@ pub fn studio_routes() -> Router<Arc<GatewayState>> {
             openapi_paths::API_VFS_SCAN_AXUM_PATH,
             get(handlers::vfs::scan),
         )
-        .route(openapi_paths::API_VFS_CAT_AXUM_PATH, get(handlers::vfs::cat))
+        .route(
+            openapi_paths::API_VFS_CAT_AXUM_PATH,
+            get(handlers::vfs::cat),
+        )
         .route("/api/vfs/raw", get(handlers::vfs::raw))
         .route(
             openapi_paths::API_VFS_ENTRY_AXUM_PATH,

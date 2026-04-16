@@ -5,7 +5,7 @@ use axum::{
     extract::{Query, State},
 };
 
-use crate::analyzers::{DocsFamilyClusterQuery};
+use crate::analyzers::DocsFamilyClusterQuery;
 use crate::gateway::studio::router::handlers::docs::service::projection::family::run_docs_family_cluster;
 use crate::gateway::studio::router::handlers::repo::parse::projection::required_projection_page_kind;
 use crate::gateway::studio::router::handlers::repo::parse::repo::required_registered_repo_id;

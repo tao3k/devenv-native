@@ -3,8 +3,8 @@
 pub(crate) mod flight;
 #[cfg(test)]
 pub(crate) mod neighbors;
-pub(crate) mod shared;
 mod service;
+pub(crate) mod shared;
 pub(crate) mod topology;
 pub(crate) mod topology_flight;
 

@@ -14,9 +14,7 @@ use crate::gateway::studio::router::handlers::repo::analysis::search::cache::{
 use crate::gateway::studio::router::handlers::repo::analysis::search::publication::repo_entity_publication_ready;
 use crate::gateway::studio::router::handlers::repo::shared::execution::with_repo_cached_analysis_bundle;
 use crate::gateway::studio::router::{GatewayState, StudioApiError};
-use crate::query_core::{
-    RepoEntityTypedResultsContract, query_repo_entity_results_if_published,
-};
+use crate::query_core::{RepoEntityTypedResultsContract, query_repo_entity_results_if_published};
 use crate::search::FuzzySearchOptions;
 
 pub(super) struct RepoAnalysisSearchSpec {

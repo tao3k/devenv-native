@@ -4,12 +4,12 @@ use xiuxian_wendao_runtime::transport::DefinitionFlightRouteResponse;
 
 use super::batch::{definition_hit_batch, definition_response_flight_app_metadata};
 use super::path::normalize_source_path;
-use crate::gateway::studio::{StudioApiError, StudioState};
+use crate::gateway::studio::search::observation_hints::definition_observation_hints;
 use crate::gateway::studio::search::{
     DefinitionResolveOptions, resolve_best_definition, resolve_definition_candidates,
 };
-use crate::gateway::studio::search::observation_hints::definition_observation_hints;
 use crate::gateway::studio::types::DefinitionResolveResponse;
+use crate::gateway::studio::{StudioApiError, StudioState};
 
 pub(crate) async fn build_definition_response(
     studio: &StudioState,

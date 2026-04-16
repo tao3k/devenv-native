@@ -156,6 +156,14 @@ pub(super) const fn language_column() -> &'static str {
     COLUMN_LANGUAGE
 }
 
+pub(super) const fn line_number_column() -> &'static str {
+    COLUMN_LINE_NUMBER
+}
+
+pub(super) const fn line_text_column() -> &'static str {
+    COLUMN_LINE_TEXT
+}
+
 pub(super) const fn path_column() -> &'static str {
     COLUMN_PATH
 }

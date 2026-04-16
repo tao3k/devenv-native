@@ -5,9 +5,7 @@ use axum::{
     extract::{Query, State},
 };
 
-use crate::analyzers::{
-    RepoProjectedPageNavigationQuery, RepoProjectedPageNavigationSearchQuery,
-};
+use crate::analyzers::{RepoProjectedPageNavigationQuery, RepoProjectedPageNavigationSearchQuery};
 use crate::gateway::studio::router::handlers::repo::projected_service::family::{
     run_repo_projected_page_navigation, run_repo_projected_page_navigation_search,
 };

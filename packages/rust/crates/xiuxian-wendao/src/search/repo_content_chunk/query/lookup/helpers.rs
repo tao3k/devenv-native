@@ -6,8 +6,8 @@ use arrow::array::{Array, StringArray, StringViewArray, UInt64Array};
 use xiuxian_vector_store::EngineRecordBatch;
 
 use crate::search::repo_content_chunk::schema::{
-    language_column, line_text_folded_column, path_column, path_folded_column,
-    query_projected_columns,
+    language_column, line_number_column, line_text_column, line_text_folded_column, path_column,
+    path_folded_column, query_projected_columns,
 };
 
 use super::candidates::RepoContentChunkCandidate;
@@ -116,8 +116,34 @@ pub(crate) fn projected_repo_content_columns() -> Vec<String> {
         .collect()
 }
 
+pub(crate) const fn exact_match_projection_column() -> &'static str {
+    "exact_match"
+}
+
 pub(crate) fn sql_string_literal(value: &str) -> String {
     format!("'{}'", value.replace('\'', "''"))
+}
+
+pub(crate) fn exact_match_expression(raw_needle: &str) -> Option<String> {
+    let trimmed = raw_needle.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+
+    Some(format!(
+        "strpos({column}, {value}) > 0",
+        column = line_text_column(),
+        value = sql_string_literal(trimmed)
+    ))
+}
+
+pub(crate) fn stage1_path_rank_expression(raw_needle: &str) -> Option<String> {
+    let exact_match = exact_match_expression(raw_needle)?;
+    Some(format!(
+        "ROW_NUMBER() OVER (PARTITION BY {path_column} ORDER BY CASE WHEN ({exact_match}) THEN 0 ELSE 1 END, {line_number_column} ASC)",
+        path_column = path_column(),
+        line_number_column = line_number_column()
+    ))
 }
 
 pub(crate) fn language_filter_expression(language_filters: &HashSet<String>) -> Option<String> {

@@ -1,4 +1,5 @@
 # API Documentation
+
 This document describes the API processing functions.
 
 ## Core Functions

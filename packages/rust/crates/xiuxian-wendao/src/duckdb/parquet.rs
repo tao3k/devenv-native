@@ -205,7 +205,7 @@ impl DuckDbParquetQueryEngine {
         let mut statement = guard
             .connection
             .connection()
-            .prepare(sql)
+            .prepare_cached(sql)
             .map_err(|error| {
                 VectorStoreError::General(format!(
                     "failed to prepare DuckDB repo publication SQL `{sql}`: {error}"
@@ -263,6 +263,30 @@ mod tests {
             guard.registered_parquet_views.get("bench_docs"),
             Some(&parquet_path)
         );
+    }
+
+    #[test]
+    fn repeated_parquet_queries_return_readable_batches_on_one_registered_view() {
+        let temp = tempdir().expect("tempdir should succeed");
+        let parquet_path = temp.path().join("bench.parquet");
+        write_test_parquet(parquet_path.as_path());
+        let engine = DuckDbParquetQueryEngine::from_runtime(in_memory_runtime(temp.path()))
+            .expect("duckdb engine should open");
+        engine
+            .register_parquet_view("bench_docs", parquet_path.as_path())
+            .expect("parquet view registration should succeed");
+
+        let first = engine
+            .query_batches("select path from bench_docs")
+            .expect("first parquet query should succeed");
+        let second = engine
+            .query_batches("select path from bench_docs")
+            .expect("second parquet query should succeed");
+
+        assert_eq!(first.len(), 1);
+        assert_eq!(second.len(), 1);
+        assert_eq!(first[0].num_rows(), 1);
+        assert_eq!(second[0].num_rows(), 1);
     }
 
     fn in_memory_runtime(root: &Path) -> SearchDuckDbRuntimeConfig {

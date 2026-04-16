@@ -9,6 +9,7 @@
 The system integration with OpenAI-compatible `/responses` (Realtime/Legacy) and other strict LLM providers frequently encountered the error: `No tool call found for function call output with call_id ...`.
 
 Investigation revealed that:
+
 1.  **Orphaned Messages**: The `BoundedStore` (sliding window) would sometimes prune the original `Assistant` request but keep the `Tool` result, leading to a protocol violation.
 2.  **Native Tool Disconnect**: Native tools triggered via intent recognition (instead of model output) often lacked a formal `assistant` request message in the history, which is required by LLM providers.
 3.  **ID Mismatch**: Composite IDs (e.g., `call_id|fc_id`) from some gateways were not normalized, causing string mismatch errors.
@@ -30,4 +31,5 @@ We have implemented a mandatory **`Protocol Hygiene`** layer in `xiuxian-daochan
 - **Transparency**: Architectural visibility into "transcript health" is now a first-class citizen of the LLM client.
 
 ---
+
 _True Integrity is Sovereign-Driven_

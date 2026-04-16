@@ -1,4 +1,3 @@
-use crate::gateway::studio::{StudioApiError, StudioState};
 use crate::gateway::studio::search::handlers::code_search::build_code_search_response;
 use crate::gateway::studio::search::handlers::knowledge::helpers::{
     intent_candidate_limit, is_code_biased_intent,
@@ -13,6 +12,7 @@ use crate::gateway::studio::search::handlers::knowledge::intent::types::IntentSe
 #[cfg(test)]
 use crate::gateway::studio::search::handlers::queries::SearchQuery;
 use crate::gateway::studio::types::SearchResponse;
+use crate::gateway::studio::{StudioApiError, StudioState};
 use crate::search::SearchPlaneCacheTtl;
 
 #[cfg(test)]

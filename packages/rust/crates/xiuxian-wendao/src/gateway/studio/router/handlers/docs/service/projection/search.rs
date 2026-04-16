@@ -1,6 +1,8 @@
 use std::sync::Arc;
 
-use crate::analyzers::{DocsSearchQuery, DocsSearchResult, RepoIntelligenceError, build_docs_search};
+use crate::analyzers::{
+    DocsSearchQuery, DocsSearchResult, RepoIntelligenceError, build_docs_search,
+};
 use crate::gateway::studio::router::handlers::docs::service::runtime::run_docs_analysis;
 use crate::gateway::studio::router::{GatewayState, StudioApiError};
 

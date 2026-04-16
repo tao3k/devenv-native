@@ -5,9 +5,7 @@ use axum::{
     extract::{Query, State},
 };
 
-use crate::analyzers::{
-    RepoProjectedRetrievalContextQuery, RepoProjectedRetrievalHitQuery,
-};
+use crate::analyzers::{RepoProjectedRetrievalContextQuery, RepoProjectedRetrievalHitQuery};
 use crate::gateway::studio::router::handlers::repo::projected_service::retrieval::{
     run_repo_projected_retrieval_context, run_repo_projected_retrieval_hit,
 };
