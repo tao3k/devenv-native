@@ -1,3 +1,4 @@
+#[cfg(test)]
 use serde::Deserialize;
 
 use crate::link_graph::LinkGraphDirection;
@@ -8,6 +9,7 @@ const MAX_GRAPH_HOPS: usize = 8;
 const MAX_GRAPH_LIMIT: usize = 300;
 
 /// Query parameters for graph-neighbor traversal.
+#[cfg(test)]
 #[derive(Debug, Deserialize)]
 pub struct GraphNeighborsQuery {
     /// Optional direction override for neighbor traversal.

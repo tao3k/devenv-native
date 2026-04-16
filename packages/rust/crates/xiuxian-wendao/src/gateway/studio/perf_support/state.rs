@@ -7,7 +7,7 @@ use crate::analyzers::{
     RegisteredRepository, RepositoryPluginConfig, RepositoryRef, RepositoryRefreshPolicy,
     bootstrap_builtin_registry, load_repo_intelligence_config,
 };
-use crate::gateway::studio::router::{
+use crate::gateway::studio::{
     GatewayState, StudioState, load_ui_config_from_wendao_toml, studio_effective_wendao_toml_path,
 };
 use crate::gateway::studio::symbol_index::SymbolIndexCoordinator;

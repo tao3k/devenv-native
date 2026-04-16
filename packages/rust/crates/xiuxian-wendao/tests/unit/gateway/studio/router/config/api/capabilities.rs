@@ -66,7 +66,7 @@ async fn ui_capabilities_reports_builtin_plugin_languages() {
     });
 
     let response =
-        crate::gateway::studio::router::handlers::get_ui_capabilities(State(Arc::clone(&state)))
+        crate::gateway::studio::router::handlers::capabilities::get(State(Arc::clone(&state)))
             .await
             .unwrap_or_else(|error| panic!("ui capabilities should resolve: {error:?}"))
             .0;

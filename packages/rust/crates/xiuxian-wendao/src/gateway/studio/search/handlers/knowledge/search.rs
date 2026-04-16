@@ -3,7 +3,7 @@ use std::sync::Arc;
 use xiuxian_wendao_runtime::transport::SearchFlightRouteResponse;
 
 use super::{search_hit_batch_from_hits, search_response_flight_app_metadata};
-use crate::gateway::studio::router::{StudioApiError, StudioState};
+use crate::gateway::studio::{StudioApiError, StudioState};
 use crate::gateway::studio::types::SearchResponse;
 use crate::search::{SearchCorpusKind, SearchPlaneCacheTtl};
 

@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use crate::gateway::studio::router::StudioState;
+use crate::gateway::studio::StudioState;
 use crate::gateway::studio::types::{VfsContentResponse, VfsEntry};
 
 use super::filters::VfsError;

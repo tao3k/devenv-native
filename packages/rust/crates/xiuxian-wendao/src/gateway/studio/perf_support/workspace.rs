@@ -7,7 +7,7 @@ use tokio::time::{Instant, sleep};
 use crate::analyzers::{
     analyze_registered_repository_with_registry, load_repo_intelligence_config,
 };
-use crate::gateway::studio::router::{
+use crate::gateway::studio::{
     GatewayState, configured_repositories, studio_effective_wendao_toml_path,
 };
 use crate::repo_index::RepoCodeDocument;

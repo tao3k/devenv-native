@@ -6,10 +6,10 @@ use axum::{
 };
 
 use crate::analyzers::DocsPageIndexTreeQuery;
-use crate::gateway::studio::router::handlers::docs::service::run_docs_page_index_tree;
-use crate::gateway::studio::router::handlers::repo::{
-    RepoProjectedPageApiQuery, required_page_id, required_registered_repo_id,
-};
+use crate::gateway::studio::router::handlers::docs::service::projection::page::run_docs_page_index_tree;
+use crate::gateway::studio::router::handlers::repo::parse::repo::required_registered_repo_id;
+use crate::gateway::studio::router::handlers::repo::parse::resource::required_page_id;
+use crate::gateway::studio::router::handlers::repo::query::pages::RepoProjectedPageApiQuery;
 use crate::gateway::studio::router::{GatewayState, StudioApiError};
 
 /// Docs page-index tree endpoint.

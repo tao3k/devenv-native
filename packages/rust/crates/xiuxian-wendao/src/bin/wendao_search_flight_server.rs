@@ -31,7 +31,7 @@ use tonic_web::GrpcWebLayer;
 #[cfg(feature = "zhenfa-router")]
 use xiuxian_wendao::gateway::studio::{
     bootstrap_sample_repo_search_content, build_studio_flight_service_for_roots_with_weights,
-    router::resolve_studio_config_root,
+    resolve_studio_config_root,
 };
 #[cfg(feature = "zhenfa-router")]
 use xiuxian_wendao::link_graph::resolve_link_graph_rerank_flight_runtime_settings;

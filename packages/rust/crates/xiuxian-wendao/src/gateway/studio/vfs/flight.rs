@@ -9,7 +9,7 @@ use xiuxian_wendao_runtime::transport::{
     VfsResolveFlightRouteProvider, VfsResolveFlightRouteResponse,
 };
 
-use crate::gateway::studio::router::{StudioApiError, StudioState};
+use crate::gateway::studio::{StudioApiError, StudioState};
 use crate::gateway::studio::types::StudioNavigationTarget;
 
 use super::resolve_navigation_target;

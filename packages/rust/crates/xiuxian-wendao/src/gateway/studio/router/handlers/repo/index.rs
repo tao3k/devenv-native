@@ -6,7 +6,7 @@ use axum::{
 };
 use serde::Serialize;
 
-use crate::gateway::studio::router::handlers::repo::analysis::repo_index_status_response_with_diagnostics;
+use crate::gateway::studio::router::handlers::repo::analysis::index_status_flight::repo_index_status_response_with_diagnostics;
 use crate::gateway::studio::router::handlers::repo::command_service::{
     run_repo_index, run_repo_index_status,
 };
@@ -15,7 +15,7 @@ use crate::gateway::studio::router::{
 };
 use crate::repo_index::{RepoIndexRequest, RepoIndexStatusResponse};
 
-use super::query::RepoIndexStatusApiQuery;
+use super::query::analysis::RepoIndexStatusApiQuery;
 
 /// Repo-index status payload enriched with bootstrap-indexing telemetry.
 #[derive(Serialize)]

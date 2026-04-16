@@ -1,5 +1,4 @@
-use crate::gateway::studio::router::sanitization::sanitize_projects;
-use crate::gateway::studio::router::sanitize_repo_projects;
+use crate::gateway::studio::router::{sanitize_projects, sanitize_repo_projects};
 use crate::gateway::studio::types::{UiProjectConfig, UiRepoProjectConfig};
 
 #[test]

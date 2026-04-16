@@ -1,7 +1,6 @@
 use crate::gateway::studio::router::StudioState;
-use crate::gateway::studio::router::handlers::repo::parse::{
-    required_import_search_filters, required_registered_repo_id,
-};
+use crate::gateway::studio::router::handlers::repo::parse::repo::required_registered_repo_id;
+use crate::gateway::studio::router::handlers::repo::parse::search::required_import_search_filters;
 use crate::gateway::studio::types::{UiConfig, UiRepoProjectConfig};
 
 #[test]

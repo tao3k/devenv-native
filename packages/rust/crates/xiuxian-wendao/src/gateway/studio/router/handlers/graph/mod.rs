@@ -1,18 +1,13 @@
 //! Graph intelligence and visualization endpoints for Studio API.
 
-mod flight;
-mod neighbors;
+pub(crate) mod flight;
+#[cfg(test)]
+pub(crate) mod neighbors;
+pub(crate) mod shared;
 mod service;
-mod shared;
-mod topology;
-mod topology_flight;
+pub(crate) mod topology;
+pub(crate) mod topology_flight;
 
 #[cfg(test)]
 #[path = "../../../../../../tests/unit/gateway/studio/router/handlers/graph/mod.rs"]
 mod tests;
-
-pub(crate) use flight::StudioGraphNeighborsFlightRouteProvider;
-pub use neighbors::graph_neighbors;
-pub use shared::GraphNeighborsQuery;
-pub use topology::topology_3d;
-pub(crate) use topology_flight::StudioTopology3dFlightRouteProvider;

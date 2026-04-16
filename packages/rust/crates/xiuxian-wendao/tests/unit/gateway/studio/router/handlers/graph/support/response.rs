@@ -2,7 +2,8 @@ use std::sync::Arc;
 
 use axum::extract::{Path as AxumPath, Query, State};
 
-use crate::gateway::studio::router::handlers::graph::{GraphNeighborsQuery, graph_neighbors};
+use crate::gateway::studio::router::handlers::graph::neighbors::graph_neighbors;
+use crate::gateway::studio::router::handlers::graph::shared::GraphNeighborsQuery;
 use crate::gateway::studio::types::GraphNeighborsResponse;
 
 use super::fixture::Fixture;

@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use crate::gateway::studio::router::{GatewayState, StudioApiError};
+use crate::gateway::studio::{GatewayState, StudioApiError};
 use crate::gateway::studio::search::handlers::queries::AstSearchQuery;
 use crate::gateway::studio::search::project_scope::project_metadata_for_path;
 use crate::gateway::studio::types::{AstSearchHit, AstSearchResponse, UiProjectConfig};

@@ -12,14 +12,14 @@ mod pathing;
 #[cfg(all(feature = "zhenfa-router", feature = "performance"))]
 pub mod perf_support;
 #[cfg(feature = "zhenfa-router")]
-pub mod router;
+pub(crate) mod router;
 #[cfg(feature = "zhenfa-router")]
 pub(crate) mod search;
 /// Gateway startup dependency health probes and reporting.
 #[cfg(feature = "zhenfa-router")]
-pub mod startup_health;
+pub(crate) mod startup_health;
 #[cfg(feature = "zhenfa-router")]
-pub mod symbol_index;
+pub(crate) mod symbol_index;
 #[cfg(feature = "zhenfa-router")]
 mod vfs;
 
@@ -27,10 +27,16 @@ mod vfs;
 pub(crate) use analysis::compile_markdown_nodes;
 #[cfg(feature = "zhenfa-router")]
 pub use router::{
-    GatewayState, StudioState, load_ui_config_from_wendao_toml, resolve_studio_config_root,
+    GatewayState, StudioApiError, StudioBootstrapBackgroundIndexingTelemetry,
+    StudioSearchColdStartCorpusTelemetry, StudioSearchColdStartEvent,
+    StudioSearchColdStartTelemetry, StudioState, configured_repositories,
+    configured_repository, load_ui_config_from_wendao_toml, map_repo_intelligence_error,
+    resolve_studio_config_root, sanitize_path_like, sanitize_path_list,
     studio_effective_wendao_toml_path, studio_router, studio_routes,
     studio_wendao_overlay_toml_path, studio_wendao_toml_path,
 };
+#[cfg(feature = "zhenfa-router")]
+pub(crate) use router::{registered_repository_search_seeds, resolve_registered_repository_id};
 #[cfg(all(feature = "zhenfa-router", test))]
 pub(crate) use search::build_ast_index;
 #[cfg(feature = "zhenfa-router")]

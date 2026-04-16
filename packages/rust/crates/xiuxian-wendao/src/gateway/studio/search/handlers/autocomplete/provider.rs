@@ -7,7 +7,7 @@ use xiuxian_wendao_runtime::transport::{
 };
 
 use super::response::load_autocomplete_flight_response;
-use crate::gateway::studio::router::{StudioApiError, StudioState};
+use crate::gateway::studio::{StudioApiError, StudioState};
 
 /// Studio-backed Flight provider for the semantic `/search/autocomplete` route.
 #[derive(Clone)]

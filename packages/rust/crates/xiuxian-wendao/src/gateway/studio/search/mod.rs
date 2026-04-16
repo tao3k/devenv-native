@@ -1,7 +1,7 @@
 //! Search backend integration for Studio API.
 
 mod definition;
-pub mod handlers;
+pub(crate) mod handlers;
 mod observation_hints;
 mod project_scope;
 mod source_index;
@@ -22,6 +22,6 @@ pub(crate) use source_index::build_symbol_index_from_ast_hits;
 pub(crate) use support::{infer_crate_name, score_reference_hit};
 
 #[cfg(test)]
-pub use handlers::build_ast_index;
+pub(crate) use handlers::build_ast_index;
 #[cfg(test)]
 pub(crate) use support::strip_option;

@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 use crate::analyzers::RegisteredRepository;
 use crate::analyzers::resolve_registered_repository_source;
 use crate::gateway::studio::pathing::resolve_path_like;
-use crate::gateway::studio::router::{StudioState, configured_repositories};
+use crate::gateway::studio::{StudioState, configured_repositories};
 use crate::gateway::studio::types::VfsEntry;
 use xiuxian_git_repo::SyncMode;
 

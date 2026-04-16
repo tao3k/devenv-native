@@ -21,7 +21,7 @@ use crate::gateway::studio::perf_support::state::gateway_state_for_project;
 use crate::gateway::studio::perf_support::workspace::{
     publish_code_search_snapshot, warm_real_workspace_search_plane,
 };
-use crate::gateway::studio::router::studio_router;
+use crate::gateway::studio::studio_router;
 use crate::repo_index::repo_index_policy_debug_snapshot;
 
 #[cfg(feature = "julia")]
@@ -30,7 +30,7 @@ const PERF_JULIA_PARSER_SUMMARY_READY_ATTEMPTS: usize = 900;
 /// Prepared Studio gateway fixture for performance tests.
 pub struct GatewayPerfFixture {
     root: GatewayPerfRoot,
-    state: Arc<crate::gateway::studio::router::GatewayState>,
+    state: Arc<crate::gateway::studio::GatewayState>,
     #[cfg(feature = "julia")]
     _julia_parser_summary_guard: Option<JuliaExampleServiceGuard>,
 }
@@ -75,7 +75,7 @@ impl GatewayPerfFixture {
 
     /// Return the shared gateway state backing this fixture.
     #[must_use]
-    pub fn state(&self) -> Arc<crate::gateway::studio::router::GatewayState> {
+    pub fn state(&self) -> Arc<crate::gateway::studio::GatewayState> {
         Arc::clone(&self.state)
     }
 

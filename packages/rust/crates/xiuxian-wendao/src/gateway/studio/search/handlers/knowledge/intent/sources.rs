@@ -1,4 +1,4 @@
-use crate::gateway::studio::router::{StudioApiError, StudioState};
+use crate::gateway::studio::{StudioApiError, StudioState};
 use crate::gateway::studio::search::handlers::knowledge::helpers::is_index_not_ready;
 #[cfg(test)]
 use crate::gateway::studio::search::handlers::knowledge::intent::types::configured_parquet_query_engine_label;

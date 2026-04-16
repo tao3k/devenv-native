@@ -6,7 +6,7 @@ use xiuxian_wendao_runtime::transport::{
     SearchFlightRouteProvider, SearchFlightRouteResponse,
 };
 
-use crate::gateway::studio::router::GatewayState;
+use crate::gateway::studio::GatewayState;
 use crate::gateway::studio::search::handlers::knowledge::load_intent_search_flight_response;
 use crate::gateway::studio::search::handlers::knowledge::load_knowledge_search_flight_response;
 use crate::gateway::studio::search::handlers::queries::{ReferenceSearchQuery, SymbolSearchQuery};

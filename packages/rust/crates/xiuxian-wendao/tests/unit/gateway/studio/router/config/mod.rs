@@ -1,6 +1,6 @@
 use std::fs;
 
-use crate::gateway::studio::router::config::{
+use crate::gateway::studio::router::{
     load_ui_config_from_wendao_toml, studio_wendao_overlay_toml_path, studio_wendao_toml_path,
 };
 

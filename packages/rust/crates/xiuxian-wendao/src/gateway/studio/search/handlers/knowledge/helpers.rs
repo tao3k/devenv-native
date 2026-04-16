@@ -1,6 +1,6 @@
 use axum::http::StatusCode;
 
-use crate::gateway::studio::router::StudioApiError;
+use crate::gateway::studio::StudioApiError;
 use crate::gateway::studio::types::{AstSearchHit, SearchHit};
 
 pub(super) fn local_symbol_hit_to_search_hit(hit: AstSearchHit, code_biased: bool) -> SearchHit {

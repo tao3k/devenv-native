@@ -4,7 +4,7 @@ use std::time::Instant;
 
 use walkdir::{DirEntry, WalkDir};
 
-use crate::gateway::studio::router::StudioState;
+use crate::gateway::studio::StudioState;
 use crate::gateway::studio::types::{VfsScanEntry, VfsScanResult};
 
 use super::categories::guess_category;

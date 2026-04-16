@@ -14,8 +14,6 @@ pub use maintenance::{
     SearchIndexAggregateMaintenanceSummary, SearchIndexMaintenanceStatus,
     SearchIndexRepoReadPressure,
 };
-#[cfg(test)]
-pub(crate) use maintenance::SearchIndexMaintenanceQueueAged;
 pub use status_reason::{
     SearchIndexAggregateStatusReason, SearchIndexStatusAction, SearchIndexStatusReason,
     SearchIndexStatusReasonCode, SearchIndexStatusSeverity,

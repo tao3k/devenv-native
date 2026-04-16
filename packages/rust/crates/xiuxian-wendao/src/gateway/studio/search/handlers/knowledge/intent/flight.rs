@@ -11,7 +11,7 @@ use xiuxian_wendao_runtime::transport::SearchFlightRouteResponse;
 use xiuxian_wendao_runtime::transport::{SEARCH_INTENT_ROUTE, SearchFlightRouteProvider};
 
 use super::entry::build_intent_search_response_with_metadata;
-use crate::gateway::studio::router::{StudioApiError, StudioState};
+use crate::gateway::studio::{StudioApiError, StudioState};
 use crate::gateway::studio::types::{SearchHit, SearchResponse};
 
 /// Studio-backed Flight provider for the semantic `/search/intent` route.

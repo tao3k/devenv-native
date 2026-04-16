@@ -11,7 +11,7 @@ use crate::repo_index::{
 use super::build_code_search_response;
 
 pub(super) async fn publish_repository_snapshot(
-    studio: &crate::gateway::studio::router::StudioState,
+    studio: &crate::gateway::studio::StudioState,
     repo_id: &str,
     analysis: RepositoryAnalysisOutput,
     documents: Vec<RepoCodeDocument>,
@@ -165,7 +165,7 @@ pub(super) fn create_sample_toml_repo(
 }
 
 pub(super) async fn load_code_search_response(
-    studio: &crate::gateway::studio::router::StudioState,
+    studio: &crate::gateway::studio::StudioState,
     query: &str,
 ) -> crate::gateway::studio::types::SearchResponse {
     build_code_search_response(studio, query.to_string(), None, 10)

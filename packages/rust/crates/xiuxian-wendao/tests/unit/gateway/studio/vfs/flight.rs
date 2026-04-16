@@ -1,4 +1,4 @@
-use crate::gateway::studio::router::StudioState;
+use crate::gateway::studio::StudioState;
 use crate::gateway::studio::types::{StudioNavigationTarget, UiConfig, UiProjectConfig};
 use crate::gateway::studio::vfs::flight::{
     build_vfs_resolve_response, vfs_navigation_target_batch,

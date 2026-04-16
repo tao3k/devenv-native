@@ -5,7 +5,7 @@ use uuid::Uuid;
 
 use crate::analyzers::resolve_registered_repository_source;
 use crate::gateway::studio::pathing::{resolve_path_like, studio_display_path};
-use crate::gateway::studio::router::{StudioState, configured_repositories};
+use crate::gateway::studio::{StudioState, configured_repositories};
 use crate::gateway::studio::test_support::commit_all;
 use crate::gateway::studio::types::{UiConfig, UiProjectConfig, UiRepoProjectConfig};
 use xiuxian_git_repo::SyncMode;

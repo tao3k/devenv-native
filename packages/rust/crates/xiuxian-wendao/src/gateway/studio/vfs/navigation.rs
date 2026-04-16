@@ -1,5 +1,5 @@
 use crate::gateway::studio::pathing::{studio_display_path, studio_project_name};
-use crate::gateway::studio::router::StudioState;
+use crate::gateway::studio::StudioState;
 use crate::gateway::studio::types::StudioNavigationTarget;
 
 pub(crate) fn resolve_navigation_target(state: &StudioState, path: &str) -> StudioNavigationTarget {

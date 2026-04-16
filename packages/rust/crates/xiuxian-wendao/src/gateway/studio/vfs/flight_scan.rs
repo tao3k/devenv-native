@@ -8,7 +8,7 @@ use xiuxian_vector_store::{
 };
 use xiuxian_wendao_runtime::transport::{VfsScanFlightRouteProvider, VfsScanFlightRouteResponse};
 
-use crate::gateway::studio::router::StudioState;
+use crate::gateway::studio::StudioState;
 use crate::gateway::studio::types::{VfsCategory, VfsScanEntry, VfsScanResult};
 
 use super::scan::scan_roots;

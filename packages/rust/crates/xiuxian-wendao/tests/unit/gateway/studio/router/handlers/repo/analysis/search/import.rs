@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use axum::extract::{Query, State};
 
-use crate::gateway::studio::router::handlers::repo::RepoImportSearchApiQuery;
 use crate::gateway::studio::router::handlers::repo::analysis::search::import::import_search;
+use crate::gateway::studio::router::handlers::repo::query::analysis::RepoImportSearchApiQuery;
 use crate::gateway::studio::router::{GatewayState, StudioState};
 
 #[tokio::test]

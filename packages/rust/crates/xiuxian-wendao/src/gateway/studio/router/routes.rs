@@ -17,21 +17,21 @@ pub fn studio_routes() -> Router<Arc<GatewayState>> {
     Router::new()
         .route(
             openapi_paths::API_VFS_ROOT_AXUM_PATH,
-            get(handlers::vfs_root_entries),
+            get(handlers::vfs::root_entries),
         )
         .route(
             openapi_paths::API_VFS_SCAN_AXUM_PATH,
-            get(handlers::vfs_scan),
+            get(handlers::vfs::scan),
         )
-        .route(openapi_paths::API_VFS_CAT_AXUM_PATH, get(handlers::vfs_cat))
-        .route("/api/vfs/raw", get(handlers::vfs_raw))
+        .route(openapi_paths::API_VFS_CAT_AXUM_PATH, get(handlers::vfs::cat))
+        .route("/api/vfs/raw", get(handlers::vfs::raw))
         .route(
             openapi_paths::API_VFS_ENTRY_AXUM_PATH,
-            get(handlers::vfs_entry),
+            get(handlers::vfs::entry),
         )
         .route(
             openapi_paths::API_TOPOLOGY_3D_AXUM_PATH,
-            get(handlers::topology_3d),
+            get(handlers::graph::topology::topology_3d),
         )
         .route(
             openapi_paths::API_SEARCH_INDEX_STATUS_AXUM_PATH,
@@ -39,180 +39,183 @@ pub fn studio_routes() -> Router<Arc<GatewayState>> {
         )
         .route(
             openapi_paths::API_DOCS_PROJECTED_GAP_REPORT_AXUM_PATH,
-            get(handlers::docs_projected_gap_report),
+            get(handlers::docs::projection::projected_gap::projected_gap_report),
         )
         .route(
             openapi_paths::API_DOCS_PLANNER_ITEM_AXUM_PATH,
-            get(handlers::docs_planner_item),
+            get(handlers::docs::planner::routes::item::planner_item),
         )
         .route(
             openapi_paths::API_DOCS_PLANNER_SEARCH_AXUM_PATH,
-            get(handlers::docs_planner_search),
+            get(handlers::docs::planner::routes::search::planner_search),
         )
         .route(
             openapi_paths::API_DOCS_PLANNER_QUEUE_AXUM_PATH,
-            get(handlers::docs_planner_queue),
+            get(handlers::docs::planner::routes::queue::planner_queue),
         )
         .route(
             openapi_paths::API_DOCS_PLANNER_RANK_AXUM_PATH,
-            get(handlers::docs_planner_rank),
+            get(handlers::docs::planner::routes::rank::planner_rank),
         )
         .route(
             openapi_paths::API_DOCS_PLANNER_WORKSET_AXUM_PATH,
-            get(handlers::docs_planner_workset),
+            get(handlers::docs::planner::routes::workset::planner_workset),
         )
         .route(
             openapi_paths::API_DOCS_SEARCH_AXUM_PATH,
-            get(handlers::docs_search),
+            get(handlers::docs::projection::search::search),
         )
         .route(
             openapi_paths::API_DOCS_RETRIEVAL_AXUM_PATH,
-            get(handlers::docs_retrieval),
+            get(handlers::docs::projection::retrieval::search::retrieval),
         )
         .route(
             openapi_paths::API_DOCS_RETRIEVAL_CONTEXT_AXUM_PATH,
-            get(handlers::docs_retrieval_context),
+            get(handlers::docs::projection::retrieval::context::retrieval_context),
         )
         .route(
             openapi_paths::API_DOCS_RETRIEVAL_HIT_AXUM_PATH,
-            get(handlers::docs_retrieval_hit),
+            get(handlers::docs::projection::retrieval::context::retrieval_hit),
         )
         .route(
             openapi_paths::API_DOCS_PAGE_AXUM_PATH,
-            get(handlers::docs_page),
+            get(handlers::docs::projection::page::page),
         )
         .route(
             openapi_paths::API_DOCS_PAGE_INDEX_TREE_AXUM_PATH,
-            get(handlers::docs_page_index_tree),
+            get(handlers::docs::projection::page_index_tree::page_index_tree),
         )
         .route(
             openapi_paths::API_DOCS_FAMILY_CONTEXT_AXUM_PATH,
-            get(handlers::docs_family_context),
+            get(handlers::docs::projection::family::context::family_context),
         )
         .route(
             openapi_paths::API_DOCS_FAMILY_SEARCH_AXUM_PATH,
-            get(handlers::docs_family_search),
+            get(handlers::docs::projection::family::context::family_search),
         )
         .route(
             openapi_paths::API_DOCS_FAMILY_CLUSTER_AXUM_PATH,
-            get(handlers::docs_family_cluster),
+            get(handlers::docs::projection::family::cluster::family_cluster),
         )
         .route(
             openapi_paths::API_DOCS_NAVIGATION_AXUM_PATH,
-            get(handlers::docs_navigation),
+            get(handlers::docs::projection::navigation::routes::navigation),
         )
         .route(
             openapi_paths::API_DOCS_NAVIGATION_SEARCH_AXUM_PATH,
-            get(handlers::docs_navigation_search),
+            get(handlers::docs::projection::navigation::routes::navigation_search),
         )
         .route(
             openapi_paths::API_UI_CAPABILITIES_AXUM_PATH,
-            get(handlers::get_ui_capabilities),
+            get(handlers::capabilities::get),
         )
         .route(
             openapi_paths::API_UI_PLUGIN_ARTIFACT_AXUM_PATH,
-            get(handlers::get_plugin_artifact),
+            get(handlers::capabilities::get_plugin_artifact),
         )
         .route(
             "/api/analysis/refine-doc",
-            post(handlers::refine_entity_doc),
+            post(handlers::repo::refine::refine_entity_doc),
         )
         .route(
             openapi_paths::API_REPO_OVERVIEW_AXUM_PATH,
-            get(handlers::overview),
+            get(handlers::repo::analysis::overview::overview),
         )
         .route(
             openapi_paths::API_REPO_MODULE_SEARCH_AXUM_PATH,
-            get(handlers::module_search),
+            get(handlers::repo::analysis::search::module::module_search),
         )
         .route(
             openapi_paths::API_REPO_SYMBOL_SEARCH_AXUM_PATH,
-            get(handlers::symbol_search),
+            get(handlers::repo::analysis::search::symbol::symbol_search),
         )
         .route(
             openapi_paths::API_REPO_EXAMPLE_SEARCH_AXUM_PATH,
-            get(handlers::example_search),
+            get(handlers::repo::analysis::search::example::example_search),
         )
         .route(
             openapi_paths::API_REPO_IMPORT_SEARCH_AXUM_PATH,
-            get(handlers::import_search),
+            get(handlers::repo::analysis::search::import::import_search),
         )
         .route(
             openapi_paths::API_REPO_DOC_COVERAGE_AXUM_PATH,
-            get(handlers::doc_coverage),
+            get(handlers::repo::analysis::doc_coverage::doc_coverage),
         )
         .route(
             openapi_paths::API_REPO_INDEX_STATUS_AXUM_PATH,
-            get(handlers::repo_index_status),
+            get(handlers::repo::index::repo_index_status),
         )
         .route(
             openapi_paths::API_REPO_INDEX_AXUM_PATH,
-            post(handlers::repo_index),
+            post(handlers::repo::index::repo_index),
         )
-        .route(openapi_paths::API_REPO_SYNC_AXUM_PATH, get(handlers::sync))
+        .route(
+            openapi_paths::API_REPO_SYNC_AXUM_PATH,
+            get(handlers::repo::analysis::sync::sync),
+        )
         .route(
             openapi_paths::API_REPO_PROJECTED_PAGES_AXUM_PATH,
-            get(handlers::projected_pages),
+            get(handlers::repo::pages::collection::projected_pages),
         )
         .route(
             openapi_paths::API_REPO_PROJECTED_GAP_REPORT_AXUM_PATH,
-            get(handlers::repo::projected_gap_report),
+            get(handlers::repo::pages::collection::projected_gap_report),
         )
         .route(
             openapi_paths::API_REPO_PROJECTED_PAGE_AXUM_PATH,
-            get(handlers::projected_page),
+            get(handlers::repo::pages::page::projected_page),
         )
         .route(
             openapi_paths::API_REPO_PROJECTED_PAGE_INDEX_NODE_AXUM_PATH,
-            get(handlers::repo::projected_page_index_node),
+            get(handlers::repo::pages::page_index::projected_page_index_node),
         )
         .route(
             openapi_paths::API_REPO_PROJECTED_RETRIEVAL_HIT_AXUM_PATH,
-            get(handlers::repo::projected_retrieval_hit),
+            get(handlers::repo::retrieval::context::projected_retrieval_hit),
         )
         .route(
             openapi_paths::API_REPO_PROJECTED_RETRIEVAL_CONTEXT_AXUM_PATH,
-            get(handlers::repo::projected_retrieval_context),
+            get(handlers::repo::retrieval::context::projected_retrieval_context),
         )
         .route(
             openapi_paths::API_REPO_PROJECTED_PAGE_FAMILY_CONTEXT_AXUM_PATH,
-            get(handlers::repo::projected_page_family_context),
+            get(handlers::repo::family::context::projected_page_family_context),
         )
         .route(
             openapi_paths::API_REPO_PROJECTED_PAGE_FAMILY_SEARCH_AXUM_PATH,
-            get(handlers::repo::projected_page_family_search),
+            get(handlers::repo::family::context::projected_page_family_search),
         )
         .route(
             openapi_paths::API_REPO_PROJECTED_PAGE_FAMILY_CLUSTER_AXUM_PATH,
-            get(handlers::repo::projected_page_family_cluster),
+            get(handlers::repo::family::context::projected_page_family_cluster),
         )
         .route(
             openapi_paths::API_REPO_PROJECTED_PAGE_NAVIGATION_AXUM_PATH,
-            get(handlers::repo::projected_page_navigation),
+            get(handlers::repo::family::navigation::projected_page_navigation),
         )
         .route(
             openapi_paths::API_REPO_PROJECTED_PAGE_NAVIGATION_SEARCH_AXUM_PATH,
-            get(handlers::repo::projected_page_navigation_search),
+            get(handlers::repo::family::navigation::projected_page_navigation_search),
         )
         .route(
             openapi_paths::API_REPO_PROJECTED_PAGE_INDEX_TREE_AXUM_PATH,
-            get(handlers::repo::projected_page_index_tree),
+            get(handlers::repo::pages::page_index::projected_page_index_tree),
         )
         .route(
             openapi_paths::API_REPO_PROJECTED_PAGE_INDEX_TREE_SEARCH_AXUM_PATH,
-            get(handlers::repo::projected_page_index_tree_search),
+            get(handlers::repo::retrieval::search::projected_page_index_tree_search),
         )
         .route(
             openapi_paths::API_REPO_PROJECTED_PAGE_SEARCH_AXUM_PATH,
-            get(handlers::repo::projected_page_search),
+            get(handlers::repo::retrieval::search::projected_page_search),
         )
         .route(
             openapi_paths::API_REPO_PROJECTED_RETRIEVAL_AXUM_PATH,
-            get(handlers::repo::projected_retrieval),
+            get(handlers::repo::retrieval::search::projected_retrieval),
         )
         .route(
             openapi_paths::API_REPO_PROJECTED_PAGE_INDEX_TREES_AXUM_PATH,
-            get(handlers::repo::projected_page_index_trees),
+            get(handlers::repo::pages::collection::projected_page_index_trees),
         )
 }
 

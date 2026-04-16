@@ -23,7 +23,7 @@ async fn plugin_artifact_handler_returns_resolved_artifact() {
         &linked_builtin_julia_gateway_artifact_runtime_config_toml(Some("similarity_only")),
     );
 
-    let response = crate::gateway::studio::router::handlers::get_plugin_artifact(
+    let response = crate::gateway::studio::router::handlers::capabilities::get_plugin_artifact(
         State(state),
         Path(artifact_path.clone()),
         Query(
@@ -83,7 +83,7 @@ async fn plugin_artifact_handler_returns_canonical_json_shape() {
         &linked_builtin_julia_gateway_artifact_runtime_config_toml(None),
     );
 
-    let response = crate::gateway::studio::router::handlers::get_plugin_artifact(
+    let response = crate::gateway::studio::router::handlers::capabilities::get_plugin_artifact(
         State(state),
         Path(artifact_path.clone()),
         Query(
@@ -120,7 +120,7 @@ async fn plugin_artifact_handler_returns_toml_when_requested() {
         &linked_builtin_julia_gateway_artifact_runtime_config_toml(None),
     );
 
-    let response = crate::gateway::studio::router::handlers::get_plugin_artifact(
+    let response = crate::gateway::studio::router::handlers::capabilities::get_plugin_artifact(
         State(state),
         Path(artifact_path),
         Query(

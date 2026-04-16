@@ -9,7 +9,7 @@ use xiuxian_wendao_runtime::transport::{
 };
 
 use crate::analyzers::{DocCoverageResult, DocRecord};
-use crate::gateway::studio::router::handlers::repo::analysis::service::run_repo_doc_coverage;
+use crate::gateway::studio::router::handlers::repo::analysis::service::coverage::run_repo_doc_coverage;
 use crate::gateway::studio::router::{GatewayState, StudioApiError};
 
 #[derive(Clone)]

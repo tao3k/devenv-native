@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use crate::analyzers::RegisteredRepository;
-use crate::gateway::studio::router::{
+use crate::gateway::studio::{
     StudioApiError, StudioState, configured_repositories, configured_repository,
     map_repo_intelligence_error,
 };

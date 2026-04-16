@@ -4,9 +4,10 @@ use crate::analyzers::{
     RefineEntityDocRequest, RefineEntityDocResponse, RepoSyncMode, RepoSyncQuery, RepoSyncResult,
     repo_sync_for_registered_repository,
 };
-use crate::gateway::studio::router::handlers::repo::shared::{
-    repo_index_repositories, with_repo_analysis, with_repository,
+use crate::gateway::studio::router::handlers::repo::shared::execution::{
+    with_repo_analysis, with_repository,
 };
+use crate::gateway::studio::router::handlers::repo::shared::repository::repo_index_repositories;
 use crate::gateway::studio::router::{
     GatewayState, StudioApiError, configured_repositories, resolve_registered_repository_id,
 };
@@ -84,10 +85,11 @@ pub(crate) async fn run_refine_entity_doc(
     state: Arc<GatewayState>,
     payload: RefineEntityDocRequest,
 ) -> Result<RefineEntityDocResponse, StudioApiError> {
-    let repo_id = crate::gateway::studio::router::handlers::repo::required_registered_repo_id(
-        state.studio.as_ref(),
-        Some(payload.repo_id.as_str()),
-    )?;
+    let repo_id =
+        crate::gateway::studio::router::handlers::repo::parse::repo::required_registered_repo_id(
+            state.studio.as_ref(),
+            Some(payload.repo_id.as_str()),
+        )?;
     with_repo_analysis(
         Arc::clone(&state),
         repo_id,

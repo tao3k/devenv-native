@@ -11,7 +11,7 @@ use crate::gateway::studio::types::{UiConfig, UiProjectConfig};
 #[cfg(feature = "duckdb")]
 use crate::set_link_graph_wendao_config_override;
 
-pub(crate) fn test_studio_state() -> crate::gateway::studio::router::StudioState {
+pub(crate) fn test_studio_state() -> crate::gateway::studio::StudioState {
     let nonce = format!(
         "search-plane-handlers-{}-{}",
         std::process::id(),
@@ -21,7 +21,7 @@ pub(crate) fn test_studio_state() -> crate::gateway::studio::router::StudioState
             .as_nanos()
     );
     let search_plane_root = std::env::temp_dir().join(nonce);
-    crate::gateway::studio::router::StudioState::new_with_bootstrap_ui_config_and_search_plane_root(
+    crate::gateway::studio::StudioState::new_with_bootstrap_ui_config_and_search_plane_root(
         Arc::new(
             crate::analyzers::bootstrap_builtin_registry()
                 .unwrap_or_else(|error| panic!("bootstrap registry: {error}")),
@@ -30,7 +30,7 @@ pub(crate) fn test_studio_state() -> crate::gateway::studio::router::StudioState
     )
 }
 
-pub(crate) fn test_studio_state_with_cache() -> crate::gateway::studio::router::StudioState {
+pub(crate) fn test_studio_state_with_cache() -> crate::gateway::studio::StudioState {
     let nonce = format!(
         "search-plane-handlers-cache-{}-{}",
         std::process::id(),
@@ -51,7 +51,7 @@ pub(crate) fn test_studio_state_with_cache() -> crate::gateway::studio::router::
         manifest_keyspace,
         crate::search::SearchMaintenancePolicy::default(),
     );
-    crate::gateway::studio::router::StudioState::new_with_bootstrap_ui_config_for_roots_and_search_plane(
+    crate::gateway::studio::StudioState::new_with_bootstrap_ui_config_for_roots_and_search_plane(
         Arc::new(
             crate::analyzers::bootstrap_builtin_registry()
                 .unwrap_or_else(|error| panic!("bootstrap registry: {error}")),
@@ -64,7 +64,7 @@ pub(crate) fn test_studio_state_with_cache() -> crate::gateway::studio::router::
 
 #[cfg(feature = "duckdb")]
 pub(crate) fn configure_local_workspace(
-    studio: &mut crate::gateway::studio::router::StudioState,
+    studio: &mut crate::gateway::studio::StudioState,
     root: &Path,
 ) {
     studio.project_root = root.to_path_buf();
@@ -92,7 +92,7 @@ pub(crate) fn write_search_duckdb_runtime_override(
 
 #[cfg(feature = "duckdb")]
 pub(crate) async fn publish_local_symbol_index(
-    studio: &crate::gateway::studio::router::StudioState,
+    studio: &crate::gateway::studio::StudioState,
 ) {
     let projects = studio.configured_projects();
     let hits = build_ast_index(
@@ -122,7 +122,7 @@ pub(crate) async fn publish_local_symbol_index(
 
 #[cfg(feature = "duckdb")]
 pub(crate) async fn publish_knowledge_section_index(
-    studio: &crate::gateway::studio::router::StudioState,
+    studio: &crate::gateway::studio::StudioState,
 ) {
     let projects = studio.configured_projects();
     let fingerprint = format!(
@@ -151,7 +151,7 @@ pub(crate) async fn publish_knowledge_section_index(
 }
 
 pub(crate) async fn publish_repo_content_chunk_index(
-    studio: &crate::gateway::studio::router::StudioState,
+    studio: &crate::gateway::studio::StudioState,
     repo_id: &str,
     documents: Vec<crate::repo_index::RepoCodeDocument>,
 ) {
@@ -163,7 +163,7 @@ pub(crate) async fn publish_repo_content_chunk_index(
 }
 
 pub(crate) async fn publish_repo_entity_index(
-    studio: &crate::gateway::studio::router::StudioState,
+    studio: &crate::gateway::studio::StudioState,
     repo_id: &str,
     analysis: &crate::analyzers::RepositoryAnalysisOutput,
 ) {

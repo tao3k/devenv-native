@@ -5,8 +5,9 @@ use axum::{
     extract::{Query, State},
 };
 
-use crate::gateway::studio::router::handlers::repo::analysis::service::run_repo_overview;
-use crate::gateway::studio::router::handlers::repo::required_registered_repo_id;
+use crate::gateway::studio::router::handlers::repo::analysis::service::overview::run_repo_overview;
+use crate::gateway::studio::router::handlers::repo::parse::repo::required_registered_repo_id;
+use crate::gateway::studio::router::handlers::repo::query::pages::RepoApiQuery;
 use crate::gateway::studio::router::{GatewayState, StudioApiError};
 
 /// Repository overview endpoint.
@@ -16,7 +17,7 @@ use crate::gateway::studio::router::{GatewayState, StudioApiError};
 /// Returns an error when `repo` is missing, repository lookup fails,
 /// repository analysis fails, or the background task panics.
 pub async fn overview(
-    Query(query): Query<crate::gateway::studio::router::handlers::repo::RepoApiQuery>,
+    Query(query): Query<RepoApiQuery>,
     State(state): State<Arc<GatewayState>>,
 ) -> Result<Json<crate::analyzers::RepoOverviewResult>, StudioApiError> {
     let repo_id = required_registered_repo_id(state.studio.as_ref(), query.repo.as_deref())?;

@@ -4,7 +4,7 @@ use crate::analyzers::{
     ExampleRecord, ModuleRecord, RepoSymbolKind, RepositoryAnalysisOutput, SymbolRecord,
 };
 use crate::gateway::studio::build_ast_index;
-use crate::gateway::studio::router::{GatewayState, StudioState};
+use crate::gateway::studio::{GatewayState, StudioState};
 use crate::gateway::studio::search::handlers::knowledge::ensure_intent_indices;
 use crate::gateway::studio::search::handlers::status::search_index_status;
 use crate::gateway::studio::search::strip_option;
@@ -99,9 +99,9 @@ fn make_state_with_docs(docs: Vec<(&str, &str)>) -> StudioStateFixture {
 }
 
 fn cold_start_corpus<'a>(
-    telemetry: &'a crate::gateway::studio::router::StudioSearchColdStartTelemetry,
+    telemetry: &'a crate::gateway::studio::StudioSearchColdStartTelemetry,
     corpus: &str,
-) -> &'a crate::gateway::studio::router::StudioSearchColdStartCorpusTelemetry {
+) -> &'a crate::gateway::studio::StudioSearchColdStartCorpusTelemetry {
     telemetry
         .corpora
         .iter()

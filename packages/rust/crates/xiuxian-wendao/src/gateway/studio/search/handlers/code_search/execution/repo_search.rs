@@ -1,5 +1,5 @@
 #[cfg(test)]
-use crate::gateway::studio::router::StudioApiError;
+use crate::gateway::studio::StudioApiError;
 #[cfg(test)]
 use crate::gateway::studio::types::SearchHit;
 #[cfg(test)]
@@ -57,7 +57,7 @@ pub(crate) async fn search_repo_content_hits(
 }
 
 #[cfg(test)]
-use crate::gateway::studio::router::StudioState;
+use crate::gateway::studio::StudioState;
 
 /// Build repo entity search hits through the Studio state wrapper.
 #[cfg(test)]

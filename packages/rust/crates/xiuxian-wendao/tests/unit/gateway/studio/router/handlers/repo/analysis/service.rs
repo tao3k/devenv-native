@@ -6,7 +6,7 @@ use crate::analyzers::{
     ExampleRecord, ModuleRecord, RepoSymbolKind, RepositoryAnalysisOutput, SymbolRecord,
     bootstrap_builtin_registry,
 };
-use crate::gateway::studio::router::handlers::repo::analysis::service::run_repo_overview;
+use crate::gateway::studio::router::handlers::repo::analysis::service::overview::run_repo_overview;
 use crate::gateway::studio::router::{GatewayState, StudioState};
 use crate::gateway::studio::types::{UiConfig, UiRepoProjectConfig};
 use crate::repo_index::RepoCodeDocument;

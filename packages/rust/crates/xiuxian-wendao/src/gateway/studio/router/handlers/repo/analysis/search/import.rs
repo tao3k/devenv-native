@@ -5,10 +5,10 @@ use axum::{
     extract::{Query, State},
 };
 
-use crate::gateway::studio::router::handlers::repo::analysis::search::service::run_repo_import_search;
-use crate::gateway::studio::router::handlers::repo::{
-    RepoImportSearchApiQuery, required_import_search_filters, required_registered_repo_id,
-};
+use crate::gateway::studio::router::handlers::repo::analysis::search::service::imports::run_repo_import_search;
+use crate::gateway::studio::router::handlers::repo::parse::repo::required_registered_repo_id;
+use crate::gateway::studio::router::handlers::repo::parse::search::required_import_search_filters;
+use crate::gateway::studio::router::handlers::repo::query::analysis::RepoImportSearchApiQuery;
 use crate::gateway::studio::router::{GatewayState, StudioApiError};
 
 /// Import search endpoint.

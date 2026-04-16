@@ -6,11 +6,11 @@ use axum::{
 };
 
 use crate::analyzers::DocsSearchQuery;
-use crate::gateway::studio::router::handlers::docs::service::run_docs_search;
-use crate::gateway::studio::router::handlers::repo::{
-    RepoProjectedPageSearchApiQuery, parse_projection_page_kind, required_registered_repo_id,
-    required_search_query,
-};
+use crate::gateway::studio::router::handlers::docs::service::projection::search::run_docs_search;
+use crate::gateway::studio::router::handlers::repo::parse::projection::parse_projection_page_kind;
+use crate::gateway::studio::router::handlers::repo::parse::repo::required_registered_repo_id;
+use crate::gateway::studio::router::handlers::repo::parse::search::required_search_query;
+use crate::gateway::studio::router::handlers::repo::query::retrieval::RepoProjectedPageSearchApiQuery;
 use crate::gateway::studio::router::{GatewayState, StudioApiError};
 
 /// Docs search endpoint.

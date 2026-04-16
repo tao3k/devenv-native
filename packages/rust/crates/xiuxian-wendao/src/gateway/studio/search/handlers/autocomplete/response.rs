@@ -3,7 +3,7 @@ use std::sync::Arc;
 use xiuxian_wendao_runtime::transport::AutocompleteFlightRouteResponse;
 
 use super::batch::{autocomplete_response_flight_app_metadata, autocomplete_suggestion_batch};
-use crate::gateway::studio::router::{StudioApiError, StudioState};
+use crate::gateway::studio::{StudioApiError, StudioState};
 use crate::gateway::studio::types::{AutocompleteResponse, AutocompleteSuggestion};
 use crate::search::SearchPlaneCacheTtl;
 

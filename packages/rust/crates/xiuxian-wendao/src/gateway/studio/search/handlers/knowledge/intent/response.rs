@@ -1,4 +1,4 @@
-use crate::gateway::studio::router::StudioApiError;
+use crate::gateway::studio::StudioApiError;
 use crate::gateway::studio::search::handlers::knowledge::helpers::{
     compare_intent_hits, local_symbol_hit_to_search_hit, repo_content_hit_to_intent_hit,
 };

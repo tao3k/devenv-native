@@ -6,8 +6,9 @@ use axum::{
 };
 
 use crate::gateway::studio::router::handlers::repo::command_service::run_repo_sync;
-use crate::gateway::studio::router::handlers::repo::parse::parse_repo_sync_mode;
-use crate::gateway::studio::router::handlers::repo::required_registered_repo_id;
+use crate::gateway::studio::router::handlers::repo::parse::repo::required_registered_repo_id;
+use crate::gateway::studio::router::handlers::repo::parse::sync::parse_repo_sync_mode;
+use crate::gateway::studio::router::handlers::repo::query::analysis::RepoSyncApiQuery;
 use crate::gateway::studio::router::{GatewayState, StudioApiError};
 
 /// Repo sync endpoint.
@@ -17,7 +18,7 @@ use crate::gateway::studio::router::{GatewayState, StudioApiError};
 /// Returns an error when `repo` is missing, the sync mode is invalid,
 /// repository lookup fails, syncing fails, or the background task panics.
 pub async fn sync(
-    Query(query): Query<crate::gateway::studio::router::handlers::repo::RepoSyncApiQuery>,
+    Query(query): Query<RepoSyncApiQuery>,
     State(state): State<Arc<GatewayState>>,
 ) -> Result<Json<crate::analyzers::RepoSyncResult>, StudioApiError> {
     let repo_id = required_registered_repo_id(state.studio.as_ref(), query.repo.as_deref())?;

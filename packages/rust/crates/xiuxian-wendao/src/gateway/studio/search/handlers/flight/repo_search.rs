@@ -7,7 +7,7 @@ use xiuxian_wendao_runtime::transport::{
 };
 
 use super::service::build_studio_search_flight_service_with_repo_provider;
-use crate::gateway::studio::router::{GatewayState, StudioState};
+use crate::gateway::studio::{GatewayState, StudioState};
 use crate::repo_index::RepoCodeDocument;
 use crate::search::SearchPlaneService;
 use crate::search::repo_search::{

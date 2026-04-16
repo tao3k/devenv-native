@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use crate::analyzers::RegisteredRepository;
-use crate::gateway::studio::router::{
+use crate::gateway::studio::{
     registered_repository_search_seeds, resolve_registered_repository_id,
 };
 use crate::parsers::search::repo_code_query::ParsedRepoCodeSearchQuery;

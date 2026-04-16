@@ -5,7 +5,7 @@ use crate::gateway::studio::analysis::markdown::{
 };
 use crate::gateway::studio::analysis::projection;
 use crate::gateway::studio::pathing::{normalize_path_like, studio_display_path};
-use crate::gateway::studio::router::StudioState;
+use crate::gateway::studio::StudioState;
 use crate::gateway::studio::types::{AnalysisNode, MarkdownAnalysisResponse};
 use crate::gateway::studio::vfs::resolve_vfs_file_path;
 

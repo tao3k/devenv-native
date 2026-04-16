@@ -9,7 +9,7 @@ use xiuxian_wendao_runtime::transport::{
 };
 
 use crate::analyzers::RepoOverviewResult;
-use crate::gateway::studio::router::handlers::repo::analysis::service::run_repo_overview;
+use crate::gateway::studio::router::handlers::repo::analysis::service::overview::run_repo_overview;
 use crate::gateway::studio::router::{GatewayState, StudioApiError};
 
 #[derive(Clone)]

@@ -3,7 +3,7 @@ use std::sync::Arc;
 use axum::{Json, extract::State};
 use serde::Serialize;
 
-use crate::gateway::studio::router::{
+use crate::gateway::studio::{
     GatewayState, StudioApiError, StudioBootstrapBackgroundIndexingTelemetry,
     StudioSearchColdStartTelemetry,
 };

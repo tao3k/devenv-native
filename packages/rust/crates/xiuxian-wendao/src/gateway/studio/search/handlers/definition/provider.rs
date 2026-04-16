@@ -7,7 +7,7 @@ use xiuxian_wendao_runtime::transport::{
 };
 
 use super::response::load_definition_flight_response;
-use crate::gateway::studio::router::{StudioApiError, StudioState};
+use crate::gateway::studio::{StudioApiError, StudioState};
 
 /// Studio-backed Flight provider for the semantic `/search/definition` route.
 #[derive(Clone)]

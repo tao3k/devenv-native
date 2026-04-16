@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
-pub type VfsError = crate::gateway::studio::router::StudioApiError;
+pub type VfsError = crate::gateway::studio::StudioApiError;
 
 #[derive(Debug, Clone)]
 pub struct ProjectFileFilter {

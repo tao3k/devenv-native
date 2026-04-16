@@ -3,7 +3,8 @@ use std::sync::Arc;
 
 use axum::extract::State;
 
-use crate::gateway::studio::router::handlers::graph::GraphNeighborsQuery;
+use crate::gateway::studio::router::handlers::graph::neighbors::graph_neighbors;
+use crate::gateway::studio::router::handlers::graph::shared::GraphNeighborsQuery;
 use crate::gateway::studio::router::{GatewayState, StudioState};
 use crate::gateway::studio::types::{UiConfig, UiProjectConfig};
 
@@ -45,7 +46,7 @@ async fn graph_index_refreshes_after_document_title_changes() {
         studio: Arc::new(studio),
     });
 
-    let first_response = crate::gateway::studio::router::handlers::graph::graph_neighbors(
+    let first_response = graph_neighbors(
         State(Arc::clone(&state)),
         axum::extract::Path("kernel/docs/index.md".to_string()),
         axum::extract::Query(GraphNeighborsQuery {
@@ -71,7 +72,7 @@ async fn graph_index_refreshes_after_document_title_changes() {
     )
     .unwrap_or_else(|error| panic!("rewrite docs index: {error}"));
 
-    let refreshed_response = crate::gateway::studio::router::handlers::graph::graph_neighbors(
+    let refreshed_response = graph_neighbors(
         State(Arc::clone(&state)),
         axum::extract::Path("kernel/docs/index.md".to_string()),
         axum::extract::Query(GraphNeighborsQuery {
@@ -155,7 +156,7 @@ async fn graph_neighbors_prefers_kernel_project_docs_over_repo_root_docs() {
         studio: Arc::new(studio),
     });
 
-    let kernel_response = crate::gateway::studio::router::handlers::graph::graph_neighbors(
+    let kernel_response = graph_neighbors(
         State(Arc::clone(&state)),
         axum::extract::Path("kernel/docs/index.md".to_string()),
         axum::extract::Query(GraphNeighborsQuery {
@@ -178,7 +179,7 @@ async fn graph_neighbors_prefers_kernel_project_docs_over_repo_root_docs() {
             .any(|node| node.id == "kernel/docs/chapter.md")
     );
 
-    let main_response = crate::gateway::studio::router::handlers::graph::graph_neighbors(
+    let main_response = graph_neighbors(
         State(Arc::clone(&state)),
         axum::extract::Path("main/docs/index.md".to_string()),
         axum::extract::Query(GraphNeighborsQuery {

@@ -1,16 +1,11 @@
 mod cache;
-mod example;
-mod import;
-mod module;
+pub(crate) mod example;
+pub(crate) mod import;
+pub(crate) mod module;
 mod publication;
 mod service;
-mod symbol;
+pub(crate) mod symbol;
 
 #[cfg(test)]
 #[path = "../../../../../../../../tests/unit/gateway/studio/router/handlers/repo/analysis/search/mod.rs"]
 mod tests;
-
-pub use example::example_search;
-pub use import::import_search;
-pub use module::module_search;
-pub use symbol::symbol_search;

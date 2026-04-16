@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::Path;
 
-use crate::gateway::studio::router::StudioState;
+use crate::gateway::studio::StudioState;
 use crate::gateway::studio::types::{UiConfig, UiProjectConfig};
 use crate::gateway::studio::vfs::content::{read_content, read_raw_content, resolve_vfs_file_path};
 

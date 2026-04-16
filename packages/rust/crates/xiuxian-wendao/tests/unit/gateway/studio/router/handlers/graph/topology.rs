@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::gateway::studio::router::handlers::graph::tests::build_fixture;
-use crate::gateway::studio::router::handlers::graph::topology_3d;
+use crate::gateway::studio::router::handlers::graph::topology::topology_3d;
 use axum::extract::State;
 
 #[tokio::test]

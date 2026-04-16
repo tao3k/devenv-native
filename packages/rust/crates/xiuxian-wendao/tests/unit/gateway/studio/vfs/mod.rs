@@ -8,7 +8,7 @@ use super::roots::resolve_all_vfs_roots;
 use super::scan::scan_all_roots;
 use super::scan_roots;
 use crate::analyzers::resolve_registered_repository_source;
-use crate::gateway::studio::router::{StudioState, configured_repositories};
+use crate::gateway::studio::{StudioState, configured_repositories};
 use crate::gateway::studio::test_support::commit_all;
 use crate::gateway::studio::types::{UiConfig, UiRepoProjectConfig};
 use xiuxian_git_repo::SyncMode;

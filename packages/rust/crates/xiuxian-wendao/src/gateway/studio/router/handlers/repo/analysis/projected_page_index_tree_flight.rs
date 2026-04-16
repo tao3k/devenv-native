@@ -10,7 +10,7 @@ use xiuxian_wendao_runtime::transport::{
 };
 
 use crate::analyzers::RepoProjectedPageIndexTreeResult;
-use crate::gateway::studio::router::handlers::repo::projected_service::run_repo_projected_page_index_tree;
+use crate::gateway::studio::router::handlers::repo::projected_service::pages::run_repo_projected_page_index_tree;
 use crate::gateway::studio::router::{GatewayState, StudioApiError};
 
 #[derive(Clone)]

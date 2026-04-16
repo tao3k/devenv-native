@@ -6,9 +6,9 @@ use axum::{
 };
 
 use crate::analyzers::DocsProjectedGapReportQuery;
-use crate::gateway::studio::router::handlers::docs::service::run_docs_projected_gap_report;
-use crate::gateway::studio::router::handlers::docs::types::DocsProjectedGapReportApiQuery;
-use crate::gateway::studio::router::handlers::repo::required_registered_repo_id;
+use crate::gateway::studio::router::handlers::docs::service::projection::gap_report::run_docs_projected_gap_report;
+use crate::gateway::studio::router::handlers::docs::types::projected_gap::DocsProjectedGapReportApiQuery;
+use crate::gateway::studio::router::handlers::repo::parse::repo::required_registered_repo_id;
 use crate::gateway::studio::router::{GatewayState, StudioApiError};
 
 /// Docs projected gap report endpoint.

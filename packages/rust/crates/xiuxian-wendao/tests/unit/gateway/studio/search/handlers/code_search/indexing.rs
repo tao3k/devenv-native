@@ -13,7 +13,7 @@ use crate::repo_index::{
 };
 
 struct AllRepoCodeSearchFixture {
-    studio: crate::gateway::studio::router::StudioState,
+    studio: crate::gateway::studio::StudioState,
     _temp: tempfile::TempDir,
 }
 
@@ -100,7 +100,7 @@ fn write_julia_repo_fixture(
 }
 
 fn configure_all_repo_code_search_projects(
-    studio: &crate::gateway::studio::router::StudioState,
+    studio: &crate::gateway::studio::StudioState,
     repos: &AllRepoCodeSearchRepos,
 ) {
     studio.seed_eager_configured_owners_for_tests(crate::gateway::studio::types::UiConfig {
@@ -127,7 +127,7 @@ fn repo_project_config(
 }
 
 async fn publish_all_repo_code_search_indexes(
-    studio: &crate::gateway::studio::router::StudioState,
+    studio: &crate::gateway::studio::StudioState,
 ) {
     studio
         .repo_index
@@ -149,7 +149,7 @@ async fn publish_all_repo_code_search_indexes(
     .await;
 }
 
-async fn sync_all_repo_code_search_runtime(studio: &crate::gateway::studio::router::StudioState) {
+async fn sync_all_repo_code_search_runtime(studio: &crate::gateway::studio::StudioState) {
     let valid_status = repo_status("valid", RepoIndexPhase::Ready, None, Some("abc123"));
     let invalid_status = repo_status(
         "invalid",

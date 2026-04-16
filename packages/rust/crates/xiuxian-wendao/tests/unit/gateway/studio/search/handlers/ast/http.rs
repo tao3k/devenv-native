@@ -4,7 +4,7 @@ use axum::Json;
 use axum::extract::{Query, State};
 
 use super::response::load_ast_search_response;
-use crate::gateway::studio::router::{GatewayState, StudioApiError};
+use crate::gateway::studio::{GatewayState, StudioApiError};
 use crate::gateway::studio::types::AstSearchResponse;
 
 #[cfg(test)]

@@ -1,4 +1,4 @@
-use crate::gateway::studio::router::StudioState;
+use crate::gateway::studio::StudioState;
 use crate::gateway::studio::search::handlers::knowledge::intent::types::IntentIndexState;
 use crate::search::SearchCorpusKind;
 

@@ -4,7 +4,7 @@ use log::info;
 use xiuxian_zhenfa::ZhenfaSignal;
 
 use crate::analyzers::PluginRegistry;
-use crate::gateway::studio::router::config::{
+use crate::gateway::studio::router::{
     load_ui_config_from_wendao_toml, load_ui_config_from_wendao_toml_path,
     resolve_studio_config_root,
 };

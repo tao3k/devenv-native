@@ -5,8 +5,9 @@ use axum::{
     extract::{Query, State},
 };
 
-use crate::gateway::studio::router::handlers::repo::analysis::service::run_repo_doc_coverage;
-use crate::gateway::studio::router::handlers::repo::required_registered_repo_id;
+use crate::gateway::studio::router::handlers::repo::analysis::service::coverage::run_repo_doc_coverage;
+use crate::gateway::studio::router::handlers::repo::parse::repo::required_registered_repo_id;
+use crate::gateway::studio::router::handlers::repo::query::analysis::RepoDocCoverageApiQuery;
 use crate::gateway::studio::router::{GatewayState, StudioApiError};
 
 /// Doc coverage endpoint.
@@ -16,7 +17,7 @@ use crate::gateway::studio::router::{GatewayState, StudioApiError};
 /// Returns an error when `repo` is missing, repository lookup or analysis
 /// fails, or the background task panics.
 pub async fn doc_coverage(
-    Query(query): Query<crate::gateway::studio::router::handlers::repo::RepoDocCoverageApiQuery>,
+    Query(query): Query<RepoDocCoverageApiQuery>,
     State(state): State<Arc<GatewayState>>,
 ) -> Result<Json<crate::analyzers::DocCoverageResult>, StudioApiError> {
     let repo_id = required_registered_repo_id(state.studio.as_ref(), query.repo.as_deref())?;

@@ -6,19 +6,19 @@ use xiuxian_wendao_runtime::transport::{
 };
 
 use super::provider::StudioSearchFlightRouteProvider;
-use crate::gateway::studio::router::GatewayState;
-use crate::gateway::studio::router::handlers::graph::{
-    StudioGraphNeighborsFlightRouteProvider, StudioTopology3dFlightRouteProvider,
-};
-use crate::gateway::studio::router::handlers::repo::{
-    StudioRefineDocFlightRouteProvider, StudioRepoDocCoverageFlightRouteProvider,
-    StudioRepoIndexFlightRouteProvider, StudioRepoIndexStatusFlightRouteProvider,
-    StudioRepoOverviewFlightRouteProvider, StudioRepoProjectedPageIndexTreeFlightRouteProvider,
-    StudioRepoSyncFlightRouteProvider,
-};
+use crate::gateway::studio::GatewayState;
 use crate::gateway::studio::router::handlers::analysis::{
     StudioCodeAstAnalysisFlightRouteProvider, StudioMarkdownAnalysisFlightRouteProvider,
 };
+use crate::gateway::studio::router::handlers::graph::flight::StudioGraphNeighborsFlightRouteProvider;
+use crate::gateway::studio::router::handlers::graph::topology_flight::StudioTopology3dFlightRouteProvider;
+use crate::gateway::studio::router::handlers::repo::analysis::flight::StudioRepoDocCoverageFlightRouteProvider;
+use crate::gateway::studio::router::handlers::repo::analysis::index_flight::StudioRepoIndexFlightRouteProvider;
+use crate::gateway::studio::router::handlers::repo::analysis::index_status_flight::StudioRepoIndexStatusFlightRouteProvider;
+use crate::gateway::studio::router::handlers::repo::analysis::overview_flight::StudioRepoOverviewFlightRouteProvider;
+use crate::gateway::studio::router::handlers::repo::analysis::projected_page_index_tree_flight::StudioRepoProjectedPageIndexTreeFlightRouteProvider;
+use crate::gateway::studio::router::handlers::repo::analysis::refine_doc_flight::StudioRefineDocFlightRouteProvider;
+use crate::gateway::studio::router::handlers::repo::analysis::sync_flight::StudioRepoSyncFlightRouteProvider;
 use crate::gateway::studio::search::handlers::ast::StudioAstSearchFlightRouteProvider;
 use crate::gateway::studio::search::handlers::attachments::StudioAttachmentSearchFlightRouteProvider;
 use crate::gateway::studio::search::handlers::autocomplete::StudioAutocompleteFlightRouteProvider;

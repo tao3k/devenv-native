@@ -10,7 +10,7 @@ use xiuxian_wendao_runtime::transport::RepoSearchFlightRequest;
 use super::ast::repository_supports_generic_ast_analysis;
 use super::batch::repo_search_batch_from_hits;
 use crate::analyzers::{RegisteredRepository, resolve_registered_repository_source};
-use crate::gateway::studio::router::{StudioState, configured_repository};
+use crate::gateway::studio::{StudioState, configured_repository};
 use crate::gateway::studio::types::SearchHit;
 use crate::parsers::search::repo_code_query::parse_repo_code_search_query;
 use crate::search::repo_content_chunk::RepoContentChunkCandidate;

@@ -5,7 +5,7 @@ use xiuxian_wendao_runtime::transport::{
 };
 
 use super::{StudioSearchFlightRouteProvider, first_string, make_gateway_state_with_search_routes};
-use crate::gateway::studio::router::{GatewayState, StudioState};
+use crate::gateway::studio::{GatewayState, StudioState};
 
 #[tokio::test]
 async fn studio_search_flight_provider_dispatches_symbol_route() {

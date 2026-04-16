@@ -5,10 +5,10 @@ use axum::{
     extract::{Query, State},
 };
 
-use crate::gateway::studio::router::handlers::repo::analysis::search::service::run_repo_module_search;
-use crate::gateway::studio::router::handlers::repo::{
-    required_registered_repo_id, required_search_query,
-};
+use crate::gateway::studio::router::handlers::repo::analysis::search::service::typed::run_repo_module_search;
+use crate::gateway::studio::router::handlers::repo::parse::repo::required_registered_repo_id;
+use crate::gateway::studio::router::handlers::repo::parse::search::required_search_query;
+use crate::gateway::studio::router::handlers::repo::query::analysis::RepoSearchApiQuery;
 use crate::gateway::studio::router::{GatewayState, StudioApiError};
 
 /// Module search endpoint.
@@ -18,7 +18,7 @@ use crate::gateway::studio::router::{GatewayState, StudioApiError};
 /// Returns an error when `repo` or `query` is missing, repository lookup or
 /// analysis fails, or the background task panics.
 pub async fn module_search(
-    Query(query): Query<crate::gateway::studio::router::handlers::repo::RepoSearchApiQuery>,
+    Query(query): Query<RepoSearchApiQuery>,
     State(state): State<Arc<GatewayState>>,
 ) -> Result<Json<crate::analyzers::ModuleSearchResult>, StudioApiError> {
     let repo_id = required_registered_repo_id(state.studio.as_ref(), query.repo.as_deref())?;

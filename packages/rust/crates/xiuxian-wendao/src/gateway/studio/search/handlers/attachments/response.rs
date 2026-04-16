@@ -1,4 +1,4 @@
-use crate::gateway::studio::router::{StudioApiError, StudioState};
+use crate::gateway::studio::{StudioApiError, StudioState};
 use crate::gateway::studio::search::handlers::queries::AttachmentSearchQuery;
 use crate::gateway::studio::types::AttachmentSearchResponse;
 use crate::link_graph::LinkGraphAttachmentKind;

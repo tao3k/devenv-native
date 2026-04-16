@@ -6,7 +6,9 @@ use crate::analyzers::{
 };
 use crate::gateway::studio::router::GatewayState;
 use crate::gateway::studio::router::StudioApiError;
-use crate::gateway::studio::router::handlers::repo::shared::{with_repo_analysis, with_repository};
+use crate::gateway::studio::router::handlers::repo::shared::execution::{
+    with_repo_analysis, with_repository,
+};
 
 pub(super) async fn run_docs_analysis<T, F>(
     state: Arc<GatewayState>,

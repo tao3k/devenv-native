@@ -19,7 +19,7 @@ use crate::gateway::studio::router::configured_repository;
 use crate::gateway::studio::router::handlers::repo::analysis::search::cache::{
     repository_search_key, with_cached_repo_search_result,
 };
-use crate::gateway::studio::router::handlers::repo::analysis::search::service::run_repo_import_search;
+use crate::gateway::studio::router::handlers::repo::analysis::search::service::imports::run_repo_import_search;
 use crate::gateway::studio::router::{GatewayState, StudioState};
 use crate::gateway::studio::test_support::{
     assert_studio_json_snapshot, commit_all, init_git_repository,

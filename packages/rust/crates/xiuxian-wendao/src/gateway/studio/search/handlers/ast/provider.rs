@@ -5,7 +5,7 @@ use xiuxian_wendao_runtime::transport::{AstSearchFlightRouteProvider, SearchFlig
 
 use super::batch::build_ast_hits_flight_batch;
 use super::response::load_ast_search_response;
-use crate::gateway::studio::router::GatewayState;
+use crate::gateway::studio::GatewayState;
 use crate::gateway::studio::search::handlers::queries::AstSearchQuery;
 
 pub(crate) struct StudioAstSearchFlightRouteProvider {

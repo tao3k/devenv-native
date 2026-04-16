@@ -9,7 +9,7 @@ use axum::extract::{Path as AxumPath, State};
 use serde::Deserialize;
 
 use crate::gateway::studio::pathing::studio_display_path;
-use crate::gateway::studio::router::{GatewayState, StudioApiError};
+use crate::gateway::studio::{GatewayState, StudioApiError};
 use crate::gateway::studio::search::{
     DefinitionMatchMode, DefinitionResolveOptions, resolve_best_definition,
 };

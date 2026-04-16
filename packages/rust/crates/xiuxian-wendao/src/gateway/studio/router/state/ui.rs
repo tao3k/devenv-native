@@ -7,7 +7,7 @@ use xiuxian_wendao_runtime::transport::{
 };
 
 use crate::gateway::studio::router::repository::configured_repositories;
-use crate::gateway::studio::router::sanitization::{sanitize_projects, sanitize_repo_projects};
+use crate::gateway::studio::router::{sanitize_projects, sanitize_repo_projects};
 use crate::gateway::studio::router::state::helpers::supported_code_kinds;
 use crate::gateway::studio::router::state::types::{StudioConfiguredOwners, StudioState};
 use crate::gateway::studio::types::{

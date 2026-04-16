@@ -7,7 +7,7 @@ use xiuxian_wendao_runtime::transport::{
 
 use super::batch::build_attachment_hits_flight_batch;
 use super::response::load_attachment_search_response_from_studio;
-use crate::gateway::studio::router::StudioState;
+use crate::gateway::studio::StudioState;
 use crate::gateway::studio::search::handlers::queries::AttachmentSearchQuery;
 
 pub(crate) struct StudioAttachmentSearchFlightRouteProvider {
