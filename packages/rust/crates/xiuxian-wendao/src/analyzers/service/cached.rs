@@ -2,15 +2,15 @@ use std::path::Path;
 
 use xiuxian_git_repo::{SyncMode, discover_checkout_metadata};
 
+use crate::analyzers::PluginRegistry;
+use crate::analyzers::RegisteredRepository;
+use crate::analyzers::RepoIntelligenceError;
 use crate::analyzers::cache::{
-    ValkeyAnalysisCache, build_repository_analysis_cache_key, load_cached_repository_analysis,
-    store_cached_repository_analysis,
+    RepositoryAnalysisValkeyScope, ValkeyAnalysisCache, build_repository_analysis_cache_key,
+    load_cached_repository_analysis, store_cached_repository_analysis,
 };
-use crate::analyzers::config::RegisteredRepository;
-use crate::analyzers::errors::RepoIntelligenceError;
-use crate::analyzers::plugin::{AnalysisContext, RepositoryAnalysisOutput};
-use crate::analyzers::registry::PluginRegistry;
 use crate::analyzers::resolve_registered_repository_source;
+use crate::analyzers::{AnalysisContext, RepositoryAnalysisOutput};
 
 /// Ready cached repository analysis plus its stable cache identity.
 #[derive(Clone)]
@@ -79,7 +79,7 @@ pub fn analyze_registered_repository_cached_bundle_with_registry(
 
     let valkey_cache = ValkeyAnalysisCache::new()?;
     if let Some(ref cache) = valkey_cache
-        && let Some(cached) = cache.get(&cache_key)
+        && let Some(cached) = cache.get_analysis(RepositoryAnalysisValkeyScope::current(&cache_key))
     {
         store_cached_repository_analysis(cache_key.clone(), &cached)?;
         return Ok(CachedRepositoryAnalysis {

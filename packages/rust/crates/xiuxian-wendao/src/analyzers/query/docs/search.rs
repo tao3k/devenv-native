@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use crate::analyzers::projection::{
     ProjectedMarkdownDocument, ProjectedPageIndexDocument, ProjectionPageKind,
 };
-use crate::analyzers::query::{
+use crate::analyzers::{
     RepoProjectedPageFamilyClusterResult, RepoProjectedPageFamilyContextResult,
     RepoProjectedPageFamilySearchResult, RepoProjectedPageIndexNodeResult,
     RepoProjectedPageIndexTreeResult, RepoProjectedPageIndexTreeSearchResult,

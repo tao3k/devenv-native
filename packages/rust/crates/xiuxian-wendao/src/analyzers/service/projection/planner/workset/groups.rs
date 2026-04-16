@@ -1,12 +1,12 @@
 use std::collections::BTreeMap;
 
 use crate::analyzers::projection::ProjectionPageKind;
-use crate::analyzers::query::{
-    DocsPlannerItemResult, DocsPlannerRankHit, DocsPlannerWorksetFamilyGroup,
-    DocsPlannerWorksetGroup,
-};
 use crate::analyzers::service::projection::planner::workset::math::{
     empty_quota_hint, quota_hint_for_selection,
+};
+use crate::analyzers::{
+    DocsPlannerItemResult, DocsPlannerRankHit, DocsPlannerWorksetFamilyGroup,
+    DocsPlannerWorksetGroup,
 };
 
 pub(super) fn build_planner_workset_groups(
@@ -24,7 +24,7 @@ fn initial_planner_workset_groups(
     items: &[DocsPlannerItemResult],
 ) -> Vec<DocsPlannerWorksetGroup> {
     let mut grouped =
-        BTreeMap::<crate::analyzers::query::ProjectedGapKind, DocsPlannerWorksetGroup>::new();
+        BTreeMap::<crate::analyzers::ProjectedGapKind, DocsPlannerWorksetGroup>::new();
 
     for (ranked_hit, item) in ranked_hits.iter().cloned().zip(items.iter().cloned()) {
         let entry = grouped

@@ -1,5 +1,5 @@
 use crate::gateway::studio::router::{StudioApiError, StudioState};
-use crate::gateway::studio::search::handlers::code_search::search::build_code_search_response;
+use crate::gateway::studio::search::handlers::code_search::build_code_search_response;
 use crate::gateway::studio::search::handlers::knowledge::helpers::{
     intent_candidate_limit, is_code_biased_intent,
 };

@@ -1,6 +1,4 @@
-use crate::gateway::studio::router::code_ast::atoms::{
-    RetrievalChunkLineExt, build_code_ast_retrieval_atom,
-};
+use super::{RetrievalChunkLineExt, build_code_ast_retrieval_atom};
 use crate::gateway::studio::types::{CodeAstRetrievalAtom, CodeAstRetrievalAtomScope};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

@@ -6,7 +6,7 @@ use crate::gateway::studio::router::{configured_repositories, configured_reposit
 
 #[test]
 fn resolve_code_ast_repository_and_path_infers_repo_from_prefixed_path() {
-    use crate::gateway::studio::router::code_ast::resolve_code_ast_repository_and_path;
+    use crate::gateway::studio::router::resolve_code_ast_repository_and_path;
 
     let studio = studio_with_repo_projects(vec![repo_project("sciml"), repo_project("mcl")]);
     let repositories = configured_repositories(&studio);
@@ -21,7 +21,7 @@ fn resolve_code_ast_repository_and_path_infers_repo_from_prefixed_path() {
 
 #[test]
 fn resolve_code_ast_repository_and_path_strips_explicit_repo_prefix() {
-    use crate::gateway::studio::router::code_ast::resolve_code_ast_repository_and_path;
+    use crate::gateway::studio::router::resolve_code_ast_repository_and_path;
 
     let studio = studio_with_repo_projects(vec![repo_project("kernel")]);
     let repositories = configured_repositories(&studio);
@@ -36,7 +36,7 @@ fn resolve_code_ast_repository_and_path_strips_explicit_repo_prefix() {
 
 #[test]
 fn resolve_code_ast_repository_and_path_rejects_conflicting_repo_prefix() {
-    use crate::gateway::studio::router::code_ast::resolve_code_ast_repository_and_path;
+    use crate::gateway::studio::router::resolve_code_ast_repository_and_path;
     use axum::http::StatusCode;
 
     let studio = studio_with_repo_projects(vec![repo_project("kernel"), repo_project("main")]);
@@ -52,7 +52,7 @@ fn resolve_code_ast_repository_and_path_rejects_conflicting_repo_prefix() {
 
 #[test]
 fn resolve_code_ast_repository_and_path_requires_repo_when_ambiguous() {
-    use crate::gateway::studio::router::code_ast::resolve_code_ast_repository_and_path;
+    use crate::gateway::studio::router::resolve_code_ast_repository_and_path;
     use axum::http::StatusCode;
 
     let studio = studio_with_repo_projects(vec![repo_project("sciml"), repo_project("mcl")]);

@@ -9,6 +9,7 @@ expression: value
     {
       "repo_id": "sciml/imports",
       "module_id": "module:ProjectionPkg",
+      "path": "src/ProjectionPkg.jl",
       "import_name": "SciMLBase",
       "target_package": "SciMLBase",
       "source_module": "SciMLBase",
@@ -21,6 +22,7 @@ expression: value
       "import": {
         "repo_id": "sciml/imports",
         "module_id": "module:ProjectionPkg",
+        "path": "src/ProjectionPkg.jl",
         "import_name": "SciMLBase",
         "target_package": "SciMLBase",
         "source_module": "SciMLBase",

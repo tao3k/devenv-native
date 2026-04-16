@@ -4,7 +4,6 @@ use arrow::array::{Array, BooleanArray, StringArray, UInt64Array};
 use arrow::datatypes::{DataType, Field, Schema};
 use arrow::record_batch::RecordBatch;
 use serde_json::Value;
-use xiuxian_vector::attach_record_batch_metadata;
 use xiuxian_wendao_core::{
     capabilities::{ContractVersion, PluginCapabilityBinding, PluginProviderSelector},
     ids::{CapabilityId, PluginId},
@@ -18,6 +17,7 @@ use xiuxian_wendao_runtime::transport::{
 };
 
 use super::graph_structural::GraphStructuralRouteKind;
+use crate::arrow_metadata::attach_record_batch_metadata;
 use crate::compatibility::link_graph::{
     JULIA_CAPABILITY_MANIFEST_CAPABILITY_ID, JULIA_GRAPH_STRUCTURAL_CAPABILITY_ID,
     julia_capability_manifest_provider_selector,

@@ -1,8 +1,8 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
+use crate::analyzers::ProjectedGapKind;
 use crate::analyzers::projection::ProjectionPageKind;
-use crate::analyzers::query::ProjectedGapKind;
 use crate::analyzers::{DocsPlannerItemResult, DocsPlannerQueueResult, DocsPlannerRankHit};
 
 /// Docs-facing query for deterministic deep-wiki planner workset opening.

@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 use std::path::Path;
 
-use crate::gateway::studio::search::source_index::is_markdown_path;
+use crate::gateway::studio::search::is_markdown_path;
 use crate::gateway::studio::types::UiProjectConfig;
 use crate::search::local_symbol::build::LocalSymbolBuildPlan;
 use crate::search::local_symbol::build::partitions::{

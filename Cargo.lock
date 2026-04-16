@@ -13596,37 +13596,8 @@ dependencies = [
 name = "xiuxian-core-rs"
 version = "0.1.1"
 dependencies = [
- "anyhow",
- "arrow 58.1.0",
- "arrow-ipc 58.1.0",
- "chrono",
- "hex",
- "jsonschema",
  "pyo3",
- "rayon",
- "serde",
- "serde_json",
- "sha2",
- "tempfile",
- "tokio",
- "uuid",
- "which",
- "xiuxian-ast",
- "xiuxian-edit",
- "xiuxian-event",
- "xiuxian-executor",
- "xiuxian-io",
- "xiuxian-memory-engine",
- "xiuxian-sandbox",
- "xiuxian-security",
- "xiuxian-skills",
- "xiuxian-tags",
- "xiuxian-tokenizer",
- "xiuxian-tui",
- "xiuxian-types",
- "xiuxian-vector",
  "xiuxian-wendao",
- "xiuxian-window",
 ]
 
 [[package]]
@@ -13937,6 +13908,7 @@ dependencies = [
  "xiuxian-wendao-core",
  "xiuxian-wendao-parsers",
  "xiuxian-wendao-runtime",
+ "xiuxian-wendao-sql",
  "xiuxian-window",
  "xiuxian-zhenfa",
  "xiuxian-zhixing",
@@ -13949,7 +13921,6 @@ dependencies = [
  "async-trait",
  "chrono",
  "nix 0.29.0",
- "pyo3",
  "serde",
  "serde_json",
  "tempfile",
@@ -14192,6 +14163,7 @@ dependencies = [
  "xiuxian-wendao-julia",
  "xiuxian-wendao-parsers",
  "xiuxian-wendao-runtime",
+ "xiuxian-wendao-sql",
  "xiuxian-zhenfa",
  "xxhash-rust",
 ]
@@ -14250,7 +14222,6 @@ dependencies = [
  "walkdir",
  "xiuxian-memory-engine",
  "xiuxian-testing",
- "xiuxian-vector",
  "xiuxian-wendao-core",
  "xiuxian-wendao-runtime",
 ]
@@ -14295,6 +14266,22 @@ dependencies = [
  "xiuxian-testing",
  "xiuxian-vector",
  "xiuxian-vector-store",
+ "xiuxian-wendao-core",
+ "xiuxian-wendao-parsers",
+]
+
+[[package]]
+name = "xiuxian-wendao-sql"
+version = "0.1.1"
+dependencies = [
+ "arrow 58.1.0",
+ "async-trait",
+ "datafusion 53.0.0",
+ "serde_json",
+ "tempfile",
+ "tokio",
+ "walkdir",
+ "xiuxian-testing",
  "xiuxian-wendao-core",
  "xiuxian-wendao-parsers",
 ]

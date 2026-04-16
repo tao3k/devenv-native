@@ -643,10 +643,12 @@ local relation-engine seam, and the bounded-work markdown lane now uses that
 seam while remaining DataFusion-backed. DuckDB-specific execution is still
 feature-gated scaffolding rather than the default shared query path.
 
-The next bounded pilot under the same RFC is landed too. The bounded-work
-markdown query owner now exposes an explicit
-`query_bounded_work_markdown_payload_with_engine(...)` helper, and the new
-`DuckDbLocalRelationEngine` can register Arrow batches through
+The next bounded pilot under the same RFC is landed too. The canonical
+bounded-work markdown query owner now lives in `xiuxian-wendao-sql`, while
+`xiuxian-wendao` keeps a thin compatibility re-export under
+`search::queries::sql::bounded_work_markdown`. That bounded owner exposes an
+explicit `query_bounded_work_markdown_payload_with_engine(...)` helper, and
+the new `DuckDbLocalRelationEngine` can register Arrow batches through
 `appender-arrow` and return Arrow-native query batches. The default
 `query_bounded_work_markdown_payload(...)` path still instantiates the
 DataFusion engine explicitly, so the residual shared-query DataFusion path

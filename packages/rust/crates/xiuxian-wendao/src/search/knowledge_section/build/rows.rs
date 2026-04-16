@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use crate::gateway::studio::search::project_scope::SearchProjectMetadata;
+use crate::gateway::studio::search::SearchProjectMetadata;
 use crate::gateway::studio::types::{SearchHit, StudioNavigationTarget, UiProjectConfig};
 use crate::parsers::markdown::{ParsedNote, ParsedSection};
 use crate::search::MarkdownSnapshotEntry;

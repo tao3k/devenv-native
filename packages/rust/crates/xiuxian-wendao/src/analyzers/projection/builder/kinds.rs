@@ -1,5 +1,5 @@
+use crate::analyzers::DocRecord;
 use crate::analyzers::ProjectionPageKind;
-use crate::analyzers::records::DocRecord;
 
 use super::anchors::TargetAnchors;
 use crate::analyzers::projection::contracts::projection_kind_from_doc_format;

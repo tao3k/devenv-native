@@ -2,7 +2,7 @@ use std::fs;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use crate::analyzers::registry::PluginRegistry;
+use crate::analyzers::PluginRegistry;
 use crate::analyzers::{RegisteredRepository, RepositoryPluginConfig, RepositoryRefreshPolicy};
 use crate::gateway::studio::test_support::{commit_all, init_git_repository};
 use crate::repo_index::state::coordinator::RepoIndexCoordinator;

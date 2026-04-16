@@ -5,6 +5,7 @@ use crate::search::repo_entity::query::tests::fixtures::published_repo_entity_fi
 use crate::search::repo_entity::query::{
     search_repo_entity_example_results, search_repo_entity_import_results,
     search_repo_entity_module_results, search_repo_entity_symbol_results,
+    summarize_repo_entity_overview,
 };
 
 #[tokio::test]
@@ -97,4 +98,20 @@ async fn typed_repo_entity_search_reconstructs_module_symbol_and_example_results
             "import_result": import_result,
         }),
     );
+}
+
+#[tokio::test]
+async fn repo_entity_overview_summary_reads_publication_counts() {
+    let fixture = published_repo_entity_fixture("alpha/repo", "solve", "Shows solve").await;
+    let summary = summarize_repo_entity_overview(&fixture.service, "alpha/repo")
+        .await
+        .unwrap_or_else(|error| panic!("repo entity overview summary: {error}"))
+        .unwrap_or_else(|| panic!("repo entity overview summary should exist"));
+
+    assert_eq!(summary.display_name.as_deref(), Some("BaseModelica"));
+    assert_eq!(summary.source_revision.as_deref(), Some("rev-1"));
+    assert_eq!(summary.module_count, 1);
+    assert_eq!(summary.symbol_count, 1);
+    assert_eq!(summary.example_count, 1);
+    assert_eq!(summary.doc_count, 3);
 }

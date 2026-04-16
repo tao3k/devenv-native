@@ -1,10 +1,10 @@
+use std::collections::BTreeMap;
+
 use redis::Commands;
 use serde::de::DeserializeOwned;
 
 use crate::search::cache::SearchPlaneCache;
-use crate::search::{
-    SearchCorpusKind, SearchManifestRecord, SearchRepoCorpusRecord, SearchRepoCorpusSnapshotRecord,
-};
+use crate::search::{SearchCorpusKind, SearchManifestRecord, SearchRepoCorpusRecord};
 
 impl SearchPlaneCache {
     fn blocking_connection(&self) -> Option<redis::Connection> {
@@ -26,41 +26,52 @@ impl SearchPlaneCache {
         serde_json::from_str(payload?.as_str()).ok()
     }
 
-    pub(crate) fn get_repo_corpus_record_blocking(
+    pub(crate) fn get_repo_corpus_records_blocking(
         &self,
-        corpus: SearchCorpusKind,
-        repo_id: &str,
-    ) -> Option<SearchRepoCorpusRecord> {
+        keys: &[(SearchCorpusKind, String)],
+    ) -> BTreeMap<(SearchCorpusKind, String), SearchRepoCorpusRecord> {
         #[cfg(test)]
-        if let Some(record) = self
-            .shadow
-            .read()
-            .unwrap_or_else(std::sync::PoisonError::into_inner)
-            .repo_corpus_records
-            .get(&(corpus, repo_id.to_string()))
+        {
+            let shadow = self
+                .shadow
+                .read()
+                .unwrap_or_else(std::sync::PoisonError::into_inner);
+            if !shadow.repo_corpus_records.is_empty() {
+                return keys
+                    .iter()
+                    .filter_map(|(corpus, repo_id)| {
+                        shadow
+                            .repo_corpus_records
+                            .get(&(*corpus, repo_id.clone()))
+                            .cloned()
+                            .map(|record| ((*corpus, repo_id.clone()), record))
+                    })
+                    .collect();
+            }
+        }
+        if keys.is_empty() {
+            return BTreeMap::new();
+        }
+        let Some(mut connection) = self.blocking_connection() else {
+            return BTreeMap::new();
+        };
+        let mut pipeline = redis::pipe();
+        for (corpus, repo_id) in keys {
+            pipeline.cmd("GET").arg(
+                self.keyspace
+                    .repo_corpus_record_key(*corpus, repo_id.as_str()),
+            );
+        }
+        let payloads: Vec<Option<String>> = pipeline.query(&mut connection).unwrap_or_default();
+        keys.iter()
             .cloned()
-        {
-            return Some(record);
-        }
-        let key = self.keyspace.repo_corpus_record_key(corpus, repo_id);
-        self.get_json_blocking(key.as_str())
-    }
-
-    pub(crate) fn get_repo_corpus_snapshot_blocking(
-        &self,
-    ) -> Option<SearchRepoCorpusSnapshotRecord> {
-        #[cfg(test)]
-        if let Some(record) = self
-            .shadow
-            .read()
-            .unwrap_or_else(std::sync::PoisonError::into_inner)
-            .repo_corpus_snapshot
-            .clone()
-        {
-            return Some(record);
-        }
-        let key = self.keyspace.repo_corpus_snapshot_key();
-        self.get_json_blocking(key.as_str())
+            .zip(payloads)
+            .filter_map(|((corpus, repo_id), payload)| {
+                let record =
+                    serde_json::from_str::<SearchRepoCorpusRecord>(payload?.as_str()).ok()?;
+                Some(((corpus, repo_id), record))
+            })
+            .collect()
     }
 
     pub(crate) fn get_corpus_manifest_blocking(

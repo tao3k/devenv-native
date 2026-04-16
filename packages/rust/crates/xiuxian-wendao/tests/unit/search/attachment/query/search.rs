@@ -1,7 +1,7 @@
 #[cfg(feature = "duckdb")]
 use serial_test::serial;
 
-use crate::search::attachment::query::search::search_attachment_hits;
+use crate::search::attachment::query::lookup::search_attachment_hits;
 
 #[cfg(feature = "duckdb")]
 use super::fixtures::write_search_duckdb_runtime_override;

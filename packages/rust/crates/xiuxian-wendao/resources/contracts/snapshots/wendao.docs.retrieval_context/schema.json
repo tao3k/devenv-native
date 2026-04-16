@@ -6,7 +6,10 @@
   "properties": {
     "node_id": {
       "description": "Optional stable page-index node identifier.",
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "default": null
     },
     "page_id": {
@@ -15,11 +18,16 @@
     },
     "related_limit": {
       "description": "Optional related-page limit override.",
-      "type": ["integer", "null"],
+      "type": [
+        "integer",
+        "null"
+      ],
       "format": "uint",
       "default": null,
       "minimum": 0
     }
   },
-  "required": ["page_id"]
+  "required": [
+    "page_id"
+  ]
 }

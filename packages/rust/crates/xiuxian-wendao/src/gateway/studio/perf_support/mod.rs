@@ -1,4 +1,4 @@
-pub(crate) mod fixture;
+mod fixture;
 pub(crate) mod git;
 pub(crate) mod root;
 pub(crate) mod state;

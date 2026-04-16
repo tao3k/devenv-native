@@ -1,8 +1,8 @@
-use crate::analyzers::plugin::RepositoryAnalysisOutput;
+use crate::analyzers::RepositoryAnalysisOutput;
 use crate::analyzers::projection::contracts::ProjectedPageRecord;
 use crate::analyzers::projection::family_context::build_projected_page_family_context;
 use crate::analyzers::projection::search::scored_projected_page_matches;
-use crate::analyzers::query::{
+use crate::analyzers::{
     ProjectedPageFamilySearchHit, RepoProjectedPageFamilySearchQuery,
     RepoProjectedPageFamilySearchResult,
 };
@@ -35,7 +35,7 @@ pub fn build_repo_projected_page_family_search(
             .take(limit)
             .filter_map(|(_, page)| {
                 let context = build_projected_page_family_context(
-                    &crate::analyzers::query::RepoProjectedPageFamilyContextQuery {
+                    &crate::analyzers::RepoProjectedPageFamilyContextQuery {
                         repo_id: query.repo_id.clone(),
                         page_id: page.page_id.clone(),
                         per_kind_limit: query.per_kind_limit,

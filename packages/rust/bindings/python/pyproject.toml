@@ -1,7 +1,7 @@
 [project]
 name = "xiuxian-core-rs"
 version = "0.1.1"
-description = "Rust core for Omni DevEnv"
+description = "Wendao Python bindings for xiuxian-artisan-workshop"
 requires-python = ">=3.13"
 classifiers = [
     "License :: OSI Approved :: MIT License",

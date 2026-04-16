@@ -2,7 +2,7 @@ use std::{path::PathBuf, sync::Arc};
 
 use tokio::sync::OwnedSemaphorePermit;
 
-use crate::analyzers::service::{
+use crate::analyzers::{
     CachedRepositoryAnalysis, analyze_registered_repository_cached_bundle_with_registry,
 };
 use crate::analyzers::{

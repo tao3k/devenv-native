@@ -9,7 +9,7 @@ use crate as xiuxian_wendao;
 use std::sync::Arc;
 use std::time::Instant;
 
-use xiuxian_wendao::analyzers::registry::PluginRegistry;
+use xiuxian_wendao::analyzers::PluginRegistry;
 use xiuxian_wendao::gateway::studio::{GatewayState, StudioState, studio_router};
 
 /// Performance threshold for VFS scan (milliseconds).

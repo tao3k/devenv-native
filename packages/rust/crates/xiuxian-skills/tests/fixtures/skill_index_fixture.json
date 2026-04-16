@@ -1,0 +1,23 @@
+[
+  {
+    "name": "demo",
+    "path": "skills/demo",
+    "tools": [
+      {
+        "name": "demo.inspect"
+      }
+    ]
+  },
+  {
+    "name": "git",
+    "path": "assets/skills/git",
+    "tools": [
+      {
+        "name": "git.status"
+      },
+      {
+        "name": "git.commit"
+      }
+    ]
+  }
+]

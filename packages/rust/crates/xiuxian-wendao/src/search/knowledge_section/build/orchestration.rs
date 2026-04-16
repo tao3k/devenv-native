@@ -2,6 +2,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
 use crate::gateway::studio::types::UiProjectConfig;
+use crate::search::cache::SearchPlaneFileFingerprintScope;
 use crate::search::knowledge_section::build::rows::build_knowledge_section_rows_for_entry;
 use crate::search::knowledge_section::build::types::KnowledgeSectionBuildPlan;
 use crate::search::knowledge_section::build::write::write_knowledge_section_epoch;
@@ -97,7 +98,9 @@ fn ensure_knowledge_section_index_started_with_fingerprint_and_scanned_files(
     if let Ok(handle) = Handle::try_current() {
         handle.spawn(async move {
             let previous_fingerprints = service
-                .corpus_file_fingerprints(SearchCorpusKind::KnowledgeSection)
+                .file_fingerprints(SearchPlaneFileFingerprintScope::corpus(
+                    SearchCorpusKind::KnowledgeSection,
+                ))
                 .await;
             let build_service = service.clone();
             let build: Result<KnowledgeSectionBuildPlan, tokio::task::JoinError> =
@@ -132,8 +135,10 @@ fn ensure_knowledge_section_index_started_with_fingerprint_and_scanned_files(
                         .await
                     {
                         service
-                            .set_corpus_file_fingerprints(
-                                SearchCorpusKind::KnowledgeSection,
+                            .set_file_fingerprints(
+                                SearchPlaneFileFingerprintScope::corpus(
+                                    SearchCorpusKind::KnowledgeSection,
+                                ),
                                 &plan.file_fingerprints,
                             )
                             .await;

@@ -1,5 +1,5 @@
 use super::{core, docs, graph, projected, repo, search, ui, vfs};
-use crate::gateway::openapi::paths::shared::contracts::RouteContract;
+use crate::gateway::RouteContract;
 
 macro_rules! route_contracts {
     ( $( $module:ident :: [ $( $name:ident ),+ $(,)? ] ),+ $(,)? ) => {

@@ -1,4 +1,4 @@
-use crate::analyzers::errors::RepoIntelligenceError;
+use crate::analyzers::RepoIntelligenceError;
 use crate::settings::{get_setting_string, merged_wendao_settings};
 use crate::valkey_common::{normalize_key_prefix, open_client};
 use serde_yaml::Value;

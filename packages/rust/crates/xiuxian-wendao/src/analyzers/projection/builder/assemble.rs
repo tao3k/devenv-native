@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use crate::analyzers::plugin::RepositoryAnalysisOutput;
+use crate::analyzers::RepositoryAnalysisOutput;
 use crate::analyzers::{
     ProjectionInputBundle, ProjectionPageKind, ProjectionPageSeed, RelationKind,
 };

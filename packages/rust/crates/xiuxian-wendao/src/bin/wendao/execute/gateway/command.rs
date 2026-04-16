@@ -38,7 +38,7 @@ use xiuxian_wendao::LinkGraphIndex;
 #[cfg(feature = "zhenfa-router")]
 use xiuxian_wendao::gateway::studio::build_studio_flight_service_with_weights;
 use xiuxian_wendao::gateway::{
-    openapi::paths as openapi_paths,
+    self as openapi_paths,
     studio::{
         GatewayStartupHealthReport, describe_gateway_startup_health, probe_gateway_startup_health,
         studio_routes,

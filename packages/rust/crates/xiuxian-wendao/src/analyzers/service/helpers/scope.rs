@@ -1,7 +1,7 @@
 use std::collections::BTreeSet;
 
-use crate::analyzers::plugin::RepositoryAnalysisOutput;
-use crate::analyzers::records::{DocRecord, ModuleRecord, RelationKind, SymbolRecord};
+use crate::analyzers::RepositoryAnalysisOutput;
+use crate::analyzers::{DocRecord, ModuleRecord, RelationKind, SymbolRecord};
 
 pub(crate) fn resolve_module_scope<'a>(
     module_selector: Option<&str>,
@@ -52,7 +52,7 @@ pub(crate) fn docs_in_scope(
 pub(crate) fn documented_symbol_ids(
     scoped_module: Option<&ModuleRecord>,
     symbols: &[SymbolRecord],
-    relations: &[crate::analyzers::records::RelationRecord],
+    relations: &[crate::analyzers::RelationRecord],
 ) -> BTreeSet<String> {
     let scoped_symbol_ids = symbols_in_scope(scoped_module, symbols)
         .into_iter()

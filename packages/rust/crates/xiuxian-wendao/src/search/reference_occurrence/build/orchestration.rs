@@ -3,6 +3,7 @@ use std::path::Path;
 use tokio::runtime::Handle;
 
 use crate::gateway::studio::types::UiProjectConfig;
+use crate::search::cache::SearchPlaneFileFingerprintScope;
 #[cfg(test)]
 use crate::search::reference_occurrence::build::ReferenceOccurrenceBuildError;
 use crate::search::{
@@ -98,7 +99,9 @@ fn ensure_reference_occurrence_index_started_with_fingerprint_and_scanned_files(
     if let Ok(handle) = Handle::try_current() {
         handle.spawn(async move {
             let previous_fingerprints = service
-                .corpus_file_fingerprints(SearchCorpusKind::ReferenceOccurrence)
+                .file_fingerprints(SearchPlaneFileFingerprintScope::corpus(
+                    SearchCorpusKind::ReferenceOccurrence,
+                ))
                 .await;
             let build_service = service.clone();
             let build: Result<_, tokio::task::JoinError> =
@@ -133,8 +136,10 @@ fn ensure_reference_occurrence_index_started_with_fingerprint_and_scanned_files(
                         .await
                     {
                         service
-                            .set_corpus_file_fingerprints(
-                                SearchCorpusKind::ReferenceOccurrence,
+                            .set_file_fingerprints(
+                                SearchPlaneFileFingerprintScope::corpus(
+                                    SearchCorpusKind::ReferenceOccurrence,
+                                ),
                                 &plan.file_fingerprints,
                             )
                             .await;

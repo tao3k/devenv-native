@@ -1,7 +1,6 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use crate::gateway::studio::pathing::studio_display_path;
 use crate::gateway::studio::router::StudioState;
 use crate::gateway::studio::types::{VfsContentResponse, VfsEntry};
 
@@ -85,13 +84,6 @@ pub(super) fn resolve_vfs_path(
 ) -> Result<ResolvedVfsPath, VfsError> {
     let path = path.trim();
     if let Some(resolved) = resolve_vfs_path_from_roots(state, path) {
-        return Ok(resolved);
-    }
-
-    let canonical_path = studio_display_path(state, path);
-    if canonical_path != path
-        && let Some(resolved) = resolve_vfs_path_from_roots(state, canonical_path.as_str())
-    {
         return Ok(resolved);
     }
 

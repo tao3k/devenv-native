@@ -3,10 +3,15 @@ use xiuxian_wendao_core::repo_intelligence::{RegisteredRepository, RepositoryPlu
 use super::{
     JULIA_FILE_SUMMARY_ROUTE, JULIA_PARSER_SUMMARY_SCHEMA_VERSION, ParserSummaryRouteKind,
     build_julia_parser_summary_flight_transport_client,
+    clear_julia_parser_summary_transport_cache_for_tests,
+    julia_parser_summary_transport_cache_len_for_tests,
+    julia_parser_summary_transport_slot_id_for_tests,
 };
 
 #[test]
+#[serial_test::serial(julia_parser_summary_transport)]
 fn build_parser_summary_client_uses_default_discovery_for_plain_plugin_id() {
+    clear_julia_parser_summary_transport_cache_for_tests();
     let repository = RegisteredRepository {
         id: "repo-julia".to_string(),
         plugins: vec![RepositoryPluginConfig::Id("julia".to_string())],
@@ -28,7 +33,9 @@ fn build_parser_summary_client_uses_default_discovery_for_plain_plugin_id() {
 }
 
 #[test]
+#[serial_test::serial(julia_parser_summary_transport)]
 fn build_parser_summary_client_reads_nested_options() {
+    clear_julia_parser_summary_transport_cache_for_tests();
     let repository = RegisteredRepository {
         id: "repo-julia".to_string(),
         plugins: vec![RepositoryPluginConfig::Config {
@@ -62,7 +69,9 @@ fn build_parser_summary_client_reads_nested_options() {
 }
 
 #[test]
+#[serial_test::serial(julia_parser_summary_transport)]
 fn build_parser_summary_client_rejects_disabled_transport() {
+    clear_julia_parser_summary_transport_cache_for_tests();
     let repository = RegisteredRepository {
         id: "repo-julia".to_string(),
         plugins: vec![RepositoryPluginConfig::Config {
@@ -93,7 +102,9 @@ fn build_parser_summary_client_rejects_disabled_transport() {
 }
 
 #[test]
+#[serial_test::serial(julia_parser_summary_transport)]
 fn build_parser_summary_client_rejects_invalid_field_types() {
+    clear_julia_parser_summary_transport_cache_for_tests();
     let repository = RegisteredRepository {
         id: "repo-julia".to_string(),
         plugins: vec![RepositoryPluginConfig::Config {
@@ -121,4 +132,78 @@ fn build_parser_summary_client_rejects_invalid_field_types() {
             .contains("Julia plugin field `timeout_secs` must be an unsigned integer"),
         "unexpected error: {error}",
     );
+}
+
+#[test]
+#[serial_test::serial(julia_parser_summary_transport)]
+fn build_parser_summary_client_reuses_cached_client_for_identical_transport() {
+    clear_julia_parser_summary_transport_cache_for_tests();
+    let repository = RegisteredRepository {
+        id: "repo-julia".to_string(),
+        plugins: vec![RepositoryPluginConfig::Id("julia".to_string())],
+        ..RegisteredRepository::default()
+    };
+
+    let first = build_julia_parser_summary_flight_transport_client(
+        &repository,
+        ParserSummaryRouteKind::FileSummary,
+    )
+    .unwrap_or_else(|error| panic!("first Julia parser-summary client should build: {error}"));
+    let first_slot = julia_parser_summary_transport_slot_id_for_tests(
+        &repository,
+        ParserSummaryRouteKind::FileSummary,
+    )
+    .unwrap_or_else(|error| panic!("first Julia parser-summary slot should exist: {error}"));
+
+    let second = build_julia_parser_summary_flight_transport_client(
+        &repository,
+        ParserSummaryRouteKind::FileSummary,
+    )
+    .unwrap_or_else(|error| panic!("second Julia parser-summary client should build: {error}"));
+    let second_slot = julia_parser_summary_transport_slot_id_for_tests(
+        &repository,
+        ParserSummaryRouteKind::FileSummary,
+    )
+    .unwrap_or_else(|error| panic!("second Julia parser-summary slot should exist: {error}"));
+
+    assert_eq!(first.flight_base_url(), second.flight_base_url());
+    assert_eq!(first.flight_route(), second.flight_route());
+    assert_eq!(first_slot, second_slot);
+    assert_eq!(julia_parser_summary_transport_cache_len_for_tests(), 1);
+}
+
+#[test]
+#[serial_test::serial(julia_parser_summary_transport)]
+fn build_parser_summary_client_separates_cached_clients_by_route() {
+    clear_julia_parser_summary_transport_cache_for_tests();
+    let repository = RegisteredRepository {
+        id: "repo-julia".to_string(),
+        plugins: vec![RepositoryPluginConfig::Id("julia".to_string())],
+        ..RegisteredRepository::default()
+    };
+
+    build_julia_parser_summary_flight_transport_client(
+        &repository,
+        ParserSummaryRouteKind::FileSummary,
+    )
+    .unwrap_or_else(|error| panic!("file-summary client should build: {error}"));
+    let file_slot = julia_parser_summary_transport_slot_id_for_tests(
+        &repository,
+        ParserSummaryRouteKind::FileSummary,
+    )
+    .unwrap_or_else(|error| panic!("file-summary slot should exist: {error}"));
+
+    build_julia_parser_summary_flight_transport_client(
+        &repository,
+        ParserSummaryRouteKind::RootSummary,
+    )
+    .unwrap_or_else(|error| panic!("root-summary client should build: {error}"));
+    let root_slot = julia_parser_summary_transport_slot_id_for_tests(
+        &repository,
+        ParserSummaryRouteKind::RootSummary,
+    )
+    .unwrap_or_else(|error| panic!("root-summary slot should exist: {error}"));
+
+    assert_ne!(file_slot, root_slot);
+    assert_eq!(julia_parser_summary_transport_cache_len_for_tests(), 2);
 }

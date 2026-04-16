@@ -1,5 +1,5 @@
-pub(crate) mod planner;
-pub(crate) mod projected_gap;
+mod planner;
+mod projected_gap;
 
 pub(crate) use planner::{
     DocsPlannerItemApiQuery, DocsPlannerQueueApiQuery, DocsPlannerRankApiQuery,

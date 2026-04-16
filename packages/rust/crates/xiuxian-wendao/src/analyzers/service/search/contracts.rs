@@ -1,9 +1,9 @@
+#[cfg(any(feature = "studio", feature = "search-runtime"))]
+use crate::analyzers::ImportSearchQuery;
 #[cfg(feature = "studio")]
 use crate::analyzers::RepositoryAnalysisOutput;
-#[cfg(any(feature = "studio", feature = "search-runtime"))]
-use crate::analyzers::query::ImportSearchQuery;
 #[cfg(feature = "studio")]
-use crate::analyzers::query::{
+use crate::analyzers::{
     ExampleSearchQuery, ExampleSearchResult, ImportSearchResult, ModuleSearchQuery,
     ModuleSearchResult, SymbolSearchQuery, SymbolSearchResult,
 };

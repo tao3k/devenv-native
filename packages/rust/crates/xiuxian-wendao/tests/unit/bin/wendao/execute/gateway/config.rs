@@ -1,11 +1,44 @@
-use super::{
-    GatewayRuntimeTomlConfig, parse_gateway_runtime_from_toml, parse_port_from_toml,
-    parse_webhook_from_toml, resolve_config_path, resolve_config_path_with_project_root,
-    resolve_config_path_with_project_root_value,
-};
 use std::fs;
 
+use super::{
+    DEFAULT_PORT, GatewayRuntimeTomlConfig, get_webhook_from_config,
+    parse_gateway_runtime_from_toml, parse_port_from_toml, parse_webhook_from_toml,
+    resolve_config_path, resolve_config_path_with_project_root,
+    resolve_config_path_with_project_root_value, resolve_port, resolve_webhook_config,
+    resolve_webhook_config_with_lookup,
+};
+use crate::execute::gateway::tests::support::{
+    remove_temp_gateway_config, write_temp_gateway_config,
+};
+
 type TestResult = Result<(), Box<dyn std::error::Error>>;
+
+#[test]
+fn test_resolve_port_cli_priority() {
+    let port = resolve_port(Some(8080), None);
+    assert_eq!(port, 8080);
+}
+
+#[test]
+fn test_resolve_port_default() {
+    let port = resolve_port(None, None);
+    assert_eq!(port, DEFAULT_PORT);
+}
+
+#[test]
+fn test_resolve_port_from_cli_config_path() {
+    let config_path = write_temp_gateway_config(
+        r"
+[gateway]
+port = 18080
+",
+    );
+
+    let port = resolve_port(None, Some(config_path.as_path()));
+    remove_temp_gateway_config(&config_path);
+
+    assert_eq!(port, 18080);
+}
 
 #[test]
 fn resolve_config_path_prefers_studio_overlay_when_present() -> TestResult {
@@ -100,4 +133,118 @@ fn parse_gateway_runtime_from_overlay_imports() -> TestResult {
         })
     );
     Ok(())
+}
+
+#[test]
+fn test_webhook_config_from_env() {
+    let config = resolve_webhook_config(None);
+    assert!(config.url.is_empty());
+    assert!(config.secret.is_none());
+    assert_eq!(config.timeout_secs, 10);
+    assert!(config.retry_on_failure);
+}
+
+#[test]
+fn test_webhook_config_from_lookup_uses_trimmed_env_values() {
+    let config = resolve_webhook_config_with_lookup(None, &|name| match name {
+        "WENDAO_WEBHOOK_URL" => Some(" http://127.0.0.1:9999/hooks ".to_string()),
+        "WENDAO_WEBHOOK_SECRET" => Some(" top-secret ".to_string()),
+        _ => None,
+    });
+
+    assert_eq!(config.url, "http://127.0.0.1:9999/hooks");
+    assert_eq!(config.secret.as_deref(), Some("top-secret"));
+    assert_eq!(config.timeout_secs, 10);
+    assert!(config.retry_on_failure);
+}
+
+#[test]
+fn test_webhook_config_from_lookup_ignores_blank_env_values() {
+    let config = resolve_webhook_config_with_lookup(None, &|name| match name {
+        "WENDAO_WEBHOOK_URL" | "WENDAO_WEBHOOK_SECRET" => Some("   ".to_string()),
+        _ => None,
+    });
+
+    assert!(config.url.is_empty());
+    assert!(config.secret.is_none());
+}
+
+#[test]
+fn test_resolve_webhook_config_from_cli_config_path() {
+    let config_path = write_temp_gateway_config(
+        r#"
+[gateway]
+webhook_url = "http://127.0.0.1:9999"
+webhook_secret = "test-secret"
+webhook_enabled = true
+"#,
+    );
+
+    let config = resolve_webhook_config(Some(config_path.as_path()));
+    remove_temp_gateway_config(&config_path);
+
+    assert_eq!(config.url, "http://127.0.0.1:9999");
+    assert_eq!(config.secret.as_deref(), Some("test-secret"));
+    assert_eq!(config.timeout_secs, 10);
+}
+
+#[test]
+fn test_resolve_webhook_config_prefers_toml_over_env_fallback() {
+    let config_path = write_temp_gateway_config(
+        r#"
+[gateway]
+webhook_url = "http://127.0.0.1:9999"
+webhook_secret = "test-secret"
+webhook_enabled = true
+"#,
+    );
+
+    let config =
+        resolve_webhook_config_with_lookup(Some(config_path.as_path()), &|name| match name {
+            "WENDAO_WEBHOOK_URL" => Some("http://127.0.0.1:7777/hooks".to_string()),
+            "WENDAO_WEBHOOK_SECRET" => Some("env-secret".to_string()),
+            _ => None,
+        });
+    remove_temp_gateway_config(&config_path);
+
+    assert_eq!(config.url, "http://127.0.0.1:9999");
+    assert_eq!(config.secret.as_deref(), Some("test-secret"));
+}
+
+#[test]
+fn test_disabled_webhook_config_is_ignored() {
+    let config_path = write_temp_gateway_config(
+        r#"
+[gateway]
+webhook_url = "http://127.0.0.1:9999"
+webhook_enabled = false
+"#,
+    );
+
+    let config = get_webhook_from_config(Some(config_path.as_path()));
+    remove_temp_gateway_config(&config_path);
+
+    assert!(config.is_none());
+}
+
+#[test]
+fn test_parse_port_from_toml_content() {
+    let content = r"
+[gateway]
+port = 8080
+";
+    let mut found_port = false;
+    for line in content.lines() {
+        let line = line.trim();
+        if line.starts_with("port")
+            && let Some(eq_pos) = line.find('=')
+        {
+            let value = line[eq_pos + 1..].trim().trim_matches('"');
+            if let Ok(port) = value.parse::<u16>() {
+                assert_eq!(port, 8080);
+                found_port = true;
+            }
+        }
+    }
+    assert!(found_port);
 }

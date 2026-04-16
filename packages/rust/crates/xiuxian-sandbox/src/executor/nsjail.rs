@@ -3,7 +3,6 @@
 //! Executes pre-generated nsjail configurations.
 //! This module does NOT parse NCL - it reads exported JSON.
 
-use pyo3::prelude::*;
 use serde::Deserialize;
 use std::path::{Path, PathBuf};
 use tokio::process::Command as AsyncCommand;
@@ -104,17 +103,13 @@ pub struct MountJson {
 }
 
 /// nsjail executor for Linux
-#[pyclass]
 #[derive(Debug, Clone)]
 pub struct NsJailExecutor {
     nsjail_path: PathBuf,
     default_timeout: u64,
 }
 
-#[pymethods]
 impl NsJailExecutor {
-    #[new]
-    #[pyo3(signature = (nsjail_path=None, default_timeout=60))]
     /// Create a new `NsJailExecutor`.
     pub fn new(nsjail_path: Option<String>, default_timeout: u64) -> Self {
         let path = nsjail_path.map_or_else(|| PathBuf::from("nsjail"), PathBuf::from);

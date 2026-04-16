@@ -1,6 +1,6 @@
 mod barrels;
 mod code_ast;
-#[path = "config.rs"]
+#[path = "config/api/mod.rs"]
 mod config;
 mod error;
 mod graph;

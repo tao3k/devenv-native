@@ -35,7 +35,7 @@ Primary characteristics:
 
 ```text
 Python (foundation/core/agent)
-  -> Rust bindings (xiuxian-core-rs)
+  -> package-local transport or facade layers
   -> Rust core (xiuxian-vector)
 ```
 

@@ -1,6 +1,5 @@
 //! Core sandbox types and shared execution helpers.
 
-use pyo3::prelude::*;
 use std::path::Path;
 use std::process::Stdio;
 use std::time::Instant;
@@ -9,86 +8,61 @@ use tokio::process::Command as AsyncCommand;
 use tokio::time::{Duration, timeout};
 
 /// Execution result returned by sandbox backends.
-#[pyclass]
 #[derive(Debug, Clone)]
 pub struct ExecutionResult {
     /// Whether the execution succeeded.
-    #[pyo3(get)]
     pub success: bool,
     /// Exit code from the process (if available).
-    #[pyo3(get)]
     pub exit_code: Option<i32>,
     /// Standard output captured from the process.
-    #[pyo3(get)]
     pub stdout: String,
     /// Standard error captured from the process.
-    #[pyo3(get)]
     pub stderr: String,
     /// Execution time in milliseconds.
-    #[pyo3(get)]
     pub execution_time_ms: u64,
     /// Optional memory usage in bytes.
-    #[pyo3(get)]
     pub memory_used_bytes: Option<u64>,
     /// Optional error message when execution failed unexpectedly.
-    #[pyo3(get)]
     pub error: Option<String>,
 }
 
 /// Mount configuration for sandboxed execution.
-#[pyclass]
 #[derive(Debug, Clone)]
 pub struct MountConfig {
     /// Source path on the host.
-    #[pyo3(get, set)]
     pub src: String,
     /// Destination path inside the sandbox.
-    #[pyo3(get, set)]
     pub dst: String,
     /// Filesystem type (e.g. "bind", "tmpfs").
-    #[pyo3(get, set)]
     pub fstype: String,
     /// Whether the mount is read-write.
-    #[pyo3(get, set)]
     pub rw: bool,
 }
 
 /// Sandbox configuration shared across backends.
-#[pyclass]
 #[derive(Debug, Clone)]
 pub struct SandboxConfig {
     /// Skill identifier for logging.
-    #[pyo3(get, set)]
     pub skill_id: String,
     /// Execution mode string (e.g. "EXEC").
-    #[pyo3(get, set)]
     pub mode: String,
     /// Sandbox hostname.
-    #[pyo3(get, set)]
     pub hostname: String,
     /// Command to execute.
-    #[pyo3(get, set)]
     pub cmd: Vec<String>,
     /// Environment variables (KEY=VALUE).
-    #[pyo3(get, set)]
     pub env: Vec<String>,
     /// Mount configuration list.
-    #[pyo3(get, set)]
     pub mounts: Vec<MountConfig>,
     /// Address space limit in bytes.
-    #[pyo3(get, set)]
     pub rlimit_as: u64,
     /// CPU time limit in seconds.
-    #[pyo3(get, set)]
     pub rlimit_cpu: u64,
     /// File size limit in bytes.
-    #[pyo3(get, set)]
     pub rlimit_fsize: u64,
     /// Seccomp mode.
-    #[pyo3(get, set)]
     pub seccomp_mode: u32,
     /// Log level string for the backend.
-    #[pyo3(get, set)]
     pub log_level: String,
 }
 

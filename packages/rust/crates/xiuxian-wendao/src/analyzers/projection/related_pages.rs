@@ -1,4 +1,4 @@
-use crate::analyzers::plugin::RepositoryAnalysisOutput;
+use crate::analyzers::RepositoryAnalysisOutput;
 use crate::analyzers::projection::contracts::{ProjectedPageRecord, ProjectionPageKind};
 
 use super::pages::build_projected_pages;

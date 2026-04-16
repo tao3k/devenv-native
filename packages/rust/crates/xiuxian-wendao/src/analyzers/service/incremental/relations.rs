@@ -1,9 +1,9 @@
 use std::collections::BTreeSet;
 use std::sync::Arc;
 
-use crate::analyzers::errors::RepoIntelligenceError;
-use crate::analyzers::plugin::{PluginLinkContext, RepoIntelligencePlugin};
-use crate::analyzers::records::{DocRecord, RelationKind, RelationRecord};
+use crate::analyzers::RepoIntelligenceError;
+use crate::analyzers::{DocRecord, RelationKind, RelationRecord};
+use crate::analyzers::{PluginLinkContext, RepoIntelligencePlugin};
 
 pub(super) fn rebuild_incremental_relations(
     repo_id: &str,

@@ -2,13 +2,22 @@ use std::collections::{BTreeSet, HashSet};
 use std::sync::Arc;
 
 use xiuxian_ast::Lang;
+use xiuxian_wendao_runtime::transport::{
+    SEARCH_AUTOCOMPLETE_ROUTE, SEARCH_INTENT_ROUTE, SEARCH_KNOWLEDGE_ROUTE,
+};
 
 use crate::gateway::studio::router::repository::configured_repositories;
 use crate::gateway::studio::router::sanitization::{sanitize_projects, sanitize_repo_projects};
 use crate::gateway::studio::router::state::helpers::supported_code_kinds;
 use crate::gateway::studio::router::state::types::{StudioConfiguredOwners, StudioState};
 use crate::gateway::studio::types::{
-    UiCapabilities, UiConfig, UiProjectConfig, UiRepoProjectConfig,
+    UiCapabilities, UiCodeSearchContract, UiCodeSearchContractExample, UiCodeSearchRoutes,
+    UiConfig, UiProjectConfig, UiRepoDiscoveryContract, UiRepoDiscoverySurfaceContract,
+    UiRepoProjectConfig, UiSearchContract, UiSearchContractAlias,
+};
+use crate::parsers::search::repo_code_query::{
+    REPO_CODE_SEARCH_BACKEND_PREFIXES, REPO_CODE_SEARCH_KIND_FILTER_VALUES,
+    REPO_CODE_SEARCH_PREFIX_ALIASES, REPO_CODE_SEARCH_STRUCTURAL_PREFIXES,
 };
 use crate::repo_index::RepoIndexStatusResponse;
 use crate::search::SearchCorpusKind;
@@ -16,6 +25,102 @@ use crate::search::SearchCorpusKind;
 const BOOTSTRAP_RUNTIME_SOURCE: &str = "studio_bootstrap";
 #[cfg(test)]
 const TEST_CONFIGURED_OWNER_SEED_SOURCE: &str = "test_configured_owner_seed";
+const STUDIO_SEARCH_CONTRACT_VERSION: &str = "1";
+const STUDIO_CODE_SEARCH_GRAMMAR_VERSION: &str = "repo_code_query.v1";
+const STUDIO_REPO_SUGGEST_DEFAULT_LIMIT: usize = 6;
+const STUDIO_REPO_FACET_DEFAULT_LIMIT: usize = 6;
+const STUDIO_REPO_INVENTORY_DEFAULT_LIMIT: usize = 200;
+
+fn build_search_contract() -> UiSearchContract {
+    UiSearchContract {
+        contract_version: STUDIO_SEARCH_CONTRACT_VERSION.to_string(),
+        code_search: UiCodeSearchContract {
+            query_grammar_version: STUDIO_CODE_SEARCH_GRAMMAR_VERSION.to_string(),
+            intent: "code_search".to_string(),
+            backend_prefixes: REPO_CODE_SEARCH_BACKEND_PREFIXES
+                .iter()
+                .map(|value| (*value).to_string())
+                .collect(),
+            composed_prefixes: vec!["path".to_string()],
+            prefix_aliases: REPO_CODE_SEARCH_PREFIX_ALIASES
+                .iter()
+                .map(|(alias, canonical)| UiSearchContractAlias {
+                    alias: (*alias).to_string(),
+                    canonical: (*canonical).to_string(),
+                })
+                .collect(),
+            structural_prefixes: REPO_CODE_SEARCH_STRUCTURAL_PREFIXES
+                .iter()
+                .map(|value| (*value).to_string())
+                .collect(),
+            backend_kind_filters: REPO_CODE_SEARCH_KIND_FILTER_VALUES
+                .iter()
+                .map(|value| (*value).to_string())
+                .collect(),
+            routes: UiCodeSearchRoutes {
+                knowledge: SEARCH_KNOWLEDGE_ROUTE.to_string(),
+                intent: SEARCH_INTENT_ROUTE.to_string(),
+                autocomplete: SEARCH_AUTOCOMPLETE_ROUTE.to_string(),
+            },
+            examples: vec![
+                UiCodeSearchContractExample {
+                    id: "dedupe_free_text".to_string(),
+                    lane: "backend_code_search".to_string(),
+                    query: "sec lang:julia sec kind:function".to_string(),
+                    normalized_query: "sec lang:julia kind:function".to_string(),
+                    base_query: "sec".to_string(),
+                    language_filters: vec!["julia".to_string()],
+                    kind_filters: vec!["function".to_string()],
+                    repo_filters: Vec::new(),
+                    path_filters: Vec::new(),
+                },
+                UiCodeSearchContractExample {
+                    id: "structural_repo_query".to_string(),
+                    lane: "backend_code_search".to_string(),
+                    query: "repo:lancd lang:rust ast:\"fn $NAME($$$ARGS) { $$$BODY }\"".to_string(),
+                    normalized_query: "repo:lancd lang:rust ast:\"fn $NAME($$$ARGS) { $$$BODY }\""
+                        .to_string(),
+                    base_query: "ast:\"fn $NAME($$$ARGS) { $$$BODY }\"".to_string(),
+                    language_filters: vec!["rust".to_string()],
+                    kind_filters: Vec::new(),
+                    repo_filters: vec!["lancd".to_string()],
+                    path_filters: Vec::new(),
+                },
+                UiCodeSearchContractExample {
+                    id: "frontend_path_filter".to_string(),
+                    lane: "frontend_composed_filter".to_string(),
+                    query: "solver path:src/".to_string(),
+                    normalized_query: "solver path:src/".to_string(),
+                    base_query: "solver".to_string(),
+                    language_filters: Vec::new(),
+                    kind_filters: Vec::new(),
+                    repo_filters: Vec::new(),
+                    path_filters: vec!["src/".to_string()],
+                },
+            ],
+        },
+        repo_discovery: UiRepoDiscoveryContract {
+            suggest: UiRepoDiscoverySurfaceContract {
+                source: "repo_index_status".to_string(),
+                default_limit: STUDIO_REPO_SUGGEST_DEFAULT_LIMIT,
+                query_scoped: false,
+                exhaustive: true,
+            },
+            facet: UiRepoDiscoverySurfaceContract {
+                source: "search_results".to_string(),
+                default_limit: STUDIO_REPO_FACET_DEFAULT_LIMIT,
+                query_scoped: true,
+                exhaustive: false,
+            },
+            inventory: UiRepoDiscoverySurfaceContract {
+                source: "repo_index_status".to_string(),
+                default_limit: STUDIO_REPO_INVENTORY_DEFAULT_LIMIT,
+                query_scoped: false,
+                exhaustive: true,
+            },
+        },
+    }
+}
 
 impl StudioState {
     pub(crate) fn configured_owners_from_ui_config(config: UiConfig) -> StudioConfiguredOwners {
@@ -68,6 +173,7 @@ impl StudioState {
             languages: supported_languages,
             repositories: supported_repositories,
             kinds: supported_code_kinds(),
+            search_contract: build_search_contract(),
             studio_bootstrap_background_indexing_enabled: bootstrap_background_indexing.enabled(),
             studio_bootstrap_background_indexing_mode: bootstrap_background_indexing
                 .mode()

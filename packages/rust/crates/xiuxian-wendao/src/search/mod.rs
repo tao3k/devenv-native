@@ -58,6 +58,8 @@ pub(crate) use cache::SearchPlaneCache;
 #[cfg(feature = "search-runtime")]
 pub(crate) use cache::SearchPlaneCacheTtl;
 #[cfg(feature = "search-runtime")]
+pub(crate) use cache::SearchPlaneFileFingerprintScope;
+#[cfg(feature = "search-runtime")]
 pub(crate) use cache::resolve_search_plane_cache_connection_target;
 #[cfg(feature = "search-runtime")]
 pub use coordinator::{BeginBuildDecision, SearchBuildLease, SearchPlaneCoordinator};
@@ -103,14 +105,15 @@ pub(crate) use reference_occurrence::ReferenceOccurrenceSearchError;
 pub(crate) use reference_occurrence::{reference_occurrence_batches, reference_occurrence_schema};
 #[cfg(feature = "search-runtime")]
 pub(crate) use repo_content_chunk::RepoContentChunkSearchFilters;
-#[cfg(all(test, feature = "search-runtime"))]
+#[cfg(any(test, feature = "performance"))]
 pub(crate) use repo_content_chunk::repo_content_chunk_file_fingerprints;
 #[cfg(all(test, feature = "search-runtime"))]
 pub(crate) use repo_entity::publish_repo_entities;
 #[cfg(feature = "search-runtime")]
 pub(crate) use repo_entity::{
-    search_repo_entity_example_results, search_repo_entity_import_results,
-    search_repo_entity_module_results, search_repo_entity_symbol_results,
+    RepoEntityOverviewSummary, RepoEntitySearchError, search_repo_entity_example_results,
+    search_repo_entity_import_results, search_repo_entity_module_results,
+    search_repo_entity_symbol_results, summarize_repo_entity_overview,
 };
 #[cfg(feature = "search-runtime")]
 pub(crate) use repo_staging::{

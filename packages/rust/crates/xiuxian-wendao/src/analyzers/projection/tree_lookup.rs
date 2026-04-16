@@ -1,6 +1,6 @@
-use crate::analyzers::errors::RepoIntelligenceError;
-use crate::analyzers::plugin::RepositoryAnalysisOutput;
-use crate::analyzers::query::{RepoProjectedPageIndexTreeQuery, RepoProjectedPageIndexTreeResult};
+use crate::analyzers::RepoIntelligenceError;
+use crate::analyzers::RepositoryAnalysisOutput;
+use crate::analyzers::{RepoProjectedPageIndexTreeQuery, RepoProjectedPageIndexTreeResult};
 
 use super::markdown::build_projected_page_index_trees;
 

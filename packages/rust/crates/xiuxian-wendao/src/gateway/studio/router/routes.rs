@@ -5,7 +5,7 @@ use axum::{
     routing::{get, post},
 };
 
-use crate::gateway::openapi::paths as openapi_paths;
+use crate::gateway as openapi_paths;
 use crate::gateway::studio::search;
 
 use super::handlers;

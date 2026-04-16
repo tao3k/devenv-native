@@ -2,8 +2,8 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 pub use xiuxian_wendao_core::repo_intelligence::ProjectionPageKind;
 
-use crate::analyzers::plugin::RepositoryAnalysisOutput;
-use crate::analyzers::records::DocRecord;
+use crate::analyzers::DocRecord;
+use crate::analyzers::RepositoryAnalysisOutput;
 
 /// Seed used to generate one projected page record.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, Default)]

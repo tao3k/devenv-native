@@ -1,12 +1,8 @@
 use std::path::Path;
 
-use crate::analyzers::errors::RepoIntelligenceError;
-use crate::analyzers::plugin::RepositoryAnalysisOutput;
-use crate::analyzers::query::{
-    DocsPlannerItemQuery, DocsPlannerItemResult, DocsPlannerQueueQuery, DocsPlannerQueueResult,
-    DocsPlannerRankHit, DocsPlannerRankQuery, DocsPlannerWorksetQuery, DocsPlannerWorksetResult,
-};
-use crate::analyzers::registry::PluginRegistry;
+use crate::analyzers::PluginRegistry;
+use crate::analyzers::RepoIntelligenceError;
+use crate::analyzers::RepositoryAnalysisOutput;
 use crate::analyzers::service::projection::planner::api::{
     build_docs_planner_item, build_docs_planner_queue, build_docs_planner_rank,
 };
@@ -15,6 +11,10 @@ use crate::analyzers::service::projection::planner::workset::groups::build_plann
 use crate::analyzers::service::projection::planner::workset::strategy::build_docs_planner_workset_strategy;
 use crate::analyzers::service::projection::registry::{
     with_bootstrapped_repository_analysis, with_repository_analysis,
+};
+use crate::analyzers::{
+    DocsPlannerItemQuery, DocsPlannerItemResult, DocsPlannerQueueQuery, DocsPlannerQueueResult,
+    DocsPlannerRankHit, DocsPlannerRankQuery, DocsPlannerWorksetQuery, DocsPlannerWorksetResult,
 };
 
 fn planner_queue_snapshot(

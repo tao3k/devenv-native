@@ -45,7 +45,7 @@ pub use status::search_index_status;
 pub(crate) use symbols::load_symbol_search_response;
 
 #[cfg(test)]
-#[path = "../../../../../tests/unit/gateway/studio/search.rs"]
+#[path = "../../../../../tests/unit/gateway/studio/search/mod.rs"]
 mod studio_search_tests;
 
 #[cfg(test)]

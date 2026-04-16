@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::search::knowledge_section::query::search::{
+use crate::search::knowledge_section::query::lookup::{
     KnowledgeCandidate, candidate_path_key, compare_candidates, retained_window,
 };
 use crate::search::ranking::trim_ranked_string_map;

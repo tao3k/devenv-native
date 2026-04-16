@@ -1,4 +1,4 @@
-use crate::analyzers::query::{
+use crate::analyzers::{
     DocsPlannerWorksetBalance, DocsPlannerWorksetStrategy, DocsPlannerWorksetStrategyCode,
     DocsPlannerWorksetStrategyReason, DocsPlannerWorksetStrategyReasonCode,
 };

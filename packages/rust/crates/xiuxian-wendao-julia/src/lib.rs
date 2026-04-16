@@ -1,5 +1,6 @@
 //! External Julia Repo Intelligence plugin for `xiuxian-wendao`.
 
+mod arrow_metadata;
 /// Legacy compatibility surfaces exported by the standalone Julia plugin crate.
 pub mod compatibility;
 /// Bounded integration-test helpers for Julia-owned official example services.
@@ -11,11 +12,13 @@ mod plugin;
 
 xiuxian_testing::crate_test_policy_source_harness!("../tests/unit/lib_policy.rs");
 
+pub(crate) use modelica_plugin::fetch_modelica_parser_file_summary_blocking_for_repository;
 #[cfg(test)]
 pub(crate) use plugin::test_support as julia_plugin_test_support;
 
 pub use modelica_plugin::{
-    ModelicaRepoIntelligencePlugin,
+    ModelicaRepoIntelligencePlugin, clear_modelica_parser_summary_transport_cache_for_tests,
+    fetch_modelica_ast_query_analysis_blocking_for_repository,
     modelica_package_incremental_semantic_fingerprint_for_repository,
     modelica_parser_summary_allows_safe_incremental_file_for_repository,
     modelica_parser_summary_allows_safe_package_incremental_file_for_repository,

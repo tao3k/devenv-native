@@ -1,10 +1,11 @@
 use std::collections::BTreeSet;
+use std::sync::Arc;
 
 use arrow::array::{Array, BooleanArray, LargeStringArray, StringArray, StringViewArray};
 use arrow::compute::filter_record_batch;
 use chrono::{DateTime, Utc};
 use xiuxian_vector_store::{
-    EngineRecordBatch, LanceRecordBatch, SearchEngineContext, VectorStoreError,
+    EngineRecordBatch, LanceRecordBatch, LanceSchema, SearchEngineContext, VectorStoreError,
     lance_batches_to_engine_batches, write_engine_batches_to_parquet_file,
 };
 
@@ -18,26 +19,31 @@ pub(crate) struct ParquetPublicationStats {
     pub(crate) published_at: String,
 }
 
+pub(crate) struct RepoPublicationRewriteRequest<'a> {
+    pub(crate) corpus: SearchCorpusKind,
+    pub(crate) base_table_name: Option<&'a str>,
+    pub(crate) target_table_name: &'a str,
+    pub(crate) path_column: &'a str,
+    pub(crate) replaced_paths: &'a BTreeSet<String>,
+    pub(crate) changed_batches: &'a [LanceRecordBatch],
+    pub(crate) empty_schema: Option<Arc<LanceSchema>>,
+}
+
 pub(crate) async fn rewrite_repo_publication_parquet(
     service: &SearchPlaneService,
-    corpus: SearchCorpusKind,
-    base_table_name: Option<&str>,
-    target_table_name: &str,
-    path_column: &str,
-    replaced_paths: &BTreeSet<String>,
-    changed_batches: &[LanceRecordBatch],
+    request: RepoPublicationRewriteRequest<'_>,
 ) -> Result<ParquetPublicationStats, VectorStoreError> {
-    let mut output_batches = if let Some(base_table_name) = base_table_name {
-        load_repo_publication_parquet_batches(service, corpus, base_table_name).await?
+    let mut output_batches = if let Some(base_table_name) = request.base_table_name {
+        load_repo_publication_parquet_batches(service, request.corpus, base_table_name).await?
     } else {
         Vec::new()
     };
 
-    if !replaced_paths.is_empty() {
+    if !request.replaced_paths.is_empty() {
         let mut filtered_batches = Vec::with_capacity(output_batches.len());
         for batch in &output_batches {
             if let Some(filtered) =
-                filter_batch_excluding_paths(batch, path_column, replaced_paths)?
+                filter_batch_excluding_paths(batch, request.path_column, request.replaced_paths)?
             {
                 filtered_batches.push(filtered);
             }
@@ -45,16 +51,44 @@ pub(crate) async fn rewrite_repo_publication_parquet(
         output_batches = filtered_batches;
     }
 
-    output_batches.extend(lance_batches_to_engine_batches(changed_batches)?);
+    output_batches.extend(lance_batches_to_engine_batches(request.changed_batches)?);
 
-    let parquet_path = service.repo_publication_parquet_path(corpus, target_table_name);
+    let parquet_path =
+        service.repo_publication_parquet_path(request.corpus, request.target_table_name);
+    if output_batches.is_empty() {
+        if let Some(schema) = request.empty_schema {
+            write_empty_repo_publication_parquet(parquet_path.as_path(), schema)?;
+        } else {
+            match std::fs::remove_file(parquet_path.as_path()) {
+                Ok(()) => {}
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+                Err(error) => return Err(VectorStoreError::Io(error)),
+            }
+        }
+        let published_at = Utc::now().to_rfc3339();
+        return Ok(stats_from_batches(
+            request.target_table_name,
+            &[],
+            published_at,
+        ));
+    }
+
     write_engine_batches_to_parquet_file(parquet_path.as_path(), &output_batches)?;
     let published_at = Utc::now().to_rfc3339();
     Ok(stats_from_batches(
-        target_table_name,
+        request.target_table_name,
         &output_batches,
         published_at,
     ))
+}
+
+fn write_empty_repo_publication_parquet(
+    output_path: &std::path::Path,
+    schema: Arc<LanceSchema>,
+) -> Result<(), VectorStoreError> {
+    let empty_batch = LanceRecordBatch::new_empty(schema);
+    let engine_batches = lance_batches_to_engine_batches(&[empty_batch])?;
+    write_engine_batches_to_parquet_file(output_path, &engine_batches)
 }
 
 pub(crate) async fn inspect_repo_publication_parquet(

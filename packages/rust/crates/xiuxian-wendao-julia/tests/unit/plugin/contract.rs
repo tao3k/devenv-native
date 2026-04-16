@@ -1,9 +1,10 @@
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use arrow::array::{FixedSizeListArray, Float32Array, Float64Array, StringArray};
-use arrow::datatypes::{DataType, Field};
+use arrow::datatypes::{DataType, Field, Schema};
+use arrow::error::ArrowError;
 use arrow::record_batch::RecordBatch;
-use xiuxian_vector::{attach_record_batch_metadata, attach_record_batch_trace_id};
 use xiuxian_wendao_core::repo_intelligence::julia_arrow_request_schema;
 use xiuxian_wendao_runtime::transport::{
     DEFAULT_FLIGHT_SCHEMA_VERSION, FLIGHT_SCHEMA_VERSION_METADATA_KEY,
@@ -38,8 +39,31 @@ pub(crate) fn request_batch() -> RecordBatch {
 }
 
 pub(crate) fn request_batch_with_trace_id(trace_id: &str) -> RecordBatch {
-    attach_record_batch_trace_id(&request_batch(), trace_id)
+    attach_record_batch_metadata(&request_batch(), [("trace_id", trace_id)])
         .unwrap_or_else(|error| panic!("attach trace metadata: {error}"))
+}
+
+fn attach_record_batch_metadata<K, V, I>(
+    batch: &RecordBatch,
+    metadata: I,
+) -> Result<RecordBatch, ArrowError>
+where
+    K: Into<String>,
+    V: Into<String>,
+    I: IntoIterator<Item = (K, V)>,
+{
+    let mut merged: HashMap<String, String> = batch.schema().metadata().clone();
+    merged.extend(
+        metadata
+            .into_iter()
+            .map(|(key, value)| (key.into(), value.into())),
+    );
+
+    let schema = Arc::new(Schema::new_with_metadata(
+        batch.schema().fields().clone(),
+        merged,
+    ));
+    RecordBatch::try_new(schema, batch.columns().to_vec())
 }
 
 fn fixed_size_vector_array(vector_dim: i32, values: Vec<f32>) -> FixedSizeListArray {

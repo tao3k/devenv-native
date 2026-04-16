@@ -4,10 +4,10 @@ use super::{
     managed_remote_bootstrap_is_safe, managed_remote_probe_freshness,
     managed_remote_retryable_probe_failure_is_recent,
 };
-use crate::analyzers::query::{
+use crate::analyzers::{RegisteredRepository, RepositoryPluginConfig, RepositoryRefreshPolicy};
+use crate::analyzers::{
     RepoSourceKind, RepoSyncHealthState, RepoSyncResult, RepoSyncStalenessState,
 };
-use crate::analyzers::{RegisteredRepository, RepositoryPluginConfig, RepositoryRefreshPolicy};
 use crate::repo_index::types::{RepoIndexEntryStatus, RepoIndexPhase};
 use xiuxian_git_repo::{record_managed_remote_probe_failure, record_managed_remote_probe_state};
 

@@ -18,5 +18,5 @@ mod status;
 pub(crate) use command::handle;
 
 #[cfg(test)]
-#[path = "../../../../../tests/unit/bin/wendao/execute/gateway.rs"]
+#[path = "../../../../../tests/unit/bin/wendao/execute/gateway/mod.rs"]
 mod tests;

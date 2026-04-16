@@ -37,6 +37,7 @@ quick-xml = { workspace = true, features = ["serialize"] }
 reqwest = { workspace = true }
 jsonschema = { workspace = true }
 xiuxian-wendao = { path = "../xiuxian-wendao", default-features = false }
+xiuxian-wendao-sql = { path = "../xiuxian-wendao-sql" }
 xiuxian-wendao-core = { path = "../xiuxian-wendao-core" }
 xiuxian-wendao-runtime = { path = "../xiuxian-wendao-runtime" }
 xiuxian-wendao-parsers = { path = "../xiuxian-wendao-parsers" }

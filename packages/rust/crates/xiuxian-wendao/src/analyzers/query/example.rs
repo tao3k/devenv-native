@@ -2,7 +2,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use super::module::RepoBacklinkItem;
-use crate::analyzers::records::ExampleRecord;
+use crate::analyzers::ExampleRecord;
 
 /// Query for example lookup.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]

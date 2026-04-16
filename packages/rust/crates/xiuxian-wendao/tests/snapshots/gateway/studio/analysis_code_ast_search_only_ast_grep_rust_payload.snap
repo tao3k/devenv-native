@@ -1,5 +1,6 @@
 ---
 source: packages/rust/crates/xiuxian-wendao/src/gateway/studio/../../../tests/unit/gateway/studio/support.rs
+assertion_line: 17
 expression: value
 ---
 {
@@ -10,14 +11,16 @@ expression: value
       "id": "repo:lance:generic_ast:src/lib.rs:3:5:scan_rows",
       "kind": "function",
       "label": "scan_rows",
-      "line": 3,
+      "line_end": 5,
+      "line_start": 3,
       "path": "src/lib.rs"
     },
     {
       "id": "repo:lance:generic_ast:src/lib.rs:1:1:Dataset",
       "kind": "type",
       "label": "Dataset",
-      "line": 1,
+      "line_end": 1,
+      "line_start": 1,
       "path": "src/lib.rs"
     }
   ],

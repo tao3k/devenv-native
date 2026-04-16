@@ -15,7 +15,7 @@ use crate::gateway::studio::router::handlers::capabilities::types::{
     PluginArtifactPath, PluginArtifactQuery,
 };
 use crate::gateway::studio::router::{GatewayState, StudioState};
-use crate::gateway::studio::types::config::UiPluginArtifact;
+use crate::gateway::studio::types::UiPluginArtifact;
 use crate::set_link_graph_wendao_config_override;
 use crate::zhenfa_router::native::WendaoPluginArtifactOutputFormat;
 

@@ -1,9 +1,10 @@
 use std::collections::BTreeMap;
 use std::sync::{Mutex, OnceLock};
 
-use crate::analyzers::cache::RepositorySearchQueryCacheKey;
-use crate::analyzers::cache::ValkeyAnalysisCache;
-use crate::analyzers::errors::RepoIntelligenceError;
+use crate::analyzers::RepoIntelligenceError;
+use crate::analyzers::cache::{
+    RepositorySearchQueryCacheKey, RepositorySearchQueryValkeyScope, ValkeyAnalysisCache,
+};
 
 type RepositorySearchQueryCache = BTreeMap<RepositorySearchQueryCacheKey, serde_json::Value>;
 
@@ -44,7 +45,8 @@ where
     let Some(valkey_cache) = ValkeyAnalysisCache::new()? else {
         return Ok(None);
     };
-    let Some(value) = valkey_cache.get_query_result(key) else {
+    let Some(value) = valkey_cache.get_search_query(RepositorySearchQueryValkeyScope::new(key))
+    else {
         return Ok(None);
     };
     let encoded =
@@ -85,7 +87,7 @@ where
             cache.insert(key.clone(), encoded);
         })?;
     if let Some(valkey_cache) = ValkeyAnalysisCache::new()? {
-        valkey_cache.set_query_result(key, value);
+        valkey_cache.set_search_query(RepositorySearchQueryValkeyScope::new(key), value);
     }
     Ok(())
 }

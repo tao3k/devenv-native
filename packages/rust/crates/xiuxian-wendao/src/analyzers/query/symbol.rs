@@ -2,7 +2,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use super::module::RepoBacklinkItem;
-use crate::analyzers::records::SymbolRecord;
+use crate::analyzers::SymbolRecord;
 
 /// Query for symbol lookup.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]

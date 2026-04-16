@@ -1,4 +1,4 @@
-use crate::analyzers::query::DocsPlannerWorksetQuotaHint;
+use crate::analyzers::DocsPlannerWorksetQuotaHint;
 
 pub(crate) fn quota_hint_for_selection(
     selected_count: usize,

@@ -1,11 +1,11 @@
 use arrow::record_batch::RecordBatch;
-use xiuxian_vector::attach_record_batch_metadata;
 use xiuxian_wendao_core::repo_intelligence::RepoIntelligenceError;
 use xiuxian_wendao_runtime::{
     config::MemoryJuliaComputeRuntimeConfig,
     transport::{FLIGHT_SCHEMA_VERSION_METADATA_KEY, NegotiatedFlightTransportClient},
 };
 
+use crate::arrow_metadata::attach_record_batch_metadata;
 use crate::memory::{
     MemoryJuliaComputeProfile, build_memory_julia_compute_flight_transport_client,
     validate_memory_julia_calibration_request_batches,

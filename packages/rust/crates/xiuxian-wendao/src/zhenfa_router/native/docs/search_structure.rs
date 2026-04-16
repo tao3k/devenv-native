@@ -3,7 +3,7 @@ use serde::Deserialize;
 use xiuxian_zhenfa::{ZhenfaContext, ZhenfaError, zhenfa_tool};
 
 use super::shared::{require_non_empty_argument, serialize_payload};
-use crate::analyzers::projection::ProjectionPageKind;
+use crate::analyzers::ProjectionPageKind;
 use crate::zhenfa_router::native::resolve_docs_tool_runtime;
 
 /// Arguments for the `wendao.docs.search_document_structure` native tool.

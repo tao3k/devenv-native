@@ -1,4 +1,3 @@
-use super::ValkeyAnalysisCache;
 use super::runtime::{
     resolve_valkey_analysis_cache_runtime_with_lookup,
     resolve_valkey_analysis_cache_runtime_with_settings_and_lookup_for_tests,
@@ -8,8 +7,9 @@ use super::storage::{
     encode_analysis_payload, encode_search_query_payload, valkey_analysis_key,
     valkey_analysis_revision_key, valkey_search_query_key,
 };
+use super::{RepositoryAnalysisValkeyScope, RepositorySearchQueryValkeyScope, ValkeyAnalysisCache};
+use crate::analyzers::RepositoryAnalysisOutput;
 use crate::analyzers::cache::{RepositoryAnalysisCacheKey, RepositorySearchQueryCacheKey};
-use crate::analyzers::plugin::RepositoryAnalysisOutput;
 use crate::search::FuzzySearchOptions;
 use serde_yaml::Value;
 
@@ -178,17 +178,17 @@ fn cache_roundtrip_uses_test_shadow_when_no_live_client_is_bound() {
         ..RepositoryAnalysisOutput::default()
     };
 
-    cache.set(&key, &analysis);
+    cache.set_analysis(RepositoryAnalysisValkeyScope::current(&key), &analysis);
     let loaded = cache
-        .get(&key)
+        .get_analysis(RepositoryAnalysisValkeyScope::current(&key))
         .unwrap_or_else(|| panic!("cached analysis should load"));
     let revision_loaded = cache
-        .get_for_revision(
+        .get_analysis(RepositoryAnalysisValkeyScope::revision(
             key.repo_id.as_str(),
             key.checkout_root.as_str(),
             key.plugin_ids.as_slice(),
             "rev-1",
-        )
+        ))
         .unwrap_or_else(|| panic!("cached analysis should load by revision"));
 
     assert_eq!(loaded, analysis);
@@ -226,9 +226,9 @@ fn search_query_cache_roundtrip_uses_test_shadow_when_no_live_client_is_bound() 
     let key = sample_query_cache_key("query-shadow-roundtrip");
     let value = vec!["projected-hit".to_string()];
 
-    cache.set_query_result(&key, &value);
+    cache.set_search_query(RepositorySearchQueryValkeyScope::new(&key), &value);
     let loaded = cache
-        .get_query_result::<Vec<String>>(&key)
+        .get_search_query::<Vec<String>>(RepositorySearchQueryValkeyScope::new(&key))
         .unwrap_or_else(|| panic!("cached query result should load"));
 
     assert_eq!(loaded, value);

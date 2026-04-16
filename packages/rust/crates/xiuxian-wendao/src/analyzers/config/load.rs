@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use crate::analyzers::errors::RepoIntelligenceError;
+use crate::analyzers::RepoIntelligenceError;
 use xiuxian_config_core::load_toml_value_with_imports;
 
 use super::parse::{

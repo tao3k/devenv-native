@@ -9,6 +9,7 @@ expression: value
     {
       "repo_id": "alpha/repo",
       "module_id": "module:BaseModelica",
+      "path": "src/BaseModelica.jl",
       "import_name": "solve",
       "target_package": "SciMLBase",
       "source_module": "BaseModelica",
@@ -22,6 +23,7 @@ expression: value
       "import": {
         "repo_id": "alpha/repo",
         "module_id": "module:BaseModelica",
+        "path": "src/BaseModelica.jl",
         "import_name": "solve",
         "target_package": "SciMLBase",
         "source_module": "BaseModelica",

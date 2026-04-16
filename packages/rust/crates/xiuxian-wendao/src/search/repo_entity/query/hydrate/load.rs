@@ -7,7 +7,7 @@ use crate::search::repo_entity::query::hydrate::{
     engine_string_column, engine_uint32_column, hit_json_projection_columns, id_filter_expression,
     optional_engine_string_value, optional_engine_u32_value,
 };
-use crate::search::repo_entity::query::search::{
+use crate::search::repo_entity::query::lookup::{
     HydratedRepoEntityRow, RepoEntityCandidate, RepoEntitySearchError,
 };
 

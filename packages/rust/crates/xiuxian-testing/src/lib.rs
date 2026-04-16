@@ -136,7 +136,8 @@ pub use scenario::{
 pub use utils::{assert_json_eq, temp_dir_with_prefix};
 
 pub use validation::{
-    StructureViolation, TestsStructurePolicy, ViolationKind, format_violation_report,
+    PathStructureWarning, StructureViolation, TestsStructurePolicy, ViolationKind,
+    format_path_structure_warning_report, format_violation_report, validate_crate_path_warnings,
     validate_crate_tests, validate_crate_tests_with_policy, validate_tests_structure,
     validate_tests_structure_with_policy,
 };

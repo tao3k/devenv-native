@@ -1,5 +1,7 @@
 use crate::analyzers::RepositoryAnalysisOutput;
 use crate::repo_index::RepoCodeDocument;
+use crate::search::cache::SearchPlaneFileFingerprintScope;
+use crate::search::repo_entity::build::RepoEntityBuildPlan;
 use crate::search::repo_entity::build::plan_repo_entity_build;
 use crate::search::repo_entity::schema::{hit_json_column, projected_columns, rows_from_analysis};
 use crate::search::{
@@ -23,7 +25,10 @@ pub(crate) async fn publish_repo_entities(
     source_revision: Option<&str>,
 ) -> Result<(), VectorStoreError> {
     let previous_fingerprints = service
-        .repo_corpus_file_fingerprints(SearchCorpusKind::RepoEntity, repo_id)
+        .file_fingerprints(SearchPlaneFileFingerprintScope::repo_corpus(
+            SearchCorpusKind::RepoEntity,
+            repo_id,
+        ))
         .await;
     let current_record = service
         .repo_corpus_record_for_reads(SearchCorpusKind::RepoEntity, repo_id)
@@ -40,43 +45,29 @@ pub(crate) async fn publish_repo_entities(
         &previous_fingerprints,
     );
 
+    apply_repo_entity_build_plan(service, repo_id, source_revision, &plan).await
+}
+
+async fn apply_repo_entity_build_plan(
+    service: &SearchPlaneService,
+    repo_id: &str,
+    source_revision: Option<&str>,
+    plan: &RepoEntityBuildPlan,
+) -> Result<(), VectorStoreError> {
     match &plan.action {
         RepoEntityBuildAction::Noop => {
-            service
-                .set_repo_corpus_file_fingerprints(
-                    SearchCorpusKind::RepoEntity,
-                    repo_id,
-                    &plan.file_fingerprints,
-                )
-                .await;
+            set_repo_entity_file_fingerprints(service, repo_id, &plan.file_fingerprints).await;
             Ok(())
         }
         RepoEntityBuildAction::RefreshPublication { table_name } => {
-            let parquet_stats = inspect_repo_entity_parquet(service, table_name.as_str()).await?;
-            service
-                .record_repo_publication_input_with_storage_format(
-                    SearchCorpusKind::RepoEntity,
-                    repo_id,
-                    SearchRepoPublicationInput {
-                        table_name: table_name.clone(),
-                        schema_version: SearchCorpusKind::RepoEntity.schema_version(),
-                        source_revision: source_revision.map(str::to_string),
-                        table_version_id: parquet_stats.table_version_id,
-                        row_count: parquet_stats.row_count,
-                        fragment_count: parquet_stats.fragment_count,
-                        published_at: parquet_stats.published_at,
-                    },
-                    SearchPublicationStorageFormat::Parquet,
-                )
-                .await;
-            service
-                .set_repo_corpus_file_fingerprints(
-                    SearchCorpusKind::RepoEntity,
-                    repo_id,
-                    &plan.file_fingerprints,
-                )
-                .await;
-            Ok(())
+            refresh_repo_entity_publication(
+                service,
+                repo_id,
+                table_name.as_str(),
+                source_revision,
+                &plan.file_fingerprints,
+            )
+            .await
         }
         RepoEntityBuildAction::ReplaceAll {
             table_name,
@@ -120,6 +111,47 @@ pub(crate) async fn publish_repo_entities(
     }
 }
 
+async fn refresh_repo_entity_publication(
+    service: &SearchPlaneService,
+    repo_id: &str,
+    table_name: &str,
+    source_revision: Option<&str>,
+    file_fingerprints: &BTreeMap<String, crate::search::SearchFileFingerprint>,
+) -> Result<(), VectorStoreError> {
+    let parquet_stats = inspect_repo_entity_parquet(service, table_name).await?;
+    service
+        .record_repo_publication_input_with_storage_format(
+            SearchCorpusKind::RepoEntity,
+            repo_id,
+            SearchRepoPublicationInput {
+                table_name: table_name.to_string(),
+                schema_version: SearchCorpusKind::RepoEntity.schema_version(),
+                source_revision: source_revision.map(str::to_string),
+                table_version_id: parquet_stats.table_version_id,
+                row_count: parquet_stats.row_count,
+                fragment_count: parquet_stats.fragment_count,
+                published_at: parquet_stats.published_at,
+            },
+            SearchPublicationStorageFormat::Parquet,
+        )
+        .await;
+    set_repo_entity_file_fingerprints(service, repo_id, file_fingerprints).await;
+    Ok(())
+}
+
+async fn set_repo_entity_file_fingerprints(
+    service: &SearchPlaneService,
+    repo_id: &str,
+    file_fingerprints: &BTreeMap<String, crate::search::SearchFileFingerprint>,
+) {
+    service
+        .set_file_fingerprints(
+            SearchPlaneFileFingerprintScope::repo_corpus(SearchCorpusKind::RepoEntity, repo_id),
+            file_fingerprints,
+        )
+        .await;
+}
+
 async fn finalize_repo_entity_publication(
     service: &SearchPlaneService,
     repo_id: &str,
@@ -155,7 +187,10 @@ async fn finalize_repo_entity_publication(
         )
         .await;
     service
-        .set_repo_corpus_file_fingerprints(SearchCorpusKind::RepoEntity, repo_id, file_fingerprints)
+        .set_file_fingerprints(
+            SearchPlaneFileFingerprintScope::repo_corpus(SearchCorpusKind::RepoEntity, repo_id),
+            file_fingerprints,
+        )
         .await;
     Ok(())
 }

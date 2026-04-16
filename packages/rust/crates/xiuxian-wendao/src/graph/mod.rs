@@ -15,8 +15,9 @@ mod skill_registry;
 mod stats;
 mod valkey_persistence;
 
-pub use crate::entity::types::*;
-pub use crate::entity::{Entity, EntitySearchQuery, GraphStats, MultiHopOptions, Relation};
+pub use crate::entity::{
+    Entity, EntitySearchQuery, EntityType, GraphStats, MultiHopOptions, Relation, RelationType,
+};
 pub use core::{KnowledgeGraph, read_lock, write_lock};
 pub use errors::GraphError;
 pub use intent::{QueryIntent, extract_intent};

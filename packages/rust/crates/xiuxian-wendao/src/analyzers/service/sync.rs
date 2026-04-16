@@ -10,14 +10,14 @@ use xiuxian_git_repo::{
 };
 
 use super::load_registered_repository;
-use crate::analyzers::config::RegisteredRepository;
-use crate::analyzers::errors::RepoIntelligenceError;
-use crate::analyzers::query::{
+use crate::analyzers::RegisteredRepository;
+use crate::analyzers::RepoIntelligenceError;
+use crate::analyzers::resolve_registered_repository_source;
+use crate::analyzers::{
     RepoSourceKind, RepoSyncDriftState, RepoSyncFreshnessSummary, RepoSyncHealthState,
     RepoSyncLifecycleSummary, RepoSyncMode, RepoSyncQuery, RepoSyncResult, RepoSyncRevisionSummary,
     RepoSyncStalenessState, RepoSyncState, RepoSyncStatusSummary,
 };
-use crate::analyzers::resolve_registered_repository_source;
 
 /// Build a repository synchronization result from resolved source state.
 #[must_use]

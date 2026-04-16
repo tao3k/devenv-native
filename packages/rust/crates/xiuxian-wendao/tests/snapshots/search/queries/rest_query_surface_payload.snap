@@ -1,5 +1,6 @@
 ---
-source: packages/rust/crates/xiuxian-wendao/src/search/queries/tests/snapshots.rs
+source: packages/rust/crates/xiuxian-wendao/src/search/queries/../../../tests/unit/search/queries/snapshots.rs
+assertion_line: 9
 expression: value
 ---
 {
@@ -29,14 +30,14 @@ expression: value
           {
             "columns": [
               {
-                "dataType": "Utf8View",
+                "dataType": "Utf8",
                 "name": "name",
-                "nullable": false
+                "nullable": true
               },
               {
-                "dataType": "Utf8View",
+                "dataType": "Utf8",
                 "name": "path",
-                "nullable": false
+                "nullable": true
               }
             ],
             "rowCount": 1,

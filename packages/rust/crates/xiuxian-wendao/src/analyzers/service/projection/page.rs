@@ -1,13 +1,13 @@
 use std::path::Path;
 
-use crate::analyzers::errors::RepoIntelligenceError;
-use crate::analyzers::plugin::RepositoryAnalysisOutput;
+use crate::analyzers::PluginRegistry;
+use crate::analyzers::RepoIntelligenceError;
+use crate::analyzers::RepositoryAnalysisOutput;
 use crate::analyzers::projection::{build_projected_page, render_projected_markdown_documents};
-use crate::analyzers::query::{
+use crate::analyzers::{
     DocsMarkdownDocumentsQuery, DocsMarkdownDocumentsResult, DocsPageQuery, DocsPageResult,
     RepoProjectedPageQuery, RepoProjectedPageResult,
 };
-use crate::analyzers::registry::PluginRegistry;
 
 use super::registry::{with_bootstrapped_repository_analysis, with_repository_analysis};
 

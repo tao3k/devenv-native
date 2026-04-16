@@ -6,4 +6,6 @@ mod tests;
 pub(crate) mod types;
 pub(crate) mod write;
 
-pub(crate) use orchestration::publish_repo_content_chunks;
+pub(crate) use orchestration::{
+    publish_repo_content_chunks, publish_repo_content_chunks_incremental,
+};

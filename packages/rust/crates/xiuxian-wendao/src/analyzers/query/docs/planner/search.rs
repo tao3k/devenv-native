@@ -2,7 +2,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::analyzers::projection::ProjectionPageKind;
-use crate::analyzers::query::{ProjectedGapKind, ProjectedGapRecord};
+use crate::analyzers::{ProjectedGapKind, ProjectedGapRecord};
 
 /// Docs-facing query for deterministic deep-wiki planner discovery.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]

@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
-use crate::analyzers::plugin::RepositoryAnalysisOutput;
-use crate::analyzers::query::{
+use crate::analyzers::RepositoryAnalysisOutput;
+use crate::analyzers::{
     ProjectedRetrievalHit, ProjectedRetrievalHitKind, RepoProjectedRetrievalQuery,
     RepoProjectedRetrievalResult,
 };

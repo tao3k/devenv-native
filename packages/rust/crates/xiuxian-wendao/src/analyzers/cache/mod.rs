@@ -29,4 +29,6 @@ pub(crate) use identity::{
 pub(crate) use keys::build_repository_analysis_cache_key;
 pub use keys::{RepositoryAnalysisCacheKey, RepositorySearchQueryCacheKey};
 pub use query::{load_cached_repository_search_result, store_cached_repository_search_result};
-pub(crate) use valkey::ValkeyAnalysisCache;
+pub(crate) use valkey::{
+    RepositoryAnalysisValkeyScope, RepositorySearchQueryValkeyScope, ValkeyAnalysisCache,
+};

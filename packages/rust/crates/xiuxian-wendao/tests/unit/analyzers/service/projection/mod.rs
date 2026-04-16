@@ -1,12 +1,11 @@
 mod support;
 
 use crate::analyzers::cache::RepositoryAnalysisCacheKey;
-use crate::analyzers::query::{
+use crate::analyzers::{
     DocsProjectedGapReportQuery, DocsSearchQuery, RepoProjectedGapReportQuery,
     RepoProjectedPageIndexTreesQuery, RepoProjectedPageSearchQuery, RepoProjectedPagesQuery,
-    RepoProjectedRetrievalQuery,
+    RepoProjectedRetrievalQuery, repository_search_artifacts,
 };
-use crate::analyzers::service::repository_search_artifacts;
 
 use self::support::sample_projection_analysis;
 use super::{

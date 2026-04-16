@@ -1,3 +1,5 @@
+use std::fs;
+
 use crate::search::service::tests::support::*;
 
 #[tokio::test]
@@ -62,7 +64,7 @@ async fn repo_search_publication_state_prefers_publications_over_runtime_phase()
 }
 
 #[tokio::test]
-async fn repo_search_publication_states_batches_repo_snapshot_reads() {
+async fn repo_search_publication_states_batch_repo_record_reads_without_snapshot_state() {
     let temp_dir = temp_dir();
     let keyspace = unique_test_manifest_keyspace("batch-publication-state");
     let service = SearchPlaneService::with_runtime(
@@ -103,6 +105,7 @@ async fn repo_search_publication_states_batches_repo_snapshot_reads() {
             ],
         })
         .await;
+    assert!(!service.repo_corpus_snapshot_json_path().exists());
     service.clear_all_in_memory_repo_runtime_for_test();
 
     let repo_ids = vec![
@@ -151,7 +154,8 @@ async fn repo_search_publication_states_batches_repo_snapshot_reads() {
 }
 
 #[tokio::test]
-async fn repo_search_publication_state_hydrates_from_repo_corpus_snapshot_after_memory_miss() {
+async fn repo_search_publication_state_hydrates_failed_runtime_from_repo_record_after_memory_miss()
+{
     let temp_dir = temp_dir();
     let keyspace = unique_test_manifest_keyspace("runtime-hydrate");
     let service = SearchPlaneService::with_runtime(
@@ -181,6 +185,7 @@ async fn repo_search_publication_state_hydrates_from_repo_corpus_snapshot_after_
             repos: vec![repo_status_entry("failed/repo", RepoIndexPhase::Failed)],
         })
         .await;
+    assert!(!service.repo_corpus_snapshot_json_path().exists());
     service.clear_in_memory_repo_runtime_for_test("failed/repo");
 
     ok_or_panic(
@@ -194,7 +199,7 @@ async fn repo_search_publication_state_hydrates_from_repo_corpus_snapshot_after_
             }
         })
         .await,
-        "repo-corpus snapshot should hydrate",
+        "repo-corpus record should hydrate failed runtime state",
     );
 
     assert_eq!(
@@ -222,6 +227,7 @@ async fn repo_search_publication_state_hydrates_from_repo_corpus_record_after_me
         modified_unix_ms: 0,
     }];
     publish_repo_bundle(&service, "searchable/repo", &documents, Some("rev-1")).await;
+    assert!(!service.repo_corpus_snapshot_json_path().exists());
     service
         .synchronize_repo_runtime_for_test(&RepoIndexStatusResponse {
             total: 1,
@@ -263,6 +269,60 @@ async fn repo_search_publication_state_hydrates_from_repo_corpus_record_after_me
         .await,
         "repo-corpus record cache should hydrate",
     );
+}
+
+#[tokio::test]
+async fn repo_index_bootstrap_statuses_hydrate_from_repo_records_without_snapshot_file() {
+    let temp_dir = temp_dir();
+    let keyspace = unique_test_manifest_keyspace("bootstrap-from-records");
+    let service = SearchPlaneService::with_runtime(
+        PathBuf::from("/tmp/project"),
+        temp_dir.path().join("search_plane"),
+        keyspace.clone(),
+        SearchMaintenancePolicy::default(),
+        SearchPlaneCache::for_tests(keyspace),
+    );
+    let documents = vec![RepoCodeDocument {
+        path: "src/lib.rs".to_string(),
+        language: Some("rust".to_string()),
+        contents: Arc::<str>::from("fn alpha() {}\n"),
+        size_bytes: 14,
+        modified_unix_ms: 0,
+    }];
+    publish_repo_bundle(&service, "searchable/repo", &documents, Some("rev-1")).await;
+    service
+        .synchronize_repo_runtime_for_test(&RepoIndexStatusResponse {
+            total: 1,
+            active: 0,
+            queued: 0,
+            checking: 0,
+            syncing: 0,
+            indexing: 0,
+            ready: 1,
+            unsupported: 0,
+            failed: 0,
+            target_concurrency: 1,
+            max_concurrency: 1,
+            sync_concurrency_limit: 1,
+            current_repo_id: None,
+            active_repo_ids: Vec::new(),
+            repos: vec![repo_status_entry("searchable/repo", RepoIndexPhase::Ready)],
+        })
+        .await;
+    service.clear_all_in_memory_repo_corpus_records_for_test();
+    fs::remove_file(service.repo_corpus_snapshot_json_path()).ok();
+
+    let status = some_or_panic(
+        service
+            .repo_index_bootstrap_statuses(&["searchable/repo".to_string()])
+            .get("searchable/repo")
+            .cloned(),
+        "repo bootstrap status",
+    );
+
+    assert_eq!(status.phase, RepoIndexPhase::Ready);
+    assert_eq!(status.last_revision.as_deref(), Some("rev-1"));
+    assert!(!service.repo_corpus_snapshot_json_path().exists());
 }
 
 #[tokio::test]

@@ -1,35 +1,17 @@
-use crate::analyzers::service::helpers::infer_ecosystem;
-use crate::analyzers::service::helpers::{
-    hierarchy_segments_from_path, record_hierarchical_uri, relation_kind_label,
-    repo_hierarchical_uri,
-};
+use crate::analyzers::service::{relation_kind_label, repo_hierarchical_uri};
+use crate::analyzers::{hierarchy_segments_from_path, infer_ecosystem, record_hierarchical_uri};
 
 #[test]
 fn relation_labels_and_uris_remain_stable() {
     let expected = [
-        (
-            crate::analyzers::records::RelationKind::Contains,
-            "contains",
-        ),
-        (crate::analyzers::records::RelationKind::Calls, "calls"),
-        (crate::analyzers::records::RelationKind::Uses, "uses"),
-        (
-            crate::analyzers::records::RelationKind::Documents,
-            "documents",
-        ),
-        (
-            crate::analyzers::records::RelationKind::ExampleOf,
-            "example_of",
-        ),
-        (
-            crate::analyzers::records::RelationKind::Declares,
-            "declares",
-        ),
-        (
-            crate::analyzers::records::RelationKind::Implements,
-            "implements",
-        ),
-        (crate::analyzers::records::RelationKind::Imports, "imports"),
+        (crate::analyzers::RelationKind::Contains, "contains"),
+        (crate::analyzers::RelationKind::Calls, "calls"),
+        (crate::analyzers::RelationKind::Uses, "uses"),
+        (crate::analyzers::RelationKind::Documents, "documents"),
+        (crate::analyzers::RelationKind::ExampleOf, "example_of"),
+        (crate::analyzers::RelationKind::Declares, "declares"),
+        (crate::analyzers::RelationKind::Implements, "implements"),
+        (crate::analyzers::RelationKind::Imports, "imports"),
     ];
 
     for (kind, label) in expected {

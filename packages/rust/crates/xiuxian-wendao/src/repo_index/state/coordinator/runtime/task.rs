@@ -2,13 +2,39 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use super::incremental::PreparedIncrementalAnalysis;
-use crate::analyzers::errors::RepoIntelligenceError;
-use crate::analyzers::query::{RepoSourceKind, RepoSyncResult};
+use crate::analyzers::RepoIntelligenceError;
+use crate::analyzers::{RepoSourceKind, RepoSyncResult};
+use crate::repo_index::state::collect::IncrementalCodeDocumentCollection;
 use crate::repo_index::state::coordinator::RepoIndexCoordinator;
 use crate::repo_index::state::task::{
     RepoIndexTask, RepoTaskFeedback, RepoTaskOutcome, should_retry_sync_failure,
 };
 use crate::repo_index::types::RepoIndexPhase;
+use crate::search::{SearchCorpusKind, SearchPlaneFileFingerprintScope};
+
+enum CodeDocumentsForIndexing {
+    Full(Vec<crate::repo_index::types::RepoCodeDocument>),
+    Incremental(IncrementalCodeDocumentCollection),
+}
+
+struct CompleteIndexingInput {
+    repo_id: String,
+    started_at: Instant,
+    control_elapsed: Duration,
+    previous_revision: Option<String>,
+    task: RepoIndexTask,
+    sync_result: RepoSyncResult,
+    analysis: crate::analyzers::RepositoryAnalysisOutput,
+}
+
+impl CodeDocumentsForIndexing {
+    fn documents(&self) -> &[crate::repo_index::types::RepoCodeDocument] {
+        match self {
+            Self::Full(documents) => documents.as_slice(),
+            Self::Incremental(collection) => collection.changed_documents.as_slice(),
+        }
+    }
+}
 
 impl RepoIndexCoordinator {
     pub(crate) async fn process_task(self: Arc<Self>, task: RepoIndexTask) -> RepoTaskFeedback {
@@ -56,14 +82,15 @@ impl RepoIndexCoordinator {
             AnalysisResolution::Analysis(analysis) => analysis,
         };
 
-        self.complete_indexing(
+        self.complete_indexing(CompleteIndexingInput {
             repo_id,
             started_at,
             control_elapsed,
+            previous_revision,
             task,
             sync_result,
-            *analysis,
-        )
+            analysis: *analysis,
+        })
         .await
     }
 
@@ -210,15 +237,16 @@ impl RepoIndexCoordinator {
         }
     }
 
-    async fn complete_indexing(
-        &self,
-        repo_id: String,
-        started_at: Instant,
-        control_elapsed: Duration,
-        task: RepoIndexTask,
-        sync_result: RepoSyncResult,
-        analysis: crate::analyzers::RepositoryAnalysisOutput,
-    ) -> RepoTaskFeedback {
+    async fn complete_indexing(&self, input: CompleteIndexingInput) -> RepoTaskFeedback {
+        let CompleteIndexingInput {
+            repo_id,
+            started_at,
+            control_elapsed,
+            previous_revision,
+            task,
+            sync_result,
+            analysis,
+        } = input;
         if !self.fingerprint_matches(repo_id.as_str(), task.fingerprint.as_str()) {
             return repo_task_feedback(
                 repo_id,
@@ -233,6 +261,7 @@ impl RepoIndexCoordinator {
                 repo_id.as_str(),
                 started_at,
                 control_elapsed,
+                previous_revision.as_deref(),
                 &task,
                 &sync_result,
             )
@@ -280,6 +309,56 @@ impl RepoIndexCoordinator {
         repo_id: &str,
         started_at: Instant,
         control_elapsed: Duration,
+        previous_revision: Option<&str>,
+        task: &RepoIndexTask,
+        sync_result: &RepoSyncResult,
+    ) -> Result<CodeDocumentsForIndexing, RepoTaskFeedback> {
+        if let Some(incremental) = self
+            .try_collect_incremental_code_documents_for_indexing(
+                repo_id,
+                task,
+                sync_result,
+                previous_revision,
+            )
+            .await
+        {
+            return match incremental {
+                Ok(Some(collection)) => Ok(CodeDocumentsForIndexing::Incremental(collection)),
+                Ok(None) => Err(repo_task_feedback(
+                    repo_id.to_string(),
+                    started_at,
+                    Some(control_elapsed),
+                    RepoTaskOutcome::Skipped,
+                )),
+                Err(_) => self
+                    .collect_full_code_documents_for_indexing(
+                        repo_id,
+                        started_at,
+                        control_elapsed,
+                        task,
+                        sync_result,
+                    )
+                    .await
+                    .map(CodeDocumentsForIndexing::Full),
+            };
+        }
+
+        self.collect_full_code_documents_for_indexing(
+            repo_id,
+            started_at,
+            control_elapsed,
+            task,
+            sync_result,
+        )
+        .await
+        .map(CodeDocumentsForIndexing::Full)
+    }
+
+    async fn collect_full_code_documents_for_indexing(
+        &self,
+        repo_id: &str,
+        started_at: Instant,
+        control_elapsed: Duration,
         task: &RepoIndexTask,
         sync_result: &RepoSyncResult,
     ) -> Result<Vec<crate::repo_index::types::RepoCodeDocument>, RepoTaskFeedback> {
@@ -310,6 +389,43 @@ impl RepoIndexCoordinator {
         }
     }
 
+    async fn try_collect_incremental_code_documents_for_indexing(
+        &self,
+        repo_id: &str,
+        task: &RepoIndexTask,
+        sync_result: &RepoSyncResult,
+        previous_revision: Option<&str>,
+    ) -> Option<Result<Option<IncrementalCodeDocumentCollection>, RepoIntelligenceError>> {
+        let current_revision = sync_result.revision.as_deref()?;
+        let previous_revision =
+            previous_revision.filter(|revision| *revision != current_revision)?;
+        let current_record = self
+            .search_plane
+            .repo_corpus_record_for_reads(SearchCorpusKind::RepoContentChunk, repo_id)
+            .await?;
+        let previous_publication = current_record.publication.as_ref()?;
+        let previous_fingerprints = self
+            .search_plane
+            .file_fingerprints(SearchPlaneFileFingerprintScope::repo_corpus(
+                SearchCorpusKind::RepoContentChunk,
+                repo_id,
+            ))
+            .await;
+        if previous_fingerprints.is_empty() && previous_publication.row_count != 0 {
+            return None;
+        }
+        Some(
+            self.collect_incremental_code_documents_for_task(
+                repo_id,
+                task.fingerprint.as_str(),
+                sync_result.checkout_path.as_str(),
+                previous_revision,
+                current_revision,
+            )
+            .await,
+        )
+    }
+
     async fn publish_repo_corpora(
         &self,
         repo_id: &str,
@@ -317,14 +433,14 @@ impl RepoIndexCoordinator {
         control_elapsed: Duration,
         sync_result: &RepoSyncResult,
         analysis: &crate::analyzers::RepositoryAnalysisOutput,
-        code_documents: &[crate::repo_index::types::RepoCodeDocument],
+        code_documents: &CodeDocumentsForIndexing,
     ) -> Result<(), RepoTaskFeedback> {
         if let Err(error) = self
             .search_plane
             .publish_repo_entities_with_revision(
                 repo_id,
                 analysis,
-                code_documents,
+                code_documents.documents(),
                 sync_result.revision.as_deref(),
             )
             .await
@@ -338,15 +454,28 @@ impl RepoIndexCoordinator {
             ));
         }
 
-        if let Err(error) = self
-            .search_plane
-            .publish_repo_content_chunks_with_revision(
-                repo_id,
-                code_documents,
-                sync_result.revision.as_deref(),
-            )
-            .await
-        {
+        let repo_content_result = match code_documents {
+            CodeDocumentsForIndexing::Full(documents) => {
+                self.search_plane
+                    .publish_repo_content_chunks_with_revision(
+                        repo_id,
+                        documents,
+                        sync_result.revision.as_deref(),
+                    )
+                    .await
+            }
+            CodeDocumentsForIndexing::Incremental(collection) => {
+                self.search_plane
+                    .publish_repo_content_chunks_incremental_with_revision(
+                        repo_id,
+                        collection.changed_documents.as_slice(),
+                        &collection.deleted_paths,
+                        sync_result.revision.as_deref(),
+                    )
+                    .await
+            }
+        };
+        if let Err(error) = repo_content_result {
             return Err(repo_task_analysis_failure(
                 repo_id,
                 started_at,

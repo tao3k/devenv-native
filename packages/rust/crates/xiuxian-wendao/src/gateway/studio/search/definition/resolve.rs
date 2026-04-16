@@ -1,9 +1,9 @@
 use std::path::Path;
 
-use crate::gateway::studio::search::definition::filters::{
+use super::filters::{
     build_scope_matcher, definition_match_score, normalize_match_path, normalize_path,
 };
-use crate::gateway::studio::search::project_scope::project_metadata_for_path;
+use crate::gateway::studio::search::project_metadata_for_path;
 use crate::gateway::studio::types::{AstSearchHit, DefinitionSearchHit, UiProjectConfig};
 use crate::search::{FuzzyMatcher, FuzzySearchOptions, LexicalMatcher};
 

@@ -37,5 +37,5 @@ pub(crate) use test_api::{
 };
 
 #[cfg(test)]
-#[path = "../../../../tests/unit/semantic_check_tests.rs"]
+#[path = "../../../../tests/unit/semantic_check_tests/mod.rs"]
 mod tests;

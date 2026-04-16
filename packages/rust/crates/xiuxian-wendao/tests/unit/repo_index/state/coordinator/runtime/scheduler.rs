@@ -2,7 +2,7 @@ use std::path::PathBuf;
 use std::time::Duration;
 
 use super::RepoTaskJoinResult;
-use crate::analyzers::registry::PluginRegistry;
+use crate::analyzers::PluginRegistry;
 use crate::repo_index::state::coordinator::RepoIndexCoordinator;
 use crate::repo_index::state::task::{
     RepoIndexTask, RepoIndexTaskPriority, RepoTaskFeedback, RepoTaskOutcome,

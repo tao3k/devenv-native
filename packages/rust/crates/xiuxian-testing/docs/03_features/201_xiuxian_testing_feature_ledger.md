@@ -12,7 +12,11 @@ Feature ledger for the `xiuxian-testing` library crate. Track user-facing or sys
 
 1. Contract testing kernel (`contracts::*`) for deterministic rule-pack based audits.
 2. Scenario framework (`scenario::*`) for snapshot-driven fixture verification.
-3. Test policy and structure validation (`policy::*`, `validation::*`) including workspace rule overrides.
+3. Test policy and structure validation (`policy::*`, `validation::*`) including:
+   - workspace rule overrides,
+   - deterministic post-harness leaf-file bloat detection,
+   - advisory repeated-namespace path warnings for crate `src/` and `tests/`
+     source trees.
 4. Performance gate kernel (`performance::*`, feature-gated) with:
    - budget model (`PerfBudget`),
    - run configuration (`PerfRunConfig`),

@@ -1,6 +1,6 @@
-use crate::analyzers::plugin::RepositoryAnalysisOutput;
+use crate::analyzers::RepositoryAnalysisOutput;
 use crate::analyzers::projection::contracts::{ProjectedPageIndexNode, ProjectionPageKind};
-use crate::analyzers::query::{
+use crate::analyzers::{
     ProjectedPageIndexNodeHit, RepoProjectedPageIndexTreeSearchQuery,
     RepoProjectedPageIndexTreeSearchResult,
 };

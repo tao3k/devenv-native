@@ -127,6 +127,51 @@ fn analyze_file_supports_modelica_standard_library_package_via_process_managed_p
 
 #[test]
 #[serial_test::serial(modelica_live)]
+fn analyze_file_supports_modelica_standard_library_leaf_via_nested_root_context() -> TestResult {
+    if std::env::var_os("RUN_PROCESS_MANAGED_WENDAOSEARCH_TEST").is_none() {
+        eprintln!("skipping process-managed Modelica leaf analyze_file proof");
+        return Ok(());
+    }
+
+    ensure_linked_modelica_parser_summary_service()?;
+    let repository_root = repo_root().join(
+        ".data/xiuxian-wendao/repo-intelligence/repos/github.com/modelica/ModelicaStandardLibrary",
+    );
+    let source_path = repository_root.join("Modelica/Clocked/Types/SolverMethod.mo");
+    if !source_path.is_file() {
+        eprintln!(
+            "skipping process-managed Modelica leaf analyze_file proof; missing {}",
+            source_path.display()
+        );
+        return Ok(());
+    }
+
+    let plugin = ModelicaRepoIntelligencePlugin;
+    let output = plugin.analyze_file(
+        &analysis_context("mcl", repository_root.as_path()),
+        &RepoSourceFile {
+            path: "Modelica/Clocked/Types/SolverMethod.mo".to_string(),
+            contents: fs::read_to_string(&source_path)?,
+        },
+    )?;
+
+    assert!(output.modules.is_empty(), "modules: {:?}", output.modules);
+    assert!(
+        output.symbols.iter().any(|symbol| {
+            symbol.path == "Modelica/Clocked/Types/SolverMethod.mo"
+                && symbol.name == "SolverMethod"
+                && symbol.qualified_name == "Modelica.Clocked.Types.SolverMethod"
+                && symbol.module_id.as_deref() == Some("repo:mcl:module:Modelica.Clocked.Types")
+        }),
+        "symbols: {:?}",
+        output.symbols
+    );
+    assert!(output.imports.is_empty(), "imports: {:?}", output.imports);
+    Ok(())
+}
+
+#[test]
+#[serial_test::serial(modelica_live)]
 fn analyze_file_uses_repository_module_context_for_safe_leaf_files() -> TestResult {
     ensure_linked_modelica_parser_summary_service()?;
     let tempdir = TempDir::new()?;

@@ -8,20 +8,21 @@ use std::fs;
 
 use xiuxian_git_repo::{MaterializedRepo, RepoSourceKind, SyncMode, discover_checkout_metadata};
 
-use crate::analyzers::cache::{
-    RepositoryAnalysisCacheKey, ValkeyAnalysisCache, build_repository_analysis_cache_key,
-    load_cached_repository_analysis, store_cached_repository_analysis,
-};
-use crate::analyzers::config::RegisteredRepository;
-use crate::analyzers::errors::RepoIntelligenceError;
+use crate::analyzers::PluginRegistry;
+use crate::analyzers::RegisteredRepository;
+use crate::analyzers::RepoIntelligenceError;
 #[cfg(feature = "studio")]
-use crate::analyzers::plugin::RepoSourceFile;
-use crate::analyzers::plugin::{
-    AnalysisContext, PluginLinkContext, RepoIntelligencePlugin, RepositoryAnalysisOutput,
+use crate::analyzers::RepoSourceFile;
+use crate::analyzers::cache::{
+    RepositoryAnalysisCacheKey, RepositoryAnalysisValkeyScope, ValkeyAnalysisCache,
+    build_repository_analysis_cache_key, load_cached_repository_analysis,
+    store_cached_repository_analysis,
 };
-use crate::analyzers::registry::PluginRegistry;
 use crate::analyzers::resolve_registered_repository_source;
 use crate::analyzers::skeptic;
+use crate::analyzers::{
+    AnalysisContext, PluginLinkContext, RepoIntelligencePlugin, RepositoryAnalysisOutput,
+};
 #[cfg(feature = "studio")]
 use crate::analyzers::{RelationKind, RelationRecord};
 
@@ -269,7 +270,7 @@ pub fn analyze_registered_repository_bundle_with_registry(
     }
 
     if let Some(ref cache) = valkey_cache {
-        cache.set(&cache_key, &output);
+        cache.set_analysis(RepositoryAnalysisValkeyScope::current(&cache_key), &output);
     }
     store_cached_repository_analysis(cache_key.clone(), &output)?;
 
@@ -487,7 +488,7 @@ fn load_cached_analysis_from_valkey(
     let Some(cache) = valkey_cache else {
         return Ok(None);
     };
-    let Some(cached) = cache.get(cache_key) else {
+    let Some(cached) = cache.get_analysis(RepositoryAnalysisValkeyScope::current(cache_key)) else {
         return Ok(None);
     };
     store_cached_repository_analysis(cache_key.clone(), &cached)?;

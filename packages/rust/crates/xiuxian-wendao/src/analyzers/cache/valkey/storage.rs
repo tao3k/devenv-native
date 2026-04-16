@@ -1,8 +1,8 @@
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 
+use crate::analyzers::RepositoryAnalysisOutput;
 use crate::analyzers::cache::{RepositoryAnalysisCacheKey, RepositorySearchQueryCacheKey};
-use crate::analyzers::plugin::RepositoryAnalysisOutput;
 
 const ANALYZER_CACHE_SCHEMA_VERSION: &str = "xiuxian_wendao.repo_analysis_cache.v3";
 const SEARCH_QUERY_CACHE_SCHEMA_VERSION: &str = "xiuxian_wendao.repo_search_query_cache.v2";

@@ -10,7 +10,7 @@ use serde::Deserialize;
 
 use crate::gateway::studio::pathing::studio_display_path;
 use crate::gateway::studio::router::{GatewayState, StudioApiError};
-use crate::gateway::studio::search::definition::{
+use crate::gateway::studio::search::{
     DefinitionMatchMode, DefinitionResolveOptions, resolve_best_definition,
 };
 use crate::gateway::studio::types::{

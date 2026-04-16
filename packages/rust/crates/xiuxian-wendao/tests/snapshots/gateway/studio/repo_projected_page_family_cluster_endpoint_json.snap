@@ -1,13 +1,13 @@
 ---
-source: packages/rust/crates/xiuxian-wendao/src/gateway/studio/test_support.rs
-assertion_line: 9
+source: packages/rust/crates/xiuxian-wendao/src/gateway/studio/../../../tests/unit/gateway/studio/support.rs
+assertion_line: 17
 expression: value
 ---
 {
   "center_page": {
-    "doc_id": "repo:gateway-sync:doc:src/GatewaySyncPkg.jl#symbol:solve",
+    "doc_id": "repo:gateway-sync:doc:src/GatewaySyncPkg.jl#symbol-id:repo:gateway-sync:symbol:GatewaySyncPkg.solve",
     "doc_ids": [
-      "repo:gateway-sync:doc:src/GatewaySyncPkg.jl#symbol:solve",
+      "repo:gateway-sync:doc:src/GatewaySyncPkg.jl#symbol-id:repo:gateway-sync:symbol:GatewaySyncPkg.solve",
       "repo:gateway-sync:doc:docs/solve.md"
     ],
     "example_ids": [
@@ -22,7 +22,7 @@ expression: value
       "docs/solve.md",
       "julia_docstring",
       "md",
-      "repo:gateway-sync:doc:src/GatewaySyncPkg.jl#symbol:solve"
+      "repo:gateway-sync:doc:src/GatewaySyncPkg.jl#symbol-id:repo:gateway-sync:symbol:GatewaySyncPkg.solve"
     ],
     "kind": "reference",
     "module_ids": [
@@ -34,18 +34,18 @@ expression: value
       "docs/solve.md",
       "examples/solve_demo.jl",
       "src/GatewaySyncPkg.jl",
-      "src/GatewaySyncPkg.jl#symbol:solve"
+      "src/GatewaySyncPkg.jl#symbol-id:repo:gateway-sync:symbol:GatewaySyncPkg.solve"
     ],
     "repo_id": "gateway-sync",
     "sections": [
       {
-        "body": "Projected reference page for `GatewaySyncPkg.solve`.\nFormat hints:\n- `julia_docstring`\n- `md`\nSource paths:\n- `docs/solve.md`\n- `examples/solve_demo.jl`\n- `src/GatewaySyncPkg.jl`\n- `src/GatewaySyncPkg.jl#symbol:solve`",
+        "body": "Projected reference page for `GatewaySyncPkg.solve`.\nFormat hints:\n- `julia_docstring`\n- `md`\nSource paths:\n- `docs/solve.md`\n- `examples/solve_demo.jl`\n- `src/GatewaySyncPkg.jl`\n- `src/GatewaySyncPkg.jl#symbol-id:repo:gateway-sync:symbol:GatewaySyncPkg.solve`",
         "level": 1,
         "paths": [
           "docs/solve.md",
           "examples/solve_demo.jl",
           "src/GatewaySyncPkg.jl",
-          "src/GatewaySyncPkg.jl#symbol:solve"
+          "src/GatewaySyncPkg.jl#symbol-id:repo:gateway-sync:symbol:GatewaySyncPkg.solve"
         ],
         "section_id": "repo:gateway-sync:projection:reference:symbol:repo:gateway-sync:symbol:GatewaySyncPkg.solve#overview",
         "title": "Overview"
@@ -60,11 +60,11 @@ expression: value
         "title": "Anchors"
       },
       {
-        "body": "Documentation:\n- `solve` (docs/solve.md)\n- `solve` (src/GatewaySyncPkg.jl#symbol:solve)",
+        "body": "Documentation:\n- `solve` (docs/solve.md)\n- `solve` (src/GatewaySyncPkg.jl#symbol-id:repo:gateway-sync:symbol:GatewaySyncPkg.solve)",
         "level": 2,
         "paths": [
           "docs/solve.md",
-          "src/GatewaySyncPkg.jl#symbol:solve"
+          "src/GatewaySyncPkg.jl#symbol-id:repo:gateway-sync:symbol:GatewaySyncPkg.solve"
         ],
         "section_id": "repo:gateway-sync:projection:reference:symbol:repo:gateway-sync:symbol:GatewaySyncPkg.solve#sources",
         "title": "Documentation"
@@ -92,7 +92,7 @@ expression: value
           "doc_id": "repo:gateway-sync:doc:README.md",
           "doc_ids": [
             "repo:gateway-sync:doc:README.md",
-            "repo:gateway-sync:doc:src/GatewaySyncPkg.jl#symbol:solve",
+            "repo:gateway-sync:doc:src/GatewaySyncPkg.jl#symbol-id:repo:gateway-sync:symbol:GatewaySyncPkg.solve",
             "repo:gateway-sync:doc:docs/solve.md"
           ],
           "example_ids": [
@@ -119,18 +119,18 @@ expression: value
             "README.md",
             "docs/solve.md",
             "examples/solve_demo.jl",
-            "src/GatewaySyncPkg.jl#symbol:solve"
+            "src/GatewaySyncPkg.jl#symbol-id:repo:gateway-sync:symbol:GatewaySyncPkg.solve"
           ],
           "repo_id": "gateway-sync",
           "sections": [
             {
-              "body": "Projected how-to page for `solve_demo`.\nFormat hints:\n- `julia_docstring`\n- `md`\nSource paths:\n- `README.md`\n- `docs/solve.md`\n- `examples/solve_demo.jl`\n- `src/GatewaySyncPkg.jl#symbol:solve`",
+              "body": "Projected how-to page for `solve_demo`.\nFormat hints:\n- `julia_docstring`\n- `md`\nSource paths:\n- `README.md`\n- `docs/solve.md`\n- `examples/solve_demo.jl`\n- `src/GatewaySyncPkg.jl#symbol-id:repo:gateway-sync:symbol:GatewaySyncPkg.solve`",
               "level": 1,
               "paths": [
                 "README.md",
                 "docs/solve.md",
                 "examples/solve_demo.jl",
-                "src/GatewaySyncPkg.jl#symbol:solve"
+                "src/GatewaySyncPkg.jl#symbol-id:repo:gateway-sync:symbol:GatewaySyncPkg.solve"
               ],
               "section_id": "repo:gateway-sync:projection:howto:example:repo:gateway-sync:example:examples/solve_demo.jl#overview",
               "title": "Overview"
@@ -145,12 +145,12 @@ expression: value
               "title": "Anchors"
             },
             {
-              "body": "Documentation:\n- `README.md` (README.md)\n- `solve` (docs/solve.md)\n- `solve` (src/GatewaySyncPkg.jl#symbol:solve)",
+              "body": "Documentation:\n- `README.md` (README.md)\n- `solve` (docs/solve.md)\n- `solve` (src/GatewaySyncPkg.jl#symbol-id:repo:gateway-sync:symbol:GatewaySyncPkg.solve)",
               "level": 2,
               "paths": [
                 "README.md",
                 "docs/solve.md",
-                "src/GatewaySyncPkg.jl#symbol:solve"
+                "src/GatewaySyncPkg.jl#symbol-id:repo:gateway-sync:symbol:GatewaySyncPkg.solve"
               ],
               "section_id": "repo:gateway-sync:projection:howto:example:repo:gateway-sync:example:examples/solve_demo.jl#sources",
               "title": "Supporting Docs"

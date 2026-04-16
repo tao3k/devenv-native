@@ -1,6 +1,6 @@
 mod contracts;
 mod options;
-#[cfg(any(test, feature = "zhenfa-router"))]
+#[cfg(feature = "zhenfa-router")]
 mod runtime;
 mod segment;
 mod service;
@@ -14,7 +14,7 @@ pub use contracts::{
     docs_capability_schema_snapshot,
 };
 pub use options::{DocsNavigationOptions, DocsRetrievalContextOptions};
-#[cfg(any(test, feature = "zhenfa-router"))]
+#[cfg(feature = "zhenfa-router")]
 pub(crate) use runtime::{DocsToolRuntime, DocsToolRuntimeHandle};
 pub use segment::DocsDocumentSegmentResult;
 pub(crate) use segment::build_document_segment;

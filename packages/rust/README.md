@@ -20,7 +20,7 @@ cargo build
 # Run tests
 cargo test -p xiuxian-vector
 
-# Build Python bindings (from project root)
+# Build Wendao Python bindings (from project root)
 uv sync --reinstall-package xiuxian-core-rs
 ```
 
@@ -45,7 +45,7 @@ uv sync --reinstall-package xiuxian-core-rs
 | **Skills & Discovery** |
 | `skills-scanner`       | Skill discovery and metadata scanning                  | Library |
 | **Bindings**           |
-| `xiuxian-core-rs`      | Python bindings via PyO3                               | cdylib  |
+| `xiuxian-core-rs`      | Wendao Python bindings via PyO3                        | cdylib  |
 
 ## Directory Structure
 
@@ -63,7 +63,7 @@ packages/rust/
 │   ├── xiuxian-vector/        # Vector store (The Librarian)
 │   └── skills-scanner/     # Skill discovery
 └── bindings/
-    └── python/             # PyO3 bindings (xiuxian-core-rs)
+    └── python/             # PyO3 bindings (Wendao surface)
 ```
 
 ## Trinity Architecture
@@ -77,8 +77,8 @@ These crates power the **Trinity Architecture**:
 ## Python Binding Usage
 
 ```python
-from xiuxian_core_rs import PyVectorStore
+from xiuxian_core_rs import get_schema
 
-# Vector store for semantic memory
-store = PyVectorStore("./data/vectors", dimension=1536)
+schema = get_schema("xiuxian_wendao.link_graph.record.v1")
+print(schema[:80])
 ```

@@ -5,7 +5,7 @@ expression: value
 ---
 {
   "display_name": "GatewaySyncPkg",
-  "doc_count": 1,
+  "doc_count": 2,
   "example_count": 0,
   "hierarchical_uri": "repo://gateway-sync",
   "hierarchy": [

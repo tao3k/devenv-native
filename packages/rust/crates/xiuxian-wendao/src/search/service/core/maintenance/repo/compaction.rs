@@ -167,9 +167,6 @@ impl SearchPlaneService {
             .unwrap_or_else(std::sync::PoisonError::into_inner)
             .insert(key, record.clone());
         self.cache.set_repo_corpus_record(&record).await;
-        self.cache
-            .set_repo_corpus_snapshot(&self.current_repo_corpus_snapshot_record())
-            .await;
         self.synchronize_repo_corpus_statuses_from_runtime().await;
         true
     }

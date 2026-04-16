@@ -1,4 +1,4 @@
-use crate::gateway::studio::search::project_scope::project_metadata_for_path;
+use crate::gateway::studio::search::project_metadata_for_path;
 use crate::gateway::studio::types::UiProjectConfig;
 
 #[test]

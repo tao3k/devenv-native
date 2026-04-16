@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-use crate::analyzers::service::helpers::{
+use crate::analyzers::service::{
     docs_in_scope, documented_symbol_ids, resolve_module_scope, symbols_in_scope,
 };
 

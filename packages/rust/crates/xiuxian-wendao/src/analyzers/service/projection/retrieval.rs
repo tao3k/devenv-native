@@ -1,17 +1,17 @@
 use std::path::Path;
 
-use crate::analyzers::errors::RepoIntelligenceError;
-use crate::analyzers::plugin::RepositoryAnalysisOutput;
+use crate::analyzers::PluginRegistry;
+use crate::analyzers::RepoIntelligenceError;
+use crate::analyzers::RepositoryAnalysisOutput;
 use crate::analyzers::projection::{
     build_projected_retrieval, build_projected_retrieval_context, build_projected_retrieval_hit,
 };
-use crate::analyzers::query::{
+use crate::analyzers::{
     DocsRetrievalContextQuery, DocsRetrievalContextResult, DocsRetrievalQuery, DocsRetrievalResult,
     RepoProjectedRetrievalContextQuery, RepoProjectedRetrievalContextResult,
     RepoProjectedRetrievalHitQuery, RepoProjectedRetrievalHitResult, RepoProjectedRetrievalQuery,
     RepoProjectedRetrievalResult,
 };
-use crate::analyzers::registry::PluginRegistry;
 use crate::analyzers::{DocsRetrievalHitQuery, DocsRetrievalHitResult};
 
 use super::registry::{with_bootstrapped_repository_analysis, with_repository_analysis};

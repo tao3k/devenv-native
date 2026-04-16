@@ -1,5 +1,11 @@
 use super::ParsedRepoCodeSearchQuery;
 
+pub(crate) const REPO_CODE_SEARCH_BACKEND_PREFIXES: &[&str] = &["lang", "kind", "repo"];
+pub(crate) const REPO_CODE_SEARCH_STRUCTURAL_PREFIXES: &[&str] = &["ast", "sg"];
+pub(crate) const REPO_CODE_SEARCH_KIND_FILTER_VALUES: &[&str] =
+    &["file", "symbol", "function", "module", "example"];
+pub(crate) const REPO_CODE_SEARCH_PREFIX_ALIASES: &[(&str, &str)] = &[("language", "lang")];
+
 pub(crate) fn parse_repo_code_search_query(query: &str) -> ParsedRepoCodeSearchQuery {
     parse_repo_code_search_query_with_repo_hint(query, None)
 }
@@ -36,10 +42,7 @@ pub(crate) fn parse_repo_code_search_query_with_repo_hint(
 
         if let Some(value) = token.strip_prefix("kind:") {
             let normalized = value.trim().to_ascii_lowercase();
-            if matches!(
-                normalized.as_str(),
-                "file" | "symbol" | "function" | "module" | "example"
-            ) {
+            if REPO_CODE_SEARCH_KIND_FILTER_VALUES.contains(&normalized.as_str()) {
                 spec.kind_filters.insert(normalized);
                 continue;
             }

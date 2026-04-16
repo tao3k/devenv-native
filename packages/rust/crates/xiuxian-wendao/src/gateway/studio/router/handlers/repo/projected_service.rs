@@ -1,12 +1,5 @@
 use std::sync::Arc;
 
-use crate::analyzers::cache::{
-    RepositorySearchQueryCacheKey, load_cached_repository_search_result,
-    store_cached_repository_search_result,
-};
-use crate::analyzers::service::{
-    build_repo_projected_page_search_with_artifacts, repository_search_artifacts,
-};
 use crate::analyzers::{
     RepoIntelligenceError, RepoProjectedGapReportQuery, RepoProjectedGapReportResult,
     RepoProjectedPageFamilyClusterQuery, RepoProjectedPageFamilyClusterResult,
@@ -30,6 +23,13 @@ use crate::analyzers::{
     build_repo_projected_page_navigation, build_repo_projected_page_navigation_search,
     build_repo_projected_pages, build_repo_projected_retrieval,
     build_repo_projected_retrieval_context, build_repo_projected_retrieval_hit,
+};
+use crate::analyzers::{
+    RepositorySearchQueryCacheKey, load_cached_repository_search_result,
+    store_cached_repository_search_result,
+};
+use crate::analyzers::{
+    build_repo_projected_page_search_with_artifacts, repository_search_artifacts,
 };
 use crate::gateway::studio::router::handlers::repo::shared::{
     with_repo_analysis, with_repo_cached_analysis_bundle,

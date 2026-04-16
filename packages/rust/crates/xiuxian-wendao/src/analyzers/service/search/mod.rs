@@ -20,12 +20,24 @@ mod symbol;
 #[path = "../../../../tests/unit/analyzers/service/search/mod.rs"]
 mod tests;
 
-pub use coverage::*;
-pub use example::*;
-pub use imports::*;
-pub use module::*;
-pub use overview::*;
-pub use symbol::*;
+pub use coverage::{
+    build_doc_coverage, doc_coverage_from_config, doc_coverage_from_config_with_registry,
+};
+pub use example::{
+    build_example_search, example_search_from_config, example_search_from_config_with_registry,
+};
+pub use imports::{
+    build_import_search, import_search_from_config, import_search_from_config_with_registry,
+};
+pub use module::{
+    build_module_search, module_search_from_config, module_search_from_config_with_registry,
+};
+pub use overview::{
+    build_repo_overview, repo_overview_from_config, repo_overview_from_config_with_registry,
+};
+pub use symbol::{
+    build_symbol_search, symbol_search_from_config, symbol_search_from_config_with_registry,
+};
 
 #[cfg(feature = "studio")]
 pub(crate) use artifacts::repository_search_artifacts;
@@ -38,3 +50,11 @@ pub(crate) use contracts::{
 };
 #[cfg(feature = "studio")]
 pub(crate) use documents::ExampleSearchMetadata;
+#[cfg(all(feature = "studio", feature = "repo-lexical-index"))]
+pub(crate) use example::build_example_search_with_artifacts;
+#[cfg(feature = "studio")]
+pub(crate) use imports::build_import_search_with_artifacts;
+#[cfg(all(feature = "studio", feature = "repo-lexical-index"))]
+pub(crate) use module::build_module_search_with_artifacts;
+#[cfg(all(feature = "studio", feature = "repo-lexical-index"))]
+pub(crate) use symbol::build_symbol_search_with_artifacts;

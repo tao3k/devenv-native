@@ -1,4 +1,4 @@
-use crate::gateway::studio::search::handlers::code_search::search::build_code_search_cache_key;
+use crate::gateway::studio::search::handlers::code_search::build_code_search_cache_key;
 use crate::gateway::studio::search::handlers::tests::test_studio_state_with_cache;
 
 #[tokio::test]

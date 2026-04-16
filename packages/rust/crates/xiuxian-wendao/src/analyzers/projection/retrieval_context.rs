@@ -1,12 +1,12 @@
-use crate::analyzers::errors::RepoIntelligenceError;
-use crate::analyzers::plugin::RepositoryAnalysisOutput;
+use crate::analyzers::RepoIntelligenceError;
+use crate::analyzers::RepositoryAnalysisOutput;
 use crate::analyzers::projection::contracts::{
     ProjectedPageIndexNode, ProjectedPageIndexTree, ProjectedPageRecord,
 };
 use crate::analyzers::projection::lookup::build_projected_page;
 use crate::analyzers::projection::related_pages::find_related_pages;
 use crate::analyzers::projection::tree_lookup::build_projected_page_index_tree;
-use crate::analyzers::query::{
+use crate::analyzers::{
     ProjectedPageIndexNodeContext, ProjectedPageIndexNodeHit, ProjectedRetrievalHit,
     ProjectedRetrievalHitKind, RepoProjectedPageIndexTreeQuery, RepoProjectedPageQuery,
     RepoProjectedRetrievalContextQuery, RepoProjectedRetrievalContextResult,

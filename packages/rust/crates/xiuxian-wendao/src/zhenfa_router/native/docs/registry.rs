@@ -25,5 +25,5 @@ pub fn register_wendao_docs_native_tools(registry: &mut ZhenfaRegistry) {
 }
 
 #[cfg(test)]
-#[path = "../../../../tests/unit/zhenfa_router/native/docs.rs"]
+#[path = "../../../../tests/unit/zhenfa_router/native/docs/mod.rs"]
 mod tests;

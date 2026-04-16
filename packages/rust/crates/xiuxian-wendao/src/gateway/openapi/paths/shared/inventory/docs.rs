@@ -1,4 +1,4 @@
-use crate::gateway::openapi::paths::{self as openapi_paths, RouteContract};
+use crate::gateway::{self as openapi_paths, RouteContract};
 
 pub(super) const PROJECTED_GAP_REPORT: RouteContract = RouteContract {
     axum_path: openapi_paths::API_DOCS_PROJECTED_GAP_REPORT_AXUM_PATH,

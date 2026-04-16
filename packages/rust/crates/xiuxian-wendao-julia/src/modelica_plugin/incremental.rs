@@ -6,10 +6,11 @@ use xiuxian_wendao_core::repo_intelligence::{
     RegisteredRepository, RepoIntelligenceError, RepoSourceFile, SymbolRecord,
 };
 
-use super::analysis::{load_modelica_repository_context, modelica_root_relative_source_path};
+use super::analysis::{
+    load_modelica_repository_context_for_source, modelica_root_relative_source_path,
+};
 use super::discovery::{
-    RepositorySnapshot, collect_import_records_for_file, collect_module_records,
-    containing_module_name, is_api_surface_path, modules_by_qualified_name, qualified_module_name,
+    containing_module_name, is_api_surface_path, qualified_module_name,
     safe_package_overlay_metadata_for_relative_path,
 };
 use super::parser_summary::fetch_modelica_parser_file_summary_blocking_for_repository;
@@ -238,44 +239,37 @@ pub(crate) fn analyze_repo_owned_modelica_file_for_repository(
         return Ok(None);
     };
 
-    let module_lookup = load_repo_owned_modelica_module_lookup(context, &incremental_context)?;
     let output = match incremental_context.kind {
         RepoOwnedModelicaIncrementalKind::LeafApi => {
-            build_repo_owned_leaf_overlay(context, file, &incremental_context, &module_lookup)?
+            build_repo_owned_leaf_overlay(context, file, &incremental_context)?
         }
         RepoOwnedModelicaIncrementalKind::PackageFile => {
-            build_repo_owned_package_overlay(context, file, &incremental_context, &module_lookup)?
+            build_repo_owned_package_overlay(context, file, &incremental_context)?
         }
     };
     Ok(Some(output))
-}
-
-fn load_repo_owned_modelica_module_lookup(
-    context: &AnalysisContext,
-    incremental_context: &RepoOwnedModelicaIncrementalContext,
-) -> Result<std::collections::BTreeMap<String, ModuleRecord>, RepoIntelligenceError> {
-    let snapshot = RepositorySnapshot::load(incremental_context.package_root.as_path())?;
-    let package_files = snapshot.package_files()?;
-    let modules = collect_module_records(
-        &context.repository.id,
-        incremental_context.root_package_name.as_str(),
-        package_files.as_slice(),
-        snapshot.package_orders(),
-    );
-    Ok(modules_by_qualified_name(&modules))
 }
 
 fn build_repo_owned_leaf_overlay(
     context: &AnalysisContext,
     file: &RepoSourceFile,
     incremental_context: &RepoOwnedModelicaIncrementalContext,
-    module_lookup: &std::collections::BTreeMap<String, ModuleRecord>,
 ) -> Result<PluginAnalysisOutput, RepoIntelligenceError> {
     let summary = fetch_modelica_parser_file_summary_blocking_for_repository(
         &context.repository,
         file.path.as_str(),
         file.contents.as_str(),
     )?;
+    let imports = if summary.imports.is_empty() {
+        Vec::new()
+    } else {
+        build_import_records_without_resolution(
+            &context.repository.id,
+            file.path.as_str(),
+            &incremental_context.module_id,
+            summary.imports.as_slice(),
+        )
+    };
     Ok(PluginAnalysisOutput {
         modules: Vec::new(),
         symbols: summary
@@ -291,15 +285,7 @@ fn build_repo_owned_leaf_overlay(
                 )
             })
             .collect::<Vec<_>>(),
-        imports: collect_import_records_for_file(
-            &context.repository,
-            &context.repository.id,
-            incremental_context.relative_within_root.as_str(),
-            file.path.as_str(),
-            file.contents.as_str(),
-            incremental_context.root_package_name.as_str(),
-            module_lookup,
-        )?,
+        imports,
         examples: Vec::new(),
         docs: Vec::new(),
         diagnostics: Vec::new(),
@@ -310,7 +296,6 @@ fn build_repo_owned_package_overlay(
     context: &AnalysisContext,
     file: &RepoSourceFile,
     incremental_context: &RepoOwnedModelicaIncrementalContext,
-    module_lookup: &std::collections::BTreeMap<String, ModuleRecord>,
 ) -> Result<PluginAnalysisOutput, RepoIntelligenceError> {
     let metadata = safe_package_overlay_metadata_for_relative_path(
         incremental_context.relative_within_root.as_str(),
@@ -331,12 +316,11 @@ fn build_repo_owned_package_overlay(
             path: file.path.clone(),
         }],
         symbols: Vec::new(),
-        imports: build_package_import_records(
+        imports: build_import_records_without_resolution(
             &context.repository.id,
             &file.path,
             &incremental_context.module_id,
             &metadata.imports,
-            module_lookup,
         ),
         examples: Vec::new(),
         docs: build_package_doc_records(
@@ -395,11 +379,12 @@ fn resolve_safe_modelica_incremental_context(
         return Ok(None);
     }
 
-    let repository_context = match load_modelica_repository_context(repository, repository_root) {
-        Ok(context) => context,
-        Err(RepoIntelligenceError::UnsupportedRepositoryLayout { .. }) => return Ok(None),
-        Err(error) => return Err(error),
-    };
+    let repository_context =
+        match load_modelica_repository_context_for_source(repository, repository_root, source_id) {
+            Ok(context) => context,
+            Err(RepoIntelligenceError::UnsupportedRepositoryLayout { .. }) => return Ok(None),
+            Err(error) => return Err(error),
+        };
     let Some(relative_within_root) =
         modelica_root_relative_source_path(source_id, repository_context.path_prefix.as_deref())
     else {
@@ -441,11 +426,12 @@ fn resolve_safe_root_package_modelica_incremental_context(
         return Ok(None);
     }
 
-    let repository_context = match load_modelica_repository_context(repository, repository_root) {
-        Ok(context) => context,
-        Err(RepoIntelligenceError::UnsupportedRepositoryLayout { .. }) => return Ok(None),
-        Err(error) => return Err(error),
-    };
+    let repository_context =
+        match load_modelica_repository_context_for_source(repository, repository_root, source_id) {
+            Ok(context) => context,
+            Err(RepoIntelligenceError::UnsupportedRepositoryLayout { .. }) => return Ok(None),
+            Err(error) => return Err(error),
+        };
     let Some(relative_within_root) =
         modelica_root_relative_source_path(source_id, repository_context.path_prefix.as_deref())
     else {
@@ -481,11 +467,12 @@ fn resolve_safe_package_file_modelica_incremental_context(
         return Ok(None);
     }
 
-    let repository_context = match load_modelica_repository_context(repository, repository_root) {
-        Ok(context) => context,
-        Err(RepoIntelligenceError::UnsupportedRepositoryLayout { .. }) => return Ok(None),
-        Err(error) => return Err(error),
-    };
+    let repository_context =
+        match load_modelica_repository_context_for_source(repository, repository_root, source_id) {
+            Ok(context) => context,
+            Err(RepoIntelligenceError::UnsupportedRepositoryLayout { .. }) => return Ok(None),
+            Err(error) => return Err(error),
+        };
     let Some(relative_within_root) =
         modelica_root_relative_source_path(source_id, repository_context.path_prefix.as_deref())
     else {
@@ -564,42 +551,74 @@ fn build_package_doc_records(
     }]
 }
 
-fn build_package_import_records(
+fn build_import_records_without_resolution(
+    repo_id: &str,
+    record_path: &str,
+    module_id: &str,
+    imports: &[super::types::ParsedImport],
+) -> Vec<ImportRecord> {
+    let module_lookup = std::collections::BTreeMap::<String, ModuleRecord>::new();
+    build_import_records_from_parsed_imports(
+        repo_id,
+        record_path,
+        module_id,
+        imports,
+        &module_lookup,
+    )
+}
+
+fn build_import_records_from_parsed_imports(
     repo_id: &str,
     record_path: &str,
     module_id: &str,
     imports: &[super::types::ParsedImport],
     module_lookup: &std::collections::BTreeMap<String, ModuleRecord>,
 ) -> Vec<ImportRecord> {
-    imports
-        .iter()
-        .map(|parsed_import| {
-            let source_module = parsed_import.name.clone();
-            let import_name = parsed_import
-                .alias
-                .clone()
-                .unwrap_or_else(|| import_leaf_name(source_module.as_str()));
-            let target_package = source_module
-                .split('.')
-                .next()
-                .unwrap_or(source_module.as_str())
-                .to_string();
-            ImportRecord {
-                repo_id: repo_id.to_string(),
-                module_id: module_id.to_string(),
-                path: record_path.to_string(),
-                import_name,
-                target_package,
-                source_module: source_module.clone(),
-                kind: parsed_import.kind,
-                line_start: parsed_import.line_start,
-                resolved_id: module_lookup
-                    .get(source_module.as_str())
-                    .map(|module| module.module_id.clone()),
-                attributes: parsed_import.attributes.clone(),
-            }
-        })
-        .collect()
+    let mut records = Vec::new();
+    let mut seen = std::collections::BTreeSet::new();
+
+    for parsed_import in imports {
+        let source_module = parsed_import.name.clone();
+        let import_name = parsed_import
+            .alias
+            .clone()
+            .unwrap_or_else(|| import_leaf_name(source_module.as_str()));
+        let target_package = source_module
+            .split('.')
+            .next()
+            .unwrap_or(source_module.as_str())
+            .to_string();
+        let kind_key = match parsed_import.kind {
+            xiuxian_wendao_core::repo_intelligence::ImportKind::Symbol => "symbol",
+            xiuxian_wendao_core::repo_intelligence::ImportKind::Module => "module",
+            xiuxian_wendao_core::repo_intelligence::ImportKind::Reexport => "reexport",
+        };
+        let import_key = (
+            record_path.to_string(),
+            source_module.clone(),
+            import_name.clone(),
+            kind_key,
+        );
+        if !seen.insert(import_key) {
+            continue;
+        }
+        records.push(ImportRecord {
+            repo_id: repo_id.to_string(),
+            module_id: module_id.to_string(),
+            path: record_path.to_string(),
+            import_name,
+            target_package,
+            source_module: source_module.clone(),
+            kind: parsed_import.kind,
+            line_start: parsed_import.line_start,
+            resolved_id: module_lookup
+                .get(source_module.as_str())
+                .map(|module| module.module_id.clone()),
+            attributes: parsed_import.attributes.clone(),
+        });
+    }
+
+    records
 }
 
 fn import_leaf_name(import_path: &str) -> String {

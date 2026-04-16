@@ -1,9 +1,9 @@
 use std::collections::BTreeMap;
 use std::sync::{Mutex, OnceLock};
 
+use crate::analyzers::RepoIntelligenceError;
+use crate::analyzers::RepositoryAnalysisOutput;
 use crate::analyzers::cache::RepositoryAnalysisCacheKey;
-use crate::analyzers::errors::RepoIntelligenceError;
-use crate::analyzers::plugin::RepositoryAnalysisOutput;
 
 type RepositoryAnalysisCache = BTreeMap<RepositoryAnalysisCacheKey, RepositoryAnalysisOutput>;
 

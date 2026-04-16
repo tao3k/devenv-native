@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
-use crate::analyzers::plugin::RepositoryAnalysisOutput;
-use crate::analyzers::records::{DocRecord, ExampleRecord};
+use crate::analyzers::RepositoryAnalysisOutput;
+use crate::analyzers::{DocRecord, ExampleRecord};
 
 use super::anchors::{SourceAssociations, TargetAnchors};
 use super::helpers::push_unique;

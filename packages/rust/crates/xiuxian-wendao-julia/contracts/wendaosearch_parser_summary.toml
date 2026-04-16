@@ -1,0 +1,21 @@
+contract_version = 1
+
+[service]
+script = ".data/WendaoSearch.jl/scripts/run_parser_summary_service.jl"
+config = ".data/WendaoSearch.jl/config/live/parser_summary.toml"
+host = "127.0.0.1"
+port = 41081
+default_code_parser_route_names = [
+  "julia_file_summary",
+  "julia_root_summary",
+  "modelica_file_summary",
+  "modelica_ast_query",
+]
+
+[modelica_transport]
+schema_version = "v3"
+file_summary_route_name = "modelica_file_summary"
+ast_query_route_name = "modelica_ast_query"
+file_summary_path = "/wendao/code-parser/modelica/file-summary"
+ast_query_path = "/wendao/code-parser/modelica/ast-query"
+readiness_route_names = ["modelica_file_summary", "modelica_ast_query"]

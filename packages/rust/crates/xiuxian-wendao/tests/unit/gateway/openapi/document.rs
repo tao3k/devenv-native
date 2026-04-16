@@ -11,7 +11,7 @@ use super::{
     bundled_wendao_gateway_openapi_document, bundled_wendao_gateway_openapi_path,
     load_bundled_wendao_gateway_openapi_document,
 };
-use crate::gateway::openapi::paths::WENDAO_GATEWAY_ROUTE_CONTRACTS;
+use crate::gateway::WENDAO_GATEWAY_ROUTE_CONTRACTS;
 
 fn operation_summary(operation: &Value) -> &str {
     operation

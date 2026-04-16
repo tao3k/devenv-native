@@ -28,7 +28,7 @@ pub(crate) struct RepoContentChunkRow {
     pub(crate) line_text_folded: String,
 }
 
-pub(super) fn repo_content_chunk_schema() -> Arc<LanceSchema> {
+pub(crate) fn repo_content_chunk_schema() -> Arc<LanceSchema> {
     Arc::new(LanceSchema::new(vec![
         LanceField::new(COLUMN_ID, LanceDataType::Utf8, false),
         LanceField::new(COLUMN_PATH, LanceDataType::Utf8, false),

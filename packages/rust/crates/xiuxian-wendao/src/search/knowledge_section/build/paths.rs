@@ -1,8 +1,6 @@
 use std::path::Path;
 
-use crate::gateway::studio::search::project_scope::{
-    SearchProjectMetadata, resolve_project_root_path,
-};
+use crate::gateway::studio::search::{SearchProjectMetadata, resolve_project_root_path};
 use crate::gateway::studio::types::UiProjectConfig;
 #[cfg(test)]
 use crate::search::fingerprint_note_projects;

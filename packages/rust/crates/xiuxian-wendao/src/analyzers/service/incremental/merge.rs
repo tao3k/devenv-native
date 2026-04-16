@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-use crate::analyzers::plugin::{PluginAnalysisOutput, RepositoryAnalysisOutput};
+use crate::analyzers::{PluginAnalysisOutput, RepositoryAnalysisOutput};
 
 pub(super) fn replace_records_for_paths(
     base: &mut RepositoryAnalysisOutput,

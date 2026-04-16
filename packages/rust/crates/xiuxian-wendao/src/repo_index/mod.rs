@@ -1,6 +1,9 @@
 //! Background repo indexing coordinator for Studio.
 
 mod bootstrap;
+/// Benchmark helpers for repo-index performance probes.
+#[cfg(feature = "performance")]
+pub mod perf_support;
 #[cfg(feature = "performance")]
 mod policy;
 mod state;

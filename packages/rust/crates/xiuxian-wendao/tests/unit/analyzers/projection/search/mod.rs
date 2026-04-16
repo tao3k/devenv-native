@@ -1,6 +1,6 @@
 use crate::analyzers::ProjectionPageKind;
 use crate::analyzers::cache::RepositoryAnalysisCacheKey;
-use crate::analyzers::service::repository_search_artifacts;
+use crate::analyzers::repository_search_artifacts;
 
 use crate::analyzers::projection::search::heuristic::heuristic_projected_page_matches;
 use crate::analyzers::projection::search::ranking::{

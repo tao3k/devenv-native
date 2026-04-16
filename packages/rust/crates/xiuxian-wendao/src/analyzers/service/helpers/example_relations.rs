@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-use crate::analyzers::records::{ModuleRecord, RelationKind, RelationRecord, SymbolRecord};
+use crate::analyzers::{ModuleRecord, RelationKind, RelationRecord, SymbolRecord};
 
 pub(crate) fn example_relation_lookup(relations: &[RelationRecord]) -> BTreeSet<(String, String)> {
     relations

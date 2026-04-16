@@ -5,9 +5,22 @@ mod maintenance;
 mod status_reason;
 mod telemetry;
 
-pub use corpus::*;
-pub use issues::*;
-pub use lifecycle::*;
-pub use maintenance::*;
-pub use status_reason::*;
-pub use telemetry::*;
+pub use corpus::{SearchCorpusIndexStatus, SearchIndexStatusResponse};
+pub use issues::{
+    SearchIndexIssue, SearchIndexIssueCode, SearchIndexIssueFamily, SearchIndexIssueSummary,
+};
+pub use lifecycle::SearchIndexPhase;
+pub use maintenance::{
+    SearchIndexAggregateMaintenanceSummary, SearchIndexMaintenanceStatus,
+    SearchIndexRepoReadPressure,
+};
+#[cfg(test)]
+pub(crate) use maintenance::SearchIndexMaintenanceQueueAged;
+pub use status_reason::{
+    SearchIndexAggregateStatusReason, SearchIndexStatusAction, SearchIndexStatusReason,
+    SearchIndexStatusReasonCode, SearchIndexStatusSeverity,
+};
+pub use telemetry::{
+    SearchIndexAggregateQueryTelemetry, SearchIndexQueryTelemetry,
+    SearchIndexQueryTelemetryScopeSummary, SearchIndexQueryTelemetrySource,
+};

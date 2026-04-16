@@ -1,9 +1,9 @@
 use std::path::Path;
 
-use crate::analyzers::errors::RepoIntelligenceError;
-use crate::analyzers::plugin::RepositoryAnalysisOutput;
-use crate::analyzers::query::{RepoOverviewQuery, RepoOverviewResult};
-use crate::analyzers::registry::PluginRegistry;
+use crate::analyzers::PluginRegistry;
+use crate::analyzers::RepoIntelligenceError;
+use crate::analyzers::RepositoryAnalysisOutput;
+use crate::analyzers::{RepoOverviewQuery, RepoOverviewResult};
 
 use super::super::helpers::repo_hierarchical_uri;
 use super::super::{analyze_repository_from_config_with_registry, bootstrap_builtin_registry};

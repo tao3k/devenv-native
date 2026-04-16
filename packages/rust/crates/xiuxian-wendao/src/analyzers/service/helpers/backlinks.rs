@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
-use crate::analyzers::query::RepoBacklinkItem;
-use crate::analyzers::records::{DocRecord, RelationKind, RelationRecord};
+use crate::analyzers::RepoBacklinkItem;
+use crate::analyzers::{DocRecord, RelationKind, RelationRecord};
 
 pub(crate) fn documents_backlink_lookup(
     relations: &[RelationRecord],

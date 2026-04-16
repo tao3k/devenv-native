@@ -335,5 +335,5 @@ pub async fn bootstrap_sample_repo_search_content(
         })
 }
 
-#[path = "../../../../../../tests/unit/gateway/studio/search/handlers/flight/repo_search.rs"]
+#[path = "../../../../../../tests/unit/gateway/studio/search/handlers/flight/repo_search/mod.rs"]
 mod tests;

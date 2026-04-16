@@ -8,7 +8,7 @@ use xiuxian_wendao_julia::{
     modelica_parser_summary_file_semantic_fingerprint_for_repository,
 };
 
-use crate::analyzers::config::RegisteredRepository;
+use crate::analyzers::RegisteredRepository;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(super) enum SemanticFingerprintOwner {

@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use crate::analyzers::plugin::RepositoryAnalysisOutput;
+use crate::analyzers::RepositoryAnalysisOutput;
 use crate::analyzers::projection::build_projected_pages;
 
 pub(crate) fn projection_page_lookup(

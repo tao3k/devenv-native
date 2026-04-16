@@ -10,51 +10,6 @@ workspace = true
 name = "xiuxian_core_rs"
 crate-type = ["cdylib"]
 
-[features]
-default = ["assembler", "notify"]
-assembler = ["xiuxian-io/assembler"]
-notify = ["xiuxian-io/notify"]
-
 [dependencies]
-# Python 3.13 support via PyO3 0.23
 pyo3 = { workspace = true, features = ["extension-module"] }
-
-# Parallel processing for batch file operations
-rayon = { workspace = true }
-
-# Internal crates
-xiuxian-event = { path = "../../crates/xiuxian-event" }
-xiuxian-types = { path = "../../crates/xiuxian-types" }
-xiuxian-io = { path = "../../crates/xiuxian-io", default-features = false }
-xiuxian-tokenizer = { path = "../../crates/xiuxian-tokenizer" }
-xiuxian-ast = { path = "../../crates/xiuxian-ast" }
-xiuxian-security = { path = "../../crates/xiuxian-security" }
-xiuxian-tags = { path = "../../crates/xiuxian-tags" }
-xiuxian-edit = { path = "../../crates/xiuxian-edit" }
-xiuxian-vector = { path = "../../crates/xiuxian-vector" }
-xiuxian-skills = { path = "../../crates/xiuxian-skills" }
-xiuxian-executor = { path = "../../crates/xiuxian-executor" }
-xiuxian-tui = { path = "../../crates/xiuxian-tui" }
-xiuxian-wendao = { path = "../../crates/xiuxian-wendao" }
-xiuxian-sandbox = { path = "../../crates/xiuxian-sandbox" }
-xiuxian-memory-engine = { path = "../../crates/xiuxian-memory-engine", features = ["pybindings"] }
-xiuxian-window = { path = "../../crates/xiuxian-window", features = ["pybindings"] }
-
-# Arrow IPC: analytics TableHealthReport → RecordBatch → bytes for Python pyarrow
-arrow = { workspace = true }
-arrow-ipc = { workspace = true }
-
-# Workspace dependencies (inherited)
-serde = { workspace = true }
-serde_json = { workspace = true }
-jsonschema = { workspace = true }
-anyhow = { workspace = true }
-tokio = { workspace = true, features = ["rt-multi-thread", "macros", "io-util", "fs"] }
-uuid = { workspace = true }
-chrono = { workspace = true }
-sha2 = { workspace = true }
-hex = { workspace = true }
-which = "6.0"
-
-[dev-dependencies]
-tempfile = { workspace = true }
+xiuxian-wendao = { path = "../../crates/xiuxian-wendao", features = ["pybindings"] }

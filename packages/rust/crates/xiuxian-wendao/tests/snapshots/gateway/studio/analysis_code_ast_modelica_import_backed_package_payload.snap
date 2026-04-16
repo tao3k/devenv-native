@@ -1,9 +1,66 @@
 ---
 source: packages/rust/crates/xiuxian-wendao/tests/unit/gateway/studio/support.rs
+assertion_line: 17
 expression: value
 ---
 {
   "import_atoms": [
+    {
+      "attributes": [
+        [
+          "import_name",
+          "SI"
+        ],
+        [
+          "target_package",
+          "Modelica"
+        ],
+        [
+          "source_module",
+          "Modelica.Units.SI"
+        ],
+        [
+          "import_kind",
+          "module"
+        ],
+        [
+          "class_path",
+          "Blocks"
+        ],
+        [
+          "dependency_alias",
+          "SI"
+        ],
+        [
+          "dependency_form",
+          "named_import"
+        ],
+        [
+          "dependency_kind",
+          "import"
+        ],
+        [
+          "dependency_local_name",
+          "SI"
+        ],
+        [
+          "dependency_target",
+          "Modelica.Units.SI"
+        ],
+        [
+          "owner_name",
+          "Blocks"
+        ],
+        [
+          "owner_path",
+          "Blocks"
+        ]
+      ],
+      "display_label": "Import Rail · SI",
+      "excerpt": "Modelica.Units.SI",
+      "line_start": 3,
+      "owner_id": "repo:modelica-import-live:import:repo:modelica-import-live:module:Blocks:Modelica.Units.SI:0"
+    },
     {
       "attributes": [
         [
@@ -23,8 +80,16 @@ expression: value
           "symbol"
         ],
         [
+          "class_path",
+          "Blocks"
+        ],
+        [
           "dependency_form",
           "qualified_import"
+        ],
+        [
+          "dependency_kind",
+          "import"
         ],
         [
           "dependency_local_name",
@@ -33,12 +98,20 @@ expression: value
         [
           "dependency_target",
           "Modelica.Math"
+        ],
+        [
+          "owner_name",
+          "Blocks"
+        ],
+        [
+          "owner_path",
+          "Blocks"
         ]
       ],
       "display_label": "Import Rail · Math",
       "excerpt": "Modelica.Math",
       "line_start": 4,
-      "owner_id": "repo:modelica-import-live:import:repo:modelica-import-live:module:Modelica.Blocks:Modelica.Math:0"
+      "owner_id": "repo:modelica-import-live:import:repo:modelica-import-live:module:Blocks:Modelica.Math:1"
     },
     {
       "attributes": [
@@ -57,97 +130,76 @@ expression: value
         [
           "import_kind",
           "module"
+        ],
+        [
+          "class_path",
+          "Blocks"
         ],
         [
           "dependency_form",
           "unqualified_import"
         ],
         [
+          "dependency_kind",
+          "import"
+        ],
+        [
           "dependency_local_name",
           "Math"
         ],
         [
           "dependency_target",
           "Modelica.Math"
+        ],
+        [
+          "owner_name",
+          "Blocks"
+        ],
+        [
+          "owner_path",
+          "Blocks"
         ]
       ],
       "display_label": "Import Rail · Math",
       "excerpt": "Modelica.Math",
       "line_start": 5,
-      "owner_id": "repo:modelica-import-live:import:repo:modelica-import-live:module:Modelica.Blocks:Modelica.Math:1"
-    },
-    {
-      "attributes": [
-        [
-          "import_name",
-          "SI"
-        ],
-        [
-          "target_package",
-          "Modelica"
-        ],
-        [
-          "source_module",
-          "Modelica.Units.SI"
-        ],
-        [
-          "import_kind",
-          "module"
-        ],
-        [
-          "dependency_alias",
-          "SI"
-        ],
-        [
-          "dependency_form",
-          "named_import"
-        ],
-        [
-          "dependency_local_name",
-          "SI"
-        ],
-        [
-          "dependency_target",
-          "Modelica.Units.SI"
-        ]
-      ],
-      "display_label": "Import Rail · SI",
-      "excerpt": "Modelica.Units.SI",
-      "line_start": 3,
-      "owner_id": "repo:modelica-import-live:import:repo:modelica-import-live:module:Modelica.Blocks:Modelica.Units.SI:2"
+      "owner_id": "repo:modelica-import-live:import:repo:modelica-import-live:module:Blocks:Modelica.Math:2"
     }
   ],
   "import_edges": [
     {
-      "source_id": "repo:modelica-import-live:module:Modelica.Blocks",
-      "target_id": "repo:modelica-import-live:import:repo:modelica-import-live:module:Modelica.Blocks:Modelica.Math:0"
+      "source_id": "repo:modelica-import-live:module:Blocks",
+      "target_id": "repo:modelica-import-live:import:repo:modelica-import-live:module:Blocks:Modelica.Units.SI:0"
     },
     {
-      "source_id": "repo:modelica-import-live:module:Modelica.Blocks",
-      "target_id": "repo:modelica-import-live:import:repo:modelica-import-live:module:Modelica.Blocks:Modelica.Math:1"
+      "source_id": "repo:modelica-import-live:module:Blocks",
+      "target_id": "repo:modelica-import-live:import:repo:modelica-import-live:module:Blocks:Modelica.Math:1"
     },
     {
-      "source_id": "repo:modelica-import-live:module:Modelica.Blocks",
-      "target_id": "repo:modelica-import-live:import:repo:modelica-import-live:module:Modelica.Blocks:Modelica.Units.SI:2"
+      "source_id": "repo:modelica-import-live:module:Blocks",
+      "target_id": "repo:modelica-import-live:import:repo:modelica-import-live:module:Blocks:Modelica.Math:2"
     }
   ],
   "import_nodes": [
     {
-      "id": "repo:modelica-import-live:import:repo:modelica-import-live:module:Modelica.Blocks:Modelica.Math:0",
-      "label": "Math",
-      "line": 4,
-      "path": "Modelica/Blocks/package.mo"
-    },
-    {
-      "id": "repo:modelica-import-live:import:repo:modelica-import-live:module:Modelica.Blocks:Modelica.Math:1",
-      "label": "Math",
-      "line": 5,
-      "path": "Modelica/Blocks/package.mo"
-    },
-    {
-      "id": "repo:modelica-import-live:import:repo:modelica-import-live:module:Modelica.Blocks:Modelica.Units.SI:2",
+      "id": "repo:modelica-import-live:import:repo:modelica-import-live:module:Blocks:Modelica.Units.SI:0",
       "label": "SI",
-      "line": 3,
+      "line_end": 3,
+      "line_start": 3,
+      "path": "Modelica/Blocks/package.mo"
+    },
+    {
+      "id": "repo:modelica-import-live:import:repo:modelica-import-live:module:Blocks:Modelica.Math:1",
+      "label": "Math",
+      "line_end": 4,
+      "line_start": 4,
+      "path": "Modelica/Blocks/package.mo"
+    },
+    {
+      "id": "repo:modelica-import-live:import:repo:modelica-import-live:module:Blocks:Modelica.Math:2",
+      "label": "Math",
+      "line_end": 5,
+      "line_start": 5,
       "path": "Modelica/Blocks/package.mo"
     }
   ],

@@ -2,7 +2,7 @@ use crate::gateway::studio::router::{
     StudioApiError, StudioState, configured_repositories, configured_repository,
     map_repo_intelligence_error,
 };
-use crate::gateway::studio::search::handlers::knowledge::intent::IntentSearchTransportMetadata;
+use crate::gateway::studio::search::handlers::knowledge::IntentSearchTransportMetadata;
 #[cfg(all(test, feature = "duckdb"))]
 use crate::gateway::studio::search::handlers::knowledge::intent::configured_parquet_query_engine_label;
 use crate::gateway::studio::types::SearchHit;

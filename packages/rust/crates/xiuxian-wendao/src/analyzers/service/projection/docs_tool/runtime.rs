@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
-use crate::analyzers::errors::RepoIntelligenceError;
+use crate::analyzers::RepoIntelligenceError;
 use crate::analyzers::projection::ProjectionPageKind;
-use crate::analyzers::query::{
+use crate::analyzers::{
     DocsNavigationResult, DocsPageIndexDocumentsResult, DocsPageIndexNodeResult,
     DocsPageIndexTreeResult, DocsPageIndexTreeSearchResult, DocsPageIndexTreesResult,
     DocsPageResult, DocsRetrievalContextResult,

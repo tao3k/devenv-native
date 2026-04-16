@@ -4,13 +4,14 @@ use std::path::{Path, PathBuf};
 use walkdir::{DirEntry, WalkDir};
 
 use super::classify::{FingerprintMode, analysis_fingerprint_mode};
+#[cfg(feature = "zhenfa-router")]
 use super::semantic::{
     SemanticFingerprintOwner, compute_semantic_fingerprint, semantic_fingerprint_owner,
 };
-use crate::analyzers::config::RegisteredRepository;
+use crate::analyzers::RegisteredRepository;
 
 pub(crate) fn collect_repository_analysis_identity(
-    repository: &RegisteredRepository,
+    _repository: &RegisteredRepository,
     repository_root: &Path,
     plugin_ids: &[String],
 ) -> Option<String> {
@@ -48,9 +49,10 @@ pub(crate) fn collect_repository_analysis_identity(
                 hasher.update(contents.as_slice());
                 hasher.update(b"\0");
             }
+            #[cfg(feature = "zhenfa-router")]
             RelevantFileIdentityMode::SemanticFingerprint(owner) => {
                 hash_semantic_identity(
-                    repository,
+                    _repository,
                     &file.absolute_path,
                     file.relative_path.as_str(),
                     owner,
@@ -74,6 +76,7 @@ struct RelevantFile {
 enum RelevantFileIdentityMode {
     PathOnly,
     Contents,
+    #[cfg(feature = "zhenfa-router")]
     SemanticFingerprint(SemanticFingerprintOwner),
 }
 
@@ -114,6 +117,7 @@ fn relevant_file_identity_mode(
     plugin_ids: &[String],
 ) -> Option<RelevantFileIdentityMode> {
     let mode = analysis_fingerprint_mode(relative_path, plugin_ids)?;
+    #[cfg(feature = "zhenfa-router")]
     if matches!(mode, FingerprintMode::Contents)
         && let Some(owner) = semantic_fingerprint_owner(relative_path, plugin_ids)
     {
@@ -130,10 +134,12 @@ fn relevant_file_identity_mode_label(mode: RelevantFileIdentityMode) -> String {
     match mode {
         RelevantFileIdentityMode::PathOnly => "path".to_string(),
         RelevantFileIdentityMode::Contents => "contents".to_string(),
+        #[cfg(feature = "zhenfa-router")]
         RelevantFileIdentityMode::SemanticFingerprint(owner) => owner.mode_label(),
     }
 }
 
+#[cfg(feature = "zhenfa-router")]
 fn hash_semantic_identity(
     repository: &RegisteredRepository,
     absolute_path: &Path,

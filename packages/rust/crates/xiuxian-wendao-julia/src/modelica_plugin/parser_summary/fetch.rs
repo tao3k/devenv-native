@@ -1,3 +1,6 @@
+use std::sync::mpsc::RecvTimeoutError;
+use std::time::Duration;
+
 use std::sync::OnceLock;
 
 use xiuxian_wendao_core::repo_intelligence::{RegisteredRepository, RepoIntelligenceError};
@@ -8,6 +11,7 @@ use super::contract::{
 };
 use super::transport::{
     ParserSummaryRouteKind, build_modelica_parser_summary_flight_transport_client,
+    modelica_parser_summary_timeout_secs_for_repository,
     process_modelica_parser_summary_flight_batches_for_repository,
 };
 use super::types::ModelicaParserFileSummary;
@@ -43,24 +47,41 @@ pub(crate) fn fetch_modelica_parser_file_summary_blocking_for_repository(
     let runtime = modelica_parser_summary_runtime()?;
     let repository = repository.clone();
     let source_id = source_id.to_string();
+    let source_id_for_task = source_id.clone();
     let source_text = source_text.to_string();
+    let timeout_secs = modelica_file_summary_blocking_timeout_secs_for_repository(&repository)?;
     let (sender, receiver) = std::sync::mpsc::sync_channel(1);
     runtime.spawn(async move {
         let result = fetch_modelica_parser_file_summary_for_repository(
             &repository,
-            &source_id,
+            &source_id_for_task,
             &source_text,
         )
         .await;
         let _ = sender.send(result);
     });
     receiver
-        .recv()
-        .map_err(|error| RepoIntelligenceError::AnalysisFailed {
-            message: format!(
-                "Modelica parser-summary file-summary task stopped before returning: {error}"
-            ),
+        .recv_timeout(Duration::from_secs(timeout_secs))
+        .map_err(|error| match error {
+            RecvTimeoutError::Timeout => RepoIntelligenceError::AnalysisFailed {
+                message: format!(
+                    "Modelica parser-summary file-summary task exceeded {timeout_secs}s for `{source_id}`"
+                ),
+            },
+            RecvTimeoutError::Disconnected => RepoIntelligenceError::AnalysisFailed {
+                message: "Modelica parser-summary file-summary task stopped before returning"
+                    .to_string(),
+            },
         })?
+}
+
+fn modelica_file_summary_blocking_timeout_secs_for_repository(
+    repository: &RegisteredRepository,
+) -> Result<u64, RepoIntelligenceError> {
+    modelica_parser_summary_timeout_secs_for_repository(
+        repository,
+        ParserSummaryRouteKind::FileSummary,
+    )
 }
 
 pub(crate) fn validate_modelica_parser_summary_preflight_for_repository(

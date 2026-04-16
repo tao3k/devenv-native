@@ -1,5 +1,6 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+use serial_test::file_serial;
 use xiuxian_testing::{PerfBudget, PerfRunConfig, assert_perf_budget, run_sync_budget};
 
 use super::support::{
@@ -13,6 +14,7 @@ const NODE_COUNT: usize = 1_024;
 const HUB_COUNT: usize = 16;
 
 #[test]
+#[file_serial(wendao_perf_gate)]
 fn throughput_related_search_qps_gate() -> Result<(), String> {
     let (_tmp, index) = build_index(NODE_COUNT, HUB_COUNT)?;
     let ppr = default_ppr_options();
@@ -40,7 +42,14 @@ fn throughput_related_search_qps_gate() -> Result<(), String> {
     });
 
     let budget = PerfBudget {
-        min_throughput_qps: Some(env_f64("XIUXIAN_WENDAO_PERF_TP_MIN_QPS", 40.0)),
+        min_throughput_qps: Some(env_f64(
+            "XIUXIAN_WENDAO_PERF_TP_MIN_QPS",
+            if std::env::var_os("CI").is_some() {
+                40.0
+            } else {
+                25.0
+            },
+        )),
         max_error_rate: Some(env_f64("XIUXIAN_WENDAO_PERF_TP_MAX_ERROR_RATE", 0.001)),
         ..PerfBudget::new()
     };

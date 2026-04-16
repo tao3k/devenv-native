@@ -16,6 +16,7 @@ members = [
   "packages/rust/crates/xiuxian-wendao-builtin",
   "packages/rust/crates/xiuxian-wendao-core",
   "packages/rust/crates/xiuxian-wendao-runtime",
+  "packages/rust/crates/xiuxian-wendao-sql",
   "packages/rust/crates/xiuxian-lance",
   "packages/rust/crates/xiuxian-macros",
   "packages/rust/crates/xiuxian-memory-engine",
@@ -71,7 +72,11 @@ include_dir = "0.7.4"
 rand = "0.8"
 futures = "0.3.32"
 tokio-util = "0.7.18"
+tokio-stream = { version = "0.1", features = ["net"] }
 md5 = "0.8.0"
+regex = "1"
+blake3 = "1"
+inventory = "0.3"
 comrak = { version = "0.50.0", default-features = false }
 pulldown-cmark = "0.10"
 quick-xml = "0.39.2"
@@ -144,9 +149,11 @@ litellm-rs = { git = "https://github.com/tao3k/litellm-rs", branch = "xiuxian", 
 # CLI and HTTP (xiuxian-daochang gateway)
 clap = { version = "4.5", features = ["derive"] }
 axum = "0.8"
+tonic = { version = "0.14.5", default-features = false, features = ["transport"] }
 
 # Testing utilities
 insta = { version = "1.46.3", features = ["json", "redactions"] }
+serial_test = { version = "3", features = ["file_locks"] }
 
 # Performance optimization - Thin LTO for reduced memory
 [profile.release]

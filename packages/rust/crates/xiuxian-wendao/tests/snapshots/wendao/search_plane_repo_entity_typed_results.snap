@@ -1,6 +1,6 @@
 ---
-source: packages/rust/crates/xiuxian-wendao/src/gateway/studio/test_support.rs
-assertion_line: 19
+source: packages/rust/crates/xiuxian-wendao/src/gateway/studio/../../../tests/unit/gateway/studio/support.rs
+assertion_line: 27
 expression: value
 ---
 {
@@ -44,7 +44,9 @@ expression: value
         "import": {
           "import_name": "solve",
           "kind": "reexport",
+          "line_start": 1,
           "module_id": "module:BaseModelica",
+          "path": "src/BaseModelica.jl",
           "repo_id": "alpha/repo",
           "resolved_id": "symbol:solve",
           "source_module": "BaseModelica",
@@ -58,7 +60,9 @@ expression: value
       {
         "import_name": "solve",
         "kind": "reexport",
+        "line_start": 1,
         "module_id": "module:BaseModelica",
+        "path": "src/BaseModelica.jl",
         "repo_id": "alpha/repo",
         "resolved_id": "symbol:solve",
         "source_module": "BaseModelica",

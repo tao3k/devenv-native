@@ -3,7 +3,7 @@ use serial_test::serial;
 
 use crate::duckdb::ParquetQueryEngine;
 use crate::search::SearchCorpusKind;
-use crate::search::local_symbol::query::search::search_local_symbols;
+use crate::search::local_symbol::query::lookup::search_local_symbols;
 use crate::search::local_symbol::query::shared::{
     decode_local_symbol_hits, execute_local_symbol_search, retained_window,
 };

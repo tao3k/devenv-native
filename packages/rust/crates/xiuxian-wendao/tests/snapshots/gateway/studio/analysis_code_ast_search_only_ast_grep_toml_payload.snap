@@ -1,5 +1,6 @@
 ---
 source: packages/rust/crates/xiuxian-wendao/src/gateway/studio/../../../tests/unit/gateway/studio/support.rs
+assertion_line: 17
 expression: value
 ---
 {
@@ -10,28 +11,32 @@ expression: value
       "id": "repo:lance:generic_ast:Cargo.toml:2:2:name",
       "kind": "constant",
       "label": "name",
-      "line": 2,
+      "line_end": 2,
+      "line_start": 2,
       "path": "Cargo.toml"
     },
     {
       "id": "repo:lance:generic_ast:Cargo.toml:3:3:version",
       "kind": "constant",
       "label": "version",
-      "line": 3,
+      "line_end": 3,
+      "line_start": 3,
       "path": "Cargo.toml"
     },
     {
       "id": "repo:lance:generic_ast:Cargo.toml:4:4:edition",
       "kind": "constant",
       "label": "edition",
-      "line": 4,
+      "line_end": 4,
+      "line_start": 4,
       "path": "Cargo.toml"
     },
     {
       "id": "repo:lance:generic_ast:Cargo.toml:1:1:package",
       "kind": "module",
       "label": "package",
-      "line": 1,
+      "line_end": 1,
+      "line_start": 1,
       "path": "Cargo.toml"
     }
   ],

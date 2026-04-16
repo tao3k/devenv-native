@@ -1,7 +1,7 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::analyzers::records::ImportRecord;
+use crate::analyzers::ImportRecord;
 
 /// Query for import lookup.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]

@@ -803,6 +803,13 @@ pub(crate) fn validate_julia_parser_summary_request_batches(
 pub(crate) fn validate_julia_parser_summary_response_batches(
     batches: &[RecordBatch],
 ) -> Result<(), RepoIntelligenceError> {
+    if batches.is_empty() {
+        return Err(parser_summary_contract_error(
+            "response",
+            "parser-summary response stream returned no record batches; the Flight transport likely terminated before emitting the first schema-bearing response batch".to_string(),
+        ));
+    }
+
     for batch in batches {
         if batch.num_rows() == 0 {
             return Err(parser_summary_contract_error(

@@ -14,6 +14,7 @@ pub use gateway_artifact::{
     julia_gateway_artifact_selected_transport, julia_ui_artifact_payload_fixture,
 };
 pub use official_examples::{
+    probe_wendaosearch_modelica_parser_summary_route_for_tests,
     spawn_wendaoanalyzer_service_from_artifact, spawn_wendaoanalyzer_service_from_manifest,
     spawn_wendaoanalyzer_stream_linear_blend_service, spawn_wendaoarrow_stream_metadata_service,
     spawn_wendaoarrow_stream_scoring_service, spawn_wendaosearch_demo_multi_route_service,

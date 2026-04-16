@@ -3,7 +3,6 @@
 //! Executes SBPL profiles on macOS via sandbox-exec.
 //! This module reads pre-generated SBPL profiles and executes them.
 
-use pyo3::prelude::*;
 use std::path::Path;
 use tokio::process::Command as AsyncCommand;
 
@@ -12,16 +11,12 @@ use super::SandboxExecutor;
 use super::execute_with_limits;
 
 /// Seatbelt executor for macOS
-#[pyclass]
 #[derive(Debug, Clone)]
 pub struct SeatbeltExecutor {
     default_timeout: u64,
 }
 
-#[pymethods]
 impl SeatbeltExecutor {
-    #[new]
-    #[pyo3(signature = (default_timeout=60))]
     /// Create a new `SeatbeltExecutor` with a default timeout.
     #[must_use]
     pub fn new(default_timeout: u64) -> Self {

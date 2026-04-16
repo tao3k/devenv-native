@@ -1,6 +1,5 @@
 use arrow::record_batch::RecordBatch;
 use serde_json::Value;
-use xiuxian_vector::attach_record_batch_metadata;
 use xiuxian_wendao_core::{
     capabilities::{ContractVersion, PluginCapabilityBinding},
     repo_intelligence::{RegisteredRepository, RepoIntelligenceError, RepositoryPluginConfig},
@@ -19,6 +18,7 @@ use super::graph_structural::{
     validate_graph_structural_rerank_request_batch,
     validate_graph_structural_rerank_response_batch,
 };
+use crate::arrow_metadata::attach_record_batch_metadata;
 use crate::compatibility::link_graph::julia_graph_structural_provider_selector;
 
 const JULIA_PLUGIN_ID: &str = "julia";

@@ -1,4 +1,4 @@
-use xiuxian_wendao::entity::types::{KnowledgeCategory, KnowledgeEntry};
+use xiuxian_wendao::{KnowledgeCategory, KnowledgeEntry};
 
 #[test]
 fn test_knowledge_entry_equality() -> Result<(), Box<dyn std::error::Error>> {

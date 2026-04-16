@@ -4,7 +4,7 @@ use crate::duckdb::ParquetQueryEngine;
 use crate::search::repo_entity::query::hydrate::{
     load_hydrated_rows_by_id, typed_repo_entity_columns,
 };
-use crate::search::repo_entity::query::search::{
+use crate::search::repo_entity::query::lookup::{
     HydratedRepoEntityRow, RepoEntityCandidate, RepoEntitySearchError,
 };
 

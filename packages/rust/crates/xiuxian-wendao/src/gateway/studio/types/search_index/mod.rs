@@ -6,6 +6,17 @@ mod status;
 #[path = "../../../../../tests/unit/gateway/studio/types/search_index/mod.rs"]
 mod tests;
 
-pub use definitions::*;
+pub use definitions::{
+    SearchCorpusIndexStatus, SearchIndexAggregateMaintenanceSummary,
+    SearchIndexAggregateQueryTelemetry, SearchIndexAggregateStatusReason,
+    SearchIndexMaintenanceStatus, SearchIndexPhase, SearchIndexRepoReadPressure,
+    SearchIndexStatusResponse,
+};
+#[cfg(test)]
+pub(crate) use definitions::{
+    SearchIndexIssueCode, SearchIndexIssueFamily, SearchIndexIssueSummary,
+    SearchIndexQueryTelemetrySource, SearchIndexStatusAction, SearchIndexStatusReason,
+    SearchIndexStatusReasonCode, SearchIndexStatusSeverity,
+};
 #[cfg(all(test, feature = "duckdb"))]
 pub(crate) use diagnostics::configured_status_diagnostics_engine_kind;

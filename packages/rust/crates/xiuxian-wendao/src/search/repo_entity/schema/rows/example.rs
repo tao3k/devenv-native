@@ -1,7 +1,7 @@
 use xiuxian_vector_store::VectorStoreError;
 
 use crate::analyzers::ExampleRecord;
-use crate::analyzers::service::helpers::{
+use crate::analyzers::{
     backlinks_for, hierarchy_segments_from_path, projection_pages_for, record_hierarchical_uri,
     related_modules_for_example, related_symbols_for_example,
 };

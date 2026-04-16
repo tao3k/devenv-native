@@ -1,16 +1,16 @@
 use std::collections::BTreeMap;
 use std::path::Path;
 
-use crate::analyzers::errors::RepoIntelligenceError;
-use crate::analyzers::plugin::RepositoryAnalysisOutput;
-use crate::analyzers::query::{
-    DocsPlannerQueueGroup, DocsPlannerQueueQuery, DocsPlannerQueueResult,
-    DocsProjectedGapReportQuery,
-};
-use crate::analyzers::registry::PluginRegistry;
+use crate::analyzers::PluginRegistry;
+use crate::analyzers::RepoIntelligenceError;
+use crate::analyzers::RepositoryAnalysisOutput;
 use crate::analyzers::service::projection::gap::build_docs_projected_gap_report;
 use crate::analyzers::service::projection::registry::{
     with_bootstrapped_repository_analysis, with_repository_analysis,
+};
+use crate::analyzers::{
+    DocsPlannerQueueGroup, DocsPlannerQueueQuery, DocsPlannerQueueResult,
+    DocsProjectedGapReportQuery,
 };
 
 /// Build deterministic docs-facing deep-wiki planner queue groups from projected gaps.
@@ -25,8 +25,7 @@ pub fn build_docs_planner_queue(
         },
         analysis,
     );
-    let mut grouped =
-        BTreeMap::<crate::analyzers::query::ProjectedGapKind, DocsPlannerQueueGroup>::new();
+    let mut grouped = BTreeMap::<crate::analyzers::ProjectedGapKind, DocsPlannerQueueGroup>::new();
 
     for gap in gap_report.gaps.into_iter().filter(|gap| {
         query

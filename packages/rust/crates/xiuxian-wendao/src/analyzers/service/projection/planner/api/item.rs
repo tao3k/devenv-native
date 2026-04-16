@@ -1,17 +1,17 @@
 use std::path::Path;
 
-use crate::analyzers::errors::RepoIntelligenceError;
-use crate::analyzers::plugin::RepositoryAnalysisOutput;
-use crate::analyzers::query::{
-    DocsNavigationQuery, DocsPlannerItemQuery, DocsPlannerItemResult, DocsProjectedGapReportQuery,
-};
-use crate::analyzers::registry::PluginRegistry;
+use crate::analyzers::PluginRegistry;
+use crate::analyzers::RepoIntelligenceError;
+use crate::analyzers::RepositoryAnalysisOutput;
 use crate::analyzers::service::projection::gap::build_docs_projected_gap_report;
 use crate::analyzers::service::projection::navigation::build_docs_navigation;
 use crate::analyzers::service::projection::registry::{
     with_bootstrapped_repository_analysis, with_repository_analysis,
 };
 use crate::analyzers::service::projection::retrieval::build_docs_retrieval_hit;
+use crate::analyzers::{
+    DocsNavigationQuery, DocsPlannerItemQuery, DocsPlannerItemResult, DocsProjectedGapReportQuery,
+};
 
 /// Build one deterministic docs-facing deep-wiki planner item from a stable projected gap.
 ///
@@ -39,7 +39,7 @@ pub fn build_docs_planner_item(
             gap_id: query.gap_id.clone(),
         })?;
     let hit = build_docs_retrieval_hit(
-        &crate::analyzers::query::DocsRetrievalHitQuery {
+        &crate::analyzers::DocsRetrievalHitQuery {
             repo: query.repo_id.clone(),
             page: gap.page_id.clone(),
             node: None,

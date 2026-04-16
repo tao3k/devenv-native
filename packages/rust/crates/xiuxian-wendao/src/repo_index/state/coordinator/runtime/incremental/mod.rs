@@ -19,15 +19,15 @@ use xiuxian_wendao_julia::{
     modelica_root_package_incremental_semantic_fingerprint_for_repository,
 };
 
-use crate::analyzers::cache::{
-    FingerprintMode, ValkeyAnalysisCache, analysis_fingerprint_mode,
+use crate::analyzers::RepoIntelligenceError;
+use crate::analyzers::{AnalysisContext, RepoSourceFile, RepositoryAnalysisOutput};
+use crate::analyzers::{
+    FingerprintMode, RepositoryAnalysisValkeyScope, ValkeyAnalysisCache, analysis_fingerprint_mode,
     build_repository_analysis_cache_key, change_affects_analysis_identity,
     load_cached_repository_analysis_for_revision, plugin_ids_support_semantic_owner_reuse,
     semantic_fingerprint_for_file, store_cached_repository_analysis,
 };
-use crate::analyzers::errors::RepoIntelligenceError;
-use crate::analyzers::plugin::{AnalysisContext, RepoSourceFile, RepositoryAnalysisOutput};
-use crate::analyzers::service::{
+use crate::analyzers::{
     IncrementalApplyContext, analyze_changed_files, apply_incremental_plugin_outputs,
 };
 use crate::analyzers::{RegisteredRepository, RepoSourceKind, RepoSyncResult};
@@ -378,12 +378,12 @@ impl RepoIndexCoordinator {
         let Some(cache) = ValkeyAnalysisCache::new()? else {
             return Ok(None);
         };
-        let Some(cached) = cache.get_for_revision(
+        let Some(cached) = cache.get_analysis(RepositoryAnalysisValkeyScope::revision(
             repository.id.as_str(),
             checkout_root,
             plugin_ids,
             previous_revision,
-        ) else {
+        )) else {
             return Ok(None);
         };
 
@@ -404,7 +404,7 @@ impl RepoIndexCoordinator {
         );
         store_cached_repository_analysis(cache_key.clone(), analysis)?;
         if let Some(cache) = ValkeyAnalysisCache::new()? {
-            cache.set(&cache_key, analysis);
+            cache.set_analysis(RepositoryAnalysisValkeyScope::current(&cache_key), analysis);
         }
         Ok(())
     }

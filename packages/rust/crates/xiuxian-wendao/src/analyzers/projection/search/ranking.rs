@@ -1,6 +1,6 @@
+use crate::analyzers::RepositoryAnalysisOutput;
 #[cfg(all(feature = "studio", feature = "repo-lexical-index"))]
 use crate::analyzers::cache::RepositorySearchArtifacts;
-use crate::analyzers::plugin::RepositoryAnalysisOutput;
 use crate::analyzers::{
     ProjectedPageRecord, ProjectionPageKind, RepoProjectedPageSearchQuery,
     RepoProjectedPageSearchResult,

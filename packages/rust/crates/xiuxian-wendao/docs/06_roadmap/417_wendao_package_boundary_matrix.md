@@ -166,6 +166,11 @@ Another bounded follow-up is now closed: the stable SQL result DTO family
 imports `SqlQueryPayload` from `core` directly, and `xiuxian-wendao` keeps
 SQL execution and bounded-work query wiring while only re-exporting the
 shared result payload family.
+Another bounded follow-up is now closed: the bounded-work markdown SQL helper
+family moved into `xiuxian-wendao-sql`, `xiuxian-qianji` now imports the
+direct bounded-work payload helper from that crate, and `xiuxian-wendao`
+keeps only a thin compatibility re-export under
+`search::queries::sql::bounded_work_markdown`.
 Another bounded follow-up is now closed: the embedded zhixing text/path/mount
 helper family moved into `xiuxian-wendao-runtime`, `xiuxian-qianji` now
 imports the direct text helper from `runtime`, and `xiuxian-wendao` keeps

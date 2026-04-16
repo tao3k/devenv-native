@@ -1,7 +1,7 @@
-mod search;
+mod lookup;
 
 #[cfg(test)]
 #[path = "../../../../tests/unit/search/attachment/query/mod.rs"]
 mod tests;
 
-pub(crate) use search::{AttachmentSearchError, search_attachment_hits};
+pub(crate) use lookup::{AttachmentSearchError, search_attachment_hits};

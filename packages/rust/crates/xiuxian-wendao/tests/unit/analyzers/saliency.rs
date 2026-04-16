@@ -1,6 +1,6 @@
-use crate::analyzers::plugin::RepositoryAnalysisOutput;
-use crate::analyzers::records::{ModuleRecord, RelationKind, RelationRecord, SymbolRecord};
-use crate::analyzers::saliency::compute_repository_saliency;
+use crate::analyzers::RepositoryAnalysisOutput;
+use crate::analyzers::compute_repository_saliency;
+use crate::analyzers::{ModuleRecord, RelationKind, RelationRecord, SymbolRecord};
 use std::collections::BTreeMap;
 
 #[test]

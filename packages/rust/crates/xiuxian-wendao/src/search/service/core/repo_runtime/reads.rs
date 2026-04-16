@@ -1,8 +1,8 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 
 use crate::search::service::core::types::{RepoRuntimeState, SearchPlaneService};
-use crate::search::{SearchCorpusKind, SearchRepoCorpusRecord, SearchRepoCorpusSnapshotRecord};
+use crate::search::{SearchCorpusKind, SearchRepoCorpusRecord};
 
 impl SearchPlaneService {
     fn merge_persisted_repo_corpus_record(
@@ -75,7 +75,7 @@ impl SearchPlaneService {
         &self,
         repo_ids: &[String],
     ) -> BTreeMap<String, crate::search::service::core::types::RepoSearchPublicationState> {
-        let records = self.repo_corpus_snapshot_for_reads().await;
+        let records = self.repo_corpus_records_for_repo_ids(repo_ids).await;
         repo_ids
             .iter()
             .map(|repo_id| {
@@ -147,82 +147,138 @@ impl SearchPlaneService {
         self.reconcile_repo_corpus_record(record)
     }
 
-    pub(crate) fn current_repo_corpus_snapshot_record(&self) -> SearchRepoCorpusSnapshotRecord {
-        let records = self
-            .repo_corpus_records
-            .read()
-            .unwrap_or_else(std::sync::PoisonError::into_inner)
-            .values()
-            .cloned()
-            .collect();
-        SearchRepoCorpusSnapshotRecord { records }
+    async fn reconcile_repo_corpus_records_for_reads(
+        &self,
+        records: BTreeMap<(SearchCorpusKind, String), SearchRepoCorpusRecord>,
+    ) -> BTreeMap<(SearchCorpusKind, String), SearchRepoCorpusRecord> {
+        let mut changed_records = Vec::new();
+        let mut reconciled = BTreeMap::new();
+        for (key, record) in records {
+            let (record, changed) = self
+                .recover_persisted_repo_corpus_record_for_reads(record)
+                .await;
+            if changed {
+                changed_records.push(record.clone());
+            }
+            reconciled.insert(key, record);
+        }
+        for record in &changed_records {
+            self.persist_local_repo_corpus_record(record);
+            self.cache.set_repo_corpus_record(record).await;
+        }
+        reconciled
+    }
+
+    fn repo_corpus_record_keys_for_repo_ids(
+        repo_ids: &BTreeSet<String>,
+    ) -> Vec<(SearchCorpusKind, String)> {
+        repo_ids
+            .iter()
+            .flat_map(|repo_id| {
+                [
+                    SearchCorpusKind::RepoEntity,
+                    SearchCorpusKind::RepoContentChunk,
+                ]
+                .into_iter()
+                .map(move |corpus| (corpus, repo_id.clone()))
+            })
+            .collect()
+    }
+
+    fn missing_repo_corpus_record_keys(
+        records: &BTreeMap<(SearchCorpusKind, String), SearchRepoCorpusRecord>,
+        repo_ids: &BTreeSet<String>,
+    ) -> Vec<(SearchCorpusKind, String)> {
+        Self::repo_corpus_record_keys_for_repo_ids(repo_ids)
+            .into_iter()
+            .filter(|key| !records.contains_key(key))
+            .collect()
+    }
+
+    pub(super) fn filter_repo_corpus_records(
+        records: BTreeMap<(SearchCorpusKind, String), SearchRepoCorpusRecord>,
+        repo_ids: &BTreeSet<String>,
+    ) -> BTreeMap<(SearchCorpusKind, String), SearchRepoCorpusRecord> {
+        if repo_ids.is_empty() {
+            return records;
+        }
+        records
+            .into_iter()
+            .filter(|(_, record)| repo_ids.contains(&record.repo_id))
+            .collect()
+    }
+
+    async fn repo_corpus_records_for_repo_ids(
+        &self,
+        repo_ids: &[String],
+    ) -> BTreeMap<(SearchCorpusKind, String), SearchRepoCorpusRecord> {
+        let repo_ids = repo_ids.iter().cloned().collect::<BTreeSet<_>>();
+        if repo_ids.is_empty() {
+            return BTreeMap::new();
+        }
+
+        let mut records = Self::filter_repo_corpus_records(
+            self.repo_corpus_records
+                .read()
+                .unwrap_or_else(std::sync::PoisonError::into_inner)
+                .clone(),
+            &repo_ids,
+        );
+        let mut missing_keys = Self::missing_repo_corpus_record_keys(&records, &repo_ids);
+        if !missing_keys.is_empty() {
+            let cached_records = self
+                .reconcile_repo_corpus_records_for_reads(
+                    self.cache
+                        .get_repo_corpus_records(missing_keys.as_slice())
+                        .await,
+                )
+                .await;
+            if !cached_records.is_empty() {
+                self.repo_corpus_records
+                    .write()
+                    .unwrap_or_else(std::sync::PoisonError::into_inner)
+                    .extend(cached_records.clone());
+                records.extend(cached_records);
+            }
+            missing_keys = Self::missing_repo_corpus_record_keys(&records, &repo_ids);
+        }
+        if !missing_keys.is_empty() {
+            let local_records = self
+                .reconcile_repo_corpus_records_for_reads(
+                    self.load_local_repo_corpus_records(missing_keys.as_slice()),
+                )
+                .await;
+            if !local_records.is_empty() {
+                self.repo_corpus_records
+                    .write()
+                    .unwrap_or_else(std::sync::PoisonError::into_inner)
+                    .extend(local_records.clone());
+                records.extend(local_records);
+            }
+        }
+        records
     }
 
     pub(crate) async fn repo_corpus_snapshot_for_reads(
         &self,
     ) -> BTreeMap<(SearchCorpusKind, String), SearchRepoCorpusRecord> {
-        let current = self
+        let mut records = self
             .repo_corpus_records
             .read()
             .unwrap_or_else(std::sync::PoisonError::into_inner)
             .clone();
-        if !current.is_empty() {
-            let mut changed_records = Vec::new();
-            let mut records = BTreeMap::new();
-            for (key, record) in current {
-                let (record, changed) = self
-                    .recover_persisted_repo_corpus_record_for_reads(record)
-                    .await;
-                if changed {
-                    changed_records.push(record.clone());
-                }
-                records.insert(key, record);
-            }
-            if !changed_records.is_empty() {
-                *self
-                    .repo_corpus_records
-                    .write()
-                    .unwrap_or_else(std::sync::PoisonError::into_inner) = records.clone();
-                for record in &changed_records {
-                    self.cache.set_repo_corpus_record(record).await;
-                }
-                self.cache
-                    .set_repo_corpus_snapshot(&SearchRepoCorpusSnapshotRecord {
-                        records: records.values().cloned().collect(),
-                    })
-                    .await;
-            }
-            return records;
+        for (key, record) in self.load_local_repo_corpus_record_inventory() {
+            records.entry(key).or_insert(record);
         }
-        if let Some(snapshot) = self.cache.get_repo_corpus_snapshot().await {
-            let mut records = BTreeMap::new();
-            for record in snapshot.records {
-                let (record, _) = self
-                    .recover_persisted_repo_corpus_record_for_reads(record)
-                    .await;
-                records.insert((record.corpus, record.repo_id.clone()), record);
-            }
-            *self
-                .repo_corpus_records
-                .write()
-                .unwrap_or_else(std::sync::PoisonError::into_inner) = records.clone();
-            return records;
+        if records.is_empty() {
+            return BTreeMap::new();
         }
-        if let Some(snapshot) = self.load_local_repo_corpus_snapshot() {
-            let mut records = BTreeMap::new();
-            for record in snapshot.records {
-                let (record, _) = self
-                    .recover_persisted_repo_corpus_record_for_reads(record)
-                    .await;
-                records.insert((record.corpus, record.repo_id.clone()), record);
-            }
-            *self
-                .repo_corpus_records
-                .write()
-                .unwrap_or_else(std::sync::PoisonError::into_inner) = records.clone();
-            return records;
-        }
-        BTreeMap::new()
+        let records = self.reconcile_repo_corpus_records_for_reads(records).await;
+        *self
+            .repo_corpus_records
+            .write()
+            .unwrap_or_else(std::sync::PoisonError::into_inner) = records.clone();
+        records
     }
 
     pub(crate) async fn repo_corpus_record_for_reads(
@@ -239,11 +295,19 @@ impl SearchPlaneService {
                     .write()
                     .unwrap_or_else(std::sync::PoisonError::into_inner)
                     .insert((corpus, repo_id.to_string()), record.clone());
+                self.persist_local_repo_corpus_record(&record);
                 self.cache.set_repo_corpus_record(&record).await;
             }
             return Some(record);
         }
-        if let Some(record) = self.cache.get_repo_corpus_record(corpus, repo_id).await {
+
+        let repo_key = (corpus, repo_id.to_string());
+        if let Some(record) = self
+            .cache
+            .get_repo_corpus_records(std::slice::from_ref(&repo_key))
+            .await
+            .remove(&repo_key)
+        {
             let (record, changed) = self
                 .recover_persisted_repo_corpus_record_for_reads(record)
                 .await;
@@ -251,11 +315,13 @@ impl SearchPlaneService {
                 .write()
                 .unwrap_or_else(std::sync::PoisonError::into_inner)
                 .insert((corpus, repo_id.to_string()), record.clone());
+            self.persist_local_repo_corpus_record(&record);
             if changed {
                 self.cache.set_repo_corpus_record(&record).await;
             }
             return Some(record);
         }
+
         if let Some(record) = self.load_local_repo_corpus_record(corpus, repo_id) {
             let (record, changed) = self
                 .recover_persisted_repo_corpus_record_for_reads(record)
@@ -266,28 +332,61 @@ impl SearchPlaneService {
                 .insert((corpus, repo_id.to_string()), record.clone());
             if changed {
                 self.persist_local_repo_corpus_record(&record);
-            }
-            return Some(record);
-        }
-        if let Some(record) = self
-            .repo_corpus_snapshot_for_reads()
-            .await
-            .get(&(corpus, repo_id.to_string()))
-            .cloned()
-        {
-            let (record, changed) = self
-                .recover_persisted_repo_corpus_record_for_reads(record)
-                .await;
-            self.repo_corpus_records
-                .write()
-                .unwrap_or_else(std::sync::PoisonError::into_inner)
-                .insert((corpus, repo_id.to_string()), record.clone());
-            if changed {
                 self.cache.set_repo_corpus_record(&record).await;
             }
             return Some(record);
         }
         None
+    }
+
+    fn load_local_repo_corpus_records(
+        &self,
+        keys: &[(SearchCorpusKind, String)],
+    ) -> BTreeMap<(SearchCorpusKind, String), SearchRepoCorpusRecord> {
+        let mut records = BTreeMap::new();
+        for (corpus, repo_id) in keys {
+            if let Some(record) = self.load_local_repo_corpus_record(*corpus, repo_id.as_str()) {
+                records.insert((*corpus, repo_id.clone()), record);
+            }
+        }
+        records
+    }
+
+    fn load_local_repo_corpus_record_inventory(
+        &self,
+    ) -> BTreeMap<(SearchCorpusKind, String), SearchRepoCorpusRecord> {
+        let mut records = BTreeMap::new();
+        for corpus in [
+            SearchCorpusKind::RepoEntity,
+            SearchCorpusKind::RepoContentChunk,
+        ] {
+            let record_root = self
+                .repo_corpus_runtime_root()
+                .join("records")
+                .join(corpus.as_str());
+            let Ok(entries) = fs::read_dir(record_root) else {
+                continue;
+            };
+            for entry in entries.flatten() {
+                let Ok(file_type) = entry.file_type() else {
+                    continue;
+                };
+                if !file_type.is_file() {
+                    continue;
+                }
+                let Ok(payload) = fs::read(entry.path()) else {
+                    continue;
+                };
+                let Ok(record) = serde_json::from_slice::<SearchRepoCorpusRecord>(&payload) else {
+                    continue;
+                };
+                if record.corpus != corpus {
+                    continue;
+                }
+                records.insert((corpus, record.repo_id.clone()), record);
+            }
+        }
+        records
     }
 
     pub(crate) fn load_local_repo_corpus_record(
@@ -296,11 +395,6 @@ impl SearchPlaneService {
         repo_id: &str,
     ) -> Option<SearchRepoCorpusRecord> {
         let payload = fs::read(self.repo_corpus_record_json_path(corpus, repo_id)).ok()?;
-        serde_json::from_slice(payload.as_slice()).ok()
-    }
-
-    pub(crate) fn load_local_repo_corpus_snapshot(&self) -> Option<SearchRepoCorpusSnapshotRecord> {
-        let payload = fs::read(self.repo_corpus_snapshot_json_path()).ok()?;
         serde_json::from_slice(payload.as_slice()).ok()
     }
 }

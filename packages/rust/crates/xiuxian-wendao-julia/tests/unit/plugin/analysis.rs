@@ -8,7 +8,9 @@ use tempfile::TempDir;
 use xiuxian_wendao_core::repo_intelligence::RepositoryPluginConfig;
 use xiuxian_wendao_core::repo_intelligence::{AnalysisContext, RegisteredRepository};
 
-use super::{analyze_repository, preflight_repository};
+use super::{
+    analyze_repository, load_modelica_repository_context_for_source, preflight_repository,
+};
 use crate::julia_plugin_test_support::common::ensure_linked_modelica_parser_summary_service;
 
 #[test]
@@ -247,6 +249,34 @@ fn analyze_repository_supports_dominant_nested_root_package() -> TestResult {
                 && symbol.qualified_name == "Modelica.Blocks")
     );
     assert_eq!(output.diagnostics[0].path, "Modelica/package.mo");
+    Ok(())
+}
+
+#[test]
+fn load_modelica_repository_context_prefers_source_hint_for_nested_root_package() -> TestResult {
+    let tempdir = TempDir::new()?;
+    write_modelica_file(
+        tempdir.path().join("Modelica/package.mo").as_path(),
+        "within ;\npackage Modelica\nend Modelica;\n",
+    )?;
+    write_modelica_file(
+        tempdir.path().join("Modelica/Blocks.mo").as_path(),
+        "within Modelica;\nmodel Blocks\nend Blocks;\n",
+    )?;
+    write_modelica_file(
+        tempdir.path().join("ModelicaServices/package.mo").as_path(),
+        "within ;\npackage ModelicaServices\nend ModelicaServices;\n",
+    )?;
+
+    let context = load_modelica_repository_context_for_source(
+        &analysis_context("mcl", tempdir.path()).repository,
+        tempdir.path(),
+        "Modelica/Blocks.mo",
+    )?;
+
+    assert_eq!(context.package_root, tempdir.path().join("Modelica"));
+    assert_eq!(context.root_package_name, "Modelica");
+    assert_eq!(context.path_prefix.as_deref(), Some("Modelica"));
     Ok(())
 }
 

@@ -13,8 +13,6 @@ mod uri;
 #[path = "../../../../tests/unit/analyzers/service/helpers/mod.rs"]
 mod tests;
 
-pub use uri::relation_kind_label;
-
 pub(crate) use backlinks::{backlinks_for, documents_backlink_lookup};
 pub(crate) use ecosystem::infer_ecosystem;
 pub(crate) use example_relations::{
@@ -29,4 +27,6 @@ pub(crate) use ranking::{
 pub(crate) use scope::{
     docs_in_scope, documented_symbol_ids, resolve_module_scope, symbols_in_scope,
 };
+#[cfg(test)]
+pub(crate) use uri::relation_kind_label;
 pub(crate) use uri::{record_hierarchical_uri, repo_hierarchical_uri};

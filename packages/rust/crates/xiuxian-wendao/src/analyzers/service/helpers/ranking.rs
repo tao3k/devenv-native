@@ -122,7 +122,7 @@ pub(crate) fn example_match_score(
 pub(crate) fn import_match_score(
     package_filter: Option<&str>,
     module_filter: Option<&str>,
-    import: &crate::analyzers::records::ImportRecord,
+    import: &crate::analyzers::ImportRecord,
 ) -> Option<u8> {
     if package_filter.is_none() && module_filter.is_none() {
         return Some(0);

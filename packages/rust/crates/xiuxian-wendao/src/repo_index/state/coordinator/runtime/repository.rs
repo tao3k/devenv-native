@@ -2,13 +2,16 @@ use std::path::Path;
 use std::sync::Arc;
 use std::time::Duration;
 
-use crate::analyzers::errors::RepoIntelligenceError;
-use crate::analyzers::query::RepoSyncResult;
+use crate::analyzers::RepoIntelligenceError;
+use crate::analyzers::RepoSyncResult;
 use crate::analyzers::{
     RegisteredRepository, RepoSyncMode, RepoSyncQuery, analyze_registered_repository_with_registry,
     repo_sync_for_registered_repository,
 };
-use crate::repo_index::state::collect::{await_analysis_completion, collect_code_documents};
+use crate::repo_index::state::collect::{
+    IncrementalCodeDocumentCollection, await_analysis_completion, collect_code_documents,
+    collect_incremental_code_documents_from_revision_diff,
+};
 use crate::repo_index::state::coordinator::RepoIndexCoordinator;
 use crate::repo_index::state::task::{repo_index_analysis_timeout, repo_index_sync_timeout};
 use crate::repo_index::types::RepoCodeDocument;
@@ -18,6 +21,9 @@ impl RepoIndexCoordinator {
         &self,
         repository: RegisteredRepository,
     ) -> Result<crate::analyzers::RepositoryAnalysisOutput, RepoIntelligenceError> {
+        if !repository.has_repo_intelligence_plugins() {
+            return Ok(crate::analyzers::RepositoryAnalysisOutput::default());
+        }
         let repo_id = repository.id.clone();
         let project_root = self.project_root.clone();
         let plugin_registry = Arc::clone(&self.plugin_registry);
@@ -106,6 +112,55 @@ impl RepoIndexCoordinator {
             Err(_) => Err(RepoIntelligenceError::AnalysisFailed {
                 message: format!(
                     "repo `{repo_id_for_error}` code document collection timed out after {}s while indexing was running",
+                    analysis_timeout.as_secs()
+                ),
+            }),
+        }
+    }
+
+    pub(crate) async fn collect_incremental_code_documents_for_task(
+        &self,
+        repo_id: &str,
+        fingerprint: &str,
+        checkout_path: &str,
+        previous_revision: &str,
+        current_revision: &str,
+    ) -> Result<Option<IncrementalCodeDocumentCollection>, RepoIntelligenceError> {
+        let repo_id = repo_id.to_string();
+        let fingerprint = fingerprint.to_string();
+        let checkout_path = checkout_path.to_string();
+        let previous_revision = previous_revision.to_string();
+        let current_revision = current_revision.to_string();
+        let fingerprints = Arc::clone(&self.fingerprints);
+        let repo_id_for_error = repo_id.clone();
+        let repo_id_for_worker = repo_id.clone();
+        let task = tokio::task::spawn_blocking(move || {
+            collect_incremental_code_documents_from_revision_diff(
+                Path::new(checkout_path.as_str()),
+                previous_revision.as_str(),
+                current_revision.as_str(),
+                || {
+                    let current = fingerprints
+                        .read()
+                        .unwrap_or_else(std::sync::PoisonError::into_inner)
+                        .get(&repo_id_for_worker)
+                        .cloned();
+                    current.as_deref() != Some(fingerprint.as_str())
+                },
+            )
+        });
+
+        let analysis_timeout = repo_index_analysis_timeout();
+        match tokio::time::timeout(analysis_timeout, task).await {
+            Ok(Ok(result)) => result,
+            Ok(Err(error)) => Err(RepoIntelligenceError::AnalysisFailed {
+                message: format!(
+                    "repo `{repo_id_for_error}` incremental code document worker terminated unexpectedly: {error}"
+                ),
+            }),
+            Err(_) => Err(RepoIntelligenceError::AnalysisFailed {
+                message: format!(
+                    "repo `{repo_id_for_error}` incremental code document collection timed out after {}s while indexing was running",
                     analysis_timeout.as_secs()
                 ),
             }),

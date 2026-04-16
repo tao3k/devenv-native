@@ -157,3 +157,26 @@ mod tests;
         .unwrap_or_else(|error| panic!("harness validation should succeed: {error}"));
     assert!(report.is_clean(), "{report:?}");
 }
+
+#[test]
+fn validate_crate_test_policy_harness_collects_path_structure_warnings() {
+    let temp = create_temp_crate();
+    write_fixture_file(
+        temp.path(),
+        "src/gateway/studio/router/config/router/mod.rs",
+        "mod bootstrap;\n",
+    );
+
+    let report = validate_crate_test_policy_harness(temp.path())
+        .unwrap_or_else(|error| panic!("harness validation should succeed: {error}"));
+    assert!(report.is_clean(), "{report:?}");
+    assert_eq!(report.path_structure_warnings.len(), 1);
+    assert_eq!(
+        report.path_structure_warnings[0].repeated_namespaces,
+        vec!["router".to_string()]
+    );
+
+    let formatted = format_crate_test_policy_harness_report(&report);
+    assert!(formatted.contains("Crate Path Structure Warnings"));
+    assert!(formatted.contains("repeated namespace segments: `router`"));
+}

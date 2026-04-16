@@ -4,7 +4,7 @@ use std::sync::Arc;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 
-use crate::analyzers::service::{
+use crate::analyzers::{
     CachedRepositoryAnalysis, RepoAnalysisFallbackContract, example_fallback_contract,
     import_fallback_contract, module_fallback_contract, repository_search_artifacts,
     symbol_fallback_contract,
@@ -227,15 +227,13 @@ where
                             spec.fuzzy_options,
                         );
                         if let Some(result) =
-                            crate::analyzers::cache::load_cached_repository_search_result(
-                                &cache_key,
-                            )?
+                            crate::analyzers::load_cached_repository_search_result(&cache_key)?
                         {
                             return Ok(result);
                         }
 
                         let result = fallback(repo_id, search_query, limit, cached.clone())?;
-                        crate::analyzers::cache::store_cached_repository_search_result(
+                        crate::analyzers::store_cached_repository_search_result(
                             &cache_key, &result,
                         )?;
                         Ok(result)
@@ -331,18 +329,17 @@ where
     T: Serialize + DeserializeOwned,
     BuildFn: FnOnce(
         &crate::analyzers::RepositoryAnalysisOutput,
-        &crate::analyzers::cache::RepositorySearchArtifacts,
+        &crate::analyzers::RepositorySearchArtifacts,
     ) -> T,
 {
     let cache_key = repository_search_key(&cached.cache_key, scope, query, limit, fuzzy_options);
-    if let Some(result) = crate::analyzers::cache::load_cached_repository_search_result(&cache_key)?
-    {
+    if let Some(result) = crate::analyzers::load_cached_repository_search_result(&cache_key)? {
         return Ok(result);
     }
 
     let artifacts = repository_search_artifacts(&cached.cache_key, &cached.analysis)?;
     let result = build(&cached.analysis, artifacts.as_ref());
-    crate::analyzers::cache::store_cached_repository_search_result(&cache_key, &result)?;
+    crate::analyzers::store_cached_repository_search_result(&cache_key, &result)?;
     Ok(result)
 }
 

@@ -2,6 +2,7 @@ use std::collections::HashSet;
 use std::fs;
 
 use super::types::SearchPlaneService;
+use crate::search::cache::SearchPlaneFileFingerprintScope;
 use crate::search::{
     RepoContentChunkSearchFilters, SearchCorpusKind, SearchPublicationStorageFormat,
     SearchRepoCorpusRecord, SearchRepoPublicationInput, SearchRepoPublicationRecord,
@@ -223,10 +224,6 @@ impl SearchPlaneService {
         self.cache
             .set_repo_publication_for_revision(corpus, repo_id, &record)
             .await;
-        self.persist_local_repo_corpus_snapshot(&self.current_repo_corpus_snapshot_record());
-        self.cache
-            .set_repo_corpus_snapshot(&self.current_repo_corpus_snapshot_record())
-            .await;
         self.schedule_repo_compaction_if_needed(&corpus_record)
             .await;
     }
@@ -241,6 +238,23 @@ impl SearchPlaneService {
             self,
             repo_id,
             documents,
+            source_revision,
+        )
+        .await
+    }
+
+    pub(crate) async fn publish_repo_content_chunks_incremental_with_revision(
+        &self,
+        repo_id: &str,
+        changed_documents: &[crate::repo_index::RepoCodeDocument],
+        deleted_paths: &std::collections::BTreeSet<String>,
+        source_revision: Option<&str>,
+    ) -> Result<(), xiuxian_vector_store::VectorStoreError> {
+        crate::search::repo_content_chunk::publish_repo_content_chunks_incremental(
+            self,
+            repo_id,
+            changed_documents,
+            deleted_paths,
             source_revision,
         )
         .await
@@ -317,18 +331,13 @@ impl SearchPlaneService {
                 .remove(&(corpus, repo_id.to_string()));
             let _ = fs::remove_file(self.repo_corpus_record_json_path(corpus, repo_id));
         }
-        let corpus_snapshot = self.current_repo_corpus_snapshot_record();
-        let snapshot_is_empty = corpus_snapshot.records.is_empty();
-        if snapshot_is_empty {
-            let _ = fs::remove_file(self.repo_corpus_snapshot_json_path());
-        } else {
-            self.persist_local_repo_corpus_snapshot(&corpus_snapshot);
-        }
+        let _ = fs::remove_file(self.repo_corpus_snapshot_json_path());
         self.clear_repo_maintenance_for_repo(repo_id);
         #[cfg(test)]
         self.cache.clear_repo_shadow_for_tests(repo_id);
         if let Ok(handle) = tokio::runtime::Handle::try_current() {
             let cache = self.cache.clone();
+            let service = self.clone();
             let repo_id = repo_id.to_string();
             let repo_corpus_records = std::sync::Arc::clone(&self.repo_corpus_records);
             handle.spawn(async move {
@@ -338,17 +347,17 @@ impl SearchPlaneService {
                 cache
                     .delete_repo_corpus_record(SearchCorpusKind::RepoContentChunk, repo_id.as_str())
                     .await;
-                cache
-                    .delete_repo_corpus_file_fingerprints(
+                service
+                    .delete_file_fingerprints(SearchPlaneFileFingerprintScope::repo_corpus(
                         SearchCorpusKind::RepoEntity,
                         repo_id.as_str(),
-                    )
+                    ))
                     .await;
-                cache
-                    .delete_repo_corpus_file_fingerprints(
+                service
+                    .delete_file_fingerprints(SearchPlaneFileFingerprintScope::repo_corpus(
                         SearchCorpusKind::RepoContentChunk,
                         repo_id.as_str(),
-                    )
+                    ))
                     .await;
                 cache
                     .delete_repo_publication_revision_cache(
@@ -362,11 +371,7 @@ impl SearchPlaneService {
                         repo_id.as_str(),
                     )
                     .await;
-                if snapshot_is_empty {
-                    cache.delete_repo_corpus_snapshot().await;
-                } else {
-                    cache.set_repo_corpus_snapshot(&corpus_snapshot).await;
-                }
+                cache.delete_repo_corpus_snapshot().await;
                 repo_corpus_records
                     .write()
                     .unwrap_or_else(std::sync::PoisonError::into_inner)
@@ -412,21 +417,6 @@ impl SearchPlaneService {
             return;
         };
         let Ok(payload) = serde_json::to_vec(record) else {
-            return;
-        };
-        let _ = fs::create_dir_all(parent);
-        let _ = fs::write(path, payload);
-    }
-
-    pub(crate) fn persist_local_repo_corpus_snapshot(
-        &self,
-        snapshot: &crate::search::SearchRepoCorpusSnapshotRecord,
-    ) {
-        let path = self.repo_corpus_snapshot_json_path();
-        let Some(parent) = path.parent() else {
-            return;
-        };
-        let Ok(payload) = serde_json::to_vec(snapshot) else {
             return;
         };
         let _ = fs::create_dir_all(parent);

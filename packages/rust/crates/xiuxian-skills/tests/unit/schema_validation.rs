@@ -115,13 +115,14 @@ fn test_empty_tools_schema() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-/// Validates `test_skill_index.json` for data integrity.
+/// Validates the local skill-index fixture for data integrity.
 #[test]
 fn test_skill_index_json_data_integrity() -> Result<(), Box<dyn std::error::Error>> {
     use std::path::Path;
 
-    let test_file_path = Path::new("../../bindings/python/test_skill_index.json");
-    let content = fs::read_to_string(test_file_path).map_err(|error| {
+    let test_file_path =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/skill_index_fixture.json");
+    let content = fs::read_to_string(&test_file_path).map_err(|error| {
         io::Error::other(format!(
             "failed to read test file {test_file_path:?}: {error}"
         ))
@@ -129,7 +130,7 @@ fn test_skill_index_json_data_integrity() -> Result<(), Box<dyn std::error::Erro
 
     let skills: Vec<serde_json::Value> = serde_json::from_str(&content).map_err(|error| {
         io::Error::other(format!(
-            "failed to parse test_skill_index.json as valid JSON: {error}"
+            "failed to parse skill_index_fixture.json as valid JSON: {error}"
         ))
     })?;
 
@@ -177,7 +178,7 @@ fn test_skill_index_json_data_integrity() -> Result<(), Box<dyn std::error::Erro
 
     assert!(
         errors.is_empty(),
-        "test_skill_index.json has {} data integrity issues:\n{}",
+        "skill_index_fixture.json has {} data integrity issues:\n{}",
         errors.len(),
         errors.join("\n")
     );

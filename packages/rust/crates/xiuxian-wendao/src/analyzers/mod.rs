@@ -9,32 +9,52 @@
 //! - plugin registration and dispatch boundaries
 
 /// Analysis cache layer for repository intelligence results.
-pub mod cache;
+mod cache;
 /// Configuration types for repository registration.
-pub mod config;
+mod config;
 /// Error types for repository intelligence operations.
-pub mod errors;
+mod errors;
 /// Language-specific plugin guidance; plugin-specific public APIs live in the
 /// plugin crates.
-pub mod languages;
+mod languages;
 /// Plugin trait definitions and analysis context types.
-pub mod plugin;
+mod plugin;
 /// Projection layer for transforming analysis records into consumable outputs.
-pub mod projection;
+mod projection;
 /// Query request and response contracts.
-pub mod query;
+mod query;
 /// Normalized record types for repository understanding.
-pub mod records;
+mod records;
 /// Plugin registry for dynamic analyzer registration.
-pub mod registry;
+mod registry;
 mod repo_source;
 /// Saliency scoring for symbol and module importance.
-pub mod saliency;
+mod saliency;
 /// Analysis orchestration and repository processing services.
-pub mod service;
+mod service;
 /// Verification auditing (skeptic) for documentation coverage.
-pub mod skeptic;
+mod skeptic;
 
+#[cfg(feature = "zhenfa-router")]
+pub(crate) use cache::build_repository_analysis_cache_key;
+#[cfg(feature = "zhenfa-router")]
+pub use cache::load_cached_repository_analysis_for_revision;
+#[cfg(feature = "zhenfa-router")]
+pub(crate) use cache::{
+    FingerprintMode, RepositoryAnalysisValkeyScope, ValkeyAnalysisCache, analysis_fingerprint_mode,
+    change_affects_analysis_identity, plugin_ids_support_semantic_owner_reuse,
+    semantic_fingerprint_for_file,
+};
+pub use cache::{
+    RepositoryAnalysisCacheKey, RepositorySearchQueryCacheKey, load_cached_repository_analysis,
+    load_cached_repository_search_result, store_cached_repository_analysis,
+    store_cached_repository_search_result,
+};
+#[cfg(feature = "studio")]
+pub use cache::{
+    RepositorySearchArtifacts, load_cached_repository_search_artifacts,
+    store_cached_repository_search_artifacts,
+};
 pub use config::{
     RegisteredRepository, RepoIntelligenceConfig, RepositoryPluginConfig, RepositoryRef,
     RepositoryRefreshPolicy, load_repo_intelligence_config,
@@ -71,7 +91,9 @@ pub use query::{
     DocsPlannerRankResult, DocsPlannerSearchHit, DocsPlannerSearchQuery, DocsPlannerSearchResult,
     DocsPlannerWorksetBalance, DocsPlannerWorksetFamilyBalanceEntry, DocsPlannerWorksetFamilyGroup,
     DocsPlannerWorksetGapKindBalanceEntry, DocsPlannerWorksetGroup, DocsPlannerWorksetQuery,
-    DocsPlannerWorksetQuotaHint, DocsPlannerWorksetResult, DocsProjectedGapReportQuery,
+    DocsPlannerWorksetQuotaHint, DocsPlannerWorksetResult, DocsPlannerWorksetStrategy,
+    DocsPlannerWorksetStrategyCode, DocsPlannerWorksetStrategyReason,
+    DocsPlannerWorksetStrategyReasonCode, DocsProjectedGapReportQuery,
     DocsProjectedGapReportResult, DocsRetrievalContextQuery, DocsRetrievalContextResult,
     DocsRetrievalHitQuery, DocsRetrievalHitResult, DocsRetrievalQuery, DocsRetrievalResult,
     DocsSearchQuery, DocsSearchResult, ExampleSearchHit, ExampleSearchQuery, ExampleSearchResult,
@@ -106,6 +128,20 @@ pub use records::{
 };
 pub use registry::PluginRegistry;
 pub(crate) use repo_source::resolve_registered_repository_source;
+pub use saliency::compute_repository_saliency;
+#[cfg(all(feature = "zhenfa-router", test))]
+pub(crate) use service::DocsDocumentSegmentResult;
+#[cfg(feature = "search-runtime")]
+pub(crate) use service::canonical_import_query_text;
+#[cfg(feature = "studio")]
+pub(crate) use service::{
+    CachedRepositoryAnalysis, RepoAnalysisFallbackContract,
+    analyze_registered_repository_cached_bundle_with_registry,
+    analyze_registered_repository_target_file_with_registry,
+    build_repo_projected_page_search_with_artifacts, example_fallback_contract,
+    import_fallback_contract, module_fallback_contract, repository_search_artifacts,
+    symbol_fallback_contract,
+};
 pub use service::{
     DOCS_CONTRACT_IDS, DOCS_NAVIGATION_CONTRACT_ID, DOCS_RETRIEVAL_CONTEXT_CONTRACT_ID,
     DocsCapabilityContractAssets, DocsCapabilityContractSnapshot, DocsCliContractSnapshot,
@@ -117,6 +153,11 @@ pub use service::{
     JULIA_ARROW_TRACE_ID_COLUMN, JULIA_ARROW_VECTOR_SCORE_COLUMN, docs_capability_contract_assets,
     docs_capability_contract_snapshot, docs_capability_schema_snapshot, julia_arrow_request_schema,
     julia_arrow_response_schema,
+};
+#[cfg(feature = "zhenfa-router")]
+pub(crate) use service::{
+    DocsToolRuntime, DocsToolRuntimeHandle, IncrementalApplyContext, analyze_changed_files,
+    apply_incremental_plugin_outputs,
 };
 pub use service::{
     analyze_registered_repository, analyze_registered_repository_cached_with_registry,
@@ -193,3 +234,11 @@ pub use service::{
     repo_projected_retrieval_hit_from_config_with_registry, repo_sync_for_registered_repository,
     repo_sync_from_config, symbol_search_from_config, symbol_search_from_config_with_registry,
 };
+#[cfg(any(feature = "search-runtime", feature = "studio"))]
+pub(crate) use service::{
+    backlinks_for, documents_backlink_lookup, example_match_score, example_relation_lookup,
+    hierarchy_segments_from_path, import_match_score, infer_ecosystem, module_match_score,
+    normalized_rank_score, projection_page_lookup, projection_pages_for, record_hierarchical_uri,
+    related_modules_for_example, related_symbols_for_example, symbol_match_score,
+};
+pub use skeptic::{AuditResult, audit_symbols};

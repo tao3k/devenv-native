@@ -9,10 +9,6 @@ use crate::repo_index::state::task::{RepoIndexTask, RepoIndexTaskPriority};
 
 impl RepoIndexCoordinator {
     pub(crate) fn sync_repositories(&self, repositories: Vec<RegisteredRepository>) -> Vec<String> {
-        let repositories = repositories
-            .into_iter()
-            .filter(RegisteredRepository::has_repo_intelligence_plugins)
-            .collect::<Vec<_>>();
         self.hydrate_repositories_from_search_plane(repositories.as_slice());
         let active_ids = repositories
             .iter()
@@ -50,10 +46,6 @@ impl RepoIndexCoordinator {
         repositories: Vec<RegisteredRepository>,
         refresh: bool,
     ) -> Vec<String> {
-        let repositories = repositories
-            .into_iter()
-            .filter(RegisteredRepository::has_repo_intelligence_plugins)
-            .collect::<Vec<_>>();
         let mut enqueued = Vec::new();
         for repository in repositories {
             let repo_fingerprint = fingerprint(&repository);

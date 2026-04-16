@@ -16,8 +16,12 @@ use super::query_contract::{
     WENDAO_SCHEMA_VERSION_HEADER, flight_descriptor_path, normalize_flight_route,
 };
 
-/// Lazy Arrow Flight client aligned to the workspace Arrow Flight transport line.
-pub(crate) const DEFAULT_FLIGHT_MESSAGE_SIZE_BYTES: usize = 64 * 1024 * 1024;
+/// Lazy Arrow Flight client aligned to the workspace Arrow Flight transport
+/// line.
+///
+/// This matches the `WendaoSearch` parser-summary server default so dense
+/// parser-summary responses do not silently truncate below the server ceiling.
+pub(crate) const DEFAULT_FLIGHT_MESSAGE_SIZE_BYTES: usize = 256 * 1024 * 1024;
 
 #[derive(Clone)]
 pub(crate) struct ArrowFlightTransportClient {
@@ -123,10 +127,15 @@ impl ArrowFlightTransportClient {
             return Err("Arrow Flight request batches cannot be empty".to_string());
         }
 
+        let first_batch = batches
+            .first()
+            .ok_or_else(|| "Arrow Flight request batches cannot be empty".to_string())?;
         let rerank_dimension_header = rerank_dimension_header(self.route.as_str(), batches)?;
         let request_batches = batches.to_vec();
         let request_stream = FlightDataEncoderBuilder::new()
+            .with_schema(first_batch.schema())
             .with_flight_descriptor(Some(flight_descriptor(self.route.as_str())))
+            .with_max_flight_data_size(DEFAULT_FLIGHT_MESSAGE_SIZE_BYTES)
             .build(stream::iter(request_batches.into_iter().map(
                 Ok::<EngineRecordBatch, arrow_flight::error::FlightError>,
             )));

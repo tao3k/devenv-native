@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-use crate::analyzers::records::{RelationKind, RelationRecord};
+use crate::analyzers::{RelationKind, RelationRecord};
 
 pub(super) fn dedupe_relations(relations: &mut Vec<RelationRecord>) {
     let mut seen = BTreeSet::new();

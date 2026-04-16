@@ -19,7 +19,11 @@ pub(crate) use agentic::AgenticCommand;
 pub(crate) use attachments::AttachmentsArgs;
 pub(crate) use audit::AuditArgs;
 pub(crate) use command::Command;
-pub(crate) use docs::DocsCommand;
+pub(crate) use docs::{
+    DocsCommand, DocsContextArgs, DocsNavigationArgs, DocsNodeArgs, DocsPageArgs,
+    DocsSearchStructureArgs, DocsSegmentArgs, DocsStructureCatalogArgs, DocsTocArgs, DocsTreeArgs,
+    DocsTreeOutlineArgs,
+};
 pub(crate) use fix::FixArgs;
 #[cfg(feature = "zhenfa-router")]
 pub(crate) use gateway::{GatewayArgs, GatewayCommand, GatewayStartArgs};

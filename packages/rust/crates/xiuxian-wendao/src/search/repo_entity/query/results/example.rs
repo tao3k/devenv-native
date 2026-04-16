@@ -1,13 +1,13 @@
 use std::collections::HashSet;
 
-use crate::analyzers::query::ExampleSearchResult;
+use crate::analyzers::ExampleSearchResult;
 use crate::search::SearchCorpusKind;
 use crate::search::SearchPlaneService;
 use crate::search::repo_entity::query::hydrate::build_example_search_result;
-use crate::search::repo_entity::query::results::shared::load_hydrated_rows;
-use crate::search::repo_entity::query::search::{
+use crate::search::repo_entity::query::lookup::{
     PreparedRepoEntitySearch, RepoEntitySearchError, fixed_kind_filters, prepare_repo_entity_search,
 };
+use crate::search::repo_entity::query::results::shared::load_hydrated_rows;
 
 pub(crate) async fn search_repo_entity_example_results(
     service: &SearchPlaneService,

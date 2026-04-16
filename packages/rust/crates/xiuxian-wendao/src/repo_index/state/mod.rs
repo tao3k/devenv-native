@@ -5,6 +5,8 @@ mod fingerprint;
 mod language;
 mod task;
 
+#[cfg(feature = "performance")]
+pub(crate) use collect::{collect_code_documents, collect_incremental_code_documents};
 pub(crate) use coordinator::RepoIndexCoordinator;
 #[cfg(feature = "performance")]
 pub(crate) use task::{

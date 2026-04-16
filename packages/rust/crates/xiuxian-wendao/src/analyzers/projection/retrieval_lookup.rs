@@ -1,8 +1,8 @@
-use crate::analyzers::errors::RepoIntelligenceError;
-use crate::analyzers::plugin::RepositoryAnalysisOutput;
+use crate::analyzers::RepoIntelligenceError;
+use crate::analyzers::RepositoryAnalysisOutput;
 use crate::analyzers::projection::lookup::build_projected_page;
 use crate::analyzers::projection::node_lookup::build_repo_projected_page_index_node;
-use crate::analyzers::query::{
+use crate::analyzers::{
     ProjectedRetrievalHit, ProjectedRetrievalHitKind, RepoProjectedPageQuery,
     RepoProjectedRetrievalHitQuery, RepoProjectedRetrievalHitResult,
 };
@@ -28,7 +28,7 @@ pub fn build_projected_retrieval_hit(
 
     let node = if let Some(node_id) = &query.node_id {
         let node_result = build_repo_projected_page_index_node(
-            &crate::analyzers::query::RepoProjectedPageIndexNodeQuery {
+            &crate::analyzers::RepoProjectedPageIndexNodeQuery {
                 repo_id: query.repo_id.clone(),
                 page_id: query.page_id.clone(),
                 node_id: node_id.clone(),

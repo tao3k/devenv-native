@@ -34,5 +34,5 @@ pub use types::{AffectedDoc, DriftConfidence, SemanticDriftSignal};
 pub use watch::{Sentinel, SentinelConfig};
 
 #[cfg(test)]
-#[path = "../../../../tests/unit/zhenfa_router/native/sentinel.rs"]
+#[path = "../../../../tests/unit/zhenfa_router/native/sentinel/mod.rs"]
 mod tests;

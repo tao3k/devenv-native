@@ -4,7 +4,7 @@ use crate::analyzers::projection::builder::kinds::doc_projection_kind;
 
 #[test]
 fn doc_projection_kind_honors_reference_format_without_symbol_targets() {
-    let doc = crate::analyzers::records::DocRecord {
+    let doc = crate::analyzers::DocRecord {
         repo_id: "repo".to_string(),
         doc_id: "repo:doc:solve".to_string(),
         title: "Solve Linear Systems".to_string(),
@@ -21,7 +21,7 @@ fn doc_projection_kind_honors_reference_format_without_symbol_targets() {
 
 #[test]
 fn doc_projection_kind_upgrades_explanation_docs_when_symbol_anchored() {
-    let doc = crate::analyzers::records::DocRecord {
+    let doc = crate::analyzers::DocRecord {
         repo_id: "repo".to_string(),
         doc_id: "repo:doc:solver".to_string(),
         title: "Solver Notes".to_string(),

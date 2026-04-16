@@ -33,6 +33,7 @@ use super::{
     JULIA_PARSER_SUMMARY_SUCCESS_COLUMN, JuliaParserSummaryRequestRow,
     build_julia_parser_summary_request_batch, decode_julia_parser_file_summary,
     decode_julia_parser_root_summary, decode_julia_parser_summary_response_rows,
+    validate_julia_parser_summary_response_batches,
 };
 use crate::plugin::parser_summary::transport::ParserSummaryRouteKind;
 use crate::plugin::parser_summary::types::{
@@ -133,6 +134,17 @@ fn decode_parser_summary_rows_materializes_file_and_root_summaries() {
         }
     );
     assert_eq!(file_summary.module_name.as_deref(), Some("Demo"));
+}
+
+#[test]
+fn parser_summary_response_batches_reject_empty_batch_lists() {
+    let error = validate_julia_parser_summary_response_batches(&[])
+        .expect_err("empty response batch lists should fail validation");
+    let message = error.to_string();
+    assert!(
+        message.contains("response stream returned no record batches"),
+        "unexpected error message: {message}"
+    );
 }
 
 fn sample_response_batch() -> RecordBatch {

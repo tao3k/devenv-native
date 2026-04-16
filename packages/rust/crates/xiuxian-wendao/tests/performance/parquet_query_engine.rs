@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use serial_test::file_serial;
 use tempfile::TempDir;
 use xiuxian_testing::{PerfBudget, PerfReport, PerfRunConfig, assert_perf_budget, run_sync_budget};
 use xiuxian_vector::{
@@ -28,6 +29,7 @@ ORDER BY line_no DESC \
 LIMIT 32";
 
 #[test]
+#[file_serial(wendao_perf_gate)]
 fn parquet_query_engine_duckdb_vs_datafusion_p95_gate() -> Result<(), String> {
     let fixture = build_parquet_fixture().map_err(|error| error.to_string())?;
     let datafusion_engine = ParquetQueryEngine::DataFusion(DataFusionParquetQueryEngine::new(
@@ -115,7 +117,10 @@ fn query_engine_once(
     let batches = runtime
         .block_on(engine.query_batches(SQL))
         .map_err(|error| format!("failed to execute parquet perf query: {error}"))?;
-    let row_count = batches.iter().map(|batch| batch.num_rows()).sum::<usize>();
+    let row_count = batches
+        .iter()
+        .map(xiuxian_vector::EngineRecordBatch::num_rows)
+        .sum::<usize>();
     if row_count != EXPECTED_RESULT_ROWS {
         return Err(format!(
             "expected {EXPECTED_RESULT_ROWS} parquet perf rows, got {row_count}"
@@ -152,13 +157,13 @@ fn p95_ratio(datafusion: &PerfReport, duckdb: &PerfReport) -> f64 {
 }
 
 struct ParquetFixture {
-    _temp_dir: TempDir,
+    temp_dir: TempDir,
     parquet_path: std::path::PathBuf,
 }
 
 impl ParquetFixture {
     fn root_path(&self) -> &std::path::Path {
-        self._temp_dir.path()
+        self.temp_dir.path()
     }
 
     fn parquet_path(&self) -> &std::path::Path {
@@ -219,7 +224,7 @@ fn build_parquet_fixture() -> Result<ParquetFixture, Box<dyn std::error::Error>>
     write_lance_batches_to_parquet_file(&parquet_path, &[batch])?;
 
     Ok(ParquetFixture {
-        _temp_dir: temp_dir,
+        temp_dir,
         parquet_path,
     })
 }

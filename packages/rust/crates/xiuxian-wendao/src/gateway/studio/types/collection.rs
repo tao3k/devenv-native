@@ -4,8 +4,8 @@ use super::{
     ApiError, AstSearchResponse, AttachmentSearchResponse, AutocompleteResponse,
     CodeAstAnalysisResponse, DefinitionResolveResponse, GraphNeighborsResponse,
     MarkdownAnalysisResponse, ReferenceSearchResponse, SearchResponse, SymbolSearchResponse,
-    Topology3dPayload, UiConfig, UiPluginArtifact, UiPluginLaunchSpec, VfsContentResponse,
-    VfsEntry, VfsScanEntry, VfsScanResult,
+    Topology3dPayload, UiCapabilities, UiConfig, UiPluginArtifact, UiPluginLaunchSpec,
+    VfsContentResponse, VfsEntry, VfsScanEntry, VfsScanResult,
 };
 
 /// Build the plugin-only Studio Specta type collection.
@@ -25,6 +25,7 @@ pub fn studio_frontend_type_collection() -> TypeCollection {
         .register::<VfsScanEntry>()
         .register::<VfsScanResult>()
         .register::<VfsContentResponse>()
+        .register::<UiCapabilities>()
         .register::<UiConfig>()
         .register::<GraphNeighborsResponse>()
         .register::<Topology3dPayload>()

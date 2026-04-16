@@ -1,8 +1,8 @@
 use std::collections::BTreeSet;
 use std::path::Path;
 
-use xiuxian_wendao::search::queries::sql::bounded_work_markdown::query_bounded_work_markdown_payload;
 use xiuxian_wendao_core::SqlQueryPayload;
+use xiuxian_wendao_sql::bounded_work_markdown::query_bounded_work_markdown_payload;
 
 use crate::error::QianjiError;
 

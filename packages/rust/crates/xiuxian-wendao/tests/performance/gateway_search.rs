@@ -265,28 +265,28 @@ async fn collect_gateway_case_diagnostics_with_repo_read_pressure_records_gate_s
 }
 
 #[tokio::test]
-#[file_serial(formal_gateway_search_perf)]
+#[file_serial(wendao_perf_gate)]
 async fn repo_module_search_perf_gate_reports_warm_cache_latency_formal_gate() -> Result<()> {
     let fixture = prepare_gateway_perf_fixture().await?;
     assert_status_perf_case(&fixture, REPO_MODULE_SEARCH_CASE, REPO_MODULE_SEARCH_URI).await
 }
 
 #[tokio::test]
-#[file_serial(formal_gateway_search_perf)]
+#[file_serial(wendao_perf_gate)]
 async fn repo_symbol_search_perf_gate_reports_warm_cache_latency_formal_gate() -> Result<()> {
     let fixture = prepare_gateway_perf_fixture().await?;
     assert_status_perf_case(&fixture, REPO_SYMBOL_SEARCH_CASE, REPO_SYMBOL_SEARCH_URI).await
 }
 
 #[tokio::test]
-#[file_serial(formal_gateway_search_perf)]
+#[file_serial(wendao_perf_gate)]
 async fn repo_example_search_perf_gate_reports_warm_cache_latency_formal_gate() -> Result<()> {
     let fixture = prepare_gateway_perf_fixture().await?;
     assert_status_perf_case(&fixture, REPO_EXAMPLE_SEARCH_CASE, REPO_EXAMPLE_SEARCH_URI).await
 }
 
 #[tokio::test]
-#[file_serial(formal_gateway_search_perf)]
+#[file_serial(wendao_perf_gate)]
 async fn repo_projected_page_search_perf_gate_reports_warm_cache_latency_formal_gate() -> Result<()>
 {
     let fixture = prepare_gateway_perf_fixture().await?;
@@ -299,7 +299,7 @@ async fn repo_projected_page_search_perf_gate_reports_warm_cache_latency_formal_
 }
 
 #[tokio::test]
-#[file_serial(formal_gateway_search_perf)]
+#[file_serial(wendao_perf_gate)]
 async fn search_index_status_perf_gate_reports_query_telemetry_summary_formal_gate() -> Result<()> {
     let fixture = prepare_gateway_perf_fixture().await?;
     fixture
@@ -517,7 +517,7 @@ async fn search_index_status_perf_gate_reports_query_telemetry_summary_formal_ga
 
 #[tokio::test]
 #[ignore = "manual large-workspace gateway perf scenario"]
-#[file_serial(formal_gateway_search_perf)]
+#[file_serial(wendao_perf_gate)]
 async fn gateway_perf_reports_real_workspace_scale_real_workspace() -> Result<()> {
     let fixture = prepare_gateway_real_workspace_perf_fixture().await?;
     assert_real_workspace_repo_index_status_sample(&fixture).await
@@ -525,7 +525,7 @@ async fn gateway_perf_reports_real_workspace_scale_real_workspace() -> Result<()
 
 #[tokio::test]
 #[ignore = "manual large-workspace repo-index live audit"]
-#[file_serial(formal_gateway_search_perf)]
+#[file_serial(wendao_perf_gate)]
 async fn gateway_perf_audits_real_workspace_repo_index_distinctions_live() -> Result<()> {
     let fixture = prepare_gateway_real_workspace_perf_fixture().await?;
     let report =
@@ -560,7 +560,7 @@ async fn gateway_perf_audits_real_workspace_repo_index_distinctions_live() -> Re
 
 #[tokio::test]
 #[ignore = "manual large-workspace repo-index full live audit"]
-#[file_serial(formal_gateway_search_perf)]
+#[file_serial(wendao_perf_gate)]
 async fn gateway_perf_audits_real_workspace_repo_index_full_run_live() -> Result<()> {
     let fixture = prepare_gateway_real_workspace_perf_fixture().await?;
     let report =
@@ -605,7 +605,7 @@ async fn gateway_perf_audits_real_workspace_repo_index_full_run_live() -> Result
 
 #[tokio::test]
 #[ignore = "manual large-workspace repo-index mixed gateway load audit"]
-#[file_serial(formal_gateway_search_perf)]
+#[file_serial(wendao_perf_gate)]
 async fn gateway_perf_audits_real_workspace_repo_index_mixed_gateway_load_live() -> Result<()> {
     let fixture = prepare_gateway_real_workspace_perf_fixture().await?;
     let report = audit_real_workspace_repo_index_under_query_load(

@@ -17,5 +17,5 @@ pub(crate) use xiuxian_wendao_parsers::sections::{
 };
 
 #[cfg(test)]
-#[path = "../../../../tests/unit/parsers/markdown/sections.rs"]
+#[path = "../../../../tests/unit/parsers/markdown/sections/mod.rs"]
 mod tests;

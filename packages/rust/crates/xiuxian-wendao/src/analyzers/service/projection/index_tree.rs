@@ -1,13 +1,14 @@
 use std::path::Path;
 
-use crate::analyzers::errors::RepoIntelligenceError;
-use crate::analyzers::plugin::RepositoryAnalysisOutput;
+use crate::analyzers::PluginRegistry;
+use crate::analyzers::RepoIntelligenceError;
+use crate::analyzers::RepositoryAnalysisOutput;
 use crate::analyzers::projection::{
     build_projected_page_index_documents, build_projected_page_index_node,
     build_projected_page_index_tree, build_projected_page_index_tree_search,
     build_projected_page_index_trees,
 };
-use crate::analyzers::query::{
+use crate::analyzers::{
     DocsPageIndexDocumentsQuery, DocsPageIndexDocumentsResult, DocsPageIndexNodeQuery,
     DocsPageIndexNodeResult, DocsPageIndexTreeQuery, DocsPageIndexTreeResult,
     DocsPageIndexTreeSearchQuery, DocsPageIndexTreeSearchResult, DocsPageIndexTreesQuery,
@@ -16,7 +17,6 @@ use crate::analyzers::query::{
     RepoProjectedPageIndexTreeSearchQuery, RepoProjectedPageIndexTreeSearchResult,
     RepoProjectedPageIndexTreesQuery, RepoProjectedPageIndexTreesResult,
 };
-use crate::analyzers::registry::PluginRegistry;
 
 use super::registry::{with_bootstrapped_repository_analysis, with_repository_analysis};
 

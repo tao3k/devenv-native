@@ -1,12 +1,12 @@
 use std::collections::{BTreeMap, HashMap};
 use std::sync::Arc;
 
+use crate::analyzers::RepoIntelligenceError;
+use crate::analyzers::RepositoryAnalysisOutput;
 use crate::analyzers::cache::{
     RepositoryAnalysisCacheKey, RepositorySearchArtifacts, load_cached_repository_search_artifacts,
     store_cached_repository_search_artifacts,
 };
-use crate::analyzers::errors::RepoIntelligenceError;
-use crate::analyzers::plugin::RepositoryAnalysisOutput;
 use crate::analyzers::projection::{build_projected_page_search_index, build_projected_pages};
 use crate::search::SearchDocumentIndex;
 

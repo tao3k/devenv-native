@@ -6,6 +6,7 @@ use crate::analyzers::{
     ExampleRecord, ModuleRecord, RepoSymbolKind, RepositoryAnalysisOutput, SymbolRecord,
 };
 use crate::repo_index::RepoCodeDocument;
+use crate::search::cache::SearchPlaneFileFingerprintScope;
 use crate::search::repo_entity::build::{
     RepoEntityBuildAction, plan_repo_entity_build, publish_repo_entities,
     repo_entity_file_fingerprints,
@@ -365,7 +366,10 @@ async fn repo_entity_incremental_refresh_reuses_unchanged_rows() {
     .await;
 
     let fingerprints = service
-        .repo_corpus_file_fingerprints(SearchCorpusKind::RepoEntity, "alpha/repo")
+        .file_fingerprints(SearchPlaneFileFingerprintScope::repo_corpus(
+            SearchCorpusKind::RepoEntity,
+            "alpha/repo",
+        ))
         .await;
     assert_eq!(fingerprints.len(), 2);
     assert_eq!(

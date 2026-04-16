@@ -1,8 +1,6 @@
 use std::path::Path;
 
-use crate::gateway::studio::search::definition::{
-    DefinitionResolveOptions, resolve_best_definition,
-};
+use crate::gateway::studio::search::{DefinitionResolveOptions, resolve_best_definition};
 use crate::gateway::studio::types::StudioNavigationTarget;
 
 fn ast_hit(name: &str) -> crate::gateway::studio::types::AstSearchHit {

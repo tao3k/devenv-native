@@ -18,8 +18,8 @@ use super::{
     entity_kind_column, hit_json_column, id_column, language_column, path_column,
     projected_columns, search_text_column, symbol_kind_column,
 };
-use crate::analyzers::plugin::RepositoryAnalysisOutput;
-use crate::analyzers::records::{
+use crate::analyzers::RepositoryAnalysisOutput;
+use crate::analyzers::{
     DocRecord, ExampleRecord, ModuleRecord, RelationKind, RelationRecord, RepoSymbolKind,
     RepositoryRecord, SymbolRecord,
 };

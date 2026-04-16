@@ -7,6 +7,7 @@ mod content;
 mod links;
 mod paths;
 mod relations;
+#[cfg(any(feature = "zhenfa-router", test))]
 pub(crate) mod section_create;
 mod sections;
 mod time;

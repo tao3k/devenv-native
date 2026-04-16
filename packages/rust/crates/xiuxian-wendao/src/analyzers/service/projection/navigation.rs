@@ -1,16 +1,16 @@
 use std::path::Path;
 
-use crate::analyzers::errors::RepoIntelligenceError;
-use crate::analyzers::plugin::RepositoryAnalysisOutput;
+use crate::analyzers::PluginRegistry;
+use crate::analyzers::RepoIntelligenceError;
+use crate::analyzers::RepositoryAnalysisOutput;
 use crate::analyzers::projection::{
     build_projected_page_navigation, build_projected_page_navigation_search,
 };
-use crate::analyzers::query::{
+use crate::analyzers::{
     DocsNavigationQuery, DocsNavigationResult, RepoProjectedPageNavigationQuery,
     RepoProjectedPageNavigationResult, RepoProjectedPageNavigationSearchQuery,
     RepoProjectedPageNavigationSearchResult,
 };
-use crate::analyzers::registry::PluginRegistry;
 
 use super::registry::{with_bootstrapped_repository_analysis, with_repository_analysis};
 
@@ -83,9 +83,9 @@ pub fn docs_navigation_from_config(
 /// Returns [`RepoIntelligenceError`] when a matched projected page cannot be expanded into a
 /// deterministic navigation bundle.
 pub fn build_docs_navigation_search(
-    query: &crate::analyzers::query::DocsNavigationSearchQuery,
+    query: &crate::analyzers::DocsNavigationSearchQuery,
     analysis: &RepositoryAnalysisOutput,
-) -> Result<crate::analyzers::query::DocsNavigationSearchResult, RepoIntelligenceError> {
+) -> Result<crate::analyzers::DocsNavigationSearchResult, RepoIntelligenceError> {
     build_repo_projected_page_navigation_search(
         &RepoProjectedPageNavigationSearchQuery {
             repo_id: query.repo_id.clone(),
@@ -108,11 +108,11 @@ pub fn build_docs_navigation_search(
 /// Returns [`RepoIntelligenceError`] when repository analysis fails or a matched projected page
 /// cannot be expanded into a deterministic navigation bundle.
 pub fn docs_navigation_search_from_config_with_registry(
-    query: &crate::analyzers::query::DocsNavigationSearchQuery,
+    query: &crate::analyzers::DocsNavigationSearchQuery,
     config_path: Option<&Path>,
     cwd: &Path,
     registry: &PluginRegistry,
-) -> Result<crate::analyzers::query::DocsNavigationSearchResult, RepoIntelligenceError> {
+) -> Result<crate::analyzers::DocsNavigationSearchResult, RepoIntelligenceError> {
     with_repository_analysis(&query.repo_id, config_path, cwd, registry, |analysis| {
         build_docs_navigation_search(query, analysis)
     })
@@ -126,10 +126,10 @@ pub fn docs_navigation_search_from_config_with_registry(
 /// Returns [`RepoIntelligenceError`] when repository analysis fails or a matched projected page
 /// cannot be expanded into a deterministic navigation bundle.
 pub fn docs_navigation_search_from_config(
-    query: &crate::analyzers::query::DocsNavigationSearchQuery,
+    query: &crate::analyzers::DocsNavigationSearchQuery,
     config_path: Option<&Path>,
     cwd: &Path,
-) -> Result<crate::analyzers::query::DocsNavigationSearchResult, RepoIntelligenceError> {
+) -> Result<crate::analyzers::DocsNavigationSearchResult, RepoIntelligenceError> {
     with_bootstrapped_repository_analysis(&query.repo_id, config_path, cwd, |analysis| {
         build_docs_navigation_search(query, analysis)
     })

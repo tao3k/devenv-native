@@ -7,12 +7,12 @@ use crate::gateway::studio::types::{AnalysisEdgeKind, AnalysisNodeKind, Markdown
 use crate::parsers::markdown::code_observation::CodeObservation;
 
 #[derive(Debug, Default)]
-pub(super) struct DefinitionObservationHints {
+pub(in crate::gateway::studio::search) struct DefinitionObservationHints {
     pub(super) scope_patterns: Vec<String>,
     pub(super) languages: Vec<String>,
 }
 
-pub(super) async fn definition_observation_hints(
+pub(in crate::gateway::studio::search) async fn definition_observation_hints(
     state: &StudioState,
     source_paths: Option<&[String]>,
     source_line: Option<usize>,

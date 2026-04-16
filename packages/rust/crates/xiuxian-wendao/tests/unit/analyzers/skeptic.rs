@@ -1,6 +1,6 @@
 use crate::analyzers::RepoSymbolKind;
-use crate::analyzers::records::{DocRecord, RelationKind, RelationRecord, SymbolRecord};
-use crate::analyzers::skeptic::audit_symbols;
+use crate::analyzers::audit_symbols;
+use crate::analyzers::{DocRecord, RelationKind, RelationRecord, SymbolRecord};
 use std::collections::BTreeMap;
 
 #[test]

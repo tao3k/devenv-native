@@ -2,17 +2,14 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use crate::repo_index::{RepoIndexEntryStatus, RepoIndexPhase};
 use crate::search::service::core::types::{RepoRuntimeState, SearchPlaneService};
-use crate::search::{
-    SearchCorpusKind, SearchRepoCorpusRecord, SearchRepoCorpusSnapshotRecord,
-    SearchRepoPublicationRecord,
-};
+use crate::search::{SearchCorpusKind, SearchRepoCorpusRecord, SearchRepoPublicationRecord};
 
 impl SearchPlaneService {
     pub(crate) fn repo_index_bootstrap_statuses(
         &self,
         repo_ids: &[String],
     ) -> BTreeMap<String, RepoIndexEntryStatus> {
-        let records = self.repo_corpus_snapshot_for_bootstrap(repo_ids);
+        let records = self.repo_corpus_records_for_bootstrap(repo_ids);
         repo_ids
             .iter()
             .filter_map(|repo_id| {
@@ -29,70 +26,58 @@ impl SearchPlaneService {
             .collect()
     }
 
-    fn repo_corpus_snapshot_for_bootstrap(
+    fn repo_corpus_records_for_bootstrap(
         &self,
         repo_ids: &[String],
     ) -> BTreeMap<(SearchCorpusKind, String), SearchRepoCorpusRecord> {
         let repo_ids = repo_ids.iter().cloned().collect::<BTreeSet<_>>();
-        let current = self
-            .repo_corpus_records
-            .read()
-            .unwrap_or_else(std::sync::PoisonError::into_inner)
-            .clone();
-        if !current.is_empty() {
-            return Self::filter_repo_corpus_records(current, &repo_ids);
+        let mut records = Self::filter_repo_corpus_records(
+            self.repo_corpus_records
+                .read()
+                .unwrap_or_else(std::sync::PoisonError::into_inner)
+                .clone(),
+            &repo_ids,
+        );
+        let mut missing_keys = Self::missing_bootstrap_record_keys(&records, &repo_ids);
+        if !missing_keys.is_empty() {
+            records.extend(
+                self.load_cached_repo_corpus_records_for_bootstrap(missing_keys.as_slice()),
+            );
+            missing_keys = Self::missing_bootstrap_record_keys(&records, &repo_ids);
         }
-        if let Some(snapshot) = self.cache.get_repo_corpus_snapshot_blocking() {
-            return Self::filter_repo_corpus_snapshot(snapshot, &repo_ids);
-        }
-        if let Some(snapshot) = self.load_local_repo_corpus_snapshot() {
-            return Self::filter_repo_corpus_snapshot(snapshot, &repo_ids);
-        }
-        let cached_records = self.load_cached_repo_corpus_records_for_bootstrap(&repo_ids);
-        if !cached_records.is_empty() {
-            return cached_records;
-        }
-        self.load_local_repo_corpus_records_for_bootstrap(&repo_ids)
-    }
-
-    fn filter_repo_corpus_records(
-        records: BTreeMap<(SearchCorpusKind, String), SearchRepoCorpusRecord>,
-        repo_ids: &BTreeSet<String>,
-    ) -> BTreeMap<(SearchCorpusKind, String), SearchRepoCorpusRecord> {
-        if repo_ids.is_empty() {
-            return records;
+        if !missing_keys.is_empty() {
+            records
+                .extend(self.load_local_repo_corpus_records_for_bootstrap(missing_keys.as_slice()));
         }
         records
-            .into_iter()
-            .filter(|(_, record)| repo_ids.contains(&record.repo_id))
-            .collect()
     }
 
-    fn filter_repo_corpus_snapshot(
-        snapshot: SearchRepoCorpusSnapshotRecord,
+    fn missing_bootstrap_record_keys(
+        records: &BTreeMap<(SearchCorpusKind, String), SearchRepoCorpusRecord>,
         repo_ids: &BTreeSet<String>,
-    ) -> BTreeMap<(SearchCorpusKind, String), SearchRepoCorpusRecord> {
-        snapshot
-            .records
-            .into_iter()
-            .filter(|record| repo_ids.is_empty() || repo_ids.contains(&record.repo_id))
-            .map(|record| ((record.corpus, record.repo_id.clone()), record))
+    ) -> Vec<(SearchCorpusKind, String)> {
+        repo_ids
+            .iter()
+            .flat_map(|repo_id| {
+                [
+                    SearchCorpusKind::RepoEntity,
+                    SearchCorpusKind::RepoContentChunk,
+                ]
+                .into_iter()
+                .map(move |corpus| (corpus, repo_id.clone()))
+            })
+            .filter(|key| !records.contains_key(key))
             .collect()
     }
 
     fn load_local_repo_corpus_records_for_bootstrap(
         &self,
-        repo_ids: &BTreeSet<String>,
+        keys: &[(SearchCorpusKind, String)],
     ) -> BTreeMap<(SearchCorpusKind, String), SearchRepoCorpusRecord> {
         let mut records = BTreeMap::new();
-        for repo_id in repo_ids {
-            for corpus in [
-                SearchCorpusKind::RepoEntity,
-                SearchCorpusKind::RepoContentChunk,
-            ] {
-                if let Some(record) = self.load_local_repo_corpus_record(corpus, repo_id.as_str()) {
-                    records.insert((corpus, repo_id.clone()), record);
-                }
+        for (corpus, repo_id) in keys {
+            if let Some(record) = self.load_local_repo_corpus_record(*corpus, repo_id.as_str()) {
+                records.insert((*corpus, repo_id.clone()), record);
             }
         }
         records
@@ -100,23 +85,9 @@ impl SearchPlaneService {
 
     fn load_cached_repo_corpus_records_for_bootstrap(
         &self,
-        repo_ids: &BTreeSet<String>,
+        keys: &[(SearchCorpusKind, String)],
     ) -> BTreeMap<(SearchCorpusKind, String), SearchRepoCorpusRecord> {
-        let mut records = BTreeMap::new();
-        for repo_id in repo_ids {
-            for corpus in [
-                SearchCorpusKind::RepoEntity,
-                SearchCorpusKind::RepoContentChunk,
-            ] {
-                if let Some(record) = self
-                    .cache
-                    .get_repo_corpus_record_blocking(corpus, repo_id.as_str())
-                {
-                    records.insert((corpus, repo_id.clone()), record);
-                }
-            }
-        }
-        records
+        self.cache.get_repo_corpus_records_blocking(keys)
     }
 
     fn repo_index_bootstrap_status_from_records(

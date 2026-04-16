@@ -1,5 +1,5 @@
+use crate::analyzers::RegisteredRepository;
 use crate::analyzers::cache::identity::collect_repository_analysis_identity;
-use crate::analyzers::config::RegisteredRepository;
 use crate::search::FuzzySearchOptions;
 use xiuxian_git_repo::{LocalCheckoutMetadata, MaterializedRepo};
 

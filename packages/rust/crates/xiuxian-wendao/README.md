@@ -207,7 +207,8 @@ The stable runtime metadata keys are:
 
 ### Bounded Work Markdown SQL Surface
 
-`xiuxian-wendao` now also exposes a first bounded-work markdown SQL helper at
+`xiuxian-wendao-sql` now owns the bounded-work markdown SQL helper, while
+`xiuxian-wendao` keeps a compatibility re-export at
 `xiuxian_wendao::search::queries::sql::bounded_work_markdown`.
 
 That helper scans only the `blueprint/` and `plan/` surfaces of a bounded
@@ -216,8 +217,9 @@ workdir, builds the RFC-minimum `markdown` rows (`path`, `surface`,
 an in-memory DataFusion table. The same surface now also provides one opt-in
 bootstrap helper that creates a fresh query engine and registers the bounded
 `markdown` table in one step, plus one stable payload helper that executes SQL
-directly over that bounded-work surface. This slice is intentionally local: it
-does not yet wire the `markdown` table into the global Wendao SQL surface
+directly over that bounded-work surface. This slice remains intentionally
+local: it does not yet wire the `markdown` table into the global Wendao SQL
+surface.
 collector.
 
 The bundled OpenAPI artifact now keeps only the JSON control plane for these
@@ -582,7 +584,7 @@ local symbol retrieval. The canonical search-plane owner path is now
 Instead it is split into:
 
 - `local_symbol/query/autocomplete/mod.rs` and `autocomplete/route.rs`
-- `local_symbol/query/search/mod.rs` and `search/route.rs`
+- `local_symbol/query/lookup/mod.rs` and `lookup/route.rs`
 - `local_symbol/query/shared/readiness.rs` for shared read-table preparation
 - `local_symbol/query/tests/{fixtures,search,autocomplete}.rs`
 
@@ -591,31 +593,31 @@ The same search-plane rule now also covers reference occurrences.
 `decode.rs`, `search.rs`, and one flat `tests.rs` in the root. It is now split
 into:
 
-- `reference_occurrence/query/search/mod.rs`
-- `reference_occurrence/query/search/{route,candidates,decode,helpers}.rs`
+- `reference_occurrence/query/lookup/mod.rs`
+- `reference_occurrence/query/lookup/{route,candidates,decode,helpers}.rs`
 - `reference_occurrence/query/tests/{fixtures,search}.rs`
 
 The same rule now also covers knowledge sections. The old flat
 `search/knowledge_section/query/{candidates,errors,ranking,search,tests}.rs`
 set is gone. It is now split into:
 
-- `knowledge_section/query/search/mod.rs`
-- `knowledge_section/query/search/{route,candidates,error,helpers}.rs`
+- `knowledge_section/query/lookup/mod.rs`
+- `knowledge_section/query/lookup/{route,candidates,error,helpers}.rs`
 - `knowledge_section/query/tests/ranking.rs`
 
 The same rule now also covers attachments. The old flat
 `search/attachment/query/{scan,scoring,search,types,tests}.rs` set is
 gone. It is now split into:
 
-- `attachment/query/search/mod.rs`
-- `attachment/query/search/{route,scan,scoring,decode,helpers,types}.rs`
+- `attachment/query/lookup/mod.rs`
+- `attachment/query/lookup/{route,scan,scoring,decode,helpers,types}.rs`
 - `attachment/query/tests/{fixtures,ranking,search}.rs`
 
 The same rule now also covers repo entities. The old flat
 `search/repo_entity/query/{execution,prepare,search,types,tests}.rs` set
 is gone. It is now split into:
 
-- `repo_entity/query/search/{mod,execution,prepare,route,types}.rs`
+- `repo_entity/query/lookup/{mod,execution,prepare,route,types}.rs`
 - `repo_entity/query/results/{mod,module,symbol,example,import,shared}.rs`
 - `repo_entity/query/tests/{fixtures,ranking,results}.rs`
 
@@ -623,7 +625,7 @@ The same rule now also covers repo content chunks. The old flat
 `search/repo_content_chunk/query/{candidates,error,execution,helpers,scan,search,tests}.rs`
 set is gone. It is now split into:
 
-- `repo_content_chunk/query/search/{mod,candidates,error,execution,helpers,route,scan}.rs`
+- `repo_content_chunk/query/lookup/{mod,candidates,error,execution,helpers,route,scan}.rs`
 - `repo_content_chunk/query/tests/ranking.rs`
 
 ---

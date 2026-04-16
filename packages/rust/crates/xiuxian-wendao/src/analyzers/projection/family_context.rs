@@ -1,6 +1,6 @@
-use crate::analyzers::errors::RepoIntelligenceError;
-use crate::analyzers::plugin::RepositoryAnalysisOutput;
-use crate::analyzers::query::{
+use crate::analyzers::RepoIntelligenceError;
+use crate::analyzers::RepositoryAnalysisOutput;
+use crate::analyzers::{
     ProjectedPageFamilyCluster, ProjectedPageFamilyContextEntry,
     RepoProjectedPageFamilyContextQuery, RepoProjectedPageFamilyContextResult,
     RepoProjectedPageQuery,

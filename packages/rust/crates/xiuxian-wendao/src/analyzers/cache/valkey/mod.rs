@@ -1,5 +1,6 @@
 mod cache;
 mod runtime;
+mod scope;
 mod storage;
 
 #[cfg(test)]
@@ -7,3 +8,4 @@ mod storage;
 mod tests;
 
 pub use cache::ValkeyAnalysisCache;
+pub(crate) use scope::{RepositoryAnalysisValkeyScope, RepositorySearchQueryValkeyScope};

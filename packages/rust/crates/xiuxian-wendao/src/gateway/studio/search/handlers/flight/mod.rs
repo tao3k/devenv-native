@@ -6,7 +6,7 @@ mod service;
 mod tests;
 
 #[cfg(test)]
-use self::provider::StudioSearchFlightRouteProvider;
+pub(crate) use self::provider::StudioSearchFlightRouteProvider;
 pub use self::repo_search::{
     StudioRepoSearchFlightRouteProvider, bootstrap_sample_repo_search_content,
     build_repo_search_flight_service, build_repo_search_flight_service_with_weights,

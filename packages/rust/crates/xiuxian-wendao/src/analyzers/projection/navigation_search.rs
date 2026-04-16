@@ -1,8 +1,8 @@
-use crate::analyzers::plugin::RepositoryAnalysisOutput;
+use crate::analyzers::RepositoryAnalysisOutput;
 use crate::analyzers::projection::contracts::ProjectedPageRecord;
 use crate::analyzers::projection::navigation_bundle::build_projected_page_navigation;
 use crate::analyzers::projection::search::scored_projected_page_matches;
-use crate::analyzers::query::{
+use crate::analyzers::{
     ProjectedPageNavigationSearchHit, RepoProjectedPageNavigationSearchQuery,
     RepoProjectedPageNavigationSearchResult,
 };
@@ -11,13 +11,12 @@ use crate::analyzers::query::{
 ///
 /// # Errors
 ///
-/// Returns [`crate::analyzers::errors::RepoIntelligenceError`] when building
+/// Returns [`crate::analyzers::RepoIntelligenceError`] when building
 /// an individual navigation bundle fails.
 pub fn build_repo_projected_page_navigation_search(
     query: &RepoProjectedPageNavigationSearchQuery,
     analysis: &RepositoryAnalysisOutput,
-) -> Result<RepoProjectedPageNavigationSearchResult, crate::analyzers::errors::RepoIntelligenceError>
-{
+) -> Result<RepoProjectedPageNavigationSearchResult, crate::analyzers::RepoIntelligenceError> {
     let normalized_query = query.query.trim().to_ascii_lowercase();
     let limit = query.limit.max(1);
     let mut matches =
@@ -36,7 +35,7 @@ pub fn build_repo_projected_page_navigation_search(
     let mut hits = Vec::new();
     for (score, page) in matches.into_iter().take(limit) {
         let navigation = build_projected_page_navigation(
-            &crate::analyzers::query::RepoProjectedPageNavigationQuery {
+            &crate::analyzers::RepoProjectedPageNavigationQuery {
                 repo_id: query.repo_id.clone(),
                 page_id: page.page_id.clone(),
                 node_id: None,

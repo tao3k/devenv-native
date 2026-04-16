@@ -1,5 +1,5 @@
-use crate::analyzers::query::RepoBacklinkItem;
-use crate::analyzers::service::helpers::{
+use crate::analyzers::RepoBacklinkItem;
+use crate::analyzers::{
     backlinks_for, documents_backlink_lookup, example_relation_lookup, related_modules_for_example,
     related_symbols_for_example,
 };

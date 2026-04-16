@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use crate::analyzers::records::{ExampleRecord, ModuleRecord, SymbolRecord};
+use crate::analyzers::{ExampleRecord, ModuleRecord, SymbolRecord};
 use crate::search::SearchDocumentIndex;
 
 use super::super::helpers::{module_match_score, normalized_rank_score, symbol_match_score};

@@ -1,5 +1,6 @@
 ---
-source: packages/rust/crates/xiuxian-wendao/src/search/queries/tests/snapshots.rs
+source: packages/rust/crates/xiuxian-wendao/src/search/queries/../../../tests/unit/search/queries/snapshots.rs
+assertion_line: 9
 expression: value
 ---
 {
@@ -36,12 +37,12 @@ expression: value
             {
               "data_type": "Utf8",
               "name": "sql_table_name",
-              "nullable": false
+              "nullable": true
             },
             {
               "data_type": "Utf8",
               "name": "column_name",
-              "nullable": false
+              "nullable": true
             },
             {
               "data_type": "Utf8",
@@ -51,17 +52,17 @@ expression: value
             {
               "data_type": "Utf8",
               "name": "data_type",
-              "nullable": false
+              "nullable": true
             },
             {
               "data_type": "Utf8",
               "name": "sql_object_kind",
-              "nullable": false
+              "nullable": true
             },
             {
               "data_type": "Utf8",
               "name": "column_origin_kind",
-              "nullable": false
+              "nullable": true
             }
           ],
           "row_count": 65,
@@ -624,12 +625,12 @@ expression: value
             {
               "data_type": "Utf8",
               "name": "table_name",
-              "nullable": false
+              "nullable": true
             },
             {
               "data_type": "Utf8",
               "name": "table_type",
-              "nullable": false
+              "nullable": true
             }
           ],
           "row_count": 7,
@@ -640,7 +641,7 @@ expression: value
             },
             {
               "table_name": "reference_occurrence",
-              "table_type": "BASE TABLE"
+              "table_type": "VIEW"
             },
             {
               "table_name": "repo_content_chunk",
@@ -652,15 +653,15 @@ expression: value
             },
             {
               "table_name": "wendao_sql_columns",
-              "table_type": "BASE TABLE"
+              "table_type": "VIEW"
             },
             {
               "table_name": "wendao_sql_tables",
-              "table_type": "BASE TABLE"
+              "table_type": "VIEW"
             },
             {
               "table_name": "wendao_sql_view_sources",
-              "table_type": "BASE TABLE"
+              "table_type": "VIEW"
             }
           ]
         }
@@ -700,27 +701,27 @@ expression: value
             {
               "data_type": "Utf8",
               "name": "sql_table_name",
-              "nullable": false
+              "nullable": true
             },
             {
               "data_type": "Utf8",
               "name": "corpus",
-              "nullable": false
+              "nullable": true
             },
             {
               "data_type": "Utf8",
               "name": "scope",
-              "nullable": false
+              "nullable": true
             },
             {
               "data_type": "Utf8",
               "name": "sql_object_kind",
-              "nullable": false
+              "nullable": true
             },
             {
               "data_type": "UInt64",
               "name": "source_count",
-              "nullable": false
+              "nullable": true
             },
             {
               "data_type": "Utf8",
@@ -848,17 +849,17 @@ expression: value
             {
               "data_type": "Utf8",
               "name": "sql_view_name",
-              "nullable": false
+              "nullable": true
             },
             {
               "data_type": "Utf8",
               "name": "source_sql_table_name",
-              "nullable": false
+              "nullable": true
             },
             {
               "data_type": "Utf8",
               "name": "corpus",
-              "nullable": false
+              "nullable": true
             },
             {
               "data_type": "Utf8",
@@ -868,7 +869,7 @@ expression: value
             {
               "data_type": "UInt64",
               "name": "source_ordinal",
-              "nullable": false
+              "nullable": true
             }
           ],
           "row_count": 3,

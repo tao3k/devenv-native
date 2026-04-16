@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, Mutex, RwLock};
 
-use crate::analyzers::registry::PluginRegistry;
+use crate::analyzers::PluginRegistry;
 use crate::repo_index::types::{RepoIndexEntryStatus, RepoIndexStatusResponse};
 use crate::search::SearchPlaneService;
 use tokio::sync::{Notify, Semaphore};

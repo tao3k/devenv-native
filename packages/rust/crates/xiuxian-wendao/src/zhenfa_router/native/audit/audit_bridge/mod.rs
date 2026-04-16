@@ -13,5 +13,5 @@ pub use surgical::generate_surgical_fixes;
 pub use types::{BatchFix, BatchFixMode, ByteRange, FixResult};
 
 #[cfg(test)]
-#[path = "../../../../../tests/unit/zhenfa_router/native/audit/audit_bridge.rs"]
+#[path = "../../../../../tests/unit/zhenfa_router/native/audit/audit_bridge/mod.rs"]
 mod tests;

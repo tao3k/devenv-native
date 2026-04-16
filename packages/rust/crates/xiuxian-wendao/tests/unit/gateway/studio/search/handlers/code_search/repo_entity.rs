@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::gateway::studio::search::handlers::code_search::search::{
+use crate::gateway::studio::search::handlers::code_search::{
     build_code_search_response, build_repo_entity_search_hits,
 };
 use crate::gateway::studio::search::handlers::tests::{

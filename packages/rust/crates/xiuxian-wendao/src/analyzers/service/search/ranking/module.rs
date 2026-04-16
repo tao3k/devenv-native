@@ -2,8 +2,8 @@
 use std::collections::BTreeMap;
 use std::collections::HashSet;
 
-use crate::analyzers::records::ModuleRecord;
-use crate::analyzers::service::helpers::normalized_rank_score;
+use crate::analyzers::ModuleRecord;
+use crate::analyzers::service::normalized_rank_score;
 #[cfg(feature = "repo-lexical-index")]
 use crate::search::SearchDocumentIndex;
 use crate::search::{FuzzyMatcher, FuzzySearchOptions, LexicalMatcher};

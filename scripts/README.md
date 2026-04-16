@@ -12,6 +12,7 @@ This directory contains utility scripts for the `xiuxian-artisan-workshop` proje
 
 | Script                                                | Purpose                                                                                                  |
 | ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `benchmark_wendao_gateway_repo_get.py`                | Benchmark live gateway repo GET latency together with bootstrap and repo-index readiness context         |
 | `benchmark_wendao_search.py`                          | Benchmark wendao search latency                                                                          |
 | `evaluate_wendao_retrieval.py`                        | Evaluate wendao Top1/Top3/Top10 on fixed query matrix                                                    |
 | `benchmark_wendao_related.py`                         | Benchmark wendao related latency and PPR diagnostics                                                     |

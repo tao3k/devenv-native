@@ -12,7 +12,8 @@ use serde::Deserialize;
 
 use crate::external_test::{ExternalTestValidationIssue, validate_external_test_mounts};
 use crate::validation::{
-    StructureViolation, TestsStructurePolicy, format_violation_report,
+    PathStructureWarning, StructureViolation, TestsStructurePolicy,
+    format_path_structure_warning_report, format_violation_report, validate_crate_path_warnings,
     validate_crate_tests_with_policy,
 };
 
@@ -94,6 +95,8 @@ pub struct CrateTestPolicyHarnessReport {
     pub target_gate_violations: Vec<TestTargetGateViolation>,
     /// Source-backed unit-test roots that omit the shared harness.
     pub source_gate_violations: Vec<SourceTestPolicyHarnessViolation>,
+    /// Advisory warnings for confusing repeated crate-path namespaces.
+    pub path_structure_warnings: Vec<PathStructureWarning>,
 }
 
 impl CrateTestPolicyHarnessReport {
@@ -402,17 +405,19 @@ pub fn validate_crate_test_policy_harness(
     let policy_report = validate_crate_test_policy_with_workspace_config(crate_root)?;
     let target_gate_violations = validate_test_target_gate_mounts(crate_root)?;
     let source_gate_violations = validate_source_test_policy_harness(crate_root)?;
+    let path_structure_warnings = validate_crate_path_warnings(crate_root);
     Ok(CrateTestPolicyHarnessReport {
         policy_report,
         target_gate_violations,
         source_gate_violations,
+        path_structure_warnings,
     })
 }
 
 /// Format a human-readable crate test-policy harness report.
 #[must_use]
 pub fn format_crate_test_policy_harness_report(report: &CrateTestPolicyHarnessReport) -> String {
-    if report.is_clean() {
+    if report.is_clean() && report.path_structure_warnings.is_empty() {
         return "✅ Crate test-policy harness is valid.".to_string();
     }
 
@@ -449,6 +454,16 @@ pub fn format_crate_test_policy_harness_report(report: &CrateTestPolicyHarnessRe
                 violation.suggestion
             );
         }
+    }
+
+    if !report.path_structure_warnings.is_empty() {
+        if !output.is_empty() {
+            output.push('\n');
+        }
+        let _ = writeln!(output, "Crate Path Structure Warnings:");
+        output.push_str(&format_path_structure_warning_report(
+            &report.path_structure_warnings,
+        ));
     }
 
     output
@@ -523,6 +538,12 @@ pub fn assert_crate_test_policy_with_workspace_config(crate_root: &Path) {
 pub fn assert_crate_test_policy_harness(crate_root: &Path) {
     let report =
         validate_crate_test_policy_harness(crate_root).unwrap_or_else(|error| panic!("{error}"));
+    if !report.path_structure_warnings.is_empty() {
+        eprintln!(
+            "{}",
+            format_path_structure_warning_report(&report.path_structure_warnings)
+        );
+    }
     assert!(
         report.is_clean(),
         "{}",

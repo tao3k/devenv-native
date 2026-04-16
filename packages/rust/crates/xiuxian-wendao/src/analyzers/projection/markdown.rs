@@ -1,7 +1,7 @@
 use std::path::Path;
 
-use crate::analyzers::errors::RepoIntelligenceError;
-use crate::analyzers::plugin::RepositoryAnalysisOutput;
+use crate::analyzers::RepoIntelligenceError;
+use crate::analyzers::RepositoryAnalysisOutput;
 use crate::link_graph::{
     DEFAULT_PAGE_INDEX_THINNING_TOKEN_THRESHOLD, IndexedSection, PageIndexNode,
     build_page_index_tree, thin_page_index_tree,

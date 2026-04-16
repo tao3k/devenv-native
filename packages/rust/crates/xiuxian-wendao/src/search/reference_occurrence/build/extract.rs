@@ -5,8 +5,7 @@ use std::sync::LazyLock;
 use regex::Regex;
 use xiuxian_ast::Lang;
 
-use crate::gateway::studio::search::project_scope::project_metadata_for_path;
-use crate::gateway::studio::search::support::infer_crate_name;
+use crate::gateway::studio::search::{infer_crate_name, project_metadata_for_path};
 use crate::gateway::studio::types::{ReferenceSearchHit, StudioNavigationTarget, UiProjectConfig};
 use crate::search::{ProjectScannedFile, SearchPlaneService};
 

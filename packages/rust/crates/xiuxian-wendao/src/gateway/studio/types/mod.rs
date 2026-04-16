@@ -7,7 +7,7 @@ mod analysis;
 mod attachments;
 mod code_ast;
 mod collection;
-pub(crate) mod config;
+mod config;
 mod definitions;
 mod error;
 mod graph;
@@ -31,8 +31,10 @@ pub use code_ast::{
 };
 pub use collection::{studio_frontend_type_collection, studio_type_collection};
 pub use config::{
-    UiCapabilities, UiConfig, UiPluginArtifact, UiPluginLaunchSpec, UiProjectConfig,
-    UiRepoProjectConfig,
+    UiCapabilities, UiCodeSearchContract, UiCodeSearchContractExample, UiCodeSearchRoutes,
+    UiConfig, UiPluginArtifact, UiPluginLaunchSpec, UiPluginTransportKind, UiProjectConfig,
+    UiRepoDiscoveryContract, UiRepoDiscoverySurfaceContract, UiRepoProjectConfig, UiSearchContract,
+    UiSearchContractAlias,
 };
 pub use definitions::{
     AstSearchHit, AstSearchResponse, DefinitionResolveResponse, DefinitionSearchHit,

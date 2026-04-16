@@ -1,15 +1,15 @@
 use std::path::Path;
 
-use crate::analyzers::errors::RepoIntelligenceError;
-use crate::analyzers::plugin::RepositoryAnalysisOutput;
-use crate::analyzers::query::{
-    DocsPlannerRankHit, DocsPlannerRankQuery, DocsPlannerRankResult, DocsProjectedGapReportQuery,
-};
-use crate::analyzers::registry::PluginRegistry;
+use crate::analyzers::PluginRegistry;
+use crate::analyzers::RepoIntelligenceError;
+use crate::analyzers::RepositoryAnalysisOutput;
 use crate::analyzers::service::projection::gap::build_docs_projected_gap_report;
 use crate::analyzers::service::projection::planner::scoring::planner_gap_priority_breakdown;
 use crate::analyzers::service::projection::registry::{
     with_bootstrapped_repository_analysis, with_repository_analysis,
+};
+use crate::analyzers::{
+    DocsPlannerRankHit, DocsPlannerRankQuery, DocsPlannerRankResult, DocsProjectedGapReportQuery,
 };
 
 /// Build deterministic docs-facing deep-wiki planner ranking hits from projected gaps.

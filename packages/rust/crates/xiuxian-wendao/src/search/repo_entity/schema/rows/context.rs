@@ -1,10 +1,10 @@
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
-use crate::analyzers::saliency::compute_repository_saliency;
-use crate::analyzers::service::helpers::{
+use crate::analyzers::compute_repository_saliency;
+use crate::analyzers::{RepoBacklinkItem, RepositoryAnalysisOutput};
+use crate::analyzers::{
     documents_backlink_lookup, example_relation_lookup, infer_ecosystem, projection_page_lookup,
 };
-use crate::analyzers::{RepoBacklinkItem, RepositoryAnalysisOutput};
 
 pub(crate) struct RepoEntityContext<'a> {
     pub(crate) repo_id: &'a str,

@@ -1,4 +1,4 @@
-use crate::gateway::openapi::paths::{self as openapi_paths, RouteContract};
+use crate::gateway::{self as openapi_paths, RouteContract};
 
 pub(super) const REPO_PROJECTED_PAGES: RouteContract = RouteContract {
     axum_path: openapi_paths::API_REPO_PROJECTED_PAGES_AXUM_PATH,

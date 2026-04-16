@@ -3,7 +3,7 @@ use std::sync::Arc;
 use xiuxian_zhenfa::{ZhenfaContext, ZhenfaError};
 
 use crate::analyzers::DocsToolService;
-use crate::analyzers::service::{DocsToolRuntime, DocsToolRuntimeHandle};
+use crate::analyzers::{DocsToolRuntime, DocsToolRuntimeHandle};
 use crate::{AssetRequest, LinkGraphIndex, SkillVfsResolver, WendaoAssetHandle};
 
 /// Typed extension accessors for Wendao native tools.

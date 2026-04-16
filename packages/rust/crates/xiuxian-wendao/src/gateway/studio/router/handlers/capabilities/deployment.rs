@@ -8,7 +8,7 @@ use axum::{
 };
 
 use crate::gateway::studio::router::{GatewayState, StudioApiError};
-use crate::gateway::studio::types::config::UiPluginArtifact;
+use crate::gateway::studio::types::UiPluginArtifact;
 use crate::link_graph::runtime_config::{
     render_link_graph_plugin_artifact_toml_for_selector,
     resolve_link_graph_plugin_artifact_for_selector,

@@ -43,6 +43,30 @@ async fn wait_for_reference_occurrence_ready(
     panic!("reference occurrence build did not reach ready state");
 }
 
+fn repeat_work_demo_fixture() -> (
+    tempfile::TempDir,
+    std::path::PathBuf,
+    Vec<UiProjectConfig>,
+    SearchPlaneService,
+) {
+    let temp_dir = tempfile::tempdir().unwrap_or_else(|error| panic!("temp dir: {error}"));
+    let project_root = temp_dir.path().to_path_buf();
+    std::fs::create_dir_all(project_root.join("src"))
+        .unwrap_or_else(|error| panic!("create src: {error}"));
+    std::fs::write(
+        project_root.join("src/lib.rs"),
+        "fn alpha() {}\nfn use_alpha() { alpha(); }\n",
+    )
+    .unwrap_or_else(|error| panic!("write lib: {error}"));
+    let projects = vec![UiProjectConfig {
+        name: "demo".to_string(),
+        root: ".".to_string(),
+        dirs: vec![".".to_string()],
+    }];
+    let service = planning_service(project_root.as_path());
+    (temp_dir, project_root, projects, service)
+}
+
 #[test]
 fn plan_reference_occurrence_build_only_reparses_changed_files() {
     let temp_dir = tempfile::tempdir().unwrap_or_else(|error| panic!("temp dir: {error}"));
@@ -316,64 +340,49 @@ fn fingerprint_projects_changes_when_scanned_file_metadata_changes() {
 
 #[test]
 fn repeat_work_telemetry_exposes_cross_corpus_code_hot_paths() {
-    let temp_dir = tempfile::tempdir().unwrap_or_else(|error| panic!("temp dir: {error}"));
-    let project_root = temp_dir.path();
-    std::fs::create_dir_all(project_root.join("src"))
-        .unwrap_or_else(|error| panic!("create src: {error}"));
-    std::fs::write(
-        project_root.join("src/lib.rs"),
-        "fn alpha() {}\nfn use_alpha() { alpha(); }\n",
-    )
-    .unwrap_or_else(|error| panic!("write lib: {error}"));
-    let projects = vec![UiProjectConfig {
-        name: "demo".to_string(),
-        root: ".".to_string(),
-        dirs: vec![".".to_string()],
-    }];
-    let service = planning_service(project_root);
+    let (_temp_dir, project_root, projects, service) = repeat_work_demo_fixture();
 
     let _ = plan_local_symbol_build(
         &service,
-        project_root,
-        project_root,
+        project_root.as_path(),
+        project_root.as_path(),
         &projects,
         None,
         &BTreeMap::new(),
     );
     let _ = plan_reference_occurrence_build(
         &service,
-        project_root,
-        project_root,
+        project_root.as_path(),
+        project_root.as_path(),
         &projects,
         None,
         &BTreeMap::new(),
     );
 
     let telemetry = service.repeat_work_telemetry();
-    assert!(
-        telemetry.source_operations.iter().any(|entry| {
-            entry.source == "source_snapshot"
-                && entry.operation == "read_ast_extract"
-                && entry.file_observation_count == 1
-        }),
-        "shared source snapshot should build code AST extraction once"
-    );
-    assert!(
-        telemetry.source_operations.iter().any(|entry| {
-            entry.source == "source_snapshot"
-                && entry.operation == "cache_hit"
-                && entry.file_observation_count == 1
-        }),
-        "second corpus should reuse the shared source snapshot"
-    );
-    assert!(
-        telemetry.source_operations.iter().any(|entry| {
-            entry.source == "source_snapshot"
-                && entry.operation == "cache_miss"
-                && entry.file_observation_count == 1
-        }),
-        "first source snapshot request should record the cache miss"
-    );
+    for (operation, message) in [
+        (
+            "read_ast_extract",
+            "shared source snapshot should build code AST extraction once",
+        ),
+        (
+            "cache_hit",
+            "second corpus should reuse the shared source snapshot",
+        ),
+        (
+            "cache_miss",
+            "first source snapshot request should record the cache miss",
+        ),
+    ] {
+        assert!(
+            telemetry.source_operations.iter().any(|entry| {
+                entry.source == "source_snapshot"
+                    && entry.operation == operation
+                    && entry.file_observation_count == 1
+            }),
+            "{message}"
+        );
+    }
     assert!(
         telemetry.hot_paths.iter().any(|entry| {
             entry.path == "src/lib.rs"

@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, HashSet};
 
-use crate::analyzers::records::ExampleRecord;
-use crate::analyzers::service::helpers::normalized_rank_score;
+use crate::analyzers::ExampleRecord;
+use crate::analyzers::service::normalized_rank_score;
 #[cfg(feature = "repo-lexical-index")]
 use crate::search::SearchDocumentIndex;
 

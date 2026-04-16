@@ -1,7 +1,7 @@
-use crate::analyzers::plugin::RepositoryAnalysisOutput;
-use crate::analyzers::records::ExampleRecord;
+use crate::analyzers::ExampleRecord;
+use crate::analyzers::RepositoryAnalysisOutput;
 #[cfg(feature = "repo-lexical-index")]
-use crate::analyzers::records::{ModuleRecord, SymbolRecord};
+use crate::analyzers::{ModuleRecord, SymbolRecord};
 #[cfg(feature = "repo-lexical-index")]
 use crate::search::{SearchDocument, SearchDocumentIndex};
 use std::collections::BTreeMap;

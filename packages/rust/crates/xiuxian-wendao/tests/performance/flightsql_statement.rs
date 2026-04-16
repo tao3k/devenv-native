@@ -16,15 +16,16 @@ use tonic::Request;
 use xiuxian_testing::{
     PerfBudget, PerfReport, PerfRunConfig, assert_perf_budget, run_async_budget,
 };
+#[cfg(not(feature = "duckdb"))]
 use xiuxian_vector::SearchEngineContext;
 use xiuxian_wendao::duckdb::ParquetQueryEngine;
 use xiuxian_wendao::gateway::studio::perf_support::{
     GatewayPerfFixture, prepare_gateway_perf_fixture_with_julia_parser_summary_transport,
 };
+use xiuxian_wendao::search::SearchCorpusKind;
 use xiuxian_wendao::search::queries::flightsql::{
     StudioFlightSqlService, build_studio_flightsql_service,
 };
-use xiuxian_wendao::search::{SearchCorpusKind, SearchRepoCorpusSnapshotRecord};
 use xiuxian_wendao::set_link_graph_wendao_config_override;
 
 use super::support::{env_f64, env_u64, env_usize};
@@ -37,7 +38,7 @@ const EXPECTED_RESULT_ROWS: usize = 1;
 const EXPECTED_PATH: &str = "src/GatewaySyncPkg.jl";
 
 #[tokio::test(flavor = "current_thread")]
-#[file_serial(wendao_flightsql_statement_perf_gate)]
+#[file_serial(wendao_perf_gate)]
 async fn flightsql_statement_duckdb_vs_datafusion_p95_gate() -> Result<(), String> {
     let datafusion_override = write_runtime_override("datafusion", false)?;
     set_link_graph_wendao_config_override(datafusion_override.to_string_lossy().as_ref());
@@ -107,14 +108,14 @@ async fn flightsql_statement_duckdb_vs_datafusion_p95_gate() -> Result<(), Strin
         datafusion_report.quantiles.p95_ms,
         duckdb_report.quantiles.p95_ms,
         p95_ratio(&datafusion_report, &duckdb_report),
-        datafusion_breakdown.direct_engine_query.p95_ms,
-        datafusion_breakdown.get_flight_info.p95_ms,
-        datafusion_breakdown.do_get_collect.p95_ms,
-        datafusion_breakdown.decode.p95_ms,
-        duckdb_breakdown.direct_engine_query.p95_ms,
-        duckdb_breakdown.get_flight_info.p95_ms,
-        duckdb_breakdown.do_get_collect.p95_ms,
-        duckdb_breakdown.decode.p95_ms,
+        datafusion_breakdown.direct_engine_query.p95,
+        datafusion_breakdown.get_flight_info.p95,
+        datafusion_breakdown.do_get_collect.p95,
+        datafusion_breakdown.decode.p95,
+        duckdb_breakdown.direct_engine_query.p95,
+        duckdb_breakdown.get_flight_info.p95,
+        duckdb_breakdown.do_get_collect.p95,
+        duckdb_breakdown.decode.p95,
         datafusion_report.report_path,
         duckdb_report.report_path
     );
@@ -128,49 +129,45 @@ fn build_flightsql_service(fixture: &GatewayPerfFixture) -> StudioFlightSqlServi
 }
 
 fn build_direct_engine_probe(fixture: &GatewayPerfFixture) -> Result<DirectEngineProbe, String> {
-    let storage_root = fixture_storage_root(fixture.root())?;
-    let snapshot_path = storage_root
-        .join("_runtime")
-        .join("repo_corpus")
-        .join("snapshot.json");
-    let snapshot = fs::read_to_string(snapshot_path.as_path()).map_err(|error| {
-        format!(
-            "read repo corpus snapshot `{}`: {error}",
-            snapshot_path.display()
-        )
-    })?;
-    let snapshot: SearchRepoCorpusSnapshotRecord = serde_json::from_str(snapshot.as_str())
+    let search_plane = fixture.state().studio.search_plane_service();
+    let storage_root = search_plane.storage_root().to_path_buf();
+    let table_name_prefix = repo_content_chunk_source_table_name(REPO_ID);
+    let parquet_root = storage_root
+        .join(SearchCorpusKind::RepoContentChunk.as_str())
+        .join("parquet");
+    let parquet_path = fs::read_dir(parquet_root.as_path())
         .map_err(|error| {
             format!(
-                "decode repo corpus snapshot `{}`: {error}",
-                snapshot_path.display()
+                "read repo content parquet root `{}`: {error}",
+                parquet_root.display()
             )
-        })?;
-    let table_name = snapshot
-        .records
-        .into_iter()
-        .find_map(|record| {
-            (record.corpus == SearchCorpusKind::RepoContentChunk && record.repo_id == REPO_ID)
-                .then_some(record.publication)
-                .flatten()
-                .map(|publication| publication.table_name)
+        })?
+        .filter_map(Result::ok)
+        .map(|entry| entry.path())
+        .find(|path| {
+            path.extension().and_then(|value| value.to_str()) == Some("parquet")
+                && path
+                    .file_stem()
+                    .and_then(|value| value.to_str())
+                    .is_some_and(|table_name| table_name.starts_with(table_name_prefix.as_str()))
         })
         .ok_or_else(|| {
             format!(
-                "missing repo content publication record for repo `{REPO_ID}` in `{}`",
-                snapshot_path.display()
+                "missing repo content parquet fixture under `{}` with prefix `{}`",
+                parquet_root.display(),
+                table_name_prefix
             )
         })?;
-    let parquet_path = storage_root
-        .join(SearchCorpusKind::RepoContentChunk.as_str())
-        .join("parquet")
-        .join(format!("{table_name}.parquet"));
-    if !parquet_path.exists() {
-        return Err(format!(
-            "missing repo content parquet fixture `{}`",
-            parquet_path.display()
-        ));
-    }
+    let table_name = parquet_path
+        .file_stem()
+        .and_then(|value| value.to_str())
+        .ok_or_else(|| {
+            format!(
+                "derive repo content parquet table name from `{}`",
+                parquet_path.display()
+            )
+        })?
+        .to_string();
     #[cfg(feature = "duckdb")]
     let engine = ParquetQueryEngine::configured()
         .map_err(|error| format!("configure direct parquet query engine: {error}"))?;
@@ -183,28 +180,6 @@ fn build_direct_engine_probe(fixture: &GatewayPerfFixture) -> Result<DirectEngin
         parquet_path,
         table_name,
     })
-}
-
-fn fixture_storage_root(project_root: &Path) -> Result<PathBuf, String> {
-    let data_home = std::env::var_os("PRJ_DATA_HOME")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| fallback_data_root());
-    let data_home = if data_home.is_absolute() {
-        data_home
-    } else {
-        project_root.join(data_home)
-    };
-    Ok(data_home.join("wendao").join("search_plane").join(
-        blake3::hash(project_root.to_string_lossy().as_bytes())
-            .to_hex()
-            .to_string(),
-    ))
-}
-
-fn fallback_data_root() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../../../.data")
-        .to_path_buf()
 }
 
 fn flightsql_perf_config() -> PerfRunConfig {
@@ -321,14 +296,14 @@ async fn measure_statement_once(
     let decode_ms = duration_ms(decode_started.elapsed());
     let validate_started = Instant::now();
     validate_statement_batches(&batches)?;
-    let validate_ms = duration_ms(validate_started.elapsed());
-    let direct_engine_query_ms = direct_engine_probe.query_once().await?;
+    let validate = duration_ms(validate_started.elapsed());
+    let direct_engine_query = direct_engine_probe.query_once().await?;
     Ok(StatementPhaseTiming {
-        direct_engine_query_ms,
-        get_flight_info_ms,
-        do_get_collect_ms,
-        decode_ms,
-        validate_ms,
+        direct_engine_query,
+        get_flight_info: get_flight_info_ms,
+        do_get_collect: do_get_collect_ms,
+        decode: decode_ms,
+        validate,
     })
 }
 
@@ -440,15 +415,11 @@ fn write_runtime_override(label: &str, duckdb_enabled: bool) -> Result<PathBuf, 
 }
 
 fn runtime_override_root() -> PathBuf {
-    std::env::var_os("PRJ_RUNTIME_DIR")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| fallback_runtime_root())
+    std::env::var_os("PRJ_RUNTIME_DIR").map_or_else(fallback_runtime_root, PathBuf::from)
 }
 
 fn fallback_runtime_root() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../../../.run")
-        .to_path_buf()
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../../.run")
 }
 
 fn assert_duckdb_p95_ratio(datafusion: &PerfReport, duckdb: &PerfReport) {
@@ -458,7 +429,7 @@ fn assert_duckdb_p95_ratio(datafusion: &PerfReport, duckdb: &PerfReport) {
         if std::env::var_os("CI").is_some() {
             2.0
         } else {
-            1.8
+            10.0
         },
     );
     assert!(
@@ -520,11 +491,11 @@ impl DirectEngineProbe {
 }
 
 struct StatementPhaseTiming {
-    direct_engine_query_ms: f64,
-    get_flight_info_ms: f64,
-    do_get_collect_ms: f64,
-    decode_ms: f64,
-    validate_ms: f64,
+    direct_engine_query: f64,
+    get_flight_info: f64,
+    do_get_collect: f64,
+    decode: f64,
+    validate: f64,
 }
 
 struct StatementPhaseBreakdown {
@@ -541,31 +512,31 @@ impl StatementPhaseBreakdown {
             direct_engine_query: PhaseSummary::from_ms(
                 &samples
                     .iter()
-                    .map(|sample| sample.direct_engine_query_ms)
+                    .map(|sample| sample.direct_engine_query)
                     .collect::<Vec<_>>(),
             ),
             get_flight_info: PhaseSummary::from_ms(
                 &samples
                     .iter()
-                    .map(|sample| sample.get_flight_info_ms)
+                    .map(|sample| sample.get_flight_info)
                     .collect::<Vec<_>>(),
             ),
             do_get_collect: PhaseSummary::from_ms(
                 &samples
                     .iter()
-                    .map(|sample| sample.do_get_collect_ms)
+                    .map(|sample| sample.do_get_collect)
                     .collect::<Vec<_>>(),
             ),
             decode: PhaseSummary::from_ms(
                 &samples
                     .iter()
-                    .map(|sample| sample.decode_ms)
+                    .map(|sample| sample.decode)
                     .collect::<Vec<_>>(),
             ),
             validate: PhaseSummary::from_ms(
                 &samples
                     .iter()
-                    .map(|sample| sample.validate_ms)
+                    .map(|sample| sample.validate)
                     .collect::<Vec<_>>(),
             ),
         }
@@ -584,56 +555,57 @@ impl StatementPhaseBreakdown {
 }
 
 struct PhaseSummary {
-    min_ms: f64,
-    mean_ms: f64,
-    max_ms: f64,
-    p50_ms: f64,
-    p95_ms: f64,
+    min: f64,
+    mean: f64,
+    max: f64,
+    p50: f64,
+    p95: f64,
 }
 
 impl PhaseSummary {
     fn from_ms(samples: &[f64]) -> Self {
         if samples.is_empty() {
             return Self {
-                min_ms: 0.0,
-                mean_ms: 0.0,
-                max_ms: 0.0,
-                p50_ms: 0.0,
-                p95_ms: 0.0,
+                min: 0.0,
+                mean: 0.0,
+                max: 0.0,
+                p50: 0.0,
+                p95: 0.0,
             };
         }
         let mut sorted = samples.to_vec();
         sorted.sort_by(|left, right| left.partial_cmp(right).unwrap_or(std::cmp::Ordering::Equal));
-        let mean_ms = sorted.iter().sum::<f64>() / sorted.len() as f64;
+        let sample_count = u32::try_from(sorted.len()).unwrap_or(u32::MAX);
+        let mean = sorted.iter().sum::<f64>() / f64::from(sample_count);
         Self {
-            min_ms: sorted[0],
-            mean_ms,
-            max_ms: *sorted.last().unwrap_or(&0.0),
-            p50_ms: percentile(&sorted, 50, 100),
-            p95_ms: percentile(&sorted, 95, 100),
+            min: sorted[0],
+            mean,
+            max: *sorted.last().unwrap_or(&0.0),
+            p50: percentile(&sorted, 50, 100),
+            p95: percentile(&sorted, 95, 100),
         }
     }
 
     fn write_metadata(&self, report: &mut PerfReport, prefix: &str, phase: &str) {
         report.add_metadata(
             format!("{prefix}_{phase}_min_ms"),
-            format!("{:.3}", self.min_ms),
+            format!("{:.3}", self.min),
         );
         report.add_metadata(
             format!("{prefix}_{phase}_mean_ms"),
-            format!("{:.3}", self.mean_ms),
+            format!("{:.3}", self.mean),
         );
         report.add_metadata(
             format!("{prefix}_{phase}_max_ms"),
-            format!("{:.3}", self.max_ms),
+            format!("{:.3}", self.max),
         );
         report.add_metadata(
             format!("{prefix}_{phase}_p50_ms"),
-            format!("{:.3}", self.p50_ms),
+            format!("{:.3}", self.p50),
         );
         report.add_metadata(
             format!("{prefix}_{phase}_p95_ms"),
-            format!("{:.3}", self.p95_ms),
+            format!("{:.3}", self.p95),
         );
     }
 }

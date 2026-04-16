@@ -135,17 +135,10 @@ Validation rules:
 
 ## Python Integration
 
-The scanner is exposed to Python via PyO3 bindings:
-
-```python
-from xiuxian_core_rs import export_skill_index, scan_skill_tools, get_skill_index_schema
-
-# Export full skill index
-index_json = export_skill_index("assets/skills", "assets/skills/skill_index.json")
-
-# Get JSON Schema for validation
-schema = get_skill_index_schema()
-```
+`xiuxian-core-rs` is now a Wendao-only binding crate and no longer re-exports
+`xiuxian-skills` functions to Python. Python consumers should call the Rust API
+through package-local wrappers or workspace tooling that owns skill-index
+generation.
 
 ## Example: Full Scan
 

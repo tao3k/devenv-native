@@ -1,4 +1,4 @@
-use crate::analyzers::service::helpers::{projection_page_lookup, projection_pages_for};
+use crate::analyzers::{projection_page_lookup, projection_pages_for};
 
 use super::fixtures::analysis_fixture;
 

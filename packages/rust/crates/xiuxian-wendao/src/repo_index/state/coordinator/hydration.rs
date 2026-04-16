@@ -2,12 +2,12 @@ use std::path::Path;
 
 use chrono::Utc;
 
-use crate::analyzers::query::{
-    RepoSourceKind, RepoSyncHealthState, RepoSyncMode, RepoSyncResult, RepoSyncStalenessState,
-};
 use crate::analyzers::{
     RegisteredRepository, RepositoryRef, RepositoryRefreshPolicy,
     repo_sync_for_registered_repository,
+};
+use crate::analyzers::{
+    RepoSourceKind, RepoSyncHealthState, RepoSyncMode, RepoSyncResult, RepoSyncStalenessState,
 };
 use crate::repo_index::state::coordinator::RepoIndexCoordinator;
 use crate::repo_index::state::fingerprint::fingerprint;

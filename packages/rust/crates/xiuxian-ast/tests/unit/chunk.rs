@@ -2,5 +2,5 @@
 
 use xiuxian_ast::{CodeChunk, Lang, chunk_code};
 
-#[path = "chunk_tests.rs"]
+#[path = "chunk_tests/mod.rs"]
 mod chunk_tests;

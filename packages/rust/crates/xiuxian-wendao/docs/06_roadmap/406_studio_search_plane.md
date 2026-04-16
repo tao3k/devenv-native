@@ -123,6 +123,7 @@ Replace Studio request-path search hot spots with a background-built search plan
 - the mixed `modelica+rust` shape now has bundle-level analyzer-service proof too: `analyze_registered_repository_bundle(...)` keeps reusing the cached full repository analysis when either the generic Rust path or the specialized Modelica path changes in an AST-equivalent way, so the mixed semantic-owner rule is now closed across cache-key selection, preflight reuse, and bundle caching
 - the conservative unknown-mix rule is now code-backed too: semantic-owner dispatch now keys off all configured plugin ids rather than only repo-intelligence ids, so bounded unknown mixes such as `rust+ast-grep` and `modelica+ast-grep` stay on the conservative raw-contents or full-analysis fallback path across analyzer-cache identity, bundle caching, and repo-index incremental preflight
 - repo-index coordinator fingerprinting now follows that same all-configured-plugin contract, so adding or removing a search-only or otherwise unknown plugin such as `ast-grep` changes queue/status identity and re-enqueues the repository instead of being treated as a fingerprint-identical sync
+- search-only repo bootstrap now follows that normalized contract too: eager gateway bootstrap and direct `sync_repositories(...)` admission no longer drop imported `ast-grep`-only repos before enqueue, runtime analysis falls back to empty structured repo-entity output instead of failing `MissingRepoIntelligencePlugins`, and repo-backed parquet rewrite now persists zero-row corpora so fresh environments can still reach `Ready` while collector-supported code documents continue publishing searchable `repo_content_chunk` rows
 - that all-configured-plugin contract is also normalized now at the proof level: order-only churn and duplicate plugin declarations do not re-enqueue the repository, so repo-index identity is keyed to the effective plugin set rather than config ordering noise
 - the same normalized-plugin contract now also covers repository analysis cache keys and repo query cache keys: reordered or duplicate-only declarations yield the same `RepositoryAnalysisCacheKey`, and downstream repo query keys stay stable because they reuse that normalized analysis identity
 - gateway repo-search callers now have the same proof too: both the repo-search helper path and the projected-page search caller build handler cache keys from the cached normalized `RepositoryAnalysisCacheKey` rather than any hand-built plugin fragment, so reorder-only or duplicate plugin churn does not perturb the gateway hot-query surface
@@ -554,6 +555,12 @@ Replace Studio request-path search hot spots with a background-built search plan
 - repo gateway handlers now prefer published `repo_entity` tables for
   `module-search`, `symbol-search`, and `example-search`, while preserving
   cached-analyzer fallback when repo-entity publication is absent
+- `repo/overview` is now on the same publication-first contract. Repo
+  overviews read one published `repo_entity` summary path, derive
+  `display_name` from the shallowest published module when possible, keep the
+  search-only zero-summary path, and return `INDEX_NOT_READY` when a
+  repo-intelligence repository has not published `repo_entity` yet instead of
+  reentering live analysis
 - repo-entity FTS execution now defensively falls back to ordinary scan when a
   Lance FTS batch omits one of the structured projected columns, which closes
   the typed-query `missing string column entity_kind` failure without relaxing

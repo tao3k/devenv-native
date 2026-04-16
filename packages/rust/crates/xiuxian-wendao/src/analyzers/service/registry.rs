@@ -1,7 +1,7 @@
 use std::path::Path;
 
-use crate::analyzers::config::{RegisteredRepository, load_repo_intelligence_config};
-use crate::analyzers::errors::RepoIntelligenceError;
+use crate::analyzers::RepoIntelligenceError;
+use crate::analyzers::{RegisteredRepository, load_repo_intelligence_config};
 
 /// Load one registered repository from configuration by id.
 ///

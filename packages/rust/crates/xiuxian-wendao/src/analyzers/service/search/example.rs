@@ -1,12 +1,12 @@
 use std::path::Path;
 
+use crate::analyzers::PluginRegistry;
+use crate::analyzers::RepoIntelligenceError;
+use crate::analyzers::RepositoryAnalysisOutput;
 #[cfg(all(feature = "studio", feature = "repo-lexical-index"))]
 use crate::analyzers::cache::RepositorySearchArtifacts;
-use crate::analyzers::errors::RepoIntelligenceError;
-use crate::analyzers::plugin::RepositoryAnalysisOutput;
-use crate::analyzers::query::{ExampleSearchHit, ExampleSearchQuery, ExampleSearchResult};
-use crate::analyzers::registry::PluginRegistry;
-use crate::analyzers::saliency::compute_repository_saliency;
+use crate::analyzers::compute_repository_saliency;
+use crate::analyzers::{ExampleSearchHit, ExampleSearchQuery, ExampleSearchResult};
 
 use super::super::helpers::{
     backlinks_for, documents_backlink_lookup, hierarchy_segments_from_path, infer_ecosystem,

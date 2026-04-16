@@ -1,6 +1,6 @@
 ---
-source: packages/rust/crates/xiuxian-wendao/src/gateway/studio/test_support.rs
-assertion_line: 19
+source: packages/rust/crates/xiuxian-wendao/src/gateway/studio/../../../tests/unit/gateway/studio/support.rs
+assertion_line: 27
 expression: value
 ---
 {
@@ -9,6 +9,7 @@ expression: value
     {
       "repo_id": "import-snapshot",
       "module_id": "repo:import-snapshot:module:ProjectionPkg",
+      "path": "src/ProjectionPkg.jl",
       "import_name": "solve",
       "target_package": "SciMLBase",
       "source_module": "BaseModelica",
@@ -21,6 +22,7 @@ expression: value
       "import": {
         "repo_id": "import-snapshot",
         "module_id": "repo:import-snapshot:module:ProjectionPkg",
+        "path": "src/ProjectionPkg.jl",
         "import_name": "solve",
         "target_package": "SciMLBase",
         "source_module": "BaseModelica",

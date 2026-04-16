@@ -1,13 +1,13 @@
 use std::collections::HashSet;
 
-use crate::analyzers::query::{ImportSearchQuery, ImportSearchResult};
+use crate::analyzers::{ImportSearchQuery, ImportSearchResult};
 use crate::search::SearchCorpusKind;
 use crate::search::SearchPlaneService;
 use crate::search::repo_entity::query::hydrate::build_import_search_result;
-use crate::search::repo_entity::query::results::shared::load_hydrated_rows;
-use crate::search::repo_entity::query::search::{
+use crate::search::repo_entity::query::lookup::{
     PreparedRepoEntitySearch, RepoEntitySearchError, fixed_kind_filters, prepare_repo_entity_search,
 };
+use crate::search::repo_entity::query::results::shared::load_hydrated_rows;
 
 pub(crate) async fn search_repo_entity_import_results(
     service: &SearchPlaneService,
@@ -15,7 +15,7 @@ pub(crate) async fn search_repo_entity_import_results(
 ) -> Result<ImportSearchResult, RepoEntitySearchError> {
     let language_filters = HashSet::new();
     let kind_filters = fixed_kind_filters("import");
-    let canonical_query = crate::analyzers::service::canonical_import_query_text(query);
+    let canonical_query = crate::analyzers::canonical_import_query_text(query);
     let Some(prepared) = prepare_repo_entity_search(
         service,
         query.repo_id.as_str(),

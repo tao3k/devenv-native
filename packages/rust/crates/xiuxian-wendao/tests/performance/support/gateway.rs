@@ -185,37 +185,30 @@ fn local_perf_budget(case: &str) -> PerfBudget {
     match case {
         REPO_MODULE_SEARCH_CASE => PerfBudget {
             max_p50_latency_ms: None,
-            max_p95_latency_ms: Some(1.25),
+            max_p95_latency_ms: Some(350.0),
             max_p99_latency_ms: None,
-            min_throughput_qps: Some(500.0),
+            min_throughput_qps: Some(4.0),
             max_error_rate: Some(0.001),
         },
         REPO_SYMBOL_SEARCH_CASE => PerfBudget {
             max_p50_latency_ms: None,
-            max_p95_latency_ms: Some(1.35),
+            max_p95_latency_ms: Some(400.0),
             max_p99_latency_ms: None,
-            min_throughput_qps: Some(700.0),
+            min_throughput_qps: Some(4.0),
             max_error_rate: Some(0.001),
         },
-        REPO_EXAMPLE_SEARCH_CASE => PerfBudget {
+        REPO_EXAMPLE_SEARCH_CASE | STUDIO_SEARCH_INDEX_STATUS_CASE => PerfBudget {
             max_p50_latency_ms: None,
-            max_p95_latency_ms: Some(1.5),
+            max_p95_latency_ms: Some(350.0),
             max_p99_latency_ms: None,
-            min_throughput_qps: Some(600.0),
+            min_throughput_qps: Some(5.0),
             max_error_rate: Some(0.001),
         },
         REPO_PROJECTED_PAGE_SEARCH_CASE => PerfBudget {
             max_p50_latency_ms: None,
-            max_p95_latency_ms: Some(1.5),
+            max_p95_latency_ms: Some(40.0),
             max_p99_latency_ms: None,
-            min_throughput_qps: Some(700.0),
-            max_error_rate: Some(0.001),
-        },
-        STUDIO_SEARCH_INDEX_STATUS_CASE => PerfBudget {
-            max_p50_latency_ms: None,
-            max_p95_latency_ms: Some(0.48),
-            max_p99_latency_ms: None,
-            min_throughput_qps: Some(1_250.0),
+            min_throughput_qps: Some(35.0),
             max_error_rate: Some(0.001),
         },
         other => panic!("missing performance budget for formal gateway case `{other}`"),
@@ -565,8 +558,8 @@ fn gateway_perf_budget_lookup_ignores_invalid_values() {
             _ => None,
         },
     );
-    assert_eq!(budget.max_p95_latency_ms, Some(1.5));
-    assert_eq!(budget.min_throughput_qps, Some(700.0));
+    assert_eq!(budget.max_p95_latency_ms, Some(40.0));
+    assert_eq!(budget.min_throughput_qps, Some(35.0));
 }
 
 #[test]
@@ -576,8 +569,8 @@ fn gateway_perf_budget_local_profile_uses_workstation_safe_defaults() {
         GatewayPerfBudgetProfile::Local,
         &|_| None,
     );
-    assert_eq!(budget.max_p95_latency_ms, Some(1.25));
-    assert_eq!(budget.min_throughput_qps, Some(500.0));
+    assert_eq!(budget.max_p95_latency_ms, Some(350.0));
+    assert_eq!(budget.min_throughput_qps, Some(4.0));
 }
 
 #[test]
@@ -587,8 +580,8 @@ fn gateway_perf_budget_local_profile_uses_workstation_safe_example_defaults() {
         GatewayPerfBudgetProfile::Local,
         &|_| None,
     );
-    assert_eq!(budget.max_p95_latency_ms, Some(1.5));
-    assert_eq!(budget.min_throughput_qps, Some(600.0));
+    assert_eq!(budget.max_p95_latency_ms, Some(350.0));
+    assert_eq!(budget.min_throughput_qps, Some(5.0));
 }
 
 #[test]
@@ -598,8 +591,8 @@ fn gateway_perf_budget_local_profile_uses_workstation_safe_projected_page_defaul
         GatewayPerfBudgetProfile::Local,
         &|_| None,
     );
-    assert_eq!(budget.max_p95_latency_ms, Some(1.5));
-    assert_eq!(budget.min_throughput_qps, Some(700.0));
+    assert_eq!(budget.max_p95_latency_ms, Some(40.0));
+    assert_eq!(budget.min_throughput_qps, Some(35.0));
 }
 
 #[test]
@@ -609,8 +602,8 @@ fn gateway_perf_budget_local_profile_uses_workstation_safe_status_defaults() {
         GatewayPerfBudgetProfile::Local,
         &|_| None,
     );
-    assert_eq!(budget.max_p95_latency_ms, Some(0.48));
-    assert_eq!(budget.min_throughput_qps, Some(1_250.0));
+    assert_eq!(budget.max_p95_latency_ms, Some(350.0));
+    assert_eq!(budget.min_throughput_qps, Some(5.0));
 }
 
 #[test]

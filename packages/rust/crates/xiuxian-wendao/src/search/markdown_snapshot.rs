@@ -3,7 +3,7 @@ use std::path::Path;
 use std::sync::{Arc, OnceLock};
 
 use crate::gateway::studio::compile_markdown_nodes;
-use crate::gateway::studio::search::source_index::{
+use crate::gateway::studio::search::{
     build_markdown_ast_hits_from_sections, markdown_scope_name,
 };
 use crate::gateway::studio::types::AstSearchHit;

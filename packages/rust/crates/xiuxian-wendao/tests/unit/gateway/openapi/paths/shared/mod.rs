@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-use crate::gateway::openapi::paths::{
+use crate::gateway::{
     API_DOCS_PAGE_INDEX_TREE_OPENAPI_PATH, API_HEALTH_OPENAPI_PATH, API_NOTIFY_OPENAPI_PATH,
     API_REPO_SYNC_OPENAPI_PATH, API_UI_PLUGIN_ARTIFACT_OPENAPI_PATH,
     WENDAO_GATEWAY_ROUTE_CONTRACTS,

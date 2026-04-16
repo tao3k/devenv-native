@@ -1,9 +1,9 @@
 use std::path::Path;
 
-use crate::analyzers::errors::RepoIntelligenceError;
-use crate::analyzers::plugin::RepositoryAnalysisOutput;
-use crate::analyzers::query::{DocCoverageQuery, DocCoverageResult};
-use crate::analyzers::registry::PluginRegistry;
+use crate::analyzers::PluginRegistry;
+use crate::analyzers::RepoIntelligenceError;
+use crate::analyzers::RepositoryAnalysisOutput;
+use crate::analyzers::{DocCoverageQuery, DocCoverageResult};
 
 use super::super::helpers::{
     docs_in_scope, documented_symbol_ids, repo_hierarchical_uri, resolve_module_scope,

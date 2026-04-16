@@ -1,4 +1,4 @@
 mod cache;
 mod maintenance;
-mod search;
+mod queries;
 mod state;

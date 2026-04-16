@@ -1,4 +1,4 @@
-use crate::gateway::studio::search::handlers::code_search::search::build_repo_content_search_hits;
+use crate::gateway::studio::search::handlers::code_search::build_repo_content_search_hits;
 use crate::gateway::studio::search::handlers::tests::{
     publish_repo_content_chunk_index, test_studio_state,
 };

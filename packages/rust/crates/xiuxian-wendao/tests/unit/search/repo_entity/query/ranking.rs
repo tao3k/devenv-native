@@ -1,5 +1,5 @@
 use crate::search::ranking::trim_ranked_vec;
-use crate::search::repo_entity::query::search::{
+use crate::search::repo_entity::query::lookup::{
     RepoEntityCandidate, compare_candidates, retained_window,
 };
 

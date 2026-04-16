@@ -7,6 +7,10 @@ use xiuxian_wendao_runtime::transport::{
     ANALYSIS_REPO_SYNC_ROUTE,
 };
 
+use crate::gateway::studio::search::handlers::tests::{
+    publish_repo_entity_index, sample_repo_analysis,
+};
+
 use super::{
     assert_route_ticket, build_service, make_gateway_state_with_docs, make_gateway_state_with_repo,
     populate_markdown_analysis_headers, populate_repo_index_headers,
@@ -75,6 +79,7 @@ async fn build_studio_search_flight_service_wires_repo_overview_routes() {
             "module Demo\nexport solve\n\"solve docs\"\nsolve(x) = x + 1\nend\n",
         ),
     ]);
+    publish_repo_entity_index(&fixture.state.studio, "demo", &sample_repo_analysis("demo")).await;
     let service = build_service(fixture.state.clone());
 
     assert_route_ticket(

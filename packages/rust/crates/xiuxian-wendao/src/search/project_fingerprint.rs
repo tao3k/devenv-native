@@ -5,11 +5,9 @@ use std::time::UNIX_EPOCH;
 
 use walkdir::WalkDir;
 
-use crate::gateway::studio::search::project_scope::{
-    configured_project_scopes, index_path_for_entry,
-};
-use crate::gateway::studio::search::source_index::{
-    ast_search_lang, is_markdown_path, should_skip_entry,
+use crate::gateway::studio::search::{
+    ast_search_lang, configured_project_scopes, index_path_for_entry, is_markdown_path,
+    should_skip_entry,
 };
 use crate::gateway::studio::types::UiProjectConfig;
 use crate::parsers::markdown::is_supported_note;

@@ -1,4 +1,4 @@
-use crate::analyzers::query::ImportSearchQuery;
+use crate::analyzers::ImportSearchQuery;
 
 #[test]
 fn canonical_import_query_text_preserves_package_and_module_identity() {

@@ -1,8 +1,10 @@
-use crate::analyzers::records::RelationKind;
+#[cfg(test)]
+use crate::analyzers::RelationKind;
 
 /// Returns a human-readable label for a relation kind.
 #[must_use]
-pub fn relation_kind_label(kind: RelationKind) -> &'static str {
+#[cfg(test)]
+pub(crate) fn relation_kind_label(kind: RelationKind) -> &'static str {
     match kind {
         RelationKind::Contains => "contains",
         RelationKind::Calls => "calls",

@@ -1,4 +1,4 @@
-use crate::gateway::openapi::paths::{self as openapi_paths, RouteContract};
+use crate::gateway::{self as openapi_paths, RouteContract};
 
 pub(super) const VFS_ROOT: RouteContract = RouteContract {
     axum_path: openapi_paths::API_VFS_ROOT_AXUM_PATH,

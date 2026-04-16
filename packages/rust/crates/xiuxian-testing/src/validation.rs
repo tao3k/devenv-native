@@ -40,6 +40,7 @@
 //! - `tests/*_integration.rs` → Move to `tests/integration/{name}.rs`
 //! - Scattered files in `tests/` root → Organize into subdirectories
 
+use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -52,6 +53,17 @@ pub struct TestsStructurePolicy {
     pub allowed_directories: Vec<String>,
     /// Additional allowed Rust file names directly under `tests/`.
     pub allowed_root_files: Vec<String>,
+}
+
+/// Advisory warning for a nested crate path that repeats the same namespace.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PathStructureWarning {
+    /// The branch path that carries the repeated namespace.
+    pub path: PathBuf,
+    /// Repeated directory namespaces found inside the suite-relative path.
+    pub repeated_namespaces: Vec<String>,
+    /// Suggested remediation for the repeated namespace.
+    pub suggestion: String,
 }
 
 /// Represents a violation of the test directory structure convention.
@@ -332,6 +344,48 @@ pub fn validate_crate_tests_with_policy(
     violations
 }
 
+/// Validate crate source trees for repeated namespace segments that should be
+/// treated as advisory-only path-structure warnings.
+#[must_use]
+pub fn validate_crate_path_warnings(crate_path: &Path) -> Vec<PathStructureWarning> {
+    [
+        ("src", "crate source tree"),
+        ("tests", "crate test tree"),
+        ("benches", "crate benchmark tree"),
+        ("examples", "crate example tree"),
+    ]
+    .into_iter()
+    .flat_map(|(root_name, scope_label)| {
+        collect_root_path_warnings(crate_path, root_name, scope_label)
+    })
+    .collect()
+}
+
+fn collect_root_path_warnings(
+    crate_root: &Path,
+    root_name: &'static str,
+    scope_label: &'static str,
+) -> Vec<PathStructureWarning> {
+    let root_dir = crate_root.join(root_name);
+    if !root_dir.exists() {
+        return Vec::new();
+    }
+
+    let mut files = Vec::new();
+    collect_test_rust_files(&root_dir, &mut files);
+
+    let mut warnings_by_branch = BTreeMap::new();
+    for path in files {
+        if let Some(warning) = check_path_warning(crate_root, &root_dir, scope_label, &path) {
+            warnings_by_branch
+                .entry(warning.path.clone())
+                .or_insert(warning);
+        }
+    }
+
+    warnings_by_branch.into_values().collect()
+}
+
 fn validate_test_leaf_files(
     crate_root: &Path,
     suite_name: &'static str,
@@ -377,6 +431,81 @@ fn collect_test_rust_files(dir: &Path, files: &mut Vec<PathBuf>) {
             files.push(path);
         }
     }
+}
+
+fn check_path_warning(
+    crate_root: &Path,
+    root_dir: &Path,
+    scope_label: &'static str,
+    path: &Path,
+) -> Option<PathStructureWarning> {
+    let root_relative_path = path.strip_prefix(root_dir).ok()?;
+    let parent = root_relative_path.parent()?;
+    if parent.as_os_str().is_empty() {
+        return None;
+    }
+    let components = parent
+        .iter()
+        .map(|component| component.to_string_lossy().into_owned())
+        .collect::<Vec<_>>();
+    let repeated_namespaces = repeated_namespace_segments(&components);
+
+    if repeated_namespaces.is_empty() {
+        return None;
+    }
+
+    let branch_relative_path = offending_namespace_branch(&components, &repeated_namespaces);
+    let branch_path = root_dir.join(&branch_relative_path);
+    let rendered_path = branch_path
+        .strip_prefix(crate_root)
+        .unwrap_or(&branch_path)
+        .display()
+        .to_string();
+    let repeated_rendered = repeated_namespaces
+        .iter()
+        .map(|namespace| format!("`{namespace}`"))
+        .collect::<Vec<_>>()
+        .join(", ");
+
+    Some(PathStructureWarning {
+        path: branch_path,
+        repeated_namespaces,
+        suggestion: format!(
+            "`{rendered_path}` repeats namespace segment(s) {repeated_rendered} inside the {scope_label}. Prefer one stable owner namespace per branch and rename the deepest repeated directory to the actual leaf responsibility instead of reusing the same namespace twice."
+        ),
+    })
+}
+
+fn repeated_namespace_segments(components: &[String]) -> Vec<String> {
+    let mut counts = BTreeMap::new();
+    for component in components {
+        *counts.entry(component.clone()).or_insert(0usize) += 1;
+    }
+
+    counts
+        .into_iter()
+        .filter_map(|(component, count)| (count > 1).then_some(component))
+        .collect()
+}
+
+fn offending_namespace_branch(components: &[String], repeated_namespaces: &[String]) -> PathBuf {
+    let deepest_repeated_index = components
+        .iter()
+        .enumerate()
+        .filter_map(|(index, component)| {
+            repeated_namespaces
+                .iter()
+                .any(|namespace| namespace == component)
+                .then_some(index)
+        })
+        .max()
+        .unwrap_or(components.len().saturating_sub(1));
+
+    let mut branch = PathBuf::new();
+    for component in components.iter().take(deepest_repeated_index + 1) {
+        branch.push(component);
+    }
+    branch
 }
 
 fn check_test_leaf_file(
@@ -498,6 +627,42 @@ pub fn format_violation_report(violations: &[StructureViolation]) -> String {
     report
 }
 
+/// Get a summary report of path-structure warnings.
+#[must_use]
+pub fn format_path_structure_warning_report(warnings: &[PathStructureWarning]) -> String {
+    use std::fmt::Write;
+
+    if warnings.is_empty() {
+        return "✅ No path-structure warnings found.".to_string();
+    }
+
+    let mut report = String::new();
+    let _ = write!(
+        report,
+        "⚠️ Found {} test path-structure warning(s):\n\n",
+        warnings.len()
+    );
+
+    for (index, warning) in warnings.iter().enumerate() {
+        let namespaces = warning
+            .repeated_namespaces
+            .iter()
+            .map(|namespace| format!("`{namespace}`"))
+            .collect::<Vec<_>>()
+            .join(", ");
+        let _ = write!(
+            report,
+            "{}. {} (repeated namespace segments: {})\n   💡 {}\n\n",
+            index + 1,
+            warning.path.display(),
+            namespaces,
+            warning.suggestion
+        );
+    }
+
+    report
+}
+
 #[cfg(test)]
-#[path = "../tests/unit/validation.rs"]
+#[path = "../tests/unit/validation/mod.rs"]
 mod tests;

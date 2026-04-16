@@ -4,7 +4,7 @@ use std::sync::atomic::Ordering;
 use tokio::runtime::Handle;
 use tokio::sync::OwnedSemaphorePermit;
 
-use crate::analyzers::errors::RepoIntelligenceError;
+use crate::analyzers::RepoIntelligenceError;
 
 use crate::repo_index::state::coordinator::RepoIndexCoordinator;
 use crate::repo_index::state::coordinator::handle::RepoIndexRuntimeHandle;

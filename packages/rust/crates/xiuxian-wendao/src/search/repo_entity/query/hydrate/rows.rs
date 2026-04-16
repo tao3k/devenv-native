@@ -8,7 +8,7 @@ use crate::analyzers::{
 use crate::search::repo_entity::query::hydrate::{
     non_empty_vec, parse_attributes_map, parse_backlink_items, parse_import_kind, parse_symbol_kind,
 };
-use crate::search::repo_entity::query::search::{
+use crate::search::repo_entity::query::lookup::{
     HydratedRepoEntityRow, RepoEntityCandidate, RepoEntitySearchError,
 };
 

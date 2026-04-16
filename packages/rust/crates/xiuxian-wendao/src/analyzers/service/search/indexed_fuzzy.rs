@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
 use std::collections::BTreeMap;
 
-use crate::analyzers::records::{ExampleRecord, ModuleRecord, SymbolRecord};
+use crate::analyzers::{ExampleRecord, ModuleRecord, SymbolRecord};
 use crate::search::{FuzzySearchOptions, SearchDocumentIndex};
 
 use super::ranking::RankedSearchRecord;

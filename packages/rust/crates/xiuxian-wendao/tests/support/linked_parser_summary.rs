@@ -8,10 +8,10 @@ use std::time::Duration;
 
 use toml::Value;
 use xiuxian_wendao_julia::integration_support::{
-    JuliaExampleServiceGuard, spawn_wendaosearch_julia_parser_summary_service,
-    spawn_wendaosearch_modelica_parser_summary_service,
+    JuliaExampleServiceGuard, spawn_wendaosearch_modelica_parser_summary_service,
 };
 use xiuxian_wendao_julia::{
+    clear_modelica_parser_summary_transport_cache_for_tests,
     set_linked_julia_parser_summary_base_url_for_tests,
     set_linked_modelica_parser_summary_base_url_for_tests,
 };
@@ -25,47 +25,36 @@ struct LinkedParserSummaryService {
     _guard: Mutex<JuliaExampleServiceGuard>,
 }
 
-static LINKED_JULIA_PARSER_SUMMARY_SERVICE: OnceLock<Result<LinkedParserSummaryService, String>> =
+static LINKED_PARSER_SUMMARY_SERVICE: OnceLock<Result<LinkedParserSummaryService, String>> =
     OnceLock::new();
-static LINKED_MODELICA_PARSER_SUMMARY_SERVICE: OnceLock<
-    Result<LinkedParserSummaryService, String>,
-> = OnceLock::new();
 static PROCESS_MANAGED_PARSER_SUMMARY_SERVICE: OnceLock<Result<(), String>> = OnceLock::new();
 
 pub fn ensure_linked_julia_parser_summary_service() -> TestResult {
     if process_managed_wendaosearch_test_enabled() {
         return ensure_process_managed_parser_summary_service();
     }
-    let service = LINKED_JULIA_PARSER_SUMMARY_SERVICE.get_or_init(|| {
-        let (base_url, guard) = std::thread::spawn(|| {
-            let runtime = tokio::runtime::Builder::new_current_thread()
-                .enable_all()
-                .build()
-                .map_err(|error| error.to_string())?;
-            Ok::<(String, JuliaExampleServiceGuard), String>(
-                runtime.block_on(spawn_wendaosearch_julia_parser_summary_service()),
-            )
-        })
-        .join()
-        .map_err(|_| "linked Julia parser-summary service thread panicked".to_string())??;
-        set_linked_julia_parser_summary_base_url_for_tests(base_url.as_str())?;
-        Ok(LinkedParserSummaryService {
-            _guard: Mutex::new(guard),
-        })
-    });
-    match service.as_ref() {
-        Ok(_) => Ok(()),
-        Err(message) => {
-            Err(Box::new(IoError::other(message.clone())) as Box<dyn std::error::Error>)
-        }
+    if process_managed_parser_summary_service_is_configured()
+        && ensure_process_managed_parser_summary_service().is_ok()
+    {
+        return Ok(());
     }
+    ensure_linked_parser_summary_service()
 }
 
 pub fn ensure_linked_modelica_parser_summary_service() -> TestResult {
     if process_managed_wendaosearch_test_enabled() {
         return ensure_process_managed_parser_summary_service();
     }
-    let service = LINKED_MODELICA_PARSER_SUMMARY_SERVICE.get_or_init(|| {
+    if process_managed_parser_summary_service_is_configured()
+        && ensure_process_managed_parser_summary_service().is_ok()
+    {
+        return Ok(());
+    }
+    ensure_linked_parser_summary_service()
+}
+
+fn ensure_linked_parser_summary_service() -> TestResult {
+    let service = LINKED_PARSER_SUMMARY_SERVICE.get_or_init(|| {
         let (base_url, guard) = std::thread::spawn(|| {
             let runtime = tokio::runtime::Builder::new_current_thread()
                 .enable_all()
@@ -76,7 +65,8 @@ pub fn ensure_linked_modelica_parser_summary_service() -> TestResult {
             )
         })
         .join()
-        .map_err(|_| "linked Modelica parser-summary service thread panicked".to_string())??;
+        .map_err(|_| "linked parser-summary service thread panicked".to_string())??;
+        set_linked_julia_parser_summary_base_url_for_tests(base_url.as_str())?;
         set_linked_modelica_parser_summary_base_url_for_tests(base_url.as_str())?;
         Ok(LinkedParserSummaryService {
             _guard: Mutex::new(guard),
@@ -94,26 +84,18 @@ fn process_managed_wendaosearch_test_enabled() -> bool {
     std::env::var_os(RUN_PROCESS_MANAGED_WENDAOSEARCH_TEST_ENV).is_some()
 }
 
+fn process_managed_parser_summary_service_is_configured() -> bool {
+    process_managed_parser_summary_base_url().is_ok()
+}
+
 fn ensure_process_managed_parser_summary_service() -> TestResult {
     let service = PROCESS_MANAGED_PARSER_SUMMARY_SERVICE.get_or_init(|| {
         let base_url = process_managed_parser_summary_base_url()?;
         if !service_is_ready(base_url.as_str())? {
-            let output = devenv_processes_command(["up", "-d", PROCESS_MANAGED_PARSER_SUMMARY_SERVICE_NAME])
-                .output()
-                .map_err(|error| {
-                    format!(
-                        "start process-managed `{PROCESS_MANAGED_PARSER_SUMMARY_SERVICE_NAME}` service: {error}"
-                    )
-                })?;
-            if !output.status.success() {
-                return Err(format!(
-                    "start process-managed `{PROCESS_MANAGED_PARSER_SUMMARY_SERVICE_NAME}` service failed\nstdout:\n{}\nstderr:\n{}",
-                    String::from_utf8_lossy(&output.stdout),
-                    String::from_utf8_lossy(&output.stderr),
-                ));
-            }
-            wait_for_service_ready(base_url.as_str(), 600)?;
+            start_process_managed_parser_summary_service(base_url.as_str())?;
         }
+        wait_for_service_ready(base_url.as_str(), 600)?;
+        clear_modelica_parser_summary_transport_cache_for_tests();
         set_linked_julia_parser_summary_base_url_for_tests(base_url.as_str())
             .map_err(|error| error.clone())?;
         set_linked_modelica_parser_summary_base_url_for_tests(base_url.as_str())
@@ -126,6 +108,28 @@ fn ensure_process_managed_parser_summary_service() -> TestResult {
             Err(Box::new(IoError::other(message.clone())) as Box<dyn std::error::Error>)
         }
     }
+}
+
+fn start_process_managed_parser_summary_service(base_url: &str) -> Result<(), String> {
+    let output = devenv_processes_command([
+        "up",
+        "-d",
+        PROCESS_MANAGED_PARSER_SUMMARY_SERVICE_NAME,
+    ])
+    .output()
+    .map_err(|error| {
+        format!(
+            "start process-managed `{PROCESS_MANAGED_PARSER_SUMMARY_SERVICE_NAME}` service: {error}"
+        )
+    })?;
+    if !output.status.success() {
+        return Err(format!(
+            "start process-managed `{PROCESS_MANAGED_PARSER_SUMMARY_SERVICE_NAME}` service failed\nstdout:\n{}\nstderr:\n{}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr),
+        ));
+    }
+    wait_for_service_ready(base_url, 600)
 }
 
 fn process_managed_parser_summary_base_url() -> Result<String, String> {
@@ -195,10 +199,28 @@ fn socket_addr_from_base_url(base_url: &str) -> Result<SocketAddr, String> {
 }
 
 fn repo_root() -> PathBuf {
+    if let Ok(project_root) = std::env::var("PRJ_ROOT") {
+        let candidate = PathBuf::from(project_root);
+        if repo_root_candidate_is_valid(candidate.as_path()) {
+            return candidate;
+        }
+    }
+
     match Path::new(env!("CARGO_MANIFEST_DIR")).ancestors().nth(4) {
-        Some(path) => path.to_path_buf(),
+        Some(path) if repo_root_candidate_is_valid(path) => path.to_path_buf(),
+        Some(path) => panic!(
+            "resolved workspace root candidate `{}` failed marker checks",
+            path.display()
+        ),
         None => panic!("workspace root"),
     }
+}
+
+fn repo_root_candidate_is_valid(candidate: &Path) -> bool {
+    candidate.join("Cargo.lock").is_file()
+        && candidate
+            .join("packages/rust/crates/xiuxian-wendao/Cargo.toml")
+            .is_file()
 }
 
 fn devenv_processes_command<const N: usize>(args: [&str; N]) -> Command {

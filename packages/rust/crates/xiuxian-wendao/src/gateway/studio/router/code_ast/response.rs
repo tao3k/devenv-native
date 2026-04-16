@@ -1,15 +1,13 @@
 use crate::analyzers::{ImportKind, ImportRecord, RepoSymbolKind, RepositoryAnalysisOutput};
-use crate::gateway::studio::router::code_ast::atoms::{
-    RetrievalChunkLineExt, build_code_ast_retrieval_atom,
-};
-use crate::gateway::studio::router::code_ast::blocks::build_code_block_retrieval_atoms;
-use crate::gateway::studio::router::code_ast::resolve::{
-    focus_symbol_for_blocks, path_has_extension, repo_relative_path_matches,
-    retrieval_semantic_type,
-};
 use crate::gateway::studio::types::{
     CodeAstAnalysisResponse, CodeAstEdge, CodeAstEdgeKind, CodeAstNode, CodeAstNodeKind,
     CodeAstProjection, CodeAstProjectionKind, CodeAstRetrievalAtomScope,
+};
+
+use super::{
+    RetrievalChunkLineExt, build_code_ast_retrieval_atom, build_code_block_retrieval_atoms,
+    focus_symbol_for_blocks, path_has_extension, repo_relative_path_matches,
+    retrieval_semantic_type,
 };
 
 /// Build the code-AST response payload for one repository-relative source path.

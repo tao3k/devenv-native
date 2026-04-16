@@ -1,16 +1,13 @@
 #[cfg(test)]
 use std::collections::BTreeMap;
 
-use crate::analyzers::cache::{RepositoryAnalysisCacheKey, RepositorySearchQueryCacheKey};
-use crate::analyzers::plugin::RepositoryAnalysisOutput;
+use crate::analyzers::RepositoryAnalysisOutput;
 
 use super::runtime::{ValkeyAnalysisCacheRuntime, resolve_valkey_analysis_cache_runtime};
-#[cfg(feature = "zhenfa-router")]
-use super::storage::decode_analysis_payload_for_revision;
+use super::scope::{RepositoryAnalysisValkeyScope, RepositorySearchQueryValkeyScope};
 use super::storage::{
-    decode_analysis_payload, decode_search_query_payload, encode_analysis_payload,
-    encode_search_query_payload, valkey_analysis_key, valkey_analysis_revision_key,
-    valkey_search_query_key,
+    encode_analysis_payload, encode_search_query_payload, valkey_analysis_key,
+    valkey_analysis_revision_key,
 };
 
 #[derive(Debug, Clone)]
@@ -26,7 +23,7 @@ impl ValkeyAnalysisCache {
     /// # Errors
     ///
     /// Returns an error when Valkey runtime configuration is invalid.
-    pub fn new() -> Result<Option<Self>, crate::analyzers::errors::RepoIntelligenceError> {
+    pub fn new() -> Result<Option<Self>, crate::analyzers::RepoIntelligenceError> {
         Ok(resolve_valkey_analysis_cache_runtime()?.map(Self::from_runtime))
     }
 
@@ -38,79 +35,28 @@ impl ValkeyAnalysisCache {
         ))
     }
 
-    /// Retrieves a cached analysis result.
+    /// Retrieves a cached analysis result for one analysis scope.
     #[must_use]
-    pub fn get(&self, cache_key: &RepositoryAnalysisCacheKey) -> Option<RepositoryAnalysisOutput> {
-        let storage_key = valkey_analysis_key(cache_key, self.runtime.key_prefix.as_str());
-        #[cfg(test)]
-        if self.runtime.client.is_none() {
-            return self
-                .shadow
-                .read()
-                .unwrap_or_else(std::sync::PoisonError::into_inner)
-                .get(&storage_key)
-                .and_then(|payload| decode_analysis_payload(cache_key, payload));
-        }
-        let client = self.runtime.client.as_ref()?;
-        let mut connection = client.get_connection().ok()?;
-        let payload = redis::cmd("GET")
-            .arg(&storage_key)
-            .query::<Option<String>>(&mut connection)
-            .ok()??;
-        decode_analysis_payload(cache_key, payload.as_str())
-    }
-
-    /// Retrieves a cached analysis result by revision lookup.
-    #[must_use]
-    #[cfg(feature = "zhenfa-router")]
-    pub fn get_for_revision(
+    pub fn get_analysis(
         &self,
-        repo_id: &str,
-        checkout_root: &str,
-        plugin_ids: &[String],
-        revision: &str,
+        scope: RepositoryAnalysisValkeyScope<'_>,
     ) -> Option<RepositoryAnalysisOutput> {
-        let storage_key = valkey_analysis_revision_key(
-            repo_id,
-            checkout_root,
-            plugin_ids,
-            revision,
-            self.runtime.key_prefix.as_str(),
-        );
-        #[cfg(test)]
-        if self.runtime.client.is_none() {
-            return self
-                .shadow
-                .read()
-                .unwrap_or_else(std::sync::PoisonError::into_inner)
-                .get(&storage_key)
-                .and_then(|payload| {
-                    decode_analysis_payload_for_revision(
-                        repo_id,
-                        checkout_root,
-                        plugin_ids,
-                        revision,
-                        payload,
-                    )
-                });
-        }
-        let client = self.runtime.client.as_ref()?;
-        let mut connection = client.get_connection().ok()?;
-        let payload = redis::cmd("GET")
-            .arg(&storage_key)
-            .query::<Option<String>>(&mut connection)
-            .ok()??;
-        decode_analysis_payload_for_revision(
-            repo_id,
-            checkout_root,
-            plugin_ids,
-            revision,
-            payload.as_str(),
-        )
+        let storage_key = scope.storage_key(self.runtime.key_prefix.as_str());
+        let payload = self.load_payload(storage_key.as_str())?;
+        scope.decode(payload.as_str())
     }
 
     /// Stores an analysis result in the cache.
-    pub fn set(&self, cache_key: &RepositoryAnalysisCacheKey, analysis: &RepositoryAnalysisOutput) {
+    pub fn set_analysis(
+        &self,
+        scope: RepositoryAnalysisValkeyScope<'_>,
+        analysis: &RepositoryAnalysisOutput,
+    ) {
+        let cache_key = match scope {
+            RepositoryAnalysisValkeyScope::Current(cache_key) => cache_key,
+            #[cfg(feature = "zhenfa-router")]
+            RepositoryAnalysisValkeyScope::Revision { .. } => return,
+        };
         let storage_key = valkey_analysis_key(cache_key, self.runtime.key_prefix.as_str());
         let revision_key = cache_key.revision().map(|revision| {
             valkey_analysis_revision_key(
@@ -124,111 +70,33 @@ impl ValkeyAnalysisCache {
         let Some(payload) = encode_analysis_payload(cache_key, analysis) else {
             return;
         };
-        #[cfg(test)]
-        if self.runtime.client.is_none() {
-            let mut shadow = self
-                .shadow
-                .write()
-                .unwrap_or_else(std::sync::PoisonError::into_inner);
-            shadow.insert(storage_key, payload.clone());
-            if let Some(revision_key) = revision_key {
-                shadow.insert(revision_key, payload);
-            }
-            return;
-        }
-        let Some(client) = self.runtime.client.as_ref() else {
-            return;
-        };
-        let Ok(mut connection) = client.get_connection() else {
-            return;
-        };
-        if let Some(ttl_seconds) = self.runtime.ttl_seconds {
-            let _ = redis::cmd("SETEX")
-                .arg(&storage_key)
-                .arg(ttl_seconds)
-                .arg(&payload)
-                .query::<()>(&mut connection);
-            if let Some(revision_key) = revision_key {
-                let _ = redis::cmd("SETEX")
-                    .arg(&revision_key)
-                    .arg(ttl_seconds)
-                    .arg(&payload)
-                    .query::<()>(&mut connection);
-            }
-            return;
-        }
-        let _ = redis::cmd("SET")
-            .arg(&storage_key)
-            .arg(&payload)
-            .query::<()>(&mut connection);
+        self.store_payload(storage_key.as_str(), payload.as_str());
         if let Some(revision_key) = revision_key {
-            let _ = redis::cmd("SET")
-                .arg(&revision_key)
-                .arg(&payload)
-                .query::<()>(&mut connection);
+            self.store_payload(revision_key.as_str(), payload.as_str());
         }
     }
 
     /// Retrieves a cached repo-search endpoint payload.
     #[must_use]
-    pub fn get_query_result<T>(&self, cache_key: &RepositorySearchQueryCacheKey) -> Option<T>
+    pub fn get_search_query<T>(&self, scope: RepositorySearchQueryValkeyScope<'_>) -> Option<T>
     where
         T: serde::de::DeserializeOwned,
     {
-        let storage_key = valkey_search_query_key(cache_key, self.runtime.key_prefix.as_str());
-        #[cfg(test)]
-        if self.runtime.client.is_none() {
-            return self
-                .shadow
-                .read()
-                .unwrap_or_else(std::sync::PoisonError::into_inner)
-                .get(&storage_key)
-                .and_then(|payload| decode_search_query_payload(cache_key, payload));
-        }
-        let client = self.runtime.client.as_ref()?;
-        let mut connection = client.get_connection().ok()?;
-        let payload = redis::cmd("GET")
-            .arg(&storage_key)
-            .query::<Option<String>>(&mut connection)
-            .ok()??;
-        decode_search_query_payload(cache_key, payload.as_str())
+        let storage_key = scope.storage_key(self.runtime.key_prefix.as_str());
+        let payload = self.load_payload(storage_key.as_str())?;
+        scope.decode(payload.as_str())
     }
 
     /// Stores one repo-search endpoint payload in the cache.
-    pub fn set_query_result<T>(&self, cache_key: &RepositorySearchQueryCacheKey, value: &T)
+    pub fn set_search_query<T>(&self, scope: RepositorySearchQueryValkeyScope<'_>, value: &T)
     where
         T: serde::Serialize,
     {
-        let storage_key = valkey_search_query_key(cache_key, self.runtime.key_prefix.as_str());
-        let Some(payload) = encode_search_query_payload(cache_key, value) else {
+        let storage_key = scope.storage_key(self.runtime.key_prefix.as_str());
+        let Some(payload) = encode_search_query_payload(scope.cache_key(), value) else {
             return;
         };
-        #[cfg(test)]
-        if self.runtime.client.is_none() {
-            self.shadow
-                .write()
-                .unwrap_or_else(std::sync::PoisonError::into_inner)
-                .insert(storage_key, payload);
-            return;
-        }
-        let Some(client) = self.runtime.client.as_ref() else {
-            return;
-        };
-        let Ok(mut connection) = client.get_connection() else {
-            return;
-        };
-        if let Some(ttl_seconds) = self.runtime.ttl_seconds {
-            let _ = redis::cmd("SETEX")
-                .arg(&storage_key)
-                .arg(ttl_seconds)
-                .arg(&payload)
-                .query::<()>(&mut connection);
-            return;
-        }
-        let _ = redis::cmd("SET")
-            .arg(&storage_key)
-            .arg(&payload)
-            .query::<()>(&mut connection);
+        self.store_payload(storage_key.as_str(), payload.as_str());
     }
 
     fn from_runtime(runtime: ValkeyAnalysisCacheRuntime) -> Self {
@@ -237,5 +105,52 @@ impl ValkeyAnalysisCache {
             #[cfg(test)]
             shadow: std::sync::Arc::new(std::sync::RwLock::new(BTreeMap::new())),
         }
+    }
+
+    fn load_payload(&self, storage_key: &str) -> Option<String> {
+        #[cfg(test)]
+        if self.runtime.client.is_none() {
+            return self
+                .shadow
+                .read()
+                .unwrap_or_else(std::sync::PoisonError::into_inner)
+                .get(storage_key)
+                .cloned();
+        }
+        let client = self.runtime.client.as_ref()?;
+        let mut connection = client.get_connection().ok()?;
+        redis::cmd("GET")
+            .arg(storage_key)
+            .query::<Option<String>>(&mut connection)
+            .ok()?
+    }
+
+    fn store_payload(&self, storage_key: &str, payload: &str) {
+        #[cfg(test)]
+        if self.runtime.client.is_none() {
+            self.shadow
+                .write()
+                .unwrap_or_else(std::sync::PoisonError::into_inner)
+                .insert(storage_key.to_string(), payload.to_string());
+            return;
+        }
+        let Some(client) = self.runtime.client.as_ref() else {
+            return;
+        };
+        let Ok(mut connection) = client.get_connection() else {
+            return;
+        };
+        if let Some(ttl_seconds) = self.runtime.ttl_seconds {
+            let _ = redis::cmd("SETEX")
+                .arg(storage_key)
+                .arg(ttl_seconds)
+                .arg(payload)
+                .query::<()>(&mut connection);
+            return;
+        }
+        let _ = redis::cmd("SET")
+            .arg(storage_key)
+            .arg(payload)
+            .query::<()>(&mut connection);
     }
 }

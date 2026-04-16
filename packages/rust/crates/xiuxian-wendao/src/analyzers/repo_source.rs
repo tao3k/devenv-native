@@ -2,8 +2,8 @@ use std::path::Path;
 
 use xiuxian_git_repo::{RepoError, RepoErrorKind, RepoRefreshPolicy, RepoSpec, RevisionSelector};
 
-use crate::analyzers::config::{RegisteredRepository, RepositoryRef, RepositoryRefreshPolicy};
-use crate::analyzers::errors::RepoIntelligenceError;
+use crate::analyzers::RepoIntelligenceError;
+use crate::analyzers::{RegisteredRepository, RepositoryRef, RepositoryRefreshPolicy};
 
 /// Resolve one registered repository through the shared repo substrate.
 ///

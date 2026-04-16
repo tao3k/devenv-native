@@ -1,8 +1,8 @@
 use std::collections::{BTreeMap, HashMap};
 use std::sync::{Arc, Mutex, OnceLock};
 
+use crate::analyzers::RepoIntelligenceError;
 use crate::analyzers::cache::RepositoryAnalysisCacheKey;
-use crate::analyzers::errors::RepoIntelligenceError;
 use crate::analyzers::service::ExampleSearchMetadata;
 use crate::analyzers::{ExampleRecord, ModuleRecord, ProjectedPageRecord, SymbolRecord};
 use crate::search::SearchDocumentIndex;

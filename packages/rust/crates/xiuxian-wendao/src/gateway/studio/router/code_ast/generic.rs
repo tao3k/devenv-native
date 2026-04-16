@@ -3,13 +3,13 @@ use std::path::Path;
 
 use xiuxian_ast::{Lang, extract_items, get_skeleton_patterns};
 
-use crate::gateway::studio::router::code_ast::atoms::{
-    RetrievalChunkLineExt, build_code_ast_retrieval_atom,
-};
-use crate::gateway::studio::router::code_ast::blocks::build_code_block_retrieval_atoms;
 use crate::gateway::studio::types::{
     CodeAstAnalysisResponse, CodeAstNode, CodeAstNodeKind, CodeAstProjection,
     CodeAstProjectionKind, CodeAstRetrievalAtomScope,
+};
+
+use super::{
+    RetrievalChunkLineExt, build_code_ast_retrieval_atom, build_code_block_retrieval_atoms,
 };
 
 struct GenericAstItem {

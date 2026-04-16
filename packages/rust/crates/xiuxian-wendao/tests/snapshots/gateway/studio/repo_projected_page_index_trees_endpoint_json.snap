@@ -1,6 +1,6 @@
 ---
-source: packages/rust/crates/xiuxian-wendao/src/gateway/studio/test_support.rs
-assertion_line: 9
+source: packages/rust/crates/xiuxian-wendao/src/gateway/studio/../../../tests/unit/gateway/studio/support.rs
+assertion_line: 17
 expression: value
 ---
 {
@@ -165,7 +165,7 @@ expression: value
                 "Supporting Docs"
               ],
               "summary": ":ID: sources\n:PATHS: README",
-              "text": ":ID: sources\n:PATHS: README.md, docs/solve.md, src/GatewaySyncPkg.jl#symbol:solve\n\nDocumentation:\n- `README.md` (README.md)\n- `solve` (docs/solve.md)\n- `solve` (src/GatewaySyncPkg.jl#symbol:solve)",
+              "text": ":ID: sources\n:PATHS: README.md, docs/solve.md, src/GatewaySyncPkg.jl#symbol-id:repo:gateway-sync:symbol:GatewaySyncPkg.solve\n\nDocumentation:\n- `README.md` (README.md)\n- `solve` (docs/solve.md)\n- `solve` (src/GatewaySyncPkg.jl#symbol-id:repo:gateway-sync:symbol:GatewaySyncPkg.solve)",
               "title": "Supporting Docs",
               "token_count": 16
             },
@@ -199,7 +199,7 @@ expression: value
             "Overview"
           ],
           "summary": ":ID: overview\n:PATHS: README",
-          "text": ":ID: overview\n:PATHS: README.md, docs/solve.md, examples/solve_demo.jl, src/GatewaySyncPkg.jl#symbol:solve\n\nProjected how-to page for `solve_demo`.\nFormat hints:\n- `julia_docstring`\n- `md`\nSource paths:\n- `README.md`\n- `docs/solve.md`\n- `examples/solve_demo.jl`\n- `src/GatewaySyncPkg.jl#symbol:solve`",
+          "text": ":ID: overview\n:PATHS: README.md, docs/solve.md, examples/solve_demo.jl, src/GatewaySyncPkg.jl#symbol-id:repo:gateway-sync:symbol:GatewaySyncPkg.solve\n\nProjected how-to page for `solve_demo`.\nFormat hints:\n- `julia_docstring`\n- `md`\nSource paths:\n- `README.md`\n- `docs/solve.md`\n- `examples/solve_demo.jl`\n- `src/GatewaySyncPkg.jl#symbol-id:repo:gateway-sync:symbol:GatewaySyncPkg.solve`",
           "title": "Overview",
           "token_count": 28
         }
@@ -265,7 +265,7 @@ expression: value
                 "Documentation"
               ],
               "summary": ":ID: sources\n:PATHS: README",
-              "text": ":ID: sources\n:PATHS: README.md, docs/solve.md, src/GatewaySyncPkg.jl#symbol:solve\n\nDocumentation:\n- `README.md` (README.md)\n- `solve` (docs/solve.md)\n- `solve` (src/GatewaySyncPkg.jl#symbol:solve)",
+              "text": ":ID: sources\n:PATHS: README.md, docs/solve.md, src/GatewaySyncPkg.jl#symbol-id:repo:gateway-sync:symbol:GatewaySyncPkg.solve\n\nDocumentation:\n- `README.md` (README.md)\n- `solve` (docs/solve.md)\n- `solve` (src/GatewaySyncPkg.jl#symbol-id:repo:gateway-sync:symbol:GatewaySyncPkg.solve)",
               "title": "Documentation",
               "token_count": 16
             },
@@ -299,7 +299,7 @@ expression: value
             "Overview"
           ],
           "summary": ":ID: overview\n:PATHS: README",
-          "text": ":ID: overview\n:PATHS: README.md, docs/solve.md, examples/solve_demo.jl, src/GatewaySyncPkg.jl, src/GatewaySyncPkg.jl#symbol:solve\n\nProjected reference page for `GatewaySyncPkg`.\nFormat hints:\n- `julia_docstring`\n- `md`\nSource paths:\n- `README.md`\n- `docs/solve.md`\n- `examples/solve_demo.jl`\n- `src/GatewaySyncPkg.jl`\n- `src/GatewaySyncPkg.jl#symbol:solve`",
+          "text": ":ID: overview\n:PATHS: README.md, docs/solve.md, examples/solve_demo.jl, src/GatewaySyncPkg.jl, src/GatewaySyncPkg.jl#symbol-id:repo:gateway-sync:symbol:GatewaySyncPkg.solve\n\nProjected reference page for `GatewaySyncPkg`.\nFormat hints:\n- `julia_docstring`\n- `md`\nSource paths:\n- `README.md`\n- `docs/solve.md`\n- `examples/solve_demo.jl`\n- `src/GatewaySyncPkg.jl`\n- `src/GatewaySyncPkg.jl#symbol-id:repo:gateway-sync:symbol:GatewaySyncPkg.solve`",
           "title": "Overview",
           "token_count": 31
         }
@@ -365,7 +365,7 @@ expression: value
                 "Documentation"
               ],
               "summary": ":ID: sources\n:PATHS: docs/solve",
-              "text": ":ID: sources\n:PATHS: docs/solve.md, src/GatewaySyncPkg.jl#symbol:solve\n\nDocumentation:\n- `solve` (docs/solve.md)\n- `solve` (src/GatewaySyncPkg.jl#symbol:solve)",
+              "text": ":ID: sources\n:PATHS: docs/solve.md, src/GatewaySyncPkg.jl#symbol-id:repo:gateway-sync:symbol:GatewaySyncPkg.solve\n\nDocumentation:\n- `solve` (docs/solve.md)\n- `solve` (src/GatewaySyncPkg.jl#symbol-id:repo:gateway-sync:symbol:GatewaySyncPkg.solve)",
               "title": "Documentation",
               "token_count": 12
             },
@@ -399,7 +399,7 @@ expression: value
             "Overview"
           ],
           "summary": ":ID: overview\n:PATHS: docs/solve",
-          "text": ":ID: overview\n:PATHS: docs/solve.md, examples/solve_demo.jl, src/GatewaySyncPkg.jl, src/GatewaySyncPkg.jl#symbol:solve\n\nProjected reference page for `GatewaySyncPkg.solve`.\nFormat hints:\n- `julia_docstring`\n- `md`\nSource paths:\n- `docs/solve.md`\n- `examples/solve_demo.jl`\n- `src/GatewaySyncPkg.jl`\n- `src/GatewaySyncPkg.jl#symbol:solve`",
+          "text": ":ID: overview\n:PATHS: docs/solve.md, examples/solve_demo.jl, src/GatewaySyncPkg.jl, src/GatewaySyncPkg.jl#symbol-id:repo:gateway-sync:symbol:GatewaySyncPkg.solve\n\nProjected reference page for `GatewaySyncPkg.solve`.\nFormat hints:\n- `julia_docstring`\n- `md`\nSource paths:\n- `docs/solve.md`\n- `examples/solve_demo.jl`\n- `src/GatewaySyncPkg.jl`\n- `src/GatewaySyncPkg.jl#symbol-id:repo:gateway-sync:symbol:GatewaySyncPkg.solve`",
           "title": "Overview",
           "token_count": 28
         }
@@ -507,10 +507,10 @@ expression: value
       "title": "solve"
     },
     {
-      "doc_id": "reference/solve-c6d7a0c3b0a4",
+      "doc_id": "reference/solve-ff3f3e8134a2",
       "kind": "reference",
-      "page_id": "repo:gateway-sync:projection:reference:doc:repo:gateway-sync:doc:src/GatewaySyncPkg.jl#symbol:solve",
-      "path": "reference/solve-c6d7a0c3b0a4.md",
+      "page_id": "repo:gateway-sync:projection:reference:doc:repo:gateway-sync:doc:src/GatewaySyncPkg.jl#symbol-id:repo:gateway-sync:symbol:GatewaySyncPkg.solve",
+      "path": "reference/solve-ff3f3e8134a2.md",
       "repo_id": "gateway-sync",
       "root_count": 2,
       "roots": [
@@ -522,7 +522,7 @@ expression: value
             1,
             7
           ],
-          "node_id": "reference/solve-c6d7a0c3b0a4#solve",
+          "node_id": "reference/solve-ff3f3e8134a2#solve",
           "structural_path": [
             "solve"
           ],
@@ -541,7 +541,7 @@ expression: value
                 19,
                 25
               ],
-              "node_id": "reference/solve-c6d7a0c3b0a4#anchors",
+              "node_id": "reference/solve-ff3f3e8134a2#anchors",
               "structural_path": [
                 "Overview",
                 "Anchors"
@@ -559,13 +559,13 @@ expression: value
                 26,
                 32
               ],
-              "node_id": "reference/solve-c6d7a0c3b0a4#sources",
+              "node_id": "reference/solve-ff3f3e8134a2#sources",
               "structural_path": [
                 "Overview",
                 "Documentation"
               ],
               "summary": ":ID: sources\n:PATHS: src/GatewaySyncPkg",
-              "text": ":ID: sources\n:PATHS: src/GatewaySyncPkg.jl#symbol:solve\n\nDocumentation:\n- `solve` (src/GatewaySyncPkg.jl#symbol:solve)",
+              "text": ":ID: sources\n:PATHS: src/GatewaySyncPkg.jl#symbol-id:repo:gateway-sync:symbol:GatewaySyncPkg.solve\n\nDocumentation:\n- `solve` (src/GatewaySyncPkg.jl#symbol-id:repo:gateway-sync:symbol:GatewaySyncPkg.solve)",
               "title": "Documentation",
               "token_count": 8
             },
@@ -577,7 +577,7 @@ expression: value
                 33,
                 38
               ],
-              "node_id": "reference/solve-c6d7a0c3b0a4#examples",
+              "node_id": "reference/solve-ff3f3e8134a2#examples",
               "structural_path": [
                 "Overview",
                 "Examples"
@@ -594,12 +594,12 @@ expression: value
             8,
             18
           ],
-          "node_id": "reference/solve-c6d7a0c3b0a4#overview",
+          "node_id": "reference/solve-ff3f3e8134a2#overview",
           "structural_path": [
             "Overview"
           ],
           "summary": ":ID: overview\n:PATHS: examples/solve_demo",
-          "text": ":ID: overview\n:PATHS: examples/solve_demo.jl, src/GatewaySyncPkg.jl#symbol:solve\n\nProjected reference page for `solve`.\nFormat hints:\n- `julia_docstring`\nSource paths:\n- `examples/solve_demo.jl`\n- `src/GatewaySyncPkg.jl#symbol:solve`",
+          "text": ":ID: overview\n:PATHS: examples/solve_demo.jl, src/GatewaySyncPkg.jl#symbol-id:repo:gateway-sync:symbol:GatewaySyncPkg.solve\n\nProjected reference page for `solve`.\nFormat hints:\n- `julia_docstring`\nSource paths:\n- `examples/solve_demo.jl`\n- `src/GatewaySyncPkg.jl#symbol-id:repo:gateway-sync:symbol:GatewaySyncPkg.solve`",
           "title": "Overview",
           "token_count": 20
         }

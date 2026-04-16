@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
-use crate::analyzers::plugin::RepositoryAnalysisOutput;
-use crate::analyzers::records::{
+use crate::analyzers::RepositoryAnalysisOutput;
+use crate::analyzers::{
     DocRecord, ExampleRecord, ImportKind, ImportRecord, ModuleRecord, RelationKind, RelationRecord,
     RepoSymbolKind, RepositoryRecord, SymbolRecord,
 };

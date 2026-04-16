@@ -12,7 +12,6 @@ pub(crate) use self::parquet::{
 };
 #[cfg(feature = "search-runtime")]
 pub(crate) use self::result::engine_batches_rows_payload;
-pub(crate) use self::result::sql_query_payload_from_engine_batches;
 pub use self::result::{SqlBatchPayload, SqlColumnPayload, SqlQueryMetadata, SqlQueryPayload};
 #[cfg(feature = "search-runtime")]
 pub(crate) use self::service::execute_sql_query;

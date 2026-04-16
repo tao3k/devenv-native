@@ -2,7 +2,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::analyzers::projection::ProjectionPageKind;
-use crate::analyzers::query::{
+use crate::analyzers::{
     ProjectedGapRecord, ProjectedRetrievalHit, RepoProjectedPageNavigationResult,
 };
 

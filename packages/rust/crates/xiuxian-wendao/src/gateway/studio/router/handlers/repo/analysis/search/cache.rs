@@ -1,6 +1,6 @@
 use std::future::Future;
 
-use crate::analyzers::cache::{RepositoryAnalysisCacheKey, RepositorySearchQueryCacheKey};
+use crate::analyzers::{RepositoryAnalysisCacheKey, RepositorySearchQueryCacheKey};
 use crate::gateway::studio::router::StudioApiError;
 use crate::search::FuzzySearchOptions;
 use crate::search::{RepoSearchQueryCacheKeyInput, SearchCorpusKind, SearchPlaneCacheTtl};

@@ -1,3 +1,5 @@
+use std::fs;
+
 use crate::search::service::tests::support::*;
 
 fn ready_repo_status_rows(repo_ids: &[&str]) -> RepoIndexStatusResponse {
@@ -24,7 +26,7 @@ fn ready_repo_status_rows(repo_ids: &[&str]) -> RepoIndexStatusResponse {
 }
 
 #[tokio::test]
-async fn status_with_repo_runtime_hydrates_repo_corpus_status_from_snapshot_cache() {
+async fn status_with_repo_runtime_hydrates_repo_corpus_status_from_repo_record_inventory() {
     let temp_dir = temp_dir();
     let keyspace = unique_test_manifest_keyspace("status-hydrate");
     let service = SearchPlaneService::with_runtime(
@@ -59,7 +61,9 @@ async fn status_with_repo_runtime_hydrates_repo_corpus_status_from_snapshot_cach
         active_repo_ids: Vec::new(),
         repos: vec![repo_status_entry("alpha/repo", RepoIndexPhase::Ready)],
     });
+    assert!(!service.repo_corpus_snapshot_json_path().exists());
     service.clear_all_in_memory_repo_runtime_for_test();
+    fs::remove_file(service.repo_corpus_snapshot_json_path()).ok();
 
     let snapshot = ok_or_panic(
         tokio::time::timeout(Duration::from_secs(1), async {
@@ -81,7 +85,7 @@ async fn status_with_repo_runtime_hydrates_repo_corpus_status_from_snapshot_cach
             }
         })
         .await,
-        "repo-corpus snapshot cache should hydrate",
+        "repo-corpus record inventory should hydrate",
     );
     let repo_entity = corpus_status(&snapshot, SearchCorpusKind::RepoEntity, "repo entity row");
     let repo_content = corpus_status(
@@ -96,6 +100,44 @@ async fn status_with_repo_runtime_hydrates_repo_corpus_status_from_snapshot_cach
     assert_eq!(repo_content.phase, SearchPlanePhase::Ready);
     assert!(repo_content.active_epoch.is_some());
     assert!(repo_content.row_count.unwrap_or_default() > 0);
+}
+
+#[tokio::test]
+async fn synchronize_repo_runtime_removes_local_repo_record_files_for_removed_repo_ids() {
+    let temp_dir = temp_dir();
+    let keyspace = unique_test_manifest_keyspace("runtime-removed-local-records");
+    let service = SearchPlaneService::with_runtime(
+        PathBuf::from("/tmp/project"),
+        temp_dir.path().join("search_plane"),
+        keyspace.clone(),
+        SearchMaintenancePolicy::default(),
+        SearchPlaneCache::for_tests(keyspace),
+    );
+    let documents = vec![RepoCodeDocument {
+        path: "src/lib.rs".to_string(),
+        language: Some("rust".to_string()),
+        contents: Arc::<str>::from("fn alpha() {}\n"),
+        size_bytes: 14,
+        modified_unix_ms: 0,
+    }];
+    publish_repo_bundle(&service, "alpha/repo", &documents, Some("rev-1")).await;
+    service
+        .synchronize_repo_runtime_for_test(&ready_repo_status_rows(&["alpha/repo"]))
+        .await;
+
+    let entity_record_path =
+        service.repo_corpus_record_json_path(SearchCorpusKind::RepoEntity, "alpha/repo");
+    let content_record_path =
+        service.repo_corpus_record_json_path(SearchCorpusKind::RepoContentChunk, "alpha/repo");
+    assert!(entity_record_path.exists());
+    assert!(content_record_path.exists());
+
+    service
+        .synchronize_repo_runtime_for_test(&ready_repo_status_rows(&[]))
+        .await;
+
+    assert!(!entity_record_path.exists());
+    assert!(!content_record_path.exists());
 }
 
 #[tokio::test]

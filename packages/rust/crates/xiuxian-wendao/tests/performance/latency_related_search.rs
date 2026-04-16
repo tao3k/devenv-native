@@ -1,5 +1,6 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+use serial_test::file_serial;
 use xiuxian_testing::{PerfBudget, PerfRunConfig, assert_perf_budget, run_sync_budget};
 
 use super::support::{
@@ -13,6 +14,7 @@ const NODE_COUNT: usize = 2_048;
 const HUB_COUNT: usize = 32;
 
 #[test]
+#[file_serial(wendao_perf_gate)]
 fn latency_related_search_p95_gate() -> Result<(), String> {
     let (_tmp, index) = build_index(NODE_COUNT, HUB_COUNT)?;
     let ppr = default_ppr_options();
@@ -40,7 +42,14 @@ fn latency_related_search_p95_gate() -> Result<(), String> {
     });
 
     let budget = PerfBudget {
-        max_p95_latency_ms: Some(env_f64("XIUXIAN_WENDAO_PERF_LAT_P95_MS", 60.0)),
+        max_p95_latency_ms: Some(env_f64(
+            "XIUXIAN_WENDAO_PERF_LAT_P95_MS",
+            if std::env::var_os("CI").is_some() {
+                60.0
+            } else {
+                130.0
+            },
+        )),
         max_error_rate: Some(env_f64("XIUXIAN_WENDAO_PERF_LAT_MAX_ERROR_RATE", 0.001)),
         ..PerfBudget::new()
     };

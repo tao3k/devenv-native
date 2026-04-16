@@ -12,6 +12,24 @@ use crate::repo_index::{RepoIndexEntryStatus, RepoIndexPhase, RepoIndexStatusRes
 #[cfg(feature = "duckdb")]
 use crate::set_link_graph_wendao_config_override;
 
+fn repo_index_status_row(
+    repo_id: &str,
+    phase: RepoIndexPhase,
+    revision: &str,
+    updated_at: &str,
+    attempt_count: u32,
+) -> RepoIndexEntryStatus {
+    RepoIndexEntryStatus {
+        repo_id: repo_id.to_string(),
+        phase,
+        queue_position: None,
+        last_error: None,
+        last_revision: Some(revision.to_string()),
+        updated_at: Some(updated_at.to_string()),
+        attempt_count: attempt_count as usize,
+    }
+}
+
 #[test]
 fn repo_index_status_flight_batch_preserves_summary_fields() {
     let batch = build_repo_index_status_flight_batch(&RepoIndexStatusResponse {
@@ -201,46 +219,38 @@ async fn repo_index_status_diagnostics_ignore_repo_row_order_when_active_order_i
         current_repo_id: Some("stale-current".to_string()),
         active_repo_ids: vec!["gateway-sync".to_string(), "gateway-ready".to_string()],
         repos: vec![
-            RepoIndexEntryStatus {
-                repo_id: "gateway-ready".to_string(),
-                phase: RepoIndexPhase::Ready,
-                queue_position: None,
-                last_error: None,
-                last_revision: Some("rev:456".to_string()),
-                updated_at: Some("2026-04-03T19:16:00Z".to_string()),
-                attempt_count: 1,
-            },
-            RepoIndexEntryStatus {
-                repo_id: "gateway-sync".to_string(),
-                phase: RepoIndexPhase::Syncing,
-                queue_position: None,
-                last_error: None,
-                last_revision: Some("rev:789".to_string()),
-                updated_at: Some("2026-04-03T19:18:00Z".to_string()),
-                attempt_count: 2,
-            },
+            repo_index_status_row(
+                "gateway-ready",
+                RepoIndexPhase::Ready,
+                "rev:456",
+                "2026-04-03T19:16:00Z",
+                1,
+            ),
+            repo_index_status_row(
+                "gateway-sync",
+                RepoIndexPhase::Syncing,
+                "rev:789",
+                "2026-04-03T19:18:00Z",
+                2,
+            ),
         ],
     };
     let right = RepoIndexStatusResponse {
         repos: vec![
-            RepoIndexEntryStatus {
-                repo_id: "gateway-sync".to_string(),
-                phase: RepoIndexPhase::Syncing,
-                queue_position: None,
-                last_error: None,
-                last_revision: Some("rev:789".to_string()),
-                updated_at: Some("2026-04-03T19:18:00Z".to_string()),
-                attempt_count: 2,
-            },
-            RepoIndexEntryStatus {
-                repo_id: "gateway-ready".to_string(),
-                phase: RepoIndexPhase::Ready,
-                queue_position: None,
-                last_error: None,
-                last_revision: Some("rev:456".to_string()),
-                updated_at: Some("2026-04-03T19:16:00Z".to_string()),
-                attempt_count: 1,
-            },
+            repo_index_status_row(
+                "gateway-sync",
+                RepoIndexPhase::Syncing,
+                "rev:789",
+                "2026-04-03T19:18:00Z",
+                2,
+            ),
+            repo_index_status_row(
+                "gateway-ready",
+                RepoIndexPhase::Ready,
+                "rev:456",
+                "2026-04-03T19:16:00Z",
+                1,
+            ),
         ],
         ..left.clone()
     };

@@ -1,5 +1,6 @@
 ---
-source: packages/rust/crates/xiuxian-wendao/src/gateway/studio/test_support.rs
+source: packages/rust/crates/xiuxian-wendao/src/gateway/studio/../../../tests/unit/gateway/studio/support.rs
+assertion_line: 17
 expression: value
 ---
 {
@@ -62,17 +63,17 @@ expression: value
       "text": ":ID: anchors\n:PATHS: src/GatewaySyncPkg.jl\n\nSymbols:\n- `GatewaySyncPkg.solve` (src/GatewaySyncPkg.jl)"
     },
     {
-      "doc_id": "reference/solve-c6d7a0c3b0a4",
+      "doc_id": "reference/solve-ff3f3e8134a2",
       "line_range": [
         19,
         25
       ],
-      "node_id": "reference/solve-c6d7a0c3b0a4#anchors",
+      "node_id": "reference/solve-ff3f3e8134a2#anchors",
       "node_title": "Anchors",
-      "page_id": "repo:gateway-sync:projection:reference:doc:repo:gateway-sync:doc:src/GatewaySyncPkg.jl#symbol:solve",
+      "page_id": "repo:gateway-sync:projection:reference:doc:repo:gateway-sync:doc:src/GatewaySyncPkg.jl#symbol-id:repo:gateway-sync:symbol:GatewaySyncPkg.solve",
       "page_kind": "reference",
       "page_title": "solve",
-      "path": "reference/solve-c6d7a0c3b0a4.md",
+      "path": "reference/solve-ff3f3e8134a2.md",
       "repo_id": "gateway-sync",
       "structural_path": [
         "Overview",

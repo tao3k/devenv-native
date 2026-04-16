@@ -5,6 +5,11 @@ use xiuxian_wendao_core::repo_intelligence::{PluginRegistry, RepoIntelligenceErr
 
 #[cfg(not(feature = "builtin-plugins"))]
 /// Report that builtin plugin bootstrap is unavailable in lightweight builds.
+///
+/// # Errors
+///
+/// Returns [`RepoIntelligenceError::ConfigLoad`] because lightweight builds do not ship the
+/// builtin plugin registry.
 pub fn bootstrap_builtin_registry() -> Result<PluginRegistry, RepoIntelligenceError> {
     Err(RepoIntelligenceError::ConfigLoad {
         message: "builtin plugin registry is unavailable because `xiuxian-wendao` was built without the `builtin-plugins` feature".to_string(),

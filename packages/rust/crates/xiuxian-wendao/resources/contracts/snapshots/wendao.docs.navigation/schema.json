@@ -18,14 +18,20 @@
     },
     "family_limit": {
       "description": "Optional family-cluster limit override.",
-      "type": ["integer", "null"],
+      "type": [
+        "integer",
+        "null"
+      ],
       "format": "uint",
       "default": null,
       "minimum": 0
     },
     "node_id": {
       "description": "Optional stable page-index node identifier.",
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "default": null
     },
     "page_id": {
@@ -34,13 +40,18 @@
     },
     "related_limit": {
       "description": "Optional related-page limit override.",
-      "type": ["integer", "null"],
+      "type": [
+        "integer",
+        "null"
+      ],
       "format": "uint",
       "default": null,
       "minimum": 0
     }
   },
-  "required": ["page_id"],
+  "required": [
+    "page_id"
+  ],
   "$defs": {
     "ProjectionPageKind": {
       "description": "Deterministic projected page family derived from stage-1 repository truth.",

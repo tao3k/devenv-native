@@ -5,8 +5,8 @@
 mod query;
 mod records;
 /// Core entity and relation type definitions.
-pub mod types;
+mod types;
 
 pub use query::{EntitySearchQuery, MultiHopOptions};
 pub use records::{Entity, GraphStats, Relation};
-pub use types::*;
+pub use types::{EntityType, RelationType};

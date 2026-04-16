@@ -4,7 +4,6 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Mutex, OnceLock};
 
 use serde_json::Value;
-use xiuxian_vector::attach_record_batch_metadata;
 use xiuxian_wendao_core::{
     capabilities::{ContractVersion, PluginCapabilityBinding, PluginProviderSelector},
     ids::{CapabilityId, PluginId},
@@ -23,6 +22,7 @@ use super::contract::{
     validate_modelica_parser_summary_request_batches,
     validate_modelica_parser_summary_response_batches,
 };
+use crate::arrow_metadata::attach_record_batch_metadata;
 
 const MODELICA_PLUGIN_ID: &str = "modelica";
 const MODELICA_PARSER_SUMMARY_CAPABILITY_ID: &str = "parser-summary";
@@ -34,6 +34,7 @@ const DEFAULT_PARSER_SUMMARY_TIMEOUT_SECS: u64 = 120;
 
 pub(crate) const MODELICA_PARSER_SUMMARY_SCHEMA_VERSION: &str = "v3";
 pub(crate) const MODELICA_FILE_SUMMARY_ROUTE: &str = "/wendao/code-parser/modelica/file-summary";
+pub(crate) const MODELICA_AST_QUERY_ROUTE: &str = "/wendao/code-parser/modelica/ast-query";
 
 static LINKED_MODELICA_PARSER_SUMMARY_BASE_URL: OnceLock<String> = OnceLock::new();
 static MODELICA_PARSER_SUMMARY_CLIENT_CACHE: OnceLock<
@@ -45,6 +46,7 @@ static NEXT_MODELICA_PARSER_SUMMARY_CLIENT_SLOT: AtomicUsize = AtomicUsize::new(
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum ParserSummaryRouteKind {
     FileSummary,
+    AstQuery,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -66,12 +68,14 @@ impl ParserSummaryRouteKind {
     pub(crate) fn option_key(self) -> &'static str {
         match self {
             Self::FileSummary => FILE_SUMMARY_TRANSPORT_KEY,
+            Self::AstQuery => "ast_query",
         }
     }
 
     pub(crate) fn route(self) -> &'static str {
         match self {
             Self::FileSummary => MODELICA_FILE_SUMMARY_ROUTE,
+            Self::AstQuery => MODELICA_AST_QUERY_ROUTE,
         }
     }
 }
@@ -103,6 +107,15 @@ pub fn set_linked_modelica_parser_summary_base_url_for_tests(
     LINKED_MODELICA_PARSER_SUMMARY_BASE_URL
         .set(base_url)
         .map_err(|_| "failed to store linked Modelica parser-summary base_url".to_string())
+}
+
+/// Clear the process-local Modelica parser-summary Flight client cache used by
+/// linked test hosts.
+pub fn clear_modelica_parser_summary_transport_cache_for_tests() {
+    modelica_parser_summary_client_cache()
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+        .clear();
 }
 
 pub(crate) fn build_modelica_parser_summary_flight_transport_client(
@@ -172,7 +185,28 @@ pub(crate) async fn process_modelica_parser_summary_flight_batches_for_repositor
     batches: &[RecordBatch],
 ) -> Result<Vec<RecordBatch>, RepoIntelligenceError> {
     let client = build_modelica_parser_summary_flight_transport_client(repository, route_kind)?;
-    process_modelica_parser_summary_flight_batches(&client, route_kind, batches).await
+    match process_modelica_parser_summary_flight_batches(&client, route_kind, batches).await {
+        Ok(response_batches) => Ok(response_batches),
+        Err(error) if parser_summary_transport_error_requires_client_refresh(&error) => {
+            evict_modelica_parser_summary_cached_client(repository, route_kind)?;
+            let refreshed_client =
+                build_modelica_parser_summary_flight_transport_client(repository, route_kind)?;
+            process_modelica_parser_summary_flight_batches(&refreshed_client, route_kind, batches)
+                .await
+        }
+        Err(error) => Err(error),
+    }
+}
+
+pub(crate) fn modelica_parser_summary_timeout_secs_for_repository(
+    repository: &RegisteredRepository,
+    route_kind: ParserSummaryRouteKind,
+) -> Result<u64, RepoIntelligenceError> {
+    let binding = build_parser_summary_flight_transport_binding(repository, route_kind)?;
+    Ok(binding
+        .endpoint
+        .timeout_secs
+        .unwrap_or(DEFAULT_PARSER_SUMMARY_TIMEOUT_SECS))
 }
 
 fn modelica_parser_summary_provider_selector() -> PluginProviderSelector {
@@ -185,6 +219,27 @@ fn modelica_parser_summary_provider_selector() -> PluginProviderSelector {
 fn modelica_parser_summary_client_cache()
 -> &'static Mutex<HashMap<ParserSummaryTransportCacheKey, CachedParserSummaryFlightClient>> {
     MODELICA_PARSER_SUMMARY_CLIENT_CACHE.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+fn evict_modelica_parser_summary_cached_client(
+    repository: &RegisteredRepository,
+    route_kind: ParserSummaryRouteKind,
+) -> Result<(), RepoIntelligenceError> {
+    let binding = build_parser_summary_flight_transport_binding(repository, route_kind)?;
+    let cache_key = parser_summary_transport_cache_key(&binding, repository, route_kind)?;
+    modelica_parser_summary_client_cache()
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+        .remove(&cache_key);
+    Ok(())
+}
+
+fn parser_summary_transport_error_requires_client_refresh(error: &RepoIntelligenceError) -> bool {
+    matches!(
+        error,
+        RepoIntelligenceError::AnalysisFailed { message }
+            if message.contains("Service was not ready: transport error")
+    )
 }
 
 fn parser_summary_transport_cache_key(

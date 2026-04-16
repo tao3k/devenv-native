@@ -22,6 +22,8 @@ fn studio_frontend_type_collection_exports_frontend_runtime_types() {
         .export(&studio_frontend_type_collection())
         .unwrap_or_else(|error| panic!("export frontend studio typescript bindings: {error}"));
 
+    assert!(exported.contains("UiCapabilities"));
+    assert!(exported.contains("UiSearchContract"));
     assert!(exported.contains("UiConfig"));
     assert!(exported.contains("SearchResponse"));
     assert!(exported.contains("MarkdownAnalysisResponse"));

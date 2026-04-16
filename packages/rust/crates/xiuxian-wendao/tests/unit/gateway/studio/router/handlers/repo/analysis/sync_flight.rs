@@ -1,6 +1,6 @@
 use xiuxian_vector::LanceArray;
 
-use crate::analyzers::config::RepositoryRefreshPolicy;
+use crate::analyzers::RepositoryRefreshPolicy;
 use crate::analyzers::{
     RepoSourceKind, RepoSyncDriftState, RepoSyncFreshnessSummary, RepoSyncHealthState,
     RepoSyncLifecycleSummary, RepoSyncMode, RepoSyncResult, RepoSyncRevisionSummary,

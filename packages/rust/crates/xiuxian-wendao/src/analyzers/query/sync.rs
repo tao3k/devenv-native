@@ -1,7 +1,7 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::analyzers::config::RepositoryRefreshPolicy;
+use crate::analyzers::RepositoryRefreshPolicy;
 
 /// Query for repository source synchronization.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]

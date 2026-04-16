@@ -4,7 +4,7 @@ use std::time::Instant;
 
 use serde::Serialize;
 
-use crate::analyzers::registry::PluginRegistry;
+use crate::analyzers::PluginRegistry;
 use crate::gateway::studio::router::state::cold_start::StudioSearchColdStartTelemetryState;
 use crate::gateway::studio::symbol_index::{SymbolIndexCoordinator, timestamp_now};
 use crate::gateway::studio::types::{UiConfig, UiProjectConfig, UiRepoProjectConfig};

@@ -1,4 +1,4 @@
-use crate::search::attachment::query::search::{
+use crate::search::attachment::query::lookup::{
     AttachmentCandidate, compare_candidates, retained_window,
 };
 use crate::search::ranking::trim_ranked_vec;

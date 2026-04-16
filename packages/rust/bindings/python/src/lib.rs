@@ -1,41 +1,111 @@
-#![allow(
-    clippy::needless_pass_by_value,
-    reason = "PyO3 boundary functions intentionally accept owned Python values."
-)]
-#![allow(
-    clippy::must_use_candidate,
-    reason = "PyO3 exports are primarily consumed from Python, not Rust call sites."
-)]
-#![allow(
-    clippy::doc_markdown,
-    reason = "Python-facing docs intentionally include function names and mixed naming."
-)]
-#![allow(
-    clippy::missing_errors_doc,
-    reason = "PyO3 wrappers map errors into Python exceptions; Rustdoc # Errors is low-value here."
-)]
-
-//! `xiuxian-core-rs` - Python bindings for the actively maintained Rust core.
-//!
-//! The binding surface is intentionally limited to modules whose Rust APIs are
-//! currently aligned with the workspace:
-//! - `xiuxian-memory-engine`
-//! - `xiuxian-window`
+//! `xiuxian-core-rs` provides the Wendao Python binding surface.
 
 use pyo3::prelude::*;
-
-pub use xiuxian_memory_engine::{
-    PyEpisode, PyEpisodeStore, PyIntentEncoder, PyQTable, PyStoreConfig, PyTwoPhaseConfig,
-    PyTwoPhaseSearch, create_episode, create_episode_store, create_episode_with_embedding,
-    create_intent_encoder, create_q_table, create_two_phase_search, py_calculate_score,
-    register_memory_module,
+use pyo3::types::PyModule;
+use xiuxian_wendao::pybindings::{
+    PyEntity, PyKnowledgeCategory, PyKnowledgeEntry, PyKnowledgeGraph, PyKnowledgeStorage,
+    PyLinkGraphEngine, PyQueryIntent, PyRelation, PySkillDoc, PySyncEngine, PySyncResult,
+    create_knowledge_entry, dep_indexer_py::register_dependency_indexer_module,
+    extract_query_intent, fusion_py::apply_link_graph_proximity_boost_py, invalidate_kg_cache,
+    link_graph_stats_cache_del, link_graph_stats_cache_get, link_graph_stats_cache_set,
+    load_kg_from_valkey_cached, unified_symbol_py::register_unified_symbol_module,
 };
-pub use xiuxian_window::PySessionWindow;
+use xiuxian_wendao::schemas;
+
+#[pyfunction(name = "get_schema")]
+fn py_get_schema(name: &str) -> PyResult<String> {
+    schemas::get_schema(name)
+        .map(std::string::ToString::to_string)
+        .ok_or_else(|| {
+            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("Unknown schema name: {name}"))
+        })
+}
+
+fn register_module(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
+    m.add_class::<PyKnowledgeCategory>()?;
+    m.add_class::<PyKnowledgeEntry>()?;
+    m.add_function(wrap_pyfunction!(create_knowledge_entry, py)?)?;
+
+    m.add_class::<PyKnowledgeStorage>()?;
+
+    m.add_class::<PySyncEngine>()?;
+    m.add_class::<PySyncResult>()?;
+    m.add_function(wrap_pyfunction!(
+        xiuxian_wendao::pybindings::compute_hash,
+        py
+    )?)?;
+
+    m.add_class::<PyEntity>()?;
+    m.add_class::<PyRelation>()?;
+    m.add_class::<PyKnowledgeGraph>()?;
+    m.add_class::<PySkillDoc>()?;
+    m.add_class::<PyQueryIntent>()?;
+    m.add_function(wrap_pyfunction!(extract_query_intent, py)?)?;
+    m.add_function(wrap_pyfunction!(invalidate_kg_cache, py)?)?;
+    m.add_function(wrap_pyfunction!(load_kg_from_valkey_cached, py)?)?;
+
+    m.add_class::<PyLinkGraphEngine>()?;
+    m.add_function(wrap_pyfunction!(link_graph_stats_cache_get, py)?)?;
+    m.add_function(wrap_pyfunction!(link_graph_stats_cache_set, py)?)?;
+    m.add_function(wrap_pyfunction!(link_graph_stats_cache_del, py)?)?;
+    m.add_function(wrap_pyfunction!(apply_link_graph_proximity_boost_py, py)?)?;
+
+    register_dependency_indexer_module(m)?;
+    register_unified_symbol_module(m)?;
+    m.add_function(wrap_pyfunction!(py_get_schema, py)?)?;
+    Ok(())
+}
 
 /// Python module initialization.
 #[pymodule]
-fn xiuxian_core_rs(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    register_memory_module(m)?;
-    m.add_class::<PySessionWindow>()?;
-    Ok(())
+fn xiuxian_core_rs(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
+    register_module(py, m)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        create_knowledge_entry, py_get_schema, register_dependency_indexer_module, register_module,
+        register_unified_symbol_module, xiuxian_core_rs,
+    };
+    use pyo3::PyResult;
+
+    #[test]
+    fn cargo_manifest_keeps_only_wendao_dependency() {
+        let manifest = include_str!("../Cargo.toml");
+        assert!(manifest.contains("xiuxian-wendao"));
+
+        for removed_dep in [
+            "xiuxian-event",
+            "xiuxian-types",
+            "xiuxian-io",
+            "xiuxian-tokenizer",
+            "xiuxian-ast",
+            "xiuxian-security",
+            "xiuxian-tags",
+            "xiuxian-edit",
+            "xiuxian-vector",
+            "xiuxian-skills",
+            "xiuxian-executor",
+            "xiuxian-tui",
+            "xiuxian-memory-engine",
+            "xiuxian-window",
+        ] {
+            assert!(
+                !manifest.contains(removed_dep),
+                "{removed_dep} should not remain in the binding manifest"
+            );
+        }
+    }
+
+    #[test]
+    fn compiles_wendao_binding_registration_paths() {
+        let _ = py_get_schema as fn(&str) -> PyResult<String>;
+        let _ = register_module;
+        let _ = xiuxian_core_rs;
+        let _ = create_knowledge_entry;
+        let _ = xiuxian_wendao::pybindings::compute_hash as fn(&str) -> String;
+        let _ = register_dependency_indexer_module;
+        let _ = register_unified_symbol_module;
+    }
 }

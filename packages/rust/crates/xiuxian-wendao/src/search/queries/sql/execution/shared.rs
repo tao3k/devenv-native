@@ -40,7 +40,7 @@ pub(crate) async fn execute_shared_sql_query(
             .map_err(|error| {
                 format!("shared SQL query execution failed for `{query_text}`: {error}")
             })?;
-        return Ok((LocalRelationEngineKind::DuckDb, assembly.surface, batches));
+        Ok((LocalRelationEngineKind::DuckDb, assembly.surface, batches))
     }
 
     #[cfg(not(feature = "duckdb"))]

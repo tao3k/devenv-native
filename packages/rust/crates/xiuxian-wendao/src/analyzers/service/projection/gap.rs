@@ -1,13 +1,13 @@
 use std::path::Path;
 
-use crate::analyzers::errors::RepoIntelligenceError;
-use crate::analyzers::plugin::RepositoryAnalysisOutput;
+use crate::analyzers::PluginRegistry;
+use crate::analyzers::RepoIntelligenceError;
+use crate::analyzers::RepositoryAnalysisOutput;
 use crate::analyzers::projection::build_projected_gap_report;
-use crate::analyzers::query::{
+use crate::analyzers::{
     DocsProjectedGapReportQuery, DocsProjectedGapReportResult, RepoProjectedGapReportQuery,
     RepoProjectedGapReportResult,
 };
-use crate::analyzers::registry::PluginRegistry;
 
 use super::registry::{with_bootstrapped_repository_analysis, with_repository_analysis};
 

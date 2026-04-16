@@ -1,5 +1,5 @@
 use crate::analyzers::projection::ProjectionPageKind;
-use crate::analyzers::query::{
+use crate::analyzers::{
     DocsPlannerWorksetBalance, DocsPlannerWorksetFamilyBalanceEntry,
     DocsPlannerWorksetGapKindBalanceEntry, DocsPlannerWorksetStrategy,
     DocsPlannerWorksetStrategyCode, DocsPlannerWorksetStrategyReasonCode, ProjectedGapKind,

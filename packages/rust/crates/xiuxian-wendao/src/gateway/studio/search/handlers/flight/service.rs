@@ -7,9 +7,6 @@ use xiuxian_wendao_runtime::transport::{
 
 use super::provider::StudioSearchFlightRouteProvider;
 use crate::gateway::studio::router::GatewayState;
-use crate::gateway::studio::router::handlers::analysis::{
-    StudioCodeAstAnalysisFlightRouteProvider, StudioMarkdownAnalysisFlightRouteProvider,
-};
 use crate::gateway::studio::router::handlers::graph::{
     StudioGraphNeighborsFlightRouteProvider, StudioTopology3dFlightRouteProvider,
 };
@@ -18,6 +15,9 @@ use crate::gateway::studio::router::handlers::repo::{
     StudioRepoIndexFlightRouteProvider, StudioRepoIndexStatusFlightRouteProvider,
     StudioRepoOverviewFlightRouteProvider, StudioRepoProjectedPageIndexTreeFlightRouteProvider,
     StudioRepoSyncFlightRouteProvider,
+};
+use crate::gateway::studio::router::handlers::analysis::{
+    StudioCodeAstAnalysisFlightRouteProvider, StudioMarkdownAnalysisFlightRouteProvider,
 };
 use crate::gateway::studio::search::handlers::ast::StudioAstSearchFlightRouteProvider;
 use crate::gateway::studio::search::handlers::attachments::StudioAttachmentSearchFlightRouteProvider;

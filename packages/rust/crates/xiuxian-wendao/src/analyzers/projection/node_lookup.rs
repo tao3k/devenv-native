@@ -1,8 +1,8 @@
-use crate::analyzers::errors::RepoIntelligenceError;
-use crate::analyzers::plugin::RepositoryAnalysisOutput;
+use crate::analyzers::RepoIntelligenceError;
+use crate::analyzers::RepositoryAnalysisOutput;
 use crate::analyzers::projection::contracts::ProjectedPageIndexNode;
 use crate::analyzers::projection::tree_lookup::build_projected_page_index_tree;
-use crate::analyzers::query::{
+use crate::analyzers::{
     ProjectedPageIndexNodeHit, RepoProjectedPageIndexNodeQuery, RepoProjectedPageIndexNodeResult,
 };
 
@@ -17,7 +17,7 @@ pub fn build_repo_projected_page_index_node(
     analysis: &RepositoryAnalysisOutput,
 ) -> Result<RepoProjectedPageIndexNodeResult, RepoIntelligenceError> {
     let tree_result = build_projected_page_index_tree(
-        &crate::analyzers::query::RepoProjectedPageIndexTreeQuery {
+        &crate::analyzers::RepoProjectedPageIndexTreeQuery {
             repo_id: query.repo_id.clone(),
             page_id: query.page_id.clone(),
         },

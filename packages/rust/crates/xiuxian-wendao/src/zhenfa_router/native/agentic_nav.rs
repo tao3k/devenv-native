@@ -233,5 +233,5 @@ fn xml_escape(s: &str) -> String {
 }
 
 #[cfg(test)]
-#[path = "../../../tests/unit/zhenfa_router/native/agentic_nav.rs"]
+#[path = "../../../tests/unit/zhenfa_router/native/agentic_nav/mod.rs"]
 mod tests;

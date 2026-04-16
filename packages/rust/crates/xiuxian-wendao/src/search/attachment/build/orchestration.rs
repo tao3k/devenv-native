@@ -11,6 +11,7 @@ use crate::search::attachment::build::{
     plan_attachment_build_with_scanned_files, write_attachment_epoch,
 };
 use crate::search::attachment::schema::projected_columns_with_hit_json;
+use crate::search::cache::SearchPlaneFileFingerprintScope;
 use crate::search::{
     BeginBuildDecision, ProjectScannedFile, SearchCorpusKind, SearchPlaneService,
     fingerprint_note_projects_from_scanned_files,
@@ -97,7 +98,9 @@ fn ensure_attachment_index_started_with_fingerprint_and_scanned_files(
     if let Ok(handle) = Handle::try_current() {
         handle.spawn(async move {
             let previous_fingerprints = service
-                .corpus_file_fingerprints(SearchCorpusKind::Attachment)
+                .file_fingerprints(SearchPlaneFileFingerprintScope::corpus(
+                    SearchCorpusKind::Attachment,
+                ))
                 .await;
             let build_service = service.clone();
             let build: Result<_, tokio::task::JoinError> = tokio::task::spawn_blocking(move || {
@@ -130,8 +133,10 @@ fn ensure_attachment_index_started_with_fingerprint_and_scanned_files(
                         .await
                     {
                         service
-                            .set_corpus_file_fingerprints(
-                                SearchCorpusKind::Attachment,
+                            .set_file_fingerprints(
+                                SearchPlaneFileFingerprintScope::corpus(
+                                    SearchCorpusKind::Attachment,
+                                ),
                                 &plan.file_fingerprints,
                             )
                             .await;

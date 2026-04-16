@@ -1,8 +1,8 @@
 use std::collections::BTreeMap;
 
-use crate::analyzers::plugin::RepositoryAnalysisOutput;
+use crate::analyzers::RepositoryAnalysisOutput;
 use crate::analyzers::projection::contracts::{ProjectedPageRecord, ProjectionPageKind};
-use crate::analyzers::query::{
+use crate::analyzers::{
     ProjectedGapKind, ProjectedGapRecord, ProjectedGapSummary, ProjectedGapSummaryEntry,
     RepoProjectedGapReportQuery, RepoProjectedGapReportResult,
 };

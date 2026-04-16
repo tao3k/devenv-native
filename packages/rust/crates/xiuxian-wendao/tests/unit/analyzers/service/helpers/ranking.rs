@@ -1,5 +1,5 @@
-use crate::analyzers::records::ImportKind;
-use crate::analyzers::service::helpers::{
+use crate::analyzers::ImportKind;
+use crate::analyzers::{
     example_match_score, import_match_score, module_match_score, normalized_rank_score,
     symbol_match_score,
 };

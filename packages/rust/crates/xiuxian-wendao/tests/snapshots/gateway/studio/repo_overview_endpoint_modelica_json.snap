@@ -4,7 +4,7 @@ expression: value
 ---
 {
   "display_name": "Projectionica",
-  "doc_count": 6,
+  "doc_count": 11,
   "example_count": 1,
   "hierarchical_uri": "repo://modelica-gateway-overview",
   "hierarchy": [

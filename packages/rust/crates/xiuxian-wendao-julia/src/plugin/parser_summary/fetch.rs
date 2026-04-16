@@ -1,3 +1,7 @@
+use std::sync::OnceLock;
+use std::sync::mpsc::RecvTimeoutError;
+use std::time::Duration;
+
 use xiuxian_wendao_core::repo_intelligence::{RegisteredRepository, RepoIntelligenceError};
 
 use super::contract::{
@@ -7,9 +11,14 @@ use super::contract::{
 };
 use super::transport::{
     ParserSummaryRouteKind, build_julia_parser_summary_flight_transport_client,
+    julia_parser_summary_timeout_secs_for_repository,
     process_julia_parser_summary_flight_batches_for_repository,
 };
 use super::types::{JuliaParserFileSummary, JuliaParserSourceSummary};
+
+static JULIA_PARSER_SUMMARY_RUNTIME: OnceLock<Result<tokio::runtime::Runtime, String>> =
+    OnceLock::new();
+const MAX_JULIA_PARSER_SUMMARY_BLOCKING_TIMEOUT_SECS: u64 = 30;
 
 /// Build one parser-summary request, execute the configured Flight roundtrip,
 /// and decode a Julia file summary.
@@ -72,32 +81,39 @@ pub(crate) fn fetch_julia_parser_file_summary_blocking_for_repository(
     source_id: &str,
     source_text: &str,
 ) -> Result<JuliaParserFileSummary, RepoIntelligenceError> {
+    let runtime = julia_parser_summary_runtime()?;
     let repository = repository.clone();
     let source_id = source_id.to_string();
+    let source_id_for_task = source_id.clone();
     let source_text = source_text.to_string();
-    std::thread::spawn(move || {
-        let runtime = tokio::runtime::Builder::new_current_thread()
-            .enable_all()
-            .build()
-            .map_err(|error| RepoIntelligenceError::AnalysisFailed {
-                message: format!(
-                    "failed to build Julia parser-summary runtime for repo `{}`: {error}",
-                    repository.id,
-                ),
-            })?;
-        runtime.block_on(fetch_julia_parser_file_summary_for_repository(
+    let timeout_secs = julia_parser_summary_timeout_secs_for_repository(
+        &repository,
+        ParserSummaryRouteKind::FileSummary,
+    )?
+    .min(MAX_JULIA_PARSER_SUMMARY_BLOCKING_TIMEOUT_SECS);
+    let (sender, receiver) = std::sync::mpsc::sync_channel(1);
+    runtime.spawn(async move {
+        let result = fetch_julia_parser_file_summary_for_repository(
             &repository,
-            &source_id,
+            &source_id_for_task,
             &source_text,
-        ))
-    })
-    .join()
-    .map_err(|panic_payload| RepoIntelligenceError::AnalysisFailed {
-        message: format!(
-            "Julia parser-summary file-summary thread panicked: {}",
-            panic_payload_message(&panic_payload),
-        ),
-    })?
+        )
+        .await;
+        let _ = sender.send(result);
+    });
+    receiver
+        .recv_timeout(Duration::from_secs(timeout_secs))
+        .map_err(|error| match error {
+            RecvTimeoutError::Timeout => RepoIntelligenceError::AnalysisFailed {
+                message: format!(
+                    "Julia parser-summary file-summary task exceeded {timeout_secs}s for `{source_id}`"
+                ),
+            },
+            RecvTimeoutError::Disconnected => RepoIntelligenceError::AnalysisFailed {
+                message: "Julia parser-summary file-summary task stopped before returning"
+                    .to_string(),
+            },
+        })?
 }
 
 pub(crate) fn fetch_julia_parser_root_summary_blocking_for_repository(
@@ -105,32 +121,39 @@ pub(crate) fn fetch_julia_parser_root_summary_blocking_for_repository(
     source_id: &str,
     source_text: &str,
 ) -> Result<JuliaParserSourceSummary, RepoIntelligenceError> {
+    let runtime = julia_parser_summary_runtime()?;
     let repository = repository.clone();
     let source_id = source_id.to_string();
+    let source_id_for_task = source_id.clone();
     let source_text = source_text.to_string();
-    std::thread::spawn(move || {
-        let runtime = tokio::runtime::Builder::new_current_thread()
-            .enable_all()
-            .build()
-            .map_err(|error| RepoIntelligenceError::AnalysisFailed {
-                message: format!(
-                    "failed to build Julia parser-summary runtime for repo `{}`: {error}",
-                    repository.id,
-                ),
-            })?;
-        runtime.block_on(fetch_julia_parser_root_summary_for_repository(
+    let timeout_secs = julia_parser_summary_timeout_secs_for_repository(
+        &repository,
+        ParserSummaryRouteKind::RootSummary,
+    )?
+    .min(MAX_JULIA_PARSER_SUMMARY_BLOCKING_TIMEOUT_SECS);
+    let (sender, receiver) = std::sync::mpsc::sync_channel(1);
+    runtime.spawn(async move {
+        let result = fetch_julia_parser_root_summary_for_repository(
             &repository,
-            &source_id,
+            &source_id_for_task,
             &source_text,
-        ))
-    })
-    .join()
-    .map_err(|panic_payload| RepoIntelligenceError::AnalysisFailed {
-        message: format!(
-            "Julia parser-summary root-summary thread panicked: {}",
-            panic_payload_message(&panic_payload),
-        ),
-    })?
+        )
+        .await;
+        let _ = sender.send(result);
+    });
+    receiver
+        .recv_timeout(Duration::from_secs(timeout_secs))
+        .map_err(|error| match error {
+            RecvTimeoutError::Timeout => RepoIntelligenceError::AnalysisFailed {
+                message: format!(
+                    "Julia parser-summary root-summary task exceeded {timeout_secs}s for `{source_id}`"
+                ),
+            },
+            RecvTimeoutError::Disconnected => RepoIntelligenceError::AnalysisFailed {
+                message: "Julia parser-summary root-summary task stopped before returning"
+                    .to_string(),
+            },
+        })?
 }
 
 pub(crate) fn validate_julia_parser_summary_preflight_for_repository(
@@ -145,14 +168,28 @@ pub(crate) fn validate_julia_parser_summary_preflight_for_repository(
     Ok(())
 }
 
-fn panic_payload_message(panic_payload: &Box<dyn std::any::Any + Send>) -> String {
-    if let Some(message) = panic_payload.downcast_ref::<&'static str>() {
-        (*message).to_string()
-    } else if let Some(message) = panic_payload.downcast_ref::<String>() {
-        message.clone()
-    } else {
-        "unknown panic payload".to_string()
-    }
+fn julia_parser_summary_runtime() -> Result<&'static tokio::runtime::Runtime, RepoIntelligenceError>
+{
+    JULIA_PARSER_SUMMARY_RUNTIME
+        .get_or_init(|| {
+            tokio::runtime::Builder::new_multi_thread()
+                .worker_threads(1)
+                .thread_name("wendao-julia-parser-summary")
+                .enable_all()
+                .build()
+                .map_err(|error| error.to_string())
+        })
+        .as_ref()
+        .map_err(|message| RepoIntelligenceError::AnalysisFailed {
+            message: format!("failed to build shared Julia parser-summary runtime: {message}"),
+        })
+}
+
+#[cfg(test)]
+fn shared_julia_parser_summary_runtime_identity_for_tests() -> Result<usize, RepoIntelligenceError>
+{
+    let runtime = julia_parser_summary_runtime()?;
+    Ok(runtime as *const tokio::runtime::Runtime as usize)
 }
 
 #[cfg(test)]

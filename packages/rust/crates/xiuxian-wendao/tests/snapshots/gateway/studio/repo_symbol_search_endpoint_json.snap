@@ -1,13 +1,12 @@
 ---
-source: packages/rust/crates/xiuxian-wendao/src/gateway/studio/test_support.rs
-assertion_line: 9
+source: packages/rust/crates/xiuxian-wendao/src/gateway/studio/../../../tests/unit/gateway/studio/support.rs
+assertion_line: 17
 expression: value
 ---
 {
   "repo_id": "gateway-sync",
   "symbol_hits": [
     {
-      "audit_status": "unreviewed",
       "hierarchical_uri": "wendao://repo/unknown/gateway-sync/api/src:GatewaySyncPkg.jl/repo:gateway-sync:symbol:GatewaySyncPkg.solve",
       "hierarchy": [
         "src",
@@ -17,10 +16,9 @@ expression: value
         "repo:gateway-sync:projection:reference:symbol:repo:gateway-sync:symbol:GatewaySyncPkg.solve"
       ],
       "rank": 1,
-      "saliency_score": 1.0,
+      "saliency_score": 0.0,
       "score": 1.0,
       "symbol": {
-        "audit_status": "unreviewed",
         "kind": "function",
         "line_end": null,
         "line_start": null,
@@ -38,7 +36,6 @@ expression: value
   ],
   "symbols": [
     {
-      "audit_status": "unreviewed",
       "kind": "function",
       "line_end": null,
       "line_start": null,

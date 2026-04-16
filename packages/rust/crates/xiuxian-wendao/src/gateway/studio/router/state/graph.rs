@@ -88,10 +88,9 @@ impl StudioState {
                 "Studio symbol search requires configured link_graph.projects",
             ));
         }
-        self.ensure_local_symbol_index_started()?;
-
         let current_status = self.symbol_index_coordinator.status();
         let current_index = self.current_symbol_index();
+        self.ensure_local_symbol_index_started()?;
         if current_index.is_none() && matches!(current_status.phase, SymbolIndexPhase::Idle) {
             self.record_deferred_bootstrap_background_indexing_activation("symbol_index_status");
         }

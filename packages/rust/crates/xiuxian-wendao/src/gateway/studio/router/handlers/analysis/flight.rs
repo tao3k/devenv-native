@@ -8,10 +8,9 @@ use xiuxian_wendao_runtime::transport::{
 
 use crate::gateway::studio::router::GatewayState;
 use crate::gateway::studio::router::StudioApiError;
-use crate::gateway::studio::router::handlers::analysis::service::{
-    load_code_ast_analysis_response, load_markdown_analysis_response,
-};
 use crate::gateway::studio::router::retrieval_arrow::build_retrieval_chunks_flight_batch;
+
+use super::{load_code_ast_analysis_response, load_markdown_analysis_response};
 
 #[derive(Clone)]
 pub(crate) struct StudioMarkdownAnalysisFlightRouteProvider {

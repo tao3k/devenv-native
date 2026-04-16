@@ -1,8 +1,8 @@
 use std::path::Path;
 
-use crate::analyzers::config::RegisteredRepository;
-use crate::analyzers::plugin::RepositoryAnalysisOutput;
-use crate::analyzers::records::RepositoryRecord;
+use crate::analyzers::RegisteredRepository;
+use crate::analyzers::RepositoryAnalysisOutput;
+use crate::analyzers::RepositoryRecord;
 use xiuxian_git_repo::LocalCheckoutMetadata;
 
 pub(super) fn merge_repository_analysis(

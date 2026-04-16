@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use super::types::SearchPlaneService;
-use crate::gateway::studio::search::source_index::ast_search_lang;
+use crate::gateway::studio::search::ast_search_lang;
 use crate::parsers::markdown::is_supported_note;
 use crate::search::{
     ProjectScannedFile, SourceSnapshotEntry, build_source_snapshot_entry,

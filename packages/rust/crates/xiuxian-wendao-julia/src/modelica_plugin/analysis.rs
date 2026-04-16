@@ -109,11 +109,27 @@ pub(crate) fn load_modelica_repository_context(
     repository: &RegisteredRepository,
     repository_root: &Path,
 ) -> Result<ModelicaRepositoryContext, RepoIntelligenceError> {
+    load_modelica_repository_context_with_source_hint(repository, repository_root, None)
+}
+
+pub(crate) fn load_modelica_repository_context_for_source(
+    repository: &RegisteredRepository,
+    repository_root: &Path,
+    source_id: &str,
+) -> Result<ModelicaRepositoryContext, RepoIntelligenceError> {
+    load_modelica_repository_context_with_source_hint(repository, repository_root, Some(source_id))
+}
+
+fn load_modelica_repository_context_with_source_hint(
+    repository: &RegisteredRepository,
+    repository_root: &Path,
+    source_id_hint: Option<&str>,
+) -> Result<ModelicaRepositoryContext, RepoIntelligenceError> {
     let context = AnalysisContext {
         repository: repository.clone(),
         repository_root: repository_root.to_path_buf(),
     };
-    let resolved_root = resolve_modelica_root(&context, repository_root)?;
+    let resolved_root = resolve_modelica_root(&context, repository_root, source_id_hint)?;
     let root_package_path = resolved_root.package_root.join("package.mo");
     let root_package_contents = std::fs::read_to_string(&root_package_path).map_err(|error| {
         RepoIntelligenceError::AnalysisFailed {
@@ -165,7 +181,7 @@ pub(crate) fn preflight_repository(
     repository_root: &Path,
 ) -> Result<(), RepoIntelligenceError> {
     validate_modelica_parser_summary_preflight_for_repository(&context.repository)?;
-    resolve_modelica_root(context, repository_root).map(|_| ())
+    resolve_modelica_root(context, repository_root, None).map(|_| ())
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -177,6 +193,7 @@ struct ResolvedModelicaRoot {
 fn resolve_modelica_root(
     context: &AnalysisContext,
     repository_root: &Path,
+    source_id_hint: Option<&str>,
 ) -> Result<ResolvedModelicaRoot, RepoIntelligenceError> {
     let root_package_path = repository_root.join("package.mo");
     if root_package_path.is_file() {
@@ -184,6 +201,10 @@ fn resolve_modelica_root(
             package_root: repository_root.to_path_buf(),
             path_prefix: None,
         });
+    }
+
+    if let Some(hinted_root) = hinted_nested_package_root(repository_root, source_id_hint) {
+        return Ok(hinted_root);
     }
 
     let nested_candidates = nested_package_root_candidates(context, repository_root)?;
@@ -207,6 +228,27 @@ fn resolve_modelica_root(
             message: "found multiple top-level Modelica package roots without a dominant package".to_string(),
         }),
     }
+}
+
+fn hinted_nested_package_root(
+    repository_root: &Path,
+    source_id_hint: Option<&str>,
+) -> Option<ResolvedModelicaRoot> {
+    let source_id = source_id_hint?;
+    let normalized = source_id.trim().replace('\\', "/");
+    let prefix = normalized.split('/').next()?.trim();
+    if prefix.is_empty() || prefix == "package.mo" {
+        return None;
+    }
+
+    let package_root = repository_root.join(prefix);
+    package_root
+        .join("package.mo")
+        .is_file()
+        .then(|| ResolvedModelicaRoot {
+            package_root,
+            path_prefix: Some(prefix.to_string()),
+        })
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

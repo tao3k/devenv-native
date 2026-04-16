@@ -6,10 +6,7 @@ use serde::de::DeserializeOwned;
 #[cfg(test)]
 use crate::search::SearchManifestRecord;
 use crate::search::cache::SearchPlaneCache;
-use crate::search::{
-    SearchCorpusKind, SearchFileFingerprint, SearchRepoCorpusRecord,
-    SearchRepoCorpusSnapshotRecord, SearchRepoPublicationRecord,
-};
+use crate::search::{SearchCorpusKind, SearchRepoCorpusRecord, SearchRepoPublicationRecord};
 
 impl SearchPlaneCache {
     pub(crate) async fn get_json<T>(&self, key: &str) -> Option<T>
@@ -54,6 +51,63 @@ impl SearchPlaneCache {
         }
         let key = self.keyspace.repo_corpus_record_key(corpus, repo_id);
         self.get_json(key.as_str()).await
+    }
+
+    pub(crate) async fn get_repo_corpus_records(
+        &self,
+        keys: &[(SearchCorpusKind, String)],
+    ) -> BTreeMap<(SearchCorpusKind, String), SearchRepoCorpusRecord> {
+        #[cfg(test)]
+        {
+            let shadow = self
+                .shadow
+                .read()
+                .unwrap_or_else(std::sync::PoisonError::into_inner);
+            if !shadow.repo_corpus_records.is_empty() {
+                return keys
+                    .iter()
+                    .filter_map(|(corpus, repo_id)| {
+                        shadow
+                            .repo_corpus_records
+                            .get(&(*corpus, repo_id.clone()))
+                            .cloned()
+                            .map(|record| ((*corpus, repo_id.clone()), record))
+                    })
+                    .collect();
+            }
+        }
+        if keys.is_empty() {
+            return BTreeMap::new();
+        }
+        let Some(client) = self.client.as_ref() else {
+            return BTreeMap::new();
+        };
+        let Ok(mut connection) = client
+            .get_multiplexed_async_connection_with_config(&self.async_connection_config())
+            .await
+        else {
+            return BTreeMap::new();
+        };
+        let mut pipeline = redis::pipe();
+        for (corpus, repo_id) in keys {
+            pipeline.cmd("GET").arg(
+                self.keyspace
+                    .repo_corpus_record_key(*corpus, repo_id.as_str()),
+            );
+        }
+        let payloads: Vec<Option<String>> = pipeline
+            .query_async(&mut connection)
+            .await
+            .unwrap_or_default();
+        keys.iter()
+            .cloned()
+            .zip(payloads)
+            .filter_map(|((corpus, repo_id), payload)| {
+                let record =
+                    serde_json::from_str::<SearchRepoCorpusRecord>(payload?.as_str()).ok()?;
+                Some(((corpus, repo_id), record))
+            })
+            .collect()
     }
 
     pub(crate) async fn get_repo_publication_for_revision(
@@ -116,40 +170,6 @@ impl SearchPlaneCache {
         connection.lrange(key, 0, -1).await.unwrap_or_default()
     }
 
-    pub(crate) async fn get_repo_corpus_snapshot(&self) -> Option<SearchRepoCorpusSnapshotRecord> {
-        #[cfg(test)]
-        if let Some(record) = self
-            .shadow
-            .read()
-            .unwrap_or_else(std::sync::PoisonError::into_inner)
-            .repo_corpus_snapshot
-            .clone()
-        {
-            return Some(record);
-        }
-        let key = self.keyspace.repo_corpus_snapshot_key();
-        self.get_json(key.as_str()).await
-    }
-
-    pub(crate) async fn get_corpus_file_fingerprints(
-        &self,
-        corpus: SearchCorpusKind,
-    ) -> Option<BTreeMap<String, SearchFileFingerprint>> {
-        #[cfg(test)]
-        if let Some(fingerprints) = self
-            .shadow
-            .read()
-            .unwrap_or_else(std::sync::PoisonError::into_inner)
-            .corpus_file_fingerprints
-            .get(&corpus)
-            .cloned()
-        {
-            return Some(fingerprints);
-        }
-        let key = self.keyspace.corpus_file_fingerprints_key(corpus);
-        self.get_json(key.as_str()).await
-    }
-
     #[cfg(test)]
     pub(crate) async fn get_corpus_manifest(
         &self,
@@ -167,28 +187,6 @@ impl SearchPlaneCache {
             return Some(record);
         }
         let key = self.keyspace.corpus_manifest_key(corpus);
-        self.get_json(key.as_str()).await
-    }
-
-    pub(crate) async fn get_repo_corpus_file_fingerprints(
-        &self,
-        corpus: SearchCorpusKind,
-        repo_id: &str,
-    ) -> Option<BTreeMap<String, SearchFileFingerprint>> {
-        #[cfg(test)]
-        if let Some(fingerprints) = self
-            .shadow
-            .read()
-            .unwrap_or_else(std::sync::PoisonError::into_inner)
-            .repo_corpus_file_fingerprints
-            .get(&(corpus, repo_id.to_string()))
-            .cloned()
-        {
-            return Some(fingerprints);
-        }
-        let key = self
-            .keyspace
-            .repo_corpus_file_fingerprints_key(corpus, repo_id);
         self.get_json(key.as_str()).await
     }
 }

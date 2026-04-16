@@ -2,7 +2,7 @@ use std::time::{Duration, Instant};
 
 use super::await_repository_sync_completion;
 use crate::analyzers::RepoIntelligenceError;
-use crate::analyzers::query::{RepoSourceKind, RepoSyncResult};
+use crate::analyzers::{RepoSourceKind, RepoSyncResult};
 
 #[tokio::test]
 async fn await_repository_sync_completion_returns_without_waiting_for_full_timeout() {

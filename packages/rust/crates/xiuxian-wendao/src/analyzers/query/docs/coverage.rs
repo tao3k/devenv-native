@@ -1,8 +1,8 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::analyzers::query::RepoProjectedGapReportResult;
-use crate::analyzers::records::DocRecord;
+use crate::analyzers::DocRecord;
+use crate::analyzers::RepoProjectedGapReportResult;
 
 /// Query for documentation coverage.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]

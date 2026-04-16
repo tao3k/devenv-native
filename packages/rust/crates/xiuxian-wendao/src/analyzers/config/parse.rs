@@ -1,6 +1,6 @@
 use std::path::{Component, Path, PathBuf};
 
-use crate::analyzers::errors::RepoIntelligenceError;
+use crate::analyzers::RepoIntelligenceError;
 
 use super::toml::{WendaoTomlPluginEntry, WendaoTomlPluginInlineConfig};
 use super::types::{RepositoryPluginConfig, RepositoryRef, RepositoryRefreshPolicy};

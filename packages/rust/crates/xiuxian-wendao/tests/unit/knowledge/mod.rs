@@ -1,6 +1,6 @@
 //! Tests for xiuxian-wendao crate.
 
-use xiuxian_wendao::entity::types::{
+use xiuxian_wendao::{
     KnowledgeCategory, KnowledgeEntry, KnowledgeSearchQuery, KnowledgeStats,
 };
 

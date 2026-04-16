@@ -1,10 +1,8 @@
 use crate::analyzers::{RepoBacklinkItem, RepoSymbolKind, SymbolSearchHit};
 use crate::gateway::studio::search::handlers::code_search::{
-    helpers::symbol_search_hit_to_search_hit,
-    query::{
-        infer_repo_hint_from_query, infer_repo_hint_from_repositories,
-        query_uses_redundant_repo_seed, repo_search_result_limits, repo_wide_code_search_timeout,
-    },
+    RepoSearchResultLimits, infer_repo_hint_from_query, infer_repo_hint_from_repositories,
+    query_uses_redundant_repo_seed, repo_search_result_limits, repo_wide_code_search_timeout,
+    symbol_search_hit_to_search_hit,
 };
 use crate::gateway::studio::search::handlers::test_prelude::SearchQuery;
 use crate::parsers::search::repo_code_query::parse_repo_code_search_query;
@@ -24,21 +22,21 @@ fn repo_wide_code_search_timeout_applies_only_without_repo_hint() {
 fn repo_wide_code_search_scopes_per_repo_limits() {
     assert_eq!(
         repo_search_result_limits(Some("valid"), 20),
-        crate::gateway::studio::search::handlers::code_search::query::RepoSearchResultLimits {
+        RepoSearchResultLimits {
             entity_limit: 20,
             content_limit: 20,
         }
     );
     assert_eq!(
         repo_search_result_limits(None, 20),
-        crate::gateway::studio::search::handlers::code_search::query::RepoSearchResultLimits {
+        RepoSearchResultLimits {
             entity_limit: 12,
             content_limit: 4,
         }
     );
     assert_eq!(
         repo_search_result_limits(None, 3),
-        crate::gateway::studio::search::handlers::code_search::query::RepoSearchResultLimits {
+        RepoSearchResultLimits {
             entity_limit: 3,
             content_limit: 3,
         }

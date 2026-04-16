@@ -1,7 +1,7 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::analyzers::records::ModuleRecord;
+use crate::analyzers::ModuleRecord;
 
 /// Query for module lookup.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]

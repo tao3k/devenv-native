@@ -1,4 +1,4 @@
-use crate::gateway::openapi::paths::{self as openapi_paths, RouteContract};
+use crate::gateway::{self as openapi_paths, RouteContract};
 
 pub(super) const SEARCH_INDEX_STATUS: RouteContract = RouteContract {
     axum_path: openapi_paths::API_SEARCH_INDEX_STATUS_AXUM_PATH,

@@ -1,12 +1,12 @@
 use std::collections::BTreeMap;
 
 use crate::analyzers::projection::ProjectionPageKind;
-use crate::analyzers::query::{
-    DocsPlannerWorksetBalance, DocsPlannerWorksetFamilyBalanceEntry,
-    DocsPlannerWorksetGapKindBalanceEntry, DocsPlannerWorksetGroup,
-};
 use crate::analyzers::service::projection::planner::workset::math::{
     quota_band, spread_for_counts,
+};
+use crate::analyzers::{
+    DocsPlannerWorksetBalance, DocsPlannerWorksetFamilyBalanceEntry,
+    DocsPlannerWorksetGapKindBalanceEntry, DocsPlannerWorksetGroup,
 };
 
 pub(super) fn build_docs_planner_workset_balance(

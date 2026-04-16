@@ -2,7 +2,7 @@ use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use crate::analyzers::config::RegisteredRepository;
+use crate::analyzers::RegisteredRepository;
 use crate::analyzers::resolve_registered_repository_source;
 use crate::gateway::studio::pathing::resolve_path_like;
 use crate::gateway::studio::router::{StudioState, configured_repositories};

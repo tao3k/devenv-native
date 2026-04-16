@@ -7,9 +7,6 @@ edition.workspace = true
 workspace = true
 
 [dependencies]
-# PyO3 for Python bindings
-pyo3 = { workspace = true, features = ["experimental-async"] }
-
 # Async execution
 tokio = { workspace = true, features = ["process", "io-util", "time"] }
 

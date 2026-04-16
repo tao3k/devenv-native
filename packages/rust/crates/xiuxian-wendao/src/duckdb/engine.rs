@@ -8,6 +8,13 @@ use datafusion::datasource::MemTable;
 use datafusion::execution::context::SessionContext;
 use datafusion::prelude::SessionConfig;
 use xiuxian_vector::{EngineRecordBatch, SearchEngineContext};
+#[cfg(feature = "duckdb")]
+use xiuxian_wendao_sql::{
+    LocalRelationEngine as BoundedSqlLocalRelationEngine,
+    LocalRelationEngineKind as BoundedSqlLocalRelationEngineKind,
+    LocalRelationMaterializationState as BoundedSqlLocalRelationMaterializationState,
+    LocalRelationRegistrationHint as BoundedSqlLocalRelationRegistrationHint,
+};
 
 #[cfg(feature = "duckdb")]
 use arrow::datatypes::DataType;
@@ -550,6 +557,74 @@ impl LocalRelationEngine for DuckDbLocalRelationEngine {
             .as_ref()
             .and_then(peak_temp_storage_bytes_from_profiling);
         Ok(batches)
+    }
+}
+
+#[cfg(feature = "duckdb")]
+#[async_trait]
+impl BoundedSqlLocalRelationEngine for DuckDbLocalRelationEngine {
+    fn kind(&self) -> BoundedSqlLocalRelationEngineKind {
+        match LocalRelationEngine::kind(self) {
+            LocalRelationEngineKind::DataFusion => BoundedSqlLocalRelationEngineKind::DataFusion,
+            LocalRelationEngineKind::DuckDb => BoundedSqlLocalRelationEngineKind::DuckDb,
+        }
+    }
+
+    fn register_record_batches(
+        &self,
+        table_name: &str,
+        schema: SchemaRef,
+        batches: Vec<RecordBatch>,
+    ) -> Result<(), String> {
+        LocalRelationEngine::register_record_batches(self, table_name, schema, batches)
+    }
+
+    fn register_record_batches_with_hint(
+        &self,
+        table_name: &str,
+        schema: SchemaRef,
+        batches: Vec<RecordBatch>,
+        hint: BoundedSqlLocalRelationRegistrationHint,
+    ) -> Result<(), String> {
+        let hint = match hint {
+            BoundedSqlLocalRelationRegistrationHint::Default => {
+                LocalRelationRegistrationHint::Default
+            }
+            BoundedSqlLocalRelationRegistrationHint::RepeatedUse => {
+                LocalRelationRegistrationHint::RepeatedUse
+            }
+        };
+        LocalRelationEngine::register_record_batches_with_hint(
+            self, table_name, schema, batches, hint,
+        )
+    }
+
+    fn relation_registration_strategy(&self, table_name: &str) -> Option<&'static str> {
+        LocalRelationEngine::relation_registration_strategy(self, table_name)
+    }
+
+    fn relation_materialization_state(
+        &self,
+        table_name: &str,
+    ) -> Option<BoundedSqlLocalRelationMaterializationState> {
+        LocalRelationEngine::relation_materialization_state(self, table_name).map(|state| {
+            match state {
+                LocalRelationMaterializationState::Materialized => {
+                    BoundedSqlLocalRelationMaterializationState::Materialized
+                }
+                LocalRelationMaterializationState::Virtual => {
+                    BoundedSqlLocalRelationMaterializationState::Virtual
+                }
+            }
+        })
+    }
+
+    fn last_query_temp_storage_peak_bytes(&self) -> Option<u64> {
+        LocalRelationEngine::last_query_temp_storage_peak_bytes(self)
+    }
+
+    async fn query_batches(&self, sql: &str) -> Result<Vec<RecordBatch>, String> {
+        LocalRelationEngine::query_batches(self, sql).await
     }
 }
 

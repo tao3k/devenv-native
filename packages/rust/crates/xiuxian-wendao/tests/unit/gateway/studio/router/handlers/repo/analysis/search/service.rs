@@ -1,5 +1,5 @@
 use crate::analyzers::ImportSearchQuery;
-use crate::analyzers::service::canonical_import_query_text;
+use crate::analyzers::canonical_import_query_text;
 
 #[test]
 fn import_search_cache_identity_uses_both_filters() {

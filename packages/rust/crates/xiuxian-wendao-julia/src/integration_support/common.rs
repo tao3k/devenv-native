@@ -1,4 +1,5 @@
 use std::env;
+use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Child;
 use std::time::Duration;
@@ -6,6 +7,7 @@ use std::time::Duration;
 use crate::compatibility::link_graph::{
     DEFAULT_JULIA_ANALYZER_PACKAGE_DIR, DEFAULT_JULIA_ARROW_PACKAGE_DIR,
 };
+use serde::Deserialize;
 use tokio::net::TcpStream;
 use tokio::time::sleep;
 
@@ -58,10 +60,28 @@ pub(crate) fn reserve_service_port() -> u16 {
 }
 
 pub(crate) fn repo_root() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../../../")
-        .canonicalize()
-        .unwrap_or_else(|error| panic!("resolve repo root: {error}"))
+    if let Ok(project_root) = env::var("PRJ_ROOT") {
+        let candidate = PathBuf::from(project_root);
+        if repo_root_candidate_is_valid(candidate.as_path()) {
+            return candidate;
+        }
+    }
+
+    match Path::new(env!("CARGO_MANIFEST_DIR")).ancestors().nth(4) {
+        Some(path) if repo_root_candidate_is_valid(path) => path.to_path_buf(),
+        Some(path) => panic!(
+            "resolved repo root candidate `{}` failed marker checks",
+            path.display()
+        ),
+        None => panic!("resolve repo root"),
+    }
+}
+
+fn repo_root_candidate_is_valid(candidate: &Path) -> bool {
+    candidate.join("Cargo.lock").is_file()
+        && candidate
+            .join("packages/rust/crates/xiuxian-wendao-julia/Cargo.toml")
+            .is_file()
 }
 
 pub(crate) fn project_cache_dir() -> PathBuf {
@@ -116,12 +136,128 @@ pub(crate) fn wendaosearch_package_dir() -> PathBuf {
         .unwrap_or_else(|error| panic!("resolve WendaoSearch package dir: {error}"))
 }
 
+#[cfg(test)]
+pub(crate) fn wendaosearch_config(name: &str) -> PathBuf {
+    wendaosearch_package_dir()
+        .join("config")
+        .join("live")
+        .join(name)
+        .canonicalize()
+        .unwrap_or_else(|error| panic!("resolve WendaoSearch config `{name}`: {error}"))
+}
+
 pub(crate) fn wendaosearch_script(name: &str) -> PathBuf {
     wendaosearch_package_dir()
         .join("scripts")
         .join(name)
         .canonicalize()
         .unwrap_or_else(|error| panic!("resolve WendaoSearch script `{name}`: {error}"))
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+pub(crate) struct WendaoSearchParserSummaryServiceContract {
+    pub(crate) script: String,
+    pub(crate) config: String,
+    pub(crate) host: String,
+    pub(crate) port: u16,
+    pub(crate) default_code_parser_route_names: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+pub(crate) struct WendaoSearchModelicaTransportContract {
+    pub(crate) schema_version: String,
+    pub(crate) file_summary_route_name: String,
+    pub(crate) ast_query_route_name: String,
+    pub(crate) file_summary_path: String,
+    pub(crate) ast_query_path: String,
+    pub(crate) readiness_route_names: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+pub(crate) struct WendaoSearchParserSummaryContract {
+    pub(crate) contract_version: u32,
+    pub(crate) service: WendaoSearchParserSummaryServiceContract,
+    pub(crate) modelica_transport: WendaoSearchModelicaTransportContract,
+}
+
+impl WendaoSearchParserSummaryContract {
+    pub(crate) fn script_path(&self) -> PathBuf {
+        repo_root()
+            .join(&self.service.script)
+            .canonicalize()
+            .unwrap_or_else(|error| {
+                panic!(
+                    "resolve WendaoSearch parser-summary contract script `{}`: {error}",
+                    self.service.script
+                )
+            })
+    }
+
+    #[cfg(test)]
+    pub(crate) fn config_path(&self) -> PathBuf {
+        repo_root()
+            .join(&self.service.config)
+            .canonicalize()
+            .unwrap_or_else(|error| {
+                panic!(
+                    "resolve WendaoSearch parser-summary contract config `{}`: {error}",
+                    self.service.config
+                )
+            })
+    }
+
+    #[cfg(test)]
+    pub(crate) fn base_url(&self) -> String {
+        format!("http://{}:{}", self.service.host, self.service.port)
+    }
+}
+
+pub(crate) fn wendaosearch_parser_summary_contract_path() -> PathBuf {
+    repo_root()
+        .join(
+            "packages/rust/crates/xiuxian-wendao-julia/contracts/wendaosearch_parser_summary.toml",
+        )
+        .canonicalize()
+        .unwrap_or_else(|error| {
+            panic!("resolve WendaoSearch parser-summary contract path: {error}")
+        })
+}
+
+pub(crate) fn wendaosearch_parser_summary_contract() -> WendaoSearchParserSummaryContract {
+    let contract_path = wendaosearch_parser_summary_contract_path();
+    let contract_text = fs::read_to_string(&contract_path).unwrap_or_else(|error| {
+        panic!(
+            "read WendaoSearch parser-summary contract `{}`: {error}",
+            contract_path.display()
+        )
+    });
+    toml::from_str(&contract_text).unwrap_or_else(|error| {
+        panic!(
+            "parse WendaoSearch parser-summary contract `{}`: {error}",
+            contract_path.display()
+        )
+    })
+}
+
+#[cfg(test)]
+pub(crate) fn expected_wendaosearch_modelica_transport_contract()
+-> WendaoSearchModelicaTransportContract {
+    use crate::modelica_plugin::{
+        MODELICA_AST_QUERY_ROUTE, MODELICA_FILE_SUMMARY_ROUTE,
+        MODELICA_PARSER_SUMMARY_SCHEMA_VERSION,
+    };
+
+    WendaoSearchModelicaTransportContract {
+        schema_version: MODELICA_PARSER_SUMMARY_SCHEMA_VERSION.to_string(),
+        file_summary_route_name: "modelica_file_summary".to_string(),
+        ast_query_route_name: "modelica_ast_query".to_string(),
+        file_summary_path: MODELICA_FILE_SUMMARY_ROUTE.to_string(),
+        ast_query_path: MODELICA_AST_QUERY_ROUTE.to_string(),
+        readiness_route_names: vec![
+            "modelica_file_summary".to_string(),
+            "modelica_ast_query".to_string(),
+        ],
+    }
 }
 
 pub(crate) async fn wait_for_service_ready(base_url: &str) -> Result<(), String> {
@@ -147,3 +283,7 @@ pub(crate) async fn wait_for_service_ready_with_attempts(
 
     Err("real Julia Flight service did not become ready in time".to_string())
 }
+
+#[cfg(test)]
+#[path = "../../tests/unit/integration_support/wendaosearch_contract.rs"]
+mod wendaosearch_contract;
