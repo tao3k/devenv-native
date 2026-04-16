@@ -355,9 +355,9 @@ fn repo_content_query_benchmark_reports_100k_broad_query_sample() {
     );
 
     assert_eq!(hot.hit_count, 5);
-    assert_eq!(hot.rows_scanned, 100_000);
-    assert_eq!(hot.matched_rows, 100_000);
+    assert_eq!(hot.rows_scanned, 256);
+    assert_eq!(hot.matched_rows, 256);
     assert_eq!(flight.row_count, 5);
-    assert_eq!(flight.rows_scanned, 100_000);
-    assert_eq!(flight.matched_rows, 100_000);
+    assert_eq!(flight.rows_scanned, 256);
+    assert_eq!(flight.matched_rows, 256);
 }

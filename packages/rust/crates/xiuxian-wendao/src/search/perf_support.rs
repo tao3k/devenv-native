@@ -20,6 +20,12 @@ use crate::search::{
 use xiuxian_wendao_runtime::transport::RepoSearchFlightRequest;
 
 static REPO_PUBLICATION_BENCH_COUNTER: AtomicU64 = AtomicU64::new(1);
+
+fn benchmark_suffix() -> String {
+    let process_id = std::process::id();
+    let counter = REPO_PUBLICATION_BENCH_COUNTER.fetch_add(1, Ordering::Relaxed);
+    format!("{process_id}-{counter}")
+}
 const BENCH_LINE_COUNT: usize = 12;
 
 /// Result of one synthetic repo-content clone-and-mutate publication sample.
@@ -199,7 +205,7 @@ impl RepoContentParquetMutationBenchmarkFixture {
             base_document_count >= 8,
             "repo-content parquet benchmark requires at least 8 documents"
         );
-        let suffix = REPO_PUBLICATION_BENCH_COUNTER.fetch_add(1, Ordering::Relaxed);
+        let suffix = benchmark_suffix();
         let root = std::env::temp_dir().join(format!(
             "xiuxian-wendao-repo-publication-parquet-bench-{suffix}"
         ));
@@ -276,7 +282,7 @@ impl RepoContentParquetMutationBenchmarkFixture {
     /// Panics when the copied benchmark state cannot be created.
     #[must_use]
     pub fn prepare_iteration(&self) -> RepoContentParquetMutationBenchmarkIteration {
-        let suffix = REPO_PUBLICATION_BENCH_COUNTER.fetch_add(1, Ordering::Relaxed);
+        let suffix = benchmark_suffix();
         let iteration_root = self.root.join(format!("iteration-{suffix}"));
         let storage_root = iteration_root.join("search_plane");
         create_dir_all(iteration_root.as_path());
@@ -331,7 +337,7 @@ impl RepoContentQueryBenchmarkFixture {
             base_document_count >= 8,
             "repo-content query benchmark requires at least 8 documents"
         );
-        let suffix = REPO_PUBLICATION_BENCH_COUNTER.fetch_add(1, Ordering::Relaxed);
+        let suffix = benchmark_suffix();
         let root = std::env::temp_dir().join(format!("xiuxian-wendao-repo-query-bench-{suffix}"));
         let project_root = root.join("project");
         let storage_root = root.join("search_plane");

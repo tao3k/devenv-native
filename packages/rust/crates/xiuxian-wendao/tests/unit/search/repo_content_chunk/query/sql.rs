@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use crate::search::repo_content_chunk::query::{
     RepoContentChunkCandidate, RepoContentChunkSearchFilters, build_repo_content_detail_sql,
-    build_repo_content_stage1_sql,
+    build_repo_content_stage1_sql, retained_window,
 };
 
 #[test]
@@ -17,6 +17,7 @@ fn build_repo_content_stage1_sql_includes_sql_native_filters() {
             filename_filters: HashSet::from(["BaseModelica.jl".to_string()]),
             ..RepoContentChunkSearchFilters::default()
         },
+        retained_window(5),
     );
 
     assert!(
@@ -48,7 +49,12 @@ fn build_repo_content_stage1_sql_includes_sql_native_filters() {
         ),
         "{sql}"
     );
-    assert!(!sql.contains(" LIMIT "), "{sql}");
+    assert!(
+        sql.contains(
+            "ORDER BY CASE WHEN exact_match THEN 0 ELSE 1 END, path ASC, line_number ASC LIMIT 256"
+        ),
+        "{sql}"
+    );
     assert!(
         !sql.contains("SELECT path, language, line_number, line_text_folded"),
         "{sql}"
@@ -67,12 +73,14 @@ fn build_repo_content_stage1_sql_uses_strpos_for_long_query_tokens() {
         "needle_token",
         &HashSet::new(),
         &RepoContentChunkSearchFilters::default(),
+        retained_window(5),
     );
 
     assert!(
         sql.contains("strpos(line_text_folded, 'needle_token') > 0"),
         "{sql}"
     );
+    assert!(!sql.contains(" LIMIT "), "{sql}");
 }
 
 #[test]
@@ -86,12 +94,31 @@ fn build_repo_content_stage1_sql_includes_title_filters() {
             title_filters: HashSet::from(["readme".to_string()]),
             ..RepoContentChunkSearchFilters::default()
         },
+        retained_window(5),
     );
 
     assert!(
         sql.contains("path_folded LIKE '%readme%' ESCAPE '\\'"),
         "{sql}"
     );
+}
+
+#[test]
+fn build_repo_content_stage1_sql_skips_sql_limit_when_tag_filters_need_post_filtering() {
+    let sql = build_repo_content_stage1_sql(
+        "repo_content_chunk_alpha_repo",
+        "needle",
+        "needle",
+        &HashSet::new(),
+        &RepoContentChunkSearchFilters {
+            tag_filters: HashSet::from(["match:exact".to_string()]),
+            ..RepoContentChunkSearchFilters::default()
+        },
+        retained_window(5),
+    );
+
+    assert!(!sql.contains(" LIMIT "), "{sql}");
+    assert!(!sql.contains("ORDER BY CASE WHEN exact_match"), "{sql}");
 }
 
 #[test]

@@ -33,6 +33,7 @@ pub(super) async fn execute_repo_content_search(
         query_lower.as_str(),
         language_filters,
         filters,
+        window,
     );
     let batches = query_engine.query_batches(stage1_sql.as_str()).await?;
     let mut telemetry = StreamingRerankTelemetry::new(window, None, None);

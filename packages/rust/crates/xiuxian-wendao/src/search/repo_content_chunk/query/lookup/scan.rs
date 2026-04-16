@@ -13,7 +13,8 @@ use super::helpers::{
     engine_string_column, engine_u64_column, exact_match_expression, exact_match_projection_column,
     filename_filter_expression, language_filter_expression, path_prefix_filter_expression,
     query_text_filter_expression, repo_content_detail_filter_expression,
-    stage1_path_rank_expression, stage1_projected_repo_content_columns, title_filter_expression,
+    stage1_global_order_clause, stage1_path_rank_expression, stage1_projected_repo_content_columns,
+    title_filter_expression,
 };
 
 const MIN_RETAINED_PATHS: usize = 128;
@@ -25,6 +26,7 @@ pub(crate) fn build_repo_content_stage1_sql(
     query_lower: &str,
     language_filters: &HashSet<String>,
     filters: &RepoContentChunkSearchFilters,
+    window: RetainedWindow,
 ) -> String {
     let projections = stage1_projected_repo_content_columns().join(", ");
     let predicates = [
@@ -43,11 +45,22 @@ pub(crate) fn build_repo_content_stage1_sql(
     });
     let where_clause =
         (!predicates.is_empty()).then(|| format!(" WHERE {}", predicates.join(" AND ")));
+    let use_stage1_limit = query_lower.trim().len() < 8 && filters.tag_filters.is_empty();
+    let order_clause = if use_stage1_limit {
+        format!(
+            " {} LIMIT {}",
+            stage1_global_order_clause(),
+            window.threshold
+        )
+    } else {
+        String::new()
+    };
 
     format!(
-        "SELECT {projections}, {exact_match_column} FROM (SELECT {projections}, {exact_match} AS {exact_match_column}, {path_rank} AS candidate_rank FROM {table_name}{where_clause}) AS ranked WHERE candidate_rank = 1",
+        "SELECT {projections}, {exact_match_column} FROM (SELECT {projections}, {exact_match} AS {exact_match_column}, {path_rank} AS candidate_rank FROM {table_name}{where_clause}) AS ranked WHERE candidate_rank = 1{order_clause}",
         exact_match_column = exact_match_projection_column(),
-        where_clause = where_clause.unwrap_or_default()
+        where_clause = where_clause.unwrap_or_default(),
+        order_clause = order_clause
     )
 }
 
