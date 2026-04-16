@@ -590,13 +590,33 @@ impl RepoContentQueryBenchmarkIteration {
     /// Panics when the warmup or the measured query fails.
     #[must_use]
     pub fn measure_hot_query_after_cold_warmup(mut self) -> RepoContentQueryBenchmarkSample {
-        let cold = self.measure_query();
+        let query_token = self.query_token.clone();
+        let cold = self.measure_query_for_token(query_token.as_str());
         assert_eq!(
             cold.first_path.as_deref(),
             Some(self.expected_path.as_str()),
             "repo-content query benchmark warmup drifted from expected path"
         );
-        self.measure_query()
+        self.measure_query_for_token(query_token.as_str())
+    }
+
+    /// Measure one warmed repo-content query for one explicit token after one
+    /// cold warmup on the same fresh service instance.
+    ///
+    /// # Panics
+    ///
+    /// Panics when the warmup or measured query fails.
+    #[must_use]
+    pub fn measure_hot_query_for_token_after_cold_warmup(
+        mut self,
+        query_token: &str,
+    ) -> RepoContentQueryBenchmarkSample {
+        let cold = self.measure_query_for_token(query_token);
+        assert!(
+            cold.hit_count > 0,
+            "repo-content query benchmark warmup should return at least one hit"
+        );
+        self.measure_query_for_token(query_token)
     }
 
     /// Warm one fresh service with a cold query and then measure the Flight
@@ -609,25 +629,45 @@ impl RepoContentQueryBenchmarkIteration {
     pub fn measure_flight_batch_after_cold_warmup(
         mut self,
     ) -> RepoContentFlightBatchBenchmarkSample {
-        let cold = self.measure_query();
+        let query_token = self.query_token.clone();
+        let cold = self.measure_query_for_token(query_token.as_str());
         assert_eq!(
             cold.first_path.as_deref(),
             Some(self.expected_path.as_str()),
             "repo-content query benchmark warmup drifted from expected path"
         );
-        self.measure_flight_batch()
+        self.measure_flight_batch_for_token(query_token.as_str())
+    }
+
+    /// Measure one warmed repo-search Flight batch for one explicit token
+    /// after one cold warmup on the same fresh service instance.
+    ///
+    /// # Panics
+    ///
+    /// Panics when the warmup query or the measured batch fails.
+    #[must_use]
+    pub fn measure_flight_batch_for_token_after_cold_warmup(
+        mut self,
+        query_token: &str,
+    ) -> RepoContentFlightBatchBenchmarkSample {
+        let cold = self.measure_query_for_token(query_token);
+        assert!(
+            cold.hit_count > 0,
+            "repo-content query benchmark warmup should return at least one hit"
+        );
+        self.measure_flight_batch_for_token(query_token)
     }
 
     fn measure_query(&mut self) -> RepoContentQueryBenchmarkSample {
+        let query_token = self.query_token.clone();
+        self.measure_query_for_token(query_token.as_str())
+    }
+
+    fn measure_query_for_token(&mut self, query_token: &str) -> RepoContentQueryBenchmarkSample {
         let started = Instant::now();
         let hits = self.runtime.block_on(async {
             self.service
-                .search_repo_content_chunks(
-                    self.repo_id.as_str(),
-                    self.query_token.as_str(),
-                    &HashSet::new(),
-                    5,
-                )
+                .search_repo_content_chunks(self.repo_id.as_str(), query_token, &HashSet::new(), 5)
                 .await
                 .unwrap_or_else(|error| {
                     panic!("repo-content query benchmark query failed: {error}")
@@ -649,9 +689,17 @@ impl RepoContentQueryBenchmarkIteration {
     }
 
     fn measure_flight_batch(&self) -> RepoContentFlightBatchBenchmarkSample {
+        let query_token = self.query_token.clone();
+        self.measure_flight_batch_for_token(query_token.as_str())
+    }
+
+    fn measure_flight_batch_for_token(
+        &self,
+        query_token: &str,
+    ) -> RepoContentFlightBatchBenchmarkSample {
         let request = RepoSearchFlightRequest {
             repo_id: self.repo_id.clone(),
-            query_text: self.query_token.clone(),
+            query_text: query_token.to_string(),
             limit: 5,
             language_filters: HashSet::new(),
             path_prefixes: HashSet::new(),

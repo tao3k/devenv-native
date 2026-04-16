@@ -69,6 +69,24 @@ fn repo_content_query_benchmark_fixture_reports_cold_hot_and_flight_samples() {
     assert!(!snapshot.persisted_metadata_backend.is_empty());
 }
 
+#[test]
+fn repo_content_query_benchmark_fixture_reports_broad_query_path_dedup() {
+    let fixture = RepoContentQueryBenchmarkFixture::synthetic(256);
+    let hot = fixture
+        .prepare_iteration()
+        .measure_hot_query_for_token_after_cold_warmup("value");
+    let flight = fixture
+        .prepare_iteration()
+        .measure_flight_batch_for_token_after_cold_warmup("value");
+
+    assert_eq!(hot.hit_count, 5);
+    assert_eq!(hot.rows_scanned, 256);
+    assert_eq!(hot.matched_rows, 256);
+    assert_eq!(flight.row_count, 5);
+    assert_eq!(flight.rows_scanned, 256);
+    assert_eq!(flight.matched_rows, 256);
+}
+
 #[cfg(feature = "performance")]
 #[test]
 fn repo_content_parquet_mutation_benchmark_reports_1k_and_10k_samples() {
@@ -310,4 +328,36 @@ fn repo_content_query_benchmark_reports_100k_sample() {
         snapshot.hot_first_path.as_deref(),
         Some(snapshot.expected_path.as_str())
     );
+}
+
+#[cfg(feature = "performance")]
+#[test]
+fn repo_content_query_benchmark_reports_100k_broad_query_sample() {
+    let fixture = RepoContentQueryBenchmarkFixture::synthetic(100_000);
+    let hot = fixture
+        .prepare_iteration()
+        .measure_hot_query_for_token_after_cold_warmup("value");
+    let flight = fixture
+        .prepare_iteration()
+        .measure_flight_batch_for_token_after_cold_warmup("value");
+
+    println!(
+        "repo content broad-query benchmark: docs={} hot_ms={:.3} hot_hits={} hot_rows_scanned={} hot_matched_rows={} flight_batch_ms={:.3} flight_rows={} flight_rows_scanned={} flight_matched_rows={}",
+        100_000,
+        hot.elapsed.as_secs_f64() * 1_000.0,
+        hot.hit_count,
+        hot.rows_scanned,
+        hot.matched_rows,
+        flight.elapsed.as_secs_f64() * 1_000.0,
+        flight.row_count,
+        flight.rows_scanned,
+        flight.matched_rows
+    );
+
+    assert_eq!(hot.hit_count, 5);
+    assert_eq!(hot.rows_scanned, 100_000);
+    assert_eq!(hot.matched_rows, 100_000);
+    assert_eq!(flight.row_count, 5);
+    assert_eq!(flight.rows_scanned, 100_000);
+    assert_eq!(flight.matched_rows, 100_000);
 }

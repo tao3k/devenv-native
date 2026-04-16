@@ -1,5 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
+use arrow::array::{Array, BooleanArray};
 use xiuxian_vector_store::EngineRecordBatch;
 
 use crate::search::ranking::{RetainedWindow, StreamingRerankTelemetry, trim_ranked_string_map};
@@ -9,8 +10,9 @@ use super::error::RepoContentChunkSearchError;
 use super::filters::RepoContentChunkSearchFilters;
 use super::helpers::{
     candidate_path_key, compare_candidates, engine_string_column, engine_u64_column,
-    filename_filter_expression, language_filter_expression, path_prefix_filter_expression,
-    projected_repo_content_columns, query_text_filter_expression, title_filter_expression,
+    exact_match_expression, exact_match_projection_column, filename_filter_expression,
+    language_filter_expression, path_prefix_filter_expression, projected_repo_content_columns,
+    query_text_filter_expression, stage1_path_rank_expression, title_filter_expression,
 };
 
 const MIN_RETAINED_PATHS: usize = 128;
@@ -18,6 +20,7 @@ const RETAINED_PATH_MULTIPLIER: usize = 8;
 
 pub(crate) fn build_repo_content_stage1_sql(
     table_name: &str,
+    raw_needle: &str,
     query_lower: &str,
     language_filters: &HashSet<String>,
     filters: &RepoContentChunkSearchFilters,
@@ -33,13 +36,17 @@ pub(crate) fn build_repo_content_stage1_sql(
     .into_iter()
     .flatten()
     .collect::<Vec<_>>();
-    if predicates.is_empty() {
-        return format!("SELECT {projections} FROM {table_name}");
-    }
+    let exact_match = exact_match_expression(raw_needle).unwrap_or_else(|| "false".to_string());
+    let path_rank = stage1_path_rank_expression(raw_needle).unwrap_or_else(|| {
+        "ROW_NUMBER() OVER (PARTITION BY path ORDER BY line_number ASC)".to_string()
+    });
+    let where_clause =
+        (!predicates.is_empty()).then(|| format!(" WHERE {}", predicates.join(" AND ")));
 
     format!(
-        "SELECT {projections} FROM {table_name} WHERE {}",
-        predicates.join(" AND ")
+        "SELECT {projections}, {exact_match_column} FROM (SELECT {projections}, {exact_match} AS {exact_match_column}, {path_rank} AS candidate_rank FROM {table_name}{where_clause}) AS ranked WHERE candidate_rank = 1",
+        exact_match_column = exact_match_projection_column(),
+        where_clause = where_clause.unwrap_or_default()
     )
 }
 
@@ -59,9 +66,15 @@ pub(crate) fn collect_candidates(
     let language = engine_string_column(batch, "language")?;
     let line_number = engine_u64_column(batch, "line_number")?;
     let line_text = engine_string_column(batch, "line_text")?;
+    let exact_match_column = batch
+        .column_by_name(exact_match_projection_column())
+        .and_then(|column| column.as_any().downcast_ref::<BooleanArray>());
 
     for row in 0..batch.num_rows() {
-        let exact_match = !line_text.is_null(row) && line_text.value(row).contains(raw_needle);
+        let exact_match = exact_match_column.map_or_else(
+            || !line_text.is_null(row) && line_text.value(row).contains(raw_needle),
+            |column| !column.is_null(row) && column.value(row),
+        );
         telemetry.observe_match();
         let candidate = RepoContentChunkCandidate {
             path: path.value(row).to_string(),

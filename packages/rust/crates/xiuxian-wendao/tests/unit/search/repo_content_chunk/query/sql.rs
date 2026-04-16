@@ -9,6 +9,7 @@ fn build_repo_content_stage1_sql_includes_sql_native_filters() {
     let sql = build_repo_content_stage1_sql(
         "repo_content_chunk_alpha_repo",
         "needle",
+        "needle",
         &HashSet::from(["julia".to_string()]),
         &RepoContentChunkSearchFilters {
             path_prefixes: HashSet::from(["src/".to_string()]),
@@ -29,8 +30,20 @@ fn build_repo_content_stage1_sql_includes_sql_native_filters() {
         "{sql}"
     );
     assert!(
+        sql.contains("SELECT path, language, line_number, line_text, exact_match FROM (SELECT"),
+        "{sql}"
+    );
+    assert!(
+        sql.contains("strpos(line_text, 'needle') > 0 AS exact_match"),
+        "{sql}"
+    );
+    assert!(
+        sql.contains("ROW_NUMBER() OVER (PARTITION BY path ORDER BY CASE WHEN (strpos(line_text, 'needle') > 0) THEN 0 ELSE 1 END, line_number ASC) AS candidate_rank"),
+        "{sql}"
+    );
+    assert!(
         sql.contains(
-            "SELECT path, language, line_number, line_text FROM repo_content_chunk_alpha_repo"
+            "FROM repo_content_chunk_alpha_repo WHERE line_text_folded LIKE '%needle%' ESCAPE '\\'"
         ),
         "{sql}"
     );
@@ -41,6 +54,7 @@ fn build_repo_content_stage1_sql_includes_sql_native_filters() {
 fn build_repo_content_stage1_sql_includes_title_filters() {
     let sql = build_repo_content_stage1_sql(
         "repo_content_chunk_alpha_repo",
+        "needle",
         "needle",
         &HashSet::new(),
         &RepoContentChunkSearchFilters {
