@@ -4,12 +4,13 @@ use std::fs;
 use std::path::Path;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use criterion::{Criterion, Throughput, black_box};
+use criterion::{BatchSize, Criterion, Throughput, black_box};
 use tempfile::{TempDir, tempdir};
 use xiuxian_wendao::repo_index::perf_support::{
     RepoBootstrapBenchmarkFixture, benchmark_collect_full_repo_code_documents,
     benchmark_collect_incremental_repo_code_documents,
 };
+use xiuxian_wendao::search::perf_support::RepoContentParquetMutationBenchmarkFixture;
 use xiuxian_wendao::{
     LinkGraphHit, LinkGraphIndex, LinkGraphPprSubgraphMode, LinkGraphRelatedPprOptions,
     narrate_subgraph,
@@ -22,6 +23,8 @@ const RELATED_LIMIT: usize = 24;
 const REPO_BENCH_FILE_COUNT: usize = 2_048;
 const REPO_BENCH_FILE_LINES: usize = 20;
 const REPO_BOOTSTRAP_BENCH_REPO_COUNT: usize = 10_000;
+const REPO_PUBLICATION_PARQUET_SMALL_DOC_COUNT: usize = 1_000;
+const REPO_PUBLICATION_PARQUET_LARGE_DOC_COUNT: usize = 10_000;
 
 fn note_id(i: usize) -> String {
     format!("note-{i:05}")
@@ -252,6 +255,50 @@ fn bench_repo_bootstrap_statuses(c: &mut Criterion) {
     group.finish();
 }
 
+fn bench_repo_content_parquet_mutation(c: &mut Criterion) {
+    let small_fixture = RepoContentParquetMutationBenchmarkFixture::synthetic(
+        REPO_PUBLICATION_PARQUET_SMALL_DOC_COUNT,
+    );
+    let large_fixture = RepoContentParquetMutationBenchmarkFixture::synthetic(
+        REPO_PUBLICATION_PARQUET_LARGE_DOC_COUNT,
+    );
+
+    let mut group = c.benchmark_group("repo_content_parquet_mutation");
+    group.bench_function("clone_and_mutate_1k_documents", |bench| {
+        bench.iter_batched(
+            || small_fixture.prepare_iteration(),
+            |iteration| {
+                let snapshot = iteration.run();
+                assert_eq!(snapshot.row_count, small_fixture.expected_row_count());
+                assert_eq!(
+                    snapshot.added_query_paths,
+                    vec![small_fixture.added_path().to_string()]
+                );
+                assert!(snapshot.deleted_query_paths.is_empty());
+                black_box(snapshot.row_count)
+            },
+            BatchSize::SmallInput,
+        );
+    });
+    group.bench_function("clone_and_mutate_10k_documents", |bench| {
+        bench.iter_batched(
+            || large_fixture.prepare_iteration(),
+            |iteration| {
+                let snapshot = iteration.run();
+                assert_eq!(snapshot.row_count, large_fixture.expected_row_count());
+                assert_eq!(
+                    snapshot.added_query_paths,
+                    vec![large_fixture.added_path().to_string()]
+                );
+                assert!(snapshot.deleted_query_paths.is_empty());
+                black_box(snapshot.row_count)
+            },
+            BatchSize::SmallInput,
+        );
+    });
+    group.finish();
+}
+
 fn bench_narration_fusion(c: &mut Criterion) {
     let hits: Vec<LinkGraphHit> = (0..240)
         .map(|i| {
@@ -284,6 +331,7 @@ fn main() {
     bench_related_ppr(&mut criterion);
     bench_incremental_repo_code_documents(&mut criterion);
     bench_repo_bootstrap_statuses(&mut criterion);
+    bench_repo_content_parquet_mutation(&mut criterion);
     bench_narration_fusion(&mut criterion);
     criterion.final_summary();
 }

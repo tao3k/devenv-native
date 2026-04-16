@@ -1,0 +1,160 @@
+name: "Xiuxian Wendao Cargo Build"
+
+on:
+  pull_request:
+    paths:
+      - Cargo.toml
+      - .cargo/**
+      - packages/rust/**
+      - .github/workflows/xiuxian-wendao-cargo-build.yaml
+  push:
+    branches:
+      - main
+    paths:
+      - Cargo.toml
+      - .cargo/**
+      - packages/rust/**
+      - .github/workflows/xiuxian-wendao-cargo-build.yaml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: xiuxian-wendao-cargo-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  cargo-check:
+    name: Cargo check - Ubuntu
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: packages/rust
+        shell: bash
+    env:
+      CARGO_INCREMENTAL: "0"
+      CARGO_TERM_COLOR: always
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Read Rust toolchain channel
+        id: rust
+        run: |
+          set -euo pipefail
+          channel="$(awk -F'"' '/^channel = / { print $2 }' rust-toolchain.toml)"
+          if [[ -z "${channel}" ]]; then
+            echo "Failed to resolve Rust toolchain channel from rust-toolchain.toml"
+            exit 1
+          fi
+          echo "channel=${channel}" >> "$GITHUB_OUTPUT"
+
+      - name: Install Linux build dependencies
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends pkg-config cmake
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ steps.rust.outputs.channel }}
+
+      - name: Cache cargo artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            packages/rust -> target
+          shared-key: xiuxian-wendao-cargo-build-${{ runner.os }}
+          cache-on-failure: true
+
+      - name: Fetch workspace dependencies
+        run: cargo fetch --locked
+
+      - name: Check xiuxian-wendao targets
+        run: cargo check -p xiuxian-wendao --locked --all-targets
+
+  cargo-build:
+    name: Cargo build - ${{ matrix.name }}
+    if: ${{ github.event_name != 'pull_request' || matrix.run_on_pr }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Ubuntu
+            os: ubuntu-latest
+            run_on_pr: true
+          - name: macOS
+            os: macos-latest
+            run_on_pr: false
+    defaults:
+      run:
+        working-directory: packages/rust
+        shell: bash
+    env:
+      CARGO_INCREMENTAL: "0"
+      CARGO_TERM_COLOR: always
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Read Rust toolchain channel
+        id: rust
+        run: |
+          set -euo pipefail
+          channel="$(awk -F'"' '/^channel = / { print $2 }' rust-toolchain.toml)"
+          if [[ -z "${channel}" ]]; then
+            echo "Failed to resolve Rust toolchain channel from rust-toolchain.toml"
+            exit 1
+          fi
+          echo "channel=${channel}" >> "$GITHUB_OUTPUT"
+
+      - name: Install Linux build dependencies
+        if: ${{ runner.os == 'Linux' }}
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends pkg-config cmake
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ steps.rust.outputs.channel }}
+
+      - name: Cache cargo artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            packages/rust -> target
+          shared-key: xiuxian-wendao-cargo-build-${{ runner.os }}
+          cache-on-failure: true
+
+      - name: Fetch workspace dependencies
+        run: cargo fetch --locked
+
+      - name: Build xiuxian-wendao
+        run: cargo build -p xiuxian-wendao --locked
+
+  results:
+    name: Cargo build results (required)
+    needs:
+      - cargo-check
+      - cargo-build
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Summarize
+        shell: bash
+        run: |
+          echo "cargo-check: ${{ needs.cargo-check.result }}"
+          echo "cargo-build: ${{ needs.cargo-build.result }}"
+          [[ '${{ needs.cargo-check.result }}' == 'success' ]] || {
+            echo 'xiuxian-wendao cargo check failed'
+            exit 1
+          }
+          [[ '${{ needs.cargo-build.result }}' == 'success' ]] || {
+            echo 'xiuxian-wendao cargo build matrix failed'
+            exit 1
+          }

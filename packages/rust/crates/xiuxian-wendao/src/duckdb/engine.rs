@@ -724,7 +724,12 @@ pub(crate) fn build_duckdb_parquet_view_sql(
 ) -> Result<String, String> {
     ensure_duckdb_identifier(table_name, "table")?;
     let quoted_table_name = quoted_duckdb_identifier(table_name);
-    let escaped_path = table_path.to_string_lossy().replace('\'', "''");
+    let read_path = if table_path.is_dir() {
+        table_path.join("*.parquet")
+    } else {
+        table_path.to_path_buf()
+    };
+    let escaped_path = read_path.to_string_lossy().replace('\'', "''");
     Ok(format!(
         "{drop_sql}\nCREATE TEMP VIEW {quoted_table_name} AS SELECT * FROM read_parquet('{escaped_path}');",
         drop_sql = build_drop_duckdb_registered_relation_sql(table_name),

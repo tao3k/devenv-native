@@ -3,7 +3,15 @@ mod query;
 mod schema;
 
 #[cfg(any(test, feature = "performance"))]
+pub(crate) use build::partitions::{
+    repo_content_chunk_partition_count_for_document_count, repo_content_chunk_partition_id_for_path,
+};
+#[cfg(any(test, feature = "performance"))]
 pub(crate) use build::plan::repo_content_chunk_file_fingerprints;
+#[cfg(any(test, feature = "performance"))]
+pub(crate) use build::publish_repo_content_chunks_incremental_profiled;
+#[cfg(any(test, feature = "performance"))]
+pub(crate) use build::types::RepoContentChunkIncrementalPublishProfile;
 pub(crate) use build::{publish_repo_content_chunks, publish_repo_content_chunks_incremental};
 pub(crate) use query::{
     RepoContentChunkCandidate, RepoContentChunkSearchError, RepoContentChunkSearchFilters,

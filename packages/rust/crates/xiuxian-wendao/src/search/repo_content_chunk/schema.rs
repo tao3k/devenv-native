@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use arrow::datatypes::{DataType, Field, Schema, SchemaRef};
 use xiuxian_vector_store::{
     LanceDataType, LanceField, LanceRecordBatch, LanceSchema, LanceStringArray, LanceUInt64Array,
     VectorStoreError,
@@ -38,6 +39,19 @@ pub(crate) fn repo_content_chunk_schema() -> Arc<LanceSchema> {
         LanceField::new(COLUMN_LINE_TEXT, LanceDataType::Utf8, false),
         LanceField::new(COLUMN_LINE_TEXT_FOLDED, LanceDataType::Utf8, false),
         LanceField::new(COLUMN_SEARCH_TEXT, LanceDataType::Utf8, false),
+    ]))
+}
+
+pub(crate) fn repo_content_chunk_engine_schema() -> SchemaRef {
+    Arc::new(Schema::new(vec![
+        Field::new(COLUMN_ID, DataType::Utf8, false),
+        Field::new(COLUMN_PATH, DataType::Utf8, false),
+        Field::new(COLUMN_PATH_FOLDED, DataType::Utf8, false),
+        Field::new(COLUMN_LANGUAGE, DataType::Utf8, false),
+        Field::new(COLUMN_LINE_NUMBER, DataType::UInt64, false),
+        Field::new(COLUMN_LINE_TEXT, DataType::Utf8, false),
+        Field::new(COLUMN_LINE_TEXT_FOLDED, DataType::Utf8, false),
+        Field::new(COLUMN_SEARCH_TEXT, DataType::Utf8, false),
     ]))
 }
 
