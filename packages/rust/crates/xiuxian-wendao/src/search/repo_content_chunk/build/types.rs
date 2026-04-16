@@ -9,7 +9,7 @@ pub(crate) type RepoContentChunkBuildAction = RepoStagedMutationAction<Vec<RepoC
 pub(crate) type RepoContentChunkBuildPlan = RepoStagedMutationPlan<Vec<RepoCodeDocument>>;
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
-pub(crate) struct RepoContentChunkMutationWriteProfile {
+pub struct RepoContentChunkMutationWriteProfile {
     pub touched_partition_count: usize,
     pub untouched_partition_count: usize,
     pub copy_untouched_elapsed: Duration,
@@ -21,7 +21,7 @@ pub(crate) struct RepoContentChunkMutationWriteProfile {
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
-pub(crate) struct RepoContentChunkFinalizeProfile {
+pub struct RepoContentChunkFinalizeProfile {
     pub prewarm_elapsed: Duration,
     pub record_publication_elapsed: Duration,
     pub set_fingerprints_elapsed: Duration,
@@ -29,7 +29,7 @@ pub(crate) struct RepoContentChunkFinalizeProfile {
 
 #[cfg(any(test, feature = "performance"))]
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
-pub(crate) struct RepoContentChunkIncrementalPublishProfile {
+pub struct RepoContentChunkIncrementalPublishProfile {
     pub previous_fingerprint_read_elapsed: Duration,
     pub current_record_read_elapsed: Duration,
     pub fingerprint_merge_elapsed: Duration,

@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -11,10 +11,13 @@ use crate::search::repo_content_chunk::{
     repo_content_chunk_partition_count_for_document_count,
     repo_content_chunk_partition_id_for_path,
 };
+use crate::search::repo_search::search_repo_content_batch;
 use crate::search::{
     SearchCorpusKind, SearchFileFingerprint, SearchMaintenancePolicy, SearchManifestKeyspace,
     SearchPlaneFileFingerprintScope, SearchPlaneService,
+    resolve_search_plane_cache_connection_target,
 };
+use xiuxian_wendao_runtime::transport::RepoSearchFlightRequest;
 
 static REPO_PUBLICATION_BENCH_COUNTER: AtomicU64 = AtomicU64::new(1);
 const BENCH_LINE_COUNT: usize = 12;
@@ -45,7 +48,43 @@ pub struct RepoContentParquetMutationBenchmarkSnapshot {
     /// Paths returned for the deleted-document verification query.
     pub deleted_query_paths: Vec<String>,
     /// Phase-level timing and count breakdown for the incremental publish call.
-    pub(crate) publish_profile: RepoContentChunkIncrementalPublishProfile,
+    pub publish_profile: RepoContentChunkIncrementalPublishProfile,
+}
+
+/// Result of one synthetic large repo-content query sample.
+#[derive(Debug, Clone)]
+pub struct RepoContentQueryBenchmarkSnapshot {
+    /// Number of synthetic repo-content documents in the publication.
+    pub base_document_count: usize,
+    /// Row count reported by the published repo-content corpus.
+    pub publication_row_count: u64,
+    /// Unique query token used for the benchmark sample.
+    pub query_token: String,
+    /// Expected repo-relative path for the unique query token.
+    pub expected_path: String,
+    /// Time spent on the first query after one fresh service start.
+    pub cold_query_elapsed: Duration,
+    /// Time spent on the second query on the same service instance.
+    pub hot_query_elapsed: Duration,
+    /// Time spent materializing the repo-search Arrow/Flight batch.
+    pub flight_batch_elapsed: Duration,
+    /// Number of hits returned by the first query.
+    pub cold_query_hit_count: usize,
+    /// Number of hits returned by the second query.
+    pub hot_query_hit_count: usize,
+    /// Number of rows emitted by the Flight batch surface.
+    pub flight_batch_row_count: usize,
+    /// First path returned by the first query.
+    pub cold_first_path: Option<String>,
+    /// First path returned by the second query.
+    pub hot_first_path: Option<String>,
+    /// Local query-engine kind compiled into this benchmark run.
+    pub query_engine_kind: &'static str,
+    /// Persisted metadata surface available to cold-start reads.
+    pub persisted_metadata_backend: &'static str,
+    /// Whether this benchmark run resolved a Valkey metadata target from
+    /// config or env.
+    pub valkey_target_configured: bool,
 }
 
 /// Synthetic fixture for measuring repo-content Parquet clone-and-mutate cost.
@@ -83,6 +122,53 @@ pub struct RepoContentParquetMutationBenchmarkIteration {
     touched_base_documents_by_partition: BTreeMap<String, usize>,
     added_query: String,
     deleted_query: String,
+}
+
+/// Synthetic fixture for measuring steady-state repo-backed query cost.
+#[derive(Debug)]
+pub struct RepoContentQueryBenchmarkFixture {
+    root: PathBuf,
+    project_root: PathBuf,
+    storage_root: PathBuf,
+    manifest_keyspace: SearchManifestKeyspace,
+    repo_id: String,
+    base_document_count: usize,
+    expected_row_count: u64,
+    query_token: String,
+    expected_path: String,
+    valkey_target_configured: bool,
+}
+
+/// One prepared repo-content query benchmark iteration.
+pub struct RepoContentQueryBenchmarkIteration {
+    service: SearchPlaneService,
+    runtime: tokio::runtime::Runtime,
+    repo_id: String,
+    base_document_count: usize,
+    expected_row_count: u64,
+    query_token: String,
+    expected_path: String,
+    valkey_target_configured: bool,
+}
+
+/// One measured repo-content query sample.
+#[derive(Debug, Clone)]
+pub struct RepoContentQueryBenchmarkSample {
+    /// Time spent executing the sample.
+    pub elapsed: Duration,
+    /// Number of hits returned by the sample.
+    pub hit_count: usize,
+    /// First repo-relative path returned by the sample.
+    pub first_path: Option<String>,
+}
+
+/// One measured repo-search Flight batch sample.
+#[derive(Debug, Clone)]
+pub struct RepoContentFlightBatchBenchmarkSample {
+    /// Time spent executing the sample.
+    pub elapsed: Duration,
+    /// Number of rows emitted by the sample batch.
+    pub row_count: usize,
 }
 
 impl RepoContentParquetMutationBenchmarkFixture {
@@ -218,6 +304,84 @@ impl RepoContentParquetMutationBenchmarkFixture {
     }
 }
 
+impl RepoContentQueryBenchmarkFixture {
+    /// Build one synthetic published repo-content corpus for repeated query
+    /// samples.
+    ///
+    /// # Panics
+    ///
+    /// Panics when the fixture directories or publication cannot be created.
+    #[must_use]
+    pub fn synthetic(base_document_count: usize) -> Self {
+        assert!(
+            base_document_count >= 8,
+            "repo-content query benchmark requires at least 8 documents"
+        );
+        let suffix = REPO_PUBLICATION_BENCH_COUNTER.fetch_add(1, Ordering::Relaxed);
+        let root = std::env::temp_dir().join(format!("xiuxian-wendao-repo-query-bench-{suffix}"));
+        let project_root = root.join("project");
+        let storage_root = root.join("search_plane");
+        let _ = std::fs::remove_dir_all(&root);
+        create_dir_all(project_root.as_path());
+        let manifest_keyspace =
+            SearchManifestKeyspace::new(format!("xiuxian:bench:repo-query:{suffix}"));
+        let repo_id = "alpha/repo".to_string();
+        let service = SearchPlaneService::with_paths(
+            project_root.clone(),
+            storage_root.clone(),
+            manifest_keyspace.clone(),
+            SearchMaintenancePolicy::default(),
+        );
+        let base_documents = (0..base_document_count)
+            .map(|index| repo_content_document(index, index))
+            .collect::<Vec<_>>();
+        build_runtime().block_on(async {
+            publish_repo_content_chunks(&service, repo_id.as_str(), &base_documents, Some("rev-1"))
+                .await
+                .unwrap_or_else(|error| panic!("publish repo-content query fixture: {error}"));
+        });
+        let query_index = base_document_count / 2;
+        Self {
+            root,
+            project_root,
+            storage_root,
+            manifest_keyspace,
+            repo_id,
+            base_document_count,
+            expected_row_count: expected_row_count(base_document_count),
+            query_token: unique_query_token(query_index),
+            expected_path: repo_content_path(query_index),
+            valkey_target_configured: resolve_search_plane_cache_connection_target().is_ok(),
+        }
+    }
+
+    /// Prepare one query iteration with one fresh service instance.
+    #[must_use]
+    pub fn prepare_iteration(&self) -> RepoContentQueryBenchmarkIteration {
+        RepoContentQueryBenchmarkIteration {
+            service: SearchPlaneService::with_paths(
+                self.project_root.clone(),
+                self.storage_root.clone(),
+                self.manifest_keyspace.clone(),
+                SearchMaintenancePolicy::default(),
+            ),
+            runtime: build_runtime(),
+            repo_id: self.repo_id.clone(),
+            base_document_count: self.base_document_count,
+            expected_row_count: self.expected_row_count,
+            query_token: self.query_token.clone(),
+            expected_path: self.expected_path.clone(),
+            valkey_target_configured: self.valkey_target_configured,
+        }
+    }
+}
+
+impl Drop for RepoContentQueryBenchmarkFixture {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_dir_all(&self.root);
+    }
+}
+
 impl Drop for RepoContentParquetMutationBenchmarkFixture {
     fn drop(&mut self) {
         let _ = std::fs::remove_dir_all(&self.root);
@@ -341,6 +505,175 @@ impl RepoContentParquetMutationBenchmarkIteration {
     }
 }
 
+impl RepoContentQueryBenchmarkIteration {
+    /// Run the full cold/hot/Flight query sequence and return one summary
+    /// snapshot.
+    ///
+    /// # Panics
+    ///
+    /// Panics when any benchmark query or record read fails.
+    #[must_use]
+    pub fn run(mut self) -> RepoContentQueryBenchmarkSnapshot {
+        let cold = self.measure_query();
+        let hot = self.measure_query();
+        let publication_row_count = self.publication_row_count();
+        let flight_batch = self.measure_flight_batch();
+
+        assert_eq!(
+            cold.hit_count, 1,
+            "cold repo-content query benchmark should return exactly one hit"
+        );
+        assert_eq!(
+            hot.hit_count, 1,
+            "hot repo-content query benchmark should return exactly one hit"
+        );
+        assert_eq!(
+            cold.first_path.as_deref(),
+            Some(self.expected_path.as_str()),
+            "cold repo-content query benchmark drifted from expected path"
+        );
+        assert_eq!(
+            hot.first_path.as_deref(),
+            Some(self.expected_path.as_str()),
+            "hot repo-content query benchmark drifted from expected path"
+        );
+        assert_eq!(
+            flight_batch.row_count, 1,
+            "repo-search Flight benchmark should emit exactly one row"
+        );
+        assert_eq!(
+            publication_row_count, self.expected_row_count,
+            "repo-content query benchmark row count drifted from the synthetic fixture"
+        );
+
+        RepoContentQueryBenchmarkSnapshot {
+            base_document_count: self.base_document_count,
+            publication_row_count,
+            query_token: self.query_token.clone(),
+            expected_path: self.expected_path.clone(),
+            cold_query_elapsed: cold.elapsed,
+            hot_query_elapsed: hot.elapsed,
+            flight_batch_elapsed: flight_batch.elapsed,
+            cold_query_hit_count: cold.hit_count,
+            hot_query_hit_count: hot.hit_count,
+            flight_batch_row_count: flight_batch.row_count,
+            cold_first_path: cold.first_path,
+            hot_first_path: hot.first_path,
+            query_engine_kind: repo_query_engine_kind(),
+            persisted_metadata_backend: persisted_metadata_backend(self.valkey_target_configured),
+            valkey_target_configured: self.valkey_target_configured,
+        }
+    }
+
+    /// Warm one fresh service with a cold query and then measure the steady
+    /// state query path.
+    ///
+    /// # Panics
+    ///
+    /// Panics when the warmup or the measured query fails.
+    #[must_use]
+    pub fn measure_hot_query_after_cold_warmup(mut self) -> RepoContentQueryBenchmarkSample {
+        let cold = self.measure_query();
+        assert_eq!(
+            cold.first_path.as_deref(),
+            Some(self.expected_path.as_str()),
+            "repo-content query benchmark warmup drifted from expected path"
+        );
+        self.measure_query()
+    }
+
+    /// Warm one fresh service with a cold query and then measure the Flight
+    /// batch materialization path.
+    ///
+    /// # Panics
+    ///
+    /// Panics when the warmup query or the measured batch fails.
+    #[must_use]
+    pub fn measure_flight_batch_after_cold_warmup(
+        mut self,
+    ) -> RepoContentFlightBatchBenchmarkSample {
+        let cold = self.measure_query();
+        assert_eq!(
+            cold.first_path.as_deref(),
+            Some(self.expected_path.as_str()),
+            "repo-content query benchmark warmup drifted from expected path"
+        );
+        self.measure_flight_batch()
+    }
+
+    fn measure_query(&mut self) -> RepoContentQueryBenchmarkSample {
+        let started = Instant::now();
+        let hits = self.runtime.block_on(async {
+            self.service
+                .search_repo_content_chunks(
+                    self.repo_id.as_str(),
+                    self.query_token.as_str(),
+                    &HashSet::new(),
+                    5,
+                )
+                .await
+                .unwrap_or_else(|error| {
+                    panic!("repo-content query benchmark query failed: {error}")
+                })
+        });
+        RepoContentQueryBenchmarkSample {
+            elapsed: started.elapsed(),
+            hit_count: hits.len(),
+            first_path: hits.first().map(|hit| hit.path.clone()),
+        }
+    }
+
+    fn measure_flight_batch(&self) -> RepoContentFlightBatchBenchmarkSample {
+        let request = RepoSearchFlightRequest {
+            repo_id: self.repo_id.clone(),
+            query_text: self.query_token.clone(),
+            limit: 5,
+            language_filters: HashSet::new(),
+            path_prefixes: HashSet::new(),
+            title_filters: HashSet::new(),
+            tag_filters: HashSet::new(),
+            filename_filters: HashSet::new(),
+        };
+        let started = Instant::now();
+        let batch = self.runtime.block_on(async {
+            search_repo_content_batch(&self.service, &request)
+                .await
+                .unwrap_or_else(|error| {
+                    panic!("repo-content query benchmark Flight batch failed: {error}")
+                })
+        });
+        RepoContentFlightBatchBenchmarkSample {
+            elapsed: started.elapsed(),
+            row_count: batch.num_rows(),
+        }
+    }
+
+    fn publication_row_count(&self) -> u64 {
+        self.runtime.block_on(async {
+            self.service
+                .repo_corpus_record_for_reads(
+                    SearchCorpusKind::RepoContentChunk,
+                    self.repo_id.as_str(),
+                )
+                .await
+                .unwrap_or_else(|| {
+                    panic!(
+                        "repo-content query benchmark missing publication for `{}`",
+                        self.repo_id
+                    )
+                })
+                .publication
+                .unwrap_or_else(|| {
+                    panic!(
+                        "repo-content query benchmark missing publication payload for `{}`",
+                        self.repo_id
+                    )
+                })
+                .row_count
+        })
+    }
+}
+
 impl Drop for RepoContentParquetMutationBenchmarkIteration {
     fn drop(&mut self) {
         let _ = std::fs::remove_dir_all(&self.root);
@@ -382,6 +715,25 @@ fn unique_query_token(token_seed: usize) -> String {
 fn expected_row_count(base_document_count: usize) -> u64 {
     let rows = base_document_count.saturating_mul(BENCH_LINE_COUNT);
     u64::try_from(rows).unwrap_or(u64::MAX)
+}
+
+fn persisted_metadata_backend(valkey_configured: bool) -> &'static str {
+    if valkey_configured {
+        "valkey_or_local_json"
+    } else {
+        "local_json_only"
+    }
+}
+
+fn repo_query_engine_kind() -> &'static str {
+    #[cfg(feature = "duckdb")]
+    {
+        "duckdb"
+    }
+    #[cfg(not(feature = "duckdb"))]
+    {
+        "datafusion"
+    }
 }
 
 fn changed_existing_indexes(base_document_count: usize) -> [usize; 2] {

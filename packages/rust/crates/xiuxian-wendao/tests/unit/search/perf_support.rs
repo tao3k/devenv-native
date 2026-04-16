@@ -1,4 +1,6 @@
-use crate::search::perf_support::RepoContentParquetMutationBenchmarkFixture;
+use crate::search::perf_support::{
+    RepoContentParquetMutationBenchmarkFixture, RepoContentQueryBenchmarkFixture,
+};
 use crate::search::repo_content_chunk::repo_content_chunk_partition_count_for_document_count;
 
 #[test]
@@ -39,6 +41,29 @@ fn repo_content_parquet_mutation_fixture_preserves_row_count_and_query_readabili
         vec![fixture.added_path().to_string()]
     );
     assert!(snapshot.deleted_query_paths.is_empty());
+}
+
+#[test]
+fn repo_content_query_benchmark_fixture_reports_cold_hot_and_flight_samples() {
+    let fixture = RepoContentQueryBenchmarkFixture::synthetic(256);
+    let snapshot = fixture.prepare_iteration().run();
+
+    assert_eq!(snapshot.base_document_count, 256);
+    assert_eq!(snapshot.publication_row_count, 3_072);
+    assert_eq!(snapshot.cold_query_hit_count, 1);
+    assert_eq!(snapshot.hot_query_hit_count, 1);
+    assert_eq!(snapshot.flight_batch_row_count, 1);
+    assert_eq!(
+        snapshot.cold_first_path.as_deref(),
+        Some(snapshot.expected_path.as_str())
+    );
+    assert_eq!(
+        snapshot.hot_first_path.as_deref(),
+        Some(snapshot.expected_path.as_str())
+    );
+    assert!(!snapshot.query_token.is_empty());
+    assert!(!snapshot.query_engine_kind.is_empty());
+    assert!(!snapshot.persisted_metadata_backend.is_empty());
 }
 
 #[cfg(feature = "performance")]
@@ -239,4 +264,41 @@ fn repo_content_parquet_mutation_benchmark_reports_1k_and_10k_samples() {
     assert!(large_snapshot.touched_partition_count > 0);
     assert!(small_snapshot.deleted_query_paths.is_empty());
     assert!(large_snapshot.deleted_query_paths.is_empty());
+}
+
+#[cfg(feature = "performance")]
+#[test]
+fn repo_content_query_benchmark_reports_100k_sample() {
+    let fixture = RepoContentQueryBenchmarkFixture::synthetic(100_000);
+    let snapshot = fixture.prepare_iteration().run();
+
+    println!(
+        "repo content query benchmark: docs={} row_count={} engine={} metadata_backend={} valkey_target_configured={} cold_ms={:.3} hot_ms={:.3} flight_batch_ms={:.3} cold_hits={} hot_hits={} flight_rows={} expected_path={}",
+        snapshot.base_document_count,
+        snapshot.publication_row_count,
+        snapshot.query_engine_kind,
+        snapshot.persisted_metadata_backend,
+        snapshot.valkey_target_configured,
+        snapshot.cold_query_elapsed.as_secs_f64() * 1_000.0,
+        snapshot.hot_query_elapsed.as_secs_f64() * 1_000.0,
+        snapshot.flight_batch_elapsed.as_secs_f64() * 1_000.0,
+        snapshot.cold_query_hit_count,
+        snapshot.hot_query_hit_count,
+        snapshot.flight_batch_row_count,
+        snapshot.expected_path
+    );
+
+    assert_eq!(snapshot.base_document_count, 100_000);
+    assert_eq!(snapshot.publication_row_count, 1_200_000);
+    assert_eq!(snapshot.cold_query_hit_count, 1);
+    assert_eq!(snapshot.hot_query_hit_count, 1);
+    assert_eq!(snapshot.flight_batch_row_count, 1);
+    assert_eq!(
+        snapshot.cold_first_path.as_deref(),
+        Some(snapshot.expected_path.as_str())
+    );
+    assert_eq!(
+        snapshot.hot_first_path.as_deref(),
+        Some(snapshot.expected_path.as_str())
+    );
 }

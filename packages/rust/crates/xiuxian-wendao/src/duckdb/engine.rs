@@ -3,6 +3,8 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use arrow::datatypes::SchemaRef;
+#[cfg(feature = "duckdb")]
+use arrow::record_batch::RecordBatch;
 use async_trait::async_trait;
 use datafusion::datasource::MemTable;
 use datafusion::execution::context::SessionContext;
@@ -499,7 +501,8 @@ impl LocalRelationEngine for DuckDbLocalRelationEngine {
         schema: SchemaRef,
         batches: Vec<EngineRecordBatch>,
     ) -> Result<(), String> {
-        self.register_record_batches_with_hint(
+        LocalRelationEngine::register_record_batches_with_hint(
+            self,
             table_name,
             schema,
             batches,

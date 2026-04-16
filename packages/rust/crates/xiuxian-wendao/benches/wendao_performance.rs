@@ -10,7 +10,9 @@ use xiuxian_wendao::repo_index::perf_support::{
     RepoBootstrapBenchmarkFixture, benchmark_collect_full_repo_code_documents,
     benchmark_collect_incremental_repo_code_documents,
 };
-use xiuxian_wendao::search::perf_support::RepoContentParquetMutationBenchmarkFixture;
+use xiuxian_wendao::search::perf_support::{
+    RepoContentParquetMutationBenchmarkFixture, RepoContentQueryBenchmarkFixture,
+};
 use xiuxian_wendao::{
     LinkGraphHit, LinkGraphIndex, LinkGraphPprSubgraphMode, LinkGraphRelatedPprOptions,
     narrate_subgraph,
@@ -25,6 +27,7 @@ const REPO_BENCH_FILE_LINES: usize = 20;
 const REPO_BOOTSTRAP_BENCH_REPO_COUNT: usize = 10_000;
 const REPO_PUBLICATION_PARQUET_SMALL_DOC_COUNT: usize = 1_000;
 const REPO_PUBLICATION_PARQUET_LARGE_DOC_COUNT: usize = 10_000;
+const REPO_QUERY_BENCH_DOC_COUNT: usize = 100_000;
 
 fn note_id(i: usize) -> String {
     format!("note-{i:05}")
@@ -299,6 +302,38 @@ fn bench_repo_content_parquet_mutation(c: &mut Criterion) {
     group.finish();
 }
 
+fn bench_repo_content_query(c: &mut Criterion) {
+    let fixture = RepoContentQueryBenchmarkFixture::synthetic(REPO_QUERY_BENCH_DOC_COUNT);
+
+    let mut group = c.benchmark_group("repo_content_query");
+    group.throughput(Throughput::Elements(
+        u64::try_from(REPO_QUERY_BENCH_DOC_COUNT).unwrap_or(u64::MAX),
+    ));
+    group.bench_function("hot_query_100k_documents", |bench| {
+        bench.iter_batched(
+            || fixture.prepare_iteration(),
+            |iteration| {
+                let sample = iteration.measure_hot_query_after_cold_warmup();
+                assert_eq!(sample.hit_count, 1);
+                black_box(sample.hit_count)
+            },
+            BatchSize::SmallInput,
+        );
+    });
+    group.bench_function("flight_batch_100k_documents", |bench| {
+        bench.iter_batched(
+            || fixture.prepare_iteration(),
+            |iteration| {
+                let sample = iteration.measure_flight_batch_after_cold_warmup();
+                assert_eq!(sample.row_count, 1);
+                black_box(sample.row_count)
+            },
+            BatchSize::SmallInput,
+        );
+    });
+    group.finish();
+}
+
 fn bench_narration_fusion(c: &mut Criterion) {
     let hits: Vec<LinkGraphHit> = (0..240)
         .map(|i| {
@@ -332,6 +367,7 @@ fn main() {
     bench_incremental_repo_code_documents(&mut criterion);
     bench_repo_bootstrap_statuses(&mut criterion);
     bench_repo_content_parquet_mutation(&mut criterion);
+    bench_repo_content_query(&mut criterion);
     bench_narration_fusion(&mut criterion);
     criterion.final_summary();
 }
