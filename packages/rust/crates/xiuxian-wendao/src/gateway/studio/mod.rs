@@ -29,11 +29,10 @@ pub(crate) use analysis::compile_markdown_nodes;
 pub use router::{
     GatewayState, StudioApiError, StudioBootstrapBackgroundIndexingTelemetry,
     StudioSearchColdStartCorpusTelemetry, StudioSearchColdStartEvent,
-    StudioSearchColdStartTelemetry, StudioState, configured_repositories,
-    configured_repository, load_ui_config_from_wendao_toml, map_repo_intelligence_error,
-    resolve_studio_config_root, sanitize_path_like, sanitize_path_list,
-    studio_effective_wendao_toml_path, studio_router, studio_routes,
-    studio_wendao_overlay_toml_path, studio_wendao_toml_path,
+    StudioSearchColdStartTelemetry, StudioState, configured_repositories, configured_repository,
+    load_ui_config_from_wendao_toml, map_repo_intelligence_error, resolve_studio_config_root,
+    sanitize_path_like, sanitize_path_list, studio_effective_wendao_toml_path, studio_router,
+    studio_routes, studio_wendao_overlay_toml_path, studio_wendao_toml_path,
 };
 #[cfg(feature = "zhenfa-router")]
 pub(crate) use router::{registered_repository_search_seeds, resolve_registered_repository_id};

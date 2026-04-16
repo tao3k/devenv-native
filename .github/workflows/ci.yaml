@@ -66,7 +66,7 @@ jobs:
           submodules: recursive
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.12"
 
@@ -88,6 +88,7 @@ jobs:
           sudo apt-get update
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
             cmake \
+            libprotobuf-dev \
             pkg-config \
             protobuf-compiler \
             python3-dev
@@ -108,10 +109,30 @@ jobs:
             echo "protoc not found on PATH"
             exit 1
           fi
+          proto_include=""
+          if [[ -d /usr/include/google/protobuf ]]; then
+            proto_include="/usr/include"
+          else
+            protoc_root="$(dirname "$(dirname "${protoc_path}")")"
+            if [[ -d "${protoc_root}/include/google/protobuf" ]]; then
+              proto_include="${protoc_root}/include"
+            elif command -v brew >/dev/null 2>&1; then
+              brew_prefix="$(brew --prefix protobuf 2>/dev/null || true)"
+              if [[ -n "${brew_prefix}" && -d "${brew_prefix}/include/google/protobuf" ]]; then
+                proto_include="${brew_prefix}/include"
+              fi
+            fi
+          fi
+          if [[ -z "${proto_include}" ]]; then
+            echo "Failed to resolve protobuf include directory for well-known types"
+            exit 1
+          fi
           python_path="$(python -c 'import sys; print(sys.executable)')"
           echo "PROTOC=${protoc_path}" >> "$GITHUB_ENV"
+          echo "PROTOC_INCLUDE=${proto_include}" >> "$GITHUB_ENV"
           echo "PYO3_PYTHON=${python_path}" >> "$GITHUB_ENV"
           protoc --version
+          echo "PROTOC_INCLUDE=${proto_include}"
           python --version
 
       - name: Install Rust toolchain
@@ -123,8 +144,7 @@ jobs:
       - name: Install sccache
         uses: taiki-e/install-action@44c6d64aa62cd779e873306675c7a58e86d6d532 # v2
         with:
-          tool: sccache
-          version: 0.7.5
+          tool: sccache@0.7.5
 
       - name: Configure sccache backend
         run: |
@@ -142,8 +162,9 @@ jobs:
         uses: actions/cache/restore@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5
         with:
           path: ${{ github.workspace }}/.sccache/
-          key: rust-workspace-sccache-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'packages/rust/rust-toolchain.toml', '.github/workflows/ci.yaml') }}-${{ github.run_id }}
+          key: rust-workspace-sccache-${{ runner.os }}-${{ github.job }}-${{ hashFiles('Cargo.lock', 'packages/rust/rust-toolchain.toml', '.github/workflows/ci.yaml') }}-${{ github.run_id }}
           restore-keys: |
+            rust-workspace-sccache-${{ runner.os }}-${{ github.job }}-${{ hashFiles('Cargo.lock', 'packages/rust/rust-toolchain.toml', '.github/workflows/ci.yaml') }}-
             rust-workspace-sccache-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'packages/rust/rust-toolchain.toml', '.github/workflows/ci.yaml') }}-
             rust-workspace-sccache-${{ runner.os }}-
 
@@ -164,7 +185,7 @@ jobs:
         uses: actions/cache/save@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5
         with:
           path: ${{ github.workspace }}/.sccache/
-          key: rust-workspace-sccache-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'packages/rust/rust-toolchain.toml', '.github/workflows/ci.yaml') }}-${{ github.run_id }}
+          key: rust-workspace-sccache-${{ runner.os }}-${{ github.job }}-${{ hashFiles('Cargo.lock', 'packages/rust/rust-toolchain.toml', '.github/workflows/ci.yaml') }}-${{ github.run_id }}
 
       - name: sccache summary
         if: ${{ always() }}
@@ -185,11 +206,10 @@ jobs:
           fetch-depth: 0
           submodules: recursive
 
-      - uses: ./.github/actions/common-setup
+      - name: Install cocogitto
+        uses: taiki-e/install-action@44c6d64aa62cd779e873306675c7a58e86d6d532 # v2
         with:
-          CACHIX_AUTH_TOKEN: "${{ secrets.CACHIX_AUTH_TOKEN }}"
-          SECRET_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GLM_API_KEY: ${{ secrets.GLM_API_KEY }}
+          tool: cocogitto
 
       - name: Check commit messages
         shell: bash
@@ -204,8 +224,7 @@ jobs:
               base_sha="$(git rev-list --max-parents=0 "${head_sha}" | tail -n 1)"
             fi
           fi
-          secretspec run --provider env --profile default -- \
-            devenv shell -- just check-commits-range "${base_sha}" "${head_sha}"
+          cog check "${base_sha}..${head_sha}"
 
   test:
     runs-on: ${{ matrix.os }}
@@ -229,7 +248,7 @@ jobs:
           submodules: recursive
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.12"
 
@@ -251,6 +270,7 @@ jobs:
           sudo apt-get update
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
             cmake \
+            libprotobuf-dev \
             pkg-config \
             protobuf-compiler \
             python3-dev
@@ -271,10 +291,30 @@ jobs:
             echo "protoc not found on PATH"
             exit 1
           fi
+          proto_include=""
+          if [[ -d /usr/include/google/protobuf ]]; then
+            proto_include="/usr/include"
+          else
+            protoc_root="$(dirname "$(dirname "${protoc_path}")")"
+            if [[ -d "${protoc_root}/include/google/protobuf" ]]; then
+              proto_include="${protoc_root}/include"
+            elif command -v brew >/dev/null 2>&1; then
+              brew_prefix="$(brew --prefix protobuf 2>/dev/null || true)"
+              if [[ -n "${brew_prefix}" && -d "${brew_prefix}/include/google/protobuf" ]]; then
+                proto_include="${brew_prefix}/include"
+              fi
+            fi
+          fi
+          if [[ -z "${proto_include}" ]]; then
+            echo "Failed to resolve protobuf include directory for well-known types"
+            exit 1
+          fi
           python_path="$(python -c 'import sys; print(sys.executable)')"
           echo "PROTOC=${protoc_path}" >> "$GITHUB_ENV"
+          echo "PROTOC_INCLUDE=${proto_include}" >> "$GITHUB_ENV"
           echo "PYO3_PYTHON=${python_path}" >> "$GITHUB_ENV"
           protoc --version
+          echo "PROTOC_INCLUDE=${proto_include}"
           python --version
 
       - name: Install Rust toolchain
@@ -285,13 +325,12 @@ jobs:
       - name: Install cargo-nextest
         uses: taiki-e/install-action@44c6d64aa62cd779e873306675c7a58e86d6d532 # v2
         with:
-          tool: cargo-nextest
+          tool: cargo-nextest@0.9.127
 
       - name: Install sccache
         uses: taiki-e/install-action@44c6d64aa62cd779e873306675c7a58e86d6d532 # v2
         with:
-          tool: sccache
-          version: 0.7.5
+          tool: sccache@0.7.5
 
       - name: Configure sccache backend
         run: |
@@ -309,8 +348,9 @@ jobs:
         uses: actions/cache/restore@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5
         with:
           path: ${{ github.workspace }}/.sccache/
-          key: rust-workspace-sccache-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'packages/rust/rust-toolchain.toml', '.github/workflows/ci.yaml') }}-${{ github.run_id }}
+          key: rust-workspace-sccache-${{ runner.os }}-${{ github.job }}-${{ hashFiles('Cargo.lock', 'packages/rust/rust-toolchain.toml', '.github/workflows/ci.yaml') }}-${{ github.run_id }}
           restore-keys: |
+            rust-workspace-sccache-${{ runner.os }}-${{ github.job }}-${{ hashFiles('Cargo.lock', 'packages/rust/rust-toolchain.toml', '.github/workflows/ci.yaml') }}-
             rust-workspace-sccache-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'packages/rust/rust-toolchain.toml', '.github/workflows/ci.yaml') }}-
             rust-workspace-sccache-${{ runner.os }}-
 
@@ -334,7 +374,7 @@ jobs:
         uses: actions/cache/save@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5
         with:
           path: ${{ github.workspace }}/.sccache/
-          key: rust-workspace-sccache-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'packages/rust/rust-toolchain.toml', '.github/workflows/ci.yaml') }}-${{ github.run_id }}
+          key: rust-workspace-sccache-${{ runner.os }}-${{ github.job }}-${{ hashFiles('Cargo.lock', 'packages/rust/rust-toolchain.toml', '.github/workflows/ci.yaml') }}-${{ github.run_id }}
 
       - name: sccache summary
         if: ${{ always() }}

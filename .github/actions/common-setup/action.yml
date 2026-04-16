@@ -19,9 +19,9 @@ runs:
         hatchet-protocol: 'carve'
 
     - name: Install nix
-      uses: cachix/install-nix-action@master    
+      uses: cachix/install-nix-action@v31
       with:
-        github_token: ${{ inputs.SECRET_GITHUB_TOKEN }}
+        github_access_token: ${{ inputs.SECRET_GITHUB_TOKEN }}
     # - uses: DeterminateSystems/nix-installer-action@main
     #   with:
     #     extra-conf: |

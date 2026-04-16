@@ -2,9 +2,8 @@ use std::sync::Arc;
 
 use crate::analyzers::{
     DocsFamilyClusterQuery, DocsFamilyClusterResult, DocsFamilyContextQuery,
-    DocsFamilyContextResult, DocsFamilySearchQuery, DocsFamilySearchResult,
-    RepoIntelligenceError, build_docs_family_cluster, build_docs_family_context,
-    build_docs_family_search,
+    DocsFamilyContextResult, DocsFamilySearchQuery, DocsFamilySearchResult, RepoIntelligenceError,
+    build_docs_family_cluster, build_docs_family_context, build_docs_family_search,
 };
 use crate::gateway::studio::router::handlers::docs::service::runtime::run_docs_analysis;
 use crate::gateway::studio::router::{GatewayState, StudioApiError};

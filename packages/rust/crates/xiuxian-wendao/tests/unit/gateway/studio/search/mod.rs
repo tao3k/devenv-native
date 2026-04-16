@@ -4,12 +4,12 @@ use crate::analyzers::{
     ExampleRecord, ModuleRecord, RepoSymbolKind, RepositoryAnalysisOutput, SymbolRecord,
 };
 use crate::gateway::studio::build_ast_index;
-use crate::gateway::studio::{GatewayState, StudioState};
 use crate::gateway::studio::search::handlers::knowledge::ensure_intent_indices;
 use crate::gateway::studio::search::handlers::status::search_index_status;
 use crate::gateway::studio::search::strip_option;
 use crate::gateway::studio::test_support::{assert_studio_json_snapshot, round_f64};
 use crate::gateway::studio::types::{UiConfig, UiProjectConfig, UiRepoProjectConfig};
+use crate::gateway::studio::{GatewayState, StudioState};
 use crate::repo_index::{
     RepoCodeDocument, RepoIndexEntryStatus, RepoIndexPhase, RepoIndexSnapshot,
     RepoIndexStatusResponse,

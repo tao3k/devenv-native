@@ -3,9 +3,9 @@ use std::sync::Arc;
 use xiuxian_wendao_runtime::transport::SearchFlightRouteResponse;
 
 use super::batch::build_reference_hits_flight_batch;
-use crate::gateway::studio::{GatewayState, StudioApiError};
 use crate::gateway::studio::search::handlers::queries::ReferenceSearchQuery;
 use crate::gateway::studio::types::ReferenceSearchResponse;
+use crate::gateway::studio::{GatewayState, StudioApiError};
 use crate::search::SearchCorpusKind;
 
 pub(crate) async fn load_reference_search_response(

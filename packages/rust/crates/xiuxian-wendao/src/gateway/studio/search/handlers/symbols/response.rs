@@ -3,9 +3,9 @@ use xiuxian_wendao_runtime::transport::SearchFlightRouteResponse;
 use super::batch::build_symbol_hits_flight_batch;
 use super::hit::symbol_search_hit;
 use super::matcher::build_project_glob_matcher;
-use crate::gateway::studio::{GatewayState, StudioApiError};
 use crate::gateway::studio::search::handlers::queries::SymbolSearchQuery;
 use crate::gateway::studio::types::{SymbolSearchHit, SymbolSearchResponse};
+use crate::gateway::studio::{GatewayState, StudioApiError};
 use crate::search::SearchCorpusKind;
 
 pub(crate) async fn load_symbol_search_response(

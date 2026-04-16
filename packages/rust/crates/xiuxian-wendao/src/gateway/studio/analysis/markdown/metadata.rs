@@ -7,10 +7,10 @@ use xiuxian_wendao_parsers::{
     parse_wikilink_literal,
 };
 
+use crate::gateway::studio::StudioState;
 use crate::gateway::studio::pathing::{
     normalize_path_like, studio_display_path, studio_project_name,
 };
-use crate::gateway::studio::StudioState;
 use crate::gateway::studio::types::{
     MarkdownAnalysisDocumentLink, MarkdownAnalysisDocumentLinkKind,
     MarkdownAnalysisDocumentMetadata,

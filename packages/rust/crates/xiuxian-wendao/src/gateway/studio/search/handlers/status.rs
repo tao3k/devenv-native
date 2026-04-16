@@ -3,11 +3,11 @@ use std::sync::Arc;
 use axum::{Json, extract::State};
 use serde::Serialize;
 
+use crate::gateway::studio::types::SearchIndexStatusResponse;
 use crate::gateway::studio::{
     GatewayState, StudioApiError, StudioBootstrapBackgroundIndexingTelemetry,
     StudioSearchColdStartTelemetry,
 };
-use crate::gateway::studio::types::SearchIndexStatusResponse;
 
 /// Search-index status payload enriched with bootstrap-indexing telemetry.
 #[derive(Serialize)]

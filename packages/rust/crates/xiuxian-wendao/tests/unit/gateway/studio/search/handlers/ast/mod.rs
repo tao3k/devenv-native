@@ -6,8 +6,8 @@ use tempfile::tempdir;
 use xiuxian_wendao_runtime::transport::AstSearchFlightRouteProvider;
 
 use super::provider::StudioAstSearchFlightRouteProvider;
-use crate::gateway::studio::build_ast_index;
 use crate::gateway::studio::GatewayState;
+use crate::gateway::studio::build_ast_index;
 use crate::gateway::studio::search::handlers::tests::test_studio_state;
 use crate::gateway::studio::types::{UiConfig, UiProjectConfig};
 

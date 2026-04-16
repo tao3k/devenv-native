@@ -5,7 +5,9 @@ use axum::{
     extract::{Query, State},
 };
 
-use crate::analyzers::{RepoProjectedGapReportQuery, RepoProjectedPageIndexTreesQuery, RepoProjectedPagesQuery};
+use crate::analyzers::{
+    RepoProjectedGapReportQuery, RepoProjectedPageIndexTreesQuery, RepoProjectedPagesQuery,
+};
 use crate::gateway::studio::router::handlers::repo::projected_service::collection::{
     run_repo_projected_gap_report, run_repo_projected_page_index_trees, run_repo_projected_pages,
 };

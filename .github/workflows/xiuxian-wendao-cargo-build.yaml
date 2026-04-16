@@ -55,9 +55,9 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends pkg-config cmake protobuf-compiler
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends pkg-config cmake libprotobuf-dev protobuf-compiler
 
-      - name: Export protoc path
+      - name: Export protobuf environment
         shell: bash
         run: |
           set -euo pipefail
@@ -66,8 +66,28 @@ jobs:
             echo "protoc not found on PATH"
             exit 1
           fi
+          proto_include=""
+          if [[ -d /usr/include/google/protobuf ]]; then
+            proto_include="/usr/include"
+          else
+            protoc_root="$(dirname "$(dirname "${protoc_path}")")"
+            if [[ -d "${protoc_root}/include/google/protobuf" ]]; then
+              proto_include="${protoc_root}/include"
+            elif command -v brew >/dev/null 2>&1; then
+              brew_prefix="$(brew --prefix protobuf 2>/dev/null || true)"
+              if [[ -n "${brew_prefix}" && -d "${brew_prefix}/include/google/protobuf" ]]; then
+                proto_include="${brew_prefix}/include"
+              fi
+            fi
+          fi
+          if [[ -z "${proto_include}" ]]; then
+            echo "Failed to resolve protobuf include directory for well-known types"
+            exit 1
+          fi
           echo "PROTOC=${protoc_path}" >> "$GITHUB_ENV"
+          echo "PROTOC_INCLUDE=${proto_include}" >> "$GITHUB_ENV"
           protoc --version
+          echo "PROTOC_INCLUDE=${proto_include}"
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@master
@@ -77,8 +97,7 @@ jobs:
       - name: Install sccache
         uses: taiki-e/install-action@44c6d64aa62cd779e873306675c7a58e86d6d532 # v2
         with:
-          tool: sccache
-          version: 0.7.5
+          tool: sccache@0.7.5
 
       - name: Configure sccache backend
         shell: bash
@@ -97,8 +116,9 @@ jobs:
         uses: actions/cache/restore@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5
         with:
           path: ${{ github.workspace }}/.sccache/
-          key: sccache-xiuxian-wendao-${{ runner.os }}-${{ hashFiles('packages/rust/Cargo.lock', 'packages/rust/rust-toolchain.toml', '.github/workflows/xiuxian-wendao-cargo-build.yaml') }}-${{ github.run_id }}
+          key: sccache-xiuxian-wendao-${{ runner.os }}-${{ github.job }}-${{ hashFiles('packages/rust/Cargo.lock', 'packages/rust/rust-toolchain.toml', '.github/workflows/xiuxian-wendao-cargo-build.yaml') }}-${{ github.run_id }}
           restore-keys: |
+            sccache-xiuxian-wendao-${{ runner.os }}-${{ github.job }}-${{ hashFiles('packages/rust/Cargo.lock', 'packages/rust/rust-toolchain.toml', '.github/workflows/xiuxian-wendao-cargo-build.yaml') }}-
             sccache-xiuxian-wendao-${{ runner.os }}-${{ hashFiles('packages/rust/Cargo.lock', 'packages/rust/rust-toolchain.toml', '.github/workflows/xiuxian-wendao-cargo-build.yaml') }}-
             sccache-xiuxian-wendao-${{ runner.os }}-
 
@@ -122,7 +142,7 @@ jobs:
         uses: actions/cache/save@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5
         with:
           path: ${{ github.workspace }}/.sccache/
-          key: sccache-xiuxian-wendao-${{ runner.os }}-${{ hashFiles('packages/rust/Cargo.lock', 'packages/rust/rust-toolchain.toml', '.github/workflows/xiuxian-wendao-cargo-build.yaml') }}-${{ github.run_id }}
+          key: sccache-xiuxian-wendao-${{ runner.os }}-${{ github.job }}-${{ hashFiles('packages/rust/Cargo.lock', 'packages/rust/rust-toolchain.toml', '.github/workflows/xiuxian-wendao-cargo-build.yaml') }}-${{ github.run_id }}
 
       - name: sccache summary
         if: ${{ always() }}
@@ -166,9 +186,9 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends pkg-config cmake protobuf-compiler
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends pkg-config cmake libprotobuf-dev protobuf-compiler
 
-      - name: Export protoc path
+      - name: Export protobuf environment
         shell: bash
         run: |
           set -euo pipefail
@@ -177,37 +197,38 @@ jobs:
             echo "protoc not found on PATH"
             exit 1
           fi
+          proto_include=""
+          if [[ -d /usr/include/google/protobuf ]]; then
+            proto_include="/usr/include"
+          else
+            protoc_root="$(dirname "$(dirname "${protoc_path}")")"
+            if [[ -d "${protoc_root}/include/google/protobuf" ]]; then
+              proto_include="${protoc_root}/include"
+            elif command -v brew >/dev/null 2>&1; then
+              brew_prefix="$(brew --prefix protobuf 2>/dev/null || true)"
+              if [[ -n "${brew_prefix}" && -d "${brew_prefix}/include/google/protobuf" ]]; then
+                proto_include="${brew_prefix}/include"
+              fi
+            fi
+          fi
+          if [[ -z "${proto_include}" ]]; then
+            echo "Failed to resolve protobuf include directory for well-known types"
+            exit 1
+          fi
           echo "PROTOC=${protoc_path}" >> "$GITHUB_ENV"
+          echo "PROTOC_INCLUDE=${proto_include}" >> "$GITHUB_ENV"
           protoc --version
+          echo "PROTOC_INCLUDE=${proto_include}"
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ steps.rust.outputs.channel }}
 
-      - name: Install macOS build dependencies
-        shell: bash
-        run: |
-          set -euo pipefail
-          brew install protobuf pkg-config cmake
-
-      - name: Export protoc path
-        shell: bash
-        run: |
-          set -euo pipefail
-          protoc_path="$(command -v protoc)"
-          if [[ -z "${protoc_path}" ]]; then
-            echo "protoc not found on PATH"
-            exit 1
-          fi
-          echo "PROTOC=${protoc_path}" >> "$GITHUB_ENV"
-          protoc --version
-
       - name: Install sccache
         uses: taiki-e/install-action@44c6d64aa62cd779e873306675c7a58e86d6d532 # v2
         with:
-          tool: sccache
-          version: 0.7.5
+          tool: sccache@0.7.5
 
       - name: Configure sccache backend
         shell: bash
@@ -226,8 +247,9 @@ jobs:
         uses: actions/cache/restore@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5
         with:
           path: ${{ github.workspace }}/.sccache/
-          key: sccache-xiuxian-wendao-${{ runner.os }}-${{ hashFiles('packages/rust/Cargo.lock', 'packages/rust/rust-toolchain.toml', '.github/workflows/xiuxian-wendao-cargo-build.yaml') }}-${{ github.run_id }}
+          key: sccache-xiuxian-wendao-${{ runner.os }}-${{ github.job }}-${{ hashFiles('packages/rust/Cargo.lock', 'packages/rust/rust-toolchain.toml', '.github/workflows/xiuxian-wendao-cargo-build.yaml') }}-${{ github.run_id }}
           restore-keys: |
+            sccache-xiuxian-wendao-${{ runner.os }}-${{ github.job }}-${{ hashFiles('packages/rust/Cargo.lock', 'packages/rust/rust-toolchain.toml', '.github/workflows/xiuxian-wendao-cargo-build.yaml') }}-
             sccache-xiuxian-wendao-${{ runner.os }}-${{ hashFiles('packages/rust/Cargo.lock', 'packages/rust/rust-toolchain.toml', '.github/workflows/xiuxian-wendao-cargo-build.yaml') }}-
             sccache-xiuxian-wendao-${{ runner.os }}-
 
@@ -251,7 +273,7 @@ jobs:
         uses: actions/cache/save@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5
         with:
           path: ${{ github.workspace }}/.sccache/
-          key: sccache-xiuxian-wendao-${{ runner.os }}-${{ hashFiles('packages/rust/Cargo.lock', 'packages/rust/rust-toolchain.toml', '.github/workflows/xiuxian-wendao-cargo-build.yaml') }}-${{ github.run_id }}
+          key: sccache-xiuxian-wendao-${{ runner.os }}-${{ github.job }}-${{ hashFiles('packages/rust/Cargo.lock', 'packages/rust/rust-toolchain.toml', '.github/workflows/xiuxian-wendao-cargo-build.yaml') }}-${{ github.run_id }}
 
       - name: sccache summary
         if: ${{ always() }}
@@ -292,6 +314,42 @@ jobs:
           fi
           echo "channel=${channel}" >> "$GITHUB_OUTPUT"
 
+      - name: Install macOS build dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          for formula in protobuf pkg-config cmake; do
+            brew list "${formula}" >/dev/null 2>&1 || brew install "${formula}"
+          done
+
+      - name: Export protobuf environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          protoc_path="$(command -v protoc)"
+          if [[ -z "${protoc_path}" ]]; then
+            echo "protoc not found on PATH"
+            exit 1
+          fi
+          proto_include=""
+          protoc_root="$(dirname "$(dirname "${protoc_path}")")"
+          if [[ -d "${protoc_root}/include/google/protobuf" ]]; then
+            proto_include="${protoc_root}/include"
+          elif command -v brew >/dev/null 2>&1; then
+            brew_prefix="$(brew --prefix protobuf 2>/dev/null || true)"
+            if [[ -n "${brew_prefix}" && -d "${brew_prefix}/include/google/protobuf" ]]; then
+              proto_include="${brew_prefix}/include"
+            fi
+          fi
+          if [[ -z "${proto_include}" ]]; then
+            echo "Failed to resolve protobuf include directory for well-known types"
+            exit 1
+          fi
+          echo "PROTOC=${protoc_path}" >> "$GITHUB_ENV"
+          echo "PROTOC_INCLUDE=${proto_include}" >> "$GITHUB_ENV"
+          protoc --version
+          echo "PROTOC_INCLUDE=${proto_include}"
+
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@master
         with:
@@ -300,8 +358,7 @@ jobs:
       - name: Install sccache
         uses: taiki-e/install-action@44c6d64aa62cd779e873306675c7a58e86d6d532 # v2
         with:
-          tool: sccache
-          version: 0.7.5
+          tool: sccache@0.7.5
 
       - name: Configure sccache backend
         shell: bash
@@ -320,8 +377,9 @@ jobs:
         uses: actions/cache/restore@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5
         with:
           path: ${{ github.workspace }}/.sccache/
-          key: sccache-xiuxian-wendao-${{ runner.os }}-${{ hashFiles('packages/rust/Cargo.lock', 'packages/rust/rust-toolchain.toml', '.github/workflows/xiuxian-wendao-cargo-build.yaml') }}-${{ github.run_id }}
+          key: sccache-xiuxian-wendao-${{ runner.os }}-${{ github.job }}-${{ hashFiles('packages/rust/Cargo.lock', 'packages/rust/rust-toolchain.toml', '.github/workflows/xiuxian-wendao-cargo-build.yaml') }}-${{ github.run_id }}
           restore-keys: |
+            sccache-xiuxian-wendao-${{ runner.os }}-${{ github.job }}-${{ hashFiles('packages/rust/Cargo.lock', 'packages/rust/rust-toolchain.toml', '.github/workflows/xiuxian-wendao-cargo-build.yaml') }}-
             sccache-xiuxian-wendao-${{ runner.os }}-${{ hashFiles('packages/rust/Cargo.lock', 'packages/rust/rust-toolchain.toml', '.github/workflows/xiuxian-wendao-cargo-build.yaml') }}-
             sccache-xiuxian-wendao-${{ runner.os }}-
 
@@ -345,7 +403,7 @@ jobs:
         uses: actions/cache/save@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5
         with:
           path: ${{ github.workspace }}/.sccache/
-          key: sccache-xiuxian-wendao-${{ runner.os }}-${{ hashFiles('packages/rust/Cargo.lock', 'packages/rust/rust-toolchain.toml', '.github/workflows/xiuxian-wendao-cargo-build.yaml') }}-${{ github.run_id }}
+          key: sccache-xiuxian-wendao-${{ runner.os }}-${{ github.job }}-${{ hashFiles('packages/rust/Cargo.lock', 'packages/rust/rust-toolchain.toml', '.github/workflows/xiuxian-wendao-cargo-build.yaml') }}-${{ github.run_id }}
 
       - name: sccache summary
         if: ${{ always() }}

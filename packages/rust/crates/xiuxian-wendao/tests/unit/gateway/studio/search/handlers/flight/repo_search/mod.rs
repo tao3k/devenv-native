@@ -17,11 +17,11 @@ use super::{
 };
 use crate::analyzers::bootstrap_builtin_registry;
 use crate::analyzers::resolve_registered_repository_source;
-use crate::gateway::studio::{GatewayState, StudioState, configured_repositories};
 use crate::gateway::studio::search::build_symbol_index;
 use crate::gateway::studio::search::handlers::tests::linked_parser_summary::ensure_linked_julia_parser_summary_service;
 use crate::gateway::studio::test_support::commit_all;
 use crate::gateway::studio::types::{UiConfig, UiProjectConfig, UiRepoProjectConfig};
+use crate::gateway::studio::{GatewayState, StudioState, configured_repositories};
 use crate::repo_index::RepoCodeDocument;
 use crate::search::{SearchMaintenancePolicy, SearchManifestKeyspace, SearchPlaneService};
 use xiuxian_git_repo::SyncMode;

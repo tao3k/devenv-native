@@ -1,6 +1,6 @@
-use crate::gateway::studio::{StudioApiError, StudioState};
 use crate::gateway::studio::search::handlers::queries::AttachmentSearchQuery;
 use crate::gateway::studio::types::AttachmentSearchResponse;
+use crate::gateway::studio::{StudioApiError, StudioState};
 use crate::link_graph::LinkGraphAttachmentKind;
 use crate::search::SearchCorpusKind;
 
