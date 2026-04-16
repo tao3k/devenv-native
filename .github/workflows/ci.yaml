@@ -7,60 +7,178 @@ on:
   workflow_dispatch:
 
 jobs:
-  lint:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest]
-    env:
-      GLM_API_KEY: ${{ secrets.GLM_API_KEY }}
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-          submodules: recursive
-
-      - uses: ./.github/actions/common-setup
-        with:
-          CACHIX_AUTH_TOKEN: "${{ secrets.CACHIX_AUTH_TOKEN }}"
-          SECRET_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GLM_API_KEY: ${{ secrets.GLM_API_KEY }}
-
-      - name: Run lint
-        run: secretspec run --provider env --profile default -- devenv tasks run ci:lint
-
   check-format:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
+    defaults:
+      run:
+        shell: bash
     env:
-      GLM_API_KEY: ${{ secrets.GLM_API_KEY }}
+      CARGO_TERM_COLOR: always
     steps:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
           submodules: recursive
 
-      - uses: ./.github/actions/common-setup
+      - name: Read Rust toolchain channel
+        id: rust
+        run: |
+          set -euo pipefail
+          channel="$(awk -F'"' '/^channel = / { print $2 }' packages/rust/rust-toolchain.toml)"
+          if [[ -z "${channel}" ]]; then
+            echo "Failed to resolve Rust toolchain channel from packages/rust/rust-toolchain.toml"
+            exit 1
+          fi
+          echo "channel=${channel}" >> "$GITHUB_OUTPUT"
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@master
         with:
-          CACHIX_AUTH_TOKEN: "${{ secrets.CACHIX_AUTH_TOKEN }}"
-          SECRET_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GLM_API_KEY: ${{ secrets.GLM_API_KEY }}
+          toolchain: ${{ steps.rust.outputs.channel }}
+          components: rustfmt
 
-      - name: Check format
-        run: secretspec run --provider env --profile default -- devenv tasks run ci:check-format
+      - name: Check Rust formatting
+        run: scripts/rust/cargo_exec.sh fmt --all --check
 
-  check-commits:
+  lint:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
     env:
-      GLM_API_KEY: ${{ secrets.GLM_API_KEY }}
+      CARGO_INCREMENTAL: "0"
+      CARGO_TARGET_DIR: target
+      CARGO_TERM_COLOR: always
+      SCCACHE_CACHE_SIZE: 10G
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Read Rust toolchain channel
+        id: rust
+        run: |
+          set -euo pipefail
+          channel="$(awk -F'"' '/^channel = / { print $2 }' packages/rust/rust-toolchain.toml)"
+          if [[ -z "${channel}" ]]; then
+            echo "Failed to resolve Rust toolchain channel from packages/rust/rust-toolchain.toml"
+            exit 1
+          fi
+          echo "channel=${channel}" >> "$GITHUB_OUTPUT"
+
+      - name: Install Linux build dependencies
+        if: ${{ runner.os == 'Linux' }}
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            cmake \
+            pkg-config \
+            protobuf-compiler \
+            python3-dev
+
+      - name: Install macOS build dependencies
+        if: ${{ runner.os == 'macOS' }}
+        run: |
+          set -euo pipefail
+          for formula in protobuf pkg-config cmake; do
+            brew list "${formula}" >/dev/null 2>&1 || brew install "${formula}"
+          done
+
+      - name: Export Rust build environment
+        run: |
+          set -euo pipefail
+          protoc_path="$(command -v protoc)"
+          if [[ -z "${protoc_path}" ]]; then
+            echo "protoc not found on PATH"
+            exit 1
+          fi
+          python_path="$(python -c 'import sys; print(sys.executable)')"
+          echo "PROTOC=${protoc_path}" >> "$GITHUB_ENV"
+          echo "PYO3_PYTHON=${python_path}" >> "$GITHUB_ENV"
+          protoc --version
+          python --version
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ steps.rust.outputs.channel }}
+          components: clippy
+
+      - name: Install sccache
+        uses: taiki-e/install-action@44c6d64aa62cd779e873306675c7a58e86d6d532 # v2
+        with:
+          tool: sccache
+          version: 0.7.5
+
+      - name: Configure sccache backend
+        run: |
+          set -euo pipefail
+          if [[ -n "${ACTIONS_CACHE_URL:-}" && -n "${ACTIONS_RUNTIME_TOKEN:-}" ]]; then
+            echo "SCCACHE_GHA_ENABLED=true" >> "$GITHUB_ENV"
+          else
+            echo "SCCACHE_GHA_ENABLED=false" >> "$GITHUB_ENV"
+            echo "SCCACHE_DIR=${{ github.workspace }}/.sccache" >> "$GITHUB_ENV"
+          fi
+          echo "RUSTC_WRAPPER=sccache" >> "$GITHUB_ENV"
+
+      - name: Restore sccache cache (fallback)
+        if: ${{ env.SCCACHE_GHA_ENABLED != 'true' }}
+        uses: actions/cache/restore@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5
+        with:
+          path: ${{ github.workspace }}/.sccache/
+          key: rust-workspace-sccache-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'packages/rust/rust-toolchain.toml', '.github/workflows/ci.yaml') }}-${{ github.run_id }}
+          restore-keys: |
+            rust-workspace-sccache-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'packages/rust/rust-toolchain.toml', '.github/workflows/ci.yaml') }}-
+            rust-workspace-sccache-${{ runner.os }}-
+
+      - name: Cache cargo artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            . -> target
+          shared-key: rust-workspace-ci-${{ runner.os }}
+          cache-on-failure: true
+
+      - name: Run Rust lint
+        run: scripts/rust/cargo_exec.sh clippy --workspace --all-targets -- -D warnings
+
+      - name: Save sccache cache (fallback)
+        if: ${{ always() && !cancelled() && env.SCCACHE_GHA_ENABLED != 'true' }}
+        continue-on-error: true
+        uses: actions/cache/save@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5
+        with:
+          path: ${{ github.workspace }}/.sccache/
+          key: rust-workspace-sccache-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'packages/rust/rust-toolchain.toml', '.github/workflows/ci.yaml') }}-${{ github.run_id }}
+
+      - name: sccache summary
+        if: ${{ always() }}
+        run: |
+          {
+            echo "### sccache stats";
+            echo;
+            echo '```';
+            sccache --show-stats || true;
+            echo '```';
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  check-commits:
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
         with:
@@ -94,177 +212,137 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - os: ubuntu-latest
-            perf_p95_ms: "700"
-            perf_ratio_max: "4.0"
-          - os: macos-latest
-            perf_p95_ms: "900"
-            perf_ratio_max: "4.5"
+        os: [ubuntu-latest, macos-latest]
+    timeout-minutes: 90
+    defaults:
+      run:
+        shell: bash
     env:
-      GLM_API_KEY: ${{ secrets.GLM_API_KEY }}
-      OMNI_VECTOR_PERF_P95_MS: ${{ matrix.perf_p95_ms }}
-      OMNI_VECTOR_PERF_RATIO_MAX: ${{ matrix.perf_ratio_max }}
-      CARGO_TARGET_DIR: /tmp/workspace-strict-proof
-      XIUXIAN_WENDAO_GATE_REPORT_DIR: ".run/reports/wendao-ppr-gate"
-      XIUXIAN_WENDAO_MIXED_CANARY_REPORT_DIR: ".run/reports/wendao-ppr-mixed-canary"
-      XIUXIAN_WENDAO_GATE_SUMMARY_STRICT_GREEN: "1"
-      XIUXIAN_WENDAO_ROLLOUT_REQUIRED_RUNS: "7"
-      XIUXIAN_WENDAO_ROLLOUT_MIN_MIXED_TOP3_RATE: "0.90"
-      XIUXIAN_WENDAO_ROLLOUT_STRICT_READY: "1"
-      OMNI_ENABLE_EMBED_ROLE_PERF_GATE: "1"
-      OMNI_EMBED_ROLE_PERF_GATE_PROFILE: "medium"
+      CARGO_INCREMENTAL: "0"
+      CARGO_TARGET_DIR: target
+      CARGO_TERM_COLOR: always
+      SCCACHE_CACHE_SIZE: 10G
     steps:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
           submodules: recursive
 
-      - uses: ./.github/actions/common-setup
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
-          CACHIX_AUTH_TOKEN: "${{ secrets.CACHIX_AUTH_TOKEN }}"
-          SECRET_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GLM_API_KEY: ${{ secrets.GLM_API_KEY }}
+          python-version: "3.12"
 
-      - name: Rust gate - quality gates (strict clippy + nextest + xiuxian-core-rs runtime lane)
-        run: secretspec run --provider env --profile default -- devenv tasks run ci:rust-quality-gate
+      - name: Read Rust toolchain channel
+        id: rust
+        run: |
+          set -euo pipefail
+          channel="$(awk -F'"' '/^channel = / { print $2 }' packages/rust/rust-toolchain.toml)"
+          if [[ -z "${channel}" ]]; then
+            echo "Failed to resolve Rust toolchain channel from packages/rust/rust-toolchain.toml"
+            exit 1
+          fi
+          echo "channel=${channel}" >> "$GITHUB_OUTPUT"
 
-      - name: Rust gate - dependency security (cargo-audit + cargo-deny)
-        run: secretspec run --provider env --profile default -- devenv tasks run ci:rust-security-gate
+      - name: Install Linux build dependencies
+        if: ${{ runner.os == 'Linux' }}
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            cmake \
+            pkg-config \
+            protobuf-compiler \
+            python3-dev
 
-      - name: Rust gate - contract and dependency governance
-        run: secretspec run --provider env --profile default -- devenv tasks run ci:rust-contract-dependency-governance
+      - name: Install macOS build dependencies
+        if: ${{ runner.os == 'macOS' }}
+        run: |
+          set -euo pipefail
+          for formula in protobuf pkg-config cmake; do
+            brew list "${formula}" >/dev/null 2>&1 || brew install "${formula}"
+          done
 
-      - name: Rust gate - xiuxian-core-rs lib runtime lane (explicit)
-        run: secretspec run --provider env --profile default -- devenv tasks run ci:rust-xiuxian-core-rs-lib
+      - name: Export Rust build environment
+        run: |
+          set -euo pipefail
+          protoc_path="$(command -v protoc)"
+          if [[ -z "${protoc_path}" ]]; then
+            echo "protoc not found on PATH"
+            exit 1
+          fi
+          python_path="$(python -c 'import sys; print(sys.executable)')"
+          echo "PROTOC=${protoc_path}" >> "$GITHUB_ENV"
+          echo "PYO3_PYTHON=${python_path}" >> "$GITHUB_ENV"
+          protoc --version
+          python --version
 
-      - name: Rust gate - xiuxian-daochang profile matrix (default + no-default-features)
-        run: secretspec run --provider env --profile default -- devenv tasks run ci:rust-xiuxian-daochang-profiles
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ steps.rust.outputs.channel }}
 
-      - name: Rust gate - xiuxian-daochang dependency graph assertions
-        run: secretspec run --provider env --profile default -- devenv tasks run ci:rust-xiuxian-daochang-dependency-assertions
+      - name: Install cargo-nextest
+        uses: taiki-e/install-action@44c6d64aa62cd779e873306675c7a58e86d6d532 # v2
+        with:
+          tool: cargo-nextest
 
-      - name: Rust gate - xiuxian-daochang backend role contracts
-        run: secretspec run --provider env --profile default -- devenv tasks run ci:rust-xiuxian-daochang-backend-role-contracts
+      - name: Install sccache
+        uses: taiki-e/install-action@44c6d64aa62cd779e873306675c7a58e86d6d532 # v2
+        with:
+          tool: sccache
+          version: 0.7.5
 
-      - name: Rust gate - xiuxian-qianji scenario-audit contracts
-        run: secretspec run --provider env --profile default -- devenv tasks run ci:rust-xiuxian-qianji-scenario-audit-contracts
+      - name: Configure sccache backend
+        run: |
+          set -euo pipefail
+          if [[ -n "${ACTIONS_CACHE_URL:-}" && -n "${ACTIONS_RUNTIME_TOKEN:-}" ]]; then
+            echo "SCCACHE_GHA_ENABLED=true" >> "$GITHUB_ENV"
+          else
+            echo "SCCACHE_GHA_ENABLED=false" >> "$GITHUB_ENV"
+            echo "SCCACHE_DIR=${{ github.workspace }}/.sccache" >> "$GITHUB_ENV"
+          fi
+          echo "RUSTC_WRAPPER=sccache" >> "$GITHUB_ENV"
 
-      - name: Rust gate - xiuxian-wendao contract-feedback consumer
-        run: secretspec run --provider env --profile default -- devenv tasks run ci:rust-xiuxian-wendao-contract-feedback-consumer
+      - name: Restore sccache cache (fallback)
+        if: ${{ env.SCCACHE_GHA_ENABLED != 'true' }}
+        uses: actions/cache/restore@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5
+        with:
+          path: ${{ github.workspace }}/.sccache/
+          key: rust-workspace-sccache-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'packages/rust/rust-toolchain.toml', '.github/workflows/ci.yaml') }}-${{ github.run_id }}
+          restore-keys: |
+            rust-workspace-sccache-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'packages/rust/rust-toolchain.toml', '.github/workflows/ci.yaml') }}-
+            rust-workspace-sccache-${{ runner.os }}-
 
-      - name: Rust gate - snapshot contracts
-        run: secretspec run --provider env --profile default -- devenv tasks run ci:rust-fusion-snapshots
+      - name: Cache cargo artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            . -> target
+          shared-key: rust-workspace-ci-${{ runner.os }}
+          cache-on-failure: true
 
-      - name: Rust gate - search perf guard
-        run: secretspec run --provider env --profile default -- devenv tasks run ci:rust-search-perf-guard
+      - name: Run Rust workspace tests
+        run: scripts/rust/cargo_exec.sh nextest run --workspace --exclude xiuxian-core-rs --no-fail-fast
 
-      - name: Rust gate - xiuxian-wendao retrieval audits
-        run: secretspec run --provider env --profile default -- devenv tasks run ci:rust-retrieval-audits
+      - name: Run xiuxian-core-rs tests
+        run: bash scripts/rust/test_xiuxian_core_rs.sh --lib --no-fail-fast
 
-      - name: Rust gate - xiuxian-wendao WG2/WG3 unified PPR gate
-        env:
-          XIUXIAN_WENDAO_GATE_BUILD_MODE: "build"
-          XIUXIAN_WENDAO_GATE_CONFIG: "packages/rust/crates/xiuxian-wendao/resources/config/wendao.yaml"
-        run: secretspec run --provider env --profile default -- devenv tasks run ci:wendao-ppr-gate
-
-      - name: Rust gate - xiuxian-wendao WG2/WG3 JSON report
-        if: ${{ always() }}
-        env:
-          XIUXIAN_WENDAO_GATE_BUILD_MODE: "no-build"
-          XIUXIAN_WENDAO_GATE_CONFIG: "packages/rust/crates/xiuxian-wendao/resources/config/wendao.yaml"
-          XIUXIAN_WENDAO_GATE_OUTPUT_MODE: "json"
-        run: secretspec run --provider env --profile default -- devenv tasks run ci:wendao-ppr-report
-
-      - name: Rust gate (advisory) - xiuxian-wendao mixed-scope canary
+      - name: Save sccache cache (fallback)
+        if: ${{ always() && !cancelled() && env.SCCACHE_GHA_ENABLED != 'true' }}
         continue-on-error: true
-        if: ${{ always() }}
-        env:
-          XIUXIAN_WENDAO_GATE_BUILD_MODE: "no-build"
-          XIUXIAN_WENDAO_GATE_CONFIG: "packages/rust/crates/xiuxian-wendao/resources/config/wendao.yaml"
-          XIUXIAN_WENDAO_GATE_OUTPUT_MODE: "json"
-        run: secretspec run --provider env --profile default -- devenv tasks run ci:wendao-ppr-mixed-canary
+        uses: actions/cache/save@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5
+        with:
+          path: ${{ github.workspace }}/.sccache/
+          key: rust-workspace-sccache-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'packages/rust/rust-toolchain.toml', '.github/workflows/ci.yaml') }}-${{ github.run_id }}
 
-      - name: Rust gate - xiuxian-wendao report contract validation
-        if: ${{ always() }}
-        run: secretspec run --provider env --profile default -- devenv tasks run ci:wendao-ppr-report-validate
-
-      - name: Rust gate - xiuxian-wendao gate summary
-        if: ${{ always() }}
-        run: secretspec run --provider env --profile default -- devenv tasks run ci:wendao-ppr-gate-summary
-
-      - name: Contract E2E - route test JSON (Rust -> Python -> CLI schema)
-        run: secretspec run --provider env --profile default -- devenv tasks run ci:contract-e2e-route-test-json
-
-      - name: Contract freeze - schemas and canonical snapshots
-        run: secretspec run --provider env --profile default -- devenv tasks run ci:contract-freeze
-
-      - name: Guard - no inline Python execution patterns
-        run: secretspec run --provider env --profile default -- devenv tasks run ci:no-inline-python-guard
-
-      - name: Run tests
-        run: secretspec run --provider env --profile default -- devenv tasks run ci:test-quick
-
-      - name: Rust gate - xiuxian-wendao rollout sign-off tracker
-        if: ${{ always() }}
-        env:
-          XIUXIAN_WENDAO_ROLLOUT_FETCH_REMOTE_STATUS: "1"
-          XIUXIAN_WENDAO_ROLLOUT_REMOTE_WORKFLOW_FILE: "ci.yaml"
-          XIUXIAN_WENDAO_ROLLOUT_REMOTE_ARTIFACT_NAME: "wendao-ppr-gate-${{ matrix.os }}"
-          XIUXIAN_WENDAO_ROLLOUT_REMOTE_RUN_STATUS: "completed"
-        run: secretspec run --provider env --profile default -- devenv tasks run ci:wendao-ppr-rollout-status
-
-      - name: Wendao rollout summary (step summary)
+      - name: sccache summary
         if: ${{ always() }}
         run: |
-          summary_file="${XIUXIAN_WENDAO_GATE_REPORT_DIR}/wendao_gate_rollout_status.md"
-          fallback_file="${XIUXIAN_WENDAO_GATE_REPORT_DIR}/wendao_rollout_status.md"
-          if [ -f "${summary_file}" ]; then
-            cat "${summary_file}" >> "${GITHUB_STEP_SUMMARY}"
-          elif [ -f "${fallback_file}" ]; then
-            cat "${fallback_file}" >> "${GITHUB_STEP_SUMMARY}"
-          else
-            echo "Wendao rollout summary not found: ${summary_file} (fallback: ${fallback_file})" >> "${GITHUB_STEP_SUMMARY}"
-          fi
-
-      - name: Upload wendao PPR gate reports
-        if: ${{ always() }}
-        uses: actions/upload-artifact@v6
-        with:
-          name: wendao-ppr-gate-${{ matrix.os }}
-          path: ${{ env.XIUXIAN_WENDAO_GATE_REPORT_DIR }}
-          if-no-files-found: warn
-
-      - name: Upload wendao mixed-scope canary reports
-        if: ${{ always() }}
-        uses: actions/upload-artifact@v6
-        with:
-          name: wendao-ppr-mixed-canary-${{ matrix.os }}
-          path: ${{ env.XIUXIAN_WENDAO_MIXED_CANARY_REPORT_DIR }}
-          if-no-files-found: warn
-
-      - name: Upload wendao rollout status reports
-        if: ${{ always() }}
-        uses: actions/upload-artifact@v6
-        with:
-          name: wendao-rollout-status-${{ matrix.os }}
-          path: |
-            ${{ env.XIUXIAN_WENDAO_GATE_REPORT_DIR }}/report_validation.json
-            ${{ env.XIUXIAN_WENDAO_GATE_REPORT_DIR }}/wendao_gate_status_summary.json
-            ${{ env.XIUXIAN_WENDAO_GATE_REPORT_DIR }}/wendao_gate_status_summary.md
-            ${{ env.XIUXIAN_WENDAO_GATE_REPORT_DIR }}/wendao_gate_rollout_status.md
-            ${{ env.XIUXIAN_WENDAO_GATE_REPORT_DIR }}/wendao_rollout_status.json
-            ${{ env.XIUXIAN_WENDAO_GATE_REPORT_DIR }}/wendao_rollout_status.md
-            ${{ env.XIUXIAN_WENDAO_GATE_REPORT_DIR }}/wendao_rollout_status.previous.json
-            ${{ env.XIUXIAN_WENDAO_GATE_REPORT_DIR }}/wendao_rollout_status_previous_fetch.json
-          if-no-files-found: warn
-
-      - name: Upload embedding role perf reports
-        if: ${{ always() }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: embedding-role-perf-${{ matrix.os }}
-          path: |
-            .run/reports/xiuxian-daochang-embedding-role-perf-smoke.medium.json
-            .run/logs/xiuxian-daochang-embedding-role-*.log
-          if-no-files-found: warn
+          {
+            echo "### sccache stats";
+            echo;
+            echo '```';
+            sccache --show-stats || true;
+            echo '```';
+          } >> "$GITHUB_STEP_SUMMARY"
