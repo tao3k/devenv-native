@@ -1,4 +1,5 @@
-use std::path::Path;
+use std::collections::BTreeMap;
+use std::path::{Path, PathBuf};
 #[cfg(feature = "duckdb")]
 use std::sync::{Arc, Mutex, MutexGuard};
 
@@ -31,7 +32,13 @@ impl DataFusionParquetQueryEngine {
 /// DuckDB-backed repo publication Parquet query engine.
 #[cfg(feature = "duckdb")]
 pub struct DuckDbParquetQueryEngine {
-    connection: Mutex<SearchDuckDbConnection>,
+    runtime: Mutex<DuckDbParquetRuntime>,
+}
+
+#[cfg(feature = "duckdb")]
+struct DuckDbParquetRuntime {
+    connection: SearchDuckDbConnection,
+    registered_parquet_views: BTreeMap<String, PathBuf>,
 }
 
 #[cfg(feature = "duckdb")]
@@ -46,12 +53,15 @@ impl DuckDbParquetQueryEngine {
         let connection =
             SearchDuckDbConnection::from_runtime(runtime).map_err(VectorStoreError::General)?;
         Ok(Self {
-            connection: Mutex::new(connection),
+            runtime: Mutex::new(DuckDbParquetRuntime {
+                connection,
+                registered_parquet_views: BTreeMap::new(),
+            }),
         })
     }
 
-    fn lock_connection(&self) -> Result<MutexGuard<'_, SearchDuckDbConnection>, VectorStoreError> {
-        self.connection.lock().map_err(|_| {
+    fn lock_runtime(&self) -> Result<MutexGuard<'_, DuckDbParquetRuntime>, VectorStoreError> {
+        self.runtime.lock().map_err(|_| {
             VectorStoreError::General("search DuckDB connection mutex is poisoned".to_string())
         })
     }
@@ -164,24 +174,43 @@ impl DuckDbParquetQueryEngine {
         table_name: &str,
         table_path: &Path,
     ) -> Result<(), VectorStoreError> {
+        let normalized_path = table_path.to_path_buf();
+        let mut guard = self.lock_runtime()?;
+        if guard
+            .registered_parquet_views
+            .get(table_name)
+            .is_some_and(|existing_path| existing_path == &normalized_path)
+        {
+            return Ok(());
+        }
         let sql = build_duckdb_parquet_view_sql(table_name, table_path)
             .map_err(VectorStoreError::General)?;
-        let guard = self.lock_connection()?;
-        guard.connection().execute_batch(sql.as_str()).map_err(|error| {
-            VectorStoreError::General(format!(
-                "failed to register DuckDB repo publication parquet view `{table_name}`: {error}"
-            ))
-        })?;
+        guard
+            .connection
+            .connection()
+            .execute_batch(sql.as_str())
+            .map_err(|error| {
+                VectorStoreError::General(format!(
+                    "failed to register DuckDB repo publication parquet view `{table_name}`: {error}"
+                ))
+            })?;
+        guard
+            .registered_parquet_views
+            .insert(table_name.to_string(), normalized_path);
         Ok(())
     }
 
     fn query_batches(&self, sql: &str) -> Result<Vec<EngineRecordBatch>, VectorStoreError> {
-        let guard = self.lock_connection()?;
-        let mut statement = guard.connection().prepare(sql).map_err(|error| {
-            VectorStoreError::General(format!(
-                "failed to prepare DuckDB repo publication SQL `{sql}`: {error}"
-            ))
-        })?;
+        let guard = self.lock_runtime()?;
+        let mut statement = guard
+            .connection
+            .connection()
+            .prepare(sql)
+            .map_err(|error| {
+                VectorStoreError::General(format!(
+                    "failed to prepare DuckDB repo publication SQL `{sql}`: {error}"
+                ))
+            })?;
         let batches = statement
             .query_arrow([])
             .map_err(|error| {
@@ -191,5 +220,75 @@ impl DuckDbParquetQueryEngine {
             })?
             .collect::<Vec<_>>();
         Ok(batches)
+    }
+}
+
+#[cfg(all(test, feature = "duckdb"))]
+mod tests {
+    use std::collections::HashMap;
+    use std::path::Path;
+    use std::sync::Arc;
+
+    use tempfile::tempdir;
+    use xiuxian_vector::{
+        LanceDataType, LanceField, LanceRecordBatch, LanceSchema, LanceStringArray,
+        write_lance_batches_to_parquet_file,
+    };
+    use xiuxian_wendao_runtime::config::{
+        DEFAULT_SEARCH_DUCKDB_MATERIALIZE_THRESHOLD_ROWS,
+        DEFAULT_SEARCH_DUCKDB_PREFER_VIRTUAL_ARROW,
+    };
+
+    use super::DuckDbParquetQueryEngine;
+    use crate::duckdb::{DuckDbDatabasePath, SearchDuckDbRuntimeConfig};
+
+    #[test]
+    fn repeated_parquet_view_registration_reuses_cached_entry_for_same_path() {
+        let temp = tempdir().expect("tempdir should succeed");
+        let parquet_path = temp.path().join("bench.parquet");
+        write_test_parquet(parquet_path.as_path());
+        let engine = DuckDbParquetQueryEngine::from_runtime(in_memory_runtime(temp.path()))
+            .expect("duckdb engine should open");
+
+        engine
+            .register_parquet_view("bench_docs", parquet_path.as_path())
+            .expect("initial parquet view registration should succeed");
+        engine
+            .register_parquet_view("bench_docs", parquet_path.as_path())
+            .expect("repeated parquet view registration should succeed");
+
+        let guard = engine.lock_runtime().expect("runtime lock should succeed");
+        assert_eq!(guard.registered_parquet_views.len(), 1);
+        assert_eq!(
+            guard.registered_parquet_views.get("bench_docs"),
+            Some(&parquet_path)
+        );
+    }
+
+    fn in_memory_runtime(root: &Path) -> SearchDuckDbRuntimeConfig {
+        SearchDuckDbRuntimeConfig {
+            enabled: true,
+            database_path: DuckDbDatabasePath::InMemory,
+            temp_directory: root.join(".cache/duckdb-test/tmp"),
+            threads: 2,
+            materialize_threshold_rows: DEFAULT_SEARCH_DUCKDB_MATERIALIZE_THRESHOLD_ROWS,
+            prefer_virtual_arrow: DEFAULT_SEARCH_DUCKDB_PREFER_VIRTUAL_ARROW,
+        }
+    }
+
+    fn write_test_parquet(path: &Path) {
+        let schema = Arc::new(LanceSchema::new_with_metadata(
+            vec![LanceField::new("path", LanceDataType::Utf8, false)],
+            HashMap::from([("domain".to_string(), "bench_docs".to_string())]),
+        ));
+        let batch = LanceRecordBatch::try_new(
+            schema,
+            vec![Arc::new(LanceStringArray::from(vec![
+                "src/module.jl".to_string(),
+            ]))],
+        )
+        .expect("record batch should build");
+        write_lance_batches_to_parquet_file(path, &[batch])
+            .expect("parquet fixture should write successfully");
     }
 }

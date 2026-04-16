@@ -6,7 +6,8 @@ use arrow::array::{Array, StringArray, StringViewArray, UInt64Array};
 use xiuxian_vector_store::EngineRecordBatch;
 
 use crate::search::repo_content_chunk::schema::{
-    language_column, path_column, path_folded_column, projected_columns,
+    language_column, line_text_folded_column, path_column, path_folded_column,
+    query_projected_columns,
 };
 
 use super::candidates::RepoContentChunkCandidate;
@@ -109,7 +110,7 @@ pub(crate) fn engine_u64_column<'a>(
 }
 
 pub(crate) fn projected_repo_content_columns() -> Vec<String> {
-    projected_columns()
+    query_projected_columns()
         .into_iter()
         .map(str::to_string)
         .collect()
@@ -170,6 +171,18 @@ pub(crate) fn title_filter_expression(title_filters: &HashSet<String>) -> Option
             format!("%{}%", escape_like_pattern(normalized.as_str())).as_str(),
         )
     })
+}
+
+pub(crate) fn query_text_filter_expression(query_lower: &str) -> Option<String> {
+    let trimmed = query_lower.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+
+    Some(format_like_expression(
+        line_text_folded_column(),
+        format!("%{}%", escape_like_pattern(trimmed)).as_str(),
+    ))
 }
 
 fn format_like_expression(column: &str, pattern: &str) -> String {

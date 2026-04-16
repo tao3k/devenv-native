@@ -24,7 +24,8 @@ pub(super) async fn execute_repo_content_search(
     window: RetainedWindow,
 ) -> Result<RepoContentChunkSearchExecution, RepoContentChunkSearchError> {
     let query_lower = raw_needle.to_ascii_lowercase();
-    let stage1_sql = build_repo_content_stage1_sql(table_name, language_filters, filters);
+    let stage1_sql =
+        build_repo_content_stage1_sql(table_name, query_lower.as_str(), language_filters, filters);
     let batches = query_engine.query_batches(stage1_sql.as_str()).await?;
     let mut telemetry = StreamingRerankTelemetry::new(window, None, None);
     let mut best_by_path =
@@ -34,7 +35,6 @@ pub(super) async fn execute_repo_content_search(
         collect_candidates(
             &batch,
             raw_needle,
-            query_lower.as_str(),
             &mut best_by_path,
             window,
             &mut telemetry,

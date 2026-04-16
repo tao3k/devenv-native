@@ -143,6 +143,15 @@ pub(super) const fn projected_columns() -> [&'static str; 5] {
     ]
 }
 
+pub(super) const fn query_projected_columns() -> [&'static str; 4] {
+    [
+        COLUMN_PATH,
+        COLUMN_LANGUAGE,
+        COLUMN_LINE_NUMBER,
+        COLUMN_LINE_TEXT,
+    ]
+}
+
 pub(super) const fn language_column() -> &'static str {
     COLUMN_LANGUAGE
 }
@@ -153,4 +162,8 @@ pub(super) const fn path_column() -> &'static str {
 
 pub(super) const fn path_folded_column() -> &'static str {
     COLUMN_PATH_FOLDED
+}
+
+pub(super) const fn line_text_folded_column() -> &'static str {
+    COLUMN_LINE_TEXT_FOLDED
 }

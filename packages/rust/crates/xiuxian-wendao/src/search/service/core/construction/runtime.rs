@@ -1,5 +1,5 @@
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::{Arc, Mutex, OnceLock, RwLock};
 
 use crate::search::service::core::construction::concurrency::repo_search_read_concurrency_limit;
 use crate::search::service::core::types::SearchPlaneService;
@@ -76,6 +76,7 @@ impl SearchPlaneService {
                 crate::search::service::core::types::RepoMaintenanceRuntime::default(),
             )),
             query_telemetry: Arc::new(RwLock::new(std::collections::BTreeMap::new())),
+            parquet_query_engine: Arc::new(OnceLock::new()),
             markdown_snapshot_entries: Arc::new(dashmap::DashMap::new()),
             source_snapshot_entries: Arc::new(dashmap::DashMap::new()),
             repeat_work_telemetry: Arc::new(RwLock::new(

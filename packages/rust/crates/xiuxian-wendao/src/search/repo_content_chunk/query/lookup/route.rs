@@ -1,4 +1,3 @@
-use crate::duckdb::ParquetQueryEngine;
 use crate::gateway::studio::types::SearchHit;
 use crate::search::ranking::sort_by_rank;
 use crate::search::{SearchCorpusKind, SearchPlaneService};
@@ -45,10 +44,7 @@ pub(crate) async fn search_repo_content_chunks_with_filters(
         SearchCorpusKind::RepoContentChunk,
         publication.publication_id.as_str(),
     );
-    #[cfg(feature = "duckdb")]
-    let query_engine = ParquetQueryEngine::configured()?;
-    #[cfg(not(feature = "duckdb"))]
-    let query_engine = ParquetQueryEngine::configured(service.datafusion_query_engine().clone());
+    let query_engine = service.repo_parquet_query_engine()?;
     query_engine
         .ensure_parquet_table_registered(engine_table_name.as_str(), parquet_path.as_path())
         .await?;

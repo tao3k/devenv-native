@@ -4,8 +4,26 @@ use crate::search::{
     AttachmentSearchError, KnowledgeSectionSearchError, LocalSymbolSearchError, ProjectScannedFile,
     ReferenceOccurrenceSearchError,
 };
+use xiuxian_vector_store::VectorStoreError;
 
 impl SearchPlaneService {
+    pub(crate) fn repo_parquet_query_engine(
+        &self,
+    ) -> Result<crate::duckdb::ParquetQueryEngine, VectorStoreError> {
+        if let Some(engine) = self.parquet_query_engine.get() {
+            return Ok(engine.clone());
+        }
+
+        #[cfg(feature = "duckdb")]
+        let engine = crate::duckdb::ParquetQueryEngine::configured()?;
+        #[cfg(not(feature = "duckdb"))]
+        let engine =
+            crate::duckdb::ParquetQueryEngine::configured(self.datafusion_query_engine().clone());
+
+        let _ = self.parquet_query_engine.set(engine.clone());
+        Ok(engine)
+    }
+
     #[cfg(test)]
     pub(crate) fn ensure_local_symbol_index_started(
         &self,

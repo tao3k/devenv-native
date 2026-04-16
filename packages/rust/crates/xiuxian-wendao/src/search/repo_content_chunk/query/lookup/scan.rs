@@ -10,7 +10,7 @@ use super::filters::RepoContentChunkSearchFilters;
 use super::helpers::{
     candidate_path_key, compare_candidates, engine_string_column, engine_u64_column,
     filename_filter_expression, language_filter_expression, path_prefix_filter_expression,
-    projected_repo_content_columns, title_filter_expression,
+    projected_repo_content_columns, query_text_filter_expression, title_filter_expression,
 };
 
 const MIN_RETAINED_PATHS: usize = 128;
@@ -18,11 +18,13 @@ const RETAINED_PATH_MULTIPLIER: usize = 8;
 
 pub(crate) fn build_repo_content_stage1_sql(
     table_name: &str,
+    query_lower: &str,
     language_filters: &HashSet<String>,
     filters: &RepoContentChunkSearchFilters,
 ) -> String {
     let projections = projected_repo_content_columns().join(", ");
     let predicates = [
+        query_text_filter_expression(query_lower),
         language_filter_expression(language_filters),
         path_prefix_filter_expression(&filters.path_prefixes),
         filename_filter_expression(&filters.filename_filters),
@@ -48,7 +50,6 @@ pub(crate) fn retained_window(limit: usize) -> RetainedWindow {
 pub(crate) fn collect_candidates(
     batch: &EngineRecordBatch,
     raw_needle: &str,
-    needle: &str,
     best_by_path: &mut HashMap<String, RepoContentChunkCandidate>,
     window: RetainedWindow,
     telemetry: &mut StreamingRerankTelemetry,
@@ -58,12 +59,8 @@ pub(crate) fn collect_candidates(
     let language = engine_string_column(batch, "language")?;
     let line_number = engine_u64_column(batch, "line_number")?;
     let line_text = engine_string_column(batch, "line_text")?;
-    let line_text_folded = engine_string_column(batch, "line_text_folded")?;
 
     for row in 0..batch.num_rows() {
-        if line_text_folded.is_null(row) || !line_text_folded.value(row).contains(needle) {
-            continue;
-        }
         let exact_match = !line_text.is_null(row) && line_text.value(row).contains(raw_needle);
         telemetry.observe_match();
         let candidate = RepoContentChunkCandidate {

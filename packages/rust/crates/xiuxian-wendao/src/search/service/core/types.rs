@@ -144,6 +144,7 @@ pub struct SearchPlaneService {
     pub(crate) repo_maintenance: Arc<Mutex<RepoMaintenanceRuntime>>,
     pub(crate) query_telemetry:
         Arc<RwLock<std::collections::BTreeMap<SearchCorpusKind, SearchQueryTelemetry>>>,
+    pub(crate) parquet_query_engine: Arc<OnceLock<crate::duckdb::ParquetQueryEngine>>,
     pub(crate) markdown_snapshot_entries: Arc<DashMap<String, MarkdownSnapshotEntryCell>>,
     pub(crate) source_snapshot_entries: Arc<DashMap<String, SourceSnapshotEntryCell>>,
     pub(crate) repeat_work_telemetry: Arc<RwLock<SearchBuildRepeatWorkTelemetryState>>,

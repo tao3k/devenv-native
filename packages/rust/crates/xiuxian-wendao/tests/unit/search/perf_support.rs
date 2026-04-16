@@ -51,8 +51,11 @@ fn repo_content_query_benchmark_fixture_reports_cold_hot_and_flight_samples() {
     assert_eq!(snapshot.base_document_count, 256);
     assert_eq!(snapshot.publication_row_count, 3_072);
     assert_eq!(snapshot.cold_query_hit_count, 1);
+    assert_eq!(snapshot.cold_query_rows_scanned, 1);
     assert_eq!(snapshot.hot_query_hit_count, 1);
+    assert_eq!(snapshot.hot_query_rows_scanned, 1);
     assert_eq!(snapshot.flight_batch_row_count, 1);
+    assert_eq!(snapshot.flight_batch_rows_scanned, 1);
     assert_eq!(
         snapshot.cold_first_path.as_deref(),
         Some(snapshot.expected_path.as_str())
@@ -273,7 +276,7 @@ fn repo_content_query_benchmark_reports_100k_sample() {
     let snapshot = fixture.prepare_iteration().run();
 
     println!(
-        "repo content query benchmark: docs={} row_count={} engine={} metadata_backend={} valkey_target_configured={} cold_ms={:.3} hot_ms={:.3} flight_batch_ms={:.3} cold_hits={} hot_hits={} flight_rows={} expected_path={}",
+        "repo content query benchmark: docs={} row_count={} engine={} metadata_backend={} valkey_target_configured={} cold_ms={:.3} hot_ms={:.3} flight_batch_ms={:.3} cold_hits={} cold_rows_scanned={} hot_hits={} hot_rows_scanned={} flight_rows={} flight_rows_scanned={} expected_path={}",
         snapshot.base_document_count,
         snapshot.publication_row_count,
         snapshot.query_engine_kind,
@@ -283,16 +286,22 @@ fn repo_content_query_benchmark_reports_100k_sample() {
         snapshot.hot_query_elapsed.as_secs_f64() * 1_000.0,
         snapshot.flight_batch_elapsed.as_secs_f64() * 1_000.0,
         snapshot.cold_query_hit_count,
+        snapshot.cold_query_rows_scanned,
         snapshot.hot_query_hit_count,
+        snapshot.hot_query_rows_scanned,
         snapshot.flight_batch_row_count,
+        snapshot.flight_batch_rows_scanned,
         snapshot.expected_path
     );
 
     assert_eq!(snapshot.base_document_count, 100_000);
     assert_eq!(snapshot.publication_row_count, 1_200_000);
     assert_eq!(snapshot.cold_query_hit_count, 1);
+    assert_eq!(snapshot.cold_query_rows_scanned, 1);
     assert_eq!(snapshot.hot_query_hit_count, 1);
+    assert_eq!(snapshot.hot_query_rows_scanned, 1);
     assert_eq!(snapshot.flight_batch_row_count, 1);
+    assert_eq!(snapshot.flight_batch_rows_scanned, 1);
     assert_eq!(
         snapshot.cold_first_path.as_deref(),
         Some(snapshot.expected_path.as_str())

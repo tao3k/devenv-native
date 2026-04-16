@@ -70,10 +70,16 @@ pub struct RepoContentQueryBenchmarkSnapshot {
     pub flight_batch_elapsed: Duration,
     /// Number of hits returned by the first query.
     pub cold_query_hit_count: usize,
+    /// Number of rows scanned by the first query.
+    pub cold_query_rows_scanned: u64,
     /// Number of hits returned by the second query.
     pub hot_query_hit_count: usize,
+    /// Number of rows scanned by the second query.
+    pub hot_query_rows_scanned: u64,
     /// Number of rows emitted by the Flight batch surface.
     pub flight_batch_row_count: usize,
+    /// Number of rows scanned by the Flight-facing search call.
+    pub flight_batch_rows_scanned: u64,
     /// First path returned by the first query.
     pub cold_first_path: Option<String>,
     /// First path returned by the second query.
@@ -158,6 +164,10 @@ pub struct RepoContentQueryBenchmarkSample {
     pub elapsed: Duration,
     /// Number of hits returned by the sample.
     pub hit_count: usize,
+    /// Number of rows scanned by the sample.
+    pub rows_scanned: u64,
+    /// Number of matched rows observed by the sample.
+    pub matched_rows: u64,
     /// First repo-relative path returned by the sample.
     pub first_path: Option<String>,
 }
@@ -169,6 +179,10 @@ pub struct RepoContentFlightBatchBenchmarkSample {
     pub elapsed: Duration,
     /// Number of rows emitted by the sample batch.
     pub row_count: usize,
+    /// Number of rows scanned by the underlying search call.
+    pub rows_scanned: u64,
+    /// Number of matched rows observed by the underlying search call.
+    pub matched_rows: u64,
 }
 
 impl RepoContentParquetMutationBenchmarkFixture {
@@ -555,8 +569,11 @@ impl RepoContentQueryBenchmarkIteration {
             hot_query_elapsed: hot.elapsed,
             flight_batch_elapsed: flight_batch.elapsed,
             cold_query_hit_count: cold.hit_count,
+            cold_query_rows_scanned: cold.rows_scanned,
             hot_query_hit_count: hot.hit_count,
+            hot_query_rows_scanned: hot.rows_scanned,
             flight_batch_row_count: flight_batch.row_count,
+            flight_batch_rows_scanned: flight_batch.rows_scanned,
             cold_first_path: cold.first_path,
             hot_first_path: hot.first_path,
             query_engine_kind: repo_query_engine_kind(),
@@ -616,9 +633,17 @@ impl RepoContentQueryBenchmarkIteration {
                     panic!("repo-content query benchmark query failed: {error}")
                 })
         });
+        let telemetry = self
+            .service
+            .query_telemetry_for(SearchCorpusKind::RepoContentChunk)
+            .unwrap_or_else(|| {
+                panic!("repo-content query benchmark missing query telemetry after search")
+            });
         RepoContentQueryBenchmarkSample {
             elapsed: started.elapsed(),
             hit_count: hits.len(),
+            rows_scanned: telemetry.rows_scanned,
+            matched_rows: telemetry.matched_rows,
             first_path: hits.first().map(|hit| hit.path.clone()),
         }
     }
@@ -642,9 +667,17 @@ impl RepoContentQueryBenchmarkIteration {
                     panic!("repo-content query benchmark Flight batch failed: {error}")
                 })
         });
+        let telemetry = self
+            .service
+            .query_telemetry_for(SearchCorpusKind::RepoContentChunk)
+            .unwrap_or_else(|| {
+                panic!("repo-content query benchmark missing query telemetry after Flight batch")
+            });
         RepoContentFlightBatchBenchmarkSample {
             elapsed: started.elapsed(),
             row_count: batch.num_rows(),
+            rows_scanned: telemetry.rows_scanned,
+            matched_rows: telemetry.matched_rows,
         }
     }
 
