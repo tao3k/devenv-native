@@ -108,10 +108,6 @@ let
 in
 {
   tasks = {
-    "ci:architecture-gate" = mkPythonScriptTask ''
-      just architecture-gate
-    '';
-
     "ci:lint" = mkTask hookEnv ''
       just lint
     '';
@@ -238,14 +234,6 @@ in
 
     "ci:wendao-ppr-rollout-status" = mkPythonScriptTask ''
       just wendao-ppr-rollout-status
-    '';
-
-    "ci:memory-gate-quick" = mkRuntimeTask ''
-      just memory-gate-quick
-    '';
-
-    "ci:memory-gate-a7" = mkRuntimeTask ''
-      just memory-gate-a7
     '';
 
     "ci:valkey-live" = mkRuntimeTask ''

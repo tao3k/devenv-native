@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib
+import importlib.util
 
 
 def test_decorators_module_no_longer_exports_registry_helpers() -> None:
@@ -29,7 +30,9 @@ def test_utils_skills_no_longer_exports_skill_command_path_helper() -> None:
     assert hasattr(skills, "skill_script")
 
 
-def test_tracer_storage_no_longer_exports_skill_loader_mixin() -> None:
-    storage = importlib.import_module("xiuxian_tracer.storage")
+def test_tracer_package_is_absent() -> None:
+    assert importlib.util.find_spec("xiuxian_tracer") is None
 
-    assert not hasattr(storage, "SkillLoaderMixin")
+
+def test_rag_package_is_absent() -> None:
+    assert importlib.util.find_spec("xiuxian_rag") is None

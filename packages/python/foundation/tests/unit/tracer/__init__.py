@@ -1,3 +1,0 @@
-"""
-tracer test package
-"""

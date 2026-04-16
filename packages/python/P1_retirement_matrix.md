@@ -21,7 +21,7 @@ Only these Python package responsibilities remain endorsed:
 3. `xiuxian-wendao-analyzer`
    Analyzer workflow package above the transport substrate.
 4. `foundation`
-   Thin config/schema/logging/RAG-enhancement helpers.
+   Thin config/schema/logging helpers.
 5. `core`
    Minimal retained helper surfaces only.
 

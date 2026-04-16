@@ -25,8 +25,7 @@ Python retains only:
 1. Arrow Flight client access
 2. Arrow IPC fallback helpers
 3. thin config/schema/logging helpers
-4. thin consumer-side RAG enhancement helpers
-5. package-local adapter and contract tests
+4. package-local adapter and contract tests
 
 Retained runtime contract prefixes:
 
@@ -42,7 +41,7 @@ packages/python/
   wendao-core-lib/           Arrow Flight transport client
   wendao-arrow-interface/    downstream-facing Arrow facade with optional dataframe examples
   xiuxian-wendao-analyzer/   analyzer workflows on top of the same substrate
-  foundation/                thin config/schema/logging/RAG helpers
+  foundation/                thin config/schema/logging helpers
   core/                      minimal retained helper surface
 ```
 
@@ -56,8 +55,6 @@ Retained Python code now ships under direct top-level packages:
 
 - `xiuxian_core`
 - `xiuxian_foundation`
-- `xiuxian_rag`
-- `xiuxian_tracer`
 - `wendao_core_lib`
 - `wendao_arrow_interface`
 - `xiuxian_wendao_analyzer`

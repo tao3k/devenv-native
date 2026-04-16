@@ -1,7 +1,6 @@
 {
   lib,
   stdenv,
-  symlinkJoin,
   python3Packages,
   rustPlatform,
   maturin,
@@ -46,14 +45,9 @@ python3Packages.buildPythonPackage {
     libiconv
   ];
 
-  # Vendor dependencies from the workspace
-  cargoDeps = symlinkJoin {
-    name = "${pname}-cargo-deps";
-    paths = [
-      cargoDeps
-      filteredSrc
-    ];
-  };
+  # Reuse the vendored cargo dependency tree as-is so offline git replacements
+  # from rust-cargo-vendor remain intact for isolated Nix builds.
+  inherit cargoDeps;
 
   build-system = [ rustPlatform.maturinBuildHook ];
 

@@ -13,19 +13,21 @@ metadata:
 
 # How to Query and Locate Ingested Papers
 
-This guide describes the end-to-end flow: user asks for papers (e.g. "RAG Anything" or "ing-related papers"), and the agent uses knowledge tools or CLI flows to find and cite them.
+This guide describes the end-to-end flow: user asks for papers (for example
+"multimodal document parsing" or "ingest-related papers"), and the agent uses
+knowledge tools or CLI flows to find and cite them.
 
 ---
 
 ## Flow Overview
 
 ```
-User: "Find me papers about RAG Anything / ingest-related papers"
+User: "Find me papers about multimodal document parsing / ingest-related papers"
         │
         ▼
 Agent calls knowledge tools or CLI helpers
         │
-        ├── knowledge.recall(query="RAG Anything document parsing paper", limit=5)
+        ├── knowledge.recall(query="multimodal document parsing paper", limit=5)
         │   → Returns chunks with content, source, score from vector store
         │
         └── knowledge.search(query="RAG anything ing paper", mode="hybrid")
@@ -33,8 +35,9 @@ Agent calls knowledge tools or CLI helpers
         │
         ▼
 Agent interprets results and answers user
-        → "The paper you ingested (e.g. arxiv 2510.12323) is in the knowledge base.
-           Relevant snippets: [content]. The document was stored from .artifacts/2510.12323.pdf."
+        → "The paper you ingested (e.g. arXiv 2510.12323) is in the knowledge base.
+           Relevant snippets: [content]. The matching document can be identified
+           from its source metadata or citation id."
 ```
 
 ---
@@ -43,8 +46,8 @@ Agent interprets results and answers user
 
 | Tool                 | When to use                                                                                  | Example                                                     |
 | -------------------- | -------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| **knowledge.recall** | Semantic search over the vector store (ingested PDFs, markdown, etc.)                        | Query: "RAG Anything universal framework overview abstract" |
-| **knowledge.search** | Hybrid (LinkGraph + vector) or keyword-only; good when you want both notes and ingested docs | Query: "RAG anything ing paper", mode: "hybrid"             |
+| **knowledge.recall** | Semantic search over the vector store (ingested PDFs, markdown, etc.)                        | Query: "multimodal document parsing overview abstract"      |
+| **knowledge.search** | Hybrid (LinkGraph + vector) or keyword-only; good when you want both notes and ingested docs | Query: "document parsing ingest paper", mode: "hybrid"      |
 
 Both can surface content from an ingested PDF. Recall returns `content`, `source`, `score`; search returns merged results with `source` and reasoning.
 
@@ -62,29 +65,37 @@ Each batch response is small; the LLM reads slice by slice. This avoids memory a
 
 ## How to "Locate" the Paper
 
-- **After ingest**: The PDF is chunked and stored in the knowledge vector store with metadata `source: <file_path>` (e.g. `.artifacts/2510.12323.pdf`) and `title: <filename>`.
+- **After ingest**: The PDF is chunked and stored in the knowledge vector
+  store with metadata such as `source` and `title`.
 - **In recall results**: The `source` field in the API may be the chunk ID (e.g. UUID) depending on the vector backend. To show the user "which paper" a snippet came from, the agent can:
-  1. Use the **content** of the recalled chunks (e.g. "Figure 1: Overview of our proposed universal RAG framework RAG-Anything") to infer the document.
-  2. If the system exposes document path in recall metadata, use that to say "from .artifacts/2510.12323.pdf (arxiv 2510.12323)".
+  1. Use the **content** of the recalled chunks (for example a paper title,
+     figure caption, or abstract sentence) to infer the document.
+  2. If the system exposes source metadata, use that to cite the document by
+     source identifier, title, or arXiv id.
 
 So "locating" the paper means: run recall/search with a natural-language query about the topic, then report the matching snippets and, when available, the document path or arxiv id from metadata or context.
 
 ---
 
-## Example: User Asks for "RAG Anything / ing-Related Papers"
+## Example: User Asks for "Document Parsing / Ingest-Related Papers"
 
-1. **User**: "帮我找寻 RAG Anything 或 ing 相关的论文" (or: "Find me papers about RAG Anything or ingest-related work.")
+1. **User**: "帮我找寻文档解析或 ingest 相关的论文" (or: "Find me papers about
+   document parsing or ingest-related work.")
 
 2. **Agent** calls knowledge tools:
-   - `knowledge.recall(query="RAG Anything document parsing or ingest pipeline paper", limit=5)`
-   - Optionally: `knowledge.search(query="RAG anything ing paper", mode="hybrid")`
+   - `knowledge.recall(query="document parsing or ingest pipeline paper", limit=5)`
+   - Optionally: `knowledge.search(query="document parsing ingest paper", mode="hybrid")`
 
 3. **Tool call returns** (example):
-   - Chunks such as: "Figure 1: Overview of our proposed universal RAG framework RAG-Anything." with high score.
-   - Other snippets about multimodal analysis, RAG pipelines, etc.
+   - Chunks such as a figure caption, abstract sentence, or method summary
+     with high score.
+   - Other snippets about multimodal analysis, ingestion pipelines, and
+     retrieval systems.
 
 4. **Agent answers user**:
-   - "The knowledge base contains a paper that matches your request: **RAG-Anything** (universal RAG framework). Relevant excerpts: [paste content]. This was ingested from the PDF at `.artifacts/2510.12323.pdf` (arXiv 2510.12323)."
+   - "The knowledge base contains a paper that matches your request. Relevant
+     excerpts: [paste content]. The document can be cited from its source
+     metadata or arXiv id."
 
 ---
 

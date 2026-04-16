@@ -24,6 +24,25 @@
           apple-sdk
         ];
       };
+      commonProjectEnv = {
+        PYO3_PYTHON = "${pkgs.python3}/bin/python";
+        PROTOC = "${pkgs.protobuf}/bin/protoc";
+        SSL_CERT_FILE = "${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt";
+        NIX_SSL_CERT_FILE = "${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt";
+      };
+      commonProjectDrvConfig = {
+        mkDerivation = {
+          nativeBuildInputs = [
+            pkgs.pkg-config
+            pkgs.protobuf
+          ];
+          buildInputs = [
+            pkgs.openssl
+            pkgs.cacert
+          ];
+        };
+        env = commonProjectEnv;
+      };
     in
     {
       _module.args.apple-metal-toolchain = apple-metal-toolchain;
@@ -31,22 +50,8 @@
       nci.projects."cyber-xiuxian-workshop" = {
         path = workspaceRoot;
         export = true;
-        depsDrvConfig = {
-          mkDerivation = {
-            buildInputs = [
-              pkgs.pkg-config
-              pkgs.openssl
-              pkgs.cacert
-              pkgs.protobuf
-            ];
-          };
-          env = {
-            PYO3_PYTHON = "${pkgs.python3}/bin/python";
-            PROTOC = "${pkgs.protobuf}/bin/protoc";
-            SSL_CERT_FILE = "${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt";
-            NIX_SSL_CERT_FILE = "${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt";
-          };
-        };
+        drvConfig = commonProjectDrvConfig;
+        depsDrvConfig = commonProjectDrvConfig;
       };
       # configure crates
       nci.crates = {
@@ -77,6 +82,18 @@
           profiles.release.runTests = false;
         };
         "xiuxian-zhenfa" = {
+          profiles.release.runTests = false;
+          drvConfig.mkDerivation = {
+            nativeBuildInputs = [ pkgs.pkg-config ];
+            buildInputs = [
+              pkgs.libxml2
+              pkgs.cacert
+            ];
+          };
+          drvConfig.env = {
+            SSL_CERT_FILE = "${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt";
+            NIX_SSL_CERT_FILE = "${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt";
+          };
           depsDrvConfig.mkDerivation = {
             buildInputs = [
               pkgs.libxml2
@@ -95,9 +112,27 @@
             };
           };
         };
+        "xiuxian-lance" = {
+          drvConfig.mkDerivation.nativeBuildInputs = [ pkgs.protobuf ];
+          drvConfig.env.PROTOC = "${pkgs.protobuf}/bin/protoc";
+          depsDrvConfig.mkDerivation.nativeBuildInputs = [ pkgs.protobuf ];
+          depsDrvConfig.env.PROTOC = "${pkgs.protobuf}/bin/protoc";
+        };
+        "xiuxian-io" = {
+          profiles.release.runTests = false;
+        };
+        "xiuxian-memory-engine" = {
+          profiles.release.runTests = false;
+        };
+        "xiuxian-skills" = {
+          profiles.release.runTests = false;
+        };
         "xiuxian-vector" = {
+          drvConfig.mkDerivation.nativeBuildInputs = [ pkgs.protobuf ];
+          drvConfig.env.PROTOC = "${pkgs.protobuf}/bin/protoc";
           depsDrvConfig = {
-            mkDerivation.buildInputs = [ pkgs.protobuf ];
+            mkDerivation.nativeBuildInputs = [ pkgs.protobuf ];
+            env.PROTOC = "${pkgs.protobuf}/bin/protoc";
           };
         };
       };

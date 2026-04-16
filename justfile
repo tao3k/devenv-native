@@ -1282,12 +1282,6 @@ no-inline-python-guard:
     @uv run pytest -q scripts/test_no_inline_python_exec_patterns.py --tb=short
 
 [group('validate')]
-architecture-gate:
-    @uv run pytest -q -m architecture \
-        packages/python/foundation/tests/unit/tracer \
-        packages/python/foundation/tests/unit/rag
-
-[group('validate')]
 contract-e2e-route-test-json:
     @uv run pytest \
         packages/python/foundation/tests/unit/services/test_contract_consistency.py::test_route_test_cli_json_validates_against_schema \
@@ -1296,22 +1290,6 @@ contract-e2e-route-test-json:
 [group('validate')]
 ci-scripts-smoke:
     @bash scripts/ci_scripts_smoke.sh
-
-[group('validate')]
-memory-gate-quick:
-    @python3 scripts/channel/test_xiuxian_daochang_memory_ci_gate.py --profile quick
-
-[group('validate')]
-memory-gate-a7:
-    @scripts/channel/start-xiuxian-daochang-memory-ci.sh \
-        --profile nightly \
-        --foreground \
-        -- --skip-matrix \
-           --skip-evolution \
-           --benchmark-iterations 3 \
-           --max-tool-call-waiting-events 0 \
-           --max-tool-connect-waiting-events 0 \
-           --max-tool-waiting-events-total 0
 
 [group('validate')]
 valkey-live:
@@ -1511,7 +1489,7 @@ check-commits:
 
 [group('validate')]
 check-commits-range from to:
-    @cog check --from {{from}} --to {{to}}
+    @cog check {{from}}..{{to}}
 
 [group('changelog')]
 changelog:

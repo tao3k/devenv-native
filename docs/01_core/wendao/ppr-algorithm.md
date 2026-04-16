@@ -222,7 +222,6 @@ Executable gate commands (current + planned):
 - `cargo test -p xiuxian-wendao --test test_link_graph`
 - `uv run python scripts/benchmark_wendao_related.py --root . --stem README --runs 5 --warm-runs 1 --no-build --ppr-subgraph-mode auto`
 - `uv run pytest packages/python/foundation/tests/unit/api/test_link_graph_search_options_schema.py -q`
-- `uv run pytest packages/python/foundation/tests/unit/rag/test_link_graph.py -q`
 
 ## 7. Section Graph: Implemented Scope and Hardening
 
