@@ -20,10 +20,6 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: xiuxian-wendao-cargo-build-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
   cargo-check:
     name: Cargo check - Ubuntu
