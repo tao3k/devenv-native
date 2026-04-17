@@ -5,6 +5,10 @@ use duckdb::Connection;
 use super::runtime::resolve_enabled_search_duckdb_runtime;
 use crate::duckdb::{DuckDbDatabasePath, SearchDuckDbRuntimeConfig};
 
+fn escape_duckdb_setting_literal(value: &str) -> String {
+    value.replace('\'', "''")
+}
+
 /// Feature-gated host-owned `DuckDB` connection wrapper for bounded analytics.
 pub struct SearchDuckDbConnection {
     connection: Connection,
@@ -54,7 +58,7 @@ impl SearchDuckDbConnection {
 /// # Errors
 ///
 /// Returns an error when the runtime is disabled, when required directories
-/// cannot be created, or when `DuckDB` rejects the initialization pragmas.
+/// cannot be created, or when `DuckDB` rejects the initialization settings.
 pub fn open_search_duckdb_connection(
     runtime: &SearchDuckDbRuntimeConfig,
 ) -> Result<Connection, String> {
@@ -95,13 +99,37 @@ pub fn open_search_duckdb_connection(
         })?,
     };
 
-    let escaped_temp_directory = runtime.temp_directory.to_string_lossy().replace('\'', "''");
+    let escaped_temp_directory =
+        escape_duckdb_setting_literal(runtime.temp_directory.to_string_lossy().as_ref());
+    let mut settings = vec![
+        format!("SET temp_directory = '{escaped_temp_directory}'"),
+        format!("SET threads = {}", runtime.threads),
+        format!(
+            "SET preserve_insertion_order = {}",
+            runtime.preserve_insertion_order
+        ),
+        format!(
+            "SET parquet_metadata_cache = {}",
+            runtime.parquet_metadata_cache
+        ),
+        "SET enable_profiling = 'no_output'".to_string(),
+        "SET profiling_mode = 'standard'".to_string(),
+    ];
+    if let Some(memory_limit) = runtime.memory_limit.as_deref() {
+        settings.push(format!(
+            "SET memory_limit = '{}'",
+            escape_duckdb_setting_literal(memory_limit)
+        ));
+    }
+    if let Some(max_temp_directory_size) = runtime.max_temp_directory_size.as_deref() {
+        settings.push(format!(
+            "SET max_temp_directory_size = '{}'",
+            escape_duckdb_setting_literal(max_temp_directory_size)
+        ));
+    }
     connection
-        .execute_batch(&format!(
-            "PRAGMA temp_directory='{escaped_temp_directory}';\nPRAGMA threads={};\nPRAGMA enable_profiling='no_output';\nPRAGMA profiling_mode='standard';",
-            runtime.threads
-        ))
-        .map_err(|error| format!("failed to initialize search DuckDB pragmas: {error}"))?;
+        .execute_batch(format!("{};", settings.join(";\n")).as_str())
+        .map_err(|error| format!("failed to initialize search DuckDB settings: {error}"))?;
 
     Ok(connection)
 }

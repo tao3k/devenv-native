@@ -4,7 +4,9 @@ use std::path::Path;
 use tempfile::tempdir;
 #[cfg(feature = "duckdb")]
 use xiuxian_wendao_runtime::config::{
-    DEFAULT_SEARCH_DUCKDB_MATERIALIZE_THRESHOLD_ROWS, DEFAULT_SEARCH_DUCKDB_PREFER_VIRTUAL_ARROW,
+    DEFAULT_SEARCH_DUCKDB_MATERIALIZE_THRESHOLD_ROWS,
+    DEFAULT_SEARCH_DUCKDB_PARQUET_METADATA_CACHE, DEFAULT_SEARCH_DUCKDB_PREFER_VIRTUAL_ARROW,
+    DEFAULT_SEARCH_DUCKDB_PRESERVE_INSERTION_ORDER,
 };
 use xiuxian_wendao_sql::DataFusionLocalRelationEngine;
 
@@ -248,6 +250,10 @@ async fn queries_bounded_work_markdown_payload_with_duckdb_local_relation_engine
         database_path: DuckDbDatabasePath::InMemory,
         temp_directory: root.join(".cache/duckdb-markdown/tmp"),
         threads: 2,
+        preserve_insertion_order: DEFAULT_SEARCH_DUCKDB_PRESERVE_INSERTION_ORDER,
+        parquet_metadata_cache: DEFAULT_SEARCH_DUCKDB_PARQUET_METADATA_CACHE,
+        memory_limit: None,
+        max_temp_directory_size: None,
         materialize_threshold_rows: DEFAULT_SEARCH_DUCKDB_MATERIALIZE_THRESHOLD_ROWS,
         prefer_virtual_arrow: DEFAULT_SEARCH_DUCKDB_PREFER_VIRTUAL_ARROW,
     })
@@ -343,6 +349,10 @@ async fn queries_bounded_work_markdown_payload_with_duckdb_materialized_local_re
         database_path: DuckDbDatabasePath::InMemory,
         temp_directory: root.join(".cache/duckdb-markdown-materialized/tmp"),
         threads: 2,
+        preserve_insertion_order: DEFAULT_SEARCH_DUCKDB_PRESERVE_INSERTION_ORDER,
+        parquet_metadata_cache: DEFAULT_SEARCH_DUCKDB_PARQUET_METADATA_CACHE,
+        memory_limit: None,
+        max_temp_directory_size: None,
         materialize_threshold_rows: 0,
         prefer_virtual_arrow: true,
     })

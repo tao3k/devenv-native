@@ -236,7 +236,9 @@ mod tests {
     };
     use xiuxian_wendao_runtime::config::{
         DEFAULT_SEARCH_DUCKDB_MATERIALIZE_THRESHOLD_ROWS,
+        DEFAULT_SEARCH_DUCKDB_PARQUET_METADATA_CACHE,
         DEFAULT_SEARCH_DUCKDB_PREFER_VIRTUAL_ARROW,
+        DEFAULT_SEARCH_DUCKDB_PRESERVE_INSERTION_ORDER,
     };
 
     use super::DuckDbParquetQueryEngine;
@@ -295,6 +297,10 @@ mod tests {
             database_path: DuckDbDatabasePath::InMemory,
             temp_directory: root.join(".cache/duckdb-test/tmp"),
             threads: 2,
+            preserve_insertion_order: DEFAULT_SEARCH_DUCKDB_PRESERVE_INSERTION_ORDER,
+            parquet_metadata_cache: DEFAULT_SEARCH_DUCKDB_PARQUET_METADATA_CACHE,
+            memory_limit: None,
+            max_temp_directory_size: None,
             materialize_threshold_rows: DEFAULT_SEARCH_DUCKDB_MATERIALIZE_THRESHOLD_ROWS,
             prefer_virtual_arrow: DEFAULT_SEARCH_DUCKDB_PREFER_VIRTUAL_ARROW,
         }

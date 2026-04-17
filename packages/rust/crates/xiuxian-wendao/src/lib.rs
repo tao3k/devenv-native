@@ -197,6 +197,7 @@ pub use link_graph::{
     QuantumContextSnapshot, QuantumFusionOptions, QuantumFusionTelemetry,
     QuantumSemanticSearchRequest, compute_link_graph_saliency, narrate_subgraph,
     quantum_context_snapshot_id, resolve_link_graph_index_runtime,
+    clear_link_graph_config_home_override, clear_link_graph_wendao_config_override,
     set_link_graph_config_home_override, set_link_graph_wendao_config_override,
     valkey_quantum_context_snapshot_drop, valkey_quantum_context_snapshot_get,
     valkey_quantum_context_snapshot_get_with_valkey, valkey_quantum_context_snapshot_rollback,

@@ -89,6 +89,7 @@ pub(crate) use page_index::{
 };
 pub use runtime_config::{
     LinkGraphIndexRuntimeConfig, LinkGraphRerankFlightRuntimeSettings,
+    clear_link_graph_config_home_override, clear_link_graph_wendao_config_override,
     resolve_link_graph_index_runtime, resolve_link_graph_rerank_binding,
     resolve_link_graph_rerank_flight_runtime_settings, resolve_link_graph_rerank_schema_version,
     resolve_link_graph_rerank_score_weights, set_link_graph_config_home_override,

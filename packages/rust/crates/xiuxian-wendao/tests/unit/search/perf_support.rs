@@ -2,6 +2,55 @@ use crate::search::perf_support::{
     RepoContentParquetMutationBenchmarkFixture, RepoContentQueryBenchmarkFixture,
 };
 use crate::search::repo_content_chunk::repo_content_chunk_partition_count_for_document_count;
+#[cfg(all(feature = "duckdb", feature = "performance"))]
+use crate::{clear_link_graph_wendao_config_override, set_link_graph_wendao_config_override};
+#[cfg(all(feature = "duckdb", feature = "performance"))]
+use serial_test::serial;
+#[cfg(all(feature = "duckdb", feature = "performance"))]
+use tempfile::TempDir;
+
+#[cfg(all(feature = "duckdb", feature = "performance"))]
+struct SearchDuckDbConfigOverride {
+    _temp: TempDir,
+}
+
+#[cfg(all(feature = "duckdb", feature = "performance"))]
+impl SearchDuckDbConfigOverride {
+    fn install(
+        slug: &str,
+        preserve_insertion_order: bool,
+        parquet_metadata_cache: bool,
+    ) -> Result<Self, Box<dyn std::error::Error>> {
+        let temp = tempfile::tempdir()?;
+        let config_path = temp.path().join("wendao.toml");
+        let temp_directory = temp.path().join(format!("duckdb-{slug}-tmp"));
+        std::fs::write(
+            &config_path,
+            format!(
+                "[search.duckdb]\n\
+                 enabled = true\n\
+                 database_path = \":memory:\"\n\
+                 temp_directory = \"{}\"\n\
+                 threads = 4\n\
+                 preserve_insertion_order = {}\n\
+                 parquet_metadata_cache = {}\n\
+                 prefer_virtual_arrow = true\n",
+                temp_directory.display(),
+                preserve_insertion_order,
+                parquet_metadata_cache
+            ),
+        )?;
+        set_link_graph_wendao_config_override(&config_path.to_string_lossy());
+        Ok(Self { _temp: temp })
+    }
+}
+
+#[cfg(all(feature = "duckdb", feature = "performance"))]
+impl Drop for SearchDuckDbConfigOverride {
+    fn drop(&mut self) {
+        clear_link_graph_wendao_config_override();
+    }
+}
 
 #[test]
 fn repo_content_parquet_mutation_fixture_preserves_row_count_and_query_readability() {
@@ -360,4 +409,52 @@ fn repo_content_query_benchmark_reports_100k_broad_query_sample() {
     assert_eq!(flight.row_count, 5);
     assert_eq!(flight.rows_scanned, 256);
     assert_eq!(flight.matched_rows, 256);
+}
+
+#[cfg(all(feature = "duckdb", feature = "performance"))]
+#[test]
+#[serial]
+fn repo_content_query_benchmark_reports_duckdb_official_setting_profiles() {
+    let fixture = RepoContentQueryBenchmarkFixture::synthetic(100_000);
+    let profiles = [
+        ("official_defaults", true, false),
+        ("no_insertion_order", false, false),
+        ("metadata_cache_only", true, true),
+        ("combined_tuning", false, true),
+    ];
+
+    for (slug, preserve_insertion_order, parquet_metadata_cache) in profiles {
+        let _override = SearchDuckDbConfigOverride::install(
+            slug,
+            preserve_insertion_order,
+            parquet_metadata_cache,
+        )
+        .unwrap_or_else(|error| panic!("install DuckDB benchmark override `{slug}`: {error}"));
+        let point = fixture
+            .prepare_iteration()
+            .measure_hot_query_after_cold_warmup();
+        let broad = fixture
+            .prepare_iteration()
+            .measure_hot_query_for_token_after_cold_warmup("value");
+
+        println!(
+            "repo content query duckdb profile benchmark: profile={} preserve_insertion_order={} parquet_metadata_cache={} point_hot_ms={:.3} point_hits={} point_rows_scanned={} broad_hot_ms={:.3} broad_hits={} broad_rows_scanned={} broad_matched_rows={}",
+            slug,
+            preserve_insertion_order,
+            parquet_metadata_cache,
+            point.elapsed.as_secs_f64() * 1_000.0,
+            point.hit_count,
+            point.rows_scanned,
+            broad.elapsed.as_secs_f64() * 1_000.0,
+            broad.hit_count,
+            broad.rows_scanned,
+            broad.matched_rows
+        );
+
+        assert_eq!(point.hit_count, 1);
+        assert_eq!(point.rows_scanned, 1);
+        assert_eq!(broad.hit_count, 5);
+        assert_eq!(broad.rows_scanned, 256);
+        assert_eq!(broad.matched_rows, 256);
+    }
 }

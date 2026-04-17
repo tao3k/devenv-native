@@ -11,6 +11,9 @@ use xiuxian_vector::{
 use xiuxian_wendao::duckdb::{
     DataFusionParquetQueryEngine, DuckDbDatabasePath, ParquetQueryEngine, SearchDuckDbRuntimeConfig,
 };
+use xiuxian_wendao_runtime::config::{
+    DEFAULT_SEARCH_DUCKDB_PARQUET_METADATA_CACHE, DEFAULT_SEARCH_DUCKDB_PRESERVE_INSERTION_ORDER,
+};
 
 use super::support::{env_f64, env_u64, env_usize};
 
@@ -105,6 +108,10 @@ fn duckdb_runtime(root: &std::path::Path) -> SearchDuckDbRuntimeConfig {
         database_path: DuckDbDatabasePath::InMemory,
         temp_directory: root.join(".cache/duckdb-perf/tmp"),
         threads: 2,
+        preserve_insertion_order: DEFAULT_SEARCH_DUCKDB_PRESERVE_INSERTION_ORDER,
+        parquet_metadata_cache: DEFAULT_SEARCH_DUCKDB_PARQUET_METADATA_CACHE,
+        memory_limit: None,
+        max_temp_directory_size: None,
         materialize_threshold_rows: 4_096,
         prefer_virtual_arrow: true,
     }
