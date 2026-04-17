@@ -20,7 +20,7 @@ mod llm_multimodal;
 mod llm_openai_responses_payload;
 #[path = "unit/llm_openai_responses_stream.rs"]
 mod llm_openai_responses_stream;
-#[path = "unit/llm_openai_responses_transport.rs"]
+#[path = "unit/llm_openai_responses_transport/mod.rs"]
 mod llm_openai_responses_transport;
 #[path = "unit/llm_runtime_profile.rs"]
 mod llm_runtime_profile;

@@ -180,11 +180,15 @@ fn apply_memory_limit(cmd: &mut AsyncCommand, memory_limit_bytes: u64) -> Result
     use std::os::unix::process::CommandExt;
 
     let limit = rlim_t::try_from(memory_limit_bytes).unwrap_or(rlim_t::MAX);
-    cmd.pre_exec(move || {
-        setrlimit(Resource::RLIMIT_AS, limit, limit)
-            .map_err(|err| std::io::Error::new(std::io::ErrorKind::Other, err))?;
-        Ok(())
-    });
+    // SAFETY: the closure only sets the process rlimit immediately before exec
+    // and does not touch shared Rust state.
+    unsafe {
+        cmd.pre_exec(move || {
+            setrlimit(Resource::RLIMIT_AS, limit, limit)
+                .map_err(std::io::Error::other)?;
+            Ok(())
+        });
+    }
 
     Ok(())
 }
