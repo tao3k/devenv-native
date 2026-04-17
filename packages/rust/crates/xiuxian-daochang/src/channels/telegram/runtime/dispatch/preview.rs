@@ -20,11 +20,7 @@ fn strip_think_sections(input: &str) -> String {
         cursor = &after_start[end + "</think>".len()..];
     }
 
-    if out.trim().is_empty() {
-        input.to_string()
-    } else {
-        out
-    }
+    out
 }
 
 pub(in crate::channels::telegram::runtime) fn log_preview(s: &str) -> String {

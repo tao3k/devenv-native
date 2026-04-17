@@ -1,4 +1,9 @@
 use crate::agent::SessionRecallFeedbackDirection;
+use crate::agent::{
+    DownstreamAdmissionRuntimeSnapshot, MemoryRecallMetricsSnapshot, MemoryRuntimeStatusSnapshot,
+    SessionContextBudgetSnapshot, SessionContextSnapshotInfo, SessionContextWindowInfo,
+    SessionMemoryRecallSnapshot,
+};
 use crate::channels::managed_runtime::replies as shared_replies;
 use crate::jobs::{JobMetricsSnapshot, JobStatusSnapshot};
 
@@ -76,4 +81,136 @@ pub(in super::super) fn format_slash_help_json() -> String {
 
 pub(in super::super) fn format_command_error_json(command: &str, error: &str) -> String {
     shared_replies::format_command_error_json(command, error)
+}
+
+pub(in super::super) fn format_session_context_snapshot(
+    session_id: &str,
+    partition_key: &str,
+    partition_mode: &str,
+    active: SessionContextWindowInfo,
+    snapshot: Option<SessionContextSnapshotInfo>,
+    admission: DownstreamAdmissionRuntimeSnapshot,
+) -> String {
+    shared_replies::format_session_context_snapshot(
+        session_id,
+        partition_key,
+        partition_mode,
+        active,
+        snapshot,
+        admission,
+    )
+}
+
+pub(in super::super) fn format_session_context_snapshot_json(
+    session_id: &str,
+    partition_key: &str,
+    partition_mode: &str,
+    active: SessionContextWindowInfo,
+    snapshot: Option<SessionContextSnapshotInfo>,
+    admission: DownstreamAdmissionRuntimeSnapshot,
+) -> String {
+    shared_replies::format_session_context_snapshot_json(
+        session_id,
+        partition_key,
+        partition_mode,
+        active,
+        snapshot,
+        admission,
+    )
+}
+
+pub(in super::super) fn format_context_budget_snapshot(
+    snapshot: &SessionContextBudgetSnapshot,
+) -> String {
+    shared_replies::format_context_budget_snapshot(snapshot)
+}
+
+pub(in super::super) fn format_context_budget_snapshot_json(
+    snapshot: &SessionContextBudgetSnapshot,
+) -> String {
+    shared_replies::format_context_budget_snapshot_json(snapshot)
+}
+
+pub(in super::super) fn format_context_budget_not_found_json() -> String {
+    shared_replies::format_context_budget_not_found_json()
+}
+
+pub(in super::super) fn format_memory_recall_snapshot(
+    snapshot: SessionMemoryRecallSnapshot,
+    metrics: MemoryRecallMetricsSnapshot,
+    runtime_status: MemoryRuntimeStatusSnapshot,
+    admission_status: DownstreamAdmissionRuntimeSnapshot,
+    session_scope: &str,
+) -> String {
+    shared_replies::format_memory_recall_snapshot(
+        snapshot,
+        metrics,
+        runtime_status,
+        admission_status,
+        session_scope,
+    )
+}
+
+pub(in super::super) fn format_memory_recall_snapshot_json(
+    snapshot: SessionMemoryRecallSnapshot,
+    metrics: MemoryRecallMetricsSnapshot,
+    runtime_status: &MemoryRuntimeStatusSnapshot,
+    admission_status: DownstreamAdmissionRuntimeSnapshot,
+    session_scope: &str,
+) -> String {
+    shared_replies::format_memory_recall_snapshot_json(
+        snapshot,
+        metrics,
+        runtime_status,
+        admission_status,
+        session_scope,
+    )
+}
+
+pub(in super::super) fn format_memory_recall_not_found(
+    runtime_status: MemoryRuntimeStatusSnapshot,
+    admission_status: DownstreamAdmissionRuntimeSnapshot,
+    session_scope: &str,
+) -> String {
+    shared_replies::format_memory_recall_not_found(runtime_status, admission_status, session_scope)
+}
+
+pub(in super::super) fn format_memory_recall_not_found_json(
+    metrics: MemoryRecallMetricsSnapshot,
+    runtime_status: &MemoryRuntimeStatusSnapshot,
+    admission_status: DownstreamAdmissionRuntimeSnapshot,
+    session_scope: &str,
+) -> String {
+    shared_replies::format_memory_recall_not_found_json(
+        metrics,
+        runtime_status,
+        admission_status,
+        session_scope,
+    )
+}
+
+pub(in super::super) fn format_memory_recall_compact_snapshot(
+    snapshot: SessionMemoryRecallSnapshot,
+    runtime_status: &MemoryRuntimeStatusSnapshot,
+    admission_status: DownstreamAdmissionRuntimeSnapshot,
+    session_scope: &str,
+) -> String {
+    shared_replies::format_memory_recall_compact_snapshot(
+        snapshot,
+        runtime_status,
+        admission_status,
+        session_scope,
+    )
+}
+
+pub(in super::super) fn format_memory_recall_compact_not_found(
+    runtime_status: &MemoryRuntimeStatusSnapshot,
+    admission_status: DownstreamAdmissionRuntimeSnapshot,
+    session_scope: &str,
+) -> String {
+    shared_replies::format_memory_recall_compact_not_found(
+        runtime_status,
+        admission_status,
+        session_scope,
+    )
 }

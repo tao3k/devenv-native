@@ -13,6 +13,11 @@ pub(crate) use permissions::{
     format_slash_command_permission_required,
 };
 pub(crate) use session::{
-    format_command_error_json, format_session_feedback, format_session_feedback_json,
-    format_session_feedback_unavailable_json,
+    format_command_error_json, format_context_budget_not_found_json,
+    format_context_budget_snapshot, format_context_budget_snapshot_json,
+    format_memory_recall_compact_not_found, format_memory_recall_compact_snapshot,
+    format_memory_recall_not_found, format_memory_recall_not_found_json,
+    format_memory_recall_snapshot, format_memory_recall_snapshot_json,
+    format_session_context_snapshot, format_session_context_snapshot_json, format_session_feedback,
+    format_session_feedback_json, format_session_feedback_unavailable_json,
 };

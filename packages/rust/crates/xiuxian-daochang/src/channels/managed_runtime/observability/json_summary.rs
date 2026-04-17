@@ -7,6 +7,7 @@ pub(crate) struct JsonReplySummary {
     pub(crate) kind: Option<String>,
     pub(crate) available: Option<bool>,
     pub(crate) status: Option<String>,
+    pub(crate) audit_error: Option<String>,
     pub(crate) found: Option<bool>,
     pub(crate) decision: Option<String>,
     pub(crate) session_scope: Option<String>,
@@ -50,6 +51,7 @@ fn build_summary(object: &JsonObject) -> JsonReplySummary {
         kind: string_field(object, "kind"),
         available: bool_field(object, "available"),
         status: string_field(object, "status"),
+        audit_error: extract_audit_error(object),
         found: bool_field(object, "found"),
         decision: string_field(object, "decision"),
         session_scope: string_field(object, "session_scope"),
@@ -121,6 +123,19 @@ fn extract_override_admin_count(object: &JsonObject) -> Option<usize> {
     match object.get("override_admin_users") {
         Some(Value::Array(entries)) => Some(entries.len()),
         Some(Value::Null) => Some(0),
+        _ => None,
+    }
+}
+
+fn extract_audit_error(object: &JsonObject) -> Option<String> {
+    if let Some(single) = string_field(object, "audit_error") {
+        return Some(single);
+    }
+    match object.get("audit_errors") {
+        Some(Value::Array(entries)) => entries
+            .iter()
+            .find_map(Value::as_str)
+            .map(ToString::to_string),
         _ => None,
     }
 }

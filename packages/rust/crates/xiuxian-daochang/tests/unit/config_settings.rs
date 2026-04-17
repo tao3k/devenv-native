@@ -492,7 +492,7 @@ fn invalid_toml_is_ignored() {
         user,
         r#"
 [telegram.acl.allow]
-users = ["ok-user"]
+users = ["1001"]
 "#,
     );
 
@@ -506,7 +506,7 @@ users = ["ok-user"]
         build_telegram_acl_overrides(&merged),
         "telegram acl overrides",
     );
-    assert_eq!(telegram_overrides.allowed_users, vec!["ok-user"]);
+    assert_eq!(telegram_overrides.allowed_users, vec!["1001"]);
 }
 
 #[test]

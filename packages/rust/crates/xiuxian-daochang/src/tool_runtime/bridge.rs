@@ -676,7 +676,16 @@ impl ToolClientPool {
 
         let mut last_error = None;
         for attempt in 1..=max_attempts {
-            let service = self.connected_service().await?;
+            let service = match self.connected_service().await {
+                Ok(service) => service,
+                Err(error) => {
+                    last_error = Some(error);
+                    if attempt < max_attempts {
+                        tokio::time::sleep(backoff).await;
+                    }
+                    continue;
+                }
+            };
             let outcome = tokio::time::timeout(timeout, op(service)).await;
             match outcome {
                 Ok(Ok(value)) => return Ok(value),
@@ -749,7 +758,7 @@ pub(crate) async fn connect_tool_pool_backend(
         list_stats: Arc::new(ToolListCacheStats::default()),
         discover_cache,
     };
-    let service = connect_service(url, pool.config.handshake_timeout_secs).await?;
+    let service = connect_service_with_retry(url, &pool.config).await?;
     {
         let mut guard = pool.state.lock().await;
         guard.service = Some(Arc::new(service));
@@ -759,6 +768,35 @@ pub(crate) async fn connect_tool_pool_backend(
 
 async fn connect_service(url: &str, handshake_timeout_secs: u64) -> Result<ToolClientService> {
     ToolRuntimeSessionClient::connect(url, handshake_timeout_secs).await
+}
+
+async fn connect_service_with_retry(
+    url: &str,
+    config: &ToolPoolConnectConfig,
+) -> Result<ToolClientService> {
+    let max_attempts = config.connect_retries.max(1);
+    let backoff = Duration::from_millis(config.connect_retry_backoff_ms.max(1));
+    let mut last_error = None;
+    for attempt in 1..=max_attempts {
+        match connect_service(url, config.handshake_timeout_secs).await {
+            Ok(service) => return Ok(service),
+            Err(error) => {
+                last_error = Some(error);
+                if attempt < max_attempts {
+                    tokio::time::sleep(backoff).await;
+                }
+            }
+        }
+    }
+
+    match last_error {
+        Some(error) => Err(anyhow!(
+            "connect failed after {max_attempts} attempts: {error}"
+        )),
+        None => Err(anyhow!(
+            "connect failed after {max_attempts} attempts without an error"
+        )),
+    }
 }
 
 fn normalize_json(value: &serde_json::Value) -> serde_json::Value {
