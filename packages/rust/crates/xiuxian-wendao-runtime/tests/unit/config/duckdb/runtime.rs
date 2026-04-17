@@ -45,12 +45,12 @@ prefer_virtual_arrow = false
         root.join(".cache/runtime-duckdb/tmp")
     );
     assert_eq!(runtime.threads, 8);
-    assert!(runtime.preserve_insertion_order);
-    assert!(!runtime.parquet_metadata_cache);
+    assert!(runtime.execution.preserve_insertion_order);
+    assert!(!runtime.execution.parquet_metadata_cache);
     assert_eq!(runtime.memory_limit.as_deref(), Some("3GB"));
     assert_eq!(runtime.max_temp_directory_size.as_deref(), Some("11GB"));
     assert_eq!(runtime.materialize_threshold_rows, 12345);
-    assert!(!runtime.prefer_virtual_arrow);
+    assert!(!runtime.execution.prefer_virtual_arrow);
 
     Ok(())
 }
@@ -86,11 +86,11 @@ prefer_virtual_arrow = true
     );
     assert_eq!(runtime.threads, DEFAULT_SEARCH_DUCKDB_THREADS);
     assert_eq!(
-        runtime.preserve_insertion_order,
+        runtime.execution.preserve_insertion_order,
         DEFAULT_SEARCH_DUCKDB_PRESERVE_INSERTION_ORDER
     );
     assert_eq!(
-        runtime.parquet_metadata_cache,
+        runtime.execution.parquet_metadata_cache,
         DEFAULT_SEARCH_DUCKDB_PARQUET_METADATA_CACHE
     );
     assert_eq!(runtime.memory_limit, None);
@@ -100,7 +100,7 @@ prefer_virtual_arrow = true
         DEFAULT_SEARCH_DUCKDB_MATERIALIZE_THRESHOLD_ROWS
     );
     assert_eq!(
-        runtime.prefer_virtual_arrow,
+        runtime.execution.prefer_virtual_arrow,
         DEFAULT_SEARCH_DUCKDB_PREFER_VIRTUAL_ARROW
     );
 

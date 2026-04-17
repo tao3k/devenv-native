@@ -1,14 +1,11 @@
 //! Telegram media-group markdown rendering tests.
 
-#[path = "telegram_media_support/bootstrap.rs"]
-mod bootstrap;
-#[path = "telegram_media_support/media_api.rs"]
-mod media_api;
-
 use anyhow::Result;
 use xiuxian_daochang::{Channel, TelegramChannel};
 
-use media_api::{spawn_mock_telegram_media_api, spawn_mock_telegram_media_api_with_markdown_error};
+use super::telegram_media_support::{
+    spawn_mock_telegram_media_api, spawn_mock_telegram_media_api_with_markdown_error,
+};
 
 #[tokio::test]
 async fn telegram_media_group_caption_markdown_preserves_fenced_code_language_identifier()

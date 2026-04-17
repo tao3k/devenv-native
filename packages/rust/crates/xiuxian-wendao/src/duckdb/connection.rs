@@ -106,11 +106,11 @@ pub fn open_search_duckdb_connection(
         format!("SET threads = {}", runtime.threads),
         format!(
             "SET preserve_insertion_order = {}",
-            runtime.preserve_insertion_order
+            runtime.execution.preserve_insertion_order
         ),
         format!(
             "SET parquet_metadata_cache = {}",
-            runtime.parquet_metadata_cache
+            runtime.execution.parquet_metadata_cache
         ),
         "SET enable_profiling = 'no_output'".to_string(),
         "SET profiling_mode = 'standard'".to_string(),

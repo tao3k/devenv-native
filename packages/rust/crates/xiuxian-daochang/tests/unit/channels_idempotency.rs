@@ -31,9 +31,10 @@ async fn memory_store_expires_ids_after_ttl() -> anyhow::Result<()> {
             break;
         }
 
-        if wait_started.elapsed() >= Duration::from_secs(MAX_WAIT_SECS) {
-            panic!("memory dedup entry did not expire within {MAX_WAIT_SECS}s");
-        }
+        assert!(
+            wait_started.elapsed() < Duration::from_secs(MAX_WAIT_SECS),
+            "memory dedup entry did not expire within {MAX_WAIT_SECS}s"
+        );
 
         tokio::time::sleep(Duration::from_millis(POLL_INTERVAL_MS)).await;
     }
@@ -46,7 +47,7 @@ fn redis_config_normalizes_empty_prefix() {
     let config = WebhookDedupConfig {
         backend: WebhookDedupBackend::Redis {
             url: "redis://127.0.0.1:6379/0".to_string(),
-            key_prefix: "".to_string(),
+            key_prefix: String::new(),
         },
         ttl_secs: 0,
     }

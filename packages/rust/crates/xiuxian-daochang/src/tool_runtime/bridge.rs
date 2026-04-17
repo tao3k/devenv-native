@@ -177,7 +177,7 @@ impl ToolDiscoverReadThroughCache {
         let hit_rate_pct = if requests_total == 0 {
             0.0
         } else {
-            (cache_hits as f64 / requests_total as f64) * 100.0
+            ratio_pct(cache_hits, requests_total)
         };
         ToolDiscoverCacheStatsSnapshot {
             requests_total,
@@ -211,17 +211,14 @@ impl ToolDiscoverReadThroughCache {
             .query_async(&mut connection)
             .await
             .with_context(|| format!("discover cache GET {key}"))?;
-        match payload {
-            Some(payload) => {
-                self.stats.cache_hits.fetch_add(1, Ordering::Relaxed);
-                let result = serde_json::from_str(&payload)
-                    .with_context(|| format!("decode discover cache payload for {key}"))?;
-                Ok(Some(result))
-            }
-            None => {
-                self.stats.cache_misses.fetch_add(1, Ordering::Relaxed);
-                Ok(None)
-            }
+        if let Some(payload) = payload {
+            self.stats.cache_hits.fetch_add(1, Ordering::Relaxed);
+            let result = serde_json::from_str(&payload)
+                .with_context(|| format!("decode discover cache payload for {key}"))?;
+            Ok(Some(result))
+        } else {
+            self.stats.cache_misses.fetch_add(1, Ordering::Relaxed);
+            Ok(None)
         }
     }
 
@@ -601,10 +598,9 @@ impl ToolClientPool {
         if let Some(discover_cache) = self.discover_cache.as_ref()
             && name == DISCOVER_TOOL_NAME
             && let Some(arguments) = arguments.as_ref()
+            && let Some(result) = discover_cache.lookup(&name, arguments).await?
         {
-            if let Some(result) = discover_cache.lookup(&name, arguments).await? {
-                return Ok(result);
-            }
+            return Ok(result);
         }
 
         let timeout_secs = self.config.tool_timeout_secs.max(1);
@@ -854,8 +850,7 @@ async fn post_runtime_message<M: Serialize>(
         ),
         Some(content_type) => {
             return Err(anyhow!(
-                "tool runtime {method} returned unsupported content-type: {}",
-                content_type
+                "tool runtime {method} returned unsupported content-type: {content_type}"
             ));
         }
         None => {
@@ -870,6 +865,14 @@ async fn post_runtime_message<M: Serialize>(
         payload,
         accepted: false,
     })
+}
+
+fn ratio_pct(numerator: u64, denominator: u64) -> f64 {
+    if denominator == 0 {
+        return 0.0;
+    }
+    let basis_points = numerator.saturating_mul(10_000) / denominator;
+    f64::from(u32::try_from(basis_points).unwrap_or(10_000)) / 100.0
 }
 
 async fn parse_first_sse_message(

@@ -74,7 +74,6 @@ pub(crate) async fn write_replaced_table(
         &output_batches,
         repo_content_chunk_partition_count_for_document_count(documents.len()),
     )
-    .await
 }
 
 pub(crate) async fn write_mutated_table(
@@ -125,8 +124,7 @@ pub(crate) async fn write_mutated_table_profiled(
                 target_table_name,
                 replaced_paths,
                 changed_documents,
-            )
-            .await?,
+            )?,
             profile,
         ));
     }
@@ -164,51 +162,15 @@ pub(crate) async fn write_mutated_table_profiled(
     let mut next_partition_stats = previous_stats_snapshot
         .as_ref()
         .map(|snapshot| snapshot.partitions.clone());
-
-    for partition_id in touched_partitions {
-        let load_started = Instant::now();
-        let mut output_batches =
-            load_partitioned_repo_content_batches(base_path.as_path(), partition_id.as_str())
-                .await?;
-        profile.load_touched_elapsed += load_started.elapsed();
-        if let Some(replaced_paths) = partitioned_replaced_paths.get(partition_id.as_str()) {
-            let filter_started = Instant::now();
-            let mut filtered_batches = Vec::with_capacity(output_batches.len());
-            for batch in &output_batches {
-                if let Some(filtered) =
-                    filter_batch_excluding_paths(batch, path_column(), replaced_paths)?
-                {
-                    filtered_batches.push(filtered);
-                }
-            }
-            output_batches = filtered_batches;
-            profile.filter_replaced_elapsed += filter_started.elapsed();
-        }
-        if let Some(changed_documents) = partitioned_changed_documents.get(partition_id.as_str()) {
-            let changed_started = Instant::now();
-            let changed_rows = rows_from_documents(changed_documents.as_slice());
-            let changed_batches = repo_content_chunk_batches(&changed_rows)?;
-            output_batches.extend(lance_batches_to_engine_batches(changed_batches.as_slice())?);
-            profile.changed_payload_elapsed += changed_started.elapsed();
-        }
-        if output_batches.is_empty() {
-            if let Some(partition_stats) = next_partition_stats.as_mut() {
-                partition_stats.remove(partition_id.as_str());
-            }
-            continue;
-        }
-        let write_started = Instant::now();
-        let partition_stats = write_normalized_repo_content_batches(
-            repo_content_chunk_partition_path(target_root.as_path(), partition_id.as_str())
-                .as_path(),
-            &output_batches,
-        )?;
-        profile.write_touched_elapsed += write_started.elapsed();
-        if let Some(next_partition_stats) = next_partition_stats.as_mut() {
-            next_partition_stats.insert(partition_id, partition_stats);
-        }
-        wrote_partition = true;
-    }
+    wrote_partition |= rewrite_touched_partitions(
+        base_path.as_path(),
+        target_root.as_path(),
+        &touched_partitions,
+        &partitioned_replaced_paths,
+        &partitioned_changed_documents,
+        &mut next_partition_stats,
+        &mut profile,
+    )?;
 
     if !wrote_partition {
         let empty_partition_stats =
@@ -249,15 +211,72 @@ pub(crate) async fn inspect_repo_content_chunk_parquet(
 ) -> Result<ParquetPublicationStats, VectorStoreError> {
     let publication_root =
         service.repo_publication_parquet_path(SearchCorpusKind::RepoContentChunk, table_name);
-    if publication_root.is_dir() {
-        if let Some(snapshot) = read_repo_content_stats_snapshot(publication_root.as_path())? {
-            return Ok(snapshot.to_parquet_stats(table_name));
-        }
+    if publication_root.is_dir()
+        && let Some(snapshot) = read_repo_content_stats_snapshot(publication_root.as_path())?
+    {
+        return Ok(snapshot.to_parquet_stats(table_name));
     }
     inspect_repo_publication_parquet(service, SearchCorpusKind::RepoContentChunk, table_name).await
 }
 
-async fn rewrite_legacy_repo_content_publication_as_partitioned(
+fn rewrite_touched_partitions(
+    base_root: &std::path::Path,
+    target_root: &std::path::Path,
+    touched_partitions: &BTreeSet<String>,
+    partitioned_replaced_paths: &std::collections::BTreeMap<String, BTreeSet<String>>,
+    partitioned_changed_documents: &std::collections::BTreeMap<String, Vec<RepoCodeDocument>>,
+    next_partition_stats: &mut Option<
+        std::collections::BTreeMap<String, RepoContentChunkPartitionStats>,
+    >,
+    profile: &mut RepoContentChunkMutationWriteProfile,
+) -> Result<bool, VectorStoreError> {
+    let mut wrote_partition = false;
+    for partition_id in touched_partitions {
+        let load_started = Instant::now();
+        let mut output_batches =
+            load_partitioned_repo_content_batches(base_root, partition_id.as_str())?;
+        profile.load_touched_elapsed += load_started.elapsed();
+        if let Some(replaced_paths) = partitioned_replaced_paths.get(partition_id.as_str()) {
+            let filter_started = Instant::now();
+            let mut filtered_batches = Vec::with_capacity(output_batches.len());
+            for batch in &output_batches {
+                if let Some(filtered) =
+                    filter_batch_excluding_paths(batch, path_column(), replaced_paths)?
+                {
+                    filtered_batches.push(filtered);
+                }
+            }
+            output_batches = filtered_batches;
+            profile.filter_replaced_elapsed += filter_started.elapsed();
+        }
+        if let Some(changed_documents) = partitioned_changed_documents.get(partition_id.as_str()) {
+            let changed_started = Instant::now();
+            let changed_rows = rows_from_documents(changed_documents.as_slice());
+            let changed_batches = repo_content_chunk_batches(&changed_rows)?;
+            output_batches.extend(lance_batches_to_engine_batches(changed_batches.as_slice())?);
+            profile.changed_payload_elapsed += changed_started.elapsed();
+        }
+        if output_batches.is_empty() {
+            if let Some(partition_stats) = next_partition_stats.as_mut() {
+                partition_stats.remove(partition_id.as_str());
+            }
+            continue;
+        }
+        let write_started = Instant::now();
+        let partition_stats = write_normalized_repo_content_batches(
+            repo_content_chunk_partition_path(target_root, partition_id.as_str()).as_path(),
+            &output_batches,
+        )?;
+        profile.write_touched_elapsed += write_started.elapsed();
+        if let Some(next_partition_stats) = next_partition_stats.as_mut() {
+            next_partition_stats.insert(partition_id.clone(), partition_stats);
+        }
+        wrote_partition = true;
+    }
+    Ok(wrote_partition)
+}
+
+fn rewrite_legacy_repo_content_publication_as_partitioned(
     service: &SearchPlaneService,
     base_table_name: &str,
     target_table_name: &str,
@@ -270,8 +289,7 @@ async fn rewrite_legacy_repo_content_publication_as_partitioned(
         service
             .repo_publication_parquet_path(SearchCorpusKind::RepoContentChunk, base_table_name)
             .as_path(),
-    )
-    .await?;
+    )?;
     if !replaced_paths.is_empty() {
         let mut filtered_batches = Vec::with_capacity(output_batches.len());
         for batch in &output_batches {
@@ -292,10 +310,9 @@ async fn rewrite_legacy_repo_content_publication_as_partitioned(
             &output_batches,
         )),
     )
-    .await
 }
 
-async fn write_partitioned_repo_content_output(
+fn write_partitioned_repo_content_output(
     service: &SearchPlaneService,
     table_name: &str,
     output_batches: &[EngineRecordBatch],
@@ -413,7 +430,7 @@ fn partition_repo_content_batches(
                     .iter()
                     .map(|path| {
                         path.as_ref().is_none_or(|path| {
-                            repo_content_chunk_partition_id_for_count(&path, partition_count)
+                            repo_content_chunk_partition_id_for_count(path, partition_count)
                                 == partition_id
                         })
                     })
@@ -495,7 +512,7 @@ fn decode_path_values(
     }
 }
 
-async fn load_partitioned_repo_content_batches(
+fn load_partitioned_repo_content_batches(
     publication_root: &std::path::Path,
     partition_id: &str,
 ) -> Result<Vec<EngineRecordBatch>, VectorStoreError> {
@@ -503,10 +520,10 @@ async fn load_partitioned_repo_content_batches(
     if !partition_path.exists() {
         return Ok(Vec::new());
     }
-    load_repo_content_batches_from_path(partition_path.as_path()).await
+    load_repo_content_batches_from_path(partition_path.as_path())
 }
 
-async fn load_repo_content_batches_from_path(
+fn load_repo_content_batches_from_path(
     parquet_path: &std::path::Path,
 ) -> Result<Vec<EngineRecordBatch>, VectorStoreError> {
     let parquet_file = File::open(parquet_path)?;
@@ -597,12 +614,11 @@ fn materialize_untouched_partition_file(
     source_path: &std::path::Path,
     target_path: &std::path::Path,
 ) -> Result<(), VectorStoreError> {
-    match std::fs::hard_link(source_path, target_path) {
-        Ok(()) => Ok(()),
-        Err(_) => {
-            std::fs::copy(source_path, target_path)?;
-            Ok(())
-        }
+    if let Ok(()) = std::fs::hard_link(source_path, target_path) {
+        Ok(())
+    } else {
+        std::fs::copy(source_path, target_path)?;
+        Ok(())
     }
 }
 

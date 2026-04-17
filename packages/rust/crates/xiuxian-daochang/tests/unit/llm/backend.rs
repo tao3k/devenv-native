@@ -96,7 +96,7 @@ fn responses_payload_uses_input_and_stream_without_messages() {
         tools: None,
         tool_choice: None,
     })
-    .expect("responses payload should build");
+    .unwrap_or_else(|error| panic!("responses payload should build: {error}"));
 
     assert_eq!(payload.get("stream"), Some(&serde_json::Value::Bool(true)));
     assert_eq!(
@@ -108,7 +108,7 @@ fn responses_payload_uses_input_and_stream_without_messages() {
     let input = payload
         .get("input")
         .and_then(serde_json::Value::as_array)
-        .expect("responses payload should contain input array");
+        .unwrap_or_else(|| panic!("responses payload should contain input array"));
     assert_eq!(input.len(), 1);
     assert_eq!(
         input[0].get("role").and_then(serde_json::Value::as_str),
@@ -146,12 +146,12 @@ fn responses_payload_sanitizes_invalid_tool_names() {
         ]),
         tool_choice: None,
     })
-    .expect("responses payload should build");
+    .unwrap_or_else(|error| panic!("responses payload should build: {error}"));
 
     let tools = payload
         .get("tools")
         .and_then(serde_json::Value::as_array)
-        .expect("responses payload should contain tools array");
+        .unwrap_or_else(|| panic!("responses payload should contain tools array"));
     assert_eq!(
         tools[0].get("name").and_then(serde_json::Value::as_str),
         Some("crawl4ai_crawl_url")
@@ -174,7 +174,7 @@ data: [DONE]"#;
             "crawl4ai.crawl_url".to_string(),
         )],
     )
-    .expect("responses stream should parse");
+    .unwrap_or_else(|error| panic!("responses stream should parse: {error}"));
 
     assert_eq!(tool_names, vec!["crawl4ai.crawl_url".to_string()]);
 }
@@ -221,22 +221,22 @@ fn responses_payload_preserves_tool_call_chain_from_daochang_messages() {
         })]),
         tool_choice: None,
     })
-    .expect("responses payload should build");
+    .unwrap_or_else(|error| panic!("responses payload should build: {error}"));
 
     let input = payload
         .get("input")
         .and_then(serde_json::Value::as_array)
-        .expect("responses payload should contain input array");
+        .unwrap_or_else(|| panic!("responses payload should contain input array"));
     let function_call = input
         .iter()
         .find(|item| item.get("type").and_then(serde_json::Value::as_str) == Some("function_call"))
-        .expect("assistant function call should be present");
+        .unwrap_or_else(|| panic!("assistant function call should be present"));
     let function_output = input
         .iter()
         .find(|item| {
             item.get("type").and_then(serde_json::Value::as_str) == Some("function_call_output")
         })
-        .expect("tool output should be present");
+        .unwrap_or_else(|| panic!("tool output should be present"));
 
     assert_eq!(function_call.get("call_id"), Some(&json!("call_123")));
     assert_eq!(function_call.get("name"), Some(&json!("agenda_view")));

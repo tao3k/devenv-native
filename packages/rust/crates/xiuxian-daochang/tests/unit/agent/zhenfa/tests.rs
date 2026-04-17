@@ -181,7 +181,7 @@ async fn call_tool_rejects_wendao_search_when_bridge_has_other_tools() {
     let bridge = ZhenfaToolBridge::from_xiuxian_config(&config, &deps)
         .unwrap_or_else(|| panic!("bridge should be enabled"));
 
-    let error = bridge
+    let Err(error) = bridge
         .call_tool(
             Some("telegram:12345"),
             "wendao.search",
@@ -190,7 +190,9 @@ async fn call_tool_rejects_wendao_search_when_bridge_has_other_tools() {
             })),
         )
         .await
-        .expect_err("wendao.search should no longer be bridged through zhenfa");
+    else {
+        panic!("wendao.search should no longer be bridged through zhenfa");
+    };
     assert!(error.to_string().contains("not enabled"));
 }
 

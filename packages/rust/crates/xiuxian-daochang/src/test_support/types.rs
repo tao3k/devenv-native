@@ -265,7 +265,7 @@ pub(super) const fn session_partition_mode_from_internal(
 }
 
 pub(super) fn session_partition_command_from_internal(
-    command: crate::channels::telegram::commands::SessionPartitionCommand,
+    command: &crate::channels::telegram::commands::SessionPartitionCommand,
 ) -> SessionPartitionCommand {
     SessionPartitionCommand {
         mode: command.mode.map(session_partition_mode_from_internal),

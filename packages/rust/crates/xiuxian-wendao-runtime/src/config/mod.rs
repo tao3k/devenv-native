@@ -25,8 +25,8 @@ pub use duckdb::{
     DEFAULT_SEARCH_DUCKDB_DATABASE_PATH, DEFAULT_SEARCH_DUCKDB_MATERIALIZE_THRESHOLD_ROWS,
     DEFAULT_SEARCH_DUCKDB_PARQUET_METADATA_CACHE, DEFAULT_SEARCH_DUCKDB_PREFER_VIRTUAL_ARROW,
     DEFAULT_SEARCH_DUCKDB_PRESERVE_INSERTION_ORDER, DEFAULT_SEARCH_DUCKDB_THREADS,
-    DuckDbDatabasePath, SearchDuckDbRuntimeConfig, default_search_duckdb_temp_directory,
-    resolve_search_duckdb_runtime_with_settings,
+    DuckDbDatabasePath, SearchDuckDbExecutionConfig, SearchDuckDbRuntimeConfig,
+    default_search_duckdb_temp_directory, resolve_search_duckdb_runtime_with_settings,
 };
 pub use memory::{
     DEFAULT_MEMORY_JULIA_COMPUTE_BASE_URL, DEFAULT_MEMORY_JULIA_COMPUTE_CALIBRATION_ROUTE,

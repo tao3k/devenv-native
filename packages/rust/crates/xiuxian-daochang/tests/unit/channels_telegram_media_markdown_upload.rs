@@ -1,14 +1,9 @@
 //! Telegram media upload tests for markdown-caption fallback behavior.
 
-#[path = "telegram_media_support/bootstrap.rs"]
-mod bootstrap;
-#[path = "telegram_media_support/upload_api.rs"]
-mod upload_api;
-
 use anyhow::Result;
 use xiuxian_daochang::{Channel, TelegramChannel};
 
-use upload_api::{
+use super::telegram_media_support::{
     spawn_mock_telegram_upload_api, spawn_mock_telegram_upload_api_with_markdown_error,
 };
 

@@ -55,11 +55,11 @@ mod tests {
                 .collect(),
         ));
         let batch = RecordBatch::try_new(schema, vec![Arc::new(StringArray::from(vec!["julia"]))])
-            .expect("build batch");
+            .unwrap_or_else(|error| panic!("build batch: {error}"));
 
         let updated =
             attach_record_batch_metadata(&batch, [("trace_id", "trace-123"), ("existing", "two")])
-                .expect("attach metadata");
+                .unwrap_or_else(|error| panic!("attach metadata: {error}"));
 
         assert_eq!(
             updated

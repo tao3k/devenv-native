@@ -21,8 +21,10 @@ fn repo_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .ancestors()
         .nth(4)
-        .map(PathBuf::from)
-        .unwrap_or_else(|| panic!("crate dir should have repo root ancestor"))
+        .map_or_else(
+            || panic!("crate dir should have repo root ancestor"),
+            PathBuf::from,
+        )
 }
 
 fn resolve_runtime_default_config() -> Result<Option<AgentConfig>> {

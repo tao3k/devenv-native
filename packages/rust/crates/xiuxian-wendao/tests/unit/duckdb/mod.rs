@@ -18,7 +18,7 @@ use crate::duckdb::{
 #[cfg(feature = "duckdb")]
 use crate::duckdb::{
     DuckDbLocalRelationEngine, DuckDbRegistrationStrategy, LocalRelationRegistrationHint,
-    ParquetQueryEngine, SearchDuckDbRuntimeConfig,
+    ParquetQueryEngine, SearchDuckDbExecutionConfig, SearchDuckDbRuntimeConfig,
 };
 use crate::link_graph::set_link_graph_wendao_config_override;
 #[cfg(feature = "duckdb")]
@@ -56,12 +56,14 @@ fn in_memory_search_duckdb_runtime(root: &Path) -> SearchDuckDbRuntimeConfig {
         database_path: DuckDbDatabasePath::InMemory,
         temp_directory: root.join(".cache/duckdb-test/tmp"),
         threads: 2,
-        preserve_insertion_order: DEFAULT_SEARCH_DUCKDB_PRESERVE_INSERTION_ORDER,
-        parquet_metadata_cache: DEFAULT_SEARCH_DUCKDB_PARQUET_METADATA_CACHE,
+        execution: SearchDuckDbExecutionConfig {
+            preserve_insertion_order: DEFAULT_SEARCH_DUCKDB_PRESERVE_INSERTION_ORDER,
+            parquet_metadata_cache: DEFAULT_SEARCH_DUCKDB_PARQUET_METADATA_CACHE,
+            prefer_virtual_arrow: DEFAULT_SEARCH_DUCKDB_PREFER_VIRTUAL_ARROW,
+        },
         memory_limit: None,
         max_temp_directory_size: None,
         materialize_threshold_rows: DEFAULT_SEARCH_DUCKDB_MATERIALIZE_THRESHOLD_ROWS,
-        prefer_virtual_arrow: DEFAULT_SEARCH_DUCKDB_PREFER_VIRTUAL_ARROW,
     }
 }
 
@@ -94,12 +96,12 @@ prefer_virtual_arrow = false
         temp.path().join(".cache/duckdb/custom-tmp")
     );
     assert_eq!(runtime.threads, 6);
-    assert!(runtime.preserve_insertion_order);
-    assert!(!runtime.parquet_metadata_cache);
+    assert!(runtime.execution.preserve_insertion_order);
+    assert!(!runtime.execution.parquet_metadata_cache);
     assert_eq!(runtime.memory_limit.as_deref(), Some("3GB"));
     assert_eq!(runtime.max_temp_directory_size.as_deref(), Some("9GB"));
     assert_eq!(runtime.materialize_threshold_rows, 123);
-    assert!(!runtime.prefer_virtual_arrow);
+    assert!(!runtime.execution.prefer_virtual_arrow);
 
     Ok(())
 }
@@ -116,8 +118,8 @@ fn embedded_search_duckdb_defaults_follow_system_profile() -> TestResult {
     assert_eq!(runtime.database_path, DuckDbDatabasePath::InMemory);
     assert_eq!(runtime.temp_directory, crate_root.join(".cache/duckdb/tmp"));
     assert_eq!(runtime.threads, DEFAULT_SEARCH_DUCKDB_THREADS);
-    assert!(runtime.preserve_insertion_order);
-    assert!(!runtime.parquet_metadata_cache);
+    assert!(runtime.execution.preserve_insertion_order);
+    assert!(!runtime.execution.parquet_metadata_cache);
     assert_eq!(runtime.memory_limit, None);
     assert_eq!(runtime.max_temp_directory_size, None);
 

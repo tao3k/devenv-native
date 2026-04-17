@@ -14,17 +14,37 @@ use crate::jobs::{JobCompletion, JobManager};
 
 use super::server::drain_finished_webhook_server;
 
+pub(super) struct WebhookLoopReceivers<'a> {
+    pub inbound_rx: &'a mut mpsc::Receiver<ChannelMessage>,
+    pub completion_rx: &'a mut mpsc::Receiver<JobCompletion>,
+}
+
+pub(super) struct WebhookLoopContext<'a> {
+    pub channel_for_send: &'a Arc<dyn Channel>,
+    pub foreground_tx: &'a mpsc::Sender<ChannelMessage>,
+    pub interrupt_controller: &'a ForegroundInterruptController,
+    pub job_manager: &'a Arc<JobManager>,
+    pub agent: &'a Arc<Agent>,
+    pub foreground_queue_mode: ForegroundQueueMode,
+    pub webhook_server: &'a mut tokio::task::JoinHandle<std::io::Result<()>>,
+}
+
 pub(super) async fn run_webhook_event_loop(
-    inbound_rx: &mut mpsc::Receiver<ChannelMessage>,
-    completion_rx: &mut mpsc::Receiver<JobCompletion>,
-    channel_for_send: &Arc<dyn Channel>,
-    foreground_tx: &mpsc::Sender<ChannelMessage>,
-    interrupt_controller: &ForegroundInterruptController,
-    job_manager: &Arc<JobManager>,
-    agent: &Arc<Agent>,
-    foreground_queue_mode: ForegroundQueueMode,
-    webhook_server: &mut tokio::task::JoinHandle<std::io::Result<()>>,
+    WebhookLoopReceivers {
+        inbound_rx,
+        completion_rx,
+    }: WebhookLoopReceivers<'_>,
+    context: WebhookLoopContext<'_>,
 ) {
+    let WebhookLoopContext {
+        channel_for_send,
+        foreground_tx,
+        interrupt_controller,
+        job_manager,
+        agent,
+        foreground_queue_mode,
+        webhook_server,
+    } = context;
     let mut health_tick = tokio::time::interval(Duration::from_secs(1));
     loop {
         tokio::select! {

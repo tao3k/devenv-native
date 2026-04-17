@@ -44,7 +44,10 @@ pub(crate) async fn search_repo_content_chunks_with_filters(
         SearchCorpusKind::RepoContentChunk,
         publication.publication_id.as_str(),
     );
+    #[cfg(feature = "duckdb")]
     let query_engine = service.repo_parquet_query_engine()?;
+    #[cfg(not(feature = "duckdb"))]
+    let query_engine = service.repo_parquet_query_engine();
     query_engine
         .ensure_parquet_table_registered(engine_table_name.as_str(), parquet_path.as_path())
         .await?;

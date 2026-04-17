@@ -176,10 +176,10 @@ fn apply_memory_limit(cmd: &mut AsyncCommand, memory_limit_bytes: u64) -> Result
         return Ok(());
     }
 
-    use nix::sys::resource::{Resource, Rlim, setrlimit};
+    use nix::sys::resource::{Resource, rlim_t, setrlimit};
     use std::os::unix::process::CommandExt;
 
-    let limit = Rlim::from_raw(memory_limit_bytes);
+    let limit = rlim_t::try_from(memory_limit_bytes).unwrap_or(rlim_t::MAX);
     cmd.pre_exec(move || {
         setrlimit(Resource::RLIMIT_AS, limit, limit)
             .map_err(|err| std::io::Error::new(std::io::ErrorKind::Other, err))?;

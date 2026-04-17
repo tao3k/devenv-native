@@ -24,9 +24,8 @@ impl JobManager {
             let mut workers = JoinSet::new();
 
             while let Some(job) = queue_rx.recv().await {
-                let permit = match Arc::clone(&semaphore).acquire_owned().await {
-                    Ok(permit) => permit,
-                    Err(_) => break,
+                let Ok(permit) = Arc::clone(&semaphore).acquire_owned().await else {
+                    break;
                 };
                 let worker_manager = Arc::clone(&manager);
                 let worker_completion_tx = completion_tx.clone();
@@ -68,9 +67,8 @@ impl JobManager {
                     continue;
                 }
 
-                let metrics = match probe {
-                    Ok(metrics) => metrics,
-                    Err(_) => continue,
+                let Ok(metrics) = probe else {
+                    continue;
                 };
                 match metrics.health_state {
                     JobHealthState::Healthy => {

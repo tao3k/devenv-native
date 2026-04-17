@@ -123,7 +123,7 @@ fn build_repo_content_stage1_sql_skips_sql_limit_when_tag_filters_need_post_filt
 
 #[test]
 fn build_repo_content_detail_sql_targets_specific_path_line_pairs() {
-    let sql = build_repo_content_detail_sql(
+    let detail_sql = build_repo_content_detail_sql(
         "repo_content_chunk_alpha_repo",
         &[
             RepoContentChunkCandidate {
@@ -143,8 +143,10 @@ fn build_repo_content_detail_sql_targets_specific_path_line_pairs() {
                 exact_match: false,
             },
         ],
-    )
-    .expect("detail sql");
+    );
+    let Some(sql) = detail_sql else {
+        panic!("detail sql");
+    };
 
     assert!(
         sql.contains("SELECT path, line_number, line_text FROM repo_content_chunk_alpha_repo"),

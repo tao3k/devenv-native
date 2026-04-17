@@ -87,6 +87,7 @@ mod session_redis_backend_unit;
 mod session_summary;
 mod shortcuts;
 mod telegram_acl_overrides;
+mod telegram_media_support;
 mod telegram_runtime_config;
 mod telegram_session_gate;
 mod test_native_tools;

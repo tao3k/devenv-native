@@ -17,6 +17,7 @@ pub struct SessionSummarySegment {
 
 impl SessionSummarySegment {
     /// Build a summary segment from compacted text and basic metadata.
+    #[must_use]
     pub fn new(summary: String, turn_count: usize, tool_calls: u32, created_at_ms: u64) -> Self {
         Self {
             summary,

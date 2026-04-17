@@ -90,11 +90,11 @@ async fn responses_with_capture(
 ) -> impl IntoResponse {
     let payload = serde_json::from_slice::<Value>(&body)
         .unwrap_or_else(|error| Value::String(format!("invalid_json:{error}")));
-    state
-        .requests
-        .lock()
-        .expect("capture lock should not be poisoned")
-        .push(payload);
+    let mut requests = match state.requests.lock() {
+        Ok(requests) => requests,
+        Err(error) => panic!("capture lock should not be poisoned: {error}"),
+    };
+    requests.push(payload);
     (
         state.response.status,
         [(CONTENT_TYPE, state.response.content_type)],
@@ -261,10 +261,10 @@ data: [DONE]"#,
     .await?;
 
     assert_eq!(parsed.content.as_deref(), Some("pong"));
-    let captured = requests
-        .lock()
-        .expect("capture lock should not be poisoned")
-        .clone();
+    let captured = match requests.lock() {
+        Ok(captured) => captured.clone(),
+        Err(error) => panic!("capture lock should not be poisoned: {error}"),
+    };
     let payload = captured
         .first()
         .ok_or_else(|| anyhow!("expected a captured request payload"))?;

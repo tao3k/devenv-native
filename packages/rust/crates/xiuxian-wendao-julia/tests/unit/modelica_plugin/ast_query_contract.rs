@@ -16,7 +16,7 @@ fn build_modelica_ast_query_request_batch_uses_null_columns_for_blank_filters() 
         source_text: "within Modelica; package Blocks end Blocks;".to_string(),
         limit: Some(128),
     }])
-    .expect("build ast-query request batch");
+    .unwrap_or_else(|error| panic!("build ast-query request batch: {error}"));
 
     for column_name in [
         MODELICA_AST_QUERY_NODE_KIND_COLUMN,

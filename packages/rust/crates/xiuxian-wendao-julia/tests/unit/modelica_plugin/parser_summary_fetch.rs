@@ -55,12 +55,12 @@ fn blocking_fetch_reuses_shared_runtime_and_returns_summary_from_linked_service(
     ensure_linked_modelica_parser_summary_service()?;
     let repository = parser_summary_repository();
     let runtime_before = shared_modelica_parser_summary_runtime_identity_for_tests()?;
-    let source = r#"
+    let source = r"
 within Demo;
 model GainHolder
   parameter Real gain = 1;
 end GainHolder;
-"#;
+";
 
     let first = fetch_modelica_parser_file_summary_blocking_for_repository(
         &repository,

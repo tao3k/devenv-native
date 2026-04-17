@@ -120,14 +120,14 @@ impl SessionGate {
     ///
     /// Returns an error when the provided Valkey URL is invalid.
     pub fn new_with_valkey_for_test(
-        valkey_url: String,
-        key_prefix: String,
+        valkey_url: &str,
+        key_prefix: &str,
         lease_ttl_secs: u64,
         acquire_timeout_secs: Option<u64>,
     ) -> Result<Self> {
         let backend = ValkeySessionGateBackend::new(
-            valkey_url.as_str(),
-            key_prefix.as_str(),
+            valkey_url,
+            key_prefix,
             lease_ttl_secs,
             acquire_timeout_secs,
         )?;

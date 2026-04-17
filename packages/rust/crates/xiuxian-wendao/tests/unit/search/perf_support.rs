@@ -214,19 +214,19 @@ fn repo_content_parquet_mutation_benchmark_reports_1k_and_10k_samples() {
         small_snapshot
             .publish_profile
             .finalize
-            .prewarm_elapsed
+            .prewarm
             .as_secs_f64()
             * 1_000.0,
         small_snapshot
             .publish_profile
             .finalize
-            .record_publication_elapsed
+            .record_publication
             .as_secs_f64()
             * 1_000.0,
         small_snapshot
             .publish_profile
             .finalize
-            .set_fingerprints_elapsed
+            .set_fingerprints
             .as_secs_f64()
             * 1_000.0
     );
@@ -299,19 +299,19 @@ fn repo_content_parquet_mutation_benchmark_reports_1k_and_10k_samples() {
         large_snapshot
             .publish_profile
             .finalize
-            .prewarm_elapsed
+            .prewarm
             .as_secs_f64()
             * 1_000.0,
         large_snapshot
             .publish_profile
             .finalize
-            .record_publication_elapsed
+            .record_publication
             .as_secs_f64()
             * 1_000.0,
         large_snapshot
             .publish_profile
             .finalize
-            .set_fingerprints_elapsed
+            .set_fingerprints
             .as_secs_f64()
             * 1_000.0
     );

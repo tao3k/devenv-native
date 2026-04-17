@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-use arrow::array::{BooleanArray, Int32Array, StringArray};
+use arrow::array::{ArrayRef, BooleanArray, Int32Array, StringArray};
 use arrow::datatypes::{DataType, Field, Schema};
 use arrow::record_batch::RecordBatch;
 
@@ -138,8 +138,10 @@ fn decode_parser_summary_rows_materializes_file_and_root_summaries() {
 
 #[test]
 fn parser_summary_response_batches_reject_empty_batch_lists() {
-    let error = validate_julia_parser_summary_response_batches(&[])
-        .expect_err("empty response batch lists should fail validation");
+    let validation = validate_julia_parser_summary_response_batches(&[]);
+    let Err(error) = validation else {
+        panic!("empty response batch lists should fail validation");
+    };
     let message = error.to_string();
     assert!(
         message.contains("response stream returned no record batches"),
@@ -148,448 +150,203 @@ fn parser_summary_response_batches_reject_empty_batch_lists() {
 }
 
 fn sample_response_batch() -> RecordBatch {
-    RecordBatch::try_new(
-        sample_response_schema(),
-        vec![
-            Arc::new(StringArray::from(vec![
-                Some("req-1"),
-                Some("req-1"),
-                Some("req-1"),
-                Some("req-1"),
-                Some("req-1"),
-                Some("req-1"),
-            ])),
-            Arc::new(StringArray::from(vec![
-                Some("Demo.jl"),
-                Some("Demo.jl"),
-                Some("Demo.jl"),
-                Some("Demo.jl"),
-                Some("Demo.jl"),
-                Some("Demo.jl"),
-            ])),
-            Arc::new(StringArray::from(vec![
-                Some("julia_file_summary"),
-                Some("julia_file_summary"),
-                Some("julia_file_summary"),
-                Some("julia_file_summary"),
-                Some("julia_file_summary"),
-                Some("julia_file_summary"),
-            ])),
-            Arc::new(StringArray::from(vec![
-                Some("JuliaSyntax.jl"),
-                Some("JuliaSyntax.jl"),
-                Some("JuliaSyntax.jl"),
-                Some("JuliaSyntax.jl"),
-                Some("JuliaSyntax.jl"),
-                Some("JuliaSyntax.jl"),
-            ])),
-            Arc::new(BooleanArray::from(vec![true, true, true, true, true, true])),
-            Arc::new(StringArray::from(vec![
-                Some("Demo"),
-                Some("Demo"),
-                Some("Demo"),
-                Some("Demo"),
-                Some("Demo"),
-                Some("Demo"),
-            ])),
-            Arc::new(StringArray::from(vec![
-                None::<&str>,
-                None::<&str>,
-                None::<&str>,
-                None::<&str>,
-                None::<&str>,
-                None::<&str>,
-            ])),
-            Arc::new(StringArray::from(vec![
-                Some("Demo"),
-                Some("Demo"),
-                Some("Demo"),
-                Some("Demo"),
-                Some("Demo"),
-                Some("Demo"),
-            ])),
-            Arc::new(StringArray::from(vec![
-                Some("module"),
-                Some("module"),
-                Some("module"),
-                Some("module"),
-                Some("module"),
-                Some("module"),
-            ])),
-            Arc::new(StringArray::from(vec![
-                Some("export"),
-                Some("import"),
-                Some("symbol"),
-                Some("symbol"),
-                Some("docstring"),
-                Some("include"),
-            ])),
-            Arc::new(StringArray::from(vec![
-                Some("solve"),
-                None,
-                Some("solve"),
-                Some("LIMIT"),
-                Some("solve"),
-                None,
-            ])),
-            Arc::new(StringArray::from(vec![
-                None,
-                None,
-                Some("function"),
-                Some("binding"),
-                None,
-                None,
-            ])),
-            Arc::new(StringArray::from(vec![
-                None,
-                None,
-                Some("solve(problem::Problem)"),
-                Some("const LIMIT = 1"),
-                None,
-                None,
-            ])),
-            Arc::new(StringArray::from(vec![
-                None,
-                None,
-                None,
-                None,
-                Some("function"),
-                None,
-            ])),
-            Arc::new(StringArray::from(vec![
-                None,
-                None,
-                None,
-                None,
-                Some("solve"),
-                None,
-            ])),
-            Arc::new(StringArray::from(vec![
-                None,
-                None,
-                None,
-                None,
-                Some("Demo.solve"),
-                None,
-            ])),
-            Arc::new(Int32Array::from(vec![
-                None,
-                None,
-                None,
-                None,
-                Some(5),
-                None,
-            ])),
-            Arc::new(Int32Array::from(vec![
-                None,
-                None,
-                None,
-                None,
-                Some(7),
-                None,
-            ])),
-            Arc::new(StringArray::from(vec![
-                None,
-                Some("using"),
-                None,
-                None,
-                None,
-                Some("include"),
-            ])),
-            Arc::new(StringArray::from(vec![
-                None,
-                Some("aliased_member"),
-                None,
-                None,
-                None,
-                Some("include"),
-            ])),
-            Arc::new(StringArray::from(vec![
-                None,
-                Some("..Core.solve"),
-                None,
-                None,
-                None,
-                Some("solvers.jl"),
-            ])),
-            Arc::new(BooleanArray::from(vec![
-                None,
-                Some(true),
-                None,
-                None,
-                None,
-                None,
-            ])),
-            Arc::new(Int32Array::from(vec![
-                None,
-                Some(2),
-                None,
-                None,
-                None,
-                None,
-            ])),
-            Arc::new(StringArray::from(vec![
-                None,
-                Some("solver"),
-                None,
-                None,
-                None,
-                None,
-            ])),
-            Arc::new(StringArray::from(vec![
-                None,
-                Some("..Core"),
-                None,
-                None,
-                None,
-                None,
-            ])),
-            Arc::new(StringArray::from(vec![
-                None,
-                Some("solve"),
-                None,
-                None,
-                None,
-                None,
-            ])),
-            Arc::new(StringArray::from(vec![
-                None,
-                Some("solver"),
-                None,
-                None,
-                None,
-                None,
-            ])),
-            Arc::new(StringArray::from(vec![
-                None,
-                None,
-                None,
-                None,
-                Some("Solve docs."),
-                None,
-            ])),
-            Arc::new(BooleanArray::from(vec![
-                None,
-                Some(true),
-                None,
-                None,
-                None,
-                None,
-            ])),
-            Arc::new(StringArray::from(vec![
-                None,
-                None,
-                None,
-                None,
-                None,
-                Some("solvers.jl"),
-            ])),
-            Arc::new(StringArray::from(vec![
-                None,
-                None,
-                None,
-                Some("const"),
-                None,
-                None,
-            ])),
-            Arc::new(BooleanArray::from(vec![
-                None,
-                None,
-                Some(true),
-                Some(true),
-                None,
-                None,
-            ])),
-            Arc::new(Int32Array::from(vec![
-                None,
-                None,
-                Some(5),
-                Some(3),
-                None,
-                None,
-            ])),
-            Arc::new(Int32Array::from(vec![
-                None,
-                None,
-                Some(7),
-                Some(3),
-                None,
-                None,
-            ])),
-            Arc::new(Int32Array::from(vec![
-                None,
-                None,
-                Some(1),
-                None,
-                None,
-                None,
-            ])),
-            Arc::new(Int32Array::from(vec![
-                None,
-                None,
-                Some(0),
-                None,
-                None,
-                None,
-            ])),
-        ],
-    )
-    .unwrap_or_else(|error| panic!("sample response batch should build: {error}"))
+    RecordBatch::try_new(sample_response_schema(), sample_response_columns())
+        .unwrap_or_else(|error| panic!("sample response batch should build: {error}"))
 }
 
 fn sample_response_schema() -> Arc<Schema> {
-    Arc::new(Schema::new(vec![
-        Field::new(
-            JULIA_PARSER_SUMMARY_REQUEST_ID_COLUMN,
-            DataType::Utf8,
-            false,
-        ),
-        Field::new(JULIA_PARSER_SUMMARY_SOURCE_ID_COLUMN, DataType::Utf8, false),
-        Field::new(JULIA_PARSER_SUMMARY_KIND_COLUMN, DataType::Utf8, false),
-        Field::new(JULIA_PARSER_SUMMARY_BACKEND_COLUMN, DataType::Utf8, false),
-        Field::new(
-            JULIA_PARSER_SUMMARY_SUCCESS_COLUMN,
-            DataType::Boolean,
-            false,
-        ),
-        Field::new(
-            JULIA_PARSER_SUMMARY_PRIMARY_NAME_COLUMN,
-            DataType::Utf8,
-            true,
-        ),
-        Field::new(
-            JULIA_PARSER_SUMMARY_ERROR_MESSAGE_COLUMN,
-            DataType::Utf8,
-            true,
-        ),
-        Field::new(
-            JULIA_PARSER_SUMMARY_MODULE_NAME_COLUMN,
-            DataType::Utf8,
-            true,
-        ),
-        Field::new(
-            JULIA_PARSER_SUMMARY_MODULE_KIND_COLUMN,
-            DataType::Utf8,
-            true,
-        ),
-        Field::new(JULIA_PARSER_SUMMARY_ITEM_GROUP_COLUMN, DataType::Utf8, true),
-        Field::new(JULIA_PARSER_SUMMARY_ITEM_NAME_COLUMN, DataType::Utf8, true),
-        Field::new(JULIA_PARSER_SUMMARY_ITEM_KIND_COLUMN, DataType::Utf8, true),
-        Field::new(
-            JULIA_PARSER_SUMMARY_ITEM_SIGNATURE_COLUMN,
-            DataType::Utf8,
-            true,
-        ),
-        Field::new(
-            JULIA_PARSER_SUMMARY_ITEM_TARGET_KIND_COLUMN,
-            DataType::Utf8,
-            true,
-        ),
-        Field::new(
-            JULIA_PARSER_SUMMARY_ITEM_TARGET_NAME_COLUMN,
-            DataType::Utf8,
-            true,
-        ),
-        Field::new(
-            JULIA_PARSER_SUMMARY_ITEM_TARGET_PATH_COLUMN,
-            DataType::Utf8,
-            true,
-        ),
-        Field::new(
+    Arc::new(Schema::new(sample_response_schema_fields()))
+}
+
+fn sample_response_columns() -> Vec<ArrayRef> {
+    vec![
+        repeated_utf8(Some("req-1")),
+        repeated_utf8(Some("Demo.jl")),
+        repeated_utf8(Some("julia_file_summary")),
+        repeated_utf8(Some("JuliaSyntax.jl")),
+        repeated_bool(true),
+        repeated_utf8(Some("Demo")),
+        utf8_values([None::<&str>; 6]),
+        repeated_utf8(Some("Demo")),
+        repeated_utf8(Some("module")),
+        utf8_values([
+            Some("export"),
+            Some("import"),
+            Some("symbol"),
+            Some("symbol"),
+            Some("docstring"),
+            Some("include"),
+        ]),
+        utf8_values([
+            Some("solve"),
+            None,
+            Some("solve"),
+            Some("LIMIT"),
+            Some("solve"),
+            None,
+        ]),
+        utf8_values([None, None, Some("function"), Some("binding"), None, None]),
+        utf8_values([
+            None,
+            None,
+            Some("solve(problem::Problem)"),
+            Some("const LIMIT = 1"),
+            None,
+            None,
+        ]),
+        utf8_values([None, None, None, None, Some("function"), None]),
+        utf8_values([None, None, None, None, Some("solve"), None]),
+        utf8_values([None, None, None, None, Some("Demo.solve"), None]),
+        i32_values([None, None, None, None, Some(5), None]),
+        i32_values([None, None, None, None, Some(7), None]),
+        utf8_values([None, Some("using"), None, None, None, Some("include")]),
+        utf8_values([
+            None,
+            Some("aliased_member"),
+            None,
+            None,
+            None,
+            Some("include"),
+        ]),
+        utf8_values([
+            None,
+            Some("..Core.solve"),
+            None,
+            None,
+            None,
+            Some("solvers.jl"),
+        ]),
+        bool_values([None, Some(true), None, None, None, None]),
+        i32_values([None, Some(2), None, None, None, None]),
+        utf8_values([None, Some("solver"), None, None, None, None]),
+        utf8_values([None, Some("..Core"), None, None, None, None]),
+        utf8_values([None, Some("solve"), None, None, None, None]),
+        utf8_values([None, Some("solver"), None, None, None, None]),
+        utf8_values([None, None, None, None, Some("Solve docs."), None]),
+        bool_values([None, Some(true), None, None, None, None]),
+        utf8_values([None, None, None, None, None, Some("solvers.jl")]),
+        utf8_values([None, None, None, Some("const"), None, None]),
+        bool_values([None, None, Some(true), Some(true), None, None]),
+        i32_values([None, None, Some(5), Some(3), None, None]),
+        i32_values([None, None, Some(7), Some(3), None, None]),
+        i32_values([None, None, Some(1), None, None, None]),
+        i32_values([None, None, Some(0), None, None, None]),
+    ]
+}
+
+fn sample_response_schema_fields() -> Vec<Field> {
+    vec![
+        required_field(JULIA_PARSER_SUMMARY_REQUEST_ID_COLUMN, DataType::Utf8),
+        required_field(JULIA_PARSER_SUMMARY_SOURCE_ID_COLUMN, DataType::Utf8),
+        required_field(JULIA_PARSER_SUMMARY_KIND_COLUMN, DataType::Utf8),
+        required_field(JULIA_PARSER_SUMMARY_BACKEND_COLUMN, DataType::Utf8),
+        required_field(JULIA_PARSER_SUMMARY_SUCCESS_COLUMN, DataType::Boolean),
+        optional_field(JULIA_PARSER_SUMMARY_PRIMARY_NAME_COLUMN, DataType::Utf8),
+        optional_field(JULIA_PARSER_SUMMARY_ERROR_MESSAGE_COLUMN, DataType::Utf8),
+        optional_field(JULIA_PARSER_SUMMARY_MODULE_NAME_COLUMN, DataType::Utf8),
+        optional_field(JULIA_PARSER_SUMMARY_MODULE_KIND_COLUMN, DataType::Utf8),
+        optional_field(JULIA_PARSER_SUMMARY_ITEM_GROUP_COLUMN, DataType::Utf8),
+        optional_field(JULIA_PARSER_SUMMARY_ITEM_NAME_COLUMN, DataType::Utf8),
+        optional_field(JULIA_PARSER_SUMMARY_ITEM_KIND_COLUMN, DataType::Utf8),
+        optional_field(JULIA_PARSER_SUMMARY_ITEM_SIGNATURE_COLUMN, DataType::Utf8),
+        optional_field(JULIA_PARSER_SUMMARY_ITEM_TARGET_KIND_COLUMN, DataType::Utf8),
+        optional_field(JULIA_PARSER_SUMMARY_ITEM_TARGET_NAME_COLUMN, DataType::Utf8),
+        optional_field(JULIA_PARSER_SUMMARY_ITEM_TARGET_PATH_COLUMN, DataType::Utf8),
+        optional_field(
             JULIA_PARSER_SUMMARY_ITEM_TARGET_LINE_START_COLUMN,
             DataType::Int32,
-            true,
         ),
-        Field::new(
+        optional_field(
             JULIA_PARSER_SUMMARY_ITEM_TARGET_LINE_END_COLUMN,
             DataType::Int32,
-            true,
         ),
-        Field::new(
+        optional_field(
             JULIA_PARSER_SUMMARY_ITEM_DEPENDENCY_KIND_COLUMN,
             DataType::Utf8,
-            true,
         ),
-        Field::new(
+        optional_field(
             JULIA_PARSER_SUMMARY_ITEM_DEPENDENCY_FORM_COLUMN,
             DataType::Utf8,
-            true,
         ),
-        Field::new(
+        optional_field(
             JULIA_PARSER_SUMMARY_ITEM_DEPENDENCY_TARGET_COLUMN,
             DataType::Utf8,
-            true,
         ),
-        Field::new(
+        optional_field(
             JULIA_PARSER_SUMMARY_ITEM_DEPENDENCY_IS_RELATIVE_COLUMN,
             DataType::Boolean,
-            true,
         ),
-        Field::new(
+        optional_field(
             JULIA_PARSER_SUMMARY_ITEM_DEPENDENCY_RELATIVE_LEVEL_COLUMN,
             DataType::Int32,
-            true,
         ),
-        Field::new(
+        optional_field(
             JULIA_PARSER_SUMMARY_ITEM_DEPENDENCY_LOCAL_NAME_COLUMN,
             DataType::Utf8,
-            true,
         ),
-        Field::new(
+        optional_field(
             JULIA_PARSER_SUMMARY_ITEM_DEPENDENCY_PARENT_COLUMN,
             DataType::Utf8,
-            true,
         ),
-        Field::new(
+        optional_field(
             JULIA_PARSER_SUMMARY_ITEM_DEPENDENCY_MEMBER_COLUMN,
             DataType::Utf8,
-            true,
         ),
-        Field::new(
+        optional_field(
             JULIA_PARSER_SUMMARY_ITEM_DEPENDENCY_ALIAS_COLUMN,
             DataType::Utf8,
-            true,
         ),
-        Field::new(
-            JULIA_PARSER_SUMMARY_ITEM_CONTENT_COLUMN,
-            DataType::Utf8,
-            true,
-        ),
-        Field::new(
+        optional_field(JULIA_PARSER_SUMMARY_ITEM_CONTENT_COLUMN, DataType::Utf8),
+        optional_field(
             JULIA_PARSER_SUMMARY_ITEM_REEXPORTED_COLUMN,
             DataType::Boolean,
-            true,
         ),
-        Field::new(JULIA_PARSER_SUMMARY_ITEM_PATH_COLUMN, DataType::Utf8, true),
-        Field::new(
+        optional_field(JULIA_PARSER_SUMMARY_ITEM_PATH_COLUMN, DataType::Utf8),
+        optional_field(
             JULIA_PARSER_SUMMARY_ITEM_BINDING_KIND_COLUMN,
             DataType::Utf8,
-            true,
         ),
-        Field::new(
+        optional_field(
             JULIA_PARSER_SUMMARY_ITEM_TOP_LEVEL_COLUMN,
             DataType::Boolean,
-            true,
         ),
-        Field::new(
-            JULIA_PARSER_SUMMARY_ITEM_LINE_START_COLUMN,
-            DataType::Int32,
-            true,
-        ),
-        Field::new(
-            JULIA_PARSER_SUMMARY_ITEM_LINE_END_COLUMN,
-            DataType::Int32,
-            true,
-        ),
-        Field::new(
+        optional_field(JULIA_PARSER_SUMMARY_ITEM_LINE_START_COLUMN, DataType::Int32),
+        optional_field(JULIA_PARSER_SUMMARY_ITEM_LINE_END_COLUMN, DataType::Int32),
+        optional_field(
             JULIA_PARSER_SUMMARY_ITEM_FUNCTION_POSITIONAL_ARITY_COLUMN,
             DataType::Int32,
-            true,
         ),
-        Field::new(
+        optional_field(
             JULIA_PARSER_SUMMARY_ITEM_FUNCTION_KEYWORD_ARITY_COLUMN,
             DataType::Int32,
-            true,
         ),
-    ]))
+    ]
+}
+
+fn required_field(name: &str, data_type: DataType) -> Field {
+    Field::new(name, data_type, false)
+}
+
+fn optional_field(name: &str, data_type: DataType) -> Field {
+    Field::new(name, data_type, true)
+}
+
+fn repeated_utf8(value: Option<&str>) -> ArrayRef {
+    Arc::new(StringArray::from(vec![value; 6]))
+}
+
+fn repeated_bool(value: bool) -> ArrayRef {
+    Arc::new(BooleanArray::from(vec![value; 6]))
+}
+
+fn utf8_values(values: [Option<&str>; 6]) -> ArrayRef {
+    Arc::new(StringArray::from(values.into_iter().collect::<Vec<_>>()))
+}
+
+fn bool_values(values: [Option<bool>; 6]) -> ArrayRef {
+    Arc::new(BooleanArray::from(values.into_iter().collect::<Vec<_>>()))
+}
+
+fn i32_values(values: [Option<i32>; 6]) -> ArrayRef {
+    Arc::new(Int32Array::from(values.into_iter().collect::<Vec<_>>()))
 }

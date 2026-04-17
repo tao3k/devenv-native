@@ -253,7 +253,7 @@ async fn apply_repo_content_chunk_build_plan(
                 replaced_paths,
                 changed_documents,
                 &plan.file_fingerprints,
-                &previous_fingerprints,
+                previous_fingerprints,
             )
             .await?;
             finalize_repo_content_publication(
@@ -352,7 +352,7 @@ async fn finalize_repo_content_publication_profiled(
             &prewarm_columns,
         )
         .await?;
-    profile.prewarm_elapsed = prewarm_started.elapsed();
+    profile.prewarm = prewarm_started.elapsed();
     let record_started = Instant::now();
     service
         .record_repo_publication_input_with_storage_format(
@@ -370,7 +370,7 @@ async fn finalize_repo_content_publication_profiled(
             SearchPublicationStorageFormat::Parquet,
         )
         .await;
-    profile.record_publication_elapsed = record_started.elapsed();
+    profile.record_publication = record_started.elapsed();
     let set_fingerprints_started = Instant::now();
     service
         .set_file_fingerprints(
@@ -381,6 +381,6 @@ async fn finalize_repo_content_publication_profiled(
             file_fingerprints,
         )
         .await;
-    profile.set_fingerprints_elapsed = set_fingerprints_started.elapsed();
+    profile.set_fingerprints = set_fingerprints_started.elapsed();
     Ok(profile)
 }
