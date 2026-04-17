@@ -6,14 +6,8 @@ use serde_json::json;
 
 use super::super::Agent;
 use super::diagnostics::tool_timeout_error_output;
-use super::llm_tools::{
-    ToolCallExecution, ToolRuntimeCallResult, ToolRuntimeListResult, ToolRuntimeToolDefinition,
-    execute_call_with_timeout, llm_tool_definitions, timeout_tool_error_payload,
-};
 use crate::agent::native_tools::registry::{NativeTool, NativeToolCallContext};
 use crate::{AgentConfig, NativeToolRegistry};
-
-mod helpers;
 
 struct RecordingTool {
     seen_context: Arc<Mutex<Option<NativeToolCallContext>>>,
