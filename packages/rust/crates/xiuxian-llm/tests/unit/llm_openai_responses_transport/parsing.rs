@@ -58,13 +58,9 @@ data: [DONE]"#,
         ..Default::default()
     };
 
-    let parsed = execute_openai_responses_request(
-        &Client::new(),
-        &endpoint,
-        Some("test-key"),
-        &request,
-    )
-    .await?;
+    let parsed =
+        execute_openai_responses_request(&Client::new(), &endpoint, Some("test-key"), &request)
+            .await?;
 
     assert_eq!(parsed.content.as_deref(), Some("pong"));
     let captured = match requests.lock() {

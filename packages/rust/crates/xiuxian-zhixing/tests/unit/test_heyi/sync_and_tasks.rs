@@ -39,7 +39,9 @@ fn test_sync_from_disk_indexes_notebook_into_wendao_graph() -> TestResult {
         "journal notebook document should exist after sync"
     );
     assert!(
-        documents.iter().any(|entity| entity.name == "Agenda 2026-02-26"),
+        documents
+            .iter()
+            .any(|entity| entity.name == "Agenda 2026-02-26"),
         "agenda notebook document should exist after sync"
     );
     let tasks = graph.get_entities_by_type("TASK");

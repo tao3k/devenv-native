@@ -184,8 +184,7 @@ fn apply_memory_limit(cmd: &mut AsyncCommand, memory_limit_bytes: u64) -> Result
     // and does not touch shared Rust state.
     unsafe {
         cmd.pre_exec(move || {
-            setrlimit(Resource::RLIMIT_AS, limit, limit)
-                .map_err(std::io::Error::other)?;
+            setrlimit(Resource::RLIMIT_AS, limit, limit).map_err(std::io::Error::other)?;
             Ok(())
         });
     }

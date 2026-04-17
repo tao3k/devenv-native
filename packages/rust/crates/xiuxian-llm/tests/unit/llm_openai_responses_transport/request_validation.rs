@@ -42,10 +42,11 @@ data: [DONE]"#,
         ..Default::default()
     };
 
-    let err = execute_openai_responses_request(&Client::new(), &endpoint, Some("test-key"), &request)
-        .await
-        .err()
-        .ok_or_else(|| anyhow!("duplicate tool output should fail locally"))?;
+    let err =
+        execute_openai_responses_request(&Client::new(), &endpoint, Some("test-key"), &request)
+            .await
+            .err()
+            .ok_or_else(|| anyhow!("duplicate tool output should fail locally"))?;
 
     let rendered = err.to_string();
     if !rendered.contains("without an available preceding function_call") {
@@ -76,10 +77,11 @@ data: [DONE]"#,
         ..Default::default()
     };
 
-    let err = execute_openai_responses_request(&Client::new(), &endpoint, Some("test-key"), &request)
-        .await
-        .err()
-        .ok_or_else(|| anyhow!("orphan tool output should fail locally"))?;
+    let err =
+        execute_openai_responses_request(&Client::new(), &endpoint, Some("test-key"), &request)
+            .await
+            .err()
+            .ok_or_else(|| anyhow!("orphan tool output should fail locally"))?;
 
     let rendered = err.to_string();
     if !rendered.contains("function_call_output items without an available preceding function_call")
