@@ -21,10 +21,22 @@
             entrypoint = [ "${wendaoBin}/bin/wendao" ];
             env = [
               "SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
+              "GIT_EXEC_PATH=${pkgs.git}/libexec/git-core"
+              "PATH=${
+                pkgs.lib.makeBinPath [
+                  wendaoBin
+                  pkgs.git
+                ]
+              }"
             ];
           };
           layers = [
-            (nix2container.buildLayer { deps = [ pkgs.cacert ]; })
+            (nix2container.buildLayer {
+              deps = [
+                pkgs.cacert
+                pkgs.git
+              ];
+            })
             (nix2container.buildLayer { deps = [ wendaoBin ]; })
           ];
         };
