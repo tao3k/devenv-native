@@ -3,12 +3,14 @@ use super::types::{MarkdownSyntaxLintCode, MarkdownSyntaxLintIssue};
 use crate::markdown_structure::parse_markdown_structure;
 use crate::targets::MarkdownTargetOccurrenceKind;
 use regex::Regex;
+use std::path::Path;
 use std::sync::LazyLock;
 
-static MIXED_WIKILINK_MARKDOWN_LINK_REGEX: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"!?\[\[[^\]\n]+\]\]\([^)\n]*\)")
-        .expect("hardcoded mixed wikilink regex should compile")
-});
+static MIXED_WIKILINK_MARKDOWN_LINK_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| match Regex::new(r"!?\[\[[^\]\n]+\]\]\([^)\n]*\)") {
+        Ok(regex) => regex,
+        Err(error) => panic!("hardcoded mixed wikilink regex should compile: {error}"),
+    });
 
 pub(super) fn lint_obsidian_wikilinks(
     body: &str,
@@ -65,8 +67,7 @@ pub(super) fn lint_obsidian_wikilinks(
             issues.push(MarkdownSyntaxLintIssue {
                 code: MarkdownSyntaxLintCode::NonCanonicalObsidianAliasOrder,
                 message: format!(
-                    "Obsidian alias wikilinks use `[[target|label]]`; `{}` looks reversed because the right-hand side `{}` looks like a repository target path or address",
-                    literal, label
+                    "Obsidian alias wikilinks use `[[target|label]]`; `{literal}` looks reversed because the right-hand side `{label}` looks like a repository target path or address"
                 ),
                 line,
                 column,
@@ -269,6 +270,13 @@ fn looks_like_obsidian_target_hint(value: &str) -> bool {
         return false;
     }
 
+    let markdown_extension = Path::new(trimmed)
+        .extension()
+        .and_then(|extension| extension.to_str())
+        .is_some_and(|extension| {
+            extension.eq_ignore_ascii_case("md") || extension.eq_ignore_ascii_case("markdown")
+        });
+
     trimmed.starts_with("./")
         || trimmed.starts_with("../")
         || trimmed.starts_with('/')
@@ -278,8 +286,7 @@ fn looks_like_obsidian_target_hint(value: &str) -> bool {
         || trimmed.starts_with("wendao://")
         || trimmed.contains('/')
         || trimmed.contains('#')
-        || trimmed.ends_with(".md")
-        || trimmed.ends_with(".markdown")
+        || markdown_extension
 }
 
 fn normalize_label_hint(value: &str) -> String {

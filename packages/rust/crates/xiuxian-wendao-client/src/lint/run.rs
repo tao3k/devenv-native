@@ -6,6 +6,7 @@ use super::{MarkdownLintArgs, MarkdownLintFileReport, MarkdownLintIssue, Markdow
 use crate::{ClientContext, CommandOutcome, OutputFormat};
 use anyhow::{Context, Result};
 use std::collections::BTreeMap;
+use std::fmt::Write as _;
 use xiuxian_wendao_parsers::lint_markdown_syntax;
 
 pub(crate) fn run_markdown_lint(
@@ -23,9 +24,9 @@ pub(crate) fn run_markdown_lint(
 
     for path in files {
         let relative_path = display_path(path.as_path(), context.root());
-        let content = std::fs::read(path.as_path())
+        let bytes = std::fs::read(path.as_path())
             .with_context(|| format!("failed to read markdown file `{}`", path.display()))?;
-        let file_report = match String::from_utf8(content) {
+        let file_report = match String::from_utf8(bytes) {
             Ok(markdown) => {
                 style_facts.push(collect_file_link_style_facts(
                     relative_path.as_str(),
@@ -66,7 +67,7 @@ pub(crate) fn run_markdown_lint(
     report.files_with_issues = report.files.len();
     report.issue_count = report.files.iter().map(|file| file.issue_count).sum();
 
-    emit_report(&report, context.output())?;
+    emit_report(&report, context.output());
     Ok(if report.issue_count == 0 {
         CommandOutcome::success()
     } else {
@@ -92,12 +93,11 @@ fn build_file_report(
     }
 }
 
-fn emit_report(report: &MarkdownLintReport, output: OutputFormat) -> Result<()> {
+fn emit_report(report: &MarkdownLintReport, output: OutputFormat) {
     let rendered = match output {
         OutputFormat::Text => render_text_report(report),
     };
     print!("{rendered}");
-    Ok(())
 }
 
 fn render_text_report(report: &MarkdownLintReport) -> String {
@@ -109,45 +109,44 @@ fn render_text_report(report: &MarkdownLintReport) -> String {
     }
 
     let mut rendered = String::new();
-    rendered.push_str(&format!(
-        "Markdown lint found {} issue(s) in {} file(s) across {} checked file(s).\n",
+    let _ = writeln!(
+        rendered,
+        "Markdown lint found {} issue(s) in {} file(s) across {} checked file(s).",
         report.issue_count, report.files_with_issues, report.checked_files
-    ));
+    );
     for file in &report.files {
         rendered.push('\n');
         rendered.push_str(file.path.as_str());
         rendered.push('\n');
         for issue in &file.issues {
-            rendered.push_str(&format!(
-                "  - line {}, column {}\n",
-                issue.line, issue.column
-            ));
-            rendered.push_str(&format!("    rule: {}\n", issue.code));
-            rendered.push_str(&format!("    kind: {}\n", issue.kind));
-            rendered.push_str(&format!("    problem: {}\n", issue.problem));
+            let _ = writeln!(rendered, "  - line {}, column {}", issue.line, issue.column);
+            let _ = writeln!(rendered, "    rule: {}", issue.code);
+            let _ = writeln!(rendered, "    kind: {}", issue.kind);
+            let _ = writeln!(rendered, "    problem: {}", issue.problem);
             if let Some(target) = &issue.target {
-                rendered.push_str(&format!("    target: {}\n", target));
+                let _ = writeln!(rendered, "    target: {target}");
             }
             if let Some(target_title) = &issue.target_title {
-                rendered.push_str(&format!("    target_title: {}\n", target_title));
+                let _ = writeln!(rendered, "    target_title: {target_title}");
             }
             if let Some(target_heading) = &issue.target_heading {
-                rendered.push_str(&format!("    target_heading: {}\n", target_heading));
+                let _ = writeln!(rendered, "    target_heading: {target_heading}");
             }
             if let Some(found) = &issue.found {
-                rendered.push_str(&format!("    found: {}\n", found));
+                let _ = writeln!(rendered, "    found: {found}");
             }
             if let Some(expected) = &issue.expected {
-                rendered.push_str(&format!("    expected: {}\n", expected));
+                let _ = writeln!(rendered, "    expected: {expected}");
             }
-            rendered.push_str(&format!("    detail: {}\n", issue.message));
+            let _ = writeln!(rendered, "    detail: {}", issue.message);
             if let Some(tip) = &issue.tip {
-                rendered.push_str(&format!("    tip: {}\n", tip));
+                let _ = writeln!(rendered, "    tip: {tip}");
             }
             if let Some(source) = &issue.source {
-                rendered.push_str(&format!("    source: {}\n", source));
+                let _ = writeln!(rendered, "    source: {source}");
                 rendered.push_str("            ");
-                rendered.push_str(pointer_line(issue, source).as_str());
+                let pointer = pointer_line(issue, source);
+                rendered.push_str(&pointer);
                 rendered.push('\n');
             }
         }

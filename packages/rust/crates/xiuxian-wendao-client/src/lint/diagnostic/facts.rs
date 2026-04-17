@@ -24,6 +24,14 @@ pub(in crate::lint) struct DiagnosticFacts {
     tip_override: Option<String>,
 }
 
+pub(in crate::lint) struct DynamicDiagnosticText {
+    pub(in crate::lint) problem: String,
+    pub(in crate::lint) detail: String,
+    pub(in crate::lint) found: Option<String>,
+    pub(in crate::lint) expected: Option<String>,
+    pub(in crate::lint) tip: Option<String>,
+}
+
 impl DiagnosticFacts {
     pub(super) fn from_parser_issue(
         issue: MarkdownSyntaxLintIssue,
@@ -78,11 +86,7 @@ impl DiagnosticFacts {
         line: usize,
         column: usize,
         source: Option<String>,
-        problem: String,
-        detail: String,
-        found: Option<String>,
-        expected: Option<String>,
-        tip: Option<String>,
+        dynamic_text: DynamicDiagnosticText,
     ) -> Self {
         Self {
             rule_key,
@@ -96,11 +100,11 @@ impl DiagnosticFacts {
             target_metadata: None,
             duplicates_heading: false,
             utf8_error: None,
-            problem_override: Some(problem),
-            detail_override: Some(detail),
-            found_override: found,
-            expected_override: expected,
-            tip_override: tip,
+            problem_override: Some(dynamic_text.problem),
+            detail_override: Some(dynamic_text.detail),
+            found_override: dynamic_text.found,
+            expected_override: dynamic_text.expected,
+            tip_override: dynamic_text.tip,
         }
     }
 
@@ -113,15 +117,17 @@ impl DiagnosticFacts {
     }
 
     pub(in crate::lint) fn parser_message(&self) -> &str {
-        self.parser_message
-            .as_deref()
-            .expect("parser-backed diagnostic facts should carry a parser message")
+        match self.parser_message.as_deref() {
+            Some(message) => message,
+            None => panic!("parser-backed diagnostic facts should carry a parser message"),
+        }
     }
 
     pub(in crate::lint) fn utf8_error(&self) -> &str {
-        self.utf8_error
-            .as_deref()
-            .expect("invalid_utf8 diagnostic facts should carry a utf8 error")
+        match self.utf8_error.as_deref() {
+            Some(error) => error,
+            None => panic!("invalid_utf8 diagnostic facts should carry a utf8 error"),
+        }
     }
 
     pub(in crate::lint) fn line(&self) -> usize {
@@ -158,8 +164,10 @@ impl DiagnosticFacts {
 
     pub(in crate::lint) fn rewrite_with_markdown(&self) -> Option<String> {
         match self.parser_code {
-            Some(MarkdownSyntaxLintCode::BareObsidianWikilink)
-            | Some(MarkdownSyntaxLintCode::RedundantObsidianLabel) => self
+            Some(
+                MarkdownSyntaxLintCode::BareObsidianWikilink
+                | MarkdownSyntaxLintCode::RedundantObsidianLabel,
+            ) => self
                 .target_metadata
                 .as_ref()
                 .map(bare_or_redundant_expected),
@@ -167,10 +175,12 @@ impl DiagnosticFacts {
                 self.link.as_ref(),
                 self.target_metadata.as_ref(),
             )),
-            Some(MarkdownSyntaxLintCode::NonCanonicalObsidianAliasOrder)
-            | Some(MarkdownSyntaxLintCode::UnclosedFrontmatter)
-            | Some(MarkdownSyntaxLintCode::InvalidFrontmatterYaml)
-            | Some(MarkdownSyntaxLintCode::UnclosedFence)
+            Some(
+                MarkdownSyntaxLintCode::NonCanonicalObsidianAliasOrder
+                | MarkdownSyntaxLintCode::UnclosedFrontmatter
+                | MarkdownSyntaxLintCode::InvalidFrontmatterYaml
+                | MarkdownSyntaxLintCode::UnclosedFence,
+            )
             | None => None,
         }
     }
@@ -180,27 +190,34 @@ impl DiagnosticFacts {
             Some(MarkdownSyntaxLintCode::NonCanonicalObsidianAliasOrder) => Some(
                 non_canonical_expected(self.link.as_ref(), self.target_metadata.as_ref()),
             ),
-            Some(MarkdownSyntaxLintCode::UnclosedFrontmatter)
-            | Some(MarkdownSyntaxLintCode::InvalidFrontmatterYaml)
-            | Some(MarkdownSyntaxLintCode::UnclosedFence)
-            | Some(MarkdownSyntaxLintCode::BareObsidianWikilink)
-            | Some(MarkdownSyntaxLintCode::RedundantObsidianLabel)
-            | Some(MarkdownSyntaxLintCode::MixedWikilinkMarkdownLink)
+            Some(
+                MarkdownSyntaxLintCode::UnclosedFrontmatter
+                | MarkdownSyntaxLintCode::InvalidFrontmatterYaml
+                | MarkdownSyntaxLintCode::UnclosedFence
+                | MarkdownSyntaxLintCode::BareObsidianWikilink
+                | MarkdownSyntaxLintCode::RedundantObsidianLabel
+                | MarkdownSyntaxLintCode::MixedWikilinkMarkdownLink,
+            )
             | None => None,
         }
     }
 
     pub(in crate::lint) fn display_label_tip(&self) -> Option<String> {
         match self.parser_code {
-            Some(MarkdownSyntaxLintCode::BareObsidianWikilink)
-            | Some(MarkdownSyntaxLintCode::RedundantObsidianLabel)
-            | Some(MarkdownSyntaxLintCode::MixedWikilinkMarkdownLink)
-            | Some(MarkdownSyntaxLintCode::NonCanonicalObsidianAliasOrder) => Some(
-                display_label_tip(self.target_title(), self.target_heading()),
-            ),
-            Some(MarkdownSyntaxLintCode::UnclosedFrontmatter)
-            | Some(MarkdownSyntaxLintCode::InvalidFrontmatterYaml)
-            | Some(MarkdownSyntaxLintCode::UnclosedFence)
+            Some(
+                MarkdownSyntaxLintCode::BareObsidianWikilink
+                | MarkdownSyntaxLintCode::RedundantObsidianLabel
+                | MarkdownSyntaxLintCode::MixedWikilinkMarkdownLink
+                | MarkdownSyntaxLintCode::NonCanonicalObsidianAliasOrder,
+            ) => Some(display_label_tip(
+                self.target_title(),
+                self.target_heading(),
+            )),
+            Some(
+                MarkdownSyntaxLintCode::UnclosedFrontmatter
+                | MarkdownSyntaxLintCode::InvalidFrontmatterYaml
+                | MarkdownSyntaxLintCode::UnclosedFence,
+            )
             | None => None,
         }
     }
@@ -216,15 +233,17 @@ impl DiagnosticFacts {
     }
 
     pub(in crate::lint) fn dynamic_problem_text(&self) -> &str {
-        self.problem_override
-            .as_deref()
-            .expect("dynamic problem text should exist")
+        match self.problem_override.as_deref() {
+            Some(problem) => problem,
+            None => panic!("dynamic problem text should exist"),
+        }
     }
 
     pub(in crate::lint) fn dynamic_detail_text(&self) -> &str {
-        self.detail_override
-            .as_deref()
-            .expect("dynamic detail text should exist")
+        match self.detail_override.as_deref() {
+            Some(detail) => detail,
+            None => panic!("dynamic detail text should exist"),
+        }
     }
 
     pub(in crate::lint) fn dynamic_found_text(&self) -> Option<String> {

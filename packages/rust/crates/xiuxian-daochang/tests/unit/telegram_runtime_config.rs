@@ -45,19 +45,19 @@ fn defaults_are_applied_when_env_missing() {
 fn valid_env_values_override_defaults() {
     let values = HashMap::from([
         (
-            "OMNI_AGENT_TELEGRAM_INBOUND_QUEUE_CAPACITY",
+            "XIUXIAN_DAOCHANG_TELEGRAM_INBOUND_QUEUE_CAPACITY",
             "200".to_string(),
         ),
         (
-            "OMNI_AGENT_TELEGRAM_FOREGROUND_QUEUE_CAPACITY",
+            "XIUXIAN_DAOCHANG_TELEGRAM_FOREGROUND_QUEUE_CAPACITY",
             "512".to_string(),
         ),
         (
-            "OMNI_AGENT_TELEGRAM_FOREGROUND_MAX_IN_FLIGHT",
+            "XIUXIAN_DAOCHANG_TELEGRAM_FOREGROUND_MAX_IN_FLIGHT",
             "32".to_string(),
         ),
         (
-            "OMNI_AGENT_TELEGRAM_FOREGROUND_TURN_TIMEOUT_SECS",
+            "XIUXIAN_DAOCHANG_TELEGRAM_FOREGROUND_TURN_TIMEOUT_SECS",
             "600".to_string(),
         ),
     ]);
@@ -72,19 +72,19 @@ fn valid_env_values_override_defaults() {
 fn invalid_values_fall_back_to_defaults() {
     let values = HashMap::from([
         (
-            "OMNI_AGENT_TELEGRAM_INBOUND_QUEUE_CAPACITY",
+            "XIUXIAN_DAOCHANG_TELEGRAM_INBOUND_QUEUE_CAPACITY",
             "0".to_string(),
         ),
         (
-            "OMNI_AGENT_TELEGRAM_FOREGROUND_QUEUE_CAPACITY",
+            "XIUXIAN_DAOCHANG_TELEGRAM_FOREGROUND_QUEUE_CAPACITY",
             "-3".to_string(),
         ),
         (
-            "OMNI_AGENT_TELEGRAM_FOREGROUND_MAX_IN_FLIGHT",
+            "XIUXIAN_DAOCHANG_TELEGRAM_FOREGROUND_MAX_IN_FLIGHT",
             "not-a-number".to_string(),
         ),
         (
-            "OMNI_AGENT_TELEGRAM_FOREGROUND_TURN_TIMEOUT_SECS",
+            "XIUXIAN_DAOCHANG_TELEGRAM_FOREGROUND_TURN_TIMEOUT_SECS",
             "0".to_string(),
         ),
     ]);

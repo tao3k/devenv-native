@@ -118,8 +118,7 @@ fn source_line(markdown: &str, line: usize) -> Option<&str> {
 fn candidate_base_dirs(source_path: &Path, root: &Path) -> Vec<PathBuf> {
     let source_dir = source_path
         .parent()
-        .map(Path::to_path_buf)
-        .unwrap_or_else(|| root.to_path_buf());
+        .map_or_else(|| root.to_path_buf(), Path::to_path_buf);
     let mut bases = Vec::new();
     let mut cursor = Some(source_dir.as_path());
     while let Some(path) = cursor {

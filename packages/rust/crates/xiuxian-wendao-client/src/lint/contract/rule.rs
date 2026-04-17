@@ -77,19 +77,25 @@ impl RuleContract {
     }
 
     fn render_problem(&self, facts: &DiagnosticFacts) -> String {
-        self.problem.clone().unwrap_or_else(|| {
-            self.problem_strategy
-                .expect("validated problem strategy should exist")
-                .render(facts)
-        })
+        if let Some(problem) = &self.problem {
+            return problem.clone();
+        }
+
+        let Some(strategy) = self.problem_strategy else {
+            panic!("validated problem strategy should exist");
+        };
+        strategy.render(facts)
     }
 
     fn render_detail(&self, facts: &DiagnosticFacts) -> String {
-        self.detail.clone().unwrap_or_else(|| {
-            self.detail_strategy
-                .expect("validated detail strategy should exist")
-                .render(facts)
-        })
+        if let Some(detail) = &self.detail {
+            return detail.clone();
+        }
+
+        let Some(strategy) = self.detail_strategy else {
+            panic!("validated detail strategy should exist");
+        };
+        strategy.render(facts)
     }
 
     fn render_found(&self, facts: &DiagnosticFacts) -> Option<String> {

@@ -28,6 +28,10 @@ impl CommandOutcome {
 }
 
 /// Execute one reusable client command.
+///
+/// # Errors
+///
+/// Returns an error when the selected client command fails to execute.
 pub fn run_command(command: &ClientCommand, context: &ClientContext) -> Result<CommandOutcome> {
     match command {
         ClientCommand::Lint { command } => run_lint_command(command, context),

@@ -11,9 +11,11 @@ use std::sync::OnceLock;
 static DIAGNOSTIC_CONTRACT: OnceLock<MarkdownLintDiagnosticContract> = OnceLock::new();
 
 pub(in crate::lint) fn diagnostic_contract() -> &'static MarkdownLintDiagnosticContract {
-    DIAGNOSTIC_CONTRACT.get_or_init(|| {
-        MarkdownLintDiagnosticContract::load()
-            .expect("embedded markdown lint diagnostic contract should parse")
+    DIAGNOSTIC_CONTRACT.get_or_init(|| match MarkdownLintDiagnosticContract::load() {
+        Ok(contract) => contract,
+        Err(error) => {
+            panic!("embedded markdown lint diagnostic contract should parse: {error}")
+        }
     })
 }
 
@@ -49,10 +51,7 @@ impl MarkdownLintDiagnosticContract {
 
         for rule_key in known_rule_keys() {
             if !rules.contains_key(rule_key) {
-                bail!(
-                    "markdown lint diagnostic contract is missing rule `{}`",
-                    rule_key
-                );
+                bail!("markdown lint diagnostic contract is missing rule `{rule_key}`");
             }
         }
 
@@ -63,9 +62,9 @@ impl MarkdownLintDiagnosticContract {
         &self,
         facts: &crate::lint::diagnostic::DiagnosticFacts,
     ) -> crate::lint::MarkdownLintIssue {
-        self.rules
-            .get(facts.rule_key())
-            .expect("all markdown lint rules should have diagnostic contracts")
-            .render_issue(facts)
+        let Some(rule) = self.rules.get(facts.rule_key()) else {
+            panic!("all markdown lint rules should have diagnostic contracts");
+        };
+        rule.render_issue(facts)
     }
 }

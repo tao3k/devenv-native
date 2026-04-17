@@ -11,7 +11,7 @@ use super::policy::TelegramSlashCommandRule;
 use super::send_gate::{TelegramSendRateLimitBackend, TelegramSendRateLimitGateState};
 
 pub(super) const TELEGRAM_ACL_RELOAD_CHECK_INTERVAL: Duration = Duration::from_millis(500);
-pub(super) const TELEGRAM_API_BASE_ENV: &str = "OMNI_AGENT_TELEGRAM_API_BASE_URL";
+pub(super) const TELEGRAM_API_BASE_ENV: &str = "XIUXIAN_DAOCHANG_TELEGRAM_API_BASE_URL";
 
 /// Telegram channel — long-polls the Bot API for updates.
 pub struct TelegramChannel {

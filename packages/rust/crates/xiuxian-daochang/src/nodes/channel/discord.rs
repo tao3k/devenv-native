@@ -95,17 +95,17 @@ fn resolve_discord_runtime_launch_config(
     )?;
     let ingress_bind = resolve_string(
         None,
-        "OMNI_AGENT_DISCORD_INGRESS_BIND",
+        "XIUXIAN_DAOCHANG_DISCORD_INGRESS_BIND",
         runtime_settings.discord.ingress_bind.as_deref(),
         DISCORD_DEFAULT_INGRESS_BIND,
     );
     let ingress_path = resolve_string(
         None,
-        "OMNI_AGENT_DISCORD_INGRESS_PATH",
+        "XIUXIAN_DAOCHANG_DISCORD_INGRESS_PATH",
         runtime_settings.discord.ingress_path.as_deref(),
         DISCORD_DEFAULT_INGRESS_PATH,
     );
-    let ingress_secret_token = env_non_empty!("OMNI_AGENT_DISCORD_INGRESS_SECRET_TOKEN")
+    let ingress_secret_token = env_non_empty!("XIUXIAN_DAOCHANG_DISCORD_INGRESS_SECRET_TOKEN")
         .or_else(|| runtime_settings.discord.ingress_secret_token.clone())
         .and_then(|secret| normalize_non_empty_secret(&secret));
 
@@ -129,7 +129,7 @@ fn resolve_discord_runtime_config(
 ) -> anyhow::Result<ResolvedDiscordRuntimeConfig> {
     let raw_partition = resolve_string(
         session_partition,
-        "OMNI_AGENT_DISCORD_SESSION_PARTITION",
+        "XIUXIAN_DAOCHANG_DISCORD_SESSION_PARTITION",
         runtime_settings.discord.session_partition.as_deref(),
         "guild_channel_user",
     );
@@ -142,31 +142,31 @@ fn resolve_discord_runtime_config(
     );
     let inbound_queue_capacity = resolve_positive_usize(
         inbound_queue_capacity,
-        "OMNI_AGENT_DISCORD_INBOUND_QUEUE_CAPACITY",
+        "XIUXIAN_DAOCHANG_DISCORD_INBOUND_QUEUE_CAPACITY",
         runtime_settings.discord.inbound_queue_capacity,
         DISCORD_DEFAULT_INBOUND_QUEUE_CAPACITY,
     );
     let turn_timeout_secs = resolve_positive_u64(
         turn_timeout_secs,
-        "OMNI_AGENT_DISCORD_TURN_TIMEOUT_SECS",
+        "XIUXIAN_DAOCHANG_DISCORD_TURN_TIMEOUT_SECS",
         runtime_settings.discord.turn_timeout_secs,
         DISCORD_DEFAULT_TURN_TIMEOUT_SECS,
     );
     let foreground_max_in_flight_messages = resolve_positive_usize(
         None,
-        "OMNI_AGENT_DISCORD_FOREGROUND_MAX_IN_FLIGHT_MESSAGES",
+        "XIUXIAN_DAOCHANG_DISCORD_FOREGROUND_MAX_IN_FLIGHT_MESSAGES",
         runtime_settings.discord.foreground_max_in_flight_messages,
         DISCORD_DEFAULT_FOREGROUND_MAX_IN_FLIGHT_MESSAGES,
     );
     let require_mention = resolve_bool(
         None,
-        "OMNI_AGENT_DISCORD_REQUIRE_MENTION",
+        "XIUXIAN_DAOCHANG_DISCORD_REQUIRE_MENTION",
         runtime_settings.discord.require_mention,
         false,
     );
     let require_mention_persist = resolve_bool(
         None,
-        "OMNI_AGENT_DISCORD_REQUIRE_MENTION_PERSIST",
+        "XIUXIAN_DAOCHANG_DISCORD_REQUIRE_MENTION_PERSIST",
         runtime_settings.discord.require_mention_persist,
         false,
     );
@@ -182,7 +182,7 @@ fn resolve_discord_runtime_config(
             turn_timeout_secs,
             foreground_max_in_flight_messages,
             foreground_queue_mode: resolve_foreground_queue_mode(
-                "OMNI_AGENT_DISCORD_FOREGROUND_QUEUE_MODE",
+                "XIUXIAN_DAOCHANG_DISCORD_FOREGROUND_QUEUE_MODE",
                 runtime_settings.discord.foreground_queue_mode.as_deref(),
                 ForegroundQueueMode::Queue,
             ),

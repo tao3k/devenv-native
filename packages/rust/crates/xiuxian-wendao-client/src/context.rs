@@ -11,7 +11,8 @@ pub struct ClientContext {
 impl ClientContext {
     /// Construct one client execution context.
     #[must_use]
-    pub fn new(root: PathBuf, output: OutputFormat) -> Self {
+    pub fn new(root: impl Into<PathBuf>, output: OutputFormat) -> Self {
+        let root = root.into();
         Self {
             root: absolutize(&root),
             output,
@@ -35,7 +36,5 @@ fn absolutize(path: &Path) -> PathBuf {
     if path.is_absolute() {
         return path.to_path_buf();
     }
-    std::env::current_dir()
-        .map(|cwd| cwd.join(path))
-        .unwrap_or_else(|_| path.to_path_buf())
+    std::env::current_dir().map_or_else(|_| path.to_path_buf(), |cwd| cwd.join(path))
 }

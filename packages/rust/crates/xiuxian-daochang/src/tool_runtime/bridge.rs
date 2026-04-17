@@ -690,6 +690,9 @@ impl ToolClientPool {
             match outcome {
                 Ok(Ok(value)) => return Ok(value),
                 Ok(Err(error)) => {
+                    if is_non_retryable_rpc_error(&error) {
+                        return Err(error);
+                    }
                     last_error = Some(error);
                     self.invalidate_connection().await;
                 }
@@ -768,6 +771,11 @@ pub(crate) async fn connect_tool_pool_backend(
 
 async fn connect_service(url: &str, handshake_timeout_secs: u64) -> Result<ToolClientService> {
     ToolRuntimeSessionClient::connect(url, handshake_timeout_secs).await
+}
+
+fn is_non_retryable_rpc_error(error: &anyhow::Error) -> bool {
+    let rendered = error.to_string();
+    rendered.contains("tool runtime") && rendered.contains("failed with code")
 }
 
 async fn connect_service_with_retry(

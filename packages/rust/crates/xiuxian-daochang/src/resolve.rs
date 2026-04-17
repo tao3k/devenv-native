@@ -10,7 +10,7 @@ pub(crate) fn resolve_string(
     if let Some(value) = cli_value {
         return value;
     }
-    if let Some(value) = env_non_empty!(env_name) {
+    if let Some(value) = read_non_empty_env(env_name) {
         return value;
     }
     if let Some(value) = settings_value {
@@ -88,13 +88,14 @@ pub(crate) fn resolve_channel_mode(
     if let Some(mode) = cli_mode {
         return mode;
     }
-    if let Some(raw) = env_non_empty!("OMNI_AGENT_TELEGRAM_MODE") {
+    if let Some(raw) = read_non_empty_env("XIUXIAN_DAOCHANG_TELEGRAM_MODE") {
         if let Some(mode) = parse_channel_mode(&raw) {
             return mode;
         }
         tracing::warn!(
+            env_var = "XIUXIAN_DAOCHANG_TELEGRAM_MODE",
             value = %raw,
-            "invalid OMNI_AGENT_TELEGRAM_MODE; using settings/default"
+            "invalid telegram mode env value; using settings/default"
         );
     }
     if let Some(raw) = settings_mode {
@@ -116,13 +117,14 @@ pub(crate) fn resolve_dedup_backend(
     if let Some(backend) = cli_backend {
         return backend;
     }
-    if let Some(raw) = env_non_empty!("OMNI_AGENT_TELEGRAM_WEBHOOK_DEDUP_BACKEND") {
+    if let Some(raw) = read_non_empty_env("XIUXIAN_DAOCHANG_TELEGRAM_WEBHOOK_DEDUP_BACKEND") {
         if let Some(backend) = parse_dedup_backend(&raw) {
             return backend;
         }
         tracing::warn!(
+            env_var = "XIUXIAN_DAOCHANG_TELEGRAM_WEBHOOK_DEDUP_BACKEND",
             value = %raw,
-            "invalid OMNI_AGENT_TELEGRAM_WEBHOOK_DEDUP_BACKEND; using settings/default"
+            "invalid telegram webhook dedup backend env value; using settings/default"
         );
     }
     if let Some(raw) = settings_backend {
@@ -144,13 +146,14 @@ pub(crate) fn resolve_discord_runtime_mode(
     if let Some(mode) = cli_mode {
         return mode;
     }
-    if let Some(raw) = env_non_empty!("OMNI_AGENT_DISCORD_RUNTIME_MODE") {
+    if let Some(raw) = read_non_empty_env("XIUXIAN_DAOCHANG_DISCORD_RUNTIME_MODE") {
         if let Some(mode) = parse_discord_runtime_mode(&raw) {
             return mode;
         }
         tracing::warn!(
+            env_var = "XIUXIAN_DAOCHANG_DISCORD_RUNTIME_MODE",
             value = %raw,
-            "invalid OMNI_AGENT_DISCORD_RUNTIME_MODE; using settings/default"
+            "invalid discord runtime mode env value; using settings/default"
         );
     }
     if let Some(raw) = settings_mode {
@@ -231,7 +234,7 @@ fn parse_env_value<T>(
     parser: impl FnOnce(&str) -> Option<T>,
     invalid_message: &'static str,
 ) -> Option<T> {
-    let raw = std::env::var(name).ok()?;
+    let raw = read_env(name)?;
     if let Some(value) = parser(raw.as_str()) {
         Some(value)
     } else {
@@ -251,4 +254,12 @@ fn parse_bool(raw: &str) -> Option<bool> {
 #[must_use]
 pub(crate) fn parse_bool_from_env(name: &str) -> Option<bool> {
     parse_env_value(name, parse_bool, "invalid bool env value")
+}
+
+fn read_env(name: &str) -> Option<String> {
+    std::env::var(name).ok()
+}
+
+fn read_non_empty_env(name: &str) -> Option<String> {
+    env_non_empty!(name)
 }

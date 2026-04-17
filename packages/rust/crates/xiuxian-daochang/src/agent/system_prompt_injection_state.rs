@@ -12,7 +12,7 @@ const SYSTEM_PROMPT_INJECTION_SNAPSHOT_SESSION_PREFIX: &str =
 const SYSTEM_PROMPT_INJECTION_SNAPSHOT_MESSAGE_NAME: &str =
     "agent.system_prompt_injection.snapshot";
 pub(crate) const SYSTEM_PROMPT_INJECTION_CONTEXT_MESSAGE_NAME: &str =
-    "agent.system_prompt_injection.context";
+    "agent.system_prompt.injection.context";
 
 /// Persisted session-scoped system prompt injection payload.
 #[derive(Debug, Clone, PartialEq, Eq)]

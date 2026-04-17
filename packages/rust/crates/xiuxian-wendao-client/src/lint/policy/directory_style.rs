@@ -8,7 +8,7 @@ use xiuxian_wendao_parsers::{
 
 use crate::lint::MarkdownLintIssue;
 use crate::lint::contract::diagnostic_contract;
-use crate::lint::diagnostic::DiagnosticFacts;
+use crate::lint::diagnostic::{DiagnosticFacts, DynamicDiagnosticText};
 
 const DIRECTORY_LINK_STYLE_MISMATCH: &str = "directory_link_style_mismatch";
 const DIRECTORY_LINK_STYLE_AMBIGUOUS: &str = "directory_link_style_ambiguous";
@@ -149,21 +149,27 @@ pub(crate) fn lint_directory_link_style_policy(
                         occurrence.line,
                         occurrence.column,
                         Some(occurrence.source.clone()),
-                        format!(
-                            "Directory `{directory}` mixes explicit Obsidian wikilinks and Markdown note links."
-                        ),
-                        format!(
-                            "Directory `{directory}` already prefers {} style across {} file(s); this file still uses {} style. Keep one note-link style per directory so LLM repair stays deterministic.",
-                            preferred_style.display_name(),
-                            summary
-                                .files_per_style
-                                .get(&preferred_style)
-                                .map_or(0, BTreeSet::len),
-                            occurrence.style.display_name(),
-                        ),
-                        Some(occurrence.literal.clone()),
-                        Some(rewrite_for_directory_style(occurrence, preferred_style, directory)),
-                        Some(directory_style_tip(&summary, preferred_style)),
+                        DynamicDiagnosticText {
+                            problem: format!(
+                                "Directory `{directory}` mixes explicit Obsidian wikilinks and Markdown note links."
+                            ),
+                            detail: format!(
+                                "Directory `{directory}` already prefers {} style across {} file(s); this file still uses {} style. Keep one note-link style per directory so LLM repair stays deterministic.",
+                                preferred_style.display_name(),
+                                summary
+                                    .files_per_style
+                                    .get(&preferred_style)
+                                    .map_or(0, BTreeSet::len),
+                                occurrence.style.display_name(),
+                            ),
+                            found: Some(occurrence.literal.clone()),
+                            expected: Some(rewrite_for_directory_style(
+                                occurrence,
+                                preferred_style,
+                                directory,
+                            )),
+                            tip: Some(directory_style_tip(&summary, preferred_style)),
+                        },
                     ),
                 );
                 issues_by_file
@@ -184,21 +190,23 @@ pub(crate) fn lint_directory_link_style_policy(
                     occurrence.line,
                     occurrence.column,
                     Some(occurrence.source.clone()),
-                    format!(
-                        "Directory `{directory}` mixes explicit Obsidian wikilinks and Markdown note links without a clear local contract."
-                    ),
-                    format!(
-                        "Files in `{directory}` currently split between {} and {} with no dominant local style. Pick one style for this directory and rewrite the outliers consistently instead of mixing both.",
-                        DirectoryLinkStyle::Obsidian.display_name(),
-                        DirectoryLinkStyle::Markdown.display_name(),
-                    ),
-                    Some(occurrence.literal.clone()),
-                    Some(format!(
-                        "Choose either {} or {} for directory `{directory}`, then rewrite files consistently.",
-                        DirectoryLinkStyle::Obsidian.canonical_example(),
-                        DirectoryLinkStyle::Markdown.canonical_example(),
-                    )),
-                    Some(ambiguous_directory_tip(&summary)),
+                    DynamicDiagnosticText {
+                        problem: format!(
+                            "Directory `{directory}` mixes explicit Obsidian wikilinks and Markdown note links without a clear local contract."
+                        ),
+                        detail: format!(
+                            "Files in `{directory}` currently split between {} and {} with no dominant local style. Pick one style for this directory and rewrite the outliers consistently instead of mixing both.",
+                            DirectoryLinkStyle::Obsidian.display_name(),
+                            DirectoryLinkStyle::Markdown.display_name(),
+                        ),
+                        found: Some(occurrence.literal.clone()),
+                        expected: Some(format!(
+                            "Choose either {} or {} for directory `{directory}`, then rewrite files consistently.",
+                            DirectoryLinkStyle::Obsidian.canonical_example(),
+                            DirectoryLinkStyle::Markdown.canonical_example(),
+                        )),
+                        tip: Some(ambiguous_directory_tip(&summary)),
+                    },
                 ),
             );
             issues_by_file
@@ -420,8 +428,5 @@ fn ambiguous_directory_tip(summary: &DirectoryStyleSummary) -> String {
         .get(&DirectoryLinkStyle::Markdown)
         .map(|files| files.iter().take(3).cloned().collect::<Vec<_>>().join(", "))
         .unwrap_or_default();
-    format!(
-        "Obsidian-style files: {}. Markdown-style files: {}.",
-        obsidian_files, markdown_files
-    )
+    format!("Obsidian-style files: {obsidian_files}. Markdown-style files: {markdown_files}.")
 }

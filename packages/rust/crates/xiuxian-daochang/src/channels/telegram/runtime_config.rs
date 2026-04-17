@@ -1,9 +1,8 @@
 //! Telegram foreground runtime configuration (queueing, concurrency, timeout).
 
-use xiuxian_macros::env_non_empty;
-
 use crate::channels::managed_runtime::ForegroundQueueMode;
 use crate::config::{TelegramSettings, load_runtime_settings};
+use crate::env_parse::lookup_non_empty_env;
 
 const DEFAULT_INBOUND_QUEUE_CAPACITY: usize = 100;
 const DEFAULT_FOREGROUND_QUEUE_CAPACITY: usize = 256;
@@ -42,7 +41,7 @@ impl TelegramRuntimeConfig {
     #[must_use]
     pub fn from_env() -> Self {
         let settings = load_runtime_settings();
-        Self::from_lookup(|name| env_non_empty!(name), Some(&settings.telegram))
+        Self::from_lookup(|name| std::env::var(name).ok(), Some(&settings.telegram))
     }
 
     #[doc(hidden)]
@@ -61,31 +60,31 @@ impl TelegramRuntimeConfig {
         Self {
             inbound_queue_capacity: resolve_usize(
                 &lookup,
-                "OMNI_AGENT_TELEGRAM_INBOUND_QUEUE_CAPACITY",
+                "XIUXIAN_DAOCHANG_TELEGRAM_INBOUND_QUEUE_CAPACITY",
                 settings.and_then(|s| s.inbound_queue_capacity),
                 defaults.inbound_queue_capacity,
             ),
             foreground_queue_capacity: resolve_usize(
                 &lookup,
-                "OMNI_AGENT_TELEGRAM_FOREGROUND_QUEUE_CAPACITY",
+                "XIUXIAN_DAOCHANG_TELEGRAM_FOREGROUND_QUEUE_CAPACITY",
                 settings.and_then(|s| s.foreground_queue_capacity),
                 defaults.foreground_queue_capacity,
             ),
             foreground_queue_mode: resolve_foreground_queue_mode(
                 &lookup,
-                "OMNI_AGENT_TELEGRAM_FOREGROUND_QUEUE_MODE",
+                "XIUXIAN_DAOCHANG_TELEGRAM_FOREGROUND_QUEUE_MODE",
                 settings.and_then(|s| s.foreground_queue_mode.as_deref()),
                 defaults.foreground_queue_mode,
             ),
             foreground_max_in_flight_messages: resolve_usize(
                 &lookup,
-                "OMNI_AGENT_TELEGRAM_FOREGROUND_MAX_IN_FLIGHT",
+                "XIUXIAN_DAOCHANG_TELEGRAM_FOREGROUND_MAX_IN_FLIGHT",
                 settings.and_then(|s| s.foreground_max_in_flight_messages),
                 defaults.foreground_max_in_flight_messages,
             ),
             foreground_turn_timeout_secs: resolve_u64(
                 &lookup,
-                "OMNI_AGENT_TELEGRAM_FOREGROUND_TURN_TIMEOUT_SECS",
+                "XIUXIAN_DAOCHANG_TELEGRAM_FOREGROUND_TURN_TIMEOUT_SECS",
                 settings.and_then(|s| s.foreground_turn_timeout_secs),
                 defaults.foreground_turn_timeout_secs,
             ),
@@ -97,7 +96,7 @@ fn resolve_usize<F>(lookup: &F, name: &str, setting_value: Option<usize>, defaul
 where
     F: Fn(&str) -> Option<String>,
 {
-    if let Some(raw) = lookup(name) {
+    if let Some(raw) = lookup_non_empty_env(lookup, name) {
         match raw.trim().parse::<usize>() {
             Ok(value) if value > 0 => return value,
             _ => tracing::warn!(
@@ -126,7 +125,7 @@ fn resolve_u64<F>(lookup: &F, name: &str, setting_value: Option<u64>, default: u
 where
     F: Fn(&str) -> Option<String>,
 {
-    if let Some(raw) = lookup(name) {
+    if let Some(raw) = lookup_non_empty_env(lookup, name) {
         match raw.trim().parse::<u64>() {
             Ok(value) if value > 0 => return value,
             _ => tracing::warn!(
@@ -160,7 +159,7 @@ fn resolve_foreground_queue_mode<F>(
 where
     F: Fn(&str) -> Option<String>,
 {
-    if let Some(raw) = lookup(name) {
+    if let Some(raw) = lookup_non_empty_env(lookup, name) {
         if let Some(mode) = ForegroundQueueMode::parse(raw.as_str()) {
             return mode;
         }

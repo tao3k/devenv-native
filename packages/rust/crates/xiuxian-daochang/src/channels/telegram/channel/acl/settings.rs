@@ -113,48 +113,48 @@ fn resolve_acl_raw(
 ) -> ResolvedAclRaw {
     ResolvedAclRaw {
         allowed_users: resolve_string_env_or_setting(
-            "OMNI_AGENT_TELEGRAM_ALLOWED_USERS",
+            "XIUXIAN_DAOCHANG_TELEGRAM_ALLOWED_USERS",
             Some(acl_overrides.allowed_users.join(",")),
             "",
         ),
         allowed_groups: resolve_string_env_or_setting(
-            "OMNI_AGENT_TELEGRAM_ALLOWED_GROUPS",
+            "XIUXIAN_DAOCHANG_TELEGRAM_ALLOWED_GROUPS",
             Some(acl_overrides.allowed_groups.join(",")),
             "",
         ),
         session_admin_persist: resolve_bool_env_or_setting(
-            "OMNI_AGENT_TELEGRAM_SESSION_ADMIN_PERSIST",
+            "XIUXIAN_DAOCHANG_TELEGRAM_SESSION_ADMIN_PERSIST",
             settings.session_admin_persist,
             false,
         ),
         group_policy: resolve_string_env_or_setting(
-            "OMNI_AGENT_TELEGRAM_GROUP_POLICY",
+            "XIUXIAN_DAOCHANG_TELEGRAM_GROUP_POLICY",
             settings.group_policy.clone(),
             "open",
         ),
         group_allow_from: resolve_optional_env_or_setting(
-            "OMNI_AGENT_TELEGRAM_GROUP_ALLOW_FROM",
+            "XIUXIAN_DAOCHANG_TELEGRAM_GROUP_ALLOW_FROM",
             settings.group_allow_from.clone(),
         ),
         require_mention: resolve_bool_env_or_setting(
-            "OMNI_AGENT_TELEGRAM_REQUIRE_MENTION",
+            "XIUXIAN_DAOCHANG_TELEGRAM_REQUIRE_MENTION",
             settings.require_mention,
             false,
         ),
         admin_users: resolve_string_env_or_setting(
-            "OMNI_AGENT_TELEGRAM_ADMIN_USERS",
+            "XIUXIAN_DAOCHANG_TELEGRAM_ADMIN_USERS",
             Some(acl_overrides.admin_users.join(",")),
             "",
         ),
         control_command_allow_from: resolve_optional_env_or_setting(
-            "OMNI_AGENT_TELEGRAM_CONTROL_COMMAND_ALLOW_FROM",
+            "XIUXIAN_DAOCHANG_TELEGRAM_CONTROL_COMMAND_ALLOW_FROM",
             acl_overrides
                 .control_command_allow_from
                 .as_ref()
                 .map(|entries| entries.join(",")),
         ),
         admin_command_rules: resolve_string_env_or_setting(
-            "OMNI_AGENT_TELEGRAM_ADMIN_COMMAND_RULES",
+            "XIUXIAN_DAOCHANG_TELEGRAM_ADMIN_COMMAND_RULES",
             None,
             "",
         ),
@@ -165,56 +165,56 @@ fn resolve_acl_raw(
 fn resolve_slash_policy_raw(acl_overrides: &TelegramAclOverrides) -> ResolvedSlashPolicyRaw {
     ResolvedSlashPolicyRaw {
         global: resolve_optional_env_or_setting(
-            "OMNI_AGENT_TELEGRAM_SLASH_COMMAND_ALLOW_FROM",
+            "XIUXIAN_DAOCHANG_TELEGRAM_SLASH_COMMAND_ALLOW_FROM",
             acl_overrides
                 .slash_command_allow_from
                 .as_ref()
                 .map(|entries| entries.join(",")),
         ),
         session_status: resolve_optional_env_or_setting(
-            "OMNI_AGENT_TELEGRAM_SLASH_SESSION_STATUS_ALLOW_FROM",
+            "XIUXIAN_DAOCHANG_TELEGRAM_SLASH_SESSION_STATUS_ALLOW_FROM",
             acl_overrides
                 .slash_session_status_allow_from
                 .as_ref()
                 .map(|entries| entries.join(",")),
         ),
         session_budget: resolve_optional_env_or_setting(
-            "OMNI_AGENT_TELEGRAM_SLASH_SESSION_BUDGET_ALLOW_FROM",
+            "XIUXIAN_DAOCHANG_TELEGRAM_SLASH_SESSION_BUDGET_ALLOW_FROM",
             acl_overrides
                 .slash_session_budget_allow_from
                 .as_ref()
                 .map(|entries| entries.join(",")),
         ),
         session_memory: resolve_optional_env_or_setting(
-            "OMNI_AGENT_TELEGRAM_SLASH_SESSION_MEMORY_ALLOW_FROM",
+            "XIUXIAN_DAOCHANG_TELEGRAM_SLASH_SESSION_MEMORY_ALLOW_FROM",
             acl_overrides
                 .slash_session_memory_allow_from
                 .as_ref()
                 .map(|entries| entries.join(",")),
         ),
         session_feedback: resolve_optional_env_or_setting(
-            "OMNI_AGENT_TELEGRAM_SLASH_SESSION_FEEDBACK_ALLOW_FROM",
+            "XIUXIAN_DAOCHANG_TELEGRAM_SLASH_SESSION_FEEDBACK_ALLOW_FROM",
             acl_overrides
                 .slash_session_feedback_allow_from
                 .as_ref()
                 .map(|entries| entries.join(",")),
         ),
         job_status: resolve_optional_env_or_setting(
-            "OMNI_AGENT_TELEGRAM_SLASH_JOB_ALLOW_FROM",
+            "XIUXIAN_DAOCHANG_TELEGRAM_SLASH_JOB_ALLOW_FROM",
             acl_overrides
                 .slash_job_allow_from
                 .as_ref()
                 .map(|entries| entries.join(",")),
         ),
         jobs_summary: resolve_optional_env_or_setting(
-            "OMNI_AGENT_TELEGRAM_SLASH_JOBS_ALLOW_FROM",
+            "XIUXIAN_DAOCHANG_TELEGRAM_SLASH_JOBS_ALLOW_FROM",
             acl_overrides
                 .slash_jobs_allow_from
                 .as_ref()
                 .map(|entries| entries.join(",")),
         ),
         background_submit: resolve_optional_env_or_setting(
-            "OMNI_AGENT_TELEGRAM_SLASH_BG_ALLOW_FROM",
+            "XIUXIAN_DAOCHANG_TELEGRAM_SLASH_BG_ALLOW_FROM",
             acl_overrides
                 .slash_bg_allow_from
                 .as_ref()

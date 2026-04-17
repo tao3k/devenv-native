@@ -57,13 +57,13 @@ pub(super) async fn run_telegram_channel_command(
     let channel_mode = resolve_channel_mode(mode, runtime_settings.telegram.mode.as_deref());
     let webhook_bind_addr = resolve_string(
         webhook_bind,
-        "OMNI_AGENT_TELEGRAM_WEBHOOK_BIND",
+        "XIUXIAN_DAOCHANG_TELEGRAM_WEBHOOK_BIND",
         runtime_settings.telegram.webhook_bind.as_deref(),
         "localhost:8081",
     );
     let webhook_route_path = resolve_string(
         webhook_path,
-        "OMNI_AGENT_TELEGRAM_WEBHOOK_PATH",
+        "XIUXIAN_DAOCHANG_TELEGRAM_WEBHOOK_PATH",
         runtime_settings.telegram.webhook_path.as_deref(),
         "/telegram/webhook",
     );
@@ -73,13 +73,13 @@ pub(super) async fn run_telegram_channel_command(
     );
     let dedup_ttl_secs = resolve_positive_u64(
         webhook_dedup_ttl_secs,
-        "OMNI_AGENT_TELEGRAM_WEBHOOK_DEDUP_TTL_SECS",
+        "XIUXIAN_DAOCHANG_TELEGRAM_WEBHOOK_DEDUP_TTL_SECS",
         runtime_settings.telegram.webhook_dedup_ttl_secs,
         600,
     );
     let dedup_key_prefix = resolve_string(
         webhook_dedup_key_prefix,
-        "OMNI_AGENT_TELEGRAM_WEBHOOK_DEDUP_KEY_PREFIX",
+        "XIUXIAN_DAOCHANG_TELEGRAM_WEBHOOK_DEDUP_KEY_PREFIX",
         runtime_settings
             .telegram
             .webhook_dedup_key_prefix

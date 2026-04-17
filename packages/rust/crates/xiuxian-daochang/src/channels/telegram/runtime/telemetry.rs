@@ -7,7 +7,8 @@ use crate::channels::runtime_snapshot::resolve_runtime_snapshot_interval_secs;
 use crate::channels::telegram::runtime_config::TelegramRuntimeConfig;
 use crate::channels::traits::ChannelMessage;
 
-const RUNTIME_SNAPSHOT_INTERVAL_ENV: &str = "OMNI_AGENT_TELEGRAM_RUNTIME_SNAPSHOT_INTERVAL_SECS";
+const RUNTIME_SNAPSHOT_INTERVAL_ENV: &str =
+    "XIUXIAN_DAOCHANG_TELEGRAM_RUNTIME_SNAPSHOT_INTERVAL_SECS";
 const DEFAULT_RUNTIME_SNAPSHOT_INTERVAL_SECS: u64 = 30;
 
 pub(in crate::channels::telegram::runtime) fn snapshot_interval_from_env() -> Option<Duration> {

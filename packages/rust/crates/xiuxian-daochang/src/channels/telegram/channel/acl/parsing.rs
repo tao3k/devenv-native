@@ -1,11 +1,11 @@
+use crate::env_parse::{read_env, read_non_empty_env};
+
 pub(super) fn resolve_string_env_or_setting(
     env_name: &str,
     setting_value: Option<String>,
     default: &str,
 ) -> String {
-    if let Ok(value) = std::env::var(env_name)
-        && !value.trim().is_empty()
-    {
+    if let Some(value) = read_non_empty_env(env_name) {
         return value;
     }
     setting_value.unwrap_or_else(|| default.to_string())
@@ -15,7 +15,7 @@ pub(super) fn resolve_optional_env_or_setting(
     env_name: &str,
     setting_value: Option<String>,
 ) -> Option<String> {
-    if let Ok(value) = std::env::var(env_name) {
+    if let Some(value) = read_env(env_name) {
         return Some(value);
     }
     setting_value
@@ -26,7 +26,7 @@ pub(super) fn resolve_bool_env_or_setting(
     setting_value: Option<bool>,
     default: bool,
 ) -> bool {
-    if let Ok(value) = std::env::var(env_name) {
+    if let Some(value) = read_env(env_name) {
         return parse_bool_with_context(&value, env_name).unwrap_or(default);
     }
     setting_value.unwrap_or(default)

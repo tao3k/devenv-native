@@ -1,23 +1,22 @@
+use anyhow::Result;
 use tempfile::TempDir;
 
 use super::run_markdown_lint;
 
 #[test]
-fn lint_reports_non_canonical_obsidian_wikilinks_as_text() {
-    let temp = TempDir::new().expect("tempdir should exist");
-    std::fs::create_dir_all(temp.path().join("01_core")).expect("target dir should exist");
+fn lint_reports_non_canonical_obsidian_wikilinks_as_text() -> Result<()> {
+    let temp = TempDir::new()?;
+    std::fs::create_dir_all(temp.path().join("01_core"))?;
     std::fs::write(
         temp.path().join("01_core/106_docs_maintenance_playbook.md"),
         "---\ntitle: Docs Maintenance Playbook\n---\n# Docs Maintenance Playbook\n",
-    )
-    .expect("target note should exist");
+    )?;
     std::fs::write(
         temp.path().join("guide.md"),
         "# Heading\nSee [[Docs Maintenance Playbook|01_core/106_docs_maintenance_playbook]].\n",
-    )
-    .expect("guide should exist");
+    )?;
 
-    let (status, stdout) = run_markdown_lint(&temp, None);
+    let (status, stdout) = run_markdown_lint(&temp, None)?;
 
     assert_eq!(status, Some(1));
     assert!(stdout.contains("non_canonical_obsidian_alias_order"));
@@ -26,24 +25,23 @@ fn lint_reports_non_canonical_obsidian_wikilinks_as_text() {
     assert!(stdout.contains(
         "rewrite as `[[01_core/106_docs_maintenance_playbook|Docs Maintenance Playbook]]`."
     ));
+    Ok(())
 }
 
 #[test]
-fn lint_reports_bare_obsidian_wikilinks_as_text() {
-    let temp = TempDir::new().expect("tempdir should exist");
-    std::fs::create_dir_all(temp.path().join("docs")).expect("docs dir should exist");
+fn lint_reports_bare_obsidian_wikilinks_as_text() -> Result<()> {
+    let temp = TempDir::new()?;
+    std::fs::create_dir_all(temp.path().join("docs"))?;
     std::fs::write(
         temp.path().join("docs/index.md"),
         "---\ntitle: Documentation Index\n---\n# Documentation Index\n",
-    )
-    .expect("target note should exist");
+    )?;
     std::fs::write(
         temp.path().join("guide.md"),
         "# Heading\nSee [[docs/index]].\n",
-    )
-    .expect("guide should exist");
+    )?;
 
-    let (status, stdout) = run_markdown_lint(&temp, None);
+    let (status, stdout) = run_markdown_lint(&temp, None)?;
 
     assert_eq!(status, Some(1));
     assert!(stdout.contains("bare_obsidian_wikilink"));
@@ -53,24 +51,23 @@ fn lint_reports_bare_obsidian_wikilinks_as_text() {
     assert!(stdout.contains(
         "rewrite as `[[docs/index|Documentation Index]]` or `[Documentation Index](docs/index)`."
     ));
+    Ok(())
 }
 
 #[test]
-fn lint_reports_redundant_heading_labels_with_namespace_guidance() {
-    let temp = TempDir::new().expect("tempdir should exist");
-    std::fs::create_dir_all(temp.path().join("02_parser")).expect("parser dir should exist");
+fn lint_reports_redundant_heading_labels_with_namespace_guidance() -> Result<()> {
+    let temp = TempDir::new()?;
+    std::fs::create_dir_all(temp.path().join("02_parser"))?;
     std::fs::write(
         temp.path().join("02_parser/index.md"),
         "---\ntitle: Wendao Parser Docs\n---\n# Wendao Parser Docs\n",
-    )
-    .expect("target note should exist");
+    )?;
     std::fs::write(
         temp.path().join("guide.md"),
         "# Heading\nSee [[02_parser/index#Semantic Check|Semantic Check]].\n",
-    )
-    .expect("guide should exist");
+    )?;
 
-    let (status, stdout) = run_markdown_lint(&temp, None);
+    let (status, stdout) = run_markdown_lint(&temp, None)?;
 
     assert_eq!(status, Some(1));
     assert!(stdout.contains("redundant_obsidian_label"));
@@ -78,24 +75,23 @@ fn lint_reports_redundant_heading_labels_with_namespace_guidance() {
     assert!(stdout.contains("target_title: Wendao Parser Docs"));
     assert!(stdout.contains("target_heading: Semantic Check"));
     assert!(stdout.contains("rewrite as `[[02_parser/index#Semantic Check|Wendao Parser Docs / Semantic Check]]` or `[Wendao Parser Docs / Semantic Check](02_parser/index#Semantic Check)`."));
+    Ok(())
 }
 
 #[test]
-fn lint_reports_mixed_link_syntax_as_official_syntax_failure() {
-    let temp = TempDir::new().expect("tempdir should exist");
-    std::fs::create_dir_all(temp.path().join("docs")).expect("docs dir should exist");
+fn lint_reports_mixed_link_syntax_as_official_syntax_failure() -> Result<()> {
+    let temp = TempDir::new()?;
+    std::fs::create_dir_all(temp.path().join("docs"))?;
     std::fs::write(
         temp.path().join("docs/index.md"),
         "---\ntitle: Documentation Index\n---\n# Documentation Index\n",
-    )
-    .expect("target note should exist");
+    )?;
     std::fs::write(
         temp.path().join("guide.md"),
         "# Heading\nSee [[docs/index]](Documentation Index).\n",
-    )
-    .expect("guide should exist");
+    )?;
 
-    let (status, stdout) = run_markdown_lint(&temp, None);
+    let (status, stdout) = run_markdown_lint(&temp, None)?;
 
     assert_eq!(status, Some(1));
     assert!(stdout.contains("mixed_wikilink_markdown_link"));
@@ -103,17 +99,17 @@ fn lint_reports_mixed_link_syntax_as_official_syntax_failure() {
     assert!(stdout.contains(
         "Choose either official Obsidian wikilink syntax or standard Markdown link syntax."
     ));
+    Ok(())
 }
 
 #[test]
-fn lint_accepts_official_obsidian_embeds_and_addressed_targets() {
-    let temp = TempDir::new().expect("tempdir should exist");
-    std::fs::create_dir_all(temp.path().join("docs")).expect("docs dir should exist");
+fn lint_accepts_official_obsidian_embeds_and_addressed_targets() -> Result<()> {
+    let temp = TempDir::new()?;
+    std::fs::create_dir_all(temp.path().join("docs"))?;
     std::fs::write(
         temp.path().join("docs/index.md"),
         "---\ntitle: Documentation Index\n---\n# Documentation Index\n## Parser Contracts\nParagraph.\n^block-id\n",
-    )
-    .expect("target note should exist");
+    )?;
     std::fs::write(
         temp.path().join("guide.md"),
         concat!(
@@ -132,14 +128,14 @@ fn lint_accepts_official_obsidian_embeds_and_addressed_targets() {
             "And ![[docs/index#Parser Contracts]].\n",
             "And ![[docs/index#^block-id]].\n",
         ),
-    )
-    .expect("guide should exist");
+    )?;
 
-    let (status, stdout) = run_markdown_lint(&temp, None);
+    let (status, stdout) = run_markdown_lint(&temp, None)?;
 
     assert_eq!(status, Some(0));
     assert!(
         stdout.contains("Markdown lint passed: checked 2 file(s), 0 issue(s)."),
         "{stdout}"
     );
+    Ok(())
 }

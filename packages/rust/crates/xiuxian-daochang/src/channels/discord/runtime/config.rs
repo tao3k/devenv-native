@@ -1,8 +1,8 @@
 use super::super::session_partition::DiscordSessionPartition;
 use crate::channels::managed_runtime::ForegroundQueueMode;
 use crate::config::{DiscordSettings, load_runtime_settings};
+use crate::env_parse::lookup_non_empty_env;
 use std::collections::HashMap;
-use xiuxian_macros::env_non_empty;
 
 const DISCORD_DEFAULT_INBOUND_QUEUE_CAPACITY: usize = 512;
 const DISCORD_DEFAULT_TURN_TIMEOUT_SECS: u64 = 120;
@@ -34,7 +34,7 @@ impl DiscordRuntimeConfig {
     #[must_use]
     pub fn from_env() -> Self {
         let settings = load_runtime_settings();
-        Self::from_lookup(|name| env_non_empty!(name), Some(&settings.discord))
+        Self::from_lookup(|name| std::env::var(name).ok(), Some(&settings.discord))
     }
 
     fn from_lookup<F>(lookup: F, settings: Option<&DiscordSettings>) -> Self
@@ -46,13 +46,13 @@ impl DiscordRuntimeConfig {
             session_partition: DiscordSessionPartition::from_env(),
             require_mention: resolve_bool(
                 &lookup,
-                "OMNI_AGENT_DISCORD_REQUIRE_MENTION",
+                "XIUXIAN_DAOCHANG_DISCORD_REQUIRE_MENTION",
                 settings.and_then(|s| s.require_mention),
                 defaults.require_mention,
             ),
             require_mention_persist: resolve_bool(
                 &lookup,
-                "OMNI_AGENT_DISCORD_REQUIRE_MENTION_PERSIST",
+                "XIUXIAN_DAOCHANG_DISCORD_REQUIRE_MENTION_PERSIST",
                 settings.and_then(|s| s.require_mention_persist),
                 defaults.require_mention_persist,
             ),
@@ -72,25 +72,25 @@ impl DiscordRuntimeConfig {
                 .unwrap_or_default(),
             inbound_queue_capacity: resolve_usize(
                 &lookup,
-                "OMNI_AGENT_DISCORD_INBOUND_QUEUE_CAPACITY",
+                "XIUXIAN_DAOCHANG_DISCORD_INBOUND_QUEUE_CAPACITY",
                 settings.and_then(|s| s.inbound_queue_capacity),
                 defaults.inbound_queue_capacity,
             ),
             turn_timeout_secs: resolve_u64(
                 &lookup,
-                "OMNI_AGENT_DISCORD_TURN_TIMEOUT_SECS",
+                "XIUXIAN_DAOCHANG_DISCORD_TURN_TIMEOUT_SECS",
                 settings.and_then(|s| s.turn_timeout_secs),
                 defaults.turn_timeout_secs,
             ),
             foreground_max_in_flight_messages: resolve_usize(
                 &lookup,
-                "OMNI_AGENT_DISCORD_FOREGROUND_MAX_IN_FLIGHT_MESSAGES",
+                "XIUXIAN_DAOCHANG_DISCORD_FOREGROUND_MAX_IN_FLIGHT_MESSAGES",
                 settings.and_then(|s| s.foreground_max_in_flight_messages),
                 defaults.foreground_max_in_flight_messages,
             ),
             foreground_queue_mode: resolve_foreground_queue_mode(
                 &lookup,
-                "OMNI_AGENT_DISCORD_FOREGROUND_QUEUE_MODE",
+                "XIUXIAN_DAOCHANG_DISCORD_FOREGROUND_QUEUE_MODE",
                 settings.and_then(|s| s.foreground_queue_mode.as_deref()),
                 defaults.foreground_queue_mode,
             ),
@@ -117,7 +117,7 @@ fn resolve_usize<F>(lookup: &F, name: &str, setting_value: Option<usize>, defaul
 where
     F: Fn(&str) -> Option<String>,
 {
-    if let Some(raw) = lookup(name) {
+    if let Some(raw) = lookup_non_empty_env(lookup, name) {
         match raw.trim().parse::<usize>() {
             Ok(value) if value > 0 => return value,
             _ => tracing::warn!(
@@ -146,7 +146,7 @@ fn resolve_u64<F>(lookup: &F, name: &str, setting_value: Option<u64>, default: u
 where
     F: Fn(&str) -> Option<String>,
 {
-    if let Some(raw) = lookup(name) {
+    if let Some(raw) = lookup_non_empty_env(lookup, name) {
         match raw.trim().parse::<u64>() {
             Ok(value) if value > 0 => return value,
             _ => tracing::warn!(
@@ -180,7 +180,7 @@ fn resolve_foreground_queue_mode<F>(
 where
     F: Fn(&str) -> Option<String>,
 {
-    if let Some(raw) = lookup(env_name) {
+    if let Some(raw) = lookup_non_empty_env(lookup, env_name) {
         if let Some(mode) = ForegroundQueueMode::parse(raw.as_str()) {
             return mode;
         }
@@ -207,7 +207,7 @@ fn resolve_bool<F>(lookup: &F, name: &str, setting_value: Option<bool>, default:
 where
     F: Fn(&str) -> Option<String>,
 {
-    if let Some(raw) = lookup(name) {
+    if let Some(raw) = lookup_non_empty_env(lookup, name) {
         if let Some(value) = parse_bool(raw.as_str()) {
             return value;
         }

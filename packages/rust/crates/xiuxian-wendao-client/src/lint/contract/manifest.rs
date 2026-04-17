@@ -190,170 +190,202 @@ fn validate_manifest(manifest: &MarkdownLintDiagnosticManifest) -> anyhow::Resul
 
 fn expected_contract_shape(contract_id: &str) -> Option<MarkdownLintDiagnosticManifest> {
     match contract_id {
-        MARKDOWN_LINT_DIAGNOSTICS_CONTRACT_ID => Some(MarkdownLintDiagnosticManifest {
-            id: MARKDOWN_LINT_DIAGNOSTICS_CONTRACT_ID.to_string(),
-            version: 1,
-            task_types: vec!["cli_call".to_string(), "diagnostic_render".to_string()],
-            cli: MarkdownLintCliManifest {
-                argv: vec![
-                    "wendao".to_string(),
-                    "lint".to_string(),
-                    "markdown".to_string(),
-                ],
-                positionals: vec!["paths".to_string()],
-                flags: BTreeMap::from([
-                    ("output".to_string(), "--output".to_string()),
-                    ("root".to_string(), "--root".to_string()),
-                    ("skip_dirs".to_string(), "--skip-dir".to_string()),
-                ]),
-            },
-            output: MarkdownLintDiagnosticManifestOutput {
-                format: "markdown_lint_report".to_string(),
-                schema_provider: "MarkdownLintReport".to_string(),
-            },
-            params: vec![
-                optional_string_array_param("paths"),
-                optional_string_param("root", Some(".")),
-                optional_string_param("output", Some("text")),
-                optional_string_array_param("skip_dirs"),
-            ],
-            rules: vec![
-                literal_rule(
-                    "invalid_utf8",
-                    Some("Markdown file is not valid UTF-8."),
-                    Some("utf8_error_message"),
-                    Some("Encode the file as UTF-8 before linting it."),
-                ),
-                MarkdownLintRuleContractManifest {
-                    code: "unclosed_frontmatter".to_string(),
-                    problem: Some("YAML frontmatter opens but never closes.".to_string()),
-                    problem_strategy: None,
-                    detail: None,
-                    detail_strategy: Some("parser_message".to_string()),
-                    found: Some("---".to_string()),
-                    found_strategy: None,
-                    expected: Some(
-                        "Close the frontmatter with `---` or `...` before the document body begins."
-                            .to_string(),
-                    ),
-                    expected_strategy: None,
-                    tip: None,
-                    tip_strategy: None,
-                },
-                MarkdownLintRuleContractManifest {
-                    code: "invalid_frontmatter_yaml".to_string(),
-                    problem: Some("YAML frontmatter is syntactically invalid.".to_string()),
-                    problem_strategy: None,
-                    detail: None,
-                    detail_strategy: Some("parser_message".to_string()),
-                    found: None,
-                    found_strategy: Some("source_line".to_string()),
-                    expected: Some(
-                        "Keep valid YAML between the opening and closing frontmatter fences."
-                            .to_string(),
-                    ),
-                    expected_strategy: None,
-                    tip: None,
-                    tip_strategy: None,
-                },
-                MarkdownLintRuleContractManifest {
-                    code: "unclosed_fence".to_string(),
-                    problem: Some("Fenced code block opens but never closes.".to_string()),
-                    problem_strategy: None,
-                    detail: None,
-                    detail_strategy: Some("parser_message".to_string()),
-                    found: None,
-                    found_strategy: Some("source_line".to_string()),
-                    expected: Some(
-                        "Add a closing fence with the same marker type and at least the same width."
-                            .to_string(),
-                    ),
-                    expected_strategy: None,
-                    tip: None,
-                    tip_strategy: None,
-                },
-                MarkdownLintRuleContractManifest {
-                    code: "bare_obsidian_wikilink".to_string(),
-                    problem: Some("Obsidian officially allows bare wikilinks, but repository authoring policy requires an explicit display label.".to_string()),
-                    problem_strategy: None,
-                    detail: Some("Keep the official Obsidian target, but add a descriptive display label for repository and LLM-facing authoring.".to_string()),
-                    detail_strategy: None,
-                    found: None,
-                    found_strategy: Some("link_literal".to_string()),
-                    expected: None,
-                    expected_strategy: Some("rewrite_with_markdown".to_string()),
-                    tip: None,
-                    tip_strategy: Some("display_label_tip".to_string()),
-                },
-                MarkdownLintRuleContractManifest {
-                    code: "redundant_obsidian_label".to_string(),
-                    problem: None,
-                    problem_strategy: Some("redundant_label_problem".to_string()),
-                    detail: Some("The explicit label should add human-readable namespace meaning instead of echoing the raw path or heading.".to_string()),
-                    detail_strategy: None,
-                    found: None,
-                    found_strategy: Some("link_literal".to_string()),
-                    expected: None,
-                    expected_strategy: Some("rewrite_with_markdown".to_string()),
-                    tip: None,
-                    tip_strategy: Some("display_label_tip".to_string()),
-                },
-                MarkdownLintRuleContractManifest {
-                    code: "mixed_wikilink_markdown_link".to_string(),
-                    problem: Some("Wikilink brackets and Markdown link parentheses are mixed into one invalid link under Obsidian official syntax.".to_string()),
-                    problem_strategy: None,
-                    detail: Some("Choose either official Obsidian wikilink syntax or standard Markdown link syntax.".to_string()),
-                    detail_strategy: None,
-                    found: None,
-                    found_strategy: Some("link_literal".to_string()),
-                    expected: None,
-                    expected_strategy: Some("rewrite_with_markdown".to_string()),
-                    tip: None,
-                    tip_strategy: Some("display_label_tip".to_string()),
-                },
-                MarkdownLintRuleContractManifest {
-                    code: "non_canonical_obsidian_alias_order".to_string(),
-                    problem: Some("The right-hand wikilink segment looks like a repository target path or address, so target and display label appear reversed.".to_string()),
-                    problem_strategy: None,
-                    detail: Some("This is legal Obsidian wikilink syntax, but repository authoring policy only flags reversed alias order when the right side looks like a path, heading address, block address, or Markdown note target.".to_string()),
-                    detail_strategy: None,
-                    found: None,
-                    found_strategy: Some("link_literal".to_string()),
-                    expected: None,
-                    expected_strategy: Some("rewrite_wikilink_only".to_string()),
-                    tip: None,
-                    tip_strategy: Some("display_label_tip".to_string()),
-                },
-                MarkdownLintRuleContractManifest {
-                    code: "directory_link_style_mismatch".to_string(),
-                    problem: None,
-                    problem_strategy: Some("dynamic_problem_text".to_string()),
-                    detail: None,
-                    detail_strategy: Some("dynamic_detail_text".to_string()),
-                    found: None,
-                    found_strategy: Some("dynamic_found_text".to_string()),
-                    expected: None,
-                    expected_strategy: Some("dynamic_expected_text".to_string()),
-                    tip: None,
-                    tip_strategy: Some("dynamic_tip_text".to_string()),
-                },
-                MarkdownLintRuleContractManifest {
-                    code: "directory_link_style_ambiguous".to_string(),
-                    problem: None,
-                    problem_strategy: Some("dynamic_problem_text".to_string()),
-                    detail: None,
-                    detail_strategy: Some("dynamic_detail_text".to_string()),
-                    found: None,
-                    found_strategy: Some("dynamic_found_text".to_string()),
-                    expected: None,
-                    expected_strategy: Some("dynamic_expected_text".to_string()),
-                    tip: None,
-                    tip_strategy: Some("dynamic_tip_text".to_string()),
-                },
-            ],
-        }),
+        MARKDOWN_LINT_DIAGNOSTICS_CONTRACT_ID => Some(markdown_lint_diagnostics_contract_shape()),
         _ => None,
     }
+}
+
+fn markdown_lint_diagnostics_contract_shape() -> MarkdownLintDiagnosticManifest {
+    MarkdownLintDiagnosticManifest {
+        id: MARKDOWN_LINT_DIAGNOSTICS_CONTRACT_ID.to_string(),
+        version: 1,
+        task_types: vec!["cli_call".to_string(), "diagnostic_render".to_string()],
+        cli: markdown_lint_diagnostics_cli(),
+        output: MarkdownLintDiagnosticManifestOutput {
+            format: "markdown_lint_report".to_string(),
+            schema_provider: "MarkdownLintReport".to_string(),
+        },
+        params: markdown_lint_diagnostics_params(),
+        rules: markdown_lint_diagnostics_rules(),
+    }
+}
+
+fn markdown_lint_diagnostics_cli() -> MarkdownLintCliManifest {
+    MarkdownLintCliManifest {
+        argv: vec![
+            "wendao".to_string(),
+            "lint".to_string(),
+            "markdown".to_string(),
+        ],
+        positionals: vec!["paths".to_string()],
+        flags: BTreeMap::from([
+            ("output".to_string(), "--output".to_string()),
+            ("root".to_string(), "--root".to_string()),
+            ("skip_dirs".to_string(), "--skip-dir".to_string()),
+        ]),
+    }
+}
+
+fn markdown_lint_diagnostics_params() -> Vec<MarkdownLintContractParamManifest> {
+    vec![
+        optional_string_array_param("paths"),
+        optional_string_param("root", Some(".")),
+        optional_string_param("output", Some("text")),
+        optional_string_array_param("skip_dirs"),
+    ]
+}
+
+fn markdown_lint_diagnostics_rules() -> Vec<MarkdownLintRuleContractManifest> {
+    let mut rules = markdown_lint_syntax_rules();
+    rules.extend(markdown_lint_obsidian_policy_rules());
+    rules.extend(markdown_lint_directory_policy_rules());
+    rules
+}
+
+fn markdown_lint_syntax_rules() -> Vec<MarkdownLintRuleContractManifest> {
+    vec![
+        literal_rule(
+            "invalid_utf8",
+            Some("Markdown file is not valid UTF-8."),
+            Some("utf8_error_message"),
+            Some("Encode the file as UTF-8 before linting it."),
+        ),
+        MarkdownLintRuleContractManifest {
+            code: "unclosed_frontmatter".to_string(),
+            problem: Some("YAML frontmatter opens but never closes.".to_string()),
+            problem_strategy: None,
+            detail: None,
+            detail_strategy: Some("parser_message".to_string()),
+            found: Some("---".to_string()),
+            found_strategy: None,
+            expected: Some(
+                "Close the frontmatter with `---` or `...` before the document body begins."
+                    .to_string(),
+            ),
+            expected_strategy: None,
+            tip: None,
+            tip_strategy: None,
+        },
+        MarkdownLintRuleContractManifest {
+            code: "invalid_frontmatter_yaml".to_string(),
+            problem: Some("YAML frontmatter is syntactically invalid.".to_string()),
+            problem_strategy: None,
+            detail: None,
+            detail_strategy: Some("parser_message".to_string()),
+            found: None,
+            found_strategy: Some("source_line".to_string()),
+            expected: Some(
+                "Keep valid YAML between the opening and closing frontmatter fences.".to_string(),
+            ),
+            expected_strategy: None,
+            tip: None,
+            tip_strategy: None,
+        },
+        MarkdownLintRuleContractManifest {
+            code: "unclosed_fence".to_string(),
+            problem: Some("Fenced code block opens but never closes.".to_string()),
+            problem_strategy: None,
+            detail: None,
+            detail_strategy: Some("parser_message".to_string()),
+            found: None,
+            found_strategy: Some("source_line".to_string()),
+            expected: Some(
+                "Add a closing fence with the same marker type and at least the same width."
+                    .to_string(),
+            ),
+            expected_strategy: None,
+            tip: None,
+            tip_strategy: None,
+        },
+    ]
+}
+
+fn markdown_lint_obsidian_policy_rules() -> Vec<MarkdownLintRuleContractManifest> {
+    vec![
+        MarkdownLintRuleContractManifest {
+            code: "bare_obsidian_wikilink".to_string(),
+            problem: Some("Obsidian officially allows bare wikilinks, but repository authoring policy requires an explicit display label.".to_string()),
+            problem_strategy: None,
+            detail: Some("Keep the official Obsidian target, but add a descriptive display label for repository and LLM-facing authoring.".to_string()),
+            detail_strategy: None,
+            found: None,
+            found_strategy: Some("link_literal".to_string()),
+            expected: None,
+            expected_strategy: Some("rewrite_with_markdown".to_string()),
+            tip: None,
+            tip_strategy: Some("display_label_tip".to_string()),
+        },
+        MarkdownLintRuleContractManifest {
+            code: "redundant_obsidian_label".to_string(),
+            problem: None,
+            problem_strategy: Some("redundant_label_problem".to_string()),
+            detail: Some("The explicit label should add human-readable namespace meaning instead of echoing the raw path or heading.".to_string()),
+            detail_strategy: None,
+            found: None,
+            found_strategy: Some("link_literal".to_string()),
+            expected: None,
+            expected_strategy: Some("rewrite_with_markdown".to_string()),
+            tip: None,
+            tip_strategy: Some("display_label_tip".to_string()),
+        },
+        MarkdownLintRuleContractManifest {
+            code: "mixed_wikilink_markdown_link".to_string(),
+            problem: Some("Wikilink brackets and Markdown link parentheses are mixed into one invalid link under Obsidian official syntax.".to_string()),
+            problem_strategy: None,
+            detail: Some("Choose either official Obsidian wikilink syntax or standard Markdown link syntax.".to_string()),
+            detail_strategy: None,
+            found: None,
+            found_strategy: Some("link_literal".to_string()),
+            expected: None,
+            expected_strategy: Some("rewrite_with_markdown".to_string()),
+            tip: None,
+            tip_strategy: Some("display_label_tip".to_string()),
+        },
+        MarkdownLintRuleContractManifest {
+            code: "non_canonical_obsidian_alias_order".to_string(),
+            problem: Some("The right-hand wikilink segment looks like a repository target path or address, so target and display label appear reversed.".to_string()),
+            problem_strategy: None,
+            detail: Some("This is legal Obsidian wikilink syntax, but repository authoring policy only flags reversed alias order when the right side looks like a path, heading address, block address, or Markdown note target.".to_string()),
+            detail_strategy: None,
+            found: None,
+            found_strategy: Some("link_literal".to_string()),
+            expected: None,
+            expected_strategy: Some("rewrite_wikilink_only".to_string()),
+            tip: None,
+            tip_strategy: Some("display_label_tip".to_string()),
+        },
+    ]
+}
+
+fn markdown_lint_directory_policy_rules() -> Vec<MarkdownLintRuleContractManifest> {
+    vec![
+        MarkdownLintRuleContractManifest {
+            code: "directory_link_style_mismatch".to_string(),
+            problem: None,
+            problem_strategy: Some("dynamic_problem_text".to_string()),
+            detail: None,
+            detail_strategy: Some("dynamic_detail_text".to_string()),
+            found: None,
+            found_strategy: Some("dynamic_found_text".to_string()),
+            expected: None,
+            expected_strategy: Some("dynamic_expected_text".to_string()),
+            tip: None,
+            tip_strategy: Some("dynamic_tip_text".to_string()),
+        },
+        MarkdownLintRuleContractManifest {
+            code: "directory_link_style_ambiguous".to_string(),
+            problem: None,
+            problem_strategy: Some("dynamic_problem_text".to_string()),
+            detail: None,
+            detail_strategy: Some("dynamic_detail_text".to_string()),
+            found: None,
+            found_strategy: Some("dynamic_found_text".to_string()),
+            expected: None,
+            expected_strategy: Some("dynamic_expected_text".to_string()),
+            tip: None,
+            tip_strategy: Some("dynamic_tip_text".to_string()),
+        },
+    ]
 }
 
 fn literal_rule(

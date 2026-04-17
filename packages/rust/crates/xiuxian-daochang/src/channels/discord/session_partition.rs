@@ -3,6 +3,8 @@
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 
+use crate::env_parse::read_non_empty_env;
+
 /// How incoming Discord messages are mapped to a logical conversation session.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum DiscordSessionPartition {
@@ -27,15 +29,16 @@ impl DiscordSessionPartition {
     /// - `guild_user`
     #[must_use]
     pub fn from_env() -> Self {
-        let Some(raw) = std::env::var("OMNI_AGENT_DISCORD_SESSION_PARTITION").ok() else {
+        let Some(raw) = read_non_empty_env("XIUXIAN_DAOCHANG_DISCORD_SESSION_PARTITION") else {
             return Self::default();
         };
         if let Ok(mode) = raw.parse() {
             mode
         } else {
             tracing::warn!(
+                env_var = "XIUXIAN_DAOCHANG_DISCORD_SESSION_PARTITION",
                 value = %raw,
-                "invalid OMNI_AGENT_DISCORD_SESSION_PARTITION; using guild_channel_user"
+                "invalid discord session partition env value; using guild_channel_user"
             );
             Self::default()
         }

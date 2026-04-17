@@ -2,9 +2,11 @@ use super::types::{MarkdownSyntaxLintCode, MarkdownSyntaxLintIssue};
 use regex::Regex;
 use std::sync::LazyLock;
 
-static FRONTMATTER_OPENING_REGEX: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"\A---(?:\r?\n|\z)").expect("hardcoded frontmatter regex should compile")
-});
+static FRONTMATTER_OPENING_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| match Regex::new(r"\A---(?:\r?\n|\z)") {
+        Ok(regex) => regex,
+        Err(error) => panic!("hardcoded frontmatter regex should compile: {error}"),
+    });
 
 pub(super) struct LintBody<'a> {
     pub(super) content: &'a str,
@@ -33,13 +35,12 @@ pub(super) fn analyze_frontmatter<'a>(
     if let Err(error) = serde_yaml::from_str::<serde_yaml::Value>(block.yaml) {
         let (line, column) = error
             .location()
-            .map(|location| {
+            .map_or((block.yaml_line_offset, 1), |location| {
                 (
                     block.yaml_line_offset + location.line().saturating_sub(1),
                     location.column().max(1),
                 )
-            })
-            .unwrap_or((block.yaml_line_offset, 1));
+            });
         issues.push(MarkdownSyntaxLintIssue {
             code: MarkdownSyntaxLintCode::InvalidFrontmatterYaml,
             message: format!("frontmatter is not valid YAML: {error}"),

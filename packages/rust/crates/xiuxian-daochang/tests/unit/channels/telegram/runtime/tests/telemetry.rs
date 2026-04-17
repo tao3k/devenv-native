@@ -11,7 +11,7 @@ fn telegram_runtime_snapshot_interval_defaults_when_unset() {
 #[test]
 fn telegram_runtime_snapshot_interval_uses_positive_override() {
     let values = HashMap::from([(
-        "OMNI_AGENT_TELEGRAM_RUNTIME_SNAPSHOT_INTERVAL_SECS".to_string(),
+        "XIUXIAN_DAOCHANG_TELEGRAM_RUNTIME_SNAPSHOT_INTERVAL_SECS".to_string(),
         "12".to_string(),
     )]);
     let resolved = resolve_snapshot_interval_secs(|name| values.get(name).cloned());
@@ -21,7 +21,7 @@ fn telegram_runtime_snapshot_interval_uses_positive_override() {
 #[test]
 fn telegram_runtime_snapshot_interval_zero_disables_snapshots() {
     let values = HashMap::from([(
-        "OMNI_AGENT_TELEGRAM_RUNTIME_SNAPSHOT_INTERVAL_SECS".to_string(),
+        "XIUXIAN_DAOCHANG_TELEGRAM_RUNTIME_SNAPSHOT_INTERVAL_SECS".to_string(),
         "0".to_string(),
     )]);
     let resolved = resolve_snapshot_interval_secs(|name| values.get(name).cloned());
@@ -31,7 +31,7 @@ fn telegram_runtime_snapshot_interval_zero_disables_snapshots() {
 #[test]
 fn telegram_runtime_snapshot_interval_invalid_falls_back_to_default() {
     let values = HashMap::from([(
-        "OMNI_AGENT_TELEGRAM_RUNTIME_SNAPSHOT_INTERVAL_SECS".to_string(),
+        "XIUXIAN_DAOCHANG_TELEGRAM_RUNTIME_SNAPSHOT_INTERVAL_SECS".to_string(),
         "invalid".to_string(),
     )]);
     let resolved = resolve_snapshot_interval_secs(|name| values.get(name).cloned());
