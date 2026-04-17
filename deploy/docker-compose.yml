@@ -12,12 +12,12 @@ services:
       retries: 10
   wendaosearch-solver:
     image: ghcr.io/tao3k/wendaosearch.jl:main
-    command: ["--config", "config/live/solver_demo.toml"]
+    command: ["--config", "config/live/solver_demo.toml", "--host", "0.0.0.0"]
     ports:
       - "41080:41080"
   wendaosearch-parser:
     image: ghcr.io/tao3k/wendaosearch.jl:main
-    command: ["--parser-summary-service", "--config", "config/live/parser_summary.toml"]
+    command: ["--parser-summary-service", "--config", "config/live/parser_summary.toml", "--host", "0.0.0.0"]
     ports:
       - "41081:41081"
   wendao-gateway:
@@ -28,9 +28,15 @@ services:
     depends_on:
       valkey:
         condition: service_healthy
+      wendaosearch-solver:
+        condition: service_started
+      wendaosearch-parser:
+        condition: service_started
     environment:
       VALKEY_URL: redis://valkey:6379/0
       XIUXIAN_WENDAO_GATEWAY_BOOTSTRAP_BACKGROUND_INDEXING: "1"
+      WENDAO_FLIGHT_BASE_URL: http://wendaosearch-solver:41080
+      WENDAO_PARSER_SUMMARY_BASE_URL: http://wendaosearch-parser:41081
     working_dir: /data
     volumes:
       - ./wendao.toml:/etc/wendao/wendao.toml:ro

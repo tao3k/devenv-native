@@ -11,7 +11,7 @@ use xiuxian_wendao_core::{
     transport::{PluginTransportEndpoint, PluginTransportKind},
 };
 use xiuxian_wendao_runtime::transport::{
-    DEFAULT_FLIGHT_BASE_URL, DEFAULT_FLIGHT_TIMEOUT_SECS, FLIGHT_SCHEMA_VERSION_METADATA_KEY,
+    DEFAULT_FLIGHT_TIMEOUT_SECS, FLIGHT_SCHEMA_VERSION_METADATA_KEY, resolve_default_flight_base_url,
     NegotiatedFlightTransportClient, negotiate_flight_transport_client_from_bindings,
     normalize_flight_route, validate_flight_schema_version, validate_flight_timeout_secs,
 };
@@ -825,7 +825,7 @@ fn build_capability_manifest_transport_binding(
             base_url: Some(
                 options
                     .base_url
-                    .unwrap_or_else(|| DEFAULT_FLIGHT_BASE_URL.to_string()),
+                    .unwrap_or_else(|| resolve_default_flight_base_url()),
             ),
             route: Some(route),
             health_route: Some(health_route),

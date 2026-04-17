@@ -6,7 +6,7 @@ use xiuxian_wendao_core::{
     transport::{PluginTransportEndpoint, PluginTransportKind},
 };
 use xiuxian_wendao_runtime::transport::{
-    DEFAULT_FLIGHT_BASE_URL, DEFAULT_FLIGHT_SCHEMA_VERSION, DEFAULT_FLIGHT_TIMEOUT_SECS,
+    DEFAULT_FLIGHT_SCHEMA_VERSION, DEFAULT_FLIGHT_TIMEOUT_SECS, resolve_default_flight_base_url,
     FLIGHT_SCHEMA_VERSION_METADATA_KEY, NegotiatedFlightTransportClient,
     negotiate_flight_transport_client_from_bindings, normalize_flight_route,
     validate_flight_max_in_flight_requests, validate_flight_schema_version,
@@ -111,7 +111,7 @@ fn build_flight_transport_binding(
     }
 
     let base_url = string_option(options, "base_url", repository)?
-        .unwrap_or_else(|| DEFAULT_FLIGHT_BASE_URL.to_string());
+        .unwrap_or_else(resolve_default_flight_base_url);
     let route = match string_option(options, "route", repository)? {
         Some(route) => {
             normalize_flight_route(route).map_err(|error| RepoIntelligenceError::ConfigLoad {

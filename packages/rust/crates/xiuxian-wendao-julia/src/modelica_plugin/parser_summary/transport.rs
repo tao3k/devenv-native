@@ -11,7 +11,7 @@ use xiuxian_wendao_core::{
     transport::{PluginTransportEndpoint, PluginTransportKind},
 };
 use xiuxian_wendao_runtime::transport::{
-    DEFAULT_FLIGHT_BASE_URL, DEFAULT_FLIGHT_MAX_IN_FLIGHT_REQUESTS,
+    DEFAULT_FLIGHT_MAX_IN_FLIGHT_REQUESTS, resolve_default_flight_base_url,
     FLIGHT_SCHEMA_VERSION_METADATA_KEY, NegotiatedFlightTransportClient,
     negotiate_flight_transport_client_from_bindings, normalize_flight_route,
     validate_flight_max_in_flight_requests, validate_flight_schema_version,
@@ -31,8 +31,16 @@ const MODELICA_PARSER_SUMMARY_CAPABILITY_ID: &str = "parser-summary";
 const PARSER_SUMMARY_TRANSPORT_KEY: &str = "parser_summary_transport";
 const FILE_SUMMARY_TRANSPORT_KEY: &str = "file_summary";
 const DEFAULT_MODELICA_HEALTH_ROUTE: &str = "/healthz";
-const DEFAULT_WENDAOSEARCH_PARSER_SUMMARY_BASE_URL: &str = "http://127.0.0.1:41081";
+const DEFAULT_WENDAOSEARCH_PARSER_SUMMARY_BASE_URL_FALLBACK: &str = "http://127.0.0.1:41081";
+const PARSER_SUMMARY_BASE_URL_ENV: &str = "WENDAO_PARSER_SUMMARY_BASE_URL";
 const DEFAULT_PARSER_SUMMARY_TIMEOUT_SECS: u64 = 120;
+
+fn resolve_parser_summary_base_url() -> String {
+    std::env::var(PARSER_SUMMARY_BASE_URL_ENV)
+        .ok()
+        .filter(|v| !v.trim().is_empty())
+        .unwrap_or_else(|| DEFAULT_WENDAOSEARCH_PARSER_SUMMARY_BASE_URL_FALLBACK.to_string())
+}
 
 pub(crate) const MODELICA_PARSER_SUMMARY_SCHEMA_VERSION: &str = "v3";
 pub(crate) const MODELICA_FILE_SUMMARY_ROUTE: &str = "/wendao/code-parser/modelica/file-summary";
@@ -386,7 +394,7 @@ fn build_parser_summary_flight_transport_binding(
             base_url: Some(
                 options
                     .base_url
-                    .unwrap_or_else(|| DEFAULT_FLIGHT_BASE_URL.to_string()),
+                    .unwrap_or_else(|| resolve_default_flight_base_url()),
             ),
             route: Some(route),
             health_route: Some(health_route),
@@ -529,7 +537,7 @@ fn resolve_parser_summary_transport_options(
     if saw_modelica_plugin {
         return Ok(Some(ParserSummaryTransportOptions {
             enabled: Some(true),
-            base_url: Some(DEFAULT_WENDAOSEARCH_PARSER_SUMMARY_BASE_URL.to_string()),
+            base_url: Some(resolve_parser_summary_base_url()),
             route: None,
             health_route: None,
             schema_version: Some(MODELICA_PARSER_SUMMARY_SCHEMA_VERSION.to_string()),

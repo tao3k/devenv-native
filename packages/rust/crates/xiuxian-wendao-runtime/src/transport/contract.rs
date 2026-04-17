@@ -2,6 +2,17 @@ use std::time::Duration;
 
 /// Default base URL for a local Flight-backed Julia analyzer.
 pub const DEFAULT_FLIGHT_BASE_URL: &str = "http://127.0.0.1:8815";
+
+/// Environment variable for overriding the default Flight base URL.
+const FLIGHT_BASE_URL_ENV: &str = "WENDAO_FLIGHT_BASE_URL";
+
+/// Resolve the default Flight base URL from env or compile-time constant.
+pub fn resolve_default_flight_base_url() -> String {
+    std::env::var(FLIGHT_BASE_URL_ENV)
+        .ok()
+        .filter(|v| !v.trim().is_empty())
+        .unwrap_or_else(|| DEFAULT_FLIGHT_BASE_URL.to_string())
+}
 /// Default Wendao Flight schema contract version.
 pub const DEFAULT_FLIGHT_SCHEMA_VERSION: &str = "v1";
 /// Canonical Arrow schema metadata key for the Wendao schema version.
