@@ -5,7 +5,10 @@ use serde::{Deserialize, Serialize};
 use serde_yaml::Value;
 use xiuxian_config_core::{resolve_cache_home, resolve_path_from_value};
 
-/// Default in-memory marker for bounded `DuckDB` search analytics.
+/// DuckDB's special marker for one ephemeral in-process database.
+///
+/// This is a DuckDB-local catalog mode, not Wendao memory-layer state and not
+/// an integration point for `xiuxian-memory-engine`.
 pub const DEFAULT_SEARCH_DUCKDB_DATABASE_PATH: &str = ":memory:";
 /// Default thread budget for bounded `DuckDB` analytics.
 pub const DEFAULT_SEARCH_DUCKDB_THREADS: u64 = 4;
@@ -28,7 +31,7 @@ pub const DEFAULT_SEARCH_DUCKDB_PREFER_VIRTUAL_ARROW: bool = true;
 /// Resolved database location for bounded `DuckDB` search analytics.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum DuckDbDatabasePath {
-    /// Use `DuckDB`'s in-memory database.
+    /// Use DuckDB's own ephemeral in-process database.
     InMemory,
     /// Use one bounded on-disk `DuckDB` database file.
     File(PathBuf),

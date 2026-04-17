@@ -84,12 +84,13 @@ ttl_seconds = 300
 
 # Bounded DuckDB runtime for published Parquet search reads.
 #
-# Keep DuckDB's documented defaults for row-order preservation and Parquet
-# metadata caching unless the active repo-query benchmark lane proves a
-# workload-specific override is beneficial.
+# This is the local query-execution layer for published Parquet search data. It
+# is not related to `xiuxian-memory-engine`, episodic memory, or durable memory
+# promotion. Leave `database_path` unset here so the embedded default stays on
+# DuckDB's own ephemeral in-process catalog mode without surfacing `:memory:`
+# in the system config.
 [search.duckdb]
 enabled = true
-database_path = ":memory:"
 temp_directory = ".cache/duckdb/tmp"
 preserve_insertion_order = true
 parquet_metadata_cache = false
