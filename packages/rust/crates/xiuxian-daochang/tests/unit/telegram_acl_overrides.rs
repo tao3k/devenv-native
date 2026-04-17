@@ -41,54 +41,67 @@ fn write_file(path: PathBuf, content: &str) {
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent).expect("create parent dir");
     }
-    std::fs::write(path, content).expect("write yaml");
+    std::fs::write(path, content).expect("write toml");
 }
 
 #[test]
 fn telegram_acl_overrides_build_from_structured_acl() {
     let tmp = TempDir::new().expect("tempdir");
-    let system = tmp.path().join("packages/conf/settings.yaml");
+    let system = tmp
+        .path()
+        .join("packages/rust/crates/xiuxian-daochang/resources/config/xiuxian.toml");
     let user = tmp
         .path()
-        .join(".config/xiuxian-artisan-workshop/settings.yaml");
+        .join(".config/xiuxian-artisan-workshop/xiuxian.toml");
 
     write_file(
         system.clone(),
         r#"
-telegram:
-  acl:
-    allow:
-      users: ["1001", "1002"]
-      groups: ["-2001", "*"]
-    admin:
-      users: ["1001"]
-    control:
-      allow_from:
-        users: ["1001", "ops"]
-      rules:
-        - commands: ["/session partition"]
-          allow:
-            users: ["1001"]
-        - commands: ["/reset", "/clear"]
-          allow:
-            users: ["2001"]
-    slash:
-      global:
-        users: ["1001", "ops"]
-      session_status:
-        users: ["observer"]
-      session_budget:
-        users: ["observer"]
-      session_memory:
-        users: ["editor"]
-      session_feedback:
-        users: ["editor"]
-      job_status:
-        users: ["runner"]
-      jobs_summary:
-        users: ["runner"]
-      background_submit:
-        users: ["runner"]
+[telegram.acl.allow]
+users = ["1001", "1002"]
+groups = ["-2001", "*"]
+
+[telegram.acl.admin]
+users = ["1001"]
+
+[telegram.acl.control.allow_from]
+users = ["1001", "1003"]
+
+[[telegram.acl.control.rules]]
+commands = ["/session partition"]
+
+[telegram.acl.control.rules.allow]
+users = ["1001"]
+
+[[telegram.acl.control.rules]]
+commands = ["/reset", "/clear"]
+
+[telegram.acl.control.rules.allow]
+users = ["2001"]
+
+[telegram.acl.slash.global]
+users = ["1001", "1003"]
+
+[telegram.acl.slash.session_status]
+users = ["1004"]
+
+[telegram.acl.slash.session_budget]
+users = ["1004"]
+
+[telegram.acl.slash.session_memory]
+users = ["1005"]
+
+[telegram.acl.slash.session_feedback]
+users = ["1005"]
+
+[telegram.acl.slash.job_status]
+users = ["1006"]
+
+[telegram.acl.slash.jobs_summary]
+users = ["1006"]
+
+[telegram.acl.slash.background_submit]
+users = ["1006"]
 "#,
     );
     write_file(user.clone(), "");
@@ -101,7 +114,7 @@ telegram:
     assert_eq!(overrides.admin_users, vec!["1001"]);
     assert_eq!(
         overrides.control_command_allow_from,
-        Some(vec!["1001".to_string(), "ops".to_string()])
+        Some(vec!["1001".to_string(), "1003".to_string()])
     );
     assert_eq!(overrides.control_command_rules.len(), 2);
     let channel = TelegramChannel::new_with_partition_and_control_command_policy(
@@ -124,67 +137,67 @@ telegram:
     );
     assert_eq!(
         overrides.slash_command_allow_from,
-        Some(vec!["1001".to_string(), "ops".to_string()])
+        Some(vec!["1001".to_string(), "1003".to_string()])
     );
     assert_eq!(
         overrides.slash_session_status_allow_from,
-        Some(vec!["observer".to_string()])
+        Some(vec!["1004".to_string()])
     );
     assert_eq!(
         overrides.slash_session_budget_allow_from,
-        Some(vec!["observer".to_string()])
+        Some(vec!["1004".to_string()])
     );
     assert_eq!(
         overrides.slash_session_memory_allow_from,
-        Some(vec!["editor".to_string()])
+        Some(vec!["1005".to_string()])
     );
     assert_eq!(
         overrides.slash_session_feedback_allow_from,
-        Some(vec!["editor".to_string()])
+        Some(vec!["1005".to_string()])
     );
     assert_eq!(
         overrides.slash_job_allow_from,
-        Some(vec!["runner".to_string()])
+        Some(vec!["1006".to_string()])
     );
     assert_eq!(
         overrides.slash_jobs_allow_from,
-        Some(vec!["runner".to_string()])
+        Some(vec!["1006".to_string()])
     );
     assert_eq!(
         overrides.slash_bg_allow_from,
-        Some(vec!["runner".to_string()])
+        Some(vec!["1006".to_string()])
     );
 }
 
 #[test]
 fn telegram_acl_overrides_use_user_settings_for_acl_merge() {
     let tmp = TempDir::new().expect("tempdir");
-    let system = tmp.path().join("packages/conf/settings.yaml");
+    let system = tmp
+        .path()
+        .join("packages/rust/crates/xiuxian-daochang/resources/config/xiuxian.toml");
     let user = tmp
         .path()
-        .join(".config/xiuxian-artisan-workshop/settings.yaml");
+        .join(".config/xiuxian-artisan-workshop/xiuxian.toml");
 
     write_file(
         system.clone(),
         r#"
-telegram:
-  acl:
-    allow:
-      users: ["1001"]
-      groups: ["-2001"]
-    admin:
-      users: ["1001"]
+[telegram.acl.allow]
+users = ["1001"]
+groups = ["-2001"]
+
+[telegram.acl.admin]
+users = ["1001"]
 "#,
     );
     write_file(
         user.clone(),
         r#"
-telegram:
-  acl:
-    allow:
-      users: ["2002"]
-    admin:
-      users: ["2002"]
+[telegram.acl.allow]
+users = ["2002"]
+
+[telegram.acl.admin]
+users = ["2002"]
 "#,
     );
 
@@ -203,21 +216,21 @@ telegram:
 #[test]
 fn telegram_acl_overrides_reject_invalid_control_rule_with_field_path() {
     let tmp = TempDir::new().expect("tempdir");
-    let system = tmp.path().join("packages/conf/settings.yaml");
+    let system = tmp
+        .path()
+        .join("packages/rust/crates/xiuxian-daochang/resources/config/xiuxian.toml");
     let user = tmp
         .path()
-        .join(".config/xiuxian-artisan-workshop/settings.yaml");
+        .join(".config/xiuxian-artisan-workshop/xiuxian.toml");
 
     write_file(
         system.clone(),
         r#"
-telegram:
-  acl:
-    control:
-      rules:
-        - commands: ["session*"]
-          allow:
-            users: ["1001"]
+[[telegram.acl.control.rules]]
+commands = ["session*"]
+
+[telegram.acl.control.rules.allow]
+users = ["1001"]
 "#,
     );
     write_file(user, "");
@@ -225,7 +238,7 @@ telegram:
     let settings = load_runtime_settings_from_paths(
         &system,
         &tmp.path()
-            .join(".config/xiuxian-artisan-workshop/settings.yaml"),
+            .join(".config/xiuxian-artisan-workshop/xiuxian.toml"),
     );
     let error = build_telegram_acl_overrides(&settings)
         .expect_err("invalid command selector should fail fast");

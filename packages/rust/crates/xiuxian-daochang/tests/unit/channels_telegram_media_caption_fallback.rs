@@ -1,20 +1,13 @@
 //! Telegram media caption fallback tests for markdown parse failures.
 
-#[path = "telegram_media_support/bootstrap.rs"]
-mod bootstrap;
-#[path = "telegram_media_support/media_api.rs"]
-mod media_api;
-#[path = "telegram_media_support/upload_api.rs"]
-mod upload_api;
-
 use anyhow::{Result, anyhow};
 use xiuxian_daochang::{Channel, TelegramChannel};
 
-use media_api::{
+use super::telegram_media_support::{
     spawn_mock_telegram_media_api_with_group_failure,
     spawn_mock_telegram_media_api_with_markdown_error,
+    spawn_mock_telegram_upload_api_with_markdown_error,
 };
-use upload_api::spawn_mock_telegram_upload_api_with_markdown_error;
 
 #[tokio::test]
 async fn telegram_media_single_caption_markdown_bad_request_falls_back_to_plain() -> Result<()> {

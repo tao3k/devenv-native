@@ -53,7 +53,7 @@ fn blocking_ast_query_timeout_follows_transport_timeout_without_hidden_cap() {
 fn blocking_ast_query_analysis_returns_lightweight_package_surface_from_linked_service()
 -> Result<(), Box<dyn std::error::Error>> {
     ensure_linked_modelica_parser_summary_service()?;
-    let source = r#"
+    let source = r"
 within Demo;
 package Blocks
   import Modelica.Units.SI;
@@ -64,7 +64,7 @@ package Blocks
     end GainHolder;
   end Examples;
 end Blocks;
-"#;
+";
 
     let analysis = fetch_modelica_ast_query_analysis_blocking_for_repository(
         &ast_query_repository(),
@@ -145,8 +145,7 @@ fn blocking_ast_query_analysis_supports_real_modelica_standard_library_package_w
 
     assert!(
         elapsed < Duration::from_secs(15),
-        "expected real Modelica package ast-query fetch to stay below 15s, got {:?}",
-        elapsed,
+        "expected real Modelica package ast-query fetch to stay below 15s, got {elapsed:?}",
     );
     assert!(
         analysis.symbols.iter().any(|symbol| symbol.name == "Blocks"

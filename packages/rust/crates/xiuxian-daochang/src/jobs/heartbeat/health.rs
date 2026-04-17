@@ -14,6 +14,7 @@ pub enum JobHealthState {
 }
 
 /// Classify job health from age thresholds.
+#[must_use]
 pub fn classify_job_health(
     metrics: &JobMetricsSnapshot,
     max_queued_age_secs: u64,

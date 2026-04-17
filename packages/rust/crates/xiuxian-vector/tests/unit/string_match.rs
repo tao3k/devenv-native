@@ -1,10 +1,9 @@
 //! Integration coverage for Arrow-backed substring mask helpers.
 
-use anyhow::Result;
 use xiuxian_vector::{LanceArray, LanceStringArray, string_contains_mask};
 
 #[test]
-fn string_contains_mask_marks_matching_rows() -> Result<()> {
+fn string_contains_mask_marks_matching_rows() {
     let values = LanceStringArray::from(vec![
         Some("module BaseModelica"),
         Some("@reexport using ModelingToolkit"),
@@ -22,11 +21,10 @@ fn string_contains_mask_marks_matching_rows() -> Result<()> {
     assert!(!mask.is_null(2));
     assert!(!mask.value(2));
     assert!(mask.is_null(3));
-    Ok(())
 }
 
 #[test]
-fn string_contains_mask_supports_code_punctuation_needles() -> Result<()> {
+fn string_contains_mask_supports_code_punctuation_needles() {
     let values = LanceStringArray::from(vec![
         "include(\"src/BaseModelica.jl\")",
         "using ModelingToolkit",
@@ -37,5 +35,4 @@ fn string_contains_mask_supports_code_punctuation_needles() -> Result<()> {
     assert_eq!(mask.len(), 2);
     assert!(mask.value(0));
     assert!(!mask.value(1));
-    Ok(())
 }

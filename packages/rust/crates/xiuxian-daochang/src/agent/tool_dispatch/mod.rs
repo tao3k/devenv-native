@@ -8,4 +8,5 @@ mod soft_fail;
 mod tool_types;
 
 #[cfg(test)]
+#[path = "../../../tests/unit/agent/tool_dispatch/mod.rs"]
 mod tests;

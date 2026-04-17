@@ -16,6 +16,10 @@ mod resource_registry;
 mod resource_semantics;
 mod types;
 
+pub use markdown_config::{
+    MarkdownConfigBlock, MarkdownConfigMemoryIndex, extract_markdown_config_blocks,
+    extract_markdown_config_link_targets_by_id,
+};
 pub use pipeline::{enhance_note, enhance_notes_batch};
 pub use relations::infer_relations;
 pub use resource_registry::{WendaoResourceLinkTarget, WendaoResourceRegistry};

@@ -115,7 +115,7 @@ fn modelica_parser_summary_runtime()
 fn shared_modelica_parser_summary_runtime_identity_for_tests()
 -> Result<usize, RepoIntelligenceError> {
     let runtime = modelica_parser_summary_runtime()?;
-    Ok(runtime as *const tokio::runtime::Runtime as usize)
+    Ok(std::ptr::from_ref(runtime) as usize)
 }
 
 #[cfg(test)]

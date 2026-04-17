@@ -100,20 +100,30 @@ fn diff_checkout_revision_file_reads_previous_blob_contents() {
     let previous_blob = must(
         read_checkout_file_bytes_at_revision(repository.path(), &previous_revision, "src/Alpha.jl"),
         "read previous revision file",
-    )
-    .expect("previous revision file should exist");
+    );
+    let Some(previous_blob) = previous_blob else {
+        panic!("previous revision file should exist");
+    };
     let current_blob = must(
         read_checkout_file_bytes_at_revision(repository.path(), &revision, "src/Alpha.jl"),
         "read current revision file",
-    )
-    .expect("current revision file should exist");
+    );
+    let Some(current_blob) = current_blob else {
+        panic!("current revision file should exist");
+    };
 
     assert_eq!(
-        String::from_utf8(previous_blob).expect("previous blob should be utf8"),
+        must(
+            String::from_utf8(previous_blob),
+            "previous blob should be utf8"
+        ),
         "module Alpha\nalpha() = 1\nend\n"
     );
     assert_eq!(
-        String::from_utf8(current_blob).expect("current blob should be utf8"),
+        must(
+            String::from_utf8(current_blob),
+            "current blob should be utf8"
+        ),
         "module Alpha\nalpha() = 2\nend\n"
     );
 }

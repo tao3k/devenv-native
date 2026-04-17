@@ -8,16 +8,19 @@ let
   inherit (__inputs__) nixpkgs-latest;
 in
 {
-  packages = [
-    nixpkgs-latest.eza
+  packages =
+    [
+      nixpkgs-latest.eza
 
-    nixpkgs-latest.just
-    nixpkgs-latest.glow
-    nixpkgs-latest.google-cloud-sdk
+      nixpkgs-latest.just
+      nixpkgs-latest.glow
+      nixpkgs-latest.google-cloud-sdk
 
-    nixpkgs-latest.nickel
-    nixpkgs-latest.nushell
-    nixpkgs-latest.shellcheck
-    nixpkgs-latest.worktrunk
-  ];
+      nixpkgs-latest.nickel
+      nixpkgs-latest.nushell
+      nixpkgs-latest.shellcheck
+    ]
+    ++ pkgs.lib.optionals (nixpkgs-latest ? worktrunk) [
+      nixpkgs-latest.worktrunk
+    ];
 }

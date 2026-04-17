@@ -23,11 +23,11 @@ macro_rules! define_native_tool {
 
         #[async_trait::async_trait]
         impl super::registry::NativeTool for $tool {
-            fn name(&self) -> &str {
+            fn name(&self) -> &'static str {
                 $name
             }
 
-            fn description(&self) -> &str {
+            fn description(&self) -> &'static str {
                 $description
             }
 

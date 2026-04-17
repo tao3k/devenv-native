@@ -20,6 +20,12 @@ use crate::search::{
 use xiuxian_wendao_runtime::transport::RepoSearchFlightRequest;
 
 static REPO_PUBLICATION_BENCH_COUNTER: AtomicU64 = AtomicU64::new(1);
+
+fn benchmark_suffix() -> String {
+    let process_id = std::process::id();
+    let counter = REPO_PUBLICATION_BENCH_COUNTER.fetch_add(1, Ordering::Relaxed);
+    format!("{process_id}-{counter}")
+}
 const BENCH_LINE_COUNT: usize = 12;
 
 /// Result of one synthetic repo-content clone-and-mutate publication sample.
@@ -199,7 +205,7 @@ impl RepoContentParquetMutationBenchmarkFixture {
             base_document_count >= 8,
             "repo-content parquet benchmark requires at least 8 documents"
         );
-        let suffix = REPO_PUBLICATION_BENCH_COUNTER.fetch_add(1, Ordering::Relaxed);
+        let suffix = benchmark_suffix();
         let root = std::env::temp_dir().join(format!(
             "xiuxian-wendao-repo-publication-parquet-bench-{suffix}"
         ));
@@ -276,7 +282,7 @@ impl RepoContentParquetMutationBenchmarkFixture {
     /// Panics when the copied benchmark state cannot be created.
     #[must_use]
     pub fn prepare_iteration(&self) -> RepoContentParquetMutationBenchmarkIteration {
-        let suffix = REPO_PUBLICATION_BENCH_COUNTER.fetch_add(1, Ordering::Relaxed);
+        let suffix = benchmark_suffix();
         let iteration_root = self.root.join(format!("iteration-{suffix}"));
         let storage_root = iteration_root.join("search_plane");
         create_dir_all(iteration_root.as_path());
@@ -331,7 +337,7 @@ impl RepoContentQueryBenchmarkFixture {
             base_document_count >= 8,
             "repo-content query benchmark requires at least 8 documents"
         );
-        let suffix = REPO_PUBLICATION_BENCH_COUNTER.fetch_add(1, Ordering::Relaxed);
+        let suffix = benchmark_suffix();
         let root = std::env::temp_dir().join(format!("xiuxian-wendao-repo-query-bench-{suffix}"));
         let project_root = root.join("project");
         let storage_root = root.join("search_plane");
@@ -443,7 +449,40 @@ impl RepoContentParquetMutationBenchmarkIteration {
             .unwrap_or_else(|error| panic!("publish mutated repo-content fixture: {error}"))
         });
         let elapsed = started.elapsed();
-        let (row_count, added_query_paths, deleted_query_paths) = runtime.block_on(async {
+        let (row_count, added_query_paths, deleted_query_paths) =
+            self.collect_verification_paths(&runtime, &service);
+        assert_eq!(
+            row_count, self.expected_row_count,
+            "repo-content parquet benchmark row count drifted from the synthetic fixture"
+        );
+        RepoContentParquetMutationBenchmarkSnapshot {
+            base_document_count: self.base_document_count,
+            changed_document_count: self.changed_documents.len(),
+            deleted_path_count: self.deleted_paths.len(),
+            partition_bucket_count: repo_content_chunk_partition_count_for_document_count(
+                self.base_document_count,
+            ),
+            touched_partition_count: self.touched_base_documents_by_partition.len(),
+            touched_base_document_count: self
+                .touched_base_documents_by_partition
+                .values()
+                .copied()
+                .sum(),
+            touched_base_documents_by_partition: self.touched_base_documents_by_partition.clone(),
+            row_count,
+            elapsed,
+            added_query_paths,
+            deleted_query_paths,
+            publish_profile,
+        }
+    }
+
+    fn collect_verification_paths(
+        &self,
+        runtime: &tokio::runtime::Runtime,
+        service: &SearchPlaneService,
+    ) -> (u64, Vec<String>, Vec<String>) {
+        runtime.block_on(async {
             let record = service
                 .repo_corpus_record_for_reads(
                     SearchCorpusKind::RepoContentChunk,
@@ -491,31 +530,7 @@ impl RepoContentParquetMutationBenchmarkIteration {
                 .map(|hit| hit.path)
                 .collect::<Vec<_>>();
             (row_count, added_query_paths, deleted_query_paths)
-        });
-        assert_eq!(
-            row_count, self.expected_row_count,
-            "repo-content parquet benchmark row count drifted from the synthetic fixture"
-        );
-        RepoContentParquetMutationBenchmarkSnapshot {
-            base_document_count: self.base_document_count,
-            changed_document_count: self.changed_documents.len(),
-            deleted_path_count: self.deleted_paths.len(),
-            partition_bucket_count: repo_content_chunk_partition_count_for_document_count(
-                self.base_document_count,
-            ),
-            touched_partition_count: self.touched_base_documents_by_partition.len(),
-            touched_base_document_count: self
-                .touched_base_documents_by_partition
-                .values()
-                .copied()
-                .sum(),
-            touched_base_documents_by_partition: self.touched_base_documents_by_partition.clone(),
-            row_count,
-            elapsed,
-            added_query_paths,
-            deleted_query_paths,
-            publish_profile,
-        }
+        })
     }
 }
 

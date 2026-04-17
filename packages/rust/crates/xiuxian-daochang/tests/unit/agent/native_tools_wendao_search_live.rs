@@ -18,7 +18,7 @@ use xiuxian_daochang::{
 };
 use xiuxian_qianji::BootcampLlmMode;
 
-const AUTHOR_RESPONSE_XML: &str = r#"
+const AUTHOR_RESPONSE_XML: &str = r"
 <sql_author_spec>
   <target_object>wendao_sql_tables</target_object>
   <projection>
@@ -32,7 +32,7 @@ const AUTHOR_RESPONSE_XML: &str = r#"
   </order_by>
   <limit>1</limit>
 </sql_author_spec>
-"#;
+";
 
 #[derive(Clone, Default)]
 struct MockGatewayState {
@@ -61,8 +61,10 @@ fn repo_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .ancestors()
         .nth(4)
-        .map(PathBuf::from)
-        .unwrap_or_else(|| panic!("crate dir should have repo root ancestor"))
+        .map_or_else(
+            || panic!("crate dir should have repo root ancestor"),
+            PathBuf::from,
+        )
 }
 
 fn resolve_live_agent_config() -> Result<Option<AgentConfig>> {
@@ -241,7 +243,7 @@ async fn mock_query_handler(
         .contains("FROM wendao_sql_tables ORDER BY sql_table_name, COALESCE(repo_id, '')")
     {
         sql_response(
-            vec![
+            &[
                 json!({"name": "sql_table_name", "dataType": "Utf8", "nullable": false}),
                 json!({"name": "corpus", "dataType": "Utf8", "nullable": false}),
                 json!({"name": "scope", "dataType": "Utf8", "nullable": false}),
@@ -249,7 +251,7 @@ async fn mock_query_handler(
                 json!({"name": "source_count", "dataType": "Int64", "nullable": false}),
                 json!({"name": "repo_id", "dataType": "Utf8", "nullable": true}),
             ],
-            vec![json!({
+            &[json!({
                 "sql_table_name": "wendao_sql_tables",
                 "corpus": "catalog",
                 "scope": "request",
@@ -262,7 +264,7 @@ async fn mock_query_handler(
         .contains("FROM wendao_sql_columns ORDER BY sql_table_name, ordinal_position, column_name")
     {
         sql_response(
-            vec![
+            &[
                 json!({"name": "sql_table_name", "dataType": "Utf8", "nullable": false}),
                 json!({"name": "column_name", "dataType": "Utf8", "nullable": false}),
                 json!({"name": "data_type", "dataType": "Utf8", "nullable": false}),
@@ -270,7 +272,7 @@ async fn mock_query_handler(
                 json!({"name": "ordinal_position", "dataType": "Int64", "nullable": false}),
                 json!({"name": "column_origin_kind", "dataType": "Utf8", "nullable": false}),
             ],
-            vec![json!({
+            &[json!({
                 "sql_table_name": "wendao_sql_tables",
                 "column_name": "sql_table_name",
                 "data_type": "Utf8",
@@ -283,8 +285,8 @@ async fn mock_query_handler(
         == "SELECT sql_table_name FROM wendao_sql_tables ORDER BY sql_table_name ASC LIMIT 1"
     {
         sql_response(
-            vec![json!({"name": "sql_table_name", "dataType": "Utf8", "nullable": false})],
-            vec![json!({"sql_table_name": "wendao_sql_tables"})],
+            &[json!({"name": "sql_table_name", "dataType": "Utf8", "nullable": false})],
+            &[json!({"sql_table_name": "wendao_sql_tables"})],
         )
     } else {
         return (
@@ -298,7 +300,7 @@ async fn mock_query_handler(
     (StatusCode::OK, Json(payload))
 }
 
-fn sql_response(columns: Vec<Value>, rows: Vec<Value>) -> Value {
+fn sql_response(columns: &[Value], rows: &[Value]) -> Value {
     json!({
         "query_language": "sql",
         "payload": {

@@ -36,7 +36,7 @@ fn fallback_hash_embed(input: &str, dimension: usize) -> Vec<f32> {
                 break;
             }
             let raw = u32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]);
-            let normalized = (raw as f32) / (u32::MAX as f32);
+            let normalized = f32::from_bits(0x3F80_0000 | (raw >> 9)) - 1.0;
             vector.push(normalized * 2.0 - 1.0);
         }
         counter = counter.saturating_add(1);

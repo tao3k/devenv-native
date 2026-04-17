@@ -1,4 +1,4 @@
-//! Integration coverage for the DataFusion search-engine foundation.
+//! Integration coverage for the `DataFusion` search-engine foundation.
 
 use std::sync::Arc;
 
@@ -35,18 +35,14 @@ fn local_symbol_batch(rows: &[(&str, &str)], schema: Arc<LanceSchema>) -> Result
 
 fn string_value_at(column: &ArrayRef, row: usize) -> String {
     match column.data_type() {
-        DataType::Utf8 => column
-            .as_any()
-            .downcast_ref::<StringArray>()
-            .expect("utf8 column should decode as StringArray")
-            .value(row)
-            .to_string(),
-        DataType::Utf8View => column
-            .as_any()
-            .downcast_ref::<StringViewArray>()
-            .expect("utf8 view column should decode as StringViewArray")
-            .value(row)
-            .to_string(),
+        DataType::Utf8 => match column.as_any().downcast_ref::<StringArray>() {
+            Some(values) => values.value(row).to_string(),
+            None => panic!("utf8 column should decode as StringArray"),
+        },
+        DataType::Utf8View => match column.as_any().downcast_ref::<StringViewArray>() {
+            Some(values) => values.value(row).to_string(),
+            None => panic!("utf8 view column should decode as StringViewArray"),
+        },
         other => panic!("expected utf8-like column, got {other:?}"),
     }
 }
@@ -63,16 +59,12 @@ fn rows_from_engine_batch(batch: &EngineRecordBatch) -> Vec<(String, String)> {
 }
 
 fn rows_from_lance_batch(batch: &LanceRecordBatch) -> Vec<(String, String)> {
-    let ids = batch
-        .column(0)
-        .as_any()
-        .downcast_ref::<LanceStringArray>()
-        .expect("id column should decode as LanceStringArray");
-    let names = batch
-        .column(1)
-        .as_any()
-        .downcast_ref::<LanceStringArray>()
-        .expect("name column should decode as LanceStringArray");
+    let Some(ids) = batch.column(0).as_any().downcast_ref::<LanceStringArray>() else {
+        panic!("id column should decode as LanceStringArray");
+    };
+    let Some(names) = batch.column(1).as_any().downcast_ref::<LanceStringArray>() else {
+        panic!("name column should decode as LanceStringArray");
+    };
 
     (0..batch.num_rows())
         .map(|row| (ids.value(row).to_string(), names.value(row).to_string()))

@@ -47,57 +47,70 @@ fn write_file(path: PathBuf, content: &str) {
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent).expect("create parent dir");
     }
-    std::fs::write(path, content).expect("write yaml");
+    std::fs::write(path, content).expect("write toml");
 }
 
 #[test]
 fn discord_acl_overrides_build_from_structured_acl() {
     let tmp = TempDir::new().expect("tempdir");
-    let system = tmp.path().join("packages/conf/settings.yaml");
+    let system = tmp
+        .path()
+        .join("packages/rust/crates/xiuxian-daochang/resources/config/xiuxian.toml");
     let user = tmp
         .path()
-        .join(".config/xiuxian-artisan-workshop/settings.yaml");
+        .join(".config/xiuxian-artisan-workshop/xiuxian.toml");
 
     write_file(
         system.clone(),
         r#"
-discord:
-  acl:
-    role_aliases:
-      maintainers: "987654321012345678"
-      auditors: "<@&123456789012345678>"
-    allow:
-      users: ["owner"]
-      roles: ["maintainers"]
-      guilds: ["3001", "3002"]
-    admin:
-      users: ["owner"]
-      roles: ["maintainers"]
-    control:
-      allow_from:
-        roles: ["maintainers"]
-      rules:
-        - commands: ["/session partition"]
-          allow:
-            roles: ["maintainers"]
-        - commands: ["/reset", "/clear"]
-          allow:
-            users: ["owner"]
-    slash:
-      global:
-        roles: ["maintainers"]
-      session_status:
-        roles: ["auditors"]
-      session_budget:
-        roles: ["auditors"]
-      session_memory:
-        users: ["owner"]
-      job_status:
-        roles: ["maintainers"]
-      jobs_summary:
-        roles: ["maintainers"]
-      background_submit:
-        roles: ["maintainers"]
+[discord.acl.role_aliases]
+maintainers = "987654321012345678"
+auditors = "<@&123456789012345678>"
+
+[discord.acl.allow]
+users = ["owner"]
+roles = ["maintainers"]
+guilds = ["3001", "3002"]
+
+[discord.acl.admin]
+users = ["owner"]
+roles = ["maintainers"]
+
+[discord.acl.control.allow_from]
+roles = ["maintainers"]
+
+[[discord.acl.control.rules]]
+commands = ["/session partition"]
+
+[discord.acl.control.rules.allow]
+roles = ["maintainers"]
+
+[[discord.acl.control.rules]]
+commands = ["/reset", "/clear"]
+
+[discord.acl.control.rules.allow]
+users = ["owner"]
+
+[discord.acl.slash.global]
+roles = ["maintainers"]
+
+[discord.acl.slash.session_status]
+roles = ["auditors"]
+
+[discord.acl.slash.session_budget]
+roles = ["auditors"]
+
+[discord.acl.slash.session_memory]
+users = ["owner"]
+
+[discord.acl.slash.job_status]
+roles = ["maintainers"]
+
+[discord.acl.slash.jobs_summary]
+roles = ["maintainers"]
+
+[discord.acl.slash.background_submit]
+roles = ["maintainers"]
 "#,
     );
     write_file(user.clone(), "");
@@ -177,30 +190,29 @@ discord:
 #[test]
 fn discord_acl_overrides_use_merged_role_aliases_from_user_settings() {
     let tmp = TempDir::new().expect("tempdir");
-    let system = tmp.path().join("packages/conf/settings.yaml");
+    let system = tmp
+        .path()
+        .join("packages/rust/crates/xiuxian-daochang/resources/config/xiuxian.toml");
     let user = tmp
         .path()
-        .join(".config/xiuxian-artisan-workshop/settings.yaml");
+        .join(".config/xiuxian-artisan-workshop/xiuxian.toml");
 
     write_file(
         system.clone(),
         r#"
-discord:
-  acl:
-    role_aliases:
-      maintainers: "111111111111111111"
-      observers: "222222222222222222"
-    allow:
-      roles: ["maintainers"]
+[discord.acl.role_aliases]
+maintainers = "111111111111111111"
+observers = "222222222222222222"
+
+[discord.acl.allow]
+roles = ["maintainers"]
 "#,
     );
     write_file(
         user.clone(),
         r#"
-discord:
-  acl:
-    role_aliases:
-      maintainers: "999999999999999999"
+[discord.acl.role_aliases]
+maintainers = "999999999999999999"
 "#,
     );
 
@@ -217,21 +229,21 @@ discord:
 #[test]
 fn discord_acl_overrides_reject_invalid_control_rule_with_field_path() {
     let tmp = TempDir::new().expect("tempdir");
-    let system = tmp.path().join("packages/conf/settings.yaml");
+    let system = tmp
+        .path()
+        .join("packages/rust/crates/xiuxian-daochang/resources/config/xiuxian.toml");
     let user = tmp
         .path()
-        .join(".config/xiuxian-artisan-workshop/settings.yaml");
+        .join(".config/xiuxian-artisan-workshop/xiuxian.toml");
 
     write_file(
         system.clone(),
         r#"
-discord:
-  acl:
-    control:
-      rules:
-        - commands: ["session*"]
-          allow:
-            users: ["owner"]
+[[discord.acl.control.rules]]
+commands = ["session*"]
+
+[discord.acl.control.rules.allow]
+users = ["owner"]
 "#,
     );
     write_file(user, "");
@@ -239,7 +251,7 @@ discord:
     let settings = load_runtime_settings_from_paths(
         &system,
         &tmp.path()
-            .join(".config/xiuxian-artisan-workshop/settings.yaml"),
+            .join(".config/xiuxian-artisan-workshop/xiuxian.toml"),
     );
     let error =
         build_discord_acl_overrides(&settings).expect_err("invalid command selector should fail");

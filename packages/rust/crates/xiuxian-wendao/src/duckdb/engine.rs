@@ -287,7 +287,7 @@ impl DuckDbLocalRelationEngine {
     }
 
     fn registration_strategy_for_row_count(&self, total_rows: usize) -> DuckDbRegistrationStrategy {
-        if self.runtime.prefer_virtual_arrow
+        if self.runtime.execution.prefer_virtual_arrow
             && (total_rows as u64) < self.runtime.materialize_threshold_rows
         {
             DuckDbRegistrationStrategy::VirtualArrow

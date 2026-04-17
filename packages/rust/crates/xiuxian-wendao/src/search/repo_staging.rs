@@ -161,9 +161,9 @@ pub(crate) fn versioned_repo_table_name(
     hasher.update(b"|");
     hasher.update(normalized_revision.as_bytes());
     hasher.update(b"|schema:");
-    update_hash_with_number(&mut hasher, corpus.schema_version());
+    update_hash_with_number(&mut hasher, &corpus.schema_version());
     hasher.update(b"|extractor:");
-    update_hash_with_number(&mut hasher, extractor_version);
+    update_hash_with_number(&mut hasher, &extractor_version);
     for (path, fingerprint) in file_fingerprints {
         hasher.update(b"|");
         hasher.update(path.as_bytes());
@@ -181,18 +181,18 @@ pub(crate) fn versioned_repo_table_name(
             hasher.update(blake3.as_bytes());
         } else {
             hasher.update(b"metadata:");
-            update_hash_with_number(&mut hasher, fingerprint.size_bytes);
+            update_hash_with_number(&mut hasher, &fingerprint.size_bytes);
             hasher.update(b":");
-            update_hash_with_number(&mut hasher, fingerprint.modified_unix_ms);
+            update_hash_with_number(&mut hasher, &fingerprint.modified_unix_ms);
         }
     }
     let token = hasher.finalize().to_hex().to_string();
     format!("{table_name_prefix}_{}", &token[..16])
 }
 
-fn update_hash_with_number<N>(hasher: &mut blake3::Hasher, value: N)
+fn update_hash_with_number<N>(hasher: &mut blake3::Hasher, value: &N)
 where
-    N: ToString,
+    N: ToString + ?Sized,
 {
     hasher.update(value.to_string().as_bytes());
 }

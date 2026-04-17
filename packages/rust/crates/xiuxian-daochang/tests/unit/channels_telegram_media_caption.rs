@@ -1,17 +1,11 @@
 //! Telegram media caption rendering tests for marker-based payloads.
 
-#[path = "telegram_media_support/bootstrap.rs"]
-mod bootstrap;
-#[path = "telegram_media_support/media_api.rs"]
-mod media_api;
-#[path = "telegram_media_support/upload_api.rs"]
-mod upload_api;
-
 use anyhow::Result;
 use xiuxian_daochang::{Channel, TelegramChannel};
 
-use media_api::spawn_mock_telegram_media_api;
-use upload_api::spawn_mock_telegram_upload_api;
+use super::telegram_media_support::{
+    spawn_mock_telegram_media_api, spawn_mock_telegram_upload_api,
+};
 
 #[tokio::test]
 async fn telegram_media_markers_attach_short_text_as_media_group_caption() -> Result<()> {

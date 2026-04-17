@@ -22,9 +22,9 @@ pub struct RepoContentChunkMutationWriteProfile {
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct RepoContentChunkFinalizeProfile {
-    pub prewarm_elapsed: Duration,
-    pub record_publication_elapsed: Duration,
-    pub set_fingerprints_elapsed: Duration,
+    pub prewarm: Duration,
+    pub record_publication: Duration,
+    pub set_fingerprints: Duration,
 }
 
 #[cfg(any(test, feature = "performance"))]

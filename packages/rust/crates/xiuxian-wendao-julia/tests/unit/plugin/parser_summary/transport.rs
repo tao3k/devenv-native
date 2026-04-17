@@ -94,12 +94,11 @@ fn build_parser_summary_client_rejects_disabled_transport() {
         ..RegisteredRepository::default()
     };
 
-    let error = match build_julia_parser_summary_flight_transport_client(
+    let Err(error) = build_julia_parser_summary_flight_transport_client(
         &repository,
         ParserSummaryRouteKind::FileSummary,
-    ) {
-        Ok(_) => panic!("disabled parser-summary transport must fail"),
-        Err(error) => error,
+    ) else {
+        panic!("disabled parser-summary transport must fail");
     };
     assert!(
         error

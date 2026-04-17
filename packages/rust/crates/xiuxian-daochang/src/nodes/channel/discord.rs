@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -26,6 +27,11 @@ const DISCORD_DEFAULT_TURN_TIMEOUT_SECS: u64 = 120;
 const DISCORD_DEFAULT_FOREGROUND_MAX_IN_FLIGHT_MESSAGES: usize = 16;
 const DISCORD_DEFAULT_INGRESS_BIND: &str = "0.0.0.0:18082";
 const DISCORD_DEFAULT_INGRESS_PATH: &str = "/discord/ingress";
+
+struct ResolvedDiscordRuntimeConfig {
+    runtime_config: DiscordRuntimeConfig,
+    runtime_mode: DiscordRuntimeMode,
+}
 
 struct DiscordRuntimeLaunchConfig {
     bot_token: String,
@@ -77,6 +83,50 @@ fn resolve_discord_runtime_launch_config(
     let bot_token = bot_token
         .or_else(|| env_non_empty!("DISCORD_BOT_TOKEN"))
         .ok_or_else(|| anyhow::anyhow!("--bot-token or DISCORD_BOT_TOKEN required"))?;
+    let ResolvedDiscordRuntimeConfig {
+        runtime_config,
+        runtime_mode,
+    } = resolve_discord_runtime_config(
+        runtime_settings,
+        session_partition,
+        inbound_queue_capacity,
+        turn_timeout_secs,
+        discord_runtime_mode,
+    )?;
+    let ingress_bind = resolve_string(
+        None,
+        "OMNI_AGENT_DISCORD_INGRESS_BIND",
+        runtime_settings.discord.ingress_bind.as_deref(),
+        DISCORD_DEFAULT_INGRESS_BIND,
+    );
+    let ingress_path = resolve_string(
+        None,
+        "OMNI_AGENT_DISCORD_INGRESS_PATH",
+        runtime_settings.discord.ingress_path.as_deref(),
+        DISCORD_DEFAULT_INGRESS_PATH,
+    );
+    let ingress_secret_token = env_non_empty!("OMNI_AGENT_DISCORD_INGRESS_SECRET_TOKEN")
+        .or_else(|| runtime_settings.discord.ingress_secret_token.clone())
+        .and_then(|secret| normalize_non_empty_secret(&secret));
+
+    Ok(DiscordRuntimeLaunchConfig {
+        bot_token,
+        tool_config_path: tool_config,
+        runtime_mode,
+        runtime_config,
+        ingress_bind,
+        ingress_path,
+        ingress_secret_token,
+    })
+}
+
+fn resolve_discord_runtime_config(
+    runtime_settings: &RuntimeSettings,
+    session_partition: Option<String>,
+    inbound_queue_capacity: Option<usize>,
+    turn_timeout_secs: Option<u64>,
+    discord_runtime_mode: Option<DiscordRuntimeMode>,
+) -> anyhow::Result<ResolvedDiscordRuntimeConfig> {
     let raw_partition = resolve_string(
         session_partition,
         "OMNI_AGENT_DISCORD_SESSION_PARTITION",
@@ -86,6 +136,10 @@ fn resolve_discord_runtime_launch_config(
     let session_partition = raw_partition
         .parse::<DiscordSessionPartition>()
         .map_err(|_| anyhow::anyhow!("invalid discord session partition mode: {raw_partition}"))?;
+    let runtime_mode = resolve_discord_runtime_mode(
+        discord_runtime_mode,
+        runtime_settings.discord.runtime_mode.as_deref(),
+    );
     let inbound_queue_capacity = resolve_positive_usize(
         inbound_queue_capacity,
         "OMNI_AGENT_DISCORD_INBOUND_QUEUE_CAPACITY",
@@ -104,30 +158,6 @@ fn resolve_discord_runtime_launch_config(
         runtime_settings.discord.foreground_max_in_flight_messages,
         DISCORD_DEFAULT_FOREGROUND_MAX_IN_FLIGHT_MESSAGES,
     );
-    let foreground_queue_mode = resolve_foreground_queue_mode(
-        "OMNI_AGENT_DISCORD_FOREGROUND_QUEUE_MODE",
-        runtime_settings.discord.foreground_queue_mode.as_deref(),
-        ForegroundQueueMode::Queue,
-    );
-    let runtime_mode = resolve_discord_runtime_mode(
-        discord_runtime_mode,
-        runtime_settings.discord.runtime_mode.as_deref(),
-    );
-    let ingress_bind = resolve_string(
-        None,
-        "OMNI_AGENT_DISCORD_INGRESS_BIND",
-        runtime_settings.discord.ingress_bind.as_deref(),
-        DISCORD_DEFAULT_INGRESS_BIND,
-    );
-    let ingress_path = resolve_string(
-        None,
-        "OMNI_AGENT_DISCORD_INGRESS_PATH",
-        runtime_settings.discord.ingress_path.as_deref(),
-        DISCORD_DEFAULT_INGRESS_PATH,
-    );
-    let ingress_secret_token = env_non_empty!("OMNI_AGENT_DISCORD_INGRESS_SECRET_TOKEN")
-        .or_else(|| runtime_settings.discord.ingress_secret_token.clone())
-        .and_then(|secret| normalize_non_empty_secret(&secret));
     let require_mention = resolve_bool(
         None,
         "OMNI_AGENT_DISCORD_REQUIRE_MENTION",
@@ -140,7 +170,28 @@ fn resolve_discord_runtime_launch_config(
         runtime_settings.discord.require_mention_persist,
         false,
     );
-    let mention_overrides = runtime_settings
+
+    Ok(ResolvedDiscordRuntimeConfig {
+        runtime_mode,
+        runtime_config: DiscordRuntimeConfig {
+            session_partition,
+            require_mention,
+            require_mention_persist,
+            mention_overrides: resolve_discord_mention_overrides(runtime_settings),
+            inbound_queue_capacity,
+            turn_timeout_secs,
+            foreground_max_in_flight_messages,
+            foreground_queue_mode: resolve_foreground_queue_mode(
+                "OMNI_AGENT_DISCORD_FOREGROUND_QUEUE_MODE",
+                runtime_settings.discord.foreground_queue_mode.as_deref(),
+                ForegroundQueueMode::Queue,
+            ),
+        },
+    })
+}
+
+fn resolve_discord_mention_overrides(runtime_settings: &RuntimeSettings) -> HashMap<String, bool> {
+    runtime_settings
         .discord
         .channels
         .clone()
@@ -152,26 +203,7 @@ fn resolve_discord_runtime_launch_config(
                 .map(|value| (recipient.trim().to_string(), value))
         })
         .filter(|(recipient, _)| !recipient.is_empty())
-        .collect();
-
-    Ok(DiscordRuntimeLaunchConfig {
-        bot_token,
-        tool_config_path: tool_config,
-        runtime_mode,
-        runtime_config: DiscordRuntimeConfig {
-            session_partition,
-            require_mention,
-            require_mention_persist,
-            mention_overrides,
-            inbound_queue_capacity,
-            turn_timeout_secs,
-            foreground_max_in_flight_messages,
-            foreground_queue_mode,
-        },
-        ingress_bind,
-        ingress_path,
-        ingress_secret_token,
-    })
+        .collect::<HashMap<_, _>>()
 }
 
 fn resolve_discord_acl_launch_config(

@@ -90,13 +90,8 @@ pub trait SandboxExecutor: Send + Sync {
 pub(super) async fn execute_with_limits(
     mut cmd: AsyncCommand,
     timeout_secs: u64,
-    memory_limit_bytes: u64,
+    _memory_limit_bytes: u64,
 ) -> Result<ExecutionResult, String> {
-    #[cfg(target_os = "linux")]
-    apply_memory_limit(&mut cmd, memory_limit_bytes)?;
-    #[cfg(not(target_os = "linux"))]
-    apply_memory_limit(&mut cmd, memory_limit_bytes);
-
     cmd.stdout(Stdio::piped());
     cmd.stderr(Stdio::piped());
 
@@ -169,25 +164,3 @@ pub(super) async fn execute_with_limits(
 fn duration_to_millis(duration: std::time::Duration) -> u64 {
     u64::try_from(duration.as_millis()).unwrap_or(u64::MAX)
 }
-
-#[cfg(target_os = "linux")]
-fn apply_memory_limit(cmd: &mut AsyncCommand, memory_limit_bytes: u64) -> Result<(), String> {
-    if memory_limit_bytes == 0 {
-        return Ok(());
-    }
-
-    use nix::sys::resource::{Resource, Rlim, setrlimit};
-    use std::os::unix::process::CommandExt;
-
-    let limit = Rlim::from_raw(memory_limit_bytes);
-    cmd.pre_exec(move || {
-        setrlimit(Resource::RLIMIT_AS, limit, limit)
-            .map_err(|err| std::io::Error::new(std::io::ErrorKind::Other, err))?;
-        Ok(())
-    });
-
-    Ok(())
-}
-
-#[cfg(not(target_os = "linux"))]
-fn apply_memory_limit(_cmd: &mut AsyncCommand, _memory_limit_bytes: u64) {}

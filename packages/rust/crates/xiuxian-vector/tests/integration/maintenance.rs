@@ -177,31 +177,31 @@ async fn test_compact_retains_only_recent_versions() -> Result<()> {
         .await?;
     store.delete_where("t", "id = 'tool.a'").await?;
 
-    let versions_before = store.list_versions("t").await?;
+    let version_history_before = store.list_versions("t").await?;
     assert!(
-        versions_before.len() > 2,
+        version_history_before.len() > 2,
         "test setup should create more than two versions before compaction"
     );
 
-    let version_before = store.get_dataset_version("t").await?;
+    let dataset_version_before = store.get_dataset_version("t").await?;
     let count_before = store.count("t").await?;
 
     let stats = store.compact("t").await?;
     assert!(stats.duration_ms <= 60_000);
 
-    let versions_after = store.list_versions("t").await?;
-    let version_after = store.get_dataset_version("t").await?;
+    let version_history_after = store.list_versions("t").await?;
+    let dataset_version_after = store.get_dataset_version("t").await?;
     let count_after = store.count("t").await?;
 
-    assert!(version_after > version_before);
+    assert!(dataset_version_after > dataset_version_before);
     assert!(
-        versions_after.len() <= 2,
+        version_history_after.len() <= 2,
         "compaction cleanup should retain only the most recent versions"
     );
     assert!(
-        versions_after
+        version_history_after
             .iter()
-            .any(|version| version.version_id == version_after),
+            .any(|version| version.version_id == dataset_version_after),
         "the current version must remain visible after cleanup"
     );
     assert_eq!(count_after, count_before);

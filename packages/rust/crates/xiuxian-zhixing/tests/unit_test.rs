@@ -6,7 +6,7 @@ xiuxian_testing::crate_test_policy_harness!();
 mod test_agenda_entry;
 #[path = "unit/test_forge_skill_resources.rs"]
 mod test_forge_skill_resources;
-#[path = "unit/test_heyi.rs"]
+#[path = "unit/test_heyi/mod.rs"]
 mod test_heyi;
 #[path = "unit/test_reminder_queue.rs"]
 mod test_reminder_queue;

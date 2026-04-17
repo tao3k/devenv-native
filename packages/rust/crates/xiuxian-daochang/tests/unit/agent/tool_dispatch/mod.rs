@@ -15,11 +15,11 @@ struct RecordingTool {
 
 #[async_trait]
 impl NativeTool for RecordingTool {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "mock.record_context"
     }
 
-    fn description(&self) -> &str {
+    fn description(&self) -> &'static str {
         "Records the invocation context for assertions."
     }
 
@@ -32,10 +32,9 @@ impl NativeTool for RecordingTool {
         _arguments: Option<serde_json::Value>,
         context: &NativeToolCallContext,
     ) -> Result<String> {
-        *self
-            .seen_context
-            .lock()
-            .expect("recording tool mutex should not be poisoned") = Some(context.clone());
+        *self.seen_context.lock().unwrap_or_else(|error| {
+            panic!("recording tool mutex should not be poisoned: {error}")
+        }) = Some(context.clone());
         Ok("recorded".to_string())
     }
 }
@@ -76,9 +75,9 @@ async fn native_dispatch_preserves_tool_call_id_in_output_and_context() -> Resul
 
     let context = seen_context
         .lock()
-        .expect("recording tool mutex should not be poisoned")
+        .unwrap_or_else(|error| panic!("recording tool mutex should not be poisoned: {error}"))
         .clone()
-        .expect("native tool should have received a call context");
+        .unwrap_or_else(|| panic!("native tool should have received a call context"));
     assert_eq!(context.session_id.as_deref(), Some("telegram:1304799691"));
     assert_eq!(context.tool_call_id.as_deref(), Some("call_123"));
     Ok(())
@@ -98,7 +97,7 @@ fn soft_fail_output_preserves_tool_call_id() {
     let error = anyhow::anyhow!("embedding timed out: tool runtime error: -32603");
     let output =
         Agent::soft_fail_tool_error_output("memory.search_memory", Some("call_789"), &error)
-            .expect("embedding timeout should degrade to soft tool output");
+            .unwrap_or_else(|| panic!("embedding timeout should degrade to soft tool output"));
 
     assert!(output.is_error);
     assert_eq!(output.tool_call_id.as_deref(), Some("call_789"));

@@ -1,3 +1,5 @@
+use std::fmt::Write as _;
+
 use xiuxian_wendao_core::repo_intelligence::{RegisteredRepository, RepositoryPluginConfig};
 
 use super::{
@@ -19,9 +21,11 @@ fn synthetic_large_julia_module(target_bytes: usize) -> String {
     let mut source = String::from("module StressDemo\nexport solve\n\n");
     let mut index = 0_usize;
     while source.len() < target_bytes {
-        source.push_str(&format!(
+        write!(
+            source,
             "function solve_{index}(x)\n    x + {index}\nend\n\nconst VALUE_{index} = {index}\n\n"
-        ));
+        )
+        .unwrap_or_else(|error| panic!("append synthetic Julia source: {error}"));
         index += 1;
     }
     source.push_str("end\n");
@@ -114,13 +118,15 @@ end
         "missing `solve` docstring: {:?}",
         summary.docstrings,
     );
-    let error = fetch_julia_parser_root_summary_for_repository(
+    let root_summary = fetch_julia_parser_root_summary_for_repository(
         &repository,
         "src/standalone.jl",
         "solve(x) = x\n",
     )
-    .await
-    .expect_err("root summary without module must fail");
+    .await;
+    let Err(error) = root_summary else {
+        panic!("root summary without module must fail");
+    };
 
     assert!(
         error
@@ -207,7 +213,9 @@ async fn fetch_parser_file_summaries_concurrently_against_linked_real_service()
     }
 
     while let Some(result) = tasks.join_next().await {
-        let summary = result.expect("concurrent Julia parser-summary task should not panic")?;
+        let summary = result.unwrap_or_else(|error| {
+            panic!("concurrent Julia parser-summary task should not panic: {error}")
+        })?;
         assert_eq!(summary.module_name.as_deref(), Some("StressDemo"));
         assert!(
             summary

@@ -11,10 +11,12 @@ use super::semantic::{
 use crate::analyzers::RegisteredRepository;
 
 pub(crate) fn collect_repository_analysis_identity(
-    _repository: &RegisteredRepository,
+    repository: &RegisteredRepository,
     repository_root: &Path,
     plugin_ids: &[String],
 ) -> Option<String> {
+    #[cfg(not(feature = "zhenfa-router"))]
+    let _ = repository;
     if !repository_root.is_dir() {
         return None;
     }
@@ -52,7 +54,7 @@ pub(crate) fn collect_repository_analysis_identity(
             #[cfg(feature = "zhenfa-router")]
             RelevantFileIdentityMode::SemanticFingerprint(owner) => {
                 hash_semantic_identity(
-                    _repository,
+                    repository,
                     &file.absolute_path,
                     file.relative_path.as_str(),
                     owner,
