@@ -14,9 +14,7 @@ use xiuxian_qianhuan::{
     ManifestationInterface, ManifestationManager, MemoryPersonaRecord, MemoryTemplateRecord,
     PersonaRegistry,
 };
-use xiuxian_wendao::enhancer::markdown_config::{
-    MarkdownConfigBlock, extract_markdown_config_blocks,
-};
+use xiuxian_wendao::enhancer::{MarkdownConfigBlock, extract_markdown_config_blocks};
 use xiuxian_wendao::entity::{Entity, EntityType};
 use xiuxian_wendao::graph::KnowledgeGraph;
 use xiuxian_zhixing::{

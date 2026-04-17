@@ -91,9 +91,7 @@ pub(crate) fn write_search_duckdb_runtime_override(
 }
 
 #[cfg(feature = "duckdb")]
-pub(crate) async fn publish_local_symbol_index(
-    studio: &crate::gateway::studio::StudioState,
-) {
+pub(crate) async fn publish_local_symbol_index(studio: &crate::gateway::studio::StudioState) {
     let projects = studio.configured_projects();
     let hits = build_ast_index(
         studio.project_root.as_path(),
@@ -121,9 +119,7 @@ pub(crate) async fn publish_local_symbol_index(
 }
 
 #[cfg(feature = "duckdb")]
-pub(crate) async fn publish_knowledge_section_index(
-    studio: &crate::gateway::studio::StudioState,
-) {
+pub(crate) async fn publish_knowledge_section_index(studio: &crate::gateway::studio::StudioState) {
     let projects = studio.configured_projects();
     let fingerprint = format!(
         "test:knowledge:{}",

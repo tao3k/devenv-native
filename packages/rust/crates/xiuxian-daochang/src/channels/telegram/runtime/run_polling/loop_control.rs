@@ -15,17 +15,37 @@ use crate::channels::telegram::runtime_config::TelegramRuntimeConfig;
 use crate::channels::traits::{Channel, ChannelMessage};
 use crate::jobs::{JobCompletion, JobManager};
 
+pub(super) struct PollingLoopReceivers<'a> {
+    pub inbound_rx: &'a mut mpsc::Receiver<ChannelMessage>,
+    pub completion_rx: &'a mut mpsc::Receiver<JobCompletion>,
+}
+
+pub(super) struct PollingLoopContext<'a> {
+    pub inbound_tx: &'a mpsc::Sender<ChannelMessage>,
+    pub channel_for_send: &'a Arc<dyn Channel>,
+    pub foreground_tx: &'a mpsc::Sender<ChannelMessage>,
+    pub interrupt_controller: &'a ForegroundInterruptController,
+    pub job_manager: &'a Arc<JobManager>,
+    pub agent: &'a Arc<Agent>,
+    pub runtime_config: TelegramRuntimeConfig,
+}
+
 pub(super) async fn run_polling_event_loop(
-    inbound_rx: &mut mpsc::Receiver<ChannelMessage>,
-    completion_rx: &mut mpsc::Receiver<JobCompletion>,
-    inbound_tx: &mpsc::Sender<ChannelMessage>,
-    channel_for_send: &Arc<dyn Channel>,
-    foreground_tx: &mpsc::Sender<ChannelMessage>,
-    interrupt_controller: &ForegroundInterruptController,
-    job_manager: &Arc<JobManager>,
-    agent: &Arc<Agent>,
-    runtime_config: TelegramRuntimeConfig,
+    PollingLoopReceivers {
+        inbound_rx,
+        completion_rx,
+    }: PollingLoopReceivers<'_>,
+    context: PollingLoopContext<'_>,
 ) {
+    let PollingLoopContext {
+        inbound_tx,
+        channel_for_send,
+        foreground_tx,
+        interrupt_controller,
+        job_manager,
+        agent,
+        runtime_config,
+    } = context;
     let mut snapshot_tick = snapshot_interval_from_env().map(|period| {
         let mut interval = tokio::time::interval(period);
         interval.set_missed_tick_behavior(MissedTickBehavior::Skip);
@@ -64,7 +84,7 @@ pub(super) async fn run_polling_event_loop(
                 println!("Shutting down...");
                 break;
             }
-            _ = async {
+            () = async {
                 if let Some(interval) = snapshot_tick.as_mut() {
                     let _ = interval.tick().await;
                 }

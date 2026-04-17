@@ -33,22 +33,29 @@ in
 
           hacks = pkgs.callPackage pyproject-nix.build.hacks { };
           python = pkgs.python3;
-          hack-overlay = final: prev: {
-            torch = hacks.nixpkgsPrebuilt {
-              from = pkgs.python3Packages.torchWithoutCuda;
-              prev = prev.torch;
-            };
-            xiuxian-core-rs = hacks.nixpkgsPrebuilt {
-              from = self.packages.${system}.xiuxian-core-rs-python-bindings;
-              prev = prev.xiuxian-core-rs;
-            };
-            # Use nixpkgs version of nvidia-cufile-cu12 instead of building from source
-            # This avoids RDMA dependency issues in CI
-            nvidia-cufile-cu12 = hacks.nixpkgsPrebuilt {
-              from = pkgs.python3Packages.nvidia-cufile-cu12;
-              prev = prev.nvidia-cufile-cu12;
-            };
-          };
+          hack-overlay =
+            final: prev:
+            {
+              torch = hacks.nixpkgsPrebuilt {
+                from = pkgs.python3Packages.torchWithoutCuda;
+                prev = prev.torch;
+              };
+              xiuxian-core-rs = hacks.nixpkgsPrebuilt {
+                from = self.packages.${system}.xiuxian-core-rs-python-bindings;
+                prev = prev.xiuxian-core-rs;
+              };
+            }
+            //
+              lib.optionalAttrs
+                (pkgs.python3Packages ? nvidia-cufile-cu12 && prev ? nvidia-cufile-cu12)
+                {
+                  # Some nixpkgs snapshots do not expose this wheel; guard the
+                  # override so Linux CI evaluation stays portable.
+                  nvidia-cufile-cu12 = hacks.nixpkgsPrebuilt {
+                    from = pkgs.python3Packages.nvidia-cufile-cu12;
+                    prev = prev.nvidia-cufile-cu12;
+                  };
+                };
         in
         (pkgs.callPackage pyproject-nix.build.packages {
           inherit python;
@@ -71,11 +78,6 @@ in
                   ];
                 });
                 pylatexenc = prev.pylatexenc.overrideAttrs (old: {
-                  nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [
-                    final.setuptools
-                  ];
-                });
-                raganything = prev.raganything.overrideAttrs (old: {
                   nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [
                     final.setuptools
                   ];

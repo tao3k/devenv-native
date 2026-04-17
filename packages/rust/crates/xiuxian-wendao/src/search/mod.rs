@@ -20,6 +20,9 @@ mod local_symbol;
 mod manifest;
 #[cfg(feature = "search-runtime")]
 mod markdown_snapshot;
+/// Synthetic benchmark and probe helpers for search-plane performance seams.
+#[cfg(all(feature = "search-runtime", any(test, feature = "performance")))]
+pub mod perf_support;
 #[cfg(feature = "search-runtime")]
 mod project_fingerprint;
 /// Shared query-language adapters that sit above the Wendao search runtime.

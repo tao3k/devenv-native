@@ -9,6 +9,7 @@ pub struct ToolRuntimeListResult {
 
 /// Tool metadata advertised by a remote tool runtime.
 #[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ToolRuntimeToolDefinition {
     /// Stable tool name used for `tools/call`.
     pub name: String,

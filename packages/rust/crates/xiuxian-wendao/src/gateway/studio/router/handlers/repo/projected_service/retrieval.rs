@@ -12,9 +12,9 @@ use crate::analyzers::{
     load_cached_repository_search_result, repository_search_artifacts,
     store_cached_repository_search_result,
 };
-use crate::gateway::studio::router::handlers::repo::shared::execution::with_repo_cached_analysis_bundle;
 use crate::gateway::studio::router::GatewayState;
 use crate::gateway::studio::router::StudioApiError;
+use crate::gateway::studio::router::handlers::repo::shared::execution::with_repo_cached_analysis_bundle;
 use crate::search::FuzzySearchOptions;
 
 use super::analysis::run_repo_projected_analysis;

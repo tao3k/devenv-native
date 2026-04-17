@@ -7,7 +7,7 @@ use xiuxian_daochang::test_support::{
 use xiuxian_memory_engine::{Episode, EpisodeStore, StoreConfig};
 
 fn new_store() -> EpisodeStore {
-    let tmp = tempfile::tempdir().expect("tempdir");
+    let tmp = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
     EpisodeStore::new(StoreConfig {
         path: tmp.path().join("memory").to_string_lossy().to_string(),
         embedding_dim: 8,
@@ -33,9 +33,24 @@ fn select_recall_credit_candidates_keeps_rank_order_and_limit() -> Result<()> {
     store.store(episode("ep-3"))?;
 
     let recalled = vec![
-        (store.get("ep-1").expect("ep-1"), 0.91),
-        (store.get("ep-2").expect("ep-2"), 0.72),
-        (store.get("ep-3").expect("ep-3"), 0.61),
+        (
+            store
+                .get("ep-1")
+                .unwrap_or_else(|| panic!("ep-1 should exist")),
+            0.91,
+        ),
+        (
+            store
+                .get("ep-2")
+                .unwrap_or_else(|| panic!("ep-2 should exist")),
+            0.72,
+        ),
+        (
+            store
+                .get("ep-3")
+                .unwrap_or_else(|| panic!("ep-3 should exist")),
+            0.61,
+        ),
     ];
 
     let selected = select_recall_credit_candidates(&recalled, 2);
@@ -59,7 +74,9 @@ fn apply_recall_credit_success_increases_q_and_tracks_success() -> Result<()> {
     assert_eq!(updates.len(), 1);
     assert!(updates[0].updated_q > updates[0].previous_q);
 
-    let ep = store.get("ep-1").expect("episode should exist");
+    let ep = store
+        .get("ep-1")
+        .unwrap_or_else(|| panic!("episode should exist"));
     assert_eq!(ep.success_count, 1);
     assert_eq!(ep.failure_count, 0);
     Ok(())
@@ -79,7 +96,9 @@ fn apply_recall_credit_failure_decreases_q_and_tracks_failure() -> Result<()> {
     assert_eq!(updates.len(), 1);
     assert!(updates[0].updated_q < updates[0].previous_q);
 
-    let ep = store.get("ep-1").expect("episode should exist");
+    let ep = store
+        .get("ep-1")
+        .unwrap_or_else(|| panic!("episode should exist"));
     assert_eq!(ep.success_count, 0);
     assert_eq!(ep.failure_count, 1);
     Ok(())

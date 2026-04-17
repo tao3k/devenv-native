@@ -1,6 +1,10 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::repo_index::RepoCodeDocument;
+use crate::search::repo_content_chunk::build::partitions::{
+    repo_content_chunk_partition_count_for_document_count,
+    repo_content_chunk_partition_id_for_count,
+};
 use crate::search::repo_content_chunk::build::types::{
     REPO_CONTENT_CHUNK_EXTRACTOR_VERSION, RepoContentChunkBuildPlan,
 };
@@ -117,16 +121,35 @@ pub(crate) fn merge_repo_content_chunk_file_fingerprints(
     changed_documents: &[RepoCodeDocument],
     deleted_paths: &BTreeSet<String>,
 ) -> BTreeMap<String, SearchFileFingerprint> {
+    let next_document_count = previous_fingerprints
+        .len()
+        .saturating_add(changed_documents.len())
+        .saturating_sub(deleted_paths.len());
+    let partition_count =
+        repo_content_chunk_partition_count_for_document_count(next_document_count);
     let mut file_fingerprints = previous_fingerprints.clone();
     for path in deleted_paths {
         file_fingerprints.remove(path);
     }
-    file_fingerprints.extend(repo_content_chunk_file_fingerprints(changed_documents));
+    file_fingerprints.extend(repo_content_chunk_file_fingerprints_with_partition_count(
+        changed_documents,
+        partition_count,
+    ));
     file_fingerprints
 }
 
 pub(crate) fn repo_content_chunk_file_fingerprints(
     documents: &[RepoCodeDocument],
+) -> BTreeMap<String, SearchFileFingerprint> {
+    repo_content_chunk_file_fingerprints_with_partition_count(
+        documents,
+        repo_content_chunk_partition_count_for_document_count(documents.len()),
+    )
+}
+
+fn repo_content_chunk_file_fingerprints_with_partition_count(
+    documents: &[RepoCodeDocument],
+    partition_count: usize,
 ) -> BTreeMap<String, SearchFileFingerprint> {
     documents
         .iter()
@@ -135,6 +158,10 @@ pub(crate) fn repo_content_chunk_file_fingerprints(
                 REPO_CONTENT_CHUNK_EXTRACTOR_VERSION,
                 SearchCorpusKind::RepoContentChunk.schema_version(),
             );
+            fingerprint.partition_id = Some(repo_content_chunk_partition_id_for_count(
+                document.path.as_str(),
+                partition_count,
+            ));
             fingerprint.blake3 = Some(stable_payload_fingerprint(
                 "repo_content_chunk_document",
                 document.contents.as_ref(),

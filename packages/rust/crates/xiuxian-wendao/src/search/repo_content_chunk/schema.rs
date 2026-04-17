@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use arrow::datatypes::{DataType, Field, Schema, SchemaRef};
 use xiuxian_vector_store::{
     LanceDataType, LanceField, LanceRecordBatch, LanceSchema, LanceStringArray, LanceUInt64Array,
     VectorStoreError,
@@ -38,6 +39,19 @@ pub(crate) fn repo_content_chunk_schema() -> Arc<LanceSchema> {
         LanceField::new(COLUMN_LINE_TEXT, LanceDataType::Utf8, false),
         LanceField::new(COLUMN_LINE_TEXT_FOLDED, LanceDataType::Utf8, false),
         LanceField::new(COLUMN_SEARCH_TEXT, LanceDataType::Utf8, false),
+    ]))
+}
+
+pub(crate) fn repo_content_chunk_engine_schema() -> SchemaRef {
+    Arc::new(Schema::new(vec![
+        Field::new(COLUMN_ID, DataType::Utf8, false),
+        Field::new(COLUMN_PATH, DataType::Utf8, false),
+        Field::new(COLUMN_PATH_FOLDED, DataType::Utf8, false),
+        Field::new(COLUMN_LANGUAGE, DataType::Utf8, false),
+        Field::new(COLUMN_LINE_NUMBER, DataType::UInt64, false),
+        Field::new(COLUMN_LINE_TEXT, DataType::Utf8, false),
+        Field::new(COLUMN_LINE_TEXT_FOLDED, DataType::Utf8, false),
+        Field::new(COLUMN_SEARCH_TEXT, DataType::Utf8, false),
     ]))
 }
 
@@ -133,10 +147,22 @@ pub(super) const fn language_column() -> &'static str {
     COLUMN_LANGUAGE
 }
 
+pub(super) const fn line_number_column() -> &'static str {
+    COLUMN_LINE_NUMBER
+}
+
+pub(super) const fn line_text_column() -> &'static str {
+    COLUMN_LINE_TEXT
+}
+
 pub(super) const fn path_column() -> &'static str {
     COLUMN_PATH
 }
 
 pub(super) const fn path_folded_column() -> &'static str {
     COLUMN_PATH_FOLDED
+}
+
+pub(super) const fn line_text_folded_column() -> &'static str {
+    COLUMN_LINE_TEXT_FOLDED
 }

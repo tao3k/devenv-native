@@ -33,4 +33,6 @@ pub use engine::{
 pub use parquet::DuckDbParquetQueryEngine;
 pub use parquet::{DataFusionParquetQueryEngine, ParquetQueryEngine};
 pub use runtime::resolve_search_duckdb_runtime;
-pub use xiuxian_wendao_runtime::config::{DuckDbDatabasePath, SearchDuckDbRuntimeConfig};
+pub use xiuxian_wendao_runtime::config::{
+    DuckDbDatabasePath, SearchDuckDbExecutionConfig, SearchDuckDbRuntimeConfig,
+};

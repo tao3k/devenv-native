@@ -256,7 +256,7 @@ pub struct DiscordSettings {
 }
 
 /// Discord per-channel override settings.
-#[derive(Debug, Clone, Default, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, Deserialize)]
 pub struct DiscordChannelSettings {
     /// Require explicit mention in this channel override.
     pub require_mention: Option<bool>,

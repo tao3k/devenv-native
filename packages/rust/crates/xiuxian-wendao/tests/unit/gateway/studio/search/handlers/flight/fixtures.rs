@@ -11,11 +11,11 @@ use xiuxian_wendao_runtime::transport::{
 };
 
 use super::build_studio_search_flight_service_with_repo_provider;
-use crate::gateway::studio::{GatewayState, StudioState};
 use crate::gateway::studio::search::handlers::tests::linked_parser_summary::ensure_linked_julia_parser_summary_service;
 use crate::gateway::studio::search::handlers::tests::test_studio_state;
 use crate::gateway::studio::test_support::init_git_repository;
 use crate::gateway::studio::types::{UiConfig, UiProjectConfig, UiRepoProjectConfig};
+use crate::gateway::studio::{GatewayState, StudioState};
 use crate::gateway::studio::{build_ast_index, search::build_symbol_index};
 
 pub(super) struct GatewayStateFixture {

@@ -1,0 +1,442 @@
+name: "Xiuxian Wendao Cargo Build"
+
+on:
+  pull_request:
+    paths:
+      - Cargo.toml
+      - .cargo/**
+      - packages/rust/**
+      - .github/workflows/xiuxian-wendao-cargo-build.yaml
+  push:
+    branches:
+      - main
+    paths:
+      - Cargo.toml
+      - .cargo/**
+      - packages/rust/**
+      - .github/workflows/xiuxian-wendao-cargo-build.yaml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cargo-check:
+    name: Cargo check - Ubuntu
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: packages/rust
+        shell: bash
+    env:
+      CARGO_INCREMENTAL: "0"
+      CARGO_TERM_COLOR: always
+      SCCACHE_CACHE_SIZE: 5G
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Read Rust toolchain channel
+        id: rust
+        run: |
+          set -euo pipefail
+          channel="$(awk -F'"' '/^channel = / { print $2 }' rust-toolchain.toml)"
+          if [[ -z "${channel}" ]]; then
+            echo "Failed to resolve Rust toolchain channel from rust-toolchain.toml"
+            exit 1
+          fi
+          echo "channel=${channel}" >> "$GITHUB_OUTPUT"
+
+      - name: Install Linux build dependencies
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends pkg-config cmake libprotobuf-dev protobuf-compiler
+
+      - name: Export protobuf environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          protoc_path="$(command -v protoc)"
+          if [[ -z "${protoc_path}" ]]; then
+            echo "protoc not found on PATH"
+            exit 1
+          fi
+          proto_include=""
+          if [[ -d /usr/include/google/protobuf ]]; then
+            proto_include="/usr/include"
+          else
+            protoc_root="$(dirname "$(dirname "${protoc_path}")")"
+            if [[ -d "${protoc_root}/include/google/protobuf" ]]; then
+              proto_include="${protoc_root}/include"
+            elif command -v brew >/dev/null 2>&1; then
+              brew_prefix="$(brew --prefix protobuf 2>/dev/null || true)"
+              if [[ -n "${brew_prefix}" && -d "${brew_prefix}/include/google/protobuf" ]]; then
+                proto_include="${brew_prefix}/include"
+              fi
+            fi
+          fi
+          if [[ -z "${proto_include}" ]]; then
+            echo "Failed to resolve protobuf include directory for well-known types"
+            exit 1
+          fi
+          echo "PROTOC=${protoc_path}" >> "$GITHUB_ENV"
+          echo "PROTOC_INCLUDE=${proto_include}" >> "$GITHUB_ENV"
+          protoc --version
+          echo "PROTOC_INCLUDE=${proto_include}"
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ steps.rust.outputs.channel }}
+
+      - name: Install sccache
+        uses: taiki-e/install-action@44c6d64aa62cd779e873306675c7a58e86d6d532 # v2
+        with:
+          tool: sccache@0.7.5
+
+      - name: Configure sccache backend
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -n "${ACTIONS_CACHE_URL:-}" && -n "${ACTIONS_RUNTIME_TOKEN:-}" ]]; then
+            echo "SCCACHE_GHA_ENABLED=true" >> "$GITHUB_ENV"
+          else
+            echo "SCCACHE_GHA_ENABLED=false" >> "$GITHUB_ENV"
+            echo "SCCACHE_DIR=${{ github.workspace }}/.sccache" >> "$GITHUB_ENV"
+          fi
+          echo "RUSTC_WRAPPER=sccache" >> "$GITHUB_ENV"
+
+      - name: Restore sccache cache (fallback)
+        if: ${{ env.SCCACHE_GHA_ENABLED != 'true' }}
+        uses: actions/cache/restore@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5
+        with:
+          path: ${{ github.workspace }}/.sccache/
+          key: sccache-xiuxian-wendao-${{ runner.os }}-${{ github.job }}-${{ hashFiles('packages/rust/Cargo.lock', 'packages/rust/rust-toolchain.toml', '.github/workflows/xiuxian-wendao-cargo-build.yaml') }}-${{ github.run_id }}
+          restore-keys: |
+            sccache-xiuxian-wendao-${{ runner.os }}-${{ github.job }}-${{ hashFiles('packages/rust/Cargo.lock', 'packages/rust/rust-toolchain.toml', '.github/workflows/xiuxian-wendao-cargo-build.yaml') }}-
+            sccache-xiuxian-wendao-${{ runner.os }}-${{ hashFiles('packages/rust/Cargo.lock', 'packages/rust/rust-toolchain.toml', '.github/workflows/xiuxian-wendao-cargo-build.yaml') }}-
+            sccache-xiuxian-wendao-${{ runner.os }}-
+
+      - name: Cache cargo artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            packages/rust -> target
+          shared-key: xiuxian-wendao-cargo-build-${{ runner.os }}
+          cache-on-failure: true
+
+      - name: Fetch workspace dependencies
+        run: cargo fetch --locked
+
+      - name: Check xiuxian-wendao targets
+        run: cargo check -p xiuxian-wendao --locked --all-targets
+
+      - name: Save sccache cache (fallback)
+        if: ${{ always() && !cancelled() && env.SCCACHE_GHA_ENABLED != 'true' }}
+        continue-on-error: true
+        uses: actions/cache/save@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5
+        with:
+          path: ${{ github.workspace }}/.sccache/
+          key: sccache-xiuxian-wendao-${{ runner.os }}-${{ github.job }}-${{ hashFiles('packages/rust/Cargo.lock', 'packages/rust/rust-toolchain.toml', '.github/workflows/xiuxian-wendao-cargo-build.yaml') }}-${{ github.run_id }}
+
+      - name: sccache summary
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          {
+            echo "### sccache stats";
+            echo;
+            echo '```';
+            sccache --show-stats || true;
+            echo '```';
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  cargo-build-ubuntu:
+    name: Cargo build - Ubuntu
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: packages/rust
+        shell: bash
+    env:
+      CARGO_INCREMENTAL: "0"
+      CARGO_TERM_COLOR: always
+      SCCACHE_CACHE_SIZE: 5G
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Read Rust toolchain channel
+        id: rust
+        run: |
+          set -euo pipefail
+          channel="$(awk -F'"' '/^channel = / { print $2 }' rust-toolchain.toml)"
+          if [[ -z "${channel}" ]]; then
+            echo "Failed to resolve Rust toolchain channel from rust-toolchain.toml"
+            exit 1
+          fi
+          echo "channel=${channel}" >> "$GITHUB_OUTPUT"
+
+      - name: Install Linux build dependencies
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends pkg-config cmake libprotobuf-dev protobuf-compiler
+
+      - name: Export protobuf environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          protoc_path="$(command -v protoc)"
+          if [[ -z "${protoc_path}" ]]; then
+            echo "protoc not found on PATH"
+            exit 1
+          fi
+          proto_include=""
+          if [[ -d /usr/include/google/protobuf ]]; then
+            proto_include="/usr/include"
+          else
+            protoc_root="$(dirname "$(dirname "${protoc_path}")")"
+            if [[ -d "${protoc_root}/include/google/protobuf" ]]; then
+              proto_include="${protoc_root}/include"
+            elif command -v brew >/dev/null 2>&1; then
+              brew_prefix="$(brew --prefix protobuf 2>/dev/null || true)"
+              if [[ -n "${brew_prefix}" && -d "${brew_prefix}/include/google/protobuf" ]]; then
+                proto_include="${brew_prefix}/include"
+              fi
+            fi
+          fi
+          if [[ -z "${proto_include}" ]]; then
+            echo "Failed to resolve protobuf include directory for well-known types"
+            exit 1
+          fi
+          echo "PROTOC=${protoc_path}" >> "$GITHUB_ENV"
+          echo "PROTOC_INCLUDE=${proto_include}" >> "$GITHUB_ENV"
+          protoc --version
+          echo "PROTOC_INCLUDE=${proto_include}"
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ steps.rust.outputs.channel }}
+
+      - name: Install sccache
+        uses: taiki-e/install-action@44c6d64aa62cd779e873306675c7a58e86d6d532 # v2
+        with:
+          tool: sccache@0.7.5
+
+      - name: Configure sccache backend
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -n "${ACTIONS_CACHE_URL:-}" && -n "${ACTIONS_RUNTIME_TOKEN:-}" ]]; then
+            echo "SCCACHE_GHA_ENABLED=true" >> "$GITHUB_ENV"
+          else
+            echo "SCCACHE_GHA_ENABLED=false" >> "$GITHUB_ENV"
+            echo "SCCACHE_DIR=${{ github.workspace }}/.sccache" >> "$GITHUB_ENV"
+          fi
+          echo "RUSTC_WRAPPER=sccache" >> "$GITHUB_ENV"
+
+      - name: Restore sccache cache (fallback)
+        if: ${{ env.SCCACHE_GHA_ENABLED != 'true' }}
+        uses: actions/cache/restore@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5
+        with:
+          path: ${{ github.workspace }}/.sccache/
+          key: sccache-xiuxian-wendao-${{ runner.os }}-${{ github.job }}-${{ hashFiles('packages/rust/Cargo.lock', 'packages/rust/rust-toolchain.toml', '.github/workflows/xiuxian-wendao-cargo-build.yaml') }}-${{ github.run_id }}
+          restore-keys: |
+            sccache-xiuxian-wendao-${{ runner.os }}-${{ github.job }}-${{ hashFiles('packages/rust/Cargo.lock', 'packages/rust/rust-toolchain.toml', '.github/workflows/xiuxian-wendao-cargo-build.yaml') }}-
+            sccache-xiuxian-wendao-${{ runner.os }}-${{ hashFiles('packages/rust/Cargo.lock', 'packages/rust/rust-toolchain.toml', '.github/workflows/xiuxian-wendao-cargo-build.yaml') }}-
+            sccache-xiuxian-wendao-${{ runner.os }}-
+
+      - name: Cache cargo artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            packages/rust -> target
+          shared-key: xiuxian-wendao-cargo-build-${{ runner.os }}
+          cache-on-failure: true
+
+      - name: Fetch workspace dependencies
+        run: cargo fetch --locked
+
+      - name: Build xiuxian-wendao
+        run: cargo build -p xiuxian-wendao --locked
+
+      - name: Save sccache cache (fallback)
+        if: ${{ always() && !cancelled() && env.SCCACHE_GHA_ENABLED != 'true' }}
+        continue-on-error: true
+        uses: actions/cache/save@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5
+        with:
+          path: ${{ github.workspace }}/.sccache/
+          key: sccache-xiuxian-wendao-${{ runner.os }}-${{ github.job }}-${{ hashFiles('packages/rust/Cargo.lock', 'packages/rust/rust-toolchain.toml', '.github/workflows/xiuxian-wendao-cargo-build.yaml') }}-${{ github.run_id }}
+
+      - name: sccache summary
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          {
+            echo "### sccache stats";
+            echo;
+            echo '```';
+            sccache --show-stats || true;
+            echo '```';
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  cargo-build-macos:
+    name: Cargo build - macOS
+    if: ${{ github.event_name != 'pull_request' }}
+    runs-on: macos-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: packages/rust
+        shell: bash
+    env:
+      CARGO_INCREMENTAL: "0"
+      CARGO_TERM_COLOR: always
+      SCCACHE_CACHE_SIZE: 5G
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Read Rust toolchain channel
+        id: rust
+        run: |
+          set -euo pipefail
+          channel="$(awk -F'"' '/^channel = / { print $2 }' rust-toolchain.toml)"
+          if [[ -z "${channel}" ]]; then
+            echo "Failed to resolve Rust toolchain channel from rust-toolchain.toml"
+            exit 1
+          fi
+          echo "channel=${channel}" >> "$GITHUB_OUTPUT"
+
+      - name: Install macOS build dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          for formula in protobuf pkg-config cmake; do
+            brew list "${formula}" >/dev/null 2>&1 || brew install "${formula}"
+          done
+
+      - name: Export protobuf environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          protoc_path="$(command -v protoc)"
+          if [[ -z "${protoc_path}" ]]; then
+            echo "protoc not found on PATH"
+            exit 1
+          fi
+          proto_include=""
+          protoc_root="$(dirname "$(dirname "${protoc_path}")")"
+          if [[ -d "${protoc_root}/include/google/protobuf" ]]; then
+            proto_include="${protoc_root}/include"
+          elif command -v brew >/dev/null 2>&1; then
+            brew_prefix="$(brew --prefix protobuf 2>/dev/null || true)"
+            if [[ -n "${brew_prefix}" && -d "${brew_prefix}/include/google/protobuf" ]]; then
+              proto_include="${brew_prefix}/include"
+            fi
+          fi
+          if [[ -z "${proto_include}" ]]; then
+            echo "Failed to resolve protobuf include directory for well-known types"
+            exit 1
+          fi
+          echo "PROTOC=${protoc_path}" >> "$GITHUB_ENV"
+          echo "PROTOC_INCLUDE=${proto_include}" >> "$GITHUB_ENV"
+          protoc --version
+          echo "PROTOC_INCLUDE=${proto_include}"
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ steps.rust.outputs.channel }}
+
+      - name: Install sccache
+        uses: taiki-e/install-action@44c6d64aa62cd779e873306675c7a58e86d6d532 # v2
+        with:
+          tool: sccache@0.7.5
+
+      - name: Configure sccache backend
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -n "${ACTIONS_CACHE_URL:-}" && -n "${ACTIONS_RUNTIME_TOKEN:-}" ]]; then
+            echo "SCCACHE_GHA_ENABLED=true" >> "$GITHUB_ENV"
+          else
+            echo "SCCACHE_GHA_ENABLED=false" >> "$GITHUB_ENV"
+            echo "SCCACHE_DIR=${{ github.workspace }}/.sccache" >> "$GITHUB_ENV"
+          fi
+          echo "RUSTC_WRAPPER=sccache" >> "$GITHUB_ENV"
+
+      - name: Restore sccache cache (fallback)
+        if: ${{ env.SCCACHE_GHA_ENABLED != 'true' }}
+        uses: actions/cache/restore@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5
+        with:
+          path: ${{ github.workspace }}/.sccache/
+          key: sccache-xiuxian-wendao-${{ runner.os }}-${{ github.job }}-${{ hashFiles('packages/rust/Cargo.lock', 'packages/rust/rust-toolchain.toml', '.github/workflows/xiuxian-wendao-cargo-build.yaml') }}-${{ github.run_id }}
+          restore-keys: |
+            sccache-xiuxian-wendao-${{ runner.os }}-${{ github.job }}-${{ hashFiles('packages/rust/Cargo.lock', 'packages/rust/rust-toolchain.toml', '.github/workflows/xiuxian-wendao-cargo-build.yaml') }}-
+            sccache-xiuxian-wendao-${{ runner.os }}-${{ hashFiles('packages/rust/Cargo.lock', 'packages/rust/rust-toolchain.toml', '.github/workflows/xiuxian-wendao-cargo-build.yaml') }}-
+            sccache-xiuxian-wendao-${{ runner.os }}-
+
+      - name: Cache cargo artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            packages/rust -> target
+          shared-key: xiuxian-wendao-cargo-build-${{ runner.os }}
+          cache-on-failure: true
+
+      - name: Fetch workspace dependencies
+        run: cargo fetch --locked
+
+      - name: Build xiuxian-wendao
+        run: cargo build -p xiuxian-wendao --locked
+
+      - name: Save sccache cache (fallback)
+        if: ${{ always() && !cancelled() && env.SCCACHE_GHA_ENABLED != 'true' }}
+        continue-on-error: true
+        uses: actions/cache/save@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5
+        with:
+          path: ${{ github.workspace }}/.sccache/
+          key: sccache-xiuxian-wendao-${{ runner.os }}-${{ github.job }}-${{ hashFiles('packages/rust/Cargo.lock', 'packages/rust/rust-toolchain.toml', '.github/workflows/xiuxian-wendao-cargo-build.yaml') }}-${{ github.run_id }}
+
+      - name: sccache summary
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          {
+            echo "### sccache stats";
+            echo;
+            echo '```';
+            sccache --show-stats || true;
+            echo '```';
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  results:
+    name: Cargo build results (required)
+    needs:
+      - cargo-check
+      - cargo-build-ubuntu
+      - cargo-build-macos
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Summarize
+        shell: bash
+        run: |
+          echo "cargo-check: ${{ needs.cargo-check.result }}"
+          echo "cargo-build-ubuntu: ${{ needs.cargo-build-ubuntu.result }}"
+          echo "cargo-build-macos: ${{ needs.cargo-build-macos.result }}"
+          [[ '${{ needs.cargo-check.result }}' == 'success' ]] || {
+            echo 'xiuxian-wendao cargo check failed'
+            exit 1
+          }
+          [[ '${{ needs.cargo-build-ubuntu.result }}' == 'success' ]] || {
+            echo 'xiuxian-wendao cargo build failed on Ubuntu'
+            exit 1
+          }
+          [[ '${{ needs.cargo-build-macos.result }}' == 'success' || '${{ needs.cargo-build-macos.result }}' == 'skipped' ]] || {
+            echo 'xiuxian-wendao cargo build failed on macOS'
+            exit 1
+          }

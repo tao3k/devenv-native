@@ -4,10 +4,10 @@ use std::path::Path;
 use uuid::Uuid;
 
 use crate::analyzers::resolve_registered_repository_source;
-use crate::gateway::studio::{StudioState, configured_repositories};
 use crate::gateway::studio::test_support::commit_all;
 use crate::gateway::studio::types::{UiConfig, UiProjectConfig, UiRepoProjectConfig};
 use crate::gateway::studio::vfs::navigation::resolve_navigation_target;
+use crate::gateway::studio::{StudioState, configured_repositories};
 use xiuxian_git_repo::SyncMode;
 
 fn init_git_repository(root: &Path) {

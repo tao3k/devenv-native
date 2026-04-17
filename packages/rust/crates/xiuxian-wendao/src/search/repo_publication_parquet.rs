@@ -198,6 +198,15 @@ fn stats_from_batches(
         .map(|batch| u64::try_from(batch.num_rows()).unwrap_or(u64::MAX))
         .fold(0_u64, u64::saturating_add);
     let fragment_count = u64::try_from(batches.len()).unwrap_or(u64::MAX);
+    parquet_publication_stats_from_counts(table_name, row_count, fragment_count, published_at)
+}
+
+pub(crate) fn parquet_publication_stats_from_counts(
+    table_name: &str,
+    row_count: u64,
+    fragment_count: u64,
+    published_at: String,
+) -> ParquetPublicationStats {
     let payload = format!("{table_name}|{published_at}|{row_count}|{fragment_count}");
     let hash = blake3::hash(payload.as_bytes());
     let mut bytes = [0_u8; 8];

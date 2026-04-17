@@ -43,9 +43,9 @@ pub enum ChannelAttachment {
 pub struct ChannelMessage {
     /// Unique message ID (e.g. `telegram_{chat_id}_{message_id}` to prevent duplicate memories).
     pub id: String,
-    /// Sender identifier (username or user_id string) for logs and diagnostics.
+    /// Sender identifier (username or `user_id` string) for logs and diagnostics.
     pub sender: String,
-    /// Reply target for channel send operations (for Telegram, this is chat_id).
+    /// Reply target for channel send operations (for Telegram, this is `chat_id`).
     pub recipient: String,
     /// Session partition key (Telegram default: `chat_id:user_id`; configurable by channel strategy).
     pub session_key: String,
@@ -71,6 +71,11 @@ pub trait Channel: Send + Sync {
     }
 
     /// Optional runtime session partition mode update (`chat`, `chat_user`, ...).
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the channel does not support runtime partition
+    /// updates or rejects the provided mode.
     fn set_session_partition_mode(&self, _mode: &str) -> anyhow::Result<()> {
         Err(anyhow::anyhow!(
             "runtime session partition update is not supported for this channel"
@@ -127,6 +132,11 @@ pub trait Channel: Send + Sync {
     /// Returns recipient-scoped delegated command admins override.
     ///
     /// `Ok(None)` means no recipient override (fallback to global ACL chain).
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the channel cannot inspect recipient-scoped admin
+    /// overrides.
     fn recipient_command_admin_users(
         &self,
         _recipient: &str,
@@ -139,6 +149,11 @@ pub trait Channel: Send + Sync {
     /// Mutates recipient-scoped delegated command admins override.
     ///
     /// Returns the updated override list; `None` means override cleared.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the channel cannot persist or apply the requested
+    /// recipient-scoped admin mutation.
     fn mutate_recipient_command_admin_users(
         &self,
         _recipient: &str,
@@ -150,6 +165,11 @@ pub trait Channel: Send + Sync {
     }
 
     /// Returns mention-policy status for one recipient.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the channel cannot inspect recipient-scoped
+    /// mention policy state.
     fn recipient_mention_policy_status(
         &self,
         _recipient: &str,
@@ -164,6 +184,11 @@ pub trait Channel: Send + Sync {
     /// `Some(true)` enables mention requirement, `Some(false)` disables it,
     /// and `None` clears the recipient override back to inherited/default
     /// behavior.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the channel cannot persist or apply the requested
+    /// recipient-scoped mention override.
     fn set_recipient_require_mention(
         &self,
         _recipient: &str,

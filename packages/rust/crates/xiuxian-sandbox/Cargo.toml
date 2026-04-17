@@ -21,7 +21,7 @@ thiserror = { workspace = true }
 async-trait = "0.1"
 
 # Unix process limits
-nix = "0.29"
+nix = { version = "0.29", features = ["resource"] }
 
 # Time handling
 chrono = { workspace = true }

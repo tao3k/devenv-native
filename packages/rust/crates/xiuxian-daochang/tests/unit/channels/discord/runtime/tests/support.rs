@@ -56,7 +56,7 @@ impl MockChannel {
 
 #[async_trait]
 impl Channel for MockChannel {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "discord-runtime-mock"
     }
 
@@ -64,8 +64,7 @@ impl Channel for MockChannel {
         Some(
             self.partition_mode
                 .try_read()
-                .map(|guard| guard.clone())
-                .unwrap_or_else(|_| "guild_channel_user".to_string()),
+                .map_or_else(|_| "guild_channel_user".to_string(), |guard| guard.clone()),
         )
     }
 

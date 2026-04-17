@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use xiuxian_wendao_core::repo_intelligence::{RegisteredRepository, RepositoryPluginConfig};
 
 use super::{
@@ -33,7 +35,7 @@ async fn safe_incremental_live_service_distinguishes_leaf_and_root_files()
         )
     })
     .await
-    .expect("blocking task should complete")
+    .unwrap_or_else(|error| panic!("blocking task should complete: {error}"))
     .unwrap_or_else(|error| panic!("safe incremental leaf file should decode: {error}"));
     let root_is_safe = tokio::task::spawn_blocking(move || {
         julia_parser_summary_allows_safe_incremental_file_for_repository(
@@ -43,7 +45,7 @@ async fn safe_incremental_live_service_distinguishes_leaf_and_root_files()
         )
     })
     .await
-    .expect("blocking task should complete")
+    .unwrap_or_else(|error| panic!("blocking task should complete: {error}"))
     .unwrap_or_else(|error| panic!("root summary should decode: {error}"));
 
     assert!(
@@ -80,7 +82,7 @@ fn julia_parser_summary_file_semantic_fingerprint_changes_with_summary_semantics
             signature: Some("alpha()".to_string()),
             line_start: Some(1),
             line_end: Some(1),
-            attributes: Default::default(),
+            attributes: BTreeMap::default(),
         }],
         docstrings: vec![JuliaParserDocAttachment {
             target_name: "alpha".to_string(),

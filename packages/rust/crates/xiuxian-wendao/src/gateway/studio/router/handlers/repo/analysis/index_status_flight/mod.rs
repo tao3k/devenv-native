@@ -2,9 +2,9 @@ mod diagnostics;
 mod encoding;
 mod provider;
 
-pub(crate) use diagnostics::repo_index_status_response_with_diagnostics;
 #[cfg(all(test, feature = "duckdb"))]
 pub(crate) use diagnostics::configured_repo_index_status_diagnostics_engine_kind;
+pub(crate) use diagnostics::repo_index_status_response_with_diagnostics;
 #[cfg(test)]
 pub(crate) use diagnostics::summarize_repo_index_status_diagnostics;
 pub(crate) use encoding::{

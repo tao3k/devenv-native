@@ -1,12 +1,12 @@
 //! Example: one user turn with LLM + optional external tools.
 //!
-//! Inference: set OPENAI_API_KEY (or use LiteLLM: `litellm --port 4000` and
-//! LITELLM_PROXY_URL=http://127.0.0.1:4000/v1/chat/completions). Optional tool server:
+//! Inference: set `OPENAI_API_KEY` (or use `LiteLLM`: `litellm --port 4000` and
+//! `LITELLM_PROXY_URL=http://127.0.0.1:4000/v1/chat/completions`). Optional tool server:
 //! `OMNI_TOOL_URL=http://127.0.0.1:3002/sse`.
 //!
 //! Run: `cargo run -p xiuxian-daochang --example one_turn -- "Your message here"`
 
-use omni_agent::{Agent, AgentConfig, ToolServerEntry};
+use xiuxian_daochang::{Agent, AgentConfig, ToolServerEntry};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -24,18 +24,8 @@ async fn main() -> anyhow::Result<()> {
                 .unwrap_or_else(|_| "https://api.openai.com/v1/chat/completions".to_string()),
             model: std::env::var("OMNI_AGENT_MODEL").unwrap_or_else(|_| "gpt-4o-mini".to_string()),
             api_key: None,
-            tool_servers: Vec::new(),
             max_tool_rounds: 10,
-            memory: None,
-            window_max_turns: None,
-            consolidation_threshold_turns: None,
-            consolidation_take_turns: 10,
-            consolidation_async: true,
-            context_budget_tokens: None,
-            context_budget_reserve_tokens: 512,
-            context_budget_strategy: Default::default(),
-            summary_max_segments: 8,
-            summary_max_chars: 480,
+            ..AgentConfig::default()
         }
     };
     if let Some(url) = tool_url {
@@ -49,6 +39,6 @@ async fn main() -> anyhow::Result<()> {
 
     let agent = Agent::from_config(config).await?;
     let out = agent.run_turn("example-session", &message).await?;
-    println!("{}", out);
+    println!("{out}");
     Ok(())
 }

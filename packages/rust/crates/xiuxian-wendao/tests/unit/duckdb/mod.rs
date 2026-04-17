@@ -18,12 +18,14 @@ use crate::duckdb::{
 #[cfg(feature = "duckdb")]
 use crate::duckdb::{
     DuckDbLocalRelationEngine, DuckDbRegistrationStrategy, LocalRelationRegistrationHint,
-    ParquetQueryEngine, SearchDuckDbRuntimeConfig,
+    ParquetQueryEngine, SearchDuckDbExecutionConfig, SearchDuckDbRuntimeConfig,
 };
 use crate::link_graph::set_link_graph_wendao_config_override;
 #[cfg(feature = "duckdb")]
 use xiuxian_wendao_runtime::config::{
-    DEFAULT_SEARCH_DUCKDB_MATERIALIZE_THRESHOLD_ROWS, DEFAULT_SEARCH_DUCKDB_PREFER_VIRTUAL_ARROW,
+    DEFAULT_SEARCH_DUCKDB_MATERIALIZE_THRESHOLD_ROWS, DEFAULT_SEARCH_DUCKDB_PARQUET_METADATA_CACHE,
+    DEFAULT_SEARCH_DUCKDB_PREFER_VIRTUAL_ARROW, DEFAULT_SEARCH_DUCKDB_PRESERVE_INSERTION_ORDER,
+    DEFAULT_SEARCH_DUCKDB_THREADS, resolve_search_duckdb_runtime_with_settings,
 };
 
 type TestResult = Result<(), Box<dyn std::error::Error>>;
@@ -39,14 +41,29 @@ fn write_search_duckdb_runtime_override(
 }
 
 #[cfg(feature = "duckdb")]
+fn load_toml_settings_from_path(
+    path: &Path,
+) -> Result<serde_yaml::Value, Box<dyn std::error::Error>> {
+    let parsed: toml::Value = toml::from_str(&fs::read_to_string(path)?)?;
+    let encoded = serde_json::to_string(&parsed)?;
+    Ok(serde_json::from_str(&encoded)?)
+}
+
+#[cfg(feature = "duckdb")]
 fn in_memory_search_duckdb_runtime(root: &Path) -> SearchDuckDbRuntimeConfig {
     SearchDuckDbRuntimeConfig {
         enabled: true,
         database_path: DuckDbDatabasePath::InMemory,
         temp_directory: root.join(".cache/duckdb-test/tmp"),
         threads: 2,
+        execution: SearchDuckDbExecutionConfig {
+            preserve_insertion_order: DEFAULT_SEARCH_DUCKDB_PRESERVE_INSERTION_ORDER,
+            parquet_metadata_cache: DEFAULT_SEARCH_DUCKDB_PARQUET_METADATA_CACHE,
+            prefer_virtual_arrow: DEFAULT_SEARCH_DUCKDB_PREFER_VIRTUAL_ARROW,
+        },
+        memory_limit: None,
+        max_temp_directory_size: None,
         materialize_threshold_rows: DEFAULT_SEARCH_DUCKDB_MATERIALIZE_THRESHOLD_ROWS,
-        prefer_virtual_arrow: DEFAULT_SEARCH_DUCKDB_PREFER_VIRTUAL_ARROW,
     }
 }
 
@@ -59,6 +76,10 @@ enabled = true
 database_path = ".data/duckdb/search.db"
 temp_directory = ".cache/duckdb/custom-tmp"
 threads = 6
+preserve_insertion_order = true
+parquet_metadata_cache = false
+memory_limit = "3GB"
+max_temp_directory_size = "9GB"
 materialize_threshold_rows = 123
 prefer_virtual_arrow = false
 "#,
@@ -75,8 +96,32 @@ prefer_virtual_arrow = false
         temp.path().join(".cache/duckdb/custom-tmp")
     );
     assert_eq!(runtime.threads, 6);
+    assert!(runtime.execution.preserve_insertion_order);
+    assert!(!runtime.execution.parquet_metadata_cache);
+    assert_eq!(runtime.memory_limit.as_deref(), Some("3GB"));
+    assert_eq!(runtime.max_temp_directory_size.as_deref(), Some("9GB"));
     assert_eq!(runtime.materialize_threshold_rows, 123);
-    assert!(!runtime.prefer_virtual_arrow);
+    assert!(!runtime.execution.prefer_virtual_arrow);
+
+    Ok(())
+}
+
+#[cfg(feature = "duckdb")]
+#[test]
+fn embedded_search_duckdb_defaults_follow_system_profile() -> TestResult {
+    let crate_root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let resource_path = crate_root.join("resources/config/wendao.toml");
+    let settings = load_toml_settings_from_path(resource_path.as_path())?;
+    let runtime = resolve_search_duckdb_runtime_with_settings(crate_root, &settings);
+
+    assert!(runtime.enabled);
+    assert_eq!(runtime.database_path, DuckDbDatabasePath::InMemory);
+    assert_eq!(runtime.temp_directory, crate_root.join(".cache/duckdb/tmp"));
+    assert_eq!(runtime.threads, DEFAULT_SEARCH_DUCKDB_THREADS);
+    assert!(runtime.execution.preserve_insertion_order);
+    assert!(!runtime.execution.parquet_metadata_cache);
+    assert_eq!(runtime.memory_limit, None);
+    assert_eq!(runtime.max_temp_directory_size, None);
 
     Ok(())
 }
@@ -226,15 +271,47 @@ enabled = true
 database_path = ":memory:"
 temp_directory = ".cache/duckdb/runtime-tmp"
 threads = 2
+preserve_insertion_order = false
+parquet_metadata_cache = true
+memory_limit = "3GB"
+max_temp_directory_size = "11GB"
 "#,
     )?;
 
     let connection =
         crate::duckdb::SearchDuckDbConnection::configured().map_err(std::io::Error::other)?;
+    let mut settings = connection
+        .connection()
+        .prepare(
+            "select
+                current_setting('threads'),
+                current_setting('temp_directory'),
+                current_setting('preserve_insertion_order'),
+                current_setting('parquet_metadata_cache')
+            ",
+        )
+        .map_err(std::io::Error::other)?;
+    let (threads, temp_directory, preserve_insertion_order, parquet_metadata_cache) = settings
+        .query_row([], |row| {
+            Ok((
+                row.get::<_, i64>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, bool>(2)?,
+                row.get::<_, bool>(3)?,
+            ))
+        })
+        .map_err(std::io::Error::other)?;
     connection
         .connection()
         .execute("create table ducks (name text)", [])
         .map_err(std::io::Error::other)?;
+    assert_eq!(threads, 2);
+    assert!(
+        temp_directory.ends_with(".cache/duckdb/runtime-tmp"),
+        "unexpected temp directory setting: {temp_directory}"
+    );
+    assert!(!preserve_insertion_order);
+    assert!(parquet_metadata_cache);
 
     Ok(())
 }

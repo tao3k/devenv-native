@@ -173,8 +173,9 @@ async fn distributed_same_session_is_serialized_across_gate_instances() -> anyho
             .as_micros()
     );
     let gate_a =
-        SessionGate::new_with_valkey_for_test(valkey_url.clone(), prefix.clone(), 30, Some(5))?;
-    let gate_b = SessionGate::new_with_valkey_for_test(valkey_url, prefix, 30, Some(5))?;
+        SessionGate::new_with_valkey_for_test(valkey_url.as_str(), prefix.as_str(), 30, Some(5))?;
+    let gate_b =
+        SessionGate::new_with_valkey_for_test(valkey_url.as_str(), prefix.as_str(), 30, Some(5))?;
 
     let first_guard = gate_a.acquire("telegram:-100:888").await?;
     let (entered_tx, entered_rx) = oneshot::channel::<()>();
@@ -215,8 +216,9 @@ async fn distributed_different_sessions_run_in_parallel_across_gate_instances() 
             .as_micros()
     );
     let gate_a =
-        SessionGate::new_with_valkey_for_test(valkey_url.clone(), prefix.clone(), 30, Some(5))?;
-    let gate_b = SessionGate::new_with_valkey_for_test(valkey_url, prefix, 30, Some(5))?;
+        SessionGate::new_with_valkey_for_test(valkey_url.as_str(), prefix.as_str(), 30, Some(5))?;
+    let gate_b =
+        SessionGate::new_with_valkey_for_test(valkey_url.as_str(), prefix.as_str(), 30, Some(5))?;
 
     let _first_guard = gate_a.acquire("telegram:-100:888").await?;
     let (entered_tx, entered_rx) = oneshot::channel::<()>();

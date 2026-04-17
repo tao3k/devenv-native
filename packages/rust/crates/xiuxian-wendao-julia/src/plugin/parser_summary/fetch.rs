@@ -189,7 +189,7 @@ fn julia_parser_summary_runtime() -> Result<&'static tokio::runtime::Runtime, Re
 fn shared_julia_parser_summary_runtime_identity_for_tests() -> Result<usize, RepoIntelligenceError>
 {
     let runtime = julia_parser_summary_runtime()?;
-    Ok(runtime as *const tokio::runtime::Runtime as usize)
+    Ok(std::ptr::from_ref(runtime) as usize)
 }
 
 #[cfg(test)]

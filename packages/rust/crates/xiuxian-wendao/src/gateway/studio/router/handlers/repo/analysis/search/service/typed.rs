@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
 use crate::analyzers::{
-    ExampleSearchResult, ModuleSearchResult, SymbolSearchResult,
-    example_fallback_contract, module_fallback_contract, symbol_fallback_contract,
+    ExampleSearchResult, ModuleSearchResult, SymbolSearchResult, example_fallback_contract,
+    module_fallback_contract, symbol_fallback_contract,
 };
 use crate::gateway::studio::router::{GatewayState, StudioApiError};
 use crate::query_core::{

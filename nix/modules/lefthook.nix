@@ -97,10 +97,6 @@ let
                   ];
                   run = "uv run ruff format {staged_files}";
                 };
-                cog-check = {
-                  # Still useful to check if types (feat/fix) are correct since last tag
-                  run = "cog check --from-latest-tag";
-                };
                 format-rust = {
                   glob = "*.rs";
                   run = "rustfmt -- {staged_files}";
@@ -113,6 +109,7 @@ let
               commit-msg = lefthook.default.data.commit-msg;
               # Remove unnecessary commands from default pre-commit
               commands = builtins.removeAttrs lefthook.default.data.pre-commit.commands [
+                "cog-check"
                 "treefmt" # We use nixfmt instead
                 # "hunspell" # Not needed for LLM-generated content
                 # "typos" # Not needed for LLM-generated content

@@ -48,11 +48,11 @@ impl WendaoSearchTool {
 
 #[async_trait]
 impl NativeTool for WendaoSearchTool {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "wendao.search"
     }
 
-    fn description(&self) -> &str {
+    fn description(&self) -> &'static str {
         "Compatibility alias for `knowledge.search`. Use `knowledge.search` for new repo-specific knowledge questions; this name remains available for callers that still reference `wendao.search`."
     }
 

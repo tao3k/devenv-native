@@ -6,7 +6,10 @@ use std::path::Path;
 use std::process::Command;
 
 use crate::support::repo_intelligence::create_sample_modelica_repo;
-use xiuxian_wendao::analyzers::{DocsNavigationOptions, DocsToolService, ProjectionPageKind};
+use xiuxian_wendao::analyzers::{
+    DocsNavigationOptions, DocsPageIndexTreeResult, DocsToolService, ProjectedPageIndexNode,
+    ProjectedPageIndexTree, ProjectionPageKind,
+};
 use xiuxian_wendao_julia::integration_support::{
     JuliaExampleServiceGuard, spawn_wendaosearch_modelica_parser_summary_service,
 };
@@ -66,21 +69,9 @@ fn docs_tool_service_opens_outline_tree_search_navigation_node_and_context() -> 
     let catalog = service.get_document_structure_catalog()?;
     let structure = service.get_document_structure(MODELICA_DOCS_TOOL_PAGE_ID)?;
     let outline = service.get_document_structure_outline(MODELICA_DOCS_TOOL_PAGE_ID)?;
-    let node_id = find_node_id(
-        structure
-            .tree
-            .as_ref()
-            .map(|tree| tree.roots.as_slice())
-            .unwrap_or(&[]),
-        "Anchors",
-    )
-    .ok_or("expected a projected page-index node titled `Anchors`")?;
+    let node_id = anchors_node_id(&structure)?;
     let node = service.get_document_node(MODELICA_DOCS_TOOL_PAGE_ID, &node_id)?;
-    let node_range = node
-        .hit
-        .as_ref()
-        .map(|hit| hit.line_range)
-        .ok_or("expected node hit for segment reopen")?;
+    let node_range = anchors_line_range(&service, MODELICA_DOCS_TOOL_PAGE_ID, &node_id)?;
     let segment =
         service.get_document_segment(MODELICA_DOCS_TOOL_PAGE_ID, node_range.0, node_range.1)?;
     let search =
@@ -268,15 +259,7 @@ fn cli_docs_segment_returns_serialized_segment_payload() -> TestResult {
     let service = DocsToolService::from_project_root(temp.path(), "modelica-docs-cli")
         .with_optional_config_path(Some(config_path.clone()));
     let structure = service.get_document_structure(MODELICA_DOCS_CLI_PAGE_ID)?;
-    let node_id = find_node_id(
-        structure
-            .tree
-            .as_ref()
-            .map(|tree| tree.roots.as_slice())
-            .unwrap_or(&[]),
-        "Anchors",
-    )
-    .ok_or("expected a projected page-index node titled `Anchors`")?;
+    let node_id = anchors_node_id(&structure)?;
     let node = service.get_document_node(MODELICA_DOCS_CLI_PAGE_ID, &node_id)?;
     let line_range = node
         .hit
@@ -387,15 +370,7 @@ fn cli_docs_node_returns_serialized_node_payload() -> TestResult {
     let service = DocsToolService::from_project_root(temp.path(), "modelica-docs-cli")
         .with_optional_config_path(Some(config_path.clone()));
     let structure = service.get_document_structure(MODELICA_DOCS_CLI_PAGE_ID)?;
-    let node_id = find_node_id(
-        structure
-            .tree
-            .as_ref()
-            .map(|tree| tree.roots.as_slice())
-            .unwrap_or(&[]),
-        "Anchors",
-    )
-    .ok_or("expected a projected page-index node titled `Anchors`")?;
+    let node_id = anchors_node_id(&structure)?;
 
     let output = Command::new(env!("CARGO_BIN_EXE_wendao"))
         .current_dir(temp.path())
@@ -496,10 +471,7 @@ fn cli_docs_toc_returns_serialized_toc_payload() -> TestResult {
     Ok(())
 }
 
-fn find_node_id(
-    nodes: &[xiuxian_wendao::analyzers::ProjectedPageIndexNode],
-    title: &str,
-) -> Option<String> {
+fn find_node_id(nodes: &[ProjectedPageIndexNode], title: &str) -> Option<String> {
     for node in nodes {
         if node.title == title {
             return Some(node.node_id.clone());
@@ -509,4 +481,28 @@ fn find_node_id(
         }
     }
     None
+}
+
+fn tree_roots(tree: Option<&ProjectedPageIndexTree>) -> &[ProjectedPageIndexNode] {
+    tree.map_or(&[], |tree| tree.roots.as_slice())
+}
+
+fn anchors_node_id(
+    structure: &DocsPageIndexTreeResult,
+) -> Result<String, Box<dyn std::error::Error>> {
+    find_node_id(tree_roots(structure.tree.as_ref()), "Anchors")
+        .ok_or_else(|| "expected a projected page-index node titled `Anchors`".into())
+}
+
+fn anchors_line_range(
+    service: &DocsToolService,
+    page_id: &str,
+    node_id: &str,
+) -> Result<(usize, usize), Box<dyn std::error::Error>> {
+    service
+        .get_document_node(page_id, node_id)?
+        .hit
+        .as_ref()
+        .map(|hit| hit.line_range)
+        .ok_or_else(|| "expected node hit for segment reopen".into())
 }

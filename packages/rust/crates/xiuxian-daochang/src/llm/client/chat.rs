@@ -53,10 +53,10 @@ impl LlmClient {
         let status = res.status();
         let text = res.text().await?;
         if !status.is_success() {
-            return Err(anyhow::anyhow!("LLM API error {}: {}", status, text));
+            return Err(anyhow::anyhow!("LLM API error {status}: {text}"));
         }
         let parsed: ChatCompletionResponse = serde_json::from_str(&text)
-            .map_err(|e| anyhow::anyhow!("LLM response parse error: {}; body: {}", e, text))?;
+            .map_err(|e| anyhow::anyhow!("LLM response parse error: {e}; body: {text}"))?;
         let choice = parsed
             .choices
             .into_iter()

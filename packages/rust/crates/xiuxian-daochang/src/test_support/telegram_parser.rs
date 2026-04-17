@@ -30,6 +30,7 @@ pub fn parse_help_command(input: &str) -> Option<OutputFormat> {
     commands::parse_help_command(input).map(output_format_from_internal)
 }
 
+#[must_use]
 pub fn parse_background_prompt(input: &str) -> Option<String> {
     commands::parse_background_prompt(input)
 }
@@ -62,8 +63,10 @@ pub fn parse_session_feedback_command(input: &str) -> Option<SessionFeedbackComm
     commands::parse_session_feedback_command(input).map(session_feedback_command_from_internal)
 }
 
+#[must_use]
 pub fn parse_session_partition_command(input: &str) -> Option<SessionPartitionCommand> {
-    commands::parse_session_partition_command(input).map(session_partition_command_from_internal)
+    commands::parse_session_partition_command(input)
+        .map(|command| session_partition_command_from_internal(&command))
 }
 
 pub fn parse_session_mention_command(input: &str) -> Option<SessionMentionCommand> {

@@ -1,7 +1,6 @@
 {
   lib,
   stdenv,
-  symlinkJoin,
   python3Packages,
   rustPlatform,
   maturin,
@@ -10,6 +9,7 @@
   libiconv,
   python3,
   protobuf,
+  runCommand,
   workspaceRoot,
   cargoDeps,
   version,
@@ -28,6 +28,11 @@ let
       (workspaceRoot + "/packages/rust/bindings/python")
     ];
   };
+  cargoDepsWithLock = runCommand "${pname}-cargo-deps" {} ''
+    mkdir -p "$out"
+    cp -R ${cargoDeps}/. "$out"/
+    cp ${workspaceRoot}/Cargo.lock "$out/Cargo.lock"
+  '';
 in
 python3Packages.buildPythonPackage {
   inherit pname version;
@@ -46,14 +51,9 @@ python3Packages.buildPythonPackage {
     libiconv
   ];
 
-  # Vendor dependencies from the workspace
-  cargoDeps = symlinkJoin {
-    name = "${pname}-cargo-deps";
-    paths = [
-      cargoDeps
-      filteredSrc
-    ];
-  };
+  # Reuse the vendored cargo dependency tree as-is so offline git replacements
+  # from rust-cargo-vendor remain intact for isolated Nix builds.
+  cargoDeps = cargoDepsWithLock;
 
   build-system = [ rustPlatform.maturinBuildHook ];
 
@@ -63,6 +63,19 @@ python3Packages.buildPythonPackage {
   ];
 
   preConfigure = ''
+    mkdir -p .cargo
+    cat > .cargo/config.toml <<EOF
+    [source.crates-io]
+    replace-with = "vendored-sources"
+
+    [source."git+https://github.com/tao3k/litellm-rs?branch=xiuxian"]
+    git = "https://github.com/tao3k/litellm-rs"
+    branch = "xiuxian"
+    replace-with = "vendored-sources"
+
+    [source.vendored-sources]
+    directory = "${cargoDepsWithLock}"
+    EOF
     cd packages/rust/bindings/python
   '';
 

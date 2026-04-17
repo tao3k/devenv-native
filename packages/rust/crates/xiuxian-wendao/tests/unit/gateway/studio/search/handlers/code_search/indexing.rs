@@ -126,9 +126,7 @@ fn repo_project_config(
     }
 }
 
-async fn publish_all_repo_code_search_indexes(
-    studio: &crate::gateway::studio::StudioState,
-) {
+async fn publish_all_repo_code_search_indexes(studio: &crate::gateway::studio::StudioState) {
     studio
         .repo_index
         .set_snapshot_for_test(&Arc::new(RepoIndexSnapshot {

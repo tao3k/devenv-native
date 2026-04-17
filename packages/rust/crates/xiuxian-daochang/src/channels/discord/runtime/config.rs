@@ -108,7 +108,7 @@ impl Default for DiscordRuntimeConfig {
             inbound_queue_capacity: DISCORD_DEFAULT_INBOUND_QUEUE_CAPACITY,
             turn_timeout_secs: DISCORD_DEFAULT_TURN_TIMEOUT_SECS,
             foreground_max_in_flight_messages: DISCORD_DEFAULT_FOREGROUND_MAX_IN_FLIGHT_MESSAGES,
-            foreground_queue_mode: ForegroundQueueMode::Interrupt,
+            foreground_queue_mode: ForegroundQueueMode::Queue,
         }
     }
 }

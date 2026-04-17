@@ -34,6 +34,85 @@ fn local_symbol_batch(
     )?)
 }
 
+fn string_column<'a>(
+    batch: &'a LanceRecordBatch,
+    index: usize,
+    label: &'static str,
+) -> &'a LanceStringArray {
+    match batch
+        .column(index)
+        .as_any()
+        .downcast_ref::<LanceStringArray>()
+    {
+        Some(values) => values,
+        None => panic!("{label} column should be utf8"),
+    }
+}
+
+fn u64_column<'a>(
+    batch: &'a LanceRecordBatch,
+    index: usize,
+    label: &'static str,
+) -> &'a LanceUInt64Array {
+    match batch
+        .column(index)
+        .as_any()
+        .downcast_ref::<LanceUInt64Array>()
+    {
+        Some(values) => values,
+        None => panic!("{label} column should be u64"),
+    }
+}
+
+fn collect_symbol_rows(batches: &[LanceRecordBatch]) -> Vec<(String, String, u64)> {
+    batches
+        .iter()
+        .flat_map(|batch| {
+            let ids = string_column(batch, 0, "id");
+            let names = string_column(batch, 1, "name");
+            let lines = u64_column(batch, 2, "line");
+            (0..batch.num_rows()).map(move |row| {
+                (
+                    ids.value(row).to_string(),
+                    names.value(row).to_string(),
+                    lines.value(row),
+                )
+            })
+        })
+        .collect()
+}
+
+fn collect_ids(batches: &[LanceRecordBatch]) -> Vec<String> {
+    batches
+        .iter()
+        .flat_map(|batch| {
+            let ids = string_column(batch, 0, "id");
+            (0..batch.num_rows()).map(move |row| ids.value(row).to_string())
+        })
+        .collect()
+}
+
+fn extend_seen_ids(seen: &mut Vec<(String, String)>, table_name: &str, batch: &LanceRecordBatch) {
+    let ids = string_column(batch, 0, "id");
+    for row in 0..batch.num_rows() {
+        seen.push((table_name.to_string(), ids.value(row).to_string()));
+    }
+}
+
+fn push_seen_table(seen_tables: &Arc<Mutex<Vec<String>>>, table_name: String) {
+    match seen_tables.lock() {
+        Ok(mut seen) => seen.push(table_name),
+        Err(error) => panic!("seen_tables mutex should not be poisoned: {error}"),
+    }
+}
+
+fn seen_tables_snapshot(seen_tables: &Arc<Mutex<Vec<String>>>) -> Vec<String> {
+    match seen_tables.lock() {
+        Ok(seen) => seen.clone(),
+        Err(error) => panic!("seen_tables mutex should not be poisoned: {error}"),
+    }
+}
+
 #[tokio::test]
 async fn test_columnar_table_replace_merge_scan_and_delete() -> Result<()> {
     let temp_dir = tempfile::Builder::new()
@@ -88,33 +167,7 @@ async fn test_columnar_table_replace_merge_scan_and_delete() -> Result<()> {
         3
     );
 
-    let mut rows = batches
-        .iter()
-        .flat_map(|batch| {
-            let ids = batch
-                .column(0)
-                .as_any()
-                .downcast_ref::<LanceStringArray>()
-                .expect("id column should be utf8");
-            let names = batch
-                .column(1)
-                .as_any()
-                .downcast_ref::<LanceStringArray>()
-                .expect("name column should be utf8");
-            let lines = batch
-                .column(2)
-                .as_any()
-                .downcast_ref::<LanceUInt64Array>()
-                .expect("line column should be u64");
-            (0..batch.num_rows()).map(move |row| {
-                (
-                    ids.value(row).to_string(),
-                    names.value(row).to_string(),
-                    lines.value(row),
-                )
-            })
-        })
-        .collect::<Vec<_>>();
+    let mut rows = collect_symbol_rows(&batches);
     rows.sort_by(|left, right| left.0.cmp(&right.0));
 
     assert_eq!(
@@ -138,17 +191,7 @@ async fn test_columnar_table_replace_merge_scan_and_delete() -> Result<()> {
         )
         .await?;
 
-    let ids = remaining
-        .iter()
-        .flat_map(|batch| {
-            let ids = batch
-                .column(0)
-                .as_any()
-                .downcast_ref::<LanceStringArray>()
-                .expect("id column should be utf8");
-            (0..batch.num_rows()).map(move |row| ids.value(row).to_string())
-        })
-        .collect::<Vec<_>>();
+    let ids = collect_ids(&remaining);
 
     assert_eq!(ids, vec!["sym-2".to_string(), "sym-3".to_string()]);
 
@@ -305,14 +348,7 @@ async fn test_columnar_table_multi_table_streaming_tracks_source_and_global_limi
                 ..ColumnarScanOptions::default()
             },
             |table_name, batch| -> Result<(), VectorStoreError> {
-                let ids = batch
-                    .column(0)
-                    .as_any()
-                    .downcast_ref::<LanceStringArray>()
-                    .expect("id column should be utf8");
-                for row in 0..batch.num_rows() {
-                    seen.push((table_name.to_string(), ids.value(row).to_string()));
-                }
+                extend_seen_ids(&mut seen, table_name, &batch);
                 Ok(())
             },
         )
@@ -380,10 +416,7 @@ async fn test_columnar_table_multi_table_async_scan_can_append_batches() -> Resu
                 let seen_tables = seen_tables.clone();
                 let table_name = table_name.to_string();
                 async move {
-                    seen_tables
-                        .lock()
-                        .expect("seen_tables mutex should not be poisoned")
-                        .push(table_name);
+                    push_seen_table(&seen_tables, table_name);
                     target
                         .append_record_batches("target_symbols", schema, vec![batch])
                         .await
@@ -395,11 +428,8 @@ async fn test_columnar_table_multi_table_async_scan_can_append_batches() -> Resu
     let row_count = target.count("target_symbols").await?;
     assert_eq!(row_count, 3);
     assert_eq!(
-        seen_tables
-            .lock()
-            .expect("seen_tables mutex should not be poisoned")
-            .as_slice(),
-        &[
+        seen_tables_snapshot(&seen_tables),
+        vec![
             "source_symbols_a".to_string(),
             "source_symbols_a".to_string(),
             "source_symbols_b".to_string(),
@@ -463,17 +493,7 @@ async fn test_columnar_table_clone_delete_and_merge_insert() -> Result<()> {
             },
         )
         .await?;
-    let source_ids = source_batches
-        .iter()
-        .flat_map(|batch| {
-            let ids = batch
-                .column(0)
-                .as_any()
-                .downcast_ref::<LanceStringArray>()
-                .expect("id column should be utf8");
-            (0..batch.num_rows()).map(move |row| ids.value(row).to_string())
-        })
-        .collect::<Vec<_>>();
+    let source_ids = collect_ids(&source_batches);
     assert_eq!(
         source_ids,
         vec![
@@ -492,33 +512,7 @@ async fn test_columnar_table_clone_delete_and_merge_insert() -> Result<()> {
             },
         )
         .await?;
-    let mut staging_rows = staging_batches
-        .iter()
-        .flat_map(|batch| {
-            let ids = batch
-                .column(0)
-                .as_any()
-                .downcast_ref::<LanceStringArray>()
-                .expect("id column should be utf8");
-            let names = batch
-                .column(1)
-                .as_any()
-                .downcast_ref::<LanceStringArray>()
-                .expect("name column should be utf8");
-            let lines = batch
-                .column(2)
-                .as_any()
-                .downcast_ref::<LanceUInt64Array>()
-                .expect("line column should be u64");
-            (0..batch.num_rows()).map(move |row| {
-                (
-                    ids.value(row).to_string(),
-                    names.value(row).to_string(),
-                    lines.value(row),
-                )
-            })
-        })
-        .collect::<Vec<_>>();
+    let mut staging_rows = collect_symbol_rows(&staging_batches);
     staging_rows.sort_by(|left, right| left.0.cmp(&right.0));
 
     assert_eq!(

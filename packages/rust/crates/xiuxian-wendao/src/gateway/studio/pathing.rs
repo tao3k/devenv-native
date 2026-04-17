@@ -1,6 +1,6 @@
 use crate::analyzers::{RegisteredRepository, resolve_registered_repository_source};
-use crate::gateway::studio::{StudioState, configured_repositories};
 use crate::gateway::studio::types::UiProjectConfig;
+use crate::gateway::studio::{StudioState, configured_repositories};
 use std::env;
 use std::path::{Path, PathBuf};
 use xiuxian_git_repo::SyncMode;

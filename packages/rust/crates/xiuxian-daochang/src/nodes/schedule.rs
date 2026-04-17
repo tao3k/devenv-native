@@ -8,17 +8,31 @@ use xiuxian_daochang::{
 
 use crate::agent_builder::build_agent;
 
+pub(crate) struct ScheduleModeRequest {
+    pub prompt: String,
+    pub interval_secs: u64,
+    pub max_runs: Option<u64>,
+    pub schedule_id: String,
+    pub session_prefix: String,
+    pub recipient: String,
+    pub wait_for_completion_secs: u64,
+    pub tool_config_path: PathBuf,
+}
+
 pub(crate) async fn run_schedule_mode(
-    prompt: String,
-    interval_secs: u64,
-    max_runs: Option<u64>,
-    schedule_id: String,
-    session_prefix: String,
-    recipient: String,
-    wait_for_completion_secs: u64,
-    tool_config_path: PathBuf,
+    request: ScheduleModeRequest,
     runtime_settings: &RuntimeSettings,
 ) -> anyhow::Result<()> {
+    let ScheduleModeRequest {
+        prompt,
+        interval_secs,
+        max_runs,
+        schedule_id,
+        session_prefix,
+        recipient,
+        wait_for_completion_secs,
+        tool_config_path,
+    } = request;
     let runner: Arc<dyn TurnRunner> =
         Arc::new(build_agent(&tool_config_path, runtime_settings).await?);
     let (job_manager, completion_rx) = JobManager::start(runner, JobManagerConfig::default());

@@ -1,10 +1,9 @@
-use crate::duckdb::ParquetQueryEngine;
 use crate::gateway::studio::types::SearchHit;
 use crate::search::ranking::sort_by_rank;
 use crate::search::{SearchCorpusKind, SearchPlaneService};
 
 use super::error::RepoContentChunkSearchError;
-use super::execution::execute_repo_content_search;
+use super::execution::{execute_repo_content_search, hydrate_repo_content_search_candidates};
 use super::filters::RepoContentChunkSearchFilters;
 use super::helpers::compare_candidates;
 use super::scan::retained_window;
@@ -46,9 +45,9 @@ pub(crate) async fn search_repo_content_chunks_with_filters(
         publication.publication_id.as_str(),
     );
     #[cfg(feature = "duckdb")]
-    let query_engine = ParquetQueryEngine::configured()?;
+    let query_engine = service.repo_parquet_query_engine()?;
     #[cfg(not(feature = "duckdb"))]
-    let query_engine = ParquetQueryEngine::configured(service.datafusion_query_engine().clone());
+    let query_engine = service.repo_parquet_query_engine();
     query_engine
         .ensure_parquet_table_registered(engine_table_name.as_str(), parquet_path.as_path())
         .await?;
@@ -65,6 +64,8 @@ pub(crate) async fn search_repo_content_chunks_with_filters(
     let mut hits = execution.candidates;
     sort_by_rank(&mut hits, compare_candidates);
     hits.truncate(limit);
+    hydrate_repo_content_search_candidates(&query_engine, engine_table_name.as_str(), &mut hits)
+        .await?;
     let mut hits = hits
         .into_iter()
         .map(|candidate| candidate.into_search_hit(repo_id))

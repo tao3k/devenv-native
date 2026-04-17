@@ -131,8 +131,7 @@ Examples already inside the delete-first boundary:
 2. local decorator and handler layers
 3. the retired standalone Python test-helper package and its helper facades
 4. the retired local RAG/knowledge fixture slices
-5. package-root forwarding in `xiuxian_foundation`, `xiuxian_rag`, and
-   `wendao_core_lib`
+5. package-root forwarding in `xiuxian_foundation` and `wendao_core_lib`
 
 ## 8. Package Classification
 

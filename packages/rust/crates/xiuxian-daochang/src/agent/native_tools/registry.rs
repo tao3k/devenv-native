@@ -73,7 +73,7 @@ impl NativeToolRegistry {
                 })
             })
             .collect::<Vec<_>>();
-        tools.sort_by(|left, right| extract_tool_name(left).cmp(&extract_tool_name(right)));
+        tools.sort_by(|left, right| extract_tool_name(left).cmp(extract_tool_name(right)));
         tools
     }
 

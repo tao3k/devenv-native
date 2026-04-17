@@ -1,14 +1,11 @@
 //! Telegram media upload integration tests for local-file multipart behavior.
 
-#[path = "telegram_media_support/bootstrap.rs"]
-mod bootstrap;
-#[path = "telegram_media_support/upload_api.rs"]
-mod upload_api;
-
 use anyhow::Result;
 use xiuxian_daochang::{Channel, TelegramChannel};
 
-use upload_api::{spawn_mock_telegram_media_group_upload_api, spawn_mock_telegram_upload_api};
+use super::telegram_media_support::{
+    spawn_mock_telegram_media_group_upload_api, spawn_mock_telegram_upload_api,
+};
 
 #[tokio::test]
 async fn telegram_media_local_file_marker_uses_multipart_upload() -> Result<()> {

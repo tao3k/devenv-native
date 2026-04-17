@@ -3,8 +3,10 @@ use std::sync::Arc;
 use crate::agent::Agent;
 use crate::channels::telegram::runtime::dispatch::ForegroundInterruptController;
 use crate::channels::telegram::runtime::jobs::command_handlers::session_commands::{
-    try_handle_session_admin_command, try_handle_session_feedback_command,
-    try_handle_session_injection_command, try_handle_session_partition_command,
+    try_handle_session_admin_command, try_handle_session_budget_command,
+    try_handle_session_feedback_command, try_handle_session_injection_command,
+    try_handle_session_memory_command, try_handle_session_partition_command,
+    try_handle_session_status_command,
 };
 use crate::channels::telegram::runtime::jobs::command_handlers::session_control::{
     try_handle_agenda_command, try_handle_help_command, try_handle_reset_context_command,
@@ -35,6 +37,15 @@ pub(super) async fn try_handle(
         return true;
     }
     if try_handle_session_admin_command(msg, channel).await {
+        return true;
+    }
+    if try_handle_session_status_command(msg, channel, agent, session_id).await {
+        return true;
+    }
+    if try_handle_session_budget_command(msg, channel, agent, session_id).await {
+        return true;
+    }
+    if try_handle_session_memory_command(msg, channel, agent, session_id).await {
         return true;
     }
     if try_handle_session_feedback_command(msg, channel, agent, session_id).await {

@@ -6,7 +6,8 @@ use arrow::array::{Array, StringArray, StringViewArray, UInt64Array};
 use xiuxian_vector_store::EngineRecordBatch;
 
 use crate::search::repo_content_chunk::schema::{
-    language_column, path_column, path_folded_column, projected_columns,
+    language_column, line_number_column, line_text_column, line_text_folded_column, path_column,
+    path_folded_column,
 };
 
 use super::candidates::RepoContentChunkCandidate;
@@ -108,15 +109,57 @@ pub(crate) fn engine_u64_column<'a>(
         })
 }
 
-pub(crate) fn projected_repo_content_columns() -> Vec<String> {
-    projected_columns()
+pub(crate) fn stage1_projected_repo_content_columns() -> Vec<String> {
+    [path_column(), language_column(), line_number_column()]
         .into_iter()
         .map(str::to_string)
         .collect()
 }
 
+pub(crate) fn detail_projected_repo_content_columns() -> Vec<String> {
+    [path_column(), line_number_column(), line_text_column()]
+        .into_iter()
+        .map(str::to_string)
+        .collect()
+}
+
+pub(crate) const fn exact_match_projection_column() -> &'static str {
+    "exact_match"
+}
+
 pub(crate) fn sql_string_literal(value: &str) -> String {
     format!("'{}'", value.replace('\'', "''"))
+}
+
+pub(crate) fn exact_match_expression(raw_needle: &str) -> Option<String> {
+    let trimmed = raw_needle.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+
+    Some(format!(
+        "strpos({column}, {value}) > 0",
+        column = line_text_column(),
+        value = sql_string_literal(trimmed)
+    ))
+}
+
+pub(crate) fn stage1_path_rank_expression(raw_needle: &str) -> Option<String> {
+    let exact_match = exact_match_expression(raw_needle)?;
+    Some(format!(
+        "ROW_NUMBER() OVER (PARTITION BY {path_column} ORDER BY CASE WHEN ({exact_match}) THEN 0 ELSE 1 END, {line_number_column} ASC)",
+        path_column = path_column(),
+        line_number_column = line_number_column()
+    ))
+}
+
+pub(crate) fn stage1_global_order_clause() -> String {
+    format!(
+        "ORDER BY CASE WHEN {exact_match_column} THEN 0 ELSE 1 END, {path_column} ASC, {line_number_column} ASC",
+        exact_match_column = exact_match_projection_column(),
+        path_column = path_column(),
+        line_number_column = line_number_column()
+    )
 }
 
 pub(crate) fn language_filter_expression(language_filters: &HashSet<String>) -> Option<String> {
@@ -172,6 +215,26 @@ pub(crate) fn title_filter_expression(title_filters: &HashSet<String>) -> Option
     })
 }
 
+pub(crate) fn query_text_filter_expression(query_lower: &str) -> Option<String> {
+    let trimmed = query_lower.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+
+    if trimmed.len() >= 8 {
+        Some(format!(
+            "strpos({column}, {value}) > 0",
+            column = line_text_folded_column(),
+            value = sql_string_literal(trimmed)
+        ))
+    } else {
+        Some(format_like_expression(
+            line_text_folded_column(),
+            format!("%{}%", escape_like_pattern(trimmed)).as_str(),
+        ))
+    }
+}
+
 fn format_like_expression(column: &str, pattern: &str) -> String {
     format!(
         "{column} LIKE {pattern} ESCAPE '\\'",
@@ -201,6 +264,31 @@ where
         sorted
             .into_iter()
             .map(build_clause)
+            .collect::<Vec<_>>()
+            .join(" OR ")
+    ))
+}
+
+pub(crate) fn repo_content_detail_filter_expression(
+    candidates: &[RepoContentChunkCandidate],
+) -> Option<String> {
+    if candidates.is_empty() {
+        return None;
+    }
+
+    Some(format!(
+        "({})",
+        candidates
+            .iter()
+            .map(|candidate| {
+                format!(
+                    "({path_column} = {path} AND {line_number_column} = {line_number})",
+                    path_column = path_column(),
+                    path = sql_string_literal(candidate.path.as_str()),
+                    line_number_column = line_number_column(),
+                    line_number = candidate.line_number
+                )
+            })
             .collect::<Vec<_>>()
             .join(" OR ")
     ))

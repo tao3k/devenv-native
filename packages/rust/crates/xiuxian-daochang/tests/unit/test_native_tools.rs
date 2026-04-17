@@ -10,10 +10,10 @@ struct AlphaTool;
 
 #[async_trait]
 impl NativeTool for MockTool {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "mock.test"
     }
-    fn description(&self) -> &str {
+    fn description(&self) -> &'static str {
         "Mock tool for testing"
     }
     fn parameters(&self) -> serde_json::Value {
@@ -30,10 +30,10 @@ impl NativeTool for MockTool {
 
 #[async_trait]
 impl NativeTool for AlphaTool {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "alpha.test"
     }
-    fn description(&self) -> &str {
+    fn description(&self) -> &'static str {
         "Alphabetically earlier tool"
     }
     fn parameters(&self) -> serde_json::Value {
@@ -55,13 +55,13 @@ async fn test_native_tool_registration_and_dispatch() {
 
     let tool = registry
         .get("mock.test")
-        .expect("Tool should be registered");
+        .unwrap_or_else(|| panic!("tool should be registered"));
     assert_eq!(tool.name(), "mock.test");
 
     let result = tool
         .call(None, &NativeToolCallContext::default())
         .await
-        .expect("Call should succeed");
+        .unwrap_or_else(|error| panic!("call should succeed: {error}"));
     assert_eq!(result, "Mock success");
 }
 

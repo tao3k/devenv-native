@@ -34,7 +34,7 @@ The following are evaluation reports, statistical evidence, or one-off compariso
 - `keyword-backend-report-template.md` — Template for generating reports
 - `keyword-eval-model-profiles.md` — Eval model profiles
 - `routing-quality-analysis.md`, `router-file-discovery-intent-report.md` — Routing quality and intent reports
-- `llm_comprehension_test.md`, `graphflow_modularization.md`, `test_kit_modernization.md`, `scenario-test-driven-autofix-loop.md` — Test design and modernization notes
+- `llm_comprehension_test.md`, `test_kit_modernization.md`, `scenario-test-driven-autofix-loop.md` — Test design and modernization notes
 
 ## Main testing guide
 

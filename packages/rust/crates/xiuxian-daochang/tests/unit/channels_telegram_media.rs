@@ -34,13 +34,10 @@
     clippy::assigning_clones
 )]
 
-#[path = "telegram_media_support/mod.rs"]
-mod telegram_media_support;
-
 use anyhow::Result;
 use xiuxian_daochang::{Channel, TelegramChannel};
 
-use telegram_media_support::{
+use super::telegram_media_support::{
     spawn_mock_telegram_media_api, spawn_mock_telegram_media_api_with_group_failure,
 };
 

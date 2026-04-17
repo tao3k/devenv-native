@@ -19,7 +19,7 @@ packages:
 3. `xiuxian-wendao-analyzer`
    Analyzer workflow layer built on top of the same transport substrate.
 4. `foundation`
-   Thin config, schema, logging, and RAG-enhancement helpers.
+   Thin config, schema, logging, and adapter helpers.
 5. `core`
    Minimal retained compatibility/helpers around kernel-adjacent utilities.
 
@@ -65,8 +65,7 @@ Retained role:
 - PRJ path/config helpers
 - schema/resource lookup
 - logging
-- thin vector/search and RAG-enhancement helpers that do not own storage or
-  execution
+- thin adapter helpers that do not own storage or execution
 
 ### `xiuxian_core`
 

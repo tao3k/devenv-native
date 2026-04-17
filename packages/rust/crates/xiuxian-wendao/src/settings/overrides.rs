@@ -20,12 +20,28 @@ pub(crate) fn set_wendao_config_home_override(path: &str) {
     *guard = Some(path.trim().to_string());
 }
 
+pub(crate) fn clear_wendao_config_home_override() {
+    let mut guard = match config_home_override_store().write() {
+        Ok(guard) => guard,
+        Err(poisoned) => poisoned.into_inner(),
+    };
+    *guard = None;
+}
+
 pub(crate) fn set_wendao_config_override(path: &str) {
     let mut guard = match wendao_config_override_store().write() {
         Ok(guard) => guard,
         Err(poisoned) => poisoned.into_inner(),
     };
     *guard = Some(path.trim().to_string());
+}
+
+pub(crate) fn clear_wendao_config_override() {
+    let mut guard = match wendao_config_override_store().write() {
+        Ok(guard) => guard,
+        Err(poisoned) => poisoned.into_inner(),
+    };
+    *guard = None;
 }
 
 #[must_use]

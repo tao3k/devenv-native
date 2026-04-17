@@ -26,7 +26,10 @@ use xiuxian_wendao_core::capabilities::PluginCapabilityBinding;
 use xiuxian_wendao_runtime::transport::RerankScoreWeights;
 
 pub(crate) use resolve::resolve_link_graph_retrieval_policy_runtime;
-pub use settings::{set_link_graph_config_home_override, set_link_graph_wendao_config_override};
+pub use settings::{
+    clear_link_graph_config_home_override, clear_link_graph_wendao_config_override,
+    set_link_graph_config_home_override, set_link_graph_wendao_config_override,
+};
 
 /// File-backed runtime settings that can influence the Flight rerank host.
 #[derive(Clone, Debug, PartialEq)]

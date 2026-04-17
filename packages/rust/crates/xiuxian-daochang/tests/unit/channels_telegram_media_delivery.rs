@@ -1,16 +1,11 @@
 //! Telegram media delivery tests for marker routing and payload boundaries.
 
-#[path = "telegram_media_support/bootstrap.rs"]
-mod bootstrap;
-#[path = "telegram_media_support/media_api.rs"]
-mod media_api;
-
 use std::fmt::Write as _;
 
 use anyhow::Result;
 use xiuxian_daochang::{Channel, TELEGRAM_MAX_MESSAGE_LENGTH, TelegramChannel};
 
-use media_api::{MediaCall, spawn_mock_telegram_media_api};
+use super::telegram_media_support::{MediaCall, spawn_mock_telegram_media_api};
 
 #[tokio::test]
 async fn telegram_media_path_only_url_auto_detects_voice_method() -> Result<()> {

@@ -15,6 +15,10 @@ use crate::jobs::{JobCompletion, JobCompletionKind, JobManager};
 /// The loop submits one job per tick, collects completion events, and stops when:
 /// - `max_runs` submissions are reached, or
 /// - Ctrl+C is received.
+///
+/// # Errors
+///
+/// Returns an error when the schedule prompt/config is invalid or job submission fails.
 pub async fn run_recurring_schedule(
     manager: Arc<JobManager>,
     mut completion_rx: mpsc::Receiver<JobCompletion>,
@@ -96,28 +100,13 @@ pub async fn run_recurring_schedule(
     }
 
     if outcome.completed < outcome.submitted {
-        let deadline = Instant::now() + Duration::from_secs(config.wait_for_completion_secs);
-        while outcome.completed < outcome.submitted {
-            let now = Instant::now();
-            if now >= deadline {
-                break;
-            }
-            let wait = deadline - now;
-            match tokio::time::timeout(wait, completion_rx.recv()).await {
-                Ok(Some(completion)) => {
-                    apply_completion(&mut outcome, &completion);
-                    tracing::info!(
-                        schedule_id = %config.schedule_id,
-                        job_id = %completion.job_id,
-                        state = %completion_label(&completion.kind),
-                        completed = outcome.completed,
-                        submitted = outcome.submitted,
-                        "scheduled completion observed during drain"
-                    );
-                }
-                Ok(None) | Err(_) => break,
-            }
-        }
+        drain_pending_completions(
+            &mut completion_rx,
+            &config.schedule_id,
+            &mut outcome,
+            config.wait_for_completion_secs,
+        )
+        .await;
     }
 
     if outcome.completed < outcome.submitted {
@@ -131,6 +120,36 @@ pub async fn run_recurring_schedule(
     }
 
     Ok(outcome)
+}
+
+async fn drain_pending_completions(
+    completion_rx: &mut mpsc::Receiver<JobCompletion>,
+    schedule_id: &str,
+    outcome: &mut RecurringScheduleOutcome,
+    wait_for_completion_secs: u64,
+) {
+    let deadline = Instant::now() + Duration::from_secs(wait_for_completion_secs);
+    while outcome.completed < outcome.submitted {
+        let now = Instant::now();
+        if now >= deadline {
+            break;
+        }
+        let wait = deadline - now;
+        match tokio::time::timeout(wait, completion_rx.recv()).await {
+            Ok(Some(completion)) => {
+                apply_completion(outcome, &completion);
+                tracing::info!(
+                    schedule_id = %schedule_id,
+                    job_id = %completion.job_id,
+                    state = %completion_label(&completion.kind),
+                    completed = outcome.completed,
+                    submitted = outcome.submitted,
+                    "scheduled completion observed during drain"
+                );
+            }
+            Ok(None) | Err(_) => break,
+        }
+    }
 }
 
 fn normalize_or_default(value: &str, fallback: &str) -> String {

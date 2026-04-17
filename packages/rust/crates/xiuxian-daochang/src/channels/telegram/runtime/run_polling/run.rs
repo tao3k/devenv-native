@@ -68,11 +68,7 @@ pub async fn run_telegram_with_control_command_policy(
         foreground_dispatcher,
         job_manager,
         mut completion_rx,
-    ) = start_telegram_runtime(
-        Arc::clone(&agent),
-        Arc::clone(&channel_for_send),
-        runtime_config,
-    )?;
+    ) = start_telegram_runtime(Arc::clone(&agent), &channel_for_send, runtime_config)?;
 
     println!("Telegram channel listening... (polling, Ctrl+C to stop)");
     println!("Session partition: {}", channel.session_partition());
@@ -80,15 +76,19 @@ pub async fn run_telegram_with_control_command_policy(
     print_managed_commands_help();
 
     loop_control::run_polling_event_loop(
-        &mut inbound_rx,
-        &mut completion_rx,
-        &inbound_tx,
-        &channel_for_send,
-        &foreground_tx,
-        &interrupt_controller,
-        &job_manager,
-        &agent,
-        runtime_config,
+        loop_control::PollingLoopReceivers {
+            inbound_rx: &mut inbound_rx,
+            completion_rx: &mut completion_rx,
+        },
+        loop_control::PollingLoopContext {
+            inbound_tx: &inbound_tx,
+            channel_for_send: &channel_for_send,
+            foreground_tx: &foreground_tx,
+            interrupt_controller: &interrupt_controller,
+            job_manager: &job_manager,
+            agent: &agent,
+            runtime_config,
+        },
     )
     .await;
 
