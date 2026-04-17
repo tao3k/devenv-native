@@ -14,7 +14,7 @@ use xiuxian_config_core::{
 use xiuxian_wendao::gateway::studio::studio_effective_wendao_toml_path;
 use xiuxian_zhenfa::WebhookConfig;
 
-use crate::execute::gateway::shared::DEFAULT_PORT;
+use crate::execute::gateway::shared::{DEFAULT_BIND_ADDR, DEFAULT_PORT};
 
 /// Resolve the effective config file from CLI override, local project file, or
 /// `PRJ_ROOT`.
@@ -50,6 +50,24 @@ fn resolve_config_path_with_project_root_value(
 ) -> Option<PathBuf> {
     let project_root = resolve_project_root_or_cwd_from_value(project_root_value, current_dir);
     resolve_config_path_with_project_root(cli_config, Some(project_root.as_path()))
+}
+
+/// Resolve the bind address from config file or default (`127.0.0.1`).
+///
+/// Reads `[gateway].bind` which may be a bare IP (`"0.0.0.0"`) or an
+/// `ip:port` pair (`"0.0.0.0:9517"`).
+pub(crate) fn resolve_bind_addr(config_path: Option<&Path>) -> [u8; 4] {
+    if let Some(addr) = get_bind_addr_from_config(config_path) {
+        return addr;
+    }
+
+    DEFAULT_BIND_ADDR
+}
+
+/// Get bind address from wendao.toml config file.
+fn get_bind_addr_from_config(config_path: Option<&Path>) -> Option<[u8; 4]> {
+    let config = load_gateway_toml(config_path?)?;
+    config.gateway.bind_addr()
 }
 
 /// Resolve the port from CLI arg, config file, or default.
@@ -193,6 +211,10 @@ impl GatewayTomlSection {
             .or_else(|| self.bind.as_deref().and_then(parse_bind_port))
     }
 
+    fn bind_addr(&self) -> Option<[u8; 4]> {
+        self.bind.as_deref().and_then(parse_bind_addr)
+    }
+
     fn webhook_config(&self) -> Option<WebhookConfig> {
         if self.webhook_enabled == Some(false) {
             return None;
@@ -226,6 +248,20 @@ impl GatewayTomlSection {
             || config.studio_request_timeout_secs.is_some())
         .then_some(config)
     }
+}
+
+fn parse_bind_addr(bind: &str) -> Option<[u8; 4]> {
+    // Try as full SocketAddr (e.g. "0.0.0.0:9517")
+    if let Ok(addr) = bind.parse::<SocketAddr>() {
+        if let std::net::IpAddr::V4(v4) = addr.ip() {
+            return Some(v4.octets());
+        }
+    }
+    // Try as bare IPv4 (e.g. "0.0.0.0")
+    if let Ok(v4) = bind.parse::<std::net::Ipv4Addr>() {
+        return Some(v4.octets());
+    }
+    None
 }
 
 fn parse_bind_port(bind: &str) -> Option<u16> {
