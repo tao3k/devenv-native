@@ -11,4 +11,6 @@ pub struct PluginTransportEndpoint {
     pub health_route: Option<String>,
     /// Optional request timeout in seconds.
     pub timeout_secs: Option<u64>,
+    /// Optional maximum concurrent in-flight requests for one transport client.
+    pub max_in_flight_requests: Option<u64>,
 }

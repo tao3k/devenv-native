@@ -7,7 +7,8 @@ use xiuxian_wendao_core::{
 use xiuxian_wendao_runtime::{
     config::MemoryJuliaComputeRuntimeConfig,
     transport::{
-        normalize_flight_route, validate_flight_schema_version, validate_flight_timeout_secs,
+        normalize_flight_route, validate_flight_max_in_flight_requests,
+        validate_flight_schema_version, validate_flight_timeout_secs,
     },
 };
 
@@ -57,6 +58,16 @@ pub fn build_memory_julia_compute_binding(
             ),
         }
     })?;
+    let max_in_flight_requests = validate_flight_max_in_flight_requests(
+        runtime.max_in_flight_requests,
+    )
+    .map_err(|error| RepoIntelligenceError::ConfigLoad {
+        message: format!(
+            "memory Julia compute profile `{}` has invalid max_in_flight_requests `{}`: {error}",
+            profile.profile_id(),
+            runtime.max_in_flight_requests
+        ),
+    })?;
 
     Ok(Some(PluginCapabilityBinding {
         selector: PluginProviderSelector {
@@ -68,6 +79,14 @@ pub fn build_memory_julia_compute_binding(
             route: Some(route),
             health_route,
             timeout_secs: Some(timeout_secs),
+            max_in_flight_requests: Some(u64::try_from(max_in_flight_requests).map_err(|_| {
+                RepoIntelligenceError::ConfigLoad {
+                    message: format!(
+                        "memory Julia compute profile `{}` max_in_flight_requests exceeded u64",
+                        profile.profile_id()
+                    ),
+                }
+            })?),
         },
         launch: None,
         transport: PluginTransportKind::ArrowFlight,

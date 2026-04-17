@@ -120,6 +120,7 @@ fn deployment_artifact_round_trips_plugin_artifact_payload() {
             route: Some(DEFAULT_JULIA_RERANK_FLIGHT_ROUTE.to_string()),
             health_route: Some("/health".to_string()),
             timeout_secs: Some(15),
+            max_in_flight_requests: None,
         }),
         schema_version: Some("v1".to_string()),
         launch: Some(PluginLaunchSpec {

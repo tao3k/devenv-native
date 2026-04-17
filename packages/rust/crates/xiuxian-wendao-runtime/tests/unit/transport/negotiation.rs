@@ -22,6 +22,7 @@ fn sample_binding(
             route: Some(route.to_string()),
             health_route: Some("/healthz".to_string()),
             timeout_secs: Some(15),
+            max_in_flight_requests: None,
         },
         launch: None,
         transport,

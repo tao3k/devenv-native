@@ -10,6 +10,8 @@ pub const DEFAULT_MEMORY_JULIA_COMPUTE_SCHEMA_VERSION: &str = "v1";
 pub const DEFAULT_MEMORY_JULIA_COMPUTE_PLUGIN_ID: &str = "wendao.memory";
 /// Default timeout for memory-family Julia compute roundtrips.
 pub const DEFAULT_MEMORY_JULIA_COMPUTE_TIMEOUT_SECS: u64 = 10;
+/// Default in-flight request budget for memory-family Julia compute roundtrips.
+pub const DEFAULT_MEMORY_JULIA_COMPUTE_MAX_IN_FLIGHT_REQUESTS: u64 = 32;
 /// Default route for episodic recall compute requests.
 pub const DEFAULT_MEMORY_JULIA_COMPUTE_EPISODIC_RECALL_ROUTE: &str = "/memory/episodic_recall";
 /// Default route for memory gate scoring requests.
@@ -101,6 +103,8 @@ pub struct MemoryJuliaComputeRuntimeConfig {
     pub scenario_pack: Option<String>,
     /// Timeout budget for one compute roundtrip.
     pub timeout_secs: u64,
+    /// Maximum concurrent in-flight compute roundtrips per host transport client.
+    pub max_in_flight_requests: u64,
     /// Fallback behavior when Julia compute is unavailable.
     pub fallback_mode: MemoryJuliaComputeFallbackMode,
     /// Whether the host should record shadow drift against the Rust baseline.
@@ -120,6 +124,7 @@ impl Default for MemoryJuliaComputeRuntimeConfig {
             service_mode: MemoryJuliaComputeServiceMode::default(),
             scenario_pack: None,
             timeout_secs: DEFAULT_MEMORY_JULIA_COMPUTE_TIMEOUT_SECS,
+            max_in_flight_requests: DEFAULT_MEMORY_JULIA_COMPUTE_MAX_IN_FLIGHT_REQUESTS,
             fallback_mode: MemoryJuliaComputeFallbackMode::default(),
             shadow_compare: true,
             routes: MemoryJuliaComputeRoutesRuntimeConfig::default(),
@@ -175,6 +180,14 @@ pub fn resolve_memory_julia_compute_runtime_with_settings(
             .and_then(parse_positive_u64)
     {
         resolved.timeout_secs = timeout_secs;
+    }
+
+    if let Some(max_in_flight_requests) =
+        resolve_non_empty_string(settings, "memory.julia_compute.max_in_flight_requests")
+            .as_deref()
+            .and_then(parse_positive_u64)
+    {
+        resolved.max_in_flight_requests = max_in_flight_requests;
     }
 
     if let Some(fallback_mode) =

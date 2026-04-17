@@ -73,6 +73,10 @@ This surface is intentionally runtime-owned and compute-only:
 - `memory.julia_compute` resolves runtime-level host config
 - the runtime config now also carries one optional family-level `health_route`
   for the Julia compute provider
+- the runtime config now also carries one bounded
+  `max_in_flight_requests` budget so Rust can cap queued Julia compute
+  roundtrips explicitly instead of allowing unbounded waiters behind one
+  shared Flight client
 - the module does not own host lifecycle or state mutation
 - recommendation-only memory profiles stay outside host authority until Rust
   commits them

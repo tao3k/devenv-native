@@ -16,9 +16,11 @@ mod server;
 
 #[cfg(feature = "transport")]
 pub use contract::{
-    DEFAULT_FLIGHT_BASE_URL, DEFAULT_FLIGHT_SCHEMA_VERSION, DEFAULT_FLIGHT_TIMEOUT_SECS,
-    FLIGHT_SCHEMA_VERSION_METADATA_KEY, FLIGHT_TRACE_ID_METADATA_KEY, resolve_flight_timeout,
-    validate_flight_schema_version, validate_flight_timeout_secs,
+    DEFAULT_FLIGHT_BASE_URL, DEFAULT_FLIGHT_MAX_IN_FLIGHT_REQUESTS, DEFAULT_FLIGHT_SCHEMA_VERSION,
+    DEFAULT_FLIGHT_TIMEOUT_SECS, FLIGHT_SCHEMA_VERSION_METADATA_KEY, FLIGHT_TRACE_ID_METADATA_KEY,
+    resolve_flight_max_in_flight_requests, resolve_flight_timeout,
+    validate_flight_max_in_flight_requests, validate_flight_schema_version,
+    validate_flight_timeout_secs,
 };
 #[cfg(feature = "transport")]
 pub use host_settings::{

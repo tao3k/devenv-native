@@ -117,6 +117,7 @@ impl From<PluginArtifactPayload> for LinkGraphJuliaDeploymentArtifact {
             route,
             health_route,
             timeout_secs,
+            max_in_flight_requests: _,
         } = value.endpoint.unwrap_or_default();
 
         Self {
@@ -150,6 +151,7 @@ impl From<LinkGraphJuliaDeploymentArtifact> for PluginArtifactPayload {
                 route: value.route,
                 health_route: value.health_route,
                 timeout_secs: value.timeout_secs,
+                max_in_flight_requests: None,
             }),
             schema_version: value.schema_version,
             launch: Some(value.launch.into()),

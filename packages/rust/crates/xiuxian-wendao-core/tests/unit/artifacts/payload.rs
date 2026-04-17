@@ -17,6 +17,7 @@ fn artifact_payload_serializes_to_toml_and_json() -> Result<(), Box<dyn std::err
             route: Some("/rerank".to_string()),
             health_route: Some("/healthz".to_string()),
             timeout_secs: Some(30),
+            max_in_flight_requests: None,
         }),
         schema_version: Some("v1".to_string()),
         launch: Some(PluginLaunchSpec {

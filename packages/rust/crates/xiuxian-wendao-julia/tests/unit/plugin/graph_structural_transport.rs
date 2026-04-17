@@ -12,6 +12,7 @@ use xiuxian_wendao_core::{
 use xiuxian_wendao_runtime::transport::FLIGHT_SCHEMA_VERSION_METADATA_KEY;
 
 use super::{
+    build_graph_structural_flight_transport_binding,
     build_graph_structural_flight_transport_client, validate_graph_structural_request_batches,
     validate_graph_structural_response_batches,
 };
@@ -58,7 +59,8 @@ fn build_graph_structural_flight_transport_client_reads_common_options() {
                 "graph_structural_transport": {
                     "base_url": "http://127.0.0.1:9101",
                     "health_route": "/ready",
-                    "timeout_secs": 25
+                    "timeout_secs": 25,
+                    "max_in_flight_requests": 4
                 }
             }),
         }],
@@ -78,6 +80,13 @@ fn build_graph_structural_flight_transport_client_reads_common_options() {
         client.selection().selected_transport,
         PluginTransportKind::ArrowFlight
     );
+    let binding = build_graph_structural_flight_transport_binding(
+        &repository,
+        GraphStructuralRouteKind::StructuralRerank,
+    )
+    .unwrap_or_else(|error| panic!("graph-structural binding should parse: {error}"))
+    .unwrap_or_else(|| panic!("graph-structural binding should exist"));
+    assert_eq!(binding.endpoint.max_in_flight_requests, Some(4));
 }
 
 #[test]

@@ -4,7 +4,8 @@ use xiuxian_wendao_core::capabilities::PluginCapabilityBinding;
 use xiuxian_wendao_core::transport::PluginTransportKind;
 
 use super::contract::{
-    DEFAULT_FLIGHT_SCHEMA_VERSION, resolve_flight_timeout, validate_flight_schema_version,
+    DEFAULT_FLIGHT_SCHEMA_VERSION, resolve_flight_max_in_flight_requests, resolve_flight_timeout,
+    validate_flight_schema_version,
 };
 use super::flight::ArrowFlightTransportClient;
 
@@ -39,10 +40,17 @@ pub(crate) fn build_arrow_flight_transport_client_from_binding(
 
     let schema_version = normalized_schema_version(binding)?;
     let timeout = normalized_timeout(binding)?;
+    let max_in_flight_requests = normalized_max_in_flight_requests(binding)?;
 
-    ArrowFlightTransportClient::new(base_url, route, schema_version, timeout)
-        .map(Some)
-        .map_err(|error| format!("failed to construct Arrow Flight client: {error}"))
+    ArrowFlightTransportClient::new(
+        base_url,
+        route,
+        schema_version,
+        timeout,
+        max_in_flight_requests,
+    )
+    .map(Some)
+    .map_err(|error| format!("failed to construct Arrow Flight client: {error}"))
 }
 
 fn normalized_schema_version(binding: &PluginCapabilityBinding) -> Result<String, String> {
@@ -57,6 +65,11 @@ fn normalized_schema_version(binding: &PluginCapabilityBinding) -> Result<String
 fn normalized_timeout(binding: &PluginCapabilityBinding) -> Result<Duration, String> {
     resolve_flight_timeout(binding.endpoint.timeout_secs)
         .map_err(|error| format!("invalid plugin transport timeout: {error}"))
+}
+
+fn normalized_max_in_flight_requests(binding: &PluginCapabilityBinding) -> Result<usize, String> {
+    resolve_flight_max_in_flight_requests(binding.endpoint.max_in_flight_requests)
+        .map_err(|error| format!("invalid plugin transport max_in_flight_requests: {error}"))
 }
 
 #[cfg(test)]

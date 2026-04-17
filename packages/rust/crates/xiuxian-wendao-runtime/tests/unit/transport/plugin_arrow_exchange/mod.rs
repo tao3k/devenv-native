@@ -48,6 +48,7 @@ fn sample_binding(base_url: Option<&str>) -> PluginCapabilityBinding {
             route: Some(RERANK_ROUTE.to_string()),
             health_route: Some("/healthz".to_string()),
             timeout_secs: Some(5),
+            max_in_flight_requests: None,
         },
         launch: None,
         transport: PluginTransportKind::ArrowFlight,
