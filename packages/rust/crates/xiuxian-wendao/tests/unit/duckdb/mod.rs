@@ -23,9 +23,9 @@ use crate::duckdb::{
 use crate::link_graph::set_link_graph_wendao_config_override;
 #[cfg(feature = "duckdb")]
 use xiuxian_wendao_runtime::config::{
-    DEFAULT_SEARCH_DUCKDB_MATERIALIZE_THRESHOLD_ROWS,
-    DEFAULT_SEARCH_DUCKDB_PARQUET_METADATA_CACHE, DEFAULT_SEARCH_DUCKDB_PREFER_VIRTUAL_ARROW,
-    DEFAULT_SEARCH_DUCKDB_PRESERVE_INSERTION_ORDER,
+    DEFAULT_SEARCH_DUCKDB_MATERIALIZE_THRESHOLD_ROWS, DEFAULT_SEARCH_DUCKDB_PARQUET_METADATA_CACHE,
+    DEFAULT_SEARCH_DUCKDB_PREFER_VIRTUAL_ARROW, DEFAULT_SEARCH_DUCKDB_PRESERVE_INSERTION_ORDER,
+    DEFAULT_SEARCH_DUCKDB_THREADS, resolve_search_duckdb_runtime_with_settings,
 };
 
 type TestResult = Result<(), Box<dyn std::error::Error>>;
@@ -38,6 +38,15 @@ fn write_search_duckdb_runtime_override(
     fs::write(&config_path, body)?;
     set_link_graph_wendao_config_override(&config_path.to_string_lossy());
     Ok(temp)
+}
+
+#[cfg(feature = "duckdb")]
+fn load_toml_settings_from_path(
+    path: &Path,
+) -> Result<serde_yaml::Value, Box<dyn std::error::Error>> {
+    let parsed: toml::Value = toml::from_str(&fs::read_to_string(path)?)?;
+    let encoded = serde_json::to_string(&parsed)?;
+    Ok(serde_json::from_str(&encoded)?)
 }
 
 #[cfg(feature = "duckdb")]
@@ -91,6 +100,26 @@ prefer_virtual_arrow = false
     assert_eq!(runtime.max_temp_directory_size.as_deref(), Some("9GB"));
     assert_eq!(runtime.materialize_threshold_rows, 123);
     assert!(!runtime.prefer_virtual_arrow);
+
+    Ok(())
+}
+
+#[cfg(feature = "duckdb")]
+#[test]
+fn embedded_search_duckdb_defaults_follow_system_profile() -> TestResult {
+    let crate_root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let resource_path = crate_root.join("resources/config/wendao.toml");
+    let settings = load_toml_settings_from_path(resource_path.as_path())?;
+    let runtime = resolve_search_duckdb_runtime_with_settings(crate_root, &settings);
+
+    assert!(runtime.enabled);
+    assert_eq!(runtime.database_path, DuckDbDatabasePath::InMemory);
+    assert_eq!(runtime.temp_directory, crate_root.join(".cache/duckdb/tmp"));
+    assert_eq!(runtime.threads, DEFAULT_SEARCH_DUCKDB_THREADS);
+    assert!(runtime.preserve_insertion_order);
+    assert!(!runtime.parquet_metadata_cache);
+    assert_eq!(runtime.memory_limit, None);
+    assert_eq!(runtime.max_temp_directory_size, None);
 
     Ok(())
 }

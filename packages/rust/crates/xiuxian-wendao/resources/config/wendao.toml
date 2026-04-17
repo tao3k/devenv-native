@@ -82,6 +82,18 @@ ttl_seconds = 300
 # studio_concurrency_limit = 64
 # studio_request_timeout_secs = 15
 
+# Bounded DuckDB runtime for published Parquet search reads.
+#
+# Keep DuckDB's documented defaults for row-order preservation and Parquet
+# metadata caching unless the active repo-query benchmark lane proves a
+# workload-specific override is beneficial.
+[search.duckdb]
+enabled = true
+database_path = ":memory:"
+temp_directory = ".cache/duckdb/tmp"
+preserve_insertion_order = true
+parquet_metadata_cache = false
+
 [link_graph.related_ppr]
 max_candidates = 4096
 max_partitions = 8
