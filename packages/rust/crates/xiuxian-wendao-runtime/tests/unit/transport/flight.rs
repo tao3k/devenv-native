@@ -8,6 +8,7 @@ use std::time::Duration;
 
 use arrow_flight::flight_service_server::FlightServiceServer;
 use tokio::net::TcpListener;
+use tokio::time::timeout;
 use tokio_stream::wrappers::TcpListenerStream;
 use tonic::transport::Server;
 use xiuxian_vector::{
@@ -144,6 +145,7 @@ async fn flight_transport_client_roundtrips_batches_over_lance_arrow_line() {
         RERANK_ROUTE,
         "v2",
         Duration::from_secs(5),
+        32,
     )
     .unwrap_or_else(|error| panic!("flight client should build: {error}"));
     let request_batch = build_rerank_request_batch();
@@ -239,6 +241,7 @@ async fn flight_transport_client_accepts_responses_larger_than_default_tonic_lim
         RERANK_ROUTE,
         "v2",
         Duration::from_secs(5),
+        32,
     )
     .unwrap_or_else(|error| panic!("flight client should build: {error}"));
     let request_batch = build_large_rerank_request_batch();
@@ -258,4 +261,41 @@ async fn flight_transport_client_accepts_responses_larger_than_default_tonic_lim
     assert!(doc_ids.value(0).len() > 4 * 1024 * 1024);
 
     server.abort();
+}
+
+#[tokio::test]
+async fn flight_transport_client_gate_blocks_requests_above_budget() {
+    let client = ArrowFlightTransportClient::new(
+        "http://127.0.0.1:18815",
+        RERANK_ROUTE,
+        "v2",
+        Duration::from_secs(5),
+        1,
+    )
+    .unwrap_or_else(|error| panic!("flight client should build: {error}"));
+    let permit = client
+        .request_gate()
+        .acquire_owned()
+        .await
+        .unwrap_or_else(|error| panic!("first gate permit should acquire: {error}"));
+
+    let second_attempt = timeout(
+        Duration::from_millis(50),
+        client.request_gate().acquire_owned(),
+    )
+    .await;
+    assert!(
+        second_attempt.is_err(),
+        "second permit should block at budget"
+    );
+
+    drop(permit);
+
+    let _ = timeout(
+        Duration::from_secs(1),
+        client.request_gate().acquire_owned(),
+    )
+    .await
+    .unwrap_or_else(|error| panic!("released permit should become available: {error}"))
+    .unwrap_or_else(|error| panic!("second gate acquisition should succeed: {error}"));
 }

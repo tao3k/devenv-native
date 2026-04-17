@@ -186,8 +186,9 @@ needs a feature-gated second plugin bundle for these languages.
   `memory_plan_tuning`, and `memory_calibration` request rows or batches.
 - `xiuxian-wendao-julia` also owns the runtime-facing memory-family transport
   seam under `src/memory/transport/`, including runtime-config-driven Flight
-  client construction, request or response validation dispatch, roundtrip
-  execution, and typed fetch helpers for the four staged memory profiles.
+  client construction, request or response validation dispatch, the bounded
+  `max_in_flight_requests` admission-control bridge, roundtrip execution, and
+  typed fetch helpers for the four staged memory profiles.
 - `xiuxian-wendao-julia` also owns the plugin-side memory-family composition
   seam under `src/memory/downcall/`, which combines `src/memory/host/` input
   staging with `src/memory/transport/` Flight execution so host consumers can
@@ -343,7 +344,7 @@ The transport builder consumes repository plugin entries that resolve to:
 root = "/path/to/repo"
 plugins = [
   "julia",
-  { id = "julia", flight_transport = { base_url = "http://127.0.0.1:8815", route = "/rerank", health_route = "/healthz", timeout_secs = 15 } }
+  { id = "julia", flight_transport = { base_url = "http://127.0.0.1:8815", route = "/rerank", health_route = "/healthz", timeout_secs = 15, max_in_flight_requests = 32 } }
 ]
 ```
 
@@ -359,7 +360,7 @@ plugin option block so Search downcalls can stay Julia-plugin-owned as well:
 root = "/path/to/repo"
 plugins = [
   "julia",
-  { id = "julia", graph_structural_transport = { base_url = "http://127.0.0.1:8815", structural_rerank = { route = "/graph/structural/rerank", schema_version = "v0-draft" }, constraint_filter = { route = "/graph/structural/filter", timeout_secs = 20 } } }
+  { id = "julia", graph_structural_transport = { base_url = "http://127.0.0.1:8815", max_in_flight_requests = 32, structural_rerank = { route = "/graph/structural/rerank", schema_version = "v0-draft" }, constraint_filter = { route = "/graph/structural/filter", timeout_secs = 20 } } }
 ]
 ```
 

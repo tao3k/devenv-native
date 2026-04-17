@@ -7,7 +7,7 @@ def test_valkey_process_nix_bootstraps_dirs_and_waits_for_readiness() -> None:
     process_nix = Path(__file__).resolve().parents[1] / "nix/modules/process.nix"
     content = process_nix.read_text(encoding="utf-8")
 
-    assert 'ROOT_DIR="\'\'${PRJ_ROOT:-$PWD}"' in content
+    assert "ROOT_DIR=\"''${PRJ_ROOT:-$PWD}\"" in content
     assert 'VALKEY_RUNTIME_DIR="$ROOT_DIR/${valkeyRuntimeDir}"' in content
     assert 'VALKEY_DATA_DIR="$ROOT_DIR/${valkeyDataDir}"' in content
     assert 'VALKEY_PIDFILE="$ROOT_DIR/${valkeyPidFile}"' in content

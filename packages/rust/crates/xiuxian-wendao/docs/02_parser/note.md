@@ -66,7 +66,7 @@ The shared aggregate follows these rules for Markdown:
 9. the resulting `NoteAggregate<...>` preserves parser-owned raw targets
    plus parser-visible occurrence ranges without filesystem context
 10. sections preserve parser-owned heading scope plus shared `SectionMetadata`
-   without Wendao enrichments
+    without Wendao enrichments
 
 ## Consumer Boundary
 

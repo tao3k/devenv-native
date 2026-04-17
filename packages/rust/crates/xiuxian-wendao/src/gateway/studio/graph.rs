@@ -9,13 +9,13 @@ use axum::extract::{Path as AxumPath, State};
 use serde::Deserialize;
 
 use crate::gateway::studio::pathing::studio_display_path;
-use crate::gateway::studio::{GatewayState, StudioApiError};
 use crate::gateway::studio::search::{
     DefinitionMatchMode, DefinitionResolveOptions, resolve_best_definition,
 };
 use crate::gateway::studio::types::{
     GraphNeighborsResult, GraphNode, StudioNavigationTarget, Topology3dPayload,
 };
+use crate::gateway::studio::{GatewayState, StudioApiError};
 use crate::link_graph::LinkGraphDirection;
 
 #[derive(Debug, Deserialize)]

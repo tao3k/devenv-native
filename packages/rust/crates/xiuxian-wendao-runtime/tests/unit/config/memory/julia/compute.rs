@@ -1,8 +1,9 @@
 use super::{
     DEFAULT_MEMORY_JULIA_COMPUTE_BASE_URL, DEFAULT_MEMORY_JULIA_COMPUTE_EPISODIC_RECALL_ROUTE,
-    DEFAULT_MEMORY_JULIA_COMPUTE_PLUGIN_ID, DEFAULT_MEMORY_JULIA_COMPUTE_SCHEMA_VERSION,
-    DEFAULT_MEMORY_JULIA_COMPUTE_TIMEOUT_SECS, MemoryJuliaComputeFallbackMode,
-    MemoryJuliaComputeServiceMode, resolve_memory_julia_compute_runtime_with_settings,
+    DEFAULT_MEMORY_JULIA_COMPUTE_MAX_IN_FLIGHT_REQUESTS, DEFAULT_MEMORY_JULIA_COMPUTE_PLUGIN_ID,
+    DEFAULT_MEMORY_JULIA_COMPUTE_SCHEMA_VERSION, DEFAULT_MEMORY_JULIA_COMPUTE_TIMEOUT_SECS,
+    MemoryJuliaComputeFallbackMode, MemoryJuliaComputeServiceMode,
+    resolve_memory_julia_compute_runtime_with_settings,
 };
 use crate::config::test_support;
 use std::fs;
@@ -22,6 +23,7 @@ health_route = "/healthz"
 service_mode = "table"
 scenario_pack = "searchinfra"
 timeout_secs = 3
+max_in_flight_requests = 7
 fallback_mode = "rust"
 shadow_compare = false
 
@@ -44,6 +46,7 @@ memory_calibration = "/memory/custom_calibration"
     assert_eq!(runtime.service_mode, MemoryJuliaComputeServiceMode::Table);
     assert_eq!(runtime.scenario_pack.as_deref(), Some("searchinfra"));
     assert_eq!(runtime.timeout_secs, 3);
+    assert_eq!(runtime.max_in_flight_requests, 7);
     assert_eq!(runtime.fallback_mode, MemoryJuliaComputeFallbackMode::Rust);
     assert!(!runtime.shadow_compare);
     assert_eq!(runtime.routes.episodic_recall, "/memory/custom_recall");
@@ -77,6 +80,7 @@ plugin_id = ""
 health_route = " "
 service_mode = "invalid"
 timeout_secs = 0
+max_in_flight_requests = 0
 fallback_mode = "invalid"
 shadow_compare = true
 
@@ -100,6 +104,10 @@ episodic_recall = "   "
     assert_eq!(
         runtime.timeout_secs,
         DEFAULT_MEMORY_JULIA_COMPUTE_TIMEOUT_SECS
+    );
+    assert_eq!(
+        runtime.max_in_flight_requests,
+        DEFAULT_MEMORY_JULIA_COMPUTE_MAX_IN_FLIGHT_REQUESTS
     );
     assert_eq!(runtime.fallback_mode, MemoryJuliaComputeFallbackMode::Rust);
     assert!(runtime.shadow_compare);

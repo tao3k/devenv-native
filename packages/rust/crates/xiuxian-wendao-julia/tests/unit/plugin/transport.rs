@@ -15,8 +15,8 @@ use xiuxian_wendao_runtime::transport::{
 
 use super::{
     DEFAULT_JULIA_HEALTH_ROUTE, JULIA_ARROW_RESPONSE_SCHEMA_VERSION,
-    build_julia_flight_transport_client, process_julia_flight_batches,
-    process_julia_flight_batches_for_repository,
+    build_flight_transport_binding, build_julia_flight_transport_client,
+    process_julia_flight_batches, process_julia_flight_batches_for_repository,
 };
 use crate::compatibility::link_graph::julia_rerank_provider_selector;
 use crate::julia_plugin_test_support::contract::{request_batch, request_batch_with_trace_id};
@@ -72,7 +72,8 @@ fn build_julia_flight_transport_client_reads_nested_flight_transport_options() {
                     "base_url": "http://127.0.0.1:8081",
                     "route": "/analysis",
                     "health_route": "/ready",
-                    "timeout_secs": 30
+                    "timeout_secs": 30,
+                    "max_in_flight_requests": 7
                 }
             }),
         }],
@@ -91,6 +92,11 @@ fn build_julia_flight_transport_client_reads_nested_flight_transport_options() {
         client.selection().selected_transport,
         PluginTransportKind::ArrowFlight
     );
+
+    let binding = build_flight_transport_binding(&repository)
+        .unwrap_or_else(|error| panic!("binding should parse: {error}"))
+        .unwrap_or_else(|| panic!("binding should exist"));
+    assert_eq!(binding.endpoint.max_in_flight_requests, Some(7));
 }
 
 #[test]
@@ -140,6 +146,30 @@ fn build_julia_flight_transport_client_honors_enabled_false() {
         Err(error) => panic!("expected disabled config to be ignored: {error}"),
     };
     assert!(client.is_none());
+}
+
+#[test]
+fn build_julia_flight_transport_client_rejects_zero_in_flight_budget() {
+    let repository = RegisteredRepository {
+        id: "repo-julia".to_string(),
+        plugins: vec![RepositoryPluginConfig::Config {
+            id: "julia".to_string(),
+            options: serde_json::json!({
+                "flight_transport": {
+                    "max_in_flight_requests": 0
+                }
+            }),
+        }],
+        ..RegisteredRepository::default()
+    };
+
+    let Err(error) = build_julia_flight_transport_client(&repository) else {
+        panic!("zero in-flight budget must fail");
+    };
+    assert!(
+        error.to_string().contains("max_in_flight_requests"),
+        "unexpected error: {error}"
+    );
 }
 
 #[tokio::test]
@@ -347,6 +377,7 @@ fn test_transport_client(base_url: String, route: &str) -> NegotiatedFlightTrans
             route: Some(route.to_string()),
             health_route: Some(DEFAULT_JULIA_HEALTH_ROUTE.to_string()),
             timeout_secs: Some(15),
+            max_in_flight_requests: None,
         },
         launch: None,
         transport: PluginTransportKind::ArrowFlight,

@@ -3,6 +3,7 @@ use xiuxian_wendao_core::repo_intelligence::{RegisteredRepository, RepositoryPlu
 use super::{
     JULIA_FILE_SUMMARY_ROUTE, JULIA_PARSER_SUMMARY_SCHEMA_VERSION, ParserSummaryRouteKind,
     build_julia_parser_summary_flight_transport_client,
+    build_parser_summary_flight_transport_binding,
     clear_julia_parser_summary_transport_cache_for_tests,
     julia_parser_summary_transport_cache_len_for_tests,
     julia_parser_summary_transport_slot_id_for_tests,
@@ -45,7 +46,8 @@ fn build_parser_summary_client_reads_nested_options() {
                     "base_url": "http://127.0.0.1:9107",
                     "file_summary": {
                         "health_route": "/ready",
-                        "timeout_secs": 21
+                        "timeout_secs": 21,
+                        "max_in_flight_requests": 6
                     }
                 }
             }),
@@ -65,6 +67,12 @@ fn build_parser_summary_client_reads_nested_options() {
         client.selection().selected_transport,
         xiuxian_wendao_core::transport::PluginTransportKind::ArrowFlight,
     );
+    let binding = build_parser_summary_flight_transport_binding(
+        &repository,
+        ParserSummaryRouteKind::FileSummary,
+    )
+    .unwrap_or_else(|error| panic!("parser-summary binding should parse: {error}"));
+    assert_eq!(binding.endpoint.max_in_flight_requests, Some(6));
     let _ = JULIA_PARSER_SUMMARY_SCHEMA_VERSION;
 }
 
@@ -204,5 +212,62 @@ fn build_parser_summary_client_separates_cached_clients_by_route() {
     .unwrap_or_else(|error| panic!("root-summary slot should exist: {error}"));
 
     assert_ne!(file_slot, root_slot);
+    assert_eq!(julia_parser_summary_transport_cache_len_for_tests(), 2);
+}
+
+#[test]
+#[serial_test::serial(julia_parser_summary_transport)]
+fn build_parser_summary_client_separates_cached_clients_by_in_flight_budget() {
+    clear_julia_parser_summary_transport_cache_for_tests();
+    let repository_budget_three = RegisteredRepository {
+        id: "repo-julia".to_string(),
+        plugins: vec![RepositoryPluginConfig::Config {
+            id: "julia".to_string(),
+            options: serde_json::json!({
+                "parser_summary_transport": {
+                    "base_url": "http://127.0.0.1:9107",
+                    "max_in_flight_requests": 3
+                }
+            }),
+        }],
+        ..RegisteredRepository::default()
+    };
+    let repository_budget_five = RegisteredRepository {
+        id: "repo-julia".to_string(),
+        plugins: vec![RepositoryPluginConfig::Config {
+            id: "julia".to_string(),
+            options: serde_json::json!({
+                "parser_summary_transport": {
+                    "base_url": "http://127.0.0.1:9107",
+                    "max_in_flight_requests": 5
+                }
+            }),
+        }],
+        ..RegisteredRepository::default()
+    };
+
+    build_julia_parser_summary_flight_transport_client(
+        &repository_budget_three,
+        ParserSummaryRouteKind::FileSummary,
+    )
+    .unwrap_or_else(|error| panic!("budget-three client should build: {error}"));
+    let slot_three = julia_parser_summary_transport_slot_id_for_tests(
+        &repository_budget_three,
+        ParserSummaryRouteKind::FileSummary,
+    )
+    .unwrap_or_else(|error| panic!("budget-three slot should exist: {error}"));
+
+    build_julia_parser_summary_flight_transport_client(
+        &repository_budget_five,
+        ParserSummaryRouteKind::FileSummary,
+    )
+    .unwrap_or_else(|error| panic!("budget-five client should build: {error}"));
+    let slot_five = julia_parser_summary_transport_slot_id_for_tests(
+        &repository_budget_five,
+        ParserSummaryRouteKind::FileSummary,
+    )
+    .unwrap_or_else(|error| panic!("budget-five slot should exist: {error}"));
+
+    assert_ne!(slot_three, slot_five);
     assert_eq!(julia_parser_summary_transport_cache_len_for_tests(), 2);
 }

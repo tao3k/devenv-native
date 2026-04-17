@@ -332,6 +332,7 @@ It MAY also carry:
 
 - `health_route`
 - `timeout_secs`
+- `max_in_flight_requests`
 - `scenario_pack`
 
 ## 15. Runtime Config Contract
@@ -344,6 +345,7 @@ enabled = true
 base_url = "grpc://127.0.0.1:18825"
 schema_version = "v1"
 timeout_secs = 3
+max_in_flight_requests = 32
 fallback_mode = "rust"
 shadow_compare = true
 
@@ -360,6 +362,7 @@ Required fields:
 - `base_url`
 - `schema_version`
 - `timeout_secs`
+- `max_in_flight_requests`
 - `fallback_mode`
 - `shadow_compare`
 - route mapping for the four memory profiles
@@ -368,6 +371,7 @@ Default rollout posture:
 
 - `fallback_mode = "rust"`
 - `shadow_compare = true`
+- `max_in_flight_requests = 32`
 
 ## 16. Profile Intent
 

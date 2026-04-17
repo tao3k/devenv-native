@@ -11,9 +11,11 @@ use xiuxian_wendao_core::{
     transport::{PluginTransportEndpoint, PluginTransportKind},
 };
 use xiuxian_wendao_runtime::transport::{
-    DEFAULT_FLIGHT_BASE_URL, FLIGHT_SCHEMA_VERSION_METADATA_KEY, NegotiatedFlightTransportClient,
+    DEFAULT_FLIGHT_BASE_URL, DEFAULT_FLIGHT_MAX_IN_FLIGHT_REQUESTS,
+    FLIGHT_SCHEMA_VERSION_METADATA_KEY, NegotiatedFlightTransportClient,
     negotiate_flight_transport_client_from_bindings, normalize_flight_route,
-    validate_flight_schema_version, validate_flight_timeout_secs,
+    validate_flight_max_in_flight_requests, validate_flight_schema_version,
+    validate_flight_timeout_secs,
 };
 
 use arrow::record_batch::RecordBatch;
@@ -55,6 +57,7 @@ struct ParserSummaryTransportCacheKey {
     route: String,
     schema_version: String,
     timeout_secs: u64,
+    max_in_flight_requests: u64,
 }
 
 #[derive(Clone)]
@@ -265,6 +268,10 @@ fn parser_summary_transport_cache_key(
             .endpoint
             .timeout_secs
             .unwrap_or(DEFAULT_PARSER_SUMMARY_TIMEOUT_SECS),
+        max_in_flight_requests: binding
+            .endpoint
+            .max_in_flight_requests
+            .unwrap_or(DEFAULT_FLIGHT_MAX_IN_FLIGHT_REQUESTS as u64),
     })
 }
 
@@ -357,6 +364,21 @@ fn build_parser_summary_flight_transport_binding(
         })?,
         None => DEFAULT_PARSER_SUMMARY_TIMEOUT_SECS,
     };
+    let max_in_flight_requests = match options.max_in_flight_requests {
+        Some(max_in_flight_requests) => {
+            validate_flight_max_in_flight_requests(max_in_flight_requests).map_err(|error| {
+                RepoIntelligenceError::ConfigLoad {
+                    message: format!(
+                        "repo `{}` Modelica parser-summary max_in_flight_requests for `{}` is invalid: {error}",
+                        repository.id,
+                        route_kind.route(),
+                    ),
+                }
+            })?;
+            Some(max_in_flight_requests)
+        }
+        None => None,
+    };
 
     Ok(PluginCapabilityBinding {
         selector: modelica_parser_summary_provider_selector(),
@@ -369,6 +391,7 @@ fn build_parser_summary_flight_transport_binding(
             route: Some(route),
             health_route: Some(health_route),
             timeout_secs: Some(timeout_secs),
+            max_in_flight_requests,
         },
         launch: None,
         transport: PluginTransportKind::ArrowFlight,
@@ -399,6 +422,7 @@ struct ParserSummaryTransportOptions {
     health_route: Option<String>,
     schema_version: Option<String>,
     timeout_secs: Option<u64>,
+    max_in_flight_requests: Option<u64>,
 }
 
 fn missing_parser_summary_transport_error(
@@ -482,6 +506,11 @@ fn resolve_parser_summary_transport_options(
                 .transpose()?
                 .flatten()
                 .or(u64_option(transport, "timeout_secs", repository)?),
+            max_in_flight_requests: route_override
+                .map(|value| u64_option(value, "max_in_flight_requests", repository))
+                .transpose()?
+                .flatten()
+                .or(u64_option(transport, "max_in_flight_requests", repository)?),
         }));
     }
 
@@ -493,6 +522,7 @@ fn resolve_parser_summary_transport_options(
             health_route: None,
             schema_version: Some(MODELICA_PARSER_SUMMARY_SCHEMA_VERSION.to_string()),
             timeout_secs: None,
+            max_in_flight_requests: None,
         }));
     }
 
@@ -504,6 +534,7 @@ fn resolve_parser_summary_transport_options(
             health_route: None,
             schema_version: Some(MODELICA_PARSER_SUMMARY_SCHEMA_VERSION.to_string()),
             timeout_secs: None,
+            max_in_flight_requests: None,
         }));
     }
 

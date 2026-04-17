@@ -19,6 +19,7 @@ fn build_memory_julia_compute_bindings_materialize_all_profiles() {
     runtime.plugin_id = "wendao.memory".to_string();
     runtime.base_url = "http://127.0.0.1:18825".to_string();
     runtime.health_route = Some("/healthz".to_string());
+    runtime.max_in_flight_requests = 9;
     runtime.routes.episodic_recall = "/memory/episodic_recall".to_string();
     runtime.routes.memory_gate_score = "/memory/gate_score".to_string();
     runtime.routes.memory_plan_tuning = "/memory/plan_tuning".to_string();
@@ -40,6 +41,7 @@ fn build_memory_julia_compute_bindings_materialize_all_profiles() {
         bindings[0].endpoint.health_route.as_deref(),
         Some("/healthz")
     );
+    assert_eq!(bindings[0].endpoint.max_in_flight_requests, Some(9));
     assert_eq!(
         bindings[3].endpoint.route.as_deref(),
         Some("/memory/calibration")

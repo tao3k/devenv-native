@@ -9,8 +9,8 @@ use xiuxian_wendao_runtime::transport::{
     DEFAULT_FLIGHT_BASE_URL, DEFAULT_FLIGHT_SCHEMA_VERSION, DEFAULT_FLIGHT_TIMEOUT_SECS,
     FLIGHT_SCHEMA_VERSION_METADATA_KEY, NegotiatedFlightTransportClient,
     negotiate_flight_transport_client_from_bindings, normalize_flight_route,
-    validate_flight_schema_version, validate_flight_timeout_secs,
-    validate_plugin_arrow_response_batches,
+    validate_flight_max_in_flight_requests, validate_flight_schema_version,
+    validate_flight_timeout_secs, validate_plugin_arrow_response_batches,
 };
 
 use crate::arrow_metadata::attach_record_batch_metadata;
@@ -158,6 +158,20 @@ fn build_flight_transport_binding(
         })?,
         None => DEFAULT_FLIGHT_TIMEOUT_SECS,
     };
+    let max_in_flight_requests = match u64_option(options, "max_in_flight_requests", repository)? {
+        Some(max_in_flight_requests) => {
+            validate_flight_max_in_flight_requests(max_in_flight_requests).map_err(|error| {
+                RepoIntelligenceError::ConfigLoad {
+                    message: format!(
+                        "repo `{}` Julia flight_transport max_in_flight_requests is invalid: {error}",
+                        repository.id
+                    ),
+                }
+            })?;
+            Some(max_in_flight_requests)
+        }
+        None => None,
+    };
 
     Ok(Some(PluginCapabilityBinding {
         selector: julia_rerank_provider_selector(),
@@ -166,6 +180,7 @@ fn build_flight_transport_binding(
             route: Some(route),
             health_route: Some(health_route),
             timeout_secs: Some(timeout_secs),
+            max_in_flight_requests,
         },
         launch: None,
         transport: PluginTransportKind::ArrowFlight,
@@ -220,6 +235,7 @@ fn contains_transport_keys(value: &Value) -> bool {
         "health_route",
         "schema_version",
         "timeout_secs",
+        "max_in_flight_requests",
     ]
     .iter()
     .any(|key| object.contains_key(*key))

@@ -136,6 +136,7 @@ pub fn julia_ui_artifact_payload_fixture() -> PluginArtifactPayload {
             route: Some(DEFAULT_JULIA_RERANK_FLIGHT_ROUTE.to_string()),
             health_route: Some(JULIA_UI_ARTIFACT_HEALTH_ROUTE.to_string()),
             timeout_secs: Some(JULIA_UI_ARTIFACT_TIMEOUT_SECS),
+            max_in_flight_requests: None,
         }),
         schema_version: Some(JULIA_GATEWAY_ARTIFACT_SCHEMA_VERSION.to_string()),
         launch: Some(PluginLaunchSpec {

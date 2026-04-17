@@ -143,6 +143,15 @@ pub(super) const fn projected_columns() -> [&'static str; 5] {
     ]
 }
 
+pub(super) const fn query_projected_columns() -> [&'static str; 4] {
+    [
+        COLUMN_PATH,
+        COLUMN_LANGUAGE,
+        COLUMN_LINE_NUMBER,
+        COLUMN_LINE_TEXT,
+    ]
+}
+
 pub(super) const fn language_column() -> &'static str {
     COLUMN_LANGUAGE
 }
