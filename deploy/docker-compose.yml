@@ -22,7 +22,7 @@ services:
       - "41081:41081"
   wendao-gateway:
     image: ghcr.io/tao3k/xiuxian-wendao:main
-    command: ["--conf", "/etc/wendao/wendao.toml", "gateway", "start"]
+    command: ["--conf", "/data/wendao.toml", "--root", "/data", "gateway", "start"]
     ports:
       - "9517:9517"
     depends_on:
@@ -39,10 +39,11 @@ services:
       WENDAO_PARSER_SUMMARY_BASE_URL: http://wendaosearch-parser:41081
     working_dir: /data
     volumes:
-      - ./wendao.toml:/etc/wendao/wendao.toml:ro
-      - ../wendao.toml:/etc/wendao/base.toml:ro
-      - ../assets/wendao:/etc/wendao/assets/wendao:ro
       - wendao-data:/data
+      - ./wendao.toml:/data/wendao.toml:ro
+      - ../wendao.toml:/data/base.toml:ro
+      - ../assets/wendao:/data/assets/wendao:ro
+      - ../docs:/data/docs:ro
   xiuxian-daochang:
     image: ghcr.io/tao3k/xiuxian-daochang:main
     command: ["--conf", "/etc/xiuxian", "gateway", "--bind", "0.0.0.0:18092"]
