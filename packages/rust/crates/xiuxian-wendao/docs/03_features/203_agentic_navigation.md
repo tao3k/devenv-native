@@ -2,7 +2,7 @@
 
 :PROPERTIES:
 :ID: feat-agentic-nav
-:PARENT: [[index]]
+:PARENT: [[index|Wendao DocOS Kernel: Map of Content]]
 :TAGS: feature, search, discovery, agentic
 :STATUS: STABLE
 :VERSION: 2.4
@@ -51,12 +51,14 @@ The Studio markdown-analysis payload now carries a backend-owned
    than frontend frontmatter heuristics.
 3. `outgoingLinks` materialize explicit property-drawer relations plus
    docs-kernel `:RELATIONS: :LINKS:` rows.
-4. `backlinks` come from the link-graph reverse index when the Studio runtime
-   has a live graph index.
+4. `explicitBacklinks` come from the link-graph reverse index when the Studio
+   runtime has a live graph index, with parser-backed reconstruction used to
+   preserve scoped `targetAddress` values such as `#Heading` and `#^block`.
+   `backlinks` remains the compatibility alias for the same explicit lane.
 
 This keeps the reader as a projection over parser and index truth sources
 instead of a second wikilink parser.
 
 :RELATIONS:
-:LINKS: [[01_core/101_triple_a_protocol]], [[05_research/302_search_as_reasoning]]
+:LINKS: [[01_core/101_triple_a_protocol|Triple-A Addressing Protocol]], [[05_research/302_search_as_reasoning|Search-as-Reasoning: Autonomous Search in Structured State Spaces]]
 :END:

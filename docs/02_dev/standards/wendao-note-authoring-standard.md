@@ -60,9 +60,13 @@ metadata:
 
 ## 5. Link and Lineage Rules
 
-Use explicit links to improve graph traversal quality:
+Use explicit links to improve graph traversal quality. Obsidian officially also
+accepts bare `[[target]]`, heading links such as `[[target#Heading]]`, and
+block links such as `[[target#^block-id]]`, but repository authoring remains
+stricter than the raw parser compatibility surface:
 
-- **Wiki links**: `[[target-note-stem]]` for concept relationships.
+- **Wiki links**: `[[target-note-stem|display-label]]` for concept relationships when you want repository-native wikilinks. The display label must be descriptive; do not repeat the raw target stem or heading fragment.
+- **Markdown links**: `[display-label](target-note.md)` are equally valid when that form reads better.
 - **Bi-directional Integrity**: Every note MUST reference its "Parent" or a Map of Content (MOC).
 - **Backlink Section**: Notes should include a `## References` or `## Linked Notes` section at the bottom to maintain the physical trace of the knowledge web.
 
@@ -71,9 +75,9 @@ Recommended relation block:
 ```markdown
 ## Linked Notes
 
-- Related: [[router]]
-- Depends on: [[vector-router-schema-contract]]
-- Compared with: [[link-graph-vs-librarian]]
+- Related: [[router|Router]]
+- Depends on: [[vector-router-schema-contract|Vector Router Schema Contract]]
+- Compared with: [[link-graph-vs-librarian|Link Graph vs Librarian]]
 ```
 
 ## 6. Retrieval Anchor Rules

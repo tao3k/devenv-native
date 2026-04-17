@@ -111,7 +111,7 @@ To align with the **Open-Closed Principle** and prevent hardcoded configuration 
    - Eliminate the fragmentation of raw `.toml` and `.j2` files for Qianhuan configurations.
    - Transition to a Markdown-centric authoring paradigm where Personas and Templates are defined within cohesive, human-readable `.md` documents.
    - Leverage `xiuxian-wendao` to parse, index, and semantically link these configuration Markdown files into the Knowledge Graph.
-   - See [[Qianhuan-Wendao Markdown Configuration Bridge|docs/01_core/qianhuan/architecture/markdown-config-bridge.md]] for the detailed pipeline architecture.
+   - See [[docs/01_core/qianhuan/architecture/markdown-config-bridge.md|Qianhuan-Wendao Markdown Configuration Bridge]] for the detailed pipeline architecture.
 
 ## 5. Research References & Attachments
 

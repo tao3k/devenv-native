@@ -28,7 +28,7 @@ mod observability;
 mod partitioning;
 #[path = "integration/path_handling.rs"]
 mod path_handling;
-#[path = "integration/rust_cortex.rs"]
+#[path = "integration/rust_cortex/mod.rs"]
 mod rust_cortex;
 #[path = "integration/scalar_index.rs"]
 mod scalar_index;

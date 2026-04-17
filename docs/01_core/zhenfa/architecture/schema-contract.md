@@ -96,7 +96,7 @@ JSON Schema definitions are token-heavy and distract the model. Instead:
 
 ## 4. End-to-End Execution Flow (Dual-Mode)
 
-To clarify how the LLM interacts with Zhenfa without being polluted by JSON wrappers, here is the lifecycle of a query like _"What did I do this week?"_ (For the full theoretical justification, see [[Token Economics & Formatting Hallucination|docs/99_llm/architecture/token-economics-and-attention.md]]).
+To clarify how the LLM interacts with Zhenfa without being polluted by JSON wrappers, here is the lifecycle of a query like _"What did I do this week?"_ (For the full theoretical justification, see [[docs/99_llm/architecture/token-economics-and-attention.md|Token Economics & Formatting Hallucination]]).
 
 ### 4.1 Native Execution Path (In-Process, The "Codex" Path)
 

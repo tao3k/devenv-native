@@ -1,4 +1,5 @@
 use clap::Subcommand;
+use xiuxian_wendao_client::ClientCommand as EmbeddedClientCommand;
 
 #[cfg(feature = "zhenfa-router")]
 use super::GatewayArgs;
@@ -55,6 +56,9 @@ pub(crate) enum Command {
         #[command(subcommand)]
         command: DocsCommand,
     },
+    /// Lightweight client-only commands provided by `xiuxian-wendao-client`.
+    #[command(flatten)]
+    Client(EmbeddedClientCommand),
     /// Execute one query-language adapter against the shared search query system.
     #[cfg(feature = "zhenfa-router")]
     Query {

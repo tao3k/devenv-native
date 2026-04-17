@@ -2,7 +2,7 @@
 
 :PROPERTIES:
 :ID: feat-gateway-openapi-contract-surface
-:PARENT: [[index]]
+:PARENT: [[index|Wendao DocOS Kernel: Map of Content]]
 :TAGS: feature, gateway, openapi, contracts, qianji
 :STATUS: ACTIVE
 :VERSION: 1.0
@@ -418,5 +418,5 @@ Notes:
 - `direnv exec . cargo test -p xiuxian-qianji --test wendao_persisted_rest_docs_contract_feedback`
 
 :RELATIONS:
-:LINKS: [[03_features/203_agentic_navigation]], [[03_features/205_semantic_auditor]], [[03_features/206_openai_semantic_ignition]]
+:LINKS: [[03_features/203_agentic_navigation|Agentic Navigation (wendao.agentic_nav)]], [[03_features/205_semantic_auditor|Semantic Auditor (wendao audit)]], [[03_features/206_openai_semantic_ignition|OpenAI-Compatible Semantic Ignition]]
 :END:

@@ -15,6 +15,8 @@ pub mod code_observation;
 pub mod document;
 /// Markdown frontmatter parsing and parser-owned frontmatter contracts.
 pub mod frontmatter;
+/// Parser-owned Markdown syntax lint helpers for lightweight consumers.
+pub mod lint;
 /// Parser-owned source-preserved addressed-target contract.
 pub mod literal_addressed_target;
 /// Parser-owned Markdown note aggregation.
@@ -46,6 +48,10 @@ pub use document::{
     DocumentCore, DocumentEnvelope, DocumentFormat, MarkdownDocument, parse_markdown_document,
 };
 pub use frontmatter::{NoteFrontmatter, parse_frontmatter, split_frontmatter};
+pub use lint::{
+    MarkdownLintKind, MarkdownSyntaxLintCode, MarkdownSyntaxLintIssue, MarkdownSyntaxLintReport,
+    lint_markdown_syntax,
+};
 pub use literal_addressed_target::LiteralAddressedTarget;
 pub use note::{
     MarkdownNote, MarkdownNoteCore, MarkdownNoteParseArtifacts, NoteAggregate, NoteCore,

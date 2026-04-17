@@ -2,7 +2,7 @@
 
 :PROPERTIES:
 :ID: feat-openai-semantic-ignition
-:PARENT: [[index]]
+:PARENT: [[index|Wendao DocOS Kernel: Map of Content]]
 :TAGS: feature, retrieval, quantum-fusion, arrow, openai-compatible
 :STATUS: ACTIVE
 :VERSION: 1.0
@@ -91,5 +91,5 @@ the request just because `query_vector` is empty.
 - `CARGO_TARGET_DIR=/tmp/xiuxian-artisan-workshop-codex-semantic-ignition-target direnv exec . cargo clippy -p xiuxian-wendao --tests -- -D warnings`
 
 :RELATIONS:
-:LINKS: [[03_features/203_agentic_navigation]], [[03_features/205_semantic_auditor]]
+:LINKS: [[03_features/203_agentic_navigation|Agentic Navigation (wendao.agentic_nav)]], [[03_features/205_semantic_auditor|Semantic Auditor (wendao audit)]]
 :END:

@@ -2,7 +2,7 @@
 
 :PROPERTIES:
 :ID: wendao-parser-section-create
-:PARENT: [[02_parser/index]]
+:PARENT: [[02_parser/index|Wendao Parser Docs]]
 :TAGS: parser, markdown, semantic-edit
 :STATUS: ACTIVE
 :END:
@@ -54,7 +54,7 @@ Coverage for this contract lives in:
 2. `packages/rust/crates/xiuxian-wendao/tests/unit/zhenfa_router/native/semantic_edit.rs`
 
 :RELATIONS:
-:LINKS: [[02_parser/index]], [[02_parser/architecture]], [[02_parser/sections]], [[02_parser/toc]], [[06_roadmap/419_parser_substrate_separation]]
+:LINKS: [[02_parser/index|Wendao Parser Docs]], [[02_parser/architecture|Parser Architecture]], [[02_parser/sections|Parser Sections]], [[02_parser/toc|Parser TOC Surface]], [[06_roadmap/419_parser_substrate_separation|Parser Substrate Separation]]
 :END:
 
 ---

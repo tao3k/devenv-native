@@ -72,7 +72,7 @@ This document records the foundational research and architectural patterns that 
 ## 7. Decoupled Formatting & Token Economics
 
 - **Core Idea**: JSON is hostile to LLM token limits and attention mechanisms, inducing "Formatting Hallucinations". We must sever the network serialization format from the LLM cognitive format.
-- **Application in Xiuxian**: See the dedicated architectural whitepaper: [[Token Economics & Formatting Hallucination|docs/99_llm/architecture/token-economics-and-attention.md]]. This governs the "JSON Stripping Layer" utilized by `xiuxian-zhenfa` and the 修仙道场 host.
+- **Application in Xiuxian**: See the dedicated architectural whitepaper: [[docs/99_llm/architecture/token-economics-and-attention.md|Token Economics & Formatting Hallucination]]. This governs the "JSON Stripping Layer" utilized by `xiuxian-zhenfa` and the 修仙道场 host.
 
 ## 8. Theory-to-Execution Rule
 

@@ -1,0 +1,32 @@
+[package]
+name = "xiuxian-wendao-client"
+version.workspace = true
+edition.workspace = true
+description = "Lightweight Wendao client CLI for local document tooling"
+authors.workspace = true
+license.workspace = true
+publish = false
+default-run = "wendao"
+
+[[bin]]
+name = "wendao"
+path = "src/bin/wendao.rs"
+
+[dependencies]
+anyhow = { workspace = true }
+clap = { workspace = true }
+schemars = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+toml = { workspace = true }
+walkdir = { workspace = true }
+xiuxian-config-core = { path = "../xiuxian-config-core" }
+xiuxian-logging = { path = "../xiuxian-logging" }
+xiuxian-testing = { path = "../xiuxian-testing" }
+xiuxian-wendao-parsers = { path = "../xiuxian-wendao-parsers" }
+
+[dev-dependencies]
+serde_json = { workspace = true }
+tempfile = { workspace = true }
+
+[lints]
+workspace = true

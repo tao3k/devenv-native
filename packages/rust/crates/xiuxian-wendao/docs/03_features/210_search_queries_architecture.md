@@ -2,7 +2,7 @@
 
 :PROPERTIES:
 :ID: feat-search-queries-architecture
-:PARENT: [[index]]
+:PARENT: [[index|Wendao DocOS Kernel: Map of Content]]
 :TAGS: feature, search, flight, datafusion, graphql, sql
 :STATUS: ACTIVE
 :VERSION: 1.0

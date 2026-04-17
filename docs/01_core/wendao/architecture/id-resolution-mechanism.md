@@ -26,8 +26,8 @@ In typical systems, "Search" (fuzzy, semantic) and "Index Lookup" (exact, key-ba
 
 Wendao's ID resolution supports two distinct physical paths depending on the deployment context:
 
-1. **Distributed Path (Valkey)**: Resolves IDs across the network via [[Zhenfa Gateway|docs/01_core/zhenfa/SPEC.md]] for external or user-defined configurations.
-2. **Embedded Path (Pure AST)**: Used by internal Rust crates to resolve built-in IDs from local `resources/` without database overhead. See [[Markdown Configuration Bridge (Section 2.4)|docs/01_core/qianhuan/architecture/markdown-config-bridge.md]].
+1. **Distributed Path (Valkey)**: Resolves IDs across the network via [[docs/01_core/zhenfa/SPEC.md|Zhenfa Gateway]] for external or user-defined configurations.
+2. **Embedded Path (Pure AST)**: Used by internal Rust crates to resolve built-in IDs from local `resources/` without database overhead. See [[docs/01_core/qianhuan/architecture/markdown-config-bridge.md|Markdown Configuration Bridge (Section 2.4)]].
 
 ## 2. The Unified Query Grammar
 
@@ -38,7 +38,7 @@ The Wendao engine intercepts specific directives within the query string. The mo
 
 ## 3. The "Short-Circuit" Execution Pipeline
 
-When a request arrives via the [[Zhenfa Gateway|docs/01_core/zhenfa/SPEC.md]], the Wendao engine follows this optimized internal path:
+When a request arrives via the [[docs/01_core/zhenfa/SPEC.md|Zhenfa Gateway]], the Wendao engine follows this optimized internal path:
 
 ### Phase 1: Grammar Decomposition
 
@@ -61,11 +61,11 @@ Wendao constructs the physical Valkey key using the system's namespace conventio
 The raw bytes from Valkey are deserialized into a `WendaoEntity`.
 
 - For configuration requests (like Persona/Template), the engine extracts the specific metadata field (e.g., the `jinja2` code block).
-- It applies the [[JSON Stripping Layer|docs/01_core/zhenfa/architecture/schema-contract.md]] logic at the response boundary to return ONLY the raw content.
+- It applies the [[docs/01_core/zhenfa/architecture/schema-contract.md|JSON Stripping Layer]] logic at the response boundary to return ONLY the raw content.
 
 ## 4. Why This Matters for the "Zero-Export" Bridge
 
-By using this ID-resolution mechanism, the [[Qianhuan-Wendao Markdown Configuration Bridge|docs/01_core/qianhuan/architecture/markdown-config-bridge.md]] becomes practically instantaneous.
+By using this ID-resolution mechanism, the [[docs/01_core/qianhuan/architecture/markdown-config-bridge.md|Qianhuan-Wendao Markdown Configuration Bridge]] becomes practically instantaneous.
 
 When Qianhuan asks for a template by ID:
 

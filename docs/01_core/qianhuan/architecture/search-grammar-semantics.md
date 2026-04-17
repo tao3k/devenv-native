@@ -19,7 +19,7 @@ This document defines how the system uses the **Wendao Query Grammar** to precis
 
 ## 1. Unified Search Interface
 
-All configuration lookups from `xiuxian-qianhuan` or `xiuxian-qianji` are routed through the same `wendao.search` endpoint provided by the [[Zhenfa Gateway|docs/01_core/zhenfa/SPEC.md]].
+All configuration lookups from `xiuxian-qianhuan` or `xiuxian-qianji` are routed through the same `wendao.search` endpoint provided by the [[docs/01_core/zhenfa/SPEC.md|Zhenfa Gateway]].
 
 The grammar supports three levels of precision: **Exact**, **Scoped**, and **Semantic**.
 
@@ -94,7 +94,7 @@ When a user provides keywords or tags instead of a raw ID, the Rust host (or the
 
 ### 6.2 Stage 2: Precise Execution (O(1) Handover)
 
-Once the "Winner ID" (e.g., `strict_teacher_v2`) is resolved from Stage 1, the system passes this ID to the [[ID Resolution Mechanism|docs/01_core/wendao/architecture/id-resolution-mechanism.md]].
+Once the "Winner ID" (e.g., `strict_teacher_v2`) is resolved from Stage 1, the system passes this ID to the [[docs/01_core/wendao/architecture/id-resolution-mechanism.md|ID Resolution Mechanism]].
 
 From this point forward, the execution is **100% deterministic**. The system no longer "searches"; it "fetches" the exact code/template from memory using the $O(1)$ index.
 

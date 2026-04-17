@@ -2,7 +2,7 @@
 
 :PROPERTIES:
 :ID: wendao-p1-generic-plugin-contract-staging
-:PARENT: [[index]]
+:PARENT: [[index|Wendao DocOS Kernel: Map of Content]]
 :TAGS: roadmap, migration, plugins, core, runtime, contracts, p1
 :STATUS: SUPERSEDED
 :END:
@@ -343,7 +343,7 @@ call sites.
 4. the new contracts live in feature folders with interface-only `mod.rs`
 
 :RELATIONS:
-:LINKS: [[index]], [[06_roadmap/409_core_runtime_plugin_surface_inventory]], [[06_roadmap/405_large_rust_modularization]], [[docs/rfcs/2026-03-27-wendao-core-runtime-plugin-migration-rfc.md]]
+:LINKS: [[index|Wendao DocOS Kernel: Map of Content]], [[06_roadmap/409_core_runtime_plugin_surface_inventory|Wendao Core Runtime Plugin Surface Inventory]], [[06_roadmap/405_large_rust_modularization|Large Rust File Modularization]], [[docs/rfcs/2026-03-27-wendao-core-runtime-plugin-migration-rfc.md|RFC: Wendao Core Runtime and Arrow Plugin Migration]]
 :END:
 
 ---

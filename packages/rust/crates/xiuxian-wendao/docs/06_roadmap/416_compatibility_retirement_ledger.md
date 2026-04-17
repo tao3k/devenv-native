@@ -2,7 +2,7 @@
 
 :PROPERTIES:
 :ID: wendao-compatibility-retirement-ledger
-:PARENT: [[index]]
+:PARENT: [[index|Wendao DocOS Kernel: Map of Content]]
 :TAGS: roadmap, migration, plugins, compatibility, ledger
 :STATUS: ACTIVE
 :END:
@@ -97,7 +97,7 @@ The compatibility retirement program is complete when:
 4. no migration blocker still depends on the monolithic crate boundary
 
 :RELATIONS:
-:LINKS: [[index]], [[06_roadmap/412_core_runtime_plugin_program]], [[06_roadmap/409_core_runtime_plugin_surface_inventory]], [[06_roadmap/413_m2_core_extraction_package_list]], [[06_roadmap/414_m3_runtime_extraction_package_list]], [[06_roadmap/415_m4_julia_externalization_package_list]]
+:LINKS: [[index|Wendao DocOS Kernel: Map of Content]], [[06_roadmap/412_core_runtime_plugin_program|Wendao Core Runtime Plugin Program]], [[06_roadmap/409_core_runtime_plugin_surface_inventory|Wendao Core Runtime Plugin Surface Inventory]], [[06_roadmap/413_m2_core_extraction_package_list|M2 Core Extraction Package List]], [[06_roadmap/414_m3_runtime_extraction_package_list|M3 Runtime Extraction Package List]], [[06_roadmap/415_m4_julia_externalization_package_list|M4 Julia Externalization Package List]]
 :END:
 
 ---

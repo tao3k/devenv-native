@@ -2,7 +2,7 @@
 
 :PROPERTIES:
 :ID: wendao-feat-properties
-:PARENT: [[index]]
+:PARENT: [[index|Wendao DocOS Kernel: Map of Content]]
 :TAGS: feature, metadata, org-mode
 :STATUS: STABLE
 :END:
@@ -26,5 +26,5 @@ Based on Org-mode's property drawers, this feature allows embedding machine-read
 
 :SEE_ALSO:
 
-- [[01_core/101_triple_a_protocol]]
+- [[01_core/101_triple_a_protocol|Triple-A Addressing Protocol]]
   :END:

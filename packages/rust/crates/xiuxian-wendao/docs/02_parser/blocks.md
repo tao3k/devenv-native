@@ -2,7 +2,7 @@
 
 :PROPERTIES:
 :ID: wendao-parser-blocks
-:PARENT: [[02_parser/index]]
+:PARENT: [[02_parser/index|Wendao Parser Docs]]
 :TAGS: parser, blocks, markdown
 :STATUS: ACTIVE
 :END:
@@ -68,7 +68,7 @@ Coverage for this contract lives in:
 4. `tests/integration/repo_projected_page_index_tree.rs`
 
 :RELATIONS:
-:LINKS: [[02_parser/index]], [[02_parser/architecture]], [[02_parser/sections]], [[06_roadmap/419_parser_substrate_separation]]
+:LINKS: [[02_parser/index|Wendao Parser Docs]], [[02_parser/architecture|Parser Architecture]], [[02_parser/sections|Parser Sections]], [[06_roadmap/419_parser_substrate_separation|Parser Substrate Separation]]
 :END:
 
 ---

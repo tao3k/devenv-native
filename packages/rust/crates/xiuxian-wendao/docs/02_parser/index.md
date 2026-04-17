@@ -2,7 +2,7 @@
 
 :PROPERTIES:
 :ID: wendao-parser-docs
-:PARENT: [[index]]
+:PARENT: [[index|Wendao Parser Docs]]
 :TAGS: parser, architecture, core
 :STATUS: ACTIVE
 :END:
@@ -137,7 +137,7 @@ claim that an Org parser implementation is active today.
     surface
 
 :RELATIONS:
-:LINKS: [[01_core/103_package_layering]], [[06_roadmap/405_large_rust_modularization]], [[06_roadmap/419_parser_substrate_separation]], [[03_features/210_search_queries_architecture]], [[02_parser/addressed_target]], [[02_parser/blocks]], [[02_parser/code_observation]], [[02_parser/document]], [[02_parser/note]], [[02_parser/toc]], [[02_parser/targets]], [[02_parser/sections]], [[02_parser/references]], [[02_parser/section_create]], [[02_parser/wikilinks]], [[02_parser/relation_semantics]], [[02_parser/semantic_check]]
+:LINKS: [[01_core/103_package_layering|Wendao Package Layering]], [[06_roadmap/405_large_rust_modularization|Large Rust File Modularization]], [[06_roadmap/419_parser_substrate_separation|Parser Substrate Separation]], [[03_features/210_search_queries_architecture|Search Queries Architecture]], [[02_parser/addressed_target|Parser Addressed Target]], [[02_parser/blocks|Parser Blocks]], [[02_parser/code_observation|Parser Code Observation Surface]], [[02_parser/document|Parser Document Metadata]], [[02_parser/note|Parser Note Aggregate]], [[02_parser/toc|Parser TOC Surface]], [[02_parser/targets|Parser Target Occurrences]], [[02_parser/sections|Parser Sections]], [[02_parser/references|Parser References]], [[02_parser/section_create|Parser Section Create Surface]], [[02_parser/wikilinks|Parser Wikilinks]], [[02_parser/relation_semantics|Parser Relation Semantics]], [[02_parser/semantic_check|Parser Semantic Check Surface]]
 :END:
 
 ---

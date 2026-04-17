@@ -2,7 +2,7 @@
 
 :PROPERTIES:
 :ID: wendao-m2-core-extraction-package-list
-:PARENT: [[index]]
+:PARENT: [[index|Wendao DocOS Kernel: Map of Content]]
 :TAGS: roadmap, migration, plugins, core, runtime, m2
 :STATUS: ACTIVE
 :END:
@@ -281,7 +281,7 @@ After this note lands, the next program move should be:
    reduces `M4` Julia-package coupling
 
 :RELATIONS:
-:LINKS: [[index]], [[06_roadmap/412_core_runtime_plugin_program]], [[06_roadmap/409_core_runtime_plugin_surface_inventory]], [[06_roadmap/410_p1_generic_plugin_contract_staging]], [[06_roadmap/411_p1_first_code_slice_plan]], [[docs/rfcs/2026-03-27-wendao-core-runtime-plugin-migration-rfc.md]]
+:LINKS: [[index|Wendao DocOS Kernel: Map of Content]], [[06_roadmap/412_core_runtime_plugin_program|Wendao Core Runtime Plugin Program]], [[06_roadmap/409_core_runtime_plugin_surface_inventory|Wendao Core Runtime Plugin Surface Inventory]], [[06_roadmap/410_p1_generic_plugin_contract_staging|P1 Generic Plugin Contract Staging]], [[06_roadmap/411_p1_first_code_slice_plan|P1 First Code Slice Plan]], [[docs/rfcs/2026-03-27-wendao-core-runtime-plugin-migration-rfc.md|RFC: Wendao Core Runtime and Arrow Plugin Migration]]
 :END:
 
 ---

@@ -33,9 +33,12 @@ mod search;
 #[path = "execute/sentinel.rs"]
 mod sentinel;
 
-use crate::types::{Cli, Command};
+use crate::types::{Cli, Command, OutputFormat};
 use anyhow::Result;
 use xiuxian_wendao::LinkGraphIndex;
+use xiuxian_wendao_client::{
+    ClientContext as EmbeddedClientContext, OutputFormat as ClientOutputFormat,
+};
 
 /// Execute the CLI command.
 ///
@@ -58,6 +61,14 @@ pub(crate) async fn execute(cli: &Cli, index: Option<&LinkGraphIndex>) -> Result
         Command::Agentic { .. } => agentic::handle(cli, index),
         Command::Repo { .. } => repo::handle(cli),
         Command::Docs { .. } => docs::handle(cli),
+        Command::Client(command) => {
+            let outcome =
+                xiuxian_wendao_client::run_command(command, &client_context_from_cli(cli))?;
+            if outcome.exit_code() != 0 {
+                std::process::exit(i32::from(outcome.exit_code()));
+            }
+            Ok(())
+        }
         #[cfg(feature = "zhenfa-router")]
         Command::Query { .. } => query::handle(cli).await,
         Command::Fix(args) => fix::handle(cli, args, index),
@@ -65,4 +76,11 @@ pub(crate) async fn execute(cli: &Cli, index: Option<&LinkGraphIndex>) -> Result
         Command::Gateway(args) => gateway::handle(cli, args, index).await,
         Command::Sentinel(args) => sentinel::handle(cli, args, index).await,
     }
+}
+
+fn client_context_from_cli(cli: &Cli) -> EmbeddedClientContext {
+    let _output = match cli.output {
+        OutputFormat::Json | OutputFormat::Pretty => ClientOutputFormat::Text,
+    };
+    EmbeddedClientContext::new(cli.root.clone(), ClientOutputFormat::Text)
 }

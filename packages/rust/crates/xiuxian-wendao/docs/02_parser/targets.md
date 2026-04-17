@@ -2,7 +2,7 @@
 
 :PROPERTIES:
 :ID: wendao-parser-targets
-:PARENT: [[02_parser/index]]
+:PARENT: [[02_parser/index|Wendao Parser Docs]]
 :TAGS: parser, targets, markdown
 :STATUS: ACTIVE
 :END:
@@ -73,7 +73,7 @@ Coverage for this contract lives in:
 4. `tests/unit/markdown_syntax_algorithm_fixtures.rs`
 
 :RELATIONS:
-:LINKS: [[02_parser/index]], [[02_parser/architecture]], [[02_parser/note]], [[06_roadmap/419_parser_substrate_separation]]
+:LINKS: [[02_parser/index|Wendao Parser Docs]], [[02_parser/architecture|Parser Architecture]], [[02_parser/note|Parser Note Aggregate]], [[06_roadmap/419_parser_substrate_separation|Parser Substrate Separation]]
 :END:
 
 ---

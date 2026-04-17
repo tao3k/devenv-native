@@ -2,7 +2,7 @@
 
 :PROPERTIES:
 :ID: wendao-package-boundary-matrix
-:PARENT: [[index]]
+:PARENT: [[index|Wendao DocOS Kernel: Map of Content]]
 :TAGS: roadmap, migration, packages, core, runtime, ownership
 :STATUS: ACTIVE
 :END:

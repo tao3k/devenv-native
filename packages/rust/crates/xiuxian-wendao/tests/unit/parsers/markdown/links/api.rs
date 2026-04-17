@@ -1,8 +1,11 @@
 use std::path::Path;
 
-use xiuxian_wendao_parsers::targets::{MarkdownTargetOccurrence, MarkdownTargetOccurrenceKind};
+use xiuxian_wendao_parsers::{
+    parse_markdown_note,
+    targets::{MarkdownTargetOccurrence, MarkdownTargetOccurrenceKind},
+};
 
-use super::extract_link_targets_from_occurrences;
+use super::{extract_link_targets_from_occurrences, extract_resolved_note_references};
 
 #[test]
 fn extract_link_targets_from_occurrences_normalizes_markdown_and_wikilink_targets() {
@@ -39,4 +42,40 @@ fn extract_link_targets_from_occurrences_normalizes_markdown_and_wikilink_target
 
     assert_eq!(extracted.note_links, vec!["docs/guide", "graph-c"]);
     assert_eq!(extracted.attachments, vec!["assets/logo.png"]);
+}
+
+#[test]
+fn extract_resolved_note_references_preserves_scoped_addresses() {
+    let content = [
+        "[Guide Proof](docs/guide.md#^proof-anchor)",
+        "[[docs/guide#Overview|Guide Overview]]",
+        "[Local Heading](#overview)",
+    ]
+    .join("\n");
+    let note = parse_markdown_note(&content, "Index");
+    let root = Path::new("/tmp/parser-doc");
+    let source_path = Path::new("/tmp/parser-doc/index.md");
+
+    let resolved = extract_resolved_note_references(
+        note.core.references.as_slice(),
+        note.core.targets.as_slice(),
+        source_path,
+        root,
+    );
+
+    assert_eq!(
+        resolved,
+        vec![
+            crate::parsers::markdown::ResolvedNoteReference {
+                note_target: "docs/guide".to_string(),
+                target_address: Some("#^proof-anchor".to_string()),
+                original: "[Guide Proof](docs/guide.md#^proof-anchor)".to_string(),
+            },
+            crate::parsers::markdown::ResolvedNoteReference {
+                note_target: "docs/guide".to_string(),
+                target_address: Some("#Overview".to_string()),
+                original: "[[docs/guide#Overview|Guide Overview]]".to_string(),
+            },
+        ]
+    );
 }

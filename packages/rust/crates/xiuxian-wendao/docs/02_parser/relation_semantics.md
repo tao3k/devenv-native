@@ -2,7 +2,7 @@
 
 :PROPERTIES:
 :ID: wendao-parser-relation-semantics
-:PARENT: [[02_parser/index]]
+:PARENT: [[02_parser/index|Wendao Parser Docs]]
 :TAGS: parser, relations, properties
 :STATUS: ACTIVE
 :END:
@@ -162,7 +162,7 @@ Current coverage lives in:
    `target_address`, `relation_type`, and `metadata_owner`
 
 :RELATIONS:
-:LINKS: [[02_parser/index]], [[02_parser/wikilinks]], [[02_parser/architecture]], [[03_features/201_property_drawers]], [[01_core/103_package_layering]]
+:LINKS: [[02_parser/index|Wendao Parser Docs]], [[02_parser/wikilinks|Parser Wikilinks]], [[02_parser/architecture|Parser Architecture]], [[03_features/201_property_drawers|Property Drawers]], [[01_core/103_package_layering|Wendao Package Layering]]
 :END:
 
 ---

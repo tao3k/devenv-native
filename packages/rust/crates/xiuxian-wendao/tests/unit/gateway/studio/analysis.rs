@@ -54,6 +54,7 @@ fn compile() {}
 
 ## Overview
 DeepWiki reads parser-owned metadata.
+DeepWiki keeps scoped backlinks stable. ^proof-anchor
 
 ## References
 :PROPERTIES:
@@ -73,12 +74,15 @@ Reference [[guide]].
 
     std::fs::write(
         docs_dir.join("guide.md"),
-        "# Guide\n\nReference [[deepwiki]].\n",
+        "# Guide\n\nReference [[deepwiki#Overview|DeepWiki Overview]].\n",
     )
     .unwrap_or_else(|err| panic!("failed to write guide markdown fixture: {err}"));
 
-    std::fs::write(docs_dir.join("index.md"), "# Index\n\n- [[deepwiki]]\n")
-        .unwrap_or_else(|err| panic!("failed to write index markdown fixture: {err}"));
+    std::fs::write(
+        docs_dir.join("index.md"),
+        "# Index\n\n- [DeepWiki Proof](deepwiki.md#^proof-anchor)\n",
+    )
+    .unwrap_or_else(|err| panic!("failed to write index markdown fixture: {err}"));
 
     std::fs::write(docs_dir.join("raw.rs"), "fn raw() {}\n")
         .unwrap_or_else(|err| panic!("failed to write non-markdown fixture: {err}"));
@@ -183,13 +187,26 @@ async fn analyze_markdown_returns_ir_and_projections() {
                             "targetAddress": link.target_address,
                         })
                     }).collect::<Vec<_>>(),
+                    "explicitBacklinks": metadata.explicit_backlinks.iter().map(|link| {
+                        json!({
+                            "label": link.label,
+                            "kind": link.kind,
+                            "literal": link.literal,
+                            "docId": link.doc_id,
+                            "path": link.path,
+                            "title": link.title,
+                            "targetAddress": link.target_address,
+                        })
+                    }).collect::<Vec<_>>(),
                     "backlinks": metadata.backlinks.iter().map(|link| {
                         json!({
                             "label": link.label,
                             "kind": link.kind,
+                            "literal": link.literal,
                             "docId": link.doc_id,
                             "path": link.path,
                             "title": link.title,
+                            "targetAddress": link.target_address,
                         })
                     }).collect::<Vec<_>>(),
                 })
@@ -246,6 +263,28 @@ async fn analyze_markdown_emits_document_metadata_from_parser_and_graph_index() 
         .unwrap_or_else(|| panic!("expected index relation row"));
     assert_eq!(index_row.doc_id.as_deref(), Some("docs/guide"));
 
+    let explicit_backlink_labels = metadata
+        .explicit_backlinks
+        .iter()
+        .map(|row| row.label.as_str())
+        .collect::<Vec<_>>();
+    assert!(explicit_backlink_labels.contains(&"Guide"));
+    assert!(explicit_backlink_labels.contains(&"Index"));
+    assert!(
+        metadata.explicit_backlinks.iter().any(|row| {
+            row.label == "Guide" && row.target_address.as_deref() == Some("#Overview")
+        })
+    );
+    assert!(metadata.explicit_backlinks.iter().any(|row| {
+        row.label == "Index" && row.target_address.as_deref() == Some("#^proof-anchor")
+    }));
+    assert!(
+        metadata
+            .explicit_backlinks
+            .iter()
+            .all(|row| row.literal.as_deref().is_some())
+    );
+
     let backlink_labels = metadata
         .backlinks
         .iter()
@@ -253,6 +292,7 @@ async fn analyze_markdown_emits_document_metadata_from_parser_and_graph_index() 
         .collect::<Vec<_>>();
     assert!(backlink_labels.contains(&"Guide"));
     assert!(backlink_labels.contains(&"Index"));
+    assert_eq!(metadata.explicit_backlinks, metadata.backlinks);
 }
 
 #[tokio::test]

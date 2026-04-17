@@ -1,0 +1,160 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MarkdownLintReport",
+  "description": "Aggregate lint results for one command execution.",
+  "type": "object",
+  "properties": {
+    "checked_files": {
+      "description": "Number of Markdown files checked.",
+      "type": "integer",
+      "format": "uint",
+      "minimum": 0
+    },
+    "files": {
+      "description": "Stable file reports in path order.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/MarkdownLintFileReport"
+      }
+    },
+    "files_with_issues": {
+      "description": "Number of files containing at least one issue.",
+      "type": "integer",
+      "format": "uint",
+      "minimum": 0
+    },
+    "issue_count": {
+      "description": "Total issue count across all checked files.",
+      "type": "integer",
+      "format": "uint",
+      "minimum": 0
+    }
+  },
+  "required": [
+    "checked_files",
+    "files_with_issues",
+    "issue_count",
+    "files"
+  ],
+  "$defs": {
+    "MarkdownLintFileReport": {
+      "description": "Aggregate lint results for one Markdown file.",
+      "type": "object",
+      "properties": {
+        "issue_count": {
+          "description": "Stable issue count for this file.",
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "issues": {
+          "description": "Stable file-local issue list.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/MarkdownLintIssue"
+          }
+        },
+        "path": {
+          "description": "Root-relative file path.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "issue_count",
+        "issues"
+      ]
+    },
+    "MarkdownLintIssue": {
+      "description": "One rendered Markdown lint issue scoped to a specific file.",
+      "type": "object",
+      "properties": {
+        "code": {
+          "description": "File-relative machine-readable lint code.",
+          "type": "string"
+        },
+        "column": {
+          "description": "One-based source column.",
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "expected": {
+          "description": "Concrete expected rewrite when available.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "found": {
+          "description": "Exact offending source literal when available.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "kind": {
+          "description": "High-level classification for this issue.",
+          "type": "string"
+        },
+        "line": {
+          "description": "One-based source line.",
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "message": {
+          "description": "Human-readable diagnostic detail or fix guidance.",
+          "type": "string"
+        },
+        "problem": {
+          "description": "Human-readable problem summary.",
+          "type": "string"
+        },
+        "source": {
+          "description": "Exact source line when available.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "target": {
+          "description": "Target extracted from the offending link when available.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "target_heading": {
+          "description": "Heading fragment extracted from the target when available.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "target_title": {
+          "description": "Resolved title for the target document when available.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "tip": {
+          "description": "Short extra fix hint for human or LLM consumers.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "code",
+        "kind",
+        "problem",
+        "message",
+        "line",
+        "column"
+      ]
+    }
+  }
+}

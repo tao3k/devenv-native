@@ -2,7 +2,7 @@
 
 :PROPERTIES:
 :ID: feat-graphql-query-surface
-:PARENT: [[index]]
+:PARENT: [[index|Wendao DocOS Kernel: Map of Content]]
 :TAGS: feature, graphql, search, graph
 :STATUS: ACTIVE
 :VERSION: 1.0

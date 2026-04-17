@@ -2,7 +2,7 @@
 
 :PROPERTIES:
 :ID: wendao-parser-wikilinks
-:PARENT: [[02_parser/index]]
+:PARENT: [[02_parser/index|Wendao Parser Docs]]
 :TAGS: parser, wikilinks, markdown
 :STATUS: ACTIVE
 :END:
@@ -18,14 +18,42 @@ core that ordinary Markdown references use.
 
 The canonical parser preserves ordinary body wikilinks in these shapes:
 
-1. `[[note]]`
-2. `[[note#Heading]]`
+1. `[[note]]` and `[[note.md]]`
+2. `[[note#Heading]]` and nested addressed forms such as `[[note#Heading#Subheading]]`
 3. `[[note#^block-id]]`
-4. `[[#Local Heading]]`
-5. `[[note|Alias]]`
+4. `[[#Local Heading]]` and `[[#^local-block-id]]`
+5. `[[note|Alias]]`, including note targets that contain spaces such as
+   `[[Three laws of motion|Overview]]`
+6. `[[note#Heading|Display Name]]`
+7. `![[note]]`, `![[note#Heading]]`, and `![[note#^block-id]]` remain valid Obsidian embed syntax, but they are outside the ordinary body-link extraction surface documented here
 
 The parser treats `#...` as a structural address, never as a semantic type
 suffix.
+
+## Repository Authoring Rule
+
+Repository Markdown is intentionally stricter than the parser compatibility
+surface. For authored docs, prefer:
+
+1. `[[target|label]]`
+2. `[label](target)`
+
+Bare `[[target]]` forms remain parser-compatible for interoperability, but the
+repository Markdown linter treats them as authoring violations so human and
+LLM-facing docs always carry explicit display text.
+
+The same split now applies to diagnostics:
+
+1. official Obsidian-incompatible shapes such as `[[target]](label)` are
+   reported as syntax failures
+2. official Obsidian-compatible but repository-discouraged shapes such as
+   bare `[[target]]`, redundant `[[target|target]]`, or target-like reversed
+   aliases with an explicit path or address on the right side are reported as
+   repo authoring policy findings
+3. repository-authoring wikilink findings are now derived from the same
+   parser-owned ordinary body-link traversal used by `references` and
+   `wikilinks`, while the invalid mixed `[[...]](...)` shape stays on one
+   lightweight surface scan because it never becomes a valid ordinary node
 
 ## Extraction Rules
 
@@ -94,11 +122,11 @@ Coverage for this contract lives in:
 5. `src/zhenfa_router/native/semantic_check/docs_governance/tests/index_links/relations.rs`
 
 :RELATIONS:
-:LINKS: [[02_parser/index]], [[02_parser/addressed_target]], [[02_parser/references]], [[02_parser/architecture]], [[02_parser/relation_semantics]], [[01_core/103_package_layering]]
+:LINKS: [[02_parser/index|Wendao Parser Docs]], [[02_parser/addressed_target|Parser Addressed Target]], [[02_parser/references|Parser References]], [[02_parser/architecture|Parser Architecture]], [[02_parser/relation_semantics|Parser Relation Semantics]], [[01_core/103_package_layering|Wendao Package Layering]]
 :END:
 
 ---
 
 :FOOTER:
-:LAST_SYNC: 2026-04-11
+:LAST_SYNC: 2026-04-17
 :END:

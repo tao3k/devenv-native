@@ -2,7 +2,7 @@
 
 :PROPERTIES:
 :ID: wendao-parser-sections
-:PARENT: [[02_parser/index]]
+:PARENT: [[02_parser/index|Wendao Parser Docs]]
 :TAGS: parser, sections, markdown
 :STATUS: ACTIVE
 :END:
@@ -82,7 +82,7 @@ Coverage for this contract lives in:
 4. `tests/unit/link_graph/index/build/property_drawer_edges.rs`
 
 :RELATIONS:
-:LINKS: [[02_parser/index]], [[02_parser/architecture]], [[02_parser/relation_semantics]], [[06_roadmap/419_parser_substrate_separation]]
+:LINKS: [[02_parser/index|Wendao Parser Docs]], [[02_parser/architecture|Parser Architecture]], [[02_parser/relation_semantics|Parser Relation Semantics]], [[06_roadmap/419_parser_substrate_separation|Parser Substrate Separation]]
 :END:
 
 ---

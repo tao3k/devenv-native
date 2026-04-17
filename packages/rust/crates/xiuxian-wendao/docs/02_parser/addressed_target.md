@@ -2,7 +2,7 @@
 
 :PROPERTIES:
 :ID: wendao-parser-addressed-target
-:PARENT: [[02_parser/index]]
+:PARENT: [[02_parser/index|Wendao Parser Docs]]
 :TAGS: parser, links, target, markdown
 :STATUS: ACTIVE
 :END:
@@ -84,7 +84,7 @@ Coverage for this contract lives in:
 7. `packages/rust/crates/xiuxian-wendao-parsers/src/reference_core.rs`
 
 :RELATIONS:
-:LINKS: [[02_parser/index]], [[02_parser/architecture]], [[02_parser/references]], [[02_parser/wikilinks]], [[06_roadmap/419_parser_substrate_separation]]
+:LINKS: [[02_parser/index|Wendao Parser Docs]], [[02_parser/architecture|Parser Architecture]], [[02_parser/references|Parser References]], [[02_parser/wikilinks|Parser Wikilinks]], [[06_roadmap/419_parser_substrate_separation|Parser Substrate Separation]]
 :END:
 
 ---

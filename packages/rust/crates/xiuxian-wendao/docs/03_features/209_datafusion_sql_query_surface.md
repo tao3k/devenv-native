@@ -2,7 +2,7 @@
 
 :PROPERTIES:
 :ID: feat-datafusion-sql-query-surface
-:PARENT: [[index]]
+:PARENT: [[index|Wendao DocOS Kernel: Map of Content]]
 :TAGS: feature, sql, datafusion, flight, snapshot
 :STATUS: ACTIVE
 :VERSION: 1.0

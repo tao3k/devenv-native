@@ -2,7 +2,7 @@
 
 :PROPERTIES:
 :ID: wendao-repo-intelligence-mvp
-:PARENT: [[index]]
+:PARENT: [[index|Wendao DocOS Kernel: Map of Content]]
 :TAGS: roadmap, repo-intelligence, plugins, git
 :STATUS: ACTIVE
 :END:

@@ -105,7 +105,7 @@ To achieve extreme precision in reasoning (especially during reflection and memo
 
 Instead of a single persona governing the entire workflow, the Qianji TOML manifest allows each Node to independently bind Qianhuan runtime controls through a dedicated TOML table.
 
-See [[Qianhuan Node Binding Interface|docs/01_core/qianji/architecture/qianhuan-node-binding-interface.md]] for the exact TOML schema (`[nodes.qianhuan]`) and the Rust execution contract that drives node-level persona injection.
+See [[docs/01_core/qianji/architecture/qianhuan-node-binding-interface.md|Qianhuan Node Binding Interface]] for the exact TOML schema (`[nodes.qianhuan]`) and the Rust execution contract that drives node-level persona injection.
 
 This creates an elegant "Role-Play Graph":
 
@@ -134,7 +134,7 @@ By embedding Qianhuan's template and persona injection directly into the Qianji 
 
 ### 6.3 Context Window Management
 
-See [[Context Window Management|docs/01_core/qianji/architecture/context-window-management.md]] for a deep dive into Isolated vs. Appended scenarios and the Economic XML Debate Protocol.
+See [[docs/01_core/qianji/architecture/context-window-management.md|Context Window Management]] for a deep dive into Isolated vs. Appended scenarios and the Economic XML Debate Protocol.
 
 ### 6.4 Implementation Audit (2026-02-26)
 

@@ -2,7 +2,7 @@
 
 :PROPERTIES:
 :ID: wendao-parser-substrate-separation
-:PARENT: [[index]]
+:PARENT: [[index|Wendao DocOS Kernel: Map of Content]]
 :TAGS: roadmap, parser, packages, qianji, qianhuan, markdown, org
 :STATUS: ACTIVE
 :END:
@@ -480,7 +480,7 @@ Optimize for these outcomes:
    crates
 
 :RELATIONS:
-:LINKS: [[02_parser/architecture]], [[06_roadmap/417_wendao_package_boundary_matrix]], [[06_roadmap/405_large_rust_modularization]]
+:LINKS: [[02_parser/architecture|Parser Architecture]], [[06_roadmap/417_wendao_package_boundary_matrix|Wendao Package Boundary Matrix]], [[06_roadmap/405_large_rust_modularization|Large Rust File Modularization]]
 :END:
 
 ---

@@ -2,7 +2,7 @@
 
 :PROPERTIES:
 :ID: feat-code-observation
-:PARENT: [[index]]
+:PARENT: [[index|Wendao DocOS Kernel: Map of Content]]
 :TAGS: feature, ast, sgrep, non-invasive
 :STATUS: STABLE
 :VERSION: 2.7
@@ -51,5 +51,5 @@ If a pattern is syntactically invalid, the auditor provides granular feedback:
 - Qianji Studio still keeps minimal search and graph fallbacks when transitional payloads omit top-level `navigationTarget`, but the intended contract remains backend-owned navigation metadata and is now exercised by the live gateway test lane.
 
 :RELATIONS:
-:LINKS: [[01_core/101_triple_a_protocol]], [[03_features/205_semantic_auditor]]
+:LINKS: [[01_core/101_triple_a_protocol|Triple-A Addressing Protocol]], [[03_features/205_semantic_auditor|Semantic Auditor (wendao audit)]]
 :END:

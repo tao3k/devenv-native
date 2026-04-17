@@ -4,6 +4,13 @@ pub(in crate::parsers::markdown) struct ExtractedLinkTargets {
     pub attachments: Vec<String>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct ResolvedNoteReference {
+    pub note_target: String,
+    pub target_address: Option<String>,
+    pub original: String,
+}
+
 #[derive(Debug)]
 pub(in crate::parsers::markdown) enum ParsedTarget {
     Note(String),

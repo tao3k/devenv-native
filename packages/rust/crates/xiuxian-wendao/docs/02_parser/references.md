@@ -2,7 +2,7 @@
 
 :PROPERTIES:
 :ID: wendao-parser-references
-:PARENT: [[02_parser/index]]
+:PARENT: [[02_parser/index|Wendao Parser Docs]]
 :TAGS: parser, references, markdown
 :STATUS: ACTIVE
 :END:
@@ -76,7 +76,7 @@ Coverage for this contract lives in:
 4. `src/skill_vfs/internal_manifest/tests.rs`
 
 :RELATIONS:
-:LINKS: [[02_parser/index]], [[02_parser/architecture]], [[02_parser/addressed_target]], [[02_parser/wikilinks]], [[01_core/103_package_layering]]
+:LINKS: [[02_parser/index|Wendao Parser Docs]], [[02_parser/architecture|Parser Architecture]], [[02_parser/addressed_target|Parser Addressed Target]], [[02_parser/wikilinks|Parser Wikilinks]], [[01_core/103_package_layering|Wendao Package Layering]]
 :END:
 
 ---
