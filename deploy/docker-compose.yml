@@ -1,0 +1,63 @@
+services:
+  valkey:
+    image: valkey/valkey:8
+    ports:
+      - "6379:6379"
+    volumes:
+      - valkey-data:/data
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+  wendaosearch-solver:
+    image: ghcr.io/tao3k/wendaosearch.jl:main
+    command: ["--config", "config/live/solver_demo.toml"]
+    ports:
+      - "41080:41080"
+  wendaosearch-parser:
+    image: ghcr.io/tao3k/wendaosearch.jl:main
+    command: ["--parser-summary-service", "--config", "config/live/parser_summary.toml"]
+    ports:
+      - "41081:41081"
+  wendao-gateway:
+    image: ghcr.io/tao3k/xiuxian-wendao:main
+    command: ["--conf", "/etc/wendao/wendao.toml", "gateway", "start"]
+    ports:
+      - "9517:9517"
+    depends_on:
+      valkey:
+        condition: service_healthy
+    environment:
+      VALKEY_URL: redis://valkey:6379/0
+      XIUXIAN_WENDAO_GATEWAY_BOOTSTRAP_BACKGROUND_INDEXING: "1"
+    working_dir: /data
+    volumes:
+      - ./wendao.toml:/etc/wendao/wendao.toml:ro
+      - ../wendao.toml:/etc/wendao/base.toml:ro
+      - ../assets/wendao:/etc/wendao/assets/wendao:ro
+      - wendao-data:/data
+  xiuxian-daochang:
+    image: ghcr.io/tao3k/xiuxian-daochang:main
+    command: ["--conf", "/etc/xiuxian", "gateway", "--bind", "0.0.0.0:18092"]
+    ports:
+      - "18092:18092"
+    depends_on:
+      valkey:
+        condition: service_healthy
+    env_file:
+      - ../.env
+    environment:
+      VALKEY_URL: redis://valkey:6379/0
+    volumes:
+      - ./xiuxian.toml:/etc/xiuxian/xiuxian-artisan-workshop/xiuxian.toml:ro
+  wendao-frontend:
+    image: ghcr.io/tao3k/wendao-frontend:main
+    ports:
+      - "8080:80"
+    depends_on:
+      - wendao-gateway
+      - xiuxian-daochang
+volumes:
+  valkey-data:
+  wendao-data:

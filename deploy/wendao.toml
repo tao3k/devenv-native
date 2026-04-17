@@ -1,0 +1,14 @@
+# Docker deployment overlay for Wendao gateway.
+# Imports the project root config for repo definitions.
+# Overrides only what's needed for container networking.
+
+imports = ["base.toml"]
+
+[gateway]
+bind = "0.0.0.0"
+
+[link_graph.cache]
+valkey_url = "redis://valkey:6379/0"
+
+[search.cache]
+valkey_url = "redis://valkey:6379/0"
