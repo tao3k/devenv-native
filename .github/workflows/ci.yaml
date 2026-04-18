@@ -373,6 +373,19 @@ jobs:
           test -f "${GITHUB_WORKSPACE}/.data/WendaoSearch.jl/scripts/run_parser_summary_service.jl"
           test -f "${GITHUB_WORKSPACE}/.data/WendaoSearch.jl/config/live/parser_summary.toml"
 
+      - name: Prewarm WendaoSearch solver-demo runtime dependencies
+        run: |
+          set -euo pipefail
+          julia --project="${GITHUB_WORKSPACE}/.data/WendaoSearch.jl" -e '
+            using Pkg
+            Pkg.instantiate()
+            Pkg.add(Pkg.PackageSpec(
+              name = "HiGHS",
+              uuid = "87dc4568-4c63-4d18-b0c0-bb2238e4078b",
+            ))
+            Pkg.precompile()
+          '
+
       - name: Run Rust workspace tests
         run: scripts/rust/cargo_exec.sh nextest run --workspace --exclude xiuxian-core-rs --no-fail-fast
 

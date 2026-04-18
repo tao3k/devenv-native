@@ -11,7 +11,7 @@ use super::common::{
     wendaosearch_config, wendaosearch_package_dir, wendaosearch_script,
 };
 
-pub(crate) const LIVE_SERVICE_STARTUP_TIMEOUT_SECS: u64 = 60;
+pub(crate) const LIVE_SERVICE_STARTUP_TIMEOUT_SECS: u64 = 150;
 pub(crate) const LIVE_REQUEST_TIMEOUT_SECS: u64 = 90;
 pub(crate) const RUN_PROCESS_MANAGED_WENDAOSEARCH_TEST_ENV: &str =
     "RUN_PROCESS_MANAGED_WENDAOSEARCH_TEST";
