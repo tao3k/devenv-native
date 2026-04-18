@@ -7,7 +7,9 @@ use super::graphmem::{sync_graphmem_state_best_effort, sync_graphmem_state_to_va
 use crate::link_graph::runtime_config::{
     LinkGraphCacheRuntimeConfig, resolve_link_graph_cache_runtime,
 };
+#[path = "api/build_context.rs"]
 mod build_context;
+#[path = "api/meta.rs"]
 mod meta;
 
 use build_context::prepare_build_cache_context;

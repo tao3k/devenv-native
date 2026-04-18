@@ -1,6 +1,6 @@
 ---
-source: packages/rust/crates/xiuxian-wendao/tests/integration/../support/repo_intelligence.rs
-assertion_line: 32
+source: packages/rust/crates/xiuxian-wendao/tests/integration/support/../../support/repo_intelligence.rs
+assertion_line: 33
 expression: value
 ---
 {
@@ -15,27 +15,40 @@ expression: value
       ],
       "implicit_backlink_items": [
         {
-          "id": "repo:symbol-sample:doc:src/SymbolPkg.jl#symbol:solve",
+          "id": "repo:symbol-sample:doc:src/SymbolPkg.jl#symbol-id:repo:symbol-sample:symbol:SymbolPkg.solve",
           "kind": "documents",
-          "path": "src/SymbolPkg.jl#symbol:solve",
+          "path": "src/SymbolPkg.jl#symbol-id:repo:symbol-sample:symbol:SymbolPkg.solve",
           "title": "solve"
         }
       ],
       "implicit_backlinks": [
-        "repo:symbol-sample:doc:src/SymbolPkg.jl#symbol:solve"
+        "repo:symbol-sample:doc:src/SymbolPkg.jl#symbol-id:repo:symbol-sample:symbol:SymbolPkg.solve"
       ],
       "projection_page_ids": [
-        "repo:symbol-sample:projection:reference:doc:repo:symbol-sample:doc:src/SymbolPkg.jl#symbol:solve",
+        "repo:symbol-sample:projection:reference:doc:repo:symbol-sample:doc:src/SymbolPkg.jl#symbol-id:repo:symbol-sample:symbol:SymbolPkg.solve",
         "repo:symbol-sample:projection:reference:symbol:repo:symbol-sample:symbol:SymbolPkg.solve"
       ],
       "rank": 1,
       "saliency_score": 1.0,
       "score": 1.0,
       "symbol": {
+        "attributes": {
+          "function_has_varargs": "false",
+          "function_keyword_arity": "0",
+          "function_positional_arity": "1",
+          "module_kind": "module",
+          "module_name": "SymbolPkg",
+          "module_path": "SymbolPkg",
+          "owner_kind": "module",
+          "owner_name": "SymbolPkg",
+          "owner_path": "SymbolPkg",
+          "parser_kind": "function",
+          "top_level": "true"
+        },
         "audit_status": "unreviewed",
         "kind": "function",
-        "line_end": null,
-        "line_start": null,
+        "line_end": 20,
+        "line_start": 18,
         "module_id": "repo:symbol-sample:module:SymbolPkg",
         "name": "solve",
         "path": "src/SymbolPkg.jl",
@@ -46,14 +59,75 @@ expression: value
         "verification_state": "verified"
       },
       "verification_state": "verified"
+    },
+    {
+      "audit_status": "unreviewed",
+      "hierarchical_uri": "wendao://repo/unknown/symbol-sample/api/src:solvers.jl/repo:symbol-sample:symbol:SymbolPkg.fastsolve",
+      "hierarchy": [
+        "src",
+        "solvers.jl"
+      ],
+      "implicit_backlink_items": [
+        {
+          "id": "repo:symbol-sample:doc:src/solvers.jl#symbol-id:repo:symbol-sample:symbol:SymbolPkg.fastsolve",
+          "kind": "documents",
+          "path": "src/solvers.jl#symbol-id:repo:symbol-sample:symbol:SymbolPkg.fastsolve",
+          "title": "fastsolve"
+        }
+      ],
+      "implicit_backlinks": [
+        "repo:symbol-sample:doc:src/solvers.jl#symbol-id:repo:symbol-sample:symbol:SymbolPkg.fastsolve"
+      ],
+      "projection_page_ids": [
+        "repo:symbol-sample:projection:reference:doc:repo:symbol-sample:doc:src/solvers.jl#symbol-id:repo:symbol-sample:symbol:SymbolPkg.fastsolve",
+        "repo:symbol-sample:projection:reference:symbol:repo:symbol-sample:symbol:SymbolPkg.fastsolve"
+      ],
+      "rank": 2,
+      "saliency_score": 1.0,
+      "score": 0.5,
+      "symbol": {
+        "attributes": {
+          "function_has_varargs": "false",
+          "function_keyword_arity": "0",
+          "function_positional_arity": "1",
+          "parser_kind": "function",
+          "top_level": "true"
+        },
+        "audit_status": "unreviewed",
+        "kind": "function",
+        "line_end": 5,
+        "line_start": 5,
+        "module_id": "repo:symbol-sample:module:SymbolPkg",
+        "name": "fastsolve",
+        "path": "src/solvers.jl",
+        "qualified_name": "SymbolPkg.fastsolve",
+        "repo_id": "symbol-sample",
+        "signature": "fastsolve(problem::Problem) = problem.x",
+        "symbol_id": "repo:symbol-sample:symbol:SymbolPkg.fastsolve",
+        "verification_state": "verified"
+      },
+      "verification_state": "verified"
     }
   ],
   "symbols": [
     {
+      "attributes": {
+        "function_has_varargs": "false",
+        "function_keyword_arity": "0",
+        "function_positional_arity": "1",
+        "module_kind": "module",
+        "module_name": "SymbolPkg",
+        "module_path": "SymbolPkg",
+        "owner_kind": "module",
+        "owner_name": "SymbolPkg",
+        "owner_path": "SymbolPkg",
+        "parser_kind": "function",
+        "top_level": "true"
+      },
       "audit_status": "unreviewed",
       "kind": "function",
-      "line_end": null,
-      "line_start": null,
+      "line_end": 20,
+      "line_start": 18,
       "module_id": "repo:symbol-sample:module:SymbolPkg",
       "name": "solve",
       "path": "src/SymbolPkg.jl",
@@ -61,6 +135,27 @@ expression: value
       "repo_id": "symbol-sample",
       "signature": "solve(problem::Problem)",
       "symbol_id": "repo:symbol-sample:symbol:SymbolPkg.solve",
+      "verification_state": "verified"
+    },
+    {
+      "attributes": {
+        "function_has_varargs": "false",
+        "function_keyword_arity": "0",
+        "function_positional_arity": "1",
+        "parser_kind": "function",
+        "top_level": "true"
+      },
+      "audit_status": "unreviewed",
+      "kind": "function",
+      "line_end": 5,
+      "line_start": 5,
+      "module_id": "repo:symbol-sample:module:SymbolPkg",
+      "name": "fastsolve",
+      "path": "src/solvers.jl",
+      "qualified_name": "SymbolPkg.fastsolve",
+      "repo_id": "symbol-sample",
+      "signature": "fastsolve(problem::Problem) = problem.x",
+      "symbol_id": "repo:symbol-sample:symbol:SymbolPkg.fastsolve",
       "verification_state": "verified"
     }
   ]

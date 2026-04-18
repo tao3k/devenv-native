@@ -2,7 +2,7 @@
 
 :PROPERTIES:
 :ID: wendao-m4-julia-externalization-package-list
-:PARENT: [[index]]
+:PARENT: [[index|Wendao DocOS Kernel: Map of Content]]
 :TAGS: roadmap, migration, plugins, julia, m4
 :STATUS: ACTIVE
 :END:
@@ -483,7 +483,7 @@ After this note lands, the next program move should be:
    artifact surfaces become canonical
 
 :RELATIONS:
-:LINKS: [[index]], [[06_roadmap/412_core_runtime_plugin_program]], [[06_roadmap/413_m2_core_extraction_package_list]], [[06_roadmap/414_m3_runtime_extraction_package_list]], [[06_roadmap/409_core_runtime_plugin_surface_inventory]], [[docs/rfcs/2026-03-27-wendao-core-runtime-plugin-migration-rfc.md]]
+:LINKS: [[index|Wendao DocOS Kernel: Map of Content]], [[06_roadmap/412_core_runtime_plugin_program|Wendao Core Runtime Plugin Program]], [[06_roadmap/413_m2_core_extraction_package_list|M2 Core Extraction Package List]], [[06_roadmap/414_m3_runtime_extraction_package_list|M3 Runtime Extraction Package List]], [[06_roadmap/409_core_runtime_plugin_surface_inventory|Wendao Core Runtime Plugin Surface Inventory]], [[docs/rfcs/2026-03-27-wendao-core-runtime-plugin-migration-rfc.md|RFC: Wendao Core Runtime and Arrow Plugin Migration]]
 :END:
 
 ---

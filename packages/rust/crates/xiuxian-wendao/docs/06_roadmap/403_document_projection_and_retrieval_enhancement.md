@@ -2,7 +2,7 @@
 
 :PROPERTIES:
 :ID: wendao-document-projection-retrieval
-:PARENT: [[index]]
+:PARENT: [[index|Wendao DocOS Kernel: Map of Content]]
 :TAGS: roadmap, docs, page-index, ppr, diataxis
 :STATUS: PLANNED
 :END:

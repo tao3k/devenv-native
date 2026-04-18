@@ -1,6 +1,6 @@
 use std::fmt::Write;
 
-use crate::link_graph::LinkGraphPlannedSearchPayload;
+use crate::link_graph::{LinkGraphHit, LinkGraphPlannedSearchPayload};
 
 pub(crate) fn render_xml_lite(payload: &LinkGraphPlannedSearchPayload) -> String {
     let mut rendered = String::new();
@@ -37,10 +37,11 @@ pub(crate) fn render_xml_lite(payload: &LinkGraphPlannedSearchPayload) -> String
     for hit in &payload.results {
         let _ = writeln!(
             rendered,
-            "  <hit id=\"{}\" path=\"{}\" score=\"{:.4}\" type=\"graph\">{}</hit>",
-            escape_xml_attr(&hit.stem),
+            "  <hit id=\"{}\" path=\"{}\" score=\"{:.4}\" type=\"{}\">{}</hit>",
+            escape_xml_attr(rendered_hit_id(hit)),
             escape_xml_attr(&hit.path),
             hit.score,
+            escape_xml_attr(&rendered_hit_type(hit)),
             escape_xml_text(&hit.title),
         );
     }
@@ -55,6 +56,48 @@ pub(crate) fn render_xml_lite(payload: &LinkGraphPlannedSearchPayload) -> String
         );
     }
     rendered
+}
+
+fn rendered_hit_id(hit: &LinkGraphHit) -> &str {
+    if hit.path.trim().is_empty() {
+        hit.stem.as_str()
+    } else {
+        hit.path.as_str()
+    }
+}
+
+fn rendered_hit_type(hit: &LinkGraphHit) -> String {
+    if let Some(doc_type) = hit
+        .doc_type
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+    {
+        return doc_type.to_string();
+    }
+    if let Some(tag_type) = hit
+        .tags
+        .iter()
+        .map(String::as_str)
+        .find(|tag| tag.eq_ignore_ascii_case("journal") || tag.eq_ignore_ascii_case("agenda"))
+    {
+        return tag_type.to_ascii_lowercase();
+    }
+    match semantic_type_from_path(&hit.path) {
+        Some(kind) => kind.to_string(),
+        None => "graph".to_string(),
+    }
+}
+
+fn semantic_type_from_path(path: &str) -> Option<&'static str> {
+    let normalized = path.trim_start_matches("./");
+    if normalized.starts_with("journal/") {
+        return Some("journal");
+    }
+    if normalized.starts_with("agenda/") {
+        return Some("agenda");
+    }
+    None
 }
 
 fn escape_xml_attr(input: &str) -> String {

@@ -3,6 +3,8 @@
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use xiuxian_qianji::{ClusterNodeIdentity, GlobalSwarmRegistry};
 
+use crate::valkey_support::TestValkey;
+
 fn unique(prefix: &str) -> String {
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -16,9 +18,8 @@ xiuxian_testing::crate_test_policy_harness!();
 #[tokio::test]
 async fn heartbeat_registers_nodes_and_discovers_by_role() -> Result<(), Box<dyn std::error::Error>>
 {
-    let redis_url =
-        std::env::var("VALKEY_URL").unwrap_or_else(|_| "redis://127.0.0.1:6379/0".to_string());
-    let registry = GlobalSwarmRegistry::new(redis_url);
+    let valkey = TestValkey::spawn().await?;
+    let registry = GlobalSwarmRegistry::new(valkey.url().to_string());
     let cluster = unique("cluster_discovery_role");
 
     let student = ClusterNodeIdentity {
@@ -65,9 +66,8 @@ async fn heartbeat_registers_nodes_and_discovers_by_role() -> Result<(), Box<dyn
 
 #[tokio::test]
 async fn discovery_prunes_stale_entries_after_ttl() -> Result<(), Box<dyn std::error::Error>> {
-    let redis_url =
-        std::env::var("VALKEY_URL").unwrap_or_else(|_| "redis://127.0.0.1:6379/0".to_string());
-    let registry = GlobalSwarmRegistry::new(redis_url);
+    let valkey = TestValkey::spawn().await?;
+    let registry = GlobalSwarmRegistry::new(valkey.url().to_string());
 
     let node = ClusterNodeIdentity {
         cluster_id: unique("cluster_discovery_stale"),

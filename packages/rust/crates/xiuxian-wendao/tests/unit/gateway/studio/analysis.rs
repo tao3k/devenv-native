@@ -13,6 +13,135 @@ struct AnalysisFixture {
     temp_dir: tempfile::TempDir,
 }
 
+fn analysis_node_snapshot(node: &crate::gateway::studio::types::AnalysisNode) -> serde_json::Value {
+    json!({
+        "id": node.id,
+        "kind": node.kind,
+        "label": node.label,
+        "depth": node.depth,
+        "lineStart": node.line_start,
+        "lineEnd": node.line_end,
+        "parentId": node.parent_id,
+    })
+}
+
+fn analysis_edge_snapshot(edge: &crate::gateway::studio::types::AnalysisEdge) -> serde_json::Value {
+    json!({
+        "id": edge.id,
+        "kind": edge.kind,
+        "sourceId": edge.source_id,
+        "targetId": edge.target_id,
+        "label": edge.label,
+        "evidence": {
+            "path": edge.evidence.path,
+            "lineStart": edge.evidence.line_start,
+            "lineEnd": edge.evidence.line_end,
+            "confidence": round_f64(edge.evidence.confidence),
+        }
+    })
+}
+
+fn analysis_projection_snapshot(
+    projection: &crate::gateway::studio::types::MermaidProjection,
+) -> serde_json::Value {
+    json!({
+        "kind": projection.kind,
+        "source": projection.source,
+        "nodeCount": projection.node_count,
+        "edgeCount": projection.edge_count,
+    })
+}
+
+fn analysis_document_link_snapshot(
+    link: &crate::gateway::studio::types::MarkdownAnalysisDocumentLink,
+) -> serde_json::Value {
+    json!({
+        "label": link.label,
+        "kind": link.kind,
+        "literal": link.literal,
+        "docId": link.doc_id,
+        "path": link.path,
+        "title": link.title,
+        "targetAddress": link.target_address,
+    })
+}
+
+fn analysis_relation_link_snapshot(
+    link: &crate::gateway::studio::types::MarkdownAnalysisDocumentLink,
+) -> serde_json::Value {
+    json!({
+        "label": link.label,
+        "kind": link.kind,
+        "literal": link.literal,
+        "relationType": link.relation_type,
+        "metadataOwner": link.metadata_owner,
+        "docId": link.doc_id,
+        "path": link.path,
+        "title": link.title,
+        "targetAddress": link.target_address,
+    })
+}
+
+fn analysis_document_metadata_snapshot(
+    metadata: &crate::gateway::studio::types::MarkdownAnalysisDocumentMetadata,
+) -> serde_json::Value {
+    json!({
+        "docId": metadata.doc_id,
+        "title": metadata.title,
+        "tags": metadata.tags,
+        "docType": metadata.doc_type,
+        "updated": metadata.updated,
+        "parent": metadata.parent.as_ref().map(analysis_document_link_snapshot),
+        "outgoingLinks": metadata
+            .outgoing_links
+            .iter()
+            .map(analysis_relation_link_snapshot)
+            .collect::<Vec<_>>(),
+        "explicitBacklinks": metadata
+            .explicit_backlinks
+            .iter()
+            .map(analysis_document_link_snapshot)
+            .collect::<Vec<_>>(),
+        "backlinks": metadata
+            .backlinks
+            .iter()
+            .map(analysis_document_link_snapshot)
+            .collect::<Vec<_>>(),
+    })
+}
+
+fn markdown_analysis_payload_snapshot(
+    payload: crate::gateway::studio::types::MarkdownAnalysisResponse,
+) -> serde_json::Value {
+    let crate::gateway::studio::types::MarkdownAnalysisResponse {
+        path,
+        document_hash,
+        node_count,
+        edge_count,
+        nodes,
+        edges,
+        projections,
+        document_metadata,
+        diagnostics,
+        ..
+    } = payload;
+
+    json!({
+        "path": path,
+        "documentHash": document_hash,
+        "nodeCount": node_count,
+        "edgeCount": edge_count,
+        "nodes": nodes.iter().map(analysis_node_snapshot).collect::<Vec<_>>(),
+        "edges": edges.iter().map(analysis_edge_snapshot).collect::<Vec<_>>(),
+        "projections": projections
+            .iter()
+            .map(analysis_projection_snapshot)
+            .collect::<Vec<_>>(),
+        "documentMetadata": document_metadata.as_ref().map(analysis_document_metadata_snapshot),
+        "diagnostics": diagnostics,
+    })
+}
+
 fn make_analysis_fixture() -> AnalysisFixture {
     let temp_dir =
         tempdir().unwrap_or_else(|err| panic!("failed to create analysis fixture tempdir: {err}"));
@@ -54,6 +183,7 @@ fn compile() {}
 
 ## Overview
 DeepWiki reads parser-owned metadata.
+DeepWiki keeps scoped backlinks stable. ^proof-anchor
 
 ## References
 :PROPERTIES:
@@ -73,12 +203,15 @@ Reference [[guide]].
 
     std::fs::write(
         docs_dir.join("guide.md"),
-        "# Guide\n\nReference [[deepwiki]].\n",
+        "# Guide\n\nReference [[deepwiki#Overview|DeepWiki Overview]].\n",
     )
     .unwrap_or_else(|err| panic!("failed to write guide markdown fixture: {err}"));
 
-    std::fs::write(docs_dir.join("index.md"), "# Index\n\n- [[deepwiki]]\n")
-        .unwrap_or_else(|err| panic!("failed to write index markdown fixture: {err}"));
+    std::fs::write(
+        docs_dir.join("index.md"),
+        "# Index\n\n- [DeepWiki Proof](deepwiki.md#^proof-anchor)\n",
+    )
+    .unwrap_or_else(|err| panic!("failed to write index markdown fixture: {err}"));
 
     std::fs::write(docs_dir.join("raw.rs"), "fn raw() {}\n")
         .unwrap_or_else(|err| panic!("failed to write non-markdown fixture: {err}"));
@@ -113,89 +246,7 @@ async fn analyze_markdown_returns_ir_and_projections() {
 
     assert_studio_json_snapshot(
         "analysis_markdown_payload",
-        json!({
-            "path": payload.path,
-            "documentHash": payload.document_hash,
-            "nodeCount": payload.node_count,
-            "edgeCount": payload.edge_count,
-            "nodes": payload.nodes.into_iter().map(|node| {
-                json!({
-                    "id": node.id,
-                    "kind": node.kind,
-                    "label": node.label,
-                    "depth": node.depth,
-                    "lineStart": node.line_start,
-                    "lineEnd": node.line_end,
-                    "parentId": node.parent_id,
-                })
-            }).collect::<Vec<_>>(),
-            "edges": payload.edges.into_iter().map(|edge| {
-                json!({
-                    "id": edge.id,
-                    "kind": edge.kind,
-                    "sourceId": edge.source_id,
-                    "targetId": edge.target_id,
-                    "label": edge.label,
-                    "evidence": {
-                        "path": edge.evidence.path,
-                        "lineStart": edge.evidence.line_start,
-                        "lineEnd": edge.evidence.line_end,
-                        "confidence": round_f64(edge.evidence.confidence),
-                    }
-                })
-            }).collect::<Vec<_>>(),
-            "projections": payload.projections.into_iter().map(|projection| {
-                json!({
-                    "kind": projection.kind,
-                    "source": projection.source,
-                    "nodeCount": projection.node_count,
-                    "edgeCount": projection.edge_count,
-                })
-            }).collect::<Vec<_>>(),
-            "documentMetadata": payload.document_metadata.as_ref().map(|metadata| {
-                json!({
-                    "docId": metadata.doc_id,
-                    "title": metadata.title,
-                    "tags": metadata.tags,
-                    "docType": metadata.doc_type,
-                    "updated": metadata.updated,
-                    "parent": metadata.parent.as_ref().map(|link| {
-                        json!({
-                            "label": link.label,
-                            "kind": link.kind,
-                            "literal": link.literal,
-                            "docId": link.doc_id,
-                            "path": link.path,
-                            "title": link.title,
-                            "targetAddress": link.target_address,
-                        })
-                    }),
-                    "outgoingLinks": metadata.outgoing_links.iter().map(|link| {
-                        json!({
-                            "label": link.label,
-                            "kind": link.kind,
-                            "literal": link.literal,
-                            "relationType": link.relation_type,
-                            "metadataOwner": link.metadata_owner,
-                            "docId": link.doc_id,
-                            "path": link.path,
-                            "title": link.title,
-                            "targetAddress": link.target_address,
-                        })
-                    }).collect::<Vec<_>>(),
-                    "backlinks": metadata.backlinks.iter().map(|link| {
-                        json!({
-                            "label": link.label,
-                            "kind": link.kind,
-                            "docId": link.doc_id,
-                            "path": link.path,
-                            "title": link.title,
-                        })
-                    }).collect::<Vec<_>>(),
-                })
-            }),
-            "diagnostics": payload.diagnostics,
-        }),
+        markdown_analysis_payload_snapshot(payload),
     );
 }
 
@@ -246,6 +297,28 @@ async fn analyze_markdown_emits_document_metadata_from_parser_and_graph_index() 
         .unwrap_or_else(|| panic!("expected index relation row"));
     assert_eq!(index_row.doc_id.as_deref(), Some("docs/guide"));
 
+    let explicit_backlink_labels = metadata
+        .explicit_backlinks
+        .iter()
+        .map(|row| row.label.as_str())
+        .collect::<Vec<_>>();
+    assert!(explicit_backlink_labels.contains(&"Guide"));
+    assert!(explicit_backlink_labels.contains(&"Index"));
+    assert!(
+        metadata.explicit_backlinks.iter().any(|row| {
+            row.label == "Guide" && row.target_address.as_deref() == Some("#Overview")
+        })
+    );
+    assert!(metadata.explicit_backlinks.iter().any(|row| {
+        row.label == "Index" && row.target_address.as_deref() == Some("#^proof-anchor")
+    }));
+    assert!(
+        metadata
+            .explicit_backlinks
+            .iter()
+            .all(|row| row.literal.as_deref().is_some())
+    );
+
     let backlink_labels = metadata
         .backlinks
         .iter()
@@ -253,6 +326,7 @@ async fn analyze_markdown_emits_document_metadata_from_parser_and_graph_index() 
         .collect::<Vec<_>>();
     assert!(backlink_labels.contains(&"Guide"));
     assert!(backlink_labels.contains(&"Index"));
+    assert_eq!(metadata.explicit_backlinks, metadata.backlinks);
 }
 
 #[tokio::test]

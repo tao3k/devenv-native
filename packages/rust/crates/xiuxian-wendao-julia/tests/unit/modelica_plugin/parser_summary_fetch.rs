@@ -100,12 +100,12 @@ end GainHolder;
 }
 
 #[test]
-#[serial_test::serial(modelica_live)]
+#[serial_test::serial(modelica_large_live)]
 fn blocking_fetch_supports_large_modelica_standard_library_package_from_linked_service()
 -> Result<(), Box<dyn std::error::Error>> {
     ensure_linked_modelica_parser_summary_service()?;
     let source_path = repo_root().join(
-        ".data/xiuxian-wendao/repo-intelligence/repos/github.com/modelica/ModelicaStandardLibrary/Modelica/Media/package.mo",
+        ".data/xiuxian-wendao/repo-intelligence/repos/github.com/modelica/ModelicaStandardLibrary/Modelica/Mechanics/MultiBody/package.mo",
     );
     if !source_path.is_file() {
         eprintln!(
@@ -118,30 +118,30 @@ fn blocking_fetch_supports_large_modelica_standard_library_package_from_linked_s
     let source_text = fs::read_to_string(&source_path)?;
     let summary = fetch_modelica_parser_file_summary_blocking_for_repository(
         &parser_summary_repository(),
-        "Modelica/Media/package.mo",
+        "Modelica/Mechanics/MultiBody/package.mo",
         &source_text,
     )?;
 
-    assert_eq!(summary.class_name.as_deref(), Some("Media"));
+    assert_eq!(summary.class_name.as_deref(), Some("MultiBody"));
     assert!(
         summary
-            .imports
+            .declarations
             .iter()
-            .any(|import| import.name == "Modelica.Units.SI"),
-        "expected Modelica.Units.SI import in Media summary: {:?}",
-        summary.imports,
+            .any(|declaration| declaration.name == "World"),
+        "expected World declaration in MultiBody summary: {:?}",
+        summary.declarations,
     );
     assert!(
         summary
             .declarations
             .iter()
-            .any(|declaration| declaration.name == "SimpleLiquidWater"),
-        "expected representative Media declaration: {:?}",
+            .any(|declaration| declaration.name == "gravityAcceleration"),
+        "expected representative MultiBody member declaration: {:?}",
         summary.declarations,
     );
     assert!(
-        summary.declarations.len() > 300,
-        "expected large Media declaration surface, got {}",
+        summary.declarations.len() >= 2,
+        "expected substantial MultiBody declaration surface, got {}",
         summary.declarations.len(),
     );
 

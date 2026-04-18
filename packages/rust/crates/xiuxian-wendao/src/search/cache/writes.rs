@@ -83,6 +83,8 @@ impl SearchPlaneCache {
                 (corpus, repo_id.to_string(), normalized_revision.clone()),
                 publication.clone(),
             );
+        self.retain_repo_publication_revision(corpus, repo_id, normalized_revision.as_str())
+            .await;
         let Some(client) = self.client.as_ref() else {
             return;
         };
@@ -101,9 +103,6 @@ impl SearchPlaneCache {
             return;
         };
         let _: redis::RedisResult<()> = connection.set(key, payload).await;
-        drop(connection);
-        self.retain_repo_publication_revision(corpus, repo_id, normalized_revision.as_str())
-            .await;
     }
 
     pub(crate) async fn delete_repo_publication_revision_cache(

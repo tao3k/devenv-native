@@ -2,7 +2,7 @@
 
 :PROPERTIES:
 :ID: feat-wendao-performance-gate-v1
-:PARENT: [[index]]
+:PARENT: [[index|Wendao DocOS Kernel: Map of Content]]
 :TAGS: feature, performance, gate, nextest, criterion
 :STATUS: ACTIVE
 :VERSION: 1.0

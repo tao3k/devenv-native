@@ -144,15 +144,6 @@ pub(crate) fn exact_match_expression(raw_needle: &str) -> Option<String> {
     ))
 }
 
-pub(crate) fn stage1_path_rank_expression(raw_needle: &str) -> Option<String> {
-    let exact_match = exact_match_expression(raw_needle)?;
-    Some(format!(
-        "ROW_NUMBER() OVER (PARTITION BY {path_column} ORDER BY CASE WHEN ({exact_match}) THEN 0 ELSE 1 END, {line_number_column} ASC)",
-        path_column = path_column(),
-        line_number_column = line_number_column()
-    ))
-}
-
 pub(crate) fn stage1_global_order_clause() -> String {
     format!(
         "ORDER BY CASE WHEN {exact_match_column} THEN 0 ELSE 1 END, {path_column} ASC, {line_number_column} ASC",

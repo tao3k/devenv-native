@@ -38,7 +38,7 @@ pub(super) fn escape_markdown_v2_url(url: &str) -> String {
 }
 
 pub(super) fn trim_trailing_blank_lines(text: &mut String) {
-    while text.ends_with("\n\n") {
+    while text.ends_with('\n') {
         text.pop();
     }
 }

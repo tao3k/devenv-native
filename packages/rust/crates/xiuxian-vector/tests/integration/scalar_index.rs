@@ -5,6 +5,8 @@ use std::sync::{Arc, Mutex};
 use anyhow::{Result, anyhow};
 use xiuxian_vector::{IndexBuildProgress, IndexProgressCallback, ScalarIndexType, VectorStore};
 
+use crate::snapshot_support::canonical_json;
+
 async fn add_tools_table(store: &VectorStore, n: usize, categories: &[&str]) -> Result<()> {
     let mut ids = Vec::with_capacity(n);
     let mut vectors = Vec::with_capacity(n);
@@ -235,7 +237,7 @@ async fn snapshot_scalar_index_stats_contract_v1() -> Result<()> {
             "index_type": optimal_stats.index_type,
         },
     });
-    assert_json_snapshot!("scalar_index_stats_contract_v1", view);
+    assert_json_snapshot!("scalar_index_stats_contract_v1", canonical_json(view));
 
     Ok(())
 }

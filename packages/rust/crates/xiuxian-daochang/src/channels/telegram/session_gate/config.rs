@@ -1,8 +1,7 @@
 use anyhow::{Context, Result, bail};
-use xiuxian_macros::env_non_empty;
 
 use crate::config::load_runtime_settings;
-use crate::env_parse::resolve_valkey_url_env;
+use crate::env_parse::{read_non_empty_env, resolve_valkey_url_env};
 
 pub(super) const DEFAULT_GATE_KEY_PREFIX: &str = "xiuxian-daochang:session-gate";
 pub(super) const DEFAULT_GATE_LEASE_TTL_SECS: u64 = 30;
@@ -35,7 +34,7 @@ impl SessionGateRuntimeConfig {
             .or_else(resolve_valkey_url_env)
             .and_then(|value| non_empty_string(&value));
 
-        let backend_mode = match non_empty_env("OMNI_AGENT_TELEGRAM_SESSION_GATE_BACKEND")
+        let backend_mode = match non_empty_env("XIUXIAN_DAOCHANG_TELEGRAM_SESSION_GATE_BACKEND")
             .or_else(|| telegram.foreground_session_gate_backend.clone())
             .and_then(|value| non_empty_string(&value))
         {
@@ -49,13 +48,13 @@ impl SessionGateRuntimeConfig {
             }
         };
 
-        let key_prefix = non_empty_env("OMNI_AGENT_TELEGRAM_SESSION_GATE_KEY_PREFIX")
+        let key_prefix = non_empty_env("XIUXIAN_DAOCHANG_TELEGRAM_SESSION_GATE_KEY_PREFIX")
             .or_else(|| telegram.foreground_session_gate_key_prefix.clone())
             .and_then(|value| non_empty_string(&value))
             .unwrap_or_else(|| DEFAULT_GATE_KEY_PREFIX.to_string());
 
         let lease_ttl_secs = parse_env_or_setting_u64(
-            "OMNI_AGENT_TELEGRAM_SESSION_GATE_LEASE_TTL_SECS",
+            "XIUXIAN_DAOCHANG_TELEGRAM_SESSION_GATE_LEASE_TTL_SECS",
             telegram.foreground_session_gate_lease_ttl_secs,
             DEFAULT_GATE_LEASE_TTL_SECS,
         )?;
@@ -64,7 +63,7 @@ impl SessionGateRuntimeConfig {
         }
 
         let acquire_timeout_secs = parse_env_or_setting_optional_u64(
-            "OMNI_AGENT_TELEGRAM_SESSION_GATE_ACQUIRE_TIMEOUT_SECS",
+            "XIUXIAN_DAOCHANG_TELEGRAM_SESSION_GATE_ACQUIRE_TIMEOUT_SECS",
             telegram.foreground_session_gate_acquire_timeout_secs,
         )?;
 
@@ -90,7 +89,7 @@ fn parse_backend_mode(raw: &str) -> Result<SessionGateBackendMode> {
 }
 
 fn non_empty_env(name: &str) -> Option<String> {
-    env_non_empty!(name)
+    read_non_empty_env(name)
 }
 
 fn non_empty_string(value: &str) -> Option<String> {

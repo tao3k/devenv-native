@@ -10,12 +10,12 @@ use crate::search::repo_content_chunk::build::plan::{
     merge_repo_content_chunk_file_fingerprints, plan_repo_content_chunk_build,
     plan_repo_content_chunk_incremental_build,
 };
-#[cfg(any(test, feature = "performance"))]
+#[cfg(feature = "search-runtime")]
 use crate::search::repo_content_chunk::build::types::RepoContentChunkIncrementalPublishProfile;
 use crate::search::repo_content_chunk::build::types::{
     RepoContentChunkBuildAction, RepoContentChunkBuildPlan, RepoContentChunkFinalizeProfile,
 };
-#[cfg(any(test, feature = "performance"))]
+#[cfg(feature = "search-runtime")]
 use crate::search::repo_content_chunk::build::write::write_mutated_table_profiled;
 use crate::search::repo_content_chunk::build::write::{
     inspect_repo_content_chunk_parquet, write_mutated_table, write_replaced_table,
@@ -114,7 +114,7 @@ pub(crate) async fn publish_repo_content_chunks_incremental(
     .await
 }
 
-#[cfg(any(test, feature = "performance"))]
+#[cfg(feature = "search-runtime")]
 pub(crate) async fn publish_repo_content_chunks_incremental_profiled(
     service: &SearchPlaneService,
     repo_id: &str,

@@ -48,7 +48,7 @@ async fn telegram_media_local_file_caption_markdown_preserves_fenced_code_langua
             .text_fields
             .get("caption")
             .and_then(serde_json::Value::as_str),
-        Some("```rust\nlet value = a_b * 2;\n```")
+        Some("```Rust\nlet value = a_b * 2;\n```")
     );
 
     handle.abort();
@@ -91,7 +91,7 @@ async fn telegram_media_local_file_caption_markdown_fallback_keeps_original_fenc
             .text_fields
             .get("caption")
             .and_then(serde_json::Value::as_str),
-        Some("```rust\nlet value = a_b * 2;\n```")
+        Some("```Rust\nlet value = a_b * 2;\n```")
     );
     assert!(
         calls[1].text_fields.get("parse_mode").is_none(),
@@ -145,7 +145,7 @@ async fn telegram_media_local_file_caption_markdown_fallback_keeps_original_cjk_
             .text_fields
             .get("caption")
             .and_then(serde_json::Value::as_str),
-        Some("```python\n标题：交易说明\nprint(\"买入：BTC\")\n```")
+        Some("```Python\n标题：交易说明\nprint(\"买入：BTC\")\n```")
     );
     assert!(
         calls[1].text_fields.get("parse_mode").is_none(),

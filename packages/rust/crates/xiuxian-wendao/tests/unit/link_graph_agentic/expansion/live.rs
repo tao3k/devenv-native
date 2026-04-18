@@ -77,7 +77,7 @@ async fn test_host_uses_julia_graph_structural_fetch_helper_against_solver_demo_
         row.final_score,
         row.structural_score
     );
-    assert_eq!(row.pin_assignment, vec!["notes/a".to_string()]);
+    assert_eq!(row.pin_assignment, vec!["node-1".to_string()]);
     assert!(
         row.explanation
             .contains("solver_demo feasible candidate via rydberg solve"),
@@ -163,7 +163,7 @@ async fn test_host_uses_julia_graph_structural_fetch_helper_via_manifest_discove
         row.final_score,
         row.structural_score
     );
-    assert_eq!(row.pin_assignment, vec!["notes/a".to_string()]);
+    assert_eq!(row.pin_assignment, vec!["node-1".to_string()]);
     assert!(
         row.explanation
             .contains("solver_demo feasible candidate via rydberg solve"),

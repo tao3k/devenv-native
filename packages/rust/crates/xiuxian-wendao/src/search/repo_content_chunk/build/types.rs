@@ -27,7 +27,6 @@ pub struct RepoContentChunkFinalizeProfile {
     pub set_fingerprints: Duration,
 }
 
-#[cfg(any(test, feature = "performance"))]
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct RepoContentChunkIncrementalPublishProfile {
     pub previous_fingerprint_read_elapsed: Duration,

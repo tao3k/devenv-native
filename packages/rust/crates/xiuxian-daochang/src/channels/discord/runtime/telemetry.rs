@@ -7,7 +7,8 @@ use crate::agent::DownstreamAdmissionRuntimeSnapshot;
 use crate::channels::runtime_snapshot::resolve_runtime_snapshot_interval_secs;
 use crate::channels::traits::ChannelMessage;
 
-const RUNTIME_SNAPSHOT_INTERVAL_ENV: &str = "OMNI_AGENT_DISCORD_RUNTIME_SNAPSHOT_INTERVAL_SECS";
+const RUNTIME_SNAPSHOT_INTERVAL_ENV: &str =
+    "XIUXIAN_DAOCHANG_DISCORD_RUNTIME_SNAPSHOT_INTERVAL_SECS";
 const DEFAULT_RUNTIME_SNAPSHOT_INTERVAL_SECS: u64 = 30;
 
 pub(super) fn snapshot_interval_from_env() -> Option<Duration> {

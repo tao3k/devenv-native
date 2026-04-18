@@ -2,7 +2,7 @@ use std::fs;
 use std::path::Path;
 
 use anyhow::Context;
-use serde_yaml::{Mapping, Value};
+use toml::{Value, map::Map};
 
 pub(super) fn persist_session_admin_override_to_user_settings(
     user_settings_path: &Path,
@@ -10,10 +10,10 @@ pub(super) fn persist_session_admin_override_to_user_settings(
     admin_users: Option<&[String]>,
 ) -> anyhow::Result<()> {
     let scope = parse_scope(recipient)?;
-    let mut root = load_settings_yaml(user_settings_path)?;
-    let Some(root_map) = root.as_mapping_mut() else {
+    let mut root = load_settings_toml(user_settings_path)?;
+    let Some(root_map) = root.as_table_mut() else {
         return Err(anyhow::anyhow!(
-            "invalid user settings yaml: root must be a mapping"
+            "invalid user settings toml: root must be a table"
         ));
     };
 
@@ -37,11 +37,11 @@ pub(super) fn persist_session_admin_override_to_user_settings(
             )
         })?;
     }
-    let serialized = serde_yaml::to_string(&root)
-        .context("failed to serialize user settings yaml for session admin persistence")?;
+    let serialized = toml::to_string(&root)
+        .context("failed to serialize user settings toml for session admin persistence")?;
     fs::write(user_settings_path, serialized).with_context(|| {
         format!(
-            "failed to write user settings yaml: {}",
+            "failed to write user settings toml: {}",
             user_settings_path.display()
         )
     })?;
@@ -81,61 +81,60 @@ fn parse_scope(recipient: &str) -> anyhow::Result<SessionAdminScope> {
     }
 }
 
-fn load_settings_yaml(path: &Path) -> anyhow::Result<Value> {
+fn load_settings_toml(path: &Path) -> anyhow::Result<Value> {
     if !path.exists() {
-        return Ok(Value::Mapping(Mapping::new()));
+        return Ok(Value::Table(Map::new()));
     }
     let raw = fs::read_to_string(path)
-        .with_context(|| format!("failed to read user settings yaml: {}", path.display()))?;
+        .with_context(|| format!("failed to read user settings toml: {}", path.display()))?;
     if raw.trim().is_empty() {
-        return Ok(Value::Mapping(Mapping::new()));
+        return Ok(Value::Table(Map::new()));
     }
-    let parsed = serde_yaml::from_str::<Value>(&raw)
-        .with_context(|| format!("failed to parse user settings yaml: {}", path.display()))?;
+    let parsed = toml::from_str::<Value>(&raw)
+        .with_context(|| format!("failed to parse user settings toml: {}", path.display()))?;
     Ok(match parsed {
-        Value::Null => Value::Mapping(Mapping::new()),
-        other => other,
+        Value::String(_)
+        | Value::Integer(_)
+        | Value::Float(_)
+        | Value::Boolean(_)
+        | Value::Datetime(_)
+        | Value::Array(_) => Value::Table(Map::new()),
+        other @ Value::Table(_) => other,
     })
 }
 
-fn yaml_key(key: &str) -> Value {
-    Value::String(key.to_string())
-}
-
 fn apply_group_admin_override(
-    root_map: &mut Mapping,
+    root_map: &mut Map<String, Value>,
     chat_id: &str,
     admin_users: Option<&[String]>,
 ) -> bool {
-    let Some(telegram_map) = ensure_child_mapping(root_map, "telegram", admin_users.is_some())
+    let Some(telegram_map) = ensure_child_table(root_map, "telegram", admin_users.is_some()) else {
+        return false;
+    };
+    let Some(groups_by_chat) = ensure_child_table(telegram_map, "groups", admin_users.is_some())
     else {
         return false;
     };
-    let Some(groups_by_chat) = ensure_child_mapping(telegram_map, "groups", admin_users.is_some())
-    else {
-        return false;
-    };
-    let group_key = yaml_key(chat_id);
 
     if let Some(entries) = admin_users {
         let group_value = groups_by_chat
-            .entry(group_key.clone())
-            .or_insert_with(|| Value::Mapping(Mapping::new()));
-        let Some(group_entry_map) = ensure_value_mapping(group_value) else {
+            .entry(chat_id.to_string())
+            .or_insert_with(|| Value::Table(Map::new()));
+        let Some(group_entry_map) = ensure_value_table(group_value) else {
             return false;
         };
         set_admin_users(group_entry_map, entries);
         true
     } else {
-        let Some(group_value) = groups_by_chat.get_mut(&group_key) else {
+        let Some(group_value) = groups_by_chat.get_mut(chat_id) else {
             return false;
         };
-        let Some(group_entry_map) = ensure_value_mapping(group_value) else {
+        let Some(group_entry_map) = ensure_value_table(group_value) else {
             return false;
         };
-        let changed = group_entry_map.remove(yaml_key("admin_users")).is_some();
+        let changed = group_entry_map.remove("admin_users").is_some();
         if changed && group_entry_map.is_empty() {
-            groups_by_chat.remove(&group_key);
+            groups_by_chat.remove(chat_id);
         }
         prune_empty_groups_and_telegram(root_map);
         changed
@@ -143,124 +142,119 @@ fn apply_group_admin_override(
 }
 
 fn apply_topic_admin_override(
-    root_map: &mut Mapping,
+    root_map: &mut Map<String, Value>,
     chat_id: &str,
     thread_id: i64,
     admin_users: Option<&[String]>,
 ) -> bool {
-    let Some(telegram_map) = ensure_child_mapping(root_map, "telegram", admin_users.is_some())
+    let Some(telegram_map) = ensure_child_table(root_map, "telegram", admin_users.is_some()) else {
+        return false;
+    };
+    let Some(groups_by_chat) = ensure_child_table(telegram_map, "groups", admin_users.is_some())
     else {
         return false;
     };
-    let Some(groups_by_chat) = ensure_child_mapping(telegram_map, "groups", admin_users.is_some())
-    else {
-        return false;
-    };
-    let group_key = yaml_key(chat_id);
-    let topic_key = yaml_key(thread_id.to_string().as_str());
+    let topic_key = thread_id.to_string();
 
     if let Some(entries) = admin_users {
         let group_value = groups_by_chat
-            .entry(group_key.clone())
-            .or_insert_with(|| Value::Mapping(Mapping::new()));
-        let Some(group_entry_map) = ensure_value_mapping(group_value) else {
+            .entry(chat_id.to_string())
+            .or_insert_with(|| Value::Table(Map::new()));
+        let Some(group_entry_map) = ensure_value_table(group_value) else {
             return false;
         };
-        let Some(topics_by_thread) = ensure_child_mapping(group_entry_map, "topics", true) else {
+        let Some(topics_by_thread) = ensure_child_table(group_entry_map, "topics", true) else {
             return false;
         };
         let topic_value = topics_by_thread
             .entry(topic_key.clone())
-            .or_insert_with(|| Value::Mapping(Mapping::new()));
-        let Some(topic_entry_map) = ensure_value_mapping(topic_value) else {
+            .or_insert_with(|| Value::Table(Map::new()));
+        let Some(topic_entry_map) = ensure_value_table(topic_value) else {
             return false;
         };
         set_admin_users(topic_entry_map, entries);
         true
     } else {
-        let Some(group_value) = groups_by_chat.get_mut(&group_key) else {
+        let Some(group_value) = groups_by_chat.get_mut(chat_id) else {
             return false;
         };
-        let Some(group_entry_map) = ensure_value_mapping(group_value) else {
+        let Some(group_entry_map) = ensure_value_table(group_value) else {
             return false;
         };
-        let Some(topics_node) = group_entry_map.get_mut(yaml_key("topics")) else {
+        let Some(topics_node) = group_entry_map.get_mut("topics") else {
             return false;
         };
-        let Some(topics_by_thread) = ensure_value_mapping(topics_node) else {
+        let Some(topics_by_thread) = ensure_value_table(topics_node) else {
             return false;
         };
         let Some(topic_entry) = topics_by_thread.get_mut(&topic_key) else {
             return false;
         };
-        let Some(topic_entry_map) = ensure_value_mapping(topic_entry) else {
+        let Some(topic_entry_map) = ensure_value_table(topic_entry) else {
             return false;
         };
-        let changed = topic_entry_map.remove(yaml_key("admin_users")).is_some();
+        let changed = topic_entry_map.remove("admin_users").is_some();
         if changed && topic_entry_map.is_empty() {
             topics_by_thread.remove(&topic_key);
         }
         if topics_by_thread.is_empty() {
-            group_entry_map.remove(yaml_key("topics"));
+            group_entry_map.remove("topics");
         }
         if group_entry_map.is_empty() {
-            groups_by_chat.remove(&group_key);
+            groups_by_chat.remove(chat_id);
         }
         prune_empty_groups_and_telegram(root_map);
         changed
     }
 }
 
-fn ensure_child_mapping<'a>(
-    parent: &'a mut Mapping,
+fn ensure_child_table<'a>(
+    parent: &'a mut Map<String, Value>,
     key: &str,
     create_if_missing: bool,
-) -> Option<&'a mut Mapping> {
-    let yaml_key = yaml_key(key);
-    if !parent.contains_key(&yaml_key) {
+) -> Option<&'a mut Map<String, Value>> {
+    if !parent.contains_key(key) {
         if !create_if_missing {
             return None;
         }
-        parent.insert(yaml_key.clone(), Value::Mapping(Mapping::new()));
+        parent.insert(key.to_string(), Value::Table(Map::new()));
     }
-    let value = parent.get_mut(&yaml_key)?;
-    ensure_value_mapping(value)
+    let value = parent.get_mut(key)?;
+    ensure_value_table(value)
 }
 
-fn ensure_value_mapping(value: &mut Value) -> Option<&mut Mapping> {
-    if value.is_null() {
-        *value = Value::Mapping(Mapping::new());
+fn ensure_value_table(value: &mut Value) -> Option<&mut Map<String, Value>> {
+    if !matches!(value, Value::Table(_)) {
+        return None;
     }
-    value.as_mapping_mut()
+    value.as_table_mut()
 }
 
-fn set_admin_users(target: &mut Mapping, admin_users: &[String]) {
+fn set_admin_users(target: &mut Map<String, Value>, admin_users: &[String]) {
     let users = admin_users
         .iter()
         .map(|entry| Value::String(entry.clone()))
         .collect::<Vec<_>>();
-    let mut principal_map = Mapping::new();
-    principal_map.insert(yaml_key("users"), Value::Sequence(users));
-    target.insert(yaml_key("admin_users"), Value::Mapping(principal_map));
+    let mut principal_map = Map::new();
+    principal_map.insert("users".to_string(), Value::Array(users));
+    target.insert("admin_users".to_string(), Value::Table(principal_map));
 }
 
-fn prune_empty_groups_and_telegram(root_map: &mut Mapping) {
-    let telegram_key = yaml_key("telegram");
-    let groups_key = yaml_key("groups");
-    let Some(telegram_value) = root_map.get_mut(&telegram_key) else {
+fn prune_empty_groups_and_telegram(root_map: &mut Map<String, Value>) {
+    let Some(telegram_value) = root_map.get_mut("telegram") else {
         return;
     };
-    let Some(telegram_map) = ensure_value_mapping(telegram_value) else {
+    let Some(telegram_map) = ensure_value_table(telegram_value) else {
         return;
     };
     let remove_groups = telegram_map
-        .get(&groups_key)
-        .and_then(Value::as_mapping)
-        .is_some_and(Mapping::is_empty);
+        .get("groups")
+        .and_then(Value::as_table)
+        .is_some_and(Map::is_empty);
     if remove_groups {
-        telegram_map.remove(&groups_key);
+        telegram_map.remove("groups");
     }
     if telegram_map.is_empty() {
-        root_map.remove(&telegram_key);
+        root_map.remove("telegram");
     }
 }

@@ -2,7 +2,7 @@
 
 :PROPERTIES:
 :ID: wendao-parser-semantic-check
-:PARENT: [[02_parser/index]]
+:PARENT: [[02_parser/index|Wendao Parser Docs]]
 :TAGS: parser, semantic-check, zhenfa
 :STATUS: ACTIVE
 :END:
@@ -61,7 +61,7 @@ Coverage for this contract lives in:
 3. `packages/rust/crates/xiuxian-wendao/tests/unit/semantic_check_tests.rs`
 
 :RELATIONS:
-:LINKS: [[02_parser/index]], [[02_parser/architecture]], [[02_parser/docs_governance]], [[06_roadmap/419_parser_substrate_separation]]
+:LINKS: [[02_parser/index|Wendao Parser Docs]], [[02_parser/architecture|Parser Architecture]], [[02_parser/docs_governance|Parser Docs Governance Surface]], [[06_roadmap/419_parser_substrate_separation|Parser Substrate Separation]]
 :END:
 
 ---

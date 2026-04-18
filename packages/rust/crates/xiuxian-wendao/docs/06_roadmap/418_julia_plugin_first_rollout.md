@@ -2,7 +2,7 @@
 
 :PROPERTIES:
 :ID: wendao-julia-plugin-first-rollout
-:PARENT: [[index]]
+:PARENT: [[index|Wendao DocOS Kernel: Map of Content]]
 :TAGS: roadmap, migration, plugins, julia, runtime, host-thinning
 :STATUS: ACTIVE
 :END:
@@ -1199,7 +1199,7 @@ The landed changes are:
    unchanged same-origin code-AST contract
 
 :RELATIONS:
-:LINKS: [[index]], [[01_core/103_package_layering]], [[06_roadmap/412_core_runtime_plugin_program]], [[06_roadmap/415_m4_julia_externalization_package_list]], [[06_roadmap/417_wendao_package_boundary_matrix]]
+:LINKS: [[index|Wendao DocOS Kernel: Map of Content]], [[01_core/103_package_layering|Wendao Package Layering]], [[06_roadmap/412_core_runtime_plugin_program|Wendao Core Runtime Plugin Program]], [[06_roadmap/415_m4_julia_externalization_package_list|M4 Julia Externalization Package List]], [[06_roadmap/417_wendao_package_boundary_matrix|Wendao Package Boundary Matrix]]
 :END:
 
 ---

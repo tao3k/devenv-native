@@ -18,10 +18,18 @@ pub(super) const EVENT_DISCORD_COMMAND_SESSION_MEMORY_REPLIED: &str =
     "discord.command.session_memory.replied";
 pub(super) const EVENT_DISCORD_COMMAND_SESSION_MEMORY_JSON_REPLIED: &str =
     "discord.command.session_memory_json.replied";
+pub(super) const EVENT_DISCORD_COMMAND_SESSION_ADMIN_REPLIED: &str =
+    "discord.command.session_admin.replied";
+pub(super) const EVENT_DISCORD_COMMAND_SESSION_ADMIN_JSON_REPLIED: &str =
+    "discord.command.session_admin_json.replied";
 pub(super) const EVENT_DISCORD_COMMAND_SESSION_FEEDBACK_REPLIED: &str =
     "discord.command.session_feedback.replied";
 pub(super) const EVENT_DISCORD_COMMAND_SESSION_FEEDBACK_JSON_REPLIED: &str =
     "discord.command.session_feedback_json.replied";
+pub(super) const EVENT_DISCORD_COMMAND_SESSION_INJECTION_REPLIED: &str =
+    "discord.command.session_injection.replied";
+pub(super) const EVENT_DISCORD_COMMAND_SESSION_INJECTION_JSON_REPLIED: &str =
+    "discord.command.session_injection_json.replied";
 pub(super) const EVENT_DISCORD_COMMAND_SESSION_PARTITION_REPLIED: &str =
     "discord.command.session_partition.replied";
 pub(super) const EVENT_DISCORD_COMMAND_SESSION_PARTITION_JSON_REPLIED: &str =

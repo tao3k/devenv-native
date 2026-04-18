@@ -58,7 +58,7 @@ pub(super) async fn chat_anthropic_without_model_registry(
 }
 
 fn anthropic_custom_network_attempts() -> usize {
-    resolve_positive_usize_env("OMNI_AGENT_ANTHROPIC_BYPASS_NETWORK_ATTEMPTS", 3)
+    resolve_positive_usize_env("XIUXIAN_DAOCHANG_ANTHROPIC_BYPASS_NETWORK_ATTEMPTS", 3)
 }
 
 fn assistant_message_from_anthropic_parsed(parsed: AnthropicParsedResponse) -> AssistantMessage {

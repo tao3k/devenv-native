@@ -1,0 +1,30 @@
+---
+source: packages/rust/crates/xiuxian-skills/tests/integration/skill_scanner_snapshots.rs
+assertion_line: 29
+expression: metadata
+---
+{
+  "authors": [
+    "CyberXiuXian"
+  ],
+  "description": "Strict metadata auditor for skill contracts.",
+  "intents": [
+    "Audit metadata",
+    "Enforce schema"
+  ],
+  "permissions": [
+    "filesystem:read"
+  ],
+  "repository": "https://example.com/skills/auditor_neuron",
+  "require_refs": [
+    "references/teacher.md",
+    "references/rules.md"
+  ],
+  "routing_keywords": [
+    "audit",
+    "validator",
+    "schema"
+  ],
+  "skill_name": "auditor_neuron",
+  "version": "1.2.3"
+}

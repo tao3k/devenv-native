@@ -91,7 +91,7 @@ impl AgentConfig {
     pub fn litellm(model: impl Into<String>) -> Self {
         let inference_url =
             std::env::var("LITELLM_PROXY_URL").unwrap_or_else(|_| LITELLM_DEFAULT_URL.to_string());
-        let model = std::env::var("OMNI_AGENT_MODEL").unwrap_or_else(|_| model.into());
+        let model = std::env::var("XIUXIAN_DAOCHANG_MODEL").unwrap_or_else(|_| model.into());
         Self {
             inference_url,
             model,

@@ -47,7 +47,11 @@ async fn studio_sql_flight_provider_supports_information_schema_tables() {
     );
     assert_eq!(
         string_column_values(&response.batches[0], "table_type"),
-        vec!["VIEW".to_string(), "VIEW".to_string(), "VIEW".to_string(),]
+        vec![
+            "BASE TABLE".to_string(),
+            "BASE TABLE".to_string(),
+            "BASE TABLE".to_string(),
+        ]
     );
 }
 

@@ -6,6 +6,7 @@ mod types;
 
 use anyhow::Result;
 
+use crate::agent::reflection::PolicyHintDirective;
 use crate::agent::{Agent, omega};
 use crate::contracts::{OmegaDecision, OmegaFallbackPolicy};
 use crate::observability::SessionEvent;
@@ -20,12 +21,12 @@ impl Agent {
         force_react: bool,
         turn_id: u64,
     ) -> Result<String> {
-        let decision = self.prepare_react_decision(session_id, force_react).await;
+        let (decision, policy_hint) = self.prepare_react_decision(session_id, force_react).await;
         let ReactPreparedMessages {
             mut messages,
             summary_segment_count,
         } = self
-            .prepare_react_messages(session_id, user_message)
+            .prepare_react_messages(session_id, user_message, &decision, policy_hint.as_ref())
             .await?;
         let recall_credit_candidates = self
             .apply_memory_recall_if_enabled(
@@ -55,7 +56,7 @@ impl Agent {
         &self,
         session_id: &str,
         force_react: bool,
-    ) -> OmegaDecision {
+    ) -> (OmegaDecision, Option<PolicyHintDirective>) {
         let policy_hint = self.take_reflection_policy_hint(session_id).await;
         if let Some(hint) = policy_hint.as_ref() {
             tracing::debug!(
@@ -75,6 +76,6 @@ impl Agent {
             policy_hint.as_ref(),
         ));
         Self::record_omega_decision(session_id, &decision, None, None);
-        decision
+        (decision, policy_hint)
     }
 }

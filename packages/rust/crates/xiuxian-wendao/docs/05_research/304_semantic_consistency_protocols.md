@@ -2,7 +2,7 @@
 
 :PROPERTIES:
 :ID: paper-2026-opendev-workflow
-:PARENT: [[301_research_papers]]
+:PARENT: [[301_research_papers|Research Index: Map of Content]]
 :TAGS: research, context-engineering, agent-harness, adaptive-compaction
 :STATUS: HARDENING
 :END:
@@ -41,6 +41,6 @@ The harness monitors the **State Delta Trajectory**. If the agent repeats an act
 ---
 
 :RELATIONS:
-:LINKS: [[06_roadmap/401_project_sentinel]], [[addressing/mod.rs]]
+:LINKS: [[06_roadmap/401_project_sentinel|Project Sentinel: Semantic Consistency]], [[addressing/mod.rs|descriptive label]]
 :ASSETS: OpenDev 2026 workflow paper
 :END:

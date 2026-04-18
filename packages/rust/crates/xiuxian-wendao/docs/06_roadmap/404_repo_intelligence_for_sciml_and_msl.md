@@ -2,7 +2,7 @@
 
 :PROPERTIES:
 :ID: wendao-repo-intelligence-sciml-msl
-:PARENT: [[index]]
+:PARENT: [[index|Wendao DocOS Kernel: Map of Content]]
 :TAGS: roadmap, repo-intelligence, julia, modelica, plugins, git
 :STATUS: IN-PROGRESS
 :END:

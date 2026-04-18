@@ -6,7 +6,7 @@ use crate::compatibility::link_graph::{
 };
 
 const JULIA_PLANNED_SEARCH_SCHEMA_VERSION: &str = "v1";
-const JULIA_PLANNED_SEARCH_TIMEOUT_SECS: u64 = 10;
+const JULIA_PLANNED_SEARCH_TIMEOUT_SECS: u64 = 30;
 const JULIA_PLANNED_SEARCH_EMBEDDING_MODEL: &str = "glm-5";
 
 /// Render the runtime-config TOML fixture used by the custom planned-search

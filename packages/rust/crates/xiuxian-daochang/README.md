@@ -94,7 +94,7 @@ the background run finishes.
 The agent is an **OpenAI-compatible HTTP client**. To reuse [LiteLLM](https://docs.litellm.ai/) (100+ providers: OpenAI, Anthropic, Ollama, etc.), point `inference_url` at the LiteLLM proxy. No separate bridge process or SDK:
 
 1. Start LiteLLM: `litellm --port 4000` (or set `LITELLM_PROXY_URL`).
-2. Set `inference_url` to `http://127.0.0.1:4000/v1/chat/completions` (or use `AgentConfig::litellm("gpt-4o-mini")` which reads `LITELLM_PROXY_URL` and `OMNI_AGENT_MODEL`).
+2. Set `inference_url` to `http://127.0.0.1:4000/v1/chat/completions` (or use `AgentConfig::litellm("gpt-4o-mini")` which reads `LITELLM_PROXY_URL` and `XIUXIAN_DAOCHANG_MODEL`).
 3. Use any model string LiteLLM supports: `gpt-4o`, `claude-3-5-sonnet`, `ollama/llama2`, etc. API keys are usually set in LiteLLM’s environment.
 
 ```rust

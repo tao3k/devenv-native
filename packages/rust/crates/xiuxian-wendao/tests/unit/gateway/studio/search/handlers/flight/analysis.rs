@@ -27,7 +27,8 @@ async fn build_studio_search_flight_service_wires_markdown_analysis_routes() {
     let fixture = make_gateway_state_with_docs(&[(
         "docs/analysis.md",
         "# Analysis Kernel\n\n## Inputs\n- [ ] Parse markdown\n",
-    )]);
+    )])
+    .await;
     let service = build_service(fixture.state.clone());
 
     assert_route_ticket(

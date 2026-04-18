@@ -120,7 +120,7 @@ pub enum MarkdownAnalysisDocumentLinkKind {
 }
 
 /// One `DeepWiki`-style document link row.
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[derive(Debug, Clone, Serialize, Deserialize, Type, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct MarkdownAnalysisDocumentLink {
     /// Display label shown in the reader.
@@ -174,7 +174,10 @@ pub struct MarkdownAnalysisDocumentMetadata {
     /// Unified outgoing relation/index rows.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub outgoing_links: Vec<MarkdownAnalysisDocumentLink>,
-    /// Materialized reverse-index rows.
+    /// Canonical Obsidian/ZK-aligned explicit incoming note/document links.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub explicit_backlinks: Vec<MarkdownAnalysisDocumentLink>,
+    /// Legacy compatibility alias for explicit incoming note/document links.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub backlinks: Vec<MarkdownAnalysisDocumentLink>,
 }

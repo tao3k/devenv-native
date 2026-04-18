@@ -2,7 +2,7 @@
 
 :PROPERTIES:
 :ID: paper-2025-search-reasoning
-:PARENT: [[301_research_papers]]
+:PARENT: [[301_research_papers|Research Index: Map of Content]]
 :TAGS: research, agentic-search, state-transition, graph-pruning
 :STATUS: HARDENING
 :END:
@@ -40,6 +40,6 @@ To prevent reasoning degradation, the "searched context" is pruned using a **Gra
 ---
 
 :RELATIONS:
-:LINKS: [[06_roadmap/401_project_sentinel]], [[01_core/101_triple_a_protocol]]
+:LINKS: [[06_roadmap/401_project_sentinel|Project Sentinel: Semantic Consistency]], [[01_core/101_triple_a_protocol|Triple-A Addressing Protocol]]
 :ASSETS: OrcaLoca 2025 paper
 :END:

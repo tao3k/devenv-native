@@ -2,7 +2,7 @@
 
 :PROPERTIES:
 :ID: wendao-large-rust-modularization
-:PARENT: [[index]]
+:PARENT: [[index|Wendao DocOS Kernel: Map of Content]]
 :TAGS: roadmap, refactor, modularization, rust, gateway, link-graph
 :STATUS: PLANNED
 :END:
@@ -178,7 +178,7 @@ Priority override:
   hidden-path reference stays in the active tracking record.
 
 :RELATIONS:
-:LINKS: [[index]], [[06_roadmap/402_repo_intelligence_mvp]], [[06_roadmap/403_document_projection_and_retrieval_enhancement]], [[06_roadmap/404_repo_intelligence_for_sciml_and_msl]]
+:LINKS: [[index|Wendao DocOS Kernel: Map of Content]], [[06_roadmap/402_repo_intelligence_mvp|Repo Intelligence MVP]], [[06_roadmap/403_document_projection_and_retrieval_enhancement|Document Projection and Retrieval Enhancement]], [[06_roadmap/404_repo_intelligence_for_sciml_and_msl|Repo Intelligence for SciML and MSL]]
 :END:
 
 ---

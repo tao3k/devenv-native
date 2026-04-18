@@ -51,7 +51,12 @@ impl QianjiScheduler {
             }
 
             let deferred_nodes = self
-                .launch_ready_nodes(&mut exec_state, &context, &mut executing_tasks)
+                .launch_ready_nodes(
+                    &mut exec_state,
+                    &context,
+                    session_id.as_deref(),
+                    &mut executing_tasks,
+                )
                 .await;
 
             if executing_tasks.is_empty() && deferred_nodes.is_empty() {

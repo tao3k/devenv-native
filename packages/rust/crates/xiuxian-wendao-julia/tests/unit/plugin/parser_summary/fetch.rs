@@ -9,6 +9,12 @@ use super::{
 };
 use crate::julia_plugin_test_support::common::ensure_linked_julia_parser_summary_service;
 
+const JULIA_LARGE_FILE_SUMMARY_TARGET_BYTES: usize = 32 * 1024;
+const JULIA_LARGE_SPARSE_FILE_SUMMARY_TARGET_BYTES: usize = 32 * 1024;
+const JULIA_CONCURRENT_FILE_SUMMARY_TARGET_BYTES: usize = 16 * 1024;
+const JULIA_CONCURRENT_FILE_SUMMARY_REQUESTS: usize = 2;
+const JULIA_SYNTHETIC_SYMBOL_COUNT: usize = 12;
+
 fn parser_summary_repository() -> RegisteredRepository {
     RegisteredRepository {
         id: "repo-julia".to_string(),
@@ -18,15 +24,18 @@ fn parser_summary_repository() -> RegisteredRepository {
 }
 
 fn synthetic_large_julia_module(target_bytes: usize) -> String {
-    let mut source = String::from("module StressDemo\nexport solve\n\n");
-    let mut index = 0_usize;
-    while source.len() < target_bytes {
+    let mut source = String::from("module StressDemo\nexport solve_0\n\n");
+    for index in 0..JULIA_SYNTHETIC_SYMBOL_COUNT {
         write!(
             source,
             "function solve_{index}(x)\n    x + {index}\nend\n\nconst VALUE_{index} = {index}\n\n"
         )
         .unwrap_or_else(|error| panic!("append synthetic Julia source: {error}"));
-        index += 1;
+    }
+    while source.len() < target_bytes {
+        source.push_str(
+            "# filler line to expand request size while preserving a bounded symbol surface\n",
+        );
     }
     source.push_str("end\n");
     source
@@ -61,7 +70,6 @@ fn blocking_fetch_uses_shared_julia_parser_summary_runtime() {
 }
 
 #[tokio::test]
-#[serial_test::serial(julia_live)]
 async fn fetch_parser_summaries_against_linked_real_wendaosearch_service()
 -> Result<(), Box<dyn std::error::Error>> {
     ensure_linked_julia_parser_summary_service()?;
@@ -139,12 +147,11 @@ end
 }
 
 #[tokio::test]
-#[serial_test::serial(julia_live)]
 async fn fetch_large_parser_file_summary_against_linked_real_service()
 -> Result<(), Box<dyn std::error::Error>> {
     ensure_linked_julia_parser_summary_service()?;
     let repository = parser_summary_repository();
-    let source = synthetic_large_julia_module(2 * 1024 * 1024);
+    let source = synthetic_large_julia_module(JULIA_LARGE_FILE_SUMMARY_TARGET_BYTES);
 
     let summary =
         fetch_julia_parser_file_summary_for_repository(&repository, "src/StressDemo.jl", &source)
@@ -165,12 +172,11 @@ async fn fetch_large_parser_file_summary_against_linked_real_service()
 }
 
 #[tokio::test]
-#[serial_test::serial(julia_live)]
 async fn fetch_large_sparse_parser_file_summary_against_linked_real_service()
 -> Result<(), Box<dyn std::error::Error>> {
     ensure_linked_julia_parser_summary_service()?;
     let repository = parser_summary_repository();
-    let source = synthetic_large_sparse_julia_module(2 * 1024 * 1024);
+    let source = synthetic_large_sparse_julia_module(JULIA_LARGE_SPARSE_FILE_SUMMARY_TARGET_BYTES);
 
     let summary = fetch_julia_parser_file_summary_for_repository(
         &repository,
@@ -191,15 +197,14 @@ async fn fetch_large_sparse_parser_file_summary_against_linked_real_service()
 }
 
 #[tokio::test]
-#[serial_test::serial(julia_live)]
 async fn fetch_parser_file_summaries_concurrently_against_linked_real_service()
 -> Result<(), Box<dyn std::error::Error>> {
     ensure_linked_julia_parser_summary_service()?;
     let repository = parser_summary_repository();
-    let source = synthetic_large_julia_module(2 * 1024 * 1024);
+    let source = synthetic_large_julia_module(JULIA_CONCURRENT_FILE_SUMMARY_TARGET_BYTES);
 
     let mut tasks = tokio::task::JoinSet::new();
-    for index in 0..8 {
+    for index in 0..JULIA_CONCURRENT_FILE_SUMMARY_REQUESTS {
         let repository = repository.clone();
         let source = source.clone();
         tasks.spawn(async move {

@@ -1,5 +1,5 @@
 use crate::channels::control_command_authorization::ControlCommandPolicy;
-use xiuxian_macros::env_non_empty;
+use crate::env_parse::read_non_empty_env;
 
 use super::super::TELEGRAM_API_BASE_ENV;
 use super::super::TelegramSessionPartition;
@@ -13,7 +13,7 @@ use super::super::{
 impl TelegramChannel {
     #[must_use]
     fn default_api_base_url() -> String {
-        env_non_empty!(TELEGRAM_API_BASE_ENV)
+        read_non_empty_env(TELEGRAM_API_BASE_ENV)
             .unwrap_or_else(|| TELEGRAM_DEFAULT_API_BASE.to_string())
     }
 

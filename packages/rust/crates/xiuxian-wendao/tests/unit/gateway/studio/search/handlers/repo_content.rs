@@ -136,5 +136,5 @@ async fn repo_content_search_hits_record_query_core_telemetry_into_search_plane_
     assert_eq!(telemetry.scope.as_deref(), Some("sciml"));
     assert_eq!(telemetry.source, SearchQueryTelemetrySource::Scan);
     assert_eq!(telemetry.result_count, 1);
-    assert_eq!(telemetry.matched_rows, 2);
+    assert_eq!(telemetry.matched_rows, 1);
 }

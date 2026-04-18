@@ -5,6 +5,7 @@ use anyhow::Context;
 use toml::{Table, Value};
 
 use crate::config::{RuntimeSettings, load_runtime_settings, runtime_settings_paths};
+use crate::env_parse::lookup_env;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum SessionPartitionPersistenceTarget {
@@ -22,8 +23,8 @@ impl SessionPartitionPersistenceTarget {
 
     const fn persist_env_key(self) -> &'static str {
         match self {
-            Self::Telegram => "OMNI_AGENT_TELEGRAM_SESSION_PARTITION_PERSIST",
-            Self::Discord => "OMNI_AGENT_DISCORD_SESSION_PARTITION_PERSIST",
+            Self::Telegram => "XIUXIAN_DAOCHANG_TELEGRAM_SESSION_PARTITION_PERSIST",
+            Self::Discord => "XIUXIAN_DAOCHANG_DISCORD_SESSION_PARTITION_PERSIST",
         }
     }
 
@@ -53,12 +54,12 @@ pub(crate) fn persist_session_partition_mode_if_enabled(
 pub(crate) fn resolve_session_partition_persist_enabled<F>(
     target: SessionPartitionPersistenceTarget,
     settings: &RuntimeSettings,
-    lookup_env: F,
+    lookup: F,
 ) -> bool
 where
     F: Fn(&str) -> Option<String>,
 {
-    if let Some(raw) = lookup_env(target.persist_env_key()) {
+    if let Some(raw) = lookup_env(&lookup, target.persist_env_key()) {
         if let Some(parsed) = parse_bool(raw.as_str()) {
             return parsed;
         }

@@ -2,7 +2,7 @@
 
 :PROPERTIES:
 :ID: wendao-parser-document
-:PARENT: [[02_parser/index]]
+:PARENT: [[02_parser/index|Wendao Parser Docs]]
 :TAGS: parser, document, markdown
 :STATUS: ACTIVE
 :END:
@@ -98,7 +98,7 @@ Coverage for this contract lives in:
 3. `tests/unit/parsers/markdown/namespace.rs`
 
 :RELATIONS:
-:LINKS: [[02_parser/index]], [[02_parser/architecture]], [[02_parser/note]], [[02_parser/sections]], [[06_roadmap/419_parser_substrate_separation]]
+:LINKS: [[02_parser/index|Wendao Parser Docs]], [[02_parser/architecture|Parser Architecture]], [[02_parser/note|Parser Note Aggregate]], [[02_parser/sections|Parser Sections]], [[06_roadmap/419_parser_substrate_separation|Parser Substrate Separation]]
 :END:
 
 ---

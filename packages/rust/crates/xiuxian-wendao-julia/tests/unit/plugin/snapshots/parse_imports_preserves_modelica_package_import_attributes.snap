@@ -1,0 +1,41 @@
+---
+source: packages/rust/crates/xiuxian-wendao-julia/src/plugin/../../tests/unit/plugin/common.rs
+assertion_line: 140
+expression: payload
+---
+[
+  {
+    "alias": "SI",
+    "attributes": {
+      "dependency_alias": "SI",
+      "dependency_form": "named_import",
+      "dependency_local_name": "SI",
+      "dependency_target": "Modelica.Units.SI"
+    },
+    "kind": "Module",
+    "line_start": 4,
+    "name": "Modelica.Units.SI"
+  },
+  {
+    "alias": null,
+    "attributes": {
+      "dependency_form": "qualified_import",
+      "dependency_local_name": "Math",
+      "dependency_target": "Modelica.Math"
+    },
+    "kind": "Symbol",
+    "line_start": 5,
+    "name": "Modelica.Math"
+  },
+  {
+    "alias": null,
+    "attributes": {
+      "dependency_form": "unqualified_import",
+      "dependency_local_name": "Math",
+      "dependency_target": "Modelica.Math"
+    },
+    "kind": "Module",
+    "line_start": 6,
+    "name": "Modelica.Math"
+  }
+]

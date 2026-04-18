@@ -69,9 +69,9 @@ fn mount_spider_tool(
     mounts: &mut ServiceMountCatalog,
 ) {
     let ingress = heyi.map(|heyi| {
-        Arc::new(SpiderWendaoBridge::for_knowledge_graph(
-            heyi.graph.as_ref().clone(),
-        ))
+        Arc::new(SpiderWendaoBridge::for_shared_knowledge_graph(Arc::clone(
+            &heyi.graph,
+        )))
     });
     native_tools.register(Arc::new(SpiderCrawlTool {
         ingress: ingress.clone(),

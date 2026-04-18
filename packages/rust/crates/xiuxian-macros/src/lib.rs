@@ -22,7 +22,7 @@ xiuxian_testing::crate_test_policy_source_harness!("../tests/unit/lib_policy.rs"
 
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{Expr, parse_macro_input};
+use syn::{parse_macro_input, Expr};
 
 mod zhenfa_tool;
 

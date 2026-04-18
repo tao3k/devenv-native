@@ -95,9 +95,9 @@ async fn spider_crawl_tool_returns_preview_without_ingress() -> Result<()> {
 #[tokio::test]
 async fn spider_crawl_tool_ingests_into_wendao_and_deduplicates() -> Result<()> {
     let (heyi, _tmp) = build_heyi()?;
-    let ingress = Arc::new(SpiderWendaoBridge::for_knowledge_graph(
-        heyi.graph.as_ref().clone(),
-    ));
+    let ingress = Arc::new(SpiderWendaoBridge::for_shared_knowledge_graph(Arc::clone(
+        &heyi.graph,
+    )));
 
     let url = spawn_site(
         r"

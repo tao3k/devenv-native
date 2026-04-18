@@ -5,6 +5,7 @@ use std::sync::Arc;
 
 use tokio::sync::Semaphore;
 
+use crate::config::RuntimeSettings;
 use crate::session::ChatMessage;
 
 use super::backend::LlmBackendMode;
@@ -76,4 +77,16 @@ fn compute_saturation_pct(in_flight: usize, max_in_flight: usize) -> u8 {
     }
     let ratio = in_flight.saturating_mul(100) / max_in_flight;
     u8::try_from(ratio).unwrap_or(100).min(100)
+}
+
+pub(crate) fn test_resolve_backend_mode_for_inference_url(
+    runtime_settings: &RuntimeSettings,
+    inference_url: &str,
+    env_backend_raw: Option<&str>,
+) -> (LlmBackendMode, &'static str) {
+    init::test_resolve_backend_mode_for_inference_url(
+        runtime_settings,
+        inference_url,
+        env_backend_raw,
+    )
 }

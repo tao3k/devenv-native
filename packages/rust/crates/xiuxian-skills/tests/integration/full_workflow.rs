@@ -4,6 +4,7 @@
 
 use std::fs;
 
+use crate::json_support::canonicalize_json;
 use crate::write_fixture_support::write_fixture_file;
 use tempfile::TempDir;
 use xiuxian_skills::VERSION;
@@ -91,7 +92,7 @@ fn snapshot_full_scan_workflow_contract() -> Result<(), Box<dyn std::error::Erro
         }
     });
 
-    insta::assert_json_snapshot!("full_scan_workflow", snapshot);
+    insta::assert_json_snapshot!("full_scan_workflow", canonicalize_json(snapshot));
     Ok(())
 }
 
@@ -143,7 +144,7 @@ fn snapshot_scanner_reports_duplicate_tools_contract() -> Result<(), Box<dyn std
         "unique_file_hash_count": file_hashes_unique
     });
 
-    insta::assert_json_snapshot!("duplicate_tools", snapshot);
+    insta::assert_json_snapshot!("duplicate_tools", canonicalize_json(snapshot));
     Ok(())
 }
 
@@ -205,6 +206,6 @@ fn snapshot_same_function_name_different_skills_contract() -> Result<(), Box<dyn
         "skill2_tools": skill2_tools
     });
 
-    insta::assert_json_snapshot!("cross_skill_same_function", snapshot);
+    insta::assert_json_snapshot!("cross_skill_same_function", canonicalize_json(snapshot));
     Ok(())
 }

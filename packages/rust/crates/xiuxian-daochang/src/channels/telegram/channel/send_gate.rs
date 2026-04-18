@@ -3,15 +3,14 @@ use redis::FromRedisValue;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::{Mutex, RwLock};
-use xiuxian_macros::env_non_empty;
 
 use crate::channels::telegram::channel::TelegramChannel;
 use crate::channels::telegram::channel::error::TelegramApiError;
 use crate::config::load_runtime_settings;
-use crate::env_parse::resolve_valkey_url_env;
+use crate::env_parse::{read_non_empty_env, resolve_valkey_url_env};
 
 const TELEGRAM_SEND_GATE_KEY_PREFIX_ENV: &str =
-    "OMNI_AGENT_TELEGRAM_SEND_RATE_LIMIT_GATE_KEY_PREFIX";
+    "XIUXIAN_DAOCHANG_TELEGRAM_SEND_RATE_LIMIT_GATE_KEY_PREFIX";
 const DEFAULT_SEND_GATE_KEY_PREFIX: &str = "xiuxian-daochang:telegram:send-gate";
 const TELEGRAM_SEND_GATE_SPREAD_SLOT_MS: u64 = 50;
 const TELEGRAM_SEND_GATE_MAX_SPREAD_SLOTS: u32 = 8;
@@ -391,7 +390,7 @@ fn spread_slot_delay(slot: u64) -> Duration {
 }
 
 fn non_empty_env(name: &str) -> Option<String> {
-    env_non_empty!(name)
+    read_non_empty_env(name)
 }
 
 fn non_empty_string(value: &str) -> Option<String> {

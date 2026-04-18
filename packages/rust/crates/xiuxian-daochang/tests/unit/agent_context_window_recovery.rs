@@ -67,8 +67,14 @@ async fn handle_context_overflow_then_success(
     (
         StatusCode::OK,
         Json(serde_json::json!({
+            "id": "mock-chatcmpl-context-repair",
+            "object": "chat.completion",
+            "created": 0,
+            "model": "test-model",
             "choices": [{
+                "index": 0,
                 "message": {
+                    "role": "assistant",
                     "content": "context repaired",
                     "tool_calls": null
                 },

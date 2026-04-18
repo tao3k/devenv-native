@@ -61,7 +61,7 @@ _List atomic claims. Each claim will be extracted as a node in the GRAG Hierarch
 - **Triples:**
   - [Subject] --(Relation)--> [Object]
   - [Subject] --(Relation)--> [Object]
-- **Parent:** [[link_to_higher_hierarchy]] (Community Level)
+- **Parent:** [[link_to_higher_hierarchy|Higher-Hierarchy Note Title]] (Community Level)
 
 ### 4. Implementation Details
 

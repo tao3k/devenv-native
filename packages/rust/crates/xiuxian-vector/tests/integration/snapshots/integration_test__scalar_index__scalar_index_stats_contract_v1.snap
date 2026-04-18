@@ -1,7 +1,7 @@
 ---
 source: packages/rust/crates/xiuxian-vector/tests/integration/scalar_index.rs
-assertion_line: 238
-expression: view
+assertion_line: 240
+expression: canonical_json(view)
 ---
 {
   "bitmap": {

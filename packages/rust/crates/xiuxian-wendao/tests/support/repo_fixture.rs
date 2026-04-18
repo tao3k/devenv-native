@@ -73,14 +73,14 @@ function solve(problem::Problem)
     problem.x
 end
 
-"""
 end
 "#
         ),
     )?;
     fs::write(
         repo_dir.join("src").join("solvers.jl"),
-        r#"""
+        r#"
+"""
 Fast solve docs.
 """
 fastsolve(problem::Problem) = problem.x
@@ -90,7 +90,8 @@ include("nested/extra.jl")
     )?;
     fs::write(
         repo_dir.join("src").join("nested").join("extra.jl"),
-        r#"""
+        r#"
+"""
 Extra problem docs.
 """
 struct ExtraProblem

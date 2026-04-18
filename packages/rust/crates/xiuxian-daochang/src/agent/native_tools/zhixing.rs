@@ -68,12 +68,22 @@ define_native_tool! {
 
         let scheduled_at = arguments
             .as_ref()
-            .and_then(|a| a.get("scheduled_at"))
-            .and_then(|v| v.as_str().map(ToString::to_string));
-        let _reminder_recipient =
+            .and_then(|a| {
+                a.get("scheduled_at")
+                    .and_then(serde_json::Value::as_str)
+                    .or_else(|| a.get("time").and_then(serde_json::Value::as_str))
+            })
+            .map(str::trim)
+            .filter(|raw| !raw.is_empty())
+            .map(|raw| tool.heyi.normalize_scheduled_time_input(raw))
+            .transpose()?;
+        let reminder_recipient =
             reminder_recipient_from_session_id(context.session_id.as_deref());
 
-        let result = tool.heyi.add_task(&title, scheduled_at).await?;
+        let result = tool
+            .heyi
+            .add_task_with_recipient(&title, scheduled_at, reminder_recipient)
+            .await?;
         Ok(result)
     })
 }

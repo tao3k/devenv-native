@@ -7,6 +7,7 @@ use crate::link_graph::agentic::{
 use std::collections::HashSet;
 use std::time::Instant;
 
+#[path = "execute/worker.rs"]
 mod worker;
 
 use worker::execute_worker;

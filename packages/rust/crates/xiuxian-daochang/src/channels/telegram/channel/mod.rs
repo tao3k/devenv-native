@@ -12,6 +12,7 @@ mod constructor;
 mod error;
 mod group_policy;
 mod identity;
+mod inbound_media;
 mod listen;
 mod markdown;
 mod media;

@@ -1,4 +1,30 @@
 #[must_use]
+pub fn lookup_env<F>(lookup: &F, name: &str) -> Option<String>
+where
+    F: Fn(&str) -> Option<String>,
+{
+    lookup(name)
+}
+
+#[must_use]
+pub fn lookup_non_empty_env<F>(lookup: &F, name: &str) -> Option<String>
+where
+    F: Fn(&str) -> Option<String>,
+{
+    lookup_env(lookup, name).and_then(|value| trim_non_empty(&value))
+}
+
+#[must_use]
+pub fn read_env(name: &str) -> Option<String> {
+    lookup_env(&|env_name| std::env::var(env_name).ok(), name)
+}
+
+#[must_use]
+pub fn read_non_empty_env(name: &str) -> Option<String> {
+    lookup_non_empty_env(&|env_name| std::env::var(env_name).ok(), name)
+}
+
+#[must_use]
 pub fn parse_positive_u32_from_env(name: &str) -> Option<u32> {
     parse_env_value(
         name,
@@ -79,7 +105,7 @@ fn parse_env_value<T>(
     parser: impl FnOnce(&str) -> Option<T>,
     invalid_message: &'static str,
 ) -> Option<T> {
-    let raw = std::env::var(name).ok()?;
+    let raw = read_env(name)?;
     if let Some(value) = parser(raw.as_str()) {
         Some(value)
     } else {

@@ -10,6 +10,8 @@ use xiuxian_vector::keyword::{
     KEYWORD_WEIGHT, RRF_K, SEMANTIC_WEIGHT, apply_adaptive_rrf, apply_weighted_rrf,
 };
 
+use crate::snapshot_support::canonical_json;
+
 fn make_tool_result(name: &str, score: f32) -> ToolSearchResult {
     ToolSearchResult {
         name: name.to_string(),
@@ -66,7 +68,7 @@ fn snapshot_weighted_rrf_contract_v1() {
         })
         .collect();
 
-    assert_json_snapshot!("weighted_rrf_contract_v1", view);
+    assert_json_snapshot!("weighted_rrf_contract_v1", canonical_json(view));
 }
 
 #[test]
@@ -102,5 +104,5 @@ fn snapshot_adaptive_rrf_contract_v1() {
         })
         .collect();
 
-    assert_json_snapshot!("adaptive_rrf_contract_v1", view);
+    assert_json_snapshot!("adaptive_rrf_contract_v1", canonical_json(view));
 }

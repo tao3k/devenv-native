@@ -2,7 +2,7 @@
 
 :PROPERTIES:
 :ID: wendao-core-runtime-plugin-program
-:PARENT: [[index]]
+:PARENT: [[index|Wendao DocOS Kernel: Map of Content]]
 :TAGS: roadmap, migration, plugins, core, runtime, program
 :STATUS: ACTIVE
 :END:
@@ -1798,7 +1798,7 @@ The landed changes are:
    passes after the new builtin artifact surface is feature-gated to Julia
 
 :RELATIONS:
-:LINKS: [[index]], [[06_roadmap/409_core_runtime_plugin_surface_inventory]], [[06_roadmap/410_p1_generic_plugin_contract_staging]], [[06_roadmap/411_p1_first_code_slice_plan]], [[06_roadmap/413_m2_core_extraction_package_list]], [[06_roadmap/414_m3_runtime_extraction_package_list]], [[06_roadmap/415_m4_julia_externalization_package_list]], [[06_roadmap/416_compatibility_retirement_ledger]], [[docs/rfcs/2026-03-27-wendao-core-runtime-plugin-migration-rfc.md]]
+:LINKS: [[index|Wendao DocOS Kernel: Map of Content]], [[06_roadmap/409_core_runtime_plugin_surface_inventory|Wendao Core Runtime Plugin Surface Inventory]], [[06_roadmap/410_p1_generic_plugin_contract_staging|P1 Generic Plugin Contract Staging]], [[06_roadmap/411_p1_first_code_slice_plan|P1 First Code Slice Plan]], [[06_roadmap/413_m2_core_extraction_package_list|M2 Core Extraction Package List]], [[06_roadmap/414_m3_runtime_extraction_package_list|M3 Runtime Extraction Package List]], [[06_roadmap/415_m4_julia_externalization_package_list|M4 Julia Externalization Package List]], [[06_roadmap/416_compatibility_retirement_ledger|Compatibility Retirement Ledger]], [[docs/rfcs/2026-03-27-wendao-core-runtime-plugin-migration-rfc.md|RFC: Wendao Core Runtime and Arrow Plugin Migration]]
 :END:
 
 ---
@@ -1832,7 +1832,7 @@ The landed changes are:
    the direct plugin dependency declarations disappear from the host manifest
 
 :RELATIONS:
-:LINKS: [[index]], [[06_roadmap/409_core_runtime_plugin_surface_inventory]], [[06_roadmap/410_p1_generic_plugin_contract_staging]], [[06_roadmap/411_p1_first_code_slice_plan]], [[06_roadmap/413_m2_core_extraction_package_list]], [[06_roadmap/414_m3_runtime_extraction_package_list]], [[06_roadmap/415_m4_julia_externalization_package_list]], [[06_roadmap/416_compatibility_retirement_ledger]], [[docs/rfcs/2026-03-27-wendao-core-runtime-plugin-migration-rfc.md]]
+:LINKS: [[index|Wendao DocOS Kernel: Map of Content]], [[06_roadmap/409_core_runtime_plugin_surface_inventory|Wendao Core Runtime Plugin Surface Inventory]], [[06_roadmap/410_p1_generic_plugin_contract_staging|P1 Generic Plugin Contract Staging]], [[06_roadmap/411_p1_first_code_slice_plan|P1 First Code Slice Plan]], [[06_roadmap/413_m2_core_extraction_package_list|M2 Core Extraction Package List]], [[06_roadmap/414_m3_runtime_extraction_package_list|M3 Runtime Extraction Package List]], [[06_roadmap/415_m4_julia_externalization_package_list|M4 Julia Externalization Package List]], [[06_roadmap/416_compatibility_retirement_ledger|Compatibility Retirement Ledger]], [[docs/rfcs/2026-03-27-wendao-core-runtime-plugin-migration-rfc.md|RFC: Wendao Core Runtime and Arrow Plugin Migration]]
 :END:
 
 ---
@@ -1867,7 +1867,7 @@ The landed changes are:
    stale unused `RecordBatch` import from host `rerank.rs`
 
 :RELATIONS:
-:LINKS: [[index]], [[06_roadmap/409_core_runtime_plugin_surface_inventory]], [[06_roadmap/410_p1_generic_plugin_contract_staging]], [[06_roadmap/411_p1_first_code_slice_plan]], [[06_roadmap/413_m2_core_extraction_package_list]], [[06_roadmap/414_m3_runtime_extraction_package_list]], [[06_roadmap/415_m4_julia_externalization_package_list]], [[06_roadmap/416_compatibility_retirement_ledger]], [[docs/rfcs/2026-03-27-wendao-core-runtime-plugin-migration-rfc.md]]
+:LINKS: [[index|Wendao DocOS Kernel: Map of Content]], [[06_roadmap/409_core_runtime_plugin_surface_inventory|Wendao Core Runtime Plugin Surface Inventory]], [[06_roadmap/410_p1_generic_plugin_contract_staging|P1 Generic Plugin Contract Staging]], [[06_roadmap/411_p1_first_code_slice_plan|P1 First Code Slice Plan]], [[06_roadmap/413_m2_core_extraction_package_list|M2 Core Extraction Package List]], [[06_roadmap/414_m3_runtime_extraction_package_list|M3 Runtime Extraction Package List]], [[06_roadmap/415_m4_julia_externalization_package_list|M4 Julia Externalization Package List]], [[06_roadmap/416_compatibility_retirement_ledger|Compatibility Retirement Ledger]], [[docs/rfcs/2026-03-27-wendao-core-runtime-plugin-migration-rfc.md|RFC: Wendao Core Runtime and Arrow Plugin Migration]]
 :END:
 
 ---
@@ -1901,7 +1901,7 @@ The landed changes are:
    the provider-aware trace id instead of the Julia-specific prefix
 
 :RELATIONS:
-:LINKS: [[index]], [[06_roadmap/409_core_runtime_plugin_surface_inventory]], [[06_roadmap/410_p1_generic_plugin_contract_staging]], [[06_roadmap/411_p1_first_code_slice_plan]], [[06_roadmap/413_m2_core_extraction_package_list]], [[06_roadmap/414_m3_runtime_extraction_package_list]], [[06_roadmap/415_m4_julia_externalization_package_list]], [[06_roadmap/416_compatibility_retirement_ledger]], [[docs/rfcs/2026-03-27-wendao-core-runtime-plugin-migration-rfc.md]]
+:LINKS: [[index|Wendao DocOS Kernel: Map of Content]], [[06_roadmap/409_core_runtime_plugin_surface_inventory|Wendao Core Runtime Plugin Surface Inventory]], [[06_roadmap/410_p1_generic_plugin_contract_staging|P1 Generic Plugin Contract Staging]], [[06_roadmap/411_p1_first_code_slice_plan|P1 First Code Slice Plan]], [[06_roadmap/413_m2_core_extraction_package_list|M2 Core Extraction Package List]], [[06_roadmap/414_m3_runtime_extraction_package_list|M3 Runtime Extraction Package List]], [[06_roadmap/415_m4_julia_externalization_package_list|M4 Julia Externalization Package List]], [[06_roadmap/416_compatibility_retirement_ledger|Compatibility Retirement Ledger]], [[docs/rfcs/2026-03-27-wendao-core-runtime-plugin-migration-rfc.md|RFC: Wendao Core Runtime and Arrow Plugin Migration]]
 :END:
 
 ---
@@ -1937,7 +1937,7 @@ The landed changes are:
    public method docs after the private embedding helper insertion
 
 :RELATIONS:
-:LINKS: [[index]], [[06_roadmap/409_core_runtime_plugin_surface_inventory]], [[06_roadmap/410_p1_generic_plugin_contract_staging]], [[06_roadmap/411_p1_first_code_slice_plan]], [[06_roadmap/413_m2_core_extraction_package_list]], [[06_roadmap/414_m3_runtime_extraction_package_list]], [[06_roadmap/415_m4_julia_externalization_package_list]], [[06_roadmap/416_compatibility_retirement_ledger]], [[docs/rfcs/2026-03-27-wendao-core-runtime-plugin-migration-rfc.md]]
+:LINKS: [[index|Wendao DocOS Kernel: Map of Content]], [[06_roadmap/409_core_runtime_plugin_surface_inventory|Wendao Core Runtime Plugin Surface Inventory]], [[06_roadmap/410_p1_generic_plugin_contract_staging|P1 Generic Plugin Contract Staging]], [[06_roadmap/411_p1_first_code_slice_plan|P1 First Code Slice Plan]], [[06_roadmap/413_m2_core_extraction_package_list|M2 Core Extraction Package List]], [[06_roadmap/414_m3_runtime_extraction_package_list|M3 Runtime Extraction Package List]], [[06_roadmap/415_m4_julia_externalization_package_list|M4 Julia Externalization Package List]], [[06_roadmap/416_compatibility_retirement_ledger|Compatibility Retirement Ledger]], [[docs/rfcs/2026-03-27-wendao-core-runtime-plugin-migration-rfc.md|RFC: Wendao Core Runtime and Arrow Plugin Migration]]
 :END:
 
 ---
@@ -1988,7 +1988,7 @@ Validation:
 7. `direnv exec . git diff --check`
 
 :RELATIONS:
-:LINKS: [[index]], [[06_roadmap/409_core_runtime_plugin_surface_inventory]], [[06_roadmap/410_p1_generic_plugin_contract_staging]], [[06_roadmap/411_p1_first_code_slice_plan]], [[06_roadmap/413_m2_core_extraction_package_list]], [[06_roadmap/414_m3_runtime_extraction_package_list]], [[06_roadmap/415_m4_julia_externalization_package_list]], [[06_roadmap/416_compatibility_retirement_ledger]], [[docs/rfcs/2026-03-27-wendao-core-runtime-plugin-migration-rfc.md]]
+:LINKS: [[index|Wendao DocOS Kernel: Map of Content]], [[06_roadmap/409_core_runtime_plugin_surface_inventory|Wendao Core Runtime Plugin Surface Inventory]], [[06_roadmap/410_p1_generic_plugin_contract_staging|P1 Generic Plugin Contract Staging]], [[06_roadmap/411_p1_first_code_slice_plan|P1 First Code Slice Plan]], [[06_roadmap/413_m2_core_extraction_package_list|M2 Core Extraction Package List]], [[06_roadmap/414_m3_runtime_extraction_package_list|M3 Runtime Extraction Package List]], [[06_roadmap/415_m4_julia_externalization_package_list|M4 Julia Externalization Package List]], [[06_roadmap/416_compatibility_retirement_ledger|Compatibility Retirement Ledger]], [[docs/rfcs/2026-03-27-wendao-core-runtime-plugin-migration-rfc.md|RFC: Wendao Core Runtime and Arrow Plugin Migration]]
 :END:
 
 ---
@@ -2025,7 +2025,7 @@ The landed changes are:
    seam
 
 :RELATIONS:
-:LINKS: [[index]], [[06_roadmap/409_core_runtime_plugin_surface_inventory]], [[06_roadmap/410_p1_generic_plugin_contract_staging]], [[06_roadmap/411_p1_first_code_slice_plan]], [[06_roadmap/413_m2_core_extraction_package_list]], [[06_roadmap/414_m3_runtime_extraction_package_list]], [[06_roadmap/415_m4_julia_externalization_package_list]], [[06_roadmap/416_compatibility_retirement_ledger]], [[docs/rfcs/2026-03-27-wendao-core-runtime-plugin-migration-rfc.md]]
+:LINKS: [[index|Wendao DocOS Kernel: Map of Content]], [[06_roadmap/409_core_runtime_plugin_surface_inventory|Wendao Core Runtime Plugin Surface Inventory]], [[06_roadmap/410_p1_generic_plugin_contract_staging|P1 Generic Plugin Contract Staging]], [[06_roadmap/411_p1_first_code_slice_plan|P1 First Code Slice Plan]], [[06_roadmap/413_m2_core_extraction_package_list|M2 Core Extraction Package List]], [[06_roadmap/414_m3_runtime_extraction_package_list|M3 Runtime Extraction Package List]], [[06_roadmap/415_m4_julia_externalization_package_list|M4 Julia Externalization Package List]], [[06_roadmap/416_compatibility_retirement_ledger|Compatibility Retirement Ledger]], [[docs/rfcs/2026-03-27-wendao-core-runtime-plugin-migration-rfc.md|RFC: Wendao Core Runtime and Arrow Plugin Migration]]
 :END:
 
 ---
@@ -2062,7 +2062,7 @@ The landed changes are:
    unused import
 
 :RELATIONS:
-:LINKS: [[index]], [[06_roadmap/409_core_runtime_plugin_surface_inventory]], [[06_roadmap/410_p1_generic_plugin_contract_staging]], [[06_roadmap/411_p1_first_code_slice_plan]], [[06_roadmap/413_m2_core_extraction_package_list]], [[06_roadmap/414_m3_runtime_extraction_package_list]], [[06_roadmap/415_m4_julia_externalization_package_list]], [[06_roadmap/416_compatibility_retirement_ledger]], [[docs/rfcs/2026-03-27-wendao-core-runtime-plugin-migration-rfc.md]]
+:LINKS: [[index|Wendao DocOS Kernel: Map of Content]], [[06_roadmap/409_core_runtime_plugin_surface_inventory|Wendao Core Runtime Plugin Surface Inventory]], [[06_roadmap/410_p1_generic_plugin_contract_staging|P1 Generic Plugin Contract Staging]], [[06_roadmap/411_p1_first_code_slice_plan|P1 First Code Slice Plan]], [[06_roadmap/413_m2_core_extraction_package_list|M2 Core Extraction Package List]], [[06_roadmap/414_m3_runtime_extraction_package_list|M3 Runtime Extraction Package List]], [[06_roadmap/415_m4_julia_externalization_package_list|M4 Julia Externalization Package List]], [[06_roadmap/416_compatibility_retirement_ledger|Compatibility Retirement Ledger]], [[docs/rfcs/2026-03-27-wendao-core-runtime-plugin-migration-rfc.md|RFC: Wendao Core Runtime and Arrow Plugin Migration]]
 :END:
 
 ---
@@ -2093,7 +2093,7 @@ The landed changes are:
    transport tests
 
 :RELATIONS:
-:LINKS: [[index]], [[06_roadmap/409_core_runtime_plugin_surface_inventory]], [[06_roadmap/410_p1_generic_plugin_contract_staging]], [[06_roadmap/411_p1_first_code_slice_plan]], [[06_roadmap/413_m2_core_extraction_package_list]], [[06_roadmap/414_m3_runtime_extraction_package_list]], [[06_roadmap/415_m4_julia_externalization_package_list]], [[06_roadmap/416_compatibility_retirement_ledger]], [[docs/rfcs/2026-03-27-wendao-core-runtime-plugin-migration-rfc.md]]
+:LINKS: [[index|Wendao DocOS Kernel: Map of Content]], [[06_roadmap/409_core_runtime_plugin_surface_inventory|Wendao Core Runtime Plugin Surface Inventory]], [[06_roadmap/410_p1_generic_plugin_contract_staging|P1 Generic Plugin Contract Staging]], [[06_roadmap/411_p1_first_code_slice_plan|P1 First Code Slice Plan]], [[06_roadmap/413_m2_core_extraction_package_list|M2 Core Extraction Package List]], [[06_roadmap/414_m3_runtime_extraction_package_list|M3 Runtime Extraction Package List]], [[06_roadmap/415_m4_julia_externalization_package_list|M4 Julia Externalization Package List]], [[06_roadmap/416_compatibility_retirement_ledger|Compatibility Retirement Ledger]], [[docs/rfcs/2026-03-27-wendao-core-runtime-plugin-migration-rfc.md|RFC: Wendao Core Runtime and Arrow Plugin Migration]]
 :END:
 
 ---
@@ -2126,7 +2126,7 @@ The landed changes are:
    semantic ignition semantics
 
 :RELATIONS:
-:LINKS: [[index]], [[06_roadmap/409_core_runtime_plugin_surface_inventory]], [[06_roadmap/410_p1_generic_plugin_contract_staging]], [[06_roadmap/411_p1_first_code_slice_plan]], [[06_roadmap/413_m2_core_extraction_package_list]], [[06_roadmap/414_m3_runtime_extraction_package_list]], [[06_roadmap/415_m4_julia_externalization_package_list]], [[06_roadmap/416_compatibility_retirement_ledger]], [[docs/rfcs/2026-03-27-wendao-core-runtime-plugin-migration-rfc.md]]
+:LINKS: [[index|Wendao DocOS Kernel: Map of Content]], [[06_roadmap/409_core_runtime_plugin_surface_inventory|Wendao Core Runtime Plugin Surface Inventory]], [[06_roadmap/410_p1_generic_plugin_contract_staging|P1 Generic Plugin Contract Staging]], [[06_roadmap/411_p1_first_code_slice_plan|P1 First Code Slice Plan]], [[06_roadmap/413_m2_core_extraction_package_list|M2 Core Extraction Package List]], [[06_roadmap/414_m3_runtime_extraction_package_list|M3 Runtime Extraction Package List]], [[06_roadmap/415_m4_julia_externalization_package_list|M4 Julia Externalization Package List]], [[06_roadmap/416_compatibility_retirement_ledger|Compatibility Retirement Ledger]], [[docs/rfcs/2026-03-27-wendao-core-runtime-plugin-migration-rfc.md|RFC: Wendao Core Runtime and Arrow Plugin Migration]]
 :END:
 
 ---
@@ -2158,7 +2158,7 @@ The landed changes are:
    telemetry shaping, and score application
 
 :RELATIONS:
-:LINKS: [[index]], [[06_roadmap/409_core_runtime_plugin_surface_inventory]], [[06_roadmap/410_p1_generic_plugin_contract_staging]], [[06_roadmap/411_p1_first_code_slice_plan]], [[06_roadmap/413_m2_core_extraction_package_list]], [[06_roadmap/414_m3_runtime_extraction_package_list]], [[06_roadmap/415_m4_julia_externalization_package_list]], [[06_roadmap/416_compatibility_retirement_ledger]], [[docs/rfcs/2026-03-27-wendao-core-runtime-plugin-migration-rfc.md]]
+:LINKS: [[index|Wendao DocOS Kernel: Map of Content]], [[06_roadmap/409_core_runtime_plugin_surface_inventory|Wendao Core Runtime Plugin Surface Inventory]], [[06_roadmap/410_p1_generic_plugin_contract_staging|P1 Generic Plugin Contract Staging]], [[06_roadmap/411_p1_first_code_slice_plan|P1 First Code Slice Plan]], [[06_roadmap/413_m2_core_extraction_package_list|M2 Core Extraction Package List]], [[06_roadmap/414_m3_runtime_extraction_package_list|M3 Runtime Extraction Package List]], [[06_roadmap/415_m4_julia_externalization_package_list|M4 Julia Externalization Package List]], [[06_roadmap/416_compatibility_retirement_ledger|Compatibility Retirement Ledger]], [[docs/rfcs/2026-03-27-wendao-core-runtime-plugin-migration-rfc.md|RFC: Wendao Core Runtime and Arrow Plugin Migration]]
 :END:
 
 ---
@@ -2197,7 +2197,7 @@ The landed changes are:
    without a touched-scope regression
 
 :RELATIONS:
-:LINKS: [[index]], [[06_roadmap/409_core_runtime_plugin_surface_inventory]], [[06_roadmap/410_p1_generic_plugin_contract_staging]], [[06_roadmap/411_p1_first_code_slice_plan]], [[06_roadmap/413_m2_core_extraction_package_list]], [[06_roadmap/414_m3_runtime_extraction_package_list]], [[06_roadmap/415_m4_julia_externalization_package_list]], [[06_roadmap/416_compatibility_retirement_ledger]], [[docs/rfcs/2026-03-27-wendao-core-runtime-plugin-migration-rfc.md]]
+:LINKS: [[index|Wendao DocOS Kernel: Map of Content]], [[06_roadmap/409_core_runtime_plugin_surface_inventory|Wendao Core Runtime Plugin Surface Inventory]], [[06_roadmap/410_p1_generic_plugin_contract_staging|P1 Generic Plugin Contract Staging]], [[06_roadmap/411_p1_first_code_slice_plan|P1 First Code Slice Plan]], [[06_roadmap/413_m2_core_extraction_package_list|M2 Core Extraction Package List]], [[06_roadmap/414_m3_runtime_extraction_package_list|M3 Runtime Extraction Package List]], [[06_roadmap/415_m4_julia_externalization_package_list|M4 Julia Externalization Package List]], [[06_roadmap/416_compatibility_retirement_ledger|Compatibility Retirement Ledger]], [[docs/rfcs/2026-03-27-wendao-core-runtime-plugin-migration-rfc.md|RFC: Wendao Core Runtime and Arrow Plugin Migration]]
 :END:
 
 ---
@@ -2232,7 +2232,7 @@ The landed changes are:
    stays green
 
 :RELATIONS:
-:LINKS: [[index]], [[06_roadmap/409_core_runtime_plugin_surface_inventory]], [[06_roadmap/410_p1_generic_plugin_contract_staging]], [[06_roadmap/411_p1_first_code_slice_plan]], [[06_roadmap/413_m2_core_extraction_package_list]], [[06_roadmap/414_m3_runtime_extraction_package_list]], [[06_roadmap/415_m4_julia_externalization_package_list]], [[06_roadmap/416_compatibility_retirement_ledger]], [[docs/rfcs/2026-03-27-wendao-core-runtime-plugin-migration-rfc.md]]
+:LINKS: [[index|Wendao DocOS Kernel: Map of Content]], [[06_roadmap/409_core_runtime_plugin_surface_inventory|Wendao Core Runtime Plugin Surface Inventory]], [[06_roadmap/410_p1_generic_plugin_contract_staging|P1 Generic Plugin Contract Staging]], [[06_roadmap/411_p1_first_code_slice_plan|P1 First Code Slice Plan]], [[06_roadmap/413_m2_core_extraction_package_list|M2 Core Extraction Package List]], [[06_roadmap/414_m3_runtime_extraction_package_list|M3 Runtime Extraction Package List]], [[06_roadmap/415_m4_julia_externalization_package_list|M4 Julia Externalization Package List]], [[06_roadmap/416_compatibility_retirement_ledger|Compatibility Retirement Ledger]], [[docs/rfcs/2026-03-27-wendao-core-runtime-plugin-migration-rfc.md|RFC: Wendao Core Runtime and Arrow Plugin Migration]]
 :END:
 
 ---
@@ -2271,7 +2271,7 @@ The landed changes were:
    kept the non-Julia host compile probe green
 
 :RELATIONS:
-:LINKS: [[index]], [[06_roadmap/409_core_runtime_plugin_surface_inventory]], [[06_roadmap/410_p1_generic_plugin_contract_staging]], [[06_roadmap/411_p1_first_code_slice_plan]], [[06_roadmap/413_m2_core_extraction_package_list]], [[06_roadmap/414_m3_runtime_extraction_package_list]], [[06_roadmap/415_m4_julia_externalization_package_list]], [[06_roadmap/416_compatibility_retirement_ledger]], [[docs/rfcs/2026-03-27-wendao-core-runtime-plugin-migration-rfc.md]]
+:LINKS: [[index|Wendao DocOS Kernel: Map of Content]], [[06_roadmap/409_core_runtime_plugin_surface_inventory|Wendao Core Runtime Plugin Surface Inventory]], [[06_roadmap/410_p1_generic_plugin_contract_staging|P1 Generic Plugin Contract Staging]], [[06_roadmap/411_p1_first_code_slice_plan|P1 First Code Slice Plan]], [[06_roadmap/413_m2_core_extraction_package_list|M2 Core Extraction Package List]], [[06_roadmap/414_m3_runtime_extraction_package_list|M3 Runtime Extraction Package List]], [[06_roadmap/415_m4_julia_externalization_package_list|M4 Julia Externalization Package List]], [[06_roadmap/416_compatibility_retirement_ledger|Compatibility Retirement Ledger]], [[docs/rfcs/2026-03-27-wendao-core-runtime-plugin-migration-rfc.md|RFC: Wendao Core Runtime and Arrow Plugin Migration]]
 :END:
 
 ---
@@ -2310,7 +2310,7 @@ The landed changes were:
    and kept the non-Julia host compile probe green
 
 :RELATIONS:
-:LINKS: [[index]], [[06_roadmap/409_core_runtime_plugin_surface_inventory]], [[06_roadmap/410_p1_generic_plugin_contract_staging]], [[06_roadmap/411_p1_first_code_slice_plan]], [[06_roadmap/413_m2_core_extraction_package_list]], [[06_roadmap/414_m3_runtime_extraction_package_list]], [[06_roadmap/415_m4_julia_externalization_package_list]], [[06_roadmap/416_compatibility_retirement_ledger]], [[docs/rfcs/2026-03-27-wendao-core-runtime-plugin-migration-rfc.md]]
+:LINKS: [[index|Wendao DocOS Kernel: Map of Content]], [[06_roadmap/409_core_runtime_plugin_surface_inventory|Wendao Core Runtime Plugin Surface Inventory]], [[06_roadmap/410_p1_generic_plugin_contract_staging|P1 Generic Plugin Contract Staging]], [[06_roadmap/411_p1_first_code_slice_plan|P1 First Code Slice Plan]], [[06_roadmap/413_m2_core_extraction_package_list|M2 Core Extraction Package List]], [[06_roadmap/414_m3_runtime_extraction_package_list|M3 Runtime Extraction Package List]], [[06_roadmap/415_m4_julia_externalization_package_list|M4 Julia Externalization Package List]], [[06_roadmap/416_compatibility_retirement_ledger|Compatibility Retirement Ledger]], [[docs/rfcs/2026-03-27-wendao-core-runtime-plugin-migration-rfc.md|RFC: Wendao Core Runtime and Arrow Plugin Migration]]
 :END:
 
 ---
@@ -2348,7 +2348,7 @@ The landed changes were:
    seam and kept the non-Julia host compile probe green
 
 :RELATIONS:
-:LINKS: [[index]], [[06_roadmap/409_core_runtime_plugin_surface_inventory]], [[06_roadmap/410_p1_generic_plugin_contract_staging]], [[06_roadmap/411_p1_first_code_slice_plan]], [[06_roadmap/413_m2_core_extraction_package_list]], [[06_roadmap/414_m3_runtime_extraction_package_list]], [[06_roadmap/415_m4_julia_externalization_package_list]], [[06_roadmap/416_compatibility_retirement_ledger]], [[docs/rfcs/2026-03-27-wendao-core-runtime-plugin-migration-rfc.md]]
+:LINKS: [[index|Wendao DocOS Kernel: Map of Content]], [[06_roadmap/409_core_runtime_plugin_surface_inventory|Wendao Core Runtime Plugin Surface Inventory]], [[06_roadmap/410_p1_generic_plugin_contract_staging|P1 Generic Plugin Contract Staging]], [[06_roadmap/411_p1_first_code_slice_plan|P1 First Code Slice Plan]], [[06_roadmap/413_m2_core_extraction_package_list|M2 Core Extraction Package List]], [[06_roadmap/414_m3_runtime_extraction_package_list|M3 Runtime Extraction Package List]], [[06_roadmap/415_m4_julia_externalization_package_list|M4 Julia Externalization Package List]], [[06_roadmap/416_compatibility_retirement_ledger|Compatibility Retirement Ledger]], [[docs/rfcs/2026-03-27-wendao-core-runtime-plugin-migration-rfc.md|RFC: Wendao Core Runtime and Arrow Plugin Migration]]
 :END:
 
 ---
@@ -2390,7 +2390,7 @@ The landed changes are:
    probe remains green
 
 :RELATIONS:
-:LINKS: [[index]], [[06_roadmap/409_core_runtime_plugin_surface_inventory]], [[06_roadmap/410_p1_generic_plugin_contract_staging]], [[06_roadmap/411_p1_first_code_slice_plan]], [[06_roadmap/413_m2_core_extraction_package_list]], [[06_roadmap/414_m3_runtime_extraction_package_list]], [[06_roadmap/415_m4_julia_externalization_package_list]], [[06_roadmap/416_compatibility_retirement_ledger]], [[docs/rfcs/2026-03-27-wendao-core-runtime-plugin-migration-rfc.md]]
+:LINKS: [[index|Wendao DocOS Kernel: Map of Content]], [[06_roadmap/409_core_runtime_plugin_surface_inventory|Wendao Core Runtime Plugin Surface Inventory]], [[06_roadmap/410_p1_generic_plugin_contract_staging|P1 Generic Plugin Contract Staging]], [[06_roadmap/411_p1_first_code_slice_plan|P1 First Code Slice Plan]], [[06_roadmap/413_m2_core_extraction_package_list|M2 Core Extraction Package List]], [[06_roadmap/414_m3_runtime_extraction_package_list|M3 Runtime Extraction Package List]], [[06_roadmap/415_m4_julia_externalization_package_list|M4 Julia Externalization Package List]], [[06_roadmap/416_compatibility_retirement_ledger|Compatibility Retirement Ledger]], [[docs/rfcs/2026-03-27-wendao-core-runtime-plugin-migration-rfc.md|RFC: Wendao Core Runtime and Arrow Plugin Migration]]
 :END:
 
 ---
@@ -2428,7 +2428,7 @@ The landed changes are:
    compile probe remains green
 
 :RELATIONS:
-:LINKS: [[index]], [[06_roadmap/409_core_runtime_plugin_surface_inventory]], [[06_roadmap/410_p1_generic_plugin_contract_staging]], [[06_roadmap/411_p1_first_code_slice_plan]], [[06_roadmap/413_m2_core_extraction_package_list]], [[06_roadmap/414_m3_runtime_extraction_package_list]], [[06_roadmap/415_m4_julia_externalization_package_list]], [[06_roadmap/416_compatibility_retirement_ledger]], [[docs/rfcs/2026-03-27-wendao-core-runtime-plugin-migration-rfc.md]]
+:LINKS: [[index|Wendao DocOS Kernel: Map of Content]], [[06_roadmap/409_core_runtime_plugin_surface_inventory|Wendao Core Runtime Plugin Surface Inventory]], [[06_roadmap/410_p1_generic_plugin_contract_staging|P1 Generic Plugin Contract Staging]], [[06_roadmap/411_p1_first_code_slice_plan|P1 First Code Slice Plan]], [[06_roadmap/413_m2_core_extraction_package_list|M2 Core Extraction Package List]], [[06_roadmap/414_m3_runtime_extraction_package_list|M3 Runtime Extraction Package List]], [[06_roadmap/415_m4_julia_externalization_package_list|M4 Julia Externalization Package List]], [[06_roadmap/416_compatibility_retirement_ledger|Compatibility Retirement Ledger]], [[docs/rfcs/2026-03-27-wendao-core-runtime-plugin-migration-rfc.md|RFC: Wendao Core Runtime and Arrow Plugin Migration]]
 :END:
 
 ---
@@ -2465,7 +2465,7 @@ The landed changes are:
    probe still completes
 
 :RELATIONS:
-:LINKS: [[index]], [[06_roadmap/409_core_runtime_plugin_surface_inventory]], [[06_roadmap/410_p1_generic_plugin_contract_staging]], [[06_roadmap/411_p1_first_code_slice_plan]], [[06_roadmap/413_m2_core_extraction_package_list]], [[06_roadmap/414_m3_runtime_extraction_package_list]], [[06_roadmap/415_m4_julia_externalization_package_list]], [[06_roadmap/416_compatibility_retirement_ledger]], [[docs/rfcs/2026-03-27-wendao-core-runtime-plugin-migration-rfc.md]]
+:LINKS: [[index|Wendao DocOS Kernel: Map of Content]], [[06_roadmap/409_core_runtime_plugin_surface_inventory|Wendao Core Runtime Plugin Surface Inventory]], [[06_roadmap/410_p1_generic_plugin_contract_staging|P1 Generic Plugin Contract Staging]], [[06_roadmap/411_p1_first_code_slice_plan|P1 First Code Slice Plan]], [[06_roadmap/413_m2_core_extraction_package_list|M2 Core Extraction Package List]], [[06_roadmap/414_m3_runtime_extraction_package_list|M3 Runtime Extraction Package List]], [[06_roadmap/415_m4_julia_externalization_package_list|M4 Julia Externalization Package List]], [[06_roadmap/416_compatibility_retirement_ledger|Compatibility Retirement Ledger]], [[docs/rfcs/2026-03-27-wendao-core-runtime-plugin-migration-rfc.md|RFC: Wendao Core Runtime and Arrow Plugin Migration]]
 :END:
 
 ---

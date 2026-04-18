@@ -2,7 +2,7 @@
 
 :PROPERTIES:
 :ID: feat-flightsql-query-surface
-:PARENT: [[index]]
+:PARENT: [[index|Wendao DocOS Kernel: Map of Content]]
 :TAGS: feature, flightsql, flight, datafusion, search
 :STATUS: ACTIVE
 :VERSION: 1.0

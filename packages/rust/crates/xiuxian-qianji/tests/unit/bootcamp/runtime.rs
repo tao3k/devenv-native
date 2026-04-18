@@ -1,4 +1,4 @@
-use super::build_link_graph_index_with_builders;
+use super::{build_link_graph_index_with_builders, build_placeholder_link_graph_index};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
@@ -65,5 +65,22 @@ fn build_link_graph_index_tries_fallback_root_after_primary_root_failure() {
             .unwrap_or_else(|error| panic!("index root should canonicalize: {error}")),
         fs::canonicalize(fallback_root_path.as_path())
             .unwrap_or_else(|error| panic!("fallback root should canonicalize: {error}"))
+    );
+}
+
+#[test]
+fn build_placeholder_link_graph_index_uses_bounded_empty_root() {
+    let index = build_placeholder_link_graph_index()
+        .unwrap_or_else(|error| panic!("placeholder build should succeed: {error}"));
+
+    assert!(
+        index
+            .root()
+            .to_string_lossy()
+            .contains("bootcamp-empty-link-graph-v1")
+    );
+    assert!(
+        index.root().exists(),
+        "placeholder link graph root should exist"
     );
 }

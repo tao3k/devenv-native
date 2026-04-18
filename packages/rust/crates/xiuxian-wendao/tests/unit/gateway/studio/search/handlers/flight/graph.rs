@@ -10,7 +10,8 @@ async fn build_studio_search_flight_service_wires_graph_neighbors_routes() {
     let fixture = make_gateway_state_with_docs(&[
         ("docs/alpha.md", "# Alpha\n\nSee [[beta]].\n"),
         ("docs/beta.md", "# Beta\n\nBody.\n"),
-    ]);
+    ])
+    .await;
     let service = build_service(fixture.state.clone());
 
     assert_route_ticket(
@@ -29,7 +30,8 @@ async fn build_studio_search_flight_service_wires_topology_3d_routes() {
     let fixture = make_gateway_state_with_docs(&[
         ("docs/alpha.md", "# Alpha\n\nSee [[beta]].\n"),
         ("docs/beta.md", "# Beta\n\nBody.\n"),
-    ]);
+    ])
+    .await;
     let service = build_service(fixture.state.clone());
 
     assert_route_ticket(

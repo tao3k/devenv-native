@@ -15,20 +15,20 @@ metadata:
 
 ## Core Notes
 
-- [[<core-note-1>]]
-- [[<core-note-2>]]
-- [[<core-note-3>]]
+- [[<core-note-1>|Core note 1 title]]
+- [[<core-note-2>|Core note 2 title]]
+- [[<core-note-3>|Core note 3 title]]
 
 ## Operational Notes
 
-- [[<runbook-note>]]
-- [[<troubleshooting-note>]]
+- [[<runbook-note>|Runbook note title]]
+- [[<troubleshooting-note>|Troubleshooting note title]]
 
 ## Planning Notes
 
-- [[<plan-note>]]
-- [[<audit-note>]]
+- [[<plan-note>|Plan note title]]
+- [[<audit-note>|Audit note title]]
 
 ## Related Domains
 
-- [[<neighbor-domain-moc>]]
+- [[<neighbor-domain-moc>|Neighbor domain MOC title]]

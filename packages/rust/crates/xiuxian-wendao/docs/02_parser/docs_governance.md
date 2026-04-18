@@ -2,7 +2,7 @@
 
 :PROPERTIES:
 :ID: wendao-parser-docs-governance
-:PARENT: [[02_parser/index]]
+:PARENT: [[02_parser/index|Wendao Parser Docs]]
 :TAGS: parser, docs-governance, semantic-check
 :STATUS: ACTIVE
 :END:
@@ -64,7 +64,7 @@ Coverage for this contract lives in:
 3. `packages/rust/crates/xiuxian-wendao/tests/unit/zhenfa_router/native/semantic_check/docs_governance/`
 
 :RELATIONS:
-:LINKS: [[02_parser/index]], [[02_parser/architecture]], [[02_parser/toc]], [[03_features/203_agentic_navigation]], [[06_roadmap/419_parser_substrate_separation]]
+:LINKS: [[02_parser/index|Wendao Parser Docs]], [[02_parser/architecture|Parser Architecture]], [[02_parser/toc|Parser TOC Surface]], [[03_features/203_agentic_navigation|Agentic Navigation (wendao.agentic_nav)]], [[06_roadmap/419_parser_substrate_separation|Parser Substrate Separation]]
 :END:
 
 ---

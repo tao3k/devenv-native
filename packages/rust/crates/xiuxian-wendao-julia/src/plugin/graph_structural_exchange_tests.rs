@@ -416,7 +416,7 @@ fn graph_structural_manifest_repository(base_url: &str) -> RegisteredRepository 
 }
 
 #[tokio::test]
-#[serial_test::serial(julia_live)]
+#[serial_test::serial(wendaosearch_solver_demo_live)]
 async fn fetch_graph_structural_demo_rerank_rows_for_repository_against_real_wendaosearch_multi_route_service()
  {
     let port = reserve_real_service_port();
@@ -643,7 +643,7 @@ async fn assert_solver_demo_multi_route_filter_rows(repository: &RegisteredRepos
 }
 
 #[tokio::test]
-#[serial_test::serial(julia_live)]
+#[serial_test::serial(wendaosearch_solver_demo_live)]
 async fn fetch_graph_structural_solver_demo_rows_for_repository_via_manifest_discovery_against_real_wendaosearch_multi_route_service()
  {
     let port = reserve_real_service_port();
@@ -671,7 +671,7 @@ async fn fetch_graph_structural_solver_demo_rows_for_repository_via_manifest_dis
 }
 
 #[tokio::test]
-#[serial_test::serial(julia_live)]
+#[serial_test::serial(wendaosearch_solver_demo_live)]
 async fn fetch_graph_structural_solver_demo_rows_for_repository_against_process_managed_wendaosearch_service()
  {
     if !process_managed_wendaosearch_test_enabled() {

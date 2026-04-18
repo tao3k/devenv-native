@@ -2,7 +2,7 @@
 
 :PROPERTIES:
 :ID: wendao-sentinel
-:PARENT: [[index]]
+:PARENT: [[index|Wendao DocOS Kernel: Map of Content]]
 :TAGS: roadmap, auditing, sentinel
 :STATUS: ACTIVE
 :END:

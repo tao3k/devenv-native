@@ -2,7 +2,7 @@
 //!
 //! Integration test: Agent with runtime-default live LLM settings and optional
 //! external tools. Enable with `XIUXIAN_DAOCHANG_LIVE_AGENT_INTEGRATION=1`,
-//! and optionally point `OMNI_AGENT_TOOL_URL` at an external tool server.
+//! and optionally point `XIUXIAN_DAOCHANG_TOOL_URL` at an external tool server.
 
 use std::path::PathBuf;
 
@@ -62,7 +62,7 @@ fn resolve_runtime_default_config() -> Result<Option<AgentConfig>> {
 }
 
 fn resolve_optional_tool_servers() -> Vec<ToolServerEntry> {
-    std::env::var("OMNI_AGENT_TOOL_URL")
+    std::env::var("XIUXIAN_DAOCHANG_TOOL_URL")
         .ok()
         .map(|raw| raw.trim().to_string())
         .filter(|raw| !raw.is_empty())

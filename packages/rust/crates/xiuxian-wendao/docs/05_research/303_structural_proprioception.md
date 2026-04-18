@@ -2,7 +2,7 @@
 
 :PROPERTIES:
 :ID: paper-2025-proprioception
-:PARENT: [[301_research_papers]]
+:PARENT: [[301_research_papers|Research Index: Map of Content]]
 :TAGS: research, cognitive-rag, topology, proprioception
 :STATUS: HARDENING
 :END:
@@ -46,6 +46,6 @@ The refiner dynamically adjusts the compression ratio $\gamma = |D|/|D'|$ based 
 ---
 
 :RELATIONS:
-:LINKS: [[03_features/202_block_addressing]], [[01_core/101_triple_a_protocol]]
+:LINKS: [[03_features/202_block_addressing|descriptive label]], [[01_core/101_triple_a_protocol|Triple-A Addressing Protocol]]
 :ASSETS: LongRefiner 2025 paper
 :END:

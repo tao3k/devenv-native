@@ -28,7 +28,7 @@ mod observability;
 mod partitioning;
 #[path = "integration/path_handling.rs"]
 mod path_handling;
-#[path = "integration/rust_cortex.rs"]
+#[path = "integration/rust_cortex/mod.rs"]
 mod rust_cortex;
 #[path = "integration/scalar_index.rs"]
 mod scalar_index;
@@ -44,6 +44,8 @@ mod search_engine;
 mod skill_index_robustness;
 #[path = "integration/skill_scanner.rs"]
 mod skill_scanner;
+#[path = "integration/snapshot_support.rs"]
+mod snapshot_support;
 #[path = "integration/store.rs"]
 mod store;
 #[path = "integration/vector_index.rs"]

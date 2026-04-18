@@ -1,0 +1,6 @@
+---
+source: packages/rust/crates/xiuxian-skills/tests/integration/skill_scanner_snapshots.rs
+assertion_line: 91
+expression: normalized
+---
+reference metadata validation failed: invalid YAML frontmatter in reference markdown <SKILL_PATH>/references/teacher.md: Frontmatter schema violation: missing field `type`

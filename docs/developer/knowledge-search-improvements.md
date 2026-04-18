@@ -1,6 +1,6 @@
 ---
 type: knowledge
-title: "Knowledge and LinkGraph Search: Why "Project Progress" Was Missing and What We Improved"
+title: "Knowledge and LinkGraph Search: Why \"Project Progress\" Was Missing and What We Improved"
 category: "developer"
 tags:
   - developer
@@ -8,7 +8,7 @@ tags:
 saliency_base: 6.3
 decay_rate: 0.04
 metadata:
-  title: "Knowledge and LinkGraph Search: Why "Project Progress" Was Missing and What We Improved"
+  title: "Knowledge and LinkGraph Search: Why \"Project Progress\" Was Missing and What We Improved"
 ---
 
 # Knowledge and LinkGraph Search: Why "Project Progress" Was Missing and What We Improved

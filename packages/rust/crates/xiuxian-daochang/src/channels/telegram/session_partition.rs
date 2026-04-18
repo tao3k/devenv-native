@@ -3,9 +3,8 @@
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 
-use xiuxian_macros::env_non_empty;
-
 use crate::config::load_runtime_settings;
+use crate::env_parse::lookup_non_empty_env;
 
 /// How incoming Telegram messages are mapped to a logical conversation session.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -33,7 +32,7 @@ impl TelegramSessionPartition {
     pub fn from_env() -> Self {
         let settings = load_runtime_settings();
         Self::from_lookup(
-            |name| env_non_empty!(name),
+            |name| std::env::var(name).ok(),
             settings.telegram.session_partition.as_deref(),
         )
     }
@@ -42,13 +41,16 @@ impl TelegramSessionPartition {
     where
         F: Fn(&str) -> Option<String>,
     {
-        if let Some(raw) = lookup("OMNI_AGENT_TELEGRAM_SESSION_PARTITION") {
+        if let Some(raw) =
+            lookup_non_empty_env(&lookup, "XIUXIAN_DAOCHANG_TELEGRAM_SESSION_PARTITION")
+        {
             return if let Ok(mode) = raw.parse() {
                 mode
             } else {
                 tracing::warn!(
+                    env_var = "XIUXIAN_DAOCHANG_TELEGRAM_SESSION_PARTITION",
                     value = %raw,
-                    "invalid OMNI_AGENT_TELEGRAM_SESSION_PARTITION; using configured/default partition"
+                    "invalid telegram session partition env value; using configured/default partition"
                 );
                 Self::parse_settings_or_default(settings_value)
             };

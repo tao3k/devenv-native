@@ -29,7 +29,7 @@ fn resolve_target_api_key_env_falls_back_when_override_blank() {
 /// Verifies that missing environment variables resolve to an empty key.
 #[test]
 fn read_api_key_returns_empty_for_missing_env() {
-    let resolved = read_api_key("OMNI_AGENT_TEST_LLM_PROXY_UNLIKELY_TO_EXIST_KEY");
+    let resolved = read_api_key("XIUXIAN_DAOCHANG_TEST_LLM_PROXY_UNLIKELY_TO_EXIST_KEY");
     assert!(resolved.is_empty());
 }
 

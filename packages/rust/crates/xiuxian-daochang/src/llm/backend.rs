@@ -24,7 +24,7 @@ pub(super) fn parse_backend_mode(raw: Option<&str>) -> LlmBackendMode {
             if let Some(v) = trimmed {
                 tracing::warn!(
                     backend = %v,
-                    "invalid OMNI_AGENT_LLM_BACKEND value; using default backend"
+                    "invalid XIUXIAN_DAOCHANG_LLM_BACKEND value; using default backend"
                 );
             }
             #[cfg(feature = "agent-provider-litellm")]

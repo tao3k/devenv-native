@@ -177,9 +177,11 @@ Ensure only one process is using this bot token."
                 if let Some(uid) = update.get("update_id").and_then(Value::as_i64) {
                     *offset = uid + 1;
                 }
-                let Some(msg) = self.parse_update_message(update) else {
+                let Some(mut msg) = self.parse_update_message(update) else {
                     continue;
                 };
+                self.enrich_inbound_message_with_media_attachments(update, &mut msg)
+                    .await;
                 let _ = self.send_chat_action(&msg.recipient, "typing").await;
                 if tx.send(msg).await.is_err() {
                     return Ok(true);

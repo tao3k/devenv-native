@@ -178,9 +178,9 @@ fn spider_bridge_washes_content_and_triggers_partial_reindex() -> TestResult {
 
 #[test]
 fn spider_bridge_for_knowledge_graph_persists_document_entity() -> TestResult {
-    let sink = Arc::new(KnowledgeGraphAssimilationSink::new(
+    let sink = Arc::new(KnowledgeGraphAssimilationSink::new(Arc::new(
         xiuxian_wendao::KnowledgeGraph::new(),
-    ));
+    )));
     let bridge = SpiderWendaoBridge::new(
         Arc::new(InMemoryContentHashStore::new()),
         Arc::clone(&sink) as Arc<dyn WebAssimilationSink>,

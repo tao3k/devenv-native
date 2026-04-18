@@ -36,7 +36,7 @@ We have proved that **"Cognition is Observable and Verifiable."** The Auditor's 
 
 ## Linked Notes
 
-- Design: [[PROTOTYPE_DESIGN]]
-- Feature: [[20260315152000-unified-streaming-parser-spec]]
-- Feature: [[20260315142000-streaming-llm-executor-spec]]
-- Results: [[packages/rust/crates/xiuxian-qianji/tests/snapshots/scenarios__cognitive_drift_early_halt.snap]]
+- Design: [[PROTOTYPE_DESIGN|descriptive label]]
+- Feature: [[20260315152000-unified-streaming-parser-spec|descriptive label]]
+- Feature: [[20260315142000-streaming-llm-executor-spec|descriptive label]]
+- Results: [[packages/rust/crates/xiuxian-qianji/tests/snapshots/scenarios__cognitive_drift_early_halt.snap|scenarios__cognitive_drift_early_halt]]

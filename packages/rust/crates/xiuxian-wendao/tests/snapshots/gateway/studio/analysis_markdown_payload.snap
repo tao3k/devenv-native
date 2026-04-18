@@ -5,26 +5,50 @@ expression: value
 ---
 {
   "diagnostics": [],
-  "documentHash": "75894be6879c93868872974f49f9a1bbaa2e3ff75beb9a87083ea94e4a274bf5",
+  "documentHash": "b01d4730cc313732aeef6268f399162573efc3c9c8bb84ec363949b1c858276c",
   "documentMetadata": {
     "backlinks": [
       {
         "docId": "docs/guide",
         "kind": "backlink",
         "label": "Guide",
+        "literal": "[[deepwiki#Overview|DeepWiki Overview]]",
         "path": "main/docs/guide.md",
+        "targetAddress": "#Overview",
         "title": "Guide"
       },
       {
         "docId": "docs/index",
         "kind": "backlink",
         "label": "Index",
+        "literal": "[DeepWiki Proof](deepwiki.md#^proof-anchor)",
         "path": "main/docs/index.md",
+        "targetAddress": "#^proof-anchor",
         "title": "Index"
       }
     ],
     "docId": "docs/deepwiki",
     "docType": null,
+    "explicitBacklinks": [
+      {
+        "docId": "docs/guide",
+        "kind": "backlink",
+        "label": "Guide",
+        "literal": "[[deepwiki#Overview|DeepWiki Overview]]",
+        "path": "main/docs/guide.md",
+        "targetAddress": "#Overview",
+        "title": "Guide"
+      },
+      {
+        "docId": "docs/index",
+        "kind": "backlink",
+        "label": "Index",
+        "literal": "[DeepWiki Proof](deepwiki.md#^proof-anchor)",
+        "path": "main/docs/index.md",
+        "targetAddress": "#^proof-anchor",
+        "title": "Index"
+      }
+    ],
     "outgoingLinks": [
       {
         "docId": "docs/guide",
@@ -107,15 +131,15 @@ expression: value
     {
       "evidence": {
         "confidence": 1.0,
-        "lineEnd": 11,
-        "lineStart": 11,
+        "lineEnd": 12,
+        "lineStart": 12,
         "path": "main/docs/deepwiki.md"
       },
       "id": "edge:3",
       "kind": "contains",
       "label": "contains",
       "sourceId": "sec:1",
-      "targetId": "sec:11"
+      "targetId": "sec:12"
     }
   ],
   "nodeCount": 4,
@@ -125,7 +149,7 @@ expression: value
       "id": "doc:0",
       "kind": "document",
       "label": "main/docs/deepwiki.md",
-      "lineEnd": 22,
+      "lineEnd": 23,
       "lineStart": 1,
       "parentId": null
     },
@@ -143,17 +167,17 @@ expression: value
       "id": "sec:8",
       "kind": "section",
       "label": "Overview",
-      "lineEnd": 10,
+      "lineEnd": 11,
       "lineStart": 8,
       "parentId": "sec:1"
     },
     {
       "depth": 2,
-      "id": "sec:11",
+      "id": "sec:12",
       "kind": "section",
       "label": "References",
-      "lineEnd": 22,
-      "lineStart": 11,
+      "lineEnd": 23,
+      "lineStart": 12,
       "parentId": "sec:1"
     }
   ],
@@ -163,7 +187,7 @@ expression: value
       "edgeCount": 3,
       "kind": "outline",
       "nodeCount": 3,
-      "source": "graph TD\n  sec_1[\"DeepWiki Kernel\"]\n  sec_8[\"Overview\"]\n  sec_11[\"References\"]\n  doc_0 --> sec_1\n  sec_1 --> sec_8\n  sec_1 --> sec_11\n"
+      "source": "graph TD\n  sec_1[\"DeepWiki Kernel\"]\n  sec_8[\"Overview\"]\n  sec_12[\"References\"]\n  doc_0 --> sec_1\n  sec_1 --> sec_8\n  sec_1 --> sec_12\n"
     },
     {
       "edgeCount": 0,

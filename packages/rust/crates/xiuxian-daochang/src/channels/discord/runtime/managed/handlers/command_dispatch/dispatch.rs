@@ -44,8 +44,16 @@ pub(crate) async fn handle_inbound_managed_command(
             session::handle_session_memory(agent, channel, msg, &session_id, format).await;
             true
         }
+        ManagedCommand::SessionAdmin(command) => {
+            session::handle_session_admin(channel, msg, command).await;
+            true
+        }
         ManagedCommand::SessionFeedback(command) => {
             session::handle_session_feedback(agent, channel, msg, &session_id, command).await;
+            true
+        }
+        ManagedCommand::SessionInjection(command) => {
+            session::handle_session_injection(agent, channel, msg, &session_id, command).await;
             true
         }
         ManagedCommand::SessionMention(command) => {

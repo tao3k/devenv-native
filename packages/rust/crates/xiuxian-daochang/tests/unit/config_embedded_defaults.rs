@@ -7,7 +7,7 @@ use anyhow::{Context, Result, bail};
 use tempfile::TempDir;
 use xiuxian_daochang::load_runtime_settings;
 
-const CHILD_ENV_KEY: &str = "OMNI_AGENT_CONFIG_EMBEDDED_DEFAULTS_CHILD";
+const CHILD_ENV_KEY: &str = "XIUXIAN_DAOCHANG_CONFIG_EMBEDDED_DEFAULTS_CHILD";
 
 fn write_user_settings(root: &Path, user_toml: &str) -> Result<()> {
     let user_path = root.join(".config/xiuxian-artisan-workshop/xiuxian.toml");

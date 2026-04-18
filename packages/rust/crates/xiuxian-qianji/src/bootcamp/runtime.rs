@@ -1,5 +1,6 @@
 use crate::error::QianjiError;
 use crate::runtime_config::resolve_process_project_root;
+use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 use xiuxian_wendao::link_graph::LinkGraphIndex;
@@ -18,6 +19,14 @@ fn resolve_repo_root_path(explicit: Option<&Path>) -> PathBuf {
         return path.to_path_buf();
     }
     resolve_process_project_root().unwrap_or_else(std::env::temp_dir)
+}
+
+fn resolve_placeholder_link_graph_root() -> PathBuf {
+    let base_root = resolve_process_project_root().unwrap_or_else(std::env::temp_dir);
+    base_root
+        .join(".cache")
+        .join("xiuxian-qianji")
+        .join("bootcamp-empty-link-graph-v1")
 }
 
 fn build_link_graph_index_for_root_with_builders<C, P>(
@@ -74,6 +83,22 @@ pub(super) fn build_link_graph_index(
         |root| LinkGraphIndex::build_with_cache(root, &[], &[]),
         LinkGraphIndex::build,
     )
+}
+
+pub(super) fn build_placeholder_link_graph_index() -> Result<LinkGraphIndex, QianjiError> {
+    let root = resolve_placeholder_link_graph_root();
+    fs::create_dir_all(&root).map_err(|error| {
+        QianjiError::Topology(format!(
+            "failed to create placeholder LinkGraph root `{}`: {error}",
+            root.display()
+        ))
+    })?;
+    LinkGraphIndex::build(&root).map_err(|error| {
+        QianjiError::Topology(format!(
+            "failed to build placeholder LinkGraph index at `{}`: {error}",
+            root.display()
+        ))
+    })
 }
 
 #[cfg(test)]

@@ -479,7 +479,7 @@ async fn assert_solver_demo_multi_route_generic_topology_multi_filter(
 }
 
 #[tokio::test]
-#[serial_test::serial(julia_live)]
+#[serial_test::serial(wendaosearch_solver_demo_live)]
 async fn fetch_graph_structural_generic_topology_rows_for_repository_via_manifest_discovery_against_real_wendaosearch_solver_demo_multi_route_service()
  {
     let port = reserve_real_service_port();

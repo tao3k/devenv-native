@@ -10,7 +10,8 @@ async fn build_studio_search_flight_service_wires_vfs_resolve_routes() {
     let fixture = make_gateway_state_with_docs(&[(
         "docs/index.md",
         "# Index\n\n- [Overview](overview.md)\n",
-    )]);
+    )])
+    .await;
     let service = build_service(fixture.state.clone());
 
     assert_route_ticket(
@@ -29,7 +30,8 @@ async fn build_studio_search_flight_service_wires_vfs_content_routes() {
     let fixture = make_gateway_state_with_docs(&[(
         "docs/index.md",
         "# Index\n\n- [Overview](overview.md)\n",
-    )]);
+    )])
+    .await;
     let service = build_service(fixture.state.clone());
 
     assert_route_ticket(
@@ -48,7 +50,8 @@ async fn build_studio_search_flight_service_wires_vfs_scan_routes() {
     let fixture = make_gateway_state_with_docs(&[(
         "docs/index.md",
         "# Index\n\n- [Overview](overview.md)\n",
-    )]);
+    )])
+    .await;
     let service = build_service(fixture.state.clone());
 
     assert_route_ticket(

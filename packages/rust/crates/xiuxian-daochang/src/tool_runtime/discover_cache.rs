@@ -30,7 +30,7 @@ pub(super) fn discover_cache_from_runtime() -> Result<Option<Arc<ToolDiscoverRea
 fn resolve_discover_cache_config() -> Option<ToolDiscoverCacheConfig> {
     let settings = load_runtime_settings();
 
-    let enabled = parse_bool_from_env("OMNI_AGENT_TOOL_DISCOVER_CACHE_ENABLED")
+    let enabled = parse_bool_from_env("XIUXIAN_DAOCHANG_TOOL_DISCOVER_CACHE_ENABLED")
         .or(settings.tool_runtime.discover_cache_enabled)
         .unwrap_or(true);
     if !enabled {
@@ -46,7 +46,7 @@ fn resolve_discover_cache_config() -> Option<ToolDiscoverCacheConfig> {
         .filter(|value| !value.is_empty())
         .or_else(resolve_valkey_url_env)?;
 
-    let key_prefix = env_non_empty!("OMNI_AGENT_TOOL_DISCOVER_CACHE_KEY_PREFIX")
+    let key_prefix = env_non_empty!("XIUXIAN_DAOCHANG_TOOL_DISCOVER_CACHE_KEY_PREFIX")
         .or_else(|| {
             settings
                 .tool_runtime
@@ -58,7 +58,7 @@ fn resolve_discover_cache_config() -> Option<ToolDiscoverCacheConfig> {
         })
         .unwrap_or_else(|| DEFAULT_DISCOVER_CACHE_KEY_PREFIX.to_string());
 
-    let ttl_secs = parse_positive_u64_from_env("OMNI_AGENT_TOOL_DISCOVER_CACHE_TTL_SECS")
+    let ttl_secs = parse_positive_u64_from_env("XIUXIAN_DAOCHANG_TOOL_DISCOVER_CACHE_TTL_SECS")
         .or(settings
             .tool_runtime
             .discover_cache_ttl_secs

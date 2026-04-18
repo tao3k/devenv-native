@@ -11,6 +11,10 @@ use crate::channels::managed_runtime::parsing::{
     parse_session_partition_command as parse_session_partition_shared,
     parse_session_partition_mode_token as parse_partition_mode_token,
 };
+use crate::channels::telegram::commands::{
+    SessionAdminCommand, SessionInjectionCommand, parse_session_admin_command,
+    parse_session_injection_command,
+};
 
 use super::super::super::session_partition::DiscordSessionPartition;
 
@@ -26,7 +30,9 @@ pub(super) enum ManagedCommand {
     SessionStatus(CommandOutputFormat),
     SessionBudget(CommandOutputFormat),
     SessionMemory(CommandOutputFormat),
+    SessionAdmin(SessionAdminCommand),
     SessionFeedback(SessionFeedbackCommand),
+    SessionInjection(SessionInjectionCommand),
     SessionMention(SessionMentionCommand),
     SessionPartition(SessionPartitionCommand),
     JobStatus {
@@ -62,8 +68,14 @@ pub(super) fn parse_managed_command(input: &str) -> Option<ManagedCommand> {
     if let Some(format) = parse_session_context_memory_command(input) {
         return Some(ManagedCommand::SessionMemory(format));
     }
+    if let Some(command) = parse_session_admin_command(input) {
+        return Some(ManagedCommand::SessionAdmin(command));
+    }
     if let Some(command) = parse_session_feedback_command(input) {
         return Some(ManagedCommand::SessionFeedback(command));
+    }
+    if let Some(command) = parse_session_injection_command(input) {
+        return Some(ManagedCommand::SessionInjection(command));
     }
     if let Some(command) = parse_job_status_command(input) {
         return Some(ManagedCommand::JobStatus {

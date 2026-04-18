@@ -4,56 +4,6 @@
   "description": "Parsed skill metadata from SKILL.md YAML frontmatter.",
   "type": "object",
   "properties": {
-    "authors": {
-      "description": "Authors who created or maintain this skill.",
-      "type": "array",
-      "default": [],
-      "items": {
-        "type": "string"
-      }
-    },
-    "description": {
-      "description": "Human-readable description of the skill's purpose.",
-      "type": "string",
-      "default": ""
-    },
-    "intents": {
-      "description": "Intents this skill can handle (for intent-based routing).",
-      "type": "array",
-      "default": [],
-      "items": {
-        "type": "string"
-      }
-    },
-    "permissions": {
-      "description": "Permissions required by this skill (e.g., \"filesystem:read\", \"network:http\")\nZero Trust: Empty permissions means NO access to any capabilities.",
-      "type": "array",
-      "default": [],
-      "items": {
-        "type": "string"
-      }
-    },
-    "repository": {
-      "description": "Repository URL for the skill source code.",
-      "type": "string",
-      "default": ""
-    },
-    "require_refs": {
-      "description": "Paths to required reference files or skills.",
-      "type": "array",
-      "default": [],
-      "items": {
-        "$ref": "#/$defs/ReferencePath"
-      }
-    },
-    "routing_keywords": {
-      "description": "Keywords used for semantic routing and skill selection.",
-      "type": "array",
-      "default": [],
-      "items": {
-        "type": "string"
-      }
-    },
     "skill_name": {
       "description": "Unique name identifying this skill.",
       "type": "string",
@@ -63,6 +13,56 @@
       "description": "Semantic version string (e.g., \"1.0.0\").",
       "type": "string",
       "default": ""
+    },
+    "description": {
+      "description": "Human-readable description of the skill's purpose.",
+      "type": "string",
+      "default": ""
+    },
+    "routing_keywords": {
+      "description": "Keywords used for semantic routing and skill selection.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "authors": {
+      "description": "Authors who created or maintain this skill.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "intents": {
+      "description": "Intents this skill can handle (for intent-based routing).",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "require_refs": {
+      "description": "Paths to required reference files or skills.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ReferencePath"
+      },
+      "default": []
+    },
+    "repository": {
+      "description": "Repository URL for the skill source code.",
+      "type": "string",
+      "default": ""
+    },
+    "permissions": {
+      "description": "Permissions required by this skill (e.g., \"filesystem:read\", \"network:http\")\nZero Trust: Empty permissions means NO access to any capabilities.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
     }
   },
   "$defs": {

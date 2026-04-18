@@ -7,7 +7,25 @@ pub(super) fn extract_update_message(
     update: &serde_json::Value,
 ) -> Option<ParsedTelegramUpdate<'_>> {
     let message = update.get("message")?;
-    let text = message.get("text").and_then(serde_json::Value::as_str)?;
+    let text = message
+        .get("text")
+        .and_then(serde_json::Value::as_str)
+        .or_else(|| message.get("caption").and_then(serde_json::Value::as_str))
+        .or_else(|| {
+            message
+                .get("photo")
+                .and_then(serde_json::Value::as_array)
+                .filter(|photos| !photos.is_empty())
+                .map(|_| "[telegram-photo]")
+        })
+        .or_else(|| {
+            message
+                .get("document")
+                .and_then(|document| document.get("mime_type"))
+                .and_then(serde_json::Value::as_str)
+                .filter(|mime| mime.starts_with("image/"))
+                .map(|_| "[telegram-image]")
+        })?;
     let chat = message.get("chat")?;
     let chat_id = chat
         .get("id")

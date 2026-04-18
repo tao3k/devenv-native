@@ -13,8 +13,7 @@ use super::helpers::{
     engine_string_column, engine_u64_column, exact_match_expression, exact_match_projection_column,
     filename_filter_expression, language_filter_expression, path_prefix_filter_expression,
     query_text_filter_expression, repo_content_detail_filter_expression,
-    stage1_global_order_clause, stage1_path_rank_expression, stage1_projected_repo_content_columns,
-    title_filter_expression,
+    stage1_global_order_clause, stage1_projected_repo_content_columns, title_filter_expression,
 };
 
 const MIN_RETAINED_PATHS: usize = 128;
@@ -40,9 +39,6 @@ pub(crate) fn build_repo_content_stage1_sql(
     .flatten()
     .collect::<Vec<_>>();
     let exact_match = exact_match_expression(raw_needle).unwrap_or_else(|| "false".to_string());
-    let path_rank = stage1_path_rank_expression(raw_needle).unwrap_or_else(|| {
-        "ROW_NUMBER() OVER (PARTITION BY path ORDER BY line_number ASC)".to_string()
-    });
     let where_clause =
         (!predicates.is_empty()).then(|| format!(" WHERE {}", predicates.join(" AND ")));
     let use_stage1_limit = query_lower.trim().len() < 8 && filters.tag_filters.is_empty();
@@ -57,7 +53,7 @@ pub(crate) fn build_repo_content_stage1_sql(
     };
 
     format!(
-        "SELECT {projections}, {exact_match_column} FROM (SELECT {projections}, {exact_match} AS {exact_match_column}, {path_rank} AS candidate_rank FROM {table_name}{where_clause}) AS ranked WHERE candidate_rank = 1{order_clause}",
+        "SELECT path, MIN(language) AS language, COALESCE(MIN(CASE WHEN {exact_match_column} THEN line_number END), MIN(line_number)) AS line_number, MIN(CASE WHEN {exact_match_column} THEN 0 ELSE 1 END) = 0 AS {exact_match_column} FROM (SELECT {projections}, {exact_match} AS {exact_match_column} FROM {table_name}{where_clause}) AS filtered GROUP BY path{order_clause}",
         exact_match_column = exact_match_projection_column(),
         where_clause = where_clause.unwrap_or_default(),
         order_clause = order_clause

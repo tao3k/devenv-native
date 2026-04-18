@@ -2,7 +2,7 @@
 
 :PROPERTIES:
 :ID: wendao-core-runtime-plugin-surface-inventory
-:PARENT: [[index]]
+:PARENT: [[index|Wendao DocOS Kernel: Map of Content]]
 :TAGS: roadmap, migration, plugins, core, runtime, julia, inventory
 :STATUS: ACTIVE
 :END:
@@ -1385,7 +1385,7 @@ extract_markdown_config_blocks}`
       Flight instead of through standalone HTTP business routes
 
 :RELATIONS:
-:LINKS: [[index]], [[06_roadmap/404_repo_intelligence_for_sciml_and_msl]], [[06_roadmap/405_large_rust_modularization]], [[docs/rfcs/2026-03-27-wendao-core-runtime-plugin-migration-rfc.md]]
+:LINKS: [[index|Wendao DocOS Kernel: Map of Content]], [[06_roadmap/404_repo_intelligence_for_sciml_and_msl|Repo Intelligence for SciML and MSL]], [[06_roadmap/405_large_rust_modularization|Large Rust File Modularization]], [[docs/rfcs/2026-03-27-wendao-core-runtime-plugin-migration-rfc.md|RFC: Wendao Core Runtime and Arrow Plugin Migration]]
 :END:
 
 ---

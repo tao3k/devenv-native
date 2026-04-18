@@ -1,10 +1,16 @@
 use crate::agent::Agent;
 use crate::agent::admission::{DownstreamAdmissionMetrics, DownstreamAdmissionPolicy};
 use crate::agent::bootstrap::native_tools::mount_native_tool_cauldron;
+use crate::agent::bootstrap::qianhuan::init_persona_registries;
 use crate::agent::bootstrap::service_mount::ServiceMountCatalog;
+use crate::agent::bootstrap::zhixing::{
+    load_skill_templates_from_embedded_registry, resolve_notebook_root,
+    resolve_prj_data_home_with_env, resolve_project_root_with_prj_root,
+    resolve_template_globs_with_resource_root,
+};
 use crate::agent::memory_state::{MemoryStateBackend, MemoryStateLoadStatus};
 use crate::config::AgentConfig;
-use crate::config::{load_runtime_settings, load_xiuxian_config};
+use crate::config::{XiuxianConfig, load_runtime_settings, load_xiuxian_config};
 use crate::embedding::EmbeddingClient;
 use crate::llm::LlmClient;
 use crate::observability::SessionEvent;
@@ -17,6 +23,26 @@ use std::time::{Duration, Instant};
 use tokio::sync::RwLock;
 use xiuxian_llm::embedding::runtime::EmbeddingRuntime;
 use xiuxian_memory_engine::{EpisodeStore, StoreConfig};
+use xiuxian_qianhuan::{ManifestationInterface, ManifestationManager};
+use xiuxian_wendao::graph::KnowledgeGraph;
+use xiuxian_zhixing::{ZhixingHeyi, storage::MarkdownStorage};
+
+const EMBEDDED_DAILY_AGENDA_TEMPLATE: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/resources/zhixing/templates/daily_agenda.md"
+));
+const EMBEDDED_JOURNAL_REFLECTION_TEMPLATE: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/resources/zhixing/templates/journal_reflection.md"
+));
+const EMBEDDED_REMINDER_NOTICE_TEMPLATE: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/resources/zhixing/templates/reminder_notice.md"
+));
+const EMBEDDED_TASK_ADD_RESPONSE_TEMPLATE: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/resources/zhixing/templates/task_add_response.md"
+));
 
 impl Agent {
     /// Build agent from config. Connects to configured external tool servers when present.
@@ -35,7 +61,7 @@ impl Agent {
             )?),
             None => None,
         };
-        Self::build_with_backends(config, llm, session, bounded_session).await
+        Self::build_with_backends(config, llm, session, bounded_session, None).await
     }
 
     #[doc(hidden)]
@@ -48,7 +74,7 @@ impl Agent {
     ) -> Result<Self> {
         let api_key = config.resolve_api_key();
         let llm = LlmClient::new(config.inference_url.clone(), config.model.clone(), api_key);
-        Self::build_with_backends(config, llm, session, bounded_session).await
+        Self::build_with_backends(config, llm, session, bounded_session, None).await
     }
 
     #[doc(hidden)]
@@ -62,10 +88,7 @@ impl Agent {
     ) -> Result<Self> {
         let api_key = config.resolve_api_key();
         let llm = LlmClient::new(config.inference_url.clone(), config.model.clone(), api_key);
-        let mut agent = Self::build_with_backends(config, llm, session, bounded_session).await?;
-        agent.native_tools = Arc::new(native_tools);
-        agent.service_mount_records = Arc::new(RwLock::new(Vec::new()));
-        Ok(agent)
+        Self::build_with_backends(config, llm, session, bounded_session, Some(native_tools)).await
     }
 
     #[doc(hidden)]
@@ -78,6 +101,7 @@ impl Agent {
         llm: LlmClient,
         session: SessionStore,
         bounded_session: Option<BoundedSessionStore>,
+        native_tools_override: Option<crate::agent::native_tools::registry::NativeToolRegistry>,
     ) -> Result<Self> {
         let tool_runtime =
             crate::agent::tool_startup::connect_tool_pool_if_configured(&config).await?;
@@ -96,7 +120,7 @@ impl Agent {
                 .filter(|value| !value.is_empty())
                 .map(ToString::to_string)
                 .or_else(|| {
-                    std::env::var("OMNI_AGENT_EMBED_BASE_URL")
+                    std::env::var("XIUXIAN_DAOCHANG_EMBED_BASE_URL")
                         .ok()
                         .map(|value| value.trim().to_string())
                         .filter(|value| !value.is_empty())
@@ -119,29 +143,35 @@ impl Agent {
         let embedding_runtime = config.memory.as_ref().map(|_| {
             Arc::new(EmbeddingRuntime::new(
                 duration_from_env_ms(
-                    "OMNI_AGENT_MEMORY_EMBED_TIMEOUT_MS",
+                    "XIUXIAN_DAOCHANG_MEMORY_EMBED_TIMEOUT_MS",
                     duration_to_u64_millis(crate::agent::DEFAULT_MEMORY_EMBED_TIMEOUT),
                     crate::agent::MIN_MEMORY_EMBED_TIMEOUT_MS,
                     crate::agent::MAX_MEMORY_EMBED_TIMEOUT_MS,
                 ),
                 duration_from_env_ms(
-                    "OMNI_AGENT_MEMORY_EMBED_TIMEOUT_COOLDOWN_MS",
+                    "XIUXIAN_DAOCHANG_MEMORY_EMBED_TIMEOUT_COOLDOWN_MS",
                     duration_to_u64_millis(crate::agent::DEFAULT_MEMORY_EMBED_TIMEOUT_COOLDOWN),
                     0,
                     crate::agent::MAX_MEMORY_EMBED_COOLDOWN_MS,
                 ),
             ))
         });
-        let mut native_tools = crate::agent::native_tools::registry::NativeToolRegistry::new();
-        let mut service_mounts = ServiceMountCatalog::new();
-        let xiuxian_cfg = load_xiuxian_config();
-        mount_native_tool_cauldron(
-            Some(&xiuxian_cfg),
-            None,
-            None,
-            &mut native_tools,
-            &mut service_mounts,
-        );
+        let (native_tools, heyi) = if let Some(native_tools) = native_tools_override {
+            (native_tools, None)
+        } else {
+            let mut native_tools = crate::agent::native_tools::registry::NativeToolRegistry::new();
+            let mut service_mounts = ServiceMountCatalog::new();
+            let xiuxian_cfg = load_xiuxian_config();
+            let heyi = init_zhixing_runtime(&xiuxian_cfg, &mut service_mounts)?;
+            mount_native_tool_cauldron(
+                Some(&xiuxian_cfg),
+                heyi.as_ref(),
+                None,
+                &mut native_tools,
+                &mut service_mounts,
+            );
+            (native_tools, heyi)
+        };
 
         Ok(Self {
             config,
@@ -163,7 +193,7 @@ impl Agent {
             reflection_policy_hints: Arc::new(RwLock::new(HashMap::new())),
             memory_decay_turn_counter: Arc::new(AtomicU64::new(0)),
             native_tools: Arc::new(native_tools),
-            heyi: None,
+            heyi,
             zhenfa_tools: None,
             downstream_admission_policy: DownstreamAdmissionPolicy::from_env(),
             downstream_admission_metrics: DownstreamAdmissionMetrics::default(),
@@ -174,6 +204,92 @@ impl Agent {
             service_mount_records: Arc::new(RwLock::new(Vec::new())),
         })
     }
+}
+
+fn init_zhixing_runtime(
+    xiuxian_cfg: &XiuxianConfig,
+    mounts: &mut ServiceMountCatalog,
+) -> Result<Option<Arc<ZhixingHeyi>>> {
+    let current_dir = std::env::current_dir().context("resolve current directory for zhixing")?;
+    let prj_root = std::env::var("PRJ_ROOT").ok();
+    let project_root =
+        resolve_project_root_with_prj_root(prj_root.as_deref(), current_dir.as_path());
+    let prj_data_home = resolve_prj_data_home_with_env(
+        project_root.as_path(),
+        std::env::var("PRJ_DATA_HOME").ok().as_deref(),
+    );
+    let notebook_root = resolve_notebook_root(
+        prj_data_home.as_path(),
+        None,
+        xiuxian_cfg.wendao.zhixing.notebook_path.clone(),
+    );
+    std::fs::create_dir_all(&notebook_root).with_context(|| {
+        format!(
+            "create zhixing notebook root at {}",
+            notebook_root.to_string_lossy()
+        )
+    })?;
+
+    let resource_root = project_root.join("packages/rust/crates/xiuxian-daochang/resources");
+    let template_globs = resolve_template_globs_with_resource_root(
+        project_root.as_path(),
+        xiuxian_cfg.wendao.zhixing.template_paths.clone(),
+        Some(resource_root.to_string_lossy().as_ref()),
+    );
+    let template_glob_refs = template_globs
+        .iter()
+        .map(String::as_str)
+        .collect::<Vec<_>>();
+    let manifestation = Arc::new(
+        ManifestationManager::new_with_embedded_templates(
+            &template_glob_refs,
+            &[
+                ("daily_agenda.md", EMBEDDED_DAILY_AGENDA_TEMPLATE),
+                (
+                    "journal_reflection.md",
+                    EMBEDDED_JOURNAL_REFLECTION_TEMPLATE,
+                ),
+                ("reminder_notice.md", EMBEDDED_REMINDER_NOTICE_TEMPLATE),
+                ("task_add_response.md", EMBEDDED_TASK_ADD_RESPONSE_TEMPLATE),
+            ],
+        )
+        .context("initialize zhixing manifestation templates")?,
+    );
+    if let Err(error) = load_skill_templates_from_embedded_registry(manifestation.as_ref()) {
+        tracing::warn!(
+            error = %error,
+            "failed to load embedded zhixing skill templates into manifestation manager"
+        );
+    }
+
+    let persona_registries = init_persona_registries(project_root.as_path(), xiuxian_cfg, mounts);
+    let active_persona = xiuxian_cfg
+        .wendao
+        .zhixing
+        .persona_id
+        .as_deref()
+        .and_then(|persona_id| persona_registries.internal.get(persona_id));
+    let graph = Arc::new(KnowledgeGraph::new());
+    let storage = Arc::new(MarkdownStorage::new(notebook_root));
+    let scope_key = zhixing_scope_key(project_root.as_path());
+    let time_zone = xiuxian_cfg
+        .wendao
+        .zhixing
+        .time_zone
+        .as_deref()
+        .unwrap_or("UTC");
+    let manifestation: Arc<dyn ManifestationInterface> = manifestation;
+    let heyi = ZhixingHeyi::new(graph, manifestation, storage, scope_key, time_zone)
+        .context("initialize zhixing heyi runtime")?
+        .with_active_persona(active_persona);
+    Ok(Some(Arc::new(heyi)))
+}
+
+fn zhixing_scope_key(project_root: &std::path::Path) -> String {
+    project_root
+        .file_name()
+        .and_then(|name| name.to_str())
+        .map_or_else(|| "xiuxian-daochang".to_string(), ToString::to_string)
 }
 
 type MemoryBackendInit = (

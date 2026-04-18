@@ -1,10 +1,11 @@
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use std::sync::OnceLock;
+use std::sync::{OnceLock, RwLock};
 
 use serde::Deserialize;
 use xiuxian_config_core::{
-    absolutize_path, resolve_config_home as resolve_config_home_path, resolve_project_root_or_cwd,
+    absolutize_path, load_toml_value_with_imports_and_paths,
+    resolve_config_home as resolve_config_home_path, resolve_project_root_or_cwd,
 };
 
 use super::{EmbeddingSettings, MistralSettings, RuntimeSettings};
@@ -18,8 +19,12 @@ const EMBEDDED_SYSTEM_SETTINGS_TOML: &str = include_str!(concat!(
     "/resources/config/xiuxian.toml"
 ));
 
-static CONFIG_HOME_OVERRIDE: OnceLock<PathBuf> = OnceLock::new();
+static CONFIG_HOME_OVERRIDE: OnceLock<RwLock<Option<PathBuf>>> = OnceLock::new();
 static EMBEDDED_SYSTEM_SETTINGS: OnceLock<RuntimeSettings> = OnceLock::new();
+
+fn config_home_override() -> &'static RwLock<Option<PathBuf>> {
+    CONFIG_HOME_OVERRIDE.get_or_init(|| RwLock::new(None))
+}
 
 /// Load merged runtime settings from embedded defaults and cascading system/user paths.
 #[must_use]
@@ -57,7 +62,10 @@ pub fn runtime_settings_paths() -> (PathBuf, PathBuf) {
 #[doc(hidden)]
 #[must_use]
 pub fn load_runtime_settings_from_paths(system: &Path, user: &Path) -> RuntimeSettings {
-    load_one(system).merge(load_one(user))
+    let (project_root, config_home) = explicit_path_context(system, user);
+    load_one_with_paths(system, project_root.as_deref(), config_home.as_deref()).merge(
+        load_one_with_paths(user, project_root.as_deref(), config_home.as_deref()),
+    )
 }
 
 fn tolerant_load_runtime_settings(project_root: &Path, config_home: &Path) -> RuntimeSettings {
@@ -240,27 +248,35 @@ fn merge_mistral_settings(base: MistralSettings, overlay: MistralSettings) -> Mi
 }
 
 fn load_one(path: &Path) -> RuntimeSettings {
+    load_one_with_paths(path, None, None)
+}
+
+fn load_one_with_paths(
+    path: &Path,
+    project_root: Option<&Path>,
+    config_home: Option<&Path>,
+) -> RuntimeSettings {
     if !path.is_file() {
         return RuntimeSettings::default();
     }
-    let raw = match std::fs::read_to_string(path) {
-        Ok(raw) => raw,
+    let merged = match load_toml_value_with_imports_and_paths(path, project_root, config_home) {
+        Ok(merged) => merged,
         Err(error) => {
             tracing::warn!(
                 path = %path.display(),
                 error = %error,
-                "failed to read settings file; ignoring"
+                "failed to load settings file via config-core; ignoring"
             );
             return RuntimeSettings::default();
         }
     };
-    match toml::from_str::<RuntimeSettingsTomlBridge>(&raw) {
+    match merged.try_into::<RuntimeSettingsTomlBridge>() {
         Ok(bridge) => bridge.into_runtime_settings(),
         Err(error) => {
             tracing::warn!(
                 path = %path.display(),
                 error = %error,
-                "failed to parse settings toml; ignoring file"
+                "failed to parse merged settings toml; ignoring file"
             );
             RuntimeSettings::default()
         }
@@ -289,23 +305,63 @@ pub fn set_config_home_override(path: impl Into<PathBuf>) {
     if path.as_os_str().is_empty() {
         return;
     }
-    if CONFIG_HOME_OVERRIDE.set(path.clone()).is_err()
-        && let Some(current) = CONFIG_HOME_OVERRIDE.get()
-        && current != &path
-    {
-        tracing::warn!(
-            current = %current.display(),
-            ignored = %path.display(),
-            "config home override already set; ignoring subsequent value"
-        );
-    }
+    let mut guard = config_home_override()
+        .write()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    *guard = Some(path);
 }
 
 fn resolve_config_home(project_root: &Path) -> PathBuf {
-    if let Some(path) = CONFIG_HOME_OVERRIDE.get() {
+    if let Some(path) = config_home_override()
+        .read()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+        .clone()
+    {
         return absolutize_path(project_root, path.as_path());
     }
 
     resolve_config_home_path(Some(project_root))
         .unwrap_or_else(|| project_root.join(DEFAULT_CONFIG_HOME_RELATIVE_PATH))
+}
+
+fn explicit_path_context(system: &Path, user: &Path) -> (Option<PathBuf>, Option<PathBuf>) {
+    let base_root = resolve_project_root_or_cwd();
+    let system_path = absolutize_path(base_root.as_path(), system);
+    let user_path = absolutize_path(base_root.as_path(), user);
+    let project_root =
+        common_ancestor(system_path.as_path(), user_path.as_path()).or(Some(base_root));
+    let config_home = infer_config_home(user_path.as_path(), project_root.as_deref());
+    (project_root, config_home)
+}
+
+fn infer_config_home(user_path: &Path, project_root: Option<&Path>) -> Option<PathBuf> {
+    for ancestor in user_path.ancestors() {
+        if ancestor
+            .file_name()
+            .is_some_and(|name| name == DEFAULT_CONFIG_HOME_RELATIVE_PATH)
+        {
+            return Some(ancestor.to_path_buf());
+        }
+    }
+
+    project_root.map(|root| root.join(DEFAULT_CONFIG_HOME_RELATIVE_PATH))
+}
+
+fn common_ancestor(left: &Path, right: &Path) -> Option<PathBuf> {
+    let left_components = left.components().collect::<Vec<_>>();
+    let right_components = right.components().collect::<Vec<_>>();
+    let shared_len = left_components
+        .iter()
+        .zip(right_components.iter())
+        .take_while(|(lhs, rhs)| lhs == rhs)
+        .count();
+    if shared_len == 0 {
+        return None;
+    }
+
+    let mut shared = PathBuf::new();
+    for component in left_components.into_iter().take(shared_len) {
+        shared.push(component.as_os_str());
+    }
+    Some(shared)
 }

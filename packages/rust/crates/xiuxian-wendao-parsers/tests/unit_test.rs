@@ -10,6 +10,8 @@ mod code_observation;
 mod document;
 #[path = "unit/frontmatter.rs"]
 mod frontmatter;
+#[path = "unit/lint.rs"]
+mod lint;
 #[path = "unit/note.rs"]
 mod note;
 #[path = "unit/references.rs"]

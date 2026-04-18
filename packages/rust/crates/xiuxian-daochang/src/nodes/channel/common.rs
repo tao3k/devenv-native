@@ -12,8 +12,8 @@ pub(super) fn apply_channel_embedding_memory_guard(
 ) -> RuntimeSettings {
     apply_channel_embedding_memory_guard_for_tests(
         runtime_settings,
-        env_non_empty!("OMNI_AGENT_MEMORY_EMBEDDING_BACKEND").as_deref(),
-        env_non_empty!("OMNI_AGENT_EMBED_BACKEND").as_deref(),
+        env_non_empty!("XIUXIAN_DAOCHANG_MEMORY_EMBEDDING_BACKEND").as_deref(),
+        env_non_empty!("XIUXIAN_DAOCHANG_EMBED_BACKEND").as_deref(),
         false,
     )
 }

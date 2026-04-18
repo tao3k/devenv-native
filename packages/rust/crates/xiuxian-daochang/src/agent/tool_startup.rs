@@ -62,9 +62,8 @@ async fn wait_for_structured_tool_health_ready(
     let poll_interval = Duration::from_millis(100);
 
     loop {
-        let response = match client.get(&health_url).send().await {
-            Ok(response) => response,
-            Err(_) => return Ok(()),
+        let Ok(response) = client.get(&health_url).send().await else {
+            return Ok(());
         };
         if !response.status().is_success() {
             return Ok(());

@@ -2,6 +2,7 @@
 
 use crate::contracts::{NodeStatus, QianjiOutput};
 use crate::engine::QianjiEngine;
+use crate::scheduler::preflight::resolve_wendao_placeholders_in_context;
 use petgraph::Direction;
 use petgraph::stable_graph::NodeIndex;
 use petgraph::visit::EdgeRef;
@@ -31,19 +32,11 @@ pub(crate) fn spawn_node_execution_task(
             engine.graph[node_idx].mechanism.clone()
         };
 
-        let result = mechanism.execute(&context_clone).await;
-
-        let mut engine = engine_clone.write().await;
-        match result {
-            Ok(out) => {
-                engine.graph[node_idx].status = NodeStatus::Completed;
-                (node_idx, Ok(out))
-            }
-            Err(error) => {
-                engine.graph[node_idx].status = NodeStatus::Failed(error.clone());
-                (node_idx, Err(error))
-            }
-        }
+        let result = match resolve_wendao_placeholders_in_context(&context_clone) {
+            Ok(preflight_context) => mechanism.execute(&preflight_context).await,
+            Err(error) => Err(error),
+        };
+        (node_idx, result)
     })
 }
 

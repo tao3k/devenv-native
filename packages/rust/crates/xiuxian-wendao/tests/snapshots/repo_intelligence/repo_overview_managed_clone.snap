@@ -1,6 +1,6 @@
 ---
 source: packages/rust/crates/xiuxian-wendao/tests/integration/support/../../support/repo_intelligence.rs
-assertion_line: 34
+assertion_line: 33
 expression: value
 ---
 {
@@ -21,18 +21,60 @@ expression: value
       "title": "guide"
     },
     {
-      "doc_id": "repo:managed:doc:src/ManagedPkg.jl#symbol:Problem",
+      "doc_id": "repo:managed:doc:src/ManagedPkg.jl#symbol-id:repo:managed:symbol:ManagedPkg.Problem",
+      "doc_target": {
+        "kind": "symbol",
+        "line_end": 13,
+        "line_start": 11,
+        "name": "Problem",
+        "path": "ManagedPkg.Problem"
+      },
       "format": "julia_docstring",
-      "path": "src/ManagedPkg.jl#symbol:Problem",
+      "path": "src/ManagedPkg.jl#symbol-id:repo:managed:symbol:ManagedPkg.Problem",
       "repo_id": "managed",
       "title": "Problem"
     },
     {
-      "doc_id": "repo:managed:doc:src/ManagedPkg.jl#symbol:solve",
+      "doc_id": "repo:managed:doc:src/ManagedPkg.jl#symbol-id:repo:managed:symbol:ManagedPkg.solve",
+      "doc_target": {
+        "kind": "symbol",
+        "line_end": 20,
+        "line_start": 18,
+        "name": "solve",
+        "path": "ManagedPkg.solve"
+      },
       "format": "julia_docstring",
-      "path": "src/ManagedPkg.jl#symbol:solve",
+      "path": "src/ManagedPkg.jl#symbol-id:repo:managed:symbol:ManagedPkg.solve",
       "repo_id": "managed",
       "title": "solve"
+    },
+    {
+      "doc_id": "repo:managed:doc:src/solvers.jl#symbol-id:repo:managed:symbol:ManagedPkg.fastsolve",
+      "doc_target": {
+        "kind": "symbol",
+        "line_end": 5,
+        "line_start": 5,
+        "name": "fastsolve",
+        "path": "fastsolve"
+      },
+      "format": "julia_docstring",
+      "path": "src/solvers.jl#symbol-id:repo:managed:symbol:ManagedPkg.fastsolve",
+      "repo_id": "managed",
+      "title": "fastsolve"
+    },
+    {
+      "doc_id": "repo:managed:doc:src/nested/extra.jl#symbol-id:repo:managed:symbol:ManagedPkg.ExtraProblem",
+      "doc_target": {
+        "kind": "symbol",
+        "line_end": 7,
+        "line_start": 5,
+        "name": "ExtraProblem",
+        "path": "ExtraProblem"
+      },
+      "format": "julia_docstring",
+      "path": "src/nested/extra.jl#symbol-id:repo:managed:symbol:ManagedPkg.ExtraProblem",
+      "repo_id": "managed",
+      "title": "ExtraProblem"
     }
   ],
   "examples": [
@@ -75,14 +117,26 @@ expression: value
     {
       "kind": "documents",
       "repo_id": "managed",
-      "source_id": "repo:managed:doc:src/ManagedPkg.jl#symbol:Problem",
+      "source_id": "repo:managed:doc:src/ManagedPkg.jl#symbol-id:repo:managed:symbol:ManagedPkg.Problem",
       "target_id": "repo:managed:symbol:ManagedPkg.Problem"
     },
     {
       "kind": "documents",
       "repo_id": "managed",
-      "source_id": "repo:managed:doc:src/ManagedPkg.jl#symbol:solve",
+      "source_id": "repo:managed:doc:src/ManagedPkg.jl#symbol-id:repo:managed:symbol:ManagedPkg.solve",
       "target_id": "repo:managed:symbol:ManagedPkg.solve"
+    },
+    {
+      "kind": "documents",
+      "repo_id": "managed",
+      "source_id": "repo:managed:doc:src/solvers.jl#symbol-id:repo:managed:symbol:ManagedPkg.fastsolve",
+      "target_id": "repo:managed:symbol:ManagedPkg.fastsolve"
+    },
+    {
+      "kind": "documents",
+      "repo_id": "managed",
+      "source_id": "repo:managed:doc:src/nested/extra.jl#symbol-id:repo:managed:symbol:ManagedPkg.ExtraProblem",
+      "target_id": "repo:managed:symbol:ManagedPkg.ExtraProblem"
     },
     {
       "kind": "contains",
@@ -94,7 +148,19 @@ expression: value
       "kind": "declares",
       "repo_id": "managed",
       "source_id": "repo:managed:module:ManagedPkg",
+      "target_id": "repo:managed:symbol:ManagedPkg.ExtraProblem"
+    },
+    {
+      "kind": "declares",
+      "repo_id": "managed",
+      "source_id": "repo:managed:module:ManagedPkg",
       "target_id": "repo:managed:symbol:ManagedPkg.Problem"
+    },
+    {
+      "kind": "declares",
+      "repo_id": "managed",
+      "source_id": "repo:managed:module:ManagedPkg",
+      "target_id": "repo:managed:symbol:ManagedPkg.fastsolve"
     },
     {
       "kind": "declares",
@@ -130,13 +196,25 @@ expression: value
       "kind": "contains",
       "repo_id": "managed",
       "source_id": "repo:managed",
-      "target_id": "repo:managed:doc:src/ManagedPkg.jl#symbol:Problem"
+      "target_id": "repo:managed:doc:src/ManagedPkg.jl#symbol-id:repo:managed:symbol:ManagedPkg.Problem"
     },
     {
       "kind": "contains",
       "repo_id": "managed",
       "source_id": "repo:managed",
-      "target_id": "repo:managed:doc:src/ManagedPkg.jl#symbol:solve"
+      "target_id": "repo:managed:doc:src/ManagedPkg.jl#symbol-id:repo:managed:symbol:ManagedPkg.solve"
+    },
+    {
+      "kind": "contains",
+      "repo_id": "managed",
+      "source_id": "repo:managed",
+      "target_id": "repo:managed:doc:src/solvers.jl#symbol-id:repo:managed:symbol:ManagedPkg.fastsolve"
+    },
+    {
+      "kind": "contains",
+      "repo_id": "managed",
+      "source_id": "repo:managed",
+      "target_id": "repo:managed:doc:src/nested/extra.jl#symbol-id:repo:managed:symbol:ManagedPkg.ExtraProblem"
     },
     {
       "kind": "documents",
@@ -160,24 +238,88 @@ expression: value
   },
   "symbols": [
     {
+      "attributes": {
+        "parser_kind": "type",
+        "top_level": "true",
+        "type_kind": "struct"
+      },
       "audit_status": "unreviewed",
       "kind": "type",
-      "line_end": null,
-      "line_start": null,
+      "line_end": 7,
+      "line_start": 5,
+      "module_id": "repo:managed:module:ManagedPkg",
+      "name": "ExtraProblem",
+      "path": "src/nested/extra.jl",
+      "qualified_name": "ManagedPkg.ExtraProblem",
+      "repo_id": "managed",
+      "signature": "struct ExtraProblem",
+      "symbol_id": "repo:managed:symbol:ManagedPkg.ExtraProblem",
+      "verification_state": "verified"
+    },
+    {
+      "attributes": {
+        "module_kind": "module",
+        "module_name": "ManagedPkg",
+        "module_path": "ManagedPkg",
+        "owner_kind": "module",
+        "owner_name": "ManagedPkg",
+        "owner_path": "ManagedPkg",
+        "parser_kind": "type",
+        "top_level": "true",
+        "type_kind": "struct"
+      },
+      "audit_status": "unreviewed",
+      "kind": "type",
+      "line_end": 13,
+      "line_start": 11,
       "module_id": "repo:managed:module:ManagedPkg",
       "name": "Problem",
       "path": "src/ManagedPkg.jl",
       "qualified_name": "ManagedPkg.Problem",
       "repo_id": "managed",
-      "signature": null,
+      "signature": "struct Problem",
       "symbol_id": "repo:managed:symbol:ManagedPkg.Problem",
       "verification_state": "verified"
     },
     {
+      "attributes": {
+        "function_has_varargs": "false",
+        "function_keyword_arity": "0",
+        "function_positional_arity": "1",
+        "parser_kind": "function",
+        "top_level": "true"
+      },
       "audit_status": "unreviewed",
       "kind": "function",
-      "line_end": null,
-      "line_start": null,
+      "line_end": 5,
+      "line_start": 5,
+      "module_id": "repo:managed:module:ManagedPkg",
+      "name": "fastsolve",
+      "path": "src/solvers.jl",
+      "qualified_name": "ManagedPkg.fastsolve",
+      "repo_id": "managed",
+      "signature": "fastsolve(problem::Problem) = problem.x",
+      "symbol_id": "repo:managed:symbol:ManagedPkg.fastsolve",
+      "verification_state": "verified"
+    },
+    {
+      "attributes": {
+        "function_has_varargs": "false",
+        "function_keyword_arity": "0",
+        "function_positional_arity": "1",
+        "module_kind": "module",
+        "module_name": "ManagedPkg",
+        "module_path": "ManagedPkg",
+        "owner_kind": "module",
+        "owner_name": "ManagedPkg",
+        "owner_path": "ManagedPkg",
+        "parser_kind": "function",
+        "top_level": "true"
+      },
+      "audit_status": "unreviewed",
+      "kind": "function",
+      "line_end": 20,
+      "line_start": 18,
       "module_id": "repo:managed:module:ManagedPkg",
       "name": "solve",
       "path": "src/ManagedPkg.jl",

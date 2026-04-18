@@ -143,5 +143,5 @@ impl Default for ContextAssembler {
 }
 
 #[cfg(all(test, feature = "assembler"))]
-#[path = "../tests/unit/assembler.rs"]
+#[path = "../tests/unit/assembler/mod.rs"]
 mod tests;

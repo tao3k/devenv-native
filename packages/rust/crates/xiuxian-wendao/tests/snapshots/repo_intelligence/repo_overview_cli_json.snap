@@ -1,11 +1,11 @@
 ---
 source: packages/rust/crates/xiuxian-wendao/tests/integration/support/../../support/repo_intelligence.rs
-assertion_line: 34
+assertion_line: 33
 expression: value
 ---
 {
   "display_name": "CliPkg",
-  "doc_count": 4,
+  "doc_count": 6,
   "example_count": 2,
   "hierarchical_uri": "repo://cli-sample",
   "hierarchy": [
@@ -15,5 +15,5 @@ expression: value
   "module_count": 1,
   "repo_id": "cli-sample",
   "revision": "[revision]",
-  "symbol_count": 2
+  "symbol_count": 4
 }

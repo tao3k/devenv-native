@@ -1,6 +1,8 @@
 use crate::xml::SYSTEM_PROMPT_INJECTION_TAG;
 use anyhow::{Result, anyhow};
 use std::collections::BTreeMap;
+use std::collections::hash_map::DefaultHasher;
+use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
 use std::sync::RwLock;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -131,6 +133,7 @@ struct TemplateFileStamp {
     path: PathBuf,
     modified_unix_millis: u128,
     size_bytes: u64,
+    content_hash: u64,
 }
 
 fn build_runtime_state(template_dirs: &[PathBuf]) -> Result<TemplateRuntimeState> {
@@ -222,6 +225,7 @@ fn capture_snapshot(template_dirs: &[PathBuf]) -> Result<TemplateSnapshot> {
                     template_file.display()
                 )
             })?;
+            let content_hash = hash_template_file(&template_file)?;
             let modified = metadata.modified().unwrap_or(SystemTime::UNIX_EPOCH);
             let modified_unix_millis = modified
                 .duration_since(UNIX_EPOCH)
@@ -231,11 +235,20 @@ fn capture_snapshot(template_dirs: &[PathBuf]) -> Result<TemplateSnapshot> {
                 path: template_file,
                 modified_unix_millis,
                 size_bytes: metadata.len(),
+                content_hash,
             });
         }
     }
     files.sort();
     Ok(TemplateSnapshot { files })
+}
+
+fn hash_template_file(path: &Path) -> Result<u64> {
+    let contents = std::fs::read(path)
+        .map_err(|error| anyhow!("failed to read template file {}: {error}", path.display()))?;
+    let mut hasher = DefaultHasher::new();
+    contents.hash(&mut hasher);
+    Ok(hasher.finish())
 }
 
 /// Resolves ordered system prompt template directories.

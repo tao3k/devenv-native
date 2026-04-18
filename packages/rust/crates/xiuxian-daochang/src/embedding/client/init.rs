@@ -57,12 +57,12 @@ impl EmbeddingClient {
     ) -> Self {
         let backend_settings = resolve_backend_settings(timeout_secs, backend_hint);
         let cache_ttl_secs = parse_positive_env_u64(
-            "OMNI_AGENT_EMBED_CACHE_TTL_SECS",
+            "XIUXIAN_DAOCHANG_EMBED_CACHE_TTL_SECS",
             DEFAULT_EMBED_CACHE_TTL_SECS,
             MAX_EMBED_CACHE_TTL_SECS,
         );
         let cache_max_entries = parse_positive_env_usize(
-            "OMNI_AGENT_EMBED_CACHE_MAX_ENTRIES",
+            "XIUXIAN_DAOCHANG_EMBED_CACHE_MAX_ENTRIES",
             DEFAULT_EMBED_CACHE_MAX_ENTRIES,
             MAX_EMBED_CACHE_MAX_ENTRIES,
         );
@@ -72,7 +72,7 @@ impl EmbeddingClient {
             .map_or_else(
                 || {
                     parse_positive_env_usize(
-                        "OMNI_AGENT_EMBED_BATCH_MAX_SIZE",
+                        "XIUXIAN_DAOCHANG_EMBED_BATCH_MAX_SIZE",
                         DEFAULT_EMBED_BATCH_MAX_SIZE,
                         MAX_EMBED_BATCH_MAX_SIZE,
                     )
@@ -85,7 +85,7 @@ impl EmbeddingClient {
             .map_or_else(
                 || {
                     parse_positive_env_usize(
-                        "OMNI_AGENT_EMBED_BATCH_MAX_CONCURRENCY",
+                        "XIUXIAN_DAOCHANG_EMBED_BATCH_MAX_CONCURRENCY",
                         DEFAULT_EMBED_BATCH_MAX_CONCURRENCY,
                         MAX_EMBED_BATCH_MAX_CONCURRENCY,
                     )

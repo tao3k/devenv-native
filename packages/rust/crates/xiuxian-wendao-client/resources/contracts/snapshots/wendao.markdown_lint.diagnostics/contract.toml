@@ -1,0 +1,120 @@
+id = "wendao.markdown_lint.diagnostics"
+version = 1
+task_types = [
+    "cli_call",
+    "diagnostic_render",
+]
+
+[cli]
+argv = [
+    "wendao",
+    "lint",
+    "markdown",
+]
+positionals = ["paths"]
+
+[cli.flags]
+output = "--output"
+root = "--root"
+skip_dirs = "--skip-dir"
+
+[output]
+format = "markdown_lint_report"
+schema = "schema.json"
+
+[[params]]
+name = "paths"
+type = "string_array"
+required = false
+
+[[params]]
+name = "root"
+type = "string"
+required = false
+default = "."
+
+[[params]]
+name = "output"
+type = "string"
+required = false
+default = "text"
+
+[[params]]
+name = "skip_dirs"
+type = "string_array"
+required = false
+
+[[rules]]
+code = "invalid_utf8"
+problem = "Markdown file is not valid UTF-8."
+detail_strategy = "utf8_error_message"
+expected = "Encode the file as UTF-8 before linting it."
+
+[[rules]]
+code = "unclosed_frontmatter"
+problem = "YAML frontmatter opens but never closes."
+detail_strategy = "parser_message"
+found = "---"
+expected = "Close the frontmatter with `---` or `...` before the document body begins."
+
+[[rules]]
+code = "invalid_frontmatter_yaml"
+problem = "YAML frontmatter is syntactically invalid."
+detail_strategy = "parser_message"
+found_strategy = "source_line"
+expected = "Keep valid YAML between the opening and closing frontmatter fences."
+
+[[rules]]
+code = "unclosed_fence"
+problem = "Fenced code block opens but never closes."
+detail_strategy = "parser_message"
+found_strategy = "source_line"
+expected = "Add a closing fence with the same marker type and at least the same width."
+
+[[rules]]
+code = "bare_obsidian_wikilink"
+problem = "Obsidian officially allows bare wikilinks, but repository authoring policy requires an explicit display label."
+detail = "Keep the official Obsidian target, but add a descriptive display label for repository and LLM-facing authoring."
+found_strategy = "link_literal"
+expected_strategy = "rewrite_with_markdown"
+tip_strategy = "display_label_tip"
+
+[[rules]]
+code = "redundant_obsidian_label"
+problem_strategy = "redundant_label_problem"
+detail = "The explicit label should add human-readable namespace meaning instead of echoing the raw path or heading."
+found_strategy = "link_literal"
+expected_strategy = "rewrite_with_markdown"
+tip_strategy = "display_label_tip"
+
+[[rules]]
+code = "mixed_wikilink_markdown_link"
+problem = "Wikilink brackets and Markdown link parentheses are mixed into one invalid link under Obsidian official syntax."
+detail = "Choose either official Obsidian wikilink syntax or standard Markdown link syntax."
+found_strategy = "link_literal"
+expected_strategy = "rewrite_with_markdown"
+tip_strategy = "display_label_tip"
+
+[[rules]]
+code = "non_canonical_obsidian_alias_order"
+problem = "The right-hand wikilink segment looks like a repository target path or address, so target and display label appear reversed."
+detail = "This is legal Obsidian wikilink syntax, but repository authoring policy only flags reversed alias order when the right side looks like a path, heading address, block address, or Markdown note target."
+found_strategy = "link_literal"
+expected_strategy = "rewrite_wikilink_only"
+tip_strategy = "display_label_tip"
+
+[[rules]]
+code = "directory_link_style_mismatch"
+problem_strategy = "dynamic_problem_text"
+detail_strategy = "dynamic_detail_text"
+found_strategy = "dynamic_found_text"
+expected_strategy = "dynamic_expected_text"
+tip_strategy = "dynamic_tip_text"
+
+[[rules]]
+code = "directory_link_style_ambiguous"
+problem_strategy = "dynamic_problem_text"
+detail_strategy = "dynamic_detail_text"
+found_strategy = "dynamic_found_text"
+expected_strategy = "dynamic_expected_text"
+tip_strategy = "dynamic_tip_text"

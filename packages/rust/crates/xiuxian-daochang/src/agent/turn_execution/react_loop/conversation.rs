@@ -1,4 +1,5 @@
 use anyhow::Result;
+use xiuxian_qianhuan::InjectionPolicy;
 
 use crate::agent::Agent;
 use crate::session::ChatMessage;
@@ -38,7 +39,7 @@ impl Agent {
         let hint = format!(
             "max_tool_rounds ({}) exceeded after {} rounds ({} tool calls). \
             Try again with a fresh message (rounds reset per message), or increase \
-            OMNI_AGENT_MAX_TOOL_ROUNDS / telegram.max_tool_rounds. \
+            XIUXIAN_DAOCHANG_MAX_TOOL_ROUNDS / telegram.max_tool_rounds. \
             Last tools: {:?}",
             self.config.max_tool_rounds,
             state.round,
@@ -152,7 +153,7 @@ impl Agent {
             };
             state.messages.push(ChatMessage {
                 role: "tool".to_string(),
-                content: Some(output.text),
+                content: Some(truncate_tool_output_for_llm(output.text)),
                 tool_calls: None,
                 tool_call_id: output.tool_call_id.or_else(|| Some(tool_call.id.clone())),
                 name: Some(name),
@@ -239,4 +240,21 @@ fn parse_tool_call_arguments(arguments: &str) -> Option<serde_json::Value> {
     } else {
         serde_json::from_str(arguments).ok()
     }
+}
+
+fn truncate_tool_output_for_llm(output: String) -> String {
+    let max_chars = InjectionPolicy::default().max_chars;
+    if output.chars().count() <= max_chars {
+        return output;
+    }
+    if max_chars <= 3 {
+        return ".".repeat(max_chars);
+    }
+
+    let mut truncated = output
+        .chars()
+        .take(max_chars.saturating_sub(3))
+        .collect::<String>();
+    truncated.push_str("...");
+    truncated
 }

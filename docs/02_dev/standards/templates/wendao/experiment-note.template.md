@@ -40,5 +40,5 @@ metadata:
 
 ## Linked Notes
 
-- Baseline: [[<baseline-note>]]
-- Follow-up: [[<follow-up-note>]]
+- Baseline: [[<baseline-note>|Baseline note title]]
+- Follow-up: [[<follow-up-note>|Follow-up note title]]

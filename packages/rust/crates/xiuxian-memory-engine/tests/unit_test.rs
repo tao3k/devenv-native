@@ -4,7 +4,7 @@ xiuxian_testing::crate_test_policy_harness!();
 
 #[path = "unit/common/mod.rs"]
 mod common;
-#[path = "unit/complex_scenarios.rs"]
+#[path = "unit/complex_scenarios/mod.rs"]
 mod complex_scenarios;
 #[path = "unit/encoder.rs"]
 mod encoder;
@@ -14,7 +14,7 @@ mod episode;
 mod feedback_tracking;
 #[path = "unit/gate.rs"]
 mod gate;
-#[path = "unit/memory_engine.rs"]
+#[path = "unit/memory_engine/mod.rs"]
 mod memory_engine;
 #[path = "unit/projection.rs"]
 mod projection;

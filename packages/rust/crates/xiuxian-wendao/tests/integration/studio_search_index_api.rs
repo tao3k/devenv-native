@@ -38,7 +38,6 @@ async fn search_index_status_endpoint_returns_idle_corpora_snapshot() -> TestRes
     assert_eq!(status, StatusCode::OK);
     assert_eq!(payload["total"], Value::from(6));
     assert_eq!(payload["compactionPending"], Value::from(0));
-    assert_eq!(payload["degraded"], Value::from(0));
     assert_eq!(
         payload["studioBootstrapBackgroundIndexingEnabled"],
         Value::from(false)
@@ -111,15 +110,46 @@ async fn search_index_status_endpoint_returns_idle_corpora_snapshot() -> TestRes
         .as_array()
         .ok_or("corpora should be an array")?;
     assert_eq!(corpora.len(), 6);
+    let idle_count = corpora
+        .iter()
+        .filter(|entry| entry["phase"] == "idle")
+        .count() as u64;
+    let indexing_count = corpora
+        .iter()
+        .filter(|entry| entry["phase"] == "indexing")
+        .count() as u64;
+    let ready_count = corpora
+        .iter()
+        .filter(|entry| entry["phase"] == "ready")
+        .count() as u64;
+    let degraded_count = corpora
+        .iter()
+        .filter(|entry| entry["phase"] == "degraded")
+        .count() as u64;
+    let failed_count = corpora
+        .iter()
+        .filter(|entry| entry["phase"] == "failed")
+        .count() as u64;
+    assert_eq!(payload["idle"], Value::from(idle_count));
+    assert_eq!(payload["indexing"], Value::from(indexing_count));
+    assert_eq!(payload["ready"], Value::from(ready_count));
+    assert_eq!(payload["degraded"], Value::from(degraded_count));
+    assert_eq!(payload["failed"], Value::from(failed_count));
+    let local_symbol = corpora
+        .iter()
+        .find(|entry| entry["corpus"] == "local_symbol")
+        .ok_or("local_symbol corpus should be present")?;
     assert!(
-        corpora
-            .iter()
-            .any(|entry| entry["corpus"] == "local_symbol" && entry["phase"] == "idle")
+        matches!(local_symbol["phase"].as_str(), Some("idle" | "ready")),
+        "local_symbol should stay cold-idle or restore a cached ready epoch: {local_symbol:?}"
     );
+    let knowledge_section = corpora
+        .iter()
+        .find(|entry| entry["corpus"] == "knowledge_section")
+        .ok_or("knowledge_section corpus should be present")?;
     assert!(
-        corpora
-            .iter()
-            .any(|entry| entry["corpus"] == "knowledge_section" && entry["phase"] == "idle")
+        matches!(knowledge_section["phase"].as_str(), Some("idle" | "ready")),
+        "knowledge_section should stay cold-idle or restore a cached ready epoch: {knowledge_section:?}"
     );
     assert!(
         corpora

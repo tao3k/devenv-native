@@ -18,7 +18,7 @@ fn admission_policy_defaults_when_env_unset() {
 #[test]
 fn admission_policy_respects_disable_env() {
     let values = HashMap::from([(
-        "OMNI_AGENT_DOWNSTREAM_ADMISSION_ENABLED".to_string(),
+        "XIUXIAN_DAOCHANG_DOWNSTREAM_ADMISSION_ENABLED".to_string(),
         "false".to_string(),
     )]);
     let policy = DownstreamAdmissionPolicy::from_lookup(|name| values.get(name).cloned());
@@ -28,7 +28,7 @@ fn admission_policy_respects_disable_env() {
 #[test]
 fn admission_policy_invalid_threshold_falls_back_to_default() {
     let values = HashMap::from([(
-        "OMNI_AGENT_ADMISSION_LLM_SATURATION_PCT".to_string(),
+        "XIUXIAN_DAOCHANG_ADMISSION_LLM_SATURATION_PCT".to_string(),
         "0".to_string(),
     )]);
     let policy = DownstreamAdmissionPolicy::from_lookup(|name| values.get(name).cloned());

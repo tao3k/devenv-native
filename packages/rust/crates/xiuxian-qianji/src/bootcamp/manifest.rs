@@ -68,3 +68,10 @@ pub(super) fn parsed_manifest_requires_llm(manifest: &QianjiManifest) -> bool {
             && node.llm.is_some()
     })
 }
+
+pub(super) fn parsed_manifest_requires_link_graph(manifest: &QianjiManifest) -> bool {
+    manifest
+        .nodes
+        .iter()
+        .any(|node| node.task_type.trim().eq_ignore_ascii_case("knowledge"))
+}

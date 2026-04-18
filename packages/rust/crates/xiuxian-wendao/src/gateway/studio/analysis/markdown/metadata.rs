@@ -17,7 +17,7 @@ use crate::gateway::studio::types::{
 };
 use crate::link_graph::{LinkGraphDirection, LinkGraphIndex};
 use crate::parsers::docs_governance::{collect_lines, parse_relations_links_line};
-use crate::parsers::markdown::parse_property_relations;
+use crate::parsers::markdown::{extract_resolved_note_references, parse_property_relations};
 
 pub(crate) fn build_markdown_document_metadata(
     state: &StudioState,
@@ -36,6 +36,7 @@ pub(crate) fn build_markdown_document_metadata(
     let current_doc_id = index.and_then(|graph| resolve_current_doc_id(state, graph, path));
     let current_path = normalize_path_like(path).unwrap_or_else(|| path.trim().to_string());
     let current_title = document_core.title.clone();
+    let explicit_backlinks = collect_backlinks(state, index, current_doc_id.as_deref());
 
     MarkdownAnalysisDocumentMetadata {
         doc_id: current_doc_id.clone(),
@@ -59,7 +60,8 @@ pub(crate) fn build_markdown_document_metadata(
             current_path.as_str(),
             current_title.as_str(),
         ),
-        backlinks: collect_backlinks(state, index, current_doc_id.as_deref()),
+        explicit_backlinks: explicit_backlinks.clone(),
+        backlinks: explicit_backlinks,
     }
 }
 
@@ -225,23 +227,108 @@ fn collect_backlinks(
         return Vec::new();
     };
 
-    graph
-        .neighbors(doc_id, LinkGraphDirection::Incoming, 1, usize::MAX)
-        .into_iter()
-        .map(|neighbor| MarkdownAnalysisDocumentLink {
-            label: neighbor.title.clone(),
-            kind: MarkdownAnalysisDocumentLinkKind::Backlink,
-            literal: None,
-            relation_type: None,
-            metadata_owner: None,
-            doc_id: graph
-                .resolve_doc_id_pub(neighbor.path.as_str())
-                .map(str::to_string),
-            path: Some(studio_display_path(state, neighbor.path.as_str())),
-            title: Some(neighbor.title),
-            target_address: None,
-        })
-        .collect()
+    let mut rows = Vec::new();
+    let mut seen = HashSet::new();
+
+    for neighbor in graph.neighbors(doc_id, LinkGraphDirection::Incoming, 1, usize::MAX) {
+        let source_doc_id = graph
+            .resolve_doc_id_pub(neighbor.path.as_str())
+            .or_else(|| graph.resolve_doc_id_pub(neighbor.stem.as_str()));
+        let Some(source_doc_id) = source_doc_id else {
+            push_unique_link(
+                &mut rows,
+                &mut seen,
+                fallback_backlink_row(state, &neighbor.title, neighbor.path.as_str()),
+            );
+            continue;
+        };
+        let Some(source_doc) = graph.get_doc(source_doc_id) else {
+            push_unique_link(
+                &mut rows,
+                &mut seen,
+                fallback_backlink_row(state, &neighbor.title, neighbor.path.as_str()),
+            );
+            continue;
+        };
+
+        let source_path = graph.root().join(source_doc.path.as_str());
+        let mut matched = false;
+
+        if let Ok(content) = std::fs::read_to_string(&source_path) {
+            let note = parse_markdown_note(&content, source_doc.stem.as_str());
+            let references = extract_resolved_note_references(
+                note.core.references.as_slice(),
+                note.core.targets.as_slice(),
+                source_path.as_path(),
+                graph.root(),
+            );
+
+            for reference in references {
+                let resolved_doc_id = if reference.note_target == doc_id {
+                    Some(doc_id)
+                } else {
+                    graph.resolve_doc_id_pub(reference.note_target.as_str())
+                };
+                if resolved_doc_id != Some(doc_id) {
+                    continue;
+                }
+                matched = true;
+                push_unique_link(
+                    &mut rows,
+                    &mut seen,
+                    MarkdownAnalysisDocumentLink {
+                        label: source_doc.title.clone(),
+                        kind: MarkdownAnalysisDocumentLinkKind::Backlink,
+                        literal: Some(reference.original),
+                        relation_type: None,
+                        metadata_owner: None,
+                        doc_id: Some(source_doc.id.clone()),
+                        path: Some(studio_display_path(state, source_doc.path.as_str())),
+                        title: Some(source_doc.title.clone()),
+                        target_address: reference.target_address,
+                    },
+                );
+            }
+        }
+
+        if !matched {
+            push_unique_link(
+                &mut rows,
+                &mut seen,
+                MarkdownAnalysisDocumentLink {
+                    label: source_doc.title.clone(),
+                    kind: MarkdownAnalysisDocumentLinkKind::Backlink,
+                    literal: None,
+                    relation_type: None,
+                    metadata_owner: None,
+                    doc_id: Some(source_doc.id.clone()),
+                    path: Some(studio_display_path(state, source_doc.path.as_str())),
+                    title: Some(source_doc.title.clone()),
+                    target_address: None,
+                },
+            );
+        }
+    }
+
+    rows
+}
+
+fn fallback_backlink_row(
+    state: &StudioState,
+    title: &str,
+    internal_path: &str,
+) -> MarkdownAnalysisDocumentLink {
+    MarkdownAnalysisDocumentLink {
+        label: title.to_string(),
+        kind: MarkdownAnalysisDocumentLinkKind::Backlink,
+        literal: None,
+        relation_type: None,
+        metadata_owner: None,
+        doc_id: None,
+        path: Some(studio_display_path(state, internal_path)),
+        title: Some(title.to_string()),
+        target_address: None,
+    }
 }
 
 fn push_unique_link(

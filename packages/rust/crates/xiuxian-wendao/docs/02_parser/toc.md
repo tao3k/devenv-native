@@ -2,7 +2,7 @@
 
 :PROPERTIES:
 :ID: wendao-parser-toc
-:PARENT: [[02_parser/index]]
+:PARENT: [[02_parser/index|Wendao Parser Docs]]
 :TAGS: parser, toc, markdown
 :STATUS: ACTIVE
 :END:
@@ -79,7 +79,7 @@ Coverage for this contract lives in:
 5. `packages/rust/crates/xiuxian-wendao/tests/unit/gateway/studio/search.rs`
 
 :RELATIONS:
-:LINKS: [[02_parser/index]], [[02_parser/architecture]], [[02_parser/document]], [[02_parser/note]], [[02_parser/sections]], [[03_features/207_gateway_openapi_contract_surface]], [[06_roadmap/403_document_projection_and_retrieval_enhancement]], [[06_roadmap/419_parser_substrate_separation]]
+:LINKS: [[02_parser/index|Wendao Parser Docs]], [[02_parser/architecture|Parser Architecture]], [[02_parser/document|Parser Document Metadata]], [[02_parser/note|Parser Note Aggregate]], [[02_parser/sections|Parser Sections]], [[03_features/207_gateway_openapi_contract_surface|Gateway OpenAPI Contract Surface]], [[06_roadmap/403_document_projection_and_retrieval_enhancement|Document Projection and Retrieval Enhancement]], [[06_roadmap/419_parser_substrate_separation|Parser Substrate Separation]]
 :END:
 
 ---

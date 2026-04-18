@@ -1,17 +1,23 @@
 use anyhow::Result;
 use xiuxian_qianhuan::InjectionPolicy;
 
+use crate::agent::reflection::PolicyHintDirective;
 use crate::agent::system_prompt_injection_state::SYSTEM_PROMPT_INJECTION_CONTEXT_MESSAGE_NAME;
 use crate::agent::{Agent, context_budget, injection};
+use crate::contracts::OmegaDecision;
 use crate::session::{ChatMessage, SessionSummarySegment};
 
 use super::types::ReactPreparedMessages;
+
+const NEXT_TURN_HINT_MESSAGE_NAME: &str = "agent.next_turn_hint";
 
 impl Agent {
     pub(super) async fn prepare_react_messages(
         &self,
         session_id: &str,
         user_message: &str,
+        decision: &OmegaDecision,
+        policy_hint: Option<&PolicyHintDirective>,
     ) -> Result<ReactPreparedMessages> {
         let mut summary_segments: Vec<SessionSummarySegment> = Vec::new();
         let mut messages: Vec<ChatMessage> = if let Some(ref w) = self.bounded_session {
@@ -34,10 +40,23 @@ impl Agent {
                 0,
                 ChatMessage {
                     role: "system".to_string(),
-                    content: Some(snapshot.xml),
+                    content: Some(render_system_prompt_injection_context(&snapshot.xml)),
                     tool_calls: None,
                     tool_call_id: None,
                     name: Some(SYSTEM_PROMPT_INJECTION_CONTEXT_MESSAGE_NAME.to_string()),
+                },
+            );
+        }
+
+        if let Some(hint) = policy_hint {
+            messages.insert(
+                0,
+                ChatMessage {
+                    role: "system".to_string(),
+                    content: Some(render_next_turn_hint(hint, decision)),
+                    tool_calls: None,
+                    tool_call_id: None,
+                    name: Some(NEXT_TURN_HINT_MESSAGE_NAME.to_string()),
                 },
             );
         }
@@ -173,4 +192,31 @@ impl Agent {
     pub(super) async fn load_tools_json_for_react(&self) -> Result<Option<Vec<serde_json::Value>>> {
         self.tool_definitions_for_llm().await
     }
+}
+
+fn render_next_turn_hint(hint: &PolicyHintDirective, decision: &OmegaDecision) -> String {
+    let role_mix_profile = match decision.policy_id.as_deref() {
+        Some(policy_id) if policy_id.contains(".recovery.") => "recovery",
+        _ => "normal",
+    };
+    let fallback_override = hint
+        .fallback_override
+        .map_or("none", crate::contracts::OmegaFallbackPolicy::as_str);
+
+    format!(
+        "source_turn_id={}; reason={}; preferred_route={}; risk_floor={}; fallback_override={}; tool_trust_class={}; role_mix_profile={}",
+        hint.source_turn_id,
+        hint.reason,
+        hint.preferred_route.as_str(),
+        hint.risk_floor.as_str(),
+        fallback_override,
+        hint.tool_trust_class.as_str(),
+        role_mix_profile,
+    )
+}
+
+fn render_system_prompt_injection_context(xml: &str) -> String {
+    format!(
+        "Session-scoped system prompt injection context. Preserve these anchoring instructions under budget pressure, keep genesis_rules and persona_steering guidance available during planning, and treat the XML below as authoritative session steering.\n{xml}",
+    )
 }

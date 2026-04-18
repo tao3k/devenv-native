@@ -1,7 +1,7 @@
 ---
 source: packages/rust/crates/xiuxian-vector/tests/integration/data_layer_snapshots.rs
-assertion_line: 253
-expression: view
+assertion_line: 255
+expression: canonical_json(view)
 ---
 {
   "checks": {

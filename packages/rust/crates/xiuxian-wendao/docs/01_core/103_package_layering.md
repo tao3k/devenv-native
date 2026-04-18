@@ -2,7 +2,7 @@
 
 :PROPERTIES:
 :ID: wendao-package-layering
-:PARENT: [[index]]
+:PARENT: [[index|Wendao DocOS Kernel: Map of Content]]
 :TAGS: architecture, core, runtime, plugins, layering
 :STATUS: ACTIVE
 :END:
@@ -233,7 +233,7 @@ The host should avoid:
 2. hard-coding plugin-specific parser or launch behavior in the host crate
 
 :RELATIONS:
-:LINKS: [[index]], [[06_roadmap/412_core_runtime_plugin_program]], [[06_roadmap/415_m4_julia_externalization_package_list]], [[06_roadmap/417_wendao_package_boundary_matrix]]
+:LINKS: [[index|Wendao DocOS Kernel: Map of Content]], [[06_roadmap/412_core_runtime_plugin_program|Wendao Core Runtime Plugin Program]], [[06_roadmap/415_m4_julia_externalization_package_list|M4 Julia Externalization Package List]], [[06_roadmap/417_wendao_package_boundary_matrix|Wendao Package Boundary Matrix]]
 :END:
 
 ---

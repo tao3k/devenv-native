@@ -2,7 +2,7 @@
 
 :PROPERTIES:
 :ID: wendao-parser-architecture
-:PARENT: [[02_parser/index]]
+:PARENT: [[02_parser/index|Wendao Parser Docs]]
 :TAGS: parser, architecture, implementation
 :STATUS: ACTIVE
 :END:
@@ -445,7 +445,7 @@ strings as known semantic relation types. Unknown labels are preserved rather
 than promoted.
 
 :RELATIONS:
-:LINKS: [[02_parser/index]], [[02_parser/addressed_target]], [[02_parser/document]], [[02_parser/note]], [[02_parser/targets]], [[02_parser/sections]], [[02_parser/references]], [[02_parser/wikilinks]], [[02_parser/relation_semantics]], [[01_core/103_package_layering]], [[03_features/210_search_queries_architecture]], [[06_roadmap/405_large_rust_modularization]], [[06_roadmap/419_parser_substrate_separation]]
+:LINKS: [[02_parser/index|Wendao Parser Docs]], [[02_parser/addressed_target|Parser Addressed Target]], [[02_parser/document|Parser Document Metadata]], [[02_parser/note|Parser Note Aggregate]], [[02_parser/targets|Parser Target Occurrences]], [[02_parser/sections|Parser Sections]], [[02_parser/references|Parser References]], [[02_parser/wikilinks|Parser Wikilinks]], [[02_parser/relation_semantics|Parser Relation Semantics]], [[01_core/103_package_layering|Wendao Package Layering]], [[03_features/210_search_queries_architecture|Search Queries Architecture]], [[06_roadmap/405_large_rust_modularization|Large Rust File Modularization]], [[06_roadmap/419_parser_substrate_separation|Parser Substrate Separation]]
 :END:
 
 ---

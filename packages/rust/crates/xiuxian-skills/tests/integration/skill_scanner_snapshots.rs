@@ -25,6 +25,7 @@ fn snapshot_skill_metadata_parse_contract() -> Result<(), Box<dyn std::error::Er
     let content = read_fixture("skill_scanner_snapshots/auditor_neuron_parse/SKILL.md");
 
     let metadata = scanner.parse_skill_md(content.as_str(), &skill_path)?;
+    let metadata = canonicalize_json(serde_json::to_value(metadata)?);
     insta::assert_json_snapshot!("parsed_metadata", metadata);
     Ok(())
 }
@@ -47,13 +48,18 @@ fn snapshot_structure_validation_summary_contract() -> Result<(), Box<dyn std::e
 
     let structure = default_structure();
     let report = SkillScanner::validate_structure_report(&skill_path, &structure);
+    let sanitized_issues: Vec<String> = report
+        .issues
+        .iter()
+        .map(|issue| sanitize_path(issue, &skill_path))
+        .collect();
 
     let summary = serde_json::json!({
         "valid": report.valid,
-        "issues": report.issues,
+        "issues": sanitized_issues,
     });
 
-    insta::assert_json_snapshot!("structure_report_summary", summary);
+    insta::assert_json_snapshot!("structure_report_summary", canonicalize_json(summary));
     Ok(())
 }
 
@@ -111,6 +117,7 @@ fn snapshot_structure_validation_issues_contract() -> Result<(), Box<dyn std::er
         .map(|issue| sanitize_path(issue, &skill_path))
         .collect();
 
+    let sanitized_issues = canonicalize_json(serde_json::to_value(sanitized_issues)?);
     insta::assert_json_snapshot!("structure_report_issues", sanitized_issues);
     Ok(())
 }
@@ -143,6 +150,7 @@ fn snapshot_scan_all_multiple_skills_contract() -> Result<(), Box<dyn std::error
     let mut metadatas = scanner.scan_all(&skills_dir, None)?;
     metadatas.sort_by(|left, right| left.skill_name.cmp(&right.skill_name));
 
+    let metadatas = canonicalize_json(serde_json::to_value(metadatas)?);
     insta::assert_json_snapshot!("scan_all_multiple_skills", metadatas);
     Ok(())
 }

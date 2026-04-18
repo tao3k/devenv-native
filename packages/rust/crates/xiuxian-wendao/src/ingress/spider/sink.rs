@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use serde_json::Value;
 
@@ -27,20 +28,20 @@ pub trait WebAssimilationSink: Send + Sync {
 /// KnowledgeGraph-backed sink for web ingestion.
 #[derive(Debug, Clone)]
 pub struct KnowledgeGraphAssimilationSink {
-    graph: KnowledgeGraph,
+    graph: Arc<KnowledgeGraph>,
 }
 
 impl KnowledgeGraphAssimilationSink {
     /// Construct sink from existing graph handle.
     #[must_use]
-    pub fn new(graph: KnowledgeGraph) -> Self {
+    pub fn new(graph: Arc<KnowledgeGraph>) -> Self {
         Self { graph }
     }
 
     /// Get a reference to the underlying knowledge graph.
     #[must_use]
     pub fn graph(&self) -> &KnowledgeGraph {
-        &self.graph
+        self.graph.as_ref()
     }
 }
 

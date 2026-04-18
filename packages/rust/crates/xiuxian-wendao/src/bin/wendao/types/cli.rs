@@ -46,3 +46,7 @@ pub(crate) struct Cli {
     #[command(subcommand)]
     pub command: Command,
 }
+
+#[cfg(test)]
+#[path = "../../../../tests/unit/bin/wendao/types/cli.rs"]
+mod tests;

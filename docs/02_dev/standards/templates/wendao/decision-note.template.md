@@ -33,5 +33,5 @@ metadata:
 
 ## Linked Notes
 
-- Related: [[<related-note-stem>]]
-- Supersedes: [[<old-note-stem>]]
+- Related: [[<related-note-stem>|Related decision or concept]]
+- Supersedes: [[<old-note-stem>|Superseded note title]]

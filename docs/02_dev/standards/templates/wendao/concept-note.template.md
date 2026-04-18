@@ -24,8 +24,8 @@ metadata:
 
 ## Linked Notes
 
-- Related: [[<related-note-stem>]]
-- Depends on: [[<dependency-note-stem>]]
+- Related: [[<related-note-stem>|Related note title]]
+- Depends on: [[<dependency-note-stem>|Dependency note title]]
 
 ## Implementation Notes
 
