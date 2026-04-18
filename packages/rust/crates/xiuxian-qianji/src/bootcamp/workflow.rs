@@ -144,7 +144,10 @@ async fn run_workflow_from_manifest_payload(
         consensus_manager,
     } = options;
 
+    #[cfg(feature = "llm")]
     inject_runtime_default_llm_model_fallback_if_missing(&mut initial_context, &llm_mode)?;
+    #[cfg(not(feature = "llm"))]
+    inject_runtime_default_llm_model_fallback_if_missing(&mut initial_context, llm_mode);
 
     let index = match index {
         Some(index) => index,
@@ -214,9 +217,8 @@ fn inject_runtime_default_llm_model_fallback_if_missing(
 #[cfg(not(feature = "llm"))]
 fn inject_runtime_default_llm_model_fallback_if_missing(
     _context: &mut Value,
-    _llm_mode: &super::BootcampLlmMode,
-) -> Result<(), QianjiError> {
-    Ok(())
+    _llm_mode: super::BootcampLlmMode,
+) {
 }
 
 #[cfg(any(feature = "llm", test))]

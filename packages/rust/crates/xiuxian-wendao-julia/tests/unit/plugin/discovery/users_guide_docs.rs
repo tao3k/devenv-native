@@ -1,117 +1,44 @@
+const USERS_GUIDE_DOC_PATHS: &[&str] = &[
+    "Controllers/UsersGuide/package.mo",
+    "Controllers/UsersGuide/Conventions.mo",
+    "Controllers/UsersGuide/Connectors.mo",
+    "Controllers/UsersGuide/Implementation.mo",
+    "Controllers/UsersGuide/RevisionHistory.mo",
+    "Controllers/UsersGuide/VersionManagement.mo",
+    "Controllers/UsersGuide/Tutorial/package.mo",
+    "Controllers/UsersGuide/Tutorial/FirstSteps.mo",
+    "Controllers/UsersGuide/ReleaseNotes.mo",
+    "Controllers/UsersGuide/References.mo",
+    "Controllers/UsersGuide/Contact.mo",
+    "Controllers/UsersGuide/Concept.mo",
+    "Controllers/UsersGuide/Parameters.mo",
+    "UsersGuide/Overview.mo",
+    "UsersGuide/Conventions.mo",
+    "UsersGuide/Connectors.mo",
+    "UsersGuide/Implementation.mo",
+    "UsersGuide/RevisionHistory.mo",
+    "UsersGuide/VersionManagement.mo",
+    "UsersGuide/Literature.mo",
+    "UsersGuide/Glossar.mo",
+    "UsersGuide/Parameterization.mo",
+];
+
+fn users_guide_doc_formats_payload() -> Vec<serde_json::Value> {
+    USERS_GUIDE_DOC_PATHS
+        .iter()
+        .map(|path| {
+            json!({
+                "path": path,
+                "file_format": doc_format_hint(path, false),
+                "annotation_format": doc_format_hint(path, true),
+            })
+        })
+        .collect()
+}
+
 #[test]
 fn infers_users_guide_doc_formats() {
-    let payload = json!([
-        {
-            "path": "Controllers/UsersGuide/package.mo",
-            "file_format": doc_format_hint("Controllers/UsersGuide/package.mo", false),
-            "annotation_format": doc_format_hint("Controllers/UsersGuide/package.mo", true),
-        },
-        {
-            "path": "Controllers/UsersGuide/Conventions.mo",
-            "file_format": doc_format_hint("Controllers/UsersGuide/Conventions.mo", false),
-            "annotation_format": doc_format_hint("Controllers/UsersGuide/Conventions.mo", true),
-        },
-        {
-            "path": "Controllers/UsersGuide/Connectors.mo",
-            "file_format": doc_format_hint("Controllers/UsersGuide/Connectors.mo", false),
-            "annotation_format": doc_format_hint("Controllers/UsersGuide/Connectors.mo", true),
-        },
-        {
-            "path": "Controllers/UsersGuide/Implementation.mo",
-            "file_format": doc_format_hint("Controllers/UsersGuide/Implementation.mo", false),
-            "annotation_format": doc_format_hint("Controllers/UsersGuide/Implementation.mo", true),
-        },
-        {
-            "path": "Controllers/UsersGuide/RevisionHistory.mo",
-            "file_format": doc_format_hint("Controllers/UsersGuide/RevisionHistory.mo", false),
-            "annotation_format": doc_format_hint("Controllers/UsersGuide/RevisionHistory.mo", true),
-        },
-        {
-            "path": "Controllers/UsersGuide/VersionManagement.mo",
-            "file_format": doc_format_hint("Controllers/UsersGuide/VersionManagement.mo", false),
-            "annotation_format": doc_format_hint("Controllers/UsersGuide/VersionManagement.mo", true),
-        },
-        {
-            "path": "Controllers/UsersGuide/Tutorial/package.mo",
-            "file_format": doc_format_hint("Controllers/UsersGuide/Tutorial/package.mo", false),
-            "annotation_format": doc_format_hint("Controllers/UsersGuide/Tutorial/package.mo", true),
-        },
-        {
-            "path": "Controllers/UsersGuide/Tutorial/FirstSteps.mo",
-            "file_format": doc_format_hint("Controllers/UsersGuide/Tutorial/FirstSteps.mo", false),
-            "annotation_format": doc_format_hint("Controllers/UsersGuide/Tutorial/FirstSteps.mo", true),
-        },
-        {
-            "path": "Controllers/UsersGuide/ReleaseNotes.mo",
-            "file_format": doc_format_hint("Controllers/UsersGuide/ReleaseNotes.mo", false),
-            "annotation_format": doc_format_hint("Controllers/UsersGuide/ReleaseNotes.mo", true),
-        },
-        {
-            "path": "Controllers/UsersGuide/References.mo",
-            "file_format": doc_format_hint("Controllers/UsersGuide/References.mo", false),
-            "annotation_format": doc_format_hint("Controllers/UsersGuide/References.mo", true),
-        },
-        {
-            "path": "Controllers/UsersGuide/Contact.mo",
-            "file_format": doc_format_hint("Controllers/UsersGuide/Contact.mo", false),
-            "annotation_format": doc_format_hint("Controllers/UsersGuide/Contact.mo", true),
-        },
-        {
-            "path": "Controllers/UsersGuide/Concept.mo",
-            "file_format": doc_format_hint("Controllers/UsersGuide/Concept.mo", false),
-            "annotation_format": doc_format_hint("Controllers/UsersGuide/Concept.mo", true),
-        },
-        {
-            "path": "Controllers/UsersGuide/Parameters.mo",
-            "file_format": doc_format_hint("Controllers/UsersGuide/Parameters.mo", false),
-            "annotation_format": doc_format_hint("Controllers/UsersGuide/Parameters.mo", true),
-        },
-        {
-            "path": "UsersGuide/Overview.mo",
-            "file_format": doc_format_hint("UsersGuide/Overview.mo", false),
-            "annotation_format": doc_format_hint("UsersGuide/Overview.mo", true),
-        },
-        {
-            "path": "UsersGuide/Conventions.mo",
-            "file_format": doc_format_hint("UsersGuide/Conventions.mo", false),
-            "annotation_format": doc_format_hint("UsersGuide/Conventions.mo", true),
-        },
-        {
-            "path": "UsersGuide/Connectors.mo",
-            "file_format": doc_format_hint("UsersGuide/Connectors.mo", false),
-            "annotation_format": doc_format_hint("UsersGuide/Connectors.mo", true),
-        },
-        {
-            "path": "UsersGuide/Implementation.mo",
-            "file_format": doc_format_hint("UsersGuide/Implementation.mo", false),
-            "annotation_format": doc_format_hint("UsersGuide/Implementation.mo", true),
-        },
-        {
-            "path": "UsersGuide/RevisionHistory.mo",
-            "file_format": doc_format_hint("UsersGuide/RevisionHistory.mo", false),
-            "annotation_format": doc_format_hint("UsersGuide/RevisionHistory.mo", true),
-        },
-        {
-            "path": "UsersGuide/VersionManagement.mo",
-            "file_format": doc_format_hint("UsersGuide/VersionManagement.mo", false),
-            "annotation_format": doc_format_hint("UsersGuide/VersionManagement.mo", true),
-        },
-        {
-            "path": "UsersGuide/Literature.mo",
-            "file_format": doc_format_hint("UsersGuide/Literature.mo", false),
-            "annotation_format": doc_format_hint("UsersGuide/Literature.mo", true),
-        },
-        {
-            "path": "UsersGuide/Glossar.mo",
-            "file_format": doc_format_hint("UsersGuide/Glossar.mo", false),
-            "annotation_format": doc_format_hint("UsersGuide/Glossar.mo", true),
-        },
-        {
-            "path": "UsersGuide/Parameterization.mo",
-            "file_format": doc_format_hint("UsersGuide/Parameterization.mo", false),
-            "annotation_format": doc_format_hint("UsersGuide/Parameterization.mo", true),
-        },
-    ]);
+    let payload = json!(users_guide_doc_formats_payload());
 
     assert_sorted_json_snapshot("infers_users_guide_doc_formats", payload);
 }

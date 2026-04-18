@@ -461,182 +461,190 @@ fn validate_manifest(manifest: &DocsCapabilityManifest) -> Result<()> {
 #[cfg(test)]
 fn expected_contract_shape(contract_id: &str) -> Option<DocsCapabilityManifest> {
     match contract_id {
-        DOCS_SEARCH_CONTRACT_ID => Some(DocsCapabilityManifest {
-            id: DOCS_SEARCH_CONTRACT_ID.to_string(),
-            version: 1,
-            task_types: vec!["http_call".to_string(), "cli_call".to_string()],
-            http: DocsHttpManifest {
-                method: "GET".to_string(),
-                path: crate::gateway::API_DOCS_SEARCH_OPENAPI_PATH.to_string(),
-                query: vec![
-                    "repo".to_string(),
-                    "query".to_string(),
-                    "kind".to_string(),
-                    "limit".to_string(),
-                ],
-            },
-            cli: DocsCliManifest {
-                argv: vec![
-                    "wendao".to_string(),
-                    "docs".to_string(),
-                    "search".to_string(),
-                ],
-                flags: BTreeMap::from([
-                    ("kind".to_string(), "--kind".to_string()),
-                    ("limit".to_string(), "--limit".to_string()),
-                    ("query".to_string(), "--query".to_string()),
-                    ("repo".to_string(), "--repo".to_string()),
-                ]),
-            },
-            tool: DocsToolManifest {
-                name: "wendao.docs.search".to_string(),
-                schema_provider: "DocsSearchToolArgs".to_string(),
-                runtime_injected: vec!["repo".to_string()],
-            },
-            params: vec![
-                required_string_param("repo"),
-                required_string_param("query"),
-                optional_string_param("kind"),
-                optional_integer_param("limit", 10),
-            ],
-        }),
-        DOCS_DOCUMENT_CONTRACT_ID => Some(DocsCapabilityManifest {
-            id: DOCS_DOCUMENT_CONTRACT_ID.to_string(),
-            version: 1,
-            task_types: vec!["http_call".to_string(), "cli_call".to_string()],
-            http: DocsHttpManifest {
-                method: "GET".to_string(),
-                path: crate::gateway::API_DOCS_PAGE_OPENAPI_PATH.to_string(),
-                query: vec!["repo".to_string(), "page_id".to_string()],
-            },
-            cli: DocsCliManifest {
-                argv: vec!["wendao".to_string(), "docs".to_string(), "page".to_string()],
-                flags: BTreeMap::from([
-                    ("page_id".to_string(), "--page-id".to_string()),
-                    ("repo".to_string(), "--repo".to_string()),
-                ]),
-            },
-            tool: DocsToolManifest {
-                name: "wendao.docs.get_document".to_string(),
-                schema_provider: "DocsDocumentToolArgs".to_string(),
-                runtime_injected: vec!["repo".to_string()],
-            },
-            params: vec![
-                required_string_param("repo"),
-                required_string_param("page_id"),
-            ],
-        }),
-        DOCS_DOCUMENT_STRUCTURE_CONTRACT_ID => Some(DocsCapabilityManifest {
-            id: DOCS_DOCUMENT_STRUCTURE_CONTRACT_ID.to_string(),
-            version: 1,
-            task_types: vec!["http_call".to_string(), "cli_call".to_string()],
-            http: DocsHttpManifest {
-                method: "GET".to_string(),
-                path: crate::gateway::API_DOCS_PAGE_INDEX_TREE_OPENAPI_PATH.to_string(),
-                query: vec!["repo".to_string(), "page_id".to_string()],
-            },
-            cli: DocsCliManifest {
-                argv: vec!["wendao".to_string(), "docs".to_string(), "tree".to_string()],
-                flags: BTreeMap::from([
-                    ("page_id".to_string(), "--page-id".to_string()),
-                    ("repo".to_string(), "--repo".to_string()),
-                ]),
-            },
-            tool: DocsToolManifest {
-                name: "wendao.docs.get_document_structure".to_string(),
-                schema_provider: "DocsDocumentStructureToolArgs".to_string(),
-                runtime_injected: vec!["repo".to_string()],
-            },
-            params: vec![
-                required_string_param("repo"),
-                required_string_param("page_id"),
-            ],
-        }),
-        DOCS_NAVIGATION_CONTRACT_ID => Some(DocsCapabilityManifest {
-            id: DOCS_NAVIGATION_CONTRACT_ID.to_string(),
-            version: 1,
-            task_types: vec!["http_call".to_string(), "cli_call".to_string()],
-            http: DocsHttpManifest {
-                method: "GET".to_string(),
-                path: crate::gateway::API_DOCS_NAVIGATION_OPENAPI_PATH.to_string(),
-                query: vec![
-                    "repo".to_string(),
-                    "page_id".to_string(),
-                    "node_id".to_string(),
-                    "family_kind".to_string(),
-                    "related_limit".to_string(),
-                    "family_limit".to_string(),
-                ],
-            },
-            cli: DocsCliManifest {
-                argv: vec![
-                    "wendao".to_string(),
-                    "docs".to_string(),
-                    "navigation".to_string(),
-                ],
-                flags: BTreeMap::from([
-                    ("family_kind".to_string(), "--family-kind".to_string()),
-                    ("family_limit".to_string(), "--family-limit".to_string()),
-                    ("node_id".to_string(), "--node-id".to_string()),
-                    ("page_id".to_string(), "--page-id".to_string()),
-                    ("related_limit".to_string(), "--related-limit".to_string()),
-                    ("repo".to_string(), "--repo".to_string()),
-                ]),
-            },
-            tool: DocsToolManifest {
-                name: "wendao.docs.get_navigation".to_string(),
-                schema_provider: "DocsNavigationToolArgs".to_string(),
-                runtime_injected: vec!["repo".to_string()],
-            },
-            params: vec![
-                required_string_param("repo"),
-                required_string_param("page_id"),
-                optional_string_param("node_id"),
-                optional_string_param("family_kind"),
-                optional_integer_param("related_limit", DEFAULT_DOCS_RELATED_LIMIT),
-                optional_integer_param("family_limit", DEFAULT_DOCS_FAMILY_LIMIT),
-            ],
-        }),
-        DOCS_RETRIEVAL_CONTEXT_CONTRACT_ID => Some(DocsCapabilityManifest {
-            id: DOCS_RETRIEVAL_CONTEXT_CONTRACT_ID.to_string(),
-            version: 1,
-            task_types: vec!["http_call".to_string(), "cli_call".to_string()],
-            http: DocsHttpManifest {
-                method: "GET".to_string(),
-                path: crate::gateway::API_DOCS_RETRIEVAL_CONTEXT_OPENAPI_PATH.to_string(),
-                query: vec![
-                    "repo".to_string(),
-                    "page_id".to_string(),
-                    "node_id".to_string(),
-                    "related_limit".to_string(),
-                ],
-            },
-            cli: DocsCliManifest {
-                argv: vec![
-                    "wendao".to_string(),
-                    "docs".to_string(),
-                    "context".to_string(),
-                ],
-                flags: BTreeMap::from([
-                    ("node_id".to_string(), "--node-id".to_string()),
-                    ("page_id".to_string(), "--page-id".to_string()),
-                    ("related_limit".to_string(), "--related-limit".to_string()),
-                    ("repo".to_string(), "--repo".to_string()),
-                ]),
-            },
-            tool: DocsToolManifest {
-                name: "wendao.docs.get_retrieval_context".to_string(),
-                schema_provider: "DocsRetrievalContextToolArgs".to_string(),
-                runtime_injected: vec!["repo".to_string()],
-            },
-            params: vec![
-                required_string_param("repo"),
-                required_string_param("page_id"),
-                optional_string_param("node_id"),
-                optional_integer_param("related_limit", DEFAULT_DOCS_RELATED_LIMIT),
-            ],
-        }),
+        DOCS_SEARCH_CONTRACT_ID => Some(search_contract_shape()),
+        DOCS_DOCUMENT_CONTRACT_ID => Some(document_contract_shape()),
+        DOCS_DOCUMENT_STRUCTURE_CONTRACT_ID => Some(document_structure_contract_shape()),
+        DOCS_NAVIGATION_CONTRACT_ID => Some(navigation_contract_shape()),
+        DOCS_RETRIEVAL_CONTEXT_CONTRACT_ID => Some(retrieval_context_contract_shape()),
         _ => None,
+    }
+}
+
+#[cfg(test)]
+#[derive(Clone, Copy)]
+struct DocsContractShapeSpec<'a> {
+    id: &'a str,
+    http_path: &'a str,
+    http_query: &'a [&'a str],
+    cli_argv: &'a [&'a str],
+    cli_flags: &'a [(&'a str, &'a str)],
+    tool_name: &'a str,
+    schema_provider: &'a str,
+}
+
+#[cfg(test)]
+fn search_contract_shape() -> DocsCapabilityManifest {
+    docs_contract_manifest(
+        DocsContractShapeSpec {
+            id: DOCS_SEARCH_CONTRACT_ID,
+            http_path: crate::gateway::API_DOCS_SEARCH_OPENAPI_PATH,
+            http_query: &["repo", "query", "kind", "limit"],
+            cli_argv: &["wendao", "docs", "search"],
+            cli_flags: &[
+                ("kind", "--kind"),
+                ("limit", "--limit"),
+                ("query", "--query"),
+                ("repo", "--repo"),
+            ],
+            tool_name: "wendao.docs.search",
+            schema_provider: "DocsSearchToolArgs",
+        },
+        vec![
+            required_string_param("repo"),
+            required_string_param("query"),
+            optional_string_param("kind"),
+            optional_integer_param("limit", 10),
+        ],
+    )
+}
+
+#[cfg(test)]
+fn document_contract_shape() -> DocsCapabilityManifest {
+    docs_contract_manifest(
+        DocsContractShapeSpec {
+            id: DOCS_DOCUMENT_CONTRACT_ID,
+            http_path: crate::gateway::API_DOCS_PAGE_OPENAPI_PATH,
+            http_query: &["repo", "page_id"],
+            cli_argv: &["wendao", "docs", "page"],
+            cli_flags: &[("page_id", "--page-id"), ("repo", "--repo")],
+            tool_name: "wendao.docs.get_document",
+            schema_provider: "DocsDocumentToolArgs",
+        },
+        vec![
+            required_string_param("repo"),
+            required_string_param("page_id"),
+        ],
+    )
+}
+
+#[cfg(test)]
+fn document_structure_contract_shape() -> DocsCapabilityManifest {
+    docs_contract_manifest(
+        DocsContractShapeSpec {
+            id: DOCS_DOCUMENT_STRUCTURE_CONTRACT_ID,
+            http_path: crate::gateway::API_DOCS_PAGE_INDEX_TREE_OPENAPI_PATH,
+            http_query: &["repo", "page_id"],
+            cli_argv: &["wendao", "docs", "tree"],
+            cli_flags: &[("page_id", "--page-id"), ("repo", "--repo")],
+            tool_name: "wendao.docs.get_document_structure",
+            schema_provider: "DocsDocumentStructureToolArgs",
+        },
+        vec![
+            required_string_param("repo"),
+            required_string_param("page_id"),
+        ],
+    )
+}
+
+#[cfg(test)]
+fn navigation_contract_shape() -> DocsCapabilityManifest {
+    docs_contract_manifest(
+        DocsContractShapeSpec {
+            id: DOCS_NAVIGATION_CONTRACT_ID,
+            http_path: crate::gateway::API_DOCS_NAVIGATION_OPENAPI_PATH,
+            http_query: &[
+                "repo",
+                "page_id",
+                "node_id",
+                "family_kind",
+                "related_limit",
+                "family_limit",
+            ],
+            cli_argv: &["wendao", "docs", "navigation"],
+            cli_flags: &[
+                ("family_kind", "--family-kind"),
+                ("family_limit", "--family-limit"),
+                ("node_id", "--node-id"),
+                ("page_id", "--page-id"),
+                ("related_limit", "--related-limit"),
+                ("repo", "--repo"),
+            ],
+            tool_name: "wendao.docs.get_navigation",
+            schema_provider: "DocsNavigationToolArgs",
+        },
+        vec![
+            required_string_param("repo"),
+            required_string_param("page_id"),
+            optional_string_param("node_id"),
+            optional_string_param("family_kind"),
+            optional_integer_param("related_limit", DEFAULT_DOCS_RELATED_LIMIT),
+            optional_integer_param("family_limit", DEFAULT_DOCS_FAMILY_LIMIT),
+        ],
+    )
+}
+
+#[cfg(test)]
+fn retrieval_context_contract_shape() -> DocsCapabilityManifest {
+    docs_contract_manifest(
+        DocsContractShapeSpec {
+            id: DOCS_RETRIEVAL_CONTEXT_CONTRACT_ID,
+            http_path: crate::gateway::API_DOCS_RETRIEVAL_CONTEXT_OPENAPI_PATH,
+            http_query: &["repo", "page_id", "node_id", "related_limit"],
+            cli_argv: &["wendao", "docs", "context"],
+            cli_flags: &[
+                ("node_id", "--node-id"),
+                ("page_id", "--page-id"),
+                ("related_limit", "--related-limit"),
+                ("repo", "--repo"),
+            ],
+            tool_name: "wendao.docs.get_retrieval_context",
+            schema_provider: "DocsRetrievalContextToolArgs",
+        },
+        vec![
+            required_string_param("repo"),
+            required_string_param("page_id"),
+            optional_string_param("node_id"),
+            optional_integer_param("related_limit", DEFAULT_DOCS_RELATED_LIMIT),
+        ],
+    )
+}
+
+#[cfg(test)]
+fn docs_contract_manifest(
+    spec: DocsContractShapeSpec<'_>,
+    params: Vec<DocsContractParamManifest>,
+) -> DocsCapabilityManifest {
+    DocsCapabilityManifest {
+        id: spec.id.to_string(),
+        version: 1,
+        task_types: vec!["http_call".to_string(), "cli_call".to_string()],
+        http: DocsHttpManifest {
+            method: "GET".to_string(),
+            path: spec.http_path.to_string(),
+            query: spec
+                .http_query
+                .iter()
+                .map(|value| (*value).to_string())
+                .collect(),
+        },
+        cli: DocsCliManifest {
+            argv: spec
+                .cli_argv
+                .iter()
+                .map(|value| (*value).to_string())
+                .collect(),
+            flags: spec
+                .cli_flags
+                .iter()
+                .map(|(name, flag)| ((*name).to_string(), (*flag).to_string()))
+                .collect(),
+        },
+        tool: DocsToolManifest {
+            name: spec.tool_name.to_string(),
+            schema_provider: spec.schema_provider.to_string(),
+            runtime_injected: vec!["repo".to_string()],
+        },
+        params,
     }
 }
 
