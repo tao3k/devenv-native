@@ -19,6 +19,7 @@ pub(super) fn handle(cli: &Cli) -> Result<()> {
         DocsCommand::TreeOutline(args) => handle_tree_outline(&context, args),
         DocsCommand::StructureCatalog(args) => handle_structure_catalog(&context, args),
         DocsCommand::Segment(args) => handle_segment(&context, args),
+        DocsCommand::Search(args) => handle_search(&context, args),
         DocsCommand::SearchStructure(args) => handle_search_structure(&context, args),
         DocsCommand::Node(args) => handle_node(&context, args),
         DocsCommand::Toc(args) => handle_toc(&context, args),
@@ -112,6 +113,17 @@ fn handle_segment(
                 args.line_start, args.line_end, args.page_id
             )
         })?;
+    emit(&result, context.cli.output)
+}
+
+fn handle_search(
+    context: &DocsCommandContext<'_>,
+    args: &crate::types::DocsSearchArgs,
+) -> Result<()> {
+    let result = context
+        .service(args.repo.clone())
+        .search_documents(&args.query, args.kind.map(Into::into), args.limit)
+        .with_context(|| format!("failed to search docs pages for query `{}`", args.query))?;
     emit(&result, context.cli.output)
 }
 

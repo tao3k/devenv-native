@@ -7,11 +7,12 @@ use super::{
     WendaoDocsGetDocumentStructureCatalogTool, WendaoDocsGetDocumentStructureOutlineTool,
     WendaoDocsGetDocumentStructureTool, WendaoDocsGetDocumentTool, WendaoDocsGetNavigationTool,
     WendaoDocsGetRetrievalContextTool, WendaoDocsGetTocDocumentsTool,
-    WendaoDocsSearchDocumentStructureTool,
+    WendaoDocsSearchDocumentStructureTool, WendaoDocsSearchTool,
 };
 
 /// Register the docs-native Wendao tools into one zhenfa registry.
 pub fn register_wendao_docs_native_tools(registry: &mut ZhenfaRegistry) {
+    registry.register(Arc::new(WendaoDocsSearchTool) as Arc<dyn ZhenfaTool>);
     registry.register(Arc::new(WendaoDocsGetDocumentTool) as Arc<dyn ZhenfaTool>);
     registry.register(Arc::new(WendaoDocsGetDocumentStructureTool) as Arc<dyn ZhenfaTool>);
     registry.register(Arc::new(WendaoDocsGetDocumentStructureOutlineTool) as Arc<dyn ZhenfaTool>);

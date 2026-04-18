@@ -6,17 +6,17 @@ use serde_json::json;
 use xiuxian_config_core::resolve_project_root;
 use xiuxian_qianhuan::EmbeddedManifestationTemplateCatalog;
 
-use crate::contracts::{FlowhubGraphContract, FlowhubGraphTopology};
+use crate::contracts::{FlowhubGraphContract, FlowhubGraphNodeContract, FlowhubGraphTopology};
 use crate::error::QianjiError;
 use crate::markdown::{MarkdownShowSection, render_show_surface};
 
 use super::discover::{
-    FlowhubDiscoveredModule, find_flowhub_root_for_module_dir, load_flowhub_module_candidate,
-    module_candidate_from_dir, module_candidate_from_ref,
+    FlowhubDiscoveredModule, discover_all_flowhub_module_refs, find_flowhub_root_for_module_dir,
+    load_flowhub_module_candidate, module_candidate_from_dir, module_candidate_from_ref,
 };
-use super::load::load_flowhub_root_manifest;
 use super::mermaid::{
-    MermaidFlowchart, MermaidNodeKind, analyze_mermaid_flowchart_topology, parse_mermaid_flowchart,
+    MermaidFlowchart, MermaidNodeKind, analyze_mermaid_flowchart_topology,
+    declared_graph_node_labels, normalize_graph_node_label, parse_mermaid_flowchart,
     scenario_graph_label_is_allowed,
 };
 
@@ -41,8 +41,6 @@ pub struct FlowhubGraphShow {
     /// Stable graph identity resolved from `[[graph]].name` or the filename
     /// stem fallback.
     pub merimind_graph_name: String,
-    /// Stable graph kind shown to Codex.
-    pub kind: String,
     /// Resolved topology from petgraph analysis.
     pub topology: FlowhubGraphTopology,
     /// Optional module-owned declared topology.
@@ -78,8 +76,8 @@ pub struct FlowhubGraphNodeSummary {
     pub id: String,
     /// Visible Mermaid label.
     pub label: String,
-    /// Classified node kind.
-    pub kind: FlowhubGraphNodeKind,
+    /// Contract-owned node semantic kind when declared.
+    pub kind: Option<String>,
     /// Stable role description for Codex.
     pub role: String,
     /// Stable agent action guidance for the node.
@@ -103,27 +101,6 @@ pub struct FlowhubGraphEdgeSummary {
     pub to_label: String,
 }
 
-/// Semantic node-kind classification for the graph-contract surface.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum FlowhubGraphNodeKind {
-    /// Upstream scope or lane selector.
-    Context,
-    /// Constraint projected into writable artifacts.
-    Constraint,
-    /// Writable bounded artifact surface.
-    Artifact,
-    /// Contract guard over artifact state.
-    Guard,
-    /// Validator requirement before completion.
-    Validator,
-    /// Completion gate.
-    Gate,
-    /// Process or repair-loop step.
-    Process,
-    /// Node outside the known v0 graph contract vocabulary.
-    Unknown,
-}
-
 /// Load and summarize one Flowhub Mermaid graph file.
 ///
 /// # Errors
@@ -142,7 +119,9 @@ pub fn show_flowhub_graph(graph_path: impl AsRef<Path>) -> Result<FlowhubGraphSh
         flowchart,
         topology,
         cyclic_components,
+        declared_graph,
         declared_topology,
+        allowed_graph_node_labels,
     } = load_flowhub_graph_context(graph_path)?;
 
     let nodes_by_id = flowchart
@@ -150,16 +129,20 @@ pub fn show_flowhub_graph(graph_path: impl AsRef<Path>) -> Result<FlowhubGraphSh
         .iter()
         .map(|node| (node.id.as_str(), node.label.as_str()))
         .collect::<BTreeMap<_, _>>();
-    let unknown_graph_nodes = collect_unknown_graph_nodes(&flowchart);
+    let unknown_graph_nodes = collect_unknown_graph_nodes(&flowchart, &allowed_graph_node_labels);
     let next_by_node_id = build_next_labels_by_node_id(&flowchart.edges, &nodes_by_id);
-    let nodes = build_graph_node_summaries(&flowchart, &module_exports, &next_by_node_id);
+    let nodes = build_graph_node_summaries(
+        &flowchart,
+        &module_exports,
+        &next_by_node_id,
+        declared_graph.as_ref(),
+    );
     let edges = build_graph_edge_summaries(&flowchart, &nodes_by_id);
     let expected_work_surface = expected_work_surface(&owning_module);
 
     Ok(FlowhubGraphShow {
         graph_path: graph_path.to_path_buf(),
         merimind_graph_name: flowchart.merimind_graph_name,
-        kind: "scenario".to_string(),
         topology,
         declared_topology,
         mermaid: source,
@@ -203,7 +186,6 @@ pub fn render_flowhub_graph_show(show: &FlowhubGraphShow) -> String {
         &[
             format!("Name: {}", show.merimind_graph_name),
             format!("Path: {}", display_graph_path(&show.graph_path)),
-            format!("Kind: {}", show.kind),
             format!("Topology: {}", show.topology.as_str()),
             render_declared_topology_line(show.declared_topology),
         ],
@@ -227,7 +209,9 @@ struct LoadedFlowhubGraphContext {
     flowchart: MermaidFlowchart,
     topology: FlowhubGraphTopology,
     cyclic_components: Vec<Vec<String>>,
+    declared_graph: Option<FlowhubGraphContract>,
     declared_topology: Option<FlowhubGraphTopology>,
+    allowed_graph_node_labels: BTreeSet<String>,
 }
 
 fn validate_graph_path(graph_path: &Path) -> Result<(), QianjiError> {
@@ -260,8 +244,7 @@ fn load_flowhub_graph_context(graph_path: &Path) -> Result<LoadedFlowhubGraphCon
     let module_candidate = module_candidate_from_dir(module_dir)?;
     let owning_module = load_flowhub_module_candidate(&module_candidate)?;
     let flowhub_root = find_flowhub_root_for_module_dir(module_dir)?;
-    let root_manifest = load_flowhub_root_manifest(flowhub_root.join("qianji.toml"))?;
-    let registered_modules = root_manifest.contract.register;
+    let registered_modules = discover_all_flowhub_module_refs(&flowhub_root)?;
     let module_exports = load_registered_module_exports(&flowhub_root, &registered_modules)?;
     let owning_module_manifest_toml =
         fs::read_to_string(&owning_module.manifest_path).map_err(|error| {
@@ -285,9 +268,10 @@ fn load_flowhub_graph_context(graph_path: &Path) -> Result<LoadedFlowhubGraphCon
                 graph_path.display()
             ))
         })?;
-    let declared_topology =
-        declared_graph_contract(&owning_module, graph_path).map(|graph| graph.topology);
-    let merimind_graph_name = declared_graph_name(&owning_module, graph_path, fallback_graph_name);
+    let declared_graph = declared_graph_contract(&owning_module, graph_path).cloned();
+    let declared_topology = declared_graph.as_ref().map(|graph| graph.topology);
+    let merimind_graph_name = declared_graph_name(declared_graph.as_ref(), fallback_graph_name);
+    let allowed_graph_node_labels = declared_graph_node_labels(declared_graph.as_ref());
     let flowchart =
         parse_mermaid_flowchart(&source, merimind_graph_name.as_str(), &registered_modules)
             .map_err(|error| {
@@ -307,7 +291,9 @@ fn load_flowhub_graph_context(graph_path: &Path) -> Result<LoadedFlowhubGraphCon
         flowchart,
         topology: topology_analysis.topology,
         cyclic_components: topology_analysis.cyclic_components,
+        declared_graph,
         declared_topology,
+        allowed_graph_node_labels,
     })
 }
 
@@ -333,12 +319,17 @@ fn load_registered_module_exports(
         .collect()
 }
 
-fn collect_unknown_graph_nodes(flowchart: &MermaidFlowchart) -> Vec<String> {
+fn collect_unknown_graph_nodes(
+    flowchart: &MermaidFlowchart,
+    allowed_graph_node_labels: &BTreeSet<String>,
+) -> Vec<String> {
     flowchart
         .nodes
         .iter()
         .filter(|node| node.kind != MermaidNodeKind::Module)
-        .filter(|node| !scenario_graph_label_is_allowed(node.label.as_str()))
+        .filter(|node| {
+            !scenario_graph_label_is_allowed(node.label.as_str(), allowed_graph_node_labels)
+        })
         .map(|node| node.label.clone())
         .collect::<BTreeSet<_>>()
         .into_iter()
@@ -370,6 +361,7 @@ fn build_graph_node_summaries(
     flowchart: &MermaidFlowchart,
     module_exports: &BTreeMap<String, ModuleExports>,
     next_by_node_id: &BTreeMap<&str, Vec<String>>,
+    declared_graph: Option<&FlowhubGraphContract>,
 ) -> Vec<FlowhubGraphNodeSummary> {
     flowchart
         .nodes
@@ -382,19 +374,17 @@ fn build_graph_node_summaries(
             let exports = module_ref
                 .as_deref()
                 .and_then(|module_name| module_exports.get(module_name));
-            let is_allowed_graph_node = scenario_graph_label_is_allowed(node.label.as_str());
-            let kind = classify_graph_node_kind(
-                node.label.as_str(),
-                module_ref.as_deref(),
-                is_allowed_graph_node,
-            );
+            let node_contract = declared_graph
+                .and_then(|graph| declared_graph_node_contract(graph, node.label.as_str()));
+            let (kind, role, agent_action) =
+                graph_node_semantics(module_ref.as_deref(), node_contract);
 
             FlowhubGraphNodeSummary {
                 id: node.id.clone(),
                 label: node.label.clone(),
                 kind,
-                role: graph_node_role(node.label.as_str(), kind).to_string(),
-                agent_action: graph_node_agent_action(node.label.as_str(), kind).to_string(),
+                role,
+                agent_action,
                 next: next_by_node_id
                     .get(node.id.as_str())
                     .cloned()
@@ -456,8 +446,8 @@ fn render_node_section_lines(nodes: &[FlowhubGraphNodeSummary]) -> Vec<String> {
         match render_embedded_graph_block(
             FLOWHUB_GRAPH_NODE_TEMPLATE_NAME,
             json!({
-                "label": node.label,
-                "kind": graph_node_kind_label(node.kind),
+            "label": node.label,
+                "kind": node.kind,
                 "role": node.role,
                 "agent_action": node.agent_action,
                 "next": render_next_labels(&node.next),
@@ -469,7 +459,9 @@ fn render_node_section_lines(nodes: &[FlowhubGraphNodeSummary]) -> Vec<String> {
                     "failed to render Flowhub graph node block through qianhuan; falling back to inline format: {error}"
                 );
                 lines.push(format!("### {}", node.label));
-                lines.push(format!("Kind: {}", graph_node_kind_label(node.kind)));
+                if let Some(kind) = &node.kind {
+                    lines.push(format!("Kind: {kind}"));
+                }
                 lines.push(format!("Role: {}", node.role));
                 lines.push(format!("Agent action: {}", node.agent_action));
                 lines.push(format!("Next: {}", render_next_labels(&node.next)));
@@ -556,178 +548,51 @@ fn declared_graph_contract<'a>(
 }
 
 fn declared_graph_name(
-    owning_module: &FlowhubDiscoveredModule,
-    graph_path: &Path,
+    declared_graph: Option<&FlowhubGraphContract>,
     fallback_graph_name: &str,
 ) -> String {
-    declared_graph_contract(owning_module, graph_path).map_or_else(
+    declared_graph.map_or_else(
         || fallback_graph_name.to_string(),
         |graph| graph.resolved_name_or(fallback_graph_name).to_string(),
     )
 }
 
-fn classify_graph_node_kind(
+fn declared_graph_node_contract<'a>(
+    declared_graph: &'a FlowhubGraphContract,
     label: &str,
+) -> Option<&'a FlowhubGraphNodeContract> {
+    let normalized_label = normalize_graph_node_label(label);
+    declared_graph
+        .node
+        .iter()
+        .find(|node| normalize_graph_node_label(node.label.as_str()) == normalized_label)
+}
+
+fn graph_node_semantics(
     module_ref: Option<&str>,
-    is_allowed_graph_node: bool,
-) -> FlowhubGraphNodeKind {
-    let normalized = canonicalize_node_label(label);
-    if module_ref.is_none() && !is_allowed_graph_node {
-        return FlowhubGraphNodeKind::Unknown;
+    node_contract: Option<&FlowhubGraphNodeContract>,
+) -> (Option<String>, String, String) {
+    if let Some(node_contract) = node_contract {
+        return (
+            Some(node_contract.kind.clone()),
+            node_contract.role.clone(),
+            node_contract.agent_action.clone(),
+        );
     }
-    match normalized.as_str() {
-        "coding" | "rust" => FlowhubGraphNodeKind::Context,
-        "style" | "engineering_requirement" | "policy" => FlowhubGraphNodeKind::Constraint,
-        "blueprint" | "plan" => FlowhubGraphNodeKind::Artifact,
-        "surface_check"
-        | "flowchart_alignment"
-        | "boundary_check"
-        | "drift_check"
-        | "boundary_and_drift_check"
-        | "status_legality" => FlowhubGraphNodeKind::Guard,
-        "validator_gate" | "domain_validators" => FlowhubGraphNodeKind::Validator,
-        "done_gate" => FlowhubGraphNodeKind::Gate,
-        "codex_write_bounded_surface" | "diagnostics" => FlowhubGraphNodeKind::Process,
-        _ if is_exact_http_request_label(label) => FlowhubGraphNodeKind::Process,
-        _ if module_ref.is_some() => FlowhubGraphNodeKind::Context,
-        _ => FlowhubGraphNodeKind::Unknown,
-    }
-}
 
-fn graph_node_role(label: &str, kind: FlowhubGraphNodeKind) -> &'static str {
-    if kind == FlowhubGraphNodeKind::Unknown {
-        return "node is outside the known v0 Flowhub graph contract vocabulary";
+    if module_ref.is_some() {
+        return (
+            None,
+            "registered Flowhub module is present in the Mermaid graph without a declared graph-node contract"
+                .to_string(),
+            "add a matching `[[graph.node]]` entry before relying on semantic guidance for this module node"
+                .to_string(),
+        );
     }
-    let normalized = canonicalize_node_label(label);
-    match normalized.as_str() {
-        "coding" => "define the top-level coding lane",
-        "rust" => "define the rust specialization lane",
-        "style" => "define style requirements for the rust lane",
-        "engineering_requirement" => "define engineering requirements for the rust lane",
-        "policy" => "define policy requirements for the rust lane",
-        "blueprint" => "define the bounded blueprint surface",
-        "plan" => "define the bounded execution surface",
-        "surface_check" => "require the bounded work surface to exist",
-        "flowchart_alignment" => {
-            "ensure the flowchart matches the current bounded artifact surface"
-        }
-        "boundary_check" => "ensure work stays inside the bounded plan surface",
-        "drift_check" => "ensure the artifact state has not drifted from the graph contract",
-        "boundary_and_drift_check" => {
-            "ensure the bounded artifact state remains inside contract boundaries without drift"
-        }
-        "status_legality" => "ensure status state remains legal for the bounded slice",
-        "validator_gate" => "require programmatic validators to pass",
-        "domain_validators" => "require domain validators to pass before completion",
-        "done_gate" => "allow completion only when required guards and validators pass",
-        "codex_write_bounded_surface" => "write the bounded work surface from the graph contract",
-        "diagnostics" => "capture blocking diagnostics for bounded-surface repair",
-        _ if is_exact_http_request_label(label) => {
-            "invoke the exact HTTP request surface carried by this graph node"
-        }
-        _ => match kind {
-            FlowhubGraphNodeKind::Context => "define upstream context for the bounded slice",
-            FlowhubGraphNodeKind::Constraint => {
-                "define a constraint that must be projected into writable artifacts"
-            }
-            FlowhubGraphNodeKind::Artifact => "define one bounded writable artifact surface",
-            FlowhubGraphNodeKind::Guard => "guard artifact-state correctness",
-            FlowhubGraphNodeKind::Validator => "require validator success before completion",
-            FlowhubGraphNodeKind::Gate => "gate bounded-slice completion",
-            FlowhubGraphNodeKind::Process => "express a repair or execution step in the graph",
-            FlowhubGraphNodeKind::Unknown => unreachable!("unknown handled above"),
-        },
-    }
-}
 
-fn graph_node_agent_action(label: &str, kind: FlowhubGraphNodeKind) -> &'static str {
-    if kind == FlowhubGraphNodeKind::Unknown {
-        return "do not rely on this node until the Flowhub graph contract is corrected";
-    }
-    let normalized = canonicalize_node_label(label);
-    match normalized.as_str() {
-        "coding" => "treat as upstream scope, not a writable artifact",
-        "rust" => "reflect rust constraints into blueprint and plan surfaces",
-        "style" => "encode style requirements into blueprint/ and plan/",
-        "engineering_requirement" => "encode engineering requirements into blueprint/ and plan/",
-        "policy" => "encode policy requirements into blueprint/ and plan/",
-        "blueprint" => "create and populate blueprint/",
-        "plan" => "create and populate plan/",
-        "surface_check" => "ensure qianji.toml, flowchart.mmd, blueprint/, and plan/ exist",
-        "flowchart_alignment" => "keep flowchart.mmd aligned with blueprint and plan",
-        "boundary_check" => "do not create or mutate artifacts outside the allowed work surface",
-        "drift_check" => "keep blueprint/ and plan/ consistent with the shown graph",
-        "boundary_and_drift_check" => {
-            "keep blueprint/ and plan/ inside the bounded surface and consistent with the shown graph"
-        }
-        "status_legality" => "keep bounded-slice status legal before calling the slice complete",
-        "validator_gate" => "prepare the artifact state so required validators can succeed",
-        "domain_validators" => {
-            "prepare the artifact state so required domain validators can succeed"
-        }
-        "done_gate" => "do not treat the slice as complete before qianji check passes",
-        "codex_write_bounded_surface" => {
-            "write qianji.toml, flowchart.mmd, blueprint/, and plan/ for the bounded slice"
-        }
-        "diagnostics" => "use diagnostics to repair the bounded work surface before retrying",
-        _ if is_exact_http_request_label(label) => {
-            "resolve placeholders and call this HTTP surface exactly as written"
-        }
-        _ => match kind {
-            FlowhubGraphNodeKind::Context => {
-                "treat as upstream scope and project it into writable artifacts"
-            }
-            FlowhubGraphNodeKind::Constraint => "project the constraint into blueprint/ and plan/",
-            FlowhubGraphNodeKind::Artifact => "create and populate the writable artifact surface",
-            FlowhubGraphNodeKind::Guard => {
-                "keep the bounded artifact state aligned with this guard"
-            }
-            FlowhubGraphNodeKind::Validator => {
-                "prepare the bounded artifact state so validators can succeed"
-            }
-            FlowhubGraphNodeKind::Gate => "do not advance completion until the gate is satisfied",
-            FlowhubGraphNodeKind::Process => {
-                "follow this process step when materializing or repairing the bounded surface"
-            }
-            FlowhubGraphNodeKind::Unknown => unreachable!("unknown handled above"),
-        },
-    }
-}
-
-fn is_exact_http_request_label(label: &str) -> bool {
-    let Some((method, target)) = label.split_once(' ') else {
-        return false;
-    };
-    matches!(method, "GET" | "POST" | "PUT" | "PATCH" | "DELETE")
-        && !target.is_empty()
-        && target.starts_with('/')
-        && !target.contains(' ')
-}
-
-fn graph_node_kind_label(kind: FlowhubGraphNodeKind) -> &'static str {
-    match kind {
-        FlowhubGraphNodeKind::Context => "context",
-        FlowhubGraphNodeKind::Constraint => "constraint",
-        FlowhubGraphNodeKind::Artifact => "artifact",
-        FlowhubGraphNodeKind::Guard => "guard",
-        FlowhubGraphNodeKind::Validator => "validator",
-        FlowhubGraphNodeKind::Gate => "gate",
-        FlowhubGraphNodeKind::Process => "process",
-        FlowhubGraphNodeKind::Unknown => "unknown",
-    }
-}
-
-fn canonicalize_node_label(label: &str) -> String {
-    label
-        .chars()
-        .map(|character| match character {
-            'A'..='Z' => character.to_ascii_lowercase(),
-            'a'..='z' | '0'..='9' => character,
-            _ => '_',
-        })
-        .collect::<String>()
-        .split('_')
-        .filter(|part| !part.is_empty())
-        .collect::<Vec<_>>()
-        .join("_")
+    (
+        None,
+        "node is outside the declared Flowhub graph contract vocabulary".to_string(),
+        "do not rely on this node until the Flowhub graph contract is corrected".to_string(),
+    )
 }

@@ -2,8 +2,9 @@ use std::collections::BTreeSet;
 use std::path::Path;
 
 use crate::contracts::{
-    FlowhubGraphContract, FlowhubModuleManifest, FlowhubRootManifest, FlowhubScenarioManifest,
-    FlowhubStructureContract, FlowhubTemplateComposition, FlowhubValidationKind, TemplateLinkRef,
+    FlowhubGraphContract, FlowhubGraphNodeContract, FlowhubModuleManifest, FlowhubRootManifest,
+    FlowhubScenarioManifest, FlowhubStructureContract, FlowhubTemplateComposition,
+    FlowhubValidationKind, TemplateLinkRef,
 };
 use crate::error::QianjiError;
 
@@ -103,6 +104,7 @@ fn validate_graph_contracts(manifest: &FlowhubModuleManifest) -> Result<(), Qian
     for graph in &manifest.graph {
         validate_graph_contract_path(graph)?;
         validate_graph_contract_name(graph)?;
+        validate_graph_node_contracts(graph)?;
         let path = graph.path.as_str();
         if !graph_paths.insert(path) {
             return Err(QianjiError::Topology(format!(
@@ -366,6 +368,80 @@ fn validate_graph_contract_name(graph: &FlowhubGraphContract) -> Result<(), Qian
         return Err(QianjiError::Topology(format!(
             "Flowhub module manifest `[[graph]].name` must stay on one line for path `{}`",
             graph.path
+        )));
+    }
+
+    Ok(())
+}
+
+fn validate_graph_node_contracts(graph: &FlowhubGraphContract) -> Result<(), QianjiError> {
+    if graph.node.is_empty() {
+        return Err(QianjiError::Topology(format!(
+            "Flowhub module manifest `[[graph]] path = \"{}\"` requires at least one `[[graph.node]]` entry",
+            graph.path
+        )));
+    }
+
+    let mut labels = BTreeSet::new();
+    for node in &graph.node {
+        validate_graph_node_contract(node, &graph.path)?;
+        if !labels.insert(node.label.as_str()) {
+            return Err(QianjiError::Topology(format!(
+                "Flowhub module manifest `[[graph]] path = \"{}\"` contains duplicate `[[graph.node]] label = \"{}\"`",
+                graph.path, node.label
+            )));
+        }
+    }
+
+    Ok(())
+}
+
+fn validate_graph_node_contract(
+    node: &FlowhubGraphNodeContract,
+    graph_path: &str,
+) -> Result<(), QianjiError> {
+    validate_graph_node_contract_field(
+        node.label.as_str(),
+        graph_path,
+        "[[graph.node]].label",
+        "non-empty",
+    )?;
+    validate_graph_node_contract_field(
+        node.kind.as_str(),
+        graph_path,
+        "[[graph.node]].kind",
+        "non-empty",
+    )?;
+    validate_graph_node_contract_field(
+        node.role.as_str(),
+        graph_path,
+        "[[graph.node]].role",
+        "non-empty",
+    )?;
+    validate_graph_node_contract_field(
+        node.agent_action.as_str(),
+        graph_path,
+        "[[graph.node]].agent_action",
+        "non-empty",
+    )?;
+    Ok(())
+}
+
+fn validate_graph_node_contract_field(
+    value: &str,
+    graph_path: &str,
+    field_name: &str,
+    requirement: &str,
+) -> Result<(), QianjiError> {
+    let trimmed = value.trim();
+    if trimmed.is_empty() {
+        return Err(QianjiError::Topology(format!(
+            "Flowhub module manifest `[[graph]] path = \"{graph_path}\"` requires {field_name} to be {requirement}"
+        )));
+    }
+    if trimmed.contains('\n') || trimmed.contains('\r') {
+        return Err(QianjiError::Topology(format!(
+            "Flowhub module manifest `[[graph]] path = \"{graph_path}\"` requires {field_name} to stay on one line"
         )));
     }
 

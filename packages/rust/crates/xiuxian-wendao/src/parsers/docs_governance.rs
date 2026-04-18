@@ -5,7 +5,7 @@ mod api;
 #[path = "docs_governance/types.rs"]
 pub(crate) mod types;
 
-#[cfg(feature = "zhenfa-router")]
+#[cfg(any(test, feature = "zhenfa-router"))]
 pub(crate) use self::api::{
     collect_index_body_links, collect_lines, derive_opaque_doc_id, extract_hidden_path_links,
     extract_wikilinks, is_canonical_repo_doc, is_opaque_doc_id, is_package_local_crate_doc,

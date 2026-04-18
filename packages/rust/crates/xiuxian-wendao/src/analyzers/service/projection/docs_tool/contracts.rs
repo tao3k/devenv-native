@@ -12,18 +12,69 @@ use crate::analyzers::ProjectionPageKind;
 #[cfg(test)]
 use super::options::{DEFAULT_DOCS_FAMILY_LIMIT, DEFAULT_DOCS_RELATED_LIMIT};
 
+/// Stable contract identifier for the docs search capability.
+pub const DOCS_SEARCH_CONTRACT_ID: &str = "wendao.docs.search";
+/// Stable contract identifier for the docs document capability.
+pub const DOCS_DOCUMENT_CONTRACT_ID: &str = "wendao.docs.document";
+/// Stable contract identifier for the docs document-structure capability.
+pub const DOCS_DOCUMENT_STRUCTURE_CONTRACT_ID: &str = "wendao.docs.document_structure";
 /// Stable contract identifier for the docs navigation capability.
 pub const DOCS_NAVIGATION_CONTRACT_ID: &str = "wendao.docs.navigation";
 /// Stable contract identifier for the docs retrieval-context capability.
 pub const DOCS_RETRIEVAL_CONTEXT_CONTRACT_ID: &str = "wendao.docs.retrieval_context";
 /// Ordered Wendao docs contracts exposed for Qianji consumption.
 pub const DOCS_CONTRACT_IDS: &[&str] = &[
+    DOCS_SEARCH_CONTRACT_ID,
+    DOCS_DOCUMENT_CONTRACT_ID,
+    DOCS_DOCUMENT_STRUCTURE_CONTRACT_ID,
     DOCS_NAVIGATION_CONTRACT_ID,
     DOCS_RETRIEVAL_CONTEXT_CONTRACT_ID,
 ];
 
 #[cfg(test)]
 const CONTRACTS_ROOT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/resources/contracts");
+
+#[cfg(test)]
+const DOCS_SEARCH_MANIFEST: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/resources/contracts/manifests/wendao.docs.search.toml"
+));
+const DOCS_SEARCH_CONTRACT_TOML: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/resources/contracts/snapshots/wendao.docs.search/contract.toml"
+));
+const DOCS_SEARCH_SCHEMA_JSON: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/resources/contracts/snapshots/wendao.docs.search/schema.json"
+));
+
+#[cfg(test)]
+const DOCS_DOCUMENT_MANIFEST: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/resources/contracts/manifests/wendao.docs.document.toml"
+));
+const DOCS_DOCUMENT_CONTRACT_TOML: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/resources/contracts/snapshots/wendao.docs.document/contract.toml"
+));
+const DOCS_DOCUMENT_SCHEMA_JSON: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/resources/contracts/snapshots/wendao.docs.document/schema.json"
+));
+
+#[cfg(test)]
+const DOCS_DOCUMENT_STRUCTURE_MANIFEST: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/resources/contracts/manifests/wendao.docs.document_structure.toml"
+));
+const DOCS_DOCUMENT_STRUCTURE_CONTRACT_TOML: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/resources/contracts/snapshots/wendao.docs.document_structure/contract.toml"
+));
+const DOCS_DOCUMENT_STRUCTURE_SCHEMA_JSON: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/resources/contracts/snapshots/wendao.docs.document_structure/schema.json"
+));
 
 #[cfg(test)]
 const DOCS_NAVIGATION_MANIFEST: &str = include_str!(concat!(
@@ -52,6 +103,33 @@ const DOCS_RETRIEVAL_CONTEXT_SCHEMA_JSON: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/resources/contracts/snapshots/wendao.docs.retrieval_context/schema.json"
 ));
+
+/// Stable tool arguments for docs search native-tool execution.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+pub struct DocsSearchToolArgs {
+    /// User-provided docs-facing projected page search string.
+    pub query: String,
+    /// Optional projected-page family filter.
+    #[serde(default)]
+    pub kind: Option<ProjectionPageKind>,
+    /// Optional result-limit override.
+    #[serde(default)]
+    pub limit: Option<usize>,
+}
+
+/// Stable tool arguments for docs document native-tool execution.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+pub struct DocsDocumentToolArgs {
+    /// Stable docs-facing page identifier.
+    pub page_id: String,
+}
+
+/// Stable tool arguments for docs document-structure native-tool execution.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+pub struct DocsDocumentStructureToolArgs {
+    /// Stable docs-facing page identifier.
+    pub page_id: String,
+}
 
 /// Stable tool arguments for docs navigation native-tool execution.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
@@ -225,6 +303,18 @@ struct DocsContractParamManifest {
 #[must_use]
 pub fn docs_capability_contract_assets(contract_id: &str) -> Option<DocsCapabilityContractAssets> {
     match contract_id {
+        DOCS_SEARCH_CONTRACT_ID => Some(DocsCapabilityContractAssets {
+            contract_toml: DOCS_SEARCH_CONTRACT_TOML,
+            schema_json: DOCS_SEARCH_SCHEMA_JSON,
+        }),
+        DOCS_DOCUMENT_CONTRACT_ID => Some(DocsCapabilityContractAssets {
+            contract_toml: DOCS_DOCUMENT_CONTRACT_TOML,
+            schema_json: DOCS_DOCUMENT_SCHEMA_JSON,
+        }),
+        DOCS_DOCUMENT_STRUCTURE_CONTRACT_ID => Some(DocsCapabilityContractAssets {
+            contract_toml: DOCS_DOCUMENT_STRUCTURE_CONTRACT_TOML,
+            schema_json: DOCS_DOCUMENT_STRUCTURE_SCHEMA_JSON,
+        }),
         DOCS_NAVIGATION_CONTRACT_ID => Some(DocsCapabilityContractAssets {
             contract_toml: DOCS_NAVIGATION_CONTRACT_TOML,
             schema_json: DOCS_NAVIGATION_SCHEMA_JSON,
@@ -252,6 +342,9 @@ pub fn docs_capability_schema_snapshot(contract_id: &str) -> Option<&'static str
 #[cfg(test)]
 fn docs_capability_manifest(contract_id: &str) -> Option<&'static str> {
     match contract_id {
+        DOCS_SEARCH_CONTRACT_ID => Some(DOCS_SEARCH_MANIFEST),
+        DOCS_DOCUMENT_CONTRACT_ID => Some(DOCS_DOCUMENT_MANIFEST),
+        DOCS_DOCUMENT_STRUCTURE_CONTRACT_ID => Some(DOCS_DOCUMENT_STRUCTURE_MANIFEST),
         DOCS_NAVIGATION_CONTRACT_ID => Some(DOCS_NAVIGATION_MANIFEST),
         DOCS_RETRIEVAL_CONTEXT_CONTRACT_ID => Some(DOCS_RETRIEVAL_CONTEXT_MANIFEST),
         _ => None,
@@ -315,6 +408,14 @@ fn generate_snapshot_contract_toml(contract_id: &str) -> Result<String> {
 fn generate_schema_json(contract_id: &str) -> Result<String> {
     let manifest = parse_manifest(contract_id)?;
     let schema = match manifest.tool.schema_provider.as_str() {
+        "DocsSearchToolArgs" => serde_json::to_string_pretty(&schema_for!(DocsSearchToolArgs))
+            .context("failed to serialize DocsSearchToolArgs schema")?,
+        "DocsDocumentToolArgs" => serde_json::to_string_pretty(&schema_for!(DocsDocumentToolArgs))
+            .context("failed to serialize DocsDocumentToolArgs schema")?,
+        "DocsDocumentStructureToolArgs" => {
+            serde_json::to_string_pretty(&schema_for!(DocsDocumentStructureToolArgs))
+                .context("failed to serialize DocsDocumentStructureToolArgs schema")?
+        }
         "DocsNavigationToolArgs" => {
             serde_json::to_string_pretty(&schema_for!(DocsNavigationToolArgs))
                 .context("failed to serialize DocsNavigationToolArgs schema")?
@@ -360,6 +461,97 @@ fn validate_manifest(manifest: &DocsCapabilityManifest) -> Result<()> {
 #[cfg(test)]
 fn expected_contract_shape(contract_id: &str) -> Option<DocsCapabilityManifest> {
     match contract_id {
+        DOCS_SEARCH_CONTRACT_ID => Some(DocsCapabilityManifest {
+            id: DOCS_SEARCH_CONTRACT_ID.to_string(),
+            version: 1,
+            task_types: vec!["http_call".to_string(), "cli_call".to_string()],
+            http: DocsHttpManifest {
+                method: "GET".to_string(),
+                path: crate::gateway::API_DOCS_SEARCH_OPENAPI_PATH.to_string(),
+                query: vec![
+                    "repo".to_string(),
+                    "query".to_string(),
+                    "kind".to_string(),
+                    "limit".to_string(),
+                ],
+            },
+            cli: DocsCliManifest {
+                argv: vec![
+                    "wendao".to_string(),
+                    "docs".to_string(),
+                    "search".to_string(),
+                ],
+                flags: BTreeMap::from([
+                    ("kind".to_string(), "--kind".to_string()),
+                    ("limit".to_string(), "--limit".to_string()),
+                    ("query".to_string(), "--query".to_string()),
+                    ("repo".to_string(), "--repo".to_string()),
+                ]),
+            },
+            tool: DocsToolManifest {
+                name: "wendao.docs.search".to_string(),
+                schema_provider: "DocsSearchToolArgs".to_string(),
+                runtime_injected: vec!["repo".to_string()],
+            },
+            params: vec![
+                required_string_param("repo"),
+                required_string_param("query"),
+                optional_string_param("kind"),
+                optional_integer_param("limit", 10),
+            ],
+        }),
+        DOCS_DOCUMENT_CONTRACT_ID => Some(DocsCapabilityManifest {
+            id: DOCS_DOCUMENT_CONTRACT_ID.to_string(),
+            version: 1,
+            task_types: vec!["http_call".to_string(), "cli_call".to_string()],
+            http: DocsHttpManifest {
+                method: "GET".to_string(),
+                path: crate::gateway::API_DOCS_PAGE_OPENAPI_PATH.to_string(),
+                query: vec!["repo".to_string(), "page_id".to_string()],
+            },
+            cli: DocsCliManifest {
+                argv: vec!["wendao".to_string(), "docs".to_string(), "page".to_string()],
+                flags: BTreeMap::from([
+                    ("page_id".to_string(), "--page-id".to_string()),
+                    ("repo".to_string(), "--repo".to_string()),
+                ]),
+            },
+            tool: DocsToolManifest {
+                name: "wendao.docs.get_document".to_string(),
+                schema_provider: "DocsDocumentToolArgs".to_string(),
+                runtime_injected: vec!["repo".to_string()],
+            },
+            params: vec![
+                required_string_param("repo"),
+                required_string_param("page_id"),
+            ],
+        }),
+        DOCS_DOCUMENT_STRUCTURE_CONTRACT_ID => Some(DocsCapabilityManifest {
+            id: DOCS_DOCUMENT_STRUCTURE_CONTRACT_ID.to_string(),
+            version: 1,
+            task_types: vec!["http_call".to_string(), "cli_call".to_string()],
+            http: DocsHttpManifest {
+                method: "GET".to_string(),
+                path: crate::gateway::API_DOCS_PAGE_INDEX_TREE_OPENAPI_PATH.to_string(),
+                query: vec!["repo".to_string(), "page_id".to_string()],
+            },
+            cli: DocsCliManifest {
+                argv: vec!["wendao".to_string(), "docs".to_string(), "tree".to_string()],
+                flags: BTreeMap::from([
+                    ("page_id".to_string(), "--page-id".to_string()),
+                    ("repo".to_string(), "--repo".to_string()),
+                ]),
+            },
+            tool: DocsToolManifest {
+                name: "wendao.docs.get_document_structure".to_string(),
+                schema_provider: "DocsDocumentStructureToolArgs".to_string(),
+                runtime_injected: vec!["repo".to_string()],
+            },
+            params: vec![
+                required_string_param("repo"),
+                required_string_param("page_id"),
+            ],
+        }),
         DOCS_NAVIGATION_CONTRACT_ID => Some(DocsCapabilityManifest {
             id: DOCS_NAVIGATION_CONTRACT_ID.to_string(),
             version: 1,

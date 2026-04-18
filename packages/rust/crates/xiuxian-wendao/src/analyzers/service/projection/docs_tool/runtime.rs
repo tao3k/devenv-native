@@ -5,7 +5,7 @@ use crate::analyzers::projection::ProjectionPageKind;
 use crate::analyzers::{
     DocsNavigationResult, DocsPageIndexDocumentsResult, DocsPageIndexNodeResult,
     DocsPageIndexTreeResult, DocsPageIndexTreeSearchResult, DocsPageIndexTreesResult,
-    DocsPageResult, DocsRetrievalContextResult,
+    DocsPageResult, DocsRetrievalContextResult, DocsSearchResult,
 };
 
 use super::{
@@ -14,6 +14,13 @@ use super::{
 
 /// Crate-local execution contract for docs capability calls.
 pub(crate) trait DocsToolRuntime: Send + Sync {
+    fn search_documents(
+        &self,
+        query: &str,
+        kind: Option<ProjectionPageKind>,
+        limit: usize,
+    ) -> Result<DocsSearchResult, RepoIntelligenceError>;
+
     fn get_document(&self, page_id: &str) -> Result<DocsPageResult, RepoIntelligenceError>;
 
     fn get_document_structure(
@@ -66,6 +73,15 @@ pub(crate) trait DocsToolRuntime: Send + Sync {
 }
 
 impl DocsToolRuntime for DocsToolService {
+    fn search_documents(
+        &self,
+        query: &str,
+        kind: Option<ProjectionPageKind>,
+        limit: usize,
+    ) -> Result<DocsSearchResult, RepoIntelligenceError> {
+        DocsToolService::search_documents(self, query, kind, limit)
+    }
+
     fn get_document(&self, page_id: &str) -> Result<DocsPageResult, RepoIntelligenceError> {
         DocsToolService::get_document(self, page_id)
     }

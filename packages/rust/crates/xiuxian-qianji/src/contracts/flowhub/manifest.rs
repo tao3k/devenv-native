@@ -26,6 +26,20 @@ impl FlowhubGraphTopology {
     }
 }
 
+/// One graph-node semantic contract owned by a Mermaid scenario-case contract.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct FlowhubGraphNodeContract {
+    /// Exact Mermaid node label owned by this graph contract.
+    pub label: String,
+    /// Contract-owned node semantic kind.
+    pub kind: String,
+    /// Stable role description shown on `qianji show --graph`.
+    pub role: String,
+    /// Stable action guidance shown on `qianji show --graph`.
+    pub agent_action: String,
+}
+
 /// One immediate Mermaid scenario-case contract owned by a Flowhub module.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -38,6 +52,9 @@ pub struct FlowhubGraphContract {
     pub name: Option<String>,
     /// Declared topology classification for the graph.
     pub topology: FlowhubGraphTopology,
+    /// Declared graph-node semantics owned by this graph contract.
+    #[serde(default)]
+    pub node: Vec<FlowhubGraphNodeContract>,
 }
 
 impl FlowhubGraphContract {

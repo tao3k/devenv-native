@@ -10,13 +10,15 @@ use crate::contracts::{
 };
 use crate::error::QianjiError;
 use crate::flowhub::mermaid::{
-    analyze_mermaid_flowchart_topology, parse_mermaid_flowchart, validate_mermaid_flowchart,
+    analyze_mermaid_flowchart_topology, declared_graph_node_labels, parse_mermaid_flowchart,
+    validate_mermaid_flowchart,
 };
 use crate::markdown::{MarkdownDiagnostic, render_validation_failed, render_validation_pass};
 use crate::{ResolvedFlowhubModule, resolve_flowhub_module_children};
 
 use super::discover::{
     FlowhubDirKind, FlowhubDiscoveredModule, FlowhubModuleCandidate, classify_flowhub_dir,
+    discover_all_flowhub_module_refs, find_flowhub_root_for_module_dir,
     load_flowhub_module_candidate, module_candidate_from_dir, module_candidate_from_ref,
 };
 use super::load::load_flowhub_root_manifest;
@@ -131,6 +133,7 @@ fn check_flowhub_root(root: &Path) -> Result<FlowhubCheckReport, QianjiError> {
     };
 
     validate_root_contract(root, &root_manifest.contract, &mut diagnostics)?;
+    let known_module_names = discover_all_flowhub_module_refs(root)?;
 
     let candidates = root_manifest
         .contract
@@ -166,7 +169,7 @@ fn check_flowhub_root(root: &Path) -> Result<FlowhubCheckReport, QianjiError> {
         }
         checked_modules += validate_candidate(
             candidate,
-            &root_manifest.contract.register,
+            &known_module_names,
             &mut diagnostics,
             &mut visited,
         )?;
@@ -560,9 +563,12 @@ fn validate_mermaid_case_files(
         let merimind_graph_name = declared_graph.map_or(fallback_graph_name, |graph| {
             graph.resolved_name_or(fallback_graph_name)
         });
+        let allowed_graph_node_labels = declared_graph_node_labels(declared_graph);
         match parse_mermaid_flowchart(&source, merimind_graph_name, known_module_names) {
             Ok(flowchart) => {
-                if let Err(problem) = validate_mermaid_flowchart(&flowchart, known_module_names) {
+                if let Err(problem) =
+                    validate_mermaid_flowchart(&flowchart, &allowed_graph_node_labels)
+                {
                     diagnostics.push(FlowhubDiagnostic {
                         title: "Invalid scenario-case graph".to_string(),
                         location: scenario_case.clone(),
@@ -732,18 +738,11 @@ fn mermaid_file_is_contracted(
 }
 
 fn load_known_module_names_for_module(module_dir: &Path) -> Vec<String> {
-    let Some(root_dir) = module_dir.parent() else {
+    let Ok(flowhub_root) = find_flowhub_root_for_module_dir(module_dir) else {
         return Vec::new();
     };
-    let root_manifest_path = root_dir.join("qianji.toml");
-    if !root_manifest_path.is_file() {
-        return Vec::new();
-    }
 
-    match load_flowhub_root_manifest(&root_manifest_path) {
-        Ok(manifest) => manifest.contract.register,
-        Err(_) => Vec::new(),
-    }
+    discover_all_flowhub_module_refs(&flowhub_root).unwrap_or_default()
 }
 
 fn missing_path_diagnostic(

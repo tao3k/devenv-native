@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DocsSearchToolArgs",
+  "description": "Stable tool arguments for docs search native-tool execution.",
+  "type": "object",
+  "properties": {
+    "kind": {
+      "description": "Optional projected-page family filter.",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ProjectionPageKind"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "limit": {
+      "description": "Optional result-limit override.",
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "uint",
+      "default": null,
+      "minimum": 0
+    },
+    "query": {
+      "description": "User-provided docs-facing projected page search string.",
+      "type": "string"
+    }
+  },
+  "required": [
+    "query"
+  ],
+  "$defs": {
+    "ProjectionPageKind": {
+      "description": "Deterministic projected page family derived from stage-1 repository truth.",
+      "oneOf": [
+        {
+          "description": "Reference-oriented projected page.",
+          "type": "string",
+          "const": "reference"
+        },
+        {
+          "description": "How-to oriented projected page.",
+          "type": "string",
+          "const": "how_to"
+        },
+        {
+          "description": "Tutorial-oriented projected page.",
+          "type": "string",
+          "const": "tutorial"
+        },
+        {
+          "description": "Explanation-oriented projected page.",
+          "type": "string",
+          "const": "explanation"
+        }
+      ]
+    }
+  }
+}

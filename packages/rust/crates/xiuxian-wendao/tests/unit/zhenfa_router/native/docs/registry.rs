@@ -5,7 +5,8 @@ fn docs_native_tools_register_all_capabilities() {
     let mut registry = ZhenfaRegistry::new();
     register_wendao_docs_native_tools(&mut registry);
 
-    assert_eq!(registry.len(), 10);
+    assert_eq!(registry.len(), 11);
+    assert!(registry.contains("wendao.docs.search"));
     assert!(registry.contains("wendao.docs.get_document"));
     assert!(registry.contains("wendao.docs.get_document_structure"));
     assert!(registry.contains("wendao.docs.get_document_structure_outline"));

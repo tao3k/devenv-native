@@ -1,5 +1,6 @@
 use super::{
-    DOCS_CONTRACT_IDS, DOCS_NAVIGATION_CONTRACT_ID, DOCS_RETRIEVAL_CONTEXT_CONTRACT_ID,
+    DOCS_CONTRACT_IDS, DOCS_DOCUMENT_CONTRACT_ID, DOCS_DOCUMENT_STRUCTURE_CONTRACT_ID,
+    DOCS_NAVIGATION_CONTRACT_ID, DOCS_RETRIEVAL_CONTEXT_CONTRACT_ID, DOCS_SEARCH_CONTRACT_ID,
     DocsCapabilityContractSnapshot, docs_capability_contract_assets, generate_schema_json,
     generate_snapshot_contract_toml, parse_manifest, schema_snapshot_path, snapshot_root_path,
 };
@@ -9,7 +10,7 @@ use std::collections::BTreeSet;
 use std::path::Path;
 
 #[test]
-fn docs_contract_assets_cover_navigation_and_retrieval_context() {
+fn docs_contract_assets_cover_declared_docs_contracts() {
     for contract_id in DOCS_CONTRACT_IDS {
         let assets = docs_capability_contract_assets(contract_id)
             .unwrap_or_else(|| panic!("missing assets for `{contract_id}`"));
@@ -131,6 +132,12 @@ fn docs_contract_paths_exist_on_disk() {
 
 #[test]
 fn docs_contract_snapshot_ids_stay_stable() {
+    assert_eq!(DOCS_SEARCH_CONTRACT_ID, "wendao.docs.search");
+    assert_eq!(DOCS_DOCUMENT_CONTRACT_ID, "wendao.docs.document");
+    assert_eq!(
+        DOCS_DOCUMENT_STRUCTURE_CONTRACT_ID,
+        "wendao.docs.document_structure"
+    );
     assert_eq!(DOCS_NAVIGATION_CONTRACT_ID, "wendao.docs.navigation");
     assert_eq!(
         DOCS_RETRIEVAL_CONTEXT_CONTRACT_ID,

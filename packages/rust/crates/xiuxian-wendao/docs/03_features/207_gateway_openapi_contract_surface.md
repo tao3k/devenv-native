@@ -371,20 +371,22 @@ Notes:
   repo-scoped lightweight structure catalog reuses `DocsPageIndexTreesResult`
   with node `text` fields recursively cleared. The precise segment opener
   reuses projected markdown plus stable `line_range` coordinates; all six stay
-  crate-local for now, so the canonical HTTP mapping still covers only the 4
+  crate-local for now, so the canonical HTTP mapping still covers only the 5
   core docs openers.
 - The parser owner for the underlying Markdown TOC extraction is
   `xiuxian_wendao_parsers::parse_markdown_toc`; the docs-tool surface only owns
   repo-scoped opening and transport-facing reuse.
-- The same `navigation` plus `retrieval-context` mapping is now snapshotted as
-  Wendao-owned invocation contracts:
-  `wendao.docs.navigation` and `wendao.docs.retrieval_context`. Each contract
-  is checked in as `contract.toml + schema.json`, reuses the same HTTP route
-  constants, CLI command forms, and native-tool JSON Schema argument structs,
-  and can be rendered in `xiuxian-qianji` through
+- The same core docs opener mapping is now snapshotted as Wendao-owned
+  invocation contracts: `wendao.docs.search`, `wendao.docs.document`,
+  `wendao.docs.document_structure`, `wendao.docs.navigation`, and
+  `wendao.docs.retrieval_context`. Each contract is checked in as
+  `contract.toml + schema.json`, reuses the same HTTP route constants, CLI
+  command forms, and native-tool JSON Schema argument structs, and can be
+  rendered in `xiuxian-qianji` through
   `qianji show --contract <contract-id>` without widening the frozen
-  `qianji show --graph` contract. Flow authors can then reference the same
-  contract id from direct `http_call` or `cli_call` nodes in `qianji.toml`.
+  `qianji show --graph` contract. `qianji-flowhub/wendao` now references these
+  stable contract ids as its primary graph nodes, while `/api/docs/*` remains
+  the adapter surface materialized by the contract.
 - The next docs namespace family discovery route follows the same rule:
   `GET /api/docs/family-search` reuses the repo projected-page family-search
   payload instead of introducing a docs-only grouped-family search schema, so

@@ -11,6 +11,16 @@ fn check_flowhub_accepts_real_root() {
 }
 
 #[test]
+fn check_flowhub_accepts_real_research_module() {
+    let report = check_flowhub(flowhub_root().join("research/paper"))
+        .unwrap_or_else(|error| panic!("real research module should check: {error}"));
+
+    assert!(report.is_valid());
+    let rendered = render_flowhub_check_markdown(&report);
+    assert!(rendered.contains("# Validation Passed"));
+}
+
+#[test]
 fn check_flowhub_reports_invalid_mermaid_scenario_case() {
     let temp_dir =
         TempDir::new().unwrap_or_else(|error| panic!("temp dir should allocate: {error}"));

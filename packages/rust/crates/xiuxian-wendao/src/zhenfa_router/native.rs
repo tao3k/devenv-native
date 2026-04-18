@@ -47,12 +47,13 @@ pub use docs::{
     WendaoDocsGetDocumentStructureOutlineTool, WendaoDocsGetDocumentStructureTool,
     WendaoDocsGetDocumentTool, WendaoDocsGetNavigationArgs, WendaoDocsGetNavigationTool,
     WendaoDocsGetRetrievalContextArgs, WendaoDocsGetRetrievalContextTool,
-    WendaoDocsGetTocDocumentsArgs, WendaoDocsGetTocDocumentsTool,
+    WendaoDocsGetTocDocumentsArgs, WendaoDocsGetTocDocumentsTool, WendaoDocsSearchArgs,
     WendaoDocsSearchDocumentStructureArgs, WendaoDocsSearchDocumentStructureTool,
-    register_wendao_docs_native_tools, wendao_docs_get_document, wendao_docs_get_document_node,
-    wendao_docs_get_document_segment, wendao_docs_get_document_structure,
-    wendao_docs_get_document_structure_catalog, wendao_docs_get_document_structure_outline,
-    wendao_docs_get_navigation, wendao_docs_get_retrieval_context, wendao_docs_get_toc_documents,
+    WendaoDocsSearchTool, register_wendao_docs_native_tools, wendao_docs_get_document,
+    wendao_docs_get_document_node, wendao_docs_get_document_segment,
+    wendao_docs_get_document_structure, wendao_docs_get_document_structure_catalog,
+    wendao_docs_get_document_structure_outline, wendao_docs_get_navigation,
+    wendao_docs_get_retrieval_context, wendao_docs_get_toc_documents, wendao_docs_search,
     wendao_docs_search_document_structure,
 };
 pub use forwarder::{

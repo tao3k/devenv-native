@@ -3,6 +3,7 @@ mod navigation;
 mod node;
 mod registry;
 mod retrieval_context;
+mod search;
 mod search_structure;
 mod segment;
 mod shared;
@@ -25,6 +26,7 @@ pub use retrieval_context::{
     WendaoDocsGetRetrievalContextArgs, WendaoDocsGetRetrievalContextTool,
     wendao_docs_get_retrieval_context,
 };
+pub use search::{WendaoDocsSearchArgs, WendaoDocsSearchTool, wendao_docs_search};
 pub use search_structure::{
     WendaoDocsSearchDocumentStructureArgs, WendaoDocsSearchDocumentStructureTool,
     wendao_docs_search_document_structure,

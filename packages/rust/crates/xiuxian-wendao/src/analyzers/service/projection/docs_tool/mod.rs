@@ -6,10 +6,12 @@ mod segment;
 mod service;
 
 pub use contracts::{
-    DOCS_CONTRACT_IDS, DOCS_NAVIGATION_CONTRACT_ID, DOCS_RETRIEVAL_CONTEXT_CONTRACT_ID,
+    DOCS_CONTRACT_IDS, DOCS_DOCUMENT_CONTRACT_ID, DOCS_DOCUMENT_STRUCTURE_CONTRACT_ID,
+    DOCS_NAVIGATION_CONTRACT_ID, DOCS_RETRIEVAL_CONTEXT_CONTRACT_ID, DOCS_SEARCH_CONTRACT_ID,
     DocsCapabilityContractAssets, DocsCapabilityContractSnapshot, DocsCliContractSnapshot,
-    DocsContractDefaultValue, DocsContractParamSnapshot, DocsHttpContractSnapshot,
-    DocsNavigationToolArgs, DocsRetrievalContextToolArgs, DocsToolContractSnapshot,
+    DocsContractDefaultValue, DocsContractParamSnapshot, DocsDocumentStructureToolArgs,
+    DocsDocumentToolArgs, DocsHttpContractSnapshot, DocsNavigationToolArgs,
+    DocsRetrievalContextToolArgs, DocsSearchToolArgs, DocsToolContractSnapshot,
     docs_capability_contract_assets, docs_capability_contract_snapshot,
     docs_capability_schema_snapshot,
 };

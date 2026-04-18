@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DocsDocumentStructureToolArgs",
+  "description": "Stable tool arguments for docs document-structure native-tool execution.",
+  "type": "object",
+  "properties": {
+    "page_id": {
+      "description": "Stable docs-facing page identifier.",
+      "type": "string"
+    }
+  },
+  "required": [
+    "page_id"
+  ]
+}

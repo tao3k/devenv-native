@@ -20,7 +20,7 @@ pub(crate) use attachments::AttachmentsArgs;
 pub(crate) use audit::AuditArgs;
 pub(crate) use command::Command;
 pub(crate) use docs::{
-    DocsCommand, DocsContextArgs, DocsNavigationArgs, DocsNodeArgs, DocsPageArgs,
+    DocsCommand, DocsContextArgs, DocsNavigationArgs, DocsNodeArgs, DocsPageArgs, DocsSearchArgs,
     DocsSearchStructureArgs, DocsSegmentArgs, DocsStructureCatalogArgs, DocsTocArgs, DocsTreeArgs,
     DocsTreeOutlineArgs,
 };

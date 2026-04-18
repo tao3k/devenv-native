@@ -15,7 +15,7 @@ use crate::analyzers::service::projection::{
     docs_markdown_documents_from_config, docs_navigation_from_config, docs_page_from_config,
     docs_page_index_documents_from_config, docs_page_index_node_from_config,
     docs_page_index_tree_from_config, docs_page_index_tree_search_from_config,
-    docs_page_index_trees_from_config, docs_retrieval_context_from_config,
+    docs_page_index_trees_from_config, docs_retrieval_context_from_config, docs_search_from_config,
 };
 use crate::analyzers::{
     DocsMarkdownDocumentsQuery, DocsNavigationQuery, DocsNavigationResult,
@@ -23,7 +23,7 @@ use crate::analyzers::{
     DocsPageIndexNodeResult, DocsPageIndexTreeQuery, DocsPageIndexTreeResult,
     DocsPageIndexTreeSearchQuery, DocsPageIndexTreeSearchResult, DocsPageIndexTreesQuery,
     DocsPageIndexTreesResult, DocsPageQuery, DocsPageResult, DocsRetrievalContextQuery,
-    DocsRetrievalContextResult,
+    DocsRetrievalContextResult, DocsSearchQuery, DocsSearchResult,
 };
 #[cfg(feature = "zhenfa-router")]
 use crate::analyzers::{RegisteredRepository, analyze_registered_repository_with_registry};
@@ -112,6 +112,31 @@ impl DocsToolService {
             &DocsPageQuery {
                 repo_id: self.repo_id.clone(),
                 page_id: page_id.to_string(),
+            },
+            self.config_path(),
+            self.project_root(),
+        )
+    }
+
+    /// Search docs-facing projected pages across one repository.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`RepoIntelligenceError`] when repository analysis fails or the
+    /// projected-page search cannot be constructed for the configured
+    /// repository.
+    pub fn search_documents(
+        &self,
+        query: &str,
+        kind: Option<ProjectionPageKind>,
+        limit: usize,
+    ) -> Result<DocsSearchResult, RepoIntelligenceError> {
+        docs_search_from_config(
+            &DocsSearchQuery {
+                repo_id: self.repo_id.clone(),
+                query: query.to_string(),
+                kind,
+                limit,
             },
             self.config_path(),
             self.project_root(),

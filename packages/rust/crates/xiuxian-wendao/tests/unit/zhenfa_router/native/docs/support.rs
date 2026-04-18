@@ -9,15 +9,15 @@ pub(super) use crate::analyzers::{
 pub(super) use crate::analyzers::{
     DocsNavigationOptions, DocsPageIndexDocumentsResult, DocsPageIndexNodeResult,
     DocsPageIndexTreeResult, DocsPageIndexTreeSearchResult, DocsPageIndexTreesResult,
-    DocsPageResult, DocsRetrievalContextOptions, DocsRetrievalContextResult, DocsToolService,
-    ProjectedPageIndexDocument, ProjectedPageIndexNodeHit, ProjectedPageRecord, ProjectionPageKind,
-    RepoIntelligenceError,
+    DocsPageResult, DocsRetrievalContextOptions, DocsRetrievalContextResult, DocsSearchResult,
+    DocsToolService, ProjectedPageIndexDocument, ProjectedPageIndexNodeHit, ProjectedPageRecord,
+    ProjectionPageKind, RepoIntelligenceError,
 };
 pub(super) use crate::zhenfa_router::native::{
     WendaoContextExt, WendaoDocsGetDocumentNodeTool, WendaoDocsGetDocumentSegmentTool,
     WendaoDocsGetDocumentStructureCatalogTool, WendaoDocsGetDocumentStructureOutlineTool,
     WendaoDocsGetDocumentTool, WendaoDocsGetTocDocumentsTool,
-    WendaoDocsSearchDocumentStructureTool, register_wendao_docs_native_tools,
+    WendaoDocsSearchDocumentStructureTool, WendaoDocsSearchTool, register_wendao_docs_native_tools,
     resolve_docs_tool_runtime,
 };
 
@@ -30,6 +30,36 @@ pub(super) const TEST_PAGE_ID: &str = "repo:modelica-docs-native-tool:projection
 pub(super) struct FakeDocsToolRuntime;
 
 impl DocsToolRuntime for FakeDocsToolRuntime {
+    fn search_documents(
+        &self,
+        query: &str,
+        kind: Option<ProjectionPageKind>,
+        _limit: usize,
+    ) -> Result<DocsSearchResult, RepoIntelligenceError> {
+        Ok(DocsSearchResult {
+            repo_id: TEST_REPO_ID.to_string(),
+            pages: vec![ProjectedPageRecord {
+                repo_id: TEST_REPO_ID.to_string(),
+                page_id: TEST_PAGE_ID.to_string(),
+                kind: kind.unwrap_or(ProjectionPageKind::Reference),
+                title: query.to_ascii_uppercase(),
+                module_ids: Vec::new(),
+                symbol_ids: vec![
+                    "repo:modelica-docs-native-tool:symbol:Projectionica.Controllers.PI"
+                        .to_string(),
+                ],
+                example_ids: Vec::new(),
+                doc_ids: Vec::new(),
+                paths: vec!["Projectionica/Controllers/PI.mo".to_string()],
+                format_hints: vec!["modelica".to_string()],
+                sections: Vec::new(),
+                doc_id: String::new(),
+                path: "Projectionica/Controllers/PI.mo".to_string(),
+                keywords: vec![query.to_string()],
+            }],
+        })
+    }
+
     fn get_document(&self, page_id: &str) -> Result<DocsPageResult, RepoIntelligenceError> {
         Ok(DocsPageResult {
             repo_id: TEST_REPO_ID.to_string(),

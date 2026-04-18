@@ -22,7 +22,7 @@ fn show_flowhub_summarizes_real_root() {
     let FlowhubShow::Root(show) = show else {
         panic!("expected Flowhub root summary");
     };
-    assert_eq!(show.modules.len(), 5);
+    assert_eq!(show.modules.len(), 6);
     assert!(
         show.modules
             .iter()
@@ -38,11 +38,41 @@ fn show_flowhub_summarizes_real_root() {
             .iter()
             .any(|module| module.module_ref == "wendao")
     );
+    assert!(
+        show.modules
+            .iter()
+            .any(|module| module.module_ref == "research")
+    );
 
     let rendered = render_flowhub_show(&FlowhubShow::Root(show));
     assert_common_show_shape(&rendered);
     assert!(rendered.contains("# Flowhub"));
     assert!(rendered.contains("## rust"));
+}
+
+#[test]
+fn show_flowhub_summarizes_real_research_module() {
+    let show = show_flowhub(flowhub_root().join("research"))
+        .unwrap_or_else(|error| panic!("research node should show: {error}"));
+
+    let FlowhubShow::Module(show) = show else {
+        panic!("expected Flowhub module summary");
+    };
+    assert_eq!(show.summary.module_ref, "research");
+    assert_eq!(show.summary.kind, FlowhubModuleKind::Composite);
+    assert_eq!(show.registered_child_count, 1);
+    assert!(
+        show.summary
+            .child_modules
+            .iter()
+            .any(|child| child == "research/paper")
+    );
+
+    let rendered = render_flowhub_show(&FlowhubShow::Module(show));
+    assert_common_show_shape(&rendered);
+    assert!(rendered.contains("Module: research"));
+    assert!(rendered.contains("Kind: composite"));
+    assert!(rendered.contains("Registered children: 1"));
 }
 
 #[test]
@@ -127,7 +157,6 @@ fn show_flowhub_graph_extracts_live_mermaid_nodes_edges_and_exports() {
         .unwrap_or_else(|error| panic!("live Mermaid graph should show: {error}"));
 
     assert_eq!(show.merimind_graph_name, "codex-plan");
-    assert_eq!(show.kind, "scenario");
     assert_eq!(show.topology, FlowhubGraphTopology::BoundedLoop);
     assert_eq!(
         show.declared_topology,
@@ -138,17 +167,17 @@ fn show_flowhub_graph_extracts_live_mermaid_nodes_edges_and_exports() {
     assert!(show.mermaid.contains("flowchart LR"));
     assert!(show.nodes.iter().any(|node| {
         node.label == "coding"
-            && node.kind == FlowhubGraphNodeKind::Context
+            && node.kind.as_deref() == Some("context")
             && node.exports_entry.as_deref() == Some("task.coding-start")
     }));
     assert!(show.nodes.iter().any(|node| {
         node.label == "domain validators"
-            && node.kind == FlowhubGraphNodeKind::Validator
+            && node.kind.as_deref() == Some("validator")
             && node.next == vec!["done gate".to_string(), "diagnostics".to_string()]
     }));
     assert!(show.nodes.iter().any(|node| {
         node.label == "plan"
-            && node.kind == FlowhubGraphNodeKind::Artifact
+            && node.kind.as_deref() == Some("artifact")
             && node.next == vec!["Codex write bounded surface".to_string()]
             && node.exports_ready.as_deref() == Some("task.plan-ready")
     }));
@@ -168,7 +197,6 @@ fn show_flowhub_graph_extracts_live_mermaid_nodes_edges_and_exports() {
     let rendered = render_flowhub_graph_show(&show);
     assert!(rendered.starts_with("# Graph"));
     assert!(rendered.contains("Name: codex-plan"));
-    assert!(rendered.contains("Kind: scenario"));
     assert!(rendered.contains("Topology: bounded_loop"));
     assert!(rendered.contains("Declared topology: bounded_loop"));
     assert!(rendered.contains("## Mermaid"));
@@ -208,6 +236,10 @@ fn show_flowhub_graph_uses_local_module_contract_for_wendao_leaf_case() {
     assert!(rendered.contains("Name: DOC_SEARCH"));
     assert!(rendered.contains("Topology: bounded_loop"));
     assert!(rendered.contains("Declared topology: bounded_loop"));
+    assert!(rendered.contains("### wendao.docs.search"));
+    assert!(rendered.contains("### wendao.docs.document"));
+    assert!(rendered.contains("### wendao.docs.document_structure"));
+    assert!(rendered.contains("Kind: capability_contract"));
     assert!(rendered.contains("## Module contract"));
     assert!(rendered.contains("- qianji.toml"));
     assert!(rendered.contains("- docs-search.mmd"));
@@ -216,6 +248,40 @@ fn show_flowhub_graph_uses_local_module_contract_for_wendao_leaf_case() {
     assert!(!rendered.contains("## Local qianji.toml template"));
     assert!(!rendered.contains("blueprint/"));
     assert!(!rendered.contains("plan/"));
+}
+
+#[test]
+fn show_flowhub_graph_describes_live_research_canonicalize_case() {
+    let show = show_flowhub_graph(flowhub_root().join("research/paper/paper-canonicalize.mmd"))
+        .unwrap_or_else(|error| panic!("research canonicalize graph should show: {error}"));
+
+    assert_eq!(show.merimind_graph_name, "PAPER_CANONICALIZE");
+    assert_eq!(show.owning_module_ref, "research/paper");
+    assert_eq!(show.topology, FlowhubGraphTopology::BoundedLoop);
+    assert_eq!(
+        show.declared_topology,
+        Some(FlowhubGraphTopology::BoundedLoop)
+    );
+    assert!(show.nodes.iter().any(|node| {
+        node.label == "research/paper" && node.kind.as_deref() == Some("artifact")
+    }));
+    assert!(
+        show.nodes
+            .iter()
+            .any(|node| { node.label == "pdf_intake" && node.kind.as_deref() == Some("process") })
+    );
+    assert!(show.nodes.iter().any(|node| {
+        node.label == "canonicalize_done" && node.kind.as_deref() == Some("artifact")
+    }));
+    assert!(show.unknown_graph_nodes.is_empty());
+
+    let rendered = render_flowhub_graph_show(&show);
+    assert!(rendered.contains("Name: PAPER_CANONICALIZE"));
+    assert!(rendered.contains("Path: ./qianji-flowhub/research/paper/paper-canonicalize.mmd"));
+    assert!(rendered.contains("### pdf_intake"));
+    assert!(rendered.contains("Kind: process"));
+    assert!(rendered.contains("### canonicalize_done"));
+    assert!(rendered.contains("Kind: artifact"));
 }
 
 #[test]
@@ -230,13 +296,13 @@ fn show_flowhub_graph_surfaces_unknown_graph_nodes() {
     assert_eq!(show.unknown_graph_nodes, vec!["style".to_string()]);
     assert!(show.nodes.iter().any(|node| {
         node.label == "style"
-            && node.kind == FlowhubGraphNodeKind::Unknown
+            && node.kind.is_none()
             && node.agent_action
                 == "do not rely on this node until the Flowhub graph contract is corrected"
     }));
     let rendered = render_flowhub_graph_show(&show);
     assert!(rendered.contains("### style"));
-    assert!(rendered.contains("Kind: unknown"));
+    assert!(!rendered.contains("Kind: unknown"));
     assert!(rendered.contains(
         "Agent action: do not rely on this node until the Flowhub graph contract is corrected"
     ));
@@ -253,7 +319,10 @@ fn show_flowhub_graph_preserves_raw_mermaid_but_ignores_presentation_directives_
     });
 
     assert_eq!(show.topology, FlowhubGraphTopology::BoundedLoop);
-    assert_eq!(show.declared_topology, None);
+    assert_eq!(
+        show.declared_topology,
+        Some(FlowhubGraphTopology::BoundedLoop)
+    );
     assert!(show.mermaid.contains("classDef highlight"));
     assert!(show.mermaid.contains("style C"));
     assert!(show.mermaid.contains("click G"));

@@ -83,6 +83,7 @@ fn run_show_dir_command_renders_flowhub_summary() {
     assert!(output.rendered.contains("# Flowhub"));
     assert!(output.rendered.contains("## rust"));
     assert!(output.rendered.contains("## blueprint"));
+    assert!(output.rendered.contains("## research"));
 }
 
 #[test]
@@ -124,7 +125,6 @@ fn run_show_graph_command_renders_flowhub_mermaid_graph() {
             .rendered
             .contains("Path: ./qianji-flowhub/plan/codex-plan.mmd")
     );
-    assert!(output.rendered.contains("Kind: scenario"));
     assert!(output.rendered.contains("## Mermaid"));
     assert!(output.rendered.contains("```mermaid"));
     assert!(output.rendered.contains("flowchart LR"));

@@ -282,12 +282,11 @@ This principle is the most important execution rule for the current model:
 
 `qianji show --graph` exposes one Flowhub graph companion directly from the
 Flowhub library. Its responsibility is limited to the graph contract surface:
-graph metadata, raw Mermaid, node semantics, the expected bounded work
-surface, and the minimal localized `qianji.toml` template that an agent
-executor should materialize next. `qianji show --dir` exposes the current
-graph entry surface and the main bounded content surfaces. `qianji check`
-unifies `[[validation]]`, flowchart alignment, boundary checks, drift checks,
-and status legality checks.
+graph metadata together with the `Mermaid`, `Nodes`, `Module contract`, and
+`Owning qianji.toml` sections. `qianji show --dir` exposes the current graph
+entry surface and the main bounded content surfaces. `qianji check` unifies
+`[[validation]]`, flowchart alignment, boundary checks, drift checks, and
+status legality checks.
 
 ### 6.5 `qianji show --graph` Output Contract v0
 
@@ -301,9 +300,10 @@ It must not:
 4. run toolchain validator evaluation
 
 Its responsibility is to provide enough graph-contract information for the
-executor to materialize a localized bounded work surface.
+executor to inspect the declared Flowhub graph contract without inventing
+extra Rust-owned business semantics.
 
-The output contract for v0 is fixed to five sections.
+The output contract is graph metadata plus four fixed sections.
 
 #### Section 1: Graph Metadata
 
@@ -311,7 +311,8 @@ The surface must begin with:
 
 1. graph name
 2. graph path
-3. graph kind
+3. graph topology
+4. declared graph topology when present
 
 For example:
 
@@ -320,7 +321,8 @@ For example:
 
 Name: codex-plan
 Path: ./qianji-flowhub/plan/codex-plan.mmd
-Kind: scenario
+Topology: bounded_loop
+Declared topology: bounded_loop
 ```
 
 #### Section 2: Raw Mermaid
@@ -340,82 +342,47 @@ Each node must be rendered with exactly four slots:
 This keeps the graph contract executor-agnostic and bounded to first-order
 materialization guidance.
 
-#### Section 4: Expected Work Surface
+#### Section 4: Module Contract
 
-The surface must explicitly show the bounded target shape:
+The surface must explicitly show the required module-owned contract entries
+anchored by the owning Flowhub module.
 
-```text
-<plan-workdir>/
-  qianji.toml
-  flowchart.mmd
-  blueprint/
-  plan/
-```
+#### Section 5: Owning `qianji.toml`
 
-#### Section 5: Local Contract Template
+The surface must include the verbatim owning module manifest so the executor
+can inspect the exact local Flowhub contract that declared the graph.
 
-The surface must include the minimal localized `qianji.toml` template that the
-executor should materialize next.
+### 6.6 `qianji show --graph` Node Semantics Contract
 
-That template must stay aligned with the current `WorkdirManifest` shape:
+The `Nodes` section is contract-owned rather than Rust-taxonomy-owned.
 
-1. `[plan].name`
-2. `[plan].surface`
-3. `[check].require`
-4. `[check].flowchart`
+Each declared `[[graph.node]]` entry provides:
 
-### 6.6 `qianji show --graph` Node Taxonomy v0
+1. `label`
+2. `kind`
+3. `role`
+4. `agent_action`
 
-The `Nodes` section uses a fixed v0 taxonomy.
+`kind` is an opaque contract-owned string. Rust parses, validates, and renders
+it, but Rust does not define an exhaustive business taxonomy for node kinds.
+Live Flowhub modules may therefore use different kind spellings when the
+contract owner needs them, such as `context`, `artifact`, `process`, or
+`capability_contract`.
 
-The current node kinds are:
+Node labels still use a minimal normalization rule for contract matching:
 
-1. `context`
-2. `constraint`
-3. `artifact`
-4. `guard`
-5. `validator`
-6. `gate`
-7. `process`
-8. `unknown`
+1. preserve the visible label text
+2. strip Mermaid angle-bracket metadata segments during matching
+3. do not infer taxonomy from the normalized value
 
-Node labels must be normalized before taxonomy matching.
+When a node has no matching `[[graph.node]]` contract, the rendered node
+semantics must stay defensive:
 
-The v0 normalization rule is:
-
-1. lowercase the label
-2. convert spaces, dashes, and slashes to underscores
-3. collapse repeated separators
-
-Examples:
-
-1. `boundary and drift check` -> `boundary_and_drift_check`
-2. `Codex write bounded surface` -> `codex_write_bounded_surface`
-3. `engineering requirement` -> `engineering_requirement`
-
-The v0 static taxonomy mapping is:
-
-1. `coding`, `rust` -> `context`
-2. `style`, `engineering_requirement`, `policy` -> `constraint`
-3. `blueprint`, `plan` -> `artifact`
-4. `surface_check`, `flowchart_alignment`, `boundary_check`,
-   `drift_check`, `boundary_and_drift_check`, `status_legality` -> `guard`
-5. `validator_gate`, `domain_validators` -> `validator`
-6. `done_gate` -> `gate`
-7. `codex_write_bounded_surface`, `diagnostics` -> `process`
-8. any label outside the registered module set and outside the allowed graph
-   vocabulary -> `unknown`
-
-This mapping is intentionally static in v0. `qianji show --graph` is not a
-semantic inference engine. It is a graph-contract display surface with a
-bounded taxonomy.
-
-When a node is classified as `unknown`, the rendered node semantics must stay
-defensive:
-
-1. the role must indicate that the node is outside the known v0 graph contract
+1. undeclared non-module nodes are outside the declared Flowhub graph contract
    vocabulary
-2. the agent action must instruct the executor not to rely on that node until
+2. registered module nodes without a matching `[[graph.node]]` entry are
+   structural alignment drift rather than a source of inferred business meaning
+3. the agent action must instruct the executor not to rely on that node until
    the Flowhub graph contract is corrected
 
 ### 6.7 `qianji show --graph` Next Edge Semantics v0

@@ -63,6 +63,21 @@ fn docs_node_args_capture_page_and_node_ids() {
 }
 
 #[test]
+fn docs_search_args_capture_query_filter_and_limit() {
+    let args = DocsSearchArgs {
+        repo: "projectionica".to_string(),
+        query: "solver".to_string(),
+        kind: Some(ProjectionPageKindArg::Reference),
+        limit: 4,
+    };
+
+    assert_eq!(args.repo, "projectionica");
+    assert_eq!(args.query, "solver");
+    assert_eq!(args.kind, Some(ProjectionPageKindArg::Reference));
+    assert_eq!(args.limit, 4);
+}
+
+#[test]
 fn docs_search_structure_args_capture_query_filter_and_limit() {
     let args = DocsSearchStructureArgs {
         repo: "projectionica".to_string(),
@@ -122,6 +137,7 @@ fn docs_command_creation_wraps_page_variant() {
             | DocsCommand::TreeOutline(_)
             | DocsCommand::StructureCatalog(_)
             | DocsCommand::Segment(_)
+            | DocsCommand::Search(_)
             | DocsCommand::SearchStructure(_)
             | DocsCommand::Node(_)
             | DocsCommand::Toc(_)
@@ -151,6 +167,7 @@ fn docs_command_creation_wraps_tree_outline_variant() {
             | DocsCommand::Tree(_)
             | DocsCommand::StructureCatalog(_)
             | DocsCommand::Segment(_)
+            | DocsCommand::Search(_)
             | DocsCommand::SearchStructure(_)
             | DocsCommand::Node(_)
             | DocsCommand::Toc(_)
@@ -174,6 +191,7 @@ fn docs_command_creation_wraps_structure_catalog_variant() {
             | DocsCommand::Tree(_)
             | DocsCommand::TreeOutline(_)
             | DocsCommand::Segment(_)
+            | DocsCommand::Search(_)
             | DocsCommand::SearchStructure(_)
             | DocsCommand::Node(_)
             | DocsCommand::Toc(_)
@@ -207,11 +225,44 @@ fn docs_command_creation_wraps_segment_variant() {
             | DocsCommand::Tree(_)
             | DocsCommand::TreeOutline(_)
             | DocsCommand::StructureCatalog(_)
+            | DocsCommand::Search(_)
             | DocsCommand::SearchStructure(_)
             | DocsCommand::Node(_)
             | DocsCommand::Toc(_)
             | DocsCommand::Navigation(_)
             | DocsCommand::Context(_) => panic!("expected docs segment command"),
+        },
+        other => panic!("expected docs command, got {other:?}"),
+    }
+}
+
+#[test]
+fn docs_command_creation_wraps_search_variant() {
+    let command = docs(DocsCommand::Search(DocsSearchArgs {
+        repo: "projectionica".to_string(),
+        query: "solver".to_string(),
+        kind: Some(ProjectionPageKindArg::Reference),
+        limit: 4,
+    }));
+
+    match command {
+        Command::Docs { command } => match command {
+            DocsCommand::Search(args) => {
+                assert_eq!(args.repo, "projectionica");
+                assert_eq!(args.query, "solver");
+                assert_eq!(args.kind, Some(ProjectionPageKindArg::Reference));
+                assert_eq!(args.limit, 4);
+            }
+            DocsCommand::Page(_)
+            | DocsCommand::Tree(_)
+            | DocsCommand::TreeOutline(_)
+            | DocsCommand::StructureCatalog(_)
+            | DocsCommand::Segment(_)
+            | DocsCommand::SearchStructure(_)
+            | DocsCommand::Node(_)
+            | DocsCommand::Toc(_)
+            | DocsCommand::Navigation(_)
+            | DocsCommand::Context(_) => panic!("expected docs search command"),
         },
         other => panic!("expected docs command, got {other:?}"),
     }
@@ -239,6 +290,7 @@ fn docs_command_creation_wraps_search_structure_variant() {
             | DocsCommand::TreeOutline(_)
             | DocsCommand::StructureCatalog(_)
             | DocsCommand::Segment(_)
+            | DocsCommand::Search(_)
             | DocsCommand::Node(_)
             | DocsCommand::Toc(_)
             | DocsCommand::Navigation(_)
@@ -268,6 +320,7 @@ fn docs_command_creation_wraps_node_variant() {
             | DocsCommand::TreeOutline(_)
             | DocsCommand::StructureCatalog(_)
             | DocsCommand::Segment(_)
+            | DocsCommand::Search(_)
             | DocsCommand::SearchStructure(_)
             | DocsCommand::Toc(_)
             | DocsCommand::Navigation(_)
@@ -291,6 +344,7 @@ fn docs_command_creation_wraps_toc_variant() {
             | DocsCommand::TreeOutline(_)
             | DocsCommand::StructureCatalog(_)
             | DocsCommand::Segment(_)
+            | DocsCommand::Search(_)
             | DocsCommand::SearchStructure(_)
             | DocsCommand::Node(_)
             | DocsCommand::Navigation(_)

@@ -108,7 +108,7 @@ path = "tests/integration/flowhub_contracts/mod.rs"
 
 [[test]]
 name = "flowhub_manifest_contracts"
-path = "tests/integration/flowhub_manifest_contracts.rs"
+path = "tests/integration/flowhub_manifest_contracts/mod.rs"
 
 [[test]]
 name = "flowhub_materialize"

@@ -6,9 +6,9 @@ use std::path::{Path, PathBuf};
 use tempfile::TempDir;
 use xiuxian_config_core::resolve_project_root;
 use xiuxian_qianji::{
-    FlowhubGraphNodeKind, FlowhubGraphTopology, FlowhubModuleKind, FlowhubScenarioCaseSummary,
-    FlowhubShow, check_flowhub, classify_flowhub_dir, render_flowhub_check_markdown,
-    render_flowhub_graph_show, render_flowhub_show, show_flowhub, show_flowhub_graph,
+    FlowhubGraphTopology, FlowhubModuleKind, FlowhubScenarioCaseSummary, FlowhubShow,
+    check_flowhub, classify_flowhub_dir, render_flowhub_check_markdown, render_flowhub_graph_show,
+    render_flowhub_show, show_flowhub, show_flowhub_graph,
 };
 
 fn repo_root() -> PathBuf {
@@ -226,6 +226,16 @@ ready = "task.plan-ready"
 
 [contract]
 required = ["codex-plan.mmd"]
+
+[[graph]]
+path = "codex-plan.mmd"
+topology = "dag"
+
+[[graph.node]]
+label = "diagnostics"
+kind = "process"
+role = "capture blocking diagnostics for bounded-surface repair"
+agent_action = "use diagnostics to repair the bounded work surface before retrying"
 "#,
     );
     write_file(
@@ -293,6 +303,16 @@ ready = "task.plan-ready"
 
 [contract]
 required = ["codex-plan.mmd"]
+
+[[graph]]
+path = "codex-plan.mmd"
+topology = "dag"
+
+[[graph.node]]
+label = "coding"
+kind = "context"
+role = "define the top-level coding lane"
+agent_action = "treat as upstream scope, not a writable artifact"
 "#,
     );
     write_file(
@@ -366,14 +386,38 @@ required = ["docs-search.mmd"]
 [[graph]]
 path = "docs-search.mmd"
 topology = "dag"
+
+[[graph.node]]
+label = "wendao.docs.search"
+kind = "capability_contract"
+role = "open the stable docs search capability contract"
+agent_action = "treat this label as the owner-owned contract id and materialize its invocation surface from Wendao contract assets"
+
+[[graph.node]]
+label = "wendao.docs.document"
+kind = "capability_contract"
+role = "open the stable docs document capability contract"
+agent_action = "treat this label as the owner-owned contract id and reopen one docs page through the declared contract surface"
+
+[[graph.node]]
+label = "done gate"
+kind = "gate"
+role = "allow completion only when required guards and validators pass"
+agent_action = "do not treat the slice as complete before qianji check passes"
+
+[[graph.node]]
+label = "diagnostics"
+kind = "process"
+role = "capture blocking diagnostics for bounded-surface repair"
+agent_action = "use diagnostics to repair the bounded retrieval loop before retrying"
 "#,
     );
     write_file(
         &wendao_dir.join("docs-search.mmd"),
         r#"
 flowchart LR
-  A["wendao"] --> B["GET /api/docs/search?repo=<repo>&query=<query>&kind=<kind>&limit=<n>"]
-  B --> C["GET /api/docs/page?repo=<repo>&page_id=<page_id>"]
+  A["wendao"] --> B["wendao.docs.search"]
+  B --> C["wendao.docs.document"]
   C --> D["done gate"]
 "#,
     );
@@ -418,14 +462,38 @@ required = ["docs-search.mmd"]
 [[graph]]
 path = "docs-search.mmd"
 topology = "dag"
+
+[[graph.node]]
+label = "wendao.docs.search"
+kind = "capability_contract"
+role = "open the stable docs search capability contract"
+agent_action = "treat this label as the owner-owned contract id and materialize its invocation surface from Wendao contract assets"
+
+[[graph.node]]
+label = "wendao.docs.document"
+kind = "capability_contract"
+role = "open the stable docs document capability contract"
+agent_action = "treat this label as the owner-owned contract id and reopen one docs page through the declared contract surface"
+
+[[graph.node]]
+label = "done gate"
+kind = "gate"
+role = "allow completion only when required guards and validators pass"
+agent_action = "do not treat the slice as complete before qianji check passes"
+
+[[graph.node]]
+label = "diagnostics"
+kind = "process"
+role = "capture blocking diagnostics for bounded-surface repair"
+agent_action = "use diagnostics to repair the bounded retrieval loop before retrying"
 "#,
     );
     write_file(
         &wendao_dir.join("docs-search.mmd"),
         r#"
 flowchart LR
-  A["wendao"] --> B["GET /api/docs/search?repo=<repo>&query=<query>&kind=<kind>&limit=<n>"]
-  B --> C["GET /api/docs/page?repo=<repo>&page_id=<page_id>"]
+  A["wendao"] --> B["wendao.docs.search"]
+  B --> C["wendao.docs.document"]
   C --> D["done gate"]
   B -- fail --> R["diagnostics"]
   R --> B
@@ -489,6 +557,52 @@ ready = "task.plan-ready"
 
 [contract]
 required = ["codex-plan.mmd"]
+
+[[graph]]
+path = "codex-plan.mmd"
+topology = "dag"
+
+[[graph.node]]
+label = "Codex write bounded surface"
+kind = "process"
+role = "write the bounded work surface from the graph contract"
+agent_action = "write qianji.toml, flowchart.mmd, blueprint/, and plan/ for the bounded slice"
+
+[[graph.node]]
+label = "surface check"
+kind = "guard"
+role = "require the bounded work surface to exist"
+agent_action = "ensure qianji.toml, flowchart.mmd, blueprint/, and plan/ exist"
+
+[[graph.node]]
+label = "flowchart alignment"
+kind = "guard"
+role = "ensure the flowchart matches the current bounded artifact surface"
+agent_action = "keep flowchart.mmd aligned with blueprint and plan"
+
+[[graph.node]]
+label = "boundary and drift check"
+kind = "guard"
+role = "ensure the bounded artifact state remains inside contract boundaries without drift"
+agent_action = "keep blueprint/ and plan/ inside the bounded surface and consistent with the shown graph"
+
+[[graph.node]]
+label = "domain validators"
+kind = "validator"
+role = "require domain validators to pass before completion"
+agent_action = "prepare the artifact state so required domain validators can succeed"
+
+[[graph.node]]
+label = "done gate"
+kind = "gate"
+role = "allow completion only when required guards and validators pass"
+agent_action = "do not treat the slice as complete before qianji check passes"
+
+[[graph.node]]
+label = "diagnostics"
+kind = "process"
+role = "capture blocking diagnostics for bounded-surface repair"
+agent_action = "use diagnostics to repair the bounded work surface before retrying"
 "#,
     );
     write_file(
@@ -559,6 +673,52 @@ ready = "task.plan-ready"
 
 [contract]
 required = ["codex-plan.mmd"]
+
+[[graph]]
+path = "codex-plan.mmd"
+topology = "bounded_loop"
+
+[[graph.node]]
+label = "Codex write bounded surface"
+kind = "process"
+role = "write the bounded work surface from the graph contract"
+agent_action = "write qianji.toml, flowchart.mmd, blueprint/, and plan/ for the bounded slice"
+
+[[graph.node]]
+label = "surface check"
+kind = "guard"
+role = "require the bounded work surface to exist"
+agent_action = "ensure qianji.toml, flowchart.mmd, blueprint/, and plan/ exist"
+
+[[graph.node]]
+label = "flowchart alignment"
+kind = "guard"
+role = "ensure the flowchart matches the current bounded artifact surface"
+agent_action = "keep flowchart.mmd aligned with blueprint and plan"
+
+[[graph.node]]
+label = "boundary and drift check"
+kind = "guard"
+role = "ensure the bounded artifact state remains inside contract boundaries without drift"
+agent_action = "keep blueprint/ and plan/ inside the bounded surface and consistent with the shown graph"
+
+[[graph.node]]
+label = "domain validators"
+kind = "validator"
+role = "require domain validators to pass before completion"
+agent_action = "prepare the artifact state so required domain validators can succeed"
+
+[[graph.node]]
+label = "done gate"
+kind = "gate"
+role = "allow completion only when required guards and validators pass"
+agent_action = "do not treat the slice as complete before qianji check passes"
+
+[[graph.node]]
+label = "diagnostics"
+kind = "process"
+role = "capture blocking diagnostics for bounded-surface repair"
+agent_action = "use diagnostics to repair the bounded work surface before retrying"
 "#,
     );
     write_file(

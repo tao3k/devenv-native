@@ -10,6 +10,8 @@ pub(crate) enum DocsCommand {
     StructureCatalog(super::DocsStructureCatalogArgs),
     /// Open one precise docs-facing projected markdown segment.
     Segment(super::DocsSegmentArgs),
+    /// Search deterministic docs-facing projected pages.
+    Search(super::DocsSearchArgs),
     /// Search deterministic docs-facing projected page-index nodes.
     SearchStructure(super::DocsSearchStructureArgs),
     /// Open one deterministic docs-facing projected page-index node.

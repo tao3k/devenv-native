@@ -106,6 +106,13 @@ pub(super) fn discover_flowhub_top_level_candidates(
     Ok(candidates)
 }
 
+pub(super) fn discover_all_flowhub_module_refs(root: &Path) -> Result<Vec<String>, QianjiError> {
+    Ok(discover_flowhub_module_candidates(root)?
+        .into_iter()
+        .map(|candidate| candidate.module_ref)
+        .collect())
+}
+
 pub(super) fn load_flowhub_module_candidate(
     candidate: &FlowhubModuleCandidate,
 ) -> Result<FlowhubDiscoveredModule, QianjiError> {
