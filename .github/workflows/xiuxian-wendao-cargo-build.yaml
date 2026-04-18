@@ -109,7 +109,7 @@ jobs:
 
       - name: Restore sccache cache (fallback)
         if: ${{ env.SCCACHE_GHA_ENABLED != 'true' }}
-        uses: actions/cache/restore@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5
+        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
         with:
           path: ${{ github.workspace }}/.sccache/
           key: sccache-xiuxian-wendao-${{ runner.os }}-${{ github.job }}-${{ hashFiles('packages/rust/Cargo.lock', 'packages/rust/rust-toolchain.toml', '.github/workflows/xiuxian-wendao-cargo-build.yaml') }}-${{ github.run_id }}
@@ -135,7 +135,7 @@ jobs:
       - name: Save sccache cache (fallback)
         if: ${{ always() && !cancelled() && env.SCCACHE_GHA_ENABLED != 'true' }}
         continue-on-error: true
-        uses: actions/cache/save@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5
+        uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
         with:
           path: ${{ github.workspace }}/.sccache/
           key: sccache-xiuxian-wendao-${{ runner.os }}-${{ github.job }}-${{ hashFiles('packages/rust/Cargo.lock', 'packages/rust/rust-toolchain.toml', '.github/workflows/xiuxian-wendao-cargo-build.yaml') }}-${{ github.run_id }}
@@ -240,7 +240,7 @@ jobs:
 
       - name: Restore sccache cache (fallback)
         if: ${{ env.SCCACHE_GHA_ENABLED != 'true' }}
-        uses: actions/cache/restore@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5
+        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
         with:
           path: ${{ github.workspace }}/.sccache/
           key: sccache-xiuxian-wendao-${{ runner.os }}-${{ github.job }}-${{ hashFiles('packages/rust/Cargo.lock', 'packages/rust/rust-toolchain.toml', '.github/workflows/xiuxian-wendao-cargo-build.yaml') }}-${{ github.run_id }}
@@ -266,7 +266,7 @@ jobs:
       - name: Save sccache cache (fallback)
         if: ${{ always() && !cancelled() && env.SCCACHE_GHA_ENABLED != 'true' }}
         continue-on-error: true
-        uses: actions/cache/save@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5
+        uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
         with:
           path: ${{ github.workspace }}/.sccache/
           key: sccache-xiuxian-wendao-${{ runner.os }}-${{ github.job }}-${{ hashFiles('packages/rust/Cargo.lock', 'packages/rust/rust-toolchain.toml', '.github/workflows/xiuxian-wendao-cargo-build.yaml') }}-${{ github.run_id }}
@@ -370,7 +370,7 @@ jobs:
 
       - name: Restore sccache cache (fallback)
         if: ${{ env.SCCACHE_GHA_ENABLED != 'true' }}
-        uses: actions/cache/restore@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5
+        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
         with:
           path: ${{ github.workspace }}/.sccache/
           key: sccache-xiuxian-wendao-${{ runner.os }}-${{ github.job }}-${{ hashFiles('packages/rust/Cargo.lock', 'packages/rust/rust-toolchain.toml', '.github/workflows/xiuxian-wendao-cargo-build.yaml') }}-${{ github.run_id }}
@@ -396,7 +396,7 @@ jobs:
       - name: Save sccache cache (fallback)
         if: ${{ always() && !cancelled() && env.SCCACHE_GHA_ENABLED != 'true' }}
         continue-on-error: true
-        uses: actions/cache/save@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5
+        uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
         with:
           path: ${{ github.workspace }}/.sccache/
           key: sccache-xiuxian-wendao-${{ runner.os }}-${{ github.job }}-${{ hashFiles('packages/rust/Cargo.lock', 'packages/rust/rust-toolchain.toml', '.github/workflows/xiuxian-wendao-cargo-build.yaml') }}-${{ github.run_id }}
