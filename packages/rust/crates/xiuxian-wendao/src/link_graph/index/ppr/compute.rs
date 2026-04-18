@@ -1,4 +1,6 @@
+#[path = "compute/finalize.rs"]
 mod finalize;
+#[path = "compute/orchestrate.rs"]
 mod orchestrate;
 
 use self::finalize::finalize_related_ppr_result;

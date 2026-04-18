@@ -3,6 +3,8 @@
 use anyhow::Result;
 use xiuxian_vector::{Recommendation, VectorStore};
 
+use crate::snapshot_support::canonical_json;
+
 async fn add_tools_table(store: &VectorStore, table: &str, n: usize) -> Result<()> {
     let mut ids = Vec::with_capacity(n);
     let mut vectors = Vec::with_capacity(n);
@@ -123,6 +125,6 @@ async fn snapshot_observability_contract_v1() -> Result<()> {
         "indices_count": report.indices_status.len(),
         "recommendations": report.recommendations,
     });
-    assert_json_snapshot!("observability_contract_v1", view);
+    assert_json_snapshot!("observability_contract_v1", canonical_json(view));
     Ok(())
 }

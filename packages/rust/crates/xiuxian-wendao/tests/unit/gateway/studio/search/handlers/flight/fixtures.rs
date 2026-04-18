@@ -47,7 +47,7 @@ fn gateway_state_fixture(temp_dir: TempDir, studio: StudioState) -> GatewayState
     }
 }
 
-pub(super) fn make_gateway_state_with_docs(docs: &[(&str, &str)]) -> GatewayStateFixture {
+pub(super) async fn make_gateway_state_with_docs(docs: &[(&str, &str)]) -> GatewayStateFixture {
     let temp_dir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
     write_fixture_files(temp_dir.path(), docs, "fixture");
 
@@ -72,6 +72,7 @@ pub(super) fn make_gateway_state_with_docs(docs: &[(&str, &str)]) -> GatewayStat
         Arc::clone(&studio.symbol_index),
         warmed_index,
     );
+    publish_local_symbol_index(&studio).await;
 
     gateway_state_fixture(temp_dir, studio)
 }

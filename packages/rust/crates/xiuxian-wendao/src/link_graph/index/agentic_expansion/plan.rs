@@ -6,7 +6,9 @@ use std::cmp::Ordering;
 use std::collections::HashSet;
 use std::time::Instant;
 
+#[path = "plan/candidates.rs"]
 mod candidates;
+#[path = "plan/workers.rs"]
 mod workers;
 
 use candidates::{agentic_pair_priority, collect_agentic_expansion_candidates, has_direct_edge};

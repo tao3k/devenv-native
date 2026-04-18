@@ -6,6 +6,8 @@ use xiuxian_qianji::consensus::{
     AgentIdentity, ConsensusManager, ConsensusMode, ConsensusPolicy, ConsensusResult,
 };
 
+use crate::valkey_support::TestValkey;
+
 fn must_ok<T, E: Display>(value: Result<T, E>, context: &str) -> T {
     match value {
         Ok(inner) => inner,
@@ -24,8 +26,11 @@ fn now_millis() -> u128 {
 
 #[tokio::test]
 async fn test_consensus_majority_logic() {
-    let redis_url =
-        std::env::var("VALKEY_URL").unwrap_or_else(|_| "redis://127.0.0.1:6379/0".to_string());
+    let valkey = must_ok(
+        TestValkey::spawn().await,
+        "ephemeral valkey should start for consensus majority test",
+    );
+    let redis_url = valkey.url().to_string();
     let manager_agent_1 = ConsensusManager::with_agent_identity(
         redis_url.clone(),
         AgentIdentity {
@@ -71,8 +76,11 @@ async fn test_consensus_majority_logic() {
 
 #[tokio::test]
 async fn test_consensus_timeout_returns_failed_without_quorum() {
-    let redis_url =
-        std::env::var("VALKEY_URL").unwrap_or_else(|_| "redis://127.0.0.1:6379/0".to_string());
+    let valkey = must_ok(
+        TestValkey::spawn().await,
+        "ephemeral valkey should start for consensus timeout test",
+    );
+    let redis_url = valkey.url().to_string();
     let manager_agent_1 = ConsensusManager::with_agent_identity(
         redis_url.clone(),
         AgentIdentity {
@@ -121,8 +129,11 @@ async fn test_consensus_timeout_returns_failed_without_quorum() {
 
 #[tokio::test]
 async fn test_consensus_weighted_mode_agrees_on_threshold() {
-    let redis_url =
-        std::env::var("VALKEY_URL").unwrap_or_else(|_| "redis://127.0.0.1:6379/0".to_string());
+    let valkey = must_ok(
+        TestValkey::spawn().await,
+        "ephemeral valkey should start for weighted consensus test",
+    );
+    let redis_url = valkey.url().to_string();
     let manager_weighted_1 = ConsensusManager::with_agent_identity(
         redis_url.clone(),
         AgentIdentity {

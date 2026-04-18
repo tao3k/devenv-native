@@ -24,7 +24,7 @@ async fn task_add_tool_binds_recipient_from_session_context()
     )
     .await?;
 
-    let tasks = heyi.graph.get_entities_by_type("OTHER(Task)");
+    let tasks = heyi.graph.get_entities_by_type("TASK");
     let has_recipient = tasks.iter().any(|task| {
         task.metadata
             .get(ATTR_TIMER_RECIPIENT)
@@ -59,7 +59,7 @@ async fn task_add_tool_normalizes_human_local_time_input()
         )
         .await?;
 
-    let tasks = heyi.graph.get_entities_by_type("OTHER(Task)");
+    let tasks = heyi.graph.get_entities_by_type("TASK");
     let has_expected_schedule = tasks.iter().any(|task| {
         task.metadata
             .get(ATTR_TIMER_SCHEDULED)

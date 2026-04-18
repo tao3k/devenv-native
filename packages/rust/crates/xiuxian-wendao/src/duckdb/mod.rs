@@ -16,7 +16,7 @@ mod parquet;
 mod runtime;
 
 #[cfg(test)]
-#[path = "../../tests/unit/duckdb/mod.rs"]
+#[path = "../../tests/unit/duckdb/mod/mod.rs"]
 mod tests;
 
 #[cfg(feature = "duckdb")]

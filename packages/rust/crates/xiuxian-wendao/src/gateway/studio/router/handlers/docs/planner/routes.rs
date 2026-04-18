@@ -1,0 +1,10 @@
+#[path = "routes/item.rs"]
+pub(crate) mod item;
+#[path = "routes/queue.rs"]
+pub(crate) mod queue;
+#[path = "routes/rank.rs"]
+pub(crate) mod rank;
+#[path = "routes/search.rs"]
+pub(crate) mod search;
+#[path = "routes/workset.rs"]
+pub(crate) mod workset;

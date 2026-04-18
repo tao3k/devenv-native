@@ -129,6 +129,7 @@ fn normalize_path_redaction_stabilizes_workspace_and_temp_prefixes() {
         .to_string_lossy()
         .to_string();
     let mut settings = insta::Settings::new();
+    settings.set_sort_maps(true);
     ScenarioSnapshotRedaction::normalize_path(".workspace").apply(&mut settings);
     ScenarioSnapshotRedaction::normalize_path(".temp").apply(&mut settings);
 

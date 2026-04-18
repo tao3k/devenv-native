@@ -1,9 +1,10 @@
 ---
-source: packages/rust/crates/xiuxian-wendao/tests/integration/../support/repo_intelligence.rs
+source: packages/rust/crates/xiuxian-wendao/tests/integration/support/../../support/repo_intelligence.rs
+assertion_line: 33
 expression: value
 ---
 {
-  "covered_symbols": 2,
+  "covered_symbols": 4,
   "docs": [
     {
       "doc_id": "repo:cli-coverage:doc:README.md",
@@ -27,18 +28,60 @@ expression: value
       "title": "guide"
     },
     {
-      "doc_id": "repo:cli-coverage:doc:src/CliCoveragePkg.jl#symbol:Problem",
+      "doc_id": "repo:cli-coverage:doc:src/CliCoveragePkg.jl#symbol-id:repo:cli-coverage:symbol:CliCoveragePkg.Problem",
+      "doc_target": {
+        "kind": "symbol",
+        "line_end": 13,
+        "line_start": 11,
+        "name": "Problem",
+        "path": "CliCoveragePkg.Problem"
+      },
       "format": "julia_docstring",
-      "path": "src/CliCoveragePkg.jl#symbol:Problem",
+      "path": "src/CliCoveragePkg.jl#symbol-id:repo:cli-coverage:symbol:CliCoveragePkg.Problem",
       "repo_id": "cli-coverage",
       "title": "Problem"
     },
     {
-      "doc_id": "repo:cli-coverage:doc:src/CliCoveragePkg.jl#symbol:solve",
+      "doc_id": "repo:cli-coverage:doc:src/CliCoveragePkg.jl#symbol-id:repo:cli-coverage:symbol:CliCoveragePkg.solve",
+      "doc_target": {
+        "kind": "symbol",
+        "line_end": 20,
+        "line_start": 18,
+        "name": "solve",
+        "path": "CliCoveragePkg.solve"
+      },
       "format": "julia_docstring",
-      "path": "src/CliCoveragePkg.jl#symbol:solve",
+      "path": "src/CliCoveragePkg.jl#symbol-id:repo:cli-coverage:symbol:CliCoveragePkg.solve",
       "repo_id": "cli-coverage",
       "title": "solve"
+    },
+    {
+      "doc_id": "repo:cli-coverage:doc:src/solvers.jl#symbol-id:repo:cli-coverage:symbol:CliCoveragePkg.fastsolve",
+      "doc_target": {
+        "kind": "symbol",
+        "line_end": 5,
+        "line_start": 5,
+        "name": "fastsolve",
+        "path": "fastsolve"
+      },
+      "format": "julia_docstring",
+      "path": "src/solvers.jl#symbol-id:repo:cli-coverage:symbol:CliCoveragePkg.fastsolve",
+      "repo_id": "cli-coverage",
+      "title": "fastsolve"
+    },
+    {
+      "doc_id": "repo:cli-coverage:doc:src/nested/extra.jl#symbol-id:repo:cli-coverage:symbol:CliCoveragePkg.ExtraProblem",
+      "doc_target": {
+        "kind": "symbol",
+        "line_end": 7,
+        "line_start": 5,
+        "name": "ExtraProblem",
+        "path": "ExtraProblem"
+      },
+      "format": "julia_docstring",
+      "path": "src/nested/extra.jl#symbol-id:repo:cli-coverage:symbol:CliCoveragePkg.ExtraProblem",
+      "repo_id": "cli-coverage",
+      "title": "ExtraProblem"
     }
   ],
   "hierarchical_uri": "repo://cli-coverage",

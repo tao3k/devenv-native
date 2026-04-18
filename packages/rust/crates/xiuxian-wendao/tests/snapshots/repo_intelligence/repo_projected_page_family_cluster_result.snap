@@ -1,5 +1,6 @@
 ---
-source: packages/rust/crates/xiuxian-wendao/tests/integration/../support/repo_projection_support.rs
+source: packages/rust/crates/xiuxian-wendao/tests/integration/support/../../support/repo_projection_support.rs
+assertion_line: 14
 expression: value
 ---
 {
@@ -81,7 +82,7 @@ expression: value
           "doc_id": "repo:projection-sample:doc:README.md",
           "doc_ids": [
             "repo:projection-sample:doc:README.md",
-            "repo:projection-sample:doc:src/ProjectionPkg.jl#symbol:solve",
+            "repo:projection-sample:doc:src/ProjectionPkg.jl#symbol-id:repo:projection-sample:symbol:ProjectionPkg.solve",
             "repo:projection-sample:doc:docs/solve.md"
           ],
           "example_ids": [
@@ -108,18 +109,18 @@ expression: value
             "README.md",
             "docs/solve.md",
             "examples/solve_demo.jl",
-            "src/ProjectionPkg.jl#symbol:solve"
+            "src/ProjectionPkg.jl#symbol-id:repo:projection-sample:symbol:ProjectionPkg.solve"
           ],
           "repo_id": "projection-sample",
           "sections": [
             {
-              "body": "Projected how-to page for `solve_demo`.\nFormat hints:\n- `julia_docstring`\n- `md`\nSource paths:\n- `README.md`\n- `docs/solve.md`\n- `examples/solve_demo.jl`\n- `src/ProjectionPkg.jl#symbol:solve`",
+              "body": "Projected how-to page for `solve_demo`.\nFormat hints:\n- `julia_docstring`\n- `md`\nSource paths:\n- `README.md`\n- `docs/solve.md`\n- `examples/solve_demo.jl`\n- `src/ProjectionPkg.jl#symbol-id:repo:projection-sample:symbol:ProjectionPkg.solve`",
               "level": 1,
               "paths": [
                 "README.md",
                 "docs/solve.md",
                 "examples/solve_demo.jl",
-                "src/ProjectionPkg.jl#symbol:solve"
+                "src/ProjectionPkg.jl#symbol-id:repo:projection-sample:symbol:ProjectionPkg.solve"
               ],
               "section_id": "repo:projection-sample:projection:howto:example:repo:projection-sample:example:examples/solve_demo.jl#overview",
               "title": "Overview"
@@ -134,12 +135,12 @@ expression: value
               "title": "Anchors"
             },
             {
-              "body": "Documentation:\n- `README.md` (README.md)\n- `solve` (docs/solve.md)\n- `solve` (src/ProjectionPkg.jl#symbol:solve)",
+              "body": "Documentation:\n- `README.md` (README.md)\n- `solve` (docs/solve.md)\n- `solve` (src/ProjectionPkg.jl#symbol-id:repo:projection-sample:symbol:ProjectionPkg.solve)",
               "level": 2,
               "paths": [
                 "README.md",
                 "docs/solve.md",
-                "src/ProjectionPkg.jl#symbol:solve"
+                "src/ProjectionPkg.jl#symbol-id:repo:projection-sample:symbol:ProjectionPkg.solve"
               ],
               "section_id": "repo:projection-sample:projection:howto:example:repo:projection-sample:example:examples/solve_demo.jl#sources",
               "title": "Supporting Docs"

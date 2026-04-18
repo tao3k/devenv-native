@@ -27,7 +27,7 @@ fn apply_memory_runtime_path(memory: &mut MemoryConfig, runtime_settings: &Runti
 }
 
 fn resolve_runtime_memory_embedding_backend(runtime_settings: &RuntimeSettings) -> Option<String> {
-    non_empty_env("OMNI_AGENT_MEMORY_EMBEDDING_BACKEND")
+    non_empty_env("XIUXIAN_DAOCHANG_MEMORY_EMBEDDING_BACKEND")
         .or_else(|| {
             runtime_settings
                 .memory
@@ -37,7 +37,7 @@ fn resolve_runtime_memory_embedding_backend(runtime_settings: &RuntimeSettings) 
                 .filter(|value| !value.is_empty())
                 .map(ToString::to_string)
         })
-        .or_else(|| non_empty_env("OMNI_AGENT_EMBED_BACKEND"))
+        .or_else(|| non_empty_env("XIUXIAN_DAOCHANG_EMBED_BACKEND"))
         .or_else(|| {
             runtime_settings
                 .embedding
@@ -59,8 +59,8 @@ fn apply_memory_runtime_embedding_backend(
 }
 
 fn resolve_runtime_memory_batch_max_size(runtime_settings: &RuntimeSettings) -> Option<usize> {
-    parse_positive_usize_from_env("OMNI_AGENT_MEMORY_EMBED_BATCH_MAX_SIZE")
-        .or_else(|| parse_positive_usize_from_env("OMNI_AGENT_EMBED_BATCH_MAX_SIZE"))
+    parse_positive_usize_from_env("XIUXIAN_DAOCHANG_MEMORY_EMBED_BATCH_MAX_SIZE")
+        .or_else(|| parse_positive_usize_from_env("XIUXIAN_DAOCHANG_EMBED_BATCH_MAX_SIZE"))
         .or(runtime_settings
             .embedding
             .batch_max_size
@@ -70,8 +70,8 @@ fn resolve_runtime_memory_batch_max_size(runtime_settings: &RuntimeSettings) -> 
 fn resolve_runtime_memory_batch_max_concurrency(
     runtime_settings: &RuntimeSettings,
 ) -> Option<usize> {
-    parse_positive_usize_from_env("OMNI_AGENT_MEMORY_EMBED_BATCH_MAX_CONCURRENCY")
-        .or_else(|| parse_positive_usize_from_env("OMNI_AGENT_EMBED_BATCH_MAX_CONCURRENCY"))
+    parse_positive_usize_from_env("XIUXIAN_DAOCHANG_MEMORY_EMBED_BATCH_MAX_CONCURRENCY")
+        .or_else(|| parse_positive_usize_from_env("XIUXIAN_DAOCHANG_EMBED_BATCH_MAX_CONCURRENCY"))
         .or(runtime_settings
             .embedding
             .batch_max_concurrency
@@ -185,34 +185,37 @@ fn apply_memory_runtime_embedding_dimension(
 }
 
 pub(super) fn apply_memory_env_embedding_overrides(memory: &mut MemoryConfig) {
-    if let Some(path) = non_empty_env("OMNI_AGENT_MEMORY_PATH") {
+    if let Some(path) = non_empty_env("XIUXIAN_DAOCHANG_MEMORY_PATH") {
         memory.path = path;
     }
-    if let Some(model) = non_empty_env("OMNI_AGENT_MEMORY_EMBEDDING_MODEL")
-        .or_else(|| non_empty_env("OMNI_AGENT_EMBED_MODEL"))
+    if let Some(model) = non_empty_env("XIUXIAN_DAOCHANG_MEMORY_EMBEDDING_MODEL")
+        .or_else(|| non_empty_env("XIUXIAN_DAOCHANG_EMBED_MODEL"))
     {
         memory.embedding_model = Some(model);
     }
-    if let Some(base_url) = non_empty_env("OMNI_AGENT_MEMORY_EMBEDDING_BASE_URL")
-        .or_else(|| non_empty_env("OMNI_AGENT_EMBED_BASE_URL"))
+    if let Some(base_url) = non_empty_env("XIUXIAN_DAOCHANG_MEMORY_EMBEDDING_BASE_URL")
+        .or_else(|| non_empty_env("XIUXIAN_DAOCHANG_EMBED_BASE_URL"))
     {
         memory.embedding_base_url = Some(base_url);
     }
-    if let Some(embedding_dim) = parse_positive_usize_from_env("OMNI_AGENT_MEMORY_EMBEDDING_DIM") {
+    if let Some(embedding_dim) =
+        parse_positive_usize_from_env("XIUXIAN_DAOCHANG_MEMORY_EMBEDDING_DIM")
+    {
         memory.embedding_dim = embedding_dim;
     }
-    if let Some(timeout_ms) = parse_positive_u64_from_env("OMNI_AGENT_MEMORY_EMBED_TIMEOUT_MS")
-        .or_else(|| parse_positive_u64_from_env("OMNI_AGENT_EMBED_TIMEOUT_MS"))
-        .or_else(|| {
-            parse_positive_u64_from_env("OMNI_AGENT_EMBED_TIMEOUT_SECS")
-                .and_then(|secs| secs.checked_mul(1_000))
-        })
+    if let Some(timeout_ms) =
+        parse_positive_u64_from_env("XIUXIAN_DAOCHANG_MEMORY_EMBED_TIMEOUT_MS")
+            .or_else(|| parse_positive_u64_from_env("XIUXIAN_DAOCHANG_EMBED_TIMEOUT_MS"))
+            .or_else(|| {
+                parse_positive_u64_from_env("XIUXIAN_DAOCHANG_EMBED_TIMEOUT_SECS")
+                    .and_then(|secs| secs.checked_mul(1_000))
+            })
     {
         memory.embedding_timeout_ms = Some(timeout_ms);
     }
     if let Some(cooldown_ms) =
-        parse_positive_u64_from_env("OMNI_AGENT_MEMORY_EMBED_TIMEOUT_COOLDOWN_MS")
-            .or_else(|| parse_positive_u64_from_env("OMNI_AGENT_EMBED_TIMEOUT_COOLDOWN_MS"))
+        parse_positive_u64_from_env("XIUXIAN_DAOCHANG_MEMORY_EMBED_TIMEOUT_COOLDOWN_MS")
+            .or_else(|| parse_positive_u64_from_env("XIUXIAN_DAOCHANG_EMBED_TIMEOUT_COOLDOWN_MS"))
     {
         memory.embedding_timeout_cooldown_ms = Some(cooldown_ms);
     }

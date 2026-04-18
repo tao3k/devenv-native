@@ -4,6 +4,8 @@
 use anyhow::Result;
 use xiuxian_vector::VectorStore;
 
+use crate::snapshot_support::canonical_json;
+
 async fn add_tools_table(store: &VectorStore, table: &str, n: usize) -> Result<()> {
     let mut ids = Vec::with_capacity(n);
     let mut vectors = Vec::with_capacity(n);
@@ -88,7 +90,7 @@ async fn snapshot_partition_suggestion_contract_v1() -> Result<()> {
         "suggested_column": suggested,
         "threshold": 10_000_usize,
     });
-    assert_json_snapshot!("partition_suggestion_contract_v1", view);
+    assert_json_snapshot!("partition_suggestion_contract_v1", canonical_json(view));
 
     Ok(())
 }

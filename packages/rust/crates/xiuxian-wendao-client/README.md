@@ -69,6 +69,6 @@ Diagnostic rendering is split deliberately:
 7. directory-level note-link-style policy stays in `src/lint/policy/`, so
    parser syntax ownership and repository authoring policy remain separate
 
-The standalone binary is also named `wendao`. When `xiuxian-wendao` depends on
-this crate, the same client subcommands can be flattened into the main Wendao
-CLI without duplicating execution logic.
+The standalone binary is named `wendao-client`, but the command contract
+remains `wendao lint markdown` so the same subcommand tree can also be
+flattened into the main `wendao` CLI without duplicating execution logic.

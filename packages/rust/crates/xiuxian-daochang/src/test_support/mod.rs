@@ -60,7 +60,8 @@ pub use llm::{
     DEFAULT_OPENAI_KEY_ENV, LiteLlmProviderMode, LiteLlmWireApi, LlmBackendMode, ProviderSettings,
     ToolMessageIntegrityReport, chat_completion_request_to_value, enforce_tool_message_integrity,
     extract_api_base_from_inference_url, is_openai_like_stream_required_error, parse_backend_mode,
-    parse_tools_json, resolve_provider_settings_with_env, should_use_openai_like_for_base,
+    parse_tools_json, resolve_backend_mode_for_inference_url, resolve_provider_settings_with_env,
+    should_use_openai_like_for_base,
 };
 #[cfg(feature = "agent-provider-litellm")]
 pub use llm::{

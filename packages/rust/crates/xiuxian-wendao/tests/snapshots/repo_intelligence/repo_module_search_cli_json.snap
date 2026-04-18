@@ -1,6 +1,6 @@
 ---
-source: packages/rust/crates/xiuxian-wendao/tests/integration/../support/repo_intelligence.rs
-assertion_line: 32
+source: packages/rust/crates/xiuxian-wendao/tests/integration/support/../../support/repo_intelligence.rs
+assertion_line: 33
 expression: value
 ---
 {
@@ -31,11 +31,13 @@ expression: value
       "projection_page_ids": [
         "repo:cli-module:projection:explanation:doc:repo:cli-module:doc:README.md",
         "repo:cli-module:projection:reference:module:repo:cli-module:module:CliModulePkg",
+        "repo:cli-module:projection:reference:symbol:repo:cli-module:symbol:CliModulePkg.ExtraProblem",
         "repo:cli-module:projection:reference:symbol:repo:cli-module:symbol:CliModulePkg.Problem",
+        "repo:cli-module:projection:reference:symbol:repo:cli-module:symbol:CliModulePkg.fastsolve",
         "repo:cli-module:projection:reference:symbol:repo:cli-module:symbol:CliModulePkg.solve"
       ],
       "rank": 1,
-      "saliency_score": 0.5,
+      "saliency_score": 1.0,
       "score": 0.25
     }
   ],

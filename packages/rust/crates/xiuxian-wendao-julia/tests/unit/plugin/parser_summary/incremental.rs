@@ -21,7 +21,6 @@ fn parser_summary_repository() -> RegisteredRepository {
 }
 
 #[tokio::test]
-#[serial_test::serial(julia_live)]
 async fn safe_incremental_live_service_distinguishes_leaf_and_root_files()
 -> Result<(), Box<dyn std::error::Error>> {
     ensure_linked_julia_parser_summary_service()?;

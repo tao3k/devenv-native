@@ -1,7 +1,7 @@
 ---
 source: packages/rust/crates/xiuxian-vector/tests/integration/data_layer_snapshots.rs
-assertion_line: 29
-expression: normalized
+assertion_line: 31
+expression: canonical_json(normalized)
 ---
 [
   {

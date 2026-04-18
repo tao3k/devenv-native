@@ -34,8 +34,15 @@ async fn handle_chat_completion(
     tokio::time::sleep(Duration::from_millis(150)).await;
     state.in_flight.fetch_sub(1, Ordering::SeqCst);
     Json(json!({
+        "id": "mock-chatcmpl-session-queue",
+        "object": "chat.completion",
+        "created": 0,
+        "model": "test-model",
         "choices": [{
+            "index": 0,
+            "finish_reason": "stop",
             "message": {
+                "role": "assistant",
                 "content": format!("reply:{user_message}")
             }
         }]

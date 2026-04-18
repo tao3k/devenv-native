@@ -54,8 +54,12 @@ async fn process_discord_message_session_memory_includes_gate_policy_in_text() -
             .0
             .contains("- Session scope: `discord:3001:2001:1001`")
     );
-    assert!(sent[0].0.contains("`gate_promote_threshold=-`"));
-    assert!(sent[0].0.contains("`gate_obsolete_threshold=-`"));
+    assert!(sent[0].0.contains("- `memory_enabled=false`"));
+    assert!(
+        sent[0]
+            .0
+            .contains("- `configured_backend=-` / `active_backend=-`")
+    );
     Ok(())
 }
 

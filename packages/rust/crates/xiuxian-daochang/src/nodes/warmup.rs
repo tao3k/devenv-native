@@ -53,23 +53,25 @@ pub(crate) async fn run_embedding_warmup(
 
 fn warmup_env_overrides_from_process_env() -> WarmupEnvOverrides {
     WarmupEnvOverrides {
-        memory_embedding_backend: non_empty_env("OMNI_AGENT_MEMORY_EMBEDDING_BACKEND"),
-        embedding_backend: non_empty_env("OMNI_AGENT_EMBED_BACKEND"),
-        llm_backend: non_empty_env("OMNI_AGENT_LLM_BACKEND"),
-        memory_embedding_model: non_empty_env("OMNI_AGENT_MEMORY_EMBEDDING_MODEL"),
-        embedding_model: non_empty_env("OMNI_AGENT_EMBED_MODEL"),
-        memory_embedding_base_url: non_empty_env("OMNI_AGENT_MEMORY_EMBEDDING_BASE_URL"),
-        embedding_base_url: non_empty_env("OMNI_AGENT_EMBED_BASE_URL"),
-        embed_timeout_secs: parse_positive_u64_from_env("OMNI_AGENT_EMBED_TIMEOUT_SECS"),
+        memory_embedding_backend: non_empty_env("XIUXIAN_DAOCHANG_MEMORY_EMBEDDING_BACKEND"),
+        embedding_backend: non_empty_env("XIUXIAN_DAOCHANG_EMBED_BACKEND"),
+        llm_backend: non_empty_env("XIUXIAN_DAOCHANG_LLM_BACKEND"),
+        memory_embedding_model: non_empty_env("XIUXIAN_DAOCHANG_MEMORY_EMBEDDING_MODEL"),
+        embedding_model: non_empty_env("XIUXIAN_DAOCHANG_EMBED_MODEL"),
+        memory_embedding_base_url: non_empty_env("XIUXIAN_DAOCHANG_MEMORY_EMBEDDING_BASE_URL"),
+        embedding_base_url: non_empty_env("XIUXIAN_DAOCHANG_EMBED_BASE_URL"),
+        embed_timeout_secs: parse_positive_u64_from_env("XIUXIAN_DAOCHANG_EMBED_TIMEOUT_SECS"),
         memory_embed_batch_max_size: parse_positive_usize_from_env(
-            "OMNI_AGENT_MEMORY_EMBED_BATCH_MAX_SIZE",
+            "XIUXIAN_DAOCHANG_MEMORY_EMBED_BATCH_MAX_SIZE",
         ),
-        embed_batch_max_size: parse_positive_usize_from_env("OMNI_AGENT_EMBED_BATCH_MAX_SIZE"),
+        embed_batch_max_size: parse_positive_usize_from_env(
+            "XIUXIAN_DAOCHANG_EMBED_BATCH_MAX_SIZE",
+        ),
         memory_embed_batch_max_concurrency: parse_positive_usize_from_env(
-            "OMNI_AGENT_MEMORY_EMBED_BATCH_MAX_CONCURRENCY",
+            "XIUXIAN_DAOCHANG_MEMORY_EMBED_BATCH_MAX_CONCURRENCY",
         ),
         embed_batch_max_concurrency: parse_positive_usize_from_env(
-            "OMNI_AGENT_EMBED_BATCH_MAX_CONCURRENCY",
+            "XIUXIAN_DAOCHANG_EMBED_BATCH_MAX_CONCURRENCY",
         ),
     }
 }

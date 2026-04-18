@@ -2,11 +2,11 @@
 mod artifacts;
 #[path = "runtime_config/constants.rs"]
 mod constants;
-#[path = "runtime_config/models/mod.rs"]
+#[path = "runtime_config/models.rs"]
 pub(crate) mod models;
 #[path = "runtime_config/resolve/mod.rs"]
 pub mod resolve;
-#[path = "runtime_config/settings/mod.rs"]
+#[path = "runtime_config/settings.rs"]
 mod settings;
 
 #[cfg(all(feature = "julia", feature = "builtin-plugins"))]

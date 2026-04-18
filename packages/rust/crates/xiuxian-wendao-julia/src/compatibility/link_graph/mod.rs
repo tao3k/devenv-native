@@ -6,7 +6,7 @@ mod runtime;
 mod selectors;
 mod settings;
 #[cfg(test)]
-#[path = "../../../tests/unit/compatibility/link_graph/mod.rs"]
+#[path = "../../../tests/unit/compatibility/link_graph.rs"]
 mod tests;
 
 pub use artifact::{

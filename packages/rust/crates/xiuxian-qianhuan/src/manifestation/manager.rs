@@ -5,6 +5,8 @@ use anyhow::{Result, anyhow};
 use globset::Glob;
 use serde_json::{Map, Value, json};
 use std::collections::BTreeMap;
+use std::collections::hash_map::DefaultHasher;
+use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -373,6 +375,7 @@ struct TemplateFileStamp {
     path: PathBuf,
     modified_unix_millis: u128,
     size_bytes: u64,
+    content_hash: u64,
 }
 
 #[derive(Debug)]
@@ -477,6 +480,7 @@ fn capture_snapshot(compiled_globs: &[CompiledTemplateGlob]) -> Result<TemplateS
             let metadata = std::fs::metadata(path).map_err(|error| {
                 anyhow!("failed to stat template file {}: {error}", path.display())
             })?;
+            let content_hash = hash_template_file(path)?;
             let modified = metadata.modified().unwrap_or(SystemTime::UNIX_EPOCH);
             let modified_unix_millis = modified
                 .duration_since(UNIX_EPOCH)
@@ -486,6 +490,7 @@ fn capture_snapshot(compiled_globs: &[CompiledTemplateGlob]) -> Result<TemplateS
                 path: path.to_path_buf(),
                 modified_unix_millis,
                 size_bytes: metadata.len(),
+                content_hash,
             });
         }
     }
@@ -493,6 +498,14 @@ fn capture_snapshot(compiled_globs: &[CompiledTemplateGlob]) -> Result<TemplateS
     files.sort();
     files.dedup();
     Ok(TemplateSnapshot { files })
+}
+
+fn hash_template_file(path: &Path) -> Result<u64> {
+    let contents = std::fs::read(path)
+        .map_err(|error| anyhow!("failed to read template file {}: {error}", path.display()))?;
+    let mut hasher = DefaultHasher::new();
+    contents.hash(&mut hasher);
+    Ok(hasher.finish())
 }
 
 fn collect_external_templates(

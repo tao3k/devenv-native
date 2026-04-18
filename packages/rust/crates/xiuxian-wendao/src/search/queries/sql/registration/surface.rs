@@ -1,5 +1,5 @@
 use std::collections::BTreeMap;
-use std::fs::File;
+use std::fs::{self, File};
 use std::path::PathBuf;
 
 use arrow::datatypes::{DataType, Field, Schema};
@@ -141,21 +141,69 @@ fn columns_from_parquet(
     table: &RegisteredSqlTable,
     parquet_path: &PathBuf,
 ) -> Result<Vec<RegisteredSqlColumn>, String> {
-    let parquet_file = File::open(parquet_path).map_err(|error| {
+    let schema_path = parquet_schema_source_path(table, parquet_path)?;
+    let parquet_file = File::open(schema_path.as_path()).map_err(|error| {
         format!(
             "studio SQL surface failed to open parquet schema for `{}` at `{}`: {error}",
             table.sql_table_name,
-            parquet_path.display()
+            schema_path.display()
         )
     })?;
     let builder = ParquetRecordBatchReaderBuilder::try_new(parquet_file).map_err(|error| {
         format!(
             "studio SQL surface failed to read parquet schema for `{}` at `{}`: {error}",
             table.sql_table_name,
-            parquet_path.display()
+            schema_path.display()
         )
     })?;
     Ok(columns_from_schema(table, builder.schema().as_ref()))
+}
+
+fn parquet_schema_source_path(
+    table: &RegisteredSqlTable,
+    parquet_path: &PathBuf,
+) -> Result<PathBuf, String> {
+    if parquet_path.is_file() {
+        return Ok(parquet_path.clone());
+    }
+    if !parquet_path.is_dir() {
+        return Err(format!(
+            "studio SQL surface expected parquet file or directory for `{}` at `{}`",
+            table.sql_table_name,
+            parquet_path.display()
+        ));
+    }
+
+    let mut partition_paths = fs::read_dir(parquet_path)
+        .map_err(|error| {
+            format!(
+                "studio SQL surface failed to inspect parquet directory for `{}` at `{}`: {error}",
+                table.sql_table_name,
+                parquet_path.display()
+            )
+        })?
+        .filter_map(|entry| entry.ok())
+        .filter_map(|entry| {
+            let path = entry.path();
+            let is_parquet_file = entry
+                .file_type()
+                .ok()
+                .map(|file_type| file_type.is_file())
+                .unwrap_or(false)
+                && path
+                    .extension()
+                    .is_some_and(|extension| extension == "parquet");
+            is_parquet_file.then_some(path)
+        })
+        .collect::<Vec<_>>();
+    partition_paths.sort();
+    partition_paths.into_iter().next().ok_or_else(|| {
+        format!(
+            "studio SQL surface found no parquet partitions for `{}` at `{}`",
+            table.sql_table_name,
+            parquet_path.display()
+        )
+    })
 }
 
 fn columns_for_logical_view(

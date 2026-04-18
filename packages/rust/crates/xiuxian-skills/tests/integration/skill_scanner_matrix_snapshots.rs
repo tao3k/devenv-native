@@ -4,6 +4,7 @@
 
 use std::fs;
 
+use crate::json_support::canonicalize_json;
 use crate::path_sanitization::sanitize_path;
 use crate::read_fixture_support::read_fixture;
 use crate::structure::default_structure;
@@ -68,6 +69,7 @@ fn snapshot_skill_frontmatter_matrix_contract() -> Result<(), Box<dyn std::error
         outcomes.push(serde_json::Value::Object(row));
     }
 
+    let outcomes = canonicalize_json(serde_json::to_value(outcomes)?);
     insta::assert_json_snapshot!("skill_frontmatter_matrix", outcomes);
     Ok(())
 }
@@ -133,6 +135,7 @@ fn snapshot_reference_frontmatter_matrix_contract() -> Result<(), Box<dyn std::e
         outcomes.push(serde_json::Value::Object(row));
     }
 
+    let outcomes = canonicalize_json(serde_json::to_value(outcomes)?);
     insta::assert_json_snapshot!("reference_frontmatter_matrix", outcomes);
     Ok(())
 }
@@ -179,6 +182,7 @@ fn snapshot_parse_skill_md_matrix_contract() -> Result<(), Box<dyn std::error::E
         outcomes.push(serde_json::Value::Object(row));
     }
 
+    let outcomes = canonicalize_json(serde_json::to_value(outcomes)?);
     insta::assert_json_snapshot!("parse_skill_md_matrix", outcomes);
     Ok(())
 }

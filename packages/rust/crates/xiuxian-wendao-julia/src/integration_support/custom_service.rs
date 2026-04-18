@@ -111,7 +111,6 @@ fn processor_script(rows: &[WendaoArrowScoreRow<'_>]) -> String {
     format!(
         r#"
 using WendaoArrow
-using gRPCServer
 using Tables
 
 const SCORE_MAP = Dict(

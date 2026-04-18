@@ -1,5 +1,6 @@
 ---
-source: packages/rust/crates/xiuxian-wendao/tests/support/repo_intelligence.rs
+source: packages/rust/crates/xiuxian-wendao/tests/integration/support/../../support/repo_intelligence.rs
+assertion_line: 33
 expression: value
 ---
 [
@@ -16,12 +17,22 @@ expression: value
   {
     "kind": "contains",
     "source_id": "repo:relation-sample",
-    "target_id": "repo:relation-sample:doc:src/RelationPkg.jl#symbol:Problem"
+    "target_id": "repo:relation-sample:doc:src/RelationPkg.jl#symbol-id:repo:relation-sample:symbol:RelationPkg.Problem"
   },
   {
     "kind": "contains",
     "source_id": "repo:relation-sample",
-    "target_id": "repo:relation-sample:doc:src/RelationPkg.jl#symbol:solve"
+    "target_id": "repo:relation-sample:doc:src/RelationPkg.jl#symbol-id:repo:relation-sample:symbol:RelationPkg.solve"
+  },
+  {
+    "kind": "contains",
+    "source_id": "repo:relation-sample",
+    "target_id": "repo:relation-sample:doc:src/nested/extra.jl#symbol-id:repo:relation-sample:symbol:RelationPkg.ExtraProblem"
+  },
+  {
+    "kind": "contains",
+    "source_id": "repo:relation-sample",
+    "target_id": "repo:relation-sample:doc:src/solvers.jl#symbol-id:repo:relation-sample:symbol:RelationPkg.fastsolve"
   },
   {
     "kind": "contains",
@@ -41,7 +52,17 @@ expression: value
   {
     "kind": "declares",
     "source_id": "repo:relation-sample:module:RelationPkg",
+    "target_id": "repo:relation-sample:symbol:RelationPkg.ExtraProblem"
+  },
+  {
+    "kind": "declares",
+    "source_id": "repo:relation-sample:module:RelationPkg",
     "target_id": "repo:relation-sample:symbol:RelationPkg.Problem"
+  },
+  {
+    "kind": "declares",
+    "source_id": "repo:relation-sample:module:RelationPkg",
+    "target_id": "repo:relation-sample:symbol:RelationPkg.fastsolve"
   },
   {
     "kind": "declares",
@@ -55,13 +76,23 @@ expression: value
   },
   {
     "kind": "documents",
-    "source_id": "repo:relation-sample:doc:src/RelationPkg.jl#symbol:Problem",
+    "source_id": "repo:relation-sample:doc:src/RelationPkg.jl#symbol-id:repo:relation-sample:symbol:RelationPkg.Problem",
     "target_id": "repo:relation-sample:symbol:RelationPkg.Problem"
   },
   {
     "kind": "documents",
-    "source_id": "repo:relation-sample:doc:src/RelationPkg.jl#symbol:solve",
+    "source_id": "repo:relation-sample:doc:src/RelationPkg.jl#symbol-id:repo:relation-sample:symbol:RelationPkg.solve",
     "target_id": "repo:relation-sample:symbol:RelationPkg.solve"
+  },
+  {
+    "kind": "documents",
+    "source_id": "repo:relation-sample:doc:src/nested/extra.jl#symbol-id:repo:relation-sample:symbol:RelationPkg.ExtraProblem",
+    "target_id": "repo:relation-sample:symbol:RelationPkg.ExtraProblem"
+  },
+  {
+    "kind": "documents",
+    "source_id": "repo:relation-sample:doc:src/solvers.jl#symbol-id:repo:relation-sample:symbol:RelationPkg.fastsolve",
+    "target_id": "repo:relation-sample:symbol:RelationPkg.fastsolve"
   },
   {
     "kind": "uses",

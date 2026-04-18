@@ -43,7 +43,7 @@ pub(super) fn build_http_client(timeout_secs: u64) -> reqwest::Client {
 }
 
 fn system_proxy_enabled() -> bool {
-    env_non_empty!("OMNI_AGENT_HTTP_ENABLE_SYSTEM_PROXY")
+    env_non_empty!("XIUXIAN_DAOCHANG_HTTP_ENABLE_SYSTEM_PROXY")
         .map(|raw| raw.trim().to_ascii_lowercase())
         .is_some_and(|raw| matches!(raw.as_str(), "1" | "true" | "yes" | "on"))
 }
@@ -76,7 +76,7 @@ pub(super) fn resolve_litellm_embed_api_key() -> LitellmEmbedApiKeyResolution {
         })
     };
 
-    if let Some(result) = from_named_env("OMNI_AGENT_EMBED_API_KEY") {
+    if let Some(result) = from_named_env("XIUXIAN_DAOCHANG_EMBED_API_KEY") {
         return result;
     }
     if let Some(result) = from_named_env("LITELLM_API_KEY") {

@@ -55,6 +55,7 @@ fn test_scan_references_builds_record_from_frontmatter() -> Result<(), Box<dyn s
     fs::write(
         &reference_doc,
         r#"---
+type: skill
 metadata:
   for_tools:
     - researcher.run_research_graph

@@ -39,7 +39,7 @@ impl Agent {
         let hint = format!(
             "max_tool_rounds ({}) exceeded after {} rounds ({} tool calls). \
             Try again with a fresh message (rounds reset per message), or increase \
-            OMNI_AGENT_MAX_TOOL_ROUNDS / telegram.max_tool_rounds. \
+            XIUXIAN_DAOCHANG_MAX_TOOL_ROUNDS / telegram.max_tool_rounds. \
             Last tools: {:?}",
             self.config.max_tool_rounds,
             state.round,

@@ -8,7 +8,7 @@ use super::{
     parse_safe_root_package_overlay_metadata, parse_symbol_declarations_for_repository,
 };
 use crate::julia_plugin_test_support::common::{
-    ensure_linked_modelica_parser_summary_service, repo_root,
+    assert_sorted_json_snapshot, ensure_linked_modelica_parser_summary_service, repo_root,
 };
 use crate::modelica_plugin::parser_summary::fetch_modelica_parser_file_summary_blocking_for_repository;
 
@@ -51,10 +51,7 @@ end SecondaryKeywords;
     })
     .collect::<Vec<_>>();
 
-    insta::assert_json_snapshot!(
-        "parse_symbol_declarations_supports_secondary_keywords",
-        payload
-    );
+    assert_sorted_json_snapshot("parse_symbol_declarations_supports_secondary_keywords", payload);
     Ok(())
 }
 
@@ -91,7 +88,7 @@ end Blocks;
     })
     .collect::<Vec<_>>();
 
-    insta::assert_json_snapshot!(
+    assert_sorted_json_snapshot(
         "parse_imports_preserves_modelica_package_import_attributes",
         payload
     );
@@ -144,7 +141,7 @@ end DemoLib;
 
     assert_eq!(metadata.package_name, "DemoLib");
     assert!(metadata.has_documentation_annotation);
-    insta::assert_json_snapshot!(
+    assert_sorted_json_snapshot(
         "parse_safe_root_package_overlay_metadata_extracts_imports_without_parser_summary",
         payload
     );

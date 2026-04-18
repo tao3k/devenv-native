@@ -119,12 +119,12 @@ end Blocks;
 }
 
 #[test]
-#[serial_test::serial(modelica_live)]
+#[serial_test::serial(modelica_large_live)]
 fn blocking_ast_query_analysis_supports_real_modelica_standard_library_package_within_budget()
 -> Result<(), Box<dyn std::error::Error>> {
     ensure_linked_modelica_parser_summary_service()?;
     let source_path = repo_root().join(
-        ".data/xiuxian-wendao/repo-intelligence/repos/github.com/modelica/ModelicaStandardLibrary/Modelica/Blocks/package.mo",
+        ".data/xiuxian-wendao/repo-intelligence/repos/github.com/modelica/ModelicaStandardLibrary/Modelica/Mechanics/Rotational/package.mo",
     );
     if !source_path.is_file() {
         eprintln!(
@@ -138,7 +138,7 @@ fn blocking_ast_query_analysis_supports_real_modelica_standard_library_package_w
     let started_at = Instant::now();
     let analysis = fetch_modelica_ast_query_analysis_blocking_for_repository(
         &ast_query_repository(),
-        "Modelica/Blocks/package.mo",
+        "Modelica/Mechanics/Rotational/package.mo",
         &source_text,
     )?;
     let elapsed = started_at.elapsed();
@@ -148,21 +148,25 @@ fn blocking_ast_query_analysis_supports_real_modelica_standard_library_package_w
         "expected real Modelica package ast-query fetch to stay below 15s, got {elapsed:?}",
     );
     assert!(
-        analysis.symbols.iter().any(|symbol| symbol.name == "Blocks"
-            && symbol
-                .attributes
-                .get("restriction")
-                .is_some_and(|value| value == "package")),
-        "expected Blocks package symbol in ast-query analysis: {:?}",
+        analysis
+            .symbols
+            .iter()
+            .any(|symbol| symbol.name == "Rotational"
+                && symbol
+                    .attributes
+                    .get("restriction")
+                    .is_some_and(|value| value == "package")),
+        "expected Rotational package symbol in ast-query analysis: {:?}",
         analysis.symbols,
     );
     assert!(
         analysis
-            .imports
+            .modules
             .iter()
-            .any(|import| import.source_module == "Modelica.Units.SI"),
-        "expected Modelica.Units.SI import in ast-query analysis: {:?}",
-        analysis.imports,
+            .any(|module| module.qualified_name == "Rotational"
+                && module.path == "Modelica/Mechanics/Rotational/package.mo"),
+        "expected Rotational module in ast-query analysis: {:?}",
+        analysis.modules,
     );
 
     Ok(())

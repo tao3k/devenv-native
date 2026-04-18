@@ -53,6 +53,12 @@ impl SearchEngineContext {
     /// Create a new search-engine context from an existing `DataFusion` session config.
     #[must_use]
     pub fn new_with_config(config: SessionConfig) -> Self {
+        let mut config = config;
+        // DataFusion 53 can produce invalid repartitioned window/sort plans for
+        // repo-content ranking queries; keep the safer non-repartitioned
+        // strategy for search reads.
+        config.options_mut().optimizer.repartition_windows = false;
+        config.options_mut().optimizer.repartition_sorts = false;
         Self {
             session: Arc::new(SessionContext::new_with_config(config)),
         }

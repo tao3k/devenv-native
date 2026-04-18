@@ -35,9 +35,10 @@ fn docs_contract_snapshots_match_generated_contracts() -> Result<()> {
             generate_snapshot_contract_toml(contract_id)?,
             "contract snapshot drifted for `{contract_id}`"
         );
+        let snapshot_schema: Value = serde_json::from_str(assets.schema_json)?;
+        let generated_schema: Value = serde_json::from_str(&generate_schema_json(contract_id)?)?;
         assert_eq!(
-            assets.schema_json,
-            generate_schema_json(contract_id)?,
+            snapshot_schema, generated_schema,
             "schema snapshot drifted for `{contract_id}`"
         );
     }

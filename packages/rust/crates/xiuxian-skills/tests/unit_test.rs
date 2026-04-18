@@ -24,11 +24,11 @@ mod skill_command_parser_parameters_model;
 mod skill_metadata;
 #[path = "unit/skill_scanner_behavior.rs"]
 mod skill_scanner_behavior;
-#[path = "unit/skill_scanner_structure.rs"]
+#[path = "unit/skill_scanner_structure/mod.rs"]
 mod skill_scanner_structure;
 #[path = "unit/skill_structure_config_cascade.rs"]
 mod skill_structure_config_cascade;
 #[path = "unit/skills/tools/mod.rs"]
 mod skills_tools;
-#[path = "unit/tools_scanner.rs"]
+#[path = "unit/tools_scanner/mod.rs"]
 mod tools_scanner;

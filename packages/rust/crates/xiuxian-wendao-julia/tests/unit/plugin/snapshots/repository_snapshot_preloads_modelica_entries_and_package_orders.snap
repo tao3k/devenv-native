@@ -1,0 +1,39 @@
+---
+source: packages/rust/crates/xiuxian-wendao-julia/src/plugin/../../tests/unit/plugin/common.rs
+assertion_line: 140
+expression: payload
+---
+{
+  "entries": [
+    {
+      "has_modelica_contents": true,
+      "relative_path": "Blocks/package.mo",
+      "surface": "api"
+    },
+    {
+      "has_modelica_contents": false,
+      "relative_path": "Blocks/package.order",
+      "surface": "api"
+    },
+    {
+      "has_modelica_contents": false,
+      "relative_path": "README.md",
+      "surface": "api"
+    },
+    {
+      "has_modelica_contents": true,
+      "relative_path": "package.mo",
+      "surface": "api"
+    }
+  ],
+  "package_files": [
+    "Blocks/package.mo",
+    "package.mo"
+  ],
+  "package_orders": {
+    "Blocks": [
+      "Interfaces",
+      "Utilities"
+    ]
+  }
+}

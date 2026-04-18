@@ -65,9 +65,9 @@ impl MemoryStateBackend {
         let redis_url = non_empty_string(memory_cfg.persistence_valkey_url.clone())
             .or_else(resolve_valkey_url_env);
         let strict_startup_override =
-            parse_bool_from_env("OMNI_AGENT_MEMORY_PERSISTENCE_STRICT_STARTUP")
+            parse_bool_from_env("XIUXIAN_DAOCHANG_MEMORY_PERSISTENCE_STRICT_STARTUP")
                 .or(memory_cfg.persistence_strict_startup);
-        let key_prefix = non_empty_env("OMNI_AGENT_MEMORY_VALKEY_KEY_PREFIX")
+        let key_prefix = non_empty_env("XIUXIAN_DAOCHANG_MEMORY_VALKEY_KEY_PREFIX")
             .or_else(|| non_empty_string(Some(memory_cfg.persistence_key_prefix.clone())))
             .unwrap_or_else(|| "xiuxian-daochang:memory".to_string());
 

@@ -8,6 +8,8 @@ use xiuxian_vector::{
     skill::{normalize_input_schema_value, resolve_routing_keywords},
 };
 
+use crate::snapshot_support::canonical_json;
+
 fn round6(v: f64) -> String {
     format!("{v:.6}")
 }
@@ -26,7 +28,10 @@ fn snapshot_input_schema_normalization_contract_v1() {
 
     let normalized: Vec<_> = cases.iter().map(normalize_input_schema_value).collect();
 
-    assert_json_snapshot!("input_schema_normalization_contract_v1", normalized);
+    assert_json_snapshot!(
+        "input_schema_normalization_contract_v1",
+        canonical_json(normalized)
+    );
 }
 
 #[test]
@@ -38,7 +43,10 @@ fn snapshot_routing_keywords_resolution_contract_v1() {
         json!({}),
     ];
     let resolved: Vec<_> = cases.iter().map(resolve_routing_keywords).collect();
-    assert_json_snapshot!("routing_keywords_resolution_contract_v1", resolved);
+    assert_json_snapshot!(
+        "routing_keywords_resolution_contract_v1",
+        canonical_json(resolved)
+    );
 }
 
 #[tokio::test]
@@ -133,7 +141,7 @@ async fn snapshot_data_layer_contract_v1() -> Result<()> {
         "fragments": frag_view,
     });
 
-    assert_json_snapshot!("data_layer_contract_v1", view);
+    assert_json_snapshot!("data_layer_contract_v1", canonical_json(view));
 
     Ok(())
 }
@@ -250,7 +258,7 @@ async fn snapshot_schema_evolution_pipeline_v1() -> Result<()> {
         }
     });
 
-    assert_json_snapshot!("schema_evolution_pipeline_v1", view);
+    assert_json_snapshot!("schema_evolution_pipeline_v1", canonical_json(view));
 
     Ok(())
 }
@@ -311,7 +319,7 @@ async fn snapshot_lance_fts_contract_v1() -> Result<()> {
         })).collect::<Vec<_>>(),
     });
 
-    assert_json_snapshot!("lance_fts_contract_v1", view);
+    assert_json_snapshot!("lance_fts_contract_v1", canonical_json(view));
 
     Ok(())
 }

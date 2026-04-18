@@ -1,5 +1,6 @@
 ---
 source: packages/rust/crates/xiuxian-wendao/tests/integration/support/../../support/repo_intelligence.rs
+assertion_line: 33
 expression: value
 ---
 {
@@ -30,6 +31,17 @@ expression: value
       "saliency_score": 0.4,
       "score": 1.0,
       "symbol": {
+        "attributes": {
+          "class_name": "PI",
+          "class_path": "PI",
+          "is_encapsulated": "false",
+          "is_final": "false",
+          "is_partial": "false",
+          "parser_kind": "model",
+          "restriction": "model",
+          "top_level": "true",
+          "visibility": "public"
+        },
         "kind": "type",
         "line_end": 4,
         "line_start": 2,
@@ -47,6 +59,17 @@ expression: value
   ],
   "symbols": [
     {
+      "attributes": {
+        "class_name": "PI",
+        "class_path": "PI",
+        "is_encapsulated": "false",
+        "is_final": "false",
+        "is_partial": "false",
+        "parser_kind": "model",
+        "restriction": "model",
+        "top_level": "true",
+        "visibility": "public"
+      },
       "kind": "type",
       "line_end": 4,
       "line_start": 2,

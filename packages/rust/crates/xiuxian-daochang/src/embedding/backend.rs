@@ -27,7 +27,7 @@ pub(crate) fn resolve_backend_settings(
         .map(str::trim)
         .map(ToString::to_string)
         .filter(|raw| !raw.is_empty());
-    let env_backend = env_non_empty!("OMNI_AGENT_EMBED_BACKEND");
+    let env_backend = env_non_empty!("XIUXIAN_DAOCHANG_EMBED_BACKEND");
     let settings_backend = runtime_settings
         .embedding
         .backend
@@ -41,19 +41,19 @@ pub(crate) fn resolve_backend_settings(
         (parse_backend_mode(Some(raw)), "env")
     } else if let Some(raw) = settings_backend.as_deref() {
         (parse_backend_mode(Some(raw)), "settings")
-    } else if let Some(raw) = env_non_empty!("OMNI_AGENT_LLM_BACKEND") {
+    } else if let Some(raw) = env_non_empty!("XIUXIAN_DAOCHANG_LLM_BACKEND") {
         (parse_backend_mode(Some(raw.as_str())), "llm_env")
     } else {
         (default_backend_mode(), "default")
     };
 
-    let timeout_secs = env_non_empty!("OMNI_AGENT_EMBED_TIMEOUT_SECS")
+    let timeout_secs = env_non_empty!("XIUXIAN_DAOCHANG_EMBED_TIMEOUT_SECS")
         .and_then(|raw| raw.parse::<u64>().ok())
         .or(runtime_settings.embedding.timeout_secs)
         .unwrap_or(default_timeout_secs.max(DEFAULT_EMBED_TIMEOUT_SECS))
         .clamp(MIN_EMBED_TIMEOUT_SECS, MAX_EMBED_TIMEOUT_SECS);
 
-    let max_in_flight = env_non_empty!("OMNI_AGENT_EMBED_MAX_IN_FLIGHT")
+    let max_in_flight = env_non_empty!("XIUXIAN_DAOCHANG_EMBED_MAX_IN_FLIGHT")
         .and_then(|raw| raw.parse::<usize>().ok())
         .or(runtime_settings
             .embedding
@@ -61,7 +61,7 @@ pub(crate) fn resolve_backend_settings(
             .filter(|value| *value > 0))
         .map(|value| value.min(MAX_EMBED_MAX_IN_FLIGHT));
 
-    let default_model = env_non_empty!("OMNI_AGENT_EMBED_MODEL").or_else(|| {
+    let default_model = env_non_empty!("XIUXIAN_DAOCHANG_EMBED_MODEL").or_else(|| {
         runtime_settings
             .embedding
             .litellm_model

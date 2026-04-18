@@ -1,10 +1,12 @@
 //! Test coverage for xiuxian-daochang behavior.
 
 use serde_json::json;
+use xiuxian_daochang::RuntimeSettings;
 use xiuxian_daochang::test_support::{
     ChatCompletionRequest, LlmBackendMode, build_responses_payload_from_chat_completion_request,
     extract_api_base_from_inference_url, is_openai_like_stream_required_error, parse_backend_mode,
-    parse_responses_stream_tool_names, parse_tools_json, should_use_openai_like_for_base,
+    parse_responses_stream_tool_names, parse_tools_json, resolve_backend_mode_for_inference_url,
+    should_use_openai_like_for_base,
 };
 
 #[test]
@@ -31,6 +33,21 @@ fn parse_backend_mode_invalid_value_falls_back_to_litellm_rs() {
         parse_backend_mode(Some("unsupported-backend")),
         LlmBackendMode::LiteLlmRs
     );
+}
+
+#[test]
+fn localhost_inference_url_prefers_http_backend_over_runtime_settings() {
+    let mut settings = RuntimeSettings::default();
+    settings.agent.llm_backend = Some("litellm_rs".to_string());
+
+    let (mode, source) = resolve_backend_mode_for_inference_url(
+        &settings,
+        "http://127.0.0.1:4010/v1/chat/completions",
+        None,
+    );
+
+    assert_eq!(mode, LlmBackendMode::OpenAiCompatibleHttp);
+    assert_eq!(source, "inference_url");
 }
 
 #[test]

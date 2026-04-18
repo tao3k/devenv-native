@@ -11,7 +11,7 @@ pub(super) fn run_markdown_lint(
     temp: &TempDir,
     scope: Option<&str>,
 ) -> Result<(Option<i32>, String)> {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_wendao"));
+    let mut command = Command::new(env!("CARGO_BIN_EXE_wendao-client"));
     command
         .arg("--root")
         .arg(temp.path())

@@ -1,4 +1,5 @@
 use super::*;
+use crate::link_graph::LinkGraphHit;
 
 #[test]
 fn wendao_search_args_deserialize_query_vector() {
@@ -31,4 +32,86 @@ fn validate_root_dir_argument_accepts_real_paths() {
 fn validate_root_dir_argument_rejects_blank_values() {
     assert!(validate_root_dir_argument(Some("")).is_err());
     assert!(validate_root_dir_argument(Some("   ")).is_err());
+}
+
+#[test]
+fn render_xml_lite_prefers_path_and_semantic_hit_type() {
+    let payload = LinkGraphPlannedSearchPayload {
+        query: "journal".to_string(),
+        options: LinkGraphSearchOptions::default(),
+        hits: Vec::new(),
+        hit_count: 1,
+        section_hit_count: 0,
+        requested_mode: Default::default(),
+        selected_mode: Default::default(),
+        reason: String::new(),
+        graph_hit_count: 1,
+        source_hint_count: 0,
+        graph_confidence_score: 0.0,
+        graph_confidence_level: Default::default(),
+        retrieval_plan: None,
+        semantic_ignition: None,
+        julia_rerank: None,
+        query_vector: None,
+        quantum_contexts: Vec::new(),
+        results: vec![LinkGraphHit {
+            stem: "daily".to_string(),
+            title: "Daily Journal".to_string(),
+            path: "journal/daily.md".to_string(),
+            doc_type: None,
+            tags: Vec::new(),
+            score: 0.9,
+            best_section: None,
+            match_reason: None,
+        }],
+        provisional_suggestions: Vec::new(),
+        provisional_error: None,
+        promoted_overlay: None,
+        ccs_audit: None,
+    };
+
+    let rendered = render_xml_lite_hits(&payload);
+    assert!(rendered.contains("<hit id=\"journal/daily.md\""));
+    assert!(rendered.contains("type=\"journal\""));
+}
+
+#[test]
+fn render_xml_lite_prefers_frontmatter_doc_type_over_tags_and_path() {
+    let payload = LinkGraphPlannedSearchPayload {
+        query: "agenda".to_string(),
+        options: LinkGraphSearchOptions::default(),
+        hits: Vec::new(),
+        hit_count: 1,
+        section_hit_count: 0,
+        requested_mode: Default::default(),
+        selected_mode: Default::default(),
+        reason: String::new(),
+        graph_hit_count: 1,
+        source_hint_count: 0,
+        graph_confidence_score: 0.0,
+        graph_confidence_level: Default::default(),
+        retrieval_plan: None,
+        semantic_ignition: None,
+        julia_rerank: None,
+        query_vector: None,
+        quantum_contexts: Vec::new(),
+        results: vec![LinkGraphHit {
+            stem: "override".to_string(),
+            title: "Override".to_string(),
+            path: "journal/override.md".to_string(),
+            doc_type: Some("agenda".to_string()),
+            tags: vec!["journal".to_string()],
+            score: 0.9,
+            best_section: None,
+            match_reason: None,
+        }],
+        provisional_suggestions: Vec::new(),
+        provisional_error: None,
+        promoted_overlay: None,
+        ccs_audit: None,
+    };
+
+    let rendered = render_xml_lite_hits(&payload);
+    assert!(rendered.contains("<hit id=\"journal/override.md\""));
+    assert!(rendered.contains("type=\"agenda\""));
 }

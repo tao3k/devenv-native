@@ -13,7 +13,7 @@ use super::types::GatewayEmbeddingRuntime;
 const DEFAULT_EMBED_TIMEOUT_SECS: u64 = 15;
 const DEFAULT_EMBED_UPSTREAM_BASE_URL: &str = "http://localhost:11434";
 const DEFAULT_FALLBACK_EMBED_DIM: usize = 1024;
-const GATEWAY_ALLOW_INPROC_EMBED_ENV: &str = "OMNI_AGENT_GATEWAY_ALLOW_INPROC_EMBED";
+const GATEWAY_ALLOW_INPROC_EMBED_ENV: &str = "XIUXIAN_DAOCHANG_GATEWAY_ALLOW_INPROC_EMBED";
 
 pub(super) fn trim_non_empty(raw: Option<&str>) -> Option<String> {
     raw.map(str::trim)
@@ -24,8 +24,8 @@ pub(super) fn trim_non_empty(raw: Option<&str>) -> Option<String> {
 fn apply_gateway_embedding_memory_guard(runtime_settings: &RuntimeSettings) -> RuntimeSettings {
     apply_gateway_embedding_memory_guard_with_inputs(
         runtime_settings,
-        env_non_empty!("OMNI_AGENT_MEMORY_EMBEDDING_BACKEND").as_deref(),
-        env_non_empty!("OMNI_AGENT_EMBED_BACKEND").as_deref(),
+        env_non_empty!("XIUXIAN_DAOCHANG_MEMORY_EMBEDDING_BACKEND").as_deref(),
+        env_non_empty!("XIUXIAN_DAOCHANG_EMBED_BACKEND").as_deref(),
         env_non_empty!(GATEWAY_ALLOW_INPROC_EMBED_ENV).as_deref(),
     )
 }

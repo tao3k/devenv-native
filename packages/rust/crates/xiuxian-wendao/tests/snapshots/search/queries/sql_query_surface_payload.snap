@@ -1,5 +1,5 @@
 ---
-source: packages/rust/crates/xiuxian-wendao/src/search/queries/../../../tests/unit/search/queries/snapshots.rs
+source: tests/unit/search/queries/snapshots.rs
 assertion_line: 9
 expression: value
 ---
@@ -37,19 +37,19 @@ expression: value
         {
           "columns": [
             {
-              "data_type": "Utf8",
+              "data_type": "Utf8View",
               "name": "name",
-              "nullable": true
+              "nullable": false
             },
             {
-              "data_type": "Utf8",
+              "data_type": "Utf8View",
               "name": "path",
-              "nullable": true
+              "nullable": false
             },
             {
               "data_type": "UInt64",
               "name": "line_start",
-              "nullable": true
+              "nullable": false
             }
           ],
           "row_count": 2,
@@ -102,19 +102,19 @@ expression: value
         {
           "columns": [
             {
-              "data_type": "Utf8",
+              "data_type": "Utf8View",
               "name": "name",
-              "nullable": true
+              "nullable": false
             },
             {
-              "data_type": "Utf8",
+              "data_type": "Utf8View",
               "name": "path",
-              "nullable": true
+              "nullable": false
             },
             {
               "data_type": "UInt64",
               "name": "line",
-              "nullable": true
+              "nullable": false
             }
           ],
           "row_count": 2,
@@ -169,42 +169,42 @@ expression: value
             {
               "data_type": "Utf8",
               "name": "repo_id",
-              "nullable": true
+              "nullable": false
             },
             {
-              "data_type": "Utf8",
+              "data_type": "Utf8View",
               "name": "title",
-              "nullable": true
+              "nullable": false
             },
             {
               "data_type": "Utf8",
               "name": "doc_type",
-              "nullable": true
+              "nullable": false
             },
             {
-              "data_type": "Utf8",
+              "data_type": "Utf8View",
               "name": "language_tag",
               "nullable": true
             },
             {
               "data_type": "Utf8",
               "name": "kind_tag",
-              "nullable": true
+              "nullable": false
             },
             {
-              "data_type": "Utf8",
+              "data_type": "Utf8View",
               "name": "path",
-              "nullable": true
+              "nullable": false
             },
             {
               "data_type": "UInt64",
               "name": "line_number",
-              "nullable": true
+              "nullable": false
             },
             {
-              "data_type": "Utf8",
+              "data_type": "Utf8View",
               "name": "line_text",
-              "nullable": true
+              "nullable": false
             }
           ],
           "row_count": 3,
@@ -279,22 +279,22 @@ expression: value
             {
               "data_type": "Utf8",
               "name": "repo_id",
-              "nullable": true
+              "nullable": false
             },
             {
-              "data_type": "Utf8",
+              "data_type": "Utf8View",
               "name": "entity_kind",
-              "nullable": true
+              "nullable": false
             },
             {
-              "data_type": "Utf8",
+              "data_type": "Utf8View",
               "name": "name",
-              "nullable": true
+              "nullable": false
             },
             {
-              "data_type": "Utf8",
+              "data_type": "Utf8View",
               "name": "path",
-              "nullable": true
+              "nullable": false
             }
           ],
           "row_count": 2,

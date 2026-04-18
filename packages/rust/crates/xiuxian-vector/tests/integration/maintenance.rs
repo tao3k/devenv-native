@@ -4,6 +4,8 @@
 use anyhow::Result;
 use xiuxian_vector::{IndexThresholds, VectorStore, ops::DatasetCacheConfig};
 
+use crate::snapshot_support::canonical_json;
+
 async fn add_tools_table(
     store: &VectorStore,
     table: &str,
@@ -301,7 +303,7 @@ async fn snapshot_maintenance_contract_v1() -> Result<()> {
             "fragments_removed": compact_stats.fragments_removed,
         },
     });
-    assert_json_snapshot!("maintenance_contract_v1", view);
+    assert_json_snapshot!("maintenance_contract_v1", canonical_json(view));
 
     Ok(())
 }

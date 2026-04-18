@@ -4,6 +4,7 @@
 
 use std::fs;
 
+use crate::json_support::canonicalize_json;
 use crate::read_fixture_support::read_fixture;
 use tempfile::TempDir;
 use xiuxian_skills::{IndexToolEntry, SkillIndexEntry, ToolsScanner};
@@ -76,6 +77,7 @@ fn snapshot_tool_name_format_matrix_contract() -> Result<(), Box<dyn std::error:
         }));
     }
 
+    let rows = canonicalize_json(serde_json::to_value(rows)?);
     insta::assert_json_snapshot!("tool_name_format_matrix", rows);
     Ok(())
 }
@@ -114,5 +116,5 @@ fn snapshot_skill_index_json_schema_contract() {
         "tool_names": tool_names
     });
 
-    insta::assert_json_snapshot!("skill_index_schema", snapshot);
+    insta::assert_json_snapshot!("skill_index_schema", canonicalize_json(snapshot));
 }

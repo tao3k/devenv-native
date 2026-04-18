@@ -1,0 +1,49 @@
+---
+source: packages/rust/crates/xiuxian-skills/tests/integration/skill_scanner_matrix_snapshots.rs
+assertion_line: 73
+expression: outcomes
+---
+[
+  {
+    "actual_ok": true,
+    "case": "valid",
+    "expected_ok": true,
+    "skill_name": "valid_skill"
+  },
+  {
+    "actual_ok": false,
+    "case": "missing_markers",
+    "error": "SKILL.md frontmatter is required but missing for <SKILL_PATH>",
+    "expected_ok": false
+  },
+  {
+    "actual_ok": false,
+    "case": "missing_name",
+    "error": "SKILL.md frontmatter must contain top-level `name` at <SKILL_PATH>",
+    "expected_ok": false
+  },
+  {
+    "actual_ok": false,
+    "case": "missing_metadata",
+    "error": "SKILL.md frontmatter must contain nested `metadata` mapping at <SKILL_PATH>",
+    "expected_ok": false
+  },
+  {
+    "actual_ok": false,
+    "case": "metadata_not_mapping",
+    "error": "SKILL.md frontmatter `metadata` must be a mapping at <SKILL_PATH>",
+    "expected_ok": false
+  },
+  {
+    "actual_ok": false,
+    "case": "name_empty",
+    "error": "SKILL.md frontmatter `name` must be a non-empty string at <SKILL_PATH>",
+    "expected_ok": false
+  },
+  {
+    "actual_ok": false,
+    "case": "malformed_yaml",
+    "error": "SKILL.md frontmatter parse failed for <SKILL_PATH>: did not find expected ',' or ']' at line 4 column 1, while parsing a flow sequence at line 3 column 12",
+    "expected_ok": false
+  }
+]

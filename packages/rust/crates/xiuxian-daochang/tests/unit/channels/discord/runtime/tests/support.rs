@@ -12,7 +12,7 @@ pub(super) use xiuxian_daochang::test_support::{
 };
 use xiuxian_daochang::{
     Agent, AgentConfig, Channel, ChannelMessage, JobManager, JobManagerConfig,
-    RecipientMentionPolicyStatus, TurnRunner,
+    RecipientCommandAdminUsersMutation, RecipientMentionPolicyStatus, TurnRunner,
 };
 
 #[derive(Default)]
@@ -21,6 +21,7 @@ pub(super) struct MockChannel {
     partition_mode: RwLock<String>,
     allow_control_commands: bool,
     denied_slash_scopes: Vec<String>,
+    recipient_admin_users: StdRwLock<HashMap<String, Vec<String>>>,
     default_require_mention: StdRwLock<bool>,
     persist_enabled: StdRwLock<bool>,
     recipient_require_mention: StdRwLock<HashMap<String, bool>>,
@@ -39,6 +40,7 @@ impl MockChannel {
                 .into_iter()
                 .map(|scope| scope.as_ref().to_string())
                 .collect(),
+            recipient_admin_users: StdRwLock::new(HashMap::new()),
             default_require_mention: StdRwLock::new(false),
             persist_enabled: StdRwLock::new(false),
             recipient_require_mention: StdRwLock::new(HashMap::new()),
@@ -81,11 +83,122 @@ impl Channel for MockChannel {
         self.allow_control_commands
     }
 
+    fn is_authorized_for_control_command_for_recipient(
+        &self,
+        identity: &str,
+        command_text: &str,
+        recipient: &str,
+    ) -> bool {
+        self.is_authorized_for_control_command(identity, command_text)
+            || self
+                .recipient_command_admin_users(recipient)
+                .ok()
+                .flatten()
+                .is_some_and(|entries| {
+                    entries
+                        .iter()
+                        .any(|entry| entry == "*" || entry == identity)
+                })
+    }
+
     fn is_authorized_for_slash_command(&self, _identity: &str, command_scope: &str) -> bool {
         !self
             .denied_slash_scopes
             .iter()
             .any(|scope| scope == command_scope)
+    }
+
+    fn is_authorized_for_slash_command_for_recipient(
+        &self,
+        identity: &str,
+        command_scope: &str,
+        recipient: &str,
+    ) -> bool {
+        self.is_authorized_for_slash_command(identity, command_scope)
+            || self
+                .recipient_command_admin_users(recipient)
+                .ok()
+                .flatten()
+                .is_some_and(|entries| {
+                    entries
+                        .iter()
+                        .any(|entry| entry == "*" || entry == identity)
+                })
+    }
+
+    fn recipient_command_admin_users(
+        &self,
+        recipient: &str,
+    ) -> anyhow::Result<Option<Vec<String>>> {
+        Ok(self
+            .recipient_admin_users
+            .read()
+            .unwrap_or_else(PoisonError::into_inner)
+            .get(recipient)
+            .cloned())
+    }
+
+    fn mutate_recipient_command_admin_users(
+        &self,
+        recipient: &str,
+        mutation: RecipientCommandAdminUsersMutation,
+    ) -> anyhow::Result<Option<Vec<String>>> {
+        let recipient = recipient.trim();
+        if recipient.is_empty() {
+            return Err(anyhow::anyhow!(
+                "recipient-scoped admin override requires a non-empty recipient key"
+            ));
+        }
+
+        let mut overrides = self
+            .recipient_admin_users
+            .write()
+            .unwrap_or_else(PoisonError::into_inner);
+        let current = overrides.get(recipient).cloned();
+        let next = match mutation {
+            RecipientCommandAdminUsersMutation::Clear => None,
+            RecipientCommandAdminUsersMutation::Set(entries) => {
+                let filtered: Vec<String> = entries
+                    .into_iter()
+                    .map(|entry| entry.trim().to_string())
+                    .filter(|entry| !entry.is_empty())
+                    .collect();
+                (!filtered.is_empty()).then_some(filtered)
+            }
+            RecipientCommandAdminUsersMutation::Add(entries) => {
+                let mut merged = current.unwrap_or_default();
+                for entry in entries {
+                    let trimmed = entry.trim();
+                    if !trimmed.is_empty() && !merged.iter().any(|existing| existing == trimmed) {
+                        merged.push(trimmed.to_string());
+                    }
+                }
+                (!merged.is_empty()).then_some(merged)
+            }
+            RecipientCommandAdminUsersMutation::Remove(entries) => {
+                let removals: Vec<String> = entries
+                    .into_iter()
+                    .map(|entry| entry.trim().to_string())
+                    .filter(|entry| !entry.is_empty())
+                    .collect();
+                let filtered: Vec<String> = current
+                    .unwrap_or_default()
+                    .into_iter()
+                    .filter(|entry| !removals.iter().any(|removal| removal == entry))
+                    .collect();
+                (!filtered.is_empty()).then_some(filtered)
+            }
+        };
+
+        match next.clone() {
+            Some(entries) => {
+                overrides.insert(recipient.to_string(), entries);
+            }
+            None => {
+                overrides.remove(recipient);
+            }
+        }
+        Ok(next)
     }
 
     fn recipient_mention_policy_status(

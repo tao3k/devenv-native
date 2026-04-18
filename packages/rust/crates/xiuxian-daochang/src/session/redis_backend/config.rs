@@ -34,7 +34,7 @@ impl RedisSessionConfig {
             .map(str::to_string)
             .filter(|v| !v.is_empty())
             .or_else(resolve_valkey_url_env)?;
-        let key_prefix = env_non_empty!("OMNI_AGENT_SESSION_VALKEY_PREFIX")
+        let key_prefix = env_non_empty!("XIUXIAN_DAOCHANG_SESSION_VALKEY_PREFIX")
             .or_else(|| {
                 settings
                     .session
@@ -45,10 +45,10 @@ impl RedisSessionConfig {
                     .filter(|v| !v.is_empty())
             })
             .unwrap_or_else(|| DEFAULT_SESSION_KEY_PREFIX.to_string());
-        let ttl_secs = parse_positive_u64_from_env("OMNI_AGENT_SESSION_TTL_SECS")
+        let ttl_secs = parse_positive_u64_from_env("XIUXIAN_DAOCHANG_SESSION_TTL_SECS")
             .or(settings.session.ttl_secs.filter(|v| *v > 0));
         let message_content_max_chars = parse_positive_usize_from_env(
-            "OMNI_AGENT_SESSION_MESSAGE_CONTENT_MAX_CHARS",
+            "XIUXIAN_DAOCHANG_SESSION_MESSAGE_CONTENT_MAX_CHARS",
         )
         .or(settings
             .session

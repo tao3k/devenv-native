@@ -245,7 +245,7 @@ impl PerfConfig {
 
         let report_path = resolve_report_path(
             workspace_root,
-            env::var("OMNI_AGENT_EMBED_ROLE_PERF_REPORT").ok(),
+            env::var("XIUXIAN_DAOCHANG_EMBED_ROLE_PERF_REPORT").ok(),
         );
 
         let max_single_p95_ms = env_optional_f64("OMNI_EMBED_MAX_SINGLE_P95_MS")?;
@@ -423,14 +423,17 @@ fn resolve_ollama_models(workspace_root: &Path) -> String {
 }
 
 fn resolve_agent_binary(workspace_root: &Path) -> Result<PathBuf> {
-    if let Ok(explicit) = env::var("OMNI_AGENT_BIN")
+    if let Ok(explicit) = env::var("XIUXIAN_DAOCHANG_BIN")
         && !explicit.trim().is_empty()
     {
         let explicit_path = PathBuf::from(explicit.trim());
         if explicit_path.is_file() {
             return Ok(explicit_path);
         }
-        bail!("OMNI_AGENT_BIN does not exist: {}", explicit_path.display());
+        bail!(
+            "XIUXIAN_DAOCHANG_BIN does not exist: {}",
+            explicit_path.display()
+        );
     }
 
     let target_dir = env::var("CARGO_TARGET_DIR")
@@ -675,7 +678,7 @@ fn spawn_gateway_process(
     let mut command = Command::new(agent_bin);
     command
         .current_dir(workspace_root)
-        .env("OMNI_AGENT_TOOL_STRICT_STARTUP", "false")
+        .env("XIUXIAN_DAOCHANG_TOOL_STRICT_STARTUP", "false")
         .env(
             "RUST_LOG",
             env::var("RUST_LOG").unwrap_or_else(|_| "xiuxian_daochang=warn".to_string()),

@@ -44,6 +44,8 @@ mod search_engine;
 mod skill_index_robustness;
 #[path = "integration/skill_scanner.rs"]
 mod skill_scanner;
+#[path = "integration/snapshot_support.rs"]
+mod snapshot_support;
 #[path = "integration/store.rs"]
 mod store;
 #[path = "integration/vector_index.rs"]

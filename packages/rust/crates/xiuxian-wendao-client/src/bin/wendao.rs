@@ -1,4 +1,4 @@
-//! Standalone lightweight `wendao` binary backed by `xiuxian-wendao-client`.
+//! Standalone lightweight `wendao-client` binary backed by `xiuxian-wendao-client`.
 
 use std::process::ExitCode;
 use xiuxian_logging::init_from_cli;

@@ -1,13 +1,30 @@
 //! Integration snapshot for projected markdown and page-index-ready sections.
 
 use insta::assert_json_snapshot;
-use serde_json::json;
+use serde_json::{Value, json};
 use std::collections::BTreeMap;
 use xiuxian_wendao::analyzers::{
     DocRecord, ExampleRecord, ModuleRecord, RelationKind, RelationRecord, RepoSymbolKind,
     RepositoryAnalysisOutput, RepositoryRecord, SymbolRecord, build_projected_page_index_documents,
     render_projected_markdown_documents,
 };
+
+fn canonicalize_json(value: Value) -> Value {
+    match value {
+        Value::Array(values) => Value::Array(values.into_iter().map(canonicalize_json).collect()),
+        Value::Object(map) => {
+            let mut entries = map.into_iter().collect::<Vec<_>>();
+            entries.sort_unstable_by(|left, right| left.0.cmp(&right.0));
+            Value::Object(
+                entries
+                    .into_iter()
+                    .map(|(key, value)| (key, canonicalize_json(value)))
+                    .collect(),
+            )
+        }
+        other => other,
+    }
+}
 
 #[test]
 fn builds_projected_page_index_documents_from_stage_one_records() {
@@ -16,10 +33,10 @@ fn builds_projected_page_index_documents_from_stage_one_records() {
     else {
         panic!("projected docs parse");
     };
-    let payload = json!({
+    let payload = canonicalize_json(json!({
         "markdown": markdown,
         "parsed": parsed,
-    });
+    }));
 
     insta::with_settings!({
         snapshot_path => "../snapshots",

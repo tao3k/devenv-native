@@ -15,7 +15,7 @@ fn planned_search_openai_runtime_config_keeps_stable_shape() {
     assert!(rendered.contains("backend = \"openai-compatible\""));
     assert!(rendered.contains("embedding_model = \"glm-5\""));
     assert!(rendered.contains("route = \"/rerank\""));
-    assert!(rendered.contains("timeout_secs = 10"));
+    assert!(rendered.contains("timeout_secs = 30"));
 }
 
 #[test]

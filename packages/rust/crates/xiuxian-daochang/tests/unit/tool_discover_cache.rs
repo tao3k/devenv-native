@@ -196,9 +196,9 @@ async fn discover_calls_use_valkey_read_through_cache_when_configured() -> Resul
     };
     assert_eq!(initial_stats.requests_total, 0);
 
-    let iterations = env_usize("OMNI_AGENT_DISCOVER_CACHE_BENCH_ITERATIONS", 12);
-    let hit_p95_slo_ms = env_f64("OMNI_AGENT_DISCOVER_CACHE_HIT_P95_MS", 15.0);
-    let miss_p95_slo_ms = env_f64("OMNI_AGENT_DISCOVER_CACHE_MISS_P95_MS", 80.0);
+    let iterations = env_usize("XIUXIAN_DAOCHANG_DISCOVER_CACHE_BENCH_ITERATIONS", 12);
+    let hit_p95_slo_ms = env_f64("XIUXIAN_DAOCHANG_DISCOVER_CACHE_HIT_P95_MS", 15.0);
+    let miss_p95_slo_ms = env_f64("XIUXIAN_DAOCHANG_DISCOVER_CACHE_MISS_P95_MS", 80.0);
     let suffix = SystemTime::now().duration_since(UNIX_EPOCH)?.as_micros();
 
     let mut miss_latencies_ms = Vec::with_capacity(iterations);

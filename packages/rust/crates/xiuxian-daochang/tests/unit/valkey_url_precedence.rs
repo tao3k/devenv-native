@@ -7,8 +7,8 @@ use anyhow::{Context, Result, bail};
 use tempfile::TempDir;
 use xiuxian_daochang::{SessionGate, SessionStore};
 
-const CHILD_ENV_KEY: &str = "OMNI_AGENT_VALKEY_PRECEDENCE_CHILD";
-const CHILD_CASE_KEY: &str = "OMNI_AGENT_VALKEY_PRECEDENCE_CASE";
+const CHILD_ENV_KEY: &str = "XIUXIAN_DAOCHANG_VALKEY_PRECEDENCE_CHILD";
+const CHILD_CASE_KEY: &str = "XIUXIAN_DAOCHANG_VALKEY_PRECEDENCE_CASE";
 
 fn write_runtime_settings(root: &Path, system_toml: &str) -> Result<()> {
     let system_path =

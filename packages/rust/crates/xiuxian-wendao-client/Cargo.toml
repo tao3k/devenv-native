@@ -6,10 +6,10 @@ description = "Lightweight Wendao client CLI for local document tooling"
 authors.workspace = true
 license.workspace = true
 publish = false
-default-run = "wendao"
+default-run = "wendao-client"
 
 [[bin]]
-name = "wendao"
+name = "wendao-client"
 path = "src/bin/wendao.rs"
 
 [dependencies]

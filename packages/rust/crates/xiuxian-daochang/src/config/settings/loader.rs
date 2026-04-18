@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use std::sync::OnceLock;
+use std::sync::{OnceLock, RwLock};
 
 use serde::Deserialize;
 use xiuxian_config_core::{
@@ -19,8 +19,12 @@ const EMBEDDED_SYSTEM_SETTINGS_TOML: &str = include_str!(concat!(
     "/resources/config/xiuxian.toml"
 ));
 
-static CONFIG_HOME_OVERRIDE: OnceLock<PathBuf> = OnceLock::new();
+static CONFIG_HOME_OVERRIDE: OnceLock<RwLock<Option<PathBuf>>> = OnceLock::new();
 static EMBEDDED_SYSTEM_SETTINGS: OnceLock<RuntimeSettings> = OnceLock::new();
+
+fn config_home_override() -> &'static RwLock<Option<PathBuf>> {
+    CONFIG_HOME_OVERRIDE.get_or_init(|| RwLock::new(None))
+}
 
 /// Load merged runtime settings from embedded defaults and cascading system/user paths.
 #[must_use]
@@ -60,11 +64,7 @@ pub fn runtime_settings_paths() -> (PathBuf, PathBuf) {
 pub fn load_runtime_settings_from_paths(system: &Path, user: &Path) -> RuntimeSettings {
     let (project_root, config_home) = explicit_path_context(system, user);
     load_one_with_paths(system, project_root.as_deref(), config_home.as_deref()).merge(
-        load_one_with_paths(
-            user,
-            project_root.as_deref(),
-            config_home.as_deref(),
-        ),
+        load_one_with_paths(user, project_root.as_deref(), config_home.as_deref()),
     )
 }
 
@@ -305,20 +305,18 @@ pub fn set_config_home_override(path: impl Into<PathBuf>) {
     if path.as_os_str().is_empty() {
         return;
     }
-    if CONFIG_HOME_OVERRIDE.set(path.clone()).is_err()
-        && let Some(current) = CONFIG_HOME_OVERRIDE.get()
-        && current != &path
-    {
-        tracing::warn!(
-            current = %current.display(),
-            ignored = %path.display(),
-            "config home override already set; ignoring subsequent value"
-        );
-    }
+    let mut guard = config_home_override()
+        .write()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    *guard = Some(path);
 }
 
 fn resolve_config_home(project_root: &Path) -> PathBuf {
-    if let Some(path) = CONFIG_HOME_OVERRIDE.get() {
+    if let Some(path) = config_home_override()
+        .read()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+        .clone()
+    {
         return absolutize_path(project_root, path.as_path());
     }
 

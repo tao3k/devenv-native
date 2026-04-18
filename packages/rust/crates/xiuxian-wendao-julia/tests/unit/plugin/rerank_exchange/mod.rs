@@ -30,6 +30,7 @@ fn julia_arrow_response_schema_optionally_includes_trace_id() {
 }
 
 #[tokio::test]
+#[serial_test::serial(julia_arrow_live)]
 async fn fetch_plugin_arrow_score_rows_for_repository_roundtrips_remote_scores() {
     let port = reserve_real_service_port();
     let base_url = format!("http://127.0.0.1:{port}");

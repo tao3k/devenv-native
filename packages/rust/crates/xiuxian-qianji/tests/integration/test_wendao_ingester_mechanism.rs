@@ -3,6 +3,7 @@
 use serde_json::json;
 use xiuxian_qianji::contracts::QianjiMechanism;
 use xiuxian_qianji::executors::wendao_ingester::WendaoIngesterMechanism;
+use xiuxian_wendao_core::{EntityType, RelationType};
 
 #[tokio::test]
 async fn wendao_ingester_emits_structured_entity_without_persistence() {
@@ -32,15 +33,24 @@ async fn wendao_ingester_emits_structured_entity_without_persistence() {
 
     let entity = &output.data["promotion_entity"];
     assert_eq!(entity["id"], "memory:fix-race-condition");
-    assert_eq!(entity["entity_type"], "DOCUMENT");
+    assert_eq!(
+        serde_json::from_value::<EntityType>(entity["entity_type"].clone()).ok(),
+        Some(EntityType::Document)
+    );
     assert_eq!(
         entity["metadata"]["promotion_decision"],
         serde_json::Value::String("promote".to_string())
     );
     let topic = &output.data["promotion_topic_entity"];
-    assert_eq!(topic["entity_type"], "CONCEPT");
+    assert_eq!(
+        serde_json::from_value::<EntityType>(topic["entity_type"].clone()).ok(),
+        Some(EntityType::Concept)
+    );
     let relation = &output.data["promotion_relation"];
-    assert_eq!(relation["relation_type"], "RELATED_TO");
+    assert_eq!(
+        serde_json::from_value::<RelationType>(relation["relation_type"].clone()).ok(),
+        Some(RelationType::RelatedTo)
+    );
 }
 
 xiuxian_testing::crate_test_policy_harness!();

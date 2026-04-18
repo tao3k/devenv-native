@@ -12,6 +12,8 @@ mod keyword_fusion_kernels;
 mod keyword_fusion_match_util;
 #[path = "unit/ops_column_read.rs"]
 mod ops_column_read;
+#[path = "unit/search_engine/context.rs"]
+mod search_engine_context;
 #[path = "unit/search_impl.rs"]
 mod search_impl;
 #[path = "unit/string_match.rs"]

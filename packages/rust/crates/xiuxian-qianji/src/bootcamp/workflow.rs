@@ -1,6 +1,11 @@
 use super::llm::resolve_bootcamp_llm_client;
-use super::manifest::{parse_manifest, parsed_manifest_requires_llm, resolve_flow_manifest_toml};
-use super::runtime::{build_link_graph_index, unix_timestamp_millis};
+use super::manifest::{
+    parse_manifest, parsed_manifest_requires_link_graph, parsed_manifest_requires_llm,
+    resolve_flow_manifest_toml,
+};
+use super::runtime::{
+    build_link_graph_index, build_placeholder_link_graph_index, unix_timestamp_millis,
+};
 use super::{BootcampRunOptions, BootcampVfsMount, WorkflowReport};
 use crate::QianjiApp;
 use crate::error::QianjiError;
@@ -143,7 +148,10 @@ async fn run_workflow_from_manifest_payload(
 
     let index = match index {
         Some(index) => index,
-        None => Arc::new(build_link_graph_index(repo_path.as_deref())?),
+        None if parsed_manifest_requires_link_graph(&manifest) => {
+            Arc::new(build_link_graph_index(repo_path.as_deref())?)
+        }
+        None => Arc::new(build_placeholder_link_graph_index()?),
     };
     let orchestrator = orchestrator
         .unwrap_or_else(|| Arc::new(ThousandFacesOrchestrator::new(genesis_rules, None)));

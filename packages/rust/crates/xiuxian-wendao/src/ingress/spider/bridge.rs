@@ -59,6 +59,12 @@ impl SpiderWendaoBridge {
     /// Construct a bridge with in-memory dedup + `KnowledgeGraph` sink.
     #[must_use]
     pub fn for_knowledge_graph(graph: KnowledgeGraph) -> Self {
+        Self::for_shared_knowledge_graph(Arc::new(graph))
+    }
+
+    /// Construct a bridge with in-memory dedup + shared `KnowledgeGraph` sink.
+    #[must_use]
+    pub fn for_shared_knowledge_graph(graph: Arc<KnowledgeGraph>) -> Self {
         Self::new(
             Arc::new(InMemoryContentHashStore::new()),
             Arc::new(KnowledgeGraphAssimilationSink::new(graph)),

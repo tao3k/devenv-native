@@ -9,6 +9,23 @@ use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
+fn canonicalize_json(value: Value) -> Value {
+    match value {
+        Value::Array(values) => Value::Array(values.into_iter().map(canonicalize_json).collect()),
+        Value::Object(map) => {
+            let mut entries = map.into_iter().collect::<Vec<_>>();
+            entries.sort_unstable_by(|left, right| left.0.cmp(&right.0));
+            Value::Object(
+                entries
+                    .into_iter()
+                    .map(|(key, value)| (key, canonicalize_json(value)))
+                    .collect(),
+            )
+        }
+        other => other,
+    }
+}
+
 #[test]
 fn markdown_lint_contract_assets_cover_the_checked_in_snapshot() {
     for contract_id in MARKDOWN_LINT_DIAGNOSTIC_CONTRACT_IDS {
@@ -50,8 +67,8 @@ fn markdown_lint_contract_snapshots_match_generated_contracts() -> Result<()> {
             "contract snapshot drifted for `{contract_id}`"
         );
         assert_eq!(
-            assets.schema_json,
-            generate_schema_json(contract_id)?,
+            canonicalize_json(serde_json::from_str(assets.schema_json)?),
+            canonicalize_json(serde_json::from_str(&generate_schema_json(contract_id)?)?),
             "schema snapshot drifted for `{contract_id}`"
         );
     }

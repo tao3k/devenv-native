@@ -17,8 +17,8 @@ use rmcp::transport::streamable_http_server::{StreamableHttpServerConfig, Stream
 use tempfile::TempDir;
 use xiuxian_daochang::{ToolPoolConnectConfig, connect_tool_pool};
 
-const CHILD_ENV_KEY: &str = "OMNI_AGENT_DISCOVER_CACHE_PRECEDENCE_CHILD";
-const CHILD_CASE_KEY: &str = "OMNI_AGENT_DISCOVER_CACHE_PRECEDENCE_CASE";
+const CHILD_ENV_KEY: &str = "XIUXIAN_DAOCHANG_DISCOVER_CACHE_PRECEDENCE_CHILD";
+const CHILD_CASE_KEY: &str = "XIUXIAN_DAOCHANG_DISCOVER_CACHE_PRECEDENCE_CASE";
 
 #[derive(Clone, Default)]
 struct DiscoverMockServer;
@@ -152,7 +152,7 @@ fn run_child_case(root: &Path, case: &str, valkey_url: &str) -> Result<()> {
         .env("PRJ_ROOT", root)
         .env("PRJ_CONFIG_HOME", root.join(".config"))
         .env("VALKEY_URL", valkey_url)
-        .env("OMNI_AGENT_TOOL_DISCOVER_CACHE_ENABLED", "true")
+        .env("XIUXIAN_DAOCHANG_TOOL_DISCOVER_CACHE_ENABLED", "true")
         .output()
         .with_context(|| format!("spawn child probe for case={case}"))?;
 

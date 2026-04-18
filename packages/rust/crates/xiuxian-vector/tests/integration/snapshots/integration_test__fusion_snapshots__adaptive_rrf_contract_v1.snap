@@ -1,7 +1,7 @@
 ---
 source: packages/rust/crates/xiuxian-vector/tests/integration/fusion_snapshots.rs
-assertion_line: 105
-expression: view
+assertion_line: 107
+expression: canonical_json(view)
 ---
 [
   {

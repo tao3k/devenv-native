@@ -1,0 +1,10 @@
+#[path = "projected_service/analysis.rs"]
+pub(crate) mod analysis;
+#[path = "projected_service/collection.rs"]
+pub(crate) mod collection;
+#[path = "projected_service/family.rs"]
+pub(crate) mod family;
+#[path = "projected_service/pages.rs"]
+pub(crate) mod pages;
+#[path = "projected_service/retrieval.rs"]
+pub(crate) mod retrieval;

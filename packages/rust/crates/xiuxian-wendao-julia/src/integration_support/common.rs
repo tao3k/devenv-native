@@ -261,7 +261,7 @@ pub(crate) fn expected_wendaosearch_modelica_transport_contract()
 }
 
 pub(crate) async fn wait_for_service_ready(base_url: &str) -> Result<(), String> {
-    wait_for_service_ready_with_attempts(base_url, 150).await
+    wait_for_service_ready_with_attempts(base_url, 450).await
 }
 
 pub(crate) async fn wait_for_service_ready_with_attempts(

@@ -29,15 +29,26 @@ fn write_drifted_openapi_fixture(temp_dir: &TempDir) -> PathBuf {
         "bundled Wendao OpenAPI document should parse",
     );
     let Some(content) = document
-        .pointer_mut("/paths/~1api~1ui~1config/post/requestBody/content/application~1json")
+        .pointer_mut("/paths/~1api~1repo~1index/post/requestBody/content/application~1json")
         .and_then(Value::as_object_mut)
     else {
-        panic!("bundled Wendao OpenAPI document should expose POST /api/ui/config JSON content");
+        panic!("bundled Wendao OpenAPI document should expose POST /api/repo/index JSON content");
     };
+    content.insert(
+        "schema".to_string(),
+        serde_json::json!({
+            "type": "object",
+            "properties": {
+                "repo": { "type": "string" },
+                "refresh": { "type": "boolean" }
+            },
+            "required": ["repo"]
+        }),
+    );
     let removed = content.remove("example");
     assert!(
         removed.is_some(),
-        "bundled Wendao OpenAPI document should include a POST /api/ui/config example"
+        "bundled Wendao OpenAPI document should include a POST /api/repo/index example"
     );
 
     let openapi_path = temp_dir.path().join("wendao_gateway.drifted.openapi.json");

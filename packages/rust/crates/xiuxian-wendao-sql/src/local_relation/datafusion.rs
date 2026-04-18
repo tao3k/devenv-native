@@ -23,6 +23,8 @@ impl DataFusionLocalRelationEngine {
     pub fn new_with_information_schema() -> Self {
         let mut config = SessionConfig::new().with_information_schema(true);
         config.options_mut().execution.collect_statistics = true;
+        config.options_mut().optimizer.repartition_windows = false;
+        config.options_mut().optimizer.repartition_sorts = false;
         Self {
             session: SessionContext::new_with_config(config),
         }
@@ -81,3 +83,7 @@ impl LocalRelationEngine for DataFusionLocalRelationEngine {
             .map_err(|error| format!("failed to execute bounded SQL query: {error}"))
     }
 }
+
+#[cfg(test)]
+#[path = "../../tests/unit/local_relation/datafusion.rs"]
+mod tests;

@@ -32,15 +32,13 @@ fn build_repo_content_stage1_sql_includes_sql_native_filters() {
         "{sql}"
     );
     assert!(
-        sql.contains("SELECT path, language, line_number, exact_match FROM (SELECT"),
+        sql.contains(
+            "SELECT path, MIN(language) AS language, COALESCE(MIN(CASE WHEN exact_match THEN line_number END), MIN(line_number)) AS line_number, MIN(CASE WHEN exact_match THEN 0 ELSE 1 END) = 0 AS exact_match FROM (SELECT"
+        ),
         "{sql}"
     );
     assert!(
         sql.contains("strpos(line_text, 'needle') > 0 AS exact_match"),
-        "{sql}"
-    );
-    assert!(
-        sql.contains("ROW_NUMBER() OVER (PARTITION BY path ORDER BY CASE WHEN (strpos(line_text, 'needle') > 0) THEN 0 ELSE 1 END, line_number ASC) AS candidate_rank"),
         "{sql}"
     );
     assert!(
@@ -49,6 +47,7 @@ fn build_repo_content_stage1_sql_includes_sql_native_filters() {
         ),
         "{sql}"
     );
+    assert!(sql.contains(") AS filtered GROUP BY path"), "{sql}");
     assert!(
         sql.contains(
             "ORDER BY CASE WHEN exact_match THEN 0 ELSE 1 END, path ASC, line_number ASC LIMIT 256"

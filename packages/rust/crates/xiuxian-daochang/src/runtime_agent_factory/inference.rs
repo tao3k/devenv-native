@@ -89,19 +89,19 @@ pub(crate) fn parse_embedding_backend_mode(
 pub(crate) fn resolve_runtime_embedding_backend_mode(
     runtime_settings: &RuntimeSettings,
 ) -> RuntimeEmbeddingBackendMode {
-    parse_embedding_backend_mode(non_empty_env("OMNI_AGENT_MEMORY_EMBEDDING_BACKEND").as_deref())
-        .or_else(|| {
-            parse_embedding_backend_mode(runtime_settings.memory.embedding_backend.as_deref())
-        })
-        .or_else(|| {
-            parse_embedding_backend_mode(non_empty_env("OMNI_AGENT_EMBED_BACKEND").as_deref())
-        })
-        .or_else(|| parse_embedding_backend_mode(runtime_settings.embedding.backend.as_deref()))
-        .or_else(|| {
-            parse_embedding_backend_mode(non_empty_env("OMNI_AGENT_LLM_BACKEND").as_deref())
-        })
-        .or_else(|| parse_embedding_backend_mode(runtime_settings.agent.llm_backend.as_deref()))
-        .unwrap_or(RuntimeEmbeddingBackendMode::Http)
+    parse_embedding_backend_mode(
+        non_empty_env("XIUXIAN_DAOCHANG_MEMORY_EMBEDDING_BACKEND").as_deref(),
+    )
+    .or_else(|| parse_embedding_backend_mode(runtime_settings.memory.embedding_backend.as_deref()))
+    .or_else(|| {
+        parse_embedding_backend_mode(non_empty_env("XIUXIAN_DAOCHANG_EMBED_BACKEND").as_deref())
+    })
+    .or_else(|| parse_embedding_backend_mode(runtime_settings.embedding.backend.as_deref()))
+    .or_else(|| {
+        parse_embedding_backend_mode(non_empty_env("XIUXIAN_DAOCHANG_LLM_BACKEND").as_deref())
+    })
+    .or_else(|| parse_embedding_backend_mode(runtime_settings.agent.llm_backend.as_deref()))
+    .unwrap_or(RuntimeEmbeddingBackendMode::Http)
 }
 
 pub(crate) fn resolve_runtime_embedding_base_url(
@@ -164,9 +164,9 @@ pub(crate) fn validate_inference_url_origin(
     }
     Err(anyhow!(
         "invalid inference URL: {} shares origin {} with external tool server(s): {}. \
-Use a dedicated LLM endpoint via LITELLM_PROXY_URL or OMNI_AGENT_INFERENCE_URL \
+Use a dedicated LLM endpoint via LITELLM_PROXY_URL or XIUXIAN_DAOCHANG_INFERENCE_URL \
 (for example {}). If you intentionally run external tools and inference on one origin, set \
-OMNI_AGENT_ALLOW_INFERENCE_TOOL_SHARED_ORIGIN=true.",
+XIUXIAN_DAOCHANG_ALLOW_INFERENCE_TOOL_SHARED_ORIGIN=true.",
         inference_url,
         inference_origin,
         conflicts.join(", "),
@@ -179,20 +179,20 @@ pub(crate) fn resolve_runtime_inference_url(
     tool_servers: &[ToolServerEntry],
 ) -> Result<String> {
     let litellm_proxy_url = non_empty_env("LITELLM_PROXY_URL");
-    let agent_inference_url = non_empty_env("OMNI_AGENT_INFERENCE_URL");
+    let agent_inference_url = non_empty_env("XIUXIAN_DAOCHANG_INFERENCE_URL");
     let inference_url = resolve_inference_url_with_settings(
         litellm_proxy_url.as_deref(),
         agent_inference_url.as_deref(),
         runtime_settings,
     );
     let allow_shared_origin =
-        parse_bool_from_env("OMNI_AGENT_ALLOW_INFERENCE_TOOL_SHARED_ORIGIN").unwrap_or(false);
+        parse_bool_from_env("XIUXIAN_DAOCHANG_ALLOW_INFERENCE_TOOL_SHARED_ORIGIN").unwrap_or(false);
     validate_inference_url_origin(&inference_url, tool_servers, allow_shared_origin)?;
     Ok(inference_url)
 }
 
 pub(crate) fn resolve_runtime_model(runtime_settings: &RuntimeSettings) -> String {
-    non_empty_env("OMNI_AGENT_MODEL")
+    non_empty_env("XIUXIAN_DAOCHANG_MODEL")
         .or_else(|| {
             runtime_settings
                 .inference

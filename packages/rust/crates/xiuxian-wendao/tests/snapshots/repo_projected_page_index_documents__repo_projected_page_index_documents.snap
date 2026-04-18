@@ -1,6 +1,6 @@
 ---
 source: packages/rust/crates/xiuxian-wendao/tests/integration/repo_projected_page_index_documents.rs
-assertion_line: 122
+assertion_line: 45
 expression: payload
 ---
 {

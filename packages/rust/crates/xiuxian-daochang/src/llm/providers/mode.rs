@@ -194,7 +194,7 @@ pub(in crate::llm) fn resolve_provider_settings(
     runtime_settings: &RuntimeSettings,
     requested_model: String,
 ) -> ProviderSettings {
-    let env_provider = env_non_empty!("OMNI_AGENT_LLM_PROVIDER");
+    let env_provider = env_non_empty!("XIUXIAN_DAOCHANG_LLM_PROVIDER");
     resolve_provider_settings_with_env(
         runtime_settings,
         requested_model,
@@ -228,7 +228,7 @@ pub(in crate::llm) fn resolve_provider_settings_with_env(
         }
     };
     let wire_api = parse_litellm_wire_api(
-        env_non_empty!("OMNI_AGENT_LLM_WIRE_API")
+        env_non_empty!("XIUXIAN_DAOCHANG_LLM_WIRE_API")
             .as_deref()
             .or(runtime_settings.inference.wire_api.as_deref()),
     );

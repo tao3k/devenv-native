@@ -135,6 +135,27 @@ pub fn parse_backend_mode(raw: Option<&str>) -> LlmBackendMode {
     }
 }
 
+/// Resolve the effective backend mode for a concrete inference URL.
+#[must_use]
+pub fn resolve_backend_mode_for_inference_url(
+    runtime_settings: &RuntimeSettings,
+    inference_url: &str,
+    env_backend_raw: Option<&str>,
+) -> (LlmBackendMode, &'static str) {
+    let (mode, source) = super::client::test_resolve_backend_mode_for_inference_url(
+        runtime_settings,
+        inference_url,
+        env_backend_raw,
+    );
+    let mode = match mode {
+        super::backend::LlmBackendMode::OpenAiCompatibleHttp => {
+            LlmBackendMode::OpenAiCompatibleHttp
+        }
+        super::backend::LlmBackendMode::LiteLlmRs => LlmBackendMode::LiteLlmRs,
+    };
+    (mode, source)
+}
+
 /// Extract API base URL from normalized inference endpoint URL.
 #[must_use]
 pub fn extract_api_base_from_inference_url(inference_url: &str) -> String {

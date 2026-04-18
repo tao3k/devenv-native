@@ -3,6 +3,7 @@ use crate::error::QianjiError;
 use crate::scheduler::core::QianjiScheduler;
 use crate::scheduler::core::types::{ConsensusCheckpointView, ConsensusOutcome};
 use crate::scheduler::state::{NodeExecutionResult, merge_output_data};
+use crate::telemetry::NodeTransitionPhase;
 use petgraph::stable_graph::NodeIndex;
 use std::collections::HashSet;
 
@@ -37,6 +38,8 @@ impl QianjiScheduler {
 
                 merge_output_data(context, &final_output);
                 self.set_node_status(node_idx, NodeStatus::Completed).await;
+                self.emit_node_transition(node_idx, NodeTransitionPhase::Exiting, session_id)
+                    .await;
                 let suspend_reason = self
                     .apply_instruction(output.instruction, active_branches)
                     .await?;
@@ -58,6 +61,8 @@ impl QianjiScheduler {
             }
             Ok((node_idx, Err(error))) => {
                 self.set_node_status(node_idx, NodeStatus::Failed(error.clone()))
+                    .await;
+                self.emit_node_transition(node_idx, NodeTransitionPhase::Failed, session_id)
                     .await;
                 Err(QianjiError::Execution(error))
             }
