@@ -7,6 +7,7 @@ pub const DEFAULT_FLIGHT_BASE_URL: &str = "http://127.0.0.1:8815";
 const FLIGHT_BASE_URL_ENV: &str = "WENDAO_FLIGHT_BASE_URL";
 
 /// Resolve the default Flight base URL from env or compile-time constant.
+#[must_use]
 pub fn resolve_default_flight_base_url() -> String {
     std::env::var(FLIGHT_BASE_URL_ENV)
         .ok()

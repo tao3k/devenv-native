@@ -23,8 +23,8 @@ use tower::{BoxError, ServiceBuilder};
 
 use crate::execute::gateway::{
     config::{
-        GatewayRuntimeTomlConfig, get_gateway_runtime_from_config, resolve_config_path,
-        resolve_bind_addr, resolve_port, resolve_webhook_config,
+        GatewayRuntimeTomlConfig, get_gateway_runtime_from_config, resolve_bind_addr,
+        resolve_config_path, resolve_port, resolve_webhook_config,
     },
     health::health,
     query::{GATEWAY_QUERY_AXUM_PATH, query},

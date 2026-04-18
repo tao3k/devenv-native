@@ -26,37 +26,15 @@ async fn request_json(
     Ok((status, payload))
 }
 
-#[tokio::test]
-async fn search_index_status_endpoint_returns_idle_corpora_snapshot() -> TestResult {
-    let router = studio_router(Arc::new(GatewayState::new(
+fn test_router() -> axum::Router {
+    studio_router(Arc::new(GatewayState::new(
         None,
         None,
         Arc::new(PluginRegistry::new()),
-    )));
+    )))
+}
 
-    let (status, payload) = request_json(router, "/api/search/index/status").await?;
-    assert_eq!(status, StatusCode::OK);
-    assert_eq!(payload["total"], Value::from(6));
-    assert_eq!(payload["compactionPending"], Value::from(0));
-    assert_eq!(
-        payload["studioBootstrapBackgroundIndexingEnabled"],
-        Value::from(false)
-    );
-    assert_eq!(
-        payload["studioBootstrapBackgroundIndexingMode"],
-        Value::from("deferred")
-    );
-    assert_eq!(
-        payload["studioBootstrapBackgroundIndexingDeferredActivationObserved"],
-        Value::from(false)
-    );
-    assert!(payload["studioBootstrapBackgroundIndexingDeferredActivationAt"].is_null());
-    assert!(payload["studioBootstrapBackgroundIndexingDeferredActivationSource"].is_null());
-    assert!(
-        payload
-            .get("queryTelemetrySummary")
-            .is_none_or(Value::is_null)
-    );
+fn assert_optional_repo_read_pressure(payload: &Value) {
     if let Some(repo_read_pressure) = payload
         .get("repoReadPressure")
         .filter(|value| !value.is_null())
@@ -85,6 +63,9 @@ async fn search_index_status_endpoint_returns_idle_corpora_snapshot() -> TestRes
         );
         assert!(repo_read_pressure["fanoutCapped"].is_boolean());
     }
+}
+
+fn assert_optional_status_reason(payload: &Value) {
     if let Some(status_reason) = payload.get("statusReason").filter(|value| !value.is_null()) {
         assert!(status_reason["code"].is_string());
         assert!(status_reason["severity"].is_string());
@@ -93,6 +74,40 @@ async fn search_index_status_endpoint_returns_idle_corpora_snapshot() -> TestRes
         assert!(status_reason["readableCorpusCount"].is_u64());
         assert!(status_reason["blockingCorpusCount"].is_u64());
     }
+}
+
+fn corpus_phase_count(corpora: &[Value], phase: &str) -> u64 {
+    corpora
+        .iter()
+        .filter(|entry| entry["phase"] == phase)
+        .count() as u64
+}
+
+fn assert_idle_status_top_level(payload: &Value) -> TestResult {
+    assert_eq!(payload["total"], Value::from(6));
+    assert_eq!(payload["compactionPending"], Value::from(0));
+    assert_eq!(
+        payload["studioBootstrapBackgroundIndexingEnabled"],
+        Value::from(false)
+    );
+    assert_eq!(
+        payload["studioBootstrapBackgroundIndexingMode"],
+        Value::from("deferred")
+    );
+    assert_eq!(
+        payload["studioBootstrapBackgroundIndexingDeferredActivationObserved"],
+        Value::from(false)
+    );
+    assert!(payload["studioBootstrapBackgroundIndexingDeferredActivationAt"].is_null());
+    assert!(payload["studioBootstrapBackgroundIndexingDeferredActivationSource"].is_null());
+    assert!(
+        payload
+            .get("queryTelemetrySummary")
+            .is_none_or(Value::is_null)
+    );
+    assert_optional_repo_read_pressure(payload);
+    assert_optional_status_reason(payload);
+
     let phase_total = payload["idle"].as_u64().ok_or("idle should be numeric")?
         + payload["indexing"]
             .as_u64()
@@ -105,36 +120,35 @@ async fn search_index_status_endpoint_returns_idle_corpora_snapshot() -> TestRes
             .as_u64()
             .ok_or("failed should be numeric")?;
     assert_eq!(phase_total, 6);
+    Ok(())
+}
 
+fn assert_idle_status_corpora(payload: &Value) -> TestResult {
     let corpora = payload["corpora"]
         .as_array()
         .ok_or("corpora should be an array")?;
     assert_eq!(corpora.len(), 6);
-    let idle_count = corpora
-        .iter()
-        .filter(|entry| entry["phase"] == "idle")
-        .count() as u64;
-    let indexing_count = corpora
-        .iter()
-        .filter(|entry| entry["phase"] == "indexing")
-        .count() as u64;
-    let ready_count = corpora
-        .iter()
-        .filter(|entry| entry["phase"] == "ready")
-        .count() as u64;
-    let degraded_count = corpora
-        .iter()
-        .filter(|entry| entry["phase"] == "degraded")
-        .count() as u64;
-    let failed_count = corpora
-        .iter()
-        .filter(|entry| entry["phase"] == "failed")
-        .count() as u64;
-    assert_eq!(payload["idle"], Value::from(idle_count));
-    assert_eq!(payload["indexing"], Value::from(indexing_count));
-    assert_eq!(payload["ready"], Value::from(ready_count));
-    assert_eq!(payload["degraded"], Value::from(degraded_count));
-    assert_eq!(payload["failed"], Value::from(failed_count));
+    assert_eq!(
+        payload["idle"],
+        Value::from(corpus_phase_count(corpora, "idle"))
+    );
+    assert_eq!(
+        payload["indexing"],
+        Value::from(corpus_phase_count(corpora, "indexing"))
+    );
+    assert_eq!(
+        payload["ready"],
+        Value::from(corpus_phase_count(corpora, "ready"))
+    );
+    assert_eq!(
+        payload["degraded"],
+        Value::from(corpus_phase_count(corpora, "degraded"))
+    );
+    assert_eq!(
+        payload["failed"],
+        Value::from(corpus_phase_count(corpora, "failed"))
+    );
+
     let local_symbol = corpora
         .iter()
         .find(|entry| entry["corpus"] == "local_symbol")
@@ -156,6 +170,14 @@ async fn search_index_status_endpoint_returns_idle_corpora_snapshot() -> TestRes
             .iter()
             .any(|entry| entry["corpus"] == "repo_content_chunk")
     );
+    Ok(())
+}
 
+#[tokio::test]
+async fn search_index_status_endpoint_returns_idle_corpora_snapshot() -> TestResult {
+    let (status, payload) = request_json(test_router(), "/api/search/index/status").await?;
+    assert_eq!(status, StatusCode::OK);
+    assert_idle_status_top_level(&payload)?;
+    assert_idle_status_corpora(&payload)?;
     Ok(())
 }

@@ -79,8 +79,13 @@ pub(crate) async fn execute(cli: &Cli, index: Option<&LinkGraphIndex>) -> Result
 }
 
 fn client_context_from_cli(cli: &Cli) -> EmbeddedClientContext {
-    let _output = match cli.output {
-        OutputFormat::Json | OutputFormat::Pretty => ClientOutputFormat::Text,
+    let output = match cli.output {
+        OutputFormat::Json => ClientOutputFormat::Json,
+        OutputFormat::Pretty => ClientOutputFormat::Pretty,
     };
-    EmbeddedClientContext::new(cli.root.clone(), ClientOutputFormat::Text)
+    EmbeddedClientContext::new(cli.root.clone(), output)
 }
+
+#[cfg(test)]
+#[path = "../../../tests/unit/bin/wendao/execute.rs"]
+mod tests;
