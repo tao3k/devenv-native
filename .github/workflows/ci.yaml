@@ -242,6 +242,12 @@ jobs:
       CARGO_INCREMENTAL: "0"
       CARGO_TARGET_DIR: target
       CARGO_TERM_COLOR: always
+      PRJ_CACHE_HOME: ${{ github.workspace }}/.cache
+      PRJ_CONFIG_HOME: ${{ github.workspace }}/.config
+      PRJ_DATA_HOME: ${{ github.workspace }}/.data
+      PRJ_PATH: ${{ github.workspace }}/.bin
+      PRJ_ROOT: ${{ github.workspace }}
+      PRJ_RUNTIME_DIR: ${{ github.workspace }}/.run
       SCCACHE_CACHE_SIZE: 10G
     steps:
       - uses: actions/checkout@v6
@@ -272,18 +278,21 @@ jobs:
           sudo apt-get update
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
             cmake \
+            libxml2-utils \
             libprotobuf-dev \
             pkg-config \
             protobuf-compiler \
-            python3-dev
+            python3-dev \
+            valkey
 
       - name: Install macOS build dependencies
         if: ${{ runner.os == 'macOS' }}
         run: |
           set -euo pipefail
-          for formula in protobuf pkg-config cmake; do
+          for formula in protobuf pkg-config cmake libxml2 valkey; do
             brew list "${formula}" >/dev/null 2>&1 || brew install "${formula}"
           done
+          echo "$(brew --prefix libxml2)/bin" >> "$GITHUB_PATH"
 
       - name: Export Rust build environment
         run: |
@@ -364,12 +373,24 @@ jobs:
           shared-key: rust-workspace-ci-${{ runner.os }}
           cache-on-failure: true
 
-      - name: Materialize WendaoSearch package checkout
+      - name: Materialize linked Julia package checkouts
         run: |
           set -euo pipefail
           source scripts/channel/process-runtime.sh
           source scripts/channel/wendaosearch-common.sh
+          managed_materialize_git_repo \
+            "${GITHUB_WORKSPACE}/.data/WendaoArrow.jl" \
+            "https://github.com/tao3k/WendaoArrow.jl.git" \
+            "" \
+            "WendaoArrow package checkout"
+          managed_materialize_git_repo \
+            "${GITHUB_WORKSPACE}/.data/WendaoAnalyzer.jl" \
+            "https://github.com/tao3k/WendaoAnalyzer.jl.git" \
+            "" \
+            "WendaoAnalyzer package checkout"
           wendaosearch_materialize_package_repo "${GITHUB_WORKSPACE}"
+          test -f "${GITHUB_WORKSPACE}/.data/WendaoArrow.jl/scripts/run_flight_example.jl"
+          test -f "${GITHUB_WORKSPACE}/.data/WendaoAnalyzer.jl/scripts/run_analyzer_example.jl"
           test -f "${GITHUB_WORKSPACE}/.data/WendaoSearch.jl/scripts/run_parser_summary_service.jl"
           test -f "${GITHUB_WORKSPACE}/.data/WendaoSearch.jl/config/live/parser_summary.toml"
 
