@@ -144,7 +144,7 @@ jobs:
           components: clippy
 
       - name: Install sccache
-        uses: taiki-e/install-action@44c6d64aa62cd779e873306675c7a58e86d6d532 # v2
+        uses: taiki-e/install-action@58e862542551f667fa44c8a2a4a1d64ad477c96a # v2
         with:
           tool: sccache@0.7.5
 
@@ -209,7 +209,7 @@ jobs:
           submodules: recursive
 
       - name: Install cocogitto
-        uses: taiki-e/install-action@44c6d64aa62cd779e873306675c7a58e86d6d532 # v2
+        uses: taiki-e/install-action@58e862542551f667fa44c8a2a4a1d64ad477c96a # v2
         with:
           tool: cocogitto
 
@@ -325,12 +325,12 @@ jobs:
           toolchain: ${{ steps.rust.outputs.channel }}
 
       - name: Install cargo-nextest
-        uses: taiki-e/install-action@44c6d64aa62cd779e873306675c7a58e86d6d532 # v2
+        uses: taiki-e/install-action@58e862542551f667fa44c8a2a4a1d64ad477c96a # v2
         with:
           tool: cargo-nextest@0.9.127
 
       - name: Install sccache
-        uses: taiki-e/install-action@44c6d64aa62cd779e873306675c7a58e86d6d532 # v2
+        uses: taiki-e/install-action@58e862542551f667fa44c8a2a4a1d64ad477c96a # v2
         with:
           tool: sccache@0.7.5
 
