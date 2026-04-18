@@ -131,7 +131,8 @@ pub(crate) fn assert_f64_eq(actual: f64, expected: f64) {
 
 pub(crate) fn assert_sorted_json_snapshot(name: &str, value: impl Serialize) {
     let payload = canonicalize_json(
-        serde_json::to_value(value).unwrap_or_else(|error| panic!("serialize snapshot `{name}`: {error}")),
+        serde_json::to_value(value)
+            .unwrap_or_else(|error| panic!("serialize snapshot `{name}`: {error}")),
     );
     insta::with_settings!({
         snapshot_path => "snapshots",
@@ -143,9 +144,7 @@ pub(crate) fn assert_sorted_json_snapshot(name: &str, value: impl Serialize) {
 
 fn canonicalize_json(value: Value) -> Value {
     match value {
-        Value::Array(values) => {
-            Value::Array(values.into_iter().map(canonicalize_json).collect())
-        }
+        Value::Array(values) => Value::Array(values.into_iter().map(canonicalize_json).collect()),
         Value::Object(map) => {
             let mut entries = map.into_iter().collect::<Vec<_>>();
             entries.sort_unstable_by(|left, right| left.0.cmp(&right.0));

@@ -51,7 +51,10 @@ end SecondaryKeywords;
     })
     .collect::<Vec<_>>();
 
-    assert_sorted_json_snapshot("parse_symbol_declarations_supports_secondary_keywords", payload);
+    assert_sorted_json_snapshot(
+        "parse_symbol_declarations_supports_secondary_keywords",
+        payload,
+    );
     Ok(())
 }
 
@@ -90,7 +93,7 @@ end Blocks;
 
     assert_sorted_json_snapshot(
         "parse_imports_preserves_modelica_package_import_attributes",
-        payload
+        payload,
     );
     Ok(())
 }
@@ -143,7 +146,7 @@ end DemoLib;
     assert!(metadata.has_documentation_annotation);
     assert_sorted_json_snapshot(
         "parse_safe_root_package_overlay_metadata_extracts_imports_without_parser_summary",
-        payload
+        payload,
     );
 }
 
