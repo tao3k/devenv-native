@@ -5,4 +5,8 @@ use clap::ValueEnum;
 pub enum OutputFormat {
     /// Plain-text diagnostics suitable for humans and LLM readers.
     Text,
+    /// Compact JSON diagnostics suitable for machine parsing.
+    Json,
+    /// Pretty-printed JSON diagnostics for human-readable structured output.
+    Pretty,
 }

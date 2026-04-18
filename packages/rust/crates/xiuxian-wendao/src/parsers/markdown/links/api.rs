@@ -81,6 +81,9 @@ pub(crate) fn extract_resolved_note_references(
             MarkdownTargetOccurrenceKind::MarkdownLink | MarkdownTargetOccurrenceKind::WikiLink
         )
     }) {
+        if !occurrence_has_reference_entry(occurrence.target.as_str()) {
+            continue;
+        }
         let Some(reference) = references_iter.next() else {
             break;
         };
@@ -96,6 +99,19 @@ pub(crate) fn extract_resolved_note_references(
     }
 
     resolved
+}
+
+fn occurrence_has_reference_entry(raw_target: &str) -> bool {
+    let trimmed = raw_target.trim();
+    if trimmed.is_empty() {
+        return false;
+    }
+    if trimmed.starts_with('#') {
+        return true;
+    }
+    trimmed
+        .split_once('#')
+        .is_none_or(|(target, _)| !target.trim().is_empty())
 }
 
 fn resolve_note_reference_target(

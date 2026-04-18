@@ -252,10 +252,10 @@ impl GatewayTomlSection {
 
 fn parse_bind_addr(bind: &str) -> Option<[u8; 4]> {
     // Try as full SocketAddr (e.g. "0.0.0.0:9517")
-    if let Ok(addr) = bind.parse::<SocketAddr>() {
-        if let std::net::IpAddr::V4(v4) = addr.ip() {
-            return Some(v4.octets());
-        }
+    if let Ok(addr) = bind.parse::<SocketAddr>()
+        && let std::net::IpAddr::V4(v4) = addr.ip()
+    {
+        return Some(v4.octets());
     }
     // Try as bare IPv4 (e.g. "0.0.0.0")
     if let Ok(v4) = bind.parse::<std::net::Ipv4Addr>() {

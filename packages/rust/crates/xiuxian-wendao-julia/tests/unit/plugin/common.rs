@@ -166,6 +166,27 @@ pub(crate) fn repo_root() -> PathBuf {
         .unwrap_or_else(|error| panic!("resolve repo root: {error}"))
 }
 
+fn linked_package_dir(relative_path: &str, label: &str) -> Option<PathBuf> {
+    let candidate = repo_root().join(relative_path);
+    if !candidate.is_dir() {
+        return None;
+    }
+
+    Some(
+        candidate
+            .canonicalize()
+            .unwrap_or_else(|error| panic!("resolve {label} package dir: {error}")),
+    )
+}
+
+pub(crate) fn linked_wendaoarrow_package_dir() -> Option<PathBuf> {
+    linked_package_dir(DEFAULT_JULIA_ARROW_PACKAGE_DIR, "WendaoArrow")
+}
+
+pub(crate) fn linked_wendaoanalyzer_package_dir() -> Option<PathBuf> {
+    linked_package_dir(DEFAULT_JULIA_ANALYZER_PACKAGE_DIR, "WendaoAnalyzer")
+}
+
 pub(crate) fn wendaoarrow_package_dir() -> PathBuf {
     repo_root()
         .join(DEFAULT_JULIA_ARROW_PACKAGE_DIR)

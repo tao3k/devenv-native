@@ -11,9 +11,9 @@ use xiuxian_wendao_core::{
     transport::{PluginTransportEndpoint, PluginTransportKind},
 };
 use xiuxian_wendao_runtime::transport::{
-    DEFAULT_FLIGHT_MAX_IN_FLIGHT_REQUESTS, resolve_default_flight_base_url,
-    FLIGHT_SCHEMA_VERSION_METADATA_KEY, NegotiatedFlightTransportClient,
-    negotiate_flight_transport_client_from_bindings, normalize_flight_route,
+    DEFAULT_FLIGHT_MAX_IN_FLIGHT_REQUESTS, FLIGHT_SCHEMA_VERSION_METADATA_KEY,
+    NegotiatedFlightTransportClient, negotiate_flight_transport_client_from_bindings,
+    normalize_flight_route, resolve_default_flight_base_url,
     validate_flight_max_in_flight_requests, validate_flight_schema_version,
     validate_flight_timeout_secs,
 };
@@ -394,7 +394,7 @@ fn build_parser_summary_flight_transport_binding(
             base_url: Some(
                 options
                     .base_url
-                    .unwrap_or_else(|| resolve_default_flight_base_url()),
+                    .unwrap_or_else(resolve_default_flight_base_url),
             ),
             route: Some(route),
             health_route: Some(health_route),

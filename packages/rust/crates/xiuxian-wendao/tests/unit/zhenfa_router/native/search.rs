@@ -1,5 +1,6 @@
 use super::*;
 use crate::link_graph::LinkGraphHit;
+use crate::link_graph::{LinkGraphConfidenceLevel, LinkGraphRetrievalMode};
 
 #[test]
 fn wendao_search_args_deserialize_query_vector() {
@@ -42,13 +43,13 @@ fn render_xml_lite_prefers_path_and_semantic_hit_type() {
         hits: Vec::new(),
         hit_count: 1,
         section_hit_count: 0,
-        requested_mode: Default::default(),
-        selected_mode: Default::default(),
+        requested_mode: LinkGraphRetrievalMode::default(),
+        selected_mode: LinkGraphRetrievalMode::default(),
         reason: String::new(),
         graph_hit_count: 1,
         source_hint_count: 0,
         graph_confidence_score: 0.0,
-        graph_confidence_level: Default::default(),
+        graph_confidence_level: LinkGraphConfidenceLevel::default(),
         retrieval_plan: None,
         semantic_ignition: None,
         julia_rerank: None,
@@ -83,13 +84,13 @@ fn render_xml_lite_prefers_frontmatter_doc_type_over_tags_and_path() {
         hits: Vec::new(),
         hit_count: 1,
         section_hit_count: 0,
-        requested_mode: Default::default(),
-        selected_mode: Default::default(),
+        requested_mode: LinkGraphRetrievalMode::default(),
+        selected_mode: LinkGraphRetrievalMode::default(),
         reason: String::new(),
         graph_hit_count: 1,
         source_hint_count: 0,
         graph_confidence_score: 0.0,
-        graph_confidence_level: Default::default(),
+        graph_confidence_level: LinkGraphConfidenceLevel::default(),
         retrieval_plan: None,
         semantic_ignition: None,
         julia_rerank: None,

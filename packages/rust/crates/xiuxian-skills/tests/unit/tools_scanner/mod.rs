@@ -44,7 +44,7 @@ pub(super) fn scan_scripts(
     skill_name: &str,
     routing_keywords: &[String],
 ) -> Result<Vec<ToolRecord>, BoxError> {
-    Ok(ToolsScanner::new().scan_scripts(scripts_dir, skill_name, routing_keywords, &[])?)
+    ToolsScanner::new().scan_scripts(scripts_dir, skill_name, routing_keywords, &[])
 }
 
 pub(super) fn scan_with_structure(
@@ -53,11 +53,11 @@ pub(super) fn scan_with_structure(
     routing_keywords: &[String],
 ) -> Result<Vec<ToolRecord>, BoxError> {
     let structure = SkillScanner::default_structure();
-    Ok(ToolsScanner::new().scan_with_structure(
+    ToolsScanner::new().scan_with_structure(
         skill_path,
         skill_name,
         routing_keywords,
         &[],
         &structure,
-    )?)
+    )
 }

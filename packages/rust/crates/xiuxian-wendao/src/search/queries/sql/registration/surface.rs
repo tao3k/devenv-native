@@ -182,14 +182,13 @@ fn parquet_schema_source_path(
                 parquet_path.display()
             )
         })?
-        .filter_map(|entry| entry.ok())
+        .filter_map(Result::ok)
         .filter_map(|entry| {
             let path = entry.path();
             let is_parquet_file = entry
                 .file_type()
                 .ok()
-                .map(|file_type| file_type.is_file())
-                .unwrap_or(false)
+                .is_some_and(|file_type| file_type.is_file())
                 && path
                     .extension()
                     .is_some_and(|extension| extension == "parquet");

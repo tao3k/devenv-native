@@ -4,6 +4,8 @@ use xiuxian_wendao_core::repo_intelligence::{
 };
 
 use super::fetch_plugin_arrow_score_rows_for_repository;
+use crate::compatibility::link_graph::DEFAULT_JULIA_ARROW_PACKAGE_DIR;
+use crate::julia_plugin_test_support::common::{linked_wendaoarrow_package_dir, repo_root};
 use crate::julia_plugin_test_support::contract::request_batch;
 use crate::julia_plugin_test_support::official_examples::{
     reserve_real_service_port, spawn_real_wendaoarrow_service, wait_for_service_ready,
@@ -32,6 +34,14 @@ fn julia_arrow_response_schema_optionally_includes_trace_id() {
 #[tokio::test]
 #[serial_test::serial(julia_arrow_live)]
 async fn fetch_plugin_arrow_score_rows_for_repository_roundtrips_remote_scores() {
+    if linked_wendaoarrow_package_dir().is_none() {
+        eprintln!(
+            "skipping WendaoArrow rerank live proof; missing linked Julia package checkout {}",
+            repo_root().join(DEFAULT_JULIA_ARROW_PACKAGE_DIR).display()
+        );
+        return;
+    }
+
     let port = reserve_real_service_port();
     let base_url = format!("http://127.0.0.1:{port}");
     let _service = spawn_real_wendaoarrow_service(port);

@@ -1,6 +1,38 @@
+use crate::compatibility::link_graph::{
+    DEFAULT_JULIA_ANALYZER_PACKAGE_DIR, DEFAULT_JULIA_ARROW_PACKAGE_DIR,
+};
+use crate::julia_plugin_test_support::common::{
+    linked_wendaoanalyzer_package_dir, linked_wendaoarrow_package_dir, repo_root,
+};
+
+fn skip_missing_linked_julia_package(
+    package_dir: Option<std::path::PathBuf>,
+    test_name: &str,
+    relative_path: &str,
+) -> bool {
+    if package_dir.is_some() {
+        return false;
+    }
+
+    let package_dir = repo_root().join(relative_path);
+    eprintln!(
+        "skipping {test_name}; missing linked Julia package checkout {}",
+        package_dir.display()
+    );
+    true
+}
+
 #[tokio::test]
 #[serial_test::serial(julia_arrow_live)]
 async fn process_julia_flight_batches_validates_remote_response() {
+    if skip_missing_linked_julia_package(
+        linked_wendaoarrow_package_dir(),
+        "WendaoArrow live transport proof",
+        DEFAULT_JULIA_ARROW_PACKAGE_DIR,
+    ) {
+        return;
+    }
+
     let port = reserve_real_service_port();
     let base_url = format!("http://127.0.0.1:{port}");
     let mut service = spawn_real_wendaoarrow_service(port);
@@ -19,6 +51,14 @@ async fn process_julia_flight_batches_validates_remote_response() {
 #[tokio::test]
 #[serial_test::serial(julia_arrow_live)]
 async fn process_julia_flight_batches_rejects_invalid_remote_response() {
+    if skip_missing_linked_julia_package(
+        linked_wendaoarrow_package_dir(),
+        "WendaoArrow bad-response live transport proof",
+        DEFAULT_JULIA_ARROW_PACKAGE_DIR,
+    ) {
+        return;
+    }
+
     let port = reserve_real_service_port();
     let base_url = format!("http://127.0.0.1:{port}");
     let mut service = spawn_real_wendaoarrow_bad_response_service(port);
@@ -45,6 +85,14 @@ async fn process_julia_flight_batches_rejects_invalid_remote_response() {
 #[tokio::test]
 #[serial_test::serial(julia_arrow_live)]
 async fn process_julia_flight_batches_for_repository_builds_transport_from_repo_config() {
+    if skip_missing_linked_julia_package(
+        linked_wendaoarrow_package_dir(),
+        "WendaoArrow repository-configured live transport proof",
+        DEFAULT_JULIA_ARROW_PACKAGE_DIR,
+    ) {
+        return;
+    }
+
     let port = reserve_real_service_port();
     let base_url = format!("http://127.0.0.1:{port}");
     let mut service = spawn_real_wendaoarrow_service(port);
@@ -103,6 +151,14 @@ async fn process_julia_flight_batches_for_repository_rejects_missing_transport()
 #[tokio::test]
 #[serial_test::serial(julia_arrow_live)]
 async fn process_julia_flight_batches_against_real_wendaoarrow_service() {
+    if skip_missing_linked_julia_package(
+        linked_wendaoarrow_package_dir(),
+        "WendaoArrow live roundtrip proof",
+        DEFAULT_JULIA_ARROW_PACKAGE_DIR,
+    ) {
+        return;
+    }
+
     let port = reserve_real_service_port();
     let base_url = format!("http://127.0.0.1:{port}");
     let mut service = spawn_real_wendaoarrow_service(port);
@@ -137,6 +193,14 @@ async fn process_julia_flight_batches_against_real_wendaoarrow_service() {
 #[tokio::test]
 #[serial_test::serial(julia_arrow_live)]
 async fn real_wendaoarrow_metadata_example_roundtrip_decodes_trace_id_column() {
+    if skip_missing_linked_julia_package(
+        linked_wendaoarrow_package_dir(),
+        "WendaoArrow metadata live roundtrip proof",
+        DEFAULT_JULIA_ARROW_PACKAGE_DIR,
+    ) {
+        return;
+    }
+
     let port = reserve_real_service_port();
     let base_url = format!("http://127.0.0.1:{port}");
     let mut service = spawn_real_wendaoarrow_metadata_service(port);
@@ -165,6 +229,14 @@ async fn real_wendaoarrow_metadata_example_roundtrip_decodes_trace_id_column() {
 #[tokio::test]
 #[serial_test::serial(julia_arrow_live)]
 async fn real_wendaoanalyzer_linear_blend_roundtrip_emits_expected_scores() {
+    if skip_missing_linked_julia_package(
+        linked_wendaoanalyzer_package_dir(),
+        "WendaoAnalyzer linear-blend live roundtrip proof",
+        DEFAULT_JULIA_ANALYZER_PACKAGE_DIR,
+    ) {
+        return;
+    }
+
     let port = reserve_real_service_port();
     let base_url = format!("http://127.0.0.1:{port}");
     let mut service = spawn_real_wendaoanalyzer_linear_blend_service(port);

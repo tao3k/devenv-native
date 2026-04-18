@@ -79,15 +79,14 @@ metadata:
 }
 
 #[test]
-fn test_scan_all_nonexistent_base_path() -> TestResult {
+fn test_scan_all_nonexistent_base_path() {
     let scanner = SkillScanner::new();
     let nonexistent_path = PathBuf::from("/nonexistent");
-    let error = scanner
-        .scan_all(&nonexistent_path, None)
-        .expect_err("non-directory root should return an error");
+    let Err(error) = scanner.scan_all(&nonexistent_path, None) else {
+        panic!("non-directory root should return an error");
+    };
     assert!(
         error.to_string().contains("Root path is not a directory"),
         "unexpected error: {error}"
     );
-    Ok(())
 }

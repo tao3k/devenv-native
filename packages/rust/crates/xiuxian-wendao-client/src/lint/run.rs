@@ -67,7 +67,7 @@ pub(crate) fn run_markdown_lint(
     report.files_with_issues = report.files.len();
     report.issue_count = report.files.iter().map(|file| file.issue_count).sum();
 
-    emit_report(&report, context.output());
+    emit_report(&report, context.output())?;
     Ok(if report.issue_count == 0 {
         CommandOutcome::success()
     } else {
@@ -93,11 +93,14 @@ fn build_file_report(
     }
 }
 
-fn emit_report(report: &MarkdownLintReport, output: OutputFormat) {
+fn emit_report(report: &MarkdownLintReport, output: OutputFormat) -> Result<()> {
     let rendered = match output {
         OutputFormat::Text => render_text_report(report),
+        OutputFormat::Json => render_json_report(report, false)?,
+        OutputFormat::Pretty => render_json_report(report, true)?,
     };
     print!("{rendered}");
+    Ok(())
 }
 
 fn render_text_report(report: &MarkdownLintReport) -> String {
@@ -152,6 +155,16 @@ fn render_text_report(report: &MarkdownLintReport) -> String {
         }
     }
     rendered
+}
+
+fn render_json_report(report: &MarkdownLintReport, pretty: bool) -> Result<String> {
+    let rendered = if pretty {
+        serde_json::to_string_pretty(report)
+    } else {
+        serde_json::to_string(report)
+    }
+    .context("failed to serialize markdown lint report")?;
+    Ok(format!("{rendered}\n"))
 }
 
 fn pointer_line(issue: &MarkdownLintIssue, source: &str) -> String {
