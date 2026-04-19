@@ -1,5 +1,8 @@
 //! `QTable` tests.
 
+use std::sync::Arc;
+use std::thread;
+
 use xiuxian_memory_engine::QTable;
 
 #[test]
@@ -55,4 +58,39 @@ fn test_batch_update() {
     assert!((q_table.get_q("ep-001") - 0.6).abs() < f32::EPSILON);
     assert!((q_table.get_q("ep-002") - 0.4).abs() < f32::EPSILON);
     assert!((q_table.get_q("ep-003") - 0.5).abs() < f32::EPSILON);
+}
+
+#[test]
+fn test_q_table_parallel_updates_remain_thread_safe() {
+    let q_table = Arc::new(QTable::new());
+    let episode_ids = ["ep-a", "ep-b", "ep-c", "ep-d"];
+
+    let workers: Vec<_> = episode_ids
+        .into_iter()
+        .enumerate()
+        .map(|(index, episode_id)| {
+            let q_table = Arc::clone(&q_table);
+            thread::spawn(move || {
+                for step in 0..128 {
+                    let reward = if (index + step) % 2 == 0 { 1.0 } else { 0.0 };
+                    q_table.update(episode_id, reward);
+                }
+            })
+        })
+        .collect();
+
+    for worker in workers {
+        worker
+            .join()
+            .unwrap_or_else(|_| panic!("parallel q_table worker panicked"));
+    }
+
+    assert_eq!(q_table.len(), 4);
+    for episode_id in episode_ids {
+        let q_value = q_table.get_q(episode_id);
+        assert!(
+            (0.0..=1.0).contains(&q_value),
+            "parallel update should keep Q-value clamped, got {q_value}"
+        );
+    }
 }

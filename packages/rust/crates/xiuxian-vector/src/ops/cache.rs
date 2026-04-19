@@ -1,8 +1,7 @@
 //! Bounded LRU cache for Lance `Dataset` handles (connection-pool style).
 
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
 
-use dashmap::DashMap;
 use lance::dataset::Dataset;
 
 /// Configuration for the Dataset cache (connection-pool style).
@@ -15,7 +14,7 @@ pub struct DatasetCacheConfig {
 
 /// Cache of table name -> Dataset with optional LRU eviction when at capacity.
 pub struct DatasetCache {
-    entries: DashMap<String, Dataset>,
+    entries: HashMap<String, Dataset>,
     /// Keys in order of last use (front = oldest). Only used when `max_cached_tables` is `Some`.
     lru_order: VecDeque<String>,
     max_size: Option<usize>,
@@ -26,7 +25,7 @@ impl DatasetCache {
     #[must_use]
     pub fn new(config: DatasetCacheConfig) -> Self {
         Self {
-            entries: DashMap::new(),
+            entries: HashMap::new(),
             lru_order: VecDeque::new(),
             max_size: config.max_cached_tables,
         }
@@ -34,7 +33,7 @@ impl DatasetCache {
 
     /// Get a clone of the dataset if present and bump it to most recently used.
     pub fn get(&mut self, key: &str) -> Option<Dataset> {
-        let out = self.entries.get(key).map(|r| r.clone())?;
+        let out = self.entries.get(key).cloned()?;
         self.bump_lru(key);
         Some(out)
     }
@@ -50,7 +49,7 @@ impl DatasetCache {
     /// Remove and return the dataset for the key.
     pub fn remove(&mut self, key: &str) -> Option<Dataset> {
         self.lru_order.retain(|k| k != key);
-        self.entries.remove(key).map(|(_, v)| v)
+        self.entries.remove(key)
     }
 
     /// Number of datasets currently in the cache.

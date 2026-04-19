@@ -90,17 +90,6 @@ let
                   run = ''cd agent/knowledge && repomix --config repomix.json --output "$PRJ_ROOT"/.data/project_knowledge.xml '';
                 };
                 # Add ruff for Python formatting
-                "format-python" = {
-                  glob = "*.py";
-                  exclude = [
-                    "assets/skills/_template/**" # Template folder - not real code
-                  ];
-                  run = "uv run ruff format {staged_files}";
-                };
-                format-rust = {
-                  glob = "*.rs";
-                  run = "rustfmt -- {staged_files}";
-                };
                 format-nickel = {
                   glob = "*.ncl";
                   run = "nickel format -- {staged_files}";

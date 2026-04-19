@@ -61,12 +61,15 @@ impl LlmClient {
             model,
             api_key,
             backend_mode,
+            #[cfg(feature = "agent-provider-litellm")]
             litellm_provider_mode,
+            #[cfg(feature = "agent-provider-litellm")]
             litellm_wire_api,
             #[cfg(feature = "agent-provider-litellm")]
             litellm_api_key_env,
             #[cfg(feature = "agent-provider-litellm")]
             minimax_api_base,
+            #[cfg(feature = "agent-provider-litellm")]
             inference_timeout_secs,
             inference_max_tokens,
             inference_max_in_flight,

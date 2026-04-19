@@ -126,8 +126,16 @@ in
   enterTest = "";
 
   # https://devenv.sh/pre-commit-hooks/
-  git-hooks.hooks.oxlint.enable = true;
-  git-hooks.hooks.oxfmt.enable = true;
+  git-hooks.hooks = {
+    black.enable = true;
+    rustfmt.enable = true;
+    clippy.enable = true;
+    clippy.packageOverrides.cargo = config.languages.rust.toolchain.cargo;
+    clippy.packageOverrides.clippy = config.languages.rust.toolchain.clippy;
+    clippy.settings.allFeatures = true;
+    oxlint.enable = true;
+    oxfmt.enable = true;
+  };
   # git-hooks.hooks.nixfmt.enable = true;
   # See full reference at https://devenv.sh/reference/options/
 }

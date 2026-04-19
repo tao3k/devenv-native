@@ -11,13 +11,13 @@ const MAX_PAGE_LIMIT: u32 = 8;
 const DEFAULT_PREVIEW_CHAR_LIMIT: usize = 1200;
 
 define_native_tool! {
-    /// Native tool for crawling one web page via Spider and optionally persisting into Wendao.
+    /// Native tool for crawling one web page via the compatibility web bridge and optionally persisting into Wendao.
     pub struct SpiderCrawlTool {
         /// Optional Wendao ingress bridge. When present, crawled content is assimilated into graph.
         pub ingress: Option<Arc<SpiderWendaoBridge>>,
     }
     name: "web.crawl",
-    description: "Crawl one web page and return cleaned markdown preview. Use when user asks to fetch/summarize/extract content from a URL. Optionally persists into Wendao graph.",
+    description: "Fetch one web page and return a cleaned markdown preview. Use when user asks to fetch, summarize, or extract content from a URL. Optionally persists into the Wendao graph.",
     parameters: json!({
             "type": "object",
             "properties": {
@@ -27,13 +27,13 @@ define_native_tool! {
                 },
                 "page_limit": {
                     "type": "integer",
-                    "description": "Spider page crawl limit (1-8). Default: 1.",
+                    "description": "Requested page limit for compatibility callers (1-8). Default: 1.",
                     "minimum": 1,
                     "maximum": 8
                 },
                 "stealth": {
                     "type": "boolean",
-                    "description": "Enable Spider stealth hint. Default: true."
+                    "description": "Enable a browser-like user agent hint. Default: true."
                 },
                 "persist_to_wendao": {
                     "type": "boolean",

@@ -1,24 +1,24 @@
+use std::collections::HashMap;
 use std::pin::Pin;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use arrow::datatypes::Schema;
 use arrow_flight::encode::FlightDataEncoderBuilder;
 use arrow_flight::error::FlightError;
 use arrow_flight::sql::{ProstMessageExt, TicketStatementQuery};
 use arrow_flight::{FlightData, FlightDescriptor, FlightEndpoint, FlightInfo, Ticket};
-use dashmap::DashMap;
 use prost::Message;
 use tokio_stream::StreamExt;
 use tonic::{Response, Status};
 use uuid::Uuid;
 use xiuxian_vector_store::EngineRecordBatch;
 
-pub(super) type StatementCache = Arc<DashMap<String, Vec<EngineRecordBatch>>>;
+pub(super) type StatementCache = Arc<Mutex<HashMap<String, Vec<EngineRecordBatch>>>>;
 pub(super) type DoGetResponseStream =
     Pin<Box<dyn tokio_stream::Stream<Item = Result<FlightData, Status>> + Send + 'static>>;
 
 pub(super) fn new_statement_cache() -> StatementCache {
-    Arc::new(DashMap::new())
+    Arc::new(Mutex::new(HashMap::new()))
 }
 
 pub(super) fn new_statement_handle() -> String {
@@ -30,7 +30,10 @@ pub(super) fn cache_statement_batches(
     statement_handle: String,
     batches: Vec<EngineRecordBatch>,
 ) {
-    cache.insert(statement_handle, batches);
+    cache
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+        .insert(statement_handle, batches);
 }
 
 pub(super) fn statement_flight_info(
@@ -83,8 +86,9 @@ pub(super) fn take_statement_batches(
             ))
         })?;
     cache
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
         .remove(&statement_handle)
-        .map(|(_, batches)| batches)
         .ok_or_else(|| {
             Status::not_found(format!(
                 "FlightSQL statement handle `{statement_handle}` is unknown or already consumed"

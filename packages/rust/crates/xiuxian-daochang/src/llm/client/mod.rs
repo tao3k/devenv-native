@@ -11,6 +11,7 @@ use crate::session::ChatMessage;
 use super::backend::LlmBackendMode;
 #[cfg(feature = "agent-provider-litellm")]
 use super::compat::litellm::LiteLlmRuntime;
+#[cfg(feature = "agent-provider-litellm")]
 use super::providers::{LiteLlmProviderMode, LiteLlmWireApi};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -30,12 +31,15 @@ pub struct LlmClient {
     model: String,
     api_key: Option<String>,
     backend_mode: LlmBackendMode,
+    #[cfg(feature = "agent-provider-litellm")]
     litellm_provider_mode: LiteLlmProviderMode,
+    #[cfg(feature = "agent-provider-litellm")]
     litellm_wire_api: LiteLlmWireApi,
     #[cfg(feature = "agent-provider-litellm")]
     litellm_api_key_env: String,
     #[cfg(feature = "agent-provider-litellm")]
     minimax_api_base: String,
+    #[cfg(feature = "agent-provider-litellm")]
     inference_timeout_secs: u64,
     inference_max_tokens: Option<u32>,
     inference_max_in_flight: Option<usize>,

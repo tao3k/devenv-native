@@ -2,6 +2,7 @@ node_modules
 .DS_Store
 *.pyc
 /target-codex
+/.codex/environments
 # Devenv
 .devenv*
 devenv.local.nix

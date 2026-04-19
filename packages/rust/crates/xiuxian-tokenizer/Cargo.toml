@@ -7,7 +7,7 @@ edition.workspace = true
 workspace = true
 
 [dependencies]
-tiktoken-rs = "0.5"
+tiktoken-rs = { workspace = true }
 thiserror = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 xiuxian-testing = { path = "../xiuxian-testing" }

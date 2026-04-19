@@ -5,16 +5,12 @@ use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use crate::unit::live_gates::{live_valkey_enabled, resolve_live_valkey_url};
+use crate::unit::tool_runtime_mock::{
+    MockCallToolReply, MockToolRuntimeConfig, call_handler, permissive_tool_definition,
+    spawn_mock_tool_runtime, text_result,
+};
 use anyhow::Result;
 use axum::{Json, Router, extract::State, routing::post};
-use rmcp::ServerHandler;
-use rmcp::model::{
-    CallToolRequestParams, CallToolResult, Content, ErrorData, ListToolsResult,
-    PaginatedRequestParams, ServerCapabilities, ServerInfo, Tool,
-};
-use rmcp::service::{RequestContext, RoleServer};
-use rmcp::transport::streamable_http_server::session::local::LocalSessionManager;
-use rmcp::transport::streamable_http_server::{StreamableHttpServerConfig, StreamableHttpService};
 use tokio::time::sleep;
 use xiuxian_daochang::{AgentConfig, ToolServerEntry, set_config_home_override};
 
@@ -32,130 +28,6 @@ pub(super) fn require_some<T>(value: Option<T>, context: &str) -> T {
     match value {
         Some(value) => value,
         None => panic!("{context}"),
-    }
-}
-
-#[derive(Clone)]
-struct MockBridgeServer {
-    recorded_arguments: Arc<std::sync::Mutex<Vec<serde_json::Value>>>,
-    reject_metadata_once_for_flaky: Arc<AtomicBool>,
-}
-
-impl MockBridgeServer {
-    fn tool(name: &str, description: &str) -> Tool {
-        let input_schema = serde_json::json!({
-            "type": "object",
-            "additionalProperties": true,
-        });
-        let map = input_schema.as_object().cloned().unwrap_or_default();
-        Tool {
-            name: name.to_string().into(),
-            title: Some(name.to_string()),
-            description: Some(description.to_string().into()),
-            input_schema: Arc::new(map),
-            output_schema: None,
-            annotations: None,
-            execution: None,
-            icons: None,
-            meta: None,
-        }
-    }
-}
-
-impl ServerHandler for MockBridgeServer {
-    fn get_info(&self) -> ServerInfo {
-        ServerInfo {
-            capabilities: ServerCapabilities::builder().enable_tools().build(),
-            ..Default::default()
-        }
-    }
-
-    fn list_tools(
-        &self,
-        _request: Option<PaginatedRequestParams>,
-        _context: RequestContext<RoleServer>,
-    ) -> impl std::future::Future<Output = Result<ListToolsResult, ErrorData>> + Send + '_ {
-        std::future::ready(Ok(ListToolsResult::with_all_items(vec![
-            Self::tool("bridge.echo", "Echo JSON arguments"),
-            Self::tool("bridge.flaky", "Reject first metadata-rich call"),
-            Self::tool("bridge.always_fail", "Always fail tool invocation"),
-            Self::tool("bridge.hang", "Sleep long enough to trigger timeout KO"),
-            Self::tool("bridge.large_payload", "Return very large tool payload"),
-        ])))
-    }
-
-    async fn call_tool(
-        &self,
-        request: CallToolRequestParams,
-        _context: RequestContext<RoleServer>,
-    ) -> Result<CallToolResult, ErrorData> {
-        let args_json = request
-            .arguments
-            .clone()
-            .map_or_else(|| serde_json::json!({}), serde_json::Value::Object);
-
-        require_ok(
-            self.recorded_arguments.lock(),
-            "recorded arguments lock poisoned",
-        )
-        .push(args_json.clone());
-
-        match request.name.as_ref() {
-            "bridge.flaky" => {
-                let has_metadata = request
-                    .arguments
-                    .as_ref()
-                    .and_then(|value| value.get("_omni"))
-                    .is_some();
-                if has_metadata
-                    && self
-                        .reject_metadata_once_for_flaky
-                        .swap(false, Ordering::SeqCst)
-                {
-                    return Err(ErrorData::internal_error(
-                        "metadata not accepted for first attempt",
-                        None,
-                    ));
-                }
-                Ok(CallToolResult::success(vec![Content::text(
-                    "fallback-ok".to_string(),
-                )]))
-            }
-            "bridge.always_fail" => Err(ErrorData::internal_error(
-                "forced tool failure for resilience tests",
-                None,
-            )),
-            "bridge.hang" => {
-                let delay_ms = request
-                    .arguments
-                    .as_ref()
-                    .and_then(|value| value.get("delay_ms"))
-                    .and_then(serde_json::Value::as_u64)
-                    .unwrap_or(5_000)
-                    .clamp(500, 30_000);
-                sleep(Duration::from_millis(delay_ms)).await;
-                Ok(CallToolResult::success(vec![Content::text(
-                    "hang-finished".to_string(),
-                )]))
-            }
-            "bridge.large_payload" => {
-                let size = request
-                    .arguments
-                    .as_ref()
-                    .and_then(|value| value.get("size"))
-                    .and_then(serde_json::Value::as_u64)
-                    .and_then(|value| usize::try_from(value).ok())
-                    .unwrap_or(12_000)
-                    .clamp(256, 20_000);
-                let payload = "X".repeat(size);
-                Ok(CallToolResult::success(vec![Content::text(payload)]))
-            }
-            _ => {
-                let payload = serde_json::to_string(&args_json)
-                    .unwrap_or_else(|_| "{\"error\":\"serialize\"}".to_string());
-                Ok(CallToolResult::success(vec![Content::text(payload)]))
-            }
-        }
     }
 }
 
@@ -359,39 +231,100 @@ pub(super) async fn spawn_mock_bridge_server(
 ) {
     let recorded_arguments = Arc::new(std::sync::Mutex::new(Vec::new()));
     let reject_metadata_once_for_flaky = Arc::new(AtomicBool::new(true));
+    let server = spawn_mock_tool_runtime(
+        addr,
+        MockToolRuntimeConfig::with_static_tools(
+            vec![
+                permissive_tool_definition("bridge.echo", "Echo JSON arguments"),
+                permissive_tool_definition("bridge.flaky", "Reject first metadata-rich call"),
+                permissive_tool_definition("bridge.always_fail", "Always fail tool invocation"),
+                permissive_tool_definition(
+                    "bridge.hang",
+                    "Sleep long enough to trigger timeout KO",
+                ),
+                permissive_tool_definition(
+                    "bridge.large_payload",
+                    "Return very large tool payload",
+                ),
+            ],
+            call_handler({
+                let recorded_arguments = Arc::clone(&recorded_arguments);
+                let reject_metadata_once_for_flaky = Arc::clone(&reject_metadata_once_for_flaky);
+                move |request| {
+                    let recorded_arguments = Arc::clone(&recorded_arguments);
+                    let reject_metadata_once_for_flaky =
+                        Arc::clone(&reject_metadata_once_for_flaky);
+                    async move {
+                        let args_json = request
+                            .arguments
+                            .clone()
+                            .map_or_else(|| serde_json::json!({}), serde_json::Value::Object);
+                        require_ok(
+                            recorded_arguments.lock(),
+                            "recorded arguments lock poisoned",
+                        )
+                        .push(args_json.clone());
 
-    let service: StreamableHttpService<MockBridgeServer, LocalSessionManager> =
-        StreamableHttpService::new(
-            {
-                let recorded_arguments = recorded_arguments.clone();
-                let reject_metadata_once_for_flaky = reject_metadata_once_for_flaky.clone();
-                move || {
-                    Ok(MockBridgeServer {
-                        recorded_arguments: recorded_arguments.clone(),
-                        reject_metadata_once_for_flaky: reject_metadata_once_for_flaky.clone(),
-                    })
+                        match request.name.as_str() {
+                            "bridge.flaky" => {
+                                let has_metadata = request
+                                    .arguments
+                                    .as_ref()
+                                    .and_then(|value| value.get("_omni"))
+                                    .is_some();
+                                if has_metadata
+                                    && reject_metadata_once_for_flaky.swap(false, Ordering::SeqCst)
+                                {
+                                    return MockCallToolReply::RpcError {
+                                        code: -32_603,
+                                        message: "metadata not accepted for first attempt"
+                                            .to_string(),
+                                        data: None,
+                                    };
+                                }
+                                MockCallToolReply::Result(text_result("fallback-ok"))
+                            }
+                            "bridge.always_fail" => MockCallToolReply::RpcError {
+                                code: -32_603,
+                                message: "forced tool failure for resilience tests".to_string(),
+                                data: None,
+                            },
+                            "bridge.hang" => {
+                                let delay_ms = request
+                                    .arguments
+                                    .as_ref()
+                                    .and_then(|value| value.get("delay_ms"))
+                                    .and_then(serde_json::Value::as_u64)
+                                    .unwrap_or(5_000)
+                                    .clamp(500, 30_000);
+                                sleep(Duration::from_millis(delay_ms)).await;
+                                MockCallToolReply::Result(text_result("hang-finished"))
+                            }
+                            "bridge.large_payload" => {
+                                let size = request
+                                    .arguments
+                                    .as_ref()
+                                    .and_then(|value| value.get("size"))
+                                    .and_then(serde_json::Value::as_u64)
+                                    .and_then(|value| usize::try_from(value).ok())
+                                    .unwrap_or(12_000)
+                                    .clamp(256, 20_000);
+                                MockCallToolReply::Result(text_result("X".repeat(size)))
+                            }
+                            _ => {
+                                let payload = serde_json::to_string(&args_json)
+                                    .unwrap_or_else(|_| "{\"error\":\"serialize\"}".to_string());
+                                MockCallToolReply::Result(text_result(payload))
+                            }
+                        }
+                    }
                 }
-            },
-            Arc::new(LocalSessionManager::default()),
-            StreamableHttpServerConfig {
-                stateful_mode: true,
-                sse_keep_alive: None,
-                ..Default::default()
-            },
-        );
-
-    let router = Router::new().nest_service("/sse", service);
-    let listener = require_ok(
-        tokio::net::TcpListener::bind(addr).await,
-        "bind mock tool listener",
-    );
-
-    (
-        tokio::spawn(async move {
-            let _ = axum::serve(listener, router).await;
-        }),
-        recorded_arguments,
+            }),
+        ),
     )
+    .await;
+
+    (server, recorded_arguments)
 }
 
 pub(super) async fn spawn_mock_llm_server(

@@ -1,3 +1,4 @@
+#[cfg(feature = "agent-provider-litellm")]
 use litellm_rs::core::types::tools::{
     FunctionDefinition as LiteFunctionDefinition, Tool as LiteTool, ToolType as LiteToolType,
 };
@@ -23,6 +24,7 @@ impl PreparedTool {
         }
     }
 
+    #[cfg(feature = "agent-provider-litellm")]
     pub(super) fn to_litellm_tool(&self) -> LiteTool {
         LiteTool {
             tool_type: LiteToolType::Function,

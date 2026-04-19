@@ -3,7 +3,7 @@
 use std::path::{Component, Path};
 use std::sync::OnceLock;
 
-use sha1::{Digest, Sha1};
+use sha2::{Digest, Sha256};
 use xiuxian_wendao_parsers::extract_wikilinks as extract_markdown_wikilinks;
 
 use super::types::{
@@ -13,9 +13,14 @@ use super::types::{
 /// Derives an opaque document ID from a doc path.
 #[must_use]
 pub(crate) fn derive_opaque_doc_id(doc_path: &str) -> String {
-    let mut hasher = Sha1::new();
-    hasher.update(normalize_doc_path(doc_path).as_bytes());
-    format!("{:x}", hasher.finalize())
+    let digest = Sha256::digest(normalize_doc_path(doc_path).as_bytes());
+    let mut opaque_id = String::with_capacity(40);
+    for byte in digest.iter().take(20) {
+        use std::fmt::Write as _;
+
+        let _ = write!(&mut opaque_id, "{byte:02x}");
+    }
+    opaque_id
 }
 
 /// Checks if a value is a valid opaque document ID.

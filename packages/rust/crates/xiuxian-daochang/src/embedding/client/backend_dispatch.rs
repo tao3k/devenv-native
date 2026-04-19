@@ -4,6 +4,7 @@ use super::super::transport_litellm::embed_litellm;
 use super::super::transport_openai::embed_openai_http;
 use super::EmbeddingDispatchRuntime;
 
+#[cfg(feature = "agent-provider-litellm")]
 fn has_non_empty(value: Option<&str>) -> bool {
     value.is_some_and(|candidate| !candidate.trim().is_empty())
 }

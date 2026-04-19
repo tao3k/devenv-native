@@ -9,21 +9,19 @@ edition.workspace = true
 xiuxian-ast = { path = "../xiuxian-ast" }
 
 # Diff generation for preview
-similar = "2.7"
-once_cell = "1.19"
-regex = "1.11"
+similar = { workspace = true }
+regex = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 thiserror = { workspace = true }
 xiuxian-io = { path = "../xiuxian-io" }
 xiuxian-testing = { path = "../xiuxian-testing" }
 
 # The Ouroboros - Heavy-duty batch refactoring
-rayon = "1.8"          # Parallel iteration
-ignore = "0.4"         # .gitignore-aware file traversal
-dashmap = "5.5"        # Concurrent HashMap for stats
+rayon = { workspace = true } # Parallel iteration
+ignore = { workspace = true } # .gitignore-aware file traversal
 
 [dev-dependencies]
-tempfile = "3"
+tempfile = { workspace = true }
 
 [lints]
 workspace = true

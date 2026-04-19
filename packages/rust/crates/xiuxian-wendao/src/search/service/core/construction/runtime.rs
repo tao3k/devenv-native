@@ -77,8 +77,8 @@ impl SearchPlaneService {
             )),
             query_telemetry: Arc::new(RwLock::new(std::collections::BTreeMap::new())),
             parquet_query_engine: Arc::new(OnceLock::new()),
-            markdown_snapshot_entries: Arc::new(dashmap::DashMap::new()),
-            source_snapshot_entries: Arc::new(dashmap::DashMap::new()),
+            markdown_snapshot_entries: Arc::new(RwLock::new(std::collections::HashMap::new())),
+            source_snapshot_entries: Arc::new(RwLock::new(std::collections::HashMap::new())),
             repeat_work_telemetry: Arc::new(RwLock::new(
                 crate::search::service::core::repeat_work::SearchBuildRepeatWorkTelemetryState::default(),
             )),

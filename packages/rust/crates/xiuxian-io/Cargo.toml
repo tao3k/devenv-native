@@ -11,18 +11,15 @@ thiserror = { workspace = true }
 memchr = { workspace = true }
 tokio = { workspace = true, features = ["fs", "io-util"] }
 # Parallel iteration
-rayon = "1.8"
-minijinja = "1.0"
-serde = { workspace = true, features = ["derive"] }
+rayon = { workspace = true }
+tera = { workspace = true }
 serde_json = { workspace = true }
 xiuxian-tokenizer = { path = "../xiuxian-tokenizer" }
-# Tracing for instrumentation
-tracing = { workspace = true }
 # Event Bus for reactive file watching (optional)
 xiuxian-event = { path = "../xiuxian-event", optional = true }
 xiuxian-testing = { path = "../xiuxian-testing" }
 # File watching crate (optional, requires notify feature)
-notify = { version = "6.0", features = ["serde"], optional = true }
+notify = { workspace = true, features = ["serde"], optional = true }
 # Glob pattern matching (optional, for notify feature)
 globset = { workspace = true, optional = true }
 

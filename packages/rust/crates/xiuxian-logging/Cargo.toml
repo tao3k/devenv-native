@@ -10,7 +10,6 @@ publish = false
 [dependencies]
 clap = { workspace = true }
 thiserror = { workspace = true }
-tracing = { workspace = true }
 tracing-log = { workspace = true }
 tracing-subscriber = { workspace = true }
 xiuxian-testing = { path = "../xiuxian-testing" }

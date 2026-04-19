@@ -1,7 +1,8 @@
 //! Dependency Config - Load external dependency settings from TOML config.
 
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
+use std::env;
+use std::path::{Path, PathBuf};
 
 /// External dependency configuration (renamed to avoid conflict).
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -63,15 +64,7 @@ impl DependencyConfig {
     /// Load configuration from a TOML file.
     #[must_use]
     pub fn load(path: &str) -> Self {
-        let path = if let Some(stripped) = path.strip_prefix('~') {
-            if let Some(home) = dirs::home_dir() {
-                home.join(stripped.trim_start_matches('/'))
-            } else {
-                PathBuf::from(path)
-            }
-        } else {
-            PathBuf::from(path)
-        };
+        let path = expand_home_path(path, resolve_home_dir().as_deref());
 
         if !path.exists() {
             log::warn!("Config file not found: {}", path.display());
@@ -98,5 +91,67 @@ impl DependencyConfig {
                 Self::default()
             }
         }
+    }
+}
+
+fn expand_home_path(path: &str, home_dir: Option<&Path>) -> PathBuf {
+    if let Some(stripped) = path.strip_prefix('~') {
+        if let Some(home) = home_dir {
+            return home.join(stripped.trim_start_matches('/'));
+        }
+    }
+
+    PathBuf::from(path)
+}
+
+fn resolve_home_dir() -> Option<PathBuf> {
+    env::var_os("HOME")
+        .map(PathBuf::from)
+        .or_else(|| env::var_os("USERPROFILE").map(PathBuf::from))
+        .or_else(|| {
+            let drive = env::var_os("HOMEDRIVE")?;
+            let path = env::var_os("HOMEPATH")?;
+            let mut combined = PathBuf::from(drive);
+            combined.push(path);
+            Some(combined)
+        })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{expand_home_path, resolve_home_dir};
+    use std::path::{Path, PathBuf};
+
+    #[test]
+    fn expand_home_path_uses_provided_home_dir() {
+        let expanded = expand_home_path("~/config/wendao.toml", Some(Path::new("/tmp/home")));
+        assert_eq!(expanded, PathBuf::from("/tmp/home/config/wendao.toml"));
+    }
+
+    #[test]
+    fn expand_home_path_keeps_literal_path_without_home_dir() {
+        let expanded = expand_home_path("~/config/wendao.toml", None);
+        assert_eq!(expanded, PathBuf::from("~/config/wendao.toml"));
+    }
+
+    #[test]
+    fn expand_home_path_keeps_non_tilde_paths() {
+        let expanded = expand_home_path("./config/wendao.toml", Some(Path::new("/tmp/home")));
+        assert_eq!(expanded, PathBuf::from("./config/wendao.toml"));
+    }
+
+    #[test]
+    fn resolve_home_dir_prefers_current_process_environment() {
+        let expected = std::env::var_os("HOME")
+            .map(PathBuf::from)
+            .or_else(|| std::env::var_os("USERPROFILE").map(PathBuf::from))
+            .or_else(|| {
+                let drive = std::env::var_os("HOMEDRIVE")?;
+                let path = std::env::var_os("HOMEPATH")?;
+                let mut combined = PathBuf::from(drive);
+                combined.push(path);
+                Some(combined)
+            });
+        assert_eq!(resolve_home_dir(), expected);
     }
 }

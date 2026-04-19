@@ -36,6 +36,20 @@ fn test_batch_replace_apply() -> TestResult {
     assert_eq!(stats.files_scanned, 2);
     assert_eq!(stats.files_changed, 2);
     assert_eq!(stats.replacements, 2);
+    assert!(stats.errors.is_empty());
+    assert_eq!(stats.modified_files.len(), 2);
+    assert!(
+        stats
+            .modified_files
+            .iter()
+            .any(|path| path.ends_with("test1.py"))
+    );
+    assert!(
+        stats
+            .modified_files
+            .iter()
+            .any(|path| path.ends_with("test2.py"))
+    );
 
     let modified1 = std::fs::read_to_string(&file1)?;
     let modified2 = std::fs::read_to_string(&file2)?;

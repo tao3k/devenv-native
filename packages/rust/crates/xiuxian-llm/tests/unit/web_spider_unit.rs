@@ -38,6 +38,7 @@ async fn spider_bridge_quick_ingest_returns_markdown_context() -> Result<()> {
 <html>
   <head>
     <title>Spider Bridge Demo</title>
+    <meta name="description" content="Single page compatibility ingest">
   </head>
   <body>
     <h1>Rust Native Bridge</h1>
@@ -64,7 +65,7 @@ async fn spider_bridge_quick_ingest_returns_markdown_context() -> Result<()> {
     assert!(!context.markdown_content.contains("skip-me"));
     assert_eq!(
         context.metadata.get("engine").map(String::as_str),
-        Some("spider")
+        Some("reqwest")
     );
     assert_eq!(
         context.metadata.get("crawler.stealth").map(String::as_str),
@@ -76,6 +77,10 @@ async fn spider_bridge_quick_ingest_returns_markdown_context() -> Result<()> {
             .get("crawler.content_source")
             .map(String::as_str),
         Some("clean_html")
+    );
+    assert_eq!(
+        context.metadata.get("page.description").map(String::as_str),
+        Some("Single page compatibility ingest")
     );
     assert!(context.metadata.contains_key("crawler.user_agent"));
 

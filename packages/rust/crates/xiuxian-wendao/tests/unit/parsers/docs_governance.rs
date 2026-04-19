@@ -1,5 +1,6 @@
 use crate::parsers::docs_governance::{
-    collect_lines, extract_hidden_path_links, parse_top_properties_drawer,
+    collect_lines, derive_opaque_doc_id, extract_hidden_path_links, is_opaque_doc_id,
+    parse_top_properties_drawer,
 };
 
 #[test]
@@ -44,4 +45,22 @@ fn extract_hidden_path_links_detects_hidden_targets_in_wikilinks_and_markdown_li
     assert_eq!(hidden.len(), 2);
     assert_eq!(hidden[0].target, ".cache/agent/execplans/example.md");
     assert_eq!(hidden[1].target, ".data/private.md");
+}
+
+#[test]
+fn derive_opaque_doc_id_preserves_hash_shaped_protocol() {
+    let opaque_id = derive_opaque_doc_id("packages/rust/crates/demo/docs/index.md");
+    assert_eq!(opaque_id.len(), 40);
+    assert!(is_opaque_doc_id(&opaque_id));
+}
+
+#[test]
+fn derive_opaque_doc_id_normalizes_repo_prefix_and_path_separators() {
+    let relative = derive_opaque_doc_id("packages/rust/crates/demo/docs/index.md");
+    let absolute = derive_opaque_doc_id("/tmp/workspace/packages/rust/crates/demo/docs/index.md");
+    let windowsish =
+        derive_opaque_doc_id(r"C:\tmp\workspace\packages\rust\crates\demo\docs\index.md");
+
+    assert_eq!(relative, absolute);
+    assert_eq!(relative, windowsish);
 }

@@ -6,77 +6,24 @@
 use std::future::pending;
 use std::time::{Duration, Instant};
 
-use axum::Router;
-use rmcp::ServerHandler;
-use rmcp::model::{
-    CallToolRequestParams, CallToolResult, ErrorData, ListToolsResult, PaginatedRequestParams,
-    ServerCapabilities, ServerInfo,
+use crate::unit::tool_runtime_mock::{
+    MockCallToolReply, MockListToolsReply, MockToolRuntimeConfig, call_handler, list_handler,
+    reserve_local_addr, spawn_mock_tool_runtime,
 };
-use rmcp::service::{RequestContext, RoleServer};
-use rmcp::transport::streamable_http_server::session::local::LocalSessionManager;
-use rmcp::transport::streamable_http_server::{StreamableHttpServerConfig, StreamableHttpService};
 use xiuxian_daochang::{ToolPoolConnectConfig, connect_tool_pool};
 
-#[derive(Clone, Default)]
-struct HangingToolServer;
-
-impl ServerHandler for HangingToolServer {
-    fn get_info(&self) -> ServerInfo {
-        ServerInfo {
-            capabilities: ServerCapabilities::builder().enable_tools().build(),
-            ..Default::default()
-        }
-    }
-
-    async fn list_tools(
-        &self,
-        _request: Option<PaginatedRequestParams>,
-        _context: RequestContext<RoleServer>,
-    ) -> Result<ListToolsResult, ErrorData> {
-        pending::<Result<ListToolsResult, ErrorData>>().await
-    }
-
-    async fn call_tool(
-        &self,
-        _request: CallToolRequestParams,
-        _context: RequestContext<RoleServer>,
-    ) -> Result<CallToolResult, ErrorData> {
-        pending::<Result<CallToolResult, ErrorData>>().await
-    }
-}
-
 async fn spawn_hanging_server(addr: std::net::SocketAddr) -> tokio::task::JoinHandle<()> {
-    let service: StreamableHttpService<HangingToolServer, LocalSessionManager> =
-        StreamableHttpService::new(
-            || Ok(HangingToolServer),
-            std::sync::Arc::new(LocalSessionManager::default()),
-            StreamableHttpServerConfig {
-                stateful_mode: true,
-                sse_keep_alive: None,
-                ..Default::default()
-            },
-        );
-    let router = Router::new().nest_service("/sse", service);
-    let listener = match tokio::net::TcpListener::bind(addr).await {
-        Ok(listener) => listener,
-        Err(error) => panic!("bind hanging tool listener: {error}"),
-    };
-    tokio::spawn(async move {
-        let _ = axum::serve(listener, router).await;
-    })
-}
-
-async fn reserve_local_addr() -> std::net::SocketAddr {
-    let probe = match tokio::net::TcpListener::bind("127.0.0.1:0").await {
-        Ok(listener) => listener,
-        Err(error) => panic!("reserve local addr: {error}"),
-    };
-    let addr = match probe.local_addr() {
-        Ok(addr) => addr,
-        Err(error) => panic!("read reserved local addr: {error}"),
-    };
-    drop(probe);
-    addr
+    spawn_mock_tool_runtime(
+        addr,
+        MockToolRuntimeConfig::with_handlers(
+            list_handler(|_request| async move { MockListToolsReply::Hang }),
+            call_handler(|_request| async move {
+                let _ = pending::<()>().await;
+                MockCallToolReply::Hang
+            }),
+        ),
+    )
+    .await
 }
 
 fn hard_timeout_test_config() -> ToolPoolConnectConfig {
