@@ -54,9 +54,11 @@ To prevent context bloating and "hallucination spirals," all Agents MUST follow 
 ## 4. Context & Exploration Protocol
 
 - **Codebase First**: Build context by examining code and configuration before making assumptions.
-- **Project Environment First**: For project-scoped commands, prefer running
-  through `direnv exec` in the project root (for example
-  `direnv exec "$PRJ_ROOT" <command>`) to ensure environment parity.
+- **Project Environment First**: For project-scoped commands, prefer using the
+  toolchain and wrappers exposed from `$DEVENV_PROFILE/bin/` to ensure
+  environment parity. If Nix or `devenv` code changes, run `direnv reload`
+  from `$DEVENV_ROOT` first so `$DEVENV_PROFILE` is refreshed before invoking
+  `$DEVENV_PROFILE/bin/<command>`.
 - **High-Performance Search**: **ALWAYS** prefer `rg` or `rg --files` over `grep`. If `rg` is unavailable, only then fall back to alternatives.
 - **Tool Parallelization**: Parallelize I/O intensive tool calls (e.g., `cat`, `rg`, `sed`, `ls`, `git show`) using `multi_tool_use.parallel` whenever possible. Never chain commands with shell separators that degrade output readability.
 
@@ -85,10 +87,11 @@ To prevent context bloating and "hallucination spirals," all Agents MUST follow 
 | `PRJ_INTERNAL_SKILLS_DIR` | `internal_skills`                  | Core "Divine Siddhis" metadata.                       |
 | `PRJ_RUNTIME_DIR`         | `.run`                             | Runtime state (logs, PID files, sockets).             |
 
-The table above lists the default repo-relative names. In the exported project
-environment (for example through `direnv exec "$PRJ_ROOT"`), the `PRJ_*`
-variables are materialized as absolute paths. Prefer using the exported env var
-directly instead of prepending `PRJ_ROOT` again.
+The table above lists the default repo-relative names. In the refreshed project
+environment (for example after `direnv reload` from `$DEVENV_ROOT` updates
+`$DEVENV_PROFILE`), the `PRJ_*` variables are materialized as absolute paths.
+Prefer using the exported env var directly instead of prepending `PRJ_ROOT`
+again.
 
 Outside the default-value column in the table above, path references in this
 document MUST use either a dedicated `PRJ_*` variable or a path derived from
@@ -136,6 +139,10 @@ path from `$PRJ_ROOT` instead of using a bare repo-relative literal. Examples:
 
 - **Tests follow code**: Add or update tests for every feature change. **A feature is not landed until verified.**
 - **Cross-Layer Validation**: Validate both Rust core (`cargo nextest`) and Python connectivity (`uv run pytest`).
+- **Cargo Target Discipline**: Prefer Cargo's default target directory. Only
+  set `CARGO_TARGET_DIR` when it is truly unavoidable, and when an override is
+  required, reuse one shared target root for the active lane instead of
+  creating multiple isolated build environments under `CARGO_TARGET_DIR`.
 - **Rust Clippy (Zero-Tolerance)**: Global lint suppression (`#![allow(...)]`) is STRICTLY FORBIDDEN. Fix the code.
 - **Rust Warnings Closure**: Rust compiler and clippy warnings in the touched scope MUST be resolved before a feature is marked as fully landed.
 - **Clippy Cost Gate**: Run full clippy verification only when a feature reaches `[DONE]`/fully landed status to control iteration cost during active development.
