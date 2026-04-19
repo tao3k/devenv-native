@@ -13,18 +13,12 @@ publish = false
 # lance = { workspace = true }
 # lance-arrow = { workspace = true }
 
-# Async runtime
-tokio = { workspace = true, features = ["rt-multi-thread", "macros", "io-util", "fs"] }
-
 # Serialization
 serde = { workspace = true }
 serde_json = { workspace = true }
 schemars = { workspace = true }
 chrono = { workspace = true, features = ["clock"] }
 uuid = { workspace = true }
-
-# Async stream combinators
-futures = { workspace = true }
 num-traits = { workspace = true }
 
 # Error handling

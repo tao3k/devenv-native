@@ -11571,15 +11571,10 @@ dependencies = [
  "ast-grep-language",
  "blake3",
  "insta",
- "regex",
  "serde",
- "serde_json",
  "tempfile",
- "thiserror 2.0.18",
  "tree-sitter",
  "tree-sitter-python",
- "walkdir",
- "xiuxian-io",
  "xiuxian-testing",
 ]
 
@@ -11610,7 +11605,6 @@ dependencies = [
  "anyhow",
  "async-trait",
  "axum",
- "base64 0.22.1",
  "chrono",
  "clap",
  "futures",
@@ -11669,7 +11663,6 @@ dependencies = [
 name = "xiuxian-event"
 version = "0.1.1"
 dependencies = [
- "anyhow",
  "chrono",
  "serde",
  "serde_json",
@@ -11688,7 +11681,6 @@ dependencies = [
  "serde_json",
  "tempfile",
  "thiserror 2.0.18",
- "tokio",
  "xiuxian-testing",
 ]
 
@@ -11716,13 +11708,11 @@ dependencies = [
  "memchr",
  "notify",
  "rayon",
- "serde",
  "serde_json",
  "tempfile",
  "tera",
  "thiserror 2.0.18",
  "tokio",
- "tracing",
  "xiuxian-event",
  "xiuxian-testing",
  "xiuxian-tokenizer",
@@ -11745,17 +11735,14 @@ dependencies = [
  "axum",
  "base64 0.22.1",
  "futures",
- "hex",
  "image",
  "imageproc",
  "litellm-rs",
  "num-traits",
- "redis",
  "regex",
  "reqwest 0.13.2",
  "serde",
  "serde_json",
- "sha2",
  "tempfile",
  "thiserror 2.0.18",
  "tokio",
@@ -11773,7 +11760,6 @@ version = "0.1.1"
 dependencies = [
  "clap",
  "thiserror 2.0.18",
- "tracing",
  "tracing-log",
  "tracing-subscriber",
  "xiuxian-testing",
@@ -11798,14 +11784,7 @@ dependencies = [
 name = "xiuxian-memory"
 version = "0.1.1"
 dependencies = [
- "async-trait",
- "log",
- "redis",
  "serde",
- "serde_json",
- "thiserror 2.0.18",
- "tokio",
- "toml",
  "xiuxian-testing",
 ]
 
@@ -11815,7 +11794,6 @@ version = "0.1.1"
 dependencies = [
  "anyhow",
  "chrono",
- "futures",
  "log",
  "num-traits",
  "pyo3",
@@ -11826,7 +11804,6 @@ dependencies = [
  "serde_json",
  "tempfile",
  "thiserror 2.0.18",
- "tokio",
  "uuid",
  "xiuxian-io",
  "xiuxian-testing",
@@ -11912,11 +11889,9 @@ name = "xiuxian-sandbox"
 version = "0.1.1"
 dependencies = [
  "async-trait",
- "chrono",
  "serde",
  "serde_json",
  "tempfile",
- "thiserror 2.0.18",
  "tokio",
  "xiuxian-testing",
 ]
@@ -11947,7 +11922,6 @@ dependencies = [
  "sha2",
  "tempfile",
  "thiserror 2.0.18",
- "tokio",
  "toml",
  "walkdir",
  "xiuxian-ast",
@@ -12019,14 +11993,10 @@ dependencies = [
  "arrow 58.1.0",
  "arrow-ipc 57.3.0",
  "arrow-ipc 58.1.0",
- "arrow-string 58.1.0",
- "async-trait",
- "chrono",
  "datafusion 53.0.0",
  "futures",
  "insta",
  "lance",
- "lance-arrow",
  "lance-file",
  "lance-index",
  "lance-linalg",
@@ -12037,11 +12007,9 @@ dependencies = [
  "rayon",
  "serde",
  "serde_json",
- "serde_yaml",
  "tempfile",
  "thiserror 2.0.18",
  "tokio",
- "xiuxian-io",
  "xiuxian-lance",
  "xiuxian-skills",
  "xiuxian-testing",
@@ -12281,11 +12249,8 @@ dependencies = [
 name = "xiuxian-zhenfa"
 version = "0.1.1"
 dependencies = [
- "anyhow",
  "async-trait",
  "axum",
- "chrono",
- "log",
  "pulldown-cmark",
  "quick-xml",
  "reqwest 0.13.2",

@@ -9,13 +9,6 @@ publish = false
 
 [dependencies]
 serde = { workspace = true, features = ["derive"] }
-serde_json = { workspace = true }
-toml = { workspace = true }
-async-trait = { workspace = true }
-thiserror = { workspace = true }
-tokio = { workspace = true }
-redis = { workspace = true, features = ["tokio-comp"] }
-log = { workspace = true }
 xiuxian-testing = { path = "../xiuxian-testing" }
 
 [lints]

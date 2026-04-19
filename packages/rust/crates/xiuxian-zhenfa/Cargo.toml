@@ -8,11 +8,8 @@ license.workspace = true
 publish = false
 
 [dependencies]
-anyhow = { workspace = true }
 async-trait = { workspace = true }
 axum = { workspace = true }
-chrono = { workspace = true }
-log = { workspace = true }
 reqwest = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }

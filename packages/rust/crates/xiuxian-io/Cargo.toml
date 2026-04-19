@@ -13,11 +13,8 @@ tokio = { workspace = true, features = ["fs", "io-util"] }
 # Parallel iteration
 rayon = { workspace = true }
 tera = { workspace = true }
-serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 xiuxian-tokenizer = { path = "../xiuxian-tokenizer" }
-# Tracing for instrumentation
-tracing = { workspace = true }
 # Event Bus for reactive file watching (optional)
 xiuxian-event = { path = "../xiuxian-event", optional = true }
 xiuxian-testing = { path = "../xiuxian-testing" }

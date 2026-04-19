@@ -11,7 +11,6 @@ publish = false
 default = ["vector-store"]
 vector-store = [
   "dep:lance",
-  "dep:lance-arrow",
   "dep:lance-file",
   "dep:lance-index",
   "dep:lance-linalg",
@@ -21,7 +20,6 @@ vector-store = [
 [dependencies]
 # LanceDB core
 lance = { workspace = true, optional = true }
-lance-arrow = { workspace = true, optional = true }
 lance-file = { workspace = true, optional = true }
 lance-index = { workspace = true, optional = true }
 lance-linalg = { workspace = true, optional = true }
@@ -32,7 +30,6 @@ xiuxian-lance = { path = "../xiuxian-lance", optional = true }
 # Arrow IPC for search result batch (same version as lance's arrow for IPC compatibility)
 arrow = { workspace = true }
 arrow-ipc = { workspace = true }
-arrow-string = { workspace = true }
 lance_arrow_ipc = { workspace = true }
 parquet = { workspace = true }
 datafusion = { workspace = true }
@@ -42,9 +39,6 @@ tokio = { workspace = true, features = ["rt-multi-thread", "macros", "io-util", 
 
 # Async stream utilities
 futures = { workspace = true }
-
-# Async trait macros
-async-trait = { workspace = true }
 
 # Error handling
 thiserror = { workspace = true }
@@ -56,14 +50,10 @@ serde_json = { workspace = true }
 
 # Reuse our common types
 xiuxian-types = { path = "../xiuxian-types" }
-xiuxian-io = { path = "../xiuxian-io" }
 
 # Omni Scanner - Skills and Knowledge scanning
 xiuxian-skills = { path = "../xiuxian-skills" }
 xiuxian-testing = { path = "../xiuxian-testing" }
-
-# YAML parsing for skill manifests
-serde_yaml = { workspace = true }
 
 # Multi-pattern string matching (O(n+m) for name-token boost)
 aho-corasick = { workspace = true }
@@ -73,9 +63,6 @@ rayon = { workspace = true }
 
 # Logging
 log = { workspace = true }
-
-# Time for cleanup_old_versions (Lance API)
-chrono = { workspace = true, features = ["std"] }
 num-traits = { workspace = true }
 
 [dev-dependencies]
