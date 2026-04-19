@@ -92,6 +92,9 @@ tracked in
 The stable external `heading_path` convention for the `markdown` retrieval
 surface is tracked in
 [RFC 0008: Heading Path Minimal Conventions for Bounded Plan Work](docs/rfcs/2026-04-08-heading-path-minimal-conventions-rfc.md).
+The research-layered workspace split for localized runs, persistent
+single-paper packages, and cross-paper topic synthesis is tracked in
+[RFC: Qianji Research Workspace Layering](docs/rfcs/2026-04-18-qianji-research-workspace-layering-rfc.md).
 The current implementation-status matrix for this active RFC cluster is
 tracked in
 [Audit: Qianji RFC Implementation Coverage](docs/rfcs/2026-04-08-qianji-rfc-implementation-coverage-audit.md).
@@ -190,6 +193,11 @@ intentionally small, with only `[plan].name`, `[plan].surface`,
 `[check].require`, and `[check].flowchart`. The main RFC now also freezes the
 `show --graph` output contract itself: graph metadata, raw Mermaid, node
 semantics, expected work surface, and the localized `qianji.toml` template.
+The new research-layered RFC narrows that rule further for research lanes:
+the localized run surface remains the execution plane only, while persistent
+paper packages and topic syntheses live outside it under `runs/`, `papers/`,
+and `topics/`. In that model, user-visible answers are materialized previews,
+not the authority source for research state.
 The same RFC now also freezes the v0 node taxonomy and label-normalization
 rules for `show --graph`, plus the v0 `Next` edge semantics for backbone,
 fail, and repair-loop edges. The same `Nodes` contract now also fixes the

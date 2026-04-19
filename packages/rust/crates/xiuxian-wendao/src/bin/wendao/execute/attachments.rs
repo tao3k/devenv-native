@@ -32,5 +32,5 @@ pub(super) fn handle(cli: &Cli, index: Option<&LinkGraphIndex>) -> Result<()> {
         "total": rows.len(),
         "hits": rows,
     });
-    emit(&payload, cli.output)
+    emit(&payload, cli.output_or_json())
 }

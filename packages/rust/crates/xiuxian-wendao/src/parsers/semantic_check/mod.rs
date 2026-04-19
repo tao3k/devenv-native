@@ -3,12 +3,12 @@
 mod api;
 mod types;
 
-#[cfg(feature = "zhenfa-router")]
+#[cfg(any(test, feature = "zhenfa-router"))]
 pub(crate) use self::api::{
     extract_function_args, extract_hash_references, extract_id_references, generate_suggested_id,
     validate_contract,
 };
-#[cfg(feature = "zhenfa-router")]
+#[cfg(any(test, feature = "zhenfa-router"))]
 pub use self::types::HashReference;
 
 #[cfg(test)]

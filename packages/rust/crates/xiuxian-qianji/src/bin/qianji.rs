@@ -33,13 +33,15 @@ use xiuxian_qianji::runtime_config::{
 };
 use xiuxian_qianji::sovereign::KnowledgeStorageContractFeedbackSink;
 use xiuxian_qianji::{
-    QianjiCompiler, QianjiLlmClient, QianjiScheduler, check_flowhub, check_flowhub_scenario,
-    check_workdir, classify_flowhub_dir, looks_like_flowhub_scenario_dir, looks_like_workdir_dir,
+    QianjiCompiler, QianjiLlmClient, QianjiScheduler, WorkdirCheckReport, WorkdirDiagnostic,
+    advance_workdir_step, check_flowhub, check_flowhub_scenario, check_workdir,
+    classify_flowhub_dir, looks_like_flowhub_scenario_dir, looks_like_workdir_dir,
+    materialize_flowhub_anchored_scenario_at_node, render_anchored_materialized_workdir,
     render_flowhub_check_markdown, render_flowhub_graph_show,
     render_flowhub_scenario_check_markdown, render_flowhub_scenario_show, render_flowhub_show,
-    render_wendao_docs_contract_show, render_workdir_check_markdown, render_workdir_show,
-    show_flowhub, show_flowhub_graph, show_flowhub_scenario, show_wendao_docs_contract,
-    show_workdir,
+    render_wendao_docs_contract_show, render_workdir_advance, render_workdir_check_markdown,
+    render_workdir_show, show_flowhub, show_flowhub_anchored_scenario, show_flowhub_graph,
+    show_flowhub_scenario, show_wendao_docs_contract, show_workdir,
 };
 use xiuxian_testing::{
     AdvisoryAuditPolicy, CollectionContext, ContractReport, ContractRunConfig, FindingSeverity,
@@ -54,6 +56,8 @@ const REST_DOCS_PACK_ID: &str = "rest_docs";
 enum DirCliCommand {
     Show { target: ShowCliTarget },
     Check { dir: PathBuf },
+    Materialize { target: MaterializeCliTarget },
+    Advance { dir: PathBuf, to: String },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -61,6 +65,21 @@ enum ShowCliTarget {
     Dir(PathBuf),
     Graph(PathBuf),
     Contract(String),
+    AnchoredScenario {
+        anchor: PathBuf,
+        scenario: String,
+        dir: Option<PathBuf>,
+    },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum MaterializeCliTarget {
+    AnchoredScenario {
+        anchor: PathBuf,
+        scenario: String,
+        dir: PathBuf,
+        current_node: Option<String>,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -253,6 +272,8 @@ fn run_dir_command(command: DirCliCommand) -> Result<DirCliOutput, QianjiError> 
     match command {
         DirCliCommand::Show { target } => run_show_command(&target),
         DirCliCommand::Check { dir } => run_check_dir_command(&dir),
+        DirCliCommand::Materialize { target } => run_materialize_command(&target),
+        DirCliCommand::Advance { dir, to } => run_advance_command(&dir, &to),
     }
 }
 
@@ -261,6 +282,11 @@ fn run_show_command(target: &ShowCliTarget) -> Result<DirCliOutput, QianjiError>
         ShowCliTarget::Dir(dir) => run_show_dir_command(dir),
         ShowCliTarget::Graph(graph) => run_show_graph_command(graph),
         ShowCliTarget::Contract(contract_name) => run_show_contract_command(contract_name),
+        ShowCliTarget::AnchoredScenario {
+            anchor,
+            scenario,
+            dir,
+        } => run_show_anchored_scenario_command(anchor, scenario, dir.as_deref()),
     }
 }
 
@@ -317,6 +343,17 @@ fn run_show_contract_command(contract_name: &str) -> Result<DirCliOutput, Qianji
     })
 }
 
+fn run_show_anchored_scenario_command(
+    anchor: &Path,
+    scenario: &str,
+    dir: Option<&Path>,
+) -> Result<DirCliOutput, QianjiError> {
+    Ok(DirCliOutput {
+        rendered: show_flowhub_anchored_scenario(anchor, scenario, dir)?,
+        exit_code: 0,
+    })
+}
+
 fn run_check_dir_command(dir: &Path) -> Result<DirCliOutput, QianjiError> {
     if looks_like_workdir_dir(dir)? {
         let report = check_workdir(dir)?;
@@ -348,10 +385,109 @@ fn run_check_dir_command(dir: &Path) -> Result<DirCliOutput, QianjiError> {
         });
     }
 
+    if !dir.exists() {
+        return Ok(render_missing_workdir_root_output(dir));
+    }
+
+    if dir.is_dir() {
+        return Ok(render_uninitialized_workdir_root_output(dir));
+    }
+
     Err(QianjiError::Topology(format!(
         "`{}` is neither a bounded work surface, a Flowhub root/module, nor a Flowhub scenario directory",
         dir.display()
     )))
+}
+
+fn run_materialize_command(target: &MaterializeCliTarget) -> Result<DirCliOutput, QianjiError> {
+    match target {
+        MaterializeCliTarget::AnchoredScenario {
+            anchor,
+            scenario,
+            dir,
+            current_node,
+        } => {
+            let materialized = materialize_flowhub_anchored_scenario_at_node(
+                anchor,
+                scenario,
+                dir,
+                current_node.as_deref(),
+            )?;
+            Ok(DirCliOutput {
+                rendered: render_anchored_materialized_workdir(&materialized),
+                exit_code: 0,
+            })
+        }
+    }
+}
+
+fn run_advance_command(dir: &Path, to: &str) -> Result<DirCliOutput, QianjiError> {
+    let advance = advance_workdir_step(dir, to)?;
+    Ok(DirCliOutput {
+        rendered: render_workdir_advance(&advance),
+        exit_code: 0,
+    })
+}
+
+fn render_missing_workdir_root_output(dir: &Path) -> DirCliOutput {
+    render_workdir_bootstrap_output(
+        dir,
+        "Missing workdir root",
+        format!(
+            "localized run root `{}` does not exist, so `qianji check` has no bounded work surface to evaluate",
+            dir.display()
+        ),
+        format!(
+            "create `{}` with `qianji.toml`, `flowchart.mmd`, and the scenario-declared runtime surfaces before rerunning `qianji check --dir {}`; use `qianji show --anchor <module-qianji.toml> --scenario <name> --dir {}` to inspect the expected surface first",
+            dir.display(),
+            dir.display(),
+            dir.display()
+        ),
+    )
+}
+
+fn render_uninitialized_workdir_root_output(dir: &Path) -> DirCliOutput {
+    render_workdir_bootstrap_output(
+        dir,
+        "Uninitialized workdir root",
+        format!(
+            "`{}` exists, but it does not yet declare a bounded work-surface manifest (`qianji.toml` with `[plan]` and `[check]`)",
+            dir.display()
+        ),
+        format!(
+            "initialize `{}` with `qianji.toml`, `flowchart.mmd`, and the scenario-declared runtime surfaces before rerunning `qianji check --dir {}`; use `qianji show --anchor <module-qianji.toml> --scenario <name> --dir {}` to inspect the expected surface first",
+            dir.display(),
+            dir.display(),
+            dir.display()
+        ),
+    )
+}
+
+fn render_workdir_bootstrap_output(
+    dir: &Path,
+    title: &str,
+    problem: String,
+    fix: String,
+) -> DirCliOutput {
+    let report = WorkdirCheckReport {
+        plan_name: "uninitialized-workdir".to_string(),
+        workdir: dir.to_path_buf(),
+        diagnostics: vec![WorkdirDiagnostic {
+            title: title.to_string(),
+            location: dir.to_path_buf(),
+            problem,
+            why_it_blocks:
+                "Qianji cannot evaluate localized step boundaries until the run root is materialized"
+                    .to_string(),
+            fix,
+            follow_up_surfaces: Vec::new(),
+        }],
+    };
+
+    DirCliOutput {
+        rendered: render_workdir_check_markdown(&report),
+        exit_code: 2,
+    }
 }
 
 fn resolve_default_flowhub_root() -> io::Result<PathBuf> {
@@ -898,6 +1034,13 @@ fn parse_dir_command(args: &[String]) -> io::Result<Option<DirCliCommand>> {
         Some("check") => Ok(Some(DirCliCommand::Check {
             dir: parse_dir_flag(&args[2..], "check")?,
         })),
+        Some("materialize") => Ok(Some(DirCliCommand::Materialize {
+            target: parse_materialize_target(&args[2..])?,
+        })),
+        Some("advance") => {
+            let (dir, to) = parse_advance_command(&args[2..])?;
+            Ok(Some(DirCliCommand::Advance { dir, to }))
+        }
         _ => Ok(None),
     }
 }
@@ -907,6 +1050,8 @@ fn parse_show_target(args: &[String]) -> io::Result<ShowCliTarget> {
     let mut dir = None;
     let mut graph = None;
     let mut contract = None;
+    let mut anchor = None;
+    let mut scenario = None;
     while index < args.len() {
         match args[index].as_str() {
             "--dir" => {
@@ -930,6 +1075,20 @@ fn parse_show_target(args: &[String]) -> io::Result<ShowCliTarget> {
                 })?;
                 contract = Some(value.clone());
             }
+            "--anchor" => {
+                index += 1;
+                let value = args
+                    .get(index)
+                    .ok_or_else(|| invalid_input("missing value for --anchor in `show` command"))?;
+                anchor = Some(PathBuf::from(value));
+            }
+            "--scenario" => {
+                index += 1;
+                let value = args.get(index).ok_or_else(|| {
+                    invalid_input("missing value for --scenario in `show` command")
+                })?;
+                scenario = Some(value.clone());
+            }
             other => {
                 return Err(invalid_input(format!(
                     "unsupported `show` option `{other}`"
@@ -939,15 +1098,23 @@ fn parse_show_target(args: &[String]) -> io::Result<ShowCliTarget> {
         index += 1;
     }
 
-    match (dir, graph, contract) {
-        (Some(dir), None, None) => Ok(ShowCliTarget::Dir(dir)),
-        (None, Some(graph), None) => Ok(ShowCliTarget::Graph(graph)),
-        (None, None, Some(contract_name)) => Ok(ShowCliTarget::Contract(contract_name)),
-        (None, None, None) => Err(invalid_input(
-            "missing `--dir <path>`, `--graph <path>`, or `--contract <name>` for `show` command",
+    match (anchor, scenario, dir, graph, contract) {
+        (Some(anchor), Some(scenario), dir, None, None) => Ok(ShowCliTarget::AnchoredScenario {
+            anchor,
+            scenario,
+            dir,
+        }),
+        (Some(_), None, _, None, None) | (None, Some(_), _, None, None) => Err(invalid_input(
+            "`show --anchor` requires `--scenario <ref>` and `show --scenario` requires `--anchor <path>`",
+        )),
+        (None, None, Some(dir), None, None) => Ok(ShowCliTarget::Dir(dir)),
+        (None, None, None, Some(graph), None) => Ok(ShowCliTarget::Graph(graph)),
+        (None, None, None, None, Some(contract_name)) => Ok(ShowCliTarget::Contract(contract_name)),
+        (None, None, None, None, None) => Err(invalid_input(
+            "missing `--dir <path>`, `--graph <path>`, `--contract <name>`, or `--anchor <path> --scenario <ref>` for `show` command",
         )),
         _ => Err(invalid_input(
-            "`show` command requires exactly one of `--dir <path>`, `--graph <path>`, or `--contract <name>`",
+            "`show` command requires exactly one of `--dir <path>`, `--graph <path>`, `--contract <name>`, or `--anchor <path> --scenario <ref>`",
         )),
     }
 }
@@ -976,6 +1143,101 @@ fn parse_dir_flag(args: &[String], command: &str) -> io::Result<PathBuf> {
     dir.ok_or_else(|| invalid_input(format!("missing `--dir <path>` for `{command}` command")))
 }
 
+fn parse_materialize_target(args: &[String]) -> io::Result<MaterializeCliTarget> {
+    let mut index = 0;
+    let mut anchor = None;
+    let mut scenario = None;
+    let mut dir = None;
+    let mut current_node = None;
+    while index < args.len() {
+        match args[index].as_str() {
+            "--anchor" => {
+                index += 1;
+                let value = args.get(index).ok_or_else(|| {
+                    invalid_input("missing value for --anchor in `materialize` command")
+                })?;
+                anchor = Some(PathBuf::from(value));
+            }
+            "--scenario" => {
+                index += 1;
+                let value = args.get(index).ok_or_else(|| {
+                    invalid_input("missing value for --scenario in `materialize` command")
+                })?;
+                scenario = Some(value.clone());
+            }
+            "--dir" => {
+                index += 1;
+                let value = args.get(index).ok_or_else(|| {
+                    invalid_input("missing value for --dir in `materialize` command")
+                })?;
+                dir = Some(PathBuf::from(value));
+            }
+            "--current-node" => {
+                index += 1;
+                let value = args.get(index).ok_or_else(|| {
+                    invalid_input("missing value for --current-node in `materialize` command")
+                })?;
+                current_node = Some(value.clone());
+            }
+            other => {
+                return Err(invalid_input(format!(
+                    "unsupported `materialize` option `{other}`"
+                )));
+            }
+        }
+        index += 1;
+    }
+
+    match (anchor, scenario, dir) {
+        (Some(anchor), Some(scenario), Some(dir)) => Ok(MaterializeCliTarget::AnchoredScenario {
+            anchor,
+            scenario,
+            dir,
+            current_node,
+        }),
+        _ => Err(invalid_input(
+            "missing `--anchor <path> --scenario <ref> --dir <path>` for `materialize` command",
+        )),
+    }
+}
+
+fn parse_advance_command(args: &[String]) -> io::Result<(PathBuf, String)> {
+    let mut index = 0;
+    let mut dir = None;
+    let mut to = None;
+    while index < args.len() {
+        match args[index].as_str() {
+            "--dir" => {
+                index += 1;
+                let value = args
+                    .get(index)
+                    .ok_or_else(|| invalid_input("missing value for --dir in `advance` command"))?;
+                dir = Some(PathBuf::from(value));
+            }
+            "--to" => {
+                index += 1;
+                let value = args
+                    .get(index)
+                    .ok_or_else(|| invalid_input("missing value for --to in `advance` command"))?;
+                to = Some(value.clone());
+            }
+            other => {
+                return Err(invalid_input(format!(
+                    "unsupported `advance` option `{other}`"
+                )));
+            }
+        }
+        index += 1;
+    }
+
+    match (dir, to) {
+        (Some(dir), Some(to)) => Ok((dir, to)),
+        _ => Err(invalid_input(
+            "missing `--dir <path> --to <node>` for `advance` command",
+        )),
+    }
+}
+
 fn parse_flag_value(args: &[String], index: &mut usize, flag: &str) -> io::Result<String> {
     *index += 1;
     args.get(*index)
@@ -996,6 +1258,10 @@ fn print_qianji_usage() {
     eprintln!("  Show:      qianji [-v|--log-verbose] show --dir <path>");
     eprintln!("             qianji [-v|--log-verbose] show --graph <path>");
     eprintln!("             qianji [-v|--log-verbose] show --contract <id>");
+    eprintln!(
+        "  Materialize: qianji [-v|--log-verbose] materialize --anchor <path> --scenario <ref> --dir <path> [--current-node <node>]"
+    );
+    eprintln!("  Advance:   qianji [-v|--log-verbose] advance --dir <path> --to <node>");
     eprintln!("  Check:     qianji [-v|--log-verbose] check --dir <path>");
     eprintln!(
         "  Contract:  qianji [-v|--log-verbose] contract-feedback rest-docs <openapi_path> [--workspace-root PATH] [--storage-path PATH] [--table-name NAME] [--role ROLE]... [--no-persist] [--live-advisory] [--model MODEL] [--temperature FLOAT] [--cognitive-threshold FLOAT]"

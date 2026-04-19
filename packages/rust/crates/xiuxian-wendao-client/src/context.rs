@@ -5,6 +5,7 @@ use std::path::{Path, PathBuf};
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ClientContext {
     root: PathBuf,
+    config_file: Option<PathBuf>,
     output: OutputFormat,
 }
 
@@ -15,6 +16,7 @@ impl ClientContext {
         let root = root.into();
         Self {
             root: absolutize(&root),
+            config_file: None,
             output,
         }
     }
@@ -25,10 +27,23 @@ impl ClientContext {
         &self.root
     }
 
+    /// Optional config path used by config-aware commands.
+    #[must_use]
+    pub fn config_file(&self) -> Option<&Path> {
+        self.config_file.as_deref()
+    }
+
     /// Output mode for rendered command results.
     #[must_use]
     pub fn output(&self) -> OutputFormat {
         self.output
+    }
+
+    /// Attach an optional config path to the client execution context.
+    #[must_use]
+    pub fn with_config_file(mut self, config_file: Option<PathBuf>) -> Self {
+        self.config_file = config_file.map(|path| absolutize(path.as_path()));
+        self
     }
 }
 

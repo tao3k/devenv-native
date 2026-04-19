@@ -11,5 +11,5 @@ pub(super) async fn handle(cli: &Cli, args: &SqlQueryArgs) -> Result<()> {
         .await
         .map_err(|error| anyhow!(error))
         .with_context(|| format!("failed to execute shared SQL query `{}`", args.query))?;
-    emit(&payload, cli.output)
+    emit(&payload, cli.output_or_json())
 }

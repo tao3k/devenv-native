@@ -1,6 +1,9 @@
 use super::parse_target::{parse_markdown_target, parse_wikilink_target};
-use super::types::{ExtractedLinkTargets, ParsedTarget, ResolvedNoteReference};
+#[cfg(any(test, feature = "studio"))]
+use super::types::ResolvedNoteReference;
+use super::types::{ExtractedLinkTargets, ParsedTarget};
 use std::path::Path;
+#[cfg(any(test, feature = "studio"))]
 use xiuxian_wendao_parsers::references::MarkdownReference;
 use xiuxian_wendao_parsers::targets::{MarkdownTargetOccurrence, MarkdownTargetOccurrenceKind};
 
@@ -66,6 +69,7 @@ pub(in crate::parsers::markdown) fn extract_link_targets_from_occurrences_in_ran
     }
 }
 
+#[cfg(any(test, feature = "studio"))]
 pub(crate) fn extract_resolved_note_references(
     references: &[MarkdownReference],
     occurrences: &[MarkdownTargetOccurrence],
@@ -101,6 +105,7 @@ pub(crate) fn extract_resolved_note_references(
     resolved
 }
 
+#[cfg(any(test, feature = "studio"))]
 fn occurrence_has_reference_entry(raw_target: &str) -> bool {
     let trimmed = raw_target.trim();
     if trimmed.is_empty() {
@@ -114,6 +119,7 @@ fn occurrence_has_reference_entry(raw_target: &str) -> bool {
         .is_none_or(|(target, _)| !target.trim().is_empty())
 }
 
+#[cfg(any(test, feature = "studio"))]
 fn resolve_note_reference_target(
     occurrence: &MarkdownTargetOccurrence,
     source_path: &Path,

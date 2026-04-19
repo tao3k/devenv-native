@@ -9,7 +9,8 @@ mod workdir;
 pub use bindings::{NodeLlmBinding, NodeQianhuanBinding, NodeQianhuanExecutionMode};
 pub use execution::{FlowInstruction, NodeStatus, QianjiOutput};
 pub use flowhub::{
-    FlowhubGraphContract, FlowhubGraphTopology, FlowhubModuleExports, FlowhubModuleManifest,
+    FlowhubGraphContract, FlowhubGraphNodeContract, FlowhubGraphSurfaceContract,
+    FlowhubGraphTopology, FlowhubGraphWorkdirContract, FlowhubModuleExports, FlowhubModuleManifest,
     FlowhubModuleMetadata, FlowhubRootManifest, FlowhubRootMetadata, FlowhubScenarioManifest,
     FlowhubScenarioPlanning, FlowhubScenarioTemplate, FlowhubStructureContract,
     FlowhubTemplateComposition, FlowhubValidationKind, FlowhubValidationRule,

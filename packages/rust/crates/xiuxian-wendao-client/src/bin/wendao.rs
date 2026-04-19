@@ -14,7 +14,8 @@ fn main() -> ExitCode {
         return ExitCode::from(1);
     }
 
-    let context = ClientContext::new(cli.root.as_path(), cli.output);
+    let context =
+        ClientContext::new(cli.root.as_path(), cli.output).with_config_file(cli.config_file);
     match run_command(&cli.command, &context) {
         Ok(outcome) => ExitCode::from(outcome.exit_code()),
         Err(error) => {

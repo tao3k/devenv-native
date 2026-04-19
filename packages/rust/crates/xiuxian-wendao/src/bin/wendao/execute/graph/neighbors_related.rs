@@ -29,7 +29,7 @@ pub(super) fn handle_neighbors(
     let index = index.context("link_graph index is required for neighbors command")?;
     let candidates = index.resolve_metadata_candidates(stem);
     match candidates.len() {
-        0 => emit(&Vec::<serde_json::Value>::new(), cli.output),
+        0 => emit(&Vec::<serde_json::Value>::new(), cli.output_or_json()),
         1 => {
             let resolved = &candidates[0].path;
             let payload = index.neighbors(
@@ -38,7 +38,7 @@ pub(super) fn handle_neighbors(
                 hops.max(1),
                 limit.max(1),
             );
-            emit(&payload, cli.output)
+            emit(&payload, cli.output_or_json())
         }
         _ => {
             let payload = json!({
@@ -49,7 +49,7 @@ pub(super) fn handle_neighbors(
                 "message": "multiple documents matched this stem/id/path; use full id or path",
                 "candidates": candidates,
             });
-            emit(&payload, cli.output)
+            emit(&payload, cli.output_or_json())
         }
     }
 }
@@ -68,7 +68,7 @@ pub(super) fn handle_related(
     );
     let candidates = index.resolve_metadata_candidates(args.stem);
     if candidates.is_empty() {
-        return emit(&Vec::<serde_json::Value>::new(), cli.output);
+        return emit(&Vec::<serde_json::Value>::new(), cli.output_or_json());
     }
     if candidates.len() > 1 {
         let payload = json!({
@@ -79,7 +79,7 @@ pub(super) fn handle_related(
             "message": "multiple documents matched this stem/id/path; use full id or path",
             "candidates": candidates,
         });
-        return emit(&payload, cli.output);
+        return emit(&payload, cli.output_or_json());
     }
     let resolved = &candidates[0].path;
     let bounded_distance = args.max_distance.max(1);
@@ -98,10 +98,10 @@ pub(super) fn handle_related(
             "total": results.len(),
             "results": results,
         });
-        emit(&payload, cli.output)
+        emit(&payload, cli.output_or_json())
     } else {
         let (results, _) =
             index.related_with_diagnostics(resolved, bounded_distance, bounded_limit, ppr.as_ref());
-        emit(&results, cli.output)
+        emit(&results, cli.output_or_json())
     }
 }

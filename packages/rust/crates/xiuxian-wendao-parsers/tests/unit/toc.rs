@@ -1,4 +1,7 @@
-use xiuxian_wendao_parsers::toc::{MarkdownTocDocument, TocDocument, parse_markdown_toc};
+use xiuxian_wendao_parsers::toc::{
+    MarkdownOutlineDocument, MarkdownTocDocument, TocDocument, parse_markdown_outline,
+    parse_markdown_toc,
+};
 
 #[test]
 fn parse_markdown_toc_aggregates_document_and_sections() {
@@ -70,5 +73,54 @@ fn parse_markdown_toc_uses_structural_fallback_title_not_code_fence_text() {
         toc.sections
             .iter()
             .all(|section| section.heading_title().is_empty())
+    );
+}
+
+#[test]
+fn parse_markdown_outline_uses_frontmatter_title_and_doc_type() {
+    let outline = parse_markdown_outline(
+        concat!(
+            "---\n",
+            "title: Outline Contract\n",
+            "type: reference\n",
+            "---\n",
+            "\n",
+            "# API\n",
+            "\n",
+            "## Endpoint\n",
+        ),
+        "fallback",
+    );
+    let markdown: &MarkdownOutlineDocument = &outline;
+
+    assert_eq!(markdown.title, "Outline Contract");
+    assert_eq!(markdown.doc_type.as_deref(), Some("reference"));
+    assert_eq!(markdown.headings.len(), 2);
+    assert_eq!(markdown.headings[0].title, "API");
+    assert_eq!(markdown.headings[0].line_range, (1, 2));
+    assert_eq!(markdown.headings[1].line_range, (3, 3));
+}
+
+#[test]
+fn parse_markdown_outline_ignores_code_fence_heading_like_lines() {
+    let outline = parse_markdown_outline(
+        concat!(
+            "# Root\n\n",
+            "```md\n",
+            "## Not a heading\n",
+            "```\n",
+            "## Child\n",
+        ),
+        "fallback",
+    );
+
+    assert_eq!(outline.title, "Root");
+    assert_eq!(
+        outline
+            .headings
+            .iter()
+            .map(|heading| heading.title.as_str())
+            .collect::<Vec<_>>(),
+        vec!["Root", "Child"]
     );
 }

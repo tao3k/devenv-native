@@ -1,0 +1,40 @@
+id = "wendao.docs.document"
+version = 1
+task_types = [
+    "http_call",
+    "cli_call",
+]
+
+[http]
+method = "GET"
+path = "/api/docs/page"
+query = [
+    "repo",
+    "page_id",
+]
+
+[cli]
+argv = [
+    "wendao",
+    "docs",
+    "page",
+]
+
+[cli.flags]
+page_id = "--page-id"
+repo = "--repo"
+
+[tool]
+name = "wendao.docs.get_document"
+schema = "schema.json"
+runtime_injected = ["repo"]
+
+[[params]]
+name = "repo"
+type = "string"
+required = true
+
+[[params]]
+name = "page_id"
+type = "string"
+required = true

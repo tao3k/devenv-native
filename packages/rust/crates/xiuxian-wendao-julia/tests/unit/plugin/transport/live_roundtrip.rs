@@ -6,7 +6,7 @@ use crate::julia_plugin_test_support::common::{
 };
 
 fn skip_missing_linked_julia_package(
-    package_dir: Option<std::path::PathBuf>,
+    package_dir: Option<&std::path::Path>,
     test_name: &str,
     relative_path: &str,
 ) -> bool {
@@ -26,7 +26,7 @@ fn skip_missing_linked_julia_package(
 #[serial_test::serial(julia_arrow_live)]
 async fn process_julia_flight_batches_validates_remote_response() {
     if skip_missing_linked_julia_package(
-        linked_wendaoarrow_package_dir(),
+        linked_wendaoarrow_package_dir().as_deref(),
         "WendaoArrow live transport proof",
         DEFAULT_JULIA_ARROW_PACKAGE_DIR,
     ) {
@@ -52,7 +52,7 @@ async fn process_julia_flight_batches_validates_remote_response() {
 #[serial_test::serial(julia_arrow_live)]
 async fn process_julia_flight_batches_rejects_invalid_remote_response() {
     if skip_missing_linked_julia_package(
-        linked_wendaoarrow_package_dir(),
+        linked_wendaoarrow_package_dir().as_deref(),
         "WendaoArrow bad-response live transport proof",
         DEFAULT_JULIA_ARROW_PACKAGE_DIR,
     ) {
@@ -86,7 +86,7 @@ async fn process_julia_flight_batches_rejects_invalid_remote_response() {
 #[serial_test::serial(julia_arrow_live)]
 async fn process_julia_flight_batches_for_repository_builds_transport_from_repo_config() {
     if skip_missing_linked_julia_package(
-        linked_wendaoarrow_package_dir(),
+        linked_wendaoarrow_package_dir().as_deref(),
         "WendaoArrow repository-configured live transport proof",
         DEFAULT_JULIA_ARROW_PACKAGE_DIR,
     ) {
@@ -152,7 +152,7 @@ async fn process_julia_flight_batches_for_repository_rejects_missing_transport()
 #[serial_test::serial(julia_arrow_live)]
 async fn process_julia_flight_batches_against_real_wendaoarrow_service() {
     if skip_missing_linked_julia_package(
-        linked_wendaoarrow_package_dir(),
+        linked_wendaoarrow_package_dir().as_deref(),
         "WendaoArrow live roundtrip proof",
         DEFAULT_JULIA_ARROW_PACKAGE_DIR,
     ) {
@@ -194,7 +194,7 @@ async fn process_julia_flight_batches_against_real_wendaoarrow_service() {
 #[serial_test::serial(julia_arrow_live)]
 async fn real_wendaoarrow_metadata_example_roundtrip_decodes_trace_id_column() {
     if skip_missing_linked_julia_package(
-        linked_wendaoarrow_package_dir(),
+        linked_wendaoarrow_package_dir().as_deref(),
         "WendaoArrow metadata live roundtrip proof",
         DEFAULT_JULIA_ARROW_PACKAGE_DIR,
     ) {
@@ -230,7 +230,7 @@ async fn real_wendaoarrow_metadata_example_roundtrip_decodes_trace_id_column() {
 #[serial_test::serial(julia_arrow_live)]
 async fn real_wendaoanalyzer_linear_blend_roundtrip_emits_expected_scores() {
     if skip_missing_linked_julia_package(
-        linked_wendaoanalyzer_package_dir(),
+        linked_wendaoanalyzer_package_dir().as_deref(),
         "WendaoAnalyzer linear-blend live roundtrip proof",
         DEFAULT_JULIA_ANALYZER_PACKAGE_DIR,
     ) {

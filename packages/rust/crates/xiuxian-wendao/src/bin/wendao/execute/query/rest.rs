@@ -25,5 +25,5 @@ pub(super) async fn handle(cli: &Cli, args: &RestQueryArgs) -> Result<()> {
                 args.payload
             )
         })?;
-    emit(&payload, cli.output)
+    emit(&payload, cli.output_or_json())
 }

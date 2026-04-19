@@ -10,7 +10,7 @@ use xiuxian_wendao::{
 
 pub(super) fn handle_log(cli: &Cli, request: &LinkGraphSuggestedLinkRequest) -> Result<()> {
     let row = valkey_suggested_link_log(request).map_err(anyhow::Error::msg)?;
-    emit(&row, cli.output)
+    emit(&row, cli.output_or_json())
 }
 
 pub(super) fn handle_recent(
@@ -33,7 +33,7 @@ pub(super) fn handle_recent(
             .filter(|row| Some(row.promotion_state) == state_filter)
             .collect()
     };
-    emit(&filtered, cli.output)
+    emit(&filtered, cli.output_or_json())
 }
 
 pub(super) fn handle_decide(
@@ -52,10 +52,10 @@ pub(super) fn handle_decide(
         decided_at_unix,
     };
     let result = valkey_suggested_link_decide(&request).map_err(anyhow::Error::msg)?;
-    emit(&result, cli.output)
+    emit(&result, cli.output_or_json())
 }
 
 pub(super) fn handle_decisions(cli: &Cli, limit: usize) -> Result<()> {
     let rows = valkey_suggested_link_decisions_recent(limit).map_err(anyhow::Error::msg)?;
-    emit(&rows, cli.output)
+    emit(&rows, cli.output_or_json())
 }

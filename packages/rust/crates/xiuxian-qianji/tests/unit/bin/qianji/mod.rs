@@ -1,8 +1,9 @@
 use super::{
     ContractFeedbackCliCommand, DEFAULT_CONTRACT_FEEDBACK_TABLE_NAME, DirCliCommand,
-    REST_DOCS_PACK_ID, RestDocsCliCommand, ShowCliTarget, build_contract_feedback_config,
-    build_rest_docs_collection_context, parse_contract_feedback_command, parse_dir_command,
-    resolve_workspace_root, run_deterministic_rest_docs_contract_feedback, run_dir_command,
+    MaterializeCliTarget, REST_DOCS_PACK_ID, RestDocsCliCommand, ShowCliTarget,
+    build_contract_feedback_config, build_rest_docs_collection_context,
+    parse_contract_feedback_command, parse_dir_command, resolve_workspace_root,
+    run_deterministic_rest_docs_contract_feedback, run_dir_command,
     run_scaffold_rest_docs_contract_feedback, sanitize_prj_cache_home,
 };
 use std::fs;

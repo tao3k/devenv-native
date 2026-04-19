@@ -14,15 +14,14 @@ in
   ];
   claude.code.enable = true;
   env = {
-    ANTHROPIC_BASE_URL = "https://aiproxy.xin/api";
-    ANTHROPIC_AUTH_TOKEN = config.secretspec.secrets.GLM_API_KEY;
-    API_TIMEOUT_MS = "2000000";
+    ANTHROPIC_BASE_URL = "https://token-plan-sgp.xiaomimimo.com/anthropic";
+    ANTHROPIC_AUTH_TOKEN = config.secretspec.secrets.MIMO_API_KEY;
+    # API_TIMEOUT_MS = "2000000";
     alwaysThinkingEnabled = "true";
-    CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC = "1"; # Note: Convert to string
-    ANTHROPIC_MODEL = "glm-5";
-    ANTHROPIC_SMALL_FAST_MODEL = "glm-4.5-air";
-    ANTHROPIC_DEFAULT_SONNET_MODEL = "glm-4.7";
-    ANTHROPIC_DEFAULT_OPUS_MODEL = "glm-5";
+    ANTHROPIC_MODEL = "mimo-v2-pro";
+    ANTHROPIC_SMALL_FAST_MODEL = "mimo-v2-pro";
+    ANTHROPIC_DEFAULT_SONNET_MODEL = "mimo-v2-pro";
+    ANTHROPIC_DEFAULT_OPUS_MODEL = "mimo-v2-pro";
   };
   claude.code.hooks = {
     # PostToolUse = {

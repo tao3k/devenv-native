@@ -143,11 +143,13 @@ pub(crate) use service::{
     symbol_fallback_contract,
 };
 pub use service::{
-    DOCS_CONTRACT_IDS, DOCS_NAVIGATION_CONTRACT_ID, DOCS_RETRIEVAL_CONTEXT_CONTRACT_ID,
+    DOCS_CONTRACT_IDS, DOCS_DOCUMENT_CONTRACT_ID, DOCS_NAVIGATION_CONTRACT_ID,
+    DOCS_PAGE_INDEX_TREE_CONTRACT_ID, DOCS_RETRIEVAL_CONTEXT_CONTRACT_ID, DOCS_SEARCH_CONTRACT_ID,
     DocsCapabilityContractAssets, DocsCapabilityContractSnapshot, DocsCliContractSnapshot,
-    DocsContractDefaultValue, DocsContractParamSnapshot, DocsHttpContractSnapshot,
-    DocsNavigationOptions, DocsNavigationToolArgs, DocsRetrievalContextOptions,
-    DocsRetrievalContextToolArgs, DocsToolContractSnapshot, DocsToolService,
+    DocsContractDefaultValue, DocsContractParamSnapshot, DocsDocumentToolArgs,
+    DocsHttpContractSnapshot, DocsNavigationOptions, DocsNavigationToolArgs,
+    DocsPageIndexTreeToolArgs, DocsRetrievalContextOptions, DocsRetrievalContextToolArgs,
+    DocsSearchToolArgs, DocsToolContractSnapshot, DocsToolService,
     JULIA_ARROW_ANALYZER_SCORE_COLUMN, JULIA_ARROW_DOC_ID_COLUMN, JULIA_ARROW_EMBEDDING_COLUMN,
     JULIA_ARROW_FINAL_SCORE_COLUMN, JULIA_ARROW_QUERY_EMBEDDING_COLUMN,
     JULIA_ARROW_TRACE_ID_COLUMN, JULIA_ARROW_VECTOR_SCORE_COLUMN, docs_capability_contract_assets,

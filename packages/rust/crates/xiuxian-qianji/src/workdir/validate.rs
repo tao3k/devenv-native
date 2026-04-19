@@ -3,7 +3,7 @@ use std::collections::BTreeSet;
 use crate::contracts::WorkdirManifest;
 use crate::error::QianjiError;
 
-pub(super) fn validate_workdir_manifest(manifest: &WorkdirManifest) -> Result<(), QianjiError> {
+pub(crate) fn validate_workdir_manifest(manifest: &WorkdirManifest) -> Result<(), QianjiError> {
     if manifest.version != 1 {
         return Err(QianjiError::Topology(format!(
             "unsupported bounded work-surface manifest version `{}`: expected `1`",

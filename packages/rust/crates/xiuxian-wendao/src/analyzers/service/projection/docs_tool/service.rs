@@ -15,7 +15,7 @@ use crate::analyzers::service::projection::{
     docs_markdown_documents_from_config, docs_navigation_from_config, docs_page_from_config,
     docs_page_index_documents_from_config, docs_page_index_node_from_config,
     docs_page_index_tree_from_config, docs_page_index_tree_search_from_config,
-    docs_page_index_trees_from_config, docs_retrieval_context_from_config,
+    docs_page_index_trees_from_config, docs_retrieval_context_from_config, docs_search_from_config,
 };
 use crate::analyzers::{
     DocsMarkdownDocumentsQuery, DocsNavigationQuery, DocsNavigationResult,
@@ -23,7 +23,7 @@ use crate::analyzers::{
     DocsPageIndexNodeResult, DocsPageIndexTreeQuery, DocsPageIndexTreeResult,
     DocsPageIndexTreeSearchQuery, DocsPageIndexTreeSearchResult, DocsPageIndexTreesQuery,
     DocsPageIndexTreesResult, DocsPageQuery, DocsPageResult, DocsRetrievalContextQuery,
-    DocsRetrievalContextResult,
+    DocsRetrievalContextResult, DocsSearchQuery, DocsSearchResult,
 };
 #[cfg(feature = "zhenfa-router")]
 use crate::analyzers::{RegisteredRepository, analyze_registered_repository_with_registry};
@@ -118,6 +118,31 @@ impl DocsToolService {
         )
     }
 
+    /// Search docs-facing projected pages across one repository.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`RepoIntelligenceError`] when repository analysis fails or the
+    /// projected-page search cannot be constructed for the configured
+    /// repository.
+    pub fn search_documents(
+        &self,
+        query: &str,
+        kind: Option<ProjectionPageKind>,
+        limit: usize,
+    ) -> Result<DocsSearchResult, RepoIntelligenceError> {
+        docs_search_from_config(
+            &DocsSearchQuery {
+                repo_id: self.repo_id.clone(),
+                query: query.to_string(),
+                kind,
+                limit,
+            },
+            self.config_path(),
+            self.project_root(),
+        )
+    }
+
     #[cfg(feature = "zhenfa-router")]
     pub(crate) fn get_document_for_registered_repository(
         &self,
@@ -142,7 +167,7 @@ impl DocsToolService {
     ///
     /// Returns [`RepoIntelligenceError`] when repository analysis fails, the
     /// requested page is not present, or page-index tree construction fails.
-    pub fn get_document_structure(
+    pub fn get_page_index_tree(
         &self,
         page_id: &str,
     ) -> Result<DocsPageIndexTreeResult, RepoIntelligenceError> {
@@ -163,12 +188,11 @@ impl DocsToolService {
     ///
     /// Returns [`RepoIntelligenceError`] when repository analysis fails, the
     /// requested page is not present, or page-index tree construction fails.
-    pub fn get_document_structure_outline(
+    pub fn get_page_index_outline(
         &self,
         page_id: &str,
     ) -> Result<DocsPageIndexTreeResult, RepoIntelligenceError> {
-        self.get_document_structure(page_id)
-            .map(text_free_tree_result)
+        self.get_page_index_tree(page_id).map(text_free_tree_result)
     }
 
     /// Return one repo-scoped text-free docs-facing projected page-index tree
@@ -178,9 +202,7 @@ impl DocsToolService {
     ///
     /// Returns [`RepoIntelligenceError`] when repository analysis fails or
     /// page-index tree construction fails.
-    pub fn get_document_structure_catalog(
-        &self,
-    ) -> Result<DocsPageIndexTreesResult, RepoIntelligenceError> {
+    pub fn get_page_index(&self) -> Result<DocsPageIndexTreesResult, RepoIntelligenceError> {
         docs_page_index_trees_from_config(
             &DocsPageIndexTreesQuery {
                 repo_id: self.repo_id.clone(),
@@ -253,7 +275,7 @@ impl DocsToolService {
     ///
     /// Returns [`RepoIntelligenceError`] when repository analysis fails or
     /// projected page-index tree search construction fails.
-    pub fn search_document_structure(
+    pub fn search_page_index(
         &self,
         query: &str,
         kind: Option<ProjectionPageKind>,
@@ -272,7 +294,7 @@ impl DocsToolService {
     }
 
     #[cfg(feature = "zhenfa-router")]
-    pub(crate) fn get_document_structure_for_registered_repository(
+    pub(crate) fn get_page_index_tree_for_registered_repository(
         &self,
         page_id: &str,
         repository: &RegisteredRepository,

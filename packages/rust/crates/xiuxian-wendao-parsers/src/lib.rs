@@ -72,5 +72,8 @@ pub use sections::{
 pub use targets::{
     MarkdownTargetOccurrence, MarkdownTargetOccurrenceKind, TargetOccurrenceCore, extract_targets,
 };
-pub use toc::{MarkdownTocDocument, TocDocument, parse_markdown_toc};
+pub use toc::{
+    MarkdownOutlineDocument, MarkdownOutlineHeading, MarkdownTocDocument, TocDocument,
+    parse_markdown_outline, parse_markdown_toc,
+};
 pub use wikilinks::{MarkdownWikiLink, extract_wikilinks, parse_wikilink_literal};

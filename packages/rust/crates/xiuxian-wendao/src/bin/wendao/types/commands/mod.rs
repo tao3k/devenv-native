@@ -21,8 +21,8 @@ pub(crate) use audit::AuditArgs;
 pub(crate) use command::Command;
 pub(crate) use docs::{
     DocsCommand, DocsContextArgs, DocsNavigationArgs, DocsNodeArgs, DocsPageArgs,
-    DocsSearchStructureArgs, DocsSegmentArgs, DocsStructureCatalogArgs, DocsTocArgs, DocsTreeArgs,
-    DocsTreeOutlineArgs,
+    DocsPageIndexArgs, DocsPageIndexOutlineArgs, DocsSearchArgs, DocsSearchPageIndexArgs,
+    DocsSegmentArgs, DocsTocArgs, DocsTreeArgs,
 };
 pub(crate) use fix::FixArgs;
 #[cfg(feature = "zhenfa-router")]

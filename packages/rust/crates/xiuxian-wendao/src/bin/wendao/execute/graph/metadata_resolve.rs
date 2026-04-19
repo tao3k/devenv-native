@@ -12,14 +12,14 @@ pub(super) fn handle_metadata(cli: &Cli, index: Option<&LinkGraphIndex>, stem: &
     match candidates.len() {
         0 => emit(
             &Option::<xiuxian_wendao::LinkGraphMetadata>::None,
-            cli.output,
+            cli.output_or_json(),
         ),
         1 => {
             let resolved = candidates
                 .into_iter()
                 .next()
                 .context("metadata candidate unexpectedly missing")?;
-            emit(&index.metadata(&resolved.path), cli.output)
+            emit(&index.metadata(&resolved.path), cli.output_or_json())
         }
         _ => {
             let payload = json!({
@@ -29,7 +29,7 @@ pub(super) fn handle_metadata(cli: &Cli, index: Option<&LinkGraphIndex>, stem: &
                 "message": "multiple documents matched this stem/id/path; use full id or path",
                 "candidates": candidates,
             });
-            emit(&payload, cli.output)
+            emit(&payload, cli.output_or_json())
         }
     }
 }
@@ -44,5 +44,5 @@ pub(super) fn handle_resolve(
     let candidates = index.resolve_metadata_candidates(alias);
     let bounded_limit = limit.max(1);
     let results: Vec<_> = candidates.into_iter().take(bounded_limit).collect();
-    emit(&results, cli.output)
+    emit(&results, cli.output_or_json())
 }

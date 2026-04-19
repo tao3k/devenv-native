@@ -32,7 +32,7 @@ pub(crate) async fn run_docs_page_index_tree(
         "DOCS_PAGE_INDEX_TREE_PANIC",
         "Docs page-index tree task failed unexpectedly",
         move |service, repository, registry| {
-            service.get_document_structure_for_registered_repository(
+            service.get_page_index_tree_for_registered_repository(
                 &query.page_id,
                 &repository,
                 registry,

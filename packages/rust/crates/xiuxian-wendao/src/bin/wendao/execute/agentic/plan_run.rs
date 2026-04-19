@@ -31,7 +31,7 @@ pub(super) fn handle_plan(
         };
     }
     let plan = index.agentic_expansion_plan_with_config(query, config);
-    emit(&plan, cli.output)
+    emit(&plan, cli.output_or_json())
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -120,8 +120,8 @@ pub(super) fn handle_run(
             map.insert("phases".to_string(), json!(phases));
             map.insert("monitor".to_string(), monitor);
         }
-        emit(&payload, cli.output)
+        emit(&payload, cli.output_or_json())
     } else {
-        emit(&result, cli.output)
+        emit(&result, cli.output_or_json())
     }
 }

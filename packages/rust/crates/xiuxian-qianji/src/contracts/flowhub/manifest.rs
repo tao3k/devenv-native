@@ -1,4 +1,8 @@
+use std::path::Path;
+
 use serde::{Deserialize, Serialize};
+
+use crate::contracts::WorkdirCheck;
 
 use super::{FlowhubStructureContract, FlowhubValidationRule, TemplateLinkSpec, TemplateUseSpec};
 
@@ -26,6 +30,47 @@ impl FlowhubGraphTopology {
     }
 }
 
+/// One graph-node semantic contract owned by a Mermaid scenario-case contract.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct FlowhubGraphNodeContract {
+    /// Exact Mermaid node label owned by this graph contract.
+    pub label: String,
+    /// Contract-owned node semantic kind.
+    pub kind: String,
+    /// Stable role description shown on `qianji show --graph`.
+    pub role: String,
+    /// Stable action guidance shown on `qianji show --graph`.
+    pub agent_action: String,
+}
+
+/// One rendered surface preview rooted at one symbolic workdir or target root.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct FlowhubGraphSurfaceContract {
+    /// Symbolic root shown for the rendered tree.
+    pub root: String,
+    /// Relative paths rooted under `root`.
+    #[serde(default)]
+    pub paths: Vec<String>,
+}
+
+/// One localized work-surface contract owned by a Mermaid scenario-case.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct FlowhubGraphWorkdirContract {
+    /// Optional execution note shown before the localized work surface.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub note: Option<String>,
+    /// Symbolic run root shown for the localized work surface.
+    pub root: String,
+    /// Localized bounded-work checks derived into the rendered `qianji.toml`.
+    pub check: WorkdirCheck,
+    /// Optional persistent canonical target preview for validated merges.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub target: Option<FlowhubGraphSurfaceContract>,
+}
+
 /// One immediate Mermaid scenario-case contract owned by a Flowhub module.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -38,6 +83,12 @@ pub struct FlowhubGraphContract {
     pub name: Option<String>,
     /// Declared topology classification for the graph.
     pub topology: FlowhubGraphTopology,
+    /// Optional localized work-surface contract for `qianji show --graph`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub workdir: Option<FlowhubGraphWorkdirContract>,
+    /// Declared graph-node semantics owned by this graph contract.
+    #[serde(default)]
+    pub node: Vec<FlowhubGraphNodeContract>,
 }
 
 impl FlowhubGraphContract {
@@ -46,6 +97,17 @@ impl FlowhubGraphContract {
     #[must_use]
     pub fn resolved_name_or<'a>(&'a self, fallback: &'a str) -> &'a str {
         self.name.as_deref().unwrap_or(fallback)
+    }
+
+    /// Resolve the localized bounded-work manifest name from the graph path
+    /// stem, falling back to the optional declared graph alias only if the
+    /// path cannot provide one.
+    #[must_use]
+    pub fn resolved_workdir_name(&self) -> Option<&str> {
+        Path::new(&self.path)
+            .file_stem()
+            .and_then(|stem| stem.to_str())
+            .or(self.name.as_deref())
     }
 }
 

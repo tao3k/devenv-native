@@ -224,10 +224,18 @@ downstream proof.
   routing through HTTP or the shared SQL/query adapters.
 - That same owner path now also exposes repository-scoped markdown TOC/page-index
   documents through `DocsToolService::get_toc_documents()`,
-  `wendao docs toc --repo <repo>`, and `wendao.docs.get_toc_documents`.
+  `wendao docs toc --repo <repo>`, `wendao get toc [<target>]`, and
+  `wendao.docs.get_toc_documents`.
   This slice intentionally does not add a `/api/docs/toc` route, because the
   TOC capability remains a crate-local docs-tool surface instead of a new
   gateway-owned opener.
+  The target-first `wendao get` adapter is owned by
+  `xiuxian-wendao-client::GetCommand`; both the standalone
+  `xiuxian-wendao-client` binary and the embedded `xiuxian-wendao` command
+  path reuse the same parser-backed local materialization for one directory or
+  Markdown file target. Its default human-facing output is a compact Markdown
+  view; `--output json` and `--output pretty` preserve the structured JSON
+  forms.
   Under that opener, the actual Markdown TOC parsing owner is now
   `xiuxian_wendao_parsers::parse_markdown_toc`; `DocsToolService` only reopens
   repo-scoped projected page-index documents on top of the parser-owned
@@ -239,26 +247,29 @@ downstream proof.
   `/api/docs/page-index-node` route, because node reopening remains a
   crate-local docs-tool surface instead of a new gateway-owned opener.
 - That same owner path now also exposes one deterministic structure-search
-  capability through `DocsToolService::search_document_structure(query, kind, limit)`,
+  capability through `DocsToolService::search_page_index(query, kind, limit)`,
   `wendao docs search-structure --repo <repo> --query <query> [--kind <kind>] [--limit <n>]`,
-  and `wendao.docs.search_document_structure`. This slice intentionally does
+  and `wendao.docs.search_page_index`. This slice intentionally does
   not add a `/api/docs/page-index-tree-search` route, because candidate
   generation remains a crate-local docs-tool surface instead of a new
   gateway-owned opener.
 - That same owner path now also exposes one lightweight structure opener
-  through `DocsToolService::get_document_structure_outline(page_id)`,
+  through `DocsToolService::get_page_index_outline(page_id)`,
   `wendao docs tree-outline --repo <repo> --page-id <page-id>`, and
-  `wendao.docs.get_document_structure_outline`. This slice intentionally does
+  `wendao.docs.get_page_index_outline`. This slice intentionally does
   not add a `/api/docs/page-index-tree-outline` route, because token-thinned
   structure inspection remains a crate-local docs-tool surface instead of a
   new gateway-owned opener.
-- That same owner path now also exposes one repo-scoped lightweight structure
-  catalog through `DocsToolService::get_document_structure_catalog()`,
-  `wendao docs structure-catalog --repo <repo>`, and
-  `wendao.docs.get_document_structure_catalog`. This slice intentionally does
+- That same owner path now also exposes one repo-scoped lightweight
+  page-index collection through `DocsToolService::get_page_index()`,
+  `wendao docs page-index --repo <repo>`,
+  `wendao get page-index [<target>]`, and
+  `wendao.docs.get_page_index`. This slice intentionally does
   not add a `/api/docs/page-index-trees` route, because repo-scoped structure
   enumeration remains a crate-local docs-tool surface instead of a new
-  gateway-owned opener.
+  gateway-owned opener. The target-first `wendao get` adapter remains a
+  reusable `xiuxian-wendao-client` contract that the main binary embeds
+  directly instead of reimplementing a second host-owned `get` execution path.
 - That same owner path now also exposes one precise document-segment opener
   through `DocsToolService::get_document_segment(page_id, line_start, line_end)`,
   `wendao docs segment --repo <repo> --page-id <page-id> --line-start <n> --line-end <n>`,
@@ -280,12 +291,12 @@ downstream proof.
   through
   `wendao.docs.get_document`, `wendao.docs.get_document_node`,
   `wendao.docs.get_document_segment`,
-  `wendao.docs.get_document_structure`,
-  `wendao.docs.get_document_structure_catalog`,
-  `wendao.docs.get_document_structure_outline`,
+  `wendao.docs.get_page_index_tree`,
+  `wendao.docs.get_page_index`,
+  `wendao.docs.get_page_index_outline`,
   `wendao.docs.get_navigation`, `wendao.docs.get_retrieval_context`,
   `wendao.docs.get_toc_documents`, and
-  `wendao.docs.search_document_structure`.
+  `wendao.docs.search_page_index`.
   Those tool wrappers resolve a crate-local docs runtime from `ZhenfaContext`,
   falling back to the injected `DocsToolService`, so planner-facing runtimes
   stay on the same owner path instead of adding a thin HTTP client or another
@@ -320,6 +331,7 @@ that intentionally has no matching gateway route:
 
 - `DocsToolService::get_toc_documents()`
   <-> `wendao docs toc --repo <repo>`
+  <-> `wendao get toc [<target>]`
   <-> `wendao.docs.get_toc_documents`
 
 The crate-local docs-tool surface also exposes one stable page-index node
@@ -329,26 +341,27 @@ capability that intentionally has no matching gateway route:
   <-> `wendao docs node --repo <repo> --page-id <page-id> --node-id <node-id>`
   <-> `wendao.docs.get_document_node`
 
-The crate-local docs-tool surface also exposes one deterministic structure
+The crate-local docs-tool surface also exposes one deterministic page-index
 search capability that intentionally has no matching gateway route:
 
-- `DocsToolService::search_document_structure(query, kind, limit)`
+- `DocsToolService::search_page_index(query, kind, limit)`
   <-> `wendao docs search-structure --repo <repo> --query <query> [--kind <kind>] [--limit <n>]`
-  <-> `wendao.docs.search_document_structure`
+  <-> `wendao.docs.search_page_index`
 
-The crate-local docs-tool surface also exposes one lightweight structure
+The crate-local docs-tool surface also exposes one lightweight page-index
 capability that intentionally has no matching gateway route:
 
-- `DocsToolService::get_document_structure_outline(page_id)`
+- `DocsToolService::get_page_index_outline(page_id)`
   <-> `wendao docs tree-outline --repo <repo> --page-id <page-id>`
-  <-> `wendao.docs.get_document_structure_outline`
+  <-> `wendao.docs.get_page_index_outline`
 
 The crate-local docs-tool surface also exposes one repo-scoped lightweight
-structure catalog that intentionally has no matching gateway route:
+page-index collection that intentionally has no matching gateway route:
 
-- `DocsToolService::get_document_structure_catalog()`
-  <-> `wendao docs structure-catalog --repo <repo>`
-  <-> `wendao.docs.get_document_structure_catalog`
+- `DocsToolService::get_page_index()`
+  <-> `wendao docs page-index --repo <repo>`
+  <-> `wendao get page-index [<target>]`
+  <-> `wendao.docs.get_page_index`
 
 The crate-local docs-tool surface also exposes one precise document-segment
 capability that intentionally has no matching gateway route:
@@ -368,23 +381,28 @@ Notes:
   page-index node capability reuses `DocsPageIndexNodeResult`, the
   structure-search capability reuses `DocsPageIndexTreeSearchResult`, the
   lightweight structure opener reuses `DocsPageIndexTreeResult`, and the
-  repo-scoped lightweight structure catalog reuses `DocsPageIndexTreesResult`
+  repo-scoped lightweight page-index collection reuses `DocsPageIndexTreesResult`
   with node `text` fields recursively cleared. The precise segment opener
   reuses projected markdown plus stable `line_range` coordinates; all six stay
-  crate-local for now, so the canonical HTTP mapping still covers only the 4
-  core docs openers.
+  crate-local for now, so the canonical HTTP mapping still covers only the 5
+  core docs openers. The target-first `wendao get` materializations are
+  reusable client-side CLI adapters that always materialize these output
+  families locally from parser-owned Markdown structure for one directory or
+  Markdown file target; they are not a second docs-service owner path.
 - The parser owner for the underlying Markdown TOC extraction is
   `xiuxian_wendao_parsers::parse_markdown_toc`; the docs-tool surface only owns
   repo-scoped opening and transport-facing reuse.
-- The same `navigation` plus `retrieval-context` mapping is now snapshotted as
-  Wendao-owned invocation contracts:
-  `wendao.docs.navigation` and `wendao.docs.retrieval_context`. Each contract
-  is checked in as `contract.toml + schema.json`, reuses the same HTTP route
-  constants, CLI command forms, and native-tool JSON Schema argument structs,
-  and can be rendered in `xiuxian-qianji` through
+- The same core docs opener mapping is now snapshotted as Wendao-owned
+  invocation contracts: `wendao.docs.search`, `wendao.docs.document`,
+  `wendao.docs.page_index_tree`, `wendao.docs.navigation`, and
+  `wendao.docs.retrieval_context`. Each contract is checked in as
+  `contract.toml + schema.json`, reuses the same HTTP route constants, CLI
+  command forms, and native-tool JSON Schema argument structs, and can be
+  rendered in `xiuxian-qianji` through
   `qianji show --contract <contract-id>` without widening the frozen
-  `qianji show --graph` contract. Flow authors can then reference the same
-  contract id from direct `http_call` or `cli_call` nodes in `qianji.toml`.
+  `qianji show --graph` contract. `qianji-flowhub/wendao` now references these
+  stable contract ids as its primary graph nodes, while `/api/docs/*` remains
+  the adapter surface materialized by the contract.
 - The next docs namespace family discovery route follows the same rule:
   `GET /api/docs/family-search` reuses the repo projected-page family-search
   payload instead of introducing a docs-only grouped-family search schema, so

@@ -5,7 +5,12 @@ use std::path::Path;
 use std::path::PathBuf;
 
 use tempfile::TempDir;
-use xiuxian_qianji::{check_workdir, materialize_flowhub_scenario_workdir, show_workdir};
+use xiuxian_config_core::resolve_project_root;
+use xiuxian_qianji::{
+    advance_workdir_step, check_workdir, materialize_flowhub_anchored_scenario,
+    materialize_flowhub_anchored_scenario_at_node, materialize_flowhub_scenario_workdir,
+    show_workdir,
+};
 
 fn write_file(path: &Path, content: &str) {
     if let Some(parent) = path.parent() {
@@ -149,6 +154,11 @@ use = [
     (flowhub_root, scenario_manifest)
 }
 
+fn repo_root() -> PathBuf {
+    resolve_project_root()
+        .unwrap_or_else(|| panic!("workspace root should resolve from PRJ_ROOT or git ancestry"))
+}
+
 #[test]
 fn materialize_flowhub_scenario_generates_compact_work_surface() {
     let temp_dir =
@@ -230,6 +240,134 @@ from markdown \
 where surface in ('blueprint', 'plan') \
 order by surface, path, heading_path"
     ));
+}
+
+#[test]
+fn materialize_flowhub_anchored_scenario_generates_step_aware_run_root() {
+    let temp_dir =
+        TempDir::new().unwrap_or_else(|error| panic!("temp dir should allocate: {error}"));
+    let output_dir = temp_dir.path().join("runs/run_001");
+    let anchor = repo_root().join("qianji-flowhub/research/paper/qianji.toml");
+
+    let materialized = materialize_flowhub_anchored_scenario(&anchor, "deep_read", &output_dir)
+        .unwrap_or_else(|error| panic!("anchored scenario should materialize: {error}"));
+
+    assert_eq!(materialized.plan_name, "deep_read");
+    assert_eq!(materialized.current_node, "research/paper");
+    assert_eq!(
+        materialized.allowed_next,
+        vec!["load_paper_package".to_string()]
+    );
+    assert!(materialized.current_step_surface.is_empty());
+    assert!(output_dir.join("qianji.toml").is_file());
+    assert!(output_dir.join("flowchart.mmd").is_file());
+    assert!(output_dir.join("refs/paper.json").is_file());
+    assert!(output_dir.join("refs/topic.json").is_file());
+    assert!(output_dir.join("state/current_node.toml").is_file());
+    assert!(output_dir.join("state/allowed_next.json").is_file());
+
+    let report = check_workdir(&output_dir)
+        .unwrap_or_else(|error| panic!("anchored materialized workdir should check: {error}"));
+    assert!(report.is_valid());
+}
+
+#[test]
+fn materialize_flowhub_anchored_scenario_scaffolds_selected_current_node() {
+    let temp_dir =
+        TempDir::new().unwrap_or_else(|error| panic!("temp dir should allocate: {error}"));
+    let output_dir = temp_dir.path().join("runs/run_003");
+    let anchor = repo_root().join("qianji-flowhub/research/paper/qianji.toml");
+
+    let materialized = materialize_flowhub_anchored_scenario_at_node(
+        &anchor,
+        "deep_read",
+        &output_dir,
+        Some("claim_extract"),
+    )
+    .unwrap_or_else(|error| {
+        panic!("anchored scenario should scaffold selected current node: {error}")
+    });
+
+    assert_eq!(materialized.plan_name, "deep_read");
+    assert_eq!(materialized.current_node, "claim_extract");
+    assert_eq!(
+        materialized.allowed_next,
+        vec!["diagnostics".to_string(), "evidence_ground".to_string()]
+    );
+    assert_eq!(
+        materialized.current_step_surface,
+        vec![
+            "checkpoints/claim_extract.json".to_string(),
+            "staging/semantics/claim_ledger.patch.jsonl".to_string()
+        ]
+    );
+    assert!(output_dir.join("checkpoints/claim_extract.json").is_file());
+    assert!(
+        output_dir
+            .join("staging/semantics/claim_ledger.patch.jsonl")
+            .is_file()
+    );
+    assert!(!output_dir.join("checkpoints/evidence_ground.json").exists());
+
+    let report = check_workdir(&output_dir).unwrap_or_else(|error| {
+        panic!("current-node scaffolded anchored materialized workdir should check: {error}")
+    });
+    assert!(report.is_valid());
+}
+
+#[test]
+fn advance_workdir_step_updates_localized_step_state() {
+    let temp_dir =
+        TempDir::new().unwrap_or_else(|error| panic!("temp dir should allocate: {error}"));
+    let output_dir = temp_dir.path().join("runs/run_005");
+    let anchor = repo_root().join("qianji-flowhub/research/paper/qianji.toml");
+
+    materialize_flowhub_anchored_scenario_at_node(
+        &anchor,
+        "deep_read",
+        &output_dir,
+        Some("claim_extract"),
+    )
+    .unwrap_or_else(|error| {
+        panic!("anchored scenario should scaffold selected current node: {error}")
+    });
+
+    let advanced = advance_workdir_step(&output_dir, "evidence_ground")
+        .unwrap_or_else(|error| panic!("adjacent localized advance should succeed: {error}"));
+
+    assert_eq!(advanced.plan_name, "deep_read");
+    assert_eq!(advanced.previous_node, "claim_extract");
+    assert_eq!(advanced.current_node, "evidence_ground");
+    assert_eq!(
+        advanced.allowed_next,
+        vec!["diagnostics".to_string(), "limitation_extract".to_string()]
+    );
+    assert_eq!(advanced.trace_path, output_dir.join("state/trace.jsonl"));
+    assert_eq!(
+        fs::read_to_string(output_dir.join("state/current_node.toml"))
+            .unwrap_or_else(|error| panic!("advanced current node should be readable: {error}")),
+        "current_node = \"evidence_ground\"\n"
+    );
+    assert!(
+        output_dir
+            .join("checkpoints/evidence_ground.json")
+            .is_file()
+    );
+    assert!(
+        output_dir
+            .join("staging/semantics/evidence_ledger.patch.jsonl")
+            .is_file()
+    );
+
+    let trace = fs::read_to_string(output_dir.join("state/trace.jsonl"))
+        .unwrap_or_else(|error| panic!("advanced trace should be readable: {error}"));
+    assert!(trace.contains("\"event\":\"step_advance\""));
+    assert!(trace.contains("\"from\":\"claim_extract\""));
+    assert!(trace.contains("\"to\":\"evidence_ground\""));
+
+    let report = check_workdir(&output_dir)
+        .unwrap_or_else(|error| panic!("advanced anchored workdir should check: {error}"));
+    assert!(report.is_valid());
 }
 
 xiuxian_testing::crate_test_policy_harness!();

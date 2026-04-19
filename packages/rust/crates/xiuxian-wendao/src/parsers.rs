@@ -1,6 +1,7 @@
 //! Canonical parser families for Wendao domain-core document understanding.
 
 /// Docs-governance parser helpers.
+#[cfg(any(test, feature = "zhenfa-router"))]
 #[path = "parsers/docs_governance.rs"]
 pub(crate) mod docs_governance;
 /// Graph persistence parsing.
@@ -17,6 +18,7 @@ pub mod markdown;
 #[path = "parsers/search.rs"]
 pub mod search;
 /// Semantic-check grammar helpers.
+#[cfg(any(test, feature = "zhenfa-router"))]
 #[path = "parsers/semantic_check/mod.rs"]
 pub(crate) mod semantic_check;
 #[path = "parsers/zhixing.rs"]

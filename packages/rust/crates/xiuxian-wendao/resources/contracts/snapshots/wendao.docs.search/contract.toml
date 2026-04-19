@@ -1,0 +1,55 @@
+id = "wendao.docs.search"
+version = 1
+task_types = [
+    "http_call",
+    "cli_call",
+]
+
+[http]
+method = "GET"
+path = "/api/docs/search"
+query = [
+    "repo",
+    "query",
+    "kind",
+    "limit",
+]
+
+[cli]
+argv = [
+    "wendao",
+    "docs",
+    "search",
+]
+
+[cli.flags]
+kind = "--kind"
+limit = "--limit"
+query = "--query"
+repo = "--repo"
+
+[tool]
+name = "wendao.docs.search"
+schema = "schema.json"
+runtime_injected = ["repo"]
+
+[[params]]
+name = "repo"
+type = "string"
+required = true
+
+[[params]]
+name = "query"
+type = "string"
+required = true
+
+[[params]]
+name = "kind"
+type = "string"
+required = false
+
+[[params]]
+name = "limit"
+type = "integer"
+required = false
+default = 10

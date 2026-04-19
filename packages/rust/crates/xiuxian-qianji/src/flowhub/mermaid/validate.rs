@@ -3,29 +3,14 @@ use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use super::model::MermaidNode;
 use super::{MermaidFlowchart, MermaidNodeKind};
 
-pub(crate) const ALLOWED_SCENARIO_GRAPH_NODE_LABELS: &[&str] = &[
-    "Codex write bounded surface",
-    "surface check",
-    "flowchart alignment",
-    "boundary check",
-    "drift check",
-    "boundary and drift check",
-    "status legality",
-    "domain validators",
-    "done gate",
-    "diagnostics",
-];
-
-const ALLOWED_HTTP_METHOD_LABELS: &[&str] = &["GET", "POST", "PUT", "PATCH", "DELETE"];
-
 pub(crate) fn validate_mermaid_flowchart(
     flowchart: &MermaidFlowchart,
-    _registered_module_names: &[String],
+    allowed_graph_node_labels: &BTreeSet<String>,
 ) -> Result<(), String> {
     validate_has_edges(flowchart)?;
     let nodes_by_id = node_labels_by_id(flowchart);
     validate_edge_endpoints(flowchart, &nodes_by_id)?;
-    validate_allowed_graph_nodes(flowchart)?;
+    validate_allowed_graph_nodes(flowchart, allowed_graph_node_labels)?;
     let module_nodes = collect_module_nodes(flowchart);
     validate_has_module_nodes(&module_nodes)?;
     let module_edges = collect_module_backbone_edges(flowchart, &module_nodes);
@@ -66,12 +51,17 @@ fn validate_edge_endpoints(
     Ok(())
 }
 
-fn validate_allowed_graph_nodes(flowchart: &MermaidFlowchart) -> Result<(), String> {
+fn validate_allowed_graph_nodes(
+    flowchart: &MermaidFlowchart,
+    allowed_graph_node_labels: &BTreeSet<String>,
+) -> Result<(), String> {
     let undeclared_graph_node_labels = flowchart
         .nodes
         .iter()
         .filter(|node| node.kind != MermaidNodeKind::Module)
-        .filter(|node| !scenario_graph_label_is_allowed(node.label.as_str()))
+        .filter(|node| {
+            !scenario_graph_label_is_allowed(node.label.as_str(), allowed_graph_node_labels)
+        })
         .map(|node| node.label.as_str())
         .collect::<Vec<_>>();
     if undeclared_graph_node_labels.is_empty() {
@@ -84,27 +74,27 @@ fn validate_allowed_graph_nodes(flowchart: &MermaidFlowchart) -> Result<(), Stri
     ))
 }
 
-pub(crate) fn scenario_graph_label_is_allowed(label: &str) -> bool {
-    ALLOWED_SCENARIO_GRAPH_NODE_LABELS.contains(&label) || is_exact_http_request_label(label)
+pub(crate) fn scenario_graph_label_is_allowed(
+    label: &str,
+    allowed_graph_node_labels: &BTreeSet<String>,
+) -> bool {
+    allowed_graph_node_labels.contains(label)
 }
 
-fn is_exact_http_request_label(label: &str) -> bool {
-    let Some((method, target)) = label.split_once(' ') else {
-        return false;
-    };
-    if !ALLOWED_HTTP_METHOD_LABELS.contains(&method) {
-        return false;
+pub(crate) fn normalize_graph_node_label(label: &str) -> String {
+    let mut normalized = String::with_capacity(label.len());
+    let mut inside_angle = false;
+
+    for character in label.chars() {
+        match character {
+            '<' => inside_angle = true,
+            '>' => inside_angle = false,
+            _ if !inside_angle => normalized.push(character),
+            _ => {}
+        }
     }
-    if target.is_empty() || !target.starts_with('/') || target.contains(' ') {
-        return false;
-    }
-    target.chars().all(|ch| {
-        ch.is_ascii_alphanumeric()
-            || matches!(
-                ch,
-                '/' | '?' | '&' | '=' | '<' | '>' | '_' | '-' | '.' | ':' | '%'
-            )
-    })
+
+    normalized
 }
 
 fn collect_module_nodes(flowchart: &MermaidFlowchart) -> Vec<&MermaidNode> {

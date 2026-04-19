@@ -25,11 +25,14 @@ shared core plus one Markdown-local naming surface:
    parser-visible target string
 2. `TargetOccurrenceCore<Kind>` preserves document order for target
    occurrences through the surrounding note aggregate
-3. `TargetOccurrenceCore<Kind>` preserves parser-visible occurrence byte and
+3. `TargetOccurrenceCore<Kind>` preserves parser-visible source surface syntax
+   for each occurrence, such as `[Guide](docs/guide.md)`, `![Logo](logo.png)`,
+   `[[note|Alias]]`, or `![[note#Section]]`
+4. `TargetOccurrenceCore<Kind>` preserves parser-visible occurrence byte and
    line ranges within the frontmatter-stripped document body
-4. `MarkdownTargetOccurrence` is a compatibility alias over
+5. `MarkdownTargetOccurrence` is a compatibility alias over
    `TargetOccurrenceCore<MarkdownTargetOccurrenceKind>`
-5. `MarkdownTargetOccurrenceKind` preserves the current Markdown surfaces:
+6. `MarkdownTargetOccurrenceKind` preserves the current Markdown surfaces:
    inline links, images, ordinary wikilinks, and wiki embeds
 
 This contract is parser-owned and syntax-facing. It does not include path
@@ -43,12 +46,12 @@ The shared extractor follows these rules:
 2. ordinary Markdown links and images are preserved as separate occurrence
    kinds
 3. ordinary body wikilinks are preserved as parser-owned target occurrences
-4. local address-only targets such as `#section` are preserved for the adapter
+4. wiki embeds such as `![[note#Section]]` are preserved as target occurrences
+   even though the ordinary body-wikilink surface still skips them
+5. local address-only targets such as `#section` are preserved for the adapter
    to ignore or consume
-5. occurrence ranges point at the parser-visible syntax occurrence, not only
+6. occurrence ranges point at the parser-visible syntax occurrence, not only
    the bare target substring
-6. embedded wikilinks remain ignored on the current comrak-backed extraction
-   path, matching the existing Wendao note-level behavior
 
 ## Consumer Boundary
 
@@ -79,5 +82,5 @@ Coverage for this contract lives in:
 ---
 
 :FOOTER:
-:LAST_SYNC: 2026-04-12
+:LAST_SYNC: 2026-04-18
 :END:

@@ -5,12 +5,18 @@ xiuxian_testing::crate_test_policy_source_harness!("../tests/unit/lib_policy.rs"
 mod cli;
 mod context;
 mod execute;
+mod get;
 mod lint;
 mod output;
 
 pub use cli::{ClientCli, ClientCommand};
 pub use context::ClientContext;
 pub use execute::{CommandOutcome, run_command};
+pub use get::{
+    DocsPageIndexDocumentsResult, DocsPageIndexTreesResult, GetCommand, GetScopeArgs,
+    ProjectedPageIndexDocument, ProjectedPageIndexLink, ProjectedPageIndexNode,
+    ProjectedPageIndexSection, ProjectedPageIndexTree, ProjectionPageKind,
+};
 pub use lint::{
     LintCommand, MARKDOWN_LINT_DIAGNOSTIC_CONTRACT_IDS, MARKDOWN_LINT_DIAGNOSTICS_CONTRACT_ID,
     MarkdownLintArgs, MarkdownLintDiagnosticContractAssets, MarkdownLintFileReport,

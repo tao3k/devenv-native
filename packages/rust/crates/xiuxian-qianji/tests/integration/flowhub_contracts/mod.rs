@@ -6,9 +6,9 @@ use std::path::{Path, PathBuf};
 use tempfile::TempDir;
 use xiuxian_config_core::resolve_project_root;
 use xiuxian_qianji::{
-    FlowhubGraphNodeKind, FlowhubGraphTopology, FlowhubModuleKind, FlowhubScenarioCaseSummary,
-    FlowhubShow, check_flowhub, classify_flowhub_dir, render_flowhub_check_markdown,
-    render_flowhub_graph_show, render_flowhub_show, show_flowhub, show_flowhub_graph,
+    FlowhubGraphTopology, FlowhubModuleKind, FlowhubScenarioCaseSummary, FlowhubShow,
+    check_flowhub, classify_flowhub_dir, render_flowhub_check_markdown, render_flowhub_graph_show,
+    render_flowhub_show, show_flowhub, show_flowhub_graph,
 };
 
 fn repo_root() -> PathBuf {
@@ -226,6 +226,16 @@ ready = "task.plan-ready"
 
 [contract]
 required = ["codex-plan.mmd"]
+
+[[graph]]
+path = "codex-plan.mmd"
+topology = "dag"
+
+[[graph.node]]
+label = "diagnostics"
+kind = "process"
+role = "capture blocking diagnostics for bounded-surface repair"
+agent_action = "use diagnostics to repair the bounded work surface before retrying"
 "#,
     );
     write_file(
@@ -293,6 +303,16 @@ ready = "task.plan-ready"
 
 [contract]
 required = ["codex-plan.mmd"]
+
+[[graph]]
+path = "codex-plan.mmd"
+topology = "dag"
+
+[[graph.node]]
+label = "coding"
+kind = "context"
+role = "define the top-level coding lane"
+agent_action = "treat as upstream scope, not a writable artifact"
 "#,
     );
     write_file(
@@ -366,14 +386,38 @@ required = ["docs-search.mmd"]
 [[graph]]
 path = "docs-search.mmd"
 topology = "dag"
+
+[[graph.node]]
+label = "wendao.docs.search"
+kind = "capability_contract"
+role = "open the stable docs search capability contract"
+agent_action = "treat this label as the owner-owned contract id and materialize its invocation surface from Wendao contract assets"
+
+[[graph.node]]
+label = "wendao.docs.document"
+kind = "capability_contract"
+role = "open the stable docs document capability contract"
+agent_action = "treat this label as the owner-owned contract id and reopen one docs page through the declared contract surface"
+
+[[graph.node]]
+label = "done gate"
+kind = "gate"
+role = "allow completion only when required guards and validators pass"
+agent_action = "do not treat the slice as complete before qianji check passes"
+
+[[graph.node]]
+label = "diagnostics"
+kind = "process"
+role = "capture blocking diagnostics for bounded-surface repair"
+agent_action = "use diagnostics to repair the bounded retrieval loop before retrying"
 "#,
     );
     write_file(
         &wendao_dir.join("docs-search.mmd"),
         r#"
 flowchart LR
-  A["wendao"] --> B["GET /api/docs/search?repo=<repo>&query=<query>&kind=<kind>&limit=<n>"]
-  B --> C["GET /api/docs/page?repo=<repo>&page_id=<page_id>"]
+  A["wendao"] --> B["wendao.docs.search"]
+  B --> C["wendao.docs.document"]
   C --> D["done gate"]
 "#,
     );
@@ -418,14 +462,38 @@ required = ["docs-search.mmd"]
 [[graph]]
 path = "docs-search.mmd"
 topology = "dag"
+
+[[graph.node]]
+label = "wendao.docs.search"
+kind = "capability_contract"
+role = "open the stable docs search capability contract"
+agent_action = "treat this label as the owner-owned contract id and materialize its invocation surface from Wendao contract assets"
+
+[[graph.node]]
+label = "wendao.docs.document"
+kind = "capability_contract"
+role = "open the stable docs document capability contract"
+agent_action = "treat this label as the owner-owned contract id and reopen one docs page through the declared contract surface"
+
+[[graph.node]]
+label = "done gate"
+kind = "gate"
+role = "allow completion only when required guards and validators pass"
+agent_action = "do not treat the slice as complete before qianji check passes"
+
+[[graph.node]]
+label = "diagnostics"
+kind = "process"
+role = "capture blocking diagnostics for bounded-surface repair"
+agent_action = "use diagnostics to repair the bounded retrieval loop before retrying"
 "#,
     );
     write_file(
         &wendao_dir.join("docs-search.mmd"),
         r#"
 flowchart LR
-  A["wendao"] --> B["GET /api/docs/search?repo=<repo>&query=<query>&kind=<kind>&limit=<n>"]
-  B --> C["GET /api/docs/page?repo=<repo>&page_id=<page_id>"]
+  A["wendao"] --> B["wendao.docs.search"]
+  B --> C["wendao.docs.document"]
   C --> D["done gate"]
   B -- fail --> R["diagnostics"]
   R --> B
@@ -434,14 +502,8 @@ flowchart LR
     root
 }
 
-fn create_flowhub_with_undeclared_mermaid_nodes_case(temp_dir: &TempDir) -> PathBuf {
-    let root = temp_dir.path().join("flowhub");
-    let plan_dir = root.join("plan");
-    fs::create_dir_all(&plan_dir)
-        .unwrap_or_else(|error| panic!("should create plan dir {}: {error}", plan_dir.display()));
-    write_file(
-        &root.join("qianji.toml"),
-        r#"
+fn planning_flowhub_root_manifest() -> &'static str {
+    r#"
 version = 1
 
 [flowhub]
@@ -450,17 +512,12 @@ name = "test-flowhub"
 [contract]
 register = ["coding", "rust", "blueprint", "plan"]
 required = ["*/qianji.toml"]
-"#,
-    );
-    for module_name in ["coding", "rust", "blueprint"] {
-        let module_dir = root.join(module_name);
-        fs::create_dir_all(&module_dir).unwrap_or_else(|error| {
-            panic!("should create module dir {}: {error}", module_dir.display())
-        });
-        write_file(
-            &module_dir.join("qianji.toml"),
-            &format!(
-                r#"
+"#
+}
+
+fn planning_module_manifest(module_name: &str) -> String {
+    format!(
+        r#"
 version = 1
 
 [module]
@@ -471,11 +528,11 @@ tags = ["planning", "{module_name}"]
 entry = "task.{module_name}-start"
 ready = "task.{module_name}-ready"
 "#
-            ),
-        );
-    }
-    write_file(
-        &plan_dir.join("qianji.toml"),
+    )
+}
+
+fn planning_plan_manifest(topology: &str) -> String {
+    format!(
         r#"
 version = 1
 
@@ -489,10 +546,88 @@ ready = "task.plan-ready"
 
 [contract]
 required = ["codex-plan.mmd"]
-"#,
-    );
+
+[[graph]]
+path = "codex-plan.mmd"
+topology = "{topology}"
+
+[[graph.node]]
+label = "Codex write bounded surface"
+kind = "process"
+role = "write the bounded work surface from the graph contract"
+agent_action = "write qianji.toml, flowchart.mmd, blueprint/, and plan/ for the bounded slice"
+
+[[graph.node]]
+label = "surface check"
+kind = "guard"
+role = "require the bounded work surface to exist"
+agent_action = "ensure qianji.toml, flowchart.mmd, blueprint/, and plan/ exist"
+
+[[graph.node]]
+label = "flowchart alignment"
+kind = "guard"
+role = "ensure the flowchart matches the current bounded artifact surface"
+agent_action = "keep flowchart.mmd aligned with blueprint and plan"
+
+[[graph.node]]
+label = "boundary and drift check"
+kind = "guard"
+role = "ensure the bounded artifact state remains inside contract boundaries without drift"
+agent_action = "keep blueprint/ and plan/ inside the bounded surface and consistent with the shown graph"
+
+[[graph.node]]
+label = "domain validators"
+kind = "validator"
+role = "require domain validators to pass before completion"
+agent_action = "prepare the artifact state so required domain validators can succeed"
+
+[[graph.node]]
+label = "done gate"
+kind = "gate"
+role = "allow completion only when required guards and validators pass"
+agent_action = "do not treat the slice as complete before qianji check passes"
+
+[[graph.node]]
+label = "diagnostics"
+kind = "process"
+role = "capture blocking diagnostics for bounded-surface repair"
+agent_action = "use diagnostics to repair the bounded work surface before retrying"
+"#
+    )
+}
+
+fn write_planning_modules(root: &Path) {
+    for module_name in ["coding", "rust", "blueprint"] {
+        let module_dir = root.join(module_name);
+        fs::create_dir_all(&module_dir).unwrap_or_else(|error| {
+            panic!("should create module dir {}: {error}", module_dir.display())
+        });
+        write_file(
+            &module_dir.join("qianji.toml"),
+            &planning_module_manifest(module_name),
+        );
+    }
+}
+
+fn create_planning_flowhub_case(temp_dir: &TempDir, topology: &str, plan_graph: &str) -> PathBuf {
+    let root = temp_dir.path().join("flowhub");
+    let plan_dir = root.join("plan");
+    fs::create_dir_all(&plan_dir)
+        .unwrap_or_else(|error| panic!("should create plan dir {}: {error}", plan_dir.display()));
+    write_file(&root.join("qianji.toml"), planning_flowhub_root_manifest());
+    write_planning_modules(&root);
     write_file(
-        &plan_dir.join("codex-plan.mmd"),
+        &plan_dir.join("qianji.toml"),
+        &planning_plan_manifest(topology),
+    );
+    write_file(&plan_dir.join("codex-plan.mmd"), plan_graph);
+    root
+}
+
+fn create_flowhub_with_undeclared_mermaid_nodes_case(temp_dir: &TempDir) -> PathBuf {
+    create_planning_flowhub_case(
+        temp_dir,
+        "dag",
         r#"
 flowchart LR
   A["coding"] --> B["rust"]
@@ -500,69 +635,13 @@ flowchart LR
   C --> D["blueprint"]
   D --> E["plan"]
 "#,
-    );
-    root
+    )
 }
 
 fn create_flowhub_with_mermaid_presentation_directives_case(temp_dir: &TempDir) -> PathBuf {
-    let root = temp_dir.path().join("flowhub");
-    let plan_dir = root.join("plan");
-    fs::create_dir_all(&plan_dir)
-        .unwrap_or_else(|error| panic!("should create plan dir {}: {error}", plan_dir.display()));
-    write_file(
-        &root.join("qianji.toml"),
-        r#"
-version = 1
-
-[flowhub]
-name = "test-flowhub"
-
-[contract]
-register = ["coding", "rust", "blueprint", "plan"]
-required = ["*/qianji.toml"]
-"#,
-    );
-    for module_name in ["coding", "rust", "blueprint"] {
-        let module_dir = root.join(module_name);
-        fs::create_dir_all(&module_dir).unwrap_or_else(|error| {
-            panic!("should create module dir {}: {error}", module_dir.display())
-        });
-        write_file(
-            &module_dir.join("qianji.toml"),
-            &format!(
-                r#"
-version = 1
-
-[module]
-name = "{module_name}"
-tags = ["planning", "{module_name}"]
-
-[exports]
-entry = "task.{module_name}-start"
-ready = "task.{module_name}-ready"
-"#
-            ),
-        );
-    }
-    write_file(
-        &plan_dir.join("qianji.toml"),
-        r#"
-version = 1
-
-[module]
-name = "plan"
-tags = ["planning", "plan"]
-
-[exports]
-entry = "task.plan-start"
-ready = "task.plan-ready"
-
-[contract]
-required = ["codex-plan.mmd"]
-"#,
-    );
-    write_file(
-        &plan_dir.join("codex-plan.mmd"),
+    create_planning_flowhub_case(
+        temp_dir,
+        "bounded_loop",
         r#"
 flowchart LR
   A["coding"] --> B["rust"]
@@ -587,8 +666,7 @@ flowchart LR
   style C fill:#e0f7fa,stroke:#006064;
   click G "https://example.com/flowchart-alignment" "flowchart alignment docs"
 "#,
-    );
-    root
+    )
 }
 
 mod check_surface;

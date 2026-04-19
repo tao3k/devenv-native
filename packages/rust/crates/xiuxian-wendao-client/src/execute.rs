@@ -1,4 +1,4 @@
-use crate::{ClientCommand, ClientContext, LintCommand, lint};
+use crate::{ClientCommand, ClientContext, LintCommand, get, lint};
 use anyhow::Result;
 
 /// Stable process outcome for standalone and embedded command entrypoints.
@@ -34,6 +34,7 @@ impl CommandOutcome {
 /// Returns an error when the selected client command fails to execute.
 pub fn run_command(command: &ClientCommand, context: &ClientContext) -> Result<CommandOutcome> {
     match command {
+        ClientCommand::Get { command } => get::run_command(command, context),
         ClientCommand::Lint { command } => run_lint_command(command, context),
     }
 }

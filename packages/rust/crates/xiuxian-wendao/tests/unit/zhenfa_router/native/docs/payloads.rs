@@ -15,6 +15,21 @@ fn get_document_tool_returns_serialized_page_payload() -> TestResult {
 }
 
 #[test]
+fn search_tool_returns_serialized_projected_page_payload() -> TestResult {
+    let ctx = docs_context_with_fake_runtime();
+    let runtime = current_thread_runtime()?;
+    let output = runtime.block_on(
+        WendaoDocsSearchTool.call_native(&ctx, json!({ "query": "solver", "limit": 4 })),
+    )?;
+
+    let payload: serde_json::Value = serde_json::from_str(&output)?;
+    assert_eq!(payload["repo_id"], TEST_REPO_ID);
+    assert_eq!(payload["pages"][0]["page_id"], TEST_PAGE_ID);
+    assert_eq!(payload["pages"][0]["title"], "SOLVER");
+    Ok(())
+}
+
+#[test]
 fn get_toc_documents_tool_returns_serialized_page_index_documents_payload() -> TestResult {
     let ctx = docs_context_with_fake_runtime();
     let runtime = current_thread_runtime()?;
@@ -44,12 +59,11 @@ fn get_document_node_tool_returns_serialized_node_payload() -> TestResult {
 }
 
 #[test]
-fn get_document_structure_outline_tool_returns_text_free_tree_payload() -> TestResult {
+fn get_page_index_outline_tool_returns_text_free_tree_payload() -> TestResult {
     let ctx = docs_context_with_fake_runtime();
     let runtime = current_thread_runtime()?;
     let output = runtime.block_on(
-        WendaoDocsGetDocumentStructureOutlineTool
-            .call_native(&ctx, json!({ "page_id": TEST_PAGE_ID })),
+        WendaoDocsGetPageIndexOutlineTool.call_native(&ctx, json!({ "page_id": TEST_PAGE_ID })),
     )?;
 
     let payload: serde_json::Value = serde_json::from_str(&output)?;
@@ -61,11 +75,10 @@ fn get_document_structure_outline_tool_returns_text_free_tree_payload() -> TestR
 }
 
 #[test]
-fn get_document_structure_catalog_tool_returns_text_free_trees_payload() -> TestResult {
+fn get_page_index_tool_returns_text_free_trees_payload() -> TestResult {
     let ctx = docs_context_with_fake_runtime();
     let runtime = current_thread_runtime()?;
-    let output =
-        runtime.block_on(WendaoDocsGetDocumentStructureCatalogTool.call_native(&ctx, json!({})))?;
+    let output = runtime.block_on(WendaoDocsGetPageIndexTool.call_native(&ctx, json!({})))?;
 
     let payload: serde_json::Value = serde_json::from_str(&output)?;
     assert_eq!(payload["repo_id"], TEST_REPO_ID);
@@ -94,10 +107,10 @@ fn get_document_segment_tool_returns_serialized_segment_payload() -> TestResult 
 }
 
 #[test]
-fn search_document_structure_tool_returns_serialized_hits_payload() -> TestResult {
+fn search_page_index_tool_returns_serialized_hits_payload() -> TestResult {
     let ctx = docs_context_with_fake_runtime();
     let runtime = current_thread_runtime()?;
-    let output = runtime.block_on(WendaoDocsSearchDocumentStructureTool.call_native(
+    let output = runtime.block_on(WendaoDocsSearchPageIndexTool.call_native(
         &ctx,
         json!({ "query": "anchors", "kind": "reference", "limit": 3 }),
     ))?;

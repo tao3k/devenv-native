@@ -5,9 +5,9 @@ use xiuxian_zhenfa::{ZhenfaContext, ZhenfaError, zhenfa_tool};
 use super::shared::{require_non_empty_argument, serialize_payload};
 use crate::zhenfa_router::native::resolve_docs_tool_runtime;
 
-/// Arguments for the `wendao.docs.get_document_structure` native tool.
+/// Arguments for the `wendao.docs.get_page_index_tree` native tool.
 #[derive(Debug, Clone, Deserialize, JsonSchema)]
-pub struct WendaoDocsGetDocumentStructureArgs {
+pub struct WendaoDocsGetPageIndexTreeArgs {
     /// Stable docs-facing page identifier.
     page_id: String,
 }
@@ -21,19 +21,19 @@ pub struct WendaoDocsGetDocumentStructureArgs {
 /// fails.
 #[allow(missing_docs)]
 #[zhenfa_tool(
-    name = "wendao.docs.get_document_structure",
+    name = "wendao.docs.get_page_index_tree",
     description = "Open one docs-facing page-index tree and return its serialized payload.",
-    tool_struct = "WendaoDocsGetDocumentStructureTool"
+    tool_struct = "WendaoDocsGetPageIndexTreeTool"
 )]
-pub fn wendao_docs_get_document_structure(
+pub fn wendao_docs_get_page_index_tree(
     ctx: &ZhenfaContext,
-    args: WendaoDocsGetDocumentStructureArgs,
+    args: WendaoDocsGetPageIndexTreeArgs,
 ) -> Result<String, ZhenfaError> {
-    let WendaoDocsGetDocumentStructureArgs { page_id } = args;
+    let WendaoDocsGetPageIndexTreeArgs { page_id } = args;
     let page_id = require_non_empty_argument(&page_id, "page_id")?;
     let runtime = resolve_docs_tool_runtime(ctx)?;
     let result = runtime
-        .get_document_structure(&page_id)
+        .get_page_index_tree(&page_id)
         .map_err(|error| ZhenfaError::execution(error.to_string()))?;
     serialize_payload(&result)
 }

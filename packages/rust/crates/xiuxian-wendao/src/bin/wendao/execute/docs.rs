@@ -16,10 +16,11 @@ pub(super) fn handle(cli: &Cli) -> Result<()> {
     match command {
         DocsCommand::Page(args) => handle_page(&context, args),
         DocsCommand::Tree(args) => handle_tree(&context, args),
-        DocsCommand::TreeOutline(args) => handle_tree_outline(&context, args),
-        DocsCommand::StructureCatalog(args) => handle_structure_catalog(&context, args),
+        DocsCommand::PageIndexOutline(args) => handle_page_index_outline(&context, args),
+        DocsCommand::PageIndex(args) => handle_page_index(&context, args),
         DocsCommand::Segment(args) => handle_segment(&context, args),
-        DocsCommand::SearchStructure(args) => handle_search_structure(&context, args),
+        DocsCommand::Search(args) => handle_search(&context, args),
+        DocsCommand::SearchPageIndex(args) => handle_search_page_index(&context, args),
         DocsCommand::Node(args) => handle_node(&context, args),
         DocsCommand::Toc(args) => handle_toc(&context, args),
         DocsCommand::Navigation(args) => handle_navigation(&context, args),
@@ -51,52 +52,52 @@ fn handle_page(context: &DocsCommandContext<'_>, args: &crate::types::DocsPageAr
         .service(args.repo.clone())
         .get_document(&args.page_id)
         .with_context(|| format!("failed to open docs page `{}`", args.page_id))?;
-    emit(&result, context.cli.output)
+    emit(&result, context.cli.output_or_json())
 }
 
 fn handle_tree(context: &DocsCommandContext<'_>, args: &crate::types::DocsTreeArgs) -> Result<()> {
     let result = context
         .service(args.repo.clone())
-        .get_document_structure(&args.page_id)
+        .get_page_index_tree(&args.page_id)
         .with_context(|| {
             format!(
                 "failed to open docs page-index tree for page `{}`",
                 args.page_id
             )
         })?;
-    emit(&result, context.cli.output)
+    emit(&result, context.cli.output_or_json())
 }
 
-fn handle_tree_outline(
+fn handle_page_index_outline(
     context: &DocsCommandContext<'_>,
-    args: &crate::types::DocsTreeOutlineArgs,
+    args: &crate::types::DocsPageIndexOutlineArgs,
 ) -> Result<()> {
     let result = context
         .service(args.repo.clone())
-        .get_document_structure_outline(&args.page_id)
+        .get_page_index_outline(&args.page_id)
         .with_context(|| {
             format!(
                 "failed to open docs text-free page-index tree for page `{}`",
                 args.page_id
             )
         })?;
-    emit(&result, context.cli.output)
+    emit(&result, context.cli.output_or_json())
 }
 
-fn handle_structure_catalog(
+fn handle_page_index(
     context: &DocsCommandContext<'_>,
-    args: &crate::types::DocsStructureCatalogArgs,
+    args: &crate::types::DocsPageIndexArgs,
 ) -> Result<()> {
     let result = context
         .service(args.repo.clone())
-        .get_document_structure_catalog()
+        .get_page_index()
         .with_context(|| {
             format!(
-                "failed to open docs text-free structure catalog for repo `{}`",
+                "failed to open docs text-free page-index catalog for repo `{}`",
                 args.repo
             )
         })?;
-    emit(&result, context.cli.output)
+    emit(&result, context.cli.output_or_json())
 }
 
 fn handle_segment(
@@ -112,23 +113,34 @@ fn handle_segment(
                 args.line_start, args.line_end, args.page_id
             )
         })?;
-    emit(&result, context.cli.output)
+    emit(&result, context.cli.output_or_json())
 }
 
-fn handle_search_structure(
+fn handle_search(
     context: &DocsCommandContext<'_>,
-    args: &crate::types::DocsSearchStructureArgs,
+    args: &crate::types::DocsSearchArgs,
 ) -> Result<()> {
     let result = context
         .service(args.repo.clone())
-        .search_document_structure(&args.query, args.kind.map(Into::into), args.limit)
+        .search_documents(&args.query, args.kind.map(Into::into), args.limit)
+        .with_context(|| format!("failed to search docs pages for query `{}`", args.query))?;
+    emit(&result, context.cli.output_or_json())
+}
+
+fn handle_search_page_index(
+    context: &DocsCommandContext<'_>,
+    args: &crate::types::DocsSearchPageIndexArgs,
+) -> Result<()> {
+    let result = context
+        .service(args.repo.clone())
+        .search_page_index(&args.query, args.kind.map(Into::into), args.limit)
         .with_context(|| {
             format!(
-                "failed to search docs page-index structure for query `{}`",
+                "failed to search docs page-index for query `{}`",
                 args.query
             )
         })?;
-    emit(&result, context.cli.output)
+    emit(&result, context.cli.output_or_json())
 }
 
 fn handle_node(context: &DocsCommandContext<'_>, args: &crate::types::DocsNodeArgs) -> Result<()> {
@@ -141,7 +153,7 @@ fn handle_node(context: &DocsCommandContext<'_>, args: &crate::types::DocsNodeAr
                 args.node_id, args.page_id
             )
         })?;
-    emit(&result, context.cli.output)
+    emit(&result, context.cli.output_or_json())
 }
 
 fn handle_toc(context: &DocsCommandContext<'_>, args: &crate::types::DocsTocArgs) -> Result<()> {
@@ -154,7 +166,7 @@ fn handle_toc(context: &DocsCommandContext<'_>, args: &crate::types::DocsTocArgs
                 args.repo
             )
         })?;
-    emit(&result, context.cli.output)
+    emit(&result, context.cli.output_or_json())
 }
 
 fn handle_navigation(
@@ -178,7 +190,7 @@ fn handle_navigation(
                 args.page_id
             )
         })?;
-    emit(&result, context.cli.output)
+    emit(&result, context.cli.output_or_json())
 }
 
 fn handle_context(
@@ -200,7 +212,7 @@ fn handle_context(
                 args.page_id
             )
         })?;
-    emit(&result, context.cli.output)
+    emit(&result, context.cli.output_or_json())
 }
 
 #[cfg(test)]
