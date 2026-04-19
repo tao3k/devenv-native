@@ -11,6 +11,7 @@
 /// 4. Concurrent write conflicts: version mismatch → retry with recovery
 use std::path::PathBuf;
 use std::sync::Arc;
+use std::{collections::HashMap};
 
 use anyhow::Result;
 use futures::TryStreamExt;
@@ -68,7 +69,7 @@ pub struct TimelineRecord {
 #[derive(Clone)]
 pub struct CheckpointStore {
     base_path: PathBuf,
-    datasets: Arc<Mutex<dashmap::DashMap<String, Dataset>>>,
+    datasets: Arc<Mutex<HashMap<String, Dataset>>>,
     dimension: usize,
 }
 
@@ -98,7 +99,7 @@ impl CheckpointStore {
 
         Ok(Self {
             base_path,
-            datasets: Arc::new(Mutex::new(dashmap::DashMap::new())),
+            datasets: Arc::new(Mutex::new(HashMap::new())),
             dimension: dimension.unwrap_or(DEFAULT_DIMENSION),
         })
     }
@@ -276,7 +277,7 @@ impl CheckpointStore {
 
         // Remove from cache
         {
-            let datasets = self.datasets.lock().await;
+            let mut datasets = self.datasets.lock().await;
             datasets.remove(table_name);
         }
 
@@ -309,7 +310,7 @@ impl CheckpointStore {
 
         // Remove from cache
         {
-            let datasets = self.datasets.lock().await;
+            let mut datasets = self.datasets.lock().await;
             datasets.remove(table_name);
         }
 
@@ -340,7 +341,7 @@ impl CheckpointStore {
 
         // Add to cache
         {
-            let datasets = self.datasets.lock().await;
+            let mut datasets = self.datasets.lock().await;
             datasets.insert(table_name.to_string(), dataset.clone());
         }
 
@@ -364,7 +365,7 @@ impl CheckpointStore {
             match Dataset::open(table_path.to_string_lossy().as_ref()).await {
                 Ok(dataset) => {
                     // Cache the successfully opened dataset
-                    let datasets = self.datasets.lock().await;
+                    let mut datasets = self.datasets.lock().await;
                     datasets.insert(table_name.to_string(), dataset.clone());
                     return Ok(dataset);
                 }
@@ -454,7 +455,7 @@ impl CheckpointStore {
         };
 
         {
-            let datasets = self.datasets.lock().await;
+            let mut datasets = self.datasets.lock().await;
             datasets.insert(table_name.to_string(), dataset.clone());
         }
 

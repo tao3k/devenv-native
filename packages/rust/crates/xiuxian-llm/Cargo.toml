@@ -12,13 +12,13 @@ default = ["provider-litellm"]
 provider-litellm = []
 
 [dependencies]
-byteorder = "1.5"
 anyhow = { workspace = true }
 async-trait = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 toml = { workspace = true }
 reqwest = { workspace = true }
+regex = { workspace = true }
 tokio = { workspace = true, features = ["rt", "sync", "time"] }
 futures = { workspace = true }
 tracing = { workspace = true }
@@ -27,20 +27,18 @@ redis = { workspace = true, features = ["tokio-comp"] }
 sha2 = { workspace = true }
 hex = { workspace = true }
 base64 = { workspace = true }
-num-traits = "0.2"
-image = "0.25"
-imageproc = "0.25"
+num-traits = { workspace = true }
+image = { workspace = true }
+imageproc = { workspace = true }
 xiuxian-macros = { path = "../xiuxian-macros" }
 xiuxian-config-core = { path = "../xiuxian-config-core" }
 litellm-rs = { workspace = true, features = ["redis"] }
-spider = { version = "2.45.29", default-features = false, features = ["basic"] }
 xiuxian-testing = { path = "../xiuxian-testing" }
 
 [dev-dependencies]
-tempfile = "3.10"
+tempfile = { workspace = true }
 axum = { workspace = true }
 tokio = { workspace = true, features = ["test-util"] }
-env_logger = "0.11"
 tracing-subscriber = { workspace = true }
 
 [lints]

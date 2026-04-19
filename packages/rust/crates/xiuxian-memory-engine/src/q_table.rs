@@ -7,14 +7,12 @@
 use std::collections::HashMap;
 use std::sync::{PoisonError, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
-use dashmap::DashMap;
-
 /// Q-learning table for episode utility tracking.
 ///
-/// Uses a concurrent hash map for thread-safe updates.
+/// Uses an `RwLock<HashMap<...>>` for thread-safe updates.
 pub struct QTable {
     /// Internal Q-table mapping `episode_id` -> `q_value`.
-    table: RwLock<DashMap<String, f32>>,
+    table: RwLock<HashMap<String, f32>>,
     /// Learning rate (`α`) - typically 0.1-0.3.
     learning_rate: f32,
     /// Discount factor (`γ`) - currently stored for future RL evolution.
@@ -24,7 +22,7 @@ pub struct QTable {
 impl Clone for QTable {
     fn clone(&self) -> Self {
         Self {
-            table: RwLock::new(DashMap::new()),
+            table: RwLock::new(HashMap::new()),
             learning_rate: self.learning_rate,
             discount_factor: self.discount_factor,
         }
@@ -45,17 +43,17 @@ impl QTable {
     #[must_use]
     pub fn with_params(learning_rate: f32, discount_factor: f32) -> Self {
         Self {
-            table: RwLock::new(DashMap::new()),
+            table: RwLock::new(HashMap::new()),
             learning_rate,
             discount_factor,
         }
     }
 
-    fn read_table(&self) -> RwLockReadGuard<'_, DashMap<String, f32>> {
+    fn read_table(&self) -> RwLockReadGuard<'_, HashMap<String, f32>> {
         self.table.read().unwrap_or_else(PoisonError::into_inner)
     }
 
-    fn write_table(&self) -> RwLockWriteGuard<'_, DashMap<String, f32>> {
+    fn write_table(&self) -> RwLockWriteGuard<'_, HashMap<String, f32>> {
         self.table.write().unwrap_or_else(PoisonError::into_inner)
     }
 
@@ -73,9 +71,7 @@ impl QTable {
     ///
     /// Returns 0.5 when the episode has no stored value.
     pub fn get_q(&self, episode_id: &str) -> f32 {
-        self.read_table()
-            .get(episode_id)
-            .map_or(0.5, |v| *v.value())
+        self.read_table().get(episode_id).copied().unwrap_or(0.5)
     }
 
     /// Initialize a new episode with the default Q-value.
@@ -90,7 +86,7 @@ impl QTable {
         let table = self.read_table();
         episode_ids
             .iter()
-            .map(|id| (id.clone(), table.get(id).map_or(0.5, |v| *v.value())))
+            .map(|id| (id.clone(), table.get(id).copied().unwrap_or(0.5)))
             .collect()
     }
 
@@ -99,11 +95,11 @@ impl QTable {
     /// More efficient than individual updates when callers already have a
     /// grouped update set.
     pub fn update_batch(&self, updates: &[(String, f32)]) -> Vec<(String, f32)> {
-        let table = self.write_table();
+        let mut table = self.write_table();
         updates
             .iter()
             .map(|(episode_id, reward)| {
-                let q_old = table.get(episode_id).map_or(0.5, |v| *v.value());
+                let q_old = table.get(episode_id).copied().unwrap_or(0.5);
                 let q_new = q_old + self.learning_rate * (reward - q_old);
                 let q_clamped = q_new.clamp(0.0, 1.0);
                 table.insert(episode_id.clone(), q_clamped);
@@ -114,7 +110,7 @@ impl QTable {
 
     /// Get all episode IDs in the Q-table.
     pub fn get_all_ids(&self) -> Vec<String> {
-        self.read_table().iter().map(|r| r.key().clone()).collect()
+        self.read_table().keys().cloned().collect()
     }
 
     /// Get the number of entries in the Q-table.
@@ -138,11 +134,7 @@ impl QTable {
     ///
     /// Returns an error if the table cannot be serialized or written to disk.
     pub fn save(&self, path: &str) -> Result<(), anyhow::Error> {
-        let data: HashMap<String, f32> = self
-            .read_table()
-            .iter()
-            .map(|r| (r.key().clone(), *r.value()))
-            .collect();
+        let data = self.snapshot_map();
         let json = serde_json::to_string_pretty(&data)?;
         std::fs::write(path, json)?;
         log::info!("Saved Q-table with {} entries to {path}", data.len());
@@ -163,7 +155,7 @@ impl QTable {
         let json = std::fs::read_to_string(path)?;
         let data: HashMap<String, f32> = serde_json::from_str(&json)?;
         let count = data.len();
-        *self.write_table() = DashMap::from_iter(data);
+        *self.write_table() = data;
         log::info!("Loaded {count} Q-table entries from {path}");
         Ok(())
     }
@@ -181,15 +173,12 @@ impl QTable {
     /// Get a snapshot of the Q-table as a `HashMap`.
     #[must_use]
     pub fn snapshot_map(&self) -> HashMap<String, f32> {
-        self.read_table()
-            .iter()
-            .map(|r| (r.key().clone(), *r.value()))
-            .collect()
+        self.read_table().clone()
     }
 
     /// Replace the Q-table contents from a `HashMap`.
     pub fn replace_map(&mut self, data: HashMap<String, f32>) {
-        *self.write_table() = DashMap::from_iter(data);
+        *self.write_table() = data;
     }
 }
 

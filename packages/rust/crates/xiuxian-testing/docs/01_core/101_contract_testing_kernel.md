@@ -700,8 +700,9 @@ pack also clears
 `cargo clippy -p xiuxian-macros -p xiuxian-tokenizer -p xiuxian-tags --lib --tests -- -D warnings`.
 
 The next bounded consumer milestone then landed as a utility-pack cleanup
-covering `xiuxian-io`, `xiuxian-edit`, and `xiuxian-tui`. Each crate now
-follows the same canonical split harness shape:
+covering `xiuxian-io` and `xiuxian-edit`. At the time it also touched the
+since-retired `xiuxian-tui` crate. The remaining utility crates now follow
+the same canonical split harness shape:
 `src/lib.rs -> tests/unit/lib_policy.rs` for the source-side gate plus
 `tests/unit_test.rs` as the root harness target, with the former root test
 scatter absorbed into canonical `tests/unit/...` trees. `xiuxian-io`
@@ -710,16 +711,10 @@ library ownership that its tests already assumed by wiring `discover` and the
 feature-gated `assembler` surface through `src/lib.rs`. `xiuxian-edit`
 externalized the remaining `src/batch.rs` inline suite and cleared the newly
 live strict-clippy debt across `batch`, `diff`, `editor`, and `types`
-without suppressions. `xiuxian-tui` removed the old root wrappers and
-auxiliary `tests/*_module` directories, externalized the remaining `event`
-and `socket` inline suites, moved the demo/CLI/state/component coverage onto
-canonical `tests/unit/...` mounts, promoted `demo_cli_args` to the public
-crate surface so the example contract matches the library exports, and
-cleared the newly live strict-clippy debt in `socket`, `event`, `renderer`,
-`components`, and the migrated `state` suite. The decisive outcome is that
-all three crates now trigger and pass the shared gate as part of their
-default `cargo test` surfaces, and the touched pack also clears
-`cargo clippy -p xiuxian-io -p xiuxian-edit -p xiuxian-tui --lib --tests -- -D warnings`.
+without suppressions. The decisive outcome is that both remaining utility
+crates now trigger and pass the shared gate as part of their default
+`cargo test` surfaces, and the touched pack also clears
+`cargo clippy -p xiuxian-io -p xiuxian-edit --lib --tests -- -D warnings`.
 
 The next bounded consumer milestone then landed in `xiuxian-memory-engine`.
 That crate now follows the same canonical split harness shape:

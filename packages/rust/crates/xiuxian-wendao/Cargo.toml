@@ -92,7 +92,7 @@ required-features = ["performance"]
 
 # Async runtime
 tokio = { workspace = true, features = ["rt-multi-thread", "macros", "io-util", "fs"] }
-tokio-stream = { version = "0.1", features = ["net"] }
+tokio-stream = { workspace = true }
 tokio-util = { workspace = true, features = ["rt"] }
 
 # Serialization
@@ -100,23 +100,20 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 serde_yaml = { workspace = true }
 schemars = { workspace = true }
-toml = "0.8"
+toml = { workspace = true }
 chrono = { workspace = true, features = ["clock", "serde"] }
 uuid = { workspace = true }
 specta = { workspace = true }
 specta-typescript = { workspace = true }
-prost = "0.14"
+prost = { workspace = true }
 
-# Path resolution
-dirs = "5"
-walkdir = "2"
+walkdir = { workspace = true }
 
 # Error handling
 thiserror = { workspace = true }
 anyhow = { workspace = true }
 
 # Reuse common types
-xiuxian-types = { path = "../xiuxian-types" }
 xiuxian-skills = { path = "../xiuxian-skills" }
 xiuxian-logging = { path = "../xiuxian-logging" }
 xiuxian-vector = { path = "../xiuxian-vector", default-features = false, optional = true }
@@ -142,35 +139,34 @@ xiuxian-macros = { path = "../xiuxian-macros" }
 pyo3 = { workspace = true, optional = true }
 
 # Fast hash for sync (5-10x faster than MD5)
-xxhash-rust = "0.8"
+xxhash-rust = { workspace = true }
 
 # Content fingerprinting (Blake3)
-blake3 = "1"
+blake3 = { workspace = true }
 
-# SHA-256 for surgical fix verification (Blueprint v3.0)
-sha1 = "0.10"
+# Opaque doc IDs use a SHA-256 digest truncated to the 40-char protocol shape.
+sha2 = { workspace = true }
 
 # Fast regex for entity reference extraction (10-100x faster than Python)
-regex = "1"
+regex = { workspace = true }
 globset = { workspace = true }
 comrak = { workspace = true }
 include_dir = { workspace = true }
 async-trait = { workspace = true }
 futures = { workspace = true }
-dashmap = "7.0.0-rc2"
 
 # Parallel processing
-rayon = "1.11"
+rayon = { workspace = true }
 
 # Unicode normalization for entity deduplication
-unicode-normalization = "0.1"
+unicode-normalization = { workspace = true }
 
 arrow = { workspace = true, optional = true }
 arrow-flight = { workspace = true, features = ["flight-sql"], optional = true }
 datafusion = { workspace = true, optional = true }
 parquet = { workspace = true, optional = true }
-tonic = { version = "0.14.5", default-features = false, features = ["transport"], optional = true }
-tonic-web = { version = "0.14", optional = true }
+tonic = { workspace = true, optional = true }
+tonic-web = { workspace = true, optional = true }
 
 # Graph algorithms
 petgraph = { workspace = true }
@@ -178,28 +174,28 @@ petgraph = { workspace = true }
 # Logging
 log = { workspace = true }
 clap = { workspace = true }
-redis = { version = "1.0.3", default-features = false, features = ["tokio-comp"] }
+redis = { workspace = true, features = ["tokio-comp"] }
 axum = { workspace = true, optional = true }
-tower = { version = "0.5", features = ["limit", "load-shed", "timeout", "util"], optional = true }
+tower = { workspace = true, features = ["limit", "load-shed", "timeout", "util"], optional = true }
 xiuxian-zhenfa = { path = "../xiuxian-zhenfa", optional = true }
-url = "2.5.7"
+url = { workspace = true }
 
 # Real-time observation (Project Sentinel Phase 2)
-notify = { version = "8.2.0", optional = true }
-notify-debouncer-full = { version = "0.7.0", optional = true }
+notify = { workspace = true, optional = true }
+notify-debouncer-full = { workspace = true, optional = true }
 
 # HTTP client for webhook notifications (Phase 7 ForwardNotifier)
 reqwest = { workspace = true, optional = true }
 tantivy = { version = "0.25", optional = true }
-graphql-parser = { version = "0.4", optional = true }
-duckdb = { version = "=1.10501.0", default-features = false, features = ["bundled", "appender-arrow"], optional = true }
+graphql-parser = { workspace = true, optional = true }
+duckdb = { workspace = true, optional = true }
 
 [dev-dependencies]
 tempfile = { workspace = true }
 reqwest = { workspace = true }
 insta = { workspace = true }
-serial_test = { version = "3", features = ["file_locks"] }
-criterion = { version = "0.5", features = ["html_reports"] }
+serial_test = { workspace = true }
+criterion = { workspace = true }
 
 [lints]
 workspace = true

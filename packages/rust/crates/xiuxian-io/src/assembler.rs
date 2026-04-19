@@ -7,9 +7,9 @@
 use std::borrow::Borrow;
 use std::path::{Path, PathBuf};
 
-use minijinja::Environment;
 use rayon::prelude::*;
 use serde_json::Value;
+use tera::{Context, Tera};
 
 use crate::error::{IoError, Result};
 use xiuxian_tokenizer::count_tokens;
@@ -27,20 +27,16 @@ pub struct AssemblyResult {
 
 /// Context assembler for skill protocols.
 ///
-/// Combines parallel I/O (rayon), template rendering (minijinja),
+/// Combines parallel I/O (rayon), template rendering (tera),
 /// and token counting (xiuxian-tokenizer) for efficient context hydration.
-#[derive(Debug, Clone)]
-pub struct ContextAssembler {
-    env: Environment<'static>,
-}
+#[derive(Debug, Clone, Default)]
+pub struct ContextAssembler;
 
 impl ContextAssembler {
     /// Create a new context assembler with default settings.
     #[must_use]
     pub fn new() -> Self {
-        let mut env = Environment::new();
-        env.set_undefined_behavior(minijinja::UndefinedBehavior::Strict);
-        Self { env }
+        Self
     }
 
     /// Assemble skill context from main file and references.
@@ -96,10 +92,13 @@ impl ContextAssembler {
         })?;
 
         // 2. [Templating] Render the main template
-        let rendered_main = self
-            .env
-            .render_str(&main_template, variables)
-            .unwrap_or_else(|e| format!("[Template Error: {e}]"));
+        let rendered_main = Context::from_value(variables.clone())
+            .map_err(|error| format!("[Template Error: {error}]"))
+            .and_then(|context| {
+                Tera::one_off(&main_template, &context, false)
+                    .map_err(|error| format!("[Template Error: {error}]"))
+            })
+            .unwrap_or_else(|error| error);
 
         // 3. [Assembly] Build the final buffer
         let mut buffer = String::with_capacity(rendered_main.len() + 2048);
@@ -133,12 +132,6 @@ impl ContextAssembler {
             token_count: count,
             missing_refs: missing,
         })
-    }
-}
-
-impl Default for ContextAssembler {
-    fn default() -> Self {
-        Self::new()
     }
 }
 

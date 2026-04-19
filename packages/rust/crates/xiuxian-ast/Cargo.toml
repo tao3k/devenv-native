@@ -9,24 +9,24 @@ publish = false
 
 [dependencies]
 # ast-grep - AST pattern matching (unified version)
-ast-grep-core = "0.40.5"
-ast-grep-language = "0.40.5"
-ast-grep-config = "0.40.5"
+ast-grep-core = { workspace = true }
+ast-grep-language = { workspace = true }
+ast-grep-config = { workspace = true }
 
 # Common utilities
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 anyhow = { workspace = true }
 thiserror = { workspace = true }
-regex = "1"
-blake3 = "1"
+regex = { workspace = true }
+blake3 = { workspace = true }
 
 # File traversal
 walkdir = { workspace = true }
 xiuxian-io = { path = "../xiuxian-io" }
 xiuxian-testing = { path = "../xiuxian-testing" }
-tree-sitter = "0.26.5"
-tree-sitter-python = "0.25.0"
+tree-sitter = { workspace = true }
+tree-sitter-python = { workspace = true }
 
 [dev-dependencies]
 insta = { workspace = true }

@@ -26,13 +26,13 @@ redis = { workspace = true, features = ["tokio-comp"] }
 log = { workspace = true }
 futures = { workspace = true }
 rand = { workspace = true }
-regex = "1"
+regex = { workspace = true }
 md5 = { workspace = true }
 include_dir = { workspace = true }
 walkdir = { workspace = true }
 globset = { workspace = true }
 tempfile = { workspace = true }
-merman-core = "0.4"
+merman-core = { workspace = true }
 quick-xml = { workspace = true, features = ["serialize"] }
 reqwest = { workspace = true }
 jsonschema = { workspace = true }

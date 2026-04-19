@@ -1,8 +1,7 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 
-use dashmap::DashMap;
 use include_dir::Dir;
 use xiuxian_wendao_core::WendaoResourceUri;
 
@@ -21,7 +20,7 @@ pub struct SkillVfsResolver {
     pub(in crate::skill_vfs::resolver) mounts: HashMap<String, &'static Dir<'static>>,
     pub(in crate::skill_vfs::resolver) embedded_mounts_by_semantic:
         HashMap<String, Vec<EmbeddedSemanticMount>>,
-    pub(in crate::skill_vfs::resolver) content_cache: Arc<DashMap<String, Arc<str>>>,
+    pub(in crate::skill_vfs::resolver) content_cache: Arc<RwLock<HashMap<String, Arc<str>>>>,
     pub(in crate::skill_vfs::resolver) internal_roots: Vec<PathBuf>,
 }
 
@@ -36,7 +35,7 @@ impl SkillVfsResolver {
             index: SkillNamespaceIndex::build_from_roots(roots)?,
             mounts: HashMap::new(),
             embedded_mounts_by_semantic: HashMap::new(),
-            content_cache: Arc::new(DashMap::new()),
+            content_cache: Arc::new(RwLock::new(HashMap::new())),
             internal_roots: Vec::new(),
         })
     }

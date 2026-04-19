@@ -22,16 +22,6 @@ if rg -q "litellm-rs v" "${no_default_tree}"; then
   exit 1
 fi
 
-if ! rg -q 'rmcp v0\.16\.' "${default_tree}"; then
-  echo "xiuxian-daochang default profile must include rmcp 0.16.x but it was not found."
-  exit 1
-fi
-
-if ! rg -q 'rmcp v0\.16\.' "${no_default_tree}"; then
-  echo "xiuxian-daochang --no-default-features must include rmcp 0.16.x but it was not found."
-  exit 1
-fi
-
 if ! rg -q 'reqwest v0\.13\.' "${default_tree}"; then
   echo "xiuxian-daochang default profile must include reqwest 0.13.x but it was not found."
   exit 1
@@ -56,11 +46,9 @@ reqwest_default="$( (rg 'reqwest v0\.11' "${default_tree}" || true) | wc -l | tr
 reqwest_no_default="$( (rg 'reqwest v0\.11' "${no_default_tree}" || true) | wc -l | tr -d ' ')"
 reqwest13_default="$( (rg 'reqwest v0\.13\.' "${default_tree}" || true) | wc -l | tr -d ' ')"
 reqwest13_no_default="$( (rg 'reqwest v0\.13\.' "${no_default_tree}" || true) | wc -l | tr -d ' ')"
-rmcp16_default="$( (rg 'rmcp v0\.16\.' "${default_tree}" || true) | wc -l | tr -d ' ')"
-rmcp16_no_default="$( (rg 'rmcp v0\.16\.' "${no_default_tree}" || true) | wc -l | tr -d ' ')"
 rustls_default="$( (rg 'rustls-pemfile v1\.' "${default_tree}" || true) | wc -l | tr -d ' ')"
 rustls_no_default="$( (rg 'rustls-pemfile v1\.' "${no_default_tree}" || true) | wc -l | tr -d ' ')"
 
 echo "xiuxian-daochang dependency signal:"
-echo "  default: reqwest0.13=${reqwest13_default} rmcp0.16=${rmcp16_default} reqwest0.11=${reqwest_default} rustls-pemfile1.x=${rustls_default}"
-echo "  no-default-features: reqwest0.13=${reqwest13_no_default} rmcp0.16=${rmcp16_no_default} reqwest0.11=${reqwest_no_default} rustls-pemfile1.x=${rustls_no_default}"
+echo "  default: reqwest0.13=${reqwest13_default} reqwest0.11=${reqwest_default} rustls-pemfile1.x=${rustls_default}"
+echo "  no-default-features: reqwest0.13=${reqwest13_no_default} reqwest0.11=${reqwest_no_default} rustls-pemfile1.x=${rustls_no_default}"

@@ -1,9 +1,8 @@
-use std::collections::{BTreeMap, BTreeSet, VecDeque};
+use std::collections::{BTreeMap, BTreeSet, HashMap, VecDeque};
 use std::path::PathBuf;
 use std::sync::atomic::AtomicU64;
 use std::sync::{Arc, Mutex, OnceLock, RwLock};
 
-use dashmap::DashMap;
 use tokio::sync::{Semaphore, oneshot};
 use tokio::task::JoinHandle;
 
@@ -145,8 +144,8 @@ pub struct SearchPlaneService {
     pub(crate) query_telemetry:
         Arc<RwLock<std::collections::BTreeMap<SearchCorpusKind, SearchQueryTelemetry>>>,
     pub(crate) parquet_query_engine: Arc<OnceLock<crate::duckdb::ParquetQueryEngine>>,
-    pub(crate) markdown_snapshot_entries: Arc<DashMap<String, MarkdownSnapshotEntryCell>>,
-    pub(crate) source_snapshot_entries: Arc<DashMap<String, SourceSnapshotEntryCell>>,
+    pub(crate) markdown_snapshot_entries: Arc<RwLock<HashMap<String, MarkdownSnapshotEntryCell>>>,
+    pub(crate) source_snapshot_entries: Arc<RwLock<HashMap<String, SourceSnapshotEntryCell>>>,
     pub(crate) repeat_work_telemetry: Arc<RwLock<SearchBuildRepeatWorkTelemetryState>>,
     pub(super) repo_corpus_records:
         Arc<RwLock<std::collections::BTreeMap<(SearchCorpusKind, String), SearchRepoCorpusRecord>>>,

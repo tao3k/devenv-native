@@ -32,7 +32,7 @@ impl VectorStore {
             keyword_backend: KeywordSearchBackend::LanceFts,
             keyword_search_enabled: false,
             index_cache_size_bytes: None,
-            query_metrics: Arc::new(DashMap::new()),
+            query_metrics: Arc::new(StdRwLock::new(HashMap::new())),
             index_progress_callback: None,
             memory_mode_id,
         })

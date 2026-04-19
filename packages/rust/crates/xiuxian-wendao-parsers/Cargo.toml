@@ -12,8 +12,8 @@ serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 serde_yaml = { workspace = true }
 comrak = { workspace = true }
-blake3 = "1"
-regex = "1"
+blake3 = { workspace = true }
+regex = { workspace = true }
 uuid = { workspace = true }
 xiuxian-testing = { path = "../xiuxian-testing" }
 xiuxian-ast = { path = "../xiuxian-ast" }

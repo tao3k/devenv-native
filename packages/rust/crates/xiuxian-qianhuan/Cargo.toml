@@ -12,12 +12,10 @@ default = []
 zhenfa-router = ["dep:axum", "dep:xiuxian-zhenfa", "dep:xiuxian-wendao", "dep:xiuxian-wendao-core"]
 
 [dependencies]
-async-trait = "0.1"
+async-trait = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 toml = { workspace = true }
-futures = "0.3"
-quick-xml = { workspace = true }
-tera = "1"
+tera = { workspace = true }
 serde_json = { workspace = true }
 schemars = { workspace = true }
 anyhow = { workspace = true }
@@ -35,7 +33,7 @@ xiuxian-wendao-core = { path = "../xiuxian-wendao-core", optional = true }
 xiuxian-testing = { path = "../xiuxian-testing" }
 
 [dev-dependencies]
-tempfile = "3"
+tempfile = { workspace = true }
 serde_json = { workspace = true }
 tokio = { workspace = true, features = ["macros", "rt"] }
 reqwest = { workspace = true }

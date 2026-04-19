@@ -97,5 +97,6 @@ mod tool_discover_cache;
 mod tool_health_gate;
 mod tool_pool_hard_timeout;
 mod tool_pool_reconnect;
+pub(crate) mod tool_runtime_mock;
 mod valkey_url_precedence;
 mod zhenfa_tool_bridge;

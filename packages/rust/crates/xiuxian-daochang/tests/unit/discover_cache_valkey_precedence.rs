@@ -2,84 +2,17 @@
 
 use std::path::Path;
 use std::process::Command;
-use std::sync::Arc;
 
-use anyhow::{Context, Result, bail};
-use axum::Router;
-use rmcp::ServerHandler;
-use rmcp::model::{
-    CallToolRequestParams, CallToolResult, Content, ErrorData, ListToolsResult,
-    PaginatedRequestParams, ServerCapabilities, ServerInfo, Tool,
+use crate::unit::tool_runtime_mock::{
+    MockCallToolReply, MockToolRuntimeConfig, call_handler, reserve_local_addr,
+    spawn_mock_tool_runtime, text_result, tool_definition,
 };
-use rmcp::service::{RequestContext, RoleServer};
-use rmcp::transport::streamable_http_server::session::local::LocalSessionManager;
-use rmcp::transport::streamable_http_server::{StreamableHttpServerConfig, StreamableHttpService};
+use anyhow::{Context, Result, bail};
 use tempfile::TempDir;
 use xiuxian_daochang::{ToolPoolConnectConfig, connect_tool_pool};
 
 const CHILD_ENV_KEY: &str = "XIUXIAN_DAOCHANG_DISCOVER_CACHE_PRECEDENCE_CHILD";
 const CHILD_CASE_KEY: &str = "XIUXIAN_DAOCHANG_DISCOVER_CACHE_PRECEDENCE_CASE";
-
-#[derive(Clone, Default)]
-struct DiscoverMockServer;
-
-impl DiscoverMockServer {
-    fn discover_tool() -> Tool {
-        let input_schema = serde_json::json!({
-            "type": "object",
-            "properties": {
-                "intent": { "type": "string" }
-            },
-            "required": ["intent"]
-        });
-        let map = input_schema.as_object().cloned().unwrap_or_default();
-        Tool {
-            name: "skill.discover".into(),
-            title: Some("Skill Discover".into()),
-            description: Some("Mock discover tool".into()),
-            input_schema: Arc::new(map),
-            output_schema: None,
-            annotations: None,
-            execution: None,
-            icons: None,
-            meta: None,
-        }
-    }
-}
-
-impl ServerHandler for DiscoverMockServer {
-    fn get_info(&self) -> ServerInfo {
-        ServerInfo {
-            capabilities: ServerCapabilities::builder().enable_tools().build(),
-            ..Default::default()
-        }
-    }
-
-    fn list_tools(
-        &self,
-        _request: Option<PaginatedRequestParams>,
-        _context: RequestContext<RoleServer>,
-    ) -> impl std::future::Future<Output = Result<ListToolsResult, ErrorData>> + Send + '_ {
-        std::future::ready(Ok(ListToolsResult::with_all_items(vec![
-            Self::discover_tool(),
-        ])))
-    }
-
-    fn call_tool(
-        &self,
-        request: CallToolRequestParams,
-        _context: RequestContext<RoleServer>,
-    ) -> impl std::future::Future<Output = Result<CallToolResult, ErrorData>> + Send + '_ {
-        if request.name != "skill.discover" {
-            return std::future::ready(Err(ErrorData::internal_error(
-                "unsupported tool in discover cache precedence test",
-                None,
-            )));
-        }
-        let result = CallToolResult::success(vec![Content::text("ok")]);
-        std::future::ready(Ok(result))
-    }
-}
 
 fn write_runtime_settings(root: &Path, system_toml: &str) -> Result<()> {
     let system_path =
@@ -107,38 +40,34 @@ fn reconnect_test_config() -> ToolPoolConnectConfig {
     }
 }
 
-async fn reserve_local_addr() -> std::net::SocketAddr {
-    let probe = match tokio::net::TcpListener::bind("127.0.0.1:0").await {
-        Ok(listener) => listener,
-        Err(error) => panic!("reserve local addr: {error}"),
-    };
-    let addr = match probe.local_addr() {
-        Ok(addr) => addr,
-        Err(error) => panic!("read reserved local addr: {error}"),
-    };
-    drop(probe);
-    addr
-}
-
 async fn spawn_mock_server(addr: std::net::SocketAddr) -> tokio::task::JoinHandle<()> {
-    let service: StreamableHttpService<DiscoverMockServer, LocalSessionManager> =
-        StreamableHttpService::new(
-            || Ok(DiscoverMockServer),
-            Arc::new(LocalSessionManager::default()),
-            StreamableHttpServerConfig {
-                stateful_mode: true,
-                sse_keep_alive: None,
-                ..Default::default()
-            },
-        );
-    let router = Router::new().nest_service("/sse", service);
-    let listener = match tokio::net::TcpListener::bind(addr).await {
-        Ok(listener) => listener,
-        Err(error) => panic!("bind mock tool listener: {error}"),
-    };
-    tokio::spawn(async move {
-        let _ = axum::serve(listener, router).await;
-    })
+    spawn_mock_tool_runtime(
+        addr,
+        MockToolRuntimeConfig::with_static_tools(
+            vec![tool_definition(
+                "skill.discover",
+                "Mock discover tool",
+                serde_json::json!({
+                    "type": "object",
+                    "properties": {
+                        "intent": { "type": "string" }
+                    },
+                    "required": ["intent"]
+                }),
+            )],
+            call_handler(|request| async move {
+                if request.name != "skill.discover" {
+                    return MockCallToolReply::RpcError {
+                        code: -32_603,
+                        message: "unsupported tool in discover cache precedence test".to_string(),
+                        data: None,
+                    };
+                }
+                MockCallToolReply::Result(text_result("ok"))
+            }),
+        ),
+    )
+    .await
 }
 
 fn run_child_case(root: &Path, case: &str, valkey_url: &str) -> Result<()> {

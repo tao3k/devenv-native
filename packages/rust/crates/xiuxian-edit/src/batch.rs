@@ -8,9 +8,9 @@
 
 use std::collections::HashMap;
 use std::path::Path;
+use std::sync::Mutex;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use dashmap::DashMap;
 use rayon::prelude::*;
 use xiuxian_ast::AstLanguage;
 
@@ -100,8 +100,8 @@ impl StructuralEditor {
         let files_scanned = AtomicUsize::new(0);
         let files_changed = AtomicUsize::new(0);
         let total_replacements = AtomicUsize::new(0);
-        let modified_files = DashMap::new();
-        let errors: DashMap<String, String> = DashMap::new();
+        let modified_files = Mutex::new(Vec::new());
+        let errors = Mutex::new(HashMap::new());
 
         // Determine thread count
         let num_workers = if config.workers > 0 {
@@ -147,7 +147,10 @@ impl StructuralEditor {
             let content = match std::fs::read_to_string(&path) {
                 Ok(c) => c,
                 Err(e) => {
-                    errors.insert(path.display().to_string(), format!("Read error: {e}"));
+                    errors
+                        .lock()
+                        .unwrap_or_else(std::sync::PoisonError::into_inner)
+                        .insert(path.display().to_string(), format!("Read error: {e}"));
                     return;
                 }
             };
@@ -159,17 +162,26 @@ impl StructuralEditor {
                     if result.count > 0 {
                         files_changed.fetch_add(1, Ordering::Relaxed);
                         total_replacements.fetch_add(result.count, Ordering::Relaxed);
-                        modified_files.insert(path.display().to_string(), result.count);
+                        modified_files
+                            .lock()
+                            .unwrap_or_else(std::sync::PoisonError::into_inner)
+                            .push(path.display().to_string());
 
                         if !config.dry_run
                             && let Err(e) = std::fs::write(&path, &result.modified)
                         {
-                            errors.insert(path.display().to_string(), format!("Write error: {e}"));
+                            errors
+                                .lock()
+                                .unwrap_or_else(std::sync::PoisonError::into_inner)
+                                .insert(path.display().to_string(), format!("Write error: {e}"));
                         }
                     }
                 }
                 Err(e) => {
-                    errors.insert(path.display().to_string(), format!("Edit error: {e}"));
+                    errors
+                        .lock()
+                        .unwrap_or_else(std::sync::PoisonError::into_inner)
+                        .insert(path.display().to_string(), format!("Edit error: {e}"));
                 }
             }
         });
@@ -178,8 +190,13 @@ impl StructuralEditor {
         stats.files_scanned = files_scanned.load(Ordering::Relaxed);
         stats.files_changed = files_changed.load(Ordering::Relaxed);
         stats.replacements = total_replacements.load(Ordering::Relaxed);
-        stats.modified_files = modified_files.into_iter().map(|(k, _)| k).collect();
-        stats.errors = errors.into_iter().collect();
+        stats.modified_files = modified_files
+            .into_inner()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        stats.modified_files.sort();
+        stats.errors = errors
+            .into_inner()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
 
         stats
     }

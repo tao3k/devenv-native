@@ -78,8 +78,11 @@ impl VectorStore {
     pub fn record_query(&self, table_name: &str, elapsed_ms: u64) {
         let cell = self
             .query_metrics
+            .write()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
             .entry(table_name.to_string())
-            .or_insert_with(|| Arc::new((AtomicU64::new(0), AtomicU64::new(0))));
+            .or_insert_with(|| Arc::new((AtomicU64::new(0), AtomicU64::new(0))))
+            .clone();
         cell.0.fetch_add(1, Ordering::Relaxed);
         cell.1.store(elapsed_ms, Ordering::Relaxed);
     }
@@ -89,7 +92,13 @@ impl VectorStore {
     ///
     #[must_use]
     pub fn get_query_metrics(&self, table_name: &str) -> QueryMetrics {
-        if let Some(cell) = self.query_metrics.get(table_name) {
+        let cell = self
+            .query_metrics
+            .read()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .get(table_name)
+            .cloned();
+        if let Some(cell) = cell {
             let count = cell.0.load(Ordering::Relaxed);
             let last_ms = cell.1.load(Ordering::Relaxed);
             QueryMetrics {

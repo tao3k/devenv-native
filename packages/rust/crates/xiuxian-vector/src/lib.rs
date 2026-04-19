@@ -1,16 +1,18 @@
 //! xiuxian-vector - High-Performance Embedded Vector Database using `LanceDB`
 
 #[cfg(feature = "vector-store")]
+use std::collections::HashMap;
+#[cfg(feature = "vector-store")]
 use std::path::PathBuf;
 #[cfg(feature = "vector-store")]
 use std::sync::Arc;
+#[cfg(feature = "vector-store")]
+use std::sync::RwLock as StdRwLock;
 #[cfg(feature = "vector-store")]
 use std::sync::atomic::AtomicU64;
 
 #[cfg(feature = "vector-store")]
 use anyhow::Result;
-#[cfg(feature = "vector-store")]
-use dashmap::DashMap;
 #[cfg(feature = "vector-store")]
 use lance::dataset::Dataset;
 #[cfg(feature = "vector-store")]
@@ -163,7 +165,7 @@ pub struct VectorStore {
     /// Optional index cache size in bytes. When set, datasets are opened via `DatasetBuilder`.
     pub index_cache_size_bytes: Option<usize>,
     /// In-process per-table query metrics (`query_count`, `last_query_ms`). Wired when `agentic_search` runs.
-    pub(crate) query_metrics: Arc<DashMap<String, QueryMetricsCell>>,
+    pub(crate) query_metrics: Arc<StdRwLock<HashMap<String, QueryMetricsCell>>>,
     /// Optional callback for index build progress (Started/Done; Progress when Lance exposes API).
     pub(crate) index_progress_callback: Option<IndexProgressCallback>,
     /// When `base_path` is ":memory:", a unique id so each store uses its own temp subdir (avoids `DatasetAlreadyExists`).

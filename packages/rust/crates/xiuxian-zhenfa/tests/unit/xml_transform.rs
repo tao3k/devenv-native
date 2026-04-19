@@ -35,3 +35,22 @@ fn markdown_to_xml_basic() {
     assert!(xml.contains("<strong>"));
     assert!(xml.contains("<text>world</text>"));
 }
+
+#[test]
+fn markdown_to_xml_handles_blockquote_and_math() {
+    let xml = markdown_to_xml("> quote\n\n$a+b$\n\n$$c=d$$");
+    assert!(xml.contains("<blockquote>"));
+    assert!(xml.contains("<text>quote</text>"));
+    assert!(xml.contains("<inline_math>a+b</inline_math>"));
+    assert!(xml.contains("<display_math>c=d</display_math>"));
+}
+
+#[test]
+fn markdown_to_xml_handles_definition_lists() {
+    let xml = markdown_to_xml("Term\n: Definition");
+    assert!(xml.contains("<definition_list>"));
+    assert!(xml.contains("<definition_title>"));
+    assert!(xml.contains("<definition_definition>"));
+    assert!(xml.contains("<text>Term</text>"));
+    assert!(xml.contains("<text>Definition</text>"));
+}

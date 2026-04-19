@@ -35,9 +35,18 @@ impl SearchPlaneService {
         let cache_key = markdown_snapshot_entry_cache_key(project_root, file);
         let cell = self
             .markdown_snapshot_entries
-            .entry(cache_key)
-            .or_insert_with(|| Arc::new(std::sync::OnceLock::new()))
-            .clone();
+            .read()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .get(&cache_key)
+            .cloned()
+            .unwrap_or_else(|| {
+                self.markdown_snapshot_entries
+                    .write()
+                    .unwrap_or_else(std::sync::PoisonError::into_inner)
+                    .entry(cache_key)
+                    .or_insert_with(|| Arc::new(std::sync::OnceLock::new()))
+                    .clone()
+            });
         if let Some(existing) = cell.get() {
             self.record_repeat_work_file(
                 "markdown_snapshot.cache",
@@ -76,6 +85,9 @@ impl SearchPlaneService {
     #[cfg(test)]
     #[must_use]
     pub(crate) fn markdown_snapshot_entry_cache_len(&self) -> usize {
-        self.markdown_snapshot_entries.len()
+        self.markdown_snapshot_entries
+            .read()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .len()
     }
 }

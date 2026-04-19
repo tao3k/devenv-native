@@ -17,18 +17,14 @@ serde_json = { workspace = true }
 chrono = { workspace = true, features = ["clock", "serde"] }
 chrono-tz = { workspace = true }
 uuid = { workspace = true, features = ["v4", "serde"] }
-redis = { version = "1.0.3", default-features = false }
+redis = { workspace = true }
 
 # Error handling
 thiserror = { workspace = true }
 anyhow = { workspace = true }
 include_dir = { workspace = true }
 
-# Org-mode parsing
-orgize = "0.9"
-
 # Local crates
-xiuxian-types = { path = "../xiuxian-types" }
 xiuxian-wendao = { path = "../xiuxian-wendao" }
 xiuxian-qianhuan = { path = "../xiuxian-qianhuan" }
 xiuxian-testing = { path = "../xiuxian-testing" }

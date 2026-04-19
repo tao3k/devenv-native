@@ -79,6 +79,8 @@ fn render_markdown_event(writer: &mut XmlWriter, event: Event) {
         Event::End(tag) => close_markdown_tag(writer, tag),
         Event::Text(text) => writer.leaf("text", &[], Some(text.as_ref())),
         Event::Code(code) => writer.leaf("inline_code", &[], Some(code.as_ref())),
+        Event::InlineMath(math) => writer.leaf("inline_math", &[], Some(math.as_ref())),
+        Event::DisplayMath(math) => writer.leaf("display_math", &[], Some(math.as_ref())),
         Event::Html(html) => writer.leaf("html", &[], Some(html.as_ref())),
         Event::InlineHtml(html) => writer.leaf("inline_html", &[], Some(html.as_ref())),
         Event::FootnoteReference(label) => {
@@ -104,7 +106,7 @@ fn open_markdown_tag(writer: &mut XmlWriter, tag: Tag) {
         } => {
             open_heading_tag(writer, level, id, &classes, attrs);
         }
-        Tag::BlockQuote => writer.open("blockquote", &[]),
+        Tag::BlockQuote(_) => writer.open("blockquote", &[]),
         Tag::CodeBlock(kind) => {
             let mut attributes = Vec::new();
             match kind {
@@ -136,6 +138,9 @@ fn open_markdown_tag(writer: &mut XmlWriter, tag: Tag) {
         Tag::TableHead => writer.open("table_head", &[]),
         Tag::TableRow => writer.open("table_row", &[]),
         Tag::TableCell => writer.open("table_cell", &[]),
+        Tag::DefinitionList => writer.open("definition_list", &[]),
+        Tag::DefinitionListTitle => writer.open("definition_title", &[]),
+        Tag::DefinitionListDefinition => writer.open("definition_definition", &[]),
         Tag::Emphasis => writer.open("emphasis", &[]),
         Tag::Strong => writer.open("strong", &[]),
         Tag::Strikethrough => writer.open("strikethrough", &[]),
@@ -224,7 +229,7 @@ fn close_markdown_tag(writer: &mut XmlWriter, tag: TagEnd) {
     let name = match tag {
         TagEnd::Paragraph => "paragraph",
         TagEnd::Heading(_) => "heading",
-        TagEnd::BlockQuote => "blockquote",
+        TagEnd::BlockQuote(_) => "blockquote",
         TagEnd::CodeBlock => "code_block",
         TagEnd::HtmlBlock => "html_block",
         TagEnd::List(_) => "list",
@@ -234,6 +239,9 @@ fn close_markdown_tag(writer: &mut XmlWriter, tag: TagEnd) {
         TagEnd::TableHead => "table_head",
         TagEnd::TableRow => "table_row",
         TagEnd::TableCell => "table_cell",
+        TagEnd::DefinitionList => "definition_list",
+        TagEnd::DefinitionListTitle => "definition_title",
+        TagEnd::DefinitionListDefinition => "definition_definition",
         TagEnd::Emphasis => "emphasis",
         TagEnd::Strong => "strong",
         TagEnd::Strikethrough => "strikethrough",

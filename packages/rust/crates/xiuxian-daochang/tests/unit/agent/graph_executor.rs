@@ -1,15 +1,10 @@
 use std::sync::Arc;
 
-use anyhow::Result;
-use axum::Router;
-use rmcp::ServerHandler;
-use rmcp::model::{
-    CallToolRequestParams, CallToolResult, Content, ErrorData, ListToolsResult,
-    PaginatedRequestParams, ServerCapabilities, ServerInfo, Tool,
+use crate::unit::tool_runtime_mock::{
+    MockCallToolReply, MockToolRuntimeConfig, permissive_tool_definition, reserve_local_addr,
+    spawn_mock_tool_runtime, text_result,
 };
-use rmcp::service::{RequestContext, RoleServer};
-use rmcp::transport::streamable_http_server::session::local::LocalSessionManager;
-use rmcp::transport::streamable_http_server::{StreamableHttpServerConfig, StreamableHttpService};
+use anyhow::Result;
 
 use xiuxian_daochang::{
     AgentConfig, GraphExecutionPlan, GraphPlanStep, GraphPlanStepKind, GraphWorkflowMode,
@@ -19,94 +14,6 @@ use xiuxian_daochang::{
 
 use super::{GraphPlanExecutionInput, GraphPlanExecutionOutcome};
 
-#[derive(Clone)]
-struct MockBridgeServer {
-    recorded_arguments: Arc<std::sync::Mutex<Vec<serde_json::Value>>>,
-}
-
-impl MockBridgeServer {
-    fn tool(name: &str, description: &str) -> Tool {
-        let input_schema = serde_json::json!({
-            "type": "object",
-            "additionalProperties": true,
-        });
-        let map = input_schema.as_object().cloned().unwrap_or_default();
-        Tool {
-            name: name.to_string().into(),
-            title: Some(name.to_string().into()),
-            description: Some(description.to_string().into()),
-            input_schema: Arc::new(map),
-            output_schema: None,
-            annotations: None,
-            execution: None,
-            icons: None,
-            meta: None,
-        }
-    }
-}
-
-impl ServerHandler for MockBridgeServer {
-    fn get_info(&self) -> ServerInfo {
-        ServerInfo {
-            capabilities: ServerCapabilities::builder().enable_tools().build(),
-            ..Default::default()
-        }
-    }
-
-    fn list_tools(
-        &self,
-        _request: Option<PaginatedRequestParams>,
-        _context: RequestContext<RoleServer>,
-    ) -> impl std::future::Future<Output = Result<ListToolsResult, ErrorData>> + Send + '_ {
-        std::future::ready(Ok(ListToolsResult::with_all_items(vec![Self::tool(
-            "bridge.flaky",
-            "Rejects metadata-rich calls",
-        )])))
-    }
-
-    fn call_tool(
-        &self,
-        request: CallToolRequestParams,
-        _context: RequestContext<RoleServer>,
-    ) -> impl std::future::Future<Output = Result<CallToolResult, ErrorData>> + Send + '_ {
-        let args_json = request
-            .arguments
-            .clone()
-            .map(serde_json::Value::Object)
-            .unwrap_or_else(|| serde_json::json!({}));
-
-        self.recorded_arguments
-            .lock()
-            .expect("recorded arguments lock poisoned")
-            .push(args_json.clone());
-
-        let has_metadata = request
-            .arguments
-            .as_ref()
-            .and_then(|value| value.get("_omni"))
-            .is_some();
-        if has_metadata {
-            return std::future::ready(Err(ErrorData::internal_error(
-                "metadata not accepted",
-                None,
-            )));
-        }
-
-        std::future::ready(Ok(CallToolResult::success(vec![Content::text(
-            "fallback-ok".to_string(),
-        )])))
-    }
-}
-
-async fn reserve_local_addr() -> std::net::SocketAddr {
-    let probe = tokio::net::TcpListener::bind("127.0.0.1:0")
-        .await
-        .expect("reserve local addr");
-    let addr = probe.local_addr().expect("read reserved local addr");
-    drop(probe);
-    addr
-}
-
 async fn spawn_mock_bridge_server(
     addr: std::net::SocketAddr,
 ) -> (
@@ -114,36 +21,47 @@ async fn spawn_mock_bridge_server(
     Arc<std::sync::Mutex<Vec<serde_json::Value>>>,
 ) {
     let recorded_arguments = Arc::new(std::sync::Mutex::new(Vec::new()));
-
-    let service: StreamableHttpService<MockBridgeServer, LocalSessionManager> =
-        StreamableHttpService::new(
-            {
-                let recorded_arguments = recorded_arguments.clone();
-                move || {
-                    Ok(MockBridgeServer {
-                        recorded_arguments: recorded_arguments.clone(),
-                    })
+    let server = spawn_mock_tool_runtime(
+        addr,
+        MockToolRuntimeConfig::with_static_tools(
+            vec![permissive_tool_definition(
+                "bridge.flaky",
+                "Rejects metadata-rich calls",
+            )],
+            crate::unit::tool_runtime_mock::call_handler({
+                let recorded_arguments = Arc::clone(&recorded_arguments);
+                move |request| {
+                    let recorded_arguments = Arc::clone(&recorded_arguments);
+                    async move {
+                        let args_json = request
+                            .arguments
+                            .clone()
+                            .map(serde_json::Value::Object)
+                            .unwrap_or_else(|| serde_json::json!({}));
+                        recorded_arguments
+                            .lock()
+                            .expect("recorded arguments lock poisoned")
+                            .push(args_json);
+                        if request
+                            .arguments
+                            .as_ref()
+                            .and_then(|arguments| arguments.get("_omni"))
+                            .is_some()
+                        {
+                            return MockCallToolReply::RpcError {
+                                code: -32_603,
+                                message: "metadata not accepted".to_string(),
+                                data: None,
+                            };
+                        }
+                        MockCallToolReply::Result(text_result("fallback-ok"))
+                    }
                 }
-            },
-            Arc::new(LocalSessionManager::default()),
-            StreamableHttpServerConfig {
-                stateful_mode: true,
-                sse_keep_alive: None,
-                ..Default::default()
-            },
-        );
-
-    let router = Router::new().nest_service("/sse", service);
-    let listener = tokio::net::TcpListener::bind(addr)
-        .await
-        .expect("bind mock tool listener");
-
-    (
-        tokio::spawn(async move {
-            let _ = axum::serve(listener, router).await;
-        }),
-        recorded_arguments,
+            }),
+        ),
     )
+    .await;
+    (server, recorded_arguments)
 }
 
 fn base_config(tool_url: String) -> AgentConfig {

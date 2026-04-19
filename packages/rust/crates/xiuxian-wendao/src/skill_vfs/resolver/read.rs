@@ -33,8 +33,14 @@ impl SkillVfsResolver {
     pub fn read_semantic(&self, uri: &str) -> Result<Arc<str>, SkillVfsError> {
         let parsed = WendaoResourceUri::parse(uri)?;
         let canonical_uri = parsed.canonical_uri();
-        if let Some(cached) = self.content_cache.get(canonical_uri.as_str()) {
-            return Ok(Arc::clone(cached.value()));
+        let cached = self
+            .content_cache
+            .read()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .get(canonical_uri.as_str())
+            .cloned();
+        if let Some(cached) = cached {
+            return Ok(cached);
         }
 
         if parsed.is_internal_skill() {
@@ -87,6 +93,8 @@ impl SkillVfsResolver {
         })?;
         let shared = Arc::<str>::from(content);
         self.content_cache
+            .write()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
             .insert(canonical_uri.to_string(), Arc::clone(&shared));
         Ok(shared)
     }
@@ -118,6 +126,8 @@ impl SkillVfsResolver {
             }
             let shared = Arc::<str>::from(content);
             self.content_cache
+                .write()
+                .unwrap_or_else(std::sync::PoisonError::into_inner)
                 .insert(canonical_uri.to_string(), Arc::clone(&shared));
             return Some(shared);
         }
@@ -140,6 +150,8 @@ impl SkillVfsResolver {
         })?;
         let shared = Arc::<str>::from(content);
         self.content_cache
+            .write()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
             .insert(canonical_uri.to_string(), Arc::clone(&shared));
         Ok(Some(shared))
     }
