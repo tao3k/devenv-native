@@ -15,7 +15,7 @@ The currently landed commands are:
 ```text
 wendao-client lint markdown [PATH]...
 wendao-client get toc [TARGET] [--ignore DIR]...
-wendao-client get structure-catalog [TARGET] [--ignore DIR]...
+wendao-client get page-index [TARGET] [--ignore DIR]...
 ```
 
 Behavior:
@@ -74,17 +74,17 @@ Diagnostic rendering is split deliberately:
 The `get` commands stay local and parser-owned by design:
 
 1. `TARGET` accepts one Markdown file or one directory
-2. the client materializes TOC and structure-catalog payloads directly from a
+2. the client materializes TOC and page-index payloads directly from a
    lightweight parser-owned outline path instead of the heavier full TOC
    aggregation surface
 3. default human-facing output is compact Markdown without synthetic mode
-   headings such as `# TOC` or `# Structure Catalog`
+   headings such as `# TOC` or `# Page Index`
 4. `toc` compact Markdown intentionally stays a flat source-order outline that
    preserves document heading levels through native Markdown `#` markers and
    renders each section as `# Heading -> [Lx a-b]`, while the leading `path:`
    line uses the absolute local file path
-5. `structure-catalog` compact Markdown intentionally stays a structure-first
-   catalog that reuses the same heading-plus-range syntax while adding
+5. `page-index` compact Markdown intentionally stays a structure-first
+   page-index view that reuses the same heading-plus-range syntax while adding
    parser-preserved `links:` and `embeds:` lines plus document-level
    node/link/embed counts, and the leading `path:` line uses the absolute
    local file path

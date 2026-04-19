@@ -36,7 +36,7 @@ const DEFAULT_LOCAL_IGNORED_DIRS: &[&str] = &[
 pub(crate) fn run_command(command: &GetCommand, context: &ClientContext) -> Result<CommandOutcome> {
     match command {
         GetCommand::Toc(args) => handle_toc(args, context),
-        GetCommand::StructureCatalog(args) => handle_structure_catalog(args, context),
+        GetCommand::PageIndex(args) => handle_page_index(args, context),
     }
 }
 
@@ -70,18 +70,15 @@ fn handle_toc(args: &GetScopeArgs, context: &ClientContext) -> Result<CommandOut
     Ok(CommandOutcome::success())
 }
 
-fn handle_structure_catalog(
-    args: &GetScopeArgs,
-    context: &ClientContext,
-) -> Result<CommandOutcome> {
+fn handle_page_index(args: &GetScopeArgs, context: &ClientContext) -> Result<CommandOutcome> {
     let scope = canonical_scope_target(context.root(), args.target.as_path())?;
     let ignore_dir_names = resolved_ignore_dir_names(args, context)?;
-    let result = build_local_structure_catalog_with_ignore(
+    let result = build_local_page_index_trees_with_ignore(
         &scope,
         context.root(),
         ignore_dir_names.as_slice(),
     )?;
-    emit_structure_catalog_output(&result, context.output())?;
+    emit_page_index_output(&result, context.output())?;
     Ok(CommandOutcome::success())
 }
 
@@ -144,15 +141,15 @@ fn build_local_toc_documents_with_ignore(
 }
 
 #[cfg(test)]
-fn build_local_structure_catalog(
+fn build_local_page_index_trees(
     scope: &CanonicalScopeTarget,
     client_root: &Path,
 ) -> Result<DocsPageIndexTreesResult> {
     let default_ignored_dirs = default_ignore_dir_names();
-    build_local_structure_catalog_with_ignore(scope, client_root, default_ignored_dirs.as_slice())
+    build_local_page_index_trees_with_ignore(scope, client_root, default_ignored_dirs.as_slice())
 }
 
-fn build_local_structure_catalog_with_ignore(
+fn build_local_page_index_trees_with_ignore(
     scope: &CanonicalScopeTarget,
     client_root: &Path,
     ignore_dir_names: &[String],
@@ -603,12 +600,9 @@ fn emit_toc_output(result: &DocsPageIndexDocumentsResult, output: OutputFormat) 
     Ok(())
 }
 
-fn emit_structure_catalog_output(
-    result: &DocsPageIndexTreesResult,
-    output: OutputFormat,
-) -> Result<()> {
+fn emit_page_index_output(result: &DocsPageIndexTreesResult, output: OutputFormat) -> Result<()> {
     let rendered = match output {
-        OutputFormat::Text => render_structure_catalog_markdown(result),
+        OutputFormat::Text => render_page_index_markdown(result),
         OutputFormat::Json => {
             serde_json::to_string(result).context("failed to serialize get output as JSON")?
         }
@@ -663,7 +657,7 @@ fn render_heading_with_range(level: usize, title: &str, line_range: (usize, usiz
     )
 }
 
-fn render_structure_catalog_markdown(result: &DocsPageIndexTreesResult) -> String {
+fn render_page_index_markdown(result: &DocsPageIndexTreesResult) -> String {
     if result.trees.is_empty() {
         return "_No documents matched._".to_string();
     }

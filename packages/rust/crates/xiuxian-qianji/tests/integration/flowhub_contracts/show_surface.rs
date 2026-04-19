@@ -190,19 +190,19 @@ fn show_flowhub_graph_extracts_live_mermaid_nodes_edges_and_exports() {
             .contains(&"codex-plan.mmd".to_string())
     );
     assert!(
-        show.localized_work_surface
-            .expected_work_surface_tree
-            .contains(&"  blueprint/".to_string())
+        show.declared_check_surface
+            .required_paths
+            .contains(&"blueprint/**/*.md".to_string())
     );
     assert!(
-        show.localized_work_surface
-            .expected_work_surface_tree
-            .contains(&"  plan/".to_string())
+        show.declared_check_surface
+            .required_paths
+            .contains(&"plan/**/*.md".to_string())
     );
-    assert!(
-        show.localized_work_surface
-            .local_contract_template_toml
-            .contains("name = \"codex-plan\"")
+    assert!(show.declared_check_surface.root.as_deref() == Some("<plan-workdir>"));
+    assert_eq!(
+        show.declared_check_surface.flowchart_surfaces,
+        vec!["blueprint".to_string(), "plan".to_string()]
     );
     assert!(show.owning_module_manifest_toml.contains("[module]"));
     assert!(show.owning_module_manifest_toml.contains("name = \"plan\""));
@@ -225,14 +225,15 @@ fn show_flowhub_graph_extracts_live_mermaid_nodes_edges_and_exports() {
     assert!(rendered.contains("`boundary and drift check` [`guard`]"));
     assert!(rendered.contains("Entry: `task.coding-start`"));
     assert!(rendered.contains("Ready: `task.plan-ready`"));
-    assert!(rendered.contains("## Expected Work Surface"));
-    assert!(rendered.contains("<plan-workdir>/"));
-    assert!(rendered.contains("  blueprint/"));
-    assert!(rendered.contains("  plan/"));
-    assert!(rendered.contains("## Local Contract Template"));
-    assert!(rendered.contains("surface = ["));
-    assert!(rendered.contains("\"blueprint\""));
-    assert!(rendered.contains("\"plan\""));
+    assert!(rendered.contains("## Check Surface"));
+    assert!(rendered.contains("Run root: `<plan-workdir>`."));
+    assert!(rendered.contains("blueprint/**/*.md"));
+    assert!(rendered.contains("plan/**/*.md"));
+    assert!(rendered.contains(
+        "`qianji check` keeps these surfaces visible in `flowchart.mmd`: `blueprint`, `plan`."
+    ));
+    assert!(!rendered.contains("## Expected Work Surface"));
+    assert!(!rendered.contains("## Local Contract Template"));
     assert!(rendered.contains("## Mermaid"));
     assert!(rendered.contains("```mermaid"));
 }
@@ -254,19 +255,14 @@ fn show_flowhub_graph_uses_local_module_contract_for_wendao_leaf_case() {
         vec!["qianji.toml".to_string(), "docs-search.mmd".to_string()]
     );
     assert!(
-        show.localized_work_surface
+        show.declared_check_surface
             .note
             .as_deref()
             .is_some_and(|note| note.contains("[graph.workdir]"))
     );
-    assert_eq!(
-        show.localized_work_surface.expected_work_surface_tree,
-        vec![
-            "<localized-workdir>/".to_string(),
-            "  qianji.toml".to_string(),
-            "  flowchart.mmd".to_string(),
-        ]
-    );
+    assert_eq!(show.declared_check_surface.root, None);
+    assert!(show.declared_check_surface.required_paths.is_empty());
+    assert!(show.declared_check_surface.flowchart_surfaces.is_empty());
     assert!(
         show.owning_module_manifest_toml
             .contains("name = \"wendao\"")
@@ -285,9 +281,10 @@ fn show_flowhub_graph_uses_local_module_contract_for_wendao_leaf_case() {
     assert!(rendered.contains("`wendao.docs.search` [`capability_contract`]"));
     assert!(rendered.contains("`wendao.docs.document` [`capability_contract`]"));
     assert!(rendered.contains("`wendao.docs.document_structure` [`capability_contract`]"));
-    assert!(rendered.contains("## Expected Work Surface"));
-    assert!(rendered.contains("<localized-workdir>/"));
-    assert!(rendered.contains("## Local Contract Template"));
+    assert!(rendered.contains("## Check Surface"));
+    assert!(rendered.contains("No declared bounded check surface."));
+    assert!(!rendered.contains("<localized-workdir>/"));
+    assert!(!rendered.contains("## Local Contract Template"));
     assert!(!rendered.contains("## Persistent Target Surface"));
     assert!(!rendered.contains("blueprint/"));
     assert!(!rendered.contains("plan/"));
@@ -327,16 +324,16 @@ fn show_flowhub_graph_describes_live_research_canonicalize_case() {
     assert!(rendered.contains("## Nodes"));
     assert!(rendered.contains("`pdf_intake` [`process`]"));
     assert!(rendered.contains("`canonicalize_done` [`artifact`]"));
-    assert!(rendered.contains("## Expected Work Surface"));
-    assert!(rendered.contains("runs/<run_id>/"));
-    assert!(rendered.contains("  refs/"));
-    assert!(rendered.contains("  staging/"));
+    assert!(rendered.contains("## Check Surface"));
+    assert!(rendered.contains("Run root: `runs/<run_id>`."));
+    assert!(rendered.contains("refs/paper.json"));
+    assert!(rendered.contains("staging/structure/citation_graph.patch.json"));
     assert!(rendered.contains("## Persistent Target Surface"));
     assert!(rendered.contains("papers/<paper_id>/"));
     assert!(rendered.contains("  extraction/"));
     assert!(rendered.contains("  structure/"));
-    assert!(rendered.contains("## Local Contract Template"));
-    assert!(rendered.contains("name = \"paper-canonicalize\""));
+    assert!(rendered.contains("## Done Gate"));
+    assert!(!rendered.contains("## Local Contract Template"));
 }
 
 #[test]
@@ -352,41 +349,41 @@ fn show_flowhub_graph_describes_live_research_deep_read_case() {
         Some(FlowhubGraphTopology::BoundedLoop)
     );
     assert!(
-        show.localized_work_surface
-            .expected_work_surface_tree
-            .contains(&"    paper.json".to_string())
+        show.declared_check_surface
+            .required_paths
+            .contains(&"refs/paper.json".to_string())
     );
     assert!(
-        show.localized_work_surface
-            .expected_work_surface_tree
-            .contains(&"      claim_ledger.patch.jsonl".to_string())
+        show.declared_check_surface
+            .required_paths
+            .contains(&"staging/semantics/claim_ledger.patch.jsonl".to_string())
     );
     assert!(
-        show.localized_work_surface
+        show.declared_check_surface
             .persistent_target_surface_tree
             .contains(&"    claim_ledger.jsonl".to_string())
     );
     assert!(
-        show.localized_work_surface
-            .local_contract_template_toml
-            .contains("name = \"paper-deep-read\"")
+        show.declared_check_surface
+            .done_gate_require
+            .contains(&"syntheses/deep_read.md".to_string())
     );
 
     let rendered = render_flowhub_graph_show(&show);
     assert!(rendered.contains("Name: PAPER_DEEP_READ"));
-    assert!(rendered.contains("## Expected Work Surface"));
-    assert!(rendered.contains("runs/<run_id>/"));
-    assert!(rendered.contains("    paper.json"));
-    assert!(rendered.contains("      claim_ledger.patch.jsonl"));
-    assert!(rendered.contains("      critique_memo.patch.md"));
+    assert!(rendered.contains("## Check Surface"));
+    assert!(rendered.contains("Run root: `runs/<run_id>`."));
+    assert!(rendered.contains("refs/paper.json"));
+    assert!(rendered.contains("staging/semantics/claim_ledger.patch.jsonl"));
+    assert!(rendered.contains("staging/syntheses/critique_memo.patch.md"));
     assert!(rendered.contains("## Persistent Target Surface"));
     assert!(rendered.contains("papers/<paper_id>/"));
     assert!(rendered.contains("    claim_ledger.jsonl"));
     assert!(rendered.contains("    deep_read.md"));
-    assert!(rendered.contains("## Local Contract Template"));
-    assert!(rendered.contains("name = \"paper-deep-read\""));
-    assert!(rendered.contains("\"refs/topic.json\""));
-    assert!(rendered.contains("\"state/current_node.toml\""));
+    assert!(rendered.contains("## Done Gate"));
+    assert!(rendered.contains("refs/topic.json"));
+    assert!(rendered.contains("state/current_node.toml"));
+    assert!(!rendered.contains("## Local Contract Template"));
 }
 
 #[test]

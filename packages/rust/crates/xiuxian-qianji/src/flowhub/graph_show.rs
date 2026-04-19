@@ -5,10 +5,7 @@ use std::path::{Path, PathBuf};
 
 use xiuxian_config_core::resolve_project_root;
 
-use crate::contracts::{
-    FlowhubGraphContract, FlowhubGraphSurfaceContract, FlowhubGraphTopology, WorkdirCheck,
-    WorkdirManifest, WorkdirPlan,
-};
+use crate::contracts::{FlowhubGraphContract, FlowhubGraphSurfaceContract, FlowhubGraphTopology};
 use crate::error::QianjiError;
 use crate::markdown::{MarkdownShowSection, render_show_surface};
 
@@ -21,8 +18,8 @@ use super::mermaid::{
     scenario_graph_label_is_allowed,
 };
 use super::scenario_ir::{
-    FlowhubScenarioIr, FlowhubScenarioNodeIr, FlowhubScenarioWorkdirIr,
-    compile_flowhub_scenario_ir, parse_flowhub_graph_annotations, resolve_flowhub_graph_name,
+    FlowhubScenarioIr, FlowhubScenarioNodeIr, compile_flowhub_scenario_ir,
+    parse_flowhub_graph_annotations, resolve_flowhub_graph_name,
 };
 
 /// One Flowhub Mermaid graph contract preview.
@@ -33,6 +30,10 @@ pub struct FlowhubGraphShow {
     /// Stable graph identity resolved from `[[graph]].name` or the filename
     /// stem fallback.
     pub merimind_graph_name: String,
+    /// Optional scenario id declared in Mermaid annotations.
+    pub scenario_id: Option<String>,
+    /// Optional scenario description declared in Mermaid annotations.
+    pub description: Option<String>,
     /// Resolved topology from petgraph analysis.
     pub topology: FlowhubGraphTopology,
     /// Optional module-owned declared topology.
@@ -57,23 +58,27 @@ pub struct FlowhubGraphShow {
     pub cyclic_components: Vec<Vec<String>>,
     /// Static Flowhub module-owned contract entries for the graph source.
     pub module_contract_surface: Vec<String>,
-    /// Localized work-surface preview for executor materialization.
-    pub localized_work_surface: FlowhubGraphLocalizedWorkSurface,
+    /// Declared bounded check surface for executor guidance.
+    pub declared_check_surface: FlowhubGraphCheckSurface,
     /// Owning module manifest source.
     pub owning_module_manifest_toml: String,
 }
 
-/// Localized work-surface preview derived from one graph contract.
+/// Declared bounded check surface derived from one graph contract.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct FlowhubGraphLocalizedWorkSurface {
+pub struct FlowhubGraphCheckSurface {
     /// Optional note that explains how the localized surface should be used.
     pub note: Option<String>,
-    /// Expected localized work-surface tree.
-    pub expected_work_surface_tree: Vec<String>,
+    /// Optional localized run root declared by the Flowhub contract.
+    pub root: Option<String>,
+    /// Raw `check.require` paths or globs declared by Flowhub.
+    pub required_paths: Vec<String>,
+    /// Raw `check.flowchart` surfaces declared by Flowhub.
+    pub flowchart_surfaces: Vec<String>,
     /// Optional persistent canonical target tree for validated merges.
     pub persistent_target_surface_tree: Vec<String>,
-    /// Localized root manifest template.
-    pub local_contract_template_toml: String,
+    /// Optional declared done-gate paths over the persistent target surface.
+    pub done_gate_require: Vec<String>,
 }
 
 /// One parsed Flowhub Mermaid node summary with semantic guidance.
@@ -146,16 +151,17 @@ pub fn show_flowhub_graph(graph_path: impl AsRef<Path>) -> Result<FlowhubGraphSh
     );
     let edges = build_graph_edge_summaries(&flowchart, &nodes_by_id);
     let module_contract_surface = module_contract_surface(&owning_module);
-    let localized_work_surface = localized_work_surface(
-        graph_path,
-        scenario_ir.as_ref(),
-        &flowchart.merimind_graph_name,
-        &module_contract_surface,
-    )?;
+    let declared_check_surface = declared_check_surface(scenario_ir.as_ref());
 
     Ok(FlowhubGraphShow {
         graph_path: graph_path.to_path_buf(),
         merimind_graph_name: flowchart.merimind_graph_name,
+        scenario_id: scenario_ir
+            .as_ref()
+            .and_then(|graph| graph.scenario_id.clone()),
+        description: scenario_ir
+            .as_ref()
+            .and_then(|graph| graph.description.clone()),
         topology,
         declared_topology,
         mermaid: source,
@@ -168,60 +174,29 @@ pub fn show_flowhub_graph(graph_path: impl AsRef<Path>) -> Result<FlowhubGraphSh
         unknown_graph_nodes,
         cyclic_components,
         module_contract_surface,
-        localized_work_surface,
+        declared_check_surface,
         owning_module_manifest_toml,
     })
+}
+
+pub(crate) fn load_flowhub_graph_runtime_contract(
+    graph_path: &Path,
+) -> Result<(MermaidFlowchart, Option<FlowhubScenarioIr>), QianjiError> {
+    let LoadedFlowhubGraphContext {
+        flowchart,
+        scenario_ir,
+        ..
+    } = load_flowhub_graph_context(graph_path)?;
+    Ok((flowchart, scenario_ir))
 }
 
 /// Render one Flowhub Mermaid graph contract preview into markdown.
 #[must_use]
 pub fn render_flowhub_graph_show(show: &FlowhubGraphShow) -> String {
-    let mut sections = vec![
-        MarkdownShowSection {
-            title: "Execution".into(),
-            lines: render_execution_section_lines(show),
-        },
-        MarkdownShowSection {
-            title: "Nodes".into(),
-            lines: render_node_section_lines(show),
-        },
-        MarkdownShowSection {
-            title: "Expected Work Surface".into(),
-            lines: render_expected_work_surface_section_lines(show),
-        },
-    ];
-
-    if !show
-        .localized_work_surface
-        .persistent_target_surface_tree
-        .is_empty()
-    {
-        sections.push(MarkdownShowSection {
-            title: "Persistent Target Surface".into(),
-            lines: render_persistent_target_surface_section_lines(show),
-        });
-    }
-
-    sections.push(MarkdownShowSection {
-        title: "Local Contract Template".into(),
-        lines: render_local_contract_template_section_lines(show),
-    });
-    sections.push(MarkdownShowSection {
-        title: "Mermaid".into(),
-        lines: render_mermaid_section_lines(show),
-    });
-
     render_show_surface(
         "Graph",
-        &[
-            format!("Name: {}", show.merimind_graph_name),
-            format!("Path: {}", display_graph_path(&show.graph_path)),
-            format!("Owning module: {}", show.owning_module_ref),
-            format!("Direction: {}", show.direction),
-            format!("Topology: {}", show.topology.as_str()),
-            render_declared_topology_line(show.declared_topology),
-        ],
-        &sections,
+        &graph_show_metadata_lines(show),
+        &graph_show_sections(show),
     )
 }
 
@@ -328,7 +303,9 @@ fn load_flowhub_graph_context(graph_path: &Path) -> Result<LoadedFlowhubGraphCon
         declared_graph.as_ref(),
     )?;
     let topology_analysis = analyze_mermaid_flowchart_topology(&flowchart);
-    let declared_topology = scenario_ir.as_ref().and_then(|graph| graph.declared_topology);
+    let declared_topology = scenario_ir
+        .as_ref()
+        .and_then(|graph| graph.declared_topology);
     let allowed_graph_node_labels = scenario_ir
         .as_ref()
         .map_or_else(BTreeSet::new, FlowhubScenarioIr::allowed_graph_node_labels);
@@ -425,7 +402,8 @@ fn build_graph_node_summaries(
             let exports = module_ref
                 .as_deref()
                 .and_then(|module_name| module_exports.get(module_name));
-            let node_contract = scenario_ir.and_then(|graph| graph.node_contract(node.label.as_str()));
+            let node_contract =
+                scenario_ir.and_then(|graph| graph.node_contract(node.label.as_str()));
             let (kind, role, agent_action) =
                 graph_node_semantics(module_ref.as_deref(), node.label.as_str(), node_contract);
 
@@ -487,6 +465,58 @@ fn render_execution_section_lines(show: &FlowhubGraphShow) -> Vec<String> {
     render_execution_summary_lines(show)
 }
 
+pub(crate) fn graph_show_metadata_lines(show: &FlowhubGraphShow) -> Vec<String> {
+    vec![
+        format!("Name: {}", show.merimind_graph_name),
+        format!("Path: {}", display_graph_path(&show.graph_path)),
+        format!("Owning module: {}", show.owning_module_ref),
+        format!("Direction: {}", show.direction),
+        format!("Topology: {}", show.topology.as_str()),
+        render_declared_topology_line(show.declared_topology),
+    ]
+}
+
+pub(crate) fn graph_show_sections(show: &FlowhubGraphShow) -> Vec<MarkdownShowSection<'_>> {
+    let mut sections = vec![
+        MarkdownShowSection {
+            title: "Execution".into(),
+            lines: render_execution_section_lines(show),
+        },
+        MarkdownShowSection {
+            title: "Nodes".into(),
+            lines: render_node_section_lines(show),
+        },
+        MarkdownShowSection {
+            title: "Check Surface".into(),
+            lines: render_check_surface_section_lines(show),
+        },
+    ];
+
+    if !show
+        .declared_check_surface
+        .persistent_target_surface_tree
+        .is_empty()
+    {
+        sections.push(MarkdownShowSection {
+            title: "Persistent Target Surface".into(),
+            lines: render_persistent_target_surface_section_lines(show),
+        });
+    }
+
+    if !show.declared_check_surface.done_gate_require.is_empty() {
+        sections.push(MarkdownShowSection {
+            title: "Done Gate".into(),
+            lines: render_done_gate_section_lines(show),
+        });
+    }
+    sections.push(MarkdownShowSection {
+        title: "Mermaid".into(),
+        lines: render_mermaid_section_lines(show),
+    });
+
+    sections
+}
+
 fn module_contract_surface(
     owning_module: &super::discover::FlowhubDiscoveredModule,
 ) -> Vec<String> {
@@ -499,7 +529,7 @@ fn module_contract_surface(
 
 fn render_execution_summary_lines(show: &FlowhubGraphShow) -> Vec<String> {
     let mut lines = Vec::new();
-    if let Some(note) = &show.localized_work_surface.note {
+    if let Some(note) = &show.declared_check_surface.note {
         lines.push(format!("- {note}"));
     }
 
@@ -588,7 +618,7 @@ fn render_execution_node_line(node: &FlowhubGraphNodeSummary) -> String {
     format!("{prefix}: {detail}")
 }
 
-fn render_expected_work_surface_section_lines(show: &FlowhubGraphShow) -> Vec<String> {
+fn render_check_surface_section_lines(show: &FlowhubGraphShow) -> Vec<String> {
     let mut lines = Vec::new();
     if !show.module_contract_surface.is_empty() {
         lines.push(format!(
@@ -596,9 +626,29 @@ fn render_expected_work_surface_section_lines(show: &FlowhubGraphShow) -> Vec<St
             render_file_list(&show.module_contract_surface)
         ));
     }
-    lines.extend(render_text_tree_block(
-        &show.localized_work_surface.expected_work_surface_tree,
-    ));
+
+    let Some(root) = &show.declared_check_surface.root else {
+        lines.push(
+            "- No declared bounded check surface. Add `[graph.workdir]` or Mermaid `%% qianji.scenario.*` workdir metadata before relying on `qianji check` guidance."
+                .to_string(),
+        );
+        return lines;
+    };
+
+    lines.push(format!("- Run root: `{root}`."));
+    if !show.declared_check_surface.required_paths.is_empty() {
+        lines.push("- `qianji check` requires the following declared paths and globs:".to_string());
+        lines.extend(render_text_block(
+            &show.declared_check_surface.required_paths,
+        ));
+    }
+    if !show.declared_check_surface.flowchart_surfaces.is_empty() {
+        lines.push(format!(
+            "- `qianji check` keeps these surfaces visible in `flowchart.mmd`: {}.",
+            render_file_list(&show.declared_check_surface.flowchart_surfaces)
+        ));
+    }
+
     lines
 }
 
@@ -607,33 +657,30 @@ fn render_persistent_target_surface_section_lines(show: &FlowhubGraphShow) -> Ve
         "- Merge validated staging artifacts into this canonical surface after `qianji check` passes."
             .to_string(),
     ];
-    lines.extend(render_text_tree_block(
-        &show.localized_work_surface.persistent_target_surface_tree,
+    lines.extend(render_text_block(
+        &show.declared_check_surface.persistent_target_surface_tree,
     ));
     lines
 }
 
-fn render_local_contract_template_section_lines(show: &FlowhubGraphShow) -> Vec<String> {
-    let mut lines = vec!["```toml".to_string()];
-    lines.extend(
-        show.localized_work_surface
-            .local_contract_template_toml
-            .lines()
-            .map(ToString::to_string),
-    );
-    lines.push("```".to_string());
+fn render_done_gate_section_lines(show: &FlowhubGraphShow) -> Vec<String> {
+    let mut lines =
+        vec!["- Completion remains blocked until these declared paths are satisfied:".to_string()];
+    lines.extend(render_text_block(
+        &show.declared_check_surface.done_gate_require,
+    ));
     lines
 }
 
-fn render_text_tree_block(tree_lines: &[String]) -> Vec<String> {
-    if tree_lines.is_empty() {
+fn render_text_block(lines: &[String]) -> Vec<String> {
+    if lines.is_empty() {
         return vec!["- none".to_string()];
     }
 
-    let mut lines = vec!["```text".to_string()];
-    lines.extend(tree_lines.iter().cloned());
-    lines.push("```".to_string());
-    lines
+    let mut block = vec!["```text".to_string()];
+    block.extend(lines.iter().cloned());
+    block.push("```".to_string());
+    block
 }
 
 fn render_label_list(values: &[String]) -> String {
@@ -656,82 +703,32 @@ fn render_file_list(values: &[String]) -> String {
         .join(", ")
 }
 
-fn localized_work_surface(
-    graph_path: &Path,
-    scenario_ir: Option<&FlowhubScenarioIr>,
-    merimind_graph_name: &str,
-    module_contract_surface: &[String],
-) -> Result<FlowhubGraphLocalizedWorkSurface, QianjiError> {
-    if let Some(workdir) = scenario_ir.and_then(|graph| graph.workdir.as_ref()) {
-        return localized_work_surface_from_ir(graph_path, workdir);
-    }
+fn declared_check_surface(scenario_ir: Option<&FlowhubScenarioIr>) -> FlowhubGraphCheckSurface {
+    let Some(workdir) = scenario_ir.and_then(|graph| graph.workdir.as_ref()) else {
+        return FlowhubGraphCheckSurface {
+            note: Some(
+                "This graph does not yet declare `[graph.workdir]`, so `show --graph` can only render the source/module contract until Flowhub declares a bounded check surface."
+                    .to_string(),
+            ),
+            root: None,
+            required_paths: Vec::new(),
+            flowchart_surfaces: Vec::new(),
+            persistent_target_surface_tree: Vec::new(),
+            done_gate_require: Vec::new(),
+        };
+    };
 
-    let graph_stem = graph_path
-        .file_stem()
-        .and_then(|stem| stem.to_str())
-        .ok_or_else(|| {
-            QianjiError::Topology(format!(
-                "Failed to derive localized work-surface name from `{}`",
-                graph_path.display()
-            ))
-        })?;
-
-    generic_localized_work_surface(graph_stem, merimind_graph_name, module_contract_surface)
-}
-
-fn localized_work_surface_from_ir(
-    graph_path: &Path,
-    workdir: &FlowhubScenarioWorkdirIr,
-) -> Result<FlowhubGraphLocalizedWorkSurface, QianjiError> {
-    let plan_name = graph_path
-        .file_stem()
-        .and_then(|stem| stem.to_str())
-        .ok_or_else(|| {
-        QianjiError::Topology(format!(
-            "Failed to derive localized work-surface name from Flowhub graph path `{}`",
-            graph_path.display()
-        ))
-    })?;
-
-    Ok(FlowhubGraphLocalizedWorkSurface {
+    FlowhubGraphCheckSurface {
         note: workdir.note.clone(),
-        expected_work_surface_tree: render_required_surface_tree(
-            workdir.root.as_str(),
-            workdir.check.require.as_slice(),
-        ),
+        root: Some(workdir.root.clone()),
+        required_paths: workdir.check.require.clone(),
+        flowchart_surfaces: workdir.check.flowchart.clone(),
         persistent_target_surface_tree: workdir
             .target
             .as_ref()
             .map_or_else(Vec::new, render_surface_contract_tree),
-        local_contract_template_toml: render_workdir_manifest_template_from_contract(
-            plan_name, &workdir.check,
-        )?,
-    })
-}
-
-fn generic_localized_work_surface(
-    graph_stem: &str,
-    merimind_graph_name: &str,
-    module_contract_surface: &[String],
-) -> Result<FlowhubGraphLocalizedWorkSurface, QianjiError> {
-    Ok(FlowhubGraphLocalizedWorkSurface {
-        note: Some(format!(
-            "This graph does not yet declare `[graph.workdir]`. Use the minimal localized contract below, then refine it against the owning Flowhub module entries {} for `{merimind_graph_name}`.",
-            render_file_list(module_contract_surface)
-        )),
-        expected_work_surface_tree: vec![
-            "<localized-workdir>/".to_string(),
-            "  qianji.toml".to_string(),
-            "  flowchart.mmd".to_string(),
-        ],
-        persistent_target_surface_tree: Vec::new(),
-        local_contract_template_toml: render_workdir_manifest_template(
-            graph_stem,
-            &["flowchart.mmd"],
-            &["qianji.toml", "flowchart.mmd"],
-            &["flowchart.mmd"],
-        )?,
-    })
+        done_gate_require: workdir.done_gate_require.clone(),
+    }
 }
 
 fn render_surface_contract_tree(surface: &FlowhubGraphSurfaceContract) -> Vec<String> {
@@ -797,124 +794,7 @@ fn render_surface_tree_with_directory_hints(
     lines
 }
 
-fn render_required_surface_tree(root: &str, require: &[String]) -> Vec<String> {
-    let mut paths = Vec::new();
-    let mut directory_hints = BTreeSet::new();
-
-    for entry in require {
-        let Some((path, is_directory)) = normalize_required_display_path(entry) else {
-            continue;
-        };
-        if is_directory {
-            directory_hints.insert(path.clone());
-        }
-        paths.push(path);
-    }
-
-    render_surface_tree_with_directory_hints(root, &paths, &directory_hints)
-}
-
-fn normalize_required_display_path(entry: &str) -> Option<(String, bool)> {
-    let trimmed = entry.trim();
-    if trimmed.is_empty() {
-        return None;
-    }
-
-    let segments = trimmed.split('/').collect::<Vec<_>>();
-    let mut display_segments = Vec::new();
-    let mut truncated_by_glob = false;
-    for segment in segments {
-        if contains_glob_metachar(segment) {
-            truncated_by_glob = true;
-            break;
-        }
-        display_segments.push(segment);
-    }
-
-    if display_segments.is_empty() {
-        return None;
-    }
-
-    let path = display_segments.join("/");
-    let last_segment = display_segments.last().copied().unwrap_or_default();
-    let is_directory = trimmed.ends_with('/') || truncated_by_glob || !last_segment.contains('.');
-
-    Some((path, is_directory))
-}
-
-fn render_workdir_manifest_template_from_contract(
-    plan_name: &str,
-    check: &WorkdirCheck,
-) -> Result<String, QianjiError> {
-    let surface = derive_workdir_surface_entries(check.require.as_slice());
-    let surface_refs = surface.iter().map(String::as_str).collect::<Vec<_>>();
-    let require = check
-        .require
-        .iter()
-        .map(String::as_str)
-        .collect::<Vec<_>>();
-    let flowchart = check
-        .flowchart
-        .iter()
-        .map(String::as_str)
-        .collect::<Vec<_>>();
-
-    render_workdir_manifest_template(plan_name, &surface_refs, &require, &flowchart)
-}
-
-fn derive_workdir_surface_entries(paths: &[String]) -> Vec<String> {
-    let mut entries = Vec::new();
-    let mut seen = BTreeSet::new();
-
-    for path in paths {
-        let Some((normalized, _)) = normalize_required_display_path(path) else {
-            continue;
-        };
-        let normalized = normalized.trim_end_matches('/');
-        let top_level = normalized.split('/').next().unwrap_or(normalized);
-        if top_level == "qianji.toml" {
-            continue;
-        }
-        if seen.insert(top_level.to_string()) {
-            entries.push(top_level.to_string());
-        }
-    }
-
-    entries
-}
-
-fn contains_glob_metachar(value: &str) -> bool {
-    value
-        .chars()
-        .any(|character| matches!(character, '*' | '?' | '[' | ']'))
-}
-
-fn render_workdir_manifest_template(
-    plan_name: &str,
-    surface: &[&str],
-    require: &[&str],
-    flowchart: &[&str],
-) -> Result<String, QianjiError> {
-    let manifest = WorkdirManifest {
-        version: 1,
-        plan: WorkdirPlan {
-            name: plan_name.to_string(),
-            surface: surface.iter().map(ToString::to_string).collect(),
-        },
-        check: WorkdirCheck {
-            require: require.iter().map(ToString::to_string).collect(),
-            flowchart: flowchart.iter().map(ToString::to_string).collect(),
-        },
-    };
-
-    toml::to_string_pretty(&manifest).map_err(|error| {
-        QianjiError::Topology(format!(
-            "Failed to serialize localized work-surface template for `{plan_name}`: {error}"
-        ))
-    })
-}
-
-fn display_graph_path(path: &Path) -> String {
+pub(crate) fn display_graph_path(path: &Path) -> String {
     if path.is_absolute() {
         if let Some(project_root) = resolve_project_root()
             && let Ok(relative) = path.strip_prefix(&project_root)

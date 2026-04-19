@@ -66,9 +66,12 @@ fn load_flowhub_module_manifest_reads_real_research_graph_node_contracts() {
     let manifest = load_flowhub_module_manifest(flowhub_root().join("research/paper/qianji.toml"))
         .unwrap_or_else(|error| panic!("research paper manifest should load: {error}"));
 
-    assert_eq!(manifest.graph.len(), 2);
+    assert_eq!(manifest.graph.len(), 3);
     assert_eq!(manifest.graph[0].path, "paper-canonicalize.mmd");
-    assert_eq!(manifest.graph[1].path, "paper-compare.mmd");
+    assert_eq!(manifest.graph[1].path, "paper-deep-read.mmd");
+    assert_eq!(manifest.graph[1].name.as_deref(), Some("PAPER_DEEP_READ"));
+    assert!(manifest.graph[1].node.is_empty());
+    assert_eq!(manifest.graph[2].path, "paper-compare.mmd");
     assert!(manifest.graph[0].workdir.as_ref().is_some_and(|workdir| {
         workdir
             .target
@@ -83,12 +86,12 @@ fn load_flowhub_module_manifest_reads_real_research_graph_node_contracts() {
             .iter()
             .any(|node| node.label == "layout_regions_extract")
     );
-    assert!(
-        manifest
-            .contract
-            .as_ref()
-            .is_some_and(|contract| contract.required.iter().any(|path| path == "paper-deep-read.mmd"))
-    );
+    assert!(manifest.contract.as_ref().is_some_and(|contract| {
+        contract
+            .required
+            .iter()
+            .any(|path| path == "paper-deep-read.mmd")
+    }));
 }
 
 #[test]
@@ -165,8 +168,8 @@ agent_action = "do not treat the slice as complete before qianji check passes"
 }
 
 #[test]
-fn flowhub_module_manifest_rejects_graph_without_node_contracts() {
-    let error = parse_flowhub_module_manifest(
+fn flowhub_module_manifest_accepts_graph_without_node_contracts() {
+    let manifest = parse_flowhub_module_manifest(
         r#"
 version = 1
 
@@ -185,14 +188,10 @@ path = "docs-search.mmd"
 topology = "bounded_loop"
 "#,
     )
-    .err()
-    .unwrap_or_else(|| panic!("graph without node contracts should fail"));
+    .unwrap_or_else(|error| panic!("graph without node contracts should load: {error}"));
 
-    assert!(
-        error
-            .to_string()
-            .contains("requires at least one `[[graph.node]]` entry")
-    );
+    assert_eq!(manifest.graph.len(), 1);
+    assert!(manifest.graph[0].node.is_empty());
 }
 
 #[test]

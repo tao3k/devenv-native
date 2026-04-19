@@ -227,10 +227,7 @@ fn push_list_item(
     }
 }
 
-fn expect_scalar(
-    key: &str,
-    value: AnnotationValue,
-) -> Result<String, FlowhubGraphAnnotationError> {
+fn expect_scalar(key: &str, value: AnnotationValue) -> Result<String, FlowhubGraphAnnotationError> {
     match value {
         AnnotationValue::Scalar(value) => Ok(value),
         AnnotationValue::List(_) => Err(FlowhubGraphAnnotationError::new(format!(

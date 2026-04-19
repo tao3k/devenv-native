@@ -3,7 +3,7 @@ use clap::Args;
 use crate::types::ProjectionPageKindArg;
 
 #[derive(Args, Debug, Clone)]
-pub(crate) struct DocsSearchStructureArgs {
+pub(crate) struct DocsSearchPageIndexArgs {
     #[arg(long)]
     pub repo: String,
     #[arg(long)]

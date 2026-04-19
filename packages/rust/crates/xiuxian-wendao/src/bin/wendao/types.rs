@@ -10,8 +10,8 @@ mod enums;
 pub(crate) use cli::Cli;
 pub(crate) use commands::{
     AgenticCommand, AuditArgs, Command, DocsCommand, DocsContextArgs, DocsNavigationArgs,
-    DocsNodeArgs, DocsPageArgs, DocsSearchArgs, DocsSearchStructureArgs, DocsSegmentArgs,
-    DocsStructureCatalogArgs, DocsTocArgs, DocsTreeArgs, DocsTreeOutlineArgs, FixArgs, HmasCommand,
+    DocsNodeArgs, DocsPageArgs, DocsPageIndexArgs, DocsPageIndexOutlineArgs, DocsSearchArgs,
+    DocsSearchPageIndexArgs, DocsSegmentArgs, DocsTocArgs, DocsTreeArgs, FixArgs, HmasCommand,
     SaliencyCommand, SentinelArgs, SentinelCommand, SentinelWatchArgs,
 };
 #[cfg(feature = "zhenfa-router")]

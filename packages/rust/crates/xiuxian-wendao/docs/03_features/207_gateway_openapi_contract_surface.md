@@ -247,24 +247,24 @@ downstream proof.
   `/api/docs/page-index-node` route, because node reopening remains a
   crate-local docs-tool surface instead of a new gateway-owned opener.
 - That same owner path now also exposes one deterministic structure-search
-  capability through `DocsToolService::search_document_structure(query, kind, limit)`,
+  capability through `DocsToolService::search_page_index(query, kind, limit)`,
   `wendao docs search-structure --repo <repo> --query <query> [--kind <kind>] [--limit <n>]`,
-  and `wendao.docs.search_document_structure`. This slice intentionally does
+  and `wendao.docs.search_page_index`. This slice intentionally does
   not add a `/api/docs/page-index-tree-search` route, because candidate
   generation remains a crate-local docs-tool surface instead of a new
   gateway-owned opener.
 - That same owner path now also exposes one lightweight structure opener
-  through `DocsToolService::get_document_structure_outline(page_id)`,
+  through `DocsToolService::get_page_index_outline(page_id)`,
   `wendao docs tree-outline --repo <repo> --page-id <page-id>`, and
-  `wendao.docs.get_document_structure_outline`. This slice intentionally does
+  `wendao.docs.get_page_index_outline`. This slice intentionally does
   not add a `/api/docs/page-index-tree-outline` route, because token-thinned
   structure inspection remains a crate-local docs-tool surface instead of a
   new gateway-owned opener.
-- That same owner path now also exposes one repo-scoped lightweight structure
-  catalog through `DocsToolService::get_document_structure_catalog()`,
-  `wendao docs structure-catalog --repo <repo>`,
-  `wendao get structure-catalog [<target>]`, and
-  `wendao.docs.get_document_structure_catalog`. This slice intentionally does
+- That same owner path now also exposes one repo-scoped lightweight
+  page-index collection through `DocsToolService::get_page_index()`,
+  `wendao docs page-index --repo <repo>`,
+  `wendao get page-index [<target>]`, and
+  `wendao.docs.get_page_index`. This slice intentionally does
   not add a `/api/docs/page-index-trees` route, because repo-scoped structure
   enumeration remains a crate-local docs-tool surface instead of a new
   gateway-owned opener. The target-first `wendao get` adapter remains a
@@ -291,12 +291,12 @@ downstream proof.
   through
   `wendao.docs.get_document`, `wendao.docs.get_document_node`,
   `wendao.docs.get_document_segment`,
-  `wendao.docs.get_document_structure`,
-  `wendao.docs.get_document_structure_catalog`,
-  `wendao.docs.get_document_structure_outline`,
+  `wendao.docs.get_page_index_tree`,
+  `wendao.docs.get_page_index`,
+  `wendao.docs.get_page_index_outline`,
   `wendao.docs.get_navigation`, `wendao.docs.get_retrieval_context`,
   `wendao.docs.get_toc_documents`, and
-  `wendao.docs.search_document_structure`.
+  `wendao.docs.search_page_index`.
   Those tool wrappers resolve a crate-local docs runtime from `ZhenfaContext`,
   falling back to the injected `DocsToolService`, so planner-facing runtimes
   stay on the same owner path instead of adding a thin HTTP client or another
@@ -341,27 +341,27 @@ capability that intentionally has no matching gateway route:
   <-> `wendao docs node --repo <repo> --page-id <page-id> --node-id <node-id>`
   <-> `wendao.docs.get_document_node`
 
-The crate-local docs-tool surface also exposes one deterministic structure
+The crate-local docs-tool surface also exposes one deterministic page-index
 search capability that intentionally has no matching gateway route:
 
-- `DocsToolService::search_document_structure(query, kind, limit)`
+- `DocsToolService::search_page_index(query, kind, limit)`
   <-> `wendao docs search-structure --repo <repo> --query <query> [--kind <kind>] [--limit <n>]`
-  <-> `wendao.docs.search_document_structure`
+  <-> `wendao.docs.search_page_index`
 
-The crate-local docs-tool surface also exposes one lightweight structure
+The crate-local docs-tool surface also exposes one lightweight page-index
 capability that intentionally has no matching gateway route:
 
-- `DocsToolService::get_document_structure_outline(page_id)`
+- `DocsToolService::get_page_index_outline(page_id)`
   <-> `wendao docs tree-outline --repo <repo> --page-id <page-id>`
-  <-> `wendao.docs.get_document_structure_outline`
+  <-> `wendao.docs.get_page_index_outline`
 
 The crate-local docs-tool surface also exposes one repo-scoped lightweight
-structure catalog that intentionally has no matching gateway route:
+page-index collection that intentionally has no matching gateway route:
 
-- `DocsToolService::get_document_structure_catalog()`
-  <-> `wendao docs structure-catalog --repo <repo>`
-  <-> `wendao get structure-catalog [<target>]`
-  <-> `wendao.docs.get_document_structure_catalog`
+- `DocsToolService::get_page_index()`
+  <-> `wendao docs page-index --repo <repo>`
+  <-> `wendao get page-index [<target>]`
+  <-> `wendao.docs.get_page_index`
 
 The crate-local docs-tool surface also exposes one precise document-segment
 capability that intentionally has no matching gateway route:
@@ -381,7 +381,7 @@ Notes:
   page-index node capability reuses `DocsPageIndexNodeResult`, the
   structure-search capability reuses `DocsPageIndexTreeSearchResult`, the
   lightweight structure opener reuses `DocsPageIndexTreeResult`, and the
-  repo-scoped lightweight structure catalog reuses `DocsPageIndexTreesResult`
+  repo-scoped lightweight page-index collection reuses `DocsPageIndexTreesResult`
   with node `text` fields recursively cleared. The precise segment opener
   reuses projected markdown plus stable `line_range` coordinates; all six stay
   crate-local for now, so the canonical HTTP mapping still covers only the 5
@@ -394,7 +394,7 @@ Notes:
   repo-scoped opening and transport-facing reuse.
 - The same core docs opener mapping is now snapshotted as Wendao-owned
   invocation contracts: `wendao.docs.search`, `wendao.docs.document`,
-  `wendao.docs.document_structure`, `wendao.docs.navigation`, and
+  `wendao.docs.page_index_tree`, `wendao.docs.navigation`, and
   `wendao.docs.retrieval_context`. Each contract is checked in as
   `contract.toml + schema.json`, reuses the same HTTP route constants, CLI
   command forms, and native-tool JSON Schema argument structs, and can be

@@ -3,6 +3,6 @@
 pub enum GetCommand {
     /// Open one target-scoped TOC/page-index document collection.
     Toc(super::GetScopeArgs),
-    /// Open one target-scoped text-free page-index tree catalog.
-    StructureCatalog(super::GetScopeArgs),
+    /// Open one target-scoped text-free page-index tree collection.
+    PageIndex(super::GetScopeArgs),
 }

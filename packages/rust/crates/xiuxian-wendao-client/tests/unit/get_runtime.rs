@@ -39,7 +39,7 @@ fn standalone_get_command_runs_without_embedded_runtime() {
 }
 
 #[test]
-fn standalone_structure_catalog_renders_links_and_embeds_with_source_syntax() {
+fn standalone_page_index_renders_links_and_embeds_with_source_syntax() {
     let temp = tempdir_or_panic();
     let readme = temp.path().join("README.md");
     std::fs::write(
@@ -52,10 +52,10 @@ fn standalone_structure_catalog_renders_links_and_embeds_with_source_syntax() {
         .arg("--root")
         .arg(temp.path())
         .arg("get")
-        .arg("structure-catalog")
+        .arg("page-index")
         .arg("./README.md")
         .output()
-        .unwrap_or_else(|error| panic!("run standalone structure-catalog: {error}"));
+        .unwrap_or_else(|error| panic!("run standalone page-index: {error}"));
 
     let stdout =
         String::from_utf8(output.stdout).unwrap_or_else(|error| panic!("stdout utf8: {error}"));

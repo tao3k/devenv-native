@@ -68,18 +68,20 @@ pub use contracts::{
 pub use engine::QianjiEngine;
 pub use engine::compiler::QianjiCompiler;
 pub use flowhub::{
-    FlowhubCheckReport, FlowhubDiagnostic, FlowhubDirKind, FlowhubGraphEdgeSummary,
-    FlowhubGraphNodeSummary, FlowhubGraphShow, FlowhubModuleKind, FlowhubModuleShow,
-    FlowhubModuleSummary, FlowhubRootShow, FlowhubScenarioCaseSummary, FlowhubScenarioCheckReport,
-    FlowhubScenarioDiagnostic, FlowhubScenarioHiddenAlias, FlowhubScenarioShow,
-    FlowhubScenarioSurfacePreview, FlowhubShow, MaterializedWorkdir, ResolvedFlowhubModule,
-    check_flowhub, check_flowhub_scenario, classify_flowhub_dir, load_flowhub_module_manifest,
-    load_flowhub_scenario_manifest, looks_like_flowhub_scenario_dir,
+    AnchoredMaterializedWorkdir, FlowhubCheckReport, FlowhubDiagnostic, FlowhubDirKind,
+    FlowhubGraphEdgeSummary, FlowhubGraphNodeSummary, FlowhubGraphShow, FlowhubModuleKind,
+    FlowhubModuleShow, FlowhubModuleSummary, FlowhubRootShow, FlowhubScenarioCaseSummary,
+    FlowhubScenarioCheckReport, FlowhubScenarioDiagnostic, FlowhubScenarioHiddenAlias,
+    FlowhubScenarioShow, FlowhubScenarioSurfacePreview, FlowhubShow, MaterializedWorkdir,
+    ResolvedFlowhubModule, check_flowhub, check_flowhub_scenario, classify_flowhub_dir,
+    load_flowhub_module_manifest, load_flowhub_scenario_manifest, looks_like_flowhub_scenario_dir,
+    materialize_flowhub_anchored_scenario, materialize_flowhub_anchored_scenario_at_node,
     materialize_flowhub_scenario_workdir, parse_flowhub_module_manifest,
-    parse_flowhub_scenario_manifest, render_flowhub_check_markdown, render_flowhub_graph_show,
+    parse_flowhub_scenario_manifest, render_anchored_materialized_workdir,
+    render_flowhub_check_markdown, render_flowhub_graph_show,
     render_flowhub_scenario_check_markdown, render_flowhub_scenario_show, render_flowhub_show,
     resolve_flowhub_module_children, resolve_flowhub_scenario_modules, show_flowhub,
-    show_flowhub_graph, show_flowhub_scenario,
+    show_flowhub_anchored_scenario, show_flowhub_graph, show_flowhub_scenario,
 };
 pub use manifest::{manifest_declares_qianhuan_bindings, manifest_requires_llm};
 pub use safety::QianjiSafetyGuard;
@@ -96,12 +98,12 @@ pub use telemetry::{
     SwarmEvent, ValkeyPulseEmitter, unix_millis_now,
 };
 pub use workdir::{
-    WorkdirCheckFollowUpQuery, WorkdirCheckReport, WorkdirDiagnostic, WorkdirMarkdownSurface,
-    WorkdirShow, WorkdirVisibleSurface, WorkdirVisibleSurfaceKind,
-    build_workdir_check_follow_up_query, check_workdir, load_workdir_manifest,
-    looks_like_workdir_dir, parse_workdir_manifest, query_workdir_check_follow_up_payload,
-    query_workdir_markdown_payload, render_workdir_check_markdown, render_workdir_show,
-    show_workdir,
+    WorkdirAdvance, WorkdirCheckFollowUpQuery, WorkdirCheckReport, WorkdirDiagnostic,
+    WorkdirMarkdownSurface, WorkdirShow, WorkdirVisibleSurface, WorkdirVisibleSurfaceKind,
+    advance_workdir_step, build_workdir_check_follow_up_query, check_workdir,
+    load_workdir_manifest, looks_like_workdir_dir, parse_workdir_manifest,
+    query_workdir_check_follow_up_payload, query_workdir_markdown_payload, render_workdir_advance,
+    render_workdir_check_markdown, render_workdir_show, show_workdir,
 };
 
 #[cfg(feature = "llm")]

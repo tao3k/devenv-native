@@ -359,14 +359,15 @@ fn summarize_scenario_case(
         .ok()
         .and_then(|source| {
             let annotations = parse_flowhub_graph_annotations(&source).ok().flatten();
-            let graph_name =
-                resolve_flowhub_graph_name(annotations.as_ref(), declared_graph, file_stem.as_str());
+            let graph_name = resolve_flowhub_graph_name(
+                annotations.as_ref(),
+                declared_graph,
+                file_stem.as_str(),
+            );
             parse_mermaid_flowchart(&source, graph_name.as_str(), known_module_names).ok()
         })
         .map_or_else(
-            || {
-                resolve_flowhub_graph_name(None, declared_graph, file_stem.as_str()).to_string()
-            },
+            || resolve_flowhub_graph_name(None, declared_graph, file_stem.as_str()),
             |flowchart| flowchart.merimind_graph_name,
         );
 

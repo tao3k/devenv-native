@@ -20,9 +20,9 @@ pub(crate) use attachments::AttachmentsArgs;
 pub(crate) use audit::AuditArgs;
 pub(crate) use command::Command;
 pub(crate) use docs::{
-    DocsCommand, DocsContextArgs, DocsNavigationArgs, DocsNodeArgs, DocsPageArgs, DocsSearchArgs,
-    DocsSearchStructureArgs, DocsSegmentArgs, DocsStructureCatalogArgs, DocsTocArgs, DocsTreeArgs,
-    DocsTreeOutlineArgs,
+    DocsCommand, DocsContextArgs, DocsNavigationArgs, DocsNodeArgs, DocsPageArgs,
+    DocsPageIndexArgs, DocsPageIndexOutlineArgs, DocsSearchArgs, DocsSearchPageIndexArgs,
+    DocsSegmentArgs, DocsTocArgs, DocsTreeArgs,
 };
 pub(crate) use fix::FixArgs;
 #[cfg(feature = "zhenfa-router")]

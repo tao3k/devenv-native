@@ -23,19 +23,17 @@ pub(crate) trait DocsToolRuntime: Send + Sync {
 
     fn get_document(&self, page_id: &str) -> Result<DocsPageResult, RepoIntelligenceError>;
 
-    fn get_document_structure(
+    fn get_page_index_tree(
         &self,
         page_id: &str,
     ) -> Result<DocsPageIndexTreeResult, RepoIntelligenceError>;
 
-    fn get_document_structure_outline(
+    fn get_page_index_outline(
         &self,
         page_id: &str,
     ) -> Result<DocsPageIndexTreeResult, RepoIntelligenceError>;
 
-    fn get_document_structure_catalog(
-        &self,
-    ) -> Result<DocsPageIndexTreesResult, RepoIntelligenceError>;
+    fn get_page_index(&self) -> Result<DocsPageIndexTreesResult, RepoIntelligenceError>;
 
     fn get_document_segment(
         &self,
@@ -50,7 +48,7 @@ pub(crate) trait DocsToolRuntime: Send + Sync {
         node_id: &str,
     ) -> Result<DocsPageIndexNodeResult, RepoIntelligenceError>;
 
-    fn search_document_structure(
+    fn search_page_index(
         &self,
         query: &str,
         kind: Option<ProjectionPageKind>,
@@ -86,24 +84,22 @@ impl DocsToolRuntime for DocsToolService {
         DocsToolService::get_document(self, page_id)
     }
 
-    fn get_document_structure(
+    fn get_page_index_tree(
         &self,
         page_id: &str,
     ) -> Result<DocsPageIndexTreeResult, RepoIntelligenceError> {
-        DocsToolService::get_document_structure(self, page_id)
+        DocsToolService::get_page_index_tree(self, page_id)
     }
 
-    fn get_document_structure_outline(
+    fn get_page_index_outline(
         &self,
         page_id: &str,
     ) -> Result<DocsPageIndexTreeResult, RepoIntelligenceError> {
-        DocsToolService::get_document_structure_outline(self, page_id)
+        DocsToolService::get_page_index_outline(self, page_id)
     }
 
-    fn get_document_structure_catalog(
-        &self,
-    ) -> Result<DocsPageIndexTreesResult, RepoIntelligenceError> {
-        DocsToolService::get_document_structure_catalog(self)
+    fn get_page_index(&self) -> Result<DocsPageIndexTreesResult, RepoIntelligenceError> {
+        DocsToolService::get_page_index(self)
     }
 
     fn get_document_segment(
@@ -123,13 +119,13 @@ impl DocsToolRuntime for DocsToolService {
         DocsToolService::get_document_node(self, page_id, node_id)
     }
 
-    fn search_document_structure(
+    fn search_page_index(
         &self,
         query: &str,
         kind: Option<ProjectionPageKind>,
         limit: usize,
     ) -> Result<DocsPageIndexTreeSearchResult, RepoIntelligenceError> {
-        DocsToolService::search_document_structure(self, query, kind, limit)
+        DocsToolService::search_page_index(self, query, kind, limit)
     }
 
     fn get_toc_documents(&self) -> Result<DocsPageIndexDocumentsResult, RepoIntelligenceError> {

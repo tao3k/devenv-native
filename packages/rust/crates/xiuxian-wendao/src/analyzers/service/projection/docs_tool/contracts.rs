@@ -16,8 +16,8 @@ use super::options::{DEFAULT_DOCS_FAMILY_LIMIT, DEFAULT_DOCS_RELATED_LIMIT};
 pub const DOCS_SEARCH_CONTRACT_ID: &str = "wendao.docs.search";
 /// Stable contract identifier for the docs document capability.
 pub const DOCS_DOCUMENT_CONTRACT_ID: &str = "wendao.docs.document";
-/// Stable contract identifier for the docs document-structure capability.
-pub const DOCS_DOCUMENT_STRUCTURE_CONTRACT_ID: &str = "wendao.docs.document_structure";
+/// Stable contract identifier for the docs page-index-tree capability.
+pub const DOCS_PAGE_INDEX_TREE_CONTRACT_ID: &str = "wendao.docs.page_index_tree";
 /// Stable contract identifier for the docs navigation capability.
 pub const DOCS_NAVIGATION_CONTRACT_ID: &str = "wendao.docs.navigation";
 /// Stable contract identifier for the docs retrieval-context capability.
@@ -26,7 +26,7 @@ pub const DOCS_RETRIEVAL_CONTEXT_CONTRACT_ID: &str = "wendao.docs.retrieval_cont
 pub const DOCS_CONTRACT_IDS: &[&str] = &[
     DOCS_SEARCH_CONTRACT_ID,
     DOCS_DOCUMENT_CONTRACT_ID,
-    DOCS_DOCUMENT_STRUCTURE_CONTRACT_ID,
+    DOCS_PAGE_INDEX_TREE_CONTRACT_ID,
     DOCS_NAVIGATION_CONTRACT_ID,
     DOCS_RETRIEVAL_CONTEXT_CONTRACT_ID,
 ];
@@ -63,17 +63,17 @@ const DOCS_DOCUMENT_SCHEMA_JSON: &str = include_str!(concat!(
 ));
 
 #[cfg(test)]
-const DOCS_DOCUMENT_STRUCTURE_MANIFEST: &str = include_str!(concat!(
+const DOCS_PAGE_INDEX_TREE_MANIFEST: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/resources/contracts/manifests/wendao.docs.document_structure.toml"
+    "/resources/contracts/manifests/wendao.docs.page_index_tree.toml"
 ));
-const DOCS_DOCUMENT_STRUCTURE_CONTRACT_TOML: &str = include_str!(concat!(
+const DOCS_PAGE_INDEX_TREE_CONTRACT_TOML: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/resources/contracts/snapshots/wendao.docs.document_structure/contract.toml"
+    "/resources/contracts/snapshots/wendao.docs.page_index_tree/contract.toml"
 ));
-const DOCS_DOCUMENT_STRUCTURE_SCHEMA_JSON: &str = include_str!(concat!(
+const DOCS_PAGE_INDEX_TREE_SCHEMA_JSON: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/resources/contracts/snapshots/wendao.docs.document_structure/schema.json"
+    "/resources/contracts/snapshots/wendao.docs.page_index_tree/schema.json"
 ));
 
 #[cfg(test)]
@@ -124,9 +124,9 @@ pub struct DocsDocumentToolArgs {
     pub page_id: String,
 }
 
-/// Stable tool arguments for docs document-structure native-tool execution.
+/// Stable tool arguments for docs page-index-tree native-tool execution.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
-pub struct DocsDocumentStructureToolArgs {
+pub struct DocsPageIndexTreeToolArgs {
     /// Stable docs-facing page identifier.
     pub page_id: String,
 }
@@ -311,9 +311,9 @@ pub fn docs_capability_contract_assets(contract_id: &str) -> Option<DocsCapabili
             contract_toml: DOCS_DOCUMENT_CONTRACT_TOML,
             schema_json: DOCS_DOCUMENT_SCHEMA_JSON,
         }),
-        DOCS_DOCUMENT_STRUCTURE_CONTRACT_ID => Some(DocsCapabilityContractAssets {
-            contract_toml: DOCS_DOCUMENT_STRUCTURE_CONTRACT_TOML,
-            schema_json: DOCS_DOCUMENT_STRUCTURE_SCHEMA_JSON,
+        DOCS_PAGE_INDEX_TREE_CONTRACT_ID => Some(DocsCapabilityContractAssets {
+            contract_toml: DOCS_PAGE_INDEX_TREE_CONTRACT_TOML,
+            schema_json: DOCS_PAGE_INDEX_TREE_SCHEMA_JSON,
         }),
         DOCS_NAVIGATION_CONTRACT_ID => Some(DocsCapabilityContractAssets {
             contract_toml: DOCS_NAVIGATION_CONTRACT_TOML,
@@ -344,7 +344,7 @@ fn docs_capability_manifest(contract_id: &str) -> Option<&'static str> {
     match contract_id {
         DOCS_SEARCH_CONTRACT_ID => Some(DOCS_SEARCH_MANIFEST),
         DOCS_DOCUMENT_CONTRACT_ID => Some(DOCS_DOCUMENT_MANIFEST),
-        DOCS_DOCUMENT_STRUCTURE_CONTRACT_ID => Some(DOCS_DOCUMENT_STRUCTURE_MANIFEST),
+        DOCS_PAGE_INDEX_TREE_CONTRACT_ID => Some(DOCS_PAGE_INDEX_TREE_MANIFEST),
         DOCS_NAVIGATION_CONTRACT_ID => Some(DOCS_NAVIGATION_MANIFEST),
         DOCS_RETRIEVAL_CONTEXT_CONTRACT_ID => Some(DOCS_RETRIEVAL_CONTEXT_MANIFEST),
         _ => None,
@@ -412,9 +412,9 @@ fn generate_schema_json(contract_id: &str) -> Result<String> {
             .context("failed to serialize DocsSearchToolArgs schema")?,
         "DocsDocumentToolArgs" => serde_json::to_string_pretty(&schema_for!(DocsDocumentToolArgs))
             .context("failed to serialize DocsDocumentToolArgs schema")?,
-        "DocsDocumentStructureToolArgs" => {
-            serde_json::to_string_pretty(&schema_for!(DocsDocumentStructureToolArgs))
-                .context("failed to serialize DocsDocumentStructureToolArgs schema")?
+        "DocsPageIndexTreeToolArgs" => {
+            serde_json::to_string_pretty(&schema_for!(DocsPageIndexTreeToolArgs))
+                .context("failed to serialize DocsPageIndexTreeToolArgs schema")?
         }
         "DocsNavigationToolArgs" => {
             serde_json::to_string_pretty(&schema_for!(DocsNavigationToolArgs))
@@ -463,7 +463,7 @@ fn expected_contract_shape(contract_id: &str) -> Option<DocsCapabilityManifest> 
     match contract_id {
         DOCS_SEARCH_CONTRACT_ID => Some(search_contract_shape()),
         DOCS_DOCUMENT_CONTRACT_ID => Some(document_contract_shape()),
-        DOCS_DOCUMENT_STRUCTURE_CONTRACT_ID => Some(document_structure_contract_shape()),
+        DOCS_PAGE_INDEX_TREE_CONTRACT_ID => Some(page_index_tree_contract_shape()),
         DOCS_NAVIGATION_CONTRACT_ID => Some(navigation_contract_shape()),
         DOCS_RETRIEVAL_CONTEXT_CONTRACT_ID => Some(retrieval_context_contract_shape()),
         _ => None,
@@ -528,16 +528,16 @@ fn document_contract_shape() -> DocsCapabilityManifest {
 }
 
 #[cfg(test)]
-fn document_structure_contract_shape() -> DocsCapabilityManifest {
+fn page_index_tree_contract_shape() -> DocsCapabilityManifest {
     docs_contract_manifest(
         DocsContractShapeSpec {
-            id: DOCS_DOCUMENT_STRUCTURE_CONTRACT_ID,
+            id: DOCS_PAGE_INDEX_TREE_CONTRACT_ID,
             http_path: crate::gateway::API_DOCS_PAGE_INDEX_TREE_OPENAPI_PATH,
             http_query: &["repo", "page_id"],
             cli_argv: &["wendao", "docs", "tree"],
             cli_flags: &[("page_id", "--page-id"), ("repo", "--repo")],
-            tool_name: "wendao.docs.get_document_structure",
-            schema_provider: "DocsDocumentStructureToolArgs",
+            tool_name: "wendao.docs.get_page_index_tree",
+            schema_provider: "DocsPageIndexTreeToolArgs",
         },
         vec![
             required_string_param("repo"),

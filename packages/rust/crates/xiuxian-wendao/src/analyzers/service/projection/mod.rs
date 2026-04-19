@@ -20,13 +20,13 @@ mod tests;
 #[cfg(all(feature = "zhenfa-router", test))]
 pub use docs_tool::DocsDocumentSegmentResult;
 pub use docs_tool::{
-    DOCS_CONTRACT_IDS, DOCS_DOCUMENT_CONTRACT_ID, DOCS_DOCUMENT_STRUCTURE_CONTRACT_ID,
-    DOCS_NAVIGATION_CONTRACT_ID, DOCS_RETRIEVAL_CONTEXT_CONTRACT_ID, DOCS_SEARCH_CONTRACT_ID,
+    DOCS_CONTRACT_IDS, DOCS_DOCUMENT_CONTRACT_ID, DOCS_NAVIGATION_CONTRACT_ID,
+    DOCS_PAGE_INDEX_TREE_CONTRACT_ID, DOCS_RETRIEVAL_CONTEXT_CONTRACT_ID, DOCS_SEARCH_CONTRACT_ID,
     DocsCapabilityContractAssets, DocsCapabilityContractSnapshot, DocsCliContractSnapshot,
-    DocsContractDefaultValue, DocsContractParamSnapshot, DocsDocumentStructureToolArgs,
-    DocsDocumentToolArgs, DocsHttpContractSnapshot, DocsNavigationOptions, DocsNavigationToolArgs,
-    DocsRetrievalContextOptions, DocsRetrievalContextToolArgs, DocsSearchToolArgs,
-    DocsToolContractSnapshot, DocsToolService, docs_capability_contract_assets,
+    DocsContractDefaultValue, DocsContractParamSnapshot, DocsDocumentToolArgs,
+    DocsHttpContractSnapshot, DocsNavigationOptions, DocsNavigationToolArgs,
+    DocsPageIndexTreeToolArgs, DocsRetrievalContextOptions, DocsRetrievalContextToolArgs,
+    DocsSearchToolArgs, DocsToolContractSnapshot, DocsToolService, docs_capability_contract_assets,
     docs_capability_contract_snapshot, docs_capability_schema_snapshot,
 };
 #[cfg(feature = "zhenfa-router")]

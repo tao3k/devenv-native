@@ -153,3 +153,95 @@ fn parse_check_workdir_command_requires_dir_flag() {
         }
     );
 }
+
+#[test]
+fn parse_materialize_anchored_command_requires_anchor_scenario_and_dir() {
+    let command = must_some(
+        must_ok(
+            parse_dir_command(&to_args(&[
+                "qianji",
+                "materialize",
+                "--anchor",
+                "./qianji-flowhub/research/paper/qianji.toml",
+                "--scenario",
+                "deep_read",
+                "--dir",
+                "runs/run_001",
+            ])),
+            "materialize parse should succeed",
+        ),
+        "materialize command should be detected",
+    );
+
+    assert_eq!(
+        command,
+        DirCliCommand::Materialize {
+            target: MaterializeCliTarget::AnchoredScenario {
+                anchor: PathBuf::from("./qianji-flowhub/research/paper/qianji.toml"),
+                scenario: "deep_read".to_string(),
+                dir: PathBuf::from("runs/run_001"),
+                current_node: None,
+            }
+        }
+    );
+}
+
+#[test]
+fn parse_materialize_anchored_command_accepts_current_node() {
+    let command = must_some(
+        must_ok(
+            parse_dir_command(&to_args(&[
+                "qianji",
+                "materialize",
+                "--anchor",
+                "./qianji-flowhub/research/paper/qianji.toml",
+                "--scenario",
+                "deep_read",
+                "--dir",
+                "runs/run_003",
+                "--current-node",
+                "claim_extract",
+            ])),
+            "materialize parse with current node should succeed",
+        ),
+        "materialize command should be detected",
+    );
+
+    assert_eq!(
+        command,
+        DirCliCommand::Materialize {
+            target: MaterializeCliTarget::AnchoredScenario {
+                anchor: PathBuf::from("./qianji-flowhub/research/paper/qianji.toml"),
+                scenario: "deep_read".to_string(),
+                dir: PathBuf::from("runs/run_003"),
+                current_node: Some("claim_extract".to_string()),
+            }
+        }
+    );
+}
+
+#[test]
+fn parse_advance_command_requires_dir_and_target_node() {
+    let command = must_some(
+        must_ok(
+            parse_dir_command(&to_args(&[
+                "qianji",
+                "advance",
+                "--dir",
+                "runs/run_005",
+                "--to",
+                "evidence_ground",
+            ])),
+            "advance parse should succeed",
+        ),
+        "advance command should be detected",
+    );
+
+    assert_eq!(
+        command,
+        DirCliCommand::Advance {
+            dir: PathBuf::from("runs/run_005"),
+            to: "evidence_ground".to_string(),
+        }
+    );
+}

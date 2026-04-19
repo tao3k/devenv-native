@@ -477,24 +477,24 @@ widening gateway ownership:
 The same owner path now also exposes one deterministic structure-search
 capability without widening gateway ownership:
 
-- `DocsToolService::search_document_structure(query, kind, limit)`
+- `DocsToolService::search_page_index(query, kind, limit)`
 - `wendao docs search-structure --repo <repo> --query <query> [--kind <kind>] [--limit <n>]`
-- `wendao.docs.search_document_structure`
+- `wendao.docs.search_page_index`
 
 The same owner path now also exposes one lightweight structure opener without
 widening gateway ownership:
 
-- `DocsToolService::get_document_structure_outline(page_id)`
+- `DocsToolService::get_page_index_outline(page_id)`
 - `wendao docs tree-outline --repo <repo> --page-id <page-id>`
-- `wendao.docs.get_document_structure_outline`
+- `wendao.docs.get_page_index_outline`
 
-The same owner path now also exposes one repo-scoped lightweight structure
-catalog without widening gateway ownership:
+The same owner path now also exposes one repo-scoped lightweight page-index
+collection without widening gateway ownership:
 
-- `DocsToolService::get_document_structure_catalog()`
-- `wendao docs structure-catalog --repo <repo>`
-- `wendao get structure-catalog [<target>]`
-- `wendao.docs.get_document_structure_catalog`
+- `DocsToolService::get_page_index()`
+- `wendao docs page-index --repo <repo>`
+- `wendao get page-index [<target>]`
+- `wendao.docs.get_page_index`
 
 The same owner path now also exposes one precise document-segment opener
 without widening gateway ownership:
@@ -503,13 +503,13 @@ without widening gateway ownership:
 - `wendao docs segment --repo <repo> --page-id <page-id> --line-start <n> --line-end <n>`
 - `wendao.docs.get_document_segment`
 
-These pageindex-only capabilities intentionally remain crate-local in this
+These page-index-only capabilities intentionally remain crate-local in this
 slice. The gateway still exposes only the 4 core page-opening routes below.
 The underlying Markdown TOC parsing owner is now
 `xiuxian_wendao_parsers::parse_markdown_toc`; `DocsToolService` remains the
 repo-scoped opener over projected page-index documents, nodes, bounded
 structure-search candidate generation, token-thinned outline reopening, and
-repo-scoped lightweight structure catalog reopening. The new segment opener
+repo-scoped lightweight page-index collection reopening. The new segment opener
 also stays on that owner path by reusing projected markdown plus stable
 `line_range` coordinates rather than introducing a new parser or gateway
 owner. The target-first `wendao get` adapter is reusable client-owned CLI
@@ -543,13 +543,13 @@ HTTP to CLI mapping for the 4 core docs openers now lives in
 - `GET /api/docs/retrieval-context` <-> `wendao docs context --repo <repo> --page-id <page-id> [--node-id <node-id>] [--related-limit <n>]`
 
 The same owner path now also serves planner-facing native tools. Wendao ships
-`wendao.docs.get_document`, `wendao.docs.get_document_structure`,
+`wendao.docs.get_document`, `wendao.docs.get_page_index_tree`,
 `wendao.docs.get_document_segment`,
-`wendao.docs.get_document_structure_catalog`,
-`wendao.docs.get_document_structure_outline`,
+`wendao.docs.get_page_index`,
+`wendao.docs.get_page_index_outline`,
 `wendao.docs.get_document_node`, `wendao.docs.get_navigation`,
 `wendao.docs.get_retrieval_context`, `wendao.docs.get_toc_documents`, and
-`wendao.docs.search_document_structure` as native zhenfa tools backed by the
+`wendao.docs.search_page_index` as native zhenfa tools backed by the
 same crate-local docs runtime surface, with `DocsToolService` as the default
 injected owner, so future planner or MCP-style adapters can reuse the docs
 capability surface without going through gateway HTTP or folding page-index

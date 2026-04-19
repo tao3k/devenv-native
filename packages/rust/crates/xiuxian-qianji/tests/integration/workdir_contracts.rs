@@ -68,6 +68,101 @@ fn create_valid_workdir(temp_dir: &TempDir) -> std::path::PathBuf {
     workdir
 }
 
+fn step_aware_workdir_manifest() -> &'static str {
+    r#"
+version = 1
+
+[plan]
+name = "paper-step-demo"
+surface = ["flowchart.mmd", "refs", "state", "checkpoints", "staging", "diagnostics", "outputs"]
+
+[check]
+require = [
+  "qianji.toml",
+  "flowchart.mmd",
+  "refs/paper.json",
+  "refs/topic.json",
+  "state/current_node.toml",
+  "state/trace.jsonl",
+  "state/allowed_next.json",
+  "checkpoints/methods_extract.json",
+  "checkpoints/results_extract.json",
+  "staging/semantics/method_card.patch.json",
+  "staging/semantics/result_sheet.patch.json",
+  "diagnostics/latest_check.md",
+  "diagnostics/blocked.json",
+  "diagnostics/failed.json",
+  "outputs/response_preview.md",
+]
+flowchart = ["state", "checkpoints", "staging"]
+"#
+}
+
+fn create_step_aware_workdir(temp_dir: &TempDir) -> std::path::PathBuf {
+    let workdir = temp_dir.path().join("paper-step-demo");
+    fs::create_dir_all(&workdir)
+        .unwrap_or_else(|error| panic!("should create workdir {}: {error}", workdir.display()));
+    write_file(&workdir.join("qianji.toml"), step_aware_workdir_manifest());
+    write_file(
+        &workdir.join("flowchart.mmd"),
+        r#"
+%% qianji.scenario.id: deep_read
+%% qianji.scenario.name: PAPER_STEP_DEMO
+%% qianji.scenario.workdir_root: runs/<run_id>
+%% qianji.scenario.requires:
+%%   - refs/paper.json
+%%   - refs/topic.json
+%% qianji.scenario.target_root: papers/<paper_id>
+%% qianji.scenario.target_paths:
+%%   - semantics/method_card.json
+%%   - semantics/result_sheet.json
+flowchart LR
+  paper_package["research/paper"] --> methods_extract["methods_extract"]
+  methods_extract --> results_extract["results_extract"]
+  results_extract --> done_gate["done gate"]
+
+%% qianji.node.paper_package.kind: artifact
+%% qianji.node.methods_extract.kind: process
+%% qianji.node.methods_extract.checkpoint: checkpoints/methods_extract.json
+%% qianji.node.methods_extract.writes:
+%%   - staging/semantics/method_card.patch.json
+%% qianji.node.methods_extract.merge_target:
+%%   - semantics/method_card.json
+%% qianji.node.results_extract.kind: process
+%% qianji.node.results_extract.checkpoint: checkpoints/results_extract.json
+%% qianji.node.results_extract.writes:
+%%   - staging/semantics/result_sheet.patch.json
+%% qianji.node.results_extract.merge_target:
+%%   - semantics/result_sheet.json
+%% qianji.node.done_gate.kind: gate
+%% qianji.done_gate.require:
+%%   - semantics/method_card.json
+%%   - semantics/result_sheet.json
+"#,
+    );
+    write_file(&workdir.join("refs/paper.json"), "{}\n");
+    write_file(&workdir.join("refs/topic.json"), "{}\n");
+    write_file(
+        &workdir.join("state/current_node.toml"),
+        "current_node = \"methods_extract\"\n",
+    );
+    write_file(&workdir.join("state/trace.jsonl"), "{}\n");
+    write_file(
+        &workdir.join("state/allowed_next.json"),
+        "[\"results_extract\"]\n",
+    );
+    write_file(&workdir.join("checkpoints/methods_extract.json"), "{}\n");
+    write_file(
+        &workdir.join("staging/semantics/method_card.patch.json"),
+        "{}\n",
+    );
+    write_file(&workdir.join("diagnostics/latest_check.md"), "# Check\n");
+    write_file(&workdir.join("diagnostics/blocked.json"), "[]\n");
+    write_file(&workdir.join("diagnostics/failed.json"), "[]\n");
+    write_file(&workdir.join("outputs/response_preview.md"), "# Preview\n");
+    workdir
+}
+
 #[test]
 fn bounded_workdir_manifest_parses_compact_contract() {
     let manifest = parse_workdir_manifest(valid_workdir_manifest())
@@ -164,6 +259,42 @@ fn check_workdir_accepts_valid_surface() {
     assert!(report.is_valid());
     let rendered = render_workdir_check_markdown(&report);
     assert!(rendered.contains("# Validation Passed"));
+}
+
+#[test]
+fn check_workdir_accepts_step_aware_current_node_without_future_outputs() {
+    let temp_dir =
+        TempDir::new().unwrap_or_else(|error| panic!("temp dir should allocate: {error}"));
+    let workdir = create_step_aware_workdir(&temp_dir);
+
+    let report = check_workdir(&workdir)
+        .unwrap_or_else(|error| panic!("step-aware work surface should check: {error}"));
+
+    assert!(report.is_valid());
+    let rendered = render_workdir_check_markdown(&report);
+    assert!(rendered.contains("# Validation Passed"));
+}
+
+#[test]
+fn check_workdir_blocks_allowed_next_drift_for_step_aware_surface() {
+    let temp_dir =
+        TempDir::new().unwrap_or_else(|error| panic!("temp dir should allocate: {error}"));
+    let workdir = create_step_aware_workdir(&temp_dir);
+    write_file(
+        &workdir.join("state/allowed_next.json"),
+        "[\"done_gate\"]\n",
+    );
+
+    let report = check_workdir(&workdir)
+        .unwrap_or_else(|error| panic!("step-aware drift should still report: {error}"));
+
+    assert!(!report.is_valid());
+    let rendered = render_workdir_check_markdown(&report);
+    assert_common_diagnostic_shape(&rendered);
+    assert!(rendered.contains("Allowed-next drift"));
+    assert!(rendered.contains("current node `methods_extract`"));
+    assert!(rendered.contains("`results_extract`"));
+    assert!(rendered.contains("`done gate`"));
 }
 
 #[test]

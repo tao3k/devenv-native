@@ -1,4 +1,4 @@
-id = "wendao.docs.document_structure"
+id = "wendao.docs.page_index_tree"
 version = 1
 task_types = ["http_call", "cli_call"]
 
@@ -15,8 +15,8 @@ page_id = "--page-id"
 repo = "--repo"
 
 [tool]
-name = "wendao.docs.get_document_structure"
-schema_provider = "DocsDocumentStructureToolArgs"
+name = "wendao.docs.get_page_index_tree"
+schema_provider = "DocsPageIndexTreeToolArgs"
 runtime_injected = ["repo"]
 
 [[params]]

@@ -55,6 +55,9 @@ pub fn build_workdir_check_follow_up_query(
         .collect::<Vec<_>>();
 
     if surfaces.is_empty() {
+        if !report.workdir.join("qianji.toml").is_file() {
+            return None;
+        }
         surfaces = vec![
             WorkdirMarkdownSurface::Blueprint,
             WorkdirMarkdownSurface::Plan,

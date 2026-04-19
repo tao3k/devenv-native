@@ -378,13 +378,6 @@ fn validate_graph_contract_name(graph: &FlowhubGraphContract) -> Result<(), Qian
 }
 
 fn validate_graph_node_contracts(graph: &FlowhubGraphContract) -> Result<(), QianjiError> {
-    if graph.node.is_empty() {
-        return Err(QianjiError::Topology(format!(
-            "Flowhub module manifest `[[graph]] path = \"{}\"` requires at least one `[[graph.node]]` entry",
-            graph.path
-        )));
-    }
-
     let mut labels = BTreeSet::new();
     for node in &graph.node {
         validate_graph_node_contract(node, &graph.path)?;

@@ -15,10 +15,9 @@ pub(super) use crate::analyzers::{
 };
 pub(super) use crate::zhenfa_router::native::{
     WendaoContextExt, WendaoDocsGetDocumentNodeTool, WendaoDocsGetDocumentSegmentTool,
-    WendaoDocsGetDocumentStructureCatalogTool, WendaoDocsGetDocumentStructureOutlineTool,
-    WendaoDocsGetDocumentTool, WendaoDocsGetTocDocumentsTool,
-    WendaoDocsSearchDocumentStructureTool, WendaoDocsSearchTool, register_wendao_docs_native_tools,
-    resolve_docs_tool_runtime,
+    WendaoDocsGetDocumentTool, WendaoDocsGetPageIndexOutlineTool, WendaoDocsGetPageIndexTool,
+    WendaoDocsGetTocDocumentsTool, WendaoDocsSearchPageIndexTool, WendaoDocsSearchTool,
+    register_wendao_docs_native_tools, resolve_docs_tool_runtime,
 };
 
 pub(super) type TestResult = Result<(), Box<dyn std::error::Error>>;
@@ -89,14 +88,14 @@ impl DocsToolRuntime for FakeDocsToolRuntime {
         })
     }
 
-    fn get_document_structure(
+    fn get_page_index_tree(
         &self,
         _page_id: &str,
     ) -> Result<DocsPageIndexTreeResult, RepoIntelligenceError> {
-        panic!("get_document_structure is not used in this test")
+        panic!("get_page_index_tree is not used in this test")
     }
 
-    fn get_document_structure_outline(
+    fn get_page_index_outline(
         &self,
         _page_id: &str,
     ) -> Result<DocsPageIndexTreeResult, RepoIntelligenceError> {
@@ -129,9 +128,7 @@ impl DocsToolRuntime for FakeDocsToolRuntime {
         })
     }
 
-    fn get_document_structure_catalog(
-        &self,
-    ) -> Result<DocsPageIndexTreesResult, RepoIntelligenceError> {
+    fn get_page_index(&self) -> Result<DocsPageIndexTreesResult, RepoIntelligenceError> {
         Ok(DocsPageIndexTreesResult {
             repo_id: TEST_REPO_ID.to_string(),
             trees: vec![crate::analyzers::ProjectedPageIndexTree {
@@ -205,7 +202,7 @@ impl DocsToolRuntime for FakeDocsToolRuntime {
         })
     }
 
-    fn search_document_structure(
+    fn search_page_index(
         &self,
         query: &str,
         kind: Option<ProjectionPageKind>,

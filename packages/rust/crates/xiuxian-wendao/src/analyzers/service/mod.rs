@@ -55,13 +55,13 @@ pub use projection::DocsDocumentSegmentResult;
 #[cfg(feature = "studio")]
 pub(crate) use projection::build_repo_projected_page_search_with_artifacts;
 pub use projection::{
-    DOCS_CONTRACT_IDS, DOCS_DOCUMENT_CONTRACT_ID, DOCS_DOCUMENT_STRUCTURE_CONTRACT_ID,
-    DOCS_NAVIGATION_CONTRACT_ID, DOCS_RETRIEVAL_CONTEXT_CONTRACT_ID, DOCS_SEARCH_CONTRACT_ID,
+    DOCS_CONTRACT_IDS, DOCS_DOCUMENT_CONTRACT_ID, DOCS_NAVIGATION_CONTRACT_ID,
+    DOCS_PAGE_INDEX_TREE_CONTRACT_ID, DOCS_RETRIEVAL_CONTEXT_CONTRACT_ID, DOCS_SEARCH_CONTRACT_ID,
     DocsCapabilityContractAssets, DocsCapabilityContractSnapshot, DocsCliContractSnapshot,
-    DocsContractDefaultValue, DocsContractParamSnapshot, DocsDocumentStructureToolArgs,
-    DocsDocumentToolArgs, DocsHttpContractSnapshot, DocsNavigationOptions, DocsNavigationToolArgs,
-    DocsRetrievalContextOptions, DocsRetrievalContextToolArgs, DocsSearchToolArgs,
-    DocsToolContractSnapshot, DocsToolService, build_docs_family_cluster,
+    DocsContractDefaultValue, DocsContractParamSnapshot, DocsDocumentToolArgs,
+    DocsHttpContractSnapshot, DocsNavigationOptions, DocsNavigationToolArgs,
+    DocsPageIndexTreeToolArgs, DocsRetrievalContextOptions, DocsRetrievalContextToolArgs,
+    DocsSearchToolArgs, DocsToolContractSnapshot, DocsToolService, build_docs_family_cluster,
     build_docs_family_context, build_docs_family_search, build_docs_markdown_documents,
     build_docs_navigation, build_docs_navigation_search, build_docs_page,
     build_docs_page_index_documents, build_docs_page_index_node, build_docs_page_index_tree,

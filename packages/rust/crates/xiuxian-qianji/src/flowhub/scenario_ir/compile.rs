@@ -1,13 +1,13 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
 use crate::contracts::{
     FlowhubGraphContract, FlowhubGraphNodeContract, FlowhubGraphSurfaceContract, WorkdirCheck,
 };
 use crate::error::QianjiError;
-use crate::flowhub::mermaid::{MermaidFlowchart, MermaidNodeKind, normalize_graph_node_label};
+use crate::flowhub::mermaid::{MermaidFlowchart, normalize_graph_node_label};
 
-use super::annotations::{FlowhubGraphAnnotations, FlowhubGraphNodeAnnotations};
+use super::annotations::FlowhubGraphAnnotations;
 use super::model::{FlowhubScenarioIr, FlowhubScenarioNodeIr, FlowhubScenarioWorkdirIr};
 
 const DEFAULT_WORKDIR_PREFIX_REQUIRE: [&str; 2] = ["qianji.toml", "flowchart.mmd"];
@@ -91,12 +91,13 @@ fn compile_enriched_nodes(
     let mut seen_labels = BTreeSet::new();
 
     for (node_ref, node_annotations) in &annotations.nodes {
-        let label = resolve_annotation_node_label(flowchart, node_ref.as_str()).map_err(|error| {
-            QianjiError::Topology(format!(
-                "Failed to compile Flowhub Mermaid contract `{}`: {error}",
-                graph_path.display()
-            ))
-        })?;
+        let label =
+            resolve_annotation_node_label(flowchart, node_ref.as_str()).map_err(|error| {
+                QianjiError::Topology(format!(
+                    "Failed to compile Flowhub Mermaid contract `{}`: {error}",
+                    graph_path.display()
+                ))
+            })?;
         let normalized_label = normalize_graph_node_label(label.as_str());
         if !seen_labels.insert(normalized_label.clone()) {
             return Err(QianjiError::Topology(format!(
@@ -122,13 +123,11 @@ fn compile_enriched_nodes(
         .iter()
         .enumerate()
         .map(|(index, node)| (normalize_graph_node_label(node.label.as_str()), index))
-        .collect::<BTreeSet<_>>();
+        .collect::<BTreeMap<_, _>>();
     nodes.sort_by_key(|node| {
         node_order
-            .iter()
-            .find_map(|(label, index)| {
-                (label == &normalize_graph_node_label(node.label.as_str())).then_some(*index)
-            })
+            .get(&normalize_graph_node_label(node.label.as_str()))
+            .copied()
             .unwrap_or(usize::MAX)
     });
 
@@ -214,7 +213,8 @@ fn compile_target_surface(
     annotations: &FlowhubGraphAnnotations,
 ) -> Result<Option<FlowhubGraphSurfaceContract>, QianjiError> {
     let Some(root) = annotations.scenario.target_root.as_ref() else {
-        if annotations.scenario.target_paths.is_empty() && annotations.done_gate_require.is_empty() {
+        if annotations.scenario.target_paths.is_empty() && annotations.done_gate_require.is_empty()
+        {
             return Ok(None);
         }
         return Err(QianjiError::Topology(format!(
@@ -235,7 +235,10 @@ fn validate_target_ownership(
     nodes: &[FlowhubScenarioNodeIr],
     target_paths: &[String],
 ) -> Result<(), QianjiError> {
-    let allowed_targets = target_paths.iter().map(String::as_str).collect::<BTreeSet<_>>();
+    let allowed_targets = target_paths
+        .iter()
+        .map(String::as_str)
+        .collect::<BTreeSet<_>>();
     for required in &annotations.done_gate_require {
         if !allowed_targets.contains(required.as_str()) {
             return Err(QianjiError::Topology(format!(
@@ -333,22 +336,21 @@ fn compile_legacy_scenario_ir(
         scenario_id: None,
         description: None,
         declared_topology: Some(graph.topology),
-        workdir: graph.workdir.as_ref().map(|workdir| FlowhubScenarioWorkdirIr {
-            note: workdir.note.clone(),
-            root: workdir.root.clone(),
-            check: workdir.check.clone(),
-            target: workdir.target.clone(),
-            done_gate_require: workdir
-                .target
-                .as_ref()
-                .map(|target| target.paths.clone())
-                .unwrap_or_default(),
-        }),
-        nodes: graph
-            .node
-            .iter()
-            .map(compose_legacy_node_ir)
-            .collect(),
+        workdir: graph
+            .workdir
+            .as_ref()
+            .map(|workdir| FlowhubScenarioWorkdirIr {
+                note: workdir.note.clone(),
+                root: workdir.root.clone(),
+                check: workdir.check.clone(),
+                target: workdir.target.clone(),
+                done_gate_require: workdir
+                    .target
+                    .as_ref()
+                    .map(|target| target.paths.clone())
+                    .unwrap_or_default(),
+            }),
+        nodes: graph.node.iter().map(compose_legacy_node_ir).collect(),
     }
 }
 

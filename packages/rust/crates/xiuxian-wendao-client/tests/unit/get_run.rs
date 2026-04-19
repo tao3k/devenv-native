@@ -2,7 +2,7 @@ use super::{
     CanonicalScopeTarget, DocsPageIndexDocumentsResult, DocsPageIndexTreesResult,
     ProjectedPageIndexDocument, ProjectedPageIndexLink, ProjectedPageIndexNode,
     ProjectedPageIndexSection, ProjectedPageIndexTree, ProjectionPageKind, ScopeTargetKind,
-    build_local_structure_catalog, build_local_toc_documents, render_structure_catalog_markdown,
+    build_local_page_index_trees, build_local_toc_documents, render_page_index_markdown,
     render_toc_markdown,
 };
 use std::fs;
@@ -36,7 +36,7 @@ fn get_command_builds_local_toc_documents_from_file_target() {
 }
 
 #[test]
-fn get_command_builds_local_structure_catalog_from_directory_target() {
+fn get_command_builds_local_page_index_trees_from_directory_target() {
     let temp_dir = tempdir_or_panic();
     write_markdown(
         temp_dir.path(),
@@ -59,8 +59,8 @@ fn get_command_builds_local_structure_catalog_from_directory_target() {
         kind: ScopeTargetKind::Directory,
     };
 
-    let result = build_local_structure_catalog(&scope, temp_dir.path())
-        .unwrap_or_else(|error| panic!("local structure catalog should succeed: {error}"));
+    let result = build_local_page_index_trees(&scope, temp_dir.path())
+        .unwrap_or_else(|error| panic!("local page-index build should succeed: {error}"));
 
     let paths = result
         .trees
@@ -196,7 +196,7 @@ fn get_command_renders_toc_text_output_as_compact_markdown() {
 }
 
 #[test]
-fn get_command_renders_structure_catalog_text_output_as_compact_markdown() {
+fn get_command_renders_page_index_text_output_as_compact_markdown() {
     let path = display_test_path(Path::new("/tmp/README.md"));
     let result = DocsPageIndexTreesResult {
         repo_id: "local".to_string(),
@@ -250,7 +250,7 @@ fn get_command_renders_structure_catalog_text_output_as_compact_markdown() {
         }],
     };
 
-    let rendered = render_structure_catalog_markdown(&result);
+    let rendered = render_page_index_markdown(&result);
 
     assert!(rendered.starts_with(format!("path: {path}").as_str()));
     assert!(rendered.contains("kind: Explanation | roots: 1 | nodes: 2 | links: 2 | embeds: 1"));
@@ -261,7 +261,7 @@ fn get_command_renders_structure_catalog_text_output_as_compact_markdown() {
     assert!(rendered.contains("embeds: ![Diagram](assets/diagram.png)"));
     assert!(!rendered.contains("markdown_link:"));
     assert!(!rendered.contains("wiki_link:"));
-    assert!(!rendered.contains("# Structure Catalog"));
+    assert!(!rendered.contains("# Page Index"));
     assert!(!rendered.contains("\"trees\""));
 }
 

@@ -9,9 +9,7 @@
     }:
     let
       # The dumped Metal toolchain
-      apple-metal-toolchain =
-        pkgs.callPackage ../../packages/apple-metal-toolchain.nix
-          { };
+      apple-metal-toolchain = pkgs.callPackage ../../packages/apple-metal-toolchain.nix { };
 
       # The native Nixpkgs SDK
       apple-sdk = pkgs.apple-sdk_15;
@@ -108,7 +106,10 @@
         "xiuxian-qianji" = {
           depsDrvConfig = {
             mkDerivation = {
-              buildInputs = [ pkgs.protobuf ];
+              buildInputs = [
+                pkgs.protobuf
+                pkgs.libxml2
+              ];
             };
           };
         };
@@ -137,13 +138,11 @@
         };
       };
 
-      packages.xiuxian-core-rs-python-bindings =
-        pkgs.callPackage ../../packages/xiuxian-core-rs.nix
-          {
-            inherit workspaceRoot;
-            cargoDeps =
-              config.nci.outputs."xiuxian-core-rs".packages.release.config.rust-cargo-vendor.vendoredSources;
-            version = config.nci.outputs."xiuxian-core-rs".packages.release.config.version;
-          };
+      packages.xiuxian-core-rs-python-bindings = pkgs.callPackage ../../packages/xiuxian-core-rs.nix {
+        inherit workspaceRoot;
+        cargoDeps =
+          config.nci.outputs."xiuxian-core-rs".packages.release.config.rust-cargo-vendor.vendoredSources;
+        version = config.nci.outputs."xiuxian-core-rs".packages.release.config.version;
+      };
     };
 }

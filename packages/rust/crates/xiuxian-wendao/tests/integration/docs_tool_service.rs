@@ -66,16 +66,15 @@ fn docs_tool_service_opens_outline_tree_search_navigation_node_and_context() -> 
         .with_optional_config_path(Some(config_path.clone()));
 
     let page = service.get_document(MODELICA_DOCS_TOOL_PAGE_ID)?;
-    let catalog = service.get_document_structure_catalog()?;
-    let structure = service.get_document_structure(MODELICA_DOCS_TOOL_PAGE_ID)?;
-    let outline = service.get_document_structure_outline(MODELICA_DOCS_TOOL_PAGE_ID)?;
+    let catalog = service.get_page_index()?;
+    let structure = service.get_page_index_tree(MODELICA_DOCS_TOOL_PAGE_ID)?;
+    let outline = service.get_page_index_outline(MODELICA_DOCS_TOOL_PAGE_ID)?;
     let node_id = anchors_node_id(&structure)?;
     let node = service.get_document_node(MODELICA_DOCS_TOOL_PAGE_ID, &node_id)?;
     let node_range = anchors_line_range(&service, MODELICA_DOCS_TOOL_PAGE_ID, &node_id)?;
     let segment =
         service.get_document_segment(MODELICA_DOCS_TOOL_PAGE_ID, node_range.0, node_range.1)?;
-    let search =
-        service.search_document_structure("anchors", Some(ProjectionPageKind::Reference), 3)?;
+    let search = service.search_page_index("anchors", Some(ProjectionPageKind::Reference), 3)?;
     let toc = service.get_toc_documents()?;
     let navigation = service.get_navigation_with_options(
         MODELICA_DOCS_TOOL_PAGE_ID,
@@ -95,7 +94,7 @@ fn docs_tool_service_opens_outline_tree_search_navigation_node_and_context() -> 
             .trees
             .iter()
             .any(|tree| tree.page_id == MODELICA_DOCS_TOOL_PAGE_ID),
-        "repo-scoped structure catalog should include the requested page"
+        "repo-scoped page-index should include the requested page"
     );
     assert_eq!(
         catalog
@@ -162,7 +161,7 @@ fn docs_tool_service_opens_outline_tree_search_navigation_node_and_context() -> 
 
 #[cfg(feature = "julia")]
 #[test]
-fn cli_docs_tree_outline_returns_text_free_tree_payload() -> TestResult {
+fn cli_docs_page_index_outline_returns_text_free_tree_payload() -> TestResult {
     let temp = tempfile::tempdir()?;
     let repo_dir = create_sample_modelica_repo(temp.path(), "Projectionica")?;
     let config_path = temp
@@ -201,12 +200,10 @@ fn cli_docs_tree_outline_returns_text_free_tree_payload() -> TestResult {
 
 #[cfg(feature = "julia")]
 #[test]
-fn cli_docs_structure_catalog_returns_text_free_trees_payload() -> TestResult {
+fn cli_docs_page_index_returns_text_free_trees_payload() -> TestResult {
     let temp = tempfile::tempdir()?;
     let repo_dir = create_sample_modelica_repo(temp.path(), "Projectionica")?;
-    let config_path = temp
-        .path()
-        .join("modelica-docs-structure-catalog-cli.wendao.toml");
+    let config_path = temp.path().join("modelica-docs-page-index-cli.wendao.toml");
     let (parser_summary_base_url, _parser_summary_guard) =
         spawn_modelica_parser_summary_transport().map_err(std::io::Error::other)?;
     write_modelica_docs_config(
@@ -223,7 +220,7 @@ fn cli_docs_structure_catalog_returns_text_free_trees_payload() -> TestResult {
         .arg("--output")
         .arg("json")
         .arg("docs")
-        .arg("structure-catalog")
+        .arg("page-index")
         .arg("--repo")
         .arg("modelica-docs-cli")
         .output()?;
@@ -233,11 +230,11 @@ fn cli_docs_structure_catalog_returns_text_free_trees_payload() -> TestResult {
     assert_eq!(payload["repo_id"], "modelica-docs-cli");
     let trees = payload["trees"]
         .as_array()
-        .ok_or("expected serialized structure catalog trees")?;
+        .ok_or("expected serialized page-index trees")?;
     let target_tree = trees
         .iter()
         .find(|tree| tree["page_id"] == MODELICA_DOCS_CLI_PAGE_ID)
-        .ok_or("expected requested page in structure catalog")?;
+        .ok_or("expected requested page in page-index")?;
     assert_eq!(target_tree["roots"][0]["text"], "");
     Ok(())
 }
@@ -258,7 +255,7 @@ fn cli_docs_segment_returns_serialized_segment_payload() -> TestResult {
     )?;
     let service = DocsToolService::from_project_root(temp.path(), "modelica-docs-cli")
         .with_optional_config_path(Some(config_path.clone()));
-    let structure = service.get_document_structure(MODELICA_DOCS_CLI_PAGE_ID)?;
+    let structure = service.get_page_index_tree(MODELICA_DOCS_CLI_PAGE_ID)?;
     let node_id = anchors_node_id(&structure)?;
     let node = service.get_document_node(MODELICA_DOCS_CLI_PAGE_ID, &node_id)?;
     let line_range = node
@@ -302,7 +299,7 @@ fn cli_docs_segment_returns_serialized_segment_payload() -> TestResult {
 
 #[cfg(feature = "julia")]
 #[test]
-fn cli_docs_search_structure_returns_serialized_hits_payload() -> TestResult {
+fn cli_docs_search_page_index_returns_serialized_hits_payload() -> TestResult {
     let temp = tempfile::tempdir()?;
     let repo_dir = create_sample_modelica_repo(temp.path(), "Projectionica")?;
     let config_path = temp
@@ -318,12 +315,11 @@ fn cli_docs_search_structure_returns_serialized_hits_payload() -> TestResult {
     )?;
     let service = DocsToolService::from_project_root(temp.path(), "modelica-docs-cli")
         .with_optional_config_path(Some(config_path.clone()));
-    let expected =
-        service.search_document_structure("anchors", Some(ProjectionPageKind::Reference), 3)?;
+    let expected = service.search_page_index("anchors", Some(ProjectionPageKind::Reference), 3)?;
     let first_hit = expected
         .hits
         .first()
-        .ok_or("expected at least one structure-search hit")?;
+        .ok_or("expected at least one page-index search hit")?;
 
     let output = Command::new(env!("CARGO_BIN_EXE_wendao"))
         .current_dir(temp.path())
@@ -369,7 +365,7 @@ fn cli_docs_node_returns_serialized_node_payload() -> TestResult {
 
     let service = DocsToolService::from_project_root(temp.path(), "modelica-docs-cli")
         .with_optional_config_path(Some(config_path.clone()));
-    let structure = service.get_document_structure(MODELICA_DOCS_CLI_PAGE_ID)?;
+    let structure = service.get_page_index_tree(MODELICA_DOCS_CLI_PAGE_ID)?;
     let node_id = anchors_node_id(&structure)?;
 
     let output = Command::new(env!("CARGO_BIN_EXE_wendao"))

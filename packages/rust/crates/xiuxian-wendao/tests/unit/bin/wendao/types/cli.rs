@@ -15,7 +15,7 @@ fn parses_get_toc_command() {
 }
 
 #[test]
-fn parses_get_structure_catalog_command() {
-    let cli = Cli::parse_from(["wendao", "get", "structure-catalog"]);
+fn parses_get_page_index_command() {
+    let cli = Cli::parse_from(["wendao", "get", "page-index"]);
     assert!(matches!(cli.command, Command::Client(_)));
 }

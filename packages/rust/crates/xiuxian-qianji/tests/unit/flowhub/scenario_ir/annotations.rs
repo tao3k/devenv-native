@@ -31,7 +31,10 @@ flowchart LR
         .unwrap_or_else(|| panic!("annotations should exist"));
 
     assert_eq!(annotations.scenario.id.as_deref(), Some("deep_read"));
-    assert_eq!(annotations.scenario.name.as_deref(), Some("PAPER_DEEP_READ"));
+    assert_eq!(
+        annotations.scenario.name.as_deref(),
+        Some("PAPER_DEEP_READ")
+    );
     assert_eq!(
         annotations.scenario.workdir_root.as_deref(),
         Some("runs/<run_id>")
@@ -67,9 +70,9 @@ flowchart LR
 #[test]
 fn parse_flowhub_graph_annotations_rejects_unknown_keys() {
     let error = parse_flowhub_graph_annotations(
-        r#"
+        r"
 %% qianji.scenario.unknown: nope
-"#,
+",
     )
     .err()
     .unwrap_or_else(|| panic!("unknown annotations should fail"));

@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "DocsDocumentStructureToolArgs",
-  "description": "Stable tool arguments for docs document-structure native-tool execution.",
+  "title": "DocsPageIndexTreeToolArgs",
+  "description": "Stable tool arguments for docs page-index-tree native-tool execution.",
   "type": "object",
   "properties": {
     "page_id": {

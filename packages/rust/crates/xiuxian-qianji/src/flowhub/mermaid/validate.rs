@@ -1,7 +1,5 @@
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
-use crate::contracts::FlowhubGraphContract;
-
 use super::model::MermaidNode;
 use super::{MermaidFlowchart, MermaidNodeKind};
 
@@ -74,20 +72,6 @@ fn validate_allowed_graph_nodes(
         flowchart.merimind_graph_name,
         undeclared_graph_node_labels.join(", ")
     ))
-}
-
-pub(crate) fn declared_graph_node_labels(
-    graph_contract: Option<&FlowhubGraphContract>,
-) -> BTreeSet<String> {
-    graph_contract
-        .into_iter()
-        .flat_map(|graph| {
-            graph
-                .node
-                .iter()
-                .map(|node| normalize_graph_node_label(node.label.as_str()))
-        })
-        .collect::<BTreeSet<_>>()
 }
 
 pub(crate) fn scenario_graph_label_is_allowed(
