@@ -1,4 +1,5 @@
 //! Cargo entry point for xiuxian-vector performance tests.
+#![cfg(feature = "vector-store")]
 
 xiuxian_testing::crate_test_policy_harness!();
 

@@ -224,10 +224,18 @@ downstream proof.
   routing through HTTP or the shared SQL/query adapters.
 - That same owner path now also exposes repository-scoped markdown TOC/page-index
   documents through `DocsToolService::get_toc_documents()`,
-  `wendao docs toc --repo <repo>`, and `wendao.docs.get_toc_documents`.
+  `wendao docs toc --repo <repo>`, `wendao get toc [<target>]`, and
+  `wendao.docs.get_toc_documents`.
   This slice intentionally does not add a `/api/docs/toc` route, because the
   TOC capability remains a crate-local docs-tool surface instead of a new
   gateway-owned opener.
+  The target-first `wendao get` adapter is owned by
+  `xiuxian-wendao-client::GetCommand`; both the standalone
+  `xiuxian-wendao-client` binary and the embedded `xiuxian-wendao` command
+  path reuse the same parser-backed local materialization for one directory or
+  Markdown file target. Its default human-facing output is a compact Markdown
+  view; `--output json` and `--output pretty` preserve the structured JSON
+  forms.
   Under that opener, the actual Markdown TOC parsing owner is now
   `xiuxian_wendao_parsers::parse_markdown_toc`; `DocsToolService` only reopens
   repo-scoped projected page-index documents on top of the parser-owned
@@ -254,11 +262,14 @@ downstream proof.
   new gateway-owned opener.
 - That same owner path now also exposes one repo-scoped lightweight structure
   catalog through `DocsToolService::get_document_structure_catalog()`,
-  `wendao docs structure-catalog --repo <repo>`, and
+  `wendao docs structure-catalog --repo <repo>`,
+  `wendao get structure-catalog [<target>]`, and
   `wendao.docs.get_document_structure_catalog`. This slice intentionally does
   not add a `/api/docs/page-index-trees` route, because repo-scoped structure
   enumeration remains a crate-local docs-tool surface instead of a new
-  gateway-owned opener.
+  gateway-owned opener. The target-first `wendao get` adapter remains a
+  reusable `xiuxian-wendao-client` contract that the main binary embeds
+  directly instead of reimplementing a second host-owned `get` execution path.
 - That same owner path now also exposes one precise document-segment opener
   through `DocsToolService::get_document_segment(page_id, line_start, line_end)`,
   `wendao docs segment --repo <repo> --page-id <page-id> --line-start <n> --line-end <n>`,
@@ -320,6 +331,7 @@ that intentionally has no matching gateway route:
 
 - `DocsToolService::get_toc_documents()`
   <-> `wendao docs toc --repo <repo>`
+  <-> `wendao get toc [<target>]`
   <-> `wendao.docs.get_toc_documents`
 
 The crate-local docs-tool surface also exposes one stable page-index node
@@ -348,6 +360,7 @@ structure catalog that intentionally has no matching gateway route:
 
 - `DocsToolService::get_document_structure_catalog()`
   <-> `wendao docs structure-catalog --repo <repo>`
+  <-> `wendao get structure-catalog [<target>]`
   <-> `wendao.docs.get_document_structure_catalog`
 
 The crate-local docs-tool surface also exposes one precise document-segment
@@ -372,7 +385,10 @@ Notes:
   with node `text` fields recursively cleared. The precise segment opener
   reuses projected markdown plus stable `line_range` coordinates; all six stay
   crate-local for now, so the canonical HTTP mapping still covers only the 5
-  core docs openers.
+  core docs openers. The target-first `wendao get` materializations are
+  reusable client-side CLI adapters that always materialize these output
+  families locally from parser-owned Markdown structure for one directory or
+  Markdown file target; they are not a second docs-service owner path.
 - The parser owner for the underlying Markdown TOC extraction is
   `xiuxian_wendao_parsers::parse_markdown_toc`; the docs-tool surface only owns
   repo-scoped opening and transport-facing reuse.

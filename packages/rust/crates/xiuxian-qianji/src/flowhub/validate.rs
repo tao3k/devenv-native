@@ -2,11 +2,13 @@ use std::collections::BTreeSet;
 use std::path::Path;
 
 use crate::contracts::{
-    FlowhubGraphContract, FlowhubGraphNodeContract, FlowhubModuleManifest, FlowhubRootManifest,
-    FlowhubScenarioManifest, FlowhubStructureContract, FlowhubTemplateComposition,
-    FlowhubValidationKind, TemplateLinkRef,
+    FlowhubGraphContract, FlowhubGraphNodeContract, FlowhubGraphSurfaceContract,
+    FlowhubModuleManifest, FlowhubRootManifest, FlowhubScenarioManifest, FlowhubStructureContract,
+    FlowhubTemplateComposition, FlowhubValidationKind, TemplateLinkRef, WorkdirManifest,
+    WorkdirPlan,
 };
 use crate::error::QianjiError;
+use crate::workdir::validate_workdir_manifest;
 
 pub(super) fn validate_flowhub_module_manifest(
     manifest: &FlowhubModuleManifest,
@@ -104,6 +106,7 @@ fn validate_graph_contracts(manifest: &FlowhubModuleManifest) -> Result<(), Qian
     for graph in &manifest.graph {
         validate_graph_contract_path(graph)?;
         validate_graph_contract_name(graph)?;
+        validate_graph_workdir_contract(graph)?;
         validate_graph_node_contracts(graph)?;
         let path = graph.path.as_str();
         if !graph_paths.insert(path) {
@@ -396,6 +399,85 @@ fn validate_graph_node_contracts(graph: &FlowhubGraphContract) -> Result<(), Qia
     Ok(())
 }
 
+fn validate_graph_workdir_contract(graph: &FlowhubGraphContract) -> Result<(), QianjiError> {
+    let Some(workdir) = &graph.workdir else {
+        return Ok(());
+    };
+
+    if let Some(note) = workdir.note.as_deref() {
+        validate_graph_workdir_field(note, &graph.path, "[graph.workdir].note", "non-empty")?;
+    }
+
+    validate_graph_workdir_root(workdir.root.as_str(), &graph.path, "[graph.workdir].root")?;
+    if let Some(target) = &workdir.target {
+        validate_graph_workdir_surface(target, &graph.path, "[graph.workdir].target")?;
+    }
+    let plan_name = graph.resolved_workdir_name().ok_or_else(|| {
+        QianjiError::Topology(format!(
+            "Flowhub module manifest `[[graph]] path = \"{}\"` requires `[graph.workdir]` to derive a stable bounded workdir name from the graph path or declared graph name",
+            graph.path
+        ))
+    })?;
+
+    let manifest = WorkdirManifest {
+        version: 1,
+        plan: WorkdirPlan {
+            name: plan_name.to_string(),
+            surface: derive_graph_workdir_surface_entries(&workdir.check.require),
+        },
+        check: workdir.check.clone(),
+    };
+    validate_workdir_manifest(&manifest).map_err(|error| {
+        QianjiError::Topology(format!(
+            "Flowhub module manifest `[[graph]] path = \"{}\"` requires `[graph.workdir]` to derive a valid bounded work-surface manifest: {error}",
+            graph.path
+        ))
+    })?;
+
+    Ok(())
+}
+
+fn validate_graph_workdir_surface(
+    surface: &FlowhubGraphSurfaceContract,
+    graph_path: &str,
+    field_name: &str,
+) -> Result<(), QianjiError> {
+    validate_graph_workdir_root(
+        surface.root.as_str(),
+        graph_path,
+        &format!("{field_name}.root"),
+    )?;
+    validate_graph_workdir_paths(
+        surface.paths.as_slice(),
+        graph_path,
+        &format!("{field_name}.paths"),
+        true,
+    )
+}
+
+fn derive_graph_workdir_surface_entries(require: &[String]) -> Vec<String> {
+    let mut surfaces = Vec::new();
+    let mut seen = BTreeSet::new();
+
+    for entry in require {
+        let trimmed = entry.trim();
+        if trimmed.is_empty() {
+            continue;
+        }
+
+        let top_level = trimmed.split('/').next().unwrap_or(trimmed);
+        if top_level == "qianji.toml" {
+            continue;
+        }
+
+        if seen.insert(top_level.to_string()) {
+            surfaces.push(top_level.to_string());
+        }
+    }
+
+    surfaces
+}
+
 fn validate_graph_node_contract(
     node: &FlowhubGraphNodeContract,
     graph_path: &str,
@@ -424,6 +506,117 @@ fn validate_graph_node_contract(
         "[[graph.node]].agent_action",
         "non-empty",
     )?;
+    Ok(())
+}
+
+fn validate_graph_workdir_paths(
+    paths: &[String],
+    graph_path: &str,
+    field_name: &str,
+    require_entries: bool,
+) -> Result<(), QianjiError> {
+    if require_entries && paths.is_empty() {
+        return Err(QianjiError::Topology(format!(
+            "Flowhub module manifest `[[graph]] path = \"{graph_path}\"` requires {field_name} to contain at least one path"
+        )));
+    }
+
+    let mut seen = BTreeSet::new();
+    for path in paths {
+        let normalized = validate_graph_workdir_path(path, graph_path, field_name)?;
+        if !seen.insert(normalized.clone()) {
+            return Err(QianjiError::Topology(format!(
+                "Flowhub module manifest `[[graph]] path = \"{graph_path}\"` contains duplicate {field_name} entry `{normalized}`"
+            )));
+        }
+    }
+
+    Ok(())
+}
+
+fn validate_graph_workdir_root(
+    value: &str,
+    graph_path: &str,
+    field_name: &str,
+) -> Result<(), QianjiError> {
+    validate_graph_workdir_field(value, graph_path, field_name, "non-empty single-line text")?;
+    let trimmed = value.trim();
+    if trimmed.starts_with('/') || trimmed.contains('\\') {
+        return Err(QianjiError::Topology(format!(
+            "Flowhub module manifest `[[graph]] path = \"{graph_path}\"` requires {field_name} to stay symbolic and relative"
+        )));
+    }
+    if trimmed.ends_with('/') {
+        return Err(QianjiError::Topology(format!(
+            "Flowhub module manifest `[[graph]] path = \"{graph_path}\"` requires {field_name} without a trailing slash"
+        )));
+    }
+    if trimmed == "." || trimmed == ".." {
+        return Err(QianjiError::Topology(format!(
+            "Flowhub module manifest `[[graph]] path = \"{graph_path}\"` requires {field_name} to be a stable symbolic root"
+        )));
+    }
+
+    Ok(())
+}
+
+fn validate_graph_workdir_path(
+    value: &str,
+    graph_path: &str,
+    field_name: &str,
+) -> Result<String, QianjiError> {
+    validate_graph_workdir_field(value, graph_path, field_name, "non-empty single-line text")?;
+    let trimmed = value.trim();
+    if trimmed.starts_with('/') || trimmed.contains('\\') {
+        return Err(QianjiError::Topology(format!(
+            "Flowhub module manifest `[[graph]] path = \"{graph_path}\"` requires {field_name} entries to stay relative"
+        )));
+    }
+    if trimmed
+        .chars()
+        .any(|character| matches!(character, '*' | '?' | '[' | ']'))
+    {
+        return Err(QianjiError::Topology(format!(
+            "Flowhub module manifest `[[graph]] path = \"{graph_path}\"` requires {field_name} entries without glob metacharacters"
+        )));
+    }
+
+    let normalized = trimmed.trim_end_matches('/');
+    if normalized.is_empty() {
+        return Err(QianjiError::Topology(format!(
+            "Flowhub module manifest `[[graph]] path = \"{graph_path}\"` requires {field_name} entries to be stable relative paths"
+        )));
+    }
+
+    for segment in normalized.split('/') {
+        if segment.is_empty() || matches!(segment, "." | "..") {
+            return Err(QianjiError::Topology(format!(
+                "Flowhub module manifest `[[graph]] path = \"{graph_path}\"` requires {field_name} entries with valid relative path segments"
+            )));
+        }
+    }
+
+    Ok(normalized.to_string())
+}
+
+fn validate_graph_workdir_field(
+    value: &str,
+    graph_path: &str,
+    field_name: &str,
+    requirement: &str,
+) -> Result<(), QianjiError> {
+    let trimmed = value.trim();
+    if trimmed.is_empty() {
+        return Err(QianjiError::Topology(format!(
+            "Flowhub module manifest `[[graph]] path = \"{graph_path}\"` requires {field_name} to be {requirement}"
+        )));
+    }
+    if trimmed.contains('\n') || trimmed.contains('\r') {
+        return Err(QianjiError::Topology(format!(
+            "Flowhub module manifest `[[graph]] path = \"{graph_path}\"` requires {field_name} to stay on one line"
+        )));
+    }
+
     Ok(())
 }
 

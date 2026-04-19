@@ -11,6 +11,9 @@ pub struct TargetOccurrenceCore<Kind> {
     pub kind: Kind,
     /// The parser-visible target string captured for this occurrence.
     pub target: String,
+    /// Exact parser-visible source syntax for this occurrence.
+    #[serde(default)]
+    pub surface: String,
     /// Byte range within the parsed document body.
     pub byte_range: (usize, usize),
     /// Inclusive 1-based line range within the parsed document body.
@@ -39,12 +42,14 @@ impl<Kind> TargetOccurrenceCore<Kind> {
     pub(crate) fn new(
         kind: Kind,
         target: String,
+        surface: String,
         byte_range: (usize, usize),
         line_range: (usize, usize),
     ) -> Self {
         Self {
             kind,
             target,
+            surface,
             byte_range,
             line_range,
         }

@@ -21,3 +21,4 @@ pub use show::{
     WorkdirShow, WorkdirVisibleSurface, WorkdirVisibleSurfaceKind, render_workdir_show,
     show_workdir,
 };
+pub(crate) use validate::validate_workdir_manifest;

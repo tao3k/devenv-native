@@ -62,6 +62,7 @@ pub(crate) fn parse_markdown_structure(body: &str) -> MarkdownStructure {
             }
             NodeValue::Image(image) => push_target(
                 &mut targets,
+                body,
                 MarkdownTargetOccurrenceKind::MarkdownImage,
                 image.url.clone(),
                 span,
@@ -77,6 +78,8 @@ pub(crate) fn parse_markdown_structure(body: &str) -> MarkdownStructure {
             _ => {}
         }
     }
+    extend_embedded_wikilink_targets(&mut targets, body);
+    targets.sort_by_key(|target| target.byte_range.0);
 
     MarkdownStructure {
         items,
@@ -171,6 +174,7 @@ fn push_markdown_link(
     }
     push_target(
         targets,
+        body,
         MarkdownTargetOccurrenceKind::MarkdownLink,
         raw_target.to_string(),
         span,
@@ -198,6 +202,7 @@ fn push_wikilink(
     }
     push_target(
         targets,
+        body,
         if is_embed {
             MarkdownTargetOccurrenceKind::WikiEmbed
         } else {
@@ -210,6 +215,7 @@ fn push_wikilink(
 
 fn push_target(
     targets: &mut Vec<MarkdownTargetOccurrence>,
+    body: &str,
     kind: MarkdownTargetOccurrenceKind,
     target: String,
     span: MarkdownOccurrenceSpan,
@@ -218,10 +224,67 @@ fn push_target(
         targets.push(MarkdownTargetOccurrence::new(
             kind,
             target,
+            target_surface(body, start, end),
             (start, end),
             span.line_range,
         ));
     }
+}
+
+fn extend_embedded_wikilink_targets(targets: &mut Vec<MarkdownTargetOccurrence>, body: &str) {
+    let mut offset = 0;
+    while let Some(relative_start) = body[offset..].find("![[") {
+        let start = offset + relative_start;
+        let search_from = start + 3;
+        let Some(relative_end) = body[search_from..].find("]]") else {
+            break;
+        };
+        let end = search_from + relative_end + 2;
+        if targets.iter().any(|target| {
+            target.kind == MarkdownTargetOccurrenceKind::WikiEmbed
+                && target.byte_range == (start, end)
+        }) {
+            offset = end;
+            continue;
+        }
+
+        let surface = body[start..end].to_string();
+        let target = parse_embedded_wikilink_target(surface.as_str());
+        let line_range = line_range_for_span(body, start, end);
+        targets.push(MarkdownTargetOccurrence::new(
+            MarkdownTargetOccurrenceKind::WikiEmbed,
+            target,
+            surface,
+            (start, end),
+            line_range,
+        ));
+        offset = end;
+    }
+}
+
+fn parse_embedded_wikilink_target(surface: &str) -> String {
+    let inner = surface
+        .trim()
+        .strip_prefix("![[")
+        .and_then(|value| value.strip_suffix("]]"))
+        .unwrap_or_default()
+        .trim();
+    inner
+        .split_once('|')
+        .map_or(inner, |(target, _)| target)
+        .trim()
+        .to_string()
+}
+
+fn line_range_for_span(body: &str, start: usize, end: usize) -> (usize, usize) {
+    let start_line = body[..start].bytes().filter(|byte| *byte == b'\n').count() + 1;
+    let span = &body[start..end];
+    let end_line = start_line + span.bytes().filter(|byte| *byte == b'\n').count();
+    (start_line, end_line.max(start_line))
+}
+
+fn target_surface(body: &str, start: usize, end: usize) -> String {
+    body.get(start..end).unwrap_or_default().to_string()
 }
 
 fn collect_plain_text<'a>(node: &'a AstNode<'a>) -> String {

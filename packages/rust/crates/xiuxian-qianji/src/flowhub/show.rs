@@ -12,6 +12,7 @@ use super::discover::{
     module_candidate_from_dir, module_candidate_from_ref,
 };
 use super::load::load_flowhub_root_manifest;
+use super::scenario_ir::{parse_flowhub_graph_annotations, resolve_flowhub_graph_name};
 
 const FLOWHUB_SCENARIO_CASE_TEMPLATE_NAME: &str = "flowhub_scenario_case.md.j2";
 const FLOWHUB_SCENARIO_CASE_TEMPLATE_SOURCE: &str =
@@ -354,14 +355,18 @@ fn summarize_scenario_case(
     let file_name = path.file_name()?.to_str()?.to_string();
     let file_stem = path.file_stem()?.to_str()?.to_string();
     let declared_graph = graph_contracts.iter().find(|graph| graph.path == file_name);
-    let graph_name = declared_graph.map_or(file_stem.as_str(), |graph| {
-        graph.resolved_name_or(file_stem.as_str())
-    });
     let merimind_graph_name = std::fs::read_to_string(path)
         .ok()
-        .and_then(|source| parse_mermaid_flowchart(&source, graph_name, known_module_names).ok())
+        .and_then(|source| {
+            let annotations = parse_flowhub_graph_annotations(&source).ok().flatten();
+            let graph_name =
+                resolve_flowhub_graph_name(annotations.as_ref(), declared_graph, file_stem.as_str());
+            parse_mermaid_flowchart(&source, graph_name.as_str(), known_module_names).ok()
+        })
         .map_or_else(
-            || graph_name.to_string(),
+            || {
+                resolve_flowhub_graph_name(None, declared_graph, file_stem.as_str()).to_string()
+            },
             |flowchart| flowchart.merimind_graph_name,
         );
 

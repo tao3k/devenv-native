@@ -10,10 +10,12 @@ Current scope:
 
 ## Current Commands
 
-The first landed command is:
+The currently landed commands are:
 
 ```text
-wendao lint markdown [PATH]...
+wendao-client lint markdown [PATH]...
+wendao-client get toc [TARGET] [--ignore DIR]...
+wendao-client get structure-catalog [TARGET] [--ignore DIR]...
 ```
 
 Behavior:
@@ -69,6 +71,32 @@ Diagnostic rendering is split deliberately:
 7. directory-level note-link-style policy stays in `src/lint/policy/`, so
    parser syntax ownership and repository authoring policy remain separate
 
-The standalone binary is named `wendao-client`, but the command contract
-remains `wendao lint markdown` so the same subcommand tree can also be
-flattened into the main `wendao` CLI without duplicating execution logic.
+The `get` commands stay local and parser-owned by design:
+
+1. `TARGET` accepts one Markdown file or one directory
+2. the client materializes TOC and structure-catalog payloads directly from a
+   lightweight parser-owned outline path instead of the heavier full TOC
+   aggregation surface
+3. default human-facing output is compact Markdown without synthetic mode
+   headings such as `# TOC` or `# Structure Catalog`
+4. `toc` compact Markdown intentionally stays a flat source-order outline that
+   preserves document heading levels through native Markdown `#` markers and
+   renders each section as `# Heading -> [Lx a-b]`, while the leading `path:`
+   line uses the absolute local file path
+5. `structure-catalog` compact Markdown intentionally stays a structure-first
+   catalog that reuses the same heading-plus-range syntax while adding
+   parser-preserved `links:` and `embeds:` lines plus document-level
+   node/link/embed counts, and the leading `path:` line uses the absolute
+   local file path
+6. `--output json` and `--output pretty` preserve the structured payloads
+7. recursive directory traversal merges:
+   - built-in local runtime-dir ignores such as `.cache`, `.data`, `.run`,
+     `.config`, `.bin`, `target`, and `node_modules`
+   - `link_graph.exclude_dirs` from the active `wendao.toml` config
+   - repeatable `--ignore DIR` command-line additions
+8. the same command tree can be flattened into the main `wendao` CLI without
+   reimplementing execution logic in `xiuxian-wendao`
+
+The standalone binary is named `wendao-client`, while the reusable command
+tree remains small enough to embed into the main `wendao` CLI without pulling
+`xiuxian-wendao` back into the client crate.

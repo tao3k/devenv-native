@@ -10,8 +10,7 @@ use crate::contracts::{
 };
 use crate::error::QianjiError;
 use crate::flowhub::mermaid::{
-    analyze_mermaid_flowchart_topology, declared_graph_node_labels, parse_mermaid_flowchart,
-    validate_mermaid_flowchart,
+    analyze_mermaid_flowchart_topology, parse_mermaid_flowchart, validate_mermaid_flowchart,
 };
 use crate::markdown::{MarkdownDiagnostic, render_validation_failed, render_validation_pass};
 use crate::{ResolvedFlowhubModule, resolve_flowhub_module_children};
@@ -22,6 +21,10 @@ use super::discover::{
     load_flowhub_module_candidate, module_candidate_from_dir, module_candidate_from_ref,
 };
 use super::load::load_flowhub_root_manifest;
+use super::scenario_ir::{
+    FlowhubScenarioIr, compile_flowhub_scenario_ir, parse_flowhub_graph_annotations,
+    resolve_flowhub_graph_name,
+};
 
 /// One user-facing validation diagnostic for a Flowhub root or module check.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -560,12 +563,54 @@ fn validate_mermaid_case_files(
             .and_then(|stem| stem.to_str())
             .unwrap_or(file_name);
         let declared_graph = declared_graph_contract(module, file_name);
-        let merimind_graph_name = declared_graph.map_or(fallback_graph_name, |graph| {
-            graph.resolved_name_or(fallback_graph_name)
-        });
-        let allowed_graph_node_labels = declared_graph_node_labels(declared_graph);
+        let annotations = match parse_flowhub_graph_annotations(&source) {
+            Ok(annotations) => annotations,
+            Err(error) => {
+                diagnostics.push(FlowhubDiagnostic {
+                    title: "Invalid scenario-case contract".to_string(),
+                    location: scenario_case.clone(),
+                    problem: error.to_string(),
+                    why_it_blocks:
+                        "Qianji cannot trust the Mermaid-owned graph contract metadata"
+                            .to_string(),
+                    fix: "repair the `%% qianji.*` annotations so the graph contract is well formed"
+                        .to_string(),
+                });
+                continue;
+            }
+        };
+        let merimind_graph_name = resolve_flowhub_graph_name(
+            annotations.as_ref(),
+            declared_graph,
+            fallback_graph_name,
+        );
         match parse_mermaid_flowchart(&source, merimind_graph_name, known_module_names) {
             Ok(flowchart) => {
+                let scenario_ir = match compile_flowhub_scenario_ir(
+                    &scenario_case,
+                    merimind_graph_name,
+                    &flowchart,
+                    annotations.as_ref(),
+                    declared_graph,
+                ) {
+                    Ok(contract) => contract,
+                    Err(error) => {
+                        diagnostics.push(FlowhubDiagnostic {
+                            title: "Invalid scenario-case contract".to_string(),
+                            location: scenario_case.clone(),
+                            problem: error.to_string(),
+                            why_it_blocks:
+                                "Qianji cannot trust the compiled scenario-case contract surface"
+                                    .to_string(),
+                            fix: "repair the Mermaid annotations or legacy graph contract so the scenario surface compiles"
+                                .to_string(),
+                        });
+                        continue;
+                    }
+                };
+                let allowed_graph_node_labels = scenario_ir
+                    .as_ref()
+                    .map_or_else(BTreeSet::new, FlowhubScenarioIr::allowed_graph_node_labels);
                 if let Err(problem) =
                     validate_mermaid_flowchart(&flowchart, &allowed_graph_node_labels)
                 {
@@ -582,26 +627,26 @@ fn validate_mermaid_case_files(
                 }
 
                 let topology = analyze_mermaid_flowchart_topology(&flowchart);
-                if let Some(graph_contract) = declared_graph
-                    && topology.topology != graph_contract.topology
+                if let Some(declared_topology) =
+                    scenario_ir.as_ref().and_then(|graph| graph.declared_topology)
+                    && topology.topology != declared_topology
                 {
                     diagnostics.push(FlowhubDiagnostic {
                         title: "Invalid scenario-case topology".to_string(),
                         location: scenario_case.clone(),
                         problem: format!(
-                            "module `{}` declares `[[graph]] path = \"{}\"` with topology `{}`, but petgraph analysis resolved `{}`",
+                            "module `{}` expects scenario-case `{}` to resolve topology `{}`, but petgraph analysis resolved `{}`",
                             module.module_ref,
-                            graph_contract.path,
-                            graph_contract.topology.as_str(),
+                            file_name,
+                            declared_topology.as_str(),
                             topology.topology.as_str(),
                         ),
                         why_it_blocks:
                             "Qianji cannot trust the scenario-case graph as a correctly typed Flowhub topology surface"
                                 .to_string(),
                         fix: format!(
-                            "repair `{}` so it matches `{}`, or update `[[graph]] topology` to the analyzed graph shape",
-                            graph_contract.path,
-                            graph_contract.topology.as_str(),
+                            "repair `{file_name}` so it matches `{}`, or update the owning graph contract to the analyzed graph shape",
+                            declared_topology.as_str(),
                         ),
                     });
                 }

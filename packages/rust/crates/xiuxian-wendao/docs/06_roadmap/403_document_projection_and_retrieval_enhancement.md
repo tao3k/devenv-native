@@ -464,6 +464,7 @@ documents without widening gateway ownership:
 
 - `DocsToolService::get_toc_documents()`
 - `wendao docs toc --repo <repo>`
+- `wendao get toc [<target>]`
 - `wendao.docs.get_toc_documents`
 
 The same owner path now also exposes one stable page-index node opener without
@@ -492,6 +493,7 @@ catalog without widening gateway ownership:
 
 - `DocsToolService::get_document_structure_catalog()`
 - `wendao docs structure-catalog --repo <repo>`
+- `wendao get structure-catalog [<target>]`
 - `wendao.docs.get_document_structure_catalog`
 
 The same owner path now also exposes one precise document-segment opener
@@ -510,7 +512,12 @@ structure-search candidate generation, token-thinned outline reopening, and
 repo-scoped lightweight structure catalog reopening. The new segment opener
 also stays on that owner path by reusing projected markdown plus stable
 `line_range` coordinates rather than introducing a new parser or gateway
-owner.
+owner. The target-first `wendao get` adapter is reusable client-owned CLI
+surface area that always materializes the same output families locally from
+parser-owned Markdown structure for one directory or Markdown file target,
+including when the main `wendao` binary embeds that client command tree. The
+default human-facing rendering is compact Markdown, while `--output json` and
+`--output pretty` keep the machine-oriented JSON forms available.
 
 The first gateway adapter cutover of that rule is now bounded to the same core
 4 capability calls:

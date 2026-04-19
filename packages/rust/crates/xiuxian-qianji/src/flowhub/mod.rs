@@ -8,6 +8,7 @@ mod mermaid;
 mod parse;
 mod resolve;
 mod scenario;
+mod scenario_ir;
 mod show;
 mod validate;
 

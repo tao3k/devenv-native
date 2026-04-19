@@ -52,7 +52,7 @@ fn handle_page(context: &DocsCommandContext<'_>, args: &crate::types::DocsPageAr
         .service(args.repo.clone())
         .get_document(&args.page_id)
         .with_context(|| format!("failed to open docs page `{}`", args.page_id))?;
-    emit(&result, context.cli.output)
+    emit(&result, context.cli.output_or_json())
 }
 
 fn handle_tree(context: &DocsCommandContext<'_>, args: &crate::types::DocsTreeArgs) -> Result<()> {
@@ -65,7 +65,7 @@ fn handle_tree(context: &DocsCommandContext<'_>, args: &crate::types::DocsTreeAr
                 args.page_id
             )
         })?;
-    emit(&result, context.cli.output)
+    emit(&result, context.cli.output_or_json())
 }
 
 fn handle_tree_outline(
@@ -81,7 +81,7 @@ fn handle_tree_outline(
                 args.page_id
             )
         })?;
-    emit(&result, context.cli.output)
+    emit(&result, context.cli.output_or_json())
 }
 
 fn handle_structure_catalog(
@@ -97,7 +97,7 @@ fn handle_structure_catalog(
                 args.repo
             )
         })?;
-    emit(&result, context.cli.output)
+    emit(&result, context.cli.output_or_json())
 }
 
 fn handle_segment(
@@ -113,7 +113,7 @@ fn handle_segment(
                 args.line_start, args.line_end, args.page_id
             )
         })?;
-    emit(&result, context.cli.output)
+    emit(&result, context.cli.output_or_json())
 }
 
 fn handle_search(
@@ -124,7 +124,7 @@ fn handle_search(
         .service(args.repo.clone())
         .search_documents(&args.query, args.kind.map(Into::into), args.limit)
         .with_context(|| format!("failed to search docs pages for query `{}`", args.query))?;
-    emit(&result, context.cli.output)
+    emit(&result, context.cli.output_or_json())
 }
 
 fn handle_search_structure(
@@ -140,7 +140,7 @@ fn handle_search_structure(
                 args.query
             )
         })?;
-    emit(&result, context.cli.output)
+    emit(&result, context.cli.output_or_json())
 }
 
 fn handle_node(context: &DocsCommandContext<'_>, args: &crate::types::DocsNodeArgs) -> Result<()> {
@@ -153,7 +153,7 @@ fn handle_node(context: &DocsCommandContext<'_>, args: &crate::types::DocsNodeAr
                 args.node_id, args.page_id
             )
         })?;
-    emit(&result, context.cli.output)
+    emit(&result, context.cli.output_or_json())
 }
 
 fn handle_toc(context: &DocsCommandContext<'_>, args: &crate::types::DocsTocArgs) -> Result<()> {
@@ -166,7 +166,7 @@ fn handle_toc(context: &DocsCommandContext<'_>, args: &crate::types::DocsTocArgs
                 args.repo
             )
         })?;
-    emit(&result, context.cli.output)
+    emit(&result, context.cli.output_or_json())
 }
 
 fn handle_navigation(
@@ -190,7 +190,7 @@ fn handle_navigation(
                 args.page_id
             )
         })?;
-    emit(&result, context.cli.output)
+    emit(&result, context.cli.output_or_json())
 }
 
 fn handle_context(
@@ -212,7 +212,7 @@ fn handle_context(
                 args.page_id
             )
         })?;
-    emit(&result, context.cli.output)
+    emit(&result, context.cli.output_or_json())
 }
 
 #[cfg(test)]

@@ -65,7 +65,7 @@ pub(super) fn handle_page_index(
     let index = index.context("link_graph index is required for page-index command")?;
     let candidates = index.resolve_metadata_candidates(stem);
     match candidates.len() {
-        0 => emit(&Option::<PageIndexPayload>::None, cli.output),
+        0 => emit(&Option::<PageIndexPayload>::None, cli.output_or_json()),
         1 => {
             let resolved = candidates
                 .into_iter()
@@ -82,7 +82,7 @@ pub(super) fn handle_page_index(
                     root_count: roots.len(),
                     roots,
                 },
-                cli.output,
+                cli.output_or_json(),
             )
         }
         _ => {
@@ -93,7 +93,7 @@ pub(super) fn handle_page_index(
                 "message": "multiple documents matched this stem/id/path; use full id or path",
                 "candidates": candidates,
             });
-            emit(&payload, cli.output)
+            emit(&payload, cli.output_or_json())
         }
     }
 }

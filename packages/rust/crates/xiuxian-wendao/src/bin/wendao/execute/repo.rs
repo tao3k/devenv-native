@@ -30,7 +30,7 @@ pub(super) fn handle(cli: &Cli) -> Result<()> {
                 },
             };
             let result = repo_sync_from_config(&query, cli.config_file.as_deref(), &cwd)?;
-            emit(&result, cli.output)
+            emit(&result, cli.output_or_json())
         }
         RepoCommand::Overview(args) => {
             let cwd = env::current_dir()?;
@@ -38,7 +38,7 @@ pub(super) fn handle(cli: &Cli) -> Result<()> {
                 repo_id: args.repo.clone(),
             };
             let result = repo_overview_from_config(&query, cli.config_file.as_deref(), &cwd)?;
-            emit(&result, cli.output)
+            emit(&result, cli.output_or_json())
         }
         RepoCommand::ModuleSearch(args) => {
             let cwd = env::current_dir()?;
@@ -48,7 +48,7 @@ pub(super) fn handle(cli: &Cli) -> Result<()> {
                 limit: args.limit,
             };
             let result = module_search_from_config(&query, cli.config_file.as_deref(), &cwd)?;
-            emit(&result, cli.output)
+            emit(&result, cli.output_or_json())
         }
         RepoCommand::SymbolSearch(args) => {
             let cwd = env::current_dir()?;
@@ -58,7 +58,7 @@ pub(super) fn handle(cli: &Cli) -> Result<()> {
                 limit: args.limit,
             };
             let result = symbol_search_from_config(&query, cli.config_file.as_deref(), &cwd)?;
-            emit(&result, cli.output)
+            emit(&result, cli.output_or_json())
         }
         RepoCommand::ExampleSearch(args) => {
             let cwd = env::current_dir()?;
@@ -68,7 +68,7 @@ pub(super) fn handle(cli: &Cli) -> Result<()> {
                 limit: args.limit,
             };
             let result = example_search_from_config(&query, cli.config_file.as_deref(), &cwd)?;
-            emit(&result, cli.output)
+            emit(&result, cli.output_or_json())
         }
         RepoCommand::DocCoverage(args) => {
             let cwd = env::current_dir()?;
@@ -77,7 +77,7 @@ pub(super) fn handle(cli: &Cli) -> Result<()> {
                 module_id: args.module.clone(),
             };
             let result = doc_coverage_from_config(&query, cli.config_file.as_deref(), &cwd)?;
-            emit(&result, cli.output)
+            emit(&result, cli.output_or_json())
         }
     }
 }

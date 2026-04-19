@@ -6,6 +6,7 @@ use xiuxian_wendao::{
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, ValueEnum)]
 pub(crate) enum OutputFormat {
+    Text,
     Json,
     Pretty,
 }

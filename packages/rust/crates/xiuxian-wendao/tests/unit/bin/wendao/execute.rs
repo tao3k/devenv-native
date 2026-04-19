@@ -21,6 +21,16 @@ fn embedded_client_context_preserves_json_output() {
 }
 
 #[test]
+fn embedded_client_context_defaults_get_output_to_text() {
+    let cli = Cli::parse_from(["wendao", "get", "toc", "README.md"]);
+
+    assert_eq!(
+        client_context_from_cli(&cli).output(),
+        ClientOutputFormat::Text
+    );
+}
+
+#[test]
 fn embedded_client_context_preserves_pretty_output() {
     let cli = Cli::parse_from([
         "wendao",
@@ -35,4 +45,11 @@ fn embedded_client_context_preserves_pretty_output() {
         client_context_from_cli(&cli).output(),
         ClientOutputFormat::Pretty
     );
+}
+
+#[test]
+fn embedded_client_context_preserves_config_path() {
+    let cli = Cli::parse_from(["wendao", "--conf", "wendao.toml", "get", "toc", "docs"]);
+
+    assert!(client_context_from_cli(&cli).config_file().is_some());
 }

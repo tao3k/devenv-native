@@ -182,12 +182,27 @@ fn show_flowhub_graph_extracts_live_mermaid_nodes_edges_and_exports() {
             && node.exports_ready.as_deref() == Some("task.plan-ready")
     }));
     assert!(
-        show.expected_work_surface
+        show.module_contract_surface
             .contains(&"qianji.toml".to_string())
     );
     assert!(
-        show.expected_work_surface
+        show.module_contract_surface
             .contains(&"codex-plan.mmd".to_string())
+    );
+    assert!(
+        show.localized_work_surface
+            .expected_work_surface_tree
+            .contains(&"  blueprint/".to_string())
+    );
+    assert!(
+        show.localized_work_surface
+            .expected_work_surface_tree
+            .contains(&"  plan/".to_string())
+    );
+    assert!(
+        show.localized_work_surface
+            .local_contract_template_toml
+            .contains("name = \"codex-plan\"")
     );
     assert!(show.owning_module_manifest_toml.contains("[module]"));
     assert!(show.owning_module_manifest_toml.contains("name = \"plan\""));
@@ -197,17 +212,29 @@ fn show_flowhub_graph_extracts_live_mermaid_nodes_edges_and_exports() {
     let rendered = render_flowhub_graph_show(&show);
     assert!(rendered.starts_with("# Graph"));
     assert!(rendered.contains("Name: codex-plan"));
+    assert!(rendered.contains("Owning module: plan"));
+    assert!(rendered.contains("Direction: LR"));
     assert!(rendered.contains("Topology: bounded_loop"));
     assert!(rendered.contains("Declared topology: bounded_loop"));
+    assert!(rendered.contains("## Execution"));
+    assert!(rendered.contains("- Start at `coding`."));
+    assert!(rendered.contains("- Complete at `done gate`."));
+    assert!(rendered.contains("localized plan work surface"));
+    assert!(rendered.contains("## Nodes"));
+    assert!(rendered.contains("`coding` [`context`]"));
+    assert!(rendered.contains("`boundary and drift check` [`guard`]"));
+    assert!(rendered.contains("Entry: `task.coding-start`"));
+    assert!(rendered.contains("Ready: `task.plan-ready`"));
+    assert!(rendered.contains("## Expected Work Surface"));
+    assert!(rendered.contains("<plan-workdir>/"));
+    assert!(rendered.contains("  blueprint/"));
+    assert!(rendered.contains("  plan/"));
+    assert!(rendered.contains("## Local Contract Template"));
+    assert!(rendered.contains("surface = ["));
+    assert!(rendered.contains("\"blueprint\""));
+    assert!(rendered.contains("\"plan\""));
     assert!(rendered.contains("## Mermaid"));
     assert!(rendered.contains("```mermaid"));
-    assert!(rendered.contains("## Nodes"));
-    assert!(rendered.contains("### coding"));
-    assert!(rendered.contains("Kind: context"));
-    assert!(rendered.contains("### boundary and drift check"));
-    assert!(rendered.contains("Kind: guard"));
-    assert!(rendered.contains("## Module contract"));
-    assert!(rendered.contains("## Owning qianji.toml"));
 }
 
 #[test]
@@ -223,8 +250,22 @@ fn show_flowhub_graph_uses_local_module_contract_for_wendao_leaf_case() {
         Some(FlowhubGraphTopology::BoundedLoop)
     );
     assert_eq!(
-        show.expected_work_surface,
+        show.module_contract_surface,
         vec!["qianji.toml".to_string(), "docs-search.mmd".to_string()]
+    );
+    assert!(
+        show.localized_work_surface
+            .note
+            .as_deref()
+            .is_some_and(|note| note.contains("[graph.workdir]"))
+    );
+    assert_eq!(
+        show.localized_work_surface.expected_work_surface_tree,
+        vec![
+            "<localized-workdir>/".to_string(),
+            "  qianji.toml".to_string(),
+            "  flowchart.mmd".to_string(),
+        ]
     );
     assert!(
         show.owning_module_manifest_toml
@@ -234,18 +275,20 @@ fn show_flowhub_graph_uses_local_module_contract_for_wendao_leaf_case() {
 
     let rendered = render_flowhub_graph_show(&show);
     assert!(rendered.contains("Name: DOC_SEARCH"));
+    assert!(rendered.contains("Owning module: wendao"));
+    assert!(rendered.contains("Direction: LR"));
     assert!(rendered.contains("Topology: bounded_loop"));
     assert!(rendered.contains("Declared topology: bounded_loop"));
-    assert!(rendered.contains("### wendao.docs.search"));
-    assert!(rendered.contains("### wendao.docs.document"));
-    assert!(rendered.contains("### wendao.docs.document_structure"));
-    assert!(rendered.contains("Kind: capability_contract"));
-    assert!(rendered.contains("## Module contract"));
-    assert!(rendered.contains("- qianji.toml"));
-    assert!(rendered.contains("- docs-search.mmd"));
-    assert!(rendered.contains("## Owning qianji.toml"));
-    assert!(!rendered.contains("## Expected work surface"));
-    assert!(!rendered.contains("## Local qianji.toml template"));
+    assert!(rendered.contains("## Execution"));
+    assert!(rendered.contains("does not yet declare `[graph.workdir]`"));
+    assert!(rendered.contains("## Nodes"));
+    assert!(rendered.contains("`wendao.docs.search` [`capability_contract`]"));
+    assert!(rendered.contains("`wendao.docs.document` [`capability_contract`]"));
+    assert!(rendered.contains("`wendao.docs.document_structure` [`capability_contract`]"));
+    assert!(rendered.contains("## Expected Work Surface"));
+    assert!(rendered.contains("<localized-workdir>/"));
+    assert!(rendered.contains("## Local Contract Template"));
+    assert!(!rendered.contains("## Persistent Target Surface"));
     assert!(!rendered.contains("blueprint/"));
     assert!(!rendered.contains("plan/"));
 }
@@ -278,10 +321,72 @@ fn show_flowhub_graph_describes_live_research_canonicalize_case() {
     let rendered = render_flowhub_graph_show(&show);
     assert!(rendered.contains("Name: PAPER_CANONICALIZE"));
     assert!(rendered.contains("Path: ./qianji-flowhub/research/paper/paper-canonicalize.mmd"));
-    assert!(rendered.contains("### pdf_intake"));
-    assert!(rendered.contains("Kind: process"));
-    assert!(rendered.contains("### canonicalize_done"));
-    assert!(rendered.contains("Kind: artifact"));
+    assert!(rendered.contains("Owning module: research/paper"));
+    assert!(rendered.contains("## Execution"));
+    assert!(rendered.contains("bounded run-local surface"));
+    assert!(rendered.contains("## Nodes"));
+    assert!(rendered.contains("`pdf_intake` [`process`]"));
+    assert!(rendered.contains("`canonicalize_done` [`artifact`]"));
+    assert!(rendered.contains("## Expected Work Surface"));
+    assert!(rendered.contains("runs/<run_id>/"));
+    assert!(rendered.contains("  refs/"));
+    assert!(rendered.contains("  staging/"));
+    assert!(rendered.contains("## Persistent Target Surface"));
+    assert!(rendered.contains("papers/<paper_id>/"));
+    assert!(rendered.contains("  extraction/"));
+    assert!(rendered.contains("  structure/"));
+    assert!(rendered.contains("## Local Contract Template"));
+    assert!(rendered.contains("name = \"paper-canonicalize\""));
+}
+
+#[test]
+fn show_flowhub_graph_describes_live_research_deep_read_case() {
+    let show = show_flowhub_graph(flowhub_root().join("research/paper/paper-deep-read.mmd"))
+        .unwrap_or_else(|error| panic!("research deep-read graph should show: {error}"));
+
+    assert_eq!(show.merimind_graph_name, "PAPER_DEEP_READ");
+    assert_eq!(show.owning_module_ref, "research/paper");
+    assert_eq!(show.topology, FlowhubGraphTopology::BoundedLoop);
+    assert_eq!(
+        show.declared_topology,
+        Some(FlowhubGraphTopology::BoundedLoop)
+    );
+    assert!(
+        show.localized_work_surface
+            .expected_work_surface_tree
+            .contains(&"    paper.json".to_string())
+    );
+    assert!(
+        show.localized_work_surface
+            .expected_work_surface_tree
+            .contains(&"      claim_ledger.patch.jsonl".to_string())
+    );
+    assert!(
+        show.localized_work_surface
+            .persistent_target_surface_tree
+            .contains(&"    claim_ledger.jsonl".to_string())
+    );
+    assert!(
+        show.localized_work_surface
+            .local_contract_template_toml
+            .contains("name = \"paper-deep-read\"")
+    );
+
+    let rendered = render_flowhub_graph_show(&show);
+    assert!(rendered.contains("Name: PAPER_DEEP_READ"));
+    assert!(rendered.contains("## Expected Work Surface"));
+    assert!(rendered.contains("runs/<run_id>/"));
+    assert!(rendered.contains("    paper.json"));
+    assert!(rendered.contains("      claim_ledger.patch.jsonl"));
+    assert!(rendered.contains("      critique_memo.patch.md"));
+    assert!(rendered.contains("## Persistent Target Surface"));
+    assert!(rendered.contains("papers/<paper_id>/"));
+    assert!(rendered.contains("    claim_ledger.jsonl"));
+    assert!(rendered.contains("    deep_read.md"));
+    assert!(rendered.contains("## Local Contract Template"));
+    assert!(rendered.contains("name = \"paper-deep-read\""));
+    assert!(rendered.contains("\"refs/topic.json\""));
+    assert!(rendered.contains("\"state/current_node.toml\""));
 }
 
 #[test]
@@ -301,11 +406,12 @@ fn show_flowhub_graph_surfaces_unknown_graph_nodes() {
                 == "do not rely on this node until the Flowhub graph contract is corrected"
     }));
     let rendered = render_flowhub_graph_show(&show);
-    assert!(rendered.contains("### style"));
+    assert!(rendered.contains("`style`"));
     assert!(!rendered.contains("Kind: unknown"));
-    assert!(rendered.contains(
-        "Agent action: do not rely on this node until the Flowhub graph contract is corrected"
-    ));
+    assert!(
+        rendered.contains("do not rely on this node until the Flowhub graph contract is corrected")
+    );
+    assert!(rendered.contains("Undeclared graph nodes: `style`."));
 }
 
 #[test]
@@ -344,5 +450,5 @@ fn show_flowhub_graph_preserves_raw_mermaid_but_ignores_presentation_directives_
     assert!(rendered.contains("classDef highlight"));
     assert!(rendered.contains("style C"));
     assert!(rendered.contains("click G"));
-    assert!(!rendered.contains("### highlight"));
+    assert!(!rendered.contains("`highlight`"));
 }

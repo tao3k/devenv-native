@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use std::time::{SystemTime, UNIX_EPOCH};
 
+use tempfile::Builder;
 use tokio::sync::mpsc;
 use xiuxian_wendao::analyzers::PluginRegistry;
 use xiuxian_zhenfa::ZhenfaSignal;
@@ -10,14 +10,14 @@ use crate::execute::gateway::registry::build_plugin_registry;
 use crate::execute::gateway::shared::AppState;
 
 pub(crate) fn write_temp_gateway_config(contents: &str) -> PathBuf {
-    let unique = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map_or(0, |duration| duration.as_nanos());
-    let path = std::env::temp_dir().join(format!(
-        "wendao-gateway-config-{}-{unique}.toml",
-        std::process::id()
-    ));
-    if let Err(err) = std::fs::write(&path, contents) {
+    let (mut file, path) = Builder::new()
+        .prefix("wendao-gateway-config-")
+        .suffix(".toml")
+        .tempfile()
+        .unwrap_or_else(|error| panic!("failed to allocate temp gateway config: {error}"))
+        .keep()
+        .unwrap_or_else(|error| panic!("failed to persist temp gateway config: {error}"));
+    if let Err(err) = std::io::Write::write_all(&mut file, contents.as_bytes()) {
         panic!("failed to write temp config at {}: {err}", path.display());
     }
     path
@@ -32,14 +32,14 @@ pub(crate) fn remove_temp_gateway_config(path: &Path) {
 }
 
 pub(super) fn write_temp_gateway_pidfile(contents: &str) -> PathBuf {
-    let unique = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map_or(0, |duration| duration.as_nanos());
-    let path = std::env::temp_dir().join(format!(
-        "wendao-gateway-pidfile-{}-{unique}.pid",
-        std::process::id()
-    ));
-    if let Err(err) = std::fs::write(&path, contents) {
+    let (mut file, path) = Builder::new()
+        .prefix("wendao-gateway-pidfile-")
+        .suffix(".pid")
+        .tempfile()
+        .unwrap_or_else(|error| panic!("failed to allocate temp gateway pidfile: {error}"))
+        .keep()
+        .unwrap_or_else(|error| panic!("failed to persist temp gateway pidfile: {error}"));
+    if let Err(err) = std::io::Write::write_all(&mut file, contents.as_bytes()) {
         panic!("failed to write temp pidfile at {}: {err}", path.display());
     }
     path

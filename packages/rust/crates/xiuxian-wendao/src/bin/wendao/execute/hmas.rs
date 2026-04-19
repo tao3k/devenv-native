@@ -13,7 +13,7 @@ pub(super) fn handle(cli: &Cli) -> Result<()> {
     match command {
         HmasCommand::Validate { file } => {
             let report = validate_blackboard_file(file).map_err(anyhow::Error::msg)?;
-            emit(&report, cli.output)
+            emit(&report, cli.output_or_json())
         }
     }
 }

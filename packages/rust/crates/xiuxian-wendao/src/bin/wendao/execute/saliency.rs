@@ -17,14 +17,17 @@ pub(super) fn handle(cli: &Cli) -> Result<()> {
     match command {
         SaliencyCommand::Get { node_id } => {
             let payload = valkey_saliency_get(node_id).map_err(anyhow::Error::msg)?;
-            emit(&json!({"node_id": node_id, "state": payload}), cli.output)
+            emit(
+                &json!({"node_id": node_id, "state": payload}),
+                cli.output_or_json(),
+            )
         }
         SaliencyCommand::Decay { now_unix } => {
             let result = valkey_saliency_decay_all(LinkGraphSaliencyDecaySweepRequest {
                 now_unix: *now_unix,
             })
             .map_err(anyhow::Error::msg)?;
-            emit(&result, cli.output)
+            emit(&result, cli.output_or_json())
         }
         SaliencyCommand::Touch {
             node_id,
@@ -47,7 +50,7 @@ pub(super) fn handle(cli: &Cli) -> Result<()> {
                 now_unix: *now_unix,
             })
             .map_err(anyhow::Error::msg)?;
-            emit(&state, cli.output)
+            emit(&state, cli.output_or_json())
         }
     }
 }

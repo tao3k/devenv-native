@@ -14,11 +14,10 @@ in
   ];
   claude.code.enable = true;
   env = {
-    ANTHROPIC_BASE_URL = "Anthropic Compatibility Protocol: https://token-plan-cn.xiaomimimo.com/anthropic";
+    ANTHROPIC_BASE_URL = "https://token-plan-sgp.xiaomimimo.com/anthropic";
     ANTHROPIC_AUTH_TOKEN = config.secretspec.secrets.MIMO_API_KEY;
-    API_TIMEOUT_MS = "2000000";
+    # API_TIMEOUT_MS = "2000000";
     alwaysThinkingEnabled = "true";
-    CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC = "1"; # Note: Convert to string
     ANTHROPIC_MODEL = "mimo-v2-pro";
     ANTHROPIC_SMALL_FAST_MODEL = "mimo-v2-pro";
     ANTHROPIC_DEFAULT_SONNET_MODEL = "mimo-v2-pro";

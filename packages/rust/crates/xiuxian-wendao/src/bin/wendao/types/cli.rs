@@ -36,8 +36,8 @@ pub(crate) struct Cli {
     pub exclude_dirs: Vec<String>,
 
     /// Output format.
-    #[arg(long, short = 'o', value_enum, default_value_t = OutputFormat::Json, global = true)]
-    pub output: OutputFormat,
+    #[arg(long, short = 'o', value_enum, global = true)]
+    pub output: Option<OutputFormat>,
 
     /// Global structured logging controls.
     #[command(flatten)]
@@ -50,3 +50,15 @@ pub(crate) struct Cli {
 #[cfg(test)]
 #[path = "../../../../tests/unit/bin/wendao/types/cli.rs"]
 mod tests;
+
+impl Cli {
+    #[must_use]
+    pub(crate) fn output_or_json(&self) -> OutputFormat {
+        self.output.unwrap_or(OutputFormat::Json)
+    }
+
+    #[must_use]
+    pub(crate) fn embedded_client_output(&self) -> OutputFormat {
+        self.output.unwrap_or(OutputFormat::Text)
+    }
+}

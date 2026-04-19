@@ -65,8 +65,28 @@ fn parse_markdown_note_keeps_markdown_link_targets_with_heading_bodies() {
     );
     assert_eq!(note.core.targets.len(), 3);
     assert_eq!(note.core.targets[0].target, "docs/guide.md#intro");
+    assert_eq!(note.core.targets[0].surface, "[Guide](docs/guide.md#intro)");
     assert_eq!(note.core.targets[1].target, "assets/logo.png");
+    assert_eq!(note.core.targets[1].surface, "![Image](assets/logo.png)");
     assert_eq!(note.core.targets[2].target, "graph-c");
+    assert_eq!(note.core.targets[2].surface, "[[graph-c]]");
+}
+
+#[test]
+fn parse_markdown_note_preserves_embed_target_surface_syntax() {
+    let note = parse_markdown_note(
+        "# Target Contract\n\n![[note#Section]]\n![Diagram](assets/diagram.png)\n",
+        "fallback",
+    );
+
+    assert_eq!(note.core.targets.len(), 2);
+    assert_eq!(note.core.targets[0].target, "note#Section");
+    assert_eq!(note.core.targets[0].surface, "![[note#Section]]");
+    assert_eq!(note.core.targets[1].target, "assets/diagram.png");
+    assert_eq!(
+        note.core.targets[1].surface,
+        "![Diagram](assets/diagram.png)"
+    );
 }
 
 #[test]

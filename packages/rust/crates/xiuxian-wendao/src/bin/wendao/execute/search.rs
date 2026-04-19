@@ -82,11 +82,11 @@ pub(super) fn handle(cli: &Cli, index: Option<&LinkGraphIndex>) -> Result<()> {
             args.include_provisional,
             args.provisional_limit,
         );
-        emit(&planned, cli.output)
+        emit(&planned, cli.output_or_json())
     } else {
         let (parsed, hits) = index.search_planned(&args.query, args.limit, base_options);
-        if cli.output == crate::types::OutputFormat::Json {
-            emit(&hits, cli.output)
+        if cli.output_or_json() == crate::types::OutputFormat::Json {
+            emit(&hits, cli.output_or_json())
         } else {
             println!("Query: {}", parsed.query);
             println!("Hits: {}", hits.len());

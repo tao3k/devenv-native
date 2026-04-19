@@ -79,11 +79,12 @@ pub(crate) async fn execute(cli: &Cli, index: Option<&LinkGraphIndex>) -> Result
 }
 
 fn client_context_from_cli(cli: &Cli) -> EmbeddedClientContext {
-    let output = match cli.output {
+    let output = match cli.embedded_client_output() {
+        OutputFormat::Text => ClientOutputFormat::Text,
         OutputFormat::Json => ClientOutputFormat::Json,
         OutputFormat::Pretty => ClientOutputFormat::Pretty,
     };
-    EmbeddedClientContext::new(cli.root.clone(), output)
+    EmbeddedClientContext::new(cli.root.clone(), output).with_config_file(cli.config_file.clone())
 }
 
 #[cfg(test)]
