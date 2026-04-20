@@ -29,7 +29,7 @@ fn repo_index_sync_timeout_tracks_machine_tuned_sync_budget() {
     );
     assert_eq!(
         default_repo_index_sync_timeout_for_parallelism(12),
-        Duration::from_secs(120)
+        Duration::from_mins(2)
     );
     assert_eq!(
         default_repo_index_sync_timeout_for_parallelism(24),
@@ -45,11 +45,11 @@ fn repo_index_analysis_timeout_scales_with_parallelism() {
     );
     assert_eq!(
         default_repo_index_analysis_timeout_for_parallelism(12),
-        Duration::from_secs(60)
+        Duration::from_mins(1)
     );
     assert_eq!(
         default_repo_index_analysis_timeout_for_parallelism(32),
-        Duration::from_secs(120)
+        Duration::from_mins(2)
     );
 }
 

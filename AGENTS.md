@@ -143,6 +143,12 @@ path from `$PRJ_ROOT` instead of using a bare repo-relative literal. Examples:
   set `CARGO_TARGET_DIR` when it is truly unavoidable, and when an override is
   required, reuse one shared target root for the active lane instead of
   creating multiple isolated build environments under `CARGO_TARGET_DIR`.
+- **Debt Closure At Discovery**: When a warning, lint failure, modularity
+  breach, flaky test, or similar engineering debt is discovered inside the
+  touched scope or directly blocks the active verification path, treat it as
+  part of the current slice and resolve it before moving on. Do not silently
+  defer such debt into backlog unless the Sovereign explicitly approves that
+  deferment.
 - **Rust Clippy (Zero-Tolerance)**: Global lint suppression (`#![allow(...)]`) is STRICTLY FORBIDDEN. Fix the code.
 - **Rust Warnings Closure**: Rust compiler and clippy warnings in the touched scope MUST be resolved before a feature is marked as fully landed.
 - **Clippy Cost Gate**: Run full clippy verification only when a feature reaches `[DONE]`/fully landed status to control iteration cost during active development.

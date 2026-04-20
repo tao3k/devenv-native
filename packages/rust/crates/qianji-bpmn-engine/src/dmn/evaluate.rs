@@ -1,26 +1,17 @@
-//! Bounded DMN evaluation entrypoint.
+//! Bounded DMN evaluation internals.
 
-use crate::dmn::{
-    DmnComparisonOperator, DmnDateComparison, DmnDateRange, DmnDecisionDefinition,
-    DmnEvaluationRequest, DmnEvaluationResult, DmnHitPolicy, DmnInputEntry, DmnNumericRange,
+use crate::dmn_model_api::{
+    DmnComparisonOperator, DmnDateComparison, DmnDateRange, DmnDateTimeComparison,
+    DmnDateTimeRange, DmnDecisionDefinition, DmnEvaluationRequest, DmnEvaluationResult,
+    DmnHitPolicy, DmnInputClause, DmnInputEntry, DmnNumericRange, DmnRule, DmnTimeComparison,
+    DmnTimeRange,
 };
 use crate::error::{BpmnEngineError, Result};
 use chrono::NaiveDate;
+use chrono::NaiveDateTime;
+use chrono::NaiveTime;
 use serde_json::{Map, Value};
 use std::sync::Arc;
-
-/// Evaluates one bounded DMN decision request.
-///
-/// # Errors
-///
-/// Returns [`BpmnEngineError::DmnDecisionMismatch`] when the request references
-/// a different decision than the parsed definition.
-pub async fn evaluate_dmn_decision(
-    decision: &DmnDecisionDefinition,
-    request: &DmnEvaluationRequest,
-) -> Result<DmnEvaluationResult> {
-    evaluate_dmn_decision_sync(decision, request)
-}
 
 /// Synchronous bounded DMN evaluation entrypoint for in-engine runtime paths.
 pub(crate) fn evaluate_dmn_decision_sync(
@@ -81,11 +72,7 @@ pub(crate) fn evaluate_dmn_decision_sync(
     }
 }
 
-fn rule_matches(
-    decision: &DmnDecisionDefinition,
-    rule: &crate::dmn::DmnRule,
-    variables: &Value,
-) -> bool {
+fn rule_matches(decision: &DmnDecisionDefinition, rule: &DmnRule, variables: &Value) -> bool {
     decision
         .table
         .inputs
@@ -110,10 +97,23 @@ fn rule_matches(
             DmnInputEntry::DateRange(range) => {
                 evaluate_date_range(&resolve_input_value(variables, input_clause), range)
             }
+            DmnInputEntry::DateTimeComparison(comparison) => evaluate_date_time_comparison(
+                &resolve_input_value(variables, input_clause),
+                comparison,
+            ),
+            DmnInputEntry::DateTimeRange(range) => {
+                evaluate_date_time_range(&resolve_input_value(variables, input_clause), range)
+            }
+            DmnInputEntry::TimeComparison(comparison) => {
+                evaluate_time_comparison(&resolve_input_value(variables, input_clause), comparison)
+            }
+            DmnInputEntry::TimeRange(range) => {
+                evaluate_time_range(&resolve_input_value(variables, input_clause), range)
+            }
         })
 }
 
-fn resolve_input_value(variables: &Value, input_clause: &crate::dmn::DmnInputClause) -> Value {
+fn resolve_input_value(variables: &Value, input_clause: &DmnInputClause) -> Value {
     let Some(path) = input_clause.lookup_path() else {
         return Value::Null;
     };
@@ -128,7 +128,7 @@ fn resolve_input_value(variables: &Value, input_clause: &crate::dmn::DmnInputCla
     current.clone()
 }
 
-fn unique_rule_output(decision: &DmnDecisionDefinition, rule: &crate::dmn::DmnRule) -> Value {
+fn unique_rule_output(decision: &DmnDecisionDefinition, rule: &DmnRule) -> Value {
     let mut output = Map::new();
     for (output_clause, output_entry) in decision.table.outputs.iter().zip(&rule.output_entries) {
         output.insert(
@@ -214,6 +214,86 @@ fn evaluate_date_range(actual: &Value, range: &DmnDateRange) -> bool {
     true
 }
 
+fn evaluate_time_comparison(actual: &Value, comparison: &DmnTimeComparison) -> bool {
+    let Some(actual) = parse_iso_time_value(actual) else {
+        return false;
+    };
+    let Some(expected) = parse_iso_time_str(&comparison.value) else {
+        return false;
+    };
+    match comparison.operator {
+        DmnComparisonOperator::LessThan => actual < expected,
+        DmnComparisonOperator::LessThanOrEqual => actual <= expected,
+        DmnComparisonOperator::GreaterThan => actual > expected,
+        DmnComparisonOperator::GreaterThanOrEqual => actual >= expected,
+    }
+}
+
+fn evaluate_date_time_comparison(actual: &Value, comparison: &DmnDateTimeComparison) -> bool {
+    let Some(actual) = parse_iso_datetime_value(actual) else {
+        return false;
+    };
+    let Some(expected) = parse_iso_datetime_str(&comparison.value) else {
+        return false;
+    };
+    match comparison.operator {
+        DmnComparisonOperator::LessThan => actual < expected,
+        DmnComparisonOperator::LessThanOrEqual => actual <= expected,
+        DmnComparisonOperator::GreaterThan => actual > expected,
+        DmnComparisonOperator::GreaterThanOrEqual => actual >= expected,
+    }
+}
+
+fn evaluate_date_time_range(actual: &Value, range: &DmnDateTimeRange) -> bool {
+    let Some(actual) = parse_iso_datetime_value(actual) else {
+        return false;
+    };
+    if let Some(lower) = &range.lower {
+        let Some(lower_value) = parse_iso_datetime_str(&lower.value) else {
+            return false;
+        };
+        if (lower.inclusive && actual < lower_value) || (!lower.inclusive && actual <= lower_value)
+        {
+            return false;
+        }
+    }
+    if let Some(upper) = &range.upper {
+        let Some(upper_value) = parse_iso_datetime_str(&upper.value) else {
+            return false;
+        };
+        if (upper.inclusive && actual > upper_value) || (!upper.inclusive && actual >= upper_value)
+        {
+            return false;
+        }
+    }
+    true
+}
+
+fn evaluate_time_range(actual: &Value, range: &DmnTimeRange) -> bool {
+    let Some(actual) = parse_iso_time_value(actual) else {
+        return false;
+    };
+    if let Some(lower) = &range.lower {
+        let Some(lower_value) = parse_iso_time_str(&lower.value) else {
+            return false;
+        };
+        if (lower.inclusive && actual < lower_value) || (!lower.inclusive && actual <= lower_value)
+        {
+            return false;
+        }
+    }
+    if let Some(upper) = &range.upper {
+        let Some(upper_value) = parse_iso_time_str(&upper.value) else {
+            return false;
+        };
+        if (upper.inclusive && actual > upper_value) || (!upper.inclusive && actual >= upper_value)
+        {
+            return false;
+        }
+    }
+    true
+}
+
 fn parse_iso_date_value(value: &Value) -> Option<NaiveDate> {
     let Value::String(value) = value else {
         return None;
@@ -223,4 +303,26 @@ fn parse_iso_date_value(value: &Value) -> Option<NaiveDate> {
 
 fn parse_iso_date_str(value: &str) -> Option<NaiveDate> {
     NaiveDate::parse_from_str(value, "%Y-%m-%d").ok()
+}
+
+fn parse_iso_time_value(value: &Value) -> Option<NaiveTime> {
+    let Value::String(value) = value else {
+        return None;
+    };
+    parse_iso_time_str(value)
+}
+
+fn parse_iso_time_str(value: &str) -> Option<NaiveTime> {
+    NaiveTime::parse_from_str(value, "%H:%M:%S").ok()
+}
+
+fn parse_iso_datetime_value(value: &Value) -> Option<NaiveDateTime> {
+    let Value::String(value) = value else {
+        return None;
+    };
+    parse_iso_datetime_str(value)
+}
+
+fn parse_iso_datetime_str(value: &str) -> Option<NaiveDateTime> {
+    NaiveDateTime::parse_from_str(value, "%Y-%m-%dT%H:%M:%S").ok()
 }

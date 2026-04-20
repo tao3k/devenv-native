@@ -91,7 +91,7 @@ impl StructuralEditor {
         }
 
         // Sort by position in reverse order
-        matches.sort_by(|a, b| b.0.cmp(&a.0));
+        matches.sort_by_key(|entry| std::cmp::Reverse(entry.0));
 
         // Apply replacements
         let mut modified = content.to_string();

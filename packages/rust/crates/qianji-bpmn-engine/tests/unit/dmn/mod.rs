@@ -3,7 +3,9 @@ use qianji_bpmn_engine::DmnSourceFile;
 
 mod core;
 mod date;
+mod datetime;
 mod numeric;
+mod time;
 
 fn fixture_source(name: &str) -> DmnSourceFile {
     let path = format!("{}/tests/fixtures/dmn/{name}", env!("CARGO_MANIFEST_DIR"));

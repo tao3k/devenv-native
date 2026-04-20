@@ -259,14 +259,19 @@ Current status:
     the existing host-blocking task model, together with repeat snapshot
     metadata, sparse `standard_loops` checkpoint ownership, `testBefore` skip
     behavior, loop-maximum enforcement, and simple boolean loop conditions
-12. one bounded sequential `multiInstanceLoopCharacteristics` slice has now
-    landed for one host-blocking task family, together with immutable repeat
-    snapshots, sparse `sequential_multi_instances` checkpoint ownership,
-    repeat metadata on host-dispatch requests, zero-cardinality skip behavior,
-    and interrupting boundary cleanup for multi-instance owner state
-13. parallel multi-instance, multi-instance data bindings, and
-    `completionCondition` still fail explicitly through engine-owned loop
-    diagnostics rather than generic unsupported-element fallback
+12. bounded sequential and bounded parallel
+    `multiInstanceLoopCharacteristics` slices have now landed for one
+    host-blocking task family, together with immutable repeat snapshots,
+    sparse checkpoint ownership for sequential and parallel owner state,
+    repeat metadata on host-dispatch requests, zero-cardinality skip
+    behavior, and interrupting boundary cleanup for multi-instance owner
+    state
+13. one bounded multi-instance `completionCondition` subset is now also
+    landed for those same cardinality-driven sequential and parallel shapes,
+    using one simple boolean variable path or one bounded counter comparison,
+    while multi-instance data bindings still fail explicitly through
+    engine-owned loop diagnostics rather than generic unsupported-element
+    fallback
 14. the bounded DMN evaluator widening and the thin
     `xiuxian-qianji` business-rule host adapter lane are now both landed
 15. the next bounded move is therefore higher-level BPMN orchestration in

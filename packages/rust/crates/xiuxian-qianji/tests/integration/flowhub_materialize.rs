@@ -173,8 +173,7 @@ fn real_flowhub_paper_graph() -> PathBuf {
 
 fn real_flowhub_paper_anchor_supports_localized_contract() -> bool {
     show_flowhub_graph(real_flowhub_paper_graph())
-        .map(|show| show.declared_check_surface.root.is_some())
-        .unwrap_or(false)
+        .is_ok_and(|show| show.declared_check_surface.root.is_some())
 }
 
 #[test]

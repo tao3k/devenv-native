@@ -1,6 +1,6 @@
 //! JSON codec helpers for checkpoint envelopes.
 
-use crate::checkpoint::BpmnCheckpointEnvelope;
+use crate::checkpoint_api::BpmnCheckpointEnvelope;
 use crate::error::{BpmnEngineError, Result};
 
 /// Encodes a checkpoint envelope into JSON.
@@ -8,7 +8,9 @@ use crate::error::{BpmnEngineError, Result};
 /// # Errors
 ///
 /// Returns [`BpmnEngineError::CheckpointCodec`] when JSON serialization fails.
-pub fn encode_checkpoint_json(checkpoint: &BpmnCheckpointEnvelope) -> Result<String> {
+pub(in crate::checkpoint) fn encode_checkpoint_json_impl(
+    checkpoint: &BpmnCheckpointEnvelope,
+) -> Result<String> {
     serde_json::to_string(checkpoint)
         .map_err(|error| BpmnEngineError::CheckpointCodec(error.to_string()))
 }
@@ -18,6 +20,8 @@ pub fn encode_checkpoint_json(checkpoint: &BpmnCheckpointEnvelope) -> Result<Str
 /// # Errors
 ///
 /// Returns [`BpmnEngineError::CheckpointCodec`] when JSON deserialization fails.
-pub fn decode_checkpoint_json(json: &str) -> Result<BpmnCheckpointEnvelope> {
+pub(in crate::checkpoint) fn decode_checkpoint_json_impl(
+    json: &str,
+) -> Result<BpmnCheckpointEnvelope> {
     serde_json::from_str(json).map_err(|error| BpmnEngineError::CheckpointCodec(error.to_string()))
 }

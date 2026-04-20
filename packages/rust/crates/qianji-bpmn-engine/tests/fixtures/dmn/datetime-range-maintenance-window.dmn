@@ -1,0 +1,42 @@
+<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/"
+  id="Definitions_maintenance_window"
+  name="Maintenance Window DRD"
+  namespace="http://example.com/dmn">
+  <decision id="maintenance-window" name="Maintenance Window">
+    <decisionTable id="decision_table_maintenance_window" hitPolicy="UNIQUE">
+      <input id="input_maintenance_at" label="maintenance_at">
+        <inputExpression id="input_expression_maintenance_at" typeRef="dateTime">
+          <text>maintenance_at</text>
+        </inputExpression>
+      </input>
+      <output id="output_window" name="window" label="window" typeRef="string" />
+      <rule id="rule_morning_window">
+        <description>Morning chained range</description>
+        <inputEntry id="input_entry_morning_window">
+          <text>date and time("2026-05-01T09:00:00") &lt;= ? &lt; date and time("2026-05-01T12:00:00")</text>
+        </inputEntry>
+        <outputEntry id="output_entry_morning_window">
+          <text>"morning-maintenance"</text>
+        </outputEntry>
+      </rule>
+      <rule id="rule_afternoon_window">
+        <description>Afternoon bracket range</description>
+        <inputEntry id="input_entry_afternoon_window">
+          <text>[date and time("2026-05-01T13:00:00")..date and time("2026-05-01T15:00:00")]</text>
+        </inputEntry>
+        <outputEntry id="output_entry_afternoon_window">
+          <text>"afternoon-maintenance"</text>
+        </outputEntry>
+      </rule>
+      <rule id="rule_outside_window">
+        <description>Fallback</description>
+        <inputEntry id="input_entry_outside_window">
+          <text>-</text>
+        </inputEntry>
+        <outputEntry id="output_entry_outside_window">
+          <text>"outside-window"</text>
+        </outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+</definitions>

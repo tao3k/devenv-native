@@ -1,6 +1,7 @@
 //! Lightweight local SQL checkpoint persistence entrypoints.
 
-use crate::checkpoint::{BpmnCheckpointEnvelope, decode_checkpoint_json, encode_checkpoint_json};
+use crate::checkpoint::{decode_checkpoint_json_impl, encode_checkpoint_json_impl};
+use crate::checkpoint_api::BpmnCheckpointEnvelope;
 use crate::error::{BpmnEngineError, Result};
 use std::path::Path;
 use xiuxian_db_store::rusqlite::{self, OptionalExtension};
@@ -17,7 +18,7 @@ const CHECKPOINT_SQL_TABLE: &str = "qianji_bpmn_checkpoints";
 /// Returns [`BpmnEngineError::CheckpointStorage`] when the local database
 /// cannot be opened or queried, or [`BpmnEngineError::CheckpointCodec`] when
 /// the stored payload is not valid checkpoint JSON.
-pub fn load_checkpoint_sql(
+pub(in crate::checkpoint) fn load_checkpoint_sql_impl(
     instance_id: &str,
     database_path: &Path,
 ) -> Result<Option<BpmnCheckpointEnvelope>> {
@@ -34,7 +35,10 @@ pub fn load_checkpoint_sql(
             operation: "load_checkpoint_sql_query",
             message: error.to_string(),
         })?;
-    payload.as_deref().map(decode_checkpoint_json).transpose()
+    payload
+        .as_deref()
+        .map(decode_checkpoint_json_impl)
+        .transpose()
 }
 
 /// Saves a checkpoint envelope to the local SQL checkpoint store.
@@ -50,13 +54,13 @@ pub fn load_checkpoint_sql(
 /// [`BpmnEngineError::CheckpointStorage`] when the local database cannot be
 /// opened or written, or [`BpmnEngineError::CheckpointCodec`] when the
 /// checkpoint cannot be serialized.
-pub fn save_checkpoint_sql(
+pub(in crate::checkpoint) fn save_checkpoint_sql_impl(
     checkpoint: &BpmnCheckpointEnvelope,
     database_path: &Path,
 ) -> Result<()> {
     let mut connection = open_checkpoint_database(database_path, "save_checkpoint_sql_open")?;
     ensure_checkpoint_schema(&connection, "save_checkpoint_sql_schema")?;
-    let payload = encode_checkpoint_json(checkpoint)?;
+    let payload = encode_checkpoint_json_impl(checkpoint)?;
     let sequence = sequence_to_i64(
         checkpoint.sequence,
         "save_checkpoint_sql_sequence_range",
@@ -123,7 +127,10 @@ pub fn save_checkpoint_sql(
 ///
 /// Returns [`BpmnEngineError::CheckpointStorage`] when the local database
 /// cannot be opened or written.
-pub fn delete_checkpoint_sql(instance_id: &str, database_path: &Path) -> Result<()> {
+pub(in crate::checkpoint) fn delete_checkpoint_sql_impl(
+    instance_id: &str,
+    database_path: &Path,
+) -> Result<()> {
     let connection = open_checkpoint_database(database_path, "delete_checkpoint_sql_open")?;
     ensure_checkpoint_schema(&connection, "delete_checkpoint_sql_schema")?;
     connection

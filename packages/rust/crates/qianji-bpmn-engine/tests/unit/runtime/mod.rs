@@ -1,12 +1,12 @@
 use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{
-    BpmnEdgeSpec, BpmnEventKind, BpmnEventSpec, BpmnGatewayKind, BpmnHostBridge, BpmnNodeKind,
-    BpmnNodeSpec, BpmnProcessSpec, BpmnRepeatSpec, BpmnSequentialMultiInstanceSpec,
-    BpmnStandardLoopSpec, BpmnTimerKind, BpmnTimerSpec, BusinessRuleTaskOutcome,
-    BusinessRuleTaskRequest, DmnDecisionDefinition, DmnDecisionRef, DmnSourceFile,
-    EventPollOutcome, EventPollRequest, HostBridgeError, ManualTaskOutcome, ManualTaskRequest,
-    ProcessKey, ServiceTaskOutcome, ServiceTaskRequest, UserTaskOutcome, UserTaskRequest,
-    parse_dmn_decision,
+    BpmnEdgeSpec, BpmnEventKind, BpmnEventSpec, BpmnGatewayKind, BpmnHostBridge,
+    BpmnMultiInstanceDataBindingSpec, BpmnNodeKind, BpmnNodeSpec, BpmnParallelMultiInstanceSpec,
+    BpmnProcessSpec, BpmnRepeatSpec, BpmnSequentialMultiInstanceSpec, BpmnStandardLoopSpec,
+    BpmnTimerKind, BpmnTimerSpec, BusinessRuleTaskOutcome, BusinessRuleTaskRequest,
+    DmnDecisionDefinition, DmnDecisionRef, DmnSourceFile, EventPollOutcome, EventPollRequest,
+    HostBridgeError, ManualTaskOutcome, ManualTaskRequest, ProcessKey, ServiceTaskOutcome,
+    ServiceTaskRequest, UserTaskOutcome, UserTaskRequest, parse_dmn_decision,
 };
 
 mod boundary;
@@ -348,6 +348,32 @@ fn sequential_multi_instance_process(
     )
 }
 
+fn sequential_multi_instance_process_with_completion_condition(
+    process_id: &str,
+    node_kind: BpmnNodeKind,
+    loop_cardinality: u32,
+    completion_condition: &str,
+) -> BpmnProcessSpec {
+    BpmnProcessSpec::new(
+        ProcessKey::new("pkg_runtime", process_id, format!("digest_{process_id}")),
+        vec![
+            BpmnNodeSpec::new(0, "start", BpmnNodeKind::StartEvent),
+            BpmnNodeSpec::new(1, "review", node_kind).with_repeat(
+                BpmnRepeatSpec::SequentialMultiInstance(
+                    BpmnSequentialMultiInstanceSpec::new(loop_cardinality)
+                        .with_completion_condition(completion_condition),
+                ),
+            ),
+            BpmnNodeSpec::new(2, "end", BpmnNodeKind::EndEvent),
+        ],
+        vec![
+            BpmnEdgeSpec::new(0, 1, None::<&str>),
+            BpmnEdgeSpec::new(1, 2, None::<&str>),
+        ],
+        Vec::new(),
+    )
+}
+
 fn sequential_multi_instance_business_rule_process(
     process_id: &str,
     loop_cardinality: u32,
@@ -363,6 +389,159 @@ fn sequential_multi_instance_business_rule_process(
                 )
                 .with_repeat(BpmnRepeatSpec::SequentialMultiInstance(
                     BpmnSequentialMultiInstanceSpec::new(loop_cardinality),
+                )),
+            BpmnNodeSpec::new(2, "end", BpmnNodeKind::EndEvent),
+        ],
+        vec![
+            BpmnEdgeSpec::new(0, 1, None::<&str>),
+            BpmnEdgeSpec::new(1, 2, None::<&str>),
+        ],
+        Vec::new(),
+    )
+}
+
+fn parallel_multi_instance_process(
+    process_id: &str,
+    node_kind: BpmnNodeKind,
+    loop_cardinality: u32,
+) -> BpmnProcessSpec {
+    BpmnProcessSpec::new(
+        ProcessKey::new("pkg_runtime", process_id, format!("digest_{process_id}")),
+        vec![
+            BpmnNodeSpec::new(0, "start", BpmnNodeKind::StartEvent),
+            BpmnNodeSpec::new(1, "review", node_kind).with_repeat(
+                BpmnRepeatSpec::ParallelMultiInstance(BpmnParallelMultiInstanceSpec::new(
+                    loop_cardinality,
+                )),
+            ),
+            BpmnNodeSpec::new(2, "end", BpmnNodeKind::EndEvent),
+        ],
+        vec![
+            BpmnEdgeSpec::new(0, 1, None::<&str>),
+            BpmnEdgeSpec::new(1, 2, None::<&str>),
+        ],
+        Vec::new(),
+    )
+}
+
+fn parallel_multi_instance_process_with_completion_condition(
+    process_id: &str,
+    node_kind: BpmnNodeKind,
+    loop_cardinality: u32,
+    completion_condition: &str,
+) -> BpmnProcessSpec {
+    BpmnProcessSpec::new(
+        ProcessKey::new("pkg_runtime", process_id, format!("digest_{process_id}")),
+        vec![
+            BpmnNodeSpec::new(0, "start", BpmnNodeKind::StartEvent),
+            BpmnNodeSpec::new(1, "review", node_kind).with_repeat(
+                BpmnRepeatSpec::ParallelMultiInstance(
+                    BpmnParallelMultiInstanceSpec::new(loop_cardinality)
+                        .with_completion_condition(completion_condition),
+                ),
+            ),
+            BpmnNodeSpec::new(2, "end", BpmnNodeKind::EndEvent),
+        ],
+        vec![
+            BpmnEdgeSpec::new(0, 1, None::<&str>),
+            BpmnEdgeSpec::new(1, 2, None::<&str>),
+        ],
+        Vec::new(),
+    )
+}
+
+fn parallel_multi_instance_business_rule_process(
+    process_id: &str,
+    loop_cardinality: u32,
+) -> BpmnProcessSpec {
+    BpmnProcessSpec::new(
+        ProcessKey::new("pkg_runtime", process_id, format!("digest_{process_id}")),
+        vec![
+            BpmnNodeSpec::new(0, "start", BpmnNodeKind::StartEvent),
+            BpmnNodeSpec::new(1, "review", BpmnNodeKind::BusinessRuleTask)
+                .with_decision(
+                    DmnDecisionRef::new("loan-decision")
+                        .with_source_id("simple-unique-eligibility.dmn"),
+                )
+                .with_repeat(BpmnRepeatSpec::ParallelMultiInstance(
+                    BpmnParallelMultiInstanceSpec::new(loop_cardinality),
+                )),
+            BpmnNodeSpec::new(2, "end", BpmnNodeKind::EndEvent),
+        ],
+        vec![
+            BpmnEdgeSpec::new(0, 1, None::<&str>),
+            BpmnEdgeSpec::new(1, 2, None::<&str>),
+        ],
+        Vec::new(),
+    )
+}
+
+fn sequential_multi_instance_data_binding_process(
+    process_id: &str,
+    node_kind: BpmnNodeKind,
+) -> BpmnProcessSpec {
+    let binding =
+        BpmnMultiInstanceDataBindingSpec::new("items", "item").with_output("results", "result");
+    BpmnProcessSpec::new(
+        ProcessKey::new("pkg_runtime", process_id, format!("digest_{process_id}")),
+        vec![
+            BpmnNodeSpec::new(0, "start", BpmnNodeKind::StartEvent),
+            BpmnNodeSpec::new(1, "review", node_kind).with_repeat(
+                BpmnRepeatSpec::SequentialMultiInstance(
+                    BpmnSequentialMultiInstanceSpec::from_data_binding(binding),
+                ),
+            ),
+            BpmnNodeSpec::new(2, "end", BpmnNodeKind::EndEvent),
+        ],
+        vec![
+            BpmnEdgeSpec::new(0, 1, None::<&str>),
+            BpmnEdgeSpec::new(1, 2, None::<&str>),
+        ],
+        Vec::new(),
+    )
+}
+
+fn parallel_multi_instance_data_binding_process(
+    process_id: &str,
+    node_kind: BpmnNodeKind,
+) -> BpmnProcessSpec {
+    let binding = BpmnMultiInstanceDataBindingSpec::new("assignments", "item")
+        .with_output("results", "result");
+    BpmnProcessSpec::new(
+        ProcessKey::new("pkg_runtime", process_id, format!("digest_{process_id}")),
+        vec![
+            BpmnNodeSpec::new(0, "start", BpmnNodeKind::StartEvent),
+            BpmnNodeSpec::new(1, "review", node_kind).with_repeat(
+                BpmnRepeatSpec::ParallelMultiInstance(
+                    BpmnParallelMultiInstanceSpec::from_data_binding(binding),
+                ),
+            ),
+            BpmnNodeSpec::new(2, "end", BpmnNodeKind::EndEvent),
+        ],
+        vec![
+            BpmnEdgeSpec::new(0, 1, None::<&str>),
+            BpmnEdgeSpec::new(1, 2, None::<&str>),
+        ],
+        Vec::new(),
+    )
+}
+
+fn sequential_multi_instance_data_binding_business_rule_process(
+    process_id: &str,
+) -> BpmnProcessSpec {
+    let binding =
+        BpmnMultiInstanceDataBindingSpec::new("tiers", "tier").with_output("decisions", "approval");
+    BpmnProcessSpec::new(
+        ProcessKey::new("pkg_runtime", process_id, format!("digest_{process_id}")),
+        vec![
+            BpmnNodeSpec::new(0, "start", BpmnNodeKind::StartEvent),
+            BpmnNodeSpec::new(1, "review", BpmnNodeKind::BusinessRuleTask)
+                .with_decision(
+                    DmnDecisionRef::new("loan-decision")
+                        .with_source_id("simple-unique-eligibility.dmn"),
+                )
+                .with_repeat(BpmnRepeatSpec::SequentialMultiInstance(
+                    BpmnSequentialMultiInstanceSpec::from_data_binding(binding),
                 )),
             BpmnNodeSpec::new(2, "end", BpmnNodeKind::EndEvent),
         ],

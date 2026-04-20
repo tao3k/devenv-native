@@ -297,6 +297,18 @@ pub enum BpmnEngineError {
         /// Stable unsupported configuration discriminator.
         detail: &'static str,
     },
+    /// Returned when one compensation handler configuration exceeds the bounded slice.
+    #[error(
+        "BPMN process '{process_id}' compensation node '{node_id}' uses unsupported configuration '{detail}'"
+    )]
+    UnsupportedCompensationConfiguration {
+        /// Process identifier.
+        process_id: String,
+        /// Compensation-boundary or compensation-activity BPMN node identifier.
+        node_id: String,
+        /// Stable unsupported configuration discriminator.
+        detail: &'static str,
+    },
     /// Returned when one event-based gateway exceeds the bounded supported slice.
     #[error(
         "BPMN process '{process_id}' event-based gateway '{node_id}' uses unsupported configuration '{detail}'"
@@ -341,6 +353,18 @@ pub enum BpmnEngineError {
         /// Owning process identifier.
         process_id: String,
         /// BPMN subprocess or call-activity node identifier.
+        node_id: String,
+        /// Stable unsupported configuration discriminator.
+        detail: &'static str,
+    },
+    /// Returned when one transaction-specific cancel path exceeds the bounded slice.
+    #[error(
+        "BPMN process '{process_id}' transaction node '{node_id}' uses unsupported configuration '{detail}'"
+    )]
+    UnsupportedTransactionConfiguration {
+        /// Process identifier.
+        process_id: String,
+        /// BPMN node identifier.
         node_id: String,
         /// Stable unsupported configuration discriminator.
         detail: &'static str,

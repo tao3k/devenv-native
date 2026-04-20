@@ -2,8 +2,7 @@
 
 mod import;
 mod normalize;
-mod package;
+mod service;
 mod validate;
 
-pub use package::{BpmnBundleSnapshot, parse_bpmn_bundle};
-pub use package::{BpmnParseOptions, BpmnSourceFile, parse_bpmn_package};
+pub(crate) use service::parse_bpmn_bundle_impl;

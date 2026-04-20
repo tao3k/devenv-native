@@ -129,8 +129,7 @@ fn test_quantum_fusion_related_window_expands_for_hot_seed()
 fn unique_prefix() -> String {
     let nanos = SystemTime::now()
         .duration_since(UNIX_EPOCH)
-        .map(|value| value.as_nanos())
-        .unwrap_or(0);
+        .map_or(0, |value| value.as_nanos());
     format!("omni:test:quantum-fusion-window:{nanos}")
 }
 

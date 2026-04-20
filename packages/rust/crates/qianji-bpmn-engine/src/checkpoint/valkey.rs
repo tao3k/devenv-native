@@ -1,10 +1,11 @@
 //! Valkey persistence entrypoint shells.
 
-use crate::checkpoint::{BpmnCheckpointEnvelope, decode_checkpoint_json, encode_checkpoint_json};
+use crate::checkpoint::{decode_checkpoint_json_impl, encode_checkpoint_json_impl};
+use crate::checkpoint_api::BpmnCheckpointEnvelope;
 use crate::error::{BpmnEngineError, Result};
 use redis::AsyncCommands;
 
-use super::{lease_key, state_key};
+use super::{lease_key_impl, state_key_impl};
 
 const CHECKPOINT_TTL_SECONDS: u64 = 604_800;
 const SAVE_CHECKPOINT_CAS_SCRIPT: &str = r"
@@ -67,20 +68,23 @@ return 1
 /// Returns [`BpmnEngineError::CheckpointStorage`] when Valkey connectivity or
 /// key lookup fails, or [`BpmnEngineError::CheckpointCodec`] when the stored
 /// payload is not valid checkpoint JSON.
-pub async fn load_checkpoint(
+pub(in crate::checkpoint) async fn load_checkpoint_impl(
     instance_id: &str,
     valkey_url: &str,
 ) -> Result<Option<BpmnCheckpointEnvelope>> {
-    let mut connection = connect_valkey(valkey_url, "load_checkpoint_connect").await?;
+    let mut connection = connect_valkey_impl(valkey_url, "load_checkpoint_connect").await?;
     let payload: Option<String> =
         connection
-            .get(state_key(instance_id))
+            .get(state_key_impl(instance_id))
             .await
             .map_err(|error| BpmnEngineError::CheckpointStorage {
                 operation: "load_checkpoint_get",
                 message: error.to_string(),
             })?;
-    payload.as_deref().map(decode_checkpoint_json).transpose()
+    payload
+        .as_deref()
+        .map(decode_checkpoint_json_impl)
+        .transpose()
 }
 
 /// Saves a checkpoint envelope to Valkey.
@@ -90,10 +94,13 @@ pub async fn load_checkpoint(
 /// Returns [`BpmnEngineError::CheckpointStorage`] when Valkey connectivity or
 /// key writes fail, or [`BpmnEngineError::CheckpointCodec`] when the checkpoint
 /// cannot be serialized.
-pub async fn save_checkpoint(checkpoint: &BpmnCheckpointEnvelope, valkey_url: &str) -> Result<()> {
-    let mut connection = connect_valkey(valkey_url, "save_checkpoint_connect").await?;
-    let payload = encode_checkpoint_json(checkpoint)?;
-    let key = state_key(checkpoint.state.instance_id.as_ref());
+pub(in crate::checkpoint) async fn save_checkpoint_impl(
+    checkpoint: &BpmnCheckpointEnvelope,
+    valkey_url: &str,
+) -> Result<()> {
+    let mut connection = connect_valkey_impl(valkey_url, "save_checkpoint_connect").await?;
+    let payload = encode_checkpoint_json_impl(checkpoint)?;
+    let key = state_key_impl(checkpoint.state.instance_id.as_ref());
     let result: i64 = redis::cmd("EVAL")
         .arg(SAVE_CHECKPOINT_CAS_SCRIPT)
         .arg(1)
@@ -125,10 +132,13 @@ pub async fn save_checkpoint(checkpoint: &BpmnCheckpointEnvelope, valkey_url: &s
 ///
 /// Returns [`BpmnEngineError::CheckpointStorage`] when Valkey connectivity or
 /// key deletion fails.
-pub async fn delete_checkpoint(instance_id: &str, valkey_url: &str) -> Result<()> {
-    let mut connection = connect_valkey(valkey_url, "delete_checkpoint_connect").await?;
+pub(in crate::checkpoint) async fn delete_checkpoint_impl(
+    instance_id: &str,
+    valkey_url: &str,
+) -> Result<()> {
+    let mut connection = connect_valkey_impl(valkey_url, "delete_checkpoint_connect").await?;
     let _: usize = connection
-        .del(state_key(instance_id))
+        .del(state_key_impl(instance_id))
         .await
         .map_err(|error| BpmnEngineError::CheckpointStorage {
             operation: "delete_checkpoint_del",
@@ -145,17 +155,18 @@ pub async fn delete_checkpoint(instance_id: &str, valkey_url: &str) -> Result<()
 /// Returns [`BpmnEngineError::CheckpointLeaseNotOwned`] when the caller does
 /// not own the lease key, or [`BpmnEngineError::CheckpointStorage`] when
 /// Valkey connectivity or key deletion fails.
-pub async fn delete_checkpoint_as_owner(
+pub(in crate::checkpoint) async fn delete_checkpoint_as_owner_impl(
     instance_id: &str,
     owner_token: &str,
     valkey_url: &str,
 ) -> Result<()> {
-    let mut connection = connect_valkey(valkey_url, "delete_checkpoint_as_owner_connect").await?;
+    let mut connection =
+        connect_valkey_impl(valkey_url, "delete_checkpoint_as_owner_connect").await?;
     let deleted: i64 = redis::cmd("EVAL")
         .arg(DELETE_CHECKPOINT_OWNED_SCRIPT)
         .arg(2)
-        .arg(state_key(instance_id))
-        .arg(lease_key(instance_id))
+        .arg(state_key_impl(instance_id))
+        .arg(lease_key_impl(instance_id))
         .arg(owner_token)
         .query_async(&mut connection)
         .await
@@ -187,19 +198,20 @@ pub async fn delete_checkpoint_as_owner(
 /// [`BpmnEngineError::CheckpointStorage`] when Valkey connectivity or key
 /// writes fail, or [`BpmnEngineError::CheckpointCodec`] when the checkpoint
 /// cannot be serialized.
-pub async fn save_checkpoint_as_owner(
+pub(in crate::checkpoint) async fn save_checkpoint_as_owner_impl(
     checkpoint: &BpmnCheckpointEnvelope,
     owner_token: &str,
     valkey_url: &str,
 ) -> Result<()> {
-    let mut connection = connect_valkey(valkey_url, "save_checkpoint_as_owner_connect").await?;
-    let payload = encode_checkpoint_json(checkpoint)?;
+    let mut connection =
+        connect_valkey_impl(valkey_url, "save_checkpoint_as_owner_connect").await?;
+    let payload = encode_checkpoint_json_impl(checkpoint)?;
     let instance_id = checkpoint.state.instance_id.as_ref();
     let result: i64 = redis::cmd("EVAL")
         .arg(SAVE_CHECKPOINT_OWNED_CAS_SCRIPT)
         .arg(2)
-        .arg(state_key(instance_id))
-        .arg(lease_key(instance_id))
+        .arg(state_key_impl(instance_id))
+        .arg(lease_key_impl(instance_id))
         .arg(payload)
         .arg(checkpoint.sequence)
         .arg(CHECKPOINT_TTL_SECONDS)
@@ -228,7 +240,7 @@ pub async fn save_checkpoint_as_owner(
     }
 }
 
-pub(super) async fn connect_valkey(
+pub(in crate::checkpoint) async fn connect_valkey_impl(
     valkey_url: &str,
     operation: &'static str,
 ) -> Result<redis::aio::MultiplexedConnection> {

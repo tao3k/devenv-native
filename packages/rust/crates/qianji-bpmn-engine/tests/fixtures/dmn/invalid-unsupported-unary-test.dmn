@@ -4,15 +4,15 @@
   namespace="http://example.com/dmn">
   <decision id="invalid-unary-test" name="Invalid Unary Test">
     <decisionTable id="decision_table_invalid_unary_test" hitPolicy="UNIQUE">
-      <input id="input_start_time" label="start_time">
-        <inputExpression id="input_expression_start_time" typeRef="time">
-          <text>start_time</text>
+      <input id="input_start_timestamp" label="start_timestamp">
+        <inputExpression id="input_expression_start_timestamp" typeRef="dateTime">
+          <text>start_timestamp</text>
         </inputExpression>
       </input>
       <output id="output_result" name="result" label="result" typeRef="string" />
       <rule id="rule_invalid_unary_test">
         <inputEntry id="input_entry_invalid_unary_test">
-          <text>time("09:00:00")</text>
+          <text>date and time("2026-04-20T09:00:00Z")</text>
         </inputEntry>
         <outputEntry id="output_entry_invalid_unary_test">
           <text>"review"</text>

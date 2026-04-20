@@ -1,7 +1,7 @@
 //! Wendao Adapter for Sovereign Memory (Blueprint V6.1).
 //!
-//! Provides adapter implementations for `WendaoIngestionSink` trait,
-//! connecting Qianji's ArtifactObserver with Wendao's LinkGraphIndex
+//! Provides adapter implementations for the `WendaoIngestionSink` trait,
+//! connecting Qianji's `ArtifactObserver` with Wendao's `LinkGraphIndex`
 //! for persistent storage.
 
 use async_trait::async_trait;
@@ -10,7 +10,7 @@ use xiuxian_wendao_core::{CognitiveTraceRecord, LinkGraphSemanticDocument};
 use super::artifact_observer::WendaoIngestionSink;
 use super::wendao_sink::{FileWendaoSink, InMemoryWendaoSink};
 
-/// Adapter that bridges Qianji's ArtifactObserver with Wendao's LinkGraphIndex
+/// Adapter that bridges Qianji's `ArtifactObserver` with Wendao's `LinkGraphIndex`
 /// for persistent storage.
 ///
 /// This adapter provides a composite sink that writes cognitive traces to
@@ -53,7 +53,7 @@ impl WendaoIndexAdapter {
         }
     }
 
-    /// Get a builder for constructing a WendaoIndexAdapter.
+    /// Get a builder for constructing a `WendaoIndexAdapter`.
     #[must_use]
     pub fn builder() -> WendaoIndexAdapterBuilder {
         WendaoIndexAdapterBuilder::default()
@@ -82,17 +82,14 @@ impl WendaoIngestionSink for WendaoIndexAdapter {
                     .ingest_trace(trace, document)
                     .await
                     .map_err(|mem_error| {
-                        format!(
-                            "File sink failed: {}; Memory sink failed: {}",
-                            file_error, mem_error
-                        )
+                        format!("File sink failed: {file_error}; Memory sink failed: {mem_error}")
                     })
             }
         }
     }
 }
 
-/// Builder for constructing a WendaoIndexAdapter.
+/// Builder for constructing a `WendaoIndexAdapter`.
 #[derive(Debug, Default)]
 pub struct WendaoIndexAdapterBuilder {
     file_sink: Option<FileWendaoSink>,
@@ -127,7 +124,9 @@ impl WendaoIndexAdapterBuilder {
     /// Panics if no file sink was configured.
     #[must_use]
     pub fn build(self) -> WendaoIndexAdapter {
-        let file_sink = self.file_sink.expect("file_sink must be configured");
+        let Some(file_sink) = self.file_sink else {
+            panic!("file_sink must be configured");
+        };
         let memory_sink = self.memory_sink.unwrap_or_default();
         WendaoIndexAdapter::with_sinks(file_sink, memory_sink)
     }

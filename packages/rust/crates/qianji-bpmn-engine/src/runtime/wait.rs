@@ -1,56 +1,25 @@
 //! Waiting-state runtime records and bounded event-poll helpers.
 
-use crate::ir::BpmnNodeIndex;
+use crate::ir_index_api::BpmnNodeIndex;
+use crate::runtime_wait_api::WaitRegistration;
 use crate::{
-    BpmnEngineError, BpmnEventKind, BpmnTimerSpec,
+    BpmnEngineError,
     error::Result,
-    host::{EventPollOutcome, EventPollRequest},
+    host_types_api::{EventPollOutcome, EventPollRequest},
     ir::BpmnPackage,
 };
 use std::borrow::Borrow;
 
 use super::{
     BpmnAdvanceOutcome, BpmnInstanceState, InstanceLifecycle, NodeRuntimeStatus,
-    clear_sequential_multi_instance_state, clear_standard_loop_state,
-    instance::resolve_process_for_instance,
+    clear_parallel_multi_instance_state, clear_sequential_multi_instance_state,
+    clear_standard_loop_state,
     lifecycle::{
         merge_output_data, record_transition, resolve_single_outgoing_edge, set_active_node_index,
         set_node_status,
     },
+    parallel_multi_instance_token_ids, resolve_process_for_instance,
 };
-
-/// Waiting categories that require external progress.
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum WaitKind {
-    /// Waiting on an external event.
-    ExternalEvent,
-    /// Waiting on user action.
-    UserAction,
-    /// Waiting on a timer or wall-clock boundary.
-    Timer,
-}
-
-/// Waiting registration for one node.
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub struct WaitRegistration {
-    /// Owning node index.
-    pub node_index: BpmnNodeIndex,
-    /// Optional currently blocked host-work node for boundary waits.
-    pub blocking_node_index: Option<BpmnNodeIndex>,
-    /// Wait category.
-    pub kind: WaitKind,
-    /// Optional BPMN event kind when the wait originates from an event node.
-    pub event_kind: Option<BpmnEventKind>,
-    /// Optional source-level event reference such as `messageRef`.
-    pub event_reference: Option<String>,
-    /// Optional resolved event name or label.
-    pub event_name: Option<String>,
-    /// Optional timer-definition snapshot for timer waits.
-    pub timer: Option<BpmnTimerSpec>,
-    /// Optional correlation or deduplication key.
-    pub correlation_key: Option<String>,
-}
 
 /// Builds one typed event-poll request from the current blocked wait state.
 ///
@@ -59,7 +28,9 @@ pub struct WaitRegistration {
 /// Returns [`BpmnEngineError::MissingWaitRegistration`] when the instance does
 /// not currently hold a wait registration, or [`BpmnEngineError`] when the
 /// current wait shape exceeds the bounded single-wait slice.
-pub fn build_event_poll_request(instance: &BpmnInstanceState) -> Result<EventPollRequest> {
+pub(crate) fn build_event_poll_request_impl(
+    instance: &BpmnInstanceState,
+) -> Result<EventPollRequest> {
     let waits = wait_registrations(instance)?;
     Ok(EventPollRequest {
         instance_id: instance.instance_id.to_string(),
@@ -78,7 +49,7 @@ pub fn build_event_poll_request(instance: &BpmnInstanceState) -> Result<EventPol
 /// Returns [`BpmnEngineError::MissingWaitRegistration`] when the instance does
 /// not currently hold a wait registration, or [`BpmnEngineError`] when the
 /// current wait/runtime shape exceeds the bounded single-wait slice.
-pub fn apply_event_poll_outcome(
+pub(crate) fn apply_event_poll_outcome_impl(
     package: &BpmnPackage,
     instance: &mut BpmnInstanceState,
     outcome: impl Borrow<EventPollOutcome>,
@@ -96,15 +67,17 @@ pub fn apply_event_poll_outcome(
     merge_output_data(&mut instance.variables, &outcome.data);
 
     if let Some(blocking_node_index) = wait.blocking_node_index {
-        let Some(blocking_token_index) = active_token_index(instance, blocking_node_index) else {
+        let Some(blocking_token_index) =
+            interrupting_boundary_token_index(instance, blocking_node_index)
+        else {
             return Err(BpmnEngineError::UnsupportedOperation {
                 operation: "apply_event_poll_outcome_boundary_wait_missing_token",
             });
         };
-        let blocking_token_id = instance.active_tokens[blocking_token_index].token_id;
 
         clear_standard_loop_state(instance, blocking_node_index);
         clear_sequential_multi_instance_state(instance, blocking_node_index);
+        clear_parallel_multi_instance_state(instance, blocking_node_index);
         set_node_status(instance, blocking_node_index, NodeRuntimeStatus::Cancelled);
         set_node_status(instance, wait.node_index, NodeRuntimeStatus::Completed);
         instance.waits.retain(|candidate| {
@@ -113,7 +86,7 @@ pub fn apply_event_poll_outcome(
         });
         instance
             .pending_host_work
-            .retain(|pending| pending.token_id != blocking_token_id);
+            .retain(|pending| pending.node_index != blocking_node_index);
         if instance.waits.is_empty() {
             instance.suspend_reason = None;
         }
@@ -280,4 +253,23 @@ fn active_token_index(instance: &BpmnInstanceState, node_index: BpmnNodeIndex) -
         .active_tokens
         .iter()
         .position(|token| token.node_index == node_index)
+}
+
+fn interrupting_boundary_token_index(
+    instance: &mut BpmnInstanceState,
+    blocking_node_index: BpmnNodeIndex,
+) -> Option<usize> {
+    let parallel_token_ids = parallel_multi_instance_token_ids(instance, blocking_node_index);
+    if parallel_token_ids.is_empty() {
+        return active_token_index(instance, blocking_node_index);
+    }
+
+    let winning_token_id = parallel_token_ids.into_iter().min()?;
+    instance.active_tokens.retain(|token| {
+        token.token_id == winning_token_id || token.node_index != blocking_node_index
+    });
+    instance
+        .active_tokens
+        .iter()
+        .position(|token| token.token_id == winning_token_id)
 }

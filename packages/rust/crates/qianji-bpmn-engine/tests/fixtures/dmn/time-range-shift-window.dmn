@@ -1,0 +1,42 @@
+<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/"
+  id="Definitions_shift_window"
+  name="Shift Window DRD"
+  namespace="http://example.com/dmn">
+  <decision id="shift-window" name="Shift Window">
+    <decisionTable id="decision_table_shift_window" hitPolicy="UNIQUE">
+      <input id="input_shift_time" label="shift_time">
+        <inputExpression id="input_expression_shift_time" typeRef="time">
+          <text>shift_time</text>
+        </inputExpression>
+      </input>
+      <output id="output_window" name="window" label="window" typeRef="string" />
+      <rule id="rule_morning_window">
+        <description>Chained morning range</description>
+        <inputEntry id="input_entry_morning_window">
+          <text>time("09:00:00") &lt;= ? &lt; time("12:00:00")</text>
+        </inputEntry>
+        <outputEntry id="output_entry_morning_window">
+          <text>"morning-window"</text>
+        </outputEntry>
+      </rule>
+      <rule id="rule_afternoon_window">
+        <description>Bracket afternoon range</description>
+        <inputEntry id="input_entry_afternoon_window">
+          <text>[time("13:00:00")..time("15:00:00")]</text>
+        </inputEntry>
+        <outputEntry id="output_entry_afternoon_window">
+          <text>"afternoon-window"</text>
+        </outputEntry>
+      </rule>
+      <rule id="rule_outside_window">
+        <description>Fallback</description>
+        <inputEntry id="input_entry_outside_window">
+          <text>-</text>
+        </inputEntry>
+        <outputEntry id="output_entry_outside_window">
+          <text>"outside-window"</text>
+        </outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+</definitions>

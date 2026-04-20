@@ -22,7 +22,7 @@ async fn spawn_mock_server_with_discover_counter(
             vec![tool_definition(
                 "skill.discover",
                 "Mock discover tool for cache verification",
-                serde_json::json!({
+                &serde_json::json!({
                     "type": "object",
                     "properties": {
                         "intent": { "type": "string" },

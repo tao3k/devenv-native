@@ -37,7 +37,6 @@ jobs:
           - xiuxian-tags-release
           - xiuxian-testing-release
           - xiuxian-tokenizer-release
-          - xiuxian-tui-release
           - xiuxian-types-release
           - xiuxian-vector-release
           - xiuxian-wendao-release

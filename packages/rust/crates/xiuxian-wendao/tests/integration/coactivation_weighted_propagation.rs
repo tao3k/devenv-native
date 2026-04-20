@@ -142,8 +142,7 @@ fn clear_prefix(prefix: &str) -> Result<(), String> {
 fn unique_prefix() -> String {
     let nanos = SystemTime::now()
         .duration_since(UNIX_EPOCH)
-        .map(|value| value.as_nanos())
-        .unwrap_or(0);
+        .map_or(0, |value| value.as_nanos());
     format!("omni:test:coactivation-weighted:{nanos}")
 }
 

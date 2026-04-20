@@ -96,6 +96,10 @@ fn checkpoint_codec_decodes_without_process_index_field() {
     legacy_json["state"]
         .as_object_mut()
         .must("state payload should be an object")
+        .remove("parallel_multi_instances");
+    legacy_json["state"]
+        .as_object_mut()
+        .must("state payload should be an object")
         .remove("event_competition");
 
     let decoded = decode_checkpoint_json(

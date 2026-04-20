@@ -1,0 +1,51 @@
+<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/"
+  id="Definitions_business_hours"
+  name="Business Hours DRD"
+  namespace="http://example.com/dmn">
+  <decision id="business-hours" name="Business Hours">
+    <decisionTable id="decision_table_business_hours" hitPolicy="UNIQUE">
+      <input id="input_check_time" label="check_time">
+        <inputExpression id="input_expression_check_time" typeRef="time">
+          <text>check_time</text>
+        </inputExpression>
+      </input>
+      <output id="output_state" name="state" label="state" typeRef="string" />
+      <rule id="rule_opening_bell">
+        <description>Opening bell exact match</description>
+        <inputEntry id="input_entry_opening_bell">
+          <text>time("09:00:00")</text>
+        </inputEntry>
+        <outputEntry id="output_entry_opening_bell">
+          <text>"opening-bell"</text>
+        </outputEntry>
+      </rule>
+      <rule id="rule_before_open">
+        <description>Before opening</description>
+        <inputEntry id="input_entry_before_open">
+          <text>&lt; time("09:00:00")</text>
+        </inputEntry>
+        <outputEntry id="output_entry_before_open">
+          <text>"before-open"</text>
+        </outputEntry>
+      </rule>
+      <rule id="rule_after_close">
+        <description>At or after close</description>
+        <inputEntry id="input_entry_after_close">
+          <text>&gt;= time("17:00:00")</text>
+        </inputEntry>
+        <outputEntry id="output_entry_after_close">
+          <text>"after-close"</text>
+        </outputEntry>
+      </rule>
+      <rule id="rule_business_hours">
+        <description>Fallback during business hours</description>
+        <inputEntry id="input_entry_business_hours">
+          <text>-</text>
+        </inputEntry>
+        <outputEntry id="output_entry_business_hours">
+          <text>"business-hours"</text>
+        </outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+</definitions>

@@ -98,7 +98,7 @@ pub(crate) fn permissive_tool_definition(
     tool_definition(
         name,
         description,
-        json!({
+        &json!({
             "type": "object",
             "additionalProperties": true
         }),
@@ -108,7 +108,7 @@ pub(crate) fn permissive_tool_definition(
 pub(crate) fn tool_definition(
     name: &str,
     description: &str,
-    input_schema: Value,
+    input_schema: &Value,
 ) -> ToolRuntimeToolDefinition {
     ToolRuntimeToolDefinition {
         name: name.to_string(),
@@ -127,8 +127,10 @@ pub(crate) fn text_result(text: impl Into<String>) -> ToolRuntimeCallResult {
 pub(crate) async fn reserve_local_addr() -> std::net::SocketAddr {
     let probe = tokio::net::TcpListener::bind("127.0.0.1:0")
         .await
-        .expect("reserve local addr");
-    let addr = probe.local_addr().expect("read reserved local addr");
+        .unwrap_or_else(|error| panic!("reserve local addr: {error}"));
+    let addr = probe
+        .local_addr()
+        .unwrap_or_else(|error| panic!("read reserved local addr: {error}"));
     drop(probe);
     addr
 }
@@ -143,7 +145,7 @@ pub(crate) async fn spawn_mock_tool_runtime(
         .with_state(Arc::new(config));
     let listener = tokio::net::TcpListener::bind(addr)
         .await
-        .expect("bind mock tool listener");
+        .unwrap_or_else(|error| panic!("bind mock tool listener: {error}"));
     tokio::spawn(async move {
         let _ = axum::serve(listener, app).await;
     })

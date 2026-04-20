@@ -39,7 +39,7 @@ fn dmn_parser_rejects_unsupported_unary_tests() {
         error,
         BpmnEngineError::UnsupportedDmnUnaryTest {
             source_id: "invalid-unsupported-unary-test.dmn".to_string(),
-            expression: "time(\"09:00:00\")".to_string(),
+            expression: "date and time(\"2026-04-20T09:00:00Z\")".to_string(),
         }
     );
 }

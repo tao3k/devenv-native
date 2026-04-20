@@ -213,7 +213,9 @@ The next runtime slice should prove at least these cases.
 ### Case 5. Keep Multi-Instance Separate
 
 1. gateway concurrency and multi-instance concurrency are not the same family
-2. parallel multi-instance remains out of scope for this slice
+2. parallel multi-instance stayed out of scope for the original frontier
+   slice, and should continue to be modeled as a separate owner-state family
+   rather than as a gateway-special case
 3. this slice should not overload gateway-frontier logic with full
    multi-instance expansion semantics
 
@@ -237,8 +239,9 @@ The next bounded slice after that is now partially landed:
 2. deterministic batch execution remained the baseline
 3. execution now widens into one bounded conflict-aware merge for same-node
    parallel-join arrivals
-4. adapter work, DMN widening, inclusive gateways, and parallel multi-instance
-   remained out of scope
+4. adapter work, DMN widening, and inclusive gateways remained out of scope
+5. bounded parallel multi-instance later landed as a separate owner-state
+   slice on top of the same deterministic batch-execution baseline
 
 The next bounded follow-up after the landed parallel-join merge should be:
 

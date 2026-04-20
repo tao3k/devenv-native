@@ -1,0 +1,42 @@
+<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/"
+  id="Definitions_release_window"
+  name="Release Window DRD"
+  namespace="http://example.com/dmn">
+  <decision id="release-window" name="Release Window">
+    <decisionTable id="decision_table_release_window" hitPolicy="UNIQUE">
+      <input id="input_release_timestamp" label="release_timestamp">
+        <inputExpression id="input_expression_release_timestamp" typeRef="dateTime">
+          <text>release_timestamp</text>
+        </inputExpression>
+      </input>
+      <output id="output_phase" name="phase" label="phase" typeRef="string" />
+      <rule id="rule_launch_minute">
+        <description>Exact launch minute</description>
+        <inputEntry id="input_entry_launch_minute">
+          <text>date and time("2026-04-20T09:00:00")</text>
+        </inputEntry>
+        <outputEntry id="output_entry_launch_minute">
+          <text>"launch-minute"</text>
+        </outputEntry>
+      </rule>
+      <rule id="rule_day_one">
+        <description>Before the first day closes</description>
+        <inputEntry id="input_entry_day_one">
+          <text>&lt; date and time("2026-04-21T00:00:00")</text>
+        </inputEntry>
+        <outputEntry id="output_entry_day_one">
+          <text>"day-one"</text>
+        </outputEntry>
+      </rule>
+      <rule id="rule_post_day_one">
+        <description>After the first day cutoff</description>
+        <inputEntry id="input_entry_post_day_one">
+          <text>&gt;= date and time("2026-04-21T00:00:00")</text>
+        </inputEntry>
+        <outputEntry id="output_entry_post_day_one">
+          <text>"post-day-one"</text>
+        </outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+</definitions>

@@ -8,11 +8,7 @@ on:
 
 jobs:
   check-format:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest]
+    runs-on: ubuntu-latest
     defaults:
       run:
         shell: bash
@@ -45,11 +41,7 @@ jobs:
         run: scripts/rust/cargo_exec.sh fmt --all --check
 
   lint:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest]
+    runs-on: ubuntu-latest
     timeout-minutes: 60
     defaults:
       run:
@@ -81,8 +73,7 @@ jobs:
           fi
           echo "channel=${channel}" >> "$GITHUB_OUTPUT"
 
-      - name: Install Linux build dependencies
-        if: ${{ runner.os == 'Linux' }}
+      - name: Install build dependencies
         run: |
           set -euo pipefail
           sudo apt-get update
@@ -93,15 +84,6 @@ jobs:
             pkg-config \
             protobuf-compiler \
             python3-dev
-
-      - name: Install macOS build dependencies
-        if: ${{ runner.os == 'macOS' }}
-        run: |
-          set -euo pipefail
-          for formula in protobuf pkg-config cmake libxml2; do
-            brew list "${formula}" >/dev/null 2>&1 || brew install "${formula}"
-          done
-          echo "$(brew --prefix libxml2)/bin" >> "$GITHUB_PATH"
 
       - name: Export Rust build environment
         run: |
@@ -118,11 +100,6 @@ jobs:
             protoc_root="$(dirname "$(dirname "${protoc_path}")")"
             if [[ -d "${protoc_root}/include/google/protobuf" ]]; then
               proto_include="${protoc_root}/include"
-            elif command -v brew >/dev/null 2>&1; then
-              brew_prefix="$(brew --prefix protobuf 2>/dev/null || true)"
-              if [[ -n "${brew_prefix}" && -d "${brew_prefix}/include/google/protobuf" ]]; then
-                proto_include="${brew_prefix}/include"
-              fi
             fi
           fi
           if [[ -z "${proto_include}" ]]; then

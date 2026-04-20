@@ -1,10 +1,20 @@
 //! BPMN validation for the bounded supported subset.
 
-use super::import::RawPackageDocument;
-use super::import::RawRepeatSpec;
+use super::import::{
+    NestedShellKind, RawPackageDocument, RawProcess, RawProcessScope, RawRepeatSpec,
+    RawSubProcessKind,
+};
 use crate::error::{BpmnEngineError, Result};
-use crate::ir::{BpmnEventKind, BpmnGatewayKind, BpmnNodeKind};
+use crate::ir_event_api::BpmnEventKind;
+use crate::ir_node_api::{BpmnGatewayKind, BpmnNodeKind};
+use crate::repeat_condition::is_supported_multi_instance_completion_condition;
 use std::collections::{HashMap, HashSet};
+
+#[derive(Debug, Default)]
+struct BoundaryAttachmentUsage {
+    total_count: u32,
+    cancel_count: u32,
+}
 
 pub(crate) fn validate_raw_package(raw: &RawPackageDocument) -> Result<()> {
     ensure_process_definitions(raw)?;
@@ -13,14 +23,19 @@ pub(crate) fn validate_raw_package(raw: &RawPackageDocument) -> Result<()> {
         .iter()
         .map(|process| process.process_id.as_str())
         .collect::<HashSet<_>>();
+    let process_by_id = raw
+        .processes
+        .iter()
+        .map(|process| (process.process_id.as_str(), process))
+        .collect::<HashMap<_, _>>();
     let mut seen_process_ids = HashSet::new();
     for process in &raw.processes {
         ensure_unique_process_id(raw, process, &mut seen_process_ids)?;
         let node_ids = collect_node_ids(process)?;
-        validate_process_topology(process, &all_process_ids, &node_ids)?;
+        validate_process_topology(process, &all_process_ids, &node_ids, &process_by_id)?;
         validate_sequence_flows(process, &node_ids)?;
         validate_standard_loops(process)?;
-        validate_sequential_multi_instances(process)?;
+        validate_multi_instances(process)?;
         validate_event_based_gateways(process, &node_ids)?;
     }
 
@@ -55,7 +70,7 @@ fn ensure_unique_process_id<'a>(
 fn collect_node_ids(process: &super::import::RawProcess) -> Result<HashSet<&str>> {
     let mut seen_node_ids = HashSet::new();
     let mut node_ids = HashSet::new();
-    let mut has_start_event = false;
+    let mut start_event_count = 0usize;
     let mut has_end_event = false;
 
     for node in &process.nodes {
@@ -66,32 +81,79 @@ fn collect_node_ids(process: &super::import::RawProcess) -> Result<HashSet<&str>
             });
         }
         node_ids.insert(node.bpmn_id.as_str());
-        has_start_event |= matches!(node.kind, BpmnNodeKind::StartEvent);
+        if matches!(node.kind, BpmnNodeKind::StartEvent) {
+            start_event_count += 1;
+        }
         has_end_event |= matches!(node.kind, BpmnNodeKind::EndEvent);
     }
 
-    if !has_start_event {
-        return Err(BpmnEngineError::MissingRequiredProcessElement {
-            process_id: process.process_id.clone(),
-            element: "start_event",
-        });
+    match &process.scope {
+        RawProcessScope::TopLevel => {
+            if start_event_count == 0 {
+                return Err(BpmnEngineError::MissingRequiredProcessElement {
+                    process_id: process.process_id.clone(),
+                    element: "start_event",
+                });
+            }
+        }
+        RawProcessScope::NestedShell {
+            owner_process_id,
+            owner_node_id,
+            kind,
+        } => {
+            if start_event_count != 1 {
+                return Err(BpmnEngineError::UnsupportedSubProcessConfiguration {
+                    process_id: owner_process_id.clone(),
+                    node_id: owner_node_id.clone(),
+                    detail: nested_shell_start_event_detail(*kind),
+                });
+            }
+        }
     }
     if !has_end_event {
-        return Err(BpmnEngineError::MissingRequiredProcessElement {
-            process_id: process.process_id.clone(),
-            element: "end_event",
+        return Err(match &process.scope {
+            RawProcessScope::TopLevel => BpmnEngineError::MissingRequiredProcessElement {
+                process_id: process.process_id.clone(),
+                element: "end_event",
+            },
+            RawProcessScope::NestedShell {
+                owner_process_id,
+                owner_node_id,
+                kind,
+            } => BpmnEngineError::UnsupportedSubProcessConfiguration {
+                process_id: owner_process_id.clone(),
+                node_id: owner_node_id.clone(),
+                detail: nested_shell_missing_end_detail(*kind),
+            },
         });
     }
 
     Ok(node_ids)
 }
 
+fn nested_shell_start_event_detail(kind: NestedShellKind) -> &'static str {
+    match kind {
+        NestedShellKind::EmbeddedSubProcess => "embedded_subprocess_start_event_count",
+        NestedShellKind::Transaction => "transaction_start_event_count",
+    }
+}
+
+fn nested_shell_missing_end_detail(kind: NestedShellKind) -> &'static str {
+    match kind {
+        NestedShellKind::EmbeddedSubProcess => "embedded_subprocess_missing_end_event",
+        NestedShellKind::Transaction => "transaction_missing_end_event",
+    }
+}
+
 fn validate_process_topology(
-    process: &super::import::RawProcess,
+    process: &RawProcess,
     all_process_ids: &HashSet<&str>,
     node_ids: &HashSet<&str>,
+    process_by_id: &HashMap<&str, &RawProcess>,
 ) -> Result<()> {
-    let mut boundary_attachments = HashSet::new();
+    let mut boundary_attachments = HashMap::new();
+    validate_transaction_cancel_path(process, process_by_id)?;
+    validate_transaction_error_path(process, process_by_id)?;
     for node in &process.nodes {
         validate_node_event_shape(process, node)?;
         if node.kind == BpmnNodeKind::SubProcess {
@@ -102,6 +164,144 @@ fn validate_process_topology(
         }
     }
     Ok(())
+}
+
+fn validate_transaction_cancel_path(
+    process: &RawProcess,
+    process_by_id: &HashMap<&str, &RawProcess>,
+) -> Result<()> {
+    let cancel_end_nodes = process
+        .nodes
+        .iter()
+        .filter(|node| {
+            node.kind == BpmnNodeKind::EndEvent
+                && node.event.as_ref().map(|event| event.kind.clone())
+                    == Some(BpmnEventKind::Cancel)
+        })
+        .collect::<Vec<_>>();
+    if cancel_end_nodes.is_empty() {
+        return Ok(());
+    }
+
+    let RawProcessScope::NestedShell {
+        owner_process_id,
+        owner_node_id,
+        kind: NestedShellKind::Transaction,
+    } = &process.scope
+    else {
+        return Err(BpmnEngineError::UnsupportedTransactionConfiguration {
+            process_id: process.process_id.clone(),
+            node_id: cancel_end_nodes[0].bpmn_id.clone(),
+            detail: "cancel_end_requires_transaction_shell",
+        });
+    };
+
+    if cancel_end_nodes.len() > 1 {
+        return Err(BpmnEngineError::UnsupportedTransactionConfiguration {
+            process_id: owner_process_id.clone(),
+            node_id: owner_node_id.clone(),
+            detail: "multiple_transaction_cancel_end_events",
+        });
+    }
+
+    let Some(parent_process) = process_by_id.get(owner_process_id.as_str()).copied() else {
+        return Err(BpmnEngineError::UnsupportedOperation {
+            operation: "validate_transaction_cancel_missing_parent_process",
+        });
+    };
+
+    let has_matching_boundary = parent_process.nodes.iter().any(|node| {
+        node.kind == BpmnNodeKind::BoundaryEvent
+            && node.attached_to_ref.as_deref() == Some(owner_node_id.as_str())
+            && node.cancel_activity
+            && node.event.as_ref().map(|event| event.kind.clone()) == Some(BpmnEventKind::Cancel)
+    });
+    if has_matching_boundary {
+        return Ok(());
+    }
+
+    Err(BpmnEngineError::UnsupportedTransactionConfiguration {
+        process_id: owner_process_id.clone(),
+        node_id: owner_node_id.clone(),
+        detail: "transaction_cancel_missing_boundary",
+    })
+}
+
+fn validate_transaction_error_path(
+    process: &RawProcess,
+    process_by_id: &HashMap<&str, &RawProcess>,
+) -> Result<()> {
+    let error_end_nodes = process
+        .nodes
+        .iter()
+        .filter(|node| {
+            node.kind == BpmnNodeKind::EndEvent
+                && node.event.as_ref().map(|event| event.kind.clone()) == Some(BpmnEventKind::Error)
+        })
+        .collect::<Vec<_>>();
+    if error_end_nodes.is_empty() {
+        return Ok(());
+    }
+
+    let RawProcessScope::NestedShell {
+        owner_process_id,
+        owner_node_id,
+        kind: NestedShellKind::Transaction,
+    } = &process.scope
+    else {
+        return Err(BpmnEngineError::UnsupportedTransactionConfiguration {
+            process_id: process.process_id.clone(),
+            node_id: error_end_nodes[0].bpmn_id.clone(),
+            detail: "error_end_requires_transaction_shell",
+        });
+    };
+
+    if error_end_nodes.len() > 1 {
+        return Err(BpmnEngineError::UnsupportedTransactionConfiguration {
+            process_id: owner_process_id.clone(),
+            node_id: owner_node_id.clone(),
+            detail: "multiple_transaction_error_end_events",
+        });
+    }
+
+    let thrown_reference_id = error_end_nodes[0]
+        .event
+        .as_ref()
+        .and_then(|event| event.reference_id.as_deref());
+    let Some(parent_process) = process_by_id.get(owner_process_id.as_str()).copied() else {
+        return Err(BpmnEngineError::UnsupportedOperation {
+            operation: "validate_transaction_error_missing_parent_process",
+        });
+    };
+
+    let has_matching_boundary = parent_process.nodes.iter().any(|node| {
+        node.kind == BpmnNodeKind::BoundaryEvent
+            && node.attached_to_ref.as_deref() == Some(owner_node_id.as_str())
+            && node.cancel_activity
+            && node.event.as_ref().is_some_and(|event| {
+                event.kind == BpmnEventKind::Error
+                    && error_boundary_matches(thrown_reference_id, event.reference_id.as_deref())
+            })
+    });
+    if has_matching_boundary {
+        return Ok(());
+    }
+
+    Err(BpmnEngineError::UnsupportedTransactionConfiguration {
+        process_id: owner_process_id.clone(),
+        node_id: owner_node_id.clone(),
+        detail: "transaction_error_missing_boundary",
+    })
+}
+
+fn error_boundary_matches(
+    thrown_reference_id: Option<&str>,
+    boundary_reference_id: Option<&str>,
+) -> bool {
+    match boundary_reference_id {
+        None => true,
+        Some(boundary_reference_id) => thrown_reference_id == Some(boundary_reference_id),
+    }
 }
 
 fn validate_node_event_shape(
@@ -160,10 +360,10 @@ fn validate_called_process_reference(
 }
 
 fn validate_boundary_event(
-    process: &super::import::RawProcess,
+    process: &RawProcess,
     node: &super::import::RawNode,
     node_ids: &HashSet<&str>,
-    boundary_attachments: &mut HashSet<String>,
+    boundary_attachments: &mut HashMap<String, BoundaryAttachmentUsage>,
 ) -> Result<()> {
     let attached_to_ref = node.attached_to_ref.as_deref().ok_or_else(|| {
         BpmnEngineError::MissingRequiredNodeElement {
@@ -178,13 +378,6 @@ fn validate_boundary_event(
             process_id: process.process_id.clone(),
             node_id: node.bpmn_id.clone(),
             attached_to_node_id: attached_to_ref.to_string(),
-        });
-    }
-    if !boundary_attachments.insert(attached_to_ref.to_string()) {
-        return Err(BpmnEngineError::UnsupportedBoundaryEventConfiguration {
-            process_id: process.process_id.clone(),
-            node_id: node.bpmn_id.clone(),
-            detail: "multiple_boundary_events_for_attached_node",
         });
     }
     if !node.cancel_activity {
@@ -204,6 +397,54 @@ fn validate_boundary_event(
             node_id: node.bpmn_id.clone(),
             attached_to_node_id: attached_to_ref.to_string(),
         })?;
+    let event_kind = node.event.as_ref().map(|event| &event.kind);
+    let usage = boundary_attachments
+        .entry(attached_to_ref.to_string())
+        .or_default();
+    let is_transaction_shell = attached_node.kind == BpmnNodeKind::SubProcess
+        && attached_node.subprocess_kind == Some(RawSubProcessKind::Transaction);
+
+    if is_transaction_shell {
+        usage.total_count += 1;
+        if event_kind == Some(&BpmnEventKind::Cancel) {
+            if usage.cancel_count > 0 {
+                return Err(BpmnEngineError::UnsupportedBoundaryEventConfiguration {
+                    process_id: process.process_id.clone(),
+                    node_id: node.bpmn_id.clone(),
+                    detail: "multiple_transaction_cancel_boundaries",
+                });
+            }
+            usage.cancel_count += 1;
+            return Ok(());
+        }
+        if event_kind == Some(&BpmnEventKind::Error) {
+            return Ok(());
+        }
+    } else {
+        if usage.total_count > 0 {
+            return Err(BpmnEngineError::UnsupportedBoundaryEventConfiguration {
+                process_id: process.process_id.clone(),
+                node_id: node.bpmn_id.clone(),
+                detail: "multiple_boundary_events_for_attached_node",
+            });
+        }
+        usage.total_count += 1;
+    }
+
+    if event_kind == Some(&BpmnEventKind::Cancel) {
+        return Err(BpmnEngineError::UnsupportedBoundaryEventConfiguration {
+            process_id: process.process_id.clone(),
+            node_id: node.bpmn_id.clone(),
+            detail: "cancel_boundary_requires_transaction_shell",
+        });
+    }
+    if event_kind == Some(&BpmnEventKind::Error) {
+        return Err(BpmnEngineError::UnsupportedBoundaryEventConfiguration {
+            process_id: process.process_id.clone(),
+            node_id: node.bpmn_id.clone(),
+            detail: "error_boundary_requires_transaction_shell",
+        });
+    }
     if !matches!(
         attached_node.kind,
         BpmnNodeKind::ServiceTask
@@ -217,7 +458,7 @@ fn validate_boundary_event(
             detail: "unsupported_boundary_attachment_kind",
         });
     }
-    if node.event.as_ref().map(|event| &event.kind) != Some(&BpmnEventKind::Timer) {
+    if event_kind != Some(&BpmnEventKind::Timer) {
         return Err(BpmnEngineError::UnsupportedBoundaryEventConfiguration {
             process_id: process.process_id.clone(),
             node_id: node.bpmn_id.clone(),
@@ -315,9 +556,9 @@ fn validate_standard_loops(process: &super::import::RawProcess) -> Result<()> {
     Ok(())
 }
 
-fn validate_sequential_multi_instances(process: &super::import::RawProcess) -> Result<()> {
+fn validate_multi_instances(process: &super::import::RawProcess) -> Result<()> {
     for node in &process.nodes {
-        let Some(RawRepeatSpec::SequentialMultiInstance(multi_instance_spec)) = &node.repeat else {
+        let Some(shape) = multi_instance_validation_shape(node) else {
             continue;
         };
 
@@ -335,15 +576,116 @@ fn validate_sequential_multi_instances(process: &super::import::RawProcess) -> R
             });
         }
 
-        if multi_instance_spec.loop_cardinality.is_none() {
+        validate_multi_instance_expansion(process, node, &shape)?;
+
+        if let Some(completion_condition) = shape.completion_condition
+            && !is_supported_multi_instance_completion_condition(completion_condition)
+        {
             return Err(BpmnEngineError::UnsupportedLoopConfiguration {
                 process_id: process.process_id.clone(),
                 node_id: node.bpmn_id.clone(),
-                detail: "missing_loop_cardinality",
+                detail: "unsupported_multi_instance_completion_condition_expression",
             });
         }
     }
 
+    Ok(())
+}
+
+struct MultiInstanceValidationShape<'a> {
+    loop_cardinality: Option<u32>,
+    loop_data_input_ref: Option<&'a str>,
+    input_data_item: Option<&'a str>,
+    loop_data_output_ref: Option<&'a str>,
+    output_data_item: Option<&'a str>,
+    completion_condition: Option<&'a str>,
+}
+
+fn multi_instance_validation_shape(
+    node: &super::import::RawNode,
+) -> Option<MultiInstanceValidationShape<'_>> {
+    match &node.repeat {
+        Some(RawRepeatSpec::SequentialMultiInstance(multi_instance_spec)) => {
+            Some(MultiInstanceValidationShape {
+                loop_cardinality: multi_instance_spec.loop_cardinality,
+                loop_data_input_ref: multi_instance_spec.loop_data_input_ref.as_deref(),
+                input_data_item: multi_instance_spec.input_data_item.as_deref(),
+                loop_data_output_ref: multi_instance_spec.loop_data_output_ref.as_deref(),
+                output_data_item: multi_instance_spec.output_data_item.as_deref(),
+                completion_condition: multi_instance_spec.completion_condition.as_deref(),
+            })
+        }
+        Some(RawRepeatSpec::ParallelMultiInstance(multi_instance_spec)) => {
+            Some(MultiInstanceValidationShape {
+                loop_cardinality: multi_instance_spec.loop_cardinality,
+                loop_data_input_ref: multi_instance_spec.loop_data_input_ref.as_deref(),
+                input_data_item: multi_instance_spec.input_data_item.as_deref(),
+                loop_data_output_ref: multi_instance_spec.loop_data_output_ref.as_deref(),
+                output_data_item: multi_instance_spec.output_data_item.as_deref(),
+                completion_condition: multi_instance_spec.completion_condition.as_deref(),
+            })
+        }
+        _ => None,
+    }
+}
+
+fn validate_multi_instance_expansion(
+    process: &super::import::RawProcess,
+    node: &super::import::RawNode,
+    shape: &MultiInstanceValidationShape<'_>,
+) -> Result<()> {
+    if shape.loop_cardinality.is_some() && shape.loop_data_input_ref.is_some() {
+        return Err(BpmnEngineError::UnsupportedLoopConfiguration {
+            process_id: process.process_id.clone(),
+            node_id: node.bpmn_id.clone(),
+            detail: "mixed_multi_instance_expansion",
+        });
+    }
+    if shape.loop_cardinality.is_none() && shape.loop_data_input_ref.is_none() {
+        return Err(BpmnEngineError::UnsupportedLoopConfiguration {
+            process_id: process.process_id.clone(),
+            node_id: node.bpmn_id.clone(),
+            detail: "missing_loop_cardinality_or_data_input",
+        });
+    }
+    if shape.loop_data_input_ref.is_some() && shape.input_data_item.is_none() {
+        return Err(BpmnEngineError::UnsupportedLoopConfiguration {
+            process_id: process.process_id.clone(),
+            node_id: node.bpmn_id.clone(),
+            detail: "missing_input_data_item",
+        });
+    }
+    if shape.loop_data_input_ref.is_none() && shape.input_data_item.is_some() {
+        return Err(BpmnEngineError::UnsupportedLoopConfiguration {
+            process_id: process.process_id.clone(),
+            node_id: node.bpmn_id.clone(),
+            detail: "missing_loop_data_input_ref",
+        });
+    }
+    if shape.loop_data_output_ref.is_some() && shape.output_data_item.is_none() {
+        return Err(BpmnEngineError::UnsupportedLoopConfiguration {
+            process_id: process.process_id.clone(),
+            node_id: node.bpmn_id.clone(),
+            detail: "missing_output_data_item",
+        });
+    }
+    if shape.loop_data_output_ref.is_none() && shape.output_data_item.is_some() {
+        return Err(BpmnEngineError::UnsupportedLoopConfiguration {
+            process_id: process.process_id.clone(),
+            node_id: node.bpmn_id.clone(),
+            detail: "missing_loop_data_output_ref",
+        });
+    }
+    if let (Some(loop_data_input_ref), Some(loop_data_output_ref)) =
+        (shape.loop_data_input_ref, shape.loop_data_output_ref)
+        && loop_data_input_ref == loop_data_output_ref
+    {
+        return Err(BpmnEngineError::UnsupportedLoopConfiguration {
+            process_id: process.process_id.clone(),
+            node_id: node.bpmn_id.clone(),
+            detail: "unsupported_multi_instance_in_place_output",
+        });
+    }
     Ok(())
 }
 
@@ -376,7 +718,7 @@ fn validate_event_based_gateways(
         }
 
         for target_id in outgoing_targets {
-            if !node_ids.contains(target_id) {
+            if !node_ids.contains::<str>(target_id) {
                 continue;
             }
 
@@ -431,7 +773,8 @@ fn detect_recursive_call_activity(raw: &RawPackageDocument) -> Result<()> {
                 .filter_map(|node| {
                     node.called_process_ref
                         .as_ref()
-                        .map(|called_process_id| (called_process_id.clone(), node.bpmn_id.clone()))
+                        .cloned()
+                        .map(|called_process_id| (called_process_id, node.bpmn_id.clone()))
                 })
                 .collect::<Vec<_>>();
             (process.process_id.clone(), edges)

@@ -8,6 +8,7 @@
     <bpmn:serviceTask id="review">
       <bpmn:multiInstanceLoopCharacteristics isSequential="false">
         <bpmn:loopCardinality>3</bpmn:loopCardinality>
+        <bpmn:completionCondition>approved or escalated</bpmn:completionCondition>
       </bpmn:multiInstanceLoopCharacteristics>
     </bpmn:serviceTask>
     <bpmn:endEvent id="end" />

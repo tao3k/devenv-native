@@ -64,7 +64,7 @@ pub(super) fn render_bpmn_run_output(
 
     if !render_context.resolved_dmn_paths.is_empty() {
         let _ = writeln!(rendered, "\n## DMN Sources");
-        for path in render_context.resolved_dmn_paths.iter() {
+        for path in render_context.resolved_dmn_paths {
             let _ = writeln!(rendered, "- {}", path.display());
         }
     }

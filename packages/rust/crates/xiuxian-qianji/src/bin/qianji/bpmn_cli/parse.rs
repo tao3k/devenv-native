@@ -97,7 +97,7 @@ fn parse_bpmn_run_command(args: &[String]) -> io::Result<BpmnRunCliCommand> {
         }
         #[cfg(not(feature = "sqlite"))]
         {
-            parse_bpmn_cli_checkpoint_backend(checkpoint_runtime)?
+            parse_bpmn_cli_checkpoint_backend(checkpoint_runtime)
         }
     };
 
@@ -138,12 +138,10 @@ fn parse_bpmn_cli_checkpoint_backend(
 }
 
 #[cfg(not(feature = "sqlite"))]
-fn parse_bpmn_cli_checkpoint_backend(
-    checkpoint_runtime: bool,
-) -> io::Result<Option<BpmnCliCheckpointBackend>> {
-    Ok(if checkpoint_runtime {
+fn parse_bpmn_cli_checkpoint_backend(checkpoint_runtime: bool) -> Option<BpmnCliCheckpointBackend> {
+    if checkpoint_runtime {
         Some(BpmnCliCheckpointBackend::RuntimeValkey)
     } else {
         None
-    })
+    }
 }

@@ -17,81 +17,162 @@
 //! `intermediateCatchEvent` waits, plus `intermediateCatchEvent` waits backed
 //! by `messageEventDefinition`, `signalEventDefinition`, and snapshot-style
 //! `timerEventDefinition`, plus one interrupting timer `boundaryEvent` on one
-//! host-blocking task, plus one bounded `callActivity` that targets another
-//! process in the same BPMN package, plus bounded `standardLoopCharacteristics`
-//! on one serviceTask, userTask, manualTask, or businessRuleTask, plus bounded
-//! sequential `multiInstanceLoopCharacteristics isSequential="true"` with
-//! integer `loopCardinality` on those same host-blocking task kinds are
-//! supported. The bounded DMN evaluator also supports wildcard matching,
+//! host-blocking task, plus one bounded embedded `subProcess` body with
+//! exactly one nested `startEvent` and at least one nested `endEvent`, plus
+//! one bounded `<transaction>` shell with exactly one nested `startEvent` and
+//! at least one nested `endEvent`, plus one bounded transaction cancel path
+//! with one interrupting cancel `boundaryEvent` attached to that
+//! `<transaction>` shell and one nested cancel end that restores the parent
+//! frame, rolls back transaction-local variable mutations, and routes through
+//! the parent cancel boundary, plus one bounded transaction owner that may
+//! expose one interrupting cancel `boundaryEvent` plus one or more
+//! interrupting error `boundaryEvent` nodes, where one nested error end may
+//! restore the parent frame, preserve transaction-local variable mutations,
+//! and route through every matching parent error boundary including one
+//! catch-all boundary, while normal completion and cancel routing cancel the
+//! non-selected sibling boundaries, plus one bounded `callActivity` that
+//! targets another process in the same BPMN package, plus bounded
+//! `standardLoopCharacteristics` on one serviceTask,
+//! userTask, manualTask, or businessRuleTask, plus bounded
+//! sequential `multiInstanceLoopCharacteristics isSequential="true"` plus
+//! bounded parallel `multiInstanceLoopCharacteristics` with omitted or
+//! `isSequential="false"` and integer `loopCardinality` on those same
+//! host-blocking task kinds, plus one bounded multi-instance
+//! `completionCondition` subset over simple boolean variable paths or bounded
+//! counter comparisons, plus one bounded collection-backed data-binding subset
+//! using `loopDataInputRef`, `inputDataItem`, optional `loopDataOutputRef`,
+//! and `outputDataItem`, are supported. The bounded DMN evaluator also
+//! supports wildcard matching,
 //! literal equality, numeric unary comparisons, bounded numeric ranges,
-//! ISO date literals, ISO date comparisons, and bounded ISO date ranges.
+//! ISO date literals, ISO date comparisons, bounded ISO date ranges, ISO local
+//! datetime literals, ISO local datetime comparisons, bounded ISO local
+//! datetime ranges, ISO time literals, ISO time comparisons, and bounded ISO
+//! time ranges.
 //! BPMN `businessRuleTask` can also execute locally when the package carries a
 //! matching engine-owned DMN decision definition; otherwise it falls back to
-//! the existing host seam. Inclusive gateways, embedded `subProcess` bodies,
-//! non-interrupting boundaries, parallel multi-instance expansion,
-//! multi-instance data bindings, completion conditions, full timer execution
-//! semantics, parser-owned BPMN+DMN bundle ingestion, date-time/function FEEL
+//! the existing host seam. Inclusive gateways, recursive call chains,
+//! non-interrupting boundaries, full timer execution semantics,
+//! transaction compensation semantics, more than one cancel boundary on the
+//! same transaction owner, broader transaction error propagation beyond that
+//! bounded transaction shell, broader duration/timezone/function FEEL
 //! behavior, and richer orchestration slices remain deferred.
 
+mod bpmn_parse_api;
 mod checkpoint;
+mod checkpoint_api;
 mod dmn;
+mod dmn_api;
+mod dmn_evaluate_api;
+mod dmn_model_api;
+mod dmn_model_clause;
+mod dmn_model_decision;
+mod dmn_model_predicate;
+mod dmn_model_reference;
+mod dmn_parse_api;
 mod error;
-mod host;
+mod host_bridge_api;
+mod host_types_api;
 mod ir;
+mod ir_edge_api;
+mod ir_event_api;
+mod ir_index_api;
+mod ir_node_api;
+mod ir_package_api;
+mod ir_process_compensation;
+mod ir_process_key;
+mod ir_process_lookup;
+mod ir_process_spec;
+mod ir_repeat_api;
 mod lint;
+mod lint_api;
 mod parser;
+mod repeat_condition;
 mod runtime;
+mod runtime_advance_api;
+mod runtime_dispatch_api;
+mod runtime_frontier_api;
+mod runtime_host_dispatch_api;
+mod runtime_instance_api;
+mod runtime_join_api;
+mod runtime_repeat_api;
+mod runtime_resume_api;
+mod runtime_token_api;
+mod runtime_wait_api;
 
-pub use checkpoint::{
+pub use bpmn_parse_api::{
+    BpmnBundleSnapshot, BpmnParseOptions, BpmnSourceFile, parse_bpmn_bundle, parse_bpmn_package,
+};
+pub use checkpoint_api::{
     BPMN_CHECKPOINT_FORMAT_VERSION, BpmnCheckpointEnvelope, decode_checkpoint_json,
     encode_checkpoint_json, lease_key, state_key,
 };
 #[cfg(feature = "valkey")]
-pub use checkpoint::{
+pub use checkpoint_api::{
     delete_checkpoint, delete_checkpoint_as_owner, load_checkpoint, release_checkpoint_lease,
     renew_checkpoint_lease, save_checkpoint, save_checkpoint_as_owner,
     try_acquire_checkpoint_lease,
 };
 #[cfg(feature = "sqlite")]
-pub use checkpoint::{delete_checkpoint_sql, load_checkpoint_sql, save_checkpoint_sql};
-pub use dmn::{
+pub use checkpoint_api::{delete_checkpoint_sql, load_checkpoint_sql, save_checkpoint_sql};
+pub use dmn_api::{
     DmnBindingKind, DmnComparisonOperator, DmnDateComparison, DmnDateRange, DmnDateRangeBound,
-    DmnDecisionDefinition, DmnDecisionRef, DmnDecisionTable, DmnEvaluationRequest,
-    DmnEvaluationResult, DmnHitPolicy, DmnInputClause, DmnInputEntry, DmnNumericComparison,
-    DmnNumericRange, DmnNumericRangeBound, DmnOutputClause, DmnOutputEntry, DmnRule, DmnSourceFile,
-    evaluate_dmn_decision, parse_dmn_decision,
+    DmnDateTimeComparison, DmnDateTimeRange, DmnDateTimeRangeBound, DmnDecisionDefinition,
+    DmnDecisionRef, DmnDecisionTable, DmnEvaluationRequest, DmnEvaluationResult, DmnHitPolicy,
+    DmnInputClause, DmnInputEntry, DmnNumericComparison, DmnNumericRange, DmnNumericRangeBound,
+    DmnOutputClause, DmnOutputEntry, DmnRule, DmnSourceFile, DmnTimeComparison, DmnTimeRange,
+    DmnTimeRangeBound, evaluate_dmn_decision, parse_dmn_decision,
 };
 pub use error::BpmnEngineError;
-pub use host::{
-    BpmnHostBridge, BusinessRuleTaskOutcome, BusinessRuleTaskRequest, EventPollOutcome,
-    EventPollRequest, HostBridgeError, ManualTaskOutcome, ManualTaskRequest,
+pub use host_bridge_api::BpmnHostBridge;
+pub use host_types_api::{
+    BusinessRuleTaskOutcome, BusinessRuleTaskRequest, EventPollOutcome, EventPollRequest,
+    HostBridgeError, ManualTaskOutcome, ManualTaskRequest, ParallelMultiInstanceContext,
     PendingHostWorkRequest, PendingHostWorkResult, RepeatExecutionContext,
     SequentialMultiInstanceContext, ServiceTaskOutcome, ServiceTaskRequest, UserTaskOutcome,
     UserTaskRequest,
 };
-pub use ir::{
-    BpmnEdgeSpec, BpmnEventKind, BpmnEventSpec, BpmnGatewayKind, BpmnIndexRange, BpmnNodeIndex,
-    BpmnNodeKind, BpmnNodeSpec, BpmnPackage, BpmnProcessSpec, BpmnRepeatSpec,
-    BpmnSequentialMultiInstanceSpec, BpmnStandardLoopSpec, BpmnTimerKind, BpmnTimerSpec,
-    ProcessKey,
+pub use ir_edge_api::BpmnEdgeSpec;
+pub use ir_event_api::{BpmnEventKind, BpmnEventSpec, BpmnTimerKind, BpmnTimerSpec};
+pub use ir_index_api::{BpmnIndexRange, BpmnNodeIndex};
+pub use ir_node_api::{BpmnGatewayKind, BpmnNodeKind, BpmnNodeSpec, BpmnSubProcessKind};
+pub use ir_package_api::BpmnPackage;
+pub use ir_process_compensation::BpmnCompensationHandlerSpec;
+pub use ir_process_key::ProcessKey;
+pub use ir_process_spec::BpmnProcessSpec;
+pub use ir_repeat_api::{
+    BpmnMultiInstanceDataBindingSpec, BpmnParallelMultiInstanceSpec, BpmnRepeatSpec,
+    BpmnSequentialMultiInstanceSpec, BpmnStandardLoopSpec,
 };
-pub use lint::{
+pub use lint_api::{
     LintDomain, LintIssue, LintReport, LintSeverity, lint_bpmn_source, lint_dmn_source,
 };
-pub use parser::{
-    BpmnBundleSnapshot, BpmnParseOptions, BpmnSourceFile, parse_bpmn_bundle, parse_bpmn_package,
-};
-pub use runtime::{
-    BpmnAdvanceOutcome, BpmnFrontierEntry, BpmnFrontierEntryStatus, BpmnFrontierExecutionBatch,
+pub use runtime_advance_api::{BpmnAdvanceOutcome, advance_instance};
+pub use runtime_dispatch_api::{PendingHostWork, PendingHostWorkKind};
+pub use runtime_frontier_api::{
+    BpmnFrontierEntry, BpmnFrontierEntryStatus, BpmnFrontierExecutionBatch,
     BpmnFrontierExecutionProposal, BpmnFrontierExecutionStep, BpmnFrontierParallelJoinMerge,
     BpmnFrontierPlan, BpmnFrontierPlanAction, BpmnFrontierProposalSet, BpmnFrontierSnapshot,
+    collect_frontier_proposals, merge_frontier_execution_steps, plan_frontier_step,
+    reduce_frontier_plan, snapshot_frontier,
+};
+pub use runtime_host_dispatch_api::{
+    build_pending_host_work_request, build_pending_host_work_requests,
+};
+pub use runtime_instance_api::{
     BpmnInstanceInit, BpmnInstanceState, CallActivityFrame, EventCompetitionState,
-    InstanceLifecycle, JoinRuntimeState, NodeRuntimeState, NodeRuntimeStatus, PendingHostWork,
-    PendingHostWorkKind, SequentialMultiInstanceState, StandardLoopState, SuspendReason,
-    TokenRecord, WaitKind, WaitRegistration, advance_instance, apply_event_poll_outcome,
-    apply_pending_host_work_result, build_event_poll_request, build_pending_host_work_request,
-    build_pending_host_work_requests, collect_frontier_proposals, create_instance,
-    merge_frontier_execution_steps, plan_frontier_step, reduce_frontier_plan, snapshot_frontier,
+    InstanceLifecycle, NodeRuntimeState, NodeRuntimeStatus, SuspendReason, create_instance,
+};
+pub use runtime_join_api::JoinRuntimeState;
+pub use runtime_repeat_api::{
+    MultiInstanceCollectionKey, MultiInstanceCollectionKind, MultiInstanceCollectionSlot,
+    MultiInstanceDataRuntimeState, MultiInstanceOutputCollectionState,
+    ParallelMultiInstanceIterationState, ParallelMultiInstanceState, SequentialMultiInstanceState,
+    StandardLoopState,
+};
+pub use runtime_resume_api::apply_pending_host_work_result;
+pub use runtime_token_api::TokenRecord;
+pub use runtime_wait_api::{
+    WaitKind, WaitRegistration, apply_event_poll_outcome, build_event_poll_request,
 };
 
-xiuxian_testing::crate_test_policy_source_harness!("../tests/unit/lib_policy.rs");
+xiuxian_testing::crate_testing_source_gate!("../tests/unit/lib_policy.rs");

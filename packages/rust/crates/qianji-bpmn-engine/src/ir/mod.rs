@@ -1,15 +1,9 @@
-//! Immutable BPMN package and process specification types.
+//! Internal BPMN IR process/package seam.
+//!
+//! Public edge, event, index, node, and repeat contracts now live in the
+//! crate-root IR owner files. This internal seam stays focused on the process
+//! and package shells that tie those public contracts together.
 
-mod edge;
-mod event;
-mod index;
-mod node;
 mod process;
-mod repeat;
 
-pub use edge::BpmnEdgeSpec;
-pub use event::{BpmnEventKind, BpmnEventSpec, BpmnTimerKind, BpmnTimerSpec};
-pub use index::{BpmnIndexRange, BpmnNodeIndex};
-pub use node::{BpmnGatewayKind, BpmnNodeKind, BpmnNodeSpec};
-pub use process::{BpmnPackage, BpmnProcessSpec, ProcessKey};
-pub use repeat::{BpmnRepeatSpec, BpmnSequentialMultiInstanceSpec, BpmnStandardLoopSpec};
+pub(crate) use process::{BpmnPackage, BpmnProcessSpec, ProcessKey};

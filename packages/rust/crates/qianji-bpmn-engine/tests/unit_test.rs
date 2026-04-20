@@ -14,10 +14,10 @@ mod checkpoint;
 #[path = "unit/dmn/mod.rs"]
 mod dmn;
 
-#[path = "unit/lint.rs"]
+#[path = "unit/lint/mod.rs"]
 mod lint;
 
-#[path = "unit/host_dispatch.rs"]
+#[path = "unit/host_dispatch/mod.rs"]
 mod host_dispatch;
 
 #[path = "unit/host_resume.rs"]

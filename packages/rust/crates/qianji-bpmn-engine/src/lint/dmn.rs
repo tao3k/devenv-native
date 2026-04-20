@@ -1,13 +1,14 @@
 //! DMN lint entrypoint and error-to-guidance mapping.
 
-use super::{LintDomain, LintIssue, LintReport};
-use crate::dmn::{DmnSourceFile, parse_dmn_decision};
+use crate::dmn_model_api::DmnSourceFile;
+use crate::dmn_parse_api::parse_dmn_decision;
 use crate::error::BpmnEngineError;
+use crate::lint_api::{LintDomain, LintIssue, LintReport};
 use serde_json::json;
 
 /// Lints one DMN source and returns an LLM-friendly blocking report.
 #[must_use]
-pub fn lint_dmn_source(source: &DmnSourceFile) -> LintReport {
+pub(crate) fn lint_dmn_source_impl(source: &DmnSourceFile) -> LintReport {
     match parse_dmn_decision(source) {
         Ok(_) => LintReport::ok(LintDomain::Dmn, &source.source_id),
         Err(error) => LintReport::blocking(
@@ -208,13 +209,13 @@ fn issue_from_dmn_expression_subset_error(error: &BpmnEngineError) -> Option<Lin
             "dmn.unsupported_literal",
             "DMN literal expression is outside the supported subset",
             format!("Source '{source_id}' uses unsupported literal expression '{literal}'."),
-            "The bounded evaluator only accepts wildcard `-` and literal equality for strings, numbers, booleans, `null`, and ISO date literals like `date(\"2026-01-01\")`.",
+            "The bounded evaluator only accepts wildcard `-` and literal equality for strings, numbers, booleans, `null`, ISO date literals like `date(\"2026-01-01\")`, ISO local datetime literals like `date and time(\"2026-01-01T09:00:00\")`, and ISO time literals like `time(\"09:00:00\")`.",
             vec![
                 "Replace the expression with a supported literal form or wildcard `-`.".to_string(),
-                "Use `date(\"YYYY-MM-DD\")` only for date-only literals; keep `time(...)`, `date and time(...)`, durations, and custom functions deferred.".to_string(),
+                "Use `date(\"YYYY-MM-DD\")` for date-only literals, `date and time(\"YYYY-MM-DDTHH:MM:SS\")` for local datetime literals, and `time(\"HH:MM:SS\")` for time-only literals; keep durations, timezone-aware datetime forms, and custom functions deferred.".to_string(),
             ],
             format!(
-                "Edit DMN source '{source_id}' so literal expression '{literal}' is replaced with a supported bounded form: wildcard `-`, quoted string, number, boolean, `null`, or ISO date literal `date(\"YYYY-MM-DD\")`."
+                "Edit DMN source '{source_id}' so literal expression '{literal}' is replaced with a supported bounded form: wildcard `-`, quoted string, number, boolean, `null`, ISO date literal `date(\"YYYY-MM-DD\")`, ISO local datetime literal `date and time(\"YYYY-MM-DDTHH:MM:SS\")`, or ISO time literal `time(\"HH:MM:SS\")`."
             ),
             json!({
                 "source_id": source_id,
@@ -228,16 +229,18 @@ fn issue_from_dmn_expression_subset_error(error: &BpmnEngineError) -> Option<Lin
             "dmn.unsupported_unary_test",
             "DMN unary test is outside the supported subset",
             format!("Source '{source_id}' uses unsupported unary test '{expression}'."),
-            "The bounded evaluator accepts wildcard `-`, literal equality including `date(\"YYYY-MM-DD\")`, numeric comparisons like `< 25` or `>= 25`, bounded numeric ranges like `100 <= ? <= 110` or `[100..110]`, ISO date comparisons like `< date(\"2026-01-01\")`, and bounded ISO date ranges like `date(\"2026-01-01\") <= ? < date(\"2026-01-31\")` or `[date(\"2026-01-01\")..date(\"2026-01-31\")]`.",
+            "The bounded evaluator accepts wildcard `-`, literal equality including `date(\"YYYY-MM-DD\")`, `date and time(\"YYYY-MM-DDTHH:MM:SS\")`, and `time(\"HH:MM:SS\")`, numeric comparisons like `< 25` or `>= 25`, bounded numeric ranges like `100 <= ? <= 110` or `[100..110]`, ISO date comparisons like `< date(\"2026-01-01\")`, bounded ISO date ranges like `date(\"2026-01-01\") <= ? < date(\"2026-01-31\")` or `[date(\"2026-01-01\")..date(\"2026-01-31\")]`, ISO local datetime comparisons like `< date and time(\"2026-01-01T09:00:00\")`, bounded ISO local datetime ranges like `date and time(\"2026-01-01T09:00:00\") <= ? < date and time(\"2026-01-01T17:00:00\")` or `[date and time(\"2026-01-01T09:00:00\")..date and time(\"2026-01-01T17:00:00\")]`, ISO time comparisons like `< time(\"09:00:00\")`, and bounded ISO time ranges like `time(\"09:00:00\") <= ? < time(\"17:00:00\")` or `[time(\"09:00:00\")..time(\"17:00:00\")]`.",
             vec![
                 "Prefer literal equality when a single exact value is enough.".to_string(),
                 "For numeric thresholds, use one comparison operator with one numeric bound.".to_string(),
                 "For numeric intervals, use one bounded range such as `100 <= ? <= 110` or `[100..110]`.".to_string(),
                 "For date-only thresholds, use `date(\"YYYY-MM-DD\")` with one comparison operator or one bounded range.".to_string(),
-                "Keep `time(...)`, `date and time(...)`, durations, functions, and broader FEEL expressions deferred in this slice.".to_string(),
+                "For local datetime thresholds, use `date and time(\"YYYY-MM-DDTHH:MM:SS\")` with one comparison operator or one bounded range.".to_string(),
+                "For time-only thresholds, use `time(\"HH:MM:SS\")` with one comparison operator or one bounded range.".to_string(),
+                "Keep durations, timezone-aware datetime forms, functions, and broader FEEL expressions deferred in this slice.".to_string(),
             ],
             format!(
-                "Edit DMN source '{source_id}' so unary test '{expression}' uses one supported bounded form: wildcard `-`, literal equality including `date(\"YYYY-MM-DD\")`, one numeric comparison (`<`, `<=`, `>`, `>=`), one bounded numeric range like `100 <= ? <= 110` or `[100..110]`, one ISO date comparison like `< date(\"2026-01-01\")`, or one bounded ISO date range like `date(\"2026-01-01\") <= ? < date(\"2026-01-31\")` or `[date(\"2026-01-01\")..date(\"2026-01-31\")]`."
+                "Edit DMN source '{source_id}' so unary test '{expression}' uses one supported bounded form: wildcard `-`, literal equality including `date(\"YYYY-MM-DD\")`, `date and time(\"YYYY-MM-DDTHH:MM:SS\")`, or `time(\"HH:MM:SS\")`, one numeric comparison (`<`, `<=`, `>`, `>=`), one bounded numeric range like `100 <= ? <= 110` or `[100..110]`, one ISO date comparison like `< date(\"2026-01-01\")`, one bounded ISO date range like `date(\"2026-01-01\") <= ? < date(\"2026-01-31\")` or `[date(\"2026-01-01\")..date(\"2026-01-31\")]`, one ISO local datetime comparison like `< date and time(\"2026-01-01T09:00:00\")`, one bounded ISO local datetime range like `date and time(\"2026-01-01T09:00:00\") <= ? < date and time(\"2026-01-01T17:00:00\")` or `[date and time(\"2026-01-01T09:00:00\")..date and time(\"2026-01-01T17:00:00\")]`, one ISO time comparison like `< time(\"09:00:00\")`, or one bounded ISO time range like `time(\"09:00:00\") <= ? < time(\"17:00:00\")` or `[time(\"09:00:00\")..time(\"17:00:00\")]`."
             ),
             json!({
                 "source_id": source_id,

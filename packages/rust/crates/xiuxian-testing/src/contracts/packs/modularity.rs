@@ -1033,12 +1033,10 @@ fn check_root_child_visibility(path: &Path, text: &str) -> Vec<ContractFinding> 
                 ),
             );
             finding.why_it_matters = "When a folder-root seam publishes `pub mod child;`, coding agents learn the child module path as the contract surface and bypass the curated facade. Keeping child modules private preserves one stable seam at the root.".to_string();
+            let visible_mount = format!("{} mod {};", item.visibility, item.module_name);
             finding.remediation = format!(
                 "Replace `{}` with private `mod {};` or private `#[path = \"../{}.rs\"] mod {};` when the owner file lives elsewhere, then expose only the intended entry symbols with selective `pub(crate) use` or `pub use` re-exports. If no visible export is needed, keep the mount private and add a short root `//!` hint instead.",
-                format!("{} mod {};", item.visibility, item.module_name),
-                item.module_name,
-                item.module_name,
-                item.module_name
+                visible_mount, item.module_name, item.module_name, item.module_name
             );
             finding.examples.good.push(
                 "`mod service;` or private `#[path = \"../service.rs\"] mod service;` plus `pub(crate) use self::service::Service;` keeps the folder-root seam curated."

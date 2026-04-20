@@ -18,8 +18,7 @@ fn unique_prefix() -> String {
     let pid = std::process::id();
     let nanos = SystemTime::now()
         .duration_since(UNIX_EPOCH)
-        .map(|value| value.as_nanos())
-        .unwrap_or(0);
+        .map_or(0, |value| value.as_nanos());
     format!("xiuxian_wendao:test:suggested_link:{pid}:{nanos}:{seq}")
 }
 

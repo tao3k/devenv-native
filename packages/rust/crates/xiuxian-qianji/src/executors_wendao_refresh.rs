@@ -1,4 +1,4 @@
-//! Incremental-first LinkGraph refresh mechanism.
+//! Incremental-first `LinkGraph` refresh mechanism.
 
 #[path = "executors/wendao_refresh/input.rs"]
 mod input;

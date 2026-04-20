@@ -11,10 +11,10 @@ use xiuxian_vector::search_cache::{
 
 fn with_cache_lock(test: impl FnOnce()) {
     static CACHE_TEST_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
-    let _guard = CACHE_TEST_LOCK
-        .get_or_init(|| Mutex::new(()))
-        .lock()
-        .expect("acquire search cache test lock");
+    let _guard = match CACHE_TEST_LOCK.get_or_init(|| Mutex::new(())).lock() {
+        Ok(guard) => guard,
+        Err(error) => panic!("acquire search cache test lock: {error}"),
+    };
     clear_cache();
     test();
 }

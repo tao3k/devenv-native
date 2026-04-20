@@ -47,7 +47,7 @@ async fn spawn_mock_server(addr: std::net::SocketAddr) -> tokio::task::JoinHandl
             vec![tool_definition(
                 "skill.discover",
                 "Mock discover tool",
-                serde_json::json!({
+                &serde_json::json!({
                     "type": "object",
                     "properties": {
                         "intent": { "type": "string" }

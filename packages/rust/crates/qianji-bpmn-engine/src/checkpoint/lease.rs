@@ -3,8 +3,8 @@
 use crate::error::{BpmnEngineError, Result};
 use redis::AsyncCommands;
 
-use super::keys::lease_key;
-use super::valkey::connect_valkey;
+use super::keys::lease_key_impl;
+use super::valkey::connect_valkey_impl;
 
 const RENEW_LEASE_SCRIPT: &str = r#"
 if redis.call("GET", KEYS[1]) == ARGV[1] then
@@ -29,17 +29,18 @@ end
 /// Returns [`BpmnEngineError::InvalidCheckpointLeaseTtl`] when `lease_ttl_ms`
 /// is zero, or [`BpmnEngineError::CheckpointStorage`] when Valkey connectivity
 /// or key writes fail.
-pub async fn try_acquire_checkpoint_lease(
+pub(in crate::checkpoint) async fn try_acquire_checkpoint_lease_impl(
     instance_id: &str,
     owner_token: &str,
     lease_ttl_ms: u64,
     valkey_url: &str,
 ) -> Result<bool> {
     validate_lease_ttl_ms(lease_ttl_ms)?;
-    let mut connection = connect_valkey(valkey_url, "try_acquire_checkpoint_lease_connect").await?;
+    let mut connection =
+        connect_valkey_impl(valkey_url, "try_acquire_checkpoint_lease_connect").await?;
     let acquired: Option<String> = connection
         .set_options(
-            lease_key(instance_id),
+            lease_key_impl(instance_id),
             owner_token,
             redis::SetOptions::default()
                 .conditional_set(redis::ExistenceCheck::NX)
@@ -60,18 +61,18 @@ pub async fn try_acquire_checkpoint_lease(
 /// Returns [`BpmnEngineError::InvalidCheckpointLeaseTtl`] when `lease_ttl_ms`
 /// is zero, or [`BpmnEngineError::CheckpointStorage`] when Valkey connectivity
 /// or key writes fail.
-pub async fn renew_checkpoint_lease(
+pub(in crate::checkpoint) async fn renew_checkpoint_lease_impl(
     instance_id: &str,
     owner_token: &str,
     lease_ttl_ms: u64,
     valkey_url: &str,
 ) -> Result<bool> {
     validate_lease_ttl_ms(lease_ttl_ms)?;
-    let mut connection = connect_valkey(valkey_url, "renew_checkpoint_lease_connect").await?;
+    let mut connection = connect_valkey_impl(valkey_url, "renew_checkpoint_lease_connect").await?;
     let renewed: i64 = redis::cmd("EVAL")
         .arg(RENEW_LEASE_SCRIPT)
         .arg(1)
-        .arg(lease_key(instance_id))
+        .arg(lease_key_impl(instance_id))
         .arg(owner_token)
         .arg(lease_ttl_ms)
         .query_async(&mut connection)
@@ -89,16 +90,17 @@ pub async fn renew_checkpoint_lease(
 ///
 /// Returns [`BpmnEngineError::CheckpointStorage`] when Valkey connectivity or
 /// key writes fail.
-pub async fn release_checkpoint_lease(
+pub(in crate::checkpoint) async fn release_checkpoint_lease_impl(
     instance_id: &str,
     owner_token: &str,
     valkey_url: &str,
 ) -> Result<bool> {
-    let mut connection = connect_valkey(valkey_url, "release_checkpoint_lease_connect").await?;
+    let mut connection =
+        connect_valkey_impl(valkey_url, "release_checkpoint_lease_connect").await?;
     let released: i64 = redis::cmd("EVAL")
         .arg(RELEASE_LEASE_SCRIPT)
         .arg(1)
-        .arg(lease_key(instance_id))
+        .arg(lease_key_impl(instance_id))
         .arg(owner_token)
         .query_async(&mut connection)
         .await
