@@ -11,7 +11,7 @@ use xiuxian_qianhuan::{
     orchestrator::ThousandFacesOrchestrator,
     persona::{PersonaProfile, PersonaRegistry},
 };
-use xiuxian_qianji::executors::annotation::ContextAnnotator;
+use xiuxian_qianji::executors::ContextAnnotator;
 use xiuxian_qianji::{
     FlowInstruction, NodeQianhuanExecutionMode, QianjiEngine, QianjiMechanism, QianjiOutput,
     QianjiScheduler,

@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use crate::search::SearchPlaneService;
-use xiuxian_vector_store::SearchEngineContext;
+use xiuxian_db_store::SearchEngineContext;
 
 use super::catalog::{
     register_columns_catalog_table, register_tables_catalog_table,

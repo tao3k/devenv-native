@@ -123,6 +123,10 @@ pub use parser::Parser;
             .contains("visible module declaration `parser`"),
         "expected public-module summary, got {finding:#?}"
     );
+    assert!(
+        finding.remediation.contains("private `#[path ="),
+        "expected path-mount remediation hint, got {finding:#?}"
+    );
 }
 
 #[test]

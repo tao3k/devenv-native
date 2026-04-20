@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-use xiuxian_vector_store::VectorStoreError;
+use xiuxian_db_store::VectorStoreError;
 
 use crate::search::local_publication_parquet::{
     LocalParquetRewriteRequest, rewrite_local_publication_parquet,

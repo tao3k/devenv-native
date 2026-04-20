@@ -4,11 +4,11 @@ use std::path::{Path, PathBuf};
 use serde::Serialize;
 
 use crate::error::QianjiError;
-use crate::flowhub::mermaid::{MermaidFlowchart, parse_mermaid_flowchart};
-use crate::flowhub::scenario_ir::{
+use crate::flowhub::{
     FlowhubScenarioIr, compile_flowhub_scenario_ir, parse_flowhub_graph_annotations,
     resolve_flowhub_graph_name,
 };
+use crate::flowhub::{MermaidFlowchart, parse_mermaid_flowchart};
 use crate::markdown::{MarkdownShowSection, render_show_surface};
 
 use super::check_workdir;

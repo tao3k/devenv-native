@@ -1,10 +1,10 @@
 use crate::error::QianjiError;
-use crate::swarm::engine::types::WorkerJoinSet;
-use crate::swarm::engine::{SwarmAgentReport, SwarmEngine};
+use crate::swarm::engine_orchestrator::SwarmEngine;
+use crate::swarm::engine_types::{SwarmAgentReport, WorkerJoinSet};
 use tokio_util::sync::CancellationToken;
 
 impl SwarmEngine {
-    pub(in crate::swarm::engine) async fn collect_worker_reports(
+    pub(in crate::swarm) async fn collect_worker_reports(
         join_set: &mut WorkerJoinSet,
         cancel_token: &CancellationToken,
     ) -> Result<Vec<SwarmAgentReport>, QianjiError> {
@@ -27,7 +27,7 @@ impl SwarmEngine {
         Ok(workers)
     }
 
-    pub(in crate::swarm::engine) fn select_final_context(
+    pub(in crate::swarm) fn select_final_context(
         workers: &[SwarmAgentReport],
     ) -> Result<serde_json::Value, QianjiError> {
         workers

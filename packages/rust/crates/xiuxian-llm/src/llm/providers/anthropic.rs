@@ -413,7 +413,7 @@ fn retry_backoff_for_attempt(attempt: usize) -> Duration {
     match attempt {
         1 => Duration::from_millis(250),
         2 => Duration::from_millis(500),
-        _ => Duration::from_millis(1_000),
+        _ => Duration::from_secs(1),
     }
 }
 

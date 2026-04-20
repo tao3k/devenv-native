@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  id="pkg_timer_wait"
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL">
+  <bpmn:process id="await_timer">
+    <bpmn:startEvent id="start" />
+    <bpmn:intermediateCatchEvent id="wait_timer">
+      <bpmn:timerEventDefinition>
+        <bpmn:timeDuration>PT5M</bpmn:timeDuration>
+      </bpmn:timerEventDefinition>
+    </bpmn:intermediateCatchEvent>
+    <bpmn:endEvent id="end" />
+    <bpmn:sequenceFlow id="flow_1" sourceRef="start" targetRef="wait_timer" />
+    <bpmn:sequenceFlow id="flow_2" sourceRef="wait_timer" targetRef="end" />
+  </bpmn:process>
+</bpmn:definitions>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  id="pkg_linear">
+  <bpmn:process id="approve" isExecutable="true">
+    <bpmn:startEvent id="start" />
+    <bpmn:serviceTask id="service" />
+    <bpmn:endEvent id="end" />
+    <bpmn:sequenceFlow id="flow_start_service" sourceRef="start" targetRef="service" />
+    <bpmn:sequenceFlow id="flow_service_end" sourceRef="service" targetRef="end" name="done" />
+  </bpmn:process>
+</bpmn:definitions>

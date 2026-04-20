@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  id="pkg_parallel_gateway">
+  <bpmn:process id="parallel_flow" isExecutable="true">
+    <bpmn:startEvent id="start" />
+    <bpmn:parallelGateway id="fork" />
+    <bpmn:exclusiveGateway id="left" />
+    <bpmn:exclusiveGateway id="right" />
+    <bpmn:parallelGateway id="join" />
+    <bpmn:endEvent id="end" />
+    <bpmn:sequenceFlow id="flow_1" sourceRef="start" targetRef="fork" />
+    <bpmn:sequenceFlow id="flow_2" sourceRef="fork" targetRef="left" />
+    <bpmn:sequenceFlow id="flow_3" sourceRef="fork" targetRef="right" />
+    <bpmn:sequenceFlow id="flow_4" sourceRef="left" targetRef="join" />
+    <bpmn:sequenceFlow id="flow_5" sourceRef="right" targetRef="join" />
+    <bpmn:sequenceFlow id="flow_6" sourceRef="join" targetRef="end" />
+  </bpmn:process>
+</bpmn:definitions>

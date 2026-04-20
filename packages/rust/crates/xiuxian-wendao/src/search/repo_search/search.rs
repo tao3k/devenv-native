@@ -3,8 +3,8 @@ use std::path::Path;
 
 use walkdir::{DirEntry, WalkDir};
 use xiuxian_ast::Lang;
+use xiuxian_db_store::LanceRecordBatch;
 use xiuxian_git_repo::SyncMode;
-use xiuxian_vector_store::LanceRecordBatch;
 use xiuxian_wendao_runtime::transport::RepoSearchFlightRequest;
 
 use super::ast::repository_supports_generic_ast_analysis;

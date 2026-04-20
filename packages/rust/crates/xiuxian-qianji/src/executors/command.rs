@@ -1,7 +1,7 @@
 //! Shell command execution mechanism.
 
 use crate::contracts::{FlowInstruction, QianjiMechanism, QianjiOutput};
-use crate::scheduler::preflight::resolve_semantic_content;
+use crate::scheduler_preflight::resolve_semantic_content;
 use async_trait::async_trait;
 use serde_json::json;
 

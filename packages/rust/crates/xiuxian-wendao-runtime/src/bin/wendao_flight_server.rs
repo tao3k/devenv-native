@@ -16,7 +16,7 @@ use tokio_stream::wrappers::TcpListenerStream;
 #[cfg(feature = "transport")]
 use tonic::transport::Server;
 #[cfg(feature = "transport")]
-use xiuxian_vector_store::{
+use xiuxian_db_store::{
     LanceDataType, LanceField, LanceFloat64Array, LanceInt32Array, LanceListArray,
     LanceListBuilder, LanceRecordBatch, LanceSchema, LanceStringArray, LanceStringBuilder,
 };

@@ -3,7 +3,7 @@
 use serde_json::json;
 use std::collections::{HashMap, HashSet};
 use xiuxian_qianji::contracts::NodeStatus;
-use xiuxian_qianji::scheduler::checkpoint::QianjiStateSnapshot;
+use xiuxian_qianji::scheduler::QianjiStateSnapshot;
 
 #[test]
 fn test_qianji_checkpoint_redis_key() {

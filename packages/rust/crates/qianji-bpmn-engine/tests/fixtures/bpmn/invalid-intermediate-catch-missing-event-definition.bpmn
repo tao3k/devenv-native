@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  id="pkg_event"
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL">
+  <bpmn:process id="await_missing_event">
+    <bpmn:startEvent id="start" />
+    <bpmn:intermediateCatchEvent id="wait_missing" />
+    <bpmn:endEvent id="end" />
+    <bpmn:sequenceFlow id="flow_1" sourceRef="start" targetRef="wait_missing" />
+    <bpmn:sequenceFlow id="flow_2" sourceRef="wait_missing" targetRef="end" />
+  </bpmn:process>
+</bpmn:definitions>

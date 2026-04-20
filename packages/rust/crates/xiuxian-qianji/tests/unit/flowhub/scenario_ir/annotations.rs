@@ -1,4 +1,4 @@
-use crate::flowhub::scenario_ir::parse_flowhub_graph_annotations;
+use crate::flowhub::parse_flowhub_graph_annotations;
 
 #[test]
 fn parse_flowhub_graph_annotations_reads_scenario_and_node_lists() {

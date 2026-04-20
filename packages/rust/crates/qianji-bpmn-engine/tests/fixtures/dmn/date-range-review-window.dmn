@@ -1,0 +1,42 @@
+<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/"
+  id="Definitions_review_window"
+  name="Review Window DRD"
+  namespace="http://example.com/dmn">
+  <decision id="review-window" name="Review Window">
+    <decisionTable id="decision_table_review_window" hitPolicy="UNIQUE">
+      <input id="input_review_date" label="review_date">
+        <inputExpression id="input_expression_review_date" typeRef="date">
+          <text>review_date</text>
+        </inputExpression>
+      </input>
+      <output id="output_window" name="window" label="window" typeRef="string" />
+      <rule id="rule_march_window">
+        <description>Chained March range</description>
+        <inputEntry id="input_entry_march_window">
+          <text>date("2026-03-01") &lt;= ? &lt; date("2026-03-10")</text>
+        </inputEntry>
+        <outputEntry id="output_entry_march_window">
+          <text>"march-window"</text>
+        </outputEntry>
+      </rule>
+      <rule id="rule_april_window">
+        <description>Bracket April range</description>
+        <inputEntry id="input_entry_april_window">
+          <text>[date("2026-04-01")..date("2026-04-05")]</text>
+        </inputEntry>
+        <outputEntry id="output_entry_april_window">
+          <text>"april-window"</text>
+        </outputEntry>
+      </rule>
+      <rule id="rule_outside_window">
+        <description>Fallback</description>
+        <inputEntry id="input_entry_outside_window">
+          <text>-</text>
+        </inputEntry>
+        <outputEntry id="output_entry_outside_window">
+          <text>"outside-window"</text>
+        </outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+</definitions>

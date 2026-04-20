@@ -4,9 +4,9 @@ use anyhow::Result;
 use rand::seq::SliceRandom;
 
 use super::GlobalSwarmRegistry;
-use crate::swarm::discovery::model::ClusterNodeRecord;
-use crate::swarm::discovery::parse::{parse_record, role_matches};
-use crate::swarm::discovery::util::{REGISTRY_INDEX_KEY, normalize_optional_text};
+use crate::swarm::discovery_model::ClusterNodeRecord;
+use crate::swarm::discovery_parse::{parse_record, role_matches};
+use crate::swarm::discovery_util::{REGISTRY_INDEX_KEY, normalize_optional_text};
 
 impl GlobalSwarmRegistry {
     /// Discovers all live nodes from the global registry.
@@ -14,7 +14,7 @@ impl GlobalSwarmRegistry {
     /// # Errors
     ///
     /// Returns an error when Valkey access fails.
-    pub async fn discover_all(&self) -> Result<Vec<ClusterNodeRecord>> {
+    pub(super) async fn discover_all_impl(&self) -> Result<Vec<ClusterNodeRecord>> {
         self.discover(Some("*")).await
     }
 
@@ -23,7 +23,10 @@ impl GlobalSwarmRegistry {
     /// # Errors
     ///
     /// Returns an error when Valkey access fails.
-    pub async fn discover_by_role(&self, role_class: &str) -> Result<Vec<ClusterNodeRecord>> {
+    pub(super) async fn discover_by_role_impl(
+        &self,
+        role_class: &str,
+    ) -> Result<Vec<ClusterNodeRecord>> {
         let normalized = role_class.trim().to_ascii_lowercase();
         if normalized.is_empty() {
             return Ok(Vec::new());
@@ -38,12 +41,12 @@ impl GlobalSwarmRegistry {
     /// # Errors
     ///
     /// Returns an error when Valkey access fails.
-    pub async fn pick_candidate(
+    pub(super) async fn pick_candidate_impl(
         &self,
         role_class: &str,
         exclude_cluster_id: Option<&str>,
     ) -> Result<Option<ClusterNodeRecord>> {
-        let mut records = self.discover_by_role(role_class).await?;
+        let mut records = self.discover_by_role_impl(role_class).await?;
         if let Some(exclude) = normalize_optional_text(exclude_cluster_id.map(ToString::to_string))
         {
             records.retain(|record| record.identity.cluster_id != exclude);

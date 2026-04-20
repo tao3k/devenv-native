@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 
-use xiuxian_vector_store::EngineRecordBatch;
+use xiuxian_db_store::EngineRecordBatch;
 
 use crate::gateway::studio::search::score_reference_hit;
 use crate::search::ranking::{RetainedWindow, StreamingRerankTelemetry, trim_ranked_vec};

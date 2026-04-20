@@ -9,7 +9,7 @@ use crate::contracts::{
     FlowhubValidationScope,
 };
 use crate::error::QianjiError;
-use crate::flowhub::mermaid::{
+use crate::flowhub::{
     analyze_mermaid_flowchart_topology, parse_mermaid_flowchart, validate_mermaid_flowchart,
 };
 use crate::markdown::{MarkdownDiagnostic, render_validation_failed, render_validation_pass};
@@ -21,9 +21,9 @@ use super::discover::{
     load_flowhub_module_candidate, module_candidate_from_dir, module_candidate_from_ref,
 };
 use super::load::load_flowhub_root_manifest;
-use super::scenario_ir::{
-    FlowhubScenarioIr, compile_flowhub_scenario_ir, parse_flowhub_graph_annotations,
-    resolve_flowhub_graph_name,
+use super::{
+    FlowhubGraphAnnotations, FlowhubScenarioIr, compile_flowhub_scenario_ir,
+    parse_flowhub_graph_annotations, resolve_flowhub_graph_name,
 };
 
 /// One user-facing validation diagnostic for a Flowhub root or module check.
@@ -58,7 +58,7 @@ struct MermaidCaseValidation<'a> {
     file_name: &'a str,
     merimind_graph_name: &'a str,
     declared_graph: Option<&'a FlowhubGraphContract>,
-    annotations: Option<&'a super::scenario_ir::FlowhubGraphAnnotations>,
+    annotations: Option<&'a FlowhubGraphAnnotations>,
 }
 
 impl FlowhubCheckReport {
@@ -639,7 +639,7 @@ fn validate_contracted_mermaid_case(
 }
 
 fn validate_parsed_mermaid_case(
-    flowchart: &crate::flowhub::mermaid::MermaidFlowchart,
+    flowchart: &crate::flowhub::MermaidFlowchart,
     validation: &MermaidCaseValidation<'_>,
     diagnostics: &mut Vec<FlowhubDiagnostic>,
 ) {
@@ -816,9 +816,7 @@ fn mermaid_file_is_contracted(
             return true;
         }
         if is_glob_pattern(entry) {
-            return Glob::new(entry)
-                .map(|glob| glob.compile_matcher().is_match(file_name))
-                .unwrap_or(false);
+            return Glob::new(entry).is_ok_and(|glob| glob.compile_matcher().is_match(file_name));
         }
         false
     })

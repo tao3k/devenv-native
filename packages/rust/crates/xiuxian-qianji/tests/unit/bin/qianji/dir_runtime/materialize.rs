@@ -9,8 +9,8 @@ fn run_materialize_anchor_command_generates_checkable_run_root() {
     let output = must_ok(
         run_dir_command(DirCliCommand::Materialize {
             target: MaterializeCliTarget::AnchoredScenario {
-                anchor: flowhub_root().join("research/paper/qianji.toml"),
-                scenario: "deep_read".to_string(),
+                anchor: anchored_workdir_fixture_anchor(),
+                scenario: anchored_workdir_fixture_scenario().to_string(),
                 dir: run_dir.clone(),
                 current_node: None,
             },
@@ -53,8 +53,8 @@ fn run_materialize_anchor_command_rejects_non_empty_output_dir() {
 
     let error = run_dir_command(DirCliCommand::Materialize {
         target: MaterializeCliTarget::AnchoredScenario {
-            anchor: flowhub_root().join("research/paper/qianji.toml"),
-            scenario: "deep_read".to_string(),
+            anchor: anchored_workdir_fixture_anchor(),
+            scenario: anchored_workdir_fixture_scenario().to_string(),
             dir: run_dir,
             current_node: None,
         },
@@ -74,8 +74,8 @@ fn run_materialize_anchor_command_scaffolds_selected_current_node() {
     let output = must_ok(
         run_dir_command(DirCliCommand::Materialize {
             target: MaterializeCliTarget::AnchoredScenario {
-                anchor: flowhub_root().join("research/paper/qianji.toml"),
-                scenario: "deep_read".to_string(),
+                anchor: anchored_workdir_fixture_anchor(),
+                scenario: anchored_workdir_fixture_scenario().to_string(),
                 dir: run_dir.clone(),
                 current_node: Some("claim_extract".to_string()),
             },

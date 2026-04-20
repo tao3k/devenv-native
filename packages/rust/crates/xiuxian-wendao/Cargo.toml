@@ -34,7 +34,7 @@ julia = [
 ]
 builtin-plugins = ["dep:xiuxian-wendao-builtin"]
 runtime-transport = ["xiuxian-wendao-runtime/transport"]
-vector-store = ["dep:arrow", "dep:reqwest", "dep:xiuxian-vector-store"]
+vector-store = ["dep:arrow", "dep:reqwest", "dep:xiuxian-db-store"]
 search-runtime = [
   "dep:graphql-parser",
   "dep:xiuxian-ast",
@@ -117,7 +117,7 @@ anyhow = { workspace = true }
 xiuxian-skills = { path = "../xiuxian-skills" }
 xiuxian-logging = { path = "../xiuxian-logging" }
 xiuxian-vector = { path = "../xiuxian-vector", default-features = false, optional = true }
-xiuxian-vector-store = { path = "../xiuxian-vector-store", optional = true }
+xiuxian-db-store = { path = "../xiuxian-db-store", optional = true }
 xiuxian-io = { path = "../xiuxian-io" }
 xiuxian-git-repo = { path = "../xiuxian-git-repo" }
 xiuxian-llm = { path = "../xiuxian-llm" }

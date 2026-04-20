@@ -2,7 +2,7 @@ use std::path::{Path, PathBuf};
 
 use crate::contracts::FlowhubGraphContract;
 use crate::error::QianjiError;
-use crate::flowhub::mermaid::parse_mermaid_flowchart;
+use crate::flowhub::parse_mermaid_flowchart;
 use crate::markdown::{MarkdownShowSection, render_show_surface};
 use serde_json::json;
 use xiuxian_qianhuan::EmbeddedManifestationTemplateCatalog;
@@ -12,7 +12,7 @@ use super::discover::{
     module_candidate_from_dir, module_candidate_from_ref,
 };
 use super::load::load_flowhub_root_manifest;
-use super::scenario_ir::{parse_flowhub_graph_annotations, resolve_flowhub_graph_name};
+use super::{parse_flowhub_graph_annotations, resolve_flowhub_graph_name};
 
 const FLOWHUB_SCENARIO_CASE_TEMPLATE_NAME: &str = "flowhub_scenario_case.md.j2";
 const FLOWHUB_SCENARIO_CASE_TEMPLATE_SOURCE: &str =

@@ -4,8 +4,8 @@ use tokio::time::Duration;
 use super::GlobalSwarmRegistry;
 use super::keys::node_key;
 use super::payload::heartbeat_payload;
-use crate::swarm::discovery::model::ClusterNodeIdentity;
-use crate::swarm::discovery::util::REGISTRY_INDEX_KEY;
+use crate::swarm::discovery_model::ClusterNodeIdentity;
+use crate::swarm::discovery_util::REGISTRY_INDEX_KEY;
 
 impl GlobalSwarmRegistry {
     /// Writes one heartbeat lease into the global registry.
@@ -13,7 +13,7 @@ impl GlobalSwarmRegistry {
     /// # Errors
     ///
     /// Returns an error when input fields are invalid or any Valkey command fails.
-    pub async fn heartbeat(
+    pub(super) async fn heartbeat_impl(
         &self,
         identity: &ClusterNodeIdentity,
         metadata: &serde_json::Value,
@@ -58,7 +58,7 @@ impl GlobalSwarmRegistry {
     /// # Errors
     ///
     /// Returns an error when `ttl_seconds` or `interval` is invalid.
-    pub fn spawn_heartbeat_loop(
+    pub(super) fn spawn_heartbeat_loop_impl(
         self: std::sync::Arc<Self>,
         identity: ClusterNodeIdentity,
         metadata: serde_json::Value,
@@ -81,7 +81,7 @@ impl GlobalSwarmRegistry {
 
         let handle = tokio::spawn(async move {
             loop {
-                if let Err(error) = self.heartbeat(&identity, &metadata, ttl_seconds).await {
+                if let Err(error) = self.heartbeat_impl(&identity, &metadata, ttl_seconds).await {
                     log::warn!("swarm heartbeat failed for {}: {error}", identity.agent_id);
                 }
                 tokio::time::sleep(interval).await;

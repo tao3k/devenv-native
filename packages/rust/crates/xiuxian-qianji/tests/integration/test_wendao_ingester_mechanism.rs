@@ -2,7 +2,7 @@
 
 use serde_json::json;
 use xiuxian_qianji::contracts::QianjiMechanism;
-use xiuxian_qianji::executors::wendao_ingester::WendaoIngesterMechanism;
+use xiuxian_qianji::executors::WendaoIngesterMechanism;
 use xiuxian_wendao_core::{EntityType, RelationType};
 
 #[tokio::test]

@@ -61,7 +61,7 @@ impl ZhixingHeyi {
         notifier: Sender<ReminderSignal>,
     ) -> tokio::task::JoinHandle<()> {
         tokio::spawn(async move {
-            let mut interval = tokio::time::interval(std::time::Duration::from_secs(60));
+            let mut interval = tokio::time::interval(std::time::Duration::from_mins(1));
             loop {
                 interval.tick().await;
                 let reminders = self.poll_reminders();

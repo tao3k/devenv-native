@@ -233,7 +233,7 @@ impl SearchPlaneService {
         repo_id: &str,
         documents: &[crate::repo_index::RepoCodeDocument],
         source_revision: Option<&str>,
-    ) -> Result<(), xiuxian_vector_store::VectorStoreError> {
+    ) -> Result<(), xiuxian_db_store::VectorStoreError> {
         crate::search::repo_content_chunk::publish_repo_content_chunks(
             self,
             repo_id,
@@ -249,7 +249,7 @@ impl SearchPlaneService {
         changed_documents: &[crate::repo_index::RepoCodeDocument],
         deleted_paths: &std::collections::BTreeSet<String>,
         source_revision: Option<&str>,
-    ) -> Result<(), xiuxian_vector_store::VectorStoreError> {
+    ) -> Result<(), xiuxian_db_store::VectorStoreError> {
         crate::search::repo_content_chunk::publish_repo_content_chunks_incremental(
             self,
             repo_id,
@@ -309,7 +309,7 @@ impl SearchPlaneService {
         analysis: &crate::analyzers::RepositoryAnalysisOutput,
         documents: &[crate::repo_index::RepoCodeDocument],
         source_revision: Option<&str>,
-    ) -> Result<(), xiuxian_vector_store::VectorStoreError> {
+    ) -> Result<(), xiuxian_db_store::VectorStoreError> {
         crate::search::repo_entity::publish_repo_entities(
             self,
             repo_id,

@@ -1,6 +1,6 @@
 use crate::contracts::NodeStatus;
-use crate::scheduler::checkpoint::QianjiStateSnapshot;
 use crate::scheduler::core::QianjiScheduler;
+use crate::scheduler_checkpoint::QianjiStateSnapshot;
 use petgraph::stable_graph::NodeIndex;
 use std::collections::HashSet;
 

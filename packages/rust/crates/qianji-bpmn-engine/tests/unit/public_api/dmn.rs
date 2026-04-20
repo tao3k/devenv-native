@@ -1,0 +1,62 @@
+use crate::test_support::MustExt as _;
+use qianji_bpmn_engine::{
+    BpmnEngineError, BpmnPackage, DmnDecisionRef, DmnSourceFile, parse_dmn_decision,
+};
+
+#[test]
+fn package_registered_dmn_decision_resolves_deterministically() {
+    let definition = parse_dmn_decision(&fixture_source(
+        "simple-unique-eligibility.dmn",
+        "simple-unique-eligibility.dmn",
+    ))
+    .must("fixture DMN should parse");
+    let package = BpmnPackage::new("pkg_api", Vec::new()).with_dmn_decisions(vec![definition]);
+
+    let resolved = package
+        .find_dmn_decision(
+            &DmnDecisionRef::new("loan-decision").with_source_id("simple-unique-eligibility.dmn"),
+        )
+        .must("registered decision lookup should stay deterministic")
+        .must("registered decision should resolve");
+
+    assert_eq!(resolved.decision.decision_id.as_ref(), "loan-decision");
+    assert_eq!(package.dmn_decisions().len(), 1);
+}
+
+#[test]
+fn package_unqualified_duplicate_dmn_decision_ref_is_rejected() {
+    let first = parse_dmn_decision(&fixture_source(
+        "first.dmn",
+        "simple-unique-eligibility.dmn",
+    ))
+    .must("first DMN source should parse");
+    let second = parse_dmn_decision(&fixture_source(
+        "second.dmn",
+        "simple-unique-eligibility.dmn",
+    ))
+    .must("second DMN source should parse");
+    let package = BpmnPackage::new("pkg_api", Vec::new()).with_dmn_decisions(vec![first, second]);
+
+    let error = package
+        .find_dmn_decision(&DmnDecisionRef::new("loan-decision"))
+        .must_err("unqualified duplicate decision ids should fail explicitly");
+
+    assert_eq!(
+        error,
+        BpmnEngineError::AmbiguousDmnDecisionReference {
+            decision_id: "loan-decision".to_string(),
+            source_id: None,
+            count: 2,
+            source_suffix: String::new(),
+        }
+    );
+}
+
+fn fixture_source(source_id: &str, fixture_name: &str) -> DmnSourceFile {
+    let path = format!(
+        "{}/tests/fixtures/dmn/{fixture_name}",
+        env!("CARGO_MANIFEST_DIR")
+    );
+    let contents = std::fs::read_to_string(path).must("fixture should be readable");
+    DmnSourceFile::new(source_id, contents)
+}

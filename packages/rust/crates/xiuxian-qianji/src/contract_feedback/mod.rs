@@ -1,4 +1,6 @@
+#[path = "../contract_feedback_pipeline.rs"]
 mod pipeline;
+#[path = "../contract_feedback_rest_docs.rs"]
 mod rest_docs;
 
 pub use pipeline::{

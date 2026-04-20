@@ -3,7 +3,7 @@ use std::sync::Arc;
 use arrow::array::ArrayRef;
 use arrow::compute::cast;
 use arrow::datatypes::{DataType, Field, Schema};
-use xiuxian_vector_store::EngineRecordBatch;
+use xiuxian_db_store::EngineRecordBatch;
 
 use crate::duckdb::{LocalRelationEngineKind, ParquetQueryEngine};
 use crate::search::queries::SearchQueryService;

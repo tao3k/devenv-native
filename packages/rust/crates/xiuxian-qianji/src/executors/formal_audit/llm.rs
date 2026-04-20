@@ -1,5 +1,5 @@
 use crate::contracts::{FlowInstruction, QianjiMechanism, QianjiOutput};
-use crate::executors::annotation::ContextAnnotator;
+use crate::executors::ContextAnnotator;
 use async_trait::async_trait;
 use futures::StreamExt;
 use serde_json::{Value, json};

@@ -1,0 +1,28 @@
+---
+source: packages/rust/crates/qianji-bpmn-engine/tests/unit/lint.rs
+expression: value
+---
+{
+  "domain": "bpmn",
+  "source_id": "invalid-standard-loop-missing-limit.bpmn",
+  "ok": false,
+  "issues": [
+    {
+      "code": "bpmn.unsupported_loop_configuration",
+      "severity": "error",
+      "title": "Loop configuration exceeds the bounded slice",
+      "summary": "Process 'loop_invalid' loop node 'review' uses unsupported configuration 'missing_loop_maximum_or_condition'.",
+      "why_it_failed": "The current engine supports two bounded repeatable-task shapes: `standardLoopCharacteristics` on one serviceTask, userTask, manualTask, or businessRuleTask with a positive `loopMaximum` or one simple boolean loop condition, and sequential `multiInstanceLoopCharacteristics isSequential=\"true\"` on those same host-blocking task kinds with an integer `loopCardinality`. Parallel multi-instance expansion and richer data bindings remain deferred.",
+      "repair_guidance": [
+        "If you need bounded repeat execution now, rewrite the node to one serviceTask, userTask, manualTask, or businessRuleTask with either `standardLoopCharacteristics` or sequential `multiInstanceLoopCharacteristics isSequential=\"true\"`.",
+        "Use a positive `loopMaximum`, or one simple boolean condition like `done` or `not done`, or one integer `loopCardinality`. Keep parallel multi-instance, data input/output bindings, and `completionCondition` out of this bounded slice."
+      ],
+      "llm_fix_prompt": "Rewrite loop node 'review' in process 'loop_invalid' so it fits the bounded slice: either use one `standardLoopCharacteristics` block on a serviceTask, userTask, manualTask, or businessRuleTask with a positive `loopMaximum` or one simple boolean loop condition like `done` or `not done`, or use one sequential `multiInstanceLoopCharacteristics` block with `isSequential=\"true\"` and an integer `loopCardinality` on those same host-blocking task kinds. Preserve workflow intent, but remove unsupported configuration 'missing_loop_maximum_or_condition', and do not introduce parallel multi-instance, data input/output bindings, or `completionCondition`.",
+      "evidence": {
+        "detail": "missing_loop_maximum_or_condition",
+        "node_id": "review",
+        "process_id": "loop_invalid"
+      }
+    }
+  ]
+}

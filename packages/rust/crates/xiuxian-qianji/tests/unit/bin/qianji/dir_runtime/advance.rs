@@ -5,8 +5,8 @@ fn materialize_claim_extract_run(temp_dir: &TempDir) -> PathBuf {
     must_ok(
         run_dir_command(DirCliCommand::Materialize {
             target: MaterializeCliTarget::AnchoredScenario {
-                anchor: flowhub_root().join("research/paper/qianji.toml"),
-                scenario: "deep_read".to_string(),
+                anchor: anchored_workdir_fixture_anchor(),
+                scenario: anchored_workdir_fixture_scenario().to_string(),
                 dir: run_dir.clone(),
                 current_node: Some("claim_extract".to_string()),
             },

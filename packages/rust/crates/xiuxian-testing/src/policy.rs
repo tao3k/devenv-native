@@ -255,6 +255,7 @@ fn collect_test_target_files(crate_root: &Path) -> Result<Vec<PathBuf>, String> 
 
 fn file_contains_policy_harness(content: &str) -> bool {
     [
+        "crate_testing_gate!(",
         "crate_test_policy_harness!(",
         "crate_test_policy_source_harness!(",
         "assert_crate_test_policy_harness(",

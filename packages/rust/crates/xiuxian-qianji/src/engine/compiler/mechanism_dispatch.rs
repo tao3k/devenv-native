@@ -1,11 +1,19 @@
+//! Mechanism dispatch chain.
+//!
+//! Start in `resolver_chain`; `stateless`, `stateful_cfg`, and `leaf_dispatch`
+//! contribute ordered resolver stages.
+
 use crate::contracts::{NodeDefinition, QianjiMechanism};
+use crate::engine::compiler_api::QianjiCompiler;
 use crate::error::QianjiError;
 use std::sync::Arc;
 
-use super::{QianjiCompiler, task_type};
+use super::task_type;
 
+#[path = "../../engine_compiler_mechanism_dispatch_leaf_dispatch.rs"]
 mod leaf_dispatch;
 mod resolver_chain;
+#[path = "../../engine_compiler_mechanism_dispatch_stateful_cfg.rs"]
 mod stateful_cfg;
 mod stateless;
 

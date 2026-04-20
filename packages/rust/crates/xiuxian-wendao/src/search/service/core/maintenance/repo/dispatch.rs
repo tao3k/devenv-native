@@ -1,4 +1,4 @@
-use xiuxian_vector_store::VectorStoreError;
+use xiuxian_db_store::VectorStoreError;
 
 use crate::search::service::core::types::{RepoMaintenanceTask, SearchPlaneService};
 

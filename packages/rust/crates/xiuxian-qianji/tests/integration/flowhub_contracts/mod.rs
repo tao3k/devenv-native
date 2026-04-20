@@ -20,6 +20,10 @@ fn flowhub_root() -> PathBuf {
     repo_root().join("qianji-flowhub")
 }
 
+fn real_flowhub_fixture_available() -> bool {
+    flowhub_root().join("qianji.toml").is_file()
+}
+
 fn assert_common_diagnostic_shape(rendered: &str) {
     assert!(rendered.contains("# Validation Failed"));
     assert!(rendered.contains("Location:"));

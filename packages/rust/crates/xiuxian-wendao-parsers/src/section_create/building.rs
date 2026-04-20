@@ -12,9 +12,8 @@ pub fn build_new_sections_content_with_options(
     options: &BuildSectionOptions,
 ) -> String {
     let mut result = String::new();
-    let mut current_level = start_level;
-
-    for (index, heading) in remaining_path.iter().enumerate() {
+    for (current_level, (index, heading)) in (start_level..).zip(remaining_path.iter().enumerate())
+    {
         let level = current_level.clamp(1, 6);
         let heading_marker = "#".repeat(level);
 
@@ -27,9 +26,7 @@ pub fn build_new_sections_content_with_options(
             let id = generate_section_id(options.id_prefix.as_deref());
             let _ = write!(result, "\n:ID: {id}");
         }
-
         result.push_str("\n\n");
-        current_level += 1;
     }
 
     result.push_str(content);

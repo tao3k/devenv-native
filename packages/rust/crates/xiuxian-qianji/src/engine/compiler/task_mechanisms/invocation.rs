@@ -8,7 +8,7 @@ pub(in crate::engine::compiler) fn http_call(
     node_def: &NodeDefinition,
 ) -> Result<Arc<dyn QianjiMechanism>, QianjiError> {
     let config = io_mechanisms::http_call_mechanism_config(node_def)?;
-    Ok(Arc::new(crate::executors::http_call::HttpCallMechanism {
+    Ok(Arc::new(crate::executors::HttpCallMechanism {
         contract: config.contract,
         method: config.method,
         path: config.path,
@@ -22,7 +22,7 @@ pub(in crate::engine::compiler) fn cli_call(
     node_def: &NodeDefinition,
 ) -> Result<Arc<dyn QianjiMechanism>, QianjiError> {
     let config = io_mechanisms::cli_call_mechanism_config(node_def)?;
-    Ok(Arc::new(crate::executors::cli_call::CliCallMechanism {
+    Ok(Arc::new(crate::executors::CliCallMechanism {
         contract: config.contract,
         argv: config.argv,
         output_key: config.output_key,

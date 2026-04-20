@@ -1,4 +1,4 @@
-use crate::scheduler::preflight::resolve_semantic_content;
+use crate::scheduler_preflight::resolve_semantic_content;
 use serde_json::Value;
 
 pub(super) fn render_template(raw: &str, context: &Value) -> Result<String, String> {

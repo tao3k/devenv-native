@@ -2,7 +2,7 @@
 
 use std::fs;
 use tempfile::TempDir;
-use xiuxian_qianji::executors::wendao_refresh::WendaoRefreshMechanism;
+use xiuxian_qianji::executors::WendaoRefreshMechanism;
 use xiuxian_qianji::{FlowInstruction, QianjiMechanism};
 
 fn write_file(path: &std::path::Path, content: &str) -> Result<(), Box<dyn std::error::Error>> {

@@ -13,13 +13,11 @@ use super::discover::{
     FlowhubDiscoveredModule, discover_all_flowhub_module_refs, find_flowhub_root_for_module_dir,
     load_flowhub_module_candidate, module_candidate_from_dir, module_candidate_from_ref,
 };
-use super::mermaid::{
-    MermaidFlowchart, MermaidNodeKind, analyze_mermaid_flowchart_topology, parse_mermaid_flowchart,
+use super::{
+    FlowhubScenarioIr, FlowhubScenarioNodeIr, MermaidFlowchart, MermaidNodeKind,
+    analyze_mermaid_flowchart_topology, compile_flowhub_scenario_ir,
+    parse_flowhub_graph_annotations, parse_mermaid_flowchart, resolve_flowhub_graph_name,
     scenario_graph_label_is_allowed,
-};
-use super::scenario_ir::{
-    FlowhubScenarioIr, FlowhubScenarioNodeIr, compile_flowhub_scenario_ir,
-    parse_flowhub_graph_annotations, resolve_flowhub_graph_name,
 };
 
 /// One Flowhub Mermaid graph contract preview.
@@ -365,7 +363,7 @@ fn collect_unknown_graph_nodes(
 }
 
 fn build_next_labels_by_node_id<'a>(
-    edges: &'a [super::mermaid::MermaidEdge],
+    edges: &'a [super::mermaid_model::MermaidEdge],
     nodes_by_id: &BTreeMap<&'a str, &'a str>,
 ) -> BTreeMap<&'a str, Vec<String>> {
     let mut next_by_node_id = BTreeMap::<&str, Vec<String>>::new();

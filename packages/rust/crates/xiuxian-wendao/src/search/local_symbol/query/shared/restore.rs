@@ -45,7 +45,7 @@ async fn load_table_hits(
 }
 
 fn string_column<'a>(
-    batch: &'a xiuxian_vector_store::EngineRecordBatch,
+    batch: &'a xiuxian_db_store::EngineRecordBatch,
     name: &str,
 ) -> Result<EngineStringColumn<'a>, LocalSymbolSearchError> {
     let column = batch.column_by_name(name).ok_or_else(|| {

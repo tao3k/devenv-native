@@ -1,6 +1,5 @@
-use super::*;
-use crate::engine::QianjiEngine;
 use crate::telemetry::NodeTransitionPhase;
+use crate::{QianjiEngine, QianjiScheduler};
 use petgraph::stable_graph::NodeIndex;
 
 #[tokio::test]

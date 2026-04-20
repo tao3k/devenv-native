@@ -1,19 +1,24 @@
 use super::{
-    ContractFeedbackCliCommand, DEFAULT_CONTRACT_FEEDBACK_TABLE_NAME, DirCliCommand,
-    MaterializeCliTarget, REST_DOCS_PACK_ID, RestDocsCliCommand, ShowCliTarget,
-    build_contract_feedback_config, build_rest_docs_collection_context,
-    parse_contract_feedback_command, parse_dir_command, resolve_workspace_root,
-    run_deterministic_rest_docs_contract_feedback, run_dir_command,
+    BpmnCliCheckpointBackend, BpmnCliCommand, BpmnRunCliCommand, ContractFeedbackCliCommand,
+    DEFAULT_CONTRACT_FEEDBACK_TABLE_NAME, DirCliCommand, LintCliCommand, MaterializeCliTarget,
+    REST_DOCS_PACK_ID, RestDocsCliCommand, ShowCliTarget, build_contract_feedback_config,
+    build_rest_docs_collection_context, parse_bpmn_command, parse_contract_feedback_command,
+    parse_dir_command, parse_lint_command, resolve_bpmn_checkpoint_store_with_env,
+    resolve_workspace_root, run_bpmn_command, run_bpmn_run_command_with_runtime_env,
+    run_deterministic_rest_docs_contract_feedback, run_dir_command, run_lint_command,
     run_scaffold_rest_docs_contract_feedback, sanitize_prj_cache_home,
 };
 use std::fs;
 use std::path::{Path, PathBuf};
 use tempfile::TempDir;
 use xiuxian_config_core::{resolve_cache_home_from_value, resolve_project_root};
+use xiuxian_qianji::runtime_config::QianjiRuntimeEnv;
 
+mod bpmn;
 mod cache_paths;
 mod dir_parsing;
 mod dir_runtime;
+mod lint;
 mod rest_docs;
 
 fn to_args(values: &[&str]) -> Vec<String> {
@@ -122,6 +127,22 @@ fn scenario_fixture_dir(name: &str) -> PathBuf {
     repo_root().join(format!(
         "packages/rust/crates/xiuxian-qianji/tests/fixtures/flowhub/{name}"
     ))
+}
+
+fn anchored_workdir_fixture_anchor() -> PathBuf {
+    repo_root().join(
+        "packages/rust/crates/xiuxian-qianji/tests/fixtures/flowhub_modules/paper_deep_read_workdir/qianji.toml",
+    )
+}
+
+fn anchored_workdir_fixture_graph() -> PathBuf {
+    repo_root().join(
+        "packages/rust/crates/xiuxian-qianji/tests/fixtures/flowhub_modules/paper_deep_read_workdir/paper-deep-read.mmd",
+    )
+}
+
+fn anchored_workdir_fixture_scenario() -> &'static str {
+    "deep_read"
 }
 
 fn create_invalid_scenario_fixture(temp_dir: &TempDir) -> PathBuf {

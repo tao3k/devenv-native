@@ -1,7 +1,7 @@
 use chrono::Utc;
 use tokio::sync::OwnedSemaphorePermit;
 use xiuxian_config_core::lookup_positive_parsed;
-use xiuxian_vector_store::VectorStoreError;
+use xiuxian_db_store::VectorStoreError;
 
 use crate::search::service::core::types::SearchPlaneService;
 

@@ -28,7 +28,7 @@ pub(super) fn build_promotion_entity(context: &Value, decision: &str) -> Entity 
         );
 
     let description =
-        format!("MemRL promotion decision={decision}; query={query}; summary={summary}",);
+        format!("MemRL promotion decision={decision}; query={query}; summary={summary}");
 
     Entity::new(
         format!("memory:{memory_id}"),
@@ -108,7 +108,6 @@ fn normalize_topic_key(raw: &str) -> String {
 fn generate_fallback_memory_id() -> String {
     let millis = SystemTime::now()
         .duration_since(UNIX_EPOCH)
-        .map(|duration| duration.as_millis())
-        .unwrap_or(0);
+        .map_or(0, |duration| duration.as_millis());
     format!("auto-{millis}")
 }

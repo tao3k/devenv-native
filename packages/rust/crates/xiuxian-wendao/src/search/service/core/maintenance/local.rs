@@ -1,4 +1,4 @@
-use xiuxian_vector_store::VectorStoreError;
+use xiuxian_db_store::VectorStoreError;
 
 use super::helpers::{LOCAL_MAINTENANCE_SHUTDOWN_MESSAGE, PREWARM_ROW_LIMIT};
 use crate::search::SearchCorpusKind;

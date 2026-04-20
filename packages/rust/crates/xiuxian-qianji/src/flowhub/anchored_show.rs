@@ -175,7 +175,7 @@ fn render_current_state_section_lines(
 }
 
 fn render_writable_surface_section_lines(
-    current_node_contract: Option<&super::scenario_ir::FlowhubScenarioNodeIr>,
+    current_node_contract: Option<&super::FlowhubScenarioNodeIr>,
 ) -> Vec<String> {
     let Some(current_node_contract) = current_node_contract else {
         return vec![
@@ -201,7 +201,7 @@ fn render_writable_surface_section_lines(
 }
 
 fn render_merge_target_section_lines(
-    current_node_contract: Option<&super::scenario_ir::FlowhubScenarioNodeIr>,
+    current_node_contract: Option<&super::FlowhubScenarioNodeIr>,
 ) -> Vec<String> {
     let Some(current_node_contract) = current_node_contract else {
         return vec!["- No active node contract is selected yet.".to_string()];
@@ -217,7 +217,7 @@ fn render_merge_target_section_lines(
 }
 
 fn render_success_condition_section_lines(
-    current_node_contract: Option<&super::scenario_ir::FlowhubScenarioNodeIr>,
+    current_node_contract: Option<&super::FlowhubScenarioNodeIr>,
 ) -> Vec<String> {
     let Some(current_node_contract) = current_node_contract else {
         return vec![

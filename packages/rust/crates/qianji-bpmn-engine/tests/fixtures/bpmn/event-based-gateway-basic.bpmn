@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    id="pkg_event_gateway"
+    targetNamespace="https://tao3k.dev/qianji/bpmn">
+  <bpmn:process id="event_race" isExecutable="true">
+    <bpmn:startEvent id="start">
+      <bpmn:outgoing>flow_start_gateway</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:sequenceFlow id="flow_start_gateway" sourceRef="start" targetRef="wait_race" />
+    <bpmn:eventBasedGateway id="wait_race">
+      <bpmn:incoming>flow_start_gateway</bpmn:incoming>
+      <bpmn:outgoing>flow_gateway_message</bpmn:outgoing>
+      <bpmn:outgoing>flow_gateway_timer</bpmn:outgoing>
+    </bpmn:eventBasedGateway>
+    <bpmn:intermediateCatchEvent id="wait_invoice">
+      <bpmn:incoming>flow_gateway_message</bpmn:incoming>
+      <bpmn:outgoing>flow_message_end</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="message_wait" messageRef="invoice_message" />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:intermediateCatchEvent id="wait_timeout">
+      <bpmn:incoming>flow_gateway_timer</bpmn:incoming>
+      <bpmn:outgoing>flow_timer_end</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="timer_wait">
+        <bpmn:timeDuration xsi:type="bpmn:tFormalExpression">PT5M</bpmn:timeDuration>
+      </bpmn:timerEventDefinition>
+    </bpmn:intermediateCatchEvent>
+    <bpmn:sequenceFlow id="flow_gateway_message" sourceRef="wait_race" targetRef="wait_invoice" />
+    <bpmn:sequenceFlow id="flow_gateway_timer" sourceRef="wait_race" targetRef="wait_timeout" />
+    <bpmn:endEvent id="invoice_end">
+      <bpmn:incoming>flow_message_end</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:endEvent id="timeout_end">
+      <bpmn:incoming>flow_timer_end</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="flow_message_end" sourceRef="wait_invoice" targetRef="invoice_end" />
+    <bpmn:sequenceFlow id="flow_timer_end" sourceRef="wait_timeout" targetRef="timeout_end" />
+  </bpmn:process>
+  <bpmn:message id="invoice_message" name="InvoiceReceived" />
+</bpmn:definitions>

@@ -1,7 +1,7 @@
 use std::collections::BTreeSet;
 
 use crate::contracts::{FlowhubGraphSurfaceContract, FlowhubGraphTopology, WorkdirCheck};
-use crate::flowhub::mermaid::normalize_graph_node_label;
+use crate::flowhub::normalize_graph_node_label;
 
 /// Compiled scenario-case contract consumed by `show` and Flowhub validation.
 #[derive(Debug, Clone, PartialEq, Eq)]

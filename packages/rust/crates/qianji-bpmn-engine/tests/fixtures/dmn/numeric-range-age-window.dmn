@@ -1,0 +1,42 @@
+<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/"
+  id="Definitions_age_window"
+  name="Age Window DRD"
+  namespace="http://example.com/dmn">
+  <decision id="age-window" name="Age Window">
+    <decisionTable id="decision_table_age_window" hitPolicy="UNIQUE">
+      <input id="input_age" label="age">
+        <inputExpression id="input_expression_age" typeRef="number">
+          <text>age</text>
+        </inputExpression>
+      </input>
+      <output id="output_window" name="window" label="window" typeRef="string" />
+      <rule id="rule_inclusive_window">
+        <description>Inclusive chained range</description>
+        <inputEntry id="input_entry_inclusive_window">
+          <text>100 &lt;= ? &lt;= 110</text>
+        </inputEntry>
+        <outputEntry id="output_entry_inclusive_window">
+          <text>"inclusive-window"</text>
+        </outputEntry>
+      </rule>
+      <rule id="rule_interval_window">
+        <description>Bracket interval range</description>
+        <inputEntry id="input_entry_interval_window">
+          <text>[200..210)</text>
+        </inputEntry>
+        <outputEntry id="output_entry_interval_window">
+          <text>"interval-window"</text>
+        </outputEntry>
+      </rule>
+      <rule id="rule_outside_window">
+        <description>Fallback</description>
+        <inputEntry id="input_entry_outside_window">
+          <text>-</text>
+        </inputEntry>
+        <outputEntry id="output_entry_outside_window">
+          <text>"outside-window"</text>
+        </outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+</definitions>

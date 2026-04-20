@@ -4,14 +4,14 @@ use std::path::{Path, PathBuf};
 
 use crate::contracts::{WorkdirManifest, WorkdirPlan};
 use crate::error::QianjiError;
-use crate::flowhub::mermaid::MermaidFlowchart;
+use crate::flowhub::MermaidFlowchart;
 use crate::markdown::{MarkdownShowSection, render_show_surface};
 use crate::workdir::{check_workdir, render_workdir_check_markdown};
 
-use super::ensure_output_dir_is_safe;
+use super::materialize_safety::ensure_output_dir_is_safe;
+use crate::flowhub::FlowhubScenarioIr;
 use crate::flowhub::anchor::{resolve_anchor_manifest_path, resolve_anchored_graph};
 use crate::flowhub::graph_show::{display_graph_path, load_flowhub_graph_runtime_contract};
-use crate::flowhub::scenario_ir::FlowhubScenarioIr;
 use crate::workdir::{WorkdirRuntimeNode, resolve_runtime_node};
 
 /// Summary of one localized run root materialized from an anchor-owned Mermaid

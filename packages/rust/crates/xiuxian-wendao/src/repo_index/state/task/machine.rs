@@ -69,8 +69,7 @@ pub(crate) fn default_repo_index_sync_requeue_attempts_for_parallelism(
 
 fn available_parallelism() -> usize {
     std::thread::available_parallelism()
-        .map(std::num::NonZeroUsize::get)
-        .unwrap_or(1)
+        .map_or(1, std::num::NonZeroUsize::get)
         .max(1)
 }
 

@@ -7,8 +7,8 @@ use regex::Regex;
 use walkdir::WalkDir;
 
 use crate::error::QianjiError;
-use crate::flowhub::mermaid::parse_mermaid_flowchart;
-use crate::flowhub::scenario_ir::{
+use crate::flowhub::parse_mermaid_flowchart;
+use crate::flowhub::{
     compile_flowhub_scenario_ir, parse_flowhub_graph_annotations, resolve_flowhub_graph_name,
 };
 use crate::markdown::{

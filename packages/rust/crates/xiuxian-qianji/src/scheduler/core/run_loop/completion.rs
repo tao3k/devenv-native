@@ -1,14 +1,14 @@
 use crate::contracts::NodeStatus;
 use crate::error::QianjiError;
 use crate::scheduler::core::QianjiScheduler;
-use crate::scheduler::core::types::{ConsensusCheckpointView, ConsensusOutcome};
-use crate::scheduler::state::{NodeExecutionResult, merge_output_data};
+use crate::scheduler::types::{ConsensusCheckpointView, ConsensusOutcome};
+use crate::scheduler_state::{NodeExecutionResult, merge_output_data};
 use crate::telemetry::NodeTransitionPhase;
 use petgraph::stable_graph::NodeIndex;
 use std::collections::HashSet;
 
 impl QianjiScheduler {
-    pub(super) async fn process_completed_task(
+    pub(in crate::scheduler) async fn process_completed_task(
         &self,
         join_result: Result<(NodeIndex, NodeExecutionResult), tokio::task::JoinError>,
         context: &mut serde_json::Value,

@@ -453,12 +453,10 @@ async fn agenda_validation_loop_converges_after_teacher_retry() {
     let proposer = Arc::new(AgendaStewardLoopProposer {
         attempts: attempts.clone(),
     });
-    let critic = Arc::new(
-        xiuxian_qianji::executors::formal_audit::FormalAuditMechanism {
-            invariants: vec![Invariant::MustBeGrounded],
-            retry_target_ids: vec!["Agenda_Steward_Proposer".to_string()],
-        },
-    );
+    let critic = Arc::new(xiuxian_qianji::executors::FormalAuditMechanism {
+        invariants: vec![Invariant::MustBeGrounded],
+        retry_target_ids: vec!["Agenda_Steward_Proposer".to_string()],
+    });
     let commit = Arc::new(AgendaCommitRecorder);
 
     let mut engine = QianjiEngine::new();

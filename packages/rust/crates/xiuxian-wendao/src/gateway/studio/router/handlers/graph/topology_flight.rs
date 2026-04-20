@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use tonic::Status;
-use xiuxian_vector_store::{
+use xiuxian_db_store::{
     LanceArrayRef, LanceDataType, LanceField, LanceFloat32Array, LanceInt32Array, LanceRecordBatch,
     LanceSchema, LanceStringArray,
 };

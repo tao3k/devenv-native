@@ -13,7 +13,7 @@ use crate::spec::RepoSpec;
 const CHECKOUT_LOCK_RETRY_DELAY_ENV: &str = "XIUXIAN_GIT_REPO_CHECKOUT_LOCK_RETRY_DELAY_MS";
 const CHECKOUT_LOCK_MAX_WAIT_ENV: &str = "XIUXIAN_WENDAO_CHECKOUT_LOCK_MAX_WAIT_SECS";
 const DEFAULT_CHECKOUT_LOCK_MAX_WAIT_SECS: u64 = 20;
-const CHECKOUT_LOCK_STALE_AFTER: Duration = Duration::from_secs(120);
+const CHECKOUT_LOCK_STALE_AFTER: Duration = Duration::from_mins(2);
 const TOO_MANY_OPEN_FILES_OS_ERROR: i32 = 24;
 const MIN_CHECKOUT_LOCK_RETRY_DELAY_MS: u64 = 50;
 const MAX_CHECKOUT_LOCK_RETRY_DELAY_MS: u64 = 150;
@@ -65,9 +65,7 @@ fn checkout_lock_retry_delay_with_lookup(lookup: &dyn Fn(&str) -> Option<String>
 
 fn default_checkout_lock_retry_delay() -> Duration {
     default_checkout_lock_retry_delay_for_parallelism(
-        std::thread::available_parallelism()
-            .map(std::num::NonZeroUsize::get)
-            .unwrap_or(1),
+        std::thread::available_parallelism().map_or(1, std::num::NonZeroUsize::get),
     )
 }
 

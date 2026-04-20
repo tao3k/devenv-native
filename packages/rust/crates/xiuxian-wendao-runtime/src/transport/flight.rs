@@ -9,7 +9,7 @@ use arrow_schema::DataType;
 use futures::{TryStreamExt, stream};
 use tokio::sync::{Mutex, Semaphore};
 use tonic::transport::Endpoint;
-use xiuxian_vector_store::EngineRecordBatch;
+use xiuxian_db_store::EngineRecordBatch;
 
 use super::query_contract::{
     RERANK_REQUEST_EMBEDDING_COLUMN, RERANK_ROUTE, WENDAO_RERANK_DIMENSION_HEADER,

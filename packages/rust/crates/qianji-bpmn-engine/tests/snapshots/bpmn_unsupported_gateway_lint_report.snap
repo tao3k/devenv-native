@@ -1,0 +1,28 @@
+---
+source: packages/rust/crates/qianji-bpmn-engine/tests/unit/lint.rs
+expression: value
+---
+{
+  "domain": "bpmn",
+  "source_id": "invalid-unsupported-gateway.bpmn",
+  "ok": false,
+  "issues": [
+    {
+      "code": "bpmn.unsupported_element",
+      "severity": "error",
+      "title": "BPMN element is outside the supported subset",
+      "summary": "Process 'gateway_flow' in source 'invalid-unsupported-gateway.bpmn' uses unsupported element '<inclusiveGateway>'.",
+      "why_it_failed": "The current engine only lints and parses a bounded BPMN subset, so unsupported elements block execution-oriented validation.",
+      "repair_guidance": [
+        "Replace `<inclusiveGateway>` with an equivalent structure built from the supported subset when possible.",
+        "If the workflow truly requires this element, preserve the original intent in comments or notes and defer execution until engine support exists."
+      ],
+      "llm_fix_prompt": "Edit BPMN source 'invalid-unsupported-gateway.bpmn' so process 'gateway_flow' no longer uses unsupported element `<inclusiveGateway>`. Preserve workflow intent, but rewrite the structure using only the supported bounded subset: startEvent, endEvent, intermediateCatchEvent with exactly one messageEventDefinition, signalEventDefinition, or timerEventDefinition, one interrupting timer boundaryEvent attached to one serviceTask/userTask/manualTask/businessRuleTask, one bounded callActivity that targets another executable process in the same BPMN package, serviceTask, userTask, manualTask, businessRuleTask, those same host-blocking task kinds with bounded `standardLoopCharacteristics`, those same host-blocking task kinds with bounded sequential `multiInstanceLoopCharacteristics isSequential=\"true\"` plus integer `loopCardinality`, exclusiveGateway, parallelGateway, one exclusive eventBasedGateway whose outgoing targets are message/signal/timer intermediateCatchEvent waits, and sequenceFlow. Do not introduce inclusiveGateway, embedded subProcess bodies, non-interrupting boundaries, parallel multi-instance expansion, multi-instance data input/output bindings, completionCondition, or full condition-driven routing in this bounded slice.",
+      "evidence": {
+        "element": "inclusiveGateway",
+        "process_id": "gateway_flow",
+        "source_id": "invalid-unsupported-gateway.bpmn"
+      }
+    }
+  ]
+}

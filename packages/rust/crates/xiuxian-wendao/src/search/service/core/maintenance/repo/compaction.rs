@@ -1,5 +1,5 @@
 use chrono::Utc;
-use xiuxian_vector_store::TableInfo;
+use xiuxian_db_store::TableInfo;
 
 use crate::search::service::core::types::{RepoCompactionTask, SearchPlaneService};
 use crate::search::{SearchMaintenanceStatus, SearchRepoCorpusRecord, SearchRepoPublicationRecord};

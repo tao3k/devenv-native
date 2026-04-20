@@ -8,8 +8,8 @@ use arrow::datatypes::{DataType, Field, Schema};
 #[cfg(test)]
 use arrow::ipc::writer::StreamWriter;
 #[cfg(test)]
-use xiuxian_vector_store::lance_batch_to_engine_batch;
-use xiuxian_vector_store::{
+use xiuxian_db_store::lance_batch_to_engine_batch;
+use xiuxian_db_store::{
     LanceDataType, LanceField, LanceRecordBatch, LanceSchema, LanceStringArray, LanceUInt64Array,
 };
 

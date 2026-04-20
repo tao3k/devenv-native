@@ -41,12 +41,10 @@ async fn test_formal_adversarial_audit_convergence() -> Result<(), Box<dyn std::
 
     let mut engine = xiuxian_qianji::QianjiEngine::new();
     let analyzer = Arc::new(SelfHealingMock);
-    let skeptic = Arc::new(
-        xiuxian_qianji::executors::formal_audit::FormalAuditMechanism {
-            invariants: vec![xiuxian_qianji::safety::logic::Invariant::MustBeGrounded],
-            retry_target_ids: vec!["Analyzer".to_string()],
-        },
-    );
+    let skeptic = Arc::new(xiuxian_qianji::executors::FormalAuditMechanism {
+        invariants: vec![xiuxian_qianji::safety::logic::Invariant::MustBeGrounded],
+        retry_target_ids: vec!["Analyzer".to_string()],
+    });
 
     let a = engine.add_mechanism("Analyzer", analyzer);
     let s = engine.add_mechanism("Skeptic", skeptic);

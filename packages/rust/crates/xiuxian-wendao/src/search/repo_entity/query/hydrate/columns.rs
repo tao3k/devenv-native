@@ -1,5 +1,5 @@
 use arrow::array::{Array, Float64Array, ListArray, StringArray, StringViewArray, UInt32Array};
-use xiuxian_vector_store::EngineRecordBatch;
+use xiuxian_db_store::EngineRecordBatch;
 
 use crate::search::repo_entity::query::lookup::RepoEntitySearchError;
 use crate::search::repo_entity::schema::{

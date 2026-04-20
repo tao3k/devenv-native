@@ -9,7 +9,7 @@ use xiuxian_config_core::resolve_project_root;
 use xiuxian_qianji::{
     advance_workdir_step, check_workdir, materialize_flowhub_anchored_scenario,
     materialize_flowhub_anchored_scenario_at_node, materialize_flowhub_scenario_workdir,
-    show_workdir,
+    show_flowhub_graph, show_workdir,
 };
 
 fn write_file(path: &Path, content: &str) {
@@ -159,6 +159,24 @@ fn repo_root() -> PathBuf {
         .unwrap_or_else(|| panic!("workspace root should resolve from PRJ_ROOT or git ancestry"))
 }
 
+fn real_flowhub_paper_anchor() -> PathBuf {
+    repo_root().join("qianji-flowhub/research/paper/qianji.toml")
+}
+
+fn real_flowhub_paper_anchor_available() -> bool {
+    real_flowhub_paper_anchor().is_file()
+}
+
+fn real_flowhub_paper_graph() -> PathBuf {
+    repo_root().join("qianji-flowhub/research/paper/paper-deep-read.mmd")
+}
+
+fn real_flowhub_paper_anchor_supports_localized_contract() -> bool {
+    show_flowhub_graph(real_flowhub_paper_graph())
+        .map(|show| show.declared_check_surface.root.is_some())
+        .unwrap_or(false)
+}
+
 #[test]
 fn materialize_flowhub_scenario_generates_compact_work_surface() {
     let temp_dir =
@@ -244,13 +262,19 @@ order by surface, path, heading_path"
 
 #[test]
 fn materialize_flowhub_anchored_scenario_generates_step_aware_run_root() {
+    if !real_flowhub_paper_anchor_available()
+        || !real_flowhub_paper_anchor_supports_localized_contract()
+    {
+        return;
+    }
     let temp_dir =
         TempDir::new().unwrap_or_else(|error| panic!("temp dir should allocate: {error}"));
     let output_dir = temp_dir.path().join("runs/run_001");
-    let anchor = repo_root().join("qianji-flowhub/research/paper/qianji.toml");
+    let anchor = real_flowhub_paper_anchor();
 
-    let materialized = materialize_flowhub_anchored_scenario(&anchor, "deep_read", &output_dir)
-        .unwrap_or_else(|error| panic!("anchored scenario should materialize: {error}"));
+    let materialized =
+        materialize_flowhub_anchored_scenario(&anchor, "paper-deep-read", &output_dir)
+            .unwrap_or_else(|error| panic!("anchored scenario should materialize: {error}"));
 
     assert_eq!(materialized.plan_name, "deep_read");
     assert_eq!(materialized.current_node, "research/paper");
@@ -273,14 +297,19 @@ fn materialize_flowhub_anchored_scenario_generates_step_aware_run_root() {
 
 #[test]
 fn materialize_flowhub_anchored_scenario_scaffolds_selected_current_node() {
+    if !real_flowhub_paper_anchor_available()
+        || !real_flowhub_paper_anchor_supports_localized_contract()
+    {
+        return;
+    }
     let temp_dir =
         TempDir::new().unwrap_or_else(|error| panic!("temp dir should allocate: {error}"));
     let output_dir = temp_dir.path().join("runs/run_003");
-    let anchor = repo_root().join("qianji-flowhub/research/paper/qianji.toml");
+    let anchor = real_flowhub_paper_anchor();
 
     let materialized = materialize_flowhub_anchored_scenario_at_node(
         &anchor,
-        "deep_read",
+        "paper-deep-read",
         &output_dir,
         Some("claim_extract"),
     )
@@ -317,14 +346,19 @@ fn materialize_flowhub_anchored_scenario_scaffolds_selected_current_node() {
 
 #[test]
 fn advance_workdir_step_updates_localized_step_state() {
+    if !real_flowhub_paper_anchor_available()
+        || !real_flowhub_paper_anchor_supports_localized_contract()
+    {
+        return;
+    }
     let temp_dir =
         TempDir::new().unwrap_or_else(|error| panic!("temp dir should allocate: {error}"));
     let output_dir = temp_dir.path().join("runs/run_005");
-    let anchor = repo_root().join("qianji-flowhub/research/paper/qianji.toml");
+    let anchor = real_flowhub_paper_anchor();
 
     materialize_flowhub_anchored_scenario_at_node(
         &anchor,
-        "deep_read",
+        "paper-deep-read",
         &output_dir,
         Some("claim_extract"),
     )

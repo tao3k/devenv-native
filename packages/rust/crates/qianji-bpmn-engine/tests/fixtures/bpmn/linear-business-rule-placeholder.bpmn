@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:camunda="http://camunda.org/schema/1.0/bpmn"
+  id="pkg_dmn_placeholder">
+  <bpmn:process id="loan_review" isExecutable="true">
+    <bpmn:startEvent id="start" />
+    <bpmn:businessRuleTask id="decision" camunda:decisionRef="loan-decision" />
+    <bpmn:endEvent id="end" />
+    <bpmn:sequenceFlow id="flow_start_decision" sourceRef="start" targetRef="decision" />
+    <bpmn:sequenceFlow id="flow_decision_end" sourceRef="decision" targetRef="end" />
+  </bpmn:process>
+</bpmn:definitions>

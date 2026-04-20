@@ -1,5 +1,6 @@
 use crate::error::QianjiError;
-use crate::swarm::engine::{SwarmAgentConfig, SwarmAgentReport, SwarmEngine};
+use crate::swarm::engine_orchestrator::SwarmEngine;
+use crate::swarm::engine_types::{SwarmAgentConfig, SwarmAgentReport};
 use xiuxian_window::SessionWindow;
 
 impl SwarmEngine {

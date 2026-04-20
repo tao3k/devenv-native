@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use xiuxian_vector_store::LanceRecordBatch;
+use xiuxian_db_store::LanceRecordBatch;
 use xiuxian_wendao_runtime::transport::{
     RepoSearchFlightRequest, RepoSearchFlightRouteProvider, RerankScoreWeights, WendaoFlightService,
 };

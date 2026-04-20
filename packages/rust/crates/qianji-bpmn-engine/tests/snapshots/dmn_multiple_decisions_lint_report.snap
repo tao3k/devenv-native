@@ -1,0 +1,27 @@
+---
+source: packages/rust/crates/qianji-bpmn-engine/tests/unit/lint.rs
+expression: report
+---
+{
+  "domain": "dmn",
+  "source_id": "invalid-multiple-decisions.dmn",
+  "ok": false,
+  "issues": [
+    {
+      "code": "dmn.unsupported_decision_count",
+      "severity": "error",
+      "title": "DMN source has too many decisions for the bounded contract",
+      "summary": "Source 'invalid-multiple-decisions.dmn' contains 2 decisions, but the bounded linter expects exactly 1.",
+      "why_it_failed": "The current DMN slice only supports one decision per source so the later adapter can bind one business-rule target deterministically.",
+      "repair_guidance": [
+        "Split multiple decisions into separate DMN files when possible.",
+        "If the decisions must stay related, keep one primary decision in this file and defer the rest until multi-decision support exists."
+      ],
+      "llm_fix_prompt": "Edit DMN source 'invalid-multiple-decisions.dmn' so it contains exactly one `<decision>` for the bounded engine contract. Split extra decisions into separate files rather than merging them into one table.",
+      "evidence": {
+        "decision_count": 2,
+        "source_id": "invalid-multiple-decisions.dmn"
+      }
+    }
+  ]
+}

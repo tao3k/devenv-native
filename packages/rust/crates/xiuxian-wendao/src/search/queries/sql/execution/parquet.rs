@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use xiuxian_vector_store::EngineRecordBatch;
+use xiuxian_db_store::EngineRecordBatch;
 
 use crate::duckdb::{LocalRelationEngineKind, ParquetQueryEngine};
 use crate::search::{SearchCorpusKind, SearchPlaneService};

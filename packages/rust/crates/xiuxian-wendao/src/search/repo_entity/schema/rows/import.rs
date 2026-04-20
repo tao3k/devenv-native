@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use xiuxian_vector_store::VectorStoreError;
+use xiuxian_db_store::VectorStoreError;
 
 use crate::analyzers::ImportRecord;
 use crate::gateway::studio::types::SearchHit;

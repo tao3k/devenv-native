@@ -81,8 +81,7 @@ pub(crate) fn default_remote_operation_timeout_for_parallelism(parallelism: usiz
 
 fn available_parallelism() -> usize {
     std::thread::available_parallelism()
-        .map(std::num::NonZeroUsize::get)
-        .unwrap_or(1)
+        .map_or(1, std::num::NonZeroUsize::get)
         .max(1)
 }
 

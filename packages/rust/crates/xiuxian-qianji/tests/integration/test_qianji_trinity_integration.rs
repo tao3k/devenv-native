@@ -9,8 +9,7 @@
 use serde_json::json;
 use std::sync::Arc;
 use xiuxian_qianhuan::{orchestrator::ThousandFacesOrchestrator, persona::PersonaRegistry};
-use xiuxian_qianji::executors::annotation::ContextAnnotator;
-use xiuxian_qianji::executors::calibration::SynapseCalibrator;
+use xiuxian_qianji::executors::{ContextAnnotator, SynapseCalibrator};
 use xiuxian_qianji::{NodeQianhuanExecutionMode, QianjiEngine, QianjiScheduler};
 use xiuxian_wendao::link_graph::LinkGraphIndex;
 

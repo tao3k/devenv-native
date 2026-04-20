@@ -1,4 +1,4 @@
-use crate::executors::wendao_sql::contract::{parse_sql_author_spec_xml, parse_surface_bundle_xml};
+use crate::executors::{parse_sql_author_spec_xml, parse_surface_bundle_xml};
 
 #[test]
 fn parses_surface_bundle_xml_contract() {

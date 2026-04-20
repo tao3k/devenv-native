@@ -10,6 +10,7 @@ publish = false
 [features]
 default = []
 llm = ["dep:xiuxian-llm"]
+sqlite = ["qianji-bpmn-engine/sqlite"]
 
 [dependencies]
 petgraph = { workspace = true }
@@ -42,6 +43,7 @@ xiuxian-wendao-core = { path = "../xiuxian-wendao-core" }
 xiuxian-wendao-runtime = { path = "../xiuxian-wendao-runtime" }
 xiuxian-wendao-parsers = { path = "../xiuxian-wendao-parsers" }
 xiuxian-qianhuan = { path = "../xiuxian-qianhuan" }
+qianji-bpmn-engine = { path = "../qianji-bpmn-engine" }
 xiuxian-ast = { path = "../xiuxian-ast" }
 xiuxian-macros = { path = "../xiuxian-macros" }
 xiuxian-zhenfa = { path = "../xiuxian-zhenfa" }

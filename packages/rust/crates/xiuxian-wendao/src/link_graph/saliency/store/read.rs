@@ -146,7 +146,7 @@ pub fn valkey_saliency_get_many_with_valkey(
             .iter()
             .cloned()
             .zip(cache_chunk.iter())
-            .zip(payloads.into_iter())
+            .zip(payloads)
         {
             let Some(payload_raw) = payload else {
                 continue;

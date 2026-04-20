@@ -1,6 +1,6 @@
 use super::persona_markdown::persona_profile_from_markdown;
 use crate::contracts::{FlowInstruction, NodeQianhuanExecutionMode, QianjiMechanism, QianjiOutput};
-use crate::scheduler::preflight::{
+use crate::scheduler_preflight::{
     context_value_to_text, lookup_context_path, resolve_semantic_content,
     resolve_semantic_reference, resolve_wendao_uri_with_zhenfa,
 };

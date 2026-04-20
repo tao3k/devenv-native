@@ -48,10 +48,10 @@ fn node_to_block(
     let ast = node.data.borrow();
     let sourcepos = ast.sourcepos;
 
-    let start_line = sourcepos.start.line.max(0);
-    let start_col = sourcepos.start.column.max(0);
-    let end_line = sourcepos.end.line.max(0);
-    let end_col = sourcepos.end.column.max(0);
+    let start_line = sourcepos.start.line;
+    let start_col = sourcepos.start.column;
+    let end_line = sourcepos.end.line;
+    let end_col = sourcepos.end.column;
 
     let byte_range =
         line_col_to_byte_range(section_text, start_line, start_col, end_line, end_col)?;

@@ -37,10 +37,8 @@ pub(crate) fn parse_markdown_structure(body: &str) -> MarkdownStructure {
         };
 
         match &node.data().value {
-            NodeValue::Paragraph => {
-                if lead.is_none() {
-                    lead = extract_raw_paragraph_snippet(body, span.byte_range);
-                }
+            NodeValue::Paragraph if lead.is_none() => {
+                lead = extract_raw_paragraph_snippet(body, span.byte_range);
             }
             NodeValue::Heading(heading) => push_heading(
                 &mut items,
@@ -101,22 +99,18 @@ pub(crate) fn parse_markdown_document_metadata(body: &str) -> MarkdownDocumentMe
         let byte_range = sourcepos_to_byte_range(body, sourcepos);
 
         match &node.data().value {
-            NodeValue::Paragraph => {
-                if lead.is_none() {
-                    lead = extract_raw_paragraph_snippet(body, byte_range);
-                    if title.is_some() && lead.is_some() {
-                        break;
-                    }
+            NodeValue::Paragraph if lead.is_none() => {
+                lead = extract_raw_paragraph_snippet(body, byte_range);
+                if title.is_some() && lead.is_some() {
+                    break;
                 }
             }
-            NodeValue::Heading(_) => {
-                if title.is_none() {
-                    let label = collect_plain_text(node);
-                    if !label.is_empty() {
-                        title = Some(label);
-                        if lead.is_some() {
-                            break;
-                        }
+            NodeValue::Heading(_) if title.is_none() => {
+                let label = collect_plain_text(node);
+                if !label.is_empty() {
+                    title = Some(label);
+                    if lead.is_some() {
+                        break;
                     }
                 }
             }

@@ -9,7 +9,7 @@ use serde_json::json;
 use xiuxian_config_core::resolve_project_root;
 use xiuxian_qianhuan::{PersonaRegistry, ThousandFacesOrchestrator};
 use xiuxian_qianji::{
-    executors::formal_audit::QianjiAdvisoryAuditExecutor, run_and_persist_contract_feedback_flow,
+    executors::QianjiAdvisoryAuditExecutor, run_and_persist_contract_feedback_flow,
     run_contract_feedback_flow, sovereign::InMemoryContractFeedbackSink,
 };
 use xiuxian_testing::{

@@ -7,9 +7,9 @@ use crate::{
     render_workdir_check_markdown, resolve_flowhub_scenario_modules,
 };
 
-use super::copy::copy_template_dir;
-use super::ensure_output_dir_is_safe;
-use super::root::render_root_manifest;
+use super::materialize_copy::copy_template_dir;
+use super::materialize_root::render_root_manifest;
+use super::materialize_safety::ensure_output_dir_is_safe;
 use crate::flowhub::{derive_flowchart_aliases, render_flowchart};
 
 /// Summary of one generated bounded work surface.

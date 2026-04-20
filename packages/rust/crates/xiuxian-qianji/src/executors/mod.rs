@@ -1,38 +1,49 @@
 //! Built-in node execution mechanisms for the Qianji Box.
+//!
+//! Start in `api`; feature folders stay private behind this root seam.
 
-/// Context annotation mechanism.
-pub mod annotation;
-/// Adversarial calibration mechanism (Synapse-Audit).
-pub mod calibration;
-/// Direct CLI invocation mechanism guarded by a Wendao contract snapshot.
-pub mod cli_call;
-/// Local shell command executor.
-pub mod command;
-/// Formal LTL audit mechanism.
-pub mod formal_audit;
-/// Direct HTTP invocation mechanism guarded by a Wendao contract snapshot.
-pub mod http_call;
-/// Wendao knowledge retrieval mechanism.
-pub mod knowledge;
-/// Mock mechanism for testing.
-pub mod mock;
-/// Probabilistic MDP routing mechanism.
-pub mod router;
-/// AST-based Security Scanning Mechanism.
-pub mod security_scan;
-/// Workflow suspension for human-in-the-loop.
-pub mod suspend;
-/// Native memory-promotion ingestion into `Wendao`.
-pub mod wendao_ingester;
-/// Incremental-first LinkGraph refresh trigger for Wendao.
-pub mod wendao_refresh;
-/// Deterministic bounded SQL discovery, validation, and execution for Wendao.
-pub mod wendao_sql;
-/// Native file writing mechanism with parent-directory bootstrap.
-pub mod write_file;
+#[path = "../executors_annotation.rs"]
+mod annotation;
+#[path = "../executors_api.rs"]
+mod api;
+mod calibration;
+mod cli_call;
+mod command;
+#[path = "../executors_formal_audit.rs"]
+mod formal_audit;
+mod http_call;
+mod knowledge;
+mod mock;
+mod router;
+#[path = "../executors_security_scan.rs"]
+mod security_scan;
+mod suspend;
+#[path = "../executors_wendao_ingester.rs"]
+mod wendao_ingester;
+#[path = "../executors_wendao_refresh.rs"]
+mod wendao_refresh;
+#[path = "../executors_wendao_sql.rs"]
+mod wendao_sql;
+#[path = "../executors_write_file.rs"]
+mod write_file;
 
 #[cfg(feature = "llm")]
-/// LLM analysis mechanism.
-pub mod llm;
+#[path = "../executors_llm.rs"]
+mod llm;
 
-pub use mock::MockMechanism;
+pub use self::api::{
+    CliCallMechanism, ContextAnnotator, FormalAuditMechanism, HttpCallMechanism, KnowledgeSeeker,
+    MockMechanism, ProbabilisticRouter, QianjiAdvisoryAuditExecutor, QianjiAdvisoryExecutionPlan,
+    QianjiAdvisoryRolePlan, SecurityScanMechanism, ShellMechanism, SuspendMechanism,
+    SynapseCalibrator, WendaoIngesterMechanism, WendaoRefreshMechanism, WendaoSqlDiscoverMechanism,
+    WendaoSqlExecuteMechanism, WendaoSqlValidateMechanism, WriteFileMechanism,
+};
+#[cfg(feature = "llm")]
+pub use self::api::{
+    LlmAnalyzer, LlmAugmentedAuditMechanism, OutputFlags, PipelineFlags,
+    QianjiLlmAdvisoryAuditExecutor, StreamingLlmAnalyzer, StreamingLlmAnalyzerBuilder,
+    StreamingPipelineSettings,
+};
+
+#[cfg(test)]
+pub(crate) use self::api::{parse_sql_author_spec_xml, parse_surface_bundle_xml};

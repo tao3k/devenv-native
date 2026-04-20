@@ -1,6 +1,6 @@
 use crate::QianjiLlmClient;
 use crate::consensus::ConsensusManager;
-use crate::engine::compiler::QianjiCompiler;
+use crate::engine::QianjiCompiler;
 use crate::error::QianjiError;
 use crate::scheduler::QianjiScheduler;
 use std::sync::Arc;

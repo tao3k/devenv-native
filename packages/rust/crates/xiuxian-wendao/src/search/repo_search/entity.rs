@@ -66,10 +66,10 @@ pub(crate) async fn search_repo_entity_hits(
 pub(crate) fn relation_to_search_hits(
     repo_id: &str,
     relation: &WendaoRelation,
-) -> Result<Vec<SearchHit>, xiuxian_vector_store::VectorStoreError> {
+) -> Result<Vec<SearchHit>, xiuxian_db_store::VectorStoreError> {
     let mut hits = Vec::new();
     for batch in relation.batches() {
-        let rows = xiuxian_vector_store::retrieval_rows_from_record_batch(batch)?;
+        let rows = xiuxian_db_store::retrieval_rows_from_record_batch(batch)?;
         hits.extend(
             rows.iter()
                 .map(|row| retrieval_row_to_search_hit(repo_id, row)),
@@ -125,10 +125,7 @@ pub(crate) fn record_query_core_telemetry(
     );
 }
 
-fn retrieval_row_to_search_hit(
-    repo_id: &str,
-    row: &xiuxian_vector_store::RetrievalRow,
-) -> SearchHit {
+fn retrieval_row_to_search_hit(repo_id: &str, row: &xiuxian_db_store::RetrievalRow) -> SearchHit {
     let doc_type = row.doc_type.clone().or_else(|| Some("file".to_string()));
     let kind_tag = doc_type.clone().unwrap_or_else(|| "unknown".to_string());
     let mut tags = vec![

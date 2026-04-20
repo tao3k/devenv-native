@@ -1,16 +1,11 @@
 use super::RemotePossessionBus;
 use super::keys::{queue_key, request_key};
-use crate::swarm::possession::model::{RemoteNodeRequest, RemoteNodeResponse};
+use crate::swarm::possession_model::{RemoteNodeRequest, RemoteNodeResponse};
 use anyhow::{Result, anyhow};
 use tokio::time::Duration;
 
 impl RemotePossessionBus {
-    /// Submits a remote request and enqueues it for target role workers.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error when serialization fails or Valkey commands fail.
-    pub async fn submit_request(
+    pub(in crate::swarm) async fn submit_request_impl(
         &self,
         request: &RemoteNodeRequest,
         ttl_seconds: u64,
@@ -56,14 +51,7 @@ impl RemotePossessionBus {
         Ok(())
     }
 
-    /// Claims one pending request from a role queue.
-    ///
-    /// Returns `Ok(None)` when no request arrives in `block_timeout`.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error when Valkey commands fail or request payload is malformed.
-    pub async fn claim_next_for_role(
+    pub(in crate::swarm) async fn claim_next_for_role_impl(
         &self,
         role_class: &str,
         claimer_id: &str,
@@ -113,18 +101,13 @@ impl RemotePossessionBus {
         Ok(Some(request))
     }
 
-    /// Convenience helper: submit request and wait for one response.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error when submit or wait operations fail.
-    pub async fn request_and_wait(
+    pub(in crate::swarm) async fn request_and_wait_impl(
         &self,
         request: &RemoteNodeRequest,
         ttl_seconds: u64,
         max_wait: Duration,
     ) -> Result<Option<RemoteNodeResponse>> {
-        self.submit_request(request, ttl_seconds).await?;
-        self.wait_response(&request.request_id, max_wait).await
+        self.submit_request_impl(request, ttl_seconds).await?;
+        self.wait_response_impl(&request.request_id, max_wait).await
     }
 }

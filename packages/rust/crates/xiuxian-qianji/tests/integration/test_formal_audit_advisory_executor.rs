@@ -6,7 +6,7 @@ use std::sync::Arc;
 use serde_json::json;
 use xiuxian_config_core::resolve_project_root;
 use xiuxian_qianhuan::{PersonaRegistry, ThousandFacesOrchestrator};
-use xiuxian_qianji::executors::formal_audit::QianjiAdvisoryAuditExecutor;
+use xiuxian_qianji::executors::QianjiAdvisoryAuditExecutor;
 use xiuxian_testing::{
     AdvisoryAuditExecutor, AdvisoryAuditRequest, ArtifactKind, CollectedArtifact,
     CollectedArtifacts, CollectionContext, ContractFinding, EvidenceKind, FindingConfidence,

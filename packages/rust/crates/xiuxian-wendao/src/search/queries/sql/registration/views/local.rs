@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 #[cfg(not(feature = "duckdb"))]
-use xiuxian_vector_store::SearchEngineContext;
+use xiuxian_db_store::SearchEngineContext;
 
 use crate::search::SearchCorpusKind;
 

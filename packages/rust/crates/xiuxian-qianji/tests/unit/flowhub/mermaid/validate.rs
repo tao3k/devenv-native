@@ -1,7 +1,7 @@
 use std::collections::BTreeSet;
 
 use super::validate_mermaid_flowchart;
-use crate::flowhub::mermaid::{normalize_graph_node_label, parse_mermaid_flowchart};
+use crate::flowhub::{normalize_graph_node_label, parse_mermaid_flowchart};
 
 fn declared_graph_node_labels(labels: &[&str]) -> BTreeSet<String> {
     labels

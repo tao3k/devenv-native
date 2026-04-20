@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use serde::Serialize;
-use xiuxian_vector_store::{
+use xiuxian_db_store::{
     LanceDataType, LanceField, LanceInt32Array, LanceRecordBatch, LanceSchema, LanceStringArray,
 };
 

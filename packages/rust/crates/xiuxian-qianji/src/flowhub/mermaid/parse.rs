@@ -2,7 +2,7 @@ use std::fmt;
 
 use merman_core::{Engine, ParseOptions, RenderSemanticModel};
 
-use super::model::{MermaidEdge, MermaidFlowchart, MermaidNode, MermaidNodeKind};
+use super::mermaid_model::{MermaidEdge, MermaidFlowchart, MermaidNode, MermaidNodeKind};
 
 /// One Mermaid parse error.
 #[derive(Debug, Clone, PartialEq, Eq)]

@@ -25,10 +25,19 @@ fn wendao_index_adapter_with_file_sink() {
 fn wendao_index_adapter_builder_file_sink() {
     let temp_dir = TempDir::new().unwrap();
     let file_sink = FileWendaoSink::new(temp_dir.path());
-    let adapter = WendaoIndexAdapterBuilder::new()
-        .file_sink(file_sink)
-        .build();
+    let adapter = WendaoIndexAdapter::builder().file_sink(file_sink).build();
     assert_eq!(adapter.file_sink.base_dir(), temp_dir.path());
+}
+
+#[test]
+fn wendao_index_adapter_builder_memory_sink() {
+    let temp_dir = TempDir::new().unwrap();
+    let adapter = WendaoIndexAdapter::builder()
+        .file_sink(FileWendaoSink::new(temp_dir.path()))
+        .memory_sink(InMemoryWendaoSink::new())
+        .build();
+
+    assert!(adapter.memory_sink.is_empty());
 }
 
 #[test]

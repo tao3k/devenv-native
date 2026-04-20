@@ -176,21 +176,18 @@ impl ModelBus {
 
     /// Returns the total memory footprint of Active slots.
     pub fn active_memory_bytes(&self) -> u64 {
-        self.slots
-            .lock()
-            .map(|guard| {
-                guard
-                    .values()
-                    .filter_map(|slot| {
-                        if slot.state() == SlotState::Active {
-                            slot.executor().map(|e| e.memory_bytes())
-                        } else {
-                            None
-                        }
-                    })
-                    .sum()
-            })
-            .unwrap_or(0)
+        self.slots.lock().map_or(0, |guard| {
+            guard
+                .values()
+                .filter_map(|slot| {
+                    if slot.state() == SlotState::Active {
+                        slot.executor().map(|e| e.memory_bytes())
+                    } else {
+                        None
+                    }
+                })
+                .sum()
+        })
     }
 
     /// Prewarms all hibernated slots.

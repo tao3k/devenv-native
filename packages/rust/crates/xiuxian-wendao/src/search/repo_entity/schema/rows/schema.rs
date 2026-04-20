@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use xiuxian_vector_store::{LanceDataType, LanceField, LanceSchema};
+use xiuxian_db_store::{LanceDataType, LanceField, LanceSchema};
 
 use crate::search::repo_entity::schema::definitions::{
     COLUMN_ATTRIBUTES_JSON, COLUMN_AUDIT_STATUS, COLUMN_ENTITY_KIND, COLUMN_HIERARCHICAL_URI,

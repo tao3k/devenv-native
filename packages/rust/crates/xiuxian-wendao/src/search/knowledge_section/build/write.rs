@@ -8,7 +8,7 @@ use crate::search::local_publication_parquet::{
     LocalParquetRewriteRequest, rewrite_local_publication_parquet,
 };
 use crate::search::{SearchBuildLease, SearchCorpusKind, SearchPlaneService};
-use xiuxian_vector_store::VectorStoreError;
+use xiuxian_db_store::VectorStoreError;
 
 #[cfg(test)]
 use crate::gateway::studio::types::UiProjectConfig;
