@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions
+  id="Definitions_missing_definitions_namespace_attribute"
+  name="Missing Definitions Namespace Attribute"
+  xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/">
+  <decision
+    id="Decision_missing_definitions_namespace_attribute"
+    name="Missing Definitions Namespace Attribute Decision">
+    <decisionTable id="decision_table_missing_definitions_namespace_attribute" hitPolicy="UNIQUE">
+      <output id="output_missing_definitions_namespace_attribute" name="result" typeRef="string"/>
+      <rule id="rule_missing_definitions_namespace_attribute">
+        <outputEntry id="output_entry_missing_definitions_namespace_attribute">
+          <text>"review"</text>
+        </outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+</definitions>

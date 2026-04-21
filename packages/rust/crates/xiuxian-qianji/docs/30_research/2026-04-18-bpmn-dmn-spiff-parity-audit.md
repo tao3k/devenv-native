@@ -84,7 +84,7 @@ The current crate documents itself as a bounded subset:
    transaction owner, broader transaction error propagation beyond that
    bounded shell,
    non-interrupting boundaries, richer BPMN orchestration, broader
-   multi-BPMN import/dependency handling, and broader FEEL or timezone-aware
+   multi-BPMN import/dependency handling, and broader FEEL or script-backed
    temporal behavior remain deferred.
 2. `packages/rust/crates/qianji-bpmn-engine/src/parser/import.rs` now accepts
    `parallelGateway`, `exclusiveGateway`, `intermediateCatchEvent`, one
@@ -208,15 +208,15 @@ The correct reading is therefore:
 | DMN capability | Current engine status | SpiffWorkflow status | Nuance | Severity |
 | --- | --- | --- | --- | --- |
 | One DMN source with one decision | Supported | Supported | Both implementations handle the simple case | baseline |
-| Multiple decisions per source | Unsupported | Broader file/version handling exists, but the parser remains bounded in structure | Current engine fails by contract; Spiff does not justify claiming general multi-decision parity either | P1 |
+| Multiple decisions per source | Supported within the bounded parser subset | Broader file/version handling exists, but the parser remains bounded in structure | Current engine now materializes multiple decision definitions from one source while both implementations still remain narrower than full DMN schema/version breadth | baseline |
 | One decision with one decision table | Supported | Supported | This is the strongest shared surface | baseline |
 | Multiple decision tables inside one decision | Unsupported | DMN parser comment explicitly says it assumes one decision table within a decision | Not a parity gap worth prioritizing because upstream is also bounded here | P3 |
 | Hit policies `UNIQUE` and `COLLECT` | Supported | Supported | This is the strongest overlapping execution surface | baseline |
 | Other hit policies such as `FIRST`, `PRIORITY`, `ANY`, `RULE ORDER`, `OUTPUT ORDER` | Unsupported | Not implemented in the active `HitPolicy` enum even though schema files mention them | Do not overstate upstream support | P3 |
 | Literal equality with strings, numbers, booleans, `null`, wildcard `-` | Supported | Supported indirectly through script evaluation | Current engine is stricter and easier to reason about | baseline |
-| FEEL-like expressions, comparison operators, range syntax, and script-backed predicates | Partially supported: numeric unary comparisons, bounded numeric ranges, ISO date literals, ISO date comparisons, bounded ISO date ranges, ISO local datetime literals, ISO local datetime comparisons, bounded ISO local datetime ranges, ISO time literals, ISO time comparisons, and bounded ISO time ranges are now supported, but broader FEEL and script-backed predicates remain unsupported | Supported through the script engine in `DMNEngine.evaluate(...)`; tests cover ranges, comparisons, and dates | The gap narrowed further, but upstream still proves materially broader evaluator semantics | P1 |
-| Date decisions and richer temporal predicates | Partially supported: ISO date-only equality, comparisons, and bounded ranges plus ISO local datetime equality, comparisons, and bounded ranges plus ISO time-only equality, comparisons, and bounded ranges are now supported | Covered by python-engine tests with broader datetime semantics | Local support is still intentionally narrower than upstream and currently excludes durations, timezone-aware datetime forms, and script-backed temporal functions | P1 |
-| DMN schema/version parsing | Unsupported as a crate feature | DMN 1.0, 1.2, and 1.3 schema/version handling exists in `BpmnDmnParser` and version tests | Useful for parser completeness, but lower priority than evaluator breadth | P2 |
+| FEEL-like expressions, comparison operators, range syntax, and script-backed predicates | Partially supported: numeric unary comparisons, bounded numeric ranges, ISO date literals, ISO date comparisons, bounded ISO date ranges, ISO local datetime literals, ISO local datetime comparisons, bounded ISO local datetime ranges, RFC3339 offset-aware datetime literals, comparisons, and bounded ranges, plus ISO time literals, ISO time comparisons, and bounded ISO time ranges are now supported, but broader FEEL and script-backed predicates remain unsupported | Supported through the script engine in `DMNEngine.evaluate(...)`; tests cover ranges, comparisons, and dates | The gap narrowed further, but upstream still proves materially broader evaluator semantics | P1 |
+| Date decisions and richer temporal predicates | Partially supported: ISO date-only equality, comparisons, and bounded ranges plus ISO local datetime equality, comparisons, and bounded ranges plus RFC3339 offset-aware datetime equality, comparisons, and bounded ranges plus ISO time-only equality, comparisons, and bounded ranges are now supported | Covered by python-engine tests with broader datetime semantics | Local support is still intentionally narrower than upstream and currently excludes durations, mixed local-vs-offset coercion, and script-backed temporal functions | P1 |
+| DMN schema/version parsing | Partially supported: one non-executable document snapshot can now scan namespaced/versioned DMN roots plus decision headers, model-version hints, top-level `import`, `itemDefinition`, `inputData`, `knowledgeSource`, `businessKnowledgeModel`, `decisionService`, `organizationUnit`, `performanceIndicator`, `textAnnotation`, `association`, `elementCollection`, `dmndi:DMNDI`, and `group` counts, decision-owned `allowedAnswers`, `decisionMaker`, and `decisionOwner` counts, direct decision-owned requirement counts for `informationRequirement`, `knowledgeRequirement`, and `authorityRequirement`, nested requirement-target counts for `requiredInput`, `requiredDecision`, `requiredKnowledge`, and `requiredAuthority`, and direct decision-logic counts for `literalExpression`, `context`, `invocation`, `relation`, `functionDefinition`, and `list`; executable parsing now also rejects non-`definitions` roots, missing or unsupported DMN model namespaces, and top-level `<import>` declarations, but it still performs no full schema validation and still requires the bounded decision-table subset | DMN 1.0, 1.2, and 1.3 schema/version handling exists in `BpmnDmnParser` and version tests | The crate now has one real placeholder surface for later adapter work and for construct-aware lint diagnostics across the main unsupported type-model, business-context, annotation, document-structure, diagram-interchange, group-artifact, decision-metadata, governance-metadata, decision-logic, metadata-only DRD artifact, and decision-dependency shapes seen in the current research lane, while the latest business-context, item-definition, text-annotation, association/element-collection, DMNDI, group, allowed-answers, decision-governance, root-artifact, requirement-target, requirement-edge, document-root, and import validation cuts close real parser/lint safety gaps before dependency resolution or broader schema parity, but full parser/schema parity is still materially incomplete | P2 |
 | BPMN `businessRuleTask` to DMN execution integration | Partially supported: engine-owned package registries can execute locally, parser-owned bundle snapshots can now populate those registries, and `xiuxian-qianji` now owns a bounded host adapter for missing-definition fallback | Integrated parser-to-engine binding exists | The unconditional host-only gap is closed, parser-owned registration now exists, and the host adapter now exists in bounded form, but full BPMN scheduler/CLI orchestration is still missing | P1 |
 
 ## 6. DMN Audit Interpretation
@@ -251,8 +251,8 @@ It means:
 
 1. `qianji lint --bpmn` is currently an engine-subset validator, not a
    `SpiffWorkflow`-parity validator.
-2. `qianji lint --dmn` is currently a bounded decision-table validator, not a
-   FEEL-capable DMN validator.
+2. `qianji lint --dmn` is currently a bounded decision-table validator with
+   construct-aware placeholder diagnostics, not a FEEL-capable DMN validator.
 3. `xiuxian-qianji` adapter work should not advertise richer BPMN or DMN
    support until the engine slices land first.
 
@@ -271,9 +271,11 @@ surface breadth.
    keeping first-token planning and singleton pending host work as an implicit
    limitation.
 2. Broader DMN evaluator widening slice
-   Bounded numeric, ISO-date, ISO-local-datetime, and ISO-time
-   comparison/range cuts are now landed. Durations, timezone-aware datetime
-   forms, and broader FEEL semantics remain deferred.
+   One non-executable DMN document snapshot with namespace/version hints is
+   now landed together with the bounded numeric, ISO-date,
+   ISO-local-datetime, RFC3339 offset-aware datetime, and ISO-time
+   comparison/range cuts. Durations, mixed local-vs-offset coercion, broader
+   FEEL semantics, and executable schema validation remain deferred.
 3. `xiuxian-qianji` higher-level BPMN orchestration slice
    The bounded host adapter is now landed, so the next host-side gap is
    scheduler/CLI/runtime ownership of BPMN package loading and execution.
@@ -318,3 +320,399 @@ The strongest precise statement supported by source evidence is:
    runtime semantics needed to unlock multi-instance expansion, richer nested
    orchestration, and richer DMN behavior in an order that preserves
    checkpoint and host-bridge integrity.
+
+## 10. Follow-up After DMN Unsupported Construct Classification Slice
+
+The parity note needs one additional precision update after the latest bounded
+DMN placeholder slice.
+
+What changed:
+
+1. the crate still does not execute `decisionService` or direct
+   `literalExpression` decisions, so there is no claim of broader executable
+   parity here
+2. the non-executable DMN snapshot surface can now classify those constructs
+   explicitly, which closes a real adapter/lint gap against the broader
+   versioned DMN documents present in the imported `SpiffWorkflow` research
+   lane
+3. `qianji lint --dmn` can now tell LLM-driven repair flows not to fabricate
+   decision-table logic from `decisionService` metadata or from direct
+   `literalExpression` bodies, which is materially safer than the earlier
+   generic missing-decision or missing-table guidance
+4. executable schema validation, broader FEEL semantics, `decisionService`
+   execution, and `literalExpression` execution all remain explicitly
+   deferred
+
+## 11. Follow-up After DMN Context and Invocation Classification Slice
+
+The parity note needs one more precision update after the latest bounded DMN
+placeholder slice.
+
+What changed:
+
+1. the crate still does not execute direct `context` or direct `invocation`
+   decisions, so there is still no claim of broader executable parity here
+2. the non-executable DMN snapshot surface can now classify those constructs
+   explicitly, which closes another real adapter/lint gap against the broader
+   versioned DMN documents present in the imported `SpiffWorkflow` research
+   lane
+3. `qianji lint --dmn` can now tell LLM-driven repair flows not to flatten
+   context entries or fabricate invocation rewrites into guessed
+   decision-table logic, which is materially safer than the earlier generic
+   missing-table guidance
+4. executable schema validation, broader FEEL semantics, `context`
+   execution, and `invocation` execution all remain explicitly deferred
+
+## 12. Follow-up After DMN Relation Classification Slice
+
+The parity note needs one more precision update after the latest bounded DMN
+placeholder slice.
+
+What changed:
+
+1. the crate still does not execute direct `relation` decisions, so there is
+   still no claim of broader executable parity here
+2. the non-executable DMN snapshot surface can now classify that construct
+   explicitly, which closes another real adapter/lint gap against the
+   broader versioned DMN documents present in the imported `SpiffWorkflow`
+   research lane
+3. `qianji lint --dmn` can now tell LLM-driven repair flows not to flatten
+   direct `relation` rows into guessed decision-table logic, which is
+   materially safer than the earlier generic missing-table guidance
+4. executable schema validation, broader FEEL semantics, and `relation`
+   execution all remain explicitly deferred
+
+## 13. Follow-up After DMN Function and List Classification Slice
+
+The parity note needs one more precision update after the latest bounded DMN
+placeholder slice.
+
+What changed:
+
+1. the crate still does not execute direct `functionDefinition` or direct
+   `list` decisions, so there is still no claim of broader executable parity
+   here
+2. the non-executable DMN snapshot surface can now classify those constructs
+   explicitly, which closes the remaining direct-expression adapter/lint gap
+   exposed by the official DMN 1.3 schema after the earlier
+   `literalExpression`, `context`, `invocation`, and `relation` cuts
+3. `qianji lint --dmn` can now tell LLM-driven repair flows not to inline
+   function bodies or flatten direct list items into guessed decision-table
+   logic, which is materially safer than the earlier generic missing-table
+   guidance
+4. executable schema validation, broader FEEL semantics,
+   `functionDefinition` execution, and `list` execution all remain
+   explicitly deferred
+
+## 14. Follow-up After DMN Document Root Validation Slice
+
+The parity note needs one more precision update after the latest bounded DMN
+document-validation slice.
+
+What changed:
+
+1. the crate still does not perform full DMN XSD validation, import
+   validation, or diagram-interchange validation, so there is still no claim
+   of broad schema-completeness parity here
+2. the executable parser now rejects non-`definitions` roots and missing or
+   unsupported DMN model namespaces before decision parsing continues, which
+   closes one real document-level safety gap exposed by broader versioned DMN
+   sources in the imported `SpiffWorkflow` research lane
+3. `qianji lint --dmn` can now tell LLM-driven repair flows about document-level
+   root and model-namespace failures directly, which is materially safer than
+   misclassifying those cases as missing-decision-table or other placeholder
+   issues
+4. full schema validation, broader FEEL semantics, import handling, and DI
+   semantics all remain explicitly deferred
+
+## 15. Follow-up After DMN Import Validation Slice
+
+The parity note needs one more precision update after the latest bounded DMN
+document-validation slice.
+
+What changed:
+
+1. the crate still does not resolve DMN imports, execute imported decisions,
+   or evaluate imported item definitions, so there is still no claim of
+   cross-document execution parity here
+2. the non-executable DMN snapshot surface can now classify top-level import
+   counts explicitly, and the executable parser now rejects top-level
+   `<import>` declarations before decision-table execution begins, which
+   closes one real document-dependency safety gap exposed by imported
+   `SpiffWorkflow` DMN research fixtures
+3. `qianji lint --dmn` can now tell LLM-driven repair flows not to delete
+   top-level imports blindly just to force local parsing, which is materially
+   safer than silently ignoring cross-document dependency declarations
+4. DMN import resolution, full schema validation, broader FEEL semantics,
+   and item-definition execution all remain explicitly deferred
+
+## 16. Follow-up After DMN Requirement Edge Classification Slice
+
+The parity note needs one more precision update after the latest bounded DMN
+lint-precision slice.
+
+What changed:
+
+1. the crate still does not resolve DMN dependency edges, execute upstream
+   decision requirements, or evaluate broader DRD semantics, so there is
+   still no claim of dependency-resolution parity here
+2. the non-executable DMN snapshot surface can now classify direct
+   `informationRequirement`,
+   `knowledgeRequirement`, and
+   `authorityRequirement` counts explicitly, which closes another real
+   adapter/lint gap exposed by the versioned `SpiffWorkflow` DMN research
+   fixtures
+3. `qianji lint --dmn` can now tell LLM-driven repair flows not to
+   fabricate local decision-table rules from requirement edges alone, which
+   is materially safer than the earlier generic missing-table fallback
+4. DMN dependency resolution, full schema validation, broader FEEL semantics,
+   item-definition execution, and broader DRD execution all remain
+   explicitly deferred
+
+## 17. Follow-up After DMN Requirement Target Guidance Slice
+
+The parity note needs one more precision update after the latest bounded DMN
+lint-precision slice.
+
+What changed:
+
+1. the crate still does not resolve DMN dependency edges or execute broader
+   DRD semantics, so there is still no claim of dependency-resolution parity
+   here
+2. the non-executable DMN snapshot surface can now classify nested
+   `requiredInput`,
+   `requiredDecision`,
+   `requiredKnowledge`, and
+   `requiredAuthority` counts explicitly, which closes another real
+   adapter/lint gap exposed by the versioned `SpiffWorkflow` DMN research
+   fixtures
+3. `qianji lint --dmn` can now tell LLM-driven repair flows whether a
+   requirement-edge-only decision points at input data, another decision, a
+   business knowledge model, or an authority surface, which is materially
+   safer than broader edge-only wording
+4. DMN dependency resolution, full schema validation, broader FEEL semantics,
+   item-definition execution, and broader DRD execution all remain
+   explicitly deferred
+
+## 18. Follow-up After DMN Root Artifact Guidance Slice
+
+The parity note needs one more precision update after the latest bounded DMN
+lint-precision slice.
+
+What changed:
+
+1. the crate still does not execute top-level `inputData`,
+   `knowledgeSource`, or `businessKnowledgeModel` artifacts directly, so
+   there is still no claim of broader DRD execution parity here
+2. the non-executable DMN root snapshot surface can now classify those
+   top-level artifact counts explicitly, which closes another real
+   adapter/lint gap exposed by metadata-only `SpiffWorkflow` DMN research
+   fixtures
+3. `qianji lint --dmn` can now tell LLM-driven repair flows whether a
+   metadata-only DMN document is exposing top-level input data, knowledge
+   sources, or business knowledge models, which is materially safer than the
+   earlier generic missing-decision wording
+4. DRD execution, DMN dependency resolution, full schema validation, broader
+   FEEL semantics, and item-definition execution all remain explicitly
+   deferred
+
+## 19. Follow-up After DMN Item Definition Guidance Slice
+
+The parity note needs one more precision update after the latest bounded DMN
+lint-precision slice.
+
+What changed:
+
+1. the crate still does not resolve or execute top-level `itemDefinition`
+   declarations, so there is still no claim of DMN type-resolution parity
+   here
+2. the non-executable DMN root snapshot surface can now classify top-level
+   `itemDefinition` counts explicitly, which closes another real adapter/lint
+   gap exposed by metadata-rich `SpiffWorkflow` DMN research fixtures
+3. `qianji lint --dmn` can now tell LLM-driven repair flows whether a
+   metadata-only DMN document is exposing top-level item definitions, which
+   is materially safer than the earlier generic missing-decision wording
+4. item-definition resolution, DRD execution, DMN dependency resolution, full
+   schema validation, and broader FEEL semantics all remain explicitly
+   deferred
+
+## 20. Follow-up After DMN Business Context Guidance Slice
+
+The parity note needs one more precision update after the latest bounded DMN
+lint-precision slice.
+
+What changed:
+
+1. the crate still does not resolve or execute top-level `organizationUnit`
+   or `performanceIndicator` business-context elements, so there is still no
+   claim of business-context parity here
+2. the non-executable DMN root snapshot surface can now classify those
+   top-level governance counts explicitly, which closes another real
+   adapter/lint gap exposed by metadata-rich `SpiffWorkflow` DMN research
+   fixtures
+3. `qianji lint --dmn` can now tell LLM-driven repair flows whether a
+   metadata-only DMN document is exposing top-level organization units or
+   performance indicators, which is materially safer than the earlier
+   generic missing-decision wording
+4. business-context resolution, item-definition resolution, DRD execution,
+   DMN dependency resolution, full schema validation, and broader FEEL
+   semantics all remain explicitly deferred
+
+## 21. Follow-up After DMN Text Annotation Guidance Slice
+
+The parity note needs one more precision update after the latest bounded DMN
+lint-precision slice.
+
+What changed:
+
+1. the crate still does not resolve or execute top-level `textAnnotation`
+   elements, so there is still no claim of annotation or artifact parity
+   here
+2. the non-executable DMN root snapshot surface can now classify top-level
+   `textAnnotation` counts explicitly, which closes another real adapter/lint
+   gap exposed by metadata-rich `SpiffWorkflow` DMN research fixtures
+3. `qianji lint --dmn` can now tell LLM-driven repair flows whether a
+   metadata-only DMN document is exposing top-level text annotations, which
+   is materially safer than the earlier generic missing-decision wording
+4. annotation resolution, `association`, `elementCollection`, DMNDI
+   relationships, business-context resolution, item-definition resolution,
+   DRD execution, DMN dependency resolution, full schema validation, and
+   broader FEEL semantics all remain explicitly deferred
+
+## 22. Follow-up After DMN Association and Element Collection Guidance Slice
+
+The parity note needs one more precision update after the latest bounded DMN
+lint-precision slice.
+
+What changed:
+
+1. the crate still does not resolve or execute top-level `association` or
+   `elementCollection` structures, so there is still no claim of
+   document-structure or artifact-graph parity here
+2. the non-executable DMN root snapshot surface can now classify those
+   top-level document-structure counts explicitly, which closes another real
+   adapter/lint gap exposed by the imported `SpiffWorkflow` DMN schema lane
+3. `qianji lint --dmn` can now tell LLM-driven repair flows whether a
+   metadata-only DMN document is exposing top-level associations or element
+   collections, which is materially safer than the earlier generic
+   missing-decision wording
+4. association resolution, element-collection membership parsing, DMNDI
+   relationships, annotation resolution, business-context resolution,
+   item-definition resolution, DRD execution, DMN dependency resolution,
+   full schema validation, and broader FEEL semantics all remain explicitly
+   deferred
+
+## 23. Follow-up After DMN DMNDI Guidance Slice
+
+The parity note needs one more precision update after the latest bounded DMN
+lint-precision slice.
+
+What changed:
+
+1. the crate still does not resolve or execute top-level `dmndi:DMNDI`
+   structures, so there is still no claim of DMN diagram-interchange parity
+   here
+2. the non-executable DMN root snapshot surface can now classify top-level
+   `dmndi:DMNDI` counts explicitly, which closes another real adapter/lint
+   gap exposed by imported `SpiffWorkflow` DMN fixtures that carry diagram
+   metadata alongside or apart from executable decisions
+3. `qianji lint --dmn` can now tell LLM-driven repair flows whether a
+   metadata-only DMN document is exposing top-level DMNDI metadata, which is
+   materially safer than the earlier generic missing-decision wording
+4. DMNDI relationship parsing, `DMNDiagram` / `DMNShape` / `DMNEdge`
+   resolution, association resolution, element-collection membership
+   parsing, annotation resolution, business-context resolution,
+   item-definition resolution, DRD execution, DMN dependency resolution,
+   full schema validation, and broader FEEL semantics all remain explicitly
+   deferred
+
+## 24. Follow-up After DMN Group Guidance Slice
+
+The parity note needs one more precision update after the latest bounded DMN
+lint-precision slice.
+
+What changed:
+
+1. the crate still does not resolve or execute top-level `group`
+   artifacts, so there is still no claim of group or broader artifact
+   parity here
+2. the non-executable DMN root snapshot surface can now classify top-level
+   `group` counts explicitly, which closes another real adapter/lint gap
+   exposed by the imported `SpiffWorkflow` DMN schema lane
+3. `qianji lint --dmn` can now tell LLM-driven repair flows whether a
+   metadata-only DMN document is exposing top-level groups, which is
+   materially safer than the earlier generic missing-decision wording
+4. group resolution, DMNDI relationships, association resolution,
+   element-collection membership parsing, annotation resolution,
+   business-context resolution, item-definition resolution, DRD execution,
+   DMN dependency resolution, full schema validation, and broader FEEL
+   semantics all remain explicitly deferred
+
+## 25. Follow-up After DMN Allowed Answers Guidance Slice
+
+The parity note needs one more precision update after the latest bounded DMN
+lint-precision slice.
+
+What changed:
+
+1. the crate still does not interpret decision-owned `allowedAnswers` as
+   executable decision logic, so there is still no claim of decision-
+   metadata or richer decision-table parity here
+2. the non-executable DMN decision snapshot surface can now classify direct
+   `allowedAnswers` counts explicitly, which closes another real adapter/lint
+   gap exposed by the imported `SpiffWorkflow` DMN schema lane
+3. `qianji lint --dmn` can now tell LLM-driven repair flows when a decision
+   only exposes `allowedAnswers` metadata without any local executable
+   `<decisionTable>`, which is materially safer than the earlier generic
+   missing-decision-table wording
+4. FEEL evaluation, output coercion, broader decision-table metadata
+   support, decision-owner metadata, decision-service member resolution,
+   DMN dependency resolution, full schema validation, and broader FEEL
+   semantics all remain explicitly deferred
+
+## 26. Follow-up After DMN Decision Governance Guidance Slice
+
+The parity note needs one more precision update after the latest bounded DMN
+lint-precision slice.
+
+What changed:
+
+1. the crate still does not interpret decision-owned `decisionMaker` or
+   `decisionOwner` metadata as executable decision logic, so there is still
+   no claim of governance-metadata or richer decision-table parity here
+2. the non-executable DMN decision snapshot surface can now classify direct
+   `decisionMaker` and `decisionOwner` counts explicitly, which closes
+   another real adapter/lint gap exposed by the imported `SpiffWorkflow`
+   DMN schema lane
+3. `qianji lint --dmn` can now tell LLM-driven repair flows when a decision
+   only exposes maker-only or owner-only governance metadata without any
+   local executable `<decisionTable>`, which is materially safer than the
+   earlier generic missing-decision-table wording
+4. identity resolution, mixed maker-plus-owner governance classification,
+   FEEL evaluation, broader decision-table metadata support,
+   decision-service member resolution, DMN dependency resolution, full
+   schema validation, and broader FEEL semantics all remain explicitly
+   deferred
+
+## 27. Follow-up After DMN Mixed Decision Governance Guidance Slice
+
+The parity note needs one more precision update after the latest bounded DMN
+lint-precision slice.
+
+What changed:
+
+1. the crate still does not interpret combined `decisionMaker` plus
+   `decisionOwner` metadata as executable decision logic, so there is still
+   no claim of governance-execution or richer decision-table parity here
+2. the existing non-executable DMN decision snapshot surface can now be used
+   to classify mixed maker-plus-owner governance counts explicitly, which
+   closes another real adapter/lint gap exposed by the imported
+   `SpiffWorkflow` DMN schema lane
+3. `qianji lint --dmn` can now tell LLM-driven repair flows when one
+   decision combines maker-plus-owner governance metadata without any local
+   executable `<decisionTable>`, which is materially safer than the earlier
+   generic missing-decision-table wording
+4. identity resolution, FEEL evaluation, broader decision-table metadata
+   support, decision-service member resolution, DMN dependency resolution,
+   full schema validation, and broader FEEL semantics all remain explicitly
+   deferred

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions
+  id="Definitions_unsupported_model_namespace"
+  name="Unsupported Model Namespace"
+  namespace="https://example.com/dmn/unsupported-model-namespace"
+  xmlns="https://www.omg.org/spec/DMN/20211108/MODEL/">
+  <decision id="Decision_unsupported_model_namespace" name="Unsupported Model Namespace Decision">
+    <decisionTable id="decision_table_unsupported_model_namespace" hitPolicy="UNIQUE">
+      <output id="output_unsupported_model_namespace" name="result" typeRef="string"/>
+      <rule id="rule_unsupported_model_namespace">
+        <outputEntry id="output_entry_unsupported_model_namespace">
+          <text>"review"</text>
+        </outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+</definitions>

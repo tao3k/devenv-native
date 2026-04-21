@@ -1,5 +1,13 @@
-use super::scope::*;
-use super::{repeat, state};
+use super::scope::{
+    BpmnEngineError, BpmnInstanceState, BpmnNodeIndex, BpmnProcessSpec, BpmnRepeatSpec,
+    InstanceLifecycle, MultiInstanceCompletionCounts, NodeRuntimeStatus, Result,
+    clear_parallel_multi_instance_state, clear_sequential_multi_instance_state,
+    clear_standard_loop_state, complete_parallel_multi_instance_iteration,
+    ensure_sequential_multi_instance_state, increment_sequential_multi_instance_iterations,
+    increment_standard_loop_iterations, parallel_multi_instance_state,
+    sequential_multi_instance_state,
+};
+use super::{repeat, state, transaction};
 
 pub(super) fn complete_node_and_route(
     process: &BpmnProcessSpec,
@@ -70,6 +78,7 @@ pub(super) fn complete_local_task_execution(
         return Ok(());
     }
 
+    transaction::record_completed_compensable_activity(process, instance, node_index);
     complete_node_and_route(
         process,
         instance,

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<semantic:definitions
+    xmlns:semantic="https://www.omg.org/spec/DMN/20191111/MODEL/"
+    id="Definitions_metadata_only_performance_indicator"
+    name="Metadata Only Performance Indicator"
+    namespace="https://qianji.dev/dmn/metadata-only-performance-indicator">
+    <semantic:performanceIndicator
+        id="PerformanceIndicator_auto_adjudication_rate"
+        name="Auto Adjudication Rate" />
+</semantic:definitions>

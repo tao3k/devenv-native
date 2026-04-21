@@ -15,8 +15,8 @@ pub(crate) use api::{
     ensure_sequential_multi_instance_state, ensure_standard_loop_state,
     has_parallel_multi_instance_state, increment_sequential_multi_instance_iterations,
     increment_standard_loop_iterations, parallel_multi_instance_iteration_variables,
-    parallel_multi_instance_state, parallel_multi_instance_state_mut,
-    parallel_multi_instance_token_ids, register_parallel_multi_instance_iteration,
+    parallel_multi_instance_min_token_id, parallel_multi_instance_state,
+    parallel_multi_instance_state_mut, register_parallel_multi_instance_iteration,
     sequential_multi_instance_iteration_variables, sequential_multi_instance_state,
     sequential_multi_instance_state_mut, standard_loop_completed_iterations,
 };

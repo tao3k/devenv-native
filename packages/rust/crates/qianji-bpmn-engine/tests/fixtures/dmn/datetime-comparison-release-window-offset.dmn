@@ -1,0 +1,39 @@
+<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/"
+  id="Definitions_release_window_offset"
+  name="Release Window Offset DRD"
+  namespace="http://example.com/dmn">
+  <decision id="release-window-offset" name="Release Window Offset">
+    <decisionTable id="decision_table_release_window_offset" hitPolicy="UNIQUE">
+      <input id="input_release_timestamp" label="release_timestamp">
+        <inputExpression id="input_expression_release_timestamp" typeRef="dateTime">
+          <text>release_timestamp</text>
+        </inputExpression>
+      </input>
+      <output id="output_phase" name="phase" label="phase" typeRef="string" />
+      <rule id="rule_launch_minute_offset">
+        <inputEntry id="input_entry_launch_minute_offset">
+          <text>date and time("2026-04-20T09:00:00Z")</text>
+        </inputEntry>
+        <outputEntry id="output_entry_launch_minute_offset">
+          <text>"launch-minute-offset"</text>
+        </outputEntry>
+      </rule>
+      <rule id="rule_day_one_offset">
+        <inputEntry id="input_entry_day_one_offset">
+          <text>&lt; date and time("2026-04-21T00:00:00+00:00")</text>
+        </inputEntry>
+        <outputEntry id="output_entry_day_one_offset">
+          <text>"day-one-offset"</text>
+        </outputEntry>
+      </rule>
+      <rule id="rule_post_day_one_offset">
+        <inputEntry id="input_entry_post_day_one_offset">
+          <text>&gt;= date and time("2026-04-21T00:00:00+00:00")</text>
+        </inputEntry>
+        <outputEntry id="output_entry_post_day_one_offset">
+          <text>"post-day-one-offset"</text>
+        </outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+</definitions>

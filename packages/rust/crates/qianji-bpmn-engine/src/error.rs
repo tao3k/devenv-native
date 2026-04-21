@@ -76,6 +76,38 @@ pub enum BpmnEngineError {
         /// Source identifier used for diagnostics.
         source_id: String,
     },
+    /// Returned when the DMN root element is not `definitions`.
+    #[error(
+        "DMN source '{source_id}' uses invalid root element '{element}'; expected 'definitions'"
+    )]
+    UnsupportedDmnRootElement {
+        /// Source identifier used for diagnostics.
+        source_id: String,
+        /// Observed root element local name.
+        element: String,
+    },
+    /// Returned when the DMN root does not declare a model namespace.
+    #[error("DMN source '{source_id}' is missing a supported DMN model namespace declaration")]
+    MissingDmnModelNamespace {
+        /// Source identifier used for diagnostics.
+        source_id: String,
+    },
+    /// Returned when the DMN root declares a model namespace outside the bounded slice.
+    #[error(
+        "DMN source '{source_id}' uses unsupported DMN model namespace '{model_namespace_uri}'"
+    )]
+    UnsupportedDmnModelNamespace {
+        /// Source identifier used for diagnostics.
+        source_id: String,
+        /// Observed DMN model namespace URI.
+        model_namespace_uri: String,
+    },
+    /// Returned when the DMN document uses unsupported top-level imports.
+    #[error("DMN source '{source_id}' uses unsupported top-level import declarations")]
+    UnsupportedDmnImport {
+        /// Source identifier used for diagnostics.
+        source_id: String,
+    },
     /// Returned when a required DMN attribute is missing.
     #[error(
         "DMN source '{source_id}' element '{element}' is missing required attribute '{attribute}'"
@@ -94,7 +126,8 @@ pub enum BpmnEngineError {
         /// Source identifier used for diagnostics.
         source_id: String,
     },
-    /// Returned when more than one DMN decision appears in one bounded source.
+    /// Returned when an exact-one DMN parse entrypoint receives anything other
+    /// than exactly one decision.
     #[error(
         "DMN source '{source_id}' contains unsupported decision count {count}; expected exactly 1"
     )]

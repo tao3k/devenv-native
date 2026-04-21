@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions
+  id="Definitions_metadata_only_input_data"
+  name="Metadata Only Input Data"
+  namespace="https://example.com/dmn/metadata-only-input-data"
+  xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/">
+  <inputData id="InputData_applicant" name="Applicant Input" />
+</definitions>

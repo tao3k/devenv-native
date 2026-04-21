@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions
+  id="Definitions_literal_expression"
+  name="Literal Expression Decision"
+  namespace="https://example.com/dmn/literal-expression-decision"
+  xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/">
+  <decision id="Decision_literal_expression" name="Literal Expression Decision">
+    <literalExpression id="literal_expression_1">
+      <text>applicant.age + 1</text>
+    </literalExpression>
+  </decision>
+</definitions>

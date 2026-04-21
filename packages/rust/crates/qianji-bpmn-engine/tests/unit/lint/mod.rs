@@ -6,6 +6,7 @@ pub(super) use qianji_bpmn_engine::{
 
 mod bpmn_core;
 mod bpmn_loops;
+mod compensation;
 mod dmn;
 mod smoke;
 mod transaction;

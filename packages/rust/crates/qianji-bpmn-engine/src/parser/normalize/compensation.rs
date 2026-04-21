@@ -64,8 +64,8 @@ fn normalize_compensation_handler(
         }
     })?;
     Ok(BpmnCompensationHandlerSpec {
-        boundary_node_index,
-        activity_node_index,
-        handler_node_index,
+        boundary: boundary_node_index,
+        activity: activity_node_index,
+        handler: handler_node_index,
     })
 }

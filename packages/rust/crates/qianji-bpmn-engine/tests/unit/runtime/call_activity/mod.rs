@@ -5,6 +5,7 @@ use qianji_bpmn_engine::{BpmnPackage, BpmnParseOptions, BpmnSourceFile, parse_bp
 mod core;
 mod nested;
 mod transaction_cancel;
+mod transaction_compensation;
 mod transaction_completion;
 mod transaction_error;
 

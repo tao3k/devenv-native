@@ -1,0 +1,30 @@
+---
+source: packages/rust/crates/qianji-bpmn-engine/tests/unit/lint/mod.rs
+assertion_line: 34
+expression: value
+---
+{
+  "domain": "bpmn",
+  "source_id": "invalid-transaction-compensation-missing-marker.bpmn",
+  "ok": false,
+  "issues": [
+    {
+      "code": "bpmn.unsupported_compensation_configuration",
+      "severity": "error",
+      "title": "Compensation configuration exceeds the bounded slice",
+      "summary": "Process '__transaction__::main_process::payment_tx' compensation node 'tx_refund' uses unsupported configuration 'missing_compensation_handler_marker'.",
+      "why_it_failed": "The current engine supports only one bounded compensation shape: inside one transaction shell, attach one compensation boundary event with `<bpmn:compensateEventDefinition>` to one completed serviceTask, userTask, manualTask, or businessRuleTask, connect that boundary to exactly one detached `isForCompensation=\"true\"` handler activity through one association, and let transaction cancel execute those handlers in reverse completion order without normal sequence-flow routing.",
+      "repair_guidance": [
+        "Keep compensation inside one transaction shell and attach each compensation boundary to exactly one direct host-blocking activity.",
+        "Make the handler a detached serviceTask, userTask, manualTask, or businessRuleTask marked with `isForCompensation=\"true\"`, and connect it with exactly one association from the compensation boundary.",
+        "Do not place normal sequence flows, loops, multi-instance characteristics, throw compensation events, or compensation event subprocesses on this bounded compensation path."
+      ],
+      "llm_fix_prompt": "Repair compensation node 'tx_refund' in process '__transaction__::main_process::payment_tx' so it fits the bounded compensation slice: keep it inside one `<bpmn:transaction>` shell, use exactly one compensation boundary with `<bpmn:compensateEventDefinition>` attached to one direct host-blocking activity, connect that boundary to exactly one detached handler activity marked `isForCompensation=\"true\"` through one association, and remove unsupported configuration 'missing_compensation_handler_marker'.",
+      "evidence": {
+        "detail": "missing_compensation_handler_marker",
+        "node_id": "tx_refund",
+        "process_id": "__transaction__::main_process::payment_tx"
+      }
+    }
+  ]
+}

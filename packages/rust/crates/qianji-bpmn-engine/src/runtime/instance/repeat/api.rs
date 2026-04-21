@@ -2,8 +2,8 @@
 
 pub(crate) use super::parallel::{
     clear_parallel_multi_instance_state, complete_parallel_multi_instance_iteration,
-    has_parallel_multi_instance_state, parallel_multi_instance_state,
-    parallel_multi_instance_state_mut, parallel_multi_instance_token_ids,
+    has_parallel_multi_instance_state, parallel_multi_instance_min_token_id,
+    parallel_multi_instance_state, parallel_multi_instance_state_mut,
     register_parallel_multi_instance_iteration,
 };
 pub(crate) use super::sequential::{

@@ -1,4 +1,9 @@
-use super::scope::*;
+use super::scope::{
+    Borrow, BpmnAdvanceOutcome, BpmnEngineError, BpmnEventKind, BpmnInstanceState, BpmnNodeIndex,
+    BpmnNodeKind, BpmnPackage, BpmnProcessSpec, DmnEvaluationRequest, InstanceLifecycle,
+    NodeRuntimeStatus, PendingHostWorkKind, PendingHostWorkResult, Result,
+    evaluate_dmn_decision_sync, resolve_process_for_instance,
+};
 use super::{blocking, call_activity, completion, gateway, prepare, repeat, state, transaction};
 
 pub(super) fn advance_active_node(
@@ -261,6 +266,19 @@ fn advance_business_rule_task(
             definition,
             &DmnEvaluationRequest::new(decision.clone(), variables),
         )?;
+        if current_node.is_for_compensation
+            && transaction::transaction_compensation_is_running(instance)
+        {
+            transaction::complete_compensation_handler(
+                package,
+                process,
+                instance,
+                current_token_index,
+                current_node_index,
+                now_ms,
+            )?;
+            return Ok(None);
+        }
         completion::complete_local_task_execution(
             process,
             instance,
@@ -344,6 +362,19 @@ pub(crate) fn apply_pending_host_work_result_impl(
     }
     if instance.pending_host_work.is_empty() && instance.waits.is_empty() {
         instance.suspend_reason = None;
+    }
+    if current_node.is_for_compensation
+        && transaction::transaction_compensation_is_running(instance)
+    {
+        transaction::complete_compensation_handler(
+            package,
+            process,
+            instance,
+            token_index,
+            pending.node_index,
+            completed_at_ms,
+        )?;
+        return Ok(BpmnAdvanceOutcome::Advanced);
     }
     completion::complete_local_task_execution(
         process,

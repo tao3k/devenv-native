@@ -65,7 +65,7 @@ impl BpmnProcessSpec {
         let event_index_by_node = build_event_index_lookup(nodes.len(), &events);
         let compensation_handler_index_by_activity =
             build_compensation_handler_lookup(nodes.len(), &compensation_handlers, |binding| {
-                binding.activity_node_index
+                binding.activity
             });
         let (boundary_event_offsets, boundary_event_order) = build_boundary_event_lookup(&nodes);
         let (incoming_offsets, incoming_edge_order, outgoing_offsets, outgoing_edge_order) =

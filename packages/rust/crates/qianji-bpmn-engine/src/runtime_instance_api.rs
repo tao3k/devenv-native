@@ -107,6 +107,20 @@ pub struct EventCompetitionState {
     pub wait_node_indices: Vec<BpmnNodeIndex>,
 }
 
+/// Bounded transaction-cancel compensation queue state.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Default)]
+pub struct TransactionCompensationState {
+    /// Completed compensable activity node indices in completion order.
+    #[serde(default)]
+    pub completed_activity_node_indices: Vec<BpmnNodeIndex>,
+    /// Pending compensation handler node indices in execution order.
+    #[serde(default)]
+    pub pending_handler_node_indices: Vec<BpmnNodeIndex>,
+    /// Whether transaction-cancel compensation is currently running.
+    #[serde(default)]
+    pub cancelling: bool,
+}
+
 /// Snapshot of one parent execution frame while a bounded call activity runs.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct CallActivityFrame {
@@ -145,6 +159,9 @@ pub struct CallActivityFrame {
     /// Optional variable snapshot restored when a transaction shell cancels.
     #[serde(default)]
     pub transaction_cancel_variables: Option<serde_json::Value>,
+    /// Optional bounded compensation queue state for one transaction shell.
+    #[serde(default)]
+    pub transaction_compensation: Option<TransactionCompensationState>,
 }
 
 /// Mutable BPMN instance state shell.

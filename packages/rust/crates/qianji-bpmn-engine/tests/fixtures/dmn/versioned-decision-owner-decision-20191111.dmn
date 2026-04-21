@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions
+  id="Definitions_decision_owner"
+  name="Decision Owner Decision"
+  namespace="https://example.invalid/dmn/decision-owner"
+  xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/">
+  <decision id="Decision_decision_owner" name="Decision Owner Decision">
+    <decisionOwner href="#Owner_alpha" />
+  </decision>
+</definitions>

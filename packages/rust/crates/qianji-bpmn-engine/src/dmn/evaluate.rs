@@ -7,10 +7,13 @@ use crate::dmn_model_api::{
     DmnTimeRange,
 };
 use crate::error::{BpmnEngineError, Result};
+use chrono::DateTime;
+use chrono::FixedOffset;
 use chrono::NaiveDate;
 use chrono::NaiveDateTime;
 use chrono::NaiveTime;
 use serde_json::{Map, Value};
+use std::cmp::Ordering;
 use std::sync::Arc;
 
 /// Synchronous bounded DMN evaluation entrypoint for in-engine runtime paths.
@@ -236,11 +239,18 @@ fn evaluate_date_time_comparison(actual: &Value, comparison: &DmnDateTimeCompari
     let Some(expected) = parse_iso_datetime_str(&comparison.value) else {
         return false;
     };
+    let Some(ordering) = compare_date_time_values(&actual, &expected) else {
+        return false;
+    };
     match comparison.operator {
-        DmnComparisonOperator::LessThan => actual < expected,
-        DmnComparisonOperator::LessThanOrEqual => actual <= expected,
-        DmnComparisonOperator::GreaterThan => actual > expected,
-        DmnComparisonOperator::GreaterThanOrEqual => actual >= expected,
+        DmnComparisonOperator::LessThan => ordering == Ordering::Less,
+        DmnComparisonOperator::LessThanOrEqual => {
+            matches!(ordering, Ordering::Less | Ordering::Equal)
+        }
+        DmnComparisonOperator::GreaterThan => ordering == Ordering::Greater,
+        DmnComparisonOperator::GreaterThanOrEqual => {
+            matches!(ordering, Ordering::Greater | Ordering::Equal)
+        }
     }
 }
 
@@ -252,7 +262,11 @@ fn evaluate_date_time_range(actual: &Value, range: &DmnDateTimeRange) -> bool {
         let Some(lower_value) = parse_iso_datetime_str(&lower.value) else {
             return false;
         };
-        if (lower.inclusive && actual < lower_value) || (!lower.inclusive && actual <= lower_value)
+        let Some(ordering) = compare_date_time_values(&actual, &lower_value) else {
+            return false;
+        };
+        if (lower.inclusive && ordering == Ordering::Less)
+            || (!lower.inclusive && matches!(ordering, Ordering::Less | Ordering::Equal))
         {
             return false;
         }
@@ -261,7 +275,11 @@ fn evaluate_date_time_range(actual: &Value, range: &DmnDateTimeRange) -> bool {
         let Some(upper_value) = parse_iso_datetime_str(&upper.value) else {
             return false;
         };
-        if (upper.inclusive && actual > upper_value) || (!upper.inclusive && actual >= upper_value)
+        let Some(ordering) = compare_date_time_values(&actual, &upper_value) else {
+            return false;
+        };
+        if (upper.inclusive && ordering == Ordering::Greater)
+            || (!upper.inclusive && matches!(ordering, Ordering::Greater | Ordering::Equal))
         {
             return false;
         }
@@ -316,13 +334,39 @@ fn parse_iso_time_str(value: &str) -> Option<NaiveTime> {
     NaiveTime::parse_from_str(value, "%H:%M:%S").ok()
 }
 
-fn parse_iso_datetime_value(value: &Value) -> Option<NaiveDateTime> {
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum DmnComparableDateTime {
+    Local(NaiveDateTime),
+    Offset(DateTime<FixedOffset>),
+}
+
+fn parse_iso_datetime_value(value: &Value) -> Option<DmnComparableDateTime> {
     let Value::String(value) = value else {
         return None;
     };
     parse_iso_datetime_str(value)
 }
 
-fn parse_iso_datetime_str(value: &str) -> Option<NaiveDateTime> {
-    NaiveDateTime::parse_from_str(value, "%Y-%m-%dT%H:%M:%S").ok()
+fn parse_iso_datetime_str(value: &str) -> Option<DmnComparableDateTime> {
+    if let Ok(value) = NaiveDateTime::parse_from_str(value, "%Y-%m-%dT%H:%M:%S") {
+        return Some(DmnComparableDateTime::Local(value));
+    }
+    DateTime::<FixedOffset>::parse_from_rfc3339(value)
+        .ok()
+        .map(DmnComparableDateTime::Offset)
+}
+
+fn compare_date_time_values(
+    left: &DmnComparableDateTime,
+    right: &DmnComparableDateTime,
+) -> Option<Ordering> {
+    match (left, right) {
+        (DmnComparableDateTime::Local(left), DmnComparableDateTime::Local(right)) => {
+            Some(left.cmp(right))
+        }
+        (DmnComparableDateTime::Offset(left), DmnComparableDateTime::Offset(right)) => {
+            Some(left.cmp(right))
+        }
+        _ => None,
+    }
 }

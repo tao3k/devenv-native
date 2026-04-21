@@ -1,4 +1,8 @@
-use super::scope::*;
+use super::scope::{
+    BpmnEngineError, BpmnEventKind, BpmnInstanceState, BpmnNodeIndex, BpmnProcessSpec,
+    InstanceLifecycle, NodeRuntimeStatus, PendingHostWork, PendingHostWorkKind, Result, WaitKind,
+    WaitRegistration,
+};
 use super::state;
 
 pub(super) fn build_wait_registration(
@@ -137,6 +141,9 @@ fn arm_boundary_timer_wait(
             element: "event_definition",
         }
     })?;
+    if event.kind == BpmnEventKind::Compensation {
+        return Ok(());
+    }
     if event.kind != BpmnEventKind::Timer {
         return Err(BpmnEngineError::UnsupportedBoundaryEventConfiguration {
             process_id: process.key.process_id.to_string(),

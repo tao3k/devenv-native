@@ -81,20 +81,20 @@ pub(crate) fn complete_parallel_multi_instance_iteration(
     Some((state.completed_iterations, state.total_iterations))
 }
 
-pub(crate) fn parallel_multi_instance_token_ids(
+pub(crate) fn parallel_multi_instance_min_token_id(
     instance: &BpmnInstanceState,
     node_index: BpmnNodeIndex,
-) -> Vec<u64> {
+) -> Option<u64> {
     instance
         .parallel_multi_instances
         .iter()
         .find(|state| state.node_index == node_index)
-        .map_or_else(Vec::new, |state| {
+        .and_then(|state| {
             state
                 .active_iterations
                 .iter()
                 .map(|iteration| iteration.token_id)
-                .collect()
+                .min()
         })
 }
 

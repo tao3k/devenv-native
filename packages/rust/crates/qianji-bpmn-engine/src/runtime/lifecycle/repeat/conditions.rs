@@ -1,4 +1,11 @@
-use crate::runtime::lifecycle::{scope::*, state};
+use crate::runtime::lifecycle::{
+    scope::{
+        BpmnEngineError, BpmnInstanceState, BpmnNodeIndex, BpmnNodeKind, BpmnProcessSpec,
+        BpmnStandardLoopSpec, MultiInstanceCompletionConditionError, MultiInstanceCompletionCounts,
+        PendingHostWorkKind, Result, evaluate_multi_instance_completion_condition,
+    },
+    state,
+};
 
 pub(crate) fn merge_output_data(
     variables: &mut serde_json::Value,

@@ -121,7 +121,7 @@ fn unsupported_element_issue(source_id: &str, process_id: &str, element: &str) -
             "If the workflow truly requires this element, preserve the original intent in comments or notes and defer execution until engine support exists.".to_string(),
         ],
         format!(
-            "Edit BPMN source '{source_id}' so process '{process_id}' no longer uses unsupported element `<{element}>`. Preserve workflow intent, but rewrite the structure using only the supported bounded subset: startEvent, endEvent, intermediateCatchEvent with exactly one messageEventDefinition, signalEventDefinition, or timerEventDefinition, one interrupting timer boundaryEvent attached to one serviceTask/userTask/manualTask/businessRuleTask, one interrupting cancel boundaryEvent attached to one bounded `<transaction>` shell, one or more interrupting error boundaryEvent nodes attached to one bounded `<transaction>` shell, one bounded transaction cancel end path with exactly one nested `cancelEventDefinition` end event plus the matching parent cancel boundary, one bounded transaction error end path with exactly one nested `errorEventDefinition` end event plus every matching parent error boundary on that same transaction owner whose optional `errorRef` either matches the thrown error or stays omitted as a catch-all, one bounded embedded `subProcess` body with exactly one nested `startEvent` and at least one nested `endEvent`, one bounded `<transaction>` shell with exactly one nested `startEvent` and at least one nested `endEvent`, one bounded callActivity that targets another executable process in the same BPMN package, serviceTask, userTask, manualTask, businessRuleTask, those same host-blocking task kinds with bounded `standardLoopCharacteristics`, those same host-blocking task kinds with bounded `multiInstanceLoopCharacteristics` in sequential (`isSequential=\"true\"`) or bounded parallel (omitted or `isSequential=\"false\"`) mode using either integer `loopCardinality` or one collection binding with `loopDataInputRef` plus `inputDataItem`, optional paired `loopDataOutputRef` plus `outputDataItem`, and bounded `completionCondition`, exclusiveGateway, parallelGateway, one exclusive eventBasedGateway whose outgoing targets are message/signal/timer intermediateCatchEvent waits, and sequenceFlow. Do not introduce inclusiveGateway, non-interrupting boundaries, timer boundaries on transaction shells, cancel or error ends outside one bounded transaction shell, more than one cancel boundary on the same transaction owner, compensation semantics, non-transaction multi-boundary ownership, in-place multi-instance output bindings where `loopDataOutputRef` equals `loopDataInputRef`, or full condition-driven routing in this bounded slice."
+            "Edit BPMN source '{source_id}' so process '{process_id}' no longer uses unsupported element `<{element}>`. Preserve workflow intent, but rewrite the structure using only the supported bounded subset: startEvent, endEvent, intermediateCatchEvent with exactly one messageEventDefinition, signalEventDefinition, or timerEventDefinition, one interrupting timer boundaryEvent attached to one serviceTask/userTask/manualTask/businessRuleTask, one interrupting cancel boundaryEvent attached to one bounded `<transaction>` shell, one or more interrupting error boundaryEvent nodes attached to one bounded `<transaction>` shell, one bounded transaction cancel end path with exactly one nested `cancelEventDefinition` end event plus the matching parent cancel boundary, one bounded transaction error end path with exactly one nested `errorEventDefinition` end event plus every matching parent error boundary on that same transaction owner whose optional `errorRef` either matches the thrown error or stays omitted as a catch-all, one bounded compensation binding inside one bounded `<transaction>` shell using one compensation boundary attached to one completed host-blocking activity plus one detached `isForCompensation=\"true\"` host-blocking handler activity reached through one association, one bounded embedded `subProcess` body with exactly one nested `startEvent` and at least one nested `endEvent`, one bounded `<transaction>` shell with exactly one nested `startEvent` and at least one nested `endEvent`, one bounded callActivity that targets another executable process in the same BPMN package, serviceTask, userTask, manualTask, businessRuleTask, those same host-blocking task kinds with bounded `standardLoopCharacteristics`, those same host-blocking task kinds with bounded `multiInstanceLoopCharacteristics` in sequential (`isSequential=\"true\"`) or bounded parallel (omitted or `isSequential=\"false\"`) mode using either integer `loopCardinality` or one collection binding with `loopDataInputRef` plus `inputDataItem`, optional paired `loopDataOutputRef` plus `outputDataItem`, and bounded `completionCondition`, exclusiveGateway, parallelGateway, one exclusive eventBasedGateway whose outgoing targets are message/signal/timer intermediateCatchEvent waits, and sequenceFlow. Do not introduce inclusiveGateway, non-interrupting boundaries, timer boundaries on transaction shells, cancel or error ends outside one bounded transaction shell, more than one cancel boundary on the same transaction owner, throw compensation events, compensation event subprocesses, default compensation, non-transaction multi-boundary ownership, in-place multi-instance output bindings where `loopDataOutputRef` equals `loopDataInputRef`, or full condition-driven routing in this bounded slice."
         ),
         json!({
             "source_id": source_id,
@@ -402,6 +402,11 @@ fn issue_from_bpmn_execution_shape_error(error: &BpmnEngineError) -> Option<Lint
             node_id,
             detail,
         } => return Some(subprocess_configuration_issue(process_id, node_id, detail)),
+        BpmnEngineError::UnsupportedCompensationConfiguration {
+            process_id,
+            node_id,
+            detail,
+        } => return Some(compensation_configuration_issue(process_id, node_id, detail)),
         BpmnEngineError::UnsupportedTransactionConfiguration {
             process_id,
             node_id,
@@ -896,7 +901,7 @@ fn generic_transaction_configuration_issue(
         "The current engine supports only one bounded transaction shell shape: exactly one nested start event, at least one nested end event, and at most one bounded cancel path or one bounded error path, each paired with one matching parent interrupting boundary event.",
         vec![
             "Keep the transaction intent, but reduce it to the bounded transaction shell shape.".to_string(),
-            "If the model depends on richer BPMN transaction features such as error or compensation semantics, preserve that requirement explicitly and defer execution until support lands.".to_string(),
+            "If the model depends on richer BPMN transaction features such as throw compensation events, compensation event subprocesses, or default compensation, preserve that requirement explicitly and defer execution until support lands.".to_string(),
         ],
         format!(
             "Rewrite transaction node '{node_id}' in process '{process_id}' so it fits the bounded slice: one `<bpmn:transaction>` shell with exactly one nested `<bpmn:startEvent>`, at least one nested `<bpmn:endEvent>`, and at most one bounded cancel path or one bounded error path, each composed of one nested throwing end event plus one matching parent interrupting boundary on that transaction owner. Preserve workflow intent, but remove unsupported configuration '{detail}'."
@@ -907,6 +912,56 @@ fn generic_transaction_configuration_issue(
             "detail": detail,
         }),
     )
+}
+
+fn compensation_configuration_issue(
+    process_id: &str,
+    node_id: &str,
+    detail: &'static str,
+) -> LintIssue {
+    match detail {
+        "compensation_requires_transaction_shell" => LintIssue::new(
+            "bpmn.unsupported_compensation_configuration",
+            "Compensation is supported only inside a transaction shell",
+            format!(
+                "Process '{process_id}' compensation node '{node_id}' uses compensation semantics outside one bounded transaction shell."
+            ),
+            "The current engine only executes bounded compensation as part of transaction-cancel handling. Compensation boundaries and `isForCompensation=\"true\"` handler activities must therefore live inside one nested `<bpmn:transaction>` body.",
+            vec![
+                "Move the compensation boundary and handler into one bounded `<bpmn:transaction>` shell if transaction cancel semantics are really required.".to_string(),
+                "If transaction cancel semantics are not required, remove the compensation markers and rewrite the flow with ordinary tasks and sequenceFlow routing.".to_string(),
+            ],
+            format!(
+                "Rewrite process '{process_id}' so compensation node '{node_id}' no longer uses compensation semantics outside one bounded `<bpmn:transaction>` shell. Preserve workflow intent, but keep bounded compensation only inside one transaction body whose cancel path can trigger the handler."
+            ),
+            json!({
+                "process_id": process_id,
+                "node_id": node_id,
+                "detail": detail,
+            }),
+        ),
+        _ => LintIssue::new(
+            "bpmn.unsupported_compensation_configuration",
+            "Compensation configuration exceeds the bounded slice",
+            format!(
+                "Process '{process_id}' compensation node '{node_id}' uses unsupported configuration '{detail}'."
+            ),
+            "The current engine supports only one bounded compensation shape: inside one transaction shell, attach one compensation boundary event with `<bpmn:compensateEventDefinition>` to one completed serviceTask, userTask, manualTask, or businessRuleTask, connect that boundary to exactly one detached `isForCompensation=\"true\"` handler activity through one association, and let transaction cancel execute those handlers in reverse completion order without normal sequence-flow routing.",
+            vec![
+                "Keep compensation inside one transaction shell and attach each compensation boundary to exactly one direct host-blocking activity.".to_string(),
+                "Make the handler a detached serviceTask, userTask, manualTask, or businessRuleTask marked with `isForCompensation=\"true\"`, and connect it with exactly one association from the compensation boundary.".to_string(),
+                "Do not place normal sequence flows, loops, multi-instance characteristics, throw compensation events, or compensation event subprocesses on this bounded compensation path.".to_string(),
+            ],
+            format!(
+                "Repair compensation node '{node_id}' in process '{process_id}' so it fits the bounded compensation slice: keep it inside one `<bpmn:transaction>` shell, use exactly one compensation boundary with `<bpmn:compensateEventDefinition>` attached to one direct host-blocking activity, connect that boundary to exactly one detached handler activity marked `isForCompensation=\"true\"` through one association, and remove unsupported configuration '{detail}'."
+            ),
+            json!({
+                "process_id": process_id,
+                "node_id": node_id,
+                "detail": detail,
+            }),
+        ),
+    }
 }
 
 fn generic_subprocess_configuration_issue(

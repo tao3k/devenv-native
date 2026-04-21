@@ -50,11 +50,8 @@ pub(crate) enum CaptureTarget {
 
 pub(crate) fn finalize_decision_definition(
     source: &DmnSourceFile,
-    decision: Option<TempDecision>,
+    decision: TempDecision,
 ) -> Result<DmnDecisionDefinition> {
-    let decision = decision.ok_or_else(|| BpmnEngineError::MissingDmnDecision {
-        source_id: source.source_id.clone(),
-    })?;
     let table = decision
         .table
         .ok_or_else(|| BpmnEngineError::MissingDmnDecisionTable {
@@ -66,6 +63,22 @@ pub(crate) fn finalize_decision_definition(
         decision.name,
         table.into_definition(),
     ))
+}
+
+pub(crate) fn finalize_decision_definitions(
+    source: &DmnSourceFile,
+    decisions: Vec<TempDecision>,
+) -> Result<Vec<DmnDecisionDefinition>> {
+    if decisions.is_empty() {
+        return Err(BpmnEngineError::MissingDmnDecision {
+            source_id: source.source_id.clone(),
+        });
+    }
+
+    decisions
+        .into_iter()
+        .map(|decision| finalize_decision_definition(source, decision))
+        .collect()
 }
 
 pub(crate) fn finalize_input(

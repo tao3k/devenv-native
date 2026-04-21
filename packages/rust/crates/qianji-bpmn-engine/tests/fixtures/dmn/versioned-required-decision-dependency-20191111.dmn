@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions
+  id="Definitions_required_decision_dependency"
+  name="Required Decision Dependency"
+  namespace="https://example.com/dmn/required-decision-dependency"
+  xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/">
+  <decision id="Decision_upstream" name="Upstream Decision">
+    <decisionTable id="DecisionTable_upstream">
+      <input id="InputClause_applicant_type">
+        <inputExpression id="InputExpression_applicant_type" typeRef="string">
+          <text>applicantType</text>
+        </inputExpression>
+      </input>
+      <output id="OutputClause_eligibility" name="eligibility" typeRef="string" />
+      <rule id="DecisionRule_upstream">
+        <inputEntry id="UnaryTests_applicant_type">
+          <text>"standard"</text>
+        </inputEntry>
+        <outputEntry id="LiteralExpression_eligibility">
+          <text>"eligible"</text>
+        </outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+  <decision
+    id="Decision_required_decision_dependency"
+    name="Required Decision Dependency">
+    <informationRequirement>
+      <requiredDecision href="#Decision_upstream" />
+    </informationRequirement>
+  </decision>
+</definitions>

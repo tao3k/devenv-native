@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions
+  id="Definitions_relation_decision"
+  name="Relation Decision"
+  namespace="https://example.com/dmn/relation-decision"
+  xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/">
+  <decision id="Decision_relation" name="Relation Decision">
+    <relation id="relation_1">
+      <column id="column_1" name="lender" typeRef="string"/>
+      <column id="column_2" name="rate" typeRef="number"/>
+      <row id="row_1">
+        <literalExpression id="literal_expression_1">
+          <text>"Lender A"</text>
+        </literalExpression>
+        <literalExpression id="literal_expression_2">
+          <text>3.95</text>
+        </literalExpression>
+      </row>
+      <row id="row_2">
+        <literalExpression id="literal_expression_3">
+          <text>"Lender B"</text>
+        </literalExpression>
+        <literalExpression id="literal_expression_4">
+          <text>4.10</text>
+        </literalExpression>
+      </row>
+    </relation>
+  </decision>
+</definitions>

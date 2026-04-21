@@ -4,7 +4,9 @@ use qianji_bpmn_engine::DmnSourceFile;
 mod core;
 mod date;
 mod datetime;
+mod document;
 mod numeric;
+mod snapshot;
 mod time;
 
 fn fixture_source(name: &str) -> DmnSourceFile {

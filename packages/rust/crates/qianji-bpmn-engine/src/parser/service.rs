@@ -2,7 +2,7 @@ use super::import::import_bpmn_source;
 use super::normalize::normalize_package;
 use super::validate::validate_raw_package;
 use crate::bpmn_parse_api::{BpmnBundleSnapshot, BpmnParseOptions};
-use crate::dmn_parse_api::parse_dmn_decision;
+use crate::dmn_parse_api::parse_dmn_decisions;
 use crate::error::{BpmnEngineError, Result};
 use crate::ir_package_api::BpmnPackage;
 
@@ -27,8 +27,11 @@ pub(crate) fn parse_bpmn_bundle_impl(
     let dmn_decisions = snapshot
         .dmn_sources
         .iter()
-        .map(parse_dmn_decision)
-        .collect::<Result<Vec<_>>>()?;
+        .map(parse_dmn_decisions)
+        .collect::<Result<Vec<_>>>()?
+        .into_iter()
+        .flatten()
+        .collect::<Vec<_>>();
     if dmn_decisions.is_empty() {
         Ok(package)
     } else {

@@ -1,4 +1,8 @@
-use super::scope::*;
+use super::scope::{
+    BpmnAdvanceOutcome, BpmnEngineError, BpmnGatewayKind, BpmnInstanceState, BpmnNodeIndex,
+    BpmnProcessSpec, EventCompetitionState, InstanceLifecycle, NodeRuntimeStatus, Result,
+    SuspendReason,
+};
 use super::{blocking, state};
 
 pub(super) fn advance_gateway(

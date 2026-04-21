@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<semantic:definitions
+    xmlns:semantic="https://www.omg.org/spec/DMN/20191111/MODEL/"
+    id="Definitions_metadata_only_group"
+    name="Metadata Only Group"
+    namespace="https://qianji.dev/dmn/metadata-only-group">
+    <semantic:group
+        id="Group_manual_review_cluster"
+        name="Manual Review Cluster" />
+</semantic:definitions>

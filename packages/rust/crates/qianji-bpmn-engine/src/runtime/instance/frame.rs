@@ -2,6 +2,7 @@ use super::process::build_node_states;
 use super::shell::{BpmnInstanceState, CallActivityFrame};
 use crate::ir::BpmnProcessSpec;
 use crate::ir_index_api::BpmnNodeIndex;
+use crate::runtime_instance_api::TransactionCompensationState;
 
 pub(crate) fn push_call_activity_frame(
     instance: &mut BpmnInstanceState,
@@ -22,6 +23,9 @@ pub(crate) fn push_call_activity_frame(
         event_competition: instance.event_competition.take(),
         pending_host_work: std::mem::take(&mut instance.pending_host_work),
         suspend_reason: instance.suspend_reason.take(),
+        transaction_compensation: transaction_cancel_variables
+            .as_ref()
+            .map(|_| TransactionCompensationState::default()),
         transaction_cancel_variables,
     });
 }

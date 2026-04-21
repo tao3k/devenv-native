@@ -250,6 +250,12 @@ async fn runtime_interrupting_boundary_timer_clears_parallel_multi_instance_stat
         BpmnAdvanceOutcome::BlockedOnHost(pending) => assert_eq!(pending.len(), 3),
         other => panic!("expected blocked-on-host outcome, got {other:?}"),
     }
+    let expected_winner_token_id = instance
+        .active_tokens
+        .iter()
+        .map(|token| token.token_id)
+        .min()
+        .must("parallel multi-instance boundary wait should keep active tokens");
     assert_eq!(instance.parallel_multi_instances.len(), 1);
     assert_eq!(instance.waits.len(), 1);
 
@@ -270,6 +276,7 @@ async fn runtime_interrupting_boundary_timer_clears_parallel_multi_instance_stat
     assert!(instance.waits.is_empty());
     assert!(instance.parallel_multi_instances.is_empty());
     assert_eq!(instance.active_tokens.len(), 1);
+    assert_eq!(instance.active_tokens[0].token_id, expected_winner_token_id);
     assert_eq!(instance.active_tokens[0].node_index, 4);
     assert_eq!(
         instance.node_states[1].status,

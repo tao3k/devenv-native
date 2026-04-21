@@ -5,6 +5,8 @@ use crate::dmn_model_api::{
     DmnTimeRangeBound,
 };
 use crate::error::{BpmnEngineError, Result};
+use chrono::DateTime;
+use chrono::FixedOffset;
 use chrono::NaiveDate;
 use chrono::NaiveDateTime;
 use chrono::NaiveTime;
@@ -172,14 +174,21 @@ fn parse_date_time_literal(source_id: &str, raw: &str) -> Result<Option<String>>
             literal: trimmed.to_string(),
         });
     };
-    let date_time = NaiveDateTime::parse_from_str(&value, "%Y-%m-%dT%H:%M:%S").map_err(|_| {
-        BpmnEngineError::UnsupportedDmnLiteral {
-            source_id: source_id.to_string(),
-            literal: trimmed.to_string(),
-        }
-    })?;
-    let _ = date_time;
+    validate_supported_date_time_literal(source_id, trimmed, &value)?;
     Ok(Some(value))
+}
+
+fn validate_supported_date_time_literal(source_id: &str, raw: &str, value: &str) -> Result<()> {
+    if NaiveDateTime::parse_from_str(value, "%Y-%m-%dT%H:%M:%S").is_ok() {
+        return Ok(());
+    }
+    if DateTime::<FixedOffset>::parse_from_rfc3339(value).is_ok() {
+        return Ok(());
+    }
+    Err(BpmnEngineError::UnsupportedDmnLiteral {
+        source_id: source_id.to_string(),
+        literal: raw.to_string(),
+    })
 }
 
 fn parse_date_comparison(source_id: &str, raw: &str) -> Result<Option<DmnInputEntry>> {

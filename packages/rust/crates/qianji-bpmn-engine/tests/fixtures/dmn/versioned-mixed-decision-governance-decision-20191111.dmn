@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions
+  id="Definitions_mixed_decision_governance"
+  name="Mixed Decision Governance Decision"
+  namespace="https://example.invalid/dmn/mixed-decision-governance"
+  xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/">
+  <decision
+    id="Decision_mixed_decision_governance"
+    name="Mixed Decision Governance Decision">
+    <decisionMaker href="#Maker_alpha" />
+    <decisionOwner href="#Owner_alpha" />
+  </decision>
+</definitions>

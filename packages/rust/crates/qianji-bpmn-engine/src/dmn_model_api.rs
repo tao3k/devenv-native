@@ -4,6 +4,7 @@ pub use crate::dmn_model_clause::{DmnHitPolicy, DmnInputClause, DmnOutputClause,
 pub use crate::dmn_model_decision::{
     DmnDecisionDefinition, DmnDecisionTable, DmnEvaluationRequest, DmnEvaluationResult, DmnRule,
 };
+pub use crate::dmn_model_document::{DmnDecisionSnapshot, DmnDocumentSnapshot, DmnRootSnapshot};
 pub use crate::dmn_model_predicate::{
     DmnComparisonOperator, DmnDateComparison, DmnDateRange, DmnDateRangeBound,
     DmnDateTimeComparison, DmnDateTimeRange, DmnDateTimeRangeBound, DmnInputEntry,

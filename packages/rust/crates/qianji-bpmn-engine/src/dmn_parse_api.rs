@@ -4,12 +4,24 @@ mod parser;
 use crate::dmn_model_api::{DmnDecisionDefinition, DmnSourceFile};
 use crate::error::Result;
 
-/// Parses one bounded DMN source into a single-decision definition.
+/// Parses one bounded DMN source into one or more decision definitions.
 ///
 /// # Errors
 ///
 /// Returns typed DMN parse errors when the XML payload is malformed or when
-/// the document exceeds the bounded single-decision and single-table slice.
+/// any parsed decision exceeds the bounded one-table and current hit-policy
+/// slice.
+pub fn parse_dmn_decisions(source: &DmnSourceFile) -> Result<Vec<DmnDecisionDefinition>> {
+    parser::parse_dmn_decisions_impl(source)
+}
+
+/// Parses one bounded DMN source into a single-decision definition.
+///
+/// # Errors
+///
+/// Returns typed DMN parse errors when the XML payload is malformed, when the
+/// source contains no decisions, or when the source contains anything other
+/// than exactly one bounded decision.
 pub fn parse_dmn_decision(source: &DmnSourceFile) -> Result<DmnDecisionDefinition> {
     parser::parse_dmn_decision_impl(source)
 }

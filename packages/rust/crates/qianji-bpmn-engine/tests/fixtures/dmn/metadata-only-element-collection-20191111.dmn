@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<semantic:definitions
+    xmlns:semantic="https://www.omg.org/spec/DMN/20191111/MODEL/"
+    id="Definitions_metadata_only_element_collection"
+    name="Metadata Only Element Collection"
+    namespace="https://qianji.dev/dmn/metadata-only-element-collection">
+    <semantic:elementCollection
+        id="ElementCollection_manual_review_bundle"
+        name="Manual Review Bundle" />
+</semantic:definitions>

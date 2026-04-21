@@ -158,7 +158,8 @@ impl DmnDateRange {
 pub struct DmnDateTimeComparison {
     /// Comparison operator.
     pub operator: DmnComparisonOperator,
-    /// ISO local datetime comparison target in `YYYY-MM-DDTHH:MM:SS` form.
+    /// ISO local or offset-aware datetime comparison target in
+    /// `YYYY-MM-DDTHH:MM:SS` or RFC3339 form.
     pub value: Arc<str>,
 }
 
@@ -176,7 +177,8 @@ impl DmnDateTimeComparison {
 /// One ISO local datetime range bound within the bounded DMN subset.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct DmnDateTimeRangeBound {
-    /// ISO local datetime bound value in `YYYY-MM-DDTHH:MM:SS` form.
+    /// ISO local or offset-aware datetime bound value in
+    /// `YYYY-MM-DDTHH:MM:SS` or RFC3339 form.
     pub value: Arc<str>,
     /// Whether the bound is inclusive.
     pub inclusive: bool,

@@ -1,4 +1,9 @@
-use super::scope::*;
+use super::scope::{
+    BpmnEngineError, BpmnInstanceState, BpmnNodeIndex, BpmnPackage, BpmnProcessSpec,
+    BpmnSubProcessKind, InstanceLifecycle, NodeRuntimeStatus, Result, SuspendReason, TokenRecord,
+    install_process_state, pop_call_activity_frame, push_call_activity_frame,
+    resolve_process_for_instance, restore_call_activity_frame,
+};
 use super::{blocking, completion, state, transaction};
 
 pub(super) fn can_bootstrap_start_token(instance: &BpmnInstanceState) -> bool {

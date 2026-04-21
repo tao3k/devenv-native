@@ -1,4 +1,10 @@
-use crate::runtime::lifecycle::scope::*;
+use crate::runtime::lifecycle::scope::{
+    Arc, BpmnEngineError, BpmnInstanceState, BpmnMultiInstanceDataBindingSpec, BpmnNodeIndex,
+    BpmnProcessSpec, Map, MultiInstanceCollectionKey, MultiInstanceCollectionKind,
+    MultiInstanceCollectionSlot, MultiInstanceDataRuntimeState, MultiInstanceOutputCollectionState,
+    Result, Value, parallel_multi_instance_iteration_variables, parallel_multi_instance_state_mut,
+    sequential_multi_instance_iteration_variables, sequential_multi_instance_state_mut,
+};
 
 pub(crate) fn materialize_node_execution_variables(
     instance: &BpmnInstanceState,

@@ -4,9 +4,9 @@ use crate::ir_index_api::BpmnNodeIndex;
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct BpmnCompensationHandlerSpec {
     /// Boundary compensation event node index.
-    pub boundary_node_index: BpmnNodeIndex,
+    pub boundary: BpmnNodeIndex,
     /// Original activity node index that may be compensated.
-    pub activity_node_index: BpmnNodeIndex,
+    pub activity: BpmnNodeIndex,
     /// Compensation activity node index.
-    pub handler_node_index: BpmnNodeIndex,
+    pub handler: BpmnNodeIndex,
 }

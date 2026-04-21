@@ -7,10 +7,12 @@
 //! ownership for distributed checkpoint writers, deterministic frontier
 //! snapshots plus explicit frontier proposal/reduction and deterministic batch
 //! execution seams for multi-token runtime planning, and a crate-owned bounded
-//! DMN parse and evaluation contract plus LLM-friendly BPMN/DMN lint reports.
-//! Parser-owned bundle snapshots can now also attach bounded DMN sources to one
-//! BPMN package so local business-rule execution is populated from parse-time
-//! inputs instead of test-only manual wiring.
+//! DMN parse and evaluation contract plus one non-executable DMN document
+//! snapshot surface and LLM-friendly BPMN/DMN lint reports. Parser-owned
+//! bundle snapshots can now also attach bounded DMN sources to one BPMN
+//! package, including multiple bounded decisions from one DMN source, so local
+//! business-rule execution is populated from parse-time inputs instead of
+//! test-only manual wiring.
 //! Bounded `parallelGateway` split/join semantics and deterministic
 //! `exclusiveGateway` pass-through routing plus one bounded exclusive
 //! `eventBasedGateway` whose outgoing targets are message/signal/timer
@@ -52,10 +54,11 @@
 //! matching engine-owned DMN decision definition; otherwise it falls back to
 //! the existing host seam. Inclusive gateways, recursive call chains,
 //! non-interrupting boundaries, full timer execution semantics,
-//! transaction compensation semantics, more than one cancel boundary on the
-//! same transaction owner, broader transaction error propagation beyond that
-//! bounded transaction shell, broader duration/timezone/function FEEL
-//! behavior, and richer orchestration slices remain deferred.
+//! throw compensation events, compensation event subprocesses, default
+//! compensation, more than one cancel boundary on the same transaction owner,
+//! broader transaction error propagation beyond that bounded transaction
+//! shell, broader duration/timezone/function FEEL behavior, and richer
+//! orchestration slices remain deferred.
 
 mod bpmn_parse_api;
 mod checkpoint;
@@ -66,9 +69,11 @@ mod dmn_evaluate_api;
 mod dmn_model_api;
 mod dmn_model_clause;
 mod dmn_model_decision;
+mod dmn_model_document;
 mod dmn_model_predicate;
 mod dmn_model_reference;
 mod dmn_parse_api;
+mod dmn_snapshot_api;
 mod error;
 mod host_bridge_api;
 mod host_types_api;
@@ -117,10 +122,11 @@ pub use checkpoint_api::{delete_checkpoint_sql, load_checkpoint_sql, save_checkp
 pub use dmn_api::{
     DmnBindingKind, DmnComparisonOperator, DmnDateComparison, DmnDateRange, DmnDateRangeBound,
     DmnDateTimeComparison, DmnDateTimeRange, DmnDateTimeRangeBound, DmnDecisionDefinition,
-    DmnDecisionRef, DmnDecisionTable, DmnEvaluationRequest, DmnEvaluationResult, DmnHitPolicy,
-    DmnInputClause, DmnInputEntry, DmnNumericComparison, DmnNumericRange, DmnNumericRangeBound,
-    DmnOutputClause, DmnOutputEntry, DmnRule, DmnSourceFile, DmnTimeComparison, DmnTimeRange,
-    DmnTimeRangeBound, evaluate_dmn_decision, parse_dmn_decision,
+    DmnDecisionRef, DmnDecisionSnapshot, DmnDecisionTable, DmnDocumentSnapshot,
+    DmnEvaluationRequest, DmnEvaluationResult, DmnHitPolicy, DmnInputClause, DmnInputEntry,
+    DmnNumericComparison, DmnNumericRange, DmnNumericRangeBound, DmnOutputClause, DmnOutputEntry,
+    DmnRootSnapshot, DmnRule, DmnSourceFile, DmnTimeComparison, DmnTimeRange, DmnTimeRangeBound,
+    evaluate_dmn_decision, parse_dmn_decision, parse_dmn_decisions, snapshot_dmn_source,
 };
 pub use error::BpmnEngineError;
 pub use host_bridge_api::BpmnHostBridge;

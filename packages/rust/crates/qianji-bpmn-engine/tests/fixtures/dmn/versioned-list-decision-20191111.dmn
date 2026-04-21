@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions
+  id="Definitions_list_decision"
+  name="List Decision"
+  namespace="https://example.com/dmn/list-decision"
+  xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/">
+  <decision id="Decision_list" name="List Decision">
+    <list id="list_1">
+      <literalExpression id="literal_expression_1">
+        <text>"approve"</text>
+      </literalExpression>
+      <literalExpression id="literal_expression_2">
+        <text>"review"</text>
+      </literalExpression>
+    </list>
+  </decision>
+</definitions>

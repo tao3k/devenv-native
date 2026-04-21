@@ -5,6 +5,8 @@ use std::process::{Child, Command, Stdio};
 use tempfile::TempDir;
 use tokio::time::{Duration, Instant, sleep};
 
+const VALKEY_SPAWN_ATTEMPTS: usize = 8;
+
 pub(super) struct TestValkey {
     url: String,
     child: Option<Child>,
@@ -29,34 +31,48 @@ impl TestValkey {
             return Ok(None);
         }
 
-        let port = reserve_local_port()?;
-        let temp_dir = tempfile::tempdir()?;
-        let dir = temp_dir.path();
-        let log_path = dir.join("valkey.log");
-        let child = Command::new("valkey-server")
-            .arg("--bind")
-            .arg("127.0.0.1")
-            .arg("--port")
-            .arg(port.to_string())
-            .arg("--save")
-            .arg("")
-            .arg("--appendonly")
-            .arg("no")
-            .arg("--dir")
-            .arg(dir)
-            .arg("--logfile")
-            .arg(&log_path)
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .spawn()?;
-        let mut server = Self {
-            url: format!("redis://127.0.0.1:{port}/0"),
-            child: Some(child),
-            temp_dir: Some(temp_dir),
-            log_path: Some(log_path),
-        };
-        server.wait_ready().await?;
-        Ok(Some(server))
+        let mut last_port_conflict = None;
+        for _attempt in 0..VALKEY_SPAWN_ATTEMPTS {
+            let port = reserve_local_port()?;
+            let temp_dir = tempfile::tempdir()?;
+            let dir = temp_dir.path();
+            let log_path = dir.join("valkey.log");
+            let child = Command::new("valkey-server")
+                .arg("--bind")
+                .arg("127.0.0.1")
+                .arg("--port")
+                .arg(port.to_string())
+                .arg("--save")
+                .arg("")
+                .arg("--appendonly")
+                .arg("no")
+                .arg("--dir")
+                .arg(dir)
+                .arg("--logfile")
+                .arg(&log_path)
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .spawn()?;
+            let mut server = Self {
+                url: format!("redis://127.0.0.1:{port}/0"),
+                child: Some(child),
+                temp_dir: Some(temp_dir),
+                log_path: Some(log_path),
+            };
+            match server.wait_ready().await {
+                Ok(()) => return Ok(Some(server)),
+                Err(error) if is_port_conflict(&error) => {
+                    last_port_conflict = Some(error);
+                }
+                Err(error) => return Err(error),
+            }
+        }
+
+        if let Some(error) = last_port_conflict {
+            return Err(error);
+        }
+
+        anyhow::bail!("valkey test server could not start after {VALKEY_SPAWN_ATTEMPTS} attempts")
     }
 
     pub(super) fn url(&self) -> &str {
@@ -128,6 +144,11 @@ fn reserve_local_port() -> anyhow::Result<u16> {
     Ok(listener.local_addr()?.port())
 }
 
+fn is_port_conflict(error: &anyhow::Error) -> bool {
+    let rendered = error.to_string();
+    rendered.contains("Address already in use") || rendered.contains("Failed listening on port")
+}
+
 fn read_log_excerpt(path: &Path) -> Option<String> {
     let rendered = std::fs::read_to_string(path).ok()?;
     let trimmed = rendered.trim();
@@ -145,4 +166,18 @@ fn read_log_excerpt(path: &Path) -> Option<String> {
             .collect::<Vec<_>>()
             .join(" | "),
     )
+}
+
+#[test]
+fn valkey_helper_classifies_port_conflicts_from_log_text() {
+    let error = anyhow::anyhow!(
+        "valkey test server exited with status exit status: 1; valkey log: Failed listening on port 58472 (tcp), aborting."
+    );
+    assert!(is_port_conflict(&error));
+}
+
+#[test]
+fn valkey_helper_keeps_non_port_failures_distinct() {
+    let error = anyhow::anyhow!("timed out waiting for valkey test server readiness");
+    assert!(!is_port_conflict(&error));
 }

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<semantic:definitions
+    xmlns:semantic="https://www.omg.org/spec/DMN/20191111/MODEL/"
+    id="Definitions_metadata_only_text_annotation"
+    name="Metadata Only Text Annotation"
+    namespace="https://qianji.dev/dmn/metadata-only-text-annotation">
+    <semantic:textAnnotation
+        id="TextAnnotation_credit_policy_note">
+        <semantic:text>Credit policy note for manual reviewers.</semantic:text>
+    </semantic:textAnnotation>
+</semantic:definitions>

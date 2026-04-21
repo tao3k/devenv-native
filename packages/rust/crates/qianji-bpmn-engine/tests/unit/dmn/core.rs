@@ -2,7 +2,7 @@ use super::{assert_dmn_json_snapshot, fixture_source};
 use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{
     BpmnEngineError, DmnDecisionRef, DmnEvaluationRequest, DmnHitPolicy, evaluate_dmn_decision,
-    parse_dmn_decision,
+    parse_dmn_decision, parse_dmn_decisions,
 };
 use serde_json::json;
 
@@ -17,14 +17,28 @@ fn dmn_parser_single_decision_table_materializes_contract() {
 }
 
 #[test]
-fn dmn_parser_rejects_multiple_decisions() {
-    let error = parse_dmn_decision(&fixture_source("invalid-multiple-decisions.dmn"))
-        .must_err("multiple decisions exceed the bounded slice");
+fn dmn_parser_multiple_decisions_materialize_plural_contract() {
+    let decisions = parse_dmn_decisions(&fixture_source("multiple-decisions.dmn"))
+        .must("multi-decision DMN source should parse through the plural API");
+
+    assert_eq!(decisions.len(), 2);
+    assert_eq!(decisions[0].decision.decision_id.as_ref(), "loan-decision");
+    assert_eq!(
+        decisions[1].decision.decision_id.as_ref(),
+        "secondary-review"
+    );
+    assert_eq!(decisions[0].source_id.as_ref(), "multiple-decisions.dmn");
+}
+
+#[test]
+fn dmn_parser_exact_one_wrapper_rejects_multiple_decisions() {
+    let error = parse_dmn_decision(&fixture_source("multiple-decisions.dmn"))
+        .must_err("exact-one wrapper should stay explicit for multi-decision sources");
 
     assert_eq!(
         error,
         BpmnEngineError::UnsupportedDmnDecisionCount {
-            source_id: "invalid-multiple-decisions.dmn".to_string(),
+            source_id: "multiple-decisions.dmn".to_string(),
             count: 2,
         }
     );
@@ -39,7 +53,7 @@ fn dmn_parser_rejects_unsupported_unary_tests() {
         error,
         BpmnEngineError::UnsupportedDmnUnaryTest {
             source_id: "invalid-unsupported-unary-test.dmn".to_string(),
-            expression: "date and time(\"2026-04-20T09:00:00Z\")".to_string(),
+            expression: "duration(\"P1D\")".to_string(),
         }
     );
 }

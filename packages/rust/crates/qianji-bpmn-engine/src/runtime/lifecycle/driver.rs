@@ -1,5 +1,11 @@
-use super::scope::*;
+use super::scope::{
+    BpmnAdvanceOutcome, BpmnEngineError, BpmnFrontierExecutionBatch, BpmnFrontierExecutionProposal,
+    BpmnFrontierExecutionStep, BpmnFrontierParallelJoinMerge, BpmnFrontierPlanAction,
+    BpmnHostBridge, BpmnInstanceState, BpmnNodeIndex, BpmnPackage, InstanceLifecycle,
+    JoinRuntimeState, NodeRuntimeStatus, Result, plan_frontier_step, resolve_process_for_instance,
+};
 use super::{advance, call_activity, state};
+use std::collections::HashMap;
 
 pub(crate) async fn advance_instance_impl<H: BpmnHostBridge>(
     package: &BpmnPackage,
@@ -68,16 +74,19 @@ fn execute_frontier_batch<H: BpmnHostBridge>(
     host: &H,
     batch: &BpmnFrontierExecutionBatch,
 ) -> Result<Option<BpmnAdvanceOutcome>> {
+    let mut token_lookup = state::FrontierTokenLookup::default();
     for step in &batch.steps {
         match step {
             BpmnFrontierExecutionStep::Proposal(proposal) => {
-                if let Some(outcome) = execute_frontier_proposal(package, instance, host, proposal)?
+                if let Some(outcome) =
+                    execute_frontier_proposal(package, instance, host, proposal, &mut token_lookup)?
                 {
                     return Ok(Some(outcome));
                 }
             }
             BpmnFrontierExecutionStep::ParallelJoin(group) => {
-                if let Some(outcome) = execute_parallel_join_merge(package, instance, host, group)?
+                if let Some(outcome) =
+                    execute_parallel_join_merge(package, instance, host, group, &mut token_lookup)?
                 {
                     return Ok(Some(outcome));
                 }
@@ -93,22 +102,25 @@ fn execute_frontier_proposal<H: BpmnHostBridge>(
     instance: &mut BpmnInstanceState,
     host: &H,
     proposal: &BpmnFrontierExecutionProposal,
+    token_lookup: &mut state::FrontierTokenLookup,
 ) -> Result<Option<BpmnAdvanceOutcome>> {
     let Some(current_token_index) =
-        state::resolve_frontier_proposal_token_index(instance, proposal)
+        token_lookup.resolve_frontier_proposal_token_index(instance, proposal)
     else {
         return Ok(None);
     };
     let process = resolve_process_for_instance(package, instance)?;
     let now_ms = host.now_unix_ms();
-    advance::advance_active_node(
+    let outcome = advance::advance_active_node(
         package,
         process,
         instance,
         current_token_index,
         proposal.node_index,
         now_ms,
-    )
+    )?;
+    token_lookup.invalidate();
+    Ok(outcome)
 }
 
 fn execute_parallel_join_merge<H: BpmnHostBridge>(
@@ -116,12 +128,19 @@ fn execute_parallel_join_merge<H: BpmnHostBridge>(
     instance: &mut BpmnInstanceState,
     host: &H,
     group: &BpmnFrontierParallelJoinMerge,
+    token_lookup: &mut state::FrontierTokenLookup,
 ) -> Result<Option<BpmnAdvanceOutcome>> {
     let process = resolve_process_for_instance(package, instance)?;
     let outgoing = process.outgoing_edge_indices(group.node_index);
     let incoming = process.incoming_edge_indices(group.node_index);
     if !parallel_join_merge_supported(instance, group.node_index, incoming.len()) {
-        return execute_parallel_join_merge_fallback(package, instance, host, &group.proposals);
+        return execute_parallel_join_merge_fallback(
+            package,
+            instance,
+            host,
+            &group.proposals,
+            token_lookup,
+        );
     }
 
     if outgoing.len() != 1 {
@@ -134,14 +153,19 @@ fn execute_parallel_join_merge<H: BpmnHostBridge>(
         u32::try_from(incoming.len()).map_err(|_| BpmnEngineError::UnsupportedOperation {
             operation: "advance_instance_parallel_gateway_join_incoming_overflow",
         })?;
+    let incoming_edge_positions: HashMap<u32, usize> = incoming
+        .iter()
+        .enumerate()
+        .map(|(position, edge_index)| (*edge_index, position))
+        .collect();
     let mut buffered_counts =
         current_parallel_join_counts(instance, group.node_index, incoming.len());
-    let mut resolved_token_ids = Vec::new();
+    let mut buffered_token_ids = Vec::with_capacity(group.proposals.len());
     let mut activation_token_ids = Vec::new();
 
     for proposal in &group.proposals {
         let Some(current_token_index) =
-            state::resolve_frontier_proposal_token_index(instance, proposal)
+            token_lookup.resolve_frontier_proposal_token_index(instance, proposal)
         else {
             continue;
         };
@@ -152,34 +176,35 @@ fn execute_parallel_join_merge<H: BpmnHostBridge>(
             .ok_or(BpmnEngineError::UnsupportedOperation {
                 operation: "advance_instance_parallel_gateway_join_missing_arrival_edge",
             })?;
-        let position = incoming
-            .iter()
-            .position(|edge| *edge == incoming_edge_index)
+        let position = incoming_edge_positions
+            .get(&incoming_edge_index)
+            .copied()
             .ok_or(BpmnEngineError::UnsupportedOperation {
                 operation: "advance_instance_parallel_gateway_join_unknown_arrival_edge",
             })?;
         buffered_counts[position] += 1;
-        resolved_token_ids.push(proposal.token_id);
         if buffered_counts.iter().all(|count| *count > 0) {
             for count in &mut buffered_counts {
                 *count = count.saturating_sub(1);
             }
             activation_token_ids.push(proposal.token_id);
+        } else {
+            buffered_token_ids.push(proposal.token_id);
         }
     }
 
     store_parallel_join_counts(instance, group.node_index, expected, buffered_counts);
-    let buffered_token_ids: Vec<u64> = resolved_token_ids
-        .iter()
-        .copied()
-        .filter(|token_id| !activation_token_ids.contains(token_id))
+    let mut buffered_token_indices: Vec<usize> = buffered_token_ids
+        .into_iter()
+        .filter_map(|token_id| token_lookup.token_index_for_id(instance, token_id))
         .collect();
+    buffered_token_indices.sort_unstable();
+    buffered_token_indices.dedup();
 
-    for token_id in buffered_token_ids {
-        if let Some(current_token_index) = state::token_index_for_id(instance, token_id) {
-            let _ = state::remove_active_token(instance, current_token_index);
-        }
+    for token_index in buffered_token_indices.into_iter().rev() {
+        let _ = state::remove_active_token(instance, token_index);
     }
+    token_lookup.invalidate();
 
     if activation_token_ids.is_empty() {
         state::set_node_status(instance, group.node_index, NodeRuntimeStatus::Executing);
@@ -196,7 +221,7 @@ fn execute_parallel_join_merge<H: BpmnHostBridge>(
     let outgoing_edge_index = outgoing[0];
     let next_node_index = process.edges[outgoing_edge_index as usize].to;
     for token_id in activation_token_ids {
-        let Some(current_token_index) = state::token_index_for_id(instance, token_id) else {
+        let Some(current_token_index) = token_lookup.token_index_for_id(instance, token_id) else {
             continue;
         };
         state::set_active_node_index(
@@ -217,9 +242,12 @@ fn execute_parallel_join_merge_fallback<H: BpmnHostBridge>(
     instance: &mut BpmnInstanceState,
     host: &H,
     proposals: &[BpmnFrontierExecutionProposal],
+    token_lookup: &mut state::FrontierTokenLookup,
 ) -> Result<Option<BpmnAdvanceOutcome>> {
     for proposal in proposals {
-        if let Some(outcome) = execute_frontier_proposal(package, instance, host, proposal)? {
+        if let Some(outcome) =
+            execute_frontier_proposal(package, instance, host, proposal, token_lookup)?
+        {
             return Ok(Some(outcome));
         }
     }
@@ -249,14 +277,16 @@ fn current_parallel_join_counts(
         .joins
         .iter()
         .find(|join| join.node_index == node_index)
-        .map(|join| {
-            if join.incoming_counts.len() == incoming_len {
-                join.incoming_counts.clone()
-            } else {
-                vec![0; incoming_len]
-            }
-        })
-        .unwrap_or_else(|| vec![0; incoming_len])
+        .map_or_else(
+            || vec![0; incoming_len],
+            |join| {
+                if join.incoming_counts.len() == incoming_len {
+                    join.incoming_counts.clone()
+                } else {
+                    vec![0; incoming_len]
+                }
+            },
+        )
 }
 
 fn store_parallel_join_counts(

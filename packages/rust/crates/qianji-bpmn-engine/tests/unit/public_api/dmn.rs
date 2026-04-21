@@ -1,6 +1,7 @@
 use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{
     BpmnEngineError, BpmnPackage, DmnDecisionRef, DmnSourceFile, parse_dmn_decision,
+    parse_dmn_decisions,
 };
 
 #[test]
@@ -50,6 +51,27 @@ fn package_unqualified_duplicate_dmn_decision_ref_is_rejected() {
             source_suffix: String::new(),
         }
     );
+}
+
+#[test]
+fn package_same_source_multi_decision_lookup_resolves_deterministically() {
+    let definitions = parse_dmn_decisions(&fixture_source(
+        "multiple-decisions.dmn",
+        "multiple-decisions.dmn",
+    ))
+    .must("multi-decision source should parse through the plural API");
+    let package = BpmnPackage::new("pkg_api", Vec::new()).with_dmn_decisions(definitions);
+
+    let resolved = package
+        .find_dmn_decision(
+            &DmnDecisionRef::new("secondary-review").with_source_id("multiple-decisions.dmn"),
+        )
+        .must("lookup should succeed")
+        .must("secondary decision should resolve");
+
+    assert_eq!(package.dmn_decisions().len(), 2);
+    assert_eq!(resolved.decision.decision_id.as_ref(), "secondary-review");
+    assert_eq!(resolved.source_id.as_ref(), "multiple-decisions.dmn");
 }
 
 fn fixture_source(source_id: &str, fixture_name: &str) -> DmnSourceFile {

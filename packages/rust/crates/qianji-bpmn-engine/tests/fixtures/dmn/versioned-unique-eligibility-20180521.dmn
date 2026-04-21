@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions
+  id="Definitions_versioned_unique_eligibility"
+  name="Versioned Unique Eligibility"
+  namespace="https://example.com/dmn/versioned-unique-eligibility"
+  xmlns="http://www.omg.org/spec/DMN/20180521/MODEL/">
+  <decision id="versioned-eligibility" name="Versioned Eligibility">
+    <decisionTable id="decision_table_versioned_eligibility" hitPolicy="UNIQUE">
+      <input id="input_age" label="Age">
+        <inputExpression id="expr_age" typeRef="integer">
+          <text>applicant.age</text>
+        </inputExpression>
+      </input>
+      <output id="output_segment" label="Segment" name="segment" typeRef="string" />
+      <rule id="rule_minor">
+        <inputEntry id="input_minor">
+          <text>&lt; 18</text>
+        </inputEntry>
+        <outputEntry id="output_minor">
+          <text>"minor"</text>
+        </outputEntry>
+      </rule>
+      <rule id="rule_adult">
+        <inputEntry id="input_adult">
+          <text>&gt;= 18</text>
+        </inputEntry>
+        <outputEntry id="output_adult">
+          <text>"adult"</text>
+        </outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+</definitions>
