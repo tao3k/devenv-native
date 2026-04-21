@@ -38,6 +38,37 @@ pub struct InternalState {
 }
 
 #[test]
+fn modularity_pack_accepts_public_items_in_nested_api_module() {
+    let temp_dir = must_ok(TempDir::new(), "should create temp dir");
+    let src_root = crate_src_root(&temp_dir, "demo");
+    write_rust_file(
+        &src_root,
+        "feature/api.rs",
+        r"
+pub struct FeatureApi {
+    value: usize,
+}
+
+impl FeatureApi {
+    pub fn new(value: usize) -> Self {
+        Self { value }
+    }
+
+    pub fn value(&self) -> usize {
+        self.value
+    }
+}
+",
+    );
+
+    let findings = evaluate_fixture("demo", &temp_dir);
+    assert!(
+        findings.iter().all(|finding| finding.rule_id != "MOD-R002"),
+        "expected no MOD-R002 finding for nested api.rs, got {findings:#?}"
+    );
+}
+
+#[test]
 fn modularity_pack_flags_bloated_multi_responsibility_file() {
     let temp_dir = must_ok(TempDir::new(), "should create temp dir");
     let src_root = crate_src_root(&temp_dir, "demo");

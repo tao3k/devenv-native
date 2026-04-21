@@ -2,7 +2,7 @@
 
 #[path = "executors/wendao_refresh/input.rs"]
 mod input;
-#[path = "executors/wendao_refresh/mechanism.rs"]
+#[path = "executors_wendao_refresh_mechanism.rs"]
 mod mechanism;
 #[path = "executors/wendao_refresh/refresh.rs"]
 mod refresh;

@@ -6,17 +6,25 @@
 mod annotation;
 #[path = "../executors_api.rs"]
 mod api;
+#[path = "../executors_calibration.rs"]
 mod calibration;
+#[path = "../executors_cli_call.rs"]
 mod cli_call;
+#[path = "../executors_command.rs"]
 mod command;
 #[path = "../executors_formal_audit.rs"]
 mod formal_audit;
+#[path = "../executors_http_call.rs"]
 mod http_call;
+#[path = "../executors_knowledge.rs"]
 mod knowledge;
+#[path = "../executors_mock.rs"]
 mod mock;
+#[path = "../executors_router.rs"]
 mod router;
 #[path = "../executors_security_scan.rs"]
 mod security_scan;
+#[path = "../executors_suspend.rs"]
 mod suspend;
 #[path = "../executors_wendao_ingester.rs"]
 mod wendao_ingester;

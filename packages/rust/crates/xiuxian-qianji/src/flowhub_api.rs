@@ -4,10 +4,7 @@ pub use super::check::{
 };
 pub use super::discover::{FlowhubDirKind, classify_flowhub_dir};
 pub(crate) use super::flowchart::{derive_flowchart_aliases, render_flowchart};
-pub use super::graph_show::{
-    FlowhubGraphEdgeSummary, FlowhubGraphNodeSummary, FlowhubGraphShow, render_flowhub_graph_show,
-    show_flowhub_graph,
-};
+pub use super::graph_show::{FlowhubGraphShow, render_flowhub_graph_show, show_flowhub_graph};
 pub use super::load::{load_flowhub_module_manifest, load_flowhub_scenario_manifest};
 pub use super::materialize_api::{
     AnchoredMaterializedWorkdir, MaterializedWorkdir, materialize_flowhub_anchored_scenario,

@@ -205,25 +205,18 @@ macro_rules! crate_testing_gate {
     };
 }
 
-/// Mount an external source-backed crate test-policy harness plus the built-in
-/// modularity gate into a source module such as `src/lib.rs`.
+/// Mount an external source-backed crate gate entrypoint into a source module
+/// such as `src/lib.rs`.
 ///
-/// This keeps the crate test-policy body out of `src/` while ensuring
-/// `cargo test --lib` still runs the built-in modularity contract.
+/// Keep the full gate body in the mounted file, typically by placing
+/// [`crate_testing_gate!`](macro@crate_testing_gate) inside
+/// `tests/unit/lib_policy.rs`. This keeps test bodies out of `src/` while
+/// ensuring `cargo test --lib` still runs both the shared crate-policy gate
+/// and the built-in modularity contract.
 #[macro_export]
 macro_rules! crate_testing_source_gate {
     ($path:literal) => {
         $crate::crate_test_policy_source_harness!($path);
-
-        #[cfg(test)]
-        mod xiuxian_modularity_gate {
-            #[test]
-            fn enforce_modularity_contract_gate() {
-                $crate::assert_crate_modularity_gate(std::path::Path::new(env!(
-                    "CARGO_MANIFEST_DIR"
-                )));
-            }
-        }
     };
 }
 

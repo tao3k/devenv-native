@@ -1,1 +1,1 @@
-xiuxian_testing::crate_test_policy_harness!();
+xiuxian_testing::crate_testing_gate!();

@@ -1,6 +1,6 @@
 //! Native file writing mechanism.
 
-#[path = "executors/write_file/mechanism.rs"]
+#[path = "executors_write_file_mechanism.rs"]
 mod mechanism;
 #[path = "executors/write_file/pathing.rs"]
 mod pathing;

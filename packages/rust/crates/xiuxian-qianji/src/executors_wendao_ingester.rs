@@ -2,7 +2,7 @@
 
 #[path = "executors/wendao_ingester/entity.rs"]
 mod entity;
-#[path = "executors/wendao_ingester/mechanism.rs"]
+#[path = "executors_wendao_ingester_mechanism.rs"]
 mod mechanism;
 #[path = "executors/wendao_ingester/persistence.rs"]
 mod persistence;

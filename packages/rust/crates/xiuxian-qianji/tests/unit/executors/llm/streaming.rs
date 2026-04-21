@@ -1,5 +1,31 @@
-use super::*;
-use xiuxian_zhenfa::CognitiveDistribution;
+use std::fmt::Write as _;
+use std::sync::Arc;
+
+use async_trait::async_trait;
+use futures::stream;
+use serde_json::json;
+use xiuxian_llm::llm::client::ChatStream;
+use xiuxian_llm::llm::{ChatRequest, LlmClient, LlmError};
+use xiuxian_zhenfa::{CognitiveDistribution, StreamProvider};
+
+use super::output::{
+    build_repo_tree_fallback_plan, parse_json_from_text, resolve_model_for_request,
+};
+use super::{StreamingLlmAnalyzer, StreamingLlmAnalyzerBuilder};
+use crate::contracts::FlowInstruction;
+
+struct MockLlmClient;
+
+#[async_trait]
+impl LlmClient for MockLlmClient {
+    async fn chat(&self, _request: ChatRequest) -> Result<String, LlmError> {
+        Ok("test response".to_string())
+    }
+
+    async fn chat_stream(&self, _request: ChatRequest) -> Result<ChatStream, LlmError> {
+        Ok(Box::pin(stream::empty()))
+    }
+}
 
 #[derive(Debug, Clone)]
 struct StreamingAnalysisResult {
@@ -12,23 +38,30 @@ struct StreamingAnalysisResult {
 
 #[test]
 fn builder_creates_analyzer() {
-    let builder = StreamingLlmAnalyzer::builder()
+    let analyzer = StreamingLlmAnalyzer::builder()
+        .client(Arc::new(MockLlmClient))
         .model("claude-3-opus")
         .prompt_template("You are an expert auditor.")
         .output_key("audit_result")
         .parse_json_output(true)
         .early_halt_threshold(0.4)
         .validate_xsd(true)
-        .monitor_cognitive(true);
+        .monitor_cognitive(true)
+        .build();
 
-    assert!(builder.model.is_some());
+    assert_eq!(analyzer.model, "claude-3-opus");
+    assert_eq!(analyzer.prompt_template, "You are an expert auditor.");
+    assert_eq!(analyzer.output_key, "audit_result");
+    assert!(analyzer.output_flags.parse_json_output);
+    assert!((analyzer.pipeline_settings.early_halt_threshold - 0.4).abs() < 0.001);
+    assert!(analyzer.pipeline_settings.flags.validate_xsd);
+    assert!(analyzer.pipeline_settings.flags.monitor_cognitive);
 }
 
 #[test]
 fn default_stream_provider_is_claude() {
-    let builder = StreamingLlmAnalyzerBuilder::default();
     assert_eq!(
-        builder.pipeline_settings.stream_provider,
+        super::api::StreamingPipelineSettings::default().stream_provider,
         StreamProvider::Claude
     );
 }
@@ -190,7 +223,8 @@ fn streaming_analysis_result_debug_impl() {
 
 #[test]
 fn builder_allows_method_chaining() {
-    let builder = StreamingLlmAnalyzerBuilder::default()
+    let analyzer = StreamingLlmAnalyzerBuilder::default()
+        .client(Arc::new(MockLlmClient))
         .model("test-model")
         .prompt_template("template")
         .output_key("result")
@@ -200,38 +234,42 @@ fn builder_allows_method_chaining() {
         .early_halt_threshold(0.5)
         .stream_provider(StreamProvider::Gemini)
         .validate_xsd(false)
-        .monitor_cognitive(false);
+        .monitor_cognitive(false)
+        .build();
 
-    assert_eq!(builder.model, Some("test-model".to_string()));
-    assert_eq!(builder.prompt_template, "template");
-    assert_eq!(builder.output_key, "result");
-    assert_eq!(builder.context_keys.len(), 2);
-    assert!(builder.output_flags.parse_json_output);
-    assert!(builder.output_flags.fallback_repo_tree_on_parse_failure);
-    assert!((builder.pipeline_settings.early_halt_threshold - 0.5).abs() < 0.001);
+    assert_eq!(analyzer.model, "test-model");
+    assert_eq!(analyzer.prompt_template, "template");
+    assert_eq!(analyzer.output_key, "result");
+    assert_eq!(analyzer.context_keys.len(), 2);
+    assert!(analyzer.output_flags.parse_json_output);
+    assert!(analyzer.output_flags.fallback_repo_tree_on_parse_failure);
+    assert!((analyzer.pipeline_settings.early_halt_threshold - 0.5).abs() < 0.001);
     assert_eq!(
-        builder.pipeline_settings.stream_provider,
+        analyzer.pipeline_settings.stream_provider,
         StreamProvider::Gemini
     );
-    assert!(!builder.pipeline_settings.flags.validate_xsd);
-    assert!(!builder.pipeline_settings.flags.monitor_cognitive);
+    assert!(!analyzer.pipeline_settings.flags.validate_xsd);
+    assert!(!analyzer.pipeline_settings.flags.monitor_cognitive);
 }
 
 #[test]
 fn builder_default_values() {
-    let builder = StreamingLlmAnalyzerBuilder::default();
-    assert!(builder.client.is_none());
-    assert!(builder.model.is_none());
-    assert!(builder.context_keys.is_empty());
-    assert!(builder.prompt_template.is_empty());
-    assert!(builder.output_key.is_empty());
-    assert!(!builder.output_flags.parse_json_output);
-    assert!(!builder.output_flags.fallback_repo_tree_on_parse_failure);
-    assert!((builder.pipeline_settings.early_halt_threshold - 0.0).abs() < 0.001);
+    let analyzer = StreamingLlmAnalyzerBuilder::default()
+        .client(Arc::new(MockLlmClient))
+        .model("default-model")
+        .build();
+
+    assert_eq!(analyzer.model, "default-model");
+    assert!(analyzer.context_keys.is_empty());
+    assert!(analyzer.prompt_template.is_empty());
+    assert!(analyzer.output_key.is_empty());
+    assert!(!analyzer.output_flags.parse_json_output);
+    assert!(!analyzer.output_flags.fallback_repo_tree_on_parse_failure);
+    assert!((analyzer.pipeline_settings.early_halt_threshold - 0.0).abs() < 0.001);
     assert_eq!(
-        builder.pipeline_settings.stream_provider,
+        analyzer.pipeline_settings.stream_provider,
         StreamProvider::Claude
     );
-    assert!(builder.pipeline_settings.flags.validate_xsd);
-    assert!(builder.pipeline_settings.flags.monitor_cognitive);
+    assert!(analyzer.pipeline_settings.flags.validate_xsd);
+    assert!(analyzer.pipeline_settings.flags.monitor_cognitive);
 }

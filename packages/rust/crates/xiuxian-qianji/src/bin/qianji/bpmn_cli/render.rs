@@ -224,6 +224,9 @@ fn bpmn_event_kind_label(kind: &BpmnEventKind) -> &'static str {
         BpmnEventKind::Timer => "timer",
         BpmnEventKind::Message => "message",
         BpmnEventKind::Signal => "signal",
+        BpmnEventKind::Error => "error",
+        BpmnEventKind::Cancel => "cancel",
+        BpmnEventKind::Compensation => "compensation",
         BpmnEventKind::Conditional => "conditional",
     }
 }

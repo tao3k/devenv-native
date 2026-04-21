@@ -1094,7 +1094,7 @@ fn check_relative_import_clarity(path: &Path, text: &str) -> Vec<ContractFinding
 
 fn check_visibility_boundary(path: &Path, text: &str) -> Vec<ContractFinding> {
     let file_name = path.file_name().and_then(|name| name.to_str());
-    if matches!(file_name, Some("lib.rs" | "main.rs" | "mod.rs")) {
+    if matches!(file_name, Some("lib.rs" | "main.rs" | "mod.rs" | "api.rs")) {
         return Vec::new();
     }
     if path

@@ -1,8 +1,8 @@
-#[path = "executors/wendao_sql/contract.rs"]
+#[path = "executors_wendao_sql_contract.rs"]
 mod contract;
-#[path = "executors/wendao_sql/discover.rs"]
+#[path = "executors_wendao_sql_discover.rs"]
 mod discover;
-#[path = "executors/wendao_sql/execute.rs"]
+#[path = "executors_wendao_sql_execute.rs"]
 mod execute;
 #[path = "executors/wendao_sql/gateway.rs"]
 mod gateway;
@@ -10,7 +10,7 @@ mod gateway;
 mod input;
 #[path = "executors/wendao_sql/render.rs"]
 mod render;
-#[path = "executors/wendao_sql/validate.rs"]
+#[path = "executors_wendao_sql_validate.rs"]
 mod validate;
 
 #[cfg(test)]
