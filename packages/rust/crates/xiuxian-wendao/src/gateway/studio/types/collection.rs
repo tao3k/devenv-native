@@ -3,9 +3,9 @@ use specta::TypeCollection;
 use super::{
     ApiError, AstSearchResponse, AttachmentSearchResponse, AutocompleteResponse,
     CodeAstAnalysisResponse, DefinitionResolveResponse, GraphNeighborsResponse,
-    MarkdownAnalysisResponse, ReferenceSearchResponse, SearchResponse, SymbolSearchResponse,
-    Topology3dPayload, UiCapabilities, UiConfig, UiPluginArtifact, UiPluginLaunchSpec,
-    VfsContentResponse, VfsEntry, VfsScanEntry, VfsScanResult,
+    MarkdownAnalysisResponse, PdfExtractResult, ReferenceSearchResponse, SearchResponse,
+    SymbolSearchResponse, Topology3dPayload, UiCapabilities, UiConfig, UiPluginArtifact,
+    UiPluginLaunchSpec, VfsContentResponse, VfsEntry, VfsScanEntry, VfsScanResult,
 };
 
 /// Build the plugin-only Studio Specta type collection.
@@ -38,6 +38,7 @@ pub fn studio_frontend_type_collection() -> TypeCollection {
         .register::<AutocompleteResponse>()
         .register::<MarkdownAnalysisResponse>()
         .register::<CodeAstAnalysisResponse>()
+        .register::<PdfExtractResult>()
 }
 
 #[cfg(test)]

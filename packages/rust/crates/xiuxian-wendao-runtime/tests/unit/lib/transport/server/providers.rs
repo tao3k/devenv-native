@@ -12,11 +12,12 @@ use crate::transport::{
     CodeAstAnalysisFlightRouteProvider, DefinitionFlightRouteProvider,
     DefinitionFlightRouteResponse, GraphNeighborsFlightRouteProvider,
     GraphNeighborsFlightRouteResponse, MarkdownAnalysisFlightRouteProvider,
-    RepoDocCoverageFlightRouteProvider, RepoIndexStatusFlightRouteProvider,
-    RepoOverviewFlightRouteProvider, RepoSearchFlightRequest, RepoSearchFlightRouteProvider,
-    RepoSyncFlightRouteProvider, SearchFlightRouteProvider, SearchFlightRouteResponse,
-    SqlFlightRouteProvider, SqlFlightRouteResponse, VfsContentFlightRouteProvider,
-    VfsContentFlightRouteResponse, VfsResolveFlightRouteProvider, VfsResolveFlightRouteResponse,
+    PdfExtractFlightRouteProvider, RepoDocCoverageFlightRouteProvider,
+    RepoIndexStatusFlightRouteProvider, RepoOverviewFlightRouteProvider, RepoSearchFlightRequest,
+    RepoSearchFlightRouteProvider, RepoSyncFlightRouteProvider, SearchFlightRouteProvider,
+    SearchFlightRouteResponse, SqlFlightRouteProvider, SqlFlightRouteResponse,
+    VfsContentFlightRouteProvider, VfsContentFlightRouteResponse, VfsResolveFlightRouteProvider,
+    VfsResolveFlightRouteResponse,
 };
 
 type SearchRequestRecord = (String, String, usize, Option<String>, Option<String>);
@@ -30,6 +31,7 @@ type RepoOverviewRequestRecord = String;
 type RepoIndexStatusRequestRecord = Option<String>;
 type RepoSyncRequestRecord = (String, String);
 type RepoDocCoverageRequestRecord = (String, Option<String>);
+type PdfExtractRequestRecord = (String, String, bool, bool, bool);
 type VfsContentRequestRecord = String;
 
 fn lock_or_panic<'a, T>(mutex: &'a Mutex<T>, context: &str) -> std::sync::MutexGuard<'a, T> {
@@ -1082,5 +1084,74 @@ impl RepoDocCoverageFlightRouteProvider for RecordingRepoDocCoverageProvider {
             .to_string()
             .into_bytes(),
         ))
+    }
+}
+
+
+#[derive(Debug, Default)]
+pub(super) struct RecordingPdfExtractProvider {
+    request: Mutex<Option<PdfExtractRequestRecord>>,
+    call_count: Mutex<usize>,
+}
+
+impl RecordingPdfExtractProvider {
+    pub(super) fn recorded_request(&self) -> Option<PdfExtractRequestRecord> {
+        lock_or_panic(
+            &self.request,
+            "PDF extract provider record should lock",
+        )
+        .clone()
+    }
+
+    pub(super) fn call_count(&self) -> usize {
+        *lock_or_panic(
+            &self.call_count,
+            "PDF extract provider call count should lock",
+        )
+    }
+}
+
+#[async_trait]
+impl PdfExtractFlightRouteProvider for RecordingPdfExtractProvider {
+    async fn pdf_extract_batch(
+        &self,
+        source_path: &str,
+        output_dir: &str,
+        extract_images: bool,
+        extract_tables: bool,
+        extract_formulas: bool,
+    ) -> Result<AnalysisFlightRouteResponse, String> {
+        *lock_or_panic(
+            &self.request,
+            "PDF extract provider record should lock",
+        ) = Some((
+            source_path.to_string(),
+            output_dir.to_string(),
+            extract_images,
+            extract_tables,
+            extract_formulas,
+        ));
+        *lock_or_panic(
+            &self.call_count,
+            "PDF extract provider call count should lock",
+        ) += 1;
+        let batch = LanceRecordBatch::try_new(
+            Arc::new(LanceSchema::new(vec![
+                LanceField::new("sourcePath", LanceDataType::Utf8, false),
+                LanceField::new("resourceType", LanceDataType::Utf8, false),
+                LanceField::new("resourcePath", LanceDataType::Utf8, false),
+                LanceField::new("pageIndex", LanceDataType::Int32, false),
+                LanceField::new("status", LanceDataType::Utf8, false),
+            ])),
+            vec![
+                Arc::new(StringArray::from(vec![source_path.to_string()])),
+                Arc::new(StringArray::from(vec!["document".to_string()])),
+                Arc::new(StringArray::from(vec![format!("{source_path}.extracted/_main.md")])),
+                Arc::new(LanceInt32Array::from(vec![0])),
+                Arc::new(StringArray::from(vec!["ok".to_string()])),
+            ],
+        )
+        .map_err(|error| error.to_string())?;
+        Ok(AnalysisFlightRouteResponse::new(batch))
     }
 }

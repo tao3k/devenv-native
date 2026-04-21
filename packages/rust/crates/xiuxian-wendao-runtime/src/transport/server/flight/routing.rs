@@ -3,22 +3,23 @@ use std::sync::Arc;
 use tonic::Status;
 
 use crate::transport::query_contract::{
-    ANALYSIS_CODE_AST_ROUTE, ANALYSIS_MARKDOWN_ROUTE, ANALYSIS_REFINE_DOC_ROUTE,
-    ANALYSIS_REPO_DOC_COVERAGE_ROUTE, ANALYSIS_REPO_INDEX_ROUTE, ANALYSIS_REPO_INDEX_STATUS_ROUTE,
-    ANALYSIS_REPO_OVERVIEW_ROUTE, ANALYSIS_REPO_PROJECTED_PAGE_INDEX_TREE_ROUTE,
-    ANALYSIS_REPO_SYNC_ROUTE, GRAPH_NEIGHBORS_ROUTE, QUERY_SQL_ROUTE, REPO_SEARCH_ROUTE,
-    SEARCH_AST_ROUTE, SEARCH_ATTACHMENTS_ROUTE, SEARCH_AUTOCOMPLETE_ROUTE, SEARCH_DEFINITION_ROUTE,
-    TOPOLOGY_3D_ROUTE, VFS_CONTENT_ROUTE, VFS_RESOLVE_ROUTE, VFS_SCAN_ROUTE,
+    ANALYSIS_CODE_AST_ROUTE, ANALYSIS_MARKDOWN_ROUTE, ANALYSIS_PDF_EXTRACT_ROUTE,
+    ANALYSIS_REFINE_DOC_ROUTE, ANALYSIS_REPO_DOC_COVERAGE_ROUTE, ANALYSIS_REPO_INDEX_ROUTE,
+    ANALYSIS_REPO_INDEX_STATUS_ROUTE, ANALYSIS_REPO_OVERVIEW_ROUTE,
+    ANALYSIS_REPO_PROJECTED_PAGE_INDEX_TREE_ROUTE, ANALYSIS_REPO_SYNC_ROUTE, GRAPH_NEIGHBORS_ROUTE,
+    QUERY_SQL_ROUTE, REPO_SEARCH_ROUTE, SEARCH_AST_ROUTE, SEARCH_ATTACHMENTS_ROUTE,
+    SEARCH_AUTOCOMPLETE_ROUTE, SEARCH_DEFINITION_ROUTE, TOPOLOGY_3D_ROUTE, VFS_CONTENT_ROUTE,
+    VFS_RESOLVE_ROUTE, VFS_SCAN_ROUTE,
 };
 
 use super::super::request_metadata::{
     is_search_family_route, join_sorted_set, validate_attachment_search_request_metadata,
     validate_autocomplete_request_metadata, validate_code_ast_analysis_request_metadata,
     validate_definition_request_metadata, validate_graph_neighbors_request_metadata,
-    validate_markdown_analysis_request_metadata, validate_refine_doc_request_metadata,
-    validate_repo_doc_coverage_request_metadata, validate_repo_index_request_metadata,
-    validate_repo_index_status_request_metadata, validate_repo_overview_request_metadata,
-    validate_repo_projected_page_index_tree_request_metadata,
+    validate_markdown_analysis_request_metadata, validate_pdf_extract_request_metadata,
+    validate_refine_doc_request_metadata, validate_repo_doc_coverage_request_metadata,
+    validate_repo_index_request_metadata, validate_repo_index_status_request_metadata,
+    validate_repo_overview_request_metadata, validate_repo_projected_page_index_tree_request_metadata,
     validate_repo_search_request_metadata, validate_repo_sync_request_metadata,
     validate_search_request_metadata, validate_sql_request_metadata,
     validate_vfs_content_request_metadata, validate_vfs_resolve_request_metadata,
@@ -109,6 +110,12 @@ impl WendaoFlightService {
             let (repo_id, page_id) =
                 validate_repo_projected_page_index_tree_request_metadata(metadata)?;
             Ok(format!("{route}|{repo_id:?}|{page_id:?}"))
+        } else if route == ANALYSIS_PDF_EXTRACT_ROUTE {
+            let (source_path, output_dir, extract_images, extract_tables, extract_formulas) =
+                validate_pdf_extract_request_metadata(metadata)?;
+            Ok(format!(
+                "{route}|{source_path:?}|{output_dir:?}|{extract_images}|{extract_tables}|{extract_formulas}"
+            ))
         } else if route == ANALYSIS_REFINE_DOC_ROUTE {
             let (repo_id, entity_id, user_hints) = validate_refine_doc_request_metadata(metadata)?;
             Ok(format!("{route}|{repo_id:?}|{entity_id:?}|{user_hints:?}"))
@@ -169,6 +176,8 @@ impl WendaoFlightService {
         } else if route == ANALYSIS_REPO_PROJECTED_PAGE_INDEX_TREE_ROUTE {
             self.read_repo_projected_page_index_tree_payload(route, metadata)
                 .await
+        } else if route == ANALYSIS_PDF_EXTRACT_ROUTE {
+            self.read_pdf_extract_payload(route, metadata).await
         } else if route == ANALYSIS_REFINE_DOC_ROUTE {
             self.read_refine_doc_payload(route, metadata).await
         } else if is_search_family_route(route) {
@@ -553,6 +562,33 @@ impl WendaoFlightService {
         provider
             .refine_doc_batch(repo_id.as_str(), entity_id.as_str(), user_hints.as_deref())
             .await
+            .and_then(|response| {
+                FlightRoutePayload::try_with_app_metadata(response.batch, response.app_metadata)
+            })
+    }
+
+    async fn read_pdf_extract_payload(
+        &self,
+        route: &str,
+        metadata: &tonic::metadata::MetadataMap,
+    ) -> Result<FlightRoutePayload, Status> {
+        let (source_path, output_dir, extract_images, extract_tables, extract_formulas) =
+            validate_pdf_extract_request_metadata(metadata)?;
+        let provider = self.pdf_extract_provider.as_ref().ok_or_else(|| {
+            Status::unimplemented(format!(
+                "PDF extract Flight route `{route}` is not configured for this runtime host"
+            ))
+        })?;
+        provider
+            .pdf_extract_batch(
+                source_path.as_str(),
+                output_dir.as_str(),
+                extract_images,
+                extract_tables,
+                extract_formulas,
+            )
+            .await
+            .map_err(Status::internal)
             .and_then(|response| {
                 FlightRoutePayload::try_with_app_metadata(response.batch, response.app_metadata)
             })

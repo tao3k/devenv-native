@@ -1,4 +1,4 @@
-use super::super::attachments::attachments_for_parsed_note;
+use super::super::attachments::{attachments_for_parsed_note, expand_pdf_attachments};
 use crate::link_graph::index::{IndexedSection, LinkGraphIndex};
 use crate::parsers::markdown::{ParsedNote, normalize_alias};
 use std::collections::HashSet;
@@ -54,8 +54,10 @@ impl LinkGraphIndex {
         );
         self.rebuild_passages_for_doc(&doc.id);
         self.rebuild_page_index_for_doc(&doc.id);
+        let mut attachments = attachments_for_parsed_note(parsed);
+        expand_pdf_attachments(&mut attachments);
         self.attachments_by_doc
-            .insert(doc.id.clone(), attachments_for_parsed_note(parsed));
+            .insert(doc.id.clone(), attachments);
         for alias in [&doc.id, &doc.path, &doc.stem] {
             let key = normalize_alias(alias);
             if key.is_empty() {

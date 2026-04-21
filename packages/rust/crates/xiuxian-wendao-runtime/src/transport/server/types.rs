@@ -91,6 +91,8 @@ pub struct WendaoFlightRouteProviders {
     pub graph_neighbors: Option<Arc<dyn GraphNeighborsFlightRouteProvider>>,
     /// Optional topology-3d provider.
     pub topology_3d: Option<Arc<dyn Topology3dFlightRouteProvider>>,
+    /// Optional PDF extraction provider.
+    pub pdf_extract: Option<Arc<dyn PdfExtractFlightRouteProvider>>,
     /// Optional SQL provider.
     pub sql: Option<Arc<dyn SqlFlightRouteProvider>>,
 }
@@ -120,6 +122,7 @@ impl WendaoFlightRouteProviders {
             vfs_resolve: None,
             graph_neighbors: None,
             topology_3d: None,
+            pdf_extract: None,
             sql: None,
         }
     }
@@ -596,6 +599,25 @@ pub trait MarkdownAnalysisFlightRouteProvider: std::fmt::Debug + Send + Sync {
     async fn markdown_analysis_batch(
         &self,
         path: &str,
+    ) -> Result<AnalysisFlightRouteResponse, String>;
+}
+
+/// Runtime-owned provider contract for stable PDF extraction Flight reads.
+#[async_trait]
+pub trait PdfExtractFlightRouteProvider: std::fmt::Debug + Send + Sync {
+    /// Resolve one stable PDF extraction response batch.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the requested PDF extraction payload cannot be
+    /// materialized for the current runtime host.
+    async fn pdf_extract_batch(
+        &self,
+        source_path: &str,
+        output_dir: &str,
+        extract_images: bool,
+        extract_tables: bool,
+        extract_formulas: bool,
     ) -> Result<AnalysisFlightRouteResponse, String>;
 }
 

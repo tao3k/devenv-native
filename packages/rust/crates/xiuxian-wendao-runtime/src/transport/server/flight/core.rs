@@ -6,13 +6,14 @@ use super::super::types::{
     AstSearchFlightRouteProvider, AttachmentSearchFlightRouteProvider,
     AutocompleteFlightRouteProvider, CodeAstAnalysisFlightRouteProvider,
     DefinitionFlightRouteProvider, GraphNeighborsFlightRouteProvider,
-    MarkdownAnalysisFlightRouteProvider, RefineDocFlightRouteProvider,
-    RepoDocCoverageFlightRouteProvider, RepoIndexFlightRouteProvider,
-    RepoIndexStatusFlightRouteProvider, RepoOverviewFlightRouteProvider,
-    RepoProjectedPageIndexTreeFlightRouteProvider, RepoSearchFlightRouteProvider,
-    RepoSyncFlightRouteProvider, RerankFlightRouteHandler, SearchFlightRouteProvider,
-    SqlFlightRouteProvider, Topology3dFlightRouteProvider, VfsContentFlightRouteProvider,
-    VfsResolveFlightRouteProvider, VfsScanFlightRouteProvider, WendaoFlightRouteProviders,
+    MarkdownAnalysisFlightRouteProvider, PdfExtractFlightRouteProvider,
+    RefineDocFlightRouteProvider, RepoDocCoverageFlightRouteProvider,
+    RepoIndexFlightRouteProvider, RepoIndexStatusFlightRouteProvider,
+    RepoOverviewFlightRouteProvider, RepoProjectedPageIndexTreeFlightRouteProvider,
+    RepoSearchFlightRouteProvider, RepoSyncFlightRouteProvider, RerankFlightRouteHandler,
+    SearchFlightRouteProvider, SqlFlightRouteProvider, Topology3dFlightRouteProvider,
+    VfsContentFlightRouteProvider, VfsResolveFlightRouteProvider, VfsScanFlightRouteProvider,
+    WendaoFlightRouteProviders,
 };
 use super::cache::FlightRoutePayloadCache;
 
@@ -42,6 +43,7 @@ pub struct WendaoFlightService {
     pub(super) repo_projected_page_index_tree_provider:
         Option<Arc<dyn RepoProjectedPageIndexTreeFlightRouteProvider>>,
     pub(super) refine_doc_provider: Option<Arc<dyn RefineDocFlightRouteProvider>>,
+    pub(super) pdf_extract_provider: Option<Arc<dyn PdfExtractFlightRouteProvider>>,
     pub(super) sql_provider: Option<Arc<dyn SqlFlightRouteProvider>>,
     pub(super) rerank_handler: RerankFlightRouteHandler,
     pub(super) route_payload_cache: Arc<FlightRoutePayloadCache>,
@@ -70,6 +72,7 @@ impl WendaoFlightService {
             repo_doc_coverage: repo_doc_coverage_provider,
             repo_projected_page_index_tree: repo_projected_page_index_tree_provider,
             refine_doc: refine_doc_provider,
+            pdf_extract: pdf_extract_provider,
             vfs_content: vfs_content_provider,
             vfs_scan: vfs_scan_provider,
             vfs_resolve: vfs_resolve_provider,
@@ -99,6 +102,7 @@ impl WendaoFlightService {
             repo_doc_coverage_provider,
             repo_projected_page_index_tree_provider,
             refine_doc_provider,
+            pdf_extract_provider,
             sql_provider,
             rerank_handler: RerankFlightRouteHandler::new_with_weights(
                 rerank_dimension,

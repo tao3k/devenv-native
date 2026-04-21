@@ -12,6 +12,7 @@ mod definitions;
 mod error;
 mod graph;
 mod navigation;
+mod pdf_extract;
 mod retrieval;
 mod search;
 mod search_index;
@@ -46,6 +47,7 @@ pub use graph::{
     TopologyNode,
 };
 pub use navigation::StudioNavigationTarget;
+pub use pdf_extract::{PdfExtractResource, PdfExtractResult};
 pub use retrieval::{RetrievalChunk, RetrievalChunkSurface};
 pub use search::{
     IntentSearchHit, KnowledgeSearchHit, SearchBacklinkItem, SearchHit, SearchResponse,

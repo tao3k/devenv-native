@@ -9,6 +9,7 @@ use super::provider::StudioSearchFlightRouteProvider;
 use crate::gateway::studio::GatewayState;
 use crate::gateway::studio::router::handlers::analysis::{
     StudioCodeAstAnalysisFlightRouteProvider, StudioMarkdownAnalysisFlightRouteProvider,
+    StudioPdfExtractFlightRouteProvider,
 };
 use crate::gateway::studio::router::handlers::graph::flight::StudioGraphNeighborsFlightRouteProvider;
 use crate::gateway::studio::router::handlers::graph::topology_flight::StudioTopology3dFlightRouteProvider;
@@ -59,6 +60,9 @@ pub(crate) fn build_studio_search_flight_service_with_repo_provider(
     route_providers.code_ast_analysis = Some(Arc::new(
         StudioCodeAstAnalysisFlightRouteProvider::new(Arc::clone(&state)),
     ));
+    route_providers.pdf_extract = Some(Arc::new(StudioPdfExtractFlightRouteProvider::new(
+        Arc::clone(&state),
+    )));
     route_providers.repo_overview = Some(Arc::new(StudioRepoOverviewFlightRouteProvider::new(
         Arc::clone(&state),
     )));

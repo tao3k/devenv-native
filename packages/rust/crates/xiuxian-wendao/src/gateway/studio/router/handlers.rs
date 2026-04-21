@@ -13,3 +13,7 @@ pub(crate) mod graph;
 pub(crate) mod repo;
 #[path = "handlers/vfs.rs"]
 pub(crate) mod vfs;
+#[path = "handlers/pdf_extract_result.rs"]
+pub(crate) mod pdf_extract_result;
+#[path = "handlers/pdf_extract_resource.rs"]
+pub(crate) mod pdf_extract_resource;

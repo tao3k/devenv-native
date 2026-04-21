@@ -121,6 +121,14 @@ pub fn studio_routes() -> Router<Arc<GatewayState>> {
             post(handlers::repo::refine::refine_entity_doc),
         )
         .route(
+            "/api/pdf-extract-result",
+            get(handlers::pdf_extract_result::get_pdf_extract_result),
+        )
+        .route(
+            "/api/pdf-extract-resource",
+            get(handlers::pdf_extract_resource::get_pdf_extract_resource),
+        )
+        .route(
             openapi_paths::API_REPO_OVERVIEW_AXUM_PATH,
             get(handlers::repo::analysis::overview::overview),
         )
