@@ -9,10 +9,18 @@ pub enum DmnInputEntry {
     Any,
     /// Literal equality predicate.
     Equals(Value),
+    /// Positive ISO 8601 bounded duration literal equality predicate.
+    DurationEquals(Arc<str>),
+    /// ISO local or offset-aware datetime literal equality predicate.
+    DateTimeEquals(Arc<str>),
     /// Numeric comparison predicate such as `< 25` or `>= 25`.
     NumericComparison(DmnNumericComparison),
+    /// Positive ISO 8601 bounded duration comparison predicate.
+    DurationComparison(DmnDurationComparison),
     /// Numeric range predicate such as `100 <= ? <= 110` or `[100..110]`.
     NumericRange(DmnNumericRange),
+    /// Positive ISO 8601 bounded duration range predicate.
+    DurationRange(DmnDurationRange),
     /// ISO date comparison predicate such as `< date("2026-01-01")`.
     DateComparison(DmnDateComparison),
     /// ISO date range predicate such as
@@ -92,6 +100,63 @@ impl DmnNumericRange {
     /// Creates one bounded numeric range predicate.
     #[must_use]
     pub fn new(lower: Option<DmnNumericRangeBound>, upper: Option<DmnNumericRangeBound>) -> Self {
+        Self { lower, upper }
+    }
+}
+
+/// One bounded ISO 8601 duration comparison predicate.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct DmnDurationComparison {
+    /// Comparison operator.
+    pub operator: DmnComparisonOperator,
+    /// Duration comparison target in bounded `duration("...")` form.
+    pub value: Arc<str>,
+}
+
+impl DmnDurationComparison {
+    /// Creates one bounded duration comparison predicate.
+    #[must_use]
+    pub fn new(operator: DmnComparisonOperator, value: impl AsRef<str>) -> Self {
+        Self {
+            operator,
+            value: Arc::<str>::from(value.as_ref()),
+        }
+    }
+}
+
+/// One bounded ISO 8601 duration range bound.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct DmnDurationRangeBound {
+    /// Duration bound value in bounded `duration("...")` form.
+    pub value: Arc<str>,
+    /// Whether the bound is inclusive.
+    pub inclusive: bool,
+}
+
+impl DmnDurationRangeBound {
+    /// Creates one bounded duration range bound.
+    #[must_use]
+    pub fn new(value: impl AsRef<str>, inclusive: bool) -> Self {
+        Self {
+            value: Arc::<str>::from(value.as_ref()),
+            inclusive,
+        }
+    }
+}
+
+/// One bounded ISO 8601 duration range predicate.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct DmnDurationRange {
+    /// Optional lower bound.
+    pub lower: Option<DmnDurationRangeBound>,
+    /// Optional upper bound.
+    pub upper: Option<DmnDurationRangeBound>,
+}
+
+impl DmnDurationRange {
+    /// Creates one bounded duration range predicate.
+    #[must_use]
+    pub fn new(lower: Option<DmnDurationRangeBound>, upper: Option<DmnDurationRangeBound>) -> Self {
         Self { lower, upper }
     }
 }

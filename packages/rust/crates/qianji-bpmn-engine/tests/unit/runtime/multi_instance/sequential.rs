@@ -53,6 +53,8 @@ async fn runtime_sequential_multi_instance_repeats_until_cardinality_is_reached(
                 node_index: 1,
                 kind: PendingHostWorkKind::Service,
                 decision: None,
+                event_reference: None,
+                event_name: None,
                 work_id: None,
             }
         );

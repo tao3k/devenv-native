@@ -44,6 +44,7 @@ pub(super) fn bootstrap_start_token(
         token_id: instance.sequence + 1,
         node_index: start_node_index,
         incoming_edge_index: None,
+        inclusive_join_hint: None,
     });
     state::set_node_status(instance, start_node_index, NodeRuntimeStatus::Queued);
     state::record_transition(instance, now_ms, InstanceLifecycle::Running);

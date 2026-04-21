@@ -354,6 +354,30 @@ pub enum BpmnEngineError {
         /// Stable unsupported configuration discriminator.
         detail: &'static str,
     },
+    /// Returned when one gateway exceeds the bounded supported slice.
+    #[error(
+        "BPMN process '{process_id}' gateway '{node_id}' uses unsupported configuration '{detail}'"
+    )]
+    UnsupportedGatewayConfiguration {
+        /// Process identifier.
+        process_id: String,
+        /// Gateway BPMN node identifier.
+        node_id: String,
+        /// Stable unsupported configuration discriminator.
+        detail: &'static str,
+    },
+    /// Returned when one task configuration exceeds the bounded supported slice.
+    #[error(
+        "BPMN process '{process_id}' task node '{node_id}' uses unsupported configuration '{detail}'"
+    )]
+    UnsupportedTaskConfiguration {
+        /// Process identifier.
+        process_id: String,
+        /// BPMN task node identifier.
+        node_id: String,
+        /// Stable unsupported configuration discriminator.
+        detail: &'static str,
+    },
     /// Returned when one loop configuration exceeds the bounded supported slice.
     #[error(
         "BPMN process '{process_id}' loop node '{node_id}' uses unsupported configuration '{detail}'"

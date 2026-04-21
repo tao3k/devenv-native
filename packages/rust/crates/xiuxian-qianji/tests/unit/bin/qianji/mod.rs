@@ -115,8 +115,13 @@ flowchart = ["blueprint", "plan"]
 }
 
 fn repo_root() -> PathBuf {
-    resolve_project_root()
-        .unwrap_or_else(|| panic!("workspace root should resolve from PRJ_ROOT or git ancestry"))
+    resolve_project_root().unwrap_or_else(|| {
+        Path::new(env!("CARGO_MANIFEST_DIR"))
+            .ancestors()
+            .nth(4)
+            .unwrap_or_else(|| panic!("qianji manifest dir should resolve to workspace root"))
+            .to_path_buf()
+    })
 }
 
 fn flowhub_root() -> PathBuf {

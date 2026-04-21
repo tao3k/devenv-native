@@ -16,6 +16,9 @@ pub async fn dispatch_pending_host_work_request<H: BpmnHostBridge>(
     request: PendingHostWorkRequest,
 ) -> Result<PendingHostWorkResult, BpmnAdapterError> {
     Ok(match request {
+        PendingHostWorkRequest::Send(request) => {
+            PendingHostWorkResult::Send(host.dispatch_send_task(request).await?)
+        }
         PendingHostWorkRequest::Service(request) => {
             PendingHostWorkResult::Service(host.dispatch_service_task(request).await?)
         }
@@ -86,6 +89,7 @@ pub async fn resolve_pending_host_work<H: BpmnHostBridge>(
 
 fn request_token_id(request: &PendingHostWorkRequest) -> u64 {
     match request {
+        PendingHostWorkRequest::Send(request) => request.token_id,
         PendingHostWorkRequest::Service(request) => request.token_id,
         PendingHostWorkRequest::User(request) => request.token_id,
         PendingHostWorkRequest::Manual(request) => request.token_id,

@@ -1,6 +1,6 @@
 use crate::runtime::lifecycle::scope::{
     BpmnEngineError, BpmnInstanceState, BpmnNodeIndex, BpmnNodeKind, BpmnProcessSpec,
-    InstanceLifecycle, NodeRuntimeStatus, Result, TokenRecord,
+    InclusiveJoinHint, InstanceLifecycle, NodeRuntimeStatus, Result, TokenRecord,
 };
 
 pub(crate) fn find_single_start_node(process: &BpmnProcessSpec) -> Result<BpmnNodeIndex> {
@@ -54,18 +54,52 @@ pub(crate) fn push_active_token(
     let _ = push_active_token_with_arrival(instance, Some(incoming_edge_index), node_index);
 }
 
+pub(crate) fn push_active_token_with_join_hint(
+    instance: &mut BpmnInstanceState,
+    incoming_edge_index: u32,
+    node_index: BpmnNodeIndex,
+    inclusive_join_hint: InclusiveJoinHint,
+) {
+    let _ = push_active_token_with_metadata(
+        instance,
+        Some(incoming_edge_index),
+        node_index,
+        Some(inclusive_join_hint),
+    );
+}
+
 pub(crate) fn push_active_token_with_arrival(
     instance: &mut BpmnInstanceState,
     incoming_edge_index: Option<u32>,
     node_index: BpmnNodeIndex,
+) -> u64 {
+    push_active_token_with_metadata(instance, incoming_edge_index, node_index, None)
+}
+
+pub(crate) fn push_active_token_with_metadata(
+    instance: &mut BpmnInstanceState,
+    incoming_edge_index: Option<u32>,
+    node_index: BpmnNodeIndex,
+    inclusive_join_hint: Option<InclusiveJoinHint>,
 ) -> u64 {
     let token_id = next_token_id(instance);
     instance.active_tokens.push(TokenRecord {
         token_id,
         node_index,
         incoming_edge_index,
+        inclusive_join_hint,
     });
     token_id
+}
+
+pub(crate) fn set_token_inclusive_join_hint(
+    instance: &mut BpmnInstanceState,
+    token_index: usize,
+    inclusive_join_hint: Option<InclusiveJoinHint>,
+) {
+    if let Some(token) = instance.active_tokens.get_mut(token_index) {
+        token.inclusive_join_hint = inclusive_join_hint;
+    }
 }
 
 pub(crate) fn resolve_single_outgoing_edge(

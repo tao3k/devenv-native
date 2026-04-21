@@ -6,7 +6,7 @@ use crate::runtime::lifecycle::scope::{
 };
 use crate::runtime::lifecycle::state;
 
-pub(crate) fn error_transaction_shell(
+pub(super) fn error_transaction_shell(
     package: &BpmnPackage,
     instance: &mut BpmnInstanceState,
     current_token_index: usize,

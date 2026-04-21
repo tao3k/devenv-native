@@ -1,0 +1,39 @@
+<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/"
+  id="Definitions_review_delay"
+  name="Review Delay DRD"
+  namespace="http://example.com/dmn">
+  <decision id="review-delay" name="Review Delay">
+    <decisionTable id="decision_table_review_delay" hitPolicy="UNIQUE">
+      <input id="input_elapsed" label="elapsed">
+        <inputExpression id="input_expression_elapsed" typeRef="dayTimeDuration">
+          <text>elapsed</text>
+        </inputExpression>
+      </input>
+      <output id="output_window" name="window" label="window" typeRef="string" />
+      <rule id="rule_short_delay">
+        <inputEntry id="input_entry_short_delay">
+          <text>duration("PT15M") &lt;= ? &lt; duration("PT45M")</text>
+        </inputEntry>
+        <outputEntry id="output_entry_short_delay">
+          <text>"short-delay"</text>
+        </outputEntry>
+      </rule>
+      <rule id="rule_day_window">
+        <inputEntry id="input_entry_day_window">
+          <text>[duration("P1DT1H")..duration("P1DT2H")]</text>
+        </inputEntry>
+        <outputEntry id="output_entry_day_window">
+          <text>"day-window"</text>
+        </outputEntry>
+      </rule>
+      <rule id="rule_outside_window">
+        <inputEntry id="input_entry_outside_window">
+          <text>-</text>
+        </inputEntry>
+        <outputEntry id="output_entry_outside_window">
+          <text>"outside-window"</text>
+        </outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+</definitions>

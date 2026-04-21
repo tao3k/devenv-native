@@ -10,8 +10,8 @@ pub(crate) use qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnEventKind, BpmnInstanceState, BpmnPackage, BpmnProcessSpec,
     BpmnTimerKind, BpmnTimerSpec, BusinessRuleTaskOutcome, BusinessRuleTaskRequest,
     DmnEvaluationResult, EventPollOutcome, EventPollRequest, HostBridgeError, InstanceLifecycle,
-    ManualTaskOutcome, ManualTaskRequest, ServiceTaskOutcome, ServiceTaskRequest, SuspendReason,
-    UserTaskOutcome, UserTaskRequest, WaitKind,
+    ManualTaskOutcome, ManualTaskRequest, SendTaskOutcome, SendTaskRequest, ServiceTaskOutcome,
+    ServiceTaskRequest, SuspendReason, UserTaskOutcome, UserTaskRequest, WaitKind,
 };
 pub(crate) use serde::Deserialize;
 pub(crate) use xiuxian_qianji::runtime_config::{

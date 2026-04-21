@@ -1,7 +1,7 @@
 use super::{LintDomain, assert_lint_json_snapshot, bpmn_fixture_source, lint_bpmn_source};
 
 #[test]
-fn bpmn_linter_reports_unsupported_inclusive_gateway_with_llm_guidance() {
+fn bpmn_linter_reports_unsupported_gateway_with_llm_guidance() {
     let report = lint_bpmn_source(&bpmn_fixture_source("invalid-unsupported-gateway.bpmn"));
 
     assert_eq!(report.domain, LintDomain::Bpmn);
@@ -93,4 +93,27 @@ fn bpmn_linter_reports_embedded_subprocess_missing_end_with_llm_guidance() {
             .any(|step| step.contains("<bpmn:endEvent>"))
     );
     assert!(issue.llm_fix_prompt.contains("embedded `subProcess` body"));
+}
+
+#[test]
+fn bpmn_linter_reports_event_subprocess_with_llm_guidance() {
+    let report = lint_bpmn_source(&bpmn_fixture_source(
+        "invalid-compensation-event-subprocess.bpmn",
+    ));
+
+    assert_eq!(report.domain, LintDomain::Bpmn);
+    assert!(!report.ok);
+    assert_eq!(report.issues.len(), 1);
+    let issue = &report.issues[0];
+    assert_eq!(issue.code, "bpmn.unsupported_subprocess_configuration");
+    assert!(issue.summary.contains("comp_handler"));
+    assert!(issue.why_it_failed.contains("event subprocesses"));
+    assert!(
+        issue
+            .repair_guidance
+            .iter()
+            .any(|step| step.contains("triggeredByEvent=\"true\""))
+    );
+    assert!(issue.llm_fix_prompt.contains("boundary-event"));
+    assert_lint_json_snapshot("bpmn_event_subprocess_lint_report", &report);
 }

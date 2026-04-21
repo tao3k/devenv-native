@@ -1,9 +1,10 @@
 use super::scope::{
     BpmnAdvanceOutcome, BpmnEngineError, BpmnGatewayKind, BpmnInstanceState, BpmnNodeIndex,
-    BpmnProcessSpec, EventCompetitionState, InstanceLifecycle, NodeRuntimeStatus, Result,
-    SuspendReason,
+    BpmnProcessSpec, EventCompetitionState, InclusiveJoinHint, InstanceLifecycle,
+    NodeRuntimeStatus, Result, SuspendReason,
 };
 use super::{blocking, state};
+use crate::repeat_condition::{GatewayConditionError, evaluate_gateway_condition};
 
 pub(super) fn advance_gateway(
     process: &BpmnProcessSpec,
@@ -26,6 +27,10 @@ pub(super) fn advance_gateway(
         }
         BpmnGatewayKind::Exclusive => {
             advance_exclusive_gateway(process, instance, current_token_index, node_index, now_ms)?;
+            Ok(None)
+        }
+        BpmnGatewayKind::Inclusive => {
+            advance_inclusive_gateway(process, instance, current_token_index, node_index, now_ms)?;
             Ok(None)
         }
         BpmnGatewayKind::EventBased => {
@@ -172,14 +177,274 @@ fn advance_exclusive_gateway(
     node_index: BpmnNodeIndex,
     now_ms: u64,
 ) -> Result<()> {
-    let edge_index = state::resolve_single_outgoing_edge(
-        process,
-        node_index,
-        "advance_instance_exclusive_gateway_branching",
-    )?;
+    let gateway = &process.nodes[node_index as usize];
+    let outgoing = process.outgoing_edge_indices(node_index);
+    let edge_index = if outgoing.len() <= 1 {
+        state::resolve_single_outgoing_edge(
+            process,
+            node_index,
+            "advance_instance_exclusive_gateway_branching",
+        )?
+    } else {
+        select_exclusive_gateway_edge(process, instance, outgoing, gateway)?
+    };
     let next_node_index = process.edges[edge_index as usize].to;
     state::set_node_status(instance, node_index, NodeRuntimeStatus::Completed);
     state::set_active_node_index(instance, current_token_index, edge_index, next_node_index);
+    state::set_node_status(instance, next_node_index, NodeRuntimeStatus::Queued);
+    state::record_transition(instance, now_ms, InstanceLifecycle::Running);
+    Ok(())
+}
+
+fn advance_inclusive_gateway(
+    process: &BpmnProcessSpec,
+    instance: &mut BpmnInstanceState,
+    current_token_index: usize,
+    node_index: BpmnNodeIndex,
+    now_ms: u64,
+) -> Result<()> {
+    let incoming_len = process.incoming_edge_indices(node_index).len();
+    let outgoing = process.outgoing_edge_indices(node_index);
+    if incoming_len == 1 && outgoing.len() > 1 {
+        return advance_inclusive_split(process, instance, current_token_index, node_index, now_ms);
+    }
+    if incoming_len > 1 && outgoing.len() == 1 {
+        return advance_inclusive_join(process, instance, current_token_index, node_index, now_ms);
+    }
+
+    let gateway = &process.nodes[node_index as usize];
+    Err(BpmnEngineError::UnsupportedGatewayConfiguration {
+        process_id: process.key.process_id.to_string(),
+        node_id: gateway.bpmn_id.to_string(),
+        detail: "inclusive_gateway_requires_structured_split_or_join",
+    })
+}
+
+fn select_exclusive_gateway_edge(
+    process: &BpmnProcessSpec,
+    instance: &BpmnInstanceState,
+    outgoing: &[u32],
+    gateway: &crate::ir_node_api::BpmnNodeSpec,
+) -> Result<u32> {
+    let default_edge_index = gateway.default_outgoing_edge;
+
+    for edge_index in outgoing {
+        if Some(*edge_index) == default_edge_index {
+            continue;
+        }
+        let Some(condition_expression) = process.edges[*edge_index as usize]
+            .condition_expression
+            .as_deref()
+        else {
+            return Err(BpmnEngineError::UnsupportedGatewayConfiguration {
+                process_id: process.key.process_id.to_string(),
+                node_id: gateway.bpmn_id.to_string(),
+                detail: "missing_condition_expression",
+            });
+        };
+
+        match evaluate_gateway_condition(condition_expression, &instance.variables) {
+            Ok(true) => return Ok(*edge_index),
+            Ok(false) => {}
+            Err(GatewayConditionError::UnresolvedVariablePath(_)) => {
+                return Err(BpmnEngineError::UnsupportedGatewayConfiguration {
+                    process_id: process.key.process_id.to_string(),
+                    node_id: gateway.bpmn_id.to_string(),
+                    detail: "unresolved_condition_variable",
+                });
+            }
+            Err(GatewayConditionError::UnsupportedExpression) => {
+                return Err(BpmnEngineError::UnsupportedGatewayConfiguration {
+                    process_id: process.key.process_id.to_string(),
+                    node_id: gateway.bpmn_id.to_string(),
+                    detail: "unsupported_condition_expression",
+                });
+            }
+        }
+    }
+
+    default_edge_index.ok_or_else(|| BpmnEngineError::UnsupportedGatewayConfiguration {
+        process_id: process.key.process_id.to_string(),
+        node_id: gateway.bpmn_id.to_string(),
+        detail: "no_matching_condition_or_default",
+    })
+}
+
+fn advance_inclusive_split(
+    process: &BpmnProcessSpec,
+    instance: &mut BpmnInstanceState,
+    current_token_index: usize,
+    node_index: BpmnNodeIndex,
+    now_ms: u64,
+) -> Result<()> {
+    let gateway = &process.nodes[node_index as usize];
+    let join_node_index = gateway.inclusive_join_node.ok_or_else(|| {
+        BpmnEngineError::UnsupportedGatewayConfiguration {
+            process_id: process.key.process_id.to_string(),
+            node_id: gateway.bpmn_id.to_string(),
+            detail: "inclusive_split_missing_join",
+        }
+    })?;
+    let outgoing = process.outgoing_edge_indices(node_index);
+    let selected = select_inclusive_gateway_edges(process, instance, outgoing, gateway)?;
+    let expected_arrivals =
+        u32::try_from(selected.len()).map_err(|_| BpmnEngineError::UnsupportedOperation {
+            operation: "advance_instance_inclusive_gateway_selected_edge_count_overflow",
+        })?;
+    let activation_id = instance
+        .active_tokens
+        .get(current_token_index)
+        .map(|token| token.token_id)
+        .ok_or(BpmnEngineError::UnsupportedOperation {
+            operation: "advance_instance_inclusive_gateway_missing_token",
+        })?;
+    let join_hint = InclusiveJoinHint {
+        activation_id,
+        join_node_index,
+        expected_arrivals,
+    };
+
+    state::set_node_status(instance, node_index, NodeRuntimeStatus::Completed);
+    let first_edge_index = selected[0];
+    let first_target = process.edges[first_edge_index as usize].to;
+    state::set_active_node_index(
+        instance,
+        current_token_index,
+        first_edge_index,
+        first_target,
+    );
+    state::set_token_inclusive_join_hint(instance, current_token_index, Some(join_hint.clone()));
+    state::set_node_status(instance, first_target, NodeRuntimeStatus::Queued);
+
+    for edge_index in selected.iter().skip(1) {
+        let target = process.edges[*edge_index as usize].to;
+        state::push_active_token_with_join_hint(instance, *edge_index, target, join_hint.clone());
+        state::set_node_status(instance, target, NodeRuntimeStatus::Queued);
+    }
+
+    state::record_transition(instance, now_ms, InstanceLifecycle::Running);
+    Ok(())
+}
+
+fn select_inclusive_gateway_edges(
+    process: &BpmnProcessSpec,
+    instance: &BpmnInstanceState,
+    outgoing: &[u32],
+    gateway: &crate::ir_node_api::BpmnNodeSpec,
+) -> Result<Vec<u32>> {
+    let default_edge_index = gateway.default_outgoing_edge;
+    let mut selected = Vec::new();
+
+    for edge_index in outgoing {
+        if Some(*edge_index) == default_edge_index {
+            continue;
+        }
+        let Some(condition_expression) = process.edges[*edge_index as usize]
+            .condition_expression
+            .as_deref()
+        else {
+            return Err(BpmnEngineError::UnsupportedGatewayConfiguration {
+                process_id: process.key.process_id.to_string(),
+                node_id: gateway.bpmn_id.to_string(),
+                detail: "missing_condition_expression",
+            });
+        };
+
+        match evaluate_gateway_condition(condition_expression, &instance.variables) {
+            Ok(true) => selected.push(*edge_index),
+            Ok(false) => {}
+            Err(GatewayConditionError::UnresolvedVariablePath(_)) => {
+                return Err(BpmnEngineError::UnsupportedGatewayConfiguration {
+                    process_id: process.key.process_id.to_string(),
+                    node_id: gateway.bpmn_id.to_string(),
+                    detail: "unresolved_condition_variable",
+                });
+            }
+            Err(GatewayConditionError::UnsupportedExpression) => {
+                return Err(BpmnEngineError::UnsupportedGatewayConfiguration {
+                    process_id: process.key.process_id.to_string(),
+                    node_id: gateway.bpmn_id.to_string(),
+                    detail: "unsupported_condition_expression",
+                });
+            }
+        }
+    }
+
+    if selected.is_empty() {
+        if let Some(default_edge_index) = default_edge_index {
+            selected.push(default_edge_index);
+            return Ok(selected);
+        }
+        return Err(BpmnEngineError::UnsupportedGatewayConfiguration {
+            process_id: process.key.process_id.to_string(),
+            node_id: gateway.bpmn_id.to_string(),
+            detail: "no_matching_condition_or_default",
+        });
+    }
+
+    Ok(selected)
+}
+
+fn advance_inclusive_join(
+    process: &BpmnProcessSpec,
+    instance: &mut BpmnInstanceState,
+    current_token_index: usize,
+    node_index: BpmnNodeIndex,
+    now_ms: u64,
+) -> Result<()> {
+    let gateway = &process.nodes[node_index as usize];
+    let join_hint = instance
+        .active_tokens
+        .get(current_token_index)
+        .and_then(|token| token.inclusive_join_hint.clone())
+        .ok_or_else(|| BpmnEngineError::UnsupportedGatewayConfiguration {
+            process_id: process.key.process_id.to_string(),
+            node_id: gateway.bpmn_id.to_string(),
+            detail: "inclusive_join_missing_activation_hint",
+        })?;
+    if join_hint.join_node_index != node_index {
+        return Err(BpmnEngineError::UnsupportedGatewayConfiguration {
+            process_id: process.key.process_id.to_string(),
+            node_id: gateway.bpmn_id.to_string(),
+            detail: "inclusive_join_missing_activation_hint",
+        });
+    }
+
+    let ready = state::record_scoped_join_arrival(
+        instance,
+        node_index,
+        join_hint.activation_id,
+        join_hint.expected_arrivals,
+    );
+    if !ready {
+        state::set_node_status(instance, node_index, NodeRuntimeStatus::Executing);
+        let _ = state::remove_active_token(instance, current_token_index);
+        if instance.active_tokens.is_empty() {
+            return Err(BpmnEngineError::UnsupportedGatewayConfiguration {
+                process_id: process.key.process_id.to_string(),
+                node_id: gateway.bpmn_id.to_string(),
+                detail: "inclusive_join_missing_peer_token",
+            });
+        }
+        state::record_transition(instance, now_ms, InstanceLifecycle::Running);
+        return Ok(());
+    }
+
+    state::consume_scoped_join_activation(instance, node_index, join_hint.activation_id);
+    state::set_node_status(instance, node_index, NodeRuntimeStatus::Completed);
+    let outgoing_edge_index = state::resolve_single_outgoing_edge(
+        process,
+        node_index,
+        "advance_instance_inclusive_gateway_join_routing",
+    )?;
+    let next_node_index = process.edges[outgoing_edge_index as usize].to;
+    state::set_active_node_index(
+        instance,
+        current_token_index,
+        outgoing_edge_index,
+        next_node_index,
+    );
+    state::set_token_inclusive_join_hint(instance, current_token_index, None);
     state::set_node_status(instance, next_node_index, NodeRuntimeStatus::Queued);
     state::record_transition(instance, now_ms, InstanceLifecycle::Running);
     Ok(())

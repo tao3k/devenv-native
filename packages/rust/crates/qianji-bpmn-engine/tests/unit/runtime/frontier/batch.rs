@@ -28,11 +28,13 @@ async fn runtime_frontier_batch_execution_reindexes_parallel_join_tokens_determi
             token_id: 7,
             node_index: 4,
             incoming_edge_index: Some(3),
+            inclusive_join_hint: None,
         },
         TokenRecord {
             token_id: 8,
             node_index: 4,
             incoming_edge_index: Some(4),
+            inclusive_join_hint: None,
         },
     ];
     instance.node_states[0].status = NodeRuntimeStatus::Completed;
@@ -154,16 +156,19 @@ fn merged_parallel_join_duplicate_fixture() -> (Arc<BpmnPackage>, BpmnInstanceSt
             token_id: 9,
             node_index: 5,
             incoming_edge_index: Some(5),
+            inclusive_join_hint: None,
         },
         TokenRecord {
             token_id: 10,
             node_index: 5,
             incoming_edge_index: Some(5),
+            inclusive_join_hint: None,
         },
         TokenRecord {
             token_id: 11,
             node_index: 5,
             incoming_edge_index: Some(6),
+            inclusive_join_hint: None,
         },
     ];
     for node_index in 0..=4 {

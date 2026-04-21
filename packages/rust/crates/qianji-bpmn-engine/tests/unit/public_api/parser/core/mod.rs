@@ -5,6 +5,7 @@ use qianji_bpmn_engine::{BpmnEngineError, BpmnPackage, BpmnParseOptions, parse_b
 mod gateway;
 mod linear;
 mod repeat;
+mod task;
 
 fn parse_fixture_package(name: &str) -> BpmnPackage {
     parse_bpmn_package(&[fixture_source(name)], &BpmnParseOptions::default())

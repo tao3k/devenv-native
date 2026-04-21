@@ -58,7 +58,7 @@ fn parser_bundle_snapshot_surfaces_invalid_dmn_sources() {
         error,
         BpmnEngineError::UnsupportedDmnUnaryTest {
             source_id: "invalid-unsupported-unary-test.dmn".to_string(),
-            expression: "duration(\"P1D\")".to_string(),
+            expression: "duration(\"P1.5Y\")".to_string(),
         }
     );
 }

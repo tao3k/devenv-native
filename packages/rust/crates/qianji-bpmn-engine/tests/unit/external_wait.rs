@@ -4,9 +4,9 @@ use qianji_bpmn_engine::{
     BpmnHostBridge, BpmnInstanceInit, BpmnNodeKind, BpmnNodeSpec, BpmnPackage, BpmnProcessSpec,
     BusinessRuleTaskOutcome, BusinessRuleTaskRequest, EventPollOutcome, EventPollRequest,
     HostBridgeError, InstanceLifecycle, ManualTaskOutcome, ManualTaskRequest, ProcessKey,
-    ServiceTaskOutcome, ServiceTaskRequest, TokenRecord, UserTaskOutcome, UserTaskRequest,
-    WaitKind, WaitRegistration, advance_instance, apply_event_poll_outcome,
-    build_event_poll_request, create_instance,
+    SendTaskOutcome, SendTaskRequest, ServiceTaskOutcome, ServiceTaskRequest, TokenRecord,
+    UserTaskOutcome, UserTaskRequest, WaitKind, WaitRegistration, advance_instance,
+    apply_event_poll_outcome, build_event_poll_request, create_instance,
 };
 use serde_json::json;
 use std::sync::Arc;
@@ -146,6 +146,7 @@ fn waiting_instance() -> (Arc<BpmnPackage>, qianji_bpmn_engine::BpmnInstanceStat
         token_id: 1,
         node_index: 1,
         incoming_edge_index: None,
+        inclusive_join_hint: None,
     });
     instance.node_states[0].status = qianji_bpmn_engine::NodeRuntimeStatus::Completed;
     instance.node_states[1].status = qianji_bpmn_engine::NodeRuntimeStatus::Executing;
@@ -195,6 +196,13 @@ impl StubHost {
 
 #[async_trait::async_trait]
 impl BpmnHostBridge for StubHost {
+    async fn dispatch_send_task(
+        &self,
+        _request: SendTaskRequest,
+    ) -> std::result::Result<SendTaskOutcome, HostBridgeError> {
+        panic!("external wait tests should not dispatch send work");
+    }
+
     async fn dispatch_service_task(
         &self,
         _request: ServiceTaskRequest,

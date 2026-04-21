@@ -29,11 +29,13 @@ fn runtime_frontier_proposals_collect_all_runnable_tokens_in_order() {
             token_id: 7,
             node_index: 2,
             incoming_edge_index: Some(1),
+            inclusive_join_hint: None,
         },
         TokenRecord {
             token_id: 8,
             node_index: 3,
             incoming_edge_index: Some(2),
+            inclusive_join_hint: None,
         },
     ];
     instance.node_states[0].status = NodeRuntimeStatus::Completed;
@@ -84,11 +86,13 @@ fn runtime_frontier_plan_reduces_runnable_proposals_into_batch_deterministically
             token_id: 7,
             node_index: 2,
             incoming_edge_index: Some(1),
+            inclusive_join_hint: None,
         },
         TokenRecord {
             token_id: 8,
             node_index: 3,
             incoming_edge_index: Some(2),
+            inclusive_join_hint: None,
         },
     ];
     instance.node_states[0].status = NodeRuntimeStatus::Completed;

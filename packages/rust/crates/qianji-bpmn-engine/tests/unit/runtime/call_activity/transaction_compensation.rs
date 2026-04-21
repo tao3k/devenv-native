@@ -198,3 +198,96 @@ async fn runtime_transaction_cancel_runs_compensation_in_reverse_completion_orde
     assert_eq!(instance.lifecycle, InstanceLifecycle::Completed);
     assert_eq!(instance.variables, json!({ "amount": 7 }));
 }
+
+#[tokio::test(flavor = "current_thread")]
+async fn runtime_transaction_throw_compensation_end_runs_targeted_handler_before_success_path() {
+    let package = Arc::new(parsed_fixture_package(
+        "transaction-throw-compensation-end.bpmn",
+    ));
+    let mut instance = create_instance(
+        Arc::clone(&package),
+        "main_process",
+        BpmnInstanceInit::new(
+            "wf_transaction_throw_compensation_end",
+            json!({ "amount": 7 }),
+            10,
+        ),
+    )
+    .must("instance should be created");
+    let host = StubHost::new(55);
+
+    let blocked = advance_instance(package.as_ref(), &mut instance, &host)
+        .await
+        .must("transaction shell should block on the compensable activity");
+    let pending = instance.pending_host_work.clone();
+    assert_eq!(blocked, BpmnAdvanceOutcome::BlockedOnHost(pending.clone()));
+
+    let resumed = apply_pending_host_work_result(
+        package.as_ref(),
+        &mut instance,
+        pending[0].token_id,
+        PendingHostWorkResult::User(UserTaskOutcome {
+            data: json!({ "approved": true, "reviewer": "alice" }),
+        }),
+        100,
+    )
+    .must("host completion should resume the transaction shell child");
+    assert_eq!(resumed, BpmnAdvanceOutcome::Advanced);
+    assert_eq!(
+        instance.variables,
+        json!({ "amount": 7, "approved": true, "reviewer": "alice" })
+    );
+
+    let blocked_compensation = advance_instance(package.as_ref(), &mut instance, &host)
+        .await
+        .must(
+            "throw compensation end event should run the targeted handler before success routing",
+        );
+    let compensation_pending = instance.pending_host_work.clone();
+    assert_eq!(
+        blocked_compensation,
+        BpmnAdvanceOutcome::BlockedOnHost(compensation_pending.clone())
+    );
+    assert_eq!(instance.process.process_id.as_ref(), TRANSACTION_PROCESS_ID);
+    assert_eq!(
+        compensation_pending[0].node_index,
+        node_index(&package, TRANSACTION_PROCESS_ID, "tx_refund")
+    );
+
+    let compensation_resumed = apply_pending_host_work_result(
+        package.as_ref(),
+        &mut instance,
+        compensation_pending[0].token_id,
+        PendingHostWorkResult::User(UserTaskOutcome {
+            data: json!({ "refunded": true }),
+        }),
+        140,
+    )
+    .must("targeted compensation handler should resume without mutating workflow variables");
+    assert_eq!(compensation_resumed, BpmnAdvanceOutcome::Advanced);
+    assert_eq!(
+        instance.variables,
+        json!({ "amount": 7, "approved": true, "reviewer": "alice" })
+    );
+
+    let completion = advance_instance(package.as_ref(), &mut instance, &host)
+        .await
+        .must("transaction shell should complete through the success path after targeted compensation");
+    assert_eq!(completion, BpmnAdvanceOutcome::Completed);
+    assert_eq!(instance.lifecycle, InstanceLifecycle::Completed);
+    assert_eq!(instance.process.process_id.as_ref(), "main_process");
+    assert!(instance.call_stack.is_empty());
+    assert!(instance.active_tokens.is_empty());
+    assert_eq!(
+        instance.variables,
+        json!({ "amount": 7, "approved": true, "reviewer": "alice" })
+    );
+    assert_eq!(
+        instance.node_states[node_index(&package, "main_process", "payment_tx") as usize].status,
+        qianji_bpmn_engine::NodeRuntimeStatus::Completed
+    );
+    assert_eq!(
+        instance.node_states[node_index(&package, "main_process", "success_end") as usize].status,
+        qianji_bpmn_engine::NodeRuntimeStatus::Completed
+    );
+}

@@ -3,8 +3,9 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
+#[path = "support/workspace.rs"]
+mod workspace;
 use serde_json::json;
-use xiuxian_config_core::resolve_project_root;
 use xiuxian_qianhuan::{PersonaRegistry, ThousandFacesOrchestrator};
 use xiuxian_qianji::executors::QianjiAdvisoryAuditExecutor;
 use xiuxian_testing::{
@@ -73,8 +74,7 @@ fn advisory_request() -> AdvisoryAuditRequest {
 }
 
 fn workspace_root() -> PathBuf {
-    resolve_project_root()
-        .unwrap_or_else(|| panic!("workspace root should resolve from PRJ_ROOT or git ancestry"))
+    workspace::workspace_root()
 }
 
 fn must_ok<T, E: std::fmt::Display>(result: Result<T, E>, context: &str) -> T {

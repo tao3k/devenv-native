@@ -1,0 +1,23 @@
+<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/"
+  id="Definitions_invalid_mixed_duration_family_range"
+  name="Invalid Mixed Duration Family Range DRD"
+  namespace="http://example.com/dmn">
+  <decision id="invalid-mixed-duration-family-range" name="Invalid Mixed Duration Family Range">
+    <decisionTable id="decision_table_invalid_mixed_duration_family_range" hitPolicy="UNIQUE">
+      <input id="input_term" label="term">
+        <inputExpression id="input_expression_term" typeRef="Any">
+          <text>term</text>
+        </inputExpression>
+      </input>
+      <output id="output_result" name="result" label="result" typeRef="string" />
+      <rule id="rule_invalid_mixed_duration_family_range">
+        <inputEntry id="input_entry_invalid_mixed_duration_family_range">
+          <text>duration("P6M") &lt;= ? &lt; duration("P30D")</text>
+        </inputEntry>
+        <outputEntry id="output_entry_invalid_mixed_duration_family_range">
+          <text>"review"</text>
+        </outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+</definitions>

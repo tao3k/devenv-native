@@ -3,10 +3,27 @@ use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{
     BpmnEngineError, BpmnInstanceInit, BpmnNodeKind, BpmnPackage, BusinessRuleTaskRequest,
     DmnDecisionRef, DmnEvaluationRequest, ManualTaskRequest, PendingHostWorkRequest,
-    ServiceTaskRequest, UserTaskRequest, build_pending_host_work_request, create_instance,
+    SendTaskRequest, ServiceTaskRequest, UserTaskRequest, build_pending_host_work_request,
+    create_instance,
 };
 use serde_json::json;
 use std::sync::Arc;
+
+#[tokio::test(flavor = "current_thread")]
+async fn host_dispatch_send_request_materializes_from_blocked_instance() {
+    assert_dispatch_request(
+        BpmnNodeKind::SendTask,
+        PendingHostWorkRequest::Send(SendTaskRequest {
+            instance_id: "wf_dispatch".to_string(),
+            token_id: 0,
+            node_index: 1,
+            message_reference: "invoice_dispatched".to_string(),
+            message_name: Some("InvoiceDispatched".to_string()),
+            variables: json!({ "amount": 7 }),
+        }),
+    )
+    .await;
+}
 
 #[tokio::test(flavor = "current_thread")]
 async fn host_dispatch_service_request_materializes_from_blocked_instance() {
@@ -75,7 +92,7 @@ async fn host_dispatch_business_rule_request_materializes_from_blocked_instance(
 async fn host_dispatch_requires_pending_work() {
     let package = Arc::new(BpmnPackage::new(
         "pkg_dispatch",
-        vec![blocking_process("dispatch", BpmnNodeKind::ServiceTask)],
+        vec![blocking_process("dispatch", &BpmnNodeKind::ServiceTask)],
     ));
     let instance = create_instance(
         Arc::clone(&package),

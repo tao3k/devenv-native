@@ -1,8 +1,7 @@
 //! Integration coverage for the real Wendao bundled `OpenAPI` artifact.
 
-use std::path::PathBuf;
-
-use xiuxian_config_core::resolve_project_root;
+#[path = "support/workspace.rs"]
+mod workspace;
 use xiuxian_qianji::contract_feedback::{
     build_rest_docs_collection_context, run_rest_docs_contract_feedback,
 };
@@ -11,11 +10,6 @@ use xiuxian_wendao_runtime::artifacts::openapi::bundled_wendao_gateway_openapi_p
 
 fn must_ok<T, E: std::fmt::Display>(result: Result<T, E>, context: &str) -> T {
     result.unwrap_or_else(|error| panic!("{context}: {error}"))
-}
-
-fn workspace_root() -> PathBuf {
-    resolve_project_root()
-        .unwrap_or_else(|| panic!("workspace root should resolve from PRJ_ROOT or git ancestry"))
 }
 
 #[tokio::test]
@@ -30,7 +24,7 @@ async fn wendao_bundled_openapi_rest_docs_contract_feedback_stays_clean() {
     let result = must_ok(
         run_rest_docs_contract_feedback(
             &openapi_path,
-            build_rest_docs_collection_context(&openapi_path, Some(workspace_root())),
+            build_rest_docs_collection_context(&openapi_path, Some(workspace::workspace_root())),
             &ContractRunConfig {
                 execution_mode: ContractExecutionMode::Strict,
                 generated_at: "2026-03-18T00:00:00Z".to_string(),

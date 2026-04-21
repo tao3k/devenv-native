@@ -15,6 +15,11 @@ async fn runtime_service_task_blocks_on_host_boundary() {
 }
 
 #[tokio::test(flavor = "current_thread")]
+async fn runtime_send_task_blocks_on_host_boundary_with_message_metadata() {
+    assert_host_blocking(BpmnNodeKind::SendTask, PendingHostWorkKind::Send).await;
+}
+
+#[tokio::test(flavor = "current_thread")]
 async fn runtime_user_task_blocks_on_host_boundary() {
     assert_host_blocking(BpmnNodeKind::UserTask, PendingHostWorkKind::User).await;
 }
@@ -56,6 +61,8 @@ async fn runtime_business_rule_task_blocks_on_host_boundary() {
         &instance,
         PendingHostWorkKind::BusinessRule,
         Some(decision.clone()),
+        None,
+        None,
     );
 
     assert_eq!(
@@ -90,7 +97,8 @@ async fn runtime_repairs_stale_process_index_before_advancing() {
     let outcome = advance_instance(package.as_ref(), &mut instance, &StubHost::new(55))
         .await
         .must("runtime should repair the cached process index");
-    let pending = assert_single_pending_host_work(&instance, PendingHostWorkKind::Service, None);
+    let pending =
+        assert_single_pending_host_work(&instance, PendingHostWorkKind::Service, None, None, None);
 
     assert_eq!(outcome, BpmnAdvanceOutcome::BlockedOnHost(vec![pending]));
     assert_eq!(instance.process_index, 1);
@@ -112,7 +120,18 @@ async fn assert_host_blocking(node_kind: BpmnNodeKind, work_kind: PendingHostWor
     let outcome = advance_instance(package.as_ref(), &mut instance, &host)
         .await
         .must("bounded runtime should block at the host boundary");
-    let pending = assert_single_pending_host_work(&instance, work_kind.clone(), None);
+    let (event_reference, event_name) = if work_kind == PendingHostWorkKind::Send {
+        (Some("invoice_dispatched"), Some("InvoiceDispatched"))
+    } else {
+        (None, None)
+    };
+    let pending = assert_single_pending_host_work(
+        &instance,
+        work_kind.clone(),
+        None,
+        event_reference,
+        event_name,
+    );
 
     assert_eq!(outcome, BpmnAdvanceOutcome::BlockedOnHost(vec![pending]));
     assert_eq!(instance.lifecycle, InstanceLifecycle::Waiting);

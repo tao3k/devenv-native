@@ -42,6 +42,24 @@ pub(crate) fn write_service_task_bundle(temp_dir: &TempDir) -> PathBuf {
     bpmn_path
 }
 
+pub(crate) fn write_send_task_bundle(temp_dir: &TempDir) -> PathBuf {
+    let bpmn_path = temp_dir.path().join("send-task.bpmn");
+    write_file(
+        &bpmn_path,
+        r#"<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" id="pkg_send">
+  <bpmn:process id="send_flow" isExecutable="true">
+    <bpmn:startEvent id="start" />
+    <bpmn:sendTask id="send_invoice_message" messageRef="invoice_dispatched" />
+    <bpmn:endEvent id="end" />
+    <bpmn:sequenceFlow id="flow_1" sourceRef="start" targetRef="send_invoice_message" />
+    <bpmn:sequenceFlow id="flow_2" sourceRef="send_invoice_message" targetRef="end" />
+  </bpmn:process>
+</bpmn:definitions>"#,
+    );
+    bpmn_path
+}
+
 pub(crate) fn write_business_rule_bundle(temp_dir: &TempDir) -> BusinessRuleBundlePaths {
     let bpmn_path = temp_dir.path().join("review.bpmn");
     let dmn_path = temp_dir.path().join("loan-decision.dmn");

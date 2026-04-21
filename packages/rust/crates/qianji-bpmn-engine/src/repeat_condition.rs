@@ -24,6 +24,16 @@ pub(crate) enum MultiInstanceCompletionConditionError {
     UnsupportedExpression,
 }
 
+/// Evaluation error for bounded exclusive-gateway conditions.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) enum GatewayConditionError {
+    /// One boolean variable-path condition referenced a missing or non-boolean
+    /// value at runtime.
+    UnresolvedVariablePath(String),
+    /// The source condition is outside the supported bounded subset.
+    UnsupportedExpression,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum CounterName {
     Total,
@@ -60,6 +70,11 @@ enum ParsedMultiInstanceCompletionCondition<'a> {
     },
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ParsedBooleanPathCondition<'a> {
+    BooleanPath { negated: bool, path: &'a str },
+}
+
 /// Returns whether the source condition fits the bounded multi-instance
 /// completion-condition subset.
 pub(crate) fn is_supported_multi_instance_completion_condition(condition: &str) -> bool {
@@ -94,6 +109,30 @@ pub(crate) fn evaluate_multi_instance_completion_condition(
     }
 }
 
+/// Returns whether the source condition fits the bounded exclusive-gateway
+/// subset.
+pub(crate) fn is_supported_gateway_condition(condition: &str) -> bool {
+    parse_boolean_path_condition(condition).is_some()
+}
+
+/// Evaluates one bounded exclusive-gateway condition.
+pub(crate) fn evaluate_gateway_condition(
+    condition: &str,
+    variables: &Value,
+) -> Result<bool, GatewayConditionError> {
+    let Some(parsed) = parse_boolean_path_condition(condition) else {
+        return Err(GatewayConditionError::UnsupportedExpression);
+    };
+
+    match parsed {
+        ParsedBooleanPathCondition::BooleanPath { negated, path } => {
+            let value = resolve_boolean_variable_path(variables, path)
+                .ok_or_else(|| GatewayConditionError::UnresolvedVariablePath(path.to_string()))?;
+            Ok(if negated { !value } else { value })
+        }
+    }
+}
+
 fn parse_multi_instance_completion_condition(
     condition: &str,
 ) -> Option<ParsedMultiInstanceCompletionCondition<'_>> {
@@ -106,14 +145,29 @@ fn parse_multi_instance_completion_condition(
         return Some(parsed);
     }
 
+    if let Some(parsed) = parse_boolean_path_condition(trimmed) {
+        return Some(match parsed {
+            ParsedBooleanPathCondition::BooleanPath { negated, path } => {
+                ParsedMultiInstanceCompletionCondition::BooleanPath { negated, path }
+            }
+        });
+    }
+
+    None
+}
+
+fn parse_boolean_path_condition(source: &str) -> Option<ParsedBooleanPathCondition<'_>> {
+    let trimmed = source.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
     let (negated, path) = match trimmed.strip_prefix("not ") {
         Some(path) => (true, path.trim()),
         None => (false, trimmed),
     };
     if is_identifier_path(path) {
-        return Some(ParsedMultiInstanceCompletionCondition::BooleanPath { negated, path });
+        return Some(ParsedBooleanPathCondition::BooleanPath { negated, path });
     }
-
     None
 }
 

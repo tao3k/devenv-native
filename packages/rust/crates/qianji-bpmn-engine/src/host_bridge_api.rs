@@ -2,13 +2,23 @@
 
 use crate::host_types_api::{
     BusinessRuleTaskOutcome, BusinessRuleTaskRequest, EventPollOutcome, EventPollRequest,
-    HostBridgeError, ManualTaskOutcome, ManualTaskRequest, ServiceTaskOutcome, ServiceTaskRequest,
-    UserTaskOutcome, UserTaskRequest,
+    HostBridgeError, ManualTaskOutcome, ManualTaskRequest, SendTaskOutcome, SendTaskRequest,
+    ServiceTaskOutcome, ServiceTaskRequest, UserTaskOutcome, UserTaskRequest,
 };
 
 /// Host callback surface implemented by `xiuxian-qianji` or another host.
 #[async_trait::async_trait]
 pub trait BpmnHostBridge {
+    /// Dispatches send-task work.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`HostBridgeError`] when the host cannot execute the request.
+    async fn dispatch_send_task(
+        &self,
+        request: SendTaskRequest,
+    ) -> std::result::Result<SendTaskOutcome, HostBridgeError>;
+
     /// Dispatches service-task work.
     ///
     /// # Errors

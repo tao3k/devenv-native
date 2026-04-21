@@ -103,6 +103,10 @@ async fn checkpoint_live_delete_removes_state_when_valkey_is_available() {
         .await
         .must("checkpoint load should succeed after delete");
     assert!(loaded.is_none());
+
+    // Drop the spawned test server before the async test runtime tears down so
+    // nextest does not classify this live-path cleanup test as leaky.
+    drop(valkey);
 }
 
 #[tokio::test(flavor = "current_thread")]

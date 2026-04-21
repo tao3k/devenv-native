@@ -13,13 +13,17 @@
 //! package, including multiple bounded decisions from one DMN source, so local
 //! business-rule execution is populated from parse-time inputs instead of
 //! test-only manual wiring.
-//! Bounded `parallelGateway` split/join semantics and deterministic
-//! `exclusiveGateway` pass-through routing plus one bounded exclusive
-//! `eventBasedGateway` whose outgoing targets are message/signal/timer
-//! `intermediateCatchEvent` waits, plus `intermediateCatchEvent` waits backed
-//! by `messageEventDefinition`, `signalEventDefinition`, and snapshot-style
-//! `timerEventDefinition`, plus one interrupting timer `boundaryEvent` on one
-//! host-blocking task, plus one bounded embedded `subProcess` body with
+//! Bounded `parallelGateway` split/join semantics, bounded
+//! `exclusiveGateway` routing with simple boolean-path outgoing
+//! `sequenceFlow` `conditionExpression` values plus one optional `default`
+//! flow, one bounded structured `inclusiveGateway` subset with the same
+//! condition/default routing rules plus one matching linear join fragment,
+//! and one bounded exclusive `eventBasedGateway` whose outgoing targets are
+//! message/signal/timer `intermediateCatchEvent` waits, plus
+//! `intermediateCatchEvent` waits backed by `messageEventDefinition`,
+//! `signalEventDefinition`, and snapshot-style `timerEventDefinition`, plus
+//! one interrupting timer `boundaryEvent` on one host-blocking task, plus
+//! one bounded embedded `subProcess` body with
 //! exactly one nested `startEvent` and at least one nested `endEvent`, plus
 //! one bounded `<transaction>` shell with exactly one nested `startEvent` and
 //! at least one nested `endEvent`, plus one bounded transaction cancel path
@@ -32,9 +36,15 @@
 //! restore the parent frame, preserve transaction-local variable mutations,
 //! and route through every matching parent error boundary including one
 //! catch-all boundary, while normal completion and cancel routing cancel the
-//! non-selected sibling boundaries, plus one bounded `callActivity` that
-//! targets another process in the same BPMN package, plus bounded
-//! `standardLoopCharacteristics` on one serviceTask,
+//! non-selected sibling boundaries, plus one bounded transaction cancel
+//! compensation subset where compensable activities may bind one explicit
+//! compensation handler and cancel routing replays those handlers in reverse
+//! completion order before the parent cancel boundary fires, plus one
+//! synchronous targeted throw-compensation end-event subset inside that same
+//! transaction shell where one nested end event uses explicit `activityRef`
+//! to replay one already compensable activity before the shell completes,
+//! plus one bounded `callActivity` that targets another process in the same
+//! BPMN package, plus bounded `standardLoopCharacteristics` on one serviceTask,
 //! userTask, manualTask, or businessRuleTask, plus bounded
 //! sequential `multiInstanceLoopCharacteristics isSequential="true"` plus
 //! bounded parallel `multiInstanceLoopCharacteristics` with omitted or
@@ -47,24 +57,35 @@
 //! supports wildcard matching,
 //! literal equality, numeric unary comparisons, bounded numeric ranges,
 //! ISO date literals, ISO date comparisons, bounded ISO date ranges, ISO local
-//! datetime literals, ISO local datetime comparisons, bounded ISO local
-//! datetime ranges, ISO time literals, ISO time comparisons, and bounded ISO
-//! time ranges.
+//! and RFC3339 offset-aware datetime literals plus one bounded UTC
+//! normalization rule for mixed datetime literal equality, comparisons, and
+//! ranges, plus signed ISO 8601 day-time and year-month duration literals,
+//! comparisons, and bounded ranges, plus ISO time literals, ISO time
+//! comparisons, bounded ISO time ranges, and bounded day-time duration
+//! fractions such as `duration("P1.5D")`, `duration("P1,5D")`,
+//! `duration("PT1.5H")`, `duration("PT1,5H")`, `duration("PT1.5M")`,
+//! `duration("PT1,5M")`, `duration("PT1.5S")`, and `duration("PT1,5S")`.
 //! BPMN `businessRuleTask` can also execute locally when the package carries a
 //! matching engine-owned DMN decision definition; otherwise it falls back to
-//! the existing host seam. Inclusive gateways, recursive call chains,
-//! non-interrupting boundaries, full timer execution semantics,
-//! throw compensation events, compensation event subprocesses, default
-//! compensation, more than one cancel boundary on the same transaction owner,
-//! broader transaction error propagation beyond that bounded transaction
-//! shell, broader duration/timezone/function FEEL behavior, and richer
-//! orchestration slices remain deferred.
+//! the existing host seam. Broader unstructured inclusive gateways, recursive
+//! call chains, non-interrupting boundaries, full timer execution semantics,
+//! throw-compensation intermediate events, asynchronous or default
+//! throw-compensation end events, compensation event subprocesses, default
+//! compensation, broader throw-compensation forms, more than one cancel
+//! boundary on the same transaction owner, broader transaction error
+//! propagation beyond that bounded transaction shell, broader FEEL or
+//! script-backed gateway conditions, trailing
+//! lower-unit fractional duration handling such as `duration("PT1.5H30S")`,
+//! mixed-family duration handling, fractional year-month duration handling
+//! such as `duration("P1.5Y")`, broader timezone/function FEEL behavior, and
+//! richer orchestration slices remain deferred.
 
 mod bpmn_parse_api;
 mod checkpoint;
 mod checkpoint_api;
 mod dmn;
 mod dmn_api;
+mod dmn_duration;
 mod dmn_evaluate_api;
 mod dmn_model_api;
 mod dmn_model_clause;
@@ -123,9 +144,10 @@ pub use dmn_api::{
     DmnBindingKind, DmnComparisonOperator, DmnDateComparison, DmnDateRange, DmnDateRangeBound,
     DmnDateTimeComparison, DmnDateTimeRange, DmnDateTimeRangeBound, DmnDecisionDefinition,
     DmnDecisionRef, DmnDecisionSnapshot, DmnDecisionTable, DmnDocumentSnapshot,
-    DmnEvaluationRequest, DmnEvaluationResult, DmnHitPolicy, DmnInputClause, DmnInputEntry,
-    DmnNumericComparison, DmnNumericRange, DmnNumericRangeBound, DmnOutputClause, DmnOutputEntry,
-    DmnRootSnapshot, DmnRule, DmnSourceFile, DmnTimeComparison, DmnTimeRange, DmnTimeRangeBound,
+    DmnDurationComparison, DmnDurationRange, DmnDurationRangeBound, DmnEvaluationRequest,
+    DmnEvaluationResult, DmnHitPolicy, DmnInputClause, DmnInputEntry, DmnNumericComparison,
+    DmnNumericRange, DmnNumericRangeBound, DmnOutputClause, DmnOutputEntry, DmnRootSnapshot,
+    DmnRule, DmnSourceFile, DmnTimeComparison, DmnTimeRange, DmnTimeRangeBound,
     evaluate_dmn_decision, parse_dmn_decision, parse_dmn_decisions, snapshot_dmn_source,
 };
 pub use error::BpmnEngineError;
@@ -133,9 +155,9 @@ pub use host_bridge_api::BpmnHostBridge;
 pub use host_types_api::{
     BusinessRuleTaskOutcome, BusinessRuleTaskRequest, EventPollOutcome, EventPollRequest,
     HostBridgeError, ManualTaskOutcome, ManualTaskRequest, ParallelMultiInstanceContext,
-    PendingHostWorkRequest, PendingHostWorkResult, RepeatExecutionContext,
-    SequentialMultiInstanceContext, ServiceTaskOutcome, ServiceTaskRequest, UserTaskOutcome,
-    UserTaskRequest,
+    PendingHostWorkRequest, PendingHostWorkResult, RepeatExecutionContext, SendTaskOutcome,
+    SendTaskRequest, SequentialMultiInstanceContext, ServiceTaskOutcome, ServiceTaskRequest,
+    UserTaskOutcome, UserTaskRequest,
 };
 pub use ir_edge_api::BpmnEdgeSpec;
 pub use ir_event_api::{BpmnEventKind, BpmnEventSpec, BpmnTimerKind, BpmnTimerSpec};
@@ -176,7 +198,7 @@ pub use runtime_repeat_api::{
     StandardLoopState,
 };
 pub use runtime_resume_api::apply_pending_host_work_result;
-pub use runtime_token_api::TokenRecord;
+pub use runtime_token_api::{InclusiveJoinHint, TokenRecord};
 pub use runtime_wait_api::{
     WaitKind, WaitRegistration, apply_event_poll_outcome, build_event_poll_request,
 };

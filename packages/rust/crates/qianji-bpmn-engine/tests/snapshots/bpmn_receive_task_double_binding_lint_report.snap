@@ -1,0 +1,28 @@
+---
+source: packages/rust/crates/qianji-bpmn-engine/tests/unit/lint/mod.rs
+expression: value
+---
+{
+  "domain": "bpmn",
+  "source_id": "invalid-receive-task-double-message-binding.bpmn",
+  "ok": false,
+  "issues": [
+    {
+      "code": "bpmn.unsupported_task_configuration",
+      "severity": "error",
+      "title": "Message task declares more than one binding source",
+      "summary": "Process 'await_invoice_invalid' task node 'await_invoice_message' uses unsupported configuration 'multiple_task_message_bindings'.",
+      "why_it_failed": "The current engine supports only one bounded message-task family: `receiveTask` waits for exactly one message binding through `messageRef` or one nested `messageEventDefinition`, and `sendTask` dispatches exactly one message binding through that same bounded source shape. Script execution, correlations, and broader collaboration-aware routing remain outside the slice.",
+      "repair_guidance": [
+        "For `receiveTask` or `sendTask`, keep exactly one message binding source: either `messageRef` on the task or one nested `messageEventDefinition`, but not both.",
+        "Do not add script bodies, correlation execution, signal/timer task events, or collaboration-aware routing to this bounded task slice."
+      ],
+      "llm_fix_prompt": "Repair task node 'await_invoice_message' in process 'await_invoice_invalid' so it fits the bounded message-task slice: for `receiveTask` or `sendTask`, keep exactly one message binding through task-level `messageRef` or one nested `<bpmn:messageEventDefinition>`, but not both, and remove unsupported configuration 'multiple_task_message_bindings'. Preserve workflow intent, but keep `scriptTask`, correlations, and broader collaboration-aware message routing deferred.",
+      "evidence": {
+        "detail": "multiple_task_message_bindings",
+        "node_id": "await_invoice_message",
+        "process_id": "await_invoice_invalid"
+      }
+    }
+  ]
+}

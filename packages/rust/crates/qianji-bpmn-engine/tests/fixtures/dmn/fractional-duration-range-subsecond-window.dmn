@@ -1,0 +1,39 @@
+<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/"
+  id="Definitions_subsecond_range_window"
+  name="Subsecond Range Window DRD"
+  namespace="http://example.com/dmn">
+  <decision id="subsecond-range-window" name="Subsecond Range Window">
+    <decisionTable id="decision_table_subsecond_range_window" hitPolicy="UNIQUE">
+      <input id="input_elapsed" label="elapsed">
+        <inputExpression id="input_expression_elapsed" typeRef="dayTimeDuration">
+          <text>elapsed</text>
+        </inputExpression>
+      </input>
+      <output id="output_window" name="window" label="window" typeRef="string" />
+      <rule id="rule_centered_subsecond_window">
+        <inputEntry id="input_entry_centered_subsecond_window">
+          <text>duration("-PT0.5S") &lt;= ? &lt; duration("PT0.5S")</text>
+        </inputEntry>
+        <outputEntry id="output_entry_centered_subsecond_window">
+          <text>"centered-subsecond-window"</text>
+        </outputEntry>
+      </rule>
+      <rule id="rule_expanded_subsecond_window">
+        <inputEntry id="input_entry_expanded_subsecond_window">
+          <text>[duration("PT1.25S")..duration("PT2.75S")]</text>
+        </inputEntry>
+        <outputEntry id="output_entry_expanded_subsecond_window">
+          <text>"expanded-subsecond-window"</text>
+        </outputEntry>
+      </rule>
+      <rule id="rule_outside_subsecond_window">
+        <inputEntry id="input_entry_outside_subsecond_window">
+          <text>-</text>
+        </inputEntry>
+        <outputEntry id="output_entry_outside_subsecond_window">
+          <text>"outside-subsecond-window"</text>
+        </outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+</definitions>

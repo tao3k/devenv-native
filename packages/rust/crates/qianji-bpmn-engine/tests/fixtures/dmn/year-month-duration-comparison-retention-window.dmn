@@ -1,0 +1,39 @@
+<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/"
+  id="Definitions_retention_window"
+  name="Retention Window DRD"
+  namespace="http://example.com/dmn">
+  <decision id="retention-window" name="Retention Window">
+    <decisionTable id="decision_table_retention_window" hitPolicy="UNIQUE">
+      <input id="input_term" label="term">
+        <inputExpression id="input_expression_term" typeRef="yearMonthDuration">
+          <text>term</text>
+        </inputExpression>
+      </input>
+      <output id="output_band" name="band" label="band" typeRef="string" />
+      <rule id="rule_exact_half_year">
+        <inputEntry id="input_entry_exact_half_year">
+          <text>duration("P6M")</text>
+        </inputEntry>
+        <outputEntry id="output_entry_exact_half_year">
+          <text>"exact-half-year"</text>
+        </outputEntry>
+      </rule>
+      <rule id="rule_under_year">
+        <inputEntry id="input_entry_under_year">
+          <text>&lt; duration("P1Y")</text>
+        </inputEntry>
+        <outputEntry id="output_entry_under_year">
+          <text>"under-year"</text>
+        </outputEntry>
+      </rule>
+      <rule id="rule_year_or_more">
+        <inputEntry id="input_entry_year_or_more">
+          <text>&gt;= duration("P1Y")</text>
+        </inputEntry>
+        <outputEntry id="output_entry_year_or_more">
+          <text>"year-or-more"</text>
+        </outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+</definitions>

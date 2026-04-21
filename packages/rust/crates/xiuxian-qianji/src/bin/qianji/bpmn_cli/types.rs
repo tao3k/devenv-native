@@ -53,6 +53,8 @@ pub(crate) struct BpmnCliHostBridgeContext {
 #[derive(Debug, Clone, Default, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub(crate) struct BpmnCliHostFixture {
+    #[serde(rename = "send_tasks")]
+    pub(crate) send: BTreeMap<String, BpmnCliHostDataFixture>,
     #[serde(rename = "service_tasks")]
     pub(crate) service: BTreeMap<String, BpmnCliHostDataFixture>,
     #[serde(rename = "user_tasks")]

@@ -28,9 +28,9 @@ fn normalize_process(
 ) -> Result<BpmnProcessSpec> {
     let digest_hex = process_digest_hex(package_id, source_id, raw);
     let index_by_id = build_node_index_by_id(raw)?;
-    let nodes = normalize_nodes(raw, &index_by_id)?;
-    let events = normalize_events(raw)?;
     let edges = normalize_edges(raw, &index_by_id);
+    let nodes = normalize_nodes(raw, &index_by_id, &edges)?;
+    let events = normalize_events(raw)?;
     let compensation_handlers = normalize_compensation_handlers(raw, &index_by_id)?;
 
     Ok(BpmnProcessSpec::new_with_compensation(
@@ -63,11 +63,15 @@ fn normalize_edges(raw: &RawProcess, index_by_id: &HashMap<String, u32>) -> Vec<
     raw.flows
         .iter()
         .map(|flow| {
-            BpmnEdgeSpec::new(
+            let edge = BpmnEdgeSpec::new(
                 index_by_id[&flow.source_ref],
                 index_by_id[&flow.target_ref],
                 flow.label.as_deref(),
-            )
+            );
+            match flow.condition_expression.as_deref() {
+                Some(condition_expression) => edge.with_condition_expression(condition_expression),
+                None => edge,
+            }
         })
         .collect()
 }

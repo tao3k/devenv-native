@@ -5,9 +5,11 @@ use qianji_bpmn_engine::{
     BpmnProcessSpec, BpmnRepeatSpec, BpmnSequentialMultiInstanceSpec, BpmnStandardLoopSpec,
     BpmnTimerKind, BpmnTimerSpec, BusinessRuleTaskOutcome, BusinessRuleTaskRequest,
     DmnDecisionDefinition, DmnDecisionRef, DmnSourceFile, EventPollOutcome, EventPollRequest,
-    HostBridgeError, ManualTaskOutcome, ManualTaskRequest, ProcessKey, ServiceTaskOutcome,
-    ServiceTaskRequest, UserTaskOutcome, UserTaskRequest, parse_dmn_decision,
+    HostBridgeError, ManualTaskOutcome, ManualTaskRequest, ProcessKey, SendTaskOutcome,
+    SendTaskRequest, ServiceTaskOutcome, ServiceTaskRequest, UserTaskOutcome, UserTaskRequest,
+    parse_dmn_decision,
 };
+use serde_json::json;
 
 mod boundary;
 mod call_activity;
@@ -35,6 +37,14 @@ fn start_end_process_with_id(process_id: &str) -> BpmnProcessSpec {
 }
 
 fn linear_blocking_process(process_id: &str, node_kind: BpmnNodeKind) -> BpmnProcessSpec {
+    let events = match node_kind {
+        BpmnNodeKind::SendTask => vec![
+            BpmnEventSpec::new(1, BpmnEventKind::Message)
+                .with_reference_id("invoice_dispatched")
+                .with_name("InvoiceDispatched"),
+        ],
+        _ => Vec::new(),
+    };
     BpmnProcessSpec::new(
         ProcessKey::new("pkg_runtime", process_id, format!("digest_{process_id}")),
         vec![
@@ -46,7 +56,7 @@ fn linear_blocking_process(process_id: &str, node_kind: BpmnNodeKind) -> BpmnPro
             BpmnEdgeSpec::new(0, 1, None::<&str>),
             BpmnEdgeSpec::new(1, 2, None::<&str>),
         ],
-        Vec::new(),
+        events,
     )
 }
 
@@ -197,14 +207,77 @@ fn exclusive_branch_process(process_id: &str) -> BpmnProcessSpec {
         vec![
             BpmnNodeSpec::new(0, "start", BpmnNodeKind::StartEvent),
             BpmnNodeSpec::new(1, "decision", BpmnNodeKind::Gateway)
-                .with_gateway_kind(BpmnGatewayKind::Exclusive),
+                .with_gateway_kind(BpmnGatewayKind::Exclusive)
+                .with_default_outgoing_edge(3),
             BpmnNodeSpec::new(2, "end_left", BpmnNodeKind::EndEvent),
             BpmnNodeSpec::new(3, "end_right", BpmnNodeKind::EndEvent),
+            BpmnNodeSpec::new(4, "end_default", BpmnNodeKind::EndEvent),
         ],
         vec![
             BpmnEdgeSpec::new(0, 1, None::<&str>),
-            BpmnEdgeSpec::new(1, 2, Some("left")),
-            BpmnEdgeSpec::new(1, 3, Some("right")),
+            BpmnEdgeSpec::new(1, 2, Some("left")).with_condition_expression("approved"),
+            BpmnEdgeSpec::new(1, 3, Some("right")).with_condition_expression("vip"),
+            BpmnEdgeSpec::new(1, 4, Some("default")),
+        ],
+        Vec::new(),
+    )
+}
+
+fn inclusive_branch_process(process_id: &str) -> BpmnProcessSpec {
+    BpmnProcessSpec::new(
+        ProcessKey::new("pkg_runtime", process_id, format!("digest_{process_id}")),
+        vec![
+            BpmnNodeSpec::new(0, "start", BpmnNodeKind::StartEvent),
+            BpmnNodeSpec::new(1, "decision", BpmnNodeKind::Gateway)
+                .with_gateway_kind(BpmnGatewayKind::Inclusive)
+                .with_default_outgoing_edge(3)
+                .with_inclusive_join_node(5),
+            BpmnNodeSpec::new(2, "left_pass", BpmnNodeKind::Gateway)
+                .with_gateway_kind(BpmnGatewayKind::Exclusive),
+            BpmnNodeSpec::new(3, "right_pass", BpmnNodeKind::Gateway)
+                .with_gateway_kind(BpmnGatewayKind::Exclusive),
+            BpmnNodeSpec::new(4, "default_pass", BpmnNodeKind::Gateway)
+                .with_gateway_kind(BpmnGatewayKind::Exclusive),
+            BpmnNodeSpec::new(5, "join", BpmnNodeKind::Gateway)
+                .with_gateway_kind(BpmnGatewayKind::Inclusive),
+            BpmnNodeSpec::new(6, "end", BpmnNodeKind::EndEvent),
+        ],
+        vec![
+            BpmnEdgeSpec::new(0, 1, None::<&str>),
+            BpmnEdgeSpec::new(1, 2, Some("left")).with_condition_expression("approved"),
+            BpmnEdgeSpec::new(1, 3, Some("right")).with_condition_expression("vip"),
+            BpmnEdgeSpec::new(1, 4, Some("default")),
+            BpmnEdgeSpec::new(2, 5, None::<&str>),
+            BpmnEdgeSpec::new(3, 5, None::<&str>),
+            BpmnEdgeSpec::new(4, 5, None::<&str>),
+            BpmnEdgeSpec::new(5, 6, None::<&str>),
+        ],
+        Vec::new(),
+    )
+}
+
+fn inclusive_host_block_process(process_id: &str) -> BpmnProcessSpec {
+    BpmnProcessSpec::new(
+        ProcessKey::new("pkg_runtime", process_id, format!("digest_{process_id}")),
+        vec![
+            BpmnNodeSpec::new(0, "start", BpmnNodeKind::StartEvent),
+            BpmnNodeSpec::new(1, "decision", BpmnNodeKind::Gateway)
+                .with_gateway_kind(BpmnGatewayKind::Inclusive)
+                .with_inclusive_join_node(4),
+            BpmnNodeSpec::new(2, "left_service", BpmnNodeKind::ServiceTask),
+            BpmnNodeSpec::new(3, "right_pass", BpmnNodeKind::Gateway)
+                .with_gateway_kind(BpmnGatewayKind::Exclusive),
+            BpmnNodeSpec::new(4, "join", BpmnNodeKind::Gateway)
+                .with_gateway_kind(BpmnGatewayKind::Inclusive),
+            BpmnNodeSpec::new(5, "end", BpmnNodeKind::EndEvent),
+        ],
+        vec![
+            BpmnEdgeSpec::new(0, 1, None::<&str>),
+            BpmnEdgeSpec::new(1, 2, Some("left")).with_condition_expression("approved"),
+            BpmnEdgeSpec::new(1, 3, Some("right")).with_condition_expression("vip"),
+            BpmnEdgeSpec::new(2, 4, None::<&str>),
+            BpmnEdgeSpec::new(3, 4, None::<&str>),
+            BpmnEdgeSpec::new(4, 5, None::<&str>),
         ],
         Vec::new(),
     )
@@ -246,6 +319,26 @@ fn intermediate_message_wait_process(process_id: &str) -> BpmnProcessSpec {
         vec![
             BpmnNodeSpec::new(0, "start", BpmnNodeKind::StartEvent),
             BpmnNodeSpec::new(1, "wait_message", BpmnNodeKind::IntermediateCatchEvent),
+            BpmnNodeSpec::new(2, "end", BpmnNodeKind::EndEvent),
+        ],
+        vec![
+            BpmnEdgeSpec::new(0, 1, None::<&str>),
+            BpmnEdgeSpec::new(1, 2, None::<&str>),
+        ],
+        vec![
+            BpmnEventSpec::new(1, BpmnEventKind::Message)
+                .with_reference_id("payment_received")
+                .with_name("PaymentReceived"),
+        ],
+    )
+}
+
+fn receive_task_wait_process(process_id: &str) -> BpmnProcessSpec {
+    BpmnProcessSpec::new(
+        ProcessKey::new("pkg_runtime", process_id, format!("digest_{process_id}")),
+        vec![
+            BpmnNodeSpec::new(0, "start", BpmnNodeKind::StartEvent),
+            BpmnNodeSpec::new(1, "wait_message", BpmnNodeKind::ReceiveTask),
             BpmnNodeSpec::new(2, "end", BpmnNodeKind::EndEvent),
         ],
         vec![
@@ -622,6 +715,13 @@ impl StubHost {
 
 #[async_trait::async_trait]
 impl BpmnHostBridge for StubHost {
+    async fn dispatch_send_task(
+        &self,
+        _request: SendTaskRequest,
+    ) -> std::result::Result<SendTaskOutcome, HostBridgeError> {
+        Ok(SendTaskOutcome { data: json!({}) })
+    }
+
     async fn dispatch_service_task(
         &self,
         _request: ServiceTaskRequest,

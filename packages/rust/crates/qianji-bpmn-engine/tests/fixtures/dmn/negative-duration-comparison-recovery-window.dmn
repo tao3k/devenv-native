@@ -1,0 +1,39 @@
+<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/"
+  id="Definitions_recovery_window"
+  name="Recovery Window DRD"
+  namespace="http://example.com/dmn">
+  <decision id="recovery-window" name="Recovery Window">
+    <decisionTable id="decision_table_recovery_window" hitPolicy="UNIQUE">
+      <input id="input_elapsed" label="elapsed">
+        <inputExpression id="input_expression_elapsed" typeRef="dayTimeDuration">
+          <text>elapsed</text>
+        </inputExpression>
+      </input>
+      <output id="output_band" name="band" label="band" typeRef="string" />
+      <rule id="rule_exact_negative_half_hour">
+        <inputEntry id="input_entry_exact_negative_half_hour">
+          <text>duration("-PT30M")</text>
+        </inputEntry>
+        <outputEntry id="output_entry_exact_negative_half_hour">
+          <text>"exact-negative-half-hour"</text>
+        </outputEntry>
+      </rule>
+      <rule id="rule_before_zero">
+        <inputEntry id="input_entry_before_zero">
+          <text>&lt; duration("PT0S")</text>
+        </inputEntry>
+        <outputEntry id="output_entry_before_zero">
+          <text>"before-zero"</text>
+        </outputEntry>
+      </rule>
+      <rule id="rule_zero_or_later">
+        <inputEntry id="input_entry_zero_or_later">
+          <text>&gt;= duration("PT0S")</text>
+        </inputEntry>
+        <outputEntry id="output_entry_zero_or_later">
+          <text>"zero-or-later"</text>
+        </outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+</definitions>

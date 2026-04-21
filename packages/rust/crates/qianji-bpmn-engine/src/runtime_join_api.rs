@@ -7,6 +7,9 @@ use crate::ir_index_api::BpmnNodeIndex;
 pub struct JoinRuntimeState {
     /// Owning node index.
     pub node_index: BpmnNodeIndex,
+    /// Optional activation id for structured inclusive joins.
+    #[serde(default)]
+    pub activation_id: Option<u64>,
     /// How many buffered arrivals are currently represented for the join.
     pub arrived: u32,
     /// How many arrivals are expected for completion.

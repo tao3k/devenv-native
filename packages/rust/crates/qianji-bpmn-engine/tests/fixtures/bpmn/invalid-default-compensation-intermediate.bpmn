@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  id="defs_default_compensation_intermediate">
+  <bpmn:process id="throw_compensation_flow" isExecutable="true">
+    <bpmn:startEvent id="start" />
+    <bpmn:userTask id="review" />
+    <bpmn:intermediateThrowEvent id="throw_intermediate">
+      <bpmn:compensateEventDefinition />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:endEvent id="done" />
+    <bpmn:sequenceFlow id="flow_start_review" sourceRef="start" targetRef="review" />
+    <bpmn:sequenceFlow id="flow_review_throw" sourceRef="review" targetRef="throw_intermediate" />
+    <bpmn:sequenceFlow id="flow_throw_done" sourceRef="throw_intermediate" targetRef="done" />
+  </bpmn:process>
+</bpmn:definitions>

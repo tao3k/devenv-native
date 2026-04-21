@@ -3,9 +3,10 @@
 use std::fs;
 use std::path::PathBuf;
 
+#[path = "support/workspace.rs"]
+mod workspace;
 use serde_json::Value;
 use tempfile::TempDir;
-use xiuxian_config_core::resolve_project_root;
 use xiuxian_qianji::contract_feedback::{
     build_rest_docs_collection_context, run_and_persist_rest_docs_contract_feedback,
 };
@@ -16,11 +17,6 @@ use xiuxian_wendao_runtime::artifacts::openapi::load_bundled_wendao_gateway_open
 
 fn must_ok<T, E: std::fmt::Display>(result: Result<T, E>, context: &str) -> T {
     result.unwrap_or_else(|error| panic!("{context}: {error}"))
-}
-
-fn workspace_root() -> PathBuf {
-    resolve_project_root()
-        .unwrap_or_else(|| panic!("workspace root should resolve from PRJ_ROOT or git ancestry"))
 }
 
 fn write_drifted_openapi_fixture(temp_dir: &TempDir) -> PathBuf {
@@ -73,7 +69,7 @@ async fn persisted_rest_docs_contract_feedback_persists_wendao_entries_through_s
     let result = must_ok(
         run_and_persist_rest_docs_contract_feedback(
             &openapi_path,
-            build_rest_docs_collection_context(&openapi_path, Some(workspace_root())),
+            build_rest_docs_collection_context(&openapi_path, Some(workspace::workspace_root())),
             &ContractRunConfig {
                 execution_mode: ContractExecutionMode::Strict,
                 generated_at: "2026-03-19T00:00:00Z".to_string(),

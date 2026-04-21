@@ -1,12 +1,12 @@
 use super::super::{
-    StubHost, exclusive_branch_process, parallel_dual_host_block_process,
-    parallel_host_block_process, parallel_join_process, parallel_join_same_edge_duplicate_process,
+    StubHost, parallel_dual_host_block_process, parallel_host_block_process, parallel_join_process,
+    parallel_join_same_edge_duplicate_process,
 };
 use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{
-    BpmnAdvanceOutcome, BpmnEngineError, BpmnInstanceInit, BpmnPackage, EventPollOutcome,
-    PendingHostWorkKind, PendingHostWorkResult, ServiceTaskOutcome, advance_instance,
-    apply_event_poll_outcome, apply_pending_host_work_result, create_instance,
+    BpmnAdvanceOutcome, BpmnInstanceInit, BpmnPackage, EventPollOutcome, PendingHostWorkKind,
+    PendingHostWorkResult, ServiceTaskOutcome, advance_instance, apply_event_poll_outcome,
+    apply_pending_host_work_result, create_instance,
 };
 use serde_json::json;
 use std::sync::Arc;
@@ -264,29 +264,4 @@ async fn runtime_parallel_gateway_same_edge_duplicates_do_not_fire_join_early() 
     assert_eq!(instance.joins[0].arrived, 1);
     assert_eq!(instance.joins[0].expected, 2);
     assert_eq!(instance.joins[0].incoming_counts, vec![1, 0]);
-}
-
-#[tokio::test(flavor = "current_thread")]
-async fn runtime_exclusive_gateway_branching_without_conditions_stays_unsupported() {
-    let package = Arc::new(BpmnPackage::new(
-        "pkg_runtime",
-        vec![exclusive_branch_process("exclusive_branch")],
-    ));
-    let mut instance = create_instance(
-        Arc::clone(&package),
-        "exclusive_branch",
-        BpmnInstanceInit::new("wf_exclusive_branch", json!({}), 10),
-    )
-    .must("instance should be created");
-
-    let error = advance_instance(package.as_ref(), &mut instance, &StubHost::new(77))
-        .await
-        .must_err("exclusive branching should stay explicit until conditions exist");
-
-    assert_eq!(
-        error,
-        BpmnEngineError::UnsupportedOperation {
-            operation: "advance_instance_exclusive_gateway_branching",
-        }
-    );
 }

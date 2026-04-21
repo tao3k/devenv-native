@@ -535,14 +535,16 @@ Current landed status:
    about fixture files
 2. the fixture contract is keyed by stable BPMN node ids, so public CLI input
    does not expose dense internal `node_index` values from the engine runtime
-3. the injected host bridge now covers bounded `serviceTask`, `userTask`,
-   `manualTask`, and `businessRuleTask` completion paths while preserving the
-   existing explicit unsupported path for external-event delivery
+3. the injected host bridge now covers bounded `sendTask`, `serviceTask`,
+   `userTask`, `manualTask`, and `businessRuleTask` completion paths while
+   preserving the existing explicit unsupported path for external-event
+   delivery
 4. the CLI renderer now reports the resolved host-fixture path in the run
    result so deterministic host injection stays auditable from the command
    output
 5. focused binary-command tests now prove host-fixture parse behavior plus
-   service-task and business-rule completion through the CLI surface
+   send-task, service-task, and business-rule completion through the CLI
+   surface
 6. scheduler-owned execution and real external-event wiring still remain
    deferred, so the next bounded move should stay above this deterministic
    host-fixture seam rather than reopening parser or DMN internals

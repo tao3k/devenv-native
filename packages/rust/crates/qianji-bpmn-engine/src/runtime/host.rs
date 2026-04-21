@@ -8,8 +8,8 @@ use crate::dmn_model_api::DmnEvaluationRequest;
 use crate::error::{BpmnEngineError, Result};
 use crate::host_types_api::{
     BusinessRuleTaskRequest, ManualTaskRequest, ParallelMultiInstanceContext,
-    PendingHostWorkRequest, RepeatExecutionContext, SequentialMultiInstanceContext,
-    ServiceTaskRequest, UserTaskRequest,
+    PendingHostWorkRequest, RepeatExecutionContext, SendTaskRequest,
+    SequentialMultiInstanceContext, ServiceTaskRequest, UserTaskRequest,
 };
 
 /// Builds a typed host-dispatch request from the currently blocked BPMN
@@ -105,6 +105,18 @@ fn build_pending_host_work_request_for_entry(
             .unwrap_or_else(|| (instance.variables.clone(), None));
 
     Ok(match pending.kind {
+        super::PendingHostWorkKind::Send => PendingHostWorkRequest::Send(SendTaskRequest {
+            instance_id,
+            token_id,
+            node_index,
+            message_reference: pending.event_reference.clone().ok_or(
+                BpmnEngineError::UnsupportedOperation {
+                    operation: "build_pending_send_task_request_missing_message_reference",
+                },
+            )?,
+            message_name: pending.event_name.clone(),
+            variables,
+        }),
         super::PendingHostWorkKind::Service => {
             PendingHostWorkRequest::Service(ServiceTaskRequest {
                 instance_id,

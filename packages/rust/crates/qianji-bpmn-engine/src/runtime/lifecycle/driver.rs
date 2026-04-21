@@ -314,6 +314,7 @@ fn store_parallel_join_counts(
 
     instance.joins.push(JoinRuntimeState {
         node_index,
+        activation_id: None,
         arrived,
         expected,
         incoming_counts: buffered_counts,

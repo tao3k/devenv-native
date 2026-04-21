@@ -3,8 +3,9 @@
 use std::fs;
 use std::path::PathBuf;
 
+#[path = "support/workspace.rs"]
+mod workspace;
 use tempfile::TempDir;
-use xiuxian_config_core::resolve_project_root;
 use xiuxian_qianji::{
     check_flowhub_scenario, render_flowhub_scenario_check_markdown, render_flowhub_scenario_show,
     show_flowhub_scenario,
@@ -25,8 +26,7 @@ fn assert_common_show_shape(rendered: &str) {
 }
 
 fn repo_root() -> PathBuf {
-    resolve_project_root()
-        .unwrap_or_else(|| panic!("workspace root should resolve from PRJ_ROOT or git ancestry"))
+    workspace::workspace_root()
 }
 
 fn flowhub_root() -> PathBuf {

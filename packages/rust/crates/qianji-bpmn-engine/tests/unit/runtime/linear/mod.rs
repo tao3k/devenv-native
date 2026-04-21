@@ -4,11 +4,14 @@ use qianji_bpmn_engine::{BpmnInstanceState, DmnDecisionRef, PendingHostWork, Pen
 mod completion;
 mod dmn;
 mod host;
+mod message;
 
 fn assert_single_pending_host_work(
     instance: &BpmnInstanceState,
     work_kind: PendingHostWorkKind,
     decision: Option<DmnDecisionRef>,
+    event_reference: Option<&str>,
+    event_name: Option<&str>,
 ) -> PendingHostWork {
     let pending = instance
         .pending_host_work
@@ -22,6 +25,8 @@ fn assert_single_pending_host_work(
             node_index: 1,
             kind: work_kind,
             decision,
+            event_reference: event_reference.map(str::to_string),
+            event_name: event_name.map(str::to_string),
             work_id: None,
         }
     );

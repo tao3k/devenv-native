@@ -7,6 +7,8 @@ use crate::ir_index_api::BpmnNodeIndex;
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum PendingHostWorkKind {
+    /// Send-task dispatch.
+    Send,
     /// Service-task dispatch.
     Service,
     /// User-task dispatch.
@@ -28,6 +30,12 @@ pub struct PendingHostWork {
     pub kind: PendingHostWorkKind,
     /// Optional DMN decision binding for business-rule work.
     pub decision: Option<DmnDecisionRef>,
+    /// Optional source-level event reference such as `messageRef`.
+    #[serde(default)]
+    pub event_reference: Option<String>,
+    /// Optional resolved event name or fallback label.
+    #[serde(default)]
+    pub event_name: Option<String>,
     /// Optional host-generated work identifier.
     pub work_id: Option<String>,
 }

@@ -107,7 +107,18 @@ pub struct EventCompetitionState {
     pub wait_node_indices: Vec<BpmnNodeIndex>,
 }
 
-/// Bounded transaction-cancel compensation queue state.
+/// How the active compensation queue should resume once all handlers finish.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum TransactionCompensationCompletionMode {
+    /// Resume by routing through the parent cancel boundary.
+    #[default]
+    CancelBoundary,
+    /// Resume by completing the current scope normally.
+    ScopeCompletion,
+}
+
+/// Bounded transaction compensation queue state.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Default)]
 pub struct TransactionCompensationState {
     /// Completed compensable activity node indices in completion order.
@@ -116,9 +127,12 @@ pub struct TransactionCompensationState {
     /// Pending compensation handler node indices in execution order.
     #[serde(default)]
     pub pending_handler_node_indices: Vec<BpmnNodeIndex>,
-    /// Whether transaction-cancel compensation is currently running.
+    /// Whether the compensation queue is currently running.
     #[serde(default)]
     pub cancelling: bool,
+    /// How the current scope should resume after the queue drains.
+    #[serde(default)]
+    pub completion_mode: TransactionCompensationCompletionMode,
 }
 
 /// Snapshot of one parent execution frame while a bounded call activity runs.

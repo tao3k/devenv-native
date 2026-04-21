@@ -43,11 +43,38 @@ pub(crate) fn record_join_arrival(
     incoming_counts[position] = 1;
     instance.joins.push(JoinRuntimeState {
         node_index,
+        activation_id: None,
         arrived: 1,
         expected,
         incoming_counts,
     });
     Ok(false)
+}
+
+pub(crate) fn record_scoped_join_arrival(
+    instance: &mut BpmnInstanceState,
+    node_index: BpmnNodeIndex,
+    activation_id: u64,
+    expected: u32,
+) -> bool {
+    if let Some(join) = instance
+        .joins
+        .iter_mut()
+        .find(|join| join.node_index == node_index && join.activation_id == Some(activation_id))
+    {
+        join.expected = expected;
+        join.arrived += 1;
+        return join.arrived >= expected;
+    }
+
+    instance.joins.push(JoinRuntimeState {
+        node_index,
+        activation_id: Some(activation_id),
+        arrived: 1,
+        expected,
+        incoming_counts: Vec::new(),
+    });
+    1 >= expected
 }
 
 fn clear_join_state(instance: &mut BpmnInstanceState, node_index: BpmnNodeIndex) {
@@ -81,4 +108,14 @@ pub(crate) fn consume_join_activation(
     if should_clear {
         clear_join_state(instance, node_index);
     }
+}
+
+pub(crate) fn consume_scoped_join_activation(
+    instance: &mut BpmnInstanceState,
+    node_index: BpmnNodeIndex,
+    activation_id: u64,
+) {
+    instance.joins.retain(|join| {
+        !(join.node_index == node_index && join.activation_id == Some(activation_id))
+    });
 }

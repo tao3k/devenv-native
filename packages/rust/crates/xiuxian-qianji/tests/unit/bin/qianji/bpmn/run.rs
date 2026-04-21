@@ -76,6 +76,51 @@ async fn run_bpmn_command_completes_service_task_bundle_with_host_fixture() {
 }
 
 #[tokio::test(flavor = "current_thread")]
+async fn run_bpmn_command_completes_send_task_bundle_with_host_fixture() {
+    let temp_dir =
+        TempDir::new().unwrap_or_else(|error| panic!("temp dir should allocate: {error}"));
+    let bpmn_path = write_send_task_bundle(&temp_dir);
+    let fixture_path = write_json_fixture(
+        temp_dir.path().join("send-host-fixture.json"),
+        &json!({
+            "send_tasks": {
+                "send_invoice_message": {
+                    "data": {
+                        "sent": true,
+                        "transport": "fixture"
+                    }
+                }
+            }
+        }),
+    );
+
+    let output = must_ok(
+        run_bpmn_command(BpmnCliCommand::Run(BpmnRunCliCommand {
+            bpmn_path,
+            dmn_paths: Vec::new(),
+            process_id: "send_flow".to_string(),
+            instance_id: "wf_send".to_string(),
+            context_json: Some("{\"risk\":\"high\"}".to_string()),
+            checkpoint_backend: None,
+            host_fixture_path: Some(fixture_path.clone()),
+            event_fixture_path: None,
+        }))
+        .await,
+        "bpmn run should complete send task bundle with host fixture",
+    );
+
+    assert_eq!(output.exit_code, 0);
+    assert!(output.rendered.contains("Outcome: completed"));
+    assert!(
+        output
+            .rendered
+            .contains(&format!("Host fixture: {}", fixture_path.display()))
+    );
+    assert!(output.rendered.contains("\"sent\": true"));
+    assert!(output.rendered.contains("\"transport\": \"fixture\""));
+}
+
+#[tokio::test(flavor = "current_thread")]
 async fn run_bpmn_command_completes_business_rule_bundle_with_host_fixture() {
     let temp_dir =
         TempDir::new().unwrap_or_else(|error| panic!("temp dir should allocate: {error}"));

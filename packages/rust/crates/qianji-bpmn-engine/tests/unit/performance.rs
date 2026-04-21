@@ -122,6 +122,7 @@ fn performance_probe_frontier_token_lookup_compares_linear_scan_vs_batch_lookup(
             token_id: index + 1,
             node_index: 1,
             incoming_edge_index: Some((index % 8) as u32),
+            inclusive_join_hint: None,
         })
         .collect();
     let lookup_ids: Vec<u64> = (0..lookup_count)
@@ -312,11 +313,13 @@ fn build_event_competition_tokens(wait_count: u32, unrelated_token_count: u32) -
         token_id: u64::from(offset) + 1,
         node_index: 2 + offset,
         incoming_edge_index: Some(offset),
+        inclusive_join_hint: None,
     }));
     active_tokens.extend((0..unrelated_token_count).map(|offset| TokenRecord {
         token_id: u64::from(wait_count + offset) + 1,
         node_index: 1_000 + offset,
         incoming_edge_index: None,
+        inclusive_join_hint: None,
     }));
     active_tokens
 }
@@ -335,11 +338,13 @@ fn build_boundary_wait_tokens(
         incoming_edge_index: Some(
             u32::try_from(offset % 8).must("boundary probe edge offset should fit in u32"),
         ),
+        inclusive_join_hint: None,
     }));
     active_tokens.extend((0..unrelated_token_count).map(|offset| TokenRecord {
         token_id: boundary_token_count + offset + 1,
         node_index: 1_000 + u32::try_from(offset).must("probe offset should fit in u32"),
         incoming_edge_index: None,
+        inclusive_join_hint: None,
     }));
     active_tokens
 }

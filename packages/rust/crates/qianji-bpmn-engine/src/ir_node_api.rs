@@ -13,6 +13,8 @@ pub enum BpmnGatewayKind {
     Parallel,
     /// Exclusive merge / deterministic single-route gateway.
     Exclusive,
+    /// Structured inclusive split / synchronization gateway.
+    Inclusive,
     /// Event-based winner-takes-all gateway.
     EventBased,
 }
@@ -29,6 +31,10 @@ pub enum BpmnNodeKind {
     IntermediateCatchEvent,
     /// Boundary event attached to one host-blocking task.
     BoundaryEvent,
+    /// Message-bound send task.
+    SendTask,
+    /// Message-bound receive task.
+    ReceiveTask,
     /// Service task node.
     ServiceTask,
     /// User task node.
@@ -76,6 +82,12 @@ pub struct BpmnNodeSpec {
     pub repeat: Option<BpmnRepeatSpec>,
     /// Optional attached host node for boundary events.
     pub attached_to: Option<BpmnNodeIndex>,
+    /// Optional default outgoing edge for bounded conditional-gateway routing.
+    #[serde(default)]
+    pub default_outgoing_edge: Option<u32>,
+    /// Optional matching structured inclusive-join node for one inclusive split.
+    #[serde(default)]
+    pub inclusive_join_node: Option<BpmnNodeIndex>,
     /// Whether a boundary event interrupts the attached host work.
     pub cancel_activity: bool,
     /// Whether this activity is reserved as a compensation handler.
@@ -96,6 +108,8 @@ impl BpmnNodeSpec {
             subprocess_kind: None,
             repeat: None,
             attached_to: None,
+            default_outgoing_edge: None,
+            inclusive_join_node: None,
             cancel_activity: true,
             is_for_compensation: false,
         }
@@ -145,6 +159,20 @@ impl BpmnNodeSpec {
     ) -> Self {
         self.attached_to = Some(attached_to);
         self.cancel_activity = cancel_activity;
+        self
+    }
+
+    /// Declares one default outgoing edge for bounded conditional-gateway routing.
+    #[must_use]
+    pub fn with_default_outgoing_edge(mut self, edge_index: u32) -> Self {
+        self.default_outgoing_edge = Some(edge_index);
+        self
+    }
+
+    /// Declares the matching structured inclusive-join node for one inclusive split.
+    #[must_use]
+    pub fn with_inclusive_join_node(mut self, node_index: BpmnNodeIndex) -> Self {
+        self.inclusive_join_node = Some(node_index);
         self
     }
 

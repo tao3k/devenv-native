@@ -2,8 +2,8 @@ use qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnEdgeSpec, BpmnEventKind, BpmnEventSpec, BpmnGatewayKind,
     BpmnInstanceInit, BpmnNodeKind, BpmnNodeSpec, BpmnPackage, BpmnProcessSpec,
     BusinessRuleTaskOutcome, DmnDecisionRef, DmnEvaluationResult, EventPollOutcome,
-    HostBridgeError, InstanceLifecycle, PendingHostWorkRequest, ProcessKey, ServiceTaskOutcome,
-    UserTaskRequest, advance_instance, create_instance,
+    HostBridgeError, InstanceLifecycle, PendingHostWorkRequest, ProcessKey, SendTaskOutcome,
+    ServiceTaskOutcome, UserTaskRequest, advance_instance, create_instance,
 };
 use serde_json::json;
 use std::sync::Arc;
@@ -85,6 +85,55 @@ async fn resolve_pending_host_work_completes_business_rule_task_through_bridge()
             "risk": "high",
             "approved": false,
             "tier": "manual_review",
+        })
+    );
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn resolve_pending_host_work_completes_send_task_through_bridge() {
+    let package = Arc::new(BpmnPackage::new(
+        "pkg_adapter",
+        vec![send_task_process("send_invoice")],
+    ));
+    let mut instance = create_instance(
+        Arc::clone(&package),
+        "send_invoice",
+        BpmnInstanceInit::new("wf_send", json!({ "amount": 7 }), 10),
+    )
+    .unwrap_or_else(|error| panic!("instance should be created: {error:?}"));
+    let host = QianjiBpmnHostBridge::builder()
+        .on_send_task(|request| async move {
+            assert_eq!(request.message_reference, "invoice_dispatched");
+            assert_eq!(request.message_name.as_deref(), Some("InvoiceDispatched"));
+            Ok(SendTaskOutcome {
+                data: json!({
+                    "sent": true,
+                    "message_ref": request.message_reference,
+                }),
+            })
+        })
+        .clock(|| 100)
+        .build();
+
+    let blocked = ok_of(
+        advance_instance(package.as_ref(), &mut instance, &host).await,
+        "initial advance should block on send-task host work",
+    );
+    assert!(matches!(blocked, BpmnAdvanceOutcome::BlockedOnHost(_)));
+
+    let outcome = ok_of(
+        resolve_pending_host_work(package.as_ref(), &mut instance, &host).await,
+        "host bridge should resolve the pending send task",
+    );
+
+    assert_eq!(outcome, BpmnAdvanceOutcome::Completed);
+    assert_eq!(instance.lifecycle, InstanceLifecycle::Completed);
+    assert_eq!(
+        instance.variables,
+        json!({
+            "amount": 7,
+            "sent": true,
+            "message_ref": "invoice_dispatched",
         })
     );
 }
@@ -209,6 +258,26 @@ async fn resolve_waiting_external_event_applies_ready_outcome_through_bridge() {
     );
 }
 
+fn send_task_process(process_id: &str) -> BpmnProcessSpec {
+    BpmnProcessSpec::new(
+        ProcessKey::new("pkg_adapter", process_id, format!("digest_{process_id}")),
+        vec![
+            BpmnNodeSpec::new(0, "start", BpmnNodeKind::StartEvent),
+            BpmnNodeSpec::new(1, "send_invoice_message", BpmnNodeKind::SendTask),
+            BpmnNodeSpec::new(2, "end", BpmnNodeKind::EndEvent),
+        ],
+        vec![
+            BpmnEdgeSpec::new(0, 1, None::<&str>),
+            BpmnEdgeSpec::new(1, 2, None::<&str>),
+        ],
+        vec![
+            BpmnEventSpec::new(1, BpmnEventKind::Message)
+                .with_reference_id("invoice_dispatched")
+                .with_name("InvoiceDispatched"),
+        ],
+    )
+}
+
 fn business_rule_process(process_id: &str) -> BpmnProcessSpec {
     BpmnProcessSpec::new(
         ProcessKey::new("pkg_adapter", process_id, format!("digest_{process_id}")),
@@ -272,6 +341,7 @@ fn waiting_instance() -> (Arc<BpmnPackage>, qianji_bpmn_engine::BpmnInstanceStat
             token_id: 1,
             node_index: 1,
             incoming_edge_index: None,
+            inclusive_join_hint: None,
         });
     instance.node_states[0].status = qianji_bpmn_engine::NodeRuntimeStatus::Completed;
     instance.node_states[1].status = qianji_bpmn_engine::NodeRuntimeStatus::Executing;

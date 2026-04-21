@@ -58,6 +58,7 @@ fn runtime_frontier_plan_returns_waiting_idle_outcome() {
         token_id: 3,
         node_index: 3,
         incoming_edge_index: Some(2),
+        inclusive_join_hint: None,
     }];
     instance.node_states[0].status = NodeRuntimeStatus::Completed;
     instance.node_states[1].status = NodeRuntimeStatus::Completed;
@@ -100,6 +101,7 @@ fn runtime_frontier_plan_returns_suspended_idle_outcome() {
         token_id: 4,
         node_index: 2,
         incoming_edge_index: Some(1),
+        inclusive_join_hint: None,
     }];
     instance.node_states[0].status = NodeRuntimeStatus::Completed;
     instance.node_states[1].status = NodeRuntimeStatus::Completed;
@@ -136,6 +138,7 @@ fn runtime_frontier_plan_returns_stalled_when_frontier_has_no_idle_outcome() {
         token_id: 9,
         node_index: 2,
         incoming_edge_index: Some(1),
+        inclusive_join_hint: None,
     }];
     instance.node_states[0].status = NodeRuntimeStatus::Completed;
     instance.node_states[1].status = NodeRuntimeStatus::Completed;

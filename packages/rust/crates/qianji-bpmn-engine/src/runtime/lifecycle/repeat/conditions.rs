@@ -35,7 +35,8 @@ pub(crate) fn node_matches_pending_kind(
 ) -> bool {
     matches!(
         (node_kind, pending_kind),
-        (BpmnNodeKind::ServiceTask, PendingHostWorkKind::Service)
+        (BpmnNodeKind::SendTask, PendingHostWorkKind::Send)
+            | (BpmnNodeKind::ServiceTask, PendingHostWorkKind::Service)
             | (BpmnNodeKind::UserTask, PendingHostWorkKind::User)
             | (BpmnNodeKind::ManualTask, PendingHostWorkKind::Manual)
             | (
@@ -47,6 +48,7 @@ pub(crate) fn node_matches_pending_kind(
 
 pub(crate) fn pending_host_kind_name(kind: &PendingHostWorkKind) -> &'static str {
     match kind {
+        PendingHostWorkKind::Send => "send",
         PendingHostWorkKind::Service => "service",
         PendingHostWorkKind::User => "user",
         PendingHostWorkKind::Manual => "manual",

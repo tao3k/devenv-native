@@ -1,0 +1,29 @@
+---
+source: packages/rust/crates/qianji-bpmn-engine/tests/unit/lint/mod.rs
+expression: value
+---
+{
+  "domain": "bpmn",
+  "source_id": "invalid-compensation-event-subprocess.bpmn",
+  "ok": false,
+  "issues": [
+    {
+      "code": "bpmn.unsupported_subprocess_configuration",
+      "severity": "error",
+      "title": "Event subprocesses are deferred",
+      "summary": "Process 'main_process' subprocess node 'comp_handler' uses `triggeredByEvent=\"true\"`, which is outside the bounded slice.",
+      "why_it_failed": "The current engine supports one bounded embedded `subProcess` body, one bounded `<transaction>` shell, and one bounded non-recursive `callActivity`. It does not support event subprocesses, including compensation event subprocesses.",
+      "repair_guidance": [
+        "If the nested flow is not meant to be event-triggered, remove `triggeredByEvent=\"true\"` and keep a bounded embedded `subProcess` with exactly one nested `startEvent` and at least one nested `endEvent`.",
+        "If the model depends on triggered interruption, remodel it with the currently supported boundary-event or transaction-boundary subset instead of an event subprocess.",
+        "Do not rely on compensation event subprocesses or other `triggeredByEvent=\"true\"` subprocess forms in this bounded slice."
+      ],
+      "llm_fix_prompt": "Rewrite subprocess node 'comp_handler' in process 'main_process' so it no longer uses `triggeredByEvent=\"true\"`. Preserve workflow intent, but either remodel it as a bounded embedded subprocess or move the triggered behavior into the supported boundary-event or transaction-boundary subset.",
+      "evidence": {
+        "detail": "event_subprocess",
+        "node_id": "comp_handler",
+        "process_id": "main_process"
+      }
+    }
+  ]
+}

@@ -205,7 +205,7 @@ fn generic_transaction_configuration_issue(
         "The current engine supports only one bounded transaction shell shape: exactly one nested start event, at least one nested end event, and at most one bounded cancel path or one bounded error path, each paired with one matching parent interrupting boundary event.",
         vec![
             "Keep the transaction intent, but reduce it to the bounded transaction shell shape.".to_string(),
-            "If the model depends on richer BPMN transaction features such as throw compensation events, compensation event subprocesses, or default compensation, preserve that requirement explicitly and defer execution until support lands.".to_string(),
+            "If the model depends on richer BPMN transaction features such as broader throw-compensation forms, compensation event subprocesses, or default compensation, preserve that requirement explicitly and defer execution until support lands.".to_string(),
         ],
         format!(
             "Rewrite transaction node '{node_id}' in process '{process_id}' so it fits the bounded slice: one `<bpmn:transaction>` shell with exactly one nested `<bpmn:startEvent>`, at least one nested `<bpmn:endEvent>`, and at most one bounded cancel path or one bounded error path, each composed of one nested throwing end event plus one matching parent interrupting boundary on that transaction owner. Preserve workflow intent, but remove unsupported configuration '{detail}'."

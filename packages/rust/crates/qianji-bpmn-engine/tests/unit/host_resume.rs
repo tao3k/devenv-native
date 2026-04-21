@@ -1,15 +1,27 @@
 use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{
-    BpmnAdvanceOutcome, BpmnEdgeSpec, BpmnEngineError, BpmnHostBridge, BpmnInstanceInit,
-    BpmnNodeKind, BpmnNodeSpec, BpmnPackage, BpmnProcessSpec, BusinessRuleTaskOutcome,
-    BusinessRuleTaskRequest, DmnDecisionRef, DmnEvaluationResult, EventPollOutcome,
-    EventPollRequest, HostBridgeError, InstanceLifecycle, ManualTaskOutcome, ManualTaskRequest,
-    PendingHostWorkKind, PendingHostWorkResult, ProcessKey, ServiceTaskOutcome, ServiceTaskRequest,
-    UserTaskOutcome, UserTaskRequest, advance_instance, apply_pending_host_work_result,
-    create_instance,
+    BpmnAdvanceOutcome, BpmnEdgeSpec, BpmnEngineError, BpmnEventKind, BpmnEventSpec,
+    BpmnHostBridge, BpmnInstanceInit, BpmnNodeKind, BpmnNodeSpec, BpmnPackage, BpmnProcessSpec,
+    BusinessRuleTaskOutcome, BusinessRuleTaskRequest, DmnDecisionRef, DmnEvaluationResult,
+    EventPollOutcome, EventPollRequest, HostBridgeError, InstanceLifecycle, ManualTaskOutcome,
+    ManualTaskRequest, PendingHostWorkKind, PendingHostWorkResult, ProcessKey, SendTaskOutcome,
+    SendTaskRequest, ServiceTaskOutcome, ServiceTaskRequest, UserTaskOutcome, UserTaskRequest,
+    advance_instance, apply_pending_host_work_result, create_instance,
 };
 use serde_json::json;
 use std::sync::Arc;
+
+#[tokio::test(flavor = "current_thread")]
+async fn host_resume_send_result_advances_and_then_completes() {
+    assert_host_resume(
+        BpmnNodeKind::SendTask,
+        PendingHostWorkKind::Send,
+        PendingHostWorkResult::Send(SendTaskOutcome {
+            data: json!({ "sent": true }),
+        }),
+    )
+    .await;
+}
 
 #[tokio::test(flavor = "current_thread")]
 async fn host_resume_service_result_advances_and_then_completes() {
@@ -67,7 +79,7 @@ async fn host_resume_business_rule_result_advances_and_then_completes() {
 async fn host_resume_requires_pending_work() {
     let package = Arc::new(BpmnPackage::new(
         "pkg_resume",
-        vec![blocking_process("resume", BpmnNodeKind::ServiceTask)],
+        vec![blocking_process("resume", &BpmnNodeKind::ServiceTask)],
     ));
     let mut instance = create_instance(
         Arc::clone(&package),
@@ -99,7 +111,7 @@ async fn host_resume_requires_pending_work() {
 async fn host_resume_rejects_kind_mismatch() {
     let package = Arc::new(BpmnPackage::new(
         "pkg_resume",
-        vec![blocking_process("resume", BpmnNodeKind::ServiceTask)],
+        vec![blocking_process("resume", &BpmnNodeKind::ServiceTask)],
     ));
     let mut instance =
         create_blocked_instance(Arc::clone(&package), "resume", &StubHost::new(55)).await;
@@ -133,7 +145,7 @@ async fn assert_host_resume(
 ) {
     let package = Arc::new(BpmnPackage::new(
         "pkg_resume",
-        vec![blocking_process("resume", node_kind.clone())],
+        vec![blocking_process("resume", &node_kind)],
     ));
     let host = StubHost::new(55);
     let mut instance = create_blocked_instance(Arc::clone(&package), "resume", &host).await;
@@ -180,6 +192,7 @@ async fn assert_host_resume(
     assert_eq!(
         work_kind,
         match node_kind {
+            BpmnNodeKind::SendTask => PendingHostWorkKind::Send,
             BpmnNodeKind::ServiceTask => PendingHostWorkKind::Service,
             BpmnNodeKind::UserTask => PendingHostWorkKind::User,
             BpmnNodeKind::ManualTask => PendingHostWorkKind::Manual,
@@ -208,13 +221,21 @@ async fn create_blocked_instance(
     instance
 }
 
-fn blocking_process(process_id: &str, node_kind: BpmnNodeKind) -> BpmnProcessSpec {
+fn blocking_process(process_id: &str, node_kind: &BpmnNodeKind) -> BpmnProcessSpec {
     let task_node = match node_kind {
         BpmnNodeKind::BusinessRuleTask => {
             BpmnNodeSpec::new(1, "task", BpmnNodeKind::BusinessRuleTask)
                 .with_decision(DmnDecisionRef::new("loan-decision"))
         }
-        _ => BpmnNodeSpec::new(1, "task", node_kind),
+        _ => BpmnNodeSpec::new(1, "task", node_kind.clone()),
+    };
+    let events = match node_kind {
+        BpmnNodeKind::SendTask => vec![
+            BpmnEventSpec::new(1, BpmnEventKind::Message)
+                .with_reference_id("invoice_dispatched")
+                .with_name("InvoiceDispatched"),
+        ],
+        _ => Vec::new(),
     };
     BpmnProcessSpec::new(
         ProcessKey::new("pkg_resume", process_id, format!("digest_{process_id}")),
@@ -227,7 +248,7 @@ fn blocking_process(process_id: &str, node_kind: BpmnNodeKind) -> BpmnProcessSpe
             BpmnEdgeSpec::new(0, 1, None::<&str>),
             BpmnEdgeSpec::new(1, 2, None::<&str>),
         ],
-        Vec::new(),
+        events,
     )
 }
 
@@ -253,6 +274,13 @@ impl StubHost {
 
 #[async_trait::async_trait]
 impl BpmnHostBridge for StubHost {
+    async fn dispatch_send_task(
+        &self,
+        _request: SendTaskRequest,
+    ) -> std::result::Result<SendTaskOutcome, HostBridgeError> {
+        panic!("host resume tests should not execute send work");
+    }
+
     async fn dispatch_service_task(
         &self,
         _request: ServiceTaskRequest,

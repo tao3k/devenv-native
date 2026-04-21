@@ -71,11 +71,15 @@ pub(super) fn block_on_host_work(
         .ok_or(BpmnEngineError::UnsupportedOperation {
             operation: "block_on_host_work_missing_active_token",
         })?;
+    let event_reference = send_task_event_reference(process, node_index, &kind)?;
+    let event_name = send_task_event_name(process, node_index, &kind)?;
     let pending = PendingHostWork {
         token_id,
         node_index,
         kind,
         decision: None,
+        event_reference,
+        event_name,
         work_id: None,
     };
     push_pending_host_work(instance, pending);
@@ -106,6 +110,8 @@ pub(super) fn block_on_business_rule_work(
         node_index,
         kind: PendingHostWorkKind::BusinessRule,
         decision: Some(decision),
+        event_reference: None,
+        event_name: None,
         work_id: None,
     };
     push_pending_host_work(instance, pending);
@@ -166,4 +172,42 @@ fn push_pending_host_work(instance: &mut BpmnInstanceState, pending: PendingHost
     instance
         .pending_host_work
         .sort_by_key(|pending| (pending.token_id, pending.node_index));
+}
+
+fn send_task_event_reference(
+    process: &BpmnProcessSpec,
+    node_index: BpmnNodeIndex,
+    kind: &PendingHostWorkKind,
+) -> Result<Option<String>> {
+    if kind != &PendingHostWorkKind::Send {
+        return Ok(None);
+    }
+    let node = &process.nodes[node_index as usize];
+    let event = process.event_for_node(node_index).ok_or_else(|| {
+        BpmnEngineError::MissingRequiredNodeElement {
+            process_id: process.key.process_id.to_string(),
+            node_id: node.bpmn_id.to_string(),
+            element: "event_definition",
+        }
+    })?;
+    Ok(event.reference_id.as_ref().map(ToString::to_string))
+}
+
+fn send_task_event_name(
+    process: &BpmnProcessSpec,
+    node_index: BpmnNodeIndex,
+    kind: &PendingHostWorkKind,
+) -> Result<Option<String>> {
+    if kind != &PendingHostWorkKind::Send {
+        return Ok(None);
+    }
+    let node = &process.nodes[node_index as usize];
+    let event = process.event_for_node(node_index).ok_or_else(|| {
+        BpmnEngineError::MissingRequiredNodeElement {
+            process_id: process.key.process_id.to_string(),
+            node_id: node.bpmn_id.to_string(),
+            element: "event_definition",
+        }
+    })?;
+    Ok(event.name.as_ref().map(ToString::to_string))
 }

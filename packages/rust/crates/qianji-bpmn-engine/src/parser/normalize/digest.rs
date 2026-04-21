@@ -215,6 +215,8 @@ fn node_kind_name(kind: &BpmnNodeKind) -> &'static str {
         BpmnNodeKind::EndEvent => "end_event",
         BpmnNodeKind::IntermediateCatchEvent => "intermediate_catch_event",
         BpmnNodeKind::BoundaryEvent => "boundary_event",
+        BpmnNodeKind::SendTask => "send_task",
+        BpmnNodeKind::ReceiveTask => "receive_task",
         BpmnNodeKind::ServiceTask => "service_task",
         BpmnNodeKind::UserTask => "user_task",
         BpmnNodeKind::ManualTask => "manual_task",
@@ -257,6 +259,7 @@ fn gateway_kind_name(kind: &BpmnGatewayKind) -> &'static str {
     match kind {
         BpmnGatewayKind::Parallel => "parallel",
         BpmnGatewayKind::Exclusive => "exclusive",
+        BpmnGatewayKind::Inclusive => "inclusive",
         BpmnGatewayKind::EventBased => "event_based",
     }
 }

@@ -33,6 +33,7 @@ pub(super) use crate::runtime::{
     sequential_multi_instance_state_mut, standard_loop_completed_iterations,
 };
 pub(super) use crate::runtime_advance_api::BpmnAdvanceOutcome;
+pub(super) use crate::runtime_token_api::InclusiveJoinHint;
 pub(super) use serde_json::{Map, Value};
 pub(super) use std::borrow::Borrow;
 pub(super) use std::sync::Arc;

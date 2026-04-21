@@ -1,13 +1,13 @@
 use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{
-    BpmnAdvanceOutcome, BpmnEdgeSpec, BpmnGatewayKind, BpmnHostBridge, BpmnInstanceInit,
-    BpmnMultiInstanceDataBindingSpec, BpmnNodeKind, BpmnNodeSpec, BpmnPackage,
-    BpmnParallelMultiInstanceSpec, BpmnProcessSpec, BpmnRepeatSpec,
+    BpmnAdvanceOutcome, BpmnEdgeSpec, BpmnEventKind, BpmnEventSpec, BpmnGatewayKind,
+    BpmnHostBridge, BpmnInstanceInit, BpmnMultiInstanceDataBindingSpec, BpmnNodeKind, BpmnNodeSpec,
+    BpmnPackage, BpmnParallelMultiInstanceSpec, BpmnProcessSpec, BpmnRepeatSpec,
     BpmnSequentialMultiInstanceSpec, BusinessRuleTaskOutcome, BusinessRuleTaskRequest,
     DmnDecisionRef, EventPollOutcome, EventPollRequest, HostBridgeError, ManualTaskOutcome,
-    ManualTaskRequest, PendingHostWorkKind, PendingHostWorkRequest, ProcessKey, ServiceTaskOutcome,
-    ServiceTaskRequest, UserTaskOutcome, UserTaskRequest, advance_instance,
-    build_pending_host_work_request, create_instance,
+    ManualTaskRequest, PendingHostWorkKind, PendingHostWorkRequest, ProcessKey, SendTaskOutcome,
+    SendTaskRequest, ServiceTaskOutcome, ServiceTaskRequest, UserTaskOutcome, UserTaskRequest,
+    advance_instance, build_pending_host_work_request, create_instance,
 };
 use serde_json::json;
 use std::sync::Arc;
@@ -18,7 +18,7 @@ pub(super) async fn assert_dispatch_request(
 ) {
     let package = Arc::new(BpmnPackage::new(
         "pkg_dispatch",
-        vec![blocking_process("dispatch", node_kind.clone())],
+        vec![blocking_process("dispatch", &node_kind)],
     ));
     let mut instance = create_instance(
         Arc::clone(&package),
@@ -40,6 +40,7 @@ pub(super) async fn assert_dispatch_request(
     assert_eq!(
         request.kind(),
         match node_kind {
+            BpmnNodeKind::SendTask => PendingHostWorkKind::Send,
             BpmnNodeKind::ServiceTask => PendingHostWorkKind::Service,
             BpmnNodeKind::UserTask => PendingHostWorkKind::User,
             BpmnNodeKind::ManualTask => PendingHostWorkKind::Manual,
@@ -49,13 +50,21 @@ pub(super) async fn assert_dispatch_request(
     );
 }
 
-pub(super) fn blocking_process(process_id: &str, node_kind: BpmnNodeKind) -> BpmnProcessSpec {
+pub(super) fn blocking_process(process_id: &str, node_kind: &BpmnNodeKind) -> BpmnProcessSpec {
     let task_node = match node_kind {
         BpmnNodeKind::BusinessRuleTask => {
             BpmnNodeSpec::new(1, "task", BpmnNodeKind::BusinessRuleTask)
                 .with_decision(DmnDecisionRef::new("loan-decision"))
         }
-        _ => BpmnNodeSpec::new(1, "task", node_kind),
+        _ => BpmnNodeSpec::new(1, "task", node_kind.clone()),
+    };
+    let events = match node_kind {
+        BpmnNodeKind::SendTask => vec![
+            BpmnEventSpec::new(1, BpmnEventKind::Message)
+                .with_reference_id("invoice_dispatched")
+                .with_name("InvoiceDispatched"),
+        ],
+        _ => Vec::new(),
     };
     BpmnProcessSpec::new(
         ProcessKey::new("pkg_dispatch", process_id, format!("digest_{process_id}")),
@@ -68,7 +77,7 @@ pub(super) fn blocking_process(process_id: &str, node_kind: BpmnNodeKind) -> Bpm
             BpmnEdgeSpec::new(0, 1, None::<&str>),
             BpmnEdgeSpec::new(1, 2, None::<&str>),
         ],
-        Vec::new(),
+        events,
     )
 }
 
@@ -196,6 +205,10 @@ pub(super) fn with_token_id(
     token_id: u64,
 ) -> PendingHostWorkRequest {
     match expected {
+        PendingHostWorkRequest::Send(mut request) => {
+            request.token_id = token_id;
+            PendingHostWorkRequest::Send(request)
+        }
         PendingHostWorkRequest::Service(mut request) => {
             request.token_id = token_id;
             PendingHostWorkRequest::Service(request)
@@ -227,6 +240,13 @@ impl StubHost {
 
 #[async_trait::async_trait]
 impl BpmnHostBridge for StubHost {
+    async fn dispatch_send_task(
+        &self,
+        _request: SendTaskRequest,
+    ) -> std::result::Result<SendTaskOutcome, HostBridgeError> {
+        panic!("host dispatch tests should not execute host work");
+    }
+
     async fn dispatch_service_task(
         &self,
         _request: ServiceTaskRequest,

@@ -6,7 +6,9 @@ use crate::parser::import::attributes::{
     attribute_value, boolean_attribute_value, cancel_activity_value, decision_reference,
     required_attribute,
 };
-use crate::parser::import::model::ProcessChildStartOutcome;
+use crate::parser::import::model::{
+    DeferredStandaloneNode, ProcessChildParseState, ProcessChildStartOutcome,
+};
 use crate::parser::import::{
     NestedShellKind, RawAssociation, RawNode, RawProcess, RawSequenceFlow, RawSubProcessKind,
 };
@@ -20,9 +22,18 @@ pub(in crate::parser::import) fn handle_process_child_start_tag(
     tag: &str,
     parent: Option<&str>,
     process_stack: &mut Vec<RawProcess>,
+    state: &mut ProcessChildParseState<'_>,
 ) -> Result<ProcessChildStartOutcome> {
     if !parent.is_some_and(is_process_scope_tag) {
         return Ok(ProcessChildStartOutcome::NotHandled);
+    }
+    if tag == "intermediateThrowEvent" && !state.is_empty {
+        let _ = current_process_mut(process_stack, "bpmn_process_child_without_process_frame")?;
+        *state.deferred_standalone_node = Some(DeferredStandaloneNode {
+            tag: "intermediateThrowEvent",
+            bpmn_id: required_attribute(source, reader, event, tag, "id")?,
+        });
+        return Ok(ProcessChildStartOutcome::Handled);
     }
     if let Some(kind) = nested_shell_kind(tag) {
         open_nested_shell(source, reader, event, tag, kind, process_stack)?;
@@ -64,6 +75,15 @@ fn open_nested_shell(
         .process_id
         .clone();
     let bpmn_id = required_attribute(source, reader, event, tag, "id")?;
+    if kind == NestedShellKind::EmbeddedSubProcess
+        && boolean_attribute_value(reader, event, "triggeredByEvent")?.unwrap_or(false)
+    {
+        return Err(BpmnEngineError::UnsupportedSubProcessConfiguration {
+            process_id: parent_process_id,
+            node_id: bpmn_id,
+            detail: "event_subprocess",
+        });
+    }
     let decision = decision_reference(reader, event)?;
     let synthetic_process_id =
         synthetic_nested_shell_process_id(kind, &parent_process_id, &bpmn_id);
@@ -73,10 +93,12 @@ fn open_nested_shell(
         kind: BpmnNodeKind::SubProcess,
         gateway_kind: None,
         decision,
+        task_message_ref: None,
         called_process_ref: Some(synthetic_process_id.clone()),
         subprocess_kind: Some(raw_subprocess_kind_for_nested_shell(kind)),
         repeat: None,
         attached_to_ref: None,
+        default_flow_ref: None,
         cancel_activity: true,
         is_for_compensation: false,
         event: None,
@@ -102,6 +124,11 @@ fn push_process_child_node(
     };
     let bpmn_id = required_attribute(source, reader, event, tag, "id")?;
     let decision = decision_reference(reader, event)?;
+    let task_message_ref = if matches!(tag, "sendTask" | "receiveTask") {
+        attribute_value(reader, event, "messageRef")?
+    } else {
+        None
+    };
     let called_process_ref = if tag == "callActivity" {
         Some(required_attribute(
             source,
@@ -115,6 +142,14 @@ fn push_process_child_node(
     };
     let subprocess_kind = if tag == "callActivity" {
         Some(RawSubProcessKind::CallActivity)
+    } else {
+        None
+    };
+    let default_flow_ref = if matches!(
+        gateway_kind,
+        Some(BpmnGatewayKind::Exclusive | BpmnGatewayKind::Inclusive)
+    ) {
+        attribute_value(reader, event, "default")?
     } else {
         None
     };
@@ -136,10 +171,12 @@ fn push_process_child_node(
         kind,
         gateway_kind,
         decision,
+        task_message_ref,
         called_process_ref,
         subprocess_kind,
         repeat: None,
         attached_to_ref,
+        default_flow_ref,
         cancel_activity,
         is_for_compensation,
         event: None,
@@ -167,6 +204,7 @@ fn push_process_child_sequence_flow(
         source_ref,
         target_ref,
         label,
+        condition_expression: None,
     });
     Ok(true)
 }
@@ -197,12 +235,15 @@ fn supported_node_kind(tag: &str) -> Option<(BpmnNodeKind, Option<BpmnGatewayKin
         "intermediateCatchEvent" => Some((BpmnNodeKind::IntermediateCatchEvent, None)),
         "boundaryEvent" => Some((BpmnNodeKind::BoundaryEvent, None)),
         "callActivity" => Some((BpmnNodeKind::SubProcess, None)),
+        "sendTask" => Some((BpmnNodeKind::SendTask, None)),
+        "receiveTask" => Some((BpmnNodeKind::ReceiveTask, None)),
         "serviceTask" => Some((BpmnNodeKind::ServiceTask, None)),
         "userTask" => Some((BpmnNodeKind::UserTask, None)),
         "manualTask" => Some((BpmnNodeKind::ManualTask, None)),
         "businessRuleTask" => Some((BpmnNodeKind::BusinessRuleTask, None)),
         "parallelGateway" => Some((BpmnNodeKind::Gateway, Some(BpmnGatewayKind::Parallel))),
         "exclusiveGateway" => Some((BpmnNodeKind::Gateway, Some(BpmnGatewayKind::Exclusive))),
+        "inclusiveGateway" => Some((BpmnNodeKind::Gateway, Some(BpmnGatewayKind::Inclusive))),
         "eventBasedGateway" => Some((BpmnNodeKind::Gateway, Some(BpmnGatewayKind::EventBased))),
         _ => None,
     }

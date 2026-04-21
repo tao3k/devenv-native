@@ -1,10 +1,13 @@
 //! Bounded DMN evaluation internals.
 
+use crate::dmn_duration::{
+    DmnDurationValue, parse_day_time_duration_str, parse_year_month_duration_str,
+};
 use crate::dmn_model_api::{
     DmnComparisonOperator, DmnDateComparison, DmnDateRange, DmnDateTimeComparison,
-    DmnDateTimeRange, DmnDecisionDefinition, DmnEvaluationRequest, DmnEvaluationResult,
-    DmnHitPolicy, DmnInputClause, DmnInputEntry, DmnNumericRange, DmnRule, DmnTimeComparison,
-    DmnTimeRange,
+    DmnDateTimeRange, DmnDecisionDefinition, DmnDurationComparison, DmnDurationRange,
+    DmnEvaluationRequest, DmnEvaluationResult, DmnHitPolicy, DmnInputClause, DmnInputEntry,
+    DmnNumericRange, DmnRule, DmnTimeComparison, DmnTimeRange,
 };
 use crate::error::{BpmnEngineError, Result};
 use chrono::DateTime;
@@ -12,6 +15,7 @@ use chrono::FixedOffset;
 use chrono::NaiveDate;
 use chrono::NaiveDateTime;
 use chrono::NaiveTime;
+use chrono::Utc;
 use serde_json::{Map, Value};
 use std::cmp::Ordering;
 use std::sync::Arc;
@@ -86,13 +90,26 @@ fn rule_matches(decision: &DmnDecisionDefinition, rule: &DmnRule, variables: &Va
             DmnInputEntry::Equals(expected) => {
                 resolve_input_value(variables, input_clause) == *expected
             }
+            DmnInputEntry::DurationEquals(expected) => {
+                evaluate_duration_equals(&resolve_input_value(variables, input_clause), expected)
+            }
+            DmnInputEntry::DateTimeEquals(expected) => {
+                evaluate_date_time_equals(&resolve_input_value(variables, input_clause), expected)
+            }
             DmnInputEntry::NumericComparison(comparison) => evaluate_numeric_comparison(
                 &resolve_input_value(variables, input_clause),
                 comparison.operator,
                 comparison.value,
             ),
+            DmnInputEntry::DurationComparison(comparison) => evaluate_duration_comparison(
+                &resolve_input_value(variables, input_clause),
+                comparison,
+            ),
             DmnInputEntry::NumericRange(range) => {
                 evaluate_numeric_range(&resolve_input_value(variables, input_clause), range)
+            }
+            DmnInputEntry::DurationRange(range) => {
+                evaluate_duration_range(&resolve_input_value(variables, input_clause), range)
             }
             DmnInputEntry::DateComparison(comparison) => {
                 evaluate_date_comparison(&resolve_input_value(variables, input_clause), comparison)
@@ -158,6 +175,38 @@ fn evaluate_numeric_comparison(
     }
 }
 
+fn evaluate_duration_equals(actual: &Value, expected: &str) -> bool {
+    let Some(actual) = parse_duration_value(actual) else {
+        return false;
+    };
+    let Some(expected) = parse_duration_str(expected) else {
+        return false;
+    };
+    actual == expected
+}
+
+fn evaluate_duration_comparison(actual: &Value, comparison: &DmnDurationComparison) -> bool {
+    let Some(actual) = parse_duration_value(actual) else {
+        return false;
+    };
+    let Some(expected) = parse_duration_str(&comparison.value) else {
+        return false;
+    };
+    let Some(ordering) = actual.compare(expected) else {
+        return false;
+    };
+    match comparison.operator {
+        DmnComparisonOperator::LessThan => ordering == Ordering::Less,
+        DmnComparisonOperator::LessThanOrEqual => {
+            matches!(ordering, Ordering::Less | Ordering::Equal)
+        }
+        DmnComparisonOperator::GreaterThan => ordering == Ordering::Greater,
+        DmnComparisonOperator::GreaterThanOrEqual => {
+            matches!(ordering, Ordering::Greater | Ordering::Equal)
+        }
+    }
+}
+
 fn evaluate_numeric_range(actual: &Value, range: &DmnNumericRange) -> bool {
     let Some(actual) = actual.as_f64() else {
         return false;
@@ -173,6 +222,39 @@ fn evaluate_numeric_range(actual: &Value, range: &DmnNumericRange) -> bool {
             || (!upper.inclusive && actual >= upper.value))
     {
         return false;
+    }
+    true
+}
+
+fn evaluate_duration_range(actual: &Value, range: &DmnDurationRange) -> bool {
+    let Some(actual) = parse_duration_value(actual) else {
+        return false;
+    };
+    if let Some(lower) = &range.lower {
+        let Some(lower_value) = parse_duration_str(&lower.value) else {
+            return false;
+        };
+        let Some(ordering) = actual.compare(lower_value) else {
+            return false;
+        };
+        if (lower.inclusive && ordering == Ordering::Less)
+            || (!lower.inclusive && matches!(ordering, Ordering::Less | Ordering::Equal))
+        {
+            return false;
+        }
+    }
+    if let Some(upper) = &range.upper {
+        let Some(upper_value) = parse_duration_str(&upper.value) else {
+            return false;
+        };
+        let Some(ordering) = actual.compare(upper_value) else {
+            return false;
+        };
+        if (upper.inclusive && ordering == Ordering::Greater)
+            || (!upper.inclusive && matches!(ordering, Ordering::Greater | Ordering::Equal))
+        {
+            return false;
+        }
     }
     true
 }
@@ -232,6 +314,16 @@ fn evaluate_time_comparison(actual: &Value, comparison: &DmnTimeComparison) -> b
     }
 }
 
+fn evaluate_date_time_equals(actual: &Value, expected: &str) -> bool {
+    let Some(actual) = parse_iso_datetime_value(actual) else {
+        return false;
+    };
+    let Some(expected) = parse_iso_datetime_str(expected) else {
+        return false;
+    };
+    compare_date_time_values(&actual, &expected) == Ordering::Equal
+}
+
 fn evaluate_date_time_comparison(actual: &Value, comparison: &DmnDateTimeComparison) -> bool {
     let Some(actual) = parse_iso_datetime_value(actual) else {
         return false;
@@ -239,9 +331,7 @@ fn evaluate_date_time_comparison(actual: &Value, comparison: &DmnDateTimeCompari
     let Some(expected) = parse_iso_datetime_str(&comparison.value) else {
         return false;
     };
-    let Some(ordering) = compare_date_time_values(&actual, &expected) else {
-        return false;
-    };
+    let ordering = compare_date_time_values(&actual, &expected);
     match comparison.operator {
         DmnComparisonOperator::LessThan => ordering == Ordering::Less,
         DmnComparisonOperator::LessThanOrEqual => {
@@ -262,9 +352,7 @@ fn evaluate_date_time_range(actual: &Value, range: &DmnDateTimeRange) -> bool {
         let Some(lower_value) = parse_iso_datetime_str(&lower.value) else {
             return false;
         };
-        let Some(ordering) = compare_date_time_values(&actual, &lower_value) else {
-            return false;
-        };
+        let ordering = compare_date_time_values(&actual, &lower_value);
         if (lower.inclusive && ordering == Ordering::Less)
             || (!lower.inclusive && matches!(ordering, Ordering::Less | Ordering::Equal))
         {
@@ -275,9 +363,7 @@ fn evaluate_date_time_range(actual: &Value, range: &DmnDateTimeRange) -> bool {
         let Some(upper_value) = parse_iso_datetime_str(&upper.value) else {
             return false;
         };
-        let Some(ordering) = compare_date_time_values(&actual, &upper_value) else {
-            return false;
-        };
+        let ordering = compare_date_time_values(&actual, &upper_value);
         if (upper.inclusive && ordering == Ordering::Greater)
             || (!upper.inclusive && matches!(ordering, Ordering::Greater | Ordering::Equal))
         {
@@ -317,6 +403,17 @@ fn parse_iso_date_value(value: &Value) -> Option<NaiveDate> {
         return None;
     };
     parse_iso_date_str(value)
+}
+
+fn parse_duration_value(value: &Value) -> Option<DmnDurationValue> {
+    let Value::String(value) = value else {
+        return None;
+    };
+    parse_duration_str(value)
+}
+
+fn parse_duration_str(value: &str) -> Option<DmnDurationValue> {
+    parse_day_time_duration_str(value).or_else(|| parse_year_month_duration_str(value))
 }
 
 fn parse_iso_date_str(value: &str) -> Option<NaiveDate> {
@@ -359,14 +456,16 @@ fn parse_iso_datetime_str(value: &str) -> Option<DmnComparableDateTime> {
 fn compare_date_time_values(
     left: &DmnComparableDateTime,
     right: &DmnComparableDateTime,
-) -> Option<Ordering> {
-    match (left, right) {
-        (DmnComparableDateTime::Local(left), DmnComparableDateTime::Local(right)) => {
-            Some(left.cmp(right))
-        }
-        (DmnComparableDateTime::Offset(left), DmnComparableDateTime::Offset(right)) => {
-            Some(left.cmp(right))
-        }
-        _ => None,
+) -> Ordering {
+    date_time_utc(left).cmp(&date_time_utc(right))
+}
+
+fn date_time_utc(value: &DmnComparableDateTime) -> DateTime<Utc> {
+    match value {
+        // Bounded mixed-form coercion rule: local datetimes are interpreted as
+        // UTC instants whenever they need to compare against offset-aware
+        // datetimes.
+        DmnComparableDateTime::Local(value) => value.and_utc(),
+        DmnComparableDateTime::Offset(value) => value.with_timezone(&Utc),
     }
 }

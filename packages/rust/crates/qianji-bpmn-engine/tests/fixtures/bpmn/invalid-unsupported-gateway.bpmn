@@ -4,7 +4,7 @@
   id="pkg_invalid_gateway">
   <bpmn:process id="gateway_flow" isExecutable="true">
     <bpmn:startEvent id="start" />
-    <bpmn:inclusiveGateway id="decision" />
+    <bpmn:complexGateway id="decision" />
     <bpmn:endEvent id="end" />
     <bpmn:sequenceFlow id="flow_1" sourceRef="start" targetRef="decision" />
     <bpmn:sequenceFlow id="flow_2" sourceRef="decision" targetRef="end" />

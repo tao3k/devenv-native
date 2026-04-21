@@ -78,10 +78,12 @@ pub(crate) struct RawNode {
     pub(crate) kind: BpmnNodeKind,
     pub(crate) gateway_kind: Option<BpmnGatewayKind>,
     pub(crate) decision: Option<DmnDecisionRef>,
+    pub(crate) task_message_ref: Option<String>,
     pub(crate) called_process_ref: Option<String>,
     pub(crate) subprocess_kind: Option<RawSubProcessKind>,
     pub(crate) repeat: Option<RawRepeatSpec>,
     pub(crate) attached_to_ref: Option<String>,
+    pub(crate) default_flow_ref: Option<String>,
     pub(crate) cancel_activity: bool,
     pub(crate) is_for_compensation: bool,
     pub(crate) event: Option<RawEventSpec>,
@@ -143,6 +145,19 @@ pub(super) enum CaptureTarget {
     MultiInstanceLoopDataInputRef,
     MultiInstanceLoopDataOutputRef,
     MultiInstanceCompletionCondition,
+    SequenceFlowConditionExpression,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(super) struct DeferredStandaloneNode {
+    pub(super) tag: &'static str,
+    pub(super) bpmn_id: String,
+}
+
+#[derive(Debug)]
+pub(super) struct ProcessChildParseState<'a> {
+    pub(super) deferred_standalone_node: &'a mut Option<DeferredStandaloneNode>,
+    pub(super) is_empty: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -158,6 +173,7 @@ pub(crate) struct RawSequenceFlow {
     pub(crate) source_ref: String,
     pub(crate) target_ref: String,
     pub(crate) label: Option<String>,
+    pub(crate) condition_expression: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

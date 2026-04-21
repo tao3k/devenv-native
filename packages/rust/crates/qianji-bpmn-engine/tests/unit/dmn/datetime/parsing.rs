@@ -4,7 +4,6 @@ use qianji_bpmn_engine::{
     DmnComparisonOperator, DmnDateTimeComparison, DmnDateTimeRange, DmnDateTimeRangeBound,
     DmnInputEntry, parse_dmn_decision,
 };
-use serde_json::json;
 
 #[test]
 fn dmn_parser_supports_datetime_comparison_unary_tests() {
@@ -13,7 +12,7 @@ fn dmn_parser_supports_datetime_comparison_unary_tests() {
 
     assert_eq!(
         decision.table.rules[0].input_entries[0],
-        DmnInputEntry::Equals(json!("2026-04-20T09:00:00"))
+        DmnInputEntry::DateTimeEquals("2026-04-20T09:00:00".into())
     );
     assert_eq!(
         decision.table.rules[1].input_entries[0],
@@ -61,7 +60,7 @@ fn dmn_parser_supports_offset_datetime_comparison_unary_tests() {
 
     assert_eq!(
         decision.table.rules[0].input_entries[0],
-        DmnInputEntry::Equals(json!("2026-04-20T09:00:00Z"))
+        DmnInputEntry::DateTimeEquals("2026-04-20T09:00:00Z".into())
     );
     assert_eq!(
         decision.table.rules[1].input_entries[0],

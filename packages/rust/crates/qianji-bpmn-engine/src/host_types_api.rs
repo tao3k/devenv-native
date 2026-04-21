@@ -47,6 +47,30 @@ pub struct ParallelMultiInstanceContext {
     pub total_iterations: u32,
 }
 
+/// Common send-task dispatch request.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct SendTaskRequest {
+    /// Owning workflow instance identifier.
+    pub instance_id: String,
+    /// Owning runtime token identifier.
+    pub token_id: u64,
+    /// BPMN node index.
+    pub node_index: u32,
+    /// Required source-level message reference.
+    pub message_reference: String,
+    /// Optional resolved event name or fallback label.
+    pub message_name: Option<String>,
+    /// Current workflow variables snapshot.
+    pub variables: Value,
+}
+
+/// Common send-task dispatch outcome.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct SendTaskOutcome {
+    /// Updated variables or send-operation payload.
+    pub data: Value,
+}
+
 /// Common service-task dispatch request.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ServiceTaskRequest {
@@ -139,6 +163,8 @@ pub struct BusinessRuleTaskOutcome {
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum PendingHostWorkRequest {
+    /// Dispatch request for a send task.
+    Send(SendTaskRequest),
     /// Dispatch request for a service task.
     Service(ServiceTaskRequest),
     /// Dispatch request for a user task.
@@ -154,6 +180,7 @@ impl PendingHostWorkRequest {
     #[must_use]
     pub fn kind(&self) -> PendingHostWorkKind {
         match self {
+            Self::Send(_) => PendingHostWorkKind::Send,
             Self::Service(_) => PendingHostWorkKind::Service,
             Self::User(_) => PendingHostWorkKind::User,
             Self::Manual(_) => PendingHostWorkKind::Manual,
@@ -165,6 +192,7 @@ impl PendingHostWorkRequest {
     #[must_use]
     pub fn kind_name(&self) -> &'static str {
         match self {
+            Self::Send(_) => "send",
             Self::Service(_) => "service",
             Self::User(_) => "user",
             Self::Manual(_) => "manual",
@@ -177,6 +205,8 @@ impl PendingHostWorkRequest {
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum PendingHostWorkResult {
+    /// Completion payload for a send task.
+    Send(SendTaskOutcome),
     /// Completion payload for a service task.
     Service(ServiceTaskOutcome),
     /// Completion payload for a user task.
@@ -192,6 +222,7 @@ impl PendingHostWorkResult {
     #[must_use]
     pub fn kind(&self) -> PendingHostWorkKind {
         match self {
+            Self::Send(_) => PendingHostWorkKind::Send,
             Self::Service(_) => PendingHostWorkKind::Service,
             Self::User(_) => PendingHostWorkKind::User,
             Self::Manual(_) => PendingHostWorkKind::Manual,
@@ -203,6 +234,7 @@ impl PendingHostWorkResult {
     #[must_use]
     pub fn kind_name(&self) -> &'static str {
         match self {
+            Self::Send(_) => "send",
             Self::Service(_) => "service",
             Self::User(_) => "user",
             Self::Manual(_) => "manual",
@@ -214,6 +246,7 @@ impl PendingHostWorkResult {
     #[must_use]
     pub fn data(&self) -> &Value {
         match self {
+            Self::Send(outcome) => &outcome.data,
             Self::Service(outcome) => &outcome.data,
             Self::User(outcome) => &outcome.data,
             Self::Manual(outcome) => &outcome.data,

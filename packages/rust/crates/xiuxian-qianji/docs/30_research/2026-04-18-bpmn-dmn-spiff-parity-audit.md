@@ -34,7 +34,8 @@ More precisely:
 1. BPMN support is not aligned.
 2. DMN support is not aligned.
 3. The BPMN gap is still structural, although several bounded gateway, wait,
-   timer, boundary, and nested call-activity slices have now landed.
+   timer, boundary, message-task, and nested call-activity slices have now
+   landed.
 4. The DMN gap is also large, but it must be described carefully because
    `SpiffWorkflow` itself is not a full OMG DMN implementation.
 
@@ -54,11 +55,16 @@ The current crate documents itself as a bounded subset:
 
 1. `packages/rust/crates/qianji-bpmn-engine/src/lib.rs` now states that bounded
    `parallelGateway` split/join semantics and deterministic
-   `exclusiveGateway` pass-through routing plus bounded
+   `exclusiveGateway` routing with simple boolean-path outgoing
+   `sequenceFlow` `conditionExpression` values plus one optional `default`
+   flow, plus one bounded structured `inclusiveGateway` subset with the same
+   condition/default routing rules plus one matching linear join fragment, plus bounded
    `intermediateCatchEvent` waits backed by `messageEventDefinition`,
    `signalEventDefinition`, and snapshot-style `timerEventDefinition`, plus
-   one interrupting timer `boundaryEvent` on one host-blocking task, plus one
-   bounded embedded `subProcess` body with exactly one nested `startEvent`
+   one bounded `receiveTask` message-wait shell, plus one bounded `sendTask`
+   host-dispatch shell, plus one interrupting timer `boundaryEvent` on one
+   host-blocking task, plus one bounded embedded `subProcess` body with
+   exactly one nested `startEvent`
    and at least one nested `endEvent`, plus one bounded `<transaction>` shell
    with exactly one nested `startEvent` and at least one nested `endEvent`,
    plus one bounded transaction cancel path composed of one interrupting
@@ -70,7 +76,10 @@ The current crate documents itself as a bounded subset:
    restore the parent frame while preserving transaction-local variable
    mutations and route through every matching parent error boundary including
    one catch-all boundary, while normal completion and cancel routing cancel
-   the non-selected sibling boundaries, plus one bounded same-package
+   the non-selected sibling boundaries, plus one bounded transaction cancel
+   compensation subset where compensable activities may bind one explicit
+   compensation handler and cancel routing replays those handlers in reverse
+   completion order before the parent cancel boundary fires, plus one bounded same-package
    `callActivity`, plus bounded
    `standardLoopCharacteristics`, plus bounded sequential and bounded
    parallel `multiInstanceLoopCharacteristics` with integer
@@ -79,27 +88,35 @@ The current crate documents itself as a bounded subset:
    `completionCondition` using either one simple boolean variable path or one
    bounded counter comparison, plus one bounded collection-backed data-binding
    subset using `loopDataInputRef`, `inputDataItem`, optional
-   `loopDataOutputRef`, and `outputDataItem`, while inclusive gateways,
-   transaction compensation semantics, more than one cancel boundary on one
-   transaction owner, broader transaction error propagation beyond that
-   bounded shell,
+   `loopDataOutputRef`, and `outputDataItem`, while broader unstructured
+   inclusive gateways, compensation event subprocesses, default
+   compensation, intermediate or asynchronous throw-compensation forms, more
+   than one cancel boundary on one transaction owner, broader transaction
+   error propagation beyond that bounded shell,
    non-interrupting boundaries, richer BPMN orchestration, broader
    multi-BPMN import/dependency handling, and broader FEEL or script-backed
    temporal behavior remain deferred.
 2. `packages/rust/crates/qianji-bpmn-engine/src/parser/import.rs` now accepts
    `parallelGateway`, `exclusiveGateway`, `intermediateCatchEvent`, one
-   bounded timer `boundaryEvent` family, one bounded embedded `subProcess`
-   body family, one bounded `<transaction>` shell family, one bounded
-   `callActivity` family, bounded
-   `standardLoopCharacteristics`, and bounded sequential or bounded
+   bounded `receiveTask`/`sendTask` message-task family, one bounded timer
+   `boundaryEvent` family, one bounded embedded `subProcess` body family, one
+   bounded `<transaction>` shell family, one bounded
+   `callActivity` family, bounded `standardLoopCharacteristics`, and bounded
+   sequential or bounded
    parallel `multiInstanceLoopCharacteristics`, with message, signal, and
-   timer event definitions inside the currently supported wait shapes plus
-   bounded cancel and error event definitions for one transaction owner that
-   may expose one cancel boundary plus one or more error boundaries.
+   timer event definitions inside the currently supported wait shapes and
+   message-task validation surface, plus bounded cancel and error event
+   definitions for one transaction owner that may expose one cancel boundary
+   plus one or more error boundaries.
 3. `packages/rust/crates/qianji-bpmn-engine/src/runtime/lifecycle.rs` now
-   supports bounded multi-token routing for parallel split/join and bounded
-   exclusive single-route pass-through, plus deterministic wait registration
-   for intermediate message/signal/timer catch events, one interrupting timer
+   supports bounded multi-token routing for parallel split/join, bounded
+   exclusive condition-driven routing using simple boolean-path outgoing
+   `sequenceFlow` `conditionExpression` values plus one optional `default`
+   flow, plus one bounded structured inclusive split/join subset with the
+   same condition/default routing rules and one matching linear join
+   fragment, plus deterministic wait registration for intermediate
+   message/signal/timer catch events, one bounded `receiveTask` message wait
+   shell, one bounded `sendTask` host-dispatch shell, one interrupting timer
    boundary path, and parent-frame enter/return semantics for one bounded
    same-package `callActivity` plus one bounded embedded `subProcess` body,
    plus one bounded transaction cancel path that restores the parent frame,
@@ -118,10 +135,10 @@ The current crate documents itself as a bounded subset:
    host-blocking task family.
    `businessRuleTask` can now also execute locally when the package carries a
    matching engine-owned DMN decision definition, while still deferring
-   inclusive, non-interrupting boundary, transaction compensation semantics,
+   broader unstructured inclusive semantics, non-interrupting boundary, transaction compensation semantics,
    more than one cancel boundary on one transaction owner, broader transaction
    error propagation, broader multi-BPMN import/dependency handling, and
-   broader condition-driven semantics.
+   broader FEEL or script-backed gateway condition semantics.
 4. `packages/rust/crates/qianji-bpmn-engine/src/parser/package.rs` now exposes
    one bounded parser-owned `BpmnBundleSnapshot` contract plus
    `parse_bpmn_bundle(...)`, allowing one BPMN source plus optional DMN
@@ -135,7 +152,8 @@ The current crate documents itself as a bounded subset:
    comparisons and ranges.
 7. `packages/rust/crates/qianji-bpmn-engine/src/lint/bpmn.rs` and
    `packages/rust/crates/qianji-bpmn-engine/src/lint/dmn.rs` explicitly guide
-   callers toward this bounded subset.
+   callers toward this bounded subset, including LLM-friendly repair prompts
+   for invalid bounded `receiveTask`/`sendTask` message bindings.
 
 ### 2.2 SpiffWorkflow Evidence
 
@@ -158,10 +176,10 @@ Evidence came from:
 | BPMN family | SpiffWorkflow evidence | Current engine parse status | Current engine runtime status | Severity | Recommended next slice |
 | --- | --- | --- | --- | --- | --- |
 | Core linear flow: `startEvent`, `endEvent`, `serviceTask`, `userTask`, `manualTask`, `businessRuleTask`, `sequenceFlow` | Covered by `SpiffWorkflow/spiff/parser/process.py`; also stated in ReadTheDocs tasks list | Supported | Supported for linear single-frontier routing; `businessRuleTask` can now execute locally when the parser-owned bundle snapshot or later callers register one matching engine-owned DMN definition, but adapter wiring remains incomplete | baseline | keep stable while widening richer shapes |
-| Gateways: exclusive, inclusive, parallel, event-based | Declared in ReadTheDocs; serializer config includes `ExclusiveGateway`, `InclusiveGateway`, `ParallelGateway`, `EventBasedGateway`; tests cover gateway families | `parallelGateway`, `exclusiveGateway`, and one bounded exclusive `eventBasedGateway` shape are supported; inclusive gateways remain unsupported | bounded `parallelGateway` split/join, deterministic single-route `exclusiveGateway` pass-through, and one bounded event-based winner-takes-all wait race are supported; inclusive gateways and condition-driven exclusive branching remain unsupported | P1 | loop and multi-instance runtime slice |
-| Intermediate, boundary, timer, message, signal, escalation, error, cancel events | Parser registrations and serializer config include boundary and intermediate events; tests cover timer, message, boundary, escalation, cancel, event-based gateways | Bounded `intermediateCatchEvent` support is now present for `messageEventDefinition`, `signalEventDefinition`, and `timerEventDefinition`; one interrupting timer `boundaryEvent` attached to one host-blocking task is also supported; and one bounded transaction owner may now expose one cancel boundary plus one or more error boundaries | Intermediate message/signal/timer waits now register and resume through the engine-owned wait shell; one interrupting timer boundary path can cancel blocked host work; one bounded `eventBasedGateway` can race those waits and cancel the losing siblings; one bounded transaction cancel path can restore the parent frame, roll back transaction-local variable mutations, and route through the parent cancel boundary; and one bounded transaction error path can restore the parent frame, preserve transaction-local variable mutations, route through every matching parent error boundary including one catch-all boundary, and cancel non-selected sibling boundaries | P1 | broader event families and compensation |
-| Script, send, and receive tasks | Registered in `SpiffWorkflow/spiff/parser/process.py`; tests cover script and event-driven workflows | Unsupported element at parse time | Unsupported | P1 | post-gateway parser/runtime slice |
-| Subprocess, call activity, transaction subprocess | Registered in parser and serializer config; tests cover call activity and nested processes | One bounded embedded `subProcess` body with exactly one nested `startEvent` and at least one nested `endEvent`, one bounded `<transaction>` shell with exactly one nested `startEvent` and at least one nested `endEvent`, one bounded transaction owner with one cancel boundary plus one or more error boundaries, and one bounded `callActivity` that targets another executable process in the same BPMN package are supported; compensation and broader transaction error propagation remain unsupported | The runtime can enter any of those bounded nested shapes through the same child-process frame model, suspend there, restore the parent frame on child completion, execute one bounded transaction cancel path with rollback through the parent boundary, execute one bounded transaction error path without rollback through every matching parent error boundary, and cancel non-selected sibling boundaries on the same transaction owner, but recursive call graphs, compensation, and broader nested subprocess families remain unsupported | P1 | compensation and broader transaction error propagation |
+| Gateways: exclusive, inclusive, parallel, event-based | Declared in ReadTheDocs; serializer config includes `ExclusiveGateway`, `InclusiveGateway`, `ParallelGateway`, `EventBasedGateway`; tests cover gateway families | `parallelGateway`, `exclusiveGateway`, one structured `inclusiveGateway` subset, and one bounded exclusive `eventBasedGateway` shape are supported | bounded `parallelGateway` split/join, bounded `exclusiveGateway` routing with simple boolean-path branch conditions plus one optional `default` flow, one structured `inclusiveGateway` split/join subset with the same condition/default rules plus one matching linear join fragment, and one bounded event-based winner-takes-all wait race are supported; broader unstructured inclusive joins and broader FEEL/script-backed gateway conditions remain unsupported | P1 | broader inclusive-gateway reachability and broader gateway-condition semantics |
+| Intermediate, boundary, timer, message, signal, escalation, error, cancel events | Parser registrations and serializer config include boundary and intermediate events; tests cover timer, message, boundary, escalation, cancel, event-based gateways | Bounded `intermediateCatchEvent` support is now present for `messageEventDefinition`, `signalEventDefinition`, and `timerEventDefinition`; one interrupting timer `boundaryEvent` attached to one host-blocking task is also supported; one bounded transaction owner may now expose one cancel boundary plus one or more error boundaries; one bounded transaction cancel compensation subset with one explicit compensation-handler marker is also supported; and one synchronous targeted throw-compensation `endEvent` subset with explicit `activityRef` is now supported inside that same transaction shell | Intermediate message/signal/timer waits now register and resume through the engine-owned wait shell; one interrupting timer boundary path can cancel blocked host work; one bounded `eventBasedGateway` can race those waits and cancel the losing siblings; one bounded transaction cancel path can restore the parent frame, roll back transaction-local variable mutations, and route through the parent cancel boundary; one bounded transaction cancel compensation path can replay explicit compensation handlers in reverse completion order before that parent cancel boundary fires; one bounded transaction error path can restore the parent frame, preserve transaction-local variable mutations, route through every matching parent error boundary including one catch-all boundary, and cancel non-selected sibling boundaries; and one synchronous targeted throw-compensation end event can replay the referenced compensable activity before the transaction shell completes normally | P1 | broader event families plus default, intermediate, or asynchronous throw-compensation forms |
+| Script, send, and receive tasks | Registered in `SpiffWorkflow/spiff/parser/process.py`; tests cover script and event-driven workflows | Bounded `sendTask` and `receiveTask` are now supported when they carry exactly one message binding through task-level `messageRef` or one nested `messageEventDefinition`; `scriptTask` remains unsupported at parse time | `receiveTask` now reuses the engine-owned message-wait shell, `sendTask` now reuses the host-dispatch shell with preserved message metadata, `xiuxian-qianji` now wires that `sendTask` host work through the callback bridge and `qianji bpmn run --host-fixture` `send_tasks.<node_id>` contract, and `scriptTask` remains unsupported | P1 | `scriptTask`, correlations, and broader collaboration-aware message routing |
+| Subprocess, call activity, transaction subprocess | Registered in parser and serializer config; tests cover call activity and nested processes | One bounded embedded `subProcess` body with exactly one nested `startEvent` and at least one nested `endEvent`, one bounded `<transaction>` shell with exactly one nested `startEvent` and at least one nested `endEvent`, one bounded transaction owner with one cancel boundary plus one or more error boundaries, one bounded transaction cancel compensation subset with one explicit compensation-handler marker per compensable activity, one synchronous targeted throw-compensation end-event subset with explicit `activityRef`, and one bounded `callActivity` that targets another executable process in the same BPMN package are supported; compensation event subprocesses, default compensation, and broader transaction error propagation remain unsupported | The runtime can enter any of those bounded nested shapes through the same child-process frame model, suspend there, restore the parent frame on child completion, execute one bounded transaction cancel path with rollback through the parent boundary, execute one bounded transaction cancel compensation path that replays explicit compensation handlers in reverse completion order before the parent cancel boundary, execute one bounded transaction error path without rollback through every matching parent error boundary, cancel non-selected sibling boundaries on the same transaction owner, and execute one synchronous targeted throw-compensation end event that replays the referenced compensable activity before normal completion, but recursive call graphs, default or intermediate throw compensation, compensation event subprocesses, and broader nested subprocess families remain unsupported | P1 | default, intermediate, or asynchronous throw-compensation forms and broader transaction error propagation |
 | Standard loop and multi-instance tasks | ReadTheDocs lists loop, parallel multi-instance, sequential multi-instance; tests cover both loop and multi-instance | Bounded `standardLoopCharacteristics`, bounded sequential `multiInstanceLoopCharacteristics isSequential="true"`, and bounded parallel `multiInstanceLoopCharacteristics` with omitted or `isSequential="false"` plus integer `loopCardinality` are now supported on one service/user/manual/business-rule task family; one bounded `completionCondition` subset is now also supported on those same multi-instance shapes, and one bounded collection-backed data-binding subset using `loopDataInputRef`, `inputDataItem`, optional `loopDataOutputRef`, and `outputDataItem` is now supported | Standard loop now supports `testBefore` skip, loop-maximum re-entry, and simple boolean conditions such as `done` or `not done`; sequential multi-instance now supports checkpoint-safe sequential re-entry, repeat-context propagation, zero-cardinality skip, bounded `completionCondition` early-stop, interrupting-boundary cleanup, and collection-backed iteration overlays/output aggregation; bounded parallel multi-instance now supports single-writer token fan-out, per-iteration repeat-context propagation, zero-cardinality skip, bounded `completionCondition` sibling cancellation, interrupting-boundary cleanup, and collection-backed iteration overlays/output aggregation | P1 | transaction subprocess and richer nested orchestration |
 | Collaboration, pools, lanes, messages, correlations | README mentions pools and lanes; tests cover collaboration, correlations, and swimlanes | Unsupported document family | Unsupported | P1 | collaboration and lane metadata slice after core execution parity |
 | Data object, data store, IO specification | ReadTheDocs lists data object and data store; tests cover data object, data store reference, and IO spec | Unsupported document family | Unsupported workflow-data binding model | P1 | data binding slice after core control flow |
@@ -186,14 +204,17 @@ That runtime shape is coherent for the landed v1 slice, but it means the
 following `SpiffWorkflow` families remain blocked even if parser support were
 added mechanically:
 
-1. broader transaction error propagation, compensation, and richer nested
-   orchestration beyond the landed bounded embedded `subProcess`, bounded
-   `<transaction>` shell, one bounded transaction owner with one cancel
-   boundary plus one or more error boundaries, and `callActivity` shapes
+1. broader transaction error propagation, default compensation forms,
+   and richer nested orchestration beyond the landed bounded embedded
+   `subProcess`, bounded `<transaction>` shell, one bounded transaction owner
+   with one cancel boundary plus one or more error boundaries, one bounded
+   transaction cancel compensation subset, and `callActivity` shapes
 2. multi-instance expansion and richer repeatable-task aggregation
 3. broader event families beyond the bounded message/signal/timer race shape
+   plus the landed bounded `receiveTask`/`sendTask` message-task family
 4. lane-aware or collaboration-aware execution surfaces
-5. condition-driven gateway branching beyond the bounded deterministic subset
+5. broader condition-driven gateway branching beyond the bounded simple
+   boolean-path exclusive subset
 
 The correct reading is therefore:
 
@@ -214,8 +235,8 @@ The correct reading is therefore:
 | Hit policies `UNIQUE` and `COLLECT` | Supported | Supported | This is the strongest overlapping execution surface | baseline |
 | Other hit policies such as `FIRST`, `PRIORITY`, `ANY`, `RULE ORDER`, `OUTPUT ORDER` | Unsupported | Not implemented in the active `HitPolicy` enum even though schema files mention them | Do not overstate upstream support | P3 |
 | Literal equality with strings, numbers, booleans, `null`, wildcard `-` | Supported | Supported indirectly through script evaluation | Current engine is stricter and easier to reason about | baseline |
-| FEEL-like expressions, comparison operators, range syntax, and script-backed predicates | Partially supported: numeric unary comparisons, bounded numeric ranges, ISO date literals, ISO date comparisons, bounded ISO date ranges, ISO local datetime literals, ISO local datetime comparisons, bounded ISO local datetime ranges, RFC3339 offset-aware datetime literals, comparisons, and bounded ranges, plus ISO time literals, ISO time comparisons, and bounded ISO time ranges are now supported, but broader FEEL and script-backed predicates remain unsupported | Supported through the script engine in `DMNEngine.evaluate(...)`; tests cover ranges, comparisons, and dates | The gap narrowed further, but upstream still proves materially broader evaluator semantics | P1 |
-| Date decisions and richer temporal predicates | Partially supported: ISO date-only equality, comparisons, and bounded ranges plus ISO local datetime equality, comparisons, and bounded ranges plus RFC3339 offset-aware datetime equality, comparisons, and bounded ranges plus ISO time-only equality, comparisons, and bounded ranges are now supported | Covered by python-engine tests with broader datetime semantics | Local support is still intentionally narrower than upstream and currently excludes durations, mixed local-vs-offset coercion, and script-backed temporal functions | P1 |
+| FEEL-like expressions, comparison operators, range syntax, and script-backed predicates | Partially supported: numeric unary comparisons, bounded numeric ranges, ISO date literals, ISO date comparisons, bounded ISO date ranges, ISO local datetime literals, ISO local datetime comparisons, bounded ISO local datetime ranges, RFC3339 offset-aware datetime literals, comparisons, and bounded ranges, signed ISO 8601 day-time duration literals, comparisons, and bounded ranges, signed ISO 8601 year-month duration literals, comparisons, and bounded ranges, plus ISO time literals, ISO time comparisons, and bounded ISO time ranges are now supported, but broader FEEL and script-backed predicates remain unsupported | Supported through the script engine in `DMNEngine.evaluate(...)`; tests cover ranges, comparisons, and dates | The gap narrowed further, but upstream still proves materially broader evaluator semantics | P1 |
+| Date decisions and richer temporal predicates | Partially supported: ISO date-only equality, comparisons, and bounded ranges plus ISO local datetime equality, comparisons, and bounded ranges plus RFC3339 offset-aware datetime equality, comparisons, and bounded ranges plus one bounded mixed local-vs-offset UTC normalization rule that now also covers datetime literal equality in addition to comparisons and ranges, plus signed ISO 8601 day-time duration equality, comparisons, and bounded ranges including bounded fractional day-time forms such as `duration("P1.5D")`, `duration("P1,5D")`, `duration("PT1.5H")`, `duration("PT1,5H")`, `duration("PT1.5M")`, `duration("PT1,5M")`, `duration("PT1.5S")`, and `duration("PT1,5S")`, plus signed ISO 8601 year-month duration equality, comparisons, and bounded ranges, plus ISO time-only equality, comparisons, and bounded ranges are now supported | Covered by python-engine tests with broader datetime semantics | Local support is still intentionally narrower than upstream and currently excludes trailing-lower-unit fractional forms such as `duration("PT1.5H30S")`, fractional year-month duration literals, mixed year-month/day-time duration forms, and script-backed temporal functions | P1 |
 | DMN schema/version parsing | Partially supported: one non-executable document snapshot can now scan namespaced/versioned DMN roots plus decision headers, model-version hints, top-level `import`, `itemDefinition`, `inputData`, `knowledgeSource`, `businessKnowledgeModel`, `decisionService`, `organizationUnit`, `performanceIndicator`, `textAnnotation`, `association`, `elementCollection`, `dmndi:DMNDI`, and `group` counts, decision-owned `allowedAnswers`, `decisionMaker`, and `decisionOwner` counts, direct decision-owned requirement counts for `informationRequirement`, `knowledgeRequirement`, and `authorityRequirement`, nested requirement-target counts for `requiredInput`, `requiredDecision`, `requiredKnowledge`, and `requiredAuthority`, and direct decision-logic counts for `literalExpression`, `context`, `invocation`, `relation`, `functionDefinition`, and `list`; executable parsing now also rejects non-`definitions` roots, missing or unsupported DMN model namespaces, and top-level `<import>` declarations, but it still performs no full schema validation and still requires the bounded decision-table subset | DMN 1.0, 1.2, and 1.3 schema/version handling exists in `BpmnDmnParser` and version tests | The crate now has one real placeholder surface for later adapter work and for construct-aware lint diagnostics across the main unsupported type-model, business-context, annotation, document-structure, diagram-interchange, group-artifact, decision-metadata, governance-metadata, decision-logic, metadata-only DRD artifact, and decision-dependency shapes seen in the current research lane, while the latest business-context, item-definition, text-annotation, association/element-collection, DMNDI, group, allowed-answers, decision-governance, root-artifact, requirement-target, requirement-edge, document-root, and import validation cuts close real parser/lint safety gaps before dependency resolution or broader schema parity, but full parser/schema parity is still materially incomplete | P2 |
 | BPMN `businessRuleTask` to DMN execution integration | Partially supported: engine-owned package registries can execute locally, parser-owned bundle snapshots can now populate those registries, and `xiuxian-qianji` now owns a bounded host adapter for missing-definition fallback | Integrated parser-to-engine binding exists | The unconditional host-only gap is closed, parser-owned registration now exists, and the host adapter now exists in bounded form, but full BPMN scheduler/CLI orchestration is still missing | P1 |
 
@@ -232,7 +253,9 @@ The audit-proven statement is narrower:
    contract.
 2. `SpiffWorkflow` implements a materially richer DMN parse and evaluation
    surface than that bounded contract, even after the local numeric,
-   ISO-date, ISO-local-datetime, and ISO-time comparison/range widening cuts.
+   ISO-date, ISO-local-datetime, mixed local-vs-offset UTC coercion,
+   signed day-time duration, signed year-month duration, and ISO-time
+   comparison/range widening cuts.
 3. `SpiffWorkflow` still does not prove full DMN standard parity because its
    decision-table model and active hit-policy enum remain limited.
 
@@ -250,7 +273,9 @@ This is correct for now.
 It means:
 
 1. `qianji lint --bpmn` is currently an engine-subset validator, not a
-   `SpiffWorkflow`-parity validator.
+   `SpiffWorkflow`-parity validator, even though it now emits task-specific
+   repair guidance for the bounded `receiveTask`/`sendTask` message-task
+   family.
 2. `qianji lint --dmn` is currently a bounded decision-table validator with
    construct-aware placeholder diagnostics, not a FEEL-capable DMN validator.
 3. `xiuxian-qianji` adapter work should not advertise richer BPMN or DMN
@@ -273,12 +298,16 @@ surface breadth.
 2. Broader DMN evaluator widening slice
    One non-executable DMN document snapshot with namespace/version hints is
    now landed together with the bounded numeric, ISO-date,
-   ISO-local-datetime, RFC3339 offset-aware datetime, and ISO-time
-   comparison/range cuts. Durations, mixed local-vs-offset coercion, broader
-   FEEL semantics, and executable schema validation remain deferred.
+   ISO-local-datetime, one bounded mixed local-vs-offset UTC coercion rule,
+   RFC3339 offset-aware datetime, signed ISO 8601 day-time duration,
+   signed ISO 8601 year-month duration, and ISO-time comparison/range cuts.
+   Fractional duration seconds, mixed-family duration forms, broader FEEL
+   semantics, and executable schema validation remain deferred.
 3. `xiuxian-qianji` higher-level BPMN orchestration slice
-   The bounded host adapter is now landed, so the next host-side gap is
-   scheduler/CLI/runtime ownership of BPMN package loading and execution.
+   The bounded host adapter plus CLI runtime facade are now landed, so the
+   next host-side gap is scheduler-owned distributed orchestration and
+   broader writer-ownership adoption beyond the current bounded CLI/runtime
+   execution surface.
 4. Transaction error semantics and richer nested orchestration slice
    This should widen beyond the landed bounded embedded `subProcess`,
    bounded `<transaction>` shell, bounded transaction cancel path, and
@@ -300,9 +329,10 @@ The strongest precise statement supported by source evidence is:
    includes linear flow plus deterministic `parallelGateway` and
    `exclusiveGateway` support, one bounded exclusive `eventBasedGateway`
    race, together with bounded intermediate message/signal/timer waits, one
-   interrupting timer boundary path, one bounded embedded `subProcess` body,
-   one bounded `<transaction>` shell, one bounded transaction cancel path,
-   one bounded same-package `callActivity`, one bounded
+   bounded `receiveTask` message-wait shell, one bounded `sendTask`
+   host-dispatch shell, one interrupting timer boundary path, one bounded
+   embedded `subProcess` body, one bounded `<transaction>` shell, one bounded
+   transaction cancel path, one bounded same-package `callActivity`, one bounded
    `standardLoopCharacteristics` shape, and bounded sequential or bounded
    parallel cardinality-driven `multiInstanceLoopCharacteristics`
    shapes with one bounded `completionCondition` subset plus one bounded
@@ -315,7 +345,10 @@ The strongest precise statement supported by source evidence is:
    `SpiffWorkflow` DMN support: one decision table with `UNIQUE` or `COLLECT`,
    plus wildcard/literal matching, numeric unary comparisons, bounded numeric
    ranges, ISO date literals, ISO date comparisons, bounded ISO date ranges,
-   ISO time literals, ISO time comparisons, and bounded ISO time ranges.
+   ISO local and RFC3339 offset-aware datetime literals/comparisons/ranges,
+   signed ISO 8601 day-time duration literals/comparisons/ranges, signed ISO
+   8601 year-month duration literals/comparisons/ranges, and ISO time
+   literals, ISO time comparisons, and bounded ISO time ranges.
 3. The next useful implementation target is not "all missing tags". It is the
    runtime semantics needed to unlock multi-instance expansion, richer nested
    orchestration, and richer DMN behavior in an order that preserves

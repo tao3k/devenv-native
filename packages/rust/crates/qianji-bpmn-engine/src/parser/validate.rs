@@ -7,7 +7,9 @@ use super::import::{
 use crate::error::{BpmnEngineError, Result};
 use crate::ir_event_api::BpmnEventKind;
 use crate::ir_node_api::{BpmnGatewayKind, BpmnNodeKind};
-use crate::repeat_condition::is_supported_multi_instance_completion_condition;
+use crate::repeat_condition::{
+    is_supported_gateway_condition, is_supported_multi_instance_completion_condition,
+};
 use std::collections::{HashMap, HashSet};
 
 #[derive(Debug, Default)]
@@ -37,6 +39,7 @@ pub(crate) fn validate_raw_package(raw: &RawPackageDocument) -> Result<()> {
         validate_standard_loops(process)?;
         validate_multi_instances(process)?;
         validate_compensation_handlers(process)?;
+        validate_gateways(process)?;
         validate_event_based_gateways(process, &node_ids)?;
     }
 
@@ -335,7 +338,66 @@ fn validate_node_event_shape(
         });
     }
 
+    validate_message_task_shape(process, node)?;
+
     Ok(())
+}
+
+fn validate_message_task_shape(process: &RawProcess, node: &super::import::RawNode) -> Result<()> {
+    let expected_detail = match node.kind {
+        BpmnNodeKind::SendTask => Some("unsupported_send_task_event_kind"),
+        BpmnNodeKind::ReceiveTask => Some("unsupported_receive_task_event_kind"),
+        _ => None,
+    };
+    let Some(expected_detail) = expected_detail else {
+        return Ok(());
+    };
+
+    if node.task_message_ref.is_some() && node.event.is_some() {
+        return Err(BpmnEngineError::UnsupportedTaskConfiguration {
+            process_id: process.process_id.clone(),
+            node_id: node.bpmn_id.clone(),
+            detail: "multiple_task_message_bindings",
+        });
+    }
+
+    let attribute_binding = node
+        .task_message_ref
+        .as_deref()
+        .map(str::trim)
+        .filter(|binding| !binding.is_empty());
+    if let Some(event) = &node.event {
+        if event.kind != BpmnEventKind::Message {
+            return Err(BpmnEngineError::UnsupportedTaskConfiguration {
+                process_id: process.process_id.clone(),
+                node_id: node.bpmn_id.clone(),
+                detail: expected_detail,
+            });
+        }
+        let event_binding = event
+            .reference_id
+            .as_deref()
+            .map(str::trim)
+            .filter(|binding| !binding.is_empty());
+        if event_binding.is_none() {
+            return Err(BpmnEngineError::MissingRequiredNodeElement {
+                process_id: process.process_id.clone(),
+                node_id: node.bpmn_id.clone(),
+                element: "message_binding",
+            });
+        }
+        return Ok(());
+    }
+
+    if attribute_binding.is_some() {
+        return Ok(());
+    }
+
+    Err(BpmnEngineError::MissingRequiredNodeElement {
+        process_id: process.process_id.clone(),
+        node_id: node.bpmn_id.clone(),
+        element: "message_binding",
+    })
 }
 
 fn validate_called_process_reference(
@@ -480,11 +542,20 @@ fn validate_compensation_handlers(process: &super::import::RawProcess) -> Result
         .map(|node| (node.bpmn_id.as_str(), node))
         .collect::<HashMap<_, _>>();
     let compensation_boundaries = collect_compensation_boundaries(process);
-    if !has_compensation_shape(process, &compensation_boundaries) {
+    let throw_compensation_end_events = collect_throw_compensation_end_events(process);
+    if !has_compensation_shape(
+        process,
+        &compensation_boundaries,
+        &throw_compensation_end_events,
+    ) {
         return Ok(());
     }
 
-    ensure_compensation_transaction_scope(process, &compensation_boundaries)?;
+    ensure_compensation_transaction_scope(
+        process,
+        &compensation_boundaries,
+        &throw_compensation_end_events,
+    )?;
 
     let mut seen_compensated_activities = HashSet::new();
     let mut seen_compensation_handlers = HashSet::new();
@@ -496,6 +567,9 @@ fn validate_compensation_handlers(process: &super::import::RawProcess) -> Result
             &mut seen_compensated_activities,
             &mut seen_compensation_handlers,
         )?;
+    }
+    for throw_end in throw_compensation_end_events {
+        validate_throw_compensation_end_event(process, &node_by_id, throw_end)?;
     }
 
     validate_orphan_compensation_handlers(process)?;
@@ -517,13 +591,34 @@ fn collect_compensation_boundaries(process: &RawProcess) -> Vec<&RawNode> {
         .collect()
 }
 
-fn has_compensation_shape(process: &RawProcess, compensation_boundaries: &[&RawNode]) -> bool {
-    !compensation_boundaries.is_empty() || process.nodes.iter().any(|node| node.is_for_compensation)
+fn collect_throw_compensation_end_events(process: &RawProcess) -> Vec<&RawNode> {
+    process
+        .nodes
+        .iter()
+        .filter(|node| {
+            node.kind == BpmnNodeKind::EndEvent
+                && node
+                    .event
+                    .as_ref()
+                    .is_some_and(|event| event.kind == BpmnEventKind::Compensation)
+        })
+        .collect()
+}
+
+fn has_compensation_shape(
+    process: &RawProcess,
+    compensation_boundaries: &[&RawNode],
+    throw_compensation_end_events: &[&RawNode],
+) -> bool {
+    !compensation_boundaries.is_empty()
+        || !throw_compensation_end_events.is_empty()
+        || process.nodes.iter().any(|node| node.is_for_compensation)
 }
 
 fn ensure_compensation_transaction_scope(
     process: &RawProcess,
     compensation_boundaries: &[&RawNode],
+    throw_compensation_end_events: &[&RawNode],
 ) -> Result<()> {
     if matches!(
         process.scope,
@@ -535,7 +630,11 @@ fn ensure_compensation_transaction_scope(
         return Ok(());
     }
 
-    let node_id = first_compensation_shape_node_id(process, compensation_boundaries);
+    let node_id = first_compensation_shape_node_id(
+        process,
+        compensation_boundaries,
+        throw_compensation_end_events,
+    );
     Err(compensation_error(
         process,
         node_id.as_str(),
@@ -546,10 +645,16 @@ fn ensure_compensation_transaction_scope(
 fn first_compensation_shape_node_id(
     process: &RawProcess,
     compensation_boundaries: &[&RawNode],
+    throw_compensation_end_events: &[&RawNode],
 ) -> String {
     compensation_boundaries
         .first()
         .map(|node| node.bpmn_id.clone())
+        .or_else(|| {
+            throw_compensation_end_events
+                .first()
+                .map(|node| node.bpmn_id.clone())
+        })
         .or_else(|| {
             process
                 .nodes
@@ -629,6 +734,65 @@ fn validate_compensated_activity<'a>(
         ));
     }
     Ok(())
+}
+
+fn validate_throw_compensation_end_event<'a>(
+    process: &RawProcess,
+    node_by_id: &HashMap<&'a str, &'a RawNode>,
+    throw_end: &'a RawNode,
+) -> Result<()> {
+    let Some(target_activity_id) = throw_end
+        .event
+        .as_ref()
+        .and_then(|event| event.reference_id.as_deref())
+    else {
+        return Err(compensation_error(
+            process,
+            throw_end.bpmn_id.as_str(),
+            "missing_throw_compensation_target",
+        ));
+    };
+    let Some(activity) = node_by_id.get(target_activity_id).copied() else {
+        return Err(compensation_error(
+            process,
+            throw_end.bpmn_id.as_str(),
+            "unknown_throw_compensation_target",
+        ));
+    };
+
+    ensure_supported_compensated_activity_kind(process, activity)?;
+    if activity.is_for_compensation {
+        return Err(compensation_error(
+            process,
+            activity.bpmn_id.as_str(),
+            "throw_compensation_targets_handler",
+        ));
+    }
+    if activity.repeat.is_some() {
+        return Err(compensation_error(
+            process,
+            activity.bpmn_id.as_str(),
+            "unsupported_compensated_activity_repeat",
+        ));
+    }
+
+    let has_boundary_handler = process.nodes.iter().any(|node| {
+        node.kind == BpmnNodeKind::BoundaryEvent
+            && node.attached_to_ref.as_deref() == Some(target_activity_id)
+            && node
+                .event
+                .as_ref()
+                .is_some_and(|event| event.kind == BpmnEventKind::Compensation)
+    });
+    if has_boundary_handler {
+        return Ok(());
+    }
+
+    Err(compensation_error(
+        process,
+        throw_end.bpmn_id.as_str(),
+        "throw_compensation_target_without_handler",
+    ))
 }
 
 fn ensure_single_boundary_owner(
@@ -846,6 +1010,315 @@ fn validate_sequence_flows(
         }
     }
     Ok(())
+}
+
+fn validate_gateways(process: &RawProcess) -> Result<()> {
+    let flow_by_id = process
+        .flows
+        .iter()
+        .map(|flow| (flow.flow_id.as_str(), flow))
+        .collect::<HashMap<_, _>>();
+
+    for node in &process.nodes {
+        let outgoing = process
+            .flows
+            .iter()
+            .filter(|flow| flow.source_ref == node.bpmn_id)
+            .collect::<Vec<_>>();
+
+        for flow in &outgoing {
+            if flow.condition_expression.is_none() {
+                continue;
+            }
+            if !matches!(
+                node.gateway_kind,
+                Some(BpmnGatewayKind::Exclusive | BpmnGatewayKind::Inclusive)
+            ) {
+                return Err(BpmnEngineError::UnsupportedGatewayConfiguration {
+                    process_id: process.process_id.clone(),
+                    node_id: node.bpmn_id.clone(),
+                    detail: "condition_expression_requires_conditional_gateway",
+                });
+            }
+        }
+
+        if !matches!(
+            node.gateway_kind,
+            Some(BpmnGatewayKind::Exclusive | BpmnGatewayKind::Inclusive)
+        ) {
+            continue;
+        }
+
+        validate_conditional_gateway_defaults_and_conditions(
+            process,
+            node,
+            &outgoing,
+            &flow_by_id,
+        )?;
+
+        if node.gateway_kind == Some(BpmnGatewayKind::Inclusive) {
+            validate_structured_inclusive_gateway(process, node, &outgoing)?;
+        }
+    }
+
+    Ok(())
+}
+
+fn validate_conditional_gateway_defaults_and_conditions<'a>(
+    process: &RawProcess,
+    node: &RawNode,
+    outgoing: &[&'a super::import::RawSequenceFlow],
+    flow_by_id: &HashMap<&'a str, &'a super::import::RawSequenceFlow>,
+) -> Result<()> {
+    if outgoing.len() <= 1 {
+        if node.default_flow_ref.is_some() {
+            return Err(BpmnEngineError::UnsupportedGatewayConfiguration {
+                process_id: process.process_id.clone(),
+                node_id: node.bpmn_id.clone(),
+                detail: "default_flow_requires_multiple_outgoing",
+            });
+        }
+        return Ok(());
+    }
+
+    let default_flow_id = node.default_flow_ref.as_deref();
+    if let Some(default_flow_id) = default_flow_id {
+        let Some(default_flow) = flow_by_id.get(default_flow_id).copied() else {
+            return Err(BpmnEngineError::UnsupportedGatewayConfiguration {
+                process_id: process.process_id.clone(),
+                node_id: node.bpmn_id.clone(),
+                detail: "unknown_default_flow",
+            });
+        };
+        if default_flow.source_ref != node.bpmn_id {
+            return Err(BpmnEngineError::UnsupportedGatewayConfiguration {
+                process_id: process.process_id.clone(),
+                node_id: node.bpmn_id.clone(),
+                detail: "default_flow_not_outgoing",
+            });
+        }
+        if default_flow.condition_expression.is_some() {
+            return Err(BpmnEngineError::UnsupportedGatewayConfiguration {
+                process_id: process.process_id.clone(),
+                node_id: node.bpmn_id.clone(),
+                detail: "default_flow_must_not_have_condition_expression",
+            });
+        }
+    }
+
+    for flow in outgoing {
+        if Some(flow.flow_id.as_str()) == default_flow_id {
+            continue;
+        }
+        let Some(condition_expression) = flow.condition_expression.as_deref() else {
+            return Err(BpmnEngineError::UnsupportedGatewayConfiguration {
+                process_id: process.process_id.clone(),
+                node_id: node.bpmn_id.clone(),
+                detail: "missing_condition_expression",
+            });
+        };
+        if !is_supported_gateway_condition(condition_expression) {
+            return Err(BpmnEngineError::UnsupportedGatewayConfiguration {
+                process_id: process.process_id.clone(),
+                node_id: node.bpmn_id.clone(),
+                detail: "unsupported_condition_expression",
+            });
+        }
+    }
+
+    Ok(())
+}
+
+fn validate_structured_inclusive_gateway(
+    process: &RawProcess,
+    node: &RawNode,
+    outgoing: &[&super::import::RawSequenceFlow],
+) -> Result<()> {
+    let incoming_len = process
+        .flows
+        .iter()
+        .filter(|flow| flow.target_ref == node.bpmn_id)
+        .count();
+
+    if incoming_len == 1 && outgoing.len() > 1 {
+        let _ = resolve_structured_inclusive_join(process, node)?;
+        return Ok(());
+    }
+
+    if incoming_len > 1 && outgoing.len() == 1 {
+        if node.default_flow_ref.is_some() {
+            return Err(BpmnEngineError::UnsupportedGatewayConfiguration {
+                process_id: process.process_id.clone(),
+                node_id: node.bpmn_id.clone(),
+                detail: "inclusive_join_default_not_supported",
+            });
+        }
+        if outgoing[0].condition_expression.is_some() {
+            return Err(BpmnEngineError::UnsupportedGatewayConfiguration {
+                process_id: process.process_id.clone(),
+                node_id: node.bpmn_id.clone(),
+                detail: "inclusive_join_condition_expression_not_supported",
+            });
+        }
+        return Ok(());
+    }
+
+    Err(BpmnEngineError::UnsupportedGatewayConfiguration {
+        process_id: process.process_id.clone(),
+        node_id: node.bpmn_id.clone(),
+        detail: "inclusive_gateway_requires_structured_split_or_join",
+    })
+}
+
+pub(crate) fn resolve_structured_inclusive_join(
+    process: &RawProcess,
+    node: &RawNode,
+) -> Result<Option<String>> {
+    if node.gateway_kind != Some(BpmnGatewayKind::Inclusive) {
+        return Ok(None);
+    }
+
+    let outgoing = process
+        .flows
+        .iter()
+        .filter(|flow| flow.source_ref == node.bpmn_id)
+        .collect::<Vec<_>>();
+    let incoming_len = process
+        .flows
+        .iter()
+        .filter(|flow| flow.target_ref == node.bpmn_id)
+        .count();
+
+    if !(incoming_len == 1 && outgoing.len() > 1) {
+        return Ok(None);
+    }
+
+    let flow_by_source = process.flows.iter().fold(
+        HashMap::<&str, Vec<&super::import::RawSequenceFlow>>::new(),
+        |mut acc, flow| {
+            acc.entry(flow.source_ref.as_str()).or_default().push(flow);
+            acc
+        },
+    );
+    let node_by_id = process
+        .nodes
+        .iter()
+        .map(|raw_node| (raw_node.bpmn_id.as_str(), raw_node))
+        .collect::<HashMap<_, _>>();
+
+    let mut join_node_id = None::<String>;
+    let mut seen_join_inputs = HashSet::new();
+    for flow in outgoing {
+        let (branch_join_node_id, join_input_flow_id) =
+            trace_inclusive_branch_to_join(process, node, flow, &node_by_id, &flow_by_source)?;
+        if !seen_join_inputs.insert(join_input_flow_id.clone()) {
+            return Err(BpmnEngineError::UnsupportedGatewayConfiguration {
+                process_id: process.process_id.clone(),
+                node_id: node.bpmn_id.clone(),
+                detail: "inclusive_split_branch_duplicate_join_input",
+            });
+        }
+        match &join_node_id {
+            Some(expected_join_node_id) if expected_join_node_id != &branch_join_node_id => {
+                return Err(BpmnEngineError::UnsupportedGatewayConfiguration {
+                    process_id: process.process_id.clone(),
+                    node_id: node.bpmn_id.clone(),
+                    detail: "inclusive_split_branch_mismatched_join",
+                });
+            }
+            None => join_node_id = Some(branch_join_node_id),
+            Some(_) => {}
+        }
+    }
+
+    join_node_id
+        .ok_or_else(|| BpmnEngineError::UnsupportedGatewayConfiguration {
+            process_id: process.process_id.clone(),
+            node_id: node.bpmn_id.clone(),
+            detail: "inclusive_split_missing_join",
+        })
+        .map(Some)
+}
+
+fn trace_inclusive_branch_to_join<'a>(
+    process: &RawProcess,
+    split_node: &RawNode,
+    initial_flow: &'a super::import::RawSequenceFlow,
+    node_by_id: &HashMap<&'a str, &'a RawNode>,
+    flow_by_source: &HashMap<&'a str, Vec<&'a super::import::RawSequenceFlow>>,
+) -> Result<(String, String)> {
+    let mut current_flow = initial_flow;
+    let mut visited_nodes = HashSet::new();
+
+    loop {
+        let Some(current_node) = node_by_id.get(current_flow.target_ref.as_str()).copied() else {
+            return Err(BpmnEngineError::UnknownSequenceFlowEndpoint {
+                process_id: process.process_id.clone(),
+                flow_id: current_flow.flow_id.clone(),
+                endpoint: "target",
+                node_id: current_flow.target_ref.clone(),
+            });
+        };
+
+        if !visited_nodes.insert(current_node.bpmn_id.as_str()) {
+            return Err(BpmnEngineError::UnsupportedGatewayConfiguration {
+                process_id: process.process_id.clone(),
+                node_id: split_node.bpmn_id.clone(),
+                detail: "inclusive_split_branch_not_linear",
+            });
+        }
+
+        if current_node.gateway_kind == Some(BpmnGatewayKind::Inclusive) {
+            let incoming_len = process
+                .flows
+                .iter()
+                .filter(|flow| flow.target_ref == current_node.bpmn_id)
+                .count();
+            let outgoing_len = flow_by_source
+                .get(current_node.bpmn_id.as_str())
+                .map_or(0, Vec::len);
+            if incoming_len > 1 && outgoing_len == 1 {
+                return Ok((current_node.bpmn_id.clone(), current_flow.flow_id.clone()));
+            }
+            return Err(BpmnEngineError::UnsupportedGatewayConfiguration {
+                process_id: process.process_id.clone(),
+                node_id: split_node.bpmn_id.clone(),
+                detail: "inclusive_split_branch_unsupported_gateway",
+            });
+        }
+
+        if current_node.kind == BpmnNodeKind::Gateway {
+            return Err(BpmnEngineError::UnsupportedGatewayConfiguration {
+                process_id: process.process_id.clone(),
+                node_id: split_node.bpmn_id.clone(),
+                detail: "inclusive_split_branch_unsupported_gateway",
+            });
+        }
+
+        let outgoing = flow_by_source
+            .get(current_node.bpmn_id.as_str())
+            .cloned()
+            .unwrap_or_default();
+        match outgoing.as_slice() {
+            [] => {
+                return Err(BpmnEngineError::UnsupportedGatewayConfiguration {
+                    process_id: process.process_id.clone(),
+                    node_id: split_node.bpmn_id.clone(),
+                    detail: "inclusive_split_branch_ends_before_join",
+                });
+            }
+            [next_flow] => {
+                current_flow = next_flow;
+            }
+            _ => {
+                return Err(BpmnEngineError::UnsupportedGatewayConfiguration {
+                    process_id: process.process_id.clone(),
+                    node_id: split_node.bpmn_id.clone(),
+                    detail: "inclusive_split_branch_not_linear",
+                });
+            }
+        }
+    }
 }
 
 fn validate_standard_loops(process: &super::import::RawProcess) -> Result<()> {

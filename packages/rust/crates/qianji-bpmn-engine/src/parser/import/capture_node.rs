@@ -61,3 +61,18 @@ pub(in crate::parser::import) fn apply_standard_loop_condition(
         (!loop_condition.trim().is_empty()).then(|| loop_condition.to_string());
     Ok(())
 }
+
+pub(in crate::parser::import) fn apply_sequence_flow_condition_expression(
+    process: &mut RawProcess,
+    condition_expression: &str,
+) -> Result<()> {
+    let flow = process
+        .flows
+        .last_mut()
+        .ok_or(BpmnEngineError::UnsupportedOperation {
+            operation: "apply_sequence_flow_condition_expression_missing_flow",
+        })?;
+    flow.condition_expression =
+        (!condition_expression.trim().is_empty()).then(|| condition_expression.trim().to_string());
+    Ok(())
+}

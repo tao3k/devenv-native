@@ -45,6 +45,8 @@ async fn runtime_standard_loop_repeats_until_loop_maximum() {
                 node_index: 1,
                 kind: PendingHostWorkKind::Service,
                 decision: None,
+                event_reference: None,
+                event_name: None,
                 work_id: None,
             }
         );

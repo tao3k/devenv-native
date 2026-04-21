@@ -1,8 +1,11 @@
+use crate::dmn_duration::{
+    DmnDurationFamily, parse_day_time_duration_str, parse_year_month_duration_str,
+};
 use crate::dmn_model_api::{
     DmnComparisonOperator, DmnDateComparison, DmnDateRange, DmnDateRangeBound,
-    DmnDateTimeComparison, DmnDateTimeRange, DmnDateTimeRangeBound, DmnInputEntry,
-    DmnNumericComparison, DmnNumericRange, DmnNumericRangeBound, DmnTimeComparison, DmnTimeRange,
-    DmnTimeRangeBound,
+    DmnDateTimeComparison, DmnDateTimeRange, DmnDateTimeRangeBound, DmnDurationComparison,
+    DmnDurationRange, DmnDurationRangeBound, DmnInputEntry, DmnNumericComparison, DmnNumericRange,
+    DmnNumericRangeBound, DmnTimeComparison, DmnTimeRange, DmnTimeRangeBound,
 };
 use crate::error::{BpmnEngineError, Result};
 use chrono::DateTime;
@@ -10,11 +13,18 @@ use chrono::FixedOffset;
 use chrono::NaiveDate;
 use chrono::NaiveDateTime;
 use chrono::NaiveTime;
+use std::sync::Arc;
 
 pub(super) fn parse_input_entry(source_id: &str, raw: &str) -> Result<DmnInputEntry> {
     let trimmed = raw.trim();
     if trimmed.is_empty() || trimmed == "-" {
         return Ok(DmnInputEntry::Any);
+    }
+    if let Ok(Some(duration)) = parse_duration_literal(source_id, trimmed) {
+        return Ok(DmnInputEntry::DurationEquals(Arc::<str>::from(duration)));
+    }
+    if let Ok(Some(date_time)) = parse_date_time_literal(source_id, trimmed) {
+        return Ok(DmnInputEntry::DateTimeEquals(Arc::<str>::from(date_time)));
     }
     if let Ok(literal) = parse_literal(source_id, trimmed) {
         return Ok(DmnInputEntry::Equals(literal));
@@ -26,6 +36,15 @@ pub(super) fn parse_input_entry(source_id: &str, raw: &str) -> Result<DmnInputEn
         return Ok(parsed);
     }
     if let Some(parsed) = parse_date_time_interval_range(source_id, trimmed)? {
+        return Ok(parsed);
+    }
+    if let Some(parsed) = parse_duration_comparison(source_id, trimmed)? {
+        return Ok(parsed);
+    }
+    if let Some(parsed) = parse_duration_question_mark_range(source_id, trimmed)? {
+        return Ok(parsed);
+    }
+    if let Some(parsed) = parse_duration_interval_range(source_id, trimmed)? {
         return Ok(parsed);
     }
     if let Some(parsed) = parse_date_comparison(source_id, trimmed)? {
@@ -72,6 +91,9 @@ pub(super) fn parse_literal(source_id: &str, raw: &str) -> Result<serde_json::Va
     if let Some(date_time) = parse_date_time_literal(source_id, trimmed)? {
         return Ok(serde_json::Value::String(date_time));
     }
+    if let Some(duration) = parse_duration_literal(source_id, trimmed)? {
+        return Ok(serde_json::Value::String(duration));
+    }
     if let Some(time) = parse_time_literal(source_id, trimmed)? {
         return Ok(serde_json::Value::String(time));
     }
@@ -110,7 +132,7 @@ fn parse_date_literal(source_id: &str, raw: &str) -> Result<Option<String>> {
             literal: trimmed.to_string(),
         });
     };
-    let Some(value) = parse_quoted_string(inner.trim()) else {
+    let Some(value) = parse_exact_quoted_string(inner.trim()) else {
         return Err(BpmnEngineError::UnsupportedDmnLiteral {
             source_id: source_id.to_string(),
             literal: trimmed.to_string(),
@@ -139,7 +161,7 @@ fn parse_time_literal(source_id: &str, raw: &str) -> Result<Option<String>> {
             literal: trimmed.to_string(),
         });
     };
-    let Some(value) = parse_quoted_string(inner.trim()) else {
+    let Some(value) = parse_exact_quoted_string(inner.trim()) else {
         return Err(BpmnEngineError::UnsupportedDmnLiteral {
             source_id: source_id.to_string(),
             literal: trimmed.to_string(),
@@ -168,7 +190,7 @@ fn parse_date_time_literal(source_id: &str, raw: &str) -> Result<Option<String>>
             literal: trimmed.to_string(),
         });
     };
-    let Some(value) = parse_quoted_string(inner.trim()) else {
+    let Some(value) = parse_exact_quoted_string(inner.trim()) else {
         return Err(BpmnEngineError::UnsupportedDmnLiteral {
             source_id: source_id.to_string(),
             literal: trimmed.to_string(),
@@ -178,12 +200,53 @@ fn parse_date_time_literal(source_id: &str, raw: &str) -> Result<Option<String>>
     Ok(Some(value))
 }
 
+fn parse_duration_literal(source_id: &str, raw: &str) -> Result<Option<String>> {
+    let trimmed = raw.trim();
+    if !trimmed.starts_with("duration(") {
+        return Ok(None);
+    }
+    let Some(inner) = trimmed
+        .strip_prefix("duration(")
+        .and_then(|value| value.strip_suffix(')'))
+    else {
+        return Err(BpmnEngineError::UnsupportedDmnLiteral {
+            source_id: source_id.to_string(),
+            literal: trimmed.to_string(),
+        });
+    };
+    let Some(value) = parse_exact_quoted_string(inner.trim()) else {
+        return Err(BpmnEngineError::UnsupportedDmnLiteral {
+            source_id: source_id.to_string(),
+            literal: trimmed.to_string(),
+        });
+    };
+    validate_supported_duration_literal(source_id, trimmed, &value)?;
+    Ok(Some(value))
+}
+
 fn validate_supported_date_time_literal(source_id: &str, raw: &str, value: &str) -> Result<()> {
     if NaiveDateTime::parse_from_str(value, "%Y-%m-%dT%H:%M:%S").is_ok() {
         return Ok(());
     }
     if DateTime::<FixedOffset>::parse_from_rfc3339(value).is_ok() {
         return Ok(());
+    }
+    Err(BpmnEngineError::UnsupportedDmnLiteral {
+        source_id: source_id.to_string(),
+        literal: raw.to_string(),
+    })
+}
+
+fn validate_supported_duration_literal(
+    source_id: &str,
+    raw: &str,
+    value: &str,
+) -> Result<DmnDurationFamily> {
+    if let Some(duration) = parse_day_time_duration_str(value) {
+        return Ok(duration.family());
+    }
+    if let Some(duration) = parse_year_month_duration_str(value) {
+        return Ok(duration.family());
     }
     Err(BpmnEngineError::UnsupportedDmnLiteral {
         source_id: source_id.to_string(),
@@ -227,6 +290,19 @@ fn parse_date_time_comparison(source_id: &str, raw: &str) -> Result<Option<DmnIn
     let value = parse_date_time_unary_value(source_id, value_raw.trim(), raw)?;
     Ok(Some(DmnInputEntry::DateTimeComparison(
         DmnDateTimeComparison::new(operator, value),
+    )))
+}
+
+fn parse_duration_comparison(source_id: &str, raw: &str) -> Result<Option<DmnInputEntry>> {
+    let Some((operator, value_raw)) = parse_comparison_prefix(raw) else {
+        return Ok(None);
+    };
+    if !value_raw.trim().starts_with("duration(") {
+        return Ok(None);
+    }
+    let value = parse_duration_unary_value(source_id, value_raw.trim(), raw)?;
+    Ok(Some(DmnInputEntry::DurationComparison(
+        DmnDurationComparison::new(operator, value),
     )))
 }
 
@@ -313,6 +389,32 @@ fn parse_date_time_question_mark_range(
     let lower = parse_left_question_mark_date_time_bound(source_id, left_raw.trim(), raw)?;
     let upper = parse_right_question_mark_date_time_bound(source_id, right_raw.trim(), raw)?;
     Ok(Some(DmnInputEntry::DateTimeRange(DmnDateTimeRange::new(
+        Some(lower),
+        Some(upper),
+    ))))
+}
+
+fn parse_duration_question_mark_range(source_id: &str, raw: &str) -> Result<Option<DmnInputEntry>> {
+    if !raw.contains('?') {
+        return Ok(None);
+    }
+    let Some((left_raw, right_raw)) = raw.split_once('?') else {
+        return Ok(None);
+    };
+    if right_raw.contains('?') {
+        return Err(BpmnEngineError::UnsupportedDmnUnaryTest {
+            source_id: source_id.to_string(),
+            expression: raw.to_string(),
+        });
+    }
+    if !(left_raw.contains("duration(") || right_raw.contains("duration(")) {
+        return Ok(None);
+    }
+
+    let lower = parse_left_question_mark_duration_bound(source_id, left_raw.trim(), raw)?;
+    let upper = parse_right_question_mark_duration_bound(source_id, right_raw.trim(), raw)?;
+    ensure_matching_duration_bound_families(source_id, raw, &lower.value, &upper.value)?;
+    Ok(Some(DmnInputEntry::DurationRange(DmnDurationRange::new(
         Some(lower),
         Some(upper),
     ))))
@@ -430,6 +532,38 @@ fn parse_date_time_interval_range(source_id: &str, raw: &str) -> Result<Option<D
     Ok(Some(DmnInputEntry::DateTimeRange(DmnDateTimeRange::new(
         Some(DmnDateTimeRangeBound::new(lower, first_char == '[')),
         Some(DmnDateTimeRangeBound::new(upper, last_char == ']')),
+    ))))
+}
+
+fn parse_duration_interval_range(source_id: &str, raw: &str) -> Result<Option<DmnInputEntry>> {
+    let Some(first_char) = raw.chars().next() else {
+        return Ok(None);
+    };
+    let Some(last_char) = raw.chars().last() else {
+        return Ok(None);
+    };
+    if !matches!(first_char, '[' | '(') || !matches!(last_char, ']' | ')') {
+        return Ok(None);
+    }
+    let Some(inner) = raw
+        .strip_prefix(first_char)
+        .and_then(|value| value.strip_suffix(last_char))
+    else {
+        return Ok(None);
+    };
+    let Some((lower_raw, upper_raw)) = inner.split_once("..") else {
+        return Ok(None);
+    };
+    if !(lower_raw.contains("duration(") || upper_raw.contains("duration(")) {
+        return Ok(None);
+    }
+
+    let lower = parse_duration_unary_value(source_id, lower_raw.trim(), raw)?;
+    let upper = parse_duration_unary_value(source_id, upper_raw.trim(), raw)?;
+    ensure_matching_duration_bound_families(source_id, raw, &lower, &upper)?;
+    Ok(Some(DmnInputEntry::DurationRange(DmnDurationRange::new(
+        Some(DmnDurationRangeBound::new(lower, first_char == '[')),
+        Some(DmnDurationRangeBound::new(upper, last_char == ']')),
     ))))
 }
 
@@ -567,6 +701,29 @@ fn parse_left_question_mark_date_time_bound(
     })
 }
 
+fn parse_left_question_mark_duration_bound(
+    source_id: &str,
+    raw: &str,
+    expression: &str,
+) -> Result<DmnDurationRangeBound> {
+    if let Some(value_raw) = raw.strip_suffix("<=") {
+        return Ok(DmnDurationRangeBound::new(
+            parse_duration_unary_value(source_id, value_raw.trim(), expression)?,
+            true,
+        ));
+    }
+    if let Some(value_raw) = raw.strip_suffix('<') {
+        return Ok(DmnDurationRangeBound::new(
+            parse_duration_unary_value(source_id, value_raw.trim(), expression)?,
+            false,
+        ));
+    }
+    Err(BpmnEngineError::UnsupportedDmnUnaryTest {
+        source_id: source_id.to_string(),
+        expression: expression.to_string(),
+    })
+}
+
 fn parse_right_question_mark_bound(
     source_id: &str,
     raw: &str,
@@ -659,6 +816,29 @@ fn parse_right_question_mark_date_time_bound(
     })
 }
 
+fn parse_right_question_mark_duration_bound(
+    source_id: &str,
+    raw: &str,
+    expression: &str,
+) -> Result<DmnDurationRangeBound> {
+    if let Some(value_raw) = raw.strip_prefix("<=") {
+        return Ok(DmnDurationRangeBound::new(
+            parse_duration_unary_value(source_id, value_raw.trim(), expression)?,
+            true,
+        ));
+    }
+    if let Some(value_raw) = raw.strip_prefix('<') {
+        return Ok(DmnDurationRangeBound::new(
+            parse_duration_unary_value(source_id, value_raw.trim(), expression)?,
+            false,
+        ));
+    }
+    Err(BpmnEngineError::UnsupportedDmnUnaryTest {
+        source_id: source_id.to_string(),
+        expression: expression.to_string(),
+    })
+}
+
 fn parse_numeric_value(source_id: &str, raw: &str, expression: &str) -> Result<f64> {
     match parse_literal(source_id, raw)? {
         serde_json::Value::Number(number) => {
@@ -706,6 +886,50 @@ fn parse_date_time_unary_value(source_id: &str, raw: &str, expression: &str) -> 
     }
 }
 
+fn parse_duration_unary_value(source_id: &str, raw: &str, expression: &str) -> Result<String> {
+    match parse_duration_literal(source_id, raw)? {
+        Some(duration) => Ok(duration),
+        None => Err(BpmnEngineError::UnsupportedDmnUnaryTest {
+            source_id: source_id.to_string(),
+            expression: expression.to_string(),
+        }),
+    }
+}
+
+fn ensure_matching_duration_bound_families(
+    source_id: &str,
+    expression: &str,
+    left: &str,
+    right: &str,
+) -> Result<()> {
+    let Some(left_family) = supported_duration_family(left) else {
+        return Err(BpmnEngineError::UnsupportedDmnUnaryTest {
+            source_id: source_id.to_string(),
+            expression: expression.to_string(),
+        });
+    };
+    let Some(right_family) = supported_duration_family(right) else {
+        return Err(BpmnEngineError::UnsupportedDmnUnaryTest {
+            source_id: source_id.to_string(),
+            expression: expression.to_string(),
+        });
+    };
+    if left_family == right_family {
+        return Ok(());
+    }
+    Err(BpmnEngineError::UnsupportedDmnUnaryTest {
+        source_id: source_id.to_string(),
+        expression: expression.to_string(),
+    })
+}
+
+fn supported_duration_family(value: &str) -> Option<DmnDurationFamily> {
+    if let Some(duration) = parse_day_time_duration_str(value) {
+        return Some(duration.family());
+    }
+    parse_year_month_duration_str(value).map(crate::dmn_duration::DmnDurationValue::family)
+}
+
 fn parse_quoted_string(raw: &str) -> Option<String> {
     let bytes = raw.as_bytes();
     if bytes.len() >= 2
@@ -715,6 +939,22 @@ fn parse_quoted_string(raw: &str) -> Option<String> {
         return Some(raw[1..raw.len() - 1].to_string());
     }
     None
+}
+
+fn parse_exact_quoted_string(raw: &str) -> Option<String> {
+    let bytes = raw.as_bytes();
+    if bytes.len() < 2 {
+        return None;
+    }
+    let quote = bytes[0];
+    if !matches!(quote, b'"' | b'\'') || bytes[bytes.len() - 1] != quote {
+        return None;
+    }
+    let inner = &raw[1..raw.len() - 1];
+    if inner.as_bytes().contains(&quote) {
+        return None;
+    }
+    Some(inner.to_string())
 }
 
 fn is_bare_string_token(raw: &str) -> bool {

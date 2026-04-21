@@ -54,12 +54,15 @@ fn bpmn_engine_dependency_smoke() {
         r#"<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"><bpmn:process id="gateway_flow"><bpmn:startEvent id="start" /><bpmn:inclusiveGateway id="decision" /><bpmn:endEvent id="end" /><bpmn:sequenceFlow id="flow_1" sourceRef="start" targetRef="decision" /><bpmn:sequenceFlow id="flow_2" sourceRef="decision" targetRef="end" /></bpmn:process></bpmn:definitions>"#,
     ));
     assert!(!bpmn_report.ok);
-    assert_eq!(bpmn_report.issues[0].code, "bpmn.unsupported_element");
+    assert_eq!(
+        bpmn_report.issues[0].code,
+        "bpmn.unsupported_gateway_configuration"
+    );
 
     let dmn_report = lint_dmn_source(&DmnSourceFile::new(
         "invalid-lint.dmn",
-        r#"<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/" id="Definitions_invalid"><decision id="decision_1"><decisionTable id="table_1"><input id="input_1"><inputExpression id="input_expression_1"><text>tier</text></inputExpression></input><output id="output_1" name="result" /></decisionTable></decision><decision id="decision_2"><decisionTable id="table_2"><input id="input_2"><inputExpression id="input_expression_2"><text>tier</text></inputExpression></input><output id="output_2" name="result" /></decisionTable></decision></definitions>"#,
+        r#"<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/" id="Definitions_invalid" name="Invalid Unary Test" namespace="http://example.com/dmn"><decision id="decision_1" name="Decision One"><decisionTable id="table_1" hitPolicy="UNIQUE"><input id="input_1" label="window"><inputExpression id="input_expression_1" typeRef="dayTimeDuration"><text>window</text></inputExpression></input><output id="output_1" name="result" label="result" typeRef="string" /><rule id="rule_1"><inputEntry id="input_entry_1"><text>duration(\"P1.5Y\")</text></inputEntry><outputEntry id="output_entry_1"><text>\"review\"</text></outputEntry></rule></decisionTable></decision></definitions>"#,
     ));
     assert!(!dmn_report.ok);
-    assert_eq!(dmn_report.issues[0].code, "dmn.unsupported_decision_count");
+    assert_eq!(dmn_report.issues[0].code, "dmn.unsupported_unary_test");
 }

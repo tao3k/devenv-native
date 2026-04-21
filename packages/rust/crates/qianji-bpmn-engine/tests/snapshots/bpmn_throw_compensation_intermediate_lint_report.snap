@@ -1,0 +1,29 @@
+---
+source: packages/rust/crates/qianji-bpmn-engine/tests/unit/lint/mod.rs
+expression: value
+---
+{
+  "domain": "bpmn",
+  "source_id": "invalid-throw-compensation-intermediate.bpmn",
+  "ok": false,
+  "issues": [
+    {
+      "code": "bpmn.unsupported_compensation_configuration",
+      "severity": "error",
+      "title": "Throw compensation intermediate events are deferred",
+      "summary": "Process 'throw_compensation_flow' compensation node 'throw_intermediate' uses `<intermediateThrowEvent><compensateEventDefinition ... /></intermediateThrowEvent>`, which is outside the bounded slice.",
+      "why_it_failed": "The current engine executes compensation only through two bounded shapes inside one transaction shell: explicit boundary-to-handler replay during transaction cancel and one synchronous targeted throw-compensation end event. It does not execute `activityRef`-targeted throw compensation directly from intermediate throw events.",
+      "repair_guidance": [
+        "If transaction rollback is really required, remodel the flow with one bounded transaction cancel path plus explicit compensation boundary-to-handler bindings on the completed activities.",
+        "If the flow only needs ordinary progression, remove `<compensateEventDefinition>` and keep normal sequence-flow routing to the next supported node.",
+        "Do not rely on `activityRef`-targeted compensation on throwing intermediate events in this bounded slice."
+      ],
+      "llm_fix_prompt": "Rewrite compensation node 'throw_intermediate' in process 'throw_compensation_flow' so it no longer throws compensation from `<bpmn:intermediateThrowEvent>`. Preserve workflow intent, but either restore ordinary sequence-flow progression or remodel the compensation behavior as explicit boundary-to-handler bindings inside one bounded transaction cancel path.",
+      "evidence": {
+        "detail": "throw_compensation_intermediate_event",
+        "node_id": "throw_intermediate",
+        "process_id": "throw_compensation_flow"
+      }
+    }
+  ]
+}

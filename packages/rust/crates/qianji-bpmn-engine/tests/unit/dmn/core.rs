@@ -53,7 +53,7 @@ fn dmn_parser_rejects_unsupported_unary_tests() {
         error,
         BpmnEngineError::UnsupportedDmnUnaryTest {
             source_id: "invalid-unsupported-unary-test.dmn".to_string(),
-            expression: "duration(\"P1D\")".to_string(),
+            expression: "duration(\"P1.5Y\")".to_string(),
         }
     );
 }

@@ -5,6 +5,7 @@ mod core;
 mod date;
 mod datetime;
 mod document;
+mod duration;
 mod numeric;
 mod snapshot;
 mod time;
