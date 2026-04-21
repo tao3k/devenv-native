@@ -14,11 +14,14 @@ in
   ];
   claude.code.enable = true;
   env = {
-    ANTHROPIC_BASE_URL = "https://api.kimi.com/coding";
-    ANTHROPIC_AUTH_TOKEN = config.secretspec.secrets.KIMI_API_KEY;
-    API_TIMEOUT_MS = "2000000";
+    ANTHROPIC_BASE_URL = "https://token-plan-sgp.xiaomimimo.com/anthropic";
+    ANTHROPIC_AUTH_TOKEN = config.secretspec.secrets.MIMO_API_KEY;
+    # API_TIMEOUT_MS = "2000000";
     alwaysThinkingEnabled = "true";
-    CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC = "1"; # Note: Convert to string
+    ANTHROPIC_MODEL = "mimo-v2-pro";
+    ANTHROPIC_SMALL_FAST_MODEL = "mimo-v2-pro";
+    ANTHROPIC_DEFAULT_SONNET_MODEL = "mimo-v2-pro";
+    ANTHROPIC_DEFAULT_OPUS_MODEL = "mimo-v2-pro";
   };
   claude.code.hooks = {
     # PostToolUse = {
@@ -58,9 +61,9 @@ in
     #     MINIMAX_API_RESOURCE_MODE = "url";
     #   };
     # };
-    # omniAgent = {
-      # type = "http";
-      # url = "http://127.0.0.1:3002/mcp";
+    omniAgent = {
+      type = "http";
+      url = "http://127.0.0.1:3002/mcp";
       # command = "omni";
       # args = [
       #   "mcp"
@@ -69,6 +72,6 @@ in
       #   # "--port"
       #   # "3002"
       # ];
-    #};
+    };
   };
 }
