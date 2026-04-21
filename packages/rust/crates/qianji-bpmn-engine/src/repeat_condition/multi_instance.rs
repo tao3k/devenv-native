@@ -1,5 +1,7 @@
-//! Shared bounded repeat-condition parsing and evaluation helpers.
-
+use super::common::{
+    ComparisonOperator, ParsedBooleanPathCondition, parse_boolean_path_condition,
+    parse_comparison_operator, resolve_boolean_variable_path,
+};
 use serde_json::Value;
 
 /// Engine-owned counters exposed to bounded multi-instance completion
@@ -24,31 +26,11 @@ pub(crate) enum MultiInstanceCompletionConditionError {
     UnsupportedExpression,
 }
 
-/// Evaluation error for bounded exclusive-gateway conditions.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) enum GatewayConditionError {
-    /// One boolean variable-path condition referenced a missing or non-boolean
-    /// value at runtime.
-    UnresolvedVariablePath(String),
-    /// The source condition is outside the supported bounded subset.
-    UnsupportedExpression,
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum CounterName {
     Total,
     Completed,
     Active,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum ComparisonOperator {
-    Eq,
-    Ne,
-    Lt,
-    Le,
-    Gt,
-    Ge,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -68,11 +50,6 @@ enum ParsedMultiInstanceCompletionCondition<'a> {
         operator: ComparisonOperator,
         rhs: ComparisonTarget,
     },
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum ParsedBooleanPathCondition<'a> {
-    BooleanPath { negated: bool, path: &'a str },
 }
 
 /// Returns whether the source condition fits the bounded multi-instance
@@ -109,30 +86,6 @@ pub(crate) fn evaluate_multi_instance_completion_condition(
     }
 }
 
-/// Returns whether the source condition fits the bounded exclusive-gateway
-/// subset.
-pub(crate) fn is_supported_gateway_condition(condition: &str) -> bool {
-    parse_boolean_path_condition(condition).is_some()
-}
-
-/// Evaluates one bounded exclusive-gateway condition.
-pub(crate) fn evaluate_gateway_condition(
-    condition: &str,
-    variables: &Value,
-) -> Result<bool, GatewayConditionError> {
-    let Some(parsed) = parse_boolean_path_condition(condition) else {
-        return Err(GatewayConditionError::UnsupportedExpression);
-    };
-
-    match parsed {
-        ParsedBooleanPathCondition::BooleanPath { negated, path } => {
-            let value = resolve_boolean_variable_path(variables, path)
-                .ok_or_else(|| GatewayConditionError::UnresolvedVariablePath(path.to_string()))?;
-            Ok(if negated { !value } else { value })
-        }
-    }
-}
-
 fn parse_multi_instance_completion_condition(
     condition: &str,
 ) -> Option<ParsedMultiInstanceCompletionCondition<'_>> {
@@ -141,34 +94,8 @@ fn parse_multi_instance_completion_condition(
         return None;
     }
 
-    if let Some(parsed) = parse_counter_comparison(trimmed) {
-        return Some(parsed);
-    }
-
-    if let Some(parsed) = parse_boolean_path_condition(trimmed) {
-        return Some(match parsed {
-            ParsedBooleanPathCondition::BooleanPath { negated, path } => {
-                ParsedMultiInstanceCompletionCondition::BooleanPath { negated, path }
-            }
-        });
-    }
-
-    None
-}
-
-fn parse_boolean_path_condition(source: &str) -> Option<ParsedBooleanPathCondition<'_>> {
-    let trimmed = source.trim();
-    if trimmed.is_empty() {
-        return None;
-    }
-    let (negated, path) = match trimmed.strip_prefix("not ") {
-        Some(path) => (true, path.trim()),
-        None => (false, trimmed),
-    };
-    if is_identifier_path(path) {
-        return Some(ParsedBooleanPathCondition::BooleanPath { negated, path });
-    }
-    None
+    parse_counter_comparison(trimmed)
+        .or_else(|| parse_boolean_path_condition(trimmed).map(parsed_multi_instance_boolean_path))
 }
 
 fn parse_counter_comparison(source: &str) -> Option<ParsedMultiInstanceCompletionCondition<'_>> {
@@ -188,18 +115,6 @@ fn parse_counter_name(source: &str) -> Option<CounterName> {
         "total" | "nrOfInstances" => Some(CounterName::Total),
         "completed" | "nrOfCompletedInstances" => Some(CounterName::Completed),
         "active" | "nrOfActiveInstances" => Some(CounterName::Active),
-        _ => None,
-    }
-}
-
-fn parse_comparison_operator(source: &str) -> Option<ComparisonOperator> {
-    match source {
-        "==" => Some(ComparisonOperator::Eq),
-        "!=" => Some(ComparisonOperator::Ne),
-        "<" => Some(ComparisonOperator::Lt),
-        "<=" => Some(ComparisonOperator::Le),
-        ">" => Some(ComparisonOperator::Gt),
-        ">=" => Some(ComparisonOperator::Ge),
         _ => None,
     }
 }
@@ -229,25 +144,11 @@ fn resolve_counter(counter: CounterName, counts: MultiInstanceCompletionCounts) 
     }
 }
 
-fn resolve_boolean_variable_path(variables: &Value, path: &str) -> Option<bool> {
-    let mut current = variables;
-    for segment in path.split('.') {
-        current = current.get(segment)?;
+fn parsed_multi_instance_boolean_path(
+    parsed: ParsedBooleanPathCondition<'_>,
+) -> ParsedMultiInstanceCompletionCondition<'_> {
+    ParsedMultiInstanceCompletionCondition::BooleanPath {
+        negated: parsed.negated,
+        path: parsed.path,
     }
-    current.as_bool()
-}
-
-fn is_identifier_path(path: &str) -> bool {
-    !path.is_empty() && path.split('.').all(is_identifier_segment)
-}
-
-fn is_identifier_segment(segment: &str) -> bool {
-    let mut chars = segment.chars();
-    let Some(first) = chars.next() else {
-        return false;
-    };
-    if !(first.is_ascii_alphabetic() || first == '_') {
-        return false;
-    }
-    chars.all(|ch| ch.is_ascii_alphanumeric() || ch == '_')
 }

@@ -55,10 +55,11 @@ The current crate documents itself as a bounded subset:
 
 1. `packages/rust/crates/qianji-bpmn-engine/src/lib.rs` now states that bounded
    `parallelGateway` split/join semantics and deterministic
-   `exclusiveGateway` routing with simple boolean-path outgoing
-   `sequenceFlow` `conditionExpression` values plus one optional `default`
-   flow, plus one bounded structured `inclusiveGateway` subset with the same
-   condition/default routing rules plus one matching linear join fragment, plus bounded
+   `exclusiveGateway` routing with simple boolean-path or numeric-comparison
+   outgoing `sequenceFlow` `conditionExpression` values plus one optional
+   `default` flow, plus one bounded structured `inclusiveGateway` subset with
+   the same condition/default routing rules plus one matching linear join
+   fragment, plus bounded
    `intermediateCatchEvent` waits backed by `messageEventDefinition`,
    `signalEventDefinition`, and snapshot-style `timerEventDefinition`, plus
    one bounded `receiveTask` message-wait shell, plus one bounded `sendTask`
@@ -110,11 +111,11 @@ The current crate documents itself as a bounded subset:
    plus one or more error boundaries.
 3. `packages/rust/crates/qianji-bpmn-engine/src/runtime/lifecycle.rs` now
    supports bounded multi-token routing for parallel split/join, bounded
-   exclusive condition-driven routing using simple boolean-path outgoing
-   `sequenceFlow` `conditionExpression` values plus one optional `default`
-   flow, plus one bounded structured inclusive split/join subset with the
-   same condition/default routing rules and one matching linear join
-   fragment, plus deterministic wait registration for intermediate
+   exclusive condition-driven routing using simple boolean-path or
+   numeric-comparison outgoing `sequenceFlow` `conditionExpression` values
+   plus one optional `default` flow, plus one bounded structured inclusive
+   split/join subset with the same condition/default routing rules and one
+   matching linear join fragment, plus deterministic wait registration for intermediate
    message/signal/timer catch events, one bounded `receiveTask` message wait
    shell, one bounded `sendTask` host-dispatch shell, one interrupting timer
    boundary path, and parent-frame enter/return semantics for one bounded
@@ -176,7 +177,7 @@ Evidence came from:
 | BPMN family | SpiffWorkflow evidence | Current engine parse status | Current engine runtime status | Severity | Recommended next slice |
 | --- | --- | --- | --- | --- | --- |
 | Core linear flow: `startEvent`, `endEvent`, `serviceTask`, `userTask`, `manualTask`, `businessRuleTask`, `sequenceFlow` | Covered by `SpiffWorkflow/spiff/parser/process.py`; also stated in ReadTheDocs tasks list | Supported | Supported for linear single-frontier routing; `businessRuleTask` can now execute locally when the parser-owned bundle snapshot or later callers register one matching engine-owned DMN definition, but adapter wiring remains incomplete | baseline | keep stable while widening richer shapes |
-| Gateways: exclusive, inclusive, parallel, event-based | Declared in ReadTheDocs; serializer config includes `ExclusiveGateway`, `InclusiveGateway`, `ParallelGateway`, `EventBasedGateway`; tests cover gateway families | `parallelGateway`, `exclusiveGateway`, one structured `inclusiveGateway` subset, and one bounded exclusive `eventBasedGateway` shape are supported | bounded `parallelGateway` split/join, bounded `exclusiveGateway` routing with simple boolean-path branch conditions plus one optional `default` flow, one structured `inclusiveGateway` split/join subset with the same condition/default rules plus one matching linear join fragment, and one bounded event-based winner-takes-all wait race are supported; broader unstructured inclusive joins and broader FEEL/script-backed gateway conditions remain unsupported | P1 | broader inclusive-gateway reachability and broader gateway-condition semantics |
+| Gateways: exclusive, inclusive, parallel, event-based | Declared in ReadTheDocs; serializer config includes `ExclusiveGateway`, `InclusiveGateway`, `ParallelGateway`, `EventBasedGateway`; tests cover gateway families | `parallelGateway`, `exclusiveGateway`, one structured `inclusiveGateway` subset, and one bounded exclusive `eventBasedGateway` shape are supported | bounded `parallelGateway` split/join, bounded `exclusiveGateway` routing with simple boolean-path or numeric-comparison branch conditions plus one optional `default` flow, one structured `inclusiveGateway` split/join subset with the same condition/default rules plus one matching linear join fragment, and one bounded event-based winner-takes-all wait race are supported; broader unstructured inclusive joins and broader FEEL/script-backed gateway conditions remain unsupported | P1 | broader inclusive-gateway reachability and broader gateway-condition semantics |
 | Intermediate, boundary, timer, message, signal, escalation, error, cancel events | Parser registrations and serializer config include boundary and intermediate events; tests cover timer, message, boundary, escalation, cancel, event-based gateways | Bounded `intermediateCatchEvent` support is now present for `messageEventDefinition`, `signalEventDefinition`, and `timerEventDefinition`; one interrupting timer `boundaryEvent` attached to one host-blocking task is also supported; one bounded transaction owner may now expose one cancel boundary plus one or more error boundaries; one bounded transaction cancel compensation subset with one explicit compensation-handler marker is also supported; and one synchronous targeted throw-compensation `endEvent` subset with explicit `activityRef` is now supported inside that same transaction shell | Intermediate message/signal/timer waits now register and resume through the engine-owned wait shell; one interrupting timer boundary path can cancel blocked host work; one bounded `eventBasedGateway` can race those waits and cancel the losing siblings; one bounded transaction cancel path can restore the parent frame, roll back transaction-local variable mutations, and route through the parent cancel boundary; one bounded transaction cancel compensation path can replay explicit compensation handlers in reverse completion order before that parent cancel boundary fires; one bounded transaction error path can restore the parent frame, preserve transaction-local variable mutations, route through every matching parent error boundary including one catch-all boundary, and cancel non-selected sibling boundaries; and one synchronous targeted throw-compensation end event can replay the referenced compensable activity before the transaction shell completes normally | P1 | broader event families plus default, intermediate, or asynchronous throw-compensation forms |
 | Script, send, and receive tasks | Registered in `SpiffWorkflow/spiff/parser/process.py`; tests cover script and event-driven workflows | Bounded `sendTask` and `receiveTask` are now supported when they carry exactly one message binding through task-level `messageRef` or one nested `messageEventDefinition`; `scriptTask` remains unsupported at parse time | `receiveTask` now reuses the engine-owned message-wait shell, `sendTask` now reuses the host-dispatch shell with preserved message metadata, `xiuxian-qianji` now wires that `sendTask` host work through the callback bridge and `qianji bpmn run --host-fixture` `send_tasks.<node_id>` contract, and `scriptTask` remains unsupported | P1 | `scriptTask`, correlations, and broader collaboration-aware message routing |
 | Subprocess, call activity, transaction subprocess | Registered in parser and serializer config; tests cover call activity and nested processes | One bounded embedded `subProcess` body with exactly one nested `startEvent` and at least one nested `endEvent`, one bounded `<transaction>` shell with exactly one nested `startEvent` and at least one nested `endEvent`, one bounded transaction owner with one cancel boundary plus one or more error boundaries, one bounded transaction cancel compensation subset with one explicit compensation-handler marker per compensable activity, one synchronous targeted throw-compensation end-event subset with explicit `activityRef`, and one bounded `callActivity` that targets another executable process in the same BPMN package are supported; compensation event subprocesses, default compensation, and broader transaction error propagation remain unsupported | The runtime can enter any of those bounded nested shapes through the same child-process frame model, suspend there, restore the parent frame on child completion, execute one bounded transaction cancel path with rollback through the parent boundary, execute one bounded transaction cancel compensation path that replays explicit compensation handlers in reverse completion order before the parent cancel boundary, execute one bounded transaction error path without rollback through every matching parent error boundary, cancel non-selected sibling boundaries on the same transaction owner, and execute one synchronous targeted throw-compensation end event that replays the referenced compensable activity before normal completion, but recursive call graphs, default or intermediate throw compensation, compensation event subprocesses, and broader nested subprocess families remain unsupported | P1 | default, intermediate, or asynchronous throw-compensation forms and broader transaction error propagation |
@@ -214,7 +215,7 @@ added mechanically:
    plus the landed bounded `receiveTask`/`sendTask` message-task family
 4. lane-aware or collaboration-aware execution surfaces
 5. broader condition-driven gateway branching beyond the bounded simple
-   boolean-path exclusive subset
+   boolean-path or numeric-comparison exclusive subset
 
 The correct reading is therefore:
 

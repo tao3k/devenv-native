@@ -12,10 +12,11 @@ Bounded BPMN and DMN workflow engine ownership for Qianji.
   duration decision predicates
 - checkpoint codecs plus distributed Valkey-backed checkpoint ownership
 - lightweight local checkpoint persistence behind the `sqlite` feature
-- bounded `exclusiveGateway` condition routing with simple boolean-path
-  `sequenceFlow` conditions plus one optional `default` branch
+- bounded `exclusiveGateway` condition routing with simple boolean-path or
+  numeric-comparison `sequenceFlow` conditions plus one optional `default`
+  branch
 - bounded structured `inclusiveGateway` split/join routing with the same
-  simple condition subset plus one matching linear join fragment
+  bounded condition subset plus one matching linear join fragment
 - bounded transaction cancel and error routing, including one explicit
   transaction-cancel compensation subset with reverse completion replay plus
   one synchronous targeted throw-compensation end-event subset

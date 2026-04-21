@@ -62,7 +62,7 @@ fn condition_expression_requires_conditional_gateway_issue(
         "The bounded engine currently supports `conditionExpression` only on outgoing sequence flows of one branching `exclusiveGateway` or one structured diverging `inclusiveGateway`.",
         vec![
             "Move the conditional routing behind one `exclusiveGateway` or one structured diverging `inclusiveGateway`, or remove the `conditionExpression` from the current non-conditional source flow.".to_string(),
-            "Keep the condition as one simple boolean variable path such as `approved` or `not approved` once it is attached to the bounded gateway branch.".to_string(),
+            "Keep the condition as one simple boolean variable path such as `approved` or `not approved`, or one numeric comparison such as `amount > 100`, once it is attached to the bounded gateway branch.".to_string(),
         ],
         format!(
             "Repair process '{process_id}' so node '{node_id}' uses `conditionExpression` only on outgoing sequence flows of one bounded `exclusiveGateway` or one structured diverging `inclusiveGateway`. Preserve workflow intent, but do not leave conditional sequence flows attached to non-conditional sources."
@@ -166,7 +166,7 @@ fn missing_condition_expression_issue(
         "In the bounded conditional-gateway slice, every non-default outgoing branch on a branching gateway must carry one supported `conditionExpression`.",
         vec![
             "Add one `conditionExpression` to every non-default outgoing branch of this bounded conditional gateway.".to_string(),
-            "Use one simple boolean variable path such as `approved`, `vip`, or `not approved`, and keep exactly one unconditional fallback only through `default`.".to_string(),
+            "Use one simple boolean variable path such as `approved`, `vip`, or `not approved`, or one numeric comparison such as `amount > 100`, and keep exactly one unconditional fallback only through `default`.".to_string(),
         ],
         format!(
             "Repair gateway '{node_id}' in process '{process_id}' so every non-default outgoing sequence flow has one supported `conditionExpression`, and reserve unconditional routing only for the optional `default` branch."
@@ -190,13 +190,13 @@ fn unsupported_condition_expression_issue(
         format!(
             "Process '{process_id}' gateway '{node_id}' uses a `conditionExpression` that is outside the bounded subset."
         ),
-        "The current engine accepts only simple boolean variable-path conditions on exclusive-gateway branches and structured inclusive-gateway branches, for example `approved`, `not approved`, or dotted paths such as `flags.approved`.",
+        "The current engine accepts only one bounded gateway-condition subset on exclusive-gateway branches and structured inclusive-gateway branches: simple boolean variable paths such as `approved`, `not approved`, or dotted paths such as `flags.approved`, plus numeric comparisons such as `amount > 100` or `risk >= 7`.",
         vec![
-            "Rewrite the branch condition as one simple boolean variable path, optionally prefixed with `not`.".to_string(),
-            "Do not use FEEL, comparisons like `approved == true`, scripts, function calls, or arithmetic in this bounded slice.".to_string(),
+            "Rewrite the branch condition as one simple boolean variable path, optionally prefixed with `not`, or as one numeric comparison from an identifier path to one numeric literal.".to_string(),
+            "Do not use FEEL, boolean-literal comparisons like `approved == true`, scripts, function calls, arithmetic, or logical combinations such as `approved and vip` in this bounded slice.".to_string(),
         ],
         format!(
-            "Rewrite the `conditionExpression` on gateway '{node_id}' in process '{process_id}' so it stays inside the bounded subset: one boolean variable path like `approved`, `not approved`, or `flags.approved`. Preserve workflow intent, but remove FEEL, comparisons, and script-style expressions."
+            "Rewrite the `conditionExpression` on gateway '{node_id}' in process '{process_id}' so it stays inside the bounded subset: one boolean variable path like `approved`, `not approved`, or `flags.approved`, or one numeric comparison like `amount > 100` or `risk >= 7`. Preserve workflow intent, but remove FEEL, boolean-literal comparisons, logical combinations, and script-style expressions."
         ),
         json!({
             "process_id": process_id,
@@ -240,17 +240,17 @@ fn unresolved_condition_variable_issue(
 ) -> LintIssue {
     LintIssue::new(
         "bpmn.unsupported_gateway_configuration",
-        "Conditional gateway condition reads a missing or non-boolean variable",
+        "Conditional gateway condition reads a missing or incompatible variable",
         format!(
-            "Process '{process_id}' gateway '{node_id}' evaluates one branch condition against a variable path that is missing or not boolean at runtime."
+            "Process '{process_id}' gateway '{node_id}' evaluates one branch condition against a variable path that is missing or incompatible with the bounded condition subset at runtime."
         ),
-        "The bounded runtime resolves each exclusive-gateway `conditionExpression` against JSON variables and expects the referenced path to exist and hold a boolean value.",
+        "The bounded runtime resolves each gateway `conditionExpression` against JSON variables and expects the referenced path to exist with a compatible value type: boolean for boolean-path conditions, or finite JSON number for numeric comparisons.",
         vec![
-            "Populate the referenced variable path before this gateway runs, and ensure the value is `true` or `false` rather than a string or number.".to_string(),
-            "If the variable is optional, redesign the gateway to use a different guaranteed boolean path plus an unconditional `default` fallback.".to_string(),
+            "Populate the referenced variable path before this gateway runs, and ensure the value type matches the bounded condition subset: `true`/`false` for boolean-path conditions, or one JSON number for numeric comparisons.".to_string(),
+            "If the variable is optional, redesign the gateway to use a different guaranteed path plus an unconditional `default` fallback.".to_string(),
         ],
         format!(
-            "Repair process '{process_id}' so gateway '{node_id}' reads only existing boolean variable paths at runtime. Preserve workflow intent, but do not leave branch conditions depending on missing or non-boolean values."
+            "Repair process '{process_id}' so gateway '{node_id}' reads only existing compatible variable paths at runtime. Preserve workflow intent, but do not leave branch conditions depending on missing values, booleans where numbers are required, or numbers where boolean paths are required."
         ),
         json!({
             "process_id": process_id,

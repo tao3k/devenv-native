@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  id="pkg_inclusive_gateway_numeric">
+  <bpmn:process id="inclusive_gateway_numeric" isExecutable="true">
+    <bpmn:startEvent id="start" />
+    <bpmn:inclusiveGateway id="decision" default="flow_default" />
+    <bpmn:manualTask id="review_amount" />
+    <bpmn:manualTask id="review_risk" />
+    <bpmn:manualTask id="review_default" />
+    <bpmn:inclusiveGateway id="join" />
+    <bpmn:endEvent id="end" />
+
+    <bpmn:sequenceFlow id="flow_start" sourceRef="start" targetRef="decision" />
+    <bpmn:sequenceFlow id="flow_amount" sourceRef="decision" targetRef="review_amount">
+      <bpmn:conditionExpression>amount > 100</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="flow_risk" sourceRef="decision" targetRef="review_risk">
+      <bpmn:conditionExpression>risk >= 7</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="flow_default" sourceRef="decision" targetRef="review_default" />
+    <bpmn:sequenceFlow id="flow_amount_join" sourceRef="review_amount" targetRef="join" />
+    <bpmn:sequenceFlow id="flow_risk_join" sourceRef="review_risk" targetRef="join" />
+    <bpmn:sequenceFlow id="flow_default_join" sourceRef="review_default" targetRef="join" />
+    <bpmn:sequenceFlow id="flow_end" sourceRef="join" targetRef="end" />
+  </bpmn:process>
+</bpmn:definitions>

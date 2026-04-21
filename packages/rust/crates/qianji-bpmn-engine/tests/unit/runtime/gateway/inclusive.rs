@@ -1,4 +1,7 @@
-use super::super::{StubHost, inclusive_branch_process, inclusive_host_block_process};
+use super::super::{
+    StubHost, inclusive_branch_process, inclusive_host_block_process,
+    inclusive_numeric_branch_process,
+};
 use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnInstanceInit, BpmnPackage, PendingHostWorkKind, PendingHostWorkResult,
@@ -142,4 +145,45 @@ async fn runtime_inclusive_gateway_waits_for_blocked_selected_branch_before_join
     );
     assert!(instance.active_tokens.is_empty());
     assert!(instance.joins.is_empty());
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn runtime_inclusive_gateway_numeric_conditions_select_matching_branches() {
+    let package = Arc::new(BpmnPackage::new(
+        "pkg_runtime",
+        vec![inclusive_numeric_branch_process("inclusive_branch_numeric")],
+    ));
+    let mut instance = create_instance(
+        Arc::clone(&package),
+        "inclusive_branch_numeric",
+        BpmnInstanceInit::new(
+            "wf_inclusive_numeric",
+            json!({ "amount": 50, "risk": 8 }),
+            10,
+        ),
+    )
+    .must("instance should be created");
+
+    let outcome = advance_instance(package.as_ref(), &mut instance, &StubHost::new(72))
+        .await
+        .must("inclusive branching should select the matching numeric branch");
+
+    assert_eq!(outcome, BpmnAdvanceOutcome::Completed);
+    assert_eq!(
+        instance.lifecycle,
+        qianji_bpmn_engine::InstanceLifecycle::Completed
+    );
+    assert!(instance.active_tokens.is_empty());
+    assert_eq!(
+        instance.node_states[2].status,
+        qianji_bpmn_engine::NodeRuntimeStatus::Idle
+    );
+    assert_eq!(
+        instance.node_states[3].status,
+        qianji_bpmn_engine::NodeRuntimeStatus::Completed
+    );
+    assert_eq!(
+        instance.node_states[4].status,
+        qianji_bpmn_engine::NodeRuntimeStatus::Idle
+    );
 }

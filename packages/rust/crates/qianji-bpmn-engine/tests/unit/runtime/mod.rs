@@ -223,6 +223,28 @@ fn exclusive_branch_process(process_id: &str) -> BpmnProcessSpec {
     )
 }
 
+fn exclusive_numeric_branch_process(process_id: &str) -> BpmnProcessSpec {
+    BpmnProcessSpec::new(
+        ProcessKey::new("pkg_runtime", process_id, format!("digest_{process_id}")),
+        vec![
+            BpmnNodeSpec::new(0, "start", BpmnNodeKind::StartEvent),
+            BpmnNodeSpec::new(1, "decision", BpmnNodeKind::Gateway)
+                .with_gateway_kind(BpmnGatewayKind::Exclusive)
+                .with_default_outgoing_edge(3),
+            BpmnNodeSpec::new(2, "end_left", BpmnNodeKind::EndEvent),
+            BpmnNodeSpec::new(3, "end_right", BpmnNodeKind::EndEvent),
+            BpmnNodeSpec::new(4, "end_default", BpmnNodeKind::EndEvent),
+        ],
+        vec![
+            BpmnEdgeSpec::new(0, 1, None::<&str>),
+            BpmnEdgeSpec::new(1, 2, Some("left")).with_condition_expression("amount > 100"),
+            BpmnEdgeSpec::new(1, 3, Some("right")).with_condition_expression("risk >= 7"),
+            BpmnEdgeSpec::new(1, 4, Some("default")),
+        ],
+        Vec::new(),
+    )
+}
+
 fn inclusive_branch_process(process_id: &str) -> BpmnProcessSpec {
     BpmnProcessSpec::new(
         ProcessKey::new("pkg_runtime", process_id, format!("digest_{process_id}")),
@@ -246,6 +268,39 @@ fn inclusive_branch_process(process_id: &str) -> BpmnProcessSpec {
             BpmnEdgeSpec::new(0, 1, None::<&str>),
             BpmnEdgeSpec::new(1, 2, Some("left")).with_condition_expression("approved"),
             BpmnEdgeSpec::new(1, 3, Some("right")).with_condition_expression("vip"),
+            BpmnEdgeSpec::new(1, 4, Some("default")),
+            BpmnEdgeSpec::new(2, 5, None::<&str>),
+            BpmnEdgeSpec::new(3, 5, None::<&str>),
+            BpmnEdgeSpec::new(4, 5, None::<&str>),
+            BpmnEdgeSpec::new(5, 6, None::<&str>),
+        ],
+        Vec::new(),
+    )
+}
+
+fn inclusive_numeric_branch_process(process_id: &str) -> BpmnProcessSpec {
+    BpmnProcessSpec::new(
+        ProcessKey::new("pkg_runtime", process_id, format!("digest_{process_id}")),
+        vec![
+            BpmnNodeSpec::new(0, "start", BpmnNodeKind::StartEvent),
+            BpmnNodeSpec::new(1, "decision", BpmnNodeKind::Gateway)
+                .with_gateway_kind(BpmnGatewayKind::Inclusive)
+                .with_default_outgoing_edge(3)
+                .with_inclusive_join_node(5),
+            BpmnNodeSpec::new(2, "left_pass", BpmnNodeKind::Gateway)
+                .with_gateway_kind(BpmnGatewayKind::Exclusive),
+            BpmnNodeSpec::new(3, "right_pass", BpmnNodeKind::Gateway)
+                .with_gateway_kind(BpmnGatewayKind::Exclusive),
+            BpmnNodeSpec::new(4, "default_pass", BpmnNodeKind::Gateway)
+                .with_gateway_kind(BpmnGatewayKind::Exclusive),
+            BpmnNodeSpec::new(5, "join", BpmnNodeKind::Gateway)
+                .with_gateway_kind(BpmnGatewayKind::Inclusive),
+            BpmnNodeSpec::new(6, "end", BpmnNodeKind::EndEvent),
+        ],
+        vec![
+            BpmnEdgeSpec::new(0, 1, None::<&str>),
+            BpmnEdgeSpec::new(1, 2, Some("left")).with_condition_expression("amount > 100"),
+            BpmnEdgeSpec::new(1, 3, Some("right")).with_condition_expression("risk >= 7"),
             BpmnEdgeSpec::new(1, 4, Some("default")),
             BpmnEdgeSpec::new(2, 5, None::<&str>),
             BpmnEdgeSpec::new(3, 5, None::<&str>),

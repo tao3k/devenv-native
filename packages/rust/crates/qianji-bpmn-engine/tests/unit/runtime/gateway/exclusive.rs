@@ -1,4 +1,4 @@
-use super::super::{StubHost, exclusive_branch_process};
+use super::super::{StubHost, exclusive_branch_process, exclusive_numeric_branch_process};
 use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnEngineError, BpmnInstanceInit, BpmnPackage, advance_instance,
@@ -96,5 +96,41 @@ async fn runtime_exclusive_gateway_reports_unresolved_condition_variables() {
             node_id: "decision".to_string(),
             detail: "unresolved_condition_variable",
         }
+    );
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn runtime_exclusive_gateway_numeric_condition_wins_first_matching_branch() {
+    let package = Arc::new(BpmnPackage::new(
+        "pkg_runtime",
+        vec![exclusive_numeric_branch_process("exclusive_branch_numeric")],
+    ));
+    let mut instance = create_instance(
+        Arc::clone(&package),
+        "exclusive_branch_numeric",
+        BpmnInstanceInit::new(
+            "wf_exclusive_branch_numeric",
+            json!({ "amount": 120, "risk": 9 }),
+            10,
+        ),
+    )
+    .must("instance should be created");
+
+    let outcome = advance_instance(package.as_ref(), &mut instance, &StubHost::new(77))
+        .await
+        .must("exclusive branching should follow the first matching numeric condition");
+
+    assert_eq!(outcome, BpmnAdvanceOutcome::Completed);
+    assert_eq!(
+        instance.node_states[2].status,
+        qianji_bpmn_engine::NodeRuntimeStatus::Completed
+    );
+    assert_eq!(
+        instance.node_states[3].status,
+        qianji_bpmn_engine::NodeRuntimeStatus::Idle
+    );
+    assert_eq!(
+        instance.node_states[4].status,
+        qianji_bpmn_engine::NodeRuntimeStatus::Idle
     );
 }

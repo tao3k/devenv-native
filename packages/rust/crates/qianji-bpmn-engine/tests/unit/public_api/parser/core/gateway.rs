@@ -141,6 +141,31 @@ fn parser_invalid_structured_inclusive_gateway_is_rejected() {
 }
 
 #[test]
+fn parser_structured_inclusive_gateway_numeric_conditions_materialize() {
+    let package = parse_fixture_package("inclusive-gateway-structured-numeric.bpmn");
+    let process = package
+        .find_process("inclusive_gateway_numeric")
+        .must("process should be present");
+
+    assert_eq!(process.nodes[1].kind, BpmnNodeKind::Gateway);
+    assert_eq!(
+        process.nodes[1].gateway_kind,
+        Some(BpmnGatewayKind::Inclusive)
+    );
+    assert_eq!(process.nodes[1].default_outgoing_edge, Some(3));
+    assert_eq!(process.nodes[1].inclusive_join_node, Some(5));
+    assert_eq!(
+        process.edges[1].condition_expression.as_deref(),
+        Some("amount > 100")
+    );
+    assert_eq!(
+        process.edges[2].condition_expression.as_deref(),
+        Some("risk >= 7")
+    );
+    assert_eq!(process.edges[3].condition_expression, None);
+}
+
+#[test]
 fn parser_exclusive_gateway_conditions_and_default_flow_materialize() {
     let package = parse_fixture_package("exclusive-gateway-conditions-default.bpmn");
     let process = package
@@ -160,6 +185,30 @@ fn parser_exclusive_gateway_conditions_and_default_flow_materialize() {
     assert_eq!(
         process.edges[2].condition_expression.as_deref(),
         Some("vip")
+    );
+    assert_eq!(process.edges[3].condition_expression, None);
+}
+
+#[test]
+fn parser_exclusive_gateway_numeric_conditions_materialize() {
+    let package = parse_fixture_package("exclusive-gateway-conditions-numeric.bpmn");
+    let process = package
+        .find_process("exclusive_gateway_numeric_conditions")
+        .must("process should be present");
+
+    assert_eq!(process.nodes[1].kind, BpmnNodeKind::Gateway);
+    assert_eq!(
+        process.nodes[1].gateway_kind,
+        Some(BpmnGatewayKind::Exclusive)
+    );
+    assert_eq!(process.nodes[1].default_outgoing_edge, Some(3));
+    assert_eq!(
+        process.edges[1].condition_expression.as_deref(),
+        Some("amount > 100")
+    );
+    assert_eq!(
+        process.edges[2].condition_expression.as_deref(),
+        Some("risk >= 7")
     );
     assert_eq!(process.edges[3].condition_expression, None);
 }

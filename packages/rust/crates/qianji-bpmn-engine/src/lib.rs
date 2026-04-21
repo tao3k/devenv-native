@@ -14,10 +14,11 @@
 //! business-rule execution is populated from parse-time inputs instead of
 //! test-only manual wiring.
 //! Bounded `parallelGateway` split/join semantics, bounded
-//! `exclusiveGateway` routing with simple boolean-path outgoing
-//! `sequenceFlow` `conditionExpression` values plus one optional `default`
-//! flow, one bounded structured `inclusiveGateway` subset with the same
-//! condition/default routing rules plus one matching linear join fragment,
+//! `exclusiveGateway` routing with simple boolean-path or numeric-comparison
+//! outgoing `sequenceFlow` `conditionExpression` values plus one optional
+//! `default` flow, one bounded structured `inclusiveGateway` subset with the
+//! same condition/default routing rules plus one matching linear join
+//! fragment,
 //! and one bounded exclusive `eventBasedGateway` whose outgoing targets are
 //! message/signal/timer `intermediateCatchEvent` waits, plus
 //! `intermediateCatchEvent` waits backed by `messageEventDefinition`,
