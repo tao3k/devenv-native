@@ -30,7 +30,8 @@ impl TestValkey {
         let temp_dir = tempfile::tempdir().context("failed to create temp dir for valkey")?;
         let dir = temp_dir.path();
         let log_path = dir.join("valkey.log");
-        let child = Command::new("valkey-server")
+        let server_bin = resolve_valkey_server_binary()?;
+        let child = Command::new(&server_bin)
             .arg("--bind")
             .arg("127.0.0.1")
             .arg("--port")
@@ -46,7 +47,12 @@ impl TestValkey {
             .stdout(Stdio::null())
             .stderr(Stdio::null())
             .spawn()
-            .context("failed to spawn valkey-server for test")?;
+            .with_context(|| {
+                format!(
+                    "failed to spawn valkey-server for test via {}",
+                    server_bin.display()
+                )
+            })?;
         let url = format!("redis://127.0.0.1:{port}/0");
 
         let mut server = Self {
@@ -123,6 +129,33 @@ fn reserve_local_port() -> Result<u16> {
         .context("failed to read reserved local port")?
         .port();
     Ok(port)
+}
+
+fn resolve_valkey_server_binary() -> Result<PathBuf> {
+    if let Some(explicit) = std::env::var_os("VALKEY_SERVER_BIN")
+        && !explicit.is_empty()
+    {
+        let path = PathBuf::from(explicit);
+        if path.is_file() {
+            return Ok(path);
+        }
+        bail!(
+            "VALKEY_SERVER_BIN points to {}, but that file does not exist",
+            path.display()
+        );
+    }
+
+    let Some(path_var) = std::env::var_os("PATH") else {
+        bail!("PATH is not set and VALKEY_SERVER_BIN was not provided");
+    };
+    for entry in std::env::split_paths(&path_var) {
+        let candidate = entry.join("valkey-server");
+        if candidate.is_file() {
+            return Ok(candidate);
+        }
+    }
+
+    bail!("failed to locate valkey-server on PATH; set VALKEY_SERVER_BIN explicitly if needed")
 }
 
 fn read_log_excerpt(path: &Path) -> Option<String> {
