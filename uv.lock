@@ -12,6 +12,7 @@ resolution-markers = [
 
 [manifest]
 members = [
+    "qianji-workflow-contracts",
     "wendao-arrow-interface",
     "wendao-core-lib",
     "xiuxian-artisan-workshop-py",
@@ -769,6 +770,21 @@ wheels = [
 ]
 
 [[package]]
+name = "qianji-workflow-contracts"
+version = "0.1.0"
+source = { editable = "packages/python/qianji-workflow-contracts" }
+
+[package.dev-dependencies]
+test = [
+    { name = "pytest" },
+]
+
+[package.metadata]
+
+[package.metadata.requires-dev]
+test = [{ name = "pytest", specifier = ">=8.0" }]
+
+[[package]]
 name = "requests"
 version = "2.32.5"
 source = { registry = "https://pypi.org/simple" }
@@ -964,6 +980,7 @@ dev = [
     { name = "pytest-rerunfailures" },
     { name = "pytest-timeout" },
     { name = "pytest-xdist" },
+    { name = "qianji-workflow-contracts" },
     { name = "ruff" },
     { name = "vulture" },
     { name = "wendao-arrow-interface" },
@@ -994,6 +1011,7 @@ dev = [
     { name = "pytest-rerunfailures", specifier = ">=14.0" },
     { name = "pytest-timeout", specifier = ">=2.3.0" },
     { name = "pytest-xdist", specifier = ">=3.6.1" },
+    { name = "qianji-workflow-contracts", editable = "packages/python/qianji-workflow-contracts" },
     { name = "ruff", specifier = ">=0.14.10" },
     { name = "vulture", specifier = ">=2.14" },
     { name = "wendao-arrow-interface", editable = "packages/python/wendao-arrow-interface" },
