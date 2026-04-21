@@ -29,3 +29,6 @@ Bounded BPMN and DMN workflow engine ownership for Qianji.
   `xiuxian-qianji`, not in the engine core.
 - DMN widening should stay incremental and preserve LLM-friendly repair
   guidance rather than trading precision for broad but lossy support.
+- `src/lint/bpmn/` is the current BPMN lint owner for entry dispatch,
+  document and topology guidance, reference and identity mapping, execution
+  families, and unexpected-error fallback.

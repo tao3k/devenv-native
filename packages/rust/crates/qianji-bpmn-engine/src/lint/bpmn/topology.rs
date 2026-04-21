@@ -1,0 +1,63 @@
+use super::boundary::boundary_configuration_issue;
+use crate::error::BpmnEngineError;
+use crate::lint_api::LintIssue;
+use serde_json::json;
+
+pub(super) fn issue_from_bpmn_topology_error(error: &BpmnEngineError) -> Option<LintIssue> {
+    Some(match error {
+        BpmnEngineError::UnknownBoundaryAttachment {
+            process_id,
+            node_id,
+            attached_to_node_id,
+        } => LintIssue::new(
+            "bpmn.unknown_boundary_attachment",
+            "Boundary event attaches to an unknown node",
+            format!(
+                "Process '{process_id}' boundary event '{node_id}' references missing attached node '{attached_to_node_id}'."
+            ),
+            "The bounded engine can only normalize a boundary event when `attachedToRef` points to an existing host-blocking task node in the same process.",
+            vec![
+                format!("Change `attachedToRef` on boundary event '{node_id}' to an existing node id in process '{process_id}'."),
+                "Attach the boundary only to one serviceTask, userTask, manualTask, or businessRuleTask.".to_string(),
+            ],
+            format!(
+                "Edit process '{process_id}' so boundary event '{node_id}' uses an `attachedToRef` that points to an existing serviceTask, userTask, manualTask, or businessRuleTask. Preserve workflow intent, but do not leave the boundary attached to missing node '{attached_to_node_id}'."
+            ),
+            json!({
+                "process_id": process_id,
+                "node_id": node_id,
+                "attached_to_node_id": attached_to_node_id,
+            }),
+        ),
+        BpmnEngineError::UnsupportedBoundaryEventConfiguration {
+            process_id,
+            node_id,
+            detail,
+        } => return Some(boundary_configuration_issue(process_id, node_id, detail)),
+        BpmnEngineError::UnsupportedEventBasedGatewayConfiguration {
+            process_id,
+            node_id,
+            detail,
+        } => LintIssue::new(
+            "bpmn.unsupported_event_based_gateway_configuration",
+            "Event-based gateway configuration exceeds the bounded slice",
+            format!(
+                "Process '{process_id}' event-based gateway '{node_id}' uses unsupported configuration '{detail}'."
+            ),
+            "The current engine supports only one bounded event-based gateway shape: one exclusive eventBasedGateway whose outgoing paths all target message, signal, or timer intermediate catch events.",
+            vec![
+                "Keep the winner-takes-all intent, but make every outgoing branch from the eventBasedGateway point to one intermediateCatchEvent.".to_string(),
+                "Use only messageEventDefinition, signalEventDefinition, or timerEventDefinition on those waiting nodes in this bounded slice.".to_string(),
+            ],
+            format!(
+                "Rewrite event-based gateway '{node_id}' in process '{process_id}' so it fits the bounded slice: use one exclusive `eventBasedGateway` with at least two outgoing branches, and make every outgoing target one `intermediateCatchEvent` with exactly one `messageEventDefinition`, `signalEventDefinition`, or `timerEventDefinition`. Preserve workflow intent, but remove unsupported configuration '{detail}'."
+            ),
+            json!({
+                "process_id": process_id,
+                "node_id": node_id,
+                "detail": detail,
+            }),
+        ),
+        _ => return None,
+    })
+}
