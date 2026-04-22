@@ -154,6 +154,35 @@ fn parser_transaction_throw_compensation_intermediate_materializes_target_refere
 }
 
 #[test]
+fn parser_transaction_default_throw_compensation_intermediate_materializes_unqualified_event() {
+    let package = parse_bpmn_package(
+        &[fixture_source("transaction-default-compensation-intermediate.bpmn")],
+        &BpmnParseOptions::default(),
+    )
+    .must(
+        "default throw compensation intermediate event should parse in the bounded transaction subset",
+    );
+    let child = package
+        .find_process(TRANSACTION_PROCESS_ID)
+        .must("transaction shell child process should be present");
+    let throw_intermediate = child
+        .nodes
+        .iter()
+        .find(|node| node.bpmn_id.as_ref() == "tx_throw_intermediate_default")
+        .must("default throw compensation intermediate event should be present");
+
+    assert_eq!(
+        throw_intermediate.kind,
+        BpmnNodeKind::IntermediateThrowEvent
+    );
+    let event = child
+        .event_for_node(throw_intermediate.index)
+        .must("default throw compensation intermediate event should materialize an event");
+    assert_eq!(event.kind, BpmnEventKind::Compensation);
+    assert_eq!(event.reference_id, None);
+}
+
+#[test]
 fn parser_rejects_throw_compensation_end_event_with_compensation_detail() {
     let error = parse_bpmn_package(
         &[fixture_source("invalid-throw-compensation-end.bpmn")],
@@ -227,26 +256,6 @@ fn parser_rejects_throw_compensation_intermediate_event_with_compensation_detail
             process_id: "throw_compensation_flow".to_string(),
             node_id: "throw_intermediate".to_string(),
             detail: "throw_compensation_intermediate_event",
-        }
-    );
-}
-
-#[test]
-fn parser_rejects_default_compensation_intermediate_event_with_compensation_detail() {
-    let error = parse_bpmn_package(
-        &[fixture_source(
-            "invalid-default-compensation-intermediate.bpmn",
-        )],
-        &BpmnParseOptions::default(),
-    )
-    .must_err("default compensation intermediate events should stay deferred");
-
-    assert_eq!(
-        error,
-        BpmnEngineError::UnsupportedCompensationConfiguration {
-            process_id: "throw_compensation_flow".to_string(),
-            node_id: "throw_intermediate".to_string(),
-            detail: "default_compensation_intermediate_event",
         }
     );
 }

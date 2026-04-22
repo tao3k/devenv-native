@@ -6,7 +6,7 @@ use crate::runtime::lifecycle::scope::{
 use crate::runtime::lifecycle::state;
 use crate::runtime_instance_api::TransactionCompensationCompletionMode;
 
-pub(super) fn transaction_compensation_is_running(instance: &BpmnInstanceState) -> bool {
+pub(crate) fn transaction_compensation_is_running(instance: &BpmnInstanceState) -> bool {
     instance
         .call_stack
         .last()
@@ -14,7 +14,7 @@ pub(super) fn transaction_compensation_is_running(instance: &BpmnInstanceState) 
         .is_some_and(|state| state.cancelling)
 }
 
-pub(super) fn complete_compensation_handler(
+pub(crate) fn complete_compensation_handler(
     package: &BpmnPackage,
     process: &BpmnProcessSpec,
     instance: &mut BpmnInstanceState,
@@ -109,7 +109,33 @@ pub(super) fn queue_transaction_compensation_targets(
     Ok(true)
 }
 
-fn route_after_intermediate_throw_compensation(
+pub(crate) fn record_completed_compensable_activity(
+    process: &BpmnProcessSpec,
+    instance: &mut BpmnInstanceState,
+    node_index: BpmnNodeIndex,
+) {
+    if process.nodes[node_index as usize].is_for_compensation {
+        return;
+    }
+    if process
+        .compensation_handler_for_activity(node_index)
+        .is_none()
+    {
+        return;
+    }
+    let Some(frame) = instance.call_stack.last_mut() else {
+        return;
+    };
+    let Some(state) = frame.transaction_compensation.as_mut() else {
+        return;
+    };
+    if state.completed_activity_node_indices.contains(&node_index) {
+        return;
+    }
+    state.completed_activity_node_indices.push(node_index);
+}
+
+pub(super) fn route_after_intermediate_throw_compensation(
     process: &BpmnProcessSpec,
     instance: &mut BpmnInstanceState,
     current_token_index: usize,

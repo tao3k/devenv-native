@@ -282,13 +282,6 @@ fn handle_compensation_intermediate_event_definition(
         }
     );
     let node = last_process_node_mut(source, process)?;
-    let Some(_) = event_reference_id(reader, event, tag)? else {
-        return Err(BpmnEngineError::UnsupportedCompensationConfiguration {
-            process_id,
-            node_id: node.bpmn_id.clone(),
-            detail: "default_compensation_intermediate_event",
-        });
-    };
     if boolean_attribute_value(reader, event, "waitForCompletion")? == Some(false) {
         return Err(BpmnEngineError::UnsupportedCompensationConfiguration {
             process_id,

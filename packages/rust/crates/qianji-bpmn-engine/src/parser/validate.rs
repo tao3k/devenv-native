@@ -746,7 +746,10 @@ fn validate_throw_compensation_node<'a>(
         .as_ref()
         .and_then(|event| event.reference_id.as_deref())
     else {
-        if throw_node.kind == BpmnNodeKind::EndEvent {
+        if matches!(
+            throw_node.kind,
+            BpmnNodeKind::EndEvent | BpmnNodeKind::IntermediateThrowEvent
+        ) {
             return Ok(());
         }
         return Err(compensation_error(

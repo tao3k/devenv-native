@@ -3,7 +3,7 @@ use crate::runtime::lifecycle::scope::{
 };
 use crate::runtime::lifecycle::state;
 
-pub(super) fn cancel_transaction_boundary_siblings(
+pub(crate) fn cancel_transaction_boundary_siblings(
     process: &BpmnProcessSpec,
     instance: &mut BpmnInstanceState,
     owner_node_index: BpmnNodeIndex,

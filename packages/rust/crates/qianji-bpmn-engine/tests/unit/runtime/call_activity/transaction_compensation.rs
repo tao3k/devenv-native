@@ -54,6 +54,31 @@ fn complete_user_task(
     .must(message)
 }
 
+fn complete_user_task_expect_advanced(
+    package: &BpmnPackage,
+    instance: &mut BpmnInstanceState,
+    token_id: u64,
+    data: serde_json::Value,
+    completed_at_ms: u64,
+    message: &str,
+) {
+    assert_eq!(
+        complete_user_task(package, instance, token_id, data, completed_at_ms, message,),
+        BpmnAdvanceOutcome::Advanced
+    );
+}
+
+fn assert_pending_handler_node(
+    package: &Arc<BpmnPackage>,
+    pending: &[PendingHostWork],
+    node_id: &str,
+) {
+    assert_eq!(
+        pending[0].node_index,
+        node_index(package, TRANSACTION_PROCESS_ID, node_id)
+    );
+}
+
 fn assert_main_success_completion(
     package: &Arc<BpmnPackage>,
     instance: &BpmnInstanceState,
@@ -450,6 +475,106 @@ async fn runtime_transaction_default_throw_compensation_end_replays_all_handlers
         .await
         .must(
             "transaction shell should complete through the success path after default compensation",
+        );
+    assert_eq!(completion, BpmnAdvanceOutcome::Completed);
+    assert_main_success_completion(&package, &instance, &expected_variables);
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn runtime_transaction_default_throw_compensation_intermediate_replays_all_handlers_then_routes_forward()
+ {
+    let (package, mut instance, host) = create_transaction_test_instance(
+        "transaction-default-compensation-intermediate.bpmn",
+        "wf_transaction_default_throw_compensation_intermediate",
+    );
+    let first_pending = advance_and_expect_blocked(
+        package.as_ref(),
+        &mut instance,
+        &host,
+        "transaction shell should block on the first compensable activity",
+    )
+    .await;
+    complete_user_task_expect_advanced(
+        package.as_ref(),
+        &mut instance,
+        first_pending[0].token_id,
+        json!({ "reserved": true }),
+        90,
+        "first activity should complete",
+    );
+
+    let second_pending = advance_and_expect_blocked(
+        package.as_ref(),
+        &mut instance,
+        &host,
+        "transaction shell should block on the second compensable activity",
+    )
+    .await;
+    complete_user_task_expect_advanced(
+        package.as_ref(),
+        &mut instance,
+        second_pending[0].token_id,
+        json!({ "captured": true }),
+        120,
+        "second activity should complete",
+    );
+    let expected_variables = json!({ "amount": 7, "reserved": true, "captured": true });
+    assert_eq!(instance.variables, expected_variables);
+
+    let first_compensation_pending = advance_and_expect_blocked(
+        package.as_ref(),
+        &mut instance,
+        &host,
+        "default throw compensation intermediate event should start with the most recently completed handler",
+    )
+    .await;
+    assert_pending_handler_node(&package, &first_compensation_pending, "tx_release_capture");
+    complete_user_task_expect_advanced(
+        package.as_ref(),
+        &mut instance,
+        first_compensation_pending[0].token_id,
+        json!({ "released_capture": true }),
+        150,
+        "first compensation handler should complete without mutating variables",
+    );
+    assert_eq!(instance.variables, expected_variables);
+
+    let second_compensation_pending = advance_and_expect_blocked(
+        package.as_ref(),
+        &mut instance,
+        &host,
+        "default throw compensation intermediate event should continue through remaining handlers in reverse order",
+    )
+    .await;
+    assert_pending_handler_node(&package, &second_compensation_pending, "tx_release_reserve");
+    complete_user_task_expect_advanced(
+        package.as_ref(),
+        &mut instance,
+        second_compensation_pending[0].token_id,
+        json!({ "released_reserve": true }),
+        180,
+        "second compensation handler should complete without mutating variables",
+    );
+    assert_eq!(instance.variables, expected_variables);
+    assert_eq!(
+        instance.node_states[node_index(
+            &package,
+            TRANSACTION_PROCESS_ID,
+            "tx_throw_intermediate_default",
+        ) as usize]
+            .status,
+        qianji_bpmn_engine::NodeRuntimeStatus::Completed
+    );
+    assert_eq!(
+        instance.node_states[node_index(&package, TRANSACTION_PROCESS_ID, "tx_done") as usize]
+            .status,
+        qianji_bpmn_engine::NodeRuntimeStatus::Queued
+    );
+
+    let completion = advance_instance(package.as_ref(), &mut instance, &host)
+        .await
+        .must(
+            "transaction shell should continue through the success path after default intermediate compensation",
         );
     assert_eq!(completion, BpmnAdvanceOutcome::Completed);
     assert_main_success_completion(&package, &instance, &expected_variables);

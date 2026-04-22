@@ -215,23 +215,14 @@ fn advance_intermediate_throw_event(
         }
     })?;
     match event.kind {
-        BpmnEventKind::Compensation => {
-            let target_activity_bpmn_id =
-                event
-                    .reference_id
-                    .as_deref()
-                    .ok_or(BpmnEngineError::UnsupportedOperation {
-                        operation: "advance_intermediate_throw_event_missing_compensation_target",
-                    })?;
-            transaction::throw_compensation_intermediate_event(
-                process,
-                instance,
-                current_token_index,
-                current_node_index,
-                target_activity_bpmn_id,
-                now_ms,
-            )
-        }
+        BpmnEventKind::Compensation => transaction::throw_compensation_intermediate_event(
+            process,
+            instance,
+            current_token_index,
+            current_node_index,
+            event.reference_id.as_deref(),
+            now_ms,
+        ),
         _ => Err(BpmnEngineError::UnsupportedOperation {
             operation: "advance_instance_intermediate_throw_event_kind",
         }),

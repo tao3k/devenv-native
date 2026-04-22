@@ -1,12 +1,12 @@
-//! Transaction lifecycle facade.
-//!
-//! Callers should enter through the `cancel` facade only.
+//! Transaction lifecycle interface seams.
 
 mod boundary;
 mod cancel;
 mod error;
 mod finalize;
 mod queue;
+mod shell;
+mod throw;
 
 pub(super) use cancel::{
     cancel_transaction_boundary_siblings, cancel_transaction_shell, complete_compensation_handler,

@@ -45,11 +45,12 @@
 //! transaction shell where one nested end event either uses explicit
 //! `activityRef` to replay one already compensable activity or omits
 //! `activityRef` to replay every already compensable activity in reverse
-//! completion order before the shell completes, plus one synchronous targeted
-//! throw-compensation intermediate-event subset
-//! inside that same transaction shell where one nested intermediate throw
-//! event uses explicit `activityRef` to replay one already compensable
-//! activity before normal sequence-flow routing resumes,
+//! completion order before the shell completes, plus one synchronous
+//! throw-compensation intermediate-event subset inside that same transaction
+//! shell where one nested intermediate throw event either uses explicit
+//! `activityRef` to replay one already compensable activity or omits
+//! `activityRef` to replay every already compensable activity in reverse
+//! completion order before normal sequence-flow routing resumes,
 //! plus one bounded `callActivity` that targets another process in the same
 //! BPMN package, plus bounded `standardLoopCharacteristics` on one serviceTask,
 //! userTask, manualTask, or businessRuleTask, plus bounded
@@ -76,9 +77,9 @@
 //! matching engine-owned DMN decision definition; otherwise it falls back to
 //! the existing host seam. Broader unstructured inclusive gateways, recursive
 //! call chains, non-interrupting boundaries, full timer execution semantics,
-//! asynchronous or default throw-compensation intermediate events,
-//! asynchronous throw-compensation end events, compensation event
-//! subprocesses, broader throw-compensation forms, more than one cancel
+//! asynchronous throw-compensation intermediate events, asynchronous
+//! throw-compensation end events, compensation event subprocesses, broader
+//! throw-compensation forms, more than one cancel
 //! boundary on the same transaction owner, broader
 //! transaction error propagation beyond that bounded transaction shell,
 //! broader FEEL or script-backed gateway conditions, trailing

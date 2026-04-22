@@ -134,31 +134,12 @@ fn bpmn_linter_reports_async_throw_compensation_intermediate_event_with_llm_guid
 }
 
 #[test]
-fn bpmn_linter_reports_default_compensation_intermediate_event_with_llm_guidance() {
+fn bpmn_linter_accepts_default_throw_compensation_intermediate_in_bounded_transaction_subset() {
     let report = lint_bpmn_source(&bpmn_fixture_source(
-        "invalid-default-compensation-intermediate.bpmn",
+        "transaction-default-compensation-intermediate.bpmn",
     ));
 
     assert_eq!(report.domain, LintDomain::Bpmn);
-    assert!(!report.ok);
-    assert_eq!(report.issues.len(), 1);
-    let issue = &report.issues[0];
-    assert_eq!(issue.code, "bpmn.unsupported_compensation_configuration");
-    assert!(issue.summary.contains("throw_intermediate"));
-    assert!(
-        issue
-            .title
-            .contains("Default compensation intermediate events")
-    );
-    assert!(
-        issue
-            .repair_guidance
-            .iter()
-            .any(|step| step.contains("normal sequence-flow routing"))
-    );
-    assert!(issue.llm_fix_prompt.contains("default compensation"));
-    assert_lint_json_snapshot(
-        "bpmn_default_compensation_intermediate_lint_report",
-        &report,
-    );
+    assert!(report.ok);
+    assert!(report.issues.is_empty());
 }
