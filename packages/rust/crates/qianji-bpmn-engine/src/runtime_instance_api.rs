@@ -118,6 +118,8 @@ pub enum TransactionCompensationCompletionMode {
     ScopeCompletion,
     /// Resume by routing from one completed intermediate throw-compensation node.
     IntermediateRouting { node_index: BpmnNodeIndex },
+    /// Let the queue drain independently while another token continues routing.
+    Detached,
 }
 
 /// Bounded transaction compensation queue state.
@@ -135,6 +137,20 @@ pub struct TransactionCompensationState {
     /// How the current scope should resume after the queue drains.
     #[serde(default)]
     pub completion_mode: TransactionCompensationCompletionMode,
+}
+
+/// Detached transaction compensation queue that can outlive one child frame.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct DetachedTransactionCompensationState {
+    /// Child process identity that owns the detached compensation handlers.
+    pub process: ProcessKey,
+    /// Cached child process position inside the owning package.
+    #[serde(default)]
+    pub process_index: u32,
+    /// Remaining compensation handlers in reverse execution order so `pop()`
+    /// yields the next handler deterministically.
+    #[serde(default)]
+    pub pending_handler_node_indices: Vec<BpmnNodeIndex>,
 }
 
 /// Snapshot of one parent execution frame while a bounded call activity runs.
@@ -223,6 +239,10 @@ pub struct BpmnInstanceState {
     /// Active event-competition state for multi-wait ownership.
     #[serde(default)]
     pub event_competition: Option<EventCompetitionState>,
+    /// Detached compensation handlers that continue after a transaction end
+    /// event resumes its parent scope.
+    #[serde(default)]
+    pub detached_transaction_compensation: Option<DetachedTransactionCompensationState>,
     /// Pending host work references.
     #[serde(default, deserialize_with = "deserialize_pending_host_work_collection")]
     pub pending_host_work: Vec<PendingHostWork>,

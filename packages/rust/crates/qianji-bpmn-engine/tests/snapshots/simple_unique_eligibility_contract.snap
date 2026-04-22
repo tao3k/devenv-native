@@ -20,14 +20,16 @@ expression: value
         "input_id": "input_1",
         "label": "tier",
         "name": null,
-        "expression": "tier"
+        "expression": "tier",
+        "type_ref": "string"
       }
     ],
     "outputs": [
       {
         "output_id": "output_1",
         "label": "approval",
-        "name": "approval"
+        "name": "approval",
+        "type_ref": "string"
       }
     ],
     "rules": [

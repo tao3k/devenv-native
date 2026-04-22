@@ -18,9 +18,19 @@ fn dmn_snapshot_counts_top_level_text_annotations_without_decisions() {
     assert_eq!(snapshot.root.organization_unit_count, 0);
     assert_eq!(snapshot.root.performance_indicator_count, 0);
     assert_eq!(snapshot.root.text_annotation_count, 1);
+    assert_eq!(snapshot.root.text_annotations.len(), 1);
     assert_eq!(snapshot.root.association_count, 0);
     assert_eq!(snapshot.root.element_collection_count, 0);
     assert_eq!(snapshot.root.group_count, 0);
     assert_eq!(snapshot.root.dmndi_count, 0);
+    let text_annotation = &snapshot.root.text_annotations[0];
+    assert_eq!(
+        text_annotation.text_annotation_id.as_deref(),
+        Some("TextAnnotation_credit_policy_note")
+    );
+    assert_eq!(
+        text_annotation.text.as_deref(),
+        Some("Credit policy note for manual reviewers.")
+    );
     assert!(snapshot.decisions.is_empty());
 }

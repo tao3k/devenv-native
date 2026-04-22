@@ -23,6 +23,7 @@ pub(crate) use super::instance::{
 };
 pub(crate) use super::lifecycle::{
     advance_instance_impl, apply_pending_host_work_result_impl as apply_pending_host_work_result,
+    push_active_token,
 };
 pub(crate) use super::wait::{
     apply_event_poll_outcome_impl as apply_event_poll_outcome,

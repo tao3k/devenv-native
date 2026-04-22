@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  id="pkg_transaction_default_compensation_end_async"
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL">
+  <bpmn:process id="main_process" isExecutable="true">
+    <bpmn:startEvent id="start" />
+    <bpmn:transaction id="payment_tx">
+      <bpmn:startEvent id="tx_start" />
+      <bpmn:userTask id="tx_reserve" />
+      <bpmn:boundaryEvent id="tx_reserve_comp_boundary" attachedToRef="tx_reserve">
+        <bpmn:compensateEventDefinition />
+      </bpmn:boundaryEvent>
+      <bpmn:userTask id="tx_release_reserve" isForCompensation="true" />
+      <bpmn:userTask id="tx_capture" />
+      <bpmn:boundaryEvent id="tx_capture_comp_boundary" attachedToRef="tx_capture">
+        <bpmn:compensateEventDefinition />
+      </bpmn:boundaryEvent>
+      <bpmn:userTask id="tx_release_capture" isForCompensation="true" />
+      <bpmn:endEvent id="tx_throw_end_default">
+        <bpmn:compensateEventDefinition waitForCompletion="false" />
+      </bpmn:endEvent>
+      <bpmn:association
+        id="tx_reserve_comp_association"
+        sourceRef="tx_reserve_comp_boundary"
+        targetRef="tx_release_reserve" />
+      <bpmn:association
+        id="tx_capture_comp_association"
+        sourceRef="tx_capture_comp_boundary"
+        targetRef="tx_release_capture" />
+      <bpmn:sequenceFlow id="tx_flow_1" sourceRef="tx_start" targetRef="tx_reserve" />
+      <bpmn:sequenceFlow id="tx_flow_2" sourceRef="tx_reserve" targetRef="tx_capture" />
+      <bpmn:sequenceFlow id="tx_flow_3" sourceRef="tx_capture" targetRef="tx_throw_end_default" />
+    </bpmn:transaction>
+    <bpmn:endEvent id="success_end" />
+    <bpmn:sequenceFlow id="flow_1" sourceRef="start" targetRef="payment_tx" />
+    <bpmn:sequenceFlow id="flow_2" sourceRef="payment_tx" targetRef="success_end" />
+  </bpmn:process>
+</bpmn:definitions>

@@ -2,7 +2,7 @@ use crate::ir_event_api::{BpmnEventKind, BpmnTimerKind};
 use crate::ir_node_api::{BpmnGatewayKind, BpmnNodeKind};
 use crate::parser::import::{
     RawAssociation, RawNode, RawParallelMultiInstanceSpec, RawProcess, RawRepeatSpec,
-    RawSequenceFlow, RawSequentialMultiInstanceSpec, RawSubProcessKind,
+    RawScriptTaskSpec, RawSequenceFlow, RawSequentialMultiInstanceSpec, RawSubProcessKind,
 };
 
 pub(super) fn process_digest_hex(package_id: &str, source_id: &str, raw: &RawProcess) -> String {
@@ -42,6 +42,9 @@ fn append_node_digest(material: &mut String, node: &RawNode) {
         material.push_str("called_process=");
         material.push_str(called_process_ref);
     }
+    if let Some(script_task) = &node.script_task {
+        append_script_task_digest(material, script_task);
+    }
     if let Some(subprocess_kind) = node.subprocess_kind {
         material.push(':');
         material.push_str("subprocess_kind=");
@@ -71,6 +74,10 @@ fn append_node_digest(material: &mut String, node: &RawNode) {
         if let Some(reference_id) = &event.reference_id {
             material.push(':');
             material.push_str(reference_id);
+        }
+        if !event.wait_for_completion {
+            material.push(':');
+            material.push_str("wait_for_completion=false");
         }
         if let Some(name) = &event.name {
             material.push(':');
@@ -219,6 +226,7 @@ fn node_kind_name(kind: &BpmnNodeKind) -> &'static str {
         BpmnNodeKind::SendTask => "send_task",
         BpmnNodeKind::ReceiveTask => "receive_task",
         BpmnNodeKind::ServiceTask => "service_task",
+        BpmnNodeKind::ScriptTask => "script_task",
         BpmnNodeKind::UserTask => "user_task",
         BpmnNodeKind::ManualTask => "manual_task",
         BpmnNodeKind::BusinessRuleTask => "business_rule_task",
@@ -253,6 +261,19 @@ fn subprocess_kind_name(kind: RawSubProcessKind) -> &'static str {
         RawSubProcessKind::CallActivity => "call_activity",
         RawSubProcessKind::EmbeddedSubProcess => "embedded",
         RawSubProcessKind::Transaction => "transaction",
+    }
+}
+
+fn append_script_task_digest(material: &mut String, script_task: &RawScriptTaskSpec) {
+    if let Some(script_format) = &script_task.script_format {
+        material.push(':');
+        material.push_str("script_format=");
+        material.push_str(script_format);
+    }
+    if let Some(script_body) = &script_task.script_body {
+        material.push(':');
+        material.push_str("script_body=");
+        material.push_str(script_body);
     }
 }
 

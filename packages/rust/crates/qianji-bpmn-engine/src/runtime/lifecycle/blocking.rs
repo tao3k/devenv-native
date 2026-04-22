@@ -44,6 +44,7 @@ pub(super) fn build_wait_registration(
     };
 
     Ok(WaitRegistration {
+        process_id: Some(process.key.process_id.to_string()),
         node_index,
         blocking_node_index,
         kind: wait_kind,
@@ -73,17 +74,22 @@ pub(super) fn block_on_host_work(
         })?;
     let event_reference = send_task_event_reference(process, node_index, &kind)?;
     let event_name = send_task_event_name(process, node_index, &kind)?;
+    let script_format = script_task_format(process, node_index, &kind);
+    let script_body = script_task_body(process, node_index, &kind);
     let pending = PendingHostWork {
         token_id,
+        process_id: Some(process.key.process_id.to_string()),
         node_index,
         kind,
         decision: None,
+        script_format,
+        script_body,
         event_reference,
         event_name,
         work_id: None,
     };
     push_pending_host_work(instance, pending);
-    arm_boundary_timer_wait(process, instance, node_index)?;
+    arm_boundary_wait(process, instance, node_index)?;
     instance.suspend_reason = None;
     state::record_transition(instance, now_ms, InstanceLifecycle::Waiting);
     Ok(())
@@ -107,21 +113,24 @@ pub(super) fn block_on_business_rule_work(
         })?;
     let pending = PendingHostWork {
         token_id,
+        process_id: Some(process.key.process_id.to_string()),
         node_index,
         kind: PendingHostWorkKind::BusinessRule,
         decision: Some(decision),
+        script_format: None,
+        script_body: None,
         event_reference: None,
         event_name: None,
         work_id: None,
     };
     push_pending_host_work(instance, pending);
-    arm_boundary_timer_wait(process, instance, node_index)?;
+    arm_boundary_wait(process, instance, node_index)?;
     instance.suspend_reason = None;
     state::record_transition(instance, now_ms, InstanceLifecycle::Waiting);
     Ok(())
 }
 
-fn arm_boundary_timer_wait(
+fn arm_boundary_wait(
     process: &BpmnProcessSpec,
     instance: &mut BpmnInstanceState,
     node_index: BpmnNodeIndex,
@@ -131,14 +140,6 @@ fn arm_boundary_timer_wait(
     let Some(boundary) = process.boundary_event_for_attached_node(node_index) else {
         return Ok(());
     };
-
-    if !boundary.cancel_activity {
-        return Err(BpmnEngineError::UnsupportedBoundaryEventConfiguration {
-            process_id: process.key.process_id.to_string(),
-            node_id: boundary.bpmn_id.to_string(),
-            detail: "non_interrupting_boundary_event",
-        });
-    }
 
     let event = process.event_for_node(boundary.index).ok_or_else(|| {
         BpmnEngineError::MissingRequiredNodeElement {
@@ -150,7 +151,10 @@ fn arm_boundary_timer_wait(
     if event.kind == BpmnEventKind::Compensation {
         return Ok(());
     }
-    if event.kind != BpmnEventKind::Timer {
+    if !matches!(
+        event.kind,
+        BpmnEventKind::Timer | BpmnEventKind::Message | BpmnEventKind::Signal
+    ) {
         return Err(BpmnEngineError::UnsupportedBoundaryEventConfiguration {
             process_id: process.key.process_id.to_string(),
             node_id: boundary.bpmn_id.to_string(),
@@ -210,4 +214,34 @@ fn send_task_event_name(
         }
     })?;
     Ok(event.name.as_ref().map(ToString::to_string))
+}
+
+fn script_task_format(
+    process: &BpmnProcessSpec,
+    node_index: BpmnNodeIndex,
+    kind: &PendingHostWorkKind,
+) -> Option<String> {
+    if kind != &PendingHostWorkKind::Script {
+        return None;
+    }
+    process.nodes[node_index as usize]
+        .script_task
+        .as_ref()
+        .and_then(|script| script.script_format.as_ref())
+        .map(ToString::to_string)
+}
+
+fn script_task_body(
+    process: &BpmnProcessSpec,
+    node_index: BpmnNodeIndex,
+    kind: &PendingHostWorkKind,
+) -> Option<String> {
+    if kind != &PendingHostWorkKind::Script {
+        return None;
+    }
+    process.nodes[node_index as usize]
+        .script_task
+        .as_ref()
+        .and_then(|script| script.script_body.as_ref())
+        .map(ToString::to_string)
 }

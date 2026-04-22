@@ -21,6 +21,11 @@ fn dmn_linter_reports_association_only_document_with_specific_guidance() {
     );
     assert!(
         issue
+            .why_it_failed
+            .contains("Association_credit_policy_reference")
+    );
+    assert!(
+        issue
             .repair_guidance
             .iter()
             .any(|step| step.contains("Do not invent dependencies"))
@@ -32,6 +37,22 @@ fn dmn_linter_reports_association_only_document_with_specific_guidance() {
     assert_eq!(
         issue.evidence["document_root"]["association_count"],
         json!(1)
+    );
+    assert_eq!(
+        issue.evidence["document_root"]["associations"][0]["association_id"],
+        json!("Association_credit_policy_reference")
+    );
+    assert_eq!(
+        issue.evidence["document_root"]["associations"][0]["association_direction"],
+        json!("One")
+    );
+    assert_eq!(
+        issue.evidence["document_root"]["associations"][0]["source_ref"],
+        json!("TextAnnotation_credit_policy_note")
+    );
+    assert_eq!(
+        issue.evidence["document_root"]["associations"][0]["target_ref"],
+        json!("Decision_credit_policy")
     );
     assert_eq!(
         issue.evidence["document_root"]["element_collection_count"],
@@ -58,6 +79,7 @@ fn dmn_linter_reports_element_collection_only_document_with_specific_guidance() 
             .why_it_failed
             .contains("element collections as structural metadata only")
     );
+    assert!(issue.why_it_failed.contains("Manual Review Bundle"));
     assert!(
         issue
             .repair_guidance
@@ -71,6 +93,14 @@ fn dmn_linter_reports_element_collection_only_document_with_specific_guidance() 
     assert_eq!(
         issue.evidence["document_root"]["element_collection_count"],
         json!(1)
+    );
+    assert_eq!(
+        issue.evidence["document_root"]["element_collections"][0]["element_collection_id"],
+        json!("ElementCollection_manual_review_bundle")
+    );
+    assert_eq!(
+        issue.evidence["document_root"]["element_collections"][0]["name"],
+        json!("Manual Review Bundle")
     );
     assert_eq!(
         issue.evidence["document_root"]["association_count"],

@@ -8,7 +8,8 @@ use crate::parser::import::attributes::{
 };
 use crate::parser::import::model::ProcessChildStartOutcome;
 use crate::parser::import::{
-    NestedShellKind, RawAssociation, RawNode, RawProcess, RawSequenceFlow, RawSubProcessKind,
+    NestedShellKind, RawAssociation, RawNode, RawProcess, RawScriptTaskSpec, RawSequenceFlow,
+    RawSubProcessKind,
 };
 use quick_xml::Reader;
 use quick_xml::events::BytesStart;
@@ -84,6 +85,7 @@ fn open_nested_shell(
         gateway_kind: None,
         decision,
         task_message_ref: None,
+        script_task: None,
         called_process_ref: Some(synthetic_process_id.clone()),
         subprocess_kind: Some(raw_subprocess_kind_for_nested_shell(kind)),
         repeat: None,
@@ -130,6 +132,14 @@ fn push_process_child_node(
     } else {
         None
     };
+    let script_task = if tag == "scriptTask" {
+        Some(RawScriptTaskSpec {
+            script_format: attribute_value(reader, event, "scriptFormat")?,
+            script_body: None,
+        })
+    } else {
+        None
+    };
     let subprocess_kind = if tag == "callActivity" {
         Some(RawSubProcessKind::CallActivity)
     } else {
@@ -162,6 +172,7 @@ fn push_process_child_node(
         gateway_kind,
         decision,
         task_message_ref,
+        script_task,
         called_process_ref,
         subprocess_kind,
         repeat: None,
@@ -229,6 +240,7 @@ fn supported_node_kind(tag: &str) -> Option<(BpmnNodeKind, Option<BpmnGatewayKin
         "sendTask" => Some((BpmnNodeKind::SendTask, None)),
         "receiveTask" => Some((BpmnNodeKind::ReceiveTask, None)),
         "serviceTask" => Some((BpmnNodeKind::ServiceTask, None)),
+        "scriptTask" => Some((BpmnNodeKind::ScriptTask, None)),
         "userTask" => Some((BpmnNodeKind::UserTask, None)),
         "manualTask" => Some((BpmnNodeKind::ManualTask, None)),
         "businessRuleTask" => Some((BpmnNodeKind::BusinessRuleTask, None)),

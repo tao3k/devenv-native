@@ -37,6 +37,7 @@ pub(crate) fn node_matches_pending_kind(
         (node_kind, pending_kind),
         (BpmnNodeKind::SendTask, PendingHostWorkKind::Send)
             | (BpmnNodeKind::ServiceTask, PendingHostWorkKind::Service)
+            | (BpmnNodeKind::ScriptTask, PendingHostWorkKind::Script)
             | (BpmnNodeKind::UserTask, PendingHostWorkKind::User)
             | (BpmnNodeKind::ManualTask, PendingHostWorkKind::Manual)
             | (
@@ -50,6 +51,7 @@ pub(crate) fn pending_host_kind_name(kind: &PendingHostWorkKind) -> &'static str
     match kind {
         PendingHostWorkKind::Send => "send",
         PendingHostWorkKind::Service => "service",
+        PendingHostWorkKind::Script => "script",
         PendingHostWorkKind::User => "user",
         PendingHostWorkKind::Manual => "manual",
         PendingHostWorkKind::BusinessRule => "business_rule",
@@ -131,13 +133,16 @@ pub(crate) fn cancel_parallel_multi_instance_siblings(
     node_index: BpmnNodeIndex,
     surviving_token_id: u64,
 ) {
+    let process_id = instance.process.process_id.to_string();
     instance.pending_host_work.retain(|pending| {
-        pending.token_id == surviving_token_id || pending.node_index != node_index
+        pending.token_id == surviving_token_id
+            || pending.process_id.as_deref() != Some(process_id.as_str())
+            || pending.node_index != node_index
     });
     instance
         .active_tokens
         .retain(|token| token.token_id == surviving_token_id || token.node_index != node_index);
-    if !state::has_pending_host_work_for_node(instance, node_index) {
+    if !state::has_pending_host_work_for_process_node(instance, process_id.as_str(), node_index) {
         state::clear_boundary_wait_for_node(instance, node_index);
     }
 }

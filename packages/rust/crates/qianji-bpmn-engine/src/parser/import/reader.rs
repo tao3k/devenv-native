@@ -2,8 +2,8 @@ use super::attributes::local_name;
 use super::model::{CaptureTarget, ProcessChildStartOutcome};
 pub(crate) use super::model::{
     NestedShellKind, RawAssociation, RawEventSpec, RawNode, RawPackageDocument,
-    RawParallelMultiInstanceSpec, RawProcess, RawProcessScope, RawRepeatSpec, RawSequenceFlow,
-    RawSequentialMultiInstanceSpec, RawSubProcessKind,
+    RawParallelMultiInstanceSpec, RawProcess, RawProcessScope, RawRepeatSpec, RawScriptTaskSpec,
+    RawSequenceFlow, RawSequentialMultiInstanceSpec, RawSubProcessKind,
 };
 use super::nested::handle_nested_start_tag;
 use super::process::{
@@ -295,6 +295,9 @@ fn handle_end_tag(
                 process,
                 capture_buffer.trim(),
             )?;
+        }
+        (CaptureTarget::TaskScriptBody, "script") => {
+            super::capture::apply_script_task_body(process, capture_buffer.trim())?;
         }
         _ => return Ok(()),
     }

@@ -17,9 +17,24 @@ fn dmn_snapshot_counts_top_level_associations_without_decisions() {
     assert_eq!(snapshot.root.performance_indicator_count, 0);
     assert_eq!(snapshot.root.text_annotation_count, 0);
     assert_eq!(snapshot.root.association_count, 1);
+    assert_eq!(snapshot.root.associations.len(), 1);
     assert_eq!(snapshot.root.element_collection_count, 0);
     assert_eq!(snapshot.root.group_count, 0);
     assert_eq!(snapshot.root.dmndi_count, 0);
+    let association = &snapshot.root.associations[0];
+    assert_eq!(
+        association.association_id.as_deref(),
+        Some("Association_credit_policy_reference")
+    );
+    assert_eq!(association.association_direction.as_deref(), Some("One"));
+    assert_eq!(
+        association.source_ref.as_deref(),
+        Some("TextAnnotation_credit_policy_note")
+    );
+    assert_eq!(
+        association.target_ref.as_deref(),
+        Some("Decision_credit_policy")
+    );
     assert!(snapshot.decisions.is_empty());
 }
 
@@ -41,7 +56,17 @@ fn dmn_snapshot_counts_top_level_element_collections_without_decisions() {
     assert_eq!(snapshot.root.text_annotation_count, 0);
     assert_eq!(snapshot.root.association_count, 0);
     assert_eq!(snapshot.root.element_collection_count, 1);
+    assert_eq!(snapshot.root.element_collections.len(), 1);
     assert_eq!(snapshot.root.group_count, 0);
     assert_eq!(snapshot.root.dmndi_count, 0);
+    let element_collection = &snapshot.root.element_collections[0];
+    assert_eq!(
+        element_collection.element_collection_id.as_deref(),
+        Some("ElementCollection_manual_review_bundle")
+    );
+    assert_eq!(
+        element_collection.name.as_deref(),
+        Some("Manual Review Bundle")
+    );
     assert!(snapshot.decisions.is_empty());
 }

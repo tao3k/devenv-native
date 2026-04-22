@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  id="pkg_boundary_message_interrupt"
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL">
+  <bpmn:process id="review_with_message_boundary">
+    <bpmn:startEvent id="start" />
+    <bpmn:userTask id="review" />
+    <bpmn:boundaryEvent id="review_escalated" attachedToRef="review" cancelActivity="true">
+      <bpmn:messageEventDefinition messageRef="review_message" />
+    </bpmn:boundaryEvent>
+    <bpmn:endEvent id="approved_end" />
+    <bpmn:endEvent id="escalated_end" />
+    <bpmn:sequenceFlow id="flow_1" sourceRef="start" targetRef="review" />
+    <bpmn:sequenceFlow id="flow_2" sourceRef="review" targetRef="approved_end" />
+    <bpmn:sequenceFlow id="flow_3" sourceRef="review_escalated" targetRef="escalated_end" />
+  </bpmn:process>
+</bpmn:definitions>

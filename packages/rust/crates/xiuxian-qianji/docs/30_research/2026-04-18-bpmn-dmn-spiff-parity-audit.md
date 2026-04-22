@@ -63,21 +63,39 @@ The current crate documents itself as a bounded subset:
    `intermediateCatchEvent` waits backed by `messageEventDefinition`,
    `signalEventDefinition`, and snapshot-style `timerEventDefinition`, plus
    one bounded `receiveTask` message-wait shell, plus one bounded `sendTask`
-   host-dispatch shell, plus one interrupting timer `boundaryEvent` on one
-   host-blocking task, plus one bounded embedded `subProcess` body with
+   host-dispatch shell, plus one interrupting timer, message, or signal
+   `boundaryEvent` on one host-blocking task, plus one bounded
+   interrupting timer, message, or signal `boundaryEvent` on one embedded
+   subprocess owner, plus one bounded
+   non-interrupting timer, message, or signal `boundaryEvent` on one
+   non-repeating or bounded sequential or parallel multi-instance
+   host-blocking task, plus
+   one bounded
+   embedded `subProcess` body with
    exactly one nested `startEvent`
    and at least one nested `endEvent`, plus one bounded `<transaction>` shell
    with exactly one nested `startEvent` and at least one nested `endEvent`,
-   plus one bounded transaction cancel path composed of one interrupting
+   plus one bounded embedded subprocess owner that may expose one
+   interrupting timer/message/signal `boundaryEvent` plus one or more
+   interrupting error `boundaryEvent` nodes, where the interrupting parent
+   timer/message/signal boundary may cancel the child shell before
+   restoring the parent frame, one or more nested error ends may each
+   restore the parent frame while preserving variable mutations and route
+   through every matching parent error boundary including one catch-all
+   boundary, while normal completion and either supported interrupting
+   winner cancel the non-selected sibling boundaries, plus one bounded
+   transaction cancel path composed of
+   one interrupting
    cancel `boundaryEvent` attached to that transaction shell and one nested
    cancel end that restores the parent frame and rolls back
    transaction-local variable mutations, plus one bounded transaction owner
    that may expose one interrupting cancel `boundaryEvent` plus one or more
-   interrupting error `boundaryEvent` nodes, where one nested error end may
-   restore the parent frame while preserving transaction-local variable
-   mutations and route through every matching parent error boundary including
-   one catch-all boundary, while normal completion and cancel routing cancel
-   the non-selected sibling boundaries, plus one bounded transaction cancel
+   interrupting error `boundaryEvent` nodes, where one or more nested error
+   ends may each restore the parent frame while preserving transaction-local
+   variable mutations and route through every matching parent error boundary
+   including one catch-all boundary, while normal completion and cancel
+   routing cancel the non-selected sibling boundaries, plus one bounded
+   transaction cancel
    compensation subset where compensable activities may bind one explicit
    compensation handler and cancel routing replays those handlers in reverse
    completion order before the parent cancel boundary fires, plus one
@@ -87,7 +105,9 @@ The current crate documents itself as a bounded subset:
    `intermediateThrowEvent` subset that either uses explicit `activityRef`
    targeting or omits `activityRef` for default reverse replay inside that
    same transaction shell before normal sequence-flow routing resumes, plus
-   one bounded same-package `callActivity`, plus bounded
+   one bounded same-package `callActivity`, plus one bounded top-level
+   `errorEventDefinition` end path that terminates the instance in failed
+   state, plus bounded
    `standardLoopCharacteristics`, plus bounded sequential and bounded
    parallel `multiInstanceLoopCharacteristics` with integer
    `loopCardinality` on one host-blocking task family are supported, and those
@@ -99,23 +119,34 @@ The current crate documents itself as a bounded subset:
    inclusive gateways, compensation event subprocesses, asynchronous
    throw-compensation intermediate forms, asynchronous
    throw-compensation end-event forms, more than one cancel boundary on one
-   transaction owner, broader transaction error
-   propagation beyond that bounded shell,
-   non-interrupting boundaries, richer BPMN orchestration, broader
+   transaction owner, broader error propagation beyond those bounded
+   transaction, embedded-subprocess, same-package `callActivity`, and
+   top-level terminal-failure paths, broader non-interrupting boundary
+   families on subprocess-like owners, richer BPMN
+   orchestration, broader
    multi-BPMN import/dependency handling, and broader FEEL or script-backed
    temporal behavior remain deferred.
 2. `packages/rust/crates/qianji-bpmn-engine/src/parser/import.rs` now accepts
    `parallelGateway`, `exclusiveGateway`, `intermediateCatchEvent`, one
-   bounded `receiveTask`/`sendTask` message-task family, one bounded timer
-   `boundaryEvent` family, one bounded embedded `subProcess` body family, one
-   bounded `<transaction>` shell family, one bounded
+   bounded `receiveTask`/`sendTask` message-task family, one bounded
+   interrupting timer/message/signal `boundaryEvent` family including one
+   bounded same-package `callActivity` owner subset, plus one bounded
+   non-interrupting timer/message/signal subset on one non-repeating,
+   bounded standard-loop, or bounded sequential or parallel multi-instance
+   host-blocking task, one bounded embedded
+   `subProcess` body family, one bounded `<transaction>` shell family, one bounded
    `callActivity` family, bounded `standardLoopCharacteristics`, and bounded
    sequential or bounded
    parallel `multiInstanceLoopCharacteristics`, with message, signal, and
    timer event definitions inside the currently supported wait shapes and
-   message-task validation surface, plus bounded cancel and error event
-   definitions for one transaction owner that may expose one cancel boundary
-   plus one or more error boundaries, plus one synchronous
+   message-task validation surface, plus bounded error event definitions for
+   one embedded subprocess owner that may expose one or more error
+   boundaries and one interrupting timer/message/signal boundary on that
+   same owner, plus bounded cancel and error event definitions for one
+   transaction owner that may expose one cancel boundary plus one or more
+   error boundaries, plus one synchronous
+   top-level `endEvent` subset with one `errorEventDefinition` that may
+   terminate one executable process in failed state, plus one synchronous
    throw-compensation `endEvent` subset that either uses explicit
    `activityRef` targeting or omits `activityRef` for default reverse replay,
    plus one synchronous throw-compensation
@@ -130,10 +161,30 @@ The current crate documents itself as a bounded subset:
    split/join subset with the same condition/default routing rules and one
    matching linear join fragment, plus deterministic wait registration for intermediate
    message/signal/timer catch events, one bounded `receiveTask` message wait
-   shell, one bounded `sendTask` host-dispatch shell, one interrupting timer
-   boundary path, and parent-frame enter/return semantics for one bounded
+   shell, one bounded `sendTask` host-dispatch shell, one interrupting timer,
+   message, or signal boundary path, one bounded non-interrupting timer,
+   message, or signal boundary path on one non-repeating, bounded
+   standard-loop, or bounded sequential or parallel multi-instance
+   host-blocking task that opens one concurrent boundary branch while the
+   original task stays active, and
+   parent-frame enter/return
+   semantics for one bounded
    same-package `callActivity` plus one bounded embedded `subProcess` body,
-   plus one bounded transaction cancel path that restores the parent frame,
+   plus one bounded same-package `callActivity` interrupting external-boundary
+   path where one parent timer/message/signal boundary stays armed while the
+   called child process runs and may cancel that child process before
+   restoring the parent frame,
+   plus one bounded embedded subprocess error path that restores the parent
+   frame, preserves variable mutations, routes through every matching parent
+   error boundary including one catch-all boundary, and cancels non-selected
+   sibling boundaries on normal completion or error routing, plus one bounded
+   same-package `callActivity` error path that restores the parent frame,
+   preserves variable mutations, routes through every matching parent error
+   boundary including one catch-all boundary, and cancels non-selected sibling
+   boundaries on normal completion or error routing, plus one bounded
+   top-level error end path that marks the instance failed terminally,
+   preserves merged variables, and clears remaining frontier state, plus one
+   bounded transaction cancel path that restores the parent frame,
    rolls back transaction-local variable mutations, and routes through the
    parent cancel boundary, plus one bounded transaction boundary-ownership
    slice where one transaction owner may route one thrown error through every
@@ -158,9 +209,9 @@ The current crate documents itself as a bounded subset:
    host-blocking task family.
    `businessRuleTask` can now also execute locally when the package carries a
    matching engine-owned DMN decision definition, while still deferring
-   broader unstructured inclusive semantics, non-interrupting boundary,
-   asynchronous throw-compensation intermediate forms,
-   asynchronous throw-compensation end-event forms, more than one cancel
+   broader unstructured inclusive semantics, broader non-interrupting
+   boundary families on standard-loop or sequential multi-instance task
+   owners or subprocess-like owners, more than one cancel
    boundary on one transaction owner, broader transaction error propagation,
    broader multi-BPMN import/dependency handling, and broader FEEL or
    script-backed gateway condition semantics.
@@ -202,10 +253,10 @@ Evidence came from:
 | --- | --- | --- | --- | --- | --- |
 | Core linear flow: `startEvent`, `endEvent`, `serviceTask`, `userTask`, `manualTask`, `businessRuleTask`, `sequenceFlow` | Covered by `SpiffWorkflow/spiff/parser/process.py`; also stated in ReadTheDocs tasks list | Supported | Supported for linear single-frontier routing; `businessRuleTask` can now execute locally when the parser-owned bundle snapshot or later callers register one matching engine-owned DMN definition, but adapter wiring remains incomplete | baseline | keep stable while widening richer shapes |
 | Gateways: exclusive, inclusive, parallel, event-based | Declared in ReadTheDocs; serializer config includes `ExclusiveGateway`, `InclusiveGateway`, `ParallelGateway`, `EventBasedGateway`; tests cover gateway families | `parallelGateway`, `exclusiveGateway`, one structured `inclusiveGateway` subset, and one bounded exclusive `eventBasedGateway` shape are supported | bounded `parallelGateway` split/join, bounded `exclusiveGateway` routing with simple boolean-path or numeric-comparison branch conditions plus one optional `default` flow, one structured `inclusiveGateway` split/join subset with the same condition/default rules plus one matching linear join fragment, and one bounded event-based winner-takes-all wait race are supported; broader unstructured inclusive joins and broader FEEL/script-backed gateway conditions remain unsupported | P1 | broader inclusive-gateway reachability and broader gateway-condition semantics |
-| Intermediate, boundary, timer, message, signal, escalation, error, cancel events | Parser registrations and serializer config include boundary and intermediate events; tests cover timer, message, boundary, escalation, cancel, event-based gateways | Bounded `intermediateCatchEvent` support is now present for `messageEventDefinition`, `signalEventDefinition`, and `timerEventDefinition`; one interrupting timer `boundaryEvent` attached to one host-blocking task is also supported; one bounded transaction owner may now expose one cancel boundary plus one or more error boundaries; one bounded transaction cancel compensation subset with one explicit compensation-handler marker is also supported; and one synchronous throw-compensation subset is now supported for nested `endEvent` and `intermediateThrowEvent` shapes inside that same transaction shell, with targeted or default replay allowed on both throw shapes | Intermediate message/signal/timer waits now register and resume through the engine-owned wait shell; one interrupting timer boundary path can cancel blocked host work; one bounded `eventBasedGateway` can race those waits and cancel the losing siblings; one bounded transaction cancel path can restore the parent frame, roll back transaction-local variable mutations, and route through the parent cancel boundary; one bounded transaction cancel compensation path can replay explicit compensation handlers in reverse completion order before that parent cancel boundary fires; one bounded transaction error path can restore the parent frame, preserve transaction-local variable mutations, route through every matching parent error boundary including one catch-all boundary, and cancel non-selected sibling boundaries; and one synchronous throw-compensation path can now replay the referenced compensable activity either before transaction-shell completion from a nested `endEvent` or before normal downstream sequence-flow routing resumes from a nested `intermediateThrowEvent`, with default replay draining every already compensable activity in reverse completion order for either throw shape | P1 | broader event families plus asynchronous throw-compensation forms |
-| Script, send, and receive tasks | Registered in `SpiffWorkflow/spiff/parser/process.py`; tests cover script and event-driven workflows | Bounded `sendTask` and `receiveTask` are now supported when they carry exactly one message binding through task-level `messageRef` or one nested `messageEventDefinition`; `scriptTask` remains unsupported at parse time | `receiveTask` now reuses the engine-owned message-wait shell, `sendTask` now reuses the host-dispatch shell with preserved message metadata, `xiuxian-qianji` now wires that `sendTask` host work through the callback bridge and `qianji bpmn run --host-fixture` `send_tasks.<node_id>` contract, and `scriptTask` remains unsupported | P1 | `scriptTask`, correlations, and broader collaboration-aware message routing |
-| Subprocess, call activity, transaction subprocess | Registered in parser and serializer config; tests cover call activity and nested processes | One bounded embedded `subProcess` body with exactly one nested `startEvent` and at least one nested `endEvent`, one bounded `<transaction>` shell with exactly one nested `startEvent` and at least one nested `endEvent`, one bounded transaction owner with one cancel boundary plus one or more error boundaries, one bounded transaction cancel compensation subset with one explicit compensation-handler marker per compensable activity, one synchronous throw-compensation subset with targeted or default replay on nested `endEvent` or nested `intermediateThrowEvent`, and one bounded `callActivity` that targets another executable process in the same BPMN package are supported; compensation event subprocesses and broader transaction error propagation remain unsupported | The runtime can enter any of those bounded nested shapes through the same child-process frame model, suspend there, restore the parent frame on child completion, execute one bounded transaction cancel path with rollback through the parent boundary, execute one bounded transaction cancel compensation path that replays explicit compensation handlers in reverse completion order before the parent cancel boundary, execute one bounded transaction error path without rollback through every matching parent error boundary, cancel non-selected sibling boundaries on the same transaction owner, and execute one synchronous throw-compensation path that replays the referenced compensable activity either before normal completion from a nested `endEvent` or before normal downstream sequence-flow routing resumes from a nested `intermediateThrowEvent`, with default replay draining every already compensable activity in reverse completion order for either throw shape, but recursive call graphs, asynchronous intermediate throw compensation, compensation event subprocesses, and broader nested subprocess families remain unsupported | P1 | asynchronous intermediate throw-compensation forms and broader transaction error propagation |
-| Standard loop and multi-instance tasks | ReadTheDocs lists loop, parallel multi-instance, sequential multi-instance; tests cover both loop and multi-instance | Bounded `standardLoopCharacteristics`, bounded sequential `multiInstanceLoopCharacteristics isSequential="true"`, and bounded parallel `multiInstanceLoopCharacteristics` with omitted or `isSequential="false"` plus integer `loopCardinality` are now supported on one service/user/manual/business-rule task family; one bounded `completionCondition` subset is now also supported on those same multi-instance shapes, and one bounded collection-backed data-binding subset using `loopDataInputRef`, `inputDataItem`, optional `loopDataOutputRef`, and `outputDataItem` is now supported | Standard loop now supports `testBefore` skip, loop-maximum re-entry, and simple boolean conditions such as `done` or `not done`; sequential multi-instance now supports checkpoint-safe sequential re-entry, repeat-context propagation, zero-cardinality skip, bounded `completionCondition` early-stop, interrupting-boundary cleanup, and collection-backed iteration overlays/output aggregation; bounded parallel multi-instance now supports single-writer token fan-out, per-iteration repeat-context propagation, zero-cardinality skip, bounded `completionCondition` sibling cancellation, interrupting-boundary cleanup, and collection-backed iteration overlays/output aggregation | P1 | transaction subprocess and richer nested orchestration |
+| Intermediate, boundary, timer, message, signal, escalation, error, cancel events | Parser registrations and serializer config include boundary and intermediate events; tests cover timer, message, boundary, escalation, cancel, event-based gateways | Bounded `intermediateCatchEvent` support is now present for `messageEventDefinition`, `signalEventDefinition`, and `timerEventDefinition`; one interrupting timer, message, or signal `boundaryEvent` attached to one host-blocking task is also supported; one interrupting timer, message, or signal `boundaryEvent` attached to one bounded embedded subprocess owner is also supported, including one bounded mixed-owner shape with that single interrupting timer/message/signal boundary plus one or more interrupting error boundaries on the same owner; one interrupting timer, message, or signal `boundaryEvent` attached to one bounded same-package `callActivity` owner is also supported, including one bounded mixed-owner shape with that single interrupting timer/message/signal boundary plus one or more interrupting error boundaries on the same owner; one interrupting timer, message, or signal `boundaryEvent` attached to one bounded transaction shell owner is also supported, including one bounded mixed-owner shape with that single interrupting timer/message/signal boundary plus one interrupting cancel boundary on the same owner, one bounded mixed-owner shape with that single interrupting timer/message/signal boundary plus one or more interrupting error boundaries on the same owner, and one bounded mixed-owner shape with that single interrupting timer/message/signal boundary plus one interrupting cancel boundary plus one or more interrupting error boundaries on the same owner; one bounded non-interrupting timer, message, or signal `boundaryEvent` attached to one non-repeating or bounded standard-loop, sequential multi-instance, or parallel multi-instance host-blocking task is also supported; one bounded transaction owner may now expose one cancel boundary plus one or more error boundaries; one bounded embedded subprocess owner may now expose one or more interrupting error boundaries; one bounded same-package `callActivity` owner may now expose one or more interrupting error boundaries; one bounded top-level `endEvent` with `errorEventDefinition` is also supported; one bounded transaction cancel compensation subset with one explicit compensation-handler marker is also supported; and one bounded throw-compensation subset is now supported for nested `endEvent` and `intermediateThrowEvent` shapes inside that same transaction shell, with targeted or default replay allowed on both throw shapes, while either throw shape may stay synchronous or set `waitForCompletion=\"false\"` inside the bounded subset | Intermediate message/signal/timer waits now register and resume through the engine-owned wait shell; one interrupting timer, message, or signal boundary path can cancel blocked host work; one interrupting timer, message, or signal boundary path can also stay armed on one embedded subprocess owner while the child shell runs, then cancel that child shell and restore the parent frame onto the selected boundary route; one bounded embedded-subprocess mixed-owner shape can now let either that armed timer/message/signal boundary or one matching parent error boundary win while clearing the non-selected owner-level waits and sibling boundaries; one interrupting timer, message, or signal boundary path can also stay armed on one bounded same-package `callActivity` owner while the called child process runs, then cancel that child process and restore the parent frame onto the selected boundary route; one bounded same-package `callActivity` mixed-owner shape can now let either that armed timer/message/signal boundary or one matching parent error boundary win while clearing the non-selected owner-level waits and sibling boundaries; one interrupting timer, message, or signal boundary path can also stay armed on one bounded transaction shell owner while the child shell runs, then cancel that child shell and restore the parent frame onto the selected boundary route; one bounded transaction mixed-owner shape can now let either that armed timer/message/signal boundary, the parent cancel boundary with rollback, or one matching parent error boundary win while explicitly clearing owner waits and cancelling non-selected sibling boundaries, and the combined mixed-owner shape may keep one interrupting cancel boundary and one or more interrupting error boundaries adjacent to that single external boundary on the same transaction owner; one bounded non-interrupting timer, message, or signal boundary path can keep the original task blocked while opening one concurrent boundary branch on one non-repeating or bounded standard-loop, sequential multi-instance, or parallel multi-instance host-blocking task; one bounded `eventBasedGateway` can race those waits and cancel the losing siblings; one bounded top-level error end path can fail the instance terminally while preserving merged variables and clearing remaining frontier state; one bounded transaction cancel path can restore the parent frame, roll back transaction-local variable mutations, and route through the parent cancel boundary; one bounded transaction cancel compensation path can replay explicit compensation handlers in reverse completion order before that parent cancel boundary fires; one bounded transaction error path can restore the parent frame, preserve transaction-local variable mutations, route through every matching parent error boundary including one catch-all boundary, and cancel non-selected sibling boundaries; one bounded embedded-subprocess error path can restore the parent frame, preserve variable mutations, route through every matching parent error boundary including one catch-all boundary, and cancel non-selected sibling boundaries; one bounded same-package `callActivity` error path can restore the parent frame, preserve variable mutations, route through every matching parent error boundary including one catch-all boundary, and cancel non-selected sibling boundaries; and one bounded throw-compensation path can now replay the referenced compensable activity either before transaction-shell completion from a nested `endEvent` or before normal downstream sequence-flow routing resumes from a nested `intermediateThrowEvent`, with default replay draining every already compensable activity in reverse completion order for either throw shape, bounded asynchronous intermediate routing letting the compensation queue drain while downstream sequence flow continues, and bounded asynchronous end-event routing letting the parent scope resume while detached compensation replay finishes | P1 | broader event families |
+| Script, send, and receive tasks | Registered in `SpiffWorkflow/spiff/parser/process.py`; tests cover script and event-driven workflows | Bounded `sendTask` and `receiveTask` are now supported when they carry exactly one message binding through task-level `messageRef` or one nested `messageEventDefinition`; bounded `scriptTask` is now also supported when it preserves one optional `scriptFormat` attribute and one optional nested `<bpmn:script>` body | `receiveTask` now reuses the engine-owned message-wait shell, `sendTask` now reuses the host-dispatch shell with preserved message metadata, `scriptTask` now reuses that same host-dispatch shell with preserved bounded script metadata, and `xiuxian-qianji` now wires both `sendTask` and `scriptTask` host work through the callback bridge | P1 | correlations and broader collaboration-aware message routing |
+| Subprocess, call activity, transaction subprocess | Registered in parser and serializer config; tests cover call activity and nested processes | One bounded embedded `subProcess` body with exactly one nested `startEvent` and at least one nested `endEvent`, one bounded embedded subprocess owner with one or more interrupting error boundaries plus one interrupting timer/message/signal boundary, one bounded `<transaction>` shell with exactly one nested `startEvent` and at least one nested `endEvent`, one bounded transaction owner with either one interrupting timer/message/signal boundary on its own, one interrupting timer/message/signal boundary plus one interrupting cancel boundary, one interrupting timer/message/signal boundary plus one or more interrupting error boundaries, one interrupting timer/message/signal boundary plus one interrupting cancel boundary plus one or more interrupting error boundaries, or one cancel boundary plus one or more error boundaries, one bounded transaction cancel compensation subset with one explicit compensation-handler marker per compensable activity, one bounded throw-compensation subset with targeted or default replay on nested `endEvent` or nested `intermediateThrowEvent` where either throw shape may stay synchronous or use bounded `waitForCompletion=\"false\"` routing, one bounded `callActivity` that targets another executable process in the same BPMN package, and one bounded same-package `callActivity` owner with one interrupting timer/message/signal boundary plus one or more interrupting error boundaries are supported; compensation event subprocesses and broader transaction error propagation remain unsupported | The runtime can enter any of those bounded nested shapes through the same child-process frame model, suspend there, restore the parent frame on child completion, execute one bounded transaction cancel path with rollback through the parent boundary, execute one bounded transaction cancel compensation path that replays explicit compensation handlers in reverse completion order before the parent cancel boundary, execute one bounded transaction error path without rollback through every matching parent error boundary, execute one bounded transaction interrupting external-boundary path through one parent-owned timer/message/signal wait, execute one bounded transaction mixed-owner path through either one parent-owned timer/message/signal wait, the parent cancel boundary with rollback, or one matching parent error boundary, including the combined same-owner external-plus-cancel-plus-error subset, execute one bounded embedded-subprocess error path through every matching parent error boundary, execute one bounded embedded-subprocess interrupting external-boundary path through one parent-owned timer/message/signal wait, execute one bounded embedded-subprocess mixed-owner path through either one parent-owned timer/message/signal wait or one matching parent error boundary, execute one bounded same-package `callActivity` error path through every matching parent error boundary, execute one bounded same-package `callActivity` interrupting external-boundary path through one parent-owned timer/message/signal wait, execute one bounded same-package `callActivity` mixed-owner path through either one parent-owned timer/message/signal wait or one matching parent error boundary, cancel non-selected sibling boundaries on the same supported owner, and execute one bounded throw-compensation path that replays the referenced compensable activity either before normal completion from a nested `endEvent` or before normal downstream sequence-flow routing resumes from a nested `intermediateThrowEvent`, with default replay draining every already compensable activity in reverse completion order for either throw shape, the bounded asynchronous intermediate subset keeping the queue detached while downstream routing continues, and the bounded asynchronous end-event subset letting the parent scope resume while detached compensation replay drains, but recursive call graphs, compensation event subprocesses, broader nested subprocess families, and broader mixed transaction-shell boundary families remain unsupported | P1 | broader transaction error propagation |
+| Standard loop and multi-instance tasks | ReadTheDocs lists loop, parallel multi-instance, sequential multi-instance; tests cover both loop and multi-instance | Bounded `standardLoopCharacteristics`, bounded sequential `multiInstanceLoopCharacteristics isSequential="true"`, and bounded parallel `multiInstanceLoopCharacteristics` with omitted or `isSequential="false"` plus integer `loopCardinality` are now supported on one service/user/manual/business-rule task family; one bounded `completionCondition` subset is now also supported on those same multi-instance shapes, and one bounded collection-backed data-binding subset using `loopDataInputRef`, `inputDataItem`, optional `loopDataOutputRef`, and `outputDataItem` is now supported | Standard loop now supports `testBefore` skip, loop-maximum re-entry, simple boolean conditions such as `done` or `not done`, and one owner-level non-interrupting boundary branch that stays armed across bounded re-entry until the boundary wins or the final completion clears the owner; sequential multi-instance now supports checkpoint-safe sequential re-entry, repeat-context propagation, zero-cardinality skip, bounded `completionCondition` early-stop, interrupting-boundary cleanup, one owner-level non-interrupting boundary branch that stays armed across iteration handoff until the boundary wins or the final pending iteration completes, and collection-backed iteration overlays/output aggregation; bounded parallel multi-instance now supports single-writer token fan-out, per-iteration repeat-context propagation, zero-cardinality skip, bounded `completionCondition` sibling cancellation, interrupting-boundary cleanup, one owner-level non-interrupting boundary branch that stays armed until the boundary wins or the final pending iteration completes, and collection-backed iteration overlays/output aggregation | P1 | transaction subprocess and richer nested orchestration |
 | Collaboration, pools, lanes, messages, correlations | README mentions pools and lanes; tests cover collaboration, correlations, and swimlanes | Unsupported document family | Unsupported | P1 | collaboration and lane metadata slice after core execution parity |
 | Data object, data store, IO specification | ReadTheDocs lists data object and data store; tests cover data object, data store reference, and IO spec | Unsupported document family | Unsupported workflow-data binding model | P1 | data binding slice after core control flow |
 | Schema validation and broader source-bundle handling | Spiff has BPMN and DMN validators and dependency discovery; tests cover invalid workflows and dependency detection | `parse_bpmn_package(...)` still rejects schema validation and multi-BPMN bundles, but one bounded `BpmnBundleSnapshot` with exactly one BPMN source plus optional DMN sources is now supported | not applicable | P2 | parser completeness and import/dependency slice |
@@ -263,7 +314,7 @@ The correct reading is therefore:
 | Literal equality with strings, numbers, booleans, `null`, wildcard `-` | Supported | Supported indirectly through script evaluation | Current engine is stricter and easier to reason about | baseline |
 | FEEL-like expressions, comparison operators, range syntax, and script-backed predicates | Partially supported: numeric unary comparisons, bounded numeric ranges, ISO date literals, ISO date comparisons, bounded ISO date ranges, ISO local datetime literals, ISO local datetime comparisons, bounded ISO local datetime ranges, RFC3339 offset-aware datetime literals, comparisons, and bounded ranges, signed ISO 8601 day-time duration literals, comparisons, and bounded ranges, signed ISO 8601 year-month duration literals, comparisons, and bounded ranges, plus ISO time literals, ISO time comparisons, and bounded ISO time ranges are now supported, but broader FEEL and script-backed predicates remain unsupported | Supported through the script engine in `DMNEngine.evaluate(...)`; tests cover ranges, comparisons, and dates | The gap narrowed further, but upstream still proves materially broader evaluator semantics | P1 |
 | Date decisions and richer temporal predicates | Partially supported: ISO date-only equality, comparisons, and bounded ranges plus ISO local datetime equality, comparisons, and bounded ranges plus RFC3339 offset-aware datetime equality, comparisons, and bounded ranges plus one bounded mixed local-vs-offset UTC normalization rule that now also covers datetime literal equality in addition to comparisons and ranges, plus signed ISO 8601 day-time duration equality, comparisons, and bounded ranges including bounded fractional day-time forms such as `duration("P1.5D")`, `duration("P1,5D")`, `duration("PT1.5H")`, `duration("PT1,5H")`, `duration("PT1.5M")`, `duration("PT1,5M")`, `duration("PT1.5S")`, and `duration("PT1,5S")`, plus signed ISO 8601 year-month duration equality, comparisons, and bounded ranges, plus ISO time-only equality, comparisons, and bounded ranges are now supported | Covered by python-engine tests with broader datetime semantics | Local support is still intentionally narrower than upstream and currently excludes trailing-lower-unit fractional forms such as `duration("PT1.5H30S")`, fractional year-month duration literals, mixed year-month/day-time duration forms, and script-backed temporal functions | P1 |
-| DMN schema/version parsing | Partially supported: one non-executable document snapshot can now scan namespaced/versioned DMN roots plus decision headers, model-version hints, top-level `import`, `itemDefinition`, `inputData`, `knowledgeSource`, `businessKnowledgeModel`, `decisionService`, `organizationUnit`, `performanceIndicator`, `textAnnotation`, `association`, `elementCollection`, `dmndi:DMNDI`, and `group` counts, decision-owned `allowedAnswers`, `decisionMaker`, and `decisionOwner` counts, direct decision-owned requirement counts for `informationRequirement`, `knowledgeRequirement`, and `authorityRequirement`, nested requirement-target counts for `requiredInput`, `requiredDecision`, `requiredKnowledge`, and `requiredAuthority`, and direct decision-logic counts for `literalExpression`, `context`, `invocation`, `relation`, `functionDefinition`, and `list`; executable parsing now also rejects non-`definitions` roots, missing or unsupported DMN model namespaces, and top-level `<import>` declarations, but it still performs no full schema validation and still requires the bounded decision-table subset | DMN 1.0, 1.2, and 1.3 schema/version handling exists in `BpmnDmnParser` and version tests | The crate now has one real placeholder surface for later adapter work and for construct-aware lint diagnostics across the main unsupported type-model, business-context, annotation, document-structure, diagram-interchange, group-artifact, decision-metadata, governance-metadata, decision-logic, metadata-only DRD artifact, and decision-dependency shapes seen in the current research lane, while the latest business-context, item-definition, text-annotation, association/element-collection, DMNDI, group, allowed-answers, decision-governance, root-artifact, requirement-target, requirement-edge, document-root, and import validation cuts close real parser/lint safety gaps before dependency resolution or broader schema parity, but full parser/schema parity is still materially incomplete | P2 |
+| DMN schema/version parsing | Partially supported: one non-executable document snapshot can now scan namespaced/versioned DMN roots plus decision headers, model-version hints, top-level `import`, `itemDefinition`, `inputData`, `knowledgeSource`, `businessKnowledgeModel`, `decisionService`, `organizationUnit`, `performanceIndicator`, `textAnnotation`, `association`, `elementCollection`, `dmndi:DMNDI`, and `group` counts, plus bounded top-level `itemDefinition` metadata with one direct `itemComponent` placeholder layer, plus bounded top-level `inputData` metadata with one optional direct `variable` placeholder layer, plus bounded top-level `knowledgeSource` metadata, plus bounded top-level `decisionService` metadata, plus bounded top-level `businessKnowledgeModel` metadata, plus bounded top-level `organizationUnit` metadata, plus bounded top-level `performanceIndicator` metadata, plus bounded top-level `textAnnotation` metadata with one direct text payload, plus bounded top-level `association` metadata with one direct `associationDirection` / `sourceRef` / `targetRef` placeholder layer, plus bounded top-level `elementCollection` metadata, plus bounded top-level `group` metadata, plus bounded top-level `dmndi:DMNDI` metadata with one direct `DMNDiagram` placeholder layer carrying bounded diagram ids, direct shape/edge counts, direct `DMNShape` / `DMNEdge` placeholder metadata bounded to optional `id` plus `dmnElementRef`, one optional direct `DMNShape.isListedInputData` boolean, one optional direct `DMNShape.isCollapsed` boolean, one optional direct `dc:Bounds` placeholder under `DMNShape` bounded to one optional x/y/width/height contract, one repeated direct `di:waypoint` placeholder list under `DMNEdge` bounded to optional x/y pairs, one optional direct `DMNLabel` placeholder bounded to one optional label id plus one optional direct `dc:Bounds` placeholder plus one optional direct text payload, and one optional direct `DMNDecisionServiceDividerLine` placeholder under `DMNShape` bounded to one repeated direct `di:waypoint` placeholder list with optional x/y pairs, decision-owned `allowedAnswers`, `decisionMaker`, and `decisionOwner` counts, direct decision-owned requirement counts for `informationRequirement`, `knowledgeRequirement`, and `authorityRequirement`, nested requirement-target counts for `requiredInput`, `requiredDecision`, `requiredKnowledge`, and `requiredAuthority`, and direct decision-logic counts for `literalExpression`, `context`, `invocation`, `relation`, `functionDefinition`, and `list`; executable parsing now also rejects non-`definitions` roots, missing or unsupported DMN model namespaces, top-level `<import>` declarations, and preserves bounded executable clause `typeRef` metadata on `inputExpression` and `output` clauses, but it still performs no full schema validation and still requires the bounded decision-table subset | DMN 1.0, 1.2, and 1.3 schema/version handling exists in `BpmnDmnParser` and version tests | The crate now has one real placeholder surface for later adapter work and for construct-aware lint diagnostics across the main unsupported type-model, business-context, annotation, document-structure, diagram-interchange, group-artifact, decision-metadata, governance-metadata, decision-logic, metadata-only DRD artifact, and decision-dependency shapes seen in the current research lane, while the latest business-context, item-definition, text-annotation, association metadata, element-collection metadata, group metadata, DMNDI metadata, diagram-element metadata, listed-input-data shape metadata, direct-shape bounds metadata, direct-shape `isCollapsed` metadata, direct-label placeholder metadata, direct-label bounds metadata, direct-label text metadata, direct-edge waypoint metadata, direct decision-service divider-line metadata, allowed-answers, decision-governance, root-artifact, requirement-target, requirement-edge, document-root, import validation, non-executable item-definition metadata, non-executable input-data metadata, non-executable knowledge-source metadata, non-executable decision-service metadata, non-executable business-knowledge-model metadata, non-executable business-context metadata, non-executable text-annotation metadata, non-executable document-structure metadata, non-executable DMNDI metadata, and executable clause-type metadata cuts close real parser/lint safety gaps before dependency resolution or broader schema parity, but full parser/schema parity is still materially incomplete | P2 |
 | BPMN `businessRuleTask` to DMN execution integration | Partially supported: engine-owned package registries can execute locally, parser-owned bundle snapshots can now populate those registries, and `xiuxian-qianji` now owns a bounded host adapter for missing-definition fallback | Integrated parser-to-engine binding exists | The unconditional host-only gap is closed, parser-owned registration now exists, and the host adapter now exists in bounded form, but full BPMN scheduler/CLI orchestration is still missing | P1 |
 
 ## 6. DMN Audit Interpretation
@@ -356,9 +407,12 @@ The strongest precise statement supported by source evidence is:
    `exclusiveGateway` support, one bounded exclusive `eventBasedGateway`
    race, together with bounded intermediate message/signal/timer waits, one
    bounded `receiveTask` message-wait shell, one bounded `sendTask`
-   host-dispatch shell, one interrupting timer boundary path, one bounded
-   embedded `subProcess` body, one bounded `<transaction>` shell, one bounded
-   transaction cancel path, one bounded same-package `callActivity`, one bounded
+   host-dispatch shell, one interrupting timer/message/signal boundary path, one bounded
+   non-interrupting timer/message/signal boundary path on one non-repeating, bounded
+   standard-loop, or bounded sequential or parallel multi-instance host-blocking
+   task, one bounded embedded `subProcess` body, one bounded `<transaction>`
+   shell, one bounded transaction cancel path, one bounded same-package
+   `callActivity`, one bounded
    `standardLoopCharacteristics` shape, and bounded sequential or bounded
    parallel cardinality-driven `multiInstanceLoopCharacteristics`
    shapes with one bounded `completionCondition` subset plus one bounded
@@ -564,13 +618,16 @@ What changed:
    `knowledgeSource`, or `businessKnowledgeModel` artifacts directly, so
    there is still no claim of broader DRD execution parity here
 2. the non-executable DMN root snapshot surface can now classify those
-   top-level artifact counts explicitly, which closes another real
-   adapter/lint gap exposed by metadata-only `SpiffWorkflow` DMN research
-   fixtures
+   top-level artifact counts explicitly, and it now preserves bounded
+   top-level `inputData` metadata plus one optional direct `variable`
+   placeholder layer, which closes another real adapter/lint gap exposed by
+   metadata-only `SpiffWorkflow` DMN research fixtures
 3. `qianji lint --dmn` can now tell LLM-driven repair flows whether a
    metadata-only DMN document is exposing top-level input data, knowledge
-   sources, or business knowledge models, which is materially safer than the
-   earlier generic missing-decision wording
+   sources, or business knowledge models, and for input-data-only documents
+   it can now surface the bounded preserved input-data metadata directly,
+   which is materially safer than the earlier generic missing-decision
+   wording
 4. DRD execution, DMN dependency resolution, full schema validation, broader
    FEEL semantics, and item-definition execution all remain explicitly
    deferred
@@ -585,17 +642,107 @@ What changed:
 1. the crate still does not resolve or execute top-level `itemDefinition`
    declarations, so there is still no claim of DMN type-resolution parity
    here
-2. the non-executable DMN root snapshot surface can now classify top-level
-   `itemDefinition` counts explicitly, which closes another real adapter/lint
-   gap exposed by metadata-rich `SpiffWorkflow` DMN research fixtures
-3. `qianji lint --dmn` can now tell LLM-driven repair flows whether a
-   metadata-only DMN document is exposing top-level item definitions, which
-   is materially safer than the earlier generic missing-decision wording
+2. the non-executable DMN root snapshot surface now preserves bounded
+   top-level `itemDefinition` metadata plus one direct `itemComponent`
+   placeholder layer, which closes a deeper adapter/lint gap exposed by
+   metadata-rich `SpiffWorkflow` DMN research fixtures
+3. `qianji lint --dmn` can now tell LLM-driven repair flows not just that a
+   metadata-only DMN document exposes top-level item definitions, but also
+   which bounded definition metadata is present, which is materially safer
+   than the earlier generic missing-decision wording
 4. item-definition resolution, DRD execution, DMN dependency resolution, full
    schema validation, and broader FEEL semantics all remain explicitly
    deferred
 
-## 20. Follow-up After DMN Business Context Guidance Slice
+## 20. Follow-up After DMN Knowledge-Source Snapshot Metadata Slice
+
+The parity note needs one more precision update after the latest bounded DMN
+root-artifact metadata slice.
+
+What changed:
+
+1. the crate still does not resolve or execute top-level `knowledgeSource`
+   declarations directly, so there is still no claim of governance- or
+   authority-resolution parity here
+2. the non-executable DMN root snapshot surface now preserves bounded
+   top-level `knowledgeSource` metadata, which closes another real
+   adapter/lint gap exposed by metadata-only `SpiffWorkflow` DMN research
+   fixtures
+3. `qianji lint --dmn` can now tell LLM-driven repair flows not just that a
+   metadata-only DMN document exposes top-level knowledge sources, but also
+   which bounded knowledge-source metadata is present, which is materially
+   safer than the earlier count-only wording
+4. authority-reference resolution, DRD execution, DMN dependency
+   resolution, full schema validation, and broader FEEL semantics all remain
+   explicitly deferred
+
+## 21. Follow-up After DMN Decision-Service Snapshot Metadata Slice
+
+The parity note needs one more precision update after the latest bounded DMN
+root-artifact metadata slice.
+
+What changed:
+
+1. the crate still does not resolve or execute top-level `decisionService`
+   declarations directly, so there is still no claim of decision-service
+   execution parity here
+2. the non-executable DMN root snapshot surface now preserves bounded
+   top-level `decisionService` metadata, which closes another real
+   adapter/lint gap exposed by metadata-rich `SpiffWorkflow` DMN research
+   fixtures
+3. `qianji lint --dmn` can now tell LLM-driven repair flows not just that a
+   metadata-only DMN document exposes top-level decision services, but also
+   which bounded decision-service metadata is present, which is materially
+   safer than the earlier count-only wording
+4. decision-service output resolution, DRD execution, DMN dependency
+   resolution, full schema validation, and broader FEEL semantics all remain
+   explicitly deferred
+
+## 22. Follow-up After DMN Business-Knowledge-Model Snapshot Metadata Slice
+
+The parity note needs one more precision update after the latest bounded DMN
+root-artifact metadata slice.
+
+What changed:
+
+1. the crate still does not resolve or execute top-level
+   `businessKnowledgeModel` declarations directly, so there is still no
+   claim of business-knowledge-model execution parity here
+2. the non-executable DMN root snapshot surface now preserves bounded
+   top-level `businessKnowledgeModel` metadata, which closes another real
+   adapter/lint gap exposed by metadata-rich `SpiffWorkflow` DMN research
+   fixtures
+3. `qianji lint --dmn` can now tell LLM-driven repair flows not just that a
+   metadata-only DMN document exposes top-level business-knowledge models,
+   but also which bounded business-knowledge-model metadata is present,
+   which is materially safer than the earlier count-only wording
+4. business-knowledge-model body capture, DRD execution, DMN dependency
+   resolution, full schema validation, and broader FEEL semantics all remain
+   explicitly deferred
+
+## 23. Follow-up After DMN Business-Context Snapshot Metadata Slice
+
+The parity note needs one more precision update after the latest bounded DMN
+business-context metadata slice.
+
+What changed:
+
+1. the crate still does not resolve or execute top-level `organizationUnit`
+   or `performanceIndicator` business-context elements, so there is still no
+   claim of business-context execution parity here
+2. the non-executable DMN root snapshot surface now preserves bounded
+   top-level `organizationUnit` and `performanceIndicator` metadata, which
+   closes another real adapter/lint gap exposed by metadata-rich
+   `SpiffWorkflow` DMN research fixtures
+3. `qianji lint --dmn` can now tell LLM-driven repair flows not just that a
+   metadata-only DMN document exposes business-context elements, but also
+   which bounded organization-unit and performance-indicator metadata is
+   present, which is materially safer than the earlier count-only wording
+4. business-context execution, threshold evaluation, organization
+   hierarchies, DRD execution, DMN dependency resolution, full schema
+   validation, and broader FEEL semantics all remain explicitly deferred
+
+## 24. Follow-up After DMN Business Context Guidance Slice
 
 The parity note needs one more precision update after the latest bounded DMN
 lint-precision slice.
@@ -617,7 +764,54 @@ What changed:
    DMN dependency resolution, full schema validation, and broader FEEL
    semantics all remain explicitly deferred
 
-## 21. Follow-up After DMN Text Annotation Guidance Slice
+## 25. Follow-up After DMN Text-Annotation Snapshot Metadata Slice
+
+The parity note needs one more precision update after the latest bounded DMN
+text-annotation metadata slice.
+
+What changed:
+
+1. the crate still does not resolve or execute top-level `textAnnotation`
+   elements directly, so there is still no claim of text-annotation
+   execution parity here
+2. the non-executable DMN root snapshot surface now preserves bounded
+   top-level `textAnnotation` metadata plus one direct nested text payload,
+   which closes another real adapter/lint gap exposed by metadata-rich
+   `SpiffWorkflow` DMN research fixtures
+3. `qianji lint --dmn` can now tell LLM-driven repair flows not just that a
+   metadata-only DMN document exposes text annotations, but also which
+   bounded text-annotation metadata is present, which is materially safer
+   than the earlier count-only wording
+4. annotation execution, association resolution, broader XML text capture,
+   DRD execution, DMN dependency resolution, full schema validation, and
+   broader FEEL semantics all remain explicitly deferred
+
+## 26. Follow-up After DMN Document-Structure Snapshot Metadata Slice
+
+The parity note needs one more precision update after the latest bounded DMN
+document-structure metadata slice.
+
+What changed:
+
+1. the crate still does not resolve or execute top-level `association`,
+   `elementCollection`, or `group` artifacts directly, so there is still no
+   claim of document-structure or artifact parity here
+2. the non-executable DMN root snapshot surface now preserves bounded
+   top-level `association` metadata with direct
+   `associationDirection` / `sourceRef` / `targetRef` placeholders, plus
+   bounded top-level `elementCollection` and `group` metadata, which closes
+   another real adapter/lint gap exposed by metadata-rich
+   `SpiffWorkflow` DMN research fixtures
+3. `qianji lint --dmn` can now tell LLM-driven repair flows not just that a
+   metadata-only DMN document exposes document-structure artifacts, but also
+   which bounded `association`, `elementCollection`, and `group` metadata is
+   present, which is materially safer than the earlier count-only wording
+4. association resolution, element-collection membership parsing,
+   group-to-DMNDI relationships, broader DRD execution, DMN dependency
+   resolution, full schema validation, and broader FEEL semantics all
+   remain explicitly deferred
+
+## 27. Follow-up After DMN Text Annotation Guidance Slice
 
 The parity note needs one more precision update after the latest bounded DMN
 lint-precision slice.
@@ -638,7 +832,7 @@ What changed:
    DRD execution, DMN dependency resolution, full schema validation, and
    broader FEEL semantics all remain explicitly deferred
 
-## 22. Follow-up After DMN Association and Element Collection Guidance Slice
+## 28. Follow-up After DMN Association and Element Collection Guidance Slice
 
 The parity note needs one more precision update after the latest bounded DMN
 lint-precision slice.
@@ -661,7 +855,230 @@ What changed:
    full schema validation, and broader FEEL semantics all remain explicitly
    deferred
 
-## 23. Follow-up After DMN DMNDI Guidance Slice
+## 29. Follow-up After DMN DMNDI Snapshot Metadata Slice
+
+The parity note needs one more precision update after the latest bounded DMN
+DMNDI metadata slice.
+
+What changed:
+
+1. the crate still does not resolve or execute top-level `dmndi:DMNDI`
+   structures directly, so there is still no claim of DMN
+   diagram-interchange parity here
+2. the non-executable DMN root snapshot surface now preserves bounded
+   top-level `dmndi:DMNDI` metadata plus one direct `DMNDiagram`
+   placeholder layer carrying diagram ids and direct shape/edge counts,
+   which closes another real adapter/lint gap exposed by metadata-rich
+   `SpiffWorkflow` DMN research fixtures
+3. `qianji lint --dmn` can now tell LLM-driven repair flows not just that a
+   metadata-only DMN document exposes DMNDI content, but also which bounded
+   DMNDI placeholder fields are present, which is materially safer than the
+   earlier count-only wording
+4. `DMNShape` / `DMNEdge` metadata beyond direct counts, geometry
+   interpretation, DMNDI relationship parsing, broader DRD execution, DMN
+   dependency resolution, full schema validation, and broader FEEL
+   semantics all remain explicitly deferred
+
+## 30. Follow-up After DMN DMNDI Diagram Element Metadata Slice
+
+The parity note needs one more precision update after the latest bounded DMN
+diagram-element slice.
+
+What changed:
+
+1. the crate still does not resolve or execute top-level `dmndi:DMNDI`
+   structures directly, so there is still no claim of DMN
+   diagram-interchange parity here
+2. the non-executable DMN root snapshot surface now preserves direct
+   `DMNShape` and `DMNEdge` placeholder metadata under one direct
+   `DMNDiagram`, bounded to optional `id` plus `dmnElementRef`, which
+   closes another real adapter/lint gap exposed by metadata-rich
+   `SpiffWorkflow` DMN research fixtures
+3. `qianji lint --dmn` can now tell LLM-driven repair flows not just that a
+   metadata-only DMN document exposes DMNDI content, but which direct
+   shape and edge placeholders are actually present, which is materially
+   safer than direct-count wording alone
+4. bounds, waypoints, labels, DMNDI relationship parsing, broader DRD
+   execution, DMN dependency resolution, full schema validation, and
+   broader FEEL semantics all remain explicitly deferred
+
+## 31. Follow-up After DMN Listed Input Data Shape Metadata Slice
+
+The parity note needs one more precision update after the latest bounded DMN
+direct-shape extension-attribute slice.
+
+What changed:
+
+1. the crate still does not resolve or execute top-level `dmndi:DMNDI`
+   structures directly, so there is still no claim of DMN
+   diagram-interchange parity here
+2. the non-executable DMN root snapshot surface now preserves one optional
+   direct `DMNShape.isListedInputData` boolean under the existing bounded
+   `DMNDiagram` direct-shape placeholder contract, which closes another real
+   adapter/lint gap exposed by metadata-rich `SpiffWorkflow` DMN research
+   fixtures
+3. `qianji lint --dmn` can now tell LLM-driven repair flows when a direct
+   listed-input-data shape marker is actually present, which is materially
+   safer than exposing only id/ref shape placeholders
+4. `DMNLabel`, bounds, waypoints, other richer DMNDI extension attributes,
+   DMNDI relationship parsing, broader DRD execution, DMN dependency
+   resolution, full schema validation, and broader FEEL semantics all
+   remain explicitly deferred
+
+## 32. Follow-up After DMN Label Placeholder Metadata Slice
+
+The parity note needs one more precision update after the latest bounded DMN
+direct-label placeholder slice.
+
+What changed:
+
+1. the crate still does not resolve or execute top-level `dmndi:DMNDI`
+   structures directly, so there is still no claim of DMN
+   diagram-interchange parity here
+2. the non-executable DMN root snapshot surface now preserves one optional
+   direct `DMNLabel` placeholder under bounded `DMNShape` and `DMNEdge`
+   placeholders, which closes another real adapter/lint gap exposed by
+   metadata-rich `SpiffWorkflow` DMN research fixtures
+3. `qianji lint --dmn` can now tell LLM-driven repair flows when direct
+   label placeholders are actually present on shapes or edges, which is
+   materially safer than exposing only id/ref placeholders
+4. `DMNLabel` text payloads, bounds, waypoints, `DMNDecisionServiceDividerLine`,
+   DMNDI relationship parsing, broader DRD execution, DMN dependency
+   resolution, full schema validation, and broader FEEL semantics all
+   remain explicitly deferred
+
+## 33. Follow-up After DMN Label Text Payload Slice
+
+The parity note needs one more precision update after the latest bounded DMN
+direct-label text slice.
+
+What changed:
+
+1. the crate still does not resolve or execute top-level `dmndi:DMNDI`
+   structures directly, so there is still no claim of DMN
+   diagram-interchange parity here
+2. the non-executable DMN root snapshot surface now preserves one optional
+   direct `DMNLabel/Text` payload under bounded `DMNShape` and `DMNEdge`
+   placeholders, which closes another real adapter/lint gap exposed by
+   metadata-rich `SpiffWorkflow` DMN research fixtures
+3. `qianji lint --dmn` can now tell LLM-driven repair flows when direct
+   label text is actually present on shapes or edges, which is materially
+   safer than exposing only label placeholder ids
+4. bounds, waypoints, `DMNDecisionServiceDividerLine`, DMNDI relationship
+   parsing, broader DRD execution, DMN dependency resolution, full schema
+   validation, and broader FEEL semantics all remain explicitly deferred
+
+## 34. Follow-up After DMN Shape Bounds Placeholder Slice
+
+The parity note needs one more precision update after the latest bounded DMN
+direct-shape bounds slice.
+
+What changed:
+
+1. the crate still does not resolve or execute top-level `dmndi:DMNDI`
+   structures directly, so there is still no claim of DMN
+   diagram-interchange parity here
+2. the non-executable DMN root snapshot surface now preserves one optional
+   direct `dc:Bounds` placeholder under bounded `DMNShape` placeholders,
+   which closes another real adapter/lint gap exposed by metadata-rich
+   `SpiffWorkflow` DMN research fixtures
+3. `qianji lint --dmn` can now tell LLM-driven repair flows when direct
+   shape bounds are actually present on diagram shapes, which is materially
+   safer than exposing only id/ref or listed-input markers
+4. label bounds, edge waypoints, `DMNDecisionServiceDividerLine`, DMNDI
+   relationship parsing, broader DRD execution, DMN dependency resolution,
+   full schema validation, and broader FEEL semantics all remain explicitly
+   deferred
+
+## 35. Follow-up After DMN Label Bounds Placeholder Slice
+
+The parity note needs one more precision update after the latest bounded DMN
+direct-label bounds slice.
+
+What changed:
+
+1. the crate still does not resolve or execute top-level `dmndi:DMNDI`
+   structures directly, so there is still no claim of DMN
+   diagram-interchange parity here
+2. the non-executable DMN root snapshot surface now preserves one optional
+   direct `dc:Bounds` placeholder under bounded `DMNLabel` placeholders,
+   which closes another real adapter/lint gap exposed by metadata-rich
+   `SpiffWorkflow` DMN research fixtures
+3. `qianji lint --dmn` can now tell LLM-driven repair flows when direct
+   label bounds are actually present on shape or edge labels, which is
+   materially safer than exposing only label ids or label text
+4. edge waypoints, `DMNDecisionServiceDividerLine`, DMNDI relationship
+   parsing, broader DRD execution, DMN dependency resolution, full schema
+   validation, and broader FEEL semantics all remain explicitly deferred
+
+## 36. Follow-up After DMN Edge Waypoint Placeholder Slice
+
+The parity note needs one more precision update after the latest bounded DMN
+direct-edge waypoint slice.
+
+What changed:
+
+1. the crate still does not resolve or execute top-level `dmndi:DMNDI`
+   structures directly, so there is still no claim of DMN
+   diagram-interchange parity here
+2. the non-executable DMN root snapshot surface now preserves one repeated
+   direct `di:waypoint` placeholder list under bounded `DMNEdge`
+   placeholders, which closes another real adapter/lint gap exposed by
+   metadata-rich `SpiffWorkflow` DMN research fixtures
+3. `qianji lint --dmn` can now tell LLM-driven repair flows when direct
+   edge waypoints are actually present on diagram edges, which is
+   materially safer than exposing only edge ids, refs, or label metadata
+4. `DMNDecisionServiceDividerLine`, DMNDI relationship parsing, broader
+   DRD execution, DMN dependency resolution, full schema validation, and
+   broader FEEL semantics all remain explicitly deferred
+
+## 37. Follow-up After DMN Decision-Service Divider-Line Placeholder Slice
+
+The parity note needs one more precision update after the latest bounded DMN
+decision-service divider-line slice.
+
+What changed:
+
+1. the crate still does not resolve or execute top-level `dmndi:DMNDI`
+   structures directly, so there is still no claim of DMN
+   diagram-interchange parity here
+2. the non-executable DMN root snapshot surface now preserves one optional
+   direct `DMNDecisionServiceDividerLine` placeholder under bounded
+   `DMNShape` placeholders, bounded to one repeated direct `di:waypoint`
+   placeholder list with optional x/y pairs, which closes another real
+   adapter/lint gap exposed by metadata-rich `SpiffWorkflow` decision-service
+   fixtures
+3. `qianji lint --dmn` can now tell LLM-driven repair flows when direct
+   divider-line waypoints are actually present on decision-service shapes,
+   which is materially safer than exposing only shape ids, refs, bounds, or
+   label metadata
+4. DMNDI relationship parsing, broader DRD execution, DMN dependency
+   resolution, full schema validation, and broader FEEL semantics all remain
+   explicitly deferred
+
+## 38. Follow-up After DMN Shape isCollapsed Placeholder Slice
+
+The parity note needs one more precision update after the latest bounded DMN
+direct-shape `isCollapsed` slice.
+
+What changed:
+
+1. the crate still does not resolve or execute top-level `dmndi:DMNDI`
+   structures directly, so there is still no claim of DMN
+   diagram-interchange parity here
+2. the non-executable DMN root snapshot surface now preserves one optional
+   direct `DMNShape.isCollapsed` boolean under bounded `DMNShape`
+   placeholders, which closes another real adapter/lint gap exposed by
+   metadata-rich `SpiffWorkflow` DMN fixtures
+3. `qianji lint --dmn` can now tell LLM-driven repair flows when direct
+   collapsed-state metadata is actually present on shapes, which is
+   materially safer than exposing only shape ids, refs, bounds, or
+   divider-line metadata
+4. `sharedStyle`, top-level `DMNStyle`, DMNDI relationship parsing,
+   broader DRD execution, DMN dependency resolution, full schema
+   validation, and broader FEEL semantics all remain explicitly deferred
+
+## 39. Follow-up After DMN DMNDI Guidance Slice
 
 The parity note needs one more precision update after the latest bounded DMN
 lint-precision slice.
@@ -685,7 +1102,7 @@ What changed:
    full schema validation, and broader FEEL semantics all remain explicitly
    deferred
 
-## 24. Follow-up After DMN Group Guidance Slice
+## 40. Follow-up After DMN Group Guidance Slice
 
 The parity note needs one more precision update after the latest bounded DMN
 lint-precision slice.
@@ -707,7 +1124,7 @@ What changed:
    DMN dependency resolution, full schema validation, and broader FEEL
    semantics all remain explicitly deferred
 
-## 25. Follow-up After DMN Allowed Answers Guidance Slice
+## 41. Follow-up After DMN Allowed Answers Guidance Slice
 
 The parity note needs one more precision update after the latest bounded DMN
 lint-precision slice.
@@ -729,7 +1146,7 @@ What changed:
    DMN dependency resolution, full schema validation, and broader FEEL
    semantics all remain explicitly deferred
 
-## 26. Follow-up After DMN Decision Governance Guidance Slice
+## 42. Follow-up After DMN Decision Governance Guidance Slice
 
 The parity note needs one more precision update after the latest bounded DMN
 lint-precision slice.
@@ -753,7 +1170,7 @@ What changed:
    schema validation, and broader FEEL semantics all remain explicitly
    deferred
 
-## 27. Follow-up After DMN Mixed Decision Governance Guidance Slice
+## 43. Follow-up After DMN Mixed Decision Governance Guidance Slice
 
 The parity note needs one more precision update after the latest bounded DMN
 lint-precision slice.

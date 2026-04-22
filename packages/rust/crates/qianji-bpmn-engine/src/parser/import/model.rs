@@ -79,6 +79,7 @@ pub(crate) struct RawNode {
     pub(crate) gateway_kind: Option<BpmnGatewayKind>,
     pub(crate) decision: Option<DmnDecisionRef>,
     pub(crate) task_message_ref: Option<String>,
+    pub(crate) script_task: Option<RawScriptTaskSpec>,
     pub(crate) called_process_ref: Option<String>,
     pub(crate) subprocess_kind: Option<RawSubProcessKind>,
     pub(crate) repeat: Option<RawRepeatSpec>,
@@ -87,6 +88,12 @@ pub(crate) struct RawNode {
     pub(crate) cancel_activity: bool,
     pub(crate) is_for_compensation: bool,
     pub(crate) event: Option<RawEventSpec>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct RawScriptTaskSpec {
+    pub(crate) script_format: Option<String>,
+    pub(crate) script_body: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -127,6 +134,7 @@ pub(crate) struct RawParallelMultiInstanceSpec {
 pub(crate) struct RawEventSpec {
     pub(crate) kind: BpmnEventKind,
     pub(crate) reference_id: Option<String>,
+    pub(crate) wait_for_completion: bool,
     pub(crate) name: Option<String>,
     pub(crate) timer: Option<RawTimerSpec>,
 }
@@ -146,6 +154,7 @@ pub(super) enum CaptureTarget {
     MultiInstanceLoopDataOutputRef,
     MultiInstanceCompletionCondition,
     SequenceFlowConditionExpression,
+    TaskScriptBody,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

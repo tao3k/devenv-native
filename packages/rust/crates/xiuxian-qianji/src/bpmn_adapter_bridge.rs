@@ -1,8 +1,9 @@
 use crate::telemetry::unix_millis_now;
 use qianji_bpmn_engine::{
     BpmnHostBridge, BusinessRuleTaskOutcome, BusinessRuleTaskRequest, EventPollOutcome,
-    EventPollRequest, HostBridgeError, ManualTaskOutcome, ManualTaskRequest, SendTaskOutcome,
-    SendTaskRequest, ServiceTaskOutcome, ServiceTaskRequest, UserTaskOutcome, UserTaskRequest,
+    EventPollRequest, HostBridgeError, ManualTaskOutcome, ManualTaskRequest, ScriptTaskOutcome,
+    ScriptTaskRequest, SendTaskOutcome, SendTaskRequest, ServiceTaskOutcome, ServiceTaskRequest,
+    UserTaskOutcome, UserTaskRequest,
 };
 use std::future::Future;
 use std::pin::Pin;
@@ -13,6 +14,7 @@ type HostFuture<T> =
 type SendHandler = Arc<dyn Fn(SendTaskRequest) -> HostFuture<SendTaskOutcome> + Send + Sync>;
 type ServiceHandler =
     Arc<dyn Fn(ServiceTaskRequest) -> HostFuture<ServiceTaskOutcome> + Send + Sync>;
+type ScriptHandler = Arc<dyn Fn(ScriptTaskRequest) -> HostFuture<ScriptTaskOutcome> + Send + Sync>;
 type UserHandler = Arc<dyn Fn(UserTaskRequest) -> HostFuture<UserTaskOutcome> + Send + Sync>;
 type ManualHandler = Arc<dyn Fn(ManualTaskRequest) -> HostFuture<ManualTaskOutcome> + Send + Sync>;
 type BusinessRuleHandler =
@@ -25,6 +27,7 @@ type ClockHandler = Arc<dyn Fn() -> u64 + Send + Sync>;
 pub struct QianjiBpmnHostBridge {
     send_task: SendHandler,
     service_task: ServiceHandler,
+    script_task: ScriptHandler,
     user_task: UserHandler,
     manual_task: ManualHandler,
     business_rule_task: BusinessRuleHandler,
@@ -51,6 +54,7 @@ impl Default for QianjiBpmnHostBridge {
 pub struct QianjiBpmnHostBridgeBuilder {
     send_task: Option<SendHandler>,
     service_task: Option<ServiceHandler>,
+    script_task: Option<ScriptHandler>,
     user_task: Option<UserHandler>,
     manual_task: Option<ManualHandler>,
     business_rule_task: Option<BusinessRuleHandler>,
@@ -81,6 +85,19 @@ impl QianjiBpmnHostBridgeBuilder {
             + 'static,
     {
         self.service_task = Some(Arc::new(move |request| Box::pin(handler(request))));
+        self
+    }
+
+    /// Installs the callback used for BPMN script-task dispatch.
+    #[must_use]
+    pub fn on_script_task<F, Fut>(mut self, handler: F) -> Self
+    where
+        F: Fn(ScriptTaskRequest) -> Fut + Send + Sync + 'static,
+        Fut: Future<Output = std::result::Result<ScriptTaskOutcome, HostBridgeError>>
+            + Send
+            + 'static,
+    {
+        self.script_task = Some(Arc::new(move |request| Box::pin(handler(request))));
         self
     }
 
@@ -156,6 +173,9 @@ impl QianjiBpmnHostBridgeBuilder {
             service_task: self
                 .service_task
                 .unwrap_or_else(|| unsupported_service_handler("dispatch_service_task")),
+            script_task: self
+                .script_task
+                .unwrap_or_else(|| unsupported_script_handler("dispatch_script_task")),
             user_task: self
                 .user_task
                 .unwrap_or_else(|| unsupported_user_handler("dispatch_user_task")),
@@ -182,6 +202,10 @@ fn unsupported_send_handler(operation: &'static str) -> SendHandler {
 }
 
 fn unsupported_service_handler(operation: &'static str) -> ServiceHandler {
+    Arc::new(move |_request| Box::pin(async move { Err(unsupported(operation)) }))
+}
+
+fn unsupported_script_handler(operation: &'static str) -> ScriptHandler {
     Arc::new(move |_request| Box::pin(async move { Err(unsupported(operation)) }))
 }
 
@@ -219,6 +243,13 @@ impl BpmnHostBridge for QianjiBpmnHostBridge {
         request: ServiceTaskRequest,
     ) -> std::result::Result<ServiceTaskOutcome, HostBridgeError> {
         (self.service_task)(request).await
+    }
+
+    async fn dispatch_script_task(
+        &self,
+        request: ScriptTaskRequest,
+    ) -> std::result::Result<ScriptTaskOutcome, HostBridgeError> {
+        (self.script_task)(request).await
     }
 
     async fn dispatch_user_task(

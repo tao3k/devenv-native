@@ -2,12 +2,12 @@ use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{
     BpmnEdgeSpec, BpmnEventKind, BpmnEventSpec, BpmnGatewayKind, BpmnHostBridge,
     BpmnMultiInstanceDataBindingSpec, BpmnNodeKind, BpmnNodeSpec, BpmnParallelMultiInstanceSpec,
-    BpmnProcessSpec, BpmnRepeatSpec, BpmnSequentialMultiInstanceSpec, BpmnStandardLoopSpec,
-    BpmnTimerKind, BpmnTimerSpec, BusinessRuleTaskOutcome, BusinessRuleTaskRequest,
-    DmnDecisionDefinition, DmnDecisionRef, DmnSourceFile, EventPollOutcome, EventPollRequest,
-    HostBridgeError, ManualTaskOutcome, ManualTaskRequest, ProcessKey, SendTaskOutcome,
-    SendTaskRequest, ServiceTaskOutcome, ServiceTaskRequest, UserTaskOutcome, UserTaskRequest,
-    parse_dmn_decision,
+    BpmnProcessSpec, BpmnRepeatSpec, BpmnScriptTaskSpec, BpmnSequentialMultiInstanceSpec,
+    BpmnStandardLoopSpec, BpmnTimerKind, BpmnTimerSpec, BusinessRuleTaskOutcome,
+    BusinessRuleTaskRequest, DmnDecisionDefinition, DmnDecisionRef, DmnSourceFile,
+    EventPollOutcome, EventPollRequest, HostBridgeError, ManualTaskOutcome, ManualTaskRequest,
+    ProcessKey, ScriptTaskOutcome, ScriptTaskRequest, SendTaskOutcome, SendTaskRequest,
+    ServiceTaskOutcome, ServiceTaskRequest, UserTaskOutcome, UserTaskRequest, parse_dmn_decision,
 };
 use serde_json::json;
 
@@ -45,11 +45,19 @@ fn linear_blocking_process(process_id: &str, node_kind: BpmnNodeKind) -> BpmnPro
         ],
         _ => Vec::new(),
     };
+    let task = match node_kind {
+        BpmnNodeKind::ScriptTask => {
+            BpmnNodeSpec::new(1, "task", BpmnNodeKind::ScriptTask).with_script_task(
+                BpmnScriptTaskSpec::new(Some("feel"), Some("result = amount + tax")),
+            )
+        }
+        _ => BpmnNodeSpec::new(1, "task", node_kind),
+    };
     BpmnProcessSpec::new(
         ProcessKey::new("pkg_runtime", process_id, format!("digest_{process_id}")),
         vec![
             BpmnNodeSpec::new(0, "start", BpmnNodeKind::StartEvent),
-            BpmnNodeSpec::new(1, "task", node_kind),
+            task,
             BpmnNodeSpec::new(2, "end", BpmnNodeKind::EndEvent),
         ],
         vec![
@@ -725,6 +733,78 @@ fn boundary_timer_process(process_id: &str) -> BpmnProcessSpec {
     )
 }
 
+fn non_interrupting_boundary_timer_process(process_id: &str) -> BpmnProcessSpec {
+    BpmnProcessSpec::new(
+        ProcessKey::new("pkg_runtime", process_id, format!("digest_{process_id}")),
+        vec![
+            BpmnNodeSpec::new(0, "start", BpmnNodeKind::StartEvent),
+            BpmnNodeSpec::new(1, "review", BpmnNodeKind::UserTask),
+            BpmnNodeSpec::new(2, "review_timeout", BpmnNodeKind::BoundaryEvent)
+                .with_boundary_attachment(1, false),
+            BpmnNodeSpec::new(3, "approved_end", BpmnNodeKind::EndEvent),
+            BpmnNodeSpec::new(4, "timeout_end", BpmnNodeKind::EndEvent),
+        ],
+        vec![
+            BpmnEdgeSpec::new(0, 1, None::<&str>),
+            BpmnEdgeSpec::new(1, 3, None::<&str>),
+            BpmnEdgeSpec::new(2, 4, None::<&str>),
+        ],
+        vec![
+            BpmnEventSpec::new(2, BpmnEventKind::Timer)
+                .with_name("ReviewTimeout")
+                .with_timer(BpmnTimerSpec::new(BpmnTimerKind::Duration, "PT30M")),
+        ],
+    )
+}
+
+fn boundary_external_process_with_cancel(
+    process_id: &str,
+    event_kind: BpmnEventKind,
+    reference_id: &str,
+    event_name: &str,
+    cancel_activity: bool,
+) -> BpmnProcessSpec {
+    BpmnProcessSpec::new(
+        ProcessKey::new("pkg_runtime", process_id, format!("digest_{process_id}")),
+        vec![
+            BpmnNodeSpec::new(0, "start", BpmnNodeKind::StartEvent),
+            BpmnNodeSpec::new(1, "review", BpmnNodeKind::UserTask),
+            BpmnNodeSpec::new(2, "review_boundary", BpmnNodeKind::BoundaryEvent)
+                .with_boundary_attachment(1, cancel_activity),
+            BpmnNodeSpec::new(3, "approved_end", BpmnNodeKind::EndEvent),
+            BpmnNodeSpec::new(4, "boundary_end", BpmnNodeKind::EndEvent),
+        ],
+        vec![
+            BpmnEdgeSpec::new(0, 1, None::<&str>),
+            BpmnEdgeSpec::new(1, 3, None::<&str>),
+            BpmnEdgeSpec::new(2, 4, None::<&str>),
+        ],
+        vec![
+            BpmnEventSpec::new(2, event_kind)
+                .with_reference_id(reference_id)
+                .with_name(event_name),
+        ],
+    )
+}
+
+fn boundary_external_process(
+    process_id: &str,
+    event_kind: BpmnEventKind,
+    reference_id: &str,
+    event_name: &str,
+) -> BpmnProcessSpec {
+    boundary_external_process_with_cancel(process_id, event_kind, reference_id, event_name, true)
+}
+
+fn non_interrupting_boundary_external_process(
+    process_id: &str,
+    event_kind: BpmnEventKind,
+    reference_id: &str,
+    event_name: &str,
+) -> BpmnProcessSpec {
+    boundary_external_process_with_cancel(process_id, event_kind, reference_id, event_name, false)
+}
+
 fn call_activity_main_process(process_id: &str) -> BpmnProcessSpec {
     BpmnProcessSpec::new(
         ProcessKey::new("pkg_runtime", process_id, format!("digest_{process_id}")),
@@ -781,6 +861,13 @@ impl BpmnHostBridge for StubHost {
         &self,
         _request: ServiceTaskRequest,
     ) -> std::result::Result<ServiceTaskOutcome, HostBridgeError> {
+        panic!("runtime kernel should not dispatch host work in the blocking slice");
+    }
+
+    async fn dispatch_script_task(
+        &self,
+        _request: ScriptTaskRequest,
+    ) -> std::result::Result<ScriptTaskOutcome, HostBridgeError> {
         panic!("runtime kernel should not dispatch host work in the blocking slice");
     }
 

@@ -1,4 +1,4 @@
-use super::evidence::{augment_evidence, root_context};
+use super::evidence::{augment_evidence, dmndi_metadata_context, root_context};
 use super::snapshot_count::{
     snapshot_association_count, snapshot_dmndi_count, snapshot_element_collection_count,
     snapshot_group_count,
@@ -130,7 +130,8 @@ pub(super) fn unsupported_dmndi_document_issue(
         "dmn.unsupported_dmndi_document",
         "DMN file contains diagram interchange metadata but no executable decisions",
         format!(
-            "Source '{source_id}' contains {dmndi_count} top-level `<dmndi:DMNDI>` {noun}, but no executable `<decision>` elements."
+            "Source '{source_id}' contains {dmndi_count} top-level `<dmndi:DMNDI>` {noun}, but no executable `<decision>` elements.{}",
+            dmndi_metadata_context(snapshot)
         ),
         format!(
             "The bounded DMN evaluator treats top-level DMNDI blocks as diagram-interchange metadata only; they do not become executable decision logic without at least one local `<decision>`.{}",

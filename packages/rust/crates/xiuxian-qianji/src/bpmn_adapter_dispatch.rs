@@ -22,6 +22,9 @@ pub async fn dispatch_pending_host_work_request<H: BpmnHostBridge>(
         PendingHostWorkRequest::Service(request) => {
             PendingHostWorkResult::Service(host.dispatch_service_task(request).await?)
         }
+        PendingHostWorkRequest::Script(request) => {
+            PendingHostWorkResult::Script(host.dispatch_script_task(request).await?)
+        }
         PendingHostWorkRequest::User(request) => {
             PendingHostWorkResult::User(host.dispatch_user_task(request).await?)
         }
@@ -91,6 +94,7 @@ fn request_token_id(request: &PendingHostWorkRequest) -> u64 {
     match request {
         PendingHostWorkRequest::Send(request) => request.token_id,
         PendingHostWorkRequest::Service(request) => request.token_id,
+        PendingHostWorkRequest::Script(request) => request.token_id,
         PendingHostWorkRequest::User(request) => request.token_id,
         PendingHostWorkRequest::Manual(request) => request.token_id,
         PendingHostWorkRequest::BusinessRule(request) => request.token_id,

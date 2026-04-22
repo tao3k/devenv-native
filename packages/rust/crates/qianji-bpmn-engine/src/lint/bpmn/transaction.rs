@@ -16,9 +16,6 @@ pub(super) fn transaction_configuration_issue(
         "multiple_transaction_cancel_end_events" => {
             multiple_transaction_cancel_end_issue(process_id, node_id, detail)
         }
-        "multiple_transaction_error_end_events" => {
-            multiple_transaction_error_end_issue(process_id, node_id, detail)
-        }
         "transaction_cancel_missing_boundary" => {
             transaction_cancel_missing_boundary_issue(process_id, node_id, detail)
         }
@@ -40,7 +37,7 @@ fn error_end_requires_transaction_shell_issue(
         format!(
             "Process '{process_id}' end event '{node_id}' uses `<errorEventDefinition>` outside one bounded transaction shell."
         ),
-        "The bounded engine supports a transaction error end only as part of one transaction-error path: the end event must live inside one nested `<bpmn:transaction>` shell and be paired with one parent interrupting error boundary attached to that same transaction node.",
+        "The bounded engine supports a transaction error end only as part of one transaction-error path: the end event must live inside one nested `<bpmn:transaction>` shell and be paired with at least one parent interrupting error boundary attached to that same transaction node.",
         vec![
             "If this is not a real BPMN transaction error path, replace `<bpmn:errorEventDefinition>` with a regular `<bpmn:endEvent>`.".to_string(),
             "If it is a real transaction error path, move the error end inside one `<bpmn:transaction>` body and add the matching parent error boundary.".to_string(),
@@ -110,33 +107,6 @@ fn multiple_transaction_cancel_end_issue(
     )
 }
 
-fn multiple_transaction_error_end_issue(
-    process_id: &str,
-    node_id: &str,
-    detail: &'static str,
-) -> LintIssue {
-    LintIssue::new(
-        "bpmn.unsupported_transaction_configuration",
-        "Transaction shell supports only one error end event",
-        format!(
-            "Process '{process_id}' transaction node '{node_id}' contains more than one nested error end event."
-        ),
-        "The bounded transaction-error slice supports exactly one nested `<bpmn:endEvent>` carrying `<bpmn:errorEventDefinition>` inside one transaction shell, so the engine can map that path to one parent interrupting error boundary deterministically.",
-        vec![
-            "Keep at most one nested error end inside this `<bpmn:transaction>` body.".to_string(),
-            "If multiple error outcomes are needed, merge them through internal gateways and route them into one shared bounded error end.".to_string(),
-        ],
-        format!(
-            "Repair transaction node '{node_id}' in process '{process_id}' so its bounded `<bpmn:transaction>` body contains exactly one nested error end event with `<bpmn:errorEventDefinition>`. Preserve workflow intent, but merge multiple error exits into one bounded error path."
-        ),
-        json!({
-            "process_id": process_id,
-            "node_id": node_id,
-            "detail": detail,
-        }),
-    )
-}
-
 fn transaction_cancel_missing_boundary_issue(
     process_id: &str,
     node_id: &str,
@@ -175,13 +145,13 @@ fn transaction_error_missing_boundary_issue(
         format!(
             "Process '{process_id}' transaction node '{node_id}' contains a nested error end but does not expose any matching parent interrupting error boundary."
         ),
-        "The bounded engine only executes transaction error semantics when one transaction shell has both sides of the path: one nested error end inside the child body and one or more matching parent interrupting error boundaries attached to that same transaction node. If a boundary carries `errorRef`, it must match the thrown error; if it omits `errorRef`, it acts as the bounded catch-all path.",
+        "The bounded engine only executes transaction error semantics when one transaction shell has both sides of the path: one or more nested error ends inside the child body and one or more matching parent interrupting error boundaries attached to that same transaction node. If a boundary carries `errorRef`, it must match the thrown error; if it omits `errorRef`, it acts as the bounded catch-all path.",
         vec![
             "Add one or more interrupting `boundaryEvent` nodes with `<bpmn:errorEventDefinition>` attached to this `<bpmn:transaction>` node.".to_string(),
-            "If the nested error end uses `errorRef`, either copy that same `errorRef` to one or more matching boundaries or omit `errorRef` on one boundary to make it the bounded catch-all path.".to_string(),
+            "For every nested error end that uses `errorRef`, either copy that same `errorRef` to one or more matching boundaries or omit `errorRef` on one boundary to make it the bounded catch-all path.".to_string(),
         ],
         format!(
-            "Repair transaction node '{node_id}' in process '{process_id}' so its bounded error path is complete: keep exactly one nested error end inside the `<bpmn:transaction>` body and add one or more parent interrupting `boundaryEvent` nodes with `<bpmn:errorEventDefinition>` attached to that same transaction node, routing the error path through each selected boundary's outgoing sequence flow. If the nested error end declares `errorRef`, make one or more boundaries use the same `errorRef` or omit `errorRef` on one boundary to catch that error generically."
+            "Repair transaction node '{node_id}' in process '{process_id}' so its bounded error path is complete: keep one or more nested error ends inside the `<bpmn:transaction>` body and add one or more parent interrupting `boundaryEvent` nodes with `<bpmn:errorEventDefinition>` attached to that same transaction node, routing each thrown error through every selected boundary's outgoing sequence flow. If a nested error end declares `errorRef`, make one or more boundaries use the same `errorRef` or omit `errorRef` on one boundary to catch that error generically."
         ),
         json!({
             "process_id": process_id,
@@ -202,13 +172,13 @@ fn generic_transaction_configuration_issue(
         format!(
             "Process '{process_id}' transaction node '{node_id}' uses unsupported configuration '{detail}'."
         ),
-        "The current engine supports only one bounded transaction shell shape: exactly one nested start event, at least one nested end event, and at most one bounded cancel path or one bounded error path, each paired with one matching parent interrupting boundary event.",
+        "The current engine supports only one bounded transaction shell shape: exactly one nested start event, at least one nested end event, at most one bounded cancel path, and one or more bounded error-end paths, with every thrown error paired to one or more matching parent interrupting error boundaries on that same transaction owner.",
         vec![
             "Keep the transaction intent, but reduce it to the bounded transaction shell shape.".to_string(),
             "If the model depends on richer BPMN transaction features such as broader throw-compensation forms, compensation event subprocesses, or default compensation, preserve that requirement explicitly and defer execution until support lands.".to_string(),
         ],
         format!(
-            "Rewrite transaction node '{node_id}' in process '{process_id}' so it fits the bounded slice: one `<bpmn:transaction>` shell with exactly one nested `<bpmn:startEvent>`, at least one nested `<bpmn:endEvent>`, and at most one bounded cancel path or one bounded error path, each composed of one nested throwing end event plus one matching parent interrupting boundary on that transaction owner. Preserve workflow intent, but remove unsupported configuration '{detail}'."
+            "Rewrite transaction node '{node_id}' in process '{process_id}' so it fits the bounded slice: one `<bpmn:transaction>` shell with exactly one nested `<bpmn:startEvent>`, at least one nested `<bpmn:endEvent>`, at most one bounded cancel path, and one or more bounded error-end paths, with every thrown error paired to one or more matching parent interrupting error boundaries on that transaction owner. Preserve workflow intent, but remove unsupported configuration '{detail}'."
         ),
         json!({
             "process_id": process_id,

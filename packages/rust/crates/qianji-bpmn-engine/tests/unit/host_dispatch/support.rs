@@ -3,11 +3,12 @@ use qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnEdgeSpec, BpmnEventKind, BpmnEventSpec, BpmnGatewayKind,
     BpmnHostBridge, BpmnInstanceInit, BpmnMultiInstanceDataBindingSpec, BpmnNodeKind, BpmnNodeSpec,
     BpmnPackage, BpmnParallelMultiInstanceSpec, BpmnProcessSpec, BpmnRepeatSpec,
-    BpmnSequentialMultiInstanceSpec, BusinessRuleTaskOutcome, BusinessRuleTaskRequest,
-    DmnDecisionRef, EventPollOutcome, EventPollRequest, HostBridgeError, ManualTaskOutcome,
-    ManualTaskRequest, PendingHostWorkKind, PendingHostWorkRequest, ProcessKey, SendTaskOutcome,
-    SendTaskRequest, ServiceTaskOutcome, ServiceTaskRequest, UserTaskOutcome, UserTaskRequest,
-    advance_instance, build_pending_host_work_request, create_instance,
+    BpmnScriptTaskSpec, BpmnSequentialMultiInstanceSpec, BusinessRuleTaskOutcome,
+    BusinessRuleTaskRequest, DmnDecisionRef, EventPollOutcome, EventPollRequest, HostBridgeError,
+    ManualTaskOutcome, ManualTaskRequest, PendingHostWorkKind, PendingHostWorkRequest, ProcessKey,
+    ScriptTaskOutcome, ScriptTaskRequest, SendTaskOutcome, SendTaskRequest, ServiceTaskOutcome,
+    ServiceTaskRequest, UserTaskOutcome, UserTaskRequest, advance_instance,
+    build_pending_host_work_request, create_instance,
 };
 use serde_json::json;
 use std::sync::Arc;
@@ -42,6 +43,7 @@ pub(super) async fn assert_dispatch_request(
         match node_kind {
             BpmnNodeKind::SendTask => PendingHostWorkKind::Send,
             BpmnNodeKind::ServiceTask => PendingHostWorkKind::Service,
+            BpmnNodeKind::ScriptTask => PendingHostWorkKind::Script,
             BpmnNodeKind::UserTask => PendingHostWorkKind::User,
             BpmnNodeKind::ManualTask => PendingHostWorkKind::Manual,
             BpmnNodeKind::BusinessRuleTask => PendingHostWorkKind::BusinessRule,
@@ -55,6 +57,11 @@ pub(super) fn blocking_process(process_id: &str, node_kind: &BpmnNodeKind) -> Bp
         BpmnNodeKind::BusinessRuleTask => {
             BpmnNodeSpec::new(1, "task", BpmnNodeKind::BusinessRuleTask)
                 .with_decision(DmnDecisionRef::new("loan-decision"))
+        }
+        BpmnNodeKind::ScriptTask => {
+            BpmnNodeSpec::new(1, "task", BpmnNodeKind::ScriptTask).with_script_task(
+                BpmnScriptTaskSpec::new(Some("feel"), Some("result = amount + tax")),
+            )
         }
         _ => BpmnNodeSpec::new(1, "task", node_kind.clone()),
     };
@@ -213,6 +220,10 @@ pub(super) fn with_token_id(
             request.token_id = token_id;
             PendingHostWorkRequest::Service(request)
         }
+        PendingHostWorkRequest::Script(mut request) => {
+            request.token_id = token_id;
+            PendingHostWorkRequest::Script(request)
+        }
         PendingHostWorkRequest::User(mut request) => {
             request.token_id = token_id;
             PendingHostWorkRequest::User(request)
@@ -251,6 +262,13 @@ impl BpmnHostBridge for StubHost {
         &self,
         _request: ServiceTaskRequest,
     ) -> std::result::Result<ServiceTaskOutcome, HostBridgeError> {
+        panic!("host dispatch tests should not execute host work");
+    }
+
+    async fn dispatch_script_task(
+        &self,
+        _request: ScriptTaskRequest,
+    ) -> std::result::Result<ScriptTaskOutcome, HostBridgeError> {
         panic!("host dispatch tests should not execute host work");
     }
 

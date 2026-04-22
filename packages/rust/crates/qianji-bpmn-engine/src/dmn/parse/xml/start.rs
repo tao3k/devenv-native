@@ -41,6 +41,17 @@ pub(crate) fn handle_start_tag(
     )? {
         return Ok(());
     }
+    if handle_input_expression_start_tag(
+        source,
+        reader,
+        event,
+        tag,
+        current_input,
+        capture_target,
+        capture_buffer,
+    )? {
+        return Ok(());
+    }
     handle_capture_start_tag(
         source,
         tag,
@@ -118,6 +129,7 @@ fn handle_table_start_tag(
                 label: attribute_value(source, reader, event, "label")?,
                 name: attribute_value(source, reader, event, "name")?,
                 expression: None,
+                type_ref: None,
             });
             if is_empty {
                 finalize_input(current_table, current_input);
@@ -132,6 +144,7 @@ fn handle_table_start_tag(
                 output_id: required_attribute(source, reader, event, "output", "id")?,
                 label: attribute_value(source, reader, event, "label")?,
                 name: attribute_value(source, reader, event, "name")?,
+                type_ref: attribute_value(source, reader, event, "typeRef")?,
             });
             if is_empty {
                 finalize_output(current_table, current_output);
@@ -157,6 +170,26 @@ fn handle_table_start_tag(
     }
 }
 
+fn handle_input_expression_start_tag(
+    source: &DmnSourceFile,
+    reader: &Reader<&[u8]>,
+    event: &BytesStart<'_>,
+    tag: &str,
+    current_input: &mut Option<TempInput>,
+    capture_target: &mut Option<CaptureTarget>,
+    capture_buffer: &mut String,
+) -> Result<bool> {
+    if tag != "inputExpression" {
+        return Ok(false);
+    }
+    if let Some(input) = current_input.as_mut() {
+        input.type_ref = attribute_value(source, reader, event, "typeRef")?;
+    }
+    *capture_target = Some(CaptureTarget::InputExpression);
+    capture_buffer.clear();
+    Ok(true)
+}
+
 fn handle_capture_start_tag(
     source: &DmnSourceFile,
     tag: &str,
@@ -166,10 +199,6 @@ fn handle_capture_start_tag(
     is_empty: bool,
 ) -> Result<()> {
     match tag {
-        "inputExpression" => {
-            *capture_target = Some(CaptureTarget::InputExpression);
-            capture_buffer.clear();
-        }
         "description" if current_rule.is_some() => {
             *capture_target = Some(CaptureTarget::RuleDescription);
             capture_buffer.clear();

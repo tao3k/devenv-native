@@ -25,6 +25,10 @@ pub enum WaitKind {
 /// Waiting registration for one node.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct WaitRegistration {
+    /// Optional owning process identifier for waits that belong to a
+    /// suspended parent frame instead of the currently active process.
+    #[serde(default)]
+    pub process_id: Option<String>,
     /// Owning node index.
     pub node_index: BpmnNodeIndex,
     /// Optional currently blocked host-work node for boundary waits.

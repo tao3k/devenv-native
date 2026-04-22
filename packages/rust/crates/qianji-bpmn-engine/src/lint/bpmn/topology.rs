@@ -15,13 +15,13 @@ pub(super) fn issue_from_bpmn_topology_error(error: &BpmnEngineError) -> Option<
             format!(
                 "Process '{process_id}' boundary event '{node_id}' references missing attached node '{attached_to_node_id}'."
             ),
-            "The bounded engine can only normalize a boundary event when `attachedToRef` points to an existing host-blocking task node in the same process.",
+            "The bounded engine can only normalize a boundary event when `attachedToRef` points to an existing supported owner in the same process.",
             vec![
                 format!("Change `attachedToRef` on boundary event '{node_id}' to an existing node id in process '{process_id}'."),
-                "Attach the boundary only to one serviceTask, userTask, manualTask, or businessRuleTask.".to_string(),
+                "Attach the boundary only to one supported owner: one host-blocking task for interrupting timer, message, or signal boundaries, one bounded embedded `<bpmn:subProcess>` owner or one bounded same-package `<bpmn:callActivity>` owner for one interrupting timer, message, or signal boundary with the bounded mixed-owner subset of one or more interrupting error boundaries, one bounded `<bpmn:transaction>` shell for one interrupting timer/message/signal boundary either on its own, with one interrupting cancel boundary, with one or more interrupting error boundaries, or with one interrupting cancel boundary plus one or more interrupting error boundaries, one non-repeating or bounded standard-loop, sequential multi-instance, or parallel multi-instance host-blocking task for non-interrupting timer, message, or signal boundaries, one bounded `<bpmn:transaction>` shell for cancel boundaries, or one bounded `<bpmn:transaction>` / embedded `<bpmn:subProcess>` / same-package `<bpmn:callActivity>` owner for error boundaries.".to_string(),
             ],
             format!(
-                "Edit process '{process_id}' so boundary event '{node_id}' uses an `attachedToRef` that points to an existing serviceTask, userTask, manualTask, or businessRuleTask. Preserve workflow intent, but do not leave the boundary attached to missing node '{attached_to_node_id}'."
+                "Edit process '{process_id}' so boundary event '{node_id}' uses an `attachedToRef` that points to an existing supported owner in the same process. Preserve workflow intent, but do not leave the boundary attached to missing node '{attached_to_node_id}'."
             ),
             json!({
                 "process_id": process_id,

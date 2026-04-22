@@ -93,6 +93,32 @@ pub struct ServiceTaskOutcome {
     pub data: Value,
 }
 
+/// Common script-task dispatch request.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct ScriptTaskRequest {
+    /// Owning workflow instance identifier.
+    pub instance_id: String,
+    /// Owning runtime token identifier.
+    pub token_id: u64,
+    /// BPMN node index.
+    pub node_index: u32,
+    /// Optional source-level `scriptFormat` attribute.
+    pub script_format: Option<String>,
+    /// Optional nested `<bpmn:script>` body.
+    pub script_body: Option<String>,
+    /// Current workflow variables snapshot.
+    pub variables: Value,
+    /// Optional repeat-execution metadata for the blocked task.
+    pub repeat: Option<RepeatExecutionContext>,
+}
+
+/// Common script-task dispatch outcome.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct ScriptTaskOutcome {
+    /// Updated variables or script output payload.
+    pub data: Value,
+}
+
 /// Common user-task dispatch request.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct UserTaskRequest {
@@ -167,6 +193,8 @@ pub enum PendingHostWorkRequest {
     Send(SendTaskRequest),
     /// Dispatch request for a service task.
     Service(ServiceTaskRequest),
+    /// Dispatch request for a script task.
+    Script(ScriptTaskRequest),
     /// Dispatch request for a user task.
     User(UserTaskRequest),
     /// Dispatch request for a manual task.
@@ -182,6 +210,7 @@ impl PendingHostWorkRequest {
         match self {
             Self::Send(_) => PendingHostWorkKind::Send,
             Self::Service(_) => PendingHostWorkKind::Service,
+            Self::Script(_) => PendingHostWorkKind::Script,
             Self::User(_) => PendingHostWorkKind::User,
             Self::Manual(_) => PendingHostWorkKind::Manual,
             Self::BusinessRule(_) => PendingHostWorkKind::BusinessRule,
@@ -194,6 +223,7 @@ impl PendingHostWorkRequest {
         match self {
             Self::Send(_) => "send",
             Self::Service(_) => "service",
+            Self::Script(_) => "script",
             Self::User(_) => "user",
             Self::Manual(_) => "manual",
             Self::BusinessRule(_) => "business_rule",
@@ -209,6 +239,8 @@ pub enum PendingHostWorkResult {
     Send(SendTaskOutcome),
     /// Completion payload for a service task.
     Service(ServiceTaskOutcome),
+    /// Completion payload for a script task.
+    Script(ScriptTaskOutcome),
     /// Completion payload for a user task.
     User(UserTaskOutcome),
     /// Completion payload for a manual task.
@@ -224,6 +256,7 @@ impl PendingHostWorkResult {
         match self {
             Self::Send(_) => PendingHostWorkKind::Send,
             Self::Service(_) => PendingHostWorkKind::Service,
+            Self::Script(_) => PendingHostWorkKind::Script,
             Self::User(_) => PendingHostWorkKind::User,
             Self::Manual(_) => PendingHostWorkKind::Manual,
             Self::BusinessRule(_) => PendingHostWorkKind::BusinessRule,
@@ -236,6 +269,7 @@ impl PendingHostWorkResult {
         match self {
             Self::Send(_) => "send",
             Self::Service(_) => "service",
+            Self::Script(_) => "script",
             Self::User(_) => "user",
             Self::Manual(_) => "manual",
             Self::BusinessRule(_) => "business_rule",
@@ -248,6 +282,7 @@ impl PendingHostWorkResult {
         match self {
             Self::Send(outcome) => &outcome.data,
             Self::Service(outcome) => &outcome.data,
+            Self::Script(outcome) => &outcome.data,
             Self::User(outcome) => &outcome.data,
             Self::Manual(outcome) => &outcome.data,
             Self::BusinessRule(outcome) => &outcome.evaluation.output,

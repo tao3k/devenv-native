@@ -39,6 +39,8 @@ pub enum BpmnNodeKind {
     ReceiveTask,
     /// Service task node.
     ServiceTask,
+    /// Script task node dispatched through the host seam.
+    ScriptTask,
     /// User task node.
     UserTask,
     /// Manual task node.
@@ -82,6 +84,9 @@ pub struct BpmnNodeSpec {
     pub subprocess_kind: Option<BpmnSubProcessKind>,
     /// Optional repeatable-task snapshot for bounded loop execution.
     pub repeat: Option<BpmnRepeatSpec>,
+    /// Optional bounded script-task metadata preserved for host dispatch.
+    #[serde(default)]
+    pub script_task: Option<BpmnScriptTaskSpec>,
     /// Optional attached host node for boundary events.
     pub attached_to: Option<BpmnNodeIndex>,
     /// Optional default outgoing edge for bounded conditional-gateway routing.
@@ -109,6 +114,7 @@ impl BpmnNodeSpec {
             called_process_id: None,
             subprocess_kind: None,
             repeat: None,
+            script_task: None,
             attached_to: None,
             default_outgoing_edge: None,
             inclusive_join_node: None,
@@ -152,6 +158,13 @@ impl BpmnNodeSpec {
         self
     }
 
+    /// Attaches bounded script-task metadata to the node.
+    #[must_use]
+    pub fn with_script_task(mut self, script_task: BpmnScriptTaskSpec) -> Self {
+        self.script_task = Some(script_task);
+        self
+    }
+
     /// Attaches boundary-event ownership metadata to the node.
     #[must_use]
     pub fn with_boundary_attachment(
@@ -183,5 +196,30 @@ impl BpmnNodeSpec {
     pub fn with_compensation_marker(mut self, is_for_compensation: bool) -> Self {
         self.is_for_compensation = is_for_compensation;
         self
+    }
+}
+
+/// Bounded script-task metadata preserved for host dispatch.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct BpmnScriptTaskSpec {
+    /// Optional source-level `scriptFormat` attribute.
+    #[serde(default)]
+    pub script_format: Option<Arc<str>>,
+    /// Optional nested `<bpmn:script>` body trimmed during parse-time capture.
+    #[serde(default)]
+    pub script_body: Option<Arc<str>>,
+}
+
+impl BpmnScriptTaskSpec {
+    /// Creates one bounded script-task metadata snapshot.
+    #[must_use]
+    pub fn new(
+        script_format: Option<impl AsRef<str>>,
+        script_body: Option<impl AsRef<str>>,
+    ) -> Self {
+        Self {
+            script_format: script_format.map(|format| Arc::<str>::from(format.as_ref())),
+            script_body: script_body.map(|body| Arc::<str>::from(body.as_ref())),
+        }
     }
 }

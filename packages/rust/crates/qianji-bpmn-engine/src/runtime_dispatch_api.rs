@@ -11,6 +11,8 @@ pub enum PendingHostWorkKind {
     Send,
     /// Service-task dispatch.
     Service,
+    /// Script-task dispatch.
+    Script,
     /// User-task dispatch.
     User,
     /// Manual-task dispatch.
@@ -24,12 +26,21 @@ pub enum PendingHostWorkKind {
 pub struct PendingHostWork {
     /// Owning runtime token identifier.
     pub token_id: u64,
+    /// Owning BPMN process identifier.
+    #[serde(default)]
+    pub process_id: Option<String>,
     /// Owning BPMN node index.
     pub node_index: BpmnNodeIndex,
     /// Host work category.
     pub kind: PendingHostWorkKind,
     /// Optional DMN decision binding for business-rule work.
     pub decision: Option<DmnDecisionRef>,
+    /// Optional source-level `scriptFormat` attribute for script-task work.
+    #[serde(default)]
+    pub script_format: Option<String>,
+    /// Optional nested `<bpmn:script>` body for script-task work.
+    #[serde(default)]
+    pub script_body: Option<String>,
     /// Optional source-level event reference such as `messageRef`.
     #[serde(default)]
     pub event_reference: Option<String>,

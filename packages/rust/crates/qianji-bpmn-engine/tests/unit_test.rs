@@ -20,7 +20,7 @@ mod lint;
 #[path = "unit/host_dispatch/mod.rs"]
 mod host_dispatch;
 
-#[path = "unit/host_resume.rs"]
+#[path = "unit/host_resume/mod.rs"]
 mod host_resume;
 
 #[path = "unit/external_wait.rs"]

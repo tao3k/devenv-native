@@ -2,12 +2,22 @@ use super::{StubHost, call_activity_child_process, call_activity_main_process};
 use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{BpmnPackage, BpmnParseOptions, BpmnSourceFile, parse_bpmn_package};
 
+mod call_error;
+mod call_mixed;
 mod core;
+mod embedded_boundary;
+mod embedded_error;
+mod embedded_mixed;
+mod external_boundary;
 mod nested;
 mod transaction_cancel;
 mod transaction_compensation;
 mod transaction_completion;
 mod transaction_error;
+mod transaction_external;
+mod transaction_mixed;
+mod transaction_mixed_cancel;
+mod transaction_mixed_cancel_error;
 
 pub(super) const EMBEDDED_REVIEW_PROCESS_ID: &str =
     "__embedded_subprocess__::main_process::inline_review";

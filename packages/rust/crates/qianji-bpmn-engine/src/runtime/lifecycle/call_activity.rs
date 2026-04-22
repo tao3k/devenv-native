@@ -1,10 +1,10 @@
 use super::scope::{
-    BpmnEngineError, BpmnInstanceState, BpmnNodeIndex, BpmnPackage, BpmnProcessSpec,
+    BpmnEngineError, BpmnEventKind, BpmnInstanceState, BpmnNodeIndex, BpmnPackage, BpmnProcessSpec,
     BpmnSubProcessKind, InstanceLifecycle, NodeRuntimeStatus, Result, SuspendReason, TokenRecord,
     install_process_state, pop_call_activity_frame, push_call_activity_frame,
     resolve_process_for_instance, restore_call_activity_frame,
 };
-use super::{blocking, completion, state, transaction};
+use super::{blocking, boundary, completion, state};
 
 pub(super) fn can_bootstrap_start_token(instance: &BpmnInstanceState) -> bool {
     instance.sequence == 0
@@ -90,6 +90,7 @@ pub(super) fn enter_call_activity(
         })?;
 
     state::set_node_status(instance, node_index, NodeRuntimeStatus::Executing);
+    arm_subprocess_external_boundary_wait(process, instance, node_index)?;
     let transaction_cancel_variables = (node.subprocess_kind
         == Some(BpmnSubProcessKind::Transaction))
     .then(|| instance.variables.clone());
@@ -110,15 +111,16 @@ pub(super) fn complete_call_activity(
     })?;
     let return_node_index = restore_call_activity_frame(instance, frame);
     let process = resolve_process_for_instance(package, instance)?;
-    if process.nodes[return_node_index as usize].subprocess_kind
-        == Some(BpmnSubProcessKind::Transaction)
-    {
-        transaction::cancel_transaction_boundary_siblings(
-            process,
-            instance,
-            return_node_index,
-            &[],
-        )?;
+    if matches!(
+        process.nodes[return_node_index as usize].subprocess_kind,
+        Some(
+            BpmnSubProcessKind::CallActivity
+                | BpmnSubProcessKind::Transaction
+                | BpmnSubProcessKind::Embedded
+        )
+    ) {
+        boundary::cancel_attached_boundary_siblings(process, instance, return_node_index, &[])?;
+        state::clear_boundary_wait_for_node(instance, return_node_index);
     }
 
     completion::complete_node_and_route(
@@ -133,5 +135,57 @@ pub(super) fn complete_call_activity(
         now_ms,
         "complete_call_activity_routing",
     )?;
+    Ok(())
+}
+
+fn arm_subprocess_external_boundary_wait(
+    process: &BpmnProcessSpec,
+    instance: &mut BpmnInstanceState,
+    node_index: BpmnNodeIndex,
+) -> Result<()> {
+    let node = &process.nodes[node_index as usize];
+    if !matches!(
+        node.subprocess_kind,
+        Some(
+            BpmnSubProcessKind::Embedded
+                | BpmnSubProcessKind::CallActivity
+                | BpmnSubProcessKind::Transaction
+        )
+    ) {
+        return Ok(());
+    }
+
+    state::clear_boundary_wait_for_node(instance, node_index);
+
+    let mut boundary_wait_node_index = None;
+    for boundary in process.boundary_events_for_attached_node(node_index) {
+        let event = process.event_for_node(boundary.index).ok_or_else(|| {
+            BpmnEngineError::MissingRequiredNodeElement {
+                process_id: process.key.process_id.to_string(),
+                node_id: boundary.bpmn_id.to_string(),
+                element: "event_definition",
+            }
+        })?;
+        if !matches!(
+            event.kind,
+            BpmnEventKind::Timer | BpmnEventKind::Message | BpmnEventKind::Signal
+        ) {
+            continue;
+        }
+        if boundary_wait_node_index.replace(boundary.index).is_some() {
+            return Err(BpmnEngineError::UnsupportedOperation {
+                operation: "enter_call_activity_multiple_subprocess_external_boundaries",
+            });
+        }
+    }
+
+    if let Some(boundary_wait_node_index) = boundary_wait_node_index {
+        instance.waits.push(blocking::build_wait_registration(
+            process,
+            boundary_wait_node_index,
+            Some(node_index),
+        )?);
+    }
+
     Ok(())
 }

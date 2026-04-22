@@ -5,8 +5,8 @@ use super::capture::{
     apply_multi_instance_completion_condition, apply_multi_instance_input_data_item,
     apply_multi_instance_loop_cardinality, apply_multi_instance_loop_data_input_ref,
     apply_multi_instance_loop_data_output_ref, apply_multi_instance_output_data_item,
-    apply_sequence_flow_condition_expression, apply_standard_loop_condition,
-    apply_timer_expression, last_process_node_mut,
+    apply_script_task_body, apply_sequence_flow_condition_expression,
+    apply_standard_loop_condition, apply_timer_expression, last_process_node_mut,
 };
 use super::model::{
     CaptureTarget, NestedShellKind, RawEventSpec, RawParallelMultiInstanceSpec, RawProcess,
@@ -52,6 +52,17 @@ pub(super) fn handle_nested_start_tag(
         source,
         reader,
         event,
+        tag,
+        parent,
+        process,
+        capture_target,
+        capture_buffer,
+        is_empty,
+    )? {
+        return Ok(());
+    }
+    if handle_script_task_child_start(
+        source,
         tag,
         parent,
         process,
@@ -282,13 +293,8 @@ fn handle_compensation_intermediate_event_definition(
         }
     );
     let node = last_process_node_mut(source, process)?;
-    if boolean_attribute_value(reader, event, "waitForCompletion")? == Some(false) {
-        return Err(BpmnEngineError::UnsupportedCompensationConfiguration {
-            process_id,
-            node_id: node.bpmn_id.clone(),
-            detail: "async_throw_compensation_intermediate_event",
-        });
-    }
+    let wait_for_completion =
+        boolean_attribute_value(reader, event, "waitForCompletion")?.unwrap_or(true);
     if !inside_transaction_shell {
         return Err(BpmnEngineError::UnsupportedCompensationConfiguration {
             process_id,
@@ -303,7 +309,12 @@ fn handle_compensation_intermediate_event_definition(
         process,
         BpmnEventKind::Compensation,
         tag,
-    )
+    )?;
+    let node = last_process_node_mut(source, process)?;
+    if let Some(event) = node.event.as_mut() {
+        event.wait_for_completion = wait_for_completion;
+    }
+    Ok(())
 }
 
 fn handle_compensation_end_event_definition(
@@ -322,13 +333,8 @@ fn handle_compensation_end_event_definition(
         }
     );
     let node = last_process_node_mut(source, process)?;
-    if boolean_attribute_value(reader, event, "waitForCompletion")? == Some(false) {
-        return Err(BpmnEngineError::UnsupportedCompensationConfiguration {
-            process_id,
-            node_id: node.bpmn_id.clone(),
-            detail: "async_throw_compensation_end_event",
-        });
-    }
+    let wait_for_completion =
+        boolean_attribute_value(reader, event, "waitForCompletion")?.unwrap_or(true);
     if !inside_transaction_shell {
         return Err(BpmnEngineError::UnsupportedCompensationConfiguration {
             process_id,
@@ -343,7 +349,48 @@ fn handle_compensation_end_event_definition(
         process,
         BpmnEventKind::Compensation,
         tag,
-    )
+    )?;
+    let node = last_process_node_mut(source, process)?;
+    if let Some(event) = node.event.as_mut() {
+        event.wait_for_completion = wait_for_completion;
+    }
+    Ok(())
+}
+
+fn handle_script_task_child_start(
+    source: &BpmnSourceFile,
+    tag: &str,
+    parent: &str,
+    process: &mut RawProcess,
+    capture_target: &mut Option<CaptureTarget>,
+    capture_buffer: &mut String,
+    is_empty: bool,
+) -> Result<bool> {
+    if parent != "scriptTask" || tag != "script" {
+        return Ok(false);
+    }
+    let process_id = process.process_id.clone();
+    let node = last_process_node_mut(source, process)?;
+    let Some(script_task) = node.script_task.as_ref() else {
+        return Err(BpmnEngineError::UnsupportedOperation {
+            operation: "handle_script_task_child_missing_script_task_spec",
+        });
+    };
+    if script_task.script_body.is_some() {
+        return Err(BpmnEngineError::UnsupportedTaskConfiguration {
+            process_id,
+            node_id: node.bpmn_id.clone(),
+            detail: "multiple_script_task_bodies",
+        });
+    }
+    *capture_target = Some(CaptureTarget::TaskScriptBody);
+    capture_buffer.clear();
+    if is_empty {
+        apply_script_task_body(process, "")?;
+        *capture_target = None;
+        capture_buffer.clear();
+    }
+    Ok(true)
 }
 
 fn handle_supported_node_child_start(
@@ -449,6 +496,7 @@ fn assign_event_definition(
     node.event = Some(RawEventSpec {
         kind,
         reference_id,
+        wait_for_completion: true,
         name: attribute_value(reader, event, "name")?,
         timer: None,
     });

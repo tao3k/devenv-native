@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions
+  id="Definitions_metadata_only_dmndi_listed_input_shape"
+  name="Metadata Only DMNDI Listed Input Shape"
+  namespace="https://example.com/dmn/metadata-only-dmndi-listed-input-shape"
+  xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/"
+  xmlns:dmndi="https://www.omg.org/spec/DMN/20191111/DMNDI/"
+  xmlns:dc="http://www.omg.org/spec/DMN/20180521/DC/">
+  <dmndi:DMNDI>
+    <dmndi:DMNDiagram id="diagram_listed_input">
+      <dmndi:DMNShape id="shape_input_listed_1" dmnElementRef="InputData_1" isListedInputData="true">
+        <dc:Bounds x="24" y="18" width="160" height="40" />
+      </dmndi:DMNShape>
+    </dmndi:DMNDiagram>
+  </dmndi:DMNDI>
+</definitions>

@@ -2,8 +2,8 @@ use super::process::normalize_node_index;
 use super::repeat::normalize_repeat_spec;
 use crate::error::{BpmnEngineError, Result};
 use crate::ir_edge_api::BpmnEdgeSpec;
-use crate::ir_node_api::{BpmnNodeSpec, BpmnSubProcessKind};
-use crate::parser::import::{RawNode, RawProcess, RawSubProcessKind};
+use crate::ir_node_api::{BpmnNodeSpec, BpmnScriptTaskSpec, BpmnSubProcessKind};
+use crate::parser::import::{RawNode, RawProcess, RawScriptTaskSpec, RawSubProcessKind};
 use crate::parser::validate::resolve_structured_inclusive_join;
 use std::collections::HashMap;
 
@@ -45,6 +45,10 @@ fn normalize_node(
     };
     let spec = match node.subprocess_kind {
         Some(kind) => spec.with_subprocess_kind(normalize_subprocess_kind(kind)),
+        None => spec,
+    };
+    let spec = match &node.script_task {
+        Some(script_task) => spec.with_script_task(normalize_script_task(script_task)),
         None => spec,
     };
     let spec = normalize_repeat_spec(raw, node, spec)?;
@@ -140,4 +144,8 @@ fn normalize_subprocess_kind(kind: RawSubProcessKind) -> BpmnSubProcessKind {
         RawSubProcessKind::EmbeddedSubProcess => BpmnSubProcessKind::Embedded,
         RawSubProcessKind::Transaction => BpmnSubProcessKind::Transaction,
     }
+}
+
+fn normalize_script_task(raw: &RawScriptTaskSpec) -> BpmnScriptTaskSpec {
+    BpmnScriptTaskSpec::new(raw.script_format.as_deref(), raw.script_body.as_deref())
 }

@@ -2,9 +2,11 @@ use super::scope::{
     Borrow, BpmnAdvanceOutcome, BpmnEngineError, BpmnEventKind, BpmnInstanceState, BpmnNodeIndex,
     BpmnNodeKind, BpmnPackage, BpmnProcessSpec, DmnEvaluationRequest, InstanceLifecycle,
     NodeRuntimeStatus, PendingHostWorkKind, PendingHostWorkResult, Result,
-    evaluate_dmn_decision_sync, resolve_process_for_instance,
+    evaluate_dmn_decision_sync,
 };
-use super::{blocking, call_activity, completion, gateway, prepare, repeat, state, transaction};
+use super::{
+    blocking, call_activity, completion, error, gateway, prepare, repeat, state, transaction,
+};
 
 pub(super) fn advance_active_node(
     package: &BpmnPackage,
@@ -69,6 +71,7 @@ pub(super) fn advance_active_node(
         }),
         BpmnNodeKind::SendTask
         | BpmnNodeKind::ServiceTask
+        | BpmnNodeKind::ScriptTask
         | BpmnNodeKind::UserTask
         | BpmnNodeKind::ManualTask => {
             unreachable!("host-blocking task kinds return before node dispatch")
@@ -107,6 +110,7 @@ fn host_work_kind_for_node(node_kind: &BpmnNodeKind) -> Option<PendingHostWorkKi
     match node_kind {
         BpmnNodeKind::SendTask => Some(PendingHostWorkKind::Send),
         BpmnNodeKind::ServiceTask => Some(PendingHostWorkKind::Service),
+        BpmnNodeKind::ScriptTask => Some(PendingHostWorkKind::Script),
         BpmnNodeKind::UserTask => Some(PendingHostWorkKind::User),
         BpmnNodeKind::ManualTask => Some(PendingHostWorkKind::Manual),
         _ => None,
@@ -154,7 +158,17 @@ fn advance_end_event(
                 return Ok(None);
             }
             BpmnEventKind::Error => {
-                transaction::error_transaction_shell(
+                if instance.call_stack.is_empty() {
+                    return Ok(Some(error::fail_root_process(
+                        process,
+                        instance,
+                        current_token_index,
+                        current_node_index,
+                        event.reference_id.as_deref(),
+                        now_ms,
+                    )?));
+                }
+                error::error_subprocess_shell(
                     package,
                     instance,
                     current_token_index,
@@ -165,15 +179,27 @@ fn advance_end_event(
                 return Ok(None);
             }
             BpmnEventKind::Compensation => {
-                transaction::throw_compensation_end_event(
-                    package,
-                    process,
-                    instance,
-                    current_token_index,
-                    current_node_index,
-                    event.reference_id.as_deref(),
-                    now_ms,
-                )?;
+                if event.wait_for_completion {
+                    transaction::throw_compensation_end_event(
+                        package,
+                        process,
+                        instance,
+                        current_token_index,
+                        current_node_index,
+                        event.reference_id.as_deref(),
+                        now_ms,
+                    )?;
+                } else {
+                    transaction::throw_compensation_end_event_async(
+                        package,
+                        process,
+                        instance,
+                        current_token_index,
+                        current_node_index,
+                        event.reference_id.as_deref(),
+                        now_ms,
+                    )?;
+                }
                 return Ok(None);
             }
             _ => {}
@@ -187,8 +213,18 @@ fn advance_end_event(
         return Ok(None);
     }
     if instance.call_stack.is_empty() {
-        instance.pending_host_work.clear();
-        instance.waits.clear();
+        if !instance.pending_host_work.is_empty() {
+            instance.suspend_reason = None;
+            state::record_transition(instance, now_ms, InstanceLifecycle::Waiting);
+            return Ok(Some(BpmnAdvanceOutcome::BlockedOnHost(
+                instance.pending_host_work.clone(),
+            )));
+        }
+        if !instance.waits.is_empty() {
+            instance.suspend_reason = None;
+            state::record_transition(instance, now_ms, InstanceLifecycle::Waiting);
+            return Ok(Some(BpmnAdvanceOutcome::WaitingExternalEvent));
+        }
         instance.suspend_reason = None;
         state::record_transition(instance, now_ms, InstanceLifecycle::Completed);
         return Ok(Some(BpmnAdvanceOutcome::Completed));
@@ -215,14 +251,27 @@ fn advance_intermediate_throw_event(
         }
     })?;
     match event.kind {
-        BpmnEventKind::Compensation => transaction::throw_compensation_intermediate_event(
-            process,
-            instance,
-            current_token_index,
-            current_node_index,
-            event.reference_id.as_deref(),
-            now_ms,
-        ),
+        BpmnEventKind::Compensation => {
+            if event.wait_for_completion {
+                transaction::throw_compensation_intermediate_event(
+                    process,
+                    instance,
+                    current_token_index,
+                    current_node_index,
+                    event.reference_id.as_deref(),
+                    now_ms,
+                )
+            } else {
+                transaction::throw_compensation_intermediate_event_async(
+                    process,
+                    instance,
+                    current_token_index,
+                    current_node_index,
+                    event.reference_id.as_deref(),
+                    now_ms,
+                )
+            }
+        }
         _ => Err(BpmnEngineError::UnsupportedOperation {
             operation: "advance_instance_intermediate_throw_event_kind",
         }),
@@ -389,7 +438,12 @@ pub(crate) fn apply_pending_host_work_result_impl(
                 token_id,
             }
         })?;
-    let process = resolve_process_for_instance(package, instance)?;
+    let pending_process_id = pending
+        .process_id
+        .as_deref()
+        .unwrap_or(instance.process.process_id.as_ref())
+        .to_string();
+    let process = resolve_process_for_pending_host_work(package, pending_process_id.as_str())?;
 
     if pending.kind != result.kind() {
         return Err(BpmnEngineError::HostResultKindMismatch {
@@ -406,18 +460,23 @@ pub(crate) fn apply_pending_host_work_result_impl(
         });
     }
 
-    let token_index = state::token_index_for_id(instance, token_id).ok_or(
-        BpmnEngineError::UnsupportedOperation {
-            operation: "apply_pending_host_work_result_missing_active_token",
-        },
-    )?;
     state::clear_pending_host_work(instance, token_id);
-    if !state::has_pending_host_work_for_node(instance, pending.node_index) {
-        state::clear_boundary_wait_for_node(instance, pending.node_index);
+    let token_index = state::token_index_for_id(instance, token_id);
+    if token_index.is_none()
+        && current_node.is_for_compensation
+        && transaction::detached_compensation_matches_pending(instance, &pending)
+    {
+        transaction::complete_detached_compensation_handler(package, instance, completed_at_ms)?;
+        maybe_clear_boundary_wait_after_host_completion(
+            instance,
+            pending_process_id.as_str(),
+            pending.node_index,
+        );
+        return Ok(BpmnAdvanceOutcome::Advanced);
     }
-    if instance.pending_host_work.is_empty() && instance.waits.is_empty() {
-        instance.suspend_reason = None;
-    }
+    let token_index = token_index.ok_or(BpmnEngineError::UnsupportedOperation {
+        operation: "apply_pending_host_work_result_missing_active_token",
+    })?;
     if current_node.is_for_compensation
         && transaction::transaction_compensation_is_running(instance)
     {
@@ -429,6 +488,11 @@ pub(crate) fn apply_pending_host_work_result_impl(
             pending.node_index,
             completed_at_ms,
         )?;
+        maybe_clear_boundary_wait_after_host_completion(
+            instance,
+            pending_process_id.as_str(),
+            pending.node_index,
+        );
         return Ok(BpmnAdvanceOutcome::Advanced);
     }
     completion::complete_local_task_execution(
@@ -439,6 +503,38 @@ pub(crate) fn apply_pending_host_work_result_impl(
         result.data(),
         completed_at_ms,
     )?;
+    maybe_clear_boundary_wait_after_host_completion(
+        instance,
+        pending_process_id.as_str(),
+        pending.node_index,
+    );
 
     Ok(BpmnAdvanceOutcome::Advanced)
+}
+
+fn maybe_clear_boundary_wait_after_host_completion(
+    instance: &mut BpmnInstanceState,
+    process_id: &str,
+    node_index: BpmnNodeIndex,
+) {
+    if process_id == instance.process.process_id.as_ref()
+        && !state::has_pending_host_work_for_process_node(instance, process_id, node_index)
+        && state::token_index_for_node(instance, node_index).is_none()
+    {
+        state::clear_boundary_wait_for_node(instance, node_index);
+    }
+    if instance.pending_host_work.is_empty() && instance.waits.is_empty() {
+        instance.suspend_reason = None;
+    }
+}
+
+fn resolve_process_for_pending_host_work<'a>(
+    package: &'a BpmnPackage,
+    process_id: &str,
+) -> Result<&'a BpmnProcessSpec> {
+    package
+        .find_process(process_id)
+        .ok_or_else(|| BpmnEngineError::MissingProcess {
+            process_id: process_id.to_string(),
+        })
 }

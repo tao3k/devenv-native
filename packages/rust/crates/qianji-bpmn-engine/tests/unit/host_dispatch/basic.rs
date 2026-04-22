@@ -3,8 +3,8 @@ use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{
     BpmnEngineError, BpmnInstanceInit, BpmnNodeKind, BpmnPackage, BusinessRuleTaskRequest,
     DmnDecisionRef, DmnEvaluationRequest, ManualTaskRequest, PendingHostWorkRequest,
-    SendTaskRequest, ServiceTaskRequest, UserTaskRequest, build_pending_host_work_request,
-    create_instance,
+    ScriptTaskRequest, SendTaskRequest, ServiceTaskRequest, UserTaskRequest,
+    build_pending_host_work_request, create_instance,
 };
 use serde_json::json;
 use std::sync::Arc;
@@ -33,6 +33,23 @@ async fn host_dispatch_service_request_materializes_from_blocked_instance() {
             instance_id: "wf_dispatch".to_string(),
             token_id: 0,
             node_index: 1,
+            variables: json!({ "amount": 7 }),
+            repeat: None,
+        }),
+    )
+    .await;
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn host_dispatch_script_request_materializes_from_blocked_instance() {
+    assert_dispatch_request(
+        BpmnNodeKind::ScriptTask,
+        PendingHostWorkRequest::Script(ScriptTaskRequest {
+            instance_id: "wf_dispatch".to_string(),
+            token_id: 0,
+            node_index: 1,
+            script_format: Some("feel".to_string()),
+            script_body: Some("result = amount + tax".to_string()),
             variables: json!({ "amount": 7 }),
             repeat: None,
         }),

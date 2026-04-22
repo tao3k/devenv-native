@@ -76,3 +76,24 @@ pub(in crate::parser::import) fn apply_sequence_flow_condition_expression(
         (!condition_expression.trim().is_empty()).then(|| condition_expression.trim().to_string());
     Ok(())
 }
+
+pub(in crate::parser::import) fn apply_script_task_body(
+    process: &mut RawProcess,
+    script_body: &str,
+) -> Result<()> {
+    let node = process
+        .nodes
+        .last_mut()
+        .ok_or(BpmnEngineError::UnsupportedOperation {
+            operation: "apply_script_task_body_missing_node",
+        })?;
+    let script_task = node
+        .script_task
+        .as_mut()
+        .ok_or(BpmnEngineError::UnsupportedOperation {
+            operation: "apply_script_task_body_missing_script_task_spec",
+        })?;
+    script_task.script_body =
+        (!script_body.trim().is_empty()).then(|| script_body.trim().to_string());
+    Ok(())
+}

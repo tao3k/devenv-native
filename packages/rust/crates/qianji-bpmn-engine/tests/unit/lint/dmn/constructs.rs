@@ -4,7 +4,7 @@ use serde_json::json;
 #[test]
 fn dmn_linter_reports_decision_service_with_construct_specific_guidance() {
     let report = lint_dmn_source(&dmn_fixture_source(
-        "versioned-decision-service-20180521.dmn",
+        "versioned-decision-service-is-collapsed-20180521.dmn",
     ));
 
     assert_eq!(report.domain, LintDomain::Dmn);
@@ -18,6 +18,7 @@ fn dmn_linter_reports_decision_service_with_construct_specific_guidance() {
             .why_it_failed
             .contains("does not execute `decisionService`")
     );
+    assert!(issue.why_it_failed.contains("name 'Decision Service 1'"));
     assert!(
         issue
             .repair_guidance
@@ -29,9 +30,40 @@ fn dmn_linter_reports_decision_service_with_construct_specific_guidance() {
             .llm_fix_prompt
             .contains("do not fabricate decision-table logic")
     );
+    assert!(issue.why_it_failed.contains(
+        "DMNDecisionServiceDividerLine 2 waypoint(s) [di:waypoint x '0', y '210'; di:waypoint x '906', y '210']"
+    ));
+    assert!(issue.why_it_failed.contains("isCollapsed false"));
     assert_eq!(
         issue.evidence["document_root"]["decision_service_count"],
         json!(1)
+    );
+    assert_eq!(
+        issue.evidence["document_root"]["decision_services"][0]["decision_service_id"],
+        json!("DecisionService_1")
+    );
+    assert_eq!(
+        issue.evidence["document_root"]["decision_services"][0]["name"],
+        json!("Decision Service 1")
+    );
+    assert_eq!(
+        issue.evidence["document_root"]["dmndi_blocks"][0]["diagrams"][0]["shapes"][0]["label"]["bounds"]
+            ["x"],
+        json!("354")
+    );
+    assert_eq!(
+        issue.evidence["document_root"]["dmndi_blocks"][0]["diagrams"][0]["shapes"][0]["is_collapsed"],
+        json!(false)
+    );
+    assert_eq!(
+        issue.evidence["document_root"]["dmndi_blocks"][0]["diagrams"][0]["shapes"][0]["decision_service_divider_line"]
+            ["waypoints"][0]["x"],
+        json!("0")
+    );
+    assert_eq!(
+        issue.evidence["document_root"]["dmndi_blocks"][0]["diagrams"][0]["shapes"][0]["decision_service_divider_line"]
+            ["waypoints"][1]["y"],
+        json!("210")
     );
     assert_eq!(issue.evidence["document_decision_count"], json!(0));
 }

@@ -60,6 +60,7 @@ async fn runtime_event_based_gateway_registers_competing_waits() {
             gateway_node_index: Some(1),
             waits: vec![
                 qianji_bpmn_engine::WaitRegistration {
+                    process_id: Some("event_race".to_string()),
                     node_index: 2,
                     blocking_node_index: None,
                     kind: WaitKind::ExternalEvent,
@@ -70,6 +71,7 @@ async fn runtime_event_based_gateway_registers_competing_waits() {
                     correlation_key: Some("invoice_received".to_string()),
                 },
                 qianji_bpmn_engine::WaitRegistration {
+                    process_id: Some("event_race".to_string()),
                     node_index: 3,
                     blocking_node_index: None,
                     kind: WaitKind::Timer,

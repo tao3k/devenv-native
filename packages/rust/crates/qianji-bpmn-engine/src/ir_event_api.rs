@@ -64,6 +64,9 @@ pub struct BpmnEventSpec {
     pub kind: BpmnEventKind,
     /// Optional source-level reference id such as `messageRef` or `signalRef`.
     pub reference_id: Option<Arc<str>>,
+    /// Whether throw compensation waits for handler completion before routing.
+    #[serde(default = "default_wait_for_completion")]
+    pub wait_for_completion: bool,
     /// Optional resolved event name or fallback label.
     pub name: Option<Arc<str>>,
     /// Optional timer-definition snapshot for timer waits.
@@ -78,6 +81,7 @@ impl BpmnEventSpec {
             node_index,
             kind,
             reference_id: None,
+            wait_for_completion: default_wait_for_completion(),
             name: None,
             timer: None,
         }
@@ -87,6 +91,13 @@ impl BpmnEventSpec {
     #[must_use]
     pub fn with_reference_id(mut self, reference_id: impl AsRef<str>) -> Self {
         self.reference_id = Some(Arc::<str>::from(reference_id.as_ref()));
+        self
+    }
+
+    /// Configures throw-compensation completion behavior.
+    #[must_use]
+    pub fn with_wait_for_completion(mut self, wait_for_completion: bool) -> Self {
+        self.wait_for_completion = wait_for_completion;
         self
     }
 
@@ -103,4 +114,8 @@ impl BpmnEventSpec {
         self.timer = Some(timer);
         self
     }
+}
+
+const fn default_wait_for_completion() -> bool {
+    true
 }

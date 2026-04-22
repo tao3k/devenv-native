@@ -23,8 +23,9 @@ pub(crate) use api::{
     increment_standard_loop_iterations, install_process_state,
     parallel_multi_instance_iteration_variables, parallel_multi_instance_min_token_id,
     parallel_multi_instance_state, parallel_multi_instance_state_mut, plan_frontier_step,
-    pop_call_activity_frame, push_call_activity_frame, register_parallel_multi_instance_iteration,
-    resolve_process_for_instance, restore_call_activity_frame,
-    sequential_multi_instance_iteration_variables, sequential_multi_instance_state,
-    sequential_multi_instance_state_mut, standard_loop_completed_iterations,
+    pop_call_activity_frame, push_active_token, push_call_activity_frame,
+    register_parallel_multi_instance_iteration, resolve_process_for_instance,
+    restore_call_activity_frame, sequential_multi_instance_iteration_variables,
+    sequential_multi_instance_state, sequential_multi_instance_state_mut,
+    standard_loop_completed_iterations,
 };

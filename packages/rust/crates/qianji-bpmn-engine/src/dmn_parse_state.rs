@@ -25,12 +25,14 @@ pub(crate) struct TempInput {
     pub(crate) label: Option<String>,
     pub(crate) name: Option<String>,
     pub(crate) expression: Option<String>,
+    pub(crate) type_ref: Option<String>,
 }
 
 pub(crate) struct TempOutput {
     pub(crate) output_id: String,
     pub(crate) label: Option<String>,
     pub(crate) name: Option<String>,
+    pub(crate) type_ref: Option<String>,
 }
 
 pub(crate) struct TempRule {
@@ -96,6 +98,7 @@ pub(crate) fn finalize_input(
         input.label,
         input.name,
         input.expression,
+        input.type_ref,
     ));
 }
 
@@ -113,6 +116,7 @@ pub(crate) fn finalize_output(
         output.output_id,
         output.label,
         output.name,
+        output.type_ref,
     ));
 }
 

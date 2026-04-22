@@ -10,6 +10,7 @@ struct FrontierScanContext {
     pending_token_ids: HashSet<u64>,
     waiting_node_indices: HashSet<crate::ir_index_api::BpmnNodeIndex>,
     boundary_blocking_node_indices: HashSet<crate::ir_index_api::BpmnNodeIndex>,
+    queued_node_indices: HashSet<crate::ir_index_api::BpmnNodeIndex>,
     terminal_node_statuses: Vec<Option<BpmnFrontierEntryStatus>>,
 }
 
@@ -25,6 +26,17 @@ impl FrontierScanContext {
             .waits
             .iter()
             .filter_map(|wait| wait.blocking_node_index)
+            .collect();
+        let queued_node_indices = instance
+            .node_states
+            .iter()
+            .enumerate()
+            .filter_map(|(node_index, state)| {
+                if state.status != NodeRuntimeStatus::Queued {
+                    return None;
+                }
+                crate::ir_index_api::BpmnNodeIndex::try_from(node_index).ok()
+            })
             .collect();
         let terminal_node_statuses = instance
             .node_states
@@ -43,6 +55,7 @@ impl FrontierScanContext {
             pending_token_ids,
             waiting_node_indices,
             boundary_blocking_node_indices,
+            queued_node_indices,
             terminal_node_statuses,
         }
     }
@@ -51,12 +64,18 @@ impl FrontierScanContext {
         if self.pending_token_ids.contains(&token.token_id) {
             return BpmnFrontierEntryStatus::BlockedOnHost;
         }
-        if self.waiting_node_indices.contains(&token.node_index)
-            || self
-                .boundary_blocking_node_indices
-                .contains(&token.node_index)
-        {
+        if self.waiting_node_indices.contains(&token.node_index) {
             return BpmnFrontierEntryStatus::WaitingExternal;
+        }
+        if self
+            .boundary_blocking_node_indices
+            .contains(&token.node_index)
+        {
+            return if self.queued_node_indices.contains(&token.node_index) {
+                BpmnFrontierEntryStatus::Runnable
+            } else {
+                BpmnFrontierEntryStatus::WaitingExternal
+            };
         }
         self.terminal_node_statuses
             .get(token.node_index as usize)

@@ -13,6 +13,11 @@ fn dmn_parser_single_decision_table_materializes_contract() {
 
     assert_eq!(decision.table.hit_policy, DmnHitPolicy::Unique);
     assert_eq!(decision.table.inputs[0].lookup_path(), Some("tier"));
+    assert_eq!(decision.table.inputs[0].type_ref.as_deref(), Some("string"));
+    assert_eq!(
+        decision.table.outputs[0].type_ref.as_deref(),
+        Some("string")
+    );
     assert_dmn_json_snapshot("simple_unique_eligibility_contract", &decision);
 }
 

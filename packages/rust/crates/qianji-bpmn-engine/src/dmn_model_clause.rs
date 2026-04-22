@@ -22,6 +22,8 @@ pub struct DmnInputClause {
     pub name: Option<Arc<str>>,
     /// Optional input expression used to resolve variables.
     pub expression: Option<Arc<str>>,
+    /// Optional DMN `typeRef` metadata from the executable source.
+    pub type_ref: Option<Arc<str>>,
 }
 
 impl DmnInputClause {
@@ -32,12 +34,14 @@ impl DmnInputClause {
         label: Option<impl AsRef<str>>,
         name: Option<impl AsRef<str>>,
         expression: Option<impl AsRef<str>>,
+        type_ref: Option<impl AsRef<str>>,
     ) -> Self {
         Self {
             input_id: Arc::<str>::from(input_id.as_ref()),
             label: label.map(|value| Arc::<str>::from(value.as_ref())),
             name: name.map(|value| Arc::<str>::from(value.as_ref())),
             expression: expression.map(|value| Arc::<str>::from(value.as_ref())),
+            type_ref: type_ref.map(|value| Arc::<str>::from(value.as_ref())),
         }
     }
 
@@ -61,6 +65,8 @@ pub struct DmnOutputClause {
     pub label: Option<Arc<str>>,
     /// Optional output name.
     pub name: Option<Arc<str>>,
+    /// Optional DMN `typeRef` metadata from the executable source.
+    pub type_ref: Option<Arc<str>>,
 }
 
 impl DmnOutputClause {
@@ -70,11 +76,13 @@ impl DmnOutputClause {
         output_id: impl AsRef<str>,
         label: Option<impl AsRef<str>>,
         name: Option<impl AsRef<str>>,
+        type_ref: Option<impl AsRef<str>>,
     ) -> Self {
         Self {
             output_id: Arc::<str>::from(output_id.as_ref()),
             label: label.map(|value| Arc::<str>::from(value.as_ref())),
             name: name.map(|value| Arc::<str>::from(value.as_ref())),
+            type_ref: type_ref.map(|value| Arc::<str>::from(value.as_ref())),
         }
     }
 

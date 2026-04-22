@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  id="pkg_script_task"
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL">
+  <bpmn:process id="evaluate_script">
+    <bpmn:startEvent id="start" />
+    <bpmn:scriptTask id="compute_total" scriptFormat="feel">
+      <bpmn:script>result = amount + tax</bpmn:script>
+    </bpmn:scriptTask>
+    <bpmn:endEvent id="end" />
+    <bpmn:sequenceFlow id="flow_1" sourceRef="start" targetRef="compute_total" />
+    <bpmn:sequenceFlow id="flow_2" sourceRef="compute_total" targetRef="end" />
+  </bpmn:process>
+</bpmn:definitions>

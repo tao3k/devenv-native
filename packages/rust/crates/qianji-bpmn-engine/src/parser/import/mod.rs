@@ -9,6 +9,6 @@ mod reader;
 
 pub(crate) use reader::{
     NestedShellKind, RawAssociation, RawEventSpec, RawNode, RawPackageDocument,
-    RawParallelMultiInstanceSpec, RawProcess, RawProcessScope, RawRepeatSpec, RawSequenceFlow,
-    RawSequentialMultiInstanceSpec, RawSubProcessKind, import_bpmn_source,
+    RawParallelMultiInstanceSpec, RawProcess, RawProcessScope, RawRepeatSpec, RawScriptTaskSpec,
+    RawSequenceFlow, RawSequentialMultiInstanceSpec, RawSubProcessKind, import_bpmn_source,
 };

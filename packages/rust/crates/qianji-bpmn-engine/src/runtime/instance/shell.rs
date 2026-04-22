@@ -34,6 +34,7 @@ pub(crate) fn create_instance_impl(
         parallel_multi_instances: Vec::new(),
         waits: Vec::new(),
         event_competition: None,
+        detached_transaction_compensation: None,
         pending_host_work: Vec::new(),
         suspend_reason: None,
         updated_at_ms: init.initial_timestamp_ms,

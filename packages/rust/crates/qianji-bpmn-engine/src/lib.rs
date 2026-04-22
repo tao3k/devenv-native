@@ -23,36 +23,68 @@
 //! message/signal/timer `intermediateCatchEvent` waits, plus
 //! `intermediateCatchEvent` waits backed by `messageEventDefinition`,
 //! `signalEventDefinition`, and snapshot-style `timerEventDefinition`, plus
-//! one interrupting timer `boundaryEvent` on one host-blocking task, plus
+//! one interrupting timer, message, or signal `boundaryEvent` on one
+//! host-blocking task, plus one non-interrupting timer, message, or signal
+//! `boundaryEvent` on one non-repeating or bounded
+//! `standardLoopCharacteristics`, sequential multi-instance, or parallel
+//! multi-instance host-blocking task, plus
 //! one bounded embedded `subProcess` body with
 //! exactly one nested `startEvent` and at least one nested `endEvent`, plus
+//! one bounded embedded subprocess owner that may expose one interrupting
+//! timer, message, or signal `boundaryEvent` plus one or more interrupting
+//! error `boundaryEvent` nodes on that same owner, where the interrupting
+//! parent timer/message/signal boundary may cancel the child shell before
+//! restoring the parent frame, one or more nested error ends may each
+//! restore the parent frame, preserve variable mutations, and route through
+//! every matching parent error boundary including one catch-all boundary,
+//! while normal completion and either supported interrupting winner cancel
+//! the non-selected sibling boundaries, plus
 //! one bounded `<transaction>` shell with exactly one nested `startEvent` and
 //! at least one nested `endEvent`, plus one bounded transaction cancel path
 //! with one interrupting cancel `boundaryEvent` attached to that
 //! `<transaction>` shell and one nested cancel end that restores the parent
 //! frame, rolls back transaction-local variable mutations, and routes through
 //! the parent cancel boundary, plus one bounded transaction owner that may
-//! expose one interrupting cancel `boundaryEvent` plus one or more
-//! interrupting error `boundaryEvent` nodes, where one nested error end may
-//! restore the parent frame, preserve transaction-local variable mutations,
-//! and route through every matching parent error boundary including one
-//! catch-all boundary, while normal completion and cancel routing cancel the
-//! non-selected sibling boundaries, plus one bounded transaction cancel
+//! expose one interrupting timer, message, or signal `boundaryEvent` plus one
+//! interrupting cancel `boundaryEvent`, plus one or more interrupting error
+//! `boundaryEvent` nodes, or both cancel and error boundaries adjacent to
+//! that same interrupting timer/message/signal boundary, where one or more
+//! nested error ends may each restore the parent frame, preserve
+//! transaction-local variable mutations, and route through every matching
+//! parent error boundary including one catch-all boundary, while normal
+//! completion, interrupting external wins, cancel routing, and error routing
+//! cancel the non-selected sibling boundaries, and the bounded subset still
+//! permits only one interrupting timer/message/signal boundary and one
+//! interrupting cancel boundary on that same owner, plus one bounded
+//! transaction cancel
 //! compensation subset where compensable activities may bind one explicit
 //! compensation handler and cancel routing replays those handlers in reverse
 //! completion order before the parent cancel boundary fires, plus one
-//! synchronous throw-compensation end-event subset inside that same
-//! transaction shell where one nested end event either uses explicit
-//! `activityRef` to replay one already compensable activity or omits
-//! `activityRef` to replay every already compensable activity in reverse
-//! completion order before the shell completes, plus one synchronous
+//! throw-compensation end-event subset inside that same transaction shell
+//! where one nested end event either uses explicit `activityRef` to replay
+//! one already compensable activity or omits `activityRef` to replay every
+//! already compensable activity in reverse completion order before the shell
+//! completes, and the bounded end-event subset may stay synchronous or set
+//! `waitForCompletion="false"` so the parent scope resumes while the
+//! compensation queue drains, plus one synchronous or asynchronous
 //! throw-compensation intermediate-event subset inside that same transaction
 //! shell where one nested intermediate throw event either uses explicit
 //! `activityRef` to replay one already compensable activity or omits
 //! `activityRef` to replay every already compensable activity in reverse
-//! completion order before normal sequence-flow routing resumes,
+//! completion order before normal sequence-flow routing resumes, and the
+//! asynchronous bounded subset may set `waitForCompletion="false"` so the
+//! compensation queue drains while downstream routing continues,
 //! plus one bounded `callActivity` that targets another process in the same
-//! BPMN package, plus bounded `standardLoopCharacteristics` on one serviceTask,
+//! BPMN package, and one bounded same-package `callActivity` owner may expose
+//! one interrupting timer, message, or signal `boundaryEvent` plus one or
+//! more interrupting error `boundaryEvent` nodes on that same owner, where
+//! the interrupting parent timer/message/signal boundary may cancel the
+//! called child process before restoring the parent frame, one or more child
+//! error ends may each restore the parent frame, preserve variable
+//! mutations, and route through every matching parent error boundary
+//! including one catch-all boundary, while normal completion and either
+//! supported interrupting winner cancel the non-selected sibling boundaries,
+//! plus bounded `standardLoopCharacteristics` on one serviceTask,
 //! userTask, manualTask, or businessRuleTask, plus bounded
 //! sequential `multiInstanceLoopCharacteristics isSequential="true"` plus
 //! bounded parallel `multiInstanceLoopCharacteristics` with omitted or
@@ -76,12 +108,18 @@
 //! BPMN `businessRuleTask` can also execute locally when the package carries a
 //! matching engine-owned DMN decision definition; otherwise it falls back to
 //! the existing host seam. Broader unstructured inclusive gateways, recursive
-//! call chains, non-interrupting boundaries, full timer execution semantics,
-//! asynchronous throw-compensation intermediate events, asynchronous
-//! throw-compensation end events, compensation event subprocesses, broader
-//! throw-compensation forms, more than one cancel
+//! call chains, broader mixed boundary families on same-package
+//! `callActivity` owners or embedded subprocess owners beyond one
+//! interrupting timer/message/signal boundary plus one or more interrupting
+//! error boundaries, broader transaction-shell boundary families that exceed
+//! one interrupting timer/message/signal boundary, exceed one interrupting
+//! cancel boundary, or otherwise exceed the bounded same-owner
+//! external-plus-cancel-plus-error subset, broader non-interrupting boundary
+//! families on subprocess-like owners, full timer execution semantics,
+//! compensation event subprocesses, broader throw-compensation forms, more than one cancel
 //! boundary on the same transaction owner, broader
-//! transaction error propagation beyond that bounded transaction shell,
+//! error propagation beyond those bounded transaction and embedded-subprocess
+//! shells,
 //! broader FEEL or script-backed gateway conditions, trailing
 //! lower-unit fractional duration handling such as `duration("PT1.5H30S")`,
 //! mixed-family duration handling, fractional year-month duration handling
@@ -149,13 +187,19 @@ pub use checkpoint_api::{
 #[cfg(feature = "sqlite")]
 pub use checkpoint_api::{delete_checkpoint_sql, load_checkpoint_sql, save_checkpoint_sql};
 pub use dmn_api::{
-    DmnBindingKind, DmnComparisonOperator, DmnDateComparison, DmnDateRange, DmnDateRangeBound,
+    DmnAssociationSnapshot, DmnBindingKind, DmnBoundsSnapshot, DmnBusinessKnowledgeModelSnapshot,
+    DmnComparisonOperator, DmnDateComparison, DmnDateRange, DmnDateRangeBound,
     DmnDateTimeComparison, DmnDateTimeRange, DmnDateTimeRangeBound, DmnDecisionDefinition,
-    DmnDecisionRef, DmnDecisionSnapshot, DmnDecisionTable, DmnDocumentSnapshot,
-    DmnDurationComparison, DmnDurationRange, DmnDurationRangeBound, DmnEvaluationRequest,
-    DmnEvaluationResult, DmnHitPolicy, DmnInputClause, DmnInputEntry, DmnNumericComparison,
-    DmnNumericRange, DmnNumericRangeBound, DmnOutputClause, DmnOutputEntry, DmnRootSnapshot,
-    DmnRule, DmnSourceFile, DmnTimeComparison, DmnTimeRange, DmnTimeRangeBound,
+    DmnDecisionRef, DmnDecisionServiceDividerLineSnapshot, DmnDecisionServiceSnapshot,
+    DmnDecisionSnapshot, DmnDecisionTable, DmnDiagramSnapshot, DmnDmndiSnapshot,
+    DmnDocumentSnapshot, DmnDurationComparison, DmnDurationRange, DmnDurationRangeBound,
+    DmnEdgeSnapshot, DmnElementCollectionSnapshot, DmnEvaluationRequest, DmnEvaluationResult,
+    DmnGroupSnapshot, DmnHitPolicy, DmnInputClause, DmnInputDataSnapshot, DmnInputEntry,
+    DmnItemComponentSnapshot, DmnItemDefinitionSnapshot, DmnKnowledgeSourceSnapshot,
+    DmnLabelSnapshot, DmnNumericComparison, DmnNumericRange, DmnNumericRangeBound,
+    DmnOrganizationUnitSnapshot, DmnOutputClause, DmnOutputEntry, DmnPerformanceIndicatorSnapshot,
+    DmnRootSnapshot, DmnRule, DmnShapeSnapshot, DmnSourceFile, DmnTextAnnotationSnapshot,
+    DmnTimeComparison, DmnTimeRange, DmnTimeRangeBound, DmnVariableSnapshot, DmnWaypointSnapshot,
     evaluate_dmn_decision, parse_dmn_decision, parse_dmn_decisions, snapshot_dmn_source,
 };
 pub use error::BpmnEngineError;
@@ -163,14 +207,16 @@ pub use host_bridge_api::BpmnHostBridge;
 pub use host_types_api::{
     BusinessRuleTaskOutcome, BusinessRuleTaskRequest, EventPollOutcome, EventPollRequest,
     HostBridgeError, ManualTaskOutcome, ManualTaskRequest, ParallelMultiInstanceContext,
-    PendingHostWorkRequest, PendingHostWorkResult, RepeatExecutionContext, SendTaskOutcome,
-    SendTaskRequest, SequentialMultiInstanceContext, ServiceTaskOutcome, ServiceTaskRequest,
-    UserTaskOutcome, UserTaskRequest,
+    PendingHostWorkRequest, PendingHostWorkResult, RepeatExecutionContext, ScriptTaskOutcome,
+    ScriptTaskRequest, SendTaskOutcome, SendTaskRequest, SequentialMultiInstanceContext,
+    ServiceTaskOutcome, ServiceTaskRequest, UserTaskOutcome, UserTaskRequest,
 };
 pub use ir_edge_api::BpmnEdgeSpec;
 pub use ir_event_api::{BpmnEventKind, BpmnEventSpec, BpmnTimerKind, BpmnTimerSpec};
 pub use ir_index_api::{BpmnIndexRange, BpmnNodeIndex};
-pub use ir_node_api::{BpmnGatewayKind, BpmnNodeKind, BpmnNodeSpec, BpmnSubProcessKind};
+pub use ir_node_api::{
+    BpmnGatewayKind, BpmnNodeKind, BpmnNodeSpec, BpmnScriptTaskSpec, BpmnSubProcessKind,
+};
 pub use ir_package_api::BpmnPackage;
 pub use ir_process_compensation::BpmnCompensationHandlerSpec;
 pub use ir_process_key::ProcessKey;

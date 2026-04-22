@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  id="pkg_transaction_mixed_cancel_error_boundaries"
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <bpmn:process id="main_process" isExecutable="true">
+    <bpmn:startEvent id="start" />
+    <bpmn:transaction id="payment_tx">
+      <bpmn:startEvent id="tx_start" />
+      <bpmn:userTask id="tx_review" />
+      <bpmn:exclusiveGateway id="tx_route" default="tx_flow_cancel" />
+      <bpmn:endEvent id="tx_end" />
+      <bpmn:endEvent id="tx_cancel_end">
+        <bpmn:cancelEventDefinition />
+      </bpmn:endEvent>
+      <bpmn:endEvent id="tx_error_end">
+        <bpmn:errorEventDefinition errorRef="payment_error" />
+      </bpmn:endEvent>
+      <bpmn:sequenceFlow id="tx_flow_1" sourceRef="tx_start" targetRef="tx_review" />
+      <bpmn:sequenceFlow id="tx_flow_2" sourceRef="tx_review" targetRef="tx_route" />
+      <bpmn:sequenceFlow id="tx_flow_success" sourceRef="tx_route" targetRef="tx_end">
+        <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">approved</bpmn:conditionExpression>
+      </bpmn:sequenceFlow>
+      <bpmn:sequenceFlow id="tx_flow_error" sourceRef="tx_route" targetRef="tx_error_end">
+        <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">payment_error</bpmn:conditionExpression>
+      </bpmn:sequenceFlow>
+      <bpmn:sequenceFlow id="tx_flow_cancel" sourceRef="tx_route" targetRef="tx_cancel_end" />
+    </bpmn:transaction>
+    <bpmn:boundaryEvent id="tx_timeout" attachedToRef="payment_tx" cancelActivity="true">
+      <bpmn:timerEventDefinition>
+        <bpmn:timeDuration>PT30M</bpmn:timeDuration>
+      </bpmn:timerEventDefinition>
+    </bpmn:boundaryEvent>
+    <bpmn:boundaryEvent id="tx_cancel_boundary" attachedToRef="payment_tx" cancelActivity="true">
+      <bpmn:cancelEventDefinition />
+    </bpmn:boundaryEvent>
+    <bpmn:boundaryEvent id="tx_error_specific" attachedToRef="payment_tx" cancelActivity="true">
+      <bpmn:errorEventDefinition errorRef="payment_error" />
+    </bpmn:boundaryEvent>
+    <bpmn:boundaryEvent id="tx_error_catch_all" attachedToRef="payment_tx" cancelActivity="true">
+      <bpmn:errorEventDefinition />
+    </bpmn:boundaryEvent>
+    <bpmn:endEvent id="success_end" />
+    <bpmn:endEvent id="timeout_end" />
+    <bpmn:userTask id="cancelled_review" />
+    <bpmn:endEvent id="cancelled_end" />
+    <bpmn:endEvent id="specific_end" />
+    <bpmn:endEvent id="catch_all_end" />
+    <bpmn:sequenceFlow id="flow_1" sourceRef="start" targetRef="payment_tx" />
+    <bpmn:sequenceFlow id="flow_2" sourceRef="payment_tx" targetRef="success_end" />
+    <bpmn:sequenceFlow id="flow_3" sourceRef="tx_timeout" targetRef="timeout_end" />
+    <bpmn:sequenceFlow id="flow_4" sourceRef="tx_cancel_boundary" targetRef="cancelled_review" />
+    <bpmn:sequenceFlow id="flow_5" sourceRef="cancelled_review" targetRef="cancelled_end" />
+    <bpmn:sequenceFlow id="flow_6" sourceRef="tx_error_specific" targetRef="specific_end" />
+    <bpmn:sequenceFlow id="flow_7" sourceRef="tx_error_catch_all" targetRef="catch_all_end" />
+  </bpmn:process>
+</bpmn:definitions>

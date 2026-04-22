@@ -19,6 +19,13 @@ fn dmn_snapshot_counts_top_level_groups_without_decisions() {
     assert_eq!(snapshot.root.association_count, 0);
     assert_eq!(snapshot.root.element_collection_count, 0);
     assert_eq!(snapshot.root.group_count, 1);
+    assert_eq!(snapshot.root.groups.len(), 1);
     assert_eq!(snapshot.root.dmndi_count, 0);
+    let group = &snapshot.root.groups[0];
+    assert_eq!(
+        group.group_id.as_deref(),
+        Some("Group_manual_review_cluster")
+    );
+    assert_eq!(group.name.as_deref(), Some("Manual Review Cluster"));
     assert!(snapshot.decisions.is_empty());
 }

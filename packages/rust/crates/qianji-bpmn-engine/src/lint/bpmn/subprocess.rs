@@ -17,6 +17,16 @@ pub(super) fn subprocess_configuration_issue(
         "embedded_subprocess_missing_end_event" => {
             embedded_subprocess_missing_end_issue(process_id, node_id, detail)
         }
+        "embedded_subprocess_error_missing_boundary" => {
+            embedded_subprocess_error_missing_boundary_issue(process_id, node_id, detail)
+        }
+        "call_activity_error_missing_boundary" => {
+            call_activity_error_missing_boundary_issue(process_id, node_id, detail)
+        }
+        "error_end_requires_supported_error_owner"
+        | "error_end_requires_supported_subprocess_shell" => {
+            error_end_requires_supported_error_owner_issue(process_id, node_id, detail)
+        }
         "transaction_missing_end_event" => {
             transaction_missing_end_issue(process_id, node_id, detail)
         }
@@ -121,6 +131,88 @@ fn embedded_subprocess_missing_end_issue(
         ],
         format!(
             "Repair subprocess node '{node_id}' in process '{process_id}' so its embedded `subProcess` body contains at least one nested `<bpmn:endEvent>` and internal sequence flows can reach it."
+        ),
+        json!({
+            "process_id": process_id,
+            "node_id": node_id,
+            "detail": detail,
+        }),
+    )
+}
+
+fn embedded_subprocess_error_missing_boundary_issue(
+    process_id: &str,
+    node_id: &str,
+    detail: &'static str,
+) -> LintIssue {
+    LintIssue::new(
+        "bpmn.unsupported_subprocess_configuration",
+        "Embedded subprocess error path is missing the parent error boundary",
+        format!(
+            "Process '{process_id}' subprocess node '{node_id}' contains one or more nested error ends but does not expose any matching parent interrupting error boundary."
+        ),
+        "The bounded engine supports an embedded-subprocess error path only when one bounded embedded `subProcess` owner carries one or more interrupting error boundaries that match each nested error end, including one optional catch-all boundary with omitted `errorRef`.",
+        vec![
+            "Add one or more interrupting `boundaryEvent` nodes with `<bpmn:errorEventDefinition>` attached to this embedded `<bpmn:subProcess>` node.".to_string(),
+            "For every nested error end that declares `errorRef`, make one or more parent error boundaries use the same `errorRef` or omit `errorRef` on one boundary to catch that error generically.".to_string(),
+        ],
+        format!(
+            "Repair subprocess node '{node_id}' in process '{process_id}' so its bounded embedded error path is complete: keep one or more nested error ends inside the embedded `<bpmn:subProcess>` body and add one or more parent interrupting `boundaryEvent` nodes with `<bpmn:errorEventDefinition>` attached to that same subprocess node, routing each thrown error through every selected boundary's outgoing sequence flow. If a nested error end declares `errorRef`, make one or more boundaries use the same `errorRef` or omit `errorRef` on one boundary to catch that error generically."
+        ),
+        json!({
+            "process_id": process_id,
+            "node_id": node_id,
+            "detail": detail,
+        }),
+    )
+}
+
+fn call_activity_error_missing_boundary_issue(
+    process_id: &str,
+    node_id: &str,
+    detail: &'static str,
+) -> LintIssue {
+    LintIssue::new(
+        "bpmn.unsupported_subprocess_configuration",
+        "Call activity error path is missing the parent error boundary",
+        format!(
+            "Process '{process_id}' call activity '{node_id}' targets a child process that contains one or more error ends but does not expose any matching parent interrupting error boundary."
+        ),
+        "The bounded engine only executes same-package `callActivity` error semantics when both sides of the path exist: the called process may finish through one or more error ends, and the parent `callActivity` owner must expose one or more matching interrupting error boundaries. If a boundary carries `errorRef`, it must match the thrown error; if it omits `errorRef`, it acts as the bounded catch-all path.",
+        vec![
+            "Add one or more interrupting `boundaryEvent` nodes with `<bpmn:errorEventDefinition>` attached to this bounded same-package `<bpmn:callActivity>` node.".to_string(),
+            "For every child-process error end that uses `errorRef`, either copy that same `errorRef` to one or more matching boundaries or omit `errorRef` on one boundary to make it the bounded catch-all path.".to_string(),
+        ],
+        format!(
+            "Repair call activity '{node_id}' in process '{process_id}' so its bounded same-package error path is complete: keep one or more error ends in the called process and add one or more parent interrupting `boundaryEvent` nodes with `<bpmn:errorEventDefinition>` attached to that same `<bpmn:callActivity>` owner, routing each thrown error through every selected boundary's outgoing sequence flow. If a child-process error end declares `errorRef`, make one or more boundaries use the same `errorRef` or omit `errorRef` on one boundary to catch that error generically."
+        ),
+        json!({
+            "process_id": process_id,
+            "node_id": node_id,
+            "detail": detail,
+        }),
+    )
+}
+
+fn error_end_requires_supported_error_owner_issue(
+    process_id: &str,
+    node_id: &str,
+    detail: &'static str,
+) -> LintIssue {
+    LintIssue::new(
+        "bpmn.unsupported_subprocess_configuration",
+        "Error end event must belong to a supported error path",
+        format!(
+            "Process '{process_id}' end event '{node_id}' uses `<errorEventDefinition>` outside one bounded transaction shell, one bounded embedded subprocess shell, or one child process reached by a bounded same-package call activity with matching parent error boundaries."
+        ),
+        "The bounded engine now supports two bounded error-end families: one top-level executable process may terminate the instance directly in failed state, and one subprocess-owned error path may route through a bounded transaction shell, bounded embedded `<bpmn:subProcess>` shell, or one called process entered only through a bounded same-package `callActivity` owner carrying matching interrupting error boundaries.",
+        vec![
+            "If this should terminate the whole workflow, keep the `<bpmn:errorEventDefinition>` end event in one executable top-level process and let the instance fail terminally.".to_string(),
+            "If this is not a real top-level or subprocess-owned error path, replace `<bpmn:errorEventDefinition>` with a regular `<bpmn:endEvent>`.".to_string(),
+            "If it is a real bounded subprocess error path, move the error end under one supported owner and add the matching parent interrupting error boundaries on that same owner.".to_string(),
+        ],
+        format!(
+            "Repair process '{process_id}' so end event '{node_id}' uses `<bpmn:errorEventDefinition>` only in one bounded supported error path. Either keep it in one executable top-level process so the instance fails terminally, replace it with a regular end event, move it inside one bounded `<bpmn:transaction>` shell, move it inside one bounded embedded `<bpmn:subProcess>` shell, or keep it in a called process that is entered only through one bounded same-package `<bpmn:callActivity>` owner carrying matching parent interrupting error boundaries."
         ),
         json!({
             "process_id": process_id,

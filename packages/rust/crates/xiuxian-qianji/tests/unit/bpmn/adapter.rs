@@ -1,9 +1,9 @@
 use qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnEdgeSpec, BpmnEventKind, BpmnEventSpec, BpmnGatewayKind,
-    BpmnInstanceInit, BpmnNodeKind, BpmnNodeSpec, BpmnPackage, BpmnProcessSpec,
+    BpmnInstanceInit, BpmnNodeKind, BpmnNodeSpec, BpmnPackage, BpmnProcessSpec, BpmnScriptTaskSpec,
     BusinessRuleTaskOutcome, DmnDecisionRef, DmnEvaluationResult, EventPollOutcome,
-    HostBridgeError, InstanceLifecycle, PendingHostWorkRequest, ProcessKey, SendTaskOutcome,
-    ServiceTaskOutcome, UserTaskRequest, advance_instance, create_instance,
+    HostBridgeError, InstanceLifecycle, PendingHostWorkRequest, ProcessKey, ScriptTaskOutcome,
+    SendTaskOutcome, ServiceTaskOutcome, UserTaskRequest, advance_instance, create_instance,
 };
 use serde_json::json;
 use std::sync::Arc;
@@ -134,6 +134,55 @@ async fn resolve_pending_host_work_completes_send_task_through_bridge() {
             "amount": 7,
             "sent": true,
             "message_ref": "invoice_dispatched",
+        })
+    );
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn resolve_pending_host_work_completes_script_task_through_bridge() {
+    let package = Arc::new(BpmnPackage::new(
+        "pkg_adapter",
+        vec![script_task_process("script_eval")],
+    ));
+    let mut instance = create_instance(
+        Arc::clone(&package),
+        "script_eval",
+        BpmnInstanceInit::new("wf_script", json!({ "amount": 7, "tax": 10 }), 10),
+    )
+    .unwrap_or_else(|error| panic!("instance should be created: {error:?}"));
+    let host = QianjiBpmnHostBridge::builder()
+        .on_script_task(|request| async move {
+            assert_eq!(request.script_format.as_deref(), Some("feel"));
+            assert_eq!(
+                request.script_body.as_deref(),
+                Some("result = amount + tax")
+            );
+            Ok(ScriptTaskOutcome {
+                data: json!({ "computed": 17 }),
+            })
+        })
+        .clock(|| 100)
+        .build();
+
+    let blocked = ok_of(
+        advance_instance(package.as_ref(), &mut instance, &host).await,
+        "initial advance should block on script-task host work",
+    );
+    assert!(matches!(blocked, BpmnAdvanceOutcome::BlockedOnHost(_)));
+
+    let outcome = ok_of(
+        resolve_pending_host_work(package.as_ref(), &mut instance, &host).await,
+        "host bridge should resolve the pending script task",
+    );
+
+    assert_eq!(outcome, BpmnAdvanceOutcome::Completed);
+    assert_eq!(instance.lifecycle, InstanceLifecycle::Completed);
+    assert_eq!(
+        instance.variables,
+        json!({
+            "amount": 7,
+            "tax": 10,
+            "computed": 17,
         })
     );
 }
@@ -278,6 +327,24 @@ fn send_task_process(process_id: &str) -> BpmnProcessSpec {
     )
 }
 
+fn script_task_process(process_id: &str) -> BpmnProcessSpec {
+    BpmnProcessSpec::new(
+        ProcessKey::new("pkg_adapter", process_id, format!("digest_{process_id}")),
+        vec![
+            BpmnNodeSpec::new(0, "start", BpmnNodeKind::StartEvent),
+            BpmnNodeSpec::new(1, "evaluate_script", BpmnNodeKind::ScriptTask).with_script_task(
+                BpmnScriptTaskSpec::new(Some("feel"), Some("result = amount + tax")),
+            ),
+            BpmnNodeSpec::new(2, "end", BpmnNodeKind::EndEvent),
+        ],
+        vec![
+            BpmnEdgeSpec::new(0, 1, None::<&str>),
+            BpmnEdgeSpec::new(1, 2, None::<&str>),
+        ],
+        Vec::new(),
+    )
+}
+
 fn business_rule_process(process_id: &str) -> BpmnProcessSpec {
     BpmnProcessSpec::new(
         ProcessKey::new("pkg_adapter", process_id, format!("digest_{process_id}")),
@@ -346,6 +413,7 @@ fn waiting_instance() -> (Arc<BpmnPackage>, qianji_bpmn_engine::BpmnInstanceStat
     instance.node_states[0].status = qianji_bpmn_engine::NodeRuntimeStatus::Completed;
     instance.node_states[1].status = qianji_bpmn_engine::NodeRuntimeStatus::Executing;
     instance.waits.push(qianji_bpmn_engine::WaitRegistration {
+        process_id: Some("wait_boundary".to_string()),
         node_index: 1,
         blocking_node_index: None,
         kind: qianji_bpmn_engine::WaitKind::ExternalEvent,

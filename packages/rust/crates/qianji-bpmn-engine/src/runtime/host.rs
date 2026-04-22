@@ -8,7 +8,7 @@ use crate::dmn_model_api::DmnEvaluationRequest;
 use crate::error::{BpmnEngineError, Result};
 use crate::host_types_api::{
     BusinessRuleTaskRequest, ManualTaskRequest, ParallelMultiInstanceContext,
-    PendingHostWorkRequest, RepeatExecutionContext, SendTaskRequest,
+    PendingHostWorkRequest, RepeatExecutionContext, ScriptTaskRequest, SendTaskRequest,
     SequentialMultiInstanceContext, ServiceTaskRequest, UserTaskRequest,
 };
 
@@ -66,43 +66,7 @@ fn build_pending_host_work_request_for_entry(
     let instance_id = instance.instance_id.to_string();
     let token_id = pending.token_id;
     let node_index = pending.node_index;
-    let (variables, repeat) =
-        sequential_multi_instance_iteration_variables(instance, node_index, &instance.variables)?
-            .map_or_else(
-                || {
-                    parallel_multi_instance_iteration_variables(
-                        instance,
-                        node_index,
-                        token_id,
-                        &instance.variables,
-                    )
-                    .map(|repeat| {
-                        repeat.map(|(iteration_index, total_iterations, variables)| {
-                            (
-                                variables,
-                                Some(RepeatExecutionContext::ParallelMultiInstance(
-                                    ParallelMultiInstanceContext {
-                                        iteration_index,
-                                        total_iterations,
-                                    },
-                                )),
-                            )
-                        })
-                    })
-                },
-                |(iteration_index, total_iterations, variables)| {
-                    Ok(Some((
-                        variables,
-                        Some(RepeatExecutionContext::SequentialMultiInstance(
-                            SequentialMultiInstanceContext {
-                                iteration_index,
-                                total_iterations,
-                            },
-                        )),
-                    )))
-                },
-            )?
-            .unwrap_or_else(|| (instance.variables.clone(), None));
+    let (variables, repeat) = resolve_pending_host_work_execution_context(instance, pending)?;
 
     Ok(match pending.kind {
         super::PendingHostWorkKind::Send => PendingHostWorkRequest::Send(SendTaskRequest {
@@ -126,6 +90,15 @@ fn build_pending_host_work_request_for_entry(
                 repeat,
             })
         }
+        super::PendingHostWorkKind::Script => PendingHostWorkRequest::Script(ScriptTaskRequest {
+            instance_id,
+            token_id,
+            node_index,
+            script_format: pending.script_format.clone(),
+            script_body: pending.script_body.clone(),
+            variables,
+            repeat,
+        }),
         super::PendingHostWorkKind::User => PendingHostWorkRequest::User(UserTaskRequest {
             instance_id,
             token_id,
@@ -140,20 +113,97 @@ fn build_pending_host_work_request_for_entry(
             variables,
             repeat,
         }),
-        super::PendingHostWorkKind::BusinessRule => {
-            let decision = pending.decision.clone().ok_or_else(|| {
-                BpmnEngineError::MissingBusinessRuleDecisionRef {
-                    process_id: instance.process.process_id.to_string(),
-                    node_id: pending.node_index.to_string(),
-                }
-            })?;
-            PendingHostWorkRequest::BusinessRule(BusinessRuleTaskRequest {
-                instance_id,
-                token_id,
-                node_index,
-                evaluation: DmnEvaluationRequest::new(decision, variables),
-                repeat,
-            })
-        }
+        super::PendingHostWorkKind::BusinessRule => build_business_rule_task_request(
+            instance,
+            pending,
+            instance_id,
+            token_id,
+            node_index,
+            variables,
+            repeat,
+        )?,
     })
+}
+
+fn resolve_pending_host_work_execution_context(
+    instance: &BpmnInstanceState,
+    pending: &PendingHostWork,
+) -> Result<(serde_json::Value, Option<RepeatExecutionContext>)> {
+    let uses_active_process_context = pending
+        .process_id
+        .as_deref()
+        .is_none_or(|process_id| process_id == instance.process.process_id.as_ref());
+    if !uses_active_process_context {
+        return Ok((instance.variables.clone(), None));
+    }
+
+    sequential_multi_instance_iteration_variables(
+        instance,
+        pending.node_index,
+        &instance.variables,
+    )?
+    .map_or_else(
+        || {
+            parallel_multi_instance_iteration_variables(
+                instance,
+                pending.node_index,
+                pending.token_id,
+                &instance.variables,
+            )
+            .map(|repeat| {
+                repeat.map(|(iteration_index, total_iterations, variables)| {
+                    (
+                        variables,
+                        Some(RepeatExecutionContext::ParallelMultiInstance(
+                            ParallelMultiInstanceContext {
+                                iteration_index,
+                                total_iterations,
+                            },
+                        )),
+                    )
+                })
+            })
+        },
+        |(iteration_index, total_iterations, variables)| {
+            Ok(Some((
+                variables,
+                Some(RepeatExecutionContext::SequentialMultiInstance(
+                    SequentialMultiInstanceContext {
+                        iteration_index,
+                        total_iterations,
+                    },
+                )),
+            )))
+        },
+    )
+    .map(|context| context.unwrap_or_else(|| (instance.variables.clone(), None)))
+}
+
+fn build_business_rule_task_request(
+    instance: &BpmnInstanceState,
+    pending: &PendingHostWork,
+    instance_id: String,
+    token_id: u64,
+    node_index: u32,
+    variables: serde_json::Value,
+    repeat: Option<RepeatExecutionContext>,
+) -> Result<PendingHostWorkRequest> {
+    let decision = pending.decision.clone().ok_or_else(|| {
+        BpmnEngineError::MissingBusinessRuleDecisionRef {
+            process_id: pending
+                .process_id
+                .clone()
+                .unwrap_or_else(|| instance.process.process_id.to_string()),
+            node_id: pending.node_index.to_string(),
+        }
+    })?;
+    Ok(PendingHostWorkRequest::BusinessRule(
+        BusinessRuleTaskRequest {
+            instance_id,
+            token_id,
+            node_index,
+            evaluation: DmnEvaluationRequest::new(decision, variables),
+            repeat,
+        },
+    ))
 }

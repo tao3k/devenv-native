@@ -21,6 +21,11 @@ fn dmn_linter_reports_text_annotation_only_document_with_specific_guidance() {
     );
     assert!(
         issue
+            .why_it_failed
+            .contains("Credit policy note for manual reviewers.")
+    );
+    assert!(
+        issue
             .repair_guidance
             .iter()
             .any(|step| step.contains("Do not invent rules"))
@@ -32,6 +37,14 @@ fn dmn_linter_reports_text_annotation_only_document_with_specific_guidance() {
     assert_eq!(
         issue.evidence["document_root"]["text_annotation_count"],
         json!(1)
+    );
+    assert_eq!(
+        issue.evidence["document_root"]["text_annotations"][0]["text_annotation_id"],
+        json!("TextAnnotation_credit_policy_note")
+    );
+    assert_eq!(
+        issue.evidence["document_root"]["text_annotations"][0]["text"],
+        json!("Credit policy note for manual reviewers.")
     );
     assert_eq!(issue.evidence["document_decision_count"], json!(0));
 }

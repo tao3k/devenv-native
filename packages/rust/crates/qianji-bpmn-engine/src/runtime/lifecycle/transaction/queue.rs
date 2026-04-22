@@ -69,6 +69,14 @@ pub(crate) fn complete_compensation_handler(
                 now_ms,
             )
         }
+        TransactionCompensationCompletionMode::Detached => {
+            let _ = state::remove_active_token(instance, current_token_index);
+            if !instance.active_tokens.is_empty() {
+                state::record_transition(instance, now_ms, InstanceLifecycle::Running);
+                return Ok(());
+            }
+            finalize_transaction_scope_completion(package, instance, now_ms)
+        }
     }
 }
 

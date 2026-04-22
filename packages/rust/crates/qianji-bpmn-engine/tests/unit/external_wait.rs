@@ -4,9 +4,9 @@ use qianji_bpmn_engine::{
     BpmnHostBridge, BpmnInstanceInit, BpmnNodeKind, BpmnNodeSpec, BpmnPackage, BpmnProcessSpec,
     BusinessRuleTaskOutcome, BusinessRuleTaskRequest, EventPollOutcome, EventPollRequest,
     HostBridgeError, InstanceLifecycle, ManualTaskOutcome, ManualTaskRequest, ProcessKey,
-    SendTaskOutcome, SendTaskRequest, ServiceTaskOutcome, ServiceTaskRequest, TokenRecord,
-    UserTaskOutcome, UserTaskRequest, WaitKind, WaitRegistration, advance_instance,
-    apply_event_poll_outcome, build_event_poll_request, create_instance,
+    ScriptTaskOutcome, ScriptTaskRequest, SendTaskOutcome, SendTaskRequest, ServiceTaskOutcome,
+    ServiceTaskRequest, TokenRecord, UserTaskOutcome, UserTaskRequest, WaitKind, WaitRegistration,
+    advance_instance, apply_event_poll_outcome, build_event_poll_request, create_instance,
 };
 use serde_json::json;
 use std::sync::Arc;
@@ -23,6 +23,7 @@ fn external_wait_builds_event_poll_request_from_blocked_instance() {
             instance_id: "wf_wait".to_string(),
             gateway_node_index: None,
             waits: vec![WaitRegistration {
+                process_id: Some("wait_boundary".to_string()),
                 node_index: 1,
                 blocking_node_index: None,
                 kind: WaitKind::ExternalEvent,
@@ -151,6 +152,7 @@ fn waiting_instance() -> (Arc<BpmnPackage>, qianji_bpmn_engine::BpmnInstanceStat
     instance.node_states[0].status = qianji_bpmn_engine::NodeRuntimeStatus::Completed;
     instance.node_states[1].status = qianji_bpmn_engine::NodeRuntimeStatus::Executing;
     instance.waits.push(WaitRegistration {
+        process_id: Some("wait_boundary".to_string()),
         node_index: 1,
         blocking_node_index: None,
         kind: WaitKind::ExternalEvent,
@@ -208,6 +210,13 @@ impl BpmnHostBridge for StubHost {
         _request: ServiceTaskRequest,
     ) -> std::result::Result<ServiceTaskOutcome, HostBridgeError> {
         panic!("external wait tests should not dispatch service work");
+    }
+
+    async fn dispatch_script_task(
+        &self,
+        _request: ScriptTaskRequest,
+    ) -> std::result::Result<ScriptTaskOutcome, HostBridgeError> {
+        panic!("external wait tests should not dispatch script work");
     }
 
     async fn dispatch_user_task(

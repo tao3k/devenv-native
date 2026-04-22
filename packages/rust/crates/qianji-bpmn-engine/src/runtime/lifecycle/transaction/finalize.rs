@@ -1,4 +1,4 @@
-use super::boundary::cancel_transaction_boundary_siblings;
+use crate::runtime::lifecycle::boundary::cancel_attached_boundary_siblings;
 use crate::runtime::lifecycle::call_activity;
 use crate::runtime::lifecycle::scope::{
     BpmnEngineError, BpmnEventKind, BpmnInstanceState, BpmnPackage, BpmnSubProcessKind,
@@ -55,7 +55,11 @@ pub(super) fn finalize_transaction_cancel_shell(
         },
     )?;
     state::set_node_status(instance, return_node_index, NodeRuntimeStatus::Cancelled);
-    cancel_transaction_boundary_siblings(process, instance, return_node_index, &[boundary.index])?;
+    cancel_attached_boundary_siblings(process, instance, return_node_index, &[boundary.index])?;
+    state::clear_boundary_wait_for_node(instance, return_node_index);
+    if instance.waits.is_empty() {
+        instance.suspend_reason = None;
+    }
     state::set_node_status(instance, boundary.index, NodeRuntimeStatus::Completed);
     let edge_index = state::resolve_single_outgoing_edge(
         process,

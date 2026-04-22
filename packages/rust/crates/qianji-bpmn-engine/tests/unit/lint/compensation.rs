@@ -44,35 +44,31 @@ fn bpmn_linter_reports_throw_compensation_end_event_with_llm_guidance() {
 }
 
 #[test]
-fn bpmn_linter_reports_async_throw_compensation_end_event_with_llm_guidance() {
-    let report = lint_bpmn_source(&bpmn_fixture_source(
-        "invalid-throw-compensation-end-async.bpmn",
-    ));
-
-    assert_eq!(report.domain, LintDomain::Bpmn);
-    assert!(!report.ok);
-    assert_eq!(report.issues.len(), 1);
-    let issue = &report.issues[0];
-    assert_eq!(issue.code, "bpmn.unsupported_compensation_configuration");
-    assert!(issue.summary.contains("tx_throw_end"));
-    assert!(
-        issue
-            .title
-            .contains("Asynchronous throw compensation end events")
-    );
-    assert!(
-        issue
-            .repair_guidance
-            .iter()
-            .any(|step| step.contains("waitForCompletion"))
-    );
-    assert!(issue.llm_fix_prompt.contains("synchronous"));
-}
-
-#[test]
 fn bpmn_linter_accepts_default_throw_compensation_end_in_bounded_transaction_subset() {
     let report = lint_bpmn_source(&bpmn_fixture_source(
         "transaction-default-compensation-end.bpmn",
+    ));
+
+    assert_eq!(report.domain, LintDomain::Bpmn);
+    assert!(report.ok);
+    assert!(report.issues.is_empty());
+}
+
+#[test]
+fn bpmn_linter_accepts_async_throw_compensation_end_in_bounded_transaction_subset() {
+    let report = lint_bpmn_source(&bpmn_fixture_source(
+        "transaction-throw-compensation-end-async.bpmn",
+    ));
+
+    assert_eq!(report.domain, LintDomain::Bpmn);
+    assert!(report.ok);
+    assert!(report.issues.is_empty());
+}
+
+#[test]
+fn bpmn_linter_accepts_async_default_throw_compensation_end_in_bounded_transaction_subset() {
+    let report = lint_bpmn_source(&bpmn_fixture_source(
+        "transaction-default-compensation-end-async.bpmn",
     ));
 
     assert_eq!(report.domain, LintDomain::Bpmn);
@@ -101,36 +97,33 @@ fn bpmn_linter_reports_throw_compensation_intermediate_event_with_llm_guidance()
         issue
             .repair_guidance
             .iter()
-            .any(|step| step.contains("sequence-flow routing"))
+            .any(|step| step.contains("waitForCompletion"))
     );
     assert!(issue.llm_fix_prompt.contains("intermediateThrowEvent"));
     assert_lint_json_snapshot("bpmn_throw_compensation_intermediate_lint_report", &report);
 }
 
 #[test]
-fn bpmn_linter_reports_async_throw_compensation_intermediate_event_with_llm_guidance() {
+fn bpmn_linter_accepts_async_throw_compensation_intermediate_in_bounded_transaction_subset() {
     let report = lint_bpmn_source(&bpmn_fixture_source(
-        "invalid-throw-compensation-intermediate-async.bpmn",
+        "transaction-throw-compensation-intermediate-async.bpmn",
     ));
 
     assert_eq!(report.domain, LintDomain::Bpmn);
-    assert!(!report.ok);
-    assert_eq!(report.issues.len(), 1);
-    let issue = &report.issues[0];
-    assert_eq!(issue.code, "bpmn.unsupported_compensation_configuration");
-    assert!(issue.summary.contains("tx_throw_intermediate"));
-    assert!(
-        issue
-            .title
-            .contains("Asynchronous throw compensation intermediate events")
-    );
-    assert!(
-        issue
-            .repair_guidance
-            .iter()
-            .any(|step| step.contains("waitForCompletion"))
-    );
-    assert!(issue.llm_fix_prompt.contains("synchronous"));
+    assert!(report.ok);
+    assert!(report.issues.is_empty());
+}
+
+#[test]
+fn bpmn_linter_accepts_async_default_throw_compensation_intermediate_in_bounded_transaction_subset()
+{
+    let report = lint_bpmn_source(&bpmn_fixture_source(
+        "transaction-default-compensation-intermediate-async.bpmn",
+    ));
+
+    assert_eq!(report.domain, LintDomain::Bpmn);
+    assert!(report.ok);
+    assert!(report.issues.is_empty());
 }
 
 #[test]

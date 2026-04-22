@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  id="pkg_transaction_timer_boundary"
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL">
+  <bpmn:process id="main_process" isExecutable="true">
+    <bpmn:startEvent id="start" />
+    <bpmn:transaction id="payment_tx">
+      <bpmn:startEvent id="tx_start" />
+      <bpmn:userTask id="tx_review" />
+      <bpmn:endEvent id="tx_end" />
+      <bpmn:sequenceFlow id="tx_flow_1" sourceRef="tx_start" targetRef="tx_review" />
+      <bpmn:sequenceFlow id="tx_flow_2" sourceRef="tx_review" targetRef="tx_end" />
+    </bpmn:transaction>
+    <bpmn:boundaryEvent id="tx_timeout" attachedToRef="payment_tx" cancelActivity="true">
+      <bpmn:timerEventDefinition>
+        <bpmn:timeDuration>PT30M</bpmn:timeDuration>
+      </bpmn:timerEventDefinition>
+    </bpmn:boundaryEvent>
+    <bpmn:endEvent id="success_end" />
+    <bpmn:endEvent id="timeout_end" />
+    <bpmn:sequenceFlow id="flow_1" sourceRef="start" targetRef="payment_tx" />
+    <bpmn:sequenceFlow id="flow_2" sourceRef="payment_tx" targetRef="success_end" />
+    <bpmn:sequenceFlow id="flow_3" sourceRef="tx_timeout" targetRef="timeout_end" />
+  </bpmn:process>
+</bpmn:definitions>

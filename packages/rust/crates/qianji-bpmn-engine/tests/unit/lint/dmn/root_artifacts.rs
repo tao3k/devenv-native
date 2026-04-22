@@ -17,6 +17,7 @@ fn dmn_linter_reports_input_data_only_document_with_artifact_specific_guidance()
             .why_it_failed
             .contains("input-data declarations as metadata only")
     );
+    assert!(issue.why_it_failed.contains("name 'Applicant Input'"));
     assert!(
         issue
             .repair_guidance
@@ -30,6 +31,18 @@ fn dmn_linter_reports_input_data_only_document_with_artifact_specific_guidance()
     assert_eq!(
         issue.evidence["document_root"]["input_data_count"],
         json!(1)
+    );
+    assert_eq!(
+        issue.evidence["document_root"]["input_data"][0]["input_data_id"],
+        json!("InputData_applicant")
+    );
+    assert_eq!(
+        issue.evidence["document_root"]["input_data"][0]["name"],
+        json!("Applicant Input")
+    );
+    assert_eq!(
+        issue.evidence["document_root"]["input_data"][0]["variable"],
+        json!(null)
     );
     assert_eq!(issue.evidence["document_decision_count"], json!(0));
 }
@@ -52,6 +65,7 @@ fn dmn_linter_reports_knowledge_source_only_document_with_artifact_specific_guid
             .why_it_failed
             .contains("knowledge-source declarations as governance metadata only")
     );
+    assert!(issue.why_it_failed.contains("name 'Policy Authority'"));
     assert!(
         issue
             .repair_guidance
@@ -65,6 +79,14 @@ fn dmn_linter_reports_knowledge_source_only_document_with_artifact_specific_guid
     assert_eq!(
         issue.evidence["document_root"]["knowledge_source_count"],
         json!(1)
+    );
+    assert_eq!(
+        issue.evidence["document_root"]["knowledge_sources"][0]["knowledge_source_id"],
+        json!("KnowledgeSource_policy")
+    );
+    assert_eq!(
+        issue.evidence["document_root"]["knowledge_sources"][0]["name"],
+        json!("Policy Authority")
     );
     assert_eq!(issue.evidence["document_decision_count"], json!(0));
 }
@@ -90,6 +112,7 @@ fn dmn_linter_reports_business_knowledge_model_only_document_with_artifact_speci
             .why_it_failed
             .contains("does not execute top-level business-knowledge models directly")
     );
+    assert!(issue.why_it_failed.contains("name 'Policy Source'"));
     assert!(
         issue
             .repair_guidance
@@ -105,6 +128,14 @@ fn dmn_linter_reports_business_knowledge_model_only_document_with_artifact_speci
     assert_eq!(
         issue.evidence["document_root"]["business_knowledge_model_count"],
         json!(1)
+    );
+    assert_eq!(
+        issue.evidence["document_root"]["business_knowledge_models"][0]["business_knowledge_model_id"],
+        json!("BKM_policy_source")
+    );
+    assert_eq!(
+        issue.evidence["document_root"]["business_knowledge_models"][0]["name"],
+        json!("Policy Source")
     );
     assert_eq!(issue.evidence["document_decision_count"], json!(0));
 }

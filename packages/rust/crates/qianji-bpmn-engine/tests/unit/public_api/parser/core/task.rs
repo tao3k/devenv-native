@@ -35,6 +35,23 @@ fn parser_receive_task_nested_message_event_materializes_message_binding() {
 }
 
 #[test]
+fn parser_script_task_preserves_bounded_script_metadata() {
+    let package = parse_fixture_package("script-task-basic.bpmn");
+    let process = package
+        .find_process("evaluate_script")
+        .must("process should be present");
+    let task = &process.nodes[1];
+
+    assert_eq!(task.kind, BpmnNodeKind::ScriptTask);
+    let script = task
+        .script_task
+        .as_ref()
+        .must("script task metadata should be preserved");
+    assert_eq!(script.script_format.as_deref(), Some("feel"));
+    assert_eq!(script.script_body.as_deref(), Some("result = amount + tax"));
+}
+
+#[test]
 fn parser_send_task_requires_one_message_binding() {
     let error = parse_fixture_error(
         "invalid-send-task-missing-message-binding.bpmn",

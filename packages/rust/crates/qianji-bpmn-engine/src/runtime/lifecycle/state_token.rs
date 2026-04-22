@@ -157,14 +157,15 @@ pub(crate) fn clear_pending_host_work(instance: &mut BpmnInstanceState, token_id
         .retain(|pending| pending.token_id != token_id);
 }
 
-pub(crate) fn has_pending_host_work_for_node(
+pub(crate) fn has_pending_host_work_for_process_node(
     instance: &BpmnInstanceState,
+    process_id: &str,
     node_index: BpmnNodeIndex,
 ) -> bool {
-    instance
-        .pending_host_work
-        .iter()
-        .any(|pending| pending.node_index == node_index)
+    instance.pending_host_work.iter().any(|pending| {
+        pending.process_id.as_deref().unwrap_or(process_id) == process_id
+            && pending.node_index == node_index
+    })
 }
 
 pub(crate) fn clear_boundary_wait_for_node(
@@ -176,11 +177,17 @@ pub(crate) fn clear_boundary_wait_for_node(
         .retain(|wait| wait.blocking_node_index != Some(node_index));
 }
 
-pub(super) fn next_token_id(instance: &BpmnInstanceState) -> u64 {
+pub(crate) fn next_token_id(instance: &BpmnInstanceState) -> u64 {
     instance
         .active_tokens
         .iter()
         .map(|token| token.token_id)
+        .chain(
+            instance
+                .pending_host_work
+                .iter()
+                .map(|pending| pending.token_id),
+        )
         .max()
         .unwrap_or(instance.sequence)
         .max(instance.sequence)
