@@ -43,7 +43,11 @@
 //! completion order before the parent cancel boundary fires, plus one
 //! synchronous targeted throw-compensation end-event subset inside that same
 //! transaction shell where one nested end event uses explicit `activityRef`
-//! to replay one already compensable activity before the shell completes,
+//! to replay one already compensable activity before the shell completes, plus
+//! one synchronous targeted throw-compensation intermediate-event subset
+//! inside that same transaction shell where one nested intermediate throw
+//! event uses explicit `activityRef` to replay one already compensable
+//! activity before normal sequence-flow routing resumes,
 //! plus one bounded `callActivity` that targets another process in the same
 //! BPMN package, plus bounded `standardLoopCharacteristics` on one serviceTask,
 //! userTask, manualTask, or businessRuleTask, plus bounded
@@ -70,12 +74,12 @@
 //! matching engine-owned DMN decision definition; otherwise it falls back to
 //! the existing host seam. Broader unstructured inclusive gateways, recursive
 //! call chains, non-interrupting boundaries, full timer execution semantics,
-//! throw-compensation intermediate events, asynchronous or default
-//! throw-compensation end events, compensation event subprocesses, default
-//! compensation, broader throw-compensation forms, more than one cancel
-//! boundary on the same transaction owner, broader transaction error
-//! propagation beyond that bounded transaction shell, broader FEEL or
-//! script-backed gateway conditions, trailing
+//! asynchronous or default throw-compensation intermediate events,
+//! asynchronous or default throw-compensation end events, compensation event
+//! subprocesses, default compensation, broader throw-compensation forms, more
+//! than one cancel boundary on the same transaction owner, broader
+//! transaction error propagation beyond that bounded transaction shell,
+//! broader FEEL or script-backed gateway conditions, trailing
 //! lower-unit fractional duration handling such as `duration("PT1.5H30S")`,
 //! mixed-family duration handling, fractional year-month duration handling
 //! such as `duration("P1.5Y")`, broader timezone/function FEEL behavior, and

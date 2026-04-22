@@ -15,6 +15,16 @@ pub(super) fn advance_active_node(
     now_ms: u64,
 ) -> Result<Option<BpmnAdvanceOutcome>> {
     let current_node = &process.nodes[current_node_index as usize];
+    if let Some(host_work_kind) = host_work_kind_for_node(&current_node.kind) {
+        return advance_host_task_node(
+            process,
+            instance,
+            current_token_index,
+            current_node_index,
+            host_work_kind,
+            now_ms,
+        );
+    }
 
     match current_node.kind {
         BpmnNodeKind::StartEvent => {
@@ -35,6 +45,16 @@ pub(super) fn advance_active_node(
             current_node_index,
             now_ms,
         ),
+        BpmnNodeKind::IntermediateThrowEvent => {
+            advance_intermediate_throw_event(
+                process,
+                instance,
+                current_token_index,
+                current_node_index,
+                now_ms,
+            )?;
+            Ok(None)
+        }
         BpmnNodeKind::IntermediateCatchEvent | BpmnNodeKind::ReceiveTask => {
             call_activity::register_intermediate_wait(
                 process,
@@ -47,38 +67,12 @@ pub(super) fn advance_active_node(
         BpmnNodeKind::BoundaryEvent => Err(BpmnEngineError::UnsupportedOperation {
             operation: "advance_instance_boundary_event_direct_execution",
         }),
-        BpmnNodeKind::SendTask => advance_host_task_node(
-            process,
-            instance,
-            current_token_index,
-            current_node_index,
-            PendingHostWorkKind::Send,
-            now_ms,
-        ),
-        BpmnNodeKind::ServiceTask => advance_host_task_node(
-            process,
-            instance,
-            current_token_index,
-            current_node_index,
-            PendingHostWorkKind::Service,
-            now_ms,
-        ),
-        BpmnNodeKind::UserTask => advance_host_task_node(
-            process,
-            instance,
-            current_token_index,
-            current_node_index,
-            PendingHostWorkKind::User,
-            now_ms,
-        ),
-        BpmnNodeKind::ManualTask => advance_host_task_node(
-            process,
-            instance,
-            current_token_index,
-            current_node_index,
-            PendingHostWorkKind::Manual,
-            now_ms,
-        ),
+        BpmnNodeKind::SendTask
+        | BpmnNodeKind::ServiceTask
+        | BpmnNodeKind::UserTask
+        | BpmnNodeKind::ManualTask => {
+            unreachable!("host-blocking task kinds return before node dispatch")
+        }
         BpmnNodeKind::BusinessRuleTask => advance_business_rule_task(
             package,
             process,
@@ -106,6 +100,16 @@ pub(super) fn advance_active_node(
             )?;
             Ok(None)
         }
+    }
+}
+
+fn host_work_kind_for_node(node_kind: &BpmnNodeKind) -> Option<PendingHostWorkKind> {
+    match node_kind {
+        BpmnNodeKind::SendTask => Some(PendingHostWorkKind::Send),
+        BpmnNodeKind::ServiceTask => Some(PendingHostWorkKind::Service),
+        BpmnNodeKind::UserTask => Some(PendingHostWorkKind::User),
+        BpmnNodeKind::ManualTask => Some(PendingHostWorkKind::Manual),
+        _ => None,
     }
 }
 
@@ -199,6 +203,46 @@ fn advance_end_event(
 
     call_activity::complete_call_activity(package, instance, now_ms)?;
     Ok(None)
+}
+
+fn advance_intermediate_throw_event(
+    process: &BpmnProcessSpec,
+    instance: &mut BpmnInstanceState,
+    current_token_index: usize,
+    current_node_index: BpmnNodeIndex,
+    now_ms: u64,
+) -> Result<()> {
+    let event = process.event_for_node(current_node_index).ok_or_else(|| {
+        BpmnEngineError::MissingRequiredNodeElement {
+            process_id: process.key.process_id.to_string(),
+            node_id: process.nodes[current_node_index as usize]
+                .bpmn_id
+                .to_string(),
+            element: "event_definition",
+        }
+    })?;
+    match event.kind {
+        BpmnEventKind::Compensation => {
+            let target_activity_bpmn_id =
+                event
+                    .reference_id
+                    .as_deref()
+                    .ok_or(BpmnEngineError::UnsupportedOperation {
+                        operation: "advance_intermediate_throw_event_missing_compensation_target",
+                    })?;
+            transaction::throw_compensation_intermediate_event(
+                process,
+                instance,
+                current_token_index,
+                current_node_index,
+                target_activity_bpmn_id,
+                now_ms,
+            )
+        }
+        _ => Err(BpmnEngineError::UnsupportedOperation {
+            operation: "advance_instance_intermediate_throw_event_kind",
+        }),
+    }
 }
 
 fn advance_host_task_node(

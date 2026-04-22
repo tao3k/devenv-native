@@ -27,6 +27,8 @@ pub enum BpmnNodeKind {
     StartEvent,
     /// End event node.
     EndEvent,
+    /// Intermediate throw event node.
+    IntermediateThrowEvent,
     /// Intermediate catch event node.
     IntermediateCatchEvent,
     /// Boundary event attached to one host-blocking task.

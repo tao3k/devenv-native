@@ -116,6 +116,8 @@ pub enum TransactionCompensationCompletionMode {
     CancelBoundary,
     /// Resume by completing the current scope normally.
     ScopeCompletion,
+    /// Resume by routing from one completed intermediate throw-compensation node.
+    IntermediateRouting { node_index: BpmnNodeIndex },
 }
 
 /// Bounded transaction compensation queue state.

@@ -31,7 +31,6 @@ pub(super) fn complete_compensation_handler(
     }
 
     state::set_node_status(instance, current_node_index, NodeRuntimeStatus::Completed);
-    let _ = state::remove_active_token(instance, current_token_index);
     let next_handler = instance
         .call_stack
         .last_mut()
@@ -39,6 +38,7 @@ pub(super) fn complete_compensation_handler(
         .and_then(|state| state.pending_handler_node_indices.pop());
 
     if let Some(next_handler) = next_handler {
+        let _ = state::remove_active_token(instance, current_token_index);
         state::set_node_status(instance, next_handler, NodeRuntimeStatus::Queued);
         let _ = state::push_active_token_with_arrival(instance, None, next_handler);
         state::record_transition(instance, now_ms, InstanceLifecycle::Running);
@@ -53,10 +53,21 @@ pub(super) fn complete_compensation_handler(
         .unwrap_or_default();
     match completion_mode {
         TransactionCompensationCompletionMode::CancelBoundary => {
+            let _ = state::remove_active_token(instance, current_token_index);
             finalize_transaction_cancel_shell(package, instance, now_ms)
         }
         TransactionCompensationCompletionMode::ScopeCompletion => {
+            let _ = state::remove_active_token(instance, current_token_index);
             finalize_transaction_scope_completion(package, instance, now_ms)
+        }
+        TransactionCompensationCompletionMode::IntermediateRouting { node_index } => {
+            route_after_intermediate_throw_compensation(
+                process,
+                instance,
+                current_token_index,
+                node_index,
+                now_ms,
+            )
         }
     }
 }
@@ -96,4 +107,23 @@ pub(super) fn queue_transaction_compensation_targets(
     let _ = state::push_active_token_with_arrival(instance, None, first_handler);
     state::record_transition(instance, now_ms, InstanceLifecycle::Running);
     Ok(true)
+}
+
+fn route_after_intermediate_throw_compensation(
+    process: &BpmnProcessSpec,
+    instance: &mut BpmnInstanceState,
+    current_token_index: usize,
+    node_index: BpmnNodeIndex,
+    now_ms: u64,
+) -> Result<()> {
+    let edge_index = state::resolve_single_outgoing_edge(
+        process,
+        node_index,
+        "complete_compensation_handler_intermediate_throw_routing",
+    )?;
+    let next_node_index = process.edges[edge_index as usize].to;
+    state::set_active_node_index(instance, current_token_index, edge_index, next_node_index);
+    state::set_node_status(instance, next_node_index, NodeRuntimeStatus::Queued);
+    state::record_transition(instance, now_ms, InstanceLifecycle::Running);
+    Ok(())
 }

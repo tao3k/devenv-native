@@ -213,6 +213,7 @@ fn node_kind_name(kind: &BpmnNodeKind) -> &'static str {
     match kind {
         BpmnNodeKind::StartEvent => "start_event",
         BpmnNodeKind::EndEvent => "end_event",
+        BpmnNodeKind::IntermediateThrowEvent => "intermediate_throw_event",
         BpmnNodeKind::IntermediateCatchEvent => "intermediate_catch_event",
         BpmnNodeKind::BoundaryEvent => "boundary_event",
         BpmnNodeKind::SendTask => "send_task",

@@ -1,5 +1,6 @@
 ---
 source: packages/rust/crates/qianji-bpmn-engine/tests/unit/lint/mod.rs
+assertion_line: 35
 expression: value
 ---
 {
@@ -10,15 +11,15 @@ expression: value
     {
       "code": "bpmn.unsupported_compensation_configuration",
       "severity": "error",
-      "title": "Throw compensation intermediate events are deferred",
+      "title": "Throw compensation intermediate events outside the bounded subset are rejected",
       "summary": "Process 'throw_compensation_flow' compensation node 'throw_intermediate' uses `<intermediateThrowEvent><compensateEventDefinition ... /></intermediateThrowEvent>`, which is outside the bounded slice.",
-      "why_it_failed": "The current engine executes compensation only through two bounded shapes inside one transaction shell: explicit boundary-to-handler replay during transaction cancel and one synchronous targeted throw-compensation end event. It does not execute `activityRef`-targeted throw compensation directly from intermediate throw events.",
+      "why_it_failed": "The current engine executes one bounded throw-compensation intermediate-event subset: the event must run inside one supported transaction shell, must reference one explicit `activityRef`, must stay synchronous, and must reuse an already valid boundary-to-handler compensation binding for that target activity. Any other intermediate throw-compensation shape remains unsupported.",
       "repair_guidance": [
-        "If transaction rollback is really required, remodel the flow with one bounded transaction cancel path plus explicit compensation boundary-to-handler bindings on the completed activities.",
-        "If the flow only needs ordinary progression, remove `<compensateEventDefinition>` and keep normal sequence-flow routing to the next supported node.",
-        "Do not rely on `activityRef`-targeted compensation on throwing intermediate events in this bounded slice."
+        "If compensation is really required, place the throwing intermediate event inside one bounded transaction shell and target one activity that already owns an explicit compensation boundary-to-handler binding.",
+        "Keep the event synchronous and preserve ordinary sequence-flow routing after compensation completes.",
+        "Do not rely on throw-compensation intermediate events outside the bounded transaction-shell subset in this slice."
       ],
-      "llm_fix_prompt": "Rewrite compensation node 'throw_intermediate' in process 'throw_compensation_flow' so it no longer throws compensation from `<bpmn:intermediateThrowEvent>`. Preserve workflow intent, but either restore ordinary sequence-flow progression or remodel the compensation behavior as explicit boundary-to-handler bindings inside one bounded transaction cancel path.",
+      "llm_fix_prompt": "Rewrite compensation node 'throw_intermediate' in process 'throw_compensation_flow' so its `<bpmn:intermediateThrowEvent>` throw-compensation shape fits the bounded subset: place it inside one supported `<bpmn:transaction>` shell, keep one explicit `activityRef`, keep it synchronous, and target one activity that already has an explicit boundary-to-handler compensation binding. Otherwise, preserve workflow intent with ordinary sequence-flow routing.",
       "evidence": {
         "detail": "throw_compensation_intermediate_event",
         "node_id": "throw_intermediate",

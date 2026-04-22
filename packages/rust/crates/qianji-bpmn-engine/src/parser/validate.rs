@@ -314,7 +314,9 @@ fn validate_node_event_shape(
 ) -> Result<()> {
     if matches!(
         node.kind,
-        BpmnNodeKind::IntermediateCatchEvent | BpmnNodeKind::BoundaryEvent
+        BpmnNodeKind::IntermediateThrowEvent
+            | BpmnNodeKind::IntermediateCatchEvent
+            | BpmnNodeKind::BoundaryEvent
     ) && node.event.is_none()
     {
         return Err(BpmnEngineError::MissingRequiredNodeElement {
@@ -542,19 +544,15 @@ fn validate_compensation_handlers(process: &super::import::RawProcess) -> Result
         .map(|node| (node.bpmn_id.as_str(), node))
         .collect::<HashMap<_, _>>();
     let compensation_boundaries = collect_compensation_boundaries(process);
-    let throw_compensation_end_events = collect_throw_compensation_end_events(process);
-    if !has_compensation_shape(
-        process,
-        &compensation_boundaries,
-        &throw_compensation_end_events,
-    ) {
+    let throw_compensation_nodes = collect_throw_compensation_nodes(process);
+    if !has_compensation_shape(process, &compensation_boundaries, &throw_compensation_nodes) {
         return Ok(());
     }
 
     ensure_compensation_transaction_scope(
         process,
         &compensation_boundaries,
-        &throw_compensation_end_events,
+        &throw_compensation_nodes,
     )?;
 
     let mut seen_compensated_activities = HashSet::new();
@@ -568,8 +566,8 @@ fn validate_compensation_handlers(process: &super::import::RawProcess) -> Result
             &mut seen_compensation_handlers,
         )?;
     }
-    for throw_end in throw_compensation_end_events {
-        validate_throw_compensation_end_event(process, &node_by_id, throw_end)?;
+    for throw_node in throw_compensation_nodes {
+        validate_throw_compensation_node(process, &node_by_id, throw_node)?;
     }
 
     validate_orphan_compensation_handlers(process)?;
@@ -591,16 +589,18 @@ fn collect_compensation_boundaries(process: &RawProcess) -> Vec<&RawNode> {
         .collect()
 }
 
-fn collect_throw_compensation_end_events(process: &RawProcess) -> Vec<&RawNode> {
+fn collect_throw_compensation_nodes(process: &RawProcess) -> Vec<&RawNode> {
     process
         .nodes
         .iter()
         .filter(|node| {
-            node.kind == BpmnNodeKind::EndEvent
-                && node
-                    .event
-                    .as_ref()
-                    .is_some_and(|event| event.kind == BpmnEventKind::Compensation)
+            matches!(
+                node.kind,
+                BpmnNodeKind::EndEvent | BpmnNodeKind::IntermediateThrowEvent
+            ) && node
+                .event
+                .as_ref()
+                .is_some_and(|event| event.kind == BpmnEventKind::Compensation)
         })
         .collect()
 }
@@ -608,17 +608,17 @@ fn collect_throw_compensation_end_events(process: &RawProcess) -> Vec<&RawNode> 
 fn has_compensation_shape(
     process: &RawProcess,
     compensation_boundaries: &[&RawNode],
-    throw_compensation_end_events: &[&RawNode],
+    throw_compensation_nodes: &[&RawNode],
 ) -> bool {
     !compensation_boundaries.is_empty()
-        || !throw_compensation_end_events.is_empty()
+        || !throw_compensation_nodes.is_empty()
         || process.nodes.iter().any(|node| node.is_for_compensation)
 }
 
 fn ensure_compensation_transaction_scope(
     process: &RawProcess,
     compensation_boundaries: &[&RawNode],
-    throw_compensation_end_events: &[&RawNode],
+    throw_compensation_nodes: &[&RawNode],
 ) -> Result<()> {
     if matches!(
         process.scope,
@@ -633,7 +633,7 @@ fn ensure_compensation_transaction_scope(
     let node_id = first_compensation_shape_node_id(
         process,
         compensation_boundaries,
-        throw_compensation_end_events,
+        throw_compensation_nodes,
     );
     Err(compensation_error(
         process,
@@ -645,13 +645,13 @@ fn ensure_compensation_transaction_scope(
 fn first_compensation_shape_node_id(
     process: &RawProcess,
     compensation_boundaries: &[&RawNode],
-    throw_compensation_end_events: &[&RawNode],
+    throw_compensation_nodes: &[&RawNode],
 ) -> String {
     compensation_boundaries
         .first()
         .map(|node| node.bpmn_id.clone())
         .or_else(|| {
-            throw_compensation_end_events
+            throw_compensation_nodes
                 .first()
                 .map(|node| node.bpmn_id.clone())
         })
@@ -736,26 +736,26 @@ fn validate_compensated_activity<'a>(
     Ok(())
 }
 
-fn validate_throw_compensation_end_event<'a>(
+fn validate_throw_compensation_node<'a>(
     process: &RawProcess,
     node_by_id: &HashMap<&'a str, &'a RawNode>,
-    throw_end: &'a RawNode,
+    throw_node: &'a RawNode,
 ) -> Result<()> {
-    let Some(target_activity_id) = throw_end
+    let Some(target_activity_id) = throw_node
         .event
         .as_ref()
         .and_then(|event| event.reference_id.as_deref())
     else {
         return Err(compensation_error(
             process,
-            throw_end.bpmn_id.as_str(),
+            throw_node.bpmn_id.as_str(),
             "missing_throw_compensation_target",
         ));
     };
     let Some(activity) = node_by_id.get(target_activity_id).copied() else {
         return Err(compensation_error(
             process,
-            throw_end.bpmn_id.as_str(),
+            throw_node.bpmn_id.as_str(),
             "unknown_throw_compensation_target",
         ));
     };
@@ -790,7 +790,7 @@ fn validate_throw_compensation_end_event<'a>(
 
     Err(compensation_error(
         process,
-        throw_end.bpmn_id.as_str(),
+        throw_node.bpmn_id.as_str(),
         "throw_compensation_target_without_handler",
     ))
 }

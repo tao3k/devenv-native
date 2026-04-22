@@ -13,14 +13,14 @@ expression: value
       "severity": "error",
       "title": "Compensation configuration exceeds the bounded slice",
       "summary": "Process '__transaction__::main_process::payment_tx' compensation node 'tx_refund' uses unsupported configuration 'missing_compensation_handler_marker'.",
-      "why_it_failed": "The current engine supports only two bounded compensation shapes inside one transaction shell: one explicit boundary-to-handler binding whose handlers can replay in reverse completion order during transaction cancel, and one synchronous throw-compensation end event that targets an already compensable activity through explicit `activityRef`.",
+      "why_it_failed": "The current engine supports only three bounded compensation shapes inside one transaction shell: one explicit boundary-to-handler binding whose handlers can replay in reverse completion order during transaction cancel, one synchronous throw-compensation end event that targets an already compensable activity through explicit `activityRef`, and one synchronous throw-compensation intermediate event that does the same before normal sequence-flow routing resumes.",
       "repair_guidance": [
         "Keep compensation inside one transaction shell and attach each compensation boundary to exactly one direct host-blocking activity.",
         "Make the handler a detached serviceTask, userTask, manualTask, or businessRuleTask marked with `isForCompensation=\"true\"`, and connect it with exactly one association from the compensation boundary.",
-        "Use throw-compensation end events only when they stay synchronous, target one explicit `activityRef`, and point to one activity that already owns a valid compensation boundary-to-handler binding.",
-        "Do not place normal sequence flows, loops, multi-instance characteristics, intermediate throw compensation events, or compensation event subprocesses on this bounded compensation path."
+        "Use throw-compensation end or intermediate events only when they stay synchronous, target one explicit `activityRef`, and point to one activity that already owns a valid compensation boundary-to-handler binding.",
+        "Do not place loops, multi-instance characteristics, compensation event subprocesses, default compensation, or asynchronous throw-compensation forms on this bounded compensation path."
       ],
-      "llm_fix_prompt": "Repair compensation node 'tx_refund' in process '__transaction__::main_process::payment_tx' so it fits the bounded compensation slice: keep it inside one `<bpmn:transaction>` shell, use explicit boundary-to-handler bindings for compensable activities, and only use throw-compensation end events when they stay synchronous and target one explicit `activityRef` that already owns a valid compensation handler binding. Remove unsupported configuration 'missing_compensation_handler_marker'.",
+      "llm_fix_prompt": "Repair compensation node 'tx_refund' in process '__transaction__::main_process::payment_tx' so it fits the bounded compensation slice: keep it inside one `<bpmn:transaction>` shell, use explicit boundary-to-handler bindings for compensable activities, and only use throw-compensation end or intermediate events when they stay synchronous and target one explicit `activityRef` that already owns a valid compensation handler binding. Remove unsupported configuration 'missing_compensation_handler_marker'.",
       "evidence": {
         "detail": "missing_compensation_handler_marker",
         "node_id": "tx_refund",

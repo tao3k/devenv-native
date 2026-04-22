@@ -1,5 +1,6 @@
 ---
 source: packages/rust/crates/qianji-bpmn-engine/tests/unit/lint/mod.rs
+assertion_line: 35
 expression: value
 ---
 {
@@ -10,9 +11,9 @@ expression: value
     {
       "code": "bpmn.unsupported_compensation_configuration",
       "severity": "error",
-      "title": "Throw compensation end events are deferred",
+      "title": "Throw compensation end events outside the bounded subset are rejected",
       "summary": "Process 'throw_compensation_flow' compensation node 'throw_end' uses `<endEvent><compensateEventDefinition ... /></endEvent>`, which is outside the bounded slice.",
-      "why_it_failed": "The current engine executes only one bounded throw-compensation end-event subset: the event must run inside one supported transaction shell, must reference one explicit `activityRef`, and must reuse an already valid boundary-to-handler compensation binding for that target activity. Any other end-event throw-compensation shape remains unsupported.",
+      "why_it_failed": "The current engine executes one bounded throw-compensation end-event subset: the event must run inside one supported transaction shell, must reference one explicit `activityRef`, and must reuse an already valid boundary-to-handler compensation binding for that target activity. Any other end-event throw-compensation shape remains unsupported.",
       "repair_guidance": [
         "If compensation is really required, remodel the flow so the throwing end event lives inside one bounded transaction shell and targets one activity that already owns an explicit compensation boundary-to-handler binding.",
         "If the flow only needs terminal completion, remove `<compensateEventDefinition>` and keep an ordinary `<bpmn:endEvent>`.",

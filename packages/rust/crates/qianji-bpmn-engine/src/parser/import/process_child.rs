@@ -6,9 +6,7 @@ use crate::parser::import::attributes::{
     attribute_value, boolean_attribute_value, cancel_activity_value, decision_reference,
     required_attribute,
 };
-use crate::parser::import::model::{
-    DeferredStandaloneNode, ProcessChildParseState, ProcessChildStartOutcome,
-};
+use crate::parser::import::model::ProcessChildStartOutcome;
 use crate::parser::import::{
     NestedShellKind, RawAssociation, RawNode, RawProcess, RawSequenceFlow, RawSubProcessKind,
 };
@@ -22,18 +20,10 @@ pub(in crate::parser::import) fn handle_process_child_start_tag(
     tag: &str,
     parent: Option<&str>,
     process_stack: &mut Vec<RawProcess>,
-    state: &mut ProcessChildParseState<'_>,
+    _is_empty: bool,
 ) -> Result<ProcessChildStartOutcome> {
     if !parent.is_some_and(is_process_scope_tag) {
         return Ok(ProcessChildStartOutcome::NotHandled);
-    }
-    if tag == "intermediateThrowEvent" && !state.is_empty {
-        let _ = current_process_mut(process_stack, "bpmn_process_child_without_process_frame")?;
-        *state.deferred_standalone_node = Some(DeferredStandaloneNode {
-            tag: "intermediateThrowEvent",
-            bpmn_id: required_attribute(source, reader, event, tag, "id")?,
-        });
-        return Ok(ProcessChildStartOutcome::Handled);
     }
     if let Some(kind) = nested_shell_kind(tag) {
         open_nested_shell(source, reader, event, tag, kind, process_stack)?;
@@ -232,6 +222,7 @@ fn supported_node_kind(tag: &str) -> Option<(BpmnNodeKind, Option<BpmnGatewayKin
     match tag {
         "startEvent" => Some((BpmnNodeKind::StartEvent, None)),
         "endEvent" => Some((BpmnNodeKind::EndEvent, None)),
+        "intermediateThrowEvent" => Some((BpmnNodeKind::IntermediateThrowEvent, None)),
         "intermediateCatchEvent" => Some((BpmnNodeKind::IntermediateCatchEvent, None)),
         "boundaryEvent" => Some((BpmnNodeKind::BoundaryEvent, None)),
         "callActivity" => Some((BpmnNodeKind::SubProcess, None)),

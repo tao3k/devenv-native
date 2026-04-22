@@ -1,7 +1,5 @@
 use super::attributes::local_name;
-use super::model::{
-    CaptureTarget, DeferredStandaloneNode, ProcessChildParseState, ProcessChildStartOutcome,
-};
+use super::model::{CaptureTarget, ProcessChildStartOutcome};
 pub(crate) use super::model::{
     NestedShellKind, RawAssociation, RawEventSpec, RawNode, RawPackageDocument,
     RawParallelMultiInstanceSpec, RawProcess, RawProcessScope, RawRepeatSpec, RawSequenceFlow,
@@ -28,7 +26,6 @@ pub(crate) fn import_bpmn_source(source: &BpmnSourceFile) -> Result<RawPackageDo
     let mut process_stack = Vec::new();
     let mut capture_target = None;
     let mut capture_buffer = String::new();
-    let mut deferred_standalone_node = None;
 
     loop {
         match reader.read_event() {
@@ -44,7 +41,6 @@ pub(crate) fn import_bpmn_source(source: &BpmnSourceFile) -> Result<RawPackageDo
                     &mut processes,
                     &mut capture_target,
                     &mut capture_buffer,
-                    &mut deferred_standalone_node,
                     false,
                 )?;
             }
@@ -60,7 +56,6 @@ pub(crate) fn import_bpmn_source(source: &BpmnSourceFile) -> Result<RawPackageDo
                     &mut processes,
                     &mut capture_target,
                     &mut capture_buffer,
-                    &mut deferred_standalone_node,
                     true,
                 )?;
             }
@@ -85,7 +80,6 @@ pub(crate) fn import_bpmn_source(source: &BpmnSourceFile) -> Result<RawPackageDo
                     &mut processes,
                     &mut capture_target,
                     &mut capture_buffer,
-                    &mut deferred_standalone_node,
                 )?;
                 let _ = stack.pop();
             }
@@ -124,7 +118,6 @@ fn handle_open_event(
     processes: &mut Vec<RawProcess>,
     capture_target: &mut Option<CaptureTarget>,
     capture_buffer: &mut String,
-    deferred_standalone_node: &mut Option<DeferredStandaloneNode>,
     is_empty: bool,
 ) -> Result<()> {
     let tag = local_name(event.name().as_ref()).to_string();
@@ -140,7 +133,6 @@ fn handle_open_event(
         processes,
         capture_target,
         capture_buffer,
-        deferred_standalone_node,
         is_empty,
     )?;
     if !is_empty {
@@ -178,7 +170,6 @@ fn handle_start_tag(
     processes: &mut Vec<RawProcess>,
     capture_target: &mut Option<CaptureTarget>,
     capture_buffer: &mut String,
-    deferred_standalone_node: &mut Option<DeferredStandaloneNode>,
     is_empty: bool,
 ) -> Result<()> {
     if handle_package_start_tag(
@@ -198,10 +189,6 @@ fn handle_start_tag(
         return Ok(());
     }
 
-    let mut process_child_state = ProcessChildParseState {
-        deferred_standalone_node,
-        is_empty,
-    };
     match handle_process_child_start_tag(
         source,
         reader,
@@ -209,7 +196,7 @@ fn handle_start_tag(
         tag,
         parent,
         process_stack,
-        &mut process_child_state,
+        is_empty,
     )? {
         ProcessChildStartOutcome::NotHandled => {}
         ProcessChildStartOutcome::Handled => return Ok(()),
@@ -235,7 +222,6 @@ fn handle_start_tag(
             process,
             capture_target,
             capture_buffer,
-            deferred_standalone_node,
             is_empty,
         );
     }
@@ -250,7 +236,6 @@ fn handle_end_tag(
     processes: &mut Vec<RawProcess>,
     capture_target: &mut Option<CaptureTarget>,
     capture_buffer: &mut String,
-    deferred_standalone_node: &mut Option<DeferredStandaloneNode>,
 ) -> Result<()> {
     if matches!(tag, "process" | "subProcess" | "transaction") {
         complete_process_scope(tag, process_stack, processes);
@@ -260,17 +245,6 @@ fn handle_end_tag(
     let Some(process) = process_stack.last_mut() else {
         return Ok(());
     };
-
-    if tag == "intermediateThrowEvent"
-        && let Some(node) = deferred_standalone_node.take()
-        && node.tag == "intermediateThrowEvent"
-    {
-        return Err(BpmnEngineError::UnsupportedElement {
-            source_id: source.source_id.clone(),
-            process_id: process.process_id.clone(),
-            element: tag.to_string(),
-        });
-    }
 
     let Some(target) = capture_target.clone() else {
         return Ok(());

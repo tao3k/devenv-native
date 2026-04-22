@@ -148,18 +148,6 @@ pub(super) enum CaptureTarget {
     SequenceFlowConditionExpression,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(super) struct DeferredStandaloneNode {
-    pub(super) tag: &'static str,
-    pub(super) bpmn_id: String,
-}
-
-#[derive(Debug)]
-pub(super) struct ProcessChildParseState<'a> {
-    pub(super) deferred_standalone_node: &'a mut Option<DeferredStandaloneNode>,
-    pub(super) is_empty: bool,
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) enum ProcessChildStartOutcome {
     NotHandled,

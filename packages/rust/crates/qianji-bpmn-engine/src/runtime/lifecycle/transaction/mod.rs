@@ -11,5 +11,5 @@ mod queue;
 pub(super) use cancel::{
     cancel_transaction_boundary_siblings, cancel_transaction_shell, complete_compensation_handler,
     error_transaction_shell, record_completed_compensable_activity, throw_compensation_end_event,
-    transaction_compensation_is_running,
+    throw_compensation_intermediate_event, transaction_compensation_is_running,
 };

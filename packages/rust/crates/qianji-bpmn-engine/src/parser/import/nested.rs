@@ -9,9 +9,8 @@ use super::capture::{
     apply_timer_expression, last_process_node_mut,
 };
 use super::model::{
-    CaptureTarget, DeferredStandaloneNode, NestedShellKind, RawEventSpec,
-    RawParallelMultiInstanceSpec, RawProcess, RawProcessScope, RawRepeatSpec,
-    RawSequentialMultiInstanceSpec, RawStandardLoopSpec,
+    CaptureTarget, NestedShellKind, RawEventSpec, RawParallelMultiInstanceSpec, RawProcess,
+    RawProcessScope, RawRepeatSpec, RawSequentialMultiInstanceSpec, RawStandardLoopSpec,
 };
 use super::process::is_supported_node_tag;
 use crate::bpmn_parse_api::BpmnSourceFile;
@@ -30,18 +29,9 @@ pub(super) fn handle_nested_start_tag(
     process: &mut RawProcess,
     capture_target: &mut Option<CaptureTarget>,
     capture_buffer: &mut String,
-    deferred_standalone_node: &mut Option<DeferredStandaloneNode>,
     is_empty: bool,
 ) -> Result<()> {
-    if handle_deferred_standalone_node_child_start(
-        source,
-        reader,
-        event,
-        tag,
-        parent,
-        process,
-        deferred_standalone_node,
-    )? {
+    if handle_intermediate_throw_event_child_start(source, reader, event, tag, parent, process)? {
         return Ok(());
     }
     if handle_multi_instance_data_item_start(source, reader, event, process, tag, parent)? {
@@ -97,37 +87,23 @@ pub(super) fn handle_nested_start_tag(
     Ok(())
 }
 
-fn handle_deferred_standalone_node_child_start(
+fn handle_intermediate_throw_event_child_start(
     source: &BpmnSourceFile,
     reader: &Reader<&[u8]>,
     event: &BytesStart<'_>,
     tag: &str,
     parent: &str,
     process: &mut RawProcess,
-    deferred_standalone_node: &mut Option<DeferredStandaloneNode>,
 ) -> Result<bool> {
     if parent != "intermediateThrowEvent" {
         return Ok(false);
     }
     if tag == "compensateEventDefinition" {
-        let process_id = process.process_id.clone();
-        let node_id = deferred_standalone_node.as_ref().map_or_else(
-            || "intermediateThrowEvent".to_string(),
-            |node| node.bpmn_id.clone(),
-        );
-        let detail = if event_reference_id(reader, event, tag)?.is_none() {
-            "default_compensation_intermediate_event"
-        } else {
-            "throw_compensation_intermediate_event"
-        };
-        return Err(BpmnEngineError::UnsupportedCompensationConfiguration {
-            process_id,
-            node_id,
-            detail,
-        });
+        handle_compensation_intermediate_event_definition(source, reader, event, process, tag)?;
+        return Ok(true);
     }
     let _ = source;
-    Ok(true)
+    Ok(false)
 }
 
 fn handle_loop_child_start(
@@ -259,6 +235,10 @@ fn handle_event_child_start(
         handle_compensation_end_event_definition(source, reader, event, process, tag)?;
         return Ok(true);
     }
+    if parent == "intermediateThrowEvent" && tag == "compensateEventDefinition" {
+        handle_compensation_intermediate_event_definition(source, reader, event, process, tag)?;
+        return Ok(true);
+    }
     if let Some(kind) = supported_event_definition(parent, tag) {
         assign_event_definition(source, reader, event, process, kind, tag)?;
         return Ok(true);
@@ -284,6 +264,53 @@ fn handle_event_child_start(
         return Ok(true);
     }
     Ok(false)
+}
+
+fn handle_compensation_intermediate_event_definition(
+    source: &BpmnSourceFile,
+    reader: &Reader<&[u8]>,
+    event: &BytesStart<'_>,
+    process: &mut RawProcess,
+    tag: &str,
+) -> Result<()> {
+    let process_id = process.process_id.clone();
+    let inside_transaction_shell = matches!(
+        process.scope,
+        RawProcessScope::NestedShell {
+            kind: NestedShellKind::Transaction,
+            ..
+        }
+    );
+    let node = last_process_node_mut(source, process)?;
+    let Some(_) = event_reference_id(reader, event, tag)? else {
+        return Err(BpmnEngineError::UnsupportedCompensationConfiguration {
+            process_id,
+            node_id: node.bpmn_id.clone(),
+            detail: "default_compensation_intermediate_event",
+        });
+    };
+    if boolean_attribute_value(reader, event, "waitForCompletion")? == Some(false) {
+        return Err(BpmnEngineError::UnsupportedCompensationConfiguration {
+            process_id,
+            node_id: node.bpmn_id.clone(),
+            detail: "async_throw_compensation_intermediate_event",
+        });
+    }
+    if !inside_transaction_shell {
+        return Err(BpmnEngineError::UnsupportedCompensationConfiguration {
+            process_id,
+            node_id: node.bpmn_id.clone(),
+            detail: "throw_compensation_intermediate_event",
+        });
+    }
+    assign_event_definition(
+        source,
+        reader,
+        event,
+        process,
+        BpmnEventKind::Compensation,
+        tag,
+    )
 }
 
 fn handle_compensation_end_event_definition(
