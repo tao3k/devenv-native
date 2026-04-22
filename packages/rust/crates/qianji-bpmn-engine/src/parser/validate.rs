@@ -746,6 +746,9 @@ fn validate_throw_compensation_node<'a>(
         .as_ref()
         .and_then(|event| event.reference_id.as_deref())
     else {
+        if throw_node.kind == BpmnNodeKind::EndEvent {
+            return Ok(());
+        }
         return Err(compensation_error(
             process,
             throw_node.bpmn_id.as_str(),

@@ -39,7 +39,7 @@ fn bpmn_linter_reports_throw_compensation_end_event_with_llm_guidance() {
             .iter()
             .any(|step| step.contains("ordinary `<bpmn:endEvent>`"))
     );
-    assert!(issue.llm_fix_prompt.contains("boundary-to-handler"));
+    assert!(issue.llm_fix_prompt.contains("reverse completion order"));
     assert_lint_json_snapshot("bpmn_throw_compensation_end_lint_report", &report);
 }
 
@@ -70,26 +70,14 @@ fn bpmn_linter_reports_async_throw_compensation_end_event_with_llm_guidance() {
 }
 
 #[test]
-fn bpmn_linter_reports_default_compensation_end_event_with_llm_guidance() {
+fn bpmn_linter_accepts_default_throw_compensation_end_in_bounded_transaction_subset() {
     let report = lint_bpmn_source(&bpmn_fixture_source(
-        "invalid-default-compensation-end.bpmn",
+        "transaction-default-compensation-end.bpmn",
     ));
 
     assert_eq!(report.domain, LintDomain::Bpmn);
-    assert!(!report.ok);
-    assert_eq!(report.issues.len(), 1);
-    let issue = &report.issues[0];
-    assert_eq!(issue.code, "bpmn.unsupported_compensation_configuration");
-    assert!(issue.summary.contains("throw_end"));
-    assert!(issue.title.contains("Default compensation end events"));
-    assert!(
-        issue
-            .repair_guidance
-            .iter()
-            .any(|step| step.contains("ordinary `<bpmn:endEvent>`"))
-    );
-    assert!(issue.llm_fix_prompt.contains("default compensation"));
-    assert_lint_json_snapshot("bpmn_default_compensation_end_lint_report", &report);
+    assert!(report.ok);
+    assert!(report.issues.is_empty());
 }
 
 #[test]

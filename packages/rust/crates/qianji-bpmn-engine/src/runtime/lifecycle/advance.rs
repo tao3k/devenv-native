@@ -165,20 +165,13 @@ fn advance_end_event(
                 return Ok(None);
             }
             BpmnEventKind::Compensation => {
-                let target_activity_bpmn_id =
-                    event
-                        .reference_id
-                        .as_deref()
-                        .ok_or(BpmnEngineError::UnsupportedOperation {
-                            operation: "advance_end_event_missing_compensation_target",
-                        })?;
                 transaction::throw_compensation_end_event(
                     package,
                     process,
                     instance,
                     current_token_index,
                     current_node_index,
-                    target_activity_bpmn_id,
+                    event.reference_id.as_deref(),
                     now_ms,
                 )?;
                 return Ok(None);

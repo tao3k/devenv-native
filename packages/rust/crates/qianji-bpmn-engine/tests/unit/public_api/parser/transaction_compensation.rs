@@ -101,6 +101,30 @@ fn parser_transaction_throw_compensation_end_materializes_target_reference() {
 }
 
 #[test]
+fn parser_transaction_default_throw_compensation_end_materializes_unqualified_event() {
+    let package = parse_bpmn_package(
+        &[fixture_source("transaction-default-compensation-end.bpmn")],
+        &BpmnParseOptions::default(),
+    )
+    .must("default throw compensation end event should parse in the bounded transaction subset");
+    let child = package
+        .find_process(TRANSACTION_PROCESS_ID)
+        .must("transaction shell child process should be present");
+    let throw_end = child
+        .nodes
+        .iter()
+        .find(|node| node.bpmn_id.as_ref() == "tx_throw_end_default")
+        .must("default throw compensation end event should be present");
+
+    assert_eq!(throw_end.kind, BpmnNodeKind::EndEvent);
+    let event = child
+        .event_for_node(throw_end.index)
+        .must("default throw compensation end event should materialize an event");
+    assert_eq!(event.kind, BpmnEventKind::Compensation);
+    assert_eq!(event.reference_id, None);
+}
+
+#[test]
 fn parser_transaction_throw_compensation_intermediate_materializes_target_reference() {
     let package = parse_bpmn_package(
         &[fixture_source("transaction-throw-compensation-intermediate.bpmn")],
@@ -163,24 +187,6 @@ fn parser_rejects_async_throw_compensation_end_event_with_compensation_detail() 
             process_id: TRANSACTION_PROCESS_ID.to_string(),
             node_id: "tx_throw_end".to_string(),
             detail: "async_throw_compensation_end_event",
-        }
-    );
-}
-
-#[test]
-fn parser_rejects_default_compensation_end_event_with_compensation_detail() {
-    let error = parse_bpmn_package(
-        &[fixture_source("invalid-default-compensation-end.bpmn")],
-        &BpmnParseOptions::default(),
-    )
-    .must_err("default compensation end events should stay deferred");
-
-    assert_eq!(
-        error,
-        BpmnEngineError::UnsupportedCompensationConfiguration {
-            process_id: "throw_compensation_flow".to_string(),
-            node_id: "throw_end".to_string(),
-            detail: "default_compensation_end_event",
         }
     );
 }

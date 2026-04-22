@@ -95,7 +95,7 @@ pub(crate) fn throw_compensation_end_event(
     instance: &mut BpmnInstanceState,
     current_token_index: usize,
     current_node_index: BpmnNodeIndex,
-    target_activity_bpmn_id: &str,
+    target_activity_bpmn_id: Option<&str>,
     now_ms: u64,
 ) -> Result<()> {
     state::set_node_status(
@@ -105,22 +105,39 @@ pub(crate) fn throw_compensation_end_event(
     );
     let _ = state::remove_active_token(instance, current_token_index);
 
-    let target_activity_index = process
-        .nodes
-        .iter()
-        .find(|node| node.bpmn_id.as_ref() == target_activity_bpmn_id)
-        .map(|node| node.index)
-        .ok_or(BpmnEngineError::UnsupportedOperation {
-            operation: "throw_compensation_end_event_missing_target_activity",
-        })?;
+    let queued = if let Some(target_activity_bpmn_id) = target_activity_bpmn_id {
+        let target_activity_index = process
+            .nodes
+            .iter()
+            .find(|node| node.bpmn_id.as_ref() == target_activity_bpmn_id)
+            .map(|node| node.index)
+            .ok_or(BpmnEngineError::UnsupportedOperation {
+                operation: "throw_compensation_end_event_missing_target_activity",
+            })?;
+        queue_transaction_compensation_targets(
+            process,
+            instance,
+            std::iter::once(target_activity_index),
+            now_ms,
+            TransactionCompensationCompletionMode::ScopeCompletion,
+        )?
+    } else {
+        let completed_activity_node_indices = instance
+            .call_stack
+            .last()
+            .and_then(|frame| frame.transaction_compensation.as_ref())
+            .map(|state| state.completed_activity_node_indices.clone())
+            .unwrap_or_default();
+        queue_transaction_compensation_targets(
+            process,
+            instance,
+            completed_activity_node_indices.into_iter().rev(),
+            now_ms,
+            TransactionCompensationCompletionMode::ScopeCompletion,
+        )?
+    };
 
-    if queue_transaction_compensation_targets(
-        process,
-        instance,
-        std::iter::once(target_activity_index),
-        now_ms,
-        TransactionCompensationCompletionMode::ScopeCompletion,
-    )? {
+    if queued {
         return Ok(());
     }
 

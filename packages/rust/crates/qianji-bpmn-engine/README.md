@@ -19,8 +19,9 @@ Bounded BPMN and DMN workflow engine ownership for Qianji.
   bounded condition subset plus one matching linear join fragment
 - bounded transaction cancel and error routing, including one explicit
   transaction-cancel compensation subset with reverse completion replay plus
-  one synchronous targeted throw-compensation end-event subset plus one
-  synchronous targeted throw-compensation intermediate-event subset
+  one synchronous throw-compensation end-event subset with either explicit
+  `activityRef` targeting or bounded default replay plus one synchronous
+  targeted throw-compensation intermediate-event subset
 - bounded message-task execution with one `receiveTask` message wait shell
   and one `sendTask` host-dispatch shell
 - stable diagnostic surfaces that power `qianji lint --bpmn` and
@@ -45,10 +46,10 @@ Bounded BPMN and DMN workflow engine ownership for Qianji.
   gateway conditions remain outside the current BPMN subset.
 - `scriptTask`, correlations, and broader collaboration-aware message
   routing remain outside the current BPMN subset.
-- Default compensation, compensation event subprocesses, asynchronous
-  throw-compensation end events, asynchronous or default
-  throw-compensation intermediate events, and broader throw-compensation
-  forms remain outside the current BPMN subset.
+- Compensation event subprocesses, asynchronous throw-compensation end
+  events, asynchronous or default throw-compensation intermediate events,
+  and broader throw-compensation forms remain outside the current BPMN
+  subset.
 - Adapter-specific orchestration belongs in higher layers such as
   `xiuxian-qianji`, not in the engine core.
 - DMN widening should stay incremental and preserve LLM-friendly repair
