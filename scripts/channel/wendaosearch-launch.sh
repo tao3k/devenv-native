@@ -18,6 +18,7 @@ wendaosearch_materialize_package_repo "$PROJECT_ROOT"
 SCRIPT_PATH="$(wendaosearch_script_path "$PROJECT_ROOT")"
 CONFIG_PATH="$(wendaosearch_resolve_path "$PROJECT_ROOT" "$(wendaosearch_effective_config)")"
 JULIA_LOAD_PATH_VALUE="$(wendaosearch_effective_julia_load_path)"
+JULIA_PROJECT="${WENDAOSEARCH_JULIA_PROJECT:-$PACKAGE_DIR}"
 PIDFILE="$(wendaosearch_resolve_path "$PROJECT_ROOT" "$(wendaosearch_effective_pidfile)")"
 SERVICE_NAME="$(wendaosearch_effective_service_name)"
 PORT="$(wendaosearch_effective_port "$PROJECT_ROOT")"
@@ -33,7 +34,7 @@ export WENDAOSEARCH_PIDFILE="$PIDFILE"
 managed_cleanup_pidfile_process "$PIDFILE" "$SERVICE_NAME" "julia" "$SCRIPT_PATH"
 managed_cleanup_listener "$PORT" "$SERVICE_NAME" "julia" "$SCRIPT_PATH"
 
-command=(julia "--project=${PACKAGE_DIR}" "$SCRIPT_PATH" "--config" "$CONFIG_PATH")
+command=(julia "--project=${JULIA_PROJECT}" "$SCRIPT_PATH" "--config" "$CONFIG_PATH")
 
 "${command[@]}" &
 WENDAOSEARCH_CHILD_PID=$!

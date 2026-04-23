@@ -46,7 +46,9 @@ def _create_origin_repo(tmp_path: Path) -> tuple[Path, str]:
     return origin, rev
 
 
-def _run_materialize(runtime_root: Path, repo_url: str) -> subprocess.CompletedProcess[str]:
+def _run_materialize(
+    runtime_root: Path, repo_url: str
+) -> subprocess.CompletedProcess[str]:
     command = f"""
 set -euo pipefail
 source "{PROCESS_RUNTIME}"
@@ -76,7 +78,12 @@ def test_wendaosearch_materialize_package_repo_clones_missing_checkout_at_defaul
     assert result.returncode == 0, result.stderr
     assert result.stdout.strip().splitlines()[-1] == rev
     assert (
-        runtime_root / ".data" / "WendaoSearch.jl" / "config" / "live" / "parser_summary.toml"
+        runtime_root
+        / ".data"
+        / "WendaoSearch.jl"
+        / "config"
+        / "live"
+        / "parser_summary.toml"
     ).is_file()
 
 
@@ -117,7 +124,9 @@ def test_wendaosearch_materialize_package_repo_rejects_existing_nongit_directory
     assert "is not a git checkout" in result.stderr
 
 
-def test_wendaosearch_launch_materializes_missing_package_checkout(tmp_path: Path) -> None:
+def test_wendaosearch_launch_materializes_missing_package_checkout(
+    tmp_path: Path,
+) -> None:
     origin, rev = _create_origin_repo(tmp_path)
     runtime_root = tmp_path / "runtime-root"
     runtime_root.mkdir()
@@ -151,12 +160,58 @@ def test_wendaosearch_launch_materializes_missing_package_checkout(tmp_path: Pat
 
     assert result.returncode == 0, result.stderr
     assert (runtime_root / ".data" / "WendaoSearch.jl" / "Project.toml").is_file()
-    assert _git("rev-parse", "HEAD", cwd=runtime_root / ".data" / "WendaoSearch.jl") == rev
+    assert (
+        _git("rev-parse", "HEAD", cwd=runtime_root / ".data" / "WendaoSearch.jl") == rev
+    )
     argv = argv_log.read_text(encoding="utf-8").splitlines()
     assert f"--project={runtime_root / '.data' / 'WendaoSearch.jl'}" in argv
     assert (
         str(
-            runtime_root / ".data" / "WendaoSearch.jl" / "scripts" / "run_parser_summary_service.jl"
+            runtime_root
+            / ".data"
+            / "WendaoSearch.jl"
+            / "scripts"
+            / "run_parser_summary_service.jl"
         )
         in argv
     )
+
+
+def test_wendaosearch_launch_allows_explicit_julia_project(tmp_path: Path) -> None:
+    origin, _rev = _create_origin_repo(tmp_path)
+    runtime_root = tmp_path / "runtime-root"
+    runtime_root.mkdir()
+    bootstrap_env = tmp_path / "wendaosearch-env"
+    bootstrap_env.mkdir()
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    fake_julia = fake_bin / "julia"
+    argv_log = tmp_path / "julia-argv.txt"
+    fake_julia.write_text(
+        '#!/usr/bin/env bash\nset -euo pipefail\nprintf \'%s\\n\' "$@" > "$FAKE_JULIA_ARGV_LOG"\n',
+        encoding="utf-8",
+    )
+    fake_julia.chmod(0o755)
+
+    env = dict(os.environ)
+    env["PATH"] = f"{fake_bin}:/usr/bin:/bin"
+    env["PRJ_ROOT"] = str(runtime_root)
+    env["WENDAOSEARCH_PACKAGE_REPO_URL"] = origin.as_uri()
+    env["WENDAOSEARCH_RUNTIME_DIR"] = ".run/wendaosearch"
+    env["WENDAOSEARCH_CONFIG"] = ".data/WendaoSearch.jl/config/live/parser_summary.toml"
+    env["WENDAOSEARCH_SCRIPT"] = "run_parser_summary_service.jl"
+    env["WENDAOSEARCH_JULIA_PROJECT"] = str(bootstrap_env)
+    env["FAKE_JULIA_ARGV_LOG"] = str(argv_log)
+
+    result = subprocess.run(
+        ["bash", str(PROJECT_ROOT / "scripts/channel/wendaosearch-launch.sh")],
+        cwd=PROJECT_ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    argv = argv_log.read_text(encoding="utf-8").splitlines()
+    assert f"--project={bootstrap_env}" in argv
