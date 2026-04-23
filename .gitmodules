@@ -10,3 +10,6 @@
 [submodule "qianji-flowhub"]
 	path = qianji-flowhub
 	url = https://github.com/tao3k/qianji-flowhub.git
+[submodule "wendao-episteme"]
+	path = wendao-episteme
+	url = https://github.com/tao3k/wendao-episteme.git
