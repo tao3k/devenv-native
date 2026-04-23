@@ -1,7 +1,7 @@
 use super::loader::load_qianji_toml;
 use super::model::{
     QianjiRuntimeCheckpointConfig, QianjiRuntimeEnv, QianjiRuntimeLlmConfig,
-    QianjiRuntimeWendaoIngesterConfig,
+    QianjiRuntimeServerConfig, QianjiRuntimeWendaoIngesterConfig,
 };
 use super::pathing::{resolve_prj_config_home, resolve_project_root};
 use std::io;
@@ -10,6 +10,8 @@ use std::io;
 mod checkpoint;
 #[path = "runtime_config/resolve/llm.rs"]
 mod llm;
+#[path = "runtime_config/resolve/server.rs"]
+mod server;
 #[path = "runtime_config/resolve/wendao.rs"]
 mod wendao;
 
@@ -85,6 +87,32 @@ pub fn resolve_qianji_runtime_checkpoint_config_with_env(
     let file_cfg = load_qianji_toml(runtime_env, &project_root, &config_home)?;
     Ok(checkpoint::resolve_qianji_runtime_checkpoint(
         &file_cfg.checkpoint,
+        runtime_env,
+    ))
+}
+
+/// Resolve `qianji.toml` and environment into `qianji-server` defaults.
+///
+/// # Errors
+///
+/// Returns [`io::Error`] when a discovered `qianji.toml` file cannot be read or parsed.
+pub fn resolve_qianji_runtime_server_config() -> io::Result<QianjiRuntimeServerConfig> {
+    resolve_qianji_runtime_server_config_with_env(&QianjiRuntimeEnv::default())
+}
+
+/// Resolve `qianji-server` defaults with explicit runtime environment overrides.
+///
+/// # Errors
+///
+/// Returns [`io::Error`] when a discovered `qianji.toml` file cannot be read or parsed.
+pub fn resolve_qianji_runtime_server_config_with_env(
+    runtime_env: &QianjiRuntimeEnv,
+) -> io::Result<QianjiRuntimeServerConfig> {
+    let project_root = resolve_project_root(runtime_env);
+    let config_home = resolve_prj_config_home(runtime_env, &project_root);
+    let file_cfg = load_qianji_toml(runtime_env, &project_root, &config_home)?;
+    Ok(server::resolve_qianji_runtime_server(
+        &file_cfg.server,
         runtime_env,
     ))
 }

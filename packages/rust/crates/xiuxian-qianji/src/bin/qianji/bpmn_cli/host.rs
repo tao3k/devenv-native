@@ -7,23 +7,17 @@ use super::deps::{
 };
 use super::types::{
     BpmnCliBusinessRuleFixture, BpmnCliEventFixture, BpmnCliEventPollFixture,
-    BpmnCliHostBridgeContext, BpmnCliHostDataFixture, BpmnCliHostFixture, BpmnRunCliCommand,
+    BpmnCliHostBridgeContext, BpmnCliHostDataFixture, BpmnCliHostFixture,
 };
 
 pub(super) fn build_bpmn_cli_host_bridge(
     package: &Arc<BpmnPackage>,
-    command: &BpmnRunCliCommand,
+    process_id: &str,
+    host_fixture_path: Option<&Path>,
+    event_fixture_path: Option<&Path>,
 ) -> Result<BpmnCliHostBridgeContext, Box<dyn std::error::Error>> {
-    let resolved_host_fixture_path = command
-        .host_fixture_path
-        .as_deref()
-        .map(resolve_cli_path)
-        .transpose()?;
-    let resolved_event_fixture_path = command
-        .event_fixture_path
-        .as_deref()
-        .map(resolve_cli_path)
-        .transpose()?;
+    let resolved_host_fixture_path = host_fixture_path.map(resolve_cli_path).transpose()?;
+    let resolved_event_fixture_path = event_fixture_path.map(resolve_cli_path).transpose()?;
     let host_fixture = resolved_host_fixture_path
         .as_deref()
         .map(load_bpmn_cli_host_fixture)
@@ -36,8 +30,8 @@ pub(super) fn build_bpmn_cli_host_bridge(
     let host = match (&host_fixture, &event_fixture) {
         (None, None) => QianjiBpmnHostBridge::default(),
         _ => build_fixture_backed_bpmn_host_bridge(
-            build_bpmn_cli_process_node_ids(package.as_ref(), &command.process_id)?,
-            &command.process_id,
+            build_bpmn_cli_process_node_ids(package.as_ref(), process_id)?,
+            process_id,
             host_fixture,
             event_fixture,
         ),

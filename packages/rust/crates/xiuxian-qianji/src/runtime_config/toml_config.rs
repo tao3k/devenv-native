@@ -12,6 +12,8 @@ pub(super) struct QianjiToml {
     pub(super) memory_promotion: QianjiTomlMemoryPromotion,
     #[serde(default)]
     pub(super) checkpoint: QianjiTomlCheckpoint,
+    #[serde(default)]
+    pub(super) server: QianjiTomlServer,
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -56,6 +58,12 @@ pub(super) struct QianjiTomlWendaoIngester {
 #[derive(Debug, Default, Deserialize)]
 pub(super) struct QianjiTomlCheckpoint {
     pub(super) valkey_url: Option<String>,
+}
+
+#[derive(Debug, Default, Deserialize)]
+pub(super) struct QianjiTomlServer {
+    pub(super) bind_addr: Option<String>,
+    pub(super) require_valkey_ready: Option<bool>,
 }
 
 pub(super) fn apply_llm_overlay(target: &mut QianjiTomlLlm, overlay: QianjiTomlLlm) {
@@ -136,5 +144,14 @@ pub(super) fn apply_checkpoint_overlay(
 ) {
     if let Some(valkey_url) = normalize_non_empty(overlay.valkey_url) {
         target.valkey_url = Some(valkey_url);
+    }
+}
+
+pub(super) fn apply_server_overlay(target: &mut QianjiTomlServer, overlay: QianjiTomlServer) {
+    if let Some(bind_addr) = normalize_non_empty(overlay.bind_addr) {
+        target.bind_addr = Some(bind_addr);
+    }
+    if let Some(require_valkey_ready) = overlay.require_valkey_ready {
+        target.require_valkey_ready = Some(require_valkey_ready);
     }
 }

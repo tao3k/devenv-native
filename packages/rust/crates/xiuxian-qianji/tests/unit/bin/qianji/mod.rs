@@ -1,12 +1,14 @@
 use super::{
-    BpmnCliCheckpointBackend, BpmnCliCommand, BpmnRunCliCommand, ContractFeedbackCliCommand,
-    DEFAULT_CONTRACT_FEEDBACK_TABLE_NAME, DirCliCommand, LintCliCommand, MaterializeCliTarget,
-    REST_DOCS_PACK_ID, RestDocsCliCommand, ShowCliTarget, build_contract_feedback_config,
-    build_rest_docs_collection_context, parse_bpmn_command, parse_contract_feedback_command,
-    parse_dir_command, parse_lint_command, resolve_bpmn_checkpoint_store_with_env,
-    resolve_workspace_root, run_bpmn_command, run_bpmn_run_command_with_runtime_env,
-    run_deterministic_rest_docs_contract_feedback, run_dir_command, run_lint_command,
-    run_scaffold_rest_docs_contract_feedback, sanitize_prj_cache_home,
+    BpmnCancelCliCommand, BpmnCliCheckpointBackend, BpmnCliCommand, BpmnEventPollCliCommand,
+    BpmnResumeCliCommand, BpmnRunCliCommand, BpmnStartCliCommand, BpmnStatusCliCommand,
+    BpmnTaskCompleteCliCommand, ContractFeedbackCliCommand, DEFAULT_CONTRACT_FEEDBACK_TABLE_NAME,
+    DirCliCommand, LintCliCommand, MaterializeCliTarget, REST_DOCS_PACK_ID, RestDocsCliCommand,
+    ShowCliTarget, build_contract_feedback_config, build_rest_docs_collection_context,
+    parse_bpmn_command, parse_contract_feedback_command, parse_dir_command, parse_lint_command,
+    resolve_bpmn_checkpoint_store_with_env, resolve_workspace_root, run_bpmn_command,
+    run_bpmn_run_command_with_runtime_env, run_deterministic_rest_docs_contract_feedback,
+    run_dir_command, run_lint_command, run_scaffold_rest_docs_contract_feedback,
+    sanitize_prj_cache_home,
 };
 use std::fs;
 use std::path::{Path, PathBuf};

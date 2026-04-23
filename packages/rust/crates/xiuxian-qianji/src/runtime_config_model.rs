@@ -1,6 +1,7 @@
 use super::constants::{
     DEFAULT_MEMORY_PROMOTION_GRAPH_DIMENSION, DEFAULT_MEMORY_PROMOTION_GRAPH_SCOPE,
     DEFAULT_MEMORY_PROMOTION_PERSIST, DEFAULT_MEMORY_PROMOTION_PERSIST_BEST_EFFORT,
+    DEFAULT_SERVER_BIND_ADDR, DEFAULT_SERVER_REQUIRE_VALKEY_READY,
 };
 use std::path::PathBuf;
 
@@ -53,6 +54,24 @@ pub struct QianjiRuntimeCheckpointConfig {
     pub valkey_url: String,
 }
 
+/// Resolved runtime config for the `qianji-server` daemon.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct QianjiRuntimeServerConfig {
+    /// Effective socket bind address.
+    pub bind_addr: String,
+    /// Whether `qianji-server` must ping Valkey before binding.
+    pub require_valkey_ready: bool,
+}
+
+impl Default for QianjiRuntimeServerConfig {
+    fn default() -> Self {
+        Self {
+            bind_addr: DEFAULT_SERVER_BIND_ADDR.to_string(),
+            require_valkey_ready: DEFAULT_SERVER_REQUIRE_VALKEY_READY,
+        }
+    }
+}
+
 /// Explicit runtime environment used by the resolver (test-friendly).
 #[derive(Debug, Default, Clone)]
 pub struct QianjiRuntimeEnv {
@@ -84,6 +103,10 @@ pub struct QianjiRuntimeEnv {
     pub qianji_memory_promotion_persist_best_effort: Option<bool>,
     /// Optional `QIANJI_VALKEY_URL` override for checkpoint persistence.
     pub qianji_checkpoint_valkey_url: Option<String>,
+    /// Optional `QIANJI_SERVER_BIND_ADDR` override for the HTTP service.
+    pub qianji_server_bind_addr: Option<String>,
+    /// Optional `QIANJI_SERVER_REQUIRE_VALKEY_READY` override.
+    pub qianji_server_require_valkey_ready: Option<bool>,
     /// Optional values for arbitrary env keys (used for `api_key_env` lookups).
     pub extra_env: Vec<(String, String)>,
 }

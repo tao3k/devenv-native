@@ -10,18 +10,19 @@ pub(crate) use qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnEventKind, BpmnInstanceState, BpmnPackage, BpmnProcessSpec,
     BpmnTimerKind, BpmnTimerSpec, BusinessRuleTaskOutcome, BusinessRuleTaskRequest,
     DmnEvaluationResult, EventPollOutcome, EventPollRequest, HostBridgeError, InstanceLifecycle,
-    ManualTaskOutcome, ManualTaskRequest, SendTaskOutcome, SendTaskRequest, ServiceTaskOutcome,
-    ServiceTaskRequest, SuspendReason, UserTaskOutcome, UserTaskRequest, WaitKind,
+    ManualTaskOutcome, ManualTaskRequest, PendingHostWorkKind, SendTaskOutcome, SendTaskRequest,
+    ServiceTaskOutcome, ServiceTaskRequest, SuspendReason, UserTaskOutcome, UserTaskRequest,
+    WaitKind,
 };
 pub(crate) use serde::Deserialize;
-pub(crate) use xiuxian_qianji::runtime_config::{
-    QianjiRuntimeEnv, resolve_qianji_runtime_checkpoint_config,
-    resolve_qianji_runtime_checkpoint_config_with_env,
-};
+pub(crate) use xiuxian_qianji::runtime_config::QianjiRuntimeEnv;
 pub(crate) use xiuxian_qianji::{
-    QianjiBpmnCheckpointStore, QianjiBpmnExecutionFacade, QianjiBpmnExecutionRequest,
-    QianjiBpmnHostBridge, QianjiBpmnHostBridgeBuilder, QianjiBpmnSession, SchedulerAgentIdentity,
-    load_bpmn_package_from_files, unix_millis_now,
+    QianjiBpmnCheckpointStore, QianjiBpmnHostBridge, QianjiBpmnHostBridgeBuilder,
+    QianjiBpmnSession, QianjiBpmnWorkflowCancelReport, QianjiBpmnWorkflowCancelRequest,
+    QianjiBpmnWorkflowCheckpointBackend, QianjiBpmnWorkflowControlError,
+    QianjiBpmnWorkflowControlService, QianjiBpmnWorkflowResumeRequest,
+    QianjiBpmnWorkflowStartRequest, QianjiBpmnWorkflowStatusReport,
+    QianjiBpmnWorkflowStatusRequest, SchedulerAgentIdentity,
 };
 
 pub(crate) use crate::common::{

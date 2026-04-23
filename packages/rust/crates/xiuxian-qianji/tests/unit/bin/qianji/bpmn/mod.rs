@@ -5,11 +5,17 @@ use xiuxian_qianji::SchedulerAgentIdentity;
 #[path = "../../../../integration/support/valkey.rs"]
 mod valkey_support;
 
+mod cancel;
 mod checkpoint;
 mod event;
+mod event_poll;
 mod parse;
+mod resume;
 mod run;
+mod start;
+mod status;
 mod support;
+mod task_complete;
 
 #[cfg(feature = "sqlite")]
 pub(super) use support::write_waiting_bundle;

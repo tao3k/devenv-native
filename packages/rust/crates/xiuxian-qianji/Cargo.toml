@@ -21,6 +21,7 @@ toml = { workspace = true }
 async-trait = { workspace = true }
 thiserror = { workspace = true }
 anyhow = { workspace = true }
+axum = { workspace = true }
 tokio = { workspace = true }
 tokio-util = { workspace = true }
 redis = { workspace = true, features = ["tokio-comp"] }
@@ -54,7 +55,6 @@ xiuxian-testing = { path = "../xiuxian-testing" }
 xiuxian-config-core = { path = "../xiuxian-config-core" }
 
 [dev-dependencies]
-axum = { workspace = true }
 insta = { workspace = true }
 xiuxian-zhixing = { path = "../xiuxian-zhixing" }
 
@@ -69,6 +69,10 @@ path = "src/lib.rs"
 name = "qianji"
 path = "src/bin/qianji.rs"
 required-features = ["llm"]
+
+[[bin]]
+name = "qianji-server"
+path = "src/bin/qianji_server.rs"
 
 # Integration tests requiring llm feature
 [[test]]

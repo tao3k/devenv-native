@@ -1,11 +1,17 @@
 use super::deps::{
     BTreeMap, Deserialize, Path, PathBuf, QianjiBpmnCheckpointStore, QianjiBpmnHostBridge,
-    empty_json_object,
+    QianjiBpmnWorkflowCheckpointBackend, empty_json_object,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum BpmnCliCommand {
+    Start(BpmnStartCliCommand),
     Run(BpmnRunCliCommand),
+    Resume(BpmnResumeCliCommand),
+    EventPoll(BpmnEventPollCliCommand),
+    TaskComplete(BpmnTaskCompleteCliCommand),
+    Status(BpmnStatusCliCommand),
+    Cancel(BpmnCancelCliCommand),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -15,16 +21,37 @@ pub(crate) struct BpmnRunCliCommand {
     pub(crate) process_id: String,
     pub(crate) instance_id: String,
     pub(crate) context_json: Option<String>,
-    pub(crate) checkpoint_backend: Option<BpmnCliCheckpointBackend>,
+    pub(crate) checkpoint_backend: Option<QianjiBpmnWorkflowCheckpointBackend>,
     pub(crate) host_fixture_path: Option<PathBuf>,
     pub(crate) event_fixture_path: Option<PathBuf>,
 }
 
+pub(crate) type BpmnStartCliCommand = BpmnRunCliCommand;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) enum BpmnCliCheckpointBackend {
-    RuntimeValkey,
-    #[cfg(feature = "sqlite")]
-    Sqlite(PathBuf),
+pub(crate) struct BpmnResumeCliCommand {
+    pub(crate) bpmn_path: PathBuf,
+    pub(crate) dmn_paths: Vec<PathBuf>,
+    pub(crate) instance_id: String,
+    pub(crate) checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend,
+    pub(crate) host_fixture_path: Option<PathBuf>,
+    pub(crate) event_fixture_path: Option<PathBuf>,
+}
+
+pub(crate) type BpmnEventPollCliCommand = BpmnResumeCliCommand;
+
+pub(crate) type BpmnTaskCompleteCliCommand = BpmnResumeCliCommand;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct BpmnStatusCliCommand {
+    pub(crate) instance_id: String,
+    pub(crate) checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct BpmnCancelCliCommand {
+    pub(crate) instance_id: String,
+    pub(crate) checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -33,7 +60,7 @@ pub(crate) struct BpmnCliOutput {
     pub(crate) exit_code: i32,
 }
 
-pub(crate) struct BpmnRunRenderContext<'a> {
+pub(crate) struct BpmnExecutionRenderContext<'a> {
     pub(crate) resolved_bpmn_path: &'a Path,
     pub(crate) resolved_dmn_paths: &'a [PathBuf],
     pub(crate) checkpoint_store: Option<&'a QianjiBpmnCheckpointStore>,

@@ -5,3 +5,5 @@ pub(super) const DEFAULT_MEMORY_PROMOTION_GRAPH_SCOPE: &str = "qianji:memory_pro
 pub(super) const DEFAULT_MEMORY_PROMOTION_GRAPH_DIMENSION: usize = 1024;
 pub(super) const DEFAULT_MEMORY_PROMOTION_PERSIST: bool = true;
 pub(super) const DEFAULT_MEMORY_PROMOTION_PERSIST_BEST_EFFORT: bool = true;
+pub(super) const DEFAULT_SERVER_BIND_ADDR: &str = "127.0.0.1:38130";
+pub(super) const DEFAULT_SERVER_REQUIRE_VALKEY_READY: bool = false;

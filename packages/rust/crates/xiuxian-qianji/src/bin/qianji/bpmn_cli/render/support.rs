@@ -1,104 +1,12 @@
 use std::fmt::Write as _;
 
-use super::deps::{
+use crate::bpmn_cli::deps::{
     BpmnAdvanceOutcome, BpmnEventKind, BpmnInstanceState, BpmnPackage, BpmnProcessSpec,
-    BpmnTimerKind, BpmnTimerSpec, InstanceLifecycle, Path, QianjiBpmnCheckpointStore,
-    QianjiBpmnSession, SuspendReason, WaitKind,
+    BpmnTimerKind, BpmnTimerSpec, InstanceLifecycle, PendingHostWorkKind,
+    QianjiBpmnCheckpointStore, QianjiBpmnWorkflowCheckpointBackend, SuspendReason, WaitKind,
 };
-use super::types::{BpmnCliOutput, BpmnRunCliCommand, BpmnRunRenderContext};
 
-pub(super) fn render_bpmn_run_output(
-    command: &BpmnRunCliCommand,
-    session: &QianjiBpmnSession,
-    outcome: &BpmnAdvanceOutcome,
-    render_context: &BpmnRunRenderContext<'_>,
-) -> BpmnCliOutput {
-    let checkpoint_backend = render_context
-        .checkpoint_store
-        .map_or("none", bpmn_checkpoint_backend_label);
-    let checkpoint_source = if render_context.resumed_from_checkpoint {
-        "resumed"
-    } else {
-        "fresh"
-    };
-    let checkpoint_saved_label = if render_context.checkpoint_saved {
-        "yes"
-    } else {
-        "no"
-    };
-    let checkpoint_deleted_label = if render_context.checkpoint_deleted {
-        "yes"
-    } else {
-        "no"
-    };
-    let host_fixture = render_context.resolved_host_fixture_path.map_or_else(
-        || "none".to_string(),
-        |path: &Path| path.display().to_string(),
-    );
-    let event_fixture = render_context.resolved_event_fixture_path.map_or_else(
-        || "none".to_string(),
-        |path: &Path| path.display().to_string(),
-    );
-    let variables = serde_json::to_string_pretty(&session.instance().variables)
-        .unwrap_or_else(|error| format!("{{\"serialization_error\":\"{error}\"}}"));
-    let mut rendered = format!(
-        "# BPMN Run\n\nSource: {}\nProcess: {}\nInstance: {}\nPackage: {}\nOutcome: {}\nLifecycle: {}\nCheckpoint backend: {}\nCheckpoint source: {}\nCheckpoint saved: {}\nCheckpoint deleted: {}\nHost fixture: {}\nEvent fixture: {}\nDMN sources: {}\nSequence: {}\nActive tokens: {}\nPending host work: {}\nWait registrations: {}\n",
-        render_context.resolved_bpmn_path.display(),
-        command.process_id,
-        command.instance_id,
-        session.package().package_id,
-        bpmn_outcome_label(outcome),
-        bpmn_lifecycle_label(&session.instance().lifecycle),
-        checkpoint_backend,
-        checkpoint_source,
-        checkpoint_saved_label,
-        checkpoint_deleted_label,
-        host_fixture,
-        event_fixture,
-        render_context.resolved_dmn_paths.len(),
-        session.instance().sequence,
-        session.instance().active_tokens.len(),
-        session.instance().pending_host_work.len(),
-        session.instance().waits.len(),
-    );
-
-    if !render_context.resolved_dmn_paths.is_empty() {
-        let _ = writeln!(rendered, "\n## DMN Sources");
-        for path in render_context.resolved_dmn_paths {
-            let _ = writeln!(rendered, "- {}", path.display());
-        }
-    }
-
-    if let Some(reason) = session.instance().suspend_reason.as_ref() {
-        let _ = writeln!(
-            rendered,
-            "\nSuspend reason: {}",
-            bpmn_suspend_reason_label(reason)
-        );
-    }
-
-    if let BpmnAdvanceOutcome::Failed(message) = outcome {
-        let _ = writeln!(rendered, "\nFailure: {message}");
-    }
-
-    append_bpmn_wait_registrations(&mut rendered, session.package(), session.instance());
-
-    let _ = writeln!(rendered, "\n## Variables");
-    let _ = writeln!(rendered, "```json");
-    let _ = writeln!(rendered, "{variables}");
-    let _ = writeln!(rendered, "```");
-
-    BpmnCliOutput {
-        rendered,
-        exit_code: if matches!(outcome, BpmnAdvanceOutcome::Failed(_)) {
-            2
-        } else {
-            0
-        },
-    }
-}
-
-fn append_bpmn_wait_registrations(
+pub(super) fn append_bpmn_wait_registrations(
     rendered: &mut String,
     package: &BpmnPackage,
     instance: &BpmnInstanceState,
@@ -165,14 +73,7 @@ fn append_bpmn_wait_registrations(
     }
 }
 
-fn render_bpmn_wait_node_id(process: &BpmnProcessSpec, node_index: u32) -> String {
-    process.nodes.get(node_index as usize).map_or_else(
-        || format!("node#{node_index}"),
-        |node| node.bpmn_id.to_string(),
-    )
-}
-
-fn bpmn_checkpoint_backend_label(store: &QianjiBpmnCheckpointStore) -> &'static str {
+pub(super) fn bpmn_checkpoint_backend_label(store: &QianjiBpmnCheckpointStore) -> &'static str {
     match store {
         QianjiBpmnCheckpointStore::Valkey { .. } => "runtime_valkey",
         #[cfg(feature = "sqlite")]
@@ -180,7 +81,17 @@ fn bpmn_checkpoint_backend_label(store: &QianjiBpmnCheckpointStore) -> &'static 
     }
 }
 
-fn bpmn_outcome_label(outcome: &BpmnAdvanceOutcome) -> &'static str {
+pub(super) fn bpmn_checkpoint_backend_selection_label(
+    backend: &QianjiBpmnWorkflowCheckpointBackend,
+) -> &'static str {
+    match backend {
+        QianjiBpmnWorkflowCheckpointBackend::RuntimeValkey => "runtime_valkey",
+        #[cfg(feature = "sqlite")]
+        QianjiBpmnWorkflowCheckpointBackend::Sqlite(_) => "sqlite",
+    }
+}
+
+pub(super) fn bpmn_outcome_label(outcome: &BpmnAdvanceOutcome) -> &'static str {
     match outcome {
         BpmnAdvanceOutcome::Advanced => "advanced",
         BpmnAdvanceOutcome::BlockedOnHost(_) => "blocked_on_host",
@@ -191,7 +102,7 @@ fn bpmn_outcome_label(outcome: &BpmnAdvanceOutcome) -> &'static str {
     }
 }
 
-fn bpmn_lifecycle_label(lifecycle: &InstanceLifecycle) -> &'static str {
+pub(super) fn bpmn_lifecycle_label(lifecycle: &InstanceLifecycle) -> &'static str {
     match lifecycle {
         InstanceLifecycle::Ready => "ready",
         InstanceLifecycle::Running => "running",
@@ -202,7 +113,7 @@ fn bpmn_lifecycle_label(lifecycle: &InstanceLifecycle) -> &'static str {
     }
 }
 
-fn bpmn_suspend_reason_label(reason: &SuspendReason) -> &'static str {
+pub(super) fn bpmn_suspend_reason_label(reason: &SuspendReason) -> &'static str {
     match reason {
         SuspendReason::HostRequested => "host_requested",
         SuspendReason::ExternalWait => "external_wait",
@@ -211,7 +122,7 @@ fn bpmn_suspend_reason_label(reason: &SuspendReason) -> &'static str {
     }
 }
 
-fn bpmn_wait_kind_label(kind: &WaitKind) -> &'static str {
+pub(super) fn bpmn_wait_kind_label(kind: &WaitKind) -> &'static str {
     match kind {
         WaitKind::ExternalEvent => "external_event",
         WaitKind::UserAction => "user_action",
@@ -219,7 +130,18 @@ fn bpmn_wait_kind_label(kind: &WaitKind) -> &'static str {
     }
 }
 
-fn bpmn_event_kind_label(kind: &BpmnEventKind) -> &'static str {
+pub(super) fn bpmn_pending_host_work_kind_label(kind: &PendingHostWorkKind) -> &'static str {
+    match kind {
+        PendingHostWorkKind::Send => "send",
+        PendingHostWorkKind::Service => "service",
+        PendingHostWorkKind::Script => "script",
+        PendingHostWorkKind::User => "user",
+        PendingHostWorkKind::Manual => "manual",
+        PendingHostWorkKind::BusinessRule => "business_rule",
+    }
+}
+
+pub(super) fn bpmn_event_kind_label(kind: &BpmnEventKind) -> &'static str {
     match kind {
         BpmnEventKind::Timer => "timer",
         BpmnEventKind::Message => "message",
@@ -231,11 +153,18 @@ fn bpmn_event_kind_label(kind: &BpmnEventKind) -> &'static str {
     }
 }
 
-fn bpmn_timer_spec_label(timer: &BpmnTimerSpec) -> String {
+pub(super) fn bpmn_timer_spec_label(timer: &BpmnTimerSpec) -> String {
     let kind = match timer.kind {
         BpmnTimerKind::Date => "date",
         BpmnTimerKind::Duration => "duration",
         BpmnTimerKind::Cycle => "cycle",
     };
     format!("{kind}:{}", timer.expression)
+}
+
+fn render_bpmn_wait_node_id(process: &BpmnProcessSpec, node_index: u32) -> String {
+    process.nodes.get(node_index as usize).map_or_else(
+        || format!("node#{node_index}"),
+        |node| node.bpmn_id.to_string(),
+    )
 }

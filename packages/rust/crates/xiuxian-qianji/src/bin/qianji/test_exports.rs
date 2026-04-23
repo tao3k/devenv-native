@@ -1,6 +1,7 @@
 pub(crate) use super::bpmn_cli::{
-    BpmnCliCheckpointBackend, BpmnCliCommand, BpmnRunCliCommand, parse_bpmn_command,
-    resolve_bpmn_checkpoint_store_with_env, run_bpmn_command,
+    BpmnCancelCliCommand, BpmnCliCommand, BpmnEventPollCliCommand, BpmnResumeCliCommand,
+    BpmnRunCliCommand, BpmnStartCliCommand, BpmnStatusCliCommand, BpmnTaskCompleteCliCommand,
+    parse_bpmn_command, resolve_bpmn_checkpoint_store_with_env, run_bpmn_command,
     run_bpmn_run_command_with_runtime_env,
 };
 pub(crate) use super::contract_feedback_cli::{
@@ -14,4 +15,5 @@ pub(crate) use super::dir_cli::{
 };
 pub(crate) use super::lint_cli::{LintCliCommand, parse_lint_command, run_lint_command};
 pub(crate) use super::workspace::resolve_workspace_root;
+pub(crate) use xiuxian_qianji::QianjiBpmnWorkflowCheckpointBackend as BpmnCliCheckpointBackend;
 pub(crate) use xiuxian_qianji::contract_feedback::build_rest_docs_collection_context;

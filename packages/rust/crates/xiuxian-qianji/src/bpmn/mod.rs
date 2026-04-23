@@ -9,6 +9,10 @@ mod api;
 mod backend;
 #[path = "../bpmn_adapter_bridge.rs"]
 mod bridge;
+#[path = "control/api.rs"]
+mod control;
+#[path = "control/service/mod.rs"]
+mod control_service;
 #[path = "../bpmn_adapter_dispatch.rs"]
 mod dispatch;
 #[path = "../bpmn_runtime_driver.rs"]
@@ -17,6 +21,7 @@ mod driver;
 mod error;
 #[path = "../bpmn_runtime_execution.rs"]
 mod execution;
+mod http;
 #[path = "../bpmn_runtime_loader.rs"]
 mod loader;
 #[path = "../bpmn_runtime_ownership.rs"]
@@ -33,10 +38,23 @@ pub use api::{
     QianjiBpmnCheckpointStore, QianjiBpmnExecutionDriver, QianjiBpmnExecutionFacade,
     QianjiBpmnExecutionMode, QianjiBpmnExecutionReport, QianjiBpmnExecutionRequest,
     QianjiBpmnExecutionScheduler, QianjiBpmnHostBridge, QianjiBpmnHostBridgeBuilder,
-    QianjiBpmnSchedulerLeaseConfig, QianjiBpmnSession, dispatch_pending_host_work_request,
+    QianjiBpmnPreparedWorkflowResume, QianjiBpmnPreparedWorkflowStart,
+    QianjiBpmnSchedulerLeaseConfig, QianjiBpmnSession, QianjiBpmnWorkflowActionHttpRequest,
+    QianjiBpmnWorkflowCancelHttpResponse, QianjiBpmnWorkflowCancelReport,
+    QianjiBpmnWorkflowCancelRequest, QianjiBpmnWorkflowCheckpointBackend,
+    QianjiBpmnWorkflowControlError, QianjiBpmnWorkflowControlService,
+    QianjiBpmnWorkflowEventPollReport, QianjiBpmnWorkflowEventPollRequest,
+    QianjiBpmnWorkflowHttpCheckpointBackend, QianjiBpmnWorkflowHttpErrorBody,
+    QianjiBpmnWorkflowHttpState, QianjiBpmnWorkflowResumeReport, QianjiBpmnWorkflowResumeRequest,
+    QianjiBpmnWorkflowRunHttpResponse, QianjiBpmnWorkflowSnapshotHttpResponse,
+    QianjiBpmnWorkflowStartHttpRequest, QianjiBpmnWorkflowStartReport,
+    QianjiBpmnWorkflowStartRequest, QianjiBpmnWorkflowStatusHttpQuery,
+    QianjiBpmnWorkflowStatusHttpResponse, QianjiBpmnWorkflowStatusReport,
+    QianjiBpmnWorkflowStatusRequest, QianjiBpmnWorkflowTaskCompleteReport,
+    QianjiBpmnWorkflowTaskCompleteRequest, dispatch_pending_host_work_request,
     dispatch_pending_host_work_requests, load_bpmn_package_from_files,
-    load_bpmn_package_from_files_with_options, resolve_pending_host_work,
-    resolve_waiting_external_event,
+    load_bpmn_package_from_files_with_options, qianji_bpmn_workflow_router,
+    resolve_pending_host_work, resolve_waiting_external_event,
 };
 
 #[cfg(test)]

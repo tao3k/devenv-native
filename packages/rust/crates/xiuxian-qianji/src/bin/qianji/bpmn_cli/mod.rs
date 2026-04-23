@@ -12,7 +12,8 @@ mod types;
 
 #[cfg(test)]
 pub(crate) use api::{
-    BpmnCliCheckpointBackend, BpmnCliCommand, BpmnRunCliCommand,
+    BpmnCancelCliCommand, BpmnCliCommand, BpmnEventPollCliCommand, BpmnResumeCliCommand,
+    BpmnRunCliCommand, BpmnStartCliCommand, BpmnStatusCliCommand, BpmnTaskCompleteCliCommand,
     resolve_bpmn_checkpoint_store_with_env, run_bpmn_command,
     run_bpmn_run_command_with_runtime_env,
 };

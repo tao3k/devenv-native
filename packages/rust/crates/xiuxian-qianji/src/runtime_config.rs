@@ -33,9 +33,11 @@ mod toml_config;
 
 pub use api::{
     QianjiRuntimeCheckpointConfig, QianjiRuntimeEnv, QianjiRuntimeLlmConfig,
-    QianjiRuntimeWendaoIngesterConfig, resolve_qianji_runtime_checkpoint_config,
-    resolve_qianji_runtime_checkpoint_config_with_env, resolve_qianji_runtime_llm_config,
-    resolve_qianji_runtime_llm_config_with_env, resolve_qianji_runtime_wendao_ingester_config,
+    QianjiRuntimeServerConfig, QianjiRuntimeWendaoIngesterConfig,
+    resolve_qianji_runtime_checkpoint_config, resolve_qianji_runtime_checkpoint_config_with_env,
+    resolve_qianji_runtime_llm_config, resolve_qianji_runtime_llm_config_with_env,
+    resolve_qianji_runtime_server_config, resolve_qianji_runtime_server_config_with_env,
+    resolve_qianji_runtime_wendao_ingester_config,
     resolve_qianji_runtime_wendao_ingester_config_with_env,
 };
 pub(crate) use api::{
