@@ -63,7 +63,6 @@ impl ContextAssembler {
     /// [`IoError::System`] for other main-file I/O failures.
     #[cfg(feature = "assembler")]
     pub fn assemble_skill(
-        &self,
         main_path: impl AsRef<Path>,
         ref_paths: impl AsRef<[PathBuf]>,
         variables: impl Borrow<Value>,

@@ -403,14 +403,27 @@ jobs:
           export WENDAOSEARCH_RUNTIME_DIR=.run/wendaosearch
           export WENDAOSEARCH_CONFIG=.data/WendaoSearch.jl/config/live/parser_summary.toml
           export WENDAOSEARCH_SCRIPT=run_parser_summary_service.jl
-          devenv processes up -d wendaosearch-parser-summary
+          mkdir -p "${WENDAOSEARCH_RUNTIME_DIR}" .run/logs
+          bash scripts/channel/wendaosearch-launch.sh \
+            > .run/logs/wendaosearch-parser-summary.stdout.log \
+            2> .run/logs/wendaosearch-parser-summary.stderr.log &
+          launcher_pid=$!
+          echo "${launcher_pid}" > "${WENDAOSEARCH_RUNTIME_DIR}/${WENDAOSEARCH_SERVICE_NAME}.launcher.pid"
           for _ in {1..120}; do
             if bash scripts/channel/wendaosearch-healthcheck.sh >/dev/null 2>&1; then
               echo "RUN_PROCESS_MANAGED_WENDAOSEARCH_TEST=1" >> "${GITHUB_ENV}"
               exit 0
             fi
+            if ! kill -0 "${launcher_pid}" 2>/dev/null; then
+              echo "WendaoSearch parser-summary launcher exited before readiness." >&2
+              cat .run/logs/wendaosearch-parser-summary.stdout.log >&2 || true
+              cat .run/logs/wendaosearch-parser-summary.stderr.log >&2 || true
+              exit 1
+            fi
             sleep 1
           done
+          cat .run/logs/wendaosearch-parser-summary.stdout.log >&2 || true
+          cat .run/logs/wendaosearch-parser-summary.stderr.log >&2 || true
           bash scripts/channel/wendaosearch-healthcheck.sh
 
       - name: Start Valkey for Rust tests
@@ -443,9 +456,24 @@ jobs:
       - name: Run xiuxian-core-rs tests
         run: bash scripts/rust/test_xiuxian_core_rs.sh --lib --no-fail-fast
 
-      - name: Stop process-managed services
+      - name: Stop shell-managed services
         if: ${{ always() }}
-        run: devenv processes down || true
+        run: |
+          set +e
+          source scripts/channel/process-runtime.sh
+          managed_cleanup_pidfile_process \
+            .run/wendaosearch/wendaosearch-parser-summary.pid \
+            wendaosearch-parser-summary \
+            julia \
+            run_parser_summary_service.jl
+          managed_cleanup_pidfile_process \
+            .run/wendaosearch/wendaosearch-parser-summary.launcher.pid \
+            wendaosearch-parser-summary-launcher \
+            wendaosearch-launch.sh
+          managed_cleanup_pidfile_process \
+            "${PRJ_RUNTIME_DIR:-.run}/valkey/valkey.pid" \
+            valkey \
+            valkey-server
 
       - name: Save sccache cache (fallback)
         if: ${{ always() && !cancelled() && env.SCCACHE_GHA_ENABLED != 'true' }}

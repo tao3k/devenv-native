@@ -38,7 +38,6 @@ pub(super) fn assemble(
     references: Vec<PathBuf>,
     variables: Value,
 ) -> AssemblyResult {
-    ContextAssembler::new()
-        .assemble_skill(main_path, references, variables)
+    ContextAssembler::assemble_skill(main_path, references, variables)
         .unwrap_or_else(|error| panic!("operation should succeed: {error}"))
 }

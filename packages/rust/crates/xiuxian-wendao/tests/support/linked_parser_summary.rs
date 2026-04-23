@@ -20,6 +20,7 @@ type TestResult = Result<(), Box<dyn std::error::Error>>;
 
 const RUN_PROCESS_MANAGED_WENDAOSEARCH_TEST_ENV: &str = "RUN_PROCESS_MANAGED_WENDAOSEARCH_TEST";
 const PROCESS_MANAGED_PARSER_SUMMARY_SERVICE_NAME: &str = "wendaosearch-parser-summary";
+const PROCESS_MANAGED_READY_ATTEMPTS: usize = 600;
 
 struct LinkedParserSummaryService {
     _guard: Mutex<JuliaExampleServiceGuard>,
@@ -32,13 +33,6 @@ enum ProcessManagedParserSummaryMode {
 }
 
 impl ProcessManagedParserSummaryMode {
-    fn ready_attempts(self) -> usize {
-        match self {
-            Self::Required => 600,
-            Self::BestEffort => 600,
-        }
-    }
-
     fn already_running_attempts(self) -> usize {
         match self {
             Self::Required => 600,
@@ -128,7 +122,7 @@ fn ensure_process_managed_parser_summary_service(
         if !service_is_ready(base_url.as_str())? {
             start_process_managed_parser_summary_service(base_url.as_str(), mode)?;
         }
-        wait_for_service_ready(base_url.as_str(), mode.ready_attempts())?;
+        wait_for_service_ready(base_url.as_str(), PROCESS_MANAGED_READY_ATTEMPTS)?;
         clear_modelica_parser_summary_transport_cache_for_tests();
         set_linked_julia_parser_summary_base_url_for_tests(base_url.as_str())
             .map_err(|error| error.clone())?;
@@ -169,7 +163,7 @@ fn start_process_managed_parser_summary_service(
             String::from_utf8_lossy(&output.stderr),
         ));
     }
-    wait_for_service_ready(base_url, mode.ready_attempts())
+    wait_for_service_ready(base_url, PROCESS_MANAGED_READY_ATTEMPTS)
 }
 
 fn output_mentions_processes_already_running(output: &std::process::Output) -> bool {

@@ -17,14 +17,11 @@ fn test_assemble_skill_missing_main_file() {
     let temp_dir = temp_dir();
     let missing_main = temp_dir.path().join("nonexistent.md");
 
-    let error = match ContextAssembler::new().assemble_skill(
-        missing_main,
-        Vec::new(),
-        serde_json::json!({}),
-    ) {
-        Ok(_value) => panic!("missing main file should return IoError::NotFound"),
-        Err(error) => error,
-    };
+    let error =
+        match ContextAssembler::assemble_skill(missing_main, Vec::new(), serde_json::json!({})) {
+            Ok(_value) => panic!("missing main file should return IoError::NotFound"),
+            Err(error) => error,
+        };
 
     assert!(error.to_string().contains("File not found"));
 }
