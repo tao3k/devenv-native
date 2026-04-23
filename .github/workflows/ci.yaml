@@ -396,6 +396,23 @@ jobs:
             Pkg.precompile()
           '
 
+      - name: Start WendaoSearch parser-summary service for Rust tests
+        run: |
+          set -euo pipefail
+          export WENDAOSEARCH_SERVICE_NAME=wendaosearch-parser-summary
+          export WENDAOSEARCH_RUNTIME_DIR=.run/wendaosearch
+          export WENDAOSEARCH_CONFIG=.data/WendaoSearch.jl/config/live/parser_summary.toml
+          export WENDAOSEARCH_SCRIPT=run_parser_summary_service.jl
+          devenv processes up -d wendaosearch-parser-summary
+          for _ in {1..120}; do
+            if bash scripts/channel/wendaosearch-healthcheck.sh >/dev/null 2>&1; then
+              echo "RUN_PROCESS_MANAGED_WENDAOSEARCH_TEST=1" >> "${GITHUB_ENV}"
+              exit 0
+            fi
+            sleep 1
+          done
+          bash scripts/channel/wendaosearch-healthcheck.sh
+
       - name: Start Valkey for Rust tests
         run: |
           set -euo pipefail
@@ -425,6 +442,10 @@ jobs:
 
       - name: Run xiuxian-core-rs tests
         run: bash scripts/rust/test_xiuxian_core_rs.sh --lib --no-fail-fast
+
+      - name: Stop process-managed services
+        if: ${{ always() }}
+        run: devenv processes down || true
 
       - name: Save sccache cache (fallback)
         if: ${{ always() && !cancelled() && env.SCCACHE_GHA_ENABLED != 'true' }}

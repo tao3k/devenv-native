@@ -180,8 +180,6 @@ dirs = ["docs"]
 
 #[tokio::test]
 async fn build_studio_flight_service_for_roots_accepts_code_ast_analysis_routes() {
-    ensure_linked_julia_parser_summary_service()
-        .unwrap_or_else(|error| panic!("linked Julia parser-summary service: {error}"));
     let temp_dir = tempdir_or_panic("temp dir should build");
     let project_root = temp_dir.path().join("project");
     let storage_root = temp_dir.path().join("storage");
@@ -194,13 +192,13 @@ async fn build_studio_flight_service_for_roots_accepts_code_ast_analysis_routes(
         "analysis repo fixture should initialize",
     );
     write_file_or_panic(
-        project_root.join("repo/Project.toml"),
-        "name = \"Demo\"\nuuid = \"00000000-0000-0000-0000-000000000001\"\n",
-        "Project.toml should write",
+        project_root.join("repo/Cargo.toml"),
+        "[package]\nname = \"demo\"\nversion = \"0.1.0\"\nedition = \"2021\"\n",
+        "Cargo.toml should write",
     );
     write_file_or_panic(
-        project_root.join("repo/src/lib.jl"),
-        "module Demo\nexport solve\nsolve(x) = x + 1\nend\n",
+        project_root.join("repo/src/lib.rs"),
+        "pub fn solve(value: i32) -> i32 {\n    value + 1\n}\n",
         "source fixture should write",
     );
     write_file_or_panic(
@@ -212,7 +210,7 @@ dirs = ["docs"]
 
 [link_graph.projects.demo]
 root = "repo"
-plugins = ["julia"]
+plugins = ["ast-grep"]
 "#,
         "wendao.toml should write",
     );
@@ -236,7 +234,7 @@ plugins = ["julia"]
             .unwrap_or_else(|error| panic!("descriptor path: {error}")),
     );
     let mut request = Request::new(descriptor);
-    populate_code_ast_analysis_headers(request.metadata_mut(), "src/lib.jl", "demo", Some(3));
+    populate_code_ast_analysis_headers(request.metadata_mut(), "src/lib.rs", "demo", Some(1));
 
     let response = flight_service
         .get_flight_info(request)

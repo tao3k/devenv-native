@@ -7,14 +7,9 @@ use xiuxian_wendao_runtime::transport::{
     ANALYSIS_REPO_SYNC_ROUTE,
 };
 
-use crate::gateway::studio::search::handlers::tests::{
-    publish_repo_entity_index, sample_repo_analysis,
-};
-
 use super::{
-    assert_route_ticket, build_service, make_gateway_state_with_docs, make_gateway_state_with_repo,
-    populate_markdown_analysis_headers, populate_repo_index_headers,
-    populate_repo_index_status_headers, populate_repo_sync_headers,
+    assert_route_ticket, build_analysis_route_service, populate_markdown_analysis_headers,
+    populate_repo_index_headers, populate_repo_index_status_headers, populate_repo_sync_headers,
 };
 use super::{
     populate_code_ast_analysis_headers, populate_refine_doc_headers,
@@ -24,12 +19,7 @@ use super::{
 
 #[tokio::test]
 async fn build_studio_search_flight_service_wires_markdown_analysis_routes() {
-    let fixture = make_gateway_state_with_docs(&[(
-        "docs/analysis.md",
-        "# Analysis Kernel\n\n## Inputs\n- [ ] Parse markdown\n",
-    )])
-    .await;
-    let service = build_service(fixture.state.clone());
+    let service = build_analysis_route_service();
 
     assert_route_ticket(
         &service,
@@ -42,46 +32,20 @@ async fn build_studio_search_flight_service_wires_markdown_analysis_routes() {
 
 #[tokio::test]
 async fn build_studio_search_flight_service_wires_code_ast_analysis_routes() {
-    let fixture = make_gateway_state_with_repo(&[
-        (
-            "Project.toml",
-            "name = \"Demo\"\nuuid = \"00000000-0000-0000-0000-000000000001\"\n",
-        ),
-        (
-            "src/lib.jl",
-            "module Demo\nexport solve\nsolve(x) = x + 1\nend\n",
-        ),
-    ]);
-    let service = build_service(fixture.state.clone());
+    let service = build_analysis_route_service();
 
     assert_route_ticket(
         &service,
         ANALYSIS_CODE_AST_ROUTE,
         "code-AST analysis route",
-        |metadata| populate_code_ast_analysis_headers(metadata, "src/lib.jl", "demo", Some(3)),
+        |metadata| populate_code_ast_analysis_headers(metadata, "src/lib.rs", "demo", Some(1)),
     )
     .await;
 }
 
 #[tokio::test]
 async fn build_studio_search_flight_service_wires_repo_overview_routes() {
-    let fixture = make_gateway_state_with_repo(&[
-        (
-            "Project.toml",
-            "name = \"Demo\"\nuuid = \"00000000-0000-0000-0000-000000000001\"\n",
-        ),
-        ("README.md", "# Demo\n\nPackage docs.\n"),
-        (
-            "docs/solve.md",
-            "# solve\n\nDocument the exported function.\n",
-        ),
-        (
-            "src/lib.jl",
-            "module Demo\nexport solve\n\"solve docs\"\nsolve(x) = x + 1\nend\n",
-        ),
-    ]);
-    publish_repo_entity_index(&fixture.state.studio, "demo", &sample_repo_analysis("demo")).await;
-    let service = build_service(fixture.state.clone());
+    let service = build_analysis_route_service();
 
     assert_route_ticket(
         &service,
@@ -94,17 +58,7 @@ async fn build_studio_search_flight_service_wires_repo_overview_routes() {
 
 #[tokio::test]
 async fn build_studio_search_flight_service_wires_repo_index_routes() {
-    let fixture = make_gateway_state_with_repo(&[
-        (
-            "Project.toml",
-            "name = \"Demo\"\nuuid = \"00000000-0000-0000-0000-000000000001\"\n",
-        ),
-        (
-            "src/lib.jl",
-            "module Demo\nexport solve\nsolve(x) = x + 1\nend\n",
-        ),
-    ]);
-    let service = build_service(fixture.state.clone());
+    let service = build_analysis_route_service();
 
     assert_route_ticket(
         &service,
@@ -117,17 +71,7 @@ async fn build_studio_search_flight_service_wires_repo_index_routes() {
 
 #[tokio::test]
 async fn build_studio_search_flight_service_wires_repo_index_status_routes() {
-    let fixture = make_gateway_state_with_repo(&[
-        (
-            "Project.toml",
-            "name = \"Demo\"\nuuid = \"00000000-0000-0000-0000-000000000001\"\n",
-        ),
-        (
-            "src/lib.jl",
-            "module Demo\nexport solve\nsolve(x) = x + 1\nend\n",
-        ),
-    ]);
-    let service = build_service(fixture.state.clone());
+    let service = build_analysis_route_service();
 
     assert_route_ticket(
         &service,
@@ -140,17 +84,7 @@ async fn build_studio_search_flight_service_wires_repo_index_status_routes() {
 
 #[tokio::test]
 async fn build_studio_search_flight_service_wires_repo_sync_routes() {
-    let fixture = make_gateway_state_with_repo(&[
-        (
-            "Project.toml",
-            "name = \"Demo\"\nuuid = \"00000000-0000-0000-0000-000000000001\"\n",
-        ),
-        (
-            "src/lib.jl",
-            "module Demo\nexport solve\nsolve(x) = x + 1\nend\n",
-        ),
-    ]);
-    let service = build_service(fixture.state.clone());
+    let service = build_analysis_route_service();
 
     assert_route_ticket(
         &service,
@@ -163,22 +97,7 @@ async fn build_studio_search_flight_service_wires_repo_sync_routes() {
 
 #[tokio::test]
 async fn build_studio_search_flight_service_wires_repo_doc_coverage_routes() {
-    let fixture = make_gateway_state_with_repo(&[
-        (
-            "Project.toml",
-            "name = \"Demo\"\nuuid = \"00000000-0000-0000-0000-000000000001\"\n",
-        ),
-        ("README.md", "# Demo\n\nPackage docs.\n"),
-        (
-            "docs/solve.md",
-            "# solve\n\nDocument the exported function.\n",
-        ),
-        (
-            "src/lib.jl",
-            "module Demo\nexport solve\n\"solve docs\"\nsolve(x) = x + 1\nend\n",
-        ),
-    ]);
-    let service = build_service(fixture.state.clone());
+    let service = build_analysis_route_service();
 
     assert_route_ticket(
         &service,
@@ -191,22 +110,7 @@ async fn build_studio_search_flight_service_wires_repo_doc_coverage_routes() {
 
 #[tokio::test]
 async fn build_studio_search_flight_service_wires_repo_projected_page_index_tree_routes() {
-    let fixture = make_gateway_state_with_repo(&[
-        (
-            "Project.toml",
-            "name = \"Demo\"\nuuid = \"00000000-0000-0000-0000-000000000001\"\n",
-        ),
-        ("README.md", "# Demo\n\nPackage docs.\n"),
-        (
-            "docs/solve.md",
-            "# solve\n\nDocument the exported function.\n",
-        ),
-        (
-            "src/lib.jl",
-            "module Demo\nexport solve\n\"solve docs\"\nsolve(x) = x + 1\nend\n",
-        ),
-    ]);
-    let service = build_service(fixture.state.clone());
+    let service = build_analysis_route_service();
 
     assert_route_ticket(
         &service,
@@ -225,17 +129,7 @@ async fn build_studio_search_flight_service_wires_repo_projected_page_index_tree
 
 #[tokio::test]
 async fn build_studio_search_flight_service_wires_refine_doc_routes() {
-    let fixture = make_gateway_state_with_repo(&[
-        (
-            "Project.toml",
-            "name = \"Demo\"\nuuid = \"00000000-0000-0000-0000-000000000001\"\n",
-        ),
-        (
-            "src/lib.jl",
-            "module Demo\nexport solve\n\"solve docs\"\nsolve(x) = x + 1\nend\n",
-        ),
-    ]);
-    let service = build_service(fixture.state.clone());
+    let service = build_analysis_route_service();
 
     assert_route_ticket(
         &service,

@@ -100,7 +100,16 @@ fn parse_bpmn_start_like_command(
         index += 1;
     }
 
-    let checkpoint_backend = parse_bpmn_start_like_checkpoint_backend(command_name, &state)?;
+    let checkpoint_backend = {
+        #[cfg(feature = "sqlite")]
+        {
+            parse_bpmn_start_like_checkpoint_backend(command_name, &state)?
+        }
+        #[cfg(not(feature = "sqlite"))]
+        {
+            parse_bpmn_start_like_checkpoint_backend(&state)
+        }
+    };
     if state.context_json.is_none() && checkpoint_backend.is_none() {
         return Err(invalid_input(format!(
             "missing `--context-json <json>` for fresh `{command_name}` command"
@@ -198,26 +207,23 @@ fn parse_bpmn_start_like_option(
     Ok(())
 }
 
+#[cfg(feature = "sqlite")]
 fn parse_bpmn_start_like_checkpoint_backend(
     command_name: &str,
     state: &BpmnStartLikeParseState,
 ) -> io::Result<Option<QianjiBpmnWorkflowCheckpointBackend>> {
-    let checkpoint_backend = {
-        #[cfg(feature = "sqlite")]
-        {
-            parse_bpmn_cli_checkpoint_backend(
-                command_name,
-                state.checkpoint_runtime,
-                state.checkpoint_sqlite.clone(),
-            )?
-        }
-        #[cfg(not(feature = "sqlite"))]
-        {
-            parse_bpmn_cli_checkpoint_backend(state.checkpoint_runtime)
-        }
-    };
+    parse_bpmn_cli_checkpoint_backend(
+        command_name,
+        state.checkpoint_runtime,
+        state.checkpoint_sqlite.clone(),
+    )
+}
 
-    Ok(checkpoint_backend)
+#[cfg(not(feature = "sqlite"))]
+fn parse_bpmn_start_like_checkpoint_backend(
+    state: &BpmnStartLikeParseState,
+) -> Option<QianjiBpmnWorkflowCheckpointBackend> {
+    parse_bpmn_cli_checkpoint_backend(state.checkpoint_runtime)
 }
 
 fn parse_bpmn_resume_command(args: &[String]) -> io::Result<BpmnResumeCliCommand> {

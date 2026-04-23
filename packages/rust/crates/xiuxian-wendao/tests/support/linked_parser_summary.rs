@@ -25,16 +25,43 @@ struct LinkedParserSummaryService {
     _guard: Mutex<JuliaExampleServiceGuard>,
 }
 
+#[derive(Clone, Copy)]
+enum ProcessManagedParserSummaryMode {
+    Required,
+    BestEffort,
+}
+
+impl ProcessManagedParserSummaryMode {
+    fn ready_attempts(self) -> usize {
+        match self {
+            Self::Required => 600,
+            Self::BestEffort => 600,
+        }
+    }
+
+    fn already_running_attempts(self) -> usize {
+        match self {
+            Self::Required => 600,
+            Self::BestEffort => 25,
+        }
+    }
+}
+
 static LINKED_PARSER_SUMMARY_SERVICE: OnceLock<Result<LinkedParserSummaryService, String>> =
     OnceLock::new();
 static PROCESS_MANAGED_PARSER_SUMMARY_SERVICE: OnceLock<Result<(), String>> = OnceLock::new();
 
 pub fn ensure_linked_julia_parser_summary_service() -> TestResult {
     if process_managed_wendaosearch_test_enabled() {
-        return ensure_process_managed_parser_summary_service();
+        return ensure_process_managed_parser_summary_service(
+            ProcessManagedParserSummaryMode::Required,
+        );
     }
     if process_managed_parser_summary_service_is_configured()
-        && ensure_process_managed_parser_summary_service().is_ok()
+        && ensure_process_managed_parser_summary_service(
+            ProcessManagedParserSummaryMode::BestEffort,
+        )
+        .is_ok()
     {
         return Ok(());
     }
@@ -43,10 +70,15 @@ pub fn ensure_linked_julia_parser_summary_service() -> TestResult {
 
 pub fn ensure_linked_modelica_parser_summary_service() -> TestResult {
     if process_managed_wendaosearch_test_enabled() {
-        return ensure_process_managed_parser_summary_service();
+        return ensure_process_managed_parser_summary_service(
+            ProcessManagedParserSummaryMode::Required,
+        );
     }
     if process_managed_parser_summary_service_is_configured()
-        && ensure_process_managed_parser_summary_service().is_ok()
+        && ensure_process_managed_parser_summary_service(
+            ProcessManagedParserSummaryMode::BestEffort,
+        )
+        .is_ok()
     {
         return Ok(());
     }
@@ -88,13 +120,15 @@ fn process_managed_parser_summary_service_is_configured() -> bool {
     process_managed_parser_summary_base_url().is_ok()
 }
 
-fn ensure_process_managed_parser_summary_service() -> TestResult {
+fn ensure_process_managed_parser_summary_service(
+    mode: ProcessManagedParserSummaryMode,
+) -> TestResult {
     let service = PROCESS_MANAGED_PARSER_SUMMARY_SERVICE.get_or_init(|| {
         let base_url = process_managed_parser_summary_base_url()?;
         if !service_is_ready(base_url.as_str())? {
-            start_process_managed_parser_summary_service(base_url.as_str())?;
+            start_process_managed_parser_summary_service(base_url.as_str(), mode)?;
         }
-        wait_for_service_ready(base_url.as_str(), 600)?;
+        wait_for_service_ready(base_url.as_str(), mode.ready_attempts())?;
         clear_modelica_parser_summary_transport_cache_for_tests();
         set_linked_julia_parser_summary_base_url_for_tests(base_url.as_str())
             .map_err(|error| error.clone())?;
@@ -110,7 +144,10 @@ fn ensure_process_managed_parser_summary_service() -> TestResult {
     }
 }
 
-fn start_process_managed_parser_summary_service(base_url: &str) -> Result<(), String> {
+fn start_process_managed_parser_summary_service(
+    base_url: &str,
+    mode: ProcessManagedParserSummaryMode,
+) -> Result<(), String> {
     let output = devenv_processes_command([
         "up",
         "-d",
@@ -123,13 +160,21 @@ fn start_process_managed_parser_summary_service(base_url: &str) -> Result<(), St
         )
     })?;
     if !output.status.success() {
+        if output_mentions_processes_already_running(&output) {
+            return wait_for_service_ready(base_url, mode.already_running_attempts());
+        }
         return Err(format!(
             "start process-managed `{PROCESS_MANAGED_PARSER_SUMMARY_SERVICE_NAME}` service failed\nstdout:\n{}\nstderr:\n{}",
             String::from_utf8_lossy(&output.stdout),
             String::from_utf8_lossy(&output.stderr),
         ));
     }
-    wait_for_service_ready(base_url, 600)
+    wait_for_service_ready(base_url, mode.ready_attempts())
+}
+
+fn output_mentions_processes_already_running(output: &std::process::Output) -> bool {
+    String::from_utf8_lossy(&output.stdout).contains("Processes already running")
+        || String::from_utf8_lossy(&output.stderr).contains("Processes already running")
 }
 
 fn process_managed_parser_summary_base_url() -> Result<String, String> {

@@ -3,18 +3,23 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use tempfile::{TempDir, tempdir};
+use tonic::Status;
 use xiuxian_vector::{
     LanceDataType, LanceField, LanceFloat64Array, LanceRecordBatch, LanceSchema, LanceStringArray,
 };
 use xiuxian_wendao_runtime::transport::{
-    RepoSearchFlightRouteProvider, RerankScoreWeights, WendaoFlightService,
+    AnalysisFlightRouteResponse, CodeAstAnalysisFlightRouteProvider,
+    MarkdownAnalysisFlightRouteProvider, RefineDocFlightRouteProvider,
+    RepoDocCoverageFlightRouteProvider, RepoIndexFlightRouteProvider,
+    RepoIndexStatusFlightRouteProvider, RepoOverviewFlightRouteProvider,
+    RepoProjectedPageIndexTreeFlightRouteProvider, RepoSearchFlightRouteProvider,
+    RepoSyncFlightRouteProvider, RerankScoreWeights, WendaoFlightRouteProviders,
+    WendaoFlightService,
 };
 
 use super::build_studio_search_flight_service_with_repo_provider;
-use crate::gateway::studio::search::handlers::tests::linked_parser_summary::ensure_linked_julia_parser_summary_service;
 use crate::gateway::studio::search::handlers::tests::test_studio_state;
-use crate::gateway::studio::test_support::init_git_repository;
-use crate::gateway::studio::types::{UiConfig, UiProjectConfig, UiRepoProjectConfig};
+use crate::gateway::studio::types::{UiConfig, UiProjectConfig};
 use crate::gateway::studio::{GatewayState, StudioState};
 use crate::gateway::studio::{build_ast_index, search::build_symbol_index};
 
@@ -186,43 +191,6 @@ async fn publish_local_symbol_index(studio: &StudioState) {
         .unwrap_or_else(|error| panic!("publish local symbols: {error}"));
 }
 
-pub(super) fn make_gateway_state_with_repo(repo_files: &[(&str, &str)]) -> GatewayStateFixture {
-    ensure_linked_julia_parser_summary_service()
-        .unwrap_or_else(|error| panic!("ensure linked Julia parser-summary service: {error}"));
-    let temp_dir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
-    init_git_repository(temp_dir.path().join("repo"));
-    for (path, contents) in repo_files {
-        let full_path = temp_dir.path().join("repo").join(path);
-        if let Some(parent) = full_path.parent() {
-            fs::create_dir_all(parent)
-                .unwrap_or_else(|error| panic!("create repo fixture dirs for {path}: {error}"));
-        }
-        fs::write(&full_path, contents)
-            .unwrap_or_else(|error| panic!("write repo fixture {path}: {error}"));
-    }
-
-    let mut studio = test_studio_state();
-    studio.project_root = temp_dir.path().to_path_buf();
-    studio.config_root = temp_dir.path().to_path_buf();
-    studio.seed_eager_configured_owners_for_tests(UiConfig {
-        projects: vec![UiProjectConfig {
-            name: "kernel".to_string(),
-            root: ".".to_string(),
-            dirs: vec!["docs".to_string()],
-        }],
-        repo_projects: vec![UiRepoProjectConfig {
-            id: "demo".to_string(),
-            root: Some("repo".to_string()),
-            url: None,
-            git_ref: None,
-            refresh: None,
-            plugins: vec!["julia".to_string()],
-        }],
-    });
-
-    gateway_state_fixture(temp_dir, studio)
-}
-
 pub(super) async fn make_gateway_state_with_attachments() -> GatewayStateFixture {
     let temp_dir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
     fs::create_dir_all(temp_dir.path().join("docs/assets"))
@@ -275,6 +243,9 @@ pub(super) async fn make_gateway_state_with_attachments() -> GatewayStateFixture
 #[derive(Debug)]
 struct RecordingRepoSearchProvider;
 
+#[derive(Debug)]
+struct RecordingAnalysisRouteProvider;
+
 #[async_trait]
 impl RepoSearchFlightRouteProvider for RecordingRepoSearchProvider {
     async fn repo_search_batch(
@@ -298,6 +269,136 @@ impl RepoSearchFlightRouteProvider for RecordingRepoSearchProvider {
     }
 }
 
+fn analysis_route_response(
+    route: &str,
+    subject: impl Into<String>,
+) -> Result<AnalysisFlightRouteResponse, String> {
+    let subject = subject.into();
+    let batch = LanceRecordBatch::try_new(
+        Arc::new(LanceSchema::new(vec![
+            LanceField::new("route", LanceDataType::Utf8, false),
+            LanceField::new("subject", LanceDataType::Utf8, false),
+        ])),
+        vec![
+            Arc::new(LanceStringArray::from(vec![route.to_string()])) as _,
+            Arc::new(LanceStringArray::from(vec![subject.clone()])) as _,
+        ],
+    )
+    .map_err(|error| error.to_string())?;
+    let metadata = serde_json::to_vec(&serde_json::json!({
+        "route": route,
+        "subject": subject,
+    }))
+    .map_err(|error| error.to_string())?;
+    Ok(AnalysisFlightRouteResponse::new(batch).with_app_metadata(metadata))
+}
+
+#[async_trait]
+impl MarkdownAnalysisFlightRouteProvider for RecordingAnalysisRouteProvider {
+    async fn markdown_analysis_batch(
+        &self,
+        path: &str,
+    ) -> Result<AnalysisFlightRouteResponse, String> {
+        analysis_route_response("markdown", path)
+    }
+}
+
+#[async_trait]
+impl CodeAstAnalysisFlightRouteProvider for RecordingAnalysisRouteProvider {
+    async fn code_ast_analysis_batch(
+        &self,
+        path: &str,
+        repo_id: &str,
+        line_hint: Option<usize>,
+    ) -> Result<AnalysisFlightRouteResponse, String> {
+        analysis_route_response("code_ast", format!("{repo_id}:{path}:{line_hint:?}"))
+    }
+}
+
+#[async_trait]
+impl RepoOverviewFlightRouteProvider for RecordingAnalysisRouteProvider {
+    async fn repo_overview_batch(
+        &self,
+        repo_id: &str,
+    ) -> Result<AnalysisFlightRouteResponse, String> {
+        analysis_route_response("repo_overview", repo_id)
+    }
+}
+
+#[async_trait]
+impl RepoIndexFlightRouteProvider for RecordingAnalysisRouteProvider {
+    async fn repo_index_batch(
+        &self,
+        repo_id: Option<&str>,
+        refresh: bool,
+    ) -> Result<AnalysisFlightRouteResponse, String> {
+        analysis_route_response("repo_index", format!("{repo_id:?}:{refresh}"))
+    }
+}
+
+#[async_trait]
+impl RepoIndexStatusFlightRouteProvider for RecordingAnalysisRouteProvider {
+    async fn repo_index_status_batch(
+        &self,
+        repo_id: Option<&str>,
+    ) -> Result<AnalysisFlightRouteResponse, String> {
+        analysis_route_response("repo_index_status", format!("{repo_id:?}"))
+    }
+}
+
+#[async_trait]
+impl RepoSyncFlightRouteProvider for RecordingAnalysisRouteProvider {
+    async fn repo_sync_batch(
+        &self,
+        repo_id: &str,
+        mode: &str,
+    ) -> Result<AnalysisFlightRouteResponse, String> {
+        analysis_route_response("repo_sync", format!("{repo_id}:{mode}"))
+    }
+}
+
+#[async_trait]
+impl RepoDocCoverageFlightRouteProvider for RecordingAnalysisRouteProvider {
+    async fn repo_doc_coverage_batch(
+        &self,
+        repo_id: &str,
+        module_id: Option<&str>,
+    ) -> Result<AnalysisFlightRouteResponse, String> {
+        analysis_route_response("repo_doc_coverage", format!("{repo_id}:{module_id:?}"))
+    }
+}
+
+#[async_trait]
+impl RepoProjectedPageIndexTreeFlightRouteProvider for RecordingAnalysisRouteProvider {
+    async fn repo_projected_page_index_tree_batch(
+        &self,
+        repo_id: &str,
+        page_id: &str,
+    ) -> Result<AnalysisFlightRouteResponse, Status> {
+        analysis_route_response(
+            "repo_projected_page_index_tree",
+            format!("{repo_id}:{page_id}"),
+        )
+        .map_err(Status::internal)
+    }
+}
+
+#[async_trait]
+impl RefineDocFlightRouteProvider for RecordingAnalysisRouteProvider {
+    async fn refine_doc_batch(
+        &self,
+        repo_id: &str,
+        entity_id: &str,
+        user_hints: Option<&str>,
+    ) -> Result<AnalysisFlightRouteResponse, Status> {
+        analysis_route_response(
+            "refine_doc",
+            format!("{repo_id}:{entity_id}:{user_hints:?}"),
+        )
+        .map_err(Status::internal)
+    }
+}
+
 pub(super) fn build_service(state: Arc<GatewayState>) -> WendaoFlightService {
     build_studio_search_flight_service_with_repo_provider(
         "v2",
@@ -307,6 +408,28 @@ pub(super) fn build_service(state: Arc<GatewayState>) -> WendaoFlightService {
         RerankScoreWeights::default(),
     )
     .unwrap_or_else(|error| panic!("build studio flight service: {error}"))
+}
+
+pub(super) fn build_analysis_route_service() -> WendaoFlightService {
+    let analysis_provider = Arc::new(RecordingAnalysisRouteProvider);
+    let mut route_providers =
+        WendaoFlightRouteProviders::new(Arc::new(RecordingRepoSearchProvider));
+    route_providers.markdown_analysis = Some(analysis_provider.clone());
+    route_providers.code_ast_analysis = Some(analysis_provider.clone());
+    route_providers.repo_overview = Some(analysis_provider.clone());
+    route_providers.repo_index = Some(analysis_provider.clone());
+    route_providers.repo_index_status = Some(analysis_provider.clone());
+    route_providers.repo_sync = Some(analysis_provider.clone());
+    route_providers.repo_doc_coverage = Some(analysis_provider.clone());
+    route_providers.repo_projected_page_index_tree = Some(analysis_provider.clone());
+    route_providers.refine_doc = Some(analysis_provider);
+    WendaoFlightService::new_with_route_providers_and_sql(
+        "v2",
+        route_providers,
+        3,
+        RerankScoreWeights::default(),
+    )
+    .unwrap_or_else(|error| panic!("build analysis route flight service: {error}"))
 }
 
 #[allow(dead_code)]

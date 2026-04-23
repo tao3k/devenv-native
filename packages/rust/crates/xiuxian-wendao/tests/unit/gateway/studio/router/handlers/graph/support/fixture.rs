@@ -13,7 +13,7 @@ pub(crate) struct Fixture {
 
 pub(crate) fn build_fixture_with_projects(
     docs: &[(&str, &str)],
-    projects: Vec<UiProjectConfig>,
+    projects: &[UiProjectConfig],
 ) -> Fixture {
     let temp_dir = tempfile::tempdir().unwrap_or_else(|error| panic!("create tempdir: {error}"));
     for (path, content) in docs {
@@ -31,13 +31,13 @@ pub(crate) fn build_fixture_with_projects(
     studio_state.config_root = temp_dir.path().to_path_buf();
     studio_state.seed_configured_owners_for_tests(
         UiConfig {
-            projects: projects.clone(),
+            projects: projects.to_vec(),
             repo_projects: Vec::new(),
         },
         false,
     );
 
-    let include_dirs = graph_include_dirs(temp_dir.path(), projects.as_slice());
+    let include_dirs = graph_include_dirs(temp_dir.path(), projects);
     let graph_index =
         LinkGraphIndex::build_with_filters(temp_dir.path(), include_dirs.as_slice(), &[])
             .unwrap_or_else(|error| panic!("build fixture graph index: {error}"));
@@ -88,7 +88,7 @@ fn graph_include_dirs(project_root: &std::path::Path, projects: &[UiProjectConfi
 pub(crate) fn build_fixture(docs: &[(&str, &str)]) -> Fixture {
     build_fixture_with_projects(
         docs,
-        vec![UiProjectConfig {
+        &[UiProjectConfig {
             name: "kernel".to_string(),
             root: ".".to_string(),
             dirs: vec![".".to_string()],

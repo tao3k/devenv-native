@@ -25,20 +25,23 @@ impl SearchPlaneService {
         }
 
         let cache_key = source_snapshot_entry_cache_key(project_root, file);
-        let cell = self
-            .source_snapshot_entries
-            .read()
-            .unwrap_or_else(std::sync::PoisonError::into_inner)
-            .get(&cache_key)
-            .cloned()
-            .unwrap_or_else(|| {
-                self.source_snapshot_entries
-                    .write()
-                    .unwrap_or_else(std::sync::PoisonError::into_inner)
-                    .entry(cache_key)
-                    .or_insert_with(|| Arc::new(std::sync::OnceLock::new()))
-                    .clone()
-            });
+        let maybe_cell = {
+            self.source_snapshot_entries
+                .read()
+                .unwrap_or_else(std::sync::PoisonError::into_inner)
+                .get(&cache_key)
+                .cloned()
+        };
+        let cell = if let Some(cell) = maybe_cell {
+            cell
+        } else {
+            self.source_snapshot_entries
+                .write()
+                .unwrap_or_else(std::sync::PoisonError::into_inner)
+                .entry(cache_key)
+                .or_insert_with(|| Arc::new(std::sync::OnceLock::new()))
+                .clone()
+        };
         if let Some(existing) = cell.get() {
             self.record_repeat_work_file(
                 "source_snapshot",

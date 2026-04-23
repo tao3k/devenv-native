@@ -1,7 +1,11 @@
+#[cfg(feature = "sqlite")]
 pub(crate) use super::bpmn_cli::{
-    BpmnCancelCliCommand, BpmnCliCommand, BpmnEventPollCliCommand, BpmnResumeCliCommand,
-    BpmnRunCliCommand, BpmnStartCliCommand, BpmnStatusCliCommand, BpmnTaskCompleteCliCommand,
-    parse_bpmn_command, resolve_bpmn_checkpoint_store_with_env, run_bpmn_command,
+    BpmnCancelCliCommand, BpmnEventPollCliCommand, BpmnResumeCliCommand, BpmnStatusCliCommand,
+    BpmnTaskCompleteCliCommand,
+};
+pub(crate) use super::bpmn_cli::{
+    BpmnCliCommand, BpmnRunCliCommand, BpmnStartCliCommand, parse_bpmn_command,
+    resolve_bpmn_checkpoint_store_with_env, run_bpmn_command,
     run_bpmn_run_command_with_runtime_env,
 };
 pub(crate) use super::contract_feedback_cli::{

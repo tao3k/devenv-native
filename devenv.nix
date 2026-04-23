@@ -9,6 +9,8 @@
 let
   processModuleStamp = builtins.readFile ./nix/modules/process.nix;
   processModuleStampHash = builtins.hashString "sha256" processModuleStamp;
+  prekhookModuleStamp = builtins.readFile ./nix/modules/prek.nix;
+  prekhookModuleStampHash = builtins.hashString "sha256" prekhookModuleStamp;
   nixpkgs-latest = import inputs.nixpkgs-latest {
     system = pkgs.stdenv.hostPlatform.system;
     config = {
@@ -49,7 +51,7 @@ in
     nixosModules.claude
     nixosModules.flake-parts.omnibus
     nixosModules.files
-    nixosModules.lefthook
+    nixosModules.prek
     nixosModules.python
     nixosModules.llm
     nixosModules.rust
@@ -110,6 +112,7 @@ in
 
   enterShell = ''
     # process-module-stamp: ${processModuleStampHash}
+    # prekhook-module-stamp: ${prekhookModuleStampHash}
     export PATH="$DEVENV_ROOT/.devenv/profile/bin:$DEVENV_ROOT/.venv/bin:$PATH"
     export OLLAMA_MODELS="''${OLLAMA_MODELS:-''${PRJ_DATA_HOME:-$DEVENV_ROOT/.data}/models}"
     ${lib.optionalString (pkgs.stdenv.hostPlatform.isDarwin) ''
@@ -130,6 +133,7 @@ in
     black.enable = true;
     rustfmt.enable = true;
     clippy.enable = true;
+    prettier.enable = true;
     clippy.packageOverrides.cargo = config.languages.rust.toolchain.cargo;
     clippy.packageOverrides.clippy = config.languages.rust.toolchain.clippy;
     clippy.settings.allFeatures = true;

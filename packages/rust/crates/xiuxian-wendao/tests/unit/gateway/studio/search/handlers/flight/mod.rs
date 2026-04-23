@@ -16,8 +16,8 @@ use super::{
     StudioSearchFlightRouteProvider, build_studio_search_flight_service_with_repo_provider,
 };
 use fixtures::{
-    build_service, make_gateway_state_with_attachments, make_gateway_state_with_docs,
-    make_gateway_state_with_repo, make_gateway_state_with_search_routes,
+    build_analysis_route_service, build_service, make_gateway_state_with_attachments,
+    make_gateway_state_with_docs, make_gateway_state_with_search_routes,
 };
 use headers::{
     populate_attachment_headers, populate_autocomplete_headers, populate_definition_headers,

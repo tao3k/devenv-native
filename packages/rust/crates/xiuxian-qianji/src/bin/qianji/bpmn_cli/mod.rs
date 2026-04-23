@@ -10,11 +10,14 @@ mod render;
 mod run;
 mod types;
 
+#[cfg(all(test, feature = "sqlite"))]
+pub(crate) use api::{
+    BpmnCancelCliCommand, BpmnEventPollCliCommand, BpmnResumeCliCommand, BpmnStatusCliCommand,
+    BpmnTaskCompleteCliCommand,
+};
 #[cfg(test)]
 pub(crate) use api::{
-    BpmnCancelCliCommand, BpmnCliCommand, BpmnEventPollCliCommand, BpmnResumeCliCommand,
-    BpmnRunCliCommand, BpmnStartCliCommand, BpmnStatusCliCommand, BpmnTaskCompleteCliCommand,
-    resolve_bpmn_checkpoint_store_with_env, run_bpmn_command,
-    run_bpmn_run_command_with_runtime_env,
+    BpmnCliCommand, BpmnRunCliCommand, BpmnStartCliCommand, resolve_bpmn_checkpoint_store_with_env,
+    run_bpmn_command, run_bpmn_run_command_with_runtime_env,
 };
 pub(crate) use api::{handle_bpmn_command, parse_bpmn_command};

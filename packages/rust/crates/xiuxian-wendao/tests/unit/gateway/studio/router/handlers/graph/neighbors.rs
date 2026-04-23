@@ -159,7 +159,7 @@ async fn graph_neighbors_prefers_exact_display_path_for_project_scoped_index_pag
                 ),
             ),
         ],
-        vec![
+        &[
             UiProjectConfig {
                 name: "kernel".to_string(),
                 root: "frontend".to_string(),

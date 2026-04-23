@@ -1,3 +1,4 @@
+#[cfg(feature = "sqlite")]
 use super::*;
 
 #[cfg(feature = "sqlite")]
