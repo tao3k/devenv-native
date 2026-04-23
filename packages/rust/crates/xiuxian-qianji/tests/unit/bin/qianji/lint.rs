@@ -88,7 +88,11 @@ fn run_lint_command_renders_failure_with_llm_guidance() {
 
     assert_eq!(output.exit_code, 2);
     assert!(output.rendered.starts_with("# Lint Failed"));
-    assert!(output.rendered.contains("[bpmn.unsupported_element]"));
+    assert!(
+        output
+            .rendered
+            .contains("[bpmn.unsupported_gateway_configuration]")
+    );
     assert!(output.rendered.contains("### Repair Guidance"));
     assert!(output.rendered.contains("### LLM Fix Prompt"));
     assert!(output.rendered.contains("inclusiveGateway"));

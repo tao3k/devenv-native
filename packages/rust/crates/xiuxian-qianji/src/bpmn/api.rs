@@ -22,7 +22,7 @@ pub use super::error::BpmnOrchestrationError;
 pub use super::execution::{
     DEFAULT_QIANJI_BPMN_SCHEDULER_LEASE_TTL_MS, QianjiBpmnExecutionFacade, QianjiBpmnExecutionMode,
 };
-pub use super::http::{
+pub use super::http_transport::{
     QianjiBpmnWorkflowActionHttpRequest, QianjiBpmnWorkflowCancelHttpResponse,
     QianjiBpmnWorkflowHttpCheckpointBackend, QianjiBpmnWorkflowHttpErrorBody,
     QianjiBpmnWorkflowHttpState, QianjiBpmnWorkflowRunHttpResponse,

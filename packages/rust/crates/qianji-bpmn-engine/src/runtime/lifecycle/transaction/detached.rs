@@ -235,7 +235,7 @@ fn enqueue_detached_host_work(
     spec: DetachedHostWorkSpec,
     now_ms: u64,
 ) {
-    let token_id = state::next_token_id(instance);
+    let token_id = state::allocate_token_id(instance);
     instance.pending_host_work.push(PendingHostWork {
         token_id,
         process_id: Some(process_id.to_string()),

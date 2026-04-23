@@ -21,7 +21,8 @@ mod driver;
 mod error;
 #[path = "../bpmn_runtime_execution.rs"]
 mod execution;
-mod http;
+#[path = "http/mod.rs"]
+mod http_transport;
 #[path = "../bpmn_runtime_loader.rs"]
 mod loader;
 #[path = "../bpmn_runtime_ownership.rs"]

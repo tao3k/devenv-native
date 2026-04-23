@@ -24,6 +24,7 @@ pub(crate) fn create_instance_impl(
         process_index,
         call_stack: Vec::new(),
         sequence: 0,
+        next_token_id: 1,
         lifecycle: InstanceLifecycle::Ready,
         variables: init.initial_variables,
         node_states: build_node_states(process),

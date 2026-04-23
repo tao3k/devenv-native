@@ -215,6 +215,12 @@ pub struct BpmnInstanceState {
     pub call_stack: Vec<CallActivityFrame>,
     /// Monotonic checkpoint sequence.
     pub sequence: u64,
+    /// Next token id reserved for this instance lifetime.
+    ///
+    /// Older checkpoints that lack this field recover the cursor from live
+    /// and suspended token-bearing state before the next allocation.
+    #[serde(default)]
+    pub next_token_id: u64,
     /// High-level lifecycle state.
     pub lifecycle: InstanceLifecycle,
     /// Workflow variables.

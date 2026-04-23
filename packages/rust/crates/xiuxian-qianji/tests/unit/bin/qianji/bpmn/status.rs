@@ -1,6 +1,9 @@
 use super::*;
 
 #[cfg(feature = "sqlite")]
+use crate::test_exports::BpmnStatusCliCommand;
+
+#[cfg(feature = "sqlite")]
 #[tokio::test(flavor = "current_thread")]
 async fn run_bpmn_status_command_renders_waiting_sqlite_checkpoint() {
     let temp_dir =

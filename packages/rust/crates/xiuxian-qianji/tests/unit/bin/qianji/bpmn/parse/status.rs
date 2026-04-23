@@ -1,6 +1,9 @@
 use super::*;
 
 #[cfg(feature = "sqlite")]
+use crate::test_exports::BpmnStatusCliCommand;
+
+#[cfg(feature = "sqlite")]
 #[test]
 fn parse_bpmn_command_accepts_status_with_sqlite_checkpoint_backend() {
     let command = must_some(

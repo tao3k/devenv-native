@@ -1,6 +1,9 @@
 use super::*;
 
 #[cfg(feature = "sqlite")]
+use crate::test_exports::BpmnTaskCompleteCliCommand;
+
+#[cfg(feature = "sqlite")]
 #[test]
 fn parse_bpmn_command_accepts_tasks_complete_with_sqlite_checkpoint_backend() {
     let command = must_some(

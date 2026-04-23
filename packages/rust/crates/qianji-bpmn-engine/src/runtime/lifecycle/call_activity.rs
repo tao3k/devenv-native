@@ -1,6 +1,6 @@
 use super::scope::{
     BpmnEngineError, BpmnEventKind, BpmnInstanceState, BpmnNodeIndex, BpmnPackage, BpmnProcessSpec,
-    BpmnSubProcessKind, InstanceLifecycle, NodeRuntimeStatus, Result, SuspendReason, TokenRecord,
+    BpmnSubProcessKind, InstanceLifecycle, NodeRuntimeStatus, Result, SuspendReason,
     install_process_state, pop_call_activity_frame, push_call_activity_frame,
     resolve_process_for_instance, restore_call_activity_frame,
 };
@@ -40,12 +40,7 @@ pub(super) fn bootstrap_start_token(
     now_ms: u64,
 ) -> Result<()> {
     let start_node_index = state::find_single_start_node(process)?;
-    instance.active_tokens.push(TokenRecord {
-        token_id: instance.sequence + 1,
-        node_index: start_node_index,
-        incoming_edge_index: None,
-        inclusive_join_hint: None,
-    });
+    let _ = state::push_active_token_with_arrival(instance, None, start_node_index);
     state::set_node_status(instance, start_node_index, NodeRuntimeStatus::Queued);
     state::record_transition(instance, now_ms, InstanceLifecycle::Running);
     Ok(())

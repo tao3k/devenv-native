@@ -34,11 +34,12 @@ impl FrontierTokenLookup {
         instance: &BpmnInstanceState,
         proposal: &BpmnFrontierExecutionProposal,
     ) -> Option<usize> {
+        if proposal_matches_token_at_index(instance, proposal, proposal.token_index) {
+            return Some(proposal.token_index);
+        }
+
         let token_index = self.token_index_for_id(instance, proposal.token_id)?;
-        let token = instance.active_tokens.get(token_index)?;
-        (token.node_index == proposal.node_index
-            && token.incoming_edge_index == proposal.incoming_edge_index)
-            .then_some(token_index)
+        proposal_matches_token_at_index(instance, proposal, token_index).then_some(token_index)
     }
 
     pub(crate) fn invalidate(&mut self) {
@@ -56,4 +57,19 @@ impl FrontierTokenLookup {
                 .collect(),
         );
     }
+}
+
+fn proposal_matches_token_at_index(
+    instance: &BpmnInstanceState,
+    proposal: &BpmnFrontierExecutionProposal,
+    token_index: usize,
+) -> bool {
+    instance
+        .active_tokens
+        .get(token_index)
+        .is_some_and(|token| {
+            token.token_id == proposal.token_id
+                && token.node_index == proposal.node_index
+                && token.incoming_edge_index == proposal.incoming_edge_index
+        })
 }

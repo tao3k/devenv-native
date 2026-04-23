@@ -1,7 +1,6 @@
 //! Qianji server binary entry seam.
 //!
-//! The server shell owns transport startup only; workflow control stays in the
-//! library-owned BPMN HTTP router.
+//! Start with `run`; this shell owns transport startup only.
 
 #[path = "qianji_server/cli.rs"]
 mod cli;

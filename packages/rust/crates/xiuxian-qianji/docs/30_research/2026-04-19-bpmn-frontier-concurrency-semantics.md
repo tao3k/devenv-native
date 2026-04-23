@@ -1049,3 +1049,25 @@ What landed:
    `iterations=200000`
 6. the single-writer Valkey checkpoint contract, public frontier API, and
    external BPMN behavior remained unchanged
+
+## 37. Follow-up After Frontier Proposal Index Fast Path Slice
+
+The next bounded frontier-runtime performance slice used data that the runtime
+already carries. Each execution proposal includes the token index observed
+during frontier planning; the runtime now validates that index before falling
+back to token-id lookup.
+
+What landed:
+
+1. frontier proposal execution first checks whether `proposal.token_index`
+   still points at the same token id, node index, and incoming edge
+2. stale proposal indexes still fall back to the existing token-id lookup, so
+   token removal or re-indexing cases remain safe
+3. focused frontier tests still pass, including the parallel-join cases that
+   force re-indexing after token removal
+4. the ignored local frontier token lookup probe measured
+   `linear_ms=780.653`, `batch_lookup_ms=111.312`, and
+   `proposal_index_ms=0.672` over `tokens=10000`,
+   `lookups_per_batch=512`, and `iterations=64`
+5. the single-writer Valkey checkpoint contract, public frontier API, and
+   external BPMN behavior remained unchanged

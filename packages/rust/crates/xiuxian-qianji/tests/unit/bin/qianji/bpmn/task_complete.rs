@@ -1,6 +1,9 @@
 use super::*;
 
 #[cfg(feature = "sqlite")]
+use crate::test_exports::BpmnTaskCompleteCliCommand;
+
+#[cfg(feature = "sqlite")]
 use qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnCheckpointEnvelope, BpmnHostBridge, BpmnInstanceInit,
     BusinessRuleTaskOutcome, BusinessRuleTaskRequest, EventPollOutcome, EventPollRequest,

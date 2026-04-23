@@ -3,6 +3,17 @@ use crate::bpmn::control::QianjiBpmnWorkflowControlService;
 use axum::Router;
 use qianji_bpmn_engine::BpmnHostBridge;
 
+pub(in crate::bpmn::http_transport) use super::error_api::QianjiBpmnWorkflowHttpError;
+pub use super::error_api::QianjiBpmnWorkflowHttpErrorBody;
+pub use super::request_api::{
+    QianjiBpmnWorkflowActionHttpRequest, QianjiBpmnWorkflowHttpCheckpointBackend,
+    QianjiBpmnWorkflowStartHttpRequest, QianjiBpmnWorkflowStatusHttpQuery,
+};
+pub use super::response_api::{
+    QianjiBpmnWorkflowCancelHttpResponse, QianjiBpmnWorkflowRunHttpResponse,
+    QianjiBpmnWorkflowSnapshotHttpResponse, QianjiBpmnWorkflowStatusHttpResponse,
+};
+
 /// Shared state for the embeddable BPMN workflow HTTP router.
 #[derive(Clone)]
 pub struct QianjiBpmnWorkflowHttpState<H> {

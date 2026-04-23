@@ -1,10 +1,9 @@
-use super::api::QianjiBpmnWorkflowHttpState;
-use super::dto::{
-    QianjiBpmnWorkflowActionHttpRequest, QianjiBpmnWorkflowHttpError,
-    QianjiBpmnWorkflowRunHttpResponse, QianjiBpmnWorkflowStartHttpRequest,
-    QianjiBpmnWorkflowStatusHttpQuery, QianjiBpmnWorkflowStatusHttpResponse,
+use super::api::{
+    QianjiBpmnWorkflowActionHttpRequest, QianjiBpmnWorkflowCancelHttpResponse,
+    QianjiBpmnWorkflowHttpError, QianjiBpmnWorkflowHttpState, QianjiBpmnWorkflowRunHttpResponse,
+    QianjiBpmnWorkflowStartHttpRequest, QianjiBpmnWorkflowStatusHttpQuery,
+    QianjiBpmnWorkflowStatusHttpResponse,
 };
-use crate::bpmn::control::QianjiBpmnWorkflowStatusRequest;
 use axum::extract::{Path, Query, State};
 use axum::routing::{get, post};
 use axum::{Json, Router};
@@ -116,10 +115,7 @@ where
 {
     let report = state
         .service
-        .load_workflow_status(&QianjiBpmnWorkflowStatusRequest {
-            instance_id,
-            checkpoint_backend: query.into_control_backend()?,
-        })
+        .load_workflow_status(&query.into_status_request(instance_id)?)
         .await?;
     Ok(Json(QianjiBpmnWorkflowStatusHttpResponse::from_report(
         &report,
@@ -130,7 +126,7 @@ async fn cancel_workflow<H>(
     State(state): State<QianjiBpmnWorkflowHttpState<H>>,
     Path(instance_id): Path<String>,
     Json(request): Json<QianjiBpmnWorkflowActionHttpRequest>,
-) -> Result<Json<super::dto::QianjiBpmnWorkflowCancelHttpResponse>, QianjiBpmnWorkflowHttpError>
+) -> Result<Json<QianjiBpmnWorkflowCancelHttpResponse>, QianjiBpmnWorkflowHttpError>
 where
     H: BpmnHostBridge + Clone + Send + Sync + 'static,
 {
@@ -138,7 +134,7 @@ where
         .service
         .cancel_workflow(&request.into_cancel_request(instance_id))
         .await?;
-    Ok(Json(
-        super::dto::QianjiBpmnWorkflowCancelHttpResponse::from_report(&report),
-    ))
+    Ok(Json(QianjiBpmnWorkflowCancelHttpResponse::from_report(
+        &report,
+    )))
 }

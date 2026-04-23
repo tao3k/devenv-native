@@ -29,5 +29,5 @@ mod external_wait;
 #[path = "unit/runtime/mod.rs"]
 mod runtime;
 
-#[path = "unit/performance.rs"]
+#[path = "unit/performance/mod.rs"]
 mod performance;

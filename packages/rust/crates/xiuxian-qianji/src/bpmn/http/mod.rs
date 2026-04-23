@@ -1,16 +1,21 @@
 //! Embeddable HTTP JSON router for BPMN workflow control.
 //!
-//! `mod.rs` is interface-only for the HTTP transport slice.
+//! Start with `api`; request, response, and error DTOs stay leaf-owned.
 
 mod api;
-mod dto;
+#[path = "error/api.rs"]
+mod error_api;
+#[path = "request/api.rs"]
+mod request_api;
+#[path = "response/api.rs"]
+mod response_api;
 mod routes;
 
-pub use api::{QianjiBpmnWorkflowHttpState, qianji_bpmn_workflow_router};
-pub use dto::{
+pub use api::{
     QianjiBpmnWorkflowActionHttpRequest, QianjiBpmnWorkflowCancelHttpResponse,
     QianjiBpmnWorkflowHttpCheckpointBackend, QianjiBpmnWorkflowHttpErrorBody,
-    QianjiBpmnWorkflowRunHttpResponse, QianjiBpmnWorkflowSnapshotHttpResponse,
-    QianjiBpmnWorkflowStartHttpRequest, QianjiBpmnWorkflowStatusHttpQuery,
-    QianjiBpmnWorkflowStatusHttpResponse,
+    QianjiBpmnWorkflowHttpState, QianjiBpmnWorkflowRunHttpResponse,
+    QianjiBpmnWorkflowSnapshotHttpResponse, QianjiBpmnWorkflowStartHttpRequest,
+    QianjiBpmnWorkflowStatusHttpQuery, QianjiBpmnWorkflowStatusHttpResponse,
+    qianji_bpmn_workflow_router,
 };

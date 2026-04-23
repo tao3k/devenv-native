@@ -1,6 +1,9 @@
 use super::*;
 
 #[cfg(feature = "sqlite")]
+use crate::test_exports::BpmnCancelCliCommand;
+
+#[cfg(feature = "sqlite")]
 #[tokio::test(flavor = "current_thread")]
 async fn run_bpmn_cancel_command_deletes_waiting_sqlite_checkpoint() {
     let temp_dir =
