@@ -1,4 +1,7 @@
-use crate::dmn_model_api::{DmnDecisionDefinition, DmnDecisionRef};
+use crate::dmn_model_api::{
+    DmnBusinessKnowledgeModelDefinition, DmnDecisionDefinition, DmnDecisionRef,
+    DmnInputDataDefinition,
+};
 use crate::error::{BpmnEngineError, Result};
 use crate::ir_process_lookup::usize_to_u32;
 use crate::ir_process_spec::BpmnProcessSpec;
@@ -14,6 +17,13 @@ pub struct BpmnPackage {
     /// Optional engine-owned DMN decision registry for local business-rule execution.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub dmn_decisions: Vec<DmnDecisionDefinition>,
+    /// Optional engine-owned DMN input-data registry for bounded local input binding.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub dmn_input_data: Vec<DmnInputDataDefinition>,
+    /// Optional engine-owned DMN business-knowledge-model registry for later
+    /// local knowledge lookup.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub dmn_business_knowledge_models: Vec<DmnBusinessKnowledgeModelDefinition>,
 }
 
 impl BpmnPackage {
@@ -24,6 +34,8 @@ impl BpmnPackage {
             package_id: Arc::<str>::from(package_id.as_ref()),
             processes,
             dmn_decisions: Vec::new(),
+            dmn_input_data: Vec::new(),
+            dmn_business_knowledge_models: Vec::new(),
         }
     }
 
@@ -31,6 +43,23 @@ impl BpmnPackage {
     #[must_use]
     pub fn with_dmn_decisions(mut self, dmn_decisions: Vec<DmnDecisionDefinition>) -> Self {
         self.dmn_decisions = dmn_decisions;
+        self
+    }
+
+    /// Attaches engine-owned DMN input-data definitions to the package.
+    #[must_use]
+    pub fn with_dmn_input_data(mut self, dmn_input_data: Vec<DmnInputDataDefinition>) -> Self {
+        self.dmn_input_data = dmn_input_data;
+        self
+    }
+
+    /// Attaches engine-owned DMN business-knowledge-model definitions to the package.
+    #[must_use]
+    pub fn with_dmn_business_knowledge_models(
+        mut self,
+        dmn_business_knowledge_models: Vec<DmnBusinessKnowledgeModelDefinition>,
+    ) -> Self {
+        self.dmn_business_knowledge_models = dmn_business_knowledge_models;
         self
     }
 
@@ -57,6 +86,19 @@ impl BpmnPackage {
     #[must_use]
     pub fn dmn_decisions(&self) -> &[DmnDecisionDefinition] {
         &self.dmn_decisions
+    }
+
+    /// Returns the registered DMN input-data definitions owned by the package.
+    #[must_use]
+    pub fn dmn_input_data(&self) -> &[DmnInputDataDefinition] {
+        &self.dmn_input_data
+    }
+
+    /// Returns the registered DMN business-knowledge-model definitions owned
+    /// by the package.
+    #[must_use]
+    pub fn dmn_business_knowledge_models(&self) -> &[DmnBusinessKnowledgeModelDefinition] {
+        &self.dmn_business_knowledge_models
     }
 
     /// Finds one deterministic DMN decision definition for a business-rule reference.
@@ -90,5 +132,37 @@ impl BpmnPackage {
             });
         }
         Ok(Some(first_match))
+    }
+
+    /// Finds one deterministic DMN input-data definition for one same-source id.
+    #[must_use]
+    pub fn find_dmn_input_data(
+        &self,
+        source_id: &str,
+        input_data_id: &str,
+    ) -> Option<&DmnInputDataDefinition> {
+        self.dmn_input_data.iter().find(|input_data| {
+            input_data.source_id.as_ref() == source_id
+                && input_data.input_data_id.as_deref() == Some(input_data_id)
+        })
+    }
+
+    /// Finds one deterministic DMN business-knowledge-model definition for one
+    /// same-source id.
+    #[must_use]
+    pub fn find_dmn_business_knowledge_model(
+        &self,
+        source_id: &str,
+        business_knowledge_model_id: &str,
+    ) -> Option<&DmnBusinessKnowledgeModelDefinition> {
+        self.dmn_business_knowledge_models
+            .iter()
+            .find(|business_knowledge_model| {
+                business_knowledge_model.source_id.as_ref() == source_id
+                    && business_knowledge_model
+                        .business_knowledge_model_id
+                        .as_deref()
+                        == Some(business_knowledge_model_id)
+            })
     }
 }

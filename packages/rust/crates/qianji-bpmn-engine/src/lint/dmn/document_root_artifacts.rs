@@ -18,16 +18,17 @@ pub(super) fn unsupported_decision_service_issue(
             "Source '{source_id}' contains top-level `<decisionService>` definitions, but no executable `<decision>` elements."
         ),
         format!(
-            "The bounded DMN evaluator does not execute `decisionService` contracts yet; it still requires at least one executable `<decision>`.{}",
+            "The bounded DMN evaluator does not execute `decisionService` contracts yet; it still requires at least one executable `<decision>`. Direct decision-service references are preserved only as non-executable snapshot metadata.{}",
             root_context(snapshot)
         ),
         vec![
             "If the source should be executable in this slice, expose at least one `<decision>` with exactly one nested `<decisionTable>`.".to_string(),
             "Do not invent decision-table rules from a `decisionService` contract unless the underlying decision logic is explicitly available.".to_string(),
+            "Preserve any reported `outputDecision`, `encapsulatedDecision`, `inputDecision`, and `inputData` hrefs under `document_root.decision_services` when generating repair patches or adapter payloads.".to_string(),
             "If the file is intentionally metadata-only, preserve it as a non-executable DMN artifact and report unsupported `decisionService` execution.".to_string(),
         ],
         format!(
-            "Inspect DMN source '{source_id}' and do not fabricate decision-table logic from `<decisionService>` metadata. Either expose the underlying executable `<decision>` elements with bounded `<decisionTable>` content, or keep the file non-executable and report that `decisionService` execution is unsupported in this slice."
+            "Inspect DMN source '{source_id}' and do not fabricate decision-table logic from `<decisionService>` metadata. Preserve reported `document_root.decision_services` references, then either expose the underlying executable `<decision>` elements with bounded `<decisionTable>` content, or keep the file non-executable and report that `decisionService` execution is unsupported in this slice."
         ),
         augment_evidence(
             json!({
@@ -173,16 +174,17 @@ pub(super) fn unsupported_business_knowledge_model_artifact_issue(
             "Source '{source_id}' contains {business_knowledge_model_count} top-level `<businessKnowledgeModel>` {noun}, but no executable `<decision>` elements."
         ),
         format!(
-            "The bounded DMN evaluator does not execute top-level business-knowledge models directly in this slice; they do not become executable decision logic without at least one local `<decision>`.{}",
+            "The bounded DMN evaluator does not execute top-level business-knowledge models directly in this slice; they do not become executable decision logic without at least one local `<decision>`. The bounded parser now preserves direct BKM invocable metadata, including `variable`, `encapsulatedLogic`, and any direct body placeholder, but runtime still does not execute that callable surface.{}",
             root_context(snapshot)
         ),
         vec![
             "If the source should be executable in this slice, add at least one `<decision>` with exactly one nested `<decisionTable>` that explicitly consumes or wraps the existing business-knowledge-model surface.".to_string(),
-            "Do not inline or approximate `businessKnowledgeModel` bodies into guessed decision-table rules unless the missing local decision logic is explicit and lossless.".to_string(),
+            "Do not inline or approximate `businessKnowledgeModel` invocable semantics into guessed decision-table rules unless the missing local decision logic is explicit and lossless.".to_string(),
+            "Preserve any reported invocable metadata under `document_root.business_knowledge_models`, including `variable`, `encapsulatedLogic`, and direct body placeholders, when generating repair patches or adapter payloads.".to_string(),
             "If the file is intentionally metadata-only, preserve it as a non-executable DMN artifact and report unsupported business-knowledge-model-only execution.".to_string(),
         ],
         format!(
-            "Inspect DMN source '{source_id}' and do not fabricate decision-table logic just from top-level `<businessKnowledgeModel>` metadata. Either add one bounded executable `<decision>` with explicit local `<decisionTable>` logic, or keep the file non-executable and report unsupported business-knowledge-model-only execution."
+            "Inspect DMN source '{source_id}' and do not fabricate decision-table logic just from top-level `<businessKnowledgeModel>` metadata. Preserve reported `document_root.business_knowledge_models` metadata, including any preserved invocable `variable`, `encapsulatedLogic`, and direct body evidence, then either add one bounded executable `<decision>` with explicit local `<decisionTable>` logic, or keep the file non-executable and report unsupported business-knowledge-model-only execution."
         ),
         augment_evidence(
             json!({

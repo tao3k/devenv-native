@@ -1,4 +1,5 @@
 use super::document::issue_from_bpmn_document_error;
+use super::document_surface::deferred_document_surface_issue;
 use super::execution::issue_from_bpmn_execution_shape_error;
 use super::identity::issue_from_bpmn_identity_error;
 use super::reference::issue_from_bpmn_reference_error;
@@ -11,6 +12,10 @@ use crate::lint_api::{LintDomain, LintIssue, LintReport};
 /// Lints one BPMN source and returns an LLM-friendly blocking report.
 #[must_use]
 pub(crate) fn lint_bpmn_source_impl(source: &BpmnSourceFile) -> LintReport {
+    if let Some(issue) = deferred_document_surface_issue(source) {
+        return LintReport::blocking(LintDomain::Bpmn, &source.source_id, vec![issue]);
+    }
+
     match parse_bpmn_package(std::slice::from_ref(source), &BpmnParseOptions::default()) {
         Ok(_) => LintReport::ok(LintDomain::Bpmn, &source.source_id),
         Err(error) => LintReport::blocking(

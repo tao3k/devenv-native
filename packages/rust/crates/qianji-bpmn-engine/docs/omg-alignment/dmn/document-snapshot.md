@@ -13,6 +13,14 @@ owned by `qianji-bpmn-engine`.
   `elementCollection`, `group`, and `dmndi:DMNDI`
 - decision-header counts for bounded requirement, governance, and unsupported
   direct-expression constructs
+- decision-owned direct requirement reference metadata including parent
+  requirement kind, direct reference kind, and `href`
+- decision-owned direct `invocation` metadata including the direct invoked
+  literal-expression text plus direct binding parameter and argument
+  literal-expression placeholders
+- decision-owned direct `functionDefinition` metadata including function kind,
+  direct formal-parameter placeholders, and one direct body literal-expression
+  placeholder
 - top-level `itemDefinition` metadata including bounded `id`, `name`,
   `typeRef`, `isCollection`, and one direct `itemComponent` placeholder
   layer
@@ -20,9 +28,12 @@ owned by `qianji-bpmn-engine`.
   optional direct `variable` placeholder with bounded `id`, `name`, and
   `typeRef`
 - top-level `knowledgeSource` metadata including bounded `id` and `name`
-- top-level `businessKnowledgeModel` metadata including bounded `id` and
-  `name`
-- top-level `decisionService` metadata including bounded `id` and `name`
+- top-level `businessKnowledgeModel` metadata including bounded `id`, `name`,
+  and one direct body `literalExpression` placeholder with bounded
+  `id`/`typeRef`/text metadata
+- top-level `decisionService` metadata including bounded `id`, `name`, and
+  direct `outputDecision`, `encapsulatedDecision`, `inputDecision`, and
+  `inputData` href placeholders
 - top-level `organizationUnit` metadata including bounded `id` and `name`
 - top-level `performanceIndicator` metadata including bounded `id` and
   `name`
@@ -53,6 +64,9 @@ owned by `qianji-bpmn-engine`.
 
 - the document snapshot is descriptive only and does not make metadata-only
   DMN sources executable
+- decision-owned requirement references are preserved as href placeholders
+  only; this includes direct `requiredInput`, `requiredDecision`,
+  `requiredKnowledge`, and `requiredAuthority`
 - top-level `itemDefinition` metadata is preserved so lint, adapter, and
   later DMN type-model work can reuse stable engine-owned placeholders
 - one bounded direct `itemComponent` layer is preserved under each top-level
@@ -66,8 +80,13 @@ owned by `qianji-bpmn-engine`.
 - top-level `businessKnowledgeModel` metadata is preserved so lint,
   adapter, and later knowledge-contract work can reuse stable
   engine-owned placeholders
+- one direct body `literalExpression` placeholder is preserved under each
+  top-level `businessKnowledgeModel`
 - top-level `decisionService` metadata is preserved so lint, adapter, and
   later service-contract work can reuse stable engine-owned placeholders
+- direct decision-service references are preserved as href placeholders only;
+  this includes direct `outputDecision`, `encapsulatedDecision`,
+  `inputDecision`, and `inputData`
 - top-level `organizationUnit` metadata is preserved so lint, adapter, and
   later governance-contract work can reuse stable engine-owned placeholders
 - top-level `performanceIndicator` metadata is preserved so lint, adapter,
@@ -115,11 +134,18 @@ owned by `qianji-bpmn-engine`.
   optional direct `DMNDecisionServiceDividerLine` placeholder bounded to
   one repeated direct `di:waypoint` placeholder list with optional x/y
   pairs
+- decision-owned direct `invocation` metadata is preserved so lint, adapter,
+  and later invocation-runtime work can reuse stable invoked-expression and
+  binding placeholders without fabricating called function semantics
+- decision-owned direct `functionDefinition` metadata is preserved so lint,
+  adapter, and later function-runtime work can reuse stable parameter and body
+  placeholders without fabricating function semantics
 
 ## Deferred
 
 - item-definition resolution into executable clause typing
-- input-data resolution into executable decision inputs
+- broader input-data resolution into executable decision inputs beyond the
+  current same-source alias-bind reuse
 - recursive or arbitrary-depth item-component traversal
 - recursive or broader variable/type-model traversal
 - authority-reference resolution beyond the current bounded target counts
@@ -144,7 +170,15 @@ owned by `qianji-bpmn-engine`.
   `DMNDecisionServiceDividerLine` placeholder capture
 - broader XML text capture beyond the current bounded `textAnnotation/text`
   seam
-- business-knowledge-model body capture or execution
-- decision-service output decision resolution or execution
-- DRD dependency execution
+- business-knowledge-model body execution or evaluation
+- decision-service reference resolution, output decision resolution, or
+  execution
+- broader requirement-reference href resolution or DRD dependency execution
+  beyond the current same-source `requiredDecision` recursion and
+  `requiredInput` alias-bind slice
+- direct invocation execution, called-function resolution, or binding
+  evaluation
+- direct function-definition execution, function body evaluation, or
+  parameter-binding evaluation
+- broader DRD dependency execution
 - broader FEEL or schema-validation completeness

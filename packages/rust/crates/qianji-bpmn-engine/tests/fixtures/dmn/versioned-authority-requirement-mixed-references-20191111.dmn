@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions
+  id="Definitions_authority_requirement_mixed_references"
+  name="Authority Requirement Mixed References"
+  namespace="https://example.com/dmn/authority-requirement-mixed-references"
+  xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/">
+  <inputData id="InputData_customer" name="Customer Input" />
+  <knowledgeSource id="KnowledgeSource_policy" name="Policy Authority" />
+  <decision id="Decision_upstream" name="Upstream Decision">
+    <decisionTable id="DecisionTable_upstream">
+      <input id="InputClause_customer_type">
+        <inputExpression id="InputExpression_customer_type" typeRef="string">
+          <text>customerType</text>
+        </inputExpression>
+      </input>
+      <output id="OutputClause_verdict" name="verdict" typeRef="string" />
+      <rule id="DecisionRule_upstream">
+        <inputEntry id="UnaryTests_customer_type">
+          <text>"standard"</text>
+        </inputEntry>
+        <outputEntry id="LiteralExpression_verdict">
+          <text>"approved"</text>
+        </outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+  <decision id="Decision_authority_requirement_mixed" name="Authority Requirement Mixed">
+    <authorityRequirement>
+      <requiredAuthority href="#KnowledgeSource_policy" />
+      <requiredDecision href="#Decision_upstream" />
+      <requiredInput href="#InputData_customer" />
+    </authorityRequirement>
+  </decision>
+</definitions>

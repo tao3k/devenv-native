@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions
+  id="Definitions_unsupported_literal_expression"
+  name="Unsupported Literal Expression Decision"
+  namespace="https://example.com/dmn/unsupported-literal-expression-decision"
+  xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/">
+  <decision id="Decision_unsupported_literal_expression" name="Unsupported Literal Expression Decision">
+    <literalExpression id="literal_expression_unsupported">
+      <text>applicant.age * 2</text>
+    </literalExpression>
+  </decision>
+</definitions>

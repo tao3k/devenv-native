@@ -42,6 +42,71 @@ fn parser_bundle_snapshot_populates_package_dmn_registry() {
 }
 
 #[test]
+fn parser_bundle_snapshot_populates_package_dmn_input_data_registry() {
+    let package = parse_bpmn_bundle(
+        &BpmnBundleSnapshot::new(vec![fixture_source(
+            "linear-business-rule-placeholder.bpmn",
+        )])
+        .with_dmn_sources(vec![dmn_fixture_source(
+            "versioned-local-required-input-runtime-20191111.dmn",
+        )]),
+        &BpmnParseOptions::default(),
+    )
+    .must("bundle snapshot should populate the package DMN input-data registry");
+
+    let input_data = package
+        .find_dmn_input_data(
+            "versioned-local-required-input-runtime-20191111.dmn",
+            "InputData_applicant",
+        )
+        .must("registered input-data should be present");
+
+    assert_eq!(package.dmn_decisions().len(), 1);
+    assert_eq!(package.dmn_input_data().len(), 1);
+    assert_eq!(input_data.name.as_deref(), Some("applicant_input"));
+    assert_eq!(input_data.variable_name.as_deref(), Some("applicant"));
+}
+
+#[test]
+fn parser_bundle_snapshot_populates_package_dmn_business_knowledge_model_registry() {
+    let package = parse_bpmn_bundle(
+        &BpmnBundleSnapshot::new(vec![fixture_source(
+            "linear-business-rule-placeholder.bpmn",
+        )])
+        .with_dmn_sources(vec![dmn_fixture_source(
+            "versioned-business-knowledge-model-registry-source-20191111.dmn",
+        )]),
+        &BpmnParseOptions::default(),
+    )
+    .must("bundle snapshot should populate the package DMN BKM registry");
+
+    let business_knowledge_model = package
+        .find_dmn_business_knowledge_model(
+            "versioned-business-knowledge-model-registry-source-20191111.dmn",
+            "BKM_policy_source",
+        )
+        .must("registered BKM should be present");
+
+    assert_eq!(package.dmn_decisions().len(), 1);
+    assert_eq!(package.dmn_business_knowledge_models().len(), 1);
+    assert_eq!(
+        business_knowledge_model.name.as_deref(),
+        Some("Policy Source")
+    );
+    assert_eq!(
+        business_knowledge_model.variable_name.as_deref(),
+        Some("policy")
+    );
+    assert_eq!(
+        business_knowledge_model
+            .encapsulated_logic
+            .as_ref()
+            .and_then(|logic| logic.kind.as_deref()),
+        Some("FEEL")
+    );
+}
+
+#[test]
 fn parser_bundle_snapshot_surfaces_invalid_dmn_sources() {
     let error = parse_bpmn_bundle(
         &BpmnBundleSnapshot::new(vec![fixture_source(

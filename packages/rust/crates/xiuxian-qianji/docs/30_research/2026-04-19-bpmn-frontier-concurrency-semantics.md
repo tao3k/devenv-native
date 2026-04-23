@@ -144,7 +144,12 @@ That means the engine currently has:
 7. deterministic batch consumption that re-resolves tokens by `token_id`
    before each in-batch mutation so stale snapshot indices do not misapply
    later proposals
-8. one bounded conflict-aware cross-token merge model is now landed for
+8. shifted-index resolution for common prefix-removal batches, so a wide
+   frontier whose runnable tokens disappear in deterministic order does not
+   fall back to repeated linear `token_id` scans; the focused probe with
+   `stable_prefix=4000`, `removable_tokens=4000`, and `iterations=8` measured
+   `linear_ms=422.663` versus `shifted_cursor_ms=47.669`
+9. one bounded conflict-aware cross-token merge model is now landed for
    same-node parallel joins, but broader node-family merge remains open
 
 ### 3.3 The Required Runtime Shape
@@ -408,8 +413,9 @@ What landed:
 
 ## 13. Follow-up After DMN Document Snapshot Slice
 
-The next DMN placeholder slice is now also closed without changing the
-single-writer checkpoint design.
+The next DMN placeholder slice closed without changing the single-writer
+checkpoint design. A later bounded runtime slice now narrows the direct
+relation executable subset.
 
 What landed:
 
@@ -461,6 +467,61 @@ What landed:
 5. checkpoint ownership, distributed writer ownership, and the Valkey-backed
    single-writer checkpoint model all remained unchanged during this slice
 
+## 14.1 Follow-up After DMN Literal Expression Runtime Slice
+
+The earlier placeholder-only `literalExpression` note is now narrowed.
+
+What landed:
+
+1. the bounded DMN parser can materialize one direct decision-owned
+   `<literalExpression><text>` body without requiring a decision table
+2. the bounded evaluator can execute supported direct literal-expression text:
+   one supported literal, one variable path, or one whitespace-delimited numeric
+   `path +/- number` operation
+3. the DMN linter now accepts that direct-literal subset and reports
+   `dmn.unsupported_literal_expression_subset` only for broader FEEL text, with
+   repair guidance that keeps LLM fixes from fabricating decision-table rules
+4. checkpoint ownership, distributed writer ownership, and the Valkey-backed
+   single-writer checkpoint model remained unchanged
+
+## 14.2 Follow-up After DMN List Expression Runtime Slice
+
+The earlier placeholder-only direct `list` note is now narrowed.
+
+What landed:
+
+1. the bounded DMN parser can materialize one direct decision-owned `<list>`
+   without requiring a decision table when every direct child is a bounded
+   `<literalExpression>` item
+2. the bounded evaluator can execute each list item through the existing
+   literal-expression subset and merge output as
+   `{ "<decision_id>": [<values>...] }`
+3. the DMN linter now accepts that direct-list subset and reports
+   `dmn.unsupported_list_expression_subset` for unsupported item text or
+   `dmn.unsupported_list_child` for non-literal direct children
+4. checkpoint ownership, distributed writer ownership, and the Valkey-backed
+   single-writer checkpoint model remained unchanged
+
+## 14.3 Follow-up After DMN Context Expression Runtime Slice
+
+The earlier placeholder-only direct `context` note is now narrowed.
+
+What landed:
+
+1. the bounded DMN parser can materialize one direct decision-owned
+   `<context>` without requiring a decision table when every direct
+   `<contextEntry>` contains optional variable metadata and one bounded
+   `<literalExpression>` body
+2. the bounded evaluator executes entries in source order, makes named entries
+   visible to later entries, and returns one final unnamed entry as
+   `{ "<decision_id>": <value> }`
+3. the DMN linter now accepts that direct-context subset and reports
+   `dmn.unsupported_context_expression_subset` for unsupported entry text or
+   `dmn.unsupported_context_child` for children outside the bounded
+   context-entry shape
+4. checkpoint ownership, distributed writer ownership, and the Valkey-backed
+   single-writer checkpoint model remained unchanged
+
 ## 15. Follow-up After DMN Context and Invocation Classification Slice
 
 The next DMN placeholder slice is now also closed without changing the
@@ -470,16 +531,17 @@ What landed:
 
 1. the non-executable DMN decision snapshot now records direct `context`
    counts and direct `invocation` counts, so later adapter and lint work can
-   distinguish those unsupported decision-logic shapes from the generic
-   missing-table fallback
+   distinguish those decision-logic shapes from the generic missing-table
+   fallback; direct `context` execution is now narrowed by the bounded runtime
+   follow-up above
 2. the LLM-facing DMN linter now emits the construct-specific codes
    `dmn.unsupported_context_decision` and
    `dmn.unsupported_invocation_decision`, with repair guidance that
    explicitly tells callers not to flatten context entries or fabricate
    invocation rewrites into guessed decision-table rules
-3. focused 20191111 namespaced fixtures now prove both placeholder surfaces:
-   one direct `context` decision and one direct `invocation` decision, while
-   both remain non-executable inside the bounded evaluator subset
+3. focused 20191111 namespaced fixtures prove both construct surfaces: one
+   direct bounded `context` decision and one direct `invocation` decision,
+   while invocation remains non-executable inside the bounded evaluator subset
 4. the slice stayed inside the existing folder-first snapshot and lint seams,
    and after the earlier snapshot/lint owner refactors, no new touched-scope
    modularity or strict clippy debt surfaced during full validation
@@ -496,13 +558,13 @@ What landed:
 1. the non-executable DMN decision snapshot now records direct `relation`
    counts, so later adapter and lint work can distinguish that unsupported
    decision-logic shape from the generic missing-table fallback
-2. the LLM-facing DMN linter now emits the construct-specific code
+2. the LLM-facing DMN linter emitted the construct-specific code
    `dmn.unsupported_relation_decision`, with repair guidance that explicitly
-   tells callers not to flatten relation rows into guessed decision-table
-   rules
-3. one focused 20191111 namespaced fixture now proves the placeholder
-   surface for one direct `relation` decision while keeping it
-   non-executable inside the bounded evaluator subset
+   told callers not to flatten relation rows into guessed decision-table
+   rules before the bounded direct-relation runtime subset existed
+3. one focused 20191111 namespaced fixture proved the placeholder surface for
+   one direct `relation` decision while keeping it non-executable inside that
+   slice's bounded evaluator subset
 4. full validation surfaced one immediate touched-scope testing-gate debt in
    the DMN lint suite, and it was closed in the same slice by splitting the
    tests into the folder-first `tests/unit/lint/dmn/{mod,core,constructs}.rs`
@@ -1071,3 +1133,122 @@ What landed:
    `lookups_per_batch=512`, and `iterations=64`
 5. the single-writer Valkey checkpoint contract, public frontier API, and
    external BPMN behavior remained unchanged
+
+## 38. Follow-up After DMN Relation Expression Runtime Slice
+
+The next DMN boxed-expression runtime slice closed one more direct
+decision-owned expression shape without changing checkpoint ownership.
+
+What landed:
+
+1. one direct decision-owned `<relation>` can now parse and execute when it
+   contains direct columns and rows with one bounded `<literalExpression>` cell
+   per column
+2. relation runtime output remains deterministic and object-shaped as
+   `{ "<decision_id>": [{ "<column_key>": <cell_value>, ... }, ...] }`
+3. the DMN linter now accepts that direct-relation subset and reports
+   `dmn.unsupported_relation_expression_subset` for unsupported cell text or
+   `dmn.unsupported_relation_child` for children outside the bounded
+   column/row shape
+4. nested relations, broader boxed cell expressions, imports, DRD dependency
+   execution, full schema validation, and broader FEEL semantics remain
+   deferred
+5. the parser refactor closed immediate touched-scope clippy debt without
+   adding lint suppression, and the single-writer Valkey checkpoint contract
+   remained unchanged
+
+## 39. Follow-up After DMN Invocation Snapshot Evidence Slice
+
+The next DMN alignment slice widened non-executable invocation evidence without
+changing runtime semantics or checkpoint ownership.
+
+What landed:
+
+1. direct decision-owned `<invocation>` remains non-executable inside the
+   bounded evaluator
+2. the non-executable decision snapshot now preserves the direct invoked
+   literal-expression text and each direct binding's parameter plus argument
+   literal-expression text
+3. `dmn.unsupported_invocation_decision` evidence now carries that invocation
+   structure for `qianji lint --dmn` and future adapter flows
+4. called-function resolution, business-knowledge-model execution, binding
+   evaluation, imports, DRD dependency execution, full schema validation, and
+   broader FEEL semantics remain deferred
+5. the single-writer Valkey checkpoint contract and runtime execution behavior
+   remained unchanged
+
+## 40. Follow-up After DMN Function Definition Snapshot Evidence Slice
+
+The next DMN alignment slice widened non-executable function-definition
+evidence without changing runtime semantics or checkpoint ownership.
+
+What landed:
+
+1. direct decision-owned `<functionDefinition>` remains non-executable inside
+   the bounded evaluator
+2. the non-executable decision snapshot now preserves the direct function id,
+   function kind, formal-parameter metadata, and body literal-expression text
+3. `dmn.unsupported_function_definition_decision` evidence now carries that
+   function structure for `qianji lint --dmn` and future adapter flows
+4. function body evaluation, business-knowledge-model execution, imports, DRD
+   dependency execution, full schema validation, and broader FEEL semantics
+   remain deferred
+5. the single-writer Valkey checkpoint contract and runtime execution behavior
+   remained unchanged
+
+## 41. Follow-up After DMN Business-Knowledge-Model Body Snapshot Evidence Slice
+
+The next DMN alignment slice widened non-executable BKM evidence without
+changing runtime semantics or checkpoint ownership.
+
+What landed:
+
+1. top-level `<businessKnowledgeModel>` remains non-executable inside the
+   bounded evaluator
+2. the non-executable document root snapshot now preserves the direct BKM body
+   `literalExpression` id, optional typeRef, and text payload
+3. `dmn.unsupported_business_knowledge_model_artifact` evidence now carries
+   that body structure for `qianji lint --dmn` and future adapter flows
+4. BKM body evaluation, invocation binding, imports, DRD dependency execution,
+   full schema validation, and broader FEEL semantics remain deferred
+5. the single-writer Valkey checkpoint contract and runtime execution behavior
+   remained unchanged
+
+## 42. Follow-up After DMN Decision-Service Reference Snapshot Evidence Slice
+
+The next DMN alignment slice widened non-executable decision-service evidence
+without changing runtime semantics or checkpoint ownership.
+
+What landed:
+
+1. top-level `<decisionService>` remains non-executable inside the bounded
+   evaluator
+2. the non-executable document root snapshot now preserves direct
+   `outputDecision`, `encapsulatedDecision`, `inputDecision`, and `inputData`
+   href placeholders
+3. `dmn.unsupported_decision_service` evidence now carries those references for
+   `qianji lint --dmn` and future adapter flows
+4. decision-service reference resolution, output-decision execution, imports,
+   DRD dependency execution, full schema validation, and broader FEEL
+   semantics remain deferred
+5. the single-writer Valkey checkpoint contract and runtime execution behavior
+   remained unchanged
+
+## 43. Follow-up After DMN Requirement Reference Snapshot Evidence Slice
+
+The next DMN alignment slice widened non-executable requirement-edge evidence
+without changing runtime semantics or checkpoint ownership.
+
+What landed:
+
+1. decision-owned `informationRequirement`, `knowledgeRequirement`, and
+   `authorityRequirement` remain non-executable dependency edges inside the
+   bounded evaluator
+2. the non-executable decision snapshot now preserves direct target hrefs with
+   parent requirement kind and target reference kind
+3. unsupported requirement-decision lint evidence now carries those hrefs for
+   `qianji lint --dmn` and future adapter flows
+4. DRD dependency execution, href resolution, imports, full schema validation,
+   and broader FEEL semantics remain deferred
+5. the single-writer Valkey checkpoint contract and runtime execution behavior
+   remained unchanged

@@ -11,6 +11,9 @@ mod public_api;
 #[path = "unit/checkpoint/mod.rs"]
 mod checkpoint;
 
+#[path = "unit/bpmn/mod.rs"]
+mod bpmn;
+
 #[path = "unit/dmn/mod.rs"]
 mod dmn;
 

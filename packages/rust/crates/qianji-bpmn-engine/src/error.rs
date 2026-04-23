@@ -221,6 +221,56 @@ pub enum BpmnEngineError {
         /// Derived suffix for the error display.
         source_suffix: String,
     },
+    /// Returned when one required-decision href does not stay within the
+    /// bounded local-fragment slice.
+    #[error(
+        "DMN source '{source_id}' decision '{decision_id}' uses unsupported information-requirement href '{href}'"
+    )]
+    UnsupportedDmnInformationRequirementHref {
+        /// Source identifier used for diagnostics.
+        source_id: String,
+        /// Decision identifier.
+        decision_id: String,
+        /// Observed href value or placeholder.
+        href: String,
+    },
+    /// Returned when one required-decision href points at no registered local
+    /// decision in the same source.
+    #[error(
+        "DMN source '{source_id}' decision '{decision_id}' references missing required decision target '{href}'"
+    )]
+    MissingDmnRequiredDecisionTarget {
+        /// Source identifier used for diagnostics.
+        source_id: String,
+        /// Decision identifier.
+        decision_id: String,
+        /// Missing local href target.
+        href: String,
+    },
+    /// Returned when one required-input href points at no registered local
+    /// input-data definition in the same source.
+    #[error(
+        "DMN source '{source_id}' decision '{decision_id}' references missing required input target '{href}'"
+    )]
+    MissingDmnRequiredInputTarget {
+        /// Source identifier used for diagnostics.
+        source_id: String,
+        /// Decision identifier.
+        decision_id: String,
+        /// Missing local href target.
+        href: String,
+    },
+    /// Returned when bounded local required-decision evaluation encounters a
+    /// cycle.
+    #[error(
+        "DMN source '{source_id}' decision '{decision_id}' participates in a cyclic required-decision dependency"
+    )]
+    CyclicDmnRequiredDecisionDependency {
+        /// Source identifier used for diagnostics.
+        source_id: String,
+        /// Decision identifier.
+        decision_id: String,
+    },
     /// Returned when no process definitions are present in the BPMN package.
     #[error("BPMN source '{source_id}' does not contain any process definitions")]
     MissingProcessDefinitions {

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions
+  id="Definitions_metadata_only_business_knowledge_model_invocable"
+  name="Metadata Only Business Knowledge Model Invocable"
+  namespace="https://example.com/dmn/metadata-only-business-knowledge-model-invocable"
+  xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/">
+  <businessKnowledgeModel id="BKM_policy_source" name="Policy Source">
+    <variable id="Variable_policy" name="policy" typeRef="string" />
+    <encapsulatedLogic id="EncapsulatedLogic_policy" kind="FEEL">
+      <formalParameter id="Parameter_applicant" name="applicant" typeRef="string" />
+      <literalExpression id="EncapsulatedLogic_policy_body" typeRef="string">
+        <text>"external-policy"</text>
+      </literalExpression>
+    </encapsulatedLogic>
+  </businessKnowledgeModel>
+</definitions>

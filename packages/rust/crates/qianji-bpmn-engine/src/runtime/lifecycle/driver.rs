@@ -156,7 +156,7 @@ fn execute_frontier_proposal<H: BpmnHostBridge>(
         proposal.node_index,
         now_ms,
     )?;
-    token_lookup.invalidate();
+    token_lookup.observe_frontier_proposal_execution(instance, proposal, current_token_index);
     Ok(outcome)
 }
 

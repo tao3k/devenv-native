@@ -294,10 +294,44 @@ fn summarize_decision_service(decision_service: &DmnDecisionServiceSnapshot) -> 
     if let Some(name) = decision_service.name.as_deref() {
         parts.push(format!("name '{name}'"));
     }
+    push_decision_service_reference_summary(
+        &mut parts,
+        "outputDecision",
+        &decision_service.output_decisions,
+    );
+    push_decision_service_reference_summary(
+        &mut parts,
+        "encapsulatedDecision",
+        &decision_service.encapsulated_decisions,
+    );
+    push_decision_service_reference_summary(
+        &mut parts,
+        "inputDecision",
+        &decision_service.input_decisions,
+    );
+    push_decision_service_reference_summary(&mut parts, "inputData", &decision_service.input_data);
     if parts.is_empty() {
         "<decisionService>".to_string()
     } else {
         format!("<decisionService> with {}", parts.join(", "))
+    }
+}
+
+fn push_decision_service_reference_summary(
+    parts: &mut Vec<String>,
+    label: &str,
+    references: &[crate::dmn_model_api::DmnDecisionServiceReferenceSnapshot],
+) {
+    match references {
+        [] => {}
+        [reference] => {
+            if let Some(href) = reference.href.as_deref() {
+                parts.push(format!("{label} href '{href}'"));
+            } else {
+                parts.push(format!("{label} reference"));
+            }
+        }
+        _ => parts.push(format!("{label} {} references", references.len())),
     }
 }
 

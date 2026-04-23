@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions
+  id="Definitions_missing_required_decision_runtime"
+  name="Missing Required Decision Runtime"
+  namespace="https://example.com/dmn/missing-required-decision-runtime"
+  xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/">
+  <decision id="Decision_missing_dependency" name="Missing Dependency Decision">
+    <informationRequirement>
+      <requiredDecision href="#Decision_missing" />
+    </informationRequirement>
+    <decisionTable id="DecisionTable_missing_dependency">
+      <input id="InputClause_seed">
+        <inputExpression id="InputExpression_seed" typeRef="string">
+          <text>seed</text>
+        </inputExpression>
+      </input>
+      <output id="OutputClause_value" name="value" typeRef="string" />
+      <rule id="DecisionRule_missing_dependency">
+        <inputEntry id="UnaryTests_missing_dependency">
+          <text>"x"</text>
+        </inputEntry>
+        <outputEntry id="LiteralExpression_missing_dependency">
+          <text>"present"</text>
+        </outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+</definitions>

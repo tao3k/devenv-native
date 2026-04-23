@@ -18,7 +18,7 @@ fn dmn_linter_reports_required_decision_target_with_specific_guidance() {
     assert!(issue.title.contains("another decision"));
     assert!(issue.summary.contains("<requiredDecision>"));
     assert!(issue.why_it_failed.contains(
-        "upstream decision references do not materialize local executable rules automatically"
+        "can recurse through direct same-source `<requiredDecision>` edges only after the current decision already contributes local executable rules"
     ));
     assert!(
         issue

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions
+  id="Definitions_cyclic_required_decision_runtime"
+  name="Cyclic Required Decision Runtime"
+  namespace="https://example.com/dmn/cyclic-required-decision-runtime"
+  xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/">
+  <decision id="Decision_a" name="Decision A">
+    <informationRequirement>
+      <requiredDecision href="#Decision_b" />
+    </informationRequirement>
+    <decisionTable id="DecisionTable_a">
+      <input id="InputClause_a">
+        <inputExpression id="InputExpression_a" typeRef="string">
+          <text>seed</text>
+        </inputExpression>
+      </input>
+      <output id="OutputClause_a" name="value_a" typeRef="string" />
+      <rule id="DecisionRule_a">
+        <inputEntry id="UnaryTests_a">
+          <text>"x"</text>
+        </inputEntry>
+        <outputEntry id="LiteralExpression_a">
+          <text>"a"</text>
+        </outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+  <decision id="Decision_b" name="Decision B">
+    <informationRequirement>
+      <requiredDecision href="#Decision_a" />
+    </informationRequirement>
+    <decisionTable id="DecisionTable_b">
+      <input id="InputClause_b">
+        <inputExpression id="InputExpression_b" typeRef="string">
+          <text>seed</text>
+        </inputExpression>
+      </input>
+      <output id="OutputClause_b" name="value_b" typeRef="string" />
+      <rule id="DecisionRule_b">
+        <inputEntry id="UnaryTests_b">
+          <text>"x"</text>
+        </inputEntry>
+        <outputEntry id="LiteralExpression_b">
+          <text>"b"</text>
+        </outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+</definitions>

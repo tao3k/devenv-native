@@ -1,7 +1,8 @@
 use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{
-    BpmnEngineError, BpmnPackage, DmnDecisionRef, DmnSourceFile, parse_dmn_decision,
-    parse_dmn_decisions,
+    BpmnEngineError, BpmnPackage, DmnBusinessKnowledgeModelDefinition, DmnDecisionRef,
+    DmnInformationRequirementReference, DmnSourceFile, parse_dmn_decision, parse_dmn_decisions,
+    snapshot_dmn_source,
 };
 
 #[test]
@@ -72,6 +73,70 @@ fn package_same_source_multi_decision_lookup_resolves_deterministically() {
     assert_eq!(package.dmn_decisions().len(), 2);
     assert_eq!(resolved.decision.decision_id.as_ref(), "secondary-review");
     assert_eq!(resolved.source_id.as_ref(), "multiple-decisions.dmn");
+}
+
+#[test]
+fn package_registered_dmn_decision_preserves_information_requirement_contract() {
+    let definitions = parse_dmn_decisions(&fixture_source(
+        "executable-information-requirements.dmn",
+        "versioned-executable-information-requirements-20191111.dmn",
+    ))
+    .must("executable information-requirement source should parse");
+    let package = BpmnPackage::new("pkg_api", Vec::new()).with_dmn_decisions(definitions);
+
+    let resolved = package
+        .find_dmn_decision(
+            &DmnDecisionRef::new("Decision_executable_dependency")
+                .with_source_id("executable-information-requirements.dmn"),
+        )
+        .must("registered decision lookup should succeed")
+        .must("registered decision should resolve");
+
+    assert_eq!(
+        resolved.information_requirements,
+        vec![
+            DmnInformationRequirementReference::new("requiredInput", Some("#InputData_customer")),
+            DmnInformationRequirementReference::new("requiredDecision", Some("#Decision_upstream")),
+        ]
+    );
+}
+
+#[test]
+fn package_registered_dmn_business_knowledge_model_resolves_deterministically() {
+    let snapshot = snapshot_dmn_source(&fixture_source(
+        "metadata-only-business-knowledge-model-invocable-20191111.dmn",
+        "metadata-only-business-knowledge-model-invocable-20191111.dmn",
+    ))
+    .must("BKM fixture should snapshot");
+    let definition = DmnBusinessKnowledgeModelDefinition::from_snapshot(
+        "metadata-only-business-knowledge-model-invocable-20191111.dmn",
+        snapshot
+            .root
+            .business_knowledge_models
+            .first()
+            .must("fixture should contain one top-level BKM"),
+    );
+    let package = BpmnPackage::new("pkg_api", Vec::new())
+        .with_dmn_business_knowledge_models(vec![definition]);
+
+    let resolved = package
+        .find_dmn_business_knowledge_model(
+            "metadata-only-business-knowledge-model-invocable-20191111.dmn",
+            "BKM_policy_source",
+        )
+        .must("registered BKM should resolve");
+
+    assert_eq!(package.dmn_business_knowledge_models().len(), 1);
+    assert_eq!(resolved.name.as_deref(), Some("Policy Source"));
+    assert_eq!(resolved.variable_name.as_deref(), Some("policy"));
+    assert_eq!(resolved.variable_type_ref.as_deref(), Some("string"));
+    assert_eq!(
+        resolved
+            .encapsulated_logic
+            .as_ref()
+            .map(|logic| logic.parameters.len()),
+        Some(1)
+    );
 }
 
 fn fixture_source(source_id: &str, fixture_name: &str) -> DmnSourceFile {

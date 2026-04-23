@@ -22,6 +22,13 @@ fn dmn_snapshot_classifies_knowledge_requirement_decisions() {
     assert_eq!(snapshot.root.input_data_count, 0);
     assert_eq!(snapshot.root.knowledge_source_count, 0);
     assert_eq!(snapshot.root.business_knowledge_model_count, 1);
+    assert_eq!(
+        snapshot.root.business_knowledge_models[0]
+            .body
+            .as_ref()
+            .and_then(|body| body.text.as_deref()),
+        Some("\"external-policy\"")
+    );
     assert_eq!(snapshot.root.decision_service_count, 0);
     assert_eq!(snapshot.root.organization_unit_count, 0);
     assert_eq!(snapshot.root.performance_indicator_count, 0);
@@ -38,6 +45,22 @@ fn dmn_snapshot_classifies_knowledge_requirement_decisions() {
     assert_eq!(snapshot.decisions[0].required_knowledge_count, 1);
     assert_eq!(snapshot.decisions[0].authority_requirement_count, 0);
     assert_eq!(snapshot.decisions[0].required_authority_count, 0);
+    assert_eq!(
+        snapshot.decisions[0]
+            .requirement_references
+            .iter()
+            .map(|reference| (
+                reference.requirement_kind.as_str(),
+                reference.reference_kind.as_str(),
+                reference.href.as_deref(),
+            ))
+            .collect::<Vec<_>>(),
+        vec![(
+            "knowledgeRequirement",
+            "requiredKnowledge",
+            Some("#BKM_policy_source")
+        )]
+    );
 }
 
 #[test]
@@ -76,4 +99,72 @@ fn dmn_snapshot_classifies_authority_requirement_decisions() {
     assert_eq!(snapshot.decisions[0].required_knowledge_count, 0);
     assert_eq!(snapshot.decisions[0].authority_requirement_count, 1);
     assert_eq!(snapshot.decisions[0].required_authority_count, 1);
+    assert_eq!(
+        snapshot.decisions[0]
+            .requirement_references
+            .iter()
+            .map(|reference| (
+                reference.requirement_kind.as_str(),
+                reference.reference_kind.as_str(),
+                reference.href.as_deref(),
+            ))
+            .collect::<Vec<_>>(),
+        vec![(
+            "authorityRequirement",
+            "requiredAuthority",
+            Some("#KnowledgeSource_policy")
+        )]
+    );
+}
+
+#[test]
+fn dmn_snapshot_classifies_authority_requirement_decisions_with_mixed_targets() {
+    let snapshot = snapshot_dmn_source(&fixture_source(
+        "versioned-authority-requirement-mixed-references-20191111.dmn",
+    ))
+    .must("mixed authority-requirement DMN source should still produce a document snapshot");
+
+    let decision = snapshot
+        .decisions
+        .iter()
+        .find(|decision| decision.decision_id == "Decision_authority_requirement_mixed");
+    let Some(decision) = decision else {
+        panic!("mixed authority-requirement decision should be present");
+    };
+
+    assert_eq!(decision.information_requirement_count, 0);
+    assert_eq!(decision.required_input_count, 1);
+    assert_eq!(decision.required_decision_count, 1);
+    assert_eq!(decision.knowledge_requirement_count, 0);
+    assert_eq!(decision.required_knowledge_count, 0);
+    assert_eq!(decision.authority_requirement_count, 1);
+    assert_eq!(decision.required_authority_count, 1);
+    assert_eq!(
+        decision
+            .requirement_references
+            .iter()
+            .map(|reference| (
+                reference.requirement_kind.as_str(),
+                reference.reference_kind.as_str(),
+                reference.href.as_deref(),
+            ))
+            .collect::<Vec<_>>(),
+        vec![
+            (
+                "authorityRequirement",
+                "requiredAuthority",
+                Some("#KnowledgeSource_policy")
+            ),
+            (
+                "authorityRequirement",
+                "requiredDecision",
+                Some("#Decision_upstream")
+            ),
+            (
+                "authorityRequirement",
+                "requiredInput",
+                Some("#InputData_customer")
+            ),
+        ]
+    );
 }

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  id="pkg_invalid_lane_set">
+  <bpmn:process id="lane_flow" isExecutable="true">
+    <bpmn:laneSet id="lane_set_ops">
+      <bpmn:lane id="lane_ops" name="Operations">
+        <bpmn:flowNodeRef>review</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="start" />
+    <bpmn:serviceTask id="review" />
+    <bpmn:endEvent id="end" />
+    <bpmn:sequenceFlow id="flow_1" sourceRef="start" targetRef="review" />
+    <bpmn:sequenceFlow id="flow_2" sourceRef="review" targetRef="end" />
+  </bpmn:process>
+</bpmn:definitions>

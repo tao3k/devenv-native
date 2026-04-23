@@ -1,4 +1,4 @@
-pub(super) use crate::dmn::evaluate_dmn_decision_sync;
+pub(super) use crate::dmn::evaluate_dmn_package_decision_sync;
 pub(super) use crate::dmn_model_api::DmnEvaluationRequest;
 pub(super) use crate::error::{BpmnEngineError, Result};
 pub(super) use crate::host_bridge_api::BpmnHostBridge;

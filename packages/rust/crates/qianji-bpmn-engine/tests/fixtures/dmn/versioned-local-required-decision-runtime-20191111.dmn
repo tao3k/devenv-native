@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions
+  id="Definitions_local_required_decision_runtime"
+  name="Local Required Decision Runtime"
+  namespace="https://example.com/dmn/local-required-decision-runtime"
+  xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/">
+  <inputData id="InputData_customer" name="Customer Input" />
+  <decision id="Decision_segment" name="Segment Decision">
+    <decisionTable id="DecisionTable_segment">
+      <input id="InputClause_tier">
+        <inputExpression id="InputExpression_tier" typeRef="string">
+          <text>tier</text>
+        </inputExpression>
+      </input>
+      <output id="OutputClause_segment" name="segment" typeRef="string" />
+      <rule id="DecisionRule_segment">
+        <inputEntry id="UnaryTests_segment_tier">
+          <text>"gold"</text>
+        </inputEntry>
+        <outputEntry id="LiteralExpression_segment">
+          <text>"premium"</text>
+        </outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+  <decision id="Decision_approval" name="Approval Decision">
+    <informationRequirement>
+      <requiredInput href="#InputData_customer" />
+    </informationRequirement>
+    <informationRequirement>
+      <requiredDecision href="#Decision_segment" />
+    </informationRequirement>
+    <decisionTable id="DecisionTable_approval">
+      <input id="InputClause_segment">
+        <inputExpression id="InputExpression_segment" typeRef="string">
+          <text>segment</text>
+        </inputExpression>
+      </input>
+      <input id="InputClause_score">
+        <inputExpression id="InputExpression_score" typeRef="number">
+          <text>customerScore</text>
+        </inputExpression>
+      </input>
+      <output id="OutputClause_approval" name="approval" typeRef="string" />
+      <rule id="DecisionRule_approval">
+        <inputEntry id="UnaryTests_approval_segment">
+          <text>"premium"</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_approval_score">
+          <text>&gt;= 700</text>
+        </inputEntry>
+        <outputEntry id="LiteralExpression_approval">
+          <text>"approve"</text>
+        </outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+</definitions>

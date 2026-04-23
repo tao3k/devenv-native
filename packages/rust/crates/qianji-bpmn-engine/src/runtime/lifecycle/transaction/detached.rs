@@ -1,7 +1,7 @@
 use crate::runtime::lifecycle::scope::{
     BpmnEngineError, BpmnInstanceState, BpmnNodeIndex, BpmnNodeKind, BpmnPackage, BpmnProcessSpec,
     DmnEvaluationRequest, InstanceLifecycle, PendingHostWork, PendingHostWorkKind, Result,
-    evaluate_dmn_decision_sync,
+    evaluate_dmn_package_decision_sync,
 };
 use crate::runtime::lifecycle::state;
 use crate::runtime_instance_api::DetachedTransactionCompensationState;
@@ -192,7 +192,8 @@ fn advance_detached_business_rule_handler(
                 node_id: node.bpmn_id.to_string(),
             })?;
     if let Some(definition) = package.find_dmn_decision(&decision)? {
-        let _ = evaluate_dmn_decision_sync(
+        let _ = evaluate_dmn_package_decision_sync(
+            package,
             definition,
             &DmnEvaluationRequest::new(decision, instance.variables.clone()),
         )?;

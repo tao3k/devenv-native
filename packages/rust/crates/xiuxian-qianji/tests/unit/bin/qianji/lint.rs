@@ -99,6 +99,43 @@ fn run_lint_command_renders_failure_with_llm_guidance() {
 }
 
 #[test]
+fn run_lint_command_renders_bpmn_snapshot_evidence() {
+    let temp_dir =
+        TempDir::new().unwrap_or_else(|error| panic!("temp dir should allocate: {error}"));
+    let path = temp_dir.path().join("invalid_lane.bpmn");
+    write_file(
+        &path,
+        r#"<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" id="pkg_invalid_lane_set">
+  <bpmn:process id="lane_flow" isExecutable="true">
+    <bpmn:laneSet id="lane_set_ops">
+      <bpmn:lane id="lane_ops" name="Operations">
+        <bpmn:flowNodeRef>review</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="start" />
+    <bpmn:serviceTask id="review" />
+    <bpmn:endEvent id="end" />
+    <bpmn:sequenceFlow id="flow_1" sourceRef="start" targetRef="review" />
+    <bpmn:sequenceFlow id="flow_2" sourceRef="review" targetRef="end" />
+  </bpmn:process>
+</bpmn:definitions>"#,
+    );
+
+    let output = must_ok(
+        run_lint_command(LintCliCommand::Bpmn { path }),
+        "lint command should render snapshot evidence",
+    );
+
+    assert_eq!(output.exit_code, 2);
+    assert!(output.rendered.contains("[bpmn.unsupported_lane_surface]"));
+    assert!(output.rendered.contains("\"snapshot_available\": true"));
+    assert!(output.rendered.contains("\"lane_set_count\": 1"));
+    assert!(output.rendered.contains("\"flow_node_refs\""));
+    assert!(output.rendered.contains("\"review\""));
+}
+
+#[test]
 fn run_lint_command_renders_success_for_valid_dmn() {
     let temp_dir =
         TempDir::new().unwrap_or_else(|error| panic!("temp dir should allocate: {error}"));

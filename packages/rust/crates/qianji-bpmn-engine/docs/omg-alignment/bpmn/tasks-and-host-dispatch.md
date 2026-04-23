@@ -33,3 +33,8 @@ host seam.
 - correlations and broader collaboration-aware message routing
 - signal or timer task-event execution on `sendTask` or `receiveTask`
 - broader data-object, IO-specification, and full task-assignment semantics
+
+The linter reports BPMN data-object, data-store, IO-specification, and data
+association surfaces as explicit deferred execution semantics. Use JSON
+workflow variables, host-work payload fields, or DMN inputs for executable
+data exchange in the current bounded slice.

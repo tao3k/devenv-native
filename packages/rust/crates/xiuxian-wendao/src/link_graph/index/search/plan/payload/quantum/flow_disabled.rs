@@ -7,5 +7,6 @@ impl LinkGraphIndex {
         _payload: &mut LinkGraphPlannedSearchPayload,
         _query_vector: &[f32],
     ) {
+        std::future::ready(()).await;
     }
 }

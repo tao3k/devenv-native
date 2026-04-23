@@ -1,18 +1,28 @@
 //! Public DMN model contract surface.
 
+pub use crate::dmn_model_business_knowledge::DmnBusinessKnowledgeModelDefinition;
 pub use crate::dmn_model_clause::{DmnHitPolicy, DmnInputClause, DmnOutputClause, DmnOutputEntry};
 pub use crate::dmn_model_decision::{
-    DmnDecisionDefinition, DmnDecisionTable, DmnEvaluationRequest, DmnEvaluationResult, DmnRule,
+    DmnContextEntry, DmnContextExpression, DmnDecisionDefinition, DmnDecisionTable,
+    DmnEvaluationRequest, DmnEvaluationResult, DmnInformationRequirementReference,
+    DmnListExpression, DmnLiteralExpression, DmnRelationColumn, DmnRelationExpression,
+    DmnRelationRow, DmnRule,
 };
 pub use crate::dmn_model_document::{
-    DmnAssociationSnapshot, DmnBoundsSnapshot, DmnBusinessKnowledgeModelSnapshot,
-    DmnDecisionServiceDividerLineSnapshot, DmnDecisionServiceSnapshot, DmnDecisionSnapshot,
+    DmnAssociationSnapshot, DmnBoundsSnapshot, DmnBusinessKnowledgeModelLiteralSnapshot,
+    DmnBusinessKnowledgeModelSnapshot, DmnDecisionServiceDividerLineSnapshot,
+    DmnDecisionServiceReferenceSnapshot, DmnDecisionServiceSnapshot, DmnDecisionSnapshot,
     DmnDiagramSnapshot, DmnDmndiSnapshot, DmnDocumentSnapshot, DmnEdgeSnapshot,
-    DmnElementCollectionSnapshot, DmnGroupSnapshot, DmnInputDataSnapshot, DmnItemComponentSnapshot,
+    DmnElementCollectionSnapshot, DmnFunctionDefinitionLiteralSnapshot,
+    DmnFunctionDefinitionParameterSnapshot, DmnFunctionDefinitionSnapshot, DmnGroupSnapshot,
+    DmnInputDataSnapshot, DmnInvocationBindingSnapshot, DmnInvocationLiteralSnapshot,
+    DmnInvocationParameterSnapshot, DmnInvocationSnapshot, DmnItemComponentSnapshot,
     DmnItemDefinitionSnapshot, DmnKnowledgeSourceSnapshot, DmnLabelSnapshot,
-    DmnOrganizationUnitSnapshot, DmnPerformanceIndicatorSnapshot, DmnRootSnapshot,
-    DmnShapeSnapshot, DmnTextAnnotationSnapshot, DmnVariableSnapshot, DmnWaypointSnapshot,
+    DmnOrganizationUnitSnapshot, DmnPerformanceIndicatorSnapshot, DmnRequirementReferenceSnapshot,
+    DmnRootSnapshot, DmnShapeSnapshot, DmnTextAnnotationSnapshot, DmnVariableSnapshot,
+    DmnWaypointSnapshot,
 };
+pub use crate::dmn_model_input_data::DmnInputDataDefinition;
 pub use crate::dmn_model_predicate::{
     DmnComparisonOperator, DmnDateComparison, DmnDateRange, DmnDateRangeBound,
     DmnDateTimeComparison, DmnDateTimeRange, DmnDateTimeRangeBound, DmnDurationComparison,

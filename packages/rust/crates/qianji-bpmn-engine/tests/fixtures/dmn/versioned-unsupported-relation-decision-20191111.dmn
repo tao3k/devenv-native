@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions
+  id="Definitions_unsupported_relation_decision"
+  name="Unsupported Relation Decision"
+  namespace="https://example.com/dmn/unsupported-relation-decision"
+  xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/">
+  <decision id="Decision_unsupported_relation" name="Unsupported Relation Decision">
+    <relation id="relation_1">
+      <column id="column_1" name="lender" typeRef="string"/>
+      <column id="column_2" name="rate" typeRef="number"/>
+      <row id="row_1">
+        <literalExpression id="literal_expression_1">
+          <text>"Lender A"</text>
+        </literalExpression>
+        <literalExpression id="literal_expression_2">
+          <text>applicant.age * 2</text>
+        </literalExpression>
+      </row>
+    </relation>
+  </decision>
+</definitions>

@@ -52,11 +52,13 @@ impl ValkeyAnalysisCache {
         scope: RepositoryAnalysisValkeyScope<'_>,
         analysis: &RepositoryAnalysisOutput,
     ) {
+        #[cfg(feature = "zhenfa-router")]
         let cache_key = match scope {
             RepositoryAnalysisValkeyScope::Current(cache_key) => cache_key,
-            #[cfg(feature = "zhenfa-router")]
             RepositoryAnalysisValkeyScope::Revision { .. } => return,
         };
+        #[cfg(not(feature = "zhenfa-router"))]
+        let RepositoryAnalysisValkeyScope::Current(cache_key) = scope;
         let storage_key = valkey_analysis_key(cache_key, self.runtime.key_prefix.as_str());
         let revision_key = cache_key.revision().map(|revision| {
             valkey_analysis_revision_key(

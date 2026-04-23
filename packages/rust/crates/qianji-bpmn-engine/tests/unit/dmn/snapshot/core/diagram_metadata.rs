@@ -75,6 +75,67 @@ fn dmn_snapshot_classifies_decision_service_documents() {
 }
 
 #[test]
+fn dmn_snapshot_preserves_decision_service_reference_placeholders() {
+    let snapshot = snapshot_dmn_source(&fixture_source(
+        "versioned-decision-service-references-20180521.dmn",
+    ))
+    .must("decision-service reference DMN source should produce a document snapshot");
+
+    assert_eq!(
+        snapshot.root.model_namespace_uri.as_deref(),
+        Some("http://www.omg.org/spec/DMN/20180521/MODEL/")
+    );
+    assert_eq!(
+        snapshot.root.model_version_hint.as_deref(),
+        Some("20180521")
+    );
+    assert_eq!(snapshot.root.decision_service_count, 1);
+    assert_eq!(snapshot.root.decision_services.len(), 1);
+    let decision_service = &snapshot.root.decision_services[0];
+    assert_eq!(
+        decision_service.decision_service_id.as_deref(),
+        Some("DecisionService_credit")
+    );
+    assert_eq!(
+        decision_service.name.as_deref(),
+        Some("Credit Decision Service")
+    );
+    assert_eq!(
+        decision_service
+            .output_decisions
+            .iter()
+            .map(|reference| (reference.reference_kind.as_str(), reference.href.as_deref()))
+            .collect::<Vec<_>>(),
+        vec![("outputDecision", Some("#Decision_approval"))]
+    );
+    assert_eq!(
+        decision_service
+            .encapsulated_decisions
+            .iter()
+            .map(|reference| (reference.reference_kind.as_str(), reference.href.as_deref()))
+            .collect::<Vec<_>>(),
+        vec![("encapsulatedDecision", Some("#Decision_risk_score"))]
+    );
+    assert_eq!(
+        decision_service
+            .input_decisions
+            .iter()
+            .map(|reference| (reference.reference_kind.as_str(), reference.href.as_deref()))
+            .collect::<Vec<_>>(),
+        vec![("inputDecision", Some("#Decision_prior_risk"))]
+    );
+    assert_eq!(
+        decision_service
+            .input_data
+            .iter()
+            .map(|reference| (reference.reference_kind.as_str(), reference.href.as_deref()))
+            .collect::<Vec<_>>(),
+        vec![("inputData", Some("#InputData_application"))]
+    );
+    assert!(snapshot.decisions.is_empty());
+}
+
+#[test]
 fn dmn_snapshot_preserves_versioned_listed_input_data_shape_metadata() {
     let snapshot = snapshot_dmn_source(&fixture_source(
         "versioned-listed-input-data-shapes-20191111.dmn",

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions
+  id="Definitions_invalid_context_child"
+  name="Invalid Context Child"
+  namespace="https://example.com/dmn/invalid-context-child"
+  xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/">
+  <decision id="Decision_invalid_context_child" name="Invalid Context Child">
+    <context id="context_1">
+      <contextEntry id="context_entry_1">
+        <variable id="variable_1" name="nextAge"/>
+        <list id="nested_list_1">
+          <literalExpression id="literal_expression_1">
+            <text>applicant.age</text>
+          </literalExpression>
+        </list>
+      </contextEntry>
+    </context>
+  </decision>
+</definitions>

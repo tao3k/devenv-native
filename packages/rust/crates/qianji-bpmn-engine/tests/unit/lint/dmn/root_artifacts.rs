@@ -117,12 +117,12 @@ fn dmn_linter_reports_business_knowledge_model_only_document_with_artifact_speci
         issue
             .repair_guidance
             .iter()
-            .any(|step| step.contains("Do not inline or approximate"))
+            .any(|step| step.contains("Preserve any reported invocable metadata"))
     );
     assert!(
         issue
             .llm_fix_prompt
-            .contains("do not fabricate decision-table logic just from top-level `<businessKnowledgeModel>` metadata")
+            .contains("Preserve reported `document_root.business_knowledge_models` metadata")
     );
     assert_eq!(issue.evidence["business_knowledge_model_count"], json!(1));
     assert_eq!(
@@ -137,7 +137,66 @@ fn dmn_linter_reports_business_knowledge_model_only_document_with_artifact_speci
         issue.evidence["document_root"]["business_knowledge_models"][0]["name"],
         json!("Policy Source")
     );
+    assert_eq!(
+        issue.evidence["document_root"]["business_knowledge_models"][0]["body"]["expression_id"],
+        json!("BKM_policy_source_expression")
+    );
+    assert_eq!(
+        issue.evidence["document_root"]["business_knowledge_models"][0]["body"]["type_ref"],
+        json!(null)
+    );
+    assert_eq!(
+        issue.evidence["document_root"]["business_knowledge_models"][0]["body"]["text"],
+        json!("\"external-policy\"")
+    );
     assert_eq!(issue.evidence["document_decision_count"], json!(0));
+}
+
+#[test]
+fn dmn_linter_reports_business_knowledge_model_invocable_evidence() {
+    let report = lint_dmn_source(&dmn_fixture_source(
+        "metadata-only-business-knowledge-model-invocable-20191111.dmn",
+    ));
+
+    assert_eq!(report.domain, LintDomain::Dmn);
+    assert!(!report.ok);
+    assert_eq!(report.issues.len(), 1);
+    let issue = &report.issues[0];
+    assert_eq!(
+        issue.code,
+        "dmn.unsupported_business_knowledge_model_artifact"
+    );
+    assert_eq!(
+        issue.evidence["document_root"]["business_knowledge_models"][0]["variable"]["variable_id"],
+        json!("Variable_policy")
+    );
+    assert_eq!(
+        issue.evidence["document_root"]["business_knowledge_models"][0]["variable"]["name"],
+        json!("policy")
+    );
+    assert_eq!(
+        issue.evidence["document_root"]["business_knowledge_models"][0]["encapsulated_logic"]["function_definition_id"],
+        json!("EncapsulatedLogic_policy")
+    );
+    assert_eq!(
+        issue.evidence["document_root"]["business_knowledge_models"][0]["encapsulated_logic"]["kind"],
+        json!("FEEL")
+    );
+    assert_eq!(
+        issue.evidence["document_root"]["business_knowledge_models"][0]["encapsulated_logic"]["parameters"]
+            [0]["parameter_id"],
+        json!("Parameter_applicant")
+    );
+    assert_eq!(
+        issue.evidence["document_root"]["business_knowledge_models"][0]["encapsulated_logic"]["body"]
+            ["expression_id"],
+        json!("EncapsulatedLogic_policy_body")
+    );
+    assert_eq!(
+        issue.evidence["document_root"]["business_knowledge_models"][0]["encapsulated_logic"]["body"]
+            ["text"],
+        json!("\"external-policy\"")
+    );
 }
 
 #[test]

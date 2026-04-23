@@ -150,6 +150,23 @@ pub struct DmnBusinessKnowledgeModelSnapshot {
     pub business_knowledge_model_id: Option<String>,
     /// Optional human-readable business-knowledge-model name.
     pub name: Option<String>,
+    /// Optional direct invocable `variable` metadata preserved for this bounded slice.
+    pub variable: Option<DmnVariableSnapshot>,
+    /// Optional direct `encapsulatedLogic` placeholder preserved for this bounded slice.
+    pub encapsulated_logic: Option<DmnFunctionDefinitionSnapshot>,
+    /// Optional direct body literal-expression metadata preserved for this bounded slice.
+    pub body: Option<DmnBusinessKnowledgeModelLiteralSnapshot>,
+}
+
+/// Snapshot of one direct top-level business-knowledge-model body expression.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct DmnBusinessKnowledgeModelLiteralSnapshot {
+    /// Optional stable literal-expression identifier.
+    pub expression_id: Option<String>,
+    /// Optional DMN `typeRef` metadata on the literal expression.
+    pub type_ref: Option<String>,
+    /// Optional direct text payload.
+    pub text: Option<String>,
 }
 
 /// Snapshot of one top-level DMN `decisionService`.
@@ -159,6 +176,27 @@ pub struct DmnDecisionServiceSnapshot {
     pub decision_service_id: Option<String>,
     /// Optional human-readable decision-service name.
     pub name: Option<String>,
+    /// Direct `outputDecision` references preserved in source order.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub output_decisions: Vec<DmnDecisionServiceReferenceSnapshot>,
+    /// Direct `encapsulatedDecision` references preserved in source order.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub encapsulated_decisions: Vec<DmnDecisionServiceReferenceSnapshot>,
+    /// Direct `inputDecision` references preserved in source order.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub input_decisions: Vec<DmnDecisionServiceReferenceSnapshot>,
+    /// Direct `inputData` references preserved in source order.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub input_data: Vec<DmnDecisionServiceReferenceSnapshot>,
+}
+
+/// Snapshot of one direct decision-service `tDMNElementReference` placeholder.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct DmnDecisionServiceReferenceSnapshot {
+    /// Optional direct `href` payload preserved from the reference element.
+    pub href: Option<String>,
+    /// Local name of the reference element, such as `outputDecision`.
+    pub reference_kind: String,
 }
 
 /// Snapshot of one top-level DMN `organizationUnit`.
@@ -315,6 +353,96 @@ pub struct DmnLabelSnapshot {
     pub text: Option<String>,
 }
 
+/// Snapshot of one direct invocation literal-expression placeholder.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct DmnInvocationLiteralSnapshot {
+    /// Optional stable literal-expression identifier.
+    pub expression_id: Option<String>,
+    /// Optional DMN `typeRef` metadata on the literal expression.
+    pub type_ref: Option<String>,
+    /// Optional direct text payload.
+    pub text: Option<String>,
+}
+
+/// Snapshot of one direct invocation parameter placeholder.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct DmnInvocationParameterSnapshot {
+    /// Optional stable parameter identifier.
+    pub parameter_id: Option<String>,
+    /// Optional parameter name used by the binding.
+    pub name: Option<String>,
+    /// Optional DMN `typeRef` metadata on the parameter.
+    pub type_ref: Option<String>,
+}
+
+/// Snapshot of one direct invocation binding placeholder.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct DmnInvocationBindingSnapshot {
+    /// Optional stable binding identifier.
+    pub binding_id: Option<String>,
+    /// Direct parameter metadata when present.
+    pub parameter: Option<DmnInvocationParameterSnapshot>,
+    /// Direct argument literal-expression metadata when present.
+    pub argument: Option<DmnInvocationLiteralSnapshot>,
+}
+
+/// Snapshot of one direct decision-owned invocation placeholder.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct DmnInvocationSnapshot {
+    /// Optional stable invocation identifier.
+    pub invocation_id: Option<String>,
+    /// Direct invoked expression metadata when present.
+    pub invoked_expression: Option<DmnInvocationLiteralSnapshot>,
+    /// Direct invocation bindings preserved in source order.
+    pub bindings: Vec<DmnInvocationBindingSnapshot>,
+}
+
+/// Snapshot of one direct function-definition parameter placeholder.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct DmnFunctionDefinitionParameterSnapshot {
+    /// Optional stable parameter identifier.
+    pub parameter_id: Option<String>,
+    /// Optional parameter name.
+    pub name: Option<String>,
+    /// Optional DMN `typeRef` metadata on the parameter.
+    pub type_ref: Option<String>,
+}
+
+/// Snapshot of one direct function-definition literal-expression body.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct DmnFunctionDefinitionLiteralSnapshot {
+    /// Optional stable literal-expression identifier.
+    pub expression_id: Option<String>,
+    /// Optional DMN `typeRef` metadata on the literal expression.
+    pub type_ref: Option<String>,
+    /// Optional direct text payload.
+    pub text: Option<String>,
+}
+
+/// Snapshot of one direct decision-owned function-definition placeholder.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct DmnFunctionDefinitionSnapshot {
+    /// Optional stable function-definition identifier.
+    pub function_definition_id: Option<String>,
+    /// Optional DMN function kind, for example `FEEL`.
+    pub kind: Option<String>,
+    /// Direct formal parameters preserved in source order.
+    pub parameters: Vec<DmnFunctionDefinitionParameterSnapshot>,
+    /// Direct body literal-expression metadata when present.
+    pub body: Option<DmnFunctionDefinitionLiteralSnapshot>,
+}
+
+/// Snapshot of one direct decision-owned requirement reference placeholder.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct DmnRequirementReferenceSnapshot {
+    /// Parent requirement element kind, such as `informationRequirement`.
+    pub requirement_kind: String,
+    /// Direct reference element kind, such as `requiredInput`.
+    pub reference_kind: String,
+    /// Optional direct `href` payload preserved from the reference element.
+    pub href: Option<String>,
+}
+
 /// Snapshot of one DMN decision header.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct DmnDecisionSnapshot {
@@ -356,4 +484,13 @@ pub struct DmnDecisionSnapshot {
     pub function_definition_count: usize,
     /// Number of direct `list` children discovered for the decision.
     pub list_count: usize,
+    /// Direct invocation placeholders preserved for lint and adapter evidence.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub invocations: Vec<DmnInvocationSnapshot>,
+    /// Direct function-definition placeholders preserved for lint and adapter evidence.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub function_definitions: Vec<DmnFunctionDefinitionSnapshot>,
+    /// Direct requirement target placeholders preserved for lint and adapter evidence.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub requirement_references: Vec<DmnRequirementReferenceSnapshot>,
 }

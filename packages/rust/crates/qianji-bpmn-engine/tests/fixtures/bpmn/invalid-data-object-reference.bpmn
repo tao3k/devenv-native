@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  id="pkg_invalid_data_object">
+  <bpmn:process id="data_flow" isExecutable="true">
+    <bpmn:startEvent id="start" />
+    <bpmn:serviceTask id="review" />
+    <bpmn:dataObject id="order_payload" name="Order Payload" />
+    <bpmn:dataObjectReference id="order_payload_ref" dataObjectRef="order_payload" />
+    <bpmn:endEvent id="end" />
+    <bpmn:sequenceFlow id="flow_1" sourceRef="start" targetRef="review" />
+    <bpmn:sequenceFlow id="flow_2" sourceRef="review" targetRef="end" />
+  </bpmn:process>
+</bpmn:definitions>
