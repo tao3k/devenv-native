@@ -390,6 +390,8 @@ jobs:
             "WendaoCodeParser package checkout"
           git -C "${GITHUB_WORKSPACE}/.data/WendaoCodeParser.jl" fetch --tags --prune origin
           git -C "${GITHUB_WORKSPACE}/.data/WendaoCodeParser.jl" checkout --detach "${wendao_code_parser_rev}"
+          wendaosearch_repair_wendaocodeparser_checkout \
+            "${GITHUB_WORKSPACE}/.data/WendaoCodeParser.jl"
           arrow_rev="$(
             julia -e 'using TOML; print(TOML.parsefile(ARGS[1])["sources"]["Arrow"]["rev"])' \
               "${GITHUB_WORKSPACE}/.data/WendaoArrow.jl/Project.toml"
