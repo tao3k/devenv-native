@@ -149,6 +149,19 @@ pub enum BpmnFrontierPlanAction {
     Stalled,
 }
 
+pub(crate) enum BpmnFrontierRuntimeAction {
+    Execute(BpmnFrontierRuntimeBatch),
+    BlockedOnHost(Vec<PendingHostWork>),
+    WaitingExternalEvent,
+    Suspended(Option<SuspendReason>),
+    Stalled,
+}
+
+pub(crate) enum BpmnFrontierRuntimeBatch {
+    Proposals(Vec<BpmnFrontierExecutionProposal>),
+    Steps(Vec<BpmnFrontierExecutionStep>),
+}
+
 /// Planner output for one deterministic runtime step.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct BpmnFrontierPlan {
@@ -181,6 +194,12 @@ pub fn collect_frontier_proposals(instance: &BpmnInstanceState) -> BpmnFrontierP
         snapshot,
         execution_proposals,
     }
+}
+
+pub(crate) fn collect_frontier_execution_proposals(
+    instance: &BpmnInstanceState,
+) -> Vec<BpmnFrontierExecutionProposal> {
+    snapshot::execution_proposals(instance)
 }
 
 /// Merges runnable frontier proposals into conflict-aware execution steps.
@@ -224,4 +243,26 @@ pub fn plan_frontier_step(
     instance: &BpmnInstanceState,
 ) -> BpmnFrontierPlan {
     reduce_frontier_plan(process, instance, collect_frontier_proposals(instance))
+}
+
+#[must_use]
+pub(crate) fn plan_frontier_runtime_action(
+    process: &BpmnProcessSpec,
+    instance: &BpmnInstanceState,
+) -> BpmnFrontierRuntimeAction {
+    let execution_proposals = collect_frontier_execution_proposals(instance);
+    if !execution_proposals.is_empty() {
+        BpmnFrontierRuntimeAction::Execute(batch::build_frontier_runtime_batch(
+            process,
+            execution_proposals,
+        ))
+    } else if !instance.pending_host_work.is_empty() {
+        BpmnFrontierRuntimeAction::BlockedOnHost(instance.pending_host_work.clone())
+    } else if !instance.waits.is_empty() {
+        BpmnFrontierRuntimeAction::WaitingExternalEvent
+    } else if let Some(reason) = instance.suspend_reason.clone() {
+        BpmnFrontierRuntimeAction::Suspended(Some(reason))
+    } else {
+        BpmnFrontierRuntimeAction::Stalled
+    }
 }

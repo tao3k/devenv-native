@@ -162,9 +162,14 @@ pub(super) fn prepare_parallel_multi_instance_iteration(
         return Ok(false);
     }
 
+    let mut token_ids = state::token_id_allocator(instance);
     for iteration_index in 1..total_iterations {
-        let token_id =
-            state::push_active_token_with_arrival(instance, incoming_edge_index, node_index);
+        let token_id = state::push_active_token_with_arrival_and_allocator(
+            instance,
+            incoming_edge_index,
+            node_index,
+            &mut token_ids,
+        );
         register_parallel_multi_instance_iteration(
             instance,
             node_index,

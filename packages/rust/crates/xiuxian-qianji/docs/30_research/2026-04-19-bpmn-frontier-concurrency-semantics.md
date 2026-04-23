@@ -920,3 +920,132 @@ What landed:
    the same slice without changing checkpoint semantics
 5. checkpoint ownership, distributed writer ownership, and the Valkey-backed
    single-writer checkpoint model all remained unchanged during this slice
+
+## 32. Follow-up After Frontier Snapshot Classification Performance Slice
+
+The next bounded runtime-performance slice is now closed inside the existing
+frontier snapshot model. The first dense-status cut was superseded in the same
+performance lane by a stronger direct-status implementation.
+
+What landed:
+
+1. deterministic active-token snapshot order remains unchanged
+2. `rayon` remains limited to immutable frontier inspection
+3. frontier snapshot classification no longer builds an extra queued-node hash
+   set for every snapshot pass
+4. frontier snapshot classification also no longer allocates a per-snapshot
+   dense node-status vector
+5. queued-owner and terminal-node classification now directly indexes the
+   borrowed immutable node runtime state for active tokens
+6. direct waits and boundary-blocking waits now share one wait-role lookup,
+   using a sparse map for narrow fronts and an adaptive dense vector for wider
+   wait/token fronts
+7. focused regression coverage proves queued boundary-blocking owner tokens
+   still classify as runnable while non-queued owners remain waiting
+8. the ignored local probe for this hotspot measured
+   `hashset_ms=454.223`, `dense_status_ms=362.312`,
+   `sparse_direct_status_ms=200.753`, and
+   `adaptive_direct_status_ms=51.450` over `nodes=20000`, `tokens=10000`,
+   `waits=512`, and `iterations=128`
+9. the single-writer Valkey checkpoint contract and public frontier API
+   remained unchanged
+
+## 33. Follow-up After Frontier Runtime Planning Fast Path Slice
+
+The next bounded runtime-performance slice moved below public frontier snapshot
+construction and into the internal advance loop. Public planning remains
+available for diagnostics and API consumers, but the runtime no longer pays
+that public-shape materialization cost on every advance iteration.
+
+What landed:
+
+1. `advance_instance` now uses a crate-private runtime planner that collects
+   runnable execution proposals directly from immutable frontier state instead
+   of calling the public `plan_frontier_step` snapshot-and-batch surface
+2. the runtime planner preserves the public idle outcomes for blocked host
+   work, external waits, suspension, and stalled frontiers
+3. the runtime batch now keeps the common no-parallel-join path as raw
+   proposals, so ordinary multi-token execution does not wrap every runnable
+   token into `BpmnFrontierExecutionStep::Proposal`
+4. the parallel-join path still falls back to merge-aware execution steps, so
+   deterministic join coalescing and token re-indexing semantics remain
+   unchanged
+5. focused frontier tests still pass across public planning, idle outcomes,
+   queued boundary-owner classification, and parallel-join merge execution
+6. the ignored local runtime planning probe measured
+   `public_snapshot_ms=128.019`, `direct_wrapped_steps_ms=97.623`, and
+   `runtime_fast_path_ms=53.191` over `nodes=20000`, `tokens=10000`, and
+   `iterations=128`
+7. the single-writer Valkey checkpoint contract, public frontier API, and
+   external BPMN behavior remained unchanged
+
+## 34. Follow-up After Token ID Allocation Fan-out Performance Slice
+
+The next bounded runtime-performance slice moved into mutable fan-out token
+creation. Public runtime state and checkpoint shape remain unchanged; the
+optimization is a local allocation strategy inside one fan-out operation.
+
+What landed:
+
+1. single-token routing still uses the existing `next_token_id` behavior
+2. parallel gateway, inclusive gateway, event-based gateway, and parallel
+   multi-instance fan-out now create a local token-id allocator after the
+   existing active and pending token sets are scanned once
+3. fan-out token order and deterministic active frontier order remain
+   unchanged
+4. the allocator is crate-private runtime state and is not serialized into
+   checkpoints
+5. focused gateway and multi-instance runtime tests still pass after the
+   allocator-backed fan-out change
+6. the ignored local token allocation probe measured
+   `repeated_scan_ms=2729.932` and `allocator_ms=1.391` over
+   `initial_tokens=8000`, `pending_tokens=512`, `pushed_tokens=2048`, and
+   `iterations=16`
+7. the single-writer Valkey checkpoint contract, public frontier API, and
+   external BPMN behavior remained unchanged
+
+## 35. Follow-up After Event Competition Retain Performance Slice
+
+The next bounded wait-runtime performance slice tightened event-based gateway
+resume. The larger wait-node membership optimization was already in place, so
+this slice focused only on removing an avoidable second active-token scan.
+
+What landed:
+
+1. event competition winner validation still checks that the selected wait
+   belongs to the event-based gateway owner
+2. the winner token is now retained during the same active-token pass that
+   removes competing wait tokens
+3. exactly one token for the winning wait node is retained, while unrelated
+   active tokens keep deterministic order
+4. focused event-based gateway runtime tests still pass
+5. the ignored local event competition probe measured
+   `linear_ms=455.419`, `indexed_ms=187.858`, and
+   `fused_indexed_ms=187.094` over `waits=64`,
+   `unrelated_tokens=10000`, and `iterations=128`
+6. the small delta confirms that the remaining cost center is broader wait
+   resolution and process lookup, not winner-token pre-scan alone
+7. the single-writer Valkey checkpoint contract, public frontier API, and
+   external BPMN behavior remained unchanged
+
+## 36. Follow-up After Wait Process Resolution Performance Slice
+
+The next bounded wait-runtime performance slice removed package-wide process
+lookup from event-poll apply when the cached process index is still valid.
+Fallback lookup remains in place for stale checkpoints.
+
+What landed:
+
+1. current-frame waits now resolve the owning process through
+   `BpmnInstanceState.process_index` first
+2. parent-frame waits now resolve through `CallActivityFrame.process_index`
+   first
+3. stale or missing indexes still fall back to package `process_id` lookup, so
+   older checkpoints remain recoverable
+4. focused wait, event-based gateway, and call-activity boundary/runtime tests
+   still pass
+5. the ignored local wait process lookup probe measured
+   `linear_ms=59506.419` and `indexed_ms=6.041` over `processes=20000` and
+   `iterations=200000`
+6. the single-writer Valkey checkpoint contract, public frontier API, and
+   external BPMN behavior remained unchanged

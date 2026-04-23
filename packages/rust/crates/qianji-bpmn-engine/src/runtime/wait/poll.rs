@@ -310,33 +310,42 @@ fn resolve_wait_process<'a>(
     wait: &RuntimeWaitRegistration,
     source: EventPollWaitSource,
 ) -> Result<&'a BpmnProcessSpec> {
-    if let Some(process_id) = wait.process_id.as_deref() {
-        return package
-            .find_process(process_id)
-            .ok_or_else(|| BpmnEngineError::MissingProcess {
-                process_id: process_id.to_string(),
-            });
-    }
-
     match source {
-        EventPollWaitSource::CurrentFrame => package
-            .find_process(instance.process.process_id.as_ref())
-            .ok_or_else(|| BpmnEngineError::MissingProcess {
-                process_id: instance.process.process_id.to_string(),
-            }),
+        EventPollWaitSource::CurrentFrame => {
+            let process_id = wait
+                .process_id
+                .as_deref()
+                .unwrap_or(instance.process.process_id.as_ref());
+            resolve_wait_process_by_index(package, process_id, instance.process_index)
+        }
         EventPollWaitSource::ParentFrame => {
             let Some(frame) = instance.call_stack.last() else {
                 return Err(BpmnEngineError::UnsupportedOperation {
                     operation: "resolve_wait_process_missing_parent_frame",
                 });
             };
-            package
-                .find_process(frame.process.process_id.as_ref())
-                .ok_or_else(|| BpmnEngineError::MissingProcess {
-                    process_id: frame.process.process_id.to_string(),
-                })
+            let process_id = wait
+                .process_id
+                .as_deref()
+                .unwrap_or(frame.process.process_id.as_ref());
+            resolve_wait_process_by_index(package, process_id, frame.process_index)
         }
     }
+}
+
+fn resolve_wait_process_by_index<'a>(
+    package: &'a BpmnPackage,
+    process_id: &str,
+    process_index: u32,
+) -> Result<&'a BpmnProcessSpec> {
+    package
+        .processes
+        .get(process_index as usize)
+        .filter(|process| process.key.process_id.as_ref() == process_id)
+        .or_else(|| package.find_process(process_id))
+        .ok_or_else(|| BpmnEngineError::MissingProcess {
+            process_id: process_id.to_string(),
+        })
 }
 
 fn resolve_winning_wait(

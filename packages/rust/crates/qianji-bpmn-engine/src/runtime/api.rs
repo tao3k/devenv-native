@@ -1,6 +1,6 @@
 //! Internal runtime api seam.
 
-pub(crate) use super::frontier::plan_frontier_step;
+pub(crate) use super::frontier::plan_frontier_runtime_action;
 pub(crate) use super::host::{
     build_pending_host_work_request_impl as build_pending_host_work_request,
     build_pending_host_work_requests_impl as build_pending_host_work_requests,
@@ -32,8 +32,8 @@ pub(crate) use super::wait::{
 pub(crate) use crate::runtime_advance_api::BpmnAdvanceOutcome;
 pub(crate) use crate::runtime_dispatch_api::{PendingHostWork, PendingHostWorkKind};
 pub(crate) use crate::runtime_frontier_api::{
-    BpmnFrontierExecutionBatch, BpmnFrontierExecutionProposal, BpmnFrontierExecutionStep,
-    BpmnFrontierParallelJoinMerge, BpmnFrontierPlanAction,
+    BpmnFrontierExecutionProposal, BpmnFrontierExecutionStep, BpmnFrontierParallelJoinMerge,
+    BpmnFrontierRuntimeAction, BpmnFrontierRuntimeBatch,
 };
 pub(crate) use crate::runtime_join_api::JoinRuntimeState;
 pub(crate) use crate::runtime_token_api::TokenRecord;

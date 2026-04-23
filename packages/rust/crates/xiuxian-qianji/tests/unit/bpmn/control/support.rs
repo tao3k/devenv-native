@@ -35,6 +35,7 @@ pub(super) fn write_linear_bundle(temp_dir: &TempDir) -> PathBuf {
     bpmn_path
 }
 
+#[cfg(feature = "sqlite")]
 pub(super) fn write_service_task_bundle(temp_dir: &TempDir) -> PathBuf {
     let bpmn_path = temp_dir.path().join("service-task.bpmn");
     write_file(

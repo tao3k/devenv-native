@@ -8,8 +8,8 @@ mod lifecycle;
 mod wait;
 
 pub(crate) use api::{
-    BpmnAdvanceOutcome, BpmnFrontierExecutionBatch, BpmnFrontierExecutionProposal,
-    BpmnFrontierExecutionStep, BpmnFrontierParallelJoinMerge, BpmnFrontierPlanAction,
+    BpmnAdvanceOutcome, BpmnFrontierExecutionProposal, BpmnFrontierExecutionStep,
+    BpmnFrontierParallelJoinMerge, BpmnFrontierRuntimeAction, BpmnFrontierRuntimeBatch,
     BpmnInstanceState, EventCompetitionState, InstanceLifecycle, JoinRuntimeState,
     MultiInstanceCollectionKey, MultiInstanceCollectionKind, MultiInstanceCollectionSlot,
     MultiInstanceDataRuntimeState, MultiInstanceOutputCollectionState, NodeRuntimeStatus,
@@ -22,7 +22,7 @@ pub(crate) use api::{
     has_parallel_multi_instance_state, increment_sequential_multi_instance_iterations,
     increment_standard_loop_iterations, install_process_state,
     parallel_multi_instance_iteration_variables, parallel_multi_instance_min_token_id,
-    parallel_multi_instance_state, parallel_multi_instance_state_mut, plan_frontier_step,
+    parallel_multi_instance_state, parallel_multi_instance_state_mut, plan_frontier_runtime_action,
     pop_call_activity_frame, push_active_token, push_call_activity_frame,
     register_parallel_multi_instance_iteration, resolve_process_for_instance,
     restore_call_activity_frame, sequential_multi_instance_iteration_variables,

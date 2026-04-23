@@ -100,9 +100,10 @@ fn advance_parallel_split(
     );
     state::set_node_status(instance, first_target, NodeRuntimeStatus::Queued);
 
+    let mut token_ids = state::token_id_allocator(instance);
     for edge_index in outgoing.iter().skip(1) {
         let target = process.edges[*edge_index as usize].to;
-        state::push_active_token(instance, *edge_index, target);
+        state::push_active_token_with_allocator(instance, *edge_index, target, &mut token_ids);
         state::set_node_status(instance, target, NodeRuntimeStatus::Queued);
     }
 
@@ -316,9 +317,16 @@ fn advance_inclusive_split(
     state::set_token_inclusive_join_hint(instance, current_token_index, Some(join_hint.clone()));
     state::set_node_status(instance, first_target, NodeRuntimeStatus::Queued);
 
+    let mut token_ids = state::token_id_allocator(instance);
     for edge_index in selected.iter().skip(1) {
         let target = process.edges[*edge_index as usize].to;
-        state::push_active_token_with_join_hint(instance, *edge_index, target, join_hint.clone());
+        state::push_active_token_with_join_hint_and_allocator(
+            instance,
+            *edge_index,
+            target,
+            join_hint.clone(),
+            &mut token_ids,
+        );
         state::set_node_status(instance, target, NodeRuntimeStatus::Queued);
     }
 
@@ -487,9 +495,15 @@ fn advance_event_based_gateway(
         first_wait_node_index,
     );
     instance.waits.clear();
+    let mut token_ids = state::token_id_allocator(instance);
     for (position, wait_node_index) in wait_node_indices.iter().copied().enumerate() {
         if position > 0 {
-            state::push_active_token(instance, outgoing[position], wait_node_index);
+            state::push_active_token_with_allocator(
+                instance,
+                outgoing[position],
+                wait_node_index,
+                &mut token_ids,
+            );
         }
         state::set_node_status(instance, wait_node_index, NodeRuntimeStatus::Executing);
         instance.waits.push(blocking::build_wait_registration(

@@ -1,8 +1,9 @@
 use super::scope::{
-    BpmnAdvanceOutcome, BpmnEngineError, BpmnFrontierExecutionBatch, BpmnFrontierExecutionProposal,
-    BpmnFrontierExecutionStep, BpmnFrontierParallelJoinMerge, BpmnFrontierPlanAction,
+    BpmnAdvanceOutcome, BpmnEngineError, BpmnFrontierExecutionProposal, BpmnFrontierExecutionStep,
+    BpmnFrontierParallelJoinMerge, BpmnFrontierRuntimeAction, BpmnFrontierRuntimeBatch,
     BpmnHostBridge, BpmnInstanceState, BpmnNodeIndex, BpmnPackage, InstanceLifecycle,
-    JoinRuntimeState, NodeRuntimeStatus, Result, plan_frontier_step, resolve_process_for_instance,
+    JoinRuntimeState, NodeRuntimeStatus, Result, plan_frontier_runtime_action,
+    resolve_process_for_instance,
 };
 use super::{advance, call_activity, state};
 use std::collections::HashMap;
@@ -40,26 +41,28 @@ pub(crate) async fn advance_instance_impl<H: BpmnHostBridge>(
 
     loop {
         let process = resolve_process_for_instance(package, instance)?;
-        let frontier_plan = plan_frontier_step(process, instance);
-        match frontier_plan.action {
-            BpmnFrontierPlanAction::ExecuteBatch(batch) => {
-                if let Some(outcome) = execute_frontier_batch(package, instance, host, &batch)? {
+        let frontier_action = plan_frontier_runtime_action(process, instance);
+        match frontier_action {
+            BpmnFrontierRuntimeAction::Execute(batch) => {
+                if let Some(outcome) =
+                    execute_frontier_runtime_batch(package, instance, host, &batch)?
+                {
                     return Ok(outcome);
                 }
             }
-            BpmnFrontierPlanAction::BlockedOnHost(pending) => {
+            BpmnFrontierRuntimeAction::BlockedOnHost(pending) => {
                 instance.lifecycle = InstanceLifecycle::Waiting;
                 return Ok(BpmnAdvanceOutcome::BlockedOnHost(pending));
             }
-            BpmnFrontierPlanAction::WaitingExternalEvent => {
+            BpmnFrontierRuntimeAction::WaitingExternalEvent => {
                 instance.lifecycle = InstanceLifecycle::Waiting;
                 return Ok(BpmnAdvanceOutcome::WaitingExternalEvent);
             }
-            BpmnFrontierPlanAction::Suspended(reason) => {
+            BpmnFrontierRuntimeAction::Suspended(reason) => {
                 instance.lifecycle = InstanceLifecycle::Suspended;
                 return Ok(BpmnAdvanceOutcome::Suspended(reason));
             }
-            BpmnFrontierPlanAction::Stalled => {
+            BpmnFrontierRuntimeAction::Stalled => {
                 return Err(BpmnEngineError::UnsupportedOperation {
                     operation: "advance_instance_missing_runnable_token",
                 });
@@ -68,25 +71,42 @@ pub(crate) async fn advance_instance_impl<H: BpmnHostBridge>(
     }
 }
 
-fn execute_frontier_batch<H: BpmnHostBridge>(
+fn execute_frontier_runtime_batch<H: BpmnHostBridge>(
     package: &BpmnPackage,
     instance: &mut BpmnInstanceState,
     host: &H,
-    batch: &BpmnFrontierExecutionBatch,
+    batch: &BpmnFrontierRuntimeBatch,
 ) -> Result<Option<BpmnAdvanceOutcome>> {
     let mut token_lookup = state::FrontierTokenLookup::default();
-    for step in &batch.steps {
+    match batch {
+        BpmnFrontierRuntimeBatch::Proposals(proposals) => {
+            execute_frontier_proposals(package, instance, host, proposals, &mut token_lookup)
+        }
+        BpmnFrontierRuntimeBatch::Steps(steps) => {
+            execute_frontier_steps(package, instance, host, steps, &mut token_lookup)
+        }
+    }
+}
+
+fn execute_frontier_steps<H: BpmnHostBridge>(
+    package: &BpmnPackage,
+    instance: &mut BpmnInstanceState,
+    host: &H,
+    steps: &[BpmnFrontierExecutionStep],
+    token_lookup: &mut state::FrontierTokenLookup,
+) -> Result<Option<BpmnAdvanceOutcome>> {
+    for step in steps {
         match step {
             BpmnFrontierExecutionStep::Proposal(proposal) => {
                 if let Some(outcome) =
-                    execute_frontier_proposal(package, instance, host, proposal, &mut token_lookup)?
+                    execute_frontier_proposal(package, instance, host, proposal, token_lookup)?
                 {
                     return Ok(Some(outcome));
                 }
             }
             BpmnFrontierExecutionStep::ParallelJoin(group) => {
                 if let Some(outcome) =
-                    execute_parallel_join_merge(package, instance, host, group, &mut token_lookup)?
+                    execute_parallel_join_merge(package, instance, host, group, token_lookup)?
                 {
                     return Ok(Some(outcome));
                 }
@@ -94,6 +114,23 @@ fn execute_frontier_batch<H: BpmnHostBridge>(
         }
     }
 
+    Ok(None)
+}
+
+fn execute_frontier_proposals<H: BpmnHostBridge>(
+    package: &BpmnPackage,
+    instance: &mut BpmnInstanceState,
+    host: &H,
+    proposals: &[BpmnFrontierExecutionProposal],
+    token_lookup: &mut state::FrontierTokenLookup,
+) -> Result<Option<BpmnAdvanceOutcome>> {
+    for proposal in proposals {
+        if let Some(outcome) =
+            execute_frontier_proposal(package, instance, host, proposal, token_lookup)?
+        {
+            return Ok(Some(outcome));
+        }
+    }
     Ok(None)
 }
 
@@ -244,14 +281,7 @@ fn execute_parallel_join_merge_fallback<H: BpmnHostBridge>(
     proposals: &[BpmnFrontierExecutionProposal],
     token_lookup: &mut state::FrontierTokenLookup,
 ) -> Result<Option<BpmnAdvanceOutcome>> {
-    for proposal in proposals {
-        if let Some(outcome) =
-            execute_frontier_proposal(package, instance, host, proposal, token_lookup)?
-        {
-            return Ok(Some(outcome));
-        }
-    }
-    Ok(None)
+    execute_frontier_proposals(package, instance, host, proposals, token_lookup)
 }
 
 fn parallel_join_merge_supported(

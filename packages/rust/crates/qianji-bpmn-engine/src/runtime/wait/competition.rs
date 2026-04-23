@@ -38,19 +38,19 @@ impl<'a> EventCompetitionContext<'a> {
         )
     }
 
-    fn retain_winner_token(
+    fn retain_winner_node_token(
         &self,
         instance: &mut BpmnInstanceState,
-        winner_token_id: u64,
+        winning_wait_node_index: BpmnNodeIndex,
     ) -> Option<usize> {
         let mut winner_token_index = None;
         let mut surviving_tokens = Vec::with_capacity(instance.active_tokens.len());
 
         for token in mem::take(&mut instance.active_tokens) {
-            if token.token_id == winner_token_id || !self.contains_wait_node(token.node_index) {
-                if token.token_id == winner_token_id {
-                    winner_token_index = Some(surviving_tokens.len());
-                }
+            if winner_token_index.is_none() && token.node_index == winning_wait_node_index {
+                winner_token_index = Some(surviving_tokens.len());
+                surviving_tokens.push(token);
+            } else if !self.contains_wait_node(token.node_index) {
                 surviving_tokens.push(token);
             }
         }
@@ -80,12 +80,6 @@ pub(super) fn apply_event_competition_outcome(
         });
     }
 
-    let Some(winning_token_index) = active_token_index(instance, winning_wait.node_index) else {
-        return Err(BpmnEngineError::UnsupportedOperation {
-            operation: "apply_event_poll_outcome_competition_missing_winner_token",
-        });
-    };
-
     for wait_node_index in &competition.wait_node_indices {
         if *wait_node_index == winning_wait.node_index {
             continue;
@@ -93,10 +87,11 @@ pub(super) fn apply_event_competition_outcome(
         set_node_status(instance, *wait_node_index, NodeRuntimeStatus::Cancelled);
     }
 
-    let winner_token_id = instance.active_tokens[winning_token_index].token_id;
-    let Some(winner_token_index) = context.retain_winner_token(instance, winner_token_id) else {
+    let Some(winner_token_index) =
+        context.retain_winner_node_token(instance, winning_wait.node_index)
+    else {
         return Err(BpmnEngineError::UnsupportedOperation {
-            operation: "apply_event_poll_outcome_competition_lost_winner_token",
+            operation: "apply_event_poll_outcome_competition_missing_winner_token",
         });
     };
 
@@ -122,11 +117,4 @@ pub(super) fn apply_event_competition_outcome(
     record_transition(instance, polled_at_ms, InstanceLifecycle::Running);
 
     Ok(BpmnAdvanceOutcome::Advanced)
-}
-
-fn active_token_index(instance: &BpmnInstanceState, node_index: BpmnNodeIndex) -> Option<usize> {
-    instance
-        .active_tokens
-        .iter()
-        .position(|token| token.node_index == node_index)
 }

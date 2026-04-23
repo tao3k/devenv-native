@@ -54,18 +54,69 @@ pub(crate) fn push_active_token(
     let _ = push_active_token_with_arrival(instance, Some(incoming_edge_index), node_index);
 }
 
-pub(crate) fn push_active_token_with_join_hint(
+#[derive(Debug, Clone)]
+pub(crate) struct TokenIdAllocator {
+    next_token_id: u64,
+}
+
+impl TokenIdAllocator {
+    pub(crate) fn next_token_id(&mut self) -> u64 {
+        let token_id = self.next_token_id;
+        self.next_token_id = self.next_token_id.saturating_add(1);
+        token_id
+    }
+}
+
+pub(crate) fn token_id_allocator(instance: &BpmnInstanceState) -> TokenIdAllocator {
+    TokenIdAllocator {
+        next_token_id: next_token_id(instance),
+    }
+}
+
+pub(crate) fn push_active_token_with_allocator(
+    instance: &mut BpmnInstanceState,
+    incoming_edge_index: u32,
+    node_index: BpmnNodeIndex,
+    allocator: &mut TokenIdAllocator,
+) -> u64 {
+    push_active_token_with_metadata_and_id(
+        instance,
+        Some(incoming_edge_index),
+        node_index,
+        None,
+        allocator.next_token_id(),
+    )
+}
+
+pub(crate) fn push_active_token_with_arrival_and_allocator(
+    instance: &mut BpmnInstanceState,
+    incoming_edge_index: Option<u32>,
+    node_index: BpmnNodeIndex,
+    allocator: &mut TokenIdAllocator,
+) -> u64 {
+    push_active_token_with_metadata_and_id(
+        instance,
+        incoming_edge_index,
+        node_index,
+        None,
+        allocator.next_token_id(),
+    )
+}
+
+pub(crate) fn push_active_token_with_join_hint_and_allocator(
     instance: &mut BpmnInstanceState,
     incoming_edge_index: u32,
     node_index: BpmnNodeIndex,
     inclusive_join_hint: InclusiveJoinHint,
-) {
-    let _ = push_active_token_with_metadata(
+    allocator: &mut TokenIdAllocator,
+) -> u64 {
+    push_active_token_with_metadata_and_id(
         instance,
         Some(incoming_edge_index),
         node_index,
         Some(inclusive_join_hint),
-    );
+        allocator.next_token_id(),
+    )
 }
 
 pub(crate) fn push_active_token_with_arrival(
@@ -83,6 +134,22 @@ pub(crate) fn push_active_token_with_metadata(
     inclusive_join_hint: Option<InclusiveJoinHint>,
 ) -> u64 {
     let token_id = next_token_id(instance);
+    push_active_token_with_metadata_and_id(
+        instance,
+        incoming_edge_index,
+        node_index,
+        inclusive_join_hint,
+        token_id,
+    )
+}
+
+fn push_active_token_with_metadata_and_id(
+    instance: &mut BpmnInstanceState,
+    incoming_edge_index: Option<u32>,
+    node_index: BpmnNodeIndex,
+    inclusive_join_hint: Option<InclusiveJoinHint>,
+    token_id: u64,
+) -> u64 {
     instance.active_tokens.push(TokenRecord {
         token_id,
         node_index,
