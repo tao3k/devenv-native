@@ -2,8 +2,8 @@ use std::collections::HashMap;
 
 use anyhow::{Result, anyhow};
 
-use crate::swarm::discovery::model::ClusterNodeIdentity;
-use crate::swarm::discovery::util::current_unix_millis;
+use crate::swarm::discovery_model::ClusterNodeIdentity;
+use crate::swarm::discovery_util::current_unix_millis;
 
 pub(super) fn heartbeat_payload(
     identity: &ClusterNodeIdentity,

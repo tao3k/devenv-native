@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions
+  id="Definitions_invocation_decision"
+  name="Invocation Decision"
+  namespace="https://example.com/dmn/invocation-decision"
+  xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/">
+  <decision id="Decision_invocation" name="Invocation Decision">
+    <invocation id="invocation_1">
+      <literalExpression id="literal_expression_function">
+        <text>scoreCard</text>
+      </literalExpression>
+      <binding id="binding_1">
+        <parameter id="parameter_1" name="age"/>
+        <literalExpression id="literal_expression_argument">
+          <text>applicant.age</text>
+        </literalExpression>
+      </binding>
+    </invocation>
+  </decision>
+</definitions>

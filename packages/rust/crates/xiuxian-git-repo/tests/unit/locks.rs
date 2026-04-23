@@ -63,7 +63,7 @@ fn managed_checkout_lock_times_out_for_active_lockfiles() {
         lock_path.clone(),
         Duration::from_millis(1),
         Duration::from_millis(5),
-        Duration::from_secs(60),
+        Duration::from_mins(1),
     ) {
         Ok(_guard) => panic!("active lock should time out"),
         Err(error) => error,

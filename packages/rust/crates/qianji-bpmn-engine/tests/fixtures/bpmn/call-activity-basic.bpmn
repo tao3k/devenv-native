@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  id="pkg_call_activity"
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL">
+  <bpmn:process id="main_process">
+    <bpmn:startEvent id="start" />
+    <bpmn:callActivity id="invoke_child" calledElement="child_process" />
+    <bpmn:endEvent id="end" />
+    <bpmn:sequenceFlow id="flow_1" sourceRef="start" targetRef="invoke_child" />
+    <bpmn:sequenceFlow id="flow_2" sourceRef="invoke_child" targetRef="end" />
+  </bpmn:process>
+  <bpmn:process id="child_process">
+    <bpmn:startEvent id="child_start" />
+    <bpmn:userTask id="child_review" />
+    <bpmn:endEvent id="child_end" />
+    <bpmn:sequenceFlow id="flow_3" sourceRef="child_start" targetRef="child_review" />
+    <bpmn:sequenceFlow id="flow_4" sourceRef="child_review" targetRef="child_end" />
+  </bpmn:process>
+</bpmn:definitions>

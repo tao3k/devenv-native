@@ -63,7 +63,7 @@ async fn execute_openai_responses_request_fails_fast_when_headers_stall() -> Res
             content_type: "text/event-stream",
             body: "data: [DONE]",
         },
-        Duration::from_secs(60),
+        Duration::from_mins(1),
     )
     .await?;
 

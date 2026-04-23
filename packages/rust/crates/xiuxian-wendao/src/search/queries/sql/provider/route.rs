@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use xiuxian_vector_store::engine_batches_to_lance_batches;
+use xiuxian_db_store::engine_batches_to_lance_batches;
 use xiuxian_wendao_runtime::transport::{SqlFlightRouteProvider, SqlFlightRouteResponse};
 
 use crate::search::queries::SearchQueryService;

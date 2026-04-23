@@ -18,7 +18,7 @@ async fn spawn_hanging_server(addr: std::net::SocketAddr) -> tokio::task::JoinHa
         MockToolRuntimeConfig::with_handlers(
             list_handler(|_request| async move { MockListToolsReply::Hang }),
             call_handler(|_request| async move {
-                let _ = pending::<()>().await;
+                let () = pending::<()>().await;
                 MockCallToolReply::Hang
             }),
         ),

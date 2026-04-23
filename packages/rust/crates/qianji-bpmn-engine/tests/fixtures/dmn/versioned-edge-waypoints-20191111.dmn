@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions
+  id="Definitions_versioned_edge_waypoints"
+  name="Versioned Edge Waypoints"
+  namespace="https://example.com/dmn/versioned-edge-waypoints"
+  xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/"
+  xmlns:dmndi="https://www.omg.org/spec/DMN/20191111/DMNDI/"
+  xmlns:dc="http://www.omg.org/spec/DMN/20180521/DC/"
+  xmlns:di="http://www.omg.org/spec/DMN/20180521/DI/">
+  <decision id="Decision_1" name="Eligibility Decision">
+    <informationRequirement id="Requirement_1">
+      <requiredInput href="#InputData_1" />
+    </informationRequirement>
+  </decision>
+  <inputData id="InputData_1" name="Applicant Input" />
+  <dmndi:DMNDI>
+    <dmndi:DMNDiagram id="diagram_eligibility">
+      <dmndi:DMNShape id="shape_Decision_1" dmnElementRef="Decision_1">
+        <dc:Bounds x="120" y="80" width="180" height="80" />
+      </dmndi:DMNShape>
+      <dmndi:DMNShape id="shape_InputData_1" dmnElementRef="InputData_1">
+        <dc:Bounds x="120" y="240" width="180" height="80" />
+      </dmndi:DMNShape>
+      <dmndi:DMNEdge id="edge_requirement_1" dmnElementRef="Requirement_1">
+        <di:waypoint x="210" y="240" />
+        <di:waypoint x="210" y="160" />
+      </dmndi:DMNEdge>
+    </dmndi:DMNDiagram>
+  </dmndi:DMNDI>
+</definitions>

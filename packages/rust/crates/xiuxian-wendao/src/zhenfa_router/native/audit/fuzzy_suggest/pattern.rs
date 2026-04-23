@@ -37,10 +37,10 @@ impl PatternSkeleton {
                 | "type" | "const" | "let" | "var" | "pub" | "private" | "async" | "await"
                 | "return" | "if" | "else" | "for" | "while" | "match" | "case" | "func"
                 | "function" | "public" | "protected" | "Result" | "Option" | "Vec" | "String"
-                | "str" | "int" | "bool" | "void" | "null" | "None" | "Some" | "Ok" | "Err" => {
-                    if !skeleton.keywords.contains(&token) {
-                        skeleton.keywords.push(token);
-                    }
+                | "str" | "int" | "bool" | "void" | "null" | "None" | "Some" | "Ok" | "Err"
+                    if !skeleton.keywords.contains(&token) =>
+                {
+                    skeleton.keywords.push(token);
                 }
                 // Structural elements
                 "(" | ")" | "{" | "}" | "[" | "]" | "<" | ">" | "->" | "=>" | ":" | ";" | ","
@@ -52,10 +52,8 @@ impl PatternSkeleton {
                     skeleton.metavariables.push(token);
                 }
                 // Identifiers (everything else that looks like a name)
-                t if is_identifier_like(t) => {
-                    if !skeleton.identifiers.contains(&token) {
-                        skeleton.identifiers.push(token);
-                    }
+                t if is_identifier_like(t) && !skeleton.identifiers.contains(&token) => {
+                    skeleton.identifiers.push(token);
                 }
                 _ => {}
             }

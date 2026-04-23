@@ -1,4 +1,4 @@
-use xiuxian_vector_store::VectorStoreError;
+use xiuxian_db_store::VectorStoreError;
 
 use crate::analyzers::RepositoryAnalysisOutput;
 use crate::search::repo_entity::schema::definitions::RepoEntityRow;

@@ -13,7 +13,7 @@ pub(crate) const RECALL_TRIM_MULTIPLIER: usize = 8;
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum RepoEntitySearchError {
     #[error(transparent)]
-    Storage(#[from] xiuxian_vector_store::VectorStoreError),
+    Storage(#[from] xiuxian_db_store::VectorStoreError),
     #[error("{0}")]
     Decode(String),
 }

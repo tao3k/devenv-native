@@ -1,7 +1,7 @@
 //! Compatibility bridge for single-page web ingestion.
 
 use std::collections::HashMap;
-use std::sync::{Arc, OnceLock};
+use std::sync::{Arc, LazyLock};
 use std::time::Duration;
 
 use regex::Regex;
@@ -75,7 +75,6 @@ impl SpiderBridge {
         // The compatibility bridge keeps the page-limit knob for callers, but
         // this reduced implementation intentionally ingests only the requested
         // source page instead of recursively crawling links.
-        let _requested_page_limit = self.page_limit;
         let user_agent = if self.stealth_mode {
             STEALTH_USER_AGENT
         } else {
@@ -117,6 +116,10 @@ impl SpiderBridge {
 
         let mut metadata = HashMap::new();
         metadata.insert("engine".to_string(), "reqwest".to_string());
+        metadata.insert(
+            "crawler.page_limit".to_string(),
+            self.page_limit.to_string(),
+        );
         metadata.insert("crawler.stealth".to_string(), self.stealth_mode.to_string());
         metadata.insert(
             "crawler.content_source".to_string(),
@@ -260,53 +263,64 @@ fn decode_html_entity(entity: &str) -> Option<char> {
     }
 }
 
+fn compile_regex(pattern: &str, label: &str) -> Regex {
+    match Regex::new(pattern) {
+        Ok(regex) => regex,
+        Err(error) => panic!("{label} regex must compile: {error}"),
+    }
+}
+
 fn title_regex() -> &'static Regex {
-    static REGEX: OnceLock<Regex> = OnceLock::new();
-    REGEX
-        .get_or_init(|| Regex::new(r"(?is)<title\b[^>]*>(.*?)</title>").expect("valid title regex"))
+    static REGEX: LazyLock<Regex> =
+        LazyLock::new(|| compile_regex(r"(?is)<title\b[^>]*>(.*?)</title>", "title"));
+    &REGEX
 }
 
 fn meta_tag_regex() -> &'static Regex {
-    static REGEX: OnceLock<Regex> = OnceLock::new();
-    REGEX.get_or_init(|| Regex::new(r"(?is)<meta\b[^>]*>").expect("valid meta tag regex"))
+    static REGEX: LazyLock<Regex> =
+        LazyLock::new(|| compile_regex(r"(?is)<meta\b[^>]*>", "meta tag"));
+    &REGEX
 }
 
 fn attribute_regex() -> &'static Regex {
-    static REGEX: OnceLock<Regex> = OnceLock::new();
-    REGEX.get_or_init(|| {
-        Regex::new(
+    static REGEX: LazyLock<Regex> = LazyLock::new(|| {
+        compile_regex(
             r#"(?is)([A-Za-z_:][A-Za-z0-9_:\-\.]*)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))"#,
+            "html attribute",
         )
-        .expect("valid html attribute regex")
-    })
+    });
+    &REGEX
 }
 
 fn html_comment_regex() -> &'static Regex {
-    static REGEX: OnceLock<Regex> = OnceLock::new();
-    REGEX.get_or_init(|| Regex::new(r"(?is)<!--.*?-->").expect("valid html comment regex"))
+    static REGEX: LazyLock<Regex> =
+        LazyLock::new(|| compile_regex(r"(?is)<!--.*?-->", "html comment"));
+    &REGEX
 }
 
 fn noise_block_regex() -> &'static Regex {
-    static REGEX: OnceLock<Regex> = OnceLock::new();
-    REGEX.get_or_init(|| {
-        Regex::new(r"(?is)<(?:head|script|style|noscript|template|svg|math)\b.*?</(?:head|script|style|noscript|template|svg|math)>")
-            .expect("valid noisy block regex")
-    })
+    static REGEX: LazyLock<Regex> = LazyLock::new(|| {
+        compile_regex(
+            r"(?is)<(?:head|script|style|noscript|template|svg|math)\b.*?</(?:head|script|style|noscript|template|svg|math)>",
+            "noisy block",
+        )
+    });
+    &REGEX
 }
 
 fn block_break_regex() -> &'static Regex {
-    static REGEX: OnceLock<Regex> = OnceLock::new();
-    REGEX.get_or_init(|| {
-        Regex::new(
+    static REGEX: LazyLock<Regex> = LazyLock::new(|| {
+        compile_regex(
             r"(?is)</?(?:article|aside|blockquote|br|dd|div|dl|dt|fieldset|figcaption|figure|footer|form|h[1-6]|header|hr|li|main|nav|ol|p|pre|section|table|tbody|td|tfoot|th|thead|tr|ul)\b[^>]*>",
+            "block break",
         )
-        .expect("valid block break regex")
-    })
+    });
+    &REGEX
 }
 
 fn html_tag_regex() -> &'static Regex {
-    static REGEX: OnceLock<Regex> = OnceLock::new();
-    REGEX.get_or_init(|| Regex::new(r"(?is)<[^>]+>").expect("valid html tag regex"))
+    static REGEX: LazyLock<Regex> = LazyLock::new(|| compile_regex(r"(?is)<[^>]+>", "html tag"));
+    &REGEX
 }
 
 pub(super) fn resolve_markdown_content(

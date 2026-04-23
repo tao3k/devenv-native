@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions
+  id="Definitions_versioned_listed_input_data"
+  name="Versioned Listed Input Data"
+  namespace="https://example.com/dmn/versioned-listed-input-data"
+  xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/"
+  xmlns:dmndi="https://www.omg.org/spec/DMN/20191111/DMNDI/"
+  xmlns:dc="http://www.omg.org/spec/DMN/20180521/DC/"
+  xmlns:di="http://www.omg.org/spec/DMN/20180521/DI/">
+  <decision id="Decision_1" name="Eligibility Decision">
+    <informationRequirement>
+      <requiredInput href="#InputData_1" />
+    </informationRequirement>
+  </decision>
+  <inputData id="InputData_1" name="Applicant Input" />
+  <dmndi:DMNDI>
+    <dmndi:DMNDiagram id="diagram_eligibility">
+      <dmndi:DMNShape id="shape_Decision_1" dmnElementRef="Decision_1">
+        <dc:Bounds x="120" y="80" width="180" height="80" />
+      </dmndi:DMNShape>
+    </dmndi:DMNDiagram>
+  </dmndi:DMNDI>
+</definitions>

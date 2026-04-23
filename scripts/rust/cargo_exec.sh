@@ -43,6 +43,24 @@ if [[ "$(uname -s)" == "Darwin" && -z ${SDKROOT:-} ]]; then
   fi
 fi
 
+# Ensure system libraries such as libiconv are discoverable for build scripts
+# that invoke the platform linker directly during macOS cargo builds.
+if [[ "$(uname -s)" == "Darwin" && -n ${SDKROOT:-} ]]; then
+  sdk_lib_path="${SDKROOT}/usr/lib"
+  if [[ -d ${sdk_lib_path} ]]; then
+    case ":${LIBRARY_PATH:-}:" in
+      *":${sdk_lib_path}:"*) ;;
+      *)
+        if [[ -n ${LIBRARY_PATH:-} ]]; then
+          export LIBRARY_PATH="${sdk_lib_path}:${LIBRARY_PATH}"
+        else
+          export LIBRARY_PATH="${sdk_lib_path}"
+        fi
+        ;;
+    esac
+  fi
+fi
+
 # Prefer the system Clang toolchain on macOS for crates that compile C/C++ code.
 if [[ "$(uname -s)" == "Darwin" ]]; then
   export CC="${CC:-/usr/bin/clang}"

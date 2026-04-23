@@ -50,6 +50,7 @@ fn thought_aggregator_processes_tool_calls() {
 
     assert_eq!(aggregator.tool_calls.len(), 1);
     assert_eq!(aggregator.tool_calls[0].name, "search");
+    assert_eq!(aggregator.tool_calls[0].input["query"], "test");
     assert!(aggregator.tool_calls[0].output.is_some());
 }
 

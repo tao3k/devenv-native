@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions
+  id="Definitions_metadata_only_empty"
+  name="Metadata Only Empty Definitions"
+  namespace="https://example.com/dmn/metadata-only-empty"
+  xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/">
+</definitions>

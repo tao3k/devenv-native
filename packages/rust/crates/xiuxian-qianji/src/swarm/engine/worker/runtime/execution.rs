@@ -5,8 +5,10 @@ use crate::scheduler::SchedulerRuntimeServices;
 use crate::scheduler::{
     QianjiScheduler, RoleAvailabilityRegistry, SchedulerAgentIdentity, SchedulerExecutionPolicy,
 };
-use crate::swarm::engine::types::{WorkerJoinSet, WorkerRuntimeConfig};
-use crate::swarm::engine::{SwarmAgentConfig, SwarmAgentReport, SwarmEngine};
+use crate::swarm::engine_orchestrator::SwarmEngine;
+use crate::swarm::engine_types::{
+    SwarmAgentConfig, SwarmAgentReport, WorkerJoinSet, WorkerRuntimeConfig,
+};
 use crate::swarm::{GlobalSwarmRegistry, RemotePossessionBus};
 use crate::telemetry::{SwarmEvent, unix_millis_now};
 use std::sync::Arc;
@@ -14,7 +16,7 @@ use tokio_util::sync::CancellationToken;
 use xiuxian_window::SessionWindow;
 
 impl SwarmEngine {
-    pub(in crate::swarm::engine) fn spawn_worker_task(
+    pub(in crate::swarm) fn spawn_worker_task(
         &self,
         join_set: &mut WorkerJoinSet,
         identity: SwarmAgentConfig,

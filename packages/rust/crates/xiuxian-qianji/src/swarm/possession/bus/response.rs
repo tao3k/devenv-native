@@ -1,17 +1,12 @@
 use super::RemotePossessionBus;
 use super::keys::{request_key, response_channel, response_key};
-use crate::swarm::possession::model::RemoteNodeResponse;
+use crate::swarm::possession_model::RemoteNodeResponse;
 use anyhow::{Context, Result, anyhow};
 use futures::StreamExt;
 use tokio::time::{Duration, timeout};
 
 impl RemotePossessionBus {
-    /// Publishes one response for a previously submitted request.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error when serialization fails or Valkey commands fail.
-    pub async fn submit_response(
+    pub(in crate::swarm) async fn submit_response_impl(
         &self,
         response: &RemoteNodeResponse,
         ttl_seconds: u64,
@@ -60,14 +55,7 @@ impl RemotePossessionBus {
         Ok(())
     }
 
-    /// Waits for response of one request.
-    ///
-    /// Returns `Ok(None)` on timeout.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error when Valkey/pubsub operations fail.
-    pub async fn wait_response(
+    pub(in crate::swarm) async fn wait_response_impl(
         &self,
         request_id: &str,
         max_wait: Duration,

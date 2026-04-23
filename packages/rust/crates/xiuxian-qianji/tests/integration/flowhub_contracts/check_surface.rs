@@ -2,6 +2,9 @@ use super::*;
 
 #[test]
 fn check_flowhub_accepts_real_root() {
+    if !real_flowhub_fixture_available() {
+        return;
+    }
     let report = check_flowhub(flowhub_root())
         .unwrap_or_else(|error| panic!("real Flowhub root should check: {error}"));
 
@@ -12,6 +15,9 @@ fn check_flowhub_accepts_real_root() {
 
 #[test]
 fn check_flowhub_accepts_real_research_module() {
+    if !real_flowhub_fixture_available() {
+        return;
+    }
     let report = check_flowhub(flowhub_root().join("research/paper"))
         .unwrap_or_else(|error| panic!("real research module should check: {error}"));
 

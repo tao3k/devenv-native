@@ -1,4 +1,4 @@
-use xiuxian_vector_store::VectorStoreError;
+use xiuxian_db_store::VectorStoreError;
 
 use crate::search::repo_entity::schema::{
     RepoEntityRow, path_column, repo_entity_batches, repo_entity_schema,

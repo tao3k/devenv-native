@@ -1,0 +1,29 @@
+---
+source: packages/rust/crates/qianji-bpmn-engine/tests/unit/lint.rs
+assertion_line: 196
+expression: value
+---
+{
+  "domain": "bpmn",
+  "source_id": "invalid-standard-loop-missing-limit.bpmn",
+  "ok": false,
+  "issues": [
+    {
+      "code": "bpmn.unsupported_loop_configuration",
+      "severity": "error",
+      "title": "Loop configuration exceeds the bounded slice",
+      "summary": "Process 'loop_invalid' loop node 'review' uses unsupported configuration 'missing_loop_maximum_or_condition'.",
+      "why_it_failed": "The current engine supports three bounded repeatable-task shapes: `standardLoopCharacteristics` on one serviceTask, scriptTask, userTask, manualTask, or businessRuleTask with a positive `loopMaximum` or one simple boolean loop condition, sequential `multiInstanceLoopCharacteristics isSequential=\"true\"` on those same host-blocking task kinds with either integer `loopCardinality` or collection-backed `loopDataInputRef` plus `inputDataItem`, and bounded parallel `multiInstanceLoopCharacteristics` with omitted or `isSequential=\"false\"` using that same bounded cardinality-or-collection expansion. Those multi-instance shapes may also carry one bounded optional output aggregation pair `loopDataOutputRef` plus `outputDataItem`, as long as the output path is different from the input path, and one bounded `completionCondition` using either one simple boolean variable path such as `approved` or `not approved`, or one counter comparison using `completed`, `active`, or `total` and their BPMN aliases `nrOfCompletedInstances`, `nrOfActiveInstances`, and `nrOfInstances`.",
+      "repair_guidance": [
+        "If you need bounded repeat execution now, rewrite the node to one serviceTask, scriptTask, userTask, manualTask, or businessRuleTask with either `standardLoopCharacteristics`, sequential `multiInstanceLoopCharacteristics isSequential=\"true\"`, or bounded parallel `multiInstanceLoopCharacteristics` with omitted or `isSequential=\"false\"`.",
+        "Use a positive `loopMaximum`, or one simple boolean condition like `done` or `not done`, or for multi-instance use either integer `loopCardinality` or one collection binding with `loopDataInputRef` plus `inputDataItem`. If you aggregate per-iteration output, provide both `loopDataOutputRef` and `outputDataItem`, keep the output path different from the input path, and for early completion keep `completionCondition` inside the bounded subset with one boolean variable path or one counter comparison like `completed >= 2`."
+      ],
+      "llm_fix_prompt": "Rewrite loop node 'review' in process 'loop_invalid' so it fits the bounded slice: either use one `standardLoopCharacteristics` block on a serviceTask, scriptTask, userTask, manualTask, or businessRuleTask with a positive `loopMaximum` or one simple boolean loop condition like `done` or `not done`, or use one `multiInstanceLoopCharacteristics` block on those same host-blocking task kinds, setting `isSequential=\"true\"` for sequential execution or leaving it omitted or `isSequential=\"false\"` for bounded parallel execution, and choosing exactly one expansion mode: integer `loopCardinality`, or collection-backed `loopDataInputRef` plus `inputDataItem`. If you aggregate iteration output, keep `loopDataOutputRef` and `outputDataItem` paired and make the output path different from the input path. If you need multi-instance early completion, keep `completionCondition` inside the bounded subset: one boolean variable path like `approved` or `not approved`, or one counter comparison such as `completed >= 2`, `active == 0`, or `nrOfCompletedInstances >= 1`. Preserve workflow intent, but remove unsupported configuration 'missing_loop_maximum_or_condition'.",
+      "evidence": {
+        "detail": "missing_loop_maximum_or_condition",
+        "node_id": "review",
+        "process_id": "loop_invalid"
+      }
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions
+  id="Definitions_context_decision"
+  name="Context Decision"
+  namespace="https://example.com/dmn/context-decision"
+  xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/">
+  <decision id="Decision_context" name="Context Decision">
+    <context id="context_1">
+      <contextEntry id="context_entry_1">
+        <variable id="variable_1" name="nextAge"/>
+        <literalExpression id="literal_expression_1">
+          <text>applicant.age + 1</text>
+        </literalExpression>
+      </contextEntry>
+      <contextEntry id="context_entry_2">
+        <literalExpression id="literal_expression_2">
+          <text>nextAge</text>
+        </literalExpression>
+      </contextEntry>
+    </context>
+  </decision>
+</definitions>

@@ -3,6 +3,7 @@
 //! This module implements the "问道归元" (Wendao Guiyuan) architecture for
 //! giving agents true sovereign memory - persistent reasoning traces that
 //! connect Intent → Reasoning → Outcome.
+//! Start in `contract_feedback_sink` for the public persistence seam.
 //!
 //! ## Architecture
 //!
@@ -28,20 +29,22 @@
 //! led to any commit or decision: "Query Wendao for the reasoning chain
 //! that led to Commit-X".
 
-pub mod artifact_observer;
-pub mod contract_feedback_sink;
-pub mod thought_aggregator;
-pub mod wendao_sink;
+#[cfg(test)]
+#[path = "../sovereign_artifact_observer.rs"]
+mod artifact_observer;
+#[path = "../sovereign_contract_feedback_sink.rs"]
+mod contract_feedback_sink;
+#[cfg(test)]
+#[path = "../sovereign_thought_aggregator.rs"]
+mod thought_aggregator;
+#[cfg(test)]
+#[path = "../sovereign_wendao_adapter.rs"]
+mod wendao_adapter;
+#[cfg(test)]
+#[path = "../sovereign_wendao_sink.rs"]
+mod wendao_sink;
 
-pub use artifact_observer::{
-    ArtifactIngestionResult, ArtifactObserver, ArtifactObserverBuilder, ArtifactObserverConfig,
-    NoopWendaoIngestionSink, WendaoIngestionSink,
-};
-pub use contract_feedback_sink::{
+pub use self::contract_feedback_sink::{
     ContractFeedbackKnowledgeSink, InMemoryContractFeedbackSink,
     KnowledgeStorageContractFeedbackSink,
-};
-pub use thought_aggregator::{ThoughtAggregator, ToolCallRecord};
-pub use wendao_sink::{
-    CompositeWendaoSink, CompositeWendaoSinkBuilder, FileWendaoSink, InMemoryWendaoSink,
 };

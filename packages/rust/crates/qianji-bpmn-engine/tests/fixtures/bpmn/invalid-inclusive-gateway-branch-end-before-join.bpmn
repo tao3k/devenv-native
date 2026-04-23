@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  id="pkg_invalid_inclusive_gateway">
+  <bpmn:process id="inclusive_gateway_invalid" isExecutable="true">
+    <bpmn:startEvent id="start" />
+    <bpmn:inclusiveGateway id="decision" default="flow_default" />
+    <bpmn:manualTask id="review_left" />
+    <bpmn:manualTask id="review_default" />
+    <bpmn:inclusiveGateway id="join" />
+    <bpmn:endEvent id="branch_end" />
+    <bpmn:endEvent id="end" />
+
+    <bpmn:sequenceFlow id="flow_start" sourceRef="start" targetRef="decision" />
+    <bpmn:sequenceFlow id="flow_left" sourceRef="decision" targetRef="review_left">
+      <bpmn:conditionExpression>approved</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="flow_right" sourceRef="decision" targetRef="branch_end">
+      <bpmn:conditionExpression>vip</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="flow_default" sourceRef="decision" targetRef="review_default" />
+    <bpmn:sequenceFlow id="flow_left_join" sourceRef="review_left" targetRef="join" />
+    <bpmn:sequenceFlow id="flow_default_join" sourceRef="review_default" targetRef="join" />
+    <bpmn:sequenceFlow id="flow_end" sourceRef="join" targetRef="end" />
+  </bpmn:process>
+</bpmn:definitions>

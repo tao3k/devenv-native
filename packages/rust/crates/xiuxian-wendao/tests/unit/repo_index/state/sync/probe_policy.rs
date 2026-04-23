@@ -25,7 +25,7 @@ async fn sync_repositories_warm_starts_stale_fetch_policy_remote_when_recent_pro
             .mirror_root
             .as_deref()
             .unwrap_or_else(|| panic!("missing mirror root for `{repo_id}`")),
-        Duration::from_secs(3 * 24 * 3600),
+        Duration::from_hours(72),
     );
 
     let storage_root = temp_dir.path().join("search-plane");
@@ -114,7 +114,7 @@ async fn sync_repositories_warm_starts_stale_fetch_policy_remote_when_recent_ret
         .revision
         .unwrap_or_else(|| panic!("missing revision for `{repo_id}`"));
 
-    set_mirror_fetch_age(mirror_root, Duration::from_secs(3 * 24 * 3600));
+    set_mirror_fetch_age(mirror_root, Duration::from_hours(72));
     record_managed_remote_probe_failure(mirror_root, "operation timed out", true)
         .unwrap_or_else(|error| panic!("record retryable probe failure: {error}"));
 
@@ -204,15 +204,15 @@ async fn sync_repositories_warm_starts_stale_fetch_policy_remote_when_retryable_
         .revision
         .unwrap_or_else(|| panic!("missing revision for `{repo_id}`"));
 
-    set_mirror_fetch_age(mirror_root, Duration::from_secs(3 * 24 * 3600));
+    set_mirror_fetch_age(mirror_root, Duration::from_hours(72));
     record_managed_remote_probe_state(mirror_root, Some(revision.as_str()))
         .unwrap_or_else(|error| panic!("record probe success: {error}"));
     record_managed_remote_probe_failure(mirror_root, "operation timed out", true)
         .unwrap_or_else(|error| panic!("record retryable probe failure: {error}"));
     set_managed_remote_probe_state_age(
         mirror_root,
-        Duration::from_secs(2 * 3600),
-        Some(Duration::from_secs(2 * 3600)),
+        Duration::from_hours(2),
+        Some(Duration::from_hours(2)),
     );
 
     let storage_root = temp_dir.path().join("search-plane");

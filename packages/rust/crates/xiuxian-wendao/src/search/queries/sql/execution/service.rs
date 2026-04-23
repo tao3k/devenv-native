@@ -65,12 +65,12 @@ async fn execute_sql_query_internal(
 
 fn sql_query_metadata_with_result_counts(
     query_surface: &SqlQuerySurface,
-    engine_batches: &[xiuxian_vector_store::EngineRecordBatch],
+    engine_batches: &[xiuxian_db_store::EngineRecordBatch],
 ) -> SqlQueryMetadata {
     let mut metadata = sql_query_metadata(query_surface);
     metadata.result_row_count = engine_batches
         .iter()
-        .map(xiuxian_vector_store::EngineRecordBatch::num_rows)
+        .map(xiuxian_db_store::EngineRecordBatch::num_rows)
         .sum();
     metadata.result_batch_count = engine_batches.len();
     metadata

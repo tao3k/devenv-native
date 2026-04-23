@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use serde_json::json;
 use std::sync::Arc;
-use xiuxian_qianji::executors::calibration::SynapseCalibrator;
+use xiuxian_qianji::executors::SynapseCalibrator;
 use xiuxian_qianji::{
     FlowInstruction, QianjiEngine, QianjiMechanism, QianjiOutput, QianjiScheduler,
 };

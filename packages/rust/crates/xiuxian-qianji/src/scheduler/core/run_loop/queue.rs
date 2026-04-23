@@ -1,12 +1,12 @@
 use crate::scheduler::core::QianjiScheduler;
-use crate::scheduler::state::{ExecutionState, NodeExecutionResult, spawn_node_execution_task};
+use crate::scheduler_state::{ExecutionState, NodeExecutionResult, spawn_node_execution_task};
 use crate::telemetry::NodeTransitionPhase;
 use futures::stream::FuturesUnordered;
 use petgraph::stable_graph::NodeIndex;
 use std::collections::HashSet;
 
 impl QianjiScheduler {
-    pub(super) async fn rebuild_exec_state(
+    pub(in crate::scheduler) async fn rebuild_exec_state(
         &self,
         active_branches: &HashSet<String>,
     ) -> ExecutionState {
@@ -14,7 +14,7 @@ impl QianjiScheduler {
         ExecutionState::build(&engine, active_branches)
     }
 
-    pub(super) async fn launch_ready_nodes(
+    pub(in crate::scheduler) async fn launch_ready_nodes(
         &self,
         exec_state: &mut ExecutionState,
         context: &serde_json::Value,

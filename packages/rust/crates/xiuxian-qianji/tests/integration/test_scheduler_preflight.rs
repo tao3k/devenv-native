@@ -3,7 +3,7 @@
 use async_trait::async_trait;
 use serde_json::{Value, json};
 use std::sync::Arc;
-use xiuxian_qianji::executors::command::ShellMechanism;
+use xiuxian_qianji::executors::ShellMechanism;
 use xiuxian_qianji::{
     FlowInstruction, QianjiEngine, QianjiMechanism, QianjiOutput, QianjiScheduler,
 };

@@ -2,8 +2,10 @@
 
 mod llm;
 mod manifest;
+#[path = "../bootcamp_model.rs"]
 mod model;
 mod runtime;
+#[path = "../bootcamp_workflow.rs"]
 mod workflow;
 
 pub use model::{BootcampLlmMode, BootcampRunOptions, BootcampVfsMount, WorkflowReport};

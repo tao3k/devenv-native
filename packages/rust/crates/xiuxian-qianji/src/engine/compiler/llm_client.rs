@@ -13,7 +13,7 @@ pub(super) fn resolve_for_node(
     let binding = node_def.llm.as_ref();
     if let Some((base_url, api_key)) = llm_node::resolve_node_llm_endpoint(binding)? {
         let http = reqwest::Client::builder()
-            .timeout(std::time::Duration::from_secs(300))
+            .timeout(std::time::Duration::from_mins(5))
             .build()
             .unwrap_or_else(|_| reqwest::Client::new());
         return Ok(Arc::new(OpenAIClient {

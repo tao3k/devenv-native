@@ -95,10 +95,10 @@ impl DependencyConfig {
 }
 
 fn expand_home_path(path: &str, home_dir: Option<&Path>) -> PathBuf {
-    if let Some(stripped) = path.strip_prefix('~') {
-        if let Some(home) = home_dir {
-            return home.join(stripped.trim_start_matches('/'));
-        }
+    if let Some(stripped) = path.strip_prefix('~')
+        && let Some(home) = home_dir
+    {
+        return home.join(stripped.trim_start_matches('/'));
     }
 
     PathBuf::from(path)

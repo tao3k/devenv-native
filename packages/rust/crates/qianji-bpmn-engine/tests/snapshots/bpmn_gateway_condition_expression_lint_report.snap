@@ -1,0 +1,29 @@
+---
+source: packages/rust/crates/qianji-bpmn-engine/tests/unit/lint/mod.rs
+assertion_line: 35
+expression: value
+---
+{
+  "domain": "bpmn",
+  "source_id": "invalid-exclusive-gateway-unsupported-condition.bpmn",
+  "ok": false,
+  "issues": [
+    {
+      "code": "bpmn.unsupported_gateway_configuration",
+      "severity": "error",
+      "title": "Conditional gateway condition exceeds the bounded subset",
+      "summary": "Process 'gateway_flow' gateway 'decision' uses a `conditionExpression` that is outside the bounded subset.",
+      "why_it_failed": "The current engine accepts only one bounded gateway-condition subset on exclusive-gateway branches and structured inclusive-gateway branches: simple boolean variable paths such as `approved`, `not approved`, or dotted paths such as `flags.approved`, plus numeric comparisons such as `amount > 100` or `risk >= 7`.",
+      "repair_guidance": [
+        "Rewrite the branch condition as one simple boolean variable path, optionally prefixed with `not`, or as one numeric comparison from an identifier path to one numeric literal.",
+        "Do not use FEEL, boolean-literal comparisons like `approved == true`, scripts, function calls, arithmetic, or logical combinations such as `approved and vip` in this bounded slice."
+      ],
+      "llm_fix_prompt": "Rewrite the `conditionExpression` on gateway 'decision' in process 'gateway_flow' so it stays inside the bounded subset: one boolean variable path like `approved`, `not approved`, or `flags.approved`, or one numeric comparison like `amount > 100` or `risk >= 7`. Preserve workflow intent, but remove FEEL, boolean-literal comparisons, logical combinations, and script-style expressions.",
+      "evidence": {
+        "detail": "unsupported_condition_expression",
+        "node_id": "decision",
+        "process_id": "gateway_flow"
+      }
+    }
+  ]
+}

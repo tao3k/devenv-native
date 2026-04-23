@@ -1,8 +1,9 @@
 use crate::contracts::{NodeDefinition, QianjiMechanism};
+use crate::engine::compiler_api::QianjiCompiler;
 use crate::error::QianjiError;
 use std::sync::Arc;
 
-use crate::engine::compiler::{QianjiCompiler, task_type};
+use crate::engine::compiler::task_type;
 
 #[derive(Clone, Copy)]
 pub(super) struct DispatchContext<'a> {

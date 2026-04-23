@@ -87,11 +87,12 @@ Preferred shape:
 xiuxian_testing::crate_test_policy_source_harness!("../tests/unit/lib_policy.rs");
 
 // tests/unit/lib_policy.rs
-xiuxian_testing::crate_test_policy_harness!();
+xiuxian_testing::crate_testing_gate!();
 ```
 
 That keeps the gate body out of `src/` while making normal `cargo test --lib`
-flows enforce the same crate policy as explicit `--test <target>` entrypoints.
+flows enforce the same crate policy plus modularity contract as default crate
+test runs.
 
 `xiuxian-testing` self-hosts this pattern now: `src/lib.rs` mounts the source
 gate, `tests/unit/lib_policy.rs` owns the gate body, and the contract suites

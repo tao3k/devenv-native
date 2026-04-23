@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use crate::search::ranking::{RetainedWindow, StreamingRerankSource, StreamingRerankTelemetry};
-use xiuxian_vector_store::VectorStoreError;
+use xiuxian_db_store::VectorStoreError;
 
 pub(crate) const MIN_RETAINED_ATTACHMENTS: usize = 32;
 pub(crate) const RETAINED_ATTACHMENT_MULTIPLIER: usize = 2;

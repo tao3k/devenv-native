@@ -5,7 +5,7 @@ use crate::search::{
     ReferenceOccurrenceSearchError,
 };
 #[cfg(feature = "duckdb")]
-use xiuxian_vector_store::VectorStoreError;
+use xiuxian_db_store::VectorStoreError;
 
 impl SearchPlaneService {
     #[cfg(feature = "duckdb")]

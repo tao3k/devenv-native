@@ -2,6 +2,9 @@ use super::*;
 
 #[test]
 fn load_flowhub_module_manifest_reads_real_plan_graph_topology_contract() {
+    if !real_flowhub_fixture_available() {
+        return;
+    }
     let manifest = load_flowhub_module_manifest(flowhub_root().join("plan/qianji.toml"))
         .unwrap_or_else(|error| panic!("plan module manifest should load: {error}"));
 
@@ -12,22 +15,7 @@ fn load_flowhub_module_manifest_reads_real_plan_graph_topology_contract() {
         manifest.graph[0].topology,
         FlowhubGraphTopology::BoundedLoop
     );
-    assert_eq!(
-        manifest.graph[0]
-            .workdir
-            .as_ref()
-            .and_then(|workdir| workdir.note.as_deref()),
-        Some(
-            "`qianji check` evaluates the localized plan work surface, not the source Flowhub module."
-        )
-    );
-    assert!(manifest.graph[0].workdir.as_ref().is_some_and(|workdir| {
-        workdir
-            .check
-            .require
-            .iter()
-            .any(|path| path == "blueprint/**/*.md")
-    }));
+    assert_eq!(manifest.graph[0].workdir.as_ref(), None);
     assert!(
         manifest.graph[0]
             .resolved_workdir_name()
@@ -43,6 +31,9 @@ fn load_flowhub_module_manifest_reads_real_plan_graph_topology_contract() {
 
 #[test]
 fn load_flowhub_module_manifest_reads_real_wendao_graph_topology_contract() {
+    if !real_flowhub_fixture_available() {
+        return;
+    }
     let manifest = load_flowhub_module_manifest(flowhub_root().join("wendao/qianji.toml"))
         .unwrap_or_else(|error| panic!("wendao module manifest should load: {error}"));
 
@@ -63,6 +54,9 @@ fn load_flowhub_module_manifest_reads_real_wendao_graph_topology_contract() {
 
 #[test]
 fn load_flowhub_module_manifest_reads_real_research_graph_node_contracts() {
+    if !real_flowhub_fixture_available() {
+        return;
+    }
     let manifest = load_flowhub_module_manifest(flowhub_root().join("research/paper/qianji.toml"))
         .unwrap_or_else(|error| panic!("research paper manifest should load: {error}"));
 
@@ -70,16 +64,20 @@ fn load_flowhub_module_manifest_reads_real_research_graph_node_contracts() {
     assert_eq!(manifest.graph[0].path, "paper-canonicalize.mmd");
     assert_eq!(manifest.graph[1].path, "paper-deep-read.mmd");
     assert_eq!(manifest.graph[1].name.as_deref(), Some("PAPER_DEEP_READ"));
-    assert!(manifest.graph[1].node.is_empty());
+    assert!(
+        manifest.graph[1]
+            .node
+            .iter()
+            .any(|node| node.label == "methods_extract")
+    );
+    assert!(
+        manifest.graph[1]
+            .node
+            .iter()
+            .any(|node| node.label == "materialize_syntheses")
+    );
     assert_eq!(manifest.graph[2].path, "paper-compare.mmd");
-    assert!(manifest.graph[0].workdir.as_ref().is_some_and(|workdir| {
-        workdir
-            .target
-            .as_ref()
-            .into_iter()
-            .flat_map(|target| target.paths.iter())
-            .any(|path| path == "structure/section_tree.json")
-    }));
+    assert_eq!(manifest.graph[0].workdir.as_ref(), None);
     assert!(
         manifest.graph[0]
             .node

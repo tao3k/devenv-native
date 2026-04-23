@@ -1,5 +1,5 @@
 use arrow::array::{StringArray, StringViewArray, UInt64Array};
-use xiuxian_vector_store::EngineRecordBatch;
+use xiuxian_db_store::EngineRecordBatch;
 
 use crate::search::reference_occurrence::ReferenceOccurrenceSearchError;
 

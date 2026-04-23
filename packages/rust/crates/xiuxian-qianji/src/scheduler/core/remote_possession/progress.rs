@@ -1,8 +1,8 @@
 use crate::error::QianjiError;
-use crate::scheduler::checkpoint::QianjiStateSnapshot;
 use crate::scheduler::core::QianjiScheduler;
-use crate::scheduler::core::types::{EXTERNAL_PROGRESS_TIMEOUT_MS, EXTERNAL_PROGRESS_WAIT_MS};
-use crate::scheduler::state::merge_output_data;
+use crate::scheduler::types::{EXTERNAL_PROGRESS_TIMEOUT_MS, EXTERNAL_PROGRESS_WAIT_MS};
+use crate::scheduler_checkpoint::QianjiStateSnapshot;
+use crate::scheduler_state::merge_output_data;
 use petgraph::stable_graph::NodeIndex;
 use std::collections::HashSet;
 use tokio::time::{Duration, Instant, sleep};

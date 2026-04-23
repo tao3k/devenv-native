@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions
+  id="Definitions_missing_decision_table_generic"
+  name="Missing Decision Table Generic"
+  namespace="https://example.com/dmn/missing-decision-table-generic"
+  xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/">
+  <decision id="Decision_missing_decision_table_generic" name="Generic Missing Table Decision" />
+</definitions>

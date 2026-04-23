@@ -1,7 +1,9 @@
 //! Application-layer scheduler factories and built-in pipeline presets.
 
 mod build;
+#[path = "../app_presets.rs"]
 mod presets;
+#[path = "../app_qianji_app.rs"]
 mod qianji_app;
 
 pub use presets::{

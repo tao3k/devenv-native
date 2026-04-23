@@ -6,7 +6,7 @@ use serde_json::json;
 use xiuxian_qianhuan::orchestrator::ThousandFacesOrchestrator;
 use xiuxian_qianhuan::persona::{PersonaProfile, PersonaRegistry};
 use xiuxian_qianji::contracts::{NodeQianhuanExecutionMode, QianjiMechanism};
-use xiuxian_qianji::executors::annotation::ContextAnnotator;
+use xiuxian_qianji::executors::ContextAnnotator;
 
 #[tokio::test]
 async fn context_annotator_can_load_persona_via_wendao_uri() {

@@ -1,0 +1,57 @@
+<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/"
+  id="Definitions_multiple_decisions"
+  name="Multiple Decisions DRD"
+  namespace="http://example.com/dmn">
+  <decision id="loan-decision" name="Loan Decision">
+    <decisionTable id="table_loan_decision" hitPolicy="UNIQUE">
+      <input id="input_tier" label="tier">
+        <inputExpression id="input_expression_tier" typeRef="string">
+          <text>tier</text>
+        </inputExpression>
+      </input>
+      <output id="output_approval" name="approval" label="approval" typeRef="string" />
+      <rule id="rule_approve_gold">
+        <inputEntry id="input_entry_approve_gold">
+          <text>"gold"</text>
+        </inputEntry>
+        <outputEntry id="output_entry_approve_gold">
+          <text>"approve"</text>
+        </outputEntry>
+      </rule>
+      <rule id="rule_review_other">
+        <inputEntry id="input_entry_review_other">
+          <text>-</text>
+        </inputEntry>
+        <outputEntry id="output_entry_review_other">
+          <text>"review"</text>
+        </outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+  <decision id="secondary-review" name="Secondary Review">
+    <decisionTable id="table_secondary_review" hitPolicy="UNIQUE">
+      <input id="input_amount" label="amount">
+        <inputExpression id="input_expression_amount" typeRef="number">
+          <text>amount</text>
+        </inputExpression>
+      </input>
+      <output id="output_result" name="result" label="result" typeRef="string" />
+      <rule id="rule_manual_review">
+        <inputEntry id="input_entry_manual_review">
+          <text>&gt;= 100</text>
+        </inputEntry>
+        <outputEntry id="output_entry_manual_review">
+          <text>"manual-review"</text>
+        </outputEntry>
+      </rule>
+      <rule id="rule_auto_review">
+        <inputEntry id="input_entry_auto_review">
+          <text>-</text>
+        </inputEntry>
+        <outputEntry id="output_entry_auto_review">
+          <text>"auto-review"</text>
+        </outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+</definitions>

@@ -3,7 +3,7 @@ use std::path::PathBuf;
 
 use crate::search::SearchPlaneService;
 #[cfg(not(feature = "duckdb"))]
-use xiuxian_vector_store::SearchEngineContext;
+use xiuxian_db_store::SearchEngineContext;
 
 use super::{RegisteredSqlTable, naming};
 

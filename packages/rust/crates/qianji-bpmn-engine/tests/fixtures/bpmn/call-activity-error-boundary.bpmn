@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  id="pkg_call_activity_error_boundary"
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <bpmn:process id="main_process" isExecutable="true">
+    <bpmn:startEvent id="start" />
+    <bpmn:callActivity id="invoke_review" calledElement="child_process" />
+    <bpmn:boundaryEvent id="review_error_specific" attachedToRef="invoke_review" cancelActivity="true">
+      <bpmn:errorEventDefinition errorRef="review_rejected" />
+    </bpmn:boundaryEvent>
+    <bpmn:boundaryEvent id="review_error_catch_all" attachedToRef="invoke_review" cancelActivity="true">
+      <bpmn:errorEventDefinition />
+    </bpmn:boundaryEvent>
+    <bpmn:endEvent id="success_end" />
+    <bpmn:endEvent id="specific_end" />
+    <bpmn:endEvent id="catch_all_end" />
+    <bpmn:sequenceFlow id="flow_1" sourceRef="start" targetRef="invoke_review" />
+    <bpmn:sequenceFlow id="flow_2" sourceRef="invoke_review" targetRef="success_end" />
+    <bpmn:sequenceFlow id="flow_3" sourceRef="review_error_specific" targetRef="specific_end" />
+    <bpmn:sequenceFlow id="flow_4" sourceRef="review_error_catch_all" targetRef="catch_all_end" />
+  </bpmn:process>
+  <bpmn:process id="child_process" isExecutable="true">
+    <bpmn:startEvent id="child_start" />
+    <bpmn:userTask id="child_review" />
+    <bpmn:exclusiveGateway id="review_decision" default="child_flow_default" />
+    <bpmn:endEvent id="child_success_end" />
+    <bpmn:endEvent id="child_error_end">
+      <bpmn:errorEventDefinition errorRef="review_rejected" />
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="child_flow_1" sourceRef="child_start" targetRef="child_review" />
+    <bpmn:sequenceFlow id="child_flow_2" sourceRef="child_review" targetRef="review_decision" />
+    <bpmn:sequenceFlow id="child_flow_3" sourceRef="review_decision" targetRef="child_success_end">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">approved</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="child_flow_default" sourceRef="review_decision" targetRef="child_error_end" />
+  </bpmn:process>
+</bpmn:definitions>

@@ -5,7 +5,7 @@ use serde_json::json;
 use std::sync::Arc;
 use xiuxian_qianji::engine::NodeExecutionAffinity;
 use xiuxian_qianji::error::QianjiError;
-use xiuxian_qianji::scheduler::core::SchedulerRuntimeServices;
+use xiuxian_qianji::scheduler::SchedulerRuntimeServices;
 use xiuxian_qianji::{
     FlowInstruction, QianjiEngine, QianjiMechanism, QianjiOutput, QianjiScheduler,
     RoleAvailabilityRegistry, SchedulerAgentIdentity, SchedulerExecutionPolicy,

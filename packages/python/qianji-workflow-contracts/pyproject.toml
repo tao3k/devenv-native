@@ -1,0 +1,22 @@
+[project]
+name = "qianji-workflow-contracts"
+version = "0.1.0"
+description = "Pure workflow contract models for Qianji BPMN/DMN integrations"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = []
+
+[dependency-groups]
+test = [
+    "pytest>=8.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/qianji_workflow_contracts"]
+
+[tool.uv]
+package = true

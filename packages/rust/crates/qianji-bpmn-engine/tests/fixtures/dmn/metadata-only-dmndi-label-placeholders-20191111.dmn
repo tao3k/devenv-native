@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions
+  id="Definitions_labels"
+  name="DMNDI label placeholders"
+  namespace="urn:test:dmn:dmndi-label-placeholders"
+  xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/"
+  xmlns:dmndi="https://www.omg.org/spec/DMN/20191111/DMNDI/">
+  <dmndi:DMNDI>
+    <dmndi:DMNDiagram id="diagram_labels">
+      <dmndi:DMNShape id="shape_input_1" dmnElementRef="InputData_1">
+        <dmndi:DMNLabel id="shape_label_1" />
+      </dmndi:DMNShape>
+      <dmndi:DMNEdge id="edge_requirement_1" dmnElementRef="Requirement_1">
+        <dmndi:DMNLabel id="edge_label_1" />
+      </dmndi:DMNEdge>
+    </dmndi:DMNDiagram>
+  </dmndi:DMNDI>
+</definitions>

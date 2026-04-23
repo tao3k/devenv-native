@@ -15,7 +15,7 @@ fn wendao_index_adapter_default() {
 
 #[test]
 fn wendao_index_adapter_with_file_sink() {
-    let temp_dir = TempDir::new().unwrap();
+    let temp_dir = TempDir::new().unwrap_or_else(|error| panic!("tempdir: {error}"));
     let file_sink = FileWendaoSink::new(temp_dir.path());
     let adapter = WendaoIndexAdapter::with_file_sink(file_sink.clone());
     assert_eq!(adapter.file_sink.base_dir(), temp_dir.path());
@@ -23,12 +23,21 @@ fn wendao_index_adapter_with_file_sink() {
 
 #[test]
 fn wendao_index_adapter_builder_file_sink() {
-    let temp_dir = TempDir::new().unwrap();
+    let temp_dir = TempDir::new().unwrap_or_else(|error| panic!("tempdir: {error}"));
     let file_sink = FileWendaoSink::new(temp_dir.path());
-    let adapter = WendaoIndexAdapterBuilder::new()
-        .file_sink(file_sink)
-        .build();
+    let adapter = WendaoIndexAdapter::builder().file_sink(file_sink).build();
     assert_eq!(adapter.file_sink.base_dir(), temp_dir.path());
+}
+
+#[test]
+fn wendao_index_adapter_builder_memory_sink() {
+    let temp_dir = TempDir::new().unwrap_or_else(|error| panic!("tempdir: {error}"));
+    let adapter = WendaoIndexAdapter::builder()
+        .file_sink(FileWendaoSink::new(temp_dir.path()))
+        .memory_sink(InMemoryWendaoSink::new())
+        .build();
+
+    assert!(adapter.memory_sink.is_empty());
 }
 
 #[test]
@@ -41,7 +50,7 @@ fn wendao_index_adapter_builder_requires_file_sink() {
 
 #[tokio::test]
 async fn wendao_index_adapter_ingest_trace() {
-    let temp_dir = TempDir::new().unwrap();
+    let temp_dir = TempDir::new().unwrap_or_else(|error| panic!("tempdir: {error}"));
     let file_sink = FileWendaoSink::new(temp_dir.path());
     let adapter = WendaoIndexAdapter::with_file_sink(file_sink);
 
@@ -56,7 +65,10 @@ async fn wendao_index_adapter_ingest_trace() {
     let result = adapter.ingest_trace(&trace, &doc).await;
 
     assert!(result.is_ok());
-    let anchor_id = result.unwrap();
+    let anchor_id = match result {
+        Ok(anchor_id) => anchor_id,
+        Err(error) => panic!("ingest trace should succeed: {error}"),
+    };
     assert!(anchor_id.starts_with("file:"));
 }
 
@@ -77,13 +89,16 @@ async fn wendao_index_adapter_fallback_to_memory() {
     let result = adapter.ingest_trace(&trace, &doc).await;
 
     assert!(result.is_ok());
-    let anchor_id = result.unwrap();
+    let anchor_id = match result {
+        Ok(anchor_id) => anchor_id,
+        Err(error) => panic!("memory fallback should succeed: {error}"),
+    };
     assert!(anchor_id.starts_with("memory:"));
 }
 
 #[test]
 fn wendao_index_adapter_debug_format() {
     let adapter = WendaoIndexAdapter::new();
-    let debug_str = format!("{:?}", adapter);
+    let debug_str = format!("{adapter:?}");
     assert!(debug_str.contains("WendaoIndexAdapter"));
 }

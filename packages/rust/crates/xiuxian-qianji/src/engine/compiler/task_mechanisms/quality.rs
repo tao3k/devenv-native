@@ -1,5 +1,5 @@
 use crate::contracts::{NodeDefinition, QianjiMechanism};
-use crate::executors::calibration::SynapseCalibrator;
+use crate::executors::SynapseCalibrator;
 use std::sync::Arc;
 
 use crate::engine::compiler::{calibration, security_scan};
@@ -24,7 +24,7 @@ pub(in crate::engine::compiler) fn security_scan(
     node_def: &NodeDefinition,
 ) -> Arc<dyn QianjiMechanism> {
     let cfg = security_scan::mechanism_config(node_def);
-    Arc::new(crate::executors::security_scan::SecurityScanMechanism {
+    Arc::new(crate::executors::SecurityScanMechanism {
         files_key: cfg.files_key,
         output_key: cfg.output_key,
         abort_on_violation: cfg.abort_on_violation,

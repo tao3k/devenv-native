@@ -1,0 +1,20 @@
+[package]
+name = "xiuxian-db-store"
+version.workspace = true
+edition.workspace = true
+description = "Bounded database storage surface for xiuxian-vector and lightweight client stores"
+authors = ["CyberXiuXian Artisan workshop"]
+license = "Apache-2.0"
+publish = false
+
+[features]
+default = ["vector-store"]
+vector-store = ["dep:xiuxian-vector"]
+sqlite = ["dep:rusqlite"]
+
+[dependencies]
+rusqlite = { workspace = true, optional = true }
+xiuxian-vector = { path = "../xiuxian-vector", features = ["vector-store"], optional = true }
+
+[lints]
+workspace = true

@@ -6,7 +6,7 @@ use crate::search::service::core::types::SearchPlaneService;
 use crate::search::service::helpers::{default_storage_root, manifest_keyspace_for_project};
 use crate::search::{SearchMaintenancePolicy, SearchManifestKeyspace, SearchPlaneCoordinator};
 use tokio::sync::Semaphore;
-use xiuxian_vector_store::{VectorStore, VectorStoreError};
+use xiuxian_db_store::{VectorStore, VectorStoreError};
 
 impl SearchPlaneService {
     /// Create a service rooted under project-local `PRJ_DATA_HOME`.
@@ -61,7 +61,7 @@ impl SearchPlaneService {
             storage_root,
             manifest_keyspace,
             coordinator,
-            datafusion_query_engine: xiuxian_vector_store::SearchEngineContext::new(),
+            datafusion_query_engine: xiuxian_db_store::SearchEngineContext::new(),
             cache,
             repo_search_read_concurrency_limit,
             repo_search_read_permits: Arc::new(Semaphore::new(repo_search_read_concurrency_limit)),
@@ -159,7 +159,7 @@ impl SearchPlaneService {
     /// Shared `DataFusion` search-engine context for Parquet-backed search-plane reads.
     #[cfg(not(feature = "duckdb"))]
     #[must_use]
-    pub(crate) fn datafusion_query_engine(&self) -> &xiuxian_vector_store::SearchEngineContext {
+    pub(crate) fn datafusion_query_engine(&self) -> &xiuxian_db_store::SearchEngineContext {
         &self.datafusion_query_engine
     }
 

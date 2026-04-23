@@ -5,8 +5,8 @@ fn run_show_anchor_command_renders_research_execution_brief() {
     let output = must_ok(
         run_dir_command(DirCliCommand::Show {
             target: ShowCliTarget::AnchoredScenario {
-                anchor: flowhub_root().join("research/paper/qianji.toml"),
-                scenario: "deep_read".to_string(),
+                anchor: anchored_workdir_fixture_anchor(),
+                scenario: anchored_workdir_fixture_scenario().to_string(),
                 dir: None,
             },
         }),
@@ -20,12 +20,12 @@ fn run_show_anchor_command_renders_research_execution_brief() {
     assert!(
         output
             .rendered
-            .contains("Anchor: ./qianji-flowhub/research/paper/qianji.toml")
+            .contains("Anchor: ./packages/rust/crates/xiuxian-qianji/tests/fixtures/flowhub_modules/paper_deep_read_workdir/qianji.toml")
     );
     assert!(
         output
             .rendered
-            .contains("Graph: ./qianji-flowhub/research/paper/paper-deep-read.mmd")
+            .contains("Graph: ./packages/rust/crates/xiuxian-qianji/tests/fixtures/flowhub_modules/paper_deep_read_workdir/paper-deep-read.mmd")
     );
     assert!(output.rendered.contains("## Goal"));
     assert!(
@@ -46,8 +46,8 @@ fn run_show_anchor_command_renders_runtime_overlay() {
     let output = must_ok(
         run_dir_command(DirCliCommand::Show {
             target: ShowCliTarget::AnchoredScenario {
-                anchor: flowhub_root().join("research/paper/qianji.toml"),
-                scenario: "deep_read".to_string(),
+                anchor: anchored_workdir_fixture_anchor(),
+                scenario: anchored_workdir_fixture_scenario().to_string(),
                 dir: Some(runtime_dir),
             },
         }),
@@ -82,7 +82,7 @@ fn run_show_anchor_command_renders_runtime_overlay() {
 fn run_show_anchor_command_blocks_missing_scenario() {
     let error = run_dir_command(DirCliCommand::Show {
         target: ShowCliTarget::AnchoredScenario {
-            anchor: flowhub_root().join("research/paper/qianji.toml"),
+            anchor: anchored_workdir_fixture_anchor(),
             scenario: "missing".to_string(),
             dir: None,
         },

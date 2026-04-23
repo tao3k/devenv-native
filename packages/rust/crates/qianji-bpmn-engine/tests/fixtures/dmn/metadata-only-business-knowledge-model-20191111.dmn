@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions
+  id="Definitions_metadata_only_business_knowledge_model"
+  name="Metadata Only Business Knowledge Model"
+  namespace="https://example.com/dmn/metadata-only-business-knowledge-model"
+  xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/">
+  <businessKnowledgeModel id="BKM_policy_source" name="Policy Source">
+    <literalExpression id="BKM_policy_source_expression">
+      <text>"external-policy"</text>
+    </literalExpression>
+  </businessKnowledgeModel>
+</definitions>

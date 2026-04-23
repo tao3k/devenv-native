@@ -3,8 +3,9 @@
 use std::fs;
 use std::path::PathBuf;
 
+#[path = "support/workspace.rs"]
+mod workspace;
 use tempfile::TempDir;
-use xiuxian_config_core::resolve_project_root;
 use xiuxian_qianji::{
     check_flowhub_scenario, render_flowhub_scenario_check_markdown, render_flowhub_scenario_show,
     show_flowhub_scenario,
@@ -25,12 +26,15 @@ fn assert_common_show_shape(rendered: &str) {
 }
 
 fn repo_root() -> PathBuf {
-    resolve_project_root()
-        .unwrap_or_else(|| panic!("workspace root should resolve from PRJ_ROOT or git ancestry"))
+    workspace::workspace_root()
 }
 
 fn flowhub_root() -> PathBuf {
     repo_root().join("qianji-flowhub")
+}
+
+fn real_flowhub_fixture_available() -> bool {
+    flowhub_root().join("qianji.toml").is_file()
 }
 
 fn scenario_fixture_dir(name: &str) -> PathBuf {
@@ -67,6 +71,9 @@ use = ["missing-module as missing"]
 
 #[test]
 fn show_flowhub_scenario_previews_visible_surfaces() {
+    if !real_flowhub_fixture_available() {
+        return;
+    }
     let show = show_flowhub_scenario(
         flowhub_root(),
         scenario_fixture_dir("coding_rust_blueprint_plan"),
@@ -97,6 +104,9 @@ fn show_flowhub_scenario_previews_visible_surfaces() {
 
 #[test]
 fn check_flowhub_scenario_accepts_real_fixture() {
+    if !real_flowhub_fixture_available() {
+        return;
+    }
     let report = check_flowhub_scenario(
         flowhub_root(),
         scenario_fixture_dir("coding_rust_blueprint_plan"),

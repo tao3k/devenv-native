@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 use std::path::Path;
 
-use xiuxian_vector_store::VectorStoreError;
+use xiuxian_db_store::VectorStoreError;
 
 use crate::analyzers::{ImportKind, RepoBacklinkItem, RepoSymbolKind};
 use crate::gateway::studio::types::{SearchBacklinkItem, SearchHit, StudioNavigationTarget};

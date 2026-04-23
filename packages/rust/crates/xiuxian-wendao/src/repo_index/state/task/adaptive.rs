@@ -82,8 +82,7 @@ pub(crate) struct AdaptiveConcurrencyDebugSnapshot {
 impl AdaptiveConcurrencyController {
     pub(crate) fn new() -> Self {
         let max_limit = std::thread::available_parallelism()
-            .map(std::num::NonZeroUsize::get)
-            .unwrap_or(1)
+            .map_or(1, std::num::NonZeroUsize::get)
             .max(1);
         Self {
             current_limit: 1,

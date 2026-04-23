@@ -1,0 +1,17 @@
+version = 1
+
+[module]
+name = "paper_deep_read_workdir"
+tags = ["research", "paper", "fixture"]
+
+[exports]
+entry = "task.paper-start"
+ready = "task.paper-ready"
+
+[contract]
+required = ["paper-deep-read.mmd"]
+
+[[graph]]
+path = "paper-deep-read.mmd"
+name = "PAPER_DEEP_READ"
+topology = "bounded_loop"

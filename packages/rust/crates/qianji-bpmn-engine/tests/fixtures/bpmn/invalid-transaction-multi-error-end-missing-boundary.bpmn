@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  id="pkg_invalid_transaction_multi_error_end_missing_boundary"
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <bpmn:process id="main_process" isExecutable="true">
+    <bpmn:startEvent id="start" />
+    <bpmn:transaction id="payment_tx">
+      <bpmn:startEvent id="tx_start" />
+      <bpmn:userTask id="tx_review" />
+      <bpmn:exclusiveGateway id="tx_error_route" default="tx_flow_fraud" />
+      <bpmn:endEvent id="tx_payment_error_end">
+        <bpmn:errorEventDefinition errorRef="payment_error" />
+      </bpmn:endEvent>
+      <bpmn:endEvent id="tx_fraud_error_end">
+        <bpmn:errorEventDefinition errorRef="fraud_error" />
+      </bpmn:endEvent>
+      <bpmn:sequenceFlow id="tx_flow_1" sourceRef="tx_start" targetRef="tx_review" />
+      <bpmn:sequenceFlow id="tx_flow_2" sourceRef="tx_review" targetRef="tx_error_route" />
+      <bpmn:sequenceFlow id="tx_flow_payment" sourceRef="tx_error_route" targetRef="tx_payment_error_end">
+        <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">payment_error</bpmn:conditionExpression>
+      </bpmn:sequenceFlow>
+      <bpmn:sequenceFlow id="tx_flow_fraud" sourceRef="tx_error_route" targetRef="tx_fraud_error_end" />
+    </bpmn:transaction>
+    <bpmn:boundaryEvent id="tx_error_payment" attachedToRef="payment_tx" cancelActivity="true">
+      <bpmn:errorEventDefinition errorRef="payment_error" />
+    </bpmn:boundaryEvent>
+    <bpmn:endEvent id="payment_errored_end" />
+    <bpmn:endEvent id="success_end" />
+    <bpmn:sequenceFlow id="flow_1" sourceRef="start" targetRef="payment_tx" />
+    <bpmn:sequenceFlow id="flow_2" sourceRef="payment_tx" targetRef="success_end" />
+    <bpmn:sequenceFlow id="flow_3" sourceRef="tx_error_payment" targetRef="payment_errored_end" />
+  </bpmn:process>
+</bpmn:definitions>

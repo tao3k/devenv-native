@@ -1,0 +1,23 @@
+<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/"
+  id="Definitions_invalid_unary_test"
+  name="Invalid Unary Test DRD"
+  namespace="http://example.com/dmn">
+  <decision id="invalid-unary-test" name="Invalid Unary Test">
+    <decisionTable id="decision_table_invalid_unary_test" hitPolicy="UNIQUE">
+      <input id="input_window" label="window">
+        <inputExpression id="input_expression_window" typeRef="dayTimeDuration">
+          <text>window</text>
+        </inputExpression>
+      </input>
+      <output id="output_result" name="result" label="result" typeRef="string" />
+      <rule id="rule_invalid_unary_test">
+        <inputEntry id="input_entry_invalid_unary_test">
+          <text>duration("P1.5Y")</text>
+        </inputEntry>
+        <outputEntry id="output_entry_invalid_unary_test">
+          <text>"review"</text>
+        </outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+</definitions>

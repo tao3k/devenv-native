@@ -1,4 +1,4 @@
-use crate::swarm::discovery::model::ClusterNodeIdentity;
+use crate::swarm::discovery_model::ClusterNodeIdentity;
 
 pub(super) fn node_key(identity: &ClusterNodeIdentity) -> String {
     format!(

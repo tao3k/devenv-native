@@ -1,4 +1,4 @@
-use crate::executors::knowledge::KnowledgeSeeker;
+use crate::executors::KnowledgeSeeker;
 use std::sync::Arc;
 
 use super::resolver_chain;

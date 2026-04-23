@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  id="pkg_call_activity_invalid"
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL">
+  <bpmn:process id="main_process">
+    <bpmn:startEvent id="start" />
+    <bpmn:callActivity id="invoke_child" calledElement="missing_process" />
+    <bpmn:endEvent id="end" />
+    <bpmn:sequenceFlow id="flow_1" sourceRef="start" targetRef="invoke_child" />
+    <bpmn:sequenceFlow id="flow_2" sourceRef="invoke_child" targetRef="end" />
+  </bpmn:process>
+</bpmn:definitions>

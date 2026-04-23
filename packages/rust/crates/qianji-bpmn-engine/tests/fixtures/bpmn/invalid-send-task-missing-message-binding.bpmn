@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  id="pkg_invalid_send_task_missing_binding"
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL">
+  <bpmn:process id="send_invoice_invalid">
+    <bpmn:startEvent id="start" />
+    <bpmn:sendTask id="send_invoice_message" />
+    <bpmn:endEvent id="end" />
+    <bpmn:sequenceFlow id="flow_1" sourceRef="start" targetRef="send_invoice_message" />
+    <bpmn:sequenceFlow id="flow_2" sourceRef="send_invoice_message" targetRef="end" />
+  </bpmn:process>
+</bpmn:definitions>

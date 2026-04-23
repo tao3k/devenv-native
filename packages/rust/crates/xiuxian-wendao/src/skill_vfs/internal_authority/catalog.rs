@@ -75,10 +75,7 @@ pub(crate) fn extend_manifest_intents_from_index(
         let (note_links, attachments) = index.intent_targets(doc.id.as_str());
         let note_links_iter: Vec<String> = note_links;
         let attachments_iter: Vec<String> = attachments;
-        for raw_target in note_links_iter
-            .into_iter()
-            .chain(attachments_iter.into_iter())
-        {
+        for raw_target in note_links_iter.into_iter().chain(attachments_iter) {
             let Some(manifest_uri) = normalize_manifest_intent(raw_target.as_str()) else {
                 continue;
             };

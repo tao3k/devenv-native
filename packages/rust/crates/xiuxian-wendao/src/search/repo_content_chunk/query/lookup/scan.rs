@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
 use arrow::array::{Array, BooleanArray};
-use xiuxian_vector_store::EngineRecordBatch;
+use xiuxian_db_store::EngineRecordBatch;
 
 use crate::search::ranking::{RetainedWindow, StreamingRerankTelemetry, trim_ranked_string_map};
 

@@ -6,7 +6,7 @@ use arrow_flight::{ActionType, FlightData, FlightInfo, HandshakeResponse, PutRes
 use async_trait::async_trait;
 use futures::Stream;
 use tonic::Status;
-use xiuxian_vector_store::{
+use xiuxian_db_store::{
     LanceDataType, LanceField, LanceFloat64Array, LanceInt32Array, LanceRecordBatch, LanceSchema,
     LanceStringArray,
 };

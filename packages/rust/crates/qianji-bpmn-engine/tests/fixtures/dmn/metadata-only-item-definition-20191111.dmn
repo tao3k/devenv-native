@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<semantic:definitions
+    xmlns:semantic="https://www.omg.org/spec/DMN/20191111/MODEL/"
+    id="Definitions_metadata_only_item_definition"
+    name="Metadata Only Item Definition"
+    namespace="https://qianji.dev/dmn/metadata-only-item-definition">
+    <semantic:itemDefinition
+        id="ItemDefinition_loan_offer"
+        name="tLoanOffer"
+        isCollection="false">
+        <semantic:itemComponent
+            id="ItemDefinition_loan_offer_amount"
+            name="amount"
+            typeRef="number" />
+    </semantic:itemDefinition>
+</semantic:definitions>

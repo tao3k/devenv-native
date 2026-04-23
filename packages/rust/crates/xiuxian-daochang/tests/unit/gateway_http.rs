@@ -199,7 +199,7 @@ async fn gateway_health_returns_structured_summary_without_tools() {
         .get("tools")
         .and_then(|tools| tools.get("tools_list_cache"));
     assert!(
-        tools_list_cache.is_none() || tools_list_cache.is_some_and(Value::is_null),
+        tools_list_cache.is_none_or(Value::is_null),
         "tools_list_cache should be omitted or null when external tools are disabled"
     );
 }

@@ -10,6 +10,7 @@ publish = false
 [features]
 default = []
 llm = ["dep:xiuxian-llm"]
+sqlite = ["qianji-bpmn-engine/sqlite"]
 
 [dependencies]
 petgraph = { workspace = true }
@@ -20,6 +21,7 @@ toml = { workspace = true }
 async-trait = { workspace = true }
 thiserror = { workspace = true }
 anyhow = { workspace = true }
+axum = { workspace = true }
 tokio = { workspace = true }
 tokio-util = { workspace = true }
 redis = { workspace = true, features = ["tokio-comp"] }
@@ -42,6 +44,7 @@ xiuxian-wendao-core = { path = "../xiuxian-wendao-core" }
 xiuxian-wendao-runtime = { path = "../xiuxian-wendao-runtime" }
 xiuxian-wendao-parsers = { path = "../xiuxian-wendao-parsers" }
 xiuxian-qianhuan = { path = "../xiuxian-qianhuan" }
+qianji-bpmn-engine = { path = "../qianji-bpmn-engine" }
 xiuxian-ast = { path = "../xiuxian-ast" }
 xiuxian-macros = { path = "../xiuxian-macros" }
 xiuxian-zhenfa = { path = "../xiuxian-zhenfa" }
@@ -52,7 +55,6 @@ xiuxian-testing = { path = "../xiuxian-testing" }
 xiuxian-config-core = { path = "../xiuxian-config-core" }
 
 [dev-dependencies]
-axum = { workspace = true }
 insta = { workspace = true }
 xiuxian-zhixing = { path = "../xiuxian-zhixing" }
 
@@ -67,6 +69,10 @@ path = "src/lib.rs"
 name = "qianji"
 path = "src/bin/qianji.rs"
 required-features = ["llm"]
+
+[[bin]]
+name = "qianji-server"
+path = "src/bin/qianji_server.rs"
 
 # Integration tests requiring llm feature
 [[test]]

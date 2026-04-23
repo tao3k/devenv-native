@@ -18,6 +18,10 @@ impl GatewayState {
 
 impl StudioState {
     pub(crate) async fn graph_index(&self) -> Result<Arc<LinkGraphIndex>, StudioApiError> {
+        if let Some(index) = self.cached_graph_index() {
+            return Ok(index);
+        }
+
         let project_root = self.project_root.clone();
         let config_root = self.config_root.clone();
         let configured_projects = self.configured_projects();
@@ -66,7 +70,26 @@ impl StudioState {
                 Some(error),
             )
         })?);
+        self.store_graph_index(Arc::clone(&index));
         Ok(index)
+    }
+
+    fn cached_graph_index(&self) -> Option<Arc<LinkGraphIndex>> {
+        self.graph_index
+            .read()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .as_ref()
+            .map(Arc::clone)
+    }
+
+    fn store_graph_index(&self, index: Arc<LinkGraphIndex>) {
+        let mut guard = self
+            .graph_index
+            .write()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        if guard.is_none() {
+            *guard = Some(index);
+        }
     }
 
     #[cfg(test)]

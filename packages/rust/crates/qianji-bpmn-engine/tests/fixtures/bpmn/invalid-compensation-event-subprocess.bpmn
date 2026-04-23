@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  id="defs_invalid_compensation_event_subprocess">
+  <bpmn:process id="main_process" isExecutable="true">
+    <bpmn:startEvent id="start" />
+    <bpmn:userTask id="review" />
+    <bpmn:endEvent id="end" />
+    <bpmn:subProcess id="comp_handler" triggeredByEvent="true">
+      <bpmn:startEvent id="comp_start">
+        <bpmn:compensateEventDefinition />
+      </bpmn:startEvent>
+      <bpmn:userTask id="refund" />
+      <bpmn:endEvent id="comp_end" />
+      <bpmn:sequenceFlow id="flow_comp_start_refund" sourceRef="comp_start" targetRef="refund" />
+      <bpmn:sequenceFlow id="flow_refund_comp_end" sourceRef="refund" targetRef="comp_end" />
+    </bpmn:subProcess>
+    <bpmn:sequenceFlow id="flow_start_review" sourceRef="start" targetRef="review" />
+    <bpmn:sequenceFlow id="flow_review_end" sourceRef="review" targetRef="end" />
+  </bpmn:process>
+</bpmn:definitions>

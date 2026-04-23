@@ -13,7 +13,7 @@ use crate::search::{
     MarkdownSnapshotEntry, SearchCorpusKind, SearchManifestKeyspace, SearchPlaneCoordinator,
     SearchQueryTelemetry, SearchRepoCorpusRecord, SearchRepoRuntimeRecord, SourceSnapshotEntry,
 };
-use xiuxian_vector_store::SearchEngineContext;
+use xiuxian_db_store::SearchEngineContext;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) enum RepoMaintenanceTaskKind {

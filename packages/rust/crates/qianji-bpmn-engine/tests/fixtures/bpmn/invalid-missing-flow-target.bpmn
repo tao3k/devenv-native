@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  id="pkg_invalid_target">
+  <bpmn:process id="missing_target" isExecutable="true">
+    <bpmn:startEvent id="start" />
+    <bpmn:serviceTask id="service" />
+    <bpmn:endEvent id="end" />
+    <bpmn:sequenceFlow id="flow_1" sourceRef="start" targetRef="missing_end" />
+    <bpmn:sequenceFlow id="flow_2" sourceRef="service" targetRef="end" />
+  </bpmn:process>
+</bpmn:definitions>

@@ -176,7 +176,7 @@ pub fn create_sample_modelica_repo(base: &Path, package_name: &str) -> TestResul
             .join("Controllers")
             .join("UsersGuide")
             .join("package.mo"),
-        format!("within {package_name}.Controllers;\npackage UsersGuide\nend UsersGuide;\n",),
+        format!("within {package_name}.Controllers;\npackage UsersGuide\nend UsersGuide;\n"),
     )?;
     fs::write(
         repo_dir

@@ -7,6 +7,8 @@
 pub mod app;
 /// High-level laboratory API for end-to-end workflow execution.
 pub mod bootcamp;
+/// Thin BPMN host adapter helpers backed by `qianji-bpmn-engine`.
+pub mod bpmn;
 /// Distributed consensus management for multi-agent synchronization.
 pub mod consensus;
 /// Contract-feedback execution bridge for contract suite runs and Wendao export.
@@ -33,6 +35,11 @@ pub mod runtime_config;
 pub mod safety;
 /// Asynchronous synaptic-flow scheduler.
 pub mod scheduler;
+mod scheduler_checkpoint;
+mod scheduler_identity;
+mod scheduler_policy;
+mod scheduler_preflight;
+mod scheduler_state;
 /// Sovereign Memory Module (Blueprint V6.1) - Agent reasoning trace persistence.
 pub mod sovereign;
 /// Multi-agent swarm orchestration runtime.
@@ -48,6 +55,29 @@ pub use app::{
 pub use bootcamp::{
     BootcampLlmMode, BootcampRunOptions, BootcampVfsMount, WorkflowReport, run_scenario,
     run_workflow, run_workflow_from_manifest_toml, run_workflow_with_mounts,
+};
+pub use bpmn::{
+    BpmnAdapterError, BpmnOrchestrationError, DEFAULT_QIANJI_BPMN_SCHEDULER_LEASE_TTL_MS,
+    QianjiBpmnCheckpointStore, QianjiBpmnExecutionDriver, QianjiBpmnExecutionFacade,
+    QianjiBpmnExecutionMode, QianjiBpmnExecutionReport, QianjiBpmnExecutionRequest,
+    QianjiBpmnExecutionScheduler, QianjiBpmnHostBridge, QianjiBpmnHostBridgeBuilder,
+    QianjiBpmnPreparedWorkflowResume, QianjiBpmnPreparedWorkflowStart,
+    QianjiBpmnSchedulerLeaseConfig, QianjiBpmnSession, QianjiBpmnWorkflowActionHttpRequest,
+    QianjiBpmnWorkflowCancelHttpResponse, QianjiBpmnWorkflowCancelReport,
+    QianjiBpmnWorkflowCancelRequest, QianjiBpmnWorkflowCheckpointBackend,
+    QianjiBpmnWorkflowControlError, QianjiBpmnWorkflowControlService,
+    QianjiBpmnWorkflowEventPollReport, QianjiBpmnWorkflowEventPollRequest,
+    QianjiBpmnWorkflowHttpCheckpointBackend, QianjiBpmnWorkflowHttpErrorBody,
+    QianjiBpmnWorkflowHttpState, QianjiBpmnWorkflowResumeReport, QianjiBpmnWorkflowResumeRequest,
+    QianjiBpmnWorkflowRunHttpResponse, QianjiBpmnWorkflowSnapshotHttpResponse,
+    QianjiBpmnWorkflowStartHttpRequest, QianjiBpmnWorkflowStartReport,
+    QianjiBpmnWorkflowStartRequest, QianjiBpmnWorkflowStatusHttpQuery,
+    QianjiBpmnWorkflowStatusHttpResponse, QianjiBpmnWorkflowStatusReport,
+    QianjiBpmnWorkflowStatusRequest, QianjiBpmnWorkflowTaskCompleteReport,
+    QianjiBpmnWorkflowTaskCompleteRequest, dispatch_pending_host_work_request,
+    dispatch_pending_host_work_requests, load_bpmn_package_from_files,
+    load_bpmn_package_from_files_with_options, qianji_bpmn_workflow_router,
+    resolve_pending_host_work, resolve_waiting_external_event,
 };
 pub use contract_feedback::{QianjiContractFeedbackRun, run_contract_feedback_flow};
 #[cfg(feature = "llm")]
@@ -65,20 +95,18 @@ pub use contracts::{
     QianjiMechanism, QianjiOutput, WendaoDocsContractShow, render_wendao_docs_contract_show,
     show_wendao_docs_contract,
 };
-pub use engine::QianjiEngine;
-pub use engine::compiler::QianjiCompiler;
+pub use engine::{QianjiCompiler, QianjiEngine};
 pub use flowhub::{
     AnchoredMaterializedWorkdir, FlowhubCheckReport, FlowhubDiagnostic, FlowhubDirKind,
-    FlowhubGraphEdgeSummary, FlowhubGraphNodeSummary, FlowhubGraphShow, FlowhubModuleKind,
-    FlowhubModuleShow, FlowhubModuleSummary, FlowhubRootShow, FlowhubScenarioCaseSummary,
-    FlowhubScenarioCheckReport, FlowhubScenarioDiagnostic, FlowhubScenarioHiddenAlias,
-    FlowhubScenarioShow, FlowhubScenarioSurfacePreview, FlowhubShow, MaterializedWorkdir,
-    ResolvedFlowhubModule, check_flowhub, check_flowhub_scenario, classify_flowhub_dir,
-    load_flowhub_module_manifest, load_flowhub_scenario_manifest, looks_like_flowhub_scenario_dir,
-    materialize_flowhub_anchored_scenario, materialize_flowhub_anchored_scenario_at_node,
-    materialize_flowhub_scenario_workdir, parse_flowhub_module_manifest,
-    parse_flowhub_scenario_manifest, render_anchored_materialized_workdir,
-    render_flowhub_check_markdown, render_flowhub_graph_show,
+    FlowhubGraphShow, FlowhubModuleKind, FlowhubModuleShow, FlowhubModuleSummary, FlowhubRootShow,
+    FlowhubScenarioCaseSummary, FlowhubScenarioCheckReport, FlowhubScenarioDiagnostic,
+    FlowhubScenarioHiddenAlias, FlowhubScenarioShow, FlowhubScenarioSurfacePreview, FlowhubShow,
+    MaterializedWorkdir, ResolvedFlowhubModule, check_flowhub, check_flowhub_scenario,
+    classify_flowhub_dir, load_flowhub_module_manifest, load_flowhub_scenario_manifest,
+    looks_like_flowhub_scenario_dir, materialize_flowhub_anchored_scenario,
+    materialize_flowhub_anchored_scenario_at_node, materialize_flowhub_scenario_workdir,
+    parse_flowhub_module_manifest, parse_flowhub_scenario_manifest,
+    render_anchored_materialized_workdir, render_flowhub_check_markdown, render_flowhub_graph_show,
     render_flowhub_scenario_check_markdown, render_flowhub_scenario_show, render_flowhub_show,
     resolve_flowhub_module_children, resolve_flowhub_scenario_modules, show_flowhub,
     show_flowhub_anchored_scenario, show_flowhub_graph, show_flowhub_scenario,

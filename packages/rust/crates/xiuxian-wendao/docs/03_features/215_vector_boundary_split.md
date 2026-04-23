@@ -36,7 +36,8 @@ validated:
    package `cargo check -p xiuxian-wendao --no-default-features` build is now
    warning-clean.
 2. `xiuxian-qianji` consumes `xiuxian-wendao` with `default-features = false`.
-3. Qianji's normal dependency tree no longer includes `xiuxian-vector-store`
+3. Qianji's normal dependency tree no longer includes the heavy
+   `xiuxian-db-store` `vector-store` feature path
    or `lance`.
 4. Focused compile proof also passes for the heavier Wendao matrix:
    `--no-default-features --features studio,zhenfa-router,julia,builtin-plugins`.
@@ -62,7 +63,8 @@ The target package boundary is:
 
 The feature is aligned only when all of the following are true:
 
-1. Qianji's normal dependency tree no longer includes `xiuxian-vector-store`
+1. Qianji's normal dependency tree no longer includes the heavy
+   `xiuxian-db-store` `vector-store` feature path
 2. Qianji's normal dependency tree no longer includes `lance`
 3. touched Wendao and Qianji slices still compile with focused cargo checks
 4. bounded-work markdown payload contracts remain stable for Qianji callers

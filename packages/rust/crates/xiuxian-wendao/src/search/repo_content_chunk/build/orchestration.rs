@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::time::Instant;
 
-use xiuxian_vector_store::VectorStoreError;
+use xiuxian_db_store::VectorStoreError;
 
 use crate::repo_index::RepoCodeDocument;
 use crate::search::cache::SearchPlaneFileFingerprintScope;

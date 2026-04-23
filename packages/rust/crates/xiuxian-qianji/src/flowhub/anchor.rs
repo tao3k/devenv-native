@@ -116,7 +116,7 @@ fn direct_graph_ref_matches(graph: &FlowhubGraphContract, normalized_ref: &str) 
 
 fn graph_annotation_scenario_id(anchor_dir: &Path, graph: &FlowhubGraphContract) -> Option<String> {
     let source = fs::read_to_string(anchor_dir.join(&graph.path)).ok()?;
-    super::scenario_ir::parse_flowhub_graph_annotations(&source)
+    super::parse_flowhub_graph_annotations(&source)
         .ok()
         .flatten()
         .and_then(|annotations| annotations.scenario.id)

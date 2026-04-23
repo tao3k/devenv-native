@@ -527,8 +527,7 @@ impl NuSystemBridge {
                 .stdout(Stdio::null())
                 .stderr(Stdio::null())
                 .status()
-                .map(|status| status.success())
-                .unwrap_or(false)
+                .is_ok_and(|status| status.success())
         })
     }
 

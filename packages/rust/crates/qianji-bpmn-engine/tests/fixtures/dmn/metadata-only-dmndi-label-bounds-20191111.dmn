@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions
+  id="Definitions_label_bounds"
+  name="DMNDI label bounds"
+  namespace="urn:test:dmn:dmndi-label-bounds"
+  xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/"
+  xmlns:dmndi="https://www.omg.org/spec/DMN/20191111/DMNDI/"
+  xmlns:dc="http://www.omg.org/spec/DMN/20180521/DC/">
+  <dmndi:DMNDI>
+    <dmndi:DMNDiagram id="diagram_label_bounds">
+      <dmndi:DMNShape id="shape_input_1" dmnElementRef="InputData_1">
+        <dmndi:DMNLabel id="shape_label_1">
+          <dc:Bounds x="33" y="14" width="49" height="10" />
+        </dmndi:DMNLabel>
+      </dmndi:DMNShape>
+      <dmndi:DMNEdge id="edge_requirement_1" dmnElementRef="Requirement_1">
+        <dmndi:DMNLabel id="edge_label_1">
+          <dc:Bounds x="300" y="120" width="42" height="12" />
+        </dmndi:DMNLabel>
+      </dmndi:DMNEdge>
+    </dmndi:DMNDiagram>
+  </dmndi:DMNDI>
+</definitions>

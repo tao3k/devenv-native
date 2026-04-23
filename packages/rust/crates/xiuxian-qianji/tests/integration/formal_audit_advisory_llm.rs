@@ -9,9 +9,7 @@ use std::sync::{Arc, Mutex};
 use xiuxian_llm::llm::client::ChatStream;
 use xiuxian_llm::llm::{ChatRequest, LlmClient, LlmError, LlmResult};
 use xiuxian_qianhuan::{PersonaRegistry, ThousandFacesOrchestrator};
-use xiuxian_qianji::executors::formal_audit::{
-    QianjiAdvisoryAuditExecutor, QianjiLlmAdvisoryAuditExecutor,
-};
+use xiuxian_qianji::executors::{QianjiAdvisoryAuditExecutor, QianjiLlmAdvisoryAuditExecutor};
 use xiuxian_testing::{
     AdvisoryAuditExecutor, AdvisoryAuditRequest, ArtifactKind, CollectedArtifact,
     CollectedArtifacts, CollectionContext, ContractFinding, EvidenceKind, FindingConfidence,

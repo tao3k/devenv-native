@@ -1,0 +1,42 @@
+<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/"
+  id="Definitions_effective_date_band"
+  name="Effective Date Band DRD"
+  namespace="http://example.com/dmn">
+  <decision id="effective-date-band" name="Effective Date Band">
+    <decisionTable id="decision_table_effective_date_band" hitPolicy="UNIQUE">
+      <input id="input_effective_date" label="effective_date">
+        <inputExpression id="input_expression_effective_date" typeRef="date">
+          <text>effective_date</text>
+        </inputExpression>
+      </input>
+      <output id="output_phase" name="phase" label="phase" typeRef="string" />
+      <rule id="rule_launch_day">
+        <description>Launch day exact match</description>
+        <inputEntry id="input_entry_launch_day">
+          <text>date("2026-01-01")</text>
+        </inputEntry>
+        <outputEntry id="output_entry_launch_day">
+          <text>"launch-day"</text>
+        </outputEntry>
+      </rule>
+      <rule id="rule_pre_cutoff">
+        <description>Before cutoff</description>
+        <inputEntry id="input_entry_pre_cutoff">
+          <text>&lt; date("2026-02-01")</text>
+        </inputEntry>
+        <outputEntry id="output_entry_pre_cutoff">
+          <text>"pre-cutoff"</text>
+        </outputEntry>
+      </rule>
+      <rule id="rule_cutoff_or_later">
+        <description>Cutoff or later</description>
+        <inputEntry id="input_entry_cutoff_or_later">
+          <text>&gt;= date("2026-02-01")</text>
+        </inputEntry>
+        <outputEntry id="output_entry_cutoff_or_later">
+          <text>"cutoff-or-later"</text>
+        </outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+</definitions>

@@ -1,7 +1,7 @@
 use std::fmt;
 
 use arrow_array::RecordBatch;
-use xiuxian_vector_store::{VectorStore, VectorStoreError};
+use xiuxian_db_store::{VectorStore, VectorStoreError};
 use xiuxian_wendao_core::repo_intelligence::RepoIntelligenceError;
 
 use super::metadata::{attach_plugin_arrow_request_metadata, plugin_arrow_request_trace_id};

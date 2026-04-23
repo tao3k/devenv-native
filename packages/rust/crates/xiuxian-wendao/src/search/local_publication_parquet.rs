@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use arrow::array::{Array, BooleanArray, LargeStringArray, StringArray, StringViewArray};
 use arrow::compute::filter_record_batch;
-use xiuxian_vector_store::{
+use xiuxian_db_store::{
     EngineRecordBatch, LanceRecordBatch, LanceSchema, SearchEngineContext, VectorStoreError,
     lance_batches_to_engine_batches, write_engine_batches_to_parquet_file,
 };

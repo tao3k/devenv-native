@@ -8,8 +8,9 @@ use std::sync::{Arc, Mutex};
 use anyhow::Result;
 use async_trait::async_trait;
 use futures::stream;
+#[path = "support/workspace.rs"]
+mod workspace;
 use serde_json::json;
-use xiuxian_config_core::resolve_project_root;
 use xiuxian_llm::llm::client::ChatStream;
 use xiuxian_llm::llm::{ChatRequest, LlmClient, LlmError, LlmResult};
 use xiuxian_qianhuan::{PersonaRegistry, ThousandFacesOrchestrator};
@@ -162,7 +163,7 @@ fn test_context() -> CollectionContext {
     CollectionContext {
         suite_id: "contracts".to_string(),
         crate_name: Some("xiuxian-wendao".to_string()),
-        workspace_root: Some(workspace_root()),
+        workspace_root: Some(workspace::workspace_root()),
         labels: std::collections::BTreeMap::from([
             (
                 "session_id".to_string(),
@@ -171,11 +172,6 @@ fn test_context() -> CollectionContext {
             ("llm_model".to_string(), "gpt-5.4-mini".to_string()),
         ]),
     }
-}
-
-fn workspace_root() -> PathBuf {
-    resolve_project_root()
-        .unwrap_or_else(|| panic!("workspace root should resolve from PRJ_ROOT or git ancestry"))
 }
 
 fn live_config() -> ContractRunConfig {

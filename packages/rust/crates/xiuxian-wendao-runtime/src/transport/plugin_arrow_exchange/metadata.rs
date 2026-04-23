@@ -1,5 +1,5 @@
 use arrow_array::RecordBatch;
-use xiuxian_vector_store::attach_record_batch_metadata;
+use xiuxian_db_store::attach_record_batch_metadata;
 use xiuxian_wendao_core::repo_intelligence::RepoIntelligenceError;
 
 use crate::transport::{FLIGHT_SCHEMA_VERSION_METADATA_KEY, FLIGHT_TRACE_ID_METADATA_KEY};

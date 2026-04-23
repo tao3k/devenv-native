@@ -1,5 +1,5 @@
 use chrono::Utc;
-use xiuxian_vector_store::VectorStoreError;
+use xiuxian_db_store::VectorStoreError;
 
 use crate::search::service::core::maintenance::helpers::{
     repo_active_epoch, repo_runtime_status_for_record,

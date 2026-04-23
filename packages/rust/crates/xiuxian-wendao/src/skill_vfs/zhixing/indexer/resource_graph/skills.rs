@@ -70,7 +70,7 @@ impl ZhixingWendaoIndexer {
             relations_linked = relations_linked.saturating_add(intent_relations);
 
             let mut ids = file.link_targets_by_id().iter().collect::<Vec<_>>();
-            ids.sort_by(|(left, _), (right, _)| left.cmp(right));
+            ids.sort_by_key(|(left, _)| *left);
 
             for (id, targets) in ids {
                 let config_type = registry

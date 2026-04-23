@@ -1,0 +1,68 @@
+%% qianji.scenario.id: deep_read
+%% qianji.scenario.name: PAPER_DEEP_READ
+%% qianji.scenario.description: canonical paper package -> deep read package
+%% qianji.scenario.topology: bounded_loop
+%% qianji.scenario.workdir_root: runs/<run_id>
+%% qianji.scenario.requires:
+%%   - refs/paper.json
+%%   - refs/topic.json
+%% qianji.scenario.target_root: papers/<paper_id>
+%% qianji.scenario.target_paths:
+%%   - semantics/method_card.json
+%%   - semantics/result_sheet.json
+%%   - semantics/claim_ledger.jsonl
+%%   - semantics/evidence_ledger.jsonl
+%%   - semantics/limitation_sheet.json
+flowchart LR
+  paper_package["research/paper"] --> load_paper_package["load_paper_package"]
+  load_paper_package --> methods_extract["methods_extract"]
+  methods_extract --> results_extract["results_extract"]
+  results_extract --> claim_extract["claim_extract"]
+  claim_extract --> evidence_ground["evidence_ground"]
+  evidence_ground --> limitation_extract["limitation_extract"]
+  limitation_extract --> done_gate["done gate"]
+
+  methods_extract -- fail --> diagnostics["diagnostics"]
+  results_extract -- fail --> diagnostics
+  claim_extract -- fail --> diagnostics
+  evidence_ground -- fail --> diagnostics
+  limitation_extract -- fail --> diagnostics
+  diagnostics --> load_paper_package
+
+%% qianji.node.paper_package.kind: artifact
+%% qianji.node.load_paper_package.kind: process
+%% qianji.node.methods_extract.kind: process
+%% qianji.node.methods_extract.checkpoint: checkpoints/methods_extract.json
+%% qianji.node.methods_extract.writes:
+%%   - staging/semantics/method_card.patch.json
+%% qianji.node.methods_extract.merge_target:
+%%   - semantics/method_card.json
+%% qianji.node.results_extract.kind: process
+%% qianji.node.results_extract.checkpoint: checkpoints/results_extract.json
+%% qianji.node.results_extract.writes:
+%%   - staging/semantics/result_sheet.patch.json
+%% qianji.node.results_extract.merge_target:
+%%   - semantics/result_sheet.json
+%% qianji.node.claim_extract.kind: process
+%% qianji.node.claim_extract.checkpoint: checkpoints/claim_extract.json
+%% qianji.node.claim_extract.writes:
+%%   - staging/semantics/claim_ledger.patch.jsonl
+%% qianji.node.claim_extract.merge_target:
+%%   - semantics/claim_ledger.jsonl
+%% qianji.node.evidence_ground.kind: process
+%% qianji.node.evidence_ground.checkpoint: checkpoints/evidence_ground.json
+%% qianji.node.evidence_ground.writes:
+%%   - staging/semantics/evidence_ledger.patch.jsonl
+%% qianji.node.evidence_ground.merge_target:
+%%   - semantics/evidence_ledger.jsonl
+%% qianji.node.limitation_extract.kind: process
+%% qianji.node.limitation_extract.checkpoint: checkpoints/limitation_extract.json
+%% qianji.node.limitation_extract.writes:
+%%   - staging/semantics/limitation_sheet.patch.json
+%% qianji.node.limitation_extract.merge_target:
+%%   - semantics/limitation_sheet.json
+%% qianji.node.done_gate.kind: gate
+%% qianji.done_gate.require:
+%%   - semantics/claim_ledger.jsonl
+%%   - semantics/evidence_ledger.jsonl
+%%   - semantics/limitation_sheet.json

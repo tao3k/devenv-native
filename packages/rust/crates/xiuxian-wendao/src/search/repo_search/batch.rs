@@ -1,7 +1,7 @@
 use std::path::Path;
 use std::sync::Arc;
 
-use xiuxian_vector_store::{
+use xiuxian_db_store::{
     LanceDataType, LanceField, LanceFloat64Array, LanceInt32Array, LanceListArray,
     LanceListBuilder, LanceRecordBatch, LanceSchema, LanceStringArray, LanceStringBuilder,
 };

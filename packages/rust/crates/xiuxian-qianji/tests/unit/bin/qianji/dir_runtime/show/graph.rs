@@ -22,7 +22,11 @@ fn run_show_graph_command_renders_flowhub_mermaid_graph() {
     assert!(output.rendered.contains("## Execution"));
     assert!(output.rendered.contains("- Start at `coding`."));
     assert!(output.rendered.contains("- Complete at `done gate`."));
-    assert!(output.rendered.contains("localized plan work surface"));
+    assert!(
+        output
+            .rendered
+            .contains("does not yet declare `[graph.workdir]`")
+    );
     assert!(output.rendered.contains("## Nodes"));
     assert!(output.rendered.contains("`coding` [`context`]"));
     assert!(output.rendered.contains("Entry: `task.coding-start`"));
@@ -39,9 +43,11 @@ fn run_show_graph_command_renders_flowhub_mermaid_graph() {
             .rendered
             .contains("Flowhub source surface: `qianji.toml`, `codex-plan.mmd`.")
     );
-    assert!(output.rendered.contains("Run root: `<plan-workdir>`."));
-    assert!(output.rendered.contains("blueprint/**/*.md"));
-    assert!(output.rendered.contains("plan/**/*.md"));
+    assert!(
+        output
+            .rendered
+            .contains("No declared bounded check surface.")
+    );
     assert!(!output.rendered.contains("## Expected Work Surface"));
     assert!(!output.rendered.contains("## Local Contract Template"));
     assert!(output.rendered.contains("## Mermaid"));
@@ -94,14 +100,18 @@ fn run_show_graph_command_prefers_declared_graph_name_override() {
 fn run_show_graph_command_renders_research_deep_read_localized_surfaces() {
     let output = must_ok(
         run_dir_command(DirCliCommand::Show {
-            target: ShowCliTarget::Graph(flowhub_root().join("research/paper/paper-deep-read.mmd")),
+            target: ShowCliTarget::Graph(anchored_workdir_fixture_graph()),
         }),
         "show graph command should render localized research surfaces",
     );
 
     assert_eq!(output.exit_code, 0);
     assert!(output.rendered.contains("Name: PAPER_DEEP_READ"));
-    assert!(output.rendered.contains("Owning module: research/paper"));
+    assert!(
+        output
+            .rendered
+            .contains("Owning module: paper_deep_read_workdir")
+    );
     assert!(output.rendered.contains("## Check Surface"));
     assert!(output.rendered.contains("Run root: `runs/<run_id>`."));
     assert!(output.rendered.contains("refs/paper.json"));

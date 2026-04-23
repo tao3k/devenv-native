@@ -1,0 +1,39 @@
+<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/"
+  id="Definitions_fractional_hour_window"
+  name="Fractional Hour Window DRD"
+  namespace="http://example.com/dmn">
+  <decision id="fractional-hour-window" name="Fractional Hour Window">
+    <decisionTable id="decision_table_fractional_hour_window" hitPolicy="UNIQUE">
+      <input id="input_elapsed" label="elapsed">
+        <inputExpression id="input_expression_elapsed" typeRef="dayTimeDuration">
+          <text>elapsed</text>
+        </inputExpression>
+      </input>
+      <output id="output_band" name="band" label="band" typeRef="string" />
+      <rule id="rule_exact_one_point_five_hours">
+        <inputEntry id="input_entry_exact_one_point_five_hours">
+          <text>duration("PT1.5H")</text>
+        </inputEntry>
+        <outputEntry id="output_entry_exact_one_point_five_hours">
+          <text>"exact-one-point-five-hours"</text>
+        </outputEntry>
+      </rule>
+      <rule id="rule_before_two_point_two_five_hours">
+        <inputEntry id="input_entry_before_two_point_two_five_hours">
+          <text>&lt; duration("PT2.25H")</text>
+        </inputEntry>
+        <outputEntry id="output_entry_before_two_point_two_five_hours">
+          <text>"before-two-point-two-five-hours"</text>
+        </outputEntry>
+      </rule>
+      <rule id="rule_two_point_two_five_hours_or_more">
+        <inputEntry id="input_entry_two_point_two_five_hours_or_more">
+          <text>&gt;= duration("PT2.25H")</text>
+        </inputEntry>
+        <outputEntry id="output_entry_two_point_two_five_hours_or_more">
+          <text>"two-point-two-five-hours-or-more"</text>
+        </outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+</definitions>

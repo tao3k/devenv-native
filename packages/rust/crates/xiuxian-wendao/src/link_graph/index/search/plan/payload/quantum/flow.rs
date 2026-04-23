@@ -12,7 +12,7 @@ use crate::link_graph::{
     OpenAiCompatibleSemanticIgnition, QuantumFusionOptions, QuantumSemanticIgnition,
     VectorStoreSemanticIgnition,
 };
-use xiuxian_vector_store::VectorStore;
+use xiuxian_db_store::VectorStore;
 use xiuxian_wendao_core::capabilities::PluginCapabilityBinding;
 
 type SemanticIgnitionOutcome = Result<

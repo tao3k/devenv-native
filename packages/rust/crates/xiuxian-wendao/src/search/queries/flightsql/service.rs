@@ -196,7 +196,7 @@ impl FlightSqlService for StudioFlightSqlService {
         let batches = take_statement_batches(&self.statement_cache, &ticket)?;
         let schema = batches.first().map_or_else(
             || Arc::new(Schema::empty()),
-            xiuxian_vector_store::EngineRecordBatch::schema,
+            xiuxian_db_store::EngineRecordBatch::schema,
         );
         Ok(response_stream(schema, batches))
     }

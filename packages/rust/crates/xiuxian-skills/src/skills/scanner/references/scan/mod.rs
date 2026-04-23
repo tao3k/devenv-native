@@ -60,8 +60,8 @@ pub(super) fn validate_references_strict(skill_path: &Path) -> Result<(), String
                 .role_class
                 .as_deref()
                 .map(str::trim)
-                .filter(|value| !value.is_empty())
-                .is_some();
+                .as_ref()
+                .is_some_and(|value| !value.is_empty());
             if !role_valid {
                 return Err(format!(
                     "reference metadata validation failed: invalid persona metadata in {}: `metadata.role_class` is required when type=persona",

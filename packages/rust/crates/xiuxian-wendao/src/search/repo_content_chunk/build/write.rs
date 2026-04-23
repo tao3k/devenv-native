@@ -7,8 +7,8 @@ use arrow::compute::{cast, filter_record_batch};
 use chrono::Utc;
 use parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
 use serde::{Deserialize, Serialize};
-use xiuxian_vector_store::VectorStoreError;
-use xiuxian_vector_store::{
+use xiuxian_db_store::VectorStoreError;
+use xiuxian_db_store::{
     EngineRecordBatch, LanceRecordBatch, lance_batches_to_engine_batches,
     write_engine_batches_to_parquet_file,
 };

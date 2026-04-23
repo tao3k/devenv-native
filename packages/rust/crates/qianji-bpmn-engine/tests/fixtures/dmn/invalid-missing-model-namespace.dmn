@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions
+  id="Definitions_missing_model_namespace"
+  name="Missing Model Namespace"
+  namespace="https://example.com/dmn/missing-model-namespace">
+  <decision id="Decision_missing_model_namespace" name="Missing Model Namespace Decision">
+    <decisionTable id="decision_table_missing_model_namespace" hitPolicy="UNIQUE">
+      <output id="output_missing_model_namespace" name="result" typeRef="string"/>
+      <rule id="rule_missing_model_namespace">
+        <outputEntry id="output_entry_missing_model_namespace">
+          <text>"review"</text>
+        </outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+</definitions>

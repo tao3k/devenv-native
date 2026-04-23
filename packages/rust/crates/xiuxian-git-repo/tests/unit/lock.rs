@@ -25,9 +25,7 @@ fn checkout_lock_retry_delay_defaults_when_env_is_missing() {
     assert_eq!(
         checkout_lock_retry_delay_with_lookup(&|_| None),
         default_checkout_lock_retry_delay_for_parallelism(
-            std::thread::available_parallelism()
-                .map(std::num::NonZeroUsize::get)
-                .unwrap_or(1),
+            std::thread::available_parallelism().map_or(1, std::num::NonZeroUsize::get),
         )
     );
 }
@@ -49,9 +47,7 @@ fn checkout_lock_retry_delay_ignores_invalid_override() {
             (key == "XIUXIAN_GIT_REPO_CHECKOUT_LOCK_RETRY_DELAY_MS").then(|| "invalid".to_string())
         }),
         default_checkout_lock_retry_delay_for_parallelism(
-            std::thread::available_parallelism()
-                .map(std::num::NonZeroUsize::get)
-                .unwrap_or(1),
+            std::thread::available_parallelism().map_or(1, std::num::NonZeroUsize::get),
         )
     );
 }

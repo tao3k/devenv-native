@@ -250,11 +250,11 @@ fn check_mod_interface_only(path: &Path, text: &str) -> Vec<ContractFinding> {
                 ),
             );
             finding.why_it_matters = "Interface modules should expose structure only; implementation in `mod.rs` blurs module boundaries.".to_string();
-            finding.remediation = "Move implementation into dedicated submodules and keep `mod.rs` to private module declarations plus explicit re-exports.".to_string();
+            finding.remediation = "Move implementation into dedicated submodules and keep `mod.rs` to private `mod child;` or private `#[path = \"../child.rs\"] mod child;` declarations plus explicit `pub use`/`pub(crate) use` re-exports. Do not publish child modules directly from `mod.rs`.".to_string();
             finding
                 .examples
                 .good
-                .push("`mod.rs` with private `mod foo;` + `pub use foo::Type;` only.".to_string());
+                .push("`mod.rs` with private `mod foo;` or private `#[path = \"../foo.rs\"] mod foo;` plus a selective `pub use foo::Type;` entry export only.".to_string());
             finding.examples.bad.push(
                 "`mod.rs` defines business functions, exposes `pub mod`, uses glob re-exports, or carries concrete state.".to_string(),
             );
@@ -279,11 +279,11 @@ fn check_mod_interface_only(path: &Path, text: &str) -> Vec<ContractFinding> {
                 ),
             );
             finding.why_it_matters = "The interface-only contract must be proven from valid Rust syntax; parse failures hide ownership drift and block reliable modularity auditing.".to_string();
-            finding.remediation = "Fix the Rust syntax error or move implementation into sibling modules so `mod.rs` can be revalidated as an interface-only file.".to_string();
+            finding.remediation = "Fix the Rust syntax error, then keep `mod.rs` as an interface-only seam with private `mod child;` or private `#[path = \"../child.rs\"] mod child;` declarations plus explicit re-exports. Move concrete implementation out to sibling owner files before re-running the gate.".to_string();
             finding
                 .examples
                 .good
-                .push("A syntactically valid `mod.rs` that contains only module declarations and `use` statements.".to_string());
+                .push("A syntactically valid `mod.rs` that contains only private module declarations, optional private `#[path = ...]` mounts, and explicit re-exports.".to_string());
             finding
                 .examples
                 .bad
@@ -719,7 +719,7 @@ fn check_root_entry_visibility(
                 ),
             );
             finding.why_it_matters = "Once a root seam is internal because its parent module is private or restricted, a plain `pub use` makes the local owner surface look more public than it really is. That gives coding agents the wrong impression about how wide the seam is meant to be.".to_string();
-            finding.remediation = "Use `pub(crate)` or `pub(super)` for internal root entry re-exports, or make the parent module fully `pub mod ...` if the seam is intentionally part of the crate's public API.".to_string();
+            finding.remediation = "Use `pub(crate)` or `pub(super)` for internal root entry re-exports, keep child mounts private (`mod child;` or private `#[path = ...] mod child;`), and only make the parent fully `pub mod ...` when the seam is intentionally part of the crate's public API.".to_string();
             finding.examples.good.push(
                 "`mod feature;` in the parent file plus `pub(crate) use self::service::Service;` inside `feature.rs`."
                     .to_string(),
@@ -761,7 +761,7 @@ fn check_root_entry_curation(
                 ),
             );
             finding.why_it_matters = "Even with restricted visibility, a root seam that re-exports several child owners still flattens the feature boundary into a small peer list. For Codex-style navigation, one canonical visible owner keeps the first hop tighter while the folder layout continues to explain the secondary leaves.".to_string();
-            finding.remediation = "Keep one child module as the canonical visible owner in the internal root seam, and let secondary modules such as `parser` or `runtime` stay leaf-owned. If secondary navigation matters, mention those modules in a short root `//!` doc instead of re-exporting them all.".to_string();
+            finding.remediation = "Keep one child module as the canonical visible owner in the internal root seam, and let secondary modules stay behind private `mod` or private `#[path = ...] mod` mounts. If secondary navigation matters, mention those modules in a short root `//!` doc instead of re-exporting them all.".to_string();
             finding.examples.good.push(
                 "`mod feature;` in the parent file plus `pub(crate) use self::service::Service;` in `feature.rs`, with parser/runtime described in a short root doc if needed."
                     .to_string(),
@@ -1033,9 +1033,13 @@ fn check_root_child_visibility(path: &Path, text: &str) -> Vec<ContractFinding> 
                 ),
             );
             finding.why_it_matters = "When a folder-root seam publishes `pub mod child;`, coding agents learn the child module path as the contract surface and bypass the curated facade. Keeping child modules private preserves one stable seam at the root.".to_string();
-            finding.remediation = "Change the child module declaration back to private `mod child;`, then expose only the canonical entry symbols with selective `pub(crate) use` or `pub use` statements, or add a short root `//!` hint when no visible export is needed.".to_string();
+            let visible_mount = format!("{} mod {};", item.visibility, item.module_name);
+            finding.remediation = format!(
+                "Replace `{}` with private `mod {};` or private `#[path = \"../{}.rs\"] mod {};` when the owner file lives elsewhere, then expose only the intended entry symbols with selective `pub(crate) use` or `pub use` re-exports. If no visible export is needed, keep the mount private and add a short root `//!` hint instead.",
+                visible_mount, item.module_name, item.module_name, item.module_name
+            );
             finding.examples.good.push(
-                "`mod service;` plus `pub(crate) use self::service::Service;` keeps the folder-root seam curated."
+                "`mod service;` or private `#[path = \"../service.rs\"] mod service;` plus `pub(crate) use self::service::Service;` keeps the folder-root seam curated."
                     .to_string(),
             );
             finding.examples.bad.push(
@@ -1090,7 +1094,7 @@ fn check_relative_import_clarity(path: &Path, text: &str) -> Vec<ContractFinding
 
 fn check_visibility_boundary(path: &Path, text: &str) -> Vec<ContractFinding> {
     let file_name = path.file_name().and_then(|name| name.to_str());
-    if matches!(file_name, Some("lib.rs" | "main.rs" | "mod.rs")) {
+    if matches!(file_name, Some("lib.rs" | "main.rs" | "mod.rs" | "api.rs")) {
         return Vec::new();
     }
     if path

@@ -1,6 +1,6 @@
 use crate::search::ranking::{RetainedWindow, StreamingRerankTelemetry, trim_ranked_vec};
 use std::collections::HashSet;
-use xiuxian_vector_store::EngineRecordBatch;
+use xiuxian_db_store::EngineRecordBatch;
 
 use super::ranking::{
     autocomplete_matches_prefix, autocomplete_suggestion_type, candidate_score, compare_candidates,

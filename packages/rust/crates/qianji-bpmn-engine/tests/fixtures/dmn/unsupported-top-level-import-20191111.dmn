@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions
+  xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/"
+  xmlns:partner="https://example.com/dmn/partner-services"
+  id="Definitions_unsupported_top_level_import"
+  name="Unsupported Top Level Import"
+  namespace="https://example.com/dmn/unsupported-top-level-import">
+  <import
+    namespace="https://example.com/dmn/partner-services"
+    name="Partner Services"
+    importType="https://www.omg.org/spec/DMN/20191111/MODEL/"/>
+  <decision id="Decision_imported_offer" name="Imported Offer Decision">
+    <decisionTable id="DecisionTable_imported_offer" hitPolicy="UNIQUE">
+      <output id="Output_imported_offer" name="offer" typeRef="string"/>
+      <rule id="Rule_imported_offer">
+        <outputEntry id="OutputEntry_imported_offer">
+          <text>"manual-review"</text>
+        </outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+</definitions>

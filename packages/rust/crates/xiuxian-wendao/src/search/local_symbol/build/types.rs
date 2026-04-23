@@ -28,5 +28,5 @@ pub(crate) enum LocalSymbolBuildError {
     #[error("local symbol build was not started for fingerprint `{0}`")]
     BuildRejected(String),
     #[error(transparent)]
-    Storage(#[from] xiuxian_vector_store::VectorStoreError),
+    Storage(#[from] xiuxian_db_store::VectorStoreError),
 }

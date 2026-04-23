@@ -1,6 +1,6 @@
 use crate::contracts::{NodeDefinition, QianjiMechanism};
 use crate::error::QianjiError;
-use crate::executors::annotation::ContextAnnotator;
+use crate::executors::{ContextAnnotator, FormalAuditMechanism};
 use std::sync::Arc;
 use xiuxian_qianhuan::orchestrator::ThousandFacesOrchestrator;
 use xiuxian_qianhuan::persona::PersonaRegistry;
@@ -44,34 +44,32 @@ pub(super) fn formal_audit_with_llm(
     let annotation = annotation::mechanism_config(node_def);
     let retry_target_ids = formal_audit::retry_targets(node_def);
 
-    Ok(Arc::new(
-        crate::executors::formal_audit::LlmAugmentedAuditMechanism {
-            annotator: ContextAnnotator {
-                orchestrator: Arc::clone(orchestrator),
-                registry: Arc::clone(registry),
-                persona_id: annotation.persona_id,
-                template_target: annotation.template_target,
-                execution_mode: annotation.execution_mode,
-                input_keys: annotation.input_keys,
-                history_key: annotation.history_key,
-                output_key: annotation.output_key,
-            },
-            client,
-            model: llm_config.model,
-            threshold_score,
-            max_retries,
-            retry_target_ids,
-            retry_counter_key: formal_audit::retry_counter_key(node_def),
-            output_key: formal_audit::output_key(node_def),
-            score_key: formal_audit::score_key(node_def),
-            cognitive_early_halt_threshold: formal_audit::cognitive_early_halt_threshold(node_def),
-            enable_cognitive_supervision: formal_audit::enable_cognitive_supervision(node_def),
+    Ok(Arc::new(crate::executors::LlmAugmentedAuditMechanism {
+        annotator: ContextAnnotator {
+            orchestrator: Arc::clone(orchestrator),
+            registry: Arc::clone(registry),
+            persona_id: annotation.persona_id,
+            template_target: annotation.template_target,
+            execution_mode: annotation.execution_mode,
+            input_keys: annotation.input_keys,
+            history_key: annotation.history_key,
+            output_key: annotation.output_key,
         },
-    ))
+        client,
+        model: llm_config.model,
+        threshold_score,
+        max_retries,
+        retry_target_ids,
+        retry_counter_key: formal_audit::retry_counter_key(node_def),
+        output_key: formal_audit::output_key(node_def),
+        score_key: formal_audit::score_key(node_def),
+        cognitive_early_halt_threshold: formal_audit::cognitive_early_halt_threshold(node_def),
+        enable_cognitive_supervision: formal_audit::enable_cognitive_supervision(node_def),
+    }))
 }
 
 pub(super) fn formal_audit_native(node_def: &NodeDefinition) -> Arc<dyn QianjiMechanism> {
-    Arc::new(crate::executors::formal_audit::FormalAuditMechanism {
+    Arc::new(FormalAuditMechanism {
         invariants: vec![crate::safety::logic::Invariant::MustBeGrounded],
         retry_target_ids: formal_audit::retry_targets(node_def),
     })
@@ -99,7 +97,7 @@ pub(super) fn llm(
     let llm_cfg = llm_node::mechanism_config(node_def);
 
     Arc::new(
-        crate::executors::llm::StreamingLlmAnalyzer::builder()
+        crate::executors::StreamingLlmAnalyzer::builder()
             .client(client)
             .model(llm_cfg.model)
             .context_keys(llm_cfg.context_keys)

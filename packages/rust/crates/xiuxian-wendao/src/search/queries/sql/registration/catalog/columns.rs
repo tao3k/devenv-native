@@ -6,7 +6,7 @@ use arrow::record_batch::RecordBatch;
 #[cfg(not(feature = "duckdb"))]
 use datafusion::datasource::MemTable;
 #[cfg(not(feature = "duckdb"))]
-use xiuxian_vector_store::SearchEngineContext;
+use xiuxian_db_store::SearchEngineContext;
 
 use crate::search::queries::sql::registration::RegisteredSqlColumn;
 #[cfg(not(feature = "duckdb"))]

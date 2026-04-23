@@ -4,6 +4,7 @@ use tempfile::TempDir;
 
 use crate::gateway::studio::router::{GatewayState, StudioState};
 use crate::gateway::studio::types::{UiConfig, UiProjectConfig};
+use crate::link_graph::LinkGraphIndex;
 
 pub(crate) struct Fixture {
     pub(crate) state: Arc<GatewayState>,
@@ -28,10 +29,24 @@ pub(crate) fn build_fixture_with_projects(
     let mut studio_state = StudioState::new();
     studio_state.project_root = temp_dir.path().to_path_buf();
     studio_state.config_root = temp_dir.path().to_path_buf();
-    studio_state.seed_eager_configured_owners_for_tests(UiConfig {
-        projects,
-        repo_projects: Vec::new(),
-    });
+    studio_state.seed_configured_owners_for_tests(
+        UiConfig {
+            projects: projects.clone(),
+            repo_projects: Vec::new(),
+        },
+        false,
+    );
+
+    let include_dirs = graph_include_dirs(temp_dir.path(), projects.as_slice());
+    let graph_index =
+        LinkGraphIndex::build_with_filters(temp_dir.path(), include_dirs.as_slice(), &[])
+            .unwrap_or_else(|error| panic!("build fixture graph index: {error}"));
+    let mut graph_guard = studio_state
+        .graph_index
+        .write()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    *graph_guard = Some(Arc::new(graph_index));
+    drop(graph_guard);
 
     Fixture {
         state: Arc::new(GatewayState {
@@ -42,6 +57,32 @@ pub(crate) fn build_fixture_with_projects(
         }),
         _temp_dir: temp_dir,
     }
+}
+
+fn graph_include_dirs(project_root: &std::path::Path, projects: &[UiProjectConfig]) -> Vec<String> {
+    let mut include_dirs = Vec::new();
+    for project in projects {
+        let project_base = project_root.join(project.root.trim());
+        for dir in &project.dirs {
+            let candidate = project_base.join(dir.trim());
+            let Ok(relative) = candidate.strip_prefix(project_root) else {
+                continue;
+            };
+            let normalized = relative
+                .to_string_lossy()
+                .replace('\\', "/")
+                .trim_end_matches('/')
+                .to_string();
+            include_dirs.push(if normalized.is_empty() {
+                ".".to_string()
+            } else {
+                normalized
+            });
+        }
+    }
+    include_dirs.sort();
+    include_dirs.dedup();
+    include_dirs
 }
 
 pub(crate) fn build_fixture(docs: &[(&str, &str)]) -> Fixture {

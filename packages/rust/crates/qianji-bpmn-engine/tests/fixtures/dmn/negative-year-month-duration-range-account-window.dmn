@@ -1,0 +1,39 @@
+<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/"
+  id="Definitions_account_window"
+  name="Account Window DRD"
+  namespace="http://example.com/dmn">
+  <decision id="account-window" name="Account Window">
+    <decisionTable id="decision_table_account_window" hitPolicy="UNIQUE">
+      <input id="input_term" label="term">
+        <inputExpression id="input_expression_term" typeRef="yearMonthDuration">
+          <text>term</text>
+        </inputExpression>
+      </input>
+      <output id="output_window" name="window" label="window" typeRef="string" />
+      <rule id="rule_long_past">
+        <inputEntry id="input_entry_long_past">
+          <text>duration("-P1Y") &lt;= ? &lt; duration("-P6M")</text>
+        </inputEntry>
+        <outputEntry id="output_entry_long_past">
+          <text>"long-past"</text>
+        </outputEntry>
+      </rule>
+      <rule id="rule_recent_or_current">
+        <inputEntry id="input_entry_recent_or_current">
+          <text>[duration("-P6M")..duration("P0M")]</text>
+        </inputEntry>
+        <outputEntry id="output_entry_recent_or_current">
+          <text>"recent-or-current"</text>
+        </outputEntry>
+      </rule>
+      <rule id="rule_future">
+        <inputEntry id="input_entry_future">
+          <text>-</text>
+        </inputEntry>
+        <outputEntry id="output_entry_future">
+          <text>"future"</text>
+        </outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+</definitions>

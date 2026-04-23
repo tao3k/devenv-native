@@ -9,7 +9,7 @@ use async_trait::async_trait;
 use futures::stream;
 use futures::{StreamExt, TryStreamExt};
 use tonic::{Request, Response, Status};
-use xiuxian_vector_store::{EngineRecordBatch, lance_batch_to_engine_batch};
+use xiuxian_db_store::{EngineRecordBatch, lance_batch_to_engine_batch};
 
 use crate::transport::query_contract::{
     validate_rerank_request_batch, validate_rerank_response_batch,

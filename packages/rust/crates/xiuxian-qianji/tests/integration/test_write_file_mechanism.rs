@@ -5,7 +5,7 @@ use std::fs;
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
 use tempfile::tempdir;
-use xiuxian_qianji::executors::write_file::WriteFileMechanism;
+use xiuxian_qianji::executors::WriteFileMechanism;
 use xiuxian_qianji::{FlowInstruction, QianjiMechanism};
 
 #[tokio::test]

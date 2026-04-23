@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<decision
+  id="Decision_invalid_root"
+  name="Invalid Root Decision"
+  xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/">
+  <decisionTable id="decision_table_invalid_root" hitPolicy="UNIQUE">
+    <output id="output_invalid_root" name="result" typeRef="string"/>
+    <rule id="rule_invalid_root">
+      <outputEntry id="output_entry_invalid_root">
+        <text>"review"</text>
+      </outputEntry>
+    </rule>
+  </decisionTable>
+</decision>

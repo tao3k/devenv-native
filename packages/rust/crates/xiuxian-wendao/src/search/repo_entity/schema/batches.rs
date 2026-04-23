@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use xiuxian_vector_store::{
+use xiuxian_db_store::{
     LanceArray, LanceFloat64Array, LanceListArray, LanceListBuilder, LanceRecordBatch,
     LanceStringArray, LanceStringBuilder, LanceUInt32Array, VectorStoreError,
 };

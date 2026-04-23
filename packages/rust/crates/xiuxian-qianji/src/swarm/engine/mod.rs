@@ -1,8 +1,4 @@
 //! Inner-Rust swarm orchestration with per-thread window isolation.
+//! Start in `crate::swarm::engine_orchestrator`; `worker` holds execution helpers.
 
-mod orchestrator;
-mod types;
 mod worker;
-
-pub use orchestrator::SwarmEngine;
-pub use types::{SwarmAgentConfig, SwarmAgentReport, SwarmExecutionOptions, SwarmExecutionReport};

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<semantic:definitions
+    xmlns:semantic="https://www.omg.org/spec/DMN/20191111/MODEL/"
+    xmlns:dmndi="https://www.omg.org/spec/DMN/20191111/DMNDI/"
+    id="Definitions_metadata_only_dmndi"
+    name="Metadata Only DMNDI"
+    namespace="https://qianji.dev/dmn/metadata-only-dmndi">
+    <dmndi:DMNDI />
+</semantic:definitions>

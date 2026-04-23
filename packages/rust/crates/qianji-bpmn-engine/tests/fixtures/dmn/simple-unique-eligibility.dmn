@@ -1,0 +1,31 @@
+<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/"
+  id="Definitions_loan"
+  name="Loan DRD"
+  namespace="http://example.com/dmn">
+  <decision id="loan-decision" name="Loan Decision">
+    <decisionTable id="decision_table_1" hitPolicy="UNIQUE">
+      <input id="input_1" label="tier">
+        <inputExpression id="input_expression_1" typeRef="string">
+          <text>tier</text>
+        </inputExpression>
+      </input>
+      <output id="output_1" name="approval" label="approval" typeRef="string" />
+      <rule id="rule_approve">
+        <inputEntry id="input_entry_1">
+          <text>"gold"</text>
+        </inputEntry>
+        <outputEntry id="output_entry_1">
+          <text>"approve"</text>
+        </outputEntry>
+      </rule>
+      <rule id="rule_review">
+        <inputEntry id="input_entry_2">
+          <text>-</text>
+        </inputEntry>
+        <outputEntry id="output_entry_2">
+          <text>"review"</text>
+        </outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+</definitions>

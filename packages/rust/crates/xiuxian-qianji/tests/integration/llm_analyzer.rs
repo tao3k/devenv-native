@@ -8,7 +8,7 @@ use std::sync::{Arc, Mutex};
 use xiuxian_llm::llm::client::ChatStream;
 use xiuxian_llm::llm::{ChatRequest, LlmClient, LlmResult, MessageContent};
 use xiuxian_qianji::contracts::{FlowInstruction, QianjiMechanism};
-use xiuxian_qianji::executors::llm::StreamingLlmAnalyzer;
+use xiuxian_qianji::executors::StreamingLlmAnalyzer;
 
 struct MockLlmClient {
     response: String,

@@ -6,13 +6,15 @@ use std::path::Path;
 use tempfile::TempDir;
 use xiuxian_qianji::runtime_config::{
     QianjiRuntimeCheckpointConfig, QianjiRuntimeEnv, QianjiRuntimeLlmConfig,
-    QianjiRuntimeWendaoIngesterConfig, resolve_qianji_runtime_checkpoint_config_with_env,
-    resolve_qianji_runtime_llm_config_with_env,
+    QianjiRuntimeServerConfig, QianjiRuntimeWendaoIngesterConfig,
+    resolve_qianji_runtime_checkpoint_config_with_env, resolve_qianji_runtime_llm_config_with_env,
+    resolve_qianji_runtime_server_config_with_env,
     resolve_qianji_runtime_wendao_ingester_config_with_env,
 };
 
 mod checkpoint;
 mod llm_config;
+mod server;
 mod wendao_ingester;
 
 fn write_file(path: &Path, content: &str) {
@@ -46,6 +48,13 @@ fn resolve_checkpoint(env: &QianjiRuntimeEnv) -> QianjiRuntimeCheckpointConfig {
     match resolve_qianji_runtime_checkpoint_config_with_env(env) {
         Ok(cfg) => cfg,
         Err(err) => panic!("runtime checkpoint config resolve should succeed: {err}"),
+    }
+}
+
+fn resolve_server(env: &QianjiRuntimeEnv) -> QianjiRuntimeServerConfig {
+    match resolve_qianji_runtime_server_config_with_env(env) {
+        Ok(cfg) => cfg,
+        Err(err) => panic!("runtime server config resolve should succeed: {err}"),
     }
 }
 

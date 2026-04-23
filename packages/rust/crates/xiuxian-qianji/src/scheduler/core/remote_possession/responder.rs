@@ -1,8 +1,8 @@
 use crate::contracts::QianjiOutput;
 use crate::error::QianjiError;
 use crate::scheduler::core::QianjiScheduler;
-use crate::scheduler::core::types::REMOTE_POSSESSION_REQUEST_TTL_SECONDS;
-use crate::scheduler::preflight::resolve_wendao_placeholders_in_context;
+use crate::scheduler::types::REMOTE_POSSESSION_REQUEST_TTL_SECONDS;
+use crate::scheduler_preflight::resolve_wendao_placeholders_in_context;
 use crate::swarm::{RemoteNodeResponse, map_execution_error_to_response};
 use tokio::time::Duration;
 
@@ -13,7 +13,7 @@ impl QianjiScheduler {
     ///
     /// Returns [`QianjiError`] when the node id is unknown, context preflight fails,
     /// or the underlying mechanism returns an execution error.
-    pub async fn execute_node_for_remote(
+    async fn execute_node_for_remote(
         &self,
         node_id: &str,
         context: serde_json::Value,
@@ -48,7 +48,7 @@ impl QianjiScheduler {
     /// # Errors
     ///
     /// Returns [`QianjiError`] when queue operations or response publication fail.
-    pub async fn process_remote_possession_once(
+    pub(crate) async fn process_remote_possession_once(
         &self,
         role_class: &str,
         agent_id: &str,

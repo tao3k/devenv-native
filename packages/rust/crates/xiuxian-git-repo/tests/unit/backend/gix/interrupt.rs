@@ -13,9 +13,7 @@ fn remote_operation_timeout_defaults_when_env_is_missing() {
     assert_eq!(
         remote_operation_timeout_with_lookup(&|_| None),
         default_remote_operation_timeout_for_parallelism(
-            std::thread::available_parallelism()
-                .map(std::num::NonZeroUsize::get)
-                .unwrap_or(1),
+            std::thread::available_parallelism().map_or(1, std::num::NonZeroUsize::get),
         )
     );
 }
@@ -36,9 +34,7 @@ fn remote_operation_timeout_ignores_invalid_override() {
     assert_eq!(
         timeout,
         default_remote_operation_timeout_for_parallelism(
-            std::thread::available_parallelism()
-                .map(std::num::NonZeroUsize::get)
-                .unwrap_or(1),
+            std::thread::available_parallelism().map_or(1, std::num::NonZeroUsize::get),
         )
     );
 }

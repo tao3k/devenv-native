@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  id="pkg_invalid_duplicate">
+  <bpmn:process id="duplicate_nodes" isExecutable="true">
+    <bpmn:startEvent id="start" />
+    <bpmn:serviceTask id="task" />
+    <bpmn:userTask id="task" />
+    <bpmn:endEvent id="end" />
+    <bpmn:sequenceFlow id="flow_1" sourceRef="start" targetRef="task" />
+    <bpmn:sequenceFlow id="flow_2" sourceRef="task" targetRef="end" />
+  </bpmn:process>
+</bpmn:definitions>

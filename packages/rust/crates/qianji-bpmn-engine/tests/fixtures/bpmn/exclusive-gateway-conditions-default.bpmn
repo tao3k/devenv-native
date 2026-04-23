@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  id="pkg_exclusive_gateway_conditions">
+  <bpmn:process id="exclusive_gateway_conditions" isExecutable="true">
+    <bpmn:startEvent id="start" />
+    <bpmn:exclusiveGateway id="decision" default="flow_default" />
+    <bpmn:endEvent id="approved_end" />
+    <bpmn:endEvent id="vip_end" />
+    <bpmn:endEvent id="default_end" />
+    <bpmn:sequenceFlow id="flow_start" sourceRef="start" targetRef="decision" />
+    <bpmn:sequenceFlow id="flow_approved" sourceRef="decision" targetRef="approved_end">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">approved</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="flow_vip" sourceRef="decision" targetRef="vip_end">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">vip</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="flow_default" sourceRef="decision" targetRef="default_end" />
+  </bpmn:process>
+</bpmn:definitions>

@@ -39,8 +39,12 @@
 //! For enforcement inside regular crate test targets, prefer
 //! [`crate_test_policy_harness!`](macro@crate_test_policy_harness), which makes
 //! narrow `cargo test --test <target>` runs execute the policy gate too.
+//! For a dedicated root-level `tests/xiuxian-testing-gate.rs` target that should
+//! run both the crate test policy and the built-in modularity contract, prefer
+//! [`crate_testing_gate!`](macro@crate_testing_gate).
 //! For source-backed unit tests that should participate in `cargo test --lib`
-//! without keeping test bodies inline in `src/`, prefer
+//! without keeping test bodies inline in `src/`, mount
+//! [`crate_testing_gate!`](macro@crate_testing_gate) through
 //! [`crate_test_policy_source_harness!`](macro@crate_test_policy_source_harness).
 //!
 //! ```ignore
@@ -57,7 +61,7 @@
 //! xiuxian_testing::crate_test_policy_source_harness!("../tests/unit/lib_policy.rs");
 //!
 //! // tests/unit/lib_policy.rs
-//! xiuxian_testing::crate_test_policy_harness!();
+//! xiuxian_testing::crate_testing_gate!();
 //! ```
 //!
 //! ## Example
@@ -91,6 +95,7 @@
 
 pub mod contracts;
 pub mod external_test;
+pub mod gate;
 #[cfg(feature = "performance")]
 pub mod performance;
 pub mod policy;
@@ -111,6 +116,10 @@ pub use contracts::{
 pub use external_test::{
     ExternalTestMount, ExternalTestValidationIssue, calculate_test_path, generate_path_attribute,
     validate_external_test_mounts,
+};
+pub use gate::{
+    assert_crate_modularity_gate, collect_crate_modularity_findings,
+    format_crate_modularity_gate_report,
 };
 #[cfg(feature = "performance")]
 pub use performance::{
@@ -171,6 +180,43 @@ macro_rules! crate_test_policy_source_harness {
         #[cfg(test)]
         #[path = $path]
         mod xiuxian_test_policy_harness;
+    };
+}
+
+/// Mount the shared crate test-policy gate and the built-in modularity gate
+/// into one test target.
+///
+/// The built-in modularity gate blocks warning-, error-, and
+/// critical-severity findings by default.
+#[macro_export]
+macro_rules! crate_testing_gate {
+    () => {
+        #[test]
+        fn enforce_crate_test_policy_gate() {
+            $crate::assert_crate_test_policy_with_workspace_config(std::path::Path::new(env!(
+                "CARGO_MANIFEST_DIR"
+            )));
+        }
+
+        #[test]
+        fn enforce_modularity_contract_gate() {
+            $crate::assert_crate_modularity_gate(std::path::Path::new(env!("CARGO_MANIFEST_DIR")));
+        }
+    };
+}
+
+/// Mount an external source-backed crate gate entrypoint into a source module
+/// such as `src/lib.rs`.
+///
+/// Keep the full gate body in the mounted file, typically by placing
+/// [`crate_testing_gate!`](macro@crate_testing_gate) inside
+/// `tests/unit/lib_policy.rs`. This keeps test bodies out of `src/` while
+/// ensuring `cargo test --lib` still runs both the shared crate-policy gate
+/// and the built-in modularity contract.
+#[macro_export]
+macro_rules! crate_testing_source_gate {
+    ($path:literal) => {
+        $crate::crate_test_policy_source_harness!($path);
     };
 }
 

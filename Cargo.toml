@@ -28,8 +28,9 @@ members = [
   "packages/rust/crates/xiuxian-tokenizer",
   "packages/rust/crates/xiuxian-types",
   "packages/rust/crates/xiuxian-vector",
-  "packages/rust/crates/xiuxian-vector-store",
+  "packages/rust/crates/xiuxian-db-store",
   "packages/rust/crates/xiuxian-qianhuan",
+  "packages/rust/crates/qianji-bpmn-engine",
   "packages/rust/crates/xiuxian-llm",
   "packages/rust/crates/xiuxian-wendao-client",
   "packages/rust/crates/xiuxian-wendao-julia",
@@ -104,6 +105,9 @@ merman-core = "0.4"
 image = "0.25"
 imageproc = "0.25"
 duckdb = { version = "=1.10501.0", default-features = false, features = ["bundled", "appender-arrow"] }
+# `rusqlite` is the lightweight local SQL surface for `xiuxian-db-store` and
+# BPMN client-side checkpointing.
+rusqlite = { version = "0.39.0", features = ["bundled"] }
 
 # Git operations
 gix = "0.81.0"

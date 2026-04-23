@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions
+  id="Definitions_authority_requirement"
+  name="Authority Requirement Decision"
+  namespace="https://example.com/dmn/authority-requirement-decision"
+  xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/">
+  <knowledgeSource id="KnowledgeSource_policy" name="Policy Authority" />
+  <decision id="Decision_authority_requirement" name="Authority Requirement Decision">
+    <authorityRequirement>
+      <requiredAuthority href="#KnowledgeSource_policy" />
+    </authorityRequirement>
+  </decision>
+</definitions>

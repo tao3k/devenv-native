@@ -104,13 +104,25 @@
           };
         };
         "xiuxian-qianji" = {
+          drvConfig = {
+            mkDerivation = {
+              buildInputs = [
+                pkgs.protobuf
+                pkgs.libxml2
+                pkgs.valkey
+              ];
+            };
+            env.VALKEY_SERVER_BIN = "${pkgs.valkey}/bin/valkey-server";
+          };
           depsDrvConfig = {
             mkDerivation = {
               buildInputs = [
                 pkgs.protobuf
                 pkgs.libxml2
+                pkgs.valkey
               ];
             };
+            env.VALKEY_SERVER_BIN = "${pkgs.valkey}/bin/valkey-server";
           };
         };
         "xiuxian-lance" = {

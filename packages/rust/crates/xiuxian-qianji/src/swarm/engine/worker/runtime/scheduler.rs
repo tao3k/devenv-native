@@ -1,11 +1,11 @@
 use crate::QianjiEngine;
 use crate::consensus::{AgentIdentity, ConsensusManager};
-use crate::scheduler::core::SchedulerRuntimeServices;
 use crate::scheduler::{
     QianjiScheduler, RoleAvailabilityRegistry, SchedulerAgentIdentity, SchedulerExecutionPolicy,
+    SchedulerRuntimeServices,
 };
-use crate::swarm::engine::types::WorkerRuntimeConfig;
-use crate::swarm::engine::{SwarmAgentConfig, SwarmEngine};
+use crate::swarm::engine_orchestrator::SwarmEngine;
+use crate::swarm::engine_types::{SwarmAgentConfig, WorkerRuntimeConfig};
 use crate::swarm::{GlobalSwarmRegistry, RemotePossessionBus};
 use std::sync::Arc;
 

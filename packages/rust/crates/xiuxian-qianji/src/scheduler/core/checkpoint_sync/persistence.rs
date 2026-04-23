@@ -1,10 +1,10 @@
-use crate::scheduler::checkpoint::QianjiStateSnapshot;
 use crate::scheduler::core::QianjiScheduler;
-use crate::scheduler::state::merge_output_data;
+use crate::scheduler_checkpoint::QianjiStateSnapshot;
+use crate::scheduler_state::merge_output_data;
 use std::collections::{HashMap, HashSet};
 
 impl QianjiScheduler {
-    pub(in crate::scheduler::core) async fn load_checkpoint_state(
+    pub(in crate::scheduler) async fn load_checkpoint_state(
         &self,
         initial_context: &serde_json::Value,
         session_id: Option<&str>,
@@ -68,7 +68,7 @@ impl QianjiScheduler {
         }
     }
 
-    pub(in crate::scheduler::core) async fn delete_checkpoint_if_needed(
+    pub(in crate::scheduler) async fn delete_checkpoint_if_needed(
         &self,
         session_id: Option<&str>,
         redis_url: Option<&str>,

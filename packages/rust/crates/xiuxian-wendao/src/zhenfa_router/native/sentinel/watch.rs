@@ -32,7 +32,7 @@ impl Default for SentinelConfig {
         Self {
             watch_paths: vec![PathBuf::from("docs"), PathBuf::from("src")],
             // Increased to 1000ms for CAS consistency (audit recommendation)
-            debounce_duration: Duration::from_millis(1000),
+            debounce_duration: Duration::from_secs(1),
         }
     }
 }

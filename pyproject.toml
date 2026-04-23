@@ -12,6 +12,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+  "qianji-workflow-contracts",
   "wendao-core-lib",
   "wendao-arrow-interface",
   "xiuxian-foundation",
@@ -45,6 +46,7 @@ source = "vcs"
 
 
 [tool.uv.sources]
+qianji-workflow-contracts = { workspace = true }
 wendao-core-lib = { workspace = true }
 wendao-arrow-interface = { workspace = true }
 xiuxian-foundation = { workspace = true }
@@ -55,6 +57,7 @@ xiuxian-core = { workspace = true }
 members = [
   "packages/python/core",
   "packages/python/foundation",
+  "packages/python/qianji-workflow-contracts",
   "packages/python/wendao-arrow-interface",
   "packages/python/wendao-core-lib",
 ]
@@ -70,6 +73,7 @@ line-length = 100
 src = [
   "packages/python/core/src",
   "packages/python/foundation/src",
+  "packages/python/qianji-workflow-contracts/src",
   "packages/python/wendao-arrow-interface/src",
   "packages/python/wendao-core-lib/src",
 ]
@@ -96,6 +100,7 @@ keep-runtime-typing = true
 known-first-party = [
   "xiuxian_core",
   "xiuxian_foundation",
+  "qianji_workflow_contracts",
   "wendao_arrow_interface",
   "wendao_core_lib",
 ]
@@ -116,6 +121,7 @@ explicit_package_bases = true
 mypy_path = [
   "packages/python/core/src",
   "packages/python/foundation/src",
+  "packages/python/qianji-workflow-contracts/src",
   "packages/python/wendao-arrow-interface/src",
   "packages/python/wendao-core-lib/src",
 ]
@@ -138,6 +144,7 @@ addopts = [
 testpaths = [
   "packages/python/core/tests",
   "packages/python/foundation/tests",
+  "packages/python/qianji-workflow-contracts/tests",
   "packages/python/wendao-arrow-interface/tests",
   "packages/python/wendao-core-lib/tests",
   "scripts/channel",
@@ -175,6 +182,7 @@ markers = [
 source = [
   "xiuxian_core",
   "xiuxian_foundation",
+  "qianji_workflow_contracts",
   "wendao_arrow_interface",
   "wendao_core_lib",
 ]

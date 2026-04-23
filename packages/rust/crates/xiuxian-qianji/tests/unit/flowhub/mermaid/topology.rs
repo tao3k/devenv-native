@@ -1,5 +1,5 @@
 use crate::contracts::FlowhubGraphTopology;
-use crate::flowhub::mermaid::{analyze_mermaid_flowchart_topology, parse_mermaid_flowchart};
+use crate::flowhub::{analyze_mermaid_flowchart_topology, parse_mermaid_flowchart};
 
 #[test]
 fn classifies_acyclic_flowchart_as_dag() {

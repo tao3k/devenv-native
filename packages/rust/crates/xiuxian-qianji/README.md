@@ -46,6 +46,39 @@ True to the **"Rust-Hard, Host-Thin"** mandate, the "Thousand Mechanisms" are
 defined through a declarative TOML manifest. The primary operator surface is
 the `qianji` CLI, while the Rust API remains available for embedding and
 testing.
+The BPMN host-integration path now also follows that same split explicitly:
+`QianjiBpmnWorkflowControlService` is the lib-owned workflow start/control seam
+for bundle loading, checkpoint backend resolution, and execution-facade
+dispatch, while `qianji bpmn start` is the explicit control-plane CLI adapter
+that parses local fixtures and renders the resulting report. The older
+`qianji bpmn run` command remains as a compatibility alias over that same
+start path. The same checkpoint-first control surface now also backs
+`qianji bpmn status`, which inspects persisted workflow state without
+re-running the BPMN driver, `qianji bpmn resume`, which resolves
+checkpoint-backed process identity explicitly before continuing a waiting or
+host-blocked workflow instance, `qianji bpmn events poll`, which gives
+external-event ingress an explicit operator action above the same checkpointed
+resume path, `qianji bpmn tasks complete`, which gives pending host work an
+explicit operator action above the same checkpointed resume path, and
+`qianji bpmn cancel`, which deletes one persisted workflow checkpoint through
+an explicit operator path while keeping the Valkey runtime backend under
+strict scheduler-agent lease ownership. The lib service mirrors those
+operator intents with `poll_workflow_events(...)` and
+`complete_workflow_task(...)`, so later HTTP/API adapters can call the
+control-plane actions directly instead of routing through CLI-specific names.
+`qianji_bpmn_workflow_router(...)` is the first embeddable HTTP JSON surface
+over that same service layer, and
+`qianji-server --bind 127.0.0.1:38130 --valkey-url redis://127.0.0.1:6379/0`
+starts the minimal daemon shell over that router. HTTP defaults are
+Valkey-only: omitted checkpoint backend fields resolve to the service-owned
+Valkey URL when supplied, or to `[checkpoint].valkey_url` from `qianji.toml`
+otherwise. The service bind address resolves from `[server].bind_addr` unless
+`--bind` is supplied. `[server].require_valkey_ready` or
+`--require-valkey-ready` can make startup fail before socket bind when Valkey
+does not answer `PING`; `--no-require-valkey-ready` explicitly disables that
+gate. `GET /healthz` reports service liveness, and `GET /readyz` verifies
+that the effective Valkey checkpoint backend responds to `PING`. SQLite
+remains an explicit lightweight client or test selection.
 
 ```toml
 name = "artifact_refining_pipeline"

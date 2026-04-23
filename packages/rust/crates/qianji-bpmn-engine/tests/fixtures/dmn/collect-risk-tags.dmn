@@ -1,0 +1,31 @@
+<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/"
+  id="Definitions_collect"
+  name="Risk Tag DRD"
+  namespace="http://example.com/dmn">
+  <decision id="risk-tags" name="Risk Tags">
+    <decisionTable id="decision_table_collect" hitPolicy="COLLECT">
+      <input id="input_amount" label="amount">
+        <inputExpression id="input_expression_amount" typeRef="number">
+          <text>amount</text>
+        </inputExpression>
+      </input>
+      <output id="output_tags" name="tags" label="tags" typeRef="string" />
+      <rule id="rule_medium">
+        <inputEntry id="input_entry_medium">
+          <text>20</text>
+        </inputEntry>
+        <outputEntry id="output_entry_medium">
+          <text>"medium"</text>
+        </outputEntry>
+      </rule>
+      <rule id="rule_review">
+        <inputEntry id="input_entry_review">
+          <text>-</text>
+        </inputEntry>
+        <outputEntry id="output_entry_review">
+          <text>"needs-review"</text>
+        </outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+</definitions>

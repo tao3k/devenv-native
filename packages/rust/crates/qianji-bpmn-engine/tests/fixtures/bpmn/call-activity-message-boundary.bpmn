@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  id="pkg_call_activity_message_boundary"
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL">
+  <bpmn:process id="main_process" isExecutable="true">
+    <bpmn:startEvent id="start" />
+    <bpmn:callActivity id="invoke_review" calledElement="child_process" />
+    <bpmn:boundaryEvent id="review_escalated" attachedToRef="invoke_review" cancelActivity="true">
+      <bpmn:messageEventDefinition messageRef="review_message" />
+    </bpmn:boundaryEvent>
+    <bpmn:endEvent id="success_end" />
+    <bpmn:endEvent id="message_end" />
+    <bpmn:sequenceFlow id="flow_1" sourceRef="start" targetRef="invoke_review" />
+    <bpmn:sequenceFlow id="flow_2" sourceRef="invoke_review" targetRef="success_end" />
+    <bpmn:sequenceFlow id="flow_3" sourceRef="review_escalated" targetRef="message_end" />
+  </bpmn:process>
+  <bpmn:process id="child_process" isExecutable="true">
+    <bpmn:startEvent id="child_start" />
+    <bpmn:userTask id="child_review" />
+    <bpmn:endEvent id="child_success_end" />
+    <bpmn:sequenceFlow id="child_flow_1" sourceRef="child_start" targetRef="child_review" />
+    <bpmn:sequenceFlow id="child_flow_2" sourceRef="child_review" targetRef="child_success_end" />
+  </bpmn:process>
+</bpmn:definitions>

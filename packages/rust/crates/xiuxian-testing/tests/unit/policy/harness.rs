@@ -84,6 +84,22 @@ fn enforce_gate() {
 }
 
 #[test]
+fn validate_crate_test_policy_harness_accepts_builtin_testing_gate_macro() {
+    let temp = create_temp_crate();
+    write_fixture_file(
+        temp.path(),
+        "tests/xiuxian-testing-gate.rs",
+        r"
+xiuxian_testing::crate_testing_gate!();
+",
+    );
+
+    let report = validate_crate_test_policy_harness(temp.path())
+        .unwrap_or_else(|error| panic!("harness validation should succeed: {error}"));
+    assert!(report.is_clean(), "{report:?}");
+}
+
+#[test]
 fn validate_crate_test_policy_harness_reports_missing_source_gate_mounts() {
     let temp = create_temp_crate();
     write_fixture_file(temp.path(), "src/lib.rs", "mod foo;\n");
@@ -150,7 +166,46 @@ mod tests;
     write_fixture_file(
         temp.path(),
         "tests/unit/lib_policy.rs",
-        "xiuxian_testing::crate_test_policy_harness!();\n",
+        "xiuxian_testing::crate_testing_gate!();\n",
+    );
+
+    let report = validate_crate_test_policy_harness(temp.path())
+        .unwrap_or_else(|error| panic!("harness validation should succeed: {error}"));
+    assert!(report.is_clean(), "{report:?}");
+}
+
+#[test]
+fn validate_crate_test_policy_harness_accepts_source_gate_macro() {
+    let temp = create_temp_crate();
+    write_fixture_file(
+        temp.path(),
+        "src/lib.rs",
+        r#"
+xiuxian_testing::crate_testing_source_gate!("../tests/unit/lib_policy.rs");
+
+mod foo;
+"#,
+    );
+    write_fixture_file(
+        temp.path(),
+        "src/foo.rs",
+        r#"
+fn helper() {}
+
+#[cfg(test)]
+#[path = "../tests/unit/foo.rs"]
+mod tests;
+"#,
+    );
+    write_fixture_file(
+        temp.path(),
+        "tests/unit/foo.rs",
+        "use super::*;\n#[test]\nfn helper_exists() { helper(); }\n",
+    );
+    write_fixture_file(
+        temp.path(),
+        "tests/unit/lib_policy.rs",
+        "xiuxian_testing::crate_testing_gate!();\n",
     );
 
     let report = validate_crate_test_policy_harness(temp.path())

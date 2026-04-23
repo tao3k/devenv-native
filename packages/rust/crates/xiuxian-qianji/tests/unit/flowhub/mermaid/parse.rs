@@ -1,5 +1,5 @@
 use super::parse_mermaid_flowchart;
-use crate::flowhub::mermaid::MermaidNodeKind;
+use crate::flowhub::MermaidNodeKind;
 
 #[test]
 fn parses_flowchart_with_module_and_scenario_nodes() {

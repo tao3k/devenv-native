@@ -1,5 +1,5 @@
 use arrow::array::{Array, StringArray, StringViewArray};
-use xiuxian_vector_store::EngineRecordBatch;
+use xiuxian_db_store::EngineRecordBatch;
 
 use super::candidates::KnowledgeCandidate;
 use super::error::KnowledgeSectionSearchError;

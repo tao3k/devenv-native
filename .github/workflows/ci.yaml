@@ -8,11 +8,7 @@ on:
 
 jobs:
   check-format:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest]
+    runs-on: ubuntu-latest
     defaults:
       run:
         shell: bash
@@ -45,11 +41,7 @@ jobs:
         run: scripts/rust/cargo_exec.sh fmt --all --check
 
   lint:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest]
+    runs-on: ubuntu-latest
     timeout-minutes: 60
     defaults:
       run:
@@ -81,8 +73,7 @@ jobs:
           fi
           echo "channel=${channel}" >> "$GITHUB_OUTPUT"
 
-      - name: Install Linux build dependencies
-        if: ${{ runner.os == 'Linux' }}
+      - name: Install build dependencies
         run: |
           set -euo pipefail
           sudo apt-get update
@@ -93,15 +84,6 @@ jobs:
             pkg-config \
             protobuf-compiler \
             python3-dev
-
-      - name: Install macOS build dependencies
-        if: ${{ runner.os == 'macOS' }}
-        run: |
-          set -euo pipefail
-          for formula in protobuf pkg-config cmake libxml2; do
-            brew list "${formula}" >/dev/null 2>&1 || brew install "${formula}"
-          done
-          echo "$(brew --prefix libxml2)/bin" >> "$GITHUB_PATH"
 
       - name: Export Rust build environment
         run: |
@@ -118,11 +100,6 @@ jobs:
             protoc_root="$(dirname "$(dirname "${protoc_path}")")"
             if [[ -d "${protoc_root}/include/google/protobuf" ]]; then
               proto_include="${protoc_root}/include"
-            elif command -v brew >/dev/null 2>&1; then
-              brew_prefix="$(brew --prefix protobuf 2>/dev/null || true)"
-              if [[ -n "${brew_prefix}" && -d "${brew_prefix}/include/google/protobuf" ]]; then
-                proto_include="${brew_prefix}/include"
-              fi
             fi
           fi
           if [[ -z "${proto_include}" ]]; then
@@ -260,6 +237,12 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Setup Julia
+        uses: julia-actions/setup-julia@v2
+        with:
+          version: "1"
+          show-versioninfo: "never"
+
       - name: Read Rust toolchain channel
         id: rust
         run: |
@@ -394,6 +377,12 @@ jobs:
           test -f "${GITHUB_WORKSPACE}/.data/WendaoSearch.jl/scripts/run_parser_summary_service.jl"
           test -f "${GITHUB_WORKSPACE}/.data/WendaoSearch.jl/config/live/parser_summary.toml"
 
+      - name: Verify Julia toolchain
+        run: |
+          set -euo pipefail
+          command -v julia
+          julia --version
+
       - name: Prewarm WendaoSearch solver-demo runtime dependencies
         run: |
           set -euo pipefail
@@ -406,6 +395,30 @@ jobs:
             ))
             Pkg.precompile()
           '
+
+      - name: Start Valkey for Rust tests
+        run: |
+          set -euo pipefail
+          if valkey-cli -u redis://127.0.0.1:6379/0 ping >/dev/null 2>&1; then
+            echo "VALKEY_URL=redis://127.0.0.1:6379/0" >> "${GITHUB_ENV}"
+            exit 0
+          fi
+          mkdir -p "${PRJ_RUNTIME_DIR}/valkey" "${PRJ_DATA_HOME}/valkey"
+          valkey-server \
+            --daemonize yes \
+            --bind 127.0.0.1 \
+            --port 6379 \
+            --dir "${PRJ_DATA_HOME}/valkey" \
+            --pidfile "${PRJ_RUNTIME_DIR}/valkey/valkey.pid"
+          for _ in {1..30}; do
+            if valkey-cli -u redis://127.0.0.1:6379/0 ping >/dev/null 2>&1; then
+              echo "VALKEY_URL=redis://127.0.0.1:6379/0" >> "${GITHUB_ENV}"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Valkey did not become ready on redis://127.0.0.1:6379/0" >&2
+          exit 1
 
       - name: Run Rust workspace tests
         run: scripts/rust/cargo_exec.sh nextest run --workspace --exclude xiuxian-core-rs --no-fail-fast

@@ -1,0 +1,30 @@
+---
+source: packages/rust/crates/qianji-bpmn-engine/tests/unit/lint/mod.rs
+assertion_line: 35
+expression: value
+---
+{
+  "domain": "bpmn",
+  "source_id": "invalid-throw-compensation-intermediate.bpmn",
+  "ok": false,
+  "issues": [
+    {
+      "code": "bpmn.unsupported_compensation_configuration",
+      "severity": "error",
+      "title": "Throw compensation intermediate events outside the bounded subset are rejected",
+      "summary": "Process 'throw_compensation_flow' compensation node 'throw_intermediate' uses `<intermediateThrowEvent><compensateEventDefinition ... /></intermediateThrowEvent>`, which is outside the bounded slice.",
+      "why_it_failed": "The current engine executes one bounded throw-compensation intermediate-event subset: the event must run inside one supported transaction shell and must either reference one explicit `activityRef` that reuses an already valid boundary-to-handler compensation binding for that target activity or omit `activityRef` to replay every already compensable activity in reverse completion order. The event may stay synchronous or set `waitForCompletion=\"false\"` so downstream routing continues while the compensation queue drains. Any other intermediate throw-compensation shape remains unsupported.",
+      "repair_guidance": [
+        "If compensation is really required, place the throwing intermediate event inside one bounded transaction shell and either target one activity that already owns an explicit compensation boundary-to-handler binding or omit `activityRef` to replay every already compensable activity in reverse completion order.",
+        "Choose synchronous behavior when downstream routing should wait for replay, or set `waitForCompletion=\"false\"` when downstream routing should continue while the bounded compensation queue drains.",
+        "Do not rely on throw-compensation intermediate events outside the bounded transaction-shell subset in this slice."
+      ],
+      "llm_fix_prompt": "Rewrite compensation node 'throw_intermediate' in process 'throw_compensation_flow' so its `<bpmn:intermediateThrowEvent>` throw-compensation shape fits the bounded subset: place it inside one supported `<bpmn:transaction>` shell, and either use one explicit `activityRef` that targets one activity with an explicit boundary-to-handler compensation binding or omit `activityRef` so the bounded transaction shell replays every already compensable activity in reverse completion order. Choose synchronous behavior when downstream routing should wait for replay, or set `waitForCompletion=\"false\"` when downstream routing should continue while the bounded compensation queue drains. Otherwise, preserve workflow intent with ordinary sequence-flow routing.",
+      "evidence": {
+        "detail": "throw_compensation_intermediate_event",
+        "node_id": "throw_intermediate",
+        "process_id": "throw_compensation_flow"
+      }
+    }
+  ]
+}

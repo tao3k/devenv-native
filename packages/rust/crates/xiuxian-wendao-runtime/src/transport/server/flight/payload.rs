@@ -6,7 +6,7 @@ use futures::TryStreamExt;
 use futures::stream;
 use tokio::sync::OnceCell;
 use tonic::Status;
-use xiuxian_vector_store::{EngineRecordBatch, LanceRecordBatch, lance_batches_to_engine_batches};
+use xiuxian_db_store::{EngineRecordBatch, LanceRecordBatch, lance_batches_to_engine_batches};
 
 #[derive(Debug)]
 pub(super) struct FlightRoutePayload {

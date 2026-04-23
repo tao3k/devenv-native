@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
-use super::model::MermaidNode;
+use super::mermaid_model::MermaidNode;
 use super::{MermaidFlowchart, MermaidNodeKind};
 
 pub(crate) fn validate_mermaid_flowchart(

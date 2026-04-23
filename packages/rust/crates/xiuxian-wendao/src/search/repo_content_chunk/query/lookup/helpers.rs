@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use std::path::Path;
 
 use arrow::array::{Array, StringArray, StringViewArray, UInt64Array};
-use xiuxian_vector_store::EngineRecordBatch;
+use xiuxian_db_store::EngineRecordBatch;
 
 use crate::search::repo_content_chunk::schema::{
     language_column, line_number_column, line_text_column, line_text_folded_column, path_column,

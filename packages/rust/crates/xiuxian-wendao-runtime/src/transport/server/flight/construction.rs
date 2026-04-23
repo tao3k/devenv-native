@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use xiuxian_vector_store::LanceRecordBatch;
+use xiuxian_db_store::LanceRecordBatch;
 
 use crate::transport::RerankScoreWeights;
 

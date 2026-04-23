@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions
+  id="Definitions_function_definition_decision"
+  name="Function Definition Decision"
+  namespace="https://example.com/dmn/function-definition-decision"
+  xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/">
+  <decision id="Decision_function_definition" name="Function Definition Decision">
+    <functionDefinition id="function_definition_1" kind="FEEL">
+      <formalParameter id="parameter_1" name="riskScore" typeRef="number"/>
+      <literalExpression id="literal_expression_1">
+        <text>riskScore</text>
+      </literalExpression>
+    </functionDefinition>
+  </decision>
+</definitions>

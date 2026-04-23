@@ -2,7 +2,7 @@ use std::fs;
 use std::path::Path;
 
 use crate::error::QianjiError;
-use crate::flowhub::mermaid::MermaidFlowchart;
+use crate::flowhub::MermaidFlowchart;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct WorkdirRuntimeState {

@@ -1,10 +1,10 @@
 use crate::contracts::{NodeStatus, QianjiOutput};
 use crate::error::QianjiError;
 use crate::scheduler::core::QianjiScheduler;
-use crate::scheduler::core::types::{
+use crate::scheduler::types::{
     REMOTE_POSSESSION_MAX_WAIT_MS, REMOTE_POSSESSION_REQUEST_TTL_SECONDS, RemoteDelegationOutcome,
 };
-use crate::scheduler::state::merge_output_data;
+use crate::scheduler_state::merge_output_data;
 use crate::swarm::RemoteNodeRequest;
 use petgraph::stable_graph::NodeIndex;
 use std::collections::HashSet;

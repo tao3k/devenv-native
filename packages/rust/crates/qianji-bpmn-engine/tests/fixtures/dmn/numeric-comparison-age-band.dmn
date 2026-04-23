@@ -1,0 +1,42 @@
+<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/"
+  id="Definitions_age_band"
+  name="Age Band DRD"
+  namespace="http://example.com/dmn">
+  <decision id="age-band" name="Age Band">
+    <decisionTable id="decision_table_age_band" hitPolicy="UNIQUE">
+      <input id="input_age" label="age">
+        <inputExpression id="input_expression_age" typeRef="number">
+          <text>age</text>
+        </inputExpression>
+      </input>
+      <output id="output_band" name="band" label="band" typeRef="string" />
+      <rule id="rule_exact_30">
+        <description>Exact 30</description>
+        <inputEntry id="input_entry_exact_30">
+          <text>30</text>
+        </inputEntry>
+        <outputEntry id="output_entry_exact_30">
+          <text>"exact-30"</text>
+        </outputEntry>
+      </rule>
+      <rule id="rule_low">
+        <description>Less than 25</description>
+        <inputEntry id="input_entry_low">
+          <text>&lt; 25</text>
+        </inputEntry>
+        <outputEntry id="output_entry_low">
+          <text>"low"</text>
+        </outputEntry>
+      </rule>
+      <rule id="rule_high">
+        <description>At least 25</description>
+        <inputEntry id="input_entry_high">
+          <text>&gt;= 25</text>
+        </inputEntry>
+        <outputEntry id="output_entry_high">
+          <text>"high"</text>
+        </outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+</definitions>

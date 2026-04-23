@@ -1,4 +1,4 @@
-use xiuxian_vector_store::EngineRecordBatch;
+use xiuxian_db_store::EngineRecordBatch;
 use xiuxian_wendao_core::{capabilities::PluginCapabilityBinding, transport::PluginTransportKind};
 
 use super::client::build_arrow_flight_transport_client_from_binding;

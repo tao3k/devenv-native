@@ -287,11 +287,7 @@ fn repo_sync_status_reports_stale_when_managed_mirror_fetch_is_old() -> TestResu
         temp.path(),
     )?;
 
-    set_managed_mirror_fetch_age(
-        temp.path(),
-        "managed-stale",
-        Duration::from_secs(3 * 24 * 3600),
-    )?;
+    set_managed_mirror_fetch_age(temp.path(), "managed-stale", Duration::from_hours(72))?;
 
     let result = repo_sync_from_config(
         &RepoSyncQuery {

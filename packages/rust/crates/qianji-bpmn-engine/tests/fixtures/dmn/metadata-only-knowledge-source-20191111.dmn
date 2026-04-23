@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions
+  id="Definitions_metadata_only_knowledge_source"
+  name="Metadata Only Knowledge Source"
+  namespace="https://example.com/dmn/metadata-only-knowledge-source"
+  xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/">
+  <knowledgeSource id="KnowledgeSource_policy" name="Policy Authority" />
+</definitions>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions
+  id="Definitions_allowed_answers"
+  name="Allowed Answers Decision"
+  namespace="https://example.invalid/dmn/allowed-answers"
+  xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/">
+  <decision id="Decision_allowed_answers" name="Allowed Answers Decision">
+    <allowedAnswers>"approve", "review", "reject"</allowedAnswers>
+  </decision>
+</definitions>

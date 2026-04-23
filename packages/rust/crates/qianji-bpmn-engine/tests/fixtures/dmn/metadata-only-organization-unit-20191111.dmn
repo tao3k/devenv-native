@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<semantic:definitions
+    xmlns:semantic="https://www.omg.org/spec/DMN/20191111/MODEL/"
+    id="Definitions_metadata_only_organization_unit"
+    name="Metadata Only Organization Unit"
+    namespace="https://qianji.dev/dmn/metadata-only-organization-unit">
+    <semantic:organizationUnit
+        id="OrganizationUnit_credit_risk"
+        name="Credit Risk Committee" />
+</semantic:definitions>

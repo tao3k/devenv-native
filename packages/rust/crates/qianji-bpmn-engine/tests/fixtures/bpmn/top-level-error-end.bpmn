@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  id="pkg_top_level_error_end"
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL">
+  <bpmn:process id="root_error_process" isExecutable="true">
+    <bpmn:startEvent id="start" />
+    <bpmn:endEvent id="fatal_end">
+      <bpmn:errorEventDefinition errorRef="fatal_review_error" />
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="flow_1" sourceRef="start" targetRef="fatal_end" />
+  </bpmn:process>
+</bpmn:definitions>

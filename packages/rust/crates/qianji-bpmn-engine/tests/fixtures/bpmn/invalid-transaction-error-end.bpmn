@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  id="pkg_invalid_transaction_error"
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL">
+  <bpmn:process id="main_process" isExecutable="true">
+    <bpmn:startEvent id="start" />
+    <bpmn:transaction id="payment_tx">
+      <bpmn:startEvent id="tx_start" />
+      <bpmn:userTask id="tx_review" />
+      <bpmn:endEvent id="tx_error_end">
+        <bpmn:errorEventDefinition errorRef="payment_error" />
+      </bpmn:endEvent>
+      <bpmn:sequenceFlow id="tx_flow_1" sourceRef="tx_start" targetRef="tx_review" />
+      <bpmn:sequenceFlow id="tx_flow_2" sourceRef="tx_review" targetRef="tx_error_end" />
+    </bpmn:transaction>
+    <bpmn:endEvent id="end" />
+    <bpmn:sequenceFlow id="flow_1" sourceRef="start" targetRef="payment_tx" />
+    <bpmn:sequenceFlow id="flow_2" sourceRef="payment_tx" targetRef="end" />
+  </bpmn:process>
+</bpmn:definitions>

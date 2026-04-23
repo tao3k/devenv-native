@@ -1,6 +1,6 @@
 use crate::contracts::FlowhubGraphTopology;
-use crate::flowhub::mermaid::parse_mermaid_flowchart;
-use crate::flowhub::scenario_ir::{
+use crate::flowhub::parse_mermaid_flowchart;
+use crate::flowhub::{
     FlowhubScenarioIr, compile_flowhub_scenario_ir, parse_flowhub_graph_annotations,
     resolve_flowhub_graph_name,
 };

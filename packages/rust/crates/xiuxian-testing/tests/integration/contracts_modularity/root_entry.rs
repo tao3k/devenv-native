@@ -110,6 +110,10 @@ pub(crate) use self::service::Service;
         finding.title.contains("child modules private"),
         "expected root-child-visibility title, got {finding:#?}"
     );
+    assert!(
+        finding.remediation.contains("private `#[path ="),
+        "expected path-mount remediation hint, got {finding:#?}"
+    );
 }
 
 #[test]

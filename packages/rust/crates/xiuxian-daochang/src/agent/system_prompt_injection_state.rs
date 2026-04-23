@@ -154,8 +154,7 @@ impl Agent {
             .session
             .get(&storage_id)
             .await
-            .map(|messages| !messages.is_empty())
-            .unwrap_or(false);
+            .is_ok_and(|messages| !messages.is_empty());
         self.session.clear(&storage_id).await.with_context(|| {
             format!("failed to clear system prompt injection payload: {storage_id}")
         })?;

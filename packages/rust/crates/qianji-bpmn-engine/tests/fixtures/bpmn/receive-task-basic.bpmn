@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  id="pkg_receive_task"
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL">
+  <bpmn:process id="await_invoice">
+    <bpmn:startEvent id="start" />
+    <bpmn:receiveTask id="await_invoice_message">
+      <bpmn:messageEventDefinition messageRef="invoice_received" />
+    </bpmn:receiveTask>
+    <bpmn:endEvent id="end" />
+    <bpmn:sequenceFlow id="flow_1" sourceRef="start" targetRef="await_invoice_message" />
+    <bpmn:sequenceFlow id="flow_2" sourceRef="await_invoice_message" targetRef="end" />
+  </bpmn:process>
+</bpmn:definitions>

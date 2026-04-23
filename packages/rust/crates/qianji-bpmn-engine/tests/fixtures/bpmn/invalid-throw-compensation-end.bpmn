@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  id="defs_throw_compensation_end">
+  <bpmn:process id="throw_compensation_flow" isExecutable="true">
+    <bpmn:startEvent id="start" />
+    <bpmn:userTask id="review" />
+    <bpmn:endEvent id="throw_end">
+      <bpmn:compensateEventDefinition activityRef="review" />
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="flow_start_review" sourceRef="start" targetRef="review" />
+    <bpmn:sequenceFlow id="flow_review_end" sourceRef="review" targetRef="throw_end" />
+  </bpmn:process>
+</bpmn:definitions>

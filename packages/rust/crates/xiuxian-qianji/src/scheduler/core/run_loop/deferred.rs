@@ -1,11 +1,11 @@
 use crate::error::QianjiError;
 use crate::scheduler::core::QianjiScheduler;
-use crate::scheduler::core::types::RemoteDelegationOutcome;
+use crate::scheduler::types::RemoteDelegationOutcome;
 use petgraph::stable_graph::NodeIndex;
 use std::collections::HashSet;
 
 impl QianjiScheduler {
-    pub(super) async fn process_deferred_nodes(
+    pub(in crate::scheduler) async fn process_deferred_nodes(
         &self,
         deferred_nodes: &[NodeIndex],
         context: &mut serde_json::Value,

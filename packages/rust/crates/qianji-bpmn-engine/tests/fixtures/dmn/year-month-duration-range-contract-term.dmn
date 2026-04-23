@@ -1,0 +1,39 @@
+<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/"
+  id="Definitions_contract_term"
+  name="Contract Term DRD"
+  namespace="http://example.com/dmn">
+  <decision id="contract-term" name="Contract Term">
+    <decisionTable id="decision_table_contract_term" hitPolicy="UNIQUE">
+      <input id="input_term" label="term">
+        <inputExpression id="input_expression_term" typeRef="yearMonthDuration">
+          <text>term</text>
+        </inputExpression>
+      </input>
+      <output id="output_window" name="window" label="window" typeRef="string" />
+      <rule id="rule_mid_term">
+        <inputEntry id="input_entry_mid_term">
+          <text>duration("P6M") &lt;= ? &lt; duration("P1Y")</text>
+        </inputEntry>
+        <outputEntry id="output_entry_mid_term">
+          <text>"mid-term"</text>
+        </outputEntry>
+      </rule>
+      <rule id="rule_annual_window">
+        <inputEntry id="input_entry_annual_window">
+          <text>[duration("P1Y")..duration("P2Y")]</text>
+        </inputEntry>
+        <outputEntry id="output_entry_annual_window">
+          <text>"annual-window"</text>
+        </outputEntry>
+      </rule>
+      <rule id="rule_outside_window">
+        <inputEntry id="input_entry_outside_window">
+          <text>-</text>
+        </inputEntry>
+        <outputEntry id="output_entry_outside_window">
+          <text>"outside-window"</text>
+        </outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+</definitions>

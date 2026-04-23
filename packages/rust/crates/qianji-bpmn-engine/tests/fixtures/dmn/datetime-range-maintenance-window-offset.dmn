@@ -1,0 +1,39 @@
+<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/"
+  id="Definitions_maintenance_window_offset"
+  name="Maintenance Window Offset DRD"
+  namespace="http://example.com/dmn">
+  <decision id="maintenance-window-offset" name="Maintenance Window Offset">
+    <decisionTable id="decision_table_maintenance_window_offset" hitPolicy="UNIQUE">
+      <input id="input_maintenance_at" label="maintenance_at">
+        <inputExpression id="input_expression_maintenance_at" typeRef="dateTime">
+          <text>maintenance_at</text>
+        </inputExpression>
+      </input>
+      <output id="output_window" name="window" label="window" typeRef="string" />
+      <rule id="rule_morning_window_offset">
+        <inputEntry id="input_entry_morning_window_offset">
+          <text>[date and time("2026-05-01T09:00:00+09:00")..date and time("2026-05-01T12:00:00+09:00"))</text>
+        </inputEntry>
+        <outputEntry id="output_entry_morning_window_offset">
+          <text>"morning-maintenance-offset"</text>
+        </outputEntry>
+      </rule>
+      <rule id="rule_afternoon_window_offset">
+        <inputEntry id="input_entry_afternoon_window_offset">
+          <text>[date and time("2026-05-01T13:00:00+09:00")..date and time("2026-05-01T15:00:00+09:00")]</text>
+        </inputEntry>
+        <outputEntry id="output_entry_afternoon_window_offset">
+          <text>"afternoon-maintenance-offset"</text>
+        </outputEntry>
+      </rule>
+      <rule id="rule_outside_window_offset">
+        <inputEntry id="input_entry_outside_window_offset">
+          <text>-</text>
+        </inputEntry>
+        <outputEntry id="output_entry_outside_window_offset">
+          <text>"outside-window-offset"</text>
+        </outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+</definitions>

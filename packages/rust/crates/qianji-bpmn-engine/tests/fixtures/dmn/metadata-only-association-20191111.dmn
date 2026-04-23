@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<semantic:definitions
+    xmlns:semantic="https://www.omg.org/spec/DMN/20191111/MODEL/"
+    id="Definitions_metadata_only_association"
+    name="Metadata Only Association"
+    namespace="https://qianji.dev/dmn/metadata-only-association">
+    <semantic:association
+        id="Association_credit_policy_reference"
+        associationDirection="One">
+        <semantic:sourceRef>TextAnnotation_credit_policy_note</semantic:sourceRef>
+        <semantic:targetRef>Decision_credit_policy</semantic:targetRef>
+    </semantic:association>
+</semantic:definitions>

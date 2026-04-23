@@ -1,0 +1,39 @@
+<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/"
+  id="Definitions_fractional_day_minute_window"
+  name="Fractional Day Minute Window DRD"
+  namespace="http://example.com/dmn">
+  <decision id="fractional-day-minute-window" name="Fractional Day Minute Window">
+    <decisionTable id="decision_table_fractional_day_minute_window" hitPolicy="UNIQUE">
+      <input id="input_elapsed" label="elapsed">
+        <inputExpression id="input_expression_elapsed" typeRef="dayTimeDuration">
+          <text>elapsed</text>
+        </inputExpression>
+      </input>
+      <output id="output_window" name="window" label="window" typeRef="string" />
+      <rule id="rule_fractional_minute_window">
+        <inputEntry id="input_entry_fractional_minute_window">
+          <text>duration("PT1.5M") &lt;= ? &lt; duration("PT2.75M")</text>
+        </inputEntry>
+        <outputEntry id="output_entry_fractional_minute_window">
+          <text>"minute-window"</text>
+        </outputEntry>
+      </rule>
+      <rule id="rule_fractional_day_window">
+        <inputEntry id="input_entry_fractional_day_window">
+          <text>[duration("P1.25D")..duration("P1.5D")]</text>
+        </inputEntry>
+        <outputEntry id="output_entry_fractional_day_window">
+          <text>"day-window"</text>
+        </outputEntry>
+      </rule>
+      <rule id="rule_outside_fractional_day_minute_window">
+        <inputEntry id="input_entry_outside_fractional_day_minute_window">
+          <text>-</text>
+        </inputEntry>
+        <outputEntry id="output_entry_outside_fractional_day_minute_window">
+          <text>"outside-day-minute-window"</text>
+        </outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+</definitions>

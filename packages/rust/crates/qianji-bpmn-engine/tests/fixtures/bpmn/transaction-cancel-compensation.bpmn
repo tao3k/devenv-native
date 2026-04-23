@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  id="pkg_transaction_cancel_compensation"
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL">
+  <bpmn:process id="main_process" isExecutable="true">
+    <bpmn:startEvent id="start" />
+    <bpmn:transaction id="payment_tx">
+      <bpmn:startEvent id="tx_start" />
+      <bpmn:userTask id="tx_review" />
+      <bpmn:boundaryEvent id="tx_review_comp_boundary" attachedToRef="tx_review">
+        <bpmn:compensateEventDefinition />
+      </bpmn:boundaryEvent>
+      <bpmn:userTask id="tx_refund" isForCompensation="true" />
+      <bpmn:endEvent id="tx_cancel_end">
+        <bpmn:cancelEventDefinition />
+      </bpmn:endEvent>
+      <bpmn:association
+        id="tx_review_comp_association"
+        sourceRef="tx_review_comp_boundary"
+        targetRef="tx_refund" />
+      <bpmn:sequenceFlow id="tx_flow_1" sourceRef="tx_start" targetRef="tx_review" />
+      <bpmn:sequenceFlow id="tx_flow_2" sourceRef="tx_review" targetRef="tx_cancel_end" />
+    </bpmn:transaction>
+    <bpmn:boundaryEvent id="tx_cancel_boundary" attachedToRef="payment_tx" cancelActivity="true">
+      <bpmn:cancelEventDefinition />
+    </bpmn:boundaryEvent>
+    <bpmn:endEvent id="success_end" />
+    <bpmn:endEvent id="cancelled_end" />
+    <bpmn:sequenceFlow id="flow_1" sourceRef="start" targetRef="payment_tx" />
+    <bpmn:sequenceFlow id="flow_2" sourceRef="payment_tx" targetRef="success_end" />
+    <bpmn:sequenceFlow id="flow_3" sourceRef="tx_cancel_boundary" targetRef="cancelled_end" />
+  </bpmn:process>
+</bpmn:definitions>

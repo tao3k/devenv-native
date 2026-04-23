@@ -5,11 +5,12 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use anyhow::Result;
+#[path = "support/workspace.rs"]
+mod workspace;
 use serde_json::json;
-use xiuxian_config_core::resolve_project_root;
 use xiuxian_qianhuan::{PersonaRegistry, ThousandFacesOrchestrator};
 use xiuxian_qianji::{
-    executors::formal_audit::QianjiAdvisoryAuditExecutor, run_and_persist_contract_feedback_flow,
+    executors::QianjiAdvisoryAuditExecutor, run_and_persist_contract_feedback_flow,
     run_contract_feedback_flow, sovereign::InMemoryContractFeedbackSink,
 };
 use xiuxian_testing::{
@@ -109,17 +110,12 @@ fn test_context() -> CollectionContext {
     CollectionContext {
         suite_id: "contracts".to_string(),
         crate_name: Some("xiuxian-wendao".to_string()),
-        workspace_root: Some(workspace_root()),
+        workspace_root: Some(workspace::workspace_root()),
         labels: std::collections::BTreeMap::from([(
             "session_id".to_string(),
             "session-contract-feedback".to_string(),
         )]),
     }
-}
-
-fn workspace_root() -> PathBuf {
-    resolve_project_root()
-        .unwrap_or_else(|| panic!("workspace root should resolve from PRJ_ROOT or git ancestry"))
 }
 
 fn base_config() -> ContractRunConfig {

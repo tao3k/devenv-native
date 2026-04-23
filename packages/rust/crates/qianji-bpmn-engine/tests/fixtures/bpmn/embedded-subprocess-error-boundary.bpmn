@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  id="pkg_embedded_subprocess_error_boundary"
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <bpmn:process id="main_process" isExecutable="true">
+    <bpmn:startEvent id="start" />
+    <bpmn:subProcess id="inline_review">
+      <bpmn:startEvent id="sub_start" />
+      <bpmn:userTask id="sub_review" />
+      <bpmn:exclusiveGateway id="review_decision" default="sub_flow_default" />
+      <bpmn:endEvent id="sub_success_end" />
+      <bpmn:endEvent id="sub_error_end">
+        <bpmn:errorEventDefinition errorRef="review_rejected" />
+      </bpmn:endEvent>
+      <bpmn:sequenceFlow id="sub_flow_1" sourceRef="sub_start" targetRef="sub_review" />
+      <bpmn:sequenceFlow id="sub_flow_2" sourceRef="sub_review" targetRef="review_decision" />
+      <bpmn:sequenceFlow id="sub_flow_3" sourceRef="review_decision" targetRef="sub_success_end">
+        <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">approved</bpmn:conditionExpression>
+      </bpmn:sequenceFlow>
+      <bpmn:sequenceFlow id="sub_flow_default" sourceRef="review_decision" targetRef="sub_error_end" />
+    </bpmn:subProcess>
+    <bpmn:boundaryEvent id="review_error_specific" attachedToRef="inline_review" cancelActivity="true">
+      <bpmn:errorEventDefinition errorRef="review_rejected" />
+    </bpmn:boundaryEvent>
+    <bpmn:boundaryEvent id="review_error_catch_all" attachedToRef="inline_review" cancelActivity="true">
+      <bpmn:errorEventDefinition />
+    </bpmn:boundaryEvent>
+    <bpmn:endEvent id="success_end" />
+    <bpmn:endEvent id="specific_end" />
+    <bpmn:endEvent id="catch_all_end" />
+    <bpmn:sequenceFlow id="flow_1" sourceRef="start" targetRef="inline_review" />
+    <bpmn:sequenceFlow id="flow_2" sourceRef="inline_review" targetRef="success_end" />
+    <bpmn:sequenceFlow id="flow_3" sourceRef="review_error_specific" targetRef="specific_end" />
+    <bpmn:sequenceFlow id="flow_4" sourceRef="review_error_catch_all" targetRef="catch_all_end" />
+  </bpmn:process>
+</bpmn:definitions>

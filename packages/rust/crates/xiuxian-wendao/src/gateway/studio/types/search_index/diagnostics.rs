@@ -12,7 +12,7 @@ use crate::duckdb::{
 #[cfg(feature = "duckdb")]
 use crate::duckdb::{DuckDbLocalRelationEngine, resolve_search_duckdb_runtime};
 use crate::search::{SearchPlaneStatusSnapshot, SearchQueryTelemetrySource};
-use xiuxian_vector_store::EngineRecordBatch;
+use xiuxian_db_store::EngineRecordBatch;
 
 const STATUS_DIAGNOSTICS_TABLE: &str = "status_rollup_rows";
 const STATUS_REASON_DIAGNOSTICS_TABLE: &str = "status_reason_rows";
