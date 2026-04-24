@@ -382,6 +382,7 @@ jobs:
           julia --project="${WENDAOSEARCH_JULIA_PROJECT}" -e '
             using Pkg
             Pkg.instantiate()
+            Pkg.update("Absyn")
             Pkg.build("OMParser")
             Pkg.precompile()
           '
