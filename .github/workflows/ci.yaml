@@ -260,6 +260,9 @@ jobs:
           set -euo pipefail
           sudo apt-get update
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            autoconf \
+            automake \
+            build-essential \
             cmake \
             libxml2-utils \
             libprotobuf-dev \
@@ -272,7 +275,7 @@ jobs:
         if: ${{ runner.os == 'macOS' }}
         run: |
           set -euo pipefail
-          for formula in protobuf pkg-config cmake libxml2 valkey; do
+          for formula in autoconf automake protobuf pkg-config cmake libxml2 valkey; do
             brew list "${formula}" >/dev/null 2>&1 || brew install "${formula}"
           done
           echo "$(brew --prefix libxml2)/bin" >> "$GITHUB_PATH"
@@ -378,6 +381,11 @@ jobs:
           julia --project="${WENDAOSEARCH_JULIA_PROJECT}" -e '
             using Pkg
             Pkg.instantiate()
+          '
+          julia --project="${WENDAOSEARCH_JULIA_PROJECT}" \
+            scripts/channel/wendaosearch-force-omparser-source-build.jl
+          julia --project="${WENDAOSEARCH_JULIA_PROJECT}" -e '
+            using Pkg
             Pkg.precompile()
           '
           {

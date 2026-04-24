@@ -1,6 +1,7 @@
+#[cfg(feature = "performance")]
+use crate::search::perf_support::RepoContentParquetMutationBenchmarkSnapshot;
 use crate::search::perf_support::{
-    RepoContentParquetMutationBenchmarkFixture, RepoContentParquetMutationBenchmarkSnapshot,
-    RepoContentQueryBenchmarkFixture,
+    RepoContentParquetMutationBenchmarkFixture, RepoContentQueryBenchmarkFixture,
 };
 use crate::search::repo_content_chunk::repo_content_chunk_partition_count_for_document_count;
 #[cfg(all(feature = "duckdb", feature = "performance"))]
