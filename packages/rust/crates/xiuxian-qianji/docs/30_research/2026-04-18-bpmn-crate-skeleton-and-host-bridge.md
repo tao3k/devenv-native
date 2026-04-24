@@ -485,12 +485,12 @@ Current landed status:
    it loops through `advance_instance(...)`, resolves typed host-blocked work
    through the landed bridge helpers, and stops only on stable waiting,
    suspended, completed, or failed outcomes
-6. the host crate now exposes a bounded `sqlite` feature for lightweight local
-   checkpoint storage while keeping distributed `Valkey` ownership as the
-   default runtime path
+6. the host crate now exposes a bounded DuckDB-backed local no-server
+   workflow-state path while keeping distributed `Valkey` ownership as the
+   HTTP/server runtime path
 7. focused tests now prove bundle loading with DMN registry attachment,
    automatic business-rule host completion through the new session facade,
-   checkpoint identity-drift rejection, and `sqlite` checkpoint round-tripping
+   checkpoint identity-drift rejection, and DuckDB checkpoint round-tripping
 8. full BPMN scheduler integration, CLI execution ownership, and
    Flowhub/manifest convergence are still deferred, so the next bounded move
    should stay above this facade rather than reopening parser or DMN widening
@@ -508,9 +508,8 @@ Current landed status:
    sidecar files, creates one fresh session or resumes one stored session, and
    drives that session until the next stable outcome
 3. checkpoint backend selection now stays bounded and explicit: no backend by
-   default, runtime-configured `Valkey` through `--checkpoint-runtime`, and one
-   optional local `sqlite` path through `--checkpoint-sqlite <path>` when the
-   `sqlite` feature is enabled
+   default, runtime-configured `Valkey` through `--checkpoint-runtime`, and the
+   default local DuckDB workflow-state path
 4. the command renders one stable markdown result surface including process,
    instance id, lifecycle, stable outcome, checkpoint provenance, and rendered
    workflow variables
@@ -518,7 +517,7 @@ Current landed status:
    waiting session makes no new progress in the current CLI invocation
 6. focused binary-command tests now prove parse-contract behavior, one
    host-free linear completion path, and one waiting-session
-   `sqlite` save/resume cycle
+   DuckDB save/resume cycle
 7. host callback injection, external event delivery, and scheduler-owned BPMN
    execution are still deferred, so the next bounded move should stay above
    this CLI surface rather than widening parser or DMN internals
@@ -586,7 +585,7 @@ Current landed status:
    package/session/checkpoint lifecycle without reopening CLI-local
    orchestration
 10. focused runtime tests now also prove fresh execution, explicit
-    fresh-context rejection, sqlite-backed checkpoint resume, and no-progress
+    fresh-context rejection, DuckDB-backed checkpoint resume, and no-progress
     checkpoint-save skipping through the shared driver
 11. that BPMN-specific scheduler checkpoint lifecycle slice is now also landed
     above this shared driver, with bounded checkpoint delete entrypoints plus
@@ -630,8 +629,8 @@ Current landed status:
     files
 25. the exact crate test-policy harness is green again for `xiuxian-qianji`
     after that structural cleanup
-26. focused BPMN library tests plus both `qianji` BPMN binary suites (`llm`
-    and `llm sqlite`) remain green after the refactor
+26. focused BPMN library tests plus the default-feature `qianji` BPMN binary
+    suite remain green after the refactor
 27. the exact modularity harness is still not green: the old oversized root
     file is gone, but the crate still needs a follow-up seam-cleanup pass for
     the new binary root/facade layout and other pre-existing crate findings
@@ -689,8 +688,8 @@ Current landed status:
     `src/` owner files so the public BPMN surface no longer lives under nested
     leaf paths that trigger the current modularity visibility rule
 43. the filtered modularity probe for `rg 'src/bpmn(/|_)'` is now empty after
-    `cargo check -p xiuxian-qianji --features "llm sqlite"`,
-    `cargo test -p xiuxian-qianji --lib bpmn:: --features "llm sqlite"`, and
+    `cargo check -p xiuxian-qianji`,
+    `cargo test -p xiuxian-qianji --lib bpmn::`, and
     `git diff --check`, so the remaining modularity backlog is now outside the
     BPMN feature boundary
 44. one follow-up gate-cleanup cut is now also landed on the nested contracts
@@ -704,8 +703,8 @@ Current landed status:
     stable top-level contract entry seam
 46. the exact filtered modularity probe for
     `src/contracts/flowhub|src/contracts/workdir|src/contracts_flowhub_|src/contracts_workdir_`
-    is now empty after `cargo check -p xiuxian-qianji --features "llm sqlite"`,
-    `cargo test -p xiuxian-qianji --test flowhub_manifest_contracts --features "llm sqlite"`,
+    is now empty after `cargo check -p xiuxian-qianji`,
+    `cargo test -p xiuxian-qianji --test flowhub_manifest_contracts`,
     and `git diff --check`
 47. one smaller follow-up cut is now also landed for the remaining
     app/bootstrap public-owner hotspots that were still blocking `MOD-R002`:
@@ -715,8 +714,8 @@ Current landed status:
 48. `app/mod.rs` and `bootcamp/mod.rs` remain the stable interface seams, but
     their private path mounts now point at the relocated direct-`src` owners so
     the filtered modularity probe for `src/app(/|_)|src/bootcamp(/|_)` is now
-    also empty after `cargo check -p xiuxian-qianji --features "llm sqlite"`,
-    `cargo test -p xiuxian-qianji --lib bootcamp:: --features "llm sqlite"`,
+    also empty after `cargo check -p xiuxian-qianji`,
+    `cargo test -p xiuxian-qianji --lib bootcamp::`,
     and `git diff --check`
 49. one further bounded gate-cleanup cut is now also landed for the
     `consensus` surface: `consensus/models.rs`, `consensus/manager/mod.rs`,
@@ -729,8 +728,8 @@ Current landed status:
     `src/swarm/discovery/registry/heartbeat.rs` implementation rather than a
     live consensus owner
 51. the exact filtered modularity probe for `src/consensus(/|_)` is now empty
-    after `cargo check -p xiuxian-qianji --features "llm sqlite"`,
-    `cargo test -p xiuxian-qianji --test integration_test test_consensus --features "llm sqlite"`,
+    after `cargo check -p xiuxian-qianji`,
+    `cargo test -p xiuxian-qianji --test integration_test test_consensus`,
     and `git diff --check`, so the remaining gate backlog has moved on again
     to other seams outside the consensus feature boundary
 52. one further bounded gate-cleanup cut is now also landed for the
@@ -740,8 +739,8 @@ Current landed status:
 53. `contract_feedback/mod.rs` remains the stable interface seam, but its
     private path mounts now point at the relocated direct-`src` owners so the
     filtered modularity probe for `src/contract_feedback(/|_)` is now empty
-    after `cargo check -p xiuxian-qianji --features "llm sqlite"`,
-    `cargo test -p xiuxian-qianji --lib contract_feedback:: --features "llm sqlite"`,
+    after `cargo check -p xiuxian-qianji`,
+    `cargo test -p xiuxian-qianji --lib contract_feedback::`,
     and `git diff --check`
 54. one further bounded gate-cleanup cut is now also landed for the remaining
     top-level `contracts` owners: `bindings.rs`, `execution.rs`, `manifest.rs`,
@@ -754,8 +753,8 @@ Current landed status:
     validation behavior remains stable without leaving one 300+ line owner file
     in the active source graph
 56. the exact filtered modularity probe for `src/contracts(/|_)` is now empty
-    after `cargo check -p xiuxian-qianji --features "llm sqlite"`,
-    `cargo test -p xiuxian-qianji --lib contracts:: --features "llm sqlite"`,
+    after `cargo check -p xiuxian-qianji`,
+    `cargo test -p xiuxian-qianji --lib contracts::`,
     and `git diff --check`, so the remaining gate backlog has moved on again
     to later engine, scheduler, swarm, telemetry, sovereign, and workdir seams
 57. one further bounded compiler cleanup cut is now also landed for the first
@@ -766,8 +765,8 @@ Current landed status:
     with one short root doc hint, while its private path mounts point at the
     relocated direct-`src` owners so the filtered modularity probe for
     `src/engine/compiler/mechanism_dispatch|src/engine_compiler_mechanism_dispatch_`
-    is now empty after `cargo check -p xiuxian-qianji --features "llm sqlite"`,
-    `cargo test -p xiuxian-qianji --lib engine::compiler:: --features "llm sqlite"`,
+    is now empty after `cargo check -p xiuxian-qianji`,
+    `cargo test -p xiuxian-qianji --lib engine::compiler::`,
     and `git diff --check`
 59. one further bounded compiler cleanup cut is now also landed at the
     compiler root: `QianjiCompiler` no longer lives in `compiler/mod.rs`, and
@@ -780,8 +779,8 @@ Current landed status:
     `src/engine_compiler_wendao_sql.rs`
 61. the exact filtered modularity probe for
     `src/engine/compiler/mod.rs|src/engine/compiler/task_mechanisms|src/engine/compiler/wendao_sql|src/engine_compiler_api|src/engine_compiler_task_mechanisms|src/engine_compiler_wendao_sql`
-    is now empty after `cargo check -p xiuxian-qianji --features "llm sqlite"`,
-    `cargo test -p xiuxian-qianji --lib engine::compiler:: --features "llm sqlite"`,
+    is now empty after `cargo check -p xiuxian-qianji`,
+    `cargo test -p xiuxian-qianji --lib engine::compiler::`,
     and `git diff --check`, so the next backlog slice has moved on again to
     later scheduler, swarm, telemetry, sovereign, and workdir seams
 62. one further bounded cleanup cut is now also landed for the old
@@ -797,8 +796,8 @@ Current landed status:
     `run_loop` roots now give an explicit first-hop hint
 64. the exact filtered modularity probe for
     `src/scheduler(/|_)|scheduler/mod.rs|scheduler/core/` is now empty after
-    `cargo check -p xiuxian-qianji --features "llm sqlite"`,
-    `cargo test -p xiuxian-qianji --lib scheduler:: --features "llm sqlite"`,
+    `cargo check -p xiuxian-qianji`,
+    `cargo test -p xiuxian-qianji --lib scheduler::`,
     and `git diff --check`, so the active modularity backlog has now moved on
     again to later non-scheduler seams
 65. the shared `xiuxian-testing` modularity gate is also now more operator- and
@@ -819,8 +818,8 @@ Current landed status:
     of dead-code warnings
 68. the exact filtered modularity probe for
     `src/sovereign(/|_)|sovereign/mod.rs` is now empty after
-    `cargo check -p xiuxian-qianji --features "llm sqlite"`,
-    `cargo test -p xiuxian-qianji --lib sovereign:: --features "llm sqlite"`,
+    `cargo check -p xiuxian-qianji`,
+    `cargo test -p xiuxian-qianji --lib sovereign::`,
     and `git diff --check`, so the active modularity backlog has now moved on
     again to the remaining `swarm/*` seams
 69. one further bounded cleanup cut is now also landed for the old
@@ -836,8 +835,8 @@ Current landed status:
     visible internal discovery facade
 71. the exact filtered modularity probe for
     `src/swarm/discovery(/|_)|src/swarm_discovery_` is now empty after
-    `cargo check -p xiuxian-qianji --features "llm sqlite"`,
-    `cargo test -p xiuxian-qianji --test integration_test test_swarm_discovery --features "llm sqlite"`,
+    `cargo check -p xiuxian-qianji`,
+    `cargo test -p xiuxian-qianji --test integration_test test_swarm_discovery`,
     and `git diff --check`, so the active modularity backlog has now moved on
     again to the remaining non-discovery `swarm/*` seams
 72. one further bounded cleanup cut is now also landed for the old
@@ -853,8 +852,8 @@ Current landed status:
     facade
 74. the exact filtered modularity probe for
     `src/swarm/engine(/|_)|src/swarm_engine_` is now empty after
-    `cargo check -p xiuxian-qianji --features "llm sqlite"`,
-    `cargo test -p xiuxian-qianji --test integration_test test_swarm_orchestration --features "llm sqlite"`,
+    `cargo check -p xiuxian-qianji`,
+    `cargo test -p xiuxian-qianji --test integration_test test_swarm_orchestration`,
     and `git diff --check`, so the active modularity backlog has now moved on
     again to the remaining top-level `swarm/mod.rs` plus `swarm/possession/*`
     seams
@@ -868,8 +867,8 @@ Current landed status:
     bus owner, and the public bus methods no longer live on those helper files
 77. the exact filtered modularity probe for
     `src/swarm/possession(/|_)|src/swarm_possession_` is now empty after
-    `cargo check -p xiuxian-qianji --features "llm sqlite"`,
-    `cargo test -p xiuxian-qianji --test integration_test test_swarm_orchestration --features "llm sqlite"`,
+    `cargo check -p xiuxian-qianji`,
+    `cargo test -p xiuxian-qianji --test integration_test test_swarm_orchestration`,
     and `git diff --check`
 78. the final top-level `swarm/mod.rs` export seam is now also narrowed
     through one direct `api` owner (`src/swarm_api.rs`), so the root no
@@ -891,8 +890,8 @@ Current landed status:
 82. the exact filtered modularity probe for
     `src/engine/mod.rs|src/engine_api.rs|src/engine/compiler(/|_)|src/engine_compiler_`
     is now empty after `cargo fmt --manifest-path packages/rust/crates/xiuxian-qianji/Cargo.toml`,
-    `cargo check -p xiuxian-qianji --features "llm sqlite"`,
-    `cargo test -p xiuxian-qianji --test integration_test test_compiler_dispatch_routes --features "llm sqlite"`,
+    `cargo check -p xiuxian-qianji`,
+    `cargo test -p xiuxian-qianji --test integration_test test_compiler_dispatch_routes`,
     and `git diff --check`, so the active backlog has moved on again to the
     next non-engine seam
 83. one further bounded cleanup cut is now also landed for the old
@@ -911,9 +910,9 @@ Current landed status:
 85. the exact filtered modularity probe for
     `src/executors/mod.rs|src/executors_api.rs|src/executors_(annotation|formal_audit|llm|security_scan|wendao_ingester|wendao_refresh|wendao_sql|write_file).rs|src/executors/.*/mod.rs`
     is now empty after `cargo fmt --manifest-path packages/rust/crates/xiuxian-qianji/Cargo.toml`,
-    `cargo check -p xiuxian-qianji --features "llm sqlite"`,
-    `cargo test -p xiuxian-qianji --test integration_test test_qianji_trinity_integration --features "llm sqlite"`,
-    `cargo test -p xiuxian-qianji --lib executors:: --features "llm sqlite"`,
+    `cargo check -p xiuxian-qianji`,
+    `cargo test -p xiuxian-qianji --test integration_test test_qianji_trinity_integration`,
+    `cargo test -p xiuxian-qianji --lib executors::`,
     and `git diff --check`, so the active backlog has moved on again to the
     next non-executors seam
 86. one further bounded cleanup cut is now also landed for the old
@@ -939,8 +938,8 @@ Current landed status:
     `src/flowhub/mod.rs|src/flowhub_materialize_api.rs|src/flowhub/materialize/(anchored|copy|root|safety|scenario).rs|src/flowhub/materialize/mod.rs|src/flowhub/materialize/api.rs`
     no longer reports the deleted `src/flowhub/materialize/mod.rs` seam or
     the new direct `src/flowhub_materialize_api.rs` owner after
-    `cargo check -p xiuxian-qianji --features "llm sqlite"`,
-    `cargo test -p xiuxian-qianji --test flowhub_materialize --features "llm sqlite"`,
+    `cargo check -p xiuxian-qianji`,
+    `cargo test -p xiuxian-qianji --test flowhub_materialize`,
     and `git diff --check`; the remaining flowhub backlog is now the broader
     `src/flowhub/mod.rs` root plus leaf-level `MOD-R002` visibility
     tightening
@@ -966,9 +965,9 @@ Current landed status:
     `src/flowhub/mod.rs|src/flowhub_mermaid_api.rs|src/flowhub/mermaid/(model|parse|topology|validate).rs|src/flowhub/mermaid/mod.rs`
     no longer reports the deleted `src/flowhub/mermaid/mod.rs` seam or the
     new direct `src/flowhub_mermaid_api.rs` owner after
-    `cargo check -p xiuxian-qianji --features "llm sqlite"`,
-    `cargo test -p xiuxian-qianji mermaid --features "llm sqlite"`,
-    `cargo test -p xiuxian-qianji --test flowhub_materialize --features "llm sqlite"`,
+    `cargo check -p xiuxian-qianji`,
+    `cargo test -p xiuxian-qianji mermaid`,
+    `cargo test -p xiuxian-qianji --test flowhub_materialize`,
     and `git diff --check`; the next remaining flowhub root blocker is the
     visible `scenario_ir` declaration plus the still-wide public export
     surface
@@ -986,9 +985,9 @@ Current landed status:
     re-export surface above them
 96. the bounded validation slice for this cut stayed inside the same flowhub
     frontier and kept one directly affected integration proof in the loop:
-    `cargo check -p xiuxian-qianji --features "llm sqlite"`,
-    `cargo test -p xiuxian-qianji scenario_ir --features "llm sqlite"`, and
-    `cargo test -p xiuxian-qianji --test flowhub_materialize --features "llm sqlite"`
+    `cargo check -p xiuxian-qianji`,
+    `cargo test -p xiuxian-qianji scenario_ir`, and
+    `cargo test -p xiuxian-qianji --test flowhub_materialize`
 97. the exact filtered modularity probe for
     `src/flowhub/mod.rs|src/flowhub_api.rs|src/flowhub_scenario_ir_api.rs|src/flowhub/scenario_ir/(annotation_model|annotation_node|annotation_support|annotations|compile|compile_legacy|compile_nodes|compile_workdir|model).rs|src/flowhub/scenario_ir/mod.rs`
     is now empty after the same validation pass and `git diff --check`, so
@@ -1011,7 +1010,7 @@ Current landed status:
 101. the exact filtered modularity probe for
      `src/layout/mod.rs|src/layout_api.rs|src/layout_(bpmn|engine|engine_types|style).rs|src/layout/(bpmn|style).rs|src/layout/engine/(mod|deep_graph|layout_core|types).rs`
      is now empty after
-     `cargo check -p xiuxian-qianji --features "llm sqlite"`,
-     `cargo test -p xiuxian-qianji test_omg_standard_compliance_branching_flow --features "llm sqlite"`,
+     `cargo check -p xiuxian-qianji`,
+     `cargo test -p xiuxian-qianji test_omg_standard_compliance_branching_flow`,
      and `git diff --check`, so the active backlog has moved on again to the
      next remaining seam

@@ -10,7 +10,6 @@ publish = false
 [features]
 default = ["valkey"]
 valkey = ["dep:redis"]
-sqlite = ["dep:xiuxian-db-store"]
 
 [dependencies]
 async-trait = { workspace = true }
@@ -22,7 +21,6 @@ redis = { workspace = true, features = ["tokio-comp"], optional = true }
 serde = { workspace = true, features = ["derive", "rc"] }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
-xiuxian-db-store = { path = "../xiuxian-db-store", default-features = false, features = ["sqlite"], optional = true }
 xiuxian-testing = { path = "../xiuxian-testing" }
 
 [dev-dependencies]

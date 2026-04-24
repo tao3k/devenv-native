@@ -1,13 +1,17 @@
-#![cfg(feature = "sqlite")]
+#![cfg(feature = "duckdb")]
 
 use super::support::*;
 #[tokio::test(flavor = "current_thread")]
-async fn workflow_control_service_resumes_checkpointed_session_from_sqlite_store() {
+async fn workflow_control_service_resumes_checkpointed_session_from_duckdb_store() {
     let temp_dir =
         TempDir::new().unwrap_or_else(|error| panic!("temp dir should allocate: {error}"));
     let bpmn_path = write_wait_bundle(&temp_dir);
-    let sqlite_path = temp_dir.path().join("resume.sqlite3");
-    let service = QianjiBpmnWorkflowControlService::new();
+    let duckdb_path = temp_dir.path().join("resume.duckdb");
+    let runtime_env = QianjiRuntimeEnv {
+        qianji_workflow_state_duckdb_path: Some(duckdb_path),
+        ..QianjiRuntimeEnv::default()
+    };
+    let service = QianjiBpmnWorkflowControlService::new().with_runtime_env(runtime_env);
 
     let seeded_report = ok_of(
         service
@@ -18,9 +22,7 @@ async fn workflow_control_service_resumes_checkpointed_session_from_sqlite_store
                     process_id: "wait_flow".to_string(),
                     instance_id: "wf_resume_service".to_string(),
                     initial_variables: Some(json!({ "amount": 7 })),
-                    checkpoint_backend: Some(QianjiBpmnWorkflowCheckpointBackend::Sqlite(
-                        sqlite_path.clone(),
-                    )),
+                    checkpoint_backend: Some(QianjiBpmnWorkflowCheckpointBackend::LocalDuckDb),
                 },
                 &QianjiBpmnHostBridge::default(),
             )
@@ -51,7 +53,7 @@ async fn workflow_control_service_resumes_checkpointed_session_from_sqlite_store
                     bpmn_path,
                     dmn_paths: Vec::new(),
                     instance_id: "wf_resume_service".to_string(),
-                    checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend::Sqlite(sqlite_path),
+                    checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend::LocalDuckDb,
                 },
                 &host,
             )
@@ -79,8 +81,12 @@ async fn workflow_control_service_resume_requires_existing_checkpoint() {
     let temp_dir =
         TempDir::new().unwrap_or_else(|error| panic!("temp dir should allocate: {error}"));
     let bpmn_path = write_wait_bundle(&temp_dir);
-    let sqlite_path = temp_dir.path().join("resume-missing.sqlite3");
-    let service = QianjiBpmnWorkflowControlService::new();
+    let duckdb_path = temp_dir.path().join("resume-missing.duckdb");
+    let runtime_env = QianjiRuntimeEnv {
+        qianji_workflow_state_duckdb_path: Some(duckdb_path),
+        ..QianjiRuntimeEnv::default()
+    };
+    let service = QianjiBpmnWorkflowControlService::new().with_runtime_env(runtime_env);
 
     let error = match service
         .resume_workflow(
@@ -88,7 +94,7 @@ async fn workflow_control_service_resume_requires_existing_checkpoint() {
                 bpmn_path,
                 dmn_paths: Vec::new(),
                 instance_id: "wf_resume_missing".to_string(),
-                checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend::Sqlite(sqlite_path),
+                checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend::LocalDuckDb,
             },
             &QianjiBpmnHostBridge::default(),
         )

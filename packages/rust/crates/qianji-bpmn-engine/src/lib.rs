@@ -2,8 +2,7 @@
 //!
 //! The current implementation covers a bounded BPMN parser/IR subset, a bounded
 //! runtime kernel, sequence-guarded JSON checkpoint persistence in Valkey,
-//! one feature-gated local SQL checkpoint path for lightweight client-side
-//! storage, explicit host/wait boundary request-resume seams plus lease-key
+//! explicit host/wait boundary request-resume seams plus lease-key
 //! ownership for distributed checkpoint writers, deterministic frontier
 //! snapshots plus explicit frontier proposal/reduction and deterministic batch
 //! execution seams for multi-token runtime planning, and a crate-owned bounded
@@ -215,8 +214,6 @@ pub use checkpoint_api::{
     renew_checkpoint_lease, save_checkpoint, save_checkpoint_as_owner,
     try_acquire_checkpoint_lease,
 };
-#[cfg(feature = "sqlite")]
-pub use checkpoint_api::{delete_checkpoint_sql, load_checkpoint_sql, save_checkpoint_sql};
 pub use dmn_api::{
     DmnAssociationSnapshot, DmnBindingKind, DmnBoundsSnapshot, DmnBusinessKnowledgeModelDefinition,
     DmnBusinessKnowledgeModelSnapshot, DmnComparisonOperator, DmnContextEntry,

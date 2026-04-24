@@ -10,7 +10,7 @@ mod render;
 mod run;
 mod types;
 
-#[cfg(all(test, any(feature = "sqlite", feature = "duckdb")))]
+#[cfg(all(test, feature = "duckdb"))]
 pub(crate) use api::{
     BpmnCancelCliCommand, BpmnEventPollCliCommand, BpmnResumeCliCommand, BpmnStatusCliCommand,
     BpmnTaskCompleteCliCommand,

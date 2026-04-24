@@ -4,7 +4,6 @@
 //! This crate is the explicit dependency boundary for storage concerns that
 //! should not leak into all callers:
 //! - the heavy Lance-backed `vector-store` surface stays feature-gated
-//! - the lightweight local `SQLite` surface stays feature-gated
 //! - the local `DuckDB` surface keeps type-only config and runtime connection
 //!   features split so config crates do not compile `DuckDB` unless needed
 //!
@@ -15,14 +14,8 @@
 #[cfg(feature = "duckdb-types")]
 pub mod duckdb;
 
-#[cfg(feature = "sqlite")]
-pub mod sql;
-
 #[cfg(feature = "duckdb")]
 pub use ::duckdb as duckdb_crate;
-
-#[cfg(feature = "sqlite")]
-pub use rusqlite;
 
 #[cfg(feature = "vector-store")]
 pub use xiuxian_vector::{

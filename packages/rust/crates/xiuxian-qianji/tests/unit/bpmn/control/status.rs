@@ -1,13 +1,17 @@
-#![cfg(feature = "sqlite")]
+#![cfg(feature = "duckdb")]
 
 use super::support::*;
 #[tokio::test(flavor = "current_thread")]
-async fn workflow_control_service_loads_checkpoint_status_from_sqlite_store() {
+async fn workflow_control_service_loads_checkpoint_status_from_duckdb_store() {
     let temp_dir =
         TempDir::new().unwrap_or_else(|error| panic!("temp dir should allocate: {error}"));
     let bpmn_path = write_wait_bundle(&temp_dir);
-    let sqlite_path = temp_dir.path().join("status.sqlite3");
-    let service = QianjiBpmnWorkflowControlService::new();
+    let duckdb_path = temp_dir.path().join("status.duckdb");
+    let runtime_env = QianjiRuntimeEnv {
+        qianji_workflow_state_duckdb_path: Some(duckdb_path),
+        ..QianjiRuntimeEnv::default()
+    };
+    let service = QianjiBpmnWorkflowControlService::new().with_runtime_env(runtime_env);
 
     let run_report = ok_of(
         service
@@ -18,14 +22,12 @@ async fn workflow_control_service_loads_checkpoint_status_from_sqlite_store() {
                     process_id: "wait_flow".to_string(),
                     instance_id: "wf_status".to_string(),
                     initial_variables: Some(json!({ "risk": "high" })),
-                    checkpoint_backend: Some(QianjiBpmnWorkflowCheckpointBackend::Sqlite(
-                        sqlite_path.clone(),
-                    )),
+                    checkpoint_backend: Some(QianjiBpmnWorkflowCheckpointBackend::LocalDuckDb),
                 },
                 &QianjiBpmnHostBridge::default(),
             )
             .await,
-        "workflow control service should seed one waiting sqlite checkpoint",
+        "workflow control service should seed one waiting duckdb checkpoint",
     );
 
     assert_eq!(
@@ -38,13 +40,13 @@ async fn workflow_control_service_loads_checkpoint_status_from_sqlite_store() {
         service
             .load_workflow_status(&crate::QianjiBpmnWorkflowStatusRequest {
                 instance_id: "wf_status".to_string(),
-                checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend::Sqlite(sqlite_path),
+                checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend::LocalDuckDb,
             })
             .await,
         "workflow control service should load checkpoint-first status",
     );
 
-    assert_eq!(status_report.checkpoint_store.backend_name(), "sqlite");
+    assert_eq!(status_report.checkpoint_store.backend_name(), "duckdb");
     assert_eq!(status_report.instance.instance_id.as_ref(), "wf_status");
     assert_eq!(
         status_report.instance.process.process_id.as_ref(),

@@ -229,46 +229,6 @@ fn parse_bpmn_command_defaults_fresh_run_without_context_to_local_duckdb() {
             checkpoint_backend: Some(BpmnCliCheckpointBackend::LocalDuckDb),
             host_fixture_path: None,
             event_fixture_path: None,
-        })
-    );
-}
-
-#[cfg(feature = "sqlite")]
-#[test]
-fn parse_bpmn_command_accepts_sqlite_checkpoint_backend() {
-    let command = must_some(
-        must_ok(
-            parse_bpmn_command(&to_args(&[
-                "qianji",
-                "bpmn",
-                "run",
-                "--bpmn",
-                "fixtures/wait.bpmn",
-                "--process",
-                "wait_flow",
-                "--instance-id",
-                "wf_wait",
-                "--checkpoint-sqlite",
-                "state.sqlite3",
-            ])),
-            "sqlite checkpoint parse should succeed",
-        ),
-        "bpmn command should be detected",
-    );
-
-    assert_eq!(
-        command,
-        BpmnCliCommand::Run(BpmnRunCliCommand {
-            bpmn_path: PathBuf::from("fixtures/wait.bpmn"),
-            dmn_paths: Vec::new(),
-            process_id: "wait_flow".to_string(),
-            instance_id: "wf_wait".to_string(),
-            context_json: None,
-            checkpoint_backend: Some(BpmnCliCheckpointBackend::Sqlite(PathBuf::from(
-                "state.sqlite3"
-            ))),
-            host_fixture_path: None,
-            event_fixture_path: None,
             trace_stream: false,
             external_host: false,
         })

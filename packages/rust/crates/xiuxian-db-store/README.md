@@ -8,7 +8,6 @@ runtime code.
 
 - `vector-store`: re-exports the Lance/vector storage surface from
   `xiuxian-vector` for existing vector-store consumers.
-- `sqlite`: exposes bounded SQLite helpers for lightweight local persistence.
 - `duckdb-types`: exposes generic DuckDB runtime config and SQL helper types
   without compiling the DuckDB runtime.
 - `duckdb`: enables real DuckDB connection opening and initialization.

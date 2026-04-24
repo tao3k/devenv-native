@@ -6,8 +6,6 @@ use qianji_bpmn_engine::{
 use serde_json::json;
 use std::sync::Arc;
 
-#[cfg(feature = "sqlite")]
-mod sql;
 #[cfg(feature = "valkey")]
 mod valkey;
 

@@ -10,10 +10,6 @@ use crate::checkpoint::{
     release_checkpoint_lease_impl, renew_checkpoint_lease_impl, save_checkpoint_as_owner_impl,
     save_checkpoint_impl, try_acquire_checkpoint_lease_impl,
 };
-#[cfg(feature = "sqlite")]
-use crate::checkpoint::{
-    delete_checkpoint_sql_impl, load_checkpoint_sql_impl, save_checkpoint_sql_impl,
-};
 
 /// Current scaffold checkpoint format version.
 pub const BPMN_CHECKPOINT_FORMAT_VERSION: u32 = 1;
@@ -69,45 +65,6 @@ pub fn state_key(instance_id: &str) -> String {
 #[must_use]
 pub fn lease_key(instance_id: &str) -> String {
     lease_key_impl(instance_id)
-}
-
-/// Loads a checkpoint envelope from the local SQL checkpoint store.
-///
-/// # Errors
-///
-/// Returns a typed checkpoint storage or codec error when the local SQL
-/// backend cannot be opened, queried, or decoded.
-#[cfg(feature = "sqlite")]
-pub fn load_checkpoint_sql(
-    instance_id: &str,
-    database_path: &std::path::Path,
-) -> Result<Option<BpmnCheckpointEnvelope>> {
-    load_checkpoint_sql_impl(instance_id, database_path)
-}
-
-/// Saves a checkpoint envelope to the local SQL checkpoint store.
-///
-/// # Errors
-///
-/// Returns a typed stale-write, checkpoint storage, or checkpoint codec error
-/// when the local SQL backend rejects or cannot persist the checkpoint.
-#[cfg(feature = "sqlite")]
-pub fn save_checkpoint_sql(
-    checkpoint: &BpmnCheckpointEnvelope,
-    database_path: &std::path::Path,
-) -> Result<()> {
-    save_checkpoint_sql_impl(checkpoint, database_path)
-}
-
-/// Deletes a checkpoint envelope from the local SQL checkpoint store.
-///
-/// # Errors
-///
-/// Returns a typed checkpoint storage error when the local SQL backend cannot
-/// remove the persisted checkpoint row.
-#[cfg(feature = "sqlite")]
-pub fn delete_checkpoint_sql(instance_id: &str, database_path: &std::path::Path) -> Result<()> {
-    delete_checkpoint_sql_impl(instance_id, database_path)
 }
 
 /// Loads a checkpoint envelope from Valkey.

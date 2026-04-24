@@ -16,20 +16,12 @@ pub enum QianjiBpmnWorkflowHttpCheckpointBackend {
     /// Resolve the runtime-configured Valkey checkpoint backend.
     #[default]
     RuntimeValkey,
-    /// Use one lightweight local `SQLite` checkpoint database.
-    #[cfg(feature = "sqlite")]
-    Sqlite {
-        /// Filesystem path to the `SQLite` checkpoint database.
-        path: PathBuf,
-    },
 }
 
 impl QianjiBpmnWorkflowHttpCheckpointBackend {
     fn into_control_backend(self) -> QianjiBpmnWorkflowCheckpointBackend {
         match self {
             Self::RuntimeValkey => QianjiBpmnWorkflowCheckpointBackend::RuntimeValkey,
-            #[cfg(feature = "sqlite")]
-            Self::Sqlite { path } => QianjiBpmnWorkflowCheckpointBackend::Sqlite(path),
         }
     }
 }
@@ -135,14 +127,10 @@ impl QianjiBpmnWorkflowActionHttpRequest {
 /// Query parameters for loading checkpoint-backed BPMN workflow status.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct QianjiBpmnWorkflowStatusHttpQuery {
-    /// Checkpoint backend kind: `runtime_valkey` or `sqlite`. HTTP service
-    /// mode defaults to `runtime_valkey` when omitted.
+    /// Checkpoint backend kind. HTTP service mode accepts only
+    /// `runtime_valkey` and defaults to it when omitted.
     #[serde(default)]
     pub checkpoint_backend: Option<String>,
-    /// Filesystem path to the `SQLite` checkpoint database when
-    /// `checkpoint_backend=sqlite`.
-    #[serde(default)]
-    pub sqlite_path: Option<PathBuf>,
 }
 
 impl QianjiBpmnWorkflowStatusHttpQuery {
@@ -164,19 +152,9 @@ impl QianjiBpmnWorkflowStatusHttpQuery {
         };
         match checkpoint_backend.as_str() {
             "runtime_valkey" | "valkey" => Ok(QianjiBpmnWorkflowCheckpointBackend::RuntimeValkey),
-            #[cfg(feature = "sqlite")]
-            "sqlite" => self
-                .sqlite_path
-                .map(QianjiBpmnWorkflowCheckpointBackend::Sqlite)
-                .ok_or_else(|| {
-                    QianjiBpmnWorkflowHttpError::bad_request(
-                        "missing_sqlite_path",
-                        "`sqlite_path` is required when checkpoint_backend=sqlite",
-                    )
-                }),
             _ => Err(QianjiBpmnWorkflowHttpError::bad_request(
                 "unsupported_checkpoint_backend",
-                "checkpoint_backend must be `runtime_valkey` or `sqlite`",
+                "checkpoint_backend must be `runtime_valkey`",
             )),
         }
     }

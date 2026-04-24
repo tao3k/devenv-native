@@ -1,26 +1,34 @@
 use super::*;
 
-#[cfg(feature = "sqlite")]
+#[cfg(feature = "duckdb")]
 #[tokio::test(flavor = "current_thread")]
-async fn run_bpmn_command_resumes_waiting_session_from_sqlite_checkpoint() {
+async fn run_bpmn_command_resumes_waiting_session_from_duckdb_checkpoint() {
     let temp_dir =
         TempDir::new().unwrap_or_else(|error| panic!("temp dir should allocate: {error}"));
     let bpmn_path = write_waiting_bundle(&temp_dir);
-    let sqlite_path = temp_dir.path().join("bpmn.sqlite3");
+    let duckdb_path = temp_dir.path().join("bpmn.duckdb");
+    let runtime_env = QianjiRuntimeEnv {
+        qianji_workflow_state_duckdb_path: Some(duckdb_path),
+        ..QianjiRuntimeEnv::default()
+    };
 
     let fresh_output = must_ok(
-        run_bpmn_command(BpmnCliCommand::Run(BpmnRunCliCommand {
-            bpmn_path: bpmn_path.clone(),
-            dmn_paths: Vec::new(),
-            process_id: "wait_flow".to_string(),
-            instance_id: "wf_wait".to_string(),
-            context_json: Some("{}".to_string()),
-            checkpoint_backend: Some(BpmnCliCheckpointBackend::Sqlite(sqlite_path.clone())),
-            host_fixture_path: None,
-            event_fixture_path: None,
-            trace_stream: false,
-            external_host: false,
-        }))
+        run_bpmn_run_command_with_runtime_env(
+            &BpmnRunCliCommand {
+                bpmn_path: bpmn_path.clone(),
+                dmn_paths: Vec::new(),
+                process_id: "wait_flow".to_string(),
+                instance_id: "wf_wait".to_string(),
+                context_json: Some("{}".to_string()),
+                checkpoint_backend: Some(BpmnCliCheckpointBackend::LocalDuckDb),
+                host_fixture_path: None,
+                event_fixture_path: None,
+                trace_stream: false,
+                external_host: false,
+            },
+            Some(&runtime_env),
+            None,
+        )
         .await,
         "fresh bpmn run should save waiting checkpoint",
     );
@@ -35,18 +43,22 @@ async fn run_bpmn_command_resumes_waiting_session_from_sqlite_checkpoint() {
     assert!(fresh_output.rendered.contains("Checkpoint saved: yes"));
 
     let resumed_output = must_ok(
-        run_bpmn_command(BpmnCliCommand::Run(BpmnRunCliCommand {
-            bpmn_path,
-            dmn_paths: Vec::new(),
-            process_id: "wait_flow".to_string(),
-            instance_id: "wf_wait".to_string(),
-            context_json: None,
-            checkpoint_backend: Some(BpmnCliCheckpointBackend::Sqlite(sqlite_path)),
-            host_fixture_path: None,
-            event_fixture_path: None,
-            trace_stream: false,
-            external_host: false,
-        }))
+        run_bpmn_run_command_with_runtime_env(
+            &BpmnRunCliCommand {
+                bpmn_path,
+                dmn_paths: Vec::new(),
+                process_id: "wait_flow".to_string(),
+                instance_id: "wf_wait".to_string(),
+                context_json: None,
+                checkpoint_backend: Some(BpmnCliCheckpointBackend::LocalDuckDb),
+                host_fixture_path: None,
+                event_fixture_path: None,
+                trace_stream: false,
+                external_host: false,
+            },
+            Some(&runtime_env),
+            None,
+        )
         .await,
         "resumed bpmn run should load waiting checkpoint",
     );
@@ -65,7 +77,7 @@ async fn run_bpmn_command_resumes_waiting_session_from_sqlite_checkpoint() {
     assert!(
         resumed_output
             .rendered
-            .contains("Checkpoint backend: sqlite")
+            .contains("Checkpoint backend: duckdb")
     );
     assert!(resumed_output.rendered.contains("Checkpoint deleted: no"));
 }

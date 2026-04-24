@@ -13,8 +13,8 @@ use crate::{
     QianjiBpmnHostBridge, QianjiBpmnSession, load_bpmn_package_from_files,
 };
 
-#[cfg(feature = "sqlite")]
-use crate::{QianjiBpmnCheckpointStore, QianjiBpmnExecutionScheduler};
+#[cfg(feature = "duckdb")]
+use crate::QianjiBpmnCheckpointStore;
 
 mod checkpoint;
 mod driver;

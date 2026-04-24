@@ -19,9 +19,6 @@ use std::sync::Arc;
 pub enum QianjiBpmnWorkflowCheckpointBackend {
     /// Resolve the runtime-configured Valkey checkpoint backend.
     RuntimeValkey,
-    /// Use one lightweight local `SQLite` checkpoint database.
-    #[cfg(feature = "sqlite")]
-    Sqlite(PathBuf),
     /// Use the configured local `DuckDB` workflow-state store when no server is running.
     #[cfg(feature = "duckdb")]
     LocalDuckDb,

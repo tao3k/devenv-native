@@ -9,7 +9,7 @@ use qianji_bpmn_engine::{
 };
 #[cfg(feature = "duckdb")]
 use std::path::Path;
-#[cfg(any(feature = "duckdb", feature = "sqlite"))]
+#[cfg(feature = "duckdb")]
 use std::path::PathBuf;
 
 /// Host-owned checkpoint store facade for BPMN runtime sessions.
@@ -19,12 +19,6 @@ pub enum QianjiBpmnCheckpointStore {
     Valkey {
         /// Resolved Valkey connection URL.
         url: String,
-    },
-    /// Lightweight local `SQLite` checkpoint storage.
-    #[cfg(feature = "sqlite")]
-    Sqlite {
-        /// Filesystem path to the `SQLite` checkpoint database.
-        path: PathBuf,
     },
     /// Local no-server `DuckDB` workflow-state snapshot storage.
     #[cfg(feature = "duckdb")]
@@ -40,8 +34,6 @@ impl QianjiBpmnCheckpointStore {
     pub fn backend_name(&self) -> &'static str {
         match self {
             Self::Valkey { .. } => "valkey",
-            #[cfg(feature = "sqlite")]
-            Self::Sqlite { .. } => "sqlite",
             #[cfg(feature = "duckdb")]
             Self::DuckDb { .. } => "duckdb",
         }
@@ -59,13 +51,6 @@ impl QianjiBpmnCheckpointStore {
     #[must_use]
     pub fn valkey(url: impl Into<String>) -> Self {
         Self::Valkey { url: url.into() }
-    }
-
-    /// Creates one SQLite-backed checkpoint store.
-    #[cfg(feature = "sqlite")]
-    #[must_use]
-    pub fn sqlite(path: impl Into<PathBuf>) -> Self {
-        Self::Sqlite { path: path.into() }
     }
 
     /// Creates one local `DuckDB` workflow-state store.
@@ -87,10 +72,6 @@ impl QianjiBpmnCheckpointStore {
     ) -> Result<Option<BpmnCheckpointEnvelope>, BpmnOrchestrationError> {
         match self {
             Self::Valkey { url } => load_checkpoint(instance_id, url).await.map_err(Into::into),
-            #[cfg(feature = "sqlite")]
-            Self::Sqlite { path } => {
-                qianji_bpmn_engine::load_checkpoint_sql(instance_id, path).map_err(Into::into)
-            }
             #[cfg(feature = "duckdb")]
             Self::DuckDb { path } => open_duckdb_workflow_state_store(path)?
                 .load_workflow_state(instance_id)
@@ -110,10 +91,6 @@ impl QianjiBpmnCheckpointStore {
     ) -> Result<(), BpmnOrchestrationError> {
         match self {
             Self::Valkey { url } => save_checkpoint(checkpoint, url).await.map_err(Into::into),
-            #[cfg(feature = "sqlite")]
-            Self::Sqlite { path } => {
-                qianji_bpmn_engine::save_checkpoint_sql(checkpoint, path).map_err(Into::into)
-            }
             #[cfg(feature = "duckdb")]
             Self::DuckDb { path } => open_duckdb_workflow_state_store(path)?
                 .upsert_workflow_state(checkpoint)
@@ -136,10 +113,6 @@ impl QianjiBpmnCheckpointStore {
             Self::Valkey { url } => save_checkpoint_as_owner(checkpoint, owner_token, url)
                 .await
                 .map_err(Into::into),
-            #[cfg(feature = "sqlite")]
-            Self::Sqlite { .. } => Err(BpmnOrchestrationError::CheckpointLeaseUnsupportedBackend {
-                backend: self.backend_name().to_string(),
-            }),
             #[cfg(feature = "duckdb")]
             Self::DuckDb { .. } => Err(BpmnOrchestrationError::CheckpointLeaseUnsupportedBackend {
                 backend: self.backend_name().to_string(),
@@ -158,10 +131,6 @@ impl QianjiBpmnCheckpointStore {
             Self::Valkey { url } => delete_checkpoint(instance_id, url)
                 .await
                 .map_err(Into::into),
-            #[cfg(feature = "sqlite")]
-            Self::Sqlite { path } => {
-                qianji_bpmn_engine::delete_checkpoint_sql(instance_id, path).map_err(Into::into)
-            }
             #[cfg(feature = "duckdb")]
             Self::DuckDb { path } => open_duckdb_workflow_state_store(path)?
                 .delete_workflow_state(instance_id)
@@ -185,10 +154,6 @@ impl QianjiBpmnCheckpointStore {
             Self::Valkey { url } => delete_checkpoint_as_owner(instance_id, owner_token, url)
                 .await
                 .map_err(Into::into),
-            #[cfg(feature = "sqlite")]
-            Self::Sqlite { .. } => Err(BpmnOrchestrationError::CheckpointLeaseUnsupportedBackend {
-                backend: self.backend_name().to_string(),
-            }),
             #[cfg(feature = "duckdb")]
             Self::DuckDb { .. } => Err(BpmnOrchestrationError::CheckpointLeaseUnsupportedBackend {
                 backend: self.backend_name().to_string(),
@@ -215,10 +180,6 @@ impl QianjiBpmnCheckpointStore {
                     .await
                     .map_err(Into::into)
             }
-            #[cfg(feature = "sqlite")]
-            Self::Sqlite { .. } => Err(BpmnOrchestrationError::CheckpointLeaseUnsupportedBackend {
-                backend: self.backend_name().to_string(),
-            }),
             #[cfg(feature = "duckdb")]
             Self::DuckDb { .. } => Err(BpmnOrchestrationError::CheckpointLeaseUnsupportedBackend {
                 backend: self.backend_name().to_string(),
@@ -244,10 +205,6 @@ impl QianjiBpmnCheckpointStore {
                     .await
                     .map_err(Into::into)
             }
-            #[cfg(feature = "sqlite")]
-            Self::Sqlite { .. } => Err(BpmnOrchestrationError::CheckpointLeaseUnsupportedBackend {
-                backend: self.backend_name().to_string(),
-            }),
             #[cfg(feature = "duckdb")]
             Self::DuckDb { .. } => Err(BpmnOrchestrationError::CheckpointLeaseUnsupportedBackend {
                 backend: self.backend_name().to_string(),
@@ -270,10 +227,6 @@ impl QianjiBpmnCheckpointStore {
             Self::Valkey { url } => release_checkpoint_lease(instance_id, owner_token, url)
                 .await
                 .map_err(Into::into),
-            #[cfg(feature = "sqlite")]
-            Self::Sqlite { .. } => Err(BpmnOrchestrationError::CheckpointLeaseUnsupportedBackend {
-                backend: self.backend_name().to_string(),
-            }),
             #[cfg(feature = "duckdb")]
             Self::DuckDb { .. } => Err(BpmnOrchestrationError::CheckpointLeaseUnsupportedBackend {
                 backend: self.backend_name().to_string(),

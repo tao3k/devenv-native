@@ -1,4 +1,4 @@
-#[cfg(any(feature = "sqlite", feature = "duckdb"))]
+#[cfg(feature = "duckdb")]
 pub(crate) use super::bpmn_cli::{
     BpmnCancelCliCommand, BpmnEventPollCliCommand, BpmnResumeCliCommand, BpmnStatusCliCommand,
     BpmnTaskCompleteCliCommand,

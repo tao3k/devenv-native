@@ -77,8 +77,9 @@ otherwise. The service bind address resolves from `[server].bind_addr` unless
 `--require-valkey-ready` can make startup fail before socket bind when Valkey
 does not answer `PING`; `--no-require-valkey-ready` explicitly disables that
 gate. `GET /healthz` reports service liveness, and `GET /readyz` verifies
-that the effective Valkey checkpoint backend responds to `PING`. SQLite
-remains an explicit lightweight client or test selection.
+that the effective Valkey checkpoint backend responds to `PING`. Local
+no-server CLI/control workflow state uses the configured DuckDB path by
+default; HTTP remains Valkey-only.
 
 ```toml
 name = "artifact_refining_pipeline"
@@ -314,19 +315,19 @@ direnv exec "$PRJ_ROOT" cargo run -p xiuxian-qianji -- \
   /path/to/qianji.toml \
   /path/to/workflow.bpmn
 
-direnv exec "$PRJ_ROOT" cargo run -p xiuxian-qianji --features llm --bin qianji -- \
+direnv exec "$PRJ_ROOT" cargo run -p xiuxian-qianji --bin qianji -- \
   show \
   --dir "$PRJ_ROOT/qianji-flowhub"
 
-direnv exec "$PRJ_ROOT" cargo run -p xiuxian-qianji --features llm --bin qianji -- \
+direnv exec "$PRJ_ROOT" cargo run -p xiuxian-qianji --bin qianji -- \
   show \
   --graph "$PRJ_ROOT/qianji-flowhub/plan/codex-plan.mmd"
 
-direnv exec "$PRJ_ROOT" cargo run -p xiuxian-qianji --features llm --bin qianji -- \
+direnv exec "$PRJ_ROOT" cargo run -p xiuxian-qianji --bin qianji -- \
   show \
   --contract wendao.docs.navigation
 
-direnv exec "$PRJ_ROOT" cargo run -p xiuxian-qianji --features llm --bin qianji -- \
+direnv exec "$PRJ_ROOT" cargo run -p xiuxian-qianji --bin qianji -- \
   check \
   --dir "$PRJ_ROOT/qianji-flowhub"
 ```

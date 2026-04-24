@@ -1,46 +1,7 @@
 use super::*;
 
-#[cfg(any(feature = "sqlite", feature = "duckdb"))]
+#[cfg(feature = "duckdb")]
 use crate::test_exports::BpmnTaskCompleteCliCommand;
-
-#[cfg(feature = "sqlite")]
-#[test]
-fn parse_bpmn_command_accepts_tasks_complete_with_sqlite_checkpoint_backend() {
-    let command = must_some(
-        must_ok(
-            parse_bpmn_command(&to_args(&[
-                "qianji",
-                "bpmn",
-                "tasks",
-                "complete",
-                "--bpmn",
-                "fixtures/review.bpmn",
-                "--instance-id",
-                "wf_service",
-                "--host-fixture",
-                "fixtures/host.json",
-                "--checkpoint-sqlite",
-                "state.sqlite3",
-            ])),
-            "bpmn tasks complete parse should succeed",
-        ),
-        "bpmn tasks complete command should be detected",
-    );
-
-    assert_eq!(
-        command,
-        BpmnCliCommand::TaskComplete(BpmnTaskCompleteCliCommand {
-            bpmn_path: PathBuf::from("fixtures/review.bpmn"),
-            dmn_paths: Vec::new(),
-            instance_id: "wf_service".to_string(),
-            checkpoint_backend: BpmnCliCheckpointBackend::Sqlite(PathBuf::from("state.sqlite3")),
-            host_fixture_path: Some(PathBuf::from("fixtures/host.json")),
-            event_fixture_path: None,
-            trace_stream: false,
-            external_host: false,
-        })
-    );
-}
 
 #[cfg(not(feature = "duckdb"))]
 #[test]
@@ -95,6 +56,8 @@ fn parse_bpmn_command_defaults_tasks_complete_to_local_duckdb_checkpoint_backend
             checkpoint_backend: BpmnCliCheckpointBackend::LocalDuckDb,
             host_fixture_path: None,
             event_fixture_path: None,
+            trace_stream: false,
+            external_host: false,
         })
     );
 }

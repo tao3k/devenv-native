@@ -1,5 +1,3 @@
-#[cfg(feature = "sqlite")]
-use super::pathing::resolve_path_against_current_dir;
 use crate::bpmn::backend::QianjiBpmnCheckpointStore;
 use crate::bpmn::control::{
     QianjiBpmnWorkflowCheckpointBackend, QianjiBpmnWorkflowControlError,
@@ -37,10 +35,6 @@ pub(crate) fn resolve_checkpoint_store(
                 QianjiBpmnCheckpointStore::from_runtime_checkpoint_config(&runtime),
             ))
         }
-        #[cfg(feature = "sqlite")]
-        Some(QianjiBpmnWorkflowCheckpointBackend::Sqlite(path)) => Ok(Some(
-            QianjiBpmnCheckpointStore::sqlite(resolve_path_against_current_dir(path.as_path())?),
-        )),
         #[cfg(feature = "duckdb")]
         Some(QianjiBpmnWorkflowCheckpointBackend::LocalDuckDb) => {
             let runtime = match service.runtime_env.as_ref() {

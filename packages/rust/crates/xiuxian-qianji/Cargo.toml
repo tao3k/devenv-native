@@ -8,10 +8,9 @@ license.workspace = true
 publish = false
 
 [features]
-default = []
+default = ["duckdb", "llm"]
 duckdb = ["dep:xiuxian-db-store", "xiuxian-db-store/duckdb"]
 llm = ["dep:xiuxian-llm"]
-sqlite = ["qianji-bpmn-engine/sqlite"]
 
 [dependencies]
 petgraph = { workspace = true }
