@@ -17,6 +17,9 @@ pub mod duckdb;
 #[cfg(feature = "duckdb")]
 pub use ::duckdb as duckdb_crate;
 
+#[cfg(feature = "qianji-bpmn-workflow-state")]
+pub mod qianji_bpmn;
+
 #[cfg(feature = "vector-store")]
 pub use xiuxian_vector::{
     CATEGORY_COLUMN, CONTENT_COLUMN, ColumnarScanOptions, CompactionStats, DEFAULT_DIMENSION,

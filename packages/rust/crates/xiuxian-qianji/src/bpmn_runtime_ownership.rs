@@ -1,5 +1,5 @@
 use super::error::BpmnOrchestrationError;
-use crate::scheduler::SchedulerAgentIdentity;
+use crate::scheduler_identity::SchedulerAgentIdentity;
 
 /// Valkey-backed lease configuration for one BPMN scheduler owner.
 #[derive(Debug, Clone, PartialEq, Eq)]

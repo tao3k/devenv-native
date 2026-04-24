@@ -13,8 +13,6 @@ mod bridge;
 mod control;
 #[path = "control/service/mod.rs"]
 mod control_service;
-#[cfg(feature = "duckdb")]
-mod data_store;
 #[path = "../bpmn_adapter_dispatch.rs"]
 mod dispatch;
 #[path = "../bpmn_runtime_driver.rs"]

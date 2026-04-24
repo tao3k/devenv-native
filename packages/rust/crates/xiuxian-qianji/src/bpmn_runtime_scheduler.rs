@@ -3,7 +3,7 @@ use super::driver::{QianjiBpmnExecutionDriver, QianjiBpmnExecutionReport};
 use super::error::BpmnOrchestrationError;
 use super::ownership::QianjiBpmnSchedulerLeaseConfig;
 use super::session::QianjiBpmnSession;
-use crate::scheduler::SchedulerAgentIdentity;
+use crate::scheduler_identity::SchedulerAgentIdentity;
 use qianji_bpmn_engine::{BpmnExecutionTraceEvent, BpmnHostBridge, BpmnPackage};
 use std::sync::Arc;
 

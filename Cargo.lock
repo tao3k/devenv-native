@@ -11942,8 +11942,11 @@ name = "xiuxian-db-store"
 version = "0.1.1"
 dependencies = [
  "duckdb",
+ "qianji-bpmn-engine",
  "serde",
+ "serde_json",
  "tempfile",
+ "thiserror 2.0.18",
  "xiuxian-vector",
 ]
 
@@ -12188,7 +12191,6 @@ dependencies = [
  "xiuxian-wendao-sql",
  "xiuxian-window",
  "xiuxian-zhenfa",
- "xiuxian-zhixing",
 ]
 
 [[package]]

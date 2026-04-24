@@ -1,4 +1,5 @@
 //! Unified scenario tests for xiuxian-qianji.
+#![cfg(feature = "qianji-full")]
 //!
 //! Single entry point for all scenario-based tests using `ScenarioFramework`.
 //! Scenarios are defined in `tests/scenarios/` with insta-managed snapshots.

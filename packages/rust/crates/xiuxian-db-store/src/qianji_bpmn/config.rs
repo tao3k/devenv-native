@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use xiuxian_db_store::duckdb::{DuckDbDatabasePath, DuckDbExecutionConfig, DuckDbRuntimeConfig};
+use crate::duckdb::{DuckDbDatabasePath, DuckDbExecutionConfig, DuckDbRuntimeConfig};
 
 /// Default thread budget for local BPMN `DuckDB` data-store work.
 pub const DEFAULT_QIANJI_BPMN_DUCKDB_THREADS: u64 = 2;

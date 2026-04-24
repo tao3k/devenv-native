@@ -8,56 +8,81 @@ license.workspace = true
 publish = false
 
 [features]
-default = ["duckdb", "llm"]
-duckdb = ["dep:xiuxian-db-store", "xiuxian-db-store/duckdb"]
+default = ["duckdb", "llm", "qianji-full"]
+duckdb = ["dep:xiuxian-db-store", "xiuxian-db-store/qianji-bpmn-workflow-state"]
 llm = ["dep:xiuxian-llm"]
+qianji-full = [
+  "dep:globset",
+  "dep:include_dir",
+  "dep:jsonschema",
+  "dep:md5",
+  "dep:merman-core",
+  "dep:petgraph",
+  "dep:quick-xml",
+  "dep:rand",
+  "dep:regex",
+  "dep:reqwest",
+  "dep:serde_yaml",
+  "dep:tokio-util",
+  "dep:walkdir",
+  "dep:xiuxian-ast",
+  "dep:xiuxian-logging",
+  "dep:xiuxian-qianhuan",
+  "dep:xiuxian-wendao",
+  "dep:xiuxian-wendao-sql",
+  "dep:xiuxian-wendao-core",
+  "dep:xiuxian-wendao-runtime",
+  "dep:xiuxian-wendao-parsers",
+  "dep:xiuxian-window",
+  "dep:xiuxian-zhenfa",
+]
 
 [dependencies]
-petgraph = { workspace = true }
+petgraph = { workspace = true, optional = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
-serde_yaml = { workspace = true }
+serde_yaml = { workspace = true, optional = true }
 toml = { workspace = true }
 async-trait = { workspace = true }
 thiserror = { workspace = true }
 anyhow = { workspace = true }
 axum = { workspace = true }
 tokio = { workspace = true }
-tokio-util = { workspace = true }
+tokio-util = { workspace = true, optional = true }
 redis = { workspace = true, features = ["tokio-comp"] }
 log = { workspace = true }
 futures = { workspace = true }
-rand = { workspace = true }
-regex = { workspace = true }
-md5 = { workspace = true }
-include_dir = { workspace = true }
-walkdir = { workspace = true }
-globset = { workspace = true }
+rand = { workspace = true, optional = true }
+regex = { workspace = true, optional = true }
+md5 = { workspace = true, optional = true }
+include_dir = { workspace = true, optional = true }
+walkdir = { workspace = true, optional = true }
+globset = { workspace = true, optional = true }
 tempfile = { workspace = true }
-merman-core = { workspace = true }
-quick-xml = { workspace = true, features = ["serialize"] }
-reqwest = { workspace = true }
-jsonschema = { workspace = true }
-xiuxian-wendao = { path = "../xiuxian-wendao", default-features = false }
-xiuxian-wendao-sql = { path = "../xiuxian-wendao-sql" }
-xiuxian-wendao-core = { path = "../xiuxian-wendao-core" }
-xiuxian-wendao-runtime = { path = "../xiuxian-wendao-runtime" }
-xiuxian-wendao-parsers = { path = "../xiuxian-wendao-parsers" }
+merman-core = { workspace = true, optional = true }
+quick-xml = { workspace = true, features = ["serialize"], optional = true }
+reqwest = { workspace = true, optional = true }
+jsonschema = { workspace = true, optional = true }
+xiuxian-wendao = { path = "../xiuxian-wendao", default-features = false, optional = true }
+xiuxian-wendao-sql = { path = "../xiuxian-wendao-sql", optional = true }
+xiuxian-wendao-core = { path = "../xiuxian-wendao-core", optional = true }
+xiuxian-wendao-runtime = { path = "../xiuxian-wendao-runtime", optional = true }
+xiuxian-wendao-parsers = { path = "../xiuxian-wendao-parsers", optional = true }
 xiuxian-db-store = { path = "../xiuxian-db-store", default-features = false, optional = true }
-xiuxian-qianhuan = { path = "../xiuxian-qianhuan" }
+xiuxian-qianhuan = { path = "../xiuxian-qianhuan", optional = true }
 qianji-bpmn-engine = { path = "../qianji-bpmn-engine" }
-xiuxian-ast = { path = "../xiuxian-ast" }
+xiuxian-ast = { path = "../xiuxian-ast", optional = true }
 xiuxian-macros = { path = "../xiuxian-macros" }
-xiuxian-zhenfa = { path = "../xiuxian-zhenfa" }
-xiuxian-logging = { path = "../xiuxian-logging" }
+xiuxian-zhenfa = { path = "../xiuxian-zhenfa", optional = true }
+xiuxian-logging = { path = "../xiuxian-logging", optional = true }
 xiuxian-llm = { path = "../xiuxian-llm", optional = true }
-xiuxian-window = { path = "../xiuxian-window" }
+xiuxian-window = { path = "../xiuxian-window", optional = true }
 xiuxian-testing = { path = "../xiuxian-testing" }
 xiuxian-config-core = { path = "../xiuxian-config-core" }
 
 [dev-dependencies]
 insta = { workspace = true }
-xiuxian-zhixing = { path = "../xiuxian-zhixing" }
+reqwest = { workspace = true }
 
 [lints]
 workspace = true
@@ -69,7 +94,7 @@ path = "src/lib.rs"
 [[bin]]
 name = "qianji"
 path = "src/bin/qianji.rs"
-required-features = ["llm"]
+required-features = ["llm", "qianji-full"]
 
 [[bin]]
 name = "qianji-server"
@@ -79,17 +104,17 @@ path = "src/bin/qianji_server.rs"
 [[test]]
 name = "llm_augmented_formal_audit"
 path = "tests/integration/llm_augmented_formal_audit/mod.rs"
-required-features = ["llm"]
+required-features = ["llm", "qianji-full"]
 
 [[test]]
 name = "llm_analyzer"
 path = "tests/integration/llm_analyzer.rs"
-required-features = ["llm"]
+required-features = ["llm", "qianji-full"]
 
 [[test]]
 name = "llm_multi_tenancy"
 path = "tests/integration/llm_multi_tenancy.rs"
-required-features = ["llm"]
+required-features = ["llm", "qianji-full"]
 
 [[test]]
 name = "runtime_config"
@@ -98,48 +123,57 @@ path = "tests/integration/runtime_config/mod.rs"
 [[test]]
 name = "formal_audit_advisory_llm"
 path = "tests/integration/formal_audit_advisory_llm.rs"
-required-features = ["llm"]
+required-features = ["llm", "qianji-full"]
 
 [[test]]
 name = "contract_feedback_pipeline_llm"
 path = "tests/integration/contract_feedback_pipeline_llm.rs"
-required-features = ["llm"]
+required-features = ["llm", "qianji-full"]
 
 [[test]]
 name = "contract_feedback_pipeline"
 path = "tests/integration/contract_feedback_pipeline.rs"
+required-features = ["qianji-full"]
 
 [[test]]
 name = "flowhub_contracts"
 path = "tests/integration/flowhub_contracts/mod.rs"
+required-features = ["qianji-full"]
 
 [[test]]
 name = "flowhub_manifest_contracts"
 path = "tests/integration/flowhub_manifest_contracts/mod.rs"
+required-features = ["qianji-full"]
 
 [[test]]
 name = "flowhub_materialize"
 path = "tests/integration/flowhub_materialize.rs"
+required-features = ["qianji-full"]
 
 [[test]]
 name = "flowhub_scenario_show_check"
 path = "tests/integration/flowhub_scenario_show_check.rs"
+required-features = ["qianji-full"]
 
 [[test]]
 name = "audit_scenario_contract"
 path = "tests/integration/test_audit_scenario_contract.rs"
+required-features = ["qianji-full"]
 
 [[test]]
 name = "formal_audit_advisory_executor"
 path = "tests/integration/test_formal_audit_advisory_executor.rs"
+required-features = ["qianji-full"]
 
 [[test]]
 name = "wendao_persisted_rest_docs_contract_feedback"
 path = "tests/integration/test_wendao_persisted_rest_docs_contract_feedback.rs"
+required-features = ["qianji-full"]
 
 [[test]]
 name = "wendao_live_rest_docs_contract_feedback"
 path = "tests/integration/test_wendao_live_rest_docs_contract_feedback.rs"
+required-features = ["qianji-full"]
 
 # Unit tests for telemetry
 [[test]]
@@ -149,3 +183,4 @@ path = "tests/unit/unit_telemetry_events.rs"
 [[test]]
 name = "workdir_contracts"
 path = "tests/integration/workdir_contracts.rs"
+required-features = ["qianji-full"]

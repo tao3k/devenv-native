@@ -1,9 +1,9 @@
 use crate::bpmn::BpmnAdapterError;
-#[cfg(feature = "duckdb")]
-use crate::bpmn::data_store::QianjiBpmnDataStoreError;
 use qianji_bpmn_engine::BpmnEngineError;
 use std::io;
 use std::path::PathBuf;
+#[cfg(feature = "duckdb")]
+use xiuxian_db_store::qianji_bpmn::QianjiBpmnDataStoreError;
 
 /// Error returned by the host-owned BPMN orchestration facade.
 #[derive(Debug, thiserror::Error)]

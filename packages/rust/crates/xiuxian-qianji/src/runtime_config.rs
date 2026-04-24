@@ -43,6 +43,7 @@ pub use api::{
     resolve_qianji_runtime_workflow_state_config,
     resolve_qianji_runtime_workflow_state_config_with_env,
 };
+#[cfg(feature = "qianji-full")]
 pub(crate) use api::{
     resolve_process_env_path, resolve_process_project_root, resolve_process_project_root_from_cwd,
 };

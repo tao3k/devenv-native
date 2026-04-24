@@ -163,6 +163,9 @@ fn parse_bpmn_command_accepts_trace_stream() {
             process_id: "review".to_string(),
             instance_id: "wf_review".to_string(),
             context_json: Some("{}".to_string()),
+            #[cfg(feature = "duckdb")]
+            checkpoint_backend: Some(BpmnCliCheckpointBackend::LocalDuckDb),
+            #[cfg(not(feature = "duckdb"))]
             checkpoint_backend: None,
             host_fixture_path: None,
             event_fixture_path: None,

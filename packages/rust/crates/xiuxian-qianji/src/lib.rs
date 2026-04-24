@@ -4,54 +4,76 @@
 //! Follows Rust 2024 Edition standards.
 
 /// Application-layer scheduler factories and built-in pipeline presets.
+#[cfg(feature = "qianji-full")]
 pub mod app;
 /// High-level laboratory API for end-to-end workflow execution.
+#[cfg(feature = "qianji-full")]
 pub mod bootcamp;
 /// Thin BPMN host adapter helpers backed by `qianji-bpmn-engine`.
 pub mod bpmn;
 /// Distributed consensus management for multi-agent synchronization.
+#[cfg(feature = "qianji-full")]
 pub mod consensus;
 /// Contract-feedback execution bridge for contract suite runs and Wendao export.
+#[cfg(feature = "qianji-full")]
 pub mod contract_feedback;
 /// Contract definitions for nodes, instructions, and manifests.
+#[cfg(feature = "qianji-full")]
 pub mod contracts;
 /// Core graph engine based on petgraph.
+#[cfg(feature = "qianji-full")]
 pub mod engine;
 /// Unified error handling.
 pub mod error;
 /// Built-in node execution mechanisms.
+#[cfg(feature = "qianji-full")]
 pub mod executors;
 /// Flowhub module, scenario, and materialize helpers.
+#[cfg(feature = "qianji-full")]
 pub mod flowhub;
 /// Graphical layout and aesthetic engine (QGS).
+#[cfg(feature = "qianji-full")]
 pub mod layout;
 /// Manifest inspection helpers.
+#[cfg(feature = "qianji-full")]
 pub mod manifest;
 /// Shared markdown renderers for `qianji` show/check surfaces.
+#[cfg(feature = "qianji-full")]
 pub(crate) mod markdown;
 /// Runtime configuration resolver (`resources/config/qianji.toml` + user overrides).
 pub mod runtime_config;
 /// Formal logic and safety auditing.
+#[cfg(feature = "qianji-full")]
 pub mod safety;
 /// Asynchronous synaptic-flow scheduler.
+#[cfg(feature = "qianji-full")]
 pub mod scheduler;
+#[cfg(feature = "qianji-full")]
 mod scheduler_checkpoint;
 mod scheduler_identity;
+#[cfg(feature = "qianji-full")]
 mod scheduler_policy;
+#[cfg(feature = "qianji-full")]
 mod scheduler_preflight;
+#[cfg(feature = "qianji-full")]
 mod scheduler_state;
 /// Sovereign Memory Module (Blueprint V6.1) - Agent reasoning trace persistence.
+#[cfg(feature = "qianji-full")]
 pub mod sovereign;
 /// Multi-agent swarm orchestration runtime.
+#[cfg(feature = "qianji-full")]
 pub mod swarm;
 /// Real-time swarm telemetry contracts and Valkey emitter.
 pub mod telemetry;
 /// Bounded work-surface parsing, validation, and CLI support helpers.
+#[cfg(feature = "qianji-full")]
 pub mod workdir;
 
+#[cfg(feature = "qianji-full")]
 pub use app::{
     MEMORY_PROMOTION_PIPELINE_TOML, QianjiApp, RESEARCH_TRINITY_TOML, WENDAO_SQL_AUTHORING_V1_TOML,
 };
+#[cfg(feature = "qianji-full")]
 pub use bootcamp::{
     BootcampLlmMode, BootcampRunOptions, BootcampVfsMount, WorkflowReport, run_scenario,
     run_workflow, run_workflow_from_manifest_toml, run_workflow_with_mounts,
@@ -85,23 +107,28 @@ pub use bpmn::{
     QianjiBpmnDataRecord, QianjiBpmnDataStoreError, QianjiBpmnDuckDbDataStore,
     QianjiBpmnDuckDbDataStoreConfig,
 };
+#[cfg(feature = "qianji-full")]
 pub use contract_feedback::{QianjiContractFeedbackRun, run_contract_feedback_flow};
-#[cfg(feature = "llm")]
+#[cfg(all(feature = "llm", feature = "qianji-full"))]
 pub use contract_feedback::{
     QianjiLiveContractFeedbackOptions, QianjiLiveContractFeedbackRuntime,
     run_and_persist_contract_feedback_flow_with_live_advisory,
     run_contract_feedback_flow_with_live_advisory,
 };
+#[cfg(feature = "qianji-full")]
 pub use contract_feedback::{
     QianjiPersistedContractFeedbackRun, persist_contract_feedback_run,
     run_and_persist_contract_feedback_flow,
 };
+#[cfg(feature = "qianji-full")]
 pub use contracts::{
     FlowInstruction, FlowhubGraphTopology, NodeQianhuanExecutionMode, NodeStatus, QianjiManifest,
     QianjiMechanism, QianjiOutput, WendaoDocsContractShow, render_wendao_docs_contract_show,
     show_wendao_docs_contract,
 };
+#[cfg(feature = "qianji-full")]
 pub use engine::{QianjiCompiler, QianjiEngine};
+#[cfg(feature = "qianji-full")]
 pub use flowhub::{
     AnchoredMaterializedWorkdir, FlowhubCheckReport, FlowhubDiagnostic, FlowhubDirKind,
     FlowhubGraphShow, FlowhubModuleKind, FlowhubModuleShow, FlowhubModuleSummary, FlowhubRootShow,
@@ -117,11 +144,16 @@ pub use flowhub::{
     resolve_flowhub_module_children, resolve_flowhub_scenario_modules, show_flowhub,
     show_flowhub_anchored_scenario, show_flowhub_graph, show_flowhub_scenario,
 };
+#[cfg(feature = "qianji-full")]
 pub use manifest::{manifest_declares_qianhuan_bindings, manifest_requires_llm};
+#[cfg(feature = "qianji-full")]
 pub use safety::QianjiSafetyGuard;
+#[cfg(feature = "qianji-full")]
 pub use scheduler::QianjiScheduler;
-pub use scheduler::SchedulerAgentIdentity;
+#[cfg(feature = "qianji-full")]
 pub use scheduler::{RoleAvailabilityRegistry, SchedulerExecutionPolicy};
+pub use scheduler_identity::SchedulerAgentIdentity;
+#[cfg(feature = "qianji-full")]
 pub use swarm::{
     ClusterNodeIdentity, ClusterNodeRecord, GlobalSwarmRegistry, RemoteNodeRequest,
     RemoteNodeResponse, RemotePossessionBus, SwarmAgentConfig, SwarmAgentReport, SwarmEngine,
@@ -131,6 +163,7 @@ pub use telemetry::{
     ConsensusStatus, DEFAULT_PULSE_CHANNEL, NodeTransitionPhase, NoopPulseEmitter, PulseEmitter,
     SwarmEvent, ValkeyPulseEmitter, unix_millis_now,
 };
+#[cfg(feature = "qianji-full")]
 pub use workdir::{
     WorkdirAdvance, WorkdirCheckFollowUpQuery, WorkdirCheckReport, WorkdirDiagnostic,
     WorkdirMarkdownSurface, WorkdirShow, WorkdirVisibleSurface, WorkdirVisibleSurfaceKind,

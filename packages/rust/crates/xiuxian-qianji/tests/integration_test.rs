@@ -1,4 +1,5 @@
 //! Cargo entry point for dormant `xiuxian-qianji` integration suites.
+#![cfg(feature = "qianji-full")]
 
 xiuxian_testing::crate_test_policy_harness!();
 

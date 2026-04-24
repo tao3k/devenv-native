@@ -53,6 +53,48 @@ fn instance_creation_and_checkpoint_codec_round_trip() {
 }
 
 #[test]
+fn checkpoint_codec_omits_empty_runtime_collections() {
+    let process = BpmnProcessSpec::new(
+        ProcessKey::new("pkg", "approve", "digest"),
+        vec![
+            BpmnNodeSpec::new(0, "start", BpmnNodeKind::StartEvent),
+            BpmnNodeSpec::new(1, "service", BpmnNodeKind::ServiceTask),
+            BpmnNodeSpec::new(2, "end", BpmnNodeKind::EndEvent),
+        ],
+        vec![
+            BpmnEdgeSpec::new(0, 1, None::<&str>),
+            BpmnEdgeSpec::new(1, 2, Some("done")),
+        ],
+        Vec::new(),
+    );
+    let package = Arc::new(BpmnPackage::new("pkg", vec![process]));
+    let checkpoint = BpmnCheckpointEnvelope::from_state(
+        create_instance(
+            Arc::clone(&package),
+            "approve",
+            BpmnInstanceInit::new("wf_compact", json!({ "amount": 7 }), 1_760_000_000_000),
+        )
+        .must("known process should create a scaffold instance"),
+    );
+
+    let encoded = encode_checkpoint_json(&checkpoint).must("checkpoint should encode");
+    assert!(!encoded.contains(r#""active_tokens":[]"#));
+    assert!(!encoded.contains(r#""trace":[]"#));
+    assert!(!encoded.contains(r#""joins":[]"#));
+    assert!(!encoded.contains(r#""waits":[]"#));
+    assert!(!encoded.contains(r#""pending_host_work":[]"#));
+    assert!(!encoded.contains(r#""suspend_reason":null"#));
+
+    let decoded = decode_checkpoint_json(&encoded).must("compact checkpoint should decode");
+    assert!(decoded.state.active_tokens.is_empty());
+    assert!(decoded.state.trace.is_empty());
+    assert!(decoded.state.joins.is_empty());
+    assert!(decoded.state.waits.is_empty());
+    assert!(decoded.state.pending_host_work.is_empty());
+    assert!(decoded.state.suspend_reason.is_none());
+}
+
+#[test]
 fn checkpoint_codec_decodes_without_process_index_field() {
     let process = BpmnProcessSpec::new(
         ProcessKey::new("pkg", "approve", "digest"),

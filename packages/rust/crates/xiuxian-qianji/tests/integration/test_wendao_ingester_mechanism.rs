@@ -57,6 +57,13 @@ xiuxian_testing::crate_test_policy_harness!();
 
 #[tokio::test]
 async fn wendao_ingester_best_effort_records_persistence_error() {
+    if std::env::var_os("XIUXIAN_WENDAO_GRAPH_VALKEY_URL").is_some()
+        || std::env::var_os("VALKEY_URL").is_some()
+    {
+        eprintln!("skipping missing-Valkey best-effort assertion because Valkey is configured");
+        return;
+    }
+
     let mechanism = WendaoIngesterMechanism {
         output_key: "promotion_entity".to_string(),
         graph_scope: Some("qianji:test_scope_best_effort".to_string()),

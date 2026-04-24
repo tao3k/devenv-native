@@ -11,12 +11,6 @@ pub use super::control::{
     QianjiBpmnWorkflowStatusReport, QianjiBpmnWorkflowStatusRequest,
     QianjiBpmnWorkflowTaskCompleteReport, QianjiBpmnWorkflowTaskCompleteRequest,
 };
-#[cfg(feature = "duckdb")]
-pub use super::data_store::{
-    DEFAULT_QIANJI_BPMN_DUCKDB_THREADS, QIANJI_BPMN_WORKFLOW_STATE_RECORD_KEY,
-    QianjiBpmnDataRecord, QianjiBpmnDataStoreError, QianjiBpmnDuckDbDataStore,
-    QianjiBpmnDuckDbDataStoreConfig,
-};
 pub use super::dispatch::{
     dispatch_pending_host_work_request, dispatch_pending_host_work_requests,
     resolve_pending_host_work,
@@ -41,3 +35,9 @@ pub use super::ownership::QianjiBpmnSchedulerLeaseConfig;
 pub use super::scheduler::QianjiBpmnExecutionScheduler;
 pub use super::session::QianjiBpmnSession;
 pub use super::wait::resolve_waiting_external_event;
+#[cfg(feature = "duckdb")]
+pub use xiuxian_db_store::qianji_bpmn::{
+    DEFAULT_QIANJI_BPMN_DUCKDB_THREADS, QIANJI_BPMN_WORKFLOW_STATE_RECORD_KEY,
+    QianjiBpmnDataRecord, QianjiBpmnDataStoreError, QianjiBpmnDuckDbDataStore,
+    QianjiBpmnDuckDbDataStoreConfig,
+};
