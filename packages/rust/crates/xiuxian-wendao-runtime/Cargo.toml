@@ -16,7 +16,7 @@ transport = [
     "dep:tokio",
     "dep:tokio-stream",
     "dep:tonic",
-    "dep:xiuxian-db-store",
+    "xiuxian-db-store/vector-store",
 ]
 
 [dependencies]
@@ -40,7 +40,7 @@ xiuxian-config-core = { path = "../xiuxian-config-core" }
 xiuxian-testing = { path = "../xiuxian-testing" }
 xiuxian-wendao-core = { path = "../xiuxian-wendao-core" }
 xiuxian-wendao-parsers = { path = "../xiuxian-wendao-parsers" }
-xiuxian-db-store = { path = "../xiuxian-db-store", optional = true }
+xiuxian-db-store = { path = "../xiuxian-db-store", default-features = false, features = ["duckdb-types"] }
 
 [dev-dependencies]
 tempfile = { workspace = true }

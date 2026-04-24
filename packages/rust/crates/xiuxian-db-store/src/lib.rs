@@ -5,13 +5,21 @@
 //! should not leak into all callers:
 //! - the heavy Lance-backed `vector-store` surface stays feature-gated
 //! - the lightweight local `SQLite` surface stays feature-gated
+//! - the local `DuckDB` surface keeps type-only config and runtime connection
+//!   features split so config crates do not compile `DuckDB` unless needed
 //!
 //! The vector-store feature intentionally exports an explicit storage/Arrow
 //! compatibility surface instead of exposing the retiring vector-table shell
 //! directly.
 
+#[cfg(feature = "duckdb-types")]
+pub mod duckdb;
+
 #[cfg(feature = "sqlite")]
 pub mod sql;
+
+#[cfg(feature = "duckdb")]
+pub use ::duckdb as duckdb_crate;
 
 #[cfg(feature = "sqlite")]
 pub use rusqlite;

@@ -11999,7 +11999,10 @@ dependencies = [
 name = "xiuxian-db-store"
 version = "0.1.1"
 dependencies = [
+ "duckdb",
  "rusqlite",
+ "serde",
+ "tempfile",
  "xiuxian-vector",
 ]
 

@@ -11,10 +11,17 @@ publish = false
 default = ["vector-store"]
 vector-store = ["dep:xiuxian-vector"]
 sqlite = ["dep:rusqlite"]
+duckdb-types = ["dep:serde"]
+duckdb = ["duckdb-types", "dep:duckdb"]
 
 [dependencies]
+duckdb = { workspace = true, optional = true }
 rusqlite = { workspace = true, optional = true }
+serde = { workspace = true, optional = true }
 xiuxian-vector = { path = "../xiuxian-vector", features = ["vector-store"], optional = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }
 
 [lints]
 workspace = true

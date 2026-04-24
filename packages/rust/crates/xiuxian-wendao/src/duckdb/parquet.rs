@@ -12,9 +12,9 @@ use xiuxian_db_store::{EngineRecordBatch, SearchEngineContext, VectorStoreError}
 use super::connection::SearchDuckDbConnection;
 use super::engine::LocalRelationEngineKind;
 #[cfg(feature = "duckdb")]
-use super::engine::build_duckdb_parquet_view_sql;
-#[cfg(feature = "duckdb")]
 use super::runtime::resolve_search_duckdb_runtime;
+#[cfg(feature = "duckdb")]
+use xiuxian_db_store::duckdb::build_duckdb_parquet_view_sql;
 #[cfg(feature = "duckdb")]
 use xiuxian_wendao_runtime::config::SearchDuckDbRuntimeConfig;
 
