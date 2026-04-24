@@ -9,6 +9,7 @@ publish = false
 
 [features]
 default = []
+duckdb = ["dep:xiuxian-db-store", "xiuxian-db-store/duckdb"]
 llm = ["dep:xiuxian-llm"]
 sqlite = ["qianji-bpmn-engine/sqlite"]
 
@@ -43,6 +44,7 @@ xiuxian-wendao-sql = { path = "../xiuxian-wendao-sql" }
 xiuxian-wendao-core = { path = "../xiuxian-wendao-core" }
 xiuxian-wendao-runtime = { path = "../xiuxian-wendao-runtime" }
 xiuxian-wendao-parsers = { path = "../xiuxian-wendao-parsers" }
+xiuxian-db-store = { path = "../xiuxian-db-store", default-features = false, optional = true }
 xiuxian-qianhuan = { path = "../xiuxian-qianhuan" }
 qianji-bpmn-engine = { path = "../qianji-bpmn-engine" }
 xiuxian-ast = { path = "../xiuxian-ast" }

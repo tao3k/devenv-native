@@ -3,6 +3,8 @@ mod valkey_support;
 
 mod adapter;
 mod control;
+#[cfg(feature = "duckdb")]
+mod data_store;
 mod http;
 mod runtime;
 mod runtime_identity;

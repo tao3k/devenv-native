@@ -22,6 +22,7 @@ This is the **Map of Content** for the Qianji Orchestration engine. It serves as
 - [[20260315140000-autonomous-audit-feature-v3]]: The native graph-driven Triple Loop.
 - [[20260315142000-streaming-llm-executor-spec]]: High-precision streaming analyzer with live supervision.
 - [[2026-04-07-qianji-runtime-config-layering]]: Runtime-config discovery, TOML-first precedence, and checkpoint Valkey ownership for the `qianji` CLI and embedding surfaces.
+- [[2026-04-23-qianji-duckdb-workflow-data-store]]: DuckDB-backed local workflow data records through `xiuxian-db-store`, explicitly separate from Valkey checkpoint ownership.
 - [[qianji-spec]]: The fundamental LinkGraph and Consensus architecture (Global Ref).
 - [[2026-04-07-qianji-flowhub-graph-contract-model-rfc]]: Flowhub flows, materialized plan work surfaces, scenario-as-guard-graph semantics, done-gate acceptance, CLI-first `show` / `check` control, validation-first diagnostics, and Wendao SQL for bounded exact-fragment retrieval.
 - [[2026-04-18-qianji-research-workspace-layering-rfc]]: Research-layered workspace model with small localized runs plus persistent `papers/` and `topics/` knowledge packages.

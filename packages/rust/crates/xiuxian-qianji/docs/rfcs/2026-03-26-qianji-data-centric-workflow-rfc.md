@@ -113,7 +113,10 @@ Qianji should maintain workflow state as Arrow-native relations rather than opaq
 
 This statement is about Qianji's logical state model, not storage ownership.
 The runtime persistence for checkpoint, resume, and coordination state remains
-Valkey-backed. DuckDB is not a workflow-state store in this architecture.
+Valkey-backed. DuckDB is not a checkpoint, resume, or coordination-state
+store in this architecture. A bounded DuckDB data-store adapter may persist
+workflow-local data records or stage materializations, but those records do
+not replace Valkey checkpoint truth.
 
 The minimal state relation should include fields such as:
 
@@ -161,9 +164,9 @@ That direction does not change the ownership split defined in this RFC:
 2. Qianji still owns workflow-stage orchestration and relation handoff
 3. Valkey continues to own checkpoint persistence, resume state, and transient
    coordination
-4. DuckDB, if later used, remains only a stage-local compute helper for
-   bounded joins, rollups, contradiction checks, or reduce shaping over
-   already materialized Arrow relations
+4. DuckDB, if later used, remains only a stage-local compute and data-plane
+   helper for bounded workflow records, joins, rollups, contradiction checks,
+   or reduce shaping over already materialized Arrow relations
 
 ## 6. Implementation Phases
 

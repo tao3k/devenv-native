@@ -79,6 +79,11 @@ pub use bpmn::{
     load_bpmn_package_from_files_with_options, qianji_bpmn_workflow_router,
     resolve_pending_host_work, resolve_waiting_external_event,
 };
+#[cfg(feature = "duckdb")]
+pub use bpmn::{
+    DEFAULT_QIANJI_BPMN_DUCKDB_THREADS, QianjiBpmnDataRecord, QianjiBpmnDataStoreError,
+    QianjiBpmnDuckDbDataStore, QianjiBpmnDuckDbDataStoreConfig,
+};
 pub use contract_feedback::{QianjiContractFeedbackRun, run_contract_feedback_flow};
 #[cfg(feature = "llm")]
 pub use contract_feedback::{

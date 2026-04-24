@@ -13,6 +13,8 @@ mod bridge;
 mod control;
 #[path = "control/service/mod.rs"]
 mod control_service;
+#[cfg(feature = "duckdb")]
+mod data_store;
 #[path = "../bpmn_adapter_dispatch.rs"]
 mod dispatch;
 #[path = "../bpmn_runtime_driver.rs"]
@@ -56,6 +58,11 @@ pub use api::{
     dispatch_pending_host_work_requests, load_bpmn_package_from_files,
     load_bpmn_package_from_files_with_options, qianji_bpmn_workflow_router,
     resolve_pending_host_work, resolve_waiting_external_event,
+};
+#[cfg(feature = "duckdb")]
+pub use api::{
+    DEFAULT_QIANJI_BPMN_DUCKDB_THREADS, QianjiBpmnDataRecord, QianjiBpmnDataStoreError,
+    QianjiBpmnDuckDbDataStore, QianjiBpmnDuckDbDataStoreConfig,
 };
 
 #[cfg(test)]
