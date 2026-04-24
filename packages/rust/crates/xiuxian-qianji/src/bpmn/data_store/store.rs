@@ -1,7 +1,11 @@
 use xiuxian_db_store::duckdb::DuckDbConnection;
 use xiuxian_db_store::duckdb_crate::OptionalExt;
 
-use super::{QianjiBpmnDataRecord, QianjiBpmnDataStoreError, QianjiBpmnDuckDbDataStoreConfig};
+use super::{
+    QIANJI_BPMN_WORKFLOW_STATE_RECORD_KEY, QianjiBpmnDataRecord, QianjiBpmnDataStoreError,
+    QianjiBpmnDuckDbDataStoreConfig,
+};
+use qianji_bpmn_engine::BpmnCheckpointEnvelope;
 
 const WORKFLOW_DATA_TABLE: &str = "qianji_bpmn_workflow_data_records";
 
@@ -134,6 +138,64 @@ impl QianjiBpmnDuckDbDataStore {
                 message: error.to_string(),
             })?;
         Ok(changed > 0)
+    }
+
+    /// Persists the latest local no-server workflow-state snapshot.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`QianjiBpmnDataStoreError`] when the snapshot cannot be
+    /// serialized or the underlying `DuckDB` record upsert fails.
+    pub fn upsert_workflow_state(
+        &self,
+        checkpoint: &BpmnCheckpointEnvelope,
+    ) -> Result<(), QianjiBpmnDataStoreError> {
+        let payload =
+            serde_json::to_value(checkpoint).map_err(|error| QianjiBpmnDataStoreError::Codec {
+                operation: "serialize_workflow_state_snapshot",
+                message: error.to_string(),
+            })?;
+        self.upsert_record(&QianjiBpmnDataRecord::new(
+            checkpoint.state.instance_id.as_ref(),
+            QIANJI_BPMN_WORKFLOW_STATE_RECORD_KEY,
+            payload,
+            checkpoint.state.updated_at_ms,
+        ))
+    }
+
+    /// Loads the latest local no-server workflow-state snapshot.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`QianjiBpmnDataStoreError`] when the lookup fails or the stored
+    /// JSON payload cannot be decoded into a checkpoint envelope.
+    pub fn load_workflow_state(
+        &self,
+        instance_id: &str,
+    ) -> Result<Option<BpmnCheckpointEnvelope>, QianjiBpmnDataStoreError> {
+        self.load_record(instance_id, QIANJI_BPMN_WORKFLOW_STATE_RECORD_KEY)?
+            .map(|record| {
+                serde_json::from_value(record.payload).map_err(|error| {
+                    QianjiBpmnDataStoreError::Codec {
+                        operation: "decode_workflow_state_snapshot",
+                        message: error.to_string(),
+                    }
+                })
+            })
+            .transpose()
+    }
+
+    /// Deletes the latest local no-server workflow-state snapshot.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`QianjiBpmnDataStoreError`] when the underlying `DuckDB` delete
+    /// fails.
+    pub fn delete_workflow_state(
+        &self,
+        instance_id: &str,
+    ) -> Result<bool, QianjiBpmnDataStoreError> {
+        self.delete_record(instance_id, QIANJI_BPMN_WORKFLOW_STATE_RECORD_KEY)
     }
 
     fn connection(&self) -> &xiuxian_db_store::duckdb_crate::Connection {

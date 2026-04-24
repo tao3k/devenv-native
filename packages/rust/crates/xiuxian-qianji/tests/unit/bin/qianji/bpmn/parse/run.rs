@@ -32,6 +32,9 @@ fn parse_bpmn_command_accepts_fresh_run_with_dmn_sources() {
             process_id: "review".to_string(),
             instance_id: "wf_review".to_string(),
             context_json: Some("{\"risk\":\"high\"}".to_string()),
+            #[cfg(feature = "duckdb")]
+            checkpoint_backend: Some(BpmnCliCheckpointBackend::LocalDuckDb),
+            #[cfg(not(feature = "duckdb"))]
             checkpoint_backend: None,
             host_fixture_path: None,
             event_fixture_path: None,
@@ -73,6 +76,9 @@ fn parse_bpmn_command_accepts_host_fixture() {
             process_id: "review".to_string(),
             instance_id: "wf_review".to_string(),
             context_json: Some("{\"risk\":\"high\"}".to_string()),
+            #[cfg(feature = "duckdb")]
+            checkpoint_backend: Some(BpmnCliCheckpointBackend::LocalDuckDb),
+            #[cfg(not(feature = "duckdb"))]
             checkpoint_backend: None,
             host_fixture_path: Some(PathBuf::from("fixtures/host.json")),
             event_fixture_path: None,
@@ -114,6 +120,9 @@ fn parse_bpmn_command_accepts_event_fixture() {
             process_id: "wait_flow".to_string(),
             instance_id: "wf_wait".to_string(),
             context_json: Some("{}".to_string()),
+            #[cfg(feature = "duckdb")]
+            checkpoint_backend: Some(BpmnCliCheckpointBackend::LocalDuckDb),
+            #[cfg(not(feature = "duckdb"))]
             checkpoint_backend: None,
             host_fixture_path: None,
             event_fixture_path: Some(PathBuf::from("fixtures/events.json")),
@@ -163,6 +172,7 @@ fn parse_bpmn_command_accepts_trace_stream() {
     );
 }
 
+#[cfg(not(feature = "duckdb"))]
 #[test]
 fn parse_bpmn_command_rejects_fresh_run_without_context() {
     let error = match parse_bpmn_command(&to_args(&[
@@ -184,6 +194,42 @@ fn parse_bpmn_command_rejects_fresh_run_without_context() {
         error
             .to_string()
             .contains("missing `--context-json <json>` for fresh `bpmn run` command")
+    );
+}
+
+#[cfg(feature = "duckdb")]
+#[test]
+fn parse_bpmn_command_defaults_fresh_run_without_context_to_local_duckdb() {
+    let command = must_some(
+        must_ok(
+            parse_bpmn_command(&to_args(&[
+                "qianji",
+                "bpmn",
+                "run",
+                "--bpmn",
+                "fixtures/review.bpmn",
+                "--process",
+                "review",
+                "--instance-id",
+                "wf_review",
+            ])),
+            "bpmn parse should default local workflow-state store",
+        ),
+        "bpmn command should be detected",
+    );
+
+    assert_eq!(
+        command,
+        BpmnCliCommand::Run(BpmnRunCliCommand {
+            bpmn_path: PathBuf::from("fixtures/review.bpmn"),
+            dmn_paths: Vec::new(),
+            process_id: "review".to_string(),
+            instance_id: "wf_review".to_string(),
+            context_json: None,
+            checkpoint_backend: Some(BpmnCliCheckpointBackend::LocalDuckDb),
+            host_fixture_path: None,
+            event_fixture_path: None,
+        })
     );
 }
 

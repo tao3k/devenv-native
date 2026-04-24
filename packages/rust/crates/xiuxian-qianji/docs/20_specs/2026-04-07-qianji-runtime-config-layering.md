@@ -56,13 +56,34 @@ Effective precedence for `checkpoint.valkey_url` is:
 5. `REDIS_URL`
 6. built-in localhost fallback
 
-## 4. LLM Runtime
+## 4. Local Workflow State
+
+Local no-server BPMN workflow-state persistence is owned by the
+`[workflow_state]` section.
+
+```toml
+[workflow_state]
+local_duckdb_path = "path/to/qianji-workflow-state.duckdb"
+```
+
+Effective precedence for `workflow_state.local_duckdb_path` is:
+
+1. explicit `QianjiRuntimeEnv.qianji_workflow_state_duckdb_path`
+2. `qianji.toml` `[workflow_state].local_duckdb_path`
+3. `QIANJI_WORKFLOW_STATE_DUCKDB_PATH`
+4. built-in local runtime-path fallback
+
+This path is used only by local embedded or CLI BPMN control surfaces. HTTP
+workflow control through `qianji-server` continues to default to
+`checkpoint.valkey_url`.
+
+## 5. LLM Runtime
 
 LLM runtime continues to resolve from `[llm]` in `qianji.toml`, with runtime
 environment overrides such as `QIANJI_LLM_MODEL`, `OPENAI_API_BASE`, and
 `OPENAI_API_KEY`.
 
-## 5. Validation Expectations
+## 6. Validation Expectations
 
 Changes to Qianji runtime-config layering should keep focused coverage on:
 
@@ -71,7 +92,7 @@ Changes to Qianji runtime-config layering should keep focused coverage on:
 3. invalid TOML error classification
 4. legacy config-file ignore behavior
 
-## 6. Shared Path Resolution
+## 7. Shared Path Resolution
 
 Process-scoped `PRJ_ROOT` fallback resolution for Qianji runtime surfaces should
 stay on the shared helper lane:
@@ -93,7 +114,7 @@ Contract-feedback storage path resolution follows the same ownership split:
    rule that contract-feedback cache storage must stay under the resolved
    workspace root when an absolute override points elsewhere
 
-## 7. Macro Boundary
+## 8. Macro Boundary
 
 The earlier config-core rollout intentionally moved ownership and precedence
 semantics first, even when that temporarily made some call sites look longer.

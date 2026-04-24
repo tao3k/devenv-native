@@ -13,8 +13,9 @@ pub use super::control::{
 };
 #[cfg(feature = "duckdb")]
 pub use super::data_store::{
-    DEFAULT_QIANJI_BPMN_DUCKDB_THREADS, QianjiBpmnDataRecord, QianjiBpmnDataStoreError,
-    QianjiBpmnDuckDbDataStore, QianjiBpmnDuckDbDataStoreConfig,
+    DEFAULT_QIANJI_BPMN_DUCKDB_THREADS, QIANJI_BPMN_WORKFLOW_STATE_RECORD_KEY,
+    QianjiBpmnDataRecord, QianjiBpmnDataStoreError, QianjiBpmnDuckDbDataStore,
+    QianjiBpmnDuckDbDataStoreConfig,
 };
 pub use super::dispatch::{
     dispatch_pending_host_work_request, dispatch_pending_host_work_requests,

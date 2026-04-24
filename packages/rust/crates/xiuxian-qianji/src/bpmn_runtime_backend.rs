@@ -1,3 +1,5 @@
+#[cfg(feature = "duckdb")]
+use super::data_store::{QianjiBpmnDuckDbDataStore, QianjiBpmnDuckDbDataStoreConfig};
 use super::error::BpmnOrchestrationError;
 use crate::runtime_config::QianjiRuntimeCheckpointConfig;
 use qianji_bpmn_engine::{
@@ -5,7 +7,9 @@ use qianji_bpmn_engine::{
     release_checkpoint_lease, renew_checkpoint_lease, save_checkpoint, save_checkpoint_as_owner,
     try_acquire_checkpoint_lease,
 };
-#[cfg(feature = "sqlite")]
+#[cfg(feature = "duckdb")]
+use std::path::Path;
+#[cfg(any(feature = "duckdb", feature = "sqlite"))]
 use std::path::PathBuf;
 
 /// Host-owned checkpoint store facade for BPMN runtime sessions.
@@ -22,6 +26,12 @@ pub enum QianjiBpmnCheckpointStore {
         /// Filesystem path to the `SQLite` checkpoint database.
         path: PathBuf,
     },
+    /// Local no-server `DuckDB` workflow-state snapshot storage.
+    #[cfg(feature = "duckdb")]
+    DuckDb {
+        /// Filesystem path to the `DuckDB` workflow-state database.
+        path: PathBuf,
+    },
 }
 
 impl QianjiBpmnCheckpointStore {
@@ -32,6 +42,8 @@ impl QianjiBpmnCheckpointStore {
             Self::Valkey { .. } => "valkey",
             #[cfg(feature = "sqlite")]
             Self::Sqlite { .. } => "sqlite",
+            #[cfg(feature = "duckdb")]
+            Self::DuckDb { .. } => "duckdb",
         }
     }
 
@@ -56,6 +68,13 @@ impl QianjiBpmnCheckpointStore {
         Self::Sqlite { path: path.into() }
     }
 
+    /// Creates one local `DuckDB` workflow-state store.
+    #[cfg(feature = "duckdb")]
+    #[must_use]
+    pub fn duckdb(path: impl Into<PathBuf>) -> Self {
+        Self::DuckDb { path: path.into() }
+    }
+
     /// Loads one checkpoint envelope for the supplied BPMN instance id.
     ///
     /// # Errors
@@ -72,6 +91,10 @@ impl QianjiBpmnCheckpointStore {
             Self::Sqlite { path } => {
                 qianji_bpmn_engine::load_checkpoint_sql(instance_id, path).map_err(Into::into)
             }
+            #[cfg(feature = "duckdb")]
+            Self::DuckDb { path } => open_duckdb_workflow_state_store(path)?
+                .load_workflow_state(instance_id)
+                .map_err(Into::into),
         }
     }
 
@@ -91,6 +114,10 @@ impl QianjiBpmnCheckpointStore {
             Self::Sqlite { path } => {
                 qianji_bpmn_engine::save_checkpoint_sql(checkpoint, path).map_err(Into::into)
             }
+            #[cfg(feature = "duckdb")]
+            Self::DuckDb { path } => open_duckdb_workflow_state_store(path)?
+                .upsert_workflow_state(checkpoint)
+                .map_err(Into::into),
         }
     }
 
@@ -113,6 +140,10 @@ impl QianjiBpmnCheckpointStore {
             Self::Sqlite { .. } => Err(BpmnOrchestrationError::CheckpointLeaseUnsupportedBackend {
                 backend: self.backend_name().to_string(),
             }),
+            #[cfg(feature = "duckdb")]
+            Self::DuckDb { .. } => Err(BpmnOrchestrationError::CheckpointLeaseUnsupportedBackend {
+                backend: self.backend_name().to_string(),
+            }),
         }
     }
 
@@ -131,6 +162,11 @@ impl QianjiBpmnCheckpointStore {
             Self::Sqlite { path } => {
                 qianji_bpmn_engine::delete_checkpoint_sql(instance_id, path).map_err(Into::into)
             }
+            #[cfg(feature = "duckdb")]
+            Self::DuckDb { path } => open_duckdb_workflow_state_store(path)?
+                .delete_workflow_state(instance_id)
+                .map(|_| ())
+                .map_err(Into::into),
         }
     }
 
@@ -151,6 +187,10 @@ impl QianjiBpmnCheckpointStore {
                 .map_err(Into::into),
             #[cfg(feature = "sqlite")]
             Self::Sqlite { .. } => Err(BpmnOrchestrationError::CheckpointLeaseUnsupportedBackend {
+                backend: self.backend_name().to_string(),
+            }),
+            #[cfg(feature = "duckdb")]
+            Self::DuckDb { .. } => Err(BpmnOrchestrationError::CheckpointLeaseUnsupportedBackend {
                 backend: self.backend_name().to_string(),
             }),
         }
@@ -179,6 +219,10 @@ impl QianjiBpmnCheckpointStore {
             Self::Sqlite { .. } => Err(BpmnOrchestrationError::CheckpointLeaseUnsupportedBackend {
                 backend: self.backend_name().to_string(),
             }),
+            #[cfg(feature = "duckdb")]
+            Self::DuckDb { .. } => Err(BpmnOrchestrationError::CheckpointLeaseUnsupportedBackend {
+                backend: self.backend_name().to_string(),
+            }),
         }
     }
 
@@ -204,6 +248,10 @@ impl QianjiBpmnCheckpointStore {
             Self::Sqlite { .. } => Err(BpmnOrchestrationError::CheckpointLeaseUnsupportedBackend {
                 backend: self.backend_name().to_string(),
             }),
+            #[cfg(feature = "duckdb")]
+            Self::DuckDb { .. } => Err(BpmnOrchestrationError::CheckpointLeaseUnsupportedBackend {
+                backend: self.backend_name().to_string(),
+            }),
         }
     }
 
@@ -226,6 +274,18 @@ impl QianjiBpmnCheckpointStore {
             Self::Sqlite { .. } => Err(BpmnOrchestrationError::CheckpointLeaseUnsupportedBackend {
                 backend: self.backend_name().to_string(),
             }),
+            #[cfg(feature = "duckdb")]
+            Self::DuckDb { .. } => Err(BpmnOrchestrationError::CheckpointLeaseUnsupportedBackend {
+                backend: self.backend_name().to_string(),
+            }),
         }
     }
+}
+
+#[cfg(feature = "duckdb")]
+fn open_duckdb_workflow_state_store(
+    path: &Path,
+) -> Result<QianjiBpmnDuckDbDataStore, BpmnOrchestrationError> {
+    QianjiBpmnDuckDbDataStore::open(QianjiBpmnDuckDbDataStoreConfig::file(path.to_path_buf()))
+        .map_err(Into::into)
 }

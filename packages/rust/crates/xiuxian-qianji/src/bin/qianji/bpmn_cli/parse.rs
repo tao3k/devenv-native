@@ -102,16 +102,7 @@ fn parse_bpmn_start_like_command(
         index += 1;
     }
 
-    let checkpoint_backend = {
-        #[cfg(feature = "sqlite")]
-        {
-            parse_bpmn_start_like_checkpoint_backend(command_name, &state)?
-        }
-        #[cfg(not(feature = "sqlite"))]
-        {
-            parse_bpmn_start_like_checkpoint_backend(&state)
-        }
-    };
+    let checkpoint_backend = { parse_bpmn_start_like_checkpoint_backend(command_name, &state)? };
     if state.context_json.is_none() && checkpoint_backend.is_none() {
         return Err(invalid_input(format!(
             "missing `--context-json <json>` for fresh `{command_name}` command"
@@ -217,23 +208,16 @@ fn parse_bpmn_start_like_option(
     Ok(())
 }
 
-#[cfg(feature = "sqlite")]
 fn parse_bpmn_start_like_checkpoint_backend(
     command_name: &str,
     state: &BpmnStartLikeParseState,
 ) -> io::Result<Option<QianjiBpmnWorkflowCheckpointBackend>> {
-    parse_bpmn_cli_checkpoint_backend(
-        command_name,
-        state.checkpoint_runtime,
-        state.checkpoint_sqlite.clone(),
-    )
-}
+    #[cfg(feature = "sqlite")]
+    let checkpoint_sqlite = state.checkpoint_sqlite.clone();
+    #[cfg(not(feature = "sqlite"))]
+    let checkpoint_sqlite = None;
 
-#[cfg(not(feature = "sqlite"))]
-fn parse_bpmn_start_like_checkpoint_backend(
-    state: &BpmnStartLikeParseState,
-) -> Option<QianjiBpmnWorkflowCheckpointBackend> {
-    parse_bpmn_cli_checkpoint_backend(state.checkpoint_runtime)
+    parse_bpmn_cli_checkpoint_backend(command_name, state.checkpoint_runtime, checkpoint_sqlite)
 }
 
 fn parse_bpmn_resume_command(args: &[String]) -> io::Result<BpmnResumeCliCommand> {
@@ -273,24 +257,19 @@ fn parse_bpmn_resume_like_command(
         index += 1;
     }
 
-    let checkpoint_backend = {
-        #[cfg(feature = "sqlite")]
-        {
-            parse_bpmn_cli_checkpoint_backend(
-                command_name,
-                state.checkpoint_runtime,
-                state.checkpoint_sqlite.clone(),
-            )?
-        }
-        #[cfg(not(feature = "sqlite"))]
-        {
-            parse_bpmn_cli_checkpoint_backend(state.checkpoint_runtime)
-        }
-    };
+    #[cfg(feature = "sqlite")]
+    let checkpoint_sqlite = state.checkpoint_sqlite.clone();
+    #[cfg(not(feature = "sqlite"))]
+    let checkpoint_sqlite = None;
+    let checkpoint_backend = parse_bpmn_cli_checkpoint_backend(
+        command_name,
+        state.checkpoint_runtime,
+        checkpoint_sqlite,
+    )?;
 
     let checkpoint_backend = checkpoint_backend.ok_or_else(|| {
         invalid_input(format!(
-            "missing checkpoint backend for `{command_name}`; use `--checkpoint-runtime` or `--checkpoint-sqlite <path>`"
+            "missing checkpoint backend for `{command_name}`; use `--checkpoint-runtime`, enable local DuckDB, or use `--checkpoint-sqlite <path>`"
         ))
     })?;
 
@@ -422,19 +401,15 @@ fn parse_bpmn_status_command(args: &[String]) -> io::Result<BpmnStatusCliCommand
         index += 1;
     }
 
-    let checkpoint_backend = {
-        #[cfg(feature = "sqlite")]
-        {
-            parse_bpmn_cli_checkpoint_backend("bpmn status", checkpoint_runtime, checkpoint_sqlite)?
-        }
-        #[cfg(not(feature = "sqlite"))]
-        {
-            parse_bpmn_cli_checkpoint_backend(checkpoint_runtime)
-        }
-    };
+    #[cfg(feature = "sqlite")]
+    let checkpoint_sqlite = checkpoint_sqlite;
+    #[cfg(not(feature = "sqlite"))]
+    let checkpoint_sqlite = None;
+    let checkpoint_backend =
+        parse_bpmn_cli_checkpoint_backend("bpmn status", checkpoint_runtime, checkpoint_sqlite)?;
 
     let checkpoint_backend = checkpoint_backend.ok_or_else(|| {
-        invalid_input("missing checkpoint backend for `bpmn status`; use `--checkpoint-runtime` or `--checkpoint-sqlite <path>`")
+        invalid_input("missing checkpoint backend for `bpmn status`; use `--checkpoint-runtime`, enable local DuckDB, or use `--checkpoint-sqlite <path>`")
     })?;
 
     Ok(BpmnStatusCliCommand {
@@ -486,19 +461,15 @@ fn parse_bpmn_cancel_command(args: &[String]) -> io::Result<BpmnCancelCliCommand
         index += 1;
     }
 
-    let checkpoint_backend = {
-        #[cfg(feature = "sqlite")]
-        {
-            parse_bpmn_cli_checkpoint_backend("bpmn cancel", checkpoint_runtime, checkpoint_sqlite)?
-        }
-        #[cfg(not(feature = "sqlite"))]
-        {
-            parse_bpmn_cli_checkpoint_backend(checkpoint_runtime)
-        }
-    };
+    #[cfg(feature = "sqlite")]
+    let checkpoint_sqlite = checkpoint_sqlite;
+    #[cfg(not(feature = "sqlite"))]
+    let checkpoint_sqlite = None;
+    let checkpoint_backend =
+        parse_bpmn_cli_checkpoint_backend("bpmn cancel", checkpoint_runtime, checkpoint_sqlite)?;
 
     let checkpoint_backend = checkpoint_backend.ok_or_else(|| {
-        invalid_input("missing checkpoint backend for `bpmn cancel`; use `--checkpoint-runtime` or `--checkpoint-sqlite <path>`")
+        invalid_input("missing checkpoint backend for `bpmn cancel`; use `--checkpoint-runtime`, enable local DuckDB, or use `--checkpoint-sqlite <path>`")
     })?;
 
     Ok(BpmnCancelCliCommand {
@@ -509,29 +480,38 @@ fn parse_bpmn_cancel_command(args: &[String]) -> io::Result<BpmnCancelCliCommand
     })
 }
 
-#[cfg(feature = "sqlite")]
 fn parse_bpmn_cli_checkpoint_backend(
     command_name: &str,
     checkpoint_runtime: bool,
     checkpoint_sqlite: Option<PathBuf>,
 ) -> io::Result<Option<QianjiBpmnWorkflowCheckpointBackend>> {
     match (checkpoint_runtime, checkpoint_sqlite) {
-        (false, None) => Ok(None),
+        (false, None) => {
+            #[cfg(feature = "duckdb")]
+            {
+                Ok(Some(QianjiBpmnWorkflowCheckpointBackend::LocalDuckDb))
+            }
+            #[cfg(not(feature = "duckdb"))]
+            {
+                Ok(None)
+            }
+        }
         (true, None) => Ok(Some(QianjiBpmnWorkflowCheckpointBackend::RuntimeValkey)),
-        (false, Some(path)) => Ok(Some(QianjiBpmnWorkflowCheckpointBackend::Sqlite(path))),
+        (false, Some(path)) => {
+            #[cfg(feature = "sqlite")]
+            {
+                Ok(Some(QianjiBpmnWorkflowCheckpointBackend::Sqlite(path)))
+            }
+            #[cfg(not(feature = "sqlite"))]
+            {
+                let _ = path;
+                Err(invalid_input(
+                    "`--checkpoint-sqlite` requires the `sqlite` feature",
+                ))
+            }
+        }
         (true, Some(_)) => Err(invalid_input(format!(
             "`{command_name}` accepts at most one checkpoint backend option"
         ))),
-    }
-}
-
-#[cfg(not(feature = "sqlite"))]
-fn parse_bpmn_cli_checkpoint_backend(
-    checkpoint_runtime: bool,
-) -> Option<QianjiBpmnWorkflowCheckpointBackend> {
-    if checkpoint_runtime {
-        Some(QianjiBpmnWorkflowCheckpointBackend::RuntimeValkey)
-    } else {
-        None
     }
 }

@@ -1,6 +1,6 @@
 use super::*;
 
-#[cfg(feature = "sqlite")]
+#[cfg(any(feature = "sqlite", feature = "duckdb"))]
 use crate::test_exports::BpmnEventPollCliCommand;
 
 #[cfg(feature = "sqlite")]
@@ -42,6 +42,7 @@ fn parse_bpmn_command_accepts_events_poll_with_sqlite_checkpoint_backend() {
     );
 }
 
+#[cfg(not(feature = "duckdb"))]
 #[test]
 fn parse_bpmn_command_rejects_events_poll_without_checkpoint_backend() {
     let error = match parse_bpmn_command(&to_args(&[
@@ -62,5 +63,38 @@ fn parse_bpmn_command_rejects_events_poll_without_checkpoint_backend() {
         error
             .to_string()
             .contains("missing checkpoint backend for `bpmn events poll`")
+    );
+}
+
+#[cfg(feature = "duckdb")]
+#[test]
+fn parse_bpmn_command_defaults_events_poll_to_local_duckdb_checkpoint_backend() {
+    let command = must_some(
+        must_ok(
+            parse_bpmn_command(&to_args(&[
+                "qianji",
+                "bpmn",
+                "events",
+                "poll",
+                "--bpmn",
+                "fixtures/wait.bpmn",
+                "--instance-id",
+                "wf_wait",
+            ])),
+            "bpmn events poll parse should default local workflow-state store",
+        ),
+        "bpmn events poll command should be detected",
+    );
+
+    assert_eq!(
+        command,
+        BpmnCliCommand::EventPoll(BpmnEventPollCliCommand {
+            bpmn_path: PathBuf::from("fixtures/wait.bpmn"),
+            dmn_paths: Vec::new(),
+            instance_id: "wf_wait".to_string(),
+            checkpoint_backend: BpmnCliCheckpointBackend::LocalDuckDb,
+            host_fixture_path: None,
+            event_fixture_path: None,
+        })
     );
 }

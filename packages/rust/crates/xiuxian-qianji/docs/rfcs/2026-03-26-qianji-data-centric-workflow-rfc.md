@@ -112,11 +112,12 @@ The exact Rust API may evolve, but the ownership rule should remain fixed: Qianj
 Qianji should maintain workflow state as Arrow-native relations rather than opaque JSON envelopes wherever practical.
 
 This statement is about Qianji's logical state model, not storage ownership.
-The runtime persistence for checkpoint, resume, and coordination state remains
-Valkey-backed. DuckDB is not a checkpoint, resume, or coordination-state
-store in this architecture. A bounded DuckDB data-store adapter may persist
-workflow-local data records or stage materializations, but those records do
-not replace Valkey checkpoint truth.
+The runtime persistence split is mode-specific: `qianji-server` and HTTP
+control keep checkpoint, resume, coordination, and writer ownership
+Valkey-backed; local no-server BPMN control may persist the latest
+workflow-state snapshot in DuckDB through `xiuxian-db-store`. DuckDB local
+state does not replace Valkey distributed checkpoint truth and does not own
+distributed leases.
 
 The minimal state relation should include fields such as:
 

@@ -81,8 +81,9 @@ pub use bpmn::{
 };
 #[cfg(feature = "duckdb")]
 pub use bpmn::{
-    DEFAULT_QIANJI_BPMN_DUCKDB_THREADS, QianjiBpmnDataRecord, QianjiBpmnDataStoreError,
-    QianjiBpmnDuckDbDataStore, QianjiBpmnDuckDbDataStoreConfig,
+    DEFAULT_QIANJI_BPMN_DUCKDB_THREADS, QIANJI_BPMN_WORKFLOW_STATE_RECORD_KEY,
+    QianjiBpmnDataRecord, QianjiBpmnDataStoreError, QianjiBpmnDuckDbDataStore,
+    QianjiBpmnDuckDbDataStoreConfig,
 };
 pub use contract_feedback::{QianjiContractFeedbackRun, run_contract_feedback_flow};
 #[cfg(feature = "llm")]

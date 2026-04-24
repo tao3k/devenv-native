@@ -61,8 +61,9 @@ pub use api::{
 };
 #[cfg(feature = "duckdb")]
 pub use api::{
-    DEFAULT_QIANJI_BPMN_DUCKDB_THREADS, QianjiBpmnDataRecord, QianjiBpmnDataStoreError,
-    QianjiBpmnDuckDbDataStore, QianjiBpmnDuckDbDataStoreConfig,
+    DEFAULT_QIANJI_BPMN_DUCKDB_THREADS, QIANJI_BPMN_WORKFLOW_STATE_RECORD_KEY,
+    QianjiBpmnDataRecord, QianjiBpmnDataStoreError, QianjiBpmnDuckDbDataStore,
+    QianjiBpmnDuckDbDataStoreConfig,
 };
 
 #[cfg(test)]

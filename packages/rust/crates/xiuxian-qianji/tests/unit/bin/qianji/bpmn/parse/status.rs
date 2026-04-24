@@ -1,6 +1,6 @@
 use super::*;
 
-#[cfg(feature = "sqlite")]
+#[cfg(any(feature = "sqlite", feature = "duckdb"))]
 use crate::test_exports::BpmnStatusCliCommand;
 
 #[cfg(feature = "sqlite")]
@@ -31,6 +31,7 @@ fn parse_bpmn_command_accepts_status_with_sqlite_checkpoint_backend() {
     );
 }
 
+#[cfg(not(feature = "duckdb"))]
 #[test]
 fn parse_bpmn_command_rejects_status_without_checkpoint_backend() {
     let error = match parse_bpmn_command(&to_args(&[
@@ -48,5 +49,31 @@ fn parse_bpmn_command_rejects_status_without_checkpoint_backend() {
         error
             .to_string()
             .contains("missing checkpoint backend for `bpmn status`")
+    );
+}
+
+#[cfg(feature = "duckdb")]
+#[test]
+fn parse_bpmn_command_defaults_status_to_local_duckdb_checkpoint_backend() {
+    let command = must_some(
+        must_ok(
+            parse_bpmn_command(&to_args(&[
+                "qianji",
+                "bpmn",
+                "status",
+                "--instance-id",
+                "wf_wait",
+            ])),
+            "bpmn status parse should default local workflow-state store",
+        ),
+        "bpmn status command should be detected",
+    );
+
+    assert_eq!(
+        command,
+        BpmnCliCommand::Status(BpmnStatusCliCommand {
+            instance_id: "wf_wait".to_string(),
+            checkpoint_backend: BpmnCliCheckpointBackend::LocalDuckDb,
+        })
     );
 }

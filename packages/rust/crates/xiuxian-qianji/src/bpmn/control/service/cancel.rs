@@ -26,6 +26,10 @@ pub(crate) async fn cancel_workflow(
         QianjiBpmnWorkflowCheckpointBackend::Sqlite(_) => {
             checkpoint_store.delete(&request.instance_id).await?;
         }
+        #[cfg(feature = "duckdb")]
+        QianjiBpmnWorkflowCheckpointBackend::LocalDuckDb => {
+            checkpoint_store.delete(&request.instance_id).await?;
+        }
     }
 
     Ok(QianjiBpmnWorkflowCancelReport {
