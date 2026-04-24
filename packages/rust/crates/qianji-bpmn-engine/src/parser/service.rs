@@ -46,6 +46,11 @@ pub(crate) fn parse_bpmn_bundle_impl(
                 DmnImportDefinition::from_snapshot(&source.source_id, dmn_import)
             }),
         );
+        // Top-level imports keep the bundled source metadata-only until
+        // cross-document DMN execution has an explicit contract.
+        if snapshot.root.import_count > 0 {
+            continue;
+        }
         dmn_decisions.extend(parse_dmn_decisions(source)?);
         dmn_input_data.extend(snapshot.root.input_data.iter().map(|input_data| {
             DmnInputDataDefinition::from_snapshot(&source.source_id, input_data)

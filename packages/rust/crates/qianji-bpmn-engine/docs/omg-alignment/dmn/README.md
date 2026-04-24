@@ -37,7 +37,9 @@ model-version hint, preserved top-level `import` metadata with bounded `name`,
 non-executable package-owned import registry that preserves the declaring
 source id separately from import alias, imported namespace, location URI, and
 import type and exposes deterministic source-scoped lookup by alias,
-namespace, or location URI, preserved
+namespace, or location URI plus metadata-only bundle loading for imported DMN
+sources that preserves source/import registries without populating executable
+decision registries, preserved
 top-level `itemDefinition` metadata plus one bounded
 direct `itemComponent` placeholder layer, preserved top-level `inputData`
 metadata plus one optional direct `variable` placeholder layer, preserved

@@ -208,8 +208,8 @@ fn parser_bundle_snapshot_populates_package_dmn_decision_service_registry() {
 }
 
 #[test]
-fn parser_bundle_snapshot_rejects_imported_dmn_execution() {
-    let error = parse_bpmn_bundle(
+fn parser_bundle_snapshot_keeps_imported_dmn_source_metadata_only() {
+    let package = parse_bpmn_bundle(
         &BpmnBundleSnapshot::new(vec![fixture_source(
             "linear-business-rule-placeholder.bpmn",
         )])
@@ -218,13 +218,34 @@ fn parser_bundle_snapshot_rejects_imported_dmn_execution() {
         )]),
         &BpmnParseOptions::default(),
     )
-    .must_err("imported DMN execution should stay outside the bounded parser slice");
+    .must("imported DMN source should load as metadata-only package state");
 
+    assert!(package.dmn_decisions().is_empty());
+    assert!(package.dmn_input_data().is_empty());
+    assert!(package.dmn_business_knowledge_models().is_empty());
+    assert!(package.dmn_decision_services().is_empty());
+    assert_eq!(package.dmn_source_definitions().len(), 1);
+    assert_eq!(package.dmn_imports().len(), 1);
+
+    let source = package
+        .find_dmn_source_definition_by_namespace(
+            "https://example.com/dmn/unsupported-top-level-import",
+        )
+        .must("source namespace lookup should stay deterministic")
+        .must("imported source root metadata should be registered");
     assert_eq!(
-        error,
-        BpmnEngineError::UnsupportedDmnImport {
-            source_id: "unsupported-top-level-import-20191111.dmn".to_string(),
-        }
+        source.source_id.as_ref(),
+        "unsupported-top-level-import-20191111.dmn"
+    );
+
+    let bindings = package
+        .dmn_import_source_bindings()
+        .must("import source binding report should remain deterministic");
+    assert_eq!(bindings.len(), 1);
+    assert!(!bindings[0].is_bound());
+    assert_eq!(
+        bindings[0].dmn_import.namespace.as_deref(),
+        Some("https://example.com/dmn/partner-services")
     );
 }
 

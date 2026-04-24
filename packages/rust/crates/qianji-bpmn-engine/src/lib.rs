@@ -11,12 +11,13 @@
 //! snapshot surface and LLM-friendly BPMN/DMN lint reports. Parser-owned
 //! bundle snapshots can now also attach bounded DMN sources to one BPMN
 //! package, including one non-executable DMN source-root registry, one
-//! non-executable top-level `import` registry, multiple bounded decisions plus
-//! one bounded `inputData` registry and one bounded top-level
-//! `businessKnowledgeModel` registry from one DMN source, so local
-//! business-rule execution, bounded same-source input aliasing, and later
-//! same-source knowledge or imported-source lookup prerequisites are populated
-//! from parse-time inputs instead of test-only manual wiring.
+//! non-executable top-level `import` registry, metadata-only imported-DMN
+//! source loading, multiple bounded decisions plus one bounded `inputData`
+//! registry and one bounded top-level `businessKnowledgeModel` registry from
+//! executable DMN sources, so local business-rule execution, bounded
+//! same-source input aliasing, and later same-source knowledge or
+//! imported-source lookup prerequisites are populated from parse-time inputs
+//! instead of test-only manual wiring.
 //! Bounded `parallelGateway` split/join semantics, bounded
 //! `exclusiveGateway` routing with simple boolean-path or numeric-comparison
 //! outgoing `sequenceFlow` `conditionExpression` values plus one optional

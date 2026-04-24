@@ -39,9 +39,11 @@ context. Other preserved exposure refs are consumed only as same-source closure
 validation, not as executable orchestration. Imported hrefs, broader DRD
 planning, and general decision-service orchestration all remain deferred.
 Top-level DMN imports are now preserved in document snapshots with bounded
-`name`, `namespace`, `locationURI`, and `importType` metadata, but executable
-package loading still rejects them. The package model now has a
-non-executable, source-scoped import registry that keeps the declaring
+`name`, `namespace`, `locationURI`, and `importType` metadata. Bundle loading
+can preserve source-root and import metadata for those imported DMN sources,
+but it keeps them out of executable decision, input-data,
+business-knowledge-model, and decision-service registries. The package model
+now has a non-executable, source-scoped import registry that keeps the declaring
 `source_id`, import alias, imported namespace, location URI, and import type
 separate; future cross-document lookup must resolve through that contract
 instead of treating aliases, namespaces, and source ids as interchangeable.

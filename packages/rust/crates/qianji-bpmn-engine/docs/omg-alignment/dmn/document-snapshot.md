@@ -91,6 +91,10 @@ owned by `qianji-bpmn-engine`.
 - package consumers can now request one owned import-to-source binding report
   for every registered import; unresolved entries stay explicit metadata
   observations, and ambiguous target namespaces still fail deterministically
+- bundle parsing now preserves source-root and import registry metadata for
+  DMN sources that declare top-level imports, but those sources do not
+  populate executable decision, input-data, business-knowledge-model, or
+  decision-service registries
 - top-level `itemDefinition` metadata is preserved so lint, adapter, and
   later DMN type-model work can reuse stable engine-owned placeholders
 - one bounded direct `itemComponent` layer is preserved under each top-level
