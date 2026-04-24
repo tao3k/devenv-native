@@ -1,8 +1,7 @@
 use super::scope::{
     Borrow, BpmnAdvanceOutcome, BpmnEngineError, BpmnEventKind, BpmnInstanceState, BpmnNodeIndex,
-    BpmnNodeKind, BpmnPackage, BpmnProcessSpec, DmnEvaluationRequest, InstanceLifecycle,
-    NodeRuntimeStatus, PendingHostWorkKind, PendingHostWorkResult, Result,
-    evaluate_dmn_package_decision_sync,
+    BpmnNodeKind, BpmnPackage, BpmnProcessSpec, InstanceLifecycle, NodeRuntimeStatus,
+    PendingHostWorkKind, PendingHostWorkResult, Result, evaluate_dmn_package_binding_sync,
 };
 use super::{
     blocking, call_activity, completion, error, gateway, prepare, repeat, state, transaction,
@@ -365,12 +364,7 @@ fn advance_business_rule_task(
         })?;
     let variables =
         repeat::materialize_node_execution_variables(instance, current_node_index, token_id)?;
-    if let Some(definition) = package.find_dmn_decision(&decision)? {
-        let evaluation = evaluate_dmn_package_decision_sync(
-            package,
-            definition,
-            &DmnEvaluationRequest::new(decision.clone(), variables),
-        )?;
+    if let Some(evaluation) = evaluate_dmn_package_binding_sync(package, &decision, &variables)? {
         if current_node.is_for_compensation
             && transaction::transaction_compensation_is_running(instance)
         {

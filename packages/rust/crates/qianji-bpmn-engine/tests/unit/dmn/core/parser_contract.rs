@@ -1,7 +1,8 @@
 use super::super::{assert_dmn_json_snapshot, fixture_source};
 use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{
-    DmnHitPolicy, DmnInformationRequirementReference, parse_dmn_decision, parse_dmn_decisions,
+    DmnHitPolicy, DmnInformationRequirementReference, DmnKnowledgeRequirementReference,
+    parse_dmn_decision, parse_dmn_decisions,
 };
 
 #[test]
@@ -53,5 +54,21 @@ fn dmn_parser_preserves_executable_information_requirement_contract() {
             DmnInformationRequirementReference::new("requiredInput", Some("#InputData_customer")),
             DmnInformationRequirementReference::new("requiredDecision", Some("#Decision_upstream")),
         ]
+    );
+}
+
+#[test]
+fn dmn_parser_preserves_executable_knowledge_requirement_contract() {
+    let decision = parse_dmn_decision(&fixture_source(
+        "versioned-local-required-knowledge-runtime-20191111.dmn",
+    ))
+    .must("required-knowledge invocation source should parse");
+
+    assert_eq!(
+        decision.knowledge_requirements,
+        vec![DmnKnowledgeRequirementReference::new(
+            "requiredKnowledge",
+            Some("#BKM_score_card"),
+        )]
     );
 }

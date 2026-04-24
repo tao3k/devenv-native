@@ -107,6 +107,72 @@ fn parser_bundle_snapshot_populates_package_dmn_business_knowledge_model_registr
 }
 
 #[test]
+fn parser_bundle_snapshot_keeps_local_invocation_and_bkm_contract_together() {
+    let package = parse_bpmn_bundle(
+        &BpmnBundleSnapshot::new(vec![fixture_source(
+            "linear-business-rule-placeholder.bpmn",
+        )])
+        .with_dmn_sources(vec![dmn_fixture_source(
+            "versioned-local-bkm-invocation-runtime-20191111.dmn",
+        )]),
+        &BpmnParseOptions::default(),
+    )
+    .must("bundle snapshot should keep local invocation and BKM contracts together");
+
+    let decision = package
+        .find_dmn_decision(
+            &qianji_bpmn_engine::DmnDecisionRef::new("Decision_invocation_runtime")
+                .with_source_id("versioned-local-bkm-invocation-runtime-20191111.dmn"),
+        )
+        .must("registered invocation decision lookup should succeed")
+        .must("registered invocation decision should be present");
+
+    assert_eq!(package.dmn_decisions().len(), 1);
+    assert_eq!(package.dmn_business_knowledge_models().len(), 1);
+    assert_eq!(
+        decision
+            .invocation
+            .as_ref()
+            .and_then(|invocation| invocation.invoked_expression.as_ref())
+            .map(|expression| expression.text.as_ref()),
+        Some("scoreCard")
+    );
+}
+
+#[test]
+fn parser_bundle_snapshot_populates_package_dmn_decision_service_registry() {
+    let package = parse_bpmn_bundle(
+        &BpmnBundleSnapshot::new(vec![fixture_source(
+            "linear-business-rule-placeholder.bpmn",
+        )])
+        .with_dmn_sources(vec![dmn_fixture_source(
+            "versioned-local-decision-service-runtime-20191111.dmn",
+        )]),
+        &BpmnParseOptions::default(),
+    )
+    .must("bundle snapshot should populate the package decision-service registry");
+
+    let decision_service = package
+        .find_dmn_decision_service(
+            &qianji_bpmn_engine::DmnDecisionRef::new("DecisionService_credit")
+                .with_source_id("versioned-local-decision-service-runtime-20191111.dmn"),
+        )
+        .must("registered decision-service lookup should succeed")
+        .must("registered decision service should be present");
+
+    assert_eq!(package.dmn_decision_services().len(), 1);
+    assert_eq!(
+        decision_service.name.as_deref(),
+        Some("Credit Decision Service")
+    );
+    assert_eq!(decision_service.output_decisions.len(), 1);
+    assert_eq!(
+        decision_service.output_decisions[0].href.as_deref(),
+        Some("#Decision_approval")
+    );
+}
+
+#[test]
 fn parser_bundle_snapshot_surfaces_invalid_dmn_sources() {
     let error = parse_bpmn_bundle(
         &BpmnBundleSnapshot::new(vec![fixture_source(

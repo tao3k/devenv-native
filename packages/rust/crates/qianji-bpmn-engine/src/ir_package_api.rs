@@ -1,6 +1,6 @@
 use crate::dmn_model_api::{
     DmnBusinessKnowledgeModelDefinition, DmnDecisionDefinition, DmnDecisionRef,
-    DmnInputDataDefinition,
+    DmnDecisionServiceDefinition, DmnInputDataDefinition,
 };
 use crate::error::{BpmnEngineError, Result};
 use crate::ir_process_lookup::usize_to_u32;
@@ -24,6 +24,10 @@ pub struct BpmnPackage {
     /// local knowledge lookup.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub dmn_business_knowledge_models: Vec<DmnBusinessKnowledgeModelDefinition>,
+    /// Optional engine-owned DMN decision-service registry for bounded local
+    /// business-rule alias execution.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub dmn_decision_services: Vec<DmnDecisionServiceDefinition>,
 }
 
 impl BpmnPackage {
@@ -36,6 +40,7 @@ impl BpmnPackage {
             dmn_decisions: Vec::new(),
             dmn_input_data: Vec::new(),
             dmn_business_knowledge_models: Vec::new(),
+            dmn_decision_services: Vec::new(),
         }
     }
 
@@ -60,6 +65,16 @@ impl BpmnPackage {
         dmn_business_knowledge_models: Vec<DmnBusinessKnowledgeModelDefinition>,
     ) -> Self {
         self.dmn_business_knowledge_models = dmn_business_knowledge_models;
+        self
+    }
+
+    /// Attaches engine-owned DMN decision-service definitions to the package.
+    #[must_use]
+    pub fn with_dmn_decision_services(
+        mut self,
+        dmn_decision_services: Vec<DmnDecisionServiceDefinition>,
+    ) -> Self {
+        self.dmn_decision_services = dmn_decision_services;
         self
     }
 
@@ -101,6 +116,13 @@ impl BpmnPackage {
         &self.dmn_business_knowledge_models
     }
 
+    /// Returns the registered DMN decision-service definitions owned by the
+    /// package.
+    #[must_use]
+    pub fn dmn_decision_services(&self) -> &[DmnDecisionServiceDefinition] {
+        &self.dmn_decision_services
+    }
+
     /// Finds one deterministic DMN decision definition for a business-rule reference.
     ///
     /// # Errors
@@ -122,6 +144,41 @@ impl BpmnPackage {
         if additional_matches > 0 {
             return Err(BpmnEngineError::AmbiguousDmnDecisionReference {
                 decision_id: decision_ref.decision_id.to_string(),
+                source_id: decision_ref.source_id.as_ref().map(ToString::to_string),
+                count: additional_matches + 1,
+                source_suffix: decision_ref
+                    .source_id
+                    .as_ref()
+                    .map(|source_id| format!(" in source '{source_id}'"))
+                    .unwrap_or_default(),
+            });
+        }
+        Ok(Some(first_match))
+    }
+
+    /// Finds one deterministic DMN decision-service definition for a
+    /// business-rule reference.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`BpmnEngineError::AmbiguousDmnDecisionServiceReference`] when
+    /// more than one registered decision service matches the provided
+    /// reference.
+    pub fn find_dmn_decision_service(
+        &self,
+        decision_ref: &DmnDecisionRef,
+    ) -> Result<Option<&DmnDecisionServiceDefinition>> {
+        let mut matches = self
+            .dmn_decision_services
+            .iter()
+            .filter(|decision_service| decision_service.matches_reference(decision_ref));
+        let Some(first_match) = matches.next() else {
+            return Ok(None);
+        };
+        let additional_matches = matches.count();
+        if additional_matches > 0 {
+            return Err(BpmnEngineError::AmbiguousDmnDecisionServiceReference {
+                decision_service_id: decision_ref.decision_id.to_string(),
                 source_id: decision_ref.source_id.as_ref().map(ToString::to_string),
                 count: additional_matches + 1,
                 source_suffix: decision_ref

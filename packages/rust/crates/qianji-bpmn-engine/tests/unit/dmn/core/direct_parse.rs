@@ -108,3 +108,61 @@ fn dmn_parser_direct_relation_expression_materializes_contract() {
     assert_eq!(relation.rows[1].cells[0].text.as_ref(), "\"Lender B\"");
     assert_eq!(relation.rows[1].cells[1].text.as_ref(), "4.10");
 }
+
+#[test]
+fn dmn_parser_direct_invocation_materializes_contract() {
+    let decision = parse_dmn_decision(&fixture_source(
+        "versioned-invocation-decision-20191111.dmn",
+    ))
+    .must("bounded direct invocation DMN source should parse");
+
+    assert_eq!(
+        decision.decision.decision_id.as_ref(),
+        "Decision_invocation"
+    );
+    assert!(decision.table.inputs.is_empty());
+    assert!(decision.table.outputs.is_empty());
+    assert!(decision.table.rules.is_empty());
+    let invocation = decision
+        .invocation
+        .as_ref()
+        .must("direct invocation should be retained");
+    assert_eq!(invocation.invocation_id.as_deref(), Some("invocation_1"));
+    assert_eq!(
+        invocation
+            .invoked_expression
+            .as_ref()
+            .and_then(|expression| expression.expression_id.as_deref()),
+        Some("literal_expression_function")
+    );
+    assert_eq!(
+        invocation
+            .invoked_expression
+            .as_ref()
+            .must("invoked expression should be present")
+            .text
+            .as_ref(),
+        "scoreCard"
+    );
+    assert_eq!(invocation.bindings.len(), 1);
+    assert_eq!(
+        invocation.bindings[0].binding_id.as_deref(),
+        Some("binding_1")
+    );
+    assert_eq!(
+        invocation.bindings[0]
+            .parameter
+            .as_ref()
+            .and_then(|parameter| parameter.name.as_deref()),
+        Some("age")
+    );
+    assert_eq!(
+        invocation.bindings[0]
+            .argument
+            .as_ref()
+            .must("binding argument should be present")
+            .text
+            .as_ref(),
+        "applicant.age"
+    );
+}

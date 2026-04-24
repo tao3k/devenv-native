@@ -26,12 +26,14 @@ where requirement targets are DMN element references with `href` payloads.
 The evaluator now consumes one bounded subset of executable
 `informationRequirement` references: direct same-source `requiredDecision`
 recursion plus one bounded same-source `requiredInput` alias bind when
-parse-time `inputData` metadata is available. Broader href resolution, import
-resolution, decision-service orchestration, BKM execution, authority- or
-knowledge-requirement execution, and dependency scheduling remain deferred.
-`knowledgeRequirement` remains non-executable because runtime still does not
-consume the now-preserved bounded BKM invocable `variable` /
-`encapsulatedLogic` contract.
+parse-time `inputData` metadata is available. The evaluator also now consumes
+one bounded executable `knowledgeRequirement` subset: when a decision already
+has direct local invocation logic, same-source `requiredKnowledge` hrefs can
+constrain that invocation target to the explicitly declared top-level BKM ids.
+Broader href resolution, import resolution, decision-service orchestration,
+standalone BKM execution, authority execution, and dependency scheduling
+remain deferred. `knowledgeRequirement` still does not auto-materialize a
+missing local decision body by itself.
 
 ## Repair Guidance
 

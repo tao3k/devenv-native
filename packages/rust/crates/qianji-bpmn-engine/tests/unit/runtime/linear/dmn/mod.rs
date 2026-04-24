@@ -1,4 +1,7 @@
-use super::super::{StubHost, dmn_fixture_definitions, dmn_fixture_input_data};
+use super::super::{
+    StubHost, dmn_fixture_business_knowledge_models, dmn_fixture_decision_services,
+    dmn_fixture_definitions, dmn_fixture_input_data,
+};
 use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnEdgeSpec, BpmnEngineError, BpmnInstanceInit, BpmnInstanceState,
@@ -76,7 +79,9 @@ async fn run_local_business_rule_task(
     let package = Arc::new(
         BpmnPackage::new("pkg_runtime", vec![process])
             .with_dmn_decisions(dmn_fixture_definitions(source_id))
-            .with_dmn_input_data(dmn_fixture_input_data(source_id)),
+            .with_dmn_input_data(dmn_fixture_input_data(source_id))
+            .with_dmn_business_knowledge_models(dmn_fixture_business_knowledge_models(source_id))
+            .with_dmn_decision_services(dmn_fixture_decision_services(source_id)),
     );
     let mut instance = create_instance(
         Arc::clone(&package),

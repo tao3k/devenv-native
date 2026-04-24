@@ -16,7 +16,7 @@ fn dmn_linter_reports_decision_service_with_construct_specific_guidance() {
     assert!(
         issue
             .why_it_failed
-            .contains("does not execute `decisionService`")
+            .contains("metadata-only decision-service documents remain non-executable")
     );
     assert!(issue.why_it_failed.contains("name 'Decision Service 1'"));
     assert!(

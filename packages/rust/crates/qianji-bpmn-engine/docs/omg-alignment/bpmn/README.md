@@ -9,8 +9,13 @@ The current engine is intentionally bounded. Alignment means:
 - the runtime executes that same shape deterministically
 - the lint surface explains unsupported shapes in an LLM-friendly way
 
+The source-backed clause registry for these notes lives in
+[BPMN Official Source Map](spec-source-map.md).
+
 ## Current Modules
 
+- [Official Source Map](spec-source-map.md)
+- [Collaboration, Lanes, and Data](collaboration-lanes-and-data.md)
 - [Events and Boundaries](events-and-boundaries.md)
 - [Gateways and Concurrency](gateways-and-concurrency.md)
 - [Loops and Multi-Instance](loops-and-multi-instance.md)

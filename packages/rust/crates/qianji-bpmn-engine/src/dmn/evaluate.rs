@@ -1,5 +1,6 @@
 //! Bounded DMN evaluation internals.
 
+use super::literal_expression::evaluate_dmn_literal_expression;
 use crate::dmn::{
     evaluate_dmn_context_expression_decision, evaluate_dmn_list_expression_decision,
     evaluate_dmn_literal_expression_decision, evaluate_dmn_relation_expression_decision,
@@ -9,10 +10,11 @@ use crate::dmn_duration::{
 };
 use crate::dmn_model_api::{
     DmnComparisonOperator, DmnDateComparison, DmnDateRange, DmnDateTimeComparison,
-    DmnDateTimeRange, DmnDecisionDefinition, DmnDecisionRef, DmnDurationComparison,
-    DmnDurationRange, DmnEvaluationRequest, DmnEvaluationResult, DmnHitPolicy,
-    DmnInformationRequirementReference, DmnInputClause, DmnInputEntry, DmnNumericRange, DmnRule,
-    DmnTimeComparison, DmnTimeRange,
+    DmnDateTimeRange, DmnDecisionDefinition, DmnDecisionRef, DmnDecisionServiceDefinition,
+    DmnDecisionServiceReference, DmnDurationComparison, DmnDurationRange, DmnEvaluationRequest,
+    DmnEvaluationResult, DmnHitPolicy, DmnInformationRequirementReference, DmnInputClause,
+    DmnInputEntry, DmnKnowledgeRequirementReference, DmnNumericRange, DmnRule, DmnTimeComparison,
+    DmnTimeRange,
 };
 use crate::error::{BpmnEngineError, Result};
 use crate::ir::BpmnPackage;
@@ -37,6 +39,45 @@ pub(crate) fn evaluate_dmn_package_decision_sync(
     evaluate_dmn_package_decision_with_stack(package, decision, request, &mut stack)
 }
 
+/// Synchronous bounded package-aware DMN binding entrypoint for in-engine
+/// runtime paths that can consume either one registered local decision or one
+/// bounded local decision-service alias.
+pub(crate) fn evaluate_dmn_package_binding_sync(
+    package: &BpmnPackage,
+    decision_ref: &DmnDecisionRef,
+    variables: &Value,
+) -> Result<Option<DmnEvaluationResult>> {
+    if let Some(definition) = package.find_dmn_decision(decision_ref)? {
+        return evaluate_dmn_package_decision_sync(
+            package,
+            definition,
+            &DmnEvaluationRequest::new(decision_ref.clone(), variables.clone()),
+        )
+        .map(Some);
+    }
+    let Some(decision_service) = package.find_dmn_decision_service(decision_ref)? else {
+        return Ok(None);
+    };
+    let output_decisions = resolve_decision_service_output_decisions(package, decision_service)?;
+    validate_decision_service_exposure_contract(package, decision_service)?;
+    if let [output_decision] = output_decisions.as_slice() {
+        return evaluate_dmn_package_decision_sync(
+            package,
+            output_decision,
+            &DmnEvaluationRequest::new(output_decision.decision.clone(), variables.clone()),
+        )
+        .map(Some);
+    }
+
+    evaluate_dmn_package_decision_service_outputs_sync(
+        package,
+        decision_service,
+        &output_decisions,
+        variables,
+    )
+    .map(Some)
+}
+
 /// Synchronous bounded DMN evaluation entrypoint for in-engine runtime paths.
 pub(crate) fn evaluate_dmn_decision_sync(
     decision: &DmnDecisionDefinition,
@@ -54,6 +95,11 @@ pub(crate) fn evaluate_dmn_decision_sync(
     }
     if let Some(relation) = decision.relation_expression.as_ref() {
         return evaluate_dmn_relation_expression_decision(decision, relation, &request.variables);
+    }
+    if decision.invocation.is_some() {
+        return Err(BpmnEngineError::UnsupportedOperation {
+            operation: "evaluate_dmn_invocation_without_package_context",
+        });
     }
 
     let mut matched_rule_ids = Vec::new();
@@ -126,6 +172,9 @@ fn evaluate_dmn_package_decision_with_stack(
             &request.variables,
             stack,
         )?;
+        if let Some(invocation) = decision.invocation.as_ref() {
+            return evaluate_dmn_invocation(package, decision, invocation, &variables);
+        }
         evaluate_dmn_decision_sync(
             decision,
             &DmnEvaluationRequest::new(request.decision.clone(), variables),
@@ -133,6 +182,339 @@ fn evaluate_dmn_package_decision_with_stack(
     })();
     let _ = stack.pop();
     result
+}
+
+fn evaluate_dmn_invocation(
+    package: &BpmnPackage,
+    decision: &DmnDecisionDefinition,
+    invocation: &crate::dmn_model_api::DmnInvocation,
+    variables: &Value,
+) -> Result<DmnEvaluationResult> {
+    let target_name = invocation_target_name(decision, invocation)?;
+    let target =
+        resolve_invocation_business_knowledge_model(package, decision, target_name.as_str())?;
+    let logic =
+        target
+            .encapsulated_logic
+            .as_ref()
+            .ok_or(BpmnEngineError::UnsupportedOperation {
+                operation: "evaluate_dmn_invocation_without_encapsulated_logic",
+            })?;
+    let body = logic
+        .body
+        .as_ref()
+        .ok_or(BpmnEngineError::UnsupportedOperation {
+            operation: "evaluate_dmn_invocation_without_bkm_literal_body",
+        })?;
+    let body_text = body
+        .text
+        .as_deref()
+        .filter(|text| !text.trim().is_empty())
+        .ok_or(BpmnEngineError::UnsupportedOperation {
+            operation: "evaluate_dmn_invocation_without_bkm_literal_body",
+        })?;
+
+    let mut scope = variables.as_object().cloned().unwrap_or_default();
+    for binding in &invocation.bindings {
+        let parameter_name = binding
+            .parameter
+            .as_ref()
+            .and_then(|parameter| parameter.name.as_deref())
+            .filter(|name| is_simple_identifier(name))
+            .ok_or(BpmnEngineError::UnsupportedOperation {
+                operation: "evaluate_dmn_invocation_without_named_parameter",
+            })?;
+        let argument = binding
+            .argument
+            .as_ref()
+            .ok_or(BpmnEngineError::UnsupportedOperation {
+                operation: "evaluate_dmn_invocation_without_argument",
+            })?;
+        let value = evaluate_dmn_literal_expression(
+            decision.source_id.as_ref(),
+            argument.text.as_ref(),
+            variables,
+        )?;
+        scope.insert(parameter_name.to_string(), value);
+    }
+
+    let value = evaluate_dmn_literal_expression(
+        decision.source_id.as_ref(),
+        body_text,
+        &Value::Object(scope),
+    )?;
+    let mut output = Map::new();
+    output.insert(decision.decision.decision_id.to_string(), value);
+    Ok(DmnEvaluationResult::new(
+        decision.decision.decision_id.as_ref(),
+        Value::Object(output),
+        Vec::new(),
+    ))
+}
+
+fn invocation_target_name(
+    _decision: &DmnDecisionDefinition,
+    invocation: &crate::dmn_model_api::DmnInvocation,
+) -> Result<String> {
+    invocation
+        .invoked_expression
+        .as_ref()
+        .map(|expression| expression.text.trim())
+        .filter(|text| is_simple_identifier(text))
+        .map(ToString::to_string)
+        .ok_or(BpmnEngineError::UnsupportedOperation {
+            operation: "evaluate_dmn_invocation_unsupported_target_expression",
+        })
+}
+
+fn resolve_invocation_business_knowledge_model<'a>(
+    package: &'a BpmnPackage,
+    decision: &DmnDecisionDefinition,
+    target_name: &str,
+) -> Result<&'a crate::dmn_model_api::DmnBusinessKnowledgeModelDefinition> {
+    let allowed_targets = resolve_required_knowledge_targets(package, decision)?;
+    let matches = match allowed_targets.as_ref() {
+        Some(allowed_targets) => allowed_targets
+            .iter()
+            .copied()
+            .filter(|business_knowledge_model| {
+                business_knowledge_model
+                    .business_knowledge_model_id
+                    .as_deref()
+                    == Some(target_name)
+                    || business_knowledge_model.variable_name.as_deref() == Some(target_name)
+            })
+            .collect::<Vec<_>>(),
+        None => package
+            .dmn_business_knowledge_models()
+            .iter()
+            .filter(|business_knowledge_model| {
+                business_knowledge_model.source_id.as_ref() == decision.source_id.as_ref()
+                    && (business_knowledge_model
+                        .business_knowledge_model_id
+                        .as_deref()
+                        == Some(target_name)
+                        || business_knowledge_model.variable_name.as_deref() == Some(target_name))
+            })
+            .collect::<Vec<_>>(),
+    };
+
+    match matches.as_slice() {
+        [target] => Ok(*target),
+        [] => Err(if allowed_targets.is_some() {
+            BpmnEngineError::UndeclaredDmnInvocationKnowledgeTarget {
+                source_id: decision.source_id.to_string(),
+                decision_id: decision.decision.decision_id.to_string(),
+                target: target_name.to_string(),
+            }
+        } else {
+            BpmnEngineError::MissingDmnInvocationTarget {
+                source_id: decision.source_id.to_string(),
+                decision_id: decision.decision.decision_id.to_string(),
+                target: target_name.to_string(),
+            }
+        }),
+        _ => Err(BpmnEngineError::AmbiguousDmnInvocationTarget {
+            source_id: decision.source_id.to_string(),
+            decision_id: decision.decision.decision_id.to_string(),
+            target: target_name.to_string(),
+            count: matches.len(),
+        }),
+    }
+}
+
+fn resolve_decision_service_output_decisions<'a>(
+    package: &'a BpmnPackage,
+    decision_service: &DmnDecisionServiceDefinition,
+) -> Result<Vec<&'a DmnDecisionDefinition>> {
+    if decision_service.output_decisions.is_empty() {
+        return Err(BpmnEngineError::UnsupportedDmnDecisionServiceOutputCount {
+            source_id: decision_service.source_id.to_string(),
+            decision_service_id: decision_service_id_for_error(decision_service),
+            count: decision_service.output_decisions.len(),
+        });
+    }
+
+    decision_service
+        .output_decisions
+        .iter()
+        .map(|output_reference| {
+            let target_id = decision_service_output_href(decision_service, output_reference)?;
+            let decision_ref =
+                DmnDecisionRef::new(target_id).with_source_id(decision_service.source_id.as_ref());
+            package.find_dmn_decision(&decision_ref)?.ok_or_else(|| {
+                BpmnEngineError::MissingDmnDecisionServiceOutputTarget {
+                    source_id: decision_service.source_id.to_string(),
+                    decision_service_id: decision_service_id_for_error(decision_service),
+                    href: output_reference
+                        .href
+                        .as_deref()
+                        .unwrap_or("<missing>")
+                        .to_string(),
+                }
+            })
+        })
+        .collect()
+}
+
+fn evaluate_dmn_package_decision_service_outputs_sync(
+    package: &BpmnPackage,
+    decision_service: &DmnDecisionServiceDefinition,
+    output_decisions: &[&DmnDecisionDefinition],
+    variables: &Value,
+) -> Result<DmnEvaluationResult> {
+    let mut output = Value::Object(Map::new());
+    let mut matched_rule_ids = Vec::new();
+
+    for output_decision in output_decisions {
+        let evaluation = evaluate_dmn_package_decision_sync(
+            package,
+            output_decision,
+            &DmnEvaluationRequest::new(output_decision.decision.clone(), variables.clone()),
+        )?;
+        merge_evaluation_output(&mut output, &evaluation.output);
+        matched_rule_ids.extend(evaluation.matched_rule_ids);
+    }
+
+    Ok(DmnEvaluationResult::new(
+        decision_service_id_for_error(decision_service),
+        output,
+        matched_rule_ids,
+    ))
+}
+
+fn resolve_required_knowledge_targets<'a>(
+    package: &'a BpmnPackage,
+    decision: &DmnDecisionDefinition,
+) -> Result<Option<Vec<&'a crate::dmn_model_api::DmnBusinessKnowledgeModelDefinition>>> {
+    if decision.knowledge_requirements.is_empty() {
+        return Ok(None);
+    }
+
+    let mut targets = Vec::with_capacity(decision.knowledge_requirements.len());
+    for requirement in &decision.knowledge_requirements {
+        targets.push(resolve_required_knowledge_definition(
+            package,
+            decision,
+            requirement,
+        )?);
+    }
+    Ok(Some(targets))
+}
+
+fn validate_decision_service_exposure_contract(
+    package: &BpmnPackage,
+    decision_service: &DmnDecisionServiceDefinition,
+) -> Result<()> {
+    for reference in &decision_service.encapsulated_decisions {
+        let _ = resolve_decision_service_decision_reference(package, decision_service, reference)?;
+    }
+    for reference in &decision_service.input_decisions {
+        let _ = resolve_decision_service_decision_reference(package, decision_service, reference)?;
+    }
+    for reference in &decision_service.input_data {
+        let _ =
+            resolve_decision_service_input_data_reference(package, decision_service, reference)?;
+    }
+    Ok(())
+}
+
+fn decision_service_output_href(
+    decision_service: &DmnDecisionServiceDefinition,
+    reference: &DmnDecisionServiceReference,
+) -> Result<String> {
+    let href = reference.href.as_deref().unwrap_or("<missing>");
+    href.strip_prefix('#')
+        .filter(|target| !target.is_empty())
+        .map(ToString::to_string)
+        .ok_or_else(
+            || BpmnEngineError::UnsupportedDmnDecisionServiceOutputHref {
+                source_id: decision_service.source_id.to_string(),
+                decision_service_id: decision_service_id_for_error(decision_service),
+                href: href.to_string(),
+            },
+        )
+}
+
+fn resolve_decision_service_decision_reference<'a>(
+    package: &'a BpmnPackage,
+    decision_service: &DmnDecisionServiceDefinition,
+    reference: &DmnDecisionServiceReference,
+) -> Result<&'a DmnDecisionDefinition> {
+    let target_id = decision_service_reference_target_id(decision_service, reference)?;
+    let decision_ref =
+        DmnDecisionRef::new(&target_id).with_source_id(decision_service.source_id.as_ref());
+    package.find_dmn_decision(&decision_ref)?.ok_or_else(|| {
+        BpmnEngineError::MissingDmnDecisionServiceReferenceTarget {
+            source_id: decision_service.source_id.to_string(),
+            decision_service_id: decision_service_id_for_error(decision_service),
+            reference_kind: reference.reference_kind.to_string(),
+            href: reference.href.as_deref().unwrap_or("<missing>").to_string(),
+        }
+    })
+}
+
+fn resolve_decision_service_input_data_reference<'a>(
+    package: &'a BpmnPackage,
+    decision_service: &DmnDecisionServiceDefinition,
+    reference: &DmnDecisionServiceReference,
+) -> Result<&'a crate::dmn_model_api::DmnInputDataDefinition> {
+    let target_id = decision_service_reference_target_id(decision_service, reference)?;
+    package
+        .find_dmn_input_data(decision_service.source_id.as_ref(), &target_id)
+        .ok_or_else(
+            || BpmnEngineError::MissingDmnDecisionServiceReferenceTarget {
+                source_id: decision_service.source_id.to_string(),
+                decision_service_id: decision_service_id_for_error(decision_service),
+                reference_kind: reference.reference_kind.to_string(),
+                href: reference.href.as_deref().unwrap_or("<missing>").to_string(),
+            },
+        )
+}
+
+fn decision_service_reference_target_id(
+    decision_service: &DmnDecisionServiceDefinition,
+    reference: &DmnDecisionServiceReference,
+) -> Result<String> {
+    let href = reference.href.as_deref().unwrap_or("<missing>");
+    href.strip_prefix('#')
+        .filter(|target| !target.is_empty())
+        .map(ToString::to_string)
+        .ok_or_else(
+            || BpmnEngineError::UnsupportedDmnDecisionServiceReferenceHref {
+                source_id: decision_service.source_id.to_string(),
+                decision_service_id: decision_service_id_for_error(decision_service),
+                reference_kind: reference.reference_kind.to_string(),
+                href: href.to_string(),
+            },
+        )
+}
+
+fn decision_service_id_for_error(decision_service: &DmnDecisionServiceDefinition) -> String {
+    decision_service
+        .decision_service_id
+        .as_deref()
+        .unwrap_or("<missing>")
+        .to_string()
+}
+
+fn resolve_required_knowledge_definition<'a>(
+    package: &'a BpmnPackage,
+    decision: &DmnDecisionDefinition,
+    requirement: &DmnKnowledgeRequirementReference,
+) -> Result<&'a crate::dmn_model_api::DmnBusinessKnowledgeModelDefinition> {
+    let target_id = knowledge_requirement_href(decision, requirement)?;
+    package
+        .find_dmn_business_knowledge_model(decision.source_id.as_ref(), &target_id)
+        .ok_or_else(|| BpmnEngineError::MissingDmnRequiredKnowledgeTarget {
+            source_id: decision.source_id.to_string(),
+            decision_id: decision.decision.decision_id.to_string(),
+            href: requirement
+                .href
+                .as_deref()
+                .unwrap_or("<missing>")
+                .to_string(),
+        })
 }
 
 fn validate_request_matches_decision(
@@ -258,6 +640,21 @@ fn information_requirement_href(
         )
 }
 
+fn knowledge_requirement_href(
+    decision: &DmnDecisionDefinition,
+    requirement: &DmnKnowledgeRequirementReference,
+) -> Result<String> {
+    let href = requirement.href.as_deref().unwrap_or("<missing>");
+    href.strip_prefix('#')
+        .filter(|target| !target.is_empty())
+        .map(ToString::to_string)
+        .ok_or_else(|| BpmnEngineError::UnsupportedDmnKnowledgeRequirementHref {
+            source_id: decision.source_id.to_string(),
+            decision_id: decision.decision.decision_id.to_string(),
+            href: href.to_string(),
+        })
+}
+
 fn merge_evaluation_output(variables: &mut Value, output: &Value) {
     let (Some(variables), Some(output)) = (variables.as_object_mut(), output.as_object()) else {
         return;
@@ -265,6 +662,15 @@ fn merge_evaluation_output(variables: &mut Value, output: &Value) {
     for (key, value) in output {
         variables.insert(key.clone(), value.clone());
     }
+}
+
+fn is_simple_identifier(name: &str) -> bool {
+    let mut chars = name.chars();
+    let Some(first) = chars.next() else {
+        return false;
+    };
+    (first.is_ascii_alphabetic() || first == '_')
+        && chars.all(|ch| ch.is_ascii_alphanumeric() || ch == '_')
 }
 
 fn rule_matches(decision: &DmnDecisionDefinition, rule: &DmnRule, variables: &Value) -> bool {

@@ -42,7 +42,7 @@ use async_trait::async_trait;
 use tokio::sync::Mutex;
 use tokio::sync::mpsc;
 
-use xiuxian_daochang::{Agent, AgentConfig, Channel, ChannelMessage, MemoryConfig};
+use xiuxian_daochang::{Agent, AgentConfig, Channel, ChannelMessage, MemoryConfig, SessionStore};
 
 use super::{MockChannel, build_agent, build_job_manager, handle_inbound_message, inbound};
 
@@ -130,7 +130,14 @@ async fn build_memory_enabled_agent() -> Result<Arc<Agent>> {
         }),
         ..AgentConfig::default()
     };
-    Ok(Arc::new(Agent::from_config(config).await?))
+    Ok(Arc::new(
+        Agent::from_config_with_session_backends_for_test(
+            config,
+            SessionStore::new_in_memory_for_test(),
+            None,
+        )
+        .await?,
+    ))
 }
 
 #[tokio::test]

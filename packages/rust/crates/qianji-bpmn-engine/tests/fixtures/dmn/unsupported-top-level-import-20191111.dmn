@@ -8,6 +8,7 @@
   <import
     namespace="https://example.com/dmn/partner-services"
     name="Partner Services"
+    locationURI="partner-services.dmn"
     importType="https://www.omg.org/spec/DMN/20191111/MODEL/"/>
   <decision id="Decision_imported_offer" name="Imported Offer Decision">
     <decisionTable id="DecisionTable_imported_offer" hitPolicy="UNIQUE">

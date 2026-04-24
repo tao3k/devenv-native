@@ -7,11 +7,16 @@ The current engine does not attempt full DMN coverage. It owns one bounded
 decision-table evaluator plus parser and lint surfaces that are designed to
 stay explicit about the supported subset.
 
+The source-backed clause registry for these notes lives in
+[DMN Official Source Map](spec-source-map.md).
+
 ## Current Modules
 
+- [Official Source Map](spec-source-map.md)
 - [Document Snapshot](document-snapshot.md)
 - [Decision Tables](decision-tables.md)
 - [Literal Expressions](literal-expressions.md)
+- [Invocations](invocations.md)
 - [List Expressions](list-expressions.md)
 - [Context Expressions](context-expressions.md)
 - [Relation Expressions](relation-expressions.md)
@@ -25,12 +30,15 @@ stay explicit about the supported subset.
 ## Current Package Boundary
 
 The current DMN slice supports one bounded parser-owned document snapshot,
-including preserved top-level `itemDefinition` metadata plus one bounded
+including preserved top-level `import` metadata with bounded `name`,
+`namespace`, `locationURI`, and `importType` placeholders, preserved
+top-level `itemDefinition` metadata plus one bounded
 direct `itemComponent` placeholder layer, preserved top-level `inputData`
 metadata plus one optional direct `variable` placeholder layer, preserved
 top-level `knowledgeSource` metadata, preserved top-level `decisionService`
 metadata plus direct `outputDecision`, `encapsulatedDecision`,
-`inputDecision`, and `inputData` href placeholders, preserved top-level
+`inputDecision`, and `inputData` href placeholders plus one bounded
+package-owned same-source decision-service registry, preserved top-level
 `businessKnowledgeModel` metadata plus one direct body `literalExpression`
 placeholder plus one optional invocable `variable` placeholder and one bounded
 `encapsulatedLogic` function-definition placeholder, preserved top-level `organizationUnit`
@@ -72,11 +80,24 @@ whitespace-delimited numeric `path +/- number` operation, one bounded direct
 one bounded direct `context` evaluator whose ordered entries are bounded
 `literalExpression` bodies with optional variable names and an optional final
 unnamed result entry, one bounded direct `relation` evaluator whose direct
-rows contain one bounded `literalExpression` cell per direct column,
-non-executable direct `invocation` snapshot evidence for invoked
-literal-expression text plus binding parameter/argument placeholders,
+rows contain one bounded `literalExpression` cell per direct column, one
+bounded direct `invocation` evaluator whose invoked text resolves to exactly
+one same-source top-level `businessKnowledgeModel` by id or invocable
+`variable` name, whose direct bindings expose simple named parameters plus
+supported literal-expression arguments, whose target `encapsulatedLogic`
+provides one supported direct literal-expression body, and whose target must
+also match any preserved executable same-source `requiredKnowledge` edges on
+that decision, plus one bounded same-source local `decisionService` alias path
+whose preserved direct `outputDecision` list must contain one or more local
+target decisions, where multiple outputs are evaluated in source order and
+merged into one object-shaped context, and whose preserved same-source
+`encapsulatedDecision` / `inputDecision` / `inputData` exposure refs are
+consumed only as local target validation before those output decisions run,
+while top-level imports remain descriptive snapshot metadata rather than
+executable cross-document lookup inputs,
 non-executable direct `functionDefinition` snapshot evidence for function kind,
 formal parameters, and body literal-expression placeholders,
 non-executable top-level `businessKnowledgeModel` body snapshot evidence, and
-non-executable top-level `decisionService` reference snapshot evidence, plus
+non-executable top-level `decisionService` reference snapshot evidence for the
+broader unsupported service surface, plus
 LLM-friendly diagnostics for unsupported syntax.

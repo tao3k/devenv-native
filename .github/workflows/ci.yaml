@@ -361,28 +361,12 @@ jobs:
           set -euo pipefail
           source scripts/channel/process-runtime.sh
           source scripts/channel/wendaosearch-common.sh
-          managed_materialize_git_repo \
-            "${GITHUB_WORKSPACE}/.data/WendaoArrow.jl" \
-            "https://github.com/tao3k/WendaoArrow.jl.git" \
-            "" \
-            "WendaoArrow package checkout"
-          managed_materialize_git_repo \
-            "${GITHUB_WORKSPACE}/.data/WendaoAnalyzer.jl" \
-            "https://github.com/tao3k/WendaoAnalyzer.jl.git" \
-            "" \
-            "WendaoAnalyzer package checkout"
           wendaosearch_materialize_package_repo "${GITHUB_WORKSPACE}"
           wendaosearch_project="${GITHUB_WORKSPACE}/.data/WendaoSearch.jl/Project.toml"
-          wendao_arrow_rev="$(
-            julia -e 'using TOML; print(TOML.parsefile(ARGS[1])["sources"]["WendaoArrow"]["rev"])' \
-              "${wendaosearch_project}"
-          )"
           wendao_code_parser_rev="$(
             julia -e 'using TOML; print(TOML.parsefile(ARGS[1])["sources"]["WendaoCodeParser"]["rev"])' \
               "${wendaosearch_project}"
           )"
-          git -C "${GITHUB_WORKSPACE}/.data/WendaoArrow.jl" fetch --tags --prune origin
-          git -C "${GITHUB_WORKSPACE}/.data/WendaoArrow.jl" checkout --detach "${wendao_arrow_rev}"
           managed_materialize_git_repo \
             "${GITHUB_WORKSPACE}/.data/WendaoCodeParser.jl" \
             "https://github.com/tao3k/WendaoCodeParser.jl.git" \
@@ -392,21 +376,7 @@ jobs:
           git -C "${GITHUB_WORKSPACE}/.data/WendaoCodeParser.jl" checkout --detach "${wendao_code_parser_rev}"
           wendaosearch_repair_wendaocodeparser_checkout \
             "${GITHUB_WORKSPACE}/.data/WendaoCodeParser.jl"
-          arrow_rev="$(
-            julia -e 'using TOML; print(TOML.parsefile(ARGS[1])["sources"]["Arrow"]["rev"])' \
-              "${GITHUB_WORKSPACE}/.data/WendaoArrow.jl/Project.toml"
-          )"
-          managed_materialize_git_repo \
-            "${GITHUB_WORKSPACE}/.data/arrow-julia" \
-            "https://github.com/JuliaCN/arrow-julia.git" \
-            "${arrow_rev}" \
-            "Arrow package checkout"
-          git -C "${GITHUB_WORKSPACE}/.data/arrow-julia" fetch --tags --prune origin
-          git -C "${GITHUB_WORKSPACE}/.data/arrow-julia" checkout --detach "${arrow_rev}"
-          test -f "${GITHUB_WORKSPACE}/.data/WendaoArrow.jl/scripts/run_flight_example.jl"
-          test -f "${GITHUB_WORKSPACE}/.data/WendaoAnalyzer.jl/scripts/run_analyzer_example.jl"
           test -f "${GITHUB_WORKSPACE}/.data/WendaoCodeParser.jl/src/WendaoCodeParser.jl"
-          test -f "${GITHUB_WORKSPACE}/.data/arrow-julia/Project.toml"
           test -f "${GITHUB_WORKSPACE}/.data/WendaoSearch.jl/scripts/run_parser_summary_service.jl"
           test -f "${GITHUB_WORKSPACE}/.data/WendaoSearch.jl/config/live/parser_summary.toml"
 
@@ -420,8 +390,6 @@ jobs:
         run: |
           set -euo pipefail
           export WENDAO_SEARCH_BOOTSTRAP_ENV="${RUNNER_TEMP}/wendaosearch-env"
-          export WENDAO_SEARCH_LOCAL_ARROW_PATH="${GITHUB_WORKSPACE}/.data/arrow-julia"
-          export WENDAO_SEARCH_LOCAL_WENDAO_ARROW_PATH="${GITHUB_WORKSPACE}/.data/WendaoArrow.jl"
           export WENDAO_SEARCH_LOCAL_WENDAO_CODE_PARSER_PATH="${GITHUB_WORKSPACE}/.data/WendaoCodeParser.jl"
           julia "${GITHUB_WORKSPACE}/.data/WendaoSearch.jl/scripts/prepare_wendao_search_env.jl"
           julia --project="${WENDAO_SEARCH_BOOTSTRAP_ENV}" -e '
@@ -430,8 +398,6 @@ jobs:
           '
           {
             echo "WENDAO_SEARCH_BOOTSTRAP_ENV=${WENDAO_SEARCH_BOOTSTRAP_ENV}"
-            echo "WENDAO_SEARCH_LOCAL_ARROW_PATH=${WENDAO_SEARCH_LOCAL_ARROW_PATH}"
-            echo "WENDAO_SEARCH_LOCAL_WENDAO_ARROW_PATH=${WENDAO_SEARCH_LOCAL_WENDAO_ARROW_PATH}"
             echo "WENDAO_SEARCH_LOCAL_WENDAO_CODE_PARSER_PATH=${WENDAO_SEARCH_LOCAL_WENDAO_CODE_PARSER_PATH}"
             echo "WENDAOSEARCH_JULIA_PROJECT=${WENDAO_SEARCH_BOOTSTRAP_ENV}"
           } >> "${GITHUB_ENV}"
@@ -453,7 +419,6 @@ jobs:
           echo "${launcher_pid}" > "${WENDAOSEARCH_RUNTIME_DIR}/${WENDAOSEARCH_SERVICE_NAME}.launcher.pid"
           for _ in {1..120}; do
             if bash scripts/channel/wendaosearch-healthcheck.sh >/dev/null 2>&1; then
-              echo "RUN_PROCESS_MANAGED_WENDAOSEARCH_TEST=1" >> "${GITHUB_ENV}"
               exit 0
             fi
             if ! kill -0 "${launcher_pid}" 2>/dev/null; then

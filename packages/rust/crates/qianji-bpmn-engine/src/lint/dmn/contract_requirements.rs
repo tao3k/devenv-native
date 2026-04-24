@@ -108,12 +108,12 @@ pub(super) fn unsupported_knowledge_requirement_decision_issue(
                     decision_display(decision_id, snapshot)
                 ),
                 format!(
-                    "The bounded evaluator executes one local decision table per decision in this slice; direct same-source `<requiredKnowledge>` edges point at `businessKnowledgeModel` invocables, and the bounded parser now preserves one invocable `variable` / `encapsulatedLogic` placeholder contract, but runtime still does not execute that callable knowledge surface automatically.{}",
+                    "The bounded evaluator executes one local decision table per decision in this slice; runtime now consumes direct same-source `<requiredKnowledge>` edges only as an invocation-side target constraint for decisions that already have local executable logic, so required-knowledge-only nodes still do not materialize a missing local `<decisionTable>` automatically.{}",
                     root_context(snapshot)
                 ),
                 vec![
                     "Preserve the existing decision id, name, and required-knowledge references while deciding whether one explicit local `<decisionTable>` exists for this decision.".to_string(),
-                    "Do not inline or approximate business-knowledge-model semantics only from `<requiredKnowledge>` references unless the missing invocable contract, callable parameters, and local decision logic are explicit and lossless; the current runtime still does not execute preserved BKM invocable metadata.".to_string(),
+                    "Do not inline or approximate business-knowledge-model semantics only from `<requiredKnowledge>` references unless the missing invocable contract, callable parameters, and local decision logic are explicit and lossless; the bounded runtime uses those edges only to constrain an already-explicit local invocation target.".to_string(),
                     "If this decision intentionally depends on broader DMN knowledge models, keep it non-executable and report unsupported required-knowledge-only execution.".to_string(),
                 ],
                 format!(

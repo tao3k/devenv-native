@@ -11,9 +11,16 @@ It exists for three reasons:
 3. give future slices one stable place to update when parser, runtime, lint,
    or checkpoint behavior widens
 
+The current index is source-backed. Each family now includes an explicit
+official-source map anchored to the OMG inventory page, the normative PDF, and
+the machine-readable artifacts that define the wire format or diagram
+interchange surface.
+
 ## BPMN Modules
 
 - [BPMN Alignment Index](bpmn/README.md)
+- [BPMN Official Source Map](bpmn/spec-source-map.md)
+- [BPMN Collaboration, Lanes, and Data](bpmn/collaboration-lanes-and-data.md)
 - [BPMN Events and Boundaries](bpmn/events-and-boundaries.md)
 - [BPMN Gateways and Concurrency](bpmn/gateways-and-concurrency.md)
 - [BPMN Loops and Multi-Instance](bpmn/loops-and-multi-instance.md)
@@ -23,6 +30,8 @@ It exists for three reasons:
 ## DMN Modules
 
 - [DMN Alignment Index](dmn/README.md)
+- [DMN Official Source Map](dmn/spec-source-map.md)
+- [DMN Invocations](dmn/invocations.md)
 - [DMN Decision Tables](dmn/decision-tables.md)
 - [DMN Literal Expressions](dmn/literal-expressions.md)
 - [DMN List Expressions](dmn/list-expressions.md)

@@ -108,9 +108,17 @@
 //! `duration("PT1.5H")`, `duration("PT1,5H")`, `duration("PT1.5M")`,
 //! `duration("PT1,5M")`, `duration("PT1.5S")`, and `duration("PT1,5S")`.
 //! BPMN `businessRuleTask` can also execute locally when the package carries a
-//! matching engine-owned DMN decision definition; otherwise it falls back to
-//! the existing host seam. Broader unstructured inclusive gateways, recursive
-//! call chains, broader mixed boundary families on same-package
+//! matching engine-owned DMN decision definition; the bounded local DMN path
+//! now also includes one direct invocation seam whose invoked text resolves to
+//! exactly one same-source top-level `businessKnowledgeModel` by id or
+//! invocable `variable` name, whose direct bindings expose simple named
+//! parameters plus supported literal-expression arguments, whose target
+//! `encapsulatedLogic` provides one supported direct literal-expression body,
+//! and whose target must match any direct same-source `requiredKnowledge`
+//! declarations preserved on the executable decision; otherwise it falls back
+//! to the existing host seam. Broader unstructured
+//! inclusive gateways, recursive call chains, broader mixed boundary families
+//! on same-package
 //! `callActivity` owners or embedded subprocess owners beyond one
 //! interrupting timer/message/signal boundary plus one or more interrupting
 //! error boundaries, broader transaction-shell boundary families that exceed
@@ -122,7 +130,9 @@
 //! boundary on the same transaction owner, broader
 //! error propagation beyond those bounded transaction and embedded-subprocess
 //! shells,
-//! broader FEEL or script-backed gateway conditions, trailing
+//! broader `requiredKnowledge` execution, broader business-knowledge-model or
+//! decision-service invocation semantics, broader FEEL or script-backed
+//! gateway conditions, trailing
 //! lower-unit fractional duration handling such as `duration("PT1.5H30S")`,
 //! mixed-family duration handling, fractional year-month duration handling
 //! such as `duration("P1.5Y")`, broader timezone/function FEEL behavior, and
@@ -142,6 +152,7 @@ mod dmn_model_api;
 mod dmn_model_business_knowledge;
 mod dmn_model_clause;
 mod dmn_model_decision;
+mod dmn_model_decision_service;
 mod dmn_model_document;
 mod dmn_model_input_data;
 mod dmn_model_predicate;
@@ -206,19 +217,21 @@ pub use dmn_api::{
     DmnBusinessKnowledgeModelSnapshot, DmnComparisonOperator, DmnContextEntry,
     DmnContextExpression, DmnDateComparison, DmnDateRange, DmnDateRangeBound,
     DmnDateTimeComparison, DmnDateTimeRange, DmnDateTimeRangeBound, DmnDecisionDefinition,
-    DmnDecisionRef, DmnDecisionServiceDividerLineSnapshot, DmnDecisionServiceSnapshot,
-    DmnDecisionSnapshot, DmnDecisionTable, DmnDiagramSnapshot, DmnDmndiSnapshot,
-    DmnDocumentSnapshot, DmnDurationComparison, DmnDurationRange, DmnDurationRangeBound,
-    DmnEdgeSnapshot, DmnElementCollectionSnapshot, DmnEvaluationRequest, DmnEvaluationResult,
-    DmnGroupSnapshot, DmnHitPolicy, DmnInformationRequirementReference, DmnInputClause,
-    DmnInputDataDefinition, DmnInputDataSnapshot, DmnInputEntry, DmnItemComponentSnapshot,
-    DmnItemDefinitionSnapshot, DmnKnowledgeSourceSnapshot, DmnLabelSnapshot, DmnListExpression,
-    DmnLiteralExpression, DmnNumericComparison, DmnNumericRange, DmnNumericRangeBound,
-    DmnOrganizationUnitSnapshot, DmnOutputClause, DmnOutputEntry, DmnPerformanceIndicatorSnapshot,
-    DmnRelationColumn, DmnRelationExpression, DmnRelationRow, DmnRootSnapshot, DmnRule,
-    DmnShapeSnapshot, DmnSourceFile, DmnTextAnnotationSnapshot, DmnTimeComparison, DmnTimeRange,
-    DmnTimeRangeBound, DmnVariableSnapshot, DmnWaypointSnapshot, evaluate_dmn_decision,
-    parse_dmn_decision, parse_dmn_decisions, snapshot_dmn_source,
+    DmnDecisionRef, DmnDecisionServiceDefinition, DmnDecisionServiceDividerLineSnapshot,
+    DmnDecisionServiceReference, DmnDecisionServiceSnapshot, DmnDecisionSnapshot, DmnDecisionTable,
+    DmnDiagramSnapshot, DmnDmndiSnapshot, DmnDocumentSnapshot, DmnDurationComparison,
+    DmnDurationRange, DmnDurationRangeBound, DmnEdgeSnapshot, DmnElementCollectionSnapshot,
+    DmnEvaluationRequest, DmnEvaluationResult, DmnGroupSnapshot, DmnHitPolicy,
+    DmnInformationRequirementReference, DmnInputClause, DmnInputDataDefinition,
+    DmnInputDataSnapshot, DmnInputEntry, DmnInvocation, DmnInvocationBinding,
+    DmnInvocationParameter, DmnItemComponentSnapshot, DmnItemDefinitionSnapshot,
+    DmnKnowledgeRequirementReference, DmnKnowledgeSourceSnapshot, DmnLabelSnapshot,
+    DmnListExpression, DmnLiteralExpression, DmnNumericComparison, DmnNumericRange,
+    DmnNumericRangeBound, DmnOrganizationUnitSnapshot, DmnOutputClause, DmnOutputEntry,
+    DmnPerformanceIndicatorSnapshot, DmnRelationColumn, DmnRelationExpression, DmnRelationRow,
+    DmnRootSnapshot, DmnRule, DmnShapeSnapshot, DmnSourceFile, DmnTextAnnotationSnapshot,
+    DmnTimeComparison, DmnTimeRange, DmnTimeRangeBound, DmnVariableSnapshot, DmnWaypointSnapshot,
+    evaluate_dmn_decision, parse_dmn_decision, parse_dmn_decisions, snapshot_dmn_source,
 };
 pub use error::BpmnEngineError;
 pub use host_bridge_api::BpmnHostBridge;

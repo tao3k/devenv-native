@@ -18,7 +18,7 @@ pub(super) fn unsupported_decision_service_issue(
             "Source '{source_id}' contains top-level `<decisionService>` definitions, but no executable `<decision>` elements."
         ),
         format!(
-            "The bounded DMN evaluator does not execute `decisionService` contracts yet; it still requires at least one executable `<decision>`. Direct decision-service references are preserved only as non-executable snapshot metadata.{}",
+            "The bounded DMN evaluator still requires at least one executable `<decision>` in the source. This crate can now route one same-source `decisionService` as a thin local alias to one or more executable `outputDecision` targets, but metadata-only decision-service documents remain non-executable and their direct references are preserved primarily as snapshot evidence.{}",
             root_context(snapshot)
         ),
         vec![

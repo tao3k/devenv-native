@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions
+  id="Definitions_outside_required_knowledge_runtime"
+  name="Outside Required Knowledge Runtime"
+  namespace="https://example.com/dmn/outside-required-knowledge-runtime"
+  xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/">
+  <businessKnowledgeModel id="BKM_policy_gate" name="Policy Gate">
+    <variable id="Variable_policy_gate" name="policyGate" typeRef="number" />
+    <encapsulatedLogic id="EncapsulatedLogic_policy_gate" kind="FEEL">
+      <formalParameter id="Parameter_policy_age" name="age" typeRef="number" />
+      <literalExpression id="LiteralExpression_policy_gate_body" typeRef="number">
+        <text>age + 10</text>
+      </literalExpression>
+    </encapsulatedLogic>
+  </businessKnowledgeModel>
+  <businessKnowledgeModel id="BKM_score_card" name="Score Card">
+    <variable id="Variable_score_card" name="scoreCard" typeRef="number" />
+    <encapsulatedLogic id="EncapsulatedLogic_score_card" kind="FEEL">
+      <formalParameter id="Parameter_score_age" name="age" typeRef="number" />
+      <literalExpression id="LiteralExpression_score_card_body" typeRef="number">
+        <text>age + 1</text>
+      </literalExpression>
+    </encapsulatedLogic>
+  </businessKnowledgeModel>
+  <decision id="Decision_outside_required_knowledge" name="Outside Required Knowledge Decision">
+    <knowledgeRequirement>
+      <requiredKnowledge href="#BKM_policy_gate" />
+    </knowledgeRequirement>
+    <invocation id="Invocation_score_card">
+      <literalExpression id="LiteralExpression_invoked_function">
+        <text>scoreCard</text>
+      </literalExpression>
+      <binding id="Binding_age">
+        <parameter id="Parameter_binding_age" name="age" typeRef="number" />
+        <literalExpression id="LiteralExpression_binding_age">
+          <text>applicant.age</text>
+        </literalExpression>
+      </binding>
+    </invocation>
+  </decision>
+</definitions>

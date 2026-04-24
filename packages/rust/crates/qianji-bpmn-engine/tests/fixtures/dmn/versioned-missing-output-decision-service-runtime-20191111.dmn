@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions
+  xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/"
+  id="Definitions_missing_output_decision_service_runtime"
+  name="Missing Output Decision Service Runtime"
+  namespace="https://example.com/dmn/missing-output-decision-service-runtime">
+  <decisionService
+    id="DecisionService_missing_output"
+    name="Missing Output Decision Service">
+    <outputDecision href="#Decision_missing" />
+  </decisionService>
+  <decision id="Decision_placeholder" name="Placeholder Decision">
+    <variable id="Variable_placeholder" name="placeholder" typeRef="string" />
+    <decisionTable id="DecisionTable_placeholder" hitPolicy="UNIQUE">
+      <input id="InputClause_tier">
+        <inputExpression id="InputExpression_tier" typeRef="string">
+          <text>tier</text>
+        </inputExpression>
+      </input>
+      <output id="OutputClause_placeholder" name="placeholder" typeRef="string" />
+      <rule id="Rule_placeholder">
+        <inputEntry id="InputEntry_placeholder">
+          <text>-</text>
+        </inputEntry>
+        <outputEntry id="OutputEntry_placeholder">
+          <text>"noop"</text>
+        </outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+</definitions>

@@ -1,7 +1,7 @@
 use crate::runtime::lifecycle::scope::{
     BpmnEngineError, BpmnInstanceState, BpmnNodeIndex, BpmnNodeKind, BpmnPackage, BpmnProcessSpec,
-    DmnEvaluationRequest, InstanceLifecycle, PendingHostWork, PendingHostWorkKind, Result,
-    evaluate_dmn_package_decision_sync,
+    InstanceLifecycle, PendingHostWork, PendingHostWorkKind, Result,
+    evaluate_dmn_package_binding_sync,
 };
 use crate::runtime::lifecycle::state;
 use crate::runtime_instance_api::DetachedTransactionCompensationState;
@@ -191,12 +191,7 @@ fn advance_detached_business_rule_handler(
                 process_id: process_key.process_id.to_string(),
                 node_id: node.bpmn_id.to_string(),
             })?;
-    if let Some(definition) = package.find_dmn_decision(&decision)? {
-        let _ = evaluate_dmn_package_decision_sync(
-            package,
-            definition,
-            &DmnEvaluationRequest::new(decision, instance.variables.clone()),
-        )?;
+    if evaluate_dmn_package_binding_sync(package, &decision, &instance.variables)?.is_some() {
         return Ok(DetachedCompensationProgress::Continue);
     }
     enqueue_detached_host_work(

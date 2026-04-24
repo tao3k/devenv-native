@@ -2,10 +2,11 @@ use super::decode::{attribute_value, local_name, required_attribute};
 use crate::dmn_model_api::DmnSourceFile;
 use crate::dmn_parse_api::parser::state::{
     CaptureTarget, TempContextEntry, TempContextExpression, TempDecision,
-    TempInformationRequirementReference, TempInput, TempListExpression, TempLiteralExpression,
-    TempOutput, TempRelationColumn, TempRelationExpression, TempRelationRow, TempRule, TempTable,
-    finalize_input, finalize_input_entry, finalize_output, finalize_output_entry, finalize_rule,
-    hit_policy_from_attr,
+    TempInformationRequirementReference, TempInput, TempInvocation, TempInvocationBinding,
+    TempInvocationParameter, TempKnowledgeRequirementReference, TempListExpression,
+    TempLiteralExpression, TempOutput, TempRelationColumn, TempRelationExpression, TempRelationRow,
+    TempRule, TempTable, finalize_input, finalize_input_entry, finalize_output,
+    finalize_output_entry, finalize_rule, hit_policy_from_attr,
 };
 use crate::error::{BpmnEngineError, Result};
 use quick_xml::Reader;
@@ -23,6 +24,8 @@ pub(crate) fn handle_start_tag(
     current_context_entry: &mut Option<TempContextEntry>,
     current_relation: &mut Option<TempRelationExpression>,
     current_relation_row: &mut Option<TempRelationRow>,
+    current_invocation: &mut Option<TempInvocation>,
+    current_invocation_binding: &mut Option<TempInvocationBinding>,
     current_table: &mut Option<TempTable>,
     current_input: &mut Option<TempInput>,
     current_output: &mut Option<TempOutput>,
@@ -47,6 +50,8 @@ pub(crate) fn handle_start_tag(
             current_context_entry,
             current_relation,
             current_relation_row,
+            current_invocation,
+            current_invocation_binding,
             current_table,
             parent_tag,
         },
@@ -103,6 +108,8 @@ struct DecisionStartScope<'a> {
     current_context_entry: &'a mut Option<TempContextEntry>,
     current_relation: &'a mut Option<TempRelationExpression>,
     current_relation_row: &'a mut Option<TempRelationRow>,
+    current_invocation: &'a mut Option<TempInvocation>,
+    current_invocation_binding: &'a mut Option<TempInvocationBinding>,
     current_table: &'a mut Option<TempTable>,
     parent_tag: Option<&'a str>,
 }
@@ -111,6 +118,7 @@ struct DecisionStartScope<'a> {
 struct SurfaceStartState<'a> {
     decision: Option<&'a TempDecision>,
     literal: Option<&'a TempLiteralExpression>,
+    invocation: Option<&'a TempInvocation>,
     table: Option<&'a TempTable>,
 }
 
@@ -118,11 +126,13 @@ impl<'a> SurfaceStartState<'a> {
     fn new(
         decision: Option<&'a TempDecision>,
         literal: Option<&'a TempLiteralExpression>,
+        invocation: Option<&'a TempInvocation>,
         table: Option<&'a TempTable>,
     ) -> Self {
         Self {
             decision,
             literal,
+            invocation,
             table,
         }
     }
@@ -149,6 +159,30 @@ impl<'a> PeerSurfaceState<'a> {
     }
 }
 
+#[derive(Clone, Copy)]
+struct BoxedExpressionPeerState<'a> {
+    list: Option<&'a TempListExpression>,
+    context: Option<&'a TempContextExpression>,
+    relation: Option<&'a TempRelationExpression>,
+    invocation: Option<&'a TempInvocation>,
+}
+
+impl<'a> BoxedExpressionPeerState<'a> {
+    fn new(
+        list: Option<&'a TempListExpression>,
+        context: Option<&'a TempContextExpression>,
+        relation: Option<&'a TempRelationExpression>,
+        invocation: Option<&'a TempInvocation>,
+    ) -> Self {
+        Self {
+            list,
+            context,
+            relation,
+            invocation,
+        }
+    }
+}
+
 fn handle_decision_start_tag(
     source: &DmnSourceFile,
     reader: &Reader<&[u8]>,
@@ -164,6 +198,8 @@ fn handle_decision_start_tag(
         current_context_entry,
         current_relation,
         current_relation_row,
+        current_invocation,
+        current_invocation_binding,
         current_table,
         parent_tag,
     } = scope;
@@ -182,13 +218,15 @@ fn handle_decision_start_tag(
                 list: current_list,
                 context: current_context,
                 relation: current_relation,
+                invocation: current_invocation,
+                invocation_binding: current_invocation_binding,
                 table: current_table.as_ref(),
             },
         )?
     {
         return Ok(true);
     }
-    if handle_information_requirement_reference_start_tag(
+    if handle_decision_requirement_reference_start_tag(
         source,
         reader,
         event,
@@ -198,6 +236,74 @@ fn handle_decision_start_tag(
     )? {
         return Ok(true);
     }
+    handle_decision_child_start_tag(
+        source,
+        reader,
+        event,
+        tag,
+        parent_tag,
+        DecisionChildStartScope {
+            decision: current_decision.as_ref(),
+            literal: current_literal,
+            list: current_list,
+            context: current_context,
+            context_entry: current_context_entry,
+            relation: current_relation,
+            relation_row: current_relation_row,
+            invocation: current_invocation,
+            invocation_binding: current_invocation_binding,
+            table: current_table,
+        },
+    )
+}
+
+struct DecisionChildStartScope<'a> {
+    decision: Option<&'a TempDecision>,
+    literal: &'a mut Option<TempLiteralExpression>,
+    list: &'a mut Option<TempListExpression>,
+    context: &'a mut Option<TempContextExpression>,
+    context_entry: &'a mut Option<TempContextEntry>,
+    relation: &'a mut Option<TempRelationExpression>,
+    relation_row: &'a mut Option<TempRelationRow>,
+    invocation: &'a mut Option<TempInvocation>,
+    invocation_binding: &'a mut Option<TempInvocationBinding>,
+    table: &'a mut Option<TempTable>,
+}
+
+fn handle_decision_child_start_tag(
+    source: &DmnSourceFile,
+    reader: &Reader<&[u8]>,
+    event: &BytesStart<'_>,
+    tag: &str,
+    parent_tag: Option<&str>,
+    scope: DecisionChildStartScope<'_>,
+) -> Result<bool> {
+    let DecisionChildStartScope {
+        decision,
+        literal,
+        list,
+        context,
+        context_entry,
+        relation,
+        relation_row,
+        invocation,
+        invocation_binding,
+        table,
+    } = scope;
+    if let Some(handled) = handle_invocation_child_start_tag(
+        source,
+        reader,
+        event,
+        tag,
+        parent_tag,
+        InvocationChildStartScope {
+            literal,
+            invocation,
+            binding: invocation_binding,
+        },
+    )? {
+        return Ok(handled);
+    }
     if let Some(handled) = handle_context_child_start_tag(
         source,
         reader,
@@ -205,9 +311,9 @@ fn handle_decision_start_tag(
         tag,
         parent_tag,
         ContextChildStartScope {
-            literal: current_literal,
-            context: current_context.as_ref(),
-            entry: current_context_entry,
+            literal,
+            context: context.as_ref(),
+            entry: context_entry,
         },
     )? {
         return Ok(handled);
@@ -219,9 +325,9 @@ fn handle_decision_start_tag(
         tag,
         parent_tag,
         RelationChildStartScope {
-            literal: current_literal,
-            relation: current_relation.as_mut(),
-            row: current_relation_row,
+            literal,
+            relation: relation.as_mut(),
+            row: relation_row,
         },
     )? {
         return Ok(handled);
@@ -232,8 +338,8 @@ fn handle_decision_start_tag(
         event,
         tag,
         parent_tag,
-        current_literal,
-        current_list.as_ref(),
+        literal,
+        list.as_ref(),
     )? {
         return Ok(handled);
     }
@@ -242,19 +348,15 @@ fn handle_decision_start_tag(
             source,
             reader,
             event,
-            SurfaceStartState::new(current_decision.as_ref(), current_literal.as_ref(), None),
-            current_table,
-            PeerSurfaceState::new(
-                current_list.as_ref(),
-                current_context.as_ref(),
-                current_relation.as_ref(),
-            ),
+            SurfaceStartState::new(decision, literal.as_ref(), invocation.as_ref(), None),
+            table,
+            PeerSurfaceState::new(list.as_ref(), context.as_ref(), relation.as_ref()),
         );
     }
     Ok(false)
 }
 
-fn handle_information_requirement_reference_start_tag(
+fn handle_decision_requirement_reference_start_tag(
     source: &DmnSourceFile,
     reader: &Reader<&[u8]>,
     event: &BytesStart<'_>,
@@ -277,6 +379,20 @@ fn handle_information_requirement_reference_start_tag(
                 });
             Ok(true)
         }
+        (Some("knowledgeRequirement"), "requiredKnowledge") => {
+            let Some(decision) = current_decision.as_mut() else {
+                return Err(BpmnEngineError::UnsupportedOperation {
+                    operation: "parse_dmn_knowledge_requirement_without_decision",
+                });
+            };
+            decision
+                .knowledge_requirements
+                .push(TempKnowledgeRequirementReference {
+                    reference_kind: tag.to_string(),
+                    href: attribute_value(source, reader, event, "href")?,
+                });
+            Ok(true)
+        }
         _ => Ok(false),
     }
 }
@@ -287,6 +403,8 @@ struct DirectDecisionSurfaceStartScope<'a> {
     list: &'a mut Option<TempListExpression>,
     context: &'a mut Option<TempContextExpression>,
     relation: &'a mut Option<TempRelationExpression>,
+    invocation: &'a mut Option<TempInvocation>,
+    invocation_binding: &'a mut Option<TempInvocationBinding>,
     table: Option<&'a TempTable>,
 }
 
@@ -303,9 +421,10 @@ fn handle_direct_decision_surface_start_tag(
         list,
         context,
         relation,
+        invocation,
+        invocation_binding,
         table,
     } = scope;
-    let surface = SurfaceStartState::new(decision, literal.as_ref(), table);
     match tag {
         "literalExpression" => {
             start_direct_literal_expression(source, reader, event, decision, literal, table)
@@ -314,30 +433,104 @@ fn handle_direct_decision_surface_start_tag(
             source,
             reader,
             event,
-            surface,
+            SurfaceStartState::new(decision, literal.as_ref(), invocation.as_ref(), table),
             list,
-            context.as_ref(),
-            relation.as_ref(),
+            BoxedExpressionPeerState::new(
+                None,
+                context.as_ref(),
+                relation.as_ref(),
+                invocation.as_ref(),
+            ),
+        ),
+        "invocation" => start_invocation_expression(
+            source,
+            reader,
+            event,
+            SurfaceStartState::new(decision, literal.as_ref(), None, table),
+            invocation,
+            invocation_binding.as_ref(),
+            BoxedExpressionPeerState::new(list.as_ref(), context.as_ref(), relation.as_ref(), None),
         ),
         "context" => start_context_expression(
             source,
             reader,
             event,
-            surface,
+            SurfaceStartState::new(decision, literal.as_ref(), invocation.as_ref(), table),
             context,
-            list.as_ref(),
-            relation.as_ref(),
+            BoxedExpressionPeerState::new(
+                list.as_ref(),
+                None,
+                relation.as_ref(),
+                invocation.as_ref(),
+            ),
         ),
         "relation" => start_relation_expression(
             source,
             reader,
             event,
-            surface,
+            SurfaceStartState::new(decision, literal.as_ref(), invocation.as_ref(), table),
             relation,
-            list.as_ref(),
-            context.as_ref(),
+            BoxedExpressionPeerState::new(
+                list.as_ref(),
+                context.as_ref(),
+                None,
+                invocation.as_ref(),
+            ),
         ),
         _ => Ok(false),
+    }
+}
+
+struct InvocationChildStartScope<'a> {
+    literal: &'a mut Option<TempLiteralExpression>,
+    invocation: &'a mut Option<TempInvocation>,
+    binding: &'a mut Option<TempInvocationBinding>,
+}
+
+fn handle_invocation_child_start_tag(
+    source: &DmnSourceFile,
+    reader: &Reader<&[u8]>,
+    event: &BytesStart<'_>,
+    tag: &str,
+    parent_tag: Option<&str>,
+    scope: InvocationChildStartScope<'_>,
+) -> Result<Option<bool>> {
+    let InvocationChildStartScope {
+        literal,
+        invocation,
+        binding,
+    } = scope;
+    match parent_tag {
+        Some("invocation") => match tag {
+            "binding" => {
+                start_invocation_binding(source, reader, event, invocation.as_ref(), binding)
+                    .map(Some)
+            }
+            "literalExpression" => start_invocation_literal_expression(
+                source,
+                reader,
+                event,
+                literal,
+                invocation.as_ref(),
+            )
+            .map(Some),
+            _ if invocation.is_some() => Err(BpmnEngineError::UnsupportedOperation {
+                operation: "parse_dmn_invocation_unsupported_child",
+            }),
+            _ => Ok(Some(false)),
+        },
+        Some("binding") => match tag {
+            "parameter" => start_invocation_parameter(source, reader, event, binding).map(Some),
+            "literalExpression" => {
+                start_invocation_binding_argument(source, reader, event, literal, binding.as_ref())
+                    .map(Some)
+            }
+            _ if binding.is_some() => Err(BpmnEngineError::UnsupportedOperation {
+                operation: "parse_dmn_invocation_binding_unsupported_child",
+            }),
+            _ => Ok(Some(false)),
+        },
+        _ => Ok(None),
     }
 }
 
@@ -463,7 +656,9 @@ fn start_decision(
         list_expression: None,
         context_expression: None,
         relation_expression: None,
+        invocation: None,
         information_requirements: Vec::new(),
+        knowledge_requirements: Vec::new(),
     });
     Ok(true)
 }
@@ -498,8 +693,7 @@ fn start_list_expression(
     event: &BytesStart<'_>,
     surface: SurfaceStartState<'_>,
     current_list: &mut Option<TempListExpression>,
-    current_context: Option<&TempContextExpression>,
-    current_relation: Option<&TempRelationExpression>,
+    peers: BoxedExpressionPeerState<'_>,
 ) -> Result<bool> {
     let Some(decision) = surface.decision else {
         return Ok(true);
@@ -507,11 +701,14 @@ fn start_list_expression(
     if decision.table.is_some()
         || decision.literal_expression.is_some()
         || decision.list_expression.is_some()
+        || decision.invocation.is_some()
         || surface.table.is_some()
         || surface.literal.is_some()
+        || surface.invocation.is_some()
         || current_list.is_some()
-        || current_context.is_some()
-        || current_relation.is_some()
+        || peers.context.is_some()
+        || peers.invocation.is_some()
+        || peers.relation.is_some()
     {
         return Err(BpmnEngineError::UnsupportedOperation {
             operation: "parse_dmn_list_mixed_with_other_executable_surface",
@@ -530,8 +727,7 @@ fn start_context_expression(
     event: &BytesStart<'_>,
     surface: SurfaceStartState<'_>,
     current_context: &mut Option<TempContextExpression>,
-    current_list: Option<&TempListExpression>,
-    current_relation: Option<&TempRelationExpression>,
+    peers: BoxedExpressionPeerState<'_>,
 ) -> Result<bool> {
     let Some(decision) = surface.decision else {
         return Ok(true);
@@ -540,11 +736,13 @@ fn start_context_expression(
         || decision.literal_expression.is_some()
         || decision.list_expression.is_some()
         || decision.context_expression.is_some()
+        || decision.invocation.is_some()
         || surface.table.is_some()
         || surface.literal.is_some()
-        || current_list.is_some()
+        || peers.list.is_some()
         || current_context.is_some()
-        || current_relation.is_some()
+        || peers.invocation.is_some()
+        || peers.relation.is_some()
     {
         return Err(BpmnEngineError::UnsupportedOperation {
             operation: "parse_dmn_context_mixed_with_other_executable_surface",
@@ -563,8 +761,7 @@ fn start_relation_expression(
     event: &BytesStart<'_>,
     surface: SurfaceStartState<'_>,
     current_relation: &mut Option<TempRelationExpression>,
-    current_list: Option<&TempListExpression>,
-    current_context: Option<&TempContextExpression>,
+    peers: BoxedExpressionPeerState<'_>,
 ) -> Result<bool> {
     let Some(decision) = surface.decision else {
         return Ok(true);
@@ -574,10 +771,12 @@ fn start_relation_expression(
         || decision.list_expression.is_some()
         || decision.context_expression.is_some()
         || decision.relation_expression.is_some()
+        || decision.invocation.is_some()
         || surface.table.is_some()
         || surface.literal.is_some()
-        || current_list.is_some()
-        || current_context.is_some()
+        || peers.list.is_some()
+        || peers.context.is_some()
+        || peers.invocation.is_some()
         || current_relation.is_some()
     {
         return Err(BpmnEngineError::UnsupportedOperation {
@@ -733,6 +932,131 @@ fn start_list_literal_expression(
     Ok(true)
 }
 
+fn start_invocation_expression(
+    source: &DmnSourceFile,
+    reader: &Reader<&[u8]>,
+    event: &BytesStart<'_>,
+    surface: SurfaceStartState<'_>,
+    current_invocation: &mut Option<TempInvocation>,
+    current_invocation_binding: Option<&TempInvocationBinding>,
+    peers: BoxedExpressionPeerState<'_>,
+) -> Result<bool> {
+    let Some(decision) = surface.decision else {
+        return Ok(true);
+    };
+    if decision.table.is_some()
+        || decision.literal_expression.is_some()
+        || decision.list_expression.is_some()
+        || decision.context_expression.is_some()
+        || decision.relation_expression.is_some()
+        || decision.invocation.is_some()
+        || surface.table.is_some()
+        || surface.literal.is_some()
+        || surface.invocation.is_some()
+        || current_invocation.is_some()
+        || current_invocation_binding.is_some()
+        || peers.list.is_some()
+        || peers.context.is_some()
+        || peers.relation.is_some()
+    {
+        return Err(BpmnEngineError::UnsupportedOperation {
+            operation: "parse_dmn_invocation_mixed_with_other_executable_surface",
+        });
+    }
+    *current_invocation = Some(TempInvocation {
+        invocation_id: attribute_value(source, reader, event, "id")?,
+        invoked_expression: None,
+        bindings: Vec::new(),
+    });
+    Ok(true)
+}
+
+fn start_invocation_binding(
+    source: &DmnSourceFile,
+    reader: &Reader<&[u8]>,
+    event: &BytesStart<'_>,
+    current_invocation: Option<&TempInvocation>,
+    current_invocation_binding: &mut Option<TempInvocationBinding>,
+) -> Result<bool> {
+    if current_invocation.is_none() {
+        return Ok(true);
+    }
+    if current_invocation_binding.is_some() {
+        return Err(BpmnEngineError::UnsupportedOperation {
+            operation: "parse_dmn_invocation_nested_binding",
+        });
+    }
+    *current_invocation_binding = Some(TempInvocationBinding {
+        binding_id: attribute_value(source, reader, event, "id")?,
+        parameter: None,
+        argument: None,
+    });
+    Ok(true)
+}
+
+fn start_invocation_parameter(
+    source: &DmnSourceFile,
+    reader: &Reader<&[u8]>,
+    event: &BytesStart<'_>,
+    current_invocation_binding: &mut Option<TempInvocationBinding>,
+) -> Result<bool> {
+    let Some(binding) = current_invocation_binding.as_mut() else {
+        return Ok(true);
+    };
+    binding.parameter = Some(TempInvocationParameter {
+        parameter_id: attribute_value(source, reader, event, "id")?,
+        name: attribute_value(source, reader, event, "name")?,
+        type_ref: attribute_value(source, reader, event, "typeRef")?,
+    });
+    Ok(true)
+}
+
+fn start_invocation_literal_expression(
+    source: &DmnSourceFile,
+    reader: &Reader<&[u8]>,
+    event: &BytesStart<'_>,
+    current_literal: &mut Option<TempLiteralExpression>,
+    current_invocation: Option<&TempInvocation>,
+) -> Result<bool> {
+    if current_invocation.is_none() {
+        return Ok(true);
+    }
+    if current_literal.is_some() {
+        return Err(BpmnEngineError::UnsupportedOperation {
+            operation: "parse_dmn_invocation_nested_literal_expression",
+        });
+    }
+    *current_literal = Some(TempLiteralExpression {
+        expression_id: attribute_value(source, reader, event, "id")?,
+        type_ref: attribute_value(source, reader, event, "typeRef")?,
+        text: None,
+    });
+    Ok(true)
+}
+
+fn start_invocation_binding_argument(
+    source: &DmnSourceFile,
+    reader: &Reader<&[u8]>,
+    event: &BytesStart<'_>,
+    current_literal: &mut Option<TempLiteralExpression>,
+    current_invocation_binding: Option<&TempInvocationBinding>,
+) -> Result<bool> {
+    if current_invocation_binding.is_none() {
+        return Ok(true);
+    }
+    if current_literal.is_some() {
+        return Err(BpmnEngineError::UnsupportedOperation {
+            operation: "parse_dmn_invocation_nested_literal_expression",
+        });
+    }
+    *current_literal = Some(TempLiteralExpression {
+        expression_id: attribute_value(source, reader, event, "id")?,
+        type_ref: attribute_value(source, reader, event, "typeRef")?,
+        text: None,
+    });
+    Ok(true)
+}
+
 fn start_decision_table(
     source: &DmnSourceFile,
     reader: &Reader<&[u8]>,
@@ -749,7 +1073,9 @@ fn start_decision_table(
         || decision.list_expression.is_some()
         || decision.context_expression.is_some()
         || decision.relation_expression.is_some()
+        || decision.invocation.is_some()
         || surface.literal.is_some()
+        || surface.invocation.is_some()
         || surface.table.is_some()
         || current_table.is_some()
         || peers.list.is_some()

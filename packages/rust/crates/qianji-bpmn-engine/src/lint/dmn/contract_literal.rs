@@ -34,6 +34,7 @@ pub(super) fn issue_from_dmn_literal_expression_contract(
         .or_else(|| issue_from_list_expression_contract(decisions, snapshot))
         .or_else(|| issue_from_context_expression_contract(decisions, snapshot))
         .or_else(|| issue_from_relation_expression_contract(decisions, snapshot))
+        .or_else(|| issue_from_invocation_expression_contract(decisions, snapshot))
 }
 
 fn unsupported_list_child_issue(snapshot: Option<&DmnDocumentSnapshot>) -> LintIssue {
@@ -241,6 +242,245 @@ fn issue_from_relation_expression_contract(
     })
 }
 
+fn issue_from_invocation_expression_contract(
+    decisions: &[DmnDecisionDefinition],
+    snapshot: Option<&DmnDocumentSnapshot>,
+) -> Option<LintIssue> {
+    decisions.iter().find_map(|decision| {
+        let invocation = decision.invocation.as_ref()?;
+        issue_from_single_invocation_contract(decision, invocation, snapshot)
+    })
+}
+
+fn issue_from_single_invocation_contract(
+    decision: &DmnDecisionDefinition,
+    invocation: &crate::dmn_model_api::DmnInvocation,
+    snapshot: Option<&DmnDocumentSnapshot>,
+) -> Option<LintIssue> {
+    let decision_id = decision.decision.decision_id.as_ref();
+    let Some(target_name) = invocation_target_name(invocation) else {
+        return Some(unsupported_invocation_contract_issue(
+            decision_id,
+            "Use one simple same-source BKM id or invocable variable name as the direct invocation target.",
+            snapshot,
+        ));
+    };
+
+    let snapshot = snapshot?;
+    let target = match resolve_snapshot_invocation_target(snapshot, decision, target_name) {
+        SnapshotInvocationTarget::Found(target) => target,
+        SnapshotInvocationTarget::Missing => {
+            return Some(unsupported_invocation_contract_issue(
+                decision_id,
+                "Add one same-source top-level `businessKnowledgeModel` whose `id` or nested invocable `variable name` matches the invocation target text.",
+                Some(snapshot),
+            ));
+        }
+        SnapshotInvocationTarget::Ambiguous => {
+            return Some(unsupported_invocation_contract_issue(
+                decision_id,
+                "Make the invocation target resolve to exactly one same-source `businessKnowledgeModel`; duplicate local ids or invocable variable names are not executable in this slice.",
+                Some(snapshot),
+            ));
+        }
+        SnapshotInvocationTarget::OutsideDeclaredKnowledge => {
+            return Some(unsupported_invocation_contract_issue(
+                decision_id,
+                "Make the invocation target match one direct same-source `<requiredKnowledge href=\"#...\">` edge already declared on the decision, or add the missing same-source required-knowledge edge before expecting the invocation to execute locally.",
+                Some(snapshot),
+            ));
+        }
+    };
+
+    issue_from_invocation_body_contract(decision, target, snapshot)
+        .or_else(|| issue_from_invocation_binding_contract(decision, invocation, snapshot))
+}
+
+fn invocation_target_name(invocation: &crate::dmn_model_api::DmnInvocation) -> Option<&str> {
+    invocation
+        .invoked_expression
+        .as_ref()
+        .map(|expression| expression.text.trim())
+        .filter(|text| is_simple_identifier(text))
+}
+
+enum SnapshotInvocationTarget<'a> {
+    Missing,
+    Ambiguous,
+    OutsideDeclaredKnowledge,
+    Found(&'a crate::dmn_model_api::DmnBusinessKnowledgeModelSnapshot),
+}
+
+fn resolve_snapshot_invocation_target<'a>(
+    snapshot: &'a DmnDocumentSnapshot,
+    decision: &DmnDecisionDefinition,
+    target_name: &str,
+) -> SnapshotInvocationTarget<'a> {
+    let required_knowledge_targets =
+        resolve_snapshot_required_knowledge_targets(snapshot, decision).transpose();
+    let Ok(required_knowledge_targets) = required_knowledge_targets else {
+        return SnapshotInvocationTarget::Missing;
+    };
+    let matches = match required_knowledge_targets.as_ref() {
+        Some(targets) => targets
+            .iter()
+            .copied()
+            .filter(|business_knowledge_model| {
+                business_knowledge_model
+                    .business_knowledge_model_id
+                    .as_deref()
+                    == Some(target_name)
+                    || business_knowledge_model
+                        .variable
+                        .as_ref()
+                        .and_then(|variable| variable.name.as_deref())
+                        == Some(target_name)
+            })
+            .collect::<Vec<_>>(),
+        None => snapshot
+            .root
+            .business_knowledge_models
+            .iter()
+            .filter(|business_knowledge_model| {
+                business_knowledge_model
+                    .business_knowledge_model_id
+                    .as_deref()
+                    == Some(target_name)
+                    || business_knowledge_model
+                        .variable
+                        .as_ref()
+                        .and_then(|variable| variable.name.as_deref())
+                        == Some(target_name)
+            })
+            .collect::<Vec<_>>(),
+    };
+
+    match matches.as_slice() {
+        [target] => SnapshotInvocationTarget::Found(target),
+        [] if required_knowledge_targets.is_some() => {
+            SnapshotInvocationTarget::OutsideDeclaredKnowledge
+        }
+        [] => SnapshotInvocationTarget::Missing,
+        _ => SnapshotInvocationTarget::Ambiguous,
+    }
+}
+
+fn resolve_snapshot_required_knowledge_targets<'a>(
+    snapshot: &'a DmnDocumentSnapshot,
+    decision: &DmnDecisionDefinition,
+) -> Option<Result<Vec<&'a crate::dmn_model_api::DmnBusinessKnowledgeModelSnapshot>, ()>> {
+    if decision.knowledge_requirements.is_empty() {
+        return None;
+    }
+
+    let mut targets = Vec::with_capacity(decision.knowledge_requirements.len());
+    for requirement in &decision.knowledge_requirements {
+        let Some(href) = requirement.href.as_deref() else {
+            return Some(Err(()));
+        };
+        let Some(target_id) = href.strip_prefix('#').filter(|target| !target.is_empty()) else {
+            return Some(Err(()));
+        };
+        let Some(target) =
+            snapshot
+                .root
+                .business_knowledge_models
+                .iter()
+                .find(|business_knowledge_model| {
+                    business_knowledge_model
+                        .business_knowledge_model_id
+                        .as_deref()
+                        == Some(target_id)
+                })
+        else {
+            return Some(Err(()));
+        };
+        targets.push(target);
+    }
+    Some(Ok(targets))
+}
+
+fn issue_from_invocation_body_contract(
+    decision: &DmnDecisionDefinition,
+    target: &crate::dmn_model_api::DmnBusinessKnowledgeModelSnapshot,
+    snapshot: &DmnDocumentSnapshot,
+) -> Option<LintIssue> {
+    let decision_id = decision.decision.decision_id.as_ref();
+    let Some(logic) = target.encapsulated_logic.as_ref() else {
+        return Some(unsupported_invocation_contract_issue(
+            decision_id,
+            "Keep one same-source `businessKnowledgeModel`, but add one direct `encapsulatedLogic` block with one supported literal-expression body before expecting the invocation to execute locally.",
+            Some(snapshot),
+        ));
+    };
+    let Some(body_text) = logic
+        .body
+        .as_ref()
+        .and_then(|body| body.text.as_deref())
+        .map(str::trim)
+        .filter(|text| !text.is_empty())
+    else {
+        return Some(unsupported_invocation_contract_issue(
+            decision_id,
+            "Keep the BKM target, but give its `encapsulatedLogic` one non-empty direct `<literalExpression><text>...</text></literalExpression>` body.",
+            Some(snapshot),
+        ));
+    };
+    validate_dmn_literal_expression_syntax(decision.source_id.as_ref(), body_text)
+        .err()
+        .map(|_| {
+            unsupported_invocation_contract_issue(
+                decision_id,
+                "Reduce the BKM body to one supported bounded literal expression such as one literal, one variable path, or one simple numeric path operation.",
+                Some(snapshot),
+            )
+        })
+}
+
+fn issue_from_invocation_binding_contract(
+    decision: &DmnDecisionDefinition,
+    invocation: &crate::dmn_model_api::DmnInvocation,
+    snapshot: &DmnDocumentSnapshot,
+) -> Option<LintIssue> {
+    for binding in &invocation.bindings {
+        let Some(parameter_name) = binding
+            .parameter
+            .as_ref()
+            .and_then(|parameter| parameter.name.as_deref())
+            .filter(|name| is_simple_identifier(name))
+        else {
+            return Some(unsupported_invocation_contract_issue(
+                decision.decision.decision_id.as_ref(),
+                "Each direct invocation binding must expose one simple named `parameter` so the local runtime can map the bound value into the BKM scope.",
+                Some(snapshot),
+            ));
+        };
+        let Some(argument_text) = binding
+            .argument
+            .as_ref()
+            .map(|argument| argument.text.as_ref())
+        else {
+            return Some(unsupported_invocation_contract_issue(
+                decision.decision.decision_id.as_ref(),
+                "Each direct invocation binding must include one direct literal-expression argument body.",
+                Some(snapshot),
+            ));
+        };
+        if validate_dmn_literal_expression_syntax(decision.source_id.as_ref(), argument_text)
+            .is_err()
+        {
+            return Some(unsupported_invocation_contract_issue(
+                decision.decision.decision_id.as_ref(),
+                &format!(
+                    "Rewrite binding parameter '{parameter_name}' so its argument stays within the supported bounded literal-expression subset."
+                ),
+                Some(snapshot),
+            ));
+        }
+    }
+    None
+}
+
 fn unsupported_literal_expression_subset_issue(
     decision_id: &str,
     literal: &str,
@@ -276,6 +516,49 @@ fn unsupported_literal_expression_subset_issue(
             Some(decision_id),
         ),
     )
+}
+
+fn unsupported_invocation_contract_issue(
+    decision_id: &str,
+    bounded_fix: &str,
+    snapshot: Option<&DmnDocumentSnapshot>,
+) -> LintIssue {
+    LintIssue::new(
+        "dmn.unsupported_invocation_contract",
+        "DMN invocation is outside the supported local callable subset",
+        format!(
+            "{} uses direct `<invocation>` logic, but at least one part of the callable target, binding, or body contract is outside the bounded local runtime subset.",
+            decision_display(decision_id, snapshot)
+        ),
+        format!(
+            "The bounded evaluator executes direct invocations only when the invoked text resolves to exactly one same-source top-level `businessKnowledgeModel` by `id` or invocable `variable name`, every binding exposes one simple named parameter plus one supported literal-expression argument, the target `encapsulatedLogic` provides one supported direct literal-expression body, and any preserved executable `<requiredKnowledge>` edges on the decision also point at that same-source target.{}",
+            root_context(snapshot)
+        ),
+        vec![
+            "Preserve the existing decision id, invocation id, invoked-expression text, and binding order.".to_string(),
+            bounded_fix.to_string(),
+            "Do not fabricate or inline broader BKM semantics when the target, parameter contract, or body logic is missing; keep the source non-executable until the callable contract is explicit and lossless.".to_string(),
+        ],
+        format!(
+            "Inspect decision '{decision_id}' and keep its direct `<invocation>` honest. Preserve the reported invocation evidence, then repair only the missing same-source BKM target, parameter names, binding arguments, or BKM literal body needed for the bounded local callable subset. Do not invent broader BKM logic or guessed decision-table rules."
+        ),
+        augment_evidence(
+            json!({
+                "decision_id": decision_id,
+            }),
+            snapshot,
+            Some(decision_id),
+        ),
+    )
+}
+
+fn is_simple_identifier(name: &str) -> bool {
+    let mut chars = name.chars();
+    let Some(first) = chars.next() else {
+        return false;
+    };
+    (first.is_ascii_alphabetic() || first == '_')
+        && chars.all(|ch| ch.is_ascii_alphanumeric() || ch == '_')
 }
 
 fn unsupported_list_expression_subset_issue(

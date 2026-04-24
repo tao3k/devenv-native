@@ -1,8 +1,8 @@
 use crate::dmn_model_api::{DmnDecisionDefinition, DmnSourceFile};
 use crate::dmn_parse_api::parser::state::{
     CaptureTarget, TempContextEntry, TempContextExpression, TempDecision, TempInput,
-    TempListExpression, TempLiteralExpression, TempOutput, TempRelationExpression, TempRelationRow,
-    TempRule, TempTable, finalize_decision_definitions,
+    TempInvocation, TempInvocationBinding, TempListExpression, TempLiteralExpression, TempOutput,
+    TempRelationExpression, TempRelationRow, TempRule, TempTable, finalize_decision_definitions,
 };
 use crate::dmn_parse_api::parser::xml::{
     append_capture_reference, append_capture_text, handle_end_tag, handle_start_tag, local_name,
@@ -21,6 +21,8 @@ struct ParseLoopState {
     current_context_entry: Option<TempContextEntry>,
     current_relation: Option<TempRelationExpression>,
     current_relation_row: Option<TempRelationRow>,
+    current_invocation: Option<TempInvocation>,
+    current_invocation_binding: Option<TempInvocationBinding>,
     current_table: Option<TempTable>,
     current_input: Option<TempInput>,
     current_output: Option<TempOutput>,
@@ -41,6 +43,8 @@ impl ParseLoopState {
             current_context_entry: None,
             current_relation: None,
             current_relation_row: None,
+            current_invocation: None,
+            current_invocation_binding: None,
             current_table: None,
             current_input: None,
             current_output: None,
@@ -132,6 +136,8 @@ fn handle_parse_event(
                 &mut state.current_context_entry,
                 &mut state.current_relation,
                 &mut state.current_relation_row,
+                &mut state.current_invocation,
+                &mut state.current_invocation_binding,
                 &mut state.current_table,
                 &mut state.current_input,
                 &mut state.current_output,
@@ -184,6 +190,8 @@ fn handle_start_event(
         &mut state.current_context_entry,
         &mut state.current_relation,
         &mut state.current_relation_row,
+        &mut state.current_invocation,
+        &mut state.current_invocation_binding,
         &mut state.current_table,
         &mut state.current_input,
         &mut state.current_output,

@@ -98,6 +98,30 @@ async fn dmn_evaluation_direct_relation_expression_returns_decision_keyed_output
 }
 
 #[tokio::test(flavor = "current_thread")]
+async fn dmn_evaluation_direct_invocation_requires_package_context() {
+    let decision = parse_dmn_decision(&fixture_source(
+        "versioned-invocation-decision-20191111.dmn",
+    ))
+    .must("bounded direct invocation DMN source should parse");
+    let request = DmnEvaluationRequest::new(
+        DmnDecisionRef::new("Decision_invocation")
+            .with_source_id("versioned-invocation-decision-20191111.dmn"),
+        json!({ "applicant": { "age": 41 } }),
+    );
+
+    let error = evaluate_dmn_decision(&decision, &request)
+        .await
+        .must_err("direct invocation should require package-owned BKM context");
+
+    assert_eq!(
+        error,
+        BpmnEngineError::UnsupportedOperation {
+            operation: "evaluate_dmn_invocation_without_package_context",
+        }
+    );
+}
+
+#[tokio::test(flavor = "current_thread")]
 async fn dmn_evaluation_unique_returns_first_matching_rule_output() {
     let decision = parse_dmn_decision(&fixture_source("simple-unique-eligibility.dmn"))
         .must("bounded DMN source should parse");

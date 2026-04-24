@@ -2,7 +2,9 @@ use super::import::import_bpmn_source;
 use super::normalize::normalize_package;
 use super::validate::validate_raw_package;
 use crate::bpmn_parse_api::{BpmnBundleSnapshot, BpmnParseOptions};
-use crate::dmn_model_api::{DmnBusinessKnowledgeModelDefinition, DmnInputDataDefinition};
+use crate::dmn_model_api::{
+    DmnBusinessKnowledgeModelDefinition, DmnDecisionServiceDefinition, DmnInputDataDefinition,
+};
 use crate::dmn_parse_api::parse_dmn_decisions;
 use crate::dmn_snapshot_api::snapshot_dmn_source;
 use crate::error::{BpmnEngineError, Result};
@@ -29,6 +31,7 @@ pub(crate) fn parse_bpmn_bundle_impl(
     let mut dmn_decisions = Vec::new();
     let mut dmn_input_data = Vec::new();
     let mut dmn_business_knowledge_models = Vec::new();
+    let mut dmn_decision_services = Vec::new();
     for source in &snapshot.dmn_sources {
         dmn_decisions.extend(parse_dmn_decisions(source)?);
         let snapshot = snapshot_dmn_source(source)?;
@@ -43,6 +46,11 @@ pub(crate) fn parse_bpmn_bundle_impl(
                 )
             },
         ));
+        dmn_decision_services.extend(snapshot.root.decision_services.iter().map(
+            |decision_service| {
+                DmnDecisionServiceDefinition::from_snapshot(&source.source_id, decision_service)
+            },
+        ));
     }
 
     let package = if dmn_decisions.is_empty() {
@@ -55,9 +63,14 @@ pub(crate) fn parse_bpmn_bundle_impl(
     } else {
         package.with_dmn_input_data(dmn_input_data)
     };
-    if dmn_business_knowledge_models.is_empty() {
+    let package = if dmn_business_knowledge_models.is_empty() {
+        package
+    } else {
+        package.with_dmn_business_knowledge_models(dmn_business_knowledge_models)
+    };
+    if dmn_decision_services.is_empty() {
         Ok(package)
     } else {
-        Ok(package.with_dmn_business_knowledge_models(dmn_business_knowledge_models))
+        Ok(package.with_dmn_decision_services(dmn_decision_services))
     }
 }

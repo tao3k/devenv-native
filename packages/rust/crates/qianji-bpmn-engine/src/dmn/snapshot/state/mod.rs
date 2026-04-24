@@ -4,6 +4,7 @@ mod decision;
 mod decision_service;
 mod dmndi;
 mod document_structure;
+mod import;
 mod input_data;
 mod item_definition;
 mod knowledge_source;

@@ -7,8 +7,9 @@ use tokio::time::{sleep, timeout};
 use toml::Value;
 
 use super::common::{
-    ChildGuard, repo_root, reserve_test_port, wendaoanalyzer_package_dir, wendaoarrow_package_dir,
-    wendaosearch_config, wendaosearch_package_dir, wendaosearch_script,
+    ChildGuard, julia_example_project_for_package, repo_root, reserve_test_port,
+    wendaoanalyzer_package_dir, wendaoarrow_package_dir, wendaosearch_config,
+    wendaosearch_julia_project, wendaosearch_script,
 };
 
 pub(crate) const LIVE_SERVICE_STARTUP_TIMEOUT_SECS: u64 = 150;
@@ -70,7 +71,7 @@ fn spawn_real_wendaosearch_multi_route_service(mode: &str, port: u16) -> ChildGu
     let child = Command::new("julia")
         .arg(format!(
             "--project={}",
-            wendaosearch_package_dir().display()
+            wendaosearch_julia_project().display()
         ))
         .arg(script)
         .arg("--route-names")
@@ -97,7 +98,7 @@ fn spawn_real_wendaosearch_service(route_name: &str, mode: &str, port: u16) -> C
     let child = Command::new("julia")
         .arg(format!(
             "--project={}",
-            wendaosearch_package_dir().display()
+            wendaosearch_julia_project().display()
         ))
         .arg(script)
         .arg("--route-name")
@@ -121,9 +122,10 @@ fn spawn_real_wendaosearch_service(route_name: &str, mode: &str, port: u16) -> C
 
 fn spawn_wendaoarrow_example(example_path: &str, port: u16, error_context: &str) -> ChildGuard {
     let package_dir = wendaoarrow_package_dir();
+    let project = julia_example_project_for_package(package_dir.as_path());
     let script = package_dir.join("scripts").join("run_flight_example.jl");
     let child = Command::new("julia")
-        .arg(format!("--project={}", package_dir.display()))
+        .arg(format!("--project={}", project.display()))
         .arg(script)
         .arg(example_path)
         .arg("--port")
@@ -138,13 +140,16 @@ fn spawn_wendaoarrow_example(example_path: &str, port: u16, error_context: &str)
 
 fn spawn_wendaoanalyzer_example(args: &[&str], port: u16, error_context: &str) -> ChildGuard {
     let package_dir = wendaoanalyzer_package_dir();
+    let project = julia_example_project_for_package(package_dir.as_path());
     let script = package_dir.join("scripts").join("run_analyzer_example.jl");
     let child = Command::new("julia")
+        .arg(format!("--project={}", project.display()))
         .arg(script)
         .args(args)
         .arg("--port")
         .arg(port.to_string())
         .current_dir(repo_root())
+        .env("JULIA_LOAD_PATH", "@:@stdlib")
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .spawn()

@@ -1,0 +1,42 @@
+# DMN Official Source Map
+
+This module anchors the local DMN alignment notes to the official OMG
+`DMN 1.5` inventory instead of relying on recollection or secondary
+summaries.
+
+## Official Source Bundle
+
+- [About DMN 1.5](https://www.omg.org/spec/DMN/1.5/About-DMN)
+- [Normative DMN 1.5 PDF](https://www.omg.org/spec/DMN/1.5/PDF)
+- [DMN15.xsd](https://www.omg.org/spec/DMN/20230324/DMN15.xsd)
+- [DMN15.xmi](https://www.omg.org/spec/DMN/20230324/DMN15.xmi)
+- [DMNDI15.xsd](https://www.omg.org/spec/DMN/20230324/DMNDI15.xsd)
+- [DMNDI15.xmi](https://www.omg.org/spec/DMN/20230324/DMNDI15.xmi)
+- [DI.xsd](https://www.omg.org/spec/DMN/20230324/DI.xsd)
+- [DC.xsd](https://www.omg.org/spec/DMN/20230324/DC.xsd)
+
+## Module Map
+
+| Local module                                                 | Primary OMG clauses                                                                                                                                                                                                                            | Official assets                                                                           | Local reading                                                       |
+| ------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| [README.md](README.md)                                       | `2 Conformance`; `5 Scope and uses of DMN`; `6 Requirements`; `7 Relating Decision Logic to Decision Requirements`; `8 Decision Table`; `9 Simple Expression Language (S-FEEL)`; `10 Expression Language (FEEL)`; `13 DMN Diagram Interchange` | About page; normative PDF; `DMN15.xsd`; `DMNDI15.xsd`                                     | family index and bounded package surface                            |
+| [document-snapshot.md](document-snapshot.md)                 | `6.3 Metamodel`; `7.3 ItemDefinition metamodel`; `7.3.4 InformationItem metamodel`; `8.3 Decision Table metamodel`; `13.4 DMN Diagram Interchange Meta-Model`                                                                                  | normative PDF; `DMN15.xsd`; `DMN15.xmi`; `DMNDI15.xsd`; `DMNDI15.xmi`; `DI.xsd`; `DC.xsd` | parser-owned document, import metadata, and DMNDI snapshot contract |
+| [decision-tables.md](decision-tables.md)                     | `8 Decision Table`; `9 Simple Expression Language (S-FEEL)`                                                                                                                                                                                    | normative PDF; `DMN15.xsd`                                                                | bounded decision-table evaluator                                    |
+| [literal-expressions.md](literal-expressions.md)             | `7.2.1 Expressions`; `7.2.2 Boxed literal expression`; `7.3.5 Literal expression metamodel`                                                                                                                                                    | normative PDF; `DMN15.xsd`                                                                | bounded literal evaluator                                           |
+| [invocations.md](invocations.md)                             | `7.2.3 Boxed invocation`; `7.3.6 Invocation metamodel`; `7.3.7 Binding metamodel`                                                                                                                                                              | normative PDF; `DMN15.xsd`                                                                | same-source BKM invocation seam                                     |
+| [list-expressions.md](list-expressions.md)                   | `10.2.1 Boxed Expressions`; `10.5.4 List metamodel`                                                                                                                                                                                            | normative PDF; `DMN15.xsd`                                                                | bounded list evaluator                                              |
+| [context-expressions.md](context-expressions.md)             | `10.2.1 Boxed Expressions`; `10.5.1 Context metamodel`; `10.5.2 ContextEntry metamodel`                                                                                                                                                        | normative PDF; `DMN15.xsd`                                                                | bounded context evaluator                                           |
+| [relation-expressions.md](relation-expressions.md)           | `10.2.1 Boxed Expressions`; `10.5.5 Relation metamodel`                                                                                                                                                                                        | normative PDF; `DMN15.xsd`                                                                | bounded relation evaluator                                          |
+| [function-definitions.md](function-definitions.md)           | `10.5.3 FunctionDefinition metamodel`                                                                                                                                                                                                          | normative PDF; `DMN15.xsd`                                                                | snapshot-only function-definition evidence                          |
+| [business-knowledge-models.md](business-knowledge-models.md) | `5.3.2 Decision logic level`; `6.3.9 Business Knowledge Model metamodel`; `10.5.3 FunctionDefinition metamodel`                                                                                                                                | normative PDF; `DMN15.xsd`; `DMN15.xmi`                                                   | BKM registry and callable target contract                           |
+| [decision-services.md](decision-services.md)                 | `5.3.3 Decision services`; `6.2.5 Decision service`; `6.3.10 Decision service metamodel`; `10.4 Execution Semantics of Decision Services`                                                                                                      | normative PDF; `DMN15.xsd`; `DMN15.xmi`                                                   | same-source one-or-more-output decision-service alias seam          |
+| [requirement-references.md](requirement-references.md)       | `6.2.2 DRD Requirements`; `6.3.13 Information Requirement metamodel`; `6.3.14 Knowledge Requirement metamodel`; `6.3.15 Authority Requirement metamodel`                                                                                       | normative PDF; `DMN15.xsd`; `DMN15.xmi`                                                   | preserved requirement-edge surfaces                                 |
+| [information-requirements.md](information-requirements.md)   | `6.2.2 DRD Requirements`; `6.3.13 Information Requirement metamodel`; `7.3.4 InformationItem metamodel`                                                                                                                                        | normative PDF; `DMN15.xsd`; `DMN15.xmi`                                                   | executable `requiredInput` and `requiredDecision` subset            |
+| [feel-subset.md](feel-subset.md)                             | `9 Simple Expression Language (S-FEEL)`; `10 Expression Language (FEEL)`                                                                                                                                                                       | normative PDF                                                                             | bounded FEEL surface                                                |
+
+## Reading Rule
+
+These mappings are intentionally many-to-one. Each local module groups the OMG
+clauses that the crate currently needs to keep one bounded parser, runtime, or
+lint family honest. They are not a claim that one local page implements every
+semantic rule in those clauses.

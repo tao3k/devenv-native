@@ -6,9 +6,10 @@ use serde_json::json;
 use xiuxian_wendao_core::repo_intelligence::{RegisteredRepository, RepositoryPluginConfig};
 
 use super::common::{
-    JuliaExampleServiceGuard, repo_root, reserve_service_port, wait_for_service_ready,
-    wait_for_service_ready_with_attempts, wendaoanalyzer_script, wendaoarrow_script,
-    wendaosearch_package_dir, wendaosearch_parser_summary_contract, wendaosearch_script,
+    JuliaExampleServiceGuard, julia_example_project_for_package, repo_root, reserve_service_port,
+    wait_for_service_ready, wait_for_service_ready_with_attempts, wendaoanalyzer_package_dir,
+    wendaoanalyzer_script, wendaoarrow_script, wendaosearch_julia_project,
+    wendaosearch_parser_summary_contract, wendaosearch_script,
 };
 use crate::compatibility::link_graph::{
     DEFAULT_JULIA_ANALYZER_LAUNCHER_PATH, LinkGraphJuliaAnalyzerLaunchManifest,
@@ -207,8 +208,13 @@ pub async fn spawn_wendaoanalyzer_service_from_manifest(
     let port = reserve_service_port();
     let base_url = format!("http://127.0.0.1:{port}");
     let mut command = if manifest.launcher_path == DEFAULT_JULIA_ANALYZER_LAUNCHER_PATH {
-        let mut command = Command::new("julia");
-        command.arg(wendaoanalyzer_script("run_analyzer_example.jl"));
+        let package_dir = wendaoanalyzer_package_dir();
+        let project = julia_example_project_for_package(package_dir.as_path());
+        let mut command = project_julia_command();
+        command
+            .arg(format!("--project={}", project.display()))
+            .arg(wendaoanalyzer_script("run_analyzer_example.jl"))
+            .env("JULIA_LOAD_PATH", "@:@stdlib");
         for argument in &manifest.args {
             command.arg(argument);
         }
@@ -260,12 +266,16 @@ async fn spawn_wendaoanalyzer_example_service(
 ) -> (String, JuliaExampleServiceGuard) {
     let port = reserve_service_port();
     let base_url = format!("http://127.0.0.1:{port}");
-    let child = Command::new("julia")
+    let package_dir = wendaoanalyzer_package_dir();
+    let project = julia_example_project_for_package(package_dir.as_path());
+    let child = project_julia_command()
+        .arg(format!("--project={}", project.display()))
         .arg(wendaoanalyzer_script("run_analyzer_example.jl"))
         .args(args)
         .arg("--port")
         .arg(port.to_string())
         .current_dir(repo_root())
+        .env("JULIA_LOAD_PATH", "@:@stdlib")
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .spawn()
@@ -347,7 +357,7 @@ async fn spawn_wendaosearch_parser_summary_service(
     let child = project_julia_command()
         .arg(format!(
             "--project={}",
-            wendaosearch_package_dir().display()
+            wendaosearch_julia_project().display()
         ))
         .arg(script)
         .arg("--host")
@@ -444,7 +454,7 @@ async fn spawn_wendaosearch_service_with_code_parser_routes(
     command
         .arg(format!(
             "--project={}",
-            wendaosearch_package_dir().display()
+            wendaosearch_julia_project().display()
         ))
         .arg(script)
         .arg("--route-name")
@@ -486,7 +496,7 @@ async fn spawn_wendaosearch_multi_route_service(mode: &str) -> (String, JuliaExa
     let child = project_julia_command()
         .arg(format!(
             "--project={}",
-            wendaosearch_package_dir().display()
+            wendaosearch_julia_project().display()
         ))
         .arg(script)
         .arg("--route-names")

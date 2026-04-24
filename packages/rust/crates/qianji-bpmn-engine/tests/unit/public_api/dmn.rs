@@ -1,7 +1,8 @@
 use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{
     BpmnEngineError, BpmnPackage, DmnBusinessKnowledgeModelDefinition, DmnDecisionRef,
-    DmnInformationRequirementReference, DmnSourceFile, parse_dmn_decision, parse_dmn_decisions,
+    DmnDecisionServiceDefinition, DmnDecisionServiceReference, DmnInformationRequirementReference,
+    DmnKnowledgeRequirementReference, DmnSourceFile, parse_dmn_decision, parse_dmn_decisions,
     snapshot_dmn_source,
 };
 
@@ -102,6 +103,71 @@ fn package_registered_dmn_decision_preserves_information_requirement_contract() 
 }
 
 #[test]
+fn package_registered_dmn_decision_preserves_invocation_contract() {
+    let definition = parse_dmn_decision(&fixture_source(
+        "versioned-invocation-decision-20191111.dmn",
+        "versioned-invocation-decision-20191111.dmn",
+    ))
+    .must("invocation DMN source should parse");
+    let package = BpmnPackage::new("pkg_api", Vec::new()).with_dmn_decisions(vec![definition]);
+
+    let resolved = package
+        .find_dmn_decision(
+            &DmnDecisionRef::new("Decision_invocation")
+                .with_source_id("versioned-invocation-decision-20191111.dmn"),
+        )
+        .must("registered invocation decision lookup should succeed")
+        .must("registered invocation decision should resolve");
+
+    let invocation = resolved
+        .invocation
+        .as_ref()
+        .must("invocation contract should be present");
+    assert_eq!(invocation.invocation_id.as_deref(), Some("invocation_1"));
+    assert_eq!(
+        invocation
+            .invoked_expression
+            .as_ref()
+            .map(|expression| expression.text.as_ref()),
+        Some("scoreCard")
+    );
+    assert_eq!(invocation.bindings.len(), 1);
+    assert_eq!(
+        invocation.bindings[0]
+            .parameter
+            .as_ref()
+            .and_then(|parameter| parameter.name.as_deref()),
+        Some("age")
+    );
+}
+
+#[test]
+fn package_registered_dmn_decision_preserves_knowledge_requirement_contract() {
+    let definition = parse_dmn_decision(&fixture_source(
+        "versioned-local-required-knowledge-runtime-20191111.dmn",
+        "versioned-local-required-knowledge-runtime-20191111.dmn",
+    ))
+    .must("required-knowledge invocation source should parse");
+    let package = BpmnPackage::new("pkg_api", Vec::new()).with_dmn_decisions(vec![definition]);
+
+    let resolved = package
+        .find_dmn_decision(
+            &DmnDecisionRef::new("Decision_required_knowledge_runtime")
+                .with_source_id("versioned-local-required-knowledge-runtime-20191111.dmn"),
+        )
+        .must("registered required-knowledge decision lookup should succeed")
+        .must("registered required-knowledge decision should resolve");
+
+    assert_eq!(
+        resolved.knowledge_requirements,
+        vec![DmnKnowledgeRequirementReference::new(
+            "requiredKnowledge",
+            Some("#BKM_score_card"),
+        )]
+    );
+}
+
+#[test]
 fn package_registered_dmn_business_knowledge_model_resolves_deterministically() {
     let snapshot = snapshot_dmn_source(&fixture_source(
         "metadata-only-business-knowledge-model-invocable-20191111.dmn",
@@ -136,6 +202,43 @@ fn package_registered_dmn_business_knowledge_model_resolves_deterministically() 
             .as_ref()
             .map(|logic| logic.parameters.len()),
         Some(1)
+    );
+}
+
+#[test]
+fn package_registered_dmn_decision_service_resolves_deterministically() {
+    let snapshot = snapshot_dmn_source(&fixture_source(
+        "versioned-local-decision-service-runtime-20191111.dmn",
+        "versioned-local-decision-service-runtime-20191111.dmn",
+    ))
+    .must("decision-service fixture should snapshot");
+    let definition = DmnDecisionServiceDefinition::from_snapshot(
+        "versioned-local-decision-service-runtime-20191111.dmn",
+        snapshot
+            .root
+            .decision_services
+            .first()
+            .must("fixture should contain one top-level decision service"),
+    );
+    let package =
+        BpmnPackage::new("pkg_api", Vec::new()).with_dmn_decision_services(vec![definition]);
+
+    let resolved = package
+        .find_dmn_decision_service(
+            &DmnDecisionRef::new("DecisionService_credit")
+                .with_source_id("versioned-local-decision-service-runtime-20191111.dmn"),
+        )
+        .must("registered decision-service lookup should stay deterministic")
+        .must("registered decision service should resolve");
+
+    assert_eq!(package.dmn_decision_services().len(), 1);
+    assert_eq!(resolved.name.as_deref(), Some("Credit Decision Service"));
+    assert_eq!(
+        resolved.output_decisions,
+        vec![DmnDecisionServiceReference::new(
+            "outputDecision",
+            Some("#Decision_approval"),
+        )]
     );
 }
 

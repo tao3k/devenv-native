@@ -36,6 +36,8 @@ pub struct DmnRootSnapshot {
     pub model_version_hint: Option<String>,
     /// Number of top-level `import` elements discovered in the document.
     pub import_count: usize,
+    /// Bounded top-level `import` metadata preserved from the document.
+    pub imports: Vec<DmnImportSnapshot>,
     /// Number of top-level `itemDefinition` elements discovered in the document.
     pub item_definition_count: usize,
     /// Bounded top-level `itemDefinition` metadata preserved from the document.
@@ -84,6 +86,19 @@ pub struct DmnRootSnapshot {
     pub dmndi_count: usize,
     /// Bounded top-level `dmndi:DMNDI` metadata preserved from the document.
     pub dmndi_blocks: Vec<DmnDmndiSnapshot>,
+}
+
+/// Snapshot of one top-level DMN `import`.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct DmnImportSnapshot {
+    /// Optional import alias used by QName-style references.
+    pub name: Option<String>,
+    /// Optional imported model namespace.
+    pub namespace: Option<String>,
+    /// Optional import location URI.
+    pub location_uri: Option<String>,
+    /// Optional imported model type URI.
+    pub import_type: Option<String>,
 }
 
 /// Snapshot of one top-level DMN `itemDefinition`.

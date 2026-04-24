@@ -156,6 +156,18 @@ fn dmn_snapshot_counts_top_level_imports() {
         Some("20191111")
     );
     assert_eq!(snapshot.root.import_count, 1);
+    assert_eq!(snapshot.root.imports.len(), 1);
+    let import = &snapshot.root.imports[0];
+    assert_eq!(import.name.as_deref(), Some("Partner Services"));
+    assert_eq!(
+        import.namespace.as_deref(),
+        Some("https://example.com/dmn/partner-services")
+    );
+    assert_eq!(import.location_uri.as_deref(), Some("partner-services.dmn"));
+    assert_eq!(
+        import.import_type.as_deref(),
+        Some("https://www.omg.org/spec/DMN/20191111/MODEL/")
+    );
     assert_eq!(snapshot.root.item_definition_count, 0);
     assert_eq!(snapshot.root.input_data_count, 0);
     assert_eq!(snapshot.root.knowledge_source_count, 0);

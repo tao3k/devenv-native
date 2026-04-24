@@ -1,7 +1,8 @@
 use super::unary;
 use crate::dmn_model_api::{
     DmnContextEntry, DmnContextExpression, DmnDecisionDefinition, DmnDecisionRef, DmnDecisionTable,
-    DmnHitPolicy, DmnInformationRequirementReference, DmnInputClause, DmnInputEntry,
+    DmnHitPolicy, DmnInformationRequirementReference, DmnInputClause, DmnInputEntry, DmnInvocation,
+    DmnInvocationBinding, DmnInvocationParameter, DmnKnowledgeRequirementReference,
     DmnListExpression, DmnLiteralExpression, DmnOutputClause, DmnOutputEntry, DmnRelationColumn,
     DmnRelationExpression, DmnRelationRow, DmnRule, DmnSourceFile,
 };
@@ -15,10 +16,17 @@ pub(crate) struct TempDecision {
     pub(crate) list_expression: Option<TempListExpression>,
     pub(crate) context_expression: Option<TempContextExpression>,
     pub(crate) relation_expression: Option<TempRelationExpression>,
+    pub(crate) invocation: Option<TempInvocation>,
     pub(crate) information_requirements: Vec<TempInformationRequirementReference>,
+    pub(crate) knowledge_requirements: Vec<TempKnowledgeRequirementReference>,
 }
 
 pub(crate) struct TempInformationRequirementReference {
+    pub(crate) reference_kind: String,
+    pub(crate) href: Option<String>,
+}
+
+pub(crate) struct TempKnowledgeRequirementReference {
     pub(crate) reference_kind: String,
     pub(crate) href: Option<String>,
 }
@@ -61,6 +69,24 @@ pub(crate) struct TempRelationColumn {
 pub(crate) struct TempRelationRow {
     pub(crate) row_id: Option<String>,
     pub(crate) cells: Vec<TempLiteralExpression>,
+}
+
+pub(crate) struct TempInvocation {
+    pub(crate) invocation_id: Option<String>,
+    pub(crate) invoked_expression: Option<TempLiteralExpression>,
+    pub(crate) bindings: Vec<TempInvocationBinding>,
+}
+
+pub(crate) struct TempInvocationBinding {
+    pub(crate) binding_id: Option<String>,
+    pub(crate) parameter: Option<TempInvocationParameter>,
+    pub(crate) argument: Option<TempLiteralExpression>,
+}
+
+pub(crate) struct TempInvocationParameter {
+    pub(crate) parameter_id: Option<String>,
+    pub(crate) name: Option<String>,
+    pub(crate) type_ref: Option<String>,
 }
 
 pub(crate) struct TempTable {
@@ -115,7 +141,9 @@ pub(crate) fn finalize_decision_definition(
         list_expression,
         context_expression,
         relation_expression,
+        invocation,
         information_requirements,
+        knowledge_requirements,
     } = decision;
     let definition = match (
         table,
@@ -123,14 +151,15 @@ pub(crate) fn finalize_decision_definition(
         list_expression,
         context_expression,
         relation_expression,
+        invocation,
     ) {
-        (Some(table), None, None, None, None) => DmnDecisionDefinition::new(
+        (Some(table), None, None, None, None, None) => DmnDecisionDefinition::new(
             &source.source_id,
             DmnDecisionRef::new(&decision_id).with_source_id(&source.source_id),
             name,
             table.into_definition(),
         ),
-        (None, Some(literal_expression), None, None, None) => DmnDecisionDefinition::new(
+        (None, Some(literal_expression), None, None, None, None) => DmnDecisionDefinition::new(
             &source.source_id,
             DmnDecisionRef::new(&decision_id).with_source_id(&source.source_id),
             name,
@@ -138,59 +167,96 @@ pub(crate) fn finalize_decision_definition(
                 .into_definition(),
         )
         .with_literal_expression(literal_expression.into_definition(source, &decision_id)?),
-        (None, None, Some(list_expression), None, None) => DmnDecisionDefinition::new(
+        (None, None, Some(list_expression), None, None, None) => DmnDecisionDefinition::new(
             &source.source_id,
             DmnDecisionRef::new(&decision_id).with_source_id(&source.source_id),
             name,
             TempTable::empty_boxed_expression_table(&decision_id, "list").into_definition(),
         )
         .with_list_expression(list_expression.into_definition(source, &decision_id)?),
-        (None, None, None, Some(context_expression), None) => DmnDecisionDefinition::new(
+        (None, None, None, Some(context_expression), None, None) => DmnDecisionDefinition::new(
             &source.source_id,
             DmnDecisionRef::new(&decision_id).with_source_id(&source.source_id),
             name,
             TempTable::empty_boxed_expression_table(&decision_id, "context").into_definition(),
         )
         .with_context_expression(context_expression.into_definition(source, &decision_id)?),
-        (None, None, None, None, Some(relation_expression)) => DmnDecisionDefinition::new(
+        (None, None, None, None, Some(relation_expression), None) => DmnDecisionDefinition::new(
             &source.source_id,
             DmnDecisionRef::new(&decision_id).with_source_id(&source.source_id),
             name,
             TempTable::empty_boxed_expression_table(&decision_id, "relation").into_definition(),
         )
         .with_relation_expression(relation_expression.into_definition(source, &decision_id)?),
-        (Some(_), Some(_), _, _, _)
-        | (Some(_), _, Some(_), _, _)
-        | (Some(_), _, _, Some(_), _)
-        | (Some(_), _, _, _, Some(_))
-        | (None, Some(_), Some(_), _, _)
-        | (None, Some(_), _, Some(_), _)
-        | (None, Some(_), _, _, Some(_))
-        | (None, None, Some(_), Some(_), _)
-        | (None, None, Some(_), _, Some(_))
-        | (None, None, None, Some(_), Some(_)) => {
+        (None, None, None, None, None, Some(invocation)) => DmnDecisionDefinition::new(
+            &source.source_id,
+            DmnDecisionRef::new(&decision_id).with_source_id(&source.source_id),
+            name,
+            TempTable::empty_boxed_expression_table(&decision_id, "invocation").into_definition(),
+        )
+        .with_invocation(invocation.into_definition(source, &decision_id)?),
+        (Some(_), Some(_), _, _, _, _)
+        | (Some(_), _, Some(_), _, _, _)
+        | (Some(_), _, _, Some(_), _, _)
+        | (Some(_), _, _, _, Some(_), _)
+        | (Some(_), _, _, _, _, Some(_))
+        | (None, Some(_), Some(_), _, _, _)
+        | (None, Some(_), _, Some(_), _, _)
+        | (None, Some(_), _, _, Some(_), _)
+        | (None, Some(_), _, _, _, Some(_))
+        | (None, None, Some(_), Some(_), _, _)
+        | (None, None, Some(_), _, Some(_), _)
+        | (None, None, Some(_), _, _, Some(_))
+        | (None, None, None, Some(_), Some(_), _)
+        | (None, None, None, Some(_), _, Some(_))
+        | (None, None, None, None, Some(_), Some(_)) => {
             return Err(BpmnEngineError::UnsupportedOperation {
                 operation: "finalize_dmn_decision_mixed_executable_surfaces",
             });
         }
-        (None, None, None, None, None) => {
+        (None, None, None, None, None, None) => {
             return Err(BpmnEngineError::MissingDmnDecisionTable { decision_id });
         }
     };
-    if information_requirements.is_empty() {
-        Ok(definition)
+    Ok(attach_requirement_contracts(
+        definition,
+        information_requirements,
+        knowledge_requirements,
+    ))
+}
+
+fn attach_requirement_contracts(
+    definition: DmnDecisionDefinition,
+    information_requirements: Vec<TempInformationRequirementReference>,
+    knowledge_requirements: Vec<TempKnowledgeRequirementReference>,
+) -> DmnDecisionDefinition {
+    let definition = if information_requirements.is_empty() {
+        definition
     } else {
-        Ok(definition.with_information_requirements(
+        definition.with_information_requirements(
             information_requirements
                 .into_iter()
                 .map(Into::into)
                 .collect(),
-        ))
+        )
+    };
+    if knowledge_requirements.is_empty() {
+        definition
+    } else {
+        definition.with_knowledge_requirements(
+            knowledge_requirements.into_iter().map(Into::into).collect(),
+        )
     }
 }
 
 impl From<TempInformationRequirementReference> for DmnInformationRequirementReference {
     fn from(value: TempInformationRequirementReference) -> Self {
+        Self::new(value.reference_kind, value.href)
+    }
+}
+
+impl From<TempKnowledgeRequirementReference> for DmnKnowledgeRequirementReference {
+    fn from(value: TempKnowledgeRequirementReference) -> Self {
         Self::new(value.reference_kind, value.href)
     }
 }
@@ -300,6 +366,52 @@ impl TempRelationRow {
             cells.push(cell.into_definition(source, decision_id)?);
         }
         Ok(DmnRelationRow::new(self.row_id, cells))
+    }
+}
+
+impl TempInvocation {
+    pub(crate) fn into_definition(
+        self,
+        source: &DmnSourceFile,
+        decision_id: &str,
+    ) -> Result<DmnInvocation> {
+        let invoked_expression = self
+            .invoked_expression
+            .map(|expression| expression.into_definition(source, decision_id))
+            .transpose()?;
+        let mut bindings = Vec::with_capacity(self.bindings.len());
+        for binding in self.bindings {
+            bindings.push(binding.into_definition(source, decision_id)?);
+        }
+        Ok(DmnInvocation::new(
+            self.invocation_id,
+            invoked_expression,
+            bindings,
+        ))
+    }
+}
+
+impl TempInvocationBinding {
+    fn into_definition(
+        self,
+        source: &DmnSourceFile,
+        decision_id: &str,
+    ) -> Result<DmnInvocationBinding> {
+        let argument = self
+            .argument
+            .map(|expression| expression.into_definition(source, decision_id))
+            .transpose()?;
+        Ok(DmnInvocationBinding::new(
+            self.binding_id,
+            self.parameter.map(TempInvocationParameter::into_definition),
+            argument,
+        ))
+    }
+}
+
+impl TempInvocationParameter {
+    fn into_definition(self) -> DmnInvocationParameter {
+        DmnInvocationParameter::new(self.parameter_id, self.name, self.type_ref)
     }
 }
 

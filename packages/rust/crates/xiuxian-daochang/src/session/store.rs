@@ -26,6 +26,12 @@ impl SessionStore {
         }
     }
 
+    #[doc(hidden)]
+    #[must_use]
+    pub fn new_in_memory_for_test() -> Self {
+        Self::from_redis_backend(None)
+    }
+
     /// Create a store using runtime settings or env-driven Valkey fallback.
     ///
     /// # Errors

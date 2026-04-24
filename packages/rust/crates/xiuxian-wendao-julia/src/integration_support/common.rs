@@ -1,7 +1,7 @@
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::Child;
+use std::process::{Child, Command};
 use std::time::Duration;
 
 use crate::compatibility::link_graph::{
@@ -99,11 +99,56 @@ pub(crate) fn project_cache_dir() -> PathBuf {
     }
 }
 
+fn resolve_linked_package_dir(relative_path: &str, label: &str) -> Option<PathBuf> {
+    let candidate = repo_root().join(relative_path);
+    if !candidate.is_dir() {
+        return None;
+    }
+    Some(
+        candidate
+            .canonicalize()
+            .unwrap_or_else(|error| panic!("resolve {label} package dir: {error}")),
+    )
+}
+
+fn resolve_project_package_dir(package_name: &str) -> Option<PathBuf> {
+    let project = env::var_os("WENDAOSEARCH_JULIA_PROJECT")?;
+    let project = PathBuf::from(project);
+    let project = if project.is_absolute() {
+        project
+    } else {
+        repo_root().join(project)
+    };
+    let output = Command::new("julia")
+        .arg(format!("--project={}", project.display()))
+        .arg("-e")
+        .arg(format!(
+            "using {package_name}; print(dirname(dirname(pathof({package_name}))))"
+        ))
+        .output()
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let resolved = String::from_utf8(output.stdout).ok()?;
+    let resolved = resolved.trim();
+    if resolved.is_empty() {
+        return None;
+    }
+    PathBuf::from(resolved).canonicalize().ok()
+}
+
+pub(crate) fn julia_example_project_for_package(package_dir: &Path) -> PathBuf {
+    if package_dir.starts_with(repo_root().join(".data")) {
+        return package_dir.to_path_buf();
+    }
+    wendaosearch_julia_project()
+}
+
 pub(crate) fn wendaoarrow_package_dir() -> PathBuf {
-    repo_root()
-        .join(DEFAULT_JULIA_ARROW_PACKAGE_DIR)
-        .canonicalize()
-        .unwrap_or_else(|error| panic!("resolve WendaoArrow package dir: {error}"))
+    resolve_linked_package_dir(DEFAULT_JULIA_ARROW_PACKAGE_DIR, "WendaoArrow")
+        .or_else(|| resolve_project_package_dir("WendaoArrow"))
+        .unwrap_or_else(|| panic!("resolve WendaoArrow package dir"))
 }
 
 pub(crate) fn wendaoarrow_script(name: &str) -> PathBuf {
@@ -115,10 +160,9 @@ pub(crate) fn wendaoarrow_script(name: &str) -> PathBuf {
 }
 
 pub(crate) fn wendaoanalyzer_package_dir() -> PathBuf {
-    repo_root()
-        .join(DEFAULT_JULIA_ANALYZER_PACKAGE_DIR)
-        .canonicalize()
-        .unwrap_or_else(|error| panic!("resolve WendaoAnalyzer package dir: {error}"))
+    resolve_linked_package_dir(DEFAULT_JULIA_ANALYZER_PACKAGE_DIR, "WendaoAnalyzer")
+        .or_else(|| resolve_project_package_dir("WendaoAnalyzer"))
+        .unwrap_or_else(|| panic!("resolve WendaoAnalyzer package dir"))
 }
 
 pub(crate) fn wendaoanalyzer_script(name: &str) -> PathBuf {
@@ -134,6 +178,21 @@ pub(crate) fn wendaosearch_package_dir() -> PathBuf {
         .join(".data/WendaoSearch.jl")
         .canonicalize()
         .unwrap_or_else(|error| panic!("resolve WendaoSearch package dir: {error}"))
+}
+
+pub(crate) fn wendaosearch_julia_project() -> PathBuf {
+    let Some(configured) = env::var_os("WENDAOSEARCH_JULIA_PROJECT") else {
+        return wendaosearch_package_dir();
+    };
+    let candidate = PathBuf::from(configured);
+    let candidate = if candidate.is_absolute() {
+        candidate
+    } else {
+        repo_root().join(candidate)
+    };
+    candidate
+        .canonicalize()
+        .unwrap_or_else(|error| panic!("resolve WendaoSearch Julia project dir: {error}"))
 }
 
 #[cfg(test)]

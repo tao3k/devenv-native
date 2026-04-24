@@ -3,8 +3,8 @@ use std::path::{Component, PathBuf};
 use std::process::{Command, Stdio};
 
 use super::common::{
-    JuliaExampleServiceGuard, project_cache_dir, repo_root, reserve_service_port,
-    wait_for_service_ready, wendaoarrow_script,
+    JuliaExampleServiceGuard, julia_example_project_for_package, project_cache_dir, repo_root,
+    reserve_service_port, wait_for_service_ready, wendaoarrow_package_dir, wendaoarrow_script,
 };
 
 /// Row-level score override for the custom Julia rerank service.
@@ -39,12 +39,18 @@ pub async fn spawn_wendaoarrow_custom_scoring_service(
         panic!("write generated WendaoArrow custom scoring script: {error}")
     });
 
+    let package_dir = wendaoarrow_package_dir();
     let child = Command::new("julia")
+        .arg(format!(
+            "--project={}",
+            julia_example_project_for_package(package_dir.as_path()).display()
+        ))
         .arg(wendaoarrow_script("run_flight_example.jl"))
         .arg(&generated_script)
         .arg("--port")
         .arg(port.to_string())
         .current_dir(repo_root())
+        .env("JULIA_LOAD_PATH", "@:@stdlib")
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .spawn()

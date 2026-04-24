@@ -79,10 +79,10 @@ fn dmn_linter_reports_knowledge_requirement_decision_with_construct_specific_gui
     assert!(
         issue
             .why_it_failed
-            .contains("bounded parser now preserves one invocable `variable` / `encapsulatedLogic` placeholder contract")
+            .contains("runtime now consumes direct same-source `<requiredKnowledge>` edges only as an invocation-side target constraint")
     );
     assert!(issue.repair_guidance.iter().any(|step| {
-        step.contains("runtime still does not execute preserved BKM invocable metadata")
+        step.contains("bounded runtime uses those edges only to constrain an already-explicit local invocation target")
     }));
     assert!(issue.llm_fix_prompt.contains("<requiredKnowledge>"));
     assert_eq!(

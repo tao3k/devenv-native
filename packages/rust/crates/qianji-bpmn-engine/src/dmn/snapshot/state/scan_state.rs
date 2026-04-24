@@ -13,6 +13,7 @@ use super::dmndi::{TempDiagramSnapshot, TempDmndiSnapshot};
 use super::document_structure::{
     TempAssociationSnapshot, TempElementCollectionSnapshot, TempGroupSnapshot,
 };
+use super::import::TempImportSnapshot;
 use super::input_data::{TempInputDataSnapshot, variable_from_event};
 use super::item_definition::{TempItemDefinitionSnapshot, item_component_from_event};
 use super::knowledge_source::TempKnowledgeSourceSnapshot;
@@ -107,7 +108,6 @@ impl SnapshotScanState {
         if self.handle_dmndi_start_event(source, reader, event, parent_tag, is_empty)? {
             return Ok(());
         }
-        self.track_root_construct(tag, parent_tag);
         self.track_decision_construct(tag, parent_tag);
 
         Ok(())
@@ -216,6 +216,10 @@ impl SnapshotScanState {
         match (tag, parent_tag) {
             ("inputData", Some("definitions")) => {
                 self.start_input_data(source, reader, event, is_empty)?;
+                Ok(true)
+            }
+            ("import", Some("definitions")) => {
+                self.capture_import(source, reader, event)?;
                 Ok(true)
             }
             ("knowledgeSource", Some("definitions")) => {
@@ -1151,6 +1155,21 @@ impl SnapshotScanState {
         Ok(())
     }
 
+    fn capture_import(
+        &mut self,
+        source: &DmnSourceFile,
+        reader: &Reader<&[u8]>,
+        event: &BytesStart<'_>,
+    ) -> Result<()> {
+        let Some(root) = self.root.as_mut() else {
+            return Ok(());
+        };
+        root.import_count += 1;
+        root.imports
+            .push(TempImportSnapshot::from_event(source, reader, event)?.into());
+        Ok(())
+    }
+
     fn capture_decision_service_reference(
         &mut self,
         source: &DmnSourceFile,
@@ -1350,18 +1369,6 @@ impl SnapshotScanState {
         diagram.attach_edge_label_from_event(source, reader, event)?;
         self.current_dmn_label_owner = Some(DmnLabelOwner::Edge);
         Ok(())
-    }
-
-    fn track_root_construct(&mut self, tag: &str, parent_tag: Option<&str>) {
-        if parent_tag != Some("definitions") {
-            return;
-        }
-        let Some(root) = self.root.as_mut() else {
-            return;
-        };
-        if tag == "import" {
-            root.import_count += 1;
-        }
     }
 
     fn track_decision_construct(&mut self, tag: &str, parent_tag: Option<&str>) {

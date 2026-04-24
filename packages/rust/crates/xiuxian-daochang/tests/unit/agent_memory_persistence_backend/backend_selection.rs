@@ -1,8 +1,39 @@
+use std::process::Command;
+
+use anyhow::{Context, Result, bail};
+
 use super::support::{
     build_agent_with_optional_session_valkey_url, create_temp_dir, require_ok, reserve_local_addr,
     spawn_slow_embedding_server, state_paths,
 };
 use xiuxian_daochang::MemoryConfig;
+
+const CHILD_ENV_KEY: &str = "XIUXIAN_DAOCHANG_MEMORY_BACKEND_CHILD";
+
+fn run_child_probe(test_name: &str) -> Result<()> {
+    let test_binary = std::env::current_exe().context("resolve current test binary path")?;
+    let output = Command::new(test_binary)
+        .arg("--exact")
+        .arg(test_name)
+        .arg("--nocapture")
+        .env(CHILD_ENV_KEY, "1")
+        .env_remove("VALKEY_URL")
+        .env_remove("XIUXIAN_WENDAO_VALKEY_URL")
+        .output()
+        .with_context(|| format!("spawn child probe `{test_name}`"))?;
+    if output.status.success() {
+        return Ok(());
+    }
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    bail!(
+        "child probe `{test_name}` failed with exit_code={:?}\nstdout:\n{}\nstderr:\n{}",
+        output.status.code(),
+        stdout,
+        stderr
+    );
+}
 
 #[tokio::test]
 async fn local_memory_backend_initializes_without_valkey() {
@@ -41,7 +72,16 @@ async fn strict_valkey_memory_backend_fails_when_unreachable() {
 }
 
 #[tokio::test]
-async fn auto_memory_backend_without_valkey_url_persists_locally() {
+async fn auto_memory_backend_without_valkey_url_persists_locally() -> Result<()> {
+    run_child_probe("auto_memory_backend_without_valkey_url_child")
+}
+
+#[tokio::test]
+async fn auto_memory_backend_without_valkey_url_child() {
+    if std::env::var(CHILD_ENV_KEY).ok().as_deref() != Some("1") {
+        return;
+    }
+
     let temp_dir = create_temp_dir();
     let table_name = "auto_local".to_string();
     let mut memory = MemoryConfig {

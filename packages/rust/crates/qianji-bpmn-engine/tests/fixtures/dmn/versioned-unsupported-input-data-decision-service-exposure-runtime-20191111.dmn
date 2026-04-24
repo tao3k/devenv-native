@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions
+  xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/"
+  id="Definitions_unsupported_input_data_decision_service_exposure_runtime"
+  name="Unsupported Input Data Decision Service Exposure Runtime"
+  namespace="https://example.com/dmn/unsupported-input-data-decision-service-exposure-runtime">
+  <inputData id="InputData_application" name="application">
+    <variable id="Variable_application" name="application" typeRef="Any" />
+  </inputData>
+  <decisionService id="DecisionService_credit" name="Credit Decision Service">
+    <outputDecision href="#Decision_approval" />
+    <inputData href="InputData_application" />
+  </decisionService>
+  <decision id="Decision_approval" name="Approval">
+    <variable id="Variable_approval" name="approval" typeRef="string" />
+    <decisionTable id="DecisionTable_approval" hitPolicy="UNIQUE">
+      <input id="InputClause_tier">
+        <inputExpression id="InputExpression_tier" typeRef="string">
+          <text>tier</text>
+        </inputExpression>
+      </input>
+      <output id="OutputClause_approval" name="approval" typeRef="string" />
+      <rule id="Rule_approve">
+        <inputEntry id="InputEntry_approve">
+          <text>"gold"</text>
+        </inputEntry>
+        <outputEntry id="OutputEntry_approve">
+          <text>"approve"</text>
+        </outputEntry>
+      </rule>
+      <rule id="Rule_review">
+        <inputEntry id="InputEntry_review">
+          <text>-</text>
+        </inputEntry>
+        <outputEntry id="OutputEntry_review">
+          <text>"review"</text>
+        </outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+</definitions>

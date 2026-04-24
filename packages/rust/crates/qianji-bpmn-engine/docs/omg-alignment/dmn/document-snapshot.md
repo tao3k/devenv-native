@@ -21,6 +21,8 @@ owned by `qianji-bpmn-engine`.
 - decision-owned direct `functionDefinition` metadata including function kind,
   direct formal-parameter placeholders, and one direct body literal-expression
   placeholder
+- top-level `import` metadata including bounded `name`, `namespace`,
+  `locationURI`, and `importType` placeholders
 - top-level `itemDefinition` metadata including bounded `id`, `name`,
   `typeRef`, `isCollection`, and one direct `itemComponent` placeholder
   layer
@@ -67,6 +69,9 @@ owned by `qianji-bpmn-engine`.
 - decision-owned requirement references are preserved as href placeholders
   only; this includes direct `requiredInput`, `requiredDecision`,
   `requiredKnowledge`, and `requiredAuthority`
+- top-level `import` metadata is preserved so lint, adapter, and later
+  import-resolution work can name the external dependency before any
+  executable cross-document lookup is attempted
 - top-level `itemDefinition` metadata is preserved so lint, adapter, and
   later DMN type-model work can reuse stable engine-owned placeholders
 - one bounded direct `itemComponent` layer is preserved under each top-level
@@ -87,6 +92,9 @@ owned by `qianji-bpmn-engine`.
 - direct decision-service references are preserved as href placeholders only;
   this includes direct `outputDecision`, `encapsulatedDecision`,
   `inputDecision`, and `inputData`
+- parser-owned bundle loading can now derive one bounded package-owned
+  same-source decision-service registry from that preserved snapshot metadata
+  without changing the snapshot itself into an executable document contract
 - top-level `organizationUnit` metadata is preserved so lint, adapter, and
   later governance-contract work can reuse stable engine-owned placeholders
 - top-level `performanceIndicator` metadata is preserved so lint, adapter,
@@ -135,8 +143,9 @@ owned by `qianji-bpmn-engine`.
   one repeated direct `di:waypoint` placeholder list with optional x/y
   pairs
 - decision-owned direct `invocation` metadata is preserved so lint, adapter,
-  and later invocation-runtime work can reuse stable invoked-expression and
-  binding placeholders without fabricating called function semantics
+  and the current bounded local invocation runtime can reuse stable
+  invoked-expression and binding placeholders without fabricating broader
+  called function semantics
 - decision-owned direct `functionDefinition` metadata is preserved so lint,
   adapter, and later function-runtime work can reuse stable parameter and body
   placeholders without fabricating function semantics
@@ -176,8 +185,8 @@ owned by `qianji-bpmn-engine`.
 - broader requirement-reference href resolution or DRD dependency execution
   beyond the current same-source `requiredDecision` recursion and
   `requiredInput` alias-bind slice
-- direct invocation execution, called-function resolution, or binding
-  evaluation
+- broader invocation execution, broader called-function resolution, or binding
+  evaluation beyond the current same-source bounded local callable seam
 - direct function-definition execution, function body evaluation, or
   parameter-binding evaluation
 - broader DRD dependency execution
