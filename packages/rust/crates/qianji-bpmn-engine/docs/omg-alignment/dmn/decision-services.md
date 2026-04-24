@@ -40,8 +40,18 @@ validation, not as executable orchestration. Imported hrefs, broader DRD
 planning, and general decision-service orchestration all remain deferred.
 Top-level DMN imports are now preserved in document snapshots with bounded
 `name`, `namespace`, `locationURI`, and `importType` metadata, but executable
-package loading still rejects them until an explicit import-resolution registry
-can map those metadata fields to package-owned DMN sources.
+package loading still rejects them. The package model now has a
+non-executable, source-scoped import registry that keeps the declaring
+`source_id`, import alias, imported namespace, location URI, and import type
+separate; future cross-document lookup must resolve through that contract
+instead of treating aliases, namespaces, and source ids as interchangeable.
+The registry can be queried deterministically by declaring source plus alias,
+namespace, or location URI, and it reports ambiguous selectors instead of
+choosing one imported dependency implicitly.
+Bundled DMN source roots are also preserved in a separate non-executable
+registry so an imported namespace can be matched to a package-owned source
+root without treating that source id, namespace, or import alias as the same
+identifier.
 
 ## Repair Guidance
 

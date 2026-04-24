@@ -3,7 +3,8 @@ use super::normalize::normalize_package;
 use super::validate::validate_raw_package;
 use crate::bpmn_parse_api::{BpmnBundleSnapshot, BpmnParseOptions};
 use crate::dmn_model_api::{
-    DmnBusinessKnowledgeModelDefinition, DmnDecisionServiceDefinition, DmnInputDataDefinition,
+    DmnBusinessKnowledgeModelDefinition, DmnDecisionServiceDefinition, DmnImportDefinition,
+    DmnInputDataDefinition, DmnSourceDefinition,
 };
 use crate::dmn_parse_api::parse_dmn_decisions;
 use crate::dmn_snapshot_api::snapshot_dmn_source;
@@ -28,13 +29,24 @@ pub(crate) fn parse_bpmn_bundle_impl(
     let raw = import_bpmn_source(&snapshot.bpmn_sources[0])?;
     validate_raw_package(&raw)?;
     let package = normalize_package(raw)?;
+    let mut dmn_source_definitions = Vec::new();
+    let mut dmn_imports = Vec::new();
     let mut dmn_decisions = Vec::new();
     let mut dmn_input_data = Vec::new();
     let mut dmn_business_knowledge_models = Vec::new();
     let mut dmn_decision_services = Vec::new();
     for source in &snapshot.dmn_sources {
-        dmn_decisions.extend(parse_dmn_decisions(source)?);
         let snapshot = snapshot_dmn_source(source)?;
+        dmn_source_definitions.push(DmnSourceDefinition::from_root_snapshot(
+            &source.source_id,
+            &snapshot.root,
+        ));
+        dmn_imports.extend(
+            snapshot.root.imports.iter().map(|dmn_import| {
+                DmnImportDefinition::from_snapshot(&source.source_id, dmn_import)
+            }),
+        );
+        dmn_decisions.extend(parse_dmn_decisions(source)?);
         dmn_input_data.extend(snapshot.root.input_data.iter().map(|input_data| {
             DmnInputDataDefinition::from_snapshot(&source.source_id, input_data)
         }));
@@ -57,6 +69,16 @@ pub(crate) fn parse_bpmn_bundle_impl(
         package
     } else {
         package.with_dmn_decisions(dmn_decisions)
+    };
+    let package = if dmn_source_definitions.is_empty() {
+        package
+    } else {
+        package.with_dmn_source_definitions(dmn_source_definitions)
+    };
+    let package = if dmn_imports.is_empty() {
+        package
+    } else {
+        package.with_dmn_imports(dmn_imports)
     };
     let package = if dmn_input_data.is_empty() {
         package

@@ -6,6 +6,8 @@ owned by `qianji-bpmn-engine`.
 ## Supported Snapshot Metadata
 
 - root element metadata including DMN namespace and version hint
+- package-owned source-root metadata including source id, root id, root name,
+  DMN business namespace, model namespace URI, and model-version hint
 - counts for top-level metadata-only artifact families such as `import`,
   `itemDefinition`, `inputData`, `knowledgeSource`,
   `businessKnowledgeModel`, `decisionService`, `organizationUnit`,
@@ -66,12 +68,23 @@ owned by `qianji-bpmn-engine`.
 
 - the document snapshot is descriptive only and does not make metadata-only
   DMN sources executable
+- parser-owned package contracts can now carry a non-executable source-root
+  registry derived from the document root so future import-resolution work can
+  match imported namespaces to bundled DMN sources without treating a physical
+  source id as a namespace
 - decision-owned requirement references are preserved as href placeholders
   only; this includes direct `requiredInput`, `requiredDecision`,
   `requiredKnowledge`, and `requiredAuthority`
 - top-level `import` metadata is preserved so lint, adapter, and later
   import-resolution work can name the external dependency before any
   executable cross-document lookup is attempted
+- parser-owned package contracts can now carry a non-executable
+  source-scoped import registry derived from those placeholders, preserving
+  the declaring source id separately from import alias, imported namespace,
+  location URI, and import type
+- that registry exposes deterministic source-scoped lookup by alias,
+  imported namespace, or location URI; ambiguous selectors fail before any
+  future resolver can treat metadata as an executable dependency
 - top-level `itemDefinition` metadata is preserved so lint, adapter, and
   later DMN type-model work can reuse stable engine-owned placeholders
 - one bounded direct `itemComponent` layer is preserved under each top-level

@@ -236,6 +236,30 @@ pub enum BpmnEngineError {
         /// Derived suffix for the error display.
         source_suffix: String,
     },
+    /// Returned when one package-level DMN import lookup is ambiguous.
+    #[error(
+        "DMN import {selector_kind} '{selector_value}' in source '{source_id}' is ambiguous across {count} registered imports"
+    )]
+    AmbiguousDmnImportReference {
+        /// Declaring source identifier used for the lookup.
+        source_id: String,
+        /// Selector field used by the lookup.
+        selector_kind: &'static str,
+        /// Selector value used by the lookup.
+        selector_value: String,
+        /// Number of matching registered imports.
+        count: usize,
+    },
+    /// Returned when one package-level DMN source-root lookup is ambiguous.
+    #[error(
+        "DMN source namespace '{namespace}' is ambiguous across {count} registered source roots"
+    )]
+    AmbiguousDmnSourceNamespace {
+        /// Requested DMN business namespace.
+        namespace: String,
+        /// Number of matching registered source roots.
+        count: usize,
+    },
     /// Returned when one required-decision href does not stay within the
     /// bounded local-fragment slice.
     #[error(

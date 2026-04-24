@@ -1,6 +1,6 @@
 use crate::dmn_model_api::{
     DmnBusinessKnowledgeModelDefinition, DmnDecisionDefinition, DmnDecisionRef,
-    DmnDecisionServiceDefinition, DmnInputDataDefinition,
+    DmnDecisionServiceDefinition, DmnImportDefinition, DmnInputDataDefinition, DmnSourceDefinition,
 };
 use crate::error::{BpmnEngineError, Result};
 use crate::ir_process_lookup::usize_to_u32;
@@ -14,6 +14,12 @@ pub struct BpmnPackage {
     pub package_id: Arc<str>,
     /// Parsed processes in the package.
     pub processes: Vec<BpmnProcessSpec>,
+    /// Optional package-owned non-executable DMN import registry.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub dmn_imports: Vec<DmnImportDefinition>,
+    /// Optional package-owned non-executable DMN source-root registry.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub dmn_source_definitions: Vec<DmnSourceDefinition>,
     /// Optional engine-owned DMN decision registry for local business-rule execution.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub dmn_decisions: Vec<DmnDecisionDefinition>,
@@ -37,11 +43,30 @@ impl BpmnPackage {
         Self {
             package_id: Arc::<str>::from(package_id.as_ref()),
             processes,
+            dmn_imports: Vec::new(),
+            dmn_source_definitions: Vec::new(),
             dmn_decisions: Vec::new(),
             dmn_input_data: Vec::new(),
             dmn_business_knowledge_models: Vec::new(),
             dmn_decision_services: Vec::new(),
         }
+    }
+
+    /// Attaches package-owned DMN source-root definitions.
+    #[must_use]
+    pub fn with_dmn_source_definitions(
+        mut self,
+        dmn_source_definitions: Vec<DmnSourceDefinition>,
+    ) -> Self {
+        self.dmn_source_definitions = dmn_source_definitions;
+        self
+    }
+
+    /// Attaches package-owned DMN import definitions.
+    #[must_use]
+    pub fn with_dmn_imports(mut self, dmn_imports: Vec<DmnImportDefinition>) -> Self {
+        self.dmn_imports = dmn_imports;
+        self
     }
 
     /// Attaches engine-owned DMN decision definitions to the package.
@@ -97,6 +122,18 @@ impl BpmnPackage {
             .map(|(_, process)| process)
     }
 
+    /// Returns the registered non-executable DMN import definitions.
+    #[must_use]
+    pub fn dmn_imports(&self) -> &[DmnImportDefinition] {
+        &self.dmn_imports
+    }
+
+    /// Returns the registered non-executable DMN source-root definitions.
+    #[must_use]
+    pub fn dmn_source_definitions(&self) -> &[DmnSourceDefinition] {
+        &self.dmn_source_definitions
+    }
+
     /// Returns the registered DMN decision definitions owned by the package.
     #[must_use]
     pub fn dmn_decisions(&self) -> &[DmnDecisionDefinition] {
@@ -121,6 +158,102 @@ impl BpmnPackage {
     #[must_use]
     pub fn dmn_decision_services(&self) -> &[DmnDecisionServiceDefinition] {
         &self.dmn_decision_services
+    }
+
+    /// Returns package-owned DMN import declarations from one declaring source.
+    #[must_use]
+    pub fn dmn_imports_for_source(&self, source_id: &str) -> Vec<&DmnImportDefinition> {
+        self.dmn_imports
+            .iter()
+            .filter(|dmn_import| dmn_import.is_declared_by(source_id))
+            .collect()
+    }
+
+    /// Finds one deterministic DMN import by declaring source and import alias.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`BpmnEngineError::AmbiguousDmnImportReference`] when more than
+    /// one import declared by the source uses the requested alias.
+    pub fn find_dmn_import_by_name(
+        &self,
+        source_id: &str,
+        name: &str,
+    ) -> Result<Option<&DmnImportDefinition>> {
+        self.find_dmn_import_by(source_id, "name", name, DmnImportDefinition::has_name)
+    }
+
+    /// Finds one deterministic DMN import by declaring source and imported namespace.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`BpmnEngineError::AmbiguousDmnImportReference`] when more than
+    /// one import declared by the source targets the requested namespace.
+    pub fn find_dmn_import_by_namespace(
+        &self,
+        source_id: &str,
+        namespace: &str,
+    ) -> Result<Option<&DmnImportDefinition>> {
+        self.find_dmn_import_by(
+            source_id,
+            "namespace",
+            namespace,
+            DmnImportDefinition::has_namespace,
+        )
+    }
+
+    /// Finds one deterministic DMN import by declaring source and location URI.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`BpmnEngineError::AmbiguousDmnImportReference`] when more than
+    /// one import declared by the source uses the requested location URI.
+    pub fn find_dmn_import_by_location_uri(
+        &self,
+        source_id: &str,
+        location_uri: &str,
+    ) -> Result<Option<&DmnImportDefinition>> {
+        self.find_dmn_import_by(
+            source_id,
+            "locationURI",
+            location_uri,
+            DmnImportDefinition::has_location_uri,
+        )
+    }
+
+    /// Finds one deterministic DMN source-root definition by source id.
+    #[must_use]
+    pub fn find_dmn_source_definition(&self, source_id: &str) -> Option<&DmnSourceDefinition> {
+        self.dmn_source_definitions
+            .iter()
+            .find(|source_definition| source_definition.has_source_id(source_id))
+    }
+
+    /// Finds one deterministic DMN source-root definition by DMN namespace.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`BpmnEngineError::AmbiguousDmnSourceNamespace`] when more than
+    /// one registered source root declares the requested namespace.
+    pub fn find_dmn_source_definition_by_namespace(
+        &self,
+        namespace: &str,
+    ) -> Result<Option<&DmnSourceDefinition>> {
+        let mut matches = self
+            .dmn_source_definitions
+            .iter()
+            .filter(|source_definition| source_definition.has_namespace(namespace));
+        let Some(first_match) = matches.next() else {
+            return Ok(None);
+        };
+        let additional_matches = matches.count();
+        if additional_matches > 0 {
+            return Err(BpmnEngineError::AmbiguousDmnSourceNamespace {
+                namespace: namespace.to_string(),
+                count: additional_matches + 1,
+            });
+        }
+        Ok(Some(first_match))
     }
 
     /// Finds one deterministic DMN decision definition for a business-rule reference.
@@ -221,5 +354,30 @@ impl BpmnPackage {
                         .as_deref()
                         == Some(business_knowledge_model_id)
             })
+    }
+
+    fn find_dmn_import_by(
+        &self,
+        source_id: &str,
+        selector_kind: &'static str,
+        selector_value: &str,
+        mut matches_selector: impl FnMut(&DmnImportDefinition, &str) -> bool,
+    ) -> Result<Option<&DmnImportDefinition>> {
+        let mut matches = self.dmn_imports.iter().filter(|dmn_import| {
+            dmn_import.is_declared_by(source_id) && matches_selector(dmn_import, selector_value)
+        });
+        let Some(first_match) = matches.next() else {
+            return Ok(None);
+        };
+        let additional_matches = matches.count();
+        if additional_matches > 0 {
+            return Err(BpmnEngineError::AmbiguousDmnImportReference {
+                source_id: source_id.to_string(),
+                selector_kind,
+                selector_value: selector_value.to_string(),
+                count: additional_matches + 1,
+            });
+        }
+        Ok(Some(first_match))
     }
 }

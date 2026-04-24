@@ -256,8 +256,12 @@ def test_wendaosearch_launch_allows_explicit_julia_project(tmp_path: Path) -> No
     fake_bin.mkdir()
     fake_julia = fake_bin / "julia"
     argv_log = tmp_path / "julia-argv.txt"
+    env_log = tmp_path / "julia-env.txt"
     fake_julia.write_text(
-        '#!/usr/bin/env bash\nset -euo pipefail\nprintf \'%s\\n\' "$@" > "$FAKE_JULIA_ARGV_LOG"\n',
+        "#!/usr/bin/env bash\n"
+        "set -euo pipefail\n"
+        'printf \'%s\\n\' "$@" > "$FAKE_JULIA_ARGV_LOG"\n'
+        'printf \'%s\\n\' "${WENDAO_SEARCH_USE_ACTIVE_PROJECT:-}" > "$FAKE_JULIA_ENV_LOG"\n',
         encoding="utf-8",
     )
     fake_julia.chmod(0o755)
@@ -271,6 +275,7 @@ def test_wendaosearch_launch_allows_explicit_julia_project(tmp_path: Path) -> No
     env["WENDAOSEARCH_SCRIPT"] = "run_parser_summary_service.jl"
     env["WENDAOSEARCH_JULIA_PROJECT"] = str(bootstrap_env)
     env["FAKE_JULIA_ARGV_LOG"] = str(argv_log)
+    env["FAKE_JULIA_ENV_LOG"] = str(env_log)
 
     result = subprocess.run(
         ["bash", str(PROJECT_ROOT / "scripts/channel/wendaosearch-launch.sh")],
@@ -284,3 +289,4 @@ def test_wendaosearch_launch_allows_explicit_julia_project(tmp_path: Path) -> No
     assert result.returncode == 0, result.stderr
     argv = argv_log.read_text(encoding="utf-8").splitlines()
     assert f"--project={bootstrap_env}" in argv
+    assert env_log.read_text(encoding="utf-8").strip() == "1"

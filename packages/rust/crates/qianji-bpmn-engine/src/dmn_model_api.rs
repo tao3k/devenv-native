@@ -26,6 +26,7 @@ pub use crate::dmn_model_document::{
     DmnRequirementReferenceSnapshot, DmnRootSnapshot, DmnShapeSnapshot, DmnTextAnnotationSnapshot,
     DmnVariableSnapshot, DmnWaypointSnapshot,
 };
+pub use crate::dmn_model_import::DmnImportDefinition;
 pub use crate::dmn_model_input_data::DmnInputDataDefinition;
 pub use crate::dmn_model_predicate::{
     DmnComparisonOperator, DmnDateComparison, DmnDateRange, DmnDateRangeBound,
@@ -34,3 +35,4 @@ pub use crate::dmn_model_predicate::{
     DmnNumericRangeBound, DmnTimeComparison, DmnTimeRange, DmnTimeRangeBound,
 };
 pub use crate::dmn_model_reference::{DmnBindingKind, DmnDecisionRef, DmnSourceFile};
+pub use crate::dmn_model_source::DmnSourceDefinition;

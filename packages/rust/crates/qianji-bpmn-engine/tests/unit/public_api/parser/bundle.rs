@@ -42,6 +42,41 @@ fn parser_bundle_snapshot_populates_package_dmn_registry() {
 }
 
 #[test]
+fn parser_bundle_snapshot_populates_package_dmn_source_root_registry() {
+    let package = parse_bpmn_bundle(
+        &BpmnBundleSnapshot::new(vec![fixture_source(
+            "linear-business-rule-placeholder.bpmn",
+        )])
+        .with_dmn_sources(vec![dmn_fixture_source(
+            "versioned-local-decision-service-runtime-20191111.dmn",
+        )]),
+        &BpmnParseOptions::default(),
+    )
+    .must("bundle snapshot should populate the package DMN source-root registry");
+
+    let source = package
+        .find_dmn_source_definition_by_namespace(
+            "https://example.com/dmn/local-decision-service-runtime",
+        )
+        .must("source namespace lookup should be deterministic")
+        .must("registered source root should resolve");
+
+    assert_eq!(package.dmn_source_definitions().len(), 1);
+    assert_eq!(
+        source.source_id.as_ref(),
+        "versioned-local-decision-service-runtime-20191111.dmn"
+    );
+    assert_eq!(
+        source.definitions_id.as_deref(),
+        Some("Definitions_local_decision_service_runtime")
+    );
+    assert_eq!(
+        source.name.as_deref(),
+        Some("Local Decision Service Runtime")
+    );
+}
+
+#[test]
 fn parser_bundle_snapshot_populates_package_dmn_input_data_registry() {
     let package = parse_bpmn_bundle(
         &BpmnBundleSnapshot::new(vec![fixture_source(
@@ -169,6 +204,27 @@ fn parser_bundle_snapshot_populates_package_dmn_decision_service_registry() {
     assert_eq!(
         decision_service.output_decisions[0].href.as_deref(),
         Some("#Decision_approval")
+    );
+}
+
+#[test]
+fn parser_bundle_snapshot_rejects_imported_dmn_execution() {
+    let error = parse_bpmn_bundle(
+        &BpmnBundleSnapshot::new(vec![fixture_source(
+            "linear-business-rule-placeholder.bpmn",
+        )])
+        .with_dmn_sources(vec![dmn_fixture_source(
+            "unsupported-top-level-import-20191111.dmn",
+        )]),
+        &BpmnParseOptions::default(),
+    )
+    .must_err("imported DMN execution should stay outside the bounded parser slice");
+
+    assert_eq!(
+        error,
+        BpmnEngineError::UnsupportedDmnImport {
+            source_id: "unsupported-top-level-import-20191111.dmn".to_string(),
+        }
     );
 }
 

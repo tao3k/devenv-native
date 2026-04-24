@@ -467,6 +467,7 @@ async fn spawn_wendaosearch_service_with_code_parser_routes(
         .arg(port.to_string())
         .current_dir(repo_root())
         .env("JULIA_LOAD_PATH", "@:@stdlib")
+        .env("WENDAO_SEARCH_USE_ACTIVE_PROJECT", "1")
         .stdout(Stdio::null())
         .stderr(Stdio::null());
     if !code_parser_route_names.is_empty() {
@@ -509,6 +510,7 @@ async fn spawn_wendaosearch_multi_route_service(mode: &str) -> (String, JuliaExa
         .arg(port.to_string())
         .current_dir(repo_root())
         .env("JULIA_LOAD_PATH", "@:@stdlib")
+        .env("WENDAO_SEARCH_USE_ACTIVE_PROJECT", "1")
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .spawn()

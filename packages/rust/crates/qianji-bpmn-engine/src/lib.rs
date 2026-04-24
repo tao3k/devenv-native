@@ -10,11 +10,13 @@
 //! DMN parse and evaluation contract plus one non-executable DMN document
 //! snapshot surface and LLM-friendly BPMN/DMN lint reports. Parser-owned
 //! bundle snapshots can now also attach bounded DMN sources to one BPMN
-//! package, including multiple bounded decisions plus one bounded `inputData`
-//! registry and one bounded top-level `businessKnowledgeModel` registry from
-//! one DMN source, so local business-rule execution, bounded same-source input
-//! aliasing, and later same-source knowledge lookup prerequisites are
-//! populated from parse-time inputs instead of test-only manual wiring.
+//! package, including one non-executable DMN source-root registry, one
+//! non-executable top-level `import` registry, multiple bounded decisions plus
+//! one bounded `inputData` registry and one bounded top-level
+//! `businessKnowledgeModel` registry from one DMN source, so local
+//! business-rule execution, bounded same-source input aliasing, and later
+//! same-source knowledge or imported-source lookup prerequisites are populated
+//! from parse-time inputs instead of test-only manual wiring.
 //! Bounded `parallelGateway` split/join semantics, bounded
 //! `exclusiveGateway` routing with simple boolean-path or numeric-comparison
 //! outgoing `sequenceFlow` `conditionExpression` values plus one optional
@@ -154,9 +156,11 @@ mod dmn_model_clause;
 mod dmn_model_decision;
 mod dmn_model_decision_service;
 mod dmn_model_document;
+mod dmn_model_import;
 mod dmn_model_input_data;
 mod dmn_model_predicate;
 mod dmn_model_reference;
+mod dmn_model_source;
 mod dmn_parse_api;
 mod dmn_snapshot_api;
 mod error;
@@ -221,7 +225,7 @@ pub use dmn_api::{
     DmnDecisionServiceReference, DmnDecisionServiceSnapshot, DmnDecisionSnapshot, DmnDecisionTable,
     DmnDiagramSnapshot, DmnDmndiSnapshot, DmnDocumentSnapshot, DmnDurationComparison,
     DmnDurationRange, DmnDurationRangeBound, DmnEdgeSnapshot, DmnElementCollectionSnapshot,
-    DmnEvaluationRequest, DmnEvaluationResult, DmnGroupSnapshot, DmnHitPolicy,
+    DmnEvaluationRequest, DmnEvaluationResult, DmnGroupSnapshot, DmnHitPolicy, DmnImportDefinition,
     DmnInformationRequirementReference, DmnInputClause, DmnInputDataDefinition,
     DmnInputDataSnapshot, DmnInputEntry, DmnInvocation, DmnInvocationBinding,
     DmnInvocationParameter, DmnItemComponentSnapshot, DmnItemDefinitionSnapshot,
@@ -229,9 +233,10 @@ pub use dmn_api::{
     DmnListExpression, DmnLiteralExpression, DmnNumericComparison, DmnNumericRange,
     DmnNumericRangeBound, DmnOrganizationUnitSnapshot, DmnOutputClause, DmnOutputEntry,
     DmnPerformanceIndicatorSnapshot, DmnRelationColumn, DmnRelationExpression, DmnRelationRow,
-    DmnRootSnapshot, DmnRule, DmnShapeSnapshot, DmnSourceFile, DmnTextAnnotationSnapshot,
-    DmnTimeComparison, DmnTimeRange, DmnTimeRangeBound, DmnVariableSnapshot, DmnWaypointSnapshot,
-    evaluate_dmn_decision, parse_dmn_decision, parse_dmn_decisions, snapshot_dmn_source,
+    DmnRootSnapshot, DmnRule, DmnShapeSnapshot, DmnSourceDefinition, DmnSourceFile,
+    DmnTextAnnotationSnapshot, DmnTimeComparison, DmnTimeRange, DmnTimeRangeBound,
+    DmnVariableSnapshot, DmnWaypointSnapshot, evaluate_dmn_decision, parse_dmn_decision,
+    parse_dmn_decisions, snapshot_dmn_source,
 };
 pub use error::BpmnEngineError;
 pub use host_bridge_api::BpmnHostBridge;

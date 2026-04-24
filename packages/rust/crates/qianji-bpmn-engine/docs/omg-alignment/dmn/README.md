@@ -30,8 +30,14 @@ The source-backed clause registry for these notes lives in
 ## Current Package Boundary
 
 The current DMN slice supports one bounded parser-owned document snapshot,
-including preserved top-level `import` metadata with bounded `name`,
-`namespace`, `locationURI`, and `importType` placeholders, preserved
+including package-owned non-executable DMN source-root metadata with source
+id, root id, root name, DMN business namespace, model namespace URI, and
+model-version hint, preserved top-level `import` metadata with bounded `name`,
+`namespace`, `locationURI`, and `importType` placeholders plus one
+non-executable package-owned import registry that preserves the declaring
+source id separately from import alias, imported namespace, location URI, and
+import type and exposes deterministic source-scoped lookup by alias,
+namespace, or location URI, preserved
 top-level `itemDefinition` metadata plus one bounded
 direct `itemComponent` placeholder layer, preserved top-level `inputData`
 metadata plus one optional direct `variable` placeholder layer, preserved
@@ -93,8 +99,8 @@ target decisions, where multiple outputs are evaluated in source order and
 merged into one object-shaped context, and whose preserved same-source
 `encapsulatedDecision` / `inputDecision` / `inputData` exposure refs are
 consumed only as local target validation before those output decisions run,
-while top-level imports remain descriptive snapshot metadata rather than
-executable cross-document lookup inputs,
+while top-level imports remain descriptive package/snapshot metadata rather
+than executable cross-document lookup inputs,
 non-executable direct `functionDefinition` snapshot evidence for function kind,
 formal parameters, and body literal-expression placeholders,
 non-executable top-level `businessKnowledgeModel` body snapshot evidence, and
