@@ -1,6 +1,7 @@
 use crate::dmn_model_api::{
     DmnBusinessKnowledgeModelDefinition, DmnDecisionDefinition, DmnDecisionRef,
-    DmnDecisionServiceDefinition, DmnImportDefinition, DmnInputDataDefinition, DmnSourceDefinition,
+    DmnDecisionServiceDefinition, DmnImportDefinition, DmnImportSourceBinding,
+    DmnInputDataDefinition, DmnSourceDefinition,
 };
 use crate::error::{BpmnEngineError, Result};
 use crate::ir_process_lookup::usize_to_u32;
@@ -254,6 +255,43 @@ impl BpmnPackage {
             });
         }
         Ok(Some(first_match))
+    }
+
+    /// Resolves one package-owned import declaration to a bundled DMN source
+    /// root by imported namespace only.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`BpmnEngineError::AmbiguousDmnSourceNamespace`] when the
+    /// import namespace matches more than one bundled source root.
+    pub fn resolve_dmn_import_source(
+        &self,
+        dmn_import: &DmnImportDefinition,
+    ) -> Result<Option<&DmnSourceDefinition>> {
+        let Some(namespace) = dmn_import.namespace.as_deref() else {
+            return Ok(None);
+        };
+        self.find_dmn_source_definition_by_namespace(namespace)
+    }
+
+    /// Returns one owned metadata-only binding report for every package-owned
+    /// DMN import declaration.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`BpmnEngineError::AmbiguousDmnSourceNamespace`] when any import
+    /// namespace matches more than one bundled source root.
+    pub fn dmn_import_source_bindings(&self) -> Result<Vec<DmnImportSourceBinding>> {
+        self.dmn_imports
+            .iter()
+            .map(|dmn_import| {
+                let source_definition = self.resolve_dmn_import_source(dmn_import)?.cloned();
+                Ok(DmnImportSourceBinding::new(
+                    dmn_import.clone(),
+                    source_definition,
+                ))
+            })
+            .collect()
     }
 
     /// Finds one deterministic DMN decision definition for a business-rule reference.

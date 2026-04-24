@@ -85,6 +85,12 @@ owned by `qianji-bpmn-engine`.
 - that registry exposes deterministic source-scoped lookup by alias,
   imported namespace, or location URI; ambiguous selectors fail before any
   future resolver can treat metadata as an executable dependency
+- imports can now be bound to bundled source-root metadata by imported
+  namespace only; the binding is descriptive and still does not parse or
+  execute imported decisions
+- package consumers can now request one owned import-to-source binding report
+  for every registered import; unresolved entries stay explicit metadata
+  observations, and ambiguous target namespaces still fail deterministically
 - top-level `itemDefinition` metadata is preserved so lint, adapter, and
   later DMN type-model work can reuse stable engine-owned placeholders
 - one bounded direct `itemComponent` layer is preserved under each top-level

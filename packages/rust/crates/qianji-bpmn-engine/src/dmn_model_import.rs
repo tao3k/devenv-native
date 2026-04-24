@@ -1,4 +1,5 @@
 use crate::dmn_model_document::DmnImportSnapshot;
+use crate::dmn_model_source::DmnSourceDefinition;
 use std::sync::Arc;
 
 /// One bounded non-executable DMN import contract owned by a BPMN package.
@@ -14,6 +15,35 @@ pub struct DmnImportDefinition {
     pub location_uri: Option<Arc<str>>,
     /// Optional imported model type URI.
     pub import_type: Option<Arc<str>>,
+}
+
+/// Owned metadata-only binding between one DMN import and one bundled source root.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct DmnImportSourceBinding {
+    /// Import declaration being reported.
+    pub dmn_import: DmnImportDefinition,
+    /// Bundled source root matched by the import namespace, when present.
+    pub source_definition: Option<DmnSourceDefinition>,
+}
+
+impl DmnImportSourceBinding {
+    /// Creates one metadata-only import binding report.
+    #[must_use]
+    pub fn new(
+        dmn_import: DmnImportDefinition,
+        source_definition: Option<DmnSourceDefinition>,
+    ) -> Self {
+        Self {
+            dmn_import,
+            source_definition,
+        }
+    }
+
+    /// Returns whether this report resolved to a bundled source root.
+    #[must_use]
+    pub fn is_bound(&self) -> bool {
+        self.source_definition.is_some()
+    }
 }
 
 impl DmnImportDefinition {

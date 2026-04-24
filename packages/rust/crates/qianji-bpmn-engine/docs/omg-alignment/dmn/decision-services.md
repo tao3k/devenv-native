@@ -51,7 +51,13 @@ choosing one imported dependency implicitly.
 Bundled DMN source roots are also preserved in a separate non-executable
 registry so an imported namespace can be matched to a package-owned source
 root without treating that source id, namespace, or import alias as the same
-identifier.
+identifier. That match is metadata-only: it does not follow `locationURI`,
+parse imported decisions, or make imported decision-service orchestration
+executable.
+Package consumers can also request one owned import-to-source binding report
+for every registered import. The report preserves unbound imports as metadata
+observations and rejects ambiguous namespace targets instead of selecting a
+source root implicitly.
 
 ## Repair Guidance
 

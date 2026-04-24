@@ -26,7 +26,7 @@ pub use crate::dmn_model_document::{
     DmnRequirementReferenceSnapshot, DmnRootSnapshot, DmnShapeSnapshot, DmnTextAnnotationSnapshot,
     DmnVariableSnapshot, DmnWaypointSnapshot,
 };
-pub use crate::dmn_model_import::DmnImportDefinition;
+pub use crate::dmn_model_import::{DmnImportDefinition, DmnImportSourceBinding};
 pub use crate::dmn_model_input_data::DmnInputDataDefinition;
 pub use crate::dmn_model_predicate::{
     DmnComparisonOperator, DmnDateComparison, DmnDateRange, DmnDateRangeBound,
