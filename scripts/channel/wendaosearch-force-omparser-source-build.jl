@@ -36,8 +36,16 @@ function load_path_with_stdlib()
     return string(load_path, endswith(load_path, ":") ? "" : ":", "@stdlib")
 end
 
+function active_project_dir()
+    project_file = Base.active_project()
+    isnothing(project_file) &&
+        error("OMParser source build requires an active Julia project")
+    return dirname(project_file)
+end
+
 function force_omparser_source_build!()
     Pkg.instantiate()
+    project_dir = active_project_dir()
     package_root = dependency_source("OMParser")
     parser_root = joinpath(package_root, "lib", "parser")
     build_root = joinpath(package_root, "lib", "build")
@@ -47,7 +55,10 @@ function force_omparser_source_build!()
     rm(build_root; recursive = true, force = true)
     cd(parser_root) do
         run(`autoconf`)
-        withenv("JULIA_LOAD_PATH" => load_path_with_stdlib()) do
+        withenv(
+            "JULIA_LOAD_PATH" => load_path_with_stdlib(),
+            "JULIA_PROJECT" => project_dir,
+        ) do
             run(`./configure`)
             run(`make`)
         end
