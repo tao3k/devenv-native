@@ -374,16 +374,15 @@ jobs:
       - name: Bootstrap WendaoSearch parser-summary runtime dependencies
         run: |
           set -euo pipefail
-          export WENDAO_SEARCH_BOOTSTRAP_ENV="${RUNNER_TEMP}/wendaosearch-env"
-          julia "${GITHUB_WORKSPACE}/.data/WendaoSearch.jl/scripts/prepare_wendao_search_env.jl"
-          julia --project="${WENDAO_SEARCH_BOOTSTRAP_ENV}" -e '
+          export WENDAOSEARCH_JULIA_PROJECT="${GITHUB_WORKSPACE}/.data/WendaoSearch.jl"
+          julia --project="${WENDAOSEARCH_JULIA_PROJECT}" -e '
             using Pkg
+            Pkg.instantiate()
             Pkg.precompile()
           '
           {
-            echo "WENDAO_SEARCH_BOOTSTRAP_ENV=${WENDAO_SEARCH_BOOTSTRAP_ENV}"
             echo "WENDAO_SEARCH_USE_ACTIVE_PROJECT=1"
-            echo "WENDAOSEARCH_JULIA_PROJECT=${WENDAO_SEARCH_BOOTSTRAP_ENV}"
+            echo "WENDAOSEARCH_JULIA_PROJECT=${WENDAOSEARCH_JULIA_PROJECT}"
           } >> "${GITHUB_ENV}"
 
       - name: Start WendaoSearch parser-summary service for Rust tests
@@ -393,8 +392,7 @@ jobs:
           export WENDAOSEARCH_RUNTIME_DIR=.run/wendaosearch
           export WENDAOSEARCH_CONFIG=.data/WendaoSearch.jl/config/live/parser_summary.toml
           export WENDAOSEARCH_SCRIPT=run_parser_summary_service.jl
-          : "${WENDAO_SEARCH_BOOTSTRAP_ENV:?missing WendaoSearch bootstrap env}"
-          export WENDAOSEARCH_JULIA_PROJECT="${WENDAO_SEARCH_BOOTSTRAP_ENV}"
+          : "${WENDAOSEARCH_JULIA_PROJECT:?missing WendaoSearch Julia project}"
           export WENDAO_SEARCH_USE_ACTIVE_PROJECT=1
           mkdir -p "${WENDAOSEARCH_RUNTIME_DIR}" .run/logs
           bash scripts/channel/wendaosearch-launch.sh \
