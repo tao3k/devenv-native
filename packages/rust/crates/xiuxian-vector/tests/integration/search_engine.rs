@@ -185,3 +185,34 @@ async fn search_engine_ensure_registration_is_idempotent() -> Result<()> {
     assert_eq!(rows, vec![("sym-1".to_string(), "AlphaSymbol".to_string())]);
     Ok(())
 }
+
+#[tokio::test]
+async fn search_engine_ensure_registration_tolerates_concurrent_callers() -> Result<()> {
+    let schema = local_symbol_schema();
+    let batch = local_symbol_batch(&[("sym-1", "AlphaSymbol")], schema)?;
+    let temp_dir = tempfile::Builder::new()
+        .prefix("xiuxian_vector_search_engine_concurrent_ensure_")
+        .tempdir()?;
+    let parquet_path = temp_dir.path().join("local_symbol.parquet");
+
+    write_lance_batches_to_parquet_file(&parquet_path, &[batch])?;
+
+    let engine = SearchEngineContext::new();
+    let (left, right) = tokio::join!(
+        engine.ensure_parquet_table_registered("local_symbol", &parquet_path, &[]),
+        engine.ensure_parquet_table_registered("local_symbol", &parquet_path, &[]),
+    );
+    left?;
+    right?;
+
+    let batches = engine
+        .sql_batches("SELECT id, name FROM local_symbol ORDER BY id")
+        .await?;
+    let rows = batches
+        .iter()
+        .flat_map(rows_from_engine_batch)
+        .collect::<Vec<_>>();
+
+    assert_eq!(rows, vec![("sym-1".to_string(), "AlphaSymbol".to_string())]);
+    Ok(())
+}

@@ -8,9 +8,9 @@ fn deployment_artifact_round_trips_plugin_artifact_payload() {
         health_route: Some("/health".to_string()),
         schema_version: Some("v1".to_string()),
         timeout_secs: Some(15),
-        launch: LinkGraphJuliaAnalyzerLaunchManifest {
-            launcher_path: DEFAULT_JULIA_ANALYZER_LAUNCHER_PATH.to_string(),
-            args: vec!["--service-mode".to_string(), "stream".to_string()],
+        launch: LinkGraphJuliaSearchLaunchManifest {
+            launcher_path: DEFAULT_JULIA_SEARCH_LAUNCHER_PATH.to_string(),
+            args: vec!["--mode".to_string(), "stream".to_string()],
         },
     };
 
@@ -37,8 +37,8 @@ fn deployment_artifact_round_trips_plugin_artifact_payload() {
         }),
         schema_version: Some("v1".to_string()),
         launch: Some(PluginLaunchSpec {
-            launcher_path: DEFAULT_JULIA_ANALYZER_LAUNCHER_PATH.to_string(),
-            args: vec!["--service-mode".to_string(), "stream".to_string()],
+            launcher_path: DEFAULT_JULIA_SEARCH_LAUNCHER_PATH.to_string(),
+            args: vec!["--mode".to_string(), "stream".to_string()],
         }),
         selected_transport: None,
         fallback_from: None,
@@ -93,14 +93,9 @@ fn deployment_artifact_writes_toml_file() -> Result<(), Box<dyn std::error::Erro
         health_route: Some("/health".to_string()),
         schema_version: Some("v1".to_string()),
         timeout_secs: Some(15),
-        launch: LinkGraphJuliaAnalyzerLaunchManifest {
-            launcher_path: DEFAULT_JULIA_ANALYZER_LAUNCHER_PATH.to_string(),
-            args: vec![
-                "--service-mode".to_string(),
-                "stream".to_string(),
-                "--analyzer-strategy".to_string(),
-                "similarity_only".to_string(),
-            ],
+        launch: LinkGraphJuliaSearchLaunchManifest {
+            launcher_path: DEFAULT_JULIA_SEARCH_LAUNCHER_PATH.to_string(),
+            args: vec!["--mode".to_string(), "stream".to_string()],
         },
     };
 
@@ -116,9 +111,8 @@ fn deployment_artifact_writes_toml_file() -> Result<(), Box<dyn std::error::Erro
     assert!(written.contains("generated_at = \"2026-03-27T16:00:00+00:00\""));
     assert!(written.contains("base_url = \"http://127.0.0.1:18080\""));
     assert!(written.contains(&format!(
-        "launcher_path = \"{DEFAULT_JULIA_ANALYZER_LAUNCHER_PATH}\""
+        "launcher_path = \"{DEFAULT_JULIA_SEARCH_LAUNCHER_PATH}\""
     )));
-    assert!(written.contains("\"similarity_only\""));
     assert_eq!(written, artifact.to_toml_string()?);
 
     Ok(())
@@ -134,14 +128,9 @@ fn deployment_artifact_writes_json_file() -> Result<(), Box<dyn std::error::Erro
         health_route: Some("/health".to_string()),
         schema_version: Some("v1".to_string()),
         timeout_secs: Some(15),
-        launch: LinkGraphJuliaAnalyzerLaunchManifest {
-            launcher_path: DEFAULT_JULIA_ANALYZER_LAUNCHER_PATH.to_string(),
-            args: vec![
-                "--service-mode".to_string(),
-                "stream".to_string(),
-                "--analyzer-strategy".to_string(),
-                "similarity_only".to_string(),
-            ],
+        launch: LinkGraphJuliaSearchLaunchManifest {
+            launcher_path: DEFAULT_JULIA_SEARCH_LAUNCHER_PATH.to_string(),
+            args: vec!["--mode".to_string(), "stream".to_string()],
         },
     };
 
@@ -157,7 +146,7 @@ fn deployment_artifact_writes_json_file() -> Result<(), Box<dyn std::error::Erro
     assert!(written.contains("\"generated_at\": \"2026-03-27T16:00:00+00:00\""));
     assert!(written.contains("\"base_url\": \"http://127.0.0.1:18080\""));
     assert!(written.contains(&format!(
-        "\"launcher_path\": \"{DEFAULT_JULIA_ANALYZER_LAUNCHER_PATH}\""
+        "\"launcher_path\": \"{DEFAULT_JULIA_SEARCH_LAUNCHER_PATH}\""
     )));
     assert_eq!(written, artifact.to_json_string()?);
 

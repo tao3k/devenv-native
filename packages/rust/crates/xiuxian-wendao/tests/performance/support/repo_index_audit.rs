@@ -953,7 +953,7 @@ mod tests {
     #[test]
     fn sample_budget_for_duration_adds_terminal_sample() {
         assert_eq!(
-            sample_budget_for_duration(Duration::from_secs(900), Duration::from_secs(15)),
+            sample_budget_for_duration(Duration::from_mins(15), Duration::from_secs(15)),
             61
         );
     }
@@ -970,7 +970,7 @@ mod tests {
         assert_eq!(config.sample_count, 7);
         assert_eq!(config.interval, Duration::from_secs(20));
         assert_eq!(config.stall_window, 5);
-        assert_eq!(config.max_duration, Some(Duration::from_secs(120)));
+        assert_eq!(config.max_duration, Some(Duration::from_mins(2)));
         assert!(config.emit_sample_logs);
     }
 

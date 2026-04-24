@@ -1,9 +1,9 @@
 use serde_json::{Value, json};
 
 use super::{
-    DEFAULT_JULIA_ANALYZER_LAUNCHER_PATH, DEFAULT_JULIA_DEPLOYMENT_ARTIFACT_SCHEMA_VERSION,
-    DEFAULT_JULIA_RERANK_FLIGHT_ROUTE, JULIA_DEPLOYMENT_ARTIFACT_ID, JULIA_PLUGIN_ID,
-    LinkGraphJuliaAnalyzerLaunchManifest, LinkGraphJuliaDeploymentArtifact,
+    DEFAULT_JULIA_DEPLOYMENT_ARTIFACT_SCHEMA_VERSION, DEFAULT_JULIA_RERANK_FLIGHT_ROUTE,
+    DEFAULT_JULIA_SEARCH_LAUNCHER_PATH, JULIA_DEPLOYMENT_ARTIFACT_ID, JULIA_PLUGIN_ID,
+    LinkGraphJuliaDeploymentArtifact, LinkGraphJuliaSearchLaunchManifest,
 };
 
 const OPENAPI_EXAMPLE_BASE_URL: &str = "http://127.0.0.1:18080";
@@ -12,7 +12,6 @@ const OPENAPI_EXAMPLE_HEALTH_ROUTE: &str = "/healthz";
 const OPENAPI_EXAMPLE_SCHEMA_VERSION: &str = "v1";
 const OPENAPI_EXAMPLE_TIMEOUT_SECS: u64 = 30;
 const OPENAPI_EXAMPLE_SERVICE_MODE: &str = "stream";
-const OPENAPI_EXAMPLE_ANALYZER_STRATEGY: &str = "linear_blend";
 
 /// Return the curated `OpenAPI` JSON example for the generic Julia deployment artifact.
 #[must_use]
@@ -45,13 +44,11 @@ pub fn julia_deployment_artifact_openapi_example() -> LinkGraphJuliaDeploymentAr
         health_route: Some(OPENAPI_EXAMPLE_HEALTH_ROUTE.to_string()),
         schema_version: Some(OPENAPI_EXAMPLE_SCHEMA_VERSION.to_string()),
         timeout_secs: Some(OPENAPI_EXAMPLE_TIMEOUT_SECS),
-        launch: LinkGraphJuliaAnalyzerLaunchManifest {
-            launcher_path: DEFAULT_JULIA_ANALYZER_LAUNCHER_PATH.to_string(),
+        launch: LinkGraphJuliaSearchLaunchManifest {
+            launcher_path: DEFAULT_JULIA_SEARCH_LAUNCHER_PATH.to_string(),
             args: vec![
-                "--service-mode".to_string(),
+                "--mode".to_string(),
                 OPENAPI_EXAMPLE_SERVICE_MODE.to_string(),
-                "--analyzer-strategy".to_string(),
-                OPENAPI_EXAMPLE_ANALYZER_STRATEGY.to_string(),
             ],
         },
     }
@@ -69,12 +66,10 @@ pub fn julia_deployment_artifact_openapi_json_example() -> Value {
         "schemaVersion": OPENAPI_EXAMPLE_SCHEMA_VERSION,
         "timeoutSecs": OPENAPI_EXAMPLE_TIMEOUT_SECS,
         "launch": {
-            "launcherPath": DEFAULT_JULIA_ANALYZER_LAUNCHER_PATH,
+            "launcherPath": DEFAULT_JULIA_SEARCH_LAUNCHER_PATH,
             "args": [
-                "--service-mode",
+                "--mode",
                 OPENAPI_EXAMPLE_SERVICE_MODE,
-                "--analyzer-strategy",
-                OPENAPI_EXAMPLE_ANALYZER_STRATEGY,
             ],
         },
     })

@@ -27,7 +27,7 @@ async fn generic_plugin_artifact_handler_returns_plugin_artifact() {
     let (plugin_id, artifact_id) = linked_builtin_julia_gateway_artifact_path();
     fs::write(
         &config_path,
-        linked_builtin_julia_gateway_artifact_runtime_config_toml(None),
+        linked_builtin_julia_gateway_artifact_runtime_config_toml(),
     )
     .unwrap_or_else(|error| panic!("write config: {error}"));
     let config_path_string = config_path.to_string_lossy().to_string();

@@ -8,8 +8,7 @@ fn julia_plugin_artifact_resolution_keeps_transport_diagnostics() {
         schema_version: Some("v1".to_string()),
         timeout_secs: Some(15),
         service_mode: Some("stream".to_string()),
-        analyzer_config_path: Some(DEFAULT_JULIA_ANALYZER_EXAMPLE_CONFIG_PATH.to_string()),
-        analyzer_strategy: Some("similarity_only".to_string()),
+        search_config_path: Some(DEFAULT_JULIA_SEARCH_EXAMPLE_CONFIG_PATH.to_string()),
         vector_weight: Some(0.2),
         similarity_weight: Some(0.8),
     };
@@ -40,8 +39,7 @@ fn julia_plugin_artifact_rendering_serializes_resolved_payload()
         schema_version: Some("v1".to_string()),
         timeout_secs: Some(15),
         service_mode: Some("stream".to_string()),
-        analyzer_config_path: Some(DEFAULT_JULIA_ANALYZER_EXAMPLE_CONFIG_PATH.to_string()),
-        analyzer_strategy: Some("similarity_only".to_string()),
+        search_config_path: Some(DEFAULT_JULIA_SEARCH_EXAMPLE_CONFIG_PATH.to_string()),
         vector_weight: Some(0.2),
         similarity_weight: Some(0.8),
     };

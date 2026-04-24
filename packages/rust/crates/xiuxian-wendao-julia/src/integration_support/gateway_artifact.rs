@@ -1,5 +1,5 @@
 use crate::compatibility::link_graph::{
-    DEFAULT_JULIA_ANALYZER_LAUNCHER_PATH, DEFAULT_JULIA_RERANK_FLIGHT_ROUTE,
+    DEFAULT_JULIA_RERANK_FLIGHT_ROUTE, DEFAULT_JULIA_SEARCH_LAUNCHER_PATH,
     JULIA_DEPLOYMENT_ARTIFACT_ID, JULIA_PLUGIN_ID,
 };
 use serde_json::{Value, json};
@@ -15,7 +15,6 @@ const JULIA_GATEWAY_ARTIFACT_BASE_URL: &str = "http://127.0.0.1:18080";
 const JULIA_GATEWAY_ARTIFACT_SCHEMA_VERSION: &str = "v1";
 const JULIA_GATEWAY_ARTIFACT_SERVICE_MODE: &str = "stream";
 const JULIA_GATEWAY_ARTIFACT_SELECTED_TRANSPORT: &str = "arrow_flight";
-const JULIA_GATEWAY_ARTIFACT_DEFAULT_STRATEGY: &str = "similarity_only";
 const JULIA_UI_ARTIFACT_BASE_URL: &str = "http://127.0.0.1:8088";
 const JULIA_UI_ARTIFACT_GENERATED_AT: &str = "2026-03-27T12:00:00Z";
 const JULIA_UI_ARTIFACT_HEALTH_ROUTE: &str = "/healthz";
@@ -38,13 +37,6 @@ pub fn julia_gateway_artifact_schema_version() -> &'static str {
 #[must_use]
 pub fn julia_gateway_artifact_selected_transport() -> &'static str {
     JULIA_GATEWAY_ARTIFACT_SELECTED_TRANSPORT
-}
-
-/// Return the stable analyzer strategy used by generic plugin-artifact fixture
-/// tests.
-#[must_use]
-pub fn julia_gateway_artifact_default_strategy() -> &'static str {
-    JULIA_GATEWAY_ARTIFACT_DEFAULT_STRATEGY
 }
 
 /// Return the stable path identifiers for the Julia deployment artifact.
@@ -83,16 +75,10 @@ pub fn julia_gateway_artifact_rpc_params_fixture(
 /// Render the runtime config TOML fixture used by Studio gateway artifact
 /// handler tests.
 #[must_use]
-pub fn julia_gateway_artifact_runtime_config_toml(analyzer_strategy: Option<&str>) -> String {
-    let mut rendered = format!(
+pub fn julia_gateway_artifact_runtime_config_toml() -> String {
+    format!(
         "[link_graph.retrieval.julia_rerank]\nbase_url = \"{JULIA_GATEWAY_ARTIFACT_BASE_URL}\"\nroute = \"{DEFAULT_JULIA_RERANK_FLIGHT_ROUTE}\"\nschema_version = \"{JULIA_GATEWAY_ARTIFACT_SCHEMA_VERSION}\"\nservice_mode = \"{JULIA_GATEWAY_ARTIFACT_SERVICE_MODE}\"\n"
-    );
-
-    if let Some(strategy) = analyzer_strategy {
-        rendered.push_str(format!("analyzer_strategy = \"{strategy}\"\n").as_str());
-    }
-
-    rendered
+    )
 }
 
 /// Return the stable TOML fragments that Studio gateway artifact handler tests
@@ -103,7 +89,7 @@ pub fn julia_gateway_artifact_expected_toml_fragments() -> Vec<String> {
         format!("artifact_schema_version = \"{JULIA_GATEWAY_ARTIFACT_SCHEMA_VERSION}\""),
         format!("base_url = \"{JULIA_GATEWAY_ARTIFACT_BASE_URL}\""),
         format!("route = \"{DEFAULT_JULIA_RERANK_FLIGHT_ROUTE}\""),
-        format!("launcher_path = \"{DEFAULT_JULIA_ANALYZER_LAUNCHER_PATH}\""),
+        format!("launcher_path = \"{DEFAULT_JULIA_SEARCH_LAUNCHER_PATH}\""),
         format!("selected_transport = \"{JULIA_GATEWAY_ARTIFACT_SELECTED_TRANSPORT}\""),
     ]
 }
@@ -116,7 +102,7 @@ pub fn julia_gateway_artifact_expected_json_fragments() -> Vec<String> {
         format!("\"artifact_schema_version\": \"{JULIA_GATEWAY_ARTIFACT_SCHEMA_VERSION}\""),
         format!("\"base_url\": \"{JULIA_GATEWAY_ARTIFACT_BASE_URL}\""),
         format!("\"route\": \"{DEFAULT_JULIA_RERANK_FLIGHT_ROUTE}\""),
-        format!("\"launcher_path\": \"{DEFAULT_JULIA_ANALYZER_LAUNCHER_PATH}\""),
+        format!("\"launcher_path\": \"{DEFAULT_JULIA_SEARCH_LAUNCHER_PATH}\""),
     ]
 }
 
@@ -140,9 +126,9 @@ pub fn julia_ui_artifact_payload_fixture() -> PluginArtifactPayload {
         }),
         schema_version: Some(JULIA_GATEWAY_ARTIFACT_SCHEMA_VERSION.to_string()),
         launch: Some(PluginLaunchSpec {
-            launcher_path: DEFAULT_JULIA_ANALYZER_LAUNCHER_PATH.to_string(),
+            launcher_path: DEFAULT_JULIA_SEARCH_LAUNCHER_PATH.to_string(),
             args: vec![
-                "--service-mode".to_string(),
+                "--mode".to_string(),
                 JULIA_GATEWAY_ARTIFACT_SERVICE_MODE.to_string(),
             ],
         }),

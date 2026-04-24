@@ -356,27 +356,12 @@ jobs:
           shared-key: rust-workspace-ci-${{ runner.os }}
           cache-on-failure: true
 
-      - name: Materialize linked Julia package checkouts
+      - name: Verify WendaoSearch Julia package checkout
         run: |
           set -euo pipefail
           source scripts/channel/process-runtime.sh
           source scripts/channel/wendaosearch-common.sh
           wendaosearch_materialize_package_repo "${GITHUB_WORKSPACE}"
-          wendaosearch_project="${GITHUB_WORKSPACE}/.data/WendaoSearch.jl/Project.toml"
-          wendao_code_parser_rev="$(
-            julia -e 'using TOML; print(TOML.parsefile(ARGS[1])["sources"]["WendaoCodeParser"]["rev"])' \
-              "${wendaosearch_project}"
-          )"
-          managed_materialize_git_repo \
-            "${GITHUB_WORKSPACE}/.data/WendaoCodeParser.jl" \
-            "https://github.com/tao3k/WendaoCodeParser.jl.git" \
-            "${wendao_code_parser_rev}" \
-            "WendaoCodeParser package checkout"
-          git -C "${GITHUB_WORKSPACE}/.data/WendaoCodeParser.jl" fetch --tags --prune origin
-          git -C "${GITHUB_WORKSPACE}/.data/WendaoCodeParser.jl" checkout --detach "${wendao_code_parser_rev}"
-          wendaosearch_repair_wendaocodeparser_checkout \
-            "${GITHUB_WORKSPACE}/.data/WendaoCodeParser.jl"
-          test -f "${GITHUB_WORKSPACE}/.data/WendaoCodeParser.jl/src/WendaoCodeParser.jl"
           test -f "${GITHUB_WORKSPACE}/.data/WendaoSearch.jl/scripts/run_parser_summary_service.jl"
           test -f "${GITHUB_WORKSPACE}/.data/WendaoSearch.jl/config/live/parser_summary.toml"
 
@@ -390,7 +375,6 @@ jobs:
         run: |
           set -euo pipefail
           export WENDAO_SEARCH_BOOTSTRAP_ENV="${RUNNER_TEMP}/wendaosearch-env"
-          export WENDAO_SEARCH_LOCAL_WENDAO_CODE_PARSER_PATH="${GITHUB_WORKSPACE}/.data/WendaoCodeParser.jl"
           julia "${GITHUB_WORKSPACE}/.data/WendaoSearch.jl/scripts/prepare_wendao_search_env.jl"
           julia --project="${WENDAO_SEARCH_BOOTSTRAP_ENV}" -e '
             using Pkg
@@ -398,7 +382,6 @@ jobs:
           '
           {
             echo "WENDAO_SEARCH_BOOTSTRAP_ENV=${WENDAO_SEARCH_BOOTSTRAP_ENV}"
-            echo "WENDAO_SEARCH_LOCAL_WENDAO_CODE_PARSER_PATH=${WENDAO_SEARCH_LOCAL_WENDAO_CODE_PARSER_PATH}"
             echo "WENDAO_SEARCH_USE_ACTIVE_PROJECT=1"
             echo "WENDAOSEARCH_JULIA_PROJECT=${WENDAO_SEARCH_BOOTSTRAP_ENV}"
           } >> "${GITHUB_ENV}"

@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::fs;
 
 use tempfile::TempDir;
 
@@ -9,8 +9,15 @@ use crate::search::{
 };
 
 pub(crate) fn fixture_service(temp_dir: &TempDir, keyspace: &str) -> SearchPlaneService {
+    let project_root = temp_dir.path().join("project");
+    fs::create_dir_all(&project_root).unwrap_or_else(|error| {
+        panic!(
+            "create query fixture project root `{}`: {error}",
+            project_root.display()
+        )
+    });
     SearchPlaneService::with_paths(
-        PathBuf::from("/tmp/project"),
+        project_root,
         temp_dir.path().join("search_plane"),
         SearchManifestKeyspace::new(keyspace),
         SearchMaintenancePolicy::default(),

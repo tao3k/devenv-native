@@ -1,5 +1,4 @@
-//! Modelica parsing bridged through the native `WendaoCodeParser.jl` summary
-//! route.
+//! Modelica parsing bridged through the native parser-summary route.
 
 use std::collections::BTreeMap;
 

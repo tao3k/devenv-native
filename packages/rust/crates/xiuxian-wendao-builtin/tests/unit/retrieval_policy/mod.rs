@@ -16,8 +16,7 @@ link_graph:
       schema_version: "v1"
       timeout_secs: 15
       service_mode: "stream"
-      analyzer_config_path: "examples/julia.toml"
-      analyzer_strategy: "similarity_only"
+      search_config_path: "examples/julia.toml"
       vector_weight: 0.2
       similarity_weight: 0.8
 "#,

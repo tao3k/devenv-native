@@ -4,14 +4,13 @@ mod julia {
         ids::{ArtifactId, PluginId},
     };
     use xiuxian_wendao_julia::compatibility::link_graph::{
-        DEFAULT_JULIA_ANALYZER_LAUNCHER_PATH, DEFAULT_JULIA_RERANK_FLIGHT_ROUTE,
+        DEFAULT_JULIA_RERANK_FLIGHT_ROUTE, DEFAULT_JULIA_SEARCH_LAUNCHER_PATH,
         LinkGraphJuliaRerankRuntimeConfig, julia_deployment_artifact_openapi_json_example,
         julia_deployment_artifact_openapi_toml_example, julia_deployment_artifact_selector,
         julia_plugin_artifact_openapi_json_example, julia_plugin_artifact_openapi_toml_example,
     };
     use xiuxian_wendao_julia::integration_support::{
-        julia_gateway_artifact_base_url, julia_gateway_artifact_default_strategy,
-        julia_gateway_artifact_expected_json_fragments,
+        julia_gateway_artifact_base_url, julia_gateway_artifact_expected_json_fragments,
         julia_gateway_artifact_expected_toml_fragments, julia_gateway_artifact_path,
         julia_gateway_artifact_rpc_params_fixture, julia_gateway_artifact_runtime_config_toml,
         julia_gateway_artifact_schema_version, julia_gateway_artifact_selected_transport,
@@ -22,7 +21,6 @@ mod julia {
         linked_builtin_julia_deployment_artifact_openapi_json_example,
         linked_builtin_julia_deployment_artifact_openapi_toml_example,
         linked_builtin_julia_gateway_artifact_base_url,
-        linked_builtin_julia_gateway_artifact_default_strategy,
         linked_builtin_julia_gateway_artifact_expected_json_fragments,
         linked_builtin_julia_gateway_artifact_expected_toml_fragments,
         linked_builtin_julia_gateway_artifact_path, linked_builtin_julia_gateway_artifact_route,
@@ -46,8 +44,7 @@ mod julia {
             schema_version: Some("v1".to_string()),
             timeout_secs: Some(15),
             service_mode: Some("stream".to_string()),
-            analyzer_config_path: Some("examples/julia.toml".to_string()),
-            analyzer_strategy: Some("similarity_only".to_string()),
+            search_config_path: Some("examples/julia.toml".to_string()),
             vector_weight: Some(0.2),
             similarity_weight: Some(0.8),
         }
@@ -139,10 +136,6 @@ mod julia {
             julia_gateway_artifact_selected_transport()
         );
         assert_eq!(
-            linked_builtin_julia_gateway_artifact_default_strategy(),
-            julia_gateway_artifact_default_strategy()
-        );
-        assert_eq!(
             linked_builtin_julia_gateway_artifact_path(),
             julia_gateway_artifact_path()
         );
@@ -152,11 +145,11 @@ mod julia {
         );
         assert_eq!(
             linked_builtin_julia_gateway_launcher_path(),
-            DEFAULT_JULIA_ANALYZER_LAUNCHER_PATH
+            DEFAULT_JULIA_SEARCH_LAUNCHER_PATH
         );
         assert_eq!(
-            linked_builtin_julia_gateway_artifact_runtime_config_toml(Some("similarity_only")),
-            julia_gateway_artifact_runtime_config_toml(Some("similarity_only"))
+            linked_builtin_julia_gateway_artifact_runtime_config_toml(),
+            julia_gateway_artifact_runtime_config_toml()
         );
         assert_eq!(
             linked_builtin_julia_gateway_artifact_expected_toml_fragments(),

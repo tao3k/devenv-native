@@ -9,7 +9,7 @@ use crate::link_graph::runtime_config::{
 use serial_test::serial;
 #[cfg(feature = "julia")]
 use xiuxian_wendao_builtin::{
-    linked_builtin_julia_analyzer_launcher_path, linked_builtin_julia_rerank_provider_selector,
+    linked_builtin_julia_rerank_provider_selector, linked_builtin_julia_search_launcher_path,
 };
 #[cfg(feature = "julia")]
 use xiuxian_wendao_runtime::transport::RerankScoreWeights;
@@ -44,7 +44,7 @@ fn test_retrieval_runtime_resolves_julia_rerank_config() -> Result<(), Box<dyn s
             .launch
             .as_ref()
             .map(|launch| launch.launcher_path.as_str()),
-        Some(linked_builtin_julia_analyzer_launcher_path())
+        Some(linked_builtin_julia_search_launcher_path())
     );
     assert_eq!(runtime.rerank_schema_version().as_deref(), Some("v1"));
     let score_weights = match RerankScoreWeights::new(0.2, 0.8) {
@@ -104,7 +104,7 @@ fn test_retrieval_runtime_projects_julia_rerank_host_helpers()
             .launch
             .as_ref()
             .map(|launch| launch.launcher_path.as_str()),
-        Some(linked_builtin_julia_analyzer_launcher_path())
+        Some(linked_builtin_julia_search_launcher_path())
     );
 
     let Some(resolved_binding) = resolve_link_graph_rerank_binding() else {

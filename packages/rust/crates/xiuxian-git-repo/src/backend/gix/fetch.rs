@@ -23,7 +23,6 @@ fn fetch_origin_once(repository: &RepositoryHandle) -> Result<(), BackendError> 
                 gix::remote::ref_map::Options::default(),
             )
             .map_err(error_message)?
-            .with_write_packed_refs_only(true)
             .receive(gix::progress::Discard, should_interrupt)
             .map_err(error_message)?;
         Ok(())

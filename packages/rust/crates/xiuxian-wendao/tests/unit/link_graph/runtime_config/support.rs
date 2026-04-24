@@ -2,7 +2,7 @@ use crate::link_graph::set_link_graph_wendao_config_override;
 #[cfg(feature = "julia")]
 use std::fs;
 #[cfg(feature = "julia")]
-use xiuxian_wendao_builtin::linked_builtin_julia_analyzer_example_config_path;
+use xiuxian_wendao_builtin::linked_builtin_julia_search_example_config_path;
 
 #[cfg(feature = "julia")]
 pub(super) fn configure_julia_rerank_runtime_fixture()
@@ -22,12 +22,11 @@ health_route = "/healthz"
 schema_version = "v1"
 timeout_secs = 15
 service_mode = "stream"
-analyzer_config_path = "{config_path}"
-analyzer_strategy = "similarity_only"
+search_config_path = "{config_path}"
 vector_weight = 0.2
 similarity_weight = 0.8
 "#,
-            config_path = linked_builtin_julia_analyzer_example_config_path()
+            config_path = linked_builtin_julia_search_example_config_path()
         ),
     )?;
     set_link_graph_wendao_config_override(&config_path.to_string_lossy());

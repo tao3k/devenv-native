@@ -29,7 +29,7 @@ fn write_config_and_set_override(temp: &tempfile::TempDir) {
     let config_path = temp.path().join("wendao.toml");
     fs::write(
         &config_path,
-        linked_builtin_julia_gateway_artifact_runtime_config_toml(None),
+        linked_builtin_julia_gateway_artifact_runtime_config_toml(),
     )
     .unwrap_or_else(|error| panic!("write config: {error}"));
     let config_path_string = config_path.to_string_lossy().to_string();

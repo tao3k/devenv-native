@@ -1,14 +1,14 @@
 use serde_json::Value;
 use xiuxian_wendao_core::artifacts::PluginArtifactPayload;
 use xiuxian_wendao_julia::compatibility::link_graph::{
-    DEFAULT_JULIA_ANALYZER_LAUNCHER_PATH, DEFAULT_JULIA_RERANK_FLIGHT_ROUTE,
+    DEFAULT_JULIA_RERANK_FLIGHT_ROUTE, DEFAULT_JULIA_SEARCH_LAUNCHER_PATH,
 };
 use xiuxian_wendao_julia::integration_support::{
-    julia_gateway_artifact_base_url, julia_gateway_artifact_default_strategy,
-    julia_gateway_artifact_expected_json_fragments, julia_gateway_artifact_expected_toml_fragments,
-    julia_gateway_artifact_path, julia_gateway_artifact_rpc_params_fixture,
-    julia_gateway_artifact_runtime_config_toml, julia_gateway_artifact_schema_version,
-    julia_gateway_artifact_selected_transport, julia_ui_artifact_payload_fixture,
+    julia_gateway_artifact_base_url, julia_gateway_artifact_expected_json_fragments,
+    julia_gateway_artifact_expected_toml_fragments, julia_gateway_artifact_path,
+    julia_gateway_artifact_rpc_params_fixture, julia_gateway_artifact_runtime_config_toml,
+    julia_gateway_artifact_schema_version, julia_gateway_artifact_selected_transport,
+    julia_ui_artifact_payload_fixture,
 };
 
 /// Return the linked builtin Julia gateway artifact base URL fixture.
@@ -29,12 +29,6 @@ pub fn linked_builtin_julia_gateway_artifact_selected_transport() -> &'static st
     julia_gateway_artifact_selected_transport()
 }
 
-/// Return the linked builtin Julia gateway artifact default strategy fixture.
-#[must_use]
-pub fn linked_builtin_julia_gateway_artifact_default_strategy() -> &'static str {
-    julia_gateway_artifact_default_strategy()
-}
-
 /// Return the linked builtin Julia gateway artifact selector fixture.
 #[must_use]
 pub fn linked_builtin_julia_gateway_artifact_path() -> (String, String) {
@@ -50,15 +44,13 @@ pub fn linked_builtin_julia_gateway_artifact_route() -> &'static str {
 /// Return the linked builtin Julia gateway launcher-path fixture.
 #[must_use]
 pub fn linked_builtin_julia_gateway_launcher_path() -> &'static str {
-    DEFAULT_JULIA_ANALYZER_LAUNCHER_PATH
+    DEFAULT_JULIA_SEARCH_LAUNCHER_PATH
 }
 
 /// Render the linked builtin Julia gateway runtime-config TOML fixture.
 #[must_use]
-pub fn linked_builtin_julia_gateway_artifact_runtime_config_toml(
-    analyzer_strategy: Option<&str>,
-) -> String {
-    julia_gateway_artifact_runtime_config_toml(analyzer_strategy)
+pub fn linked_builtin_julia_gateway_artifact_runtime_config_toml() -> String {
+    julia_gateway_artifact_runtime_config_toml()
 }
 
 /// Return the linked builtin Julia gateway expected TOML fragments.
