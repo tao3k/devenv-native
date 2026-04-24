@@ -65,6 +65,7 @@ fn empty_instance() -> BpmnInstanceState {
         variables: serde_json::json!({}),
         node_states: Vec::new(),
         active_tokens: Vec::new(),
+        trace: Vec::new(),
         joins: Vec::new(),
         standard_loops: Vec::new(),
         sequential_multi_instances: Vec::new(),

@@ -101,6 +101,8 @@ fn parse_bpmn_command_defaults_fresh_start_without_context_to_local_duckdb() {
             checkpoint_backend: Some(BpmnCliCheckpointBackend::LocalDuckDb),
             host_fixture_path: None,
             event_fixture_path: None,
+            trace_stream: false,
+            external_host: false,
         })
     );
 }
