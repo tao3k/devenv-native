@@ -96,7 +96,13 @@ pub(super) fn validate_optional_field(
 pub(super) fn normalize_rule_key(raw_key: &str) -> Option<&str> {
     if matches!(
         raw_key,
-        "invalid_utf8" | "directory_link_style_mismatch" | "directory_link_style_ambiguous"
+        "invalid_utf8"
+            | "missing_local_target"
+            | "missing_local_fragment"
+            | "local_target_outside_root"
+            | "local_target_transient_dir"
+            | "directory_link_style_mismatch"
+            | "directory_link_style_ambiguous"
     ) {
         return Some(raw_key);
     }

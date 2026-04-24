@@ -153,7 +153,7 @@ impl Default for IndexThresholds {
 /// Summary of one index for health reports.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct IndexStatus {
-    /// Index name (e.g. `"vector"`, `"content_fts"`).
+    /// Index name (e.g. `"vector"`, `"scalar_skill_name_btree"`).
     pub name: String,
     /// Index kind (e.g. `"IVF_FLAT"`, `"Inverted"`, `"BTree"`).
     pub index_type: String,
@@ -165,7 +165,7 @@ pub struct IndexStatus {
 pub enum Recommendation {
     /// Run compaction to reduce fragmentation.
     RunCompaction,
-    /// Create missing vector/FTS/scalar indices.
+    /// Create missing vector/scalar indices.
     CreateIndices,
     /// Rebuild existing indices.
     RebuildIndices,
@@ -178,11 +178,11 @@ pub enum Recommendation {
     None,
 }
 
-/// Per-table query metrics. In-process: updated by [`crate::VectorStore::record_query`] when
-/// [`crate::VectorStore::agentic_search`] runs; can later be wired to Lance tracing when available.
+/// Per-table query metrics. In-process: updated by [`crate::VectorStore::record_query`];
+/// can later be wired to Lance tracing when available.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct QueryMetrics {
-    /// Number of `agentic_search` calls for this table (in-process; resets with store instance).
+    /// Number of recorded queries for this table (in-process; resets with store instance).
     pub query_count: u64,
     /// Last query latency in milliseconds.
     pub last_query_ms: Option<u64>,

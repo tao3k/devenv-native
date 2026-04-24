@@ -163,6 +163,7 @@ fn run_audit_core_reports_missing_index_footer_block() {
         include_warnings: Some(true),
         source_paths: None,
         fuzzy_confidence_threshold: None,
+        episteme_load: None,
     };
     let (issues, _file_contents) = run_audit_core(&ctx, &args).or_panic("audit");
 
@@ -206,6 +207,7 @@ fn run_audit_core_reports_incomplete_index_footer_block() {
         include_warnings: Some(true),
         source_paths: None,
         fuzzy_confidence_threshold: None,
+        episteme_load: None,
     };
     let (issues, _file_contents) = run_audit_core(&ctx, &args).or_panic("audit");
 
@@ -249,6 +251,7 @@ fn run_audit_core_reports_stale_index_footer_standards() {
         include_warnings: Some(true),
         source_paths: None,
         fuzzy_confidence_threshold: None,
+        episteme_load: None,
     };
     let (issues, _file_contents) = run_audit_core(&ctx, &args).or_panic("audit");
 

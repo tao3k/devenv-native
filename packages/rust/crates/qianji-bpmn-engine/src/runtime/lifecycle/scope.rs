@@ -15,9 +15,10 @@ pub(super) use crate::repeat_condition::{
     evaluate_multi_instance_completion_condition,
 };
 pub(super) use crate::runtime::{
-    BpmnFrontierExecutionProposal, BpmnFrontierExecutionStep, BpmnFrontierParallelJoinMerge,
-    BpmnFrontierRuntimeAction, BpmnFrontierRuntimeBatch, BpmnInstanceState, EventCompetitionState,
-    InstanceLifecycle, JoinRuntimeState, MultiInstanceCollectionKey, MultiInstanceCollectionKind,
+    BpmnExecutionTraceEvent, BpmnExecutionTraceEventKind, BpmnFrontierExecutionProposal,
+    BpmnFrontierExecutionStep, BpmnFrontierParallelJoinMerge, BpmnFrontierRuntimeAction,
+    BpmnFrontierRuntimeBatch, BpmnInstanceState, EventCompetitionState, InstanceLifecycle,
+    JoinRuntimeState, MultiInstanceCollectionKey, MultiInstanceCollectionKind,
     MultiInstanceCollectionSlot, MultiInstanceDataRuntimeState, MultiInstanceOutputCollectionState,
     NodeRuntimeStatus, PendingHostWork, PendingHostWorkKind, SuspendReason, TokenRecord, WaitKind,
     WaitRegistration, clear_parallel_multi_instance_state, clear_sequential_multi_instance_state,

@@ -1,8 +1,7 @@
 use super::{
-    CONTENT_COLUMN, FtsRowColumns, FullTextSearchQuery, ID_COLUMN, METADATA_COLUMN, SearchOptions,
-    TryStreamExt, VECTOR_COLUMN, Value, VectorSearchResult, VectorStore, VectorStoreError,
-    build_fts_result_row, build_search_result_row, extract_vector_row_columns, json_to_lance_where,
-    required_lance_string_column, search_results_to_ipc, tool_search_results_to_ipc,
+    CONTENT_COLUMN, ID_COLUMN, METADATA_COLUMN, SearchOptions, TryStreamExt, VECTOR_COLUMN, Value,
+    VectorSearchResult, VectorStore, VectorStoreError, build_search_result_row,
+    extract_vector_row_columns, json_to_lance_where, search_results_to_ipc,
 };
 
 impl VectorStore {
@@ -114,94 +113,6 @@ impl VectorStore {
             .await?;
         search_results_to_ipc(&results, options.ipc_projection.as_deref())
             .map_err(VectorStoreError::General)
-    }
-
-    /// Tool search; returns Arrow IPC stream bytes for zero-copy consumption in Python.
-    /// Schema: name, description, score, `skill_name`, `tool_name`, `file_path`,
-    /// `routing_keywords`, intents, category, metadata, `vector_score`, `keyword_score`,
-    /// `final_score`, `confidence`, `ranking_reason`, `input_schema_digest`.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if tool search fails or IPC encoding fails.
-    pub async fn search_tools_ipc(
-        &self,
-        request: crate::skill::ToolSearchRequest<'_>,
-    ) -> Result<Vec<u8>, VectorStoreError> {
-        let results = self.search_tools_with_options(request).await?;
-        tool_search_results_to_ipc(&results).map_err(VectorStoreError::General)
-    }
-
-    /// Run native Lance full-text search over the content column.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the table is missing or Lance FTS query execution fails.
-    pub async fn search_fts(
-        &self,
-        table_name: &str,
-        query: &str,
-        limit: usize,
-        where_filter: Option<&str>,
-    ) -> Result<Vec<crate::skill::ToolSearchResult>, VectorStoreError> {
-        if query.trim().is_empty() || limit == 0 {
-            return Ok(Vec::new());
-        }
-
-        let table_path = self.table_path(table_name);
-        if !table_path.exists() {
-            return Err(VectorStoreError::TableNotFound(table_name.to_string()));
-        }
-
-        let dataset = self
-            .open_dataset_at_uri(table_path.to_string_lossy().as_ref())
-            .await?;
-        let mut scanner = dataset.scan();
-        scanner.project(&[
-            ID_COLUMN,
-            CONTENT_COLUMN,
-            crate::SKILL_NAME_COLUMN,
-            crate::CATEGORY_COLUMN,
-            crate::TOOL_NAME_COLUMN,
-            crate::FILE_PATH_COLUMN,
-            crate::ROUTING_KEYWORDS_COLUMN,
-            crate::INTENTS_COLUMN,
-        ])?;
-        scanner.full_text_search(FullTextSearchQuery::new(query.to_string()))?;
-        if let Some(filter) = where_filter.map(str::trim).filter(|f| !f.is_empty()) {
-            scanner.filter(filter)?;
-        }
-        scanner.limit(Some(i64::try_from(limit).unwrap_or(i64::MAX)), None)?;
-
-        let mut stream = scanner.try_into_stream().await?;
-        let mut results = Vec::with_capacity(limit.min(1024));
-
-        while let Some(batch) = stream.try_next().await? {
-            let columns = FtsRowColumns {
-                ids: required_lance_string_column(&batch, ID_COLUMN, "fts")?,
-                contents: required_lance_string_column(&batch, CONTENT_COLUMN, "fts")?,
-                metadata: batch.column_by_name(METADATA_COLUMN),
-                score: batch.column_by_name("_score"),
-                skill_name: batch.column_by_name(crate::SKILL_NAME_COLUMN),
-                category: batch.column_by_name(crate::CATEGORY_COLUMN),
-                tool_name: batch.column_by_name(crate::TOOL_NAME_COLUMN),
-                file_path: batch.column_by_name(crate::FILE_PATH_COLUMN),
-                routing_keywords: batch.column_by_name(crate::ROUTING_KEYWORDS_COLUMN),
-                intents: batch.column_by_name(crate::INTENTS_COLUMN),
-            };
-
-            for index in 0..batch.num_rows() {
-                results.push(build_fts_result_row(index, &columns));
-            }
-        }
-
-        results.sort_by(|a, b| {
-            b.score
-                .partial_cmp(&a.score)
-                .unwrap_or(std::cmp::Ordering::Equal)
-        });
-        results.truncate(limit);
-        Ok(results)
     }
 
     fn build_filter_plan(where_filter: Option<&str>) -> (Option<String>, Option<Value>) {

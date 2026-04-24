@@ -5,7 +5,7 @@
 :PARENT: [[index|Wendao DocOS Kernel: Map of Content]]
 :TAGS: feature, auditing, sentinel, integrity
 :STATUS: STABLE
-:VERSION: 2.25
+:VERSION: 2.26
 :END:
 
 ## Overview
@@ -26,6 +26,28 @@ The auditor executes a multi-pass diagnostic flow:
 ## Diagnostic Protocol (XML)
 
 Designed for machine processing, the XML output provides exact byte ranges for automated remediation.
+
+## Episteme Policy Loading
+
+`wendao audit --load <episteme-path>` can load either an episteme repository
+directory or a direct `episteme.toml` file. The first implementation slice is
+intentionally observational: Wendao parses the manifest, validates declared
+policy queries, diagnostic mappings, repair prompts, repair guards, and
+source-evolution skill surfaces, then emits a loaded `<episteme>` summary in
+the XML report.
+
+Policy SQL is not executed by this slice. Every declared policy query must use
+`statement_mode = "select_only"`, must point at a repository-relative file, and
+must pass the mutation guard that rejects DDL/DML-style operations such as
+`CREATE`, `ALTER`, `DROP`, `INSERT`, `UPDATE`, `DELETE`, `MERGE`, `COPY`, and
+`ATTACH`. Request-scoped read-only query execution remains a later slice after
+the stable logical-view registration boundary is proven.
+
+The interactive CLI treats the Valkey-backed link-graph cache as an optional
+accelerator for local audit runs. If the configured cache endpoint is absent or
+unreachable, `wendao audit` falls back to building the index directly from the
+requested root and include/exclude filters; invalid cache URLs and index-build
+errors still fail normally.
 
 ## Automatic Remediation
 

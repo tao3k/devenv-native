@@ -1,7 +1,7 @@
 #[cfg(feature = "duckdb")]
 use std::collections::BTreeMap;
 
-use xiuxian_vector::EngineRecordBatch;
+use xiuxian_db_store::EngineRecordBatch;
 
 use crate::duckdb::LocalRelationEngineKind;
 #[cfg(feature = "duckdb")]

@@ -4,6 +4,15 @@ use serde::Serialize;
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum MarkdownSyntaxLintCode {
+    /// The document is missing the required leading YAML frontmatter block.
+    MissingFrontmatter,
+    /// The YAML frontmatter exists but does not carry a non-empty `title`.
+    MissingFrontmatterTitle,
+    /// A skill-shaped document exists but does not carry a non-empty skill name.
+    MissingSkillFrontmatterName,
+    /// A skill-shaped document exists but does not carry the required
+    /// top-level `metadata` mapping.
+    MissingSkillFrontmatterMetadata,
     /// The document starts a YAML frontmatter block but never closes it.
     UnclosedFrontmatter,
     /// The YAML frontmatter content is not valid YAML.
@@ -39,7 +48,11 @@ impl MarkdownSyntaxLintCode {
             | Self::InvalidFrontmatterYaml
             | Self::UnclosedFence
             | Self::MixedWikilinkMarkdownLink => MarkdownLintKind::Syntax,
-            Self::BareObsidianWikilink
+            Self::MissingFrontmatter
+            | Self::MissingFrontmatterTitle
+            | Self::MissingSkillFrontmatterName
+            | Self::MissingSkillFrontmatterMetadata
+            | Self::BareObsidianWikilink
             | Self::RedundantObsidianLabel
             | Self::NonCanonicalObsidianAliasOrder => MarkdownLintKind::AuthoringPolicy,
         }

@@ -66,6 +66,36 @@ pub struct NodeRuntimeState {
     pub status: NodeRuntimeStatus,
 }
 
+/// Runtime trace event discriminator.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum BpmnExecutionTraceEventKind {
+    /// A node status changed.
+    NodeStatus,
+    /// A runtime token traversed one BPMN sequence flow.
+    FlowTake,
+}
+
+/// Ordered BPMN execution trace event.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct BpmnExecutionTraceEvent {
+    /// Monotonic trace sequence inside the instance.
+    pub sequence: u64,
+    /// Process identity active when the event was recorded.
+    pub process: ProcessKey,
+    /// Event discriminator.
+    pub kind: BpmnExecutionTraceEventKind,
+    /// Node index for node-status events and flow target nodes.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub node_index: Option<BpmnNodeIndex>,
+    /// Edge index for sequence-flow traversal events.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub edge_index: Option<u32>,
+    /// Runtime status for node-status events.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status: Option<NodeRuntimeStatus>,
+}
+
 /// High-level instance lifecycle shell.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -229,6 +259,9 @@ pub struct BpmnInstanceState {
     pub node_states: Vec<NodeRuntimeState>,
     /// Active runtime tokens.
     pub active_tokens: Vec<TokenRecord>,
+    /// Ordered runtime execution trace.
+    #[serde(default)]
+    pub trace: Vec<BpmnExecutionTraceEvent>,
     /// Join progress records.
     pub joins: Vec<JoinRuntimeState>,
     /// Active standard-loop progress records.

@@ -67,9 +67,9 @@ pub enum WendaoQueryCoreError {
     /// A required backend adapter was not attached to the execution context.
     #[error("missing query-core backend: {0}")]
     MissingBackend(&'static str),
-    /// Retrieval helper failure from `xiuxian-vector`.
+    /// Retrieval helper failure from the storage facade.
     #[error("vector backend error: {0}")]
-    Vector(#[from] xiuxian_vector::VectorStoreError),
+    Vector(#[from] xiuxian_db_store::VectorStoreError),
     /// Arrow batch construction or projection failure.
     #[error("arrow error: {0}")]
     Arrow(#[from] arrow::error::ArrowError),

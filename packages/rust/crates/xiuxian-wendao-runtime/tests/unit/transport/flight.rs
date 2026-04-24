@@ -11,7 +11,7 @@ use tokio::net::TcpListener;
 use tokio::time::timeout;
 use tokio_stream::wrappers::TcpListenerStream;
 use tonic::transport::Server;
-use xiuxian_vector::{
+use xiuxian_db_store::{
     EngineRecordBatch, LanceDataType, LanceField, LanceFloat64Array,
     LanceFloat64Array as Float64Array, LanceInt32Array as Int32Array, LanceRecordBatch,
     LanceSchema, LanceStringArray as StringArray, engine_batches_to_lance_batches,

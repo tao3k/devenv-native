@@ -9,7 +9,7 @@ use super::register::{
     register_bounded_work_markdown_table_with_stats,
 };
 use crate::duckdb::{DataFusionLocalRelationEngine, LocalRelationEngine};
-use xiuxian_vector::EngineRecordBatch;
+use xiuxian_db_store::EngineRecordBatch;
 
 /// Execute one SQL query over the bounded-work `markdown` surface using one
 /// caller-provided local relation engine.
@@ -62,7 +62,7 @@ async fn payload_from_query_engine_batches(
     let local_query_execution_time_ms = duration_millis_u64(query_started_at.elapsed());
     let result_row_count = engine_batches
         .iter()
-        .map(xiuxian_vector::EngineRecordBatch::num_rows)
+        .map(xiuxian_db_store::EngineRecordBatch::num_rows)
         .sum();
     let result_bytes = engine_batches_array_bytes(&engine_batches);
     let metadata = SqlQueryMetadata {

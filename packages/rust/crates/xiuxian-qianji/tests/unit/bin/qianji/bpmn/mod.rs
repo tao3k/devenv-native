@@ -18,6 +18,8 @@ mod support;
 mod task_complete;
 
 #[cfg(feature = "sqlite")]
+pub(super) use support::write_parallel_multi_instance_loop_input_bundle;
+#[cfg(feature = "sqlite")]
 pub(super) use support::write_waiting_bundle;
 pub(super) use support::{
     write_business_rule_bundle, write_event_race_bundle, write_event_wait_bundle,

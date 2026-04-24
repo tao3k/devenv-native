@@ -6,7 +6,7 @@ use axum::routing::post;
 use serde_json::json;
 use serial_test::serial;
 use std::fs;
-use xiuxian_vector::VectorStore;
+use xiuxian_db_store::VectorStore;
 use xiuxian_wendao::{
     LinkGraphIndex, LinkGraphSearchOptions, set_link_graph_wendao_config_override,
 };

@@ -1,3 +1,4 @@
+use super::scoring::distance_to_score;
 use super::semantic_ignition::{QuantumSemanticIgnition, QuantumSemanticIgnitionFuture};
 #[cfg(feature = "julia")]
 use crate::analyzers::RepoIntelligenceError;
@@ -6,14 +7,14 @@ use crate::link_graph::models::{QuantumAnchorHit, QuantumSemanticSearchRequest};
 use arrow::record_batch::RecordBatch;
 #[cfg(feature = "julia")]
 use thiserror::Error;
-use xiuxian_db_store::{SearchOptions, VectorStore, VectorStoreError, distance_to_score};
+use xiuxian_db_store::{SearchOptions, VectorStore, VectorStoreError};
 #[cfg(feature = "julia")]
 use xiuxian_wendao_runtime::transport::{
     PluginArrowVectorStoreRequestBuildError, build_plugin_arrow_request_batch_from_vector_store,
     build_plugin_arrow_request_batch_from_vector_store_with_metadata,
 };
 
-/// Semantic ignition adapter backed by the Rust vector store.
+/// Semantic ignition adapter backed by the Lance vector-store facade.
 #[derive(Clone)]
 pub struct VectorStoreSemanticIgnition {
     store: VectorStore,
@@ -29,7 +30,7 @@ impl VectorStoreSemanticIgnition {
             store,
             table_name: table_name.into(),
             search_options: SearchOptions::default(),
-            backend_name: "xiuxian-vector".to_string(),
+            backend_name: "lance-vector-store".to_string(),
         }
     }
 

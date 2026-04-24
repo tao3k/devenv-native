@@ -92,7 +92,7 @@ pub(super) fn snapshot_retrieval_rows(relation: &WendaoRelation) -> Vec<serde_js
         .batches()
         .iter()
         .flat_map(|batch| {
-            xiuxian_vector::retrieval_rows_from_record_batch(batch)
+            xiuxian_db_store::retrieval_rows_from_record_batch(batch)
                 .unwrap_or_else(|error| panic!("decode retrieval rows: {error}"))
                 .into_iter()
                 .map(|row| {
@@ -152,12 +152,12 @@ impl RetrievalBackend for StubPayloadRetrievalBackend {
             .batches()
             .iter()
             .map(|batch| {
-                xiuxian_vector::payload_fetch_record_batch(batch, &op.columns, op.ids.as_ref())
+                xiuxian_db_store::payload_fetch_record_batch(batch, &op.columns, op.ids.as_ref())
             })
             .collect::<Result<Vec<_>, _>>()?;
         let schema = batches
             .first()
-            .map(xiuxian_vector::EngineRecordBatch::schema)
+            .map(xiuxian_db_store::EngineRecordBatch::schema)
             .ok_or_else(|| WendaoQueryCoreError::InvalidRelation("missing payload batch".into()))?;
         Ok(WendaoRelation::new(schema, batches))
     }

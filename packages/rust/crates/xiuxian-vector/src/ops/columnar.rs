@@ -8,7 +8,6 @@ use lance::deps::arrow_array::{RecordBatch, RecordBatchIterator};
 use lance::deps::arrow_schema::{ArrowError, Schema};
 use lance_file::version::LanceFileVersion;
 use lance_index::IndexType;
-use lance_index::scalar::FullTextSearchQuery;
 use lance_index::scalar::inverted::tokenizer::InvertedIndexParams;
 use lance_index::scalar::{BuiltinIndexType, ScalarIndexParams};
 use lance_index::traits::DatasetIndexExt;
@@ -651,111 +650,6 @@ impl VectorStore {
             table_names,
             options,
             |_table_name, batch| -> Result<(), VectorStoreError> {
-                batches.push(batch);
-                Ok(())
-            },
-        )
-        .await?;
-        Ok(batches)
-    }
-
-    /// Run a native Lance full-text search and return projected Arrow batches.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error when the table cannot be opened or the FTS scan fails.
-    pub async fn search_fts_batches_streaming<E, F>(
-        &self,
-        table_name: &str,
-        query: &str,
-        options: ColumnarScanOptions,
-        mut on_batch: F,
-    ) -> Result<(), E>
-    where
-        E: From<VectorStoreError>,
-        F: FnMut(RecordBatch) -> Result<(), E>,
-    {
-        if query.trim().is_empty() {
-            return Ok(());
-        }
-        let dataset = self.open_table_or_err(table_name).await.map_err(E::from)?;
-        let mut scanner = dataset.scan();
-        if !options.projected_columns.is_empty() {
-            let columns = options
-                .projected_columns
-                .iter()
-                .map(String::as_str)
-                .collect::<Vec<_>>();
-            scanner
-                .project(&columns)
-                .map_err(VectorStoreError::from)
-                .map_err(E::from)?;
-        }
-        scanner
-            .full_text_search(FullTextSearchQuery::new(query.trim().to_string()))
-            .map_err(VectorStoreError::from)
-            .map_err(E::from)?;
-        scanner.disable_scoring_autoprojection();
-        if let Some(filter) = options
-            .where_filter
-            .as_deref()
-            .map(str::trim)
-            .filter(|value| !value.is_empty())
-        {
-            scanner
-                .filter(filter)
-                .map_err(VectorStoreError::from)
-                .map_err(E::from)?;
-        }
-        if let Some(batch_size) = options.batch_size {
-            scanner.batch_size(batch_size);
-        }
-        if let Some(fragment_readahead) = options.fragment_readahead {
-            scanner.fragment_readahead(fragment_readahead);
-        }
-        if let Some(batch_readahead) = options.batch_readahead {
-            scanner.batch_readahead(batch_readahead);
-        }
-        if let Some(limit) = options.limit {
-            scanner
-                .limit(Some(i64::try_from(limit).unwrap_or(i64::MAX)), None)
-                .map_err(VectorStoreError::from)
-                .map_err(E::from)?;
-        }
-
-        let mut stream = scanner
-            .try_into_stream()
-            .await
-            .map_err(VectorStoreError::from)
-            .map_err(E::from)?;
-        while let Some(batch) = stream
-            .try_next()
-            .await
-            .map_err(VectorStoreError::from)
-            .map_err(E::from)?
-        {
-            on_batch(batch)?;
-        }
-        Ok(())
-    }
-
-    /// Run a native Lance full-text search and return projected Arrow batches.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error when the table cannot be opened or the FTS scan fails.
-    pub async fn search_fts_batches(
-        &self,
-        table_name: &str,
-        query: &str,
-        options: ColumnarScanOptions,
-    ) -> Result<Vec<RecordBatch>, VectorStoreError> {
-        let mut batches = Vec::new();
-        self.search_fts_batches_streaming(
-            table_name,
-            query,
-            options,
-            |batch| -> Result<(), VectorStoreError> {
                 batches.push(batch);
                 Ok(())
             },

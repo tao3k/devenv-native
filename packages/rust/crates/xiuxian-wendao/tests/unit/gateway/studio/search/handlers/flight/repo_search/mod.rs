@@ -8,7 +8,7 @@ use std::sync::Arc;
 use arrow_flight::flight_service_server::FlightService;
 use arrow_flight::{FlightDescriptor, FlightInfo};
 use tonic::Request;
-use xiuxian_vector::{LanceFloat64Array, LanceRecordBatch, LanceStringArray};
+use xiuxian_db_store::{LanceFloat64Array, LanceRecordBatch, LanceStringArray};
 
 use super::{
     StudioRepoSearchFlightRouteProvider, bootstrap_sample_repo_search_content,

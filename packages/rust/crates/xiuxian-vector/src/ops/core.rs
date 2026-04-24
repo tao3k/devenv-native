@@ -29,8 +29,6 @@ impl VectorStore {
                 DatasetCache::new(DatasetCacheConfig::default()),
             )),
             dimension: dimension.unwrap_or(DEFAULT_DIMENSION),
-            keyword_backend: KeywordSearchBackend::LanceFts,
-            keyword_search_enabled: false,
             index_cache_size_bytes: None,
             query_metrics: Arc::new(StdRwLock::new(HashMap::new())),
             index_progress_callback: None,
@@ -50,52 +48,6 @@ impl VectorStore {
     ) -> Result<Self, VectorStoreError> {
         let mut store = Self::new(path, dimension).await?;
         store.datasets = Arc::new(RwLock::new(DatasetCache::new(cache_config)));
-        Ok(store)
-    }
-
-    /// Create a new `VectorStore` instance with optional keyword index and optional dataset cache.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error when store initialization or keyword-index setup fails.
-    pub async fn new_with_keyword_index(
-        path: &str,
-        dimension: Option<usize>,
-        enable_keyword_index: bool,
-        index_cache_size_bytes: Option<usize>,
-        cache_config: Option<DatasetCacheConfig>,
-    ) -> Result<Self, VectorStoreError> {
-        Self::new_with_keyword_backend(
-            path,
-            dimension,
-            enable_keyword_index,
-            KeywordSearchBackend::LanceFts,
-            index_cache_size_bytes,
-            cache_config,
-        )
-        .await
-    }
-
-    /// Create a new `VectorStore` with explicit keyword backend and optional dataset cache.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error when store initialization or keyword-index setup fails.
-    pub async fn new_with_keyword_backend(
-        path: &str,
-        dimension: Option<usize>,
-        enable_keyword_index: bool,
-        keyword_backend: KeywordSearchBackend,
-        index_cache_size_bytes: Option<usize>,
-        cache_config: Option<DatasetCacheConfig>,
-    ) -> Result<Self, VectorStoreError> {
-        let mut store = Self::new(path, dimension).await?;
-        if let Some(c) = cache_config {
-            store.datasets = Arc::new(RwLock::new(DatasetCache::new(c)));
-        }
-        store.keyword_backend = keyword_backend;
-        store.keyword_search_enabled = enable_keyword_index;
-        store.index_cache_size_bytes = index_cache_size_bytes;
         Ok(store)
     }
 
@@ -233,7 +185,7 @@ impl VectorStore {
                 DataType::List(Arc::new(Field::new("item", DataType::Utf8, true))),
                 true,
             )
-            .with_metadata(doc("Routing keywords for hybrid search (list)")),
+            .with_metadata(doc("Legacy routing keyword metadata (list)")),
             Field::new(
                 crate::INTENTS_COLUMN,
                 DataType::List(Arc::new(Field::new("item", DataType::Utf8, true))),
@@ -247,33 +199,4 @@ impl VectorStore {
         Arc::new(lance::deps::arrow_schema::Schema::new(fields))
     }
 
-    /// Enable keyword support for hybrid search.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error when called in `:memory:` mode because Lance FTS needs a
-    /// filesystem-backed table to materialize its inverted index.
-    pub fn enable_keyword_index(&mut self) -> Result<(), VectorStoreError> {
-        if self.base_path.as_os_str() == ":memory:" {
-            return Err(VectorStoreError::General(
-                "Cannot enable keyword index in memory mode".to_string(),
-            ));
-        }
-        self.keyword_search_enabled = true;
-        Ok(())
-    }
-
-    /// Switch keyword backend at runtime.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error when called in `:memory:` mode because enabling the
-    /// keyword index requires a filesystem-backed table.
-    pub fn set_keyword_backend(
-        &mut self,
-        backend: KeywordSearchBackend,
-    ) -> Result<(), VectorStoreError> {
-        self.keyword_backend = backend;
-        self.enable_keyword_index()
-    }
 }

@@ -7,11 +7,13 @@ We decouple the **Discovery** of a skill from the **Validation** of its content.
 A directory is recognized as a **Skill** if and only if it contains a physical **`SKILL.md`** file.
 
 - **Physical Identifier**: `SKILL.md` serves as the anchor for the `wendao://skills/` namespace.
-- **Trigger**: The presence of `SKILL.md` triggers the high-precision `xiuxian-skills` parser.
+- **Trigger**: The presence of `SKILL.md` selects the parser-owned SKILL.md
+  frontmatter contract in `xiuxian-wendao-parsers`.
 
-## 2. Content Validation (The Skills Law)
+## 2. Content Validation (The Parser Law)
 
-Once discovered, the `xiuxian-skills` engine enforces the following:
+Once discovered, Wendao linting enforces the following through the parser-owned
+Markdown/frontmatter contract:
 
 ### 2.1 Default Standards (Optional but Recommended)
 

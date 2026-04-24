@@ -263,9 +263,6 @@ impl crate::VectorStore {
         // Robustness note: drop-then-write. If append fails midway, table may be partial.
         // Migration is one-shot; caller should ensure table is backed up for critical data.
         self.drop_table(table_name).await?;
-        if let Err(e) = self.enable_keyword_index() {
-            log::warn!("Could not re-enable keyword index after migrate drop: {e}");
-        }
 
         let (mut dataset, created) = self
             .get_or_create_dataset(table_name, false, Some((schema_v2.clone(), first_v2)))

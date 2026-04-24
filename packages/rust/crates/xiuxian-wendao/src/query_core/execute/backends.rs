@@ -60,7 +60,7 @@ impl RetrievalBackend for SearchPlaneRetrievalBackend {
             .into_iter()
             .map(|hit| retrieval_row_from_search_hit(&hit, op.repo_id.as_str()))
             .collect::<Vec<_>>();
-        let batch = xiuxian_vector::retrieval_rows_to_record_batch(&rows)?;
+        let batch = xiuxian_db_store::retrieval_rows_to_record_batch(&rows)?;
         Ok(WendaoRelation::new(batch.schema(), vec![batch]))
     }
 
@@ -73,12 +73,12 @@ impl RetrievalBackend for SearchPlaneRetrievalBackend {
             .batches()
             .iter()
             .map(|batch| {
-                xiuxian_vector::payload_fetch_record_batch(batch, &op.columns, op.ids.as_ref())
+                xiuxian_db_store::payload_fetch_record_batch(batch, &op.columns, op.ids.as_ref())
             })
             .collect::<Result<Vec<_>, _>>()?;
         let schema = batches
             .first()
-            .map(xiuxian_vector::EngineRecordBatch::schema)
+            .map(xiuxian_db_store::EngineRecordBatch::schema)
             .ok_or_else(|| WendaoQueryCoreError::InvalidRelation("missing payload batch".into()))?;
         Ok(WendaoRelation::new(schema, batches))
     }
@@ -150,8 +150,8 @@ impl GraphBackend for LinkGraphNeighborsBackend {
     }
 }
 
-fn retrieval_row_from_search_hit(hit: &SearchHit, repo_id: &str) -> xiuxian_vector::RetrievalRow {
-    xiuxian_vector::RetrievalRow {
+fn retrieval_row_from_search_hit(hit: &SearchHit, repo_id: &str) -> xiuxian_db_store::RetrievalRow {
+    xiuxian_db_store::RetrievalRow {
         id: hit.stem.clone(),
         path: hit.path.clone(),
         repo: Some(repo_id.to_string()),

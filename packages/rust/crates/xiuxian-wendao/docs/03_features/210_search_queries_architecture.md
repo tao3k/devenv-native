@@ -127,10 +127,10 @@ classes.
 These paths still compete with DuckDB on the search-side execution layer and
 should be read as migration residue rather than long-term architecture:
 
-- `xiuxian-vector::search_engine::SearchEngineContext` and the
-  `src/search_engine/` foundation still provide the request-scoped DataFusion
-  discovery, logical-view, and SQL collection machinery that backs the
-  remaining non-`duckdb` baseline and any still-unmigrated shared fallback
+- `xiuxian-db-store::SearchEngineContext` exposes the request-scoped
+  DataFusion discovery, logical-view, and SQL collection machinery that backs
+  the remaining non-`duckdb` baseline and any still-unmigrated shared fallback
+  through the storage facade
 - non-`duckdb` builds now expose that retained fallback explicitly as
   `SearchPlaneService::datafusion_query_engine()` rather than as a generic
   `search_engine()` accessor, but the underlying lane is still same-layer

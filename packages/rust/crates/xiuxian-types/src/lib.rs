@@ -544,128 +544,6 @@ pub struct VectorSearchResult {
     pub distance: f64,
 }
 
-/// Internal hybrid fusion result used by `xiuxian-vector` ranking pipelines.
-#[derive(Debug, Clone, Default, Serialize, Deserialize, JsonSchema)]
-pub struct VectorHybridSearchResult {
-    /// Full tool name (e.g., "git.commit").
-    pub tool_name: String,
-    /// Final combined RRF score after fusion.
-    pub rrf_score: f32,
-    /// Raw vector similarity score from semantic search.
-    pub vector_score: f32,
-    /// BM25 keyword score from keyword search.
-    pub keyword_score: f32,
-}
-
-/// Internal tool search record used by `xiuxian-vector` indexing/search pipelines.
-#[derive(Debug, Clone, Default, Serialize, Deserialize, JsonSchema)]
-pub struct VectorToolSearchResult {
-    /// Full tool name (e.g., "git.commit").
-    pub name: String,
-    /// Tool description from content.
-    pub description: String,
-    /// JSON schema for tool inputs.
-    pub input_schema: serde_json::Value,
-    /// Relevance score (0.0 to 1.0).
-    pub score: f32,
-    /// Vector-side contribution score before fusion.
-    pub vector_score: Option<f32>,
-    /// Keyword-side contribution score before fusion.
-    pub keyword_score: Option<f32>,
-    /// Parent skill name (e.g., "git").
-    pub skill_name: String,
-    /// Tool function name (e.g., "commit").
-    pub tool_name: String,
-    /// Source file path.
-    pub file_path: String,
-    /// Routing keywords for hybrid search (`routing_keywords`).
-    pub routing_keywords: Vec<String>,
-    /// Associated intents for semantic alignment.
-    pub intents: Vec<String>,
-    /// Tool category from decorator metadata (or inferred fallback).
-    pub category: String,
-    /// Parameter names from index.
-    pub parameters: Vec<String>,
-}
-
-/// Hybrid search result payload (`xiuxian.vector.hybrid.v1`).
-#[derive(Debug, Clone, Default, Serialize, Deserialize, JsonSchema)]
-pub struct HybridSearchResult {
-    /// Schema identifier.
-    pub schema: String,
-    /// Result identifier.
-    pub id: String,
-    /// Result content.
-    pub content: String,
-    /// Additional metadata.
-    #[serde(default)]
-    pub metadata: serde_json::Value,
-    /// Result source label.
-    #[serde(default)]
-    pub source: String,
-    /// Primary ranking score.
-    pub score: f64,
-    /// Optional vector signal score.
-    #[serde(default)]
-    pub vector_score: Option<f64>,
-    /// Optional keyword signal score.
-    #[serde(default)]
-    pub keyword_score: Option<f64>,
-}
-
-/// Tool search result payload (`xiuxian.vector.tool_search.v1`).
-#[derive(Debug, Clone, Default, Serialize, Deserialize, JsonSchema)]
-pub struct ToolSearchResult {
-    /// Schema identifier.
-    pub schema: String,
-    /// Human-readable display name.
-    pub name: String,
-    /// Tool description.
-    #[serde(default)]
-    pub description: String,
-    /// Tool input schema JSON object.
-    #[serde(default)]
-    pub input_schema: serde_json::Value,
-    /// Base score.
-    pub score: f64,
-    /// Optional vector signal score.
-    #[serde(default)]
-    pub vector_score: Option<f64>,
-    /// Optional keyword signal score.
-    #[serde(default)]
-    pub keyword_score: Option<f64>,
-    /// Final fused score.
-    pub final_score: f64,
-    /// Confidence label.
-    pub confidence: String,
-    /// Optional ranking explanation.
-    #[serde(default)]
-    pub ranking_reason: Option<String>,
-    /// Optional deterministic digest for `input_schema`.
-    #[serde(default)]
-    pub input_schema_digest: Option<String>,
-    /// Skill namespace.
-    #[serde(default)]
-    pub skill_name: String,
-    /// Fully-qualified tool name.
-    pub tool_name: String,
-    /// Source file path.
-    #[serde(default)]
-    pub file_path: String,
-    /// Routing keyword list.
-    #[serde(default)]
-    pub routing_keywords: Vec<String>,
-    /// Intent phrases.
-    #[serde(default)]
-    pub intents: Vec<String>,
-    /// Category label.
-    #[serde(default)]
-    pub category: String,
-    /// Parameter hints.
-    #[serde(default)]
-    pub parameters: Vec<String>,
-}
-
 /// Environment snapshot for the sensory system.
 /// This is the Rosetta Stone for Rust-Python communication.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
@@ -769,11 +647,7 @@ pub fn get_schema_json(type_name: &str) -> Result<String, SchemaError> {
         "KnowledgeCategory" => schemars::schema_for!(KnowledgeCategory),
         "MemoryGateVerdict" => schemars::schema_for!(MemoryGateVerdict),
         "MemoryGateDecision" => schemars::schema_for!(MemoryGateDecision),
-        "HybridSearchResult" => schemars::schema_for!(HybridSearchResult),
-        "ToolSearchResult" => schemars::schema_for!(ToolSearchResult),
         "VectorSearchResult" => schemars::schema_for!(VectorSearchResult),
-        "VectorHybridSearchResult" => schemars::schema_for!(VectorHybridSearchResult),
-        "VectorToolSearchResult" => schemars::schema_for!(VectorToolSearchResult),
         "EnvironmentSnapshot" => schemars::schema_for!(EnvironmentSnapshot),
         _ => return Err(SchemaError::UnknownType(type_name.to_string())),
     };
@@ -792,11 +666,7 @@ pub fn get_registered_types() -> Vec<&'static str> {
         "KnowledgeCategory",
         "MemoryGateVerdict",
         "MemoryGateDecision",
-        "HybridSearchResult",
-        "ToolSearchResult",
         "VectorSearchResult",
-        "VectorHybridSearchResult",
-        "VectorToolSearchResult",
         "EnvironmentSnapshot",
         "OmniTool", // Alias for SkillDefinition
     ]

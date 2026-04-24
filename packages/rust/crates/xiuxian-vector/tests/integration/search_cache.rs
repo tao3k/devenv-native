@@ -1,13 +1,11 @@
-//! Integration tests for search result cache (`get_cached`, `set_cached`, hybrid).
+//! Integration tests for vector search result cache (`get_cached`, `set_cached`).
 //!
 //! Tests share a static cache; run with:
 //! `cargo test -p xiuxian-vector --test test_search_cache -- --test-threads=1`
 
 use std::sync::{Mutex, OnceLock};
 
-use xiuxian_vector::search_cache::{
-    clear_cache, get_cached, get_cached_hybrid, set_cached, set_cached_hybrid,
-};
+use xiuxian_vector::search_cache::{clear_cache, get_cached, set_cached};
 
 fn with_cache_lock(test: impl FnOnce()) {
     static CACHE_TEST_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
@@ -57,24 +55,5 @@ fn test_different_vectors_different_entries() {
             get_cached(path, table, limit, None, &v2),
             Some(vec!["r2".to_string()])
         );
-    });
-}
-
-#[test]
-fn test_hybrid_cache_miss_then_hit() {
-    with_cache_lock(|| {
-        let path = "/tmp/test";
-        let table = "tools";
-        let limit = 5;
-        let vector = vec![0.5f32, 0.6];
-        let query_text = "git commit";
-
-        assert!(get_cached_hybrid(path, table, limit, &vector, query_text).is_none());
-
-        let results = vec!["git.commit".into(), "git.status".into()];
-        set_cached_hybrid(path, table, limit, &vector, query_text, results.clone());
-
-        let cached = get_cached_hybrid(path, table, limit, &vector, query_text);
-        assert_eq!(cached, Some(results));
     });
 }

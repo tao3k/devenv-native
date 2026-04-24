@@ -4,7 +4,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use tempfile::{TempDir, tempdir};
 use tonic::Status;
-use xiuxian_vector::{
+use xiuxian_db_store::{
     LanceDataType, LanceField, LanceFloat64Array, LanceRecordBatch, LanceSchema, LanceStringArray,
 };
 use xiuxian_wendao_runtime::transport::{

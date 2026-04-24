@@ -11986,7 +11986,6 @@ dependencies = [
  "xiuxian-memory-engine",
  "xiuxian-qianhuan",
  "xiuxian-qianji",
- "xiuxian-skills",
  "xiuxian-testing",
  "xiuxian-tokenizer",
  "xiuxian-types",
@@ -12270,31 +12269,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "xiuxian-skills"
-version = "0.1.1"
-dependencies = [
- "anyhow",
- "hex",
- "insta",
- "log",
- "rayon",
- "schemars",
- "serde",
- "serde_json",
- "serde_yaml",
- "sha2",
- "tempfile",
- "thiserror 2.0.18",
- "toml",
- "walkdir",
- "xiuxian-ast",
- "xiuxian-config-core",
- "xiuxian-macros",
- "xiuxian-testing",
- "xiuxian-types",
-]
-
-[[package]]
 name = "xiuxian-tags"
 version = "0.1.1"
 dependencies = [
@@ -12351,7 +12325,6 @@ dependencies = [
 name = "xiuxian-vector"
 version = "0.1.1"
 dependencies = [
- "aho-corasick",
  "anyhow",
  "arrow 58.1.0",
  "arrow-ipc 57.3.0",
@@ -12364,17 +12337,14 @@ dependencies = [
  "lance-index",
  "lance-linalg",
  "log",
- "num-traits",
  "parquet",
  "rand 0.8.6",
- "rayon",
  "serde",
  "serde_json",
  "tempfile",
  "thiserror 2.0.18",
  "tokio",
  "xiuxian-lance",
- "xiuxian-skills",
  "xiuxian-testing",
  "xiuxian-types",
 ]
@@ -12441,9 +12411,7 @@ dependencies = [
  "xiuxian-llm",
  "xiuxian-logging",
  "xiuxian-macros",
- "xiuxian-skills",
  "xiuxian-testing",
- "xiuxian-vector",
  "xiuxian-wendao-builtin",
  "xiuxian-wendao-client",
  "xiuxian-wendao-core",
@@ -12542,7 +12510,9 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_yaml",
+ "tempfile",
  "uuid",
+ "walkdir",
  "xiuxian-ast",
  "xiuxian-testing",
 ]
@@ -12571,7 +12541,6 @@ dependencies = [
  "xiuxian-config-core",
  "xiuxian-db-store",
  "xiuxian-testing",
- "xiuxian-vector",
  "xiuxian-wendao-core",
  "xiuxian-wendao-parsers",
 ]

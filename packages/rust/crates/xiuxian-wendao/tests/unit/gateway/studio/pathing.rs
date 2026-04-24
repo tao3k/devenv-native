@@ -56,7 +56,7 @@ fn studio_display_path_prefixes_configured_project_for_relative_paths() {
         projects: vec![UiProjectConfig {
             name: "main".to_string(),
             root: ".".to_string(),
-            dirs: vec!["docs".to_string(), "internal_skills".to_string()],
+            dirs: vec!["docs".to_string(), "skills".to_string()],
         }],
         repo_projects: Vec::new(),
     });
@@ -125,7 +125,7 @@ fn studio_display_path_prefers_project_root_relative_prefix_for_kernel_docs() {
             UiProjectConfig {
                 name: "main".to_string(),
                 root: temp_dir.path().to_path_buf().to_string_lossy().to_string(),
-                dirs: vec!["docs".to_string(), "internal_skills".to_string()],
+                dirs: vec!["docs".to_string(), "skills".to_string()],
             },
         ],
         repo_projects: Vec::new(),

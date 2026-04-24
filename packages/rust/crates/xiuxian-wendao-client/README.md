@@ -29,21 +29,37 @@ Behavior:
    also declares `url`, so writable mirrors can still be linted by default
 4. keeps `url`-based managed-remote detection only as a backward-compatible
    readonly inference when `read_only` is omitted
-5. classifies diagnostics as `official_syntax` or `repo_authoring_policy`
-6. reports invalid YAML frontmatter
-7. reports unclosed frontmatter blocks
-8. reports unclosed fenced code blocks
-9. treats mixed `[[target]](label)` link syntax as an official-syntax failure
-10. treats bare `[[target]]`, redundant labels such as `[[target|target]]`, and target-like reversed alias shapes such as `[[label|path/to/doc.md]]` as repo authoring policy findings rather than official Obsidian syntax failures
-11. resolves reachable link targets to document titles and heading fragments so diagnostics can suggest a concrete rewrite for LLM repair flows
-12. emits plain-text diagnostics for human and LLM review
-13. reports non-UTF-8 Markdown files
-14. keeps official Obsidian embeds such as `![[note]]`, `![[note#Heading]]`,
+5. skips transient/generated directories such as `.cache`, `.data`, `.run`,
+   `.config`, `.bin`, `node_modules`, and `target` during default markdown
+   discovery
+6. classifies diagnostics as `official_syntax` or `repo_authoring_policy`
+7. requires document-level YAML frontmatter and validates the primary
+   frontmatter identity field for the current document surface:
+   - ordinary Markdown documents require a non-empty `title`
+   - `SKILL.md` files or `kind: SKILL.md` documents must satisfy the strict
+     parser-owned SKILL.md frontmatter contract
+8. reports invalid YAML frontmatter
+9. reports unclosed frontmatter blocks
+10. reports unclosed fenced code blocks
+11. fails when a local Markdown link, wikilink, or attachment target does not
+    resolve to an existing in-scope file
+12. fails when a reachable local link or attachment resolves into a
+    transient/generated repository directory
+13. fails when a local file target resolves but the addressed heading fragment
+    or `#^block-id` fragment is missing
+14. rejects local note and attachment targets that escape the active lint root
+    via `..` traversal, even when the escaped file exists
+15. treats mixed `[[target]](label)` link syntax as an official-syntax failure
+16. treats bare `[[target]]`, redundant labels such as `[[target|target]]`, and target-like reversed alias shapes such as `[[label|path/to/doc.md]]` as repo authoring policy findings rather than official Obsidian syntax failures
+17. resolves reachable link targets to document titles and heading fragments so diagnostics can suggest a concrete rewrite for LLM repair flows
+18. emits plain-text diagnostics for human and LLM review
+19. reports non-UTF-8 Markdown files
+20. keeps official Obsidian embeds such as `![[note]]`, `![[note#Heading]]`,
     and `![[note#^block-id]]` parser-compatible and outside the ordinary
     authoring-policy lint lane
-15. adds a directory-level authoring policy so one folder does not mix
+21. adds a directory-level authoring policy so one folder does not mix
     explicit Obsidian note links and standard Markdown note links
-16. when a directory style mismatch is found, emits a precise rewrite for the
+22. when a directory style mismatch is found, emits a precise rewrite for the
     offending link instead of a style-only hint
 
 Diagnostic rendering is split deliberately:

@@ -8,6 +8,8 @@ use std::str::FromStr;
 use crate::link_graph::PageIndexNode;
 use crate::zhenfa_router::native::audit::FuzzySuggestion;
 
+use super::episteme::EpistemeLoadReport;
+
 /// Standard property drawer attribute keys (Blueprint v2.0).
 pub(super) mod attrs {
     /// Explicit node identifier - takes precedence over `structural_path`.
@@ -70,6 +72,9 @@ pub struct WendaoSemanticCheckArgs {
     /// Default is 0.65. Lower values will suggest more matches, higher values will be more strict.
     #[serde(default)]
     pub fuzzy_confidence_threshold: Option<f32>,
+    /// Optional episteme manifest path loaded by `wendao audit --load`.
+    #[serde(default)]
+    pub episteme_load: Option<String>,
 }
 
 /// Types of semantic checks available.
@@ -111,6 +116,8 @@ pub struct SemanticCheckResult {
     pub summary: String,
     /// Per-document audit reports with health scores.
     pub file_reports: Vec<FileAuditReport>,
+    /// Loaded episteme manifest summary, when `--load` is used.
+    pub episteme: Option<EpistemeLoadReport>,
 }
 
 /// Per-document audit report with health score (Blueprint v2.2).

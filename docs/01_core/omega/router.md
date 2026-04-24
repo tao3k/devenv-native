@@ -24,7 +24,7 @@ metadata:
 
 1. [Overview](#overview)
 2. [OmniRouter](#omnirouter)
-3. [HybridSearch (Rust-Native)](#hybridsearch-rust-native)
+3. [Router Search Boundary](#router-search-boundary)
 4. [HiveRouter](#hiverouter)
 5. [SemanticRouter](#semanticrouter)
 6. [IntentSniffer](#intentsniffer)
@@ -54,51 +54,55 @@ User Query
 
 ### Flexible Context
 
-The router architecture is centered on `[[OmniRouter#CONCEPT]]` and relies on `[[HybridSearch#COMPONENT]]` with Rust-native fusion across `[[LanceDB#TOOL]]` and `[[Tantivy#TOOL]]`.
+The router architecture is centered on `[[OmniRouter#CONCEPT]]`. Current search
+semantics belong to the router and Wendao/DuckDB query plane. Lance-backed
+vector tables may provide storage-backed evidence, but they are not the owner
+of routing policy, keyword behavior, or result contracts.
 
 ### Components
 
-| Component        | Purpose                   | Location                   |
-| ---------------- | ------------------------- | -------------------------- |
-| `OmniRouter`     | Unified entry point       | `omni.core.router.main`    |
-| `HybridSearch`   | Rust-native hybrid search | `omni.core.router.hybrid`  |
-| `HiveRouter`     | Decision logic            | `omni.core.router.hive`    |
-| `SemanticRouter` | Vector-based matching     | `omni.core.router.router`  |
-| `IntentSniffer`  | Context detection         | `omni.core.router.sniffer` |
-| `SkillIndexer`   | Index building            | `omni.core.router.indexer` |
+| Component        | Purpose               | Location                   |
+| ---------------- | --------------------- | -------------------------- |
+| `OmniRouter`     | Unified entry point   | `omni.core.router.main`    |
+| `HybridSearch`   | Hybrid routing facade | `omni.core.router.hybrid`  |
+| `HiveRouter`     | Decision logic        | `omni.core.router.hive`    |
+| `SemanticRouter` | Vector-based matching | `omni.core.router.router`  |
+| `IntentSniffer`  | Context detection     | `omni.core.router.sniffer` |
+| `SkillIndexer`   | Index building        | `omni.core.router.indexer` |
 
-### Rust-Native Hybrid Search
+### Search Ownership Boundary
 
-The `HybridSearch` component is now **100% Rust-native** using `xiuxian-vector`:
+The old vector-crate-owned hybrid search model is retired. The active boundary
+is:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    Rust: xiuxian-vector                         │
+│              Router / Wendao Query Ownership                 │
 ├─────────────────────────────────────────────────────────────┤
 │  ┌─────────────────┐    ┌─────────────────┐                 │
-│  │  Vector Search  │    │  Keyword Rescue │                 │
-│  │   (LanceDB)     │    │   (Tantivy)     │                 │
+│  │  DuckDB / SQL   │    │  Router Policy  │                 │
+│  │  query plane    │    │  + reranking    │                 │
 │  └────────┬────────┘    └────────┬────────┘                 │
 │           │                      │                          │
 │           └──────────┬───────────┘                          │
 │                      ▼                                      │
 │           ┌─────────────────────┐                           │
-│           │  Score Fusion       │                           │
-│           │  (0.4*vec + 0.6*kw) │                           │
+│           │ Result Contracts    │                           │
+│           │ owned by router     │                           │
 │           └─────────────────────┘                           │
 └─────────────────────────────────────────────────────────────┘
                            │
                            ▼
-                    Python: HybridSearch
-                    (thin wrapper)
+              Lance vector-store facade
+              (storage evidence only)
 ```
 
-**Benefits:**
+**Boundary rules:**
 
-- Zero serialization overhead (no Python↔Rust data copying)
-- Atomic scoring (vector + keyword in single operation)
-- 10-100x faster than Python-based hybrid search
-- Consistent behavior between CLI and external tool runtimes
+- Search and routing semantics live in the owning router or Wendao query layer.
+- Lance-backed vector tables are storage inputs behind explicit facades.
+- Result schemas and routing contracts must not be reintroduced into the
+  retiring vector-table shell.
 
 ### Search at scale: data + mechanisms (no per-skill hardcoding)
 
@@ -107,8 +111,10 @@ With many skills (hundreds or 10k+), relevance is achieved by **data quality** a
 **Pipeline (order):**
 
 1. **Query normalization** (optional) — `router.normalize.typos` in settings; URL → short token. Extend typos in config, not in code.
-2. **Agentic hybrid search** — Rust: vector (LanceDB) + keyword (Tantivy) RRF fusion, intent (exact / hybrid), optional category_filter.
-3. **Intent-overlap boost** — Query terms in `router.search.intent_vocab` (or built-in) are matched against each result’s `routing_keywords` / `intents`; higher overlap → score boost. Fully data-driven (no skill names in code).
+2. **Query-plane retrieval** — Wendao/DuckDB-owned retrieval and router-owned
+   policy combine structured filters, lexical signals, and optional
+   storage-backed semantic evidence.
+3. **Intent-overlap boost** — Query terms in `router.search.intent_vocab` (or built-in) are matched against each result's `routing_keywords` / `intents`; higher overlap -> score boost. Fully data-driven (no skill names in code).
 4. **Relationship rerank** — Graph built at index time from `routing_keywords` overlap (Jaccard); tools related to top results get a small boost. Graph is in `skill_relationships.json`; no hand-curated links.
 5. **Confidence calibration** — Profile-based thresholds and attribute overlap for medium→high.
 
@@ -127,7 +133,11 @@ The router index reflects a **two-level hierarchy** plus references:
 | **Skill → tools**     | One skill has many tools (commands)                        | Each row has `skill_name`; tool id is `skill_name.command_name`.       |
 | **Tool → references** | A tool can reference one or more docs in `references/*.md` | `skill_tools_refers` on each tool row (from front matter `for_tools`). |
 
-- **Parsing:** Rust scanner (`xiuxian-skills`) reads `SKILL.md` and `references/*.md`. In each reference file, front matter `for_tools: [skill.command_a, ...]` defines which tools that reference applies to. The scanner fills `skill_tools_refers` on each `ToolRecord`.
+- **Parsing:** The parser-owned SKILL.md contract reads `SKILL.md` metadata and
+  reference frontmatter. In each reference file, front matter
+  `for_tools: [skill.command_a, ...]` defines which tools that reference
+  applies to. Runtime indexers consume the parsed contract instead of a
+  standalone skills crate.
 - **Index:** When skills are reindexed (Rust `index_skill_tools_dual`), each row in the skills table has `skill_name`, `tool_name`, `routing_keywords`, `intents`, and `skill_tools_refers`. So the same-skill and tool–reference structure is stored in the table.
 - **Relationship graph:** After reindex, the relationship graph (`skill_relationships.json`) is built from the table and uses:
   - **Keyword overlap** (Jaccard on `routing_keywords`) — similar intents.
@@ -152,7 +162,7 @@ The unified entry point for all routing operations.
 OmniRouter
     │
     ├── _indexer  → SkillIndexer (Memory)
-    ├── _hybrid   → HybridSearch (Rust-Native)
+    ├── _hybrid   → HybridSearch (query-plane facade)
     ├── _hive     → HiveRouter (Decision Logic)
     └── _sniffer  → IntentSniffer (Context)
 ```
@@ -170,7 +180,7 @@ await router.initialize(skills)
 # Route a query
 result = await router.route("commit git changes")
 
-# Hybrid search (Rust-native)
+# Hybrid search through the owning query-plane facade
 results = await router.route_hybrid("git commit", limit=5, threshold=0.4)
 
 # Suggest skills based on context
@@ -179,12 +189,12 @@ skills = await router.suggest_skills("/project/path")
 
 ### Properties
 
-| Property  | Type            | Description               |
-| --------- | --------------- | ------------------------- |
-| `indexer` | `SkillIndexer`  | Vector index manager      |
-| `hybrid`  | `HybridSearch`  | Rust-native hybrid search |
-| `hive`    | `HiveRouter`    | Decision logic            |
-| `sniffer` | `IntentSniffer` | Context detection         |
+| Property  | Type            | Description           |
+| --------- | --------------- | --------------------- |
+| `indexer` | `SkillIndexer`  | Vector index manager  |
+| `hybrid`  | `HybridSearch`  | Hybrid routing facade |
+| `hive`    | `HiveRouter`    | Decision logic        |
+| `sniffer` | `IntentSniffer` | Context detection     |
 
 ### Runtime Configuration
 
@@ -246,98 +256,52 @@ path = write_router_search_json_schema()
 
 **When to use hybrid vs keyword-only**
 
-| Entry point                        | Retrieval                     | Reason                                                                                                       |
-| ---------------------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| **`omni route test <query>`**      | **Hybrid** (vector + keyword) | User query is natural language; we need both semantic (description) and exact trigger (routing_keywords).    |
-| **Skill discovery / tool routing** | **Hybrid**                    | Same: natural language intent → match tools by description and keywords.                                     |
-| **Keyword-only**                   | Not used for route test       | Would apply only to a hypothetical “search by exact tokens only” API; today all routing goes through hybrid. |
+| Entry point                        | Retrieval                      | Reason                                                                                                      |
+| ---------------------------------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------- |
+| **`omni route test <query>`**      | **Query-plane hybrid routing** | User query is natural language; the router needs both semantic evidence and exact trigger-style attributes. |
+| **Skill discovery / tool routing** | **Query-plane hybrid routing** | Natural language intent must be matched against tool descriptions, keywords, and governed metadata.         |
+| **Keyword-only**                   | Not the route-test default     | Exact-token APIs must stay explicit rather than becoming hidden router behavior.                            |
 
 **End-to-end flow for `omni route test "帮我研究一下 https://..."`**
 
 1. **Query** → optional **LLM translation** (non-English → English). Result is the **effective query** used for both branches.
-2. **Vector branch**: embed effective query → search **skills** table by vector similarity (description semantics).
-3. **Keyword branch**: effective query → Tantivy BM25 on fields `tool_name`, `routing_keywords`, `intents`, `description` (boosts favor keywords/intents).
-4. **Fusion**: RRF combines vector and keyword results; confidence/rerank applied.
-5. **Table**: Routing reads from the **skills** table in `skills.lance` (`.cache/xiuxian-vector/skills.lance`). This table **must be populated** by `omni sync` (or `omni reindex`) from `assets/skills`. If the skills table is empty or stale, skills like `researcher` will not appear in results. The separate `router.lance` store is reserved for score-only data (no tool replication); see [Skills and Router Databases](../reference/skills-and-router-databases.md).
+2. **Semantic evidence**: the owning router may query storage-backed embeddings
+   through a facade, but the facade does not define routing policy.
+3. **Lexical and metadata evidence**: the owning query layer evaluates exact
+   names, routing keywords, intents, descriptions, and configured filters.
+4. **Fusion**: the router combines evidence, confidence, and rerank signals
+   into its own result contract.
+5. **Storage**: table paths and cache locations are implementation details of
+   the owning router or Wendao layer. Do not couple routing correctness to a
+   vector-crate-local cache path.
 
 **Why a skill might be missing from top results**
 
-- **Skills table not built or stale**: Run `omni sync` so that `skills.lance` is indexed from the current `assets/skills` (including researcher).
+- **Index or manifest not built or stale**: Run the owning sync/reindex command
+  for the router or Wendao layer so current skill metadata is available.
 - **Translation failed or skipped**: If the effective query stays non-English, the keyword index (English-only) won’t match. Check logs for “Using translated query” / “Effective query”; ensure LLM is configured for translation.
 - **Keyword match weak**: After translation, the effective query must contain terms that appear in the skill’s `routing_keywords` (e.g. “research”, “analyze”) so the keyword branch can rank it.
 
-## HybridSearch (Rust-Native)
+## Router Search Boundary
 
-**Location**: `packages/python/core/src/omni/core/router/hybrid_search.py`
-
-The **Rust-native hybrid search engine** that delegates all heavy computation to `xiuxian-vector`:
+The previous vector-owned tool-search surface is retired. Search semantics now
+belong to Wendao/DuckDB-owned query layers; Lance-backed vector code is only a
+storage-format boundary.
 
 ### Architecture
 
-```python
-class HybridSearch:
-    """Rust-native hybrid search (thin Python shell).
-
-    All ranking and confidence logic is in Rust:
-    - Vector similarity (LanceDB)
-    - Keyword rescue (Tantivy BM25)
-    - Weighted RRF score fusion
-    - Confidence/final-score calibration
-    """
-
-    def __init__(self):
-        self._store = get_vector_store()  # Rust xiuxian-vector
-
-    async def search(self, query: str, limit: int = 5, min_score: float = 0.0):
-        # 1. Generate embedding (Python)
-        # 2. Call Rust search_tools (vector + keyword rescue)
-        # 3. Return formatted results (Python)
-```
-
-### Rust API
-
-The actual search is performed by `xiuxian-vector`'s `search_tools`:
-
-```rust
-// Rust: xiuxian-vector/src/skill.rs
-pub async fn search_tools(
-    &self,
-    table_name: &str,
-    query_vector: &[f32],
-    query_text: Option<&str>,  // Triggers keyword rescue
-    limit: usize,
-    threshold: f32,
-) -> Result<Vec<ToolSearchResult>>
-```
-
-### Usage
-
-```python
-search = HybridSearch()
-
-# Simple search
-results = await search.search("git commit", limit=5)
-
-# Results are dicts with:
-# {
-#     "id": "git.commit",
-#     "content": "Commit changes to repository",
-#     "score": 0.85,
-#     "skill_name": "git",
-#     "command": "commit",
-#     "file_path": "git/scripts/commit.py",
-#     "routing_keywords": ["commit", "git", "vcs"],
-# }
-```
+Current router result contracts must be owned by their routing crate
+(`xiuxian-daochang` or Wendao), not by `xiuxian-vector`.
 
 ### Weights (Fixed)
 
-| Component | Weight | Description                 |
-| --------- | ------ | --------------------------- |
-| Semantic  | 0.4    | Vector similarity score     |
-| Keyword   | 0.6    | BM25 keyword match + rescue |
+| Component | Weight | Description                         |
+| --------- | ------ | ----------------------------------- |
+| Semantic  | 0.4    | Storage-backed semantic evidence    |
+| Lexical   | 0.6    | Exact keyword and metadata evidence |
 
-Weights are **fixed** in the Rust implementation for performance.
+Weights are governed by the owning query/routing layer. Storage facades do not
+define these semantics.
 
 ### Per-field search algorithm
 
@@ -345,23 +309,23 @@ Each indexed value has a single, well-defined search algorithm. This avoids ambi
 
 | Field                | Search algorithm                      | Purpose                                                                                                                                  |
 | -------------------- | ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| **description**      | **Vector (embedding)**                | Semantic match: "help me analyze this repo" → tools that describe repository analysis. Used for LLM-facing "what this tool does."        |
-| **routing_keywords** | **Keyword (BM25)**                    | Exact/phrase match (English): "git commit", "research", "analyze_repo". Index is English-only; non-English queries are translated first. |
-| **intents**          | **Keyword (BM25)** with higher boost  | Intent phrases and one-liners; same token match as keywords but weighted more in Tantivy.                                                |
-| **tool_name**        | **Keyword (BM25)** with highest boost | Exact tool identity (e.g. `researcher.run_research_graph`).                                                                              |
+| **description**      | **Semantic evidence**                 | Semantic match: "help me analyze this repo" -> tools that describe repository analysis. Used for LLM-facing "what this tool does."       |
+| **routing_keywords** | **Lexical evidence**                  | Exact/phrase match (English): "git commit", "research", "analyze_repo". Index is English-only; non-English queries are translated first. |
+| **intents**          | **Lexical evidence with policy bias** | Intent phrases and one-liners; same token match as keywords but weighted more by the owning routing policy.                              |
+| **tool_name**        | **Exact identity evidence**           | Exact tool identity (e.g. `researcher.run_research_graph`).                                                                              |
 
 #### routing_keywords vs intents (and why intents can be longer)
 
-|             | **routing_keywords**                                                                       | **intents**                                                                                                                            |
-| ----------- | ------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------- |
-| **Shape**   | Short tokens: single words or 2–3 word phrases ("research", "analyze_repo", "github url"). | **Longer phrases**: one-liners or full sentences that describe how users express the intent.                                           |
-| **Purpose** | Trigger-style terms for BM25; dense, easy to match.                                        | Natural-language intent descriptions; more surface for query terms to match, with **higher boost** (4× in Tantivy vs 3× for keywords). |
-| **Example** | `"research"`, `"analyze"`, `"url"`, `"github url"`                                         | `"Help me research or analyze a repository from a GitHub URL"`, `"I want to do deep research on a codebase"`                           |
-| **Match**   | Query terms matched against keyword list (substring/token overlap).                        | Same: query terms matched against intent text. Longer intents = more tokens = more chances to match user phrasing.                     |
+|             | **routing_keywords**                                                                       | **intents**                                                                                                                   |
+| ----------- | ------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| **Shape**   | Short tokens: single words or 2–3 word phrases ("research", "analyze_repo", "github url"). | **Longer phrases**: one-liners or full sentences that describe how users express the intent.                                  |
+| **Purpose** | Trigger-style terms for lexical search; dense, easy to match.                              | Natural-language intent descriptions; more surface for query terms to match, with higher policy weight than compact keywords. |
+| **Example** | `"research"`, `"analyze"`, `"url"`, `"github url"`                                         | `"Help me research or analyze a repository from a GitHub URL"`, `"I want to do deep research on a codebase"`                  |
+| **Match**   | Query terms matched against keyword list (substring/token overlap).                        | Same: query terms matched against intent text. Longer intents = more tokens = more chances to match user phrasing.            |
 
-So: **routing_keywords** = compact trigger set; **intents** = longer, user-phrasing-style sentences. Both go into keyword search; intents get a higher field boost. Prefer **longer intents** so that natural user queries (e.g. "help me to analyze/research this github repo") match intent text well.
+So: **routing_keywords** = compact trigger set; **intents** = longer, user-phrasing-style sentences. Both feed lexical evidence; intents can receive a higher policy weight. Prefer **longer intents** so that natural user queries (e.g. "help me to analyze/research this github repo") match intent text well.
 
-So: **description → vector search**; **routing_keywords / intents / tool_name → keyword search**. Fusion (RRF) combines the two streams. **All SKILL.md content (description, routing_keywords, intents) must be in English.** Non-English user queries are translated to English by the router translation layer before hybrid search so that keyword matching works; see [Query translation (non-English → English)](#query-translation-non-english--english).
+So: **description -> semantic evidence**; **routing_keywords / intents / tool_name -> lexical evidence**. The owning router combines the streams. **All SKILL.md content (description, routing_keywords, intents) must be in English.** Non-English user queries are translated to English by the router translation layer before hybrid search so that lexical matching works; see [Query translation (non-English -> English)](#query-translation-non-english--english).
 
 ## Hard Constraints
 
@@ -371,46 +335,60 @@ So: **description → vector search**; **routing_keywords / intents / tool_name 
 > 2. Skill metadata must use `routing_keywords` and `intents`; legacy `keywords` is disallowed.
 > 3. Routing behavior should be controlled by config and indexed data, not per-skill hardcoded logic.
 
-### Field split: keyword vs vector
+### Field split: lexical vs semantic
 
-Hybrid search splits responsibilities by field so that both exact trigger terms and semantic description are matched:
+Hybrid search splits responsibilities by field so that both exact trigger terms
+and semantic descriptions are matched:
 
-| Branch                 | Primary fields                             | Notes                                                                                                                                                             |
-| ---------------------- | ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Keyword (Tantivy)**  | `routing_keywords`, `intents`, `tool_name` | BM25 retrieval; QueryParser field boosts: tool_name 5×, intents 4×, **keywords 3×**, description 1×. Prioritizes routing keywords and intent phrases.             |
-| **Vector (embedding)** | **description** (and intents)              | Only "COMMAND + DESCRIPTION + INTENTS" are used to generate embeddings; KEYWORDS are not vectorized, so the vector side matches description and intent semantics. |
+| Branch                | Primary fields                             | Notes                                                                                                                             |
+| --------------------- | ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
+| **Lexical evidence**  | `routing_keywords`, `intents`, `tool_name` | Prioritizes exact tool identity, routing keywords, and intent phrases.                                                            |
+| **Semantic evidence** | **description** (and intents)              | Embedding-backed evidence should come through a storage facade; storage does not own routing semantics or final result contracts. |
 
 Resulting behavior:
 
-- Queries like **"git commit"**, **"search regex"** → matched mainly by the **keyword branch** on `routing_keywords`.
-- Queries like **"save my changes to the repo"**, **"find text in code"** → matched mainly by the **vector branch** on description semantics.
-- Both streams are fused with RRF, preserving keyword precision and description semantics for more accurate hybrid results.
+- Queries like **"git commit"**, **"search regex"** -> matched mainly by the
+  lexical branch on `routing_keywords`.
+- Queries like **"save my changes to the repo"**, **"find text in code"** ->
+  matched mainly by semantic evidence on description semantics.
+- The owning router fuses both streams, preserving lexical precision and
+  description semantics for more accurate hybrid results.
 
 Implementation notes:
 
-- **Indexing**: Python builds the text used for embedding as `COMMAND` + `DESCRIPTION` + `INTENTS` (no `KEYWORDS`). Rust Tantivy still indexes description, keywords, intents, etc.; the keywords field is filled from metadata `routing_keywords`.
-- **Retrieval**: The same query is used for query embedding (vector branch) and Tantivy parsing (keyword branch); fusion is done inside Rust.
+- **Indexing**: text used for embedding should emphasize `COMMAND`,
+  `DESCRIPTION`, and `INTENTS`; compact `routing_keywords` remain lexical
+  triggers.
+- **Retrieval**: the same effective query is used for semantic and lexical
+  evidence so the router can fuse comparable signals.
 
 ### Query translation (non-English → English)
 
-SKILL.md and all indexed fields are **English-only**. We do not know what language the user will use, so the pipeline uses a **common language (English)** for routing. This translation layer is **on by default**: when the query is not already English, it is translated via the LLM before hybrid search so that the keyword branch matches English `routing_keywords`.
+SKILL.md and all indexed fields are **English-only**. We do not know what language the user will use, so the pipeline uses a **common language (English)** for routing. This translation layer is **on by default**: when the query is not already English, it is translated via the LLM before hybrid search so that lexical evidence matches English `routing_keywords`.
 
 **Translation is done only via the LLM (large model).** The same layer also strengthens search (e.g. catalog enrichment); it is not an optional add-on but part of the default pipeline.
 
 - **Default**: Translation is **enabled by default** (`router.translation.enabled: true`). Set to `false` only if all queries are known to be English.
 - **Config**: `router.translation.model` (optional; else uses `inference.model`), `router.translation.fallback_to_original` (default `true`).
 - **Model**: Any LLM usable via LiteLLM (e.g. Pangu, MiniMax, or the default inference model). Set `router.translation.model` to a dedicated translation model if desired.
-- **Flow**: In `HybridSearch.search()`, if translation is enabled and the query is not already likely English, the query is sent to the LLM for translation; the English result is used for both embedding and keyword search.
+- **Flow**: In `HybridSearch.search()`, if translation is enabled and the query is not already likely English, the query is sent to the LLM for translation; the English result is used for both semantic and lexical evidence.
 - **Implementation**: `omni.core.router.translate.translate_query_to_english()`; uses the LLM provider from `xiuxian_foundation.services.llm.provider`; heuristic skips the call when the query is already mostly ASCII/English.
 - **Speed (fast path)**: Before calling the LLM, a **rule-based fallback** is tried. If the query matches a known pattern (e.g. “研究” or “分析” + URL), the effective English phrase is built immediately (e.g. “Help me research &lt;url&gt;”) and the LLM is **skipped**, saving roughly 10+ seconds per request. LLM is used only when no pattern matches.
 
 ### Confidence calibration
 
-Confidence levels (`high` / `medium` / `low`) are computed in Rust from the fused score and the active **confidence profile** (e.g. `balanced`: high_threshold=0.75, medium_threshold=0.50). In addition, **clear-winner promotion**: when the top result’s score is at least 0.15 above the second and above the medium threshold, the top result is promoted to `high` so that the single best-matching skill is clearly signaled (e.g. “help me research this repo” → researcher with high confidence). **Attribute-based stratification**: Confidence also uses the skill-command attributes stored in the vector DB (and exposed on each result payload). In Rust, `keyword_score` and `vector_score` are used so that strong keyword (routing_keywords/intents/category) matches can be promoted to high when score ≥ medium. In Python, after results are returned, query terms are matched against each result's `routing_keywords`, `intents`, and `category`; medium results with overlap strength ≥ 2 are promoted to high, so high/medium/low are explicit and data-driven.
+Confidence levels (`high` / `medium` / `low`) are computed from the fused score
+and the active **confidence profile** (e.g. `balanced`:
+high_threshold=0.75, medium_threshold=0.50). In addition,
+**clear-winner promotion** applies when the top result's score is sufficiently
+above the second and above the medium threshold. **Attribute-based
+stratification** can use skill-command attributes exposed on each result
+payload; query terms are matched against `routing_keywords`, `intents`, and
+`category` so high/medium/low remain explicit and data-driven.
 
 ### Catalog enrichment (diversify attribute values)
 
-Besides translating the **query**, the LLM layer can diversify **attribute values** at index time so that search is more precise. For example, `routing_keywords` from SKILL.md are expanded with synonyms and related terms suggested by the LLM; the merged list is what gets indexed, so the keyword branch matches more user phrasings.
+Besides translating the **query**, the LLM layer can diversify **attribute values** at index time so that search is more precise. For example, `routing_keywords` from SKILL.md are expanded with synonyms and related terms suggested by the LLM; the merged list is what gets indexed, so the lexical branch matches more user phrasings.
 
 - **Config**: `router.enrichment.enabled` (default `false`), `router.enrichment.expand_keywords` (default `true`), optional `router.enrichment.model`.
 - **Flow**: When indexing skills, for each command the indexer calls `enrich_routing_keywords(description, routing_keywords)`; the LLM returns additional English keywords/phrases; they are merged (deduped) with the original and written into the index. No change to SKILL.md on disk; enrichment is applied only at index build.
@@ -449,7 +427,7 @@ class HiveRouter:
 
     Routes through:
     1. Direct match (command name)
-    2. Semantic search (vector similarity)
+    2. Semantic evidence (embedding similarity)
     3. Fallback (LLM or error)
     """
 ```
@@ -468,7 +446,7 @@ Query: "commit the changes"
          ▼                         ▼
 ┌─────────────────────────┐ ┌─────────────────────────┐
 │ 2. Semantic Match?      │ │ 3. Fallback             │
-│ (vector similarity)     │ │ (LLM or error)          │
+│ (embedding evidence)    │ │ (LLM or error)          │
 └─────────────────────────┘ └─────────────────────────┘
          │ Yes                     │
          ▼                         │
@@ -483,14 +461,14 @@ Query: "commit the changes"
 
 **Location**: `packages/python/core/src/omni/core/router/router.py`
 
-The **Vector Search** layer using embeddings:
+The semantic evidence layer using embeddings:
 
 ```python
 class SemanticRouter:
     """Semantic routing using vector similarity.
 
     Uses:
-    - xiuxian-vector (Rust) for vector storage
+    - xiuxian-db-store / Lance vector-store facade for storage-backed evidence
     - xiuxian-embedding (Python) for query encoding
     """
 
@@ -582,7 +560,7 @@ class SkillIndexer:
     """Builds and manages the skill index.
 
     Uses:
-    - RustVectorStore for vector storage
+    - xiuxian-db-store / Lance vector-store facade for storage-backed evidence
     - Embedding service for query encoding
     """
 

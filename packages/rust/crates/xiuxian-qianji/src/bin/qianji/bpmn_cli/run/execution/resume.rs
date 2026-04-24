@@ -100,9 +100,49 @@ async fn run_bpmn_resume_like_command_with_runtime_env(
                 command.host_fixture_path.as_deref(),
                 command.event_fixture_path.as_deref(),
             )?;
-            let report = control_service
-                .resume_prepared_workflow(prepared, &host_context.host)
-                .await?;
+            let report = if command.external_host {
+                control_service
+                    .resume_prepared_workflow_until_host_boundary(
+                        prepared,
+                        &host_context.host,
+                        matches!(render_mode, ResumeLikeRenderMode::TaskComplete),
+                        |session, events| {
+                            if command.trace_stream {
+                                for line in render::render_bpmn_execution_trace_stream_lines(
+                                    session, events,
+                                ) {
+                                    println!("{line}");
+                                }
+                            }
+                        },
+                    )
+                    .await?
+            } else if command.trace_stream {
+                control_service
+                    .start_prepared_workflow_with_trace_observer(
+                        prepared,
+                        &host_context.host,
+                        |session, events| {
+                            for line in
+                                render::render_bpmn_execution_trace_stream_lines(session, events)
+                            {
+                                println!("{line}");
+                            }
+                        },
+                    )
+                    .await?
+            } else {
+                control_service
+                    .resume_prepared_workflow(prepared, &host_context.host)
+                    .await?
+            };
+            if command.trace_stream {
+                for line in
+                    render::render_bpmn_pending_host_work_stream_lines(&report.execution.session)
+                {
+                    println!("{line}");
+                }
+            }
 
             let render_context = BpmnExecutionRenderContext {
                 resolved_bpmn_path: report.resolved_bpmn_path.as_path(),

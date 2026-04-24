@@ -1,15 +1,8 @@
 //! Unit coverage for search-result IPC conversion helpers.
 
 use anyhow::{Result, anyhow};
-use arrow::array::{Float32Array, StringArray};
-use arrow_ipc::reader::StreamReader;
 use xiuxian_types::VectorSearchResult;
-use xiuxian_vector::skill::ToolSearchResult;
-use xiuxian_vector::test_support::{
-    keyword_boost, search_results_to_ipc, tool_search_results_to_ipc,
-};
-
-const _: fn() -> f32 = keyword_boost;
+use xiuxian_vector::test_support::search_results_to_ipc;
 
 #[test]
 fn test_search_results_to_ipc_empty() -> Result<()> {
@@ -81,68 +74,4 @@ fn test_search_results_to_ipc_invalid_projection() {
         panic!("invalid projection should fail")
     };
     assert!(error.contains("invalid ipc_projection"));
-}
-
-#[test]
-fn test_tool_search_results_to_ipc_empty() -> Result<()> {
-    let bytes = tool_search_results_to_ipc(&[]).map_err(|error| anyhow!(error))?;
-    assert!(!bytes.is_empty());
-    Ok(())
-}
-
-#[test]
-fn test_tool_search_results_to_ipc_one_row() -> Result<()> {
-    let result = ToolSearchResult {
-        name: "git.commit".to_string(),
-        description: "Commit changes".to_string(),
-        input_schema: serde_json::json!({"type": "object"}),
-        score: 0.85,
-        vector_score: Some(0.8),
-        keyword_score: Some(0.5),
-        skill_name: "git".to_string(),
-        tool_name: "commit".to_string(),
-        file_path: "skills/git/SKILL.md".to_string(),
-        routing_keywords: vec!["git".to_string(), "commit".to_string()],
-        intents: vec!["Save changes".to_string()],
-        category: "vcs".to_string(),
-        parameters: vec![],
-    };
-    let bytes = tool_search_results_to_ipc(&[result]).map_err(|error| anyhow!(error))?;
-    assert!(!bytes.is_empty());
-
-    let mut reader = StreamReader::try_new(std::io::Cursor::new(bytes), None)?;
-    let batch = reader
-        .next()
-        .ok_or_else(|| anyhow!("missing first record batch"))??;
-
-    let final_scores = batch
-        .column_by_name("final_score")
-        .ok_or_else(|| anyhow!("missing final_score column"))?
-        .as_any()
-        .downcast_ref::<Float32Array>()
-        .ok_or_else(|| anyhow!("final_score type mismatch"))?;
-    let confidences = batch
-        .column_by_name("confidence")
-        .ok_or_else(|| anyhow!("missing confidence column"))?
-        .as_any()
-        .downcast_ref::<StringArray>()
-        .ok_or_else(|| anyhow!("confidence type mismatch"))?;
-    let ranking_reasons = batch
-        .column_by_name("ranking_reason")
-        .ok_or_else(|| anyhow!("missing ranking_reason column"))?
-        .as_any()
-        .downcast_ref::<StringArray>()
-        .ok_or_else(|| anyhow!("ranking_reason type mismatch"))?;
-    let digests = batch
-        .column_by_name("input_schema_digest")
-        .ok_or_else(|| anyhow!("missing input_schema_digest column"))?
-        .as_any()
-        .downcast_ref::<StringArray>()
-        .ok_or_else(|| anyhow!("input_schema_digest type mismatch"))?;
-
-    assert!(final_scores.value(0) > 0.0);
-    assert!(matches!(confidences.value(0), "high" | "medium" | "low"));
-    assert!(ranking_reasons.value(0).contains("final="));
-    assert!(digests.value(0).starts_with("fnv1a64:"));
-    Ok(())
 }

@@ -6,7 +6,7 @@ use crate::search::service::core::maintenance::REPO_MAINTENANCE_SHUTDOWN_MESSAGE
 use crate::search::service::core::maintenance::tests::{make_prewarm_task, make_service};
 use tokio::sync::oneshot;
 use tokio::time::{Duration, timeout};
-use xiuxian_vector::VectorStoreError;
+use xiuxian_db_store::VectorStoreError;
 
 #[tokio::test]
 async fn stop_repo_maintenance_clears_waiters_and_aborts_worker() {

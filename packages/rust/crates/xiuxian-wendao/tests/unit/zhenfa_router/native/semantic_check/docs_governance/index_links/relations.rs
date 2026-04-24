@@ -146,6 +146,7 @@ fn run_audit_core_reports_missing_index_relation_links() {
         include_warnings: Some(true),
         source_paths: None,
         fuzzy_confidence_threshold: None,
+        episteme_load: None,
     };
     let (issues, _file_contents) = run_audit_core(&ctx, &args).or_panic("audit");
 
@@ -238,6 +239,7 @@ fn run_audit_core_reports_stale_index_relation_links() {
         include_warnings: Some(true),
         source_paths: None,
         fuzzy_confidence_threshold: None,
+        episteme_load: None,
     };
     let (issues, _file_contents) = run_audit_core(&ctx, &args).or_panic("audit");
 
@@ -281,6 +283,7 @@ fn run_audit_core_reports_missing_index_relations_block() {
         include_warnings: Some(true),
         source_paths: None,
         fuzzy_confidence_threshold: None,
+        episteme_load: None,
     };
     let (issues, _file_contents) = run_audit_core(&ctx, &args).or_panic("audit");
 

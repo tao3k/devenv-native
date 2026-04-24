@@ -1,4 +1,4 @@
-//! xiuxian-vector - High-Performance Embedded Vector Database using `LanceDB`
+//! Lance-backed vector-table storage shell for Xiuxian.
 
 #[cfg(feature = "vector-store")]
 use std::collections::HashMap;
@@ -58,32 +58,13 @@ pub use xiuxian_lance::{
     extract_string,
 };
 
-// ============================================================================
-// Re-exports from xiuxian-skills (Skills and Knowledge types)
-// ============================================================================
-
-pub use xiuxian_skills::skills::{
-    ResourceRecord, ResourceScanner, SkillMetadata as XiuxianSkillMetadata, SkillScanner,
-    ToolAnnotations, ToolRecord as XiuxianToolRecord, ToolRecord, ToolsScanner,
-};
-
-// ============================================================================
-// Module Declarations
-// ============================================================================
-
 pub use error::VectorStoreError;
 #[cfg(feature = "vector-store")]
-pub use keyword::{
-    HybridSearchResult, KEYWORD_WEIGHT, KeywordSearchBackend, RRF_K, SEMANTIC_WEIGHT, apply_rrf,
-    apply_weighted_rrf, distance_to_score, rrf_term, rrf_term_batch,
-};
-#[cfg(feature = "vector-store")]
 pub use ops::{
-    AgenticSearchConfig, ColumnarScanOptions, CompactionStats, FragmentInfo, IndexBuildProgress,
-    IndexStats, IndexStatus, IndexThresholds, MergeInsertStats, MigrateResult, MigrationItem,
-    QueryIntent, Recommendation, TableColumnAlteration, TableColumnType, TableHealthReport,
-    TableInfo, TableNewColumn, TableVersionInfo, XIUXIAN_SCHEMA_VERSION,
-    schema_version_from_schema, string_contains_mask,
+    ColumnarScanOptions, CompactionStats, FragmentInfo, IndexBuildProgress, IndexStats,
+    IndexStatus, IndexThresholds, MergeInsertStats, MigrateResult, MigrationItem, Recommendation,
+    TableColumnAlteration, TableColumnType, TableHealthReport, TableInfo, TableNewColumn,
+    TableVersionInfo, XIUXIAN_SCHEMA_VERSION, schema_version_from_schema, string_contains_mask,
 };
 pub use query_support::{
     RETRIEVAL_BEST_SECTION_COLUMN, RETRIEVAL_DOC_TYPE_COLUMN, RETRIEVAL_ID_COLUMN,
@@ -105,19 +86,10 @@ pub use search_engine::{
 #[cfg(feature = "vector-store")]
 pub use search_impl::json_to_lance_where;
 #[cfg(feature = "vector-store")]
-pub use skill::{ToolSearchOptions, ToolSearchRequest, ToolSearchResult};
-
-// ============================================================================
-// Module Declarations
-// ============================================================================
-
-#[cfg(feature = "vector-store")]
 pub mod batch;
 pub mod error;
 #[cfg(feature = "vector-store")]
 pub mod index;
-#[cfg(feature = "vector-store")]
-pub mod keyword;
 #[cfg(feature = "vector-store")]
 pub mod ops;
 /// Arrow-native retrieval batch helpers used by Wendao query-core adapters.
@@ -127,8 +99,6 @@ pub mod search;
 #[cfg(feature = "vector-store")]
 pub mod search_cache;
 pub mod search_engine;
-#[cfg(feature = "vector-store")]
-pub mod skill;
 #[cfg(feature = "vector-store")]
 pub mod test_support;
 
@@ -151,20 +121,16 @@ pub type QueryMetricsCell = Arc<(AtomicU64, AtomicU64)>; // (query_count, last_q
 #[cfg(feature = "vector-store")]
 pub type IndexProgressCallback = Arc<dyn Fn(crate::ops::IndexBuildProgress) + Send + Sync>;
 
-/// High-performance embedded vector database using `LanceDB`.
+/// Lance-backed vector-table storage shell.
 #[cfg(feature = "vector-store")]
 #[derive(Clone)]
 pub struct VectorStore {
     base_path: PathBuf,
     datasets: Arc<RwLock<DatasetCache>>,
     dimension: usize,
-    /// Active keyword backend strategy.
-    pub keyword_backend: KeywordSearchBackend,
-    /// Whether keyword search is enabled for hybrid retrieval.
-    pub keyword_search_enabled: bool,
     /// Optional index cache size in bytes. When set, datasets are opened via `DatasetBuilder`.
     pub index_cache_size_bytes: Option<usize>,
-    /// In-process per-table query metrics (`query_count`, `last_query_ms`). Wired when `agentic_search` runs.
+    /// In-process per-table query metrics (`query_count`, `last_query_ms`).
     pub(crate) query_metrics: Arc<StdRwLock<HashMap<String, QueryMetricsCell>>>,
     /// Optional callback for index build progress (Started/Done; Progress when Lance exposes API).
     pub(crate) index_progress_callback: Option<IndexProgressCallback>,
@@ -182,8 +148,6 @@ include!("ops/core.rs");
 include!("ops/writer_impl.rs");
 #[cfg(feature = "vector-store")]
 include!("ops/admin_impl.rs");
-#[cfg(feature = "vector-store")]
-include!("skill/ops_impl.rs");
 
 #[cfg(feature = "vector-store")]
 impl VectorStore {

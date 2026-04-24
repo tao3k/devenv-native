@@ -77,7 +77,7 @@ pub fn execute_column_mask(
 ) -> Result<WendaoRelation, WendaoQueryCoreError> {
     let mut rows = Vec::new();
     for batch in op.relation.batches() {
-        rows.extend(xiuxian_vector::retrieval_rows_from_record_batch(batch)?);
+        rows.extend(xiuxian_db_store::retrieval_rows_from_record_batch(batch)?);
     }
     let input_row_count = rows.len();
 
@@ -95,7 +95,7 @@ pub fn execute_column_mask(
         rows.truncate(limit);
     }
 
-    let batch = xiuxian_vector::retrieval_rows_to_record_batch(&rows)?;
+    let batch = xiuxian_db_store::retrieval_rows_to_record_batch(&rows)?;
     let relation = WendaoRelation::new(batch.schema(), vec![batch]);
     ctx.explain_sink.record(WendaoExplainEvent {
         operator_kind: WendaoOperatorKind::ColumnMask,

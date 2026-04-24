@@ -1,3 +1,4 @@
+use super::scoring::distance_to_score;
 use super::semantic_ignition::{QuantumSemanticIgnition, QuantumSemanticIgnitionFuture};
 #[cfg(feature = "julia")]
 use crate::analyzers::RepoIntelligenceError;
@@ -5,7 +6,7 @@ use crate::link_graph::models::{QuantumAnchorHit, QuantumSemanticSearchRequest};
 #[cfg(feature = "julia")]
 use arrow::record_batch::RecordBatch;
 use thiserror::Error;
-use xiuxian_db_store::{SearchOptions, VectorStore, VectorStoreError, distance_to_score};
+use xiuxian_db_store::{SearchOptions, VectorStore, VectorStoreError};
 use xiuxian_llm::embedding::openai_compat::embed_openai_compatible;
 #[cfg(feature = "julia")]
 use xiuxian_wendao_runtime::transport::{
@@ -14,7 +15,7 @@ use xiuxian_wendao_runtime::transport::{
 };
 
 /// Semantic ignition adapter backed by an OpenAI-compatible embeddings API plus
-/// the Rust vector store.
+/// the Lance vector-store facade.
 #[derive(Clone)]
 pub struct OpenAiCompatibleSemanticIgnition {
     store: VectorStore,
@@ -40,7 +41,7 @@ impl OpenAiCompatibleSemanticIgnition {
             store,
             table_name: table_name.into(),
             search_options: SearchOptions::default(),
-            backend_name: "openai-compatible+xiuxian-vector".to_string(),
+            backend_name: "openai-compatible+lance-vector-store".to_string(),
             embedding_client: reqwest::Client::new(),
             embedding_base_url: embedding_base_url.into(),
             embedding_model: None,

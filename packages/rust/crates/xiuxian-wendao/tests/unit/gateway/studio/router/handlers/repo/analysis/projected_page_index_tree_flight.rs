@@ -1,4 +1,4 @@
-use xiuxian_vector::{LanceArray, LanceStringArray};
+use xiuxian_db_store::{LanceArray, LanceStringArray};
 
 use crate::analyzers::{
     ProjectedPageIndexNode, ProjectedPageIndexTree, ProjectionPageKind,

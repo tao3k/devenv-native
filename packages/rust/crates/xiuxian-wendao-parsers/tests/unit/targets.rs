@@ -50,3 +50,47 @@ Body [Guide](docs/guide.md#intro) and [[docs/spec.md|Spec]].
     assert_eq!(targets[5].surface, "[Local](#local-section)");
     assert_eq!(targets[5].line_range, (7, 7));
 }
+
+#[test]
+fn extract_targets_keeps_dot_prefixed_markdown_paths() {
+    let markdown = r"
+[Dot](.data/internal.md#Stable Heading)
+[DotSlash](./.data/internal.md#Stable Heading)
+![Attachment](.cache/rendered.png)
+";
+
+    let targets = extract_targets(markdown);
+    assert_eq!(targets.len(), 3);
+
+    assert_eq!(targets[0].kind, MarkdownTargetOccurrenceKind::MarkdownLink);
+    assert_eq!(targets[0].target, ".data/internal.md#Stable Heading");
+    assert_eq!(
+        targets[0].surface,
+        "[Dot](.data/internal.md#Stable Heading)"
+    );
+
+    assert_eq!(targets[1].kind, MarkdownTargetOccurrenceKind::MarkdownLink);
+    assert_eq!(targets[1].target, "./.data/internal.md#Stable Heading");
+    assert_eq!(
+        targets[1].surface,
+        "[DotSlash](./.data/internal.md#Stable Heading)"
+    );
+
+    assert_eq!(targets[2].kind, MarkdownTargetOccurrenceKind::MarkdownImage);
+    assert_eq!(targets[2].target, ".cache/rendered.png");
+    assert_eq!(targets[2].surface, "![Attachment](.cache/rendered.png)");
+}
+
+#[test]
+fn extract_targets_skips_markdown_target_literals_inside_code() {
+    let markdown = concat!(
+        "`[Inline](.data/inline.md#Heading)`\n\n",
+        "```md\n",
+        "[Fence](.data/fence.md#Heading)\n",
+        "![Image](.cache/rendered.png)\n",
+        "```\n",
+    );
+
+    let targets = extract_targets(markdown);
+    assert!(targets.is_empty(), "{targets:#?}");
+}

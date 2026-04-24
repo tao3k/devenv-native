@@ -1,0 +1,24 @@
+id = "xiuxian.zhixing.agenda.view"
+
+[qianhuan]
+background = "$wendao://skills/agenda/SKILL.md"
+
+[tool_contract]
+category = "read"
+name = "agenda.view"
+description = """
+Review agenda entries.
+
+Args:
+    - limit: int - Maximum number of items to show.
+
+Examples:
+    Input:
+        { "limit": 5 }
+    Output:
+        "ok"
+"""
+
+[workflow]
+type = "native_dispatch"
+binding_id = "xiuxian.native.zhixing.view"

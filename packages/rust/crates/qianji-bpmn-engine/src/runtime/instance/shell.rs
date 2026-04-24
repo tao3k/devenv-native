@@ -29,6 +29,7 @@ pub(crate) fn create_instance_impl(
         variables: init.initial_variables,
         node_states: build_node_states(process),
         active_tokens: Vec::new(),
+        trace: Vec::new(),
         joins: Vec::new(),
         standard_loops: Vec::new(),
         sequential_multi_instances: Vec::new(),

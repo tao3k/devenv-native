@@ -1,0 +1,19 @@
+{
+  "annotations": {
+    "destructive": true,
+    "idempotent": false,
+    "openWorld": true,
+    "readOnly": false
+  },
+  "description": "Draft and add a new vow.\n\nArgs:\n    - title: str - The title of the task.\n\nExamples:\n    Input:\n        { \"title\": \"Ship loader\" }\n    Output:\n        \"done\"",
+  "flow_definition": "$wendao://skills/agenda/references/add/qianji.toml",
+  "binding_id": "xiuxian.native.zhixing.add",
+  "manifest_id": "xiuxian.zhixing.agenda.add",
+  "metadata": {
+    "category": "write"
+  },
+  "qianhuan_background": "$wendao://skills/agenda/SKILL.md",
+  "source_path": "agenda/references/add/qianji.toml",
+  "tool_name": "agenda.add",
+  "workflow_type": "qianji_flow"
+}

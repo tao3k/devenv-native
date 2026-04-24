@@ -2,7 +2,7 @@
 name = "xiuxian-vector"
 version.workspace = true
 edition.workspace = true
-description = "High-performance embedded vector database using LanceDB"
+description = "Lance-backed vector-table storage shell for Xiuxian"
 authors = ["CyberXiuXian Artisan workshop"]
 license = "Apache-2.0"
 publish = false
@@ -50,20 +50,10 @@ serde_json = { workspace = true }
 
 # Reuse our common types
 xiuxian-types = { path = "../xiuxian-types" }
-
-# Omni Scanner - Skills and Knowledge scanning
-xiuxian-skills = { path = "../xiuxian-skills" }
 xiuxian-testing = { path = "../xiuxian-testing" }
-
-# Multi-pattern string matching (O(n+m) for name-token boost)
-aho-corasick = { workspace = true }
-
-# Parallel fusion (P5: boost phase)
-rayon = { workspace = true }
 
 # Logging
 log = { workspace = true }
-num-traits = { workspace = true }
 
 [dev-dependencies]
 lance = { workspace = true }

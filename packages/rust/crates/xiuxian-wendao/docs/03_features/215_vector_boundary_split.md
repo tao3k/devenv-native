@@ -6,7 +6,7 @@
 
 1. lightweight Arrow/DataFusion substrate helpers used by bounded local
    analytics, parser-adjacent helper surfaces, and request-scoped SQL payloads
-2. Lance-backed vector-store ownership from `xiuxian-vector`
+2. Lance-backed vector-store access through `xiuxian-db-store`
 
 That boundary matters for downstream consumers such as `xiuxian-qianji`. Qianji
 uses non-vector Wendao surfaces such as link-graph core build/search, skill
@@ -44,9 +44,8 @@ validated:
 5. An extra `search-runtime`-only test pass exposed a separate feature-coherence
    cleanup between standalone `search-runtime` and studio-owned search DTOs.
    That follow-up is explicitly outside this bounded slice.
-6. `xiuxian-vector` is being reduced to a single Lance FTS-oriented keyword
-   path so the crate no longer needs to carry a second sparse-retrieval engine
-   inside the vector boundary.
+6. `xiuxian-vector` is being reduced to a Lance storage-format shell, while
+   active Wendao callers use `xiuxian-db-store` as the explicit storage facade.
 
 ## Target Boundary
 
@@ -54,8 +53,8 @@ The target package boundary is:
 
 1. a lightweight substrate crate owns generic Arrow `RecordBatch` aliases,
    request-scoped DataFusion helpers, and other non-Lance compute primitives
-2. `xiuxian-vector` owns Lance-backed vector retrieval and vector-store
-   persistence, including the remaining Lance FTS keyword retrieval path
+2. `xiuxian-db-store` owns the compatibility facade for Lance-backed
+   vector-store persistence while `xiuxian-vector` is retired behind it
 3. `xiuxian-wendao` exposes non-vector product surfaces without a mandatory
    vector-store dependency and gates vector-only behavior explicitly
 

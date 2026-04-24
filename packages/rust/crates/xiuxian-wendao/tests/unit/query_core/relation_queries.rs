@@ -113,7 +113,7 @@ async fn query_repo_code_relation_falls_back_to_repo_content_when_entity_lane_is
 
     assert_eq!(result.corpus, RetrievalCorpus::RepoContent);
     assert_eq!(result.relation.row_count(), 1);
-    let rows = xiuxian_vector::retrieval_rows_from_record_batch(&result.relation.batches()[0])
+    let rows = xiuxian_db_store::retrieval_rows_from_record_batch(&result.relation.batches()[0])
         .unwrap_or_else(|error| panic!("decode retrieval rows: {error}"));
     assert_eq!(rows[0].path, "src/BaseModelica.jl");
     assert_wendao_json_snapshot(

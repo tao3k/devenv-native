@@ -2,12 +2,20 @@ use super::link::{LinkIssueContext, TargetMetadata};
 use xiuxian_wendao_parsers::{MarkdownLintKind, MarkdownSyntaxLintCode};
 
 const SYNTHETIC_RULE_KEYS: &[&str] = &[
+    "missing_local_target",
+    "missing_local_fragment",
+    "local_target_outside_root",
+    "local_target_transient_dir",
     "directory_link_style_mismatch",
     "directory_link_style_ambiguous",
 ];
 
-pub(in crate::lint) fn markdown_lint_issue_codes() -> [MarkdownSyntaxLintCode; 7] {
+pub(in crate::lint) fn markdown_lint_issue_codes() -> [MarkdownSyntaxLintCode; 11] {
     [
+        MarkdownSyntaxLintCode::MissingFrontmatter,
+        MarkdownSyntaxLintCode::MissingFrontmatterTitle,
+        MarkdownSyntaxLintCode::MissingSkillFrontmatterName,
+        MarkdownSyntaxLintCode::MissingSkillFrontmatterMetadata,
         MarkdownSyntaxLintCode::UnclosedFrontmatter,
         MarkdownSyntaxLintCode::InvalidFrontmatterYaml,
         MarkdownSyntaxLintCode::UnclosedFence,
@@ -29,6 +37,12 @@ pub(in crate::lint) fn markdown_lint_rule_keys() -> Vec<&'static str> {
 
 pub(in crate::lint) fn code_string(code: MarkdownSyntaxLintCode) -> &'static str {
     match code {
+        MarkdownSyntaxLintCode::MissingFrontmatter => "missing_frontmatter",
+        MarkdownSyntaxLintCode::MissingFrontmatterTitle => "missing_frontmatter_title",
+        MarkdownSyntaxLintCode::MissingSkillFrontmatterName => "missing_skill_frontmatter_name",
+        MarkdownSyntaxLintCode::MissingSkillFrontmatterMetadata => {
+            "missing_skill_frontmatter_metadata"
+        }
         MarkdownSyntaxLintCode::UnclosedFrontmatter => "unclosed_frontmatter",
         MarkdownSyntaxLintCode::InvalidFrontmatterYaml => "invalid_frontmatter_yaml",
         MarkdownSyntaxLintCode::UnclosedFence => "unclosed_fence",

@@ -8,11 +8,26 @@ use xiuxian_wendao_client::MarkdownLintArgs;
 mod discovery;
 
 #[test]
-fn skips_default_generated_dirs() -> Result<()> {
+fn skips_default_transient_and_generated_dirs() -> Result<()> {
     let temp = TempDir::new()?;
     std::fs::create_dir_all(temp.path().join("docs"))?;
+    std::fs::create_dir_all(temp.path().join(".cache"))?;
+    std::fs::create_dir_all(temp.path().join(".data"))?;
+    std::fs::create_dir_all(temp.path().join(".run"))?;
+    std::fs::create_dir_all(temp.path().join(".config"))?;
+    std::fs::create_dir_all(temp.path().join(".bin"))?;
+    std::fs::create_dir_all(temp.path().join("node_modules"))?;
     std::fs::create_dir_all(temp.path().join("target"))?;
     std::fs::write(temp.path().join("docs/guide.md"), "# Guide\n")?;
+    std::fs::write(temp.path().join(".cache/generated.md"), "# Generated\n")?;
+    std::fs::write(temp.path().join(".data/generated.md"), "# Generated\n")?;
+    std::fs::write(temp.path().join(".run/generated.md"), "# Generated\n")?;
+    std::fs::write(temp.path().join(".config/generated.md"), "# Generated\n")?;
+    std::fs::write(temp.path().join(".bin/generated.md"), "# Generated\n")?;
+    std::fs::write(
+        temp.path().join("node_modules/generated.md"),
+        "# Generated\n",
+    )?;
     std::fs::write(temp.path().join("target/generated.md"), "# Generated\n")?;
 
     let files = discovery::collect_markdown_files(
@@ -35,6 +50,15 @@ fn keeps_relative_display_paths() {
     assert_eq!(
         discovery::display_path(path.as_path(), root.as_path()),
         "docs/guide.md"
+    );
+}
+
+#[test]
+fn identifies_first_transient_repo_dir_in_relative_paths() {
+    let path = PathBuf::from("docs/.data/generated/note.md");
+    assert_eq!(
+        discovery::first_transient_repo_dir(path.as_path()),
+        Some(".data")
     );
 }
 

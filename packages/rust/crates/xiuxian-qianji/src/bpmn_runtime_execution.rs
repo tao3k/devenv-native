@@ -4,8 +4,9 @@ use super::driver::{
 };
 use super::error::BpmnOrchestrationError;
 use super::scheduler::QianjiBpmnExecutionScheduler;
+use super::session::QianjiBpmnSession;
 use crate::scheduler::SchedulerAgentIdentity;
-use qianji_bpmn_engine::{BpmnHostBridge, BpmnPackage};
+use qianji_bpmn_engine::{BpmnExecutionTraceEvent, BpmnHostBridge, BpmnPackage};
 use std::sync::Arc;
 
 /// Default lease TTL used when the host runtime enables scheduler-owned BPMN
@@ -91,6 +92,67 @@ impl QianjiBpmnExecutionFacade {
             Some(scheduler) => scheduler.run(request, host).await,
             None => self.driver().run_until_stable(request, host).await,
         }
+    }
+
+    /// Runs the BPMN request through the selected host-owned execution path
+    /// while reporting newly produced trace events after each runtime step.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`BpmnOrchestrationError`] when the selected driver or
+    /// scheduler-owned lifecycle cannot create, resume, or advance the BPMN
+    /// session, or when checkpoint persistence fails.
+    pub async fn run_with_trace_observer<H, F>(
+        &self,
+        request: &QianjiBpmnExecutionRequest,
+        host: &H,
+        trace_observer: F,
+    ) -> Result<QianjiBpmnExecutionReport, BpmnOrchestrationError>
+    where
+        H: BpmnHostBridge,
+        F: FnMut(&QianjiBpmnSession, &[BpmnExecutionTraceEvent]),
+    {
+        match self.build_scheduler()? {
+            Some(scheduler) => {
+                scheduler
+                    .run_with_trace_observer(request, host, trace_observer)
+                    .await
+            }
+            None => {
+                self.driver()
+                    .run_until_stable_with_trace_observer(request, host, trace_observer)
+                    .await
+            }
+        }
+    }
+
+    /// Runs the BPMN request until the next host boundary or another stable
+    /// outcome while reporting newly produced trace events.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`BpmnOrchestrationError`] when the direct driver cannot create,
+    /// resume, or advance the BPMN session, or when checkpoint persistence
+    /// fails.
+    pub async fn run_until_host_boundary_with_trace_observer<H, F>(
+        &self,
+        request: &QianjiBpmnExecutionRequest,
+        host: &H,
+        resolve_initial_host_work: bool,
+        trace_observer: F,
+    ) -> Result<QianjiBpmnExecutionReport, BpmnOrchestrationError>
+    where
+        H: BpmnHostBridge,
+        F: FnMut(&QianjiBpmnSession, &[BpmnExecutionTraceEvent]),
+    {
+        self.driver()
+            .run_until_host_boundary_with_trace_observer(
+                request,
+                host,
+                resolve_initial_host_work,
+                trace_observer,
+            )
+            .await
     }
 
     fn driver(&self) -> QianjiBpmnExecutionDriver {

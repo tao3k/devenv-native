@@ -1,0 +1,47 @@
+{
+  "manifest_uri": {
+    "candidate_paths": ["references/add/qianji.toml"],
+    "canonical_uri": "wendao://skills/agenda/references/add/qianji.toml",
+    "entity_name": "references/add/qianji.toml",
+    "is_skill": true,
+    "skill_name": "agenda"
+  },
+  "manifest_uris": ["wendao://skills/agenda/references/add/qianji.toml"],
+  "resolved_paths": {
+    "manifest": "agenda/references/add/qianji.toml",
+    "skill_doc": "agenda/SKILL.md"
+  },
+  "scan": {
+    "discovered_paths": ["agenda/references/add/qianji.toml"],
+    "issues": [],
+    "manifests": [
+      {
+        "annotations": {
+          "destructive": true,
+          "idempotent": false,
+          "openWorld": true,
+          "readOnly": false
+        },
+        "description": "Draft and add a new vow.\n\nArgs:\n    - title: str - The title of the task.\n\nExamples:\n    Input:\n        { \"title\": \"Ship loader\" }\n    Output:\n        \"done\"",
+        "flow_definition": "$wendao://skills/agenda/references/add/qianji.toml",
+        "binding_id": "xiuxian.native.zhixing.add",
+        "manifest_id": "xiuxian.zhixing.agenda.add",
+        "metadata": {
+          "category": "write"
+        },
+        "qianhuan_background": "$wendao://skills/agenda/SKILL.md",
+        "source_path": "agenda/references/add/qianji.toml",
+        "tool_name": "agenda.add",
+        "workflow_type": "qianji_flow"
+      }
+    ]
+  },
+  "skill_doc_preview": "# Agenda\n\nInternal agenda skill background.\n",
+  "skill_doc_uri": {
+    "candidate_paths": ["SKILL.md"],
+    "canonical_uri": "wendao://skills/agenda/SKILL.md",
+    "entity_name": "SKILL.md",
+    "is_skill": true,
+    "skill_name": "agenda"
+  }
+}

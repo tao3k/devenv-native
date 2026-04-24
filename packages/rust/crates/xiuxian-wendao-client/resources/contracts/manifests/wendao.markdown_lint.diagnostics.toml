@@ -40,6 +40,30 @@ detail_strategy = "utf8_error_message"
 expected = "Encode the file as UTF-8 before linting it."
 
 [[rules]]
+code = "missing_frontmatter"
+problem = "Document-level YAML frontmatter is required."
+detail_strategy = "parser_message"
+expected = "Add a leading `--- ... ---` block with the document identity field required by this surface before the document body begins."
+
+[[rules]]
+code = "missing_frontmatter_title"
+problem = "Ordinary document frontmatter must include a non-empty `title`."
+detail_strategy = "parser_message"
+expected = "Set a non-empty top-level `title` field in the document frontmatter."
+
+[[rules]]
+code = "missing_skill_frontmatter_name"
+problem = "Skill-shaped document frontmatter must include a non-empty top-level `name`."
+detail_strategy = "parser_message"
+expected = "Set a non-empty top-level `name` field in the SKILL frontmatter."
+
+[[rules]]
+code = "missing_skill_frontmatter_metadata"
+problem = "Skill-shaped document frontmatter must contain a top-level `metadata` mapping."
+detail_strategy = "parser_message"
+expected = "Add a top-level `metadata:` mapping to the SKILL frontmatter."
+
+[[rules]]
 code = "unclosed_frontmatter"
 problem = "YAML frontmatter opens but never closes."
 detail_strategy = "parser_message"
@@ -91,6 +115,38 @@ detail = "This is legal Obsidian wikilink syntax, but repository authoring polic
 found_strategy = "link_literal"
 expected_strategy = "rewrite_wikilink_only"
 tip_strategy = "display_label_tip"
+
+[[rules]]
+code = "missing_local_target"
+problem_strategy = "dynamic_problem_text"
+detail_strategy = "dynamic_detail_text"
+found_strategy = "link_literal"
+expected_strategy = "dynamic_expected_text"
+tip_strategy = "dynamic_tip_text"
+
+[[rules]]
+code = "missing_local_fragment"
+problem_strategy = "dynamic_problem_text"
+detail_strategy = "dynamic_detail_text"
+found_strategy = "link_literal"
+expected_strategy = "dynamic_expected_text"
+tip_strategy = "dynamic_tip_text"
+
+[[rules]]
+code = "local_target_transient_dir"
+problem_strategy = "dynamic_problem_text"
+detail_strategy = "dynamic_detail_text"
+found_strategy = "link_literal"
+expected_strategy = "dynamic_expected_text"
+tip_strategy = "dynamic_tip_text"
+
+[[rules]]
+code = "local_target_outside_root"
+problem_strategy = "dynamic_problem_text"
+detail_strategy = "dynamic_detail_text"
+found_strategy = "link_literal"
+expected_strategy = "dynamic_expected_text"
+tip_strategy = "dynamic_tip_text"
 
 [[rules]]
 code = "directory_link_style_mismatch"

@@ -1,0 +1,25 @@
+id = "xiuxian.zhixing.agenda.add"
+
+[qianhuan]
+background = "$wendao://skills/agenda/SKILL.md"
+
+[tool_contract]
+category = "write"
+name = "agenda.add"
+description = """
+Draft and add a new vow.
+
+Args:
+    - title: str - The title of the task.
+
+Examples:
+    Input:
+        { "title": "Ship loader" }
+    Output:
+        "done"
+"""
+
+[workflow]
+type = "qianji_flow"
+binding_id = "xiuxian.native.zhixing.add"
+flow_definition = "$wendao://skills/agenda/references/add/qianji.toml"

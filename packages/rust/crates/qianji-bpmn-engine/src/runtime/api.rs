@@ -35,6 +35,9 @@ pub(crate) use crate::runtime_frontier_api::{
     BpmnFrontierExecutionProposal, BpmnFrontierExecutionStep, BpmnFrontierParallelJoinMerge,
     BpmnFrontierRuntimeAction, BpmnFrontierRuntimeBatch,
 };
+pub(crate) use crate::runtime_instance_api::{
+    BpmnExecutionTraceEvent, BpmnExecutionTraceEventKind,
+};
 pub(crate) use crate::runtime_join_api::JoinRuntimeState;
 pub(crate) use crate::runtime_token_api::TokenRecord;
 pub(crate) use crate::runtime_wait_api::{WaitKind, WaitRegistration};

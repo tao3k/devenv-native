@@ -5,7 +5,6 @@ uv run pytest packages/python/foundation/tests/ packages/python/core/tests/ -q -
 
 uv run pytest \
   scripts/test_active_cargo_subprocess_env_imports.py \
-  scripts/test_keyword_eval_script_imports.py \
   scripts/test_render_wendao_ppr_rollout_status.py \
   scripts/test_wendao_ppr_rollout_ci.py \
   scripts/test_gate_wendao_ppr_ci.py \

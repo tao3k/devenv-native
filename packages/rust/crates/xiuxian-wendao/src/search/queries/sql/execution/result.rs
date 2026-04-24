@@ -2,7 +2,7 @@ use arrow::array::{Array, BooleanArray, Float32Array, Float64Array, Int32Array, 
 use arrow::datatypes::DataType;
 use arrow::util::display::array_value_to_string;
 use serde_json::{Map, Number, Value};
-use xiuxian_vector::EngineRecordBatch;
+use xiuxian_db_store::EngineRecordBatch;
 pub use xiuxian_wendao_core::sql_query::{
     SqlBatchPayload, SqlColumnPayload, SqlQueryMetadata, SqlQueryPayload,
 };

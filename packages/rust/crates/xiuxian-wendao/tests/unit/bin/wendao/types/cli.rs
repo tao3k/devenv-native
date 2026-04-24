@@ -19,3 +19,15 @@ fn parses_get_page_index_command() {
     let cli = Cli::parse_from(["wendao", "get", "page-index"]);
     assert!(matches!(cli.command, Command::Client(_)));
 }
+
+#[test]
+fn parses_audit_load_episteme_command() {
+    let cli = Cli::parse_from(["wendao", "audit", "--load", "wendao-episteme", "docs"]);
+
+    let Command::Audit(args) = cli.command else {
+        panic!("expected audit command");
+    };
+
+    assert_eq!(args.target, "docs");
+    assert_eq!(args.load.as_deref(), Some("wendao-episteme"));
+}

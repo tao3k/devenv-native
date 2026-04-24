@@ -1,0 +1,14 @@
+{
+  "discovered_paths": ["agenda/references/add/qianji.toml"],
+  "issues": [],
+  "tool_names": ["agenda.add"],
+  "authority": {
+    "authorized_manifests": [
+      "wendao://skills/agenda/references/add/qianji.toml"
+    ],
+    "ghost_links": ["wendao://skills/agenda/references/missing/qianji.toml"],
+    "unauthorized_manifests": [
+      "wendao://skills/agenda/references/view/qianji.toml"
+    ]
+  }
+}

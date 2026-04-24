@@ -59,7 +59,6 @@ xiuxian-zhenfa = { path = "../xiuxian-zhenfa" }
 xiuxian-wendao = { path = "../xiuxian-wendao", features = ["zhenfa-router"] }
 xiuxian-config-core = { path = "../xiuxian-config-core" }
 xiuxian-logging = { path = "../xiuxian-logging" }
-xiuxian-skills = { path = "../xiuxian-skills" }
 xiuxian-window = { path = "../xiuxian-window" }
 xiuxian-tokenizer = { path = "../xiuxian-tokenizer" }
 xiuxian-zhixing = { path = "../xiuxian-zhixing" }

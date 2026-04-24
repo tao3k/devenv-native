@@ -2,7 +2,7 @@ use super::mounts::runtime_wendao_mounts;
 use crate::runtime_config::{resolve_process_env_path, resolve_process_project_root};
 use std::fs;
 use std::path::{Path, PathBuf};
-use xiuxian_wendao::skill_vfs::SkillVfsResolver;
+use xiuxian_wendao::SkillRuntimeResolver;
 use xiuxian_wendao_core::WendaoResourceUri;
 use xiuxian_wendao_runtime::artifacts::zhixing::embedded_resource_text_from_wendao_uri;
 use xiuxian_zhenfa::ZhenfaTransmuter;
@@ -49,14 +49,14 @@ fn resolve_wendao_uri_from_runtime_mounts(uri: &str) -> Option<String> {
     None
 }
 
-/// Resolve semantic resources through the shared Skill VFS loader.
+/// Resolve semantic resources through the shared skill runtime loader.
 fn resolve_wendao_uri_from_skill_loader(uri: &str) -> Option<String> {
     WendaoResourceUri::parse(uri).ok()?;
-    let roots = resolve_skill_vfs_roots();
+    let roots = resolve_skill_runtime_roots();
     if roots.is_empty() {
         return None;
     }
-    let resolver = SkillVfsResolver::from_roots(roots.as_slice()).ok()?;
+    let resolver = SkillRuntimeResolver::from_roots(roots.as_slice()).ok()?;
     resolver.read_utf8(uri).ok()
 }
 
@@ -82,7 +82,7 @@ fn resolve_wendao_uri_from_explicit_path(uri_or_path: &str) -> Option<String> {
     None
 }
 
-fn resolve_skill_vfs_roots() -> Vec<PathBuf> {
+fn resolve_skill_runtime_roots() -> Vec<PathBuf> {
     let project_root = resolve_process_project_root().unwrap_or_else(|| PathBuf::from("."));
     let mut roots = discover_crate_skill_roots(
         project_root

@@ -1,7 +1,7 @@
 ---
 type: knowledge
 title: "ADR-008: Declarative Skill Structure and Validation"
-status: "Accepted"
+status: "Superseded"
 date: "2026-02-28"
 category: "architecture"
 tags:
@@ -15,9 +15,16 @@ metadata:
 
 # ADR-008: Declarative Skill Structure and Validation
 
+Supersession note: the standalone skills crate described here has been retired.
+`xiuxian-wendao-parsers` now owns SKILL.md/frontmatter parsing and lint
+contracts, while Wendao owns runtime skill VFS inventory, internal alias
+contracts, and schema resources.
+
 ## 1. Context and Problem Statement
 
-The physical directory structure of an **Agent Skill** (e.g., `SKILL.md`, `scripts/`, `references/`) is currently defined by hardcoded `Default` implementations within the `xiuxian-skills` crate or scattered in legacy `settings.yaml` files.
+The physical directory structure of an **Agent Skill** (e.g., `SKILL.md`,
+`scripts/`, `references/`) was previously defined by hardcoded defaults in the
+retired skills crate or scattered in legacy `settings.yaml` files.
 
 This creates several issues:
 
@@ -27,19 +34,26 @@ This creates several issues:
 
 ## 2. Decision
 
-We will transition to a **Declarative Skill Structure** governed by a centralized TOML configuration. The `xiuxian-skills` utility will be refactored to become configuration-driven, acting as the primary validation gatekeeper for the system.
+We originally planned to transition to a **Declarative Skill Structure**
+governed by a centralized TOML configuration. The active architecture has since
+superseded that plan: parser-owned Markdown contracts validate SKILL.md
+frontmatter, and Wendao-owned runtime inventory consumes the parsed contract.
 
 ### 2.1 Centralized Configuration
 
-A new configuration file, `packages/rust/crates/xiuxian-skills/resources/config/skills.toml`, will serve as the "Constitution" for skill organization. It will define:
+A crate-local configuration file was proposed as the "Constitution" for skill
+organization. The current implementation does not keep that file in a
+standalone skills crate; active rules live in parser/Wendao-owned surfaces. The
+conceptual rule set was:
 
 - `required`: Files/Directories that MUST exist for a skill to be considered valid.
 - `default`: The canonical layout used when scaffolding a new skill.
 - `validation`: Semantic rules, such as prohibiting logic in `SKILL.md` or enforcing the `references/` hierarchy.
 
-### 2.2 Configuration-Driven `xiuxian-skills`
+### 2.2 Configuration-Driven Runtime
 
-The `SkillStructure` model in `xiuxian-skills` will be updated to support deserialization from this TOML. Hardcoded defaults will be removed.
+The current runtime should keep structural defaults in its owning crate rather
+than reintroducing a shared skills package.
 
 ### 2.3 Extensibility
 
@@ -78,10 +92,12 @@ When the `Wendao` indexer or the `Agent` boots up:
 To eliminate path ambiguity and ensure portability, all system-level "Constitutions" (like `skills.toml`) will be stored within the **internal `resources/` directory** of the managing crate.
 
 - **Standard Paths**:
-  - `packages/rust/crates/xiuxian-skills/resources/config/skills.toml`
-  - `packages/rust/crates/xiuxian-daochang/resources/config/xiuxian.toml`
+  - `packages/rust/crates/xiuxian-wendao/resources/...`
+  - `packages/rust/crates/xiuxian-daochang/resources/...`
 - **Mechanism**: The crate uses a direct, non-escaping `include_str!("resources/config/skills.toml")`.
-- **Portability**: This architecture makes the `xiuxian-skills` crate completely self-sufficient. It carries its own validation laws within its binary, requiring no external files to perform a baseline structural check.
+- **Portability**: This architecture keeps validation laws embedded in the
+  owning runtime crate, requiring no external files to perform a baseline
+  structural check.
 
 ## 4. Consequences
 
@@ -97,6 +113,6 @@ To eliminate path ambiguity and ensure portability, all system-level "Constituti
 
 ## 5. Implementation Plan
 
-1.  **Create `packages/rust/crates/xiuxian-skills/resources/config/skills.toml`** using the finalized structure.
-2.  **Refactor `xiuxian-skills`**: Update `structure.rs` to derive `serde::Deserialize` and implement the loading logic.
-3.  **Update validation entrypoints**: expose the scanner's validation mode through maintained crate/test surfaces instead of introducing a one-off wrapper command.
+1.  Keep SKILL.md parsing and lint entrypoints in `xiuxian-wendao-parsers`.
+2.  Keep runtime skill VFS inventory and schema resources in `xiuxian-wendao`.
+3.  Avoid introducing a replacement shared skills crate.

@@ -1,4 +1,4 @@
-use xiuxian_wendao_core::{WENDAO_URI_SCHEME, WendaoResourceUri};
+use xiuxian_wendao_core::WendaoResourceUri;
 
 #[test]
 fn parse_resource_uri_normalizes_canonical_shape() {
@@ -45,16 +45,13 @@ fn parse_resource_uri_rejects_missing_extension_and_traversal() {
 }
 
 #[test]
-fn parse_resource_uri_keeps_internal_skill_namespace() {
-    let Ok(parsed) = WendaoResourceUri::parse(
-        "wendao://skills-internal/daemon/references/session/dispatch.toml",
-    ) else {
-        panic!("internal URI should parse");
+fn parse_resource_uri_rejects_unknown_resource_kind() {
+    let error = match WendaoResourceUri::parse(
+        "wendao://unknown/daemon/references/session/dispatch.toml",
+    ) {
+        Ok(parsed) => panic!("unknown resource kind URI unexpectedly parsed: {parsed:?}"),
+        Err(error) => error,
     };
 
-    assert!(parsed.is_internal_skill());
-    assert_eq!(
-        parsed.canonical_uri(),
-        format!("{WENDAO_URI_SCHEME}://skills-internal/daemon/references/session/dispatch.toml")
-    );
+    assert!(error.to_string().contains("invalid wendao resource URI"));
 }

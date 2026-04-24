@@ -25,6 +25,7 @@ pub(super) fn handle(_cli: &Cli, args: &AuditArgs, index: Option<&LinkGraphIndex
         include_warnings: Some(true),
         source_paths: args.source.as_ref().map(|s| vec![s.clone()]),
         fuzzy_confidence_threshold: Some(args.threshold),
+        episteme_load: args.load.clone(),
     };
 
     let result = wendao_semantic_check(&ctx, check_args)

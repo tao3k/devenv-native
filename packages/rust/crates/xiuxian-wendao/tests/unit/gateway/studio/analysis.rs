@@ -163,7 +163,7 @@ fn make_analysis_fixture() -> AnalysisFixture {
 :OBSERVE: lang:rust scope:"src/gateway/studio/**" "fn compile() { $$$ }"
 :END:
 
-Reference [[docs/guide.md]] and [[internal_skills/writer/SKILL.md]].
+Reference [[docs/guide.md]] and [[skills/writer/SKILL.md]].
 
 ```rust
 fn compile() {}

@@ -85,7 +85,6 @@ mod tests {
             "xiuxian-tags",
             "xiuxian-edit",
             "xiuxian-vector",
-            "xiuxian-skills",
             "xiuxian-executor",
             "xiuxian-tui",
             "xiuxian-memory-engine",

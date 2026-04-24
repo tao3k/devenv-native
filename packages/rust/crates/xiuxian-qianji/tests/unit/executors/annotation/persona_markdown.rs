@@ -34,7 +34,7 @@ Behavior contract:
 "#;
 
     let profile = persona_profile_from_markdown(
-        "wendao://skills-internal/agenda-management/references/steward.md",
+        "wendao://skills/agenda-management/references/steward.md",
         markdown,
     );
 
@@ -61,6 +61,6 @@ Behavior contract:
     );
     assert_eq!(
         profile.metadata.get("source_uri"),
-        Some(&"wendao://skills-internal/agenda-management/references/steward.md".to_string())
+        Some(&"wendao://skills/agenda-management/references/steward.md".to_string())
     );
 }

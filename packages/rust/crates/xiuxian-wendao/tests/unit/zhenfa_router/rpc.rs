@@ -74,7 +74,7 @@ fn render_markdown_includes_hits() {
         retrieval_plan: None,
         semantic_ignition: Some(LinkGraphSemanticIgnitionTelemetry {
             backend: "openai_compatible".to_string(),
-            backend_name: Some("openai-compatible+xiuxian-vector".to_string()),
+            backend_name: Some("openai-compatible+lance-vector-store".to_string()),
             context_count: 1,
             error: None,
         }),
@@ -110,7 +110,7 @@ fn render_markdown_includes_hits() {
     assert!(rendered.contains("Wendao Search Results"));
     assert!(rendered.contains("Alpha Note"));
     assert!(rendered.contains("section: Design"));
-    assert!(rendered.contains("semantic_ignition: openai-compatible+xiuxian-vector"));
+    assert!(rendered.contains("semantic_ignition: openai-compatible+lance-vector-store"));
     assert!(rendered.contains("Quantum Contexts"));
 }
 

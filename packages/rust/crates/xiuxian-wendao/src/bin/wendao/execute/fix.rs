@@ -27,6 +27,7 @@ pub(super) fn handle(_cli: &Cli, args: &FixArgs, index: Option<&LinkGraphIndex>)
         include_warnings: Some(true),
         source_paths: Some(vec!["src".to_string()]),
         fuzzy_confidence_threshold: Some(args.confidence_threshold),
+        episteme_load: None,
     };
 
     let (issues, file_contents) = run_audit_core(&ctx, &check_args)

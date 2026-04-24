@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "xiuxian.router.route_test.v1.schema.json",
   "title": "Xiuxian Router Route Test Payload v1",
-  "description": "Contract for `omni route test --json` output. Driven by routing algorithm: Rust ToolSearchResult → tool_search.v1 (routing_keywords) → Python adds id, command, payload. Canonical snapshot is repository-managed under schema resources/snapshots. Doc: docs/reference/route-test-result-shape.md. Forbidden: keywords (use routing_keywords only).",
+  "description": "Contract for `omni route test --json` output. Owned by xiuxian-daochang routing diagnostics. Canonical snapshot is repository-managed under schema resources/snapshots. Doc: docs/reference/route-test-result-shape.md. Forbidden: keywords (use routing_keywords only).",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -50,7 +50,7 @@
     "route_result_item": {
       "type": "object",
       "additionalProperties": false,
-      "description": "One tool result. Field set aligned with xiuxian.vector.tool_search.v1; route_test adds id, command, explain, payload. No keywords (use routing_keywords only).",
+      "description": "One route-test tool result. No keywords (use routing_keywords only).",
       "required": [
         "id",
         "description",
@@ -68,7 +68,7 @@
         "id": { "type": "string" },
         "name": {
           "type": "string",
-          "description": "Display name (tool_search.v1); e.g. skill.command"
+          "description": "Display name, e.g. skill.command"
         },
         "description": { "type": "string" },
         "skill_name": { "type": "string" },
@@ -78,11 +78,11 @@
         "score": { "type": "number" },
         "vector_score": {
           "type": "number",
-          "description": "Component score from vector search (tool_search.v1)"
+          "description": "Component score from the semantic route signal"
         },
         "keyword_score": {
           "type": "number",
-          "description": "Component score from keyword search (tool_search.v1)"
+          "description": "Component score from the lexical route signal"
         },
         "final_score": { "type": "number" },
         "confidence": { "type": "string", "enum": ["high", "medium", "low"] },
@@ -90,11 +90,11 @@
         "intents": {
           "type": "array",
           "items": { "type": "string" },
-          "description": "Intent labels (tool_search.v1)"
+          "description": "Intent labels"
         },
         "category": {
           "type": "string",
-          "description": "Tool category (tool_search.v1)"
+          "description": "Tool category"
         },
         "input_schema": { "type": "object" },
         "explain": {

@@ -9,7 +9,7 @@ use async_trait::async_trait;
 use datafusion::datasource::MemTable;
 use datafusion::execution::context::SessionContext;
 use datafusion::prelude::SessionConfig;
-use xiuxian_vector::{EngineRecordBatch, SearchEngineContext};
+use xiuxian_db_store::{EngineRecordBatch, SearchEngineContext};
 #[cfg(feature = "duckdb")]
 use xiuxian_wendao_sql::{
     LocalRelationEngine as BoundedSqlLocalRelationEngine,

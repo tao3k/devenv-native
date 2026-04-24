@@ -24,7 +24,7 @@ pub(crate) fn infer_crate_name(relative_path: &Path) -> String {
             package_name.clone()
         }
         [data, workspace_name, ..] if data == ".data" => workspace_name.clone(),
-        [skills, skill_name, ..] if skills == "internal_skills" => skill_name.clone(),
+        [skills, skill_name, ..] if skills == "skills" => skill_name.clone(),
         [first, ..] => first.clone(),
         [] => "workspace".to_string(),
     }

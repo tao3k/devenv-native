@@ -8,7 +8,7 @@ use crate::search::local_symbol::query::shared::{
     decode_local_symbol_hits, execute_local_symbol_search, retained_window,
 };
 use crate::search::local_symbol::schema::local_symbol_batches;
-use xiuxian_vector::write_lance_batches_to_parquet_file;
+use xiuxian_db_store::write_lance_batches_to_parquet_file;
 
 #[cfg(feature = "duckdb")]
 use super::fixtures::write_search_duckdb_runtime_override;

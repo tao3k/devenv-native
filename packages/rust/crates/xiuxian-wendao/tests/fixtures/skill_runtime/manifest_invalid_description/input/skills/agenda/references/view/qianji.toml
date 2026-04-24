@@ -1,0 +1,9 @@
+id = "xiuxian.zhixing.agenda.view"
+description = "invalid"
+
+[tool_contract]
+name = "agenda.view"
+
+[workflow]
+type = "native_dispatch"
+binding_id = "xiuxian.native.zhixing.view"

@@ -22,13 +22,13 @@ def test_resolve_sentinel_watch_paths_reads_link_graph_projects(tmp_path) -> Non
     project_root = tmp_path / "workspace"
     project_root.mkdir()
     (project_root / "docs").mkdir()
-    (project_root / "internal_skills").mkdir()
+    (project_root / "skills").mkdir()
     config_path = project_root / "wendao.toml"
     config_path.write_text(
         """
 [link_graph.projects.main]
 root = "."
-dirs = ["docs", "internal_skills"]
+dirs = ["docs", "skills"]
 """.strip()
         + "\n",
         encoding="utf-8",
@@ -36,7 +36,7 @@ dirs = ["docs", "internal_skills"]
 
     watch_paths = module.resolve_sentinel_watch_paths(project_root, config_path)
 
-    assert watch_paths == [project_root / "docs", project_root / "internal_skills"]
+    assert watch_paths == [project_root / "docs", project_root / "skills"]
 
 
 def test_is_sentinel_healthy_accepts_live_pid_and_existing_watch_root(tmp_path) -> None:

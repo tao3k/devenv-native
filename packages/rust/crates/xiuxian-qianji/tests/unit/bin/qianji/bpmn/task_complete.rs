@@ -46,6 +46,8 @@ async fn run_bpmn_tasks_complete_command_resolves_pending_service_task_checkpoin
             checkpoint_backend: BpmnCliCheckpointBackend::Sqlite(sqlite_path),
             host_fixture_path: Some(fixture_path.clone()),
             event_fixture_path: None,
+            trace_stream: false,
+            external_host: false,
         }))
         .await,
         "bpmn tasks complete should resolve the pending service task checkpoint",
@@ -74,6 +76,70 @@ async fn run_bpmn_tasks_complete_command_resolves_pending_service_task_checkpoin
 
 #[cfg(feature = "sqlite")]
 #[tokio::test(flavor = "current_thread")]
+async fn run_bpmn_tasks_complete_command_resolves_service_task_tokens() {
+    let temp_dir =
+        TempDir::new().unwrap_or_else(|error| panic!("temp dir should allocate: {error}"));
+    let bpmn_path = write_parallel_multi_instance_loop_input_bundle(&temp_dir);
+    let sqlite_path = temp_dir.path().join("task-complete-token.sqlite3");
+
+    let seeded_output = must_ok(
+        run_bpmn_command(BpmnCliCommand::Run(BpmnRunCliCommand {
+            bpmn_path: bpmn_path.clone(),
+            dmn_paths: Vec::new(),
+            process_id: "parallel_mi".to_string(),
+            instance_id: "wf_task_complete_token".to_string(),
+            context_json: Some("{\"items\":[\"alpha\",\"beta\"]}".to_string()),
+            checkpoint_backend: Some(BpmnCliCheckpointBackend::Sqlite(sqlite_path.clone())),
+            host_fixture_path: None,
+            event_fixture_path: None,
+            trace_stream: false,
+            external_host: true,
+        }))
+        .await,
+        "bpmn run should stop at parallel service-task host boundary",
+    );
+
+    let token_ids = pending_service_task_tokens(&seeded_output.rendered, "review");
+    assert_eq!(
+        token_ids.len(),
+        2,
+        "parallel multi-instance service task should expose two token-scoped host works"
+    );
+
+    let mut fixture = json!({ "service_task_tokens": {} });
+    fixture["service_task_tokens"][token_ids[0].as_str()] =
+        json!({ "data": { "result": "first_token_result" } });
+    fixture["service_task_tokens"][token_ids[1].as_str()] =
+        json!({ "data": { "result": "second_token_result" } });
+    let fixture_path = write_json_fixture(
+        temp_dir.path().join("task-complete-token-fixture.json"),
+        &fixture,
+    );
+
+    let complete_output = must_ok(
+        run_bpmn_command(BpmnCliCommand::TaskComplete(BpmnTaskCompleteCliCommand {
+            bpmn_path,
+            dmn_paths: Vec::new(),
+            instance_id: "wf_task_complete_token".to_string(),
+            checkpoint_backend: BpmnCliCheckpointBackend::Sqlite(sqlite_path),
+            host_fixture_path: Some(fixture_path),
+            event_fixture_path: None,
+            trace_stream: false,
+            external_host: false,
+        }))
+        .await,
+        "bpmn tasks complete should resolve token-scoped service task fixtures",
+    );
+
+    assert_eq!(complete_output.exit_code, 0);
+    assert!(complete_output.rendered.contains("Outcome: completed"));
+    assert!(complete_output.rendered.contains("\"results\": ["));
+    assert!(complete_output.rendered.contains("\"first_token_result\""));
+    assert!(complete_output.rendered.contains("\"second_token_result\""));
+}
+
+#[cfg(feature = "sqlite")]
+#[tokio::test(flavor = "current_thread")]
 async fn run_bpmn_tasks_complete_command_renders_missing_sqlite_checkpoint_cleanly() {
     let temp_dir =
         TempDir::new().unwrap_or_else(|error| panic!("temp dir should allocate: {error}"));
@@ -88,6 +154,8 @@ async fn run_bpmn_tasks_complete_command_renders_missing_sqlite_checkpoint_clean
             checkpoint_backend: BpmnCliCheckpointBackend::Sqlite(sqlite_path),
             host_fixture_path: None,
             event_fixture_path: None,
+            trace_stream: false,
+            external_host: false,
         }))
         .await,
         "bpmn tasks complete should render missing checkpoint cleanly",
@@ -137,6 +205,19 @@ async fn seed_pending_service_task_checkpoint(
 #[cfg(feature = "sqlite")]
 struct BlockingCheckpointSeedHost {
     now_ms: u64,
+}
+
+#[cfg(feature = "sqlite")]
+fn pending_service_task_tokens(rendered: &str, node_id: &str) -> Vec<String> {
+    let prefix = format!("- {node_id} | token#");
+    rendered
+        .lines()
+        .filter_map(|line| {
+            let token_suffix = line.strip_prefix(prefix.as_str())?;
+            let token = token_suffix.split_whitespace().next()?;
+            token.parse::<u64>().ok().map(|value| value.to_string())
+        })
+        .collect()
 }
 
 #[cfg(feature = "sqlite")]

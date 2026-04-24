@@ -1,25 +1,4 @@
 impl VectorStore {
-    fn derive_routing_keywords(tool: &ToolRecord) -> Vec<String> {
-        let skill_token = tool.skill_name.trim();
-        let tool_token = tool.tool_name.split('.').next_back().map_or("", str::trim);
-        let full_tool = tool.tool_name.trim();
-        let mut out = Vec::new();
-        let mut seen = std::collections::HashSet::new();
-        for kw in &tool.keywords {
-            let token = kw.trim();
-            if token.is_empty() {
-                continue;
-            }
-            if token == skill_token || token == tool_token || token == full_tool {
-                continue;
-            }
-            if seen.insert(token.to_string()) {
-                out.push(token.to_string());
-            }
-        }
-        out
-    }
-
     fn build_document_batch(
         &self,
         ids: Vec<String>,

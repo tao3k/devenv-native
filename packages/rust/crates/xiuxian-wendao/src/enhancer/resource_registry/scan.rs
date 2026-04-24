@@ -2,7 +2,9 @@ use include_dir::{Dir, File};
 use std::path::Path;
 use xiuxian_wendao_core::WendaoResourceUri;
 
-use xiuxian_wendao_parsers::parse_frontmatter;
+use xiuxian_wendao_parsers::{
+    skill_frontmatter_has_metadata_mapping, skill_frontmatter_name, uses_skill_frontmatter,
+};
 
 pub(crate) fn is_markdown_file(path: &str) -> bool {
     matches!(
@@ -32,15 +34,12 @@ pub(crate) fn collect_embedded_markdown_files<'a>(dir: &'a Dir<'a>, out: &mut Ve
 }
 
 pub(crate) fn semantic_skill_name_from_descriptor(path: &str, markdown: &str) -> Option<String> {
-    if !Path::new(path)
-        .file_name()
-        .and_then(|value| value.to_str())
-        .is_some_and(|name| name.eq_ignore_ascii_case("SKILL.md") || name == "skill.md")
+    if !uses_skill_frontmatter(Some(Path::new(path)), markdown)
+        || !skill_frontmatter_has_metadata_mapping(markdown)
     {
         return None;
     }
-    parse_frontmatter(markdown)
-        .name
+    skill_frontmatter_name(markdown)
         .map(|value| value.trim().to_ascii_lowercase())
         .filter(|value| !value.is_empty())
 }

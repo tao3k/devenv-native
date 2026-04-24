@@ -19,6 +19,116 @@ fn lint_reports_invalid_yaml_frontmatter() -> Result<()> {
 }
 
 #[test]
+fn lint_reports_missing_frontmatter() -> Result<()> {
+    let temp = TempDir::new()?;
+    std::fs::write(temp.path().join("demo.md"), "# Heading\nbody\n")?;
+
+    let (status, stdout) = run_markdown_lint(&temp, None)?;
+
+    assert_eq!(status, Some(1));
+    assert!(stdout.contains("missing_frontmatter"));
+    assert!(stdout.contains("kind: repo_authoring_policy"));
+    assert!(stdout.contains("problem: Document-level YAML frontmatter is required."));
+    Ok(())
+}
+
+#[test]
+fn lint_reports_missing_frontmatter_title() -> Result<()> {
+    let temp = TempDir::new()?;
+    std::fs::write(
+        temp.path().join("demo.md"),
+        "---\ntags:\n  - demo\n---\n# Heading\n",
+    )?;
+
+    let (status, stdout) = run_markdown_lint(&temp, None)?;
+
+    assert_eq!(status, Some(1));
+    assert!(stdout.contains("missing_frontmatter_title"));
+    assert!(stdout.contains("kind: repo_authoring_policy"));
+    assert!(
+        stdout.contains("problem: Ordinary document frontmatter must include a non-empty `title`.")
+    );
+    Ok(())
+}
+
+#[test]
+fn lint_reports_missing_skill_frontmatter_name() -> Result<()> {
+    let temp = TempDir::new()?;
+    std::fs::create_dir_all(temp.path().join("skills/demo"))?;
+    std::fs::write(
+        temp.path().join("skills/demo/SKILL.md"),
+        "---\nmetadata:\n  version: \"1.0.0\"\n---\n# Demo Skill\n",
+    )?;
+
+    let (status, stdout) = run_markdown_lint(&temp, Some("skills"))?;
+
+    assert_eq!(status, Some(1));
+    assert!(stdout.contains("missing_skill_frontmatter_name"));
+    assert!(stdout.contains("kind: repo_authoring_policy"));
+    assert!(stdout.contains(
+        "problem: Skill-shaped document frontmatter must include a non-empty top-level `name`."
+    ));
+    Ok(())
+}
+
+#[test]
+fn lint_reports_missing_skill_frontmatter_metadata() -> Result<()> {
+    let temp = TempDir::new()?;
+    std::fs::create_dir_all(temp.path().join("skills/demo"))?;
+    std::fs::write(
+        temp.path().join("skills/demo/SKILL.md"),
+        "---\nname: demo-skill\n---\n# Demo Skill\n",
+    )?;
+
+    let (status, stdout) = run_markdown_lint(&temp, Some("skills"))?;
+
+    assert_eq!(status, Some(1));
+    assert!(stdout.contains("missing_skill_frontmatter_metadata"));
+    assert!(stdout.contains("kind: repo_authoring_policy"));
+    assert!(stdout.contains(
+        "problem: Skill-shaped document frontmatter must contain a top-level `metadata` mapping."
+    ));
+    Ok(())
+}
+
+#[test]
+fn lint_accepts_skill_md_with_strict_skill_frontmatter() -> Result<()> {
+    let temp = TempDir::new()?;
+    std::fs::create_dir_all(temp.path().join("skills/demo"))?;
+    std::fs::write(
+        temp.path().join("skills/demo/SKILL.md"),
+        "---\nname: demo-skill\nmetadata:\n  version: \"1.0.0\"\n---\n# Demo Skill\n",
+    )?;
+
+    let (status, stdout) = run_markdown_lint(&temp, Some("skills"))?;
+
+    assert_eq!(status, Some(0));
+    assert!(
+        stdout.contains("Markdown lint passed: checked 1 file(s), 0 issue(s)."),
+        "{stdout}"
+    );
+    Ok(())
+}
+
+#[test]
+fn lint_accepts_kind_marked_skill_doc_with_strict_skill_frontmatter() -> Result<()> {
+    let temp = TempDir::new()?;
+    std::fs::write(
+        temp.path().join("planner.md"),
+        "---\nkind: SKILL.md\nname: planner\nmetadata:\n  version: \"1.0.0\"\n---\n# Planner\n",
+    )?;
+
+    let (status, stdout) = run_markdown_lint(&temp, None)?;
+
+    assert_eq!(status, Some(0));
+    assert!(
+        stdout.contains("Markdown lint passed: checked 1 file(s), 0 issue(s)."),
+        "{stdout}"
+    );
+    Ok(())
+}
+
+#[test]
 fn lint_reports_unclosed_frontmatter() -> Result<()> {
     let temp = TempDir::new()?;
     std::fs::write(temp.path().join("demo.md"), "---\ntitle: demo\nbody\n")?;
@@ -54,7 +164,7 @@ fn lint_reports_unclosed_fence() -> Result<()> {
     let temp = TempDir::new()?;
     std::fs::write(
         temp.path().join("demo.md"),
-        "# Demo\n```rust\nfn main() {}\n",
+        "---\ntitle: Demo\n---\n# Demo\n```rust\nfn main() {}\n",
     )?;
 
     let (status, stdout) = run_markdown_lint(&temp, None)?;

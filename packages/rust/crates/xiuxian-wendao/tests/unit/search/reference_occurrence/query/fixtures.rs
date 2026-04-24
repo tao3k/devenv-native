@@ -11,7 +11,7 @@ use crate::search::{
 };
 #[cfg(feature = "duckdb")]
 use crate::set_link_graph_wendao_config_override;
-use xiuxian_vector::write_lance_batches_to_parquet_file;
+use xiuxian_db_store::write_lance_batches_to_parquet_file;
 
 pub(super) fn fixture_service(temp_dir: &tempfile::TempDir) -> SearchPlaneService {
     SearchPlaneService::with_paths(

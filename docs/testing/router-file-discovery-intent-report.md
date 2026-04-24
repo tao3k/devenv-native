@@ -1,6 +1,6 @@
 ---
 type: knowledge
-title: "Router File Discovery Intent Report"
+title: "Retired Router File Discovery Intent Report"
 category: "testing"
 tags:
   - testing
@@ -8,92 +8,32 @@ tags:
 saliency_base: 6.5
 decay_rate: 0.04
 metadata:
-  title: "Router File Discovery Intent Report"
+  title: "Retired Router File Discovery Intent Report"
 ---
 
-# Router File Discovery Intent Report
+# Retired Router File Discovery Intent Report
 
 ## Scope
 
-This report documents the production routing behavior for file-discovery intents (for example, "find files", "find \*.py", "list directories") and where each ranking signal comes from.
+This historical report covered the old vector-local router search surface.
+That implementation has been retired: `xiuxian-vector` no longer owns skill
+scanning, tool search, keyword rescue, FTS search, hybrid fusion, or route
+ranking.
 
-## Data Sources Used By Hybrid Search
+Current routing and search semantics belong to Wendao/DuckDB-owned query
+layers or to the owning router crate. `xiuxian-vector` is only a Lance/Arrow
+storage-format boundary.
 
-The router does not rank from a single field. It uses a fused score built from:
+## Retired Surface
 
-1. Vector similarity from Lance table rows
-2. Keyword stream (Tantivy BM25 or Lance FTS depending on backend)
-3. Metadata rerank signals from tool records
+The following surfaces described by the previous report are no longer active:
 
-### Metadata Field Mapping
+- vector-local skill scanner indexing
+- vector-local keyword or FTS rescue
+- vector-local hybrid fusion
+- vector-local route ranking tests
 
-These fields are indexed and used in ranking:
+## Replacement Boundary
 
-- `tool_name`: exact tool identity (e.g. `advanced_tools.smart_find`)
-- `description`: tool-level text from registered command metadata or docstring fallback
-- `category`: tool category from registered command metadata (or inferred fallback)
-- `keywords`: merged scanner keywords (skill + tool)
-- `intents`: skill intents and intent-like phrases
-- `file_path`: only for payload/context, not core score term
-
-Primary code path:
-
-- Rust search path: `packages/rust/crates/xiuxian-vector/src/skill/ops_impl.rs`
-- Fusion: `packages/rust/crates/xiuxian-vector/src/keyword/fusion.rs`
-- Scanner source for command metadata: `packages/rust/crates/xiuxian-skills/src/skills/tools.rs`
-
-## Ranking Pipeline (Current)
-
-1. Vector candidates are retrieved from Lance.
-2. Vector candidates are sorted by vector score before RRF fusion.
-3. Keyword hits are fused if available.
-4. If keyword backend is unavailable/fails, fusion still runs with empty keyword hits.
-5. Metadata rerank runs for all query_text searches.
-6. For file-discovery intent, `advanced_tools.smart_find` receives strong intent bonus.
-
-## File Discovery Intent Detection
-
-Query is classified as file-discovery intent when normalized terms include one or more of:
-
-- `find`
-- `list`
-- `file` / `files`
-- `directory` / `folder`
-- `path`
-- `glob`
-- extension wildcard tokens like `*.py`, `*.rs`
-
-## Scenario Boundaries
-
-Use `advanced_tools.smart_find` as preferred candidate when:
-
-- user intent is locating files/directories
-- query includes file patterns, extensions, path constraints
-- task is discovery, not content grep
-
-Use `advanced_tools.smart_search` as preferred candidate when:
-
-- user intent is finding text/patterns inside files
-- regex/content matching is explicit
-- context lines or content-level matching is requested
-
-Use `code.code_search` when:
-
-- user intent is semantic/AST code understanding, symbol lookup, architecture-level code navigation
-
-## Regression Guard Added
-
-A deterministic Rust test now enforces this behavior:
-
-- `test_search_tools_file_discovery_intent_boost_without_keyword_backend`
-- file: `packages/rust/crates/xiuxian-vector/tests/test_rust_cortex.rs`
-
-This protects the critical case where keyword backend is unavailable and file-discovery intent must still prioritize `smart_find`.
-
-## Validation Snapshot
-
-Executed validations after this change:
-
-- `cargo test -p xiuxian-vector --test test_rust_cortex test_search_tools_file_discovery_intent_boost_without_keyword_backend -- --nocapture`
-- `cargo test -p xiuxian-vector --test test_fusion --test test_search -- --nocapture`
-- route scenario re-run with rebuilt/reinstalled `xiuxian-core-rs`
+Future route diagnostics should be documented against the owning router
+contract, not against `xiuxian-vector`.

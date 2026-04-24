@@ -90,9 +90,7 @@ pub(crate) fn is_canonical_repo_doc(doc_path: &str) -> bool {
         .unwrap_or("");
     match file_name {
         "AGENTS.md" | "CLAUDE.md" | "CHANGELOG.md" | "README.md" => true,
-        "SKILL.md" => components
-            .iter()
-            .any(|component| component == "skills" || component == "internal_skills"),
+        "SKILL.md" => components.iter().any(|component| component == "skills"),
         _ => false,
     }
 }

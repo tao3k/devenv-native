@@ -1,0 +1,14 @@
+{
+  "discovered_paths": ["agenda/references/add/qianji.toml"],
+  "issues": [
+    "agenda/references/add/qianji.toml -> parse internal manifest URI `wendao://skills/agenda/references/add/qianji.toml`: invalid description: description must contain an `Args:` header; description must contain an `Examples:` header"
+  ],
+  "tool_names": [],
+  "authority": {
+    "authorized_manifests": [
+      "wendao://skills/agenda/references/add/qianji.toml"
+    ],
+    "ghost_links": [],
+    "unauthorized_manifests": []
+  }
+}

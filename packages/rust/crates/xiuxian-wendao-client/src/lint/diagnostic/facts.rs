@@ -3,6 +3,7 @@ use super::text::{
     bare_or_redundant_expected, code_string, display_label_tip, kind_string, mixed_expected,
     non_canonical_expected,
 };
+use std::path::Path;
 use xiuxian_wendao_parsers::{MarkdownSyntaxLintCode, MarkdownSyntaxLintIssue};
 
 pub(in crate::lint) struct DiagnosticFacts {
@@ -30,6 +31,27 @@ pub(in crate::lint) struct DynamicDiagnosticText {
     pub(in crate::lint) found: Option<String>,
     pub(in crate::lint) expected: Option<String>,
     pub(in crate::lint) tip: Option<String>,
+}
+
+#[derive(Clone, Copy)]
+pub(in crate::lint) struct LocalTargetScopeViolation<'a> {
+    pub(in crate::lint) resolved_path: &'a Path,
+    pub(in crate::lint) lint_root: &'a Path,
+}
+
+#[derive(Clone, Copy)]
+pub(in crate::lint) struct LocalTargetTransientViolation<'a> {
+    pub(in crate::lint) resolved_path: &'a Path,
+    pub(in crate::lint) lint_root: &'a Path,
+    pub(in crate::lint) offending_dir: &'a str,
+}
+
+pub(in crate::lint) struct LocalTargetFragmentViolation<'a> {
+    pub(in crate::lint) literal: &'a str,
+    pub(in crate::lint) raw_target: &'a str,
+    pub(in crate::lint) fragment: &'a str,
+    pub(in crate::lint) is_block: bool,
+    pub(in crate::lint) target_title: Option<String>,
 }
 
 impl DiagnosticFacts {
@@ -78,6 +100,196 @@ impl DiagnosticFacts {
             found_override: None,
             expected_override: None,
             tip_override: None,
+        }
+    }
+
+    pub(in crate::lint) fn missing_local_target(
+        relative_path: &str,
+        line: usize,
+        column: usize,
+        source: Option<String>,
+        literal: &str,
+        raw_target: &str,
+    ) -> Self {
+        Self {
+            rule_key: "missing_local_target".to_string(),
+            kind: "repo_authoring_policy".to_string(),
+            parser_code: None,
+            parser_message: None,
+            line,
+            column,
+            source,
+            link: Some(LinkIssueContext {
+                literal: literal.to_string(),
+                target: raw_target.to_string(),
+                label: None,
+            }),
+            target_metadata: None,
+            duplicates_heading: false,
+            utf8_error: None,
+            problem_override: Some(
+                "Referenced local link or attachment target does not exist.".to_string(),
+            ),
+            detail_override: Some(format!(
+                "Target `{raw_target}` in `{relative_path}` did not resolve to an existing local note or attachment. Resolution checks the source directory, parent directories up to the lint root, plus `.md` and `index.md` fallbacks for note-like targets."
+            )),
+            found_override: None,
+            expected_override: Some(
+                "Fix the target path, create the missing local file, or remove the broken reference."
+                    .to_string(),
+            ),
+            tip_override: Some(
+                "This rule only checks whether the local file resolved; addressed headings and block anchors are validated separately when present. External URLs are ignored.".to_string(),
+            ),
+        }
+    }
+
+    pub(in crate::lint) fn missing_local_fragment(
+        relative_path: &str,
+        line: usize,
+        column: usize,
+        source: Option<String>,
+        fragment_violation: LocalTargetFragmentViolation<'_>,
+    ) -> Self {
+        let fragment_kind = if fragment_violation.is_block {
+            "block anchor"
+        } else {
+            "heading anchor"
+        };
+        let problem = format!("Referenced local {fragment_kind} does not exist.");
+        let detail = match fragment_violation.target_title.as_deref() {
+            Some(title) => format!(
+                "Target `{}` in `{relative_path}` resolved to `{title}`, but the addressed {fragment_kind} `{}` was not found.",
+                fragment_violation.raw_target, fragment_violation.fragment
+            ),
+            None => format!(
+                "Target `{}` in `{relative_path}` resolved to an existing local note, but the addressed {fragment_kind} `{}` was not found.",
+                fragment_violation.raw_target, fragment_violation.fragment
+            ),
+        };
+        let expected = if fragment_violation.is_block {
+            "Fix the block fragment, or add the missing `^block-id` anchor to the target note."
+        } else {
+            "Fix the heading fragment, or add the missing heading to the target note."
+        };
+        Self {
+            rule_key: "missing_local_fragment".to_string(),
+            kind: "repo_authoring_policy".to_string(),
+            parser_code: None,
+            parser_message: None,
+            line,
+            column,
+            source,
+            link: Some(LinkIssueContext {
+                literal: fragment_violation.literal.to_string(),
+                target: fragment_violation.raw_target.to_string(),
+                label: None,
+            }),
+            target_metadata: Some(TargetMetadata {
+                raw: fragment_violation.raw_target.to_string(),
+                heading: Some(fragment_violation.fragment.to_string()),
+                title: fragment_violation.target_title,
+            }),
+            duplicates_heading: false,
+            utf8_error: None,
+            problem_override: Some(problem),
+            detail_override: Some(detail),
+            found_override: None,
+            expected_override: Some(expected.to_string()),
+            tip_override: Some(
+                "This rule runs only after local path resolution succeeds and then validates the addressed heading or block anchor inside the target note.".to_string(),
+            ),
+        }
+    }
+
+    pub(in crate::lint) fn local_target_outside_root(
+        relative_path: &str,
+        line: usize,
+        column: usize,
+        source: Option<String>,
+        literal: &str,
+        raw_target: &str,
+        scope_violation: LocalTargetScopeViolation<'_>,
+    ) -> Self {
+        let resolved = scope_violation.resolved_path.to_string_lossy();
+        let root = scope_violation.lint_root.to_string_lossy();
+        Self {
+            rule_key: "local_target_outside_root".to_string(),
+            kind: "repo_authoring_policy".to_string(),
+            parser_code: None,
+            parser_message: None,
+            line,
+            column,
+            source,
+            link: Some(LinkIssueContext {
+                literal: literal.to_string(),
+                target: raw_target.to_string(),
+                label: None,
+            }),
+            target_metadata: None,
+            duplicates_heading: false,
+            utf8_error: None,
+            problem_override: Some(
+                "Referenced local link or attachment escapes the active lint root.".to_string(),
+            ),
+            detail_override: Some(format!(
+                "Target `{raw_target}` in `{relative_path}` resolved to `{resolved}`, which is outside the active lint root `{root}`. Local Markdown targets must stay within the current repo-local lint scope."
+            )),
+            found_override: None,
+            expected_override: Some(
+                "Retarget the link to an in-root path, or widen the lint root intentionally before relying on this reference."
+                    .to_string(),
+            ),
+            tip_override: Some(
+                "Do not use `..` traversal to escape the active lint root for local notes or attachments."
+                    .to_string(),
+            ),
+        }
+    }
+
+    pub(in crate::lint) fn local_target_transient_dir(
+        relative_path: &str,
+        line: usize,
+        column: usize,
+        source: Option<String>,
+        literal: &str,
+        raw_target: &str,
+        transient_violation: LocalTargetTransientViolation<'_>,
+    ) -> Self {
+        let resolved = transient_violation.resolved_path.to_string_lossy();
+        let root = transient_violation.lint_root.to_string_lossy();
+        let offending_dir = transient_violation.offending_dir;
+        Self {
+            rule_key: "local_target_transient_dir".to_string(),
+            kind: "repo_authoring_policy".to_string(),
+            parser_code: None,
+            parser_message: None,
+            line,
+            column,
+            source,
+            link: Some(LinkIssueContext {
+                literal: literal.to_string(),
+                target: raw_target.to_string(),
+                label: None,
+            }),
+            target_metadata: None,
+            duplicates_heading: false,
+            utf8_error: None,
+            problem_override: Some(
+                "Referenced local link or attachment points into a transient or generated repository directory.".to_string(),
+            ),
+            detail_override: Some(format!(
+                "Target `{raw_target}` in `{relative_path}` resolved to `{resolved}` under lint root `{root}`, but it passes through transient/generated directory `{offending_dir}`. These directories are operational surfaces, not stable authoring targets."
+            )),
+            found_override: None,
+            expected_override: Some(
+                "Retarget the link to stable repository content outside transient/generated directories, or move the referenced artifact into a governed source directory."
+                    .to_string(),
+            ),
+            tip_override: Some(
+                "Directories such as `.cache`, `.data`, `.run`, `.config`, `.bin`, `target`, and `node_modules` are treated as unstable authoring surfaces."
+                    .to_string(),
+            ),
         }
     }
 
@@ -176,7 +388,11 @@ impl DiagnosticFacts {
                 self.target_metadata.as_ref(),
             )),
             Some(
-                MarkdownSyntaxLintCode::NonCanonicalObsidianAliasOrder
+                MarkdownSyntaxLintCode::MissingFrontmatter
+                | MarkdownSyntaxLintCode::MissingFrontmatterTitle
+                | MarkdownSyntaxLintCode::MissingSkillFrontmatterName
+                | MarkdownSyntaxLintCode::MissingSkillFrontmatterMetadata
+                | MarkdownSyntaxLintCode::NonCanonicalObsidianAliasOrder
                 | MarkdownSyntaxLintCode::UnclosedFrontmatter
                 | MarkdownSyntaxLintCode::InvalidFrontmatterYaml
                 | MarkdownSyntaxLintCode::UnclosedFence,
@@ -191,7 +407,11 @@ impl DiagnosticFacts {
                 non_canonical_expected(self.link.as_ref(), self.target_metadata.as_ref()),
             ),
             Some(
-                MarkdownSyntaxLintCode::UnclosedFrontmatter
+                MarkdownSyntaxLintCode::MissingFrontmatter
+                | MarkdownSyntaxLintCode::MissingFrontmatterTitle
+                | MarkdownSyntaxLintCode::MissingSkillFrontmatterName
+                | MarkdownSyntaxLintCode::MissingSkillFrontmatterMetadata
+                | MarkdownSyntaxLintCode::UnclosedFrontmatter
                 | MarkdownSyntaxLintCode::InvalidFrontmatterYaml
                 | MarkdownSyntaxLintCode::UnclosedFence
                 | MarkdownSyntaxLintCode::BareObsidianWikilink
@@ -214,7 +434,11 @@ impl DiagnosticFacts {
                 self.target_heading(),
             )),
             Some(
-                MarkdownSyntaxLintCode::UnclosedFrontmatter
+                MarkdownSyntaxLintCode::MissingFrontmatter
+                | MarkdownSyntaxLintCode::MissingFrontmatterTitle
+                | MarkdownSyntaxLintCode::MissingSkillFrontmatterName
+                | MarkdownSyntaxLintCode::MissingSkillFrontmatterMetadata
+                | MarkdownSyntaxLintCode::UnclosedFrontmatter
                 | MarkdownSyntaxLintCode::InvalidFrontmatterYaml
                 | MarkdownSyntaxLintCode::UnclosedFence,
             )

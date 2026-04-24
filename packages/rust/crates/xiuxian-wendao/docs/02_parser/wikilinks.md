@@ -95,7 +95,7 @@ and index-body wikilink collection:
 2. hidden-path governance still keeps its own line/offset helper because that
    adapter-local contract needs byte ranges rather than just wikilink targets
 
-`skill_vfs::internal_manifest::authority` no longer consumes this narrower
+`skill_runtime::manifest::authority` no longer consumes this narrower
 surface directly. It now consumes the shared `references` parser so `SKILL.md`
 ordinary Markdown links and ordinary wikilinks follow one parser-owned
 contract.

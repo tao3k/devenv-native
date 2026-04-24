@@ -19,8 +19,6 @@ def _schema_filename(name: str) -> str:
 
 def _preferred_crates(name: str) -> tuple[str, ...]:
     raw = str(name).strip()
-    if raw.startswith("xiuxian.vector."):
-        return ("xiuxian-vector", "xiuxian-wendao")
     if raw.startswith("xiuxian_wendao.link_graph."):
         return ("xiuxian-wendao",)
     if (
@@ -32,7 +30,7 @@ def _preferred_crates(name: str) -> tuple[str, ...]:
     if raw.startswith("xiuxian.memory."):
         return ("xiuxian-memory-engine", "xiuxian-wendao")
     if raw.startswith("xiuxian.skill."):
-        return ("xiuxian-skills", "xiuxian-wendao")
+        return ("xiuxian-wendao",)
     return ("xiuxian-wendao",)
 
 

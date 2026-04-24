@@ -42,6 +42,34 @@ pub(crate) fn write_service_task_bundle(temp_dir: &TempDir) -> PathBuf {
     bpmn_path
 }
 
+#[cfg(feature = "sqlite")]
+pub(crate) fn write_parallel_multi_instance_loop_input_bundle(temp_dir: &TempDir) -> PathBuf {
+    let bpmn_path = temp_dir
+        .path()
+        .join("parallel-multi-instance-loop-input.bpmn");
+    write_file(
+        &bpmn_path,
+        r#"<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" id="pkg_parallel_mi">
+  <bpmn:process id="parallel_mi" isExecutable="true">
+    <bpmn:startEvent id="start" />
+    <bpmn:serviceTask id="review">
+      <bpmn:multiInstanceLoopCharacteristics>
+        <bpmn:loopDataInputRef>items</bpmn:loopDataInputRef>
+        <bpmn:inputDataItem id="item" />
+        <bpmn:loopDataOutputRef>results</bpmn:loopDataOutputRef>
+        <bpmn:outputDataItem id="result" />
+      </bpmn:multiInstanceLoopCharacteristics>
+    </bpmn:serviceTask>
+    <bpmn:endEvent id="end" />
+    <bpmn:sequenceFlow id="flow_1" sourceRef="start" targetRef="review" />
+    <bpmn:sequenceFlow id="flow_2" sourceRef="review" targetRef="end" />
+  </bpmn:process>
+</bpmn:definitions>"#,
+    );
+    bpmn_path
+}
+
 pub(crate) fn write_send_task_bundle(temp_dir: &TempDir) -> PathBuf {
     let bpmn_path = temp_dir.path().join("send-task.bpmn");
     write_file(

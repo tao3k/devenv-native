@@ -5,48 +5,12 @@ use insta::assert_json_snapshot;
 use serde_json::json;
 use xiuxian_vector::{
     ID_COLUMN, SearchOptions, TableColumnAlteration, TableColumnType, TableNewColumn, VectorStore,
-    skill::{normalize_input_schema_value, resolve_routing_keywords},
 };
 
 use crate::snapshot_support::canonical_json;
 
 fn round6(v: f64) -> String {
     format!("{v:.6}")
-}
-
-#[test]
-fn snapshot_input_schema_normalization_contract_v1() {
-    let cases = [
-        json!({"type":"object","properties":{"q":{"type":"string"}}}),
-        json!("{\"type\":\"object\",\"properties\":{\"q\":{\"type\":\"string\"}}}"),
-        json!(
-            "\"{\\\"type\\\":\\\"object\\\",\\\"properties\\\":{\\\"q\\\":{\\\"type\\\":\\\"string\\\"}}}\""
-        ),
-        json!(null),
-        json!("not-json"),
-    ];
-
-    let normalized: Vec<_> = cases.iter().map(normalize_input_schema_value).collect();
-
-    assert_json_snapshot!(
-        "input_schema_normalization_contract_v1",
-        canonical_json(normalized)
-    );
-}
-
-#[test]
-fn snapshot_routing_keywords_resolution_contract_v1() {
-    let cases = [
-        json!({"routing_keywords":["find","files"],"keywords":["legacy","noise"]}),
-        json!({"keywords":["legacy","fallback"]}),
-        json!({"routing_keywords":["find","find","  files  ",""]}),
-        json!({}),
-    ];
-    let resolved: Vec<_> = cases.iter().map(resolve_routing_keywords).collect();
-    assert_json_snapshot!(
-        "routing_keywords_resolution_contract_v1",
-        canonical_json(resolved)
-    );
 }
 
 #[tokio::test]
@@ -259,67 +223,6 @@ async fn snapshot_schema_evolution_pipeline_v1() -> Result<()> {
     });
 
     assert_json_snapshot!("schema_evolution_pipeline_v1", canonical_json(view));
-
-    Ok(())
-}
-
-#[tokio::test]
-async fn snapshot_lance_fts_contract_v1() -> Result<()> {
-    let temp_dir = tempfile::tempdir()?;
-    let db_path = temp_dir.path().join("fts_snapshot_store");
-    let db_path_str = db_path.to_string_lossy();
-    let store = VectorStore::new(db_path_str.as_ref(), Some(4)).await?;
-    let table = "tools";
-
-    store
-        .add_documents(
-            table,
-            vec!["git.commit".to_string(), "git.rebase".to_string()],
-            vec![vec![1.0, 0.0, 0.0, 0.0], vec![0.0, 1.0, 0.0, 0.0]],
-            vec![
-                "Commit staged changes with message checks".to_string(),
-                "Interactive rebase and history cleanup".to_string(),
-            ],
-            vec![
-                json!({
-                    "type":"command",
-                    "skill_name":"git",
-                    "tool_name":"git.commit",
-                    "keywords":["commit","message"],
-                    "intents":["save changes"]
-                })
-                .to_string(),
-                json!({
-                    "type":"command",
-                    "skill_name":"git",
-                    "tool_name":"git.rebase",
-                    "keywords":["rebase","history"],
-                    "intents":["rewrite history"]
-                })
-                .to_string(),
-            ],
-        )
-        .await?;
-    store.create_fts_index(table).await?;
-
-    let mut commit_hits = store.search_fts(table, "commit", 5, None).await?;
-    commit_hits.sort_by(|a, b| a.tool_name.cmp(&b.tool_name));
-
-    let mut history_hits = store.search_fts(table, "history", 5, None).await?;
-    history_hits.sort_by(|a, b| a.tool_name.cmp(&b.tool_name));
-
-    let view = json!({
-        "commit_hits": commit_hits.into_iter().map(|h| json!({
-            "tool": h.tool_name,
-            "skill": h.skill_name,
-        })).collect::<Vec<_>>(),
-        "history_hits": history_hits.into_iter().map(|h| json!({
-            "tool": h.tool_name,
-            "skill": h.skill_name,
-        })).collect::<Vec<_>>(),
-    });
-
-    assert_json_snapshot!("lance_fts_contract_v1", canonical_json(view));
 
     Ok(())
 }

@@ -1,4 +1,4 @@
-use xiuxian_vector::{LanceArray, LanceStringArray};
+use xiuxian_db_store::{LanceArray, LanceStringArray};
 
 use crate::gateway::studio::vfs::flight_scan::{
     VfsCategory, VfsScanEntry, VfsScanResult, vfs_scan_result_batch,

@@ -1,6 +1,6 @@
 ---
 type: knowledge
-title: "Vector Subsystem"
+title: "Lance Vector-Store Boundary"
 category: "explanation"
 tags:
   - explanation
@@ -9,41 +9,50 @@ tags:
 saliency_base: 6.0
 decay_rate: 0.04
 metadata:
-  title: "Vector Subsystem"
+  title: "Lance Vector-Store Boundary"
 ---
 
-# Vector Subsystem
+# Lance Vector-Store Boundary
 
-> Foundation Layer - LanceDB-backed vector retrieval for skills and knowledge.
+> Storage Boundary - Lance-backed vector-table storage for multimodal evidence,
+> not the search-plane owner.
 
 ## Overview
 
-The vector subsystem is implemented in `xiuxian-vector` and powers semantic retrieval for:
+The Lance vector-store surface is now a storage-format boundary behind
+`xiuxian-db-store`. Search semantics, linting, routing behavior, and result
+contracts belong to Wendao/DuckDB-owned query layers or the routing crate that
+serves the specific command.
 
-- skill/tool discovery
-- router score fusion
-- knowledge retrieval
+The retiring `xiuxian-vector` crate remains only as a Lance-backed
+vector-table storage shell while live consumers are migrated behind the
+facade.
 
 Primary characteristics:
 
-- LanceDB storage
-- adaptive index strategy (HNSW/IVF-FLAT decisions by data scale)
-- hybrid fusion with keyword signals
-- bounded in-memory table cache
+- Lance-backed vector-table storage
+- Arrow/RecordBatch compatibility helpers
+- adaptive Lance index operations
+- bounded table-cache and maintenance utilities
+- no ownership of skill routing, keyword fusion, tool search, or DuckDB query
+  semantics
 
 ## Architecture
 
 ```text
-Python (foundation/core/agent)
-  -> package-local transport or facade layers
-  -> Rust core (xiuxian-vector)
+Caller crate or command
+  -> xiuxian-db-store facade
+  -> Lance vector-store compatibility surface
+  -> retiring xiuxian-vector storage shell
 ```
 
 ## Core Modules
 
+- `packages/rust/crates/xiuxian-db-store/src/lib.rs`
 - `packages/rust/crates/xiuxian-vector/src/ops/`
-- `packages/rust/crates/xiuxian-vector/src/keyword/`
-- `packages/rust/crates/xiuxian-vector/src/search.rs`
+- `packages/rust/crates/xiuxian-vector/src/search/`
+- `packages/rust/crates/xiuxian-vector/src/search_engine/`
+- `packages/rust/crates/xiuxian-vector/src/query_support.rs`
 - `packages/rust/crates/xiuxian-vector/src/search_cache.rs`
 
 ## Runtime Configuration
@@ -64,9 +73,13 @@ vector:
 
 ## Operational Guidance
 
-1. Use bounded cache settings in long-lived agent and external-tool runtime processes.
-2. Run scalar/vector index creation after bulk ingestion.
-3. Keep schema evolution explicit and covered by snapshot/contract tests.
+1. Depend on `xiuxian-db-store` for storage-facing compatibility instead of
+   adding new direct callers to the retiring storage shell.
+2. Use bounded cache settings in long-lived runtime processes.
+3. Run scalar/vector index creation after bulk ingestion when Lance storage is
+   still required.
+4. Keep schema evolution explicit and covered by snapshot/contract tests.
+5. Keep search, routing, and lint semantics in Wendao/DuckDB-owned layers.
 
 ## Checkpoint Note (Historical)
 

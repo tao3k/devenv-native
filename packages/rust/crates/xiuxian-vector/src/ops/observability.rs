@@ -49,10 +49,9 @@ impl VectorStore {
             .collect();
 
         let has_vector = self.has_vector_index(table_name).await?;
-        let has_fts = self.has_fts_index(table_name).await?;
         let has_scalar = self.has_scalar_index(table_name).await?;
-        let needs_indices = row_count as usize >= ROW_COUNT_INDEX_THRESHOLD
-            && (!has_vector || !has_fts || !has_scalar);
+        let needs_indices =
+            row_count as usize >= ROW_COUNT_INDEX_THRESHOLD && (!has_vector || !has_scalar);
 
         let mut recommendations = Vec::new();
         if fragmentation_ratio > FRAGMENTATION_RATIO_THRESHOLD {
@@ -74,7 +73,7 @@ impl VectorStore {
         })
     }
 
-    /// Record a query for the table (in-process metrics). Called from `agentic_search`.
+    /// Record a query for the table (in-process metrics).
     pub fn record_query(&self, table_name: &str, elapsed_ms: u64) {
         let cell = self
             .query_metrics
@@ -87,7 +86,7 @@ impl VectorStore {
         cell.1.store(elapsed_ms, Ordering::Relaxed);
     }
 
-    /// Return per-table query metrics. In-process counts and last latency from `agentic_search`;
+    /// Return per-table query metrics. In-process counts and last latency today;
     /// when Lance provides per-query tracing, this can be wired to that instead.
     ///
     #[must_use]

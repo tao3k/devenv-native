@@ -186,21 +186,22 @@ async fn column_mask_filters_before_payload_fetch_and_emits_phase_counts() {
 async fn payload_fetch_projects_requested_columns() {
     let telemetry = Arc::new(InMemoryWendaoExplainSink::new());
     let ctx = WendaoExecutionContext::default().with_explain_sink(telemetry.clone());
-    let batch = xiuxian_vector::retrieval_rows_to_record_batch(&[xiuxian_vector::RetrievalRow {
-        id: "alpha".to_string(),
-        path: "src/lib.rs".to_string(),
-        repo: Some("alpha/repo".to_string()),
-        title: Some("Alpha".to_string()),
-        score: Some(0.9),
-        source: "test".to_string(),
-        snippet: Some("fn alpha()".to_string()),
-        doc_type: Some("file".to_string()),
-        match_reason: Some("repo_content_search".to_string()),
-        best_section: Some("3: fn alpha()".to_string()),
-        language: Some("rust".to_string()),
-        line: Some(3),
-    }])
-    .unwrap_or_else(|error| panic!("build retrieval batch: {error}"));
+    let batch =
+        xiuxian_db_store::retrieval_rows_to_record_batch(&[xiuxian_db_store::RetrievalRow {
+            id: "alpha".to_string(),
+            path: "src/lib.rs".to_string(),
+            repo: Some("alpha/repo".to_string()),
+            title: Some("Alpha".to_string()),
+            score: Some(0.9),
+            source: "test".to_string(),
+            snippet: Some("fn alpha()".to_string()),
+            doc_type: Some("file".to_string()),
+            match_reason: Some("repo_content_search".to_string()),
+            best_section: Some("3: fn alpha()".to_string()),
+            language: Some("rust".to_string()),
+            line: Some(3),
+        }])
+        .unwrap_or_else(|error| panic!("build retrieval batch: {error}"));
     let relation = WendaoRelation::new(batch.schema(), vec![batch]);
     let backend = Arc::new(StubPayloadRetrievalBackend);
     let ctx = ctx.with_retrieval_backend(backend);

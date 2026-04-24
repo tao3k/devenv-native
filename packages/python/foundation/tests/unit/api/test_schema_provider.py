@@ -25,12 +25,18 @@ def test_get_schema_loads_from_rust_resource_file() -> None:
     assert schema["$id"].endswith("xiuxian.runtime.server_info.v1.schema.json")
 
 
-def test_get_schema_loads_json_filename_directly(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+def test_get_schema_loads_json_filename_directly(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
     """Explicit schema filenames should resolve through the resource locator."""
-    resource_dir = tmp_path / "packages" / "rust" / "crates" / "xiuxian-wendao" / "resources"
+    resource_dir = (
+        tmp_path / "packages" / "rust" / "crates" / "xiuxian-wendao" / "resources"
+    )
     resource_dir.mkdir(parents=True)
     resource_file = resource_dir / "custom.schema.v1.schema.json"
-    resource_file.write_text(json.dumps({"$id": "custom", "type": "object"}), encoding="utf-8")
+    resource_file.write_text(
+        json.dumps({"$id": "custom", "type": "object"}), encoding="utf-8"
+    )
 
     monkeypatch.setattr(
         schema_provider,
@@ -46,3 +52,49 @@ def test_get_schema_raises_for_unmapped_schema() -> None:
     """Unmapped schema ids should fail without any bindings fallback."""
     with pytest.raises(FileNotFoundError, match="Unknown schema identifier"):
         schema_provider.get_schema("xiuxian.vector.unknown.v1")
+
+
+def test_vector_schema_ids_do_not_probe_retired_vector_resources(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Retired vector schemas should fall back to Wendao-owned resources only."""
+    seen: list[tuple[str, tuple[str, ...]]] = []
+
+    def capture(name: str, preferred_crates: tuple[str, ...] = ()) -> Path:
+        seen.append((name, preferred_crates))
+        return Path("/missing") / name
+
+    monkeypatch.setattr(schema_provider, "resolve_schema_file_path", capture)
+
+    with pytest.raises(FileNotFoundError):
+        schema_provider.get_schema("xiuxian.vector.unknown.v1")
+
+    assert seen == [
+        (
+            "xiuxian.vector.unknown.v1.schema.json",
+            ("xiuxian-wendao",),
+        )
+    ]
+
+
+def test_skill_schema_ids_do_not_probe_retired_skills_resources(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Retired skill schemas should resolve through Wendao-owned resources."""
+    seen: list[tuple[str, tuple[str, ...]]] = []
+
+    def capture(name: str, preferred_crates: tuple[str, ...] = ()) -> Path:
+        seen.append((name, preferred_crates))
+        return Path("/missing") / name
+
+    monkeypatch.setattr(schema_provider, "resolve_schema_file_path", capture)
+
+    with pytest.raises(FileNotFoundError):
+        schema_provider.get_schema("xiuxian.skill.unknown.v1")
+
+    assert seen == [
+        (
+            "xiuxian.skill.unknown.v1.schema.json",
+            ("xiuxian-wendao",),
+        )
+    ]

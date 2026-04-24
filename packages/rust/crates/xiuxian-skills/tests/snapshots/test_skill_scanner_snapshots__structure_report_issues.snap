@@ -1,8 +1,0 @@
----
-source: packages/rust/crates/xiuxian-skills/tests/test_skill_scanner_snapshots.rs
-expression: sanitized_issues
----
-[
-  "missing default(strict_mode) item `assets/` at <SKILL_PATH>/assets/",
-  "missing default(strict_mode) item `tests/` at <SKILL_PATH>/tests/"
-]

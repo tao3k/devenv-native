@@ -1,0 +1,13 @@
+{
+  "root": "skills",
+  "discovered_count": 1,
+  "authorized_count": 1,
+  "ghost_count": 1,
+  "unauthorized_count": 1,
+  "mounted_spec_count": 0,
+  "tool_names": ["agenda.add"],
+  "issues": [
+    "wendao://skills/agenda/references/missing/qianji.toml -> declared by SKILL.md but manifest is missing",
+    "wendao://skills/agenda/references/view/qianji.toml -> manifest is present but not granted by root SKILL.md"
+  ]
+}

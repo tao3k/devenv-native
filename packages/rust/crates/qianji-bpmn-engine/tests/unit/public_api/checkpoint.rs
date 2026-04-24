@@ -2,8 +2,10 @@ use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{
     BPMN_CHECKPOINT_FORMAT_VERSION, BpmnCheckpointEnvelope, BpmnEdgeSpec, BpmnEventKind,
     BpmnEventSpec, BpmnInstanceInit, BpmnNodeKind, BpmnNodeSpec, BpmnPackage, BpmnProcessSpec,
-    ProcessKey, create_instance, decode_checkpoint_json, encode_checkpoint_json, lease_key,
-    state_key,
+    MultiInstanceCollectionKey, MultiInstanceCollectionKind, MultiInstanceCollectionSlot,
+    MultiInstanceDataRuntimeState, MultiInstanceOutputCollectionState,
+    ParallelMultiInstanceIterationState, ParallelMultiInstanceState, ProcessKey, create_instance,
+    decode_checkpoint_json, encode_checkpoint_json, lease_key, state_key,
 };
 use serde_json::json;
 use std::sync::Arc;
@@ -110,4 +112,74 @@ fn checkpoint_codec_decodes_without_process_index_field() {
     assert_eq!(decoded.state.instance_id.as_ref(), "wf_legacy");
     assert_eq!(decoded.state.process.process_id.as_ref(), "approve");
     assert_eq!(decoded.state.process_index, 0);
+}
+
+#[test]
+fn checkpoint_codec_round_trips_multi_instance_collection_keys() {
+    let process = BpmnProcessSpec::new(
+        ProcessKey::new("pkg", "approve", "digest"),
+        vec![
+            BpmnNodeSpec::new(0, "start", BpmnNodeKind::StartEvent),
+            BpmnNodeSpec::new(1, "service", BpmnNodeKind::ServiceTask),
+            BpmnNodeSpec::new(2, "end", BpmnNodeKind::EndEvent),
+        ],
+        vec![
+            BpmnEdgeSpec::new(0, 1, None::<&str>),
+            BpmnEdgeSpec::new(1, 2, None::<&str>),
+        ],
+        Vec::new(),
+    );
+    let package = Arc::new(BpmnPackage::new("pkg", vec![process]));
+    let mut state = create_instance(
+        Arc::clone(&package),
+        "approve",
+        BpmnInstanceInit::new(
+            "wf_multi_instance_checkpoint",
+            json!({ "items": ["alpha"] }),
+            10,
+        ),
+    )
+    .must("known process should create a scaffold instance");
+    state
+        .parallel_multi_instances
+        .push(ParallelMultiInstanceState {
+            node_index: 1,
+            total_iterations: 1,
+            completed_iterations: 0,
+            data_binding: Some(MultiInstanceDataRuntimeState {
+                collection_kind: MultiInstanceCollectionKind::Array,
+                input_data_item: Arc::<str>::from("item"),
+                slots: vec![MultiInstanceCollectionSlot {
+                    key: MultiInstanceCollectionKey::Index(0),
+                    input: json!("alpha"),
+                }],
+                output: Some(MultiInstanceOutputCollectionState {
+                    loop_data_output_ref: Arc::<str>::from("results"),
+                    output_data_item: Arc::<str>::from("result"),
+                    values: vec![None],
+                }),
+            }),
+            active_iterations: vec![ParallelMultiInstanceIterationState {
+                token_id: 11,
+                iteration_index: 0,
+            }],
+        });
+
+    let checkpoint = BpmnCheckpointEnvelope::from_state(state);
+    let encoded = encode_checkpoint_json(&checkpoint)
+        .must("multi-instance checkpoint should encode collection keys");
+
+    assert!(encoded.contains(r#""kind":"index""#));
+    assert!(encoded.contains(r#""value":0"#));
+    let decoded = decode_checkpoint_json(&encoded)
+        .must("multi-instance checkpoint should decode collection keys");
+    assert_eq!(
+        decoded.state.parallel_multi_instances[0]
+            .data_binding
+            .as_ref()
+            .must("data binding should round-trip")
+            .slots[0]
+            .key,
+        MultiInstanceCollectionKey::Index(0)
+    );
 }

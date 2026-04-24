@@ -13,7 +13,7 @@ use crate::config::{WendaoGatewayConfig, XiuxianConfig};
 const AGENDA_ADD_MANIFEST: &str = r#"id = "xiuxian.zhixing.agenda.add"
 
 [qianhuan]
-background = "$wendao://skills-internal/agenda/SKILL.md"
+background = "$wendao://skills/agenda/SKILL.md"
 
 [tool_contract]
 category = "write"
@@ -33,14 +33,14 @@ Examples:
 
 [workflow]
 type = "qianji_flow"
-internal_id = "xiuxian.native.zhixing.add"
-flow_definition = "$wendao://skills-internal/agenda/references/add/qianji.toml"
+binding_id = "xiuxian.native.zhixing.add"
+flow_definition = "$wendao://skills/agenda/references/add/qianji.toml"
 "#;
 
 const AGENDA_VIEW_MANIFEST: &str = r#"id = "xiuxian.zhixing.agenda.view"
 
 [qianhuan]
-background = "$wendao://skills-internal/agenda/SKILL.md"
+background = "$wendao://skills/agenda/SKILL.md"
 
 [tool_contract]
 category = "read"
@@ -60,7 +60,7 @@ Examples:
 
 [workflow]
 type = "native_dispatch"
-internal_id = "xiuxian.native.zhixing.view"
+binding_id = "xiuxian.native.zhixing.view"
 "#;
 
 fn build_heyi() -> Result<(Arc<ZhixingHeyi>, TempDir)> {
@@ -75,7 +75,7 @@ fn build_heyi() -> Result<(Arc<ZhixingHeyi>, TempDir)> {
         graph,
         manifestation,
         storage,
-        "internal-alias-test".to_string(),
+        "skill-alias-test".to_string(),
         "UTC",
     )?;
     Ok((Arc::new(heyi), tmp))
@@ -86,7 +86,7 @@ fn write_fixture_tree(
     include_ghost: bool,
     include_unauthorized: bool,
 ) -> Result<()> {
-    let skill_root = root.join("internal_skills").join("agenda");
+    let skill_root = root.join("skills").join("agenda");
     let references_root = skill_root.join("references");
     let add_root = references_root.join("add");
     let view_root = references_root.join("view");
@@ -98,9 +98,9 @@ fn write_fixture_tree(
         fs::write(view_root.join("qianji.toml"), AGENDA_VIEW_MANIFEST)?;
     }
 
-    let mut tags = vec!["wendao://skills-internal/agenda/references/add/qianji.toml".to_string()];
+    let mut tags = vec!["wendao://skills/agenda/references/add/qianji.toml".to_string()];
     if include_ghost {
-        tags.push("wendao://skills-internal/agenda/references/missing/qianji.toml".to_string());
+        tags.push("wendao://skills/agenda/references/missing/qianji.toml".to_string());
     }
     let skill_doc = format!(
         "---\ntags:\n{}\n---\n# Agenda\n",
@@ -114,9 +114,10 @@ fn write_fixture_tree(
     Ok(())
 }
 
-fn build_resolver(root: &std::path::Path) -> Result<Arc<SkillVfsResolver>> {
-    let internal_root = root.join("internal_skills");
-    let resolver = SkillVfsResolver::from_roots_with_embedded_and_internal(&[], &[internal_root])?;
+fn build_resolver(root: &std::path::Path) -> Result<Arc<SkillRuntimeResolver>> {
+    let runtime_root = root.join("skills");
+    let resolver =
+        SkillRuntimeResolver::from_roots_with_embedded_and_runtime(&[], &[runtime_root])?;
     Ok(Arc::new(resolver))
 }
 
@@ -141,7 +142,7 @@ fn blocks_alias_mount_on_ghost_links() -> Result<()> {
     let records = mounts.finish();
     let alias_record = records
         .iter()
-        .find(|record| record.service == "native.internal_skill_aliases")
+        .find(|record| record.service == "native.skill_aliases")
         .ok_or_else(|| anyhow!("alias mount record should exist"))?;
     assert_eq!(
         serde_json::to_value(alias_record.status)?,
@@ -178,7 +179,7 @@ fn mounts_authorized_aliases_and_skips_unauthorized() -> Result<()> {
     let records = mounts.finish();
     let alias_record = records
         .iter()
-        .find(|record| record.service == "native.internal_skill_aliases")
+        .find(|record| record.service == "native.skill_aliases")
         .ok_or_else(|| anyhow!("alias mount record should exist"))?;
     assert_eq!(
         serde_json::to_value(alias_record.status)?,

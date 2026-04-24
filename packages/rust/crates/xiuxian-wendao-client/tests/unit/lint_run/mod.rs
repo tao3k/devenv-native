@@ -4,9 +4,11 @@ use std::process::Command;
 use tempfile::TempDir;
 
 mod directory_style;
+mod fragments;
 mod json_output;
 mod obsidian;
 mod syntax;
+mod targets;
 
 pub(super) fn run_markdown_lint(
     temp: &TempDir,

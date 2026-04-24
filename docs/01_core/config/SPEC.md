@@ -67,6 +67,9 @@ The engine acts as a "Legal Enforcement" layer to prevent config drift:
 
 ## 4. Integration Status
 
-- **xiuxian-skills**: Fully migrated to the macro-driven bus.
-- **xiuxian-wendao**: Integration in progress.
-- **xiuxian-agent**: Integration in progress.
+- **xiuxian-wendao-parsers**: Owns Markdown and SKILL.md frontmatter parsing
+  contracts.
+- **xiuxian-wendao**: Owns runtime skill VFS and internal alias schema
+  resources.
+- **xiuxian-daochang**: Consumes Wendao-owned native alias specs during
+  bootstrap.

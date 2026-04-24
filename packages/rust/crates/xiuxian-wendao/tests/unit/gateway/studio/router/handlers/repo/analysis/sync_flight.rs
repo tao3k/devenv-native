@@ -1,4 +1,4 @@
-use xiuxian_vector::LanceArray;
+use xiuxian_db_store::LanceArray;
 
 use crate::analyzers::RepositoryRefreshPolicy;
 use crate::analyzers::{
@@ -64,7 +64,7 @@ fn repo_sync_flight_batch_preserves_summary_fields() {
     };
     let Some(mode) = mode_column
         .as_any()
-        .downcast_ref::<xiuxian_vector::LanceStringArray>()
+        .downcast_ref::<xiuxian_db_store::LanceStringArray>()
     else {
         panic!("mode should be utf8");
     };
@@ -75,7 +75,7 @@ fn repo_sync_flight_batch_preserves_summary_fields() {
     };
     let Some(health_state) = health_state_column
         .as_any()
-        .downcast_ref::<xiuxian_vector::LanceStringArray>()
+        .downcast_ref::<xiuxian_db_store::LanceStringArray>()
     else {
         panic!("healthState should be utf8");
     };

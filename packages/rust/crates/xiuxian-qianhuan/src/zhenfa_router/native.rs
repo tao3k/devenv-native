@@ -1,7 +1,7 @@
 use schemars::JsonSchema;
 use serde::Deserialize;
 use serde_json::Value;
-use xiuxian_wendao::skill_vfs::SkillVfsResolver;
+use xiuxian_wendao::skill_runtime::SkillRuntimeResolver;
 use xiuxian_wendao_core::WendaoResourceUri;
 use xiuxian_zhenfa::{
     INVALID_PARAMS_CODE, JsonRpcErrorObject, ZhenfaContext, ZhenfaError, zhenfa_tool,
@@ -67,9 +67,11 @@ fn resolve_manager(
     })
 }
 
-fn resolve_skill_vfs(ctx: &ZhenfaContext) -> Result<std::sync::Arc<SkillVfsResolver>, ZhenfaError> {
-    ctx.get_extension::<SkillVfsResolver>().ok_or_else(|| {
-        ZhenfaError::execution("missing SkillVfsResolver in zhenfa context extensions")
+fn resolve_skill_runtime(
+    ctx: &ZhenfaContext,
+) -> Result<std::sync::Arc<SkillRuntimeResolver>, ZhenfaError> {
+    ctx.get_extension::<SkillRuntimeResolver>().ok_or_else(|| {
+        ZhenfaError::execution("missing SkillRuntimeResolver in zhenfa context extensions")
     })
 }
 
@@ -117,7 +119,7 @@ fn hydrate_semantic_template_target(
             "invalid semantic template target `{normalized_target}`: {error}"
         ))
     })?;
-    let resolver = resolve_skill_vfs(ctx)?;
+    let resolver = resolve_skill_runtime(ctx)?;
     let content = resolver.read_utf8(normalized_target).map_err(|error| {
         ZhenfaError::execution(format!(
             "failed to resolve semantic template target `{normalized_target}`: {error}"

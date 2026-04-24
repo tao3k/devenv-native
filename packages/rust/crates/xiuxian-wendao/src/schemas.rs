@@ -79,24 +79,12 @@ pub const DISCOVER_MATCH_V1: &str =
 pub const MEMORY_GATE_EVENT_V1: &str =
     include_str!("../../xiuxian-memory-engine/resources/xiuxian.memory.gate_event.v1.schema.json");
 
-// --- xiuxian-skills schemas ---
-/// Canonical schema for `skills` metadata.
-pub const SKILL_METADATA_V1: &str =
-    include_str!("../../xiuxian-skills/resources/skill_metadata.schema.json");
-/// Canonical schema for `skills` command index.
+// --- Wendao skill schemas ---
+/// Canonical schema for skill metadata.
+pub const SKILL_METADATA_V1: &str = include_str!("../resources/skill_metadata.schema.json");
+/// Canonical schema for skill command indexes.
 pub const SKILL_COMMAND_INDEX_V1: &str =
-    include_str!("../../xiuxian-skills/resources/xiuxian.skill.command_index.v1.schema.json");
-
-// --- xiuxian-vector schemas ---
-/// Canonical schema for `vector` hybrid search.
-pub const VECTOR_HYBRID_V1: &str =
-    include_str!("../../xiuxian-vector/resources/xiuxian.vector.hybrid.v1.schema.json");
-/// Canonical schema for `vector` search operations.
-pub const VECTOR_SEARCH_V1: &str =
-    include_str!("../../xiuxian-vector/resources/xiuxian.vector.search.v1.schema.json");
-/// Canonical schema for `vector` tool search operations.
-pub const VECTOR_TOOL_SEARCH_V1: &str =
-    include_str!("../../xiuxian-vector/resources/xiuxian.vector.tool_search.v1.schema.json");
+    include_str!("../resources/xiuxian.skill.command_index.v1.schema.json");
 
 // --- xiuxian-runtime schemas ---
 /// Canonical schema for runtime tool results.

@@ -35,6 +35,8 @@ fn parse_bpmn_command_accepts_fresh_run_with_dmn_sources() {
             checkpoint_backend: None,
             host_fixture_path: None,
             event_fixture_path: None,
+            trace_stream: false,
+            external_host: false,
         })
     );
 }
@@ -74,6 +76,8 @@ fn parse_bpmn_command_accepts_host_fixture() {
             checkpoint_backend: None,
             host_fixture_path: Some(PathBuf::from("fixtures/host.json")),
             event_fixture_path: None,
+            trace_stream: false,
+            external_host: false,
         })
     );
 }
@@ -113,6 +117,48 @@ fn parse_bpmn_command_accepts_event_fixture() {
             checkpoint_backend: None,
             host_fixture_path: None,
             event_fixture_path: Some(PathBuf::from("fixtures/events.json")),
+            trace_stream: false,
+            external_host: false,
+        })
+    );
+}
+
+#[test]
+fn parse_bpmn_command_accepts_trace_stream() {
+    let command = must_some(
+        must_ok(
+            parse_bpmn_command(&to_args(&[
+                "qianji",
+                "bpmn",
+                "run",
+                "--bpmn",
+                "fixtures/review.bpmn",
+                "--process",
+                "review",
+                "--instance-id",
+                "wf_review",
+                "--context-json",
+                "{}",
+                "--trace-stream",
+            ])),
+            "bpmn parse with trace stream should succeed",
+        ),
+        "bpmn command should be detected",
+    );
+
+    assert_eq!(
+        command,
+        BpmnCliCommand::Run(BpmnRunCliCommand {
+            bpmn_path: PathBuf::from("fixtures/review.bpmn"),
+            dmn_paths: Vec::new(),
+            process_id: "review".to_string(),
+            instance_id: "wf_review".to_string(),
+            context_json: Some("{}".to_string()),
+            checkpoint_backend: None,
+            host_fixture_path: None,
+            event_fixture_path: None,
+            trace_stream: true,
+            external_host: false,
         })
     );
 }
@@ -177,6 +223,8 @@ fn parse_bpmn_command_accepts_sqlite_checkpoint_backend() {
             ))),
             host_fixture_path: None,
             event_fixture_path: None,
+            trace_stream: false,
+            external_host: false,
         })
     );
 }

@@ -36,6 +36,8 @@ async fn run_bpmn_events_poll_command_resolves_waiting_sqlite_checkpoint() {
             checkpoint_backend: Some(BpmnCliCheckpointBackend::Sqlite(sqlite_path.clone())),
             host_fixture_path: None,
             event_fixture_path: None,
+            trace_stream: false,
+            external_host: false,
         }))
         .await,
         "bpmn start should seed one waiting sqlite checkpoint for event polling",
@@ -57,6 +59,8 @@ async fn run_bpmn_events_poll_command_resolves_waiting_sqlite_checkpoint() {
             checkpoint_backend: BpmnCliCheckpointBackend::Sqlite(sqlite_path),
             host_fixture_path: None,
             event_fixture_path: Some(fixture_path.clone()),
+            trace_stream: false,
+            external_host: false,
         }))
         .await,
         "bpmn events poll should resolve the waiting sqlite checkpoint",
@@ -95,6 +99,8 @@ async fn run_bpmn_events_poll_command_renders_missing_sqlite_checkpoint_cleanly(
             checkpoint_backend: BpmnCliCheckpointBackend::Sqlite(sqlite_path),
             host_fixture_path: None,
             event_fixture_path: None,
+            trace_stream: false,
+            external_host: false,
         }))
         .await,
         "bpmn events poll should render missing checkpoint cleanly",

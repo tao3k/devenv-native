@@ -3,7 +3,7 @@ use arrow_flight::{FlightDescriptor, FlightInfo};
 use serde::Serialize;
 use tonic::Request;
 use tonic::metadata::MetadataMap;
-use xiuxian_vector::{LanceRecordBatch, LanceStringArray};
+use xiuxian_db_store::{LanceRecordBatch, LanceStringArray};
 use xiuxian_wendao_runtime::transport::{WendaoFlightService, flight_descriptor_path};
 
 pub(super) fn assert_studio_flight_snapshot(name: &str, value: impl Serialize) {

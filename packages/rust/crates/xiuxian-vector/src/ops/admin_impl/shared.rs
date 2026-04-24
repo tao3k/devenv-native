@@ -33,14 +33,14 @@ fn is_dataset_not_found_or_invalid(e: &crate::error::VectorStoreError) -> bool {
     }
 }
 
-/// Scalar index type for exact / categorical / full-text filtering.
+/// Scalar index type for exact, categorical, text, or array filtering.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ScalarIndexType {
     /// `BTree`: exact match, range queries (e.g. `skill_name = 'git'`).
     BTree,
     /// `Bitmap`: low-cardinality enums (e.g. `category = 'git'`).
     Bitmap,
-    /// Inverted: FTS / array contains (e.g. tags, content).
+    /// Inverted index for generic text or array columns.
     Inverted,
 }
 

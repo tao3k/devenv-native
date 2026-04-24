@@ -34,10 +34,10 @@ expression: value
       "contentType": null,
       "hasFrontmatter": false,
       "isDir": true,
-      "name": "internal_skills",
-      "path": "internal_skills",
+      "name": "skills",
+      "path": "skills",
       "projectName": "kernel",
-      "rootLabel": "internal_skills",
+      "rootLabel": "skills",
       "size": 0,
       "wendaoId": null
     },
@@ -47,9 +47,9 @@ expression: value
       "hasFrontmatter": false,
       "isDir": true,
       "name": "writer",
-      "path": "internal_skills/writer",
+      "path": "skills/writer",
       "projectName": "kernel",
-      "rootLabel": "internal_skills",
+      "rootLabel": "skills",
       "size": 0,
       "wendaoId": null
     },
@@ -59,9 +59,9 @@ expression: value
       "hasFrontmatter": true,
       "isDir": false,
       "name": "SKILL.md",
-      "path": "internal_skills/writer/SKILL.md",
+      "path": "skills/writer/SKILL.md",
       "projectName": "kernel",
-      "rootLabel": "internal_skills",
+      "rootLabel": "skills",
       "size": 21,
       "wendaoId": null
     }

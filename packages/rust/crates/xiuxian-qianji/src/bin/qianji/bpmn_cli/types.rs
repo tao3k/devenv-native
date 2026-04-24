@@ -24,6 +24,8 @@ pub(crate) struct BpmnRunCliCommand {
     pub(crate) checkpoint_backend: Option<QianjiBpmnWorkflowCheckpointBackend>,
     pub(crate) host_fixture_path: Option<PathBuf>,
     pub(crate) event_fixture_path: Option<PathBuf>,
+    pub(crate) trace_stream: bool,
+    pub(crate) external_host: bool,
 }
 
 pub(crate) type BpmnStartCliCommand = BpmnRunCliCommand;
@@ -36,6 +38,8 @@ pub(crate) struct BpmnResumeCliCommand {
     pub(crate) checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend,
     pub(crate) host_fixture_path: Option<PathBuf>,
     pub(crate) event_fixture_path: Option<PathBuf>,
+    pub(crate) trace_stream: bool,
+    pub(crate) external_host: bool,
 }
 
 pub(crate) type BpmnEventPollCliCommand = BpmnResumeCliCommand;
@@ -84,6 +88,8 @@ pub(crate) struct BpmnCliHostFixture {
     pub(crate) send: BTreeMap<String, BpmnCliHostDataFixture>,
     #[serde(rename = "service_tasks")]
     pub(crate) service: BTreeMap<String, BpmnCliHostDataFixture>,
+    #[serde(rename = "service_task_tokens")]
+    pub(crate) service_by_token: BTreeMap<String, BpmnCliHostDataFixture>,
     #[serde(rename = "user_tasks")]
     pub(crate) user: BTreeMap<String, BpmnCliHostDataFixture>,
     #[serde(rename = "manual_tasks")]

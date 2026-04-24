@@ -76,6 +76,7 @@ fn run_audit_core_reports_missing_package_docs_index() {
         include_warnings: Some(true),
         source_paths: None,
         fuzzy_confidence_threshold: None,
+        episteme_load: None,
     };
     let (issues, _file_contents) = run_audit_core(&ctx, &args).or_panic("audit");
 
@@ -107,6 +108,7 @@ fn run_audit_core_reports_missing_package_docs_tree() {
         include_warnings: Some(true),
         source_paths: None,
         fuzzy_confidence_threshold: None,
+        episteme_load: None,
     };
     let (issues, _file_contents) = run_audit_core(&ctx, &args).or_panic("audit");
 

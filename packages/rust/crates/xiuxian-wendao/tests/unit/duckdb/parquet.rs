@@ -3,7 +3,7 @@ use std::path::Path;
 use std::sync::Arc;
 
 use tempfile::tempdir;
-use xiuxian_vector::{
+use xiuxian_db_store::{
     LanceDataType, LanceField, LanceRecordBatch, LanceSchema, LanceStringArray,
     write_lance_batches_to_parquet_file,
 };

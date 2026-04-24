@@ -13,7 +13,7 @@ fn lint_reports_non_canonical_obsidian_wikilinks_as_text() -> Result<()> {
     )?;
     std::fs::write(
         temp.path().join("guide.md"),
-        "# Heading\nSee [[Docs Maintenance Playbook|01_core/106_docs_maintenance_playbook]].\n",
+        "---\ntitle: Guide\n---\n# Heading\nSee [[Docs Maintenance Playbook|01_core/106_docs_maintenance_playbook]].\n",
     )?;
 
     let (status, stdout) = run_markdown_lint(&temp, None)?;
@@ -38,7 +38,7 @@ fn lint_reports_bare_obsidian_wikilinks_as_text() -> Result<()> {
     )?;
     std::fs::write(
         temp.path().join("guide.md"),
-        "# Heading\nSee [[docs/index]].\n",
+        "---\ntitle: Guide\n---\n# Heading\nSee [[docs/index]].\n",
     )?;
 
     let (status, stdout) = run_markdown_lint(&temp, None)?;
@@ -64,7 +64,7 @@ fn lint_reports_redundant_heading_labels_with_namespace_guidance() -> Result<()>
     )?;
     std::fs::write(
         temp.path().join("guide.md"),
-        "# Heading\nSee [[02_parser/index#Semantic Check|Semantic Check]].\n",
+        "---\ntitle: Guide\n---\n# Heading\nSee [[02_parser/index#Semantic Check|Semantic Check]].\n",
     )?;
 
     let (status, stdout) = run_markdown_lint(&temp, None)?;
@@ -88,7 +88,7 @@ fn lint_reports_mixed_link_syntax_as_official_syntax_failure() -> Result<()> {
     )?;
     std::fs::write(
         temp.path().join("guide.md"),
-        "# Heading\nSee [[docs/index]](Documentation Index).\n",
+        "---\ntitle: Guide\n---\n# Heading\nSee [[docs/index]](Documentation Index).\n",
     )?;
 
     let (status, stdout) = run_markdown_lint(&temp, None)?;
@@ -111,8 +111,26 @@ fn lint_accepts_official_obsidian_embeds_and_addressed_targets() -> Result<()> {
         "---\ntitle: Documentation Index\n---\n# Documentation Index\n## Parser Contracts\nParagraph.\n^block-id\n",
     )?;
     std::fs::write(
+        temp.path().join("Three laws of motion.md"),
+        "---\ntitle: Three laws of motion\n---\n# Three laws of motion\n",
+    )?;
+    std::fs::write(
+        temp.path().join("Help and support.md"),
+        concat!(
+            "---\n",
+            "title: Help and support\n",
+            "---\n",
+            "# Help and support\n",
+            "## Questions and advice\n",
+            "### Report bugs and request features\n",
+        ),
+    )?;
+    std::fs::write(
         temp.path().join("guide.md"),
         concat!(
+            "---\n",
+            "title: Guide\n",
+            "---\n",
             "# Root\n",
             "## Local Heading\n",
             "Paragraph.\n",
@@ -134,7 +152,7 @@ fn lint_accepts_official_obsidian_embeds_and_addressed_targets() -> Result<()> {
 
     assert_eq!(status, Some(0));
     assert!(
-        stdout.contains("Markdown lint passed: checked 2 file(s), 0 issue(s)."),
+        stdout.contains("Markdown lint passed: checked 4 file(s), 0 issue(s)."),
         "{stdout}"
     );
     Ok(())

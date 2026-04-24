@@ -868,8 +868,8 @@ Wendao now starts the RFC-defined query-core split with a new internal
 
 - `xiuxian-wendao` owns typed query operators, execution context, graph
   adapters, and explain or telemetry contracts
-- `xiuxian-vector` owns reusable retrieval-row shaping and payload-projection
-  helpers used by the query core
+- `xiuxian-db-store` exposes reusable retrieval-row shaping and
+  payload-projection helpers used by the query core
 
 The currently landed Phase-1 slice is no longer only a skeleton:
 

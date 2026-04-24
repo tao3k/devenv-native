@@ -36,18 +36,6 @@ impl VectorStore {
         }))
     }
 
-    /// Returns true if the table has an FTS (inverted) index on content.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`VectorStoreError`] when index descriptions cannot be loaded.
-    pub async fn has_fts_index(&self, table_name: &str) -> Result<bool, VectorStoreError> {
-        let indices = self.describe_indices(table_name).await?;
-        Ok(indices
-            .iter()
-            .any(|d| d.index_type() == "Inverted" || d.name() == "content_fts"))
-    }
-
     /// Returns true if the table has any scalar index (`BTree` or Bitmap) on `skill_name` or category.
     ///
     /// # Errors
@@ -84,7 +72,7 @@ impl VectorStore {
             .map_err(VectorStoreError::LanceDB)
     }
 
-    /// Create indexes if the table meets thresholds (vector, FTS, scalar on `skill_name/category`).
+    /// Create indexes if the table meets thresholds (vector and scalar on `skill_name/category`).
     /// Uses [`IndexThresholds`] for row thresholds. Best-effort: logs and continues on per-index errors.
     ///
     /// # Errors
@@ -120,13 +108,6 @@ impl VectorStore {
             && let Err(error) = self.create_index(table_name).await
         {
             log::warn!("auto_index: create vector index failed: {error}");
-        }
-
-        if !self.has_fts_index(table_name).await?
-            && count >= thresholds.auto_index_at
-            && let Err(error) = self.create_fts_index(table_name).await
-        {
-            log::warn!("auto_index: create FTS index failed: {error}");
         }
 
         if !self.has_scalar_index(table_name).await?

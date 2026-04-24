@@ -19,22 +19,20 @@ This folder holds testing-related docs: evaluation reports, decision records, an
 
 | Document                                                                                            | Use                                                                                                           |
 | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| [Keyword Backend Decision](keyword-backend-decision.md)                                             | **Canonical** — Tantivy vs Lance FTS decision, when to use which, how to regenerate reports.                  |
-| [Keyword Backend Usage Guide](keyword-backend-usage-guide.md)                                       | How to use the keyword backend in tests and CLI.                                                              |
 | [修仙道场 (Xiuxian Daochang) Live Multi-Group Runbook](xiuxian-daochang-live-multigroup-runbook.md) | Canonical live validation flow for `Test1/Test2/Test3` session isolation + memory evolution + trace evidence. |
 
 ## Reports (historical or one-off)
 
-The following are evaluation reports, statistical evidence, or one-off comparisons used to produce the decision above. Kept for traceability; for current behavior use the canonical docs and [Testing Guide](../developer/testing.md).
+The following are evaluation reports, statistical evidence, or one-off comparisons. Kept for traceability when they still describe active surfaces; for current behavior use the canonical docs and [Testing Guide](../developer/testing.md).
 
-- `keyword-backend-decision-report.md`, `keyword-backend-decision-report-v4.md` — Decision reports
-- `keyword-backend-statistical-report.md`, `keyword-backend-statistical-evidence.md` — Statistical evidence
-- `keyword-backend-multi-model-report.md`, `keyword-backend-llm-reliability-batch-report.md` — Multi-model / LLM runs
-- `keyword-backend-replacement-evidence-v4.md`, `keyword-backend-detailed-comparison-v3.md` — Evidence and comparisons
-- `keyword-backend-report-template.md` — Template for generating reports
-- `keyword-eval-model-profiles.md` — Eval model profiles
 - `routing-quality-analysis.md`, `router-file-discovery-intent-report.md` — Routing quality and intent reports
 - `llm_comprehension_test.md`, `test_kit_modernization.md`, `scenario-test-driven-autofix-loop.md` — Test design and modernization notes
+
+Retired note:
+
+- The vector-owned keyword-backend comparison corpus and report-generation
+  loop have been retired with the old `xiuxian-vector` search surface. Use the
+  Wendao/DuckDB retrieval utilities below for current search quality work.
 
 ## Main testing guide
 

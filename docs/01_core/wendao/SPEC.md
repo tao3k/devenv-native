@@ -37,7 +37,8 @@ Every document in the repository is parsed for Obsidian-style WikiLinks (`[[...]
 
 When the indexer identifies a directory containing **`SKILL.md`**, the directory is "promoted" to a **Skill Entity**.
 
-- **Deep Integration**: Wendao invokes `xiuxian-skills` to extract structured metadata (Intents, Routing Keywords).
+- **Deep Integration**: Wendao consumes parser-owned `SKILL.md` metadata to
+  extract structured fields such as intents and routing keywords.
 - **Identity Decoupling**: The logical `name` in the metadata overrides the physical crate ID, providing a stable semantic namespace.
 
 ## 3. Relational Logic

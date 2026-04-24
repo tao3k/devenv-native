@@ -15,7 +15,7 @@ use crate::gateway::studio::search::handlers::tests::{
 use crate::repo_index::{
     RepoCodeDocument, RepoIndexEntryStatus, RepoIndexPhase, RepoIndexSnapshot,
 };
-use xiuxian_vector::LanceStringArray;
+use xiuxian_db_store::LanceStringArray;
 use xiuxian_wendao_runtime::transport::{SEARCH_INTENT_ROUTE, SearchFlightRouteProvider};
 
 use super::StudioIntentSearchFlightRouteProvider;

@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use xiuxian_vector::LanceStringArray;
+use xiuxian_db_store::LanceStringArray;
 
 use crate::gateway::studio::router::handlers::graph::flight::{
     graph_neighbors_response_batch, load_graph_neighbors_flight_response,

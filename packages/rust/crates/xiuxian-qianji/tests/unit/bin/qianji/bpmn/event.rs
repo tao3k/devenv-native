@@ -30,6 +30,8 @@ async fn run_bpmn_command_completes_waiting_bundle_with_event_fixture() {
             checkpoint_backend: None,
             host_fixture_path: None,
             event_fixture_path: Some(fixture_path.clone()),
+            trace_stream: false,
+            external_host: false,
         }))
         .await,
         "bpmn run should resolve waiting bundle with event fixture",
@@ -62,6 +64,8 @@ async fn run_bpmn_command_waiting_event_race_renders_competing_wait_diagnostics(
             checkpoint_backend: None,
             host_fixture_path: None,
             event_fixture_path: None,
+            trace_stream: false,
+            external_host: false,
         }))
         .await,
         "bpmn run should keep competing waits visible when no event fixture is supplied",
@@ -119,6 +123,8 @@ async fn run_bpmn_command_completes_event_race_bundle_with_competition_event_fix
             checkpoint_backend: None,
             host_fixture_path: None,
             event_fixture_path: Some(fixture_path.clone()),
+            trace_stream: false,
+            external_host: false,
         }))
         .await,
         "bpmn run should resolve competing waits with an explicit event fixture winner",

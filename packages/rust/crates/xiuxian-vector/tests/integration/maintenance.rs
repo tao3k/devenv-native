@@ -69,21 +69,6 @@ async fn test_has_vector_index_true_after_create_index() -> Result<()> {
 }
 
 #[tokio::test]
-async fn test_has_fts_index_true_after_create_fts_index() -> Result<()> {
-    let temp_dir = tempfile::tempdir()?;
-    let db_path = temp_dir.path().join("has_fts");
-    let db_path_str = db_path.to_string_lossy();
-    let store = VectorStore::new(db_path_str.as_ref(), Some(64)).await?;
-    add_tools_table(&store, "t", 50, &["a"]).await?;
-    store.create_fts_index("t").await?;
-
-    let has = store.has_fts_index("t").await?;
-    assert!(has);
-
-    Ok(())
-}
-
-#[tokio::test]
 async fn test_has_scalar_index_true_after_create_scalar() -> Result<()> {
     let temp_dir = tempfile::tempdir()?;
     let db_path = temp_dir.path().join("has_scalar");
@@ -285,7 +270,6 @@ async fn snapshot_maintenance_contract_v1() -> Result<()> {
         .auto_index_if_needed_with_thresholds("skills", &IndexThresholds::default())
         .await?;
     let has_vector = store.has_vector_index("skills").await?;
-    let has_fts = store.has_fts_index("skills").await?;
     let has_scalar = store.has_scalar_index("skills").await?;
 
     let compact_stats = store.compact("skills").await?;
@@ -293,7 +277,6 @@ async fn snapshot_maintenance_contract_v1() -> Result<()> {
     let view = serde_json::json!({
         "after_auto_index": {
             "has_vector_index": has_vector,
-            "has_fts_index": has_fts,
             "has_scalar_index": has_scalar,
             "returned_stats": auto_result.is_some(),
         },

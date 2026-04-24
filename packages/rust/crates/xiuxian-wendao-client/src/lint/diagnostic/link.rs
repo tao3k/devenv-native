@@ -28,7 +28,11 @@ impl LinkIssueContext {
             MarkdownSyntaxLintCode::MixedWikilinkMarkdownLink => {
                 parse_mixed_issue_context(line, column)
             }
-            MarkdownSyntaxLintCode::UnclosedFrontmatter
+            MarkdownSyntaxLintCode::MissingFrontmatter
+            | MarkdownSyntaxLintCode::MissingFrontmatterTitle
+            | MarkdownSyntaxLintCode::MissingSkillFrontmatterName
+            | MarkdownSyntaxLintCode::MissingSkillFrontmatterMetadata
+            | MarkdownSyntaxLintCode::UnclosedFrontmatter
             | MarkdownSyntaxLintCode::InvalidFrontmatterYaml
             | MarkdownSyntaxLintCode::UnclosedFence => None,
         }
@@ -36,9 +40,20 @@ impl LinkIssueContext {
 }
 
 pub(super) fn split_target_path_and_heading(raw_target: &str) -> (String, Option<String>) {
+    let (path, fragment) = split_target_path_and_fragment(raw_target);
+    (path, fragment.as_deref().and_then(normalize_heading))
+}
+
+pub(super) fn split_target_path_and_fragment(raw_target: &str) -> (String, Option<String>) {
     let trimmed = raw_target.trim();
     match trimmed.split_once('#') {
-        Some((path, heading)) => (path.trim().to_string(), normalize_heading(heading)),
+        Some((path, fragment)) => {
+            let fragment = fragment.trim();
+            (
+                path.trim().to_string(),
+                (!fragment.is_empty()).then(|| fragment.to_string()),
+            )
+        }
         None => (trimmed.to_string(), None),
     }
 }
@@ -69,6 +84,10 @@ fn parse_wikilink_issue_context(
                 MarkdownSyntaxLintCode::RedundantObsidianLabel
                 | MarkdownSyntaxLintCode::BareObsidianWikilink
                 | MarkdownSyntaxLintCode::MixedWikilinkMarkdownLink
+                | MarkdownSyntaxLintCode::MissingFrontmatter
+                | MarkdownSyntaxLintCode::MissingFrontmatterTitle
+                | MarkdownSyntaxLintCode::MissingSkillFrontmatterName
+                | MarkdownSyntaxLintCode::MissingSkillFrontmatterMetadata
                 | MarkdownSyntaxLintCode::UnclosedFrontmatter
                 | MarkdownSyntaxLintCode::InvalidFrontmatterYaml
                 | MarkdownSyntaxLintCode::UnclosedFence => Some(LinkIssueContext {

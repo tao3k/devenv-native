@@ -7,7 +7,7 @@ use arrow_flight::flight_service_server::FlightServiceServer;
 use tokio::net::TcpListener;
 use tokio_stream::wrappers::TcpListenerStream;
 use tonic::transport::Server;
-use xiuxian_vector::{
+use xiuxian_db_store::{
     LanceDataType, LanceField, LanceFloat64Array, LanceInt32Array, LanceListArray,
     LanceListBuilder, LanceRecordBatch, LanceSchema, LanceStringArray, LanceStringBuilder,
 };

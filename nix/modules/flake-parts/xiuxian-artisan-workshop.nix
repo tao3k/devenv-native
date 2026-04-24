@@ -137,9 +137,6 @@
         "xiuxian-memory-engine" = {
           profiles.release.runTests = false;
         };
-        "xiuxian-skills" = {
-          profiles.release.runTests = false;
-        };
         "xiuxian-vector" = {
           drvConfig.mkDerivation.nativeBuildInputs = [ pkgs.protobuf ];
           drvConfig.env.PROTOC = "${pkgs.protobuf}/bin/protoc";

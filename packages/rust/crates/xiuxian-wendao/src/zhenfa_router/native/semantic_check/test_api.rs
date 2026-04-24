@@ -8,6 +8,7 @@ pub use super::types::{
     CheckType, FileAuditReport, FuzzySuggestionData, IssueLocation, NodeStatus,
     SemanticCheckResult, SemanticIssue, WendaoSemanticCheckArgs,
 };
+pub use super::{EpistemeLoadReport, EpistemePolicyQueryReport};
 pub use super::{run_audit_core, wendao_semantic_check};
 
 #[must_use]
@@ -48,6 +49,11 @@ pub fn issue_type_to_code(issue_type: &str) -> &'static str {
 #[must_use]
 pub fn build_file_reports(issues: &[SemanticIssue], docs: &[String]) -> Vec<FileAuditReport> {
     super::report::build_file_reports(issues, docs)
+}
+
+#[must_use]
+pub fn format_result_as_xml(result: &SemanticCheckResult) -> String {
+    super::report::format_result_as_xml(result)
 }
 
 pub fn check_code_observations(

@@ -7,7 +7,10 @@ use super::run_markdown_lint_with_output;
 #[test]
 fn markdown_lint_emits_json_output_when_requested() -> Result<()> {
     let temp = TempDir::new()?;
-    std::fs::write(temp.path().join("guide.md"), "# Guide\n\nAll clear.\n")?;
+    std::fs::write(
+        temp.path().join("guide.md"),
+        "---\ntitle: Guide\n---\n# Guide\n\nAll clear.\n",
+    )?;
 
     let (status, stdout) = run_markdown_lint_with_output(&temp, None, Some("json"))?;
     let report: MarkdownLintReport = serde_json::from_str(stdout.as_str())?;

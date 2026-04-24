@@ -38,7 +38,7 @@ pub enum MultiInstanceCollectionKind {
 
 /// Stable output key associated with one collection-backed iteration.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-#[serde(tag = "kind", rename_all = "snake_case")]
+#[serde(tag = "kind", content = "value", rename_all = "snake_case")]
 pub enum MultiInstanceCollectionKey {
     /// Zero-based array position for one iteration.
     Index(u32),

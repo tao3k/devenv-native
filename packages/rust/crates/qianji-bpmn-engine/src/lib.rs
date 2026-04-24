@@ -241,8 +241,9 @@ pub use runtime_host_dispatch_api::{
     build_pending_host_work_request, build_pending_host_work_requests,
 };
 pub use runtime_instance_api::{
-    BpmnInstanceInit, BpmnInstanceState, CallActivityFrame, EventCompetitionState,
-    InstanceLifecycle, NodeRuntimeState, NodeRuntimeStatus, SuspendReason, create_instance,
+    BpmnExecutionTraceEvent, BpmnExecutionTraceEventKind, BpmnInstanceInit, BpmnInstanceState,
+    CallActivityFrame, EventCompetitionState, InstanceLifecycle, NodeRuntimeState,
+    NodeRuntimeStatus, SuspendReason, create_instance,
 };
 pub use runtime_join_api::JoinRuntimeState;
 pub use runtime_repeat_api::{

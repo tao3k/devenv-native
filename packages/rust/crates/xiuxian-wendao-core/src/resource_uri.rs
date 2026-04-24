@@ -5,7 +5,6 @@ use thiserror::Error;
 /// Canonical URI scheme for semantic skill resource addressing.
 pub const WENDAO_URI_SCHEME: &str = "wendao";
 const SKILLS_SEGMENT: &str = "skills";
-const INTERNAL_SKILLS_SEGMENT: &str = "skills-internal";
 const REFERENCES_SEGMENT: &str = "references";
 
 /// Parse-only errors for the stable `wendao://` resource URI contract.
@@ -53,7 +52,6 @@ pub enum WendaoResourceUriError {
 pub struct WendaoResourceUri {
     semantic_name: String,
     entity_name: String,
-    is_internal_skill: bool,
 }
 
 impl WendaoResourceUri {
@@ -80,11 +78,10 @@ impl WendaoResourceUri {
             return Err(WendaoResourceUriError::InvalidUri(trimmed.to_string()));
         }
 
-        let is_internal_skill = match segments.first().copied() {
-            Some(SKILLS_SEGMENT) => false,
-            Some(INTERNAL_SKILLS_SEGMENT) => true,
+        match segments.first().copied() {
+            Some(SKILLS_SEGMENT) => {}
             _ => return Err(WendaoResourceUriError::InvalidUri(trimmed.to_string())),
-        };
+        }
 
         if segments.get(2).copied() != Some(REFERENCES_SEGMENT) {
             return Err(WendaoResourceUriError::InvalidUri(trimmed.to_string()));
@@ -113,7 +110,6 @@ impl WendaoResourceUri {
         Ok(Self {
             semantic_name,
             entity_name,
-            is_internal_skill,
         })
     }
 
@@ -129,22 +125,11 @@ impl WendaoResourceUri {
         &self.entity_name
     }
 
-    /// Returns true if this URI addresses an internal skill resource.
-    #[must_use]
-    pub fn is_internal_skill(&self) -> bool {
-        self.is_internal_skill
-    }
-
     /// Canonical semantic URI string with normalized segments.
     #[must_use]
     pub fn canonical_uri(&self) -> String {
-        let segment = if self.is_internal_skill {
-            INTERNAL_SKILLS_SEGMENT
-        } else {
-            SKILLS_SEGMENT
-        };
         format!(
-            "{WENDAO_URI_SCHEME}://{segment}/{}/{REFERENCES_SEGMENT}/{}",
+            "{WENDAO_URI_SCHEME}://{SKILLS_SEGMENT}/{}/{REFERENCES_SEGMENT}/{}",
             self.semantic_name, self.entity_name
         )
     }

@@ -39,7 +39,7 @@ async fn prewarm_epoch_table_rejects_after_local_maintenance_shutdown() {
     };
     assert!(matches!(
         error,
-        xiuxian_vector::VectorStoreError::General(message)
+        xiuxian_db_store::VectorStoreError::General(message)
             if message == "search-plane local maintenance runtime was stopped before completing task"
     ));
 }
@@ -69,7 +69,7 @@ async fn prewarm_epoch_table_rejects_missing_local_parquet_publication() {
     };
     assert!(matches!(
         error,
-        xiuxian_vector::VectorStoreError::TableNotFound(name) if name == table_name
+        xiuxian_db_store::VectorStoreError::TableNotFound(name) if name == table_name
     ));
 }
 

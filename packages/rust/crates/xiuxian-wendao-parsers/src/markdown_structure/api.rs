@@ -9,6 +9,7 @@ use crate::references::{MarkdownReference, MarkdownReferenceKind};
 use crate::sourcepos::sourcepos_to_byte_range;
 use crate::targets::{MarkdownTargetOccurrence, MarkdownTargetOccurrenceKind};
 
+use super::target_scan::extend_loose_markdown_targets;
 use super::types::{
     MarkdownDocumentMetadata, MarkdownHeading, MarkdownStructuralItem, MarkdownStructure,
     MarkdownTask,
@@ -77,6 +78,7 @@ pub(crate) fn parse_markdown_structure(body: &str) -> MarkdownStructure {
         }
     }
     extend_embedded_wikilink_targets(&mut targets, body);
+    extend_loose_markdown_targets(&mut targets, body);
     targets.sort_by_key(|target| target.byte_range.0);
 
     MarkdownStructure {

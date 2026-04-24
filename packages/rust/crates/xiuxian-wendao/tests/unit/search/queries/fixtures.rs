@@ -75,7 +75,7 @@ pub(crate) async fn publish_reference_hits(
             service
                 .local_epoch_parquet_path(SearchCorpusKind::ReferenceOccurrence, lease.epoch)
                 .as_path(),
-            xiuxian_vector::ColumnarScanOptions::default(),
+            xiuxian_db_store::ColumnarScanOptions::default(),
         )
         .await
         .unwrap_or_else(|error| panic!("export parquet: {error}"));

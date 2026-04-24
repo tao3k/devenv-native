@@ -9,7 +9,7 @@ expression: value
   "path": "docs/guide.md",
   "projectDirs": [
     "docs",
-    "internal_skills"
+    "skills"
   ],
   "projectName": "kernel",
   "projectRoot": ".",

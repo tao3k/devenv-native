@@ -16,6 +16,8 @@ async fn run_bpmn_start_command_completes_linear_bundle() {
             checkpoint_backend: None,
             host_fixture_path: None,
             event_fixture_path: None,
+            trace_stream: false,
+            external_host: false,
         }))
         .await,
         "bpmn start should complete linear bundle",

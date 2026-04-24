@@ -109,8 +109,7 @@ async fn migration_check_and_migrate_v1_to_v2() -> Result<()> {
     let reader = RecordBatchIterator::new(vec![Ok(v1_batch)], v1_schema);
     Dataset::write(Box::new(reader), &table_uri_str, None).await?;
 
-    let mut store =
-        VectorStore::new_with_keyword_index(&base_str, Some(4), false, None, None).await?;
+    let mut store = VectorStore::new(&base_str, Some(4)).await?;
 
     let pending = store.check_migrations(table_name).await?;
     assert_eq!(pending.len(), 1, "one pending migration v1→v2");

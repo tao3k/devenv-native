@@ -7,12 +7,13 @@ pub(crate) use std::sync::Arc;
 pub(crate) use std::sync::Arc as StdArc;
 
 pub(crate) use qianji_bpmn_engine::{
-    BpmnAdvanceOutcome, BpmnEventKind, BpmnInstanceState, BpmnPackage, BpmnProcessSpec,
-    BpmnTimerKind, BpmnTimerSpec, BusinessRuleTaskOutcome, BusinessRuleTaskRequest,
-    DmnEvaluationResult, EventPollOutcome, EventPollRequest, HostBridgeError, InstanceLifecycle,
-    ManualTaskOutcome, ManualTaskRequest, PendingHostWorkKind, SendTaskOutcome, SendTaskRequest,
-    ServiceTaskOutcome, ServiceTaskRequest, SuspendReason, UserTaskOutcome, UserTaskRequest,
-    WaitKind,
+    BpmnAdvanceOutcome, BpmnEventKind, BpmnExecutionTraceEvent, BpmnExecutionTraceEventKind,
+    BpmnInstanceState, BpmnNodeKind, BpmnPackage, BpmnProcessSpec, BpmnTimerKind, BpmnTimerSpec,
+    BusinessRuleTaskOutcome, BusinessRuleTaskRequest, DmnEvaluationResult, EventPollOutcome,
+    EventPollRequest, HostBridgeError, InstanceLifecycle, ManualTaskOutcome, ManualTaskRequest,
+    NodeRuntimeStatus, PendingHostWorkKind, PendingHostWorkRequest, SendTaskOutcome,
+    SendTaskRequest, ServiceTaskOutcome, ServiceTaskRequest, SuspendReason, UserTaskOutcome,
+    UserTaskRequest, WaitKind, build_pending_host_work_requests,
 };
 pub(crate) use serde::Deserialize;
 pub(crate) use xiuxian_qianji::runtime_config::QianjiRuntimeEnv;

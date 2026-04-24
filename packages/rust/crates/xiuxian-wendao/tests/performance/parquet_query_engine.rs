@@ -3,11 +3,11 @@ use std::sync::Arc;
 
 use serial_test::file_serial;
 use tempfile::TempDir;
-use xiuxian_testing::{PerfBudget, PerfReport, PerfRunConfig, assert_perf_budget, run_sync_budget};
-use xiuxian_vector::{
+use xiuxian_db_store::{
     LanceDataType, LanceField, LanceRecordBatch, LanceSchema, LanceStringArray, LanceUInt64Array,
     SearchEngineContext, write_lance_batches_to_parquet_file,
 };
+use xiuxian_testing::{PerfBudget, PerfReport, PerfRunConfig, assert_perf_budget, run_sync_budget};
 use xiuxian_wendao::duckdb::{
     DataFusionParquetQueryEngine, DuckDbDatabasePath, ParquetQueryEngine,
     SearchDuckDbExecutionConfig, SearchDuckDbRuntimeConfig,
@@ -129,7 +129,7 @@ fn query_engine_once(
         .map_err(|error| format!("failed to execute parquet perf query: {error}"))?;
     let row_count = batches
         .iter()
-        .map(xiuxian_vector::EngineRecordBatch::num_rows)
+        .map(xiuxian_db_store::EngineRecordBatch::num_rows)
         .sum::<usize>();
     if row_count != EXPECTED_RESULT_ROWS {
         return Err(format!(

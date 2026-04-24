@@ -1,4 +1,4 @@
-use xiuxian_vector::LanceArray;
+use xiuxian_db_store::LanceArray;
 
 use crate::analyzers::RepoOverviewResult;
 use crate::gateway::studio::router::handlers::repo::analysis::overview_flight::{
@@ -26,7 +26,7 @@ fn repo_overview_flight_batch_preserves_summary_fields() {
     };
     let Some(display_name) = display_name_column
         .as_any()
-        .downcast_ref::<xiuxian_vector::LanceStringArray>()
+        .downcast_ref::<xiuxian_db_store::LanceStringArray>()
     else {
         panic!("displayName should be utf8");
     };
@@ -37,7 +37,7 @@ fn repo_overview_flight_batch_preserves_summary_fields() {
     };
     let Some(doc_count) = doc_count_column
         .as_any()
-        .downcast_ref::<xiuxian_vector::LanceInt32Array>()
+        .downcast_ref::<xiuxian_db_store::LanceInt32Array>()
     else {
         panic!("docCount should be int32");
     };

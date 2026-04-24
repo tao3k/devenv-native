@@ -71,21 +71,21 @@ To prevent context bloating and "hallucination spirals," all Agents MUST follow 
 - `$PRJ_ROOT/packages/rust/bindings/python`: PyO3 bridge crate (`xiuxian-core-rs`).
 - `$PRJ_ROOT/packages/python/*`: **Utility Adapters**. Used only as lightweight glue or connectivity tools for external services.
 - `$PRJ_ROOT/.gemini/skills/`: **Gemini-CLI Divine Skills**. High-level cognitive and interactive extensions.
-- `$PRJ_INTERNAL_SKILLS_DIR/`: **Kernel-Level Siddhis (本命神通)** bound directly to Rust logic.
+- `$PRJ_SKILLS_DIR/`: Runtime skill metadata handled by the Wendao parser/runtime boundary.
 
 ## 6. Project Directory Layout (PRJ\_\* Environment Variables)
 
 **Use these directories for all project-local paths.** Do not hardcode paths; use the env vars.
 
-| Environment variable      | Default (relative to project root) | Purpose                                               |
-| ------------------------- | ---------------------------------- | ----------------------------------------------------- |
-| `PRJ_ROOT`                | (git toplevel or explicit set)     | Project root; all other PRJ\_\* paths are under this. |
-| `PRJ_CONFIG_HOME`         | `.config`                          | User and override config.                             |
-| `PRJ_CACHE_HOME`          | `.cache`                           | Cache and ephemeral build artifacts.                  |
-| `PRJ_DATA_HOME`           | `.data`                            | Persistent project data.                              |
-| `PRJ_PATH`                | `.bin`                             | Project-local executables.                            |
-| `PRJ_INTERNAL_SKILLS_DIR` | `internal_skills`                  | Core "Divine Siddhis" metadata.                       |
-| `PRJ_RUNTIME_DIR`         | `.run`                             | Runtime state (logs, PID files, sockets).             |
+| Environment variable | Default (relative to project root) | Purpose                                               |
+| -------------------- | ---------------------------------- | ----------------------------------------------------- |
+| `PRJ_ROOT`           | (git toplevel or explicit set)     | Project root; all other PRJ\_\* paths are under this. |
+| `PRJ_CONFIG_HOME`    | `.config`                          | User and override config.                             |
+| `PRJ_CACHE_HOME`     | `.cache`                           | Cache and ephemeral build artifacts.                  |
+| `PRJ_DATA_HOME`      | `.data`                            | Persistent project data.                              |
+| `PRJ_PATH`           | `.bin`                             | Project-local executables.                            |
+| `PRJ_SKILLS_DIR`     | `skills`                           | Runtime skill metadata.                               |
+| `PRJ_RUNTIME_DIR`    | `.run`                             | Runtime state (logs, PID files, sockets).             |
 
 The table above lists the default repo-relative names. In the refreshed project
 environment (for example after `direnv reload` from `$DEVENV_ROOT` updates

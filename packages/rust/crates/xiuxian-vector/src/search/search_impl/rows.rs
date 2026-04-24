@@ -1,50 +1,14 @@
-use serde::Deserialize;
 use serde_json::Value;
 use xiuxian_types::VectorSearchResult;
-
-use super::f64_to_f32_saturating;
 
 use crate::{
     CONTENT_COLUMN, FILE_PATH_COLUMN, ID_COLUMN, INTENTS_COLUMN, METADATA_COLUMN,
     ROUTING_KEYWORDS_COLUMN, TOOL_NAME_COLUMN, VectorStore, VectorStoreError,
 };
 
-#[derive(Deserialize, Default)]
-struct FtsMetadataRow {
-    #[serde(default)]
-    tool_name: Option<String>,
-    #[serde(default)]
-    skill_name: Option<String>,
-    #[serde(default)]
-    category: Option<String>,
-    #[serde(default)]
-    file_path: Option<String>,
-    #[serde(default)]
-    input_schema: Option<Value>,
-    #[serde(default)]
-    routing_keywords: Vec<String>,
-    #[serde(default)]
-    intents: Vec<String>,
-    #[serde(default)]
-    parameters: Vec<String>,
-}
-
 pub(super) type LanceArrayRef<'a> = Option<&'a std::sync::Arc<dyn lance::deps::arrow_array::Array>>;
 pub(super) type LanceRecordBatch = lance::deps::arrow_array::RecordBatch;
 pub(super) type LanceStringArray = lance::deps::arrow_array::StringArray;
-
-pub(super) struct FtsRowColumns<'a> {
-    pub(super) ids: &'a LanceStringArray,
-    pub(super) contents: &'a LanceStringArray,
-    pub(super) metadata: LanceArrayRef<'a>,
-    pub(super) score: LanceArrayRef<'a>,
-    pub(super) skill_name: LanceArrayRef<'a>,
-    pub(super) category: LanceArrayRef<'a>,
-    pub(super) tool_name: LanceArrayRef<'a>,
-    pub(super) file_path: LanceArrayRef<'a>,
-    pub(super) routing_keywords: LanceArrayRef<'a>,
-    pub(super) intents: LanceArrayRef<'a>,
-}
 
 pub(super) struct VectorRowColumns<'a> {
     pub(super) ids: &'a LanceStringArray,
@@ -55,21 +19,6 @@ pub(super) struct VectorRowColumns<'a> {
     pub(super) file_path: LanceArrayRef<'a>,
     pub(super) routing_keywords: LanceArrayRef<'a>,
     pub(super) intents: LanceArrayRef<'a>,
-}
-
-fn normalize_string_vec(v: Vec<String>) -> Vec<String> {
-    let mut seen = std::collections::HashSet::new();
-    let mut out = Vec::new();
-    for s in v {
-        let t = s.trim();
-        if t.is_empty() {
-            continue;
-        }
-        if seen.insert(t.to_string()) {
-            out.push(t.to_string());
-        }
-    }
-    out
 }
 
 fn parse_metadata_cell(raw: &str) -> Value {
@@ -87,12 +36,7 @@ fn utf8_or_default_at(col: LanceArrayRef<'_>, index: usize) -> String {
         .unwrap_or_default()
 }
 
-fn non_empty_utf8_at(col: LanceArrayRef<'_>, index: usize) -> Option<String> {
-    let value = utf8_or_default_at(col, index);
-    if value.is_empty() { None } else { Some(value) }
-}
-
-pub(super) fn required_lance_string_column<'a>(
+fn required_lance_string_column<'a>(
     batch: &'a LanceRecordBatch,
     column: &str,
     context: &str,
@@ -122,21 +66,6 @@ fn required_lance_f32_column<'a>(
         })
 }
 
-fn parse_fts_metadata_row(metadata_col: LanceArrayRef<'_>, index: usize) -> FtsMetadataRow {
-    use lance::deps::arrow_array::Array as _;
-
-    let Some(col) = metadata_col else {
-        return FtsMetadataRow::default();
-    };
-    let Some(arr) = col.as_any().downcast_ref::<LanceStringArray>() else {
-        return FtsMetadataRow::default();
-    };
-    if arr.is_null(index) {
-        return FtsMetadataRow::default();
-    }
-    serde_json::from_str(arr.value(index)).unwrap_or_default()
-}
-
 fn parse_search_metadata_value(
     metadata_col: LanceArrayRef<'_>,
     index: usize,
@@ -159,25 +88,6 @@ fn parse_search_metadata_value(
         return default;
     }
     parse_metadata_cell(arr.value(index))
-}
-
-fn parse_fts_score(score_col: LanceArrayRef<'_>, index: usize) -> f32 {
-    let Some(col) = score_col else {
-        return 0.0;
-    };
-    if let Some(arr) = col
-        .as_any()
-        .downcast_ref::<lance::deps::arrow_array::Float32Array>()
-    {
-        arr.value(index)
-    } else if let Some(arr) = col
-        .as_any()
-        .downcast_ref::<lance::deps::arrow_array::Float64Array>()
-    {
-        f64_to_f32_saturating(arr.value(index))
-    } else {
-        0.0
-    }
 }
 
 fn metadata_array_to_joined(metadata: &Value, key: &str, separator: &str) -> String {
@@ -336,71 +246,4 @@ pub(super) fn extract_vector_row_columns(
         routing_keywords: batch.column_by_name(ROUTING_KEYWORDS_COLUMN),
         intents: batch.column_by_name(INTENTS_COLUMN),
     })
-}
-
-pub(super) fn build_fts_result_row(
-    index: usize,
-    columns: &FtsRowColumns<'_>,
-) -> crate::skill::ToolSearchResult {
-    let metadata = parse_fts_metadata_row(columns.metadata, index);
-    let score = parse_fts_score(columns.score, index);
-    let id_str = columns.ids.value(index).to_string();
-
-    let tool_name = non_empty_utf8_at(columns.tool_name, index)
-        .or_else(|| metadata.tool_name.clone().filter(|value| !value.is_empty()))
-        .unwrap_or_else(|| id_str.clone());
-
-    let skill_name_raw = utf8_or_default_at(columns.skill_name, index);
-    let skill_name = if skill_name_raw.is_empty() {
-        metadata
-            .skill_name
-            .clone()
-            .filter(|value| !value.is_empty())
-            .unwrap_or_else(|| tool_name.split('.').next().unwrap_or("").to_string())
-    } else {
-        skill_name_raw
-    };
-
-    let category_raw = utf8_or_default_at(columns.category, index);
-    let category = if category_raw.is_empty() {
-        metadata
-            .category
-            .clone()
-            .filter(|value| !value.is_empty())
-            .unwrap_or_else(|| skill_name.clone())
-    } else {
-        category_raw
-    };
-
-    let keywords = non_empty_utf8_at(columns.routing_keywords, index).map_or_else(
-        || normalize_string_vec(metadata.routing_keywords.clone()),
-        |value| normalize_string_vec(value.split_whitespace().map(String::from).collect()),
-    );
-    let intents = non_empty_utf8_at(columns.intents, index).map_or_else(
-        || normalize_string_vec(metadata.intents.clone()),
-        |value| normalize_string_vec(value.split(" | ").map(String::from).collect()),
-    );
-    let file_path = non_empty_utf8_at(columns.file_path, index)
-        .unwrap_or_else(|| metadata.file_path.unwrap_or_default());
-
-    let input_schema = metadata.input_schema.as_ref().map_or_else(
-        || serde_json::json!({}),
-        crate::skill::normalize_input_schema_value,
-    );
-
-    crate::skill::ToolSearchResult {
-        name: id_str,
-        description: columns.contents.value(index).to_string(),
-        input_schema,
-        score,
-        vector_score: Some(score),
-        keyword_score: None,
-        skill_name,
-        tool_name,
-        file_path,
-        routing_keywords: keywords,
-        intents,
-        category,
-        parameters: metadata.parameters,
-    }
 }

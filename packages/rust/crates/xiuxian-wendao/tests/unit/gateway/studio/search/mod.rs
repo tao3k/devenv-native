@@ -81,7 +81,7 @@ fn make_state_with_docs(docs: Vec<(&str, &str)>) -> StudioStateFixture {
                 ".".to_string(),
                 "packages".to_string(),
                 ".data".to_string(),
-                "internal_skills".to_string(),
+                "skills".to_string(),
             ],
         }],
         repo_projects: Vec::new(),

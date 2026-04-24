@@ -1,0 +1,17 @@
+{
+  "fast_catalog": {
+    "intended_manifests": [
+      "wendao://skills/agenda/references/add/qianji.toml",
+      "wendao://skills/agenda/references/missing/qianji.toml"
+    ]
+  },
+  "slow_catalog": {
+    "intended_manifests": [
+      "wendao://skills/agenda/references/add/qianji.toml",
+      "wendao://skills/agenda/references/missing/qianji.toml"
+    ]
+  },
+  "catalogs_match": true,
+  "authority_match": true,
+  "scan_match": true
+}

@@ -3,7 +3,6 @@
 //! These tests ensure that:
 //! 1. Dataset creation works correctly even with pre-existing empty directories
 //! 2. `drop_table` properly cleans up Lance-backed table data
-//! 3. Reindex workflows rebuild the Lance FTS surface after dropping tables
 
 use anyhow::Result;
 use xiuxian_vector::VectorStore;
@@ -206,77 +205,6 @@ async fn test_recreate_after_empty_directory() -> Result<()> {
         has_lance_data(&db_path),
         "Directory should now contain LanceDB data"
     );
-
-    Ok(())
-}
-
-#[tokio::test]
-async fn test_reindex_after_drop_rebuilds_fts_index() -> Result<()> {
-    // Regression test: ensure drop_table removes the table and a later write
-    // rebuilds the Lance FTS surface from table data.
-    let temp_dir = tempfile::tempdir()?;
-    let db_path = temp_dir.path().join("test_reindex_kw");
-
-    let db_path_str = db_path.to_string_lossy();
-    let mut store =
-        VectorStore::new_with_keyword_index(db_path_str.as_ref(), Some(1536), true, None, None)
-            .await?;
-
-    // Add initial documents
-    store
-        .add_documents(
-            "skills",
-            vec!["tool1".to_string()],
-            vec![vec![0.1; 1536]],
-            vec!["Initial tool description".to_string()],
-            vec![r#"{"skill_name": "test", "tool_name": "test_tool1", "command": "tool1", "keywords": ["test"], "intents": []}"#.to_string()],
-        )
-        .await?;
-
-    // Verify LanceDB table directory has data (skills.lance)
-    let lance_path = db_path.join("skills.lance");
-    assert!(
-        has_lance_data(&lance_path),
-        "LanceDB directory should have data after add_documents"
-    );
-    assert!(
-        store.has_fts_index("skills").await?,
-        "FTS index should exist after add_documents when keyword search is enabled"
-    );
-
-    store.drop_table("skills").await?;
-
-    assert!(
-        !lance_path.exists(),
-        "LanceDB directory should be removed after drop"
-    );
-
-    let store2 =
-        VectorStore::new_with_keyword_index(db_path_str.as_ref(), Some(1536), true, None, None)
-            .await?;
-
-    store2
-        .add_documents(
-            "skills",
-            vec!["tool2".to_string()],
-            vec![vec![0.2; 1536]],
-            vec!["New tool description".to_string()],
-            vec![r#"{"skill_name": "new", "tool_name": "new_tool2", "command": "tool2", "keywords": ["new"], "intents": []}"#.to_string()],
-        )
-        .await?;
-
-    // Verify LanceDB data exists again
-    assert!(
-        has_lance_data(&lance_path),
-        "LanceDB directory should have data after reindex"
-    );
-    assert!(
-        store2.has_fts_index("skills").await?,
-        "FTS index should be rebuilt after reindex with a new store"
-    );
-
-    let count = store2.count("skills").await?;
-    assert_eq!(count, 1, "Should have added one document after reindex");
 
     Ok(())
 }

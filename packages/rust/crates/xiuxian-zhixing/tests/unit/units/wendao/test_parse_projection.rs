@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use tempfile::tempdir;
 use xiuxian_wendao::graph::KnowledgeGraph;
-use xiuxian_wendao::skill_vfs::zhixing::{ZhixingIndexSummary, ZhixingWendaoIndexer};
+use xiuxian_wendao::skill_runtime::zhixing::{ZhixingIndexSummary, ZhixingWendaoIndexer};
 use xiuxian_zhixing::{ATTR_JOURNAL_CARRYOVER, ATTR_TIMER_REMINDED, ATTR_TIMER_SCHEDULED};
 
 fn run_agenda_index(

@@ -1,5 +1,5 @@
 use super::wendao_uri::resolve_wendao_uri_with_zhenfa;
-use xiuxian_wendao::skill_vfs::embedded_discover_canonical_uris;
+use xiuxian_wendao::embedded_discover_canonical_uris;
 
 /// Attempts to resolve one semantic query into URI hits and returns aggregated
 /// XML-Lite payload when any hit is found.

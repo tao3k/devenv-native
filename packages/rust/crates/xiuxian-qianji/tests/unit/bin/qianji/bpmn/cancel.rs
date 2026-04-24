@@ -22,6 +22,8 @@ async fn run_bpmn_cancel_command_deletes_waiting_sqlite_checkpoint() {
             checkpoint_backend: Some(BpmnCliCheckpointBackend::Sqlite(sqlite_path.clone())),
             host_fixture_path: None,
             event_fixture_path: None,
+            trace_stream: false,
+            external_host: false,
         }))
         .await,
         "fresh bpmn run should seed the waiting checkpoint for cancel",

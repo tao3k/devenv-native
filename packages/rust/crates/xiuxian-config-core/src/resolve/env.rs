@@ -131,12 +131,8 @@ impl ImportPathContext {
             "PRJ_PATH" => env_path(variable)
                 .or_else(|| self.project_root.as_ref().map(|root| root.join(".bin")))
                 .map(|path| path_to_string(path.as_path())),
-            "PRJ_INTERNAL_SKILLS_DIR" => env_path(variable)
-                .or_else(|| {
-                    self.project_root
-                        .as_ref()
-                        .map(|root| root.join("internal_skills"))
-                })
+            "PRJ_SKILLS_DIR" => env_path(variable)
+                .or_else(|| self.project_root.as_ref().map(|root| root.join("skills")))
                 .map(|path| path_to_string(path.as_path())),
             _ => std::env::var(variable)
                 .ok()

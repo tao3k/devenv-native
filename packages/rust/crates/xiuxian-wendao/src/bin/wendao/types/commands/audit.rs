@@ -21,4 +21,8 @@ pub(crate) struct AuditArgs {
     /// Output format.
     #[arg(long, default_value = "xml")]
     pub output_format: String,
+
+    /// Episteme repository directory or episteme.toml file to load.
+    #[arg(long, value_name = "EPISTEME")]
+    pub load: Option<String>,
 }

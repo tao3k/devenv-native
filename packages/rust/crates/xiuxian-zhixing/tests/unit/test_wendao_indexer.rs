@@ -6,7 +6,7 @@ use std::sync::Arc;
 use tempfile::tempdir;
 use xiuxian_wendao::entity::{Entity, Relation, RelationType};
 use xiuxian_wendao::graph::KnowledgeGraph;
-use xiuxian_wendao::skill_vfs::zhixing::ZhixingWendaoIndexer;
+use xiuxian_wendao::skill_runtime::zhixing::ZhixingWendaoIndexer;
 use xiuxian_wendao::sync::IncrementalSyncPolicy;
 use xiuxian_zhixing::ATTR_JOURNAL_CARRYOVER;
 use xiuxian_zhixing::ATTR_TIMER_REMINDED;

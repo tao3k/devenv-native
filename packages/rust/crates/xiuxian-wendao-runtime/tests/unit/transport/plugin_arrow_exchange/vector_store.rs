@@ -10,7 +10,7 @@ async fn prepare_plugin_arrow_request_rows_from_vector_store_collects_embeddings
     let temp_dir = tempdir_or_panic();
     let db_path = temp_dir.path().join("plugin_arrow_prepare_rows");
     let db_path_str = db_path.to_string_lossy();
-    let mut store = xiuxian_vector::VectorStore::new(db_path_str.as_ref(), Some(3))
+    let mut store = xiuxian_db_store::VectorStore::new(db_path_str.as_ref(), Some(3))
         .await
         .unwrap_or_else(|error| panic!("create vector store: {error}"));
     store
@@ -57,7 +57,7 @@ async fn build_plugin_arrow_request_batch_from_vector_store_with_metadata_sets_t
     let temp_dir = tempdir_or_panic();
     let db_path = temp_dir.path().join("plugin_arrow_prepare_metadata");
     let db_path_str = db_path.to_string_lossy();
-    let mut store = xiuxian_vector::VectorStore::new(db_path_str.as_ref(), Some(3))
+    let mut store = xiuxian_db_store::VectorStore::new(db_path_str.as_ref(), Some(3))
         .await
         .unwrap_or_else(|error| panic!("create vector store: {error}"));
     store
@@ -98,7 +98,7 @@ async fn prepare_plugin_arrow_request_rows_from_vector_store_rejects_missing_emb
     let temp_dir = tempdir_or_panic();
     let db_path = temp_dir.path().join("plugin_arrow_prepare_missing");
     let db_path_str = db_path.to_string_lossy();
-    let mut store = xiuxian_vector::VectorStore::new(db_path_str.as_ref(), Some(3))
+    let mut store = xiuxian_db_store::VectorStore::new(db_path_str.as_ref(), Some(3))
         .await
         .unwrap_or_else(|error| panic!("create vector store: {error}"));
     store

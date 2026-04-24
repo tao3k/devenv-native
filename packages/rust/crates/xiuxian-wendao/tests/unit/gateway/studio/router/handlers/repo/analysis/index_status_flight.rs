@@ -1,6 +1,6 @@
 #[cfg(feature = "duckdb")]
 use crate::duckdb::LocalRelationEngineKind;
-use xiuxian_vector::LanceArray;
+use xiuxian_db_store::LanceArray;
 
 #[cfg(feature = "duckdb")]
 use crate::gateway::studio::router::handlers::repo::analysis::index_status_flight::configured_repo_index_status_diagnostics_engine_kind;
@@ -65,7 +65,7 @@ fn repo_index_status_flight_batch_preserves_summary_fields() {
     };
     let Some(ready) = ready_column
         .as_any()
-        .downcast_ref::<xiuxian_vector::LanceInt32Array>()
+        .downcast_ref::<xiuxian_db_store::LanceInt32Array>()
     else {
         panic!("ready should be int32");
     };
@@ -76,7 +76,7 @@ fn repo_index_status_flight_batch_preserves_summary_fields() {
     };
     let Some(repos_json) = repos_json_column
         .as_any()
-        .downcast_ref::<xiuxian_vector::LanceStringArray>()
+        .downcast_ref::<xiuxian_db_store::LanceStringArray>()
     else {
         panic!("reposJson should be utf8");
     };

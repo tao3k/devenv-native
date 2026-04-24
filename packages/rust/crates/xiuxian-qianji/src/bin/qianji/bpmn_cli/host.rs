@@ -139,6 +139,7 @@ fn builder_for_bpmn_cli_host_fixture(
 ) -> QianjiBpmnHostBridgeBuilder {
     let send = StdArc::new(fixture.send);
     let service = StdArc::new(fixture.service);
+    let service_by_token = StdArc::new(fixture.service_by_token);
     let user = StdArc::new(fixture.user);
     let manual = StdArc::new(fixture.manual);
     let business_rule = StdArc::new(fixture.business_rule);
@@ -152,6 +153,7 @@ fn builder_for_bpmn_cli_host_fixture(
         .on_service_task(service_task_fixture_handler(
             StdArc::clone(&node_ids),
             process_id.to_string(),
+            service_by_token,
             service,
         ))
         .on_user_task(user_task_fixture_handler(
@@ -196,6 +198,7 @@ fn send_task_fixture_handler(
 fn service_task_fixture_handler(
     node_ids: StdArc<Vec<String>>,
     process_id: String,
+    token_fixture: StdArc<BTreeMap<String, BpmnCliHostDataFixture>>,
     fixture: StdArc<BTreeMap<String, BpmnCliHostDataFixture>>,
 ) -> impl Fn(ServiceTaskRequest) -> Ready<Result<ServiceTaskOutcome, HostBridgeError>>
 + Send
@@ -203,11 +206,12 @@ fn service_task_fixture_handler(
 + 'static {
     move |request| {
         ready(
-            resolve_bpmn_cli_host_data_fixture(
+            resolve_bpmn_cli_service_task_fixture(
                 node_ids.as_slice(),
                 &process_id,
+                request.token_id,
                 request.node_index,
-                "service_tasks",
+                token_fixture.as_ref(),
                 fixture.as_ref(),
             )
             .map(|entry| ServiceTaskOutcome {
@@ -215,6 +219,21 @@ fn service_task_fixture_handler(
             }),
         )
     }
+}
+
+fn resolve_bpmn_cli_service_task_fixture<'a>(
+    node_ids: &'a [String],
+    process_id: &str,
+    token_id: u64,
+    node_index: u32,
+    token_fixture: &'a BTreeMap<String, BpmnCliHostDataFixture>,
+    fixture: &'a BTreeMap<String, BpmnCliHostDataFixture>,
+) -> Result<&'a BpmnCliHostDataFixture, HostBridgeError> {
+    let token_key = token_id.to_string();
+    if let Some(entry) = token_fixture.get(&token_key) {
+        return Ok(entry);
+    }
+    resolve_bpmn_cli_host_data_fixture(node_ids, process_id, node_index, "service_tasks", fixture)
 }
 
 fn user_task_fixture_handler(

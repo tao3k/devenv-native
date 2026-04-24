@@ -2,7 +2,7 @@
 name = "xiuxian-db-store"
 version.workspace = true
 edition.workspace = true
-description = "Bounded database storage surface for xiuxian-vector and lightweight client stores"
+description = "Bounded database storage facade for Lance and lightweight client stores"
 authors = ["CyberXiuXian Artisan workshop"]
 license = "Apache-2.0"
 publish = false

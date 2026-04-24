@@ -99,7 +99,7 @@ python3Packages.buildPythonPackage {
     description = "Rust core bindings for Omni DevEnv Fusion";
     longDescription = ''
       High-performance Rust bindings providing core functionality for Omni DevEnv:
-      - xiuxian-vector: Vector database with LanceDB
+      - xiuxian-db-store / Lance vector-store facade: multimodal storage boundary
       - xiuxian-tags: Tag extraction
       - xiuxian-edit: Structural code editing
       - xiuxian-security: Security scanning

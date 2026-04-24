@@ -12,7 +12,7 @@
 
 `OpenAiCompatibleSemanticIgnition` extends Wendao's hybrid retrieval ignition
 layer to accept query text and resolve vectors from an OpenAI-compatible
-`/v1/embeddings` endpoint before searching `xiuxian-vector`.
+`/v1/embeddings` endpoint before searching the Lance vector-store facade.
 
 The adapter is designed for real gateway environments (for example local GLM
 gateway deployments) without changing the Arrow-native fusion and scoring
@@ -30,6 +30,8 @@ pipeline.
 ## Runtime Notes
 
 - The adapter is additive and does not replace `VectorStoreSemanticIgnition`.
+- Telemetry reports the storage detail as `lance-vector-store` instead of the
+  retiring `xiuxian-vector` crate name.
 - Authentication can be injected by supplying a custom `reqwest::Client` with
   default headers through `with_embedding_client(...)`.
 - The embedding endpoint base URL is normalized through

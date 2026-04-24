@@ -22,6 +22,8 @@ async fn run_bpmn_status_command_renders_waiting_sqlite_checkpoint() {
             checkpoint_backend: Some(BpmnCliCheckpointBackend::Sqlite(sqlite_path.clone())),
             host_fixture_path: None,
             event_fixture_path: None,
+            trace_stream: false,
+            external_host: false,
         }))
         .await,
         "waiting bpmn run should save one sqlite checkpoint for status",

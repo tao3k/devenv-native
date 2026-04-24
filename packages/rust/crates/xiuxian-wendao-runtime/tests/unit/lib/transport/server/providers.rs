@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
-use xiuxian_vector::{
+use xiuxian_db_store::{
     LanceBooleanArray, LanceDataType, LanceField, LanceFloat64Array, LanceInt32Array,
     LanceRecordBatch, LanceSchema, LanceStringArray as StringArray,
 };

@@ -64,7 +64,7 @@ Current consumers over this contract are:
 3. `link_graph_refs`, which reduces parser-owned addressed targets into
    `LinkGraphEntityRef` rows and keeps its own deduplication and local-only
    skip rules
-4. `skill_vfs::internal_manifest::authority`, which only consumes the
+4. `skill_runtime::manifest::authority`, which only consumes the
    cross-document `target` part when checking manifest intents
 
 Wendao-owned relation-target parsing still uses a different domain contract

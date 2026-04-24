@@ -1,4 +1,4 @@
-use xiuxian_vector::{LanceArray, LanceStringArray};
+use xiuxian_db_store::{LanceArray, LanceStringArray};
 
 use crate::analyzers::RefineEntityDocResponse;
 use crate::gateway::studio::router::handlers::repo::analysis::refine_doc_flight::{

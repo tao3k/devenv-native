@@ -109,7 +109,7 @@ pub mod enhancer;
 pub mod gateway;
 pub mod ingress;
 pub mod link_graph_refs;
-pub mod skill_vfs;
+pub mod skill_runtime;
 #[cfg(feature = "repo-lexical-index")]
 pub mod unified_symbol;
 /// High-level search router for integrating multiple backends.
@@ -225,12 +225,12 @@ pub use search::{
 pub use search::{
     SearchDocument, SearchDocumentFields, SearchDocumentIndex, TantivyDocumentMatch, TantivyMatcher,
 };
-pub use skill_vfs::{
+pub use skill_runtime::{
     ATTR_JOURNAL_CARRYOVER, ATTR_TIMER_REMINDED, ATTR_TIMER_SCHEDULED, AssetRequest,
-    InternalSkillManifest, InternalSkillWorkflowType, SkillNamespaceIndex, SkillNamespaceMount,
-    SkillVfsError, SkillVfsResolver, WendaoAssetHandle, ZHIXING_SKILL_DOC_PATH,
-    ZhixingIndexSummary, ZhixingWendaoIndexer, build_embedded_wendao_registry,
-    embedded_discover_canonical_uris, embedded_resource_text,
+    SkillInventory, SkillInventoryMount, SkillManifest, SkillNamespaceIndex, SkillNamespaceMount,
+    SkillRuntimeError, SkillRuntimeResolver, SkillWorkflowType, WendaoAssetHandle,
+    ZHIXING_SKILL_DOC_PATH, ZhixingIndexSummary, ZhixingWendaoIndexer,
+    build_embedded_wendao_registry, embedded_discover_canonical_uris, embedded_resource_text,
     embedded_resource_text_from_wendao_uri, embedded_skill_links_for_id,
     embedded_skill_links_for_reference_type, embedded_skill_links_index, embedded_skill_markdown,
 };

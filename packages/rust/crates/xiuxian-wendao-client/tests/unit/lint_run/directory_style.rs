@@ -13,15 +13,15 @@ fn lint_reports_directory_link_style_mismatch_with_precise_rewrite_guidance() ->
     )?;
     std::fs::write(
         temp.path().join("docs/guide-one.md"),
-        "# Guide One\nSee [[index|Documentation Index]].\n",
+        "---\ntitle: Guide One\n---\n# Guide One\nSee [[index|Documentation Index]].\n",
     )?;
     std::fs::write(
         temp.path().join("docs/guide-two.md"),
-        "# Guide Two\nSee [[index|Documentation Index]].\n",
+        "---\ntitle: Guide Two\n---\n# Guide Two\nSee [[index|Documentation Index]].\n",
     )?;
     std::fs::write(
         temp.path().join("docs/guide-three.md"),
-        "# Guide Three\nSee [Documentation Index](index.md).\n",
+        "---\ntitle: Guide Three\n---\n# Guide Three\nSee [Documentation Index](index.md).\n",
     )?;
 
     let (status, stdout) = run_markdown_lint(&temp, Some("docs"))?;
@@ -61,11 +61,11 @@ fn lint_reports_directory_link_style_ambiguity_when_no_local_style_dominates() -
     )?;
     std::fs::write(
         temp.path().join("notes/obsidian.md"),
-        "# Obsidian\nSee [[index|Notes Index]].\n",
+        "---\ntitle: Obsidian\n---\n# Obsidian\nSee [[index|Notes Index]].\n",
     )?;
     std::fs::write(
         temp.path().join("notes/markdown.md"),
-        "# Markdown\nSee [Notes Index](index.md).\n",
+        "---\ntitle: Markdown\n---\n# Markdown\nSee [Notes Index](index.md).\n",
     )?;
 
     let (status, stdout) = run_markdown_lint(&temp, Some("notes"))?;

@@ -1,6 +1,5 @@
 //! Administrative and maintenance operations for `VectorStore`.
 
-mod agentic;
 mod cache;
 pub mod column_read;
 mod columnar;
@@ -14,7 +13,6 @@ mod types;
 mod vector_index;
 
 pub use crate::ScalarIndexType;
-pub use agentic::{AgenticSearchConfig, QueryIntent};
 pub use cache::{DatasetCache, DatasetCacheConfig};
 pub use column_read::{get_intents_at, get_routing_keywords_at, get_utf8_at};
 pub use columnar::ColumnarScanOptions;

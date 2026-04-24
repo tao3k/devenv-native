@@ -38,7 +38,7 @@ It must not own:
 2. Flight/DataFusion client or server execution
 3. graph or retrieval algorithms
 4. parser implementation
-5. `xiuxian-vector`-backed execution logic
+5. storage-facade-backed execution logic
 
 ### `xiuxian-wendao-runtime`
 
@@ -92,7 +92,7 @@ It owns:
 2. graph algorithms, traversal, PPR, saliency, and relation semantics
 3. parser implementation for general Wendao document or code understanding
 4. search, retrieval, fusion, and storage semantics
-5. `xiuxian-vector`-backed domain retrieval behavior
+5. domain retrieval behavior backed by the storage facade
 6. business-domain services and transitional compatibility seams
 
 It must not become the long-term owner of:
@@ -127,10 +127,12 @@ The same data-plane stack splits across layers.
 - session bootstrap and query execution glue -> `runtime`
 - Wendao query semantics and business planning -> `wendao`
 
-### `xiuxian-vector`
+### Lance Vector-Store Facade
 
-If a component depends on `xiuxian-vector` to execute retrieval semantics, it
-is no longer a pure contract.
+If a component depends on Lance vector-store execution semantics, it is no
+longer a pure contract. Active Wendao callers should use `xiuxian-db-store` as
+the storage facade instead of depending on the retiring `xiuxian-vector` crate
+directly.
 
 That code belongs in:
 
@@ -149,7 +151,7 @@ retrieves knowledge.
 
 The canonical implementation home for parser families is the crate-root
 `src/parsers/{cargo,graph,markdown,link_graph,search,zhixing,...}` namespace.
-`link_graph`, `dependency_indexer`, `skill_vfs`, and other subsystems may
+`link_graph`, `dependency_indexer`, `skill_runtime`, and other subsystems may
 consume parser services, but they do not own parallel parser namespaces.
 That canonical parser stack also owns semantic markdown frontmatter parsing,
 the `NoteFrontmatter` contract consumed by enhancement and skill-discovery
@@ -191,11 +193,28 @@ this surface now lives under `src/parsers/markdown/references/`. The narrower
 ordinary-wikilink subset still lives under `src/parsers/markdown/wikilinks/`
 for consumers that only need `[[...]]` topology links. `link_graph_refs` and
 docs-governance consume that wikilink subset instead of owning local scanners,
-while `skill_vfs::internal_manifest::authority` now consumes the shared
+while `skill_runtime::manifest::authority` now consumes the shared
 reference parser so `SKILL.md` ordinary Markdown links and ordinary wikilinks
 follow the same parser-owned contract. The parser and enhancer PyO3 wrappers
 for these surfaces were retired so the Rust contract can evolve directly
 without duplicate binding compatibility work.
+
+`skill_runtime` is now tightening around a clearer inventory/resolver split.
+Parser-owned code discovers canonical `SKILL.md` documents, while the
+runtime-side inventory layer consumes that discovery surface and preloads
+semantic mounts. Its runtime path stays intentionally lenient: missing
+frontmatter still falls back to the skill directory name, while invalid YAML
+fails resolver bootstrap. The stricter lint-only `metadata:` requirement
+remains a separate parser-owned authoring contract and is not imposed on
+runtime resolver indexing. The older `skill_runtime::index` naming is now treated
+as a compatibility alias, not the architectural target.
+
+The skill manifest data model is now also Wendao-owned for the local runtime
+path: manifest loading, workflow-type parsing, manifest scans,
+authority reporting, native-alias compilation, and schema resources all live
+under Wendao-owned `skill_runtime` / `resources` surfaces. Daochang consumes the
+compiled native-alias contract from Wendao rather than importing a separate
+skills crate.
 
 Only their stable plugin-facing contracts should move to `core`.
 

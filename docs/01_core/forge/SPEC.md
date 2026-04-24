@@ -51,7 +51,7 @@ All harvested failure data passes through the **`resolve_and_wash`** interface:
 
 ### 3.3 Persona Mounting
 
-The synthesized output (MD/TOML) is dynamically mounted into the **VFS** via the `SkillVfsResolver`, allowing the Agent to possess the new soul in the very next session.
+The synthesized output (MD/TOML) is dynamically mounted into the skill runtime via the `SkillRuntimeResolver`, allowing the Agent to possess the new soul in the very next session.
 
 ## 4. The Soul-Synthesis Flow (Self-Correction TOML)
 

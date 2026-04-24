@@ -52,7 +52,7 @@ The implementation is comrak-backed and parser-owned:
 
 ## Consumer Boundary
 
-`skill_vfs::internal_manifest::authority` consumes this parser surface:
+`skill_runtime::manifest::authority` consumes this parser surface:
 
 1. `SKILL.md` manifest intents now use the same parser-owned Markdown
    reference contract as ordinary Markdown documents
@@ -73,7 +73,7 @@ Coverage for this contract lives in:
 1. `packages/rust/crates/xiuxian-wendao-parsers/tests/unit/references.rs`
 2. `tests/unit/parsers/markdown/references.rs`
 3. `tests/snapshots/parser/markdown/references.json`
-4. `src/skill_vfs/internal_manifest/tests.rs`
+4. `src/skill_runtime/manifest/tests.rs`
 
 :RELATIONS:
 :LINKS: [[02_parser/index|Wendao Parser Docs]], [[02_parser/architecture|Parser Architecture]], [[02_parser/addressed_target|Parser Addressed Target]], [[02_parser/wikilinks|Parser Wikilinks]], [[01_core/103_package_layering|Wendao Package Layering]]

@@ -12,6 +12,8 @@
 mod checks;
 #[path = "semantic_check/core.rs"]
 mod core;
+#[path = "semantic_check/episteme.rs"]
+mod episteme;
 #[path = "semantic_check/report.rs"]
 mod report;
 #[path = "semantic_check/types.rs"]
@@ -24,6 +26,7 @@ pub mod docs_governance;
 pub mod test_api;
 
 pub use core::{WendaoSemanticCheckTool, run_audit_core, wendao_semantic_check};
+pub use episteme::{EpistemeLoadReport, EpistemePolicyQueryReport};
 pub use types::{
     CheckType, FileAuditReport, FuzzySuggestionData, HashReference, IssueLocation, NodeStatus,
     SemanticCheckResult, SemanticIssue, WendaoSemanticCheckArgs,
@@ -34,6 +37,8 @@ pub(crate) use test_api::SourceFile;
 
 #[cfg(test)]
 pub(crate) use test_api::check_code_observations;
+#[cfg(test)]
+pub(crate) use test_api::format_result_as_xml;
 #[cfg(test)]
 pub(crate) use test_api::{build_file_reports, issue_type_to_code, xml_escape};
 #[cfg(test)]

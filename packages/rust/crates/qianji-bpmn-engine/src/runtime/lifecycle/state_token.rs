@@ -1,7 +1,8 @@
 use super::token_cursor::{TokenIdAllocator, allocate_token_id};
 use crate::runtime::lifecycle::scope::{
-    BpmnEngineError, BpmnInstanceState, BpmnNodeIndex, BpmnNodeKind, BpmnProcessSpec,
-    InclusiveJoinHint, InstanceLifecycle, NodeRuntimeStatus, Result, TokenRecord,
+    BpmnEngineError, BpmnExecutionTraceEvent, BpmnExecutionTraceEventKind, BpmnInstanceState,
+    BpmnNodeIndex, BpmnNodeKind, BpmnProcessSpec, InclusiveJoinHint, InstanceLifecycle,
+    NodeRuntimeStatus, Result, TokenRecord,
 };
 
 pub(crate) fn find_single_start_node(process: &BpmnProcessSpec) -> Result<BpmnNodeIndex> {
@@ -30,6 +31,10 @@ pub(crate) fn set_active_node_index(
     incoming_edge_index: u32,
     node_index: BpmnNodeIndex,
 ) {
+    let token_exists = instance.active_tokens.get(token_index).is_some();
+    if token_exists {
+        push_flow_take_trace(instance, incoming_edge_index, node_index);
+    }
     if let Some(token) = instance.active_tokens.get_mut(token_index) {
         token.node_index = node_index;
         token.incoming_edge_index = Some(incoming_edge_index);
@@ -138,6 +143,9 @@ fn push_active_token_with_metadata_and_id(
     inclusive_join_hint: Option<InclusiveJoinHint>,
     token_id: u64,
 ) -> u64 {
+    if let Some(edge_index) = incoming_edge_index {
+        push_flow_take_trace(instance, edge_index, node_index);
+    }
     instance.active_tokens.push(TokenRecord {
         token_id,
         node_index,
@@ -174,8 +182,18 @@ pub(crate) fn set_node_status(
     node_index: BpmnNodeIndex,
     status: NodeRuntimeStatus,
 ) {
-    if let Some(node_state) = instance.node_states.get_mut(node_index as usize) {
-        node_state.status = status;
+    let changed = if let Some(node_state) = instance.node_states.get_mut(node_index as usize) {
+        if node_state.status == status {
+            false
+        } else {
+            node_state.status = status.clone();
+            true
+        }
+    } else {
+        false
+    };
+    if changed {
+        push_node_status_trace(instance, node_index, status);
     }
 }
 
@@ -230,4 +248,40 @@ pub(crate) fn clear_boundary_wait_for_node(
     instance
         .waits
         .retain(|wait| wait.blocking_node_index != Some(node_index));
+}
+
+fn push_node_status_trace(
+    instance: &mut BpmnInstanceState,
+    node_index: BpmnNodeIndex,
+    status: NodeRuntimeStatus,
+) {
+    instance.trace.push(BpmnExecutionTraceEvent {
+        sequence: next_trace_sequence(instance),
+        process: instance.process.clone(),
+        kind: BpmnExecutionTraceEventKind::NodeStatus,
+        node_index: Some(node_index),
+        edge_index: None,
+        status: Some(status),
+    });
+}
+
+fn push_flow_take_trace(
+    instance: &mut BpmnInstanceState,
+    edge_index: u32,
+    target_node_index: BpmnNodeIndex,
+) {
+    instance.trace.push(BpmnExecutionTraceEvent {
+        sequence: next_trace_sequence(instance),
+        process: instance.process.clone(),
+        kind: BpmnExecutionTraceEventKind::FlowTake,
+        node_index: Some(target_node_index),
+        edge_index: Some(edge_index),
+        status: None,
+    });
+}
+
+fn next_trace_sequence(instance: &BpmnInstanceState) -> u64 {
+    u64::try_from(instance.trace.len())
+        .unwrap_or(u64::MAX)
+        .saturating_add(1)
 }

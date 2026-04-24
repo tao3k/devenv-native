@@ -2,8 +2,9 @@ use super::backend::QianjiBpmnCheckpointStore;
 use super::driver::{QianjiBpmnExecutionDriver, QianjiBpmnExecutionReport};
 use super::error::BpmnOrchestrationError;
 use super::ownership::QianjiBpmnSchedulerLeaseConfig;
+use super::session::QianjiBpmnSession;
 use crate::scheduler::SchedulerAgentIdentity;
-use qianji_bpmn_engine::{BpmnHostBridge, BpmnPackage};
+use qianji_bpmn_engine::{BpmnExecutionTraceEvent, BpmnHostBridge, BpmnPackage};
 use std::sync::Arc;
 
 use super::driver::QianjiBpmnExecutionRequest;
@@ -79,6 +80,34 @@ impl QianjiBpmnExecutionScheduler {
     ) -> Result<QianjiBpmnExecutionReport, BpmnOrchestrationError> {
         self.driver
             .run_with_scheduler_lifecycle(request, host, self.checkpoint_lease.as_ref())
+            .await
+    }
+
+    /// Runs the BPMN session with scheduler-style checkpoint lifecycle while
+    /// reporting newly produced trace events after each runtime step.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`BpmnOrchestrationError`] when session creation/resume fails,
+    /// when the host cannot service BPMN work, or when checkpoint persistence
+    /// or cleanup fails.
+    pub async fn run_with_trace_observer<H, F>(
+        &self,
+        request: &QianjiBpmnExecutionRequest,
+        host: &H,
+        trace_observer: F,
+    ) -> Result<QianjiBpmnExecutionReport, BpmnOrchestrationError>
+    where
+        H: BpmnHostBridge,
+        F: FnMut(&QianjiBpmnSession, &[BpmnExecutionTraceEvent]),
+    {
+        self.driver
+            .run_with_scheduler_lifecycle_and_trace_observer(
+                request,
+                host,
+                self.checkpoint_lease.as_ref(),
+                trace_observer,
+            )
             .await
     }
 }

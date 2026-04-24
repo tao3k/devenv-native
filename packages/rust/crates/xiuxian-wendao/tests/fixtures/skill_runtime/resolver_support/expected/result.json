@@ -1,0 +1,38 @@
+{
+  "embedded_resolution": {
+    "content_excerpt": [
+      "---",
+      "type: persona",
+      "name: agenda_steward",
+      "description: Logistical guardian enforcing physical time constraints and buffer engineering.",
+      "metadata:",
+      "  version: \"1.1.0\"",
+      "  authors: [\"CyberXiuXian\"]",
+      "  role_class: manager"
+    ],
+    "requires_explicit_mount_error": "UnknownSemanticSkill",
+    "semantic_alias_shared": true,
+    "shared_cache": true
+  },
+  "internal_overlay": {
+    "content_excerpt": ["from = first"],
+    "missing_namespace_error": "UnknownSkill",
+    "selected_root": "first",
+    "shared_cache": true
+  },
+  "runtime_internal_root": "skills-override",
+  "semantic_resolution": {
+    "content_excerpt": [
+      "---",
+      "type: knowledge",
+      "metadata:",
+      "  title: \"Fixture Reference\"",
+      "---",
+      "persona: strict-teacher"
+    ],
+    "missing_resource_error": "ResourceNotFound",
+    "resolved_path": "user/agenda_skill/references/steward.md",
+    "selected_root": "user",
+    "shared_cache": true
+  }
+}

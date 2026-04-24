@@ -4,7 +4,7 @@ use xiuxian_zhenfa::{ZhenfaContext, ZhenfaError};
 
 use crate::analyzers::DocsToolService;
 use crate::analyzers::{DocsToolRuntime, DocsToolRuntimeHandle};
-use crate::{AssetRequest, LinkGraphIndex, SkillVfsResolver, WendaoAssetHandle};
+use crate::{AssetRequest, LinkGraphIndex, SkillRuntimeResolver, WendaoAssetHandle};
 
 /// Typed extension accessors for Wendao native tools.
 pub trait WendaoContextExt {
@@ -14,11 +14,11 @@ pub trait WendaoContextExt {
     /// Returns execution error when the index is not present in context.
     fn link_graph_index(&self) -> Result<Arc<LinkGraphIndex>, ZhenfaError>;
 
-    /// Resolve the injected semantic skill VFS resolver from zhenfa context.
+    /// Resolve the injected semantic skill runtime resolver from zhenfa context.
     ///
     /// # Errors
     /// Returns execution error when resolver is not present in context.
-    fn vfs(&self) -> Result<Arc<SkillVfsResolver>, ZhenfaError>;
+    fn vfs(&self) -> Result<Arc<SkillRuntimeResolver>, ZhenfaError>;
 
     /// Builds one skill-scoped asset request.
     ///
@@ -45,9 +45,9 @@ impl WendaoContextExt for ZhenfaContext {
         })
     }
 
-    fn vfs(&self) -> Result<Arc<SkillVfsResolver>, ZhenfaError> {
-        self.get_extension::<SkillVfsResolver>().ok_or_else(|| {
-            ZhenfaError::execution("missing SkillVfsResolver in zhenfa context extensions")
+    fn vfs(&self) -> Result<Arc<SkillRuntimeResolver>, ZhenfaError> {
+        self.get_extension::<SkillRuntimeResolver>().ok_or_else(|| {
+            ZhenfaError::execution("missing SkillRuntimeResolver in zhenfa context extensions")
         })
     }
 

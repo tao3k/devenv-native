@@ -323,7 +323,7 @@ Markdown ordinary body links now split across five explicit contracts:
    Markdown-local alias over `ReferenceCore<MarkdownReferenceKind>`
 5. `xiuxian_wendao_parsers::wikilinks::MarkdownWikiLink` is the
    Markdown-local naming surface over `LiteralAddressedTarget`
-6. Wendao consumers such as `link_graph_refs` and `skill_vfs` reduce this
+6. Wendao consumers such as `link_graph_refs` and `skill_runtime` reduce this
    parser-owned core into their own domain-specific adapters
 7. Wendao-owned relation targets still use `Address` and are not part of this
    parser-owned addressed-target and reference contract

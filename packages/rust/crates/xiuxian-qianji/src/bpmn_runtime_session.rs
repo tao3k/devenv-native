@@ -2,8 +2,8 @@ use super::backend::QianjiBpmnCheckpointStore;
 use super::error::BpmnOrchestrationError;
 use crate::bpmn::{resolve_pending_host_work, resolve_waiting_external_event};
 use qianji_bpmn_engine::{
-    BpmnAdvanceOutcome, BpmnCheckpointEnvelope, BpmnHostBridge, BpmnInstanceInit,
-    BpmnInstanceState, BpmnPackage, advance_instance, create_instance,
+    BpmnAdvanceOutcome, BpmnCheckpointEnvelope, BpmnExecutionTraceEvent, BpmnHostBridge,
+    BpmnInstanceInit, BpmnInstanceState, BpmnPackage, advance_instance, create_instance,
 };
 use std::sync::Arc;
 
@@ -163,10 +163,126 @@ impl QianjiBpmnSession {
         }
     }
 
+    /// Advances the BPMN runtime until the next stable non-host-blocked
+    /// outcome while reporting newly produced execution trace events after
+    /// each runtime step.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`BpmnOrchestrationError`] when the engine rejects the current
+    /// runtime state or when the host bridge cannot service pending host work.
+    pub async fn run_until_stable_with_trace_observer<H, F>(
+        &mut self,
+        host: &H,
+        mut trace_observer: F,
+    ) -> Result<BpmnAdvanceOutcome, BpmnOrchestrationError>
+    where
+        H: BpmnHostBridge,
+        F: FnMut(&Self, &[BpmnExecutionTraceEvent]),
+    {
+        let mut next_trace_index = self.instance.trace.len();
+        let mut outcome = advance_instance(self.package.as_ref(), &mut self.instance, host).await?;
+        self.emit_new_trace_events(&mut next_trace_index, &mut trace_observer);
+        loop {
+            match outcome {
+                BpmnAdvanceOutcome::Advanced => {
+                    outcome =
+                        advance_instance(self.package.as_ref(), &mut self.instance, host).await?;
+                    self.emit_new_trace_events(&mut next_trace_index, &mut trace_observer);
+                }
+                BpmnAdvanceOutcome::BlockedOnHost(_) => {
+                    outcome =
+                        resolve_pending_host_work(self.package.as_ref(), &mut self.instance, host)
+                            .await?;
+                    self.emit_new_trace_events(&mut next_trace_index, &mut trace_observer);
+                }
+                BpmnAdvanceOutcome::WaitingExternalEvent => {
+                    outcome = resolve_waiting_external_event(
+                        self.package.as_ref(),
+                        &mut self.instance,
+                        host,
+                    )
+                    .await?;
+                    self.emit_new_trace_events(&mut next_trace_index, &mut trace_observer);
+                    if matches!(outcome, BpmnAdvanceOutcome::WaitingExternalEvent) {
+                        return Ok(outcome);
+                    }
+                }
+                BpmnAdvanceOutcome::Suspended(_)
+                | BpmnAdvanceOutcome::Completed
+                | BpmnAdvanceOutcome::Failed(_) => return Ok(outcome),
+            }
+        }
+    }
+
+    /// Advances the BPMN runtime until it reaches a host boundary or another
+    /// stable outcome, while reporting newly produced execution trace events.
+    ///
+    /// When `resolve_initial_host_work` is true, any pending host work already
+    /// present in the loaded checkpoint is resolved through the supplied host
+    /// before the runtime advances to the next boundary.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`BpmnOrchestrationError`] when the engine rejects the current
+    /// runtime state or when the host bridge cannot service the initial pending
+    /// host work.
+    pub async fn run_until_host_boundary_with_trace_observer<H, F>(
+        &mut self,
+        host: &H,
+        resolve_initial_host_work: bool,
+        mut trace_observer: F,
+    ) -> Result<BpmnAdvanceOutcome, BpmnOrchestrationError>
+    where
+        H: BpmnHostBridge,
+        F: FnMut(&Self, &[BpmnExecutionTraceEvent]),
+    {
+        let mut next_trace_index = self.instance.trace.len();
+        let mut outcome = if resolve_initial_host_work
+            && !self.instance.pending_host_work.is_empty()
+        {
+            let outcome =
+                resolve_pending_host_work(self.package.as_ref(), &mut self.instance, host).await?;
+            self.emit_new_trace_events(&mut next_trace_index, &mut trace_observer);
+            outcome
+        } else {
+            let outcome = advance_instance(self.package.as_ref(), &mut self.instance, host).await?;
+            self.emit_new_trace_events(&mut next_trace_index, &mut trace_observer);
+            outcome
+        };
+
+        loop {
+            match outcome {
+                BpmnAdvanceOutcome::Advanced => {
+                    outcome =
+                        advance_instance(self.package.as_ref(), &mut self.instance, host).await?;
+                    self.emit_new_trace_events(&mut next_trace_index, &mut trace_observer);
+                }
+                BpmnAdvanceOutcome::BlockedOnHost(_)
+                | BpmnAdvanceOutcome::WaitingExternalEvent
+                | BpmnAdvanceOutcome::Suspended(_)
+                | BpmnAdvanceOutcome::Completed
+                | BpmnAdvanceOutcome::Failed(_) => return Ok(outcome),
+            }
+        }
+    }
+
     /// Splits the session back into its package and instance state.
     #[must_use]
     pub fn into_parts(self) -> (Arc<BpmnPackage>, BpmnInstanceState) {
         (self.package, self.instance)
+    }
+
+    fn emit_new_trace_events<F>(&self, next_trace_index: &mut usize, trace_observer: &mut F)
+    where
+        F: FnMut(&Self, &[BpmnExecutionTraceEvent]),
+    {
+        if *next_trace_index >= self.instance.trace.len() {
+            return;
+        }
+        let events = self.instance.trace[*next_trace_index..].to_vec();
+        *next_trace_index = self.instance.trace.len();
+        trace_observer(self, &events);
     }
 }
 

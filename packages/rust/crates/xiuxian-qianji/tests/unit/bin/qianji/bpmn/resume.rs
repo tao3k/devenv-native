@@ -36,6 +36,8 @@ async fn run_bpmn_resume_command_completes_waiting_session_from_sqlite_checkpoin
             checkpoint_backend: Some(BpmnCliCheckpointBackend::Sqlite(sqlite_path.clone())),
             host_fixture_path: None,
             event_fixture_path: None,
+            trace_stream: false,
+            external_host: false,
         }))
         .await,
         "fresh bpmn run should seed the waiting checkpoint for resume",
@@ -57,6 +59,8 @@ async fn run_bpmn_resume_command_completes_waiting_session_from_sqlite_checkpoin
             checkpoint_backend: BpmnCliCheckpointBackend::Sqlite(sqlite_path),
             host_fixture_path: None,
             event_fixture_path: Some(fixture_path.clone()),
+            trace_stream: false,
+            external_host: false,
         }))
         .await,
         "resume command should continue the waiting checkpoint",
@@ -99,6 +103,8 @@ async fn run_bpmn_resume_command_renders_missing_sqlite_checkpoint_cleanly() {
             checkpoint_backend: BpmnCliCheckpointBackend::Sqlite(sqlite_path),
             host_fixture_path: None,
             event_fixture_path: None,
+            trace_stream: false,
+            external_host: false,
         }))
         .await,
         "resume command should render missing checkpoint cleanly",

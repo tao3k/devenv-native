@@ -3,10 +3,22 @@ mod config;
 use super::MarkdownLintArgs;
 use anyhow::{Context, Result, anyhow};
 use std::collections::BTreeSet;
+use std::path::Component;
 use std::path::{Path, PathBuf};
 use walkdir::{DirEntry, WalkDir};
 
-const DEFAULT_SKIPPED_DIRS: &[&str] = &[".git", ".devenv", ".direnv", "node_modules", "target"];
+const TRANSIENT_REPO_DIRS: &[&str] = &[
+    ".git",
+    ".devenv",
+    ".direnv",
+    ".cache",
+    ".config",
+    ".data",
+    ".run",
+    ".bin",
+    "node_modules",
+    "target",
+];
 
 pub(crate) fn collect_markdown_files(root: &Path, args: &MarkdownLintArgs) -> Result<Vec<PathBuf>> {
     let roots = resolve_scan_roots(root, args)?;
@@ -88,11 +100,25 @@ fn should_skip_entry(entry: &DirEntry, scan_root: &Path, args: &MarkdownLintArgs
 }
 
 fn should_skip_dir(name: &str, args: &MarkdownLintArgs) -> bool {
-    DEFAULT_SKIPPED_DIRS.contains(&name)
+    transient_repo_dir_name(name).is_some()
         || args
             .skip_dirs
             .iter()
             .any(|skip_dir| skip_dir.as_str() == name)
+}
+
+pub(crate) fn transient_repo_dir_name(name: &str) -> Option<&'static str> {
+    TRANSIENT_REPO_DIRS
+        .iter()
+        .copied()
+        .find(|candidate| *candidate == name)
+}
+
+pub(crate) fn first_transient_repo_dir(path: &Path) -> Option<&'static str> {
+    path.components().find_map(|component| match component {
+        Component::Normal(name) => name.to_str().and_then(transient_repo_dir_name),
+        _ => None,
+    })
 }
 
 fn resolve_path(root: &Path, path: &Path) -> PathBuf {

@@ -89,6 +89,7 @@ in
     pkgs.nodejs
     pkgs.tree
     pkgs.duckdb
+    pkgs.asciinema
   ];
 
   dotenv.enable = true;

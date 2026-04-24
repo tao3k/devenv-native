@@ -2,8 +2,10 @@ use super::control_service as service;
 use crate::bpmn::backend::QianjiBpmnCheckpointStore;
 use crate::bpmn::driver::{QianjiBpmnExecutionReport, QianjiBpmnExecutionRequest};
 use crate::bpmn::error::BpmnOrchestrationError;
+use crate::bpmn::session::QianjiBpmnSession;
 use crate::runtime_config::QianjiRuntimeEnv;
 use crate::scheduler::SchedulerAgentIdentity;
+use qianji_bpmn_engine::BpmnExecutionTraceEvent;
 use qianji_bpmn_engine::BpmnHostBridge;
 use qianji_bpmn_engine::BpmnInstanceState;
 use qianji_bpmn_engine::BpmnPackage;
@@ -261,6 +263,55 @@ impl QianjiBpmnWorkflowControlService {
         service::start_prepared_workflow(self, prepared, host).await
     }
 
+    /// Runs one already-prepared BPMN workflow while reporting newly produced
+    /// trace events after each runtime step.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`QianjiBpmnWorkflowControlError`] when the execution facade
+    /// cannot create, resume, or advance the workflow instance.
+    pub async fn start_prepared_workflow_with_trace_observer<H, F>(
+        &self,
+        prepared: QianjiBpmnPreparedWorkflowStart,
+        host: &H,
+        trace_observer: F,
+    ) -> Result<QianjiBpmnWorkflowStartReport, QianjiBpmnWorkflowControlError>
+    where
+        H: BpmnHostBridge,
+        F: FnMut(&QianjiBpmnSession, &[BpmnExecutionTraceEvent]),
+    {
+        service::start_prepared_workflow_with_trace_observer(self, prepared, host, trace_observer)
+            .await
+    }
+
+    /// Runs one already-prepared BPMN workflow until the next host boundary or
+    /// another stable outcome while reporting newly produced trace events.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`QianjiBpmnWorkflowControlError`] when the execution facade
+    /// cannot create, resume, or advance the workflow instance.
+    pub async fn start_prepared_workflow_until_host_boundary<H, F>(
+        &self,
+        prepared: QianjiBpmnPreparedWorkflowStart,
+        host: &H,
+        resolve_initial_host_work: bool,
+        trace_observer: F,
+    ) -> Result<QianjiBpmnWorkflowStartReport, QianjiBpmnWorkflowControlError>
+    where
+        H: BpmnHostBridge,
+        F: FnMut(&QianjiBpmnSession, &[BpmnExecutionTraceEvent]),
+    {
+        service::start_prepared_workflow_until_host_boundary(
+            self,
+            prepared,
+            host,
+            resolve_initial_host_work,
+            trace_observer,
+        )
+        .await
+    }
+
     /// Prepares and runs one bounded BPMN workflow in a single step.
     ///
     /// # Errors
@@ -304,6 +355,34 @@ impl QianjiBpmnWorkflowControlService {
         host: &H,
     ) -> Result<QianjiBpmnWorkflowResumeReport, QianjiBpmnWorkflowControlError> {
         service::resume_prepared_workflow(self, prepared, host).await
+    }
+
+    /// Runs one already-prepared checkpoint-backed BPMN workflow until the next
+    /// host boundary or another stable outcome while reporting trace events.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`QianjiBpmnWorkflowControlError`] when the execution facade
+    /// cannot resume or advance the workflow instance.
+    pub async fn resume_prepared_workflow_until_host_boundary<H, F>(
+        &self,
+        prepared: QianjiBpmnPreparedWorkflowResume,
+        host: &H,
+        resolve_initial_host_work: bool,
+        trace_observer: F,
+    ) -> Result<QianjiBpmnWorkflowResumeReport, QianjiBpmnWorkflowControlError>
+    where
+        H: BpmnHostBridge,
+        F: FnMut(&QianjiBpmnSession, &[BpmnExecutionTraceEvent]),
+    {
+        service::resume_prepared_workflow_until_host_boundary(
+            self,
+            prepared,
+            host,
+            resolve_initial_host_work,
+            trace_observer,
+        )
+        .await
     }
 
     /// Prepares and resumes one checkpoint-backed BPMN workflow in a single

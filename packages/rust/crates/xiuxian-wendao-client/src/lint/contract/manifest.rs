@@ -238,17 +238,44 @@ fn markdown_lint_diagnostics_params() -> Vec<MarkdownLintContractParamManifest> 
 fn markdown_lint_diagnostics_rules() -> Vec<MarkdownLintRuleContractManifest> {
     let mut rules = markdown_lint_syntax_rules();
     rules.extend(markdown_lint_obsidian_policy_rules());
+    rules.extend(markdown_lint_target_policy_rules());
     rules.extend(markdown_lint_directory_policy_rules());
     rules
 }
 
 fn markdown_lint_syntax_rules() -> Vec<MarkdownLintRuleContractManifest> {
+    let mut rules = vec![literal_rule(
+        "invalid_utf8",
+        Some("Markdown file is not valid UTF-8."),
+        Some("utf8_error_message"),
+        Some("Encode the file as UTF-8 before linting it."),
+    )];
+    rules.extend(markdown_lint_frontmatter_rules());
+    rules.extend(markdown_lint_fence_rules());
+    rules
+}
+
+fn markdown_lint_frontmatter_rules() -> Vec<MarkdownLintRuleContractManifest> {
     vec![
-        literal_rule(
-            "invalid_utf8",
-            Some("Markdown file is not valid UTF-8."),
-            Some("utf8_error_message"),
-            Some("Encode the file as UTF-8 before linting it."),
+        parser_rule(
+            "missing_frontmatter",
+            "Document-level YAML frontmatter is required.",
+            "Add a leading `--- ... ---` block with the document identity field required by this surface before the document body begins.",
+        ),
+        parser_rule(
+            "missing_frontmatter_title",
+            "Ordinary document frontmatter must include a non-empty `title`.",
+            "Set a non-empty top-level `title` field in the document frontmatter.",
+        ),
+        parser_rule(
+            "missing_skill_frontmatter_name",
+            "Skill-shaped document frontmatter must include a non-empty top-level `name`.",
+            "Set a non-empty top-level `name` field in the SKILL frontmatter.",
+        ),
+        parser_rule(
+            "missing_skill_frontmatter_metadata",
+            "Skill-shaped document frontmatter must contain a top-level `metadata` mapping.",
+            "Add a top-level `metadata:` mapping to the SKILL frontmatter.",
         ),
         MarkdownLintRuleContractManifest {
             code: "unclosed_frontmatter".to_string(),
@@ -281,23 +308,26 @@ fn markdown_lint_syntax_rules() -> Vec<MarkdownLintRuleContractManifest> {
             tip: None,
             tip_strategy: None,
         },
-        MarkdownLintRuleContractManifest {
-            code: "unclosed_fence".to_string(),
-            problem: Some("Fenced code block opens but never closes.".to_string()),
-            problem_strategy: None,
-            detail: None,
-            detail_strategy: Some("parser_message".to_string()),
-            found: None,
-            found_strategy: Some("source_line".to_string()),
-            expected: Some(
-                "Add a closing fence with the same marker type and at least the same width."
-                    .to_string(),
-            ),
-            expected_strategy: None,
-            tip: None,
-            tip_strategy: None,
-        },
     ]
+}
+
+fn markdown_lint_fence_rules() -> Vec<MarkdownLintRuleContractManifest> {
+    vec![MarkdownLintRuleContractManifest {
+        code: "unclosed_fence".to_string(),
+        problem: Some("Fenced code block opens but never closes.".to_string()),
+        problem_strategy: None,
+        detail: None,
+        detail_strategy: Some("parser_message".to_string()),
+        found: None,
+        found_strategy: Some("source_line".to_string()),
+        expected: Some(
+            "Add a closing fence with the same marker type and at least the same width."
+                .to_string(),
+        ),
+        expected_strategy: None,
+        tip: None,
+        tip_strategy: None,
+    }]
 }
 
 fn markdown_lint_obsidian_policy_rules() -> Vec<MarkdownLintRuleContractManifest> {
@@ -388,6 +418,63 @@ fn markdown_lint_directory_policy_rules() -> Vec<MarkdownLintRuleContractManifes
     ]
 }
 
+fn markdown_lint_target_policy_rules() -> Vec<MarkdownLintRuleContractManifest> {
+    vec![
+        MarkdownLintRuleContractManifest {
+            code: "missing_local_target".to_string(),
+            problem: None,
+            problem_strategy: Some("dynamic_problem_text".to_string()),
+            detail: None,
+            detail_strategy: Some("dynamic_detail_text".to_string()),
+            found: None,
+            found_strategy: Some("link_literal".to_string()),
+            expected: None,
+            expected_strategy: Some("dynamic_expected_text".to_string()),
+            tip: None,
+            tip_strategy: Some("dynamic_tip_text".to_string()),
+        },
+        MarkdownLintRuleContractManifest {
+            code: "missing_local_fragment".to_string(),
+            problem: None,
+            problem_strategy: Some("dynamic_problem_text".to_string()),
+            detail: None,
+            detail_strategy: Some("dynamic_detail_text".to_string()),
+            found: None,
+            found_strategy: Some("link_literal".to_string()),
+            expected: None,
+            expected_strategy: Some("dynamic_expected_text".to_string()),
+            tip: None,
+            tip_strategy: Some("dynamic_tip_text".to_string()),
+        },
+        MarkdownLintRuleContractManifest {
+            code: "local_target_transient_dir".to_string(),
+            problem: None,
+            problem_strategy: Some("dynamic_problem_text".to_string()),
+            detail: None,
+            detail_strategy: Some("dynamic_detail_text".to_string()),
+            found: None,
+            found_strategy: Some("link_literal".to_string()),
+            expected: None,
+            expected_strategy: Some("dynamic_expected_text".to_string()),
+            tip: None,
+            tip_strategy: Some("dynamic_tip_text".to_string()),
+        },
+        MarkdownLintRuleContractManifest {
+            code: "local_target_outside_root".to_string(),
+            problem: None,
+            problem_strategy: Some("dynamic_problem_text".to_string()),
+            detail: None,
+            detail_strategy: Some("dynamic_detail_text".to_string()),
+            found: None,
+            found_strategy: Some("link_literal".to_string()),
+            expected: None,
+            expected_strategy: Some("dynamic_expected_text".to_string()),
+            tip: None,
+            tip_strategy: Some("dynamic_tip_text".to_string()),
+        },
+    ]
+}
+
 fn literal_rule(
     code: &str,
     problem: Option<&str>,
@@ -403,6 +490,22 @@ fn literal_rule(
         found: None,
         found_strategy: None,
         expected: expected.map(ToOwned::to_owned),
+        expected_strategy: None,
+        tip: None,
+        tip_strategy: None,
+    }
+}
+
+fn parser_rule(code: &str, problem: &str, expected: &str) -> MarkdownLintRuleContractManifest {
+    MarkdownLintRuleContractManifest {
+        code: code.to_string(),
+        problem: Some(problem.to_string()),
+        problem_strategy: None,
+        detail: None,
+        detail_strategy: Some("parser_message".to_string()),
+        found: None,
+        found_strategy: None,
+        expected: Some(expected.to_string()),
         expected_strategy: None,
         tip: None,
         tip_strategy: None,

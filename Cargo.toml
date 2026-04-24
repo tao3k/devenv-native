@@ -21,7 +21,6 @@ members = [
   "packages/rust/crates/xiuxian-macros",
   "packages/rust/crates/xiuxian-memory-engine",
   "packages/rust/crates/xiuxian-logging",
-  "packages/rust/crates/xiuxian-skills",
   "packages/rust/crates/xiuxian-security",
   "packages/rust/crates/xiuxian-sandbox",
   "packages/rust/crates/xiuxian-tags",

@@ -35,6 +35,8 @@ fn parse_bpmn_command_accepts_fresh_start_with_dmn_sources() {
             checkpoint_backend: None,
             host_fixture_path: None,
             event_fixture_path: None,
+            trace_stream: false,
+            external_host: false,
         })
     );
 }

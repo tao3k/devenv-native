@@ -8,7 +8,7 @@ use duckdb::vtab::{
     BindInfo, InitInfo, TableFunctionInfo, VTab, record_batch_to_duckdb_data_chunk,
     to_duckdb_logical_type,
 };
-use xiuxian_vector::EngineRecordBatch;
+use xiuxian_db_store::EngineRecordBatch;
 
 pub(crate) const WENDAO_ARROW_RELATION_FUNCTION_NAME: &str = "wendao_arrow_relation";
 

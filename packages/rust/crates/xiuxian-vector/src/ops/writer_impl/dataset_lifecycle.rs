@@ -6,8 +6,7 @@ impl VectorStore {
     ///
     /// # Errors
     ///
-    /// Returns an error when dropping the target table, re-initializing related indexes,
-    /// or writing the replacement batch fails.
+    /// Returns an error when dropping the target table or writing the replacement batch fails.
     pub async fn replace_documents(
         &mut self,
         table_name: &str,
@@ -23,10 +22,6 @@ impl VectorStore {
             return Ok(());
         }
         self.drop_table(table_name).await?;
-        // Re-enable keyword search after drop_table removed the table.
-        if let Err(e) = self.enable_keyword_index() {
-            log::warn!("Could not re-enable keyword index after drop: {e}");
-        }
         self.add_documents(table_name, ids, vectors, contents, metadatas)
             .await
     }

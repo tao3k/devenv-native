@@ -83,6 +83,8 @@ struct BpmnStartLikeParseState {
     context_json: Option<String>,
     host_fixture_path: Option<PathBuf>,
     event_fixture_path: Option<PathBuf>,
+    trace_stream: bool,
+    external_host: bool,
     checkpoint_runtime: bool,
     #[cfg(feature = "sqlite")]
     checkpoint_sqlite: Option<PathBuf>,
@@ -137,6 +139,8 @@ fn parse_bpmn_start_like_command(
         checkpoint_backend,
         host_fixture_path: state.host_fixture_path,
         event_fixture_path: state.event_fixture_path,
+        trace_stream: state.trace_stream,
+        external_host: state.external_host,
     })
 }
 
@@ -177,6 +181,12 @@ fn parse_bpmn_start_like_option(
                 index,
                 "--event-fixture",
             )?));
+        }
+        "--trace-stream" => {
+            state.trace_stream = true;
+        }
+        "--external-host" => {
+            state.external_host = true;
         }
         "--checkpoint-runtime" => {
             state.checkpoint_runtime = true;
@@ -245,6 +255,8 @@ struct BpmnResumeLikeParseState {
     instance_id: Option<String>,
     host_fixture_path: Option<PathBuf>,
     event_fixture_path: Option<PathBuf>,
+    trace_stream: bool,
+    external_host: bool,
     checkpoint_runtime: bool,
     #[cfg(feature = "sqlite")]
     checkpoint_sqlite: Option<PathBuf>,
@@ -297,6 +309,8 @@ fn parse_bpmn_resume_like_command(
         checkpoint_backend,
         host_fixture_path: state.host_fixture_path,
         event_fixture_path: state.event_fixture_path,
+        trace_stream: state.trace_stream,
+        external_host: state.external_host,
     })
 }
 
@@ -331,6 +345,12 @@ fn parse_bpmn_resume_like_option(
                 index,
                 "--event-fixture",
             )?));
+        }
+        "--trace-stream" => {
+            state.trace_stream = true;
+        }
+        "--external-host" => {
+            state.external_host = true;
         }
         "--checkpoint-runtime" => {
             state.checkpoint_runtime = true;

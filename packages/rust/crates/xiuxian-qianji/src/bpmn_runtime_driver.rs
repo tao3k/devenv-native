@@ -3,7 +3,8 @@ use super::error::BpmnOrchestrationError;
 use super::ownership::QianjiBpmnSchedulerLeaseConfig;
 use super::session::QianjiBpmnSession;
 use qianji_bpmn_engine::{
-    BpmnAdvanceOutcome, BpmnEngineError, BpmnHostBridge, BpmnInstanceInit, BpmnPackage,
+    BpmnAdvanceOutcome, BpmnEngineError, BpmnExecutionTraceEvent, BpmnHostBridge, BpmnInstanceInit,
+    BpmnPackage,
 };
 use serde_json::Value;
 use std::sync::Arc;
@@ -99,6 +100,119 @@ impl QianjiBpmnExecutionDriver {
         .await
     }
 
+    pub(super) async fn run_with_scheduler_lifecycle_and_trace_observer<H, F>(
+        &self,
+        request: &QianjiBpmnExecutionRequest,
+        host: &H,
+        checkpoint_lease: Option<&QianjiBpmnSchedulerLeaseConfig>,
+        trace_observer: F,
+    ) -> Result<QianjiBpmnExecutionReport, BpmnOrchestrationError>
+    where
+        H: BpmnHostBridge,
+        F: FnMut(&QianjiBpmnSession, &[BpmnExecutionTraceEvent]),
+    {
+        self.run_with_checkpoint_lifecycle_and_trace_observer(
+            request,
+            host,
+            QianjiBpmnCheckpointLifecycle::DeleteOnTerminalOutcome,
+            checkpoint_lease,
+            trace_observer,
+        )
+        .await
+    }
+
+    /// Runs the BPMN session until the next stable outcome and reports newly
+    /// produced trace events after each runtime step.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`BpmnOrchestrationError`] when the driver cannot create or
+    /// resume the session, when the host cannot service BPMN work, or when the
+    /// checkpoint backend fails.
+    pub async fn run_until_stable_with_trace_observer<H, F>(
+        &self,
+        request: &QianjiBpmnExecutionRequest,
+        host: &H,
+        trace_observer: F,
+    ) -> Result<QianjiBpmnExecutionReport, BpmnOrchestrationError>
+    where
+        H: BpmnHostBridge,
+        F: FnMut(&QianjiBpmnSession, &[BpmnExecutionTraceEvent]),
+    {
+        self.run_with_checkpoint_lifecycle_and_trace_observer(
+            request,
+            host,
+            QianjiBpmnCheckpointLifecycle::Retain,
+            None,
+            trace_observer,
+        )
+        .await
+    }
+
+    /// Runs the BPMN session until the next host boundary or another stable
+    /// outcome, then persists the checkpoint when a backend is configured.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`BpmnOrchestrationError`] when the driver cannot create or
+    /// resume the session, when the initial host work cannot be serviced, or
+    /// when the checkpoint backend fails.
+    pub async fn run_until_host_boundary_with_trace_observer<H, F>(
+        &self,
+        request: &QianjiBpmnExecutionRequest,
+        host: &H,
+        resolve_initial_host_work: bool,
+        trace_observer: F,
+    ) -> Result<QianjiBpmnExecutionReport, BpmnOrchestrationError>
+    where
+        H: BpmnHostBridge,
+        F: FnMut(&QianjiBpmnSession, &[BpmnExecutionTraceEvent]),
+    {
+        self.acquire_checkpoint_lease_if_needed(request.instance_id.as_str(), None)
+            .await?;
+
+        let run_result = async {
+            let (mut session, resumed_from_checkpoint) =
+                self.load_or_create_session(request).await?;
+            let starting_sequence = session.instance().sequence;
+            let outcome = session
+                .run_until_host_boundary_with_trace_observer(
+                    host,
+                    resolve_initial_host_work,
+                    trace_observer,
+                )
+                .await?;
+            let (checkpoint_saved, checkpoint_deleted) = self
+                .finalize_checkpoint(
+                    &session,
+                    resumed_from_checkpoint,
+                    starting_sequence,
+                    &outcome,
+                    QianjiBpmnCheckpointLifecycle::Retain,
+                    None,
+                )
+                .await?;
+
+            Ok(QianjiBpmnExecutionReport {
+                session,
+                outcome,
+                resumed_from_checkpoint,
+                checkpoint_saved,
+                checkpoint_deleted,
+            })
+        }
+        .await;
+
+        let release_result = self
+            .release_checkpoint_lease_if_needed(request.instance_id.as_str(), None)
+            .await;
+
+        match (run_result, release_result) {
+            (Err(error), _) | (Ok(_), Err(error)) => Err(error),
+            (Ok(report), Ok(())) => Ok(report),
+        }
+    }
+
     async fn run_with_checkpoint_lifecycle<H: BpmnHostBridge>(
         &self,
         request: &QianjiBpmnExecutionRequest,
@@ -114,6 +228,59 @@ impl QianjiBpmnExecutionDriver {
                 self.load_or_create_session(request).await?;
             let starting_sequence = session.instance().sequence;
             let outcome = session.run_until_stable(host).await?;
+            let (checkpoint_saved, checkpoint_deleted) = self
+                .finalize_checkpoint(
+                    &session,
+                    resumed_from_checkpoint,
+                    starting_sequence,
+                    &outcome,
+                    checkpoint_lifecycle,
+                    checkpoint_lease,
+                )
+                .await?;
+
+            Ok(QianjiBpmnExecutionReport {
+                session,
+                outcome,
+                resumed_from_checkpoint,
+                checkpoint_saved,
+                checkpoint_deleted,
+            })
+        }
+        .await;
+
+        let release_result = self
+            .release_checkpoint_lease_if_needed(request.instance_id.as_str(), checkpoint_lease)
+            .await;
+
+        match (run_result, release_result) {
+            (Err(error), _) | (Ok(_), Err(error)) => Err(error),
+            (Ok(report), Ok(())) => Ok(report),
+        }
+    }
+
+    async fn run_with_checkpoint_lifecycle_and_trace_observer<H, F>(
+        &self,
+        request: &QianjiBpmnExecutionRequest,
+        host: &H,
+        checkpoint_lifecycle: QianjiBpmnCheckpointLifecycle,
+        checkpoint_lease: Option<&QianjiBpmnSchedulerLeaseConfig>,
+        trace_observer: F,
+    ) -> Result<QianjiBpmnExecutionReport, BpmnOrchestrationError>
+    where
+        H: BpmnHostBridge,
+        F: FnMut(&QianjiBpmnSession, &[BpmnExecutionTraceEvent]),
+    {
+        self.acquire_checkpoint_lease_if_needed(request.instance_id.as_str(), checkpoint_lease)
+            .await?;
+
+        let run_result = async {
+            let (mut session, resumed_from_checkpoint) =
+                self.load_or_create_session(request).await?;
+            let starting_sequence = session.instance().sequence;
+            let outcome = session
+                .run_until_stable_with_trace_observer(host, trace_observer)
+                .await?;
             let (checkpoint_saved, checkpoint_deleted) = self
                 .finalize_checkpoint(
                     &session,

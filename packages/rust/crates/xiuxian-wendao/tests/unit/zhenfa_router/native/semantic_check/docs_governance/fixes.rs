@@ -52,6 +52,7 @@ fn run_audit_core_loads_explicit_workspace_doc_file_for_fix_generation() {
         include_warnings: Some(true),
         source_paths: None,
         fuzzy_confidence_threshold: None,
+        episteme_load: None,
     };
     let (_issues, file_contents) = run_audit_core(&ctx, &args).or_panic("audit");
 
@@ -98,6 +99,7 @@ fn run_audit_core_reports_doc_identity_for_explicit_workspace_doc_file() {
         include_warnings: Some(true),
         source_paths: None,
         fuzzy_confidence_threshold: None,
+        episteme_load: None,
     };
     let (issues, _file_contents) = run_audit_core(&ctx, &args).or_panic("audit");
 
@@ -157,6 +159,7 @@ fn run_audit_core_seeds_workspace_doc_identity_issue_files_for_fix_generation() 
         include_warnings: Some(true),
         source_paths: None,
         fuzzy_confidence_threshold: None,
+        episteme_load: None,
     };
     let (issues, file_contents) = run_audit_core(&ctx, &args).or_panic("audit");
     let canonical_intro_path = intro_path
@@ -231,6 +234,7 @@ fn package_docs_directory_scope_fix_rewrites_doc_identity_issues_end_to_end() {
         include_warnings: Some(true),
         source_paths: None,
         fuzzy_confidence_threshold: None,
+        episteme_load: None,
     };
     let (issues, file_contents) = run_audit_core(&ctx, &args).or_panic("audit");
 

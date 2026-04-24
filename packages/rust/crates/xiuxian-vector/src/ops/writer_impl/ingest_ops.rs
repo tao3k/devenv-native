@@ -1,67 +1,4 @@
 impl VectorStore {
-    async fn rebuild_keyword_search_index(&self, table_name: &str) {
-        if let Err(error) = self.create_fts_index(table_name).await {
-            log::debug!("keyword search index rebuild skipped for `{table_name}`: {error}");
-        }
-    }
-
-    /// Add tool records to the vector store.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error when `LanceDB` batch construction or write paths fail.
-    pub async fn add(
-        &self,
-        table_name: &str,
-        tools: Vec<ToolRecord>,
-    ) -> Result<(), VectorStoreError> {
-        if tools.is_empty() {
-            return Ok(());
-        }
-
-        let mut prepared_tools = Vec::with_capacity(tools.len());
-        for tool in tools {
-            let command_name = tool
-                .tool_name
-                .split('.')
-                .skip(1)
-                .collect::<Vec<_>>()
-                .join(".");
-            let full_name = format!("{}.{}", tool.skill_name, command_name);
-            let routing_keywords = Self::derive_routing_keywords(&tool);
-            prepared_tools.push((tool, full_name, routing_keywords, command_name));
-        }
-
-        // Prepare metadata and IDs for `LanceDB`
-        let mut ids = Vec::with_capacity(prepared_tools.len());
-        let mut contents = Vec::with_capacity(prepared_tools.len());
-        let mut metadatas = Vec::with_capacity(prepared_tools.len());
-        for (tool, full_name, routing_keywords, command_name) in prepared_tools {
-            ids.push(full_name);
-            contents.push(tool.description.clone());
-            metadatas.push(
-                serde_json::json!({
-                    "type": "command", "skill_name": tool.skill_name, "command": command_name, "tool_name": tool.tool_name,
-                    "file_path": tool.file_path, "function_name": tool.function_name, "intents": tool.intents,
-                    "routing_keywords": routing_keywords,
-                    "file_hash": tool.file_hash, "input_schema": tool.input_schema, "docstring": tool.docstring,
-                    "category": tool.category, "annotations": tool.annotations, "parameters": tool.parameters,
-                    "skill_tools_refers": tool.skill_tools_refers,
-                    "resource_uri": tool.resource_uri,
-                })
-                .to_string(),
-            );
-        }
-
-        // Standard vectors (dummy for now as `SkillIndexer` provides actual
-        // vectors via `add_documents`).
-        let vectors: Vec<Vec<f32>> = (0..ids.len()).map(|_| vec![0.0; self.dimension]).collect();
-
-        self.add_documents(table_name, ids, vectors, contents, metadatas)
-            .await?;
-        Ok(())
-    }
-
     /// Batch add documents with vectors to a table.
     ///
     /// # Errors
@@ -97,9 +34,6 @@ impl VectorStore {
         }
 
         self.invalidate_cached_table(table_name).await;
-        if self.keyword_search_enabled {
-            self.rebuild_keyword_search_index(table_name).await;
-        }
         Ok(())
     }
 
@@ -172,9 +106,6 @@ impl VectorStore {
         }
 
         self.invalidate_cached_table(table_name).await;
-        if self.keyword_search_enabled {
-            self.rebuild_keyword_search_index(table_name).await;
-        }
         Ok(())
     }
 }

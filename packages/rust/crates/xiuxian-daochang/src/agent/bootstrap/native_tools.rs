@@ -9,16 +9,17 @@ use crate::agent::native_tools::spider::SpiderCrawlTool;
 use crate::agent::native_tools::wendao_search::{WendaoSearchTool, WendaoSearchToolConfig};
 use crate::agent::native_tools::zhixing::{AgendaViewTool, JournalRecordTool, TaskAddTool};
 use crate::config::XiuxianConfig;
-use xiuxian_skills::{InternalSkillNativeAliasSpec, InternalSkillWorkflowType};
 use xiuxian_wendao::ingress::SpiderWendaoBridge;
-use xiuxian_wendao::skill_vfs::SkillVfsResolver;
-use xiuxian_wendao::skill_vfs::internal_authority::AuthorizedInternalSkillNativeAliasScan;
+use xiuxian_wendao::skill_runtime::authority::AuthorizedSkillNativeAliasScan;
+use xiuxian_wendao::skill_runtime::{
+    SkillNativeAliasSpec, SkillRuntimeResolver, SkillWorkflowType,
+};
 use xiuxian_zhixing::ZhixingHeyi;
 
 pub(in crate::agent::bootstrap) fn mount_native_tool_cauldron(
     xiuxian_cfg: Option<&XiuxianConfig>,
     heyi: Option<&Arc<ZhixingHeyi>>,
-    skill_vfs_resolver: Option<&Arc<SkillVfsResolver>>,
+    skill_runtime_resolver: Option<&Arc<SkillRuntimeResolver>>,
     native_tools: &mut NativeToolRegistry,
     mounts: &mut ServiceMountCatalog,
 ) {
@@ -34,7 +35,7 @@ pub(in crate::agent::bootstrap) fn mount_native_tool_cauldron(
 
     mount_spider_tool(heyi, native_tools, mounts);
     mount_wendao_search_tool(xiuxian_cfg, native_tools, mounts);
-    mount_internal_skill_aliases(skill_vfs_resolver, native_tools, mounts);
+    mount_skill_aliases(skill_runtime_resolver, native_tools, mounts);
 }
 
 pub(in crate::agent::bootstrap) fn register_zhixing_native_tools(
@@ -61,7 +62,7 @@ pub(in crate::agent::bootstrap) fn register_zhixing_native_tools(
     );
 }
 
-type InternalAliasSpec = InternalSkillNativeAliasSpec<InternalSkillWorkflowType>;
+type RuntimeAliasSpec = SkillNativeAliasSpec<SkillWorkflowType>;
 
 fn mount_spider_tool(
     heyi: Option<&Arc<ZhixingHeyi>>,
@@ -89,34 +90,34 @@ fn mount_spider_tool(
     );
 }
 
-fn mount_internal_skill_aliases(
-    skill_vfs_resolver: Option<&Arc<SkillVfsResolver>>,
+fn mount_skill_aliases(
+    skill_runtime_resolver: Option<&Arc<SkillRuntimeResolver>>,
     native_tools: &mut NativeToolRegistry,
     mounts: &mut ServiceMountCatalog,
 ) {
-    let Some(resolver) = skill_vfs_resolver else {
+    let Some(resolver) = skill_runtime_resolver else {
         mounts.skipped(
-            "native.internal_skill_aliases",
+            "native.skill_aliases",
             "tooling",
-            ServiceMountMeta::default().detail("skill_vfs_unavailable"),
+            ServiceMountMeta::default().detail("skill_runtime_unavailable"),
         );
         return;
     };
 
-    let Some(root) = resolver.internal_roots().first() else {
+    let Some(root) = resolver.runtime_roots().first() else {
         mounts.skipped(
-            "native.internal_skill_aliases",
+            "native.skill_aliases",
             "tooling",
-            ServiceMountMeta::default().detail("no_internal_roots"),
+            ServiceMountMeta::default().detail("no_runtime_roots"),
         );
         return;
     };
 
-    let scan = match resolver.scan_authorized_internal_native_aliases(root.as_path()) {
+    let scan = match resolver.scan_authorized_native_aliases(root.as_path()) {
         Ok(scan) => scan,
         Err(error) => {
             mounts.failed(
-                "native.internal_skill_aliases",
+                "native.skill_aliases",
                 "tooling",
                 ServiceMountMeta::default().detail(format!("scan_failed: {error}")),
             );
@@ -124,14 +125,14 @@ fn mount_internal_skill_aliases(
         }
     };
 
-    let AuthorizedInternalSkillNativeAliasScan {
+    let AuthorizedSkillNativeAliasScan {
         report,
         compiled_specs,
     } = scan;
     let compiled_count = compiled_specs.len();
     if report.is_critically_failed() {
         mounts.failed(
-            "native.internal_skill_aliases",
+            "native.skill_aliases",
             "tooling",
             ServiceMountMeta::default()
                 .detail(format!("ghost_links_detected: {}", report.ghost_count())),
@@ -141,19 +142,19 @@ fn mount_internal_skill_aliases(
 
     if report.unauthorized_count() > 0 {
         tracing::warn!(
-            event = "agent.bootstrap.internal_alias.unauthorized",
+            event = "agent.bootstrap.skill_alias.unauthorized",
             unauthorized = report.unauthorized_count(),
-            "unauthorized internal skill manifests detected; skipping those manifests"
+            "unauthorized skill manifests detected; skipping those manifests"
         );
     }
 
-    let (mounted_names, alias_issues) = register_internal_aliases(compiled_specs, native_tools);
+    let (mounted_names, alias_issues) = register_skill_aliases(compiled_specs, native_tools);
     let issue_count = report.issues.len() + alias_issues.len();
     if issue_count > 0 {
         tracing::warn!(
-            event = "agent.bootstrap.internal_alias.issues",
+            event = "agent.bootstrap.skill_alias.issues",
             issues = issue_count,
-            "internal skill alias mounting reported issues"
+            "skill alias mounting reported issues"
         );
     }
 
@@ -167,14 +168,14 @@ fn mount_internal_skill_aliases(
         issue_count,
     );
     mounts.mounted(
-        "native.internal_skill_aliases",
+        "native.skill_aliases",
         "tooling",
         ServiceMountMeta::default().detail(detail),
     );
 }
 
-fn register_internal_aliases(
-    compiled_specs: Vec<InternalAliasSpec>,
+fn register_skill_aliases(
+    compiled_specs: Vec<RuntimeAliasSpec>,
     native_tools: &mut NativeToolRegistry,
 ) -> (Vec<String>, Vec<String>) {
     let mut mounted = Vec::new();
@@ -183,7 +184,7 @@ fn register_internal_aliases(
     for spec in compiled_specs {
         let alias_name = spec.tool_name.trim().to_string();
         if alias_name.is_empty() {
-            issues.push("internal alias missing tool_name".to_string());
+            issues.push("skill alias missing tool_name".to_string());
             continue;
         }
 

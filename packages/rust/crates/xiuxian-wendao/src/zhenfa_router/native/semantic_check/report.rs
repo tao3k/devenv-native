@@ -4,6 +4,7 @@ use std::fmt::Write as _;
 use std::path::Path;
 
 use super::docs_governance;
+use super::episteme::EpistemeLoadReport;
 use super::types::{
     FileAuditReport, FuzzySuggestionData, IssueLocation, SemanticCheckResult, SemanticIssue,
 };
@@ -234,6 +235,49 @@ fn append_issues_xml(output: &mut String, issues: &[SemanticIssue]) {
     output.push_str("  </issues>\n");
 }
 
+fn append_episteme_xml(output: &mut String, episteme: &EpistemeLoadReport) {
+    let schema_version = episteme
+        .schema_version
+        .map_or_else(String::new, |version| version.to_string());
+    let name = episteme.name.as_deref().unwrap_or("");
+
+    let _ = writeln!(
+        output,
+        "  <episteme status=\"loaded\" name=\"{}\" schema_version=\"{}\" manifest_path=\"{}\" root_path=\"{}\">",
+        xml_escape(name),
+        xml_escape(&schema_version),
+        xml_escape(&episteme.manifest_path),
+        xml_escape(&episteme.root_path)
+    );
+    let _ = writeln!(
+        output,
+        "    <counts policy_queries=\"{}\" diagnostic_mappings=\"{}\" repair_prompts=\"{}\" repair_guards=\"{}\" source_evolution_skills=\"{}\"/>",
+        episteme.policy_query_count,
+        episteme.diagnostic_mapping_count,
+        episteme.repair_prompt_count,
+        episteme.repair_guard_count,
+        episteme.source_evolution_skill_count
+    );
+
+    if !episteme.policy_queries.is_empty() {
+        output.push_str("    <policy_queries>\n");
+        for query in &episteme.policy_queries {
+            let framework = query.framework.as_deref().unwrap_or("");
+            let _ = writeln!(
+                output,
+                "      <policy_query id=\"{}\" framework=\"{}\" path=\"{}\" statement_mode=\"{}\"/>",
+                xml_escape(&query.id),
+                xml_escape(framework),
+                xml_escape(&query.path),
+                xml_escape(&query.statement_mode)
+            );
+        }
+        output.push_str("    </policy_queries>\n");
+    }
+
+    output.push_str("  </episteme>\n");
+}
+
 /// Format the check result as XML-Lite (Blueprint v2.2).
 pub(super) fn format_result_as_xml(result: &SemanticCheckResult) -> String {
     let mut output = String::new();
@@ -245,6 +289,9 @@ pub(super) fn format_result_as_xml(result: &SemanticCheckResult) -> String {
     );
 
     let _ = writeln!(output, "  <summary>{}</summary>", result.summary);
+    if let Some(episteme) = &result.episteme {
+        append_episteme_xml(&mut output, episteme);
+    }
     append_file_reports_xml(&mut output, &result.file_reports);
     append_issues_xml(&mut output, &result.issues);
 

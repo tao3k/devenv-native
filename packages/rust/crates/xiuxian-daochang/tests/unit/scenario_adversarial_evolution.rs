@@ -17,7 +17,7 @@ use xiuxian_memory_engine::{EpisodeStore, StoreConfig};
 use xiuxian_qianhuan::{PersonaRegistry, orchestrator::ThousandFacesOrchestrator};
 use xiuxian_qianji::{QianjiApp, QianjiLlmClient};
 use xiuxian_wendao::link_graph::LinkGraphIndex;
-use xiuxian_wendao::skill_vfs::embedded_resource_text_from_wendao_uri;
+use xiuxian_wendao::skill_runtime::embedded_resource_text_from_wendao_uri;
 use xiuxian_zhenfa::{
     ZhenfaContext, ZhenfaError, ZhenfaOrchestrator, ZhenfaOrchestratorHooks, ZhenfaRegistry,
     ZhenfaSignal, ZhenfaSignalSink, ZhenfaTool,

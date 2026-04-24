@@ -1,4 +1,4 @@
-//! In-process cache for search results (`search_optimized`, `search_hybrid`).
+//! In-process cache for vector search results.
 //!
 //! Keyed by (`path`, `table`, `limit`, `options_json`, `vector_hash`) to avoid
 //! repeated `LanceDB` scans when the same query is issued. LRU eviction
@@ -51,17 +51,6 @@ impl SearchResultCache {
         let opt = options_json.unwrap_or("");
         let h = Self::hash_vector(vector);
         format!("{path}:{table}:{limit}:{opt}:{h:016x}")
-    }
-
-    fn key_hybrid(
-        path: &str,
-        table: &str,
-        limit: usize,
-        vector: &[f32],
-        query_text: &str,
-    ) -> String {
-        let h = Self::hash_vector(vector);
-        format!("hybrid:{path}:{table}:{limit}:{query_text}:{h:016x}")
     }
 
     fn get(&mut self, key: &str) -> Option<Vec<String>> {
@@ -132,34 +121,6 @@ pub fn set_cached(
     results: Vec<String>,
 ) {
     let key = SearchResultCache::key(path, table, limit, options_json, vector);
-    if let Ok(mut guard) = get_cache().lock() {
-        guard.set(key, results);
-    }
-}
-
-/// Get cached hybrid search results.
-#[must_use]
-pub fn get_cached_hybrid(
-    path: &str,
-    table: &str,
-    limit: usize,
-    vector: &[f32],
-    query_text: &str,
-) -> Option<Vec<String>> {
-    let key = SearchResultCache::key_hybrid(path, table, limit, vector, query_text);
-    get_cache().lock().ok()?.get(&key)
-}
-
-/// Store hybrid search results in cache.
-pub fn set_cached_hybrid(
-    path: &str,
-    table: &str,
-    limit: usize,
-    vector: &[f32],
-    query_text: &str,
-    results: Vec<String>,
-) {
-    let key = SearchResultCache::key_hybrid(path, table, limit, vector, query_text);
     if let Ok(mut guard) = get_cache().lock() {
         guard.set(key, results);
     }

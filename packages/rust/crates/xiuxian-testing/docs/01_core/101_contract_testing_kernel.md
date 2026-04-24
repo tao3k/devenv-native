@@ -114,7 +114,7 @@ consumer slice externalized the smallest inline suites under
 `src/analyzers/service/bootstrap.rs`,
 `src/gateway/studio/types/collection.rs`,
 `src/link_graph/stats_cache/runtime.rs`,
-`src/skill_vfs/zhixing/indexer/stats.rs`, and
+`src/skill_runtime/zhixing/indexer/stats.rs`, and
 `src/gateway/studio/router/handlers/repo/shared/repository.rs`, but both
 shared harness entrypoints still fail on the crate's larger pre-existing
 inline-test debt and non-standard `tests/support` mounts. That remaining debt
@@ -511,14 +511,14 @@ few inline suites (`repo_search/batch.rs`, `project_fingerprint.rs`,
 were externalized beside them. The live Wendao gate therefore no longer
 reports any `search/*` owner at all, so the next milestone begins directly at
 the new front outside search: `pybindings/*`, `query_core`, `unified_symbol`,
-`skill_vfs/*`, and the broader `gateway/studio/*` tree.
+`skill_runtime/*`, and the broader `gateway/studio/*` tree.
 
 That next non-search milestone has landed too. The live Wendao gate no longer
 reports `src/pybindings/unified_symbol_py/mod.rs`,
 `src/pybindings/dep_indexer_py/mod.rs`, `src/query_core/mod.rs`,
-`src/unified_symbol/mod.rs`, `src/skill_vfs/zhixing/resources/mod.rs`,
-`src/skill_vfs/internal_manifest/mod.rs`,
-`src/skill_vfs/resolver/runtime.rs`, or
+`src/unified_symbol/mod.rs`, `src/skill_runtime/zhixing/resources/mod.rs`,
+`src/skill_runtime/manifest/mod.rs`,
+`src/skill_runtime/resolver/runtime.rs`, or
 `src/zhenfa_router/native/semantic_check/docs_governance/mod.rs`. Their old
 source-resident `tests.rs` files and `tests/` trees now mount from canonical
 `tests/unit/...` locations, and the `pybindings` branch is now explicitly
@@ -613,21 +613,12 @@ parsers. All five shared harness entrypoints now pass, and the crate
 also clears `cargo clippy -p xiuxian-ast --lib --tests --all-features -- -D warnings`
 without reintroducing source-resident test logic.
 
-The next bounded consumer milestone then landed in `xiuxian-skills`. That
-crate now follows the same canonical split harness shape:
-`src/lib.rs -> tests/unit/lib_policy.rs` for the source-side gate, plus
-`tests/unit_test.rs`, `tests/integration_test.rs`, and
-`tests/performance_test.rs` as explicit root harness targets. The old root
-test scatter was absorbed into canonical `tests/unit/`, `tests/integration/`,
-and `tests/performance/` trees, the remaining source-resident test owners in
-`src/knowledge/scanner/`, `src/skills/metadata/index/`,
-`src/skills/resource/`, `src/skills/skill_command/{annotations,category}/`,
-and `src/skills/scanner/references/` now mount canonical `tests/unit/...`
-files, and the integration support helpers are mounted once at the
-`integration_test.rs` root and consumed through `crate::...` paths instead of
-duplicated local `mod` declarations. All shared harness entrypoints now pass,
-and the crate also clears `cargo clippy -p xiuxian-skills --lib --tests -- -D warnings`
-without leaving source-resident test logic behind.
+The former skills package also passed through the same canonical split harness
+shape before its retirement. That cleanup established the pattern now used by
+the parser-owned SKILL.md frontmatter tests and Wendao-owned skill VFS tests:
+source-side gates stay small, explicit root harness targets own unit and
+integration suites, and source-resident test logic does not become a hidden
+package boundary.
 
 The next bounded consumer milestone then landed in `xiuxian-qianji`. That
 crate already had the source-side `--lib` harness in `src/lib.rs` and the

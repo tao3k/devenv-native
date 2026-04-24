@@ -39,4 +39,4 @@ The Agent's primary lifecycle is driven by declarative TOML manifests:
 ## 4. Performance Standards
 
 - **Parallel Pipeline (ADR-006)**: Non-blocking fan-out for history, recall, and validation.
-- **Zero-Copy Loading**: Integrated with the `SkillVfsResolver` for microsecond-level pointer-based resource access.
+- **Zero-Copy Loading**: Integrated with the `SkillRuntimeResolver` for microsecond-level pointer-based resource access.

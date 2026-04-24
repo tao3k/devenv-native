@@ -5,5 +5,5 @@ expression: value
 {
   "content": "---\nname: Writer\n---\n",
   "contentType": "text/markdown",
-  "path": "internal_skills/writer/SKILL.md"
+  "path": "skills/writer/SKILL.md"
 }

@@ -3,7 +3,7 @@ use std::fmt::Display;
 use arrow_array::RecordBatch;
 use arrow_flight::{FlightDescriptor, FlightInfo};
 use tonic::metadata::{Ascii, MetadataValue};
-use xiuxian_vector::LanceRecordBatch;
+use xiuxian_db_store::LanceRecordBatch;
 
 use crate::transport::flight_descriptor_path;
 

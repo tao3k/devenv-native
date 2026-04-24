@@ -1,4 +1,4 @@
-use xiuxian_vector::{LanceArray, LanceStringArray, LanceUInt64Array};
+use xiuxian_db_store::{LanceArray, LanceStringArray, LanceUInt64Array};
 
 use crate::gateway::studio::vfs::flight_content::{
     VfsContentResponse, vfs_content_response_batch, vfs_content_response_flight_app_metadata,

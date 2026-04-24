@@ -6,26 +6,29 @@ metadata:
 
 # Omni Vector
 
-> High-Performance Embedded Vector Database using LanceDB.
+> Lance-backed storage and query placeholder for the Xiuxian workspace.
 
 ## Overview
 
-Omni Vector provides vector storage and similarity search capabilities for the Omni DevEnv. It uses LanceDB for efficient disk-based vector storage with ACID guarantees.
+Omni Vector is the Lance-backed vector-table storage shell for the Xiuxian
+workspace. It keeps Arrow/Lance ownership, generic vector-table mutation, and
+low-level storage query primitives behind higher-level owners such as
+`xiuxian-db-store` and Wendao. It does not own `SKILL.md` discovery, tool
+routing, agentic orchestration contracts, or DuckDB search semantics.
 
 ## Features
 
-- Disk-based vector storage (no server required)
-- Lance-backed vector similarity search
-- Scanner tuning via `SearchOptions`
+- Disk-based Lance storage (no server required)
+- Low-level Lance vector similarity lookup via `search_optimized`
 - CRUD + merge-insert (upsert) operations
 - Versioning / snapshot (time travel) APIs
 - Schema evolution helpers
-- Generic Arrow IPC codec and Arrow-over-HTTP transport helpers
+- Generic Arrow IPC codec and Lance-facing Arrow re-exports
 
 ## Usage
 
 ```rust
-use xiuxian_vector::{KeywordSearchBackend, SearchOptions, VectorStore};
+use xiuxian_vector::{SearchOptions, VectorStore};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -33,7 +36,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     store
         .add_documents(
-            "skills",
+            "documents",
             vec!["doc1".to_string()],
             vec![vec![0.1, 0.2, 0.3]],
             vec!["example document".to_string()],
@@ -43,7 +46,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let results = store
         .search_optimized(
-            "skills",
+            "documents",
             vec![0.1, 0.2, 0.3],
             5,
             SearchOptions {
@@ -54,10 +57,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .await?;
 
     println!("results={}", results.len());
-
-    // Optional: enable the Lance FTS keyword path for hybrid search.
-    store.set_keyword_backend(KeywordSearchBackend::LanceFts)?;
-    store.create_fts_index("skills").await?;
 
     Ok(())
 }
@@ -70,17 +69,19 @@ xiuxian-vector/
 ├── src/lib.rs                # Main exports / module wiring
 ├── src/arrow_codec.rs        # Generic Arrow IPC codec + metadata helpers
 ├── src/ops/                  # Core CRUD + admin + writer operations
-├── src/search/               # search_optimized + hybrid fusion + search_fts
-├── src/keyword/              # keyword fusion and Lance FTS-facing helpers
+├── src/search/               # generic vector search helpers
 └── tests/                    # snapshots + data-layer + perf guard
 ```
 
-## Keyword Search Boundary
+## Out Of Scope
 
-`xiuxian-vector` now keeps a single keyword-search path backed by Lance FTS.
-The crate no longer carries a standalone Tantivy index implementation or its
-dependency surface. Hybrid search still uses the crate-local fusion helpers,
-but sparse keyword retrieval is sourced from the Lance-backed table state only.
+`xiuxian-vector` does not own:
+
+- `SKILL.md` or frontmatter scanning
+- tool catalog indexing
+- tool routing / agentic search policy
+- workspace-specific skill manifests
+- keyword / FTS / hybrid search semantics
 
 ## Arrow Ownership Boundary
 
@@ -100,16 +101,9 @@ crate keeps only generic Arrow batch helpers on the public surface:
 
 Do not pass workspace Arrow arrays into `LanceRecordBatch` construction or downcast Lance batches using workspace Arrow collection types. Use the Lance-prefixed re-exports from `xiuxian-vector` for any code that touches Lance-owned schemas or arrays.
 
-## Integration
-
-Used by:
-
-- [Skill Discovery](../../../../docs/llm/skill-discovery.md)
-- [Knowledge Matrix](../../../../docs/human/architecture/knowledge-matrix.md)
-
 ## See Also
 
-- [docs/reference/librarian.md](../../../../docs/reference/librarian.md)
+- [Wendao vector boundary split](../xiuxian-wendao/docs/03_features/215_vector_boundary_split.md)
 
 ## License
 

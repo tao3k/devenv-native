@@ -16,10 +16,10 @@ expression: value
     {
       "contentType": null,
       "isDir": true,
-      "name": "internal_skills",
-      "path": "internal_skills",
+      "name": "skills",
+      "path": "skills",
       "projectName": "kernel",
-      "rootLabel": "internal_skills",
+      "rootLabel": "skills",
       "size": 0
     }
   ]

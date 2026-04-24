@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use xiuxian_vector::{
+use xiuxian_db_store::{
     LanceArray, LanceListArray, LanceRecordBatch, LanceStringArray, LanceUInt32Array,
 };
 

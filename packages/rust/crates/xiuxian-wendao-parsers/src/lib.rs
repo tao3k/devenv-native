@@ -47,10 +47,15 @@ pub use code_observation::{CodeObservation, extract_observations, path_matches_s
 pub use document::{
     DocumentCore, DocumentEnvelope, DocumentFormat, MarkdownDocument, parse_markdown_document,
 };
-pub use frontmatter::{NoteFrontmatter, parse_frontmatter, split_frontmatter};
+pub use frontmatter::{
+    NoteFrontmatter, RawFrontmatter, discover_skill_documents, frontmatter_kind,
+    is_skill_descriptor_path, parse_frontmatter, parse_skill_frontmatter_lenient,
+    skill_frontmatter_has_metadata_mapping, skill_frontmatter_name, split_frontmatter,
+    split_frontmatter_raw, uses_skill_frontmatter,
+};
 pub use lint::{
     MarkdownLintKind, MarkdownSyntaxLintCode, MarkdownSyntaxLintIssue, MarkdownSyntaxLintReport,
-    lint_markdown_syntax,
+    lint_markdown_syntax, lint_markdown_syntax_with_path,
 };
 pub use literal_addressed_target::LiteralAddressedTarget;
 pub use note::{

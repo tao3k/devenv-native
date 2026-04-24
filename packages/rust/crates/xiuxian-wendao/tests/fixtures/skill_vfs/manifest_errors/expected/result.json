@@ -1,9 +1,0 @@
-{
-  "invalid_description": [
-    "parse internal manifest URI `wendao://skills-internal/agenda/references/view/qianji.toml`: invalid description: description must contain an `Args:` header; description must contain an `Examples:` header"
-  ],
-  "missing_background": [
-    "qianhuan.background must resolve via SkillVfsResolver",
-    "resource `MISSING.md` not found under internal skill namespace `agenda`"
-  ]
-}

@@ -15,8 +15,12 @@ comrak = { workspace = true }
 blake3 = { workspace = true }
 regex = { workspace = true }
 uuid = { workspace = true }
+walkdir = { workspace = true }
 xiuxian-testing = { path = "../xiuxian-testing" }
 xiuxian-ast = { path = "../xiuxian-ast" }
 
 [lints]
 workspace = true
+
+[dev-dependencies]
+tempfile = { workspace = true }

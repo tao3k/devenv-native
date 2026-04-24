@@ -1,13 +1,16 @@
 use super::contract::diagnostic_contract;
 use super::diagnostic::DiagnosticContext;
 use super::discovery::{collect_markdown_files, display_path};
-use super::policy::{collect_file_link_style_facts, lint_directory_link_style_policy};
+use super::policy::{
+    collect_file_link_style_facts, lint_directory_link_style_policy, lint_local_target_existence,
+    lint_local_target_fragments,
+};
 use super::{MarkdownLintArgs, MarkdownLintFileReport, MarkdownLintIssue, MarkdownLintReport};
 use crate::{ClientContext, CommandOutcome, OutputFormat};
 use anyhow::{Context, Result};
 use std::collections::BTreeMap;
 use std::fmt::Write as _;
-use xiuxian_wendao_parsers::lint_markdown_syntax;
+use xiuxian_wendao_parsers::lint_markdown_syntax_with_path;
 
 pub(crate) fn run_markdown_lint(
     args: &MarkdownLintArgs,
@@ -81,11 +84,24 @@ fn build_file_report(
     markdown: &str,
     diagnostics: &mut DiagnosticContext<'_>,
 ) -> MarkdownLintFileReport {
-    let issues = lint_markdown_syntax(markdown)
+    let mut issues = lint_markdown_syntax_with_path(Some(source_path), markdown)
         .issues
         .into_iter()
         .map(|issue| diagnostics.build_issue(source_path, markdown, issue))
         .collect::<Vec<_>>();
+    issues.extend(lint_local_target_existence(
+        path.as_str(),
+        source_path,
+        markdown,
+        diagnostics,
+    ));
+    issues.extend(lint_local_target_fragments(
+        path.as_str(),
+        source_path,
+        markdown,
+        diagnostics,
+    ));
+    issues.sort_by_key(|issue| (issue.line, issue.column, issue.code.clone()));
     MarkdownLintFileReport {
         path,
         issue_count: issues.len(),

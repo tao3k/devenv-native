@@ -1079,11 +1079,11 @@ Current source-level concentration:
 First bounded cutover candidate:
 
 1. the resource/VFS family:
-   - `SkillVfsResolver`
+   - `SkillRuntimeResolver`
    - `WendaoResourceUri`
    - `embedded_resource_text_from_wendao_uri`
    - `WendaoResourceRegistry`
-2. this family is physically concentrated under `src/skill_vfs/` and
+2. this family is physically concentrated under `src/skill_runtime/` and
    `src/enhancer/resource_registry/`
 3. this family is still re-exported broadly from `src/lib.rs`
 4. this family is consumed by multiple sibling crates, which makes it the
@@ -1095,7 +1095,7 @@ Current Stage-B progress:
    `xiuxian-qianhuan`, `xiuxian-qianji`, and `xiuxian-daochang`
 2. those source consumers now import from the owner seams instead of from the
    monolith crate root:
-   - `xiuxian_wendao::skill_vfs::*`
+   - `xiuxian_wendao::skill_runtime::*`
    - `xiuxian_wendao::enhancer::WendaoResourceRegistry`
 3. the follow-up test-consumer slice for this family is now landed too
 4. root-qualified imports for this family are now cleared across the touched
@@ -1128,7 +1128,7 @@ canonical_web_uri}`
 14. the next bounded Zhixing indexer family slice is now also landed across
     `xiuxian-zhixing` source and test consumers
 15. those touched consumers now use the owner seam
-    `xiuxian_wendao::skill_vfs::zhixing::{ZhixingIndexSummary,
+    `xiuxian_wendao::skill_runtime::zhixing::{ZhixingIndexSummary,
 ZhixingWendaoIndexer}`
 16. the owner seam now also carries the embedded skill-reference counters in
     `ZhixingIndexSummary`, which removes the existing downstream summary-field
@@ -1233,7 +1233,7 @@ extract_markdown_config_blocks}`
     `xiuxian-qianji`
 46. the touched consumers now use owner seams instead of crate-root imports:
     - `xiuxian_wendao::enhancer::parse_frontmatter`
-    - `xiuxian_wendao::skill_vfs::embedded_discover_canonical_uris`
+    - `xiuxian_wendao::skill_runtime::embedded_discover_canonical_uris`
 47. the touched files are:
     - `xiuxian-qianji/src/executors/annotation/persona_markdown.rs`
     - `xiuxian-qianji/src/scheduler/preflight/query.rs`
@@ -1287,7 +1287,7 @@ extract_markdown_config_blocks}`
     resource/VFS test tail in `xiuxian-zhixing`
 63. the touched tests now use owner seams instead of crate-root imports:
     - `xiuxian_wendao::enhancer::WendaoResourceRegistry`
-    - `xiuxian_wendao::skill_vfs::{...}`
+    - `xiuxian_wendao::skill_runtime::{...}`
 64. the touched files are:
     - `xiuxian-zhixing/tests/test_forge_skill_resources.rs`
     - `xiuxian-zhixing/tests/test_wendao_skill_resources.rs`

@@ -168,6 +168,12 @@ pub(in crate::link_graph::index::search::quantum_fusion) fn fuse_saliency_score(
     alpha * semantic + (1.0 - alpha) * topology
 }
 
+pub(in crate::link_graph::index::search::quantum_fusion) fn distance_to_score(
+    distance: f64,
+) -> f64 {
+    1.0 / (1.0 + distance.max(0.0))
+}
+
 pub(in crate::link_graph::index::search::quantum_fusion) fn topology_score_from_ranked(
     ranked: &[(String, usize, f64)],
     related_limit: usize,
@@ -177,4 +183,16 @@ pub(in crate::link_graph::index::search::quantum_fusion) fn topology_score_from_
         total += score.max(0.0);
     }
     total.clamp(0.0, 1.0)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::distance_to_score;
+
+    #[test]
+    fn distance_to_score_normalizes_lance_distance() {
+        assert!((distance_to_score(0.0) - 1.0).abs() < f64::EPSILON);
+        assert!((distance_to_score(1.0) - 0.5).abs() < f64::EPSILON);
+        assert!((distance_to_score(-0.5) - 1.0).abs() < f64::EPSILON);
+    }
 }

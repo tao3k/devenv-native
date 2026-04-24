@@ -6,7 +6,7 @@ use std::path::PathBuf;
 #[cfg(feature = "duckdb")]
 use std::sync::{Arc, Mutex, MutexGuard};
 
-use xiuxian_vector::{EngineRecordBatch, SearchEngineContext, VectorStoreError};
+use xiuxian_db_store::{EngineRecordBatch, SearchEngineContext, VectorStoreError};
 
 #[cfg(feature = "duckdb")]
 use super::connection::SearchDuckDbConnection;

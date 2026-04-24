@@ -1,0 +1,9 @@
+id = "xiuxian.zhixing.agenda.add"
+
+[tool_contract]
+name = "agenda.add"
+description = "missing structure"
+
+[workflow]
+type = "native_dispatch"
+binding_id = "xiuxian.native.zhixing.add"

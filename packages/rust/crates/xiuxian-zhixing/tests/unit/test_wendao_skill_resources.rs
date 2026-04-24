@@ -1,7 +1,7 @@
 //! Embedded skill/resource registry tests for Zhixing-Wendao integration.
 
 use xiuxian_wendao::enhancer::WendaoResourceRegistry;
-use xiuxian_wendao::skill_vfs::{
+use xiuxian_wendao::skill_runtime::{
     ZHIXING_SKILL_DOC_PATH, build_embedded_wendao_registry, embedded_resource_text,
     embedded_resource_text_from_wendao_uri, embedded_skill_links_for_id,
     embedded_skill_links_for_reference_type, embedded_skill_links_index, embedded_skill_markdown,

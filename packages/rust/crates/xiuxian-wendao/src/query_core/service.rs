@@ -202,7 +202,7 @@ pub async fn query_repo_code_relation(
     if !request.policy.allow_content || !content_allowed {
         return Ok(RepoCodeQueryRelation {
             corpus: RetrievalCorpus::RepoEntity,
-            relation: WendaoRelation::new(xiuxian_vector::retrieval_result_schema(), Vec::new()),
+            relation: WendaoRelation::new(xiuxian_db_store::retrieval_result_schema(), Vec::new()),
         });
     }
 
@@ -497,7 +497,7 @@ async fn finalize_repo_retrieval_relation(
         ctx,
         &PayloadFetchOp {
             relation: masked,
-            columns: xiuxian_vector::retrieval_result_columns(),
+            columns: xiuxian_db_store::retrieval_result_columns(),
             ids: None,
         },
     )

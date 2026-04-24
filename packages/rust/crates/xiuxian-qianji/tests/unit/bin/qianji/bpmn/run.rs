@@ -16,6 +16,8 @@ async fn run_bpmn_command_completes_linear_bundle() {
             checkpoint_backend: None,
             host_fixture_path: None,
             event_fixture_path: None,
+            trace_stream: false,
+            external_host: false,
         }))
         .await,
         "bpmn run should complete linear bundle",
@@ -59,6 +61,8 @@ async fn run_bpmn_command_completes_service_task_bundle_with_host_fixture() {
             checkpoint_backend: None,
             host_fixture_path: Some(fixture_path.clone()),
             event_fixture_path: None,
+            trace_stream: false,
+            external_host: false,
         }))
         .await,
         "bpmn run should complete service task bundle with host fixture",
@@ -104,6 +108,8 @@ async fn run_bpmn_command_completes_send_task_bundle_with_host_fixture() {
             checkpoint_backend: None,
             host_fixture_path: Some(fixture_path.clone()),
             event_fixture_path: None,
+            trace_stream: false,
+            external_host: false,
         }))
         .await,
         "bpmn run should complete send task bundle with host fixture",
@@ -150,6 +156,8 @@ async fn run_bpmn_command_completes_business_rule_bundle_with_host_fixture() {
             checkpoint_backend: None,
             host_fixture_path: Some(fixture_path.clone()),
             event_fixture_path: None,
+            trace_stream: false,
+            external_host: false,
         }))
         .await,
         "bpmn run should complete business-rule bundle with host fixture",

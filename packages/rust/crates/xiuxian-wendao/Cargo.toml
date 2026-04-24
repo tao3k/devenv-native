@@ -38,7 +38,6 @@ vector-store = ["dep:arrow", "dep:reqwest", "dep:xiuxian-db-store"]
 search-runtime = [
   "dep:graphql-parser",
   "dep:xiuxian-ast",
-  "dep:xiuxian-vector",
   "vector-store",
   "runtime-transport",
   "dep:arrow-flight",
@@ -113,10 +112,7 @@ walkdir = { workspace = true }
 thiserror = { workspace = true }
 anyhow = { workspace = true }
 
-# Reuse common types
-xiuxian-skills = { path = "../xiuxian-skills" }
 xiuxian-logging = { path = "../xiuxian-logging" }
-xiuxian-vector = { path = "../xiuxian-vector", default-features = false, optional = true }
 xiuxian-db-store = { path = "../xiuxian-db-store", optional = true }
 xiuxian-io = { path = "../xiuxian-io" }
 xiuxian-git-repo = { path = "../xiuxian-git-repo" }

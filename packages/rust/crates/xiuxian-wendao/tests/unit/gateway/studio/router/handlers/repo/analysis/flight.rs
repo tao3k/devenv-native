@@ -1,4 +1,4 @@
-use xiuxian_vector::LanceArray;
+use xiuxian_db_store::LanceArray;
 
 use crate::analyzers::{DocCoverageResult, DocRecord, DocTargetRecord};
 use crate::gateway::studio::router::handlers::repo::analysis::flight::{
@@ -39,7 +39,7 @@ fn repo_doc_coverage_flight_batch_preserves_doc_rows() {
     };
     let Some(doc_ids) = doc_id_column
         .as_any()
-        .downcast_ref::<xiuxian_vector::LanceStringArray>()
+        .downcast_ref::<xiuxian_db_store::LanceStringArray>()
     else {
         panic!("docId should be utf8");
     };
@@ -51,7 +51,7 @@ fn repo_doc_coverage_flight_batch_preserves_doc_rows() {
     };
     let Some(formats) = format_column
         .as_any()
-        .downcast_ref::<xiuxian_vector::LanceStringArray>()
+        .downcast_ref::<xiuxian_db_store::LanceStringArray>()
     else {
         panic!("format should be utf8");
     };
@@ -63,7 +63,7 @@ fn repo_doc_coverage_flight_batch_preserves_doc_rows() {
     };
     let Some(target_names) = target_name_column
         .as_any()
-        .downcast_ref::<xiuxian_vector::LanceStringArray>()
+        .downcast_ref::<xiuxian_db_store::LanceStringArray>()
     else {
         panic!("targetName should be utf8");
     };
@@ -75,7 +75,7 @@ fn repo_doc_coverage_flight_batch_preserves_doc_rows() {
     };
     let Some(target_line_starts) = target_line_start_column
         .as_any()
-        .downcast_ref::<xiuxian_vector::LanceInt32Array>()
+        .downcast_ref::<xiuxian_db_store::LanceInt32Array>()
     else {
         panic!("targetLineStart should be int32");
     };

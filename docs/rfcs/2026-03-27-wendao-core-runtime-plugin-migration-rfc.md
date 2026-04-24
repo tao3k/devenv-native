@@ -1332,16 +1332,16 @@ The current consumer reality is now explicitly inventoried:
    - `xiuxian-qianhuan`
    - `xiuxian-daochang`
    - `xiuxian-zhixing`
-5. the most bounded first cutover candidate is the resource/VFS family:
-   `SkillVfsResolver`, `WendaoResourceUri`,
+5. the most bounded first cutover candidate is the resource/runtime family:
+   `SkillRuntimeResolver`, `WendaoResourceUri`,
    `embedded_resource_text_from_wendao_uri`, and
    `WendaoResourceRegistry`
 
 ### 17.5 Stage-B Starting Boundary
 
-The first `Stage B` bundle should focus on the resource/VFS family because:
+The first `Stage B` bundle should focus on the resource/runtime family because:
 
-1. it is physically concentrated under `xiuxian-wendao/src/skill_vfs/` and
+1. it is physically concentrated under `xiuxian-wendao/src/skill_runtime/` and
    `xiuxian-wendao/src/enhancer/resource_registry/`
 2. it is still broadly re-exported from `xiuxian-wendao/src/lib.rs`
 3. it is consumed across multiple sibling crates, which makes it the most
@@ -1352,10 +1352,10 @@ The first `Stage B` bundle should focus on the resource/VFS family because:
 The first bounded `Stage B` source-consumer slice is now landed:
 
 1. `xiuxian-qianhuan`, `xiuxian-qianji`, and `xiuxian-daochang` source
-   consumers no longer import the resource/VFS family from the monolith crate
+   consumers no longer import the resource/runtime family from the monolith crate
    root
 2. those touched consumers now use the owner module paths:
-   - `xiuxian_wendao::skill_vfs::*`
+   - `xiuxian_wendao::skill_runtime::*`
    - `xiuxian_wendao::enhancer::WendaoResourceRegistry`
 3. the follow-up test-consumer slice is also now landed for the same family
 4. root-qualified imports for this family are now cleared across the touched
@@ -1389,7 +1389,7 @@ canonical_web_uri}`
       only by deeper pre-existing compile or test drift outside this family
 14. the next bounded Zhixing indexer family slice is now also landed across
     `xiuxian-zhixing` source and test consumers
-15. those touched consumers now use the owner module path: - `xiuxian_wendao::skill_vfs::zhixing::{ZhixingIndexSummary,
+15. those touched consumers now use the owner module path: - `xiuxian_wendao::skill_runtime::zhixing::{ZhixingIndexSummary,
 ZhixingWendaoIndexer}`
 16. the owner seam now also carries the embedded skill-reference counters in
     `ZhixingIndexSummary`, so the live `ZhixingWendaoIndexer` summary matches
@@ -1498,7 +1498,7 @@ extract_markdown_config_blocks}`
     `xiuxian-qianji`
 46. the touched consumers now use owner seams instead of crate-root imports:
     - `xiuxian_wendao::enhancer::parse_frontmatter`
-    - `xiuxian_wendao::skill_vfs::embedded_discover_canonical_uris`
+    - `xiuxian_wendao::skill_runtime::embedded_discover_canonical_uris`
 47. the touched files are:
     - `xiuxian-qianji/src/executors/annotation/persona_markdown.rs`
     - `xiuxian-qianji/src/scheduler/preflight/query.rs`
@@ -1549,17 +1549,17 @@ extract_markdown_config_blocks}`
 61. `Stage B` remains open, and the next move should still be another small
     bounded consumer family that stays off a broad `LinkGraphIndex` cut
 62. the next bounded `Stage B` slice is now also landed on the residual
-    resource/VFS test tail in `xiuxian-zhixing`
+    resource/runtime test tail in `xiuxian-zhixing`
 63. the touched tests now use owner seams instead of crate-root imports:
     - `xiuxian_wendao::enhancer::WendaoResourceRegistry`
-    - `xiuxian_wendao::skill_vfs::{...}`
+    - `xiuxian_wendao::skill_runtime::{...}`
 64. the touched files are:
     - `xiuxian-zhixing/tests/test_forge_skill_resources.rs`
     - `xiuxian-zhixing/tests/test_wendao_skill_resources.rs`
 65. bounded verification for this residual tail is clean:
     - `xiuxian-zhixing --test test_forge_skill_resources --no-run` passes
     - `xiuxian-zhixing --test test_wendao_skill_resources --no-run` passes
-    - sibling-consumer grep for crate-root resource/VFS imports in this
+    - sibling-consumer grep for crate-root resource/runtime imports in this
       family is clean
 66. `Stage B` remains open, and the next move should still be another small
     bounded consumer family that stays off a broad `LinkGraphIndex` cut

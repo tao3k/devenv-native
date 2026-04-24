@@ -17,7 +17,9 @@ metadata:
 
 ## 1. Context and Problem Statement
 
-As the system scales, multiple crates (e.g., `xiuxian-skills`, `xiuxian-daochang`, `xiuxian-wendao`) require their own configuration schemas.
+As the system scales, multiple crates (e.g., `xiuxian-daochang`,
+`xiuxian-wendao`, `xiuxian-wendao-parsers`) require their own configuration
+schemas.
 
 We need a model that balances:
 

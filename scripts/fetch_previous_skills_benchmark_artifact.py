@@ -38,7 +38,7 @@ def _api_bytes(*, url: str, token: str, timeout_seconds: float = 30.0) -> bytes:
             "Accept": "application/vnd.github+json",
             "Authorization": f"Bearer {token}",
             "X-GitHub-Api-Version": "2022-11-28",
-            "User-Agent": "xiuxian-skills-tools-baseline-fetcher",
+            "User-Agent": "xiuxian-skill-runtime-baseline-fetcher",
         },
     )
     with urllib.request.urlopen(request, timeout=timeout_seconds) as response:
@@ -185,8 +185,12 @@ def main() -> int:
     parser = argparse.ArgumentParser(
         description="Fetch previous workflow artifact and extract CLI summary baseline."
     )
-    parser.add_argument("--artifact-name", required=True, help="Artifact name to fetch.")
-    parser.add_argument("--output", required=True, help="Destination baseline JSON path.")
+    parser.add_argument(
+        "--artifact-name", required=True, help="Artifact name to fetch."
+    )
+    parser.add_argument(
+        "--output", required=True, help="Destination baseline JSON path."
+    )
     parser.add_argument(
         "--workflow-file",
         default="ci.yaml",

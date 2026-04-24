@@ -6,6 +6,7 @@ pub(super) use crate::parsers::markdown::CodeObservation;
 pub(super) use std::sync::Arc;
 
 mod contract_validation;
+mod episteme_report;
 mod extraction;
 mod health_score;
 mod helper_functions;

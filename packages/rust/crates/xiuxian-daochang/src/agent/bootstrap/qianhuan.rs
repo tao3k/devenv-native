@@ -55,13 +55,13 @@ pub(crate) fn init_persona_registries(
     mounts.skipped(
         "qianhuan.template_dirs",
         "orchestration",
-        ServiceMountMeta::default().detail("disabled(declarative_runtime_skill_vfs)"),
+        ServiceMountMeta::default().detail("disabled(declarative_skill_runtime)"),
     );
     let internal_registry = init_internal_persona_registry(mounts);
     mounts.skipped(
         "qianhuan.persona_registry.user",
         "orchestration",
-        ServiceMountMeta::default().detail("disabled(declarative_runtime_skill_vfs)"),
+        ServiceMountMeta::default().detail("disabled(declarative_skill_runtime)"),
     );
 
     LoadedPersonaRegistries {
@@ -78,7 +78,7 @@ fn init_internal_persona_registry(mounts: &mut ServiceMountCatalog) -> Arc<Perso
         "qianhuan.persona_registry.internal",
         "orchestration",
         ServiceMountMeta::default().detail(format!(
-            "personas={}, source=provider_cache_only(declarative_runtime_skill_vfs)",
+            "personas={}, source=provider_cache_only(declarative_skill_runtime)",
             internal_registry.len()
         )),
     );

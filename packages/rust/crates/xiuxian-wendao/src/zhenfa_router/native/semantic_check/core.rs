@@ -15,6 +15,7 @@ use super::checks::{
     check_hash_alignment, check_id_collisions, check_legacy_syntax, check_missing_identity,
 };
 use super::docs_governance;
+use super::episteme::load_episteme_manifest;
 use super::report::{build_file_reports, collect_report_doc_paths, format_result_as_xml};
 use super::types::{CheckType, SemanticCheckResult, SemanticIssue, WendaoSemanticCheckArgs};
 
@@ -36,6 +37,15 @@ pub fn wendao_semantic_check(
     ctx: &ZhenfaContext,
     args: WendaoSemanticCheckArgs,
 ) -> Result<String, ZhenfaError> {
+    let episteme = args
+        .episteme_load
+        .as_deref()
+        .map(load_episteme_manifest)
+        .transpose()
+        .map_err(|error| {
+            ZhenfaError::invalid_arguments(format!("episteme load failed: {error}"))
+        })?;
+
     let (issues, file_contents) = run_audit_core(ctx, &args)?;
     let docs_list: Vec<String> = file_contents.keys().cloned().collect();
     let report_docs = collect_report_doc_paths(&docs_list, &issues);
@@ -64,6 +74,7 @@ pub fn wendao_semantic_check(
         issues,
         summary,
         file_reports,
+        episteme,
     };
 
     Ok(format_result_as_xml(&result))

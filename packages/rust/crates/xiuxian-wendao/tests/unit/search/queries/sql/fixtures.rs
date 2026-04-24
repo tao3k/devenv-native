@@ -8,7 +8,7 @@ use arrow::util::display::array_value_to_string;
 use serde_json::{Map, Number, Value, json};
 #[cfg(feature = "duckdb")]
 use std::fs;
-use xiuxian_vector::{
+use xiuxian_db_store::{
     ColumnarScanOptions, LanceBooleanArray, LanceRecordBatch, LanceUInt64Array,
     lance_batch_to_engine_batch,
 };

@@ -36,6 +36,8 @@ fn parse_bpmn_command_accepts_tasks_complete_with_sqlite_checkpoint_backend() {
             checkpoint_backend: BpmnCliCheckpointBackend::Sqlite(PathBuf::from("state.sqlite3")),
             host_fixture_path: Some(PathBuf::from("fixtures/host.json")),
             event_fixture_path: None,
+            trace_stream: false,
+            external_host: false,
         })
     );
 }

@@ -6,7 +6,7 @@ use axum::routing::post;
 use serde_json::json;
 use std::fs;
 use tempfile::TempDir;
-use xiuxian_vector::VectorStore;
+use xiuxian_db_store::VectorStore;
 use xiuxian_wendao::{
     LinkGraphIndex,
     link_graph::{

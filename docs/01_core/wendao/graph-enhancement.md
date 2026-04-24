@@ -15,13 +15,13 @@ metadata:
 
 ## Two Cores
 
-|                 | Core 1: LinkGraph (Wendao)                                  | Core 2: LanceDB + Arrow                       |
-| --------------- | ----------------------------------------------------------- | --------------------------------------------- |
-| **Engine**      | Common LinkGraph backend (`omni.rag.link_graph`)            | xiuxian-vector (Rust crate)                   |
-| **Strength**    | Explicit link graph, structural traversal, metadata filters | Vector similarity, BM25, schema-aware queries |
-| **Data**        | Project markdown notes and link graph                       | Skill tools, knowledge chunks, embeddings     |
-| **Query**       | `knowledge.search(..., mode="link_graph")`                  | Hybrid vector + keyword search                |
-| **Enhancement** | xiuxian-wendao Rust (entity extraction, relation inference) | Tantivy FTS, Arrow columnar analytics         |
+|                 | Core 1: LinkGraph (Wendao)                                  | Core 2: Lance / Arrow Storage Facade           |
+| --------------- | ----------------------------------------------------------- | ---------------------------------------------- |
+| **Engine**      | Common LinkGraph backend (`omni.rag.link_graph`)            | `xiuxian-db-store` vector-store facade         |
+| **Strength**    | Explicit link graph, structural traversal, metadata filters | Storage-backed embeddings and Arrow batches    |
+| **Data**        | Project markdown notes and link graph                       | Knowledge chunks, embeddings, multimodal rows  |
+| **Query**       | `knowledge.search(..., mode="link_graph")`                  | Evidence source for Wendao/DuckDB query owners |
+| **Enhancement** | xiuxian-wendao Rust (entity extraction, relation inference) | Lance/Arrow compatibility and table lifecycle  |
 
 ## Problem: Islands
 
@@ -53,7 +53,9 @@ Specific disconnections:
 
 ### Principle
 
-**LinkGraph is the primary knowledge graph engine.** LanceDB is the high-performance structured/semantic search engine. They are equals, not fallbacks.
+**LinkGraph is the primary knowledge graph engine.** Lance-backed tables are a
+storage and evidence boundary. Search semantics and result contracts belong to
+Wendao/DuckDB-owned query layers, not to the vector-table storage shell.
 
 ### Integration Points
 
@@ -66,9 +68,9 @@ Specific disconnections:
 │         ┌────┴────────────────────┐                              │
 │         ▼                         ▼                              │
 │  ┌──────────────┐       ┌──────────────────┐                    │
-│  │  Core 1: LinkGraph │  │  Core 2: LanceDB │                    │
-│  │  FTS + Graph │       │  Vector + BM25   │                    │
-│  │  Traversal   │       │  Dynamic weights │                    │
+│  │  Core 1: LinkGraph │  │ Core 2: Storage  │                    │
+│  │  FTS + Graph │       │ semantic evidence │                    │
+│  │  Traversal   │       │ Arrow batches     │                    │
 │  └──────┬───────┘       └────────┬─────────┘                    │
 │         │                        │                               │
 │         └────────┬───────────────┘                               │
@@ -95,25 +97,25 @@ When routing a user query to the right tool:
 
 ```
 User: "help me analyze a git repo"
-  1. LanceDB hybrid search → ranked tool list
+  1. Router query plane → ranked tool list
   2. LinkGraph check: is "git repo" linked to any skill notes?
-     → If docs/reference/researcher.md links to docs/reference/git.md → boost researcher
+     -> If docs/reference/researcher.md links to docs/reference/git.md -> boost researcher
   3. Entity graph: does KnowledgeGraph have DOCUMENTED_IN/USES relations?
-     → Multi-hop boost for connected tools
+     -> Multi-hop boost for connected tools
 ```
 
-#### Bridge 2: LanceDB → LinkGraph Search (Intent-Aware Semantic Fallback)
+#### Bridge 2: Storage Evidence -> LinkGraph Search
 
 When LinkGraph search finds few results via links:
 
 ```
 User: "vector search optimization"
-  1. compute_fusion_weights() → link_graph_proximity_scale=1.0 (code target → neutral)
-  2. LinkGraph traversal/search → direct matches
-  3. LanceDB vector search → semantically similar notes
+  1. compute_fusion_weights() -> link_graph_proximity_scale=1.0 (code target -> neutral)
+  2. LinkGraph traversal/search -> direct matches
+  3. Storage-backed semantic evidence -> semantically similar notes
   4. Fuse: graph precision boost = 1.0 + 0.5 * link_graph_proximity_scale (dynamic)
      Graph boost scaled by link_graph_entity_scale
-  5. Result: LinkGraph precision + LanceDB coverage, balanced by query intent
+  5. Result: LinkGraph precision + semantic coverage, balanced by query intent
 ```
 
 **Implementation**: `assets/skills/knowledge/scripts/search/hybrid.py::run_hybrid_search` now routes through `omni.rag.link_graph.policy` and merges via `omni.rag.link_graph.search_results`.
@@ -124,12 +126,12 @@ When recalling knowledge chunks:
 
 ```
 User: "how does the routing algorithm work?"
-  1. compute_fusion_weights() → shared intent analysis for all bridges
-  2. LanceDB recall → top-k chunks by semantic similarity
+  1. compute_fusion_weights() -> shared intent analysis for all bridges
+  2. Storage-backed recall -> top-k chunks by semantic similarity
   3. Bridge 1a: link_graph_proximity_boost(fusion_scale=link_graph_proximity_scale)
-     → If chunk A's doc links to chunk B's doc → boost co-linked chunks
+     -> If chunk A's doc links to chunk B's doc -> boost co-linked chunks
   4. Bridge 1b: apply_kg_recall_boost(fusion_scale=link_graph_entity_scale)
-     → If chunk source matches KG entities for query keywords → boost
+     -> If chunk source matches KG entities for query keywords -> boost
   5. Result: semantically relevant + structurally connected + entity-connected chunks
 ```
 
@@ -141,15 +143,15 @@ During `omni sync` / `omni reindex`:
 
 ```
 omni sync
-  1. Scanner parses SKILL.md → skill metadata
-  2. Index tools into LanceDB (Core 2, existing)
+  1. Scanner parses SKILL.md -> skill metadata
+  2. Publish storage-backed semantic evidence through the owning facade
   3. Build skill relationship graph (keyword overlap, same-skill edges)
-  4. register_skill_entities() → Rust-native batch registration
-     → SKILL entities (one per skill)
-     → TOOL entities (one per command)
-     → CONCEPT entities (one per routing keyword)
-     → CONTAINS relations: Skill → Tool
-     → RELATED_TO relations: Tool → keyword:*
+  4. register_skill_entities() -> Rust-native batch registration
+     -> SKILL entities (one per skill)
+     -> TOOL entities (one per command)
+     -> CONCEPT entities (one per routing keyword)
+     -> CONTAINS relations: Skill -> Tool
+     -> RELATED_TO relations: Tool -> keyword:*
   5. Graph persisted as a Valkey snapshot under a stable `scope_key`
 ```
 
@@ -159,15 +161,15 @@ This bridge ensures Bridge 3 has data: when `enrich_skill_graph_from_link_graph`
 
 #### Bridge 5: Query-Time KG Rerank (KG → Router at search time)
 
-When routing a user query, after initial LanceDB hybrid search:
+When routing a user query, after initial query-plane retrieval:
 
 ```
 User: "help me search for knowledge about async patterns"
-  1. Rust extract_query_intent() → action="search", target="knowledge", keywords=["search", "knowledge", "async", "patterns"]
-  2. compute_fusion_weights() → link_graph_proximity_scale=1.5, kg_rerank_scale=1.3 (knowledge target boosts graph)
-  3. KnowledgeGraph.query_tool_relevance(keywords, hops=2) → multi-hop graph walk
-     → Finds tools connected via keyword:search, keyword:knowledge entities
-  4. apply_kg_rerank() → boosts tool scores by KG relevance * fusion_scale
+  1. Rust extract_query_intent() -> action="search", target="knowledge", keywords=["search", "knowledge", "async", "patterns"]
+  2. compute_fusion_weights() -> link_graph_proximity_scale=1.5, kg_rerank_scale=1.3 (knowledge target boosts graph)
+  3. KnowledgeGraph.query_tool_relevance(keywords, hops=2) -> multi-hop graph walk
+     -> Finds tools connected via keyword:search, keyword:knowledge entities
+  4. apply_kg_rerank() -> boosts tool scores by KG relevance * fusion_scale
   5. Result: tools with graph connections to query entities rank higher
 ```
 
@@ -187,14 +189,15 @@ The Rust-native `extract_query_intent` (in `graph/intent.rs`) decomposes queries
 - `link_graph_proximity_scale`: graph proximity boost strength (Bridge 1a, 2, 3)
 - `link_graph_entity_scale`: graph entity enrichment strength (Bridge 1b, 2, 3)
 - `kg_rerank_scale`: KG query-time rerank strength (Bridge 5)
-- `vector_weight` / `keyword_weight`: Rust RRF fusion weights (Bridge 5 → agentic_search)
+- `vector_weight` / `keyword_weight`: conceptual fusion weights owned by the
+  caller's query/routing layer
 
 Rules:
-| Query Target | LinkGraph Emphasis | LanceDB Emphasis |
+| Query Target | LinkGraph Emphasis | Semantic Evidence Emphasis |
 |---|---|---|
-| knowledge, docs | 1.5x LinkGraph proximity, 1.3x KG rerank | 0.9x vector |
-| code, database, skill | 0.7x LinkGraph proximity | 1.2x vector, 1.3x keyword |
-| git (via action) | 0.8x LinkGraph proximity | 1.4x keyword |
+| knowledge, docs | 1.5x LinkGraph proximity, 1.3x KG rerank | 0.9x semantic evidence |
+| code, database, skill | 0.7x LinkGraph proximity | 1.2x semantic evidence, 1.3x lexical evidence |
+| git (via action) | 0.8x LinkGraph proximity | 1.4x lexical evidence |
 | (default) | 1.0x balanced | 1.0x balanced |
 
 **Key architectural property**: No bridge computes fusion weights independently.
@@ -228,36 +231,36 @@ eliminating redundant Rust calls and ensuring all bridges agree on query classif
 | Lightweight query intent extractor (action/target/context) | `graph/intent.rs`                                        | Done   |
 | PyO3 bindings for all above                                | `graph_py.rs`, `enhancer_py.rs`, `link_graph_refs_py.rs` | Done   |
 
-### xiuxian-vector (Rust Crate) — Structured Search
+### Lance / Arrow Storage Facade
 
-| Capability                                                  | Module              | Status |
-| ----------------------------------------------------------- | ------------------- | ------ |
-| LanceDB vector store creation/management                    | `store.rs`          | Done   |
-| Tantivy BM25 keyword index                                  | `keyword.rs`        | Done   |
-| Weighted RRF fusion (dynamic weights via ToolSearchOptions) | `skill/ops_impl.rs` | Done   |
-| Schema-aware field boosting                                 | `search.rs`         | Done   |
-| Agentic search with intent + dynamic weights                | `ops/agentic.rs`    | Done   |
+| Capability                                  | Owner or Module                           | Status |
+| ------------------------------------------- | ----------------------------------------- | ------ |
+| Lance-backed vector-table lifecycle         | `xiuxian-db-store` facade + storage shell | Active |
+| Arrow batch compatibility helpers           | vector-store compatibility surface        | Active |
+| Retrieval-row RecordBatch helpers           | `query_support.rs`                        | Active |
+| Search semantics and routing result shapes  | Wendao/DuckDB or owning router crate      | Active |
+| Vector-local keyword/tool/agentic ownership | retired                                   | Done   |
 
 ### Python Layer — Thin Orchestration
 
-| Responsibility                                             | Module                                                                   |
-| ---------------------------------------------------------- | ------------------------------------------------------------------------ |
-| LinkGraph backend calls                                    | `link_graph/backend.py`, `link_graph/factory.py`                         |
-| Fusion search logic (intent-aware merge)                   | `assets/skills/knowledge/scripts/search/hybrid.py`                       |
-| Rust enhancer delegation                                   | `link_graph_enhancer.py`                                                 |
-| LanceDB vector search bridge (dynamic weights passthrough) | `rust_vector.py`                                                         |
-| **Fusion bridges (modularized package)**                   | **`fusion/`**                                                            |
-| Bridge 1a: LinkGraph proximity boost (fusion-scaled)       | `fusion/link_graph_proximity.py`                                         |
-| Bridge 1b: KG entity recall boost (fusion-scaled)          | `fusion/kg_recall.py`                                                    |
-| Bridge 2: LanceDB → LinkGraph vector bridge                | `assets/skills/knowledge/scripts/search/hybrid.py::_run_vector_fallback` |
-| Bridge 3+4: Graph enrichment + entity registry             | `fusion/graph_enrichment.py`                                             |
-| Bridge 5: KG query-time rerank (fusion-scaled)             | `fusion/kg_rerank.py`                                                    |
-| Dynamic fusion weights (intent → weights)                  | `fusion/fusion_weights.py`                                               |
-| Bridge constants and graph path resolution                 | `fusion/_config.py`                                                      |
-| **Unified intent pipeline: recall**                        | `recall.py::_apply_fusion_recall_boost`                                  |
-| **Unified intent pipeline: router**                        | `hybrid_search.py::HybridSearch.search`                                  |
-| **Unified intent pipeline: LinkGraph hybrid**              | `assets/skills/knowledge/scripts/search/hybrid.py::run_hybrid_search`    |
-| Sync hook (Bridge 4 caller)                                | `indexer.py`, `reindex.py`                                               |
+| Responsibility                                       | Module                                                                   |
+| ---------------------------------------------------- | ------------------------------------------------------------------------ |
+| LinkGraph backend calls                              | `link_graph/backend.py`, `link_graph/factory.py`                         |
+| Fusion search logic (intent-aware merge)             | `assets/skills/knowledge/scripts/search/hybrid.py`                       |
+| Rust enhancer delegation                             | `link_graph_enhancer.py`                                                 |
+| Storage-backed semantic evidence bridge              | owned by the caller facade                                               |
+| **Fusion bridges (modularized package)**             | **`fusion/`**                                                            |
+| Bridge 1a: LinkGraph proximity boost (fusion-scaled) | `fusion/link_graph_proximity.py`                                         |
+| Bridge 1b: KG entity recall boost (fusion-scaled)    | `fusion/kg_recall.py`                                                    |
+| Bridge 2: Storage evidence -> LinkGraph bridge       | `assets/skills/knowledge/scripts/search/hybrid.py::_run_vector_fallback` |
+| Bridge 3+4: Graph enrichment + entity registry       | `fusion/graph_enrichment.py`                                             |
+| Bridge 5: KG query-time rerank (fusion-scaled)       | `fusion/kg_rerank.py`                                                    |
+| Dynamic fusion weights (intent → weights)            | `fusion/fusion_weights.py`                                               |
+| Bridge constants and graph path resolution           | `fusion/_config.py`                                                      |
+| **Unified intent pipeline: recall**                  | `recall.py::_apply_fusion_recall_boost`                                  |
+| **Unified intent pipeline: router**                  | `hybrid_search.py::HybridSearch.search`                                  |
+| **Unified intent pipeline: LinkGraph hybrid**        | `assets/skills/knowledge/scripts/search/hybrid.py::run_hybrid_search`    |
+| Sync hook (Bridge 4 caller)                          | `indexer.py`, `reindex.py`                                               |
 
 ## Data Flow
 
@@ -267,7 +270,7 @@ eliminating redundant Rust calls and ensuring all bridges agree on query classif
 omni sync / omni reindex
   │
   ├── Scanner → SKILL.md frontmatter
-  │     ├── LanceDB index_skill_tools() → skills.lance (Core 2)
+  │     ├── owning indexer publishes storage-backed semantic evidence
   │     ├── build_relationship_graph() → skill_graph.json (keyword overlap edges)
   │     └── register_skill_entities() → knowledge.lance + JSON (Bridge 4, Rust-native)
   │           Creates: SKILL, TOOL, CONCEPT entities + CONTAINS, RELATED_TO relations
@@ -284,19 +287,19 @@ This ensures consistent behavior: one Rust extraction drives all bridges.
 Query → Rust extract_query_intent() → FusionWeights (computed once per pipeline)
   │
   ├── Tool Routing (HybridSearch.search)
-  │     ├── Rust agentic_search(semantic_weight, keyword_weight) ← from FusionWeights
+  │     ├── router-owned retrieval and rerank ← from FusionWeights
   │     ├── Associative rerank → skill_graph.json
   │     ├── Bridge 3: enrich_skill_graph_from_link_graph()
   │     └── Bridge 5: apply_kg_rerank(fusion_scale=kg_rerank_scale)
   │
   ├── Knowledge Recall (recall skill command)
-  │     ├── Core 2: LanceDB vector + keyword → top-k chunks
+  │     ├── Core 2: storage-backed semantic evidence → top-k chunks
   │     ├── Bridge 1a: link_graph_proximity_boost(fusion_scale=link_graph_proximity_scale)
   │     └── Bridge 1b: apply_kg_recall_boost(fusion_scale=link_graph_entity_scale)
   │
   └── LinkGraph Hybrid Search (link_graph_hybrid_search skill command)
         ├── Core 1: LinkGraph structural traversal → reasoning-based results
-        ├── Bridge 2: LanceDB vector fallback
+        ├── Bridge 2: storage-backed semantic fallback
         ├── Merge: graph precision boost = 1.0 + 0.5 * link_graph_proximity_scale
         └── Graph boost: base_boost * link_graph_entity_scale
 ```

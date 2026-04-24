@@ -1,5 +1,5 @@
 use crate::parsers::zhixing::tasks::{normalize_identity_token, parse_task_projection};
-use crate::skill_vfs::zhixing::{
+use crate::skill_runtime::zhixing::{
     ATTR_JOURNAL_CARRYOVER, ATTR_TIMER_REMINDED, ATTR_TIMER_SCHEDULED,
 };
 

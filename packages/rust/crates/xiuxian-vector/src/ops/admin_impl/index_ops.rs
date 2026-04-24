@@ -80,38 +80,9 @@ impl VectorStore {
         });
     }
 
-    /// Create a native Lance inverted index for full-text search on content.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`VectorStoreError`] if dataset opening or FTS index creation fails.
-    pub async fn create_fts_index(&self, table_name: &str) -> Result<(), VectorStoreError> {
-        let table_path = self.table_path(table_name);
-        if !table_path.exists() {
-            return Ok(());
-        }
-
-        let mut dataset = self
-            .open_dataset_at_uri(table_path.to_string_lossy().as_ref())
-            .await?;
-        let params = InvertedIndexParams::default();
-        dataset
-            .create_index(
-                &[CONTENT_COLUMN],
-                IndexType::Inverted,
-                Some("content_fts".to_string()),
-                &params,
-                true,
-            )
-            .await
-            .map_err(VectorStoreError::LanceDB)?;
-        self.invalidate_cached_table(table_name).await;
-        Ok(())
-    }
-
     /// Create a scalar index on a column for fast exact/categorical filtering.
     /// Use `BTree` for equality/range (e.g. `skill_name`), Bitmap for low-cardinality (e.g. category),
-    /// Inverted for FTS/array (e.g. tags). The table must already have the column.
+    /// and Inverted for generic text or array columns. The table must already have the column.
     ///
     /// # Errors
     ///

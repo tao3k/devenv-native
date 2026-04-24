@@ -1,6 +1,6 @@
 use crate::parsers::zhixing::tasks::metadata::split_title_and_metadata_fields;
 use crate::parsers::zhixing::tasks::types::TaskLineProjection;
-use crate::skill_vfs::zhixing::{
+use crate::skill_runtime::zhixing::{
     ATTR_JOURNAL_CARRYOVER, ATTR_TIMER_REMINDED, ATTR_TIMER_SCHEDULED,
 };
 

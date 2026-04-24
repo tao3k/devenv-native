@@ -5,7 +5,6 @@ expression: canonical_json(view)
 ---
 {
   "after_auto_index": {
-    "has_fts_index": true,
     "has_scalar_index": true,
     "has_vector_index": true,
     "returned_stats": true

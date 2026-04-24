@@ -243,3 +243,35 @@ default_provider = "embedded"
         Some("embedded")
     );
 }
+
+#[test]
+fn load_toml_value_with_imports_and_paths_expands_prj_skills_dir_default() {
+    let (_temp, root) = temp_workspace();
+    let config_path = root.join("config.toml");
+
+    write_text(
+        root.join("skills/shared.toml").as_path(),
+        r#"
+[skill]
+name = "runtime-skill"
+"#,
+    );
+    write_text(
+        config_path.as_path(),
+        r#"
+imports = ["$PRJ_SKILLS_DIR/shared.toml"]
+"#,
+    );
+
+    let merged = load_toml_value_with_imports_and_paths(
+        config_path.as_path(),
+        Some(root.as_path()),
+        Some(root.join(".config").as_path()),
+    )
+    .unwrap_or_else(|error| panic!("resolve imported skill config with paths: {error}"));
+
+    assert_eq!(
+        string_at(&merged, &["skill", "name"]),
+        Some("runtime-skill")
+    );
+}

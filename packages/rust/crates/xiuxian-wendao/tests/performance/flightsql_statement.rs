@@ -13,11 +13,11 @@ use prost::Message;
 use serial_test::file_serial;
 use tokio_stream::StreamExt;
 use tonic::Request;
+#[cfg(not(feature = "duckdb"))]
+use xiuxian_db_store::SearchEngineContext;
 use xiuxian_testing::{
     PerfBudget, PerfReport, PerfRunConfig, assert_perf_budget, run_async_budget,
 };
-#[cfg(not(feature = "duckdb"))]
-use xiuxian_vector::SearchEngineContext;
 use xiuxian_wendao::duckdb::ParquetQueryEngine;
 use xiuxian_wendao::gateway::studio::perf_support::{
     GatewayPerfFixture, prepare_gateway_perf_fixture_with_julia_parser_summary_transport,
