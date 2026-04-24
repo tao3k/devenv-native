@@ -82,7 +82,7 @@ where
 }
 
 pub(crate) fn qianji_server_usage() -> &'static str {
-    "Usage: qianji-server [--bind <addr>] [--valkey-url <url>] [--require-valkey-ready|--no-require-valkey-ready]\n\nStarts the Qianji BPMN HTTP service. When --bind is omitted, [server].bind_addr from qianji.toml is used. HTTP checkpoint defaults are Valkey-only; SQLite must be selected explicitly per request."
+    "Usage: qianji-server [--bind <addr>] [--valkey-url <url>] [--require-valkey-ready|--no-require-valkey-ready]\n\nStarts the Qianji BPMN HTTP service. When --bind is omitted, [server].bind_addr from qianji.toml is used. HTTP checkpoint defaults are Valkey-only."
 }
 
 fn parse_bind_addr(value: &str) -> anyhow::Result<SocketAddr> {

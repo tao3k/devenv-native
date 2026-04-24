@@ -1,5 +1,7 @@
 use super::support::{must_err, must_ok, must_parse_addr};
-use crate::cli::{QianjiServerCommand, QianjiServerServeCommand, parse_qianji_server_args};
+use crate::cli::{
+    QianjiServerCommand, QianjiServerServeCommand, parse_qianji_server_args, qianji_server_usage,
+};
 
 #[test]
 fn qianji_server_leaves_default_bind_to_runtime_config() {
@@ -125,6 +127,22 @@ fn qianji_server_returns_help_command() {
     let command = must_ok(parse_qianji_server_args(["--help"]), "help should parse");
 
     assert_eq!(command, QianjiServerCommand::Help);
+}
+
+#[test]
+fn qianji_server_usage_documents_valkey_only_http_checkpoints() {
+    let usage = qianji_server_usage();
+    let removed_backend = ["SQL", "ite"].concat();
+    let removed_backend_lower = removed_backend.to_ascii_lowercase();
+
+    assert!(
+        usage.contains("HTTP checkpoint defaults are Valkey-only"),
+        "usage should document Valkey-only HTTP checkpoints: {usage}"
+    );
+    assert!(
+        !usage.contains(&removed_backend) && !usage.contains(&removed_backend_lower),
+        "usage should not mention removed local checkpoint support: {usage}"
+    );
 }
 
 #[test]
