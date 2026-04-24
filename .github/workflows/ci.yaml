@@ -377,18 +377,16 @@ jobs:
       - name: Bootstrap WendaoSearch parser-summary runtime dependencies
         run: |
           set -euo pipefail
+          export JULIA_PKG_PRECOMPILE_AUTO=0
           export WENDAOSEARCH_JULIA_PROJECT="${GITHUB_WORKSPACE}/.data/WendaoSearch.jl"
           julia --project="${WENDAOSEARCH_JULIA_PROJECT}" -e '
             using Pkg
             Pkg.instantiate()
-          '
-          julia --project="${WENDAOSEARCH_JULIA_PROJECT}" \
-            scripts/channel/wendaosearch-force-omparser-source-build.jl
-          julia --project="${WENDAOSEARCH_JULIA_PROJECT}" -e '
-            using Pkg
+            Pkg.build("OMParser")
             Pkg.precompile()
           '
           {
+            echo "JULIA_PKG_PRECOMPILE_AUTO=0"
             echo "WENDAO_SEARCH_USE_ACTIVE_PROJECT=1"
             echo "WENDAOSEARCH_JULIA_PROJECT=${WENDAOSEARCH_JULIA_PROJECT}"
           } >> "${GITHUB_ENV}"
