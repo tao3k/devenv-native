@@ -1,6 +1,5 @@
 use super::{
-    DEFAULT_JULIA_ANALYZER_EXAMPLE_CONFIG_PATH, julia_planned_search_openai_runtime_config_toml,
-    julia_planned_search_similarity_only_runtime_config_toml,
+    julia_planned_search_openai_runtime_config_toml,
     julia_planned_search_vector_store_runtime_config_toml,
 };
 
@@ -29,19 +28,4 @@ fn planned_search_vector_store_runtime_config_keeps_stable_shape() {
     assert!(!rendered.contains("embedding_base_url"));
     assert!(rendered.contains("route = \"/rerank\""));
     assert!(rendered.contains("schema_version = \"v1\""));
-}
-
-#[test]
-fn planned_search_similarity_only_runtime_config_keeps_stable_shape() {
-    let rendered = julia_planned_search_similarity_only_runtime_config_toml(
-        "/tmp/vector-store",
-        "http://127.0.0.1:8088",
-    );
-
-    assert!(rendered.contains("backend = \"vector-store\""));
-    assert!(rendered.contains("service_mode = \"stream\""));
-    assert!(rendered.contains("analyzer_strategy = \"similarity_only\""));
-    assert!(rendered.contains(&format!(
-        "analyzer_config_path = \"{DEFAULT_JULIA_ANALYZER_EXAMPLE_CONFIG_PATH}\""
-    )));
 }

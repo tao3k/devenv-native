@@ -1,9 +1,10 @@
 use std::path::{Path, PathBuf};
 
 use crate::settings::{first_non_empty, get_setting_bool, get_setting_string, parse_positive_u64};
-use serde::{Deserialize, Serialize};
 use serde_yaml::Value;
 use xiuxian_config_core::{resolve_cache_home, resolve_path_from_value};
+pub use xiuxian_db_store::duckdb::DuckDbDatabasePath;
+use xiuxian_db_store::duckdb::{DuckDbExecutionConfig, DuckDbRuntimeConfig};
 
 /// `DuckDB`'s special marker for one ephemeral in-process database.
 ///
@@ -28,50 +29,11 @@ pub const DEFAULT_SEARCH_DUCKDB_MATERIALIZE_THRESHOLD_ROWS: u64 = 200_000;
 /// Default preference for Arrow virtual-table registration.
 pub const DEFAULT_SEARCH_DUCKDB_PREFER_VIRTUAL_ARROW: bool = true;
 
-/// Resolved database location for bounded `DuckDB` search analytics.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum DuckDbDatabasePath {
-    /// Use `DuckDB`'s own ephemeral in-process database.
-    InMemory,
-    /// Use one bounded on-disk `DuckDB` database file.
-    File(PathBuf),
-}
-
 /// Runtime-owned `DuckDB` execution toggles for bounded Wendao search analytics.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct SearchDuckDbExecutionConfig {
-    /// Whether `DuckDB` may reorder results that do not contain explicit
-    /// `ORDER BY` clauses.
-    pub preserve_insertion_order: bool,
-    /// Whether `DuckDB` should cache Parquet metadata across repeated scans of
-    /// the same files.
-    pub parquet_metadata_cache: bool,
-    /// Prefer Arrow virtual-table registration when possible.
-    pub prefer_virtual_arrow: bool,
-}
+pub type SearchDuckDbExecutionConfig = DuckDbExecutionConfig;
 
 /// Runtime-owned `DuckDB` config for bounded Wendao search analytics.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct SearchDuckDbRuntimeConfig {
-    /// Enable the bounded `DuckDB` analytic lane.
-    pub enabled: bool,
-    /// Resolved database location.
-    pub database_path: DuckDbDatabasePath,
-    /// Resolved temp/spill directory.
-    pub temp_directory: PathBuf,
-    /// Maximum threads `DuckDB` should use for bounded analytics.
-    pub threads: u64,
-    /// Execution toggles for bounded `DuckDB` analytics.
-    #[serde(flatten)]
-    pub execution: SearchDuckDbExecutionConfig,
-    /// Optional explicit `DuckDB` buffer-manager memory limit, e.g. `4GB`.
-    pub memory_limit: Option<String>,
-    /// Optional explicit `DuckDB` spill limit for the configured temp directory,
-    /// e.g. `20GB`.
-    pub max_temp_directory_size: Option<String>,
-    /// Row threshold for choosing bounded materialization over purely virtual registration.
-    pub materialize_threshold_rows: u64,
-}
+pub type SearchDuckDbRuntimeConfig = DuckDbRuntimeConfig;
 
 /// Resolve the default temp directory for bounded `DuckDB` analytics.
 #[must_use]

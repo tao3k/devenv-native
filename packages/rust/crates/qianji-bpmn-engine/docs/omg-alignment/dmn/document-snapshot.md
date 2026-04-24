@@ -6,6 +6,8 @@ owned by `qianji-bpmn-engine`.
 ## Supported Snapshot Metadata
 
 - root element metadata including DMN namespace and version hint
+- package-owned source-root metadata including source id, root id, root name,
+  DMN business namespace, model namespace URI, and model-version hint
 - counts for top-level metadata-only artifact families such as `import`,
   `itemDefinition`, `inputData`, `knowledgeSource`,
   `businessKnowledgeModel`, `decisionService`, `organizationUnit`,
@@ -13,6 +15,16 @@ owned by `qianji-bpmn-engine`.
   `elementCollection`, `group`, and `dmndi:DMNDI`
 - decision-header counts for bounded requirement, governance, and unsupported
   direct-expression constructs
+- decision-owned direct requirement reference metadata including parent
+  requirement kind, direct reference kind, and `href`
+- decision-owned direct `invocation` metadata including the direct invoked
+  literal-expression text plus direct binding parameter and argument
+  literal-expression placeholders
+- decision-owned direct `functionDefinition` metadata including function kind,
+  direct formal-parameter placeholders, and one direct body literal-expression
+  placeholder
+- top-level `import` metadata including bounded `name`, `namespace`,
+  `locationURI`, and `importType` placeholders
 - top-level `itemDefinition` metadata including bounded `id`, `name`,
   `typeRef`, `isCollection`, and one direct `itemComponent` placeholder
   layer
@@ -20,9 +32,12 @@ owned by `qianji-bpmn-engine`.
   optional direct `variable` placeholder with bounded `id`, `name`, and
   `typeRef`
 - top-level `knowledgeSource` metadata including bounded `id` and `name`
-- top-level `businessKnowledgeModel` metadata including bounded `id` and
-  `name`
-- top-level `decisionService` metadata including bounded `id` and `name`
+- top-level `businessKnowledgeModel` metadata including bounded `id`, `name`,
+  and one direct body `literalExpression` placeholder with bounded
+  `id`/`typeRef`/text metadata
+- top-level `decisionService` metadata including bounded `id`, `name`, and
+  direct `outputDecision`, `encapsulatedDecision`, `inputDecision`, and
+  `inputData` href placeholders
 - top-level `organizationUnit` metadata including bounded `id` and `name`
 - top-level `performanceIndicator` metadata including bounded `id` and
   `name`
@@ -53,6 +68,33 @@ owned by `qianji-bpmn-engine`.
 
 - the document snapshot is descriptive only and does not make metadata-only
   DMN sources executable
+- parser-owned package contracts can now carry a non-executable source-root
+  registry derived from the document root so future import-resolution work can
+  match imported namespaces to bundled DMN sources without treating a physical
+  source id as a namespace
+- decision-owned requirement references are preserved as href placeholders
+  only; this includes direct `requiredInput`, `requiredDecision`,
+  `requiredKnowledge`, and `requiredAuthority`
+- top-level `import` metadata is preserved so lint, adapter, and later
+  import-resolution work can name the external dependency before any
+  executable cross-document lookup is attempted
+- parser-owned package contracts can now carry a non-executable
+  source-scoped import registry derived from those placeholders, preserving
+  the declaring source id separately from import alias, imported namespace,
+  location URI, and import type
+- that registry exposes deterministic source-scoped lookup by alias,
+  imported namespace, or location URI; ambiguous selectors fail before any
+  future resolver can treat metadata as an executable dependency
+- imports can now be bound to bundled source-root metadata by imported
+  namespace only; the binding is descriptive and still does not parse or
+  execute imported decisions
+- package consumers can now request one owned import-to-source binding report
+  for every registered import; unresolved entries stay explicit metadata
+  observations, and ambiguous target namespaces still fail deterministically
+- bundle parsing now preserves source-root and import registry metadata for
+  DMN sources that declare top-level imports, but those sources do not
+  populate executable decision, input-data, business-knowledge-model, or
+  decision-service registries
 - top-level `itemDefinition` metadata is preserved so lint, adapter, and
   later DMN type-model work can reuse stable engine-owned placeholders
 - one bounded direct `itemComponent` layer is preserved under each top-level
@@ -66,8 +108,16 @@ owned by `qianji-bpmn-engine`.
 - top-level `businessKnowledgeModel` metadata is preserved so lint,
   adapter, and later knowledge-contract work can reuse stable
   engine-owned placeholders
+- one direct body `literalExpression` placeholder is preserved under each
+  top-level `businessKnowledgeModel`
 - top-level `decisionService` metadata is preserved so lint, adapter, and
   later service-contract work can reuse stable engine-owned placeholders
+- direct decision-service references are preserved as href placeholders only;
+  this includes direct `outputDecision`, `encapsulatedDecision`,
+  `inputDecision`, and `inputData`
+- parser-owned bundle loading can now derive one bounded package-owned
+  same-source decision-service registry from that preserved snapshot metadata
+  without changing the snapshot itself into an executable document contract
 - top-level `organizationUnit` metadata is preserved so lint, adapter, and
   later governance-contract work can reuse stable engine-owned placeholders
 - top-level `performanceIndicator` metadata is preserved so lint, adapter,
@@ -115,11 +165,19 @@ owned by `qianji-bpmn-engine`.
   optional direct `DMNDecisionServiceDividerLine` placeholder bounded to
   one repeated direct `di:waypoint` placeholder list with optional x/y
   pairs
+- decision-owned direct `invocation` metadata is preserved so lint, adapter,
+  and the current bounded local invocation runtime can reuse stable
+  invoked-expression and binding placeholders without fabricating broader
+  called function semantics
+- decision-owned direct `functionDefinition` metadata is preserved so lint,
+  adapter, and later function-runtime work can reuse stable parameter and body
+  placeholders without fabricating function semantics
 
 ## Deferred
 
 - item-definition resolution into executable clause typing
-- input-data resolution into executable decision inputs
+- broader input-data resolution into executable decision inputs beyond the
+  current same-source alias-bind reuse
 - recursive or arbitrary-depth item-component traversal
 - recursive or broader variable/type-model traversal
 - authority-reference resolution beyond the current bounded target counts
@@ -144,7 +202,15 @@ owned by `qianji-bpmn-engine`.
   `DMNDecisionServiceDividerLine` placeholder capture
 - broader XML text capture beyond the current bounded `textAnnotation/text`
   seam
-- business-knowledge-model body capture or execution
-- decision-service output decision resolution or execution
-- DRD dependency execution
+- business-knowledge-model body execution or evaluation
+- decision-service reference resolution, output decision resolution, or
+  execution
+- broader requirement-reference href resolution or DRD dependency execution
+  beyond the current same-source `requiredDecision` recursion and
+  `requiredInput` alias-bind slice
+- broader invocation execution, broader called-function resolution, or binding
+  evaluation beyond the current same-source bounded local callable seam
+- direct function-definition execution, function body evaluation, or
+  parameter-binding evaluation
+- broader DRD dependency execution
 - broader FEEL or schema-validation completeness

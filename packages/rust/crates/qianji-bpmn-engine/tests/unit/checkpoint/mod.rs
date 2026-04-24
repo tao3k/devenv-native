@@ -6,8 +6,6 @@ use qianji_bpmn_engine::{
 use serde_json::json;
 use std::sync::Arc;
 
-#[cfg(feature = "sqlite")]
-mod sql;
 #[cfg(feature = "valkey")]
 mod valkey;
 
@@ -16,6 +14,14 @@ fn sample_checkpoint() -> BpmnCheckpointEnvelope {
 }
 
 fn sample_checkpoint_with_sequence(
+    sequence: u64,
+    variables: serde_json::Value,
+) -> BpmnCheckpointEnvelope {
+    sample_checkpoint_for_instance_with_sequence("wf_checkpoint", sequence, variables)
+}
+
+fn sample_checkpoint_for_instance_with_sequence(
+    instance_id: &str,
     sequence: u64,
     variables: serde_json::Value,
 ) -> BpmnCheckpointEnvelope {
@@ -36,7 +42,7 @@ fn sample_checkpoint_with_sequence(
     let state = create_instance(
         Arc::clone(&package),
         "approve",
-        BpmnInstanceInit::new("wf_checkpoint", variables, 1_760_000_000_000),
+        BpmnInstanceInit::new(instance_id, variables, 1_760_000_000_000),
     )
     .must("known process should create an instance");
     let mut state = state;

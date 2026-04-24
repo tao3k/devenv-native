@@ -260,6 +260,9 @@ jobs:
           set -euo pipefail
           sudo apt-get update
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            autoconf \
+            automake \
+            build-essential \
             cmake \
             libxml2-utils \
             libprotobuf-dev \
@@ -272,7 +275,7 @@ jobs:
         if: ${{ runner.os == 'macOS' }}
         run: |
           set -euo pipefail
-          for formula in protobuf pkg-config cmake libxml2 valkey; do
+          for formula in autoconf automake protobuf pkg-config cmake libxml2 valkey; do
             brew list "${formula}" >/dev/null 2>&1 || brew install "${formula}"
           done
           echo "$(brew --prefix libxml2)/bin" >> "$GITHUB_PATH"
@@ -356,55 +359,12 @@ jobs:
           shared-key: rust-workspace-ci-${{ runner.os }}
           cache-on-failure: true
 
-      - name: Materialize linked Julia package checkouts
+      - name: Verify WendaoSearch Julia package checkout
         run: |
           set -euo pipefail
           source scripts/channel/process-runtime.sh
           source scripts/channel/wendaosearch-common.sh
-          managed_materialize_git_repo \
-            "${GITHUB_WORKSPACE}/.data/WendaoArrow.jl" \
-            "https://github.com/tao3k/WendaoArrow.jl.git" \
-            "" \
-            "WendaoArrow package checkout"
-          managed_materialize_git_repo \
-            "${GITHUB_WORKSPACE}/.data/WendaoAnalyzer.jl" \
-            "https://github.com/tao3k/WendaoAnalyzer.jl.git" \
-            "" \
-            "WendaoAnalyzer package checkout"
           wendaosearch_materialize_package_repo "${GITHUB_WORKSPACE}"
-          wendaosearch_project="${GITHUB_WORKSPACE}/.data/WendaoSearch.jl/Project.toml"
-          wendao_arrow_rev="$(
-            julia -e 'using TOML; print(TOML.parsefile(ARGS[1])["sources"]["WendaoArrow"]["rev"])' \
-              "${wendaosearch_project}"
-          )"
-          wendao_code_parser_rev="$(
-            julia -e 'using TOML; print(TOML.parsefile(ARGS[1])["sources"]["WendaoCodeParser"]["rev"])' \
-              "${wendaosearch_project}"
-          )"
-          git -C "${GITHUB_WORKSPACE}/.data/WendaoArrow.jl" fetch --tags --prune origin
-          git -C "${GITHUB_WORKSPACE}/.data/WendaoArrow.jl" checkout --detach "${wendao_arrow_rev}"
-          managed_materialize_git_repo \
-            "${GITHUB_WORKSPACE}/.data/WendaoCodeParser.jl" \
-            "https://github.com/tao3k/WendaoCodeParser.jl.git" \
-            "${wendao_code_parser_rev}" \
-            "WendaoCodeParser package checkout"
-          git -C "${GITHUB_WORKSPACE}/.data/WendaoCodeParser.jl" fetch --tags --prune origin
-          git -C "${GITHUB_WORKSPACE}/.data/WendaoCodeParser.jl" checkout --detach "${wendao_code_parser_rev}"
-          arrow_rev="$(
-            julia -e 'using TOML; print(TOML.parsefile(ARGS[1])["sources"]["Arrow"]["rev"])' \
-              "${GITHUB_WORKSPACE}/.data/WendaoArrow.jl/Project.toml"
-          )"
-          managed_materialize_git_repo \
-            "${GITHUB_WORKSPACE}/.data/arrow-julia" \
-            "https://github.com/JuliaCN/arrow-julia.git" \
-            "${arrow_rev}" \
-            "Arrow package checkout"
-          git -C "${GITHUB_WORKSPACE}/.data/arrow-julia" fetch --tags --prune origin
-          git -C "${GITHUB_WORKSPACE}/.data/arrow-julia" checkout --detach "${arrow_rev}"
-          test -f "${GITHUB_WORKSPACE}/.data/WendaoArrow.jl/scripts/run_flight_example.jl"
-          test -f "${GITHUB_WORKSPACE}/.data/WendaoAnalyzer.jl/scripts/run_analyzer_example.jl"
-          test -f "${GITHUB_WORKSPACE}/.data/WendaoCodeParser.jl/src/WendaoCodeParser.jl"
-          test -f "${GITHUB_WORKSPACE}/.data/arrow-julia/Project.toml"
           test -f "${GITHUB_WORKSPACE}/.data/WendaoSearch.jl/scripts/run_parser_summary_service.jl"
           test -f "${GITHUB_WORKSPACE}/.data/WendaoSearch.jl/config/live/parser_summary.toml"
 
@@ -417,21 +377,19 @@ jobs:
       - name: Bootstrap WendaoSearch parser-summary runtime dependencies
         run: |
           set -euo pipefail
-          export WENDAO_SEARCH_BOOTSTRAP_ENV="${RUNNER_TEMP}/wendaosearch-env"
-          export WENDAO_SEARCH_LOCAL_ARROW_PATH="${GITHUB_WORKSPACE}/.data/arrow-julia"
-          export WENDAO_SEARCH_LOCAL_WENDAO_ARROW_PATH="${GITHUB_WORKSPACE}/.data/WendaoArrow.jl"
-          export WENDAO_SEARCH_LOCAL_WENDAO_CODE_PARSER_PATH="${GITHUB_WORKSPACE}/.data/WendaoCodeParser.jl"
-          julia "${GITHUB_WORKSPACE}/.data/WendaoSearch.jl/scripts/prepare_wendao_search_env.jl"
-          julia --project="${WENDAO_SEARCH_BOOTSTRAP_ENV}" -e '
+          export JULIA_PKG_PRECOMPILE_AUTO=0
+          export WENDAOSEARCH_JULIA_PROJECT="${GITHUB_WORKSPACE}/.data/WendaoSearch.jl"
+          julia --project="${WENDAOSEARCH_JULIA_PROJECT}" -e '
             using Pkg
+            Pkg.instantiate()
+            Pkg.update("Absyn")
+            Pkg.build("OMParser")
             Pkg.precompile()
           '
           {
-            echo "WENDAO_SEARCH_BOOTSTRAP_ENV=${WENDAO_SEARCH_BOOTSTRAP_ENV}"
-            echo "WENDAO_SEARCH_LOCAL_ARROW_PATH=${WENDAO_SEARCH_LOCAL_ARROW_PATH}"
-            echo "WENDAO_SEARCH_LOCAL_WENDAO_ARROW_PATH=${WENDAO_SEARCH_LOCAL_WENDAO_ARROW_PATH}"
-            echo "WENDAO_SEARCH_LOCAL_WENDAO_CODE_PARSER_PATH=${WENDAO_SEARCH_LOCAL_WENDAO_CODE_PARSER_PATH}"
-            echo "WENDAOSEARCH_JULIA_PROJECT=${WENDAO_SEARCH_BOOTSTRAP_ENV}"
+            echo "JULIA_PKG_PRECOMPILE_AUTO=0"
+            echo "WENDAO_SEARCH_USE_ACTIVE_PROJECT=1"
+            echo "WENDAOSEARCH_JULIA_PROJECT=${WENDAOSEARCH_JULIA_PROJECT}"
           } >> "${GITHUB_ENV}"
 
       - name: Start WendaoSearch parser-summary service for Rust tests
@@ -441,8 +399,8 @@ jobs:
           export WENDAOSEARCH_RUNTIME_DIR=.run/wendaosearch
           export WENDAOSEARCH_CONFIG=.data/WendaoSearch.jl/config/live/parser_summary.toml
           export WENDAOSEARCH_SCRIPT=run_parser_summary_service.jl
-          : "${WENDAO_SEARCH_BOOTSTRAP_ENV:?missing WendaoSearch bootstrap env}"
-          export WENDAOSEARCH_JULIA_PROJECT="${WENDAO_SEARCH_BOOTSTRAP_ENV}"
+          : "${WENDAOSEARCH_JULIA_PROJECT:?missing WendaoSearch Julia project}"
+          export WENDAO_SEARCH_USE_ACTIVE_PROJECT=1
           mkdir -p "${WENDAOSEARCH_RUNTIME_DIR}" .run/logs
           bash scripts/channel/wendaosearch-launch.sh \
             > .run/logs/wendaosearch-parser-summary.stdout.log \
@@ -451,7 +409,6 @@ jobs:
           echo "${launcher_pid}" > "${WENDAOSEARCH_RUNTIME_DIR}/${WENDAOSEARCH_SERVICE_NAME}.launcher.pid"
           for _ in {1..120}; do
             if bash scripts/channel/wendaosearch-healthcheck.sh >/dev/null 2>&1; then
-              echo "RUN_PROCESS_MANAGED_WENDAOSEARCH_TEST=1" >> "${GITHUB_ENV}"
               exit 0
             fi
             if ! kill -0 "${launcher_pid}" 2>/dev/null; then

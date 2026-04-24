@@ -4,7 +4,7 @@ use crate::bpmn::driver::{QianjiBpmnExecutionReport, QianjiBpmnExecutionRequest}
 use crate::bpmn::error::BpmnOrchestrationError;
 use crate::bpmn::session::QianjiBpmnSession;
 use crate::runtime_config::QianjiRuntimeEnv;
-use crate::scheduler::SchedulerAgentIdentity;
+use crate::scheduler_identity::SchedulerAgentIdentity;
 use qianji_bpmn_engine::BpmnExecutionTraceEvent;
 use qianji_bpmn_engine::BpmnHostBridge;
 use qianji_bpmn_engine::BpmnInstanceState;
@@ -19,9 +19,9 @@ use std::sync::Arc;
 pub enum QianjiBpmnWorkflowCheckpointBackend {
     /// Resolve the runtime-configured Valkey checkpoint backend.
     RuntimeValkey,
-    /// Use one lightweight local `SQLite` checkpoint database.
-    #[cfg(feature = "sqlite")]
-    Sqlite(PathBuf),
+    /// Use the configured local `DuckDB` workflow-state store when no server is running.
+    #[cfg(feature = "duckdb")]
+    LocalDuckDb,
 }
 
 /// Typed request for starting or resuming one bounded BPMN workflow instance.

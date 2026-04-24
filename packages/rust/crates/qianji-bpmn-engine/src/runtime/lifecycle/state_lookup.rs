@@ -6,6 +6,7 @@ use std::collections::HashMap;
 pub(crate) struct FrontierTokenLookup {
     token_indices: Option<HashMap<u64, usize>>,
     queries_since_refresh: u8,
+    frontier_index_shift: usize,
 }
 
 impl FrontierTokenLookup {
@@ -34,7 +35,16 @@ impl FrontierTokenLookup {
         instance: &BpmnInstanceState,
         proposal: &BpmnFrontierExecutionProposal,
     ) -> Option<usize> {
-        if proposal_matches_token_at_index(instance, proposal, proposal.token_index) {
+        if let Some(shifted_token_index) =
+            proposal.token_index.checked_sub(self.frontier_index_shift)
+            && proposal_matches_token_at_index(instance, proposal, shifted_token_index)
+        {
+            return Some(shifted_token_index);
+        }
+
+        if self.frontier_index_shift != 0
+            && proposal_matches_token_at_index(instance, proposal, proposal.token_index)
+        {
             return Some(proposal.token_index);
         }
 
@@ -42,9 +52,27 @@ impl FrontierTokenLookup {
         proposal_matches_token_at_index(instance, proposal, token_index).then_some(token_index)
     }
 
+    pub(crate) fn observe_frontier_proposal_execution(
+        &mut self,
+        instance: &BpmnInstanceState,
+        proposal: &BpmnFrontierExecutionProposal,
+        resolved_token_index: usize,
+    ) {
+        self.token_indices = None;
+        self.queries_since_refresh = 0;
+        if instance
+            .active_tokens
+            .get(resolved_token_index)
+            .is_none_or(|token| token.token_id != proposal.token_id)
+        {
+            self.frontier_index_shift = self.frontier_index_shift.saturating_add(1);
+        }
+    }
+
     pub(crate) fn invalidate(&mut self) {
         self.token_indices = None;
         self.queries_since_refresh = 0;
+        self.frontier_index_shift = 0;
     }
 
     fn rebuild(&mut self, instance: &BpmnInstanceState) {
@@ -58,6 +86,10 @@ impl FrontierTokenLookup {
         );
     }
 }
+
+#[cfg(test)]
+#[path = "state_lookup_tests.rs"]
+mod tests;
 
 fn proposal_matches_token_at_index(
     instance: &BpmnInstanceState,

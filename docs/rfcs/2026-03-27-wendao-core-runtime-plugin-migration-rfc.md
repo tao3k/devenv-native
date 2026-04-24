@@ -1617,7 +1617,7 @@ extract_markdown_config_blocks}`
 81. bounded verification for this bundle is clean:
     - touched-file grep for crate-root `LinkGraphIndex` imports is clean
     - `xiuxian-qianji --lib` passes
-    - `xiuxian-qianji --bin qianji --features llm` passes
+    - `xiuxian-qianji --bin qianji` passes
     - `xiuxian-qianji --lib --features pyo3,llm` passes
 82. `Stage B` remains open, and the next move should still be another small
     bounded consumer family rather than a broad `LinkGraphIndex` cut

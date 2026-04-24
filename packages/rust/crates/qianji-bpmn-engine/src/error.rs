@@ -221,6 +221,231 @@ pub enum BpmnEngineError {
         /// Derived suffix for the error display.
         source_suffix: String,
     },
+    /// Returned when one business-rule reference resolves ambiguously across
+    /// registered local decision services.
+    #[error(
+        "DMN decision-service reference '{decision_service_id}'{source_suffix} is ambiguous across {count} registered definitions"
+    )]
+    AmbiguousDmnDecisionServiceReference {
+        /// Requested decision-service identifier.
+        decision_service_id: String,
+        /// Optional source identifier on the request.
+        source_id: Option<String>,
+        /// Number of matching registered definitions.
+        count: usize,
+        /// Derived suffix for the error display.
+        source_suffix: String,
+    },
+    /// Returned when one package-level DMN import lookup is ambiguous.
+    #[error(
+        "DMN import {selector_kind} '{selector_value}' in source '{source_id}' is ambiguous across {count} registered imports"
+    )]
+    AmbiguousDmnImportReference {
+        /// Declaring source identifier used for the lookup.
+        source_id: String,
+        /// Selector field used by the lookup.
+        selector_kind: &'static str,
+        /// Selector value used by the lookup.
+        selector_value: String,
+        /// Number of matching registered imports.
+        count: usize,
+    },
+    /// Returned when one package-level DMN source-root lookup is ambiguous.
+    #[error(
+        "DMN source namespace '{namespace}' is ambiguous across {count} registered source roots"
+    )]
+    AmbiguousDmnSourceNamespace {
+        /// Requested DMN business namespace.
+        namespace: String,
+        /// Number of matching registered source roots.
+        count: usize,
+    },
+    /// Returned when one required-decision href does not stay within the
+    /// bounded local-fragment slice.
+    #[error(
+        "DMN source '{source_id}' decision '{decision_id}' uses unsupported information-requirement href '{href}'"
+    )]
+    UnsupportedDmnInformationRequirementHref {
+        /// Source identifier used for diagnostics.
+        source_id: String,
+        /// Decision identifier.
+        decision_id: String,
+        /// Observed href value or placeholder.
+        href: String,
+    },
+    /// Returned when one required-decision href points at no registered local
+    /// decision in the same source.
+    #[error(
+        "DMN source '{source_id}' decision '{decision_id}' references missing required decision target '{href}'"
+    )]
+    MissingDmnRequiredDecisionTarget {
+        /// Source identifier used for diagnostics.
+        source_id: String,
+        /// Decision identifier.
+        decision_id: String,
+        /// Missing local href target.
+        href: String,
+    },
+    /// Returned when one required-input href points at no registered local
+    /// input-data definition in the same source.
+    #[error(
+        "DMN source '{source_id}' decision '{decision_id}' references missing required input target '{href}'"
+    )]
+    MissingDmnRequiredInputTarget {
+        /// Source identifier used for diagnostics.
+        source_id: String,
+        /// Decision identifier.
+        decision_id: String,
+        /// Missing local href target.
+        href: String,
+    },
+    /// Returned when one required-knowledge href does not stay within the
+    /// bounded local-fragment slice.
+    #[error(
+        "DMN source '{source_id}' decision '{decision_id}' uses unsupported knowledge-requirement href '{href}'"
+    )]
+    UnsupportedDmnKnowledgeRequirementHref {
+        /// Source identifier used for diagnostics.
+        source_id: String,
+        /// Decision identifier.
+        decision_id: String,
+        /// Observed href value or placeholder.
+        href: String,
+    },
+    /// Returned when one required-knowledge href points at no registered local
+    /// business-knowledge-model in the same source.
+    #[error(
+        "DMN source '{source_id}' decision '{decision_id}' references missing required knowledge target '{href}'"
+    )]
+    MissingDmnRequiredKnowledgeTarget {
+        /// Source identifier used for diagnostics.
+        source_id: String,
+        /// Decision identifier.
+        decision_id: String,
+        /// Missing local href target.
+        href: String,
+    },
+    /// Returned when one direct invocation target does not resolve to one
+    /// same-source registered business-knowledge-model.
+    #[error(
+        "DMN source '{source_id}' decision '{decision_id}' references missing invocation target '{target}'"
+    )]
+    MissingDmnInvocationTarget {
+        /// Source identifier used for diagnostics.
+        source_id: String,
+        /// Decision identifier.
+        decision_id: String,
+        /// Missing invocation target text.
+        target: String,
+    },
+    /// Returned when one direct invocation target resolves ambiguously within
+    /// the same source.
+    #[error(
+        "DMN source '{source_id}' decision '{decision_id}' references ambiguous invocation target '{target}' across {count} local business-knowledge-model definitions"
+    )]
+    AmbiguousDmnInvocationTarget {
+        /// Source identifier used for diagnostics.
+        source_id: String,
+        /// Decision identifier.
+        decision_id: String,
+        /// Ambiguous invocation target text.
+        target: String,
+        /// Number of matching business-knowledge-model definitions.
+        count: usize,
+    },
+    /// Returned when one direct invocation target is not declared by any
+    /// preserved direct same-source required-knowledge edge.
+    #[error(
+        "DMN source '{source_id}' decision '{decision_id}' uses invocation target '{target}' outside its declared required-knowledge contract"
+    )]
+    UndeclaredDmnInvocationKnowledgeTarget {
+        /// Source identifier used for diagnostics.
+        source_id: String,
+        /// Decision identifier.
+        decision_id: String,
+        /// Invocation target text that did not match required knowledge.
+        target: String,
+    },
+    /// Returned when one local decision service exposes no output decisions in
+    /// the bounded runtime slice.
+    #[error(
+        "DMN source '{source_id}' decision service '{decision_service_id}' exposes unsupported output-decision count {count}"
+    )]
+    UnsupportedDmnDecisionServiceOutputCount {
+        /// Source identifier used for diagnostics.
+        source_id: String,
+        /// Decision-service identifier.
+        decision_service_id: String,
+        /// Number of preserved `outputDecision` references.
+        count: usize,
+    },
+    /// Returned when one decision-service output href does not stay within the
+    /// bounded local-fragment slice.
+    #[error(
+        "DMN source '{source_id}' decision service '{decision_service_id}' uses unsupported output-decision href '{href}'"
+    )]
+    UnsupportedDmnDecisionServiceOutputHref {
+        /// Source identifier used for diagnostics.
+        source_id: String,
+        /// Decision-service identifier.
+        decision_service_id: String,
+        /// Observed href value or placeholder.
+        href: String,
+    },
+    /// Returned when one decision-service output href points at no registered
+    /// local decision in the same source.
+    #[error(
+        "DMN source '{source_id}' decision service '{decision_service_id}' references missing output decision target '{href}'"
+    )]
+    MissingDmnDecisionServiceOutputTarget {
+        /// Source identifier used for diagnostics.
+        source_id: String,
+        /// Decision-service identifier.
+        decision_service_id: String,
+        /// Missing local href target.
+        href: String,
+    },
+    /// Returned when one non-output decision-service exposure href does not
+    /// stay within the bounded local-fragment slice.
+    #[error(
+        "DMN source '{source_id}' decision service '{decision_service_id}' uses unsupported {reference_kind} href '{href}'"
+    )]
+    UnsupportedDmnDecisionServiceReferenceHref {
+        /// Source identifier used for diagnostics.
+        source_id: String,
+        /// Decision-service identifier.
+        decision_service_id: String,
+        /// Direct decision-service child kind.
+        reference_kind: String,
+        /// Observed href value or placeholder.
+        href: String,
+    },
+    /// Returned when one non-output decision-service exposure href points at
+    /// no registered local target in the same source.
+    #[error(
+        "DMN source '{source_id}' decision service '{decision_service_id}' references missing {reference_kind} target '{href}'"
+    )]
+    MissingDmnDecisionServiceReferenceTarget {
+        /// Source identifier used for diagnostics.
+        source_id: String,
+        /// Decision-service identifier.
+        decision_service_id: String,
+        /// Direct decision-service child kind.
+        reference_kind: String,
+        /// Missing local href target.
+        href: String,
+    },
+    /// Returned when bounded local required-decision evaluation encounters a
+    /// cycle.
+    #[error(
+        "DMN source '{source_id}' decision '{decision_id}' participates in a cyclic required-decision dependency"
+    )]
+    CyclicDmnRequiredDecisionDependency {
+        /// Source identifier used for diagnostics.
+        source_id: String,
+        /// Decision identifier.
+        decision_id: String,
+    },
     /// Returned when no process definitions are present in the BPMN package.
     #[error("BPMN source '{source_id}' does not contain any process definitions")]
     MissingProcessDefinitions {

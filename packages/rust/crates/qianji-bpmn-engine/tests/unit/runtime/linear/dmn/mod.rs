@@ -1,9 +1,12 @@
-use super::super::{StubHost, dmn_fixture_definition};
+use super::super::{
+    StubHost, dmn_fixture_business_knowledge_models, dmn_fixture_decision_services,
+    dmn_fixture_definitions, dmn_fixture_input_data,
+};
 use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{
-    BpmnAdvanceOutcome, BpmnEdgeSpec, BpmnInstanceInit, BpmnNodeKind, BpmnNodeSpec, BpmnPackage,
-    BpmnProcessSpec, DmnDecisionRef, InstanceLifecycle, NodeRuntimeStatus, ProcessKey,
-    advance_instance, create_instance,
+    BpmnAdvanceOutcome, BpmnEdgeSpec, BpmnEngineError, BpmnInstanceInit, BpmnInstanceState,
+    BpmnNodeKind, BpmnNodeSpec, BpmnPackage, BpmnProcessSpec, DmnDecisionRef, InstanceLifecycle,
+    NodeRuntimeStatus, ProcessKey, advance_instance, create_instance,
 };
 use serde_json::Value;
 use std::sync::Arc;
@@ -44,22 +47,13 @@ async fn assert_local_business_rule_task(
     expected_variables: Value,
     updated_at_ms: u64,
 ) {
-    let process = local_business_rule_process(process_id, decision_id, source_id);
-    let package = Arc::new(
-        BpmnPackage::new("pkg_runtime", vec![process])
-            .with_dmn_decisions(vec![dmn_fixture_definition(source_id)]),
-    );
-    let mut instance = create_instance(
-        Arc::clone(&package),
+    let (outcome, instance) = run_local_business_rule_task(
         process_id,
-        BpmnInstanceInit::new(workflow_id, input, 10),
-    )
-    .must("instance should be created");
-
-    let outcome = advance_instance(
-        package.as_ref(),
-        &mut instance,
-        &StubHost::new(updated_at_ms),
+        workflow_id,
+        decision_id,
+        source_id,
+        input,
+        updated_at_ms,
     )
     .await
     .must("business rule task should execute locally when the decision is registered");
@@ -71,4 +65,36 @@ async fn assert_local_business_rule_task(
     assert_eq!(instance.node_states[1].status, NodeRuntimeStatus::Completed);
     assert_eq!(instance.sequence, 4);
     assert_eq!(instance.updated_at_ms, updated_at_ms);
+}
+
+async fn run_local_business_rule_task(
+    process_id: &str,
+    workflow_id: &str,
+    decision_id: &str,
+    source_id: &str,
+    input: Value,
+    updated_at_ms: u64,
+) -> std::result::Result<(BpmnAdvanceOutcome, BpmnInstanceState), BpmnEngineError> {
+    let process = local_business_rule_process(process_id, decision_id, source_id);
+    let package = Arc::new(
+        BpmnPackage::new("pkg_runtime", vec![process])
+            .with_dmn_decisions(dmn_fixture_definitions(source_id))
+            .with_dmn_input_data(dmn_fixture_input_data(source_id))
+            .with_dmn_business_knowledge_models(dmn_fixture_business_knowledge_models(source_id))
+            .with_dmn_decision_services(dmn_fixture_decision_services(source_id)),
+    );
+    let mut instance = create_instance(
+        Arc::clone(&package),
+        process_id,
+        BpmnInstanceInit::new(workflow_id, input, 10),
+    )?;
+
+    let outcome = advance_instance(
+        package.as_ref(),
+        &mut instance,
+        &StubHost::new(updated_at_ms),
+    )
+    .await?;
+
+    Ok((outcome, instance))
 }

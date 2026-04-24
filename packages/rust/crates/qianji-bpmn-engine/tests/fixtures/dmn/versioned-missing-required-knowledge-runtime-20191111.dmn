@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions
+  id="Definitions_missing_required_knowledge_runtime"
+  name="Missing Required Knowledge Runtime"
+  namespace="https://example.com/dmn/missing-required-knowledge-runtime"
+  xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/">
+  <businessKnowledgeModel id="BKM_score_card" name="Score Card">
+    <variable id="Variable_score_card" name="scoreCard" typeRef="number" />
+    <encapsulatedLogic id="EncapsulatedLogic_score_card" kind="FEEL">
+      <formalParameter id="Parameter_age" name="age" typeRef="number" />
+      <literalExpression id="LiteralExpression_score_card_body" typeRef="number">
+        <text>age + 1</text>
+      </literalExpression>
+    </encapsulatedLogic>
+  </businessKnowledgeModel>
+  <decision id="Decision_missing_required_knowledge" name="Missing Required Knowledge Decision">
+    <knowledgeRequirement>
+      <requiredKnowledge href="#BKM_missing" />
+    </knowledgeRequirement>
+    <invocation id="Invocation_score_card">
+      <literalExpression id="LiteralExpression_invoked_function">
+        <text>scoreCard</text>
+      </literalExpression>
+      <binding id="Binding_age">
+        <parameter id="Parameter_binding_age" name="age" typeRef="number" />
+        <literalExpression id="LiteralExpression_binding_age">
+          <text>applicant.age</text>
+        </literalExpression>
+      </binding>
+    </invocation>
+  </decision>
+</definitions>

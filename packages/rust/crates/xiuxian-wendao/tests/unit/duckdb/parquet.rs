@@ -17,20 +17,24 @@ use crate::duckdb::{DuckDbDatabasePath, SearchDuckDbExecutionConfig, SearchDuckD
 
 #[test]
 fn repeated_parquet_view_registration_reuses_cached_entry_for_same_path() {
-    let temp = tempdir().expect("tempdir should succeed");
+    let temp = unwrap_or_panic(tempdir(), "tempdir should succeed");
     let parquet_path = temp.path().join("bench.parquet");
     write_test_parquet(parquet_path.as_path());
-    let engine = DuckDbParquetQueryEngine::from_runtime(in_memory_runtime(temp.path()))
-        .expect("duckdb engine should open");
+    let engine = unwrap_or_panic(
+        DuckDbParquetQueryEngine::from_runtime(in_memory_runtime(temp.path())),
+        "duckdb engine should open",
+    );
 
-    engine
-        .register_parquet_view("bench_docs", parquet_path.as_path())
-        .expect("initial parquet view registration should succeed");
-    engine
-        .register_parquet_view("bench_docs", parquet_path.as_path())
-        .expect("repeated parquet view registration should succeed");
+    unwrap_or_panic(
+        engine.register_parquet_view("bench_docs", parquet_path.as_path()),
+        "initial parquet view registration should succeed",
+    );
+    unwrap_or_panic(
+        engine.register_parquet_view("bench_docs", parquet_path.as_path()),
+        "repeated parquet view registration should succeed",
+    );
 
-    let guard = engine.lock_runtime().expect("runtime lock should succeed");
+    let guard = unwrap_or_panic(engine.lock_runtime(), "runtime lock should succeed");
     assert_eq!(guard.registered_parquet_views.len(), 1);
     assert_eq!(
         guard.registered_parquet_views.get("bench_docs"),
@@ -40,21 +44,26 @@ fn repeated_parquet_view_registration_reuses_cached_entry_for_same_path() {
 
 #[test]
 fn repeated_parquet_queries_return_readable_batches_on_one_registered_view() {
-    let temp = tempdir().expect("tempdir should succeed");
+    let temp = unwrap_or_panic(tempdir(), "tempdir should succeed");
     let parquet_path = temp.path().join("bench.parquet");
     write_test_parquet(parquet_path.as_path());
-    let engine = DuckDbParquetQueryEngine::from_runtime(in_memory_runtime(temp.path()))
-        .expect("duckdb engine should open");
-    engine
-        .register_parquet_view("bench_docs", parquet_path.as_path())
-        .expect("parquet view registration should succeed");
+    let engine = unwrap_or_panic(
+        DuckDbParquetQueryEngine::from_runtime(in_memory_runtime(temp.path())),
+        "duckdb engine should open",
+    );
+    unwrap_or_panic(
+        engine.register_parquet_view("bench_docs", parquet_path.as_path()),
+        "parquet view registration should succeed",
+    );
 
-    let first = engine
-        .query_batches("select path from bench_docs")
-        .expect("first parquet query should succeed");
-    let second = engine
-        .query_batches("select path from bench_docs")
-        .expect("second parquet query should succeed");
+    let first = unwrap_or_panic(
+        engine.query_batches("select path from bench_docs"),
+        "first parquet query should succeed",
+    );
+    let second = unwrap_or_panic(
+        engine.query_batches("select path from bench_docs"),
+        "second parquet query should succeed",
+    );
 
     assert_eq!(first.len(), 1);
     assert_eq!(second.len(), 1);
@@ -84,13 +93,24 @@ fn write_test_parquet(path: &Path) {
         vec![LanceField::new("path", LanceDataType::Utf8, false)],
         HashMap::from([("domain".to_string(), "bench_docs".to_string())]),
     ));
-    let batch = LanceRecordBatch::try_new(
-        schema,
-        vec![Arc::new(LanceStringArray::from(vec![
-            "src/module.jl".to_string(),
-        ]))],
-    )
-    .expect("record batch should build");
-    write_lance_batches_to_parquet_file(path, &[batch])
-        .expect("parquet fixture should write successfully");
+    let batch = unwrap_or_panic(
+        LanceRecordBatch::try_new(
+            schema,
+            vec![Arc::new(LanceStringArray::from(vec![
+                "src/module.jl".to_string(),
+            ]))],
+        ),
+        "record batch should build",
+    );
+    unwrap_or_panic(
+        write_lance_batches_to_parquet_file(path, &[batch]),
+        "parquet fixture should write successfully",
+    );
+}
+
+fn unwrap_or_panic<T, E>(result: Result<T, E>, context: &str) -> T
+where
+    E: std::fmt::Display,
+{
+    result.unwrap_or_else(|error| panic!("{context}: {error}"))
 }

@@ -2,6 +2,7 @@
 
 mod api;
 mod contract_constructs;
+mod contract_literal;
 mod contract_metadata;
 mod contract_requirements;
 mod contract_shape;

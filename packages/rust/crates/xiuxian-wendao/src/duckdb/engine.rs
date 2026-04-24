@@ -29,6 +29,11 @@ use std::sync::{Mutex, MutexGuard};
 #[cfg(feature = "duckdb")]
 use uuid::Uuid;
 #[cfg(feature = "duckdb")]
+use xiuxian_db_store::duckdb::{
+    build_drop_duckdb_registered_relation_sql, build_duckdb_parquet_view_sql,
+    build_duckdb_virtual_view_sql, ensure_duckdb_identifier, quoted_duckdb_identifier,
+};
+#[cfg(feature = "duckdb")]
 use xiuxian_wendao_runtime::config::SearchDuckDbRuntimeConfig;
 
 #[cfg(feature = "duckdb")]
@@ -705,47 +710,6 @@ fn build_duckdb_create_table_sql(table_name: &str, schema: &SchemaRef) -> Result
 }
 
 #[cfg(feature = "duckdb")]
-fn build_duckdb_virtual_view_sql(
-    table_name: &str,
-    namespace: &str,
-    function_name: &str,
-) -> Result<String, String> {
-    ensure_duckdb_identifier(function_name, "function")?;
-    let quoted_table_name = quoted_duckdb_identifier(table_name);
-    let escaped_namespace = namespace.replace('\'', "''");
-    let escaped_table_name = table_name.replace('\'', "''");
-    Ok(format!(
-        "{drop_relation_sql}\nCREATE TEMP VIEW {quoted_table_name} AS SELECT * FROM {function_name}('{escaped_namespace}', '{escaped_table_name}');",
-        drop_relation_sql = build_drop_duckdb_registered_relation_sql(table_name)
-    ))
-}
-
-#[cfg(feature = "duckdb")]
-pub(crate) fn build_duckdb_parquet_view_sql(
-    table_name: &str,
-    table_path: &Path,
-) -> Result<String, String> {
-    ensure_duckdb_identifier(table_name, "table")?;
-    let quoted_table_name = quoted_duckdb_identifier(table_name);
-    let read_path = if table_path.is_dir() {
-        table_path.join("*.parquet")
-    } else {
-        table_path.to_path_buf()
-    };
-    let escaped_path = read_path.to_string_lossy().replace('\'', "''");
-    Ok(format!(
-        "{drop_sql}\nCREATE TEMP VIEW {quoted_table_name} AS SELECT * FROM read_parquet('{escaped_path}');",
-        drop_sql = build_drop_duckdb_registered_relation_sql(table_name),
-    ))
-}
-
-#[cfg(feature = "duckdb")]
-pub(crate) fn build_drop_duckdb_registered_relation_sql(table_name: &str) -> String {
-    let quoted_table_name = quoted_duckdb_identifier(table_name);
-    format!("DROP VIEW IF EXISTS {quoted_table_name};\nDROP TABLE IF EXISTS {quoted_table_name};")
-}
-
-#[cfg(feature = "duckdb")]
 fn duckdb_sql_type(data_type: &DataType) -> Result<&'static str, String> {
     match data_type {
         DataType::Boolean => Ok("BOOLEAN"),
@@ -766,30 +730,4 @@ fn duckdb_sql_type(data_type: &DataType) -> Result<&'static str, String> {
         DataType::Timestamp(_, None) => Ok("TIMESTAMP"),
         other => Err(other.to_string()),
     }
-}
-
-#[cfg(feature = "duckdb")]
-pub(crate) fn ensure_duckdb_identifier(identifier: &str, label: &str) -> Result<(), String> {
-    let mut chars = identifier.chars();
-    let Some(first) = chars.next() else {
-        return Err(format!(
-            "duckdb local relation {label} identifiers cannot be blank"
-        ));
-    };
-    if !(first.is_ascii_alphabetic() || first == '_') {
-        return Err(format!(
-            "duckdb local relation {label} identifiers must start with an ASCII letter or underscore: `{identifier}`"
-        ));
-    }
-    if !chars.all(|character| character.is_ascii_alphanumeric() || character == '_') {
-        return Err(format!(
-            "duckdb local relation {label} identifiers must only use ASCII letters, digits, or underscores: `{identifier}`"
-        ));
-    }
-    Ok(())
-}
-
-#[cfg(feature = "duckdb")]
-pub(crate) fn quoted_duckdb_identifier(identifier: &str) -> String {
-    format!("\"{identifier}\"")
 }

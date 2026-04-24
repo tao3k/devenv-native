@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions
+  id="Definitions_executable_information_requirements"
+  name="Executable Information Requirements"
+  namespace="https://example.com/dmn/executable-information-requirements"
+  xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/">
+  <inputData id="InputData_customer" name="Customer Input" />
+  <decision id="Decision_upstream" name="Upstream Decision">
+    <decisionTable id="DecisionTable_upstream">
+      <input id="InputClause_tier">
+        <inputExpression id="InputExpression_tier" typeRef="string">
+          <text>tier</text>
+        </inputExpression>
+      </input>
+      <output id="OutputClause_segment" name="segment" typeRef="string" />
+      <rule id="DecisionRule_upstream">
+        <inputEntry id="UnaryTests_tier">
+          <text>"gold"</text>
+        </inputEntry>
+        <outputEntry id="LiteralExpression_segment">
+          <text>"premium"</text>
+        </outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+  <decision id="Decision_executable_dependency" name="Executable Dependency Decision">
+    <informationRequirement>
+      <requiredInput href="#InputData_customer" />
+    </informationRequirement>
+    <informationRequirement>
+      <requiredDecision href="#Decision_upstream" />
+    </informationRequirement>
+    <decisionTable id="DecisionTable_executable_dependency">
+      <input id="InputClause_score">
+        <inputExpression id="InputExpression_score" typeRef="number">
+          <text>customerScore</text>
+        </inputExpression>
+      </input>
+      <output id="OutputClause_approval" name="approval" typeRef="string" />
+      <rule id="DecisionRule_executable_dependency">
+        <inputEntry id="UnaryTests_score">
+          <text>&gt;= 700</text>
+        </inputEntry>
+        <outputEntry id="LiteralExpression_approval">
+          <text>"approve"</text>
+        </outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+</definitions>

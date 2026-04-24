@@ -66,6 +66,21 @@ git -C "{runtime_root}/.data/WendaoSearch.jl" rev-parse HEAD
     )
 
 
+def _run_common_script(command: str) -> subprocess.CompletedProcess[str]:
+    wrapped = f"""
+set -euo pipefail
+source "{WENDAOSEARCH_COMMON}"
+{command}
+"""
+    return subprocess.run(
+        ["bash", "-lc", wrapped],
+        cwd=PROJECT_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+
 def test_wendaosearch_materialize_package_repo_clones_missing_checkout_at_default_head(
     tmp_path: Path,
 ) -> None:
@@ -122,6 +137,60 @@ def test_wendaosearch_materialize_package_repo_rejects_existing_nongit_directory
 
     assert result.returncode == 1
     assert "is not a git checkout" in result.stderr
+
+
+def test_wendaosearch_repair_wendaocodeparser_checkout_relaxes_immutablelist_compat(
+    tmp_path: Path,
+) -> None:
+    checkout = tmp_path / "WendaoCodeParser.jl"
+    checkout.mkdir()
+    project_toml = checkout / "Project.toml"
+    project_toml.write_text(
+        "\n".join(
+            [
+                'name = "WendaoCodeParser"',
+                "",
+                "[compat]",
+                'ImmutableList = "0.1"',
+                'Tables = "1"',
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    result = _run_common_script(
+        f'wendaosearch_repair_wendaocodeparser_checkout "{checkout}"'
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert 'ImmutableList = "0.1, 0.3"' in project_toml.read_text(encoding="utf-8")
+
+
+def test_wendaosearch_repair_wendaocodeparser_checkout_keeps_existing_compat(
+    tmp_path: Path,
+) -> None:
+    checkout = tmp_path / "WendaoCodeParser.jl"
+    checkout.mkdir()
+    project_toml = checkout / "Project.toml"
+    original = "\n".join(
+        [
+            'name = "WendaoCodeParser"',
+            "",
+            "[compat]",
+            'ImmutableList = "0.1, 0.3"',
+            'Tables = "1"',
+            "",
+        ]
+    )
+    project_toml.write_text(original, encoding="utf-8")
+
+    result = _run_common_script(
+        f'wendaosearch_repair_wendaocodeparser_checkout "{checkout}"'
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert project_toml.read_text(encoding="utf-8") == original
 
 
 def test_wendaosearch_launch_materializes_missing_package_checkout(
@@ -187,8 +256,12 @@ def test_wendaosearch_launch_allows_explicit_julia_project(tmp_path: Path) -> No
     fake_bin.mkdir()
     fake_julia = fake_bin / "julia"
     argv_log = tmp_path / "julia-argv.txt"
+    env_log = tmp_path / "julia-env.txt"
     fake_julia.write_text(
-        '#!/usr/bin/env bash\nset -euo pipefail\nprintf \'%s\\n\' "$@" > "$FAKE_JULIA_ARGV_LOG"\n',
+        "#!/usr/bin/env bash\n"
+        "set -euo pipefail\n"
+        'printf \'%s\\n\' "$@" > "$FAKE_JULIA_ARGV_LOG"\n'
+        'printf \'%s\\n\' "${WENDAO_SEARCH_USE_ACTIVE_PROJECT:-}" > "$FAKE_JULIA_ENV_LOG"\n',
         encoding="utf-8",
     )
     fake_julia.chmod(0o755)
@@ -202,6 +275,7 @@ def test_wendaosearch_launch_allows_explicit_julia_project(tmp_path: Path) -> No
     env["WENDAOSEARCH_SCRIPT"] = "run_parser_summary_service.jl"
     env["WENDAOSEARCH_JULIA_PROJECT"] = str(bootstrap_env)
     env["FAKE_JULIA_ARGV_LOG"] = str(argv_log)
+    env["FAKE_JULIA_ENV_LOG"] = str(env_log)
 
     result = subprocess.run(
         ["bash", str(PROJECT_ROOT / "scripts/channel/wendaosearch-launch.sh")],
@@ -215,3 +289,4 @@ def test_wendaosearch_launch_allows_explicit_julia_project(tmp_path: Path) -> No
     assert result.returncode == 0, result.stderr
     argv = argv_log.read_text(encoding="utf-8").splitlines()
     assert f"--project={bootstrap_env}" in argv
+    assert env_log.read_text(encoding="utf-8").strip() == "1"

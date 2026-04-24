@@ -9,10 +9,8 @@ use xiuxian_wendao_core::{
 use super::artifact::{
     DEFAULT_JULIA_DEPLOYMENT_ARTIFACT_SCHEMA_VERSION, LinkGraphJuliaDeploymentArtifact,
 };
-use super::launch::{
-    LinkGraphJuliaAnalyzerLaunchManifest, LinkGraphJuliaAnalyzerServiceDescriptor,
-};
-use super::paths::{DEFAULT_JULIA_ANALYZER_LAUNCHER_PATH, DEFAULT_JULIA_RERANK_FLIGHT_ROUTE};
+use super::launch::{LinkGraphJuliaSearchLaunchManifest, LinkGraphJuliaSearchServiceDescriptor};
+use super::paths::{DEFAULT_JULIA_RERANK_FLIGHT_ROUTE, DEFAULT_JULIA_SEARCH_LAUNCHER_PATH};
 use super::selectors::{julia_deployment_artifact_selector, julia_rerank_provider_selector};
 
 /// Runtime knobs for remote Julia rerank over Arrow Flight.
@@ -28,15 +26,13 @@ pub struct LinkGraphJuliaRerankRuntimeConfig {
     pub schema_version: Option<String>,
     /// Optional request timeout in seconds.
     pub timeout_secs: Option<u64>,
-    /// Optional analyzer-owned service mode for generic analyzer launchers.
+    /// Optional service mode for the `WendaoSearch` launcher.
     pub service_mode: Option<String>,
-    /// Optional analyzer-owned TOML path passed to the Julia service launcher.
-    pub analyzer_config_path: Option<String>,
-    /// Optional analyzer-owned strategy name for local or managed Julia services.
-    pub analyzer_strategy: Option<String>,
-    /// Optional analyzer vector weight for linear-blend strategies.
+    /// Optional TOML path passed to the `WendaoSearch` service launcher.
+    pub search_config_path: Option<String>,
+    /// Optional vector-side weight for Rust rerank score projection.
     pub vector_weight: Option<f64>,
-    /// Optional analyzer similarity weight for linear-blend strategies.
+    /// Optional semantic-side weight for Rust rerank score projection.
     pub similarity_weight: Option<f64>,
 }
 
@@ -56,21 +52,17 @@ impl LinkGraphJuliaRerankRuntimeConfig {
             || self.schema_version.is_some()
             || self.timeout_secs.is_some()
             || self.service_mode.is_some()
-            || self.analyzer_config_path.is_some()
-            || self.analyzer_strategy.is_some()
+            || self.search_config_path.is_some()
             || self.vector_weight.is_some()
             || self.similarity_weight.is_some()
     }
 
     /// Build provider-owned launch inputs from runtime configuration.
     #[must_use]
-    pub fn provider_launch_descriptor(&self) -> LinkGraphJuliaAnalyzerServiceDescriptor {
-        LinkGraphJuliaAnalyzerServiceDescriptor {
+    pub fn provider_launch_descriptor(&self) -> LinkGraphJuliaSearchServiceDescriptor {
+        LinkGraphJuliaSearchServiceDescriptor {
             service_mode: self.service_mode.clone(),
-            analyzer_config_path: self.analyzer_config_path.clone(),
-            analyzer_strategy: self.analyzer_strategy.clone(),
-            vector_weight: self.vector_weight,
-            similarity_weight: self.similarity_weight,
+            search_config_path: self.search_config_path.clone(),
         }
     }
 
@@ -78,7 +70,7 @@ impl LinkGraphJuliaRerankRuntimeConfig {
     #[must_use]
     pub fn plugin_launch_spec(&self) -> PluginLaunchSpec {
         self.provider_launch_descriptor()
-            .plugin_launch_spec(DEFAULT_JULIA_ANALYZER_LAUNCHER_PATH)
+            .plugin_launch_spec(DEFAULT_JULIA_SEARCH_LAUNCHER_PATH)
     }
 
     /// Build the serializable generic plugin artifact payload from runtime configuration.
@@ -115,15 +107,15 @@ impl LinkGraphJuliaRerankRuntimeConfig {
             .then(|| build_rerank_provider_binding(self))
     }
 
-    /// Build the analyzer-owned launch descriptor from runtime configuration.
+    /// Build the search-service launch descriptor from runtime configuration.
     #[must_use]
-    pub fn analyzer_service_descriptor(&self) -> LinkGraphJuliaAnalyzerServiceDescriptor {
+    pub fn search_service_descriptor(&self) -> LinkGraphJuliaSearchServiceDescriptor {
         self.provider_launch_descriptor()
     }
 
-    /// Build the analyzer launch manifest from runtime configuration.
+    /// Build the search-service launch manifest from runtime configuration.
     #[must_use]
-    pub fn analyzer_launch_manifest(&self) -> LinkGraphJuliaAnalyzerLaunchManifest {
+    pub fn search_launch_manifest(&self) -> LinkGraphJuliaSearchLaunchManifest {
         self.plugin_launch_spec().into()
     }
 

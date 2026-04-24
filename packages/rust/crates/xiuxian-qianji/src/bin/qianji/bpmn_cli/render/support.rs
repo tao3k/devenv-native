@@ -76,8 +76,8 @@ pub(super) fn append_bpmn_wait_registrations(
 pub(super) fn bpmn_checkpoint_backend_label(store: &QianjiBpmnCheckpointStore) -> &'static str {
     match store {
         QianjiBpmnCheckpointStore::Valkey { .. } => "runtime_valkey",
-        #[cfg(feature = "sqlite")]
-        QianjiBpmnCheckpointStore::Sqlite { .. } => "sqlite",
+        #[cfg(feature = "duckdb")]
+        QianjiBpmnCheckpointStore::DuckDb { .. } => "duckdb",
     }
 }
 
@@ -86,8 +86,8 @@ pub(super) fn bpmn_checkpoint_backend_selection_label(
 ) -> &'static str {
     match backend {
         QianjiBpmnWorkflowCheckpointBackend::RuntimeValkey => "runtime_valkey",
-        #[cfg(feature = "sqlite")]
-        QianjiBpmnWorkflowCheckpointBackend::Sqlite(_) => "sqlite",
+        #[cfg(feature = "duckdb")]
+        QianjiBpmnWorkflowCheckpointBackend::LocalDuckDb => "duckdb",
     }
 }
 

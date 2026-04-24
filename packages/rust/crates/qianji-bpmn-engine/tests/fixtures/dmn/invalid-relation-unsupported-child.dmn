@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions
+  id="Definitions_invalid_relation_child"
+  name="Invalid Relation Child"
+  namespace="https://example.com/dmn/invalid-relation-child"
+  xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/">
+  <decision id="Decision_invalid_relation_child" name="Invalid Relation Child">
+    <relation id="relation_1">
+      <column id="column_1" name="lender" typeRef="string"/>
+      <row id="row_1">
+        <context id="nested_context_1">
+          <contextEntry id="context_entry_1">
+            <literalExpression id="literal_expression_1">
+              <text>"Lender A"</text>
+            </literalExpression>
+          </contextEntry>
+        </context>
+      </row>
+    </relation>
+  </decision>
+</definitions>

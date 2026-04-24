@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions
+  id="Definitions_unsupported_list_decision"
+  name="Unsupported List Decision"
+  namespace="https://example.com/dmn/unsupported-list-decision"
+  xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/">
+  <decision id="Decision_unsupported_list" name="Unsupported List Decision">
+    <list id="list_unsupported">
+      <literalExpression id="literal_expression_unsupported">
+        <text>applicant.age * 2</text>
+      </literalExpression>
+    </list>
+  </decision>
+</definitions>

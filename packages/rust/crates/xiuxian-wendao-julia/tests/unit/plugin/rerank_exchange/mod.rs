@@ -1,14 +1,5 @@
 use xiuxian_wendao_core::repo_intelligence::{
-    RegisteredRepository, RepositoryPluginConfig, julia_arrow_request_schema,
-    julia_arrow_response_schema,
-};
-
-use super::fetch_plugin_arrow_score_rows_for_repository;
-use crate::compatibility::link_graph::DEFAULT_JULIA_ARROW_PACKAGE_DIR;
-use crate::julia_plugin_test_support::common::{linked_wendaoarrow_package_dir, repo_root};
-use crate::julia_plugin_test_support::contract::request_batch;
-use crate::julia_plugin_test_support::official_examples::{
-    reserve_real_service_port, spawn_real_wendaoarrow_service, wait_for_service_ready,
+    julia_arrow_request_schema, julia_arrow_response_schema,
 };
 
 #[test]
@@ -29,47 +20,4 @@ fn julia_arrow_response_schema_optionally_includes_trace_id() {
     assert_eq!(base.fields().len(), 3);
     assert_eq!(traced.fields().len(), 4);
     assert_eq!(traced.field(3).name(), "trace_id");
-}
-
-#[tokio::test]
-#[serial_test::serial(julia_arrow_live)]
-async fn fetch_plugin_arrow_score_rows_for_repository_roundtrips_remote_scores() {
-    if linked_wendaoarrow_package_dir().is_none() {
-        eprintln!(
-            "skipping WendaoArrow rerank live proof; missing linked Julia package checkout {}",
-            repo_root().join(DEFAULT_JULIA_ARROW_PACKAGE_DIR).display()
-        );
-        return;
-    }
-
-    let port = reserve_real_service_port();
-    let base_url = format!("http://127.0.0.1:{port}");
-    let _service = spawn_real_wendaoarrow_service(port);
-    wait_for_service_ready(&base_url)
-        .await
-        .unwrap_or_else(|error| {
-            panic!("real WendaoArrow Flight service should become ready: {error}")
-        });
-    let repository = RegisteredRepository {
-        id: "demo".to_string(),
-        plugins: vec![RepositoryPluginConfig::Config {
-            id: "julia".to_string(),
-            options: serde_json::json!({
-                "flight_transport": {
-                    "base_url": base_url,
-                    "route": "/rerank",
-                    "schema_version": "v1"
-                }
-            }),
-        }],
-        ..RegisteredRepository::default()
-    };
-
-    let rows = fetch_plugin_arrow_score_rows_for_repository(&repository, &[request_batch()])
-        .await
-        .unwrap_or_else(|error| panic!("transport should succeed: {error}"));
-
-    assert_eq!(rows.len(), 2);
-    assert_eq!(rows.get("doc-a").map(|row| row.analyzer_score), Some(0.4));
-    assert_eq!(rows.get("doc-a").map(|row| row.final_score), Some(0.4));
 }

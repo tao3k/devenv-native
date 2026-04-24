@@ -2,17 +2,21 @@
 //!
 //! The current implementation covers a bounded BPMN parser/IR subset, a bounded
 //! runtime kernel, sequence-guarded JSON checkpoint persistence in Valkey,
-//! one feature-gated local SQL checkpoint path for lightweight client-side
-//! storage, explicit host/wait boundary request-resume seams plus lease-key
+//! explicit host/wait boundary request-resume seams plus lease-key
 //! ownership for distributed checkpoint writers, deterministic frontier
 //! snapshots plus explicit frontier proposal/reduction and deterministic batch
 //! execution seams for multi-token runtime planning, and a crate-owned bounded
 //! DMN parse and evaluation contract plus one non-executable DMN document
 //! snapshot surface and LLM-friendly BPMN/DMN lint reports. Parser-owned
 //! bundle snapshots can now also attach bounded DMN sources to one BPMN
-//! package, including multiple bounded decisions from one DMN source, so local
-//! business-rule execution is populated from parse-time inputs instead of
-//! test-only manual wiring.
+//! package, including one non-executable DMN source-root registry, one
+//! non-executable top-level `import` registry, metadata-only imported-DMN
+//! source loading, multiple bounded decisions plus one bounded `inputData`
+//! registry and one bounded top-level `businessKnowledgeModel` registry from
+//! executable DMN sources, so local business-rule execution, bounded
+//! same-source input aliasing, and later same-source knowledge or
+//! imported-source lookup prerequisites are populated from parse-time inputs
+//! instead of test-only manual wiring.
 //! Bounded `parallelGateway` split/join semantics, bounded
 //! `exclusiveGateway` routing with simple boolean-path or numeric-comparison
 //! outgoing `sequenceFlow` `conditionExpression` values plus one optional
@@ -106,9 +110,17 @@
 //! `duration("PT1.5H")`, `duration("PT1,5H")`, `duration("PT1.5M")`,
 //! `duration("PT1,5M")`, `duration("PT1.5S")`, and `duration("PT1,5S")`.
 //! BPMN `businessRuleTask` can also execute locally when the package carries a
-//! matching engine-owned DMN decision definition; otherwise it falls back to
-//! the existing host seam. Broader unstructured inclusive gateways, recursive
-//! call chains, broader mixed boundary families on same-package
+//! matching engine-owned DMN decision definition; the bounded local DMN path
+//! now also includes one direct invocation seam whose invoked text resolves to
+//! exactly one same-source top-level `businessKnowledgeModel` by id or
+//! invocable `variable` name, whose direct bindings expose simple named
+//! parameters plus supported literal-expression arguments, whose target
+//! `encapsulatedLogic` provides one supported direct literal-expression body,
+//! and whose target must match any direct same-source `requiredKnowledge`
+//! declarations preserved on the executable decision; otherwise it falls back
+//! to the existing host seam. Broader unstructured
+//! inclusive gateways, recursive call chains, broader mixed boundary families
+//! on same-package
 //! `callActivity` owners or embedded subprocess owners beyond one
 //! interrupting timer/message/signal boundary plus one or more interrupting
 //! error boundaries, broader transaction-shell boundary families that exceed
@@ -120,13 +132,18 @@
 //! boundary on the same transaction owner, broader
 //! error propagation beyond those bounded transaction and embedded-subprocess
 //! shells,
-//! broader FEEL or script-backed gateway conditions, trailing
+//! broader `requiredKnowledge` execution, broader business-knowledge-model or
+//! decision-service invocation semantics, broader FEEL or script-backed
+//! gateway conditions, trailing
 //! lower-unit fractional duration handling such as `duration("PT1.5H30S")`,
 //! mixed-family duration handling, fractional year-month duration handling
 //! such as `duration("P1.5Y")`, broader timezone/function FEEL behavior, and
 //! richer orchestration slices remain deferred.
 
+mod bpmn_model_api;
 mod bpmn_parse_api;
+mod bpmn_snapshot;
+mod bpmn_snapshot_api;
 mod checkpoint;
 mod checkpoint_api;
 mod dmn;
@@ -134,11 +151,16 @@ mod dmn_api;
 mod dmn_duration;
 mod dmn_evaluate_api;
 mod dmn_model_api;
+mod dmn_model_business_knowledge;
 mod dmn_model_clause;
 mod dmn_model_decision;
+mod dmn_model_decision_service;
 mod dmn_model_document;
+mod dmn_model_import;
+mod dmn_model_input_data;
 mod dmn_model_predicate;
 mod dmn_model_reference;
+mod dmn_model_source;
 mod dmn_parse_api;
 mod dmn_snapshot_api;
 mod error;
@@ -171,9 +193,17 @@ mod runtime_resume_api;
 mod runtime_token_api;
 mod runtime_wait_api;
 
+pub use bpmn_model_api::{
+    BpmnCollaborationSnapshot, BpmnDataAssociationSnapshot, BpmnDataInputOutputSnapshot,
+    BpmnDataObjectReferenceSnapshot, BpmnDataObjectSnapshot, BpmnDataStoreReferenceSnapshot,
+    BpmnDataStoreSnapshot, BpmnDocumentSnapshot, BpmnIoSpecificationSnapshot, BpmnLaneSetSnapshot,
+    BpmnLaneSnapshot, BpmnMessageFlowSnapshot, BpmnParticipantSnapshot, BpmnProcessSnapshot,
+    BpmnRootSnapshot,
+};
 pub use bpmn_parse_api::{
     BpmnBundleSnapshot, BpmnParseOptions, BpmnSourceFile, parse_bpmn_bundle, parse_bpmn_package,
 };
+pub use bpmn_snapshot_api::snapshot_bpmn_source;
 pub use checkpoint_api::{
     BPMN_CHECKPOINT_FORMAT_VERSION, BpmnCheckpointEnvelope, decode_checkpoint_json,
     encode_checkpoint_json, lease_key, state_key,
@@ -184,23 +214,27 @@ pub use checkpoint_api::{
     renew_checkpoint_lease, save_checkpoint, save_checkpoint_as_owner,
     try_acquire_checkpoint_lease,
 };
-#[cfg(feature = "sqlite")]
-pub use checkpoint_api::{delete_checkpoint_sql, load_checkpoint_sql, save_checkpoint_sql};
 pub use dmn_api::{
-    DmnAssociationSnapshot, DmnBindingKind, DmnBoundsSnapshot, DmnBusinessKnowledgeModelSnapshot,
-    DmnComparisonOperator, DmnDateComparison, DmnDateRange, DmnDateRangeBound,
+    DmnAssociationSnapshot, DmnBindingKind, DmnBoundsSnapshot, DmnBusinessKnowledgeModelDefinition,
+    DmnBusinessKnowledgeModelSnapshot, DmnComparisonOperator, DmnContextEntry,
+    DmnContextExpression, DmnDateComparison, DmnDateRange, DmnDateRangeBound,
     DmnDateTimeComparison, DmnDateTimeRange, DmnDateTimeRangeBound, DmnDecisionDefinition,
-    DmnDecisionRef, DmnDecisionServiceDividerLineSnapshot, DmnDecisionServiceSnapshot,
-    DmnDecisionSnapshot, DmnDecisionTable, DmnDiagramSnapshot, DmnDmndiSnapshot,
-    DmnDocumentSnapshot, DmnDurationComparison, DmnDurationRange, DmnDurationRangeBound,
-    DmnEdgeSnapshot, DmnElementCollectionSnapshot, DmnEvaluationRequest, DmnEvaluationResult,
-    DmnGroupSnapshot, DmnHitPolicy, DmnInputClause, DmnInputDataSnapshot, DmnInputEntry,
-    DmnItemComponentSnapshot, DmnItemDefinitionSnapshot, DmnKnowledgeSourceSnapshot,
-    DmnLabelSnapshot, DmnNumericComparison, DmnNumericRange, DmnNumericRangeBound,
-    DmnOrganizationUnitSnapshot, DmnOutputClause, DmnOutputEntry, DmnPerformanceIndicatorSnapshot,
-    DmnRootSnapshot, DmnRule, DmnShapeSnapshot, DmnSourceFile, DmnTextAnnotationSnapshot,
-    DmnTimeComparison, DmnTimeRange, DmnTimeRangeBound, DmnVariableSnapshot, DmnWaypointSnapshot,
-    evaluate_dmn_decision, parse_dmn_decision, parse_dmn_decisions, snapshot_dmn_source,
+    DmnDecisionRef, DmnDecisionServiceDefinition, DmnDecisionServiceDividerLineSnapshot,
+    DmnDecisionServiceReference, DmnDecisionServiceSnapshot, DmnDecisionSnapshot, DmnDecisionTable,
+    DmnDiagramSnapshot, DmnDmndiSnapshot, DmnDocumentSnapshot, DmnDurationComparison,
+    DmnDurationRange, DmnDurationRangeBound, DmnEdgeSnapshot, DmnElementCollectionSnapshot,
+    DmnEvaluationRequest, DmnEvaluationResult, DmnGroupSnapshot, DmnHitPolicy, DmnImportDefinition,
+    DmnImportSourceBinding, DmnInformationRequirementReference, DmnInputClause,
+    DmnInputDataDefinition, DmnInputDataSnapshot, DmnInputEntry, DmnInvocation,
+    DmnInvocationBinding, DmnInvocationParameter, DmnItemComponentSnapshot,
+    DmnItemDefinitionSnapshot, DmnKnowledgeRequirementReference, DmnKnowledgeSourceSnapshot,
+    DmnLabelSnapshot, DmnListExpression, DmnLiteralExpression, DmnNumericComparison,
+    DmnNumericRange, DmnNumericRangeBound, DmnOrganizationUnitSnapshot, DmnOutputClause,
+    DmnOutputEntry, DmnPerformanceIndicatorSnapshot, DmnRelationColumn, DmnRelationExpression,
+    DmnRelationRow, DmnRootSnapshot, DmnRule, DmnShapeSnapshot, DmnSourceDefinition, DmnSourceFile,
+    DmnTextAnnotationSnapshot, DmnTimeComparison, DmnTimeRange, DmnTimeRangeBound,
+    DmnVariableSnapshot, DmnWaypointSnapshot, evaluate_dmn_decision, parse_dmn_decision,
+    parse_dmn_decisions, snapshot_dmn_source,
 };
 pub use error::BpmnEngineError;
 pub use host_bridge_api::BpmnHostBridge;

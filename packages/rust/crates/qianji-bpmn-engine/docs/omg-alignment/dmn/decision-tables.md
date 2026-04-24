@@ -21,7 +21,9 @@ The current engine supports one bounded decision-table family:
 These decision-table shapes remain outside the current bounded surface:
 
 - broader hit policies beyond `UNIQUE` and `COLLECT`
-- richer boxed expressions and invocation chains
+- richer boxed expressions and invocation chains beyond the separately
+  supported direct literal-expression, list-expression, context-expression,
+  and relation-expression subsets
 - broader FEEL list, context, function, and temporal operators
 - item-definition resolution and executable type semantics beyond preserved
   clause metadata

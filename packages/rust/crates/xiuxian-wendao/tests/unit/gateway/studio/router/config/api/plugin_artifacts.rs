@@ -19,9 +19,8 @@ use super::support::plugin_artifact_state;
 #[tokio::test]
 #[serial]
 async fn plugin_artifact_handler_returns_resolved_artifact() {
-    let (state, artifact_path) = plugin_artifact_state(
-        &linked_builtin_julia_gateway_artifact_runtime_config_toml(Some("similarity_only")),
-    );
+    let (state, artifact_path) =
+        plugin_artifact_state(&linked_builtin_julia_gateway_artifact_runtime_config_toml());
 
     let response = crate::gateway::studio::router::handlers::capabilities::get_plugin_artifact(
         State(state),
@@ -79,9 +78,8 @@ async fn plugin_artifact_handler_returns_resolved_artifact() {
 #[tokio::test]
 #[serial]
 async fn plugin_artifact_handler_returns_canonical_json_shape() {
-    let (state, artifact_path) = plugin_artifact_state(
-        &linked_builtin_julia_gateway_artifact_runtime_config_toml(None),
-    );
+    let (state, artifact_path) =
+        plugin_artifact_state(&linked_builtin_julia_gateway_artifact_runtime_config_toml());
 
     let response = crate::gateway::studio::router::handlers::capabilities::get_plugin_artifact(
         State(state),
@@ -116,9 +114,8 @@ async fn plugin_artifact_handler_returns_canonical_json_shape() {
 #[tokio::test]
 #[serial]
 async fn plugin_artifact_handler_returns_toml_when_requested() {
-    let (state, artifact_path) = plugin_artifact_state(
-        &linked_builtin_julia_gateway_artifact_runtime_config_toml(None),
-    );
+    let (state, artifact_path) =
+        plugin_artifact_state(&linked_builtin_julia_gateway_artifact_runtime_config_toml());
 
     let response = crate::gateway::studio::router::handlers::capabilities::get_plugin_artifact(
         State(state),

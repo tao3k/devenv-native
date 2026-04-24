@@ -34,3 +34,25 @@ fn dmn_snapshot_classifies_required_decision_targets() {
     assert_eq!(snapshot.decisions[1].required_knowledge_count, 0);
     assert_eq!(snapshot.decisions[1].required_authority_count, 0);
 }
+
+#[test]
+fn dmn_snapshot_classifies_authority_requirement_decision_and_input_targets() {
+    let snapshot = snapshot_dmn_source(&fixture_source(
+        "versioned-authority-requirement-mixed-references-20191111.dmn",
+    ))
+    .must("mixed authority-requirement DMN source should still produce a document snapshot");
+
+    let decision = snapshot
+        .decisions
+        .iter()
+        .find(|decision| decision.decision_id == "Decision_authority_requirement_mixed");
+    let Some(decision) = decision else {
+        panic!("mixed authority-requirement decision should be present");
+    };
+
+    assert_eq!(decision.authority_requirement_count, 1);
+    assert_eq!(decision.required_authority_count, 1);
+    assert_eq!(decision.required_decision_count, 1);
+    assert_eq!(decision.required_input_count, 1);
+    assert_eq!(decision.required_knowledge_count, 0);
+}

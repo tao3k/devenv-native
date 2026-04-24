@@ -11,7 +11,6 @@ Bounded BPMN and DMN workflow engine ownership for Qianji.
 - bounded ISO date, datetime, time, and signed day-time or year-month
   duration decision predicates
 - checkpoint codecs plus distributed Valkey-backed checkpoint ownership
-- lightweight local checkpoint persistence behind the `sqlite` feature
 - bounded `exclusiveGateway` condition routing with simple boolean-path or
   numeric-comparison `sequenceFlow` conditions plus one optional `default`
   branch

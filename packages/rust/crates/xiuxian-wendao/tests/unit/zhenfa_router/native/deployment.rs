@@ -3,7 +3,6 @@ use crate::set_link_graph_wendao_config_override;
 use serial_test::serial;
 use std::fs;
 use xiuxian_wendao_builtin::{
-    linked_builtin_julia_gateway_artifact_default_strategy,
     linked_builtin_julia_gateway_artifact_expected_json_fragments,
     linked_builtin_julia_gateway_artifact_expected_toml_fragments,
     linked_builtin_julia_gateway_artifact_path,
@@ -84,9 +83,7 @@ fn render_plugin_artifact_toml_uses_runtime_config() {
     let temp = tempdir_or_panic();
     write_config_and_set_override(
         &temp,
-        &linked_builtin_julia_gateway_artifact_runtime_config_toml(Some(
-            linked_builtin_julia_gateway_artifact_default_strategy(),
-        )),
+        &linked_builtin_julia_gateway_artifact_runtime_config_toml(),
     );
 
     let selector = plugin_selector_or_panic();
@@ -100,10 +97,7 @@ fn render_plugin_artifact_toml_uses_runtime_config() {
         );
     }
     assert!(rendered.contains("generated_at = "));
-    assert!(rendered.contains(&format!(
-        "\"{}\"",
-        linked_builtin_julia_gateway_artifact_default_strategy()
-    )));
+    assert!(rendered.contains("selected_transport = \"arrow_flight\""));
 }
 
 #[test]
@@ -112,9 +106,7 @@ fn render_plugin_artifact_json_uses_runtime_config() {
     let temp = tempdir_or_panic();
     write_config_and_set_override(
         &temp,
-        &linked_builtin_julia_gateway_artifact_runtime_config_toml(Some(
-            linked_builtin_julia_gateway_artifact_default_strategy(),
-        )),
+        &linked_builtin_julia_gateway_artifact_runtime_config_toml(),
     );
 
     let selector = plugin_selector_or_panic();
@@ -136,7 +128,7 @@ fn render_plugin_artifact_uses_selected_format() {
     let temp = tempdir_or_panic();
     write_config_and_set_override(
         &temp,
-        &linked_builtin_julia_gateway_artifact_runtime_config_toml(None),
+        &linked_builtin_julia_gateway_artifact_runtime_config_toml(),
     );
 
     let selector = plugin_selector_or_panic();
@@ -158,7 +150,7 @@ fn export_plugin_artifact_writes_json_file_when_requested() {
     let (plugin_id, artifact_id) = linked_builtin_julia_gateway_artifact_path();
     write_config_and_set_override(
         &temp,
-        &linked_builtin_julia_gateway_artifact_runtime_config_toml(None),
+        &linked_builtin_julia_gateway_artifact_runtime_config_toml(),
     );
 
     let output_path = temp.path().join("exports").join("plugin-artifact.json");

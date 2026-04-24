@@ -35,3 +35,9 @@ pub use super::ownership::QianjiBpmnSchedulerLeaseConfig;
 pub use super::scheduler::QianjiBpmnExecutionScheduler;
 pub use super::session::QianjiBpmnSession;
 pub use super::wait::resolve_waiting_external_event;
+#[cfg(feature = "duckdb")]
+pub use xiuxian_db_store::qianji_bpmn::{
+    DEFAULT_QIANJI_BPMN_DUCKDB_THREADS, QIANJI_BPMN_WORKFLOW_STATE_RECORD_KEY,
+    QianjiBpmnDataRecord, QianjiBpmnDataStoreError, QianjiBpmnDuckDbDataStore,
+    QianjiBpmnDuckDbDataStoreConfig,
+};

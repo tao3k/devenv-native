@@ -69,6 +69,26 @@ async fn workflow_control_service_runs_prepared_linear_bundle() {
     );
 }
 
+#[cfg(feature = "duckdb")]
+#[test]
+fn workflow_control_service_resolves_local_duckdb_workflow_state_store() {
+    let temp_dir =
+        TempDir::new().unwrap_or_else(|error| panic!("temp dir should allocate: {error}"));
+    let duckdb_path = temp_dir.path().join("local-state.duckdb");
+    let service = QianjiBpmnWorkflowControlService::new().with_runtime_env(QianjiRuntimeEnv {
+        qianji_workflow_state_duckdb_path: Some(duckdb_path.clone()),
+        ..QianjiRuntimeEnv::default()
+    });
+
+    let store = ok_of(
+        service.resolve_checkpoint_store(Some(&QianjiBpmnWorkflowCheckpointBackend::LocalDuckDb)),
+        "workflow control service should resolve local DuckDB workflow-state store",
+    )
+    .unwrap_or_else(|| panic!("local DuckDB backend should resolve a store"));
+
+    assert_eq!(store, crate::QianjiBpmnCheckpointStore::duckdb(duckdb_path));
+}
+
 #[tokio::test(flavor = "current_thread")]
 async fn workflow_control_service_runtime_valkey_scheduler_identity_deletes_terminal_checkpoint() {
     let valkey = ok_of(

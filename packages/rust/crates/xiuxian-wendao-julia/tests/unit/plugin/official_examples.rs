@@ -7,8 +7,8 @@ use tokio::time::{sleep, timeout};
 use toml::Value;
 
 use super::common::{
-    ChildGuard, repo_root, reserve_test_port, wendaoanalyzer_package_dir, wendaoarrow_package_dir,
-    wendaosearch_config, wendaosearch_package_dir, wendaosearch_script,
+    ChildGuard, repo_root, reserve_test_port, wendaosearch_config, wendaosearch_julia_project,
+    wendaosearch_script,
 };
 
 pub(crate) const LIVE_SERVICE_STARTUP_TIMEOUT_SECS: u64 = 150;
@@ -19,38 +19,6 @@ const PROCESS_MANAGED_WENDAOSEARCH_SERVICE_NAME: &str = "wendaosearch-solver-dem
 
 pub(crate) struct ProcessManagedWendaoSearchGuard {
     owned: bool,
-}
-
-pub(crate) fn spawn_real_wendaoarrow_service(port: u16) -> ChildGuard {
-    spawn_wendaoarrow_example(
-        "examples/stream_scoring_flight_server.jl",
-        port,
-        "spawn real WendaoArrow service",
-    )
-}
-
-pub(crate) fn spawn_real_wendaoarrow_metadata_service(port: u16) -> ChildGuard {
-    spawn_wendaoarrow_example(
-        "examples/stream_metadata_flight_server.jl",
-        port,
-        "spawn real WendaoArrow metadata service",
-    )
-}
-
-pub(crate) fn spawn_real_wendaoarrow_bad_response_service(port: u16) -> ChildGuard {
-    spawn_wendaoarrow_example(
-        "examples/stream_scoring_bad_response_flight_server.jl",
-        port,
-        "spawn real WendaoArrow bad-response service",
-    )
-}
-
-pub(crate) fn spawn_real_wendaoanalyzer_linear_blend_service(port: u16) -> ChildGuard {
-    spawn_wendaoanalyzer_example(
-        &["--service-mode", "stream"],
-        port,
-        "spawn real WendaoAnalyzer linear blend service",
-    )
 }
 
 pub(crate) fn spawn_real_wendaosearch_demo_capability_manifest_service(port: u16) -> ChildGuard {
@@ -70,7 +38,7 @@ fn spawn_real_wendaosearch_multi_route_service(mode: &str, port: u16) -> ChildGu
     let child = Command::new("julia")
         .arg(format!(
             "--project={}",
-            wendaosearch_package_dir().display()
+            wendaosearch_julia_project().display()
         ))
         .arg(script)
         .arg("--route-names")
@@ -83,6 +51,7 @@ fn spawn_real_wendaosearch_multi_route_service(mode: &str, port: u16) -> ChildGu
         .arg(port.to_string())
         .current_dir(repo_root())
         .env("JULIA_LOAD_PATH", "@:@stdlib")
+        .env("WENDAO_SEARCH_USE_ACTIVE_PROJECT", "1")
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .spawn()
@@ -97,7 +66,7 @@ fn spawn_real_wendaosearch_service(route_name: &str, mode: &str, port: u16) -> C
     let child = Command::new("julia")
         .arg(format!(
             "--project={}",
-            wendaosearch_package_dir().display()
+            wendaosearch_julia_project().display()
         ))
         .arg(script)
         .arg("--route-name")
@@ -110,6 +79,7 @@ fn spawn_real_wendaosearch_service(route_name: &str, mode: &str, port: u16) -> C
         .arg(port.to_string())
         .current_dir(repo_root())
         .env("JULIA_LOAD_PATH", "@:@stdlib")
+        .env("WENDAO_SEARCH_USE_ACTIVE_PROJECT", "1")
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .spawn()
@@ -117,43 +87,6 @@ fn spawn_real_wendaosearch_service(route_name: &str, mode: &str, port: u16) -> C
             panic!("spawn real WendaoSearch `{route_name}` `{mode}` service: {error}")
         });
     ChildGuard::new(child)
-}
-
-fn spawn_wendaoarrow_example(example_path: &str, port: u16, error_context: &str) -> ChildGuard {
-    let package_dir = wendaoarrow_package_dir();
-    let script = package_dir.join("scripts").join("run_flight_example.jl");
-    let child = Command::new("julia")
-        .arg(format!("--project={}", package_dir.display()))
-        .arg(script)
-        .arg(example_path)
-        .arg("--port")
-        .arg(port.to_string())
-        .current_dir(repo_root())
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .spawn()
-        .unwrap_or_else(|error| panic!("{error_context}: {error}"));
-    ChildGuard::new(child)
-}
-
-fn spawn_wendaoanalyzer_example(args: &[&str], port: u16, error_context: &str) -> ChildGuard {
-    let package_dir = wendaoanalyzer_package_dir();
-    let script = package_dir.join("scripts").join("run_analyzer_example.jl");
-    let child = Command::new("julia")
-        .arg(script)
-        .args(args)
-        .arg("--port")
-        .arg(port.to_string())
-        .current_dir(repo_root())
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .spawn()
-        .unwrap_or_else(|error| panic!("{error_context}: {error}"));
-    ChildGuard::new(child)
-}
-
-pub(crate) async fn wait_for_service_ready(base_url: &str) -> Result<(), String> {
-    wait_for_service_ready_with_attempts(base_url, 150).await
 }
 
 pub(crate) async fn wait_for_service_ready_with_attempts(

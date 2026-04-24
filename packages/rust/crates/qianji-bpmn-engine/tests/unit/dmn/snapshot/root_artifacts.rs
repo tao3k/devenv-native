@@ -154,6 +154,18 @@ fn dmn_snapshot_counts_top_level_business_knowledge_model_artifacts_without_deci
         business_knowledge_model.name.as_deref(),
         Some("Policy Source")
     );
+    assert_eq!(
+        business_knowledge_model.body.as_ref().map(|body| (
+            body.expression_id.as_deref(),
+            body.type_ref.as_deref(),
+            body.text.as_deref(),
+        )),
+        Some((
+            Some("BKM_policy_source_expression"),
+            None,
+            Some("\"external-policy\"")
+        ))
+    );
     assert_eq!(snapshot.root.decision_service_count, 0);
     assert_eq!(snapshot.root.organization_unit_count, 0);
     assert_eq!(snapshot.root.performance_indicator_count, 0);
@@ -163,4 +175,64 @@ fn dmn_snapshot_counts_top_level_business_knowledge_model_artifacts_without_deci
     assert_eq!(snapshot.root.group_count, 0);
     assert_eq!(snapshot.root.dmndi_count, 0);
     assert!(snapshot.decisions.is_empty());
+}
+
+#[test]
+fn dmn_snapshot_preserves_top_level_business_knowledge_model_invocable_metadata() {
+    let snapshot = snapshot_dmn_source(&fixture_source(
+        "metadata-only-business-knowledge-model-invocable-20191111.dmn",
+    ))
+    .must("business-knowledge-model invocable source should still produce a document snapshot");
+
+    assert_eq!(snapshot.root.business_knowledge_model_count, 1);
+    assert_eq!(snapshot.root.business_knowledge_models.len(), 1);
+    let business_knowledge_model = &snapshot.root.business_knowledge_models[0];
+    assert_eq!(
+        business_knowledge_model
+            .business_knowledge_model_id
+            .as_deref(),
+        Some("BKM_policy_source")
+    );
+    assert_eq!(
+        business_knowledge_model.variable.as_ref().map(|variable| (
+            variable.variable_id.as_deref(),
+            variable.name.as_deref(),
+            variable.type_ref.as_deref(),
+        )),
+        Some((Some("Variable_policy"), Some("policy"), Some("string")))
+    );
+    assert_eq!(
+        business_knowledge_model
+            .encapsulated_logic
+            .as_ref()
+            .map(|logic| (
+                logic.function_definition_id.as_deref(),
+                logic.kind.as_deref(),
+                logic.parameters.first().map(|parameter| (
+                    parameter.parameter_id.as_deref(),
+                    parameter.name.as_deref(),
+                    parameter.type_ref.as_deref(),
+                )),
+                logic.body.as_ref().map(|body| (
+                    body.expression_id.as_deref(),
+                    body.type_ref.as_deref(),
+                    body.text.as_deref(),
+                )),
+            )),
+        Some((
+            Some("EncapsulatedLogic_policy"),
+            Some("FEEL"),
+            Some((
+                Some("Parameter_applicant"),
+                Some("applicant"),
+                Some("string")
+            )),
+            Some((
+                Some("EncapsulatedLogic_policy_body"),
+                Some("string"),
+                Some("\"external-policy\""),
+            )),
+        ))
+    );
+    assert_eq!(business_knowledge_model.body, None);
 }

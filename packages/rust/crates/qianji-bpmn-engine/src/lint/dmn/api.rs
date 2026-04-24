@@ -1,3 +1,6 @@
+use super::contract_literal::{
+    issue_from_dmn_literal_expression_contract, issue_from_dmn_literal_expression_error,
+};
 use super::contract_shape::issue_from_dmn_contract_error;
 use super::contract_subset::issue_from_dmn_table_error;
 use super::document_dispatch::issue_from_dmn_document_error;
@@ -13,7 +16,14 @@ use crate::lint_api::{LintDomain, LintIssue, LintReport};
 pub(crate) fn lint_dmn_source_impl(source: &DmnSourceFile) -> LintReport {
     let snapshot = snapshot_dmn_source(source).ok();
     match parse_dmn_decisions(source) {
-        Ok(_) => LintReport::ok(LintDomain::Dmn, &source.source_id),
+        Ok(decisions) => {
+            if let Some(issue) =
+                issue_from_dmn_literal_expression_contract(&decisions, snapshot.as_ref())
+            {
+                return LintReport::blocking(LintDomain::Dmn, &source.source_id, vec![issue]);
+            }
+            LintReport::ok(LintDomain::Dmn, &source.source_id)
+        }
         Err(error) => LintReport::blocking(
             LintDomain::Dmn,
             &source.source_id,
@@ -28,6 +38,7 @@ fn issue_from_dmn_error(
     snapshot: Option<&DmnDocumentSnapshot>,
 ) -> LintIssue {
     issue_from_dmn_document_error(error, snapshot)
+        .or_else(|| issue_from_dmn_literal_expression_error(error, snapshot))
         .or_else(|| issue_from_dmn_contract_error(error, snapshot))
         .or_else(|| issue_from_dmn_table_error(error, snapshot))
         .unwrap_or_else(|| unexpected_dmn_issue(source, error))

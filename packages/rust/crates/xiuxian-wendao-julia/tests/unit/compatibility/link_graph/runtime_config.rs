@@ -7,45 +7,34 @@ fn runtime_config_builds_provider_binding_and_artifact_payload() {
         schema_version: Some("v1".to_string()),
         timeout_secs: Some(15),
         service_mode: Some("stream".to_string()),
-        analyzer_config_path: Some(DEFAULT_JULIA_ANALYZER_EXAMPLE_CONFIG_PATH.to_string()),
-        analyzer_strategy: Some("similarity_only".to_string()),
+        search_config_path: Some(DEFAULT_JULIA_SEARCH_EXAMPLE_CONFIG_PATH.to_string()),
         vector_weight: Some(0.2),
         similarity_weight: Some(0.8),
     };
 
-    let descriptor = runtime.analyzer_service_descriptor();
+    let descriptor = runtime.search_service_descriptor();
     let provider_descriptor = runtime.provider_launch_descriptor();
     assert_eq!(provider_descriptor, descriptor);
     assert_eq!(descriptor.service_mode.as_deref(), Some("stream"));
     assert_eq!(
-        descriptor.analyzer_config_path.as_deref(),
-        Some(DEFAULT_JULIA_ANALYZER_EXAMPLE_CONFIG_PATH)
+        descriptor.search_config_path.as_deref(),
+        Some(DEFAULT_JULIA_SEARCH_EXAMPLE_CONFIG_PATH)
     );
-    assert_eq!(
-        descriptor.analyzer_strategy.as_deref(),
-        Some("similarity_only")
-    );
-    assert_eq!(descriptor.vector_weight, Some(0.2));
-    assert_eq!(descriptor.similarity_weight, Some(0.8));
+    assert_eq!(runtime.vector_weight, Some(0.2));
+    assert_eq!(runtime.similarity_weight, Some(0.8));
 
-    let manifest = runtime.analyzer_launch_manifest();
+    let manifest = runtime.search_launch_manifest();
     let launch_spec = runtime.plugin_launch_spec();
     assert_eq!(manifest.launcher_path, launch_spec.launcher_path);
     assert_eq!(manifest.args, launch_spec.args);
-    assert_eq!(manifest.launcher_path, DEFAULT_JULIA_ANALYZER_LAUNCHER_PATH);
+    assert_eq!(manifest.launcher_path, DEFAULT_JULIA_SEARCH_LAUNCHER_PATH);
     assert_eq!(
         manifest.args,
         vec![
-            "--service-mode",
+            "--mode",
             "stream",
-            "--analyzer-config",
-            DEFAULT_JULIA_ANALYZER_EXAMPLE_CONFIG_PATH,
-            "--analyzer-strategy",
-            "similarity_only",
-            "--vector-weight",
-            "0.2",
-            "--similarity-weight",
-            "0.8",
+            "--config",
+            DEFAULT_JULIA_SEARCH_EXAMPLE_CONFIG_PATH,
         ]
     );
 
@@ -68,7 +57,7 @@ fn runtime_config_builds_provider_binding_and_artifact_payload() {
     );
     assert_eq!(
         binding_launch.launcher_path,
-        DEFAULT_JULIA_ANALYZER_LAUNCHER_PATH
+        DEFAULT_JULIA_SEARCH_LAUNCHER_PATH
     );
 
     let artifact = runtime.deployment_artifact();
@@ -104,18 +93,20 @@ link_graph:
       schema_version: "v1"
       timeout_secs: 15
       service_mode: "stream"
-      analyzer_config_path: "{DEFAULT_JULIA_ANALYZER_EXAMPLE_CONFIG_PATH}"
-      analyzer_strategy: "similarity_only"
+      search_config_path: "{DEFAULT_JULIA_SEARCH_EXAMPLE_CONFIG_PATH}"
       vector_weight: 0.2
 "#
     ))?;
 
-    let runtime =
-        LinkGraphJuliaRerankRuntimeConfig::resolve_with_env_lookup(&settings, |name| match name {
-            LINK_GRAPH_JULIA_RERANK_HEALTH_ROUTE_ENV => Some("/healthz".to_string()),
-            LINK_GRAPH_JULIA_RERANK_SIMILARITY_WEIGHT_ENV => Some("0.8".to_string()),
-            _ => None,
-        });
+    let runtime = LinkGraphJuliaRerankRuntimeConfig::resolve_with_env_lookup(&settings, |name| {
+        if name == LINK_GRAPH_JULIA_RERANK_HEALTH_ROUTE_ENV {
+            Some("/healthz".to_string())
+        } else if name == LINK_GRAPH_JULIA_RERANK_SIMILARITY_WEIGHT_ENV {
+            Some("0.8".to_string())
+        } else {
+            None
+        }
+    });
 
     assert_eq!(runtime.base_url.as_deref(), Some("http://127.0.0.1:8088"));
     assert_eq!(runtime.route.as_deref(), Some("/rerank"));
@@ -124,12 +115,8 @@ link_graph:
     assert_eq!(runtime.timeout_secs, Some(15));
     assert_eq!(runtime.service_mode.as_deref(), Some("stream"));
     assert_eq!(
-        runtime.analyzer_config_path.as_deref(),
-        Some(DEFAULT_JULIA_ANALYZER_EXAMPLE_CONFIG_PATH)
-    );
-    assert_eq!(
-        runtime.analyzer_strategy.as_deref(),
-        Some("similarity_only")
+        runtime.search_config_path.as_deref(),
+        Some(DEFAULT_JULIA_SEARCH_EXAMPLE_CONFIG_PATH)
     );
     assert_eq!(runtime.vector_weight, Some(0.2));
     assert_eq!(runtime.similarity_weight, Some(0.8));
@@ -151,29 +138,35 @@ link_graph:
       schema_version: "v1"
       timeout_secs: 15
       service_mode: "stream"
-      analyzer_strategy: "similarity_only"
+      search_config_path: "config/search.toml"
       vector_weight: 0.2
       similarity_weight: 0.8
 "#,
     )?;
 
     let runtime = LinkGraphJuliaRerankRuntimeConfig::resolve_with_env_lookup(&settings, |name| {
-        Some(
-            match name {
-                LINK_GRAPH_JULIA_RERANK_BASE_URL_ENV => "http://127.0.0.1:9999",
-                LINK_GRAPH_JULIA_RERANK_ROUTE_ENV => "/env-rerank",
-                LINK_GRAPH_JULIA_RERANK_HEALTH_ROUTE_ENV => "/env-health",
-                LINK_GRAPH_JULIA_RERANK_SCHEMA_VERSION_ENV => "v2",
-                LINK_GRAPH_JULIA_RERANK_TIMEOUT_SECS_ENV => "77",
-                LINK_GRAPH_JULIA_RERANK_SERVICE_MODE_ENV => "batch",
-                LINK_GRAPH_JULIA_RERANK_ANALYZER_CONFIG_PATH_ENV => "config/env.toml",
-                LINK_GRAPH_JULIA_RERANK_ANALYZER_STRATEGY_ENV => "linear_blend",
-                LINK_GRAPH_JULIA_RERANK_VECTOR_WEIGHT_ENV => "0.7",
-                LINK_GRAPH_JULIA_RERANK_SIMILARITY_WEIGHT_ENV => "0.3",
-                _ => return None,
-            }
-            .to_string(),
-        )
+        let value = if name == LINK_GRAPH_JULIA_RERANK_BASE_URL_ENV {
+            "http://127.0.0.1:9999"
+        } else if name == LINK_GRAPH_JULIA_RERANK_ROUTE_ENV {
+            "/env-rerank"
+        } else if name == LINK_GRAPH_JULIA_RERANK_HEALTH_ROUTE_ENV {
+            "/env-health"
+        } else if name == LINK_GRAPH_JULIA_RERANK_SCHEMA_VERSION_ENV {
+            "v2"
+        } else if name == LINK_GRAPH_JULIA_RERANK_TIMEOUT_SECS_ENV {
+            "77"
+        } else if name == LINK_GRAPH_JULIA_RERANK_SERVICE_MODE_ENV {
+            "batch"
+        } else if name == LINK_GRAPH_JULIA_RERANK_SEARCH_CONFIG_PATH_ENV {
+            "config/env.toml"
+        } else if name == LINK_GRAPH_JULIA_RERANK_VECTOR_WEIGHT_ENV {
+            "0.7"
+        } else if name == LINK_GRAPH_JULIA_RERANK_SIMILARITY_WEIGHT_ENV {
+            "0.3"
+        } else {
+            return None;
+        };
+        Some(value.to_string())
     });
 
     assert_eq!(runtime.base_url.as_deref(), Some("http://127.0.0.1:8088"));
@@ -183,8 +176,8 @@ link_graph:
     assert_eq!(runtime.timeout_secs, Some(15));
     assert_eq!(runtime.service_mode.as_deref(), Some("stream"));
     assert_eq!(
-        runtime.analyzer_strategy.as_deref(),
-        Some("similarity_only")
+        runtime.search_config_path.as_deref(),
+        Some("config/search.toml")
     );
     assert_eq!(runtime.vector_weight, Some(0.2));
     assert_eq!(runtime.similarity_weight, Some(0.8));
@@ -201,8 +194,7 @@ fn rerank_runtime_converts_into_generic_binding() {
         schema_version: Some("v2".to_string()),
         timeout_secs: Some(15),
         service_mode: Some("stream".to_string()),
-        analyzer_config_path: Some("config/analyzer.toml".to_string()),
-        analyzer_strategy: Some("linear_blend".to_string()),
+        search_config_path: Some("config/search.toml".to_string()),
         vector_weight: Some(0.7),
         similarity_weight: Some(0.3),
     });
@@ -224,6 +216,6 @@ fn rerank_runtime_converts_into_generic_binding() {
     let Some(launch) = binding.launch else {
         panic!("launch");
     };
-    assert!(launch.args.iter().any(|value| value == "--service-mode"));
-    assert!(launch.args.iter().any(|value| value == "linear_blend"));
+    assert!(launch.args.iter().any(|value| value == "--mode"));
+    assert!(launch.args.iter().any(|value| value == "--config"));
 }

@@ -327,22 +327,22 @@ pressure proves otherwise.
 4. splitting checkpoints into many coordination keys before measured need
 5. embedding host executor internals inside checkpoint payloads
 
-## 13. Status Update After DB Store SQL Checkpoint Slice
+## 13. Status Update After Local Store Cleanup Slice
 
-The crate now supports one bounded lightweight client-side checkpoint option in
-addition to the existing Valkey path.
+This earlier SQL-checkpoint direction has been superseded. The active Qianji
+BPMN storage contract is now split between DuckDB for local no-server
+workflow-state snapshots and Valkey for HTTP/server checkpoint ownership.
 
 Current implemented status:
 
 1. the workspace storage facade is now `xiuxian-db-store`
 2. the facade keeps the existing heavy `vector-store` surface feature-gated
-3. the facade now also exposes one `sqlite` feature backed by SQLite helpers
-4. `qianji-bpmn-engine` now keeps Valkey as the distributed/default checkpoint
+3. `qianji-bpmn-engine` now keeps Valkey as the distributed/default checkpoint
    path
-5. `qianji-bpmn-engine` additionally exposes feature-gated local SQL
-   checkpoint save/load functions for lightweight client-side persistence
-6. the SQL path keeps the same monotonic sequence-guard behavior as the Valkey
-   path, but intentionally does not introduce lease ownership
+4. `xiuxian-qianji` local no-server workflow-state snapshots now use DuckDB
+   through `xiuxian-db-store`
+5. HTTP/server workflow control intentionally remains Valkey-only and does not
+   expose local embedded database selection
 
 ## 11. Audit Summary
 
@@ -386,6 +386,9 @@ These numbers are local probe evidence rather than portable benchmark gates,
 but they are sufficient to prove the direction of the optimization: remove
 repeated string-key scans and temporary bucket allocation from the BPMN hot
 path before expanding semantics.
-3. store only recovery-relevant runtime state in Valkey
-4. use JSON payloads for v1 because checkpoint writes are off the hottest path
-5. save at semantic recovery boundaries, not on every token move
+
+Storage policy remains:
+
+1. store only recovery-relevant runtime state in Valkey
+2. use JSON payloads for v1 because checkpoint writes are off the hottest path
+3. save at semantic recovery boundaries, not on every token move

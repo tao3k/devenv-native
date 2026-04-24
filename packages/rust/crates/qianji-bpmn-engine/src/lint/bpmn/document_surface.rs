@@ -1,0 +1,342 @@
+use crate::bpmn_model_api::BpmnDocumentSnapshot;
+use crate::bpmn_parse_api::BpmnSourceFile;
+use crate::bpmn_snapshot_api::snapshot_bpmn_source;
+use crate::lint_api::LintIssue;
+use quick_xml::Reader;
+use quick_xml::events::Event;
+use serde_json::{Value, json};
+
+const SNAPSHOT_EVIDENCE_LIMIT: usize = 8;
+
+pub(super) fn deferred_document_surface_issue(source: &BpmnSourceFile) -> Option<LintIssue> {
+    let mut reader = Reader::from_str(&source.contents);
+    reader.config_mut().trim_text(true);
+
+    loop {
+        match reader.read_event() {
+            Ok(Event::Start(event) | Event::Empty(event)) => {
+                let name = event.name();
+                let tag = local_name(name.as_ref())?;
+                if let Some(issue) = issue_for_tag(source, tag) {
+                    return Some(issue);
+                }
+            }
+            Ok(Event::Eof) | Err(_) => return None,
+            Ok(_) => {}
+        }
+    }
+}
+
+fn local_name(raw: &[u8]) -> Option<&str> {
+    let name = std::str::from_utf8(raw).ok()?;
+    Some(name.rsplit_once(':').map_or(name, |(_, local)| local))
+}
+
+fn issue_for_tag(source: &BpmnSourceFile, tag: &str) -> Option<LintIssue> {
+    match tag {
+        "collaboration" | "participant" | "messageFlow" | "conversation" => {
+            Some(collaboration_issue(source, tag))
+        }
+        "laneSet" | "lane" => Some(lane_issue(source, tag)),
+        "dataObject"
+        | "dataObjectReference"
+        | "dataStore"
+        | "dataStoreReference"
+        | "dataInput"
+        | "dataOutput"
+        | "dataInputAssociation"
+        | "dataOutputAssociation"
+        | "ioSpecification" => Some(data_artifact_issue(source, tag)),
+        _ => None,
+    }
+}
+
+fn collaboration_issue(source: &BpmnSourceFile, tag: &str) -> LintIssue {
+    let source_id = &source.source_id;
+    LintIssue::new(
+        "bpmn.unsupported_collaboration_surface",
+        "Collaboration and pool semantics are deferred",
+        format!("Source '{source_id}' contains collaboration-level BPMN element '<{tag}>'."),
+        "The bounded engine executes one process graph at a time and does not yet own pool, participant, message-flow, or conversation semantics.",
+        vec![
+            "Move the executable control flow into one supported `<bpmn:process>` before running it with this engine.".to_string(),
+            "Preserve pool or participant ownership as documentation metadata outside the executable BPMN subset.".to_string(),
+            "If cross-pool messaging is required, remodel the current slice as explicit host-dispatched tasks or wait events until collaboration execution is implemented.".to_string(),
+        ],
+        format!(
+            "Repair BPMN source '{source_id}' by removing executable dependency on `<{tag}>`. Keep one supported `<bpmn:process>` with explicit sequence flows, and preserve pool/participant intent as non-executable documentation or host-level routing metadata."
+        ),
+        document_surface_evidence(source, tag, "collaboration"),
+    )
+}
+
+fn lane_issue(source: &BpmnSourceFile, tag: &str) -> LintIssue {
+    let source_id = &source.source_id;
+    LintIssue::new(
+        "bpmn.unsupported_lane_surface",
+        "Lane semantics are deferred",
+        format!("Source '{source_id}' contains lane-level BPMN element '<{tag}>'."),
+        "The bounded engine does not yet bind lane or lane-set ownership into runtime scheduling, authorization, or host routing semantics.",
+        vec![
+            "Keep tasks and sequence flows inside the supported process graph.".to_string(),
+            "Move lane ownership into task names, documentation, or host metadata if it is needed only for human review.".to_string(),
+            "Do not rely on `<bpmn:laneSet>` or `<bpmn:lane>` to drive execution until lane semantics are implemented.".to_string(),
+        ],
+        format!(
+            "Repair BPMN source '{source_id}' by removing execution dependency on `<{tag}>`. Preserve the same control flow with supported tasks/events/gateways, and carry lane ownership as documentation or host metadata rather than BPMN lane semantics."
+        ),
+        document_surface_evidence(source, tag, "lane"),
+    )
+}
+
+fn data_artifact_issue(source: &BpmnSourceFile, tag: &str) -> LintIssue {
+    let source_id = &source.source_id;
+    LintIssue::new(
+        "bpmn.unsupported_data_surface",
+        "BPMN data-object and IO-specification semantics are deferred",
+        format!("Source '{source_id}' contains BPMN data element '<{tag}>'."),
+        "The bounded engine keeps workflow data in JSON variables and host payloads; it does not yet execute BPMN data objects, data stores, IO specifications, or data associations.",
+        vec![
+            "Represent runtime data through workflow variables, host-work input/output payloads, or DMN decision inputs.".to_string(),
+            "Remove `<bpmn:dataObject*>`, `<bpmn:dataStore*>`, `<bpmn:ioSpecification>`, and data-association dependencies from the executable slice.".to_string(),
+            "If the data artifact is documentation-only, keep that meaning outside the executable BPMN subset.".to_string(),
+        ],
+        format!(
+            "Repair BPMN source '{source_id}' by replacing `<{tag}>` execution semantics with explicit JSON variables, host-work payload fields, or DMN inputs. Preserve workflow intent, but remove BPMN data-object, data-store, IO-specification, or data-association dependencies from this bounded executable slice."
+        ),
+        document_surface_evidence(source, tag, "data"),
+    )
+}
+
+fn document_surface_evidence(source: &BpmnSourceFile, tag: &str, family: &str) -> Value {
+    let Ok(snapshot) = snapshot_bpmn_source(source) else {
+        return json!({
+            "source_id": source.source_id,
+            "element": tag,
+            "deferred_family": family,
+            "snapshot_available": false,
+        });
+    };
+
+    json!({
+        "source_id": source.source_id,
+        "element": tag,
+        "deferred_family": family,
+        "snapshot_available": true,
+        "snapshot": snapshot_family_summary(&snapshot, family),
+    })
+}
+
+fn snapshot_family_summary(snapshot: &BpmnDocumentSnapshot, family: &str) -> Value {
+    match family {
+        "collaboration" => collaboration_snapshot_summary(snapshot),
+        "lane" => lane_snapshot_summary(snapshot),
+        "data" => data_snapshot_summary(snapshot),
+        _ => json!({ "root": root_snapshot_summary(snapshot) }),
+    }
+}
+
+fn root_snapshot_summary(snapshot: &BpmnDocumentSnapshot) -> Value {
+    json!({
+        "definitions_id": snapshot.root.definitions_id,
+        "model_namespace_uri": snapshot.root.model_namespace_uri,
+        "collaboration_count": snapshot.root.collaboration_count,
+        "process_count": snapshot.root.process_count,
+        "data_store_count": snapshot.root.data_store_count,
+    })
+}
+
+fn collaboration_snapshot_summary(snapshot: &BpmnDocumentSnapshot) -> Value {
+    let participant_count = snapshot
+        .collaborations
+        .iter()
+        .map(|collaboration| collaboration.participants.len())
+        .sum::<usize>();
+    let message_flow_count = snapshot
+        .collaborations
+        .iter()
+        .map(|collaboration| collaboration.message_flows.len())
+        .sum::<usize>();
+    let collaborations = snapshot
+        .collaborations
+        .iter()
+        .take(SNAPSHOT_EVIDENCE_LIMIT)
+        .map(|collaboration| {
+            json!({
+                "collaboration_id": collaboration.collaboration_id,
+                "participant_count": collaboration.participants.len(),
+                "message_flow_count": collaboration.message_flows.len(),
+                "participants": collaboration.participants.iter().take(SNAPSHOT_EVIDENCE_LIMIT).map(|participant| {
+                    json!({
+                        "participant_id": participant.participant_id,
+                        "process_ref": participant.process_ref,
+                    })
+                }).collect::<Vec<_>>(),
+                "message_flows": collaboration.message_flows.iter().take(SNAPSHOT_EVIDENCE_LIMIT).map(|flow| {
+                    json!({
+                        "message_flow_id": flow.message_flow_id,
+                        "source_ref": flow.source_ref,
+                        "target_ref": flow.target_ref,
+                        "message_ref": flow.message_ref,
+                    })
+                }).collect::<Vec<_>>(),
+            })
+        })
+        .collect::<Vec<_>>();
+
+    json!({
+        "root": root_snapshot_summary(snapshot),
+        "collaboration_count": snapshot.collaborations.len(),
+        "participant_count": participant_count,
+        "message_flow_count": message_flow_count,
+        "collaborations_truncated": snapshot.collaborations.len() > SNAPSHOT_EVIDENCE_LIMIT,
+        "collaborations": collaborations,
+    })
+}
+
+fn lane_snapshot_summary(snapshot: &BpmnDocumentSnapshot) -> Value {
+    let lane_set_count = snapshot
+        .processes
+        .iter()
+        .map(|process| process.lane_set_count)
+        .sum::<usize>();
+    let lane_count = snapshot
+        .processes
+        .iter()
+        .flat_map(|process| process.lane_sets.iter())
+        .map(|lane_set| lane_set.lanes.len())
+        .sum::<usize>();
+    let lane_sets = snapshot
+        .processes
+        .iter()
+        .flat_map(|process| {
+            process.lane_sets.iter().map(move |lane_set| {
+                json!({
+                    "process_id": process.process_id,
+                    "lane_set_id": lane_set.lane_set_id,
+                    "lane_count": lane_set.lanes.len(),
+                    "lanes": lane_set.lanes.iter().take(SNAPSHOT_EVIDENCE_LIMIT).map(|lane| {
+                        json!({
+                            "lane_id": lane.lane_id,
+                            "name": lane.name,
+                            "flow_node_refs": lane.flow_node_refs,
+                        })
+                    }).collect::<Vec<_>>(),
+                })
+            })
+        })
+        .take(SNAPSHOT_EVIDENCE_LIMIT)
+        .collect::<Vec<_>>();
+
+    json!({
+        "root": root_snapshot_summary(snapshot),
+        "lane_set_count": lane_set_count,
+        "lane_count": lane_count,
+        "lane_sets_truncated": lane_set_count > SNAPSHOT_EVIDENCE_LIMIT,
+        "lane_sets": lane_sets,
+    })
+}
+
+fn data_snapshot_summary(snapshot: &BpmnDocumentSnapshot) -> Value {
+    let data_object_count = snapshot
+        .processes
+        .iter()
+        .map(|process| process.data_object_count)
+        .sum::<usize>();
+    let data_object_reference_count = snapshot
+        .processes
+        .iter()
+        .map(|process| process.data_object_reference_count)
+        .sum::<usize>();
+    let data_store_reference_count = snapshot
+        .processes
+        .iter()
+        .map(|process| process.data_store_reference_count)
+        .sum::<usize>();
+    let io_specification_count = snapshot
+        .processes
+        .iter()
+        .map(|process| process.io_specification_count)
+        .sum::<usize>();
+    let data_input_association_count = snapshot
+        .processes
+        .iter()
+        .map(|process| process.data_input_association_count)
+        .sum::<usize>();
+    let data_output_association_count = snapshot
+        .processes
+        .iter()
+        .map(|process| process.data_output_association_count)
+        .sum::<usize>();
+    let process_data = snapshot
+        .processes
+        .iter()
+        .filter(|process| {
+            process.data_object_count
+                + process.data_object_reference_count
+                + process.data_store_reference_count
+                + process.io_specification_count
+                + process.data_input_association_count
+                + process.data_output_association_count
+                > 0
+        })
+        .take(SNAPSHOT_EVIDENCE_LIMIT)
+        .map(|process| {
+            json!({
+                "process_id": process.process_id,
+                "data_object_count": process.data_object_count,
+                "data_object_reference_count": process.data_object_reference_count,
+                "data_store_reference_count": process.data_store_reference_count,
+                "io_specification_count": process.io_specification_count,
+                "data_input_association_count": process.data_input_association_count,
+                "data_output_association_count": process.data_output_association_count,
+                "data_objects": process.data_objects.iter().take(SNAPSHOT_EVIDENCE_LIMIT).map(|object| {
+                    json!({
+                        "data_object_id": object.data_object_id,
+                        "name": object.name,
+                        "item_subject_ref": object.item_subject_ref,
+                    })
+                }).collect::<Vec<_>>(),
+                "data_object_references": process.data_object_references.iter().take(SNAPSHOT_EVIDENCE_LIMIT).map(|reference| {
+                    json!({
+                        "data_object_reference_id": reference.data_object_reference_id,
+                        "data_object_ref": reference.data_object_ref,
+                    })
+                }).collect::<Vec<_>>(),
+                "data_store_references": process.data_store_references.iter().take(SNAPSHOT_EVIDENCE_LIMIT).map(|reference| {
+                    json!({
+                        "data_store_reference_id": reference.data_store_reference_id,
+                        "data_store_ref": reference.data_store_ref,
+                    })
+                }).collect::<Vec<_>>(),
+                "data_input_associations": process.data_input_associations.iter().take(SNAPSHOT_EVIDENCE_LIMIT).map(|association| {
+                    json!({
+                        "association_id": association.association_id,
+                        "source_refs": association.source_refs,
+                        "target_ref": association.target_ref,
+                    })
+                }).collect::<Vec<_>>(),
+                "data_output_associations": process.data_output_associations.iter().take(SNAPSHOT_EVIDENCE_LIMIT).map(|association| {
+                    json!({
+                        "association_id": association.association_id,
+                        "source_refs": association.source_refs,
+                        "target_ref": association.target_ref,
+                    })
+                }).collect::<Vec<_>>(),
+            })
+        })
+        .collect::<Vec<_>>();
+
+    json!({
+        "root": root_snapshot_summary(snapshot),
+        "data_object_count": data_object_count,
+        "data_object_reference_count": data_object_reference_count,
+        "data_store_count": snapshot.root.data_store_count,
+        "data_store_reference_count": data_store_reference_count,
+        "io_specification_count": io_specification_count,
+        "data_input_association_count": data_input_association_count,
+        "data_output_association_count": data_output_association_count,
+        "process_data_truncated": snapshot.processes.len() > SNAPSHOT_EVIDENCE_LIMIT,
+        "process_data": process_data,
+    })
+}

@@ -11,7 +11,7 @@ use xiuxian_wendao_runtime::{
     transport::negotiate_flight_transport_client_from_bindings,
 };
 
-use super::launch::LinkGraphJuliaAnalyzerLaunchManifest;
+use super::launch::LinkGraphJuliaSearchLaunchManifest;
 use super::runtime::LinkGraphJuliaRerankRuntimeConfig;
 use super::selectors::julia_deployment_artifact_selector;
 
@@ -35,8 +35,8 @@ pub struct LinkGraphJuliaDeploymentArtifact {
     pub schema_version: Option<String>,
     /// Optional request timeout in seconds.
     pub timeout_secs: Option<u64>,
-    /// Resolved analyzer launch manifest.
-    pub launch: LinkGraphJuliaAnalyzerLaunchManifest,
+    /// Resolved search-service launch manifest.
+    pub launch: LinkGraphJuliaSearchLaunchManifest,
 }
 
 impl LinkGraphJuliaDeploymentArtifact {

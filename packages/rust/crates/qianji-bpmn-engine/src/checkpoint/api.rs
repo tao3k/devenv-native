@@ -17,30 +17,6 @@ pub(crate) fn lease_key_impl(instance_id: &str) -> String {
     super::keys::lease_key_impl(instance_id)
 }
 
-#[cfg(feature = "sqlite")]
-pub(crate) fn load_checkpoint_sql_impl(
-    instance_id: &str,
-    database_path: &std::path::Path,
-) -> Result<Option<BpmnCheckpointEnvelope>> {
-    super::sql::load_checkpoint_sql_impl(instance_id, database_path)
-}
-
-#[cfg(feature = "sqlite")]
-pub(crate) fn save_checkpoint_sql_impl(
-    checkpoint: &BpmnCheckpointEnvelope,
-    database_path: &std::path::Path,
-) -> Result<()> {
-    super::sql::save_checkpoint_sql_impl(checkpoint, database_path)
-}
-
-#[cfg(feature = "sqlite")]
-pub(crate) fn delete_checkpoint_sql_impl(
-    instance_id: &str,
-    database_path: &std::path::Path,
-) -> Result<()> {
-    super::sql::delete_checkpoint_sql_impl(instance_id, database_path)
-}
-
 #[cfg(feature = "valkey")]
 pub(crate) async fn load_checkpoint_impl(
     instance_id: &str,

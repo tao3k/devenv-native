@@ -1,5 +1,3 @@
-#[cfg(feature = "sqlite")]
-use super::pathing::resolve_path_against_current_dir;
 use crate::bpmn::backend::QianjiBpmnCheckpointStore;
 use crate::bpmn::control::{
     QianjiBpmnWorkflowCheckpointBackend, QianjiBpmnWorkflowControlError,
@@ -8,6 +6,11 @@ use crate::bpmn::control::{
 };
 use crate::runtime_config::{
     resolve_qianji_runtime_checkpoint_config, resolve_qianji_runtime_checkpoint_config_with_env,
+};
+#[cfg(feature = "duckdb")]
+use crate::runtime_config::{
+    resolve_qianji_runtime_workflow_state_config,
+    resolve_qianji_runtime_workflow_state_config_with_env,
 };
 use qianji_bpmn_engine::BpmnCheckpointEnvelope;
 use std::io;
@@ -32,10 +35,21 @@ pub(crate) fn resolve_checkpoint_store(
                 QianjiBpmnCheckpointStore::from_runtime_checkpoint_config(&runtime),
             ))
         }
-        #[cfg(feature = "sqlite")]
-        Some(QianjiBpmnWorkflowCheckpointBackend::Sqlite(path)) => Ok(Some(
-            QianjiBpmnCheckpointStore::sqlite(resolve_path_against_current_dir(path.as_path())?),
-        )),
+        #[cfg(feature = "duckdb")]
+        Some(QianjiBpmnWorkflowCheckpointBackend::LocalDuckDb) => {
+            let runtime = match service.runtime_env.as_ref() {
+                Some(runtime_env) => resolve_qianji_runtime_workflow_state_config_with_env(runtime_env),
+                None => resolve_qianji_runtime_workflow_state_config(),
+            }
+            .map_err(|error| {
+                io::Error::other(format!(
+                    "failed to resolve Qianji workflow-state runtime config for BPMN workflow control: {error}"
+                ))
+            })?;
+            Ok(Some(QianjiBpmnCheckpointStore::duckdb(
+                runtime.local_duckdb_path,
+            )))
+        }
     }
 }
 

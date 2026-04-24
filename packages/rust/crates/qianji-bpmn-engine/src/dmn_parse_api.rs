@@ -4,6 +4,8 @@ mod parser;
 use crate::dmn_model_api::{DmnDecisionDefinition, DmnSourceFile};
 use crate::error::Result;
 
+pub(crate) use parser::parse_literal;
+
 /// Parses one bounded DMN source into one or more decision definitions.
 ///
 /// # Errors

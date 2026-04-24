@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions
+  id="Definitions_local_required_input_runtime"
+  name="Local Required Input Runtime"
+  namespace="https://example.com/dmn/local-required-input-runtime"
+  xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/">
+  <inputData id="InputData_applicant" name="applicant_input">
+    <variable id="Variable_applicant" name="applicant" typeRef="Any" />
+  </inputData>
+  <decision id="Decision_alias_required_input" name="Alias Required Input Decision">
+    <informationRequirement>
+      <requiredInput href="#InputData_applicant" />
+    </informationRequirement>
+    <decisionTable id="DecisionTable_alias_required_input">
+      <input id="InputClause_age">
+        <inputExpression id="InputExpression_age" typeRef="number">
+          <text>applicant.age</text>
+        </inputExpression>
+      </input>
+      <output id="OutputClause_approval" name="approval" typeRef="string" />
+      <rule id="DecisionRule_alias_required_input">
+        <inputEntry id="UnaryTests_alias_required_input">
+          <text>&gt;= 18</text>
+        </inputEntry>
+        <outputEntry id="LiteralExpression_alias_required_input">
+          <text>"approve"</text>
+        </outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+</definitions>

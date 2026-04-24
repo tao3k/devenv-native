@@ -2,6 +2,8 @@ use crate::bpmn::BpmnAdapterError;
 use qianji_bpmn_engine::BpmnEngineError;
 use std::io;
 use std::path::PathBuf;
+#[cfg(feature = "duckdb")]
+use xiuxian_db_store::qianji_bpmn::QianjiBpmnDataStoreError;
 
 /// Error returned by the host-owned BPMN orchestration facade.
 #[derive(Debug, thiserror::Error)]
@@ -9,6 +11,10 @@ pub enum BpmnOrchestrationError {
     /// Returned when the BPMN engine rejects bundle, checkpoint, or runtime state.
     #[error("BPMN engine error: {0}")]
     Engine(#[from] BpmnEngineError),
+    /// Returned when local `DuckDB` workflow-state storage fails.
+    #[cfg(feature = "duckdb")]
+    #[error("BPMN DuckDB workflow-state error: {0}")]
+    DuckDbWorkflowState(#[from] QianjiBpmnDataStoreError),
     /// Returned when the xiuxian BPMN adapter cannot complete host work.
     #[error("BPMN adapter error: {0}")]
     Adapter(#[from] BpmnAdapterError),

@@ -34,7 +34,12 @@ julia = [
 ]
 builtin-plugins = ["dep:xiuxian-wendao-builtin"]
 runtime-transport = ["xiuxian-wendao-runtime/transport"]
-vector-store = ["dep:arrow", "dep:reqwest", "dep:xiuxian-db-store"]
+vector-store = [
+  "dep:arrow",
+  "dep:reqwest",
+  "dep:xiuxian-db-store",
+  "xiuxian-db-store/vector-store",
+]
 search-runtime = [
   "dep:graphql-parser",
   "dep:xiuxian-ast",
@@ -54,7 +59,7 @@ studio = [
 ]
 performance = ["xiuxian-testing/performance"]
 performance-stress = ["performance"]
-duckdb = ["dep:duckdb"]
+duckdb = ["dep:duckdb", "dep:xiuxian-db-store", "xiuxian-db-store/duckdb"]
 
 [[bin]]
 name = "wendao"
@@ -113,7 +118,7 @@ thiserror = { workspace = true }
 anyhow = { workspace = true }
 
 xiuxian-logging = { path = "../xiuxian-logging" }
-xiuxian-db-store = { path = "../xiuxian-db-store", optional = true }
+xiuxian-db-store = { path = "../xiuxian-db-store", default-features = false, optional = true }
 xiuxian-io = { path = "../xiuxian-io" }
 xiuxian-git-repo = { path = "../xiuxian-git-repo" }
 xiuxian-llm = { path = "../xiuxian-llm" }

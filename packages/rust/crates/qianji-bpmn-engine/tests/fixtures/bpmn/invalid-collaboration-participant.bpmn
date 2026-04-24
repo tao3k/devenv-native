@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  id="pkg_invalid_collaboration">
+  <bpmn:process id="order_flow" isExecutable="true">
+    <bpmn:startEvent id="start" />
+    <bpmn:endEvent id="end" />
+    <bpmn:sequenceFlow id="flow_1" sourceRef="start" targetRef="end" />
+  </bpmn:process>
+  <bpmn:collaboration id="collaboration_order">
+    <bpmn:participant id="participant_customer" processRef="order_flow" />
+  </bpmn:collaboration>
+</bpmn:definitions>

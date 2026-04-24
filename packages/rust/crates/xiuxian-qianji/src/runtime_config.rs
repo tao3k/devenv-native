@@ -18,6 +18,7 @@
 //!    - `QIANJI_MEMORY_PROMOTION_GRAPH_DIMENSION`
 //!    - `QIANJI_MEMORY_PROMOTION_PERSIST`
 //!    - `QIANJI_MEMORY_PROMOTION_PERSIST_BEST_EFFORT`
+//!    - `QIANJI_WORKFLOW_STATE_DUCKDB_PATH`
 
 #[path = "runtime_config_api.rs"]
 mod api;
@@ -33,13 +34,16 @@ mod toml_config;
 
 pub use api::{
     QianjiRuntimeCheckpointConfig, QianjiRuntimeEnv, QianjiRuntimeLlmConfig,
-    QianjiRuntimeServerConfig, QianjiRuntimeWendaoIngesterConfig,
+    QianjiRuntimeServerConfig, QianjiRuntimeWendaoIngesterConfig, QianjiRuntimeWorkflowStateConfig,
     resolve_qianji_runtime_checkpoint_config, resolve_qianji_runtime_checkpoint_config_with_env,
     resolve_qianji_runtime_llm_config, resolve_qianji_runtime_llm_config_with_env,
     resolve_qianji_runtime_server_config, resolve_qianji_runtime_server_config_with_env,
     resolve_qianji_runtime_wendao_ingester_config,
     resolve_qianji_runtime_wendao_ingester_config_with_env,
+    resolve_qianji_runtime_workflow_state_config,
+    resolve_qianji_runtime_workflow_state_config_with_env,
 };
+#[cfg(feature = "qianji-full")]
 pub(crate) use api::{
     resolve_process_env_path, resolve_process_project_root, resolve_process_project_root_from_cwd,
 };

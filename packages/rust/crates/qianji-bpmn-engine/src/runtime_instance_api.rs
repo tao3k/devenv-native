@@ -196,33 +196,41 @@ pub struct CallActivityFrame {
     /// Suspended parent node runtime state.
     pub node_states: Vec<NodeRuntimeState>,
     /// Suspended parent active runtime tokens.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub active_tokens: Vec<TokenRecord>,
     /// Suspended parent join progress records.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub joins: Vec<JoinRuntimeState>,
     /// Suspended parent standard-loop progress records.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub standard_loops: Vec<StandardLoopState>,
     /// Suspended parent sequential multi-instance owner records.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub sequential_multi_instances: Vec<SequentialMultiInstanceState>,
     /// Suspended parent parallel multi-instance owner records.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub parallel_multi_instances: Vec<ParallelMultiInstanceState>,
     /// Suspended parent waiting registrations.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub waits: Vec<WaitRegistration>,
     /// Suspended parent event-competition state.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub event_competition: Option<EventCompetitionState>,
     /// Suspended parent pending host work references.
-    #[serde(default, deserialize_with = "deserialize_pending_host_work_collection")]
+    #[serde(
+        default,
+        deserialize_with = "deserialize_pending_host_work_collection",
+        skip_serializing_if = "Vec::is_empty"
+    )]
     pub pending_host_work: Vec<PendingHostWork>,
     /// Suspended parent suspend reason.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub suspend_reason: Option<SuspendReason>,
     /// Optional variable snapshot restored when a transaction shell cancels.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub transaction_cancel_variables: Option<serde_json::Value>,
     /// Optional bounded compensation queue state for one transaction shell.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub transaction_compensation: Option<TransactionCompensationState>,
 }
 
@@ -241,7 +249,7 @@ pub struct BpmnInstanceState {
     #[serde(default)]
     pub process_index: u32,
     /// Suspended parent frames while bounded call activities run.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub call_stack: Vec<CallActivityFrame>,
     /// Monotonic checkpoint sequence.
     pub sequence: u64,
@@ -258,34 +266,42 @@ pub struct BpmnInstanceState {
     /// Per-node runtime state.
     pub node_states: Vec<NodeRuntimeState>,
     /// Active runtime tokens.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub active_tokens: Vec<TokenRecord>,
     /// Ordered runtime execution trace.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub trace: Vec<BpmnExecutionTraceEvent>,
     /// Join progress records.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub joins: Vec<JoinRuntimeState>,
     /// Active standard-loop progress records.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub standard_loops: Vec<StandardLoopState>,
     /// Active sequential multi-instance owner records.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub sequential_multi_instances: Vec<SequentialMultiInstanceState>,
     /// Active parallel multi-instance owner records.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub parallel_multi_instances: Vec<ParallelMultiInstanceState>,
     /// Waiting registrations.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub waits: Vec<WaitRegistration>,
     /// Active event-competition state for multi-wait ownership.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub event_competition: Option<EventCompetitionState>,
     /// Detached compensation handlers that continue after a transaction end
     /// event resumes its parent scope.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub detached_transaction_compensation: Option<DetachedTransactionCompensationState>,
     /// Pending host work references.
-    #[serde(default, deserialize_with = "deserialize_pending_host_work_collection")]
+    #[serde(
+        default,
+        deserialize_with = "deserialize_pending_host_work_collection",
+        skip_serializing_if = "Vec::is_empty"
+    )]
     pub pending_host_work: Vec<PendingHostWork>,
     /// Optional suspend reason.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub suspend_reason: Option<SuspendReason>,
     /// Last update timestamp in Unix milliseconds.
     pub updated_at_ms: u64,

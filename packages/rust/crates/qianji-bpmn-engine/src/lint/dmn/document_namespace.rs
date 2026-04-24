@@ -130,6 +130,7 @@ pub(super) fn unsupported_dmn_import_issue(
             root_context(snapshot)
         ),
         vec![
+            "Use the reported `document_root.imports` metadata to identify the external DMN namespace, alias, locationURI, and importType before attempting a repair.".to_string(),
             "If the file must become executable in this slice, replace the external dependency only with an explicit and lossless local definition.".to_string(),
             "If the model intentionally depends on another DMN document, preserve the `<import>` and keep the file non-executable in this slice.".to_string(),
             "Do not simply delete the `<import>` element to force parsing when business logic still depends on external decisions or item definitions.".to_string(),

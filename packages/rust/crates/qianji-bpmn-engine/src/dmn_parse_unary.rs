@@ -80,7 +80,7 @@ pub(super) fn parse_input_entry(source_id: &str, raw: &str) -> Result<DmnInputEn
     })
 }
 
-pub(super) fn parse_literal(source_id: &str, raw: &str) -> Result<serde_json::Value> {
+pub(crate) fn parse_literal(source_id: &str, raw: &str) -> Result<serde_json::Value> {
     let trimmed = raw.trim();
     if trimmed.is_empty() {
         return Ok(serde_json::Value::Null);

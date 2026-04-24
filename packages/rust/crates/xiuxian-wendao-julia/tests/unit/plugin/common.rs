@@ -11,9 +11,6 @@ use serde::Serialize;
 use serde_json::Value;
 use xiuxian_wendao_core::repo_intelligence::{RegisteredRepository, RepositoryPluginConfig};
 
-use crate::compatibility::link_graph::{
-    DEFAULT_JULIA_ANALYZER_PACKAGE_DIR, DEFAULT_JULIA_ARROW_PACKAGE_DIR,
-};
 use crate::integration_support::{
     JuliaExampleServiceGuard, probe_wendaosearch_modelica_parser_summary_route_for_tests,
     spawn_wendaosearch_julia_parser_summary_service,
@@ -92,13 +89,13 @@ impl ChildGuard {
         if let Some(_status) = self
             .child
             .try_wait()
-            .unwrap_or_else(|error| panic!("poll WendaoArrow child: {error}"))
+            .unwrap_or_else(|error| panic!("poll Julia child: {error}"))
         {
             return;
         }
         self.child
             .kill()
-            .unwrap_or_else(|error| panic!("kill WendaoArrow child: {error}"));
+            .unwrap_or_else(|error| panic!("kill Julia child: {error}"));
         let _ = self.child.wait();
     }
 }
@@ -166,46 +163,26 @@ pub(crate) fn repo_root() -> PathBuf {
         .unwrap_or_else(|error| panic!("resolve repo root: {error}"))
 }
 
-fn linked_package_dir(relative_path: &str, label: &str) -> Option<PathBuf> {
-    let candidate = repo_root().join(relative_path);
-    if !candidate.is_dir() {
-        return None;
-    }
-
-    Some(
-        candidate
-            .canonicalize()
-            .unwrap_or_else(|error| panic!("resolve {label} package dir: {error}")),
-    )
-}
-
-pub(crate) fn linked_wendaoarrow_package_dir() -> Option<PathBuf> {
-    linked_package_dir(DEFAULT_JULIA_ARROW_PACKAGE_DIR, "WendaoArrow")
-}
-
-pub(crate) fn linked_wendaoanalyzer_package_dir() -> Option<PathBuf> {
-    linked_package_dir(DEFAULT_JULIA_ANALYZER_PACKAGE_DIR, "WendaoAnalyzer")
-}
-
-pub(crate) fn wendaoarrow_package_dir() -> PathBuf {
-    repo_root()
-        .join(DEFAULT_JULIA_ARROW_PACKAGE_DIR)
-        .canonicalize()
-        .unwrap_or_else(|error| panic!("resolve WendaoArrow package dir: {error}"))
-}
-
-pub(crate) fn wendaoanalyzer_package_dir() -> PathBuf {
-    repo_root()
-        .join(DEFAULT_JULIA_ANALYZER_PACKAGE_DIR)
-        .canonicalize()
-        .unwrap_or_else(|error| panic!("resolve WendaoAnalyzer package dir: {error}"))
-}
-
 pub(crate) fn wendaosearch_package_dir() -> PathBuf {
     repo_root()
         .join(".data/WendaoSearch.jl")
         .canonicalize()
         .unwrap_or_else(|error| panic!("resolve WendaoSearch package dir: {error}"))
+}
+
+pub(crate) fn wendaosearch_julia_project() -> PathBuf {
+    let Some(configured) = std::env::var_os("WENDAOSEARCH_JULIA_PROJECT") else {
+        return wendaosearch_package_dir();
+    };
+    let candidate = PathBuf::from(configured);
+    let candidate = if candidate.is_absolute() {
+        candidate
+    } else {
+        repo_root().join(candidate)
+    };
+    candidate
+        .canonicalize()
+        .unwrap_or_else(|error| panic!("resolve WendaoSearch Julia project dir: {error}"))
 }
 
 pub(crate) fn wendaosearch_config(name: &str) -> PathBuf {

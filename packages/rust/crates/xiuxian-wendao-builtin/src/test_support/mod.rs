@@ -46,19 +46,12 @@ pub use graph_structural::{
     linked_builtin_spawn_wendaosearch_solver_demo_structural_rerank_service,
 };
 pub use julia::{
-    linked_builtin_julia_analyzer_example_config_path, linked_builtin_julia_analyzer_launcher_path,
     linked_builtin_julia_deployment_artifact_selector,
     linked_builtin_julia_rerank_provider_binding_with_endpoint,
-    linked_builtin_julia_rerank_provider_selector,
+    linked_builtin_julia_rerank_provider_selector, linked_builtin_julia_search_example_config_path,
+    linked_builtin_julia_search_launcher_path,
 };
 pub use planned_search::{
-    LinkedBuiltinWendaoArrowScoreRow,
     linked_builtin_julia_planned_search_openai_runtime_config_toml,
-    linked_builtin_julia_planned_search_similarity_only_runtime_config_toml,
     linked_builtin_julia_planned_search_vector_store_runtime_config_toml,
-    linked_builtin_spawn_wendaoanalyzer_similarity_only_service,
-    linked_builtin_spawn_wendaoanalyzer_stream_linear_blend_service,
-    linked_builtin_spawn_wendaoarrow_custom_scoring_service,
-    linked_builtin_spawn_wendaoarrow_stream_metadata_service,
-    linked_builtin_spawn_wendaoarrow_stream_scoring_service,
 };

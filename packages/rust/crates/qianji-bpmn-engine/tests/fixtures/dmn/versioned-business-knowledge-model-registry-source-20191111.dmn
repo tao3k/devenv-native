@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions
+  id="Definitions_business_knowledge_model_registry_source"
+  name="Business Knowledge Model Registry Source"
+  namespace="https://example.com/dmn/business-knowledge-model-registry-source"
+  xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/">
+  <businessKnowledgeModel id="BKM_policy_source" name="Policy Source">
+    <variable id="Variable_policy" name="policy" typeRef="string" />
+    <encapsulatedLogic id="EncapsulatedLogic_policy" kind="FEEL">
+      <formalParameter id="Parameter_applicant" name="applicant" typeRef="string" />
+      <literalExpression id="EncapsulatedLogic_policy_body" typeRef="string">
+        <text>"external-policy"</text>
+      </literalExpression>
+    </encapsulatedLogic>
+  </businessKnowledgeModel>
+  <decision id="Decision_policy_gate" name="Policy Gate">
+    <decisionTable id="DecisionTable_policy_gate">
+      <input id="InputClause_tier">
+        <inputExpression id="InputExpression_tier" typeRef="string">
+          <text>tier</text>
+        </inputExpression>
+      </input>
+      <output id="OutputClause_approval" name="approval" typeRef="string" />
+      <rule id="DecisionRule_policy_gate">
+        <inputEntry id="UnaryTests_policy_gate">
+          <text>"gold"</text>
+        </inputEntry>
+        <outputEntry id="LiteralExpression_policy_gate">
+          <text>"approve"</text>
+        </outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+</definitions>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions
+  id="Definitions_DecisionServiceReferences"
+  name="Decision Service References"
+  namespace="http://www.omg.org/spec/DMN/20180521/decision-service-references/"
+  xmlns="http://www.omg.org/spec/DMN/20180521/MODEL/">
+  <decisionService id="DecisionService_credit" name="Credit Decision Service">
+    <outputDecision href="#Decision_approval" />
+    <encapsulatedDecision href="#Decision_risk_score" />
+    <inputDecision href="#Decision_prior_risk" />
+    <inputData href="#InputData_application" />
+  </decisionService>
+</definitions>

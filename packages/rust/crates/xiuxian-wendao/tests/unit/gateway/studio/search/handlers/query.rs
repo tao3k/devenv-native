@@ -161,7 +161,10 @@ fn repo_search_parallelism_reuses_search_plane_read_budget() {
         repo_search_parallelism(&studio.search_plane, usize::MAX),
         expected_budget
     );
-    assert_eq!(repo_search_parallelism(&studio.search_plane, 2), 2);
+    assert_eq!(
+        repo_search_parallelism(&studio.search_plane, 2),
+        expected_budget.min(2)
+    );
     assert_eq!(repo_search_parallelism(&studio.search_plane, 0), 1);
 }
 

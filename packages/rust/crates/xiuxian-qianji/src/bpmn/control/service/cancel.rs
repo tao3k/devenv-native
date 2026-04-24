@@ -22,8 +22,8 @@ pub(crate) async fn cancel_workflow(
             cancel_runtime_valkey_checkpoint(service, &checkpoint_store, &request.instance_id)
                 .await?;
         }
-        #[cfg(feature = "sqlite")]
-        QianjiBpmnWorkflowCheckpointBackend::Sqlite(_) => {
+        #[cfg(feature = "duckdb")]
+        QianjiBpmnWorkflowCheckpointBackend::LocalDuckDb => {
             checkpoint_store.delete(&request.instance_id).await?;
         }
     }

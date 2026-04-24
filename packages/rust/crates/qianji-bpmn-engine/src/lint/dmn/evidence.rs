@@ -1,8 +1,9 @@
 use crate::dmn_model_api::{
     DmnAssociationSnapshot, DmnBusinessKnowledgeModelSnapshot, DmnDecisionServiceSnapshot,
     DmnDiagramSnapshot, DmnDmndiSnapshot, DmnDocumentSnapshot, DmnElementCollectionSnapshot,
-    DmnGroupSnapshot, DmnInputDataSnapshot, DmnItemDefinitionSnapshot, DmnKnowledgeSourceSnapshot,
-    DmnOrganizationUnitSnapshot, DmnPerformanceIndicatorSnapshot, DmnTextAnnotationSnapshot,
+    DmnGroupSnapshot, DmnImportSnapshot, DmnInputDataSnapshot, DmnItemDefinitionSnapshot,
+    DmnKnowledgeSourceSnapshot, DmnOrganizationUnitSnapshot, DmnPerformanceIndicatorSnapshot,
+    DmnTextAnnotationSnapshot,
 };
 use serde_json::{Value, json};
 
@@ -107,6 +108,11 @@ fn push_root_count(parts: &mut Vec<String>, label: &str, count: usize) {
 fn push_root_metadata(root: &crate::dmn_model_api::DmnRootSnapshot, parts: &mut Vec<String>) {
     push_metadata_summary(
         parts,
+        "import metadata",
+        root.imports.iter().map(summarize_import),
+    );
+    push_metadata_summary(
+        parts,
         "itemDefinition metadata",
         root.item_definitions.iter().map(summarize_item_definition),
     );
@@ -186,6 +192,27 @@ where
     let metadata = summaries.take(3).collect::<Vec<_>>().join("; ");
     if !metadata.is_empty() {
         parts.push(format!("{label} [{metadata}]"));
+    }
+}
+
+fn summarize_import(import: &DmnImportSnapshot) -> String {
+    let mut parts = Vec::new();
+    if let Some(name) = import.name.as_deref() {
+        parts.push(format!("name '{name}'"));
+    }
+    if let Some(namespace) = import.namespace.as_deref() {
+        parts.push(format!("namespace '{namespace}'"));
+    }
+    if let Some(location_uri) = import.location_uri.as_deref() {
+        parts.push(format!("locationURI '{location_uri}'"));
+    }
+    if let Some(import_type) = import.import_type.as_deref() {
+        parts.push(format!("importType '{import_type}'"));
+    }
+    if parts.is_empty() {
+        "<import>".to_string()
+    } else {
+        format!("<import> with {}", parts.join(", "))
     }
 }
 
@@ -294,10 +321,44 @@ fn summarize_decision_service(decision_service: &DmnDecisionServiceSnapshot) -> 
     if let Some(name) = decision_service.name.as_deref() {
         parts.push(format!("name '{name}'"));
     }
+    push_decision_service_reference_summary(
+        &mut parts,
+        "outputDecision",
+        &decision_service.output_decisions,
+    );
+    push_decision_service_reference_summary(
+        &mut parts,
+        "encapsulatedDecision",
+        &decision_service.encapsulated_decisions,
+    );
+    push_decision_service_reference_summary(
+        &mut parts,
+        "inputDecision",
+        &decision_service.input_decisions,
+    );
+    push_decision_service_reference_summary(&mut parts, "inputData", &decision_service.input_data);
     if parts.is_empty() {
         "<decisionService>".to_string()
     } else {
         format!("<decisionService> with {}", parts.join(", "))
+    }
+}
+
+fn push_decision_service_reference_summary(
+    parts: &mut Vec<String>,
+    label: &str,
+    references: &[crate::dmn_model_api::DmnDecisionServiceReferenceSnapshot],
+) {
+    match references {
+        [] => {}
+        [reference] => {
+            if let Some(href) = reference.href.as_deref() {
+                parts.push(format!("{label} href '{href}'"));
+            } else {
+                parts.push(format!("{label} reference"));
+            }
+        }
+        _ => parts.push(format!("{label} {} references", references.len())),
     }
 }
 

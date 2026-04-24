@@ -6,13 +6,13 @@ pub(super) use crate::{
     QianjiBpmnWorkflowControlError, QianjiBpmnWorkflowControlService,
     QianjiBpmnWorkflowStartRequest, SchedulerAgentIdentity,
 };
-#[cfg(feature = "sqlite")]
+#[cfg(feature = "duckdb")]
 pub(super) use crate::{
     QianjiBpmnWorkflowEventPollRequest, QianjiBpmnWorkflowResumeRequest,
     QianjiBpmnWorkflowTaskCompleteRequest,
 };
 pub(super) use qianji_bpmn_engine::BpmnAdvanceOutcome;
-#[cfg(feature = "sqlite")]
+#[cfg(feature = "duckdb")]
 pub(super) use qianji_bpmn_engine::EventPollOutcome;
 pub(super) use serde_json::json;
 use std::fs;
@@ -35,7 +35,7 @@ pub(super) fn write_linear_bundle(temp_dir: &TempDir) -> PathBuf {
     bpmn_path
 }
 
-#[cfg(feature = "sqlite")]
+#[cfg(feature = "duckdb")]
 pub(super) fn write_service_task_bundle(temp_dir: &TempDir) -> PathBuf {
     let bpmn_path = temp_dir.path().join("service-task.bpmn");
     write_file(

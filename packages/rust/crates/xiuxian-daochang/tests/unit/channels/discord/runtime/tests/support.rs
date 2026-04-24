@@ -12,7 +12,7 @@ pub(super) use xiuxian_daochang::test_support::{
 };
 use xiuxian_daochang::{
     Agent, AgentConfig, Channel, ChannelMessage, JobManager, JobManagerConfig,
-    RecipientCommandAdminUsersMutation, RecipientMentionPolicyStatus, TurnRunner,
+    RecipientCommandAdminUsersMutation, RecipientMentionPolicyStatus, SessionStore, TurnRunner,
 };
 
 #[derive(Default)]
@@ -286,7 +286,14 @@ pub(super) async fn build_agent_with_inference_url(inference_url: &str) -> Resul
         max_tool_rounds: 1,
         ..AgentConfig::default()
     };
-    Ok(Arc::new(Agent::from_config(config).await?))
+    Ok(Arc::new(
+        Agent::from_config_with_session_backends_for_test(
+            config,
+            SessionStore::new_in_memory_for_test(),
+            None,
+        )
+        .await?,
+    ))
 }
 
 pub(super) fn inbound_for_session(content: &str, session_key: &str) -> ChannelMessage {

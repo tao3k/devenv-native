@@ -55,7 +55,10 @@ fn repo_search_parallelism_reuses_repo_read_budget() {
         service.repo_search_parallelism(usize::MAX),
         service.repo_search_read_concurrency_limit
     );
-    assert_eq!(service.repo_search_parallelism(2), 2);
+    assert_eq!(
+        service.repo_search_parallelism(2),
+        service.repo_search_read_concurrency_limit.min(2)
+    );
     assert_eq!(service.repo_search_parallelism(0), 1);
 }
 

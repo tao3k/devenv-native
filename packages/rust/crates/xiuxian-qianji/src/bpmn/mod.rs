@@ -57,6 +57,12 @@ pub use api::{
     load_bpmn_package_from_files_with_options, qianji_bpmn_workflow_router,
     resolve_pending_host_work, resolve_waiting_external_event,
 };
+#[cfg(feature = "duckdb")]
+pub use api::{
+    DEFAULT_QIANJI_BPMN_DUCKDB_THREADS, QIANJI_BPMN_WORKFLOW_STATE_RECORD_KEY,
+    QianjiBpmnDataRecord, QianjiBpmnDataStoreError, QianjiBpmnDuckDbDataStore,
+    QianjiBpmnDuckDbDataStoreConfig,
+};
 
 #[cfg(test)]
 #[path = "../../tests/unit/bpmn/mod.rs"]

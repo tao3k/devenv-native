@@ -4,7 +4,7 @@ pub(crate) use super::run::handle_bpmn_command;
 pub(crate) use super::run::{
     resolve_bpmn_checkpoint_store_with_env, run_bpmn_command, run_bpmn_run_command_with_runtime_env,
 };
-#[cfg(all(test, feature = "sqlite"))]
+#[cfg(all(test, feature = "duckdb"))]
 pub(crate) use super::types::{
     BpmnCancelCliCommand, BpmnEventPollCliCommand, BpmnResumeCliCommand, BpmnStatusCliCommand,
     BpmnTaskCompleteCliCommand,

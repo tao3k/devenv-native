@@ -17,43 +17,34 @@ fn selectors_keep_stable_julia_ids() {
 
 #[test]
 fn launch_manifest_round_trips_plugin_launch_spec() {
-    let launch = LinkGraphJuliaAnalyzerLaunchManifest {
-        launcher_path: DEFAULT_JULIA_ANALYZER_LAUNCHER_PATH.to_string(),
-        args: vec!["--service-mode".to_string(), "stream".to_string()],
+    let launch = LinkGraphJuliaSearchLaunchManifest {
+        launcher_path: DEFAULT_JULIA_SEARCH_LAUNCHER_PATH.to_string(),
+        args: vec!["--mode".to_string(), "stream".to_string()],
     };
 
     let spec: PluginLaunchSpec = launch.clone().into();
-    let roundtrip = LinkGraphJuliaAnalyzerLaunchManifest::from(spec);
+    let roundtrip = LinkGraphJuliaSearchLaunchManifest::from(spec);
 
     assert_eq!(roundtrip, launch);
 }
 
 #[test]
 fn service_descriptor_builds_plugin_launch_spec() {
-    let descriptor = LinkGraphJuliaAnalyzerServiceDescriptor {
+    let descriptor = LinkGraphJuliaSearchServiceDescriptor {
         service_mode: Some("stream".to_string()),
-        analyzer_config_path: Some(DEFAULT_JULIA_ANALYZER_EXAMPLE_CONFIG_PATH.to_string()),
-        analyzer_strategy: Some("similarity_only".to_string()),
-        vector_weight: Some(0.2),
-        similarity_weight: Some(0.8),
+        search_config_path: Some(DEFAULT_JULIA_SEARCH_EXAMPLE_CONFIG_PATH.to_string()),
     };
 
-    let spec = descriptor.plugin_launch_spec(DEFAULT_JULIA_ANALYZER_LAUNCHER_PATH);
+    let spec = descriptor.plugin_launch_spec(DEFAULT_JULIA_SEARCH_LAUNCHER_PATH);
 
-    assert_eq!(spec.launcher_path, DEFAULT_JULIA_ANALYZER_LAUNCHER_PATH);
+    assert_eq!(spec.launcher_path, DEFAULT_JULIA_SEARCH_LAUNCHER_PATH);
     assert_eq!(
         spec.args,
         vec![
-            "--service-mode",
+            "--mode",
             "stream",
-            "--analyzer-config",
-            DEFAULT_JULIA_ANALYZER_EXAMPLE_CONFIG_PATH,
-            "--analyzer-strategy",
-            "similarity_only",
-            "--vector-weight",
-            "0.2",
-            "--similarity-weight",
-            "0.8",
+            "--config",
+            DEFAULT_JULIA_SEARCH_EXAMPLE_CONFIG_PATH,
         ]
     );
 }

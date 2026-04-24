@@ -5,7 +5,7 @@ use super::driver::{
 use super::error::BpmnOrchestrationError;
 use super::scheduler::QianjiBpmnExecutionScheduler;
 use super::session::QianjiBpmnSession;
-use crate::scheduler::SchedulerAgentIdentity;
+use crate::scheduler_identity::SchedulerAgentIdentity;
 use qianji_bpmn_engine::{BpmnExecutionTraceEvent, BpmnHostBridge, BpmnPackage};
 use std::sync::Arc;
 

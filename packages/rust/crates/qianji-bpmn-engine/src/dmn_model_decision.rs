@@ -74,7 +74,306 @@ impl DmnDecisionTable {
     }
 }
 
-/// One bounded DMN decision definition with one decision table.
+/// One bounded direct DMN literal expression.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct DmnLiteralExpression {
+    /// Stable literal-expression identifier when present in source.
+    pub expression_id: Option<Arc<str>>,
+    /// Optional DMN `typeRef` metadata on the expression.
+    pub type_ref: Option<Arc<str>>,
+    /// Source-level expression body.
+    pub text: Arc<str>,
+}
+
+impl DmnLiteralExpression {
+    /// Creates one bounded literal-expression snapshot.
+    #[must_use]
+    pub fn new(
+        expression_id: Option<impl AsRef<str>>,
+        type_ref: Option<impl AsRef<str>>,
+        text: impl AsRef<str>,
+    ) -> Self {
+        Self {
+            expression_id: expression_id.map(|value| Arc::<str>::from(value.as_ref())),
+            type_ref: type_ref.map(|value| Arc::<str>::from(value.as_ref())),
+            text: Arc::<str>::from(text.as_ref()),
+        }
+    }
+}
+
+/// One bounded direct DMN list expression.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct DmnListExpression {
+    /// Stable list identifier when present in source.
+    pub list_id: Option<Arc<str>>,
+    /// Ordered direct literal-expression items.
+    pub items: Vec<DmnLiteralExpression>,
+}
+
+impl DmnListExpression {
+    /// Creates one bounded list-expression snapshot.
+    #[must_use]
+    pub fn new(list_id: Option<impl AsRef<str>>, items: Vec<DmnLiteralExpression>) -> Self {
+        Self {
+            list_id: list_id.map(|value| Arc::<str>::from(value.as_ref())),
+            items,
+        }
+    }
+}
+
+/// One bounded direct DMN context entry.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct DmnContextEntry {
+    /// Stable context-entry identifier when present in source.
+    pub entry_id: Option<Arc<str>>,
+    /// Stable variable identifier when present in source.
+    pub variable_id: Option<Arc<str>>,
+    /// Optional variable name. A missing name marks the final result entry.
+    pub variable_name: Option<Arc<str>>,
+    /// Bounded literal-expression body for this context entry.
+    pub expression: DmnLiteralExpression,
+}
+
+impl DmnContextEntry {
+    /// Creates one bounded context-entry snapshot.
+    #[must_use]
+    pub fn new(
+        entry_id: Option<impl AsRef<str>>,
+        variable_id: Option<impl AsRef<str>>,
+        variable_name: Option<impl AsRef<str>>,
+        expression: DmnLiteralExpression,
+    ) -> Self {
+        Self {
+            entry_id: entry_id.map(|value| Arc::<str>::from(value.as_ref())),
+            variable_id: variable_id.map(|value| Arc::<str>::from(value.as_ref())),
+            variable_name: variable_name.map(|value| Arc::<str>::from(value.as_ref())),
+            expression,
+        }
+    }
+}
+
+/// One bounded direct DMN context expression.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct DmnContextExpression {
+    /// Stable context identifier when present in source.
+    pub context_id: Option<Arc<str>>,
+    /// Ordered context entries.
+    pub entries: Vec<DmnContextEntry>,
+}
+
+impl DmnContextExpression {
+    /// Creates one bounded context-expression snapshot.
+    #[must_use]
+    pub fn new(context_id: Option<impl AsRef<str>>, entries: Vec<DmnContextEntry>) -> Self {
+        Self {
+            context_id: context_id.map(|value| Arc::<str>::from(value.as_ref())),
+            entries,
+        }
+    }
+}
+
+/// One bounded direct DMN relation column.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct DmnRelationColumn {
+    /// Stable column identifier.
+    pub column_id: Arc<str>,
+    /// Optional output name. Falls back to `column_id` when omitted.
+    pub name: Option<Arc<str>>,
+    /// Optional DMN `typeRef` metadata on the column.
+    pub type_ref: Option<Arc<str>>,
+}
+
+impl DmnRelationColumn {
+    /// Creates one bounded relation-column snapshot.
+    #[must_use]
+    pub fn new(
+        column_id: impl AsRef<str>,
+        name: Option<impl AsRef<str>>,
+        type_ref: Option<impl AsRef<str>>,
+    ) -> Self {
+        Self {
+            column_id: Arc::<str>::from(column_id.as_ref()),
+            name: name.map(|value| Arc::<str>::from(value.as_ref())),
+            type_ref: type_ref.map(|value| Arc::<str>::from(value.as_ref())),
+        }
+    }
+
+    /// Returns the stable output key used for evaluated row objects.
+    #[must_use]
+    pub fn output_key(&self) -> &str {
+        self.name.as_deref().unwrap_or(self.column_id.as_ref())
+    }
+}
+
+/// One bounded direct DMN relation row.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct DmnRelationRow {
+    /// Stable row identifier when present in source.
+    pub row_id: Option<Arc<str>>,
+    /// Ordered direct literal-expression cell values.
+    pub cells: Vec<DmnLiteralExpression>,
+}
+
+impl DmnRelationRow {
+    /// Creates one bounded relation-row snapshot.
+    #[must_use]
+    pub fn new(row_id: Option<impl AsRef<str>>, cells: Vec<DmnLiteralExpression>) -> Self {
+        Self {
+            row_id: row_id.map(|value| Arc::<str>::from(value.as_ref())),
+            cells,
+        }
+    }
+}
+
+/// One bounded direct DMN relation expression.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct DmnRelationExpression {
+    /// Stable relation identifier when present in source.
+    pub relation_id: Option<Arc<str>>,
+    /// Ordered direct relation columns.
+    pub columns: Vec<DmnRelationColumn>,
+    /// Ordered direct relation rows.
+    pub rows: Vec<DmnRelationRow>,
+}
+
+impl DmnRelationExpression {
+    /// Creates one bounded relation-expression snapshot.
+    #[must_use]
+    pub fn new(
+        relation_id: Option<impl AsRef<str>>,
+        columns: Vec<DmnRelationColumn>,
+        rows: Vec<DmnRelationRow>,
+    ) -> Self {
+        Self {
+            relation_id: relation_id.map(|value| Arc::<str>::from(value.as_ref())),
+            columns,
+            rows,
+        }
+    }
+}
+
+/// One bounded executable DMN invocation parameter.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct DmnInvocationParameter {
+    /// Stable parameter identifier when present in source.
+    pub parameter_id: Option<Arc<str>>,
+    /// Optional parameter name used by the binding.
+    pub name: Option<Arc<str>>,
+    /// Optional DMN `typeRef` metadata on the parameter.
+    pub type_ref: Option<Arc<str>>,
+}
+
+impl DmnInvocationParameter {
+    /// Creates one bounded invocation-parameter contract.
+    #[must_use]
+    pub fn new(
+        parameter_id: Option<impl AsRef<str>>,
+        name: Option<impl AsRef<str>>,
+        type_ref: Option<impl AsRef<str>>,
+    ) -> Self {
+        Self {
+            parameter_id: parameter_id.map(|value| Arc::<str>::from(value.as_ref())),
+            name: name.map(|value| Arc::<str>::from(value.as_ref())),
+            type_ref: type_ref.map(|value| Arc::<str>::from(value.as_ref())),
+        }
+    }
+}
+
+/// One bounded executable DMN invocation binding.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct DmnInvocationBinding {
+    /// Stable binding identifier when present in source.
+    pub binding_id: Option<Arc<str>>,
+    /// Direct parameter metadata for this binding when present.
+    pub parameter: Option<DmnInvocationParameter>,
+    /// Direct literal-expression argument for this binding when present.
+    pub argument: Option<DmnLiteralExpression>,
+}
+
+impl DmnInvocationBinding {
+    /// Creates one bounded invocation-binding contract.
+    #[must_use]
+    pub fn new(
+        binding_id: Option<impl AsRef<str>>,
+        parameter: Option<DmnInvocationParameter>,
+        argument: Option<DmnLiteralExpression>,
+    ) -> Self {
+        Self {
+            binding_id: binding_id.map(|value| Arc::<str>::from(value.as_ref())),
+            parameter,
+            argument,
+        }
+    }
+}
+
+/// One bounded executable direct DMN invocation.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct DmnInvocation {
+    /// Stable invocation identifier when present in source.
+    pub invocation_id: Option<Arc<str>>,
+    /// Direct invoked-expression metadata when present.
+    pub invoked_expression: Option<DmnLiteralExpression>,
+    /// Direct invocation bindings preserved in source order.
+    pub bindings: Vec<DmnInvocationBinding>,
+}
+
+impl DmnInvocation {
+    /// Creates one bounded invocation contract.
+    #[must_use]
+    pub fn new(
+        invocation_id: Option<impl AsRef<str>>,
+        invoked_expression: Option<DmnLiteralExpression>,
+        bindings: Vec<DmnInvocationBinding>,
+    ) -> Self {
+        Self {
+            invocation_id: invocation_id.map(|value| Arc::<str>::from(value.as_ref())),
+            invoked_expression,
+            bindings,
+        }
+    }
+}
+
+/// One bounded executable DMN information-requirement reference.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct DmnInformationRequirementReference {
+    /// Direct reference element kind, such as `requiredInput`.
+    pub reference_kind: Arc<str>,
+    /// Direct href placeholder preserved from source.
+    pub href: Option<Arc<str>>,
+}
+
+impl DmnInformationRequirementReference {
+    /// Creates one bounded information-requirement reference.
+    #[must_use]
+    pub fn new(reference_kind: impl AsRef<str>, href: Option<impl AsRef<str>>) -> Self {
+        Self {
+            reference_kind: Arc::<str>::from(reference_kind.as_ref()),
+            href: href.map(|value| Arc::<str>::from(value.as_ref())),
+        }
+    }
+}
+
+/// One bounded executable DMN knowledge-requirement reference.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct DmnKnowledgeRequirementReference {
+    /// Direct reference element kind, such as `requiredKnowledge`.
+    pub reference_kind: Arc<str>,
+    /// Direct href placeholder preserved from source.
+    pub href: Option<Arc<str>>,
+}
+
+impl DmnKnowledgeRequirementReference {
+    /// Creates one bounded knowledge-requirement reference.
+    #[must_use]
+    pub fn new(reference_kind: impl AsRef<str>, href: Option<impl AsRef<str>>) -> Self {
+        Self {
+            reference_kind: Arc::<str>::from(reference_kind.as_ref()),
+            href: href.map(|value| Arc::<str>::from(value.as_ref())),
+        }
+    }
+}
+
+/// One bounded DMN decision definition with one executable decision surface.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct DmnDecisionDefinition {
     /// Source identifier used for diagnostics.
@@ -85,6 +384,27 @@ pub struct DmnDecisionDefinition {
     pub name: Option<Arc<str>>,
     /// The single bounded decision table.
     pub table: DmnDecisionTable,
+    /// Optional bounded direct literal-expression decision body.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub literal_expression: Option<DmnLiteralExpression>,
+    /// Optional bounded direct list decision body.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub list_expression: Option<DmnListExpression>,
+    /// Optional bounded direct context decision body.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub context_expression: Option<DmnContextExpression>,
+    /// Optional bounded direct relation decision body.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub relation_expression: Option<DmnRelationExpression>,
+    /// Optional bounded direct invocation decision body.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub invocation: Option<DmnInvocation>,
+    /// Direct executable information-requirement href placeholders.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub information_requirements: Vec<DmnInformationRequirementReference>,
+    /// Direct executable knowledge-requirement href placeholders.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub knowledge_requirements: Vec<DmnKnowledgeRequirementReference>,
 }
 
 impl DmnDecisionDefinition {
@@ -101,7 +421,69 @@ impl DmnDecisionDefinition {
             decision,
             name: name.map(|value| Arc::<str>::from(value.as_ref())),
             table,
+            literal_expression: None,
+            list_expression: None,
+            context_expression: None,
+            relation_expression: None,
+            invocation: None,
+            information_requirements: Vec::new(),
+            knowledge_requirements: Vec::new(),
         }
+    }
+
+    /// Attaches one bounded direct literal-expression decision body.
+    #[must_use]
+    pub fn with_literal_expression(mut self, literal_expression: DmnLiteralExpression) -> Self {
+        self.literal_expression = Some(literal_expression);
+        self
+    }
+
+    /// Attaches one bounded direct list decision body.
+    #[must_use]
+    pub fn with_list_expression(mut self, list_expression: DmnListExpression) -> Self {
+        self.list_expression = Some(list_expression);
+        self
+    }
+
+    /// Attaches one bounded direct context decision body.
+    #[must_use]
+    pub fn with_context_expression(mut self, context_expression: DmnContextExpression) -> Self {
+        self.context_expression = Some(context_expression);
+        self
+    }
+
+    /// Attaches one bounded direct relation decision body.
+    #[must_use]
+    pub fn with_relation_expression(mut self, relation_expression: DmnRelationExpression) -> Self {
+        self.relation_expression = Some(relation_expression);
+        self
+    }
+
+    /// Attaches one bounded direct invocation decision body.
+    #[must_use]
+    pub fn with_invocation(mut self, invocation: DmnInvocation) -> Self {
+        self.invocation = Some(invocation);
+        self
+    }
+
+    /// Attaches bounded direct information-requirement references.
+    #[must_use]
+    pub fn with_information_requirements(
+        mut self,
+        information_requirements: Vec<DmnInformationRequirementReference>,
+    ) -> Self {
+        self.information_requirements = information_requirements;
+        self
+    }
+
+    /// Attaches bounded direct knowledge-requirement references.
+    #[must_use]
+    pub fn with_knowledge_requirements(
+        mut self,
+        knowledge_requirements: Vec<DmnKnowledgeRequirementReference>,
+    ) -> Self {
+        self.knowledge_requirements = knowledge_requirements;
+        self
     }
 
     /// Returns whether the provided reference matches this parsed decision.

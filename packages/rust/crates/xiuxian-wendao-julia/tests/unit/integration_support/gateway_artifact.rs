@@ -1,26 +1,18 @@
 use super::{
-    DEFAULT_JULIA_ANALYZER_LAUNCHER_PATH, julia_gateway_artifact_default_strategy,
-    julia_gateway_artifact_expected_json_fragments, julia_gateway_artifact_expected_toml_fragments,
-    julia_gateway_artifact_path, julia_gateway_artifact_rpc_params_fixture,
-    julia_gateway_artifact_runtime_config_toml, julia_gateway_artifact_selected_transport,
-    julia_ui_artifact_payload_fixture,
+    DEFAULT_JULIA_SEARCH_LAUNCHER_PATH, julia_gateway_artifact_expected_json_fragments,
+    julia_gateway_artifact_expected_toml_fragments, julia_gateway_artifact_path,
+    julia_gateway_artifact_rpc_params_fixture, julia_gateway_artifact_runtime_config_toml,
+    julia_gateway_artifact_selected_transport, julia_ui_artifact_payload_fixture,
 };
 use xiuxian_wendao_core::transport::PluginTransportKind;
 
 #[test]
 fn gateway_artifact_runtime_config_toml_renders_default_fixture() {
-    let rendered = julia_gateway_artifact_runtime_config_toml(None);
+    let rendered = julia_gateway_artifact_runtime_config_toml();
 
     assert!(rendered.contains("[link_graph.retrieval.julia_rerank]"));
     assert!(rendered.contains("base_url = \"http://127.0.0.1:18080\""));
-    assert!(!rendered.contains("analyzer_strategy ="));
-}
-
-#[test]
-fn gateway_artifact_runtime_config_toml_renders_optional_strategy() {
-    let rendered = julia_gateway_artifact_runtime_config_toml(Some("similarity_only"));
-
-    assert!(rendered.contains("analyzer_strategy = \"similarity_only\""));
+    assert!(!rendered.contains("analyzer"));
 }
 
 #[test]
@@ -38,10 +30,9 @@ fn gateway_artifact_helpers_keep_stable_selector_and_toml_fragments() {
 }
 
 #[test]
-fn gateway_artifact_helpers_keep_stable_json_fragments_and_strategy() {
+fn gateway_artifact_helpers_keep_stable_json_fragments() {
     let fragments = julia_gateway_artifact_expected_json_fragments();
 
-    assert_eq!(julia_gateway_artifact_default_strategy(), "similarity_only");
     assert!(
         fragments
             .iter()
@@ -94,6 +85,6 @@ fn ui_artifact_payload_fixture_keeps_stable_julia_payload_shape() {
     );
     assert_eq!(
         launch.launcher_path,
-        DEFAULT_JULIA_ANALYZER_LAUNCHER_PATH.to_string()
+        DEFAULT_JULIA_SEARCH_LAUNCHER_PATH.to_string()
     );
 }

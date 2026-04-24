@@ -4,6 +4,7 @@ mod api;
 mod boundary;
 mod compensation;
 mod document;
+mod document_surface;
 mod execution;
 mod gateway;
 mod identity;

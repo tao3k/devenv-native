@@ -100,6 +100,67 @@ fn performance_probe_frontier_token_lookup_compares_linear_scan_vs_batch_lookup(
 
 #[test]
 #[ignore = "performance probe"]
+fn performance_probe_frontier_removal_lookup_compares_linear_scan_vs_shifted_cursor() {
+    let stable_prefix_count = 4_000_u64;
+    let removable_token_count = 4_000_u64;
+    let iterations = 8_u32;
+    let token_count = stable_prefix_count + removable_token_count;
+    let active_tokens = build_frontier_snapshot_probe_tokens(token_count, 20_000);
+    let proposals = active_tokens
+        .iter()
+        .enumerate()
+        .skip(usize::try_from(stable_prefix_count).must("stable prefix count should fit in usize"))
+        .map(|(token_index, token)| BpmnFrontierExecutionProposal {
+            token_id: token.token_id,
+            token_index,
+            node_index: token.node_index,
+            incoming_edge_index: token.incoming_edge_index,
+        })
+        .collect::<Vec<_>>();
+
+    let linear_start = Instant::now();
+    let mut linear_sum = 0_usize;
+    for _ in 0..iterations {
+        let mut active_tokens = active_tokens.clone();
+        for proposal in &proposals {
+            let token_index = linear_token_index_for_id(&active_tokens, proposal.token_id)
+                .must("linear lookup should resolve every removable token");
+            linear_sum += token_index;
+            active_tokens.remove(token_index);
+        }
+    }
+    let linear_elapsed = linear_start.elapsed();
+
+    let shifted_start = Instant::now();
+    let mut shifted_sum = 0_usize;
+    for _ in 0..iterations {
+        let mut active_tokens = active_tokens.clone();
+        for (frontier_index_shift, proposal) in proposals.iter().enumerate() {
+            let token_index = proposal
+                .token_index
+                .checked_sub(frontier_index_shift)
+                .must("shifted proposal index should stay inside the active frontier");
+            assert_eq!(active_tokens[token_index].token_id, proposal.token_id);
+            shifted_sum += token_index;
+            active_tokens.remove(token_index);
+        }
+    }
+    let shifted_elapsed = shifted_start.elapsed();
+
+    assert_eq!(linear_sum, shifted_sum);
+    black_box((linear_sum, shifted_sum));
+    eprintln!(
+        "performance_probe frontier_removal_lookup stable_prefix={} removable_tokens={} iterations={} linear_ms={:.3} shifted_cursor_ms={:.3}",
+        stable_prefix_count,
+        removable_token_count,
+        iterations,
+        linear_elapsed.as_secs_f64() * 1000.0,
+        shifted_elapsed.as_secs_f64() * 1000.0
+    );
+}
+
+#[test]
+#[ignore = "performance probe"]
 fn performance_probe_token_id_allocation_compares_repeated_scan_vs_allocator() {
     let initial_token_count = 8_000_u64;
     let pending_token_count = 512_u64;

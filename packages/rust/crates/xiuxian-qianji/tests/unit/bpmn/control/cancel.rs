@@ -1,13 +1,17 @@
 use super::support::*;
 
-#[cfg(feature = "sqlite")]
+#[cfg(feature = "duckdb")]
 #[tokio::test(flavor = "current_thread")]
-async fn workflow_control_service_cancels_checkpointed_session_from_sqlite_store() {
+async fn workflow_control_service_cancels_checkpointed_session_from_duckdb_store() {
     let temp_dir =
         TempDir::new().unwrap_or_else(|error| panic!("temp dir should allocate: {error}"));
     let bpmn_path = write_wait_bundle(&temp_dir);
-    let sqlite_path = temp_dir.path().join("cancel.sqlite3");
-    let service = QianjiBpmnWorkflowControlService::new();
+    let duckdb_path = temp_dir.path().join("cancel.duckdb");
+    let runtime_env = QianjiRuntimeEnv {
+        qianji_workflow_state_duckdb_path: Some(duckdb_path),
+        ..QianjiRuntimeEnv::default()
+    };
+    let service = QianjiBpmnWorkflowControlService::new().with_runtime_env(runtime_env);
 
     let seeded_report = ok_of(
         service
@@ -16,11 +20,9 @@ async fn workflow_control_service_cancels_checkpointed_session_from_sqlite_store
                     bpmn_path,
                     dmn_paths: Vec::new(),
                     process_id: "wait_flow".to_string(),
-                    instance_id: "wf_cancel_sqlite".to_string(),
+                    instance_id: "wf_cancel_duckdb".to_string(),
                     initial_variables: Some(json!({ "amount": 7 })),
-                    checkpoint_backend: Some(QianjiBpmnWorkflowCheckpointBackend::Sqlite(
-                        sqlite_path.clone(),
-                    )),
+                    checkpoint_backend: Some(QianjiBpmnWorkflowCheckpointBackend::LocalDuckDb),
                 },
                 &QianjiBpmnHostBridge::default(),
             )
@@ -36,17 +38,17 @@ async fn workflow_control_service_cancels_checkpointed_session_from_sqlite_store
     let cancel_report = ok_of(
         service
             .cancel_workflow(&QianjiBpmnWorkflowCancelRequest {
-                instance_id: "wf_cancel_sqlite".to_string(),
-                checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend::Sqlite(sqlite_path),
+                instance_id: "wf_cancel_duckdb".to_string(),
+                checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend::LocalDuckDb,
             })
             .await,
-        "workflow control service should delete one sqlite checkpoint",
+        "workflow control service should delete one duckdb checkpoint",
     );
 
-    assert_eq!(cancel_report.checkpoint_store.backend_name(), "sqlite");
+    assert_eq!(cancel_report.checkpoint_store.backend_name(), "duckdb");
     assert_eq!(
         cancel_report.instance.instance_id.as_ref(),
-        "wf_cancel_sqlite"
+        "wf_cancel_duckdb"
     );
     assert!(matches!(
         cancel_report.instance.lifecycle,
@@ -56,9 +58,9 @@ async fn workflow_control_service_cancels_checkpointed_session_from_sqlite_store
     let checkpoint = ok_of(
         cancel_report
             .checkpoint_store
-            .load("wf_cancel_sqlite")
+            .load("wf_cancel_duckdb")
             .await,
-        "cancelled sqlite checkpoint should be deleted",
+        "cancelled duckdb checkpoint should be deleted",
     );
     assert!(checkpoint.is_none());
 }

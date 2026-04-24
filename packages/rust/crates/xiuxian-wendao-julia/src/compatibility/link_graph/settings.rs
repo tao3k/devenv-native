@@ -12,10 +12,8 @@ const LINK_GRAPH_JULIA_RERANK_TIMEOUT_SECS_KEY: &str =
     "link_graph.retrieval.julia_rerank.timeout_secs";
 const LINK_GRAPH_JULIA_RERANK_SERVICE_MODE_KEY: &str =
     "link_graph.retrieval.julia_rerank.service_mode";
-const LINK_GRAPH_JULIA_RERANK_ANALYZER_CONFIG_PATH_KEY: &str =
-    "link_graph.retrieval.julia_rerank.analyzer_config_path";
-const LINK_GRAPH_JULIA_RERANK_ANALYZER_STRATEGY_KEY: &str =
-    "link_graph.retrieval.julia_rerank.analyzer_strategy";
+const LINK_GRAPH_JULIA_RERANK_SEARCH_CONFIG_PATH_KEY: &str =
+    "link_graph.retrieval.julia_rerank.search_config_path";
 const LINK_GRAPH_JULIA_RERANK_VECTOR_WEIGHT_KEY: &str =
     "link_graph.retrieval.julia_rerank.vector_weight";
 const LINK_GRAPH_JULIA_RERANK_SIMILARITY_WEIGHT_KEY: &str =
@@ -38,12 +36,9 @@ pub const LINK_GRAPH_JULIA_RERANK_TIMEOUT_SECS_ENV: &str =
 /// Environment variable that overrides `link_graph.retrieval.julia_rerank.service_mode`.
 pub const LINK_GRAPH_JULIA_RERANK_SERVICE_MODE_ENV: &str =
     "XIUXIAN_WENDAO_LINK_GRAPH_JULIA_RERANK_SERVICE_MODE";
-/// Environment variable that overrides `link_graph.retrieval.julia_rerank.analyzer_config_path`.
-pub const LINK_GRAPH_JULIA_RERANK_ANALYZER_CONFIG_PATH_ENV: &str =
-    "XIUXIAN_WENDAO_LINK_GRAPH_JULIA_RERANK_ANALYZER_CONFIG_PATH";
-/// Environment variable that overrides `link_graph.retrieval.julia_rerank.analyzer_strategy`.
-pub const LINK_GRAPH_JULIA_RERANK_ANALYZER_STRATEGY_ENV: &str =
-    "XIUXIAN_WENDAO_LINK_GRAPH_JULIA_RERANK_ANALYZER_STRATEGY";
+/// Environment variable that overrides `link_graph.retrieval.julia_rerank.search_config_path`.
+pub const LINK_GRAPH_JULIA_RERANK_SEARCH_CONFIG_PATH_ENV: &str =
+    "XIUXIAN_WENDAO_LINK_GRAPH_JULIA_RERANK_SEARCH_CONFIG_PATH";
 /// Environment variable that overrides `link_graph.retrieval.julia_rerank.vector_weight`.
 pub const LINK_GRAPH_JULIA_RERANK_VECTOR_WEIGHT_ENV: &str =
     "XIUXIAN_WENDAO_LINK_GRAPH_JULIA_RERANK_VECTOR_WEIGHT";
@@ -104,16 +99,10 @@ impl LinkGraphJuliaRerankRuntimeConfig {
                 LINK_GRAPH_JULIA_RERANK_SERVICE_MODE_ENV,
                 &env_lookup,
             ),
-            analyzer_config_path: resolve_optional_string(
+            search_config_path: resolve_optional_string(
                 settings,
-                LINK_GRAPH_JULIA_RERANK_ANALYZER_CONFIG_PATH_KEY,
-                LINK_GRAPH_JULIA_RERANK_ANALYZER_CONFIG_PATH_ENV,
-                &env_lookup,
-            ),
-            analyzer_strategy: resolve_optional_string(
-                settings,
-                LINK_GRAPH_JULIA_RERANK_ANALYZER_STRATEGY_KEY,
-                LINK_GRAPH_JULIA_RERANK_ANALYZER_STRATEGY_ENV,
+                LINK_GRAPH_JULIA_RERANK_SEARCH_CONFIG_PATH_KEY,
+                LINK_GRAPH_JULIA_RERANK_SEARCH_CONFIG_PATH_ENV,
                 &env_lookup,
             ),
             vector_weight: resolve_optional_string(

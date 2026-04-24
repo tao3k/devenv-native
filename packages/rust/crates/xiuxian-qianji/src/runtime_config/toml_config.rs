@@ -13,6 +13,8 @@ pub(super) struct QianjiToml {
     #[serde(default)]
     pub(super) checkpoint: QianjiTomlCheckpoint,
     #[serde(default)]
+    pub(super) workflow_state: QianjiTomlWorkflowState,
+    #[serde(default)]
     pub(super) server: QianjiTomlServer,
 }
 
@@ -58,6 +60,11 @@ pub(super) struct QianjiTomlWendaoIngester {
 #[derive(Debug, Default, Deserialize)]
 pub(super) struct QianjiTomlCheckpoint {
     pub(super) valkey_url: Option<String>,
+}
+
+#[derive(Debug, Default, Deserialize)]
+pub(super) struct QianjiTomlWorkflowState {
+    pub(super) local_duckdb_path: Option<String>,
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -144,6 +151,15 @@ pub(super) fn apply_checkpoint_overlay(
 ) {
     if let Some(valkey_url) = normalize_non_empty(overlay.valkey_url) {
         target.valkey_url = Some(valkey_url);
+    }
+}
+
+pub(super) fn apply_workflow_state_overlay(
+    target: &mut QianjiTomlWorkflowState,
+    overlay: QianjiTomlWorkflowState,
+) {
+    if let Some(local_duckdb_path) = normalize_non_empty(overlay.local_duckdb_path) {
+        target.local_duckdb_path = Some(local_duckdb_path);
     }
 }
 

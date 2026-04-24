@@ -38,7 +38,8 @@ use xiuxian_daochang::test_support::{
 };
 use xiuxian_daochang::{
     Agent, AgentConfig, Channel, ChannelMessage, ForegroundQueueMode, JobManager, JobManagerConfig,
-    TelegramChannel, TelegramSessionPartition, TurnRunner, build_telegram_webhook_app,
+    SessionStore, TelegramChannel, TelegramSessionPartition, TurnRunner,
+    build_telegram_webhook_app,
 };
 
 mod jobs_logging;
@@ -269,7 +270,14 @@ async fn build_agent() -> Result<Arc<Agent>> {
         max_tool_rounds: 1,
         ..AgentConfig::default()
     };
-    Ok(Arc::new(Agent::from_config(config).await?))
+    Ok(Arc::new(
+        Agent::from_config_with_session_backends_for_test(
+            config,
+            SessionStore::new_in_memory_for_test(),
+            None,
+        )
+        .await?,
+    ))
 }
 
 async fn build_agent_with_context_budget() -> Result<Arc<Agent>> {
@@ -282,7 +290,14 @@ async fn build_agent_with_context_budget() -> Result<Arc<Agent>> {
         context_budget_reserve_tokens: 16,
         ..AgentConfig::default()
     };
-    Ok(Arc::new(Agent::from_config(config).await?))
+    Ok(Arc::new(
+        Agent::from_config_with_session_backends_for_test(
+            config,
+            SessionStore::new_in_memory_for_test(),
+            None,
+        )
+        .await?,
+    ))
 }
 
 fn build_job_manager(runner: Arc<dyn TurnRunner>) -> Arc<JobManager> {

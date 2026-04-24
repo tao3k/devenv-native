@@ -2,6 +2,7 @@ use super::constants::{
     DEFAULT_MEMORY_PROMOTION_GRAPH_DIMENSION, DEFAULT_MEMORY_PROMOTION_GRAPH_SCOPE,
     DEFAULT_MEMORY_PROMOTION_PERSIST, DEFAULT_MEMORY_PROMOTION_PERSIST_BEST_EFFORT,
     DEFAULT_SERVER_BIND_ADDR, DEFAULT_SERVER_REQUIRE_VALKEY_READY,
+    DEFAULT_WORKFLOW_STATE_DUCKDB_PATH,
 };
 use std::path::PathBuf;
 
@@ -54,6 +55,21 @@ pub struct QianjiRuntimeCheckpointConfig {
     pub valkey_url: String,
 }
 
+/// Resolved runtime config for local no-server workflow-state persistence.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct QianjiRuntimeWorkflowStateConfig {
+    /// Effective local `DuckDB` database path for no-server workflow-state snapshots.
+    pub local_duckdb_path: PathBuf,
+}
+
+impl Default for QianjiRuntimeWorkflowStateConfig {
+    fn default() -> Self {
+        Self {
+            local_duckdb_path: PathBuf::from(DEFAULT_WORKFLOW_STATE_DUCKDB_PATH),
+        }
+    }
+}
+
 /// Resolved runtime config for the `qianji-server` daemon.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct QianjiRuntimeServerConfig {
@@ -103,6 +119,8 @@ pub struct QianjiRuntimeEnv {
     pub qianji_memory_promotion_persist_best_effort: Option<bool>,
     /// Optional `QIANJI_VALKEY_URL` override for checkpoint persistence.
     pub qianji_checkpoint_valkey_url: Option<String>,
+    /// Optional `QIANJI_WORKFLOW_STATE_DUCKDB_PATH` override for local no-server state.
+    pub qianji_workflow_state_duckdb_path: Option<PathBuf>,
     /// Optional `QIANJI_SERVER_BIND_ADDR` override for the HTTP service.
     pub qianji_server_bind_addr: Option<String>,
     /// Optional `QIANJI_SERVER_REQUIRE_VALKEY_READY` override.

@@ -160,4 +160,20 @@ fn dmn_linter_reports_unsupported_top_level_import_with_document_level_guidance(
     );
     assert_eq!(issue.evidence["import_count"], json!(1));
     assert_eq!(issue.evidence["document_root"]["import_count"], json!(1));
+    assert_eq!(
+        issue.evidence["document_root"]["imports"][0]["name"],
+        json!("Partner Services")
+    );
+    assert_eq!(
+        issue.evidence["document_root"]["imports"][0]["namespace"],
+        json!("https://example.com/dmn/partner-services")
+    );
+    assert_eq!(
+        issue.evidence["document_root"]["imports"][0]["location_uri"],
+        json!("partner-services.dmn")
+    );
+    assert_eq!(
+        issue.evidence["document_root"]["imports"][0]["import_type"],
+        json!("https://www.omg.org/spec/DMN/20191111/MODEL/")
+    );
 }

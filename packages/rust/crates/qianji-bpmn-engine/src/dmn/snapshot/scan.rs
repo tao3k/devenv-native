@@ -104,6 +104,12 @@ fn handle_scan_event(
 fn finish_end_event(state: &mut SnapshotScanState, element_stack: &mut Vec<String>, tag: &str) {
     match tag {
         "decision" => state.finish_decision_end(),
+        "invocation" => state.finish_invocation_end(),
+        "binding" => state.finish_invocation_binding_end(),
+        "functionDefinition" | "encapsulatedLogic" => state.finish_function_definition_end(),
+        "literalExpression" => state.finish_literal_expression_end(),
+        "businessKnowledgeModel" => state.finish_business_knowledge_model_end(),
+        "decisionService" => state.finish_decision_service_end(),
         "textAnnotation" => state.finish_text_annotation_end(),
         "association" => state.finish_association_end(),
         "DMNDiagram" => state.finish_dmn_diagram_end(),
@@ -157,6 +163,8 @@ fn finish_snapshot_state(state: &mut SnapshotScanState) {
     state.finish_pending_association();
     state.finish_pending_dmndi();
     state.finish_pending_input_data();
+    state.finish_pending_business_knowledge_model();
+    state.finish_pending_decision_service();
     state.finish_pending_item_definition();
 }
 

@@ -13,7 +13,6 @@ pub use dispatch::{
 };
 pub use gateway::{
     linked_builtin_julia_gateway_artifact_base_url,
-    linked_builtin_julia_gateway_artifact_default_strategy,
     linked_builtin_julia_gateway_artifact_expected_json_fragments,
     linked_builtin_julia_gateway_artifact_expected_toml_fragments,
     linked_builtin_julia_gateway_artifact_path, linked_builtin_julia_gateway_artifact_route,

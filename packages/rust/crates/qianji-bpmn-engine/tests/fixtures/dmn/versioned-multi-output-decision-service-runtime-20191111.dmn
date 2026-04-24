@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions
+  xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/"
+  id="Definitions_multi_output_decision_service_runtime"
+  name="Multi Output Decision Service Runtime"
+  namespace="https://example.com/dmn/multi-output-decision-service-runtime">
+  <decisionService
+    id="DecisionService_multi_output"
+    name="Multi Output Decision Service">
+    <outputDecision href="#Decision_approval" />
+    <outputDecision href="#Decision_review" />
+  </decisionService>
+  <decision id="Decision_approval" name="Approval">
+    <variable id="Variable_approval" name="approval" typeRef="string" />
+    <decisionTable id="DecisionTable_approval" hitPolicy="UNIQUE">
+      <input id="InputClause_tier">
+        <inputExpression id="InputExpression_tier" typeRef="string">
+          <text>tier</text>
+        </inputExpression>
+      </input>
+      <output id="OutputClause_approval" name="approval" typeRef="string" />
+      <rule id="Rule_approve">
+        <inputEntry id="InputEntry_approve">
+          <text>"gold"</text>
+        </inputEntry>
+        <outputEntry id="OutputEntry_approve">
+          <text>"approve"</text>
+        </outputEntry>
+      </rule>
+      <rule id="Rule_review">
+        <inputEntry id="InputEntry_review">
+          <text>-</text>
+        </inputEntry>
+        <outputEntry id="OutputEntry_review">
+          <text>"review"</text>
+        </outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+  <decision id="Decision_review" name="Review">
+    <variable id="Variable_review" name="review_state" typeRef="string" />
+    <decisionTable id="DecisionTable_review" hitPolicy="UNIQUE">
+      <input id="InputClause_review_tier">
+        <inputExpression id="InputExpression_review_tier" typeRef="string">
+          <text>tier</text>
+        </inputExpression>
+      </input>
+      <output id="OutputClause_review" name="review_state" typeRef="string" />
+      <rule id="Rule_secondary_review">
+        <inputEntry id="InputEntry_secondary_review">
+          <text>-</text>
+        </inputEntry>
+        <outputEntry id="OutputEntry_secondary_review">
+          <text>"secondary"</text>
+        </outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+</definitions>

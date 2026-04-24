@@ -2,7 +2,7 @@ use super::env_vars::env_var_or_override;
 use super::model::QianjiRuntimeEnv;
 use super::toml_config::{
     QianjiToml, apply_checkpoint_overlay, apply_llm_overlay, apply_memory_promotion_overlay,
-    apply_server_overlay,
+    apply_server_overlay, apply_workflow_state_overlay,
 };
 use std::io;
 use std::path::{Path, PathBuf};
@@ -23,6 +23,7 @@ pub(super) fn load_qianji_toml(
         apply_llm_overlay(&mut merged.llm, parsed.llm);
         apply_memory_promotion_overlay(&mut merged.memory_promotion, parsed.memory_promotion);
         apply_checkpoint_overlay(&mut merged.checkpoint, parsed.checkpoint);
+        apply_workflow_state_overlay(&mut merged.workflow_state, parsed.workflow_state);
         apply_server_overlay(&mut merged.server, parsed.server);
     }
 

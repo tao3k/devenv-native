@@ -86,9 +86,11 @@ pub fn parse_bpmn_package(
 /// # Errors
 ///
 /// Returns typed BPMN parse or validation errors when the BPMN payload is
-/// malformed, typed DMN parse errors when one bundled DMN source is invalid,
-/// or [`BpmnEngineError::UnsupportedSourceBundle`] when the bundle contains an
-/// unsupported BPMN source count.
+/// malformed, typed DMN parse errors when one executable bundled DMN source is
+/// invalid, or [`BpmnEngineError::UnsupportedSourceBundle`] when the bundle
+/// contains an unsupported BPMN source count. Bundled DMN sources with
+/// top-level imports are preserved as metadata-only source/import registry
+/// entries and are not added to executable DMN decision registries.
 pub fn parse_bpmn_bundle(
     snapshot: &BpmnBundleSnapshot,
     options: &BpmnParseOptions,

@@ -10,11 +10,25 @@ publish = false
 [features]
 default = ["vector-store"]
 vector-store = ["dep:xiuxian-vector"]
-sqlite = ["dep:rusqlite"]
+duckdb-types = ["dep:serde"]
+duckdb = ["duckdb-types", "dep:duckdb"]
+qianji-bpmn-workflow-state = [
+  "duckdb",
+  "dep:qianji-bpmn-engine",
+  "dep:serde_json",
+  "dep:thiserror",
+]
 
 [dependencies]
-rusqlite = { workspace = true, optional = true }
+duckdb = { workspace = true, optional = true }
+qianji-bpmn-engine = { path = "../qianji-bpmn-engine", default-features = false, optional = true }
+serde = { workspace = true, optional = true }
+serde_json = { workspace = true, optional = true }
+thiserror = { workspace = true, optional = true }
 xiuxian-vector = { path = "../xiuxian-vector", features = ["vector-store"], optional = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }
 
 [lints]
 workspace = true

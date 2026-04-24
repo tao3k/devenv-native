@@ -4,10 +4,12 @@ use qianji_bpmn_engine::{
     BpmnMultiInstanceDataBindingSpec, BpmnNodeKind, BpmnNodeSpec, BpmnParallelMultiInstanceSpec,
     BpmnProcessSpec, BpmnRepeatSpec, BpmnScriptTaskSpec, BpmnSequentialMultiInstanceSpec,
     BpmnStandardLoopSpec, BpmnTimerKind, BpmnTimerSpec, BusinessRuleTaskOutcome,
-    BusinessRuleTaskRequest, DmnDecisionDefinition, DmnDecisionRef, DmnSourceFile,
+    BusinessRuleTaskRequest, DmnBusinessKnowledgeModelDefinition, DmnDecisionDefinition,
+    DmnDecisionRef, DmnDecisionServiceDefinition, DmnInputDataDefinition, DmnSourceFile,
     EventPollOutcome, EventPollRequest, HostBridgeError, ManualTaskOutcome, ManualTaskRequest,
     ProcessKey, ScriptTaskOutcome, ScriptTaskRequest, SendTaskOutcome, SendTaskRequest,
     ServiceTaskOutcome, ServiceTaskRequest, UserTaskOutcome, UserTaskRequest, parse_dmn_decision,
+    parse_dmn_decisions, snapshot_dmn_source,
 };
 use serde_json::json;
 
@@ -908,4 +910,52 @@ fn dmn_fixture_definition(name: &str) -> DmnDecisionDefinition {
     let path = format!("{}/tests/fixtures/dmn/{name}", env!("CARGO_MANIFEST_DIR"));
     let contents = std::fs::read_to_string(path).must("fixture should be readable");
     parse_dmn_decision(&DmnSourceFile::new(name, contents)).must("bounded DMN fixture should parse")
+}
+
+fn dmn_fixture_definitions(name: &str) -> Vec<DmnDecisionDefinition> {
+    let path = format!("{}/tests/fixtures/dmn/{name}", env!("CARGO_MANIFEST_DIR"));
+    let contents = std::fs::read_to_string(path).must("fixture should be readable");
+    parse_dmn_decisions(&DmnSourceFile::new(name, contents))
+        .must("bounded DMN fixtures should parse")
+}
+
+fn dmn_fixture_input_data(name: &str) -> Vec<DmnInputDataDefinition> {
+    let path = format!("{}/tests/fixtures/dmn/{name}", env!("CARGO_MANIFEST_DIR"));
+    let contents = std::fs::read_to_string(path).must("fixture should be readable");
+    let source = DmnSourceFile::new(name, contents);
+    let snapshot = snapshot_dmn_source(&source).must("bounded DMN snapshot should parse");
+    snapshot
+        .root
+        .input_data
+        .iter()
+        .map(|input_data| DmnInputDataDefinition::from_snapshot(name, input_data))
+        .collect()
+}
+
+fn dmn_fixture_business_knowledge_models(name: &str) -> Vec<DmnBusinessKnowledgeModelDefinition> {
+    let path = format!("{}/tests/fixtures/dmn/{name}", env!("CARGO_MANIFEST_DIR"));
+    let contents = std::fs::read_to_string(path).must("fixture should be readable");
+    let source = DmnSourceFile::new(name, contents);
+    let snapshot = snapshot_dmn_source(&source).must("bounded DMN snapshot should parse");
+    snapshot
+        .root
+        .business_knowledge_models
+        .iter()
+        .map(|business_knowledge_model| {
+            DmnBusinessKnowledgeModelDefinition::from_snapshot(name, business_knowledge_model)
+        })
+        .collect()
+}
+
+fn dmn_fixture_decision_services(name: &str) -> Vec<DmnDecisionServiceDefinition> {
+    let path = format!("{}/tests/fixtures/dmn/{name}", env!("CARGO_MANIFEST_DIR"));
+    let contents = std::fs::read_to_string(path).must("fixture should be readable");
+    let source = DmnSourceFile::new(name, contents);
+    let snapshot = snapshot_dmn_source(&source).must("bounded DMN snapshot should parse");
+    snapshot
+        .root
+        .decision_services
+        .iter()
+        .map(|decision_service| DmnDecisionServiceDefinition::from_snapshot(name, decision_service))
+        .collect()
 }

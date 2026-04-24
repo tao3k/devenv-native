@@ -244,11 +244,16 @@ fn evaluate_ccs_audit(anchors: &[String], evidence: &[String]) -> (f64, bool, Ve
     let ccs_score = if anchors.is_empty() {
         1.0
     } else {
-        matches as f64 / anchors.len() as f64
+        usize_to_f64_saturating(matches) / usize_to_f64_saturating(anchors.len())
     };
     let is_aligned = (1.0 - ccs_score) < 0.05;
     let passed = ccs_score >= 0.70 && is_aligned;
     (ccs_score, passed, missing_anchors)
+}
+
+#[cfg(not(feature = "zhenfa-router"))]
+fn usize_to_f64_saturating(value: usize) -> f64 {
+    u32::try_from(value).map_or(f64::from(u32::MAX), f64::from)
 }
 
 fn coactivated_neighbor_node_ids(

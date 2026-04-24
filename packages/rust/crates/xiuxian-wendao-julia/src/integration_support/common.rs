@@ -4,9 +4,6 @@ use std::path::{Path, PathBuf};
 use std::process::Child;
 use std::time::Duration;
 
-use crate::compatibility::link_graph::{
-    DEFAULT_JULIA_ANALYZER_PACKAGE_DIR, DEFAULT_JULIA_ARROW_PACKAGE_DIR,
-};
 use serde::Deserialize;
 use tokio::net::TcpStream;
 use tokio::time::sleep;
@@ -84,56 +81,26 @@ fn repo_root_candidate_is_valid(candidate: &Path) -> bool {
             .is_file()
 }
 
-pub(crate) fn project_cache_dir() -> PathBuf {
-    let configured = env::var_os("PRJ_CACHE_HOME").unwrap_or_else(|| {
-        panic!("PRJ_CACHE_HOME must be set; run Julia integration support via `direnv exec . ...`")
-    });
-    let configured = PathBuf::from(configured);
-    if configured.is_absolute() {
-        configured
-    } else {
-        panic!(
-            "PRJ_CACHE_HOME must be absolute in the project environment, got `{}`",
-            configured.display()
-        )
-    }
-}
-
-pub(crate) fn wendaoarrow_package_dir() -> PathBuf {
-    repo_root()
-        .join(DEFAULT_JULIA_ARROW_PACKAGE_DIR)
-        .canonicalize()
-        .unwrap_or_else(|error| panic!("resolve WendaoArrow package dir: {error}"))
-}
-
-pub(crate) fn wendaoarrow_script(name: &str) -> PathBuf {
-    wendaoarrow_package_dir()
-        .join("scripts")
-        .join(name)
-        .canonicalize()
-        .unwrap_or_else(|error| panic!("resolve WendaoArrow script `{name}`: {error}"))
-}
-
-pub(crate) fn wendaoanalyzer_package_dir() -> PathBuf {
-    repo_root()
-        .join(DEFAULT_JULIA_ANALYZER_PACKAGE_DIR)
-        .canonicalize()
-        .unwrap_or_else(|error| panic!("resolve WendaoAnalyzer package dir: {error}"))
-}
-
-pub(crate) fn wendaoanalyzer_script(name: &str) -> PathBuf {
-    wendaoanalyzer_package_dir()
-        .join("scripts")
-        .join(name)
-        .canonicalize()
-        .unwrap_or_else(|error| panic!("resolve WendaoAnalyzer script `{name}`: {error}"))
-}
-
 pub(crate) fn wendaosearch_package_dir() -> PathBuf {
     repo_root()
         .join(".data/WendaoSearch.jl")
         .canonicalize()
         .unwrap_or_else(|error| panic!("resolve WendaoSearch package dir: {error}"))
+}
+
+pub(crate) fn wendaosearch_julia_project() -> PathBuf {
+    let Some(configured) = env::var_os("WENDAOSEARCH_JULIA_PROJECT") else {
+        return wendaosearch_package_dir();
+    };
+    let candidate = PathBuf::from(configured);
+    let candidate = if candidate.is_absolute() {
+        candidate
+    } else {
+        repo_root().join(candidate)
+    };
+    candidate
+        .canonicalize()
+        .unwrap_or_else(|error| panic!("resolve WendaoSearch Julia project dir: {error}"))
 }
 
 #[cfg(test)]
@@ -258,10 +225,6 @@ pub(crate) fn expected_wendaosearch_modelica_transport_contract()
             "modelica_ast_query".to_string(),
         ],
     }
-}
-
-pub(crate) async fn wait_for_service_ready(base_url: &str) -> Result<(), String> {
-    wait_for_service_ready_with_attempts(base_url, 450).await
 }
 
 pub(crate) async fn wait_for_service_ready_with_attempts(

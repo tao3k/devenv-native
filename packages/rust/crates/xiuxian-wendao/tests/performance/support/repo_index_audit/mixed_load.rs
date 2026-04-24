@@ -432,7 +432,7 @@ impl RepoIndexQueryLoadTracker {
                 }
             })
             .collect::<Vec<_>>();
-        by_uri.sort_by(|left, right| right.total_requests.cmp(&left.total_requests));
+        by_uri.sort_by_key(|entry| std::cmp::Reverse(entry.total_requests));
         RepoIndexQueryLoadSummary {
             target_repo_id,
             worker_count,
@@ -500,8 +500,10 @@ fn describe_query_load_summary(summary: &RepoIndexQueryLoadSummary) -> String {
 fn default_query_workers() -> usize {
     std::thread::available_parallelism()
         .map(usize::from)
-        .map(default_query_workers_for_parallelism)
-        .unwrap_or(DEFAULT_QUERY_WORKERS_MIN)
+        .map_or(
+            DEFAULT_QUERY_WORKERS_MIN,
+            default_query_workers_for_parallelism,
+        )
 }
 
 fn default_query_workers_for_parallelism(parallelism: usize) -> usize {
@@ -513,8 +515,10 @@ fn default_query_workers_for_parallelism(parallelism: usize) -> usize {
 fn default_query_pause_ms() -> u64 {
     std::thread::available_parallelism()
         .map(usize::from)
-        .map(default_query_pause_ms_for_parallelism)
-        .unwrap_or(DEFAULT_QUERY_PAUSE_MS_MAX)
+        .map_or(
+            DEFAULT_QUERY_PAUSE_MS_MAX,
+            default_query_pause_ms_for_parallelism,
+        )
 }
 
 fn default_query_pause_ms_for_parallelism(parallelism: usize) -> u64 {

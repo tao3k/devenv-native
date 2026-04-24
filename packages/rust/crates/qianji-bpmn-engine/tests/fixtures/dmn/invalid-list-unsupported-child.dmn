@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions
+  id="Definitions_invalid_list_child"
+  name="Invalid List Child"
+  namespace="https://example.com/dmn/invalid-list-child"
+  xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/">
+  <decision id="Decision_invalid_list_child" name="Invalid List Child">
+    <list id="list_invalid_child">
+      <context id="context_child">
+      </context>
+    </list>
+  </decision>
+</definitions>

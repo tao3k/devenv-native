@@ -8,25 +8,25 @@ pub(crate) fn print_qianji_usage() {
         "  BPMN:      qianji [-v|--log-verbose] bpmn start --bpmn <path> --process <id> --instance-id <id> [--context-json JSON] [--dmn <path>]... [--host-fixture <path>] [--event-fixture <path>] [--trace-stream] [--external-host] [--checkpoint-runtime]"
     );
     eprintln!(
-        "             optional local backend: add `--checkpoint-sqlite <path>` when the `sqlite` feature is enabled"
+        "             local no-server backend defaults to DuckDB; use `--checkpoint-runtime` for Valkey"
     );
     eprintln!(
-        "             compatibility alias: qianji [-v|--log-verbose] bpmn run --bpmn <path> --process <id> --instance-id <id> [--context-json JSON] [--dmn <path>]... [--host-fixture <path>] [--event-fixture <path>] [--trace-stream] [--external-host] [--checkpoint-runtime|--checkpoint-sqlite <path>]"
+        "             compatibility alias: qianji [-v|--log-verbose] bpmn run --bpmn <path> --process <id> --instance-id <id> [--context-json JSON] [--dmn <path>]... [--host-fixture <path>] [--event-fixture <path>] [--trace-stream] [--external-host] [--checkpoint-runtime]"
     );
     eprintln!(
-        "             qianji [-v|--log-verbose] bpmn resume --bpmn <path> --instance-id <id> [--dmn <path>]... [--host-fixture <path>] [--event-fixture <path>] [--trace-stream] [--external-host] [--checkpoint-runtime|--checkpoint-sqlite <path>]"
+        "             qianji [-v|--log-verbose] bpmn resume --bpmn <path> --instance-id <id> [--dmn <path>]... [--host-fixture <path>] [--event-fixture <path>] [--trace-stream] [--external-host] [--checkpoint-runtime]"
     );
     eprintln!(
-        "             qianji [-v|--log-verbose] bpmn events poll --bpmn <path> --instance-id <id> [--dmn <path>]... [--host-fixture <path>] [--event-fixture <path>] [--checkpoint-runtime|--checkpoint-sqlite <path>]"
+        "             qianji [-v|--log-verbose] bpmn events poll --bpmn <path> --instance-id <id> [--dmn <path>]... [--host-fixture <path>] [--event-fixture <path>] [--checkpoint-runtime]"
     );
     eprintln!(
-        "             qianji [-v|--log-verbose] bpmn tasks complete --bpmn <path> --instance-id <id> [--dmn <path>]... [--host-fixture <path>] [--trace-stream] [--external-host] [--checkpoint-runtime|--checkpoint-sqlite <path>]"
+        "             qianji [-v|--log-verbose] bpmn tasks complete --bpmn <path> --instance-id <id> [--dmn <path>]... [--host-fixture <path>] [--trace-stream] [--external-host] [--checkpoint-runtime]"
     );
     eprintln!(
-        "             qianji [-v|--log-verbose] bpmn status --instance-id <id> [--checkpoint-runtime|--checkpoint-sqlite <path>]"
+        "             qianji [-v|--log-verbose] bpmn status --instance-id <id> [--checkpoint-runtime]"
     );
     eprintln!(
-        "             qianji [-v|--log-verbose] bpmn cancel --instance-id <id> [--checkpoint-runtime|--checkpoint-sqlite <path>]"
+        "             qianji [-v|--log-verbose] bpmn cancel --instance-id <id> [--checkpoint-runtime]"
     );
     eprintln!("  Show:      qianji [-v|--log-verbose] show --dir <path>");
     eprintln!("             qianji [-v|--log-verbose] show --graph <path>");

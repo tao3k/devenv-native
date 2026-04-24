@@ -107,8 +107,16 @@ impl SearchEngineContext {
         if self.table(table_name).await.is_ok() {
             return Ok(());
         }
-        self.register_parquet_table(table_name, table_path, partition_columns)
+        match self
+            .register_parquet_table(table_name, table_path, partition_columns)
             .await
+        {
+            Ok(()) => Ok(()),
+            Err(error) if table_already_exists_error(&error, table_name) => {
+                self.table(table_name).await.map(|_| ())
+            }
+            Err(error) => Err(error),
+        }
     }
 
     /// Resolve a registered table as a `DataFusion` dataframe.
@@ -141,4 +149,9 @@ impl SearchEngineContext {
     ) -> Result<Vec<RecordBatch>, VectorStoreError> {
         dataframe.collect().await.map_err(Into::into)
     }
+}
+
+fn table_already_exists_error(error: &VectorStoreError, table_name: &str) -> bool {
+    let message = error.to_string();
+    message.contains("already exists") && message.contains(table_name)
 }

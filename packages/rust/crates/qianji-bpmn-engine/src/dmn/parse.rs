@@ -10,3 +10,4 @@ mod unary;
 mod xml;
 
 pub(crate) use driver::{parse_dmn_decision_impl, parse_dmn_decisions_impl};
+pub(crate) use unary::parse_literal;

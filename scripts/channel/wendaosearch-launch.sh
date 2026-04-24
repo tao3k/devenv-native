@@ -30,6 +30,9 @@ test -f "$CONFIG_PATH" || {
 }
 export JULIA_LOAD_PATH="$JULIA_LOAD_PATH_VALUE"
 export WENDAOSEARCH_PIDFILE="$PIDFILE"
+if [ -n "${WENDAOSEARCH_JULIA_PROJECT:-}" ]; then
+  export WENDAO_SEARCH_USE_ACTIVE_PROJECT="${WENDAO_SEARCH_USE_ACTIVE_PROJECT:-1}"
+fi
 
 managed_cleanup_pidfile_process "$PIDFILE" "$SERVICE_NAME" "julia" "$SCRIPT_PATH"
 managed_cleanup_listener "$PORT" "$SERVICE_NAME" "julia" "$SCRIPT_PATH"

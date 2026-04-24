@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  id="Defs_Metadata"
+  name="Metadata Fixture"
+  targetNamespace="https://qianji.example/bpmn/metadata">
+  <collaboration id="Collaboration_1" name="Order Collaboration">
+    <participant id="Participant_A" name="Requester" processRef="Process_1" />
+    <participant id="Participant_B" name="Approver" />
+    <messageFlow id="MessageFlow_1" name="Request" sourceRef="Participant_A" targetRef="Participant_B" messageRef="Message_1" />
+  </collaboration>
+  <dataStore id="Store_1" name="Orders" itemSubjectRef="tns:Order" capacity="100" isUnlimited="false" />
+  <process id="Process_1" name="Metadata Process" isExecutable="true">
+    <laneSet id="LaneSet_1" name="Ownership">
+      <lane id="Lane_1" name="Requester Lane">
+        <flowNodeRef>Task_1</flowNodeRef>
+      </lane>
+    </laneSet>
+    <dataObject id="DataObject_1" name="Order" itemSubjectRef="tns:Order" isCollection="false" />
+    <dataObjectReference id="DataObjectReference_1" name="Order Ref" dataObjectRef="DataObject_1" />
+    <dataStoreReference id="DataStoreReference_1" name="Orders Ref" dataStoreRef="Store_1" />
+    <ioSpecification id="IoSpec_1">
+      <dataInput id="Input_1" name="order_input" itemSubjectRef="tns:Order" />
+      <dataOutput id="Output_1" name="order_output" itemSubjectRef="tns:Order" />
+    </ioSpecification>
+    <dataInputAssociation id="InputAssociation_1">
+      <sourceRef>DataObjectReference_1</sourceRef>
+      <targetRef>Input_1</targetRef>
+    </dataInputAssociation>
+    <serviceTask id="Task_1" name="Handle" />
+    <startEvent id="Start_1" />
+    <sequenceFlow id="Flow_1" sourceRef="Start_1" targetRef="Task_1" />
+    <endEvent id="End_1" />
+    <sequenceFlow id="Flow_2" sourceRef="Task_1" targetRef="End_1" />
+  </process>
+</definitions>

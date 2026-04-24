@@ -324,6 +324,50 @@ wendaosearch_materialize_package_repo() {
     "WendaoSearch package checkout"
 }
 
+wendaosearch_repair_wendaocodeparser_checkout() {
+  local checkout_dir="$1"
+  local project_toml="$checkout_dir/Project.toml"
+
+  [ -f "$project_toml" ] || return 0
+
+  python - "$project_toml" <<'PY'
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+
+def main() -> int:
+    project_toml = Path(sys.argv[1])
+    lines = project_toml.read_text(encoding="utf-8").splitlines()
+    in_compat = False
+    changed = False
+    updated_lines: list[str] = []
+
+    for line in lines:
+        stripped = line.strip()
+        if stripped.startswith("[") and stripped.endswith("]"):
+            in_compat = stripped == "[compat]"
+            updated_lines.append(line)
+            continue
+
+        if in_compat and stripped == 'ImmutableList = "0.1"':
+            updated_lines.append('ImmutableList = "0.1, 0.3"')
+            changed = True
+            continue
+
+        updated_lines.append(line)
+
+    if changed:
+        project_toml.write_text("\n".join(updated_lines) + "\n", encoding="utf-8")
+
+    return 0
+
+
+raise SystemExit(main())
+PY
+}
+
 wendaosearch_script_path() {
   local root="$1"
   local package_dir
