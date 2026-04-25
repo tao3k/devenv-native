@@ -16,19 +16,11 @@ use crate::unified_symbol::UnifiedSymbolIndex;
 use crate::gateway::studio::types::VfsScanResult;
 use xiuxian_zhenfa::ZhenfaSignal;
 
-#[derive(Clone, Default)]
+#[derive(Clone, Copy, Default, PartialEq, Eq)]
 pub(crate) struct GraphSourceSignature {
     pub(crate) note_count: usize,
     pub(crate) latest_modified_at: Option<SystemTime>,
     pub(crate) total_size_bytes: u64,
-}
-
-impl PartialEq for GraphSourceSignature {
-    fn eq(&self, other: &Self) -> bool {
-        self.note_count == other.note_count
-            && self.latest_modified_at == other.latest_modified_at
-            && self.total_size_bytes == other.total_size_bytes
-    }
 }
 
 #[derive(Clone)]
