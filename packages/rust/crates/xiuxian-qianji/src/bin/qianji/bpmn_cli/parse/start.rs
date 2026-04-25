@@ -1,5 +1,5 @@
+use crate::bpmn_cli::deps::QianjiBpmnWorkflowCheckpointBackend;
 use crate::bpmn_cli::deps::{PathBuf, invalid_input, io, parse_flag_value};
-use crate::bpmn_cli::parse::backend::parse_bpmn_checkpoint_backend;
 use crate::bpmn_cli::types::{BpmnRunCliCommand, BpmnStartCliCommand};
 
 pub(super) fn parse_bpmn_run_command(args: &[String]) -> io::Result<BpmnRunCliCommand> {
@@ -36,7 +36,18 @@ fn parse_bpmn_start_like_command(
         index += 1;
     }
 
-    let checkpoint_backend = parse_bpmn_checkpoint_backend(state.checkpoint_runtime);
+    let checkpoint_backend = if state.checkpoint_runtime {
+        Some(QianjiBpmnWorkflowCheckpointBackend::RuntimeValkey)
+    } else {
+        #[cfg(feature = "duckdb")]
+        {
+            Some(QianjiBpmnWorkflowCheckpointBackend::LocalDuckDb)
+        }
+        #[cfg(not(feature = "duckdb"))]
+        {
+            None
+        }
+    };
     if state.context_json.is_none() && checkpoint_backend.is_none() {
         return Err(invalid_input(format!(
             "missing `--context-json <json>` for fresh `{command_name}` command"

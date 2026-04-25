@@ -76,8 +76,7 @@ pub(crate) async fn list_workflow_instances(
     let checkpoint_store = resolve_checkpoint_store(service, Some(&request.checkpoint_backend))?
         .ok_or_else(|| io::Error::other("workflow operation requires one checkpoint backend"))?;
     let instances = checkpoint_store
-        .list()
-        .await?
+        .list()?
         .into_iter()
         .map(QianjiBpmnWorkflowInstanceSummary::from_checkpoint)
         .collect();

@@ -1,5 +1,5 @@
+use crate::bpmn_cli::deps::QianjiBpmnWorkflowCheckpointBackend;
 use crate::bpmn_cli::deps::{PathBuf, invalid_input, io, parse_flag_value};
-use crate::bpmn_cli::parse::backend::parse_bpmn_checkpoint_backend;
 use crate::bpmn_cli::types::{
     BpmnCliCommand, BpmnEventPollCliCommand, BpmnResumeCliCommand, BpmnTaskCompleteCliCommand,
 };
@@ -67,9 +67,19 @@ fn parse_bpmn_resume_like_command(
         index += 1;
     }
 
-    let checkpoint_backend = parse_bpmn_checkpoint_backend(state.checkpoint_runtime);
-
-    let checkpoint_backend = checkpoint_backend.ok_or_else(|| {
+    let checkpoint_backend = if state.checkpoint_runtime {
+        Some(QianjiBpmnWorkflowCheckpointBackend::RuntimeValkey)
+    } else {
+        #[cfg(feature = "duckdb")]
+        {
+            Some(QianjiBpmnWorkflowCheckpointBackend::LocalDuckDb)
+        }
+        #[cfg(not(feature = "duckdb"))]
+        {
+            None
+        }
+    }
+    .ok_or_else(|| {
         invalid_input(format!(
             "missing checkpoint backend for `{command_name}`; use `--checkpoint-runtime` or enable local DuckDB"
         ))

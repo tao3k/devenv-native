@@ -39,7 +39,8 @@ pub(crate) async fn run() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     if let Some(command) = parse_template_command(&args)? {
-        return handle_template_command(command);
+        handle_template_command(&command);
+        return Ok(());
     }
 
     if args.len() < 4 {

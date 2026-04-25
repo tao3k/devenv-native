@@ -162,7 +162,7 @@ impl QianjiBpmnCheckpointStore {
     ///
     /// Returns [`BpmnOrchestrationError`] when the backend cannot enumerate
     /// local checkpoint state or when decoding any stored checkpoint fails.
-    pub async fn list(&self) -> Result<Vec<BpmnCheckpointEnvelope>, BpmnOrchestrationError> {
+    pub fn list(&self) -> Result<Vec<BpmnCheckpointEnvelope>, BpmnOrchestrationError> {
         match self {
             Self::Valkey { .. } => Err(BpmnOrchestrationError::CheckpointListUnsupportedBackend {
                 backend: self.backend_name().to_string(),

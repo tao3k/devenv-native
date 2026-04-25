@@ -229,8 +229,7 @@ fn append_bpmn_status_graph_snapshot(
             let status = instance
                 .node_states
                 .get(node_index)
-                .map(|state| node_runtime_status_label(&state.status))
-                .unwrap_or("unknown");
+                .map_or("unknown", |state| node_runtime_status_label(&state.status));
             serde_json::json!({
                 "node_id": node.bpmn_id.as_ref(),
                 "node_index": node.index,

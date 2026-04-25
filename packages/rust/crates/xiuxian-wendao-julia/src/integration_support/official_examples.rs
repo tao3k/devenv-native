@@ -1,4 +1,3 @@
-use std::env;
 use std::process::{Command, Stdio};
 
 use serde_json::json;
@@ -26,6 +25,9 @@ package Warmup
 end Warmup;
 ";
 const MODELICA_PARSER_SUMMARY_READY_TIMEOUT_SECS: u64 = 60;
+const JULIA_PARSER_SUMMARY_ROUTE_NAMES: &[&str] = &["julia_file_summary", "julia_root_summary"];
+const MODELICA_PARSER_SUMMARY_ROUTE_NAMES: &[&str] =
+    &["modelica_file_summary", "modelica_ast_query"];
 
 /// Spawns the official `WendaoSearch` structural-rerank example in `demo`
 /// mode.
@@ -97,7 +99,8 @@ pub async fn spawn_wendaosearch_julia_parser_summary_service() -> (String, Julia
 pub async fn spawn_wendaosearch_julia_parser_summary_service_with_attempts(
     ready_attempts: usize,
 ) -> (String, JuliaExampleServiceGuard) {
-    spawn_wendaosearch_parser_summary_service(ready_attempts).await
+    spawn_wendaosearch_parser_summary_service(ready_attempts, JULIA_PARSER_SUMMARY_ROUTE_NAMES)
+        .await
 }
 
 /// Spawns the official `WendaoSearch` parser-summary service for the Modelica
@@ -109,7 +112,8 @@ pub async fn spawn_wendaosearch_julia_parser_summary_service_with_attempts(
 /// start.
 pub async fn spawn_wendaosearch_modelica_parser_summary_service()
 -> (String, JuliaExampleServiceGuard) {
-    let (base_url, mut guard) = spawn_wendaosearch_parser_summary_service(1500).await;
+    let (base_url, mut guard) =
+        spawn_wendaosearch_parser_summary_service(1500, MODELICA_PARSER_SUMMARY_ROUTE_NAMES).await;
     probe_wendaosearch_modelica_parser_summary_route_for_tests(base_url.as_str()).unwrap_or_else(
         |error| {
             guard.kill();
@@ -134,25 +138,10 @@ pub fn probe_wendaosearch_modelica_parser_summary_route_for_tests(
     wait_for_modelica_parser_summary_route_ready(base_url)
 }
 
-fn project_environment_is_ready() -> bool {
-    [
-        "PRJ_ROOT",
-        "PRJ_CACHE_HOME",
-        "PRJ_DATA_HOME",
-        "PRJ_RUNTIME_DIR",
-    ]
-    .into_iter()
-    .all(|name| env::var_os(name).is_some())
-}
-
 fn project_julia_command() -> Command {
-    if project_environment_is_ready() {
-        Command::new("julia")
-    } else {
-        let mut command = Command::new("direnv");
-        command.arg("exec").arg(".").arg("julia");
-        command
-    }
+    let mut command = Command::new("direnv");
+    command.arg("exec").arg(".").arg("julia");
+    command
 }
 
 async fn spawn_wendaosearch_service(
@@ -164,6 +153,7 @@ async fn spawn_wendaosearch_service(
 
 async fn spawn_wendaosearch_parser_summary_service(
     ready_attempts: usize,
+    code_parser_route_names: &[&str],
 ) -> (String, JuliaExampleServiceGuard) {
     let port = reserve_service_port();
     let contract = wendaosearch_parser_summary_contract();
@@ -179,8 +169,11 @@ async fn spawn_wendaosearch_parser_summary_service(
         .arg(&contract.service.host)
         .arg("--port")
         .arg(port.to_string())
+        .arg("--code-parser-route-names")
+        .arg(code_parser_route_names.join(","))
         .current_dir(repo_root())
         .env("JULIA_LOAD_PATH", "@:@stdlib")
+        .env("WENDAO_SEARCH_USE_ACTIVE_PROJECT", "1")
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .spawn()

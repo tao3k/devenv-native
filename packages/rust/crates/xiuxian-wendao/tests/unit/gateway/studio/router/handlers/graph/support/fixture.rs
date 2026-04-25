@@ -2,7 +2,9 @@ use std::sync::Arc;
 
 use tempfile::TempDir;
 
-use crate::gateway::studio::router::{GatewayState, StudioState};
+use crate::gateway::studio::router::{
+    GatewayState, GraphIndexCacheEntry, GraphSourceSignature, StudioState,
+};
 use crate::gateway::studio::types::{UiConfig, UiProjectConfig};
 use crate::link_graph::LinkGraphIndex;
 
@@ -45,7 +47,10 @@ pub(crate) fn build_fixture_with_projects(
         .graph_index
         .write()
         .unwrap_or_else(std::sync::PoisonError::into_inner);
-    *graph_guard = Some(Arc::new(graph_index));
+    *graph_guard = Some(GraphIndexCacheEntry {
+        index: Arc::new(graph_index),
+        source_signature: GraphSourceSignature::default(),
+    });
     drop(graph_guard);
 
     Fixture {

@@ -30,17 +30,15 @@ fn parse_template_command_accepts_dmn_target() {
 #[test]
 fn parse_template_command_rejects_ambiguous_target() {
     let error = parse_template_command(&to_args(&["qianji", "template", "--bpmn", "--dmn"]))
-        .expect_err("ambiguous template target should fail");
+        .err()
+        .unwrap_or_else(|| panic!("ambiguous template target should fail"));
 
     assert!(error.to_string().contains("exactly one"));
 }
 
 #[test]
 fn run_template_command_renders_lint_clean_bpmn() {
-    let output = must_ok(
-        run_template_command(TemplateCliCommand::Bpmn),
-        "template command should render BPMN",
-    );
+    let output = run_template_command(&TemplateCliCommand::Bpmn);
     let report = lint_bpmn_source(&BpmnSourceFile::new(
         "template.bpmn".to_string(),
         output.rendered.clone(),
@@ -53,10 +51,7 @@ fn run_template_command_renders_lint_clean_bpmn() {
 
 #[test]
 fn run_template_command_renders_lint_clean_dmn() {
-    let output = must_ok(
-        run_template_command(TemplateCliCommand::Dmn),
-        "template command should render DMN",
-    );
+    let output = run_template_command(&TemplateCliCommand::Dmn);
     let report = lint_dmn_source(&DmnSourceFile::new(
         "template.dmn".to_string(),
         output.rendered.clone(),

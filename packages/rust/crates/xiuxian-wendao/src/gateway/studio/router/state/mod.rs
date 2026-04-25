@@ -19,3 +19,5 @@ pub use cold_start::{
 #[cfg(test)]
 pub(crate) use helpers::supported_code_kinds;
 pub use types::{GatewayState, StudioBootstrapBackgroundIndexingTelemetry, StudioState};
+#[cfg(test)]
+pub(crate) use types::{GraphIndexCacheEntry, GraphSourceSignature};

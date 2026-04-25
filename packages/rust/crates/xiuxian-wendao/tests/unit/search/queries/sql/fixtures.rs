@@ -1,5 +1,4 @@
 use std::collections::BTreeMap;
-use std::path::PathBuf;
 use std::sync::Arc;
 
 use arrow::array::{Array, BooleanArray, Float32Array, Float64Array, Int32Array, Int64Array};
@@ -29,8 +28,11 @@ use crate::search::{
 use crate::set_link_graph_wendao_config_override;
 
 pub(super) fn fixture_service(temp_dir: &tempfile::TempDir) -> SearchPlaneService {
+    let project_root = temp_dir.path().join("project");
+    std::fs::create_dir_all(&project_root)
+        .unwrap_or_else(|error| panic!("create SQL fixture project root: {error}"));
     SearchPlaneService::with_paths(
-        PathBuf::from("/tmp/project"),
+        project_root,
         temp_dir.path().join("search_plane"),
         SearchManifestKeyspace::new("xiuxian:test:studio_sql_flight"),
         SearchMaintenancePolicy::default(),

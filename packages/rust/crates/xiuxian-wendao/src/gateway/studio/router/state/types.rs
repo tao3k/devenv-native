@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 use std::sync::{Arc, RwLock};
-use std::time::Instant;
+use std::time::{Instant, SystemTime};
 
 use serde::Serialize;
 
@@ -15,6 +15,27 @@ use crate::unified_symbol::UnifiedSymbolIndex;
 
 use crate::gateway::studio::types::VfsScanResult;
 use xiuxian_zhenfa::ZhenfaSignal;
+
+#[derive(Clone, Default)]
+pub(crate) struct GraphSourceSignature {
+    pub(crate) note_count: usize,
+    pub(crate) latest_modified_at: Option<SystemTime>,
+    pub(crate) total_size_bytes: u64,
+}
+
+impl PartialEq for GraphSourceSignature {
+    fn eq(&self, other: &Self) -> bool {
+        self.note_count == other.note_count
+            && self.latest_modified_at == other.latest_modified_at
+            && self.total_size_bytes == other.total_size_bytes
+    }
+}
+
+#[derive(Clone)]
+pub(crate) struct GraphIndexCacheEntry {
+    pub(crate) index: Arc<LinkGraphIndex>,
+    pub(crate) source_signature: GraphSourceSignature,
+}
 
 #[derive(Clone)]
 pub(crate) struct DeferredBootstrapBackgroundIndexingActivation {
@@ -98,7 +119,7 @@ pub struct StudioState {
     pub(crate) bootstrap_background_indexing_deferred_activation:
         Arc<RwLock<Option<DeferredBootstrapBackgroundIndexingActivation>>>,
     pub(crate) configured_owners: Arc<RwLock<StudioConfiguredOwners>>,
-    pub(crate) graph_index: Arc<RwLock<Option<Arc<LinkGraphIndex>>>>,
+    pub(crate) graph_index: Arc<RwLock<Option<GraphIndexCacheEntry>>>,
     pub(crate) symbol_index: Arc<RwLock<Option<Arc<UnifiedSymbolIndex>>>>,
     pub(crate) symbol_index_coordinator: Arc<SymbolIndexCoordinator>,
     pub(crate) search_plane: SearchPlaneService,

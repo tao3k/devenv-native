@@ -13,22 +13,19 @@ pub(crate) struct TemplateCliOutput {
     pub(crate) rendered: String,
 }
 
-pub(super) fn handle_template_command(
-    command: TemplateCliCommand,
-) -> Result<(), Box<dyn std::error::Error>> {
-    let output = run_template_command(command)?;
+pub(super) fn handle_template_command(command: &TemplateCliCommand) {
+    let output = run_template_command(command);
     println!("{}", output.rendered);
-    Ok(())
 }
 
-pub(super) fn run_template_command(command: TemplateCliCommand) -> io::Result<TemplateCliOutput> {
+pub(super) fn run_template_command(command: &TemplateCliCommand) -> TemplateCliOutput {
     let rendered = match command {
         TemplateCliCommand::Bpmn => bpmn_template(),
         TemplateCliCommand::Dmn => dmn_template(),
     };
-    Ok(TemplateCliOutput {
+    TemplateCliOutput {
         rendered: rendered.to_string(),
-    })
+    }
 }
 
 pub(super) fn parse_template_command(args: &[String]) -> io::Result<Option<TemplateCliCommand>> {

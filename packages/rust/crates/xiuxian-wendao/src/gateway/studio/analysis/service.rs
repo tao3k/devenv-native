@@ -68,7 +68,9 @@ pub(crate) async fn analyze_markdown(
         .graph_index
         .read()
         .unwrap_or_else(std::sync::PoisonError::into_inner);
-    let graph_index = graph_index_guard.as_ref().map(std::sync::Arc::as_ref);
+    let graph_index = graph_index_guard
+        .as_ref()
+        .map(|entry| std::sync::Arc::as_ref(&entry.index));
     let document_metadata = build_markdown_document_metadata(state, path, &content, graph_index);
 
     let projections = projection::build_mermaid_projections(&compiled.nodes, &compiled.edges);
