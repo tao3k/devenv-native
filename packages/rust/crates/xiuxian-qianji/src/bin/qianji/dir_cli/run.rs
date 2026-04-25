@@ -188,5 +188,19 @@ fn run_advance_command(dir: &Path, to: &str) -> Result<DirCliOutput, QianjiError
 }
 
 fn resolve_default_flowhub_root() -> std::io::Result<PathBuf> {
+    let current_dir = std::env::current_dir()?;
+    if let Some(root) = find_default_flowhub_root(current_dir.as_path()) {
+        return Ok(root);
+    }
+    if let Some(root) = find_default_flowhub_root(Path::new(env!("CARGO_MANIFEST_DIR"))) {
+        return Ok(root);
+    }
     Ok(resolve_workspace_root(None)?.join("qianji-flowhub"))
+}
+
+fn find_default_flowhub_root(start: &Path) -> Option<PathBuf> {
+    start
+        .ancestors()
+        .map(|ancestor| ancestor.join("qianji-flowhub"))
+        .find(|candidate| candidate.join("qianji.toml").is_file())
 }
