@@ -113,13 +113,12 @@ pub fn open_duckdb_connection(
             "SET preserve_insertion_order = {}",
             runtime.execution.preserve_insertion_order
         ),
-        format!(
-            "SET parquet_metadata_cache = {}",
-            runtime.execution.parquet_metadata_cache
-        ),
         "SET enable_profiling = 'no_output'".to_string(),
         "SET profiling_mode = 'standard'".to_string(),
     ];
+    if runtime.execution.parquet_metadata_cache {
+        settings.push("SET parquet_metadata_cache = true".to_string());
+    }
     if let Some(memory_limit) = runtime.memory_limit.as_deref() {
         settings.push(format!(
             "SET memory_limit = '{}'",
