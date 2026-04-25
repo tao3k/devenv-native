@@ -1,3 +1,4 @@
+use std::env;
 use std::process::{Command, Stdio};
 
 use serde_json::json;
@@ -139,9 +140,17 @@ pub fn probe_wendaosearch_modelica_parser_summary_route_for_tests(
 }
 
 fn project_julia_command() -> Command {
-    let mut command = Command::new("direnv");
-    command.arg("exec").arg(".").arg("julia");
-    command
+    if executable_on_path("direnv") {
+        let mut command = Command::new("direnv");
+        command.arg("exec").arg(".").arg("julia");
+        return command;
+    }
+    Command::new("julia")
+}
+
+fn executable_on_path(name: &str) -> bool {
+    env::var_os("PATH")
+        .is_some_and(|paths| env::split_paths(&paths).any(|path| path.join(name).is_file()))
 }
 
 async fn spawn_wendaosearch_service(

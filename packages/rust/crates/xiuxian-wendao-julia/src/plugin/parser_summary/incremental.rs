@@ -54,7 +54,16 @@ pub fn julia_parser_summary_file_semantic_fingerprint_for_repository(
 pub(crate) fn julia_parser_file_summary_semantic_fingerprint(
     summary: &JuliaParserFileSummary,
 ) -> String {
-    stable_payload_fingerprint("julia_parser_file_summary", summary)
+    let mut normalized = summary.clone();
+    for symbol in &mut normalized.symbols {
+        symbol.line_start = None;
+        symbol.line_end = None;
+    }
+    for docstring in &mut normalized.docstrings {
+        docstring.target_line_start = None;
+        docstring.target_line_end = None;
+    }
+    stable_payload_fingerprint("julia_parser_file_summary", &normalized)
 }
 
 #[must_use]

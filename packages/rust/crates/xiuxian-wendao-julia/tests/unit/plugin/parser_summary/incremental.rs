@@ -96,10 +96,19 @@ fn julia_parser_summary_file_semantic_fingerprint_changes_with_summary_semantics
     let same = base.clone();
     let mut changed = base.clone();
     changed.symbols[0].name = "beta".to_string();
+    let mut relocated = base.clone();
+    relocated.symbols[0].line_start = Some(10);
+    relocated.symbols[0].line_end = Some(12);
+    relocated.docstrings[0].target_line_start = Some(10);
+    relocated.docstrings[0].target_line_end = Some(12);
 
     assert_eq!(
         julia_parser_file_summary_semantic_fingerprint(&base),
         julia_parser_file_summary_semantic_fingerprint(&same)
+    );
+    assert_eq!(
+        julia_parser_file_summary_semantic_fingerprint(&base),
+        julia_parser_file_summary_semantic_fingerprint(&relocated)
     );
     assert_ne!(
         julia_parser_file_summary_semantic_fingerprint(&base),

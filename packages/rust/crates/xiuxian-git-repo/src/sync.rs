@@ -385,6 +385,7 @@ fn resolve_managed_checkout(
             )
         })?;
         let current_checkout_revision = resolve_head_revision(&repo);
+        let current_tracking_revision = resolve_tracking_revision(&repo, spec.revision.as_ref());
         let remote_updated = if matches!(mode, SyncMode::Status) {
             false
         } else {
@@ -406,19 +407,57 @@ fn resolve_managed_checkout(
                 current_checkout_revision.as_deref(),
                 desired_checkout_revision.as_deref(),
             );
+        let mut checkout_was_rebuilt = false;
         if checkout_requires_fetch {
-            fetch_origin_with_retry(&repo).map_err(|error| {
-                RepoError::new(
-                    RepoError::classify_message(error.message()),
-                    format!(
-                        "failed to refresh managed checkout `{}` from mirror `{mirror_origin}`: {error}",
-                        spec.id
-                    ),
-                )
-            })?;
+            match fetch_origin_with_retry(&repo) {
+                Ok(()) => {}
+                Err(error)
+                    if managed_checkout_rebuild_allowed(
+                        current_checkout_revision.as_deref(),
+                        current_tracking_revision.as_deref(),
+                    ) =>
+                {
+                    drop(repo);
+                    fs::remove_dir_all(&checkout_root).map_err(|remove_error| {
+                        RepoError::new(
+                            RepoErrorKind::Permanent,
+                            format!(
+                                "failed to rebuild managed checkout `{}` after fetch failure `{error}`: {remove_error}",
+                                spec.id
+                            ),
+                        )
+                    })?;
+                    repo = clone_checkout_from_mirror(&mirror_origin, &checkout_root).map_err(
+                        |clone_error| {
+                            RepoError::new(
+                                RepoError::classify_message(clone_error.message()),
+                                format!(
+                                    "failed to rebuild managed checkout `{}` from mirror `{mirror_origin}` after fetch failure `{error}`: {clone_error}",
+                                    spec.id
+                                ),
+                            )
+                        },
+                    )?;
+                    checkout_was_rebuilt = true;
+                }
+                Err(error) => {
+                    return Err(RepoError::new(
+                        RepoError::classify_message(error.message()),
+                        format!(
+                            "failed to refresh managed checkout `{}` from mirror `{mirror_origin}`: {error}",
+                            spec.id
+                        ),
+                    ));
+                }
+            }
         }
+        let checkout_head_revision = if checkout_was_rebuilt {
+            resolve_head_revision(&repo)
+        } else {
+            current_checkout_revision
+        };
         let checkout_requires_head_sync = !matches!(mode, SyncMode::Status)
-            && current_checkout_revision.as_deref() != desired_checkout_revision.as_deref();
+            && checkout_head_revision.as_deref() != desired_checkout_revision.as_deref();
         if checkout_requires_head_sync {
             sync_checkout_head(&mut repo, spec.revision.as_ref()).map_err(|error| {
                 RepoError::new(
@@ -432,7 +471,10 @@ fn resolve_managed_checkout(
         }
         (
             repo,
-            remote_updated || checkout_requires_fetch || checkout_requires_head_sync,
+            remote_updated
+                || checkout_requires_fetch
+                || checkout_requires_head_sync
+                || checkout_was_rebuilt,
         )
     } else {
         clone_checkout_from_mirror(&mirror_origin, &checkout_root)
@@ -516,6 +558,13 @@ fn checkout_requires_fetch(
         return false;
     }
     current_checkout_revision != desired_checkout_revision
+}
+
+fn managed_checkout_rebuild_allowed(
+    current_checkout_revision: Option<&str>,
+    current_tracking_revision: Option<&str>,
+) -> bool {
+    current_checkout_revision.is_some() && current_checkout_revision == current_tracking_revision
 }
 
 fn mirror_requires_fetch(
