@@ -10,6 +10,7 @@ use crate::support::repo_intelligence::{
     assert_repo_json_snapshot, create_sample_julia_repo, write_repo_config,
 };
 use serde_json::json;
+use uuid::Uuid;
 use xiuxian_config_core::resolve_data_home;
 use xiuxian_wendao::analyzers::{
     RepoSyncDriftState, RepoSyncHealthState, RepoSyncMode, RepoSyncQuery, RepoSyncStalenessState,
@@ -344,17 +345,14 @@ fn cli_repo_sync_returns_serialized_result() -> TestResult {
 fn repo_sync_refresh_mode_overrides_manual_policy() -> TestResult {
     let temp = tempfile::tempdir()?;
     let source_repo = create_sample_julia_repo(temp.path(), "ManagedForceSyncPkg", true)?;
-    clear_managed_repo_cache(temp.path(), "managed-force-sync")?;
-    let config_path = write_repo_url_config_with_refresh(
-        temp.path(),
-        &source_repo,
-        "managed-force-sync",
-        "manual",
-    )?;
+    let repo_id = format!("managed-force-sync-{}", Uuid::new_v4());
+    clear_managed_repo_cache(temp.path(), repo_id.as_str())?;
+    let config_path =
+        write_repo_url_config_with_refresh(temp.path(), &source_repo, repo_id.as_str(), "manual")?;
 
     let first = repo_sync_from_config(
         &RepoSyncQuery {
-            repo_id: "managed-force-sync".to_string(),
+            repo_id: repo_id.clone(),
             mode: RepoSyncMode::Ensure,
         },
         Some(&config_path),
@@ -370,7 +368,7 @@ fn repo_sync_refresh_mode_overrides_manual_policy() -> TestResult {
 
     let second = repo_sync_from_config(
         &RepoSyncQuery {
-            repo_id: "managed-force-sync".to_string(),
+            repo_id: repo_id.clone(),
             mode: RepoSyncMode::Ensure,
         },
         Some(&config_path),
@@ -378,7 +376,7 @@ fn repo_sync_refresh_mode_overrides_manual_policy() -> TestResult {
     )?;
     let refreshed = repo_sync_from_config(
         &RepoSyncQuery {
-            repo_id: "managed-force-sync".to_string(),
+            repo_id,
             mode: RepoSyncMode::Refresh,
         },
         Some(&config_path),

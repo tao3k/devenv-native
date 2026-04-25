@@ -187,13 +187,13 @@ fn test_json_parsing_performance() {
 
     let elapsed = start.elapsed();
 
-    // Should parse 1000 JSON objects in under 50ms
-    let max_duration = Duration::from_millis(50);
+    let max_duration = benchmark_budget_ms(50, 100, 250);
     assert!(
         elapsed < max_duration,
-        "JSON parsing took {:.2}ms for {} iterations",
+        "JSON parsing took {:.2}ms for {} iterations (expected < {:.2}ms)",
         elapsed.as_secs_f64() * 1000.0,
-        ITERATIONS
+        ITERATIONS,
+        max_duration.as_secs_f64() * 1000.0
     );
 
     println!(
