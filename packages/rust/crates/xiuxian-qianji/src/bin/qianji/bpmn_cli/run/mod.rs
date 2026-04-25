@@ -5,6 +5,7 @@
 mod api;
 mod cancel;
 mod execution;
+mod instances;
 mod shared;
 mod status;
 

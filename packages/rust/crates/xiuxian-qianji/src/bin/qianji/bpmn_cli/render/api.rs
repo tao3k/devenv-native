@@ -6,4 +6,5 @@ pub(crate) use super::execution::{
     render_bpmn_start_output, render_bpmn_task_complete_missing_output,
     render_bpmn_task_complete_output,
 };
+pub(crate) use super::instances::render_bpmn_instances_output;
 pub(crate) use super::status::{render_bpmn_status_missing_output, render_bpmn_status_output};

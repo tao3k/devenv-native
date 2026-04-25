@@ -1,8 +1,8 @@
 //! Qianji binary entry seam.
 //!
 //! Start with `dispatch` for command routing; `bpmn_cli`, `dir_cli`,
-//! `contract_feedback_cli`, and `lint_cli` own the concrete subcommands while
-//! `manifest_exec` owns manifest execution.
+//! `contract_feedback_cli`, `lint_cli`, and `template_cli` own the concrete
+//! subcommands while `manifest_exec` owns manifest execution.
 
 #[path = "qianji/bpmn_cli/mod.rs"]
 mod bpmn_cli;
@@ -20,6 +20,8 @@ mod graph_export;
 mod lint_cli;
 #[path = "qianji/manifest_exec.rs"]
 mod manifest_exec;
+#[path = "qianji/template_cli.rs"]
+mod template_cli;
 #[cfg(test)]
 #[path = "qianji/test_exports.rs"]
 mod test_exports;

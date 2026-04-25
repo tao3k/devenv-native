@@ -8,14 +8,20 @@ use qianji_bpmn_engine::{
 #[cfg(feature = "duckdb")]
 use std::collections::HashMap;
 #[cfg(feature = "duckdb")]
-use std::path::Path;
-#[cfg(feature = "duckdb")]
 use std::path::PathBuf;
 #[cfg(feature = "duckdb")]
 use std::sync::{Arc, Mutex};
 #[cfg(feature = "duckdb")]
-use xiuxian_db_store::qianji_bpmn::{
-    QianjiBpmnDataStoreError, QianjiBpmnDuckDbDataStore, QianjiBpmnDuckDbDataStoreConfig,
+use xiuxian_db_store::qianji_bpmn::QianjiBpmnDuckDbDataStore;
+
+#[cfg(feature = "duckdb")]
+#[path = "bpmn_runtime_backend/duckdb.rs"]
+mod duckdb;
+#[cfg(feature = "duckdb")]
+use duckdb::{
+    cache_duckdb_checkpoint, cache_duckdb_checkpoints, cached_duckdb_checkpoint,
+    cached_duckdb_checkpoint_for_store, hydrate_duckdb_latest_cache,
+    remove_cached_duckdb_checkpoint, with_duckdb_workflow_state_store,
 };
 
 /// Host-owned checkpoint store facade for BPMN runtime sessions.
@@ -146,6 +152,34 @@ impl QianjiBpmnCheckpointStore {
                     cache_duckdb_checkpoint(latest_cache, checkpoint)?;
                 }
                 Ok(loaded)
+            }
+        }
+    }
+
+    /// Lists latest checkpoint envelopes known to the configured backend.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`BpmnOrchestrationError`] when the backend cannot enumerate
+    /// local checkpoint state or when decoding any stored checkpoint fails.
+    pub async fn list(&self) -> Result<Vec<BpmnCheckpointEnvelope>, BpmnOrchestrationError> {
+        match self {
+            Self::Valkey { .. } => Err(BpmnOrchestrationError::CheckpointListUnsupportedBackend {
+                backend: self.backend_name().to_string(),
+            }),
+            #[cfg(feature = "duckdb")]
+            Self::DuckDb {
+                path,
+                store,
+                latest_cache,
+                latest_cache_hydrated,
+            } => {
+                let checkpoints = with_duckdb_workflow_state_store(path, store, |store| {
+                    store.compact_workflow_state_latest_snapshots()?;
+                    store.load_compacted_workflow_state_snapshots()
+                })?;
+                cache_duckdb_checkpoints(latest_cache, latest_cache_hydrated, &checkpoints)?;
+                Ok(checkpoints)
             }
         }
     }
@@ -320,133 +354,4 @@ impl QianjiBpmnCheckpointStore {
             }),
         }
     }
-}
-
-#[cfg(feature = "duckdb")]
-fn hydrate_duckdb_latest_cache(
-    cache: &Mutex<HashMap<String, BpmnCheckpointEnvelope>>,
-    hydrated: &Mutex<bool>,
-    store: &QianjiBpmnDuckDbDataStore,
-) -> Result<(), QianjiBpmnDataStoreError> {
-    let mut hydrated_guard =
-        hydrated
-            .lock()
-            .map_err(|error| QianjiBpmnDataStoreError::Storage {
-                operation: "lock_duckdb_workflow_state_latest_cache_hydrated",
-                message: error.to_string(),
-            })?;
-    if *hydrated_guard {
-        return Ok(());
-    }
-    store.compact_workflow_state_latest_snapshots()?;
-    let checkpoints = store.load_compacted_workflow_state_snapshots()?;
-    let mut cache_guard = cache
-        .lock()
-        .map_err(|error| QianjiBpmnDataStoreError::Storage {
-            operation: "lock_duckdb_workflow_state_latest_cache",
-            message: error.to_string(),
-        })?;
-    for checkpoint in checkpoints {
-        cache_guard.insert(
-            checkpoint.state.instance_id.as_ref().to_string(),
-            checkpoint,
-        );
-    }
-    *hydrated_guard = true;
-    Ok(())
-}
-
-#[cfg(feature = "duckdb")]
-fn cached_duckdb_checkpoint_for_store(
-    cache: &Mutex<HashMap<String, BpmnCheckpointEnvelope>>,
-    instance_id: &str,
-) -> Result<Option<BpmnCheckpointEnvelope>, QianjiBpmnDataStoreError> {
-    let guard = cache
-        .lock()
-        .map_err(|error| QianjiBpmnDataStoreError::Storage {
-            operation: "lock_duckdb_workflow_state_latest_cache",
-            message: error.to_string(),
-        })?;
-    Ok(guard.get(instance_id).cloned())
-}
-
-#[cfg(feature = "duckdb")]
-fn cached_duckdb_checkpoint(
-    cache: &Mutex<HashMap<String, BpmnCheckpointEnvelope>>,
-    instance_id: &str,
-) -> Result<Option<BpmnCheckpointEnvelope>, BpmnOrchestrationError> {
-    let guard = cache.lock().map_err(|error| {
-        BpmnOrchestrationError::DuckDbWorkflowState(QianjiBpmnDataStoreError::Storage {
-            operation: "lock_duckdb_workflow_state_latest_cache",
-            message: error.to_string(),
-        })
-    })?;
-    Ok(guard.get(instance_id).cloned())
-}
-
-#[cfg(feature = "duckdb")]
-fn cache_duckdb_checkpoint(
-    cache: &Mutex<HashMap<String, BpmnCheckpointEnvelope>>,
-    checkpoint: &BpmnCheckpointEnvelope,
-) -> Result<(), BpmnOrchestrationError> {
-    let mut guard = cache.lock().map_err(|error| {
-        BpmnOrchestrationError::DuckDbWorkflowState(QianjiBpmnDataStoreError::Storage {
-            operation: "lock_duckdb_workflow_state_latest_cache",
-            message: error.to_string(),
-        })
-    })?;
-    guard.insert(
-        checkpoint.state.instance_id.as_ref().to_string(),
-        checkpoint.clone(),
-    );
-    Ok(())
-}
-
-#[cfg(feature = "duckdb")]
-fn remove_cached_duckdb_checkpoint(
-    cache: &Mutex<HashMap<String, BpmnCheckpointEnvelope>>,
-    instance_id: &str,
-) -> Result<(), BpmnOrchestrationError> {
-    let mut guard = cache.lock().map_err(|error| {
-        BpmnOrchestrationError::DuckDbWorkflowState(QianjiBpmnDataStoreError::Storage {
-            operation: "lock_duckdb_workflow_state_latest_cache",
-            message: error.to_string(),
-        })
-    })?;
-    guard.remove(instance_id);
-    Ok(())
-}
-
-#[cfg(feature = "duckdb")]
-fn open_duckdb_workflow_state_store(
-    path: &Path,
-) -> Result<QianjiBpmnDuckDbDataStore, BpmnOrchestrationError> {
-    QianjiBpmnDuckDbDataStore::open(QianjiBpmnDuckDbDataStoreConfig::file(path.to_path_buf()))
-        .map_err(Into::into)
-}
-
-#[cfg(feature = "duckdb")]
-fn with_duckdb_workflow_state_store<T>(
-    path: &Path,
-    cache: &Mutex<Option<QianjiBpmnDuckDbDataStore>>,
-    operation: impl FnOnce(&QianjiBpmnDuckDbDataStore) -> Result<T, QianjiBpmnDataStoreError>,
-) -> Result<T, BpmnOrchestrationError> {
-    let mut guard = cache.lock().map_err(|error| {
-        BpmnOrchestrationError::DuckDbWorkflowState(QianjiBpmnDataStoreError::Storage {
-            operation: "lock_duckdb_workflow_state_store",
-            message: error.to_string(),
-        })
-    })?;
-    if guard.is_none() {
-        *guard = Some(open_duckdb_workflow_state_store(path)?);
-    }
-    let Some(store) = guard.as_ref() else {
-        return Err(BpmnOrchestrationError::DuckDbWorkflowState(
-            QianjiBpmnDataStoreError::Storage {
-                operation: "open_duckdb_workflow_state_store",
-                message: "DuckDB workflow-state cache remained empty after open".to_string(),
-            },
-        ));
-    };
-    operation(store).map_err(Into::into)
 }

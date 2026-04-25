@@ -6,10 +6,12 @@ pub use super::control::{
     QianjiBpmnWorkflowCancelReport, QianjiBpmnWorkflowCancelRequest,
     QianjiBpmnWorkflowCheckpointBackend, QianjiBpmnWorkflowControlError,
     QianjiBpmnWorkflowControlService, QianjiBpmnWorkflowEventPollReport,
-    QianjiBpmnWorkflowEventPollRequest, QianjiBpmnWorkflowResumeReport,
-    QianjiBpmnWorkflowResumeRequest, QianjiBpmnWorkflowStartReport, QianjiBpmnWorkflowStartRequest,
-    QianjiBpmnWorkflowStatusReport, QianjiBpmnWorkflowStatusRequest,
-    QianjiBpmnWorkflowTaskCompleteReport, QianjiBpmnWorkflowTaskCompleteRequest,
+    QianjiBpmnWorkflowEventPollRequest, QianjiBpmnWorkflowInstanceSummary,
+    QianjiBpmnWorkflowInstancesReport, QianjiBpmnWorkflowInstancesRequest,
+    QianjiBpmnWorkflowResumeReport, QianjiBpmnWorkflowResumeRequest, QianjiBpmnWorkflowStartReport,
+    QianjiBpmnWorkflowStartRequest, QianjiBpmnWorkflowStatusReport,
+    QianjiBpmnWorkflowStatusRequest, QianjiBpmnWorkflowTaskCompleteReport,
+    QianjiBpmnWorkflowTaskCompleteRequest,
 };
 pub use super::dispatch::{
     dispatch_pending_host_work_request, dispatch_pending_host_work_requests,

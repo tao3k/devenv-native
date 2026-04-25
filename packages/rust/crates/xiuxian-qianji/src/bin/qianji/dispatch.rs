@@ -10,6 +10,7 @@ use super::dir_cli::{handle_dir_command, parse_dir_command};
 use super::graph_export::handle_graph_export;
 use super::lint_cli::{handle_lint_command, parse_lint_command};
 use super::manifest_exec::run_manifest_execution;
+use super::template_cli::{handle_template_command, parse_template_command};
 use super::usage::print_qianji_usage;
 
 pub(crate) async fn run() -> Result<(), Box<dyn std::error::Error>> {
@@ -35,6 +36,10 @@ pub(crate) async fn run() -> Result<(), Box<dyn std::error::Error>> {
 
     if let Some(command) = parse_lint_command(&args)? {
         return handle_lint_command(command);
+    }
+
+    if let Some(command) = parse_template_command(&args)? {
+        return handle_template_command(command);
     }
 
     if args.len() < 4 {

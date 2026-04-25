@@ -26,7 +26,8 @@ FROM qianji_bpmn_workflow_state_latest
 WHERE instance_id = ?1";
 const LOAD_COMPACTED_WORKFLOW_STATE_SNAPSHOTS_SQL: &str = "
 SELECT payload_json
-FROM qianji_bpmn_workflow_state_latest";
+FROM qianji_bpmn_workflow_state_latest
+ORDER BY updated_at_ms DESC, sequence DESC, instance_id ASC";
 const COMPACT_LATEST_WORKFLOW_STATE_SNAPSHOTS_SQL: &str = "
 INSERT INTO qianji_bpmn_workflow_state_latest
     (instance_id, sequence, updated_at_ms, payload_json)

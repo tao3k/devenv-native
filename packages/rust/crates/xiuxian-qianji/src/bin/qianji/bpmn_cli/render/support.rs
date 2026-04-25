@@ -1,9 +1,10 @@
 use std::fmt::Write as _;
 
 use crate::bpmn_cli::deps::{
-    BpmnAdvanceOutcome, BpmnEventKind, BpmnInstanceState, BpmnPackage, BpmnProcessSpec,
-    BpmnTimerKind, BpmnTimerSpec, InstanceLifecycle, PendingHostWorkKind,
-    QianjiBpmnCheckpointStore, QianjiBpmnWorkflowCheckpointBackend, SuspendReason, WaitKind,
+    BpmnAdvanceOutcome, BpmnEventKind, BpmnInstanceState, BpmnNodeKind, BpmnPackage,
+    BpmnProcessSpec, BpmnTimerKind, BpmnTimerSpec, InstanceLifecycle, NodeRuntimeStatus,
+    PendingHostWorkKind, QianjiBpmnCheckpointStore, QianjiBpmnWorkflowCheckpointBackend,
+    SuspendReason, WaitKind,
 };
 
 pub(super) fn append_bpmn_wait_registrations(
@@ -163,8 +164,42 @@ pub(super) fn bpmn_timer_spec_label(timer: &BpmnTimerSpec) -> String {
 }
 
 fn render_bpmn_wait_node_id(process: &BpmnProcessSpec, node_index: u32) -> String {
+    bpmn_node_id_label(process, node_index)
+}
+
+pub(super) fn bpmn_node_id_label(process: &BpmnProcessSpec, node_index: u32) -> String {
     process.nodes.get(node_index as usize).map_or_else(
         || format!("node#{node_index}"),
         |node| node.bpmn_id.to_string(),
     )
+}
+
+pub(super) fn node_runtime_status_label(status: &NodeRuntimeStatus) -> &'static str {
+    match status {
+        NodeRuntimeStatus::Idle => "idle",
+        NodeRuntimeStatus::Queued => "queued",
+        NodeRuntimeStatus::Executing => "executing",
+        NodeRuntimeStatus::Completed => "completed",
+        NodeRuntimeStatus::Cancelled => "cancelled",
+        NodeRuntimeStatus::Failed => "failed",
+    }
+}
+
+pub(super) fn bpmn_node_kind_label(kind: &BpmnNodeKind) -> &'static str {
+    match kind {
+        BpmnNodeKind::StartEvent => "start_event",
+        BpmnNodeKind::EndEvent => "end_event",
+        BpmnNodeKind::IntermediateThrowEvent => "intermediate_throw_event",
+        BpmnNodeKind::IntermediateCatchEvent => "intermediate_catch_event",
+        BpmnNodeKind::BoundaryEvent => "boundary_event",
+        BpmnNodeKind::SendTask => "send_task",
+        BpmnNodeKind::ReceiveTask => "receive_task",
+        BpmnNodeKind::ServiceTask => "service_task",
+        BpmnNodeKind::ScriptTask => "script_task",
+        BpmnNodeKind::UserTask => "user_task",
+        BpmnNodeKind::ManualTask => "manual_task",
+        BpmnNodeKind::BusinessRuleTask => "business_rule_task",
+        BpmnNodeKind::Gateway => "gateway",
+        BpmnNodeKind::SubProcess => "sub_process",
+    }
 }

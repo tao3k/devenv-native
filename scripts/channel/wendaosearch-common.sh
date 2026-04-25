@@ -324,6 +324,31 @@ wendaosearch_materialize_package_repo() {
     "WendaoSearch package checkout"
 }
 
+wendaosearch_materialize_linked_julia_package_repos() {
+  local root="$1"
+  local data_dir="$root/.data"
+
+  managed_materialize_git_repo \
+    "$data_dir/arrow-julia" \
+    "https://github.com/JuliaCN/arrow-julia.git" \
+    "82562ef144a5d8b7d488710cea609fb7488d4efe" \
+    "arrow-julia checkout"
+
+  managed_materialize_git_repo \
+    "$data_dir/WendaoArrow.jl" \
+    "https://github.com/tao3k/WendaoArrow.jl.git" \
+    "e992839d84dc92ffc4972e10d160ee4ce53ce126" \
+    "WendaoArrow package checkout"
+
+  managed_materialize_git_repo \
+    "$data_dir/WendaoCodeParser.jl" \
+    "https://github.com/tao3k/WendaoCodeParser.jl.git" \
+    "539d269b514d00f9c0d280dd6b1f94fcf1ab30f4" \
+    "WendaoCodeParser package checkout"
+
+  wendaosearch_repair_wendaocodeparser_checkout "$data_dir/WendaoCodeParser.jl"
+}
+
 wendaosearch_repair_wendaocodeparser_checkout() {
   local checkout_dir="$1"
   local project_toml="$checkout_dir/Project.toml"

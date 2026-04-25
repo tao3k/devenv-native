@@ -4,7 +4,7 @@ pub(super) use crate::runtime_config::QianjiRuntimeEnv;
 pub(super) use crate::{
     QianjiBpmnHostBridge, QianjiBpmnWorkflowCancelRequest, QianjiBpmnWorkflowCheckpointBackend,
     QianjiBpmnWorkflowControlError, QianjiBpmnWorkflowControlService,
-    QianjiBpmnWorkflowStartRequest, SchedulerAgentIdentity,
+    QianjiBpmnWorkflowInstancesRequest, QianjiBpmnWorkflowStartRequest, SchedulerAgentIdentity,
 };
 #[cfg(feature = "duckdb")]
 pub(super) use crate::{

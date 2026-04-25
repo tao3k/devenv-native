@@ -81,6 +81,13 @@ pub enum BpmnOrchestrationError {
         /// Human-readable backend name.
         backend: String,
     },
+    /// Returned when checkpoint instance listing is requested from a backend
+    /// that does not expose an enumerable local index.
+    #[error("BPMN checkpoint instance listing is not supported by backend '{backend}'")]
+    CheckpointListUnsupportedBackend {
+        /// Human-readable backend name.
+        backend: String,
+    },
     /// Returned when another scheduler owner already holds the BPMN checkpoint
     /// lease for the same instance.
     #[error(

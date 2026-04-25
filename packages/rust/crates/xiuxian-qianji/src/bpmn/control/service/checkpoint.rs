@@ -1,8 +1,9 @@
 use crate::bpmn::backend::QianjiBpmnCheckpointStore;
 use crate::bpmn::control::{
     QianjiBpmnWorkflowCheckpointBackend, QianjiBpmnWorkflowControlError,
-    QianjiBpmnWorkflowControlService, QianjiBpmnWorkflowStatusReport,
-    QianjiBpmnWorkflowStatusRequest,
+    QianjiBpmnWorkflowControlService, QianjiBpmnWorkflowInstanceSummary,
+    QianjiBpmnWorkflowInstancesReport, QianjiBpmnWorkflowInstancesRequest,
+    QianjiBpmnWorkflowStatusReport, QianjiBpmnWorkflowStatusRequest,
 };
 use crate::runtime_config::{
     resolve_qianji_runtime_checkpoint_config, resolve_qianji_runtime_checkpoint_config_with_env,
@@ -65,6 +66,25 @@ pub(crate) async fn load_workflow_status(
         checkpoint_store,
         checkpoint_sequence: checkpoint.sequence,
         instance: checkpoint.state,
+    })
+}
+
+pub(crate) async fn list_workflow_instances(
+    service: &QianjiBpmnWorkflowControlService,
+    request: &QianjiBpmnWorkflowInstancesRequest,
+) -> Result<QianjiBpmnWorkflowInstancesReport, QianjiBpmnWorkflowControlError> {
+    let checkpoint_store = resolve_checkpoint_store(service, Some(&request.checkpoint_backend))?
+        .ok_or_else(|| io::Error::other("workflow operation requires one checkpoint backend"))?;
+    let instances = checkpoint_store
+        .list()
+        .await?
+        .into_iter()
+        .map(QianjiBpmnWorkflowInstanceSummary::from_checkpoint)
+        .collect();
+
+    Ok(QianjiBpmnWorkflowInstancesReport {
+        checkpoint_store,
+        instances,
     })
 }
 

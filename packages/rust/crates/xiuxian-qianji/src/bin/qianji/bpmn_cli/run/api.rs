@@ -1,6 +1,6 @@
 use crate::bpmn_cli::types::{BpmnCliCommand, BpmnCliOutput};
 
-use super::{cancel, execution, status};
+use super::{cancel, execution, instances, status};
 
 #[cfg(test)]
 pub(crate) use super::execution::run_bpmn_run_command_with_runtime_env;
@@ -33,6 +33,7 @@ pub(crate) async fn run_bpmn_command(
             execution::run_bpmn_task_complete_command(&command).await
         }
         BpmnCliCommand::Status(command) => status::run_bpmn_status_command(&command).await,
+        BpmnCliCommand::Instances(command) => instances::run_bpmn_instances_command(&command).await,
         BpmnCliCommand::Cancel(command) => cancel::run_bpmn_cancel_command(&command).await,
     }
 }

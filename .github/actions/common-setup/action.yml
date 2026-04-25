@@ -9,14 +9,17 @@ inputs:
   GLM_API_KEY:
     required: true
     description: "GLM API Key"
-    
+  MIMO_API_KEY:
+    required: false
+    description: "MIMO API Key"
+
 runs:
   using: "composite"
   steps:
     - uses: wimpysworld/nothing-but-nix@main
       if: runner.os == 'Linux'
       with:
-        hatchet-protocol: 'carve'
+        hatchet-protocol: "carve"
 
     - name: Install nix
       uses: cachix/install-nix-action@v31
@@ -33,7 +36,8 @@ runs:
       uses: cachix/cachix-action@master
       with:
         name: tao3k
-        authToken: "${{ inputs.CACHIX_AUTH_TOKEN }}"
+        authToken:
+          "${{ inputs.CACHIX_AUTH_TOKEN }}"
           # signingKey: "${{ secrets.CACHIX_SIGNING_KEY }}"
 
     - name: Install devenv.sh
@@ -44,8 +48,15 @@ runs:
       shell: bash
       env:
         GLM_API_KEY: ${{ inputs.GLM_API_KEY }}
+        MIMO_API_KEY: ${{ inputs.MIMO_API_KEY }}
       run: |
         nix profile add nixpkgs#secretspec
-        echo "GLM_API_KEY=$GLM_API_KEY" > .env
+        {
+          echo "GLM_API_KEY=$GLM_API_KEY"
+          if [ -n "${MIMO_API_KEY:-}" ]; then
+            echo "MIMO_API_KEY=$MIMO_API_KEY"
+            echo "MIMO_API_KEY=$MIMO_API_KEY" >> "$GITHUB_ENV"
+          fi
+        } > .env
         # NAR hash mismatch in input issue, I don't know why
         # nix flake update omnibus

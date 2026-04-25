@@ -46,6 +46,40 @@ fn parse_bpmn_command_defaults_status_to_local_duckdb_checkpoint_backend() {
         BpmnCliCommand::Status(BpmnStatusCliCommand {
             instance_id: "wf_wait".to_string(),
             checkpoint_backend: BpmnCliCheckpointBackend::LocalDuckDb,
+            bpmn_path: None,
+            dmn_paths: Vec::new(),
+        })
+    );
+}
+
+#[cfg(feature = "duckdb")]
+#[test]
+fn parse_bpmn_command_accepts_status_bpmn_context() {
+    let command = must_some(
+        must_ok(
+            parse_bpmn_command(&to_args(&[
+                "qianji",
+                "bpmn",
+                "status",
+                "--instance-id",
+                "wf_wait",
+                "--bpmn",
+                "workflow.bpmn",
+                "--dmn",
+                "rules.dmn",
+            ])),
+            "bpmn status parse should accept optional graph context paths",
+        ),
+        "bpmn status command should be detected",
+    );
+
+    assert_eq!(
+        command,
+        BpmnCliCommand::Status(BpmnStatusCliCommand {
+            instance_id: "wf_wait".to_string(),
+            checkpoint_backend: BpmnCliCheckpointBackend::LocalDuckDb,
+            bpmn_path: Some("workflow.bpmn".into()),
+            dmn_paths: vec!["rules.dmn".into()],
         })
     );
 }

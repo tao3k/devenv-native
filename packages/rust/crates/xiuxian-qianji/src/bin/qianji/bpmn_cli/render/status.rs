@@ -1,20 +1,26 @@
 use std::fmt::Write as _;
 
-use crate::bpmn_cli::deps::{BpmnInstanceState, QianjiBpmnWorkflowStatusReport};
+use crate::bpmn_cli::deps::{
+    BpmnInstanceState, BpmnPackage, BpmnProcessSpec, QianjiBpmnWorkflowStatusReport,
+};
 use crate::bpmn_cli::types::{BpmnCliOutput, BpmnStatusCliCommand};
 
 use super::support::{
     bpmn_checkpoint_backend_label, bpmn_checkpoint_backend_selection_label, bpmn_event_kind_label,
-    bpmn_lifecycle_label, bpmn_pending_host_work_kind_label, bpmn_suspend_reason_label,
-    bpmn_timer_spec_label, bpmn_wait_kind_label,
+    bpmn_lifecycle_label, bpmn_node_id_label, bpmn_node_kind_label,
+    bpmn_pending_host_work_kind_label, bpmn_suspend_reason_label, bpmn_timer_spec_label,
+    bpmn_wait_kind_label, node_runtime_status_label,
 };
 
 pub(crate) fn render_bpmn_status_output(
     command: &BpmnStatusCliCommand,
     report: &QianjiBpmnWorkflowStatusReport,
+    package: Option<&BpmnPackage>,
 ) -> BpmnCliOutput {
     let variables = serde_json::to_string_pretty(&report.instance.variables)
         .unwrap_or_else(|error| format!("{{\"serialization_error\":\"{error}\"}}"));
+    let process = package
+        .and_then(|package| package.find_process(report.instance.process.process_id.as_ref()));
     let mut rendered = format!(
         "# BPMN Status\n\nInstance: {}\nProcess: {}\nPackage: {}\nLifecycle: {}\nCheckpoint backend: {}\nCheckpoint status: loaded\nCheckpoint sequence: {}\nState sequence: {}\nUpdated at (unix ms): {}\nActive tokens: {}\nPending host work: {}\nWait registrations: {}\nCall stack depth: {}\n",
         command.instance_id,
@@ -39,9 +45,10 @@ pub(crate) fn render_bpmn_status_output(
         );
     }
 
-    append_bpmn_status_active_tokens(&mut rendered, &report.instance);
-    append_bpmn_status_pending_host_work(&mut rendered, &report.instance);
-    append_bpmn_status_wait_registrations(&mut rendered, &report.instance);
+    append_bpmn_status_active_tokens(&mut rendered, &report.instance, process);
+    append_bpmn_status_pending_host_work(&mut rendered, &report.instance, process);
+    append_bpmn_status_wait_registrations(&mut rendered, &report.instance, process);
+    append_bpmn_status_graph_snapshot(&mut rendered, &report.instance, process);
 
     let _ = writeln!(rendered, "\n## Variables");
     let _ = writeln!(rendered, "```json");
@@ -65,7 +72,11 @@ pub(crate) fn render_bpmn_status_missing_output(command: &BpmnStatusCliCommand) 
     }
 }
 
-fn append_bpmn_status_active_tokens(rendered: &mut String, instance: &BpmnInstanceState) {
+fn append_bpmn_status_active_tokens(
+    rendered: &mut String,
+    instance: &BpmnInstanceState,
+    process: Option<&BpmnProcessSpec>,
+) {
     if instance.active_tokens.is_empty() {
         return;
     }
@@ -76,6 +87,7 @@ fn append_bpmn_status_active_tokens(rendered: &mut String, instance: &BpmnInstan
             "- token#{} | node_index={}",
             token.token_id, token.node_index
         );
+        append_bpmn_status_node_context(&mut line, process, token.node_index);
         if let Some(incoming_edge_index) = token.incoming_edge_index {
             let _ = write!(line, " | incoming_edge={incoming_edge_index}");
         }
@@ -90,7 +102,11 @@ fn append_bpmn_status_active_tokens(rendered: &mut String, instance: &BpmnInstan
     }
 }
 
-fn append_bpmn_status_pending_host_work(rendered: &mut String, instance: &BpmnInstanceState) {
+fn append_bpmn_status_pending_host_work(
+    rendered: &mut String,
+    instance: &BpmnInstanceState,
+    process: Option<&BpmnProcessSpec>,
+) {
     if instance.pending_host_work.is_empty() {
         return;
     }
@@ -103,6 +119,7 @@ fn append_bpmn_status_pending_host_work(rendered: &mut String, instance: &BpmnIn
             work.node_index,
             bpmn_pending_host_work_kind_label(&work.kind)
         );
+        append_bpmn_status_node_context(&mut line, process, work.node_index);
         if let Some(process_id) = work.process_id.as_ref() {
             let _ = write!(line, " | process={process_id}");
         }
@@ -125,7 +142,11 @@ fn append_bpmn_status_pending_host_work(rendered: &mut String, instance: &BpmnIn
     }
 }
 
-fn append_bpmn_status_wait_registrations(rendered: &mut String, instance: &BpmnInstanceState) {
+fn append_bpmn_status_wait_registrations(
+    rendered: &mut String,
+    instance: &BpmnInstanceState,
+    process: Option<&BpmnProcessSpec>,
+) {
     if instance.waits.is_empty() {
         return;
     }
@@ -145,6 +166,7 @@ fn append_bpmn_status_wait_registrations(rendered: &mut String, instance: &BpmnI
             wait.node_index,
             bpmn_wait_kind_label(&wait.kind)
         );
+        append_bpmn_status_node_context(&mut line, process, wait.node_index);
         if let Some(event_kind) = wait.event_kind.as_ref() {
             let _ = write!(line, " | event={}", bpmn_event_kind_label(event_kind));
         }
@@ -165,4 +187,62 @@ fn append_bpmn_status_wait_registrations(rendered: &mut String, instance: &BpmnI
         }
         let _ = writeln!(rendered, "{line}");
     }
+}
+
+fn append_bpmn_status_node_context(
+    line: &mut String,
+    process: Option<&BpmnProcessSpec>,
+    node_index: u32,
+) {
+    let Some(process) = process else {
+        return;
+    };
+    if let Some(node) = process.nodes.get(node_index as usize) {
+        let _ = write!(
+            line,
+            " | node_id={} | node_kind={}",
+            node.bpmn_id,
+            bpmn_node_kind_label(&node.kind)
+        );
+        return;
+    }
+    let _ = write!(
+        line,
+        " | node_id={}",
+        bpmn_node_id_label(process, node_index)
+    );
+}
+
+fn append_bpmn_status_graph_snapshot(
+    rendered: &mut String,
+    instance: &BpmnInstanceState,
+    process: Option<&BpmnProcessSpec>,
+) {
+    let Some(process) = process else {
+        return;
+    };
+    let values = process
+        .nodes
+        .iter()
+        .enumerate()
+        .map(|(node_index, node)| {
+            let status = instance
+                .node_states
+                .get(node_index)
+                .map(|state| node_runtime_status_label(&state.status))
+                .unwrap_or("unknown");
+            serde_json::json!({
+                "node_id": node.bpmn_id.as_ref(),
+                "node_index": node.index,
+                "node_kind": bpmn_node_kind_label(&node.kind),
+                "status": status,
+            })
+        })
+        .collect::<Vec<_>>();
+    let snapshot = serde_json::to_string_pretty(&values)
+        .unwrap_or_else(|error| format!("[{{\"serialization_error\":\"{error}\"}}]"));
+    let _ = writeln!(rendered, "\n## Graph Snapshot");
+    let _ = writeln!(rendered, "```json");
+    let _ = writeln!(rendered, "{snapshot}");
+    let _ = writeln!(rendered, "```");
 }

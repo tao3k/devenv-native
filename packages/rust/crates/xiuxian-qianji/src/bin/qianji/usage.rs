@@ -23,8 +23,9 @@ pub(crate) fn print_qianji_usage() {
         "             qianji [-v|--log-verbose] bpmn tasks complete --bpmn <path> --instance-id <id> [--dmn <path>]... [--host-fixture <path>] [--trace-stream] [--external-host] [--checkpoint-runtime]"
     );
     eprintln!(
-        "             qianji [-v|--log-verbose] bpmn status --instance-id <id> [--checkpoint-runtime]"
+        "             qianji [-v|--log-verbose] bpmn status --instance-id <id> [--bpmn <path>] [--dmn <path>] [--checkpoint-runtime]"
     );
+    eprintln!("             qianji [-v|--log-verbose] bpmn instances [--checkpoint-runtime]");
     eprintln!(
         "             qianji [-v|--log-verbose] bpmn cancel --instance-id <id> [--checkpoint-runtime]"
     );
@@ -39,6 +40,8 @@ pub(crate) fn print_qianji_usage() {
     eprintln!("  Lint:      qianji [-v|--log-verbose] lint --bpmn <path>");
     eprintln!("             qianji [-v|--log-verbose] lint --dmn <path>");
     eprintln!("             compatibility alias: same flags also parse under 'linter'");
+    eprintln!("  Template:  qianji [-v|--log-verbose] template --bpmn");
+    eprintln!("             qianji [-v|--log-verbose] template --dmn");
     eprintln!(
         "  Contract:  qianji [-v|--log-verbose] contract-feedback rest-docs <openapi_path> [--workspace-root PATH] [--storage-path PATH] [--table-name NAME] [--role ROLE]... [--no-persist] [--live-advisory] [--model MODEL] [--temperature FLOAT] [--cognitive-threshold FLOAT]"
     );

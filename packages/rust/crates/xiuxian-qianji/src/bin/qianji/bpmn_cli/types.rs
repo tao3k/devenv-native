@@ -11,6 +11,7 @@ pub(crate) enum BpmnCliCommand {
     EventPoll(BpmnEventPollCliCommand),
     TaskComplete(BpmnTaskCompleteCliCommand),
     Status(BpmnStatusCliCommand),
+    Instances(BpmnInstancesCliCommand),
     Cancel(BpmnCancelCliCommand),
 }
 
@@ -49,6 +50,13 @@ pub(crate) type BpmnTaskCompleteCliCommand = BpmnResumeCliCommand;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct BpmnStatusCliCommand {
     pub(crate) instance_id: String,
+    pub(crate) checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend,
+    pub(crate) bpmn_path: Option<PathBuf>,
+    pub(crate) dmn_paths: Vec<PathBuf>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct BpmnInstancesCliCommand {
     pub(crate) checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend,
 }
 

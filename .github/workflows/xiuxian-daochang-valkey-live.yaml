@@ -22,6 +22,7 @@ jobs:
           CACHIX_AUTH_TOKEN: "${{ secrets.CACHIX_AUTH_TOKEN }}"
           SECRET_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GLM_API_KEY: ${{ secrets.GLM_API_KEY }}
+          MIMO_API_KEY: ${{ secrets.MIMO_API_KEY }}
 
       - name: Run full live Valkey webhook verification
         run: secretspec run --provider env --profile default -- devenv tasks run ci:valkey-live

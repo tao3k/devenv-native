@@ -18,6 +18,9 @@ pub(crate) use super::dir_cli::{
     DirCliCommand, MaterializeCliTarget, ShowCliTarget, parse_dir_command, run_dir_command,
 };
 pub(crate) use super::lint_cli::{LintCliCommand, parse_lint_command, run_lint_command};
+pub(crate) use super::template_cli::{
+    TemplateCliCommand, parse_template_command, run_template_command,
+};
 pub(crate) use super::workspace::resolve_workspace_root;
 pub(crate) use xiuxian_qianji::QianjiBpmnWorkflowCheckpointBackend as BpmnCliCheckpointBackend;
 pub(crate) use xiuxian_qianji::contract_feedback::build_rest_docs_collection_context;

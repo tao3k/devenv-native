@@ -21,9 +21,10 @@ pub(crate) use xiuxian_qianji::{
     QianjiBpmnCheckpointStore, QianjiBpmnHostBridge, QianjiBpmnHostBridgeBuilder,
     QianjiBpmnSession, QianjiBpmnWorkflowCancelReport, QianjiBpmnWorkflowCancelRequest,
     QianjiBpmnWorkflowCheckpointBackend, QianjiBpmnWorkflowControlError,
-    QianjiBpmnWorkflowControlService, QianjiBpmnWorkflowResumeRequest,
+    QianjiBpmnWorkflowControlService, QianjiBpmnWorkflowInstancesReport,
+    QianjiBpmnWorkflowInstancesRequest, QianjiBpmnWorkflowResumeRequest,
     QianjiBpmnWorkflowStartRequest, QianjiBpmnWorkflowStatusReport,
-    QianjiBpmnWorkflowStatusRequest, SchedulerAgentIdentity,
+    QianjiBpmnWorkflowStatusRequest, SchedulerAgentIdentity, load_bpmn_package_from_files,
 };
 
 pub(crate) use crate::common::{
