@@ -6,6 +6,7 @@ mod compensation;
 mod document;
 mod document_surface;
 mod execution;
+mod extension;
 mod gateway;
 mod identity;
 mod reference;

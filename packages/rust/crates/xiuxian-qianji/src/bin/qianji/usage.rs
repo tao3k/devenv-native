@@ -37,11 +37,15 @@ pub(crate) fn print_qianji_usage() {
     );
     eprintln!("  Advance:   qianji [-v|--log-verbose] advance --dir <path> --to <node>");
     eprintln!("  Check:     qianji [-v|--log-verbose] check --dir <path>");
-    eprintln!("  Lint:      qianji [-v|--log-verbose] lint --bpmn <path>");
+    eprintln!("  Emit:      qianji [-v|--log-verbose] emit <path> --bpmn");
+    eprintln!("  Lint:      qianji [-v|--log-verbose] lint <path>");
+    eprintln!("             qianji [-v|--log-verbose] lint --bpmn <path>");
     eprintln!("             qianji [-v|--log-verbose] lint --dmn <path>");
     eprintln!("             compatibility alias: same flags also parse under 'linter'");
     eprintln!("  Template:  qianji [-v|--log-verbose] template --bpmn");
     eprintln!("             qianji [-v|--log-verbose] template --dmn");
+    eprintln!("  Construct: qianji [-v|--log-verbose] construct index [--json]");
+    eprintln!("             qianji [-v|--log-verbose] construct show <id> [--json]");
     eprintln!(
         "  Contract:  qianji [-v|--log-verbose] contract-feedback rest-docs <openapi_path> [--workspace-root PATH] [--storage-path PATH] [--table-name NAME] [--role ROLE]... [--no-persist] [--live-advisory] [--model MODEL] [--temperature FLOAT] [--cognitive-threshold FLOAT]"
     );

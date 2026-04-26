@@ -1,6 +1,7 @@
 use super::document::issue_from_bpmn_document_error;
 use super::document_surface::deferred_document_surface_issue;
 use super::execution::issue_from_bpmn_execution_shape_error;
+use super::extension::qianji_extension_issue;
 use super::identity::issue_from_bpmn_identity_error;
 use super::reference::issue_from_bpmn_reference_error;
 use super::topology::issue_from_bpmn_topology_error;
@@ -17,7 +18,10 @@ pub(crate) fn lint_bpmn_source_impl(source: &BpmnSourceFile) -> LintReport {
     }
 
     match parse_bpmn_package(std::slice::from_ref(source), &BpmnParseOptions::default()) {
-        Ok(_) => LintReport::ok(LintDomain::Bpmn, &source.source_id),
+        Ok(_) => match qianji_extension_issue(source) {
+            Some(issue) => LintReport::blocking(LintDomain::Bpmn, &source.source_id, vec![issue]),
+            None => LintReport::ok(LintDomain::Bpmn, &source.source_id),
+        },
         Err(error) => LintReport::blocking(
             LintDomain::Bpmn,
             &source.source_id,

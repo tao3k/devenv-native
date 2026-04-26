@@ -47,7 +47,11 @@ pub(crate) fn docs_in_scope(
                 .collect()
         }
     };
-    docs.sort_by(|left, right| {
+    let first_parser_doc = docs
+        .iter()
+        .position(|doc| doc.doc_target.is_some())
+        .unwrap_or(docs.len());
+    docs[..first_parser_doc].sort_by(|left, right| {
         left.path
             .cmp(&right.path)
             .then_with(|| left.doc_id.cmp(&right.doc_id))

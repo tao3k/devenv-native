@@ -1,5 +1,67 @@
 use super::*;
 
+const VALID_WORKFLOW_PLAN: &str = r#"{
+  "version": 1,
+  "name": "approval-plan",
+  "constructs": [
+    "service-task.agent",
+    "user-task.interaction",
+    "gateway.exclusive.bounded"
+  ],
+  "tasks": [
+    {
+      "id": "Task_Check",
+      "construct": "service-task.agent",
+      "outputs": ["ready"]
+    },
+    {
+      "id": "Task_Approve",
+      "construct": "user-task.interaction",
+      "inputs": ["ready"],
+      "outputs": ["approved"]
+    }
+  ],
+  "edges": [
+    {"from": "start", "to": "Task_Check"},
+    {"from": "Task_Check", "to": "Task_Approve"},
+    {"from": "Task_Approve", "to": "end", "condition": "approved"}
+  ]
+}"#;
+
+const INVALID_WORKFLOW_PLAN: &str = r#"{
+  "version": 1,
+  "name": "broken-plan",
+  "constructs": ["service-task.agent"],
+  "tasks": [
+    {
+      "id": "Task_Check",
+      "construct": "service-task.agent",
+      "outputs": ["ready"]
+    }
+  ],
+  "edges": [
+    {"from": "Task_Check", "to": "end", "condition": "${approved == true}"}
+  ]
+}"#;
+
+#[test]
+fn parse_lint_command_accepts_inferred_target() {
+    let command = must_some(
+        must_ok(
+            parse_lint_command(&to_args(&["qianji", "lint", "plan.json"])),
+            "lint parse should succeed",
+        ),
+        "lint command should be detected",
+    );
+
+    assert_eq!(
+        command,
+        LintCliCommand::Auto {
+            path: PathBuf::from("plan.json")
+        }
+    );
+}
+
 #[test]
 fn parse_lint_command_accepts_bpmn_target() {
     let command = must_some(
@@ -58,7 +120,7 @@ fn parse_lint_command_rejects_mixed_targets() {
     assert!(
         error
             .to_string()
-            .contains("requires exactly one of `--bpmn <path>` or `--dmn <path>`")
+            .contains("requires exactly one target path")
     );
 }
 
@@ -184,4 +246,121 @@ fn run_lint_command_renders_success_for_valid_dmn() {
     assert!(output.rendered.starts_with("# Lint Passed"));
     assert!(output.rendered.contains("Domain: dmn"));
     assert!(output.rendered.contains("no blocking issues"));
+}
+
+#[test]
+fn run_lint_command_infers_valid_workflow_plan() {
+    let temp_dir =
+        TempDir::new().unwrap_or_else(|error| panic!("temp dir should allocate: {error}"));
+    let path = temp_dir.path().join("plan.json");
+    write_file(&path, VALID_WORKFLOW_PLAN);
+
+    let output = must_ok(
+        run_lint_command(LintCliCommand::Auto { path }),
+        "lint command should render WorkflowPlan success output",
+    );
+
+    assert_eq!(output.exit_code, 0);
+    assert!(output.rendered.starts_with("# Lint Passed"));
+    assert!(output.rendered.contains("Domain: workflow-plan"));
+}
+
+#[test]
+fn run_lint_command_infers_invalid_workflow_plan() {
+    let temp_dir =
+        TempDir::new().unwrap_or_else(|error| panic!("temp dir should allocate: {error}"));
+    let path = temp_dir.path().join("plan.json");
+    write_file(&path, INVALID_WORKFLOW_PLAN);
+
+    let output = must_ok(
+        run_lint_command(LintCliCommand::Auto { path }),
+        "lint command should render WorkflowPlan failure output",
+    );
+
+    assert_eq!(output.exit_code, 2);
+    assert!(output.rendered.starts_with("# Lint Failed"));
+    assert!(output.rendered.contains("Domain: workflow-plan"));
+    assert!(
+        output
+            .rendered
+            .contains("construct_plan.gateway_construct_not_selected")
+    );
+    assert!(
+        output
+            .rendered
+            .contains("construct_plan.unsupported_condition")
+    );
+}
+
+#[test]
+fn run_lint_command_rejects_duplicate_workflow_plan_constructs() {
+    let temp_dir =
+        TempDir::new().unwrap_or_else(|error| panic!("temp dir should allocate: {error}"));
+    let path = temp_dir.path().join("plan.json");
+    write_file(
+        &path,
+        r#"{
+  "version": 1,
+  "name": "duplicate-constructs",
+  "constructs": ["service-task.agent", "service-task.agent"],
+  "tasks": [
+    {
+      "id": "Task_DoWork",
+      "construct": "service-task.agent",
+      "outputs": ["result"]
+    }
+  ],
+  "edges": [
+    {"from": "start", "to": "Task_DoWork"},
+    {"from": "Task_DoWork", "to": "end"}
+  ]
+}"#,
+    );
+
+    let output = must_ok(
+        run_lint_command(LintCliCommand::Auto { path }),
+        "duplicate constructs should render WorkflowPlan lint output",
+    );
+
+    assert_eq!(output.exit_code, 2);
+    assert!(output.rendered.starts_with("# Lint Failed"));
+    assert!(
+        output
+            .rendered
+            .contains("construct_plan.duplicate_construct")
+    );
+    assert!(output.rendered.contains("Treat `constructs` as a set"));
+}
+
+#[test]
+fn run_lint_command_reports_workflow_plan_parse_errors_as_lint() {
+    let temp_dir =
+        TempDir::new().unwrap_or_else(|error| panic!("temp dir should allocate: {error}"));
+    let path = temp_dir.path().join("plan.json");
+    write_file(
+        &path,
+        r#"{
+  "version": "1",
+  "plan": {
+    "nodes": []
+  }
+}"#,
+    );
+
+    let output = must_ok(
+        run_lint_command(LintCliCommand::Auto { path }),
+        "workflow-plan parse errors should render lint output",
+    );
+
+    assert_eq!(output.exit_code, 2);
+    assert!(output.rendered.starts_with("# Lint Failed"));
+    assert!(output.rendered.contains("Domain: workflow-plan"));
+    assert!(
+        output
+            .rendered
+            .contains("construct_plan.invalid_json_shape")
+    );
+    assert!(output.rendered.contains("\"version\": 1"));
+    assert!(output.rendered.contains("do not use `nodes`"));
+    assert!(output.rendered.contains("Treat `constructs` as a set"));
 }

@@ -14,6 +14,10 @@ pub mod bpmn;
 /// Distributed consensus management for multi-agent synchronization.
 #[cfg(feature = "qianji-full")]
 pub mod consensus;
+/// LLM-facing progressive-disclosure cards for BPMN/DMN constructs.
+pub mod construct_cards;
+/// Static WorkflowPlan validation for construct-card consumers.
+pub mod construct_plan;
 /// Contract-feedback execution bridge for contract suite runs and Wendao export.
 #[cfg(feature = "qianji-full")]
 pub mod contract_feedback;
@@ -108,6 +112,17 @@ pub use bpmn::{
     DEFAULT_QIANJI_BPMN_DUCKDB_THREADS, QIANJI_BPMN_WORKFLOW_STATE_RECORD_KEY,
     QianjiBpmnDataRecord, QianjiBpmnDataStoreError, QianjiBpmnDuckDbDataStore,
     QianjiBpmnDuckDbDataStoreConfig,
+};
+pub use construct_cards::{
+    ConstructCard, ConstructIndexEntry, ConstructLintMapping, ConstructStatus, construct_cards,
+    construct_index_entries, find_construct_card, render_construct_card,
+    render_construct_card_json, render_construct_index, render_construct_index_json,
+};
+pub use construct_plan::{
+    WorkflowPlan, WorkflowPlanDiagnostic, WorkflowPlanDiagnosticSeverity, WorkflowPlanEdge,
+    WorkflowPlanEmitError, WorkflowPlanTask, WorkflowPlanValidationReport, emit_workflow_plan_bpmn,
+    render_workflow_plan_validation_report, render_workflow_plan_validation_report_json,
+    validate_workflow_plan,
 };
 #[cfg(feature = "qianji-full")]
 pub use contract_feedback::{QianjiContractFeedbackRun, run_contract_feedback_flow};

@@ -45,7 +45,7 @@ fn run_template_command_renders_lint_clean_bpmn() {
     ));
 
     assert!(output.rendered.contains("<serviceTask"));
-    assert!(output.rendered.contains("skillsc:config"));
+    assert!(output.rendered.contains("qianji:config"));
     assert!(report.ok, "BPMN template should lint clean: {report:?}");
 }
 
@@ -58,5 +58,6 @@ fn run_template_command_renders_lint_clean_dmn() {
     ));
 
     assert!(output.rendered.contains("<decisionTable"));
+    assert!(output.rendered.contains("https://qianji.dev/dmn"));
     assert!(report.ok, "DMN template should lint clean: {report:?}");
 }
