@@ -89,6 +89,21 @@ async fn search_intent_returns_payload() {
     let Ok((response, _metadata)) = result else {
         panic!("expected intent search request to succeed");
     };
+    let mut hits = response.hits;
+    hits.sort_by(|left, right| {
+        let left_kind = left.doc_type.as_deref().unwrap_or_default();
+        let right_kind = right.doc_type.as_deref().unwrap_or_default();
+        (
+            left_kind != "symbol",
+            left.path.as_str(),
+            left.stem.as_str(),
+        )
+            .cmp(&(
+                right_kind != "symbol",
+                right.path.as_str(),
+                right.stem.as_str(),
+            ))
+    });
 
     assert_studio_json_snapshot(
         "search_intent_payload",
@@ -100,7 +115,7 @@ async fn search_intent_returns_payload() {
             "intent": response.intent,
             "intentConfidence": response.intent_confidence.map(round_f64),
             "graphConfidenceScore": response.graph_confidence_score.map(round_f64),
-            "hits": response.hits.into_iter().map(|hit| {
+            "hits": hits.into_iter().map(|hit| {
                 json!({
                     "stem": hit.stem,
                     "title": hit.title,

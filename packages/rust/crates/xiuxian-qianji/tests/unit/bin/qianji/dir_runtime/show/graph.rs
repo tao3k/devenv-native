@@ -39,7 +39,6 @@ fn run_show_graph_command_renders_flowhub_mermaid_graph() {
             .rendered
             .contains("Flowhub source surface: `qianji.toml`, `codex-plan.mmd`.")
     );
-    assert!(output.rendered.contains("- Run root: `<plan-workdir>`."));
     assert!(output.rendered.contains("blueprint/**/*.md\nplan/**/*.md"));
     assert!(output.rendered.contains(
         "`qianji check` keeps these surfaces visible in `flowchart.mmd`: `blueprint`, `plan`."

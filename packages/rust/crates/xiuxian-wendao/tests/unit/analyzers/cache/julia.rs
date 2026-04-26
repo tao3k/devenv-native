@@ -1,6 +1,5 @@
 use std::fs;
 
-use serial_test::serial;
 use xiuxian_git_repo::{
     LocalCheckoutMetadata, MaterializedRepo, RepoDriftState, RepoLifecycleState, RepoSourceKind,
 };
@@ -8,7 +7,6 @@ use xiuxian_git_repo::{
 use crate::analyzers::{RegisteredRepository, RepositoryPluginConfig, RepositoryRefreshPolicy};
 
 use super::super::build_repository_analysis_cache_key;
-use super::support::ensure_linked_julia_parser_summary_service;
 
 #[test]
 fn build_repository_analysis_cache_key_reuses_julia_identity_for_non_affecting_churn() {
@@ -72,10 +70,7 @@ fn build_repository_analysis_cache_key_reuses_julia_identity_for_non_affecting_c
 }
 
 #[test]
-#[serial(julia_live)]
-fn build_repository_analysis_cache_key_reuses_julia_identity_for_ast_equivalent_source_churn()
--> Result<(), Box<dyn std::error::Error>> {
-    ensure_linked_julia_parser_summary_service()?;
+fn build_repository_analysis_cache_key_reuses_julia_identity_for_ast_equivalent_source_churn() {
     let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
     fs::write(
         tempdir.path().join("Project.toml"),
@@ -131,14 +126,10 @@ fn build_repository_analysis_cache_key_reuses_julia_identity_for_ast_equivalent_
     );
 
     assert_eq!(first_key.analysis_identity, second_key.analysis_identity);
-    Ok(())
 }
 
 #[test]
-#[serial(julia_live)]
-fn build_repository_analysis_cache_key_invalidates_on_julia_source_change()
--> Result<(), Box<dyn std::error::Error>> {
-    ensure_linked_julia_parser_summary_service()?;
+fn build_repository_analysis_cache_key_invalidates_on_julia_source_change() {
     let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
     fs::write(
         tempdir.path().join("Project.toml"),
@@ -194,5 +185,4 @@ fn build_repository_analysis_cache_key_invalidates_on_julia_source_change()
     );
 
     assert_ne!(first_key.analysis_identity, second_key.analysis_identity);
-    Ok(())
 }
