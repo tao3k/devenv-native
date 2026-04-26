@@ -38,9 +38,9 @@ pub(crate) fn print_qianji_usage() {
     eprintln!("  Advance:   qianji [-v|--log-verbose] advance --dir <path> --to <node>");
     eprintln!("  Check:     qianji [-v|--log-verbose] check --dir <path>");
     eprintln!("  Emit:      qianji [-v|--log-verbose] emit <path> --bpmn");
-    eprintln!("  Lint:      qianji [-v|--log-verbose] lint <path>");
-    eprintln!("             qianji [-v|--log-verbose] lint --bpmn <path>");
-    eprintln!("             qianji [-v|--log-verbose] lint --dmn <path>");
+    eprintln!("  Lint:      qianji [-v|--log-verbose] lint <path> [--json]");
+    eprintln!("             qianji [-v|--log-verbose] lint --bpmn <path> [--json]");
+    eprintln!("             qianji [-v|--log-verbose] lint --dmn <path> [--json]");
     eprintln!("             compatibility alias: same flags also parse under 'linter'");
     eprintln!("  Template:  qianji [-v|--log-verbose] template --bpmn");
     eprintln!("             qianji [-v|--log-verbose] template --dmn");

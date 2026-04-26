@@ -262,6 +262,7 @@ pub use ir_repeat_api::{
 pub use lint_api::{
     LintDomain, LintIssue, LintReport, LintSeverity, lint_bpmn_source, lint_dmn_source,
 };
+pub use repeat_condition::{GatewayConditionSummary, parse_gateway_condition_summary};
 pub use runtime_advance_api::{BpmnAdvanceOutcome, advance_instance};
 pub use runtime_dispatch_api::{PendingHostWork, PendingHostWorkKind};
 pub use runtime_frontier_api::{

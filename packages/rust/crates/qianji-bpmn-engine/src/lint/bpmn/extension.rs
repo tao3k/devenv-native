@@ -88,6 +88,23 @@ fn unsupported_interaction_type_issue(
             "supported_interaction_types": SUPPORTED_INTERACTION_TYPES,
         }),
     )
+    .with_structured_repair(interaction_repair_plan(
+        source_id,
+        "replace_unsupported_interaction_type",
+        json!({
+            "op": "set_attribute",
+            "element": "qianji:interaction",
+            "attribute": "type",
+            "allowed_values": SUPPORTED_INTERACTION_TYPES,
+            "selection_hint": {
+                "input": "plain free-form answer",
+                "confirm": "yes/no approval",
+                "choice": "bounded option selection",
+                "choice_input": "option selection plus optional free-form feedback"
+            },
+            "replace": interaction_type
+        }),
+    ))
 }
 
 fn missing_interaction_type_issue(source: &BpmnSourceFile) -> LintIssue {
@@ -110,4 +127,33 @@ fn missing_interaction_type_issue(source: &BpmnSourceFile) -> LintIssue {
             "supported_interaction_types": SUPPORTED_INTERACTION_TYPES,
         }),
     )
+    .with_structured_repair(interaction_repair_plan(
+        source_id,
+        "add_missing_interaction_type",
+        json!({
+            "op": "set_attribute",
+            "element": "qianji:interaction",
+            "attribute": "type",
+            "allowed_values": SUPPORTED_INTERACTION_TYPES,
+            "default_when_unsure": "choice_input"
+        }),
+    ))
+}
+
+fn interaction_repair_plan(
+    source_id: &str,
+    strategy: &'static str,
+    action: serde_json::Value,
+) -> serde_json::Value {
+    let actions = serde_json::Value::Array(vec![action]);
+    json!({
+        "schema_version": 1,
+        "contract": "qianji.bpmn.user_task.interaction.v1",
+        "strategy": strategy,
+        "target": {
+            "source_id": source_id,
+        },
+        "construct_cards": ["user-task.interaction"],
+        "actions": actions,
+    })
 }

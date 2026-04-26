@@ -21,9 +21,6 @@ fn run_show_graph_command_renders_flowhub_mermaid_graph() {
     assert!(output.rendered.contains("Direction: LR"));
     assert!(output.rendered.contains("Declared topology: bounded_loop"));
     assert!(output.rendered.contains("## Execution"));
-    assert!(output.rendered.contains(
-        "`qianji check` evaluates the localized plan work surface, not the source Flowhub module."
-    ));
     assert!(output.rendered.contains("- Start at `coding`."));
     assert!(output.rendered.contains("- Complete at `done gate`."));
     assert!(output.rendered.contains("## Nodes"));

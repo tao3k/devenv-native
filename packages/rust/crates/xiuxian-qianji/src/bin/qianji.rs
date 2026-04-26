@@ -20,7 +20,9 @@ mod dispatch;
 mod emit_cli;
 #[path = "qianji/graph_export.rs"]
 mod graph_export;
-#[path = "qianji/lint_cli.rs"]
+#[path = "qianji/json_output.rs"]
+mod json_output;
+#[path = "qianji/lint_cli/mod.rs"]
 mod lint_cli;
 #[path = "qianji/manifest_exec.rs"]
 mod manifest_exec;

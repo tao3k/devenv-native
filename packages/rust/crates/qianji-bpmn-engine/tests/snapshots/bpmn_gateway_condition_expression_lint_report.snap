@@ -19,6 +19,66 @@ expression: value
         "Do not use FEEL, boolean-literal comparisons like `approved == true`, scripts, function calls, arithmetic, or logical combinations such as `approved and vip` in this bounded slice."
       ],
       "llm_fix_prompt": "Rewrite the `conditionExpression` on gateway 'decision' in process 'gateway_flow' so it stays inside the bounded subset: one boolean variable path like `approved`, `not approved`, or `flags.approved`, or one numeric comparison like `amount > 100` or `risk >= 7`. Preserve workflow intent, but remove FEEL, boolean-literal comparisons, logical combinations, and script-style expressions.",
+      "structured_repair": {
+        "actions": [
+          {
+            "allowed_forms": {
+              "boolean_path": {
+                "examples": [
+                  "approved",
+                  "not approved",
+                  "flags.approved"
+                ],
+                "value_type": "boolean"
+              },
+              "numeric_comparison": {
+                "examples": [
+                  "amount > 100",
+                  "risk >= 7"
+                ],
+                "left": "identifier path",
+                "operators": [
+                  "==",
+                  "!=",
+                  ">",
+                  ">=",
+                  "<",
+                  "<="
+                ],
+                "right": "finite numeric literal"
+              }
+            },
+            "examples": [
+              "approved",
+              "not approved",
+              "flags.approved",
+              "amount > 100",
+              "risk >= 7"
+            ],
+            "forbidden_forms": [
+              "approved == true",
+              "approved == false",
+              "approved and vip",
+              "${approved}",
+              "functions",
+              "scripts",
+              "FEEL expressions"
+            ],
+            "op": "rewrite_condition_expression"
+          }
+        ],
+        "construct_cards": [
+          "gateway.exclusive.bounded"
+        ],
+        "contract": "qianji.bpmn.gateway.bounded.v1",
+        "schema_version": 1,
+        "strategy": "rewrite_condition_to_bounded_subset",
+        "target": {
+          "detail": "unsupported_condition_expression",
+          "node_id": "decision",
+          "process_id": "gateway_flow"
+        }
+      },
       "evidence": {
         "detail": "unsupported_condition_expression",
         "node_id": "decision",

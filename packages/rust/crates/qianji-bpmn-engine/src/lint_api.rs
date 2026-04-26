@@ -39,6 +39,9 @@ pub struct LintIssue {
     pub repair_guidance: Vec<String>,
     /// One direct editing prompt optimized for LLM-assisted repair.
     pub llm_fix_prompt: String,
+    /// Machine-readable repair plan for LLM and tool consumers.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub structured_repair: Option<Value>,
     /// Structured evidence extracted from the parse failure.
     pub evidence: Value,
 }
@@ -63,8 +66,16 @@ impl LintIssue {
             why_it_failed: why_it_failed.into(),
             repair_guidance,
             llm_fix_prompt: llm_fix_prompt.into(),
+            structured_repair: None,
             evidence,
         }
+    }
+
+    /// Attaches a machine-readable repair plan.
+    #[must_use]
+    pub fn with_structured_repair(mut self, structured_repair: Value) -> Self {
+        self.structured_repair = Some(structured_repair);
+        self
     }
 }
 

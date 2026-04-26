@@ -1,5 +1,5 @@
 use crate::lint_api::LintIssue;
-use serde_json::json;
+use serde_json::{Value, json};
 
 pub(super) fn gateway_configuration_issue(
     process_id: &str,
@@ -73,6 +73,25 @@ fn condition_expression_requires_conditional_gateway_issue(
             "detail": detail,
         }),
     )
+    .with_structured_repair(gateway_repair_plan(
+        "move_condition_to_bounded_gateway",
+        process_id,
+        node_id,
+        detail,
+        vec![
+            json!({
+                "op": "insert_or_reuse_gateway",
+                "element": "exclusiveGateway",
+                "construct_card": "gateway.exclusive.bounded",
+                "reason": "conditionExpression must be owned by a bounded conditional gateway"
+            }),
+            json!({
+                "op": "move_condition_expression",
+                "from": "non_gateway_sequence_flow",
+                "to": "outgoing_gateway_sequence_flow"
+            }),
+        ],
+    ))
 }
 
 fn default_flow_requires_multiple_outgoing_issue(
@@ -100,6 +119,28 @@ fn default_flow_requires_multiple_outgoing_issue(
             "detail": detail,
         }),
     )
+    .with_structured_repair(gateway_repair_plan(
+        "remove_or_complete_default_branch",
+        process_id,
+        node_id,
+        detail,
+        vec![
+            json!({
+                "op": "choose_one",
+                "options": [
+                    {
+                        "op": "remove_gateway_default_attribute",
+                        "when": "the gateway has only one real outgoing path"
+                    },
+                    {
+                        "op": "add_branching_gateway_flow",
+                        "when": "the workflow really needs conditional branching",
+                        "requires": "at least one conditional branch plus one unconditional default branch"
+                    }
+                ]
+            }),
+        ],
+    ))
 }
 
 fn invalid_default_flow_issue(process_id: &str, node_id: &str, detail: &'static str) -> LintIssue {
@@ -123,6 +164,17 @@ fn invalid_default_flow_issue(process_id: &str, node_id: &str, detail: &'static 
             "detail": detail,
         }),
     )
+    .with_structured_repair(gateway_repair_plan(
+        "retarget_default_flow",
+        process_id,
+        node_id,
+        detail,
+        vec![json!({
+            "op": "set_gateway_default",
+            "value": "one existing outgoing sequenceFlow id from this gateway",
+            "forbid": "missing flow ids or flow ids owned by another source"
+        })],
+    ))
 }
 
 fn default_flow_must_not_have_condition_expression_issue(
@@ -150,6 +202,16 @@ fn default_flow_must_not_have_condition_expression_issue(
             "detail": detail,
         }),
     )
+    .with_structured_repair(gateway_repair_plan(
+        "make_default_branch_unconditional",
+        process_id,
+        node_id,
+        detail,
+        vec![json!({
+            "op": "remove_condition_expression",
+            "target": "sequenceFlow named by gateway default"
+        })],
+    ))
 }
 
 fn missing_condition_expression_issue(
@@ -177,6 +239,17 @@ fn missing_condition_expression_issue(
             "detail": detail,
         }),
     )
+    .with_structured_repair(gateway_repair_plan(
+        "add_missing_branch_condition",
+        process_id,
+        node_id,
+        detail,
+        vec![json!({
+            "op": "add_condition_expression",
+            "target": "every non-default outgoing sequenceFlow",
+            "allowed_forms": allowed_gateway_condition_forms()
+        })],
+    ))
 }
 
 fn unsupported_condition_expression_issue(
@@ -204,6 +277,26 @@ fn unsupported_condition_expression_issue(
             "detail": detail,
         }),
     )
+    .with_structured_repair(gateway_repair_plan(
+        "rewrite_condition_to_bounded_subset",
+        process_id,
+        node_id,
+        detail,
+        vec![json!({
+            "op": "rewrite_condition_expression",
+            "allowed_forms": allowed_gateway_condition_forms(),
+            "forbidden_forms": [
+                "approved == true",
+                "approved == false",
+                "approved and vip",
+                "${approved}",
+                "functions",
+                "scripts",
+                "FEEL expressions"
+            ],
+            "examples": ["approved", "not approved", "flags.approved", "amount > 100", "risk >= 7"]
+        })],
+    ))
 }
 
 fn no_matching_condition_or_default_issue(
@@ -231,6 +324,26 @@ fn no_matching_condition_or_default_issue(
             "detail": detail,
         }),
     )
+    .with_structured_repair(gateway_repair_plan(
+        "add_default_or_guarantee_condition",
+        process_id,
+        node_id,
+        detail,
+        vec![json!({
+            "op": "choose_one",
+            "options": [
+                {
+                    "op": "add_unconditional_default_branch",
+                    "preferred": true,
+                    "reason": "prevents runtime dead-end when all conditions are false"
+                },
+                {
+                    "op": "guarantee_upstream_boolean_or_numeric_value",
+                    "reason": "only valid when source data guarantees one condition will match"
+                }
+            ]
+        })],
+    ))
 }
 
 fn unresolved_condition_variable_issue(
@@ -258,6 +371,28 @@ fn unresolved_condition_variable_issue(
             "detail": detail,
         }),
     )
+    .with_structured_repair(gateway_repair_plan(
+        "declare_gateway_condition_variable_upstream",
+        process_id,
+        node_id,
+        detail,
+        vec![
+            json!({
+                "op": "declare_upstream_output",
+                "elements": ["qianji:outputs"],
+                "construct_cards": ["service-task.agent", "user-task.interaction"],
+                "value_type": "boolean for boolean-path conditions, number for numeric comparisons"
+            }),
+            json!({
+                "op": "route_on_declared_output_only",
+                "forbid": "gateway conditions that read variables not produced by an earlier qianji task"
+            }),
+            json!({
+                "op": "add_unconditional_default_branch",
+                "when": "the variable may be absent at runtime"
+            }),
+        ],
+    ))
 }
 
 fn structured_inclusive_gateway_issue(
@@ -285,6 +420,16 @@ fn structured_inclusive_gateway_issue(
             "detail": detail,
         }),
     )
+    .with_structured_repair(gateway_repair_plan(
+        "rewrite_inclusive_gateway_to_structured_subset",
+        process_id,
+        node_id,
+        detail,
+        vec![json!({
+            "op": "rewrite_inclusive_gateway_pair",
+            "shape": "one diverging inclusiveGateway, one matching converging inclusiveGateway, linear branch paths only"
+        })],
+    ))
 }
 
 fn generic_gateway_configuration_issue(
@@ -312,4 +457,52 @@ fn generic_gateway_configuration_issue(
             "detail": detail,
         }),
     )
+    .with_structured_repair(gateway_repair_plan(
+        "rewrite_gateway_to_supported_construct",
+        process_id,
+        node_id,
+        detail,
+        vec![json!({
+            "op": "select_supported_gateway_construct",
+            "construct_cards": ["gateway.exclusive.bounded"],
+            "supported_gateway_elements": ["exclusiveGateway", "inclusiveGateway", "parallelGateway", "eventBasedGateway"]
+        })],
+    ))
+}
+
+fn gateway_repair_plan(
+    strategy: &'static str,
+    process_id: &str,
+    node_id: &str,
+    detail: &'static str,
+    actions: Vec<Value>,
+) -> Value {
+    let actions = Value::Array(actions);
+    json!({
+        "schema_version": 1,
+        "contract": "qianji.bpmn.gateway.bounded.v1",
+        "strategy": strategy,
+        "target": {
+            "process_id": process_id,
+            "node_id": node_id,
+            "detail": detail,
+        },
+        "construct_cards": ["gateway.exclusive.bounded"],
+        "actions": actions,
+    })
+}
+
+fn allowed_gateway_condition_forms() -> Value {
+    json!({
+        "boolean_path": {
+            "examples": ["approved", "not approved", "flags.approved"],
+            "value_type": "boolean"
+        },
+        "numeric_comparison": {
+            "operators": ["==", "!=", ">", ">=", "<", "<="],
+            "examples": ["amount > 100", "risk >= 7"],
+            "left": "identifier path",
+            "right": "finite numeric literal"
+        }
+    })
 }
