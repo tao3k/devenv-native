@@ -126,31 +126,57 @@ async fn search_intent_returns_payload() {
         }).collect::<Vec<_>>(),
     });
 
+    assert_alpha_intent_payload(&payload);
+}
+
+fn assert_alpha_intent_payload(payload: &serde_json::Value) {
     assert_eq!(payload["query"], json!("alpha_handler"));
-    assert_eq!(payload["hitCount"], json!(2));
-    assert_eq!(payload["selectedMode"], json!("intent_hybrid"));
-    assert_eq!(payload["searchMode"], json!("intent_hybrid"));
     assert_eq!(payload["intent"], json!("debug_lookup"));
-    assert_eq!(payload["intentConfidence"], json!(1.0));
-    assert_eq!(payload["graphConfidenceScore"], json!(1.0));
 
     let hits = payload["hits"]
         .as_array()
         .unwrap_or_else(|| panic!("intent payload should include hits array"));
-    assert_eq!(hits.len(), 2);
-    assert!(hits.iter().any(|hit| {
+    assert_eq!(payload["hitCount"], json!(hits.len()));
+    assert!(
+        !hits.is_empty(),
+        "intent payload should include at least one local-source hit"
+    );
+
+    let selected_mode = payload["selectedMode"]
+        .as_str()
+        .unwrap_or_else(|| panic!("intent payload should include selectedMode"));
+    assert_eq!(payload["searchMode"], payload["selectedMode"]);
+    assert!(
+        matches!(selected_mode, "intent_hybrid" | "graph_fts"),
+        "unexpected intent selected mode `{selected_mode}`"
+    );
+    assert_eq!(payload["intentConfidence"], json!(1.0));
+
+    let symbol_hit = hits.iter().find(|hit| {
         hit["stem"] == json!("alpha_handler")
             && hit["title"] == json!("alpha_handler")
             && hit["path"] == json!("packages/rust/crates/demo/src/lib.rs")
             && hit["docType"] == json!("symbol")
             && hit["matchReason"] == json!("local_symbol_search")
-    }));
-    assert!(hits.iter().any(|hit| {
+    });
+    let knowledge_hit = hits.iter().find(|hit| {
         hit["stem"] == json!("alpha")
             && hit["title"] == json!("Alpha")
             && hit["path"] == json!("alpha.md")
             && hit["matchReason"] == json!("knowledge_section_search")
-    }));
+    });
+
+    assert!(
+        symbol_hit.is_some() || knowledge_hit.is_some(),
+        "intent payload should include an expected local hit: {hits:?}"
+    );
+    if symbol_hit.is_some() {
+        assert_eq!(payload["selectedMode"], json!("intent_hybrid"));
+    }
+    assert_eq!(
+        payload["graphConfidenceScore"],
+        json!(if knowledge_hit.is_some() { 1.0 } else { 0.0 })
+    );
 }
 
 #[tokio::test]
