@@ -1,0 +1,17 @@
+flowchart LR
+  A["coding"] --> B["rust"]
+  B --> C["blueprint"]
+  C --> D["plan"]
+
+  D --> E["Codex write bounded surface"]
+  E --> F["surface check"]
+  F --> G["flowchart alignment"]
+  G --> H["boundary and drift check"]
+  H --> I["domain validators"]
+  I --> J["done gate"]
+
+  F -- fail --> R["diagnostics"]
+  G -- fail --> R
+  H -- fail --> R
+  I -- fail --> R
+  R --> E

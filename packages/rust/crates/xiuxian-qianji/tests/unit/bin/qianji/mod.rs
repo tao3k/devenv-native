@@ -14,7 +14,7 @@ use super::{
 use std::fs;
 use std::path::{Path, PathBuf};
 use tempfile::TempDir;
-use xiuxian_config_core::{resolve_cache_home_from_value, resolve_project_root};
+use xiuxian_config_core::resolve_cache_home_from_value;
 use xiuxian_qianji::runtime_config::QianjiRuntimeEnv;
 
 mod bpmn;
@@ -120,36 +120,25 @@ flowchart = ["blueprint", "plan"]
     workdir
 }
 
-fn repo_root() -> PathBuf {
-    resolve_project_root().unwrap_or_else(|| {
-        Path::new(env!("CARGO_MANIFEST_DIR"))
-            .ancestors()
-            .nth(4)
-            .unwrap_or_else(|| panic!("qianji manifest dir should resolve to workspace root"))
-            .to_path_buf()
-    })
+fn package_root() -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR")).to_path_buf()
 }
 
 fn flowhub_root() -> PathBuf {
-    repo_root().join("qianji-flowhub")
+    package_root().join("qianji-flowhub")
 }
 
 fn scenario_fixture_dir(name: &str) -> PathBuf {
-    repo_root().join(format!(
-        "packages/rust/crates/xiuxian-qianji/tests/fixtures/flowhub/{name}"
-    ))
+    package_root().join(format!("tests/fixtures/flowhub/{name}"))
 }
 
 fn anchored_workdir_fixture_anchor() -> PathBuf {
-    repo_root().join(
-        "packages/rust/crates/xiuxian-qianji/tests/fixtures/flowhub_modules/paper_deep_read_workdir/qianji.toml",
-    )
+    package_root().join("tests/fixtures/flowhub_modules/paper_deep_read_workdir/qianji.toml")
 }
 
 fn anchored_workdir_fixture_graph() -> PathBuf {
-    repo_root().join(
-        "packages/rust/crates/xiuxian-qianji/tests/fixtures/flowhub_modules/paper_deep_read_workdir/paper-deep-read.mmd",
-    )
+    package_root()
+        .join("tests/fixtures/flowhub_modules/paper_deep_read_workdir/paper-deep-read.mmd")
 }
 
 fn anchored_workdir_fixture_scenario() -> &'static str {

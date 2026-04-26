@@ -1,0 +1,19 @@
+version = 1
+
+[flowhub]
+name = "qianji-flowhub"
+
+[contract]
+register = [
+  "coding",
+  "rust",
+  "blueprint",
+  "plan",
+  "research",
+  "wendao",
+]
+required = [
+  "*/qianji.toml",
+  "docs/research-paper-graphs.md",
+  "docs/research-workspace-layering.md",
+]

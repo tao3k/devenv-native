@@ -20,12 +20,12 @@ fn run_show_anchor_command_renders_research_execution_brief() {
     assert!(
         output
             .rendered
-            .contains("Anchor: ./packages/rust/crates/xiuxian-qianji/tests/fixtures/flowhub_modules/paper_deep_read_workdir/qianji.toml")
+            .contains("tests/fixtures/flowhub_modules/paper_deep_read_workdir/qianji.toml")
     );
     assert!(
         output
             .rendered
-            .contains("Graph: ./packages/rust/crates/xiuxian-qianji/tests/fixtures/flowhub_modules/paper_deep_read_workdir/paper-deep-read.mmd")
+            .contains("tests/fixtures/flowhub_modules/paper_deep_read_workdir/paper-deep-read.mmd")
     );
     assert!(output.rendered.contains("## Goal"));
     assert!(

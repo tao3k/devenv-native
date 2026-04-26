@@ -1,0 +1,65 @@
+version = 1
+
+[module]
+name = "wendao"
+tags = ["planning", "wendao", "search"]
+
+[exports]
+entry = "task.wendao-search-start"
+ready = "task.wendao-search-ready"
+
+[contract]
+required = ["docs-search.mmd"]
+
+[[graph]]
+path = "docs-search.mmd"
+name = "DOC_SEARCH"
+topology = "bounded_loop"
+
+[[graph.node]]
+label = "wendao"
+kind = "context"
+role = "define the Wendao docs retrieval lane"
+agent_action = "treat this module as the owned docs capability lane and follow the declared contract nodes instead of raw adapter URLs"
+
+[[graph.node]]
+label = "wendao.docs.search"
+kind = "capability_contract"
+role = "open the stable docs search capability contract"
+agent_action = "treat this label as the owner-owned contract id and materialize its invocation surface from Wendao contract assets"
+
+[[graph.node]]
+label = "wendao.docs.document"
+kind = "capability_contract"
+role = "open the stable docs document capability contract"
+agent_action = "treat this label as the owner-owned contract id and reopen one docs page through the declared contract surface"
+
+[[graph.node]]
+label = "wendao.docs.document_structure"
+kind = "capability_contract"
+role = "open the stable docs document-structure capability contract"
+agent_action = "treat this label as the owner-owned contract id and reopen one docs structure bundle through the declared contract surface"
+
+[[graph.node]]
+label = "wendao.docs.navigation"
+kind = "capability_contract"
+role = "open the stable docs navigation capability contract"
+agent_action = "treat this label as the owner-owned contract id and reopen navigation through the declared contract surface"
+
+[[graph.node]]
+label = "wendao.docs.retrieval_context"
+kind = "capability_contract"
+role = "open the stable docs retrieval-context capability contract"
+agent_action = "treat this label as the owner-owned contract id and reopen retrieval context through the declared contract surface"
+
+[[graph.node]]
+label = "done gate"
+kind = "gate"
+role = "allow completion only when required guards and validators pass"
+agent_action = "do not treat the slice as complete before qianji check passes"
+
+[[graph.node]]
+label = "diagnostics"
+kind = "process"
+role = "capture blocking diagnostics for bounded-surface repair"
+agent_action = "use diagnostics to repair the bounded retrieval loop before retrying"

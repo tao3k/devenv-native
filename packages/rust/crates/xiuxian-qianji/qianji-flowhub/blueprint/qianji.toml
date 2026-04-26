@@ -1,0 +1,9 @@
+version = 1
+
+[module]
+name = "blueprint"
+tags = ["planning", "blueprint"]
+
+[exports]
+entry = "task.blueprint-start"
+ready = "task.blueprint-ready"

@@ -1,0 +1,13 @@
+version = 1
+
+[module]
+name = "research"
+tags = ["planning", "research"]
+
+[exports]
+entry = "task.research-start"
+ready = "task.research-ready"
+
+[contract]
+register = ["paper"]
+required = ["paper/qianji.toml"]

@@ -1,0 +1,12 @@
+flowchart LR
+  A["wendao"] --> B["wendao.docs.search"]
+  B --> C["wendao.docs.document"]
+  C --> D["wendao.docs.document_structure"]
+  D --> E["wendao.docs.navigation"]
+  E --> F["wendao.docs.retrieval_context"]
+  F --> G["done gate"]
+
+  B -- fail --> R["diagnostics"]
+  E -- fail --> R
+  F -- fail --> R
+  R --> B

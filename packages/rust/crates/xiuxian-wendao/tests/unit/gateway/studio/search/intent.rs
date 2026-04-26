@@ -105,29 +105,52 @@ async fn search_intent_returns_payload() {
             ))
     });
 
-    assert_studio_json_snapshot(
-        "search_intent_payload",
-        json!({
-            "query": response.query,
-            "hitCount": response.hit_count,
-            "selectedMode": response.selected_mode,
-            "searchMode": response.search_mode,
-            "intent": response.intent,
-            "intentConfidence": response.intent_confidence.map(round_f64),
-            "graphConfidenceScore": response.graph_confidence_score.map(round_f64),
-            "hits": hits.into_iter().map(|hit| {
-                json!({
-                    "stem": hit.stem,
-                    "title": hit.title,
-                    "path": hit.path,
-                    "docType": hit.doc_type,
-                    "score": round_f64(hit.score),
-                    "bestSection": hit.best_section,
-                    "matchReason": hit.match_reason,
-                })
-            }).collect::<Vec<_>>(),
-        }),
-    );
+    let payload = json!({
+        "query": response.query,
+        "hitCount": response.hit_count,
+        "selectedMode": response.selected_mode,
+        "searchMode": response.search_mode,
+        "intent": response.intent,
+        "intentConfidence": response.intent_confidence.map(round_f64),
+        "graphConfidenceScore": response.graph_confidence_score.map(round_f64),
+        "hits": hits.into_iter().map(|hit| {
+            json!({
+                "stem": hit.stem,
+                "title": hit.title,
+                "path": hit.path,
+                "docType": hit.doc_type,
+                "score": round_f64(hit.score),
+                "bestSection": hit.best_section,
+                "matchReason": hit.match_reason,
+            })
+        }).collect::<Vec<_>>(),
+    });
+
+    assert_eq!(payload["query"], json!("alpha_handler"));
+    assert_eq!(payload["hitCount"], json!(2));
+    assert_eq!(payload["selectedMode"], json!("intent_hybrid"));
+    assert_eq!(payload["searchMode"], json!("intent_hybrid"));
+    assert_eq!(payload["intent"], json!("debug_lookup"));
+    assert_eq!(payload["intentConfidence"], json!(1.0));
+    assert_eq!(payload["graphConfidenceScore"], json!(1.0));
+
+    let hits = payload["hits"]
+        .as_array()
+        .unwrap_or_else(|| panic!("intent payload should include hits array"));
+    assert_eq!(hits.len(), 2);
+    assert!(hits.iter().any(|hit| {
+        hit["stem"] == json!("alpha_handler")
+            && hit["title"] == json!("alpha_handler")
+            && hit["path"] == json!("packages/rust/crates/demo/src/lib.rs")
+            && hit["docType"] == json!("symbol")
+            && hit["matchReason"] == json!("local_symbol_search")
+    }));
+    assert!(hits.iter().any(|hit| {
+        hit["stem"] == json!("alpha")
+            && hit["title"] == json!("Alpha")
+            && hit["path"] == json!("alpha.md")
+            && hit["matchReason"] == json!("knowledge_section_search")
+    }));
 }
 
 #[tokio::test]

@@ -1,0 +1,100 @@
+version = 1
+
+[module]
+name = "plan"
+tags = ["planning", "plan"]
+
+[exports]
+entry = "task.plan-start"
+ready = "task.plan-ready"
+
+[contract]
+required = ["codex-plan.mmd"]
+
+[[graph]]
+path = "codex-plan.mmd"
+topology = "bounded_loop"
+
+[graph.workdir]
+note = "`qianji check` evaluates the localized plan work surface, not the source Flowhub module."
+root = "<plan-workdir>"
+
+[graph.workdir.check]
+require = [
+  "qianji.toml",
+  "flowchart.mmd",
+  "blueprint",
+  "plan",
+  "blueprint/**/*.md",
+  "plan/**/*.md",
+]
+flowchart = [
+  "blueprint",
+  "plan",
+]
+
+[[graph.node]]
+label = "coding"
+kind = "context"
+role = "define the top-level coding lane"
+agent_action = "treat as upstream scope, not a writable artifact"
+
+[[graph.node]]
+label = "rust"
+kind = "context"
+role = "define the rust specialization lane"
+agent_action = "reflect rust constraints into blueprint and plan surfaces"
+
+[[graph.node]]
+label = "blueprint"
+kind = "artifact"
+role = "define the bounded blueprint surface"
+agent_action = "create and populate blueprint/"
+
+[[graph.node]]
+label = "plan"
+kind = "artifact"
+role = "define the bounded execution surface"
+agent_action = "create and populate plan/"
+
+[[graph.node]]
+label = "Codex write bounded surface"
+kind = "process"
+role = "write the bounded work surface from the graph contract"
+agent_action = "write qianji.toml, flowchart.mmd, blueprint/, and plan/ for the bounded slice"
+
+[[graph.node]]
+label = "surface check"
+kind = "guard"
+role = "require the bounded work surface to exist"
+agent_action = "ensure qianji.toml, flowchart.mmd, blueprint/, and plan/ exist"
+
+[[graph.node]]
+label = "flowchart alignment"
+kind = "guard"
+role = "ensure the flowchart matches the current bounded artifact surface"
+agent_action = "keep flowchart.mmd aligned with blueprint and plan"
+
+[[graph.node]]
+label = "boundary and drift check"
+kind = "guard"
+role = "ensure the bounded artifact state remains inside contract boundaries without drift"
+agent_action = "keep blueprint/ and plan/ inside the bounded surface and consistent with the shown graph"
+
+[[graph.node]]
+label = "domain validators"
+kind = "validator"
+role = "require domain validators to pass before completion"
+agent_action = "prepare the artifact state so required domain validators can succeed"
+
+[[graph.node]]
+label = "done gate"
+kind = "gate"
+role = "allow completion only when required guards and validators pass"
+agent_action = "do not treat the slice as complete before qianji check passes"
+
+[[graph.node]]
+label = "diagnostics"
+kind = "process"
+role = "capture blocking diagnostics for bounded-surface repair"
+agent_action = "use diagnostics to repair the bounded work surface before retrying"

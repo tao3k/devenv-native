@@ -1,0 +1,9 @@
+version = 1
+
+[module]
+name = "paper"
+tags = ["planning", "research", "paper"]
+
+[exports]
+entry = "task.paper-start"
+ready = "task.paper-ready"
