@@ -224,61 +224,16 @@ async fn run_bpmn_task_claim_worklist_release_commands_use_checkpointed_control_
         ..QianjiRuntimeEnv::default()
     };
     let instance_id = "wf_task_cli_claim";
-
-    let start_output = must_ok(
-        run_bpmn_run_command_with_runtime_env(
-            &BpmnRunCliCommand {
-                bpmn_path,
-                dmn_paths: Vec::new(),
-                process_id: "review".to_string(),
-                instance_id: instance_id.to_string(),
-                context_json: Some("{}".to_string()),
-                start_at_node_id: None,
-                checkpoint_backend: Some(BpmnCliCheckpointBackend::LocalDuckDb),
-                host_fixture_path: None,
-                event_fixture_path: None,
-                trace_stream: false,
-                external_host: true,
-                continue_until_human_boundary: false,
-            },
-            Some(&runtime_env),
-            None,
-        )
-        .await,
-        "bpmn run should persist a checkpointed pending user task",
-    );
-    assert!(start_output.rendered.contains("Pending host work: 1"));
-
-    let checkpoint = must_some(
-        must_ok(
-            xiuxian_qianji::QianjiBpmnCheckpointStore::duckdb(duckdb_path.clone())
-                .load(instance_id)
-                .await,
-            "checkpoint should load after external-host user task boundary",
-        ),
-        "checkpoint should exist after external-host user task boundary",
-    );
-    let pending = checkpoint
-        .state
-        .pending_host_work
-        .first()
-        .unwrap_or_else(|| panic!("checkpoint should contain pending human work"));
-    let process_id = pending
-        .process_id
-        .clone()
-        .unwrap_or_else(|| checkpoint.state.process.process_id.as_ref().to_string());
-    let activity_id = pending
-        .activity_id
-        .clone()
-        .unwrap_or_else(|| format!("node#{}", pending.node_index));
-    let token_id = pending.token_id;
+    let pending =
+        seed_checkpointed_cli_pending_task(bpmn_path, &duckdb_path, &runtime_env, instance_id)
+            .await;
 
     let claim_command = BpmnTaskClaimCliCommand {
         instance_id: instance_id.to_string(),
         checkpoint_backend: BpmnCliCheckpointBackend::LocalDuckDb,
-        token_id,
-        process_id: process_id.clone(),
-        activity_id: activity_id.clone(),
+        token_id: pending.token,
+        process_id: pending.process.clone(),
+        activity_id: pending.activity.clone(),
         claimant: "alice".to_string(),
     };
     let claim_output = must_ok(
@@ -315,9 +270,9 @@ async fn run_bpmn_task_claim_worklist_release_commands_use_checkpointed_control_
             &BpmnTaskReleaseCliCommand {
                 instance_id: instance_id.to_string(),
                 checkpoint_backend: BpmnCliCheckpointBackend::LocalDuckDb,
-                token_id,
-                process_id,
-                activity_id,
+                token_id: pending.token,
+                process_id: pending.process,
+                activity_id: pending.activity,
                 claimant: "alice".to_string(),
             },
             Some(&runtime_env),
@@ -342,4 +297,69 @@ async fn run_bpmn_task_claim_worklist_release_commands_use_checkpointed_control_
     );
     assert!(unclaimed_worklist.rendered.contains("Item count: 1"));
     assert!(unclaimed_worklist.rendered.contains("claim=unclaimed"));
+}
+
+#[cfg(feature = "duckdb")]
+struct CheckpointedCliPendingTask {
+    token: u64,
+    process: String,
+    activity: String,
+}
+
+#[cfg(feature = "duckdb")]
+async fn seed_checkpointed_cli_pending_task(
+    bpmn_path: std::path::PathBuf,
+    duckdb_path: &std::path::Path,
+    runtime_env: &QianjiRuntimeEnv,
+    instance_id: &str,
+) -> CheckpointedCliPendingTask {
+    let start_output = must_ok(
+        run_bpmn_run_command_with_runtime_env(
+            &BpmnRunCliCommand {
+                bpmn_path,
+                dmn_paths: Vec::new(),
+                process_id: "review".to_string(),
+                instance_id: instance_id.to_string(),
+                context_json: Some("{}".to_string()),
+                start_at_node_id: None,
+                checkpoint_backend: Some(BpmnCliCheckpointBackend::LocalDuckDb),
+                host_fixture_path: None,
+                event_fixture_path: None,
+                trace_stream: false,
+                external_host: true,
+                continue_until_human_boundary: false,
+            },
+            Some(runtime_env),
+            None,
+        )
+        .await,
+        "bpmn run should persist a checkpointed pending user task",
+    );
+    assert!(start_output.rendered.contains("Pending host work: 1"));
+
+    let checkpoint = must_some(
+        must_ok(
+            xiuxian_qianji::QianjiBpmnCheckpointStore::duckdb(duckdb_path.to_path_buf())
+                .load(instance_id)
+                .await,
+            "checkpoint should load after external-host user task boundary",
+        ),
+        "checkpoint should exist after external-host user task boundary",
+    );
+    let pending = checkpoint
+        .state
+        .pending_host_work
+        .first()
+        .unwrap_or_else(|| panic!("checkpoint should contain pending human work"));
+    CheckpointedCliPendingTask {
+        token: pending.token_id,
+        process: pending
+            .process_id
+            .clone()
+            .unwrap_or_else(|| checkpoint.state.process.process_id.as_ref().to_string()),
+        activity: pending
+            .activity_id
+            .clone()
+            .unwrap_or_else(|| format!("node#{}", pending.node_index)),
+    }
 }

@@ -229,9 +229,9 @@ async fn pending_host_work_stream_includes_human_task_form_contract() {
     );
     let lines = render_bpmn_pending_host_work_stream_lines(&session);
     assert_eq!(lines.len(), 1);
-    let payload = lines[0]
-        .strip_prefix("@@QIANJI_HOST_WORK ")
-        .expect("pending host work stream should use marker prefix");
+    let Some(payload) = lines[0].strip_prefix("@@QIANJI_HOST_WORK ") else {
+        panic!("pending host work stream should use marker prefix");
+    };
     let value: serde_json::Value = must_ok(
         serde_json::from_str(payload),
         "pending host work stream should be JSON",

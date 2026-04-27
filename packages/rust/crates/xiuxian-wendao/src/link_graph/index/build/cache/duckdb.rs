@@ -404,8 +404,8 @@ pub(in crate::link_graph::index::build) fn load_cached_index_from_duckdb(
     _include_dirs: &[String],
     _excluded_dirs: &[String],
     _fingerprint: &LinkGraphFingerprint,
-) -> Result<CacheLookupOutcome, String> {
-    Ok(CacheLookupOutcome::Miss("duckdb_feature_disabled"))
+) -> CacheLookupOutcome {
+    CacheLookupOutcome::Miss("duckdb_feature_disabled")
 }
 
 #[cfg(feature = "duckdb")]
@@ -489,8 +489,7 @@ pub(in crate::link_graph::index::build) fn save_cached_index_to_duckdb(
     _cache_path: &Path,
     _slot_key: &str,
     _fingerprint: &LinkGraphFingerprint,
-) -> Result<(), String> {
-    Ok(())
+) {
 }
 
 #[cfg(all(test, feature = "duckdb"))]

@@ -397,15 +397,20 @@ fn parse_task_complete_kind(raw: &str) -> io::Result<BpmnTaskCompleteCliKind> {
 }
 
 #[derive(Default)]
+struct BpmnResumeLikeRuntimeFlags {
+    trace_stream: bool,
+    external_host: bool,
+    continue_until_human_boundary: bool,
+}
+
+#[derive(Default)]
 struct BpmnResumeLikeParseState {
     bpmn_path: Option<PathBuf>,
     dmn_paths: Vec<PathBuf>,
     instance_id: Option<String>,
     host_fixture_path: Option<PathBuf>,
     event_fixture_path: Option<PathBuf>,
-    trace_stream: bool,
-    external_host: bool,
-    continue_until_human_boundary: bool,
+    runtime_flags: BpmnResumeLikeRuntimeFlags,
     checkpoint_runtime: bool,
 }
 
@@ -453,9 +458,9 @@ fn parse_bpmn_resume_like_command(
         checkpoint_backend,
         host_fixture_path: state.host_fixture_path,
         event_fixture_path: state.event_fixture_path,
-        trace_stream: state.trace_stream,
-        external_host: state.external_host,
-        continue_until_human_boundary: state.continue_until_human_boundary,
+        trace_stream: state.runtime_flags.trace_stream,
+        external_host: state.runtime_flags.external_host,
+        continue_until_human_boundary: state.runtime_flags.continue_until_human_boundary,
     })
 }
 
@@ -492,13 +497,13 @@ fn parse_bpmn_resume_like_option(
             )?));
         }
         "--trace-stream" => {
-            state.trace_stream = true;
+            state.runtime_flags.trace_stream = true;
         }
         "--external-host" => {
-            state.external_host = true;
+            state.runtime_flags.external_host = true;
         }
         "--continue-until-human-boundary" => {
-            state.continue_until_human_boundary = true;
+            state.runtime_flags.continue_until_human_boundary = true;
         }
         "--checkpoint-runtime" => {
             state.checkpoint_runtime = true;

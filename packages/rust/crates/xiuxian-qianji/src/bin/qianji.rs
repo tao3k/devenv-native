@@ -43,7 +43,7 @@ use common::{invalid_input, parse_flag_value, resolve_cli_path};
 /// Returns an error if environment resolution, compilation, or execution fails.
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    dispatch::run().await
+    Box::pin(dispatch::run()).await
 }
 
 #[cfg(test)]

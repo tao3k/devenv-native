@@ -59,16 +59,15 @@ async fn workflow_control_service_claim_persists_human_task_owner() {
             .await,
         "claimed workflow status should load",
     );
+    let claimed_at_ms = match &claim_report.claimed_work.claim {
+        Some(claim) => claim.claimed_at_ms,
+        None => panic!("claimed work should carry claim"),
+    };
     assert_eq!(
         status_report.instance.pending_host_work[0].claim,
         Some(PendingHostWorkClaim {
             claimant: "alice".to_string(),
-            claimed_at_ms: claim_report
-                .claimed_work
-                .claim
-                .as_ref()
-                .expect("claimed work should carry claim")
-                .claimed_at_ms,
+            claimed_at_ms,
         })
     );
 }
@@ -349,10 +348,10 @@ async fn seed_pending_user_task_checkpoint(
     );
     assert!(matches!(outcome, BpmnAdvanceOutcome::BlockedOnHost(pending) if pending.len() == 1));
     let pending_token_id = instance.pending_host_work[0].token_id;
-    let pending_activity_id = instance.pending_host_work[0]
-        .activity_id
-        .clone()
-        .expect("pending host work should carry activity id");
+    let pending_activity_id = match &instance.pending_host_work[0].activity_id {
+        Some(activity_id) => activity_id.clone(),
+        None => panic!("pending host work should carry activity id"),
+    };
     let store = QianjiBpmnCheckpointStore::duckdb(duckdb_path);
     ok_of(
         store

@@ -71,6 +71,7 @@ impl LinkGraphIndex {
         cache_path: &Path,
     ) -> Result<(Self, LinkGraphCacheBuildMeta), String> {
         let context = prepare_build_cache_context(root_dir, include_dirs, excluded_dirs)?;
+        #[cfg(feature = "duckdb")]
         let mut miss_reason = match load_cached_index_from_duckdb(
             cache_path,
             &context.slot_key,
@@ -86,18 +87,36 @@ impl LinkGraphIndex {
             Ok(CacheLookupOutcome::Miss(reason)) => Some(reason.to_string()),
             Err(error) => Some(format!("duckdb_cache_unavailable: {error}")),
         };
+        #[cfg(not(feature = "duckdb"))]
+        let miss_reason = match load_cached_index_from_duckdb(
+            cache_path,
+            &context.slot_key,
+            &context.root,
+            &context.normalized_include_dirs,
+            &context.normalized_excluded_dirs,
+            &context.fingerprint,
+        ) {
+            CacheLookupOutcome::Hit(index) => {
+                let meta = build_cache_meta("duckdb", "hit", None);
+                return Ok((*index, meta));
+            }
+            CacheLookupOutcome::Miss(reason) => Some(reason.to_string()),
+        };
 
         let index = Self::build_with_filters(
             &context.root,
             &context.normalized_include_dirs,
             &context.normalized_excluded_dirs,
         )?;
+        #[cfg(feature = "duckdb")]
         if let Err(error) =
             save_cached_index_to_duckdb(&index, cache_path, &context.slot_key, &context.fingerprint)
             && miss_reason.is_none()
         {
             miss_reason = Some(format!("duckdb_cache_save_failed: {error}"));
         }
+        #[cfg(not(feature = "duckdb"))]
+        save_cached_index_to_duckdb(&index, cache_path, &context.slot_key, &context.fingerprint);
         let meta = build_cache_meta("duckdb", "miss", miss_reason);
         Ok((index, meta))
     }

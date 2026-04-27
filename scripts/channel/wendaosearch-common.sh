@@ -380,6 +380,10 @@ def main() -> int:
             updated_lines.append('ImmutableList = "0.1, 0.3"')
             changed = True
             continue
+        if in_compat and stripped == 'MetaModelica = "0.0.5"':
+            updated_lines.append('MetaModelica = "0.0.5, 0.1"')
+            changed = True
+            continue
 
         updated_lines.append(line)
 

@@ -384,11 +384,28 @@ fn build_task_complete_command(
     session: &BpmnHostSessionCliCommand,
     request: BpmnHostSessionTaskCompleteRequest,
 ) -> Result<BpmnTaskCompleteCliCommand, Box<dyn std::error::Error>> {
+    let checkpoint_backend = match session.start.checkpoint_backend.clone() {
+        Some(backend) => backend,
+        None => {
+            #[cfg(feature = "duckdb")]
+            {
+                QianjiBpmnWorkflowCheckpointBackend::LocalDuckDb
+            }
+            #[cfg(not(feature = "duckdb"))]
+            {
+                return Err(invalid_input(
+                    "missing checkpoint backend for `bpmn host-session`; use `--checkpoint-runtime` or enable local DuckDB",
+                )
+                .into());
+            }
+        }
+    };
+
     Ok(BpmnTaskCompleteCliCommand {
         bpmn_path: session.start.bpmn_path.clone(),
         dmn_paths: session.start.dmn_paths.clone(),
         instance_id: session.start.instance_id.clone(),
-        checkpoint_backend: resolve_session_checkpoint_backend(&session.start.checkpoint_backend)?,
+        checkpoint_backend,
         token_id: request.token_id,
         process_id: request.process_id,
         activity_id: request.activity_id,
@@ -401,25 +418,6 @@ fn build_task_complete_command(
         continue_until_human_boundary: session.start.host_fixture_path.is_some()
             && request.continue_until_human_boundary.unwrap_or(true),
     })
-}
-
-fn resolve_session_checkpoint_backend(
-    backend: &Option<QianjiBpmnWorkflowCheckpointBackend>,
-) -> Result<QianjiBpmnWorkflowCheckpointBackend, Box<dyn std::error::Error>> {
-    if let Some(backend) = backend.clone() {
-        return Ok(backend);
-    }
-    #[cfg(feature = "duckdb")]
-    {
-        Ok(QianjiBpmnWorkflowCheckpointBackend::LocalDuckDb)
-    }
-    #[cfg(not(feature = "duckdb"))]
-    {
-        Err(invalid_input(
-            "missing checkpoint backend for `bpmn host-session`; use `--checkpoint-runtime` or enable local DuckDB",
-        )
-        .into())
-    }
 }
 
 fn parse_session_task_complete_kind(raw: &str) -> io::Result<BpmnTaskCompleteCliKind> {

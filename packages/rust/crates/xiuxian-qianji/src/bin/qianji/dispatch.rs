@@ -25,7 +25,7 @@ pub(crate) async fn run() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     if let Some(command) = parse_bpmn_command(&args)? {
-        return handle_bpmn_command(command).await;
+        return Box::pin(handle_bpmn_command(command)).await;
     }
 
     if let Some(command) = parse_construct_command(&args)? {

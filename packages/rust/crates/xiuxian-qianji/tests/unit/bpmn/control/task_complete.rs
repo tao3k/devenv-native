@@ -589,10 +589,10 @@ async fn seed_pending_user_task_checkpoint_with_instance(
     assert!(matches!(outcome, BpmnAdvanceOutcome::BlockedOnHost(pending) if pending.len() == 1));
     assert_eq!(instance.pending_host_work.len(), 1);
     let pending_token_id = instance.pending_host_work[0].token_id;
-    let pending_activity_id = instance.pending_host_work[0]
-        .activity_id
-        .clone()
-        .expect("pending host work should carry activity id");
+    let pending_activity_id = match &instance.pending_host_work[0].activity_id {
+        Some(activity_id) => activity_id.clone(),
+        None => panic!("pending host work should carry activity id"),
+    };
     let store = QianjiBpmnCheckpointStore::duckdb(duckdb_path);
     ok_of(
         store
@@ -674,10 +674,10 @@ async fn seed_pending_service_task_checkpoint_with_instance(
 
     assert_eq!(instance.pending_host_work.len(), 1);
     let pending_token_id = instance.pending_host_work[0].token_id;
-    let pending_activity_id = instance.pending_host_work[0]
-        .activity_id
-        .clone()
-        .expect("pending host work should carry activity id");
+    let pending_activity_id = match &instance.pending_host_work[0].activity_id {
+        Some(activity_id) => activity_id.clone(),
+        None => panic!("pending host work should carry activity id"),
+    };
     let store = QianjiBpmnCheckpointStore::duckdb(duckdb_path);
     ok_of(
         store
