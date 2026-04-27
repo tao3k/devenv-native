@@ -1,5 +1,9 @@
-// Included from syntax.rs to keep the Rust test harness entrypoint small. use
-anyhow::Result; use tempfile::TempDir; use super::run_markdown_lint; #[test] fn
+// Included from syntax.rs to keep the Rust test harness entrypoint small.
+use anyhow::Result;
+use super::run_markdown_lint;
+use tempfile::TempDir;
+
+#[test] fn
 lint_reports_invalid_yaml_frontmatter() -> Result<()> { let temp =
 TempDir::new()?; std::fs::write(temp.path().join("demo.md"), "---\ntags:
 [demo\n---\n")?; let (status, stdout) = run_markdown_lint(&temp, None)?;
