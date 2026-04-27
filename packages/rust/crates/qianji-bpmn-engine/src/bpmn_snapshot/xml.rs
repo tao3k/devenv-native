@@ -15,6 +15,7 @@ pub(super) fn attribute_value(
         let attribute = attribute.map_err(|error| BpmnEngineError::InvalidXml {
             source_id: source.source_id.clone(),
             message: error.to_string(),
+            offset: None,
         })?;
         if local_name(attribute.key.as_ref()) == attribute_name {
             let value = attribute
@@ -22,6 +23,7 @@ pub(super) fn attribute_value(
                 .map_err(|error| BpmnEngineError::InvalidXml {
                     source_id: source.source_id.clone(),
                     message: error.to_string(),
+                    offset: None,
                 })?;
             return Ok(Some(value.into_owned()));
         }
@@ -53,6 +55,7 @@ pub(super) fn bpmn_model_namespace(
         let attribute = attribute.map_err(|error| BpmnEngineError::InvalidXml {
             source_id: source.source_id.clone(),
             message: error.to_string(),
+            offset: None,
         })?;
         let key = std::str::from_utf8(attribute.key.as_ref()).unwrap_or_default();
         if key != "xmlns" && !key.starts_with("xmlns:") {
@@ -63,6 +66,7 @@ pub(super) fn bpmn_model_namespace(
             .map_err(|error| BpmnEngineError::InvalidXml {
                 source_id: source.source_id.clone(),
                 message: error.to_string(),
+                offset: None,
             })?;
         if value.contains("/BPMN/20100524/MODEL") {
             return Ok(Some(value.into_owned()));
@@ -79,10 +83,12 @@ pub(super) fn append_text_content(
     let text = decoded.map_err(|error| BpmnEngineError::InvalidXml {
         source_id: source.source_id.clone(),
         message: error.to_string(),
+        offset: None,
     })?;
     let text = unescape(text.as_ref()).map_err(|error| BpmnEngineError::InvalidXml {
         source_id: source.source_id.clone(),
         message: error.to_string(),
+        offset: None,
     })?;
     buffer.push_str(text.as_ref());
     Ok(())
@@ -98,6 +104,7 @@ pub(super) fn append_reference_content(
         .map_err(|error| BpmnEngineError::InvalidXml {
             source_id: source.source_id.clone(),
             message: error.to_string(),
+            offset: None,
         })?
     {
         buffer.push(ch);
@@ -109,11 +116,13 @@ pub(super) fn append_reference_content(
         .map_err(|error| BpmnEngineError::InvalidXml {
             source_id: source.source_id.clone(),
             message: error.to_string(),
+            offset: None,
         })?;
     let entity = resolve_predefined_entity(reference.as_ref()).ok_or_else(|| {
         BpmnEngineError::InvalidXml {
             source_id: source.source_id.clone(),
             message: format!("unrecognized XML entity reference '&{reference};'"),
+            offset: None,
         }
     })?;
     buffer.push_str(entity);

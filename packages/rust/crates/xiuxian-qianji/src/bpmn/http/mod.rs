@@ -17,5 +17,6 @@ pub use api::{
     QianjiBpmnWorkflowHttpState, QianjiBpmnWorkflowRunHttpResponse,
     QianjiBpmnWorkflowSnapshotHttpResponse, QianjiBpmnWorkflowStartHttpRequest,
     QianjiBpmnWorkflowStatusHttpQuery, QianjiBpmnWorkflowStatusHttpResponse,
-    qianji_bpmn_workflow_router,
+    QianjiBpmnWorkflowTaskCompleteHttpRequest, QianjiBpmnWorkflowTaskCompletionHttpKind,
+    QianjiBpmnWorkflowTaskCompletionHttpPayload, qianji_bpmn_workflow_router,
 };

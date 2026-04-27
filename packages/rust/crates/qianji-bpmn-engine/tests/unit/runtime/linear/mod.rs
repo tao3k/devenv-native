@@ -27,6 +27,7 @@ fn assert_single_pending_host_work(
             token_id: instance.active_tokens[0].token_id,
             process_id: Some(instance.process.process_id.to_string()),
             node_index: 1,
+            activity_id: Some("task".to_string()),
             kind: work_kind,
             decision,
             script_format: script_format.map(str::to_string),

@@ -1,35 +1,35 @@
 use std::io;
 use std::path::Path;
 
-use xiuxian_qianji::{
-    WorkflowPlan, WorkflowPlanValidationReport, render_workflow_plan_validation_report,
-    validate_workflow_plan,
-};
+use std::fmt::Write as _;
+use xiuxian_qianji::{WorkflowPlan, WorkflowPlanValidationReport, validate_workflow_plan};
 
 use super::command::LintCliOutput;
+use super::command::LintOutputFormat;
 use crate::json_output::{CliJsonEnvelope, render_cli_json};
 
 pub(super) fn run_workflow_plan_lint(
     source_path: &Path,
     resolved_path: &Path,
     contents: &str,
-    json: bool,
+    format: LintOutputFormat,
 ) -> io::Result<LintCliOutput> {
     let source_id = source_path.display().to_string();
     match parse_workflow_plan(contents) {
         Ok(plan) => {
             let report = validate_workflow_plan(&plan);
-            if json {
-                render_workflow_plan_lint_json_output(&report, &source_id, resolved_path)
-            } else {
-                Ok(render_workflow_plan_lint_output(
+            match format {
+                LintOutputFormat::Json => {
+                    render_workflow_plan_lint_json_output(&report, &source_id, resolved_path)
+                }
+                LintOutputFormat::Llm => Ok(render_workflow_plan_lint_llm_output(
                     &report,
                     &source_id,
                     resolved_path,
-                ))
+                )),
             }
         }
-        Err(error) => run_workflow_plan_parse_lint(&source_id, resolved_path, &error, json),
+        Err(error) => run_workflow_plan_parse_lint(&source_id, resolved_path, &error, format),
     }
 }
 
@@ -37,47 +37,22 @@ pub(super) fn run_workflow_plan_parse_lint(
     source_id: &str,
     resolved_path: &Path,
     error: &serde_json::Error,
-    json: bool,
+    format: LintOutputFormat,
 ) -> io::Result<LintCliOutput> {
-    if json {
-        render_workflow_plan_parse_error_json(source_id, resolved_path, error)
-    } else {
-        Ok(render_workflow_plan_parse_error(
+    match format {
+        LintOutputFormat::Json => {
+            render_workflow_plan_parse_error_json(source_id, resolved_path, error)
+        }
+        LintOutputFormat::Llm => Ok(render_workflow_plan_parse_error_llm(
             source_id,
             resolved_path,
             error,
-        ))
+        )),
     }
 }
 
 fn parse_workflow_plan(contents: &str) -> serde_json::Result<WorkflowPlan> {
     serde_json::from_str(contents)
-}
-
-fn render_workflow_plan_lint_output(
-    report: &WorkflowPlanValidationReport,
-    source_id: &str,
-    resolved_path: &Path,
-) -> LintCliOutput {
-    if report.ok {
-        return LintCliOutput {
-            rendered: format!(
-                "# Lint Passed\n\nSource: {source_id}\nPath: {}\nDomain: workflow-plan\nStatus: no blocking issues found in the bounded lint contract.\n",
-                resolved_path.display(),
-            ),
-            exit_code: 0,
-        };
-    }
-
-    LintCliOutput {
-        rendered: format!(
-            "# Lint Failed\n\nSource: {source_id}\nPath: {}\nDomain: workflow-plan\nIssues: {}\n\n{}",
-            resolved_path.display(),
-            report.diagnostics.len(),
-            render_workflow_plan_validation_report(report),
-        ),
-        exit_code: 2,
-    }
 }
 
 fn render_workflow_plan_lint_json_output(
@@ -110,17 +85,35 @@ fn render_workflow_plan_lint_json_output(
     })
 }
 
-fn render_workflow_plan_parse_error(
+fn render_workflow_plan_lint_llm_output(
+    report: &WorkflowPlanValidationReport,
     source_id: &str,
     resolved_path: &Path,
-    error: &serde_json::Error,
 ) -> LintCliOutput {
-    let rendered = format!(
-        "# Lint Failed\n\nSource: {source_id}\nPath: {}\nDomain: workflow-plan\nIssues: 1\n\n",
+    if report.ok {
+        return LintCliOutput {
+            rendered: format!(
+                "[ok] {} workflow-plan\nSource: {source_id}\nNo blocking issues found.\n",
+                resolved_path.display(),
+            ),
+            exit_code: 0,
+        };
+    }
+
+    let mut rendered = format!(
+        "[lint:error] {} workflow-plan\nSource: {source_id}\nIssues: {}\n",
         resolved_path.display(),
+        report.diagnostics.len(),
     );
+    for diagnostic in &report.diagnostics {
+        let _ = writeln!(
+            rendered,
+            "\n[error] {}\n{}\nPath: {}\nFix:\n- {}",
+            diagnostic.code, diagnostic.message, diagnostic.path, diagnostic.repair,
+        );
+    }
     LintCliOutput {
-        rendered: format!("{rendered}{}", workflow_plan_parse_error_body(error)),
+        rendered,
         exit_code: 2,
     }
 }
@@ -159,8 +152,16 @@ fn render_workflow_plan_parse_error_json(
     })
 }
 
-fn workflow_plan_parse_error_body(error: &serde_json::Error) -> String {
-    format!(
-        "## [construct_plan.invalid_json_shape] WorkflowPlan JSON shape is invalid\nSeverity: error\nSummary: failed to parse WorkflowPlan JSON: {error}\n\n### Repair Guidance\n- Emit one top-level WorkflowPlan object, not a wrapper such as `plan`.\n- Use numeric `\"version\": 1`, not string `\"1\"`.\n- Use `constructs`, `tasks`, and `edges`; do not use `nodes` or BPMN element names as the IR shape.\n- Each task must use `construct`, not `type`, and the construct value must come from `qianji construct index`.\n- Treat `constructs` as a set: list each selected construct id once.\n\n### Minimal Shape\n```json\n{{\n  \"version\": 1,\n  \"name\": \"example-plan\",\n  \"constructs\": [\"service-task.agent\"],\n  \"tasks\": [\n    {{\"id\": \"Task_DoWork\", \"construct\": \"service-task.agent\", \"outputs\": [\"result\"]}}\n  ],\n  \"edges\": [\n    {{\"from\": \"start\", \"to\": \"Task_DoWork\"}},\n    {{\"from\": \"Task_DoWork\", \"to\": \"end\"}}\n  ]\n}}\n```\n"
-    )
+fn render_workflow_plan_parse_error_llm(
+    source_id: &str,
+    resolved_path: &Path,
+    error: &serde_json::Error,
+) -> LintCliOutput {
+    LintCliOutput {
+        rendered: format!(
+            "[lint:error] {} workflow-plan\nSource: {source_id}\nIssues: 1\n\n[error] construct_plan.invalid_json_shape\nfailed to parse WorkflowPlan JSON: {error}\nFix:\n- Emit one top-level WorkflowPlan object with numeric version, constructs, tasks, and edges.\n",
+            resolved_path.display(),
+        ),
+        exit_code: 2,
+    }
 }

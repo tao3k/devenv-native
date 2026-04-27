@@ -32,7 +32,11 @@ pub const LINK_GRAPH_STATS_CACHE_V1: &str =
 pub const LINK_GRAPH_QUANTUM_CONTEXT_SNAPSHOT_V1: &str =
     include_str!("../resources/xiuxian_wendao.link_graph.quantum_context_snapshot.v1.schema.json");
 
-/// Canonical schema for `LinkGraph` valkey cache snapshots.
+/// Canonical schema for `LinkGraph` cache snapshots.
+pub const LINK_GRAPH_CACHE_SNAPSHOT_V1: &str =
+    include_str!("../resources/xiuxian_wendao.link_graph.cache_snapshot.v1.schema.json");
+
+/// Canonical schema for legacy `LinkGraph` valkey cache snapshots.
 pub const LINK_GRAPH_VALKEY_CACHE_SNAPSHOT_V1: &str =
     include_str!("../resources/xiuxian_wendao.link_graph.valkey_cache_snapshot.v1.schema.json");
 
@@ -107,6 +111,7 @@ pub fn get_schema(name: &str) -> Option<&'static str> {
         "xiuxian_wendao.link_graph.quantum_context_snapshot.v1" => {
             Some(LINK_GRAPH_QUANTUM_CONTEXT_SNAPSHOT_V1)
         }
+        "xiuxian_wendao.link_graph.cache_snapshot.v1" => Some(LINK_GRAPH_CACHE_SNAPSHOT_V1),
         "xiuxian_wendao.link_graph.valkey_cache_snapshot.v1" => {
             Some(LINK_GRAPH_VALKEY_CACHE_SNAPSHOT_V1)
         }

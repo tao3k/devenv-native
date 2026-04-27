@@ -30,6 +30,40 @@ fn write_file(path: &Path, content: &str) {
     }
 }
 
+fn write_skill_doc(path: &Path, name: &str, body: &str) {
+    write_file(
+        path,
+        format!(
+            concat!(
+                "---\n",
+                "kind: SKILL.md\n",
+                "type: skill\n",
+                "title: {name} Skill\n",
+                "category: skills\n",
+                "tags:\n",
+                "  - {name}\n",
+                "name: {name}\n",
+                "description: {name} runtime skill\n",
+                "author: xiuxian-artisan-workshop\n",
+                "date: 2026-04-26T09:30-07:00\n",
+                "metadata:\n",
+                "  retrieval:\n",
+                "    saliency_base: 5.5\n",
+                "    decay_rate: 0.05\n",
+                "  version: \"1.0.0\"\n",
+                "  source: \"https://example.test/skills/{name}\"\n",
+                "  routing_keywords:\n",
+                "    - {name}\n",
+                "---\n",
+                "{body}"
+            ),
+            name = name,
+            body = body
+        )
+        .as_str(),
+    );
+}
+
 #[test]
 fn load_manifest_uses_defaults_and_overrides() {
     let dir = ok_or_panic(tempdir(), "tempdir");
@@ -117,8 +151,9 @@ fn resolve_authority_collects_authorized_ghost_and_unauthorized_manifests() {
     let root_rel = Path::new(some_or_panic(root.file_name(), "tempdir name"));
 
     let alpha_root = root.join("alpha");
-    write_file(
+    write_skill_doc(
         &alpha_root.join("SKILL.md"),
+        "alpha",
         r"
 [manifest](references/qianji.toml)
 [ghost](references/missing/qianji.toml)
@@ -133,8 +168,9 @@ name = "Alpha Tool"
     );
 
     let beta_root = root.join("beta");
-    write_file(
+    write_skill_doc(
         &beta_root.join("SKILL.md"),
+        "beta",
         r"
 beta skill without explicit manifest links
 ",
@@ -186,8 +222,9 @@ fn resolve_authority_collects_manifest_intents_from_mixed_markdown_references() 
     let root_rel = Path::new(some_or_panic(root.file_name(), "tempdir name"));
 
     let alpha_root = root.join("alpha");
-    write_file(
+    write_skill_doc(
         &alpha_root.join("SKILL.md"),
+        "alpha",
         r"
 [Manifest](references/qianji.toml#flow)
 [[references/qianji.toml|Manifest]]
@@ -228,8 +265,9 @@ fn resolve_authority_ignores_nested_skill_docs_when_building_root_catalog() {
     let root_rel = Path::new(some_or_panic(root.file_name(), "tempdir name"));
 
     let alpha_root = root.join("alpha");
-    write_file(
+    write_skill_doc(
         &alpha_root.join("SKILL.md"),
+        "alpha",
         "[Manifest](references/qianji.toml)\n",
     );
     write_file(

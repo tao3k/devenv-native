@@ -78,8 +78,15 @@ fn bpmn_snapshot_reports_invalid_xml_as_bpmn_xml_error() {
 
     let error = snapshot_bpmn_source(&source).must_err("invalid XML should be rejected");
 
-    assert!(matches!(
-        error,
-        BpmnEngineError::InvalidXml { source_id, .. } if source_id == "broken.bpmn"
-    ));
+    let BpmnEngineError::InvalidXml {
+        source_id, offset, ..
+    } = error
+    else {
+        panic!("invalid XML should return InvalidXml");
+    };
+    assert_eq!(source_id, "broken.bpmn");
+    assert!(
+        offset.is_some(),
+        "XML reader should report an error byte offset"
+    );
 }

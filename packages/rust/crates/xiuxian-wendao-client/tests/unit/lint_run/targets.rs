@@ -10,7 +10,18 @@ fn lint_reports_missing_markdown_link_target() -> Result<()> {
         temp.path().join("guide.md"),
         concat!(
             "---\n",
+            "kind: reference\n",
             "title: Guide\n",
+            "category: docs\n",
+            "tags:\n",
+            "  - docs\n",
+            "description: Demo note\n",
+            "author: xiuxian-artisan-workshop\n",
+            "date: 2026-04-26T09:30-07:00\n",
+            "metadata:\n",
+            "  retrieval:\n",
+            "    saliency_base: 5.5\n",
+            "    decay_rate: 0.05\n",
             "---\n",
             "# Guide\n",
             "See [Missing](docs/missing-note).\n",
@@ -33,7 +44,18 @@ fn lint_reports_missing_wikilink_target() -> Result<()> {
         temp.path().join("guide.md"),
         concat!(
             "---\n",
+            "kind: reference\n",
             "title: Guide\n",
+            "category: docs\n",
+            "tags:\n",
+            "  - docs\n",
+            "description: Demo note\n",
+            "author: xiuxian-artisan-workshop\n",
+            "date: 2026-04-26T09:30-07:00\n",
+            "metadata:\n",
+            "  retrieval:\n",
+            "    saliency_base: 5.5\n",
+            "    decay_rate: 0.05\n",
             "---\n",
             "# Guide\n",
             "See [[docs/missing-note|Missing]].\n",
@@ -56,7 +78,18 @@ fn lint_reports_missing_attachment_target() -> Result<()> {
         temp.path().join("guide.md"),
         concat!(
             "---\n",
+            "kind: reference\n",
             "title: Guide\n",
+            "category: docs\n",
+            "tags:\n",
+            "  - docs\n",
+            "description: Demo note\n",
+            "author: xiuxian-artisan-workshop\n",
+            "date: 2026-04-26T09:30-07:00\n",
+            "metadata:\n",
+            "  retrieval:\n",
+            "    saliency_base: 5.5\n",
+            "    decay_rate: 0.05\n",
             "---\n",
             "# Guide\n",
             "See ![Architecture](assets/diagram.png).\n",
@@ -77,12 +110,26 @@ fn lint_reports_local_target_outside_root() -> Result<()> {
     let temp = TempDir::new()?;
     let workspace = temp.path().join("workspace");
     std::fs::create_dir_all(workspace.join("docs"))?;
-    std::fs::write(temp.path().join("outside.md"), "---\ntitle: Outside\n---\n")?;
+    std::fs::write(
+        temp.path().join("outside.md"),
+        "---\nkind: reference\ncategory: docs\ntags:\n  - docs\ndescription: Demo note\nauthor: xiuxian-artisan-workshop\ndate: 2026-04-26T09:30-07:00\nmetadata:\n  retrieval:\n    saliency_base: 5.5\n    decay_rate: 0.05\ntitle: Outside\n---\n",
+    )?;
     std::fs::write(
         workspace.join("docs/guide.md"),
         concat!(
             "---\n",
+            "kind: reference\n",
             "title: Guide\n",
+            "category: docs\n",
+            "tags:\n",
+            "  - docs\n",
+            "description: Demo note\n",
+            "author: xiuxian-artisan-workshop\n",
+            "date: 2026-04-26T09:30-07:00\n",
+            "metadata:\n",
+            "  retrieval:\n",
+            "    saliency_base: 5.5\n",
+            "    decay_rate: 0.05\n",
             "---\n",
             "# Guide\n",
             "See [Outside](../../outside.md).\n",
@@ -111,13 +158,24 @@ fn lint_reports_local_target_inside_transient_repo_dir() -> Result<()> {
     std::fs::create_dir_all(temp.path().join(".data"))?;
     std::fs::write(
         temp.path().join(".data/internal.md"),
-        "---\ntitle: Internal Artifact\n---\n# Internal Artifact\n## Stable Heading\n",
+        "---\nkind: reference\ncategory: docs\ntags:\n  - docs\ndescription: Demo note\nauthor: xiuxian-artisan-workshop\ndate: 2026-04-26T09:30-07:00\nmetadata:\n  retrieval:\n    saliency_base: 5.5\n    decay_rate: 0.05\ntitle: Internal Artifact\n---\n# Internal Artifact\n## Stable Heading\n",
     )?;
     std::fs::write(
         temp.path().join("guide.md"),
         concat!(
             "---\n",
+            "kind: reference\n",
             "title: Guide\n",
+            "category: docs\n",
+            "tags:\n",
+            "  - docs\n",
+            "description: Demo note\n",
+            "author: xiuxian-artisan-workshop\n",
+            "date: 2026-04-26T09:30-07:00\n",
+            "metadata:\n",
+            "  retrieval:\n",
+            "    saliency_base: 5.5\n",
+            "    decay_rate: 0.05\n",
             "---\n",
             "# Guide\n",
             "See [.data](.data/internal.md#Stable Heading).\n",
@@ -141,13 +199,24 @@ fn lint_accepts_root_anchored_in_repo_target() -> Result<()> {
     std::fs::create_dir_all(temp.path().join("docs"))?;
     std::fs::write(
         temp.path().join("docs/index.md"),
-        "---\ntitle: Index\n---\n# Index\n",
+        "---\nkind: reference\ncategory: docs\ntags:\n  - docs\ndescription: Demo note\nauthor: xiuxian-artisan-workshop\ndate: 2026-04-26T09:30-07:00\nmetadata:\n  retrieval:\n    saliency_base: 5.5\n    decay_rate: 0.05\ntitle: Index\n---\n# Index\n",
     )?;
     std::fs::write(
         temp.path().join("guide.md"),
         concat!(
             "---\n",
+            "kind: reference\n",
             "title: Guide\n",
+            "category: docs\n",
+            "tags:\n",
+            "  - docs\n",
+            "description: Demo note\n",
+            "author: xiuxian-artisan-workshop\n",
+            "date: 2026-04-26T09:30-07:00\n",
+            "metadata:\n",
+            "  retrieval:\n",
+            "    saliency_base: 5.5\n",
+            "    decay_rate: 0.05\n",
             "---\n",
             "# Guide\n",
             "See [Index](/docs/index.md).\n",
@@ -171,14 +240,25 @@ fn lint_accepts_existing_local_targets_and_external_urls() -> Result<()> {
     std::fs::create_dir_all(temp.path().join("assets"))?;
     std::fs::write(
         temp.path().join("docs/index.md"),
-        "---\ntitle: Index\n---\n# Index\n",
+        "---\nkind: reference\ncategory: docs\ntags:\n  - docs\ndescription: Demo note\nauthor: xiuxian-artisan-workshop\ndate: 2026-04-26T09:30-07:00\nmetadata:\n  retrieval:\n    saliency_base: 5.5\n    decay_rate: 0.05\ntitle: Index\n---\n# Index\n",
     )?;
     std::fs::write(temp.path().join("assets/diagram.png"), b"png")?;
     std::fs::write(
         temp.path().join("guide.md"),
         concat!(
             "---\n",
+            "kind: reference\n",
             "title: Guide\n",
+            "category: docs\n",
+            "tags:\n",
+            "  - docs\n",
+            "description: Demo note\n",
+            "author: xiuxian-artisan-workshop\n",
+            "date: 2026-04-26T09:30-07:00\n",
+            "metadata:\n",
+            "  retrieval:\n",
+            "    saliency_base: 5.5\n",
+            "    decay_rate: 0.05\n",
             "---\n",
             "# Guide\n",
             "See [Index](docs/index).\n",
@@ -203,13 +283,24 @@ fn lint_accepts_existing_wikilink_targets_with_johnny_decimal_dotted_names() -> 
     std::fs::create_dir_all(temp.path().join("docs"))?;
     std::fs::write(
         temp.path().join("docs/10.01_kernel.md"),
-        "---\ntitle: Kernel\n---\n# Kernel\n",
+        "---\nkind: reference\ncategory: docs\ntags:\n  - docs\ndescription: Demo note\nauthor: xiuxian-artisan-workshop\ndate: 2026-04-26T09:30-07:00\nmetadata:\n  retrieval:\n    saliency_base: 5.5\n    decay_rate: 0.05\ntitle: Kernel\n---\n# Kernel\n",
     )?;
     std::fs::write(
         temp.path().join("docs/10.00_moc.md"),
         concat!(
             "---\n",
+            "kind: reference\n",
             "title: Map of Content\n",
+            "category: docs\n",
+            "tags:\n",
+            "  - docs\n",
+            "description: Demo note\n",
+            "author: xiuxian-artisan-workshop\n",
+            "date: 2026-04-26T09:30-07:00\n",
+            "metadata:\n",
+            "  retrieval:\n",
+            "    saliency_base: 5.5\n",
+            "    decay_rate: 0.05\n",
             "---\n",
             "# Map of Content\n",
             "- [[10.01_kernel|Kernel]]\n",

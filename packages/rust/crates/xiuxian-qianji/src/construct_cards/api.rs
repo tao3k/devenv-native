@@ -19,10 +19,10 @@ impl ConstructStatus {
     }
 }
 
-/// One lint diagnostic mapping for a construct card.
+/// One diagnostic mapping for a construct card.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub struct ConstructLintMapping {
-    /// Diagnostic code emitted by qianji lint.
+    /// Diagnostic code emitted by qianji lint or an aligned host/runtime check.
     pub diagnostic: &'static str,
     /// Human and LLM readable repair guidance.
     pub repair: &'static str,

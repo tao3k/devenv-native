@@ -390,8 +390,18 @@ impl DiagnosticFacts {
             Some(
                 MarkdownSyntaxLintCode::MissingFrontmatter
                 | MarkdownSyntaxLintCode::MissingFrontmatterTitle
+                | MarkdownSyntaxLintCode::MissingFrontmatterKind
+                | MarkdownSyntaxLintCode::MissingFrontmatterCategory
+                | MarkdownSyntaxLintCode::MissingFrontmatterTags
+                | MarkdownSyntaxLintCode::MissingFrontmatterDescription
+                | MarkdownSyntaxLintCode::MissingFrontmatterAuthor
+                | MarkdownSyntaxLintCode::MissingFrontmatterDate
+                | MarkdownSyntaxLintCode::InvalidFrontmatterDatePrecision
+                | MarkdownSyntaxLintCode::MissingFrontmatterRetrievalSaliencyBase
+                | MarkdownSyntaxLintCode::MissingFrontmatterRetrievalDecayRate
                 | MarkdownSyntaxLintCode::MissingSkillFrontmatterName
                 | MarkdownSyntaxLintCode::MissingSkillFrontmatterMetadata
+                | MarkdownSyntaxLintCode::InvalidSkillFrontmatterSchema
                 | MarkdownSyntaxLintCode::NonCanonicalObsidianAliasOrder
                 | MarkdownSyntaxLintCode::UnclosedFrontmatter
                 | MarkdownSyntaxLintCode::InvalidFrontmatterYaml
@@ -409,8 +419,18 @@ impl DiagnosticFacts {
             Some(
                 MarkdownSyntaxLintCode::MissingFrontmatter
                 | MarkdownSyntaxLintCode::MissingFrontmatterTitle
+                | MarkdownSyntaxLintCode::MissingFrontmatterKind
+                | MarkdownSyntaxLintCode::MissingFrontmatterCategory
+                | MarkdownSyntaxLintCode::MissingFrontmatterTags
+                | MarkdownSyntaxLintCode::MissingFrontmatterDescription
+                | MarkdownSyntaxLintCode::MissingFrontmatterAuthor
+                | MarkdownSyntaxLintCode::MissingFrontmatterDate
+                | MarkdownSyntaxLintCode::InvalidFrontmatterDatePrecision
+                | MarkdownSyntaxLintCode::MissingFrontmatterRetrievalSaliencyBase
+                | MarkdownSyntaxLintCode::MissingFrontmatterRetrievalDecayRate
                 | MarkdownSyntaxLintCode::MissingSkillFrontmatterName
                 | MarkdownSyntaxLintCode::MissingSkillFrontmatterMetadata
+                | MarkdownSyntaxLintCode::InvalidSkillFrontmatterSchema
                 | MarkdownSyntaxLintCode::UnclosedFrontmatter
                 | MarkdownSyntaxLintCode::InvalidFrontmatterYaml
                 | MarkdownSyntaxLintCode::UnclosedFence
@@ -436,8 +456,18 @@ impl DiagnosticFacts {
             Some(
                 MarkdownSyntaxLintCode::MissingFrontmatter
                 | MarkdownSyntaxLintCode::MissingFrontmatterTitle
+                | MarkdownSyntaxLintCode::MissingFrontmatterKind
+                | MarkdownSyntaxLintCode::MissingFrontmatterCategory
+                | MarkdownSyntaxLintCode::MissingFrontmatterTags
+                | MarkdownSyntaxLintCode::MissingFrontmatterDescription
+                | MarkdownSyntaxLintCode::MissingFrontmatterAuthor
+                | MarkdownSyntaxLintCode::MissingFrontmatterDate
+                | MarkdownSyntaxLintCode::InvalidFrontmatterDatePrecision
+                | MarkdownSyntaxLintCode::MissingFrontmatterRetrievalSaliencyBase
+                | MarkdownSyntaxLintCode::MissingFrontmatterRetrievalDecayRate
                 | MarkdownSyntaxLintCode::MissingSkillFrontmatterName
                 | MarkdownSyntaxLintCode::MissingSkillFrontmatterMetadata
+                | MarkdownSyntaxLintCode::InvalidSkillFrontmatterSchema
                 | MarkdownSyntaxLintCode::UnclosedFrontmatter
                 | MarkdownSyntaxLintCode::InvalidFrontmatterYaml
                 | MarkdownSyntaxLintCode::UnclosedFence,

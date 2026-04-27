@@ -8,10 +8,12 @@ pub use super::control::{
     QianjiBpmnWorkflowControlService, QianjiBpmnWorkflowEventPollReport,
     QianjiBpmnWorkflowEventPollRequest, QianjiBpmnWorkflowInstanceSummary,
     QianjiBpmnWorkflowInstancesReport, QianjiBpmnWorkflowInstancesRequest,
+    QianjiBpmnWorkflowInterruptReport, QianjiBpmnWorkflowInterruptRequest,
     QianjiBpmnWorkflowResumeReport, QianjiBpmnWorkflowResumeRequest, QianjiBpmnWorkflowStartReport,
     QianjiBpmnWorkflowStartRequest, QianjiBpmnWorkflowStatusReport,
     QianjiBpmnWorkflowStatusRequest, QianjiBpmnWorkflowTaskCompleteReport,
-    QianjiBpmnWorkflowTaskCompleteRequest,
+    QianjiBpmnWorkflowTaskCompleteRequest, QianjiBpmnWorkflowTaskCompletionKind,
+    QianjiBpmnWorkflowTaskCompletionPayload,
 };
 pub use super::dispatch::{
     dispatch_pending_host_work_request, dispatch_pending_host_work_requests,
@@ -30,7 +32,8 @@ pub use super::http_transport::{
     QianjiBpmnWorkflowHttpState, QianjiBpmnWorkflowRunHttpResponse,
     QianjiBpmnWorkflowSnapshotHttpResponse, QianjiBpmnWorkflowStartHttpRequest,
     QianjiBpmnWorkflowStatusHttpQuery, QianjiBpmnWorkflowStatusHttpResponse,
-    qianji_bpmn_workflow_router,
+    QianjiBpmnWorkflowTaskCompleteHttpRequest, QianjiBpmnWorkflowTaskCompletionHttpKind,
+    QianjiBpmnWorkflowTaskCompletionHttpPayload, qianji_bpmn_workflow_router,
 };
 pub use super::loader::{load_bpmn_package_from_files, load_bpmn_package_from_files_with_options};
 pub use super::ownership::QianjiBpmnSchedulerLeaseConfig;

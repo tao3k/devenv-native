@@ -1,9 +1,20 @@
 ---
+kind: SKILL.md
 type: skill
+title: "Repository Researcher"
+category: "workflows"
+tags:
+  - research
+  - repository-analysis
+  - architecture-review
 name: researcher
 description: Use when analyzing repositories, conducting deep research on codebases, performing architecture reviews, or exploring large projects from a git URL.
+author: xiuxian-artisan-workshop
+date: 2026-04-26T09:30-07:00
 metadata:
-  author: xiuxian-artisan-workshop
+  retrieval:
+    saliency_base: 5.5
+    decay_rate: 0.05
   version: "2.1.0"
   source: "https://github.com/tao3k/xiuxian-artisan-workshop/tree/main/assets/skills/researcher"
   routing_keywords:

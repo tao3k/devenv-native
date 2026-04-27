@@ -6,14 +6,18 @@ use crate::bpmn::control::{
     QianjiBpmnWorkflowEventPollReport, QianjiBpmnWorkflowEventPollRequest,
     QianjiBpmnWorkflowResumeReport, QianjiBpmnWorkflowResumeRequest, QianjiBpmnWorkflowStartReport,
     QianjiBpmnWorkflowStartRequest, QianjiBpmnWorkflowTaskCompleteReport,
-    QianjiBpmnWorkflowTaskCompleteRequest,
+    QianjiBpmnWorkflowTaskCompleteRequest, QianjiBpmnWorkflowTaskCompletionKind,
+    QianjiBpmnWorkflowTaskCompletionPayload,
 };
 use crate::bpmn::driver::QianjiBpmnExecutionRequest;
 use crate::bpmn::execution::QianjiBpmnExecutionFacade;
 use crate::bpmn::loader::load_bpmn_package_from_files;
 use crate::bpmn::session::QianjiBpmnSession;
 use crate::telemetry::unix_millis_now;
-use qianji_bpmn_engine::{BpmnExecutionTraceEvent, BpmnHostBridge};
+use qianji_bpmn_engine::{
+    BpmnExecutionTraceEvent, BpmnHostBridge, ManualTaskOutcome, PendingHostWorkResult,
+    ScriptTaskOutcome, SendTaskOutcome, ServiceTaskOutcome, UserTaskOutcome,
+};
 
 pub(crate) fn prepare_start_workflow(
     service: &QianjiBpmnWorkflowControlService,
@@ -38,7 +42,8 @@ pub(crate) fn prepare_start_workflow(
             &request.instance_id,
             request.initial_variables.clone(),
             unix_millis_now(),
-        ),
+        )
+        .with_start_at_node_id(request.start_at_node_id.clone()),
     })
 }
 
@@ -124,6 +129,39 @@ where
     })
 }
 
+pub(crate) async fn start_prepared_workflow_until_human_boundary<H, F>(
+    service: &QianjiBpmnWorkflowControlService,
+    prepared: QianjiBpmnPreparedWorkflowStart,
+    host: &H,
+    resolve_initial_host_work: bool,
+    trace_observer: F,
+) -> Result<QianjiBpmnWorkflowStartReport, QianjiBpmnWorkflowControlError>
+where
+    H: BpmnHostBridge,
+    F: FnMut(&QianjiBpmnSession, &[BpmnExecutionTraceEvent]),
+{
+    let mut execution_facade =
+        QianjiBpmnExecutionFacade::new(prepared.package, prepared.checkpoint_store.clone());
+    if let Some(scheduler_identity) = service.scheduler_identity.clone() {
+        execution_facade = execution_facade.with_scheduler_identity(scheduler_identity);
+    }
+    let execution = execution_facade
+        .run_until_human_boundary_with_trace_observer(
+            &prepared.execution_request,
+            host,
+            resolve_initial_host_work,
+            trace_observer,
+        )
+        .await?;
+
+    Ok(QianjiBpmnWorkflowStartReport {
+        resolved_bpmn_path: prepared.resolved_bpmn_path,
+        resolved_dmn_paths: prepared.resolved_dmn_paths,
+        checkpoint_store: prepared.checkpoint_store,
+        execution,
+    })
+}
+
 pub(crate) async fn start_workflow<H: BpmnHostBridge>(
     service: &QianjiBpmnWorkflowControlService,
     request: &QianjiBpmnWorkflowStartRequest,
@@ -192,6 +230,27 @@ where
     .await
 }
 
+pub(crate) async fn resume_prepared_workflow_until_human_boundary<H, F>(
+    service: &QianjiBpmnWorkflowControlService,
+    prepared: QianjiBpmnPreparedWorkflowResume,
+    host: &H,
+    resolve_initial_host_work: bool,
+    trace_observer: F,
+) -> Result<QianjiBpmnWorkflowResumeReport, QianjiBpmnWorkflowControlError>
+where
+    H: BpmnHostBridge,
+    F: FnMut(&QianjiBpmnSession, &[BpmnExecutionTraceEvent]),
+{
+    start_prepared_workflow_until_human_boundary(
+        service,
+        prepared,
+        host,
+        resolve_initial_host_work,
+        trace_observer,
+    )
+    .await
+}
+
 pub(crate) async fn resume_workflow<H: BpmnHostBridge>(
     service: &QianjiBpmnWorkflowControlService,
     request: &QianjiBpmnWorkflowResumeRequest,
@@ -226,5 +285,73 @@ pub(crate) async fn complete_workflow_task<H: BpmnHostBridge>(
         instance_id: request.instance_id.clone(),
         checkpoint_backend: request.checkpoint_backend.clone(),
     };
-    resume_workflow(service, &resume_request, host).await
+    let prepared = prepare_resume_workflow(service, &resume_request).await?;
+    let mut execution_facade =
+        QianjiBpmnExecutionFacade::new(prepared.package, prepared.checkpoint_store.clone());
+    if let Some(scheduler_identity) = service.scheduler_identity.clone() {
+        execution_facade = execution_facade.with_scheduler_identity(scheduler_identity);
+    }
+    let completion_result = pending_host_work_result_from_completion(&request.completion);
+    let execution = if request.continue_until_human_boundary {
+        execution_facade
+            .complete_pending_host_work_until_human_boundary(
+                &prepared.execution_request,
+                request.completion.token_id,
+                request.completion.process_id.as_str(),
+                request.completion.activity_id.as_str(),
+                completion_result,
+                host,
+            )
+            .await?
+    } else {
+        execution_facade
+            .complete_pending_host_work(
+                &prepared.execution_request,
+                request.completion.token_id,
+                request.completion.process_id.as_str(),
+                request.completion.activity_id.as_str(),
+                completion_result,
+                host,
+            )
+            .await?
+    };
+
+    Ok(QianjiBpmnWorkflowTaskCompleteReport {
+        resolved_bpmn_path: prepared.resolved_bpmn_path,
+        resolved_dmn_paths: prepared.resolved_dmn_paths,
+        checkpoint_store: prepared.checkpoint_store,
+        execution,
+    })
+}
+
+fn pending_host_work_result_from_completion(
+    completion: &QianjiBpmnWorkflowTaskCompletionPayload,
+) -> PendingHostWorkResult {
+    match completion.kind {
+        QianjiBpmnWorkflowTaskCompletionKind::Send => {
+            PendingHostWorkResult::Send(SendTaskOutcome {
+                data: completion.data.clone(),
+            })
+        }
+        QianjiBpmnWorkflowTaskCompletionKind::Service => {
+            PendingHostWorkResult::Service(ServiceTaskOutcome {
+                data: completion.data.clone(),
+            })
+        }
+        QianjiBpmnWorkflowTaskCompletionKind::Script => {
+            PendingHostWorkResult::Script(ScriptTaskOutcome {
+                data: completion.data.clone(),
+            })
+        }
+        QianjiBpmnWorkflowTaskCompletionKind::User => {
+            PendingHostWorkResult::User(UserTaskOutcome {
+                data: completion.data.clone(),
+            })
+        }
+        QianjiBpmnWorkflowTaskCompletionKind::Manual => {
+            PendingHostWorkResult::Manual(ManualTaskOutcome {
+                data: completion.data.clone(),
+            })
+        }
+    }
 }

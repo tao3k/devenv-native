@@ -22,9 +22,12 @@ pub(crate) use xiuxian_qianji::{
     QianjiBpmnSession, QianjiBpmnWorkflowCancelReport, QianjiBpmnWorkflowCancelRequest,
     QianjiBpmnWorkflowCheckpointBackend, QianjiBpmnWorkflowControlError,
     QianjiBpmnWorkflowControlService, QianjiBpmnWorkflowInstancesReport,
-    QianjiBpmnWorkflowInstancesRequest, QianjiBpmnWorkflowResumeRequest,
+    QianjiBpmnWorkflowInstancesRequest, QianjiBpmnWorkflowInterruptReport,
+    QianjiBpmnWorkflowInterruptRequest, QianjiBpmnWorkflowResumeRequest,
     QianjiBpmnWorkflowStartRequest, QianjiBpmnWorkflowStatusReport,
-    QianjiBpmnWorkflowStatusRequest, SchedulerAgentIdentity, load_bpmn_package_from_files,
+    QianjiBpmnWorkflowStatusRequest, QianjiBpmnWorkflowTaskCompleteRequest,
+    QianjiBpmnWorkflowTaskCompletionKind, QianjiBpmnWorkflowTaskCompletionPayload,
+    SchedulerAgentIdentity, load_bpmn_package_from_files,
 };
 
 pub(crate) use crate::common::{

@@ -19,17 +19,64 @@ fn write_minimal_episteme(root: &Path, policy_sql: &str) {
         "policies/johnny_decimal/diagnostic.toml",
         "id = \"jd.diagnostic\"\n",
     );
+    write_file(
+        root,
+        "policies/johnny_decimal/manifest.toml",
+        r#"
+[[policy_queries]]
+id = "johnny-decimal.anchor-id-validation"
+framework = "johnny-decimal"
+path = "validation.sql"
+statement_mode = "select_only"
+
+[[diagnostic_mappings]]
+id = "johnny-decimal.anchor-id-diagnostic"
+query = "johnny-decimal.anchor-id-validation"
+path = "diagnostic.toml"
+"#,
+    );
     write_file(root, "prompts/anchor_v3_fixers/fix_jd_id.txt", "Fix ID.\n");
+    write_file(
+        root,
+        "prompts/anchor_v3_fixers/manifest.toml",
+        r#"
+[defaults]
+repair_tooling = "Project AnchoR v3"
+
+[[repair_prompts]]
+id = "johnny-decimal.fix-anchor-id"
+path = "fix_jd_id.txt"
+"#,
+    );
     write_file(
         root,
         "policies/authorship/diagnostic.toml",
         "id = \"guard\"\n",
+    );
+    write_file(
+        root,
+        "policies/authorship/manifest.toml",
+        r#"
+[[repair_guards]]
+id = "temporal-scaffolding.authorship-boundary"
+path = "diagnostic.toml"
+"#,
     );
     write_file(root, "sources/johnny_decimal/sources.toml", "[[source]]\n");
     write_file(
         root,
         "sources/johnny_decimal/evolution.skill.md",
         "# Skill\n\nRun the source comparison.\n",
+    );
+    write_file(
+        root,
+        "sources/manifest.toml",
+        r#"
+[[source_evolution_skill_surfaces]]
+id = "johnny-decimal.source-evolution"
+sources_path = "johnny_decimal/sources.toml"
+skill_path = "johnny_decimal/evolution.skill.md"
+"#,
     );
 
     write_file(
@@ -43,29 +90,13 @@ name = "test-episteme"
 statement_mode = "select_only"
 forbidden_operations = ["CREATE", "ALTER", "DROP", "INSERT", "UPDATE", "DELETE"]
 
-[[policy_queries]]
-id = "johnny-decimal.anchor-id-validation"
-framework = "johnny-decimal"
-path = "policies/johnny_decimal/validation.sql"
-statement_mode = "select_only"
-
-[[diagnostic_mappings]]
-id = "johnny-decimal.anchor-id-diagnostic"
-query = "johnny-decimal.anchor-id-validation"
-path = "policies/johnny_decimal/diagnostic.toml"
-
-[[repair_prompts]]
-id = "johnny-decimal.fix-anchor-id"
-path = "prompts/anchor_v3_fixers/fix_jd_id.txt"
-
-[[repair_guards]]
-id = "temporal-scaffolding.authorship-boundary"
-path = "policies/authorship/diagnostic.toml"
-
-[[source_evolution_skill_surfaces]]
-id = "johnny-decimal.source-evolution"
-sources_path = "sources/johnny_decimal/sources.toml"
-skill_path = "sources/johnny_decimal/evolution.skill.md"
+[imports]
+policy_manifests = [
+  "policies/johnny_decimal/manifest.toml",
+  "policies/authorship/manifest.toml",
+]
+repair_prompt_manifest = "prompts/anchor_v3_fixers/manifest.toml"
+source_evolution_manifest = "sources/manifest.toml"
 "#,
     );
 }
@@ -154,7 +185,7 @@ fn load_episteme_manifest_ignores_forbidden_words_in_comments_and_literals() {
 fn load_episteme_manifest_rejects_unknown_diagnostic_query_reference() {
     let temp = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
     write_minimal_episteme(temp.path(), "SELECT file_path FROM repo_content_chunk;\n");
-    let manifest_path = temp.path().join("episteme.toml");
+    let manifest_path = temp.path().join("policies/johnny_decimal/manifest.toml");
     let mut manifest =
         fs::read_to_string(&manifest_path).unwrap_or_else(|error| panic!("read manifest: {error}"));
     manifest = manifest.replace(
@@ -172,6 +203,94 @@ fn load_episteme_manifest_rejects_unknown_diagnostic_query_reference() {
         error,
         EpistemeLoadError::UnknownDiagnosticQuery { .. }
     ));
+}
+
+#[test]
+fn load_episteme_manifest_rejects_inline_root_policy_registration() {
+    let temp = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+    write_file(
+        temp.path(),
+        "episteme.toml",
+        r#"
+schema_version = 1
+
+[imports]
+policy_manifests = ["policies/johnny_decimal/manifest.toml"]
+
+[[policy_queries]]
+id = "johnny-decimal.anchor-id-validation"
+path = "policies/johnny_decimal/validation.sql"
+"#,
+    );
+
+    let error = match load_episteme_manifest(temp.path()) {
+        Ok(report) => panic!("expected inline manifest section error, got {report:?}"),
+        Err(error) => error,
+    };
+
+    assert!(matches!(
+        error,
+        EpistemeLoadError::InlineManifestSection { .. }
+    ));
+    assert!(error.to_string().contains("inline policy_queries"));
+}
+
+#[test]
+fn load_episteme_manifest_rejects_source_local_execution_config() {
+    let temp = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+    write_minimal_episteme(temp.path(), "SELECT file_path FROM repo_content_chunk;\n");
+    write_file(
+        temp.path(),
+        "sources/johnny_decimal/sources.toml",
+        r#"
+[execution]
+compiler = "skillsc"
+
+[[source]]
+id = "johnny-decimal-official"
+"#,
+    );
+
+    let error = match load_episteme_manifest(temp.path()) {
+        Ok(report) => panic!("expected source registry execution error, got {report:?}"),
+        Err(error) => error,
+    };
+
+    assert!(matches!(
+        error,
+        EpistemeLoadError::SourceRegistryInlineExecution { .. }
+    ));
+    assert!(error.to_string().contains("sources/manifest.toml defaults"));
+}
+
+#[test]
+fn load_episteme_manifest_rejects_prompt_local_repair_tooling() {
+    let temp = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+    write_minimal_episteme(temp.path(), "SELECT file_path FROM repo_content_chunk;\n");
+    write_file(
+        temp.path(),
+        "prompts/anchor_v3_fixers/manifest.toml",
+        r#"
+[defaults]
+repair_tooling = "Project AnchoR v3"
+
+[[repair_prompts]]
+id = "johnny-decimal.fix-anchor-id"
+path = "fix_jd_id.txt"
+repair_tooling = "Project AnchoR v3"
+"#,
+    );
+
+    let error = match load_episteme_manifest(temp.path()) {
+        Ok(report) => panic!("expected repair prompt tooling error, got {report:?}"),
+        Err(error) => error,
+    };
+
+    assert!(matches!(
+        error,
+        EpistemeLoadError::RepairPromptInlineTooling { .. }
+    ));
+    assert!(error.to_string().contains("[defaults].repair_tooling"));
 }
 
 #[test]

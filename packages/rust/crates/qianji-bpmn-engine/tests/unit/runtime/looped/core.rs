@@ -41,6 +41,7 @@ async fn runtime_standard_loop_repeats_until_loop_maximum() {
                 token_id: instance.active_tokens[0].token_id,
                 process_id: Some("loop_maximum".to_string()),
                 node_index: 1,
+                activity_id: Some("review".to_string()),
                 kind: PendingHostWorkKind::Service,
                 decision: None,
                 script_format: None,

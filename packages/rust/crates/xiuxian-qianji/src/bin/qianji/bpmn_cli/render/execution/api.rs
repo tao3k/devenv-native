@@ -1,6 +1,6 @@
 pub(crate) use super::commands::{
     render_bpmn_event_poll_output, render_bpmn_resume_output, render_bpmn_run_output,
-    render_bpmn_start_output, render_bpmn_task_complete_output,
+    render_bpmn_start_at_output, render_bpmn_start_output, render_bpmn_task_complete_output,
 };
 pub(crate) use super::host_work::render_bpmn_pending_host_work_stream_lines;
 pub(crate) use super::missing::{

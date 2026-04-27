@@ -4,7 +4,8 @@ use super::{
     QianjiBpmnWorkflowCheckpointBackend, QianjiBpmnWorkflowControlError,
     QianjiBpmnWorkflowControlService, QianjiBpmnWorkflowEventPollReport,
     QianjiBpmnWorkflowEventPollRequest, QianjiBpmnWorkflowInstancesReport,
-    QianjiBpmnWorkflowInstancesRequest, QianjiBpmnWorkflowResumeReport,
+    QianjiBpmnWorkflowInstancesRequest, QianjiBpmnWorkflowInterruptReport,
+    QianjiBpmnWorkflowInterruptRequest, QianjiBpmnWorkflowResumeReport,
     QianjiBpmnWorkflowResumeRequest, QianjiBpmnWorkflowStartReport, QianjiBpmnWorkflowStartRequest,
     QianjiBpmnWorkflowStatusReport, QianjiBpmnWorkflowStatusRequest,
     QianjiBpmnWorkflowTaskCompleteReport, QianjiBpmnWorkflowTaskCompleteRequest,
@@ -107,6 +108,34 @@ impl QianjiBpmnWorkflowControlService {
         .await
     }
 
+    /// Runs one already-prepared BPMN workflow through non-human host work
+    /// until the next user/manual boundary or another stable outcome.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`QianjiBpmnWorkflowControlError`] when the execution facade
+    /// cannot create, resume, or advance the workflow instance.
+    pub async fn start_prepared_workflow_until_human_boundary<H, F>(
+        &self,
+        prepared: QianjiBpmnPreparedWorkflowStart,
+        host: &H,
+        resolve_initial_host_work: bool,
+        trace_observer: F,
+    ) -> Result<QianjiBpmnWorkflowStartReport, QianjiBpmnWorkflowControlError>
+    where
+        H: BpmnHostBridge,
+        F: FnMut(&QianjiBpmnSession, &[BpmnExecutionTraceEvent]),
+    {
+        service::start_prepared_workflow_until_human_boundary(
+            self,
+            prepared,
+            host,
+            resolve_initial_host_work,
+            trace_observer,
+        )
+        .await
+    }
+
     /// Prepares and runs one bounded BPMN workflow in a single step.
     ///
     /// # Errors
@@ -171,6 +200,34 @@ impl QianjiBpmnWorkflowControlService {
         F: FnMut(&QianjiBpmnSession, &[BpmnExecutionTraceEvent]),
     {
         service::resume_prepared_workflow_until_host_boundary(
+            self,
+            prepared,
+            host,
+            resolve_initial_host_work,
+            trace_observer,
+        )
+        .await
+    }
+
+    /// Runs one checkpoint-backed BPMN workflow through non-human host work
+    /// until the next user/manual boundary or another stable outcome.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`QianjiBpmnWorkflowControlError`] when the execution facade
+    /// cannot resume or advance the workflow instance.
+    pub async fn resume_prepared_workflow_until_human_boundary<H, F>(
+        &self,
+        prepared: QianjiBpmnPreparedWorkflowResume,
+        host: &H,
+        resolve_initial_host_work: bool,
+        trace_observer: F,
+    ) -> Result<QianjiBpmnWorkflowResumeReport, QianjiBpmnWorkflowControlError>
+    where
+        H: BpmnHostBridge,
+        F: FnMut(&QianjiBpmnSession, &[BpmnExecutionTraceEvent]),
+    {
+        service::resume_prepared_workflow_until_human_boundary(
             self,
             prepared,
             host,
@@ -267,5 +324,20 @@ impl QianjiBpmnWorkflowControlService {
         request: &QianjiBpmnWorkflowCancelRequest,
     ) -> Result<QianjiBpmnWorkflowCancelReport, QianjiBpmnWorkflowControlError> {
         service::cancel_workflow(self, request).await
+    }
+
+    /// Interrupts one checkpoint-backed BPMN workflow without deleting its
+    /// durable state.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`QianjiBpmnWorkflowControlError`] when runtime-config lookup,
+    /// checkpoint loading, or checkpoint persistence fails, or when the
+    /// requested checkpoint does not exist.
+    pub async fn interrupt_workflow(
+        &self,
+        request: &QianjiBpmnWorkflowInterruptRequest,
+    ) -> Result<QianjiBpmnWorkflowInterruptReport, QianjiBpmnWorkflowControlError> {
+        service::interrupt_workflow(self, request).await
     }
 }

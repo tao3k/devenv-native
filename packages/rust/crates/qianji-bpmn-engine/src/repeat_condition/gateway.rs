@@ -112,13 +112,34 @@ fn parse_gateway_condition(condition: &str) -> Option<ParsedGatewayCondition<'_>
 fn parse_gateway_numeric_comparison(source: &str) -> Option<ParsedGatewayCondition<'_>> {
     let mut parts = source.split_whitespace();
     let lhs = parts.next()?;
-    let operator = parse_comparison_operator(parts.next()?)?;
-    let rhs = parse_numeric_literal(parts.next()?)?;
-    if parts.next().is_some() || !is_identifier_path(lhs) {
-        return None;
+    if let Some(operator_source) = parts.next() {
+        let operator = parse_comparison_operator(operator_source)?;
+        let rhs = parse_numeric_literal(parts.next()?)?;
+        if parts.next().is_some() || !is_identifier_path(lhs) {
+            return None;
+        }
+
+        return Some(ParsedGatewayCondition::NumericComparison { lhs, operator, rhs });
     }
 
-    Some(ParsedGatewayCondition::NumericComparison { lhs, operator, rhs })
+    parse_compact_gateway_numeric_comparison(source)
+}
+
+fn parse_compact_gateway_numeric_comparison(source: &str) -> Option<ParsedGatewayCondition<'_>> {
+    for operator_source in [">=", "<=", "==", "!=", ">", "<"] {
+        let Some(index) = source.find(operator_source) else {
+            continue;
+        };
+        let lhs = source[..index].trim();
+        let rhs_source = source[index + operator_source.len()..].trim();
+        if lhs.is_empty() || rhs_source.is_empty() || !is_identifier_path(lhs) {
+            continue;
+        }
+        let operator = parse_comparison_operator(operator_source)?;
+        let rhs = parse_numeric_literal(rhs_source)?;
+        return Some(ParsedGatewayCondition::NumericComparison { lhs, operator, rhs });
+    }
+    None
 }
 
 fn parsed_gateway_boolean_path(

@@ -25,4 +25,8 @@ pub(crate) struct AuditArgs {
     /// Episteme repository directory or episteme.toml file to load.
     #[arg(long, value_name = "EPISTEME")]
     pub load: Option<String>,
+
+    /// Print an episteme authoring template for a framework before creating content.
+    #[arg(long, value_name = "FRAMEWORK")]
+    pub template: Option<String>,
 }

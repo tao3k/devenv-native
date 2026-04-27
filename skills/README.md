@@ -148,6 +148,7 @@ Each skill has a `SKILL.md` with YAML frontmatter using Anthropic official forma
 
 ```yaml
 ---
+type: skill
 name: git
 description: Use when working with version control, commits, branches, or Git operations.
 metadata:

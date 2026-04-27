@@ -256,17 +256,74 @@ fn markdown_lint_syntax_rules() -> Vec<MarkdownLintRuleContractManifest> {
 }
 
 fn markdown_lint_frontmatter_rules() -> Vec<MarkdownLintRuleContractManifest> {
+    let mut rules = vec![parser_rule(
+        "missing_frontmatter",
+        "Document-level YAML frontmatter is required.",
+        "Add a leading `--- ... ---` block with the document identity field required by this surface before the document body begins.",
+    )];
+    rules.extend(markdown_lint_common_frontmatter_rules());
+    rules.extend(markdown_lint_skill_frontmatter_rules());
+    rules.extend(markdown_lint_frontmatter_syntax_rules());
+    rules
+}
+
+fn markdown_lint_common_frontmatter_rules() -> Vec<MarkdownLintRuleContractManifest> {
     vec![
-        parser_rule(
-            "missing_frontmatter",
-            "Document-level YAML frontmatter is required.",
-            "Add a leading `--- ... ---` block with the document identity field required by this surface before the document body begins.",
-        ),
         parser_rule(
             "missing_frontmatter_title",
             "Ordinary document frontmatter must include a non-empty `title`.",
             "Set a non-empty top-level `title` field in the document frontmatter.",
         ),
+        parser_rule(
+            "missing_frontmatter_kind",
+            "Common frontmatter must include a non-empty `kind`.",
+            "Set a non-empty top-level `kind` field in the document frontmatter.",
+        ),
+        parser_rule(
+            "missing_frontmatter_category",
+            "Common frontmatter must include a non-empty `category`.",
+            "Set a non-empty top-level `category` field in the document frontmatter.",
+        ),
+        parser_rule(
+            "missing_frontmatter_tags",
+            "Common frontmatter must include a non-empty `tags` array.",
+            "Set top-level `tags` to a non-empty YAML array of strings.",
+        ),
+        parser_rule(
+            "missing_frontmatter_description",
+            "Common frontmatter must include a non-empty `description`.",
+            "Set a non-empty top-level `description` field in the document frontmatter.",
+        ),
+        parser_rule(
+            "missing_frontmatter_author",
+            "Common frontmatter must include a non-empty `author`.",
+            "Set a non-empty top-level `author` field in the document frontmatter.",
+        ),
+        parser_rule(
+            "missing_frontmatter_date",
+            "Common frontmatter must include a minute-precision `date`.",
+            "Set top-level `date` to `YYYY-MM-DDTHH:MM±HH:MM` or `YYYY-MM-DDTHH:MMZ`.",
+        ),
+        parser_rule(
+            "invalid_frontmatter_date_precision",
+            "Common frontmatter `date` must be precise to the minute.",
+            "Use `YYYY-MM-DDTHH:MM±HH:MM` or `YYYY-MM-DDTHH:MMZ`; omit seconds.",
+        ),
+        parser_rule(
+            "missing_frontmatter_retrieval_saliency_base",
+            "Common frontmatter must include numeric `metadata.retrieval.saliency_base`.",
+            "Set `metadata.retrieval.saliency_base` to a number.",
+        ),
+        parser_rule(
+            "missing_frontmatter_retrieval_decay_rate",
+            "Common frontmatter must include numeric `metadata.retrieval.decay_rate`.",
+            "Set `metadata.retrieval.decay_rate` to a number.",
+        ),
+    ]
+}
+
+fn markdown_lint_skill_frontmatter_rules() -> Vec<MarkdownLintRuleContractManifest> {
+    vec![
         parser_rule(
             "missing_skill_frontmatter_name",
             "Skill-shaped document frontmatter must include a non-empty top-level `name`.",
@@ -277,6 +334,16 @@ fn markdown_lint_frontmatter_rules() -> Vec<MarkdownLintRuleContractManifest> {
             "Skill-shaped document frontmatter must contain a top-level `metadata` mapping.",
             "Add a top-level `metadata:` mapping to the SKILL frontmatter.",
         ),
+        parser_rule(
+            "invalid_skill_frontmatter_schema",
+            "Skill-shaped document frontmatter must satisfy the parser-owned SKILL.md schema.",
+            "Start from common frontmatter, then add top-level `type: skill`, `name`, `metadata.version`, `metadata.source`, and a non-empty `metadata.routing_keywords` array.",
+        ),
+    ]
+}
+
+fn markdown_lint_frontmatter_syntax_rules() -> Vec<MarkdownLintRuleContractManifest> {
+    vec![
         MarkdownLintRuleContractManifest {
             code: "unclosed_frontmatter".to_string(),
             problem: Some("YAML frontmatter opens but never closes.".to_string()),

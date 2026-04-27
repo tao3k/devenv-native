@@ -3,12 +3,15 @@
 mod api;
 mod boundary;
 mod compensation;
+mod condition_contract;
+mod data_contract;
 mod document;
 mod document_surface;
 mod execution;
 mod extension;
 mod gateway;
 mod identity;
+mod loop_risk;
 mod reference;
 mod subprocess;
 mod task;

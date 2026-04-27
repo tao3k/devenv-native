@@ -22,6 +22,7 @@ async fn workflow_control_service_loads_checkpoint_status_from_duckdb_store() {
                     process_id: "wait_flow".to_string(),
                     instance_id: "wf_status".to_string(),
                     initial_variables: Some(json!({ "risk": "high" })),
+                    start_at_node_id: None,
                     checkpoint_backend: Some(QianjiBpmnWorkflowCheckpointBackend::LocalDuckDb),
                 },
                 &QianjiBpmnHostBridge::default(),

@@ -4,6 +4,7 @@
 
 mod bpmn_json;
 mod command;
+mod llm;
 mod render;
 mod workflow_plan;
 

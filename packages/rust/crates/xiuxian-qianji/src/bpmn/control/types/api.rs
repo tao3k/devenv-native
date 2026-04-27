@@ -28,6 +28,8 @@ pub struct QianjiBpmnWorkflowStartRequest {
     pub instance_id: String,
     /// Optional initial variables for a fresh run.
     pub initial_variables: Option<Value>,
+    /// Optional node id for a fresh synthetic start-at run.
+    pub start_at_node_id: Option<String>,
     /// Optional checkpoint backend to use for this bounded run.
     pub checkpoint_backend: Option<QianjiBpmnWorkflowCheckpointBackend>,
 }
@@ -100,9 +102,40 @@ pub struct QianjiBpmnWorkflowEventPollRequest {
 /// poll action.
 pub type QianjiBpmnWorkflowEventPollReport = QianjiBpmnWorkflowResumeReport;
 
+/// Host-work result kind accepted by explicit task completion.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum QianjiBpmnWorkflowTaskCompletionKind {
+    /// Complete a BPMN `sendTask`.
+    Send,
+    /// Complete a BPMN `serviceTask`.
+    Service,
+    /// Complete a BPMN `scriptTask`.
+    Script,
+    /// Complete a BPMN `userTask`.
+    User,
+    /// Complete a BPMN `manualTask`.
+    Manual,
+}
+
+/// Explicit payload for completing pending host work on one checkpoint-backed
+/// BPMN workflow instance.
+#[derive(Debug, Clone, PartialEq)]
+pub struct QianjiBpmnWorkflowTaskCompletionPayload {
+    /// Runtime token identifier for the pending host work.
+    pub token_id: u64,
+    /// BPMN process identifier expected for the pending host work.
+    pub process_id: String,
+    /// BPMN activity identifier expected for the pending host work.
+    pub activity_id: String,
+    /// Pending host-work result kind.
+    pub kind: QianjiBpmnWorkflowTaskCompletionKind,
+    /// User- or operator-supplied payload merged into workflow variables.
+    pub data: serde_json::Value,
+}
+
 /// Typed request for completing pending host work on one checkpoint-backed BPMN
 /// workflow instance.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct QianjiBpmnWorkflowTaskCompleteRequest {
     /// Filesystem path to the BPMN source.
     pub bpmn_path: PathBuf,
@@ -112,6 +145,11 @@ pub struct QianjiBpmnWorkflowTaskCompleteRequest {
     pub instance_id: String,
     /// Checkpoint backend that already owns persisted workflow state.
     pub checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend,
+    /// Explicit completion payload for the pending host task.
+    pub completion: QianjiBpmnWorkflowTaskCompletionPayload,
+    /// Continue through fixture-backed non-human host tasks until the next
+    /// user/manual boundary after applying `completion`.
+    pub continue_until_human_boundary: bool,
 }
 
 /// Report returned by the workflow control service after one host-task
@@ -140,6 +178,16 @@ pub struct QianjiBpmnWorkflowCancelRequest {
     /// Workflow instance identifier used for checkpoint lookup and deletion.
     pub instance_id: String,
     /// Checkpoint backend to cancel for this bounded workflow instance.
+    pub checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend,
+}
+
+/// Typed request for interrupting one checkpoint-backed BPMN workflow instance
+/// while preserving durable checkpoint state.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct QianjiBpmnWorkflowInterruptRequest {
+    /// Workflow instance identifier used for checkpoint lookup and preservation.
+    pub instance_id: String,
+    /// Checkpoint backend to interrupt for this bounded workflow instance.
     pub checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend,
 }
 
@@ -216,5 +264,17 @@ pub struct QianjiBpmnWorkflowCancelReport {
     /// Monotonic checkpoint sequence loaded before deletion.
     pub checkpoint_sequence: u64,
     /// Durable BPMN instance state loaded before deletion.
+    pub instance: BpmnInstanceState,
+}
+
+/// Report returned by the workflow control service after one checkpoint-first
+/// BPMN workflow interruption.
+#[derive(Debug, Clone)]
+pub struct QianjiBpmnWorkflowInterruptReport {
+    /// Resolved checkpoint store used for this interrupt request.
+    pub checkpoint_store: QianjiBpmnCheckpointStore,
+    /// Monotonic checkpoint sequence persisted after interruption.
+    pub checkpoint_sequence: u64,
+    /// Durable BPMN instance state persisted after interruption.
     pub instance: BpmnInstanceState,
 }

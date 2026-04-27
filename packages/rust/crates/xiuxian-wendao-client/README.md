@@ -36,8 +36,12 @@ Behavior:
 7. requires document-level YAML frontmatter and validates the primary
    frontmatter identity field for the current document surface:
    - ordinary Markdown documents require a non-empty `title`
-   - `SKILL.md` files or `kind: SKILL.md` documents must satisfy the strict
-     parser-owned SKILL.md frontmatter contract
+   - `SKILL.md` files or `kind: SKILL.md` documents must satisfy the
+     parser-owned SKILL.md frontmatter contract: top-level `type: skill`,
+     `name`, and `description`; top-level `metadata`; non-empty
+     `metadata.author`, `metadata.version`, `metadata.source`; and a
+     non-empty `metadata.routing_keywords` array; optional
+     `metadata.intents` must still be a non-empty string array when present
 8. reports invalid YAML frontmatter
 9. reports unclosed frontmatter blocks
 10. reports unclosed fenced code blocks
@@ -52,7 +56,9 @@ Behavior:
 15. treats mixed `[[target]](label)` link syntax as an official-syntax failure
 16. treats bare `[[target]]`, redundant labels such as `[[target|target]]`, and target-like reversed alias shapes such as `[[label|path/to/doc.md]]` as repo authoring policy findings rather than official Obsidian syntax failures
 17. resolves reachable link targets to document titles and heading fragments so diagnostics can suggest a concrete rewrite for LLM repair flows
-18. emits plain-text diagnostics for human and LLM review
+18. emits compact ariadne-style source diagnostics by default for human and
+    LLM review, with JSON formats remaining available through `--output json`
+    and `--output pretty`
 19. reports non-UTF-8 Markdown files
 20. keeps official Obsidian embeds such as `![[note]]`, `![[note#Heading]]`,
     and `![[note#^block-id]]` parser-compatible and outside the ordinary
@@ -86,6 +92,14 @@ Diagnostic rendering is split deliberately:
    rendering strategies over Rust-collected facts
 7. directory-level note-link-style policy stays in `src/lint/policy/`, so
    parser syntax ownership and repository authoring policy remain separate
+8. the default text renderer uses ariadne compact ASCII diagnostics over the
+   original Markdown source; diagnostic metadata is carried inside ariadne
+   notes and helps (`kind`, `problem`, `target`, `expected`, `detail`, `tip`)
+   so the compact diagnostic remains the primary LLM repair surface
+9. focused text snapshots under `tests/snapshots/` lock the compact diagnostic
+   layout for source-backed diagnostics, one no-source fallback, and one
+   `wendao-episteme`-style framework repair line without snapshotting every
+   lint rule or replacing the full `wendao-episteme/tests` scenario suite
 
 The `get` commands stay local and parser-owned by design:
 

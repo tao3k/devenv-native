@@ -31,6 +31,9 @@ pub struct PendingHostWork {
     pub process_id: Option<String>,
     /// Owning BPMN node index.
     pub node_index: BpmnNodeIndex,
+    /// Stable BPMN activity identifier for the blocked node.
+    #[serde(default)]
+    pub activity_id: Option<String>,
     /// Host work category.
     pub kind: PendingHostWorkKind,
     /// Optional DMN decision binding for business-rule work.

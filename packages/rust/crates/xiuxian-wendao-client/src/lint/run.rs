@@ -5,11 +5,11 @@ use super::policy::{
     collect_file_link_style_facts, lint_directory_link_style_policy, lint_local_target_existence,
     lint_local_target_fragments,
 };
-use super::{MarkdownLintArgs, MarkdownLintFileReport, MarkdownLintIssue, MarkdownLintReport};
+use super::text_output::render_markdown_lint_text_report;
+use super::{MarkdownLintArgs, MarkdownLintFileReport, MarkdownLintReport};
 use crate::{ClientContext, CommandOutcome, OutputFormat};
 use anyhow::{Context, Result};
 use std::collections::BTreeMap;
-use std::fmt::Write as _;
 use xiuxian_wendao_parsers::lint_markdown_syntax_with_path;
 
 pub(crate) fn run_markdown_lint(
@@ -23,6 +23,7 @@ pub(crate) fn run_markdown_lint(
     };
     let mut diagnostics = DiagnosticContext::new(context.root());
     let mut file_reports = BTreeMap::<String, MarkdownLintFileReport>::new();
+    let mut source_contents = BTreeMap::<String, String>::new();
     let mut style_facts = Vec::new();
 
     for path in files {
@@ -35,7 +36,14 @@ pub(crate) fn run_markdown_lint(
                     relative_path.as_str(),
                     &markdown,
                 ));
-                build_file_report(relative_path, path.as_path(), &markdown, &mut diagnostics)
+                let file_report = build_file_report(
+                    relative_path.clone(),
+                    path.as_path(),
+                    &markdown,
+                    &mut diagnostics,
+                );
+                source_contents.insert(relative_path, markdown);
+                file_report
             }
             Err(error) => MarkdownLintFileReport {
                 path: relative_path,
@@ -70,7 +78,7 @@ pub(crate) fn run_markdown_lint(
     report.files_with_issues = report.files.len();
     report.issue_count = report.files.iter().map(|file| file.issue_count).sum();
 
-    emit_report(&report, context.output())?;
+    emit_report(&report, &source_contents, context.output())?;
     Ok(if report.issue_count == 0 {
         CommandOutcome::success()
     } else {
@@ -109,68 +117,18 @@ fn build_file_report(
     }
 }
 
-fn emit_report(report: &MarkdownLintReport, output: OutputFormat) -> Result<()> {
+fn emit_report(
+    report: &MarkdownLintReport,
+    source_contents: &BTreeMap<String, String>,
+    output: OutputFormat,
+) -> Result<()> {
     let rendered = match output {
-        OutputFormat::Text => render_text_report(report),
+        OutputFormat::Text => render_markdown_lint_text_report(report, source_contents)?,
         OutputFormat::Json => render_json_report(report, false)?,
         OutputFormat::Pretty => render_json_report(report, true)?,
     };
     print!("{rendered}");
     Ok(())
-}
-
-fn render_text_report(report: &MarkdownLintReport) -> String {
-    if report.issue_count == 0 {
-        return format!(
-            "Markdown lint passed: checked {} file(s), 0 issue(s).\n",
-            report.checked_files
-        );
-    }
-
-    let mut rendered = String::new();
-    let _ = writeln!(
-        rendered,
-        "Markdown lint found {} issue(s) in {} file(s) across {} checked file(s).",
-        report.issue_count, report.files_with_issues, report.checked_files
-    );
-    for file in &report.files {
-        rendered.push('\n');
-        rendered.push_str(file.path.as_str());
-        rendered.push('\n');
-        for issue in &file.issues {
-            let _ = writeln!(rendered, "  - line {}, column {}", issue.line, issue.column);
-            let _ = writeln!(rendered, "    rule: {}", issue.code);
-            let _ = writeln!(rendered, "    kind: {}", issue.kind);
-            let _ = writeln!(rendered, "    problem: {}", issue.problem);
-            if let Some(target) = &issue.target {
-                let _ = writeln!(rendered, "    target: {target}");
-            }
-            if let Some(target_title) = &issue.target_title {
-                let _ = writeln!(rendered, "    target_title: {target_title}");
-            }
-            if let Some(target_heading) = &issue.target_heading {
-                let _ = writeln!(rendered, "    target_heading: {target_heading}");
-            }
-            if let Some(found) = &issue.found {
-                let _ = writeln!(rendered, "    found: {found}");
-            }
-            if let Some(expected) = &issue.expected {
-                let _ = writeln!(rendered, "    expected: {expected}");
-            }
-            let _ = writeln!(rendered, "    detail: {}", issue.message);
-            if let Some(tip) = &issue.tip {
-                let _ = writeln!(rendered, "    tip: {tip}");
-            }
-            if let Some(source) = &issue.source {
-                let _ = writeln!(rendered, "    source: {source}");
-                rendered.push_str("            ");
-                let pointer = pointer_line(issue, source);
-                rendered.push_str(&pointer);
-                rendered.push('\n');
-            }
-        }
-    }
-    rendered
 }
 
 fn render_json_report(report: &MarkdownLintReport, pretty: bool) -> Result<String> {
@@ -181,20 +139,4 @@ fn render_json_report(report: &MarkdownLintReport, pretty: bool) -> Result<Strin
     }
     .context("failed to serialize markdown lint report")?;
     Ok(format!("{rendered}\n"))
-}
-
-fn pointer_line(issue: &MarkdownLintIssue, source: &str) -> String {
-    let source_width = source.chars().count();
-    let start = issue.column.saturating_sub(1).min(source_width);
-    let width = issue
-        .found
-        .as_deref()
-        .map(|value| value.chars().count())
-        .filter(|width| *width > 0)
-        .unwrap_or(1);
-    format!(
-        "{}{}",
-        " ".repeat(start),
-        "^".repeat(width.min(source_width.max(1)))
-    )
 }

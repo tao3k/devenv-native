@@ -2,7 +2,7 @@
 name = "xiuxian-wendao"
 version.workspace = true
 edition.workspace = true
-description = "High-performance knowledge and link-graph runtime with Valkey-first storage"
+description = "High-performance knowledge and link-graph runtime with local DuckDB cache and shared Valkey storage"
 authors = ["CyberXiuXian Artisan workshop"]
 license = "Apache-2.0"
 publish = false
@@ -11,6 +11,7 @@ default-run = "wendao"
 [features]
 default = [
   "builtin-plugins",
+  "duckdb",
   "zhenfa-router",
   "julia",
   "search-runtime",
@@ -57,9 +58,14 @@ studio = [
   "dep:xiuxian-ast",
   "dep:xiuxian-zhenfa",
 ]
-performance = ["xiuxian-testing/performance"]
+performance = ["dep:arrow", "xiuxian-testing/performance"]
 performance-stress = ["performance"]
-duckdb = ["dep:duckdb", "dep:xiuxian-db-store", "xiuxian-db-store/duckdb"]
+duckdb = [
+  "dep:arrow",
+  "dep:duckdb",
+  "dep:xiuxian-db-store",
+  "xiuxian-db-store/duckdb",
+]
 
 [[bin]]
 name = "wendao"

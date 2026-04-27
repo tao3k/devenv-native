@@ -4,7 +4,7 @@ use super::ownership::QianjiBpmnSchedulerLeaseConfig;
 use super::session::QianjiBpmnSession;
 use qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnEngineError, BpmnExecutionTraceEvent, BpmnHostBridge, BpmnInstanceInit,
-    BpmnPackage,
+    BpmnPackage, PendingHostWorkResult,
 };
 use serde_json::Value;
 use std::sync::Arc;
@@ -25,6 +25,8 @@ pub struct QianjiBpmnExecutionRequest {
     pub instance_id: String,
     /// Optional initial variables for a fresh run.
     pub initial_variables: Option<Value>,
+    /// Optional BPMN node id for a fresh synthetic start-at run.
+    pub start_at_node_id: Option<String>,
     /// Millisecond timestamp used for fresh instance creation.
     pub started_at_ms: u64,
 }
@@ -149,6 +151,136 @@ impl QianjiBpmnExecutionDriver {
         .await
     }
 
+    /// Completes one pending host-work item from a checkpointed session, then
+    /// advances the BPMN runtime until the next stable outcome.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`BpmnOrchestrationError`] when the checkpoint cannot be
+    /// resumed, the engine rejects the explicit host-work result, a later host
+    /// bridge operation fails, or checkpoint persistence fails.
+    pub async fn complete_pending_host_work_until_stable<H: BpmnHostBridge>(
+        &self,
+        request: &QianjiBpmnExecutionRequest,
+        token_id: u64,
+        process_id: &str,
+        activity_id: &str,
+        result: PendingHostWorkResult,
+        host: &H,
+    ) -> Result<QianjiBpmnExecutionReport, BpmnOrchestrationError> {
+        self.acquire_checkpoint_lease_if_needed(request.instance_id.as_str(), None)
+            .await?;
+
+        let run_result = async {
+            let (mut session, resumed_from_checkpoint) =
+                self.load_or_create_session(request).await?;
+            let starting_sequence = session.instance().sequence;
+            session.clear_host_requested_interrupt(request.started_at_ms);
+            let outcome = session
+                .complete_pending_host_work_until_stable(
+                    token_id,
+                    process_id,
+                    activity_id,
+                    result,
+                    host,
+                )
+                .await?;
+            let (checkpoint_saved, checkpoint_deleted) = self
+                .finalize_checkpoint(
+                    &session,
+                    resumed_from_checkpoint,
+                    starting_sequence,
+                    &outcome,
+                    QianjiBpmnCheckpointLifecycle::Retain,
+                    None,
+                )
+                .await?;
+
+            Ok(QianjiBpmnExecutionReport {
+                session,
+                outcome,
+                resumed_from_checkpoint,
+                checkpoint_saved,
+                checkpoint_deleted,
+            })
+        }
+        .await;
+
+        let release_result = self
+            .release_checkpoint_lease_if_needed(request.instance_id.as_str(), None)
+            .await;
+
+        match (run_result, release_result) {
+            (Err(error), _) | (Ok(_), Err(error)) => Err(error),
+            (Ok(report), Ok(())) => Ok(report),
+        }
+    }
+
+    /// Completes one pending host-work item from a checkpointed session, then
+    /// advances through non-human host work until a user/manual boundary.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`BpmnOrchestrationError`] when the checkpoint cannot be resumed,
+    /// the explicit result is rejected, a fixture-backed non-human host task
+    /// fails, or checkpoint persistence fails.
+    pub async fn complete_pending_host_work_until_human_boundary<H: BpmnHostBridge>(
+        &self,
+        request: &QianjiBpmnExecutionRequest,
+        token_id: u64,
+        process_id: &str,
+        activity_id: &str,
+        result: PendingHostWorkResult,
+        host: &H,
+    ) -> Result<QianjiBpmnExecutionReport, BpmnOrchestrationError> {
+        self.acquire_checkpoint_lease_if_needed(request.instance_id.as_str(), None)
+            .await?;
+
+        let run_result = async {
+            let (mut session, resumed_from_checkpoint) =
+                self.load_or_create_session(request).await?;
+            let starting_sequence = session.instance().sequence;
+            session.clear_host_requested_interrupt(request.started_at_ms);
+            let outcome = session
+                .complete_pending_host_work_until_human_boundary(
+                    token_id,
+                    process_id,
+                    activity_id,
+                    result,
+                    host,
+                )
+                .await?;
+            let (checkpoint_saved, checkpoint_deleted) = self
+                .finalize_checkpoint(
+                    &session,
+                    resumed_from_checkpoint,
+                    starting_sequence,
+                    &outcome,
+                    QianjiBpmnCheckpointLifecycle::Retain,
+                    None,
+                )
+                .await?;
+
+            Ok(QianjiBpmnExecutionReport {
+                session,
+                outcome,
+                resumed_from_checkpoint,
+                checkpoint_saved,
+                checkpoint_deleted,
+            })
+        }
+        .await;
+
+        let release_result = self
+            .release_checkpoint_lease_if_needed(request.instance_id.as_str(), None)
+            .await;
+
+        match (run_result, release_result) {
+            (Err(error), _) | (Ok(_), Err(error)) => Err(error),
+            (Ok(report), Ok(())) => Ok(report),
+        }
+    }
+
     /// Runs the BPMN session until the next host boundary or another stable
     /// outcome, then persists the checkpoint when a backend is configured.
     ///
@@ -175,8 +307,74 @@ impl QianjiBpmnExecutionDriver {
             let (mut session, resumed_from_checkpoint) =
                 self.load_or_create_session(request).await?;
             let starting_sequence = session.instance().sequence;
+            session.clear_host_requested_interrupt(request.started_at_ms);
             let outcome = session
                 .run_until_host_boundary_with_trace_observer(
+                    host,
+                    resolve_initial_host_work,
+                    trace_observer,
+                )
+                .await?;
+            let (checkpoint_saved, checkpoint_deleted) = self
+                .finalize_checkpoint(
+                    &session,
+                    resumed_from_checkpoint,
+                    starting_sequence,
+                    &outcome,
+                    QianjiBpmnCheckpointLifecycle::Retain,
+                    None,
+                )
+                .await?;
+
+            Ok(QianjiBpmnExecutionReport {
+                session,
+                outcome,
+                resumed_from_checkpoint,
+                checkpoint_saved,
+                checkpoint_deleted,
+            })
+        }
+        .await;
+
+        let release_result = self
+            .release_checkpoint_lease_if_needed(request.instance_id.as_str(), None)
+            .await;
+
+        match (run_result, release_result) {
+            (Err(error), _) | (Ok(_), Err(error)) => Err(error),
+            (Ok(report), Ok(())) => Ok(report),
+        }
+    }
+
+    /// Runs the BPMN session through fixture-backed non-human host work until
+    /// the next user/manual boundary or another stable outcome.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`BpmnOrchestrationError`] when the driver cannot create or
+    /// resume the session, when non-human host work cannot be serviced, or when
+    /// checkpoint persistence fails.
+    pub async fn run_until_human_boundary_with_trace_observer<H, F>(
+        &self,
+        request: &QianjiBpmnExecutionRequest,
+        host: &H,
+        resolve_initial_host_work: bool,
+        trace_observer: F,
+    ) -> Result<QianjiBpmnExecutionReport, BpmnOrchestrationError>
+    where
+        H: BpmnHostBridge,
+        F: FnMut(&QianjiBpmnSession, &[BpmnExecutionTraceEvent]),
+    {
+        self.acquire_checkpoint_lease_if_needed(request.instance_id.as_str(), None)
+            .await?;
+
+        let run_result = async {
+            let (mut session, resumed_from_checkpoint) =
+                self.load_or_create_session(request).await?;
+            let starting_sequence = session.instance().sequence;
+            session.clear_host_requested_interrupt(request.started_at_ms);
+            let outcome = session
+                .run_until_human_boundary_with_trace_observer(
                     host,
                     resolve_initial_host_work,
                     trace_observer,
@@ -227,6 +425,7 @@ impl QianjiBpmnExecutionDriver {
             let (mut session, resumed_from_checkpoint) =
                 self.load_or_create_session(request).await?;
             let starting_sequence = session.instance().sequence;
+            session.clear_host_requested_interrupt(request.started_at_ms);
             let outcome = session.run_until_stable(host).await?;
             let (checkpoint_saved, checkpoint_deleted) = self
                 .finalize_checkpoint(
@@ -278,6 +477,7 @@ impl QianjiBpmnExecutionDriver {
             let (mut session, resumed_from_checkpoint) =
                 self.load_or_create_session(request).await?;
             let starting_sequence = session.instance().sequence;
+            session.clear_host_requested_interrupt(request.started_at_ms);
             let outcome = session
                 .run_until_stable_with_trace_observer(host, trace_observer)
                 .await?;
@@ -316,6 +516,13 @@ impl QianjiBpmnExecutionDriver {
         &self,
         request: &QianjiBpmnExecutionRequest,
     ) -> Result<(QianjiBpmnSession, bool), BpmnOrchestrationError> {
+        if let Some(start_at_node_id) = request.start_at_node_id.as_deref() {
+            return self
+                .create_start_at_session(request, start_at_node_id)
+                .await
+                .map(|session| (session, false));
+        }
+
         if let Some(store) = self.checkpoint_store.as_ref()
             && let Some(session) = QianjiBpmnSession::load_from_store(
                 Arc::clone(&self.package),
@@ -344,6 +551,38 @@ impl QianjiBpmnExecutionDriver {
             ),
         )?;
         Ok((session, false))
+    }
+
+    async fn create_start_at_session(
+        &self,
+        request: &QianjiBpmnExecutionRequest,
+        start_at_node_id: &str,
+    ) -> Result<QianjiBpmnSession, BpmnOrchestrationError> {
+        if let Some(store) = self.checkpoint_store.as_ref()
+            && store.load(request.instance_id.as_str()).await?.is_some()
+        {
+            return Err(BpmnOrchestrationError::StartAtCheckpointExists {
+                instance_id: request.instance_id.clone(),
+            });
+        }
+
+        let Some(initial_variables) = request.initial_variables.clone() else {
+            return Err(BpmnOrchestrationError::FreshContextRequired {
+                process_id: request.process_id.clone(),
+                instance_id: request.instance_id.clone(),
+            });
+        };
+
+        QianjiBpmnSession::new_at_node(
+            Arc::clone(&self.package),
+            request.process_id.as_str(),
+            BpmnInstanceInit::new(
+                request.instance_id.as_str(),
+                initial_variables,
+                request.started_at_ms,
+            ),
+            start_at_node_id,
+        )
     }
 
     async fn finalize_checkpoint(
@@ -512,7 +751,15 @@ impl QianjiBpmnExecutionRequest {
             process_id: process_id.into(),
             instance_id: instance_id.into(),
             initial_variables,
+            start_at_node_id: None,
             started_at_ms,
         }
+    }
+
+    /// Records a target BPMN node for a fresh synthetic start-at run.
+    #[must_use]
+    pub fn with_start_at_node_id(mut self, start_at_node_id: Option<String>) -> Self {
+        self.start_at_node_id = start_at_node_id;
+        self
     }
 }

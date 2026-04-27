@@ -66,6 +66,15 @@ fn build_pending_host_work_request_for_entry(
     let instance_id = instance.instance_id.to_string();
     let token_id = pending.token_id;
     let node_index = pending.node_index;
+    let process_id = pending
+        .process_id
+        .as_deref()
+        .unwrap_or(instance.process.process_id.as_ref())
+        .to_string();
+    let activity_id = pending
+        .activity_id
+        .clone()
+        .unwrap_or_else(|| format!("node#{node_index}"));
     let (variables, repeat) = resolve_pending_host_work_execution_context(instance, pending)?;
 
     Ok(match pending.kind {
@@ -101,15 +110,19 @@ fn build_pending_host_work_request_for_entry(
         }),
         super::PendingHostWorkKind::User => PendingHostWorkRequest::User(UserTaskRequest {
             instance_id,
+            process_id,
             token_id,
             node_index,
+            activity_id,
             variables,
             repeat,
         }),
         super::PendingHostWorkKind::Manual => PendingHostWorkRequest::Manual(ManualTaskRequest {
             instance_id,
+            process_id,
             token_id,
             node_index,
+            activity_id,
             variables,
             repeat,
         }),

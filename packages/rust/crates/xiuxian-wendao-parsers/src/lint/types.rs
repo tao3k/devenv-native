@@ -8,11 +8,38 @@ pub enum MarkdownSyntaxLintCode {
     MissingFrontmatter,
     /// The YAML frontmatter exists but does not carry a non-empty `title`.
     MissingFrontmatterTitle,
+    /// The YAML frontmatter exists but does not carry a non-empty common `kind`.
+    MissingFrontmatterKind,
+    /// The YAML frontmatter exists but does not carry a non-empty common
+    /// `category`.
+    MissingFrontmatterCategory,
+    /// The YAML frontmatter exists but does not carry a non-empty common `tags`
+    /// sequence.
+    MissingFrontmatterTags,
+    /// The YAML frontmatter exists but does not carry a non-empty common
+    /// `description`.
+    MissingFrontmatterDescription,
+    /// The YAML frontmatter exists but does not carry a non-empty common
+    /// `author`.
+    MissingFrontmatterAuthor,
+    /// The YAML frontmatter exists but does not carry a non-empty common `date`.
+    MissingFrontmatterDate,
+    /// The common `date` field exists but is not minute-precision timestamp.
+    InvalidFrontmatterDatePrecision,
+    /// The YAML frontmatter exists but does not carry a numeric common
+    /// `metadata.retrieval.saliency_base`.
+    MissingFrontmatterRetrievalSaliencyBase,
+    /// The YAML frontmatter exists but does not carry a numeric common
+    /// `metadata.retrieval.decay_rate`.
+    MissingFrontmatterRetrievalDecayRate,
     /// A skill-shaped document exists but does not carry a non-empty skill name.
     MissingSkillFrontmatterName,
     /// A skill-shaped document exists but does not carry the required
     /// top-level `metadata` mapping.
     MissingSkillFrontmatterMetadata,
+    /// A skill-shaped document frontmatter block violates the parser-owned
+    /// SKILL.md schema after required identity fields are present.
+    InvalidSkillFrontmatterSchema,
     /// The document starts a YAML frontmatter block but never closes it.
     UnclosedFrontmatter,
     /// The YAML frontmatter content is not valid YAML.
@@ -50,8 +77,18 @@ impl MarkdownSyntaxLintCode {
             | Self::MixedWikilinkMarkdownLink => MarkdownLintKind::Syntax,
             Self::MissingFrontmatter
             | Self::MissingFrontmatterTitle
+            | Self::MissingFrontmatterKind
+            | Self::MissingFrontmatterCategory
+            | Self::MissingFrontmatterTags
+            | Self::MissingFrontmatterDescription
+            | Self::MissingFrontmatterAuthor
+            | Self::MissingFrontmatterDate
+            | Self::InvalidFrontmatterDatePrecision
+            | Self::MissingFrontmatterRetrievalSaliencyBase
+            | Self::MissingFrontmatterRetrievalDecayRate
             | Self::MissingSkillFrontmatterName
             | Self::MissingSkillFrontmatterMetadata
+            | Self::InvalidSkillFrontmatterSchema
             | Self::BareObsidianWikilink
             | Self::RedundantObsidianLabel
             | Self::NonCanonicalObsidianAliasOrder => MarkdownLintKind::AuthoringPolicy,

@@ -47,6 +47,34 @@ pub enum BpmnOrchestrationError {
         /// Instance id for the requested BPMN run.
         instance_id: String,
     },
+    /// Returned when a start-at run would overwrite an existing checkpoint.
+    #[error(
+        "BPMN start-at requires a fresh instance id; checkpoint already exists for instance '{instance_id}'"
+    )]
+    StartAtCheckpointExists {
+        /// Workflow instance identifier that already exists.
+        instance_id: String,
+    },
+    /// Returned when a start-at run targets a node that is not in the process.
+    #[error("BPMN start-at target node '{node_id}' was not found in process '{process_id}'")]
+    StartAtNodeMissing {
+        /// Process id for the requested BPMN run.
+        process_id: String,
+        /// Requested BPMN node id.
+        node_id: String,
+    },
+    /// Returned when a start-at run targets an unsupported node kind.
+    #[error(
+        "BPMN start-at target node '{node_id}' in process '{process_id}' has unsupported kind '{node_kind}'"
+    )]
+    StartAtNodeUnsupported {
+        /// Process id for the requested BPMN run.
+        process_id: String,
+        /// Requested BPMN node id.
+        node_id: String,
+        /// Human-readable BPMN node kind.
+        node_kind: String,
+    },
     /// Returned when a checkpoint references a BPMN process that is missing
     /// from the loaded package.
     #[error(
@@ -71,6 +99,26 @@ pub enum BpmnOrchestrationError {
         loaded_package_id: String,
         /// Spec digest resolved from the currently loaded BPMN package.
         loaded_spec_digest: String,
+    },
+    /// Returned when an explicit task-completion request targets a pending
+    /// host-work item whose BPMN identity does not match the checkpointed
+    /// work.
+    #[error(
+        "pending host work identity mismatch for instance '{instance_id}' token {token_id}: expected process '{expected_process_id}' activity '{expected_activity_id}', got process '{actual_process_id}' activity '{actual_activity_id}'"
+    )]
+    PendingHostWorkIdentityMismatch {
+        /// Workflow instance identifier.
+        instance_id: String,
+        /// Runtime token identifier for the pending host work.
+        token_id: u64,
+        /// Requested BPMN process identifier.
+        expected_process_id: String,
+        /// Requested BPMN activity identifier.
+        expected_activity_id: String,
+        /// Checkpointed BPMN process identifier.
+        actual_process_id: String,
+        /// Checkpointed BPMN activity identifier.
+        actual_activity_id: String,
     },
     /// Returned when one BPMN scheduler lease is requested without a
     /// Valkey-backed checkpoint backend.

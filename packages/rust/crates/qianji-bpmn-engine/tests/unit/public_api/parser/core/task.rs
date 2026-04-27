@@ -1,6 +1,9 @@
 use super::{parse_fixture_error, parse_fixture_package};
 use crate::test_support::MustExt as _;
-use qianji_bpmn_engine::{BpmnEngineError, BpmnEventKind, BpmnNodeKind};
+use qianji_bpmn_engine::{
+    BpmnEngineError, BpmnEventKind, BpmnNodeKind, BpmnParseOptions, BpmnSourceFile,
+    parse_bpmn_package,
+};
 
 #[test]
 fn parser_send_task_message_ref_materializes_message_event_binding() {
@@ -49,6 +52,37 @@ fn parser_script_task_preserves_bounded_script_metadata() {
         .must("script task metadata should be preserved");
     assert_eq!(script.script_format.as_deref(), Some("feel"));
     assert_eq!(script.script_body.as_deref(), Some("result = amount + tax"));
+}
+
+#[test]
+fn parser_service_task_requires_single_outgoing_route() {
+    let error = parse_bpmn_package(
+        &[BpmnSourceFile::new(
+            "missing-task-route.bpmn",
+            r#"<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" id="pkg_missing_task_route">
+  <bpmn:process id="missing_task_route" isExecutable="true">
+    <bpmn:startEvent id="start" />
+    <bpmn:serviceTask id="prepare_next" />
+    <bpmn:exclusiveGateway id="more_questions" default="flow_done" />
+    <bpmn:endEvent id="done" />
+    <bpmn:sequenceFlow id="flow_start" sourceRef="start" targetRef="prepare_next" />
+    <bpmn:sequenceFlow id="flow_done" sourceRef="more_questions" targetRef="done" />
+  </bpmn:process>
+</bpmn:definitions>"#,
+        )],
+        &BpmnParseOptions::default(),
+    )
+    .must_err("service task without an outgoing route should fail validation");
+
+    assert_eq!(
+        error,
+        BpmnEngineError::UnsupportedTaskConfiguration {
+            process_id: "missing_task_route".to_string(),
+            node_id: "prepare_next".to_string(),
+            detail: "task_requires_single_outgoing",
+        }
+    );
 }
 
 #[test]

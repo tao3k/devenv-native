@@ -124,10 +124,14 @@ pub struct ScriptTaskOutcome {
 pub struct UserTaskRequest {
     /// Owning workflow instance identifier.
     pub instance_id: String,
+    /// Owning BPMN process identifier.
+    pub process_id: String,
     /// Owning runtime token identifier.
     pub token_id: u64,
     /// BPMN node index.
     pub node_index: u32,
+    /// Stable BPMN activity identifier.
+    pub activity_id: String,
     /// Current workflow variables snapshot.
     pub variables: Value,
     /// Optional repeat-execution metadata for the blocked task.
@@ -146,10 +150,14 @@ pub struct UserTaskOutcome {
 pub struct ManualTaskRequest {
     /// Owning workflow instance identifier.
     pub instance_id: String,
+    /// Owning BPMN process identifier.
+    pub process_id: String,
     /// Owning runtime token identifier.
     pub token_id: u64,
     /// BPMN node index.
     pub node_index: u32,
+    /// Stable BPMN activity identifier.
+    pub activity_id: String,
     /// Current workflow variables snapshot.
     pub variables: Value,
     /// Optional repeat-execution metadata for the blocked task.

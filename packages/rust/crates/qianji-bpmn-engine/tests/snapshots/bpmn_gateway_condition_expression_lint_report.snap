@@ -13,12 +13,14 @@ expression: value
       "severity": "error",
       "title": "Conditional gateway condition exceeds the bounded subset",
       "summary": "Process 'gateway_flow' gateway 'decision' uses a `conditionExpression` that is outside the bounded subset.",
-      "why_it_failed": "The current engine accepts only one bounded gateway-condition subset on exclusive-gateway branches and structured inclusive-gateway branches: simple boolean variable paths such as `approved`, `not approved`, or dotted paths such as `flags.approved`, plus numeric comparisons such as `amount > 100` or `risk >= 7`.",
+      "why_it_failed": "The current engine accepts only one bounded gateway-condition subset on exclusive-gateway branches and structured inclusive-gateway branches: simple boolean variable paths such as `approved`, `not approved`, or dotted paths such as `flags.approved`, plus numeric comparisons such as `amount > 100` or `risk >= 7`. String or enum equality such as `chosenOption == 'merge'` must be modeled as an upstream boolean output, then routed with that boolean path.",
       "repair_guidance": [
         "Rewrite the branch condition as one simple boolean variable path, optionally prefixed with `not`, or as one numeric comparison from an identifier path to one numeric literal.",
-        "Do not use FEEL, boolean-literal comparisons like `approved == true`, scripts, function calls, arithmetic, or logical combinations such as `approved and vip` in this bounded slice."
+        "For a choice or enum branch, have the previous task emit one top-level boolean `qianji:outputs` value per route, such as `selectedMerge` or `shouldMerge`, then use `selectedMerge` as the `conditionExpression`.",
+        "If the choice or enum value comes from a userTask `<qianji:result output=\"...\"/>`, keep that result output declared on the userTask and derive route booleans in a following serviceTask. Do not replace the userTask's qianji:outputs with derived booleans.",
+        "Do not use FEEL, boolean-literal comparisons like `approved == true`, string equality like `chosenOption == 'merge'`, scripts, function calls, arithmetic, or logical combinations such as `approved and vip` in this bounded slice."
       ],
-      "llm_fix_prompt": "Rewrite the `conditionExpression` on gateway 'decision' in process 'gateway_flow' so it stays inside the bounded subset: one boolean variable path like `approved`, `not approved`, or `flags.approved`, or one numeric comparison like `amount > 100` or `risk >= 7`. Preserve workflow intent, but remove FEEL, boolean-literal comparisons, logical combinations, and script-style expressions.",
+      "llm_fix_prompt": "Rewrite the `conditionExpression` on gateway 'decision' in process 'gateway_flow' so it stays inside the bounded subset: one boolean variable path like `approved`, `not approved`, `selectedMerge`, or `flags.approved`, or one numeric comparison like `amount > 100` or `risk >= 7`. If the current route is based on a user choice or enum string, preserve the userTask qianji:result output, add a following serviceTask that emits boolean route outputs, and route on those booleans. Preserve workflow intent, but remove FEEL, string equality, boolean-literal comparisons, logical combinations, and script-style expressions.",
       "structured_repair": {
         "actions": [
           {
@@ -51,6 +53,8 @@ expression: value
             "examples": [
               "approved",
               "not approved",
+              "selectedMerge",
+              "shouldMerge",
               "flags.approved",
               "amount > 100",
               "risk >= 7"
@@ -58,6 +62,10 @@ expression: value
             "forbidden_forms": [
               "approved == true",
               "approved == false",
+              "chosenOption == 'merge'",
+              "chosenOption == \"merge\"",
+              "choice == 'x'",
+              "!approved",
               "approved and vip",
               "${approved}",
               "functions",
@@ -65,6 +73,40 @@ expression: value
               "FEEL expressions"
             ],
             "op": "rewrite_condition_expression"
+          },
+          {
+            "examples": [
+              "selectedMerge",
+              "shouldOpenPullRequest",
+              "not selectedMerge"
+            ],
+            "forbid": "replacing a userTask qianji:outputs list with derived booleans while qianji:result still points at the original answer",
+            "forbidden_forms": [
+              "chosenOption == 'merge'",
+              "chosenOption == \"merge\"",
+              "choice == 'x'",
+              "route === 'merge'"
+            ],
+            "op": "replace_string_or_enum_equality_with_boolean_route_variable",
+            "producer_change": "if the compared value comes from userTask qianji:result, keep that result output declared on the userTask and add a following serviceTask that consumes it and emits boolean route outputs",
+            "route_change": "replace the string equality condition with that boolean output path",
+            "when": "the route currently compares a choice/string/enum variable to a literal"
+          },
+          {
+            "examples": [
+              "hasMoreSections",
+              "sectionsRemaining > 0",
+              "not hasMoreSections"
+            ],
+            "forbidden_forms": [
+              "sectionNumber < totalSections",
+              "currentIndex <= maxIndex",
+              "remaining == total"
+            ],
+            "op": "replace_variable_to_variable_comparison_with_boolean_or_literal",
+            "producer_change": "emit one boolean route variable such as hasMoreSections, or emit one numeric count such as sectionsRemaining",
+            "route_change": "replace the variable-to-variable comparison with hasMoreSections or sectionsRemaining > 0",
+            "when": "the route currently compares two variable paths such as sectionNumber < totalSections"
           }
         ],
         "construct_cards": [
@@ -78,6 +120,15 @@ expression: value
           "node_id": "decision",
           "process_id": "gateway_flow"
         }
+      },
+      "source_diagnostic": {
+        "source_id": "invalid-exclusive-gateway-unsupported-condition.bpmn",
+        "span": {
+          "start": 692,
+          "end": 708
+        },
+        "label": "rewrite this condition into qianji's bounded subset",
+        "help": "Use one boolean path such as `approved` or `not approved`, or one numeric comparison from a variable to a numeric literal such as `amount > 100`. For variable-to-variable decisions, emit an upstream boolean route variable and branch on that. Return a minimal unified diff only."
       },
       "evidence": {
         "detail": "unsupported_condition_expression",

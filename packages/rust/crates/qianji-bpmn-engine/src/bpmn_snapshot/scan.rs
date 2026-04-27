@@ -21,6 +21,7 @@ pub(crate) fn snapshot_bpmn_source_sync(source: &BpmnSourceFile) -> Result<BpmnD
                 return Err(BpmnEngineError::InvalidXml {
                     source_id: source.source_id.clone(),
                     message: error.to_string(),
+                    offset: Some(reader.error_position()),
                 });
             }
         };

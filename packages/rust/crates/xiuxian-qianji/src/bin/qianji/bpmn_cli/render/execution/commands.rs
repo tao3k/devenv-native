@@ -1,7 +1,7 @@
 use crate::bpmn_cli::deps::{BpmnAdvanceOutcome, QianjiBpmnSession};
 use crate::bpmn_cli::types::{
     BpmnCliOutput, BpmnEventPollCliCommand, BpmnExecutionRenderContext, BpmnResumeCliCommand,
-    BpmnRunCliCommand, BpmnStartCliCommand, BpmnTaskCompleteCliCommand,
+    BpmnRunCliCommand, BpmnStartAtCliCommand, BpmnStartCliCommand, BpmnTaskCompleteCliCommand,
 };
 
 use super::body::render_bpmn_execution_output;
@@ -30,6 +30,22 @@ pub(crate) fn render_bpmn_run_output(
 ) -> BpmnCliOutput {
     render_bpmn_execution_output(
         "BPMN Run",
+        command.process_id.as_str(),
+        command.instance_id.as_str(),
+        session,
+        outcome,
+        render_context,
+    )
+}
+
+pub(crate) fn render_bpmn_start_at_output(
+    command: &BpmnStartAtCliCommand,
+    session: &QianjiBpmnSession,
+    outcome: &BpmnAdvanceOutcome,
+    render_context: &BpmnExecutionRenderContext<'_>,
+) -> BpmnCliOutput {
+    render_bpmn_execution_output(
+        "BPMN Start At",
         command.process_id.as_str(),
         command.instance_id.as_str(),
         session,

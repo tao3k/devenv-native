@@ -1,6 +1,6 @@
 use super::super::fingerprint::LinkGraphFingerprint;
 use super::CacheLookupOutcome;
-use super::schema::{LINK_GRAPH_VALKEY_CACHE_SCHEMA_VERSION, cache_schema_fingerprint};
+use super::schema::{LINK_GRAPH_CACHE_SCHEMA_VERSION, cache_schema_fingerprint};
 use super::snapshot::LinkGraphIndexSnapshot;
 use crate::link_graph::index::LinkGraphIndex;
 use crate::link_graph::runtime_config::LinkGraphCacheRuntimeConfig;
@@ -15,7 +15,7 @@ fn redis_client(valkey_url: &str) -> Result<redis::Client, String> {
     open_client(valkey_url).map_err(|err| format!("invalid valkey url for link-graph cache: {err}"))
 }
 
-fn decode_cached_index_payload(
+pub(in crate::link_graph::index::build::cache) fn decode_cached_index_payload(
     raw: &str,
     root: &Path,
     include_dirs: &[String],
@@ -25,7 +25,7 @@ fn decode_cached_index_payload(
     let Ok(snapshot) = serde_json::from_str::<LinkGraphIndexSnapshot>(raw) else {
         return CacheLookupOutcome::Miss("payload_parse_error");
     };
-    if snapshot.schema_version() != LINK_GRAPH_VALKEY_CACHE_SCHEMA_VERSION {
+    if snapshot.schema_version() != LINK_GRAPH_CACHE_SCHEMA_VERSION {
         return CacheLookupOutcome::Miss("schema_version_mismatch");
     }
     if snapshot.schema_fingerprint() != Some(cache_schema_fingerprint()) {
@@ -44,6 +44,15 @@ fn decode_cached_index_payload(
         return CacheLookupOutcome::Miss("content_fingerprint_mismatch");
     }
     CacheLookupOutcome::Hit(Box::new(snapshot.into_index()))
+}
+
+pub(in crate::link_graph::index::build::cache) fn encode_cached_index_payload(
+    index: &LinkGraphIndex,
+    fingerprint: LinkGraphFingerprint,
+) -> Result<String, String> {
+    let payload = LinkGraphIndexSnapshot::from_index(index, fingerprint);
+    serde_json::to_string(&payload)
+        .map_err(|e| format!("failed to serialize link-graph cache payload: {e}"))
 }
 
 pub(in crate::link_graph::index::build) fn load_cached_index_from_valkey(
@@ -82,9 +91,7 @@ pub(in crate::link_graph::index::build) fn save_cached_index_to_valkey(
     fingerprint: LinkGraphFingerprint,
 ) -> Result<(), String> {
     let cache_key = valkey_cache_key(slot_key, &runtime.key_prefix);
-    let payload = LinkGraphIndexSnapshot::from_index(index, fingerprint);
-    let encoded = serde_json::to_string(&payload)
-        .map_err(|e| format!("failed to serialize link-graph cache payload: {e}"))?;
+    let encoded = encode_cached_index_payload(index, fingerprint)?;
     let client = redis_client(runtime.valkey_url.as_str())?;
     let mut conn = client
         .get_connection()

@@ -6,7 +6,9 @@ use super::error::BpmnOrchestrationError;
 use super::scheduler::QianjiBpmnExecutionScheduler;
 use super::session::QianjiBpmnSession;
 use crate::scheduler_identity::SchedulerAgentIdentity;
-use qianji_bpmn_engine::{BpmnExecutionTraceEvent, BpmnHostBridge, BpmnPackage};
+use qianji_bpmn_engine::{
+    BpmnExecutionTraceEvent, BpmnHostBridge, BpmnPackage, PendingHostWorkResult,
+};
 use std::sync::Arc;
 
 /// Default lease TTL used when the host runtime enables scheduler-owned BPMN
@@ -126,6 +128,64 @@ impl QianjiBpmnExecutionFacade {
         }
     }
 
+    /// Completes one explicit pending host-work result through the direct
+    /// checkpoint-aware driver.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`BpmnOrchestrationError`] when the checkpoint cannot be
+    /// resumed, the explicit result is rejected, later host work fails, or the
+    /// checkpoint backend cannot persist the resulting state.
+    pub async fn complete_pending_host_work<H: BpmnHostBridge>(
+        &self,
+        request: &QianjiBpmnExecutionRequest,
+        token_id: u64,
+        process_id: &str,
+        activity_id: &str,
+        result: PendingHostWorkResult,
+        host: &H,
+    ) -> Result<QianjiBpmnExecutionReport, BpmnOrchestrationError> {
+        self.driver()
+            .complete_pending_host_work_until_stable(
+                request,
+                token_id,
+                process_id,
+                activity_id,
+                result,
+                host,
+            )
+            .await
+    }
+
+    /// Completes one explicit pending host-work result, then continues through
+    /// non-human host work until the next user/manual boundary.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`BpmnOrchestrationError`] when the checkpoint cannot be resumed,
+    /// the explicit result is rejected, later non-human host work fails, or the
+    /// checkpoint backend cannot persist the resulting state.
+    pub async fn complete_pending_host_work_until_human_boundary<H: BpmnHostBridge>(
+        &self,
+        request: &QianjiBpmnExecutionRequest,
+        token_id: u64,
+        process_id: &str,
+        activity_id: &str,
+        result: PendingHostWorkResult,
+        host: &H,
+    ) -> Result<QianjiBpmnExecutionReport, BpmnOrchestrationError> {
+        self.driver()
+            .complete_pending_host_work_until_human_boundary(
+                request,
+                token_id,
+                process_id,
+                activity_id,
+                result,
+                host,
+            )
+            .await
+    }
+
     /// Runs the BPMN request until the next host boundary or another stable
     /// outcome while reporting newly produced trace events.
     ///
@@ -147,6 +207,35 @@ impl QianjiBpmnExecutionFacade {
     {
         self.driver()
             .run_until_host_boundary_with_trace_observer(
+                request,
+                host,
+                resolve_initial_host_work,
+                trace_observer,
+            )
+            .await
+    }
+
+    /// Runs until the next user/manual host boundary, resolving non-human host
+    /// work through the supplied bridge.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`BpmnOrchestrationError`] when the direct driver cannot create,
+    /// resume, or advance the BPMN session, or when checkpoint persistence
+    /// fails.
+    pub async fn run_until_human_boundary_with_trace_observer<H, F>(
+        &self,
+        request: &QianjiBpmnExecutionRequest,
+        host: &H,
+        resolve_initial_host_work: bool,
+        trace_observer: F,
+    ) -> Result<QianjiBpmnExecutionReport, BpmnOrchestrationError>
+    where
+        H: BpmnHostBridge,
+        F: FnMut(&QianjiBpmnSession, &[BpmnExecutionTraceEvent]),
+    {
+        self.driver()
+            .run_until_human_boundary_with_trace_observer(
                 request,
                 host,
                 resolve_initial_host_work,

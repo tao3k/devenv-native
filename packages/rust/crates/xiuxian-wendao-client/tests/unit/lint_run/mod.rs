@@ -9,6 +9,7 @@ mod json_output;
 mod obsidian;
 mod syntax;
 mod targets;
+mod text_output;
 
 pub(super) fn run_markdown_lint(
     temp: &TempDir,
@@ -35,4 +36,13 @@ pub(super) fn run_markdown_lint_with_output(
     let output = command.output()?;
     let stdout = String::from_utf8(output.stdout)?;
     Ok((output.status.code(), stdout))
+}
+
+pub(super) fn assert_lint_text_snapshot(name: &str, output: &str) {
+    insta::with_settings!({
+        snapshot_path => "../../snapshots",
+        prepend_module_to_snapshot => false,
+    }, {
+        insta::assert_snapshot!(name, output);
+    });
 }

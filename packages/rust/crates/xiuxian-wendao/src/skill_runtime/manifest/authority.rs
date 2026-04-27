@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 
 use walkdir::WalkDir;
 use xiuxian_wendao_parsers::{
-    discover_skill_documents, extract_references, skill_frontmatter_name,
+    discover_skill_documents, extract_references, parse_skill_frontmatter,
 };
 
 use super::load::load_skill_manifest_from_path;
@@ -26,7 +26,7 @@ pub fn resolve_skill_authority(
         let Some(skill_root) = skill_doc.parent() else {
             continue;
         };
-        let semantic_name = resolve_skill_semantic_name(skill_root, skill_doc);
+        let semantic_name = resolve_skill_semantic_name(skill_doc)?;
         let (intent, ghosts) = collect_intent_manifest_uris(skill_root, skill_doc, &semantic_name);
         intent_uris.extend(intent);
         ghost_links.extend(ghosts);
@@ -73,19 +73,22 @@ fn discover_skill_docs(root: &Path) -> Vec<PathBuf> {
         .collect()
 }
 
-fn resolve_skill_semantic_name(skill_root: &Path, skill_doc: &Path) -> String {
-    let content = std::fs::read_to_string(skill_doc).unwrap_or_default();
-    skill_frontmatter_name(&content)
-        .filter(|name| !name.trim().is_empty())
-        .unwrap_or_else(|| {
-            skill_root
-                .file_name()
-                .and_then(|name| name.to_str())
-                .unwrap_or("skill")
-                .to_string()
-        })
+fn resolve_skill_semantic_name(skill_doc: &Path) -> Result<String, SkillManifestError> {
+    let content = std::fs::read_to_string(skill_doc).map_err(|source| SkillManifestError::Io {
+        path: skill_doc.to_string_lossy().to_string(),
+        source,
+    })?;
+    let frontmatter = parse_skill_frontmatter(content.as_str()).map_err(|error| {
+        SkillManifestError::SkillFrontmatter {
+            path: skill_doc.to_string_lossy().to_string(),
+            reason: error.to_string(),
+        }
+    })?;
+    Ok(frontmatter
+        .name
+        .unwrap_or_default()
         .trim()
-        .to_ascii_lowercase()
+        .to_ascii_lowercase())
 }
 
 fn collect_physical_manifest_uris(

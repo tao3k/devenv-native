@@ -1,0 +1,14 @@
+---
+source: packages/rust/crates/xiuxian-wendao-client/tests/unit/lint_run/mod.rs
+expression: output
+---
+Markdown lint found 1 issue(s) in 1 file(s) across 1 checked file(s).
+
+[missing_frontmatter] Error: Document-level YAML frontmatter is required.
+   ,-[ demo.md:1:1 ]
+ 1 |# Heading
+   |`- document must start with a YAML frontmatter block
+   |Help: expected: Add a leading `--- ... ---` block with the document identity field required by this surface before the document body begins.
+   |Note 1: kind: repo_authoring_policy
+   |Note 2: problem: Document-level YAML frontmatter is required.
+   |Note 3: detail: document must start with a YAML frontmatter block

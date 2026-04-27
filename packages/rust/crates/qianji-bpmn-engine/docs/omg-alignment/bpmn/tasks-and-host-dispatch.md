@@ -26,6 +26,14 @@ host seam.
 - `businessRuleTask` may execute locally when one matching DMN decision is
   already available inside the parsed package; otherwise it also falls back
   to the host seam.
+- `userTask` and `manualTask` host requests carry the engine-owned
+  `process_id`, BPMN `activity_id`, `token_id`, `node_index`, and workflow
+  variables. UI and CLI adapters must treat those fields as the canonical
+  waiting-work identity instead of reconstructing activity identity from
+  labels, list position, or display text.
+- `PendingHostWork` persists the same BPMN `activity_id` for newly blocked
+  work. Legacy checkpoints without that field remain readable, but fresh
+  engine output is activity-identity complete.
 
 ## Deferred Scope
 

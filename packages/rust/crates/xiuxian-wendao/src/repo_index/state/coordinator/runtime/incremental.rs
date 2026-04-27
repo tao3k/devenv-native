@@ -1,3 +1,4 @@
+#[cfg(feature = "julia")]
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
@@ -7,6 +8,7 @@ use xiuxian_git_repo::{
     RevisionChangeKind, RevisionPathChange, diff_checkout_revisions, discover_checkout_metadata,
     read_checkout_file_bytes_at_revision,
 };
+#[cfg(feature = "julia")]
 use xiuxian_wendao_julia::{
     julia_parser_summary_allows_safe_incremental_file_for_repository,
     julia_parser_summary_file_semantic_fingerprint_for_repository,
@@ -19,18 +21,20 @@ use xiuxian_wendao_julia::{
     modelica_root_package_incremental_semantic_fingerprint_for_repository,
 };
 
-use crate::analyzers::RepoIntelligenceError;
-use crate::analyzers::{AnalysisContext, RepoSourceFile, RepositoryAnalysisOutput};
+#[cfg(feature = "julia")]
+use crate::analyzers::{AnalysisContext, RepoSourceFile};
 use crate::analyzers::{
     FingerprintMode, RepositoryAnalysisValkeyScope, ValkeyAnalysisCache, analysis_fingerprint_mode,
     build_repository_analysis_cache_key, change_affects_analysis_identity,
     load_cached_repository_analysis_for_revision, plugin_ids_support_semantic_owner_reuse,
     semantic_fingerprint_for_file, store_cached_repository_analysis,
 };
+#[cfg(feature = "julia")]
 use crate::analyzers::{
     IncrementalApplyContext, analyze_changed_files, apply_incremental_plugin_outputs,
 };
 use crate::analyzers::{RegisteredRepository, RepoSourceKind, RepoSyncResult};
+use crate::analyzers::{RepoIntelligenceError, RepositoryAnalysisOutput};
 use crate::repo_index::state::coordinator::RepoIndexCoordinator;
 use crate::repo_index::state::language::is_supported_code_path;
 
@@ -147,6 +151,7 @@ impl RepoIndexCoordinator {
         ))))
     }
 
+    #[cfg(feature = "julia")]
     fn prepare_safe_julia_incremental(
         &self,
         repository: &RegisteredRepository,
@@ -233,6 +238,27 @@ impl RepoIndexCoordinator {
         ))))
     }
 
+    #[cfg(not(feature = "julia"))]
+    fn prepare_safe_julia_incremental(
+        &self,
+        repository: &RegisteredRepository,
+        sync_result: &RepoSyncResult,
+        previous_revision: &str,
+        plugin_ids: &[String],
+        analysis_changes: &[RevisionPathChange],
+    ) -> Result<Option<PreparedIncrementalAnalysis>, RepoIntelligenceError> {
+        let _ = (
+            self,
+            repository,
+            sync_result,
+            previous_revision,
+            plugin_ids,
+            analysis_changes,
+        );
+        Ok(None)
+    }
+
+    #[cfg(feature = "julia")]
     fn prepare_safe_modelica_incremental(
         &self,
         repository: &RegisteredRepository,
@@ -317,6 +343,26 @@ impl RepoIndexCoordinator {
         Ok(Some(PreparedIncrementalAnalysis::Analysis(Box::new(
             analysis,
         ))))
+    }
+
+    #[cfg(not(feature = "julia"))]
+    fn prepare_safe_modelica_incremental(
+        &self,
+        repository: &RegisteredRepository,
+        sync_result: &RepoSyncResult,
+        previous_revision: &str,
+        plugin_ids: &[String],
+        analysis_changes: &[RevisionPathChange],
+    ) -> Result<Option<PreparedIncrementalAnalysis>, RepoIntelligenceError> {
+        let _ = (
+            self,
+            repository,
+            sync_result,
+            previous_revision,
+            plugin_ids,
+            analysis_changes,
+        );
+        Ok(None)
     }
 
     fn prepare_semantically_equivalent_semantic_owner_incremental(
@@ -463,6 +509,7 @@ fn touches_supported_code_paths(changes: &[RevisionPathChange]) -> bool {
     })
 }
 
+#[cfg(feature = "julia")]
 fn previous_change_path(change: &RevisionPathChange) -> &str {
     change
         .previous_path
@@ -470,6 +517,7 @@ fn previous_change_path(change: &RevisionPathChange) -> &str {
         .unwrap_or(change.path.as_str())
 }
 
+#[cfg(feature = "julia")]
 fn uses_contents_fingerprint_mode(repository: &RegisteredRepository, path: &str) -> bool {
     matches!(
         analysis_fingerprint_mode(path, &sorted_plugin_ids(repository)),
@@ -477,6 +525,7 @@ fn uses_contents_fingerprint_mode(repository: &RegisteredRepository, path: &str)
     )
 }
 
+#[cfg(feature = "julia")]
 fn read_checked_out_source_text(
     repository: &RegisteredRepository,
     file_path: &Path,
@@ -490,6 +539,7 @@ fn read_checked_out_source_text(
     })
 }
 
+#[cfg(feature = "julia")]
 fn read_revision_source_text(
     repository: &RegisteredRepository,
     checkout_root: &Path,
@@ -518,6 +568,7 @@ fn read_revision_source_text(
         })
 }
 
+#[cfg(feature = "julia")]
 fn julia_change_supports_safe_incremental(
     repository: &RegisteredRepository,
     change: &RevisionPathChange,
@@ -530,6 +581,7 @@ fn julia_change_supports_safe_incremental(
         && uses_contents_fingerprint_mode(repository, change.path.as_str())
 }
 
+#[cfg(feature = "julia")]
 fn modified_julia_change_requires_rebuild(
     repository: &RegisteredRepository,
     checkout_root: &Path,
@@ -563,6 +615,7 @@ fn modified_julia_change_requires_rebuild(
     Ok(Some(previous_fingerprint != current_fingerprint))
 }
 
+#[cfg(feature = "julia")]
 fn collect_safe_incremental_julia_files(
     repository: &RegisteredRepository,
     checkout_root: &Path,
@@ -609,6 +662,7 @@ fn collect_safe_incremental_julia_files(
     Ok(Some(files))
 }
 
+#[cfg(feature = "julia")]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum ModelicaIncrementalShape {
     Leaf,
@@ -616,6 +670,7 @@ enum ModelicaIncrementalShape {
     NestedPackage,
 }
 
+#[cfg(feature = "julia")]
 #[derive(Clone, Copy)]
 struct ModelicaIncrementalVersion<'a> {
     path: &'a str,
@@ -623,6 +678,7 @@ struct ModelicaIncrementalVersion<'a> {
     shape: ModelicaIncrementalShape,
 }
 
+#[cfg(feature = "julia")]
 fn modelica_change_supports_safe_incremental(
     repository: &RegisteredRepository,
     change: &RevisionPathChange,
@@ -635,6 +691,7 @@ fn modelica_change_supports_safe_incremental(
         && uses_contents_fingerprint_mode(repository, change.path.as_str())
 }
 
+#[cfg(feature = "julia")]
 fn detect_modelica_incremental_shape(
     repository: &RegisteredRepository,
     checkout_root: &Path,
@@ -673,6 +730,7 @@ fn detect_modelica_incremental_shape(
     Ok(None)
 }
 
+#[cfg(feature = "julia")]
 fn validate_modelica_incremental_shapes(
     repository: &RegisteredRepository,
     checkout_root: &Path,
@@ -699,6 +757,7 @@ fn validate_modelica_incremental_shapes(
     }
 }
 
+#[cfg(feature = "julia")]
 fn modelica_incremental_fingerprint_for_shape(
     repository: &RegisteredRepository,
     checkout_root: &Path,
@@ -743,6 +802,7 @@ fn modelica_incremental_fingerprint_for_shape(
     }
 }
 
+#[cfg(feature = "julia")]
 fn collect_safe_incremental_modelica_files(
     repository: &RegisteredRepository,
     checkout_root: &Path,

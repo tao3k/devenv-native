@@ -33,25 +33,46 @@ fn registry_helpers_lift_skill_reference_targets() {
 
 #[test]
 fn registry_helpers_extract_skill_semantic_name_from_skill_md() {
-    let markdown = "---\nname: agenda-management\nmetadata:\n  version: \"1.0.0\"\n---\n# Skill\n";
+    let markdown = strict_skill_markdown("agenda-management");
     let name =
-        semantic_skill_name_from_descriptor("assets/skills/agenda-management/SKILL.md", markdown);
+        semantic_skill_name_from_descriptor("assets/skills/agenda-management/SKILL.md", &markdown);
     assert_eq!(name.as_deref(), Some("agenda-management"));
 }
 
 #[test]
 fn registry_helpers_extract_skill_semantic_name_from_kind_marked_doc() {
-    let markdown = concat!(
-        "---\n",
-        "kind: SKILL.md\n",
-        "name: planner\n",
-        "metadata:\n",
-        "  version: \"1.0.0\"\n",
-        "---\n",
-        "# Planner\n",
-    );
-    let name = semantic_skill_name_from_descriptor("docs/planner.md", markdown);
+    let markdown = strict_skill_markdown("planner");
+    let name = semantic_skill_name_from_descriptor("docs/planner.md", &markdown);
     assert_eq!(name.as_deref(), Some("planner"));
+}
+
+fn strict_skill_markdown(name: &str) -> String {
+    format!(
+        concat!(
+            "---\n",
+            "kind: SKILL.md\n",
+            "type: skill\n",
+            "title: {name} Skill\n",
+            "category: skills\n",
+            "tags:\n",
+            "  - {name}\n",
+            "name: {name}\n",
+            "description: {name} test skill\n",
+            "author: xiuxian-artisan-workshop\n",
+            "date: 2026-04-26T09:30-07:00\n",
+            "metadata:\n",
+            "  retrieval:\n",
+            "    saliency_base: 5.5\n",
+            "    decay_rate: 0.05\n",
+            "  version: \"1.0.0\"\n",
+            "  source: \"fixture://{name}\"\n",
+            "  routing_keywords:\n",
+            "    - {name}\n",
+            "---\n",
+            "# Skill\n"
+        ),
+        name = name,
+    )
 }
 
 #[test]

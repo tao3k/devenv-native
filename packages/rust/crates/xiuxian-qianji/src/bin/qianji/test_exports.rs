@@ -1,12 +1,12 @@
 #[cfg(feature = "duckdb")]
 pub(crate) use super::bpmn_cli::{
-    BpmnCancelCliCommand, BpmnEventPollCliCommand, BpmnResumeCliCommand, BpmnStatusCliCommand,
-    BpmnTaskCompleteCliCommand,
+    BpmnCancelCliCommand, BpmnEventPollCliCommand, BpmnInterruptCliCommand, BpmnResumeCliCommand,
+    BpmnStatusCliCommand, BpmnTaskCompleteCliCommand, BpmnTaskCompleteCliKind,
 };
 pub(crate) use super::bpmn_cli::{
-    BpmnCliCommand, BpmnRunCliCommand, BpmnStartCliCommand, parse_bpmn_command,
-    resolve_bpmn_checkpoint_store_with_env, run_bpmn_command,
-    run_bpmn_run_command_with_runtime_env,
+    BpmnCliCommand, BpmnRunCliCommand, BpmnStartAtCliCommand, BpmnStartCliCommand,
+    parse_bpmn_command, resolve_bpmn_checkpoint_store_with_env, run_bpmn_command,
+    run_bpmn_run_command_with_runtime_env, run_bpmn_start_at_command_with_runtime_env,
 };
 pub(crate) use super::construct_cli::{
     ConstructCliCommand, parse_construct_command, run_construct_command,

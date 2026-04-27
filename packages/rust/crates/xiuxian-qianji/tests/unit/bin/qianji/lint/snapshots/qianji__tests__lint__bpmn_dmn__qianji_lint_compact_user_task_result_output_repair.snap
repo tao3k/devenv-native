@@ -1,0 +1,25 @@
+---
+source: packages/rust/crates/xiuxian-qianji/src/bin/../../tests/unit/bin/qianji/lint/bpmn_dmn.rs
+expression: "stable_temp_output(&output.rendered, &temp_dir)"
+---
+[lint:error] $TEMP/ambiguous_user_task_outputs.bpmn bpmn
+Source: $TEMP/ambiguous_user_task_outputs.bpmn
+Issues: 1
+
+[bpmn.ambiguous_qianji_interaction_outputs] Error: Qianji userTask interaction must declare exactly one result output
+    ,-[ $TEMP/ambiguous_user_task_outputs.bpmn:12:11 ]
+ 12 |          <qianji:outputs>answer,feedback</qianji:outputs>
+    |          `---------------- userTask must declare only the interaction result output
+    |Help: Replace this line with `<qianji:outputs>answer</qianji:outputs>`; derive other variables in a later serviceTask.
+    |Contract: qianji.bpmn.user_task.interaction.v1 requires each userTask interaction to declare exactly the qianji:result output in qianji:outputs.
+
+Proposed patch:
+```diff
+--- $TEMP/ambiguous_user_task_outputs.bpmn
++++ $TEMP/ambiguous_user_task_outputs.bpmn
+@@ -12,1 +12,1 @@
+-          <qianji:outputs>answer,feedback</qianji:outputs>
++          <qianji:outputs>answer</qianji:outputs>
+```
+
+Return unified diff only.

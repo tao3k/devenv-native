@@ -104,6 +104,7 @@ fn advance_detached_compensation_handler(
             instance,
             process_key.process_id.as_ref(),
             handler_node_index,
+            node.bpmn_id.as_ref(),
             spec,
             now_ms,
         );
@@ -198,6 +199,7 @@ fn advance_detached_business_rule_handler(
         instance,
         process_key.process_id.as_ref(),
         handler_node_index,
+        node.bpmn_id.as_ref(),
         DetachedHostWorkSpec {
             kind: PendingHostWorkKind::BusinessRule,
             decision: Some(decision),
@@ -228,6 +230,7 @@ fn enqueue_detached_host_work(
     instance: &mut BpmnInstanceState,
     process_id: &str,
     node_index: BpmnNodeIndex,
+    activity_id: &str,
     spec: DetachedHostWorkSpec,
     now_ms: u64,
 ) {
@@ -236,6 +239,7 @@ fn enqueue_detached_host_work(
         token_id,
         process_id: Some(process_id.to_string()),
         node_index,
+        activity_id: Some(activity_id.to_string()),
         kind: spec.kind,
         decision: spec.decision,
         script_format: spec.script_format,

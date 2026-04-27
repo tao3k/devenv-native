@@ -3,4 +3,8 @@ pub(crate) use super::resume::{
 };
 #[cfg(test)]
 pub(crate) use super::start::run_bpmn_run_command_with_runtime_env;
-pub(crate) use super::start::{run_bpmn_run_command, run_bpmn_start_command};
+#[cfg(test)]
+pub(crate) use super::start::run_bpmn_start_at_command_with_runtime_env;
+pub(crate) use super::start::{
+    run_bpmn_run_command, run_bpmn_start_at_command, run_bpmn_start_command,
+};

@@ -31,6 +31,8 @@ pub enum BpmnEngineError {
         source_id: String,
         /// XML parser diagnostic.
         message: String,
+        /// Byte offset reported by the XML reader when available.
+        offset: Option<u64>,
     },
     /// Returned when the BPMN document has no root element.
     #[error("BPMN source '{source_id}' has no root XML element")]

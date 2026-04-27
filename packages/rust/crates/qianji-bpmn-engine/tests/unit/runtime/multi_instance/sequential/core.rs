@@ -48,6 +48,7 @@ async fn runtime_sequential_multi_instance_repeats_until_cardinality_is_reached(
                 token_id: instance.active_tokens[0].token_id,
                 process_id: Some("multi_instance_service".to_string()),
                 node_index: 1,
+                activity_id: Some("review".to_string()),
                 kind: PendingHostWorkKind::Service,
                 decision: None,
                 script_format: None,

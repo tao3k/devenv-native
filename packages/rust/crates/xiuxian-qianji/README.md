@@ -66,6 +66,14 @@ strict scheduler-agent lease ownership. The lib service mirrors those
 operator intents with `poll_workflow_events(...)` and
 `complete_workflow_task(...)`, so later HTTP/API adapters can call the
 control-plane actions directly instead of routing through CLI-specific names.
+The pending-host stream exposes Rust-owned `process_id` and BPMN `activity_id`
+for `userTask` and `manualTask` entries, so UI adapters can complete work by
+stable workflow identity instead of inferring identity from display labels.
+`qianji bpmn tasks complete` requires a typed completion payload
+(`--token-id <id> --process-id <id> --activity-id <id> --kind user|manual
+--data-json <json>`) and no longer uses host fixtures as the canonical
+task-completion path. The runtime rejects completion attempts whose process or
+activity identity does not match the checkpointed pending host work.
 `qianji_bpmn_workflow_router(...)` is the first embeddable HTTP JSON surface
 over that same service layer, and
 `qianji-server --bind 127.0.0.1:38130 --valkey-url redis://127.0.0.1:6379/0`

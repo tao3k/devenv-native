@@ -66,6 +66,47 @@ fn parse_lint_command_accepts_json_output() {
 }
 
 #[test]
+fn parse_lint_command_accepts_llm_output_flag() {
+    let command = must_some(
+        must_ok(
+            parse_lint_command(&to_args(&[
+                "qianji",
+                "lint",
+                "--bpmn",
+                "fixtures/sample.bpmn",
+                "--llm",
+            ])),
+            "lint parse should accept explicit LLM output",
+        ),
+        "lint command should be detected",
+    );
+
+    assert_eq!(
+        command,
+        LintCliCommand::Bpmn {
+            path: PathBuf::from("fixtures/sample.bpmn")
+        }
+    );
+}
+
+#[test]
+fn parse_lint_command_rejects_mixed_output_formats() {
+    let error = match parse_lint_command(&to_args(&[
+        "qianji",
+        "lint",
+        "--bpmn",
+        "fixtures/sample.bpmn",
+        "--llm",
+        "--json",
+    ])) {
+        Ok(command) => panic!("mixed output formats should fail, got {command:?}"),
+        Err(error) => error,
+    };
+
+    assert!(error.to_string().contains("accepts only one output format"));
+}
+
+#[test]
 fn parse_lint_command_accepts_linter_alias_for_dmn_target() {
     let command = must_some(
         must_ok(

@@ -10,6 +10,8 @@ pub(crate) fn render_construct_index(cards: &[ConstructCard]) -> String {
         String::new(),
         "First decide the scenario shape from the source: autonomous workflow, interactive workflow, or planning workflow that must ask the user before execution. Then select only the cards needed for that scenario and run `qianji construct show <id>` for details.".to_string(),
         String::new(),
+        "Scenario hints: choose interactive when the source asks a human/user/partner for approval, answers to subagent questions, missing context, choices, reviews, or escalation handling. Choose autonomous only when every decision and context answer can come from host task outputs without human input.".to_string(),
+        String::new(),
         "| ID | Domain | Status | Summary |".to_string(),
         "| --- | --- | --- | --- |".to_string(),
     ];
@@ -45,6 +47,7 @@ pub(crate) fn render_construct_card(card: &ConstructCard) -> String {
         format!("Title: {}", card.title),
         format!("Domain: {}", card.domain),
         format!("Status: {}", card.status.as_str()),
+        format!("Summary: {}", card.summary),
         String::new(),
         "## Purpose".to_string(),
         String::new(),

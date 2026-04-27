@@ -1,29 +1,48 @@
-use super::is_optional_link_graph_cache_failure;
+use super::{build_index, resolve_index_filters};
+use crate::types::Cli;
+use clap::Parser;
+use std::fs;
 
 #[test]
-fn cache_connection_failure_is_optional_for_cli_index_build() {
-    let error = "failed to connect valkey for link-graph cache: Connection refused (os error 61)";
+fn local_cli_index_build_uses_cli_filters_without_cache_runtime() {
+    let cli = Cli::parse_from([
+        "wendao",
+        "--include-dir",
+        "docs",
+        "--exclude-dir",
+        ".cache",
+        "audit",
+        "docs",
+    ]);
 
-    assert!(is_optional_link_graph_cache_failure(error));
+    let (include_dirs, exclude_dirs) = resolve_index_filters(&cli);
+    assert_eq!(include_dirs, vec!["docs"]);
+    assert_eq!(exclude_dirs, vec![".cache"]);
 }
 
 #[test]
-fn missing_cache_runtime_is_optional_for_cli_index_build() {
-    let error = "link_graph cache valkey url is required (set link_graph.cache.valkey_url or XIUXIAN_WENDAO_LINK_GRAPH_VALKEY_URL)";
+fn local_cli_index_build_uses_local_cache_entrypoint() {
+    let temp = tempfile::tempdir().unwrap_or_else(|error| panic!("create temp dir: {error}"));
+    let docs = temp.path().join("docs");
+    fs::create_dir_all(&docs).unwrap_or_else(|error| panic!("create docs dir: {error}"));
+    fs::write(docs.join("alpha.md"), "# Alpha\n\nLocal cache proof.\n")
+        .unwrap_or_else(|error| panic!("write note: {error}"));
+    let root = temp.path().to_string_lossy().to_string();
+    let cli = Cli::parse_from([
+        "wendao",
+        "--root",
+        &root,
+        "--include-dir",
+        "docs",
+        "audit",
+        "docs",
+    ]);
 
-    assert!(is_optional_link_graph_cache_failure(error));
-}
-
-#[test]
-fn invalid_cache_url_remains_authoritative() {
-    let error = "invalid valkey url for link-graph cache: Redis URL did not parse";
-
-    assert!(!is_optional_link_graph_cache_failure(error));
-}
-
-#[test]
-fn index_build_errors_remain_authoritative() {
-    let error = "failed to parse Markdown link graph";
-
-    assert!(!is_optional_link_graph_cache_failure(error));
+    let index = build_index(&cli).unwrap_or_else(|error| panic!("build local CLI index: {error}"));
+    let (_, hits) = index.search_planned(
+        "Alpha",
+        5,
+        xiuxian_wendao::LinkGraphSearchOptions::default(),
+    );
+    assert_eq!(hits.len(), 1);
 }

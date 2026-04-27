@@ -2,7 +2,7 @@ use super::api::{
     QianjiBpmnWorkflowActionHttpRequest, QianjiBpmnWorkflowCancelHttpResponse,
     QianjiBpmnWorkflowHttpError, QianjiBpmnWorkflowHttpState, QianjiBpmnWorkflowRunHttpResponse,
     QianjiBpmnWorkflowStartHttpRequest, QianjiBpmnWorkflowStatusHttpQuery,
-    QianjiBpmnWorkflowStatusHttpResponse,
+    QianjiBpmnWorkflowStatusHttpResponse, QianjiBpmnWorkflowTaskCompleteHttpRequest,
 };
 use axum::extract::{Path, Query, State};
 use axum::routing::{get, post};
@@ -88,7 +88,7 @@ where
 async fn complete_workflow_task<H>(
     State(state): State<QianjiBpmnWorkflowHttpState<H>>,
     Path(instance_id): Path<String>,
-    Json(request): Json<QianjiBpmnWorkflowActionHttpRequest>,
+    Json(request): Json<QianjiBpmnWorkflowTaskCompleteHttpRequest>,
 ) -> Result<Json<QianjiBpmnWorkflowRunHttpResponse>, QianjiBpmnWorkflowHttpError>
 where
     H: BpmnHostBridge + Clone + Send + Sync + 'static,

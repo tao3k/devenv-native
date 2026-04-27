@@ -8,6 +8,8 @@ pub use super::error_api::QianjiBpmnWorkflowHttpErrorBody;
 pub use super::request_api::{
     QianjiBpmnWorkflowActionHttpRequest, QianjiBpmnWorkflowHttpCheckpointBackend,
     QianjiBpmnWorkflowStartHttpRequest, QianjiBpmnWorkflowStatusHttpQuery,
+    QianjiBpmnWorkflowTaskCompleteHttpRequest, QianjiBpmnWorkflowTaskCompletionHttpKind,
+    QianjiBpmnWorkflowTaskCompletionHttpPayload,
 };
 pub use super::response_api::{
     QianjiBpmnWorkflowCancelHttpResponse, QianjiBpmnWorkflowRunHttpResponse,

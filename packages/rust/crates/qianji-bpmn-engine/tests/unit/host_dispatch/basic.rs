@@ -63,8 +63,10 @@ async fn host_dispatch_user_request_materializes_from_blocked_instance() {
         BpmnNodeKind::UserTask,
         PendingHostWorkRequest::User(UserTaskRequest {
             instance_id: "wf_dispatch".to_string(),
+            process_id: "dispatch".to_string(),
             token_id: 0,
             node_index: 1,
+            activity_id: "task".to_string(),
             variables: json!({ "amount": 7 }),
             repeat: None,
         }),
@@ -78,8 +80,10 @@ async fn host_dispatch_manual_request_materializes_from_blocked_instance() {
         BpmnNodeKind::ManualTask,
         PendingHostWorkRequest::Manual(ManualTaskRequest {
             instance_id: "wf_dispatch".to_string(),
+            process_id: "dispatch".to_string(),
             token_id: 0,
             node_index: 1,
+            activity_id: "task".to_string(),
             variables: json!({ "amount": 7 }),
             repeat: None,
         }),

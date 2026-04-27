@@ -380,12 +380,12 @@ The thin `xiuxian-qianji` adapter for the lint contract is now landed.
 
 Current landed CLI status:
 
-1. `qianji lint --bpmn <path>` now loads one BPMN source and renders the
-   engine-owned lint report
+1. `qianji lint --bpmn <path>` now loads one BPMN source and renders compact
+   LLM repair diagnostics by default
 2. `qianji lint --dmn <path>` now does the same for one DMN source
-3. the CLI renderer preserves the engine-owned issue code, summary, repair
-   guidance, and `llm_fix_prompt` instead of inventing a second diagnostic
-   schema
+3. `qianji lint --json` preserves the engine-owned structured issue code,
+   summary, repair guidance, structured repair plan, and source diagnostic
+   metadata for SDK/tool consumers
 4. clean sources exit with code `0`; blocking lint findings exit with code `2`
 5. in the current worktree, the full historical `qianji` bin suite is still
    partially blocked by missing `qianji-flowhub` fixture content, but the new
@@ -548,7 +548,31 @@ Current landed status:
    deferred, so the next bounded move should stay above this deterministic
    host-fixture seam rather than reopening parser or DMN internals
 
-## 19. Status Update After External Event Injection Slice
+## 19. Status Update After Typed Human Task Completion Slice
+
+The checkpoint-backed task-completion surface now uses a Rust-owned typed
+payload for human task completion.
+
+Current landed status:
+
+1. `QianjiBpmnWorkflowTaskCompleteRequest` carries an explicit completion
+   payload with `token_id`, `process_id`, `activity_id`, `kind`, and JSON
+   `data`
+2. `qianji bpmn tasks complete` requires
+   `--token-id <id> --process-id <id> --activity-id <id> --kind user|manual
+--data-json <json>` and rejects missing typed payloads before runtime
+   execution
+3. the service applies the payload directly to pending `userTask` or
+   `manualTask` host work through the BPMN runtime after verifying that the
+   supplied process and activity identity matches checkpointed pending host
+   work
+4. the HTTP task-complete request body mirrors the same required completion
+   payload
+
+Host fixtures remain useful for deterministic run/resume host injection, but
+they are not the canonical completion mechanism for `bpmn tasks complete`.
+
+## 20. Status Update After External Event Injection Slice
 
 The host-owned BPMN facade now also consumes the engine wait-poll seam through
 one bounded runtime and CLI layer.

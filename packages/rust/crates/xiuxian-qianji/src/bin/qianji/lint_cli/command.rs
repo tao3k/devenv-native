@@ -5,7 +5,8 @@ use std::path::{Path, PathBuf};
 use qianji_bpmn_engine::{BpmnSourceFile, DmnSourceFile, lint_bpmn_source, lint_dmn_source};
 
 use super::bpmn_json::render_bpmn_lint_json_output;
-use super::render::{render_lint_json_output, render_lint_output};
+use super::llm::render_lint_llm_output;
+use super::render::render_lint_json_output;
 use super::workflow_plan::run_workflow_plan_lint;
 use crate::{invalid_input, parse_flag_value, resolve_cli_path};
 
@@ -17,6 +18,13 @@ pub(crate) enum LintCliCommand {
     BpmnJson { path: PathBuf },
     Dmn { path: PathBuf },
     DmnJson { path: PathBuf },
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub(super) enum LintOutputFormat {
+    Json,
+    #[default]
+    Llm,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -39,12 +47,12 @@ pub(crate) fn handle_lint_command(
 
 pub(crate) fn run_lint_command(command: LintCliCommand) -> io::Result<LintCliOutput> {
     match command {
-        LintCliCommand::Auto { path } => run_auto_lint(&path, false),
-        LintCliCommand::AutoJson { path } => run_auto_lint(&path, true),
-        LintCliCommand::Bpmn { path } => run_bpmn_lint(&path, false),
-        LintCliCommand::BpmnJson { path } => run_bpmn_lint(&path, true),
-        LintCliCommand::Dmn { path } => run_dmn_lint(&path, false),
-        LintCliCommand::DmnJson { path } => run_dmn_lint(&path, true),
+        LintCliCommand::Auto { path } => run_auto_lint(&path, LintOutputFormat::Llm),
+        LintCliCommand::AutoJson { path } => run_auto_lint(&path, LintOutputFormat::Json),
+        LintCliCommand::Bpmn { path } => run_bpmn_lint(&path, LintOutputFormat::Llm),
+        LintCliCommand::BpmnJson { path } => run_bpmn_lint(&path, LintOutputFormat::Json),
+        LintCliCommand::Dmn { path } => run_dmn_lint(&path, LintOutputFormat::Llm),
+        LintCliCommand::DmnJson { path } => run_dmn_lint(&path, LintOutputFormat::Json),
     }
 }
 
@@ -59,11 +67,17 @@ pub(crate) fn parse_lint_command(args: &[String]) -> io::Result<Option<LintCliCo
 
     let parsed = parse_lint_args(args)?;
     match (parsed.positional_path, parsed.bpmn, parsed.dmn) {
-        (Some(path), None, None) if parsed.json => Ok(Some(LintCliCommand::AutoJson { path })),
+        (Some(path), None, None) if parsed.format == LintOutputFormat::Json => {
+            Ok(Some(LintCliCommand::AutoJson { path }))
+        }
         (Some(path), None, None) => Ok(Some(LintCliCommand::Auto { path })),
-        (None, Some(path), None) if parsed.json => Ok(Some(LintCliCommand::BpmnJson { path })),
+        (None, Some(path), None) if parsed.format == LintOutputFormat::Json => {
+            Ok(Some(LintCliCommand::BpmnJson { path }))
+        }
         (None, Some(path), None) => Ok(Some(LintCliCommand::Bpmn { path })),
-        (None, None, Some(path)) if parsed.json => Ok(Some(LintCliCommand::DmnJson { path })),
+        (None, None, Some(path)) if parsed.format == LintOutputFormat::Json => {
+            Ok(Some(LintCliCommand::DmnJson { path }))
+        }
         (None, None, Some(path)) => Ok(Some(LintCliCommand::Dmn { path })),
         (None, None, None) => Err(invalid_input("missing path for `lint` command")),
         _ => Err(invalid_input(
@@ -72,10 +86,10 @@ pub(crate) fn parse_lint_command(args: &[String]) -> io::Result<Option<LintCliCo
     }
 }
 
-fn run_auto_lint(path: &Path, json: bool) -> io::Result<LintCliOutput> {
+fn run_auto_lint(path: &Path, format: LintOutputFormat) -> io::Result<LintCliOutput> {
     let resolved = resolve_cli_path(path)?;
     let contents = fs::read_to_string(&resolved)?;
-    run_inferred_lint(path, &resolved, &contents, json)
+    run_inferred_lint(path, &resolved, &contents, format)
 }
 
 fn parse_lint_args(args: &[String]) -> io::Result<ParsedLintArgs> {
@@ -83,7 +97,8 @@ fn parse_lint_args(args: &[String]) -> io::Result<ParsedLintArgs> {
     let mut index = 2;
     while index < args.len() {
         match args[index].as_str() {
-            "--json" => parsed.json = true,
+            "--json" => parsed.set_format(LintOutputFormat::Json)?,
+            "--llm" => parsed.set_format(LintOutputFormat::Llm)?,
             "--bpmn" => {
                 parsed.bpmn = Some(PathBuf::from(parse_flag_value(args, &mut index, "--bpmn")?));
             }
@@ -110,28 +125,26 @@ fn parse_lint_args(args: &[String]) -> io::Result<ParsedLintArgs> {
     Ok(parsed)
 }
 
-fn run_bpmn_lint(path: &Path, json: bool) -> io::Result<LintCliOutput> {
+fn run_bpmn_lint(path: &Path, format: LintOutputFormat) -> io::Result<LintCliOutput> {
     let resolved = resolve_cli_path(path)?;
     let contents = fs::read_to_string(&resolved)?;
     let report = lint_bpmn_source(&BpmnSourceFile::new(
         path.display().to_string(),
         contents.clone(),
     ));
-    if json {
-        render_bpmn_lint_json_output(&report, &resolved, &contents)
-    } else {
-        Ok(render_lint_output(&report, &resolved))
+    match format {
+        LintOutputFormat::Json => render_bpmn_lint_json_output(&report, &resolved, &contents),
+        LintOutputFormat::Llm => render_lint_llm_output(&report, &resolved, Some(&contents)),
     }
 }
 
-fn run_dmn_lint(path: &Path, json: bool) -> io::Result<LintCliOutput> {
+fn run_dmn_lint(path: &Path, format: LintOutputFormat) -> io::Result<LintCliOutput> {
     let resolved = resolve_cli_path(path)?;
     let contents = fs::read_to_string(&resolved)?;
     let report = lint_dmn_source(&DmnSourceFile::new(path.display().to_string(), contents));
-    if json {
-        render_lint_json_output(&report, &resolved)
-    } else {
-        Ok(render_lint_output(&report, &resolved))
+    match format {
+        LintOutputFormat::Json => render_lint_json_output(&report, &resolved),
+        LintOutputFormat::Llm => render_lint_llm_output(&report, &resolved, None),
     }
 }
 
@@ -139,15 +152,15 @@ fn run_inferred_lint(
     source_path: &Path,
     resolved_path: &Path,
     contents: &str,
-    json: bool,
+    format: LintOutputFormat,
 ) -> io::Result<LintCliOutput> {
     match source_path
         .extension()
         .and_then(|extension| extension.to_str())
     {
-        Some("bpmn") => run_bpmn_lint(source_path, json),
-        Some("dmn") => run_dmn_lint(source_path, json),
-        Some("json") => run_workflow_plan_lint(source_path, resolved_path, contents, json),
+        Some("bpmn") => run_bpmn_lint(source_path, format),
+        Some("dmn") => run_dmn_lint(source_path, format),
+        Some("json") => run_workflow_plan_lint(source_path, resolved_path, contents, format),
         _ => Err(invalid_input(format!(
             "cannot infer lint target for {}; use a .bpmn, .dmn, or WorkflowPlan .json file",
             source_path.display()
@@ -160,5 +173,19 @@ struct ParsedLintArgs {
     positional_path: Option<PathBuf>,
     bpmn: Option<PathBuf>,
     dmn: Option<PathBuf>,
-    json: bool,
+    format: LintOutputFormat,
+    format_explicit: bool,
+}
+
+impl ParsedLintArgs {
+    fn set_format(&mut self, format: LintOutputFormat) -> io::Result<()> {
+        if self.format_explicit && self.format != format {
+            return Err(invalid_input(
+                "`lint` command accepts only one output format",
+            ));
+        }
+        self.format = format;
+        self.format_explicit = true;
+        Ok(())
+    }
 }

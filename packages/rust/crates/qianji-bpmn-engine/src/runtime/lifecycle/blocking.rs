@@ -76,10 +76,15 @@ pub(super) fn block_on_host_work(
     let event_name = send_task_event_name(process, node_index, &kind)?;
     let script_format = script_task_format(process, node_index, &kind);
     let script_body = script_task_body(process, node_index, &kind);
+    let activity_id = process
+        .nodes
+        .get(node_index as usize)
+        .map(|node| node.bpmn_id.to_string());
     let pending = PendingHostWork {
         token_id,
         process_id: Some(process.key.process_id.to_string()),
         node_index,
+        activity_id,
         kind,
         decision: None,
         script_format,
@@ -115,6 +120,10 @@ pub(super) fn block_on_business_rule_work(
         token_id,
         process_id: Some(process.key.process_id.to_string()),
         node_index,
+        activity_id: process
+            .nodes
+            .get(node_index as usize)
+            .map(|node| node.bpmn_id.to_string()),
         kind: PendingHostWorkKind::BusinessRule,
         decision: Some(decision),
         script_format: None,

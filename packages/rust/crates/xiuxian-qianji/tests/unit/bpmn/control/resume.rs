@@ -22,6 +22,7 @@ async fn workflow_control_service_resumes_checkpointed_session_from_duckdb_store
                     process_id: "wait_flow".to_string(),
                     instance_id: "wf_resume_service".to_string(),
                     initial_variables: Some(json!({ "amount": 7 })),
+                    start_at_node_id: None,
                     checkpoint_backend: Some(QianjiBpmnWorkflowCheckpointBackend::LocalDuckDb),
                 },
                 &QianjiBpmnHostBridge::default(),

@@ -1,0 +1,33 @@
+---
+source: packages/rust/crates/xiuxian-wendao-client/tests/unit/lint_run/mod.rs
+assertion_line: 46
+expression: output
+---
+Markdown lint found 3 issue(s) in 1 file(s) across 1 checked file(s).
+
+[invalid_skill_frontmatter_schema] Error: Skill-shaped document frontmatter must satisfy the parser-owned SKILL.md schema.
+   ,-[ skills/demo/SKILL.md:1:1 ]
+ 1 |---
+   |`- skill frontmatter top-level `type` must be `skill`
+   |Help: expected: Start from common frontmatter, then add top-level `type: skill`, `name`, `metadata.version`, `metadata.source`, and a non-empty `metadata.routing_keywords` array.
+   |Note 1: kind: repo_authoring_policy
+   |Note 2: problem: Skill-shaped document frontmatter must satisfy the parser-owned SKILL.md schema.
+   |Note 3: detail: skill frontmatter top-level `type` must be `skill`
+
+[invalid_skill_frontmatter_schema] Error: Skill-shaped document frontmatter must satisfy the parser-owned SKILL.md schema.
+    ,-[ skills/demo/SKILL.md:11:1 ]
+ 11 |metadata:
+    |`- skill frontmatter `metadata.source` must be a non-empty string
+    |Help: expected: Start from common frontmatter, then add top-level `type: skill`, `name`, `metadata.version`, `metadata.source`, and a non-empty `metadata.routing_keywords` array.
+    |Note 1: kind: repo_authoring_policy
+    |Note 2: problem: Skill-shaped document frontmatter must satisfy the parser-owned SKILL.md schema.
+    |Note 3: detail: skill frontmatter `metadata.source` must be a non-empty string
+
+[invalid_skill_frontmatter_schema] Error: Skill-shaped document frontmatter must satisfy the parser-owned SKILL.md schema.
+    ,-[ skills/demo/SKILL.md:11:1 ]
+ 11 |metadata:
+    |`- skill frontmatter `metadata.routing_keywords` must be a non-empty string array
+    |Help: expected: Start from common frontmatter, then add top-level `type: skill`, `name`, `metadata.version`, `metadata.source`, and a non-empty `metadata.routing_keywords` array.
+    |Note 1: kind: repo_authoring_policy
+    |Note 2: problem: Skill-shaped document frontmatter must satisfy the parser-owned SKILL.md schema.
+    |Note 3: detail: skill frontmatter `metadata.routing_keywords` must be a non-empty string array

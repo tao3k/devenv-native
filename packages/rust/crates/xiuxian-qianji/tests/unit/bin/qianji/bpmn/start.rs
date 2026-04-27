@@ -13,11 +13,13 @@ async fn run_bpmn_start_command_completes_linear_bundle() {
             process_id: "linear".to_string(),
             instance_id: "wf_start".to_string(),
             context_json: Some("{\"risk\":\"high\"}".to_string()),
+            start_at_node_id: None,
             checkpoint_backend: None,
             host_fixture_path: None,
             event_fixture_path: None,
             trace_stream: false,
             external_host: false,
+            continue_until_human_boundary: false,
         }))
         .await,
         "bpmn start should complete linear bundle",

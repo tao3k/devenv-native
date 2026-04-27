@@ -102,6 +102,7 @@ fn pending_host_work(token_id: u64) -> PendingHostWork {
         token_id,
         process_id: Some("process_token_cursor".to_string()),
         node_index: 0,
+        activity_id: Some("Task_0".to_string()),
         kind: PendingHostWorkKind::Service,
         decision: None,
         script_format: None,

@@ -57,8 +57,8 @@ fn run_lint_command_infers_valid_workflow_plan() {
     );
 
     assert_eq!(output.exit_code, 0);
-    assert!(output.rendered.starts_with("# Lint Passed"));
-    assert!(output.rendered.contains("Domain: workflow-plan"));
+    assert!(output.rendered.starts_with("[ok]"));
+    assert!(output.rendered.contains("workflow-plan"));
 }
 
 #[test]
@@ -103,8 +103,8 @@ fn run_lint_command_infers_invalid_workflow_plan() {
     );
 
     assert_eq!(output.exit_code, 2);
-    assert!(output.rendered.starts_with("# Lint Failed"));
-    assert!(output.rendered.contains("Domain: workflow-plan"));
+    assert!(output.rendered.starts_with("[lint:error]"));
+    assert!(output.rendered.contains("workflow-plan"));
     assert!(
         output
             .rendered
@@ -148,7 +148,7 @@ fn run_lint_command_rejects_duplicate_workflow_plan_constructs() {
     );
 
     assert_eq!(output.exit_code, 2);
-    assert!(output.rendered.starts_with("# Lint Failed"));
+    assert!(output.rendered.starts_with("[lint:error]"));
     assert!(
         output
             .rendered
@@ -178,14 +178,13 @@ fn run_lint_command_reports_workflow_plan_parse_errors_as_lint() {
     );
 
     assert_eq!(output.exit_code, 2);
-    assert!(output.rendered.starts_with("# Lint Failed"));
-    assert!(output.rendered.contains("Domain: workflow-plan"));
+    assert!(output.rendered.starts_with("[lint:error]"));
+    assert!(output.rendered.contains("workflow-plan"));
     assert!(
         output
             .rendered
             .contains("construct_plan.invalid_json_shape")
     );
-    assert!(output.rendered.contains("\"version\": 1"));
-    assert!(output.rendered.contains("do not use `nodes`"));
-    assert!(output.rendered.contains("Treat `constructs` as a set"));
+    assert!(output.rendered.contains("numeric version"));
+    assert!(output.rendered.contains("constructs, tasks, and edges"));
 }
