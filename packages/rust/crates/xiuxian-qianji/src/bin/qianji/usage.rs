@@ -17,13 +17,25 @@ pub(crate) fn print_qianji_usage() {
         "             compatibility alias: qianji [-v|--log-verbose] bpmn run --bpmn <path> --process <id> --instance-id <id> [--context-json JSON] [--dmn <path>]... [--host-fixture <path>] [--event-fixture <path>] [--trace-stream] [--external-host] [--continue-until-human-boundary] [--checkpoint-runtime]"
     );
     eprintln!(
+        "             qianji [-v|--log-verbose] bpmn host-session --bpmn <path> --process <id> --instance-id <id> [--context-json JSON] [--node <node_id>] [--dmn <path>]... [--host-fixture <path>] [--event-fixture <path>] [--trace-stream] [--checkpoint-runtime]"
+    );
+    eprintln!(
         "             qianji [-v|--log-verbose] bpmn resume --bpmn <path> --instance-id <id> [--dmn <path>]... [--host-fixture <path>] [--event-fixture <path>] [--trace-stream] [--external-host] [--continue-until-human-boundary] [--checkpoint-runtime]"
     );
     eprintln!(
         "             qianji [-v|--log-verbose] bpmn events poll --bpmn <path> --instance-id <id> [--dmn <path>]... [--host-fixture <path>] [--event-fixture <path>] [--checkpoint-runtime]"
     );
     eprintln!(
-        "             qianji [-v|--log-verbose] bpmn tasks complete --bpmn <path> --instance-id <id> --token-id <id> --process-id <id> --activity-id <id> --kind send|service|script|user|manual --data-json <json> [--dmn <path>]... [--host-fixture <path>] [--event-fixture <path>] [--trace-stream] [--continue-until-human-boundary] [--checkpoint-runtime]"
+        "             qianji [-v|--log-verbose] bpmn tasks complete --bpmn <path> --instance-id <id> --token-id <id> --process-id <id> --activity-id <id> --kind send|service|script|user|manual --data-json <json> [--claimant <id>] [--dmn <path>]... [--host-fixture <path>] [--event-fixture <path>] [--trace-stream] [--continue-until-human-boundary] [--checkpoint-runtime]"
+    );
+    eprintln!(
+        "             qianji [-v|--log-verbose] bpmn tasks claim --instance-id <id> --token-id <id> --process-id <id> --activity-id <id> --claimant <id> [--checkpoint-runtime]"
+    );
+    eprintln!(
+        "             qianji [-v|--log-verbose] bpmn tasks release --instance-id <id> --token-id <id> --process-id <id> --activity-id <id> --claimant <id> [--checkpoint-runtime]"
+    );
+    eprintln!(
+        "             qianji [-v|--log-verbose] bpmn tasks worklist [--claimant <id>] [--checkpoint-runtime]"
     );
     eprintln!(
         "             qianji [-v|--log-verbose] bpmn status --instance-id <id> [--bpmn <path>] [--dmn <path>] [--checkpoint-runtime]"

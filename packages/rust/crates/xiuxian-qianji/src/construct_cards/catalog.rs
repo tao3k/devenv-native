@@ -30,6 +30,10 @@ const TASK_CONFIG_LINT: &[ConstructLintMapping] = &[
         diagnostic: "bpmn.ambiguous_qianji_interaction_outputs",
         repair: "Set userTask qianji:outputs to exactly the qianji:result output, then derive any secondary variables in a following serviceTask that consumes that answer.",
     },
+    ConstructLintMapping {
+        diagnostic: "bpmn.redundant_user_answer_store_service_task",
+        repair: "Delete no-tool store serviceTasks that only rename a userTask answer, reconnect the userTask to the next task, and replace downstream qianji:inputs aliases with the original qianji:result variable.",
+    },
 ];
 
 const DMN_LINT: &[ConstructLintMapping] = &[ConstructLintMapping {

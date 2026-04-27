@@ -8,26 +8,32 @@ pub(crate) use std::sync::Arc as StdArc;
 
 pub(crate) use qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnEventKind, BpmnExecutionTraceEvent, BpmnExecutionTraceEventKind,
-    BpmnInstanceState, BpmnNodeKind, BpmnPackage, BpmnProcessSpec, BpmnTimerKind, BpmnTimerSpec,
-    BusinessRuleTaskOutcome, BusinessRuleTaskRequest, DmnEvaluationResult, EventPollOutcome,
-    EventPollRequest, HostBridgeError, InstanceLifecycle, ManualTaskOutcome, ManualTaskRequest,
-    NodeRuntimeStatus, PendingHostWorkKind, PendingHostWorkRequest, SendTaskOutcome,
-    SendTaskRequest, ServiceTaskOutcome, ServiceTaskRequest, SuspendReason, UserTaskOutcome,
-    UserTaskRequest, WaitKind, build_pending_host_work_requests,
+    BpmnHumanTaskAssignmentSpec, BpmnHumanTaskFormSpec, BpmnInstanceState, BpmnNodeKind,
+    BpmnPackage, BpmnProcessSpec, BpmnTimerKind, BpmnTimerSpec, BusinessRuleTaskOutcome,
+    BusinessRuleTaskRequest, DmnEvaluationResult, EventPollOutcome, EventPollRequest,
+    HostBridgeError, InstanceLifecycle, ManualTaskOutcome, ManualTaskRequest, NodeRuntimeStatus,
+    PendingHostWorkKind, PendingHostWorkRequest, SendTaskOutcome, SendTaskRequest,
+    ServiceTaskOutcome, ServiceTaskRequest, SuspendReason, UserTaskOutcome, UserTaskRequest,
+    WaitKind, build_pending_host_work_requests,
 };
 pub(crate) use serde::Deserialize;
 pub(crate) use xiuxian_qianji::runtime_config::QianjiRuntimeEnv;
 pub(crate) use xiuxian_qianji::{
     QianjiBpmnCheckpointStore, QianjiBpmnHostBridge, QianjiBpmnHostBridgeBuilder,
-    QianjiBpmnSession, QianjiBpmnWorkflowCancelReport, QianjiBpmnWorkflowCancelRequest,
-    QianjiBpmnWorkflowCheckpointBackend, QianjiBpmnWorkflowControlError,
-    QianjiBpmnWorkflowControlService, QianjiBpmnWorkflowInstancesReport,
-    QianjiBpmnWorkflowInstancesRequest, QianjiBpmnWorkflowInterruptReport,
-    QianjiBpmnWorkflowInterruptRequest, QianjiBpmnWorkflowResumeRequest,
-    QianjiBpmnWorkflowStartRequest, QianjiBpmnWorkflowStatusReport,
-    QianjiBpmnWorkflowStatusRequest, QianjiBpmnWorkflowTaskCompleteRequest,
+    QianjiBpmnPreparedWorkflowStart, QianjiBpmnSession, QianjiBpmnWorkflowCancelReport,
+    QianjiBpmnWorkflowCancelRequest, QianjiBpmnWorkflowCheckpointBackend,
+    QianjiBpmnWorkflowControlError, QianjiBpmnWorkflowControlService,
+    QianjiBpmnWorkflowInstancesReport, QianjiBpmnWorkflowInstancesRequest,
+    QianjiBpmnWorkflowInterruptReport, QianjiBpmnWorkflowInterruptRequest,
+    QianjiBpmnWorkflowResumeRequest, QianjiBpmnWorkflowStartRequest,
+    QianjiBpmnWorkflowStatusReport, QianjiBpmnWorkflowStatusRequest,
+    QianjiBpmnWorkflowTaskClaimPayload, QianjiBpmnWorkflowTaskClaimReport,
+    QianjiBpmnWorkflowTaskClaimRequest, QianjiBpmnWorkflowTaskCompleteRequest,
     QianjiBpmnWorkflowTaskCompletionKind, QianjiBpmnWorkflowTaskCompletionPayload,
-    SchedulerAgentIdentity, load_bpmn_package_from_files,
+    QianjiBpmnWorkflowTaskReleasePayload, QianjiBpmnWorkflowTaskReleaseReport,
+    QianjiBpmnWorkflowTaskReleaseRequest, QianjiBpmnWorkflowWorklistItem,
+    QianjiBpmnWorkflowWorklistReport, QianjiBpmnWorkflowWorklistRequest, SchedulerAgentIdentity,
+    load_bpmn_package_from_files,
 };
 
 pub(crate) use crate::common::{

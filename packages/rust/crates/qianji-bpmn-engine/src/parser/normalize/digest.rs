@@ -1,8 +1,9 @@
 use crate::ir_event_api::{BpmnEventKind, BpmnTimerKind};
 use crate::ir_node_api::{BpmnGatewayKind, BpmnNodeKind};
 use crate::parser::import::{
-    RawAssociation, RawNode, RawParallelMultiInstanceSpec, RawProcess, RawRepeatSpec,
-    RawScriptTaskSpec, RawSequenceFlow, RawSequentialMultiInstanceSpec, RawSubProcessKind,
+    RawAssociation, RawHumanTaskAssignmentSpec, RawHumanTaskFormSpec, RawHumanTaskResourceRoleSpec,
+    RawNode, RawParallelMultiInstanceSpec, RawProcess, RawRepeatSpec, RawScriptTaskSpec,
+    RawSequenceFlow, RawSequentialMultiInstanceSpec, RawSubProcessKind,
 };
 
 pub(super) fn process_digest_hex(package_id: &str, source_id: &str, raw: &RawProcess) -> String {
@@ -44,6 +45,12 @@ fn append_node_digest(material: &mut String, node: &RawNode) {
     }
     if let Some(script_task) = &node.script_task {
         append_script_task_digest(material, script_task);
+    }
+    if let Some(form) = &node.human_task_form {
+        append_human_task_form_digest(material, form);
+    }
+    if let Some(assignment) = &node.human_task_assignment {
+        append_human_task_assignment_digest(material, assignment);
     }
     if let Some(subprocess_kind) = node.subprocess_kind {
         material.push(':');
@@ -91,6 +98,91 @@ fn append_node_digest(material: &mut String, node: &RawNode) {
         }
     }
     material.push('\n');
+}
+
+fn append_human_task_form_digest(material: &mut String, form: &RawHumanTaskFormSpec) {
+    material.push(':');
+    material.push_str("human_task_form=");
+    material.push_str(&form.interaction_type);
+    if let Some(question_ref) = &form.question_ref {
+        material.push(':');
+        material.push_str("question_ref=");
+        material.push_str(question_ref);
+    }
+    if let Some(question_text) = &form.question_text {
+        material.push(':');
+        material.push_str("question_text=");
+        material.push_str(question_text);
+    }
+    if let Some(choices_ref) = &form.choices_ref {
+        material.push(':');
+        material.push_str("choices_ref=");
+        material.push_str(choices_ref);
+    }
+    for choice in &form.choices {
+        material.push(':');
+        material.push_str("choice=");
+        material.push_str(&choice.value);
+        if let Some(label) = &choice.label {
+            material.push(':');
+            material.push_str("choice_label=");
+            material.push_str(label);
+        }
+    }
+    for field in &form.free_text_fields {
+        material.push(':');
+        material.push_str("free_text=");
+        material.push_str(&field.name);
+        material.push(':');
+        material.push_str(if field.optional {
+            "optional"
+        } else {
+            "required"
+        });
+    }
+    if let Some(result_output) = &form.result_output {
+        material.push(':');
+        material.push_str("result_output=");
+        material.push_str(result_output);
+    }
+}
+
+fn append_human_task_assignment_digest(
+    material: &mut String,
+    assignment: &RawHumanTaskAssignmentSpec,
+) {
+    material.push(':');
+    material.push_str("human_task_assignment");
+    for role in &assignment.human_performers {
+        append_human_task_resource_role_digest(material, "human_performer", role);
+    }
+    for role in &assignment.potential_owners {
+        append_human_task_resource_role_digest(material, "potential_owner", role);
+    }
+}
+
+fn append_human_task_resource_role_digest(
+    material: &mut String,
+    kind: &str,
+    role: &RawHumanTaskResourceRoleSpec,
+) {
+    material.push(':');
+    material.push_str(kind);
+    if let Some(name) = &role.name {
+        material.push(':');
+        material.push_str("name=");
+        material.push_str(name);
+    }
+    if let Some(resource_ref) = &role.resource_ref {
+        material.push(':');
+        material.push_str("resource_ref=");
+        material.push_str(resource_ref);
+    }
+    if let Some(assignment_expression) = &role.assignment_expression {
+        material.push(':');
+        material.push_str("assignment_expression=");
+        material.push_str(assignment_expression);
+    }
 }
 
 fn append_repeat_digest(material: &mut String, repeat: &RawRepeatSpec) {

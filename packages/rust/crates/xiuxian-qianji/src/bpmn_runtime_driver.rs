@@ -3,8 +3,8 @@ use super::error::BpmnOrchestrationError;
 use super::ownership::QianjiBpmnSchedulerLeaseConfig;
 use super::session::QianjiBpmnSession;
 use qianji_bpmn_engine::{
-    BpmnAdvanceOutcome, BpmnEngineError, BpmnExecutionTraceEvent, BpmnHostBridge, BpmnInstanceInit,
-    BpmnPackage, PendingHostWorkResult,
+    BpmnAdvanceOutcome, BpmnCheckpointEnvelope, BpmnEngineError, BpmnExecutionTraceEvent,
+    BpmnHostBridge, BpmnInstanceInit, BpmnPackage, PendingHostWorkResult,
 };
 use serde_json::Value;
 use std::sync::Arc;
@@ -31,6 +31,37 @@ pub struct QianjiBpmnExecutionRequest {
     pub started_at_ms: u64,
 }
 
+/// Explicit pending host-work completion target.
+#[derive(Debug, Clone, PartialEq)]
+pub struct QianjiBpmnPendingHostCompletion {
+    /// Runtime token identifier for the pending host work.
+    pub token_id: u64,
+    /// BPMN process identifier expected for the pending host work.
+    pub process_id: String,
+    /// BPMN activity identifier expected for the pending host work.
+    pub activity_id: String,
+    /// Host-work result payload to apply.
+    pub result: PendingHostWorkResult,
+}
+
+impl QianjiBpmnPendingHostCompletion {
+    /// Creates one explicit pending host-work completion target.
+    #[must_use]
+    pub fn new(
+        token_id: u64,
+        process_id: impl Into<String>,
+        activity_id: impl Into<String>,
+        result: PendingHostWorkResult,
+    ) -> Self {
+        Self {
+            token_id,
+            process_id: process_id.into(),
+            activity_id: activity_id.into(),
+            result,
+        }
+    }
+}
+
 /// Execution result for one host-owned BPMN run attempt.
 #[derive(Debug, Clone)]
 pub struct QianjiBpmnExecutionReport {
@@ -50,6 +81,13 @@ pub struct QianjiBpmnExecutionReport {
 pub(super) enum QianjiBpmnCheckpointLifecycle {
     Retain,
     DeleteOnTerminalOutcome,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum QianjiBpmnHostCompletionAdvance {
+    Stable,
+    HostBoundary,
+    HumanBoundary,
 }
 
 impl QianjiBpmnExecutionDriver {
@@ -162,29 +200,157 @@ impl QianjiBpmnExecutionDriver {
     pub async fn complete_pending_host_work_until_stable<H: BpmnHostBridge>(
         &self,
         request: &QianjiBpmnExecutionRequest,
-        token_id: u64,
-        process_id: &str,
-        activity_id: &str,
-        result: PendingHostWorkResult,
+        completion: QianjiBpmnPendingHostCompletion,
         host: &H,
+    ) -> Result<QianjiBpmnExecutionReport, BpmnOrchestrationError> {
+        self.complete_pending_host_work_with_loaded_checkpoint(
+            request,
+            None,
+            completion,
+            host,
+            QianjiBpmnHostCompletionAdvance::Stable,
+        )
+        .await
+    }
+
+    /// Completes one pending host-work item from a supplied checkpoint, then
+    /// advances the BPMN runtime until the next stable outcome.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`BpmnOrchestrationError`] when the supplied checkpoint cannot
+    /// rebuild a session, the engine rejects the explicit host-work result, a
+    /// later host bridge operation fails, or checkpoint persistence fails.
+    pub async fn complete_pending_host_work_from_checkpoint_until_stable<H: BpmnHostBridge>(
+        &self,
+        request: &QianjiBpmnExecutionRequest,
+        checkpoint: BpmnCheckpointEnvelope,
+        completion: QianjiBpmnPendingHostCompletion,
+        host: &H,
+    ) -> Result<QianjiBpmnExecutionReport, BpmnOrchestrationError> {
+        self.complete_pending_host_work_with_loaded_checkpoint(
+            request,
+            Some(checkpoint),
+            completion,
+            host,
+            QianjiBpmnHostCompletionAdvance::Stable,
+        )
+        .await
+    }
+
+    /// Completes one pending host-work item from a checkpointed session, then
+    /// advances the BPMN runtime until the next host boundary.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`BpmnOrchestrationError`] when the checkpoint cannot be
+    /// resumed, the engine rejects the explicit host-work result, or
+    /// checkpoint persistence fails.
+    pub async fn complete_pending_host_work_until_host_boundary<H: BpmnHostBridge>(
+        &self,
+        request: &QianjiBpmnExecutionRequest,
+        completion: QianjiBpmnPendingHostCompletion,
+        host: &H,
+    ) -> Result<QianjiBpmnExecutionReport, BpmnOrchestrationError> {
+        self.complete_pending_host_work_with_loaded_checkpoint(
+            request,
+            None,
+            completion,
+            host,
+            QianjiBpmnHostCompletionAdvance::HostBoundary,
+        )
+        .await
+    }
+
+    /// Completes one pending host-work item from a supplied checkpoint, then
+    /// advances the BPMN runtime until the next host boundary.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`BpmnOrchestrationError`] when the supplied checkpoint cannot
+    /// rebuild a session, the engine rejects the explicit host-work result, or
+    /// checkpoint persistence fails.
+    pub async fn complete_pending_host_work_from_checkpoint_until_host_boundary<
+        H: BpmnHostBridge,
+    >(
+        &self,
+        request: &QianjiBpmnExecutionRequest,
+        checkpoint: BpmnCheckpointEnvelope,
+        completion: QianjiBpmnPendingHostCompletion,
+        host: &H,
+    ) -> Result<QianjiBpmnExecutionReport, BpmnOrchestrationError> {
+        self.complete_pending_host_work_with_loaded_checkpoint(
+            request,
+            Some(checkpoint),
+            completion,
+            host,
+            QianjiBpmnHostCompletionAdvance::HostBoundary,
+        )
+        .await
+    }
+
+    async fn complete_pending_host_work_with_loaded_checkpoint<H: BpmnHostBridge>(
+        &self,
+        request: &QianjiBpmnExecutionRequest,
+        checkpoint: Option<BpmnCheckpointEnvelope>,
+        completion: QianjiBpmnPendingHostCompletion,
+        host: &H,
+        advance: QianjiBpmnHostCompletionAdvance,
     ) -> Result<QianjiBpmnExecutionReport, BpmnOrchestrationError> {
         self.acquire_checkpoint_lease_if_needed(request.instance_id.as_str(), None)
             .await?;
 
         let run_result = async {
-            let (mut session, resumed_from_checkpoint) =
-                self.load_or_create_session(request).await?;
+            let (mut session, resumed_from_checkpoint) = match checkpoint {
+                Some(checkpoint) => (
+                    QianjiBpmnSession::from_checkpoint(Arc::clone(&self.package), checkpoint)?,
+                    true,
+                ),
+                None => self.load_or_create_session(request).await?,
+            };
             let starting_sequence = session.instance().sequence;
             session.clear_host_requested_interrupt(request.started_at_ms);
-            let outcome = session
-                .complete_pending_host_work_until_stable(
-                    token_id,
-                    process_id,
-                    activity_id,
-                    result,
-                    host,
-                )
-                .await?;
+            let QianjiBpmnPendingHostCompletion {
+                token_id,
+                process_id,
+                activity_id,
+                result,
+            } = completion;
+            let outcome = match advance {
+                QianjiBpmnHostCompletionAdvance::Stable => {
+                    session
+                        .complete_pending_host_work_until_stable(
+                            token_id,
+                            process_id.as_str(),
+                            activity_id.as_str(),
+                            result,
+                            host,
+                        )
+                        .await?
+                }
+                QianjiBpmnHostCompletionAdvance::HostBoundary => {
+                    session
+                        .complete_pending_host_work_until_host_boundary(
+                            token_id,
+                            process_id.as_str(),
+                            activity_id.as_str(),
+                            result,
+                            host,
+                        )
+                        .await?
+                }
+                QianjiBpmnHostCompletionAdvance::HumanBoundary => {
+                    session
+                        .complete_pending_host_work_until_human_boundary(
+                            token_id,
+                            process_id.as_str(),
+                            activity_id.as_str(),
+                            result,
+                            host,
+                        )
+                        .await?
+                }
+            };
             let (checkpoint_saved, checkpoint_deleted) = self
                 .finalize_checkpoint(
                     &session,
@@ -227,58 +393,44 @@ impl QianjiBpmnExecutionDriver {
     pub async fn complete_pending_host_work_until_human_boundary<H: BpmnHostBridge>(
         &self,
         request: &QianjiBpmnExecutionRequest,
-        token_id: u64,
-        process_id: &str,
-        activity_id: &str,
-        result: PendingHostWorkResult,
+        completion: QianjiBpmnPendingHostCompletion,
         host: &H,
     ) -> Result<QianjiBpmnExecutionReport, BpmnOrchestrationError> {
-        self.acquire_checkpoint_lease_if_needed(request.instance_id.as_str(), None)
-            .await?;
+        self.complete_pending_host_work_with_loaded_checkpoint(
+            request,
+            None,
+            completion,
+            host,
+            QianjiBpmnHostCompletionAdvance::HumanBoundary,
+        )
+        .await
+    }
 
-        let run_result = async {
-            let (mut session, resumed_from_checkpoint) =
-                self.load_or_create_session(request).await?;
-            let starting_sequence = session.instance().sequence;
-            session.clear_host_requested_interrupt(request.started_at_ms);
-            let outcome = session
-                .complete_pending_host_work_until_human_boundary(
-                    token_id,
-                    process_id,
-                    activity_id,
-                    result,
-                    host,
-                )
-                .await?;
-            let (checkpoint_saved, checkpoint_deleted) = self
-                .finalize_checkpoint(
-                    &session,
-                    resumed_from_checkpoint,
-                    starting_sequence,
-                    &outcome,
-                    QianjiBpmnCheckpointLifecycle::Retain,
-                    None,
-                )
-                .await?;
-
-            Ok(QianjiBpmnExecutionReport {
-                session,
-                outcome,
-                resumed_from_checkpoint,
-                checkpoint_saved,
-                checkpoint_deleted,
-            })
-        }
-        .await;
-
-        let release_result = self
-            .release_checkpoint_lease_if_needed(request.instance_id.as_str(), None)
-            .await;
-
-        match (run_result, release_result) {
-            (Err(error), _) | (Ok(_), Err(error)) => Err(error),
-            (Ok(report), Ok(())) => Ok(report),
-        }
+    /// Completes one pending host-work item from a supplied checkpoint, then
+    /// advances through non-human host work until a user/manual boundary.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`BpmnOrchestrationError`] when the supplied checkpoint cannot
+    /// rebuild a session, the explicit result is rejected, a fixture-backed
+    /// non-human host task fails, or checkpoint persistence fails.
+    pub async fn complete_pending_host_work_from_checkpoint_until_human_boundary<
+        H: BpmnHostBridge,
+    >(
+        &self,
+        request: &QianjiBpmnExecutionRequest,
+        checkpoint: BpmnCheckpointEnvelope,
+        completion: QianjiBpmnPendingHostCompletion,
+        host: &H,
+    ) -> Result<QianjiBpmnExecutionReport, BpmnOrchestrationError> {
+        self.complete_pending_host_work_with_loaded_checkpoint(
+            request,
+            Some(checkpoint),
+            completion,
+            host,
+            QianjiBpmnHostCompletionAdvance::HumanBoundary,
+        )
+        .await
     }
 
     /// Runs the BPMN session until the next host boundary or another stable

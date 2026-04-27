@@ -11,3 +11,8 @@ pub(crate) use super::interrupt::{
     render_bpmn_interrupt_missing_output, render_bpmn_interrupt_output,
 };
 pub(crate) use super::status::{render_bpmn_status_missing_output, render_bpmn_status_output};
+pub(crate) use super::tasks::{
+    render_bpmn_task_claim_missing_output, render_bpmn_task_claim_output,
+    render_bpmn_task_release_missing_output, render_bpmn_task_release_output,
+    render_bpmn_task_worklist_output,
+};

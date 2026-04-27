@@ -1,13 +1,14 @@
 use super::backend::QianjiBpmnCheckpointStore;
 use super::driver::{
     QianjiBpmnExecutionDriver, QianjiBpmnExecutionReport, QianjiBpmnExecutionRequest,
+    QianjiBpmnPendingHostCompletion,
 };
 use super::error::BpmnOrchestrationError;
 use super::scheduler::QianjiBpmnExecutionScheduler;
 use super::session::QianjiBpmnSession;
 use crate::scheduler_identity::SchedulerAgentIdentity;
 use qianji_bpmn_engine::{
-    BpmnExecutionTraceEvent, BpmnHostBridge, BpmnPackage, PendingHostWorkResult,
+    BpmnCheckpointEnvelope, BpmnExecutionTraceEvent, BpmnHostBridge, BpmnPackage,
 };
 use std::sync::Arc;
 
@@ -139,20 +140,75 @@ impl QianjiBpmnExecutionFacade {
     pub async fn complete_pending_host_work<H: BpmnHostBridge>(
         &self,
         request: &QianjiBpmnExecutionRequest,
-        token_id: u64,
-        process_id: &str,
-        activity_id: &str,
-        result: PendingHostWorkResult,
+        completion: QianjiBpmnPendingHostCompletion,
         host: &H,
     ) -> Result<QianjiBpmnExecutionReport, BpmnOrchestrationError> {
         self.driver()
-            .complete_pending_host_work_until_stable(
-                request,
-                token_id,
-                process_id,
-                activity_id,
-                result,
-                host,
+            .complete_pending_host_work_until_stable(request, completion, host)
+            .await
+    }
+
+    /// Completes one explicit pending host-work result from a supplied
+    /// checkpoint envelope through the direct checkpoint-aware driver.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`BpmnOrchestrationError`] when the supplied checkpoint cannot
+    /// rebuild a session, the explicit result is rejected, later host work
+    /// fails, or the checkpoint backend cannot persist the resulting state.
+    pub async fn complete_pending_host_work_from_checkpoint<H: BpmnHostBridge>(
+        &self,
+        request: &QianjiBpmnExecutionRequest,
+        checkpoint: BpmnCheckpointEnvelope,
+        completion: QianjiBpmnPendingHostCompletion,
+        host: &H,
+    ) -> Result<QianjiBpmnExecutionReport, BpmnOrchestrationError> {
+        self.driver()
+            .complete_pending_host_work_from_checkpoint_until_stable(
+                request, checkpoint, completion, host,
+            )
+            .await
+    }
+
+    /// Completes one explicit pending host-work result, then stops at the next
+    /// host boundary.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`BpmnOrchestrationError`] when the checkpoint cannot be
+    /// resumed, the explicit result is rejected, or the checkpoint backend
+    /// cannot persist the resulting state.
+    pub async fn complete_pending_host_work_until_host_boundary<H: BpmnHostBridge>(
+        &self,
+        request: &QianjiBpmnExecutionRequest,
+        completion: QianjiBpmnPendingHostCompletion,
+        host: &H,
+    ) -> Result<QianjiBpmnExecutionReport, BpmnOrchestrationError> {
+        self.driver()
+            .complete_pending_host_work_until_host_boundary(request, completion, host)
+            .await
+    }
+
+    /// Completes one explicit pending host-work result from a supplied
+    /// checkpoint envelope, then stops at the next host boundary.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`BpmnOrchestrationError`] when the supplied checkpoint cannot
+    /// rebuild a session, the explicit result is rejected, or the checkpoint
+    /// backend cannot persist the resulting state.
+    pub async fn complete_pending_host_work_from_checkpoint_until_host_boundary<
+        H: BpmnHostBridge,
+    >(
+        &self,
+        request: &QianjiBpmnExecutionRequest,
+        checkpoint: BpmnCheckpointEnvelope,
+        completion: QianjiBpmnPendingHostCompletion,
+        host: &H,
+    ) -> Result<QianjiBpmnExecutionReport, BpmnOrchestrationError> {
+        self.driver()
+            .complete_pending_host_work_from_checkpoint_until_host_boundary(
+                request, checkpoint, completion, host,
             )
             .await
     }
@@ -168,20 +224,36 @@ impl QianjiBpmnExecutionFacade {
     pub async fn complete_pending_host_work_until_human_boundary<H: BpmnHostBridge>(
         &self,
         request: &QianjiBpmnExecutionRequest,
-        token_id: u64,
-        process_id: &str,
-        activity_id: &str,
-        result: PendingHostWorkResult,
+        completion: QianjiBpmnPendingHostCompletion,
         host: &H,
     ) -> Result<QianjiBpmnExecutionReport, BpmnOrchestrationError> {
         self.driver()
-            .complete_pending_host_work_until_human_boundary(
-                request,
-                token_id,
-                process_id,
-                activity_id,
-                result,
-                host,
+            .complete_pending_host_work_until_human_boundary(request, completion, host)
+            .await
+    }
+
+    /// Completes one explicit pending host-work result from a supplied
+    /// checkpoint envelope, then continues through non-human host work until
+    /// the next user/manual boundary.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`BpmnOrchestrationError`] when the supplied checkpoint cannot
+    /// rebuild a session, the explicit result is rejected, later non-human
+    /// host work fails, or the checkpoint backend cannot persist the resulting
+    /// state.
+    pub async fn complete_pending_host_work_from_checkpoint_until_human_boundary<
+        H: BpmnHostBridge,
+    >(
+        &self,
+        request: &QianjiBpmnExecutionRequest,
+        checkpoint: BpmnCheckpointEnvelope,
+        completion: QianjiBpmnPendingHostCompletion,
+        host: &H,
+    ) -> Result<QianjiBpmnExecutionReport, BpmnOrchestrationError> {
+        self.driver()
+            .complete_pending_host_work_from_checkpoint_until_human_boundary(
+                request, checkpoint, completion, host,
             )
             .await
     }

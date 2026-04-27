@@ -1,8 +1,9 @@
 use crate::bpmn_cli::deps::QianjiBpmnWorkflowCheckpointBackend;
 use crate::bpmn_cli::deps::{PathBuf, invalid_input, io, parse_flag_value};
 use crate::bpmn_cli::types::{
-    BpmnCliCommand, BpmnEventPollCliCommand, BpmnResumeCliCommand, BpmnTaskCompleteCliCommand,
-    BpmnTaskCompleteCliKind,
+    BpmnCliCommand, BpmnEventPollCliCommand, BpmnResumeCliCommand, BpmnTaskClaimCliCommand,
+    BpmnTaskCompleteCliCommand, BpmnTaskCompleteCliKind, BpmnTaskReleaseCliCommand,
+    BpmnTaskWorklistCliCommand,
 };
 
 pub(super) fn parse_bpmn_events_command(args: &[String]) -> io::Result<BpmnCliCommand> {
@@ -24,11 +25,20 @@ pub(super) fn parse_bpmn_tasks_command(args: &[String]) -> io::Result<BpmnCliCom
         Some("complete") => Ok(BpmnCliCommand::TaskComplete(
             parse_bpmn_task_complete_command(&args[1..])?,
         )),
+        Some("claim") => Ok(BpmnCliCommand::TaskClaim(parse_bpmn_task_claim_command(
+            &args[1..],
+        )?)),
+        Some("release") => Ok(BpmnCliCommand::TaskRelease(
+            parse_bpmn_task_release_command(&args[1..])?,
+        )),
+        Some("worklist") => Ok(BpmnCliCommand::TaskWorklist(
+            parse_bpmn_task_worklist_command(&args[1..])?,
+        )),
         Some(other) => Err(invalid_input(format!(
             "unsupported `bpmn tasks` subcommand `{other}`"
         ))),
         None => Err(invalid_input(
-            "missing `bpmn tasks` subcommand; expected `complete`",
+            "missing `bpmn tasks` subcommand; expected `complete`, `claim`, `release`, or `worklist`",
         )),
     }
 }
@@ -49,23 +59,8 @@ fn parse_bpmn_task_complete_command(args: &[String]) -> io::Result<BpmnTaskCompl
         index += 1;
     }
 
-    let checkpoint_backend = if state.checkpoint_runtime {
-        Some(QianjiBpmnWorkflowCheckpointBackend::RuntimeValkey)
-    } else {
-        #[cfg(feature = "duckdb")]
-        {
-            Some(QianjiBpmnWorkflowCheckpointBackend::LocalDuckDb)
-        }
-        #[cfg(not(feature = "duckdb"))]
-        {
-            None
-        }
-    }
-    .ok_or_else(|| {
-        invalid_input(
-            "missing checkpoint backend for `bpmn tasks complete`; use `--checkpoint-runtime` or enable local DuckDB",
-        )
-    })?;
+    let checkpoint_backend =
+        resolve_bpmn_task_checkpoint_backend("bpmn tasks complete", state.checkpoint_runtime)?;
 
     Ok(BpmnTaskCompleteCliCommand {
         bpmn_path: state.bpmn_path.ok_or_else(|| {
@@ -93,6 +88,7 @@ fn parse_bpmn_task_complete_command(args: &[String]) -> io::Result<BpmnTaskCompl
         data_json: state.data_json.ok_or_else(|| {
             invalid_input("missing `--data-json <json>` for `bpmn tasks complete` command")
         })?,
+        claimant: state.claimant,
         host_fixture_path: state.host_fixture_path,
         event_fixture_path: state.event_fixture_path,
         trace_stream: state.trace_stream,
@@ -110,6 +106,7 @@ struct BpmnTaskCompleteParseState {
     activity_id: Option<String>,
     kind: Option<BpmnTaskCompleteCliKind>,
     data_json: Option<String>,
+    claimant: Option<String>,
     host_fixture_path: Option<PathBuf>,
     event_fixture_path: Option<PathBuf>,
     trace_stream: bool,
@@ -135,12 +132,7 @@ fn parse_bpmn_task_complete_option(
             state.instance_id = Some(parse_flag_value(args, index, "--instance-id")?);
         }
         "--token-id" => {
-            let raw_token_id = parse_flag_value(args, index, "--token-id")?;
-            state.token_id = Some(raw_token_id.parse::<u64>().map_err(|error| {
-                invalid_input(format!(
-                    "failed to parse `--token-id` as unsigned integer: {error}"
-                ))
-            })?);
+            state.token_id = Some(parse_bpmn_task_token_id(args, index)?);
         }
         "--process-id" => {
             state.process_id = Some(parse_flag_value(args, index, "--process-id")?);
@@ -155,6 +147,9 @@ fn parse_bpmn_task_complete_option(
         }
         "--data-json" => {
             state.data_json = Some(parse_flag_value(args, index, "--data-json")?);
+        }
+        "--claimant" => {
+            state.claimant = Some(parse_flag_value(args, index, "--claimant")?);
         }
         "--host-fixture" => {
             state.host_fixture_path = Some(PathBuf::from(parse_flag_value(
@@ -187,6 +182,205 @@ fn parse_bpmn_task_complete_option(
     }
 
     Ok(())
+}
+
+fn parse_bpmn_task_claim_command(args: &[String]) -> io::Result<BpmnTaskClaimCliCommand> {
+    let state = parse_bpmn_task_claim_like_command(args, "bpmn tasks claim")?;
+    Ok(BpmnTaskClaimCliCommand {
+        instance_id: state.instance_id,
+        checkpoint_backend: state.checkpoint_backend,
+        token_id: state.token_id,
+        process_id: state.process_id,
+        activity_id: state.activity_id,
+        claimant: state.claimant,
+    })
+}
+
+fn parse_bpmn_task_release_command(args: &[String]) -> io::Result<BpmnTaskReleaseCliCommand> {
+    let state = parse_bpmn_task_claim_like_command(args, "bpmn tasks release")?;
+    Ok(BpmnTaskReleaseCliCommand {
+        instance_id: state.instance_id,
+        checkpoint_backend: state.checkpoint_backend,
+        token_id: state.token_id,
+        process_id: state.process_id,
+        activity_id: state.activity_id,
+        claimant: state.claimant,
+    })
+}
+
+struct BpmnTaskClaimLikeCommand {
+    instance_id: String,
+    checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend,
+    token_id: u64,
+    process_id: String,
+    activity_id: String,
+    claimant: String,
+}
+
+fn parse_bpmn_task_claim_like_command(
+    args: &[String],
+    command_name: &str,
+) -> io::Result<BpmnTaskClaimLikeCommand> {
+    let mut state = BpmnTaskClaimLikeParseState::default();
+    let mut index = 0;
+    while index < args.len() {
+        parse_bpmn_task_claim_like_option(args, &mut index, command_name, &mut state)?;
+        index += 1;
+    }
+
+    let checkpoint_backend =
+        resolve_bpmn_task_checkpoint_backend(command_name, state.checkpoint_runtime)?;
+
+    Ok(BpmnTaskClaimLikeCommand {
+        instance_id: state.instance_id.ok_or_else(|| {
+            invalid_input(format!(
+                "missing `--instance-id <id>` for `{command_name}` command"
+            ))
+        })?,
+        checkpoint_backend,
+        token_id: state.token_id.ok_or_else(|| {
+            invalid_input(format!(
+                "missing `--token-id <id>` for `{command_name}` command"
+            ))
+        })?,
+        process_id: state.process_id.ok_or_else(|| {
+            invalid_input(format!(
+                "missing `--process-id <id>` for `{command_name}` command"
+            ))
+        })?,
+        activity_id: state.activity_id.ok_or_else(|| {
+            invalid_input(format!(
+                "missing `--activity-id <id>` for `{command_name}` command"
+            ))
+        })?,
+        claimant: state.claimant.ok_or_else(|| {
+            invalid_input(format!(
+                "missing `--claimant <id>` for `{command_name}` command"
+            ))
+        })?,
+    })
+}
+
+#[derive(Default)]
+struct BpmnTaskClaimLikeParseState {
+    instance_id: Option<String>,
+    token_id: Option<u64>,
+    process_id: Option<String>,
+    activity_id: Option<String>,
+    claimant: Option<String>,
+    checkpoint_runtime: bool,
+}
+
+fn parse_bpmn_task_claim_like_option(
+    args: &[String],
+    index: &mut usize,
+    command_name: &str,
+    state: &mut BpmnTaskClaimLikeParseState,
+) -> io::Result<()> {
+    match args[*index].as_str() {
+        "--instance-id" => {
+            state.instance_id = Some(parse_flag_value(args, index, "--instance-id")?);
+        }
+        "--token-id" => {
+            state.token_id = Some(parse_bpmn_task_token_id(args, index)?);
+        }
+        "--process-id" => {
+            state.process_id = Some(parse_flag_value(args, index, "--process-id")?);
+        }
+        "--activity-id" => {
+            state.activity_id = Some(parse_flag_value(args, index, "--activity-id")?);
+        }
+        "--claimant" => {
+            state.claimant = Some(parse_flag_value(args, index, "--claimant")?);
+        }
+        "--checkpoint-runtime" => {
+            state.checkpoint_runtime = true;
+        }
+        other => {
+            return Err(invalid_input(format!(
+                "unsupported `{command_name}` option `{other}`"
+            )));
+        }
+    }
+
+    Ok(())
+}
+
+fn parse_bpmn_task_worklist_command(args: &[String]) -> io::Result<BpmnTaskWorklistCliCommand> {
+    let mut state = BpmnTaskWorklistParseState::default();
+    let mut index = 0;
+    while index < args.len() {
+        parse_bpmn_task_worklist_option(args, &mut index, &mut state)?;
+        index += 1;
+    }
+
+    Ok(BpmnTaskWorklistCliCommand {
+        checkpoint_backend: resolve_bpmn_task_checkpoint_backend(
+            "bpmn tasks worklist",
+            state.checkpoint_runtime,
+        )?,
+        claimant: state.claimant,
+    })
+}
+
+#[derive(Default)]
+struct BpmnTaskWorklistParseState {
+    claimant: Option<String>,
+    checkpoint_runtime: bool,
+}
+
+fn parse_bpmn_task_worklist_option(
+    args: &[String],
+    index: &mut usize,
+    state: &mut BpmnTaskWorklistParseState,
+) -> io::Result<()> {
+    match args[*index].as_str() {
+        "--claimant" => {
+            state.claimant = Some(parse_flag_value(args, index, "--claimant")?);
+        }
+        "--checkpoint-runtime" => {
+            state.checkpoint_runtime = true;
+        }
+        other => {
+            return Err(invalid_input(format!(
+                "unsupported `bpmn tasks worklist` option `{other}`"
+            )));
+        }
+    }
+
+    Ok(())
+}
+
+fn parse_bpmn_task_token_id(args: &[String], index: &mut usize) -> io::Result<u64> {
+    let raw_token_id = parse_flag_value(args, index, "--token-id")?;
+    raw_token_id.parse::<u64>().map_err(|error| {
+        invalid_input(format!(
+            "failed to parse `--token-id` as unsigned integer: {error}"
+        ))
+    })
+}
+
+fn resolve_bpmn_task_checkpoint_backend(
+    command_name: &str,
+    checkpoint_runtime: bool,
+) -> io::Result<QianjiBpmnWorkflowCheckpointBackend> {
+    if checkpoint_runtime {
+        Some(QianjiBpmnWorkflowCheckpointBackend::RuntimeValkey)
+    } else {
+        #[cfg(feature = "duckdb")]
+        {
+            Some(QianjiBpmnWorkflowCheckpointBackend::LocalDuckDb)
+        }
+        #[cfg(not(feature = "duckdb"))]
+        {
+            None
+        }
+    }
+    .ok_or_else(|| {
+        invalid_input(format!(
+            "missing checkpoint backend for `{command_name}`; use `--checkpoint-runtime` or enable local DuckDB"
+        ))
+    })
 }
 
 fn parse_task_complete_kind(raw: &str) -> io::Result<BpmnTaskCompleteCliKind> {

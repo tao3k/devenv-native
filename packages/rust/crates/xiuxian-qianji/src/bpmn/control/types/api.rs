@@ -1,6 +1,9 @@
 use crate::bpmn::backend::QianjiBpmnCheckpointStore;
 use crate::bpmn::driver::{QianjiBpmnExecutionReport, QianjiBpmnExecutionRequest};
-use qianji_bpmn_engine::{BpmnInstanceState, BpmnPackage};
+use qianji_bpmn_engine::{
+    BpmnCheckpointEnvelope, BpmnHumanTaskAssignmentSpec, BpmnHumanTaskFormSpec, BpmnInstanceState,
+    BpmnPackage, PendingHostWork, PendingHostWorkClaim, PendingHostWorkKind,
+};
 use serde_json::Value;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -48,6 +51,12 @@ pub struct QianjiBpmnPreparedWorkflowStart {
     pub checkpoint_store: Option<QianjiBpmnCheckpointStore>,
     /// Engine-facing execution request shaped from the typed workflow request.
     pub execution_request: QianjiBpmnExecutionRequest,
+    /// Checkpoint envelope loaded while preparing a resume request.
+    ///
+    /// Fresh starts leave this empty. Prepared resume paths may pass this into
+    /// the execution driver to avoid loading the same checkpoint twice inside
+    /// one bounded operation.
+    pub loaded_checkpoint: Option<BpmnCheckpointEnvelope>,
 }
 
 /// Report returned by the workflow control service after one bounded run.
@@ -131,6 +140,9 @@ pub struct QianjiBpmnWorkflowTaskCompletionPayload {
     pub kind: QianjiBpmnWorkflowTaskCompletionKind,
     /// User- or operator-supplied payload merged into workflow variables.
     pub data: serde_json::Value,
+    /// Optional claimant supplied by the host when completing claimed human
+    /// work.
+    pub claimant: Option<String>,
 }
 
 /// Typed request for completing pending host work on one checkpoint-backed BPMN
@@ -155,6 +167,136 @@ pub struct QianjiBpmnWorkflowTaskCompleteRequest {
 /// Report returned by the workflow control service after one host-task
 /// completion action.
 pub type QianjiBpmnWorkflowTaskCompleteReport = QianjiBpmnWorkflowResumeReport;
+
+/// Explicit payload for claiming pending human work on one checkpoint-backed
+/// BPMN workflow instance.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct QianjiBpmnWorkflowTaskClaimPayload {
+    /// Runtime token identifier for the pending host work.
+    pub token_id: u64,
+    /// BPMN process identifier expected for the pending host work.
+    pub process_id: String,
+    /// BPMN activity identifier expected for the pending host work.
+    pub activity_id: String,
+    /// Host- or operator-facing claimant identifier.
+    pub claimant: String,
+}
+
+/// Typed request for claiming one pending human task on a checkpoint-backed
+/// BPMN workflow instance.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct QianjiBpmnWorkflowTaskClaimRequest {
+    /// Workflow instance identifier used for checkpoint lookup.
+    pub instance_id: String,
+    /// Checkpoint backend that already owns persisted workflow state.
+    pub checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend,
+    /// Explicit human-task claim payload.
+    pub claim: QianjiBpmnWorkflowTaskClaimPayload,
+}
+
+/// Explicit payload for releasing a pending human-work claim on one
+/// checkpoint-backed BPMN workflow instance.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct QianjiBpmnWorkflowTaskReleasePayload {
+    /// Runtime token identifier for the pending host work.
+    pub token_id: u64,
+    /// BPMN process identifier expected for the pending host work.
+    pub process_id: String,
+    /// BPMN activity identifier expected for the pending host work.
+    pub activity_id: String,
+    /// Host- or operator-facing claimant identifier that currently owns the
+    /// work.
+    pub claimant: String,
+}
+
+/// Typed request for releasing one pending human-task claim on a
+/// checkpoint-backed BPMN workflow instance.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct QianjiBpmnWorkflowTaskReleaseRequest {
+    /// Workflow instance identifier used for checkpoint lookup.
+    pub instance_id: String,
+    /// Checkpoint backend that already owns persisted workflow state.
+    pub checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend,
+    /// Explicit human-task claim release payload.
+    pub release: QianjiBpmnWorkflowTaskReleasePayload,
+}
+
+/// Typed request for listing checkpoint-backed pending human work.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct QianjiBpmnWorkflowWorklistRequest {
+    /// Checkpoint backend to inspect for this bounded worklist request.
+    pub checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend,
+    /// Optional claimant filter. When present, returns unclaimed human work and
+    /// work already claimed by that same claimant.
+    pub claimant: Option<String>,
+}
+
+/// Compact pending human-work item derived from checkpointed engine state.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct QianjiBpmnWorkflowWorklistItem {
+    /// Workflow instance identifier.
+    pub instance_id: String,
+    /// BPMN process identifier for the pending host work.
+    pub process_id: String,
+    /// Runtime token identifier for the pending host work.
+    pub token_id: u64,
+    /// BPMN node index.
+    pub node_index: u32,
+    /// Stable BPMN activity identifier for the blocked node.
+    pub activity_id: String,
+    /// Host work category.
+    pub kind: PendingHostWorkKind,
+    /// Optional human-task form metadata preserved for host rendering.
+    pub form: Option<BpmnHumanTaskFormSpec>,
+    /// Optional standard BPMN assignment metadata preserved for host routing.
+    pub assignment: Option<BpmnHumanTaskAssignmentSpec>,
+    /// Optional checkpointed claim metadata.
+    pub claim: Option<PendingHostWorkClaim>,
+    /// Monotonic checkpoint sequence loaded from the persisted envelope.
+    pub checkpoint_sequence: u64,
+    /// Engine state sequence inside the checkpoint payload.
+    pub state_sequence: u64,
+    /// Last checkpoint update timestamp in unix milliseconds.
+    pub updated_at_ms: u64,
+}
+
+impl QianjiBpmnWorkflowWorklistItem {
+    pub(crate) fn from_pending_host_work(
+        checkpoint: &BpmnCheckpointEnvelope,
+        pending: &PendingHostWork,
+    ) -> Option<Self> {
+        if !matches!(
+            pending.kind,
+            PendingHostWorkKind::User | PendingHostWorkKind::Manual
+        ) {
+            return None;
+        }
+        let process_id = pending
+            .process_id
+            .as_deref()
+            .unwrap_or(checkpoint.state.process.process_id.as_ref())
+            .to_string();
+        let activity_id = pending
+            .activity_id
+            .clone()
+            .unwrap_or_else(|| format!("node#{}", pending.node_index));
+
+        Some(Self {
+            instance_id: checkpoint.state.instance_id.to_string(),
+            process_id,
+            token_id: pending.token_id,
+            node_index: pending.node_index,
+            activity_id,
+            kind: pending.kind.clone(),
+            form: pending.human_task_form.clone(),
+            assignment: pending.human_task_assignment.clone(),
+            claim: pending.claim.clone(),
+            checkpoint_sequence: checkpoint.sequence,
+            state_sequence: checkpoint.state.sequence,
+            updated_at_ms: checkpoint.state.updated_at_ms,
+        })
+    }
+}
 
 /// Typed request for loading one checkpoint-backed BPMN workflow status.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -201,6 +343,48 @@ pub struct QianjiBpmnWorkflowStatusReport {
     pub checkpoint_sequence: u64,
     /// Durable BPMN instance state stored in the checkpoint payload.
     pub instance: BpmnInstanceState,
+}
+
+/// Report returned by the workflow control service after one checkpoint-first
+/// BPMN human-task claim.
+#[derive(Debug, Clone)]
+pub struct QianjiBpmnWorkflowTaskClaimReport {
+    /// Resolved checkpoint store used for this claim request.
+    pub checkpoint_store: QianjiBpmnCheckpointStore,
+    /// Monotonic checkpoint sequence persisted after the claim.
+    pub checkpoint_sequence: u64,
+    /// Durable BPMN instance state persisted after the claim.
+    pub instance: BpmnInstanceState,
+    /// Claimed pending host-work item after claim processing.
+    pub claimed_work: PendingHostWork,
+    /// Whether the claim mutated checkpointed state.
+    pub changed: bool,
+}
+
+/// Report returned by the workflow control service after one checkpoint-first
+/// BPMN human-task claim release.
+#[derive(Debug, Clone)]
+pub struct QianjiBpmnWorkflowTaskReleaseReport {
+    /// Resolved checkpoint store used for this release request.
+    pub checkpoint_store: QianjiBpmnCheckpointStore,
+    /// Monotonic checkpoint sequence persisted after the release.
+    pub checkpoint_sequence: u64,
+    /// Durable BPMN instance state persisted after the release.
+    pub instance: BpmnInstanceState,
+    /// Pending host-work item after release processing.
+    pub released_work: PendingHostWork,
+    /// Whether the release mutated checkpointed state.
+    pub changed: bool,
+}
+
+/// Report returned by the workflow control service after listing checkpointed
+/// pending human work.
+#[derive(Debug, Clone)]
+pub struct QianjiBpmnWorkflowWorklistReport {
+    /// Resolved checkpoint store used for this worklist request.
+    pub checkpoint_store: QianjiBpmnCheckpointStore,
+    /// Pending human-work items derived from checkpointed engine state.
+    pub work_items: Vec<QianjiBpmnWorkflowWorklistItem>,
 }
 
 /// Compact checkpoint summary for one persisted BPMN workflow instance.

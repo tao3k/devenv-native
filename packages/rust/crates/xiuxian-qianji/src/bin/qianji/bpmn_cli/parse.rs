@@ -2,6 +2,7 @@
 
 mod dispatch;
 mod resume;
+mod session;
 mod start;
 mod status;
 

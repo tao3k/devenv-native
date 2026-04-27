@@ -112,6 +112,15 @@ fn append_repair_block(rendered: &mut String, issue: &LintIssue, contents: Optio
         return;
     }
 
+    if let Some(structured_repair) = &issue.structured_repair
+        && structured_expected_xml(structured_repair).is_some()
+    {
+        append_contract_message(rendered, issue);
+        append_expected_xml(rendered, structured_repair);
+        let _ = writeln!(rendered, "\nReturn unified diff only.");
+        return;
+    }
+
     let _ = writeln!(rendered, "\nAction:");
     let _ = writeln!(rendered, "- {}", issue.llm_fix_prompt);
     let _ = writeln!(rendered, "\nFix:");
@@ -120,6 +129,7 @@ fn append_repair_block(rendered: &mut String, issue: &LintIssue, contents: Optio
     }
     if let Some(structured_repair) = &issue.structured_repair {
         append_structured_repair_hints(rendered, structured_repair);
+        append_expected_xml(rendered, structured_repair);
         let _ = writeln!(rendered, "\nStructured repair:");
         if let Some(strategy) = structured_repair
             .get("strategy")
@@ -162,14 +172,7 @@ fn append_proposed_patch(rendered: &mut String, issue: &LintIssue, contents: Opt
         return false;
     };
 
-    if let Some(contract_message) = issue
-        .structured_repair
-        .as_ref()
-        .and_then(|repair| repair.get("contract_message"))
-        .and_then(Value::as_str)
-    {
-        let _ = writeln!(rendered, "    |Contract: {contract_message}");
-    }
+    append_contract_message(rendered, issue);
 
     let _ = writeln!(rendered, "\nProposed patch:");
     let _ = writeln!(rendered, "```diff");
@@ -290,6 +293,35 @@ fn line_fix_xml_lines(line_fix: &Value) -> Option<Vec<String>> {
         }
         _ => None,
     }
+}
+
+fn append_contract_message(rendered: &mut String, issue: &LintIssue) {
+    if let Some(contract_message) = issue
+        .structured_repair
+        .as_ref()
+        .and_then(|repair| repair.get("contract_message"))
+        .and_then(Value::as_str)
+    {
+        let _ = writeln!(rendered, "    |Contract: {contract_message}");
+    }
+}
+
+fn structured_expected_xml(structured_repair: &Value) -> Option<&str> {
+    structured_repair
+        .get("expected_xml")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+}
+
+fn append_expected_xml(rendered: &mut String, structured_repair: &Value) {
+    let Some(expected_xml) = structured_expected_xml(structured_repair) else {
+        return;
+    };
+    let _ = writeln!(rendered, "\nExpected XML:");
+    let _ = writeln!(rendered, "```xml");
+    let _ = writeln!(rendered, "{expected_xml}");
+    let _ = writeln!(rendered, "```");
 }
 
 fn append_structured_repair_hints(rendered: &mut String, structured_repair: &Value) {

@@ -13,6 +13,8 @@ mod start;
 mod start_at;
 mod support;
 
+#[cfg(feature = "duckdb")]
+pub(super) use support::write_user_task_bundle;
 pub(super) use support::write_waiting_bundle;
 pub(super) use support::{
     write_business_rule_bundle, write_event_race_bundle, write_event_wait_bundle,

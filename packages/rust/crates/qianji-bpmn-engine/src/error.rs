@@ -3,6 +3,26 @@
 /// Result alias for BPMN engine operations.
 pub type Result<T> = std::result::Result<T, BpmnEngineError>;
 
+/// Detailed payload for a pending host-work identity mismatch.
+#[derive(Debug, thiserror::Error, Clone, PartialEq, Eq)]
+#[error(
+    "pending host work identity mismatch for instance '{instance}' token {token}: expected process '{expected_process}' activity '{expected_activity}', got process '{actual_process}' activity '{actual_activity}'"
+)]
+pub struct BpmnPendingHostWorkIdentityMismatch {
+    /// Workflow instance identifier.
+    pub instance: String,
+    /// Runtime token identifier for the pending host work.
+    pub token: u64,
+    /// Requested BPMN process identifier.
+    pub expected_process: String,
+    /// Requested BPMN activity identifier.
+    pub expected_activity: String,
+    /// Checkpointed BPMN process identifier.
+    pub actual_process: String,
+    /// Checkpointed BPMN activity identifier.
+    pub actual_activity: String,
+}
+
 /// Error surface for scaffold and future engine operations.
 #[derive(Debug, thiserror::Error, Clone, PartialEq, Eq)]
 pub enum BpmnEngineError {
@@ -696,6 +716,88 @@ pub enum BpmnEngineError {
         /// Actual host-result kind.
         actual: &'static str,
     },
+    /// Returned when an explicit pending host-work operation targets a pending
+    /// item whose BPMN identity does not match the checkpointed work.
+    #[error("{0}")]
+    PendingHostWorkIdentityMismatch(Box<BpmnPendingHostWorkIdentityMismatch>),
+    /// Returned when a human-task claim request supplies an empty claimant.
+    #[error("human task claim requires a non-empty claimant")]
+    InvalidHumanTaskClaimant,
+    /// Returned when a claim request targets pending host work that is not a
+    /// BPMN user or manual task.
+    #[error(
+        "pending host work token {token_id} node {node_index} has kind '{kind}' and cannot be claimed as a human task"
+    )]
+    PendingHostWorkNotHumanTask {
+        /// Runtime token identifier for the pending host work.
+        token_id: u64,
+        /// BPMN node index.
+        node_index: u32,
+        /// Checkpointed host-work kind.
+        kind: String,
+    },
+    /// Returned when a different claimant already owns one pending human task.
+    #[error("pending host work token {token_id} is already claimed by '{claimed_by}'")]
+    PendingHostWorkAlreadyClaimed {
+        /// Runtime token identifier for the pending host work.
+        token_id: u64,
+        /// Existing claimant identifier.
+        claimed_by: String,
+    },
+    /// Returned when a release request targets human work that is not claimed.
+    #[error("pending host work token {token_id} is not claimed")]
+    PendingHostWorkNotClaimed {
+        /// Runtime token identifier for the pending host work.
+        token_id: u64,
+    },
+    /// Returned when a release request is made by a claimant that does not own
+    /// the pending human work.
+    #[error(
+        "pending host work token {token_id} is claimed by '{claimed_by}' and cannot be released by '{requested_by}'"
+    )]
+    PendingHostWorkClaimReleaseMismatch {
+        /// Runtime token identifier for the pending host work.
+        token_id: u64,
+        /// Existing claimant identifier.
+        claimed_by: String,
+        /// Claimant supplied by the release request.
+        requested_by: String,
+    },
+    /// Returned when form-backed human-task completion data is not an object.
+    #[error(
+        "human task completion for process '{process_id}' activity '{activity_id}' must be a JSON object"
+    )]
+    HumanTaskCompletionDataNotObject {
+        /// BPMN process identifier.
+        process_id: String,
+        /// BPMN activity identifier.
+        activity_id: String,
+    },
+    /// Returned when form-backed human-task completion omits a required field.
+    #[error(
+        "human task completion for process '{process_id}' activity '{activity_id}' is missing required field '{field}'"
+    )]
+    MissingHumanTaskCompletionField {
+        /// BPMN process identifier.
+        process_id: String,
+        /// BPMN activity identifier.
+        activity_id: String,
+        /// Missing field name.
+        field: String,
+    },
+    /// Returned when form-backed human-task completion submits an undeclared
+    /// field.
+    #[error(
+        "human task completion for process '{process_id}' activity '{activity_id}' contains undeclared field '{field}'"
+    )]
+    UndeclaredHumanTaskCompletionField {
+        /// BPMN process identifier.
+        process_id: String,
+        /// BPMN activity identifier.
+        activity_id: String,
+        /// Undeclared field name.
+        field: String,
+    },
     /// Returned when a checkpoint save attempts to overwrite newer state.
     #[error(
         "checkpoint save for instance '{instance_id}' is stale: attempted sequence {attempted_sequence}, stored sequence {stored_sequence}"
@@ -734,4 +836,24 @@ pub enum BpmnEngineError {
         /// Backend diagnostic message.
         message: String,
     },
+}
+
+impl BpmnEngineError {
+    pub(crate) fn pending_host_work_identity_mismatch(
+        instance_id: String,
+        token_id: u64,
+        expected_process_id: String,
+        expected_activity_id: String,
+        actual_process_id: String,
+        actual_activity_id: String,
+    ) -> Self {
+        Self::PendingHostWorkIdentityMismatch(Box::new(BpmnPendingHostWorkIdentityMismatch {
+            instance: instance_id,
+            token: token_id,
+            expected_process: expected_process_id,
+            expected_activity: expected_activity_id,
+            actual_process: actual_process_id,
+            actual_activity: actual_activity_id,
+        }))
+    }
 }

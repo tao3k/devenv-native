@@ -2,7 +2,9 @@ use crate::bpmn_parse_api::BpmnSourceFile;
 use crate::error::{BpmnEngineError, Result};
 use crate::ir_event_api::BpmnTimerKind;
 use crate::parser::import::model::RawTimerSpec;
-use crate::parser::import::{RawNode, RawProcess, RawRepeatSpec};
+use crate::parser::import::{
+    RawHumanTaskResourceRoleKind, RawHumanTaskResourceRoleSpec, RawNode, RawProcess, RawRepeatSpec,
+};
 
 pub(in crate::parser::import) fn apply_timer_expression(
     process: &mut RawProcess,
@@ -96,4 +98,102 @@ pub(in crate::parser::import) fn apply_script_task_body(
     script_task.script_body =
         (!script_body.trim().is_empty()).then(|| script_body.trim().to_string());
     Ok(())
+}
+
+pub(in crate::parser::import) fn apply_human_task_question_text(
+    process: &mut RawProcess,
+    question_text: &str,
+) -> Result<()> {
+    let node = process
+        .nodes
+        .last_mut()
+        .ok_or(BpmnEngineError::UnsupportedOperation {
+            operation: "apply_human_task_question_text_missing_node",
+        })?;
+    let form = node
+        .human_task_form
+        .as_mut()
+        .ok_or(BpmnEngineError::UnsupportedOperation {
+            operation: "apply_human_task_question_text_missing_form",
+        })?;
+    form.question_text =
+        (!question_text.trim().is_empty()).then(|| question_text.trim().to_string());
+    Ok(())
+}
+
+pub(in crate::parser::import) fn apply_human_task_resource_ref(
+    process: &mut RawProcess,
+    kind: RawHumanTaskResourceRoleKind,
+    resource_ref: &str,
+) -> Result<()> {
+    let role = last_human_task_resource_role_mut(process, kind)?;
+    role.resource_ref = (!resource_ref.trim().is_empty()).then(|| resource_ref.trim().to_string());
+    Ok(())
+}
+
+pub(in crate::parser::import) fn apply_human_task_assignment_expression(
+    process: &mut RawProcess,
+    kind: RawHumanTaskResourceRoleKind,
+    assignment_expression: &str,
+) -> Result<()> {
+    let role = last_human_task_resource_role_mut(process, kind)?;
+    role.assignment_expression = (!assignment_expression.trim().is_empty())
+        .then(|| assignment_expression.trim().to_string());
+    Ok(())
+}
+
+pub(in crate::parser::import) fn push_human_task_resource_role(
+    process: &mut RawProcess,
+    kind: RawHumanTaskResourceRoleKind,
+    name: Option<String>,
+) -> Result<()> {
+    let node = process
+        .nodes
+        .last_mut()
+        .ok_or(BpmnEngineError::UnsupportedOperation {
+            operation: "push_human_task_resource_role_missing_node",
+        })?;
+    let assignment = node
+        .human_task_assignment
+        .get_or_insert_with(crate::parser::import::RawHumanTaskAssignmentSpec::new);
+    let role = RawHumanTaskResourceRoleSpec {
+        name,
+        resource_ref: None,
+        assignment_expression: None,
+    };
+    match kind {
+        RawHumanTaskResourceRoleKind::HumanPerformer => {
+            assignment.human_performers.push(role);
+        }
+        RawHumanTaskResourceRoleKind::PotentialOwner => {
+            assignment.potential_owners.push(role);
+        }
+    }
+    assignment.last_role_kind = Some(kind);
+    Ok(())
+}
+
+fn last_human_task_resource_role_mut(
+    process: &mut RawProcess,
+    kind: RawHumanTaskResourceRoleKind,
+) -> Result<&mut RawHumanTaskResourceRoleSpec> {
+    let node = process
+        .nodes
+        .last_mut()
+        .ok_or(BpmnEngineError::UnsupportedOperation {
+            operation: "human_task_resource_role_missing_node",
+        })?;
+    let assignment =
+        node.human_task_assignment
+            .as_mut()
+            .ok_or(BpmnEngineError::UnsupportedOperation {
+                operation: "human_task_resource_role_missing_assignment",
+            })?;
+    let role = match kind {
+        RawHumanTaskResourceRoleKind::HumanPerformer => assignment.human_performers.last_mut(),
+        RawHumanTaskResourceRoleKind::PotentialOwner => assignment.potential_owners.last_mut(),
+    };
+    role.ok_or(BpmnEngineError::UnsupportedOperation {
+        operation: "human_task_resource_role_missing_role",
+    })
 }

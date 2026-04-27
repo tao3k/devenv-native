@@ -8,12 +8,16 @@ pub use super::error_api::QianjiBpmnWorkflowHttpErrorBody;
 pub use super::request_api::{
     QianjiBpmnWorkflowActionHttpRequest, QianjiBpmnWorkflowHttpCheckpointBackend,
     QianjiBpmnWorkflowStartHttpRequest, QianjiBpmnWorkflowStatusHttpQuery,
+    QianjiBpmnWorkflowTaskClaimHttpPayload, QianjiBpmnWorkflowTaskClaimHttpRequest,
     QianjiBpmnWorkflowTaskCompleteHttpRequest, QianjiBpmnWorkflowTaskCompletionHttpKind,
-    QianjiBpmnWorkflowTaskCompletionHttpPayload,
+    QianjiBpmnWorkflowTaskCompletionHttpPayload, QianjiBpmnWorkflowTaskReleaseHttpPayload,
+    QianjiBpmnWorkflowTaskReleaseHttpRequest,
 };
 pub use super::response_api::{
-    QianjiBpmnWorkflowCancelHttpResponse, QianjiBpmnWorkflowRunHttpResponse,
-    QianjiBpmnWorkflowSnapshotHttpResponse, QianjiBpmnWorkflowStatusHttpResponse,
+    QianjiBpmnPendingHostWorkHttpResponse, QianjiBpmnWorkflowCancelHttpResponse,
+    QianjiBpmnWorkflowRunHttpResponse, QianjiBpmnWorkflowSnapshotHttpResponse,
+    QianjiBpmnWorkflowStatusHttpResponse, QianjiBpmnWorkflowTaskClaimHttpResponse,
+    QianjiBpmnWorkflowTaskReleaseHttpResponse,
 };
 
 /// Shared state for the embeddable BPMN workflow HTTP router.

@@ -24,6 +24,7 @@ pub(super) const fn card(lint_mappings: &'static [ConstructLintMapping]) -> Cons
         forbids: &[
             "implicit outputs consumed by gateways",
             "multiple unrelated responsibilities in one task",
+            "no-tool store or rename tasks that only persist a prior userTask result",
             "workflow routing, approval, or retry policy hidden inside prompt prose",
             "BPMN boundary error events for recoverable host failure",
         ],

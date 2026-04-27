@@ -10,6 +10,7 @@ mod document_surface;
 mod execution;
 mod extension;
 mod gateway;
+mod human_task;
 mod identity;
 mod loop_risk;
 mod reference;

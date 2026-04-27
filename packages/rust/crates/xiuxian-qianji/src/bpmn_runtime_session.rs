@@ -288,6 +288,51 @@ impl QianjiBpmnSession {
         }
     }
 
+    /// Applies one explicit pending host-work result and advances until the
+    /// next host boundary or another stable terminal/waiting outcome.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`BpmnOrchestrationError`] when the engine rejects the pending
+    /// host-work result or the runtime state.
+    pub async fn complete_pending_host_work_until_host_boundary<H: BpmnHostBridge>(
+        &mut self,
+        token_id: u64,
+        process_id: &str,
+        activity_id: &str,
+        result: PendingHostWorkResult,
+        host: &H,
+    ) -> Result<BpmnAdvanceOutcome, BpmnOrchestrationError> {
+        validate_pending_host_work_identity(
+            self.package.as_ref(),
+            &self.instance,
+            token_id,
+            process_id,
+            activity_id,
+        )?;
+        let completed_at_ms = self.instance.updated_at_ms;
+        let mut outcome = apply_pending_host_work_result(
+            self.package.as_ref(),
+            &mut self.instance,
+            token_id,
+            result,
+            completed_at_ms,
+        )?;
+        loop {
+            match outcome {
+                BpmnAdvanceOutcome::Advanced => {
+                    outcome =
+                        advance_instance(self.package.as_ref(), &mut self.instance, host).await?;
+                }
+                BpmnAdvanceOutcome::BlockedOnHost(_)
+                | BpmnAdvanceOutcome::WaitingExternalEvent
+                | BpmnAdvanceOutcome::Suspended(_)
+                | BpmnAdvanceOutcome::Completed
+                | BpmnAdvanceOutcome::Failed(_) => return Ok(outcome),
+            }
+        }
+    }
+
     /// Applies one explicit pending host-work result and advances through
     /// fixture-backed non-human host work until the next human boundary.
     ///
@@ -573,14 +618,14 @@ fn validate_pending_host_work_identity(
         return Ok(());
     }
 
-    Err(BpmnOrchestrationError::PendingHostWorkIdentityMismatch {
-        instance_id: instance.instance_id.to_string(),
+    Err(BpmnOrchestrationError::pending_host_work_identity_mismatch(
+        instance.instance_id.to_string(),
         token_id,
-        expected_process_id: expected_process_id.to_string(),
-        expected_activity_id: expected_activity_id.to_string(),
-        actual_process_id: actual_process_id.to_string(),
-        actual_activity_id: actual_activity_id.to_string(),
-    })
+        expected_process_id.to_string(),
+        expected_activity_id.to_string(),
+        actual_process_id.to_string(),
+        actual_activity_id.to_string(),
+    ))
 }
 
 fn start_at_node_kind_is_supported(kind: &BpmnNodeKind) -> bool {

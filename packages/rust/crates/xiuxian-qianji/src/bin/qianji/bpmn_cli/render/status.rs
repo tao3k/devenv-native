@@ -7,9 +7,10 @@ use crate::bpmn_cli::types::{BpmnCliOutput, BpmnStatusCliCommand};
 
 use super::support::{
     bpmn_checkpoint_backend_label, bpmn_checkpoint_backend_selection_label, bpmn_event_kind_label,
-    bpmn_lifecycle_label, bpmn_node_id_label, bpmn_node_kind_label,
-    bpmn_pending_host_work_kind_label, bpmn_suspend_reason_label, bpmn_timer_spec_label,
-    bpmn_wait_kind_label, node_runtime_status_label,
+    bpmn_human_task_assignment_label, bpmn_human_task_form_label, bpmn_lifecycle_label,
+    bpmn_node_id_label, bpmn_node_kind_label, bpmn_pending_host_work_kind_label,
+    bpmn_suspend_reason_label, bpmn_timer_spec_label, bpmn_wait_kind_label,
+    node_runtime_status_label,
 };
 
 pub(crate) fn render_bpmn_status_output(
@@ -120,11 +121,17 @@ fn append_bpmn_status_pending_host_work(
             bpmn_pending_host_work_kind_label(&work.kind)
         );
         append_bpmn_status_node_context(&mut line, process, work.node_index);
+        if let Some(activity_id) = work.activity_id.as_ref() {
+            let _ = write!(line, " | activity={activity_id}");
+        }
         if let Some(process_id) = work.process_id.as_ref() {
             let _ = write!(line, " | process={process_id}");
         }
         if let Some(work_id) = work.work_id.as_ref() {
             let _ = write!(line, " | work_id={work_id}");
+        }
+        if let Some(claim) = work.claim.as_ref() {
+            let _ = write!(line, " | claim={}", claim.claimant);
         }
         if let Some(event_reference) = work.event_reference.as_ref() {
             let _ = write!(line, " | ref={event_reference}");
@@ -137,6 +144,15 @@ fn append_bpmn_status_pending_host_work(
         }
         if let Some(script_format) = work.script_format.as_ref() {
             let _ = write!(line, " | script_format={script_format}");
+        }
+        if let Some(form) = work.human_task_form.as_ref() {
+            let _ = write!(line, " | form={}", bpmn_human_task_form_label(form));
+        }
+        if let Some(assignment) = work.human_task_assignment.as_ref() {
+            let label = bpmn_human_task_assignment_label(assignment);
+            if !label.is_empty() {
+                let _ = write!(line, " | assignment={label}");
+            }
         }
         let _ = writeln!(rendered, "{line}");
     }

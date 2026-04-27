@@ -1,8 +1,9 @@
 //! Host-bridge request and outcome shells.
 
 use crate::dmn_model_api::{DmnEvaluationRequest, DmnEvaluationResult};
-use crate::runtime::PendingHostWorkKind;
+use crate::ir_node_api::{BpmnHumanTaskAssignmentSpec, BpmnHumanTaskFormSpec};
 use crate::runtime::WaitRegistration;
+use crate::runtime::{PendingHostWorkClaim, PendingHostWorkKind};
 use serde_json::Value;
 
 /// Error returned by host-bridge implementations.
@@ -136,6 +137,12 @@ pub struct UserTaskRequest {
     pub variables: Value,
     /// Optional repeat-execution metadata for the blocked task.
     pub repeat: Option<RepeatExecutionContext>,
+    /// Optional human-task form metadata preserved for host rendering.
+    pub form: Option<BpmnHumanTaskFormSpec>,
+    /// Optional standard BPMN assignment metadata preserved for host routing.
+    pub assignment: Option<BpmnHumanTaskAssignmentSpec>,
+    /// Optional checkpointed claim metadata for this pending human task.
+    pub claim: Option<PendingHostWorkClaim>,
 }
 
 /// Common user-task dispatch outcome.
@@ -162,6 +169,12 @@ pub struct ManualTaskRequest {
     pub variables: Value,
     /// Optional repeat-execution metadata for the blocked task.
     pub repeat: Option<RepeatExecutionContext>,
+    /// Optional human-task form metadata preserved for host rendering.
+    pub form: Option<BpmnHumanTaskFormSpec>,
+    /// Optional standard BPMN assignment metadata preserved for host routing.
+    pub assignment: Option<BpmnHumanTaskAssignmentSpec>,
+    /// Optional checkpointed claim metadata for this pending human task.
+    pub claim: Option<PendingHostWorkClaim>,
 }
 
 /// Common manual-task dispatch outcome.

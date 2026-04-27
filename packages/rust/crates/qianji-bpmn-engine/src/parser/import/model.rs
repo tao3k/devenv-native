@@ -80,6 +80,8 @@ pub(crate) struct RawNode {
     pub(crate) decision: Option<DmnDecisionRef>,
     pub(crate) task_message_ref: Option<String>,
     pub(crate) script_task: Option<RawScriptTaskSpec>,
+    pub(crate) human_task_form: Option<RawHumanTaskFormSpec>,
+    pub(crate) human_task_assignment: Option<RawHumanTaskAssignmentSpec>,
     pub(crate) called_process_ref: Option<String>,
     pub(crate) subprocess_kind: Option<RawSubProcessKind>,
     pub(crate) repeat: Option<RawRepeatSpec>,
@@ -94,6 +96,59 @@ pub(crate) struct RawNode {
 pub(crate) struct RawScriptTaskSpec {
     pub(crate) script_format: Option<String>,
     pub(crate) script_body: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct RawHumanTaskFormSpec {
+    pub(crate) interaction_type: String,
+    pub(crate) question_ref: Option<String>,
+    pub(crate) question_text: Option<String>,
+    pub(crate) choices_ref: Option<String>,
+    pub(crate) choices: Vec<RawHumanTaskChoiceSpec>,
+    pub(crate) free_text_fields: Vec<RawHumanTaskFreeTextSpec>,
+    pub(crate) result_output: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct RawHumanTaskChoiceSpec {
+    pub(crate) value: String,
+    pub(crate) label: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct RawHumanTaskFreeTextSpec {
+    pub(crate) name: String,
+    pub(crate) optional: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct RawHumanTaskAssignmentSpec {
+    pub(crate) human_performers: Vec<RawHumanTaskResourceRoleSpec>,
+    pub(crate) potential_owners: Vec<RawHumanTaskResourceRoleSpec>,
+    pub(crate) last_role_kind: Option<RawHumanTaskResourceRoleKind>,
+}
+
+impl RawHumanTaskAssignmentSpec {
+    pub(crate) fn new() -> Self {
+        Self {
+            human_performers: Vec::new(),
+            potential_owners: Vec::new(),
+            last_role_kind: None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum RawHumanTaskResourceRoleKind {
+    HumanPerformer,
+    PotentialOwner,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct RawHumanTaskResourceRoleSpec {
+    pub(crate) name: Option<String>,
+    pub(crate) resource_ref: Option<String>,
+    pub(crate) assignment_expression: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -155,6 +210,9 @@ pub(super) enum CaptureTarget {
     MultiInstanceCompletionCondition,
     SequenceFlowConditionExpression,
     TaskScriptBody,
+    HumanTaskQuestionText,
+    HumanTaskResourceRef(RawHumanTaskResourceRoleKind),
+    HumanTaskAssignmentExpression(RawHumanTaskResourceRoleKind),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

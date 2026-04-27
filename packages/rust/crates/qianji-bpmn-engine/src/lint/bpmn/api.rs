@@ -7,6 +7,7 @@ use super::document::issue_from_bpmn_document_error;
 use super::document_surface::deferred_document_surface_issue;
 use super::execution::issue_from_bpmn_execution_shape_error;
 use super::extension::qianji_extension_issues;
+use super::human_task::{human_task_standard_issues, issue_from_bpmn_human_task_standard_error};
 use super::identity::issue_from_bpmn_identity_error;
 use super::loop_risk::loop_risk_issues;
 use super::reference::issue_from_bpmn_reference_error;
@@ -33,6 +34,14 @@ pub(crate) fn lint_bpmn_source_impl(source: &BpmnSourceFile) -> LintReport {
             let extension_issues = qianji_extension_issues(source);
             if !extension_issues.is_empty() {
                 return LintReport::blocking(LintDomain::Bpmn, &source.source_id, extension_issues);
+            }
+            let human_task_issues = human_task_standard_issues(source);
+            if !human_task_issues.is_empty() {
+                return LintReport::blocking(
+                    LintDomain::Bpmn,
+                    &source.source_id,
+                    human_task_issues,
+                );
             }
             let data_contract_issues = undeclared_gateway_condition_output_issues(source);
             if !data_contract_issues.is_empty() {
@@ -84,7 +93,12 @@ pub(crate) fn lint_bpmn_source_impl(source: &BpmnSourceFile) -> LintReport {
 }
 
 fn issue_from_bpmn_error(source: &BpmnSourceFile, error: &BpmnEngineError) -> LintIssue {
-    let issue = issue_from_bpmn_document_error(error)
+    if let Some(issue) = issue_from_checkpoint_xml_escape_error(source, error) {
+        return issue;
+    }
+
+    let issue = issue_from_bpmn_human_task_standard_error(source, error)
+        .or_else(|| issue_from_bpmn_document_error(error))
         .or_else(|| issue_from_bpmn_identity_error(error))
         .or_else(|| issue_from_bpmn_reference_error(error))
         .or_else(|| issue_from_bpmn_topology_error(error))
@@ -92,6 +106,62 @@ fn issue_from_bpmn_error(source: &BpmnSourceFile, error: &BpmnEngineError) -> Li
         .unwrap_or_else(|| unexpected_bpmn_issue(source, error));
 
     attach_bpmn_source_diagnostic(source, error, issue)
+}
+
+fn issue_from_checkpoint_xml_escape_error(
+    source: &BpmnSourceFile,
+    error: &BpmnEngineError,
+) -> Option<LintIssue> {
+    let BpmnEngineError::CheckpointCodec(message) = error else {
+        return None;
+    };
+    if !message.contains("Cannot find ';' after '&'")
+        && !message.contains("Error while escaping character")
+    {
+        return None;
+    }
+
+    let span = find_unescaped_ampersand_span(&source.contents)?;
+    let replacement_line = escaped_line_fix_for_ampersand(&source.contents, span.start)?;
+    Some(
+        LintIssue::new(
+            "bpmn.invalid_xml",
+            "BPMN XML is not well-formed",
+            format!(
+                "Source '{}' contains a raw ampersand in XML text or an attribute.",
+                source.source_id
+            ),
+            "XML text and attribute values must escape literal ampersands as `&amp;`; otherwise the parser treats them as entity references.",
+            vec![
+                "Replace the raw `&` with `&amp;` in text or attribute values.".to_string(),
+                "Do not escape ampersands that already start valid XML entities such as `&amp;`, `&lt;`, or `&#123;`.".to_string(),
+            ],
+            format!(
+                "Repair BPMN source '{}' by replacing the raw ampersand with `&amp;` while preserving BPMN ids and workflow structure.",
+                source.source_id
+            ),
+            json!({
+                "source_id": source.source_id,
+                "engine_error": message,
+            }),
+        )
+        .with_source_diagnostic(LintSourceDiagnostic::new(
+            &source.source_id,
+            LintSourceSpan::new(span.start, span.end),
+            "escape raw ampersand as `&amp;`",
+            "Replace this literal `&` with `&amp;`. Preserve BPMN ids and qianji metadata.",
+        ))
+        .with_structured_repair(json!({
+            "schema_version": 1,
+            "contract": "qianji.bpmn.xml.well_formed.v1",
+            "contract_message": "qianji.bpmn.xml.well_formed.v1 requires literal ampersands in XML text or attributes to be escaped as &amp;.",
+            "strategy": "escape_raw_ampersand",
+            "line_fixes": [{
+                "offset": span.start,
+                "xml": replacement_line
+            }]
+        })),
+    )
 }
 
 fn attach_bpmn_source_diagnostic(
@@ -167,14 +237,21 @@ fn attach_invalid_xml_source_diagnostic(
     let Some(span) = find_xml_error_token_span(&source.contents, offset) else {
         return issue;
     };
-    issue
-        .with_source_diagnostic(LintSourceDiagnostic::new(
-            &source.source_id,
-            LintSourceSpan::new(span.start, span.end),
-            "repair malformed XML near this token",
-            "Fix tag spelling, namespace prefix spelling, closing tags, attribute quotes, or nesting. Do not escape real BPMN/qianji element tags.",
-        ))
-        .with_structured_repair(json!({
+    let structured_repair = if let Some(replacement_line) =
+        malformed_closing_tag_line_fix(&source.contents, span.start)
+    {
+        json!({
+            "schema_version": 1,
+            "contract": "qianji.bpmn.xml.well_formed.v1",
+            "contract_message": "qianji.bpmn.xml.well_formed.v1 requires opening and closing XML element names to match exactly.",
+            "strategy": "repair_malformed_xml_closing_tag",
+            "line_fixes": [{
+                "offset": span.start,
+                "xml": replacement_line
+            }]
+        })
+    } else {
+        json!({
             "schema_version": 1,
             "contract": "qianji.bpmn.xml.well_formed.v1",
             "strategy": "repair_malformed_xml_token",
@@ -186,7 +263,16 @@ fn attach_invalid_xml_source_diagnostic(
                     "changing existing BPMN ids while repairing XML syntax"
                 ]
             }]
-        }))
+        })
+    };
+    issue
+        .with_source_diagnostic(LintSourceDiagnostic::new(
+            &source.source_id,
+            LintSourceSpan::new(span.start, span.end),
+            "repair malformed XML near this token",
+            "Fix tag spelling, namespace prefix spelling, closing tags, attribute quotes, or nesting. Do not escape real BPMN/qianji element tags.",
+        ))
+        .with_structured_repair(structured_repair)
 }
 
 fn attach_default_flow_requires_multiple_outgoing(
@@ -1210,6 +1296,187 @@ fn find_xml_error_token_span(
         .filter(|end| end.saturating_sub(start) <= 200)
         .unwrap_or_else(|| (offset + 1).min(contents.len()));
     (start < end).then_some(start..end)
+}
+
+fn find_unescaped_ampersand_span(contents: &str) -> Option<std::ops::Range<usize>> {
+    let mut cursor = 0usize;
+    while cursor < contents.len() {
+        if contents.get(cursor..)?.starts_with("<!--") {
+            cursor = contents
+                .get(cursor + 4..)?
+                .find("-->")
+                .map_or(contents.len(), |offset| cursor + 4 + offset + 3);
+            continue;
+        }
+        if contents.get(cursor..)?.starts_with("<![CDATA[") {
+            cursor = contents
+                .get(cursor + 9..)?
+                .find("]]>")
+                .map_or(contents.len(), |offset| cursor + 9 + offset + 3);
+            continue;
+        }
+        if contents.as_bytes().get(cursor) == Some(&b'&')
+            && !is_valid_xml_entity_at(contents, cursor)
+        {
+            return Some(cursor..cursor + 1);
+        }
+        cursor += contents
+            .get(cursor..)?
+            .chars()
+            .next()
+            .map_or(1, char::len_utf8);
+    }
+    None
+}
+
+fn escaped_line_fix_for_ampersand(contents: &str, offset: usize) -> Option<String> {
+    let (line_start, line_end) = line_bounds_for_offset(contents, offset)?;
+    let line = contents.get(line_start..line_end)?;
+    Some(escape_unescaped_ampersands(line.trim_start()))
+}
+
+fn malformed_closing_tag_line_fix(contents: &str, token_offset: usize) -> Option<String> {
+    let (line_start, line_end) = line_bounds_for_offset(contents, token_offset)?;
+    let line = contents.get(line_start..line_end)?;
+    let relative_offset = token_offset.checked_sub(line_start)?;
+    let token_start = line.get(..=relative_offset)?.rfind('<')?;
+    let token_end = line.get(token_start..)?.find('>')? + token_start + 1;
+    let closing_tag = line.get(token_start..token_end)?;
+    let closing_name = closing_tag_name(closing_tag)?;
+    let closing_local_name = xml_local_name(closing_name);
+    let opening_name = find_opening_name_for_local(line, token_start, closing_local_name)?;
+    if opening_name == closing_name {
+        return None;
+    }
+
+    let mut repaired = String::with_capacity(line.len() + opening_name.len());
+    repaired.push_str(line.get(..token_start)?);
+    repaired.push_str("</");
+    repaired.push_str(&opening_name);
+    repaired.push('>');
+    repaired.push_str(line.get(token_end..)?);
+    Some(repaired.trim_start().to_string())
+}
+
+fn closing_tag_name(tag: &str) -> Option<&str> {
+    let name = tag.strip_prefix("</")?.strip_suffix('>')?.trim();
+    if name.is_empty() || name.contains(char::is_whitespace) {
+        return None;
+    }
+    Some(name)
+}
+
+fn find_opening_name_for_local(
+    line: &str,
+    before_offset: usize,
+    local_name: &str,
+) -> Option<String> {
+    let mut cursor = 0usize;
+    let mut matched = None;
+    while cursor < before_offset {
+        let Some(relative_start) = line.get(cursor..before_offset)?.find('<') else {
+            break;
+        };
+        let start = relative_start + cursor;
+        if line.get(start..).is_some_and(|text| {
+            text.starts_with("</") || text.starts_with("<!") || text.starts_with("<?")
+        }) {
+            cursor = start + 1;
+            continue;
+        }
+        let Some(end) = line
+            .get(start..before_offset)?
+            .find('>')
+            .map(|offset| start + offset + 1)
+        else {
+            break;
+        };
+        if let Some(name) = opening_tag_name(line.get(start..end)?)
+            && xml_local_name(name) == local_name
+        {
+            matched = Some(name.to_string());
+        }
+        cursor = end;
+    }
+    matched
+}
+
+fn opening_tag_name(tag: &str) -> Option<&str> {
+    let body = tag.strip_prefix('<')?.trim_start();
+    if body.starts_with(['/', '!', '?']) {
+        return None;
+    }
+    let end = body
+        .find(|character: char| character.is_whitespace() || character == '/' || character == '>')
+        .unwrap_or(body.len());
+    let name = body.get(..end)?;
+    (!name.is_empty()).then_some(name)
+}
+
+fn xml_local_name(name: &str) -> &str {
+    name.rsplit_once(':').map_or(name, |(_prefix, local)| local)
+}
+
+fn line_bounds_for_offset(contents: &str, offset: usize) -> Option<(usize, usize)> {
+    if contents.is_empty() {
+        return None;
+    }
+    let offset = offset.min(contents.len().saturating_sub(1));
+    let line_start = contents
+        .as_bytes()
+        .get(..=offset)?
+        .iter()
+        .rposition(|byte| *byte == b'\n')
+        .map_or(0, |position| position + 1);
+    let line_end = contents
+        .as_bytes()
+        .get(offset..)?
+        .iter()
+        .position(|byte| *byte == b'\n')
+        .map_or(contents.len(), |position| offset + position);
+    Some((line_start, line_end))
+}
+
+fn escape_unescaped_ampersands(text: &str) -> String {
+    let mut escaped = String::with_capacity(text.len());
+    let mut cursor = 0usize;
+    while cursor < text.len() {
+        if text.as_bytes().get(cursor) == Some(&b'&') && !is_valid_xml_entity_at(text, cursor) {
+            escaped.push_str("&amp;");
+            cursor += 1;
+            continue;
+        }
+        let Some(character) = text.get(cursor..).and_then(|value| value.chars().next()) else {
+            break;
+        };
+        escaped.push(character);
+        cursor += character.len_utf8();
+    }
+    escaped
+}
+
+fn is_valid_xml_entity_at(text: &str, ampersand_offset: usize) -> bool {
+    let Some(rest) = text.get(ampersand_offset + 1..) else {
+        return false;
+    };
+    if let Some((entity, _tail)) = rest.split_once(';')
+        && resolve_predefined_entity(entity).is_some()
+    {
+        return true;
+    }
+    if let Some(hex) = rest
+        .strip_prefix("#x")
+        .and_then(|value| value.split_once(';'))
+    {
+        return !hex.0.is_empty() && hex.0.bytes().all(|byte| byte.is_ascii_hexdigit());
+    }
+    if let Some(decimal) = rest
+        .strip_prefix('#')
+        .and_then(|value| value.split_once(';'))
+    {
+        return !decimal.0.is_empty() && decimal.0.bytes().all(|byte| byte.is_ascii_digit());
+    }
+    false
 }
 
 fn find_missing_branch_condition_context(

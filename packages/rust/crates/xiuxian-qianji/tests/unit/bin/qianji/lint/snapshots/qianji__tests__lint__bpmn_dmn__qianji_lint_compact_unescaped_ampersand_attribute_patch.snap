@@ -1,0 +1,25 @@
+---
+source: packages/rust/crates/xiuxian-qianji/src/bin/../../tests/unit/bin/qianji/lint/bpmn_dmn.rs
+expression: "stable_temp_output(&output.rendered, &temp_dir)"
+---
+[lint:error] $TEMP/invalid_choice_ampersand.bpmn bpmn
+Source: $TEMP/invalid_choice_ampersand.bpmn
+Issues: 1
+
+[bpmn.invalid_xml] Error: BPMN XML is not well-formed
+    ,-[ $TEMP/invalid_choice_ampersand.bpmn:14:59 ]
+ 14 |            <qianji:choice value="confirm" label="Confirm & Submit">All information is correct</qianji:choice>
+    |                                                          `- escape raw ampersand as `&amp;`
+    |Help: Replace this literal `&` with `&amp;`. Preserve BPMN ids and qianji metadata.
+    |Contract: qianji.bpmn.xml.well_formed.v1 requires literal ampersands in XML text or attributes to be escaped as &amp;.
+
+Proposed patch:
+```diff
+--- $TEMP/invalid_choice_ampersand.bpmn
++++ $TEMP/invalid_choice_ampersand.bpmn
+@@ -14,1 +14,1 @@
+-            <qianji:choice value="confirm" label="Confirm & Submit">All information is correct</qianji:choice>
++            <qianji:choice value="confirm" label="Confirm &amp; Submit">All information is correct</qianji:choice>
+```
+
+Return unified diff only.

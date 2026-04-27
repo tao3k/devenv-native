@@ -7,7 +7,7 @@ use crate::bpmn_cli::types::{
     BpmnResumeCliCommand, BpmnRunCliCommand, BpmnTaskCompleteCliCommand, BpmnTaskCompleteCliKind,
 };
 
-pub(super) fn build_bpmn_workflow_start_request(
+pub(crate) fn build_bpmn_workflow_start_request(
     command: &BpmnRunCliCommand,
 ) -> Result<QianjiBpmnWorkflowStartRequest, Box<dyn std::error::Error>> {
     Ok(QianjiBpmnWorkflowStartRequest {
@@ -21,7 +21,7 @@ pub(super) fn build_bpmn_workflow_start_request(
     })
 }
 
-pub(super) fn build_bpmn_workflow_resume_request(
+pub(crate) fn build_bpmn_workflow_resume_request(
     command: &BpmnResumeCliCommand,
 ) -> QianjiBpmnWorkflowResumeRequest {
     QianjiBpmnWorkflowResumeRequest {
@@ -32,7 +32,7 @@ pub(super) fn build_bpmn_workflow_resume_request(
     }
 }
 
-pub(super) fn build_bpmn_workflow_task_complete_request(
+pub(crate) fn build_bpmn_workflow_task_complete_request(
     command: &BpmnTaskCompleteCliCommand,
 ) -> Result<QianjiBpmnWorkflowTaskCompleteRequest, Box<dyn std::error::Error>> {
     Ok(QianjiBpmnWorkflowTaskCompleteRequest {
@@ -52,6 +52,7 @@ pub(super) fn build_bpmn_workflow_task_complete_request(
                 BpmnTaskCompleteCliKind::Manual => QianjiBpmnWorkflowTaskCompletionKind::Manual,
             },
             data: parse_bpmn_cli_data_json(command.data_json.as_str())?,
+            claimant: command.claimant.clone(),
         },
         continue_until_human_boundary: command.continue_until_human_boundary,
     })

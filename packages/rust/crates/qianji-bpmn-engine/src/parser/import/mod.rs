@@ -7,6 +7,10 @@ mod nested;
 mod process;
 mod reader;
 
+pub(crate) use model::{
+    RawHumanTaskAssignmentSpec, RawHumanTaskChoiceSpec, RawHumanTaskFormSpec,
+    RawHumanTaskFreeTextSpec, RawHumanTaskResourceRoleKind, RawHumanTaskResourceRoleSpec,
+};
 pub(crate) use reader::{
     NestedShellKind, RawAssociation, RawEventSpec, RawNode, RawPackageDocument,
     RawParallelMultiInstanceSpec, RawProcess, RawProcessScope, RawRepeatSpec, RawScriptTaskSpec,

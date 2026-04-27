@@ -183,6 +183,7 @@ mod parser;
 mod repeat_condition;
 mod runtime;
 mod runtime_advance_api;
+mod runtime_claim_api;
 mod runtime_dispatch_api;
 mod runtime_frontier_api;
 mod runtime_host_dispatch_api;
@@ -236,7 +237,7 @@ pub use dmn_api::{
     DmnVariableSnapshot, DmnWaypointSnapshot, evaluate_dmn_decision, parse_dmn_decision,
     parse_dmn_decisions, snapshot_dmn_source,
 };
-pub use error::BpmnEngineError;
+pub use error::{BpmnEngineError, BpmnPendingHostWorkIdentityMismatch};
 pub use host_bridge_api::BpmnHostBridge;
 pub use host_types_api::{
     BusinessRuleTaskOutcome, BusinessRuleTaskRequest, EventPollOutcome, EventPollRequest,
@@ -249,7 +250,9 @@ pub use ir_edge_api::BpmnEdgeSpec;
 pub use ir_event_api::{BpmnEventKind, BpmnEventSpec, BpmnTimerKind, BpmnTimerSpec};
 pub use ir_index_api::{BpmnIndexRange, BpmnNodeIndex};
 pub use ir_node_api::{
-    BpmnGatewayKind, BpmnNodeKind, BpmnNodeSpec, BpmnScriptTaskSpec, BpmnSubProcessKind,
+    BpmnGatewayKind, BpmnHumanTaskAssignmentSpec, BpmnHumanTaskChoiceSpec, BpmnHumanTaskFormSpec,
+    BpmnHumanTaskFreeTextSpec, BpmnHumanTaskResourceRoleSpec, BpmnNodeKind, BpmnNodeSpec,
+    BpmnScriptTaskSpec, BpmnSubProcessKind,
 };
 pub use ir_package_api::BpmnPackage;
 pub use ir_process_compensation::BpmnCompensationHandlerSpec;
@@ -264,7 +267,11 @@ pub use lint_api::{
 };
 pub use repeat_condition::{GatewayConditionSummary, parse_gateway_condition_summary};
 pub use runtime_advance_api::{BpmnAdvanceOutcome, advance_instance};
-pub use runtime_dispatch_api::{PendingHostWork, PendingHostWorkKind};
+pub use runtime_claim_api::{
+    PendingHumanTaskClaimOutcome, PendingHumanTaskClaimRequest, PendingHumanTaskReleaseOutcome,
+    PendingHumanTaskReleaseRequest, claim_pending_human_task, release_pending_human_task,
+};
+pub use runtime_dispatch_api::{PendingHostWork, PendingHostWorkClaim, PendingHostWorkKind};
 pub use runtime_frontier_api::{
     BpmnFrontierEntry, BpmnFrontierEntryStatus, BpmnFrontierExecutionBatch,
     BpmnFrontierExecutionProposal, BpmnFrontierExecutionStep, BpmnFrontierParallelJoinMerge,

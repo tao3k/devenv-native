@@ -1,4 +1,5 @@
 mod cancel;
+mod claim;
 mod event_poll;
 mod instances;
 mod interrupt;

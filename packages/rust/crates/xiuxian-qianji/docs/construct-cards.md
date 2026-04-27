@@ -36,6 +36,24 @@ must also declare
 `<qianji:outputSchema name="currentChoices" kind="choice_array" value="required" label="optional" description="optional"/>`;
 `qianji lint --llm` reports older BPMN that omits this schema and proposes the
 XML insertion as a unified diff.
+When the question and choices are fixed at compile time, declare them directly
+on the `userTask`; `qianji lint --llm` reports no-input/no-tool producer
+`serviceTask` nodes that only prepare fixed interaction metadata.
+When choices are truly dynamic, the producer `serviceTask` must explicitly
+bind every declared `qianji:inputs` name in its `qianji:prompt`. A producer
+that declares runtime inputs but does not mention those input variables is
+treated as an unbound UI-metadata producer; `qianji lint --llm` reports it so
+the compiler either inlines fixed `qianji:choice` entries on the `userTask` or
+rewrites the producer prompt to bind the runtime inputs by name.
+
+User answers are already persisted by qianji as the `qianji:result` variable.
+Do not insert no-tool `serviceTask` nodes that only store, copy, or rename that
+answer before the next prompt. `qianji lint --llm` reports redundant
+user-answer store serviceTasks and asks the compiler to remove the store node,
+reconnect the userTask to the next task, and replace downstream
+`qianji:inputs` aliases with the original result variable. Keep a serviceTask
+only when it derives route booleans, summaries, decisions, or tool-backed
+outputs that are not already the user answer.
 
 For gateway routing, align condition syntax with the runtime value type. A bare
 condition path such as `approved` must resolve to a JSON boolean. A count-like

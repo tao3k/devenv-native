@@ -352,6 +352,19 @@ fn handle_end_tag(
         (CaptureTarget::TaskScriptBody, "script") => {
             super::capture::apply_script_task_body(process, capture_buffer.trim())?;
         }
+        (CaptureTarget::HumanTaskQuestionText, "question") => {
+            super::capture::apply_human_task_question_text(process, capture_buffer.trim())?;
+        }
+        (CaptureTarget::HumanTaskResourceRef(kind), "resourceRef") => {
+            super::capture::apply_human_task_resource_ref(process, kind, capture_buffer.trim())?;
+        }
+        (CaptureTarget::HumanTaskAssignmentExpression(kind), "formalExpression") => {
+            super::capture::apply_human_task_assignment_expression(
+                process,
+                kind,
+                capture_buffer.trim(),
+            )?;
+        }
         _ => return Ok(()),
     }
 

@@ -18,6 +18,7 @@ The source-backed clause registry for these notes lives in
 - [Collaboration, Lanes, and Data](collaboration-lanes-and-data.md)
 - [Events and Boundaries](events-and-boundaries.md)
 - [Gateways and Concurrency](gateways-and-concurrency.md)
+- [Human Interaction Spiff/OMG Audit](human-interaction-spiff-omg-audit.md)
 - [Loops and Multi-Instance](loops-and-multi-instance.md)
 - [Subprocesses, Transactions, and Compensation](subprocesses-transactions-and-compensation.md)
 - [Tasks and Host Dispatch](tasks-and-host-dispatch.md)

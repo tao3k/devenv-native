@@ -75,6 +75,9 @@ fn build_pending_host_work_request_for_entry(
         .activity_id
         .clone()
         .unwrap_or_else(|| format!("node#{node_index}"));
+    let form = pending.human_task_form.clone();
+    let assignment = pending.human_task_assignment.clone();
+    let claim = pending.claim.clone();
     let (variables, repeat) = resolve_pending_host_work_execution_context(instance, pending)?;
 
     Ok(match pending.kind {
@@ -116,6 +119,9 @@ fn build_pending_host_work_request_for_entry(
             activity_id,
             variables,
             repeat,
+            form,
+            assignment,
+            claim,
         }),
         super::PendingHostWorkKind::Manual => PendingHostWorkRequest::Manual(ManualTaskRequest {
             instance_id,
@@ -125,6 +131,9 @@ fn build_pending_host_work_request_for_entry(
             activity_id,
             variables,
             repeat,
+            form,
+            assignment,
+            claim,
         }),
         super::PendingHostWorkKind::BusinessRule => build_business_rule_task_request(
             instance,

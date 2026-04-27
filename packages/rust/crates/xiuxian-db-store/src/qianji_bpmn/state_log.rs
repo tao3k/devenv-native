@@ -58,7 +58,6 @@ const APPEND_WORKFLOW_STATE_SNAPSHOT_SQL: &str = "
 INSERT INTO qianji_bpmn_workflow_state_events
     (instance_id, sequence, updated_at_ms, payload_json)
 VALUES (?1, ?2, ?3, ?4)";
-#[cfg(test)]
 const UPSERT_LATEST_WORKFLOW_STATE_SNAPSHOT_SQL: &str = "
 INSERT INTO qianji_bpmn_workflow_state_latest
     (instance_id, sequence, updated_at_ms, payload_json)
@@ -270,8 +269,7 @@ impl QianjiBpmnDuckDbDataStore {
     ///
     /// Returns [`QianjiBpmnDataStoreError`] when the snapshot cannot be encoded
     /// or when `DuckDB` rejects the point upsert.
-    #[cfg(test)]
-    pub(crate) fn upsert_latest_workflow_state_snapshot(
+    pub fn upsert_latest_workflow_state_snapshot(
         &self,
         checkpoint: &BpmnCheckpointEnvelope,
     ) -> Result<(), QianjiBpmnDataStoreError> {
