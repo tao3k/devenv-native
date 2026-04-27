@@ -47,13 +47,13 @@ struct SequenceFlowMetadata {
 #[derive(Clone, serde::Serialize)]
 struct DefaultReentryFlow {
     #[serde(rename = "gateway_id")]
-    gateway_ref: String,
+    gateway_node: String,
     #[serde(rename = "flow_id")]
-    flow_ref: String,
+    sequence_flow: String,
     #[serde(rename = "target_id")]
-    target_ref: String,
+    target_node: String,
     #[serde(rename = "suggested_exit_target_id")]
-    suggested_exit_target_ref: Option<String>,
+    suggested_exit_target: Option<String>,
 }
 
 #[derive(Default)]
@@ -361,10 +361,10 @@ fn default_reentry_flows(
                 return None;
             }
             Some(DefaultReentryFlow {
-                gateway_ref: gateway_id.clone(),
-                flow_ref: flow_id.clone(),
-                target_ref: flow.target_ref.clone(),
-                suggested_exit_target_ref: suggested_default_exit_target(
+                gateway_node: gateway_id.clone(),
+                sequence_flow: flow_id.clone(),
+                target_node: flow.target_ref.clone(),
+                suggested_exit_target: suggested_default_exit_target(
                     process,
                     component_set,
                     gateway_id,
@@ -638,16 +638,16 @@ fn loop_progress_line_fixes(
 
     let mut fixes = Vec::new();
     for flow in &evidence.default_reentry_flows {
-        if let Some(target_id) = flow.suggested_exit_target_ref.as_deref() {
-            let target = format!("{}.default_exit_flow", flow.gateway_ref);
+        if let Some(target_id) = flow.suggested_exit_target.as_deref() {
+            let target = format!("{}.default_exit_flow", flow.gateway_node);
             let xml = format!(
                 "<sequenceFlow id=\"{}\" sourceRef=\"{}\" targetRef=\"{}\"/>",
-                flow.flow_ref, flow.gateway_ref, target_id
+                flow.sequence_flow, flow.gateway_node, target_id
             );
             fixes.push(line_fix(
                 metadata
                     .sequence_flows
-                    .get(&flow.flow_ref)
+                    .get(&flow.sequence_flow)
                     .map(|sequence_flow| &sequence_flow.span),
                 &target,
                 &xml,
@@ -753,13 +753,13 @@ fn loop_progress_help(
     evidence: &LoopRiskEvidence,
 ) -> String {
     if let Some(flow) = evidence.default_reentry_flows.first() {
-        let target = flow.suggested_exit_target_ref.as_deref().map_or_else(
+        let target = flow.suggested_exit_target.as_deref().map_or_else(
             || "the normal next node outside the cycle".to_string(),
             |target| format!("`{target}`"),
         );
         return format!(
             "Default flow `{}` from `{}` currently re-enters `{}`. Retarget that default flow to {target}; keep repeat paths conditional.",
-            flow.flow_ref, flow.gateway_ref, flow.target_ref,
+            flow.sequence_flow, flow.gateway_node, flow.target_node,
         );
     }
 
