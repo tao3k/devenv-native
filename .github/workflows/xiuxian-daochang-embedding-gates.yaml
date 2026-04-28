@@ -35,7 +35,14 @@ jobs:
           GLM_API_KEY: ${{ secrets.GLM_API_KEY }}
           MIMO_API_KEY: ${{ secrets.MIMO_API_KEY }}
 
+      - name: Skip embedding role perf gate when MIMO_API_KEY is unavailable
+        if: ${{ env.MIMO_API_KEY_AVAILABLE != 'true' }}
+        run: |
+          echo "## Embedding Role Perf Gate" >> "${GITHUB_STEP_SUMMARY}"
+          echo "- skipped: MIMO_API_KEY is not configured for this repository." >> "${GITHUB_STEP_SUMMARY}"
+
       - name: Run xiuxian-daochang embedding role perf gate
+        if: ${{ env.MIMO_API_KEY_AVAILABLE == 'true' }}
         run: |
           case "${OMNI_EMBED_ROLE_PERF_GATE_PROFILE}" in
             medium)

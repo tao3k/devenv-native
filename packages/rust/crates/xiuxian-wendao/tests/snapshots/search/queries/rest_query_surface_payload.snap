@@ -30,14 +30,14 @@ expression: value
           {
             "columns": [
               {
-                "dataType": "Utf8View",
+                "dataType": "Utf8",
                 "name": "name",
-                "nullable": false
+                "nullable": true
               },
               {
-                "dataType": "Utf8View",
+                "dataType": "Utf8",
                 "name": "path",
-                "nullable": false
+                "nullable": true
               }
             ],
             "rowCount": 1,

@@ -103,7 +103,30 @@ fn write_fixture_tree(
         tags.push("wendao://skills/agenda/references/missing/qianji.toml".to_string());
     }
     let skill_doc = format!(
-        "---\ntags:\n{}\n---\n# Agenda\n",
+        concat!(
+            "---\n",
+            "kind: SKILL.md\n",
+            "type: skill\n",
+            "title: Agenda\n",
+            "category: skills\n",
+            "tags:\n",
+            "{}\n",
+            "name: agenda\n",
+            "description: Internal agenda skill background.\n",
+            "author: xiuxian-artisan-workshop\n",
+            "date: 2026-04-26T09:30-07:00\n",
+            "metadata:\n",
+            "  version: \"0.1.0\"\n",
+            "  source: xiuxian-daochang-test-fixture\n",
+            "  routing_keywords:\n",
+            "    - agenda\n",
+            "    - native-tool\n",
+            "  retrieval:\n",
+            "    saliency_base: 5.5\n",
+            "    decay_rate: 0.05\n",
+            "---\n",
+            "# Agenda\n",
+        ),
         tags.iter()
             .map(|tag| format!("  - {tag}"))
             .collect::<Vec<_>>()

@@ -24,5 +24,12 @@ jobs:
           GLM_API_KEY: ${{ secrets.GLM_API_KEY }}
           MIMO_API_KEY: ${{ secrets.MIMO_API_KEY }}
 
+      - name: Skip Valkey live verification when MIMO_API_KEY is unavailable
+        if: ${{ env.MIMO_API_KEY_AVAILABLE != 'true' }}
+        run: |
+          echo "## Valkey Live" >> "${GITHUB_STEP_SUMMARY}"
+          echo "- skipped: MIMO_API_KEY is not configured for this repository." >> "${GITHUB_STEP_SUMMARY}"
+
       - name: Run full live Valkey webhook verification
+        if: ${{ env.MIMO_API_KEY_AVAILABLE == 'true' }}
         run: secretspec run --provider env --profile default -- devenv tasks run ci:valkey-live

@@ -56,6 +56,9 @@ runs:
           if [ -n "${MIMO_API_KEY:-}" ]; then
             echo "MIMO_API_KEY=$MIMO_API_KEY"
             echo "MIMO_API_KEY=$MIMO_API_KEY" >> "$GITHUB_ENV"
+            echo "MIMO_API_KEY_AVAILABLE=true" >> "$GITHUB_ENV"
+          else
+            echo "MIMO_API_KEY_AVAILABLE=false" >> "$GITHUB_ENV"
           fi
         } > .env
         # NAR hash mismatch in input issue, I don't know why

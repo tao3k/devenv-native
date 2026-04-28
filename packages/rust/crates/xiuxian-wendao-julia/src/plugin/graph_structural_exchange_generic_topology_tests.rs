@@ -11,7 +11,8 @@ use crate::{
     julia_plugin_test_support::common::ResultTestExt,
     julia_plugin_test_support::official_examples::{
         LIVE_REQUEST_TIMEOUT_SECS, LIVE_SERVICE_STARTUP_TIMEOUT_SECS, await_live_step,
-        reserve_real_service_port, spawn_real_wendaosearch_solver_demo_multi_route_service,
+        reserve_real_service_port, solver_demo_multi_route_base_url_for_port,
+        spawn_real_wendaosearch_solver_demo_multi_route_service,
         wait_for_service_ready_with_attempts,
     },
 };
@@ -483,14 +484,14 @@ async fn assert_solver_demo_multi_route_generic_topology_multi_filter(
 async fn fetch_graph_structural_generic_topology_rows_for_repository_via_manifest_discovery_against_real_wendaosearch_solver_demo_multi_route_service()
  {
     let port = reserve_real_service_port();
-    let base_url = format!("http://127.0.0.1:{port}");
+    let base_url = solver_demo_multi_route_base_url_for_port(port);
     let mut service = spawn_real_wendaosearch_solver_demo_multi_route_service(port);
     let explicit_repository =
         graph_structural_generic_topology_explicit_rerank_repository(&base_url);
     let manifest_repository = graph_structural_generic_topology_manifest_repository(&base_url);
 
     await_live_step(
-        wait_for_service_ready_with_attempts(&format!("http://127.0.0.1:{port}"), 600),
+        wait_for_service_ready_with_attempts(&base_url, 600),
         LIVE_SERVICE_STARTUP_TIMEOUT_SECS,
         "wait for real WendaoSearch solver-demo multi-route Flight service",
     )

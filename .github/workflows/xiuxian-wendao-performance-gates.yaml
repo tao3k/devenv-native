@@ -35,14 +35,22 @@ jobs:
           GLM_API_KEY: ${{ secrets.GLM_API_KEY }}
           MIMO_API_KEY: ${{ secrets.MIMO_API_KEY }}
 
+      - name: Skip Wendao performance quick gate when MIMO_API_KEY is unavailable
+        if: ${{ env.MIMO_API_KEY_AVAILABLE != 'true' }}
+        run: |
+          echo "## Wendao Performance Quick" >> "${GITHUB_STEP_SUMMARY}"
+          echo "- skipped: MIMO_API_KEY is not configured for this repository." >> "${GITHUB_STEP_SUMMARY}"
+
       - name: Run Wendao performance quick target
+        if: ${{ env.MIMO_API_KEY_AVAILABLE == 'true' }}
         run: secretspec run --provider env --profile default -- devenv tasks run ci:rust-wendao-performance-quick
 
       - name: Run Wendao formal gateway performance proof
+        if: ${{ env.MIMO_API_KEY_AVAILABLE == 'true' }}
         run: secretspec run --provider env --profile default -- devenv tasks run ci:rust-wendao-performance-gateway-formal
 
       - name: Render Wendao gateway perf summary
-        if: ${{ always() }}
+        if: ${{ always() && env.MIMO_API_KEY_AVAILABLE == 'true' }}
         run: secretspec run --provider env --profile default -- devenv tasks run ci:wendao-gateway-perf-summary
 
       - name: Wendao gateway perf summary (step summary)
@@ -50,7 +58,9 @@ jobs:
         run: |
           summary_md=".run/reports/xiuxian-wendao/perf-gateway/gateway_perf_summary.md"
           echo "## Wendao Gateway Perf (${RUNNER_OS})" >> "${GITHUB_STEP_SUMMARY}"
-          if [ -f "${summary_md}" ]; then
+          if [ "${MIMO_API_KEY_AVAILABLE:-false}" != "true" ]; then
+            echo "- skipped: MIMO_API_KEY is not configured for this repository." >> "${GITHUB_STEP_SUMMARY}"
+          elif [ -f "${summary_md}" ]; then
             cat "${summary_md}" >> "${GITHUB_STEP_SUMMARY}"
           else
             echo "- summary markdown missing: \`${summary_md}\`" >> "${GITHUB_STEP_SUMMARY}"
@@ -85,14 +95,22 @@ jobs:
           GLM_API_KEY: ${{ secrets.GLM_API_KEY }}
           MIMO_API_KEY: ${{ secrets.MIMO_API_KEY }}
 
+      - name: Skip Wendao performance nightly gate when MIMO_API_KEY is unavailable
+        if: ${{ env.MIMO_API_KEY_AVAILABLE != 'true' }}
+        run: |
+          echo "## Wendao Performance Nightly" >> "${GITHUB_STEP_SUMMARY}"
+          echo "- skipped: MIMO_API_KEY is not configured for this repository." >> "${GITHUB_STEP_SUMMARY}"
+
       - name: Run Wendao performance quick target
+        if: ${{ env.MIMO_API_KEY_AVAILABLE == 'true' }}
         run: secretspec run --provider env --profile default -- devenv tasks run ci:rust-wendao-performance-quick
 
       - name: Run Wendao formal gateway performance proof
+        if: ${{ env.MIMO_API_KEY_AVAILABLE == 'true' }}
         run: secretspec run --provider env --profile default -- devenv tasks run ci:rust-wendao-performance-gateway-formal
 
       - name: Render Wendao gateway perf summary
-        if: ${{ always() }}
+        if: ${{ always() && env.MIMO_API_KEY_AVAILABLE == 'true' }}
         run: secretspec run --provider env --profile default -- devenv tasks run ci:wendao-gateway-perf-summary
 
       - name: Wendao gateway perf summary (step summary)
@@ -100,16 +118,20 @@ jobs:
         run: |
           summary_md=".run/reports/xiuxian-wendao/perf-gateway/gateway_perf_summary.md"
           echo "## Wendao Gateway Perf (${RUNNER_OS})" >> "${GITHUB_STEP_SUMMARY}"
-          if [ -f "${summary_md}" ]; then
+          if [ "${MIMO_API_KEY_AVAILABLE:-false}" != "true" ]; then
+            echo "- skipped: MIMO_API_KEY is not configured for this repository." >> "${GITHUB_STEP_SUMMARY}"
+          elif [ -f "${summary_md}" ]; then
             cat "${summary_md}" >> "${GITHUB_STEP_SUMMARY}"
           else
             echo "- summary markdown missing: \`${summary_md}\`" >> "${GITHUB_STEP_SUMMARY}"
           fi
 
       - name: Run Wendao performance stress gate
+        if: ${{ env.MIMO_API_KEY_AVAILABLE == 'true' }}
         run: secretspec run --provider env --profile default -- devenv tasks run ci:rust-wendao-performance-stress
 
       - name: Compile Wendao performance bench (fast lane, advisory)
+        if: ${{ env.MIMO_API_KEY_AVAILABLE == 'true' }}
         continue-on-error: true
         run: secretspec run --provider env --profile default -- devenv tasks run ci:rust-wendao-performance-bench-fast
 

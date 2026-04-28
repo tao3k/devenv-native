@@ -393,6 +393,10 @@ jobs:
             )
             Pkg.instantiate()
             Pkg.update("Absyn")
+            Pkg.add(
+              Pkg.PackageSpec(name="HiGHS", uuid="87dc4568-4c63-4d18-b0c0-bb2238e4078b");
+              preserve=Pkg.PRESERVE_ALL,
+            )
             Pkg.precompile()
             using WendaoSearch
             package_dir = dirname(dirname(pathof(WendaoSearch)))
@@ -406,6 +410,8 @@ jobs:
             echo "WENDAO_SEARCH_USE_ACTIVE_PROJECT=1"
             echo "WENDAOSEARCH_JULIA_PROJECT=${WENDAOSEARCH_JULIA_PROJECT}"
             echo "WENDAOSEARCH_PACKAGE_DIR=${WENDAOSEARCH_PACKAGE_DIR}"
+            echo "WENDAOSEARCH_CONFIG=${WENDAOSEARCH_PACKAGE_DIR}/config/live/parser_summary.toml"
+            echo "RUN_PROCESS_MANAGED_WENDAOSEARCH_TEST=1"
           } >> "${GITHUB_ENV}"
 
       - name: Start WendaoSearch parser-summary service for Rust tests
@@ -455,6 +461,56 @@ jobs:
           cat .run/logs/wendaosearch-parser-summary.stderr.log >&2 || true
           managed_listener_matches_pidfile "${WENDAOSEARCH_PIDFILE}" "${WENDAOSEARCH_PORT}"
 
+      - name: Start WendaoSearch solver-demo service for Rust tests
+        run: |
+          set -euo pipefail
+          source scripts/channel/process-runtime.sh
+          export WENDAOSEARCH_SERVICE_NAME=wendaosearch-solver-demo
+          export WENDAOSEARCH_RUNTIME_DIR=.run/wendaosearch
+          export WENDAOSEARCH_PORT=41082
+          : "${WENDAOSEARCH_JULIA_PROJECT:?missing WendaoSearch Julia project}"
+          : "${WENDAOSEARCH_PACKAGE_DIR:?missing WendaoSearch package dir}"
+          export WENDAOSEARCH_SCRIPT="${WENDAOSEARCH_PACKAGE_DIR}/scripts/run_search_service.jl"
+          export WENDAOSEARCH_PIDFILE="${WENDAOSEARCH_RUNTIME_DIR}/${WENDAOSEARCH_SERVICE_NAME}.pid"
+          export WENDAO_SEARCH_USE_ACTIVE_PROJECT=1
+          mkdir -p "${WENDAOSEARCH_RUNTIME_DIR}" .run/logs
+          managed_cleanup_pidfile_process \
+            "${WENDAOSEARCH_PIDFILE}" \
+            "${WENDAOSEARCH_SERVICE_NAME}" \
+            julia \
+            "${WENDAOSEARCH_SCRIPT}"
+          managed_cleanup_listener \
+            "${WENDAOSEARCH_PORT}" \
+            "${WENDAOSEARCH_SERVICE_NAME}" \
+            julia \
+            "${WENDAOSEARCH_SCRIPT}"
+          julia "--project=${WENDAOSEARCH_JULIA_PROJECT}" \
+            "${WENDAOSEARCH_SCRIPT}" \
+            "--route-names" "capability_manifest,structural_rerank,constraint_filter" \
+            "--mode" "solver_demo" \
+            "--host" "127.0.0.1" \
+            "--port" "${WENDAOSEARCH_PORT}" \
+            > .run/logs/wendaosearch-solver-demo.stdout.log \
+            2> .run/logs/wendaosearch-solver-demo.stderr.log &
+          service_pid=$!
+          managed_write_pidfile "${WENDAOSEARCH_PIDFILE}" "${service_pid}"
+          for _ in {1..180}; do
+            if managed_listener_matches_pidfile "${WENDAOSEARCH_PIDFILE}" "${WENDAOSEARCH_PORT}"; then
+              echo "WENDAOSEARCH_SOLVER_DEMO_BASE_URL=http://127.0.0.1:${WENDAOSEARCH_PORT}" >> "${GITHUB_ENV}"
+              exit 0
+            fi
+            if ! kill -0 "${service_pid}" 2>/dev/null; then
+              echo "WendaoSearch solver-demo service exited before readiness." >&2
+              cat .run/logs/wendaosearch-solver-demo.stdout.log >&2 || true
+              cat .run/logs/wendaosearch-solver-demo.stderr.log >&2 || true
+              exit 1
+            fi
+            sleep 1
+          done
+          cat .run/logs/wendaosearch-solver-demo.stdout.log >&2 || true
+          cat .run/logs/wendaosearch-solver-demo.stderr.log >&2 || true
+          managed_listener_matches_pidfile "${WENDAOSEARCH_PIDFILE}" "${WENDAOSEARCH_PORT}"
+
       - name: Start Valkey for Rust tests
         run: |
           set -euo pipefail
@@ -495,6 +551,11 @@ jobs:
             wendaosearch-parser-summary \
             julia \
             run_parser_summary_service.jl
+          managed_cleanup_pidfile_process \
+            .run/wendaosearch/wendaosearch-solver-demo.pid \
+            wendaosearch-solver-demo \
+            julia \
+            run_search_service.jl
           managed_cleanup_pidfile_process \
             "${PRJ_RUNTIME_DIR:-.run}/valkey/valkey.pid" \
             valkey \

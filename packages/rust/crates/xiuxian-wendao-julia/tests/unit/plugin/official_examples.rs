@@ -15,6 +15,7 @@ pub(crate) const LIVE_SERVICE_STARTUP_TIMEOUT_SECS: u64 = 150;
 pub(crate) const LIVE_REQUEST_TIMEOUT_SECS: u64 = 90;
 pub(crate) const RUN_PROCESS_MANAGED_WENDAOSEARCH_TEST_ENV: &str =
     "RUN_PROCESS_MANAGED_WENDAOSEARCH_TEST";
+const WENDAOSEARCH_SOLVER_DEMO_BASE_URL_ENV: &str = "WENDAOSEARCH_SOLVER_DEMO_BASE_URL";
 const PROCESS_MANAGED_WENDAOSEARCH_SERVICE_NAME: &str = "wendaosearch-solver-demo";
 
 pub(crate) struct ProcessManagedWendaoSearchGuard {
@@ -30,6 +31,9 @@ pub(crate) fn spawn_real_wendaosearch_demo_multi_route_service(port: u16) -> Chi
 }
 
 pub(crate) fn spawn_real_wendaosearch_solver_demo_multi_route_service(port: u16) -> ChildGuard {
+    if configured_solver_demo_base_url().is_some() {
+        return ChildGuard::external();
+    }
     spawn_real_wendaosearch_multi_route_service("solver_demo", port)
 }
 
@@ -112,6 +116,10 @@ pub(crate) fn reserve_real_service_port() -> u16 {
     reserve_test_port()
 }
 
+pub(crate) fn solver_demo_multi_route_base_url_for_port(port: u16) -> String {
+    configured_solver_demo_base_url().unwrap_or_else(|| format!("http://127.0.0.1:{port}"))
+}
+
 pub(crate) fn process_managed_wendaosearch_test_enabled() -> bool {
     std::env::var_os(RUN_PROCESS_MANAGED_WENDAOSEARCH_TEST_ENV).is_some()
 }
@@ -140,6 +148,10 @@ impl Drop for ProcessManagedWendaoSearchGuard {
 }
 
 pub(crate) fn process_managed_wendaosearch_solver_demo_base_url() -> Result<String, String> {
+    if let Some(base_url) = configured_solver_demo_base_url() {
+        return Ok(base_url);
+    }
+
     let config_path = wendaosearch_config("solver_demo.toml");
     let config_text = std::fs::read_to_string(&config_path)
         .map_err(|error| format!("read `{}`: {error}", config_path.display()))?;
@@ -154,6 +166,12 @@ pub(crate) fn process_managed_wendaosearch_solver_demo_base_url() -> Result<Stri
         .and_then(Value::as_integer)
         .ok_or_else(|| format!("`{}` is missing integer `port`", config_path.display()))?;
     Ok(format!("http://{host}:{port}"))
+}
+
+fn configured_solver_demo_base_url() -> Option<String> {
+    std::env::var(WENDAOSEARCH_SOLVER_DEMO_BASE_URL_ENV)
+        .ok()
+        .filter(|value| !value.is_empty())
 }
 
 pub(crate) async fn ensure_process_managed_wendaosearch_solver_demo_service()

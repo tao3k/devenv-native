@@ -26,7 +26,7 @@ use crate::{
 };
 
 pub(crate) struct ChildGuard {
-    child: Child,
+    child: Option<Child>,
 }
 
 struct LinkedJuliaParserSummaryService {
@@ -82,29 +82,38 @@ impl<T> OptionTestExt<T> for Option<T> {
 
 impl ChildGuard {
     pub(crate) fn new(child: Child) -> Self {
-        Self { child }
+        Self { child: Some(child) }
+    }
+
+    pub(crate) fn external() -> Self {
+        Self { child: None }
     }
 
     pub(crate) fn kill(&mut self) {
-        if let Some(_status) = self
-            .child
+        let Some(child) = self.child.as_mut() else {
+            return;
+        };
+        if let Some(_status) = child
             .try_wait()
             .unwrap_or_else(|error| panic!("poll Julia child: {error}"))
         {
             return;
         }
-        self.child
+        child
             .kill()
             .unwrap_or_else(|error| panic!("kill Julia child: {error}"));
-        let _ = self.child.wait();
+        let _ = child.wait();
     }
 }
 
 impl Drop for ChildGuard {
     fn drop(&mut self) {
-        if let Ok(None) = self.child.try_wait() {
-            let _ = self.child.kill();
-            let _ = self.child.wait();
+        let Some(child) = self.child.as_mut() else {
+            return;
+        };
+        if let Ok(None) = child.try_wait() {
+            let _ = child.kill();
+            let _ = child.wait();
         }
     }
 }
@@ -164,6 +173,10 @@ pub(crate) fn repo_root() -> PathBuf {
 }
 
 pub(crate) fn wendaosearch_package_dir() -> PathBuf {
+    if let Some(configured) = std::env::var_os("WENDAOSEARCH_PACKAGE_DIR") {
+        return resolve_existing_path("WendaoSearch package dir", configured);
+    }
+
     repo_root()
         .join(".data/WendaoSearch.jl")
         .canonicalize()
@@ -183,6 +196,18 @@ pub(crate) fn wendaosearch_julia_project() -> PathBuf {
     candidate
         .canonicalize()
         .unwrap_or_else(|error| panic!("resolve WendaoSearch Julia project dir: {error}"))
+}
+
+fn resolve_existing_path(label: &str, configured: impl Into<PathBuf>) -> PathBuf {
+    let candidate = configured.into();
+    let candidate = if candidate.is_absolute() {
+        candidate
+    } else {
+        repo_root().join(candidate)
+    };
+    candidate
+        .canonicalize()
+        .unwrap_or_else(|error| panic!("resolve {label} `{}`: {error}", candidate.display()))
 }
 
 pub(crate) fn wendaosearch_config(name: &str) -> PathBuf {

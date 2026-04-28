@@ -37,19 +37,19 @@ expression: value
         {
           "columns": [
             {
-              "data_type": "Utf8View",
+              "data_type": "Utf8",
               "name": "name",
-              "nullable": false
+              "nullable": true
             },
             {
-              "data_type": "Utf8View",
+              "data_type": "Utf8",
               "name": "path",
-              "nullable": false
+              "nullable": true
             },
             {
               "data_type": "UInt64",
               "name": "line_start",
-              "nullable": false
+              "nullable": true
             }
           ],
           "row_count": 2,
@@ -102,19 +102,19 @@ expression: value
         {
           "columns": [
             {
-              "data_type": "Utf8View",
+              "data_type": "Utf8",
               "name": "name",
-              "nullable": false
+              "nullable": true
             },
             {
-              "data_type": "Utf8View",
+              "data_type": "Utf8",
               "name": "path",
-              "nullable": false
+              "nullable": true
             },
             {
               "data_type": "UInt64",
               "name": "line",
-              "nullable": false
+              "nullable": true
             }
           ],
           "row_count": 2,
@@ -169,42 +169,42 @@ expression: value
             {
               "data_type": "Utf8",
               "name": "repo_id",
-              "nullable": false
+              "nullable": true
             },
             {
-              "data_type": "Utf8View",
+              "data_type": "Utf8",
               "name": "title",
-              "nullable": false
+              "nullable": true
             },
             {
               "data_type": "Utf8",
               "name": "doc_type",
-              "nullable": false
+              "nullable": true
             },
             {
-              "data_type": "Utf8View",
+              "data_type": "Utf8",
               "name": "language_tag",
               "nullable": true
             },
             {
               "data_type": "Utf8",
               "name": "kind_tag",
-              "nullable": false
+              "nullable": true
             },
             {
-              "data_type": "Utf8View",
+              "data_type": "Utf8",
               "name": "path",
-              "nullable": false
+              "nullable": true
             },
             {
               "data_type": "UInt64",
               "name": "line_number",
-              "nullable": false
+              "nullable": true
             },
             {
-              "data_type": "Utf8View",
+              "data_type": "Utf8",
               "name": "line_text",
-              "nullable": false
+              "nullable": true
             }
           ],
           "row_count": 3,
@@ -279,22 +279,22 @@ expression: value
             {
               "data_type": "Utf8",
               "name": "repo_id",
-              "nullable": false
+              "nullable": true
             },
             {
-              "data_type": "Utf8View",
+              "data_type": "Utf8",
               "name": "entity_kind",
-              "nullable": false
+              "nullable": true
             },
             {
-              "data_type": "Utf8View",
+              "data_type": "Utf8",
               "name": "name",
-              "nullable": false
+              "nullable": true
             },
             {
-              "data_type": "Utf8View",
+              "data_type": "Utf8",
               "name": "path",
-              "nullable": false
+              "nullable": true
             }
           ],
           "row_count": 2,

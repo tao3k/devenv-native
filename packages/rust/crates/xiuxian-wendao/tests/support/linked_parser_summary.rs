@@ -19,6 +19,8 @@ use xiuxian_wendao_julia::{
 type TestResult = Result<(), Box<dyn std::error::Error>>;
 
 const RUN_PROCESS_MANAGED_WENDAOSEARCH_TEST_ENV: &str = "RUN_PROCESS_MANAGED_WENDAOSEARCH_TEST";
+const WENDAOSEARCH_CONFIG_ENV: &str = "WENDAOSEARCH_CONFIG";
+const WENDAOSEARCH_PACKAGE_DIR_ENV: &str = "WENDAOSEARCH_PACKAGE_DIR";
 const PROCESS_MANAGED_PARSER_SUMMARY_SERVICE_NAME: &str = "wendaosearch-parser-summary";
 const PROCESS_MANAGED_READY_ATTEMPTS: usize = 600;
 
@@ -172,12 +174,7 @@ fn output_mentions_processes_already_running(output: &std::process::Output) -> b
 }
 
 fn process_managed_parser_summary_base_url() -> Result<String, String> {
-    let config_path = repo_root()
-        .join(".data")
-        .join("WendaoSearch.jl")
-        .join("config")
-        .join("live")
-        .join("parser_summary.toml");
+    let config_path = process_managed_parser_summary_config_path();
     let config_text = fs::read_to_string(&config_path)
         .map_err(|error| format!("read `{}`: {error}", config_path.display()))?;
     let config_value: Value = toml::from_str(&config_text)
@@ -205,6 +202,27 @@ fn process_managed_parser_summary_base_url() -> Result<String, String> {
             )
         })?;
     Ok(format!("http://{host}:{port}"))
+}
+
+fn process_managed_parser_summary_config_path() -> PathBuf {
+    if let Some(path) = std::env::var_os(WENDAOSEARCH_CONFIG_ENV).filter(|value| !value.is_empty())
+    {
+        return PathBuf::from(path);
+    }
+    if let Some(package_dir) =
+        std::env::var_os(WENDAOSEARCH_PACKAGE_DIR_ENV).filter(|value| !value.is_empty())
+    {
+        return PathBuf::from(package_dir)
+            .join("config")
+            .join("live")
+            .join("parser_summary.toml");
+    }
+    repo_root()
+        .join(".data")
+        .join("WendaoSearch.jl")
+        .join("config")
+        .join("live")
+        .join("parser_summary.toml")
 }
 
 fn wait_for_service_ready(base_url: &str, attempts: usize) -> Result<(), String> {

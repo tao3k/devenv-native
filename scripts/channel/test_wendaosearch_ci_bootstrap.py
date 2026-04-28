@@ -27,7 +27,17 @@ def test_ci_bootstraps_wendaosearch_with_julia_pkg() -> None:
     assert "WendaoArrow" not in workflow
     assert "Pkg.instantiate()" in workflow
     assert 'Pkg.update("Absyn")' in workflow
+    assert 'Pkg.PackageSpec(name="HiGHS"' in workflow
+    assert "preserve=Pkg.PRESERVE_ALL" in workflow
     assert "WENDAOSEARCH_PACKAGE_DIR" in workflow
+    assert (
+        "WENDAOSEARCH_CONFIG=${WENDAOSEARCH_PACKAGE_DIR}/config/live/parser_summary.toml"
+        in workflow
+    )
+    assert "wendaosearch-solver-demo" in workflow
+    assert "run_search_service.jl" in workflow
+    assert "WENDAOSEARCH_SOLVER_DEMO_BASE_URL=http://127.0.0.1:" in workflow
+    assert "RUN_PROCESS_MANAGED_WENDAOSEARCH_TEST=1" in workflow
 
 
 def test_ci_no_longer_uses_workspace_wendaosearch_checkout() -> None:
