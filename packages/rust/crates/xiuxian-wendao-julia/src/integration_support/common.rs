@@ -12,12 +12,16 @@ const WENDAOSEARCH_WORKSPACE_PREFIX: &str = ".data/WendaoSearch.jl/";
 
 /// Guard for a spawned Julia integration-support service process.
 pub struct JuliaExampleServiceGuard {
-    child: Child,
+    child: Option<Child>,
 }
 
 impl JuliaExampleServiceGuard {
     pub(crate) fn new(child: Child) -> Self {
-        Self { child }
+        Self { child: Some(child) }
+    }
+
+    pub(crate) fn external() -> Self {
+        Self { child: None }
     }
 
     /// Terminates the spawned service if it is still running.
@@ -26,25 +30,30 @@ impl JuliaExampleServiceGuard {
     ///
     /// Panics when polling or terminating the child process fails.
     pub fn kill(&mut self) {
-        if let Some(_status) = self
-            .child
+        let Some(child) = self.child.as_mut() else {
+            return;
+        };
+        if let Some(_status) = child
             .try_wait()
             .unwrap_or_else(|error| panic!("poll Julia example child: {error}"))
         {
             return;
         }
-        self.child
+        child
             .kill()
             .unwrap_or_else(|error| panic!("kill Julia example child: {error}"));
-        let _ = self.child.wait();
+        let _ = child.wait();
     }
 }
 
 impl Drop for JuliaExampleServiceGuard {
     fn drop(&mut self) {
-        if let Ok(None) = self.child.try_wait() {
-            let _ = self.child.kill();
-            let _ = self.child.wait();
+        let Some(child) = self.child.as_mut() else {
+            return;
+        };
+        if let Ok(None) = child.try_wait() {
+            let _ = child.kill();
+            let _ = child.wait();
         }
     }
 }

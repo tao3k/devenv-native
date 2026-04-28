@@ -32,6 +32,9 @@ def test_ci_bootstraps_wendaosearch_with_julia_pkg() -> None:
         "WENDAOSEARCH_CONFIG=${WENDAOSEARCH_PACKAGE_DIR}/config/live/parser_summary.toml"
         in workflow
     )
+    assert "wendaosearch-solver-demo" in workflow
+    assert "run_search_service.jl" in workflow
+    assert "WENDAOSEARCH_SOLVER_DEMO_BASE_URL=http://127.0.0.1:" in workflow
     assert "RUN_PROCESS_MANAGED_WENDAOSEARCH_TEST=1" in workflow
 
 

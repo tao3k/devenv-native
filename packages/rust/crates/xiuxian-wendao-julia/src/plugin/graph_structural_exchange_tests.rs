@@ -22,6 +22,7 @@ use crate::{
         ensure_process_managed_wendaosearch_solver_demo_service,
         process_managed_wendaosearch_solver_demo_base_url,
         process_managed_wendaosearch_test_enabled, reserve_real_service_port,
+        solver_demo_multi_route_base_url_for_port,
         spawn_real_wendaosearch_demo_multi_route_service,
         spawn_real_wendaosearch_solver_demo_multi_route_service,
         wait_for_service_ready_with_attempts,
@@ -647,14 +648,14 @@ async fn assert_solver_demo_multi_route_filter_rows(repository: &RegisteredRepos
 async fn fetch_graph_structural_solver_demo_rows_for_repository_via_manifest_discovery_against_real_wendaosearch_multi_route_service()
  {
     let port = reserve_real_service_port();
-    let base_url = format!("http://127.0.0.1:{port}");
+    let base_url = solver_demo_multi_route_base_url_for_port(port);
     let mut service = spawn_real_wendaosearch_solver_demo_multi_route_service(port);
     let explicit_rerank_repository = graph_structural_explicit_rerank_repository(&base_url);
     let explicit_filter_repository = graph_structural_explicit_filter_repository(&base_url);
     let manifest_repository = graph_structural_manifest_repository(&base_url);
 
     await_live_step(
-        wait_for_service_ready_with_attempts(&format!("http://127.0.0.1:{port}"), 600),
+        wait_for_service_ready_with_attempts(&base_url, 600),
         LIVE_SERVICE_STARTUP_TIMEOUT_SECS,
         "wait for real WendaoSearch solver-demo multi-route Flight service",
     )

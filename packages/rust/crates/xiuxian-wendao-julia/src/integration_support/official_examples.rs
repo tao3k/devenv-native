@@ -26,6 +26,7 @@ package Warmup
 end Warmup;
 ";
 const MODELICA_PARSER_SUMMARY_READY_TIMEOUT_SECS: u64 = 60;
+const WENDAOSEARCH_SOLVER_DEMO_BASE_URL_ENV: &str = "WENDAOSEARCH_SOLVER_DEMO_BASE_URL";
 const JULIA_PARSER_SUMMARY_ROUTE_NAMES: &[&str] = &["julia_file_summary", "julia_root_summary"];
 const MODELICA_PARSER_SUMMARY_ROUTE_NAMES: &[&str] =
     &["modelica_file_summary", "modelica_ast_query"];
@@ -51,6 +52,10 @@ pub async fn spawn_wendaosearch_demo_structural_rerank_service()
 /// start.
 pub async fn spawn_wendaosearch_solver_demo_structural_rerank_service()
 -> (String, JuliaExampleServiceGuard) {
+    if let Some(base_url) = configured_solver_demo_base_url() {
+        wait_for_external_solver_demo_service(base_url.as_str()).await;
+        return (base_url, JuliaExampleServiceGuard::external());
+    }
     spawn_wendaosearch_service("structural_rerank", "solver_demo").await
 }
 
@@ -74,6 +79,10 @@ pub async fn spawn_wendaosearch_demo_multi_route_service() -> (String, JuliaExam
 /// start.
 pub async fn spawn_wendaosearch_solver_demo_multi_route_service()
 -> (String, JuliaExampleServiceGuard) {
+    if let Some(base_url) = configured_solver_demo_base_url() {
+        wait_for_external_solver_demo_service(base_url.as_str()).await;
+        return (base_url, JuliaExampleServiceGuard::external());
+    }
     spawn_wendaosearch_multi_route_service("solver_demo").await
 }
 
@@ -151,6 +160,22 @@ fn project_julia_command() -> Command {
 fn executable_on_path(name: &str) -> bool {
     env::var_os("PATH")
         .is_some_and(|paths| env::split_paths(&paths).any(|path| path.join(name).is_file()))
+}
+
+fn configured_solver_demo_base_url() -> Option<String> {
+    env::var(WENDAOSEARCH_SOLVER_DEMO_BASE_URL_ENV)
+        .ok()
+        .filter(|value| !value.is_empty())
+}
+
+async fn wait_for_external_solver_demo_service(base_url: &str) {
+    wait_for_service_ready_with_attempts(base_url, 600)
+        .await
+        .unwrap_or_else(|error| {
+            panic!(
+                "wait for externally managed WendaoSearch solver-demo service readiness: {error}"
+            )
+        });
 }
 
 async fn spawn_wendaosearch_service(
