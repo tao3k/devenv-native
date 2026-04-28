@@ -369,9 +369,10 @@ jobs:
         run: |
           set -euo pipefail
           export JULIA_PKG_PRECOMPILE_AUTO=0
-          export WENDAOSEARCH_JULIA_PROJECT="${RUNNER_TEMP}/wendaosearch-julia-project"
+          export WENDAOSEARCH_PACKAGE_DIR="${RUNNER_TEMP}/WendaoSearch.jl"
+          export WENDAOSEARCH_JULIA_PROJECT="${WENDAOSEARCH_PACKAGE_DIR}"
           export WENDAOSEARCH_PACKAGE_DIR_FILE="${RUNNER_TEMP}/wendaosearch-package-dir.txt"
-          mkdir -p "${WENDAOSEARCH_JULIA_PROJECT}"
+          git clone --depth 1 https://github.com/tao3k/WendaoSearch.jl.git "${WENDAOSEARCH_PACKAGE_DIR}"
           julia --project="${WENDAOSEARCH_JULIA_PROJECT}" -e '
             using Pkg
             Pkg.activate(ENV["WENDAOSEARCH_JULIA_PROJECT"])
@@ -390,7 +391,7 @@ jobs:
               "OpenModelica";
               spec=Pkg.RegistrySpec(url="https://github.com/JKRT/OpenModelicaRegistry.git"),
             )
-            Pkg.add(Pkg.PackageSpec(url="https://github.com/tao3k/WendaoSearch.jl.git"))
+            Pkg.instantiate()
             Pkg.update("Absyn")
             Pkg.precompile()
             using WendaoSearch

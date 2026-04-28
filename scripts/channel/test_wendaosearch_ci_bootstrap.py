@@ -16,8 +16,16 @@ def test_ci_bootstraps_wendaosearch_with_julia_pkg() -> None:
     assert "wendaosearch-healthcheck.sh" not in workflow
     assert (
         'Pkg.add(Pkg.PackageSpec(url="https://github.com/tao3k/WendaoSearch.jl.git"))'
+        not in workflow
+    )
+    assert (
+        "git clone --depth 1 https://github.com/tao3k/WendaoSearch.jl.git"
         in workflow
     )
+    assert 'WENDAOSEARCH_JULIA_PROJECT="${WENDAOSEARCH_PACKAGE_DIR}"' in workflow
+    assert "WendaoCodeParser" not in workflow
+    assert "WendaoArrow" not in workflow
+    assert "Pkg.instantiate()" in workflow
     assert 'Pkg.update("Absyn")' in workflow
     assert "WENDAOSEARCH_PACKAGE_DIR" in workflow
 
@@ -29,4 +37,4 @@ def test_ci_no_longer_uses_workspace_wendaosearch_checkout() -> None:
         'WENDAOSEARCH_JULIA_PROJECT="${GITHUB_WORKSPACE}/.data/WendaoSearch.jl"'
         not in workflow
     )
-    assert "${RUNNER_TEMP}/wendaosearch-julia-project" in workflow
+    assert "${RUNNER_TEMP}/WendaoSearch.jl" in workflow
