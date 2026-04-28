@@ -21,7 +21,7 @@ pub(crate) fn docs_in_scope(
     scoped_module: Option<&ModuleRecord>,
     analysis: &RepositoryAnalysisOutput,
 ) -> Vec<DocRecord> {
-    match scoped_module {
+    let mut docs = match scoped_module {
         None => analysis.docs.clone(),
         Some(module) => {
             let mut target_ids = BTreeSet::from([module.module_id.clone()]);
@@ -46,7 +46,17 @@ pub(crate) fn docs_in_scope(
                 .cloned()
                 .collect()
         }
-    }
+    };
+    let first_parser_doc = docs
+        .iter()
+        .position(|doc| doc.doc_target.is_some())
+        .unwrap_or(docs.len());
+    docs[..first_parser_doc].sort_by(|left, right| {
+        left.path
+            .cmp(&right.path)
+            .then_with(|| left.doc_id.cmp(&right.doc_id))
+    });
+    docs
 }
 
 pub(crate) fn documented_symbol_ids(

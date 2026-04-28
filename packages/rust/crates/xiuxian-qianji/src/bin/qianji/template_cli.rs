@@ -13,22 +13,19 @@ pub(crate) struct TemplateCliOutput {
     pub(crate) rendered: String,
 }
 
-pub(super) fn handle_template_command(
-    command: TemplateCliCommand,
-) -> Result<(), Box<dyn std::error::Error>> {
-    let output = run_template_command(command)?;
+pub(super) fn handle_template_command(command: &TemplateCliCommand) {
+    let output = run_template_command(command);
     println!("{}", output.rendered);
-    Ok(())
 }
 
-pub(super) fn run_template_command(command: TemplateCliCommand) -> io::Result<TemplateCliOutput> {
+pub(super) fn run_template_command(command: &TemplateCliCommand) -> TemplateCliOutput {
     let rendered = match command {
         TemplateCliCommand::Bpmn => bpmn_template(),
         TemplateCliCommand::Dmn => dmn_template(),
     };
-    Ok(TemplateCliOutput {
+    TemplateCliOutput {
         rendered: rendered.to_string(),
-    })
+    }
 }
 
 pub(super) fn parse_template_command(args: &[String]) -> io::Result<Option<TemplateCliCommand>> {
@@ -72,19 +69,19 @@ fn bpmn_template() -> &'static str {
     r#"<?xml version="1.0" encoding="UTF-8"?>
 <definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-             xmlns:skillsc="http://skillsc.dev/bpmn/extensions"
+             xmlns:qianji="https://qianji.dev/bpmn/extensions"
              id="Definitions_1"
-             targetNamespace="http://skillsc.dev">
+             targetNamespace="https://qianji.dev">
   <process id="Process_1" name="Skill Workflow" isExecutable="true">
     <startEvent id="Start_1" name="Start"/>
     <serviceTask id="Task_1" name="Do focused work" implementation="${environment.services.runAgent}">
       <extensionElements>
-        <skillsc:config>
-          <skillsc:prompt>Perform one focused step from the skill and return the declared outputs as JSON.</skillsc:prompt>
-          <skillsc:tools>bash</skillsc:tools>
-          <skillsc:inputs></skillsc:inputs>
-          <skillsc:outputs>result</skillsc:outputs>
-        </skillsc:config>
+        <qianji:config>
+          <qianji:prompt>Perform one focused step from the skill and return the declared outputs as JSON.</qianji:prompt>
+          <qianji:tools></qianji:tools>
+          <qianji:inputs></qianji:inputs>
+          <qianji:outputs>result</qianji:outputs>
+        </qianji:config>
       </extensionElements>
     </serviceTask>
     <endEvent id="End_1" name="End"/>
@@ -98,7 +95,7 @@ fn dmn_template() -> &'static str {
     r#"<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/"
   id="Definitions_skill_decision"
   name="Skill Decision"
-  namespace="http://skillsc.dev/dmn">
+  namespace="https://qianji.dev/dmn">
   <decision id="skill-decision" name="Skill Decision">
     <decisionTable id="decision_table_1" hitPolicy="UNIQUE">
       <input id="input_1" label="input">

@@ -15,18 +15,14 @@ fn run_show_graph_command_renders_flowhub_mermaid_graph() {
     assert!(
         output
             .rendered
-            .contains("Path: ./qianji-flowhub/plan/codex-plan.mmd")
+            .contains("qianji-flowhub/plan/codex-plan.mmd")
     );
     assert!(output.rendered.contains("Owning module: plan"));
     assert!(output.rendered.contains("Direction: LR"));
+    assert!(output.rendered.contains("Declared topology: bounded_loop"));
     assert!(output.rendered.contains("## Execution"));
     assert!(output.rendered.contains("- Start at `coding`."));
     assert!(output.rendered.contains("- Complete at `done gate`."));
-    assert!(
-        output
-            .rendered
-            .contains("does not yet declare `[graph.workdir]`")
-    );
     assert!(output.rendered.contains("## Nodes"));
     assert!(output.rendered.contains("`coding` [`context`]"));
     assert!(output.rendered.contains("Entry: `task.coding-start`"));
@@ -43,8 +39,13 @@ fn run_show_graph_command_renders_flowhub_mermaid_graph() {
             .rendered
             .contains("Flowhub source surface: `qianji.toml`, `codex-plan.mmd`.")
     );
+    assert!(output.rendered.contains("blueprint/**/*.md"));
+    assert!(output.rendered.contains("plan/**/*.md"));
+    assert!(output.rendered.contains(
+        "`qianji check` keeps these surfaces visible in `flowchart.mmd`: `blueprint`, `plan`."
+    ));
     assert!(
-        output
+        !output
             .rendered
             .contains("No declared bounded check surface.")
     );
@@ -70,7 +71,7 @@ fn run_show_graph_command_prefers_declared_graph_name_override() {
     assert!(
         output
             .rendered
-            .contains("Path: ./qianji-flowhub/wendao/docs-search.mmd")
+            .contains("qianji-flowhub/wendao/docs-search.mmd")
     );
     assert!(output.rendered.contains("Owning module: wendao"));
     assert!(output.rendered.contains("Direction: LR"));

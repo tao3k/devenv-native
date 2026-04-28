@@ -1,6 +1,9 @@
 use super::{parse_fixture_error, parse_fixture_package};
 use crate::test_support::MustExt as _;
-use qianji_bpmn_engine::{BpmnEngineError, BpmnEventKind, BpmnNodeKind};
+use qianji_bpmn_engine::{
+    BpmnEngineError, BpmnEventKind, BpmnNodeKind, BpmnParseOptions, BpmnSourceFile,
+    parse_bpmn_package,
+};
 
 #[test]
 fn parser_send_task_message_ref_materializes_message_event_binding() {
@@ -49,6 +52,146 @@ fn parser_script_task_preserves_bounded_script_metadata() {
         .must("script task metadata should be preserved");
     assert_eq!(script.script_format.as_deref(), Some("feel"));
     assert_eq!(script.script_body.as_deref(), Some("result = amount + tax"));
+}
+
+#[test]
+fn parser_user_task_preserves_qianji_interaction_form_metadata() {
+    let package = parse_bpmn_package(
+        &[BpmnSourceFile::new(
+            "user-task-interaction.bpmn",
+            r#"<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:qianji="https://qianji.dev/bpmn/extensions" id="pkg_user_task_interaction">
+  <bpmn:process id="user_task_interaction" isExecutable="true">
+    <bpmn:startEvent id="start" />
+    <bpmn:userTask id="ask_question">
+      <bpmn:extensionElements>
+        <qianji:config>
+          <qianji:interaction type="choice_input">
+            <qianji:question ref="currentQuestion"/>
+            <qianji:choices ref="currentChoices"/>
+            <qianji:choice value="approve" label="Approve"/>
+            <qianji:freeText name="feedback" optional="true"/>
+            <qianji:result output="answer"/>
+          </qianji:interaction>
+        </qianji:config>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+    <bpmn:endEvent id="done" />
+    <bpmn:sequenceFlow id="flow_start" sourceRef="start" targetRef="ask_question" />
+    <bpmn:sequenceFlow id="flow_done" sourceRef="ask_question" targetRef="done" />
+  </bpmn:process>
+</bpmn:definitions>"#,
+        )],
+        &BpmnParseOptions::default(),
+    )
+    .must("user task interaction metadata should parse");
+    let process = package
+        .find_process("user_task_interaction")
+        .must("process should be present");
+    let form = process.nodes[1]
+        .human_task_form
+        .as_ref()
+        .must("user task should preserve human task form metadata");
+
+    assert_eq!(form.interaction_type.as_ref(), "choice_input");
+    assert_eq!(form.question_ref.as_deref(), Some("currentQuestion"));
+    assert_eq!(form.choices_ref.as_deref(), Some("currentChoices"));
+    assert_eq!(form.choices[0].value.as_ref(), "approve");
+    assert_eq!(form.choices[0].label.as_deref(), Some("Approve"));
+    assert_eq!(form.free_text_fields[0].name.as_ref(), "feedback");
+    assert!(form.free_text_fields[0].optional);
+    assert_eq!(form.result_output.as_deref(), Some("answer"));
+}
+
+#[test]
+fn parser_user_task_preserves_standard_human_task_assignment_metadata() {
+    let package = parse_bpmn_package(
+        &[BpmnSourceFile::new(
+            "user-task-assignment.bpmn",
+            r#"<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  id="pkg_user_task_assignment">
+  <bpmn:process id="user_task_assignment" isExecutable="true">
+    <bpmn:startEvent id="start" />
+    <bpmn:userTask id="review">
+      <bpmn:humanPerformer name="reviewer">
+        <bpmn:resourceAssignmentExpression>
+          <bpmn:formalExpression>users.alice</bpmn:formalExpression>
+        </bpmn:resourceAssignmentExpression>
+      </bpmn:humanPerformer>
+      <bpmn:potentialOwner name="review_team">
+        <bpmn:resourceRef>reviewers</bpmn:resourceRef>
+      </bpmn:potentialOwner>
+    </bpmn:userTask>
+    <bpmn:endEvent id="done" />
+    <bpmn:sequenceFlow id="flow_start" sourceRef="start" targetRef="review" />
+    <bpmn:sequenceFlow id="flow_done" sourceRef="review" targetRef="done" />
+  </bpmn:process>
+</bpmn:definitions>"#,
+        )],
+        &BpmnParseOptions::default(),
+    )
+    .must("standard human-task assignment metadata should parse");
+    let process = package
+        .find_process("user_task_assignment")
+        .must("process should be present");
+    let assignment = process.nodes[1]
+        .human_task_assignment
+        .as_ref()
+        .must("user task should preserve assignment metadata");
+
+    assert_eq!(assignment.human_performers.len(), 1);
+    assert_eq!(
+        assignment.human_performers[0].name.as_deref(),
+        Some("reviewer")
+    );
+    assert_eq!(
+        assignment.human_performers[0]
+            .assignment_expression
+            .as_deref(),
+        Some("users.alice")
+    );
+    assert_eq!(assignment.potential_owners.len(), 1);
+    assert_eq!(
+        assignment.potential_owners[0].name.as_deref(),
+        Some("review_team")
+    );
+    assert_eq!(
+        assignment.potential_owners[0].resource_ref.as_deref(),
+        Some("reviewers")
+    );
+}
+
+#[test]
+fn parser_service_task_requires_single_outgoing_route() {
+    let error = parse_bpmn_package(
+        &[BpmnSourceFile::new(
+            "missing-task-route.bpmn",
+            r#"<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" id="pkg_missing_task_route">
+  <bpmn:process id="missing_task_route" isExecutable="true">
+    <bpmn:startEvent id="start" />
+    <bpmn:serviceTask id="prepare_next" />
+    <bpmn:exclusiveGateway id="more_questions" default="flow_done" />
+    <bpmn:endEvent id="done" />
+    <bpmn:sequenceFlow id="flow_start" sourceRef="start" targetRef="prepare_next" />
+    <bpmn:sequenceFlow id="flow_done" sourceRef="more_questions" targetRef="done" />
+  </bpmn:process>
+</bpmn:definitions>"#,
+        )],
+        &BpmnParseOptions::default(),
+    )
+    .must_err("service task without an outgoing route should fail validation");
+
+    assert_eq!(
+        error,
+        BpmnEngineError::UnsupportedTaskConfiguration {
+            process_id: "missing_task_route".to_string(),
+            node_id: "prepare_next".to_string(),
+            detail: "task_requires_single_outgoing",
+        }
+    );
 }
 
 #[test]

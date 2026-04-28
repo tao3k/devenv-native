@@ -1,5 +1,5 @@
 use crate::bpmn::BpmnAdapterError;
-use qianji_bpmn_engine::BpmnEngineError;
+use qianji_bpmn_engine::{BpmnEngineError, BpmnPendingHostWorkIdentityMismatch};
 use std::io;
 use std::path::PathBuf;
 #[cfg(feature = "duckdb")]
@@ -47,6 +47,34 @@ pub enum BpmnOrchestrationError {
         /// Instance id for the requested BPMN run.
         instance_id: String,
     },
+    /// Returned when a start-at run would overwrite an existing checkpoint.
+    #[error(
+        "BPMN start-at requires a fresh instance id; checkpoint already exists for instance '{instance_id}'"
+    )]
+    StartAtCheckpointExists {
+        /// Workflow instance identifier that already exists.
+        instance_id: String,
+    },
+    /// Returned when a start-at run targets a node that is not in the process.
+    #[error("BPMN start-at target node '{node_id}' was not found in process '{process_id}'")]
+    StartAtNodeMissing {
+        /// Process id for the requested BPMN run.
+        process_id: String,
+        /// Requested BPMN node id.
+        node_id: String,
+    },
+    /// Returned when a start-at run targets an unsupported node kind.
+    #[error(
+        "BPMN start-at target node '{node_id}' in process '{process_id}' has unsupported kind '{node_kind}'"
+    )]
+    StartAtNodeUnsupported {
+        /// Process id for the requested BPMN run.
+        process_id: String,
+        /// Requested BPMN node id.
+        node_id: String,
+        /// Human-readable BPMN node kind.
+        node_kind: String,
+    },
     /// Returned when a checkpoint references a BPMN process that is missing
     /// from the loaded package.
     #[error(
@@ -71,6 +99,39 @@ pub enum BpmnOrchestrationError {
         loaded_package_id: String,
         /// Spec digest resolved from the currently loaded BPMN package.
         loaded_spec_digest: String,
+    },
+    /// Returned when an explicit task-completion request targets a pending
+    /// host-work item whose BPMN identity does not match the checkpointed
+    /// work.
+    #[error("{0}")]
+    PendingHostWorkIdentityMismatch(Box<BpmnPendingHostWorkIdentityMismatch>),
+    /// Returned when checkpointed pending host work is already claimed and a
+    /// completion request does not supply the same claimant.
+    #[error(
+        "pending host work for instance '{instance_id}' token {token_id} is claimed by '{claimed_by}'; completion must include the matching claimant"
+    )]
+    PendingHostWorkClaimRequired {
+        /// Workflow instance identifier.
+        instance_id: String,
+        /// Runtime token identifier for the pending host work.
+        token_id: u64,
+        /// Checkpointed claimant that owns the pending human work.
+        claimed_by: String,
+    },
+    /// Returned when checkpointed pending host work is claimed by one
+    /// claimant, but a different claimant attempts completion.
+    #[error(
+        "pending host work claimant mismatch for instance '{instance_id}' token {token_id}: expected claimant '{expected_claimant}', got '{actual_claimant}'"
+    )]
+    PendingHostWorkClaimantMismatch {
+        /// Workflow instance identifier.
+        instance_id: String,
+        /// Runtime token identifier for the pending host work.
+        token_id: u64,
+        /// Checkpointed claimant that owns the pending human work.
+        expected_claimant: String,
+        /// Claimant supplied by the completion request.
+        actual_claimant: String,
     },
     /// Returned when one BPMN scheduler lease is requested without a
     /// Valkey-backed checkpoint backend.
@@ -105,4 +166,24 @@ pub enum BpmnOrchestrationError {
         "BPMN checkpoint lease ownership requires SchedulerAgentIdentity.agent_id; role-only or empty identities are not stable single-writer owners"
     )]
     CheckpointLeaseAgentIdRequired,
+}
+
+impl BpmnOrchestrationError {
+    pub(crate) fn pending_host_work_identity_mismatch(
+        instance_id: String,
+        token_id: u64,
+        expected_process_id: String,
+        expected_activity_id: String,
+        actual_process_id: String,
+        actual_activity_id: String,
+    ) -> Self {
+        Self::PendingHostWorkIdentityMismatch(Box::new(BpmnPendingHostWorkIdentityMismatch {
+            instance: instance_id,
+            token: token_id,
+            expected_process: expected_process_id,
+            expected_activity: expected_activity_id,
+            actual_process: actual_process_id,
+            actual_activity: actual_activity_id,
+        }))
+    }
 }

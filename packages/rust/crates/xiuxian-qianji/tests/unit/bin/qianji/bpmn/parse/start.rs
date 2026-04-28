@@ -32,6 +32,7 @@ fn parse_bpmn_command_accepts_fresh_start_with_dmn_sources() {
             process_id: "review".to_string(),
             instance_id: "wf_review".to_string(),
             context_json: Some("{\"risk\":\"high\"}".to_string()),
+            start_at_node_id: None,
             #[cfg(feature = "duckdb")]
             checkpoint_backend: Some(BpmnCliCheckpointBackend::LocalDuckDb),
             #[cfg(not(feature = "duckdb"))]
@@ -40,6 +41,7 @@ fn parse_bpmn_command_accepts_fresh_start_with_dmn_sources() {
             event_fixture_path: None,
             trace_stream: false,
             external_host: false,
+            continue_until_human_boundary: false,
         })
     );
 }
@@ -98,11 +100,13 @@ fn parse_bpmn_command_defaults_fresh_start_without_context_to_local_duckdb() {
             process_id: "review".to_string(),
             instance_id: "wf_review".to_string(),
             context_json: None,
+            start_at_node_id: None,
             checkpoint_backend: Some(BpmnCliCheckpointBackend::LocalDuckDb),
             host_fixture_path: None,
             event_fixture_path: None,
             trace_stream: false,
             external_host: false,
+            continue_until_human_boundary: false,
         })
     );
 }

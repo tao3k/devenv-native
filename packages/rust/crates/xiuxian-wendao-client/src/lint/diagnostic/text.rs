@@ -10,12 +10,22 @@ const SYNTHETIC_RULE_KEYS: &[&str] = &[
     "directory_link_style_ambiguous",
 ];
 
-pub(in crate::lint) fn markdown_lint_issue_codes() -> [MarkdownSyntaxLintCode; 11] {
+pub(in crate::lint) fn markdown_lint_issue_codes() -> [MarkdownSyntaxLintCode; 21] {
     [
         MarkdownSyntaxLintCode::MissingFrontmatter,
         MarkdownSyntaxLintCode::MissingFrontmatterTitle,
+        MarkdownSyntaxLintCode::MissingFrontmatterKind,
+        MarkdownSyntaxLintCode::MissingFrontmatterCategory,
+        MarkdownSyntaxLintCode::MissingFrontmatterTags,
+        MarkdownSyntaxLintCode::MissingFrontmatterDescription,
+        MarkdownSyntaxLintCode::MissingFrontmatterAuthor,
+        MarkdownSyntaxLintCode::MissingFrontmatterDate,
+        MarkdownSyntaxLintCode::InvalidFrontmatterDatePrecision,
+        MarkdownSyntaxLintCode::MissingFrontmatterRetrievalSaliencyBase,
+        MarkdownSyntaxLintCode::MissingFrontmatterRetrievalDecayRate,
         MarkdownSyntaxLintCode::MissingSkillFrontmatterName,
         MarkdownSyntaxLintCode::MissingSkillFrontmatterMetadata,
+        MarkdownSyntaxLintCode::InvalidSkillFrontmatterSchema,
         MarkdownSyntaxLintCode::UnclosedFrontmatter,
         MarkdownSyntaxLintCode::InvalidFrontmatterYaml,
         MarkdownSyntaxLintCode::UnclosedFence,
@@ -39,10 +49,26 @@ pub(in crate::lint) fn code_string(code: MarkdownSyntaxLintCode) -> &'static str
     match code {
         MarkdownSyntaxLintCode::MissingFrontmatter => "missing_frontmatter",
         MarkdownSyntaxLintCode::MissingFrontmatterTitle => "missing_frontmatter_title",
+        MarkdownSyntaxLintCode::MissingFrontmatterKind => "missing_frontmatter_kind",
+        MarkdownSyntaxLintCode::MissingFrontmatterCategory => "missing_frontmatter_category",
+        MarkdownSyntaxLintCode::MissingFrontmatterTags => "missing_frontmatter_tags",
+        MarkdownSyntaxLintCode::MissingFrontmatterDescription => "missing_frontmatter_description",
+        MarkdownSyntaxLintCode::MissingFrontmatterAuthor => "missing_frontmatter_author",
+        MarkdownSyntaxLintCode::MissingFrontmatterDate => "missing_frontmatter_date",
+        MarkdownSyntaxLintCode::InvalidFrontmatterDatePrecision => {
+            "invalid_frontmatter_date_precision"
+        }
+        MarkdownSyntaxLintCode::MissingFrontmatterRetrievalSaliencyBase => {
+            "missing_frontmatter_retrieval_saliency_base"
+        }
+        MarkdownSyntaxLintCode::MissingFrontmatterRetrievalDecayRate => {
+            "missing_frontmatter_retrieval_decay_rate"
+        }
         MarkdownSyntaxLintCode::MissingSkillFrontmatterName => "missing_skill_frontmatter_name",
         MarkdownSyntaxLintCode::MissingSkillFrontmatterMetadata => {
             "missing_skill_frontmatter_metadata"
         }
+        MarkdownSyntaxLintCode::InvalidSkillFrontmatterSchema => "invalid_skill_frontmatter_schema",
         MarkdownSyntaxLintCode::UnclosedFrontmatter => "unclosed_frontmatter",
         MarkdownSyntaxLintCode::InvalidFrontmatterYaml => "invalid_frontmatter_yaml",
         MarkdownSyntaxLintCode::UnclosedFence => "unclosed_fence",

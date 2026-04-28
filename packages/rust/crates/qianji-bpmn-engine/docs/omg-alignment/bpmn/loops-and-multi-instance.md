@@ -31,6 +31,41 @@ Within that bounded slice, the runtime now guarantees:
 - owner-level non-interrupting boundary support on bounded standard-loop,
   sequential multi-instance, and parallel multi-instance task owners
 
+## Lint-Time Cycle Risk Checks
+
+Sequence-flow cycles are allowed only when the workflow makes progress
+explicit. `qianji lint` reports `bpmn.loop_risk.unbounded_control_cycle` when a
+cycle can re-enter host or user work without a complete progress contract.
+
+The current check is intentionally conservative for LLM-authored interactive
+workflows:
+
+- a cycle must have an exit path, usually an unconditional default branch
+- gateway route variables used by the cycle must be declared by
+  `qianji:outputs` on a task inside the same cycle
+- if an in-cycle service task emits prompt-like outputs such as
+  `currentQuestion` or `currentChoices`, user-task outputs from the same cycle
+  must feed back through that service task's `qianji:inputs`
+
+The diagnostic is source-span-aware and keeps natural-language guidance in the
+diagnostic layer only. The LLM-facing output includes the issue code, title,
+file span, source line, caret label, one-line `Help`, and one-line `Contract`.
+The repair layer is a git-diff-style proposed patch, not an action list or a
+large template.
+
+For example, a missing feedback input should report the unsafe line and propose
+only the minimal hunk:
+
+```diff
+@@ -12,1 +12,1 @@
+-          <qianji:inputs></qianji:inputs>
++          <qianji:inputs>answer</qianji:inputs>
+```
+
+Structured lint consumers can still read the underlying `line_fixes` metadata
+from the JSON report; text repair flows should use the compact diagnostic plus
+proposed patch.
+
 ## Deferred Loop Semantics
 
 These loop shapes remain deferred:

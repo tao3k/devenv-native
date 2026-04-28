@@ -1,0 +1,13 @@
+---
+source: packages/rust/crates/xiuxian-wendao-client/tests/unit/lint_run/mod.rs
+expression: output
+---
+Markdown lint found 1 issue(s) in 1 file(s) across 1 checked file(s).
+
+[invalid_utf8] Error: Markdown file is not valid UTF-8.
+--> demo.md:1:1
+Label: Re-encode the file as UTF-8 before linting it: invalid utf-8 sequence of 1 bytes from index 0
+Note: kind: official_syntax
+Note: problem: Markdown file is not valid UTF-8.
+Note: detail: Re-encode the file as UTF-8 before linting it: invalid utf-8 sequence of 1 bytes from index 0
+Help: expected: Encode the file as UTF-8 before linting it.

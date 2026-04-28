@@ -9,19 +9,19 @@ fn lint_reports_directory_link_style_mismatch_with_precise_rewrite_guidance() ->
     std::fs::create_dir_all(temp.path().join("docs"))?;
     std::fs::write(
         temp.path().join("docs/index.md"),
-        "---\ntitle: Documentation Index\n---\n# Documentation Index\n",
+        "---\nkind: reference\ncategory: docs\ntags:\n  - docs\ndescription: Demo note\nauthor: xiuxian-artisan-workshop\ndate: 2026-04-26T09:30-07:00\nmetadata:\n  retrieval:\n    saliency_base: 5.5\n    decay_rate: 0.05\ntitle: Documentation Index\n---\n# Documentation Index\n",
     )?;
     std::fs::write(
         temp.path().join("docs/guide-one.md"),
-        "---\ntitle: Guide One\n---\n# Guide One\nSee [[index|Documentation Index]].\n",
+        "---\nkind: reference\ncategory: docs\ntags:\n  - docs\ndescription: Demo note\nauthor: xiuxian-artisan-workshop\ndate: 2026-04-26T09:30-07:00\nmetadata:\n  retrieval:\n    saliency_base: 5.5\n    decay_rate: 0.05\ntitle: Guide One\n---\n# Guide One\nSee [[index|Documentation Index]].\n",
     )?;
     std::fs::write(
         temp.path().join("docs/guide-two.md"),
-        "---\ntitle: Guide Two\n---\n# Guide Two\nSee [[index|Documentation Index]].\n",
+        "---\nkind: reference\ncategory: docs\ntags:\n  - docs\ndescription: Demo note\nauthor: xiuxian-artisan-workshop\ndate: 2026-04-26T09:30-07:00\nmetadata:\n  retrieval:\n    saliency_base: 5.5\n    decay_rate: 0.05\ntitle: Guide Two\n---\n# Guide Two\nSee [[index|Documentation Index]].\n",
     )?;
     std::fs::write(
         temp.path().join("docs/guide-three.md"),
-        "---\ntitle: Guide Three\n---\n# Guide Three\nSee [Documentation Index](index.md).\n",
+        "---\nkind: reference\ncategory: docs\ntags:\n  - docs\ndescription: Demo note\nauthor: xiuxian-artisan-workshop\ndate: 2026-04-26T09:30-07:00\nmetadata:\n  retrieval:\n    saliency_base: 5.5\n    decay_rate: 0.05\ntitle: Guide Three\n---\n# Guide Three\nSee [Documentation Index](index.md).\n",
     )?;
 
     let (status, stdout) = run_markdown_lint(&temp, Some("docs"))?;
@@ -57,15 +57,15 @@ fn lint_reports_directory_link_style_ambiguity_when_no_local_style_dominates() -
     std::fs::create_dir_all(temp.path().join("notes"))?;
     std::fs::write(
         temp.path().join("notes/index.md"),
-        "---\ntitle: Notes Index\n---\n# Notes Index\n",
+        "---\nkind: reference\ncategory: docs\ntags:\n  - docs\ndescription: Demo note\nauthor: xiuxian-artisan-workshop\ndate: 2026-04-26T09:30-07:00\nmetadata:\n  retrieval:\n    saliency_base: 5.5\n    decay_rate: 0.05\ntitle: Notes Index\n---\n# Notes Index\n",
     )?;
     std::fs::write(
         temp.path().join("notes/obsidian.md"),
-        "---\ntitle: Obsidian\n---\n# Obsidian\nSee [[index|Notes Index]].\n",
+        "---\nkind: reference\ncategory: docs\ntags:\n  - docs\ndescription: Demo note\nauthor: xiuxian-artisan-workshop\ndate: 2026-04-26T09:30-07:00\nmetadata:\n  retrieval:\n    saliency_base: 5.5\n    decay_rate: 0.05\ntitle: Obsidian\n---\n# Obsidian\nSee [[index|Notes Index]].\n",
     )?;
     std::fs::write(
         temp.path().join("notes/markdown.md"),
-        "---\ntitle: Markdown\n---\n# Markdown\nSee [Notes Index](index.md).\n",
+        "---\nkind: reference\ncategory: docs\ntags:\n  - docs\ndescription: Demo note\nauthor: xiuxian-artisan-workshop\ndate: 2026-04-26T09:30-07:00\nmetadata:\n  retrieval:\n    saliency_base: 5.5\n    decay_rate: 0.05\ntitle: Markdown\n---\n# Markdown\nSee [Notes Index](index.md).\n",
     )?;
 
     let (status, stdout) = run_markdown_lint(&temp, Some("notes"))?;

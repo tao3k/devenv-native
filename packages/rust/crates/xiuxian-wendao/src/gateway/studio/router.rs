@@ -43,6 +43,8 @@ pub use state::{
     GatewayState, StudioBootstrapBackgroundIndexingTelemetry, StudioSearchColdStartCorpusTelemetry,
     StudioSearchColdStartEvent, StudioSearchColdStartTelemetry, StudioState,
 };
+#[cfg(test)]
+pub(crate) use state::{GraphIndexCacheEntry, GraphSourceSignature};
 
 #[cfg(test)]
 #[path = "../../../tests/unit/gateway/studio/router/mod.rs"]

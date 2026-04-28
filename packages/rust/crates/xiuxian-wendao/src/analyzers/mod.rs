@@ -157,9 +157,10 @@ pub use service::{
     julia_arrow_response_schema,
 };
 #[cfg(feature = "zhenfa-router")]
+pub(crate) use service::{DocsToolRuntime, DocsToolRuntimeHandle};
+#[cfg(all(feature = "zhenfa-router", feature = "julia"))]
 pub(crate) use service::{
-    DocsToolRuntime, DocsToolRuntimeHandle, IncrementalApplyContext, analyze_changed_files,
-    apply_incremental_plugin_outputs,
+    IncrementalApplyContext, analyze_changed_files, apply_incremental_plugin_outputs,
 };
 pub use service::{
     analyze_registered_repository, analyze_registered_repository_cached_with_registry,

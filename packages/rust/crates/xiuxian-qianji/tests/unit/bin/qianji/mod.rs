@@ -1,24 +1,33 @@
 use super::{
-    BpmnCliCheckpointBackend, BpmnCliCommand, BpmnRunCliCommand, BpmnStartCliCommand,
+    BpmnCliCheckpointBackend, BpmnCliCommand, BpmnHostSessionCliCommand, BpmnRunCliCommand,
+    BpmnStartAtCliCommand, BpmnStartCliCommand, BpmnStatusCliCommand, BpmnTaskClaimCliCommand,
+    BpmnTaskReleaseCliCommand, BpmnTaskWorklistCliCommand, ConstructCliCommand,
     ContractFeedbackCliCommand, DEFAULT_CONTRACT_FEEDBACK_TABLE_NAME, DirCliCommand,
-    LintCliCommand, MaterializeCliTarget, REST_DOCS_PACK_ID, RestDocsCliCommand, ShowCliTarget,
-    TemplateCliCommand, build_contract_feedback_config, build_rest_docs_collection_context,
-    parse_bpmn_command, parse_contract_feedback_command, parse_dir_command, parse_lint_command,
+    EmitCliCommand, LintCliCommand, MaterializeCliTarget, REST_DOCS_PACK_ID, RestDocsCliCommand,
+    ShowCliTarget, TemplateCliCommand, build_contract_feedback_config,
+    build_rest_docs_collection_context, parse_bpmn_command, parse_construct_command,
+    parse_contract_feedback_command, parse_dir_command, parse_emit_command, parse_lint_command,
     parse_template_command, resolve_bpmn_checkpoint_store_with_env, resolve_workspace_root,
     run_bpmn_command, run_bpmn_run_command_with_runtime_env,
-    run_deterministic_rest_docs_contract_feedback, run_dir_command, run_lint_command,
-    run_scaffold_rest_docs_contract_feedback, run_template_command, sanitize_prj_cache_home,
+    run_bpmn_start_at_command_with_runtime_env, run_bpmn_status_command_with_runtime_env,
+    run_bpmn_task_claim_command_with_runtime_env, run_bpmn_task_release_command_with_runtime_env,
+    run_bpmn_task_worklist_command_with_runtime_env, run_construct_command,
+    run_deterministic_rest_docs_contract_feedback, run_dir_command, run_emit_command,
+    run_lint_command, run_scaffold_rest_docs_contract_feedback, run_template_command,
+    sanitize_prj_cache_home,
 };
 use std::fs;
 use std::path::{Path, PathBuf};
 use tempfile::TempDir;
-use xiuxian_config_core::{resolve_cache_home_from_value, resolve_project_root};
+use xiuxian_config_core::resolve_cache_home_from_value;
 use xiuxian_qianji::runtime_config::QianjiRuntimeEnv;
 
 mod bpmn;
 mod cache_paths;
+mod construct_cli;
 mod dir_parsing;
 mod dir_runtime;
+mod emit;
 mod lint;
 mod rest_docs;
 mod template_cli;
@@ -116,36 +125,25 @@ flowchart = ["blueprint", "plan"]
     workdir
 }
 
-fn repo_root() -> PathBuf {
-    resolve_project_root().unwrap_or_else(|| {
-        Path::new(env!("CARGO_MANIFEST_DIR"))
-            .ancestors()
-            .nth(4)
-            .unwrap_or_else(|| panic!("qianji manifest dir should resolve to workspace root"))
-            .to_path_buf()
-    })
+fn package_root() -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR")).to_path_buf()
 }
 
 fn flowhub_root() -> PathBuf {
-    repo_root().join("qianji-flowhub")
+    package_root().join("qianji-flowhub")
 }
 
 fn scenario_fixture_dir(name: &str) -> PathBuf {
-    repo_root().join(format!(
-        "packages/rust/crates/xiuxian-qianji/tests/fixtures/flowhub/{name}"
-    ))
+    package_root().join(format!("tests/fixtures/flowhub/{name}"))
 }
 
 fn anchored_workdir_fixture_anchor() -> PathBuf {
-    repo_root().join(
-        "packages/rust/crates/xiuxian-qianji/tests/fixtures/flowhub_modules/paper_deep_read_workdir/qianji.toml",
-    )
+    package_root().join("tests/fixtures/flowhub_modules/paper_deep_read_workdir/qianji.toml")
 }
 
 fn anchored_workdir_fixture_graph() -> PathBuf {
-    repo_root().join(
-        "packages/rust/crates/xiuxian-qianji/tests/fixtures/flowhub_modules/paper_deep_read_workdir/paper-deep-read.mmd",
-    )
+    package_root()
+        .join("tests/fixtures/flowhub_modules/paper_deep_read_workdir/paper-deep-read.mmd")
 }
 
 fn anchored_workdir_fixture_scenario() -> &'static str {

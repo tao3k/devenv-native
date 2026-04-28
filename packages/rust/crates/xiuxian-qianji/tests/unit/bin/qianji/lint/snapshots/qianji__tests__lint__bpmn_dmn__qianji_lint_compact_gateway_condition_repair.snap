@@ -1,0 +1,61 @@
+---
+source: packages/rust/crates/xiuxian-qianji/src/bin/../../tests/unit/bin/qianji/lint/bpmn_dmn.rs
+expression: "stable_temp_output(&output.rendered, &temp_dir)"
+---
+[lint:error] $TEMP/invalid_condition.bpmn bpmn
+Source: $TEMP/invalid_condition.bpmn
+Issues: 1
+
+[bpmn.unsupported_gateway_configuration] Error: Conditional gateway condition exceeds the bounded subset
+    ,-[ $TEMP/invalid_condition.bpmn:10:33 ]
+ 10 |      <bpmn:conditionExpression>approved == true</bpmn:conditionExpression>
+    |                                `---------------- rewrite this condition into qianji's bounded subset
+    |Help: Use one boolean path such as `approved` or `not approved`, or one numeric comparison such as `amount > 100`. Return a minimal unified diff only.
+
+Action:
+- Rewrite the `conditionExpression` on gateway 'decision' in process 'condition_flow' so it stays inside the bounded subset: one boolean variable path like `approved`, `not approved`, `selectedMerge`, or `flags.approved`, or one numeric comparison like `amount > 100` or `risk >= 7`. If the current route is based on a string or enum choice, add a boolean output to the upstream task and route on that boolean. Preserve workflow intent, but remove FEEL, string equality, boolean-literal comparisons, logical combinations, and script-style expressions.
+
+Fix:
+- Rewrite the branch condition as one simple boolean variable path, optionally prefixed with `not`, or as one numeric comparison from an identifier path to one numeric literal.
+- For a choice or enum branch, have the previous task emit one top-level boolean `qianji:outputs` value per route, such as `selectedMerge` or `shouldMerge`, then use `selectedMerge` as the `conditionExpression`.
+- Do not use FEEL, boolean-literal comparisons like `approved == true`, string equality like `chosenOption == 'merge'`, scripts, function calls, arithmetic, or logical combinations such as `approved and vip` in this bounded slice.
+
+Patch focus:
+- rewrite_condition_expression
+- replace_string_or_enum_equality_with_boolean_route_variable
+- when: the route currently compares a choice/string/enum variable to a literal
+- producer_change: add one top-level boolean qianji:outputs value on the immediately upstream task for each branch decision
+- route_change: replace the string equality condition with that boolean output path
+
+Allowed forms:
+- boolean_path
+- numeric_comparison
+
+Examples:
+- approved
+- not approved
+- flags.approved
+- amount > 100
+- risk >= 7
+- selectedMerge
+- shouldMerge
+- shouldOpenPullRequest
+- not selectedMerge
+
+Forbidden forms:
+- approved == true
+- approved == false
+- chosenOption == 'merge'
+- chosenOption == "merge"
+- choice == 'x'
+- !approved
+- approved and vip
+- ${approved}
+- functions
+- scripts
+- FEEL expressions
+- route === 'merge'
+
+Structured repair:
+- strategy: rewrite_condition_to_bounded_subset
+- contract: qianji.bpmn.gateway.bounded.v1

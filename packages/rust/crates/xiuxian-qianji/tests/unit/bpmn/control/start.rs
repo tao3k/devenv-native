@@ -11,6 +11,7 @@ fn workflow_control_service_prepares_package_and_resolved_paths() {
         process_id: "wait_flow".to_string(),
         instance_id: "wf_prepare".to_string(),
         initial_variables: Some(json!({})),
+        start_at_node_id: None,
         checkpoint_backend: None,
     };
     let service = QianjiBpmnWorkflowControlService::new();
@@ -44,6 +45,7 @@ async fn workflow_control_service_runs_prepared_linear_bundle() {
         process_id: "linear".to_string(),
         instance_id: "wf_control_linear".to_string(),
         initial_variables: Some(json!({ "risk": "low" })),
+        start_at_node_id: None,
         checkpoint_backend: None,
     };
     let service = QianjiBpmnWorkflowControlService::new();
@@ -118,6 +120,7 @@ async fn workflow_control_service_runtime_valkey_scheduler_identity_deletes_term
                     process_id: "linear".to_string(),
                     instance_id: "wf_control_runtime_valkey".to_string(),
                     initial_variables: Some(json!({ "risk": "high" })),
+                    start_at_node_id: None,
                     checkpoint_backend: Some(QianjiBpmnWorkflowCheckpointBackend::RuntimeValkey),
                 },
                 &QianjiBpmnHostBridge::default(),

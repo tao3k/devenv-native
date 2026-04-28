@@ -90,6 +90,24 @@ pub(super) enum EpistemeLoadError {
     NonSelectStatement { id: String, statement: String },
     #[error("diagnostic mapping {id} references unknown policy query {query}")]
     UnknownDiagnosticQuery { id: String, query: String },
+    #[error(
+        "episteme manifest must declare {section}; root inline policy registration is not supported"
+    )]
+    MissingDistributedImport { section: &'static str },
+    #[error(
+        "episteme root manifest must not declare inline {section}; move the entries into distributed manifests"
+    )]
+    InlineManifestSection { section: &'static str },
+    #[error(
+        "source evolution registry {id} must not declare [execution] in {path}; use sources/manifest.toml defaults"
+    )]
+    SourceRegistryInlineExecution { id: String, path: PathBuf },
+    #[error("repair prompt manifest {path} must declare [defaults].repair_tooling")]
+    MissingRepairPromptDefaultTooling { path: PathBuf },
+    #[error(
+        "repair prompt {id} must not declare repair_tooling in {path}; use [defaults].repair_tooling"
+    )]
+    RepairPromptInlineTooling { id: String, path: PathBuf },
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -97,12 +115,27 @@ pub(super) enum EpistemeLoadError {
 struct EpistemeManifest {
     schema_version: Option<u32>,
     name: Option<String>,
+    imports: ManifestImports,
     sql: ManifestSql,
     policy_queries: Vec<ManifestPolicyQuery>,
+    authoring_templates: Vec<toml::Value>,
     diagnostic_mappings: Vec<ManifestDiagnosticMapping>,
     repair_prompts: Vec<ManifestPathEntry>,
     repair_guards: Vec<ManifestPathEntry>,
     source_evolution_skill_surfaces: Vec<ManifestSourceEvolutionSkillSurface>,
+    frameworks: Vec<toml::Value>,
+    conflicts: Vec<toml::Value>,
+    topology_manifest: Option<toml::Value>,
+    diagnostics: Option<toml::Value>,
+    repair: Option<toml::Value>,
+}
+
+#[derive(Debug, Default, Deserialize)]
+#[serde(default)]
+struct ManifestImports {
+    policy_manifests: Vec<String>,
+    repair_prompt_manifest: Option<String>,
+    source_evolution_manifest: Option<String>,
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -144,6 +177,26 @@ struct ManifestSourceEvolutionSkillSurface {
     skill_path: String,
 }
 
+#[derive(Debug, Default, Deserialize)]
+#[serde(default)]
+struct PolicyManifest {
+    policy_queries: Vec<ManifestPolicyQuery>,
+    diagnostic_mappings: Vec<ManifestDiagnosticMapping>,
+    repair_guards: Vec<ManifestPathEntry>,
+}
+
+#[derive(Debug, Default, Deserialize)]
+#[serde(default)]
+struct RepairPromptManifest {
+    repair_prompts: Vec<ManifestPathEntry>,
+}
+
+#[derive(Debug, Default, Deserialize)]
+#[serde(default)]
+struct SourceEvolutionManifest {
+    source_evolution_skill_surfaces: Vec<ManifestSourceEvolutionSkillSurface>,
+}
+
 pub(super) fn load_episteme_manifest(
     load_path: impl AsRef<Path>,
 ) -> Result<EpistemeLoadReport, EpistemeLoadError> {
@@ -158,6 +211,8 @@ pub(super) fn load_episteme_manifest(
             path: manifest_path.clone(),
             source,
         })?;
+    validate_distributed_manifest_shape(&manifest)?;
+    let manifest = expand_manifest_imports(manifest, &root_path)?;
 
     validate_manifest_ids(&manifest)?;
 
@@ -238,6 +293,252 @@ pub(super) fn load_episteme_manifest(
         source_evolution_skill_count: manifest.source_evolution_skill_surfaces.len(),
         policy_queries,
     })
+}
+
+fn validate_distributed_manifest_shape(
+    manifest: &EpistemeManifest,
+) -> Result<(), EpistemeLoadError> {
+    if manifest.imports.policy_manifests.is_empty() {
+        return Err(EpistemeLoadError::MissingDistributedImport {
+            section: "imports.policy_manifests",
+        });
+    }
+
+    let inline_sections = [
+        ("policy_queries", !manifest.policy_queries.is_empty()),
+        (
+            "authoring_templates",
+            !manifest.authoring_templates.is_empty(),
+        ),
+        (
+            "diagnostic_mappings",
+            !manifest.diagnostic_mappings.is_empty(),
+        ),
+        ("repair_prompts", !manifest.repair_prompts.is_empty()),
+        ("repair_guards", !manifest.repair_guards.is_empty()),
+        (
+            "source_evolution_skill_surfaces",
+            !manifest.source_evolution_skill_surfaces.is_empty(),
+        ),
+        ("frameworks", !manifest.frameworks.is_empty()),
+        ("conflicts", !manifest.conflicts.is_empty()),
+        ("topology_manifest", manifest.topology_manifest.is_some()),
+        ("diagnostics", manifest.diagnostics.is_some()),
+        ("repair", manifest.repair.is_some()),
+    ];
+    for (section, is_present) in inline_sections {
+        if is_present {
+            return Err(EpistemeLoadError::InlineManifestSection { section });
+        }
+    }
+
+    Ok(())
+}
+
+fn expand_manifest_imports(
+    mut manifest: EpistemeManifest,
+    root_path: &Path,
+) -> Result<EpistemeManifest, EpistemeLoadError> {
+    for policy_manifest_path in &manifest.imports.policy_manifests {
+        let import_path = validate_declared_file(
+            root_path,
+            "imports.policy_manifests",
+            policy_manifest_path,
+            Path::new(policy_manifest_path),
+        )?;
+        let import_base = import_path.parent().unwrap_or(root_path);
+        let mut policy_manifest: PolicyManifest = read_toml_manifest(&import_path)?;
+
+        normalize_policy_manifest_paths(root_path, import_base, &mut policy_manifest)?;
+        manifest
+            .policy_queries
+            .extend(policy_manifest.policy_queries);
+        manifest
+            .diagnostic_mappings
+            .extend(policy_manifest.diagnostic_mappings);
+        manifest.repair_guards.extend(policy_manifest.repair_guards);
+    }
+
+    if let Some(repair_prompt_manifest_path) = &manifest.imports.repair_prompt_manifest {
+        let import_path = validate_declared_file(
+            root_path,
+            "imports.repair_prompt_manifest",
+            repair_prompt_manifest_path,
+            Path::new(repair_prompt_manifest_path),
+        )?;
+        let import_base = import_path.parent().unwrap_or(root_path);
+        validate_repair_prompt_manifest_contract(&import_path)?;
+        let mut prompt_manifest: RepairPromptManifest = read_toml_manifest(&import_path)?;
+        for prompt in &mut prompt_manifest.repair_prompts {
+            prompt.path = normalize_declared_path(
+                root_path,
+                import_base,
+                "repair_prompts",
+                &prompt.id,
+                prompt.path.as_str(),
+            )?;
+        }
+        manifest
+            .repair_prompts
+            .extend(prompt_manifest.repair_prompts);
+    }
+
+    if let Some(source_evolution_manifest_path) = &manifest.imports.source_evolution_manifest {
+        let import_path = validate_declared_file(
+            root_path,
+            "imports.source_evolution_manifest",
+            source_evolution_manifest_path,
+            Path::new(source_evolution_manifest_path),
+        )?;
+        let import_base = import_path.parent().unwrap_or(root_path);
+        let mut source_manifest: SourceEvolutionManifest = read_toml_manifest(&import_path)?;
+        for surface in &mut source_manifest.source_evolution_skill_surfaces {
+            surface.sources_path = normalize_declared_path(
+                root_path,
+                import_base,
+                "source_evolution_skill_surfaces.sources_path",
+                &surface.id,
+                surface.sources_path.as_str(),
+            )?;
+            surface.skill_path = normalize_declared_path(
+                root_path,
+                import_base,
+                "source_evolution_skill_surfaces.skill_path",
+                &surface.id,
+                surface.skill_path.as_str(),
+            )?;
+        }
+        manifest
+            .source_evolution_skill_surfaces
+            .extend(source_manifest.source_evolution_skill_surfaces);
+    }
+
+    Ok(manifest)
+}
+
+fn validate_repair_prompt_manifest_contract(path: &Path) -> Result<(), EpistemeLoadError> {
+    let manifest_text =
+        fs::read_to_string(path).map_err(|source| EpistemeLoadError::ReadManifest {
+            path: path.to_path_buf(),
+            source,
+        })?;
+    let manifest: toml::Value =
+        toml::from_str(&manifest_text).map_err(|source| EpistemeLoadError::ParseManifest {
+            path: path.to_path_buf(),
+            source,
+        })?;
+    let has_default_tooling = manifest
+        .get("defaults")
+        .and_then(toml::Value::as_table)
+        .and_then(|defaults| defaults.get("repair_tooling"))
+        .and_then(toml::Value::as_str)
+        .is_some_and(|value| !value.trim().is_empty());
+    if !has_default_tooling {
+        return Err(EpistemeLoadError::MissingRepairPromptDefaultTooling {
+            path: path.to_path_buf(),
+        });
+    }
+
+    let Some(prompts) = manifest
+        .get("repair_prompts")
+        .and_then(toml::Value::as_array)
+    else {
+        return Ok(());
+    };
+    for prompt in prompts {
+        let Some(prompt_table) = prompt.as_table() else {
+            continue;
+        };
+        if prompt_table.contains_key("repair_tooling") {
+            let id = prompt_table
+                .get("id")
+                .and_then(toml::Value::as_str)
+                .unwrap_or("<unknown>");
+            return Err(EpistemeLoadError::RepairPromptInlineTooling {
+                id: id.to_string(),
+                path: path.to_path_buf(),
+            });
+        }
+    }
+    Ok(())
+}
+
+fn read_toml_manifest<T: for<'de> Deserialize<'de>>(path: &Path) -> Result<T, EpistemeLoadError> {
+    let text = fs::read_to_string(path).map_err(|source| EpistemeLoadError::ReadManifest {
+        path: path.to_path_buf(),
+        source,
+    })?;
+    toml::from_str(&text).map_err(|source| EpistemeLoadError::ParseManifest {
+        path: path.to_path_buf(),
+        source,
+    })
+}
+
+fn normalize_policy_manifest_paths(
+    root_path: &Path,
+    import_base: &Path,
+    policy_manifest: &mut PolicyManifest,
+) -> Result<(), EpistemeLoadError> {
+    for query in &mut policy_manifest.policy_queries {
+        query.path = normalize_declared_path(
+            root_path,
+            import_base,
+            "policy_queries",
+            &query.id,
+            query.path.as_str(),
+        )?;
+    }
+    for mapping in &mut policy_manifest.diagnostic_mappings {
+        mapping.path = normalize_declared_path(
+            root_path,
+            import_base,
+            "diagnostic_mappings",
+            &mapping.id,
+            mapping.path.as_str(),
+        )?;
+    }
+    for guard in &mut policy_manifest.repair_guards {
+        guard.path = normalize_declared_path(
+            root_path,
+            import_base,
+            "repair_guards",
+            &guard.id,
+            guard.path.as_str(),
+        )?;
+    }
+    Ok(())
+}
+
+fn normalize_declared_path(
+    root_path: &Path,
+    base_path: &Path,
+    section: &'static str,
+    id: &str,
+    relative_path: &str,
+) -> Result<String, EpistemeLoadError> {
+    let path = Path::new(relative_path);
+    if path.is_absolute() {
+        return Err(EpistemeLoadError::AbsoluteDeclaredPath {
+            section,
+            id: id.to_string(),
+            path: path.to_path_buf(),
+        });
+    }
+
+    let declared_path = base_path.join(path);
+    if !declared_path.is_file() {
+        return Err(EpistemeLoadError::MissingDeclaredFile {
+            section,
+            id: id.to_string(),
+            path: declared_path,
+        });
+    }
+
+    Ok(declared_path
+        .strip_prefix(root_path)
+        .unwrap_or(declared_path.as_path())
+        .to_string_lossy()
+        .to_string())
 }
 
 fn resolve_manifest_path(load_path: &Path) -> Result<(PathBuf, PathBuf), EpistemeLoadError> {
@@ -345,18 +646,42 @@ fn validate_source_skill_surfaces(
     surfaces: &[ManifestSourceEvolutionSkillSurface],
 ) -> Result<(), EpistemeLoadError> {
     for surface in surfaces {
-        validate_declared_file(
+        let sources_path = validate_declared_file(
             root_path,
             "source_evolution_skill_surfaces.sources_path",
             &surface.id,
             Path::new(&surface.sources_path),
         )?;
+        validate_source_registry_contract(surface, &sources_path)?;
         validate_declared_file(
             root_path,
             "source_evolution_skill_surfaces.skill_path",
             &surface.id,
             Path::new(&surface.skill_path),
         )?;
+    }
+    Ok(())
+}
+
+fn validate_source_registry_contract(
+    surface: &ManifestSourceEvolutionSkillSurface,
+    sources_path: &Path,
+) -> Result<(), EpistemeLoadError> {
+    let registry_text =
+        fs::read_to_string(sources_path).map_err(|source| EpistemeLoadError::ReadManifest {
+            path: sources_path.to_path_buf(),
+            source,
+        })?;
+    let registry: toml::Value =
+        toml::from_str(&registry_text).map_err(|source| EpistemeLoadError::ParseManifest {
+            path: sources_path.to_path_buf(),
+            source,
+        })?;
+    if registry.get("execution").is_some() {
+        return Err(EpistemeLoadError::SourceRegistryInlineExecution {
+            id: surface.id.clone(),
+            path: sources_path.to_path_buf(),
+        });
     }
     Ok(())
 }
@@ -569,5 +894,5 @@ fn sql_guard_text(sql: &str) -> String {
 }
 
 #[cfg(test)]
-#[path = "../../../../tests/unit/semantic_check_tests/episteme.rs"]
+#[path = "../../../../tests/unit/semantic_check_tests/episteme/mod.rs"]
 mod tests;

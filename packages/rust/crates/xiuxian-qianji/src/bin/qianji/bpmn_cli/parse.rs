@@ -1,8 +1,8 @@
 //! BPMN CLI parser facade; `dispatch` is the canonical visible owner.
 
-mod backend;
 mod dispatch;
 mod resume;
+mod session;
 mod start;
 mod status;
 

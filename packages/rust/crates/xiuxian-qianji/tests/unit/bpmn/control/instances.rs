@@ -24,6 +24,7 @@ async fn workflow_control_service_lists_duckdb_checkpoint_instances() {
                         process_id: "wait_flow".to_string(),
                         instance_id: instance_id.to_string(),
                         initial_variables: Some(json!({ "instance": instance_id })),
+                        start_at_node_id: None,
                         checkpoint_backend: Some(QianjiBpmnWorkflowCheckpointBackend::LocalDuckDb),
                     },
                     &QianjiBpmnHostBridge::default(),

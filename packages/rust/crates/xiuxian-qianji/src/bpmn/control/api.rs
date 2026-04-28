@@ -14,10 +14,16 @@ pub use types::{
     QianjiBpmnWorkflowCheckpointBackend, QianjiBpmnWorkflowEventPollReport,
     QianjiBpmnWorkflowEventPollRequest, QianjiBpmnWorkflowInstanceSummary,
     QianjiBpmnWorkflowInstancesReport, QianjiBpmnWorkflowInstancesRequest,
+    QianjiBpmnWorkflowInterruptReport, QianjiBpmnWorkflowInterruptRequest,
     QianjiBpmnWorkflowResumeReport, QianjiBpmnWorkflowResumeRequest, QianjiBpmnWorkflowStartReport,
     QianjiBpmnWorkflowStartRequest, QianjiBpmnWorkflowStatusReport,
-    QianjiBpmnWorkflowStatusRequest, QianjiBpmnWorkflowTaskCompleteReport,
-    QianjiBpmnWorkflowTaskCompleteRequest,
+    QianjiBpmnWorkflowStatusRequest, QianjiBpmnWorkflowTaskClaimPayload,
+    QianjiBpmnWorkflowTaskClaimReport, QianjiBpmnWorkflowTaskClaimRequest,
+    QianjiBpmnWorkflowTaskCompleteReport, QianjiBpmnWorkflowTaskCompleteRequest,
+    QianjiBpmnWorkflowTaskCompletionKind, QianjiBpmnWorkflowTaskCompletionPayload,
+    QianjiBpmnWorkflowTaskReleasePayload, QianjiBpmnWorkflowTaskReleaseReport,
+    QianjiBpmnWorkflowTaskReleaseRequest, QianjiBpmnWorkflowWorklistItem,
+    QianjiBpmnWorkflowWorklistReport, QianjiBpmnWorkflowWorklistRequest,
 };
 
 /// Error returned by the lib-owned BPMN workflow control service.

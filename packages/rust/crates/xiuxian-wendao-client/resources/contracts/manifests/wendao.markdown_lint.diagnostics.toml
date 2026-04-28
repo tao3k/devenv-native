@@ -52,6 +52,60 @@ detail_strategy = "parser_message"
 expected = "Set a non-empty top-level `title` field in the document frontmatter."
 
 [[rules]]
+code = "missing_frontmatter_kind"
+problem = "Common frontmatter must include a non-empty `kind`."
+detail_strategy = "parser_message"
+expected = "Set a non-empty top-level `kind` field in the document frontmatter."
+
+[[rules]]
+code = "missing_frontmatter_category"
+problem = "Common frontmatter must include a non-empty `category`."
+detail_strategy = "parser_message"
+expected = "Set a non-empty top-level `category` field in the document frontmatter."
+
+[[rules]]
+code = "missing_frontmatter_tags"
+problem = "Common frontmatter must include a non-empty `tags` array."
+detail_strategy = "parser_message"
+expected = "Set top-level `tags` to a non-empty YAML array of strings."
+
+[[rules]]
+code = "missing_frontmatter_description"
+problem = "Common frontmatter must include a non-empty `description`."
+detail_strategy = "parser_message"
+expected = "Set a non-empty top-level `description` field in the document frontmatter."
+
+[[rules]]
+code = "missing_frontmatter_author"
+problem = "Common frontmatter must include a non-empty `author`."
+detail_strategy = "parser_message"
+expected = "Set a non-empty top-level `author` field in the document frontmatter."
+
+[[rules]]
+code = "missing_frontmatter_date"
+problem = "Common frontmatter must include a minute-precision `date`."
+detail_strategy = "parser_message"
+expected = "Set top-level `date` to `YYYY-MM-DDTHH:MM±HH:MM` or `YYYY-MM-DDTHH:MMZ`."
+
+[[rules]]
+code = "invalid_frontmatter_date_precision"
+problem = "Common frontmatter `date` must be precise to the minute."
+detail_strategy = "parser_message"
+expected = "Use `YYYY-MM-DDTHH:MM±HH:MM` or `YYYY-MM-DDTHH:MMZ`; omit seconds."
+
+[[rules]]
+code = "missing_frontmatter_retrieval_saliency_base"
+problem = "Common frontmatter must include numeric `metadata.retrieval.saliency_base`."
+detail_strategy = "parser_message"
+expected = "Set `metadata.retrieval.saliency_base` to a number."
+
+[[rules]]
+code = "missing_frontmatter_retrieval_decay_rate"
+problem = "Common frontmatter must include numeric `metadata.retrieval.decay_rate`."
+detail_strategy = "parser_message"
+expected = "Set `metadata.retrieval.decay_rate` to a number."
+
+[[rules]]
 code = "missing_skill_frontmatter_name"
 problem = "Skill-shaped document frontmatter must include a non-empty top-level `name`."
 detail_strategy = "parser_message"
@@ -62,6 +116,12 @@ code = "missing_skill_frontmatter_metadata"
 problem = "Skill-shaped document frontmatter must contain a top-level `metadata` mapping."
 detail_strategy = "parser_message"
 expected = "Add a top-level `metadata:` mapping to the SKILL frontmatter."
+
+[[rules]]
+code = "invalid_skill_frontmatter_schema"
+problem = "Skill-shaped document frontmatter must satisfy the parser-owned SKILL.md schema."
+detail_strategy = "parser_message"
+expected = "Start from common frontmatter, then add top-level `type: skill`, `name`, `metadata.version`, `metadata.source`, and a non-empty `metadata.routing_keywords` array."
 
 [[rules]]
 code = "unclosed_frontmatter"

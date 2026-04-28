@@ -48,10 +48,9 @@ pub use document::{
     DocumentCore, DocumentEnvelope, DocumentFormat, MarkdownDocument, parse_markdown_document,
 };
 pub use frontmatter::{
-    NoteFrontmatter, RawFrontmatter, discover_skill_documents, frontmatter_kind,
-    is_skill_descriptor_path, parse_frontmatter, parse_skill_frontmatter_lenient,
-    skill_frontmatter_has_metadata_mapping, skill_frontmatter_name, split_frontmatter,
-    split_frontmatter_raw, uses_skill_frontmatter,
+    NoteFrontmatter, RawFrontmatter, SkillFrontmatterParseError, discover_skill_documents,
+    frontmatter_kind, is_skill_descriptor_path, parse_frontmatter, parse_skill_frontmatter,
+    split_frontmatter, split_frontmatter_raw, uses_skill_frontmatter,
 };
 pub use lint::{
     MarkdownLintKind, MarkdownSyntaxLintCode, MarkdownSyntaxLintIssue, MarkdownSyntaxLintReport,

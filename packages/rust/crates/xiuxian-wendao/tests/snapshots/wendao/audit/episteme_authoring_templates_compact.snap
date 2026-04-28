@@ -1,0 +1,502 @@
+---
+source: packages/rust/crates/xiuxian-wendao/src/bin/wendao/execute/../../../../tests/unit/bin/wendao/execute/audit.rs
+expression: compact_outputs
+---
+----- adr -----
+Wendao audit template for LLM: adr.decision-contract-authoring-template
+framework: adr
+mode: decision_contract
+coordinate_source: decision metadata and references
+topology_source: repo_content_chunk plus reference_occurrence
+authority: template_guided_generation
+llm_role: decision_contract_planner
+
+authority rule:
+  ADR status, supersession, and active decision references outrank document-kind suggestions and synthesis pressure.
+
+path contract:
+  category_directory_shape: project-defined ADR location
+  note_file_shape: project-defined ADR filename
+  coordinate_shape: stable ADR id plus status and supersession metadata
+  inbox_directory: project-defined
+  inbox_policy: Proposed decisions may remain draft until status metadata is enacted.
+
+deterministic diagnostics:
+warning[expired_reference]: A document references a deprecated or superseded ADR.
+  help: Replace only the stale ADR pointer when Sentinel reports a successor id and an exact range.
+error[state_machine_broken]: A superseded ADR lacks a superseding decision pointer.
+  help: Add a supersession pointer only when the replacement ADR is explicit in SUPERSEDED_BY metadata or an inline superseded-by status.
+error[invalid_status]: ADR status is missing or outside PROPOSED, REJECTED, ACCEPTED, ACTIVE, DEPRECATED, or SUPERSEDED.
+  help: Set a valid status only when the document evidence makes the lifecycle state unambiguous.
+
+llm inputs:
+  decision_metadata: ADR id, status, optional inline superseded-by status, supersession pointer, and referenced decision ids.
+  decision_rationale: Context, decision outcome, consequences, and considered options used for review evidence, not automatic rewrite.
+  decision_references: References to ADR nodes observed in the current document set.
+
+llm outputs:
+  decision_metadata_patch: A metadata-only patch for ADR status or supersession fields.
+  stale_reference_patch: A bounded pointer replacement for expired ADR references.
+
+examples:
+  adr_reference: tests/fixtures/frameworks/adr/docs
+
+verification:
+  post_generation: wendao lint markdown docs
+  post_generation: wendao audit --load wendao-episteme docs
+----- diataxis -----
+Wendao audit template for LLM: diataxis.frontmatter-authoring-template
+framework: diataxis
+mode: frontmatter_kind
+coordinate_source: leading frontmatter
+topology_source: optional project_diataxis_path_rule
+authority: template_guided_generation
+llm_role: document_kind_planner
+
+authority rule:
+  The four Diataxis document kinds are a closed ontology for ordinary documentation records. Path rules may request review, but they do not authorize moving a document, classifying parser-owned contract files, or inventing a fifth kind.
+
+path contract:
+  category_directory_shape: project-defined
+  note_file_shape: *.md
+  coordinate_shape: frontmatter kind: tutorial | how-to | explanation | reference
+  inbox_directory: project-defined
+  inbox_policy: Ordinary documentation drafts should receive kind during generation; governed docs must carry one closed-ontology value.
+
+deterministic diagnostics:
+warning[invalid_document_kind]: A document declares a kind outside the common closed ontology.
+  help: For ordinary documentation records, replace the value with exactly one closed-ontology kind without changing body prose. For SKILL.md or other parser-owned contract files, return manual review.
+warning[diataxis_path_conflict]: A project-local path rule conflicts with the declared kind.
+  help: Prefer frontmatter reclassification or manual review; do not move the document automatically.
+
+llm inputs:
+  document_frontmatter: Leading YAML frontmatter for the target ordinary Markdown documentation record.
+  document_excerpt: A bounded body excerpt used only to classify the reader need.
+  document_role: Whether the file is ordinary documentation or a parser-owned contract file such as SKILL.md.
+  optional_path_rules: Project-local path-to-kind rules, if the consumer exposes them.
+
+llm outputs:
+  frontmatter_patch: A bounded metadata-only patch that sets or replaces kind.
+  manual_review_reason: A short reason when the document cannot be safely classified from the provided evidence.
+
+examples:
+  valid_tutorial: docs/tutorials/getting-started.md
+  valid_how_to: docs/how-to/rotate-keys.md
+  valid_explanation: docs/explanation/cache-coherence.md
+  valid_reference: docs/reference/api.md
+  path_conflict: docs/tutorials/cache_reference.md
+
+verification:
+  post_generation: wendao lint markdown docs
+  episteme_review: wendao audit --load wendao-episteme docs
+----- epistemic-sensemaking -----
+Wendao audit template for LLM: epistemic-sensemaking.conflict-authoring-template
+framework: epistemic-sensemaking
+mode: conflict_arbitration
+coordinate_source: framework diagnostics and resolved references
+topology_source: conflict authority matrix plus read-only policy evidence
+authority: template_guided_generation
+llm_role: conflict_resolution_planner
+
+authority rule:
+  Epistemic Sensemaking surfaces disagreement with provenance before mutation and applies the enacted framework authority matrix.
+
+path contract:
+  category_directory_shape: project-defined
+  note_file_shape: project-defined
+  coordinate_shape: conflict id, primary framework, secondary framework, and evidence range
+  inbox_directory: project-defined
+  inbox_policy: Unclassified disagreements remain review findings until a framework conflict is enacted.
+
+deterministic diagnostics:
+warning[topology_vs_synthesis]: A synthesis signal crosses or pressures canonical topology.
+  help: Preserve topology and emit a move-review proposal instead of relocating content.
+error[decision_vs_document_kind]: A document kind conflicts with an ADR decision contract.
+  help: Preserve the ADR contract and reclassify metadata only when the range is safe.
+warning[deprecated_decision_reference]: A document references a deprecated or superseded decision.
+  help: Surface provenance and propose a contextual update before any pointer replacement.
+
+llm inputs:
+  conflict_matrix: Enacted primary and secondary framework authority rules.
+  diagnostic_evidence: Conflict rows with evidence ranges and current context.
+
+llm outputs:
+  provenance_bundle: A compact explanation of the winning authority and evidence.
+  reviewable_resolution_plan: A non-mutating or metadata-scoped resolution proposal.
+
+examples:
+  conflict: tests/fixtures/frameworks/conflicts/docs
+
+verification:
+  post_generation: wendao lint markdown docs
+  post_generation: wendao audit --load wendao-episteme docs
+----- evergreen-notes -----
+Wendao audit template for LLM: evergreen-notes.relation-authoring-template
+framework: evergreen-notes
+mode: relation_graph
+coordinate_source: common frontmatter and wiki-style references
+topology_source: repo_content_chunk plus reference_occurrence
+authority: template_guided_generation
+llm_role: synthesis_planner
+
+authority rule:
+  Source-grounded Evergreen principles inform review, but only mechanically observable graph and atomicity signals become deterministic diagnostics.
+
+path contract:
+  category_directory_shape: project-defined
+  note_file_shape: project-defined
+  coordinate_shape: stable title, canonical path, and reference graph membership
+  inbox_directory: project-defined
+  inbox_policy: Draft notes may remain unlinked until they opt into durable knowledge graph publication.
+
+deterministic diagnostics:
+advisory[EVERGREEN_ORPHAN_MISSING_RELATION_BLOCK]: A Markdown note has no incoming or outgoing reference edges and no governed relation block.
+  help: Suggest inserting a compact relation block only when the diagnostic reports an explicit insertion range and graph evidence supports candidate links.
+advisory[EVERGREEN_EMPTY_RELATION_BLOCK]: A governed relation block exists but contains no detected wiki links.
+  help: Patch only the reported relation block with 2-3 evidence-backed wiki links, or return manual review when evidence is insufficient.
+advisory[EVERGREEN_BLOATED]: A note exceeds the enacted atomicity threshold.
+  help: Propose a review plan for splitting or extracting related notes; do not rewrite prose directly.
+
+llm inputs:
+  note_frontmatter: Common frontmatter identifying the note and its retrieval context.
+  reference_graph: Incoming and outgoing references exposed through Wendao logical views.
+  relation_block_state: Whether the note has a missing, empty, or present relation block.
+  source_grounding: Evergreen source principles: atomic notes, concept orientation, dense links, associative structure, title handles, and incremental writing.
+
+llm outputs:
+  relation_patch: A reviewable relation-block insertion or update proposal.
+  atomicity_review_plan: A non-mutating plan for decomposing oversized notes.
+  principle_review: A non-mutating explanation when concept orientation, title quality, or associative structure needs human review instead of deterministic repair.
+
+examples:
+  orphan: tests/fixtures/frameworks/evergreen/docs/orphan.md
+  empty_relation_block: tests/fixtures/frameworks/evergreen/docs/empty_relations.md
+  bloated_note: tests/fixtures/frameworks/evergreen/docs/bloated_note.md
+
+verification:
+  post_generation: wendao lint markdown docs
+  post_generation: wendao audit --load wendao-episteme docs
+----- folgezettel -----
+Wendao audit template for LLM: folgezettel.lineage-authoring-template
+framework: folgezettel
+mode: lineage_sequence
+coordinate_source: common frontmatter metadata.folgezettel.sequence or parser-owned sequence metadata
+topology_source: repo_content_chunk sequence inventory
+authority: template_guided_generation
+llm_role: lineage_planner
+
+authority rule:
+  Folgezettel sequence metadata preserves opt-in sequence continuity; repair is metadata-scoped and must not fabricate missing parent notes.
+
+path contract:
+  category_directory_shape: project-defined
+  note_file_shape: project-defined
+  coordinate_shape: Wendao-local alphanumeric sequence id with parent continuity
+  inbox_directory: project-defined
+  inbox_policy: Notes without sequence metadata stay outside Folgezettel policy.
+
+deterministic diagnostics:
+error[broken_lineage]: A child sequence has no existing parent sequence.
+  help: Propose a metadata correction only when a real parent sequence exists.
+error[duplicate_sequence]: The same sequence id appears in more than one document.
+  help: Propose a reviewable sequence reassignment for one duplicate; do not change both sides blindly.
+error[invalid_sequence]: A sequence id does not match the Wendao-local alphanumeric shape.
+  help: Normalize only the reported sequence metadata range.
+
+llm inputs:
+  sequence_inventory: Observed sequence ids and parent candidates.
+
+llm outputs:
+  sequence_metadata_patch: A metadata-only patch for the reported sequence field.
+  manual_review_reason: Reason a lineage repair cannot be inferred safely.
+
+examples:
+  broken_lineage: tests/fixtures/frameworks/folgezettel/docs/broken_lineage.md
+
+verification:
+  post_generation: wendao lint markdown docs
+  post_generation: wendao audit --load wendao-episteme docs
+----- ibis -----
+Wendao audit template for LLM: ibis.argumentation-authoring-template
+framework: ibis
+mode: argumentation_graph
+coordinate_source: IBIS node metadata and issue references
+topology_source: repo_content_chunk plus reference_occurrence
+authority: template_guided_generation
+llm_role: argumentation_scaffold_planner
+
+authority rule:
+  IBIS repair may scaffold unresolved debate, but it must not decide the issue or fabricate arguments.
+
+path contract:
+  category_directory_shape: project-defined
+  note_file_shape: project-defined
+  coordinate_shape: issue and position node ids with explicit target edges
+  inbox_directory: project-defined
+  inbox_policy: Documents without IBIS metadata stay outside argumentation policy.
+
+deterministic diagnostics:
+warning[unresolved_issue]: An Issue node has no detected Position response.
+  help: Add only a placeholder position scaffold inside an explicit safe range.
+error[dangling_position]: A Position targets an issue that does not resolve.
+  help: Repair the target pointer only when the intended issue is explicit.
+error[invalid_node_type]: An IBIS metadata type is outside the accepted Wendao IBIS vocabulary.
+  help: Normalize metadata.ibis.type only when the intended node role is explicit.
+
+llm inputs:
+  ibis_nodes: IBIS metadata exposed through parser-owned logical views.
+  issue_references: References that connect positions to issue nodes.
+
+llm outputs:
+  debate_scaffold_patch: A bounded scaffold patch that keeps the issue unresolved.
+  target_pointer_patch: A metadata-only repair for a dangling position target.
+
+examples:
+  open_issue: tests/fixtures/frameworks/ibis/docs/open_issue.md
+
+verification:
+  post_generation: wendao lint markdown docs
+  post_generation: wendao audit --load wendao-episteme docs
+----- johnny-decimal -----
+Wendao audit template for LLM: johnny-decimal.path-first-authoring-template
+framework: johnny-decimal
+mode: path_first
+coordinate_source: path
+topology_source: topology.toml
+authority: template_guided_generation
+llm_role: proposal_planner
+
+authority rule:
+  topology.toml, existing path index, and deterministic audit diagnostics outrank LLM suggestions.
+
+path contract:
+  category_directory_shape: project-defined directory whose leading category prefix agrees with AC
+  note_file_shape: AC.ID_semantic_name.md
+  coordinate_shape: AC.ID numeric coordinate plus local filename slug
+  inbox_directory: project-defined inbox or standard-zero inbox
+  inbox_policy: Unassigned drafts may live under a governed inbox without a durable AC.ID coordinate until reviewed.
+
+deterministic diagnostics:
+error[invalid_coordinate_shape]: A path-first note coordinate does not contain a valid AC.ID numeric prefix and local slug.
+  help: Propose a conforming filename without changing category authority.
+error[unknown_category]: The AC category prefix is not declared in topology.toml.
+  help: Choose an existing category or propose a topology.toml diff for human review.
+error[duplicate_coordinate]: More than one note occupies the same AC.ID numeric coordinate.
+  help: Propose a new unused ID slot for one note and explain the evidence.
+error[path_category_mismatch]: The note filename category prefix disagrees with its parent category directory.
+  help: Propose a move or rename that preserves the selected topology category.
+advisory[unassigned_note_advisory]: A draft is outside the path-first coordinate system.
+  help: Suggest an existing category and coordinate, or keep it in the inbox when evidence is weak.
+warning[category_capacity_warning]: A category is approaching its AC.ID coordinate capacity after any project-governed standard-zero reservations.
+  help: Avoid assigning new coordinates there unless the user confirms the category boundary.
+
+llm inputs:
+  topology_manifest: Project-local topology.toml area, category, and reservation catalog.
+  existing_path_index: Current path-first coordinates and occupied ID slots.
+  audit_diagnostics: Deterministic diagnostics emitted by wendao audit.
+  note_context: Title, local links, headings, and nearby path context for candidate placement.
+  jdex_or_index: Optional project-local JDex or index evidence for occupied coordinates and external locations.
+
+llm outputs:
+  reviewable_move_plan: A JSON proposal for create, move, or rename actions. It is not authority.
+
+examples:
+  valid_path: docs/10_wendao/10.03_audit_template_flow.md
+  inbox_path: docs/00_inbox/audit-template-draft.md
+
+verification:
+  post_generation: wendao lint markdown docs
+  post_generation: wendao audit --load wendao-episteme docs
+----- moc -----
+Wendao audit template for LLM: moc.navigation-hub-authoring-template
+framework: moc
+mode: navigation_hub
+coordinate_source: path-first Johnny.Decimal category scope plus route links
+topology_source: repo_content_chunk plus reference_occurrence
+authority: template_guided_generation
+llm_role: route_hub_planner
+
+authority rule:
+  MOC repair may add or refine route indexes, but it must not move notes, rewrite linked prose, or override canonical topology.
+
+path contract:
+  category_directory_shape: AC_* directory or AC.ID_* note path
+  note_file_shape: AC.00_* MOC hub or metadata.moc.role = hub
+  coordinate_shape: AC category scope plus outgoing route references
+  inbox_directory: project-defined
+  inbox_policy: Dense scopes may be flagged for a MOC without creating a hub automatically.
+
+deterministic diagnostics:
+advisory[required_for_density]: A dense scope exceeds the note-count threshold without a declared MOC.
+  help: Propose a route-hub note or index location for review; do not create one without approval.
+warning[empty_hub]: A declared MOC has too few outgoing route links.
+  help: Add a compact route index only inside a reported safe range.
+
+llm inputs:
+  scope_inventory: Johnny.Decimal category scope, note count, and candidate hub notes.
+  route_references: Outgoing references from declared MOC nodes.
+
+llm outputs:
+  route_index_patch: A reviewable index-only patch for the reported MOC range.
+  hub_proposal: A non-mutating proposal for a missing dense-scope hub.
+
+examples:
+  moc_hub: tests/fixtures/frameworks/moc/docs/10.00_moc.md
+
+verification:
+  post_generation: wendao lint markdown docs
+  post_generation: wendao audit --load wendao-episteme docs
+----- search-reasoning -----
+Wendao audit template for LLM: search-reasoning.query-authoring-template
+framework: search-reasoning
+mode: query_reasoning_contract
+coordinate_source: embedded query ranges, CodeGraph structural UIDs, and resolved local symbols
+topology_source: repo_content_chunk plus local_symbol
+authority: template_guided_generation
+llm_role: query_repair_planner
+
+authority rule:
+  Search Reasoning prefers stable semantic predicates over brittle exact paths while preserving query intent and result shape.
+
+path contract:
+  category_directory_shape: project-defined
+  note_file_shape: project-defined
+  coordinate_shape: reported query range or path/to/file::class::method structural UID
+  inbox_directory: project-defined
+  inbox_policy: Queries without brittle predicates require no Search Reasoning repair.
+
+deterministic diagnostics:
+warning[brittle_query]: An embedded query uses exact path or file_path equality where semantic predicates should be preferred.
+  help: Replace only the brittle predicate range when a stable semantic predicate is explicit.
+warning[brittle_uid]: A code-symbol reference lacks a structural UID even though the symbol can be resolved.
+  help: Replace only the reported reference text with the structural UID.
+
+llm inputs:
+  query_context: The reported query range and nearby code fence context.
+  symbol_matches: Resolved symbols that can provide stable structural UIDs.
+
+llm outputs:
+  query_predicate_patch: A bounded predicate-only query patch.
+  uid_reference_patch: A bounded structural UID replacement.
+
+examples:
+  brittle_query: tests/fixtures/frameworks/search_reasoning/docs/brittle_query.md
+
+verification:
+  post_generation: wendao lint markdown docs
+  post_generation: wendao audit --load wendao-episteme docs
+----- semantic-consistency -----
+Wendao audit template for LLM: semantic-consistency.protocol-authoring-template
+framework: semantic-consistency
+mode: protocol_alignment
+coordinate_source: metadata status and dependency hash fields
+topology_source: repo_content_chunk plus optional project_content_fingerprint
+authority: template_guided_generation
+llm_role: protocol_alignment_planner
+
+authority rule:
+  Semantic Consistency preserves enacted protocol vocabulary and treats stale-read findings as planner review signals before writes.
+
+path contract:
+  category_directory_shape: project-defined
+  note_file_shape: project-defined
+  coordinate_shape: metadata status or dependency hash contract
+  inbox_directory: project-defined
+  inbox_policy: Documents without lifecycle status metadata are outside this status check.
+
+deterministic diagnostics:
+error[invalid_status]: A metadata status value is outside the enacted Wendao protocol vocabulary.
+  help: Correct only the reported status value when a canonical replacement is unambiguous.
+warning[stale_read_detected]: An agent-maintained note records a dependency hash that no longer matches the live fingerprint.
+  help: Produce a review plan before any write; do not refresh prose directly from stale context.
+
+llm inputs:
+  status_metadata: Lifecycle status values exposed by parser-owned metadata views, preferably metadata.lifecycle.status.
+  dependency_fingerprints: Recorded metadata.dependencies.hash values and live dependency hashes when the optional fingerprint view exists.
+
+llm outputs:
+  status_metadata_patch: A metadata-only patch for a reported invalid status.
+  stale_read_review_plan: A non-mutating plan for refreshing agent-maintained material.
+
+examples:
+  invalid_status: tests/fixtures/frameworks/semantic_consistency_status/docs/invalid_status.md
+
+verification:
+  post_generation: wendao lint markdown docs
+  post_generation: wendao audit --load wendao-episteme docs
+----- structural-proprioception -----
+Wendao audit template for LLM: structural-proprioception.graph-health-authoring-template
+framework: structural-proprioception
+mode: graph_health
+coordinate_source: resolved graph edges and metadata.proprioception.observe observation metadata
+topology_source: reference_occurrence plus local_symbol
+authority: template_guided_generation
+llm_role: graph_health_planner
+
+authority rule:
+  Structural Proprioception diagnostics protect graph health; cycle repair is relation-scoped and drift repair is observation-scoped.
+
+path contract:
+  category_directory_shape: project-defined
+  note_file_shape: project-defined
+  coordinate_shape: resolved node id, reference edge, or observed symbol
+  inbox_directory: project-defined
+  inbox_policy: Unresolved observations should remain review signals until parser-owned evidence exists.
+
+deterministic diagnostics:
+error[circular_dependency]: A bounded resolved reference walk returns to its starting node.
+  help: Suggest softening or removing one reported relation edge; do not restructure the graph globally.
+warning[semantic_drift]: Observation metadata references a code symbol that no longer resolves.
+  help: Update only metadata.proprioception.observe when a current symbol is explicit.
+
+llm inputs:
+  resolved_edges: Reference edges resolved against known node ids and titles.
+  symbol_inventory: Parser-owned local symbol names and signatures.
+
+llm outputs:
+  relation_edge_patch: A bounded relation-only patch for one selected cycle edge.
+  observation_metadata_patch: A metadata-only patch for stale observation pointers.
+
+examples:
+  cycle: tests/fixtures/frameworks/proprioception/docs/graph_health.md
+
+verification:
+  post_generation: wendao lint markdown docs
+  post_generation: wendao audit --load wendao-episteme docs
+----- temporal-scaffolding -----
+Wendao audit template for LLM: temporal-scaffolding.authorship-boundary-template
+framework: temporal-scaffolding
+mode: pre_write_authorship_boundary
+coordinate_source: repair payload ByteRange plus parser-owned byte-zone classification
+topology_source: repair_payload_target plus parser_byte_zone
+authority: template_guided_generation
+llm_role: authorship_boundary_replanner
+
+authority rule:
+  Temporal Scaffolding rejects writes into protected author-owned prose and permits replan only into explicit governed scaffold zones with exact original bytes.
+
+path contract:
+  category_directory_shape: project-defined
+  note_file_shape: project-defined
+  coordinate_shape: file_path plus attempted_start and attempted_end
+  inbox_directory: project-defined
+  inbox_policy: Write attempts without parser-owned byte-zone evidence must be treated as manual review.
+
+deterministic diagnostics:
+error[authorship_boundary_violation]: A repair payload attempts to modify protected author-owned prose or spans outside one governed scaffold zone.
+  help: Return a replan that targets an explicit safe scaffold range only when Sentinel provides exact original bytes; otherwise return manual review.
+
+llm inputs:
+  rejected_payload: Rejected SurgicalFix target path, attempted byte range, original bytes or hash, provenance, and remediation class.
+  byte_zone_evidence: Parser-owned byte-zone classifications for the target file.
+
+llm outputs:
+  replan_to_scaffold_zone: A SurgicalFix JSON payload constrained to one allowed scaffold zone with exact original bytes.
+  manual_review_reason: A concise reason when no governed safe range is present.
+
+examples:
+  authorship_boundary: tests/fixtures/frameworks/authorship/docs/protected_note.md
+
+verification:
+  pre_write: wendao audit --template temporal-scaffolding
+  post_generation: wendao lint markdown docs

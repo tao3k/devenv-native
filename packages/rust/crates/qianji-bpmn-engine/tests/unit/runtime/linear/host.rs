@@ -1,5 +1,5 @@
 use super::super::{StubHost, linear_blocking_process};
-use super::assert_single_pending_host_work;
+use super::{PendingHostWorkExpectation, assert_single_pending_host_work};
 use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnEdgeSpec, BpmnInstanceInit, BpmnNodeKind, BpmnNodeSpec, BpmnPackage,
@@ -64,12 +64,9 @@ async fn runtime_business_rule_task_blocks_on_host_boundary() {
         .must("business rule task should block at the host boundary");
     let pending = assert_single_pending_host_work(
         &instance,
-        PendingHostWorkKind::BusinessRule,
-        Some(decision.clone()),
-        None,
-        None,
-        None,
-        None,
+        PendingHostWorkExpectation::new(PendingHostWorkKind::BusinessRule)
+            .with_activity_id("decision")
+            .with_decision(decision.clone()),
     );
 
     assert_eq!(
@@ -106,12 +103,7 @@ async fn runtime_repairs_stale_process_index_before_advancing() {
         .must("runtime should repair the cached process index");
     let pending = assert_single_pending_host_work(
         &instance,
-        PendingHostWorkKind::Service,
-        None,
-        None,
-        None,
-        None,
-        None,
+        PendingHostWorkExpectation::new(PendingHostWorkKind::Service),
     );
 
     assert_eq!(outcome, BpmnAdvanceOutcome::BlockedOnHost(vec![pending]));
@@ -149,12 +141,9 @@ async fn assert_host_blocking(node_kind: BpmnNodeKind, work_kind: PendingHostWor
         };
     let pending = assert_single_pending_host_work(
         &instance,
-        work_kind.clone(),
-        None,
-        script_format,
-        script_body,
-        event_reference,
-        event_name,
+        PendingHostWorkExpectation::new(work_kind.clone())
+            .with_script(script_format, script_body)
+            .with_event(event_reference, event_name),
     );
 
     assert_eq!(outcome, BpmnAdvanceOutcome::BlockedOnHost(vec![pending]));

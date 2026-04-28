@@ -2,6 +2,7 @@ use std::path::Path;
 
 mod fences;
 mod frontmatter;
+mod skill_frontmatter;
 mod types;
 mod wikilinks;
 

@@ -8,10 +8,16 @@ pub use super::control::{
     QianjiBpmnWorkflowControlService, QianjiBpmnWorkflowEventPollReport,
     QianjiBpmnWorkflowEventPollRequest, QianjiBpmnWorkflowInstanceSummary,
     QianjiBpmnWorkflowInstancesReport, QianjiBpmnWorkflowInstancesRequest,
+    QianjiBpmnWorkflowInterruptReport, QianjiBpmnWorkflowInterruptRequest,
     QianjiBpmnWorkflowResumeReport, QianjiBpmnWorkflowResumeRequest, QianjiBpmnWorkflowStartReport,
     QianjiBpmnWorkflowStartRequest, QianjiBpmnWorkflowStatusReport,
-    QianjiBpmnWorkflowStatusRequest, QianjiBpmnWorkflowTaskCompleteReport,
-    QianjiBpmnWorkflowTaskCompleteRequest,
+    QianjiBpmnWorkflowStatusRequest, QianjiBpmnWorkflowTaskClaimPayload,
+    QianjiBpmnWorkflowTaskClaimReport, QianjiBpmnWorkflowTaskClaimRequest,
+    QianjiBpmnWorkflowTaskCompleteReport, QianjiBpmnWorkflowTaskCompleteRequest,
+    QianjiBpmnWorkflowTaskCompletionKind, QianjiBpmnWorkflowTaskCompletionPayload,
+    QianjiBpmnWorkflowTaskReleasePayload, QianjiBpmnWorkflowTaskReleaseReport,
+    QianjiBpmnWorkflowTaskReleaseRequest, QianjiBpmnWorkflowWorklistItem,
+    QianjiBpmnWorkflowWorklistReport, QianjiBpmnWorkflowWorklistRequest,
 };
 pub use super::dispatch::{
     dispatch_pending_host_work_request, dispatch_pending_host_work_requests,
@@ -19,17 +25,23 @@ pub use super::dispatch::{
 };
 pub use super::driver::{
     QianjiBpmnExecutionDriver, QianjiBpmnExecutionReport, QianjiBpmnExecutionRequest,
+    QianjiBpmnPendingHostCompletion,
 };
 pub use super::error::BpmnOrchestrationError;
 pub use super::execution::{
     DEFAULT_QIANJI_BPMN_SCHEDULER_LEASE_TTL_MS, QianjiBpmnExecutionFacade, QianjiBpmnExecutionMode,
 };
 pub use super::http_transport::{
-    QianjiBpmnWorkflowActionHttpRequest, QianjiBpmnWorkflowCancelHttpResponse,
-    QianjiBpmnWorkflowHttpCheckpointBackend, QianjiBpmnWorkflowHttpErrorBody,
-    QianjiBpmnWorkflowHttpState, QianjiBpmnWorkflowRunHttpResponse,
-    QianjiBpmnWorkflowSnapshotHttpResponse, QianjiBpmnWorkflowStartHttpRequest,
-    QianjiBpmnWorkflowStatusHttpQuery, QianjiBpmnWorkflowStatusHttpResponse,
+    QianjiBpmnPendingHostWorkHttpResponse, QianjiBpmnWorkflowActionHttpRequest,
+    QianjiBpmnWorkflowCancelHttpResponse, QianjiBpmnWorkflowHttpCheckpointBackend,
+    QianjiBpmnWorkflowHttpErrorBody, QianjiBpmnWorkflowHttpState,
+    QianjiBpmnWorkflowRunHttpResponse, QianjiBpmnWorkflowSnapshotHttpResponse,
+    QianjiBpmnWorkflowStartHttpRequest, QianjiBpmnWorkflowStatusHttpQuery,
+    QianjiBpmnWorkflowStatusHttpResponse, QianjiBpmnWorkflowTaskClaimHttpPayload,
+    QianjiBpmnWorkflowTaskClaimHttpRequest, QianjiBpmnWorkflowTaskClaimHttpResponse,
+    QianjiBpmnWorkflowTaskCompleteHttpRequest, QianjiBpmnWorkflowTaskCompletionHttpKind,
+    QianjiBpmnWorkflowTaskCompletionHttpPayload, QianjiBpmnWorkflowTaskReleaseHttpPayload,
+    QianjiBpmnWorkflowTaskReleaseHttpRequest, QianjiBpmnWorkflowTaskReleaseHttpResponse,
     qianji_bpmn_workflow_router,
 };
 pub use super::loader::{load_bpmn_package_from_files, load_bpmn_package_from_files_with_options};

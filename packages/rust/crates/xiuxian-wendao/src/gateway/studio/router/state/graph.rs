@@ -1,14 +1,19 @@
+use std::path::Path;
 use std::sync::Arc;
 
 use crate::gateway::studio::router::error::StudioApiError;
 use crate::gateway::studio::router::state::helpers::graph_include_dirs;
-use crate::gateway::studio::router::state::types::{GatewayState, StudioState};
+use crate::gateway::studio::router::state::types::{
+    GatewayState, GraphIndexCacheEntry, GraphSourceSignature, StudioState,
+};
 #[cfg(test)]
 use crate::gateway::studio::symbol_index::{SymbolIndexPhase, SymbolIndexStatus};
 use crate::gateway::studio::types::SearchIndexStatusResponse;
 use crate::link_graph::LinkGraphIndex;
+use crate::parsers::markdown::is_supported_note;
 #[cfg(test)]
 use crate::unified_symbol::UnifiedSymbolIndex;
+use walkdir::WalkDir;
 
 impl GatewayState {
     pub(crate) async fn link_graph_index(&self) -> Result<Arc<LinkGraphIndex>, StudioApiError> {
@@ -75,21 +80,36 @@ impl StudioState {
     }
 
     fn cached_graph_index(&self) -> Option<Arc<LinkGraphIndex>> {
-        self.graph_index
+        let entry = self
+            .graph_index
             .read()
             .unwrap_or_else(std::sync::PoisonError::into_inner)
-            .as_ref()
-            .map(Arc::clone)
+            .clone()?;
+        if self.graph_source_signature() != entry.source_signature {
+            return None;
+        }
+        Some(entry.index)
     }
 
     fn store_graph_index(&self, index: Arc<LinkGraphIndex>) {
+        let source_signature = self.graph_source_signature();
         let mut guard = self
             .graph_index
             .write()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
-        if guard.is_none() {
-            *guard = Some(index);
-        }
+        *guard = Some(GraphIndexCacheEntry {
+            index,
+            source_signature,
+        });
+    }
+
+    fn graph_source_signature(&self) -> GraphSourceSignature {
+        let include_dirs = graph_include_dirs(
+            self.project_root.as_path(),
+            self.config_root.as_path(),
+            &self.configured_projects(),
+        );
+        graph_source_signature(self.project_root.as_path(), &include_dirs)
     }
 
     #[cfg(test)]
@@ -128,4 +148,58 @@ impl StudioState {
         self.record_local_corpus_ready_observations_from_snapshot(&snapshot, "search_index_status");
         SearchIndexStatusResponse::from_snapshot_with_diagnostics(&snapshot).await
     }
+}
+
+fn graph_source_signature(root: &Path, include_dirs: &[String]) -> GraphSourceSignature {
+    include_dirs
+        .iter()
+        .map(|include_dir| graph_source_signature_in_dir(root, include_dir))
+        .fold(
+            GraphSourceSignature::default(),
+            merge_graph_source_signature,
+        )
+}
+
+fn graph_source_signature_in_dir(root: &Path, include_dir: &str) -> GraphSourceSignature {
+    let base = if include_dir == "." {
+        root.to_path_buf()
+    } else {
+        root.join(include_dir)
+    };
+    let mut signature = GraphSourceSignature::default();
+    for entry in WalkDir::new(base)
+        .follow_links(false)
+        .into_iter()
+        .filter_map(Result::ok)
+        .filter(|entry| entry.file_type().is_file() && is_supported_note(entry.path()))
+    {
+        let Ok(metadata) = entry.metadata() else {
+            continue;
+        };
+        signature.note_count = signature.note_count.saturating_add(1);
+        signature.total_size_bytes = signature.total_size_bytes.saturating_add(metadata.len());
+        if let Ok(modified_at) = metadata.modified() {
+            signature.latest_modified_at = Some(
+                signature
+                    .latest_modified_at
+                    .map_or(modified_at, |current| current.max(modified_at)),
+            );
+        }
+    }
+    signature
+}
+
+fn merge_graph_source_signature(
+    mut left: GraphSourceSignature,
+    right: GraphSourceSignature,
+) -> GraphSourceSignature {
+    left.note_count = left.note_count.saturating_add(right.note_count);
+    left.total_size_bytes = left.total_size_bytes.saturating_add(right.total_size_bytes);
+    left.latest_modified_at = match (left.latest_modified_at, right.latest_modified_at) {
+        (Some(left_ts), Some(right_ts)) => Some(left_ts.max(right_ts)),
+        (Some(left_ts), None) => Some(left_ts),
+        (None, Some(right_ts)) => Some(right_ts),
+        (None, None) => None,
+    };
+    left
 }

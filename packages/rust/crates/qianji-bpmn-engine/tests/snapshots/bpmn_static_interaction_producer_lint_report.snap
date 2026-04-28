@@ -1,0 +1,83 @@
+---
+source: packages/rust/crates/qianji-bpmn-engine/tests/unit/lint/mod.rs
+assertion_line: 35
+expression: value
+---
+{
+  "domain": "bpmn",
+  "source_id": "static-qianji-interaction-producer.bpmn",
+  "ok": false,
+  "issues": [
+    {
+      "code": "bpmn.static_qianji_interaction_producer",
+      "severity": "error",
+      "title": "Static qianji choices should be declared on the userTask",
+      "summary": "Source 'static-qianji-interaction-producer.bpmn' serviceTask 'Task_PrepareScreen' has no qianji inputs or tools, but outputs 'currentQuestion' and 'currentChoices' only to feed userTask 'Task_Question'.",
+      "why_it_failed": "A fixed pi-ask question is userTask metadata, not LLM work. Routing static question text or fixed choices through a serviceTask makes old artifacts slower and can turn UI schema into model output.",
+      "repair_guidance": [
+        "Inline the question and choices as direct children of userTask 'Task_Question' qianji:interaction.",
+        "Remove 'currentQuestion' and 'currentChoices' from userTask 'Task_Question' qianji:inputs after replacing the dynamic refs.",
+        "Remove serviceTask 'Task_PrepareScreen' and reconnect incoming flow(s) to userTask 'Task_Question' when that serviceTask exists only for fixed pi-ask metadata.",
+        "Keep a dynamic producer only when the question or choices depend on declared runtime qianji:inputs."
+      ],
+      "llm_fix_prompt": "Repair BPMN source 'static-qianji-interaction-producer.bpmn' by replacing userTask 'Task_Question' dynamic `<qianji:question ref=\"currentQuestion\"/>` and `<qianji:choices ref=\"currentChoices\"/>` with static qianji:question and qianji:choice XML. Use structured_repair.expected_xml as the shape, filling the fixed question and choices from the producer prompt. Remove the no-input/no-tool producer serviceTask 'Task_PrepareScreen' and reconnect sequence flows if it only prepared fixed UI text.",
+      "structured_repair": {
+        "actions": [
+          {
+            "op": "replace_dynamic_interaction_refs",
+            "target": "Task_Question.qianji:interaction",
+            "when": "question and choices are known at compile time",
+            "xml": "<!-- Remove serviceTask 'Task_PrepareScreen' and reconnect its incoming sequenceFlow(s) directly to userTask 'Task_Question'. -->\n<userTask id=\"Task_Question\">\n  <extensionElements>\n    <qianji:config>\n      <!-- Remove stale qianji:inputs value(s): currentQuestion,currentChoices. -->\n      <qianji:inputs></qianji:inputs>\n      <qianji:interaction type=\"choice_input\">\n        <qianji:question>Write the user-facing question text here.</qianji:question>\n        <qianji:choice value=\"option_value\" label=\"Option label\">Optional concise help text.</qianji:choice>\n        <qianji:choice value=\"other_value\" label=\"Other option\">Optional concise help text.</qianji:choice>\n        <qianji:result output=\"answer\"/>\n      </qianji:interaction>\n    </qianji:config>\n  </extensionElements>\n</userTask>"
+          },
+          {
+            "forbidden_forms": [
+              "currentQuestion",
+              "currentChoices"
+            ],
+            "op": "remove_from_inputs",
+            "target": "Task_Question.qianji:inputs"
+          },
+          {
+            "also": "reconnect incoming sequenceFlow(s) to Task_Question",
+            "op": "remove_service_task_if_ui_only",
+            "target": "Task_PrepareScreen"
+          },
+          {
+            "op": "keep_dynamic_producer_only_when_runtime_dependent",
+            "requires": "non-empty qianji:inputs and qianji:outputSchema kind=\"choice_array\" for dynamic choices",
+            "target": "Task_PrepareScreen"
+          }
+        ],
+        "contract": "qianji.bpmn.user_task.interaction.v1",
+        "contract_message": "qianji.bpmn.user_task.interaction.v1 requires fixed questions and choices to be declared as static userTask interaction XML.",
+        "expected_xml": "<!-- Remove serviceTask 'Task_PrepareScreen' and reconnect its incoming sequenceFlow(s) directly to userTask 'Task_Question'. -->\n<userTask id=\"Task_Question\">\n  <extensionElements>\n    <qianji:config>\n      <!-- Remove stale qianji:inputs value(s): currentQuestion,currentChoices. -->\n      <qianji:inputs></qianji:inputs>\n      <qianji:interaction type=\"choice_input\">\n        <qianji:question>Write the user-facing question text here.</qianji:question>\n        <qianji:choice value=\"option_value\" label=\"Option label\">Optional concise help text.</qianji:choice>\n        <qianji:choice value=\"other_value\" label=\"Other option\">Optional concise help text.</qianji:choice>\n        <qianji:result output=\"answer\"/>\n      </qianji:interaction>\n    </qianji:config>\n  </extensionElements>\n</userTask>",
+        "schema_version": 1,
+        "strategy": "inline_static_interaction_on_user_task",
+        "target": {
+          "choices_ref": "currentChoices",
+          "consumer_task_id": "Task_Question",
+          "producer_task_id": "Task_PrepareScreen",
+          "question_ref": "currentQuestion",
+          "source_id": "static-qianji-interaction-producer.bpmn"
+        }
+      },
+      "source_diagnostic": {
+        "source_id": "static-qianji-interaction-producer.bpmn",
+        "span": {
+          "start": 344,
+          "end": 461
+        },
+        "label": "static UI producer should not invoke an LLM",
+        "help": "Remove this producer, clear stale qianji:inputs, and keep fixed qianji choices on userTask 'Task_Question'."
+      },
+      "evidence": {
+        "choices_ref": "currentChoices",
+        "consumer_task_id": "Task_Question",
+        "expected_interaction_xml": "<!-- Remove serviceTask 'Task_PrepareScreen' and reconnect its incoming sequenceFlow(s) directly to userTask 'Task_Question'. -->\n<userTask id=\"Task_Question\">\n  <extensionElements>\n    <qianji:config>\n      <!-- Remove stale qianji:inputs value(s): currentQuestion,currentChoices. -->\n      <qianji:inputs></qianji:inputs>\n      <qianji:interaction type=\"choice_input\">\n        <qianji:question>Write the user-facing question text here.</qianji:question>\n        <qianji:choice value=\"option_value\" label=\"Option label\">Optional concise help text.</qianji:choice>\n        <qianji:choice value=\"other_value\" label=\"Other option\">Optional concise help text.</qianji:choice>\n        <qianji:result output=\"answer\"/>\n      </qianji:interaction>\n    </qianji:config>\n  </extensionElements>\n</userTask>",
+        "producer_task_id": "Task_PrepareScreen",
+        "question_ref": "currentQuestion",
+        "source_id": "static-qianji-interaction-producer.bpmn"
+      }
+    }
+  ]
+}

@@ -117,6 +117,62 @@ pub(crate) fn write_business_rule_bundle(temp_dir: &TempDir) -> BusinessRuleBund
     }
 }
 
+#[cfg(feature = "duckdb")]
+pub(crate) fn write_user_task_bundle(temp_dir: &TempDir) -> PathBuf {
+    let bpmn_path = temp_dir.path().join("user-task.bpmn");
+    write_file(
+        &bpmn_path,
+        r#"<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" id="pkg_review">
+  <bpmn:process id="review" isExecutable="true">
+    <bpmn:startEvent id="start" />
+    <bpmn:userTask id="review_task" />
+    <bpmn:endEvent id="end" />
+    <bpmn:sequenceFlow id="flow_1" sourceRef="start" targetRef="review_task" />
+    <bpmn:sequenceFlow id="flow_2" sourceRef="review_task" targetRef="end" />
+  </bpmn:process>
+</bpmn:definitions>"#,
+    );
+    bpmn_path
+}
+
+#[cfg(feature = "duckdb")]
+pub(crate) fn write_interactive_user_task_bundle(temp_dir: &TempDir) -> PathBuf {
+    let bpmn_path = temp_dir.path().join("interactive-user-task.bpmn");
+    write_file(
+        &bpmn_path,
+        r#"<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:qianji="https://qianji.dev/bpmn/extensions" id="pkg_review">
+  <bpmn:process id="review" isExecutable="true">
+    <bpmn:startEvent id="start" />
+    <bpmn:userTask id="review_task">
+      <bpmn:extensionElements>
+        <qianji:interaction type="choice_input">
+          <qianji:question ref="currentQuestion"/>
+          <qianji:choices ref="currentChoices"/>
+          <qianji:freeText name="feedback" optional="true"/>
+          <qianji:result output="answer"/>
+        </qianji:interaction>
+      </bpmn:extensionElements>
+      <bpmn:humanPerformer name="reviewer">
+        <bpmn:resourceAssignmentExpression>
+          <bpmn:formalExpression>users.alice</bpmn:formalExpression>
+        </bpmn:resourceAssignmentExpression>
+      </bpmn:humanPerformer>
+      <bpmn:potentialOwner name="review_team">
+        <bpmn:resourceRef>reviewers</bpmn:resourceRef>
+      </bpmn:potentialOwner>
+    </bpmn:userTask>
+    <bpmn:endEvent id="end" />
+    <bpmn:sequenceFlow id="flow_1" sourceRef="start" targetRef="review_task" />
+    <bpmn:sequenceFlow id="flow_2" sourceRef="review_task" targetRef="end" />
+  </bpmn:process>
+</bpmn:definitions>"#,
+    );
+    bpmn_path
+}
+
 pub(crate) fn write_json_fixture(path: PathBuf, value: &Value) -> PathBuf {
     write_file(
         &path,

@@ -45,6 +45,7 @@ pub(crate) fn validate_raw_package(raw: &RawPackageDocument) -> Result<()> {
         validate_standard_loops(process)?;
         validate_multi_instances(process)?;
         validate_compensation_handlers(process)?;
+        validate_task_routing(process)?;
         validate_gateways(process)?;
         validate_event_based_gateways(process, &node_ids)?;
     }
@@ -829,6 +830,44 @@ fn validate_sequence_flows(process: &RawProcess, node_ids: &HashSet<&str>) -> Re
         }
     }
     Ok(())
+}
+
+fn validate_task_routing(process: &RawProcess) -> Result<()> {
+    let mut outgoing_counts = HashMap::<&str, usize>::new();
+    for flow in &process.flows {
+        *outgoing_counts.entry(flow.source_ref.as_str()).or_default() += 1;
+    }
+
+    for node in &process.nodes {
+        if node.is_for_compensation || !requires_single_outgoing_task_route(&node.kind) {
+            continue;
+        }
+        let outgoing_count = outgoing_counts
+            .get(node.bpmn_id.as_str())
+            .copied()
+            .unwrap_or_default();
+        if outgoing_count != 1 {
+            return Err(BpmnEngineError::UnsupportedTaskConfiguration {
+                process_id: process.process_id.clone(),
+                node_id: node.bpmn_id.clone(),
+                detail: "task_requires_single_outgoing",
+            });
+        }
+    }
+    Ok(())
+}
+
+fn requires_single_outgoing_task_route(kind: &BpmnNodeKind) -> bool {
+    matches!(
+        kind,
+        BpmnNodeKind::ServiceTask
+            | BpmnNodeKind::ScriptTask
+            | BpmnNodeKind::UserTask
+            | BpmnNodeKind::ManualTask
+            | BpmnNodeKind::BusinessRuleTask
+            | BpmnNodeKind::SendTask
+            | BpmnNodeKind::ReceiveTask
+    )
 }
 
 fn validate_gateways(process: &RawProcess) -> Result<()> {

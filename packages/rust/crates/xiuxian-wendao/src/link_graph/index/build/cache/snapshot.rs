@@ -1,5 +1,5 @@
 use super::super::fingerprint::LinkGraphFingerprint;
-use super::schema::{LINK_GRAPH_VALKEY_CACHE_SCHEMA_VERSION, cache_schema_fingerprint};
+use super::schema::{LINK_GRAPH_CACHE_SCHEMA_VERSION, cache_schema_fingerprint};
 use crate::link_graph::index::{IndexedSection, LinkGraphIndex};
 use crate::link_graph::models::{LinkGraphAttachment, LinkGraphDocument, LinkGraphPassage};
 use crate::link_graph::saliency::{DEFAULT_DECAY_RATE, DEFAULT_SALIENCY_BASE};
@@ -122,7 +122,7 @@ impl LinkGraphIndexSnapshot {
             .map(|(k, v)| (k.clone(), SnapshotDocument::from(v)))
             .collect();
         Self {
-            schema_version: LINK_GRAPH_VALKEY_CACHE_SCHEMA_VERSION.to_string(),
+            schema_version: LINK_GRAPH_CACHE_SCHEMA_VERSION.to_string(),
             schema_fingerprint: Some(cache_schema_fingerprint().to_string()),
             root: index.root.clone(),
             include_dirs: index.include_dirs.clone(),

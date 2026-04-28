@@ -1,5 +1,5 @@
 use crate::bpmn_cli::deps::{invalid_input, io};
-use crate::bpmn_cli::parse::{resume, start, status};
+use crate::bpmn_cli::parse::{resume, session, start, status};
 use crate::bpmn_cli::types::BpmnCliCommand;
 
 pub(crate) fn parse_bpmn_command(args: &[String]) -> io::Result<Option<BpmnCliCommand>> {
@@ -11,9 +11,15 @@ pub(crate) fn parse_bpmn_command(args: &[String]) -> io::Result<Option<BpmnCliCo
         Some("start") => Ok(Some(BpmnCliCommand::Start(
             start::parse_bpmn_start_command(&args[3..])?,
         ))),
+        Some("start-at") => Ok(Some(BpmnCliCommand::StartAt(
+            start::parse_bpmn_start_at_command(&args[3..])?,
+        ))),
         Some("run") => Ok(Some(BpmnCliCommand::Run(start::parse_bpmn_run_command(
             &args[3..],
         )?))),
+        Some("host-session") => Ok(Some(BpmnCliCommand::HostSession(
+            session::parse_bpmn_host_session_command(&args[3..])?,
+        ))),
         Some("resume") => Ok(Some(BpmnCliCommand::Resume(
             resume::parse_bpmn_resume_command(&args[3..])?,
         ))),
@@ -28,11 +34,14 @@ pub(crate) fn parse_bpmn_command(args: &[String]) -> io::Result<Option<BpmnCliCo
         Some("cancel") => Ok(Some(BpmnCliCommand::Cancel(
             status::parse_bpmn_cancel_command(&args[3..])?,
         ))),
+        Some("interrupt" | "stop") => Ok(Some(BpmnCliCommand::Interrupt(
+            status::parse_bpmn_interrupt_command(&args[3..])?,
+        ))),
         Some(other) => Err(invalid_input(format!(
             "unsupported `bpmn` subcommand `{other}`"
         ))),
         None => Err(invalid_input(
-            "missing `bpmn` subcommand; expected `start`, `run`, `resume`, `events`, `tasks`, `status`, `instances`, or `cancel`",
+            "missing `bpmn` subcommand; expected `start`, `start-at`, `run`, `host-session`, `resume`, `events`, `tasks`, `status`, `instances`, `cancel`, or `interrupt`",
         )),
     }
 }

@@ -5,6 +5,28 @@ use super::common::{
 };
 use serde_json::Value;
 
+/// Structured parse summary for one bounded gateway condition.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum GatewayConditionSummary {
+    /// One boolean variable path, optionally negated by `not`.
+    BooleanPath {
+        /// Whether the condition uses `not`.
+        negated: bool,
+        /// Variable path resolved at runtime.
+        path: String,
+    },
+    /// One numeric variable-path comparison against a finite numeric literal.
+    NumericComparison {
+        /// Left-hand variable path resolved at runtime.
+        lhs: String,
+        /// Comparison operator as written in the bounded expression.
+        operator: String,
+        /// Right-hand numeric literal.
+        rhs: f64,
+    },
+}
+
 /// Evaluation error for bounded exclusive-gateway conditions.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum GatewayConditionError {
@@ -32,6 +54,26 @@ enum ParsedGatewayCondition<'a> {
 /// subset.
 pub(crate) fn is_supported_gateway_condition(condition: &str) -> bool {
     parse_gateway_condition(condition).is_some()
+}
+
+/// Parses one bounded exclusive-gateway condition into a structured summary.
+#[must_use]
+pub fn parse_gateway_condition_summary(condition: &str) -> Option<GatewayConditionSummary> {
+    match parse_gateway_condition(condition)? {
+        ParsedGatewayCondition::BooleanPath { negated, path } => {
+            Some(GatewayConditionSummary::BooleanPath {
+                negated,
+                path: path.to_string(),
+            })
+        }
+        ParsedGatewayCondition::NumericComparison { lhs, operator, rhs } => {
+            Some(GatewayConditionSummary::NumericComparison {
+                lhs: lhs.to_string(),
+                operator: comparison_operator_source(operator).to_string(),
+                rhs,
+            })
+        }
+    }
 }
 
 /// Evaluates one bounded exclusive-gateway condition.
@@ -70,13 +112,34 @@ fn parse_gateway_condition(condition: &str) -> Option<ParsedGatewayCondition<'_>
 fn parse_gateway_numeric_comparison(source: &str) -> Option<ParsedGatewayCondition<'_>> {
     let mut parts = source.split_whitespace();
     let lhs = parts.next()?;
-    let operator = parse_comparison_operator(parts.next()?)?;
-    let rhs = parse_numeric_literal(parts.next()?)?;
-    if parts.next().is_some() || !is_identifier_path(lhs) {
-        return None;
+    if let Some(operator_source) = parts.next() {
+        let operator = parse_comparison_operator(operator_source)?;
+        let rhs = parse_numeric_literal(parts.next()?)?;
+        if parts.next().is_some() || !is_identifier_path(lhs) {
+            return None;
+        }
+
+        return Some(ParsedGatewayCondition::NumericComparison { lhs, operator, rhs });
     }
 
-    Some(ParsedGatewayCondition::NumericComparison { lhs, operator, rhs })
+    parse_compact_gateway_numeric_comparison(source)
+}
+
+fn parse_compact_gateway_numeric_comparison(source: &str) -> Option<ParsedGatewayCondition<'_>> {
+    for operator_source in [">=", "<=", "==", "!=", ">", "<"] {
+        let Some(index) = source.find(operator_source) else {
+            continue;
+        };
+        let lhs = source[..index].trim();
+        let rhs_source = source[index + operator_source.len()..].trim();
+        if lhs.is_empty() || rhs_source.is_empty() || !is_identifier_path(lhs) {
+            continue;
+        }
+        let operator = parse_comparison_operator(operator_source)?;
+        let rhs = parse_numeric_literal(rhs_source)?;
+        return Some(ParsedGatewayCondition::NumericComparison { lhs, operator, rhs });
+    }
+    None
 }
 
 fn parsed_gateway_boolean_path(
@@ -85,5 +148,16 @@ fn parsed_gateway_boolean_path(
     ParsedGatewayCondition::BooleanPath {
         negated: parsed.negated,
         path: parsed.path,
+    }
+}
+
+fn comparison_operator_source(operator: ComparisonOperator) -> &'static str {
+    match operator {
+        ComparisonOperator::Eq => "==",
+        ComparisonOperator::Ne => "!=",
+        ComparisonOperator::Lt => "<",
+        ComparisonOperator::Le => "<=",
+        ComparisonOperator::Gt => ">",
+        ComparisonOperator::Ge => ">=",
     }
 }

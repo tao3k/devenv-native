@@ -135,18 +135,18 @@ impl QianjiBpmnCheckpointStore {
                 }
                 let loaded = with_duckdb_workflow_state_store(path, store, |store| {
                     hydrate_duckdb_latest_cache(latest_cache, latest_cache_hydrated, store)?;
-                    if let Some(checkpoint) =
-                        cached_duckdb_checkpoint_for_store(latest_cache, instance_id)?
-                    {
-                        return Ok(Some(checkpoint));
-                    }
-                    match store.load_compacted_workflow_state_snapshot(instance_id)? {
-                        Some(checkpoint) => Ok(Some(checkpoint)),
-                        None => match store.load_latest_workflow_state_snapshot(instance_id)? {
-                            Some(checkpoint) => Ok(Some(checkpoint)),
-                            None => store.load_workflow_state(instance_id),
-                        },
-                    }
+                    let mut loaded = cached_duckdb_checkpoint_for_store(latest_cache, instance_id)?;
+                    loaded = newest_duckdb_checkpoint(
+                        loaded,
+                        store.load_compacted_workflow_state_snapshot(instance_id)?,
+                    );
+                    loaded = newest_duckdb_checkpoint(
+                        loaded,
+                        store.load_latest_workflow_state_snapshot(instance_id)?,
+                    );
+                    loaded =
+                        newest_duckdb_checkpoint(loaded, store.load_workflow_state(instance_id)?);
+                    Ok(loaded)
                 })?;
                 if let Some(checkpoint) = loaded.as_ref() {
                     cache_duckdb_checkpoint(latest_cache, checkpoint)?;
@@ -162,7 +162,7 @@ impl QianjiBpmnCheckpointStore {
     ///
     /// Returns [`BpmnOrchestrationError`] when the backend cannot enumerate
     /// local checkpoint state or when decoding any stored checkpoint fails.
-    pub async fn list(&self) -> Result<Vec<BpmnCheckpointEnvelope>, BpmnOrchestrationError> {
+    pub fn list(&self) -> Result<Vec<BpmnCheckpointEnvelope>, BpmnOrchestrationError> {
         match self {
             Self::Valkey { .. } => Err(BpmnOrchestrationError::CheckpointListUnsupportedBackend {
                 backend: self.backend_name().to_string(),
@@ -204,7 +204,8 @@ impl QianjiBpmnCheckpointStore {
                 ..
             } => {
                 with_duckdb_workflow_state_store(path, store, |store| {
-                    store.append_workflow_state_snapshot(checkpoint)
+                    store.append_workflow_state_snapshot(checkpoint)?;
+                    store.upsert_latest_workflow_state_snapshot(checkpoint)
                 })?;
                 cache_duckdb_checkpoint(latest_cache, checkpoint)
             }
@@ -352,6 +353,23 @@ impl QianjiBpmnCheckpointStore {
             Self::DuckDb { .. } => Err(BpmnOrchestrationError::CheckpointLeaseUnsupportedBackend {
                 backend: self.backend_name().to_string(),
             }),
+        }
+    }
+}
+
+#[cfg(feature = "duckdb")]
+fn newest_duckdb_checkpoint(
+    left: Option<BpmnCheckpointEnvelope>,
+    right: Option<BpmnCheckpointEnvelope>,
+) -> Option<BpmnCheckpointEnvelope> {
+    match (left, right) {
+        (None, None) => None,
+        (Some(checkpoint), None) | (None, Some(checkpoint)) => Some(checkpoint),
+        (Some(left), Some(right)) => {
+            let right_is_newer = right.sequence > left.sequence
+                || (right.sequence == left.sequence
+                    && right.state.updated_at_ms >= left.state.updated_at_ms);
+            Some(if right_is_newer { right } else { left })
         }
     }
 }

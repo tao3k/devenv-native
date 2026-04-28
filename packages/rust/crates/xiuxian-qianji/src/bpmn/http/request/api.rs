@@ -2,7 +2,10 @@ use crate::bpmn::control::{
     QianjiBpmnWorkflowCancelRequest, QianjiBpmnWorkflowCheckpointBackend,
     QianjiBpmnWorkflowEventPollRequest, QianjiBpmnWorkflowResumeRequest,
     QianjiBpmnWorkflowStartRequest, QianjiBpmnWorkflowStatusRequest,
-    QianjiBpmnWorkflowTaskCompleteRequest,
+    QianjiBpmnWorkflowTaskClaimPayload, QianjiBpmnWorkflowTaskClaimRequest,
+    QianjiBpmnWorkflowTaskCompleteRequest, QianjiBpmnWorkflowTaskCompletionKind,
+    QianjiBpmnWorkflowTaskCompletionPayload, QianjiBpmnWorkflowTaskReleasePayload,
+    QianjiBpmnWorkflowTaskReleaseRequest,
 };
 use crate::bpmn::http_transport::error_api::QianjiBpmnWorkflowHttpError;
 use serde::{Deserialize, Serialize};
@@ -57,6 +60,7 @@ impl QianjiBpmnWorkflowStartHttpRequest {
             process_id: self.process_id,
             instance_id: self.instance_id,
             initial_variables: self.initial_variables,
+            start_at_node_id: None,
             checkpoint_backend: Some(self.checkpoint_backend.into_control_backend()),
         }
     }
@@ -101,6 +105,63 @@ impl QianjiBpmnWorkflowActionHttpRequest {
         }
     }
 
+    pub(in crate::bpmn::http_transport) fn into_cancel_request(
+        self,
+        instance_id: String,
+    ) -> QianjiBpmnWorkflowCancelRequest {
+        QianjiBpmnWorkflowCancelRequest {
+            instance_id,
+            checkpoint_backend: self.checkpoint_backend.into_control_backend(),
+        }
+    }
+}
+
+/// JSON host-work result kind accepted by explicit task completion.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum QianjiBpmnWorkflowTaskCompletionHttpKind {
+    /// Complete a BPMN `userTask`.
+    User,
+    /// Complete a BPMN `manualTask`.
+    Manual,
+}
+
+/// JSON payload for one explicit pending host-work completion.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct QianjiBpmnWorkflowTaskCompletionHttpPayload {
+    /// Runtime token identifier for the pending host work.
+    pub token_id: u64,
+    /// BPMN process identifier expected for the pending host work.
+    pub process_id: String,
+    /// BPMN activity identifier expected for the pending host work.
+    pub activity_id: String,
+    /// Pending host-work result kind.
+    pub kind: QianjiBpmnWorkflowTaskCompletionHttpKind,
+    /// User- or operator-supplied payload merged into workflow variables.
+    pub data: Value,
+    /// Optional claimant supplied by the host when completing claimed human
+    /// work.
+    #[serde(default)]
+    pub claimant: Option<String>,
+}
+
+/// JSON body for checkpoint-backed BPMN task completion.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct QianjiBpmnWorkflowTaskCompleteHttpRequest {
+    /// Filesystem path to the BPMN source.
+    pub bpmn_path: PathBuf,
+    /// Optional DMN sources loaded alongside the BPMN package.
+    #[serde(default)]
+    pub dmn_paths: Vec<PathBuf>,
+    /// Checkpoint backend that already owns persisted workflow state. HTTP
+    /// service mode defaults to runtime-configured Valkey when omitted.
+    #[serde(default)]
+    pub checkpoint_backend: QianjiBpmnWorkflowHttpCheckpointBackend,
+    /// Explicit completion payload for the pending host task.
+    pub completion: QianjiBpmnWorkflowTaskCompletionHttpPayload,
+}
+
+impl QianjiBpmnWorkflowTaskCompleteHttpRequest {
     pub(in crate::bpmn::http_transport) fn into_task_complete_request(
         self,
         instance_id: String,
@@ -110,16 +171,107 @@ impl QianjiBpmnWorkflowActionHttpRequest {
             dmn_paths: self.dmn_paths,
             instance_id,
             checkpoint_backend: self.checkpoint_backend.into_control_backend(),
+            completion: QianjiBpmnWorkflowTaskCompletionPayload {
+                token_id: self.completion.token_id,
+                process_id: self.completion.process_id,
+                activity_id: self.completion.activity_id,
+                kind: match self.completion.kind {
+                    QianjiBpmnWorkflowTaskCompletionHttpKind::User => {
+                        QianjiBpmnWorkflowTaskCompletionKind::User
+                    }
+                    QianjiBpmnWorkflowTaskCompletionHttpKind::Manual => {
+                        QianjiBpmnWorkflowTaskCompletionKind::Manual
+                    }
+                },
+                data: self.completion.data,
+                claimant: self.completion.claimant,
+            },
+            continue_until_human_boundary: false,
         }
     }
+}
 
-    pub(in crate::bpmn::http_transport) fn into_cancel_request(
+/// JSON payload for one explicit pending human-task claim.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct QianjiBpmnWorkflowTaskClaimHttpPayload {
+    /// Runtime token identifier for the pending host work.
+    pub token_id: u64,
+    /// BPMN process identifier expected for the pending host work.
+    pub process_id: String,
+    /// BPMN activity identifier expected for the pending host work.
+    pub activity_id: String,
+    /// Host- or operator-facing claimant identifier.
+    pub claimant: String,
+}
+
+/// JSON body for checkpoint-backed BPMN human-task claim.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct QianjiBpmnWorkflowTaskClaimHttpRequest {
+    /// Checkpoint backend that already owns persisted workflow state. HTTP
+    /// service mode defaults to runtime-configured Valkey when omitted.
+    #[serde(default)]
+    pub checkpoint_backend: QianjiBpmnWorkflowHttpCheckpointBackend,
+    /// Explicit claim payload for the pending human task.
+    pub claim: QianjiBpmnWorkflowTaskClaimHttpPayload,
+}
+
+impl QianjiBpmnWorkflowTaskClaimHttpRequest {
+    pub(in crate::bpmn::http_transport) fn into_task_claim_request(
         self,
         instance_id: String,
-    ) -> QianjiBpmnWorkflowCancelRequest {
-        QianjiBpmnWorkflowCancelRequest {
+    ) -> QianjiBpmnWorkflowTaskClaimRequest {
+        QianjiBpmnWorkflowTaskClaimRequest {
             instance_id,
             checkpoint_backend: self.checkpoint_backend.into_control_backend(),
+            claim: QianjiBpmnWorkflowTaskClaimPayload {
+                token_id: self.claim.token_id,
+                process_id: self.claim.process_id,
+                activity_id: self.claim.activity_id,
+                claimant: self.claim.claimant,
+            },
+        }
+    }
+}
+
+/// JSON payload for one explicit pending human-task claim release.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct QianjiBpmnWorkflowTaskReleaseHttpPayload {
+    /// Runtime token identifier for the pending host work.
+    pub token_id: u64,
+    /// BPMN process identifier expected for the pending host work.
+    pub process_id: String,
+    /// BPMN activity identifier expected for the pending host work.
+    pub activity_id: String,
+    /// Host- or operator-facing claimant identifier that currently owns the
+    /// work.
+    pub claimant: String,
+}
+
+/// JSON body for checkpoint-backed BPMN human-task claim release.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct QianjiBpmnWorkflowTaskReleaseHttpRequest {
+    /// Checkpoint backend that already owns persisted workflow state. HTTP
+    /// service mode defaults to runtime-configured Valkey when omitted.
+    #[serde(default)]
+    pub checkpoint_backend: QianjiBpmnWorkflowHttpCheckpointBackend,
+    /// Explicit release payload for the pending human task.
+    pub release: QianjiBpmnWorkflowTaskReleaseHttpPayload,
+}
+
+impl QianjiBpmnWorkflowTaskReleaseHttpRequest {
+    pub(in crate::bpmn::http_transport) fn into_task_release_request(
+        self,
+        instance_id: String,
+    ) -> QianjiBpmnWorkflowTaskReleaseRequest {
+        QianjiBpmnWorkflowTaskReleaseRequest {
+            instance_id,
+            checkpoint_backend: self.checkpoint_backend.into_control_backend(),
+            release: QianjiBpmnWorkflowTaskReleasePayload {
+                token_id: self.release.token_id,
+                process_id: self.release.process_id,
+                activity_id: self.release.activity_id,
+                claimant: self.release.claimant,
+            },
         }
     }
 }

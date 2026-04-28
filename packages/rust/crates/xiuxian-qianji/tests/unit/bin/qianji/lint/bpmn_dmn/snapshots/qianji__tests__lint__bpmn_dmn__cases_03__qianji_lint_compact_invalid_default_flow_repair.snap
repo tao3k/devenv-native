@@ -1,0 +1,44 @@
+---
+source: packages/rust/crates/xiuxian-qianji/src/bin/../../tests/unit/bin/qianji/lint/bpmn_dmn/cases_03.rs
+expression: "stable_temp_output(&output.rendered, &temp_dir)"
+---
+[lint:error] $TEMP/invalid_default_flow.bpmn bpmn
+Source: $TEMP/invalid_default_flow.bpmn
+Issues: 1
+
+[bpmn.unsupported_gateway_configuration] Error: Conditional gateway default flow reference is invalid
+   ,-[ $TEMP/invalid_default_flow.bpmn:5:6 ]
+ 5 |    <bpmn:exclusiveGateway id="decision" default="flow_missing" />
+   |     `------------------------------------------------------------- retarget stale default flow `flow_missing`
+   |Help: Valid outgoing flow ids from gateway `decision`: flow_yes, flow_fallback. Prefer `default="flow_fallback"` when it is the intended fallback.
+
+Action:
+- Repair gateway 'decision' by changing its `default` attribute from stale flow id 'flow_missing' to one existing outgoing sequenceFlow id from the same gateway. Valid ids: flow_yes, flow_fallback. Prefer `flow_fallback` if it is the fallback branch, and remove that branch conditionExpression if present. Return a minimal XML diff only.
+
+Fix:
+- Replace `default="flow_missing"` on gateway 'decision' with one valid outgoing flow id from this same gateway: flow_yes, flow_fallback.
+- Prefer `default="flow_fallback"` when it matches a stale renamed default branch or the intended fallback.
+- Keep the selected default branch unconditional; conditions belong only on non-default outgoing branches.
+- Do not point a gateway `default` at a missing flow id, a renamed stale id, or a sequenceFlow whose sourceRef is a different node.
+
+Patch focus:
+- set_gateway_default
+- target: gateway#decision
+- also: remove conditionExpression from the selected default sequenceFlow if it has one
+- current: flow_missing
+- preferred_default_flow_id: flow_fallback
+- preferred_default_has_condition: false
+- valid_outgoing_flow_ids: flow_yes, flow_fallback
+- forbid: missing flow ids or flow ids owned by another source
+
+Examples:
+- default="flow_yes"
+- default="flow_fallback"
+
+Forbidden forms:
+- default references a missing sequenceFlow id
+- default references a sequenceFlow whose sourceRef is another node
+
+Structured repair:
+- strategy: retarget_default_flow_to_existing_outgoing
+- contract: qianji.bpmn.gateway.bounded.v1

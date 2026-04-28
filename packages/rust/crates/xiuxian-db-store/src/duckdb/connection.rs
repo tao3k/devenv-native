@@ -72,6 +72,20 @@ pub fn open_duckdb_connection(
             runtime.temp_directory.display()
         )
     })?;
+    let home_directory = runtime.temp_directory.join("home");
+    fs::create_dir_all(&home_directory).map_err(|error| {
+        format!(
+            "failed to create DuckDB home directory `{}`: {error}",
+            home_directory.display()
+        )
+    })?;
+    let extension_directory = runtime.temp_directory.join("extensions");
+    fs::create_dir_all(&extension_directory).map_err(|error| {
+        format!(
+            "failed to create DuckDB extension directory `{}`: {error}",
+            extension_directory.display()
+        )
+    })?;
 
     let connection = match &runtime.database_path {
         DuckDbDatabasePath::InMemory => ::duckdb::Connection::open_in_memory()
@@ -86,20 +100,25 @@ pub fn open_duckdb_connection(
 
     let escaped_temp_directory =
         escape_duckdb_setting_literal(runtime.temp_directory.to_string_lossy().as_ref());
+    let escaped_home_directory =
+        escape_duckdb_setting_literal(home_directory.to_string_lossy().as_ref());
+    let escaped_extension_directory =
+        escape_duckdb_setting_literal(extension_directory.to_string_lossy().as_ref());
     let mut settings = vec![
+        format!("SET home_directory = '{escaped_home_directory}'"),
+        format!("SET extension_directory = '{escaped_extension_directory}'"),
         format!("SET temp_directory = '{escaped_temp_directory}'"),
         format!("SET threads = {}", runtime.threads),
         format!(
             "SET preserve_insertion_order = {}",
             runtime.execution.preserve_insertion_order
         ),
-        format!(
-            "SET parquet_metadata_cache = {}",
-            runtime.execution.parquet_metadata_cache
-        ),
         "SET enable_profiling = 'no_output'".to_string(),
         "SET profiling_mode = 'standard'".to_string(),
     ];
+    if runtime.execution.parquet_metadata_cache {
+        settings.push("SET parquet_metadata_cache = true".to_string());
+    }
     if let Some(memory_limit) = runtime.memory_limit.as_deref() {
         settings.push(format!(
             "SET memory_limit = '{}'",

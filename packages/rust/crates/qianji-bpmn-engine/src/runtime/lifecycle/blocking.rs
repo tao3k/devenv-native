@@ -76,14 +76,30 @@ pub(super) fn block_on_host_work(
     let event_name = send_task_event_name(process, node_index, &kind)?;
     let script_format = script_task_format(process, node_index, &kind);
     let script_body = script_task_body(process, node_index, &kind);
+    let human_task_form = process
+        .nodes
+        .get(node_index as usize)
+        .and_then(|node| node.human_task_form.clone());
+    let human_task_assignment = process
+        .nodes
+        .get(node_index as usize)
+        .and_then(|node| node.human_task_assignment.clone());
+    let activity_id = process
+        .nodes
+        .get(node_index as usize)
+        .map(|node| node.bpmn_id.to_string());
     let pending = PendingHostWork {
         token_id,
         process_id: Some(process.key.process_id.to_string()),
         node_index,
+        activity_id,
         kind,
         decision: None,
         script_format,
         script_body,
+        human_task_form,
+        human_task_assignment,
+        claim: None,
         event_reference,
         event_name,
         work_id: None,
@@ -115,10 +131,23 @@ pub(super) fn block_on_business_rule_work(
         token_id,
         process_id: Some(process.key.process_id.to_string()),
         node_index,
+        activity_id: process
+            .nodes
+            .get(node_index as usize)
+            .map(|node| node.bpmn_id.to_string()),
         kind: PendingHostWorkKind::BusinessRule,
         decision: Some(decision),
         script_format: None,
         script_body: None,
+        human_task_form: process
+            .nodes
+            .get(node_index as usize)
+            .and_then(|node| node.human_task_form.clone()),
+        human_task_assignment: process
+            .nodes
+            .get(node_index as usize)
+            .and_then(|node| node.human_task_assignment.clone()),
+        claim: None,
         event_reference: None,
         event_name: None,
         work_id: None,

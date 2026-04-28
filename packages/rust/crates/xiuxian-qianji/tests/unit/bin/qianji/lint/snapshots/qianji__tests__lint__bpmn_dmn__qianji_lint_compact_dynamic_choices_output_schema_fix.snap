@@ -1,0 +1,26 @@
+---
+source: packages/rust/crates/xiuxian-qianji/src/bin/../../tests/unit/bin/qianji/lint/bpmn_dmn.rs
+expression: "stable_temp_output(&output.rendered, &temp_dir)"
+---
+[lint:error] $TEMP/dynamic_choices_missing_output_schema.bpmn bpmn
+Source: $TEMP/dynamic_choices_missing_output_schema.bpmn
+Issues: 1
+
+[bpmn.missing_qianji_dynamic_choices_output_schema] Error: Dynamic qianji choices producer is missing choice_array schema
+    ,-[ $TEMP/dynamic_choices_missing_output_schema.bpmn:13:11 ]
+ 13 |          <qianji:outputs>currentQuestion,currentChoices</qianji:outputs>
+    |          `---------------- producer must declare structured choices schema
+    |Help: Add `<qianji:outputSchema name="currentChoices" kind="choice_array" value="required" label="optional" description="optional"/>` after this qianji:outputs line.
+    |Contract: qianji.bpmn.user_task.interaction.v1 requires dynamic choices producers to declare qianji:outputSchema kind="choice_array".
+
+Proposed patch:
+```diff
+--- $TEMP/dynamic_choices_missing_output_schema.bpmn
++++ $TEMP/dynamic_choices_missing_output_schema.bpmn
+@@ -13,1 +13,2 @@
+-          <qianji:outputs>currentQuestion,currentChoices</qianji:outputs>
++          <qianji:outputs>currentQuestion,currentChoices</qianji:outputs>
++          <qianji:outputSchema name="currentChoices" kind="choice_array" value="required" label="optional" description="optional"/>
+```
+
+Return unified diff only.

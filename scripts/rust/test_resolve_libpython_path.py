@@ -17,18 +17,23 @@ def _load_module():
     return module
 
 
-def test_resolve_libpython_path_returns_joined_path(monkeypatch) -> None:
+def test_resolve_libpython_path_returns_joined_path(monkeypatch, tmp_path) -> None:
     module = _load_module()
+    libdir = tmp_path / "lib"
+    libdir.mkdir(parents=True, exist_ok=True)
+    libpython = libdir / "libpython3.13.dylib"
+    libpython.touch()
 
     def _fake_get_config_var(key: str):
         if key == "LIBDIR":
-            return "/usr/lib"
+            return str(libdir)
         if key == "LDLIBRARY":
             return "libpython3.13.dylib"
         return None
 
+    monkeypatch.setattr(module.sys, "version_info", _version_info())
     monkeypatch.setattr(module.sysconfig, "get_config_var", _fake_get_config_var)
-    assert module.resolve_libpython_path() == "/usr/lib/libpython3.13.dylib"
+    assert module.resolve_libpython_path() == str(libpython)
 
 
 def test_resolve_libpython_path_returns_empty_when_missing(monkeypatch) -> None:
@@ -37,5 +42,34 @@ def test_resolve_libpython_path_returns_empty_when_missing(monkeypatch) -> None:
     def _fake_get_config_var(_key: str):
         return None
 
+    monkeypatch.setattr(module.sys, "base_prefix", "/missing/python")
+    monkeypatch.setattr(module.sys, "executable", "/missing/python/bin/python")
+    monkeypatch.setattr(module.util, "find_library", lambda _name: None)
     monkeypatch.setattr(module.sysconfig, "get_config_var", _fake_get_config_var)
     assert module.resolve_libpython_path() == ""
+
+
+def test_resolve_libpython_path_falls_back_to_base_prefix(monkeypatch, tmp_path) -> None:
+    module = _load_module()
+    libdir = tmp_path / "lib"
+    libdir.mkdir()
+    libpython = libdir / "libpython3.13.dylib"
+    libpython.touch()
+
+    def _fake_get_config_var(_key: str):
+        return None
+
+    monkeypatch.setattr(module.sys, "version_info", _version_info())
+    monkeypatch.setattr(module.sys, "base_prefix", str(tmp_path))
+    monkeypatch.setattr(module.sys, "executable", str(tmp_path / "bin" / "python"))
+    monkeypatch.setattr(module.util, "find_library", lambda _name: None)
+    monkeypatch.setattr(module.sysconfig, "get_config_var", _fake_get_config_var)
+    assert module.resolve_libpython_path() == str(libpython)
+
+
+def _version_info():
+    class VersionInfo:
+        major = 3
+        minor = 13
+
+    return VersionInfo()

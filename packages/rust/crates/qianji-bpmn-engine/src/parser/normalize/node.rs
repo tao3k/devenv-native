@@ -2,8 +2,16 @@ use super::process::normalize_node_index;
 use super::repeat::normalize_repeat_spec;
 use crate::error::{BpmnEngineError, Result};
 use crate::ir_edge_api::BpmnEdgeSpec;
-use crate::ir_node_api::{BpmnNodeSpec, BpmnScriptTaskSpec, BpmnSubProcessKind};
-use crate::parser::import::{RawNode, RawProcess, RawScriptTaskSpec, RawSubProcessKind};
+use crate::ir_node_api::{
+    BpmnHumanTaskAssignmentSpec, BpmnHumanTaskChoiceSpec, BpmnHumanTaskFormSpec,
+    BpmnHumanTaskFreeTextSpec, BpmnHumanTaskResourceRoleSpec, BpmnNodeSpec, BpmnScriptTaskSpec,
+    BpmnSubProcessKind,
+};
+use crate::parser::import::{
+    RawHumanTaskAssignmentSpec, RawHumanTaskChoiceSpec, RawHumanTaskFormSpec,
+    RawHumanTaskFreeTextSpec, RawHumanTaskResourceRoleSpec, RawNode, RawProcess, RawScriptTaskSpec,
+    RawSubProcessKind,
+};
 use crate::parser::validate::resolve_structured_inclusive_join;
 use std::collections::HashMap;
 
@@ -49,6 +57,16 @@ fn normalize_node(
     };
     let spec = match &node.script_task {
         Some(script_task) => spec.with_script_task(normalize_script_task(script_task)),
+        None => spec,
+    };
+    let spec = match &node.human_task_form {
+        Some(form) => spec.with_human_task_form(normalize_human_task_form(form)),
+        None => spec,
+    };
+    let spec = match &node.human_task_assignment {
+        Some(assignment) => {
+            spec.with_human_task_assignment(normalize_human_task_assignment(assignment))
+        }
         None => spec,
     };
     let spec = normalize_repeat_spec(raw, node, spec)?;
@@ -148,4 +166,67 @@ fn normalize_subprocess_kind(kind: RawSubProcessKind) -> BpmnSubProcessKind {
 
 fn normalize_script_task(raw: &RawScriptTaskSpec) -> BpmnScriptTaskSpec {
     BpmnScriptTaskSpec::new(raw.script_format.as_deref(), raw.script_body.as_deref())
+}
+
+fn normalize_human_task_form(raw: &RawHumanTaskFormSpec) -> BpmnHumanTaskFormSpec {
+    let mut form = BpmnHumanTaskFormSpec::new(&raw.interaction_type);
+    if let Some(question_ref) = &raw.question_ref {
+        form = form.with_question_ref(question_ref);
+    }
+    if let Some(question_text) = &raw.question_text {
+        form = form.with_question_text(question_text);
+    }
+    if let Some(choices_ref) = &raw.choices_ref {
+        form = form.with_choices_ref(choices_ref);
+    }
+    for choice in &raw.choices {
+        form = form.with_choice(normalize_human_task_choice(choice));
+    }
+    for field in &raw.free_text_fields {
+        form = form.with_free_text_field(normalize_human_task_free_text(field));
+    }
+    if let Some(result_output) = &raw.result_output {
+        form = form.with_result_output(result_output);
+    }
+    form
+}
+
+fn normalize_human_task_choice(raw: &RawHumanTaskChoiceSpec) -> BpmnHumanTaskChoiceSpec {
+    match &raw.label {
+        Some(label) => BpmnHumanTaskChoiceSpec::new(&raw.value).with_label(label),
+        None => BpmnHumanTaskChoiceSpec::new(&raw.value),
+    }
+}
+
+fn normalize_human_task_free_text(raw: &RawHumanTaskFreeTextSpec) -> BpmnHumanTaskFreeTextSpec {
+    BpmnHumanTaskFreeTextSpec::new(&raw.name, raw.optional)
+}
+
+fn normalize_human_task_assignment(
+    raw: &RawHumanTaskAssignmentSpec,
+) -> BpmnHumanTaskAssignmentSpec {
+    let mut assignment = BpmnHumanTaskAssignmentSpec::new();
+    for role in &raw.human_performers {
+        assignment = assignment.with_human_performer(normalize_human_task_resource_role(role));
+    }
+    for role in &raw.potential_owners {
+        assignment = assignment.with_potential_owner(normalize_human_task_resource_role(role));
+    }
+    assignment
+}
+
+fn normalize_human_task_resource_role(
+    raw: &RawHumanTaskResourceRoleSpec,
+) -> BpmnHumanTaskResourceRoleSpec {
+    let mut role = BpmnHumanTaskResourceRoleSpec::new();
+    if let Some(name) = &raw.name {
+        role = role.with_name(name);
+    }
+    if let Some(resource_ref) = &raw.resource_ref {
+        role = role.with_resource_ref(resource_ref);
+    }
+    if let Some(assignment_expression) = &raw.assignment_expression {
+        role = role.with_assignment_expression(assignment_expression);
+    }
+    role
 }

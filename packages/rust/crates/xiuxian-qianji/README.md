@@ -63,11 +63,39 @@ explicit operator action above the same checkpointed resume path, and
 `qianji bpmn cancel`, which deletes one persisted workflow checkpoint through
 an explicit operator path while keeping the Valkey runtime backend under
 strict scheduler-agent lease ownership. The lib service mirrors those
-operator intents with `poll_workflow_events(...)` and
-`complete_workflow_task(...)`, so later HTTP/API adapters can call the
-control-plane actions directly instead of routing through CLI-specific names.
+operator intents with `poll_workflow_events(...)`,
+`complete_workflow_task(...)`, `claim_workflow_task(...)`,
+`release_workflow_task(...)`, and `list_workflow_worklist(...)`, so later
+HTTP/API adapters can call the control-plane actions directly instead of
+routing through CLI-specific names.
+The pending-host stream exposes Rust-owned `process_id`, BPMN `activity_id`,
+optional parsed `form` metadata, and optional standard BPMN `assignment`
+metadata for `userTask` and `manualTask` entries, so UI adapters can render,
+route, and complete work by stable workflow identity instead of inferring
+identity or interaction fields from display labels. Assignment metadata is a
+routing hint only; the bounded claim state exposed by
+`qianji bpmn tasks claim`, `release`, and `worklist` is runtime coordination
+metadata, not BPMN resource-role authorization. Form-backed human-task
+completion is validated by the Rust runtime before variable merge: declared
+required outputs must be present and undeclared fields are rejected.
+The `qianji bpmn start`, `start-at`, `resume`, and `status` text outputs also
+render pending host-work `activity`, `form`, and `assignment` summaries for
+operator visibility; the JSON stream and HTTP snapshot remain the canonical
+machine-readable contract.
+`qianji bpmn tasks complete` requires a typed completion payload
+(`--token-id <id> --process-id <id> --activity-id <id> --kind user|manual
+--data-json <json>`) and no longer uses host fixtures as the canonical
+task-completion path. The runtime rejects completion attempts whose process or
+activity identity does not match the checkpointed pending host work.
+`qianji bpmn tasks claim` and `release` use the same instance, token, process,
+activity, and claimant identity tuple against checkpointed user/manual work.
+`qianji bpmn tasks worklist` lists checkpointed user/manual work, optionally
+including only unclaimed work and work already claimed by the supplied claimant.
 `qianji_bpmn_workflow_router(...)` is the first embeddable HTTP JSON surface
-over that same service layer, and
+over that same service layer. Its workflow snapshot responses include
+`pending_host_work` entries with Rust-owned identity plus optional `form` and
+standard BPMN `assignment` metadata, matching the stream contract for
+non-stream clients.
 `qianji-server --bind 127.0.0.1:38130 --valkey-url redis://127.0.0.1:6379/0`
 starts the minimal daemon shell over that router. HTTP defaults are
 Valkey-only: omitted checkpoint backend fields resolve to the service-owned

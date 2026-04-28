@@ -1,8 +1,30 @@
 use super::raw::{split_frontmatter, split_frontmatter_raw};
 use super::types::NoteFrontmatter;
+use chrono::{DateTime, NaiveDateTime};
 use serde_yaml::{Mapping, Value};
+use std::fmt;
 use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
+
+/// Error returned when strict SKILL.md frontmatter parsing fails.
+#[derive(Debug)]
+pub enum SkillFrontmatterParseError {
+    /// The frontmatter block exists but is not valid YAML.
+    InvalidYaml(serde_yaml::Error),
+    /// The frontmatter block is valid YAML but violates the strict schema.
+    InvalidSchema(Vec<String>),
+}
+
+impl fmt::Display for SkillFrontmatterParseError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::InvalidYaml(error) => write!(formatter, "invalid YAML frontmatter: {error}"),
+            Self::InvalidSchema(issues) => write!(formatter, "{}", issues.join("; ")),
+        }
+    }
+}
+
+impl std::error::Error for SkillFrontmatterParseError {}
 
 fn mapping_value<'a>(mapping: &'a Mapping, key: &str) -> Option<&'a Value> {
     mapping.get(Value::String(key.to_string()))
@@ -44,17 +66,13 @@ pub fn parse_frontmatter(content: &str) -> NoteFrontmatter {
     };
 
     let metadata = mapping_value(mapping, "metadata").and_then(Value::as_mapping);
-    let mut tags = mapping_string_vec(mapping, "tags");
-    if tags.is_empty() {
-        tags = metadata.map_or_else(Vec::new, |value| mapping_string_vec(value, "tags"));
-    }
 
     NoteFrontmatter {
         title: mapping_string(mapping, "title"),
         description: mapping_string(mapping, "description"),
         name: mapping_string(mapping, "name"),
         category: mapping_string(mapping, "category"),
-        tags,
+        tags: mapping_string_vec(mapping, "tags"),
         routing_keywords: metadata.map_or_else(Vec::new, |value| {
             mapping_string_vec(value, "routing_keywords")
         }),
@@ -70,49 +88,30 @@ pub fn frontmatter_kind(content: &str) -> Option<String> {
     mapping_string(mapping, "kind")
 }
 
-/// Returns the semantic skill identity name when present.
-///
-/// This follows the parser-owned SKILL.md contract and only accepts the
-/// top-level `name` field.
-#[must_use]
-pub fn skill_frontmatter_name(content: &str) -> Option<String> {
-    let (frontmatter, _body) = split_frontmatter(content);
-    let mapping = frontmatter.as_ref().and_then(Value::as_mapping)?;
-    mapping_string(mapping, "name")
-}
-
-/// Parse one skill-shaped frontmatter block using the current runtime lenient
-/// contract.
-///
-/// This helper keeps runtime consumers aligned with the historical
-/// `SkillScanner::scan_skill(..., None)` behavior:
-///
-/// 1. missing frontmatter returns `Ok(None)`
-/// 2. invalid YAML returns an error
-/// 3. missing `metadata` is allowed
+/// Parse one skill-shaped frontmatter block using the strict parser-owned
+/// SKILL.md schema.
 ///
 /// # Errors
 ///
-/// Returns the underlying YAML parse error when the frontmatter exists but is
-/// not valid for the parser-owned `NoteFrontmatter` shape.
-pub fn parse_skill_frontmatter_lenient(
+/// Returns [`SkillFrontmatterParseError`] when the document has no leading
+/// frontmatter, invalid YAML, or a schema violation.
+pub fn parse_skill_frontmatter(
     content: &str,
-) -> Result<Option<NoteFrontmatter>, serde_yaml::Error> {
+) -> Result<NoteFrontmatter, SkillFrontmatterParseError> {
     let Some(parts) = split_frontmatter_raw(content) else {
-        return Ok(None);
+        return Err(SkillFrontmatterParseError::InvalidSchema(vec![
+            "document must start with a YAML frontmatter block".to_string(),
+        ]));
     };
-    serde_yaml::from_str::<NoteFrontmatter>(parts.yaml).map(Some)
-}
-
-/// Returns true when skill frontmatter contains the required top-level
-/// `metadata` mapping defined by the parser-owned SKILL.md contract.
-#[must_use]
-pub fn skill_frontmatter_has_metadata_mapping(content: &str) -> bool {
-    let (frontmatter, _body) = split_frontmatter(content);
-    let Some(mapping) = frontmatter.as_ref().and_then(Value::as_mapping) else {
-        return false;
+    let value = serde_yaml::from_str::<Value>(parts.yaml)
+        .map_err(SkillFrontmatterParseError::InvalidYaml)?;
+    let Some(mapping) = value.as_mapping() else {
+        return Err(SkillFrontmatterParseError::InvalidSchema(vec![
+            "skill frontmatter must be a YAML mapping".to_string(),
+        ]));
     };
-    mapping_mapping(mapping, "metadata").is_some()
+    validate_strict_skill_frontmatter(mapping)?;
+    Ok(frontmatter_from_mapping(mapping))
 }
 
 /// Returns true when a Markdown document should use the skill frontmatter
@@ -130,6 +129,186 @@ pub fn is_skill_descriptor_path(path: Option<&Path>) -> bool {
     path.and_then(Path::file_name)
         .and_then(|value| value.to_str())
         .is_some_and(|name| name.eq_ignore_ascii_case("SKILL.md"))
+}
+
+fn validate_strict_skill_frontmatter(mapping: &Mapping) -> Result<(), SkillFrontmatterParseError> {
+    let mut issues = Vec::new();
+
+    require_string(
+        mapping,
+        "title",
+        "frontmatter must include a non-empty `title` field",
+        &mut issues,
+    );
+    require_string(
+        mapping,
+        "kind",
+        "frontmatter must include a non-empty `kind` field",
+        &mut issues,
+    );
+    require_string(
+        mapping,
+        "category",
+        "frontmatter must include a non-empty `category` field",
+        &mut issues,
+    );
+    require_string(
+        mapping,
+        "description",
+        "frontmatter must include a non-empty `description` field",
+        &mut issues,
+    );
+    require_string(
+        mapping,
+        "author",
+        "frontmatter must include a non-empty `author` field",
+        &mut issues,
+    );
+    require_minute_precision_date(mapping, &mut issues);
+    require_string_sequence(
+        mapping,
+        "tags",
+        "frontmatter must include a non-empty `tags` array",
+        &mut issues,
+    );
+
+    let metadata = mapping_mapping(mapping, "metadata");
+    let retrieval = metadata.and_then(|metadata| mapping_mapping(metadata, "retrieval"));
+    require_number(
+        retrieval,
+        "saliency_base",
+        "frontmatter must include numeric `metadata.retrieval.saliency_base`",
+        &mut issues,
+    );
+    require_number(
+        retrieval,
+        "decay_rate",
+        "frontmatter must include numeric `metadata.retrieval.decay_rate`",
+        &mut issues,
+    );
+
+    if string_field(mapping, "type") != Some("skill") {
+        issues.push("skill frontmatter top-level `type` must be `skill`".to_string());
+    }
+    require_string(
+        mapping,
+        "name",
+        "skill frontmatter must include a non-empty top-level `name` field",
+        &mut issues,
+    );
+    let Some(metadata) = metadata else {
+        issues.push("skill frontmatter must contain a top-level `metadata` mapping".to_string());
+        return schema_result(issues);
+    };
+    require_string(
+        metadata,
+        "version",
+        "skill frontmatter `metadata.version` must be a non-empty string",
+        &mut issues,
+    );
+    require_string(
+        metadata,
+        "source",
+        "skill frontmatter `metadata.source` must be a non-empty string",
+        &mut issues,
+    );
+    require_string_sequence(
+        metadata,
+        "routing_keywords",
+        "skill frontmatter `metadata.routing_keywords` must be a non-empty string array",
+        &mut issues,
+    );
+    if let Some(intents) = mapping_value(metadata, "intents")
+        && !is_non_empty_string_sequence(intents)
+    {
+        issues.push(
+            "skill frontmatter `metadata.intents` must be a non-empty string array".to_string(),
+        );
+    }
+    if mapping.contains_key(Value::String("keywords".to_string())) {
+        issues.push(
+            "skill frontmatter must use `metadata.routing_keywords`; legacy top-level `keywords` is not allowed"
+                .to_string(),
+        );
+    }
+
+    schema_result(issues)
+}
+
+fn schema_result(issues: Vec<String>) -> Result<(), SkillFrontmatterParseError> {
+    if issues.is_empty() {
+        Ok(())
+    } else {
+        Err(SkillFrontmatterParseError::InvalidSchema(issues))
+    }
+}
+
+fn frontmatter_from_mapping(mapping: &Mapping) -> NoteFrontmatter {
+    let metadata = mapping_mapping(mapping, "metadata");
+    NoteFrontmatter {
+        title: mapping_string(mapping, "title"),
+        description: mapping_string(mapping, "description"),
+        name: mapping_string(mapping, "name"),
+        category: mapping_string(mapping, "category"),
+        tags: mapping_string_vec(mapping, "tags"),
+        routing_keywords: metadata.map_or_else(Vec::new, |value| {
+            mapping_string_vec(value, "routing_keywords")
+        }),
+        intents: metadata.map_or_else(Vec::new, |value| mapping_string_vec(value, "intents")),
+    }
+}
+
+fn require_string(mapping: &Mapping, key: &str, message: &str, issues: &mut Vec<String>) {
+    if string_field(mapping, key).is_none() {
+        issues.push(message.to_string());
+    }
+}
+
+fn require_string_sequence(mapping: &Mapping, key: &str, message: &str, issues: &mut Vec<String>) {
+    if !mapping_value(mapping, key).is_some_and(is_non_empty_string_sequence) {
+        issues.push(message.to_string());
+    }
+}
+
+fn require_number(mapping: Option<&Mapping>, key: &str, message: &str, issues: &mut Vec<String>) {
+    if mapping
+        .and_then(|mapping| mapping_value(mapping, key))
+        .and_then(Value::as_f64)
+        .is_none()
+    {
+        issues.push(message.to_string());
+    }
+}
+
+fn require_minute_precision_date(mapping: &Mapping, issues: &mut Vec<String>) {
+    let Some(date) = string_field(mapping, "date") else {
+        issues.push("frontmatter must include a minute-precision `date` field".to_string());
+        return;
+    };
+    if !is_minute_precision_timestamp(date) {
+        issues.push("frontmatter `date` must use minute precision".to_string());
+    }
+}
+
+fn string_field<'a>(mapping: &'a Mapping, key: &str) -> Option<&'a str> {
+    mapping_value(mapping, key)
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+}
+
+fn is_non_empty_string_sequence(value: &Value) -> bool {
+    value.as_sequence().is_some_and(|items| {
+        !items.is_empty()
+            && items
+                .iter()
+                .all(|item| item.as_str().is_some_and(|value| !value.trim().is_empty()))
+    })
+}
+
+fn is_minute_precision_timestamp(value: &str) -> bool {
+    DateTime::parse_from_str(value, "%Y-%m-%dT%H:%M%:z").is_ok()
+        || NaiveDateTime::parse_from_str(value, "%Y-%m-%dT%H:%MZ").is_ok()
 }
 
 /// Discover all `SKILL.md` documents under one root in deterministic order.

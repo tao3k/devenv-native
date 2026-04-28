@@ -146,7 +146,7 @@ pub(crate) fn exact_match_expression(raw_needle: &str) -> Option<String> {
 
 pub(crate) fn stage1_global_order_clause() -> String {
     format!(
-        "ORDER BY CASE WHEN {exact_match_column} THEN 0 ELSE 1 END, {path_column} ASC, {line_number_column} ASC",
+        "ORDER BY MIN(CASE WHEN {exact_match_column} THEN 0 ELSE 1 END) ASC, {path_column} ASC, {line_number_column} ASC",
         exact_match_column = exact_match_projection_column(),
         path_column = path_column(),
         line_number_column = line_number_column()

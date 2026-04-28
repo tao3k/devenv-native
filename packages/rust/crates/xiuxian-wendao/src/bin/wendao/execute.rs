@@ -40,6 +40,17 @@ use xiuxian_wendao_client::{
     ClientContext as EmbeddedClientContext, OutputFormat as ClientOutputFormat,
 };
 
+pub(crate) fn can_execute_immediate(command: &Command) -> bool {
+    matches!(command, Command::Audit(args) if args.template.is_some())
+}
+
+pub(crate) fn execute_immediate(cli: &Cli) -> Result<()> {
+    match &cli.command {
+        Command::Audit(args) if args.template.is_some() => audit::handle(cli, args, None),
+        _ => anyhow::bail!("command cannot execute without runtime"),
+    }
+}
+
 /// Execute the CLI command.
 ///
 /// This function dispatches the command into its respective handler.

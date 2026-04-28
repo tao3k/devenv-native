@@ -1,3 +1,29 @@
+---
+kind: SKILL.md
+type: skill
+title: "Wendao Documentation Guardian"
+category: "documentation"
+tags:
+  - wendao
+  - documentation
+  - governance
+name: wendao
+description: Internal guardian skill for creating and editing Wendao DocOS documentation.
+author: xiuxian-artisan-workshop
+date: 2026-04-26T09:30-07:00
+metadata:
+  retrieval:
+    saliency_base: 5.5
+    decay_rate: 0.05
+  version: "2.0.0"
+  source: "https://github.com/tao3k/xiuxian-artisan-workshop/tree/main/internal_skills/wendao"
+  routing_keywords:
+    - wendao
+    - documentation
+    - docos
+    - project anchor
+---
+
 # Wendao Documentation Guardian Skill
 
 :PROPERTIES:

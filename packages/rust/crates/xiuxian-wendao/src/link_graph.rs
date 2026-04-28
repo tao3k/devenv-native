@@ -14,6 +14,10 @@ mod models;
 mod narrator;
 #[path = "link_graph/page_index/mod.rs"]
 mod page_index;
+/// Performance-only `LinkGraph` probes and benchmark helpers.
+#[cfg(feature = "performance")]
+#[path = "link_graph/perf_support.rs"]
+pub mod perf_support;
 #[path = "link_graph/ppr_hybrid.rs"]
 pub mod ppr_hybrid;
 #[path = "link_graph/runtime_config.rs"]

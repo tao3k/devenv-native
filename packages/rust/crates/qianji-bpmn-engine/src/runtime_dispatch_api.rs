@@ -2,6 +2,7 @@
 
 use crate::dmn_model_api::DmnDecisionRef;
 use crate::ir_index_api::BpmnNodeIndex;
+use crate::ir_node_api::{BpmnHumanTaskAssignmentSpec, BpmnHumanTaskFormSpec};
 
 /// Host work categories owned by the bridge layer.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -21,6 +22,15 @@ pub enum PendingHostWorkKind {
     BusinessRule,
 }
 
+/// Checkpointed allocation metadata for one pending human task.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct PendingHostWorkClaim {
+    /// Host- or operator-facing claimant identifier.
+    pub claimant: String,
+    /// Unix timestamp in milliseconds when the claim was recorded.
+    pub claimed_at_ms: u64,
+}
+
 /// Recoverable pending host work reference.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct PendingHostWork {
@@ -31,6 +41,9 @@ pub struct PendingHostWork {
     pub process_id: Option<String>,
     /// Owning BPMN node index.
     pub node_index: BpmnNodeIndex,
+    /// Stable BPMN activity identifier for the blocked node.
+    #[serde(default)]
+    pub activity_id: Option<String>,
     /// Host work category.
     pub kind: PendingHostWorkKind,
     /// Optional DMN decision binding for business-rule work.
@@ -41,6 +54,15 @@ pub struct PendingHostWork {
     /// Optional nested `<bpmn:script>` body for script-task work.
     #[serde(default)]
     pub script_body: Option<String>,
+    /// Optional source-level human-task form metadata.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub human_task_form: Option<BpmnHumanTaskFormSpec>,
+    /// Optional source-level human-task assignment metadata.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub human_task_assignment: Option<BpmnHumanTaskAssignmentSpec>,
+    /// Optional checkpointed claim metadata for human tasks.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub claim: Option<PendingHostWorkClaim>,
     /// Optional source-level event reference such as `messageRef`.
     #[serde(default)]
     pub event_reference: Option<String>,

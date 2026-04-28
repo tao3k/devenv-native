@@ -100,7 +100,7 @@ pub(crate) struct SectionCandidate {
     pub(crate) reason: &'static str,
 }
 
-/// Cache build metadata emitted by the Valkey-backed `LinkGraph` bootstrap.
+/// Cache build metadata emitted by the `LinkGraph` cache bootstrap.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LinkGraphCacheBuildMeta {
     /// Cache backend name.

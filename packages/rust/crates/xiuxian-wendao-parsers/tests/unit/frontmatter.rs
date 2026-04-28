@@ -2,8 +2,7 @@ use std::path::Path;
 
 use xiuxian_wendao_parsers::frontmatter::{
     discover_skill_documents, frontmatter_kind, is_skill_descriptor_path, parse_frontmatter,
-    parse_skill_frontmatter_lenient, skill_frontmatter_has_metadata_mapping,
-    skill_frontmatter_name, split_frontmatter, split_frontmatter_raw, uses_skill_frontmatter,
+    parse_skill_frontmatter, split_frontmatter, split_frontmatter_raw, uses_skill_frontmatter,
 };
 
 #[test]
@@ -29,6 +28,17 @@ fn split_frontmatter_raw_preserves_yaml_text() {
 }
 
 #[test]
+fn split_frontmatter_raw_uses_line_scanning_without_regex() {
+    let content = "---\r\ntitle: Example\r\n...\r\n# Body\r\n";
+    let Some(parts) = split_frontmatter_raw(content) else {
+        panic!("frontmatter should exist");
+    };
+    assert_eq!(parts.yaml, "title: Example");
+    assert_eq!(parts.body, "# Body\r\n");
+    assert!(split_frontmatter_raw("---\ntitle: Missing Close\n# Body\n").is_none());
+}
+
+#[test]
 fn parse_frontmatter_extracts_top_level_fields() {
     let content =
         "---\ntitle: My Note\ndescription: A test\ntags:\n  - python\n  - rust\n---\n# Content";
@@ -48,10 +58,10 @@ fn parse_frontmatter_extracts_skill_metadata() {
 }
 
 #[test]
-fn parse_frontmatter_falls_back_to_metadata_tags() {
-    let content = "---\nmetadata:\n  tags:\n    - search\n    - vector\n---\n# Content";
+fn parse_frontmatter_ignores_legacy_metadata_tags() {
+    let content = "---\ntags:\n  - canonical\nmetadata:\n  tags:\n    - legacy\n---\n# Content";
     let frontmatter = parse_frontmatter(content);
-    assert_eq!(frontmatter.tags, vec!["search", "vector"]);
+    assert_eq!(frontmatter.tags, vec!["canonical"]);
 }
 
 #[test]
@@ -68,48 +78,65 @@ fn parse_frontmatter_malformed_returns_default() {
 }
 
 #[test]
-fn parse_skill_frontmatter_lenient_accepts_name_without_metadata() {
-    let frontmatter = match parse_skill_frontmatter_lenient(
-        "---\nname: agenda-management\ndescription: Agenda skill\n---\n# Skill\n",
-    ) {
-        Ok(Some(frontmatter)) => frontmatter,
-        Ok(None) => panic!("frontmatter should exist"),
-        Err(error) => panic!("yaml should parse: {error}"),
-    };
+fn parse_skill_frontmatter_accepts_strict_common_based_schema() {
+    let frontmatter = parse_skill_frontmatter(concat!(
+        "---\n",
+        "kind: SKILL.md\n",
+        "type: skill\n",
+        "title: Agenda Skill\n",
+        "category: skills\n",
+        "tags:\n",
+        "  - agenda\n",
+        "name: agenda-management\n",
+        "description: Agenda skill\n",
+        "author: xiuxian-artisan-workshop\n",
+        "date: 2026-04-26T09:30-07:00\n",
+        "metadata:\n",
+        "  retrieval:\n",
+        "    saliency_base: 5.5\n",
+        "    decay_rate: 0.05\n",
+        "  version: \"1.0.0\"\n",
+        "  source: \"https://example.test/skills/agenda\"\n",
+        "  routing_keywords:\n",
+        "    - agenda\n",
+        "---\n",
+        "# Skill\n",
+    ))
+    .unwrap_or_else(|error| panic!("strict skill frontmatter should parse: {error}"));
     assert_eq!(frontmatter.name.as_deref(), Some("agenda-management"));
     assert_eq!(frontmatter.description.as_deref(), Some("Agenda skill"));
 }
 
 #[test]
-fn parse_skill_frontmatter_lenient_rejects_invalid_yaml() {
-    match parse_skill_frontmatter_lenient("---\nname: [oops\n---\n# Skill\n") {
+fn parse_skill_frontmatter_rejects_invalid_yaml() {
+    match parse_skill_frontmatter("---\nname: [oops\n---\n# Skill\n") {
         Ok(_) => panic!("invalid yaml should fail"),
         Err(error) => assert!(!error.to_string().is_empty()),
     }
 }
 
 #[test]
-fn parse_skill_frontmatter_lenient_returns_none_without_frontmatter() {
-    let frontmatter = match parse_skill_frontmatter_lenient("# Skill\n") {
-        Ok(frontmatter) => frontmatter,
-        Err(error) => panic!("missing frontmatter is allowed: {error}"),
-    };
-    assert!(frontmatter.is_none());
+fn parse_skill_frontmatter_rejects_missing_frontmatter() {
+    match parse_skill_frontmatter("# Skill\n") {
+        Ok(_) => panic!("missing frontmatter should fail"),
+        Err(error) => assert!(
+            error
+                .to_string()
+                .contains("document must start with a YAML frontmatter block")
+        ),
+    }
 }
 
 #[test]
-fn skill_frontmatter_helpers_follow_parser_owned_contract() {
-    let content = concat!(
-        "---\n",
-        "name: planner\n",
-        "metadata:\n",
-        "  routing_keywords:\n",
-        "    - plan\n",
-        "---\n",
-        "# Planner\n",
-    );
-    assert_eq!(skill_frontmatter_name(content).as_deref(), Some("planner"));
-    assert!(skill_frontmatter_has_metadata_mapping(content));
+fn parse_skill_frontmatter_rejects_missing_common_fields() {
+    match parse_skill_frontmatter("---\nname: agenda-management\n---\n# Skill\n") {
+        Ok(_) => panic!("incomplete frontmatter should fail"),
+        Err(error) => {
+            let rendered = error.to_string();
+            assert!(rendered.contains("frontmatter must include a non-empty `title` field"));
+            assert!(rendered.contains("skill frontmatter top-level `type` must be `skill`"));
+        }
+    }
 }
 
 #[test]

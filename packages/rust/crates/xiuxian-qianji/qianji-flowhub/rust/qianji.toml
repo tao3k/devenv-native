@@ -1,0 +1,9 @@
+version = 1
+
+[module]
+name = "rust"
+tags = ["planning", "coding", "rust"]
+
+[exports]
+entry = "task.rust-start"
+ready = "task.constraints-ready"

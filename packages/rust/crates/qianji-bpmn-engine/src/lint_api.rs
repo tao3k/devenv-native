@@ -22,6 +22,54 @@ pub enum LintSeverity {
     Error,
 }
 
+/// One byte span inside a source document.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct LintSourceSpan {
+    /// Inclusive byte offset.
+    pub start: usize,
+    /// Exclusive byte offset.
+    pub end: usize,
+}
+
+impl LintSourceSpan {
+    /// Creates a byte span.
+    #[must_use]
+    pub fn new(start: usize, end: usize) -> Self {
+        Self { start, end }
+    }
+}
+
+/// Source-aware diagnostic metadata for compact LLM renderers.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct LintSourceDiagnostic {
+    /// Source identifier used by the lint input.
+    pub source_id: String,
+    /// Primary byte span to highlight.
+    pub span: LintSourceSpan,
+    /// Label attached to the highlighted span.
+    pub label: String,
+    /// Compact repair hint suitable for LLM observations.
+    pub help: String,
+}
+
+impl LintSourceDiagnostic {
+    /// Creates source-aware diagnostic metadata.
+    #[must_use]
+    pub fn new(
+        source_id: impl Into<String>,
+        span: LintSourceSpan,
+        label: impl Into<String>,
+        help: impl Into<String>,
+    ) -> Self {
+        Self {
+            source_id: source_id.into(),
+            span,
+            label: label.into(),
+            help: help.into(),
+        }
+    }
+}
+
 /// One structured lint issue with repair guidance suitable for LLM-assisted fixes.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct LintIssue {
@@ -39,6 +87,12 @@ pub struct LintIssue {
     pub repair_guidance: Vec<String>,
     /// One direct editing prompt optimized for LLM-assisted repair.
     pub llm_fix_prompt: String,
+    /// Machine-readable repair plan for LLM and tool consumers.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub structured_repair: Option<Value>,
+    /// Optional source-aware diagnostic metadata for compact renderers.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_diagnostic: Option<LintSourceDiagnostic>,
     /// Structured evidence extracted from the parse failure.
     pub evidence: Value,
 }
@@ -63,8 +117,24 @@ impl LintIssue {
             why_it_failed: why_it_failed.into(),
             repair_guidance,
             llm_fix_prompt: llm_fix_prompt.into(),
+            structured_repair: None,
+            source_diagnostic: None,
             evidence,
         }
+    }
+
+    /// Attaches a machine-readable repair plan.
+    #[must_use]
+    pub fn with_structured_repair(mut self, structured_repair: Value) -> Self {
+        self.structured_repair = Some(structured_repair);
+        self
+    }
+
+    /// Attaches source-aware diagnostic metadata.
+    #[must_use]
+    pub fn with_source_diagnostic(mut self, source_diagnostic: LintSourceDiagnostic) -> Self {
+        self.source_diagnostic = Some(source_diagnostic);
+        self
     }
 }
 

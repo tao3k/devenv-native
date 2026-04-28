@@ -43,7 +43,11 @@ fn write_note(path: &Path, body: &str) -> Result<(), String> {
     fs::write(path, body).map_err(|error| format!("write fixture note {}: {error}", path.display()))
 }
 
-fn build_fixture(root: &Path, node_count: usize, hub_count: usize) -> Result<(), String> {
+pub(crate) fn build_link_graph_fixture(
+    root: &Path,
+    node_count: usize,
+    hub_count: usize,
+) -> Result<(), String> {
     for i in 0..node_count {
         let current = note_id(i);
         let next = note_id((i + 1) % node_count);
@@ -83,7 +87,7 @@ pub(crate) fn build_index(
     hub_count: usize,
 ) -> Result<(TempDir, LinkGraphIndex), String> {
     let temp = tempdir().map_err(|error| format!("create fixture tempdir: {error}"))?;
-    build_fixture(temp.path(), node_count, hub_count)?;
+    build_link_graph_fixture(temp.path(), node_count, hub_count)?;
     let index = LinkGraphIndex::build(temp.path())
         .map_err(|error| format!("build link graph fixture index: {error}"))?;
     Ok((temp, index))

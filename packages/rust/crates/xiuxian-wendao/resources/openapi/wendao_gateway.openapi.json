@@ -314,18 +314,13 @@
                   "schemaVersion": "v1",
                   "timeoutSecs": 30,
                   "launch": {
-                    "launcherPath": ".data/WendaoAnalyzer.jl/scripts/run_analyzer_service.sh",
-                    "args": [
-                      "--service-mode",
-                      "stream",
-                      "--analyzer-strategy",
-                      "linear_blend"
-                    ]
+                    "launcherPath": ".data/WendaoSearch.jl/scripts/run_search_service.jl",
+                    "args": ["--mode", "stream"]
                   }
                 }
               },
               "text/plain": {
-                "example": "artifact_schema_version = \"v1\"\ngenerated_at = \"2026-03-27T16:00:00+00:00\"\nbase_url = \"http://127.0.0.1:18080\"\nroute = \"/rerank\"\nhealth_route = \"/healthz\"\nschema_version = \"v1\"\ntimeout_secs = 30\n\n[launch]\nlauncher_path = \".data/WendaoAnalyzer.jl/scripts/run_analyzer_service.sh\"\nargs = [\n    \"--service-mode\",\n    \"stream\",\n    \"--analyzer-strategy\",\n    \"linear_blend\",\n]\n"
+                "example": "artifact_schema_version = \"v1\"\ngenerated_at = \"2026-03-27T16:00:00+00:00\"\nbase_url = \"http://127.0.0.1:18080\"\nroute = \"/rerank\"\nhealth_route = \"/healthz\"\nschema_version = \"v1\"\ntimeout_secs = 30\n\n[launch]\nlauncher_path = \".data/WendaoSearch.jl/scripts/run_search_service.jl\"\nargs = [\n    \"--mode\",\n    \"stream\",\n]\n"
               }
             }
           },

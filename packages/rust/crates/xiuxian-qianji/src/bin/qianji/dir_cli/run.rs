@@ -66,7 +66,7 @@ fn run_show_dir_command(dir: &Path) -> Result<DirCliOutput, QianjiError> {
     }
 
     if looks_like_flowhub_scenario_dir(dir) {
-        let flowhub_root = resolve_default_flowhub_root().map_err(|error| {
+        let flowhub_root = resolve_flowhub_root_for_scenario_dir(dir).map_err(|error| {
             QianjiError::Topology(format!(
                 "failed to resolve default Flowhub root for scenario `{}`: {error}",
                 dir.display()
@@ -130,7 +130,7 @@ fn run_check_dir_command(dir: &Path) -> Result<DirCliOutput, QianjiError> {
     }
 
     if looks_like_flowhub_scenario_dir(dir) {
-        let flowhub_root = resolve_default_flowhub_root().map_err(|error| {
+        let flowhub_root = resolve_flowhub_root_for_scenario_dir(dir).map_err(|error| {
             QianjiError::Topology(format!(
                 "failed to resolve default Flowhub root for scenario `{}`: {error}",
                 dir.display()
@@ -188,5 +188,26 @@ fn run_advance_command(dir: &Path, to: &str) -> Result<DirCliOutput, QianjiError
 }
 
 fn resolve_default_flowhub_root() -> std::io::Result<PathBuf> {
+    let current_dir = std::env::current_dir()?;
+    if let Some(root) = find_default_flowhub_root(current_dir.as_path()) {
+        return Ok(root);
+    }
+    if let Some(root) = find_default_flowhub_root(Path::new(env!("CARGO_MANIFEST_DIR"))) {
+        return Ok(root);
+    }
     Ok(resolve_workspace_root(None)?.join("qianji-flowhub"))
+}
+
+fn resolve_flowhub_root_for_scenario_dir(dir: &Path) -> std::io::Result<PathBuf> {
+    if let Some(root) = find_default_flowhub_root(dir) {
+        return Ok(root);
+    }
+    resolve_default_flowhub_root()
+}
+
+fn find_default_flowhub_root(start: &Path) -> Option<PathBuf> {
+    start
+        .ancestors()
+        .map(|ancestor| ancestor.join("qianji-flowhub"))
+        .find(|candidate| candidate.join("qianji.toml").is_file())
 }

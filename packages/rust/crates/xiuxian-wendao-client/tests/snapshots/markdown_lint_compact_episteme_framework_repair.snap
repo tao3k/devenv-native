@@ -1,0 +1,19 @@
+---
+source: packages/rust/crates/xiuxian-wendao-client/tests/unit/lint_run/mod.rs
+assertion_line: 46
+expression: output
+---
+Markdown lint found 1 issue(s) in 1 file(s) across 3 checked file(s).
+
+[non_canonical_obsidian_alias_order] Error: The right-hand wikilink segment looks like a repository target path or address, so target and display label appear reversed.
+    ,-[ docs/episteme_framework_matrix.md:16:141 ]
+ 16 |Coverage: Johnny.Decimal, Diataxis, ADR, Evergreen, MOC, Folgezettel, IBIS, search reasoning, semantic consistency, conflict arbitration -> [[Johnny.Decimal Anchor Syntax|frameworks/johnny_decimal/anchor_syntax]].
+    |                                                                                                                                                                                `------------------------------------ This is legal Obsidian wikilink syntax, but repository authoring policy only flags reversed alias order when the right side looks like a path, heading address, block address, or Markdown note target.
+    |Help 1: expected: rewrite as `[[frameworks/johnny_decimal/anchor_syntax|Johnny.Decimal Anchor Syntax]]`.
+    |Help 2: tip: Target resolves to `Johnny.Decimal Anchor Syntax`. Reuse that title as the label baseline instead of copying the raw target.
+    |Note 1: kind: repo_authoring_policy
+    |Note 2: problem: The right-hand wikilink segment looks like a repository target path or address, so target and display label appear reversed.
+    |Note 3: target: frameworks/johnny_decimal/anchor_syntax
+    |Note 4: target_title: Johnny.Decimal Anchor Syntax
+    |Note 5: found: [[Johnny.Decimal Anchor Syntax|frameworks/johnny_decimal/anchor_syntax]]
+    |Note 6: detail: This is legal Obsidian wikilink syntax, but repository authoring policy only flags reversed alias order when the right side looks like a path, heading address, block address, or Markdown note target.

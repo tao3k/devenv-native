@@ -1,11 +1,13 @@
 use super::scope::{
     Borrow, BpmnAdvanceOutcome, BpmnEngineError, BpmnEventKind, BpmnInstanceState, BpmnNodeIndex,
     BpmnNodeKind, BpmnPackage, BpmnProcessSpec, InstanceLifecycle, NodeRuntimeStatus,
-    PendingHostWorkKind, PendingHostWorkResult, Result, evaluate_dmn_package_binding_sync,
+    PendingHostWork, PendingHostWorkKind, PendingHostWorkResult, Result,
+    evaluate_dmn_package_binding_sync,
 };
 use super::{
     blocking, call_activity, completion, error, gateway, prepare, repeat, state, transaction,
 };
+use std::collections::BTreeSet;
 
 pub(super) fn advance_active_node(
     package: &BpmnPackage,
@@ -454,6 +456,12 @@ pub(crate) fn apply_pending_host_work_result_impl(
             operation: "apply_pending_host_work_result_node_kind_mismatch",
         });
     }
+    validate_human_task_completion_form(
+        &pending,
+        pending_process_id.as_str(),
+        current_node.bpmn_id.as_ref(),
+        result,
+    )?;
 
     state::clear_pending_host_work(instance, token_id);
     let token_index = state::token_index_for_id(instance, token_id);
@@ -505,6 +513,63 @@ pub(crate) fn apply_pending_host_work_result_impl(
     );
 
     Ok(BpmnAdvanceOutcome::Advanced)
+}
+
+fn validate_human_task_completion_form(
+    pending: &PendingHostWork,
+    process_id: &str,
+    activity_id: &str,
+    result: &PendingHostWorkResult,
+) -> Result<()> {
+    if !matches!(
+        pending.kind,
+        PendingHostWorkKind::User | PendingHostWorkKind::Manual
+    ) {
+        return Ok(());
+    }
+    let Some(form) = pending.human_task_form.as_ref() else {
+        return Ok(());
+    };
+    let Some(data) = result.data().as_object() else {
+        return Err(BpmnEngineError::HumanTaskCompletionDataNotObject {
+            process_id: process_id.to_string(),
+            activity_id: activity_id.to_string(),
+        });
+    };
+
+    let mut declared_fields = BTreeSet::<String>::new();
+    let mut required_fields = BTreeSet::<String>::new();
+    if let Some(result_output) = form.result_output.as_deref() {
+        declared_fields.insert(result_output.to_string());
+        required_fields.insert(result_output.to_string());
+    }
+    for field in &form.free_text_fields {
+        declared_fields.insert(field.name.to_string());
+        if !field.optional {
+            required_fields.insert(field.name.to_string());
+        }
+    }
+
+    for field in required_fields {
+        if !data.contains_key(field.as_str()) {
+            return Err(BpmnEngineError::MissingHumanTaskCompletionField {
+                process_id: process_id.to_string(),
+                activity_id: activity_id.to_string(),
+                field,
+            });
+        }
+    }
+    for field in data.keys() {
+        if !declared_fields.contains(field) {
+            return Err(BpmnEngineError::UndeclaredHumanTaskCompletionField {
+                process_id: process_id.to_string(),
+                activity_id: activity_id.to_string(),
+                field: field.clone(),
+            });
+        }
+    }
+
+    Ok(())
 }
 
 fn maybe_clear_boundary_wait_after_host_completion(

@@ -4,6 +4,7 @@
 
 [![Rust](https://img.shields.io/badge/language-Rust-orange.svg)](https://www.rust-lang.org/)
 [![Valkey](https://img.shields.io/badge/storage-Valkey-red.svg)](https://valkey.io/)
+[![DuckDB](https://img.shields.io/badge/local%20cache-DuckDB-yellow.svg)](https://duckdb.org/)
 [![LanceDB](https://img.shields.io/badge/vector-LanceDB-blue.svg)](https://lancedb.com/)
 [![Arrow](https://img.shields.io/badge/protocol-Apache--Arrow-brightgreen.svg)](https://arrow.apache.org/)
 
@@ -120,7 +121,7 @@ Use `xiuxian-wendao` for:
 
 - knowledge graph and link-graph behavior
 - search, retrieval, and search-plane business semantics
-- Valkey/Lance-backed storage behavior
+- Valkey/Lance-backed storage behavior and DuckDB-backed local cache behavior
 - analyzers, enhancers, and other Wendao domain services
 - business handlers that materialize Wendao-specific responses
 - temporary compatibility seams that have not been extracted yet
@@ -147,7 +148,20 @@ search: `src/search/` is the only search implementation root.
 
 Detailed repo-intelligence rollout notes, repo-index performance proofs, and
 cache/runtime evolution now belong in the package docs and GTD tracking
-surfaces instead of this README. Use
+surfaces instead of this README. Local CLI/audit link-graph bootstrap now uses
+a DuckDB-backed snapshot cache under the project cache root; Valkey remains the
+explicit shared runtime cache path for gateway/service-backed link-graph cache
+use. The local DuckDB cache stores the high-cardinality link-graph core as
+native Arrow IPC streams and keeps a bounded page-index residual so warm hits
+avoid rebuilding every page-index tree. The page-index residual remains a
+single bounded payload until a measured columnar form beats it; cache schema
+validity is tracked by fingerprint rather than rolling local table versions.
+Warm-hit lookup opens existing local cache files with DuckDB read-only access
+and lets the prepared payload SELECT validate the stable table shape before
+reading streams; cache writes still own table creation and
+incompatible-table rebuilds through the normal DuckDB runtime path.
+The local cache performance gate records cold build, miss/write, hit/read,
+native Arrow core-stream timings, and a hit-vs-cold p95 ratio gate. Use
 [`docs/06_roadmap/402_repo_intelligence_mvp.md`](docs/06_roadmap/402_repo_intelligence_mvp.md)
 for the active repo-intelligence lane and
 [`docs/06_roadmap/417_wendao_package_boundary_matrix.md`](docs/06_roadmap/417_wendao_package_boundary_matrix.md)

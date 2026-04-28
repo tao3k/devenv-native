@@ -50,7 +50,7 @@ fn build_repo_content_stage1_sql_includes_sql_native_filters() {
     assert!(sql.contains(") AS filtered GROUP BY path"), "{sql}");
     assert!(
         sql.contains(
-            "ORDER BY CASE WHEN exact_match THEN 0 ELSE 1 END, path ASC, line_number ASC LIMIT 256"
+            "ORDER BY MIN(CASE WHEN exact_match THEN 0 ELSE 1 END) ASC, path ASC, line_number ASC LIMIT 256"
         ),
         "{sql}"
     );

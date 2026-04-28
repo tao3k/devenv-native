@@ -4,7 +4,11 @@ use serde_json::json;
 
 pub(super) fn issue_from_bpmn_document_error(error: &BpmnEngineError) -> Option<LintIssue> {
     Some(match error {
-        BpmnEngineError::InvalidXml { source_id, message } => invalid_xml_issue(source_id, message),
+        BpmnEngineError::InvalidXml {
+            source_id,
+            message,
+            offset,
+        } => invalid_xml_issue(source_id, message, *offset),
         BpmnEngineError::MissingRootElement { source_id } => missing_root_element_issue(source_id),
         BpmnEngineError::MissingAttribute {
             source_id,
@@ -23,7 +27,7 @@ pub(super) fn issue_from_bpmn_document_error(error: &BpmnEngineError) -> Option<
     })
 }
 
-fn invalid_xml_issue(source_id: &str, message: &str) -> LintIssue {
+fn invalid_xml_issue(source_id: &str, message: &str, offset: Option<u64>) -> LintIssue {
     LintIssue::new(
         "bpmn.invalid_xml",
         "BPMN XML is not well-formed",
@@ -39,6 +43,7 @@ fn invalid_xml_issue(source_id: &str, message: &str) -> LintIssue {
         json!({
             "source_id": source_id,
             "parser_message": message,
+            "parser_offset": offset,
         }),
     )
 }

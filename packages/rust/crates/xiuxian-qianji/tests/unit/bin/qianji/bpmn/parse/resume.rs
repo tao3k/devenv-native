@@ -56,6 +56,7 @@ fn parse_bpmn_command_defaults_resume_to_local_duckdb_checkpoint_backend() {
             event_fixture_path: None,
             trace_stream: false,
             external_host: false,
+            continue_until_human_boundary: false,
         })
     );
 }

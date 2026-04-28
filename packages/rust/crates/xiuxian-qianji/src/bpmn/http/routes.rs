@@ -2,7 +2,9 @@ use super::api::{
     QianjiBpmnWorkflowActionHttpRequest, QianjiBpmnWorkflowCancelHttpResponse,
     QianjiBpmnWorkflowHttpError, QianjiBpmnWorkflowHttpState, QianjiBpmnWorkflowRunHttpResponse,
     QianjiBpmnWorkflowStartHttpRequest, QianjiBpmnWorkflowStatusHttpQuery,
-    QianjiBpmnWorkflowStatusHttpResponse,
+    QianjiBpmnWorkflowStatusHttpResponse, QianjiBpmnWorkflowTaskClaimHttpRequest,
+    QianjiBpmnWorkflowTaskClaimHttpResponse, QianjiBpmnWorkflowTaskCompleteHttpRequest,
+    QianjiBpmnWorkflowTaskReleaseHttpRequest, QianjiBpmnWorkflowTaskReleaseHttpResponse,
 };
 use axum::extract::{Path, Query, State};
 use axum::routing::{get, post};
@@ -31,6 +33,14 @@ where
         .route(
             "/workflows/{instance_id}/tasks/complete",
             post(complete_workflow_task::<H>),
+        )
+        .route(
+            "/workflows/{instance_id}/tasks/claim",
+            post(claim_workflow_task::<H>),
+        )
+        .route(
+            "/workflows/{instance_id}/tasks/release",
+            post(release_workflow_task::<H>),
         )
         .with_state(state)
 }
@@ -88,7 +98,7 @@ where
 async fn complete_workflow_task<H>(
     State(state): State<QianjiBpmnWorkflowHttpState<H>>,
     Path(instance_id): Path<String>,
-    Json(request): Json<QianjiBpmnWorkflowActionHttpRequest>,
+    Json(request): Json<QianjiBpmnWorkflowTaskCompleteHttpRequest>,
 ) -> Result<Json<QianjiBpmnWorkflowRunHttpResponse>, QianjiBpmnWorkflowHttpError>
 where
     H: BpmnHostBridge + Clone + Send + Sync + 'static,
@@ -103,6 +113,40 @@ where
     Ok(Json(QianjiBpmnWorkflowRunHttpResponse::from_start_report(
         &report,
     )))
+}
+
+async fn claim_workflow_task<H>(
+    State(state): State<QianjiBpmnWorkflowHttpState<H>>,
+    Path(instance_id): Path<String>,
+    Json(request): Json<QianjiBpmnWorkflowTaskClaimHttpRequest>,
+) -> Result<Json<QianjiBpmnWorkflowTaskClaimHttpResponse>, QianjiBpmnWorkflowHttpError>
+where
+    H: BpmnHostBridge + Clone + Send + Sync + 'static,
+{
+    let report = state
+        .service
+        .claim_workflow_task(&request.into_task_claim_request(instance_id))
+        .await?;
+    Ok(Json(QianjiBpmnWorkflowTaskClaimHttpResponse::from_report(
+        &report,
+    )))
+}
+
+async fn release_workflow_task<H>(
+    State(state): State<QianjiBpmnWorkflowHttpState<H>>,
+    Path(instance_id): Path<String>,
+    Json(request): Json<QianjiBpmnWorkflowTaskReleaseHttpRequest>,
+) -> Result<Json<QianjiBpmnWorkflowTaskReleaseHttpResponse>, QianjiBpmnWorkflowHttpError>
+where
+    H: BpmnHostBridge + Clone + Send + Sync + 'static,
+{
+    let report = state
+        .service
+        .release_workflow_task(&request.into_task_release_request(instance_id))
+        .await?;
+    Ok(Json(
+        QianjiBpmnWorkflowTaskReleaseHttpResponse::from_report(&report),
+    ))
 }
 
 async fn load_workflow_status<H>(

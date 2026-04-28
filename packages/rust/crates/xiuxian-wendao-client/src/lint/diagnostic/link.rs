@@ -30,8 +30,18 @@ impl LinkIssueContext {
             }
             MarkdownSyntaxLintCode::MissingFrontmatter
             | MarkdownSyntaxLintCode::MissingFrontmatterTitle
+            | MarkdownSyntaxLintCode::MissingFrontmatterKind
+            | MarkdownSyntaxLintCode::MissingFrontmatterCategory
+            | MarkdownSyntaxLintCode::MissingFrontmatterTags
+            | MarkdownSyntaxLintCode::MissingFrontmatterDescription
+            | MarkdownSyntaxLintCode::MissingFrontmatterAuthor
+            | MarkdownSyntaxLintCode::MissingFrontmatterDate
+            | MarkdownSyntaxLintCode::InvalidFrontmatterDatePrecision
+            | MarkdownSyntaxLintCode::MissingFrontmatterRetrievalSaliencyBase
+            | MarkdownSyntaxLintCode::MissingFrontmatterRetrievalDecayRate
             | MarkdownSyntaxLintCode::MissingSkillFrontmatterName
             | MarkdownSyntaxLintCode::MissingSkillFrontmatterMetadata
+            | MarkdownSyntaxLintCode::InvalidSkillFrontmatterSchema
             | MarkdownSyntaxLintCode::UnclosedFrontmatter
             | MarkdownSyntaxLintCode::InvalidFrontmatterYaml
             | MarkdownSyntaxLintCode::UnclosedFence => None,
@@ -86,8 +96,18 @@ fn parse_wikilink_issue_context(
                 | MarkdownSyntaxLintCode::MixedWikilinkMarkdownLink
                 | MarkdownSyntaxLintCode::MissingFrontmatter
                 | MarkdownSyntaxLintCode::MissingFrontmatterTitle
+                | MarkdownSyntaxLintCode::MissingFrontmatterKind
+                | MarkdownSyntaxLintCode::MissingFrontmatterCategory
+                | MarkdownSyntaxLintCode::MissingFrontmatterTags
+                | MarkdownSyntaxLintCode::MissingFrontmatterDescription
+                | MarkdownSyntaxLintCode::MissingFrontmatterAuthor
+                | MarkdownSyntaxLintCode::MissingFrontmatterDate
+                | MarkdownSyntaxLintCode::InvalidFrontmatterDatePrecision
+                | MarkdownSyntaxLintCode::MissingFrontmatterRetrievalSaliencyBase
+                | MarkdownSyntaxLintCode::MissingFrontmatterRetrievalDecayRate
                 | MarkdownSyntaxLintCode::MissingSkillFrontmatterName
                 | MarkdownSyntaxLintCode::MissingSkillFrontmatterMetadata
+                | MarkdownSyntaxLintCode::InvalidSkillFrontmatterSchema
                 | MarkdownSyntaxLintCode::UnclosedFrontmatter
                 | MarkdownSyntaxLintCode::InvalidFrontmatterYaml
                 | MarkdownSyntaxLintCode::UnclosedFence => Some(LinkIssueContext {

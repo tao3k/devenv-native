@@ -3,10 +3,8 @@ use std::path::Path;
 use xiuxian_ast::{
     Lang, semantic_fingerprint as generic_ast_semantic_fingerprint, supports_semantic_fingerprint,
 };
-use xiuxian_wendao_julia::{
-    julia_parser_summary_file_semantic_fingerprint_for_repository,
-    modelica_parser_summary_file_semantic_fingerprint_for_repository,
-};
+#[cfg(feature = "julia")]
+use xiuxian_wendao_julia::modelica_parser_summary_file_semantic_fingerprint_for_repository;
 
 use crate::analyzers::RegisteredRepository;
 
@@ -87,25 +85,54 @@ pub(super) fn compute_semantic_fingerprint(
 ) -> Option<String> {
     match owner {
         SemanticFingerprintOwner::JuliaParserSummary => {
-            julia_parser_summary_file_semantic_fingerprint_for_repository(
-                repository,
-                relative_path,
-                source_text,
-            )
-            .ok()
+            julia_source_semantic_fingerprint(source_text)
         }
         SemanticFingerprintOwner::ModelicaParserSummary => {
-            modelica_parser_summary_file_semantic_fingerprint_for_repository(
-                repository,
-                relative_path,
-                source_text,
-            )
-            .ok()
+            modelica_parser_summary_semantic_fingerprint(repository, relative_path, source_text)
         }
         SemanticFingerprintOwner::GenericAst(lang) => {
             generic_ast_semantic_fingerprint(source_text, lang)
         }
     }
+}
+
+fn modelica_parser_summary_semantic_fingerprint(
+    repository: &RegisteredRepository,
+    relative_path: &str,
+    source_text: &str,
+) -> Option<String> {
+    #[cfg(feature = "julia")]
+    {
+        modelica_parser_summary_file_semantic_fingerprint_for_repository(
+            repository,
+            relative_path,
+            source_text,
+        )
+        .ok()
+    }
+
+    #[cfg(not(feature = "julia"))]
+    {
+        let _ = (repository, relative_path, source_text);
+        None
+    }
+}
+
+fn julia_source_semantic_fingerprint(source_text: &str) -> Option<String> {
+    let normalized = source_text
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty() && !line.starts_with('#'))
+        .collect::<Vec<_>>()
+        .join("\n");
+    if normalized.is_empty() {
+        return None;
+    }
+
+    let mut hasher = blake3::Hasher::new();
+    hasher.update(b"xiuxian_wendao.julia_source_semantic_fingerprint.v1\0");
+    hasher.update(normalized.as_bytes());
+    Some(hasher.finalize().to_hex().to_string())
 }
 
 fn has_extension(relative_path: &str, extension: &str) -> bool {

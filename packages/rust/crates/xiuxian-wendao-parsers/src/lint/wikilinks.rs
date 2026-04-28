@@ -2,15 +2,7 @@ use super::fences::parse_fence_marker;
 use super::types::{MarkdownSyntaxLintCode, MarkdownSyntaxLintIssue};
 use crate::markdown_structure::parse_markdown_structure;
 use crate::targets::MarkdownTargetOccurrenceKind;
-use regex::Regex;
 use std::path::Path;
-use std::sync::LazyLock;
-
-static MIXED_WIKILINK_MARKDOWN_LINK_REGEX: LazyLock<Regex> =
-    LazyLock::new(|| match Regex::new(r"!?\[\[[^\]\n]+\]\]\([^)\n]*\)") {
-        Ok(regex) => regex,
-        Err(error) => panic!("hardcoded mixed wikilink regex should compile: {error}"),
-    });
 
 pub(super) fn lint_obsidian_wikilinks(
     body: &str,
@@ -213,14 +205,14 @@ fn collect_mixed_segment_issues(
     blocked_spans: &mut Vec<(usize, usize)>,
 ) -> Vec<MarkdownSyntaxLintIssue> {
     let mut issues = Vec::new();
-    for matched in MIXED_WIKILINK_MARKDOWN_LINK_REGEX.find_iter(segment) {
-        let absolute_start = base_offset + matched.start();
+    for matched in mixed_wikilink_markdown_link_matches(segment) {
+        let absolute_start = base_offset + matched.start;
         if is_escaped(line, absolute_start) {
             continue;
         }
         blocked_spans.push((
             line_byte_start + absolute_start,
-            line_byte_start + base_offset + matched.end(),
+            line_byte_start + base_offset + matched.end,
         ));
         let column = line[..absolute_start].chars().count() + 1;
         issues.push(MarkdownSyntaxLintIssue {
@@ -233,6 +225,54 @@ fn collect_mixed_segment_issues(
         });
     }
     issues
+}
+
+#[derive(Clone, Copy)]
+struct MixedSyntaxMatch {
+    start: usize,
+    end: usize,
+}
+
+fn mixed_wikilink_markdown_link_matches(segment: &str) -> Vec<MixedSyntaxMatch> {
+    let mut matches = Vec::new();
+    let mut cursor = 0usize;
+    while cursor < segment.len() {
+        let Some(open_relative) = segment[cursor..].find("[[") else {
+            break;
+        };
+        let open = cursor + open_relative;
+        let content_start = open + 2;
+        let Some(close_relative) = segment[content_start..].find("]]") else {
+            cursor = content_start;
+            continue;
+        };
+        let close = content_start + close_relative;
+        let target = &segment[content_start..close];
+        if target.is_empty() || target.contains(']') {
+            cursor = content_start;
+            continue;
+        }
+
+        let paren_open = close + 2;
+        if segment.as_bytes().get(paren_open) != Some(&b'(') {
+            cursor = close + 2;
+            continue;
+        }
+        let Some(paren_close_relative) = segment[paren_open + 1..].find(')') else {
+            cursor = paren_open + 1;
+            continue;
+        };
+        let end = paren_open + 1 + paren_close_relative + 1;
+        matches.push(MixedSyntaxMatch {
+            start: open
+                .checked_sub(1)
+                .filter(|start| segment.as_bytes().get(*start) == Some(&b'!'))
+                .unwrap_or(open),
+            end,
+        });
+        cursor = end;
+    }
+    matches
 }
 
 fn parse_wikilink_literal_parts(literal: &str) -> Option<WikilinkLiteralParts<'_>> {

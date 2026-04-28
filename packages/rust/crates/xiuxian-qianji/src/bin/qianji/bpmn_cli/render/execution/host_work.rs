@@ -4,7 +4,10 @@ use crate::bpmn_cli::deps::{
     BpmnProcessSpec, PendingHostWorkRequest, QianjiBpmnSession, build_pending_host_work_requests,
 };
 
-use crate::bpmn_cli::render::support::{bpmn_node_id_label, bpmn_pending_host_work_kind_label};
+use crate::bpmn_cli::render::support::{
+    bpmn_human_task_assignment_label, bpmn_human_task_form_label, bpmn_node_id_label,
+    bpmn_pending_host_work_kind_label,
+};
 
 pub(super) fn append_bpmn_pending_host_work(rendered: &mut String, session: &QianjiBpmnSession) {
     if session.instance().pending_host_work.is_empty() {
@@ -32,8 +35,23 @@ pub(super) fn append_bpmn_pending_host_work(rendered: &mut String, session: &Qia
         if let Some(process_id) = work.process_id.as_ref() {
             let _ = write!(line, " | process={process_id}");
         }
+        if let Some(activity_id) = work.activity_id.as_ref() {
+            let _ = write!(line, " | activity={activity_id}");
+        }
         if let Some(work_id) = work.work_id.as_ref() {
             let _ = write!(line, " | work_id={work_id}");
+        }
+        if let Some(claim) = work.claim.as_ref() {
+            let _ = write!(line, " | claim={}", claim.claimant);
+        }
+        if let Some(form) = work.human_task_form.as_ref() {
+            let _ = write!(line, " | form={}", bpmn_human_task_form_label(form));
+        }
+        if let Some(assignment) = work.human_task_assignment.as_ref() {
+            let label = bpmn_human_task_assignment_label(assignment);
+            if !label.is_empty() {
+                let _ = write!(line, " | assignment={label}");
+            }
         }
         let _ = writeln!(rendered, "{line}");
     }
@@ -75,6 +93,7 @@ fn pending_host_work_request_stream_value(
     match request {
         PendingHostWorkRequest::Send(request) => serde_json::json!({
             "kind": "send",
+            "instance_id": request.instance_id,
             "node_id": pending_host_work_request_node_id(process, request.node_index),
             "node_index": request.node_index,
             "token_id": request.token_id,
@@ -84,6 +103,7 @@ fn pending_host_work_request_stream_value(
         }),
         PendingHostWorkRequest::Service(request) => serde_json::json!({
             "kind": "service",
+            "instance_id": request.instance_id,
             "node_id": pending_host_work_request_node_id(process, request.node_index),
             "node_index": request.node_index,
             "token_id": request.token_id,
@@ -92,6 +112,7 @@ fn pending_host_work_request_stream_value(
         }),
         PendingHostWorkRequest::Script(request) => serde_json::json!({
             "kind": "script",
+            "instance_id": request.instance_id,
             "node_id": pending_host_work_request_node_id(process, request.node_index),
             "node_index": request.node_index,
             "token_id": request.token_id,
@@ -102,22 +123,35 @@ fn pending_host_work_request_stream_value(
         }),
         PendingHostWorkRequest::User(request) => serde_json::json!({
             "kind": "user",
+            "instance_id": request.instance_id,
+            "process_id": request.process_id,
+            "activity_id": request.activity_id,
             "node_id": pending_host_work_request_node_id(process, request.node_index),
             "node_index": request.node_index,
             "token_id": request.token_id,
             "variables": request.variables,
             "repeat": request.repeat,
+            "form": request.form,
+            "assignment": request.assignment,
+            "claim": request.claim,
         }),
         PendingHostWorkRequest::Manual(request) => serde_json::json!({
             "kind": "manual",
+            "instance_id": request.instance_id,
+            "process_id": request.process_id,
+            "activity_id": request.activity_id,
             "node_id": pending_host_work_request_node_id(process, request.node_index),
             "node_index": request.node_index,
             "token_id": request.token_id,
             "variables": request.variables,
             "repeat": request.repeat,
+            "form": request.form,
+            "assignment": request.assignment,
+            "claim": request.claim,
         }),
         PendingHostWorkRequest::BusinessRule(request) => serde_json::json!({
             "kind": "business_rule",
+            "instance_id": request.instance_id,
             "node_id": pending_host_work_request_node_id(process, request.node_index),
             "node_index": request.node_index,
             "token_id": request.token_id,

@@ -1,5 +1,5 @@
 use crate::lint_api::LintIssue;
-use serde_json::json;
+use serde_json::{Value, json};
 
 pub(super) fn gateway_configuration_issue(
     process_id: &str,
@@ -73,6 +73,25 @@ fn condition_expression_requires_conditional_gateway_issue(
             "detail": detail,
         }),
     )
+    .with_structured_repair(gateway_repair_plan(
+        "move_condition_to_bounded_gateway",
+        process_id,
+        node_id,
+        detail,
+        vec![
+            json!({
+                "op": "insert_or_reuse_gateway",
+                "element": "exclusiveGateway",
+                "construct_card": "gateway.exclusive.bounded",
+                "reason": "conditionExpression must be owned by a bounded conditional gateway"
+            }),
+            json!({
+                "op": "move_condition_expression",
+                "from": "non_gateway_sequence_flow",
+                "to": "outgoing_gateway_sequence_flow"
+            }),
+        ],
+    ))
 }
 
 fn default_flow_requires_multiple_outgoing_issue(
@@ -86,13 +105,14 @@ fn default_flow_requires_multiple_outgoing_issue(
         format!(
             "Process '{process_id}' gateway '{node_id}' declares a `default` flow without two or more outgoing sequence flows."
         ),
-        "A bounded default flow is only meaningful when one conditional gateway branches across multiple outgoing sequence flows.",
+        "A bounded default flow is only meaningful when one conditional gateway branches across multiple outgoing sequence flows. If the workflow has one conditional route plus one fallback route, the fallback must be a real outgoing `sequenceFlow` from this same gateway and the gateway `default` attribute must point to that fallback flow id.",
         vec![
-            "Either add the missing additional outgoing branches to this conditional gateway or remove the `default` attribute.".to_string(),
-            "Keep one unconditional fallback flow as the `default` branch only when the gateway has multiple outgoing sequence flows.".to_string(),
+            "If a fallback route is intended, add or retarget the missing outgoing fallback `sequenceFlow` from this gateway in the same patch, set the gateway `default` attribute to that fallback flow id, and leave that fallback flow without `conditionExpression`.".to_string(),
+            "If no fallback route is intended, remove the `default` attribute and also remove any extra unconditional non-default branch from this gateway; do not leave a branching gateway with an unconditional non-default flow.".to_string(),
+            "Keep every non-default branch conditional, and keep exactly one unconditional fallback only through the `default` branch.".to_string(),
         ],
         format!(
-            "Edit gateway '{node_id}' in process '{process_id}' so the `default` attribute is used only when that bounded conditional gateway has multiple outgoing sequence flows. Preserve workflow intent, but do not leave a default branch on a single-route gateway."
+            "Edit gateway '{node_id}' in process '{process_id}' so the `default` attribute is used only when that bounded conditional gateway has at least two outgoing sequence flows. If the intent is one conditional branch plus fallback, add the fallback sequenceFlow from this gateway and point `default` at it in the same patch. Preserve workflow intent, but do not leave a default branch on a single-route gateway or an unconditional non-default branch."
         ),
         json!({
             "process_id": process_id,
@@ -100,6 +120,30 @@ fn default_flow_requires_multiple_outgoing_issue(
             "detail": detail,
         }),
     )
+    .with_structured_repair(gateway_repair_plan(
+        "remove_or_complete_default_branch",
+        process_id,
+        node_id,
+        detail,
+        vec![
+            json!({
+                "op": "choose_one",
+                "options": [
+                    {
+                        "op": "remove_gateway_default_attribute",
+                        "when": "the gateway has only one real outgoing path and no fallback branch is intended",
+                        "also": "remove any extra unconditional non-default branch instead of leaving it as an unconditioned route"
+                    },
+                    {
+                        "op": "add_or_retarget_unconditional_default_flow",
+                        "when": "the workflow really needs conditional branching plus fallback",
+                        "requires": "at least one conditional non-default branch plus one real outgoing fallback sequenceFlow named by the gateway default attribute",
+                        "forbid": "unconditional non-default sequenceFlow branches"
+                    }
+                ]
+            }),
+        ],
+    ))
 }
 
 fn invalid_default_flow_issue(process_id: &str, node_id: &str, detail: &'static str) -> LintIssue {
@@ -123,6 +167,17 @@ fn invalid_default_flow_issue(process_id: &str, node_id: &str, detail: &'static 
             "detail": detail,
         }),
     )
+    .with_structured_repair(gateway_repair_plan(
+        "retarget_default_flow",
+        process_id,
+        node_id,
+        detail,
+        vec![json!({
+            "op": "set_gateway_default",
+            "value": "one existing outgoing sequenceFlow id from this gateway",
+            "forbid": "missing flow ids or flow ids owned by another source"
+        })],
+    ))
 }
 
 fn default_flow_must_not_have_condition_expression_issue(
@@ -150,6 +205,16 @@ fn default_flow_must_not_have_condition_expression_issue(
             "detail": detail,
         }),
     )
+    .with_structured_repair(gateway_repair_plan(
+        "make_default_branch_unconditional",
+        process_id,
+        node_id,
+        detail,
+        vec![json!({
+            "op": "remove_condition_expression",
+            "target": "sequenceFlow named by gateway default"
+        })],
+    ))
 }
 
 fn missing_condition_expression_issue(
@@ -166,10 +231,11 @@ fn missing_condition_expression_issue(
         "In the bounded conditional-gateway slice, every non-default outgoing branch on a branching gateway must carry one supported `conditionExpression`.",
         vec![
             "Add one `conditionExpression` to every non-default outgoing branch of this bounded conditional gateway.".to_string(),
+            "If the unconditioned branch is intended to be the fallback route, do not add a condition to it; set the gateway `default` attribute to that sequenceFlow id and leave that default flow unconditional.".to_string(),
             "Use one simple boolean variable path such as `approved`, `vip`, or `not approved`, or one numeric comparison such as `amount > 100`, and keep exactly one unconditional fallback only through `default`.".to_string(),
         ],
         format!(
-            "Repair gateway '{node_id}' in process '{process_id}' so every non-default outgoing sequence flow has one supported `conditionExpression`, and reserve unconditional routing only for the optional `default` branch."
+            "Repair gateway '{node_id}' in process '{process_id}' so every non-default outgoing sequence flow has one supported `conditionExpression`, and reserve unconditional routing only for the optional `default` branch. If the reported sequenceFlow is the fallback, set gateway '{node_id}' `default` to that flow id instead of adding a condition."
         ),
         json!({
             "process_id": process_id,
@@ -177,6 +243,36 @@ fn missing_condition_expression_issue(
             "detail": detail,
         }),
     )
+    .with_structured_repair(gateway_repair_plan(
+        "add_missing_branch_condition",
+        process_id,
+        node_id,
+        detail,
+        vec![json!({
+            "op": "add_condition_expression",
+            "target": "every non-default outgoing sequenceFlow",
+            "allowed_forms": allowed_gateway_condition_forms(),
+            "forbidden_forms": [
+                "conditionExpression on the default branch",
+                "missing conditionExpression on a non-default branch",
+                "approved == true",
+                "!approved",
+                "approved and vip"
+            ],
+            "options": [
+                {
+                    "op": "add_condition_expression_to_non_default_branch",
+                    "when": "the branch should only run when a boolean or numeric condition matches"
+                },
+                {
+                    "op": "promote_unconditional_branch_to_default",
+                    "when": "the branch is the fallback route",
+                    "requires": "set the gateway default attribute to this sequenceFlow id and keep that flow without conditionExpression",
+                    "forbid": "unconditional non-default sequenceFlow branches"
+                }
+            ]
+        })],
+    ))
 }
 
 fn unsupported_condition_expression_issue(
@@ -190,13 +286,15 @@ fn unsupported_condition_expression_issue(
         format!(
             "Process '{process_id}' gateway '{node_id}' uses a `conditionExpression` that is outside the bounded subset."
         ),
-        "The current engine accepts only one bounded gateway-condition subset on exclusive-gateway branches and structured inclusive-gateway branches: simple boolean variable paths such as `approved`, `not approved`, or dotted paths such as `flags.approved`, plus numeric comparisons such as `amount > 100` or `risk >= 7`.",
+        "The current engine accepts only one bounded gateway-condition subset on exclusive-gateway branches and structured inclusive-gateway branches: simple boolean variable paths such as `approved`, `not approved`, or dotted paths such as `flags.approved`, plus numeric comparisons such as `amount > 100` or `risk >= 7`. String or enum equality such as `chosenOption == 'merge'` must be modeled as an upstream boolean output, then routed with that boolean path.",
         vec![
             "Rewrite the branch condition as one simple boolean variable path, optionally prefixed with `not`, or as one numeric comparison from an identifier path to one numeric literal.".to_string(),
-            "Do not use FEEL, boolean-literal comparisons like `approved == true`, scripts, function calls, arithmetic, or logical combinations such as `approved and vip` in this bounded slice.".to_string(),
+            "For a choice or enum branch, have the previous task emit one top-level boolean `qianji:outputs` value per route, such as `selectedMerge` or `shouldMerge`, then use `selectedMerge` as the `conditionExpression`.".to_string(),
+            "If the choice or enum value comes from a userTask `<qianji:result output=\"...\"/>`, keep that result output declared on the userTask and derive route booleans in a following serviceTask. Do not replace the userTask's qianji:outputs with derived booleans.".to_string(),
+            "Do not use FEEL, boolean-literal comparisons like `approved == true`, string equality like `chosenOption == 'merge'`, scripts, function calls, arithmetic, or logical combinations such as `approved and vip` in this bounded slice.".to_string(),
         ],
         format!(
-            "Rewrite the `conditionExpression` on gateway '{node_id}' in process '{process_id}' so it stays inside the bounded subset: one boolean variable path like `approved`, `not approved`, or `flags.approved`, or one numeric comparison like `amount > 100` or `risk >= 7`. Preserve workflow intent, but remove FEEL, boolean-literal comparisons, logical combinations, and script-style expressions."
+            "Rewrite the `conditionExpression` on gateway '{node_id}' in process '{process_id}' so it stays inside the bounded subset: one boolean variable path like `approved`, `not approved`, `selectedMerge`, or `flags.approved`, or one numeric comparison like `amount > 100` or `risk >= 7`. If the current route is based on a user choice or enum string, preserve the userTask qianji:result output, add a following serviceTask that emits boolean route outputs, and route on those booleans. Preserve workflow intent, but remove FEEL, string equality, boolean-literal comparisons, logical combinations, and script-style expressions."
         ),
         json!({
             "process_id": process_id,
@@ -204,6 +302,64 @@ fn unsupported_condition_expression_issue(
             "detail": detail,
         }),
     )
+    .with_structured_repair(gateway_repair_plan(
+        "rewrite_condition_to_bounded_subset",
+        process_id,
+        node_id,
+        detail,
+        vec![json!({
+            "op": "rewrite_condition_expression",
+            "allowed_forms": allowed_gateway_condition_forms(),
+            "forbidden_forms": [
+                "approved == true",
+                "approved == false",
+                "chosenOption == 'merge'",
+                "chosenOption == \"merge\"",
+                "choice == 'x'",
+                "!approved",
+                "approved and vip",
+                "${approved}",
+                "functions",
+                "scripts",
+                "FEEL expressions"
+            ],
+            "examples": ["approved", "not approved", "selectedMerge", "shouldMerge", "flags.approved", "amount > 100", "risk >= 7"]
+        }),
+        json!({
+            "op": "replace_string_or_enum_equality_with_boolean_route_variable",
+            "when": "the route currently compares a choice/string/enum variable to a literal",
+            "producer_change": "if the compared value comes from userTask qianji:result, keep that result output declared on the userTask and add a following serviceTask that consumes it and emits boolean route outputs",
+            "route_change": "replace the string equality condition with that boolean output path",
+            "forbid": "replacing a userTask qianji:outputs list with derived booleans while qianji:result still points at the original answer",
+            "examples": [
+                "selectedMerge",
+                "shouldOpenPullRequest",
+                "not selectedMerge"
+            ],
+            "forbidden_forms": [
+                "chosenOption == 'merge'",
+                "chosenOption == \"merge\"",
+                "choice == 'x'",
+                "route === 'merge'"
+            ]
+        }),
+        json!({
+            "op": "replace_variable_to_variable_comparison_with_boolean_or_literal",
+            "when": "the route currently compares two variable paths such as sectionNumber < totalSections",
+            "producer_change": "emit one boolean route variable such as hasMoreSections, or emit one numeric count such as sectionsRemaining",
+            "route_change": "replace the variable-to-variable comparison with hasMoreSections or sectionsRemaining > 0",
+            "examples": [
+                "hasMoreSections",
+                "sectionsRemaining > 0",
+                "not hasMoreSections"
+            ],
+            "forbidden_forms": [
+                "sectionNumber < totalSections",
+                "currentIndex <= maxIndex",
+                "remaining == total"
+            ]
+        })],
+    ))
 }
 
 fn no_matching_condition_or_default_issue(
@@ -231,6 +387,26 @@ fn no_matching_condition_or_default_issue(
             "detail": detail,
         }),
     )
+    .with_structured_repair(gateway_repair_plan(
+        "add_default_or_guarantee_condition",
+        process_id,
+        node_id,
+        detail,
+        vec![json!({
+            "op": "choose_one",
+            "options": [
+                {
+                    "op": "add_unconditional_default_branch",
+                    "preferred": true,
+                    "reason": "prevents runtime dead-end when all conditions are false"
+                },
+                {
+                    "op": "guarantee_upstream_boolean_or_numeric_value",
+                    "reason": "only valid when source data guarantees one condition will match"
+                }
+            ]
+        })],
+    ))
 }
 
 fn unresolved_condition_variable_issue(
@@ -258,6 +434,28 @@ fn unresolved_condition_variable_issue(
             "detail": detail,
         }),
     )
+    .with_structured_repair(gateway_repair_plan(
+        "declare_gateway_condition_variable_upstream",
+        process_id,
+        node_id,
+        detail,
+        vec![
+            json!({
+                "op": "declare_upstream_output",
+                "elements": ["qianji:outputs"],
+                "construct_cards": ["service-task.agent", "user-task.interaction"],
+                "value_type": "boolean for boolean-path conditions, number for numeric comparisons"
+            }),
+            json!({
+                "op": "route_on_declared_output_only",
+                "forbid": "gateway conditions that read variables not produced by an earlier qianji task"
+            }),
+            json!({
+                "op": "add_unconditional_default_branch",
+                "when": "the variable may be absent at runtime"
+            }),
+        ],
+    ))
 }
 
 fn structured_inclusive_gateway_issue(
@@ -285,6 +483,16 @@ fn structured_inclusive_gateway_issue(
             "detail": detail,
         }),
     )
+    .with_structured_repair(gateway_repair_plan(
+        "rewrite_inclusive_gateway_to_structured_subset",
+        process_id,
+        node_id,
+        detail,
+        vec![json!({
+            "op": "rewrite_inclusive_gateway_pair",
+            "shape": "one diverging inclusiveGateway, one matching converging inclusiveGateway, linear branch paths only"
+        })],
+    ))
 }
 
 fn generic_gateway_configuration_issue(
@@ -312,4 +520,52 @@ fn generic_gateway_configuration_issue(
             "detail": detail,
         }),
     )
+    .with_structured_repair(gateway_repair_plan(
+        "rewrite_gateway_to_supported_construct",
+        process_id,
+        node_id,
+        detail,
+        vec![json!({
+            "op": "select_supported_gateway_construct",
+            "construct_cards": ["gateway.exclusive.bounded"],
+            "supported_gateway_elements": ["exclusiveGateway", "inclusiveGateway", "parallelGateway", "eventBasedGateway"]
+        })],
+    ))
+}
+
+fn gateway_repair_plan(
+    strategy: &'static str,
+    process_id: &str,
+    node_id: &str,
+    detail: &'static str,
+    actions: Vec<Value>,
+) -> Value {
+    let actions = Value::Array(actions);
+    json!({
+        "schema_version": 1,
+        "contract": "qianji.bpmn.gateway.bounded.v1",
+        "strategy": strategy,
+        "target": {
+            "process_id": process_id,
+            "node_id": node_id,
+            "detail": detail,
+        },
+        "construct_cards": ["gateway.exclusive.bounded"],
+        "actions": actions,
+    })
+}
+
+fn allowed_gateway_condition_forms() -> Value {
+    json!({
+        "boolean_path": {
+            "examples": ["approved", "not approved", "flags.approved"],
+            "value_type": "boolean"
+        },
+        "numeric_comparison": {
+            "operators": ["==", "!=", ">", ">=", "<", "<="],
+            "examples": ["amount > 100", "risk >= 7"],
+            "left": "identifier path",
+            "right": "finite numeric literal"
+        }
+    })
 }

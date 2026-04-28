@@ -12,7 +12,8 @@ use super::process::{
 use crate::bpmn_parse_api::BpmnSourceFile;
 use crate::error::{BpmnEngineError, Result};
 use quick_xml::Reader;
-use quick_xml::events::{BytesStart, Event};
+use quick_xml::escape::{resolve_predefined_entity, unescape};
+use quick_xml::events::{BytesRef, BytesStart, Event};
 use std::borrow::Cow;
 
 pub(crate) fn import_bpmn_source(source: &BpmnSourceFile) -> Result<RawPackageDocument> {
@@ -71,6 +72,12 @@ pub(crate) fn import_bpmn_source(source: &BpmnSourceFile) -> Result<RawPackageDo
                 &mut capture_buffer,
                 event.decode(),
             )?,
+            Ok(Event::GeneralRef(event)) => append_capture_reference(
+                source,
+                capture_target.as_ref(),
+                &mut capture_buffer,
+                &event,
+            )?,
             Ok(Event::End(event)) => {
                 let tag = local_name(event.name().as_ref()).to_string();
                 handle_end_tag(
@@ -89,6 +96,7 @@ pub(crate) fn import_bpmn_source(source: &BpmnSourceFile) -> Result<RawPackageDo
                 return Err(BpmnEngineError::InvalidXml {
                     source_id: source.source_id.clone(),
                     message: error.to_string(),
+                    offset: Some(reader.error_position()),
                 });
             }
         }
@@ -153,8 +161,53 @@ fn append_capture_text(
     let text = decoded.map_err(|error| BpmnEngineError::InvalidXml {
         source_id: source.source_id.clone(),
         message: error.to_string(),
+        offset: None,
+    })?;
+    let text = unescape(text.as_ref()).map_err(|error| BpmnEngineError::InvalidXml {
+        source_id: source.source_id.clone(),
+        message: error.to_string(),
+        offset: None,
     })?;
     capture_buffer.push_str(text.as_ref());
+    Ok(())
+}
+
+fn append_capture_reference(
+    source: &BpmnSourceFile,
+    capture_target: Option<&CaptureTarget>,
+    capture_buffer: &mut String,
+    reference: &BytesRef<'_>,
+) -> Result<()> {
+    if capture_target.is_none() {
+        return Ok(());
+    }
+    if let Some(ch) = reference
+        .resolve_char_ref()
+        .map_err(|error| BpmnEngineError::InvalidXml {
+            source_id: source.source_id.clone(),
+            message: error.to_string(),
+            offset: None,
+        })?
+    {
+        capture_buffer.push(ch);
+        return Ok(());
+    }
+
+    let reference = reference
+        .decode()
+        .map_err(|error| BpmnEngineError::InvalidXml {
+            source_id: source.source_id.clone(),
+            message: error.to_string(),
+            offset: None,
+        })?;
+    let entity = resolve_predefined_entity(reference.as_ref()).ok_or_else(|| {
+        BpmnEngineError::InvalidXml {
+            source_id: source.source_id.clone(),
+            message: format!("unrecognized XML entity reference '&{reference};'"),
+            offset: None,
+        }
+    })?;
+    capture_buffer.push_str(entity);
     Ok(())
 }
 
@@ -298,6 +351,19 @@ fn handle_end_tag(
         }
         (CaptureTarget::TaskScriptBody, "script") => {
             super::capture::apply_script_task_body(process, capture_buffer.trim())?;
+        }
+        (CaptureTarget::HumanTaskQuestionText, "question") => {
+            super::capture::apply_human_task_question_text(process, capture_buffer.trim())?;
+        }
+        (CaptureTarget::HumanTaskResourceRef(kind), "resourceRef") => {
+            super::capture::apply_human_task_resource_ref(process, kind, capture_buffer.trim())?;
+        }
+        (CaptureTarget::HumanTaskAssignmentExpression(kind), "formalExpression") => {
+            super::capture::apply_human_task_assignment_expression(
+                process,
+                kind,
+                capture_buffer.trim(),
+            )?;
         }
         _ => return Ok(()),
     }

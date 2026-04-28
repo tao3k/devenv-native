@@ -4,7 +4,7 @@ mod analysis;
 mod bootstrap;
 mod cached;
 mod helpers;
-#[cfg(feature = "zhenfa-router")]
+#[cfg(all(feature = "zhenfa-router", feature = "julia"))]
 mod incremental;
 mod julia_transport;
 mod merge;
@@ -39,7 +39,7 @@ pub(crate) use helpers::{
     resolve_module_scope, symbols_in_scope,
 };
 pub(crate) use helpers::{import_match_score, normalized_rank_score};
-#[cfg(feature = "zhenfa-router")]
+#[cfg(all(feature = "zhenfa-router", feature = "julia"))]
 pub(crate) use incremental::{
     IncrementalApplyContext, analyze_changed_files, apply_incremental_plugin_outputs,
 };

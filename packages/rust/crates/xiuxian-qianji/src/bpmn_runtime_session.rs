@@ -3,7 +3,9 @@ use super::error::BpmnOrchestrationError;
 use crate::bpmn::{resolve_pending_host_work, resolve_waiting_external_event};
 use qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnCheckpointEnvelope, BpmnExecutionTraceEvent, BpmnHostBridge,
-    BpmnInstanceInit, BpmnInstanceState, BpmnPackage, advance_instance, create_instance,
+    BpmnInstanceInit, BpmnInstanceState, BpmnNodeKind, BpmnPackage, InstanceLifecycle,
+    NodeRuntimeStatus, PendingHostWork, PendingHostWorkKind, PendingHostWorkResult, SuspendReason,
+    TokenRecord, advance_instance, apply_pending_host_work_result, create_instance,
 };
 use std::sync::Arc;
 
@@ -29,6 +31,49 @@ impl QianjiBpmnSession {
     ) -> Result<Self, BpmnOrchestrationError> {
         let instance = create_instance(package.as_ref(), process_id, init)?;
         Ok(Self { package, instance })
+    }
+
+    pub(crate) fn new_at_node(
+        package: Arc<BpmnPackage>,
+        process_id: &str,
+        init: BpmnInstanceInit,
+        node_id: &str,
+    ) -> Result<Self, BpmnOrchestrationError> {
+        let process = package.find_process(process_id).ok_or_else(|| {
+            BpmnOrchestrationError::StartAtNodeMissing {
+                process_id: process_id.to_string(),
+                node_id: node_id.to_string(),
+            }
+        })?;
+        let node = process
+            .nodes
+            .iter()
+            .find(|node| node.bpmn_id.as_ref() == node_id)
+            .ok_or_else(|| BpmnOrchestrationError::StartAtNodeMissing {
+                process_id: process_id.to_string(),
+                node_id: node_id.to_string(),
+            })?;
+        if !start_at_node_kind_is_supported(&node.kind) {
+            return Err(BpmnOrchestrationError::StartAtNodeUnsupported {
+                process_id: process_id.to_string(),
+                node_id: node_id.to_string(),
+                node_kind: start_at_node_kind_label(&node.kind).to_string(),
+            });
+        }
+        let node_index = node.index;
+
+        let mut session = Self::new(package, process_id, init)?;
+        session.instance.next_token_id = 2;
+        session.instance.active_tokens.push(TokenRecord {
+            token_id: 1,
+            node_index,
+            incoming_edge_index: None,
+            inclusive_join_hint: None,
+        });
+        if let Some(node_state) = session.instance.node_states.get_mut(node_index as usize) {
+            node_state.status = NodeRuntimeStatus::Queued;
+        }
+        Ok(session)
     }
 
     /// Rebuilds one BPMN session from a checkpoint envelope.
@@ -83,6 +128,26 @@ impl QianjiBpmnSession {
     #[must_use]
     pub fn instance_mut(&mut self) -> &mut BpmnInstanceState {
         &mut self.instance
+    }
+
+    /// Clears a host-requested interrupt marker before an explicit resume.
+    ///
+    /// Returns `true` when the stored instance was changed.
+    pub(crate) fn clear_host_requested_interrupt(&mut self, now_ms: u64) -> bool {
+        if !matches!(self.instance.lifecycle, InstanceLifecycle::Suspended)
+            || !matches!(
+                self.instance.suspend_reason,
+                Some(SuspendReason::HostRequested)
+            )
+        {
+            return false;
+        }
+
+        self.instance.lifecycle = InstanceLifecycle::Waiting;
+        self.instance.suspend_reason = None;
+        self.instance.sequence += 1;
+        self.instance.updated_at_ms = now_ms;
+        true
     }
 
     /// Returns one versioned checkpoint envelope for the current session state.
@@ -157,6 +222,164 @@ impl QianjiBpmnSession {
                     }
                 }
                 BpmnAdvanceOutcome::Suspended(_)
+                | BpmnAdvanceOutcome::Completed
+                | BpmnAdvanceOutcome::Failed(_) => return Ok(outcome),
+            }
+        }
+    }
+
+    /// Applies one explicit pending host-work result and advances the BPMN
+    /// runtime until the next stable outcome.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`BpmnOrchestrationError`] when the engine rejects the pending
+    /// host-work result, when the host bridge cannot service later work, or
+    /// when event polling fails.
+    pub async fn complete_pending_host_work_until_stable<H: BpmnHostBridge>(
+        &mut self,
+        token_id: u64,
+        process_id: &str,
+        activity_id: &str,
+        result: PendingHostWorkResult,
+        host: &H,
+    ) -> Result<BpmnAdvanceOutcome, BpmnOrchestrationError> {
+        validate_pending_host_work_identity(
+            self.package.as_ref(),
+            &self.instance,
+            token_id,
+            process_id,
+            activity_id,
+        )?;
+        let completed_at_ms = self.instance.updated_at_ms;
+        let mut outcome = apply_pending_host_work_result(
+            self.package.as_ref(),
+            &mut self.instance,
+            token_id,
+            result,
+            completed_at_ms,
+        )?;
+        loop {
+            match outcome {
+                BpmnAdvanceOutcome::Advanced => {
+                    outcome =
+                        advance_instance(self.package.as_ref(), &mut self.instance, host).await?;
+                }
+                BpmnAdvanceOutcome::BlockedOnHost(_) => {
+                    outcome =
+                        resolve_pending_host_work(self.package.as_ref(), &mut self.instance, host)
+                            .await?;
+                }
+                BpmnAdvanceOutcome::WaitingExternalEvent => {
+                    outcome = resolve_waiting_external_event(
+                        self.package.as_ref(),
+                        &mut self.instance,
+                        host,
+                    )
+                    .await?;
+                    if matches!(outcome, BpmnAdvanceOutcome::WaitingExternalEvent) {
+                        return Ok(outcome);
+                    }
+                }
+                BpmnAdvanceOutcome::Suspended(_)
+                | BpmnAdvanceOutcome::Completed
+                | BpmnAdvanceOutcome::Failed(_) => return Ok(outcome),
+            }
+        }
+    }
+
+    /// Applies one explicit pending host-work result and advances until the
+    /// next host boundary or another stable terminal/waiting outcome.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`BpmnOrchestrationError`] when the engine rejects the pending
+    /// host-work result or the runtime state.
+    pub async fn complete_pending_host_work_until_host_boundary<H: BpmnHostBridge>(
+        &mut self,
+        token_id: u64,
+        process_id: &str,
+        activity_id: &str,
+        result: PendingHostWorkResult,
+        host: &H,
+    ) -> Result<BpmnAdvanceOutcome, BpmnOrchestrationError> {
+        validate_pending_host_work_identity(
+            self.package.as_ref(),
+            &self.instance,
+            token_id,
+            process_id,
+            activity_id,
+        )?;
+        let completed_at_ms = self.instance.updated_at_ms;
+        let mut outcome = apply_pending_host_work_result(
+            self.package.as_ref(),
+            &mut self.instance,
+            token_id,
+            result,
+            completed_at_ms,
+        )?;
+        loop {
+            match outcome {
+                BpmnAdvanceOutcome::Advanced => {
+                    outcome =
+                        advance_instance(self.package.as_ref(), &mut self.instance, host).await?;
+                }
+                BpmnAdvanceOutcome::BlockedOnHost(_)
+                | BpmnAdvanceOutcome::WaitingExternalEvent
+                | BpmnAdvanceOutcome::Suspended(_)
+                | BpmnAdvanceOutcome::Completed
+                | BpmnAdvanceOutcome::Failed(_) => return Ok(outcome),
+            }
+        }
+    }
+
+    /// Applies one explicit pending host-work result and advances through
+    /// fixture-backed non-human host work until the next human boundary.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`BpmnOrchestrationError`] when the engine rejects the explicit
+    /// result or when a non-human host task cannot be resolved by the supplied
+    /// host bridge.
+    pub async fn complete_pending_host_work_until_human_boundary<H: BpmnHostBridge>(
+        &mut self,
+        token_id: u64,
+        process_id: &str,
+        activity_id: &str,
+        result: PendingHostWorkResult,
+        host: &H,
+    ) -> Result<BpmnAdvanceOutcome, BpmnOrchestrationError> {
+        validate_pending_host_work_identity(
+            self.package.as_ref(),
+            &self.instance,
+            token_id,
+            process_id,
+            activity_id,
+        )?;
+        let completed_at_ms = self.instance.updated_at_ms;
+        let mut outcome = apply_pending_host_work_result(
+            self.package.as_ref(),
+            &mut self.instance,
+            token_id,
+            result,
+            completed_at_ms,
+        )?;
+        loop {
+            match outcome {
+                BpmnAdvanceOutcome::Advanced => {
+                    outcome =
+                        advance_instance(self.package.as_ref(), &mut self.instance, host).await?;
+                }
+                BpmnAdvanceOutcome::BlockedOnHost(pending) => {
+                    if pending_host_work_contains_human_boundary(&pending) {
+                        return Ok(BpmnAdvanceOutcome::BlockedOnHost(pending));
+                    }
+                    outcome =
+                        resolve_pending_host_work(self.package.as_ref(), &mut self.instance, host)
+                            .await?;
+                }
+                BpmnAdvanceOutcome::WaitingExternalEvent
+                | BpmnAdvanceOutcome::Suspended(_)
                 | BpmnAdvanceOutcome::Completed
                 | BpmnAdvanceOutcome::Failed(_) => return Ok(outcome),
             }
@@ -267,6 +490,67 @@ impl QianjiBpmnSession {
         }
     }
 
+    /// Advances the BPMN runtime through non-human host work until it reaches
+    /// a user/manual boundary or another stable terminal/waiting outcome.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`BpmnOrchestrationError`] when the engine rejects the current
+    /// runtime state or when non-human host work cannot be resolved by the
+    /// supplied host bridge.
+    pub async fn run_until_human_boundary_with_trace_observer<H, F>(
+        &mut self,
+        host: &H,
+        resolve_initial_host_work: bool,
+        mut trace_observer: F,
+    ) -> Result<BpmnAdvanceOutcome, BpmnOrchestrationError>
+    where
+        H: BpmnHostBridge,
+        F: FnMut(&Self, &[BpmnExecutionTraceEvent]),
+    {
+        let mut next_trace_index = self.instance.trace.len();
+        let mut outcome = if resolve_initial_host_work
+            && !self.instance.pending_host_work.is_empty()
+        {
+            if pending_host_work_contains_human_boundary(&self.instance.pending_host_work) {
+                return Ok(BpmnAdvanceOutcome::BlockedOnHost(
+                    self.instance.pending_host_work.clone(),
+                ));
+            }
+            let outcome =
+                resolve_pending_host_work(self.package.as_ref(), &mut self.instance, host).await?;
+            self.emit_new_trace_events(&mut next_trace_index, &mut trace_observer);
+            outcome
+        } else {
+            let outcome = advance_instance(self.package.as_ref(), &mut self.instance, host).await?;
+            self.emit_new_trace_events(&mut next_trace_index, &mut trace_observer);
+            outcome
+        };
+
+        loop {
+            match outcome {
+                BpmnAdvanceOutcome::Advanced => {
+                    outcome =
+                        advance_instance(self.package.as_ref(), &mut self.instance, host).await?;
+                    self.emit_new_trace_events(&mut next_trace_index, &mut trace_observer);
+                }
+                BpmnAdvanceOutcome::BlockedOnHost(pending) => {
+                    if pending_host_work_contains_human_boundary(&pending) {
+                        return Ok(BpmnAdvanceOutcome::BlockedOnHost(pending));
+                    }
+                    outcome =
+                        resolve_pending_host_work(self.package.as_ref(), &mut self.instance, host)
+                            .await?;
+                    self.emit_new_trace_events(&mut next_trace_index, &mut trace_observer);
+                }
+                BpmnAdvanceOutcome::WaitingExternalEvent
+                | BpmnAdvanceOutcome::Suspended(_)
+                | BpmnAdvanceOutcome::Completed
+                | BpmnAdvanceOutcome::Failed(_) => return Ok(outcome),
+            }
+        }
+    }
+
     /// Splits the session back into its package and instance state.
     #[must_use]
     pub fn into_parts(self) -> (Arc<BpmnPackage>, BpmnInstanceState) {
@@ -283,6 +567,95 @@ impl QianjiBpmnSession {
         let events = self.instance.trace[*next_trace_index..].to_vec();
         *next_trace_index = self.instance.trace.len();
         trace_observer(self, &events);
+    }
+}
+
+fn pending_host_work_contains_human_boundary(pending: &[PendingHostWork]) -> bool {
+    pending.iter().any(|work| {
+        matches!(
+            work.kind,
+            PendingHostWorkKind::User | PendingHostWorkKind::Manual
+        )
+    })
+}
+
+fn validate_pending_host_work_identity(
+    package: &BpmnPackage,
+    instance: &BpmnInstanceState,
+    token_id: u64,
+    expected_process_id: &str,
+    expected_activity_id: &str,
+) -> Result<(), BpmnOrchestrationError> {
+    let pending = instance
+        .pending_host_work
+        .iter()
+        .find(|work| work.token_id == token_id)
+        .ok_or_else(
+            || qianji_bpmn_engine::BpmnEngineError::MissingPendingHostWorkToken {
+                instance_id: instance.instance_id.to_string(),
+                token_id,
+            },
+        )?;
+
+    let actual_process_id = pending
+        .process_id
+        .as_deref()
+        .unwrap_or(instance.process.process_id.as_ref());
+    let actual_activity_id = pending
+        .activity_id
+        .as_deref()
+        .or_else(|| {
+            package.find_process(actual_process_id).and_then(|process| {
+                process
+                    .nodes
+                    .get(pending.node_index as usize)
+                    .map(|node| node.bpmn_id.as_ref())
+            })
+        })
+        .unwrap_or("<missing>");
+
+    if actual_process_id == expected_process_id && actual_activity_id == expected_activity_id {
+        return Ok(());
+    }
+
+    Err(BpmnOrchestrationError::pending_host_work_identity_mismatch(
+        instance.instance_id.to_string(),
+        token_id,
+        expected_process_id.to_string(),
+        expected_activity_id.to_string(),
+        actual_process_id.to_string(),
+        actual_activity_id.to_string(),
+    ))
+}
+
+fn start_at_node_kind_is_supported(kind: &BpmnNodeKind) -> bool {
+    matches!(
+        kind,
+        BpmnNodeKind::SendTask
+            | BpmnNodeKind::ServiceTask
+            | BpmnNodeKind::ScriptTask
+            | BpmnNodeKind::UserTask
+            | BpmnNodeKind::ManualTask
+            | BpmnNodeKind::BusinessRuleTask
+    )
+}
+
+fn start_at_node_kind_label(kind: &BpmnNodeKind) -> &'static str {
+    match kind {
+        BpmnNodeKind::StartEvent => "start_event",
+        BpmnNodeKind::EndEvent => "end_event",
+        BpmnNodeKind::IntermediateThrowEvent => "intermediate_throw_event",
+        BpmnNodeKind::IntermediateCatchEvent => "intermediate_catch_event",
+        BpmnNodeKind::BoundaryEvent => "boundary_event",
+        BpmnNodeKind::SendTask => "send_task",
+        BpmnNodeKind::ServiceTask => "service_task",
+        BpmnNodeKind::ScriptTask => "script_task",
+        BpmnNodeKind::UserTask => "user_task",
+        BpmnNodeKind::ManualTask => "manual_task",
+        BpmnNodeKind::BusinessRuleTask => "business_rule_task",
+        BpmnNodeKind::Gateway => "gateway",
+        BpmnNodeKind::SubProcess => "sub_process",
+        BpmnNodeKind::ReceiveTask => "receive_task",
     }
 }
 

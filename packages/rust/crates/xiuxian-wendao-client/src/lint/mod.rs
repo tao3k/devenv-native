@@ -5,6 +5,7 @@ mod discovery;
 mod policy;
 mod report;
 mod run;
+mod text_output;
 
 pub use command::{LintCommand, MarkdownLintArgs};
 pub use contract::{

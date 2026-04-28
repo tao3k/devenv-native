@@ -1,6 +1,7 @@
 use super::*;
 use crate::gateway::studio::StudioState;
 use crate::gateway::studio::analysis::service::AnalysisError;
+use crate::gateway::studio::router::{GraphIndexCacheEntry, GraphSourceSignature};
 use crate::gateway::studio::test_support::{assert_studio_json_snapshot, round_f64};
 use crate::gateway::studio::types::{UiConfig, UiProjectConfig};
 use crate::link_graph::LinkGraphIndex;
@@ -232,7 +233,10 @@ Reference [[guide]].
     *state
         .graph_index
         .write()
-        .unwrap_or_else(std::sync::PoisonError::into_inner) = Some(Arc::new(graph_index));
+        .unwrap_or_else(std::sync::PoisonError::into_inner) = Some(GraphIndexCacheEntry {
+        index: Arc::new(graph_index),
+        source_signature: GraphSourceSignature::default(),
+    });
 
     AnalysisFixture { state, temp_dir }
 }

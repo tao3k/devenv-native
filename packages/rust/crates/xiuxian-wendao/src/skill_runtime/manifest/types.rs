@@ -183,6 +183,14 @@ pub enum SkillManifestError {
         /// Name of the missing field.
         field: String,
     },
+    /// SKILL.md frontmatter is missing or violates the strict parser-owned schema.
+    #[error("failed to parse SKILL.md frontmatter {path}: {reason}")]
+    SkillFrontmatter {
+        /// Source file path.
+        path: String,
+        /// Human-readable reason for failure.
+        reason: String,
+    },
 }
 
 #[derive(Debug, Deserialize, Default)]

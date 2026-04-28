@@ -1,0 +1,9 @@
+version = 1
+
+[module]
+name = "coding"
+tags = ["planning", "coding"]
+
+[exports]
+entry = "task.coding-start"
+ready = "task.coding-ready"

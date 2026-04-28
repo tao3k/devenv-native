@@ -5,6 +5,7 @@ use std::path::Path;
 use std::process::Command;
 
 use serde_json::json;
+use uuid::Uuid;
 use xiuxian_config_core::resolve_data_home;
 use xiuxian_wendao::analyzers::{
     RepoIntelligenceError, RepoOverviewQuery, RepositoryRefreshPolicy,
@@ -249,23 +250,24 @@ fn repo_analysis_clones_managed_checkout_from_url() -> TestResult {
 fn managed_checkout_fetches_branch_updates() -> TestResult {
     let temp = tempfile::tempdir()?;
     let source_repo = create_sample_julia_repo(temp.path(), "ManagedFetchPkg", true)?;
-    clear_managed_repo_cache(temp.path(), "managed-fetch")?;
+    let repo_id = format!("managed-fetch-{}", Uuid::new_v4());
+    clear_managed_repo_cache(temp.path(), repo_id.as_str())?;
     let config_path = write_repo_url_config_with_ref(
         temp.path(),
         &source_repo,
-        "managed-fetch",
+        repo_id.as_str(),
         Some("main"),
         None,
     )?;
 
-    let first = analyze_repository_from_config("managed-fetch", Some(&config_path), temp.path())?;
+    let first = analyze_repository_from_config(repo_id.as_str(), Some(&config_path), temp.path())?;
     append_repo_file_and_commit(
         &source_repo,
         "docs/advanced.md",
         "# Advanced\n",
         "add advanced guide",
     )?;
-    let second = analyze_repository_from_config("managed-fetch", Some(&config_path), temp.path())?;
+    let second = analyze_repository_from_config(repo_id.as_str(), Some(&config_path), temp.path())?;
 
     let Some(first_repository) = first.repository else {
         panic!("repository record");

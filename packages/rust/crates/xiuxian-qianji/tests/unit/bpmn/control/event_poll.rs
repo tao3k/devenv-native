@@ -23,6 +23,7 @@ async fn workflow_control_service_event_poll_resumes_checkpointed_wait() {
                     process_id: "wait_flow".to_string(),
                     instance_id: "wf_event_poll_action".to_string(),
                     initial_variables: Some(json!({ "amount": 7 })),
+                    start_at_node_id: None,
                     checkpoint_backend: Some(QianjiBpmnWorkflowCheckpointBackend::LocalDuckDb),
                 },
                 &QianjiBpmnHostBridge::default(),

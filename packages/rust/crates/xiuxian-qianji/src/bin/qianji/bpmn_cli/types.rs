@@ -6,13 +6,19 @@ use super::deps::{
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum BpmnCliCommand {
     Start(BpmnStartCliCommand),
+    StartAt(BpmnStartAtCliCommand),
     Run(BpmnRunCliCommand),
+    HostSession(BpmnHostSessionCliCommand),
     Resume(BpmnResumeCliCommand),
     EventPoll(BpmnEventPollCliCommand),
     TaskComplete(BpmnTaskCompleteCliCommand),
+    TaskClaim(BpmnTaskClaimCliCommand),
+    TaskRelease(BpmnTaskReleaseCliCommand),
+    TaskWorklist(BpmnTaskWorklistCliCommand),
     Status(BpmnStatusCliCommand),
     Instances(BpmnInstancesCliCommand),
     Cancel(BpmnCancelCliCommand),
+    Interrupt(BpmnInterruptCliCommand),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -22,14 +28,23 @@ pub(crate) struct BpmnRunCliCommand {
     pub(crate) process_id: String,
     pub(crate) instance_id: String,
     pub(crate) context_json: Option<String>,
+    pub(crate) start_at_node_id: Option<String>,
     pub(crate) checkpoint_backend: Option<QianjiBpmnWorkflowCheckpointBackend>,
     pub(crate) host_fixture_path: Option<PathBuf>,
     pub(crate) event_fixture_path: Option<PathBuf>,
     pub(crate) trace_stream: bool,
     pub(crate) external_host: bool,
+    pub(crate) continue_until_human_boundary: bool,
 }
 
 pub(crate) type BpmnStartCliCommand = BpmnRunCliCommand;
+
+pub(crate) type BpmnStartAtCliCommand = BpmnRunCliCommand;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct BpmnHostSessionCliCommand {
+    pub(crate) start: BpmnRunCliCommand,
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct BpmnResumeCliCommand {
@@ -41,11 +56,63 @@ pub(crate) struct BpmnResumeCliCommand {
     pub(crate) event_fixture_path: Option<PathBuf>,
     pub(crate) trace_stream: bool,
     pub(crate) external_host: bool,
+    pub(crate) continue_until_human_boundary: bool,
 }
 
 pub(crate) type BpmnEventPollCliCommand = BpmnResumeCliCommand;
 
-pub(crate) type BpmnTaskCompleteCliCommand = BpmnResumeCliCommand;
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct BpmnTaskCompleteCliCommand {
+    pub(crate) bpmn_path: PathBuf,
+    pub(crate) dmn_paths: Vec<PathBuf>,
+    pub(crate) instance_id: String,
+    pub(crate) checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend,
+    pub(crate) token_id: u64,
+    pub(crate) process_id: String,
+    pub(crate) activity_id: String,
+    pub(crate) kind: BpmnTaskCompleteCliKind,
+    pub(crate) data_json: String,
+    pub(crate) claimant: Option<String>,
+    pub(crate) host_fixture_path: Option<PathBuf>,
+    pub(crate) event_fixture_path: Option<PathBuf>,
+    pub(crate) trace_stream: bool,
+    pub(crate) continue_until_human_boundary: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct BpmnTaskClaimCliCommand {
+    pub(crate) instance_id: String,
+    pub(crate) checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend,
+    pub(crate) token_id: u64,
+    pub(crate) process_id: String,
+    pub(crate) activity_id: String,
+    pub(crate) claimant: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct BpmnTaskReleaseCliCommand {
+    pub(crate) instance_id: String,
+    pub(crate) checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend,
+    pub(crate) token_id: u64,
+    pub(crate) process_id: String,
+    pub(crate) activity_id: String,
+    pub(crate) claimant: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct BpmnTaskWorklistCliCommand {
+    pub(crate) checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend,
+    pub(crate) claimant: Option<String>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum BpmnTaskCompleteCliKind {
+    Send,
+    Service,
+    Script,
+    User,
+    Manual,
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct BpmnStatusCliCommand {
@@ -62,6 +129,12 @@ pub(crate) struct BpmnInstancesCliCommand {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct BpmnCancelCliCommand {
+    pub(crate) instance_id: String,
+    pub(crate) checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct BpmnInterruptCliCommand {
     pub(crate) instance_id: String,
     pub(crate) checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend,
 }
