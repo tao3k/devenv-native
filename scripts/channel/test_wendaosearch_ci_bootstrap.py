@@ -19,9 +19,13 @@ def test_ci_bootstraps_wendaosearch_with_julia_pkg() -> None:
         not in workflow
     )
     assert (
-        "git clone --depth 1 https://github.com/tao3k/WendaoSearch.jl.git"
+        "WENDAOSEARCH_REV=903c9e03ed8da3ed8f71b68cf947eaa20894affc" in workflow
+    )
+    assert (
+        'git -C "${WENDAOSEARCH_PACKAGE_DIR}" fetch --depth 1 origin "${WENDAOSEARCH_REV}"'
         in workflow
     )
+    assert 'checkout --detach FETCH_HEAD' in workflow
     assert 'WENDAOSEARCH_JULIA_PROJECT="${WENDAOSEARCH_PACKAGE_DIR}"' in workflow
     assert "WendaoCodeParser" not in workflow
     assert "WendaoArrow" not in workflow

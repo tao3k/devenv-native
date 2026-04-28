@@ -372,7 +372,12 @@ jobs:
           export WENDAOSEARCH_PACKAGE_DIR="${RUNNER_TEMP}/WendaoSearch.jl"
           export WENDAOSEARCH_JULIA_PROJECT="${WENDAOSEARCH_PACKAGE_DIR}"
           export WENDAOSEARCH_PACKAGE_DIR_FILE="${RUNNER_TEMP}/wendaosearch-package-dir.txt"
-          git clone --depth 1 https://github.com/tao3k/WendaoSearch.jl.git "${WENDAOSEARCH_PACKAGE_DIR}"
+          export WENDAOSEARCH_REV=903c9e03ed8da3ed8f71b68cf947eaa20894affc
+          git init "${WENDAOSEARCH_PACKAGE_DIR}"
+          git -C "${WENDAOSEARCH_PACKAGE_DIR}" remote add origin https://github.com/tao3k/WendaoSearch.jl.git
+          git -C "${WENDAOSEARCH_PACKAGE_DIR}" fetch --depth 1 origin "${WENDAOSEARCH_REV}"
+          git -C "${WENDAOSEARCH_PACKAGE_DIR}" checkout --detach FETCH_HEAD
+          test "$(git -C "${WENDAOSEARCH_PACKAGE_DIR}" rev-parse HEAD)" = "${WENDAOSEARCH_REV}"
           julia --project="${WENDAOSEARCH_JULIA_PROJECT}" -e '
             using Pkg
             Pkg.activate(ENV["WENDAOSEARCH_JULIA_PROJECT"])
