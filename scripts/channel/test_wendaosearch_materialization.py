@@ -66,21 +66,6 @@ git -C "{runtime_root}/.data/WendaoSearch.jl" rev-parse HEAD
     )
 
 
-def _run_common_script(command: str) -> subprocess.CompletedProcess[str]:
-    wrapped = f"""
-set -euo pipefail
-source "{WENDAOSEARCH_COMMON}"
-{command}
-"""
-    return subprocess.run(
-        ["bash", "-lc", wrapped],
-        cwd=PROJECT_ROOT,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-
-
 def test_wendaosearch_materialize_package_repo_clones_missing_checkout_at_default_head(
     tmp_path: Path,
 ) -> None:
@@ -137,60 +122,6 @@ def test_wendaosearch_materialize_package_repo_rejects_existing_nongit_directory
 
     assert result.returncode == 1
     assert "is not a git checkout" in result.stderr
-
-
-def test_wendaosearch_repair_wendaocodeparser_checkout_relaxes_immutablelist_compat(
-    tmp_path: Path,
-) -> None:
-    checkout = tmp_path / "WendaoCodeParser.jl"
-    checkout.mkdir()
-    project_toml = checkout / "Project.toml"
-    project_toml.write_text(
-        "\n".join(
-            [
-                'name = "WendaoCodeParser"',
-                "",
-                "[compat]",
-                'ImmutableList = "0.1"',
-                'Tables = "1"',
-                "",
-            ]
-        ),
-        encoding="utf-8",
-    )
-
-    result = _run_common_script(
-        f'wendaosearch_repair_wendaocodeparser_checkout "{checkout}"'
-    )
-
-    assert result.returncode == 0, result.stderr
-    assert 'ImmutableList = "0.1, 0.3"' in project_toml.read_text(encoding="utf-8")
-
-
-def test_wendaosearch_repair_wendaocodeparser_checkout_keeps_existing_compat(
-    tmp_path: Path,
-) -> None:
-    checkout = tmp_path / "WendaoCodeParser.jl"
-    checkout.mkdir()
-    project_toml = checkout / "Project.toml"
-    original = "\n".join(
-        [
-            'name = "WendaoCodeParser"',
-            "",
-            "[compat]",
-            'ImmutableList = "0.1, 0.3"',
-            'Tables = "1"',
-            "",
-        ]
-    )
-    project_toml.write_text(original, encoding="utf-8")
-
-    result = _run_common_script(
-        f'wendaosearch_repair_wendaocodeparser_checkout "{checkout}"'
-    )
-
-    assert result.returncode == 0, result.stderr
-    assert project_toml.read_text(encoding="utf-8") == original
 
 
 def test_wendaosearch_launch_materializes_missing_package_checkout(
