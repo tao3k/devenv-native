@@ -38,7 +38,7 @@ pub(super) const fn card(lint_mappings: &'static [ConstructLintMapping]) -> Cons
       <bpmn:extensionElements>
         <qianji:config>
           <qianji:prompt>Run the focused agent task in agentTask. Return JSON with agentResult.</qianji:prompt>
-          <qianji:tools>bash</qianji:tools>
+          <qianji:tools></qianji:tools>
           <qianji:inputs>agentTask</qianji:inputs>
           <qianji:outputs>agentResult</qianji:outputs>
         </qianji:config>

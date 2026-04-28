@@ -8,6 +8,8 @@ use serde::Deserialize;
 use tokio::net::TcpStream;
 use tokio::time::sleep;
 
+const WENDAOSEARCH_WORKSPACE_PREFIX: &str = ".data/WendaoSearch.jl/";
+
 /// Guard for a spawned Julia integration-support service process.
 pub struct JuliaExampleServiceGuard {
     child: Child,
@@ -82,10 +84,18 @@ fn repo_root_candidate_is_valid(candidate: &Path) -> bool {
 }
 
 pub(crate) fn wendaosearch_package_dir() -> PathBuf {
+    if let Some(configured) = env::var_os("WENDAOSEARCH_PACKAGE_DIR") {
+        return resolve_existing_path("WendaoSearch package dir", configured);
+    }
+
     repo_root()
         .join(".data/WendaoSearch.jl")
         .canonicalize()
-        .unwrap_or_else(|error| panic!("resolve WendaoSearch package dir: {error}"))
+        .unwrap_or_else(|error| {
+            panic!(
+                "resolve WendaoSearch package dir: {error}; set WENDAOSEARCH_PACKAGE_DIR when WendaoSearch is installed by Julia Pkg"
+            )
+        })
 }
 
 pub(crate) fn wendaosearch_julia_project() -> PathBuf {
@@ -101,6 +111,18 @@ pub(crate) fn wendaosearch_julia_project() -> PathBuf {
     candidate
         .canonicalize()
         .unwrap_or_else(|error| panic!("resolve WendaoSearch Julia project dir: {error}"))
+}
+
+fn resolve_existing_path(label: &str, configured: impl Into<PathBuf>) -> PathBuf {
+    let candidate = configured.into();
+    let candidate = if candidate.is_absolute() {
+        candidate
+    } else {
+        repo_root().join(candidate)
+    };
+    candidate
+        .canonicalize()
+        .unwrap_or_else(|error| panic!("resolve {label} `{}`: {error}", candidate.display()))
 }
 
 #[cfg(test)]
@@ -149,34 +171,36 @@ pub(crate) struct WendaoSearchParserSummaryContract {
 
 impl WendaoSearchParserSummaryContract {
     pub(crate) fn script_path(&self) -> PathBuf {
-        repo_root()
-            .join(&self.service.script)
-            .canonicalize()
-            .unwrap_or_else(|error| {
-                panic!(
-                    "resolve WendaoSearch parser-summary contract script `{}`: {error}",
-                    self.service.script
-                )
-            })
+        resolve_wendaosearch_contract_path(&self.service.script, "script")
     }
 
     #[cfg(test)]
     pub(crate) fn config_path(&self) -> PathBuf {
-        repo_root()
-            .join(&self.service.config)
-            .canonicalize()
-            .unwrap_or_else(|error| {
-                panic!(
-                    "resolve WendaoSearch parser-summary contract config `{}`: {error}",
-                    self.service.config
-                )
-            })
+        resolve_wendaosearch_contract_path(&self.service.config, "config")
     }
 
     #[cfg(test)]
     pub(crate) fn base_url(&self) -> String {
         format!("http://{}:{}", self.service.host, self.service.port)
     }
+}
+
+fn resolve_wendaosearch_contract_path(configured: &str, label: &str) -> PathBuf {
+    if let Some(package_relative) = configured.strip_prefix(WENDAOSEARCH_WORKSPACE_PREFIX) {
+        return wendaosearch_package_dir()
+            .join(package_relative)
+            .canonicalize()
+            .unwrap_or_else(|error| {
+                panic!("resolve WendaoSearch contract {label} `{configured}`: {error}")
+            });
+    }
+
+    repo_root()
+        .join(configured)
+        .canonicalize()
+        .unwrap_or_else(|error| {
+            panic!("resolve WendaoSearch parser-summary contract {label} `{configured}`: {error}")
+        })
 }
 
 pub(crate) fn wendaosearch_parser_summary_contract_path() -> PathBuf {

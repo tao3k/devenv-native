@@ -78,7 +78,7 @@ fn bpmn_template() -> &'static str {
       <extensionElements>
         <qianji:config>
           <qianji:prompt>Perform one focused step from the skill and return the declared outputs as JSON.</qianji:prompt>
-          <qianji:tools>bash</qianji:tools>
+          <qianji:tools></qianji:tools>
           <qianji:inputs></qianji:inputs>
           <qianji:outputs>result</qianji:outputs>
         </qianji:config>

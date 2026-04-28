@@ -55,6 +55,18 @@ reconnect the userTask to the next task, and replace downstream
 only when it derives route booleans, summaries, decisions, or tool-backed
 outputs that are not already the user answer.
 
+For serviceTask tool scope, default `qianji:tools` to empty. Declared
+`qianji:inputs` are injected as read-only workflow variables, so reading
+`specContent` or another declared input does not justify `bash` or filesystem
+tools. Use `write` only for explicit artifact/file creation, read-only
+workspace tools only for explicit file/repository inspection, and `bash` only
+for explicit shell commands, tests, builds, lint commands, or git operations.
+Every non-empty tool list must also declare `qianji:toolScope` entries that
+bound tool parameters. For `bash`, scope the exact command and timeout:
+`<qianji:toolScope tool="bash" command="npm test" timeoutSeconds="120" writes="false" network="false"/>`.
+For file tools, scope the accessible path:
+`<qianji:toolScope tool="read" path="docs/**"/>`.
+
 For gateway routing, align condition syntax with the runtime value type. A bare
 condition path such as `approved` must resolve to a JSON boolean. A count-like
 value such as `questionsRemaining` must use a numeric comparison such as

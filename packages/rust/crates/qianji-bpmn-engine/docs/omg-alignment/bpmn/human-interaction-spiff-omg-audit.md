@@ -12,6 +12,8 @@ pattern.
   `manualTask`.
 - `userTask` is runtime-managed and can carry UI rendering hooks, resource
   roles, and task instance attributes such as actual owner and priority.
+- The BPMN `Semantic.xsd` model places `rendering` under `userTask` and
+  `globalUserTask`, not under `manualTask` or `globalManualTask`.
 - `manualTask` represents work outside runtime management; in an executable
   engine, Qianji still exposes it as host-visible pending work so operators can
   acknowledge or record the external action.
@@ -60,8 +62,12 @@ OMG BPMN has a `renderings` hook for `userTask`. Qianji currently supports
 `rendering` elements. This is acceptable for current execution, but the audit
 should record it as a deliberate extension-first choice.
 
-Current status: the linter reports native `rendering` elements as deferred
-rendering semantics and directs executable form metadata to `qianji:interaction`.
+Current status: the linter reports native `rendering` elements under
+`userTask` or `globalUserTask` as deferred rendering semantics and directs
+executable form metadata to `qianji:interaction`. It also reports `rendering`
+under `manualTask` or `globalManualTask` as a non-standard, non-executable
+manual-task interaction surface instead of letting a downstream UI infer a
+form contract.
 
 ### 2. Assignment Semantics Beyond Routing Metadata
 
@@ -88,6 +94,11 @@ Current status: manual tasks may carry Qianji runtime claim metadata because
 they are operator-visible pending host work in this engine. Treat that claim as
 host coordination over an acknowledgement/result boundary, not as BPMN-managed
 manual-task assignment.
+
+Manual tasks must not use BPMN `rendering` as a runtime form contract. If the
+activity is runtime-managed human input, model it as a `userTask`; if it is
+external manual work, keep the executable acknowledgement schema in
+`qianji:interaction`.
 
 ### 4. Host Loop Discipline
 

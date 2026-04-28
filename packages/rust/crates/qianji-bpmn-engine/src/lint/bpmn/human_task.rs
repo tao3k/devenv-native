@@ -75,10 +75,8 @@ impl HumanTaskStandardScanState {
         }
 
         if tag == "rendering" {
-            if let Some(task) = self.active_rendering_task() {
-                issues.push(unsupported_native_rendering_issue(
-                    source, reader, event, task,
-                ));
+            if let Some(task) = self.active_tasks.last() {
+                issues.push(native_rendering_issue(source, reader, event, task));
             }
             return;
         }
@@ -115,18 +113,26 @@ impl HumanTaskStandardScanState {
             self.active_roles.pop();
         }
     }
-
-    fn active_rendering_task(&self) -> Option<&HumanTaskContext> {
-        self.active_tasks
-            .last()
-            .filter(|task| matches!(task.task_kind.as_str(), "userTask" | "globalUserTask"))
-    }
 }
 
 #[derive(Clone)]
 struct HumanTaskContext {
     task_id: Option<String>,
     task_kind: String,
+}
+
+fn native_rendering_issue(
+    source: &BpmnSourceFile,
+    reader: &Reader<&[u8]>,
+    event: &BytesStart<'_>,
+    task: &HumanTaskContext,
+) -> LintIssue {
+    match task.task_kind.as_str() {
+        "manualTask" | "globalManualTask" => {
+            invalid_manual_task_rendering_issue(source, reader, event, task)
+        }
+        _ => unsupported_native_rendering_issue(source, reader, event, task),
+    }
 }
 
 fn unsupported_native_rendering_issue(
@@ -177,6 +183,58 @@ fn unsupported_native_rendering_issue(
                 "allowed_interaction_types": ["input", "confirm", "choice", "choice_input"],
                 "forbidden_runtime_dependency": "bpmn:rendering"
             }]
+    }))
+}
+
+fn invalid_manual_task_rendering_issue(
+    source: &BpmnSourceFile,
+    reader: &Reader<&[u8]>,
+    event: &BytesStart<'_>,
+    task: &HumanTaskContext,
+) -> LintIssue {
+    let source_id = &source.source_id;
+    let task_id = task.task_id.as_deref().unwrap_or("<unknown>");
+    LintIssue::new(
+        "bpmn.invalid_manual_task_rendering",
+        "Manual task rendering is not a BPMN execution contract",
+        format!(
+            "Source '{source_id}' manual task '{task_id}' declares standard BPMN `<rendering>` metadata."
+        ),
+        "OMG BPMN defines `rendering` under `userTask` and `globalUserTask`, not `manualTask` or `globalManualTask`. Qianji exposes manual tasks as host-visible pending work for operator acknowledgement, but it does not treat manual-task rendering metadata as executable UI.",
+        vec![
+            "If the activity needs a runtime-managed human form, model it as a `userTask` with one bounded `qianji:interaction` contract.".to_string(),
+            "If the activity is truly external manual work, keep it as a `manualTask` and place any executable acknowledgement fields in `qianji:interaction`, not standard `<bpmn:rendering>`.".to_string(),
+            "Do not let downstream UI infer manual-task required fields, choices, or outputs from non-standard rendering metadata.".to_string(),
+        ],
+        format!(
+            "Repair BPMN source '{source_id}' by removing `<bpmn:rendering>` from manual task '{task_id}'. Use a `userTask` for runtime-managed form rendering, or keep the manual task with typed `qianji:interaction` acknowledgement metadata."
+        ),
+        json!({
+            "source_id": source_id,
+            "task_id": task.task_id.as_deref(),
+            "task_kind": task.task_kind.as_str(),
+            "element": "rendering",
+            "allowed_standard_rendering_tasks": ["userTask", "globalUserTask"],
+            "supported_runtime_rendering_contract": "qianji:interaction",
+        }),
+    )
+    .with_source_diagnostic(source_diagnostic(
+        source,
+        reader,
+        event,
+        "manual tasks do not own standard BPMN rendering metadata",
+        "Use `userTask` for runtime-managed forms, or keep manual acknowledgement metadata in `qianji:interaction`.",
+    ))
+    .with_structured_repair(json!({
+        "schema_version": 1,
+        "contract": "qianji.bpmn.human_task_interaction.v1",
+        "strategy": "remove_manual_task_rendering_or_model_user_task",
+        "actions": [{
+            "op": "remove_bpmn_rendering_from_manual_task",
+            "task_id": task.task_id.as_deref(),
+            "allowed_standard_rendering_tasks": ["userTask", "globalUserTask"],
+            "allowed_executable_contract": "qianji:interaction"
+        }]
     }))
 }
 

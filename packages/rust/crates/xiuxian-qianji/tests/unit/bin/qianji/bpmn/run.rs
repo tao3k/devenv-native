@@ -300,6 +300,75 @@ async fn run_bpmn_task_claim_worklist_release_commands_use_checkpointed_control_
 }
 
 #[cfg(feature = "duckdb")]
+#[tokio::test(flavor = "current_thread")]
+async fn run_bpmn_task_worklist_renders_human_task_abi_fields() {
+    let temp_dir =
+        TempDir::new().unwrap_or_else(|error| panic!("temp dir should allocate: {error}"));
+    let bpmn_path = write_interactive_user_task_bundle(&temp_dir);
+    let duckdb_path = temp_dir.path().join("task-cli-worklist-abi.duckdb");
+    let runtime_env = QianjiRuntimeEnv {
+        qianji_workflow_state_duckdb_path: Some(duckdb_path.clone()),
+        ..QianjiRuntimeEnv::default()
+    };
+    let instance_id = "wf_task_cli_worklist_abi";
+    let pending =
+        seed_checkpointed_cli_pending_task(bpmn_path, &duckdb_path, &runtime_env, instance_id)
+            .await;
+
+    let claim_output = must_ok(
+        run_bpmn_task_claim_command_with_runtime_env(
+            &BpmnTaskClaimCliCommand {
+                instance_id: instance_id.to_string(),
+                checkpoint_backend: BpmnCliCheckpointBackend::LocalDuckDb,
+                token_id: pending.token,
+                process_id: pending.process.clone(),
+                activity_id: pending.activity.clone(),
+                claimant: "alice".to_string(),
+            },
+            Some(&runtime_env),
+            None,
+        )
+        .await,
+        "bpmn tasks claim should persist claimant metadata for worklist parity",
+    );
+    assert!(claim_output.rendered.contains("Claim status: claimed"));
+
+    let worklist = must_ok(
+        run_bpmn_task_worklist_command_with_runtime_env(
+            &BpmnTaskWorklistCliCommand {
+                checkpoint_backend: BpmnCliCheckpointBackend::LocalDuckDb,
+                claimant: Some("alice".to_string()),
+            },
+            Some(&runtime_env),
+        )
+        .await,
+        "bpmn tasks worklist should render the human-task ABI field set",
+    );
+
+    assert!(worklist.rendered.contains("Item count: 1"));
+    assert!(
+        worklist
+            .rendered
+            .contains("Authorization: not evaluated; BPMN assignment metadata is routing-only.")
+    );
+    assert!(worklist.rendered.contains(&format!(
+        "- {instance_id} | token#{} | process=review | activity=review_task | kind=user",
+        pending.token
+    )));
+    assert!(worklist.rendered.contains("claim=alice"));
+    assert!(
+        worklist
+            .rendered
+            .contains("form=choice_input result=answer fields=feedback?")
+    );
+    assert!(
+        worklist
+            .rendered
+            .contains("assignment=human_performer:reviewer:expr=users.alice;potential_owner:review_team:ref=reviewers")
+    );
+}
+
+#[cfg(feature = "duckdb")]
 struct CheckpointedCliPendingTask {
     token: u64,
     process: String,

@@ -175,4 +175,23 @@ async fn bpmn_workflow_http_snapshot_exposes_pending_human_task_contract() {
             claimed_at_ms: 99,
         })
     );
+
+    let snapshot_json = serde_json::to_value(&snapshot)
+        .unwrap_or_else(|error| panic!("snapshot should serialize to JSON: {error}"));
+    let work_json = &snapshot_json["pending_host_work"][0];
+    assert_eq!(snapshot_json["instance_id"], json!("wf_http_human_task"));
+    assert_eq!(work_json["token_id"], json!(token_id));
+    assert_eq!(work_json["process_id"], json!("review_flow"));
+    assert_eq!(work_json["activity_id"], json!("Task_Review"));
+    assert_eq!(work_json["node_index"], json!(1));
+    assert_eq!(work_json["kind"], json!("user"));
+    assert_eq!(work_json["form"]["interaction_type"], json!("choice_input"));
+    assert_eq!(work_json["form"]["question_ref"], json!("currentQuestion"));
+    assert_eq!(work_json["form"]["result_output"], json!("answer"));
+    assert_eq!(
+        work_json["assignment"]["potential_owners"][0]["resource_ref"],
+        json!("reviewers")
+    );
+    assert_eq!(work_json["claim"]["claimant"], json!("alice"));
+    assert_eq!(work_json["claim"]["claimed_at_ms"], json!(99));
 }

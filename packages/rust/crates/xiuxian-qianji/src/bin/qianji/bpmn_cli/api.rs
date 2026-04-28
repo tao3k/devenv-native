@@ -1,4 +1,6 @@
 pub(crate) use super::parse::parse_bpmn_command;
+#[cfg(test)]
+pub(crate) use super::render::render_bpmn_pending_host_work_stream_lines;
 pub(crate) use super::run::handle_bpmn_command;
 #[cfg(test)]
 pub(crate) use super::run::{

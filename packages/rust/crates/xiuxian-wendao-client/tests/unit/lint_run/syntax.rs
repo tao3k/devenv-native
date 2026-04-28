@@ -1,1 +1,2 @@
-include!("syntax_cases.inc");
+#[path = "syntax_cases.rs"]
+mod syntax_cases;

@@ -4,6 +4,9 @@ This module tracks the bounded BPMN task families that
 `qianji-bpmn-engine` currently accepts and how they map onto the runtime
 host seam.
 
+The field-level user/manual task contract is tracked in the
+[Host Request ABI Ledger](host-request-abi-ledger.md).
+
 ## Accepted Task Shapes
 
 - `serviceTask`, `userTask`, `manualTask`, and `businessRuleTask` remain

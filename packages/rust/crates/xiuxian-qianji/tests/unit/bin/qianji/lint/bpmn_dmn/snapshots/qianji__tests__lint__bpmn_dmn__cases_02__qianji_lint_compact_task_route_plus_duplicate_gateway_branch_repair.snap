@@ -1,0 +1,69 @@
+---
+source: packages/rust/crates/xiuxian-qianji/src/bin/../../tests/unit/bin/qianji/lint/bpmn_dmn/cases_02.rs
+expression: "stable_temp_output(&output.rendered, &temp_dir)"
+---
+[lint:error] $TEMP/task_route_with_duplicate_gateway_branch.bpmn bpmn
+Source: $TEMP/task_route_with_duplicate_gateway_branch.bpmn
+Issues: 2
+
+[bpmn.unsupported_task_configuration] Error: Executable task must have exactly one outgoing sequence flow
+   ,-[ $TEMP/task_route_with_duplicate_gateway_branch.bpmn:5:6 ]
+ 5 |    <bpmn:serviceTask id="prepare_next" implementation="${environment.services.runAgent}" />
+   |     `--------------------------------------------------------------------------------------- task must have exactly one outgoing sequenceFlow
+   |Help: Task `prepare_next` currently has 0 outgoing flow(s): none. Lint detail: task_requires_single_outgoing. Add one route to the next node, or route to one gateway if branching is required. All task route violations: prepare_next(0 outgoing: none).
+
+Action:
+- Repair all executable task route violations in '$TEMP/task_route_with_duplicate_gateway_branch.bpmn': prepare_next(0 outgoing: none). Do not stop after `prepare_next`; every listed task must end with exactly one outgoing sequenceFlow. Preserve task ids and host configs.
+
+Fix:
+- Repair every task route violation in the same patch, not only `prepare_next`: prepare_next(0 outgoing: none).
+- If the task should continue, add one outgoing `sequenceFlow` from this task to the next BPMN node.
+- If the task result should branch, route the task to one `exclusiveGateway` and put conditional/default branches on that gateway.
+- Do not attach multiple outgoing sequence flows directly to a task; keep task routing single-exit.
+
+Patch focus:
+- repair_all_task_routes
+- target: prepare_next(0 outgoing: none)
+- requires: repair every listed task route violation in the same patch
+- add_sequence_flow
+- when: the task should continue to one known next node
+- route_task_to_gateway
+- when: the task result should branch after completion
+- collapse_multiple_task_flows_behind_gateway
+- when: the task currently has multiple outgoing routes
+
+Examples:
+- <sequenceFlow id="Flow_Task_Next" sourceRef="Task_Id" targetRef="Next_Node"/>
+- Task_Id -> ExclusiveGateway_Id when branching is required
+
+Forbidden forms:
+- task with zero outgoing sequenceFlow
+- task with multiple outgoing sequenceFlows
+- conditional branches directly attached to a task
+
+Structured repair:
+- strategy: repair_task_single_outgoing_route
+- contract: qianji.bpmn.task.routing.v1
+
+[bpmn.unsupported_gateway_configuration] Error: Non-default bounded conditional branches need conditions
+    ,-[ $TEMP/task_route_with_duplicate_gateway_branch.bpmn:13:6 ]
+ 13 |    <bpmn:sequenceFlow id="flow_duplicate" sourceRef="decision" targetRef="done" />
+    |     `------------------------------------------------------------------------------ remove this duplicate unconditional branch
+    |Help: This unconditional branch duplicates conditioned branch(es): flow_yes. Remove `flow_duplicate`; do not add a condition or make it the default.
+
+Action:
+- Repair gateway 'decision' by deleting duplicate unconditional sequenceFlow 'flow_duplicate'. It duplicates conditioned branch(es) flow_yes. Do not add a condition to 'flow_duplicate' and do not make it the default. Return a minimal XML diff only.
+
+Fix:
+- Remove duplicate unconditional sequenceFlow 'flow_duplicate' because it has the same sourceRef/targetRef as conditioned branch(es): flow_yes.
+- Keep the conditioned branch and the gateway default fallback; do not add a new condition to the duplicate branch.
+- Do not make the duplicate branch the default unless the conditioned branch is removed and fallback intent changes.
+
+Patch focus:
+- remove_duplicate_unconditional_flow
+- target: flow_duplicate
+- forbid: adding conditionExpression to the duplicate, making the duplicate branch default, leaving duplicate sourceRef/targetRef branches
+
+Structured repair:
+- strategy: remove_duplicate_unconditional_gateway_branch
+- contract: qianji.bpmn.gateway.bounded.v1

@@ -93,6 +93,7 @@ fn pending_host_work_request_stream_value(
     match request {
         PendingHostWorkRequest::Send(request) => serde_json::json!({
             "kind": "send",
+            "instance_id": request.instance_id,
             "node_id": pending_host_work_request_node_id(process, request.node_index),
             "node_index": request.node_index,
             "token_id": request.token_id,
@@ -102,6 +103,7 @@ fn pending_host_work_request_stream_value(
         }),
         PendingHostWorkRequest::Service(request) => serde_json::json!({
             "kind": "service",
+            "instance_id": request.instance_id,
             "node_id": pending_host_work_request_node_id(process, request.node_index),
             "node_index": request.node_index,
             "token_id": request.token_id,
@@ -110,6 +112,7 @@ fn pending_host_work_request_stream_value(
         }),
         PendingHostWorkRequest::Script(request) => serde_json::json!({
             "kind": "script",
+            "instance_id": request.instance_id,
             "node_id": pending_host_work_request_node_id(process, request.node_index),
             "node_index": request.node_index,
             "token_id": request.token_id,
@@ -120,6 +123,7 @@ fn pending_host_work_request_stream_value(
         }),
         PendingHostWorkRequest::User(request) => serde_json::json!({
             "kind": "user",
+            "instance_id": request.instance_id,
             "process_id": request.process_id,
             "activity_id": request.activity_id,
             "node_id": pending_host_work_request_node_id(process, request.node_index),
@@ -133,6 +137,7 @@ fn pending_host_work_request_stream_value(
         }),
         PendingHostWorkRequest::Manual(request) => serde_json::json!({
             "kind": "manual",
+            "instance_id": request.instance_id,
             "process_id": request.process_id,
             "activity_id": request.activity_id,
             "node_id": pending_host_work_request_node_id(process, request.node_index),
@@ -146,6 +151,7 @@ fn pending_host_work_request_stream_value(
         }),
         PendingHostWorkRequest::BusinessRule(request) => serde_json::json!({
             "kind": "business_rule",
+            "instance_id": request.instance_id,
             "node_id": pending_host_work_request_node_id(process, request.node_index),
             "node_index": request.node_index,
             "token_id": request.token_id,

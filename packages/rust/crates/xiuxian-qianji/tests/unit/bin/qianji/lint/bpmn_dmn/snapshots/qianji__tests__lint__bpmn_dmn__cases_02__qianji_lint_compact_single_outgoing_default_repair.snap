@@ -1,0 +1,35 @@
+---
+source: packages/rust/crates/xiuxian-qianji/src/bin/../../tests/unit/bin/qianji/lint/bpmn_dmn/cases_02.rs
+expression: "stable_temp_output(&output.rendered, &temp_dir)"
+---
+[lint:error] $TEMP/invalid_single_outgoing_default.bpmn bpmn
+Source: $TEMP/invalid_single_outgoing_default.bpmn
+Issues: 1
+
+[bpmn.unsupported_gateway_configuration] Error: Conditional gateway default flow requires branching
+   ,-[ $TEMP/invalid_single_outgoing_default.bpmn:5:6 ]
+ 5 |    <bpmn:exclusiveGateway id="decision" default="flow_fallback" />
+   |     `-------------------------------------------------------------- default="flow_fallback" needs a real fallback branch
+   |Help: Gateway `decision` currently has 1 outgoing flow(s): flow_retry. Remove the default attribute when there is no fallback, or add one unconditional fallback sequenceFlow from this gateway and point default at it.
+
+Action:
+- Edit gateway 'decision' in process 'default_flow' so the `default` attribute is used only when that bounded conditional gateway has at least two outgoing sequence flows. If the intent is one conditional branch plus fallback, add the fallback sequenceFlow from this gateway and point `default` at it in the same patch. Preserve workflow intent, but do not leave a default branch on a single-route gateway or an unconditional non-default branch.
+
+Fix:
+- If a fallback route is intended, add or retarget the missing outgoing fallback `sequenceFlow` from this gateway in the same patch, set the gateway `default` attribute to that fallback flow id, and leave that fallback flow without `conditionExpression`.
+- If no fallback route is intended, remove the `default` attribute and also remove any extra unconditional non-default branch from this gateway; do not leave a branching gateway with an unconditional non-default flow.
+- Keep every non-default branch conditional, and keep exactly one unconditional fallback only through the `default` branch.
+
+Patch focus:
+- choose_one
+- remove_gateway_default_attribute
+- when: the gateway has only one real outgoing path and no fallback branch is intended
+- also: remove any extra unconditional non-default branch instead of leaving it as an unconditioned route
+- add_or_retarget_unconditional_default_flow
+- when: the workflow really needs conditional branching plus fallback
+- requires: at least one conditional non-default branch plus one real outgoing fallback sequenceFlow named by the gateway default attribute
+- forbid: unconditional non-default sequenceFlow branches
+
+Structured repair:
+- strategy: remove_or_complete_default_branch
+- contract: qianji.bpmn.gateway.bounded.v1

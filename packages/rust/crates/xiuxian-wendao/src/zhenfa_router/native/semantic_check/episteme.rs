@@ -894,5 +894,5 @@ fn sql_guard_text(sql: &str) -> String {
 }
 
 #[cfg(test)]
-#[path = "../../../../tests/unit/semantic_check_tests/episteme.rs"]
+#[path = "../../../../tests/unit/semantic_check_tests/episteme/mod.rs"]
 mod tests;

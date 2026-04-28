@@ -1,6 +1,8 @@
 use super::*;
-use crate::bpmn_cli::render::render_bpmn_pending_host_work_stream_lines;
-use qianji_bpmn_engine::{BpmnAdvanceOutcome, BpmnCheckpointEnvelope, BpmnInstanceInit};
+use crate::bpmn_cli::render_bpmn_pending_host_work_stream_lines;
+use qianji_bpmn_engine::{
+    BpmnAdvanceOutcome, BpmnCheckpointEnvelope, BpmnInstanceInit, NodeRuntimeStatus,
+};
 use std::sync::Arc;
 use xiuxian_qianji::{QianjiBpmnHostBridge, QianjiBpmnSession, load_bpmn_package_from_files};
 
@@ -258,6 +260,81 @@ async fn pending_host_work_stream_includes_human_task_form_contract() {
     );
 }
 
+#[tokio::test(flavor = "current_thread")]
+async fn pending_host_work_stream_preserves_runtime_host_loop_identity_contract() {
+    let temp_dir =
+        TempDir::new().unwrap_or_else(|error| panic!("temp dir should allocate: {error}"));
+    let bpmn_path = write_gateway_user_task_bundle(&temp_dir);
+    let package = must_ok(
+        load_bpmn_package_from_files(&bpmn_path, &[]),
+        "gateway user-task package should load",
+    );
+    let mut instance = must_ok(
+        qianji_bpmn_engine::create_instance(
+            Arc::clone(&package),
+            "host_loop_stream",
+            BpmnInstanceInit::new(
+                "wf_host_loop_stream",
+                json!({
+                    "currentQuestion": "Approve?",
+                    "currentChoices": [{"value": "approve", "label": "Approve"}],
+                }),
+                10,
+            ),
+        ),
+        "gateway user-task instance should seed",
+    );
+    let outcome = must_ok(
+        qianji_bpmn_engine::advance_instance(
+            package.as_ref(),
+            &mut instance,
+            &QianjiBpmnHostBridge::default(),
+        )
+        .await,
+        "runtime should complete automatic gateway work and block on user work",
+    );
+    assert!(matches!(outcome, BpmnAdvanceOutcome::BlockedOnHost(_)));
+    assert_eq!(instance.node_states[1].status, NodeRuntimeStatus::Completed);
+    assert_eq!(instance.pending_host_work.len(), 1);
+    let pending = instance.pending_host_work[0].clone();
+
+    let session = must_ok(
+        QianjiBpmnSession::from_checkpoint(
+            Arc::clone(&package),
+            BpmnCheckpointEnvelope::from_state(instance),
+        ),
+        "checkpointed gateway user-task session should load",
+    );
+    let lines = render_bpmn_pending_host_work_stream_lines(&session);
+    assert_eq!(
+        lines.len(),
+        1,
+        "automatic gateway work must not become adapter-visible host work"
+    );
+    let Some(payload) = lines[0].strip_prefix("@@QIANJI_HOST_WORK ") else {
+        panic!("pending host work stream should use marker prefix");
+    };
+    let value: serde_json::Value = must_ok(
+        serde_json::from_str(payload),
+        "pending host work stream should be JSON",
+    );
+
+    assert_eq!(value["kind"], json!("user"));
+    assert_eq!(value["instance_id"], json!("wf_host_loop_stream"));
+    assert_eq!(value["process_id"], json!(pending.process_id));
+    assert_eq!(value["activity_id"], json!(pending.activity_id));
+    assert_eq!(value["node_index"], json!(pending.node_index));
+    assert_eq!(value["node_id"], json!("Task_Review"));
+    assert_eq!(value["token_id"], json!(pending.token_id));
+    assert_eq!(value["form"]["interaction_type"], json!("choice_input"));
+    assert_eq!(value["form"]["result_output"], json!("answer"));
+    assert!(value["variables"]["currentQuestion"].is_string());
+    assert_eq!(
+        value["variables"]["currentChoices"][0]["value"],
+        json!("approve")
+    );
+}
+
 fn write_user_task_bundle(temp_dir: &TempDir) -> PathBuf {
     let bpmn_path = temp_dir.path().join("user-task.bpmn");
     write_file(
@@ -270,6 +347,35 @@ fn write_user_task_bundle(temp_dir: &TempDir) -> PathBuf {
     <bpmn:endEvent id="End_1" />
     <bpmn:sequenceFlow id="Flow_1" sourceRef="Start_1" targetRef="Task_Question" />
     <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_Question" targetRef="End_1" />
+  </bpmn:process>
+</bpmn:definitions>"#,
+    );
+    bpmn_path
+}
+
+fn write_gateway_user_task_bundle(temp_dir: &TempDir) -> PathBuf {
+    let bpmn_path = temp_dir.path().join("gateway-user-task.bpmn");
+    write_file(
+        &bpmn_path,
+        r#"<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:qianji="https://qianji.dev/bpmn/extensions" id="pkg_host_loop_stream">
+  <bpmn:process id="host_loop_stream" isExecutable="true">
+    <bpmn:startEvent id="Start_1" />
+    <bpmn:exclusiveGateway id="Gateway_Auto" />
+    <bpmn:userTask id="Task_Review">
+      <bpmn:extensionElements>
+        <qianji:interaction type="choice_input">
+          <qianji:question ref="currentQuestion"/>
+          <qianji:choices ref="currentChoices"/>
+          <qianji:result output="answer"/>
+        </qianji:interaction>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+    <bpmn:endEvent id="End_1" />
+    <bpmn:sequenceFlow id="Flow_Start" sourceRef="Start_1" targetRef="Gateway_Auto" />
+    <bpmn:sequenceFlow id="Flow_To_User" sourceRef="Gateway_Auto" targetRef="Task_Review" />
+    <bpmn:sequenceFlow id="Flow_Done" sourceRef="Task_Review" targetRef="End_1" />
   </bpmn:process>
 </bpmn:definitions>"#,
     );

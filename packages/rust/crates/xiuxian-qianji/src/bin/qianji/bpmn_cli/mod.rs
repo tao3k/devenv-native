@@ -6,7 +6,7 @@ mod api;
 mod deps;
 mod host;
 mod parse;
-pub(crate) mod render;
+mod render;
 mod run;
 mod types;
 
@@ -19,7 +19,8 @@ pub(crate) use api::{
 #[cfg(test)]
 pub(crate) use api::{
     BpmnCliCommand, BpmnHostSessionCliCommand, BpmnRunCliCommand, BpmnStartAtCliCommand,
-    BpmnStartCliCommand, resolve_bpmn_checkpoint_store_with_env, run_bpmn_command,
+    BpmnStartCliCommand, render_bpmn_pending_host_work_stream_lines,
+    resolve_bpmn_checkpoint_store_with_env, run_bpmn_command,
     run_bpmn_run_command_with_runtime_env, run_bpmn_start_at_command_with_runtime_env,
     run_bpmn_status_command_with_runtime_env, run_bpmn_task_claim_command_with_runtime_env,
     run_bpmn_task_release_command_with_runtime_env,

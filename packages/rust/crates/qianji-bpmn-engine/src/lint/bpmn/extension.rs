@@ -92,6 +92,10 @@ impl ExtensionScanState {
                 reader_position(reader).and_then(|event_end| start_event_span(event_end, event));
         } else if is_qianji_tools(event) {
             self.text_capture = Some(TextCaptureTarget::Tools);
+            self.active_config.tools_span =
+                reader_position(reader).and_then(|event_end| start_event_span(event_end, event));
+        } else if is_qianji_tool_scope(event) {
+            collect_tool_scope_contract(reader, event, &mut self.active_config);
         } else if is_qianji_output_schema(event) {
             collect_output_schema_contract(reader, event, &mut self.active_config);
         } else if is_qianji_interaction(event) {
@@ -108,6 +112,8 @@ impl ExtensionScanState {
     ) {
         if is_bpmn_sequence_flow(event) {
             collect_sequence_flow_contract(reader, event, &mut self.sequence_flows);
+        } else if is_qianji_tool_scope(event) {
+            collect_tool_scope_contract(reader, event, &mut self.active_config);
         } else if is_qianji_output_schema(event) {
             collect_output_schema_contract(reader, event, &mut self.active_config);
         } else if is_qianji_interaction(event) {
@@ -220,6 +226,7 @@ impl ExtensionScanState {
     }
 
     fn finish(self, source: &BpmnSourceFile, mut issues: Vec<LintIssue>) -> Vec<LintIssue> {
+        issues.extend(tool_scope_issues(source, &self.node_configs_by_id));
         issues.extend(static_interaction_producer_issues(
             source,
             &self.node_configs_by_id,
@@ -282,6 +289,8 @@ struct ActiveConfig {
     outputs_text: Option<String>,
     outputs_span: Option<Range<usize>>,
     tools_ordered: Vec<String>,
+    tools_span: Option<Range<usize>>,
+    tool_scopes: Vec<ToolScopeContract>,
     output_schema_kinds: HashMap<String, String>,
     interactions: Vec<InteractionContract>,
 }
@@ -312,7 +321,20 @@ struct NodeConfigContract {
     outputs_ordered: Vec<String>,
     output_schema_kinds: HashMap<String, String>,
     tools_ordered: Vec<String>,
+    tools_span: Option<Range<usize>>,
+    tool_scopes: Vec<ToolScopeContract>,
     interactions: Vec<InteractionContract>,
+}
+
+#[derive(Clone)]
+struct ToolScopeContract {
+    tool: String,
+    command: Option<String>,
+    path: Option<String>,
+    timeout_seconds: Option<String>,
+    writes: Option<String>,
+    network: Option<String>,
+    span: Option<Range<usize>>,
 }
 
 struct SequenceFlowContract {
@@ -346,6 +368,10 @@ fn is_qianji_tools(event: &BytesStart<'_>) -> bool {
 
 fn is_qianji_output_schema(event: &BytesStart<'_>) -> bool {
     is_event_name(event, "qianji:outputSchema")
+}
+
+fn is_qianji_tool_scope(event: &BytesStart<'_>) -> bool {
+    is_event_name(event, "qianji:toolScope")
 }
 
 fn is_qianji_choice(event: &BytesStart<'_>) -> bool {
@@ -508,6 +534,28 @@ fn collect_output_schema_contract(
     active_config.output_schema_kinds.insert(name, kind);
 }
 
+fn collect_tool_scope_contract(
+    reader: &Reader<&[u8]>,
+    event: &BytesStart<'_>,
+    active_config: &mut ActiveConfig,
+) {
+    let Some(tool) = attribute_value(reader, event, "tool")
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty())
+    else {
+        return;
+    };
+    active_config.tool_scopes.push(ToolScopeContract {
+        tool,
+        command: optional_non_empty_attribute(reader, event, "command"),
+        path: optional_non_empty_attribute(reader, event, "path"),
+        timeout_seconds: optional_non_empty_attribute(reader, event, "timeoutSeconds"),
+        writes: optional_non_empty_attribute(reader, event, "writes"),
+        network: optional_non_empty_attribute(reader, event, "network"),
+        span: reader_position(reader).and_then(|event_end| start_event_span(event_end, event)),
+    });
+}
+
 fn collect_dynamic_choice_ref_contract(
     active_config: &ActiveConfig,
     contract: &InteractionContract,
@@ -566,9 +614,333 @@ fn collect_node_config_contract(
             outputs_ordered: active_config.outputs_ordered.clone(),
             output_schema_kinds: active_config.output_schema_kinds.clone(),
             tools_ordered: active_config.tools_ordered.clone(),
+            tools_span: active_config.tools_span.clone(),
+            tool_scopes: active_config.tool_scopes.clone(),
             interactions: active_config.interactions.clone(),
         },
     );
+}
+
+fn tool_scope_issues(
+    source: &BpmnSourceFile,
+    node_configs_by_id: &HashMap<String, NodeConfigContract>,
+) -> Vec<LintIssue> {
+    let mut issues = Vec::new();
+    let mut services = node_configs_by_id
+        .values()
+        .filter(|node| node.node_kind == "serviceTask")
+        .collect::<Vec<_>>();
+    services.sort_by_key(|service| {
+        service
+            .node_span
+            .as_ref()
+            .map_or(usize::MAX, |span| span.start)
+    });
+    for service in services {
+        issues.extend(undeclared_tool_scope_issues(source, service));
+        issues.extend(missing_or_invalid_tool_scope_issues(source, service));
+    }
+    issues
+}
+
+fn undeclared_tool_scope_issues(
+    source: &BpmnSourceFile,
+    service: &NodeConfigContract,
+) -> Vec<LintIssue> {
+    let declared_tools = service.tools_ordered.iter().collect::<HashSet<_>>();
+    service
+        .tool_scopes
+        .iter()
+        .filter(|scope| !declared_tools.contains(&scope.tool))
+        .map(|scope| undeclared_tool_scope_issue(source, service, scope))
+        .collect()
+}
+
+fn missing_or_invalid_tool_scope_issues(
+    source: &BpmnSourceFile,
+    service: &NodeConfigContract,
+) -> Vec<LintIssue> {
+    let mut issues = Vec::new();
+    for tool in &service.tools_ordered {
+        let scopes = service
+            .tool_scopes
+            .iter()
+            .filter(|scope| &scope.tool == tool)
+            .collect::<Vec<_>>();
+        if scopes.is_empty() {
+            issues.push(missing_tool_scope_issue(source, service, tool));
+            continue;
+        }
+        if !scopes
+            .iter()
+            .any(|scope| tool_scope_is_complete(tool, scope))
+        {
+            issues.push(invalid_tool_scope_issue(source, service, tool, &scopes));
+        }
+    }
+    issues
+}
+
+fn tool_scope_is_complete(tool: &str, scope: &ToolScopeContract) -> bool {
+    if tool == "bash" {
+        return scope
+            .command
+            .as_deref()
+            .is_some_and(|command| !command.trim().is_empty())
+            && scope
+                .timeout_seconds
+                .as_deref()
+                .and_then(|value| value.parse::<u64>().ok())
+                .is_some_and(|value| value > 0)
+            && scope.writes.as_deref().is_some_and(is_xml_boolean_literal)
+            && scope.network.as_deref().is_some_and(is_xml_boolean_literal);
+    }
+    if is_path_scoped_tool(tool) {
+        return scope
+            .path
+            .as_deref()
+            .is_some_and(|path| !path.trim().is_empty());
+    }
+    true
+}
+
+fn is_xml_boolean_literal(value: &str) -> bool {
+    matches!(value, "true" | "false")
+}
+
+fn is_path_scoped_tool(tool: &str) -> bool {
+    matches!(tool, "read" | "ls" | "grep" | "find" | "write" | "edit")
+}
+
+fn undeclared_tool_scope_issue(
+    source: &BpmnSourceFile,
+    service: &NodeConfigContract,
+    scope: &ToolScopeContract,
+) -> LintIssue {
+    let source_id = &source.source_id;
+    let declared_tools = tools_summary(&service.tools_ordered);
+    let expected_xml = tool_scope_removal_xml(service, scope);
+    let mut issue = LintIssue::new(
+        "bpmn.service_task.tool_scope.undeclared",
+        "qianji:toolScope must match declared tools",
+        format!(
+            "Source '{source_id}' serviceTask '{}' declares qianji:toolScope for '{}' but qianji:tools is [{declared_tools}].",
+            service.node_id, scope.tool,
+        ),
+        "A qianji tool scope is executable authority for one declared runtime tool. A scope without a matching qianji:tools entry creates ambiguous host permissions.",
+        vec![
+            format!(
+                "Remove the qianji:toolScope for '{}' from serviceTask '{}'.",
+                scope.tool, service.node_id
+            ),
+            format!(
+                "Or add '{}' to qianji:tools only if this serviceTask genuinely needs that bounded capability.",
+                scope.tool
+            ),
+        ],
+        format!(
+            "Repair BPMN source '{source_id}' serviceTask '{}' by aligning qianji:toolScope '{}' with qianji:tools. Remove undeclared scopes or declare the tool with a complete scope.",
+            service.node_id, scope.tool,
+        ),
+        json!({
+            "source_id": source_id,
+            "service_task_id": service.node_id,
+            "scope_tool": scope.tool,
+            "declared_tools": service.tools_ordered.clone(),
+        }),
+    )
+    .with_structured_repair(tool_scope_repair(
+        source_id,
+        service,
+        "remove_undeclared_tool_scope_or_declare_tool",
+        &expected_xml,
+    ));
+
+    if let Some(span) = scope.span.as_ref() {
+        issue = issue.with_source_diagnostic(LintSourceDiagnostic::new(
+            source_id,
+            LintSourceSpan::new(span.start, span.end),
+            "scope tool is not declared in qianji:tools",
+            format!(
+                "Remove this scope or add '{}' to qianji:tools with a complete boundary.",
+                scope.tool
+            ),
+        ));
+    }
+    issue
+}
+
+fn missing_tool_scope_issue(
+    source: &BpmnSourceFile,
+    service: &NodeConfigContract,
+    tool: &str,
+) -> LintIssue {
+    let source_id = &source.source_id;
+    let expected_xml = required_tool_scope_xml(tool);
+    let mut issue = LintIssue::new(
+        "bpmn.service_task.tool_scope.missing",
+        "serviceTask tools require qianji:toolScope",
+        format!(
+            "Source '{source_id}' serviceTask '{}' declares qianji:tools '{tool}' without a matching qianji:toolScope.",
+            service.node_id,
+        ),
+        "Non-empty qianji:tools grants host capability. The BPMN contract must bound that capability structurally with qianji:toolScope before pi-wendao or another host may execute it.",
+        vec![
+            format!(
+                "Add a qianji:toolScope for '{tool}' inside serviceTask '{}' qianji:config.",
+                service.node_id
+            ),
+            "If this task only consumes declared qianji inputs, clear qianji:tools instead of adding a tool scope.".to_string(),
+        ],
+        format!(
+            "Repair BPMN source '{source_id}' serviceTask '{}' by adding the required qianji:toolScope XML for '{tool}', or clearing qianji:tools if no host tool is needed.",
+            service.node_id,
+        ),
+        json!({
+            "source_id": source_id,
+            "service_task_id": service.node_id,
+            "tool": tool,
+            "required_xml": expected_xml,
+        }),
+    )
+    .with_structured_repair(tool_scope_repair(
+        source_id,
+        service,
+        "add_missing_tool_scope",
+        &expected_xml,
+    ));
+
+    if let Some(span) = service.tools_span.as_ref().or(service.node_span.as_ref()) {
+        issue = issue.with_source_diagnostic(LintSourceDiagnostic::new(
+            source_id,
+            LintSourceSpan::new(span.start, span.end),
+            "declared tool is missing a bounded qianji:toolScope",
+            format!(
+                "Add `{expected_xml}` after qianji:tools, or clear qianji:tools for input-only work."
+            ),
+        ));
+    }
+    issue
+}
+
+fn invalid_tool_scope_issue(
+    source: &BpmnSourceFile,
+    service: &NodeConfigContract,
+    tool: &str,
+    scopes: &[&ToolScopeContract],
+) -> LintIssue {
+    let source_id = &source.source_id;
+    let expected_xml = required_tool_scope_xml(tool);
+    let mut issue = LintIssue::new(
+        "bpmn.service_task.tool_scope.incomplete",
+        "qianji:toolScope is missing required parameter bounds",
+        format!(
+            "Source '{source_id}' serviceTask '{}' declares qianji:tools '{tool}', but no qianji:toolScope for that tool has the complete required parameter boundary.",
+            service.node_id,
+        ),
+        "Tool-scope XML must bound the actual parameters the host may execute. Partial scopes are not enough because hosts would still need local compatibility inference.",
+        vec![
+            format!(
+                "Replace the incomplete scope for '{tool}' with the complete qianji:toolScope shape."
+            ),
+            "Use exact command strings for bash and path boundaries for file tools.".to_string(),
+        ],
+        format!(
+            "Repair BPMN source '{source_id}' serviceTask '{}' by replacing the incomplete qianji:toolScope for '{tool}' with a complete structural boundary.",
+            service.node_id,
+        ),
+        json!({
+            "source_id": source_id,
+            "service_task_id": service.node_id,
+            "tool": tool,
+            "required_xml": expected_xml,
+            "scopes": scopes.iter().map(|scope| tool_scope_evidence(scope)).collect::<Vec<_>>(),
+        }),
+    )
+    .with_structured_repair(tool_scope_repair(
+        source_id,
+        service,
+        "complete_tool_scope_parameters",
+        &expected_xml,
+    ));
+
+    if let Some(span) = scopes
+        .iter()
+        .find_map(|scope| scope.span.as_ref())
+        .or(service.tools_span.as_ref())
+    {
+        issue = issue.with_source_diagnostic(LintSourceDiagnostic::new(
+            source_id,
+            LintSourceSpan::new(span.start, span.end),
+            "complete the qianji:toolScope parameter boundary",
+            format!("Use `{expected_xml}` with a task-specific command or path."),
+        ));
+    }
+    issue
+}
+
+fn required_tool_scope_xml(tool: &str) -> String {
+    if tool == "bash" {
+        return "<qianji:toolScope tool=\"bash\" command=\"npm test\" timeoutSeconds=\"120\" writes=\"false\" network=\"false\"/>".to_string();
+    }
+    if is_path_scoped_tool(tool) {
+        return format!("<qianji:toolScope tool=\"{tool}\" path=\"docs/**\"/>");
+    }
+    format!("<qianji:toolScope tool=\"{tool}\"/>")
+}
+
+fn tool_scope_repair(
+    source_id: &str,
+    service: &NodeConfigContract,
+    strategy: &'static str,
+    expected_xml: &str,
+) -> Value {
+    json!({
+        "schema_version": 1,
+        "contract": "qianji.bpmn.service_task.tool_scope.v1",
+        "contract_message": "qianji.bpmn.service_task.tool_scope.v1 requires every non-empty serviceTask qianji:tools entry to have a matching bounded qianji:toolScope.",
+        "strategy": strategy,
+        "target": {
+            "source_id": source_id,
+            "service_task_id": service.node_id,
+        },
+        "construct_cards": ["service-task.agent"],
+        "expected_xml": expected_xml,
+        "actions": [
+            {
+                "op": "align_qianji_tools_with_tool_scope",
+                "target": format!("{}.qianji:config", service.node_id),
+                "xml": expected_xml,
+                "forbid": "non-empty qianji:tools without matching qianji:toolScope"
+            }
+        ],
+    })
+}
+
+fn tool_scope_removal_xml(service: &NodeConfigContract, scope: &ToolScopeContract) -> String {
+    format!(
+        "<!-- Remove qianji:toolScope tool=\"{}\" from serviceTask '{}', or add the tool to qianji:tools with a complete boundary. -->",
+        scope.tool, service.node_id
+    )
+}
+
+fn tool_scope_evidence(scope: &ToolScopeContract) -> Value {
+    json!({
+        "tool": scope.tool.clone(),
+        "command": scope.command.clone(),
+        "path": scope.path.clone(),
+        "timeout_seconds": scope.timeout_seconds.clone(),
+        "writes": scope.writes.clone(),
+        "network": scope.network.clone(),
+    })
+}
+
+fn tools_summary(tools: &[String]) -> String {
+    if tools.is_empty() {
+        "none".to_string()
+    } else {
+        tools.join(", ")
+    }
 }
 
 fn collect_sequence_flow_contract(
@@ -1797,6 +2169,16 @@ fn attribute_value(
         });
     }
     None
+}
+
+fn optional_non_empty_attribute(
+    reader: &Reader<&[u8]>,
+    event: &BytesStart<'_>,
+    attribute_name: &str,
+) -> Option<String> {
+    attribute_value(reader, event, attribute_name)
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty())
 }
 
 fn local_name(raw: &[u8]) -> &str {

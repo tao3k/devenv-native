@@ -14,12 +14,18 @@ pub(super) const fn card(lint_mappings: &'static [ConstructLintMapping]) -> Cons
             "qianji:prompt, qianji:tools, qianji:inputs, and qianji:outputs are present",
             "outputs are declared before any gateway uses them",
             "prompt describes one bounded responsibility",
+            "qianji:tools is empty unless the prompt explicitly needs workspace inspection, artifact writing, or command execution",
+            "every non-empty qianji:tools declaration has matching qianji:toolScope entries that bound command strings, paths, and side effects",
         ],
         allows: &[
             "qianji extension config",
             "declared input variable names",
             "declared output variable names",
-            "host-specific tools when the host adapter supports them",
+            "empty tools for input-only analysis, summarization, classification, routing, and UI-metadata preparation",
+            "write for explicit artifact or file creation",
+            "read/grep/find/ls for explicit workspace inspection",
+            "bash for explicit shell commands, tests, builds, lint commands, or git operations",
+            "qianji:toolScope entries such as exact bash command plus timeout, or read/write path boundaries",
         ],
         forbids: &[
             "implicit outputs consumed by gateways",
@@ -27,6 +33,7 @@ pub(super) const fn card(lint_mappings: &'static [ConstructLintMapping]) -> Cons
             "no-tool store or rename tasks that only persist a prior userTask result",
             "workflow routing, approval, or retry policy hidden inside prompt prose",
             "BPMN boundary error events for recoverable host failure",
+            "bash/read tools for reading declared qianji input variables such as specContent",
         ],
         example: r#"<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
   xmlns:qianji="https://qianji.dev/bpmn/extensions"
