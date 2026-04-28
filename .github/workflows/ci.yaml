@@ -383,6 +383,21 @@ jobs:
           export WENDAOSEARCH_JULIA_PROJECT="${GITHUB_WORKSPACE}/.data/WendaoSearch.jl"
           julia --project="${WENDAOSEARCH_JULIA_PROJECT}" -e '
             using Pkg
+            function ensure_registry(name::String; spec=nothing)
+              registries = Pkg.Registry.reachable_registries()
+              any(registry -> registry.name == name, registries) && return
+              if isnothing(spec)
+                Pkg.Registry.add(name)
+              else
+                Pkg.Registry.add(spec)
+              end
+            end
+
+            ensure_registry("General")
+            ensure_registry(
+              "OpenModelica";
+              spec=Pkg.RegistrySpec(url="https://github.com/JKRT/OpenModelicaRegistry.git"),
+            )
             Pkg.instantiate()
             Pkg.precompile()
           '
