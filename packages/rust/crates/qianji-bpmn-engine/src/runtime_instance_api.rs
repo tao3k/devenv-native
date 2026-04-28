@@ -3,7 +3,9 @@
 use crate::error::Result;
 use crate::ir::{BpmnPackage, ProcessKey};
 use crate::ir_index_api::BpmnNodeIndex;
-use crate::runtime::{JoinRuntimeState, PendingHostWork, TokenRecord, WaitRegistration};
+use crate::runtime::{
+    JoinRuntimeState, PendingHostWork, PendingHostWorkKind, TokenRecord, WaitRegistration,
+};
 use crate::runtime_repeat_api::{
     ParallelMultiInstanceState, SequentialMultiInstanceState, StandardLoopState,
 };
@@ -94,6 +96,47 @@ pub struct BpmnExecutionTraceEvent {
     /// Runtime status for node-status events.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub status: Option<NodeRuntimeStatus>,
+}
+
+/// Durable lifecycle event discriminator for checkpointed human-task work.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum BpmnHumanTaskLifecycleEventKind {
+    /// A `userTask` or `manualTask` pending host-work item was created.
+    Created,
+    /// A previously unclaimed human task was claimed.
+    Claimed,
+    /// A claimed human task was released back to the unclaimed worklist.
+    Released,
+    /// A human task completion passed validation and was applied.
+    Completed,
+}
+
+/// Durable checkpointed lifecycle event for BPMN `userTask` and `manualTask`.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct BpmnHumanTaskLifecycleEvent {
+    /// Monotonic sequence inside the human-task lifecycle ledger.
+    pub sequence: u64,
+    /// Human-task lifecycle event kind.
+    pub kind: BpmnHumanTaskLifecycleEventKind,
+    /// Unix timestamp in milliseconds when the event was recorded.
+    pub occurred_at_ms: u64,
+    /// BPMN process identifier that owns the human task.
+    pub process_id: String,
+    /// Stable BPMN activity identifier for the human task.
+    pub activity_id: String,
+    /// Runtime token identifier for the human task.
+    pub token_id: u64,
+    /// BPMN node index for the human task.
+    pub node_index: BpmnNodeIndex,
+    /// Human work kind.
+    pub work_kind: PendingHostWorkKind,
+    /// Optional host- or operator-facing claimant identifier.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub claimant: Option<String>,
+    /// Optional host-generated work identifier.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub work_id: Option<String>,
 }
 
 /// High-level instance lifecycle shell.
@@ -300,6 +343,8 @@ pub struct BpmnInstanceState {
         skip_serializing_if = "Vec::is_empty"
     )]
     pub pending_host_work: Vec<PendingHostWork>,
+    /// Durable human-task lifecycle ledger for `userTask` and `manualTask`.
+    pub human_task_events: Vec<BpmnHumanTaskLifecycleEvent>,
     /// Optional suspend reason.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub suspend_reason: Option<SuspendReason>,

@@ -103,6 +103,8 @@ pub(crate) struct BpmnTaskReleaseCliCommand {
 pub(crate) struct BpmnTaskWorklistCliCommand {
     pub(crate) checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend,
     pub(crate) claimant: Option<String>,
+    pub(crate) assignment_resource: Option<String>,
+    pub(crate) lane: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

@@ -6,13 +6,15 @@ use crate::bpmn::control::{
     QianjiBpmnWorkflowTaskClaimRequest, QianjiBpmnWorkflowTaskReleaseReport,
     QianjiBpmnWorkflowTaskReleaseRequest, QianjiBpmnWorkflowWorklistItem,
     QianjiBpmnWorkflowWorklistReport, QianjiBpmnWorkflowWorklistRequest,
+    QianjiBpmnWorkflowWorklistRoutingFilter,
 };
 use crate::bpmn::error::BpmnOrchestrationError;
 use crate::bpmn::execution::DEFAULT_QIANJI_BPMN_SCHEDULER_LEASE_TTL_MS;
 use crate::bpmn::ownership::QianjiBpmnSchedulerLeaseConfig;
 use crate::telemetry::unix_millis_now;
 use qianji_bpmn_engine::{
-    BpmnCheckpointEnvelope, PendingHumanTaskClaimRequest, PendingHumanTaskReleaseRequest,
+    BpmnCheckpointEnvelope, BpmnHumanTaskAssignmentSpec, BpmnHumanTaskResourceRoleSpec,
+    BpmnLaneMembershipSpec, PendingHumanTaskClaimRequest, PendingHumanTaskReleaseRequest,
     claim_pending_human_task, release_pending_human_task,
 };
 use std::io;
@@ -106,6 +108,7 @@ pub(crate) async fn list_workflow_worklist(
         .as_deref()
         .map(str::trim)
         .filter(|value| !value.is_empty());
+    let routing = normalize_worklist_routing_filter(&request.routing);
     let work_items = checkpoint_store
         .list()?
         .iter()
@@ -125,12 +128,66 @@ pub(crate) async fn list_workflow_worklist(
                 .is_none_or(|claim| claim.claimant == claimant),
             None => true,
         })
+        .filter(|item| worklist_routing_matches(item, &routing))
         .collect();
 
     Ok(QianjiBpmnWorkflowWorklistReport {
         checkpoint_store,
         work_items,
     })
+}
+
+fn normalize_worklist_routing_filter(
+    routing: &QianjiBpmnWorkflowWorklistRoutingFilter,
+) -> QianjiBpmnWorkflowWorklistRoutingFilter {
+    QianjiBpmnWorkflowWorklistRoutingFilter {
+        assignment_resource: normalize_filter_value(routing.assignment_resource.as_deref()),
+        lane: normalize_filter_value(routing.lane.as_deref()),
+    }
+}
+
+fn normalize_filter_value(value: Option<&str>) -> Option<String> {
+    value
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(str::to_string)
+}
+
+fn worklist_routing_matches(
+    item: &QianjiBpmnWorkflowWorklistItem,
+    routing: &QianjiBpmnWorkflowWorklistRoutingFilter,
+) -> bool {
+    let assignment_matches = match routing.assignment_resource.as_deref() {
+        Some(resource) => item
+            .assignment
+            .as_ref()
+            .is_some_and(|assignment| assignment_matches_resource(assignment, resource)),
+        None => true,
+    };
+    let lane_matches = match routing.lane.as_deref() {
+        Some(lane) => item
+            .lane
+            .as_ref()
+            .is_some_and(|membership| lane_membership_matches(membership, lane)),
+        None => true,
+    };
+    assignment_matches && lane_matches
+}
+
+fn assignment_matches_resource(assignment: &BpmnHumanTaskAssignmentSpec, resource: &str) -> bool {
+    assignment
+        .human_performers
+        .iter()
+        .chain(assignment.potential_owners.iter())
+        .any(|role| resource_role_matches(role, resource))
+}
+
+fn resource_role_matches(role: &BpmnHumanTaskResourceRoleSpec, resource: &str) -> bool {
+    role.name.as_deref() == Some(resource) || role.resource_ref.as_deref() == Some(resource)
+}
+
+fn lane_membership_matches(membership: &BpmnLaneMembershipSpec, lane: &str) -> bool {
+    membership.id.as_deref() == Some(lane) || membership.name.as_deref() == Some(lane)
 }
 
 async fn save_claimed_checkpoint(

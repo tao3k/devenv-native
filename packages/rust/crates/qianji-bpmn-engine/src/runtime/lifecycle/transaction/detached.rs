@@ -4,6 +4,7 @@ use crate::runtime::lifecycle::scope::{
     evaluate_dmn_package_binding_sync,
 };
 use crate::runtime::lifecycle::state;
+use crate::runtime_instance_api::BpmnHumanTaskLifecycleEventKind;
 use crate::runtime_instance_api::DetachedTransactionCompensationState;
 
 enum DetachedCompensationProgress {
@@ -235,13 +236,14 @@ fn enqueue_detached_host_work(
     now_ms: u64,
 ) {
     let token_id = state::allocate_token_id(instance);
-    instance.pending_host_work.push(PendingHostWork {
+    let pending = PendingHostWork {
         token_id,
         process_id: Some(process_id.to_string()),
         node_index,
         activity_id: Some(activity_id.to_string()),
         kind: spec.kind,
         decision: spec.decision,
+        lane: None,
         script_format: spec.script_format,
         script_body: spec.script_body,
         human_task_form: None,
@@ -250,10 +252,18 @@ fn enqueue_detached_host_work(
         event_reference: None,
         event_name: None,
         work_id: None,
-    });
+    };
+    instance.pending_host_work.push(pending.clone());
     instance
         .pending_host_work
         .sort_by_key(|pending| (pending.token_id, pending.node_index));
+    state::record_human_task_lifecycle_event(
+        instance,
+        BpmnHumanTaskLifecycleEventKind::Created,
+        &pending,
+        now_ms,
+        None,
+    );
     instance.suspend_reason = None;
     state::record_transition(
         instance,

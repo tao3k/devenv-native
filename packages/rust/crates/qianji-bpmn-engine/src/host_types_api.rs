@@ -1,7 +1,9 @@
 //! Host-bridge request and outcome shells.
 
 use crate::dmn_model_api::{DmnEvaluationRequest, DmnEvaluationResult};
-use crate::ir_node_api::{BpmnHumanTaskAssignmentSpec, BpmnHumanTaskFormSpec};
+use crate::ir_node_api::{
+    BpmnHumanTaskAssignmentSpec, BpmnHumanTaskFormSpec, BpmnLaneMembershipSpec,
+};
 use crate::runtime::WaitRegistration;
 use crate::runtime::{PendingHostWorkClaim, PendingHostWorkKind};
 use serde_json::Value;
@@ -137,6 +139,8 @@ pub struct UserTaskRequest {
     pub variables: Value,
     /// Optional repeat-execution metadata for the blocked task.
     pub repeat: Option<RepeatExecutionContext>,
+    /// Optional BPMN lane membership metadata for passive routing/display.
+    pub lane: Option<BpmnLaneMembershipSpec>,
     /// Optional human-task form metadata preserved for host rendering.
     pub form: Option<BpmnHumanTaskFormSpec>,
     /// Optional standard BPMN assignment metadata preserved for host routing.
@@ -169,6 +173,8 @@ pub struct ManualTaskRequest {
     pub variables: Value,
     /// Optional repeat-execution metadata for the blocked task.
     pub repeat: Option<RepeatExecutionContext>,
+    /// Optional BPMN lane membership metadata for passive routing/display.
+    pub lane: Option<BpmnLaneMembershipSpec>,
     /// Optional human-task form metadata preserved for host rendering.
     pub form: Option<BpmnHumanTaskFormSpec>,
     /// Optional standard BPMN assignment metadata preserved for host routing.

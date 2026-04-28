@@ -24,6 +24,7 @@ pub use types::{
     QianjiBpmnWorkflowTaskReleasePayload, QianjiBpmnWorkflowTaskReleaseReport,
     QianjiBpmnWorkflowTaskReleaseRequest, QianjiBpmnWorkflowWorklistItem,
     QianjiBpmnWorkflowWorklistReport, QianjiBpmnWorkflowWorklistRequest,
+    QianjiBpmnWorkflowWorklistRoutingFilter,
 };
 
 /// Error returned by the lib-owned BPMN workflow control service.

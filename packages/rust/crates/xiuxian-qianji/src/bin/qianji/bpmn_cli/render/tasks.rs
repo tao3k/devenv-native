@@ -9,9 +9,9 @@ use crate::bpmn_cli::types::{
 };
 
 use super::support::{
-    bpmn_checkpoint_backend_label, bpmn_checkpoint_backend_selection_label,
-    bpmn_human_task_assignment_label, bpmn_human_task_form_label,
-    bpmn_pending_host_work_kind_label,
+    append_bpmn_human_task_lifecycle_event_summary, bpmn_checkpoint_backend_label,
+    bpmn_checkpoint_backend_selection_label, bpmn_human_task_assignment_label,
+    bpmn_human_task_form_label, bpmn_lane_membership_label, bpmn_pending_host_work_kind_label,
 };
 
 pub(crate) fn render_bpmn_task_claim_output(
@@ -40,6 +40,10 @@ pub(crate) fn render_bpmn_task_claim_output(
     if let Some(claim) = claim {
         let _ = writeln!(rendered, "Claimed at (unix ms): {}", claim.claimed_at_ms);
     }
+    append_bpmn_human_task_lifecycle_event_summary(
+        &mut rendered,
+        &report.instance.human_task_events,
+    );
     append_task_coordination_boundary(&mut rendered);
 
     BpmnCliOutput {
@@ -83,6 +87,10 @@ pub(crate) fn render_bpmn_task_release_output(
             "unclaimed"
         },
     );
+    append_bpmn_human_task_lifecycle_event_summary(
+        &mut rendered,
+        &report.instance.human_task_events,
+    );
     append_task_coordination_boundary(&mut rendered);
 
     BpmnCliOutput {
@@ -109,9 +117,11 @@ pub(crate) fn render_bpmn_task_worklist_output(
     report: &QianjiBpmnWorkflowWorklistReport,
 ) -> BpmnCliOutput {
     let mut rendered = format!(
-        "# BPMN Task Worklist\n\nCheckpoint backend: {}\nClaimant filter: {}\nItem count: {}\n",
+        "# BPMN Task Worklist\n\nCheckpoint backend: {}\nClaimant filter: {}\nAssignment resource filter: {}\nLane filter: {}\nItem count: {}\n",
         bpmn_checkpoint_backend_label(&report.checkpoint_store),
         command.claimant.as_deref().unwrap_or("none"),
+        command.assignment_resource.as_deref().unwrap_or("none"),
+        command.lane.as_deref().unwrap_or("none"),
         report.work_items.len(),
     );
     append_task_coordination_boundary(&mut rendered);
@@ -160,13 +170,16 @@ fn append_worklist_item(rendered: &mut String, item: &QianjiBpmnWorkflowWorklist
             let _ = write!(rendered, " | assignment={label}");
         }
     }
+    if let Some(lane) = item.lane.as_ref() {
+        let _ = write!(rendered, " | lane={}", bpmn_lane_membership_label(lane));
+    }
     let _ = writeln!(rendered);
 }
 
 fn append_task_coordination_boundary(rendered: &mut String) {
     let _ = writeln!(
         rendered,
-        "Authorization: not evaluated; BPMN assignment metadata is routing-only."
+        "Authorization: not evaluated; BPMN assignment and lane metadata are routing-only."
     );
 }
 

@@ -1,12 +1,13 @@
 use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnEdgeSpec, BpmnEventKind, BpmnEventSpec, BpmnHostBridge,
-    BpmnInstanceInit, BpmnNodeKind, BpmnNodeSpec, BpmnPackage, BpmnProcessSpec, BpmnScriptTaskSpec,
-    BusinessRuleTaskOutcome, BusinessRuleTaskRequest, DmnDecisionRef, EventPollOutcome,
-    EventPollRequest, HostBridgeError, InstanceLifecycle, ManualTaskOutcome, ManualTaskRequest,
-    PendingHostWorkKind, PendingHostWorkResult, ProcessKey, ScriptTaskOutcome, ScriptTaskRequest,
-    SendTaskOutcome, SendTaskRequest, ServiceTaskOutcome, ServiceTaskRequest, UserTaskOutcome,
-    UserTaskRequest, advance_instance, apply_pending_host_work_result, create_instance,
+    BpmnHumanTaskLifecycleEventKind, BpmnInstanceInit, BpmnNodeKind, BpmnNodeSpec, BpmnPackage,
+    BpmnProcessSpec, BpmnScriptTaskSpec, BusinessRuleTaskOutcome, BusinessRuleTaskRequest,
+    DmnDecisionRef, EventPollOutcome, EventPollRequest, HostBridgeError, InstanceLifecycle,
+    ManualTaskOutcome, ManualTaskRequest, PendingHostWorkKind, PendingHostWorkResult, ProcessKey,
+    ScriptTaskOutcome, ScriptTaskRequest, SendTaskOutcome, SendTaskRequest, ServiceTaskOutcome,
+    ServiceTaskRequest, UserTaskOutcome, UserTaskRequest, advance_instance,
+    apply_pending_host_work_result, create_instance,
 };
 use serde_json::json;
 use std::sync::Arc;
@@ -49,6 +50,7 @@ pub(super) async fn assert_host_resume(
     assert_eq!(instance.sequence, 4);
     assert_eq!(instance.updated_at_ms, 100);
     assert_eq!(instance.variables, expected_variables(result.data()));
+    assert_human_task_events_after_completion(&instance, &work_kind);
 
     let completion = advance_instance(package.as_ref(), &mut instance, &host)
         .await
@@ -74,6 +76,35 @@ pub(super) async fn assert_host_resume(
             _ => unreachable!("helper only supports host-driven task kinds"),
         }
     );
+}
+
+fn assert_human_task_events_after_completion(
+    instance: &qianji_bpmn_engine::BpmnInstanceState,
+    work_kind: &PendingHostWorkKind,
+) {
+    let expected = match work_kind {
+        PendingHostWorkKind::User | PendingHostWorkKind::Manual => vec![
+            BpmnHumanTaskLifecycleEventKind::Created,
+            BpmnHumanTaskLifecycleEventKind::Completed,
+        ],
+        PendingHostWorkKind::Send
+        | PendingHostWorkKind::Service
+        | PendingHostWorkKind::Script
+        | PendingHostWorkKind::BusinessRule => Vec::new(),
+    };
+    let actual = instance
+        .human_task_events
+        .iter()
+        .map(|event| event.kind.clone())
+        .collect::<Vec<_>>();
+    assert_eq!(actual, expected);
+    if matches!(
+        work_kind,
+        PendingHostWorkKind::User | PendingHostWorkKind::Manual
+    ) {
+        assert_eq!(instance.human_task_events[1].occurred_at_ms, 100);
+        assert!(instance.human_task_events[1].claimant.is_none());
+    }
 }
 
 pub(super) async fn create_blocked_instance(

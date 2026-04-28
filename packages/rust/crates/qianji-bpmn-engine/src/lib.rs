@@ -251,8 +251,8 @@ pub use ir_event_api::{BpmnEventKind, BpmnEventSpec, BpmnTimerKind, BpmnTimerSpe
 pub use ir_index_api::{BpmnIndexRange, BpmnNodeIndex};
 pub use ir_node_api::{
     BpmnGatewayKind, BpmnHumanTaskAssignmentSpec, BpmnHumanTaskChoiceSpec, BpmnHumanTaskFormSpec,
-    BpmnHumanTaskFreeTextSpec, BpmnHumanTaskResourceRoleSpec, BpmnNodeKind, BpmnNodeSpec,
-    BpmnScriptTaskSpec, BpmnSubProcessKind,
+    BpmnHumanTaskFreeTextSpec, BpmnHumanTaskResourceRoleSpec, BpmnLaneMembershipSpec, BpmnNodeKind,
+    BpmnNodeSpec, BpmnScriptTaskSpec, BpmnSubProcessKind,
 };
 pub use ir_package_api::BpmnPackage;
 pub use ir_process_compensation::BpmnCompensationHandlerSpec;
@@ -283,9 +283,10 @@ pub use runtime_host_dispatch_api::{
     build_pending_host_work_request, build_pending_host_work_requests,
 };
 pub use runtime_instance_api::{
-    BpmnExecutionTraceEvent, BpmnExecutionTraceEventKind, BpmnInstanceInit, BpmnInstanceState,
-    CallActivityFrame, EventCompetitionState, InstanceLifecycle, NodeRuntimeState,
-    NodeRuntimeStatus, SuspendReason, create_instance,
+    BpmnExecutionTraceEvent, BpmnExecutionTraceEventKind, BpmnHumanTaskLifecycleEvent,
+    BpmnHumanTaskLifecycleEventKind, BpmnInstanceInit, BpmnInstanceState, CallActivityFrame,
+    EventCompetitionState, InstanceLifecycle, NodeRuntimeState, NodeRuntimeStatus, SuspendReason,
+    create_instance,
 };
 pub use runtime_join_api::JoinRuntimeState;
 pub use runtime_repeat_api::{

@@ -1,7 +1,8 @@
-use super::import::import_bpmn_source;
+use super::import::{attach_lane_memberships, import_bpmn_source};
 use super::normalize::normalize_package;
 use super::validate::validate_raw_package;
 use crate::bpmn_parse_api::{BpmnBundleSnapshot, BpmnParseOptions};
+use crate::bpmn_snapshot::snapshot_bpmn_source_sync;
 use crate::dmn_model_api::{
     DmnBusinessKnowledgeModelDefinition, DmnDecisionServiceDefinition, DmnImportDefinition,
     DmnInputDataDefinition, DmnSourceDefinition,
@@ -26,7 +27,10 @@ pub(crate) fn parse_bpmn_bundle_impl(
         });
     }
 
-    let raw = import_bpmn_source(&snapshot.bpmn_sources[0])?;
+    let bpmn_source = &snapshot.bpmn_sources[0];
+    let bpmn_snapshot = snapshot_bpmn_source_sync(bpmn_source)?;
+    let mut raw = import_bpmn_source(bpmn_source)?;
+    attach_lane_memberships(&mut raw, &bpmn_snapshot);
     validate_raw_package(&raw)?;
     let package = normalize_package(raw)?;
     let mut dmn_source_definitions = Vec::new();

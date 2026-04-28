@@ -35,7 +35,7 @@ pub(crate) fn print_qianji_usage() {
         "             qianji [-v|--log-verbose] bpmn tasks release --instance-id <id> --token-id <id> --process-id <id> --activity-id <id> --claimant <id> [--checkpoint-runtime]"
     );
     eprintln!(
-        "             qianji [-v|--log-verbose] bpmn tasks worklist [--claimant <id>] [--checkpoint-runtime]"
+        "             qianji [-v|--log-verbose] bpmn tasks worklist [--claimant <id>] [--assignment-resource <resource>] [--lane <lane>] [--checkpoint-runtime]"
     );
     eprintln!(
         "             qianji [-v|--log-verbose] bpmn status --instance-id <id> [--bpmn <path>] [--dmn <path>] [--checkpoint-runtime]"

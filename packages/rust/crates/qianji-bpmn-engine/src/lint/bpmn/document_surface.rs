@@ -37,7 +37,6 @@ fn issue_for_tag(source: &BpmnSourceFile, tag: &str) -> Option<LintIssue> {
         "collaboration" | "participant" | "messageFlow" | "conversation" => {
             Some(collaboration_issue(source, tag))
         }
-        "laneSet" | "lane" => Some(lane_issue(source, tag)),
         "dataObject"
         | "dataObjectReference"
         | "dataStore"
@@ -67,25 +66,6 @@ fn collaboration_issue(source: &BpmnSourceFile, tag: &str) -> LintIssue {
             "Repair BPMN source '{source_id}' by removing executable dependency on `<{tag}>`. Keep one supported `<bpmn:process>` with explicit sequence flows, and preserve pool/participant intent as non-executable documentation or host-level routing metadata."
         ),
         document_surface_evidence(source, tag, "collaboration"),
-    )
-}
-
-fn lane_issue(source: &BpmnSourceFile, tag: &str) -> LintIssue {
-    let source_id = &source.source_id;
-    LintIssue::new(
-        "bpmn.unsupported_lane_surface",
-        "Lane semantics are deferred",
-        format!("Source '{source_id}' contains lane-level BPMN element '<{tag}>'."),
-        "The bounded engine does not yet bind lane or lane-set ownership into runtime scheduling, authorization, or host routing semantics.",
-        vec![
-            "Keep tasks and sequence flows inside the supported process graph.".to_string(),
-            "Move lane ownership into task names, documentation, or host metadata if it is needed only for human review.".to_string(),
-            "Do not rely on `<bpmn:laneSet>` or `<bpmn:lane>` to drive execution until lane semantics are implemented.".to_string(),
-        ],
-        format!(
-            "Repair BPMN source '{source_id}' by removing execution dependency on `<{tag}>`. Preserve the same control flow with supported tasks/events/gateways, and carry lane ownership as documentation or host metadata rather than BPMN lane semantics."
-        ),
-        document_surface_evidence(source, tag, "lane"),
     )
 }
 
@@ -130,7 +110,6 @@ fn document_surface_evidence(source: &BpmnSourceFile, tag: &str, family: &str) -
 fn snapshot_family_summary(snapshot: &BpmnDocumentSnapshot, family: &str) -> Value {
     match family {
         "collaboration" => collaboration_snapshot_summary(snapshot),
-        "lane" => lane_snapshot_summary(snapshot),
         "data" => data_snapshot_summary(snapshot),
         _ => json!({ "root": root_snapshot_summary(snapshot) }),
     }
@@ -191,49 +170,6 @@ fn collaboration_snapshot_summary(snapshot: &BpmnDocumentSnapshot) -> Value {
         "message_flow_count": message_flow_count,
         "collaborations_truncated": snapshot.collaborations.len() > SNAPSHOT_EVIDENCE_LIMIT,
         "collaborations": collaborations,
-    })
-}
-
-fn lane_snapshot_summary(snapshot: &BpmnDocumentSnapshot) -> Value {
-    let lane_set_count = snapshot
-        .processes
-        .iter()
-        .map(|process| process.lane_set_count)
-        .sum::<usize>();
-    let lane_count = snapshot
-        .processes
-        .iter()
-        .flat_map(|process| process.lane_sets.iter())
-        .map(|lane_set| lane_set.lanes.len())
-        .sum::<usize>();
-    let lane_sets = snapshot
-        .processes
-        .iter()
-        .flat_map(|process| {
-            process.lane_sets.iter().map(move |lane_set| {
-                json!({
-                    "process_id": process.process_id,
-                    "lane_set_id": lane_set.lane_set_id,
-                    "lane_count": lane_set.lanes.len(),
-                    "lanes": lane_set.lanes.iter().take(SNAPSHOT_EVIDENCE_LIMIT).map(|lane| {
-                        json!({
-                            "lane_id": lane.lane_id,
-                            "name": lane.name,
-                            "flow_node_refs": lane.flow_node_refs,
-                        })
-                    }).collect::<Vec<_>>(),
-                })
-            })
-        })
-        .take(SNAPSHOT_EVIDENCE_LIMIT)
-        .collect::<Vec<_>>();
-
-    json!({
-        "root": root_snapshot_summary(snapshot),
-        "lane_set_count": lane_set_count,
-        "lane_count": lane_count,
-        "lane_sets_truncated": lane_set_count > SNAPSHOT_EVIDENCE_LIMIT,
-        "lane_sets": lane_sets,
     })
 }
 

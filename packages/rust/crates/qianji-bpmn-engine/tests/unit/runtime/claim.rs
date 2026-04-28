@@ -1,9 +1,9 @@
 use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{
-    BpmnAdvanceOutcome, BpmnEngineError, BpmnInstanceInit, BpmnNodeKind, BpmnPackage,
-    PendingHostWorkClaim, PendingHostWorkKind, PendingHostWorkRequest,
-    PendingHumanTaskClaimRequest, PendingHumanTaskReleaseRequest, advance_instance,
-    build_pending_host_work_request, claim_pending_human_task, create_instance,
+    BpmnAdvanceOutcome, BpmnEngineError, BpmnHumanTaskLifecycleEventKind, BpmnInstanceInit,
+    BpmnInstanceState, BpmnNodeKind, BpmnPackage, PendingHostWorkClaim, PendingHostWorkKind,
+    PendingHostWorkRequest, PendingHumanTaskClaimRequest, PendingHumanTaskReleaseRequest,
+    advance_instance, build_pending_host_work_request, claim_pending_human_task, create_instance,
     release_pending_human_task,
 };
 use serde_json::json;
@@ -31,6 +31,15 @@ async fn human_task_claim_records_checkpointed_owner_metadata() {
     assert!(matches!(blocked, BpmnAdvanceOutcome::BlockedOnHost(_)));
     let token_id = instance.pending_host_work[0].token_id;
     let initial_sequence = instance.sequence;
+    assert_human_task_event_kinds(&instance, &[BpmnHumanTaskLifecycleEventKind::Created]);
+    assert_eq!(instance.human_task_events[0].occurred_at_ms, 11);
+    assert_eq!(instance.human_task_events[0].process_id, "claim_review");
+    assert_eq!(instance.human_task_events[0].activity_id, "task");
+    assert_eq!(instance.human_task_events[0].token_id, token_id);
+    assert_eq!(
+        instance.human_task_events[0].work_kind,
+        PendingHostWorkKind::User
+    );
 
     let outcome = claim_pending_human_task(
         &mut instance,
@@ -47,6 +56,18 @@ async fn human_task_claim_records_checkpointed_owner_metadata() {
             claimant: "alice".to_string(),
             claimed_at_ms: 99,
         })
+    );
+    assert_human_task_event_kinds(
+        &instance,
+        &[
+            BpmnHumanTaskLifecycleEventKind::Created,
+            BpmnHumanTaskLifecycleEventKind::Claimed,
+        ],
+    );
+    assert_eq!(instance.human_task_events[1].occurred_at_ms, 99);
+    assert_eq!(
+        instance.human_task_events[1].claimant.as_deref(),
+        Some("alice")
     );
 
     let request = build_pending_host_work_request(&instance)
@@ -89,6 +110,7 @@ async fn human_task_claim_is_idempotent_for_same_claimant() {
     )
     .must("first claim should succeed");
     let claimed_sequence = instance.sequence;
+    let claimed_event_count = instance.human_task_events.len();
 
     let outcome = claim_pending_human_task(
         &mut instance,
@@ -98,6 +120,7 @@ async fn human_task_claim_is_idempotent_for_same_claimant() {
 
     assert!(!outcome.changed);
     assert_eq!(instance.sequence, claimed_sequence);
+    assert_eq!(instance.human_task_events.len(), claimed_event_count);
     assert_eq!(
         outcome.pending_host_work.claim,
         Some(PendingHostWorkClaim {
@@ -118,6 +141,7 @@ async fn human_task_claim_is_idempotent_for_same_claimant() {
             claimed_by: "alice".to_string(),
         }
     );
+    assert_eq!(instance.human_task_events.len(), claimed_event_count);
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -155,6 +179,7 @@ async fn human_task_claim_rejects_non_human_pending_work() {
         }
     );
     assert_eq!(pending.kind, PendingHostWorkKind::Service);
+    assert!(instance.human_task_events.is_empty());
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -183,6 +208,7 @@ async fn human_task_release_clears_checkpointed_owner_metadata() {
     )
     .must("human task claim should succeed");
     let claimed_sequence = instance.sequence;
+    let claimed_event_count = instance.human_task_events.len();
 
     let mismatch = release_pending_human_task(
         &mut instance,
@@ -198,6 +224,7 @@ async fn human_task_release_clears_checkpointed_owner_metadata() {
         }
     );
     assert_eq!(instance.sequence, claimed_sequence);
+    assert_eq!(instance.human_task_events.len(), claimed_event_count);
 
     let outcome = release_pending_human_task(
         &mut instance,
@@ -209,6 +236,19 @@ async fn human_task_release_clears_checkpointed_owner_metadata() {
     assert_eq!(instance.sequence, claimed_sequence + 1);
     assert_eq!(instance.updated_at_ms, 130);
     assert!(outcome.pending_host_work.claim.is_none());
+    assert_human_task_event_kinds(
+        &instance,
+        &[
+            BpmnHumanTaskLifecycleEventKind::Created,
+            BpmnHumanTaskLifecycleEventKind::Claimed,
+            BpmnHumanTaskLifecycleEventKind::Released,
+        ],
+    );
+    assert_eq!(instance.human_task_events[2].occurred_at_ms, 130);
+    assert_eq!(
+        instance.human_task_events[2].claimant.as_deref(),
+        Some("alice")
+    );
 
     let request = build_pending_host_work_request(&instance)
         .must("released human task should still materialize host request");
@@ -226,4 +266,50 @@ async fn human_task_release_clears_checkpointed_owner_metadata() {
         unclaimed,
         BpmnEngineError::PendingHostWorkNotClaimed { token_id }
     );
+    assert_eq!(instance.human_task_events.len(), 3);
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn checkpoint_without_human_task_events_is_rejected_by_current_api() {
+    let package = Arc::new(BpmnPackage::new(
+        "pkg_runtime",
+        vec![super::linear_blocking_process(
+            "legacy_checkpoint",
+            BpmnNodeKind::UserTask,
+        )],
+    ));
+    let mut instance = create_instance(
+        Arc::clone(&package),
+        "legacy_checkpoint",
+        BpmnInstanceInit::new("wf_legacy_checkpoint", json!({}), 10),
+    )
+    .must("instance should be created");
+    advance_instance(package.as_ref(), &mut instance, &super::StubHost::new(11))
+        .await
+        .must("user task should block on host work");
+
+    let mut value = serde_json::to_value(&instance).must("instance should serialize");
+    let object = value
+        .as_object_mut()
+        .unwrap_or_else(|| panic!("instance JSON should be an object"));
+    object.remove("human_task_events");
+    let error = serde_json::from_value::<BpmnInstanceState>(value)
+        .must_err("current checkpoint API should require human_task_events");
+
+    assert!(error.to_string().contains("human_task_events"));
+}
+
+fn assert_human_task_event_kinds(
+    instance: &BpmnInstanceState,
+    expected: &[BpmnHumanTaskLifecycleEventKind],
+) {
+    let actual = instance
+        .human_task_events
+        .iter()
+        .map(|event| event.kind.clone())
+        .collect::<Vec<_>>();
+    assert_eq!(actual, expected);
+    for (index, event) in instance.human_task_events.iter().enumerate() {
+        assert_eq!(event.sequence, index as u64 + 1);
+    }
 }

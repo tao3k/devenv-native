@@ -4,8 +4,9 @@ use crate::bpmn_cli::deps::{BpmnAdvanceOutcome, Path, QianjiBpmnSession};
 use crate::bpmn_cli::types::{BpmnCliOutput, BpmnExecutionRenderContext};
 
 use crate::bpmn_cli::render::support::{
-    append_bpmn_wait_registrations, bpmn_checkpoint_backend_label, bpmn_lifecycle_label,
-    bpmn_outcome_label, bpmn_suspend_reason_label,
+    append_bpmn_human_task_lifecycle_event_summary, append_bpmn_wait_registrations,
+    bpmn_checkpoint_backend_label, bpmn_lifecycle_label, bpmn_outcome_label,
+    bpmn_suspend_reason_label,
 };
 
 use super::host_work::append_bpmn_pending_host_work;
@@ -70,6 +71,10 @@ pub(super) fn render_bpmn_execution_output(
 
     append_dmn_sources(&mut rendered, render_context);
     append_failure_state(&mut rendered, session, outcome);
+    append_bpmn_human_task_lifecycle_event_summary(
+        &mut rendered,
+        &session.instance().human_task_events,
+    );
     append_bpmn_wait_registrations(&mut rendered, session.package(), session.instance());
     append_bpmn_pending_host_work(&mut rendered, session);
     append_trace(&mut rendered, session);

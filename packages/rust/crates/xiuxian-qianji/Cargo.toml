@@ -84,6 +84,7 @@ xiuxian-config-core = { path = "../xiuxian-config-core" }
 [dev-dependencies]
 insta = { workspace = true }
 reqwest = { workspace = true }
+tower = { workspace = true }
 
 [lints]
 workspace = true

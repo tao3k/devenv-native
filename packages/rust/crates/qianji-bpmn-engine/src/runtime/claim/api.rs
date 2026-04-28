@@ -4,6 +4,7 @@ use crate::runtime_claim_api::{
     PendingHumanTaskClaimOutcome, PendingHumanTaskClaimRequest, PendingHumanTaskReleaseOutcome,
     PendingHumanTaskReleaseRequest,
 };
+use crate::runtime_instance_api::BpmnHumanTaskLifecycleEventKind;
 use std::borrow::Borrow;
 
 pub(crate) fn claim_pending_human_task_impl(
@@ -22,27 +23,36 @@ pub(crate) fn claim_pending_human_task_impl(
         request.process_id.as_str(),
         request.activity_id.as_str(),
     )?;
-    let pending = &mut instance.pending_host_work[pending_index];
-    if let Some(existing) = pending.claim.as_ref() {
-        if existing.claimant == claimant {
-            return Ok(PendingHumanTaskClaimOutcome {
-                pending_host_work: pending.clone(),
-                changed: false,
+    let pending_host_work = {
+        let pending = &mut instance.pending_host_work[pending_index];
+        if let Some(existing) = pending.claim.as_ref() {
+            if existing.claimant == claimant {
+                return Ok(PendingHumanTaskClaimOutcome {
+                    pending_host_work: pending.clone(),
+                    changed: false,
+                });
+            }
+            return Err(BpmnEngineError::PendingHostWorkAlreadyClaimed {
+                token_id: request.token_id,
+                claimed_by: existing.claimant.clone(),
             });
         }
-        return Err(BpmnEngineError::PendingHostWorkAlreadyClaimed {
-            token_id: request.token_id,
-            claimed_by: existing.claimant.clone(),
-        });
-    }
 
-    pending.claim = Some(PendingHostWorkClaim {
-        claimant: claimant.to_string(),
-        claimed_at_ms: request.claimed_at_ms,
-    });
-    let pending_host_work = pending.clone();
+        pending.claim = Some(PendingHostWorkClaim {
+            claimant: claimant.to_string(),
+            claimed_at_ms: request.claimed_at_ms,
+        });
+        pending.clone()
+    };
     instance.sequence += 1;
     instance.updated_at_ms = request.claimed_at_ms;
+    crate::runtime::lifecycle::record_human_task_lifecycle_event(
+        instance,
+        BpmnHumanTaskLifecycleEventKind::Claimed,
+        &pending_host_work,
+        request.claimed_at_ms,
+        Some(claimant.to_string()),
+    );
 
     Ok(PendingHumanTaskClaimOutcome {
         pending_host_work,
@@ -66,24 +76,33 @@ pub(crate) fn release_pending_human_task_impl(
         request.process_id.as_str(),
         request.activity_id.as_str(),
     )?;
-    let pending = &mut instance.pending_host_work[pending_index];
-    let Some(existing) = pending.claim.as_ref() else {
-        return Err(BpmnEngineError::PendingHostWorkNotClaimed {
-            token_id: request.token_id,
-        });
-    };
-    if existing.claimant != claimant {
-        return Err(BpmnEngineError::PendingHostWorkClaimReleaseMismatch {
-            token_id: request.token_id,
-            claimed_by: existing.claimant.clone(),
-            requested_by: claimant.to_string(),
-        });
-    }
+    let pending_host_work = {
+        let pending = &mut instance.pending_host_work[pending_index];
+        let Some(existing) = pending.claim.as_ref() else {
+            return Err(BpmnEngineError::PendingHostWorkNotClaimed {
+                token_id: request.token_id,
+            });
+        };
+        if existing.claimant != claimant {
+            return Err(BpmnEngineError::PendingHostWorkClaimReleaseMismatch {
+                token_id: request.token_id,
+                claimed_by: existing.claimant.clone(),
+                requested_by: claimant.to_string(),
+            });
+        }
 
-    pending.claim = None;
-    let pending_host_work = pending.clone();
+        pending.claim = None;
+        pending.clone()
+    };
     instance.sequence += 1;
     instance.updated_at_ms = request.released_at_ms;
+    crate::runtime::lifecycle::record_human_task_lifecycle_event(
+        instance,
+        BpmnHumanTaskLifecycleEventKind::Released,
+        &pending_host_work,
+        request.released_at_ms,
+        Some(claimant.to_string()),
+    );
 
     Ok(PendingHumanTaskReleaseOutcome {
         pending_host_work,

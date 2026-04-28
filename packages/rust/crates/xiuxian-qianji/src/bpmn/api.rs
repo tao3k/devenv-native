@@ -18,6 +18,7 @@ pub use super::control::{
     QianjiBpmnWorkflowTaskReleasePayload, QianjiBpmnWorkflowTaskReleaseReport,
     QianjiBpmnWorkflowTaskReleaseRequest, QianjiBpmnWorkflowWorklistItem,
     QianjiBpmnWorkflowWorklistReport, QianjiBpmnWorkflowWorklistRequest,
+    QianjiBpmnWorkflowWorklistRoutingFilter,
 };
 pub use super::dispatch::{
     dispatch_pending_host_work_request, dispatch_pending_host_work_requests,

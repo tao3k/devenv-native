@@ -320,12 +320,16 @@ fn parse_bpmn_task_worklist_command(args: &[String]) -> io::Result<BpmnTaskWorkl
             state.checkpoint_runtime,
         )?,
         claimant: state.claimant,
+        assignment_resource: state.assignment_resource,
+        lane: state.lane,
     })
 }
 
 #[derive(Default)]
 struct BpmnTaskWorklistParseState {
     claimant: Option<String>,
+    assignment_resource: Option<String>,
+    lane: Option<String>,
     checkpoint_runtime: bool,
 }
 
@@ -337,6 +341,13 @@ fn parse_bpmn_task_worklist_option(
     match args[*index].as_str() {
         "--claimant" => {
             state.claimant = Some(parse_flag_value(args, index, "--claimant")?);
+        }
+        "--assignment-resource" => {
+            state.assignment_resource =
+                Some(parse_flag_value(args, index, "--assignment-resource")?);
+        }
+        "--lane" => {
+            state.lane = Some(parse_flag_value(args, index, "--lane")?);
         }
         "--checkpoint-runtime" => {
             state.checkpoint_runtime = true;

@@ -1,11 +1,20 @@
 use super::write_file;
 use serde_json::Value;
+use std::future::Future;
 use std::path::PathBuf;
+use std::pin::Pin;
 use tempfile::TempDir;
 
 pub(crate) struct BusinessRuleBundlePaths {
     pub(crate) bpmn_path: PathBuf,
     pub(crate) dmn_path: PathBuf,
+}
+
+pub(crate) fn boxed_future<F>(future: F) -> Pin<Box<F>>
+where
+    F: Future,
+{
+    Box::pin(future)
 }
 
 pub(crate) fn write_linear_bundle(temp_dir: &TempDir) -> PathBuf {
@@ -145,6 +154,11 @@ pub(crate) fn write_interactive_user_task_bundle(temp_dir: &TempDir) -> PathBuf 
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
   xmlns:qianji="https://qianji.dev/bpmn/extensions" id="pkg_review">
   <bpmn:process id="review" isExecutable="true">
+    <bpmn:laneSet id="LaneSet_Review" name="Ownership">
+      <bpmn:lane id="Lane_Reviewer" name="Reviewer Lane">
+        <bpmn:flowNodeRef>review_task</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
     <bpmn:startEvent id="start" />
     <bpmn:userTask id="review_task">
       <bpmn:extensionElements>

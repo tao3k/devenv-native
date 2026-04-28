@@ -1,7 +1,7 @@
 use super::execution::QianjiBpmnWorkflowCheckpointBackend;
 use qianji_bpmn_engine::{
-    BpmnCheckpointEnvelope, BpmnHumanTaskAssignmentSpec, BpmnHumanTaskFormSpec, PendingHostWork,
-    PendingHostWorkClaim, PendingHostWorkKind,
+    BpmnCheckpointEnvelope, BpmnHumanTaskAssignmentSpec, BpmnHumanTaskFormSpec,
+    BpmnLaneMembershipSpec, PendingHostWork, PendingHostWorkClaim, PendingHostWorkKind,
 };
 
 /// Explicit payload for claiming pending human work on one checkpoint-backed
@@ -65,6 +65,20 @@ pub struct QianjiBpmnWorkflowWorklistRequest {
     /// Optional claimant filter. When present, returns unclaimed human work and
     /// work already claimed by that same claimant.
     pub claimant: Option<String>,
+    /// Optional passive assignment routing filters.
+    pub routing: QianjiBpmnWorkflowWorklistRoutingFilter,
+}
+
+/// Passive worklist routing filters derived from Rust-owned BPMN metadata.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct QianjiBpmnWorkflowWorklistRoutingFilter {
+    /// Optional assignment resource filter. Matches standard BPMN
+    /// `humanPerformer` or `potentialOwner` role names and `resourceRef`
+    /// values exactly after trimming surrounding whitespace.
+    pub assignment_resource: Option<String>,
+    /// Optional passive BPMN lane filter. Matches lane id or lane name exactly
+    /// after trimming surrounding whitespace.
+    pub lane: Option<String>,
 }
 
 /// Compact pending human-work item derived from checkpointed engine state.
@@ -86,6 +100,8 @@ pub struct QianjiBpmnWorkflowWorklistItem {
     pub form: Option<BpmnHumanTaskFormSpec>,
     /// Optional standard BPMN assignment metadata preserved for host routing.
     pub assignment: Option<BpmnHumanTaskAssignmentSpec>,
+    /// Optional BPMN lane membership metadata preserved for host routing.
+    pub lane: Option<BpmnLaneMembershipSpec>,
     /// Optional checkpointed claim metadata.
     pub claim: Option<PendingHostWorkClaim>,
     /// Monotonic checkpoint sequence loaded from the persisted envelope.
@@ -126,6 +142,7 @@ impl QianjiBpmnWorkflowWorklistItem {
             kind: pending.kind.clone(),
             form: pending.human_task_form.clone(),
             assignment: pending.human_task_assignment.clone(),
+            lane: pending.lane.clone(),
             claim: pending.claim.clone(),
             checkpoint_sequence: checkpoint.sequence,
             state_sequence: checkpoint.state.sequence,

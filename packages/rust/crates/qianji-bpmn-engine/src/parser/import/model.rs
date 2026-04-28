@@ -78,6 +78,7 @@ pub(crate) struct RawNode {
     pub(crate) kind: BpmnNodeKind,
     pub(crate) gateway_kind: Option<BpmnGatewayKind>,
     pub(crate) decision: Option<DmnDecisionRef>,
+    pub(crate) lane: Option<RawLaneMembershipSpec>,
     pub(crate) task_message_ref: Option<String>,
     pub(crate) script_task: Option<RawScriptTaskSpec>,
     pub(crate) human_task_form: Option<RawHumanTaskFormSpec>,
@@ -90,6 +91,14 @@ pub(crate) struct RawNode {
     pub(crate) cancel_activity: bool,
     pub(crate) is_for_compensation: bool,
     pub(crate) event: Option<RawEventSpec>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct RawLaneMembershipSpec {
+    pub(crate) set_id: Option<String>,
+    pub(crate) set_name: Option<String>,
+    pub(crate) id: Option<String>,
+    pub(crate) name: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

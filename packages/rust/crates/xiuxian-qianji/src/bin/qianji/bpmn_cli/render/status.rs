@@ -6,11 +6,12 @@ use crate::bpmn_cli::deps::{
 use crate::bpmn_cli::types::{BpmnCliOutput, BpmnStatusCliCommand};
 
 use super::support::{
-    bpmn_checkpoint_backend_label, bpmn_checkpoint_backend_selection_label, bpmn_event_kind_label,
-    bpmn_human_task_assignment_label, bpmn_human_task_form_label, bpmn_lifecycle_label,
-    bpmn_node_id_label, bpmn_node_kind_label, bpmn_pending_host_work_kind_label,
-    bpmn_suspend_reason_label, bpmn_timer_spec_label, bpmn_wait_kind_label,
-    node_runtime_status_label,
+    append_bpmn_human_task_lifecycle_event_summary, bpmn_checkpoint_backend_label,
+    bpmn_checkpoint_backend_selection_label, bpmn_event_kind_label,
+    bpmn_human_task_assignment_label, bpmn_human_task_form_label, bpmn_lane_membership_label,
+    bpmn_lifecycle_label, bpmn_node_id_label, bpmn_node_kind_label,
+    bpmn_pending_host_work_kind_label, bpmn_suspend_reason_label, bpmn_timer_spec_label,
+    bpmn_wait_kind_label, node_runtime_status_label,
 };
 
 pub(crate) fn render_bpmn_status_output(
@@ -46,6 +47,10 @@ pub(crate) fn render_bpmn_status_output(
         );
     }
 
+    append_bpmn_human_task_lifecycle_event_summary(
+        &mut rendered,
+        &report.instance.human_task_events,
+    );
     append_bpmn_status_active_tokens(&mut rendered, &report.instance, process);
     append_bpmn_status_pending_host_work(&mut rendered, &report.instance, process);
     append_bpmn_status_wait_registrations(&mut rendered, &report.instance, process);
@@ -153,6 +158,9 @@ fn append_bpmn_status_pending_host_work(
             if !label.is_empty() {
                 let _ = write!(line, " | assignment={label}");
             }
+        }
+        if let Some(lane) = work.lane.as_ref() {
+            let _ = write!(line, " | lane={}", bpmn_lane_membership_label(lane));
         }
         let _ = writeln!(rendered, "{line}");
     }

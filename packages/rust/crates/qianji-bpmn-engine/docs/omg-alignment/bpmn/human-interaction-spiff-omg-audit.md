@@ -38,6 +38,8 @@ interaction:
   variable merge.
 - Standard BPMN `humanPerformer` and `potentialOwner` metadata is parsed and
   surfaced as routing metadata.
+- BPMN `laneSet/lane/flowNodeRef` membership is parsed and surfaced as
+  passive lane metadata for display and worklist filtering.
 - The linter now reports native BPMN `rendering` and assignment semantics
   beyond routing metadata as explicit deferred human-task semantics.
 - Pending user/manual work can carry checkpointed `claim` metadata, and the
@@ -47,6 +49,11 @@ interaction:
   the typed completion surface before qianji resumes the workflow.
 - The same claimant can release claimed pending user/manual work, returning it
   to unclaimed worklist behavior.
+- Checkpointed `human_task_events` record user/manual created, claimed,
+  released, and completed milestones after successful state changes. The
+  current checkpoint API requires this ledger field and does not backfill
+  checkpoints that omit it. Events do not store submitted completion payload
+  data.
 
 This matches SpiffWorkflow's strongest practice: the engine owns state
 progression and exposes human work as a task boundary; the application only
@@ -83,6 +90,15 @@ semantics. Bounded claim/worklist state, completion-time claimant enforcement,
 and same-claimant release are modeled as separate runtime surfaces, not as
 UI-only filters and not as full WSHumanTask authorization.
 
+### 2.1 Lane Metadata and Filtering
+
+SpiffWorkflow exposes lane metadata on task specs and lets host code filter
+ready tasks by lane. Qianji now preserves BPMN lane membership as passive
+metadata on user/manual pending host work and allows worklists to filter by
+lane id or lane name. This is host routing/display metadata only: it does not
+schedule work, authorize claim or completion, resolve participants, or model
+escalation, delegation, or reassignment.
+
 ### 3. Manual Task Runtime Semantics
 
 OMG distinguishes `manualTask` as unmanaged by a process runtime. Qianji
@@ -94,6 +110,11 @@ Current status: manual tasks may carry Qianji runtime claim metadata because
 they are operator-visible pending host work in this engine. Treat that claim as
 host coordination over an acknowledgement/result boundary, not as BPMN-managed
 manual-task assignment.
+
+Manual-task lifecycle events have the same checkpointed audit shape as
+user-task lifecycle events. They record that the operator-visible work was
+created, claimed, released, or completed inside Qianji's coordination layer;
+they do not turn manual tasks into fully runtime-managed BPMN work.
 
 Manual tasks must not use BPMN `rendering` as a runtime form contract. If the
 activity is runtime-managed human input, model it as a `userTask`; if it is
@@ -118,6 +139,12 @@ task-data keys or one nested object. Qianji currently validates declared fields
 and merges them into workflow variables. That is simple and operationally
 useful, but nested form-output support may be needed later for richer forms.
 
+Current status: Qianji keeps a flat declared-field merge for form-backed
+user/manual task completion. Completion data must be a JSON object, required
+`result_output` fields must be present, optional free-text fields may be
+omitted, undeclared fields are rejected, and nested envelopes are rejected
+instead of treated as a compatibility path.
+
 Recommended next step: defer nested output envelopes until a real form needs
 them. Do not weaken the current declared-field validation.
 
@@ -129,18 +156,20 @@ them. Do not weaken the current declared-field validation.
 3. Advance automatically only through non-human engine tasks.
 4. After human completion, immediately continue the runtime loop until the next
    human boundary, wait, completion, suspension, or failure.
-5. Preserve standard BPMN resource roles even before full worklist semantics
-   exist.
-6. Make unsupported standard surfaces visible through lint/deferred-semantics
+5. Preserve standard BPMN resource roles as passive routing hints without
+   treating them as authorization.
+6. Preserve BPMN lane membership as passive routing/display metadata without
+   treating it as scheduling or authorization.
+7. Make unsupported standard surfaces visible through lint/deferred-semantics
    diagnostics.
-7. Keep custom form extensions bounded and typed instead of allowing arbitrary
+8. Keep custom form extensions bounded and typed instead of allowing arbitrary
    UI interpretation to become runtime authority.
 
 ## Implementation Direction
 
 The next implementation slice should still not move to UI. Native rendering and
 full assignment semantics are explicit diagnostics, and bounded claim/worklist
-state plus completion-time claimant enforcement and same-claimant release are
+state, completion-time claimant enforcement, same-claimant release, passive
+assignment-resource and lane worklist routing, and lifecycle-event audit are
 Rust-owned. The next Rust-side candidate is nested form-output contracting when
-a concrete form requirement appears, or downstream adapter simplification once
-the Rust surfaces are accepted.
+a concrete form requirement appears.

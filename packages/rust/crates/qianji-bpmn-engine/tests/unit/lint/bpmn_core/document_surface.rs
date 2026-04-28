@@ -22,23 +22,12 @@ fn bpmn_linter_reports_collaboration_surface_with_llm_guidance() {
 }
 
 #[test]
-fn bpmn_linter_reports_lane_surface_with_llm_guidance() {
+fn bpmn_linter_accepts_passive_lane_metadata_surface() {
     let report = lint_bpmn_source(&bpmn_fixture_source("invalid-lane-set.bpmn"));
 
     assert_eq!(report.domain, LintDomain::Bpmn);
-    assert!(!report.ok);
-    assert_eq!(report.issues.len(), 1);
-    let issue = &report.issues[0];
-    assert_eq!(issue.code, "bpmn.unsupported_lane_surface");
-    assert!(issue.why_it_failed.contains("lane"));
-    assert!(issue.llm_fix_prompt.contains("host metadata"));
-    assert_eq!(issue.evidence["snapshot_available"], true);
-    assert_eq!(issue.evidence["snapshot"]["lane_set_count"], 1);
-    assert_eq!(issue.evidence["snapshot"]["lane_count"], 1);
-    assert_eq!(
-        issue.evidence["snapshot"]["lane_sets"][0]["lanes"][0]["flow_node_refs"][0],
-        "review"
-    );
+    assert!(report.ok);
+    assert!(report.issues.is_empty());
 }
 
 #[test]

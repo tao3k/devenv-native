@@ -2,8 +2,8 @@ use crate::ir_event_api::{BpmnEventKind, BpmnTimerKind};
 use crate::ir_node_api::{BpmnGatewayKind, BpmnNodeKind};
 use crate::parser::import::{
     RawAssociation, RawHumanTaskAssignmentSpec, RawHumanTaskFormSpec, RawHumanTaskResourceRoleSpec,
-    RawNode, RawParallelMultiInstanceSpec, RawProcess, RawRepeatSpec, RawScriptTaskSpec,
-    RawSequenceFlow, RawSequentialMultiInstanceSpec, RawSubProcessKind,
+    RawLaneMembershipSpec, RawNode, RawParallelMultiInstanceSpec, RawProcess, RawRepeatSpec,
+    RawScriptTaskSpec, RawSequenceFlow, RawSequentialMultiInstanceSpec, RawSubProcessKind,
 };
 
 pub(super) fn process_digest_hex(package_id: &str, source_id: &str, raw: &RawProcess) -> String {
@@ -52,6 +52,9 @@ fn append_node_digest(material: &mut String, node: &RawNode) {
     if let Some(assignment) = &node.human_task_assignment {
         append_human_task_assignment_digest(material, assignment);
     }
+    if let Some(lane) = &node.lane {
+        append_lane_membership_digest(material, lane);
+    }
     if let Some(subprocess_kind) = node.subprocess_kind {
         material.push(':');
         material.push_str("subprocess_kind=");
@@ -98,6 +101,27 @@ fn append_node_digest(material: &mut String, node: &RawNode) {
         }
     }
     material.push('\n');
+}
+
+fn append_lane_membership_digest(material: &mut String, lane: &RawLaneMembershipSpec) {
+    material.push(':');
+    material.push_str("lane");
+    if let Some(lane_set_id) = &lane.set_id {
+        material.push_str(":lane_set_id=");
+        material.push_str(lane_set_id);
+    }
+    if let Some(lane_set_name) = &lane.set_name {
+        material.push_str(":lane_set_name=");
+        material.push_str(lane_set_name);
+    }
+    if let Some(lane_id) = &lane.id {
+        material.push_str(":lane_id=");
+        material.push_str(lane_id);
+    }
+    if let Some(lane_name) = &lane.name {
+        material.push_str(":lane_name=");
+        material.push_str(lane_name);
+    }
 }
 
 fn append_human_task_form_digest(material: &mut String, form: &RawHumanTaskFormSpec) {

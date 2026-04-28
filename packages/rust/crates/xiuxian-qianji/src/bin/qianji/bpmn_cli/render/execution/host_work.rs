@@ -5,8 +5,8 @@ use crate::bpmn_cli::deps::{
 };
 
 use crate::bpmn_cli::render::support::{
-    bpmn_human_task_assignment_label, bpmn_human_task_form_label, bpmn_node_id_label,
-    bpmn_pending_host_work_kind_label,
+    bpmn_human_task_assignment_label, bpmn_human_task_form_label, bpmn_lane_membership_label,
+    bpmn_node_id_label, bpmn_pending_host_work_kind_label,
 };
 
 pub(super) fn append_bpmn_pending_host_work(rendered: &mut String, session: &QianjiBpmnSession) {
@@ -52,6 +52,9 @@ pub(super) fn append_bpmn_pending_host_work(rendered: &mut String, session: &Qia
             if !label.is_empty() {
                 let _ = write!(line, " | assignment={label}");
             }
+        }
+        if let Some(lane) = work.lane.as_ref() {
+            let _ = write!(line, " | lane={}", bpmn_lane_membership_label(lane));
         }
         let _ = writeln!(rendered, "{line}");
     }
@@ -133,6 +136,7 @@ fn pending_host_work_request_stream_value(
             "repeat": request.repeat,
             "form": request.form,
             "assignment": request.assignment,
+            "lane": request.lane,
             "claim": request.claim,
         }),
         PendingHostWorkRequest::Manual(request) => serde_json::json!({
@@ -147,6 +151,7 @@ fn pending_host_work_request_stream_value(
             "repeat": request.repeat,
             "form": request.form,
             "assignment": request.assignment,
+            "lane": request.lane,
             "claim": request.claim,
         }),
         PendingHostWorkRequest::BusinessRule(request) => serde_json::json!({

@@ -10,6 +10,7 @@ pub use super::human_work::{
     QianjiBpmnWorkflowTaskClaimPayload, QianjiBpmnWorkflowTaskClaimRequest,
     QianjiBpmnWorkflowTaskReleasePayload, QianjiBpmnWorkflowTaskReleaseRequest,
     QianjiBpmnWorkflowWorklistItem, QianjiBpmnWorkflowWorklistRequest,
+    QianjiBpmnWorkflowWorklistRoutingFilter,
 };
 pub use super::management::{
     QianjiBpmnWorkflowCancelReport, QianjiBpmnWorkflowCancelRequest,

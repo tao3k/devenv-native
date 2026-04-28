@@ -10,7 +10,8 @@ The current engine supports these bounded nested-scope families:
 - embedded `subProcess` with exactly one nested `startEvent` and at least one
   nested `endEvent`
 - same-package `callActivity` that targets another executable process in the
-  same parsed package
+  same parsed package; `globalUserTask` and `globalManualTask` ids are not
+  executable call-activity targets in the bounded runtime
 - `transaction` shell with exactly one nested `startEvent` and at least one
   nested `endEvent`
 - interrupting timer, message, or signal boundaries on embedded subprocess,
@@ -70,6 +71,8 @@ These nested-scope shapes remain outside the bounded surface:
 - broader compensation throwing outside the bounded transaction-owned end and
   intermediate event paths
 - ad hoc child-process resolution outside the same parsed BPMN package
+- `callActivity calledElement` bindings to top-level `globalUserTask` or
+  `globalManualTask` definitions until a Rust-owned callable binding exists
 
 ## Alignment Notes
 

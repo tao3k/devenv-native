@@ -55,19 +55,19 @@ Qianji should follow this split:
 
 ## Alignment Matrix
 
-| Source point                                                                        | Current Qianji status                                                                                                                                                                                   | Remaining gap                                                                                | Governing milestone              | Evidence gate                                                                          |
-| ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- | -------------------------------- | -------------------------------------------------------------------------------------- |
-| SpiffWorkflow runs non-human engine tasks until a human or wait boundary            | Implemented through Rust advance/session behavior plus a qianji stream smoke proving pending host-work JSON mirrors runtime state after automatic engine work                                           | None for M1; broader transport field parity moves to M2                                      | M1: Host Loop Conformance        | Runtime integration test and stream smoke with no adapter graph inference              |
-| SpiffWorkflow exposes human tasks as application-rendered work                      | Implemented: `UserTaskRequest` and `ManualTaskRequest` expose process, activity, token, node, variables, optional form, assignment, and claim; a host request ABI ledger now records the field contract | Need remaining parity tests for every host-facing transport and adapter negative checks      | M2: Host Request ABI Ledger      | Parser/runtime/HTTP/stream/CLI contract table and focused regression tests             |
-| SpiffWorkflow lets applications update task data before running the task            | Implemented for typed completion with form-backed declared-field validation and result-output enforcement                                                                                               | Nested form-output envelope remains deferred                                                 | M3: Task Data Shape              | Decision record plus tests for flat-only or nested-envelope behavior before expansion  |
-| OMG `userTask/globalUserTask` may carry `rendering`                                 | Diagnosed as deferred native rendering; executable rendering uses `qianji:interaction`                                                                                                                  | Need canonical fixture for global user-task rendering diagnostics                            | M4: Native Rendering Boundary    | Linter tests for userTask and globalUserTask, plus repair guidance snapshots           |
-| OMG `manualTask/globalManualTask` do not own `rendering`                            | Implemented: manual-task rendering misuse reports an explicit diagnostic                                                                                                                                | Need globalManualTask coverage if global tasks enter the accepted parser surface             | M4: Native Rendering Boundary    | Linter test or parser-boundary test for globalManualTask rendering                     |
-| OMG resource roles include broad assignment semantics                               | Partially implemented: `humanPerformer` and `potentialOwner` are preserved as routing metadata only                                                                                                     | No standard role authorization, escalation, delegation, or reassignment                      | M5: Assignment Boundary          | Tests prove broad roles are linted and routing metadata remains passive                |
-| SpiffWorkflow task identity uses unique task instances plus task specs              | Implemented with `token_id`, `node_index`, `process_id`, and `activity_id` on pending work and completion                                                                                               | Need cross-checkpoint replay proof for identity stability through claim/release/complete     | M6: Identity and Claim Lifecycle | Checkpoint round-trip tests over claim, release, completion, and HTTP snapshots        |
-| SpiffWorkflow supports lane-based ready-task filtering in host code                 | Qianji currently treats lanes as non-executable metadata                                                                                                                                                | Lane-based worklist filtering is deferred                                                    | M7: Worklist Routing Policy      | Explicit decision: keep claimant-only filtering or add passive lane/assignment filters |
-| SpiffWorkflow forms are application-specific and may use JSON schemas               | Qianji intentionally uses bounded `qianji:interaction` form metadata                                                                                                                                    | Dynamic schema references remain bounded; arbitrary JSON schema execution is deferred        | M8: Form Schema Boundary         | Linter tests for supported interaction types and rejected ambiguous schema shapes      |
-| OMG global human tasks are callable/root definitions, not ordinary process children | Qianji lints some global task standard surfaces but runtime does not execute global task definitions directly                                                                                           | Need explicit callActivity/globalTask policy if model authors start using global human tasks | M9: Global Human Task Policy     | Parser/linter tests and docs for globalUserTask/globalManualTask handling              |
-| Adapters should not replay or reinterpret BPMN graphs                               | pi-wendao no-fallback work removed local interaction inference                                                                                                                                          | Need end-to-end adapter conformance suite tied to the Rust ABI ledger                        | M10: Adapter Conformance         | skillsc/pi-wendao tests using only Rust-streamed form/assignment/claim data            |
+| Source point                                                                        | Current Qianji status                                                                                                                                                                                                                                                                                                                                                                                | Remaining gap                                                                           | Governing milestone              | Evidence gate                                                                                              |
+| ----------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- | -------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| SpiffWorkflow runs non-human engine tasks until a human or wait boundary            | Implemented through Rust advance/session behavior plus a qianji stream smoke proving pending host-work JSON mirrors runtime state after automatic engine work                                                                                                                                                                                                                                        | None for M1; broader transport field parity moves to M2                                 | M1: Host Loop Conformance        | Runtime integration test and stream smoke with no adapter graph inference                                  |
+| SpiffWorkflow exposes human tasks as application-rendered work                      | Implemented: `UserTaskRequest` and `ManualTaskRequest` expose process, activity, token, node, variables, optional form, assignment, lane, and claim; a host request ABI ledger records the field contract                                                                                                                                                                                            | Need remaining parity tests for every host-facing transport and adapter negative checks | M2: Host Request ABI Ledger      | Parser/runtime/HTTP/stream/CLI contract table and focused regression tests                                 |
+| SpiffWorkflow lets applications update task data before running the task            | Implemented for M3: form-backed completion data is a flat declared-field object; optional free text may be omitted; non-object payloads and nested envelopes are rejected before workflow advancement                                                                                                                                                                                                | Nested form-output envelope remains deferred                                            | M3: Task Data Shape              | Control-service task-complete tests for flat-only and nested-envelope rejection                            |
+| OMG `userTask/globalUserTask` may carry `rendering`                                 | Implemented: both local and global user-task rendering report deferred native rendering; executable rendering uses `qianji:interaction`                                                                                                                                                                                                                                                              | None for M4                                                                             | M4: Native Rendering Boundary    | Linter tests for userTask and globalUserTask, plus repair guidance                                         |
+| OMG `manualTask/globalManualTask` do not own `rendering`                            | Implemented: both local and global manual-task rendering misuse report explicit invalid-standard-surface diagnostics                                                                                                                                                                                                                                                                                 | None for M4                                                                             | M4: Native Rendering Boundary    | Linter tests for manualTask and globalManualTask rendering                                                 |
+| OMG resource roles include broad assignment semantics                               | Implemented for the bounded routing slice: `humanPerformer` and `potentialOwner` are preserved as routing metadata; `performer`, generic `resourceRole`, `participantRef`, and `resourceParameterBinding` are linted as deferred standard assignment semantics                                                                                                                                       | No standard role authorization, escalation, delegation, or reassignment                 | M5: Assignment Boundary          | Parser/host tests preserve routing metadata; linter tests reject broad assignment semantics                |
+| SpiffWorkflow task identity uses unique task instances plus task specs              | Implemented for M6: pending work and completion carry `token_id`, `node_index`, `process_id`, and `activity_id`; control-service and HTTP RuntimeValkey checkpoint replay prove the same identity survives claim, release, status/worklist, wrong-claimant rejection, and same-claimant completion; checkpointed `human_task_events` now record created, claimed, released, and completed milestones | None for M6; routing policy moves to M7                                                 | M6: Identity and Claim Lifecycle | Checkpoint round-trip tests over claim, release, completion, HTTP snapshots, and lifecycle-event summaries |
+| SpiffWorkflow supports lane-based ready-task filtering in host code                 | Implemented for M7 policy: Qianji worklists keep claimant filtering and add Rust-owned passive assignment-resource and lane filtering over preserved `humanPerformer`, `potentialOwner`, and BPMN `lane` metadata; lane scheduling and authorization remain deferred                                                                                                                                 | None for M7; executable lane scheduling and authorization remain deferred               | M7: Worklist Routing Policy      | Control-service and CLI tests for claimant, passive assignment-resource filters, and passive lane filters  |
+| SpiffWorkflow forms are application-specific and may use JSON schemas               | Implemented for the bounded M8 slice: Qianji supports a fixed `qianji:interaction` catalog, one question source, one choices source family, and at most one supplemental free-text field                                                                                                                                                                                                             | Arbitrary JSON schema execution and nested completion envelopes remain deferred         | M8: Form Schema Boundary         | Linter tests for supported interaction types and rejected ambiguous schema shapes                          |
+| OMG global human tasks are callable/root definitions, not ordinary process children | Implemented for the bounded M9 policy: top-level `globalUserTask` and `globalManualTask` remain non-executable metadata, and `callActivity calledElement` bindings to those ids lint as unsupported global human-task runtime dependencies                                                                                                                                                           | Future executable global human-task reuse needs a Rust-owned callable binding           | M9: Global Human Task Policy     | Linter tests for callActivity-to-globalUserTask/globalManualTask rejection                                 |
+| Adapters should not replay or reinterpret BPMN graphs                               | Implemented for the bounded M10 adapter milestone: pi-wendao renders from Rust-streamed form metadata, forwards streamed assignment and claim metadata, keeps missing optional assignment/claim absent, and runs a generated-BPMN smoke without local XML fallback                                                                                                                                   | None for bounded M10                                                                    | M10: Adapter Conformance         | skillsc/pi-wendao tests using only Rust-streamed form/assignment/claim data                                |
 
 ## Milestone Roadmap
 
@@ -103,7 +103,7 @@ stream, CLI text, and downstream adapter usage.
 Deliverables:
 
 1. package doc table for `process_id`, `activity_id`, `token_id`,
-   `node_index`, `variables`, `form`, `assignment`, `claim`, and repeat
+   `node_index`, `variables`, `form`, `assignment`, `lane`, `claim`, and repeat
    context;
 2. focused tests for each transport preserving the same fields;
 3. adapter checks that reject missing form/result metadata instead of falling
@@ -114,8 +114,8 @@ Current status: the canonical
 snapshot, stream, CLI start/status, and CLI worklist wire or text fields are
 covered by focused tests. pi-wendao now has contract and executor tests that
 reject missing streamed `form` or `result_output` metadata before user
-interaction starts. M2 is complete for the bounded ABI ledger; broader adapter
-assignment, claim, and generated BPMN conformance remains under M10.
+interaction starts. M2 is complete for the bounded ABI ledger; adapter
+assignment, claim, and generated BPMN conformance are covered by M10.
 
 Exit criteria:
 
@@ -129,6 +129,13 @@ Goal: decide and lock how submitted form data becomes workflow variables.
 Current direction: keep the flat declared-field merge because it is already
 validated and operationally simple. Introduce nested output envelopes only when
 a concrete form requirement needs it.
+
+Current status: implemented for the bounded M3 task-data shape slice.
+Form-backed user/manual completion data must be a JSON object. Its top-level
+keys must be declared by Rust-owned form metadata. The required
+`result_output` key must be present, optional `qianji:freeText` fields may be
+omitted, undeclared keys are rejected, and nested form-output envelopes are not
+a compatibility path.
 
 Deliverables:
 
@@ -155,6 +162,11 @@ Deliverables:
    invalid for the executable slice;
 3. repair guidance that moves executable UI metadata to `qianji:interaction`.
 
+Current status: implemented for the bounded executable slice. `userTask` and
+`globalUserTask` native `rendering` report deferred native rendering;
+`manualTask` and `globalManualTask` rendering report invalid standard-surface
+usage. Executable prompts remain bound to `qianji:interaction`.
+
 Exit criteria:
 
 - no BPMN source can rely on native `rendering` and still appear executable in
@@ -171,6 +183,14 @@ Deliverables:
 2. linter diagnostics for `performer`, generic `resourceRole`,
    `participantRef`, and `resourceParameterBinding`;
 3. worklist docs that keep claim/worklist separate from BPMN authorization.
+
+Current status: implemented for the bounded routing-metadata slice. Qianji
+preserves `humanPerformer` and `potentialOwner` with simple `resourceRef` or
+`resourceAssignmentExpression/formalExpression` as passive routing hints.
+Generic `performer`, generic `resourceRole`, `participantRef`, and
+`resourceParameterBinding` are reported as deferred standard assignment
+semantics. Authorization, delegation, reassignment, escalation, and participant
+resolution remain deferred Rust-owned contracts.
 
 Exit criteria:
 
@@ -189,6 +209,19 @@ Deliverables:
    and HTTP;
 3. worklist tests for unclaimed work and same-claimant visibility.
 
+Current status: implemented for the bounded M6 slice. Control-service
+checkpoint replay proves that claim, release, claimant-filtered worklist,
+wrong-claimant completion rejection, and same-claimant completion preserve the
+original `instance_id`, `token_id`, `process_id`, and `activity_id` tuple
+across fresh service loads. HTTP RuntimeValkey checkpoint replay now proves
+the same identity lifecycle through host-facing status, claim, release, wrong
+claimant rejection, and same-claimant completion. The runtime also stores a
+checkpointed `human_task_events` ledger for user/manual created, claimed,
+released, and completed milestones. That ledger is exposed through workflow
+snapshots and compact CLI summaries while the execution trace remains
+node/flow oriented. The current checkpoint API requires the ledger field and
+rejects missing-field checkpoints instead of backfilling legacy state.
+
 Exit criteria:
 
 - a claimed pending human task cannot be completed or released by the wrong
@@ -197,8 +230,8 @@ Exit criteria:
 
 ### M7: Worklist Routing Policy
 
-Goal: decide whether Qianji worklist filtering stays claimant-only or adds
-passive routing filters from assignment/lane metadata.
+Goal: define deterministic Rust-owned worklist filtering without turning
+standard BPMN assignment or lane metadata into authorization.
 
 Deliverables:
 
@@ -206,10 +239,19 @@ Deliverables:
 2. tests for the selected filter semantics;
 3. clear docs that these filters do not equal authorization.
 
+Current status: implemented for the bounded M7 policy slice. Worklists support
+the existing claimant filter, a passive `assignment_resource` filter that
+matches preserved `humanPerformer` and `potentialOwner` role names or
+`resourceRef` values exactly after trimming, and a passive `lane` filter that
+matches preserved BPMN lane id or lane name exactly after trimming. These
+filters compose by intersection and do not authorize claim, release, or
+completion. Lane and lane-set metadata remain non-executable metadata because
+the bounded runtime does not bind lanes into scheduling or authorization.
+
 Exit criteria:
 
 - worklist filtering is deterministic and Rust-owned;
-- UI cannot hide or expose work by inventing assignment logic.
+- UI cannot hide or expose work by inventing assignment or lane logic.
 
 ### M8: Form Schema Boundary
 
@@ -222,6 +264,14 @@ Deliverables:
 2. rejection tests for ambiguous question/choices references and unsupported
    free-text cardinality;
 3. optional future nested-envelope design before implementation.
+
+Current status: implemented for the bounded M8 lint slice. The executable
+interaction catalog is `input`, `confirm`, `choice`, and `choice_input`. A
+question has exactly one source: inline text, a `text` attribute, or a dynamic
+`ref`. Choice interactions use either one dynamic `qianji:choices ref` or inline
+`qianji:choice value` entries, not both. The current flat completion ABI supports
+at most one supplemental `qianji:freeText` field per interaction. Richer
+multi-field forms require a future Rust-owned nested envelope before execution.
 
 Exit criteria:
 
@@ -244,6 +294,17 @@ Exit criteria:
 - global human tasks are either explicitly non-executable metadata or have a
   Rust-owned callable binding.
 
+Current status: implemented for the bounded M9 lint slice. Qianji treats
+top-level `globalUserTask` and `globalManualTask` definitions as
+non-executable metadata when they are not used as runtime bindings.
+`callActivity calledElement` remains process-only: it must target another
+executable process in the same BPMN package, not a global human task id. If
+model authors need reusable executable human work now, they should wrap the
+human task in an executable process or keep it as a process-local
+`userTask`/`manualTask` with the bounded `qianji:interaction` contract. A direct
+global human-task callable binding remains deferred until Rust owns that
+binding explicitly.
+
 ### M10: Adapter Conformance
 
 Goal: make downstream interactive adapters thin and testable.
@@ -260,6 +321,16 @@ Exit criteria:
 - pi-wendao and skillsc do not parse BPMN XML for interaction semantics during
   execution;
 - all user-visible prompts are backed by Rust-owned pending host work.
+
+Current status: complete for the bounded M10 adapter-conformance milestone.
+pi-wendao rejects missing Rust-streamed `form` and `result_output` before
+rendering. It exposes streamed `claim` metadata to the human-task handler,
+forwards the same claimant on typed completion, and proves that missing
+optional `assignment` or `claim` metadata remains absent rather than being
+synthesized from local BPMN XML or stale config. A generated-BPMN smoke also
+proves that local `qianji:interaction` metadata is not an execution-time
+fallback when qianji streams a different form, result output, assignment, and
+claim.
 
 ## Execution Order
 
@@ -278,17 +349,10 @@ Exit criteria:
 
 ## Next Slice Recommendation
 
-Start M2. The next implementation slice should add the host request ABI ledger
-that records each human-work field across Rust runtime requests, stream JSON,
-HTTP snapshots, CLI text, and downstream adapter consumption.
-
-The ledger should prove field parity for:
-
-1. `process_id`, `activity_id`, `token_id`, and `node_index`;
-2. `variables` and repeat context;
-3. `form` metadata, including `interaction_type`, inputs, and result output;
-4. `assignment` metadata as routing-only standard BPMN hints;
-5. `claim` metadata as checkpointed allocation state, not authorization.
-
-This is the next milestone because M1 has established the execution loop and
-M2 prevents field drift across every interactive host surface.
+M10 is complete for the bounded adapter-conformance milestone, and the M6
+human-task lifecycle ledger is now in place. The current interaction path is
+locked to Rust-owned host-work form, assignment, lane, claim, completion
+identity, and checkpointed lifecycle events, including a generated-BPMN smoke that
+prevents adapter regression back to local XML fallback. Future work should
+start only from a concrete new form schema, native rendering, global
+human-task callable binding, or standard assignment requirement.

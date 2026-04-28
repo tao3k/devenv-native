@@ -5,6 +5,6 @@ pub(crate) use super::boundary::cancel_attached_boundary_siblings;
 pub(crate) use super::driver::advance_instance_impl;
 pub(crate) use super::repeat::merge_output_data;
 pub(crate) use super::state::{
-    push_active_token, record_transition, resolve_single_outgoing_edge, set_active_node_index,
-    set_node_status,
+    push_active_token, record_human_task_lifecycle_event, record_transition,
+    resolve_single_outgoing_edge, set_active_node_index, set_node_status,
 };

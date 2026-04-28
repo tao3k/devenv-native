@@ -4,6 +4,7 @@ use super::scope::{
     WaitRegistration,
 };
 use super::state;
+use crate::runtime_instance_api::BpmnHumanTaskLifecycleEventKind;
 
 pub(super) fn build_wait_registration(
     process: &BpmnProcessSpec,
@@ -84,6 +85,10 @@ pub(super) fn block_on_host_work(
         .nodes
         .get(node_index as usize)
         .and_then(|node| node.human_task_assignment.clone());
+    let lane = process
+        .nodes
+        .get(node_index as usize)
+        .and_then(|node| node.lane.clone());
     let activity_id = process
         .nodes
         .get(node_index as usize)
@@ -95,6 +100,7 @@ pub(super) fn block_on_host_work(
         activity_id,
         kind,
         decision: None,
+        lane,
         script_format,
         script_body,
         human_task_form,
@@ -104,7 +110,7 @@ pub(super) fn block_on_host_work(
         event_name,
         work_id: None,
     };
-    push_pending_host_work(instance, pending);
+    push_pending_host_work(instance, pending, now_ms);
     arm_boundary_wait(process, instance, node_index)?;
     instance.suspend_reason = None;
     state::record_transition(instance, now_ms, InstanceLifecycle::Waiting);
@@ -137,6 +143,10 @@ pub(super) fn block_on_business_rule_work(
             .map(|node| node.bpmn_id.to_string()),
         kind: PendingHostWorkKind::BusinessRule,
         decision: Some(decision),
+        lane: process
+            .nodes
+            .get(node_index as usize)
+            .and_then(|node| node.lane.clone()),
         script_format: None,
         script_body: None,
         human_task_form: process
@@ -152,7 +162,7 @@ pub(super) fn block_on_business_rule_work(
         event_name: None,
         work_id: None,
     };
-    push_pending_host_work(instance, pending);
+    push_pending_host_work(instance, pending, now_ms);
     arm_boundary_wait(process, instance, node_index)?;
     instance.suspend_reason = None;
     state::record_transition(instance, now_ms, InstanceLifecycle::Waiting);
@@ -199,12 +209,28 @@ fn arm_boundary_wait(
     Ok(())
 }
 
-fn push_pending_host_work(instance: &mut BpmnInstanceState, pending: PendingHostWork) {
+fn push_pending_host_work(instance: &mut BpmnInstanceState, pending: PendingHostWork, now_ms: u64) {
     state::clear_pending_host_work(instance, pending.token_id);
+    let token_id = pending.token_id;
+    let node_index = pending.node_index;
     instance.pending_host_work.push(pending);
     instance
         .pending_host_work
         .sort_by_key(|pending| (pending.token_id, pending.node_index));
+    let created = instance
+        .pending_host_work
+        .iter()
+        .find(|pending| pending.token_id == token_id && pending.node_index == node_index)
+        .cloned();
+    if let Some(created) = created {
+        state::record_human_task_lifecycle_event(
+            instance,
+            BpmnHumanTaskLifecycleEventKind::Created,
+            &created,
+            now_ms,
+            None,
+        );
+    }
 }
 
 fn send_task_event_reference(
