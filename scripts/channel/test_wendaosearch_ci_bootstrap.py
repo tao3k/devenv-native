@@ -28,6 +28,11 @@ def test_ci_bootstraps_wendaosearch_with_julia_pkg() -> None:
     assert "Pkg.instantiate()" in workflow
     assert 'Pkg.update("Absyn")' in workflow
     assert "WENDAOSEARCH_PACKAGE_DIR" in workflow
+    assert (
+        "WENDAOSEARCH_CONFIG=${WENDAOSEARCH_PACKAGE_DIR}/config/live/parser_summary.toml"
+        in workflow
+    )
+    assert "RUN_PROCESS_MANAGED_WENDAOSEARCH_TEST=1" in workflow
 
 
 def test_ci_no_longer_uses_workspace_wendaosearch_checkout() -> None:

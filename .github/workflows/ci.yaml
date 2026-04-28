@@ -406,6 +406,8 @@ jobs:
             echo "WENDAO_SEARCH_USE_ACTIVE_PROJECT=1"
             echo "WENDAOSEARCH_JULIA_PROJECT=${WENDAOSEARCH_JULIA_PROJECT}"
             echo "WENDAOSEARCH_PACKAGE_DIR=${WENDAOSEARCH_PACKAGE_DIR}"
+            echo "WENDAOSEARCH_CONFIG=${WENDAOSEARCH_PACKAGE_DIR}/config/live/parser_summary.toml"
+            echo "RUN_PROCESS_MANAGED_WENDAOSEARCH_TEST=1"
           } >> "${GITHUB_ENV}"
 
       - name: Start WendaoSearch parser-summary service for Rust tests
