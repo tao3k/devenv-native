@@ -370,12 +370,12 @@ jobs:
           set -euo pipefail
           export JULIA_PKG_PRECOMPILE_AUTO=0
           export WENDAOSEARCH_PACKAGE_DIR="${RUNNER_TEMP}/WendaoSearch.jl"
-          export WENDAO_SEARCH_BOOTSTRAP_ENV="${RUNNER_TEMP}/wendaosearch-julia-env"
-          export WENDAOSEARCH_JULIA_PROJECT="${WENDAO_SEARCH_BOOTSTRAP_ENV}"
+          export WENDAOSEARCH_JULIA_PROJECT="${WENDAOSEARCH_PACKAGE_DIR}"
           export WENDAOSEARCH_PACKAGE_DIR_FILE="${RUNNER_TEMP}/wendaosearch-package-dir.txt"
           git clone --depth 1 https://github.com/tao3k/WendaoSearch.jl.git "${WENDAOSEARCH_PACKAGE_DIR}"
-          julia --project="${WENDAOSEARCH_PACKAGE_DIR}" -e '
+          julia --project="${WENDAOSEARCH_JULIA_PROJECT}" -e '
             using Pkg
+            Pkg.activate(ENV["WENDAOSEARCH_JULIA_PROJECT"])
             function ensure_registry(name::String; spec=nothing)
               registries = Pkg.Registry.reachable_registries()
               any(registry -> registry.name == name, registries) && return
@@ -391,14 +391,12 @@ jobs:
               "OpenModelica";
               spec=Pkg.RegistrySpec(url="https://github.com/JKRT/OpenModelicaRegistry.git"),
             )
-          '
-          julia --project="${WENDAOSEARCH_PACKAGE_DIR}" \
-            "${WENDAOSEARCH_PACKAGE_DIR}/scripts/prepare_wendao_search_env.jl"
-          julia --project="${WENDAOSEARCH_JULIA_PROJECT}" -e '
-            using Pkg
-            Pkg.activate(ENV["WENDAOSEARCH_JULIA_PROJECT"])
             Pkg.instantiate()
             Pkg.update("Absyn")
+            Pkg.add(
+              Pkg.PackageSpec(name="HiGHS", uuid="87dc4568-4c63-4d18-b0c0-bb2238e4078b");
+              preserve=Pkg.PRESERVE_ALL,
+            )
             Pkg.precompile()
             using WendaoSearch
             package_dir = dirname(dirname(pathof(WendaoSearch)))
