@@ -133,6 +133,7 @@ def test_ci_bootstraps_wendaosearch_from_package_project() -> None:
         in workflow
     )
     assert "OpenModelicaRegistry.git" in workflow
+    assert 'Pkg.update("Absyn")' in workflow
     assert "prepare_wendao_search_env.jl" not in workflow
     assert "WENDAO_SEARCH_BOOTSTRAP_ENV" not in workflow
 

@@ -399,6 +399,7 @@ jobs:
               spec=Pkg.RegistrySpec(url="https://github.com/JKRT/OpenModelicaRegistry.git"),
             )
             Pkg.instantiate()
+            Pkg.update("Absyn")
             Pkg.precompile()
           '
           {
