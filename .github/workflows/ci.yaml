@@ -393,10 +393,6 @@ jobs:
             )
             Pkg.instantiate()
             Pkg.update("Absyn")
-            Pkg.add(
-              Pkg.PackageSpec(name="HiGHS", uuid="87dc4568-4c63-4d18-b0c0-bb2238e4078b");
-              preserve=Pkg.PRESERVE_ALL,
-            )
             Pkg.precompile()
             using WendaoSearch
             package_dir = dirname(dirname(pathof(WendaoSearch)))

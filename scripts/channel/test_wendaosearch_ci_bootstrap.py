@@ -27,8 +27,6 @@ def test_ci_bootstraps_wendaosearch_with_julia_pkg() -> None:
     assert "WendaoArrow" not in workflow
     assert "Pkg.instantiate()" in workflow
     assert 'Pkg.update("Absyn")' in workflow
-    assert 'Pkg.PackageSpec(name="HiGHS"' in workflow
-    assert "preserve=Pkg.PRESERVE_ALL" in workflow
     assert "WENDAOSEARCH_PACKAGE_DIR" in workflow
     assert (
         "WENDAOSEARCH_CONFIG=${WENDAOSEARCH_PACKAGE_DIR}/config/live/parser_summary.toml"
