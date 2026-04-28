@@ -372,15 +372,16 @@ jobs:
           export WENDAOSEARCH_PACKAGE_DIR="${RUNNER_TEMP}/WendaoSearch.jl"
           export WENDAOSEARCH_JULIA_PROJECT="${WENDAOSEARCH_PACKAGE_DIR}"
           export WENDAOSEARCH_PACKAGE_DIR_FILE="${RUNNER_TEMP}/wendaosearch-package-dir.txt"
-          export WENDAOSEARCH_REV=903c9e03ed8da3ed8f71b68cf947eaa20894affc
-          git init "${WENDAOSEARCH_PACKAGE_DIR}"
-          git -C "${WENDAOSEARCH_PACKAGE_DIR}" remote add origin https://github.com/tao3k/WendaoSearch.jl.git
-          git -C "${WENDAOSEARCH_PACKAGE_DIR}" fetch --depth 1 origin "${WENDAOSEARCH_REV}"
-          git -C "${WENDAOSEARCH_PACKAGE_DIR}" checkout --detach FETCH_HEAD
-          test "$(git -C "${WENDAOSEARCH_PACKAGE_DIR}" rev-parse HEAD)" = "${WENDAOSEARCH_REV}"
+          git clone --depth 1 --branch main https://github.com/tao3k/WendaoSearch.jl.git "${WENDAOSEARCH_PACKAGE_DIR}"
+          git -C "${WENDAOSEARCH_PACKAGE_DIR}" rev-parse HEAD
           julia --project="${WENDAOSEARCH_JULIA_PROJECT}" -e '
             using Pkg
+            using TOML
             Pkg.activate(ENV["WENDAOSEARCH_JULIA_PROJECT"])
+            project = TOML.parsefile(joinpath(ENV["WENDAOSEARCH_JULIA_PROJECT"], "Project.toml"))
+            deps = get(project, "deps", Dict{String,Any}())
+            haskey(deps, "HiGHS") ||
+              error("WendaoSearch main Project.toml must declare HiGHS for solver_demo runtime")
             function ensure_registry(name::String; spec=nothing)
               registries = Pkg.Registry.reachable_registries()
               any(registry -> registry.name == name, registries) && return
