@@ -9,10 +9,10 @@ mod code_ast;
 mod collection;
 mod config;
 mod definitions;
+mod document_extract;
 mod error;
 mod graph;
 mod navigation;
-mod pdf_extract;
 mod retrieval;
 mod search;
 mod search_index;
@@ -41,13 +41,16 @@ pub use definitions::{
     AstSearchHit, AstSearchResponse, DefinitionResolveResponse, DefinitionSearchHit,
     ObservationHint, ReferenceSearchHit, ReferenceSearchResponse,
 };
+pub use document_extract::{
+    DocumentExtractJobStatus, DocumentExtractJobSubmitRequest, DocumentExtractJobsStatus,
+    DocumentExtractResource, DocumentExtractResult,
+};
 pub use error::ApiError;
 pub use graph::{
     GraphLink, GraphNeighborsResponse, GraphNode, Topology3dPayload, TopologyCluster, TopologyLink,
     TopologyNode,
 };
 pub use navigation::StudioNavigationTarget;
-pub use pdf_extract::{PdfExtractResource, PdfExtractResult};
 pub use retrieval::{RetrievalChunk, RetrievalChunkSurface};
 pub use search::{
     IntentSearchHit, KnowledgeSearchHit, SearchBacklinkItem, SearchHit, SearchResponse,

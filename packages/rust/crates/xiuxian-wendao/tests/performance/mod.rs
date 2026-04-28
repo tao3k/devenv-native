@@ -1,6 +1,8 @@
 pub(crate) mod support;
 
-#[cfg(all(feature = "duckdb", feature = "zhenfa-router"))]
+#[cfg(feature = "zhenfa-router")]
+mod document_extract_flight;
+#[cfg(all(feature = "duckdb", feature = "julia", feature = "zhenfa-router"))]
 mod flightsql_statement;
 #[cfg(feature = "zhenfa-router")]
 mod gateway_search;

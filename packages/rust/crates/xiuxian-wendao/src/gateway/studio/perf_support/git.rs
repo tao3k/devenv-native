@@ -11,6 +11,7 @@ pub(crate) fn write_default_repo_config(base: &Path, repo_dir: &Path, repo_id: &
     write_repo_config(base, repo_dir, repo_id, None)
 }
 
+#[cfg(feature = "julia")]
 pub(crate) fn write_repo_config_with_julia_parser_summary_transport(
     base: &Path,
     repo_dir: &Path,

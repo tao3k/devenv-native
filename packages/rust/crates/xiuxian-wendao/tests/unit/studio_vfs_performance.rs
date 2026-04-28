@@ -6,8 +6,11 @@
 #![cfg(feature = "zhenfa-router")]
 
 use crate as xiuxian_wendao;
+use axum::body::Body;
+use axum::http::{Request, StatusCode};
 use std::sync::Arc;
 use std::time::Instant;
+use tower::ServiceExt;
 
 use xiuxian_wendao::analyzers::PluginRegistry;
 use xiuxian_wendao::gateway::studio::{GatewayState, StudioState, studio_router};
@@ -46,6 +49,13 @@ fn best_studio_state_bootstrap_millis() -> u64 {
         })
         .min()
         .unwrap_or(u64::MAX)
+}
+
+fn request_for_uri(uri: &str) -> Request<Body> {
+    match Request::builder().uri(uri).body(Body::empty()) {
+        Ok(request) => request,
+        Err(error) => panic!("failed to build request for `{uri}`: {error}"),
+    }
 }
 
 // ============================================================================
@@ -92,4 +102,43 @@ fn router_has_expected_api_routes() {
         Arc::new(PluginRegistry::new()),
     ));
     let _router = studio_router(state);
+}
+
+#[tokio::test]
+async fn router_uses_document_extraction_rest_routes() {
+    let state = Arc::new(GatewayState::new(
+        None,
+        None,
+        Arc::new(PluginRegistry::new()),
+    ));
+    let router = studio_router(state);
+
+    let response = router
+        .clone()
+        .oneshot(request_for_uri("/api/document-extract-result"))
+        .await
+        .unwrap_or_else(|error| panic!("document extraction route should respond: {error}"));
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+    let old_response = router
+        .clone()
+        .oneshot(request_for_uri("/api/pdf-extract-result"))
+        .await
+        .unwrap_or_else(|error| panic!("retired PDF extraction route should respond: {error}"));
+    assert_eq!(old_response.status(), StatusCode::NOT_FOUND);
+
+    let queue_snapshot_response = router
+        .clone()
+        .oneshot(request_for_uri("/api/document-extract-jobs"))
+        .await
+        .unwrap_or_else(|error| {
+            panic!("document extraction jobs status route should respond: {error}")
+        });
+    assert_eq!(queue_snapshot_response.status(), StatusCode::OK);
+
+    let job_status_response = router
+        .oneshot(request_for_uri("/api/document-extract-job"))
+        .await
+        .unwrap_or_else(|error| panic!("document extraction job route should respond: {error}"));
+    assert_eq!(job_status_response.status(), StatusCode::BAD_REQUEST);
 }

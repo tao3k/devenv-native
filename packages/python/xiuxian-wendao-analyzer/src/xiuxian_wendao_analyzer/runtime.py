@@ -2,15 +2,14 @@
 
 from __future__ import annotations
 
-from typing import Protocol, cast
+from typing import TYPE_CHECKING, Protocol, cast
 
-import pyarrow as pa
 from wendao_core_lib import (
     WendaoFlightRouteQuery,
     WendaoRepoSearchRequest,
-    repo_search_request,
     repo_search_metadata,
     repo_search_query,
+    repo_search_request,
 )
 
 from .config import AnalyzerConfig
@@ -24,6 +23,9 @@ from .models import (
     parse_analyzer_result_rows,
 )
 from .strategies import AnalyzerStrategyProtocol, build_analyzer
+
+if TYPE_CHECKING:
+    import pyarrow as pa
 
 
 class WendaoAnalyzerRuntimeClient(Protocol):
@@ -47,7 +49,7 @@ def analyze_table(
     resolved_analyzer = (
         analyzer if analyzer is not None else build_analyzer(config or AnalyzerConfig())
     )
-    return resolved_analyzer.analyze_rows(cast(list[dict[str, object]], table.to_pylist()))
+    return resolved_analyzer.analyze_rows(cast("list[dict[str, object]]", table.to_pylist()))
 
 
 def run_table_analysis(
@@ -573,13 +575,13 @@ __all__ = [
     "summarize_query_results",
     "summarize_query_route",
     "summarize_repo_analysis",
-    "summarize_repo_search",
-    "summarize_repo_search_results",
     "summarize_repo_query_text",
     "summarize_repo_query_text_results",
+    "summarize_repo_search",
+    "summarize_repo_search_results",
+    "summarize_result_rows",
     "summarize_rows",
     "summarize_rows_analysis",
     "summarize_table",
     "summarize_table_analysis",
-    "summarize_result_rows",
 ]

@@ -4,8 +4,8 @@ import os
 import socket
 import subprocess
 import time
+from typing import TYPE_CHECKING
 
-import pyarrow as pa
 import pytest
 
 from wendao_arrow_interface import (
@@ -42,6 +42,9 @@ from xiuxian_wendao_analyzer import (
     summarize_repo_search,
     summarize_repo_search_results,
 )
+
+if TYPE_CHECKING:
+    import pyarrow as pa
 
 
 def _score_rows() -> list[dict[str, object]]:

@@ -8,6 +8,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Duration;
 
+use arrow_array::{Float64Array, Int32Array, StringArray};
 use arrow_flight::encode::FlightDataEncoderBuilder;
 use arrow_flight::flight_service_server::{FlightService, FlightServiceServer};
 use arrow_flight::{
@@ -23,9 +24,8 @@ use tokio_stream::wrappers::TcpListenerStream;
 use tonic::transport::Server;
 use tonic::{Request, Response, Status};
 use xiuxian_db_store::{
-    EngineRecordBatch, LanceDataType, LanceField, LanceFloat64Array,
-    LanceFloat64Array as Float64Array, LanceInt32Array as Int32Array, LanceRecordBatch,
-    LanceSchema, LanceStringArray as StringArray, engine_batches_to_lance_batches,
+    EngineRecordBatch, LanceDataType, LanceField, LanceFloat64Array, LanceRecordBatch, LanceSchema,
+    LanceStringArray,
 };
 
 type BoxFlightStream<T> = Pin<Box<dyn Stream<Item = Result<T, Status>> + Send + 'static>>;
@@ -244,7 +244,7 @@ fn build_large_rerank_request_batch() -> EngineRecordBatch {
 }
 
 #[tokio::test]
-async fn flight_transport_client_roundtrips_batches_over_lance_arrow_line() {
+async fn flight_transport_client_roundtrips_batches_over_arrow_flight_line() {
     let listener = TcpListener::bind("127.0.0.1:0")
         .await
         .unwrap_or_else(|error| panic!("listener should bind: {error}"));
@@ -260,11 +260,11 @@ async fn flight_transport_client_roundtrips_batches_over_lance_arrow_line() {
             LanceField::new(REPO_SEARCH_LANGUAGE_COLUMN, LanceDataType::Utf8, false),
         ])),
         vec![
-            Arc::new(StringArray::from(vec!["doc-1"])),
-            Arc::new(StringArray::from(vec!["src/lib.rs"])),
-            Arc::new(StringArray::from(vec!["Repo Search Result"])),
+            Arc::new(LanceStringArray::from(vec!["doc-1"])),
+            Arc::new(LanceStringArray::from(vec!["src/lib.rs"])),
+            Arc::new(LanceStringArray::from(vec!["Repo Search Result"])),
             Arc::new(LanceFloat64Array::from(vec![0.91_f64])),
-            Arc::new(StringArray::from(vec!["rust"])),
+            Arc::new(LanceStringArray::from(vec!["rust"])),
         ],
     )
     .unwrap_or_else(|error| panic!("query response batch should build: {error}"));
@@ -291,30 +291,26 @@ async fn flight_transport_client_roundtrips_batches_over_lance_arrow_line() {
         .process_batch(&request_batch)
         .await
         .unwrap_or_else(|error| panic!("flight roundtrip should succeed: {error}"));
-    let lance_response_batches =
-        engine_batches_to_lance_batches(&response_batches).unwrap_or_else(|error| {
-            panic!("response batches should convert onto Lance Arrow: {error}")
-        });
 
     assert_eq!(response_batches.len(), 1);
     assert_eq!(response_batches[0].num_rows(), 2);
-    let doc_ids = lance_response_batches[0]
+    let doc_ids = response_batches[0]
         .column_by_name("doc_id")
         .and_then(|column| column.as_any().downcast_ref::<StringArray>())
         .unwrap_or_else(|| panic!("response doc_id column should decode as Utf8"));
-    let vector_scores = lance_response_batches[0]
+    let vector_scores = response_batches[0]
         .column_by_name("vector_score")
         .and_then(|column| column.as_any().downcast_ref::<Float64Array>())
         .unwrap_or_else(|| panic!("response vector_score column should decode as Float64"));
-    let semantic_scores = lance_response_batches[0]
+    let semantic_scores = response_batches[0]
         .column_by_name("semantic_score")
         .and_then(|column| column.as_any().downcast_ref::<Float64Array>())
         .unwrap_or_else(|| panic!("response semantic_score column should decode as Float64"));
-    let final_scores = lance_response_batches[0]
+    let final_scores = response_batches[0]
         .column_by_name("final_score")
         .and_then(|column| column.as_any().downcast_ref::<Float64Array>())
         .unwrap_or_else(|| panic!("response final_score column should decode as Float64"));
-    let ranks = lance_response_batches[0]
+    let ranks = response_batches[0]
         .column_by_name("rank")
         .and_then(|column| column.as_any().downcast_ref::<Int32Array>())
         .unwrap_or_else(|| panic!("response rank column should decode as Int32"));
@@ -401,11 +397,11 @@ async fn flight_transport_client_accepts_responses_larger_than_default_tonic_lim
             LanceField::new(REPO_SEARCH_LANGUAGE_COLUMN, LanceDataType::Utf8, false),
         ])),
         vec![
-            Arc::new(StringArray::from(vec!["doc-1"])),
-            Arc::new(StringArray::from(vec!["src/lib.rs"])),
-            Arc::new(StringArray::from(vec!["Repo Search Result"])),
+            Arc::new(LanceStringArray::from(vec!["doc-1"])),
+            Arc::new(LanceStringArray::from(vec!["src/lib.rs"])),
+            Arc::new(LanceStringArray::from(vec!["Repo Search Result"])),
             Arc::new(LanceFloat64Array::from(vec![0.91_f64])),
-            Arc::new(StringArray::from(vec!["rust"])),
+            Arc::new(LanceStringArray::from(vec!["rust"])),
         ],
     )
     .unwrap_or_else(|error| panic!("query response batch should build: {error}"));
@@ -435,12 +431,8 @@ async fn flight_transport_client_accepts_responses_larger_than_default_tonic_lim
         .process_batch(&request_batch)
         .await
         .unwrap_or_else(|error| panic!("large flight roundtrip should succeed: {error}"));
-    let lance_response_batches =
-        engine_batches_to_lance_batches(&response_batches).unwrap_or_else(|error| {
-            panic!("response batches should convert onto Lance Arrow: {error}")
-        });
 
-    let doc_ids = lance_response_batches[0]
+    let doc_ids = response_batches[0]
         .column_by_name("doc_id")
         .and_then(|column| column.as_any().downcast_ref::<StringArray>())
         .unwrap_or_else(|| panic!("response doc_id column should decode as Utf8"));

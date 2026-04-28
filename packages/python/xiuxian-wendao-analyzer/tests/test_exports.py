@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+import tomllib
 from inspect import isclass
 from pathlib import Path
-import tomllib
 
 import xiuxian_wendao_analyzer as analyzer
 
@@ -31,6 +31,13 @@ def test_public_exports_include_core_analyzer_surface() -> None:
     assert "TableAnalysisRun" in analyzer.__all__
     assert "QueryAnalysisRun" in analyzer.__all__
     assert "RepoAnalysisRun" in analyzer.__all__
+    assert "DocumentResourceRow" in analyzer.__all__
+    assert "DOCUMENT_RESOURCE_ARROW_CACHE_NAME" in analyzer.__all__
+    assert "DOCUMENT_RESOURCE_SCHEMA" in analyzer.__all__
+    assert "DOCLING_COMMON_SOURCE_SUFFIXES" in analyzer.__all__
+    assert "DOCLING_SUPPORTED_DOCUMENT_FORMATS" in analyzer.__all__
+    assert "DocumentExtractFlightServer" in analyzer.__all__
+    assert "ANALYSIS_DOCUMENT_EXTRACT_ROUTE" in analyzer.__all__
     assert "ScoreRankAnalyzer" in analyzer.__all__
     assert "analyze_query" in analyzer.__all__
     assert "analyze_repo_search" in analyzer.__all__
@@ -39,6 +46,11 @@ def test_public_exports_include_core_analyzer_surface() -> None:
     assert "summarize_query_route" in analyzer.__all__
     assert "summarize_repo_query_text_results" in analyzer.__all__
     assert "run_rows_analysis" in analyzer.__all__
+    assert "extract_document_resources" in analyzer.__all__
+    assert "extract_document_table" in analyzer.__all__
+    assert "extract_pdf_resources" in analyzer.__all__
+    assert "is_known_docling_source" in analyzer.__all__
+    assert "build_document_extract_table" in analyzer.__all__
     assert "summarize_rows_analysis" in analyzer.__all__
 
 
@@ -50,6 +62,9 @@ def test_public_exports_preserve_expected_symbol_kinds() -> None:
     assert isclass(analyzer.RepoAnalysisRun)
     assert isclass(analyzer.RowsAnalysisRun)
     assert isclass(analyzer.TableAnalysisRun)
+    assert isclass(analyzer.DocumentResourceRow)
+    assert analyzer.DOCUMENT_RESOURCE_ARROW_CACHE_NAME == "_resources.arrow"
+    assert isclass(analyzer.DocumentExtractFlightServer)
     assert isclass(analyzer.ScoreRankAnalyzer)
 
     assert callable(analyzer.build_analyzer)
@@ -60,6 +75,11 @@ def test_public_exports_preserve_expected_symbol_kinds() -> None:
     assert callable(analyzer.run_repo_search_analysis)
     assert callable(analyzer.run_rows_analysis)
     assert callable(analyzer.run_table_analysis)
+    assert callable(analyzer.extract_document_resources)
+    assert callable(analyzer.extract_document_table)
+    assert callable(analyzer.extract_pdf_resources)
+    assert callable(analyzer.is_known_docling_source)
+    assert callable(analyzer.build_document_extract_table)
     assert callable(analyzer.summarize_query_route)
     assert callable(analyzer.summarize_repo_query_text_results)
     assert callable(analyzer.summarize_rows_analysis)

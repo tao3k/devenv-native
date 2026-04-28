@@ -5,16 +5,18 @@ use crate::transport::{
     WENDAO_ATTACHMENT_SEARCH_CASE_SENSITIVE_HEADER, WENDAO_ATTACHMENT_SEARCH_EXT_FILTERS_HEADER,
     WENDAO_ATTACHMENT_SEARCH_KIND_FILTERS_HEADER, WENDAO_AUTOCOMPLETE_LIMIT_HEADER,
     WENDAO_AUTOCOMPLETE_PREFIX_HEADER, WENDAO_DEFINITION_LINE_HEADER,
-    WENDAO_DEFINITION_PATH_HEADER, WENDAO_DEFINITION_QUERY_HEADER, WENDAO_GRAPH_DIRECTION_HEADER,
-    WENDAO_GRAPH_HOPS_HEADER, WENDAO_GRAPH_LIMIT_HEADER, WENDAO_GRAPH_NODE_ID_HEADER,
-    WENDAO_REPO_DOC_COVERAGE_MODULE_HEADER, WENDAO_REPO_DOC_COVERAGE_REPO_HEADER,
-    WENDAO_REPO_INDEX_STATUS_REPO_HEADER, WENDAO_REPO_OVERVIEW_REPO_HEADER,
-    WENDAO_REPO_SEARCH_LANGUAGE_FILTERS_HEADER, WENDAO_REPO_SEARCH_LIMIT_HEADER,
-    WENDAO_REPO_SEARCH_PATH_PREFIXES_HEADER, WENDAO_REPO_SEARCH_QUERY_HEADER,
-    WENDAO_REPO_SEARCH_REPO_HEADER, WENDAO_REPO_SYNC_MODE_HEADER, WENDAO_REPO_SYNC_REPO_HEADER,
-    WENDAO_SCHEMA_VERSION_HEADER, WENDAO_SEARCH_INTENT_HEADER, WENDAO_SEARCH_LIMIT_HEADER,
-    WENDAO_SEARCH_QUERY_HEADER, WENDAO_SEARCH_REPO_HEADER, WENDAO_SQL_QUERY_HEADER,
-    WENDAO_VFS_PATH_HEADER,
+    WENDAO_DEFINITION_PATH_HEADER, WENDAO_DEFINITION_QUERY_HEADER,
+    WENDAO_DOCUMENT_EXTRACT_ERROR_ROW_HEADER, WENDAO_DOCUMENT_EXTRACT_FORCE_HEADER,
+    WENDAO_DOCUMENT_EXTRACT_OUTPUT_DIR_HEADER, WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_HEADER,
+    WENDAO_GRAPH_DIRECTION_HEADER, WENDAO_GRAPH_HOPS_HEADER, WENDAO_GRAPH_LIMIT_HEADER,
+    WENDAO_GRAPH_NODE_ID_HEADER, WENDAO_REPO_DOC_COVERAGE_MODULE_HEADER,
+    WENDAO_REPO_DOC_COVERAGE_REPO_HEADER, WENDAO_REPO_INDEX_STATUS_REPO_HEADER,
+    WENDAO_REPO_OVERVIEW_REPO_HEADER, WENDAO_REPO_SEARCH_LANGUAGE_FILTERS_HEADER,
+    WENDAO_REPO_SEARCH_LIMIT_HEADER, WENDAO_REPO_SEARCH_PATH_PREFIXES_HEADER,
+    WENDAO_REPO_SEARCH_QUERY_HEADER, WENDAO_REPO_SEARCH_REPO_HEADER, WENDAO_REPO_SYNC_MODE_HEADER,
+    WENDAO_REPO_SYNC_REPO_HEADER, WENDAO_SCHEMA_VERSION_HEADER, WENDAO_SEARCH_INTENT_HEADER,
+    WENDAO_SEARCH_LIMIT_HEADER, WENDAO_SEARCH_QUERY_HEADER, WENDAO_SEARCH_REPO_HEADER,
+    WENDAO_SQL_QUERY_HEADER, WENDAO_VFS_PATH_HEADER,
 };
 
 use super::assertions::metadata_value;
@@ -47,6 +49,23 @@ pub(super) fn build_repo_search_metadata(
 pub(super) fn build_markdown_analysis_metadata(path: &str) -> MetadataMap {
     let mut metadata = MetadataMap::new();
     populate_schema_and_markdown_analysis_headers(&mut metadata, path);
+    metadata
+}
+
+pub(super) fn build_document_extract_metadata(
+    source_path: &str,
+    output_dir: Option<&str>,
+    force: Option<&str>,
+    error_row: Option<&str>,
+) -> MetadataMap {
+    let mut metadata = MetadataMap::new();
+    populate_schema_and_document_extract_headers(
+        &mut metadata,
+        source_path,
+        output_dir,
+        force,
+        error_row,
+    );
     metadata
 }
 
@@ -355,6 +374,50 @@ pub(super) fn populate_schema_and_markdown_analysis_headers(
         WENDAO_ANALYSIS_PATH_HEADER,
         metadata_value(path, "analysis path metadata should parse"),
     );
+}
+
+pub(super) fn populate_schema_and_document_extract_headers(
+    metadata: &mut MetadataMap,
+    source_path: &str,
+    output_dir: Option<&str>,
+    force: Option<&str>,
+    error_row: Option<&str>,
+) {
+    metadata.insert(
+        WENDAO_SCHEMA_VERSION_HEADER,
+        metadata_value("v2", "schema version metadata should parse"),
+    );
+    metadata.insert(
+        WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_HEADER,
+        metadata_value(
+            source_path,
+            "document extract source path metadata should parse",
+        ),
+    );
+    if let Some(output_dir) = output_dir {
+        metadata.insert(
+            WENDAO_DOCUMENT_EXTRACT_OUTPUT_DIR_HEADER,
+            metadata_value(
+                output_dir,
+                "document extract output dir metadata should parse",
+            ),
+        );
+    }
+    if let Some(force) = force {
+        metadata.insert(
+            WENDAO_DOCUMENT_EXTRACT_FORCE_HEADER,
+            metadata_value(force, "document extract force metadata should parse"),
+        );
+    }
+    if let Some(error_row) = error_row {
+        metadata.insert(
+            WENDAO_DOCUMENT_EXTRACT_ERROR_ROW_HEADER,
+            metadata_value(
+                error_row,
+                "document extract error-row metadata should parse",
+            ),
+        );
+    }
 }
 
 pub(super) fn populate_schema_and_definition_headers(

@@ -16,7 +16,9 @@ def test_first_analyzer_author_tutorial_mentions_supported_workflows() -> None:
     assert "Workflow 2: Host-Backed Repo Search With Built-In Ranking" in tutorial
     assert "Workflow 3: Host-Backed Repo Search With A Custom Python Analyzer" in tutorial
     assert "Workflow 4: PDF Attachment Search Then Analyze The Returned Table" in tutorial
-    assert "Workflow 5: Analyze An Already Materialized Rust Query Result" in tutorial
+    assert "Workflow 5: Docling Document Extraction Into Arrow Rows" in tutorial
+    assert "Workflow 6: Analyze An Already Materialized Rust Query Result" in tutorial
+    assert "examples/document_extraction_workflow.py" in tutorial
     assert "examples/attachment_pdf_analyzer_workflow.py" in tutorial
     assert "examples/scripted_repo_search_workflow.py" in tutorial
     assert "examples/repo_search_workflow.py" in tutorial
@@ -25,6 +27,9 @@ def test_first_analyzer_author_tutorial_mentions_supported_workflows() -> None:
     assert "WendaoArrowSession.attachment_search(...)" in tutorial
     assert "run_repo_analysis(...)" in tutorial
     assert "run_table_analysis(...)" in tutorial
+    assert "extract_document_table(...)" in tutorial
+    assert "uv run wendao-document-extract --host 0.0.0.0 --port 50051" in tutorial
+    assert "/analysis/document-extract" in tutorial
     assert "analyze_table(...)" in tutorial
     assert "does not own rerank workflows" in tutorial
 
@@ -40,10 +45,12 @@ def test_custom_analyzer_tutorial_mentions_contract_and_example() -> None:
     assert "custom_repo_analyzer_workflow.py" in tutorial
     assert "scripted_repo_search_workflow.py" in tutorial
     assert "attachment_pdf_analyzer_workflow.py" in tutorial
+    assert "document_extraction_workflow.py" in tutorial
     assert "run_repo_analysis(...)" in tutorial
     assert "summarize_repo_analysis(...)" in tutorial
     assert "analyze_table(...)" in tutorial
     assert "WendaoArrowSession.attachment_search(...)" in tutorial
+    assert "extract_document_table(...)" in tutorial
     assert "does not own rerank transport" in tutorial
 
 
@@ -59,6 +66,9 @@ def test_release_policy_mentions_beta_contract_and_workflow_stability() -> None:
     assert "run_repo_analysis(...)" in policy
     assert "WendaoArrowSession.attachment_search(...)" in policy
     assert "generic rows, table, and query analysis over Rust-returned data" in policy
+    assert "Docling-backed multi-format document extraction into Arrow resource rows" in policy
+    assert "analyzer format metadata is a UX hint surface" in policy
+    assert "Wendao-facing `/analysis/document-extract` service route" in policy
     assert "analyzer-owned rerank helpers are out of scope" in policy
     assert "Current Beta Exit Reading" in policy
     assert "Current Beta Freeze Reading" in policy
@@ -73,6 +83,7 @@ def test_external_consumer_checklist_mentions_environment_and_boundary() -> None
     assert "pyarrow>=14.0.0" in checklist
     assert "uv run python examples/scripted_repo_search_workflow.py" in checklist
     assert "uv run python examples/attachment_pdf_analyzer_workflow.py" in checklist
+    assert "uv run python examples/document_extraction_workflow.py" in checklist
     assert "plain `python examples/...`" in checklist.lower()
     assert "WendaoArrowSession.for_repo_search_testing(...)" in checklist
     assert "WendaoArrowSession.attachment_search(...)" in checklist
@@ -89,6 +100,9 @@ def test_external_consumer_checklist_mentions_environment_and_boundary() -> None
     assert "examples/host_backed_repo_search_beta_smoke.py --port 0 --keep-workspace" in checklist
     assert "Use `--keep-workspace`" in checklist
     assert "analyze_table(...)" in checklist
+    assert "extract_document_table(...)" in checklist
+    assert "uv run wendao-document-extract --host 0.0.0.0 --port 50051" in checklist
+    assert "/analysis/document-extract" in checklist
     assert "There is no analyzer-owned rerank workflow" in checklist
 
 
@@ -106,11 +120,18 @@ def test_readme_freezes_v1_documentation_set() -> None:
 def test_readme_marks_package_as_beta_with_rust_query_boundary() -> None:
     readme = (_package_root() / "README.md").read_text(encoding="utf-8")
 
-    assert "is a beta Python analyzer-layer package" in readme
+    assert "is a beta Python analyzer and document parsing" in readme
+    assert "package built on top of `wendao-core-lib`" in readme
     assert "Current Beta Surface" in readme
     assert "It does not own:" in readme
     assert "rerank transport contracts" in readme
     assert "fetch it through `wendao-core-lib` or `wendao-arrow-interface`" in readme
+    assert "Docling-backed document extraction helpers" in readme
+    assert "PDF, DOCX, XLSX, PPTX, Markdown" in readme
+    assert "is_known_docling_source(...)" in readme
+    assert "Wendao Document Service" in readme
+    assert "wendao-document-extract" in readme
+    assert "/analysis/document-extract" in readme
 
 
 def test_readme_records_beta_readiness_and_known_gaps() -> None:
@@ -122,6 +143,8 @@ def test_readme_records_beta_readiness_and_known_gaps() -> None:
     assert "uv run python ...` from the package directory" in readme
     assert "no analyzer-owned rerank helper surface" in readme
     assert "no GA-level release promise yet" in readme
+    assert "Docling is optional through the `documents` extra" in readme
+    assert "Wendao-facing Arrow Flight service entrypoint" in readme
 
 
 def test_readme_records_beta_exit_audit() -> None:
@@ -142,6 +165,7 @@ def test_readme_records_beta_freeze_audit() -> None:
     assert "frozen for this beta trial:" in readme
     assert "examples/scripted_repo_search_workflow.py" in readme
     assert "examples/attachment_pdf_analyzer_workflow.py" in readme
+    assert "examples/document_extraction_workflow.py" in readme
     assert "examples/host_backed_repo_search_beta_smoke.py" in readme
     assert "not frozen for this beta trial:" in readme
     assert "workflow-frozen, not helper-frozen" in readme
@@ -153,6 +177,7 @@ def test_readme_mentions_host_backed_beta_smoke_example() -> None:
     assert "examples/repo_search_workflow.py" in readme
     assert "examples/custom_repo_analyzer_workflow.py" in readme
     assert "examples/attachment_pdf_analyzer_workflow.py" in readme
+    assert "examples/document_extraction_workflow.py" in readme
     assert "examples/host_backed_repo_search_beta_smoke.py" in readme
     assert "one-shot beta smoke for the full host-backed repo-search path" in readme
     assert "--mode custom --port 0" in readme

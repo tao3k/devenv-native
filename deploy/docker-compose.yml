@@ -32,12 +32,14 @@ services:
         condition: service_started
       wendaosearch-parser:
         condition: service_started
+      wendao-document-extract:
+        condition: service_started
     environment:
       VALKEY_URL: redis://valkey:6379/0
       XIUXIAN_WENDAO_GATEWAY_BOOTSTRAP_BACKGROUND_INDEXING: "1"
       WENDAO_FLIGHT_BASE_URL: http://wendaosearch-solver:41080
       WENDAO_PARSER_SUMMARY_BASE_URL: http://wendaosearch-parser:41081
-      WENDAO_PDF_EXTRACT_ENDPOINT: http://wendao-pdf-extract:50051
+      WENDAO_DOCUMENT_EXTRACT_ENDPOINT: http://wendao-document-extract:50051
     working_dir: /data
     volumes:
       - wendao-data:/data
@@ -59,15 +61,12 @@ services:
       VALKEY_URL: redis://valkey:6379/0
     volumes:
       - ./xiuxian.toml:/etc/xiuxian/xiuxian-artisan-workshop/xiuxian.toml:ro
-  wendao-pdf-extract:
+  wendao-document-extract:
     image: python:3.12-slim
     command: >
       bash -c "
-        apt-get update &&
-        apt-get install -y default-jre-headless &&
-        pip install pyarrow opendataloader-pdf &&
-        cd /app && pip install -e . &&
-        wendao-pdf-extract --host 0.0.0.0 --port 50051
+        cd /app && pip install -e '.[documents]' &&
+        wendao-document-extract --host 0.0.0.0 --port 50051
       "
     ports:
       - "50051:50051"
@@ -76,11 +75,7 @@ services:
       - ../wendao.toml:/data/base.toml:ro
       - ../assets/wendao:/data/assets/wendao:ro
       - ../docs:/data/docs:ro
-      - ../packages/python/wendao-pdf-extract:/app
-    environment:
-      JAVA_HOME: /usr/lib/jvm/default-java
-    depends_on:
-      - wendao-gateway
+      - ../packages/python/xiuxian-wendao-analyzer:/app
   wendao-frontend:
     image: ghcr.io/tao3k/wendao-frontend:main
     ports:

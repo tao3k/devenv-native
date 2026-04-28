@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
 
-from .config import AnalyzerConfig
+if TYPE_CHECKING:
+    from .config import AnalyzerConfig
 
 
 class AnalyzerStrategyProtocol(Protocol):

@@ -17,6 +17,7 @@ dev = [
   "xiuxian-harness-python-lang-project",
   "wendao-core-lib",
   "wendao-arrow-interface",
+  "xiuxian-wendao-analyzer",
   "xiuxian-foundation",
   "xiuxian-core",
   "polars>=1.0.0",
@@ -53,6 +54,7 @@ qianji-workflow-contracts = { workspace = true }
 xiuxian-harness-python-lang-project = { workspace = true }
 wendao-core-lib = { workspace = true }
 wendao-arrow-interface = { workspace = true }
+xiuxian-wendao-analyzer = { workspace = true }
 xiuxian-foundation = { workspace = true }
 xiuxian-core = { workspace = true }
 
@@ -66,6 +68,7 @@ members = [
   "packages/python/xiuxian-harness-python-lang-project",
   "packages/python/wendao-arrow-interface",
   "packages/python/wendao-core-lib",
+  "packages/python/xiuxian-wendao-analyzer",
 ]
 
 
@@ -84,6 +87,7 @@ src = [
   "packages/python/xiuxian-harness-python-lang-project/src",
   "packages/python/wendao-arrow-interface/src",
   "packages/python/wendao-core-lib/src",
+  "packages/python/xiuxian-wendao-analyzer/src",
 ]
 
 [tool.ruff.lint]
@@ -113,6 +117,7 @@ known-first-party = [
   "qianji_workflow_contracts",
   "wendao_arrow_interface",
   "wendao_core_lib",
+  "xiuxian_wendao_analyzer",
 ]
 section-order = ["future", "standard-library", "third-party", "first-party", "local-folder"]
 
@@ -136,6 +141,7 @@ mypy_path = [
   "packages/python/xiuxian-harness-python-lang-project/src",
   "packages/python/wendao-arrow-interface/src",
   "packages/python/wendao-core-lib/src",
+  "packages/python/xiuxian-wendao-analyzer/src",
 ]
 
 # Native TOML config for pytest 9.0+ (supports list, bool, dict types)
@@ -161,6 +167,7 @@ testpaths = [
   "packages/python/xiuxian-harness-python-lang-project/tests",
   "packages/python/wendao-arrow-interface/tests",
   "packages/python/wendao-core-lib/tests",
+  "packages/python/xiuxian-wendao-analyzer/tests",
   "scripts/channel",
   "scripts/tests",
   "assets/skills",
@@ -201,6 +208,7 @@ source = [
   "qianji_workflow_contracts",
   "wendao_arrow_interface",
   "wendao_core_lib",
+  "xiuxian_wendao_analyzer",
 ]
 omit = ["*/tests/*", "*/__pycache__/*", "*/.venv/*", "*/venv/*", "*/site-packages/*"]
 branch = true

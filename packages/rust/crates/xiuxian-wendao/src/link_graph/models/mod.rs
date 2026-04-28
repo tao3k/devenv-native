@@ -5,7 +5,9 @@ mod query;
 mod records;
 mod semantic_policy;
 
-pub use attachments::{LinkGraphAttachment, LinkGraphAttachmentHit, LinkGraphAttachmentKind, VisionAnnotation};
+pub use attachments::{
+    LinkGraphAttachment, LinkGraphAttachmentHit, LinkGraphAttachmentKind, VisionAnnotation,
+};
 pub use query::{
     LinkGraphDirection, LinkGraphEdgeType, LinkGraphLinkFilter, LinkGraphMatchStrategy,
     LinkGraphPprSubgraphMode, LinkGraphRelatedFilter, LinkGraphRelatedPprOptions, LinkGraphScope,

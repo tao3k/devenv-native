@@ -14,7 +14,9 @@ That means we protect the documented workflow set:
 2. scripted PDF attachment search with `WendaoArrowSession.attachment_search(...)`
 3. host-backed repo-search analysis with `run_repo_analysis(...)`
 4. host-backed repo-search analysis with a custom analyzer object
-5. generic rows, table, and query analysis over Rust-returned data
+5. Docling-backed multi-format document extraction into Arrow resource rows
+6. Wendao-facing `/analysis/document-extract` service route
+7. generic rows, table, and query analysis over Rust-returned data
 
 It does not mean a permanent guarantee for every helper-shaped convenience
 symbol that previously appeared during beta exploration.
@@ -25,7 +27,13 @@ The current beta rule is:
 
 1. Rust and transport packages own rerank transport behavior
 2. `xiuxian-wendao-analyzer` owns analysis over returned rows and tables
-3. analyzer-owned rerank helpers are out of scope for this beta baseline
+3. `xiuxian-wendao-analyzer` owns the document extraction service adapter
+4. analyzer-owned rerank helpers are out of scope for this beta baseline
+5. Docling itself remains the source of truth for concrete parser support;
+   analyzer format metadata is a UX hint surface, not a hard allowlist
+6. document extraction keeps a stable Arrow resource schema across main
+   markdown rows and structured Docling rows such as table, image, formula,
+   code, JSON export, audio, and subtitle resources
 
 If you need rerank data, use the substrate-level transport in `wendao-core-lib`
 or the facade in `wendao-arrow-interface`, then analyze the returned table with
@@ -36,7 +44,7 @@ generic analyzer helpers.
 Frozen now:
 
 1. the repo-search workflows documented in the README and tutorials
-2. the five shipped examples under `examples/`
+2. the six shipped examples under `examples/`
 3. `AnalyzerConfig(strategy="score_rank")` as the built-in analyzer strategy
 
 Not frozen now:

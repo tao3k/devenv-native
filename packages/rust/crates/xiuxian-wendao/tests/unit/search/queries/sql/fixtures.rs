@@ -1,16 +1,15 @@
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-use arrow::array::{Array, BooleanArray, Float32Array, Float64Array, Int32Array, Int64Array};
+use arrow::array::{
+    Array, BooleanArray, Float32Array, Float64Array, Int32Array, Int64Array, UInt64Array,
+};
 use arrow::datatypes::DataType;
 use arrow::util::display::array_value_to_string;
 use serde_json::{Map, Number, Value, json};
 #[cfg(feature = "duckdb")]
 use std::fs;
-use xiuxian_db_store::{
-    ColumnarScanOptions, LanceBooleanArray, LanceRecordBatch, LanceUInt64Array,
-    lance_batch_to_engine_batch,
-};
+use xiuxian_db_store::{ColumnarScanOptions, EngineRecordBatch};
 use xiuxian_wendao_runtime::transport::SqlFlightRouteResponse;
 
 use crate::analyzers::{
@@ -197,10 +196,8 @@ pub(super) async fn publish_repo_entities(
         .unwrap_or_else(|error| panic!("publish repo entities: {error}"));
 }
 
-pub(super) fn string_column_values(batch: &LanceRecordBatch, column_name: &str) -> Vec<String> {
-    let engine_batch = lance_batch_to_engine_batch(batch)
-        .unwrap_or_else(|error| panic!("convert batch for `{column_name}`: {error}"));
-    let column = engine_batch
+pub(super) fn string_column_values(batch: &EngineRecordBatch, column_name: &str) -> Vec<String> {
+    let column = batch
         .column_by_name(column_name)
         .unwrap_or_else(|| panic!("missing column `{column_name}`"));
     (0..column.len())
@@ -212,12 +209,10 @@ pub(super) fn string_column_values(batch: &LanceRecordBatch, column_name: &str) 
 }
 
 pub(super) fn nullable_string_column_values(
-    batch: &LanceRecordBatch,
+    batch: &EngineRecordBatch,
     column_name: &str,
 ) -> Vec<Option<String>> {
-    let engine_batch = lance_batch_to_engine_batch(batch)
-        .unwrap_or_else(|error| panic!("convert batch for `{column_name}`: {error}"));
-    let column = engine_batch
+    let column = batch
         .column_by_name(column_name)
         .unwrap_or_else(|| panic!("missing column `{column_name}`"));
     (0..column.len())
@@ -231,22 +226,22 @@ pub(super) fn nullable_string_column_values(
         .collect()
 }
 
-pub(super) fn bool_column_values(batch: &LanceRecordBatch, column_name: &str) -> Vec<bool> {
+pub(super) fn bool_column_values(batch: &EngineRecordBatch, column_name: &str) -> Vec<bool> {
     let column = batch
         .column_by_name(column_name)
         .unwrap_or_else(|| panic!("missing column `{column_name}`"));
-    if let Some(values) = column.as_any().downcast_ref::<LanceBooleanArray>() {
+    if let Some(values) = column.as_any().downcast_ref::<BooleanArray>() {
         return values.iter().map(|value| value.unwrap_or(false)).collect();
     }
 
     panic!("column `{column_name}` should be boolean");
 }
 
-pub(super) fn u64_column_values(batch: &LanceRecordBatch, column_name: &str) -> Vec<u64> {
+pub(super) fn u64_column_values(batch: &EngineRecordBatch, column_name: &str) -> Vec<u64> {
     let column = batch
         .column_by_name(column_name)
         .unwrap_or_else(|| panic!("missing column `{column_name}`"));
-    if let Some(values) = column.as_any().downcast_ref::<LanceUInt64Array>() {
+    if let Some(values) = column.as_any().downcast_ref::<UInt64Array>() {
         return values
             .iter()
             .map(std::option::Option::unwrap_or_default)
@@ -271,10 +266,8 @@ pub(super) fn sql_response_snapshot(response: &SqlFlightRouteResponse) -> Value 
     })
 }
 
-fn batch_snapshot(batch: &LanceRecordBatch) -> Value {
-    let engine_batch = lance_batch_to_engine_batch(batch)
-        .unwrap_or_else(|error| panic!("convert SQL batch for snapshot: {error}"));
-    let schema = engine_batch.schema();
+fn batch_snapshot(batch: &EngineRecordBatch) -> Value {
+    let schema = batch.schema();
     let columns = schema
         .fields()
         .iter()
@@ -286,11 +279,11 @@ fn batch_snapshot(batch: &LanceRecordBatch) -> Value {
             })
         })
         .collect::<Vec<_>>();
-    let rows = (0..engine_batch.num_rows())
+    let rows = (0..batch.num_rows())
         .map(|row_index| {
             let mut row = Map::new();
             for field in schema.fields() {
-                let column = engine_batch
+                let column = batch
                     .column_by_name(field.name())
                     .unwrap_or_else(|| panic!("missing snapshot column `{}`", field.name()));
                 row.insert(
@@ -303,7 +296,7 @@ fn batch_snapshot(batch: &LanceRecordBatch) -> Value {
         .collect::<Vec<_>>();
 
     json!({
-        "row_count": engine_batch.num_rows(),
+        "row_count": batch.num_rows(),
         "columns": columns,
         "rows": rows,
     })

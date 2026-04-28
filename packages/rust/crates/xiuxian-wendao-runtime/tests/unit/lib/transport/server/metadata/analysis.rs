@@ -1,15 +1,18 @@
 use crate::transport::{
     ANALYSIS_REPO_DOC_COVERAGE_ROUTE, ANALYSIS_REPO_INDEX_STATUS_ROUTE,
-    ANALYSIS_REPO_OVERVIEW_ROUTE, ANALYSIS_REPO_SYNC_ROUTE, is_search_family_route,
-    validate_markdown_analysis_request_metadata, validate_repo_doc_coverage_request_metadata,
-    validate_repo_index_status_request_metadata, validate_repo_overview_request_metadata,
-    validate_repo_sync_request_metadata,
+    ANALYSIS_REPO_OVERVIEW_ROUTE, ANALYSIS_REPO_SYNC_ROUTE, DocumentExtractMode,
+    WENDAO_DOCUMENT_EXTRACT_MODE_HEADER, WENDAO_DOCUMENT_EXTRACT_WAIT_MS_HEADER,
+    is_search_family_route, validate_document_extract_request_metadata,
+    validate_document_extract_status_request_metadata, validate_markdown_analysis_request_metadata,
+    validate_repo_doc_coverage_request_metadata, validate_repo_index_status_request_metadata,
+    validate_repo_overview_request_metadata, validate_repo_sync_request_metadata,
 };
 
 use super::super::assertions::{must_err, must_ok};
 use super::super::request_headers::{
-    build_markdown_analysis_metadata, build_repo_doc_coverage_metadata,
-    build_repo_index_status_metadata, build_repo_overview_metadata, build_repo_sync_metadata,
+    build_document_extract_metadata, build_markdown_analysis_metadata,
+    build_repo_doc_coverage_metadata, build_repo_index_status_metadata,
+    build_repo_overview_metadata, build_repo_sync_metadata,
 };
 
 #[test]
@@ -34,6 +37,98 @@ fn validate_markdown_analysis_request_metadata_rejects_blank_path() {
     );
 
     assert_eq!(error.message(), "markdown analysis path must not be blank");
+}
+
+#[test]
+fn validate_document_extract_request_metadata_accepts_latest_request() {
+    let metadata = build_document_extract_metadata(
+        "docs/manual.pdf",
+        Some(".cache/document-extract"),
+        Some("1"),
+        Some("no"),
+    );
+
+    let request = must_ok(
+        validate_document_extract_request_metadata(&metadata),
+        "stable document extraction metadata should validate",
+    );
+
+    assert_eq!(request.source_path, "docs/manual.pdf");
+    assert_eq!(request.output_dir, ".cache/document-extract");
+    assert!(request.force);
+    assert!(!request.error_row);
+    assert_eq!(request.mode, DocumentExtractMode::Sync);
+    assert_eq!(request.wait_ms, 0);
+}
+
+#[test]
+fn validate_document_extract_request_metadata_uses_latest_defaults() {
+    let metadata = build_document_extract_metadata("docs/manual.pdf", None, None, None);
+
+    let request = must_ok(
+        validate_document_extract_request_metadata(&metadata),
+        "document extraction metadata without optional headers should validate",
+    );
+
+    assert_eq!(request.output_dir, "");
+    assert!(!request.force);
+    assert!(request.error_row);
+    assert_eq!(request.mode, DocumentExtractMode::Sync);
+    assert_eq!(request.wait_ms, 0);
+}
+
+#[test]
+fn validate_document_extract_request_metadata_accepts_async_mode() {
+    let mut metadata = build_document_extract_metadata(
+        "docs/manual.pdf",
+        Some(".cache/document-extract"),
+        None,
+        None,
+    );
+    metadata.insert(
+        WENDAO_DOCUMENT_EXTRACT_MODE_HEADER,
+        tonic::metadata::MetadataValue::from_static("async"),
+    );
+    metadata.insert(
+        WENDAO_DOCUMENT_EXTRACT_WAIT_MS_HEADER,
+        tonic::metadata::MetadataValue::from_static("250"),
+    );
+
+    let request = must_ok(
+        validate_document_extract_request_metadata(&metadata),
+        "async document extraction metadata should validate",
+    );
+
+    assert_eq!(request.mode, DocumentExtractMode::Async);
+    assert_eq!(request.wait_ms, 250);
+}
+
+#[test]
+fn validate_document_extract_status_request_metadata_requires_job_id() {
+    let metadata = tonic::metadata::MetadataMap::new();
+
+    let error = must_err(
+        validate_document_extract_status_request_metadata(&metadata),
+        "missing document extraction job id should fail",
+    );
+
+    assert_eq!(error.message(), "document extract job id must not be blank");
+}
+
+#[test]
+fn validate_document_extract_request_metadata_rejects_invalid_bool() {
+    let metadata =
+        build_document_extract_metadata("docs/manual.pdf", None, Some("sometimes"), None);
+
+    let error = must_err(
+        validate_document_extract_request_metadata(&metadata),
+        "invalid document extraction bool should fail",
+    );
+
+    assert_eq!(
+        error.message(),
+        "invalid document extract force header `x-wendao-document-extract-force`"
+    );
 }
 
 #[test]

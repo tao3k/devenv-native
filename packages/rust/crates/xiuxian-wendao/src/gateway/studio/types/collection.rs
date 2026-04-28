@@ -2,8 +2,9 @@ use specta::TypeCollection;
 
 use super::{
     ApiError, AstSearchResponse, AttachmentSearchResponse, AutocompleteResponse,
-    CodeAstAnalysisResponse, DefinitionResolveResponse, GraphNeighborsResponse,
-    MarkdownAnalysisResponse, PdfExtractResult, ReferenceSearchResponse, SearchResponse,
+    CodeAstAnalysisResponse, DefinitionResolveResponse, DocumentExtractJobStatus,
+    DocumentExtractJobSubmitRequest, DocumentExtractJobsStatus, DocumentExtractResult,
+    GraphNeighborsResponse, MarkdownAnalysisResponse, ReferenceSearchResponse, SearchResponse,
     SymbolSearchResponse, Topology3dPayload, UiCapabilities, UiConfig, UiPluginArtifact,
     UiPluginLaunchSpec, VfsContentResponse, VfsEntry, VfsScanEntry, VfsScanResult,
 };
@@ -38,7 +39,10 @@ pub fn studio_frontend_type_collection() -> TypeCollection {
         .register::<AutocompleteResponse>()
         .register::<MarkdownAnalysisResponse>()
         .register::<CodeAstAnalysisResponse>()
-        .register::<PdfExtractResult>()
+        .register::<DocumentExtractResult>()
+        .register::<DocumentExtractJobSubmitRequest>()
+        .register::<DocumentExtractJobStatus>()
+        .register::<DocumentExtractJobsStatus>()
 }
 
 #[cfg(test)]

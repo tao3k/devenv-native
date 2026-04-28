@@ -129,6 +129,7 @@ def test_shipped_example_set_matches_current_beta_freeze() -> None:
     assert example_names == {
         "attachment_pdf_analyzer_workflow.py",
         "custom_repo_analyzer_workflow.py",
+        "document_extraction_workflow.py",
         "host_backed_repo_search_beta_smoke.py",
         "repo_search_workflow.py",
         "scripted_repo_search_workflow.py",
@@ -160,6 +161,24 @@ def test_attachment_pdf_analyzer_example_runs_scripted() -> None:
     assert "recorded_route= /search/attachments" in result.stdout
 
 
+def test_document_extraction_example_runs_fixture_mode() -> None:
+    result = _run_example_via_uv("examples/document_extraction_workflow.py")
+
+    assert "mode= fixture" in result.stdout
+    assert "known_docling_source= True" in result.stdout
+    assert "supported_formats= PDF,DOCX,XLSX,PPTX" in result.stdout
+    assert "common_suffixes= .pdf,.docx,.xlsx,.pptx" in result.stdout
+    assert "rows= 1" in result.stdout
+    assert (
+        "sourcePath,resourceType,resourcePath,pageIndex,caption,content,mimeType,status,elementId"
+        in result.stdout
+    )
+    assert "top_status= ok" in result.stdout
+    assert "top_resource_type= document" in result.stdout
+    assert "top_mime_type= text/markdown" in result.stdout
+    assert "top_content= # Parsed fixture" in result.stdout
+
+
 def test_repo_search_example_exposes_help() -> None:
     result = _run_example_via_uv("examples/repo_search_workflow.py", "--help")
 
@@ -183,6 +202,15 @@ def test_attachment_pdf_analyzer_example_exposes_help() -> None:
     assert "--mode {scripted,endpoint}" in result.stdout
     assert "--ext-filter" in result.stdout
     assert "--kind-filter" in result.stdout
+
+
+def test_document_extraction_example_exposes_help() -> None:
+    result = _run_example_via_uv("examples/document_extraction_workflow.py", "--help")
+
+    assert "Docling-backed multi-format document extraction workflow" in result.stdout
+    assert "--mode {fixture,docling}" in result.stdout
+    assert "--source" in result.stdout
+    assert "--error-row" in result.stdout
 
 
 def test_host_backed_beta_smoke_example_exposes_help() -> None:

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from wendao_core_lib import WendaoFlightRouteQuery, repo_search_request
 from xiuxian_wendao_analyzer import (
     AnalysisSummary,
     AnalyzerResultRow,
@@ -9,7 +10,6 @@ from xiuxian_wendao_analyzer import (
     TableAnalysisRun,
     parse_analyzer_result_rows,
 )
-from wendao_core_lib import WendaoFlightRouteQuery, repo_search_request
 
 
 def test_analyzer_result_row_preserves_optional_score_fields() -> None:

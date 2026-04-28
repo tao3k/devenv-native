@@ -42,6 +42,9 @@ and the offline companion is
 [`scripted_repo_search_workflow.py`](../examples/scripted_repo_search_workflow.py).
 For a non-repo example with a Rust-owned attachment route, also see
 [`attachment_pdf_analyzer_workflow.py`](../examples/attachment_pdf_analyzer_workflow.py).
+For local document parsing into Arrow rows, see
+[`document_extraction_workflow.py`](../examples/document_extraction_workflow.py)
+and `extract_document_table(...)`.
 
 ## Analyze Already Materialized Data
 
@@ -57,6 +60,13 @@ This is the intended bridge for Rust-owned routes that are not repo-search.
 The shipped PDF attachment example uses the same rule:
 `WendaoArrowSession.attachment_search(...)` materializes the table first, then
 `run_table_analysis(...)` applies Python logic over that returned data.
+
+For Docling-supported document parsing, `extract_document_table(...)` returns
+the Arrow-shaped resource table directly. Use the optional `documents` extra
+when running the real Docling converter. Use
+`DOCLING_SUPPORTED_DOCUMENT_FORMATS`, `DOCLING_COMMON_SOURCE_SUFFIXES`, and
+`is_known_docling_source(...)` only for UI or preflight hints; the converter is
+still the parser authority.
 
 ## Boundary Rule
 
