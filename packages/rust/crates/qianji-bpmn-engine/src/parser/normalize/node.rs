@@ -4,13 +4,13 @@ use crate::error::{BpmnEngineError, Result};
 use crate::ir_edge_api::BpmnEdgeSpec;
 use crate::ir_node_api::{
     BpmnHumanTaskAssignmentSpec, BpmnHumanTaskChoiceSpec, BpmnHumanTaskFormSpec,
-    BpmnHumanTaskFreeTextSpec, BpmnHumanTaskResourceRoleSpec, BpmnNodeSpec, BpmnScriptTaskSpec,
-    BpmnSubProcessKind,
+    BpmnHumanTaskFreeTextSpec, BpmnHumanTaskResourceRoleSpec, BpmnLaneMembershipSpec, BpmnNodeSpec,
+    BpmnScriptTaskSpec, BpmnSubProcessKind,
 };
 use crate::parser::import::{
     RawHumanTaskAssignmentSpec, RawHumanTaskChoiceSpec, RawHumanTaskFormSpec,
-    RawHumanTaskFreeTextSpec, RawHumanTaskResourceRoleSpec, RawNode, RawProcess, RawScriptTaskSpec,
-    RawSubProcessKind,
+    RawHumanTaskFreeTextSpec, RawHumanTaskResourceRoleSpec, RawLaneMembershipSpec, RawNode,
+    RawProcess, RawScriptTaskSpec, RawSubProcessKind,
 };
 use crate::parser::validate::resolve_structured_inclusive_join;
 use std::collections::HashMap;
@@ -45,6 +45,10 @@ fn normalize_node(
     };
     let spec = match node.decision.clone() {
         Some(decision) => spec.with_decision(decision),
+        None => spec,
+    };
+    let spec = match &node.lane {
+        Some(lane) => spec.with_lane(normalize_lane_membership(lane)),
         None => spec,
     };
     let spec = match &node.called_process_ref {
@@ -154,6 +158,23 @@ fn attach_boundary_host(
         }
         None => Ok(spec),
     }
+}
+
+fn normalize_lane_membership(raw: &RawLaneMembershipSpec) -> BpmnLaneMembershipSpec {
+    let mut lane = BpmnLaneMembershipSpec::new();
+    if let Some(lane_set_id) = &raw.set_id {
+        lane = lane.with_lane_set_id(lane_set_id);
+    }
+    if let Some(lane_set_name) = &raw.set_name {
+        lane = lane.with_lane_set_name(lane_set_name);
+    }
+    if let Some(lane_id) = &raw.id {
+        lane = lane.with_lane_id(lane_id);
+    }
+    if let Some(lane_name) = &raw.name {
+        lane = lane.with_lane_name(lane_name);
+    }
+    lane
 }
 
 fn normalize_subprocess_kind(kind: RawSubProcessKind) -> BpmnSubProcessKind {

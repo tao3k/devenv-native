@@ -74,6 +74,7 @@ fn empty_instance() -> BpmnInstanceState {
         event_competition: None,
         detached_transaction_compensation: None,
         pending_host_work: Vec::new(),
+        human_task_events: Vec::new(),
         suspend_reason: None,
         updated_at_ms: 0,
     }

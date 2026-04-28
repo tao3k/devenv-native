@@ -51,6 +51,7 @@ async fn runtime_sequential_multi_instance_repeats_until_cardinality_is_reached(
                 activity_id: Some("review".to_string()),
                 kind: PendingHostWorkKind::Service,
                 decision: None,
+                lane: None,
                 script_format: None,
                 script_body: None,
                 human_task_form: None,

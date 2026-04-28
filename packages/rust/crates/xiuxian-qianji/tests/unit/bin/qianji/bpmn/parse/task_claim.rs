@@ -85,8 +85,12 @@ fn parse_bpmn_command_accepts_tasks_claim_release_and_worklist() {
                 "worklist",
                 "--claimant",
                 "alice",
+                "--assignment-resource",
+                "reviewers",
+                "--lane",
+                "Reviewer Lane",
             ])),
-            "bpmn tasks worklist parse should accept claimant filter",
+            "bpmn tasks worklist parse should accept claimant and routing filters",
         ),
         "bpmn tasks worklist command should be detected",
     );
@@ -95,6 +99,8 @@ fn parse_bpmn_command_accepts_tasks_claim_release_and_worklist() {
         BpmnCliCommand::TaskWorklist(BpmnTaskWorklistCliCommand {
             checkpoint_backend: BpmnCliCheckpointBackend::LocalDuckDb,
             claimant: Some("alice".to_string()),
+            assignment_resource: Some("reviewers".to_string()),
+            lane: Some("Reviewer Lane".to_string()),
         })
     );
 }

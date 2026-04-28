@@ -8,7 +8,8 @@ pub(crate) use std::sync::Arc as StdArc;
 
 pub(crate) use qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnEventKind, BpmnExecutionTraceEvent, BpmnExecutionTraceEventKind,
-    BpmnHumanTaskAssignmentSpec, BpmnHumanTaskFormSpec, BpmnInstanceState, BpmnNodeKind,
+    BpmnHumanTaskAssignmentSpec, BpmnHumanTaskFormSpec, BpmnHumanTaskLifecycleEvent,
+    BpmnHumanTaskLifecycleEventKind, BpmnInstanceState, BpmnLaneMembershipSpec, BpmnNodeKind,
     BpmnPackage, BpmnProcessSpec, BpmnTimerKind, BpmnTimerSpec, BusinessRuleTaskOutcome,
     BusinessRuleTaskRequest, DmnEvaluationResult, EventPollOutcome, EventPollRequest,
     HostBridgeError, InstanceLifecycle, ManualTaskOutcome, ManualTaskRequest, NodeRuntimeStatus,
@@ -33,7 +34,8 @@ pub(crate) use xiuxian_qianji::{
     QianjiBpmnWorkflowTaskCompletionPayload, QianjiBpmnWorkflowTaskReleasePayload,
     QianjiBpmnWorkflowTaskReleaseReport, QianjiBpmnWorkflowTaskReleaseRequest,
     QianjiBpmnWorkflowWorklistItem, QianjiBpmnWorkflowWorklistReport,
-    QianjiBpmnWorkflowWorklistRequest, SchedulerAgentIdentity, load_bpmn_package_from_files,
+    QianjiBpmnWorkflowWorklistRequest, QianjiBpmnWorkflowWorklistRoutingFilter,
+    SchedulerAgentIdentity, load_bpmn_package_from_files,
 };
 
 pub(crate) use crate::common::{

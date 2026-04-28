@@ -79,6 +79,7 @@ fn empty_instance() -> BpmnInstanceState {
         event_competition: None,
         detached_transaction_compensation: None,
         pending_host_work: Vec::new(),
+        human_task_events: Vec::new(),
         suspend_reason: None,
         updated_at_ms: 0,
     }
@@ -105,6 +106,7 @@ fn pending_host_work(token_id: u64) -> PendingHostWork {
         activity_id: Some("Task_0".to_string()),
         kind: PendingHostWorkKind::Service,
         decision: None,
+        lane: None,
         script_format: None,
         script_body: None,
         human_task_form: None,

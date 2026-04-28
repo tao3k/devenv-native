@@ -21,7 +21,7 @@ async fn run_bpmn_command_completes_waiting_bundle_with_event_fixture() {
     );
 
     let output = must_ok(
-        run_bpmn_command(BpmnCliCommand::Run(BpmnRunCliCommand {
+        boxed_future(run_bpmn_command(BpmnCliCommand::Run(BpmnRunCliCommand {
             bpmn_path,
             dmn_paths: Vec::new(),
             process_id: "wait_flow".to_string(),
@@ -34,7 +34,7 @@ async fn run_bpmn_command_completes_waiting_bundle_with_event_fixture() {
             trace_stream: false,
             external_host: false,
             continue_until_human_boundary: false,
-        }))
+        })))
         .await,
         "bpmn run should resolve waiting bundle with event fixture",
     );
@@ -57,7 +57,7 @@ async fn run_bpmn_command_waiting_event_race_renders_competing_wait_diagnostics(
     let bpmn_path = write_event_race_bundle(&temp_dir);
 
     let output = must_ok(
-        run_bpmn_command(BpmnCliCommand::Run(BpmnRunCliCommand {
+        boxed_future(run_bpmn_command(BpmnCliCommand::Run(BpmnRunCliCommand {
             bpmn_path,
             dmn_paths: Vec::new(),
             process_id: "event_race".to_string(),
@@ -70,7 +70,7 @@ async fn run_bpmn_command_waiting_event_race_renders_competing_wait_diagnostics(
             trace_stream: false,
             external_host: false,
             continue_until_human_boundary: false,
-        }))
+        })))
         .await,
         "bpmn run should keep competing waits visible when no event fixture is supplied",
     );
@@ -118,7 +118,7 @@ async fn run_bpmn_command_completes_event_race_bundle_with_competition_event_fix
     );
 
     let output = must_ok(
-        run_bpmn_command(BpmnCliCommand::Run(BpmnRunCliCommand {
+        boxed_future(run_bpmn_command(BpmnCliCommand::Run(BpmnRunCliCommand {
             bpmn_path,
             dmn_paths: Vec::new(),
             process_id: "event_race".to_string(),
@@ -131,7 +131,7 @@ async fn run_bpmn_command_completes_event_race_bundle_with_competition_event_fix
             trace_stream: false,
             external_host: false,
             continue_until_human_boundary: false,
-        }))
+        })))
         .await,
         "bpmn run should resolve competing waits with an explicit event fixture winner",
     );

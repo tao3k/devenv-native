@@ -1,8 +1,8 @@
 use crate::bpmn_cli::deps::{
     QianjiBpmnWorkflowControlError, QianjiBpmnWorkflowTaskClaimPayload,
     QianjiBpmnWorkflowTaskClaimRequest, QianjiBpmnWorkflowTaskReleasePayload,
-    QianjiBpmnWorkflowTaskReleaseRequest, QianjiBpmnWorkflowWorklistRequest, QianjiRuntimeEnv,
-    SchedulerAgentIdentity,
+    QianjiBpmnWorkflowTaskReleaseRequest, QianjiBpmnWorkflowWorklistRequest,
+    QianjiBpmnWorkflowWorklistRoutingFilter, QianjiRuntimeEnv, SchedulerAgentIdentity,
 };
 use crate::bpmn_cli::render;
 use crate::bpmn_cli::types::{
@@ -72,6 +72,10 @@ pub(crate) async fn run_bpmn_task_worklist_command_with_runtime_env(
         .list_workflow_worklist(&QianjiBpmnWorkflowWorklistRequest {
             checkpoint_backend: command.checkpoint_backend.clone(),
             claimant: command.claimant.clone(),
+            routing: QianjiBpmnWorkflowWorklistRoutingFilter {
+                assignment_resource: command.assignment_resource.clone(),
+                lane: command.lane.clone(),
+            },
         })
         .await?;
     Ok(render::render_bpmn_task_worklist_output(command, &report))

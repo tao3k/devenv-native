@@ -72,6 +72,7 @@ fn assert_single_pending_host_work(
             activity_id: Some(expected.activity_id.to_string()),
             kind: expected.kind,
             decision: expected.decision,
+            lane: None,
             script_format: expected.script_format.map(str::to_string),
             script_body: expected.script_body.map(str::to_string),
             human_task_form: None,

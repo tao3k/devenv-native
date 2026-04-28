@@ -61,7 +61,7 @@ async fn run_bpmn_event_poll_command_with_runtime_env(
     .await
 }
 
-async fn run_bpmn_task_complete_command_with_runtime_env(
+pub(crate) async fn run_bpmn_task_complete_command_with_runtime_env(
     command: &BpmnTaskCompleteCliCommand,
     runtime_env: Option<&QianjiRuntimeEnv>,
     scheduler_identity: Option<&SchedulerAgentIdentity>,

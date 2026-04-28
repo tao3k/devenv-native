@@ -4,8 +4,9 @@ use crate::bpmn::control::{
 };
 use crate::bpmn::driver::QianjiBpmnExecutionReport;
 use qianji_bpmn_engine::{
-    BpmnAdvanceOutcome, BpmnHumanTaskAssignmentSpec, BpmnHumanTaskFormSpec, BpmnInstanceState,
-    InstanceLifecycle, PendingHostWork, PendingHostWorkClaim, PendingHostWorkKind,
+    BpmnAdvanceOutcome, BpmnHumanTaskAssignmentSpec, BpmnHumanTaskFormSpec,
+    BpmnHumanTaskLifecycleEvent, BpmnInstanceState, BpmnLaneMembershipSpec, InstanceLifecycle,
+    PendingHostWork, PendingHostWorkClaim, PendingHostWorkKind,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -29,6 +30,8 @@ pub struct QianjiBpmnPendingHostWorkHttpResponse {
     pub form: Option<BpmnHumanTaskFormSpec>,
     /// Optional standard BPMN assignment metadata preserved for host routing.
     pub assignment: Option<BpmnHumanTaskAssignmentSpec>,
+    /// Optional BPMN lane membership metadata preserved for host routing.
+    pub lane: Option<BpmnLaneMembershipSpec>,
     /// Optional checkpointed claim metadata.
     pub claim: Option<PendingHostWorkClaim>,
 }
@@ -44,6 +47,7 @@ impl QianjiBpmnPendingHostWorkHttpResponse {
             work_id: work.work_id.clone(),
             form: work.human_task_form.clone(),
             assignment: work.human_task_assignment.clone(),
+            lane: work.lane.clone(),
             claim: work.claim.clone(),
         }
     }
@@ -67,6 +71,9 @@ pub struct QianjiBpmnWorkflowSnapshotHttpResponse {
     /// Active host-work items with Rust-owned identity and human-task metadata.
     #[serde(default)]
     pub pending_host_work: Vec<QianjiBpmnPendingHostWorkHttpResponse>,
+    /// Durable lifecycle events for BPMN `userTask` and `manualTask`.
+    #[serde(default)]
+    pub human_task_events: Vec<BpmnHumanTaskLifecycleEvent>,
     /// Number of active external wait registrations.
     pub wait_registration_count: usize,
     /// Number of active runtime tokens.
@@ -89,6 +96,7 @@ impl QianjiBpmnWorkflowSnapshotHttpResponse {
                 .iter()
                 .map(QianjiBpmnPendingHostWorkHttpResponse::from_pending_host_work)
                 .collect(),
+            human_task_events: instance.human_task_events.clone(),
             wait_registration_count: instance.waits.len(),
             active_token_count: instance.active_tokens.len(),
         }

@@ -77,6 +77,7 @@ fn build_pending_host_work_request_for_entry(
         .unwrap_or_else(|| format!("node#{node_index}"));
     let form = pending.human_task_form.clone();
     let assignment = pending.human_task_assignment.clone();
+    let lane = pending.lane.clone();
     let claim = pending.claim.clone();
     let (variables, repeat) = resolve_pending_host_work_execution_context(instance, pending)?;
 
@@ -119,6 +120,7 @@ fn build_pending_host_work_request_for_entry(
             activity_id,
             variables,
             repeat,
+            lane,
             form,
             assignment,
             claim,
@@ -131,6 +133,7 @@ fn build_pending_host_work_request_for_entry(
             activity_id,
             variables,
             repeat,
+            lane,
             form,
             assignment,
             claim,

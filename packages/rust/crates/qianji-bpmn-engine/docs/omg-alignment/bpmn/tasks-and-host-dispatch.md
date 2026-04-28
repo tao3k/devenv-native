@@ -44,6 +44,10 @@ The field-level user/manual task contract is tracked in the
   resource roles. The current contract preserves role names, `resourceRef`
   text, and `resourceAssignmentExpression/formalExpression` text as host
   routing metadata only.
+- `userTask` and `manualTask` requests may also carry optional BPMN `lane`
+  membership metadata parsed from `laneSet/lane/flowNodeRef`. The current
+  contract preserves lane-set id/name and lane id/name as passive host routing
+  and display metadata only.
 - `userTask` and `manualTask` requests may also carry optional `claim`
   metadata when checkpointed pending host work has been allocated to one
   claimant. This is runtime allocation metadata for host coordination, not
@@ -55,14 +59,24 @@ The field-level user/manual task contract is tracked in the
 - A claimed user/manual task can be released by the same claimant so it
   returns to unclaimed worklist behavior. Different-claimant release and
   release of unclaimed work fail explicitly.
+- User/manual task creation, claim, release, and successful completion append
+  checkpointed `human_task_events` after the state change succeeds. The ledger
+  stores task identity, work kind, optional claimant, and optional work id; it
+  is a required field in the current checkpoint API, does not store submitted
+  completion payload data, and does not implement Flowable-style listeners or
+  interceptors.
 - When a pending user/manual task carries `form` metadata, completion data must
   be a JSON object whose fields are declared by the form. The primary
   `result_output` and non-optional `freeText` fields are required; undeclared
   completion fields are rejected before variable merge.
 - Control-service worklist output is derived from checkpointed user/manual
   `PendingHostWork` entries. Optional claimant filtering returns unclaimed
-  work plus work already claimed by the same claimant; it does not resolve
-  standard BPMN resource-role expressions.
+  work plus work already claimed by the same claimant. Optional
+  assignment-resource filtering matches preserved `humanPerformer` and
+  `potentialOwner` role names or `resourceRef` values exactly. Optional lane
+  filtering matches preserved BPMN lane id or lane name exactly. These filters
+  are passive routing selectors, not authorization, scheduling, participant
+  resolution, or full BPMN resource-role expression evaluation.
 - `PendingHostWork` persists the same BPMN `activity_id` for newly blocked
   work. Legacy checkpoints without that field remain readable, but fresh
   engine output is activity-identity complete.
@@ -72,9 +86,9 @@ The field-level user/manual task contract is tracked in the
 - in-engine script execution
 - correlations and broader collaboration-aware message routing
 - signal or timer task-event execution on `sendTask` or `receiveTask`
-- broader data-object, IO-specification, authorization, full task-assignment
-  semantics, delegation, administrative reassignment, and BPMN resource-role
-  expression resolution
+- broader data-object, IO-specification, authorization, lane scheduling, full
+  task-assignment semantics, delegation, administrative reassignment, and BPMN
+  resource-role expression resolution
 - native BPMN `rendering` execution for `userTask`; use bounded
   `qianji:interaction` metadata for executable form rendering in the current
   slice

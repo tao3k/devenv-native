@@ -20,6 +20,6 @@ pub(crate) use api::{
     push_active_token,
 };
 pub(super) use api::{
-    merge_output_data, record_transition, resolve_single_outgoing_edge, set_active_node_index,
-    set_node_status,
+    merge_output_data, record_human_task_lifecycle_event, record_transition,
+    resolve_single_outgoing_edge, set_active_node_index, set_node_status,
 };

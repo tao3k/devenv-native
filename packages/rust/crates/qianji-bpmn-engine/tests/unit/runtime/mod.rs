@@ -18,6 +18,7 @@ mod call_activity;
 mod claim;
 mod frontier;
 mod gateway;
+mod lane;
 mod linear;
 mod looped;
 mod multi_instance;

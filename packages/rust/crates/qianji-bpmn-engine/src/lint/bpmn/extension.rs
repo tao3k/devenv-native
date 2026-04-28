@@ -164,6 +164,18 @@ impl ExtensionScanState {
             issues.push(issue);
             return;
         }
+        if let Some(issue) = ambiguous_interaction_question_issue(source, contract) {
+            issues.push(issue);
+            return;
+        }
+        if let Some(issue) = ambiguous_interaction_choices_issue(source, contract) {
+            issues.push(issue);
+            return;
+        }
+        if let Some(issue) = unsupported_free_text_cardinality_issue(source, contract) {
+            issues.push(issue);
+            return;
+        }
         issues.extend(ambiguous_question_choices_ref_issue(source, contract));
         collect_dynamic_choice_ref_contract(
             &self.active_config,
@@ -386,6 +398,10 @@ fn is_qianji_question(event: &BytesStart<'_>) -> bool {
     is_event_name(event, "qianji:question")
 }
 
+fn is_qianji_free_text(event: &BytesStart<'_>) -> bool {
+    is_event_name(event, "qianji:freeText")
+}
+
 fn is_qianji_result(event: &BytesStart<'_>) -> bool {
     is_event_name(event, "qianji:result")
 }
@@ -444,23 +460,66 @@ struct InteractionContract {
     question_span: Option<std::ops::Range<usize>>,
     choices_span: Option<std::ops::Range<usize>>,
     result_span: Option<std::ops::Range<usize>>,
+    question_source_count: usize,
+    question_sources: Vec<String>,
+    choices_ref_count: usize,
+    static_choice_count: usize,
+    free_text_fields: Vec<String>,
+    free_text_span: Option<std::ops::Range<usize>>,
 }
 
 fn read_interaction_contract(reader: &mut Reader<&[u8]>) -> InteractionContract {
     let mut contract = InteractionContract::default();
     let mut depth = 0usize;
+    let mut active_question_depth = None;
+    let mut active_question_text_seen = false;
     loop {
         match reader.read_event() {
             Ok(Event::Start(event)) => {
+                let is_question = is_qianji_question(&event);
                 collect_interaction_child_contract(reader, &event, &mut contract);
                 depth += 1;
+                if is_question {
+                    active_question_depth = Some(depth);
+                    active_question_text_seen = false;
+                }
             }
             Ok(Event::Empty(event)) => {
                 collect_interaction_child_contract(reader, &event, &mut contract);
             }
+            Ok(Event::Text(event)) => {
+                if active_question_depth.is_some()
+                    && !active_question_text_seen
+                    && event
+                        .decode()
+                        .ok()
+                        .is_some_and(|text| !text.trim().is_empty())
+                {
+                    active_question_text_seen = true;
+                    record_question_source(&mut contract, "inline_text");
+                }
+            }
+            Ok(Event::CData(event)) => {
+                if active_question_depth.is_some()
+                    && !active_question_text_seen
+                    && event
+                        .decode()
+                        .ok()
+                        .is_some_and(|text| !text.trim().is_empty())
+                {
+                    active_question_text_seen = true;
+                    record_question_source(&mut contract, "inline_text");
+                }
+            }
             Ok(Event::End(event)) => {
                 if depth == 0 && is_end_event_name(&event, "qianji:interaction") {
                     return contract;
+                }
+                if active_question_depth == Some(depth)
+                    && local_name(event.name().as_ref()) == "question"
+                {
+                    active_question_depth = None;
+                    active_question_text_seen = false;
                 }
                 depth = depth.saturating_sub(1);
             }
@@ -477,6 +536,11 @@ fn collect_interaction_child_contract(
 ) {
     if is_qianji_choice(event) && has_non_empty_attribute(reader, event, "value") {
         contract.has_choice_contract = true;
+        contract.static_choice_count += 1;
+        let span = reader_position(reader).and_then(|event_end| start_event_span(event_end, event));
+        if let Some(span) = span {
+            contract.choices_span.get_or_insert(span);
+        }
     }
     if is_qianji_choices(event)
         && let Some(reference) = attribute_value(reader, event, "ref")
@@ -484,6 +548,7 @@ fn collect_interaction_child_contract(
             .filter(|value| !value.is_empty())
     {
         contract.has_choice_contract = true;
+        contract.choices_ref_count += 1;
         let span = reader_position(reader).and_then(|event_end| start_event_span(event_end, event));
         contract.choices_ref.get_or_insert(reference);
         if let Some(span) = span {
@@ -496,9 +561,28 @@ fn collect_interaction_child_contract(
             .filter(|value| !value.is_empty())
     {
         let span = reader_position(reader).and_then(|event_end| start_event_span(event_end, event));
+        record_question_source(contract, format!("ref:{reference}"));
         contract.question_ref.get_or_insert(reference);
         if let Some(span) = span {
             contract.question_span.get_or_insert(span);
+        }
+    }
+    if is_qianji_question(event) && optional_non_empty_attribute(reader, event, "text").is_some() {
+        let span = reader_position(reader).and_then(|event_end| start_event_span(event_end, event));
+        record_question_source(contract, "text_attribute");
+        if contract.question_ref.is_none()
+            && let Some(span) = span
+        {
+            contract.question_span.get_or_insert(span);
+        }
+    }
+    if is_qianji_free_text(event)
+        && let Some(name) = optional_non_empty_attribute(reader, event, "name")
+    {
+        contract.free_text_fields.push(name);
+        let span = reader_position(reader).and_then(|event_end| start_event_span(event_end, event));
+        if let Some(span) = span {
+            contract.free_text_span.get_or_insert(span);
         }
     }
     if is_qianji_result(event)
@@ -512,6 +596,11 @@ fn collect_interaction_child_contract(
             contract.result_span.get_or_insert(span);
         }
     }
+}
+
+fn record_question_source(contract: &mut InteractionContract, source: impl Into<String>) {
+    contract.question_source_count += 1;
+    contract.question_sources.push(source.into());
 }
 
 fn collect_output_schema_contract(
@@ -2508,6 +2597,183 @@ fn interaction_outputs_repair_plan(
             }
         ],
     })
+}
+
+fn ambiguous_interaction_question_issue(
+    source: &BpmnSourceFile,
+    contract: &InteractionContract,
+) -> Option<LintIssue> {
+    if contract.question_source_count <= 1 {
+        return None;
+    }
+    let source_id = &source.source_id;
+    let observed_sources = contract.question_sources.clone();
+    let mut issue = LintIssue::new(
+        "bpmn.ambiguous_qianji_interaction_question",
+        "Qianji interaction question has multiple sources",
+        format!(
+            "Source '{source_id}' declares {} qianji question sources in one interaction.",
+            contract.question_source_count
+        ),
+        "A host-rendered question must have exactly one authority: inline text, a `text` attribute, or a dynamic `ref`. Mixing them makes the displayed prompt ambiguous.",
+        vec![
+            "Keep one `qianji:question` source only: inline text for static prompts, `text` for compact static prompts, or `ref` for dynamic prompts.".to_string(),
+            "Move explanatory details into the surrounding qianji prompt or a downstream serviceTask instead of adding a second question source.".to_string(),
+            "If the question is generated dynamically, keep only `qianji:question ref` and make the referenced variable a string display value.".to_string(),
+        ],
+        format!(
+            "Repair BPMN source '{source_id}' by choosing one question source for this qianji interaction. Do not combine `ref`, `text`, and inline question body text."
+        ),
+        json!({
+            "source_id": source_id,
+            "observed_question_sources": observed_sources,
+            "allowed_question_sources": ["inline_text", "text_attribute", "ref"],
+        }),
+    )
+    .with_structured_repair(interaction_repair_plan(
+        source_id,
+        "choose_one_question_source",
+        json!({
+            "op": "choose_one",
+            "allowed_question_sources": [
+                {"element": "qianji:question", "form": "inline text"},
+                {"element": "qianji:question", "attribute": "text"},
+                {"element": "qianji:question", "attribute": "ref"}
+            ],
+            "observed_question_sources": observed_sources,
+            "forbidden": "combining qianji:question ref, text, or inline body text in one interaction"
+        }),
+    ));
+    if let Some(span) = contract.question_span.as_ref() {
+        issue = issue.with_source_diagnostic(LintSourceDiagnostic::new(
+            source_id,
+            LintSourceSpan::new(span.start, span.end),
+            "choose one question source",
+            "Keep inline text, `text`, or `ref`, but do not combine question sources.",
+        ));
+    }
+    Some(issue)
+}
+
+fn ambiguous_interaction_choices_issue(
+    source: &BpmnSourceFile,
+    contract: &InteractionContract,
+) -> Option<LintIssue> {
+    let mixes_dynamic_and_static =
+        contract.choices_ref_count > 0 && contract.static_choice_count > 0;
+    let has_multiple_dynamic_refs = contract.choices_ref_count > 1;
+    if !mixes_dynamic_and_static && !has_multiple_dynamic_refs {
+        return None;
+    }
+    let source_id = &source.source_id;
+    let choices_ref = contract.choices_ref.as_deref();
+    let mut issue = LintIssue::new(
+        "bpmn.ambiguous_qianji_interaction_choices",
+        "Qianji interaction choices have multiple sources",
+        format!(
+            "Source '{source_id}' declares {} dynamic choices ref(s) and {} inline choice(s) in one interaction.",
+            contract.choices_ref_count, contract.static_choice_count
+        ),
+        "A choice host must render either one dynamic choices array or one static inline choice list. Mixing both lets runtime data and model XML disagree about the available answers.",
+        vec![
+            "Use `<qianji:choices ref=\"currentChoices\"/>` when an upstream task generates the full choices array.".to_string(),
+            "Use only inline `qianji:choice value` entries when the options are static.".to_string(),
+            "Do not combine dynamic choices refs with inline fallback choices in the same executable interaction.".to_string(),
+        ],
+        format!(
+            "Repair BPMN source '{source_id}' by choosing either a single dynamic `qianji:choices ref` or inline `qianji:choice` elements for this interaction."
+        ),
+        json!({
+            "source_id": source_id,
+            "choices_ref": choices_ref,
+            "choices_ref_count": contract.choices_ref_count,
+            "static_choice_count": contract.static_choice_count,
+            "allowed_choice_sources": ["qianji:choices[ref]", "qianji:choice[value]"],
+        }),
+    )
+    .with_structured_repair(interaction_repair_plan(
+        source_id,
+        "choose_one_choices_source",
+        json!({
+            "op": "choose_one",
+            "allowed_choice_sources": [
+                {
+                    "element": "qianji:choices",
+                    "required_attributes": ["ref"],
+                    "use_when": "choices are generated by upstream workflow data"
+                },
+                {
+                    "element": "qianji:choice",
+                    "required_attributes": ["value"],
+                    "use_when": "choices are static in the BPMN model"
+                }
+            ],
+            "forbidden": "combining dynamic choices refs and inline static choices in one interaction"
+        }),
+    ));
+    if let Some(span) = contract.choices_span.as_ref() {
+        issue = issue.with_source_diagnostic(LintSourceDiagnostic::new(
+            source_id,
+            LintSourceSpan::new(span.start, span.end),
+            "choose one choices source",
+            "Use either one dynamic choices ref or inline choices, but not both.",
+        ));
+    }
+    Some(issue)
+}
+
+fn unsupported_free_text_cardinality_issue(
+    source: &BpmnSourceFile,
+    contract: &InteractionContract,
+) -> Option<LintIssue> {
+    if contract.free_text_fields.len() <= 1 {
+        return None;
+    }
+    let source_id = &source.source_id;
+    let field_names = contract.free_text_fields.clone();
+    let mut issue = LintIssue::new(
+        "bpmn.unsupported_qianji_free_text_cardinality",
+        "Qianji interaction has too many free-text fields",
+        format!(
+            "Source '{source_id}' declares {} qianji:freeText fields in one interaction.",
+            field_names.len()
+        ),
+        "The current bounded human-task form ABI supports at most one supplemental free-text field per interaction. More fields require a nested or structured form envelope that is not implemented yet.",
+        vec![
+            "Keep at most one optional `qianji:freeText` field for supplemental feedback.".to_string(),
+            "Use `qianji:result output` for the primary answer value.".to_string(),
+            "Model richer multi-field forms only after a Rust-owned nested-envelope contract is introduced.".to_string(),
+        ],
+        format!(
+            "Repair BPMN source '{source_id}' by reducing this qianji interaction to one `qianji:freeText` field or moving multi-field form data behind a future Rust-owned structured envelope."
+        ),
+        json!({
+            "source_id": source_id,
+            "free_text_fields": field_names,
+            "max_supported_free_text_fields": 1,
+            "deferred_contract": "nested_form_envelope",
+        }),
+    )
+    .with_structured_repair(interaction_repair_plan(
+        source_id,
+        "reduce_free_text_cardinality",
+        json!({
+            "op": "reduce_children",
+            "element": "qianji:freeText",
+            "max_supported": 1,
+            "use_qianji_result_for_primary_answer": true,
+            "deferred": "nested or arbitrary JSON form schemas"
+        }),
+    ));
+    if let Some(span) = contract.free_text_span.as_ref() {
+        issue = issue.with_source_diagnostic(LintSourceDiagnostic::new(
+            source_id,
+            LintSourceSpan::new(span.start, span.end),
+            "free-text cardinality is unsupported",
+            "Keep at most one qianji:freeText field until a nested form envelope exists.",
+        ));
+    }
+    Some(issue)
 }
 
 fn ambiguous_question_choices_ref_issue(

@@ -44,6 +44,7 @@ async fn runtime_standard_loop_repeats_until_loop_maximum() {
                 activity_id: Some("review".to_string()),
                 kind: PendingHostWorkKind::Service,
                 decision: None,
+                lane: None,
                 script_format: None,
                 script_body: None,
                 human_task_form: None,

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  id="Defs_HumanTaskLane"
+                  targetNamespace="https://qianji.local/test/human-task-lane">
+  <bpmn:process id="review" isExecutable="true">
+    <bpmn:laneSet id="LaneSet_Review" name="Ownership">
+      <bpmn:lane id="Lane_Reviewer" name="Reviewer Lane">
+        <bpmn:flowNodeRef>review_task</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="start">
+      <bpmn:outgoing>flow_start_review</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:userTask id="review_task" name="Review">
+      <bpmn:incoming>flow_start_review</bpmn:incoming>
+      <bpmn:outgoing>flow_review_end</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:endEvent id="end">
+      <bpmn:incoming>flow_review_end</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="flow_start_review" sourceRef="start" targetRef="review_task" />
+    <bpmn:sequenceFlow id="flow_review_end" sourceRef="review_task" targetRef="end" />
+  </bpmn:process>
+</bpmn:definitions>

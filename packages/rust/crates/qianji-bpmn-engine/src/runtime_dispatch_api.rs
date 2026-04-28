@@ -2,7 +2,9 @@
 
 use crate::dmn_model_api::DmnDecisionRef;
 use crate::ir_index_api::BpmnNodeIndex;
-use crate::ir_node_api::{BpmnHumanTaskAssignmentSpec, BpmnHumanTaskFormSpec};
+use crate::ir_node_api::{
+    BpmnHumanTaskAssignmentSpec, BpmnHumanTaskFormSpec, BpmnLaneMembershipSpec,
+};
 
 /// Host work categories owned by the bridge layer.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -48,6 +50,9 @@ pub struct PendingHostWork {
     pub kind: PendingHostWorkKind,
     /// Optional DMN decision binding for business-rule work.
     pub decision: Option<DmnDecisionRef>,
+    /// Optional BPMN lane membership metadata for passive routing/display.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub lane: Option<BpmnLaneMembershipSpec>,
     /// Optional source-level `scriptFormat` attribute for script-task work.
     #[serde(default)]
     pub script_format: Option<String>,

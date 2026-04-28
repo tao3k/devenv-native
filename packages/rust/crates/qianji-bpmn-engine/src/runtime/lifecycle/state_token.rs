@@ -2,8 +2,9 @@ use super::token_cursor::{TokenIdAllocator, allocate_token_id};
 use crate::runtime::lifecycle::scope::{
     BpmnEngineError, BpmnExecutionTraceEvent, BpmnExecutionTraceEventKind, BpmnInstanceState,
     BpmnNodeIndex, BpmnNodeKind, BpmnProcessSpec, InclusiveJoinHint, InstanceLifecycle,
-    NodeRuntimeStatus, Result, TokenRecord,
+    NodeRuntimeStatus, PendingHostWork, PendingHostWorkKind, Result, TokenRecord,
 };
+use crate::runtime_instance_api::{BpmnHumanTaskLifecycleEvent, BpmnHumanTaskLifecycleEventKind};
 
 pub(crate) fn find_single_start_node(process: &BpmnProcessSpec) -> Result<BpmnNodeIndex> {
     let mut start_nodes = process
@@ -230,6 +231,42 @@ pub(crate) fn clear_pending_host_work(instance: &mut BpmnInstanceState, token_id
         .retain(|pending| pending.token_id != token_id);
 }
 
+pub(crate) fn record_human_task_lifecycle_event(
+    instance: &mut BpmnInstanceState,
+    kind: BpmnHumanTaskLifecycleEventKind,
+    pending: &PendingHostWork,
+    occurred_at_ms: u64,
+    claimant: Option<String>,
+) {
+    if !matches!(
+        pending.kind,
+        PendingHostWorkKind::User | PendingHostWorkKind::Manual
+    ) {
+        return;
+    }
+
+    instance
+        .human_task_events
+        .push(BpmnHumanTaskLifecycleEvent {
+            sequence: next_human_task_lifecycle_event_sequence(instance),
+            kind,
+            occurred_at_ms,
+            process_id: pending
+                .process_id
+                .clone()
+                .unwrap_or_else(|| instance.process.process_id.to_string()),
+            activity_id: pending
+                .activity_id
+                .clone()
+                .unwrap_or_else(|| format!("node#{}", pending.node_index)),
+            token_id: pending.token_id,
+            node_index: pending.node_index,
+            work_kind: pending.kind.clone(),
+            claimant,
+            work_id: pending.work_id.clone(),
+        });
+}
+
 pub(crate) fn has_pending_host_work_for_process_node(
     instance: &BpmnInstanceState,
     process_id: &str,
@@ -282,6 +319,12 @@ fn push_flow_take_trace(
 
 fn next_trace_sequence(instance: &BpmnInstanceState) -> u64 {
     u64::try_from(instance.trace.len())
+        .unwrap_or(u64::MAX)
+        .saturating_add(1)
+}
+
+fn next_human_task_lifecycle_event_sequence(instance: &BpmnInstanceState) -> u64 {
+    u64::try_from(instance.human_task_events.len())
         .unwrap_or(u64::MAX)
         .saturating_add(1)
 }

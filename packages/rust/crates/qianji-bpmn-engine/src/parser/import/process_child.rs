@@ -84,6 +84,7 @@ fn open_nested_shell(
         kind: BpmnNodeKind::SubProcess,
         gateway_kind: None,
         decision,
+        lane: None,
         task_message_ref: None,
         script_task: None,
         human_task_form: None,
@@ -173,6 +174,7 @@ fn push_process_child_node(
         kind,
         gateway_kind,
         decision,
+        lane: None,
         task_message_ref,
         script_task,
         human_task_form: None,
@@ -290,6 +292,11 @@ fn raw_subprocess_kind_for_nested_shell(kind: NestedShellKind) -> RawSubProcessK
 fn is_ignored_process_child(tag: &str) -> bool {
     matches!(
         tag,
-        "documentation" | "extensionElements" | "incoming" | "outgoing" | "textAnnotation"
+        "documentation"
+            | "extensionElements"
+            | "incoming"
+            | "outgoing"
+            | "laneSet"
+            | "textAnnotation"
     )
 }

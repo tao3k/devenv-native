@@ -22,7 +22,11 @@ pub(super) fn human_task_standard_issues(source: &BpmnSourceFile) -> Vec<LintIss
                 state.handle_start(source, &reader, &event, &mut issues, true);
             }
             Ok(Event::End(event)) => state.handle_end(&event),
-            Ok(Event::Eof) | Err(_) => return issues,
+            Ok(Event::Eof) => {
+                issues.extend(state.global_human_task_binding_issues(source));
+                return issues;
+            }
+            Err(_) => return issues,
             Ok(_) => {}
         }
     }
@@ -32,6 +36,22 @@ pub(super) fn issue_from_bpmn_human_task_standard_error(
     source: &BpmnSourceFile,
     error: &BpmnEngineError,
 ) -> Option<LintIssue> {
+    if let BpmnEngineError::UnknownCalledProcess {
+        process_id,
+        node_id,
+        called_process_id,
+    } = error
+    {
+        return human_task_standard_issues(source)
+            .into_iter()
+            .find(|issue| {
+                issue.code == "bpmn.unsupported_global_human_task_binding"
+                    && issue.evidence["process_id"].as_str() == Some(process_id.as_str())
+                    && issue.evidence["call_activity_id"].as_str() == Some(node_id.as_str())
+                    && issue.evidence["called_element"].as_str() == Some(called_process_id.as_str())
+            });
+    }
+
     let BpmnEngineError::UnsupportedElement { element, .. } = error else {
         return None;
     };
@@ -50,6 +70,9 @@ pub(super) fn issue_from_bpmn_human_task_standard_error(
 struct HumanTaskStandardScanState {
     active_tasks: Vec<HumanTaskContext>,
     active_roles: Vec<String>,
+    active_processes: Vec<ProcessContext>,
+    global_human_tasks: Vec<GlobalHumanTaskContext>,
+    call_activities: Vec<CallActivityContext>,
 }
 
 impl HumanTaskStandardScanState {
@@ -62,6 +85,39 @@ impl HumanTaskStandardScanState {
         is_empty: bool,
     ) {
         let tag = local_name(event.name().as_ref()).to_string();
+
+        if tag == "process" {
+            if !is_empty {
+                self.active_processes.push(ProcessContext {
+                    process_id: attribute_value(reader, event, "id"),
+                });
+            }
+            return;
+        }
+
+        if tag == "callActivity"
+            && let (Some(process), Some(called_element)) = (
+                self.active_processes.last(),
+                attribute_value(reader, event, "calledElement"),
+            )
+        {
+            self.call_activities.push(CallActivityContext {
+                process_id: process.process_id.clone(),
+                activity_id: attribute_value(reader, event, "id"),
+                called_element,
+                span: event_span(reader, event).unwrap_or(0..0),
+            });
+        }
+
+        if is_global_human_interaction_task(&tag)
+            && self.active_processes.is_empty()
+            && let Some(task_id) = attribute_value(reader, event, "id")
+        {
+            self.global_human_tasks.push(GlobalHumanTaskContext {
+                task_id,
+                task_kind: tag.clone(),
+            });
+        }
 
         if is_human_interaction_task(&tag) {
             let context = HumanTaskContext {
@@ -107,18 +163,109 @@ impl HumanTaskStandardScanState {
     fn handle_end(&mut self, event: &quick_xml::events::BytesEnd<'_>) {
         let name = event.name();
         let tag = local_name(name.as_ref());
-        if is_human_interaction_task(tag) {
+        if tag == "process" {
+            self.active_processes.pop();
+        } else if is_human_interaction_task(tag) {
             self.active_tasks.pop();
         } else if is_assignment_role(tag) {
             self.active_roles.pop();
         }
     }
+
+    fn global_human_task_binding_issues(&self, source: &BpmnSourceFile) -> Vec<LintIssue> {
+        self.call_activities
+            .iter()
+            .filter_map(|call_activity| {
+                self.global_human_tasks
+                    .iter()
+                    .find(|task| task.task_id == call_activity.called_element)
+                    .map(|task| {
+                        unsupported_global_human_task_binding_issue(source, call_activity, task)
+                    })
+            })
+            .collect()
+    }
+}
+
+#[derive(Clone)]
+struct ProcessContext {
+    process_id: Option<String>,
 }
 
 #[derive(Clone)]
 struct HumanTaskContext {
     task_id: Option<String>,
     task_kind: String,
+}
+
+#[derive(Clone)]
+struct GlobalHumanTaskContext {
+    task_id: String,
+    task_kind: String,
+}
+
+#[derive(Clone)]
+struct CallActivityContext {
+    process_id: Option<String>,
+    activity_id: Option<String>,
+    called_element: String,
+    span: Range<usize>,
+}
+
+fn unsupported_global_human_task_binding_issue(
+    source: &BpmnSourceFile,
+    call_activity: &CallActivityContext,
+    task: &GlobalHumanTaskContext,
+) -> LintIssue {
+    let source_id = &source.source_id;
+    let process_id = call_activity.process_id.as_deref().unwrap_or("<unknown>");
+    let activity_id = call_activity.activity_id.as_deref().unwrap_or("<unknown>");
+    LintIssue::new(
+        "bpmn.unsupported_global_human_task_binding",
+        "Global human task binding is not executable",
+        format!(
+            "Source '{source_id}' process '{process_id}' call activity '{activity_id}' targets global human task '{}'.",
+            task.task_id
+        ),
+        "OMG BPMN global human tasks are reusable root definitions, but the bounded Qianji runtime currently executes `callActivity` only when `calledElement` points to another executable process in the same BPMN package. Treating a global human task as an ordinary process child would move the runtime binding decision out of Rust and into downstream UI inference.",
+        vec![
+            "Model executable human work as a process-local `userTask` or `manualTask` with one bounded `qianji:interaction` contract.".to_string(),
+            "If reusable behavior is required now, wrap the human task in an executable process and point `callActivity calledElement` at that process id.".to_string(),
+            "Do not let adapters or UI code resolve a global human task id into executable form behavior.".to_string(),
+        ],
+        format!(
+            "Repair BPMN source '{source_id}' by changing call activity '{activity_id}' so `calledElement` targets an executable process id, or by replacing the call activity with a local human task that carries the typed `qianji:interaction` contract."
+        ),
+        json!({
+            "source_id": source_id,
+            "process_id": call_activity.process_id.as_deref(),
+            "call_activity_id": call_activity.activity_id.as_deref(),
+            "called_element": call_activity.called_element.as_str(),
+            "global_task_id": task.task_id.as_str(),
+            "global_task_kind": task.task_kind.as_str(),
+            "element": "callActivity",
+            "supported_call_activity_target": "same-package executable process",
+            "unsupported_binding": "global human task",
+        }),
+    )
+    .with_source_diagnostic(source_diagnostic_from_span(
+        source,
+        call_activity.span.clone(),
+        "global human task ids are not executable callActivity targets",
+        "Point `calledElement` at an executable process, or model the human work as a local `userTask`/`manualTask` with `qianji:interaction`.",
+    ))
+    .with_structured_repair(json!({
+        "schema_version": 1,
+        "contract": "qianji.bpmn.global_human_task_policy.v1",
+        "strategy": "replace_global_human_task_binding_with_rust_owned_executable_surface",
+        "actions": [{
+            "op": "replace_call_activity_target",
+            "call_activity_id": call_activity.activity_id.as_deref(),
+            "forbidden_called_element": call_activity.called_element.as_str(),
+            "allowed_targets": ["same-package executable process"],
+            "allowed_alternative": "local userTask/manualTask with qianji:interaction"
+        }]
+    }))
 }
 
 fn native_rendering_issue(
@@ -357,11 +504,29 @@ fn source_diagnostic(
     )
 }
 
+fn source_diagnostic_from_span(
+    source: &BpmnSourceFile,
+    span: Range<usize>,
+    label: impl Into<String>,
+    help: impl Into<String>,
+) -> LintSourceDiagnostic {
+    LintSourceDiagnostic::new(
+        &source.source_id,
+        LintSourceSpan::new(span.start, span.end),
+        label,
+        help,
+    )
+}
+
 fn event_span(reader: &Reader<&[u8]>, event: &BytesStart<'_>) -> Option<Range<usize>> {
     let event_end = usize::try_from(reader.buffer_position()).ok()?;
     let raw: &[u8] = event.as_ref();
     let start = event_end.checked_sub(raw.len() + 2)?;
     Some(start..event_end)
+}
+
+fn is_global_human_interaction_task(tag: &str) -> bool {
+    matches!(tag, "globalUserTask" | "globalManualTask")
 }
 
 fn is_human_interaction_task(tag: &str) -> bool {

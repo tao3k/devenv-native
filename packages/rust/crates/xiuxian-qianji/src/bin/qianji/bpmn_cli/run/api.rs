@@ -5,6 +5,7 @@ use super::{cancel, execution, instances, interrupt, session, status, tasks};
 #[cfg(test)]
 pub(crate) use super::execution::{
     run_bpmn_run_command_with_runtime_env, run_bpmn_start_at_command_with_runtime_env,
+    run_bpmn_task_complete_command_with_runtime_env,
 };
 #[cfg(test)]
 pub(crate) use super::shared::resolve_bpmn_checkpoint_store_with_env;
@@ -19,7 +20,7 @@ pub(crate) use super::tasks::{
 pub(crate) async fn handle_bpmn_command(
     command: BpmnCliCommand,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let output = run_bpmn_command(command).await?;
+    let output = Box::pin(run_bpmn_command(command)).await?;
     if !output.rendered.is_empty() {
         println!("{}", output.rendered);
     }

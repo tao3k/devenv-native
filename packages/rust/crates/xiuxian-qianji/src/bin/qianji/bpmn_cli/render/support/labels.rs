@@ -1,8 +1,8 @@
 use crate::bpmn_cli::deps::{
     BpmnAdvanceOutcome, BpmnEventKind, BpmnHumanTaskAssignmentSpec, BpmnHumanTaskFormSpec,
-    BpmnNodeKind, BpmnProcessSpec, BpmnTimerKind, BpmnTimerSpec, InstanceLifecycle,
-    NodeRuntimeStatus, PendingHostWorkKind, QianjiBpmnCheckpointStore,
-    QianjiBpmnWorkflowCheckpointBackend, SuspendReason, WaitKind,
+    BpmnHumanTaskLifecycleEventKind, BpmnLaneMembershipSpec, BpmnNodeKind, BpmnProcessSpec,
+    BpmnTimerKind, BpmnTimerSpec, InstanceLifecycle, NodeRuntimeStatus, PendingHostWorkKind,
+    QianjiBpmnCheckpointStore, QianjiBpmnWorkflowCheckpointBackend, SuspendReason, WaitKind,
 };
 
 pub(in crate::bpmn_cli::render) fn bpmn_checkpoint_backend_label(
@@ -83,6 +83,17 @@ pub(in crate::bpmn_cli::render) fn bpmn_pending_host_work_kind_label(
     }
 }
 
+pub(in crate::bpmn_cli::render) fn bpmn_human_task_lifecycle_event_kind_label(
+    kind: &BpmnHumanTaskLifecycleEventKind,
+) -> &'static str {
+    match kind {
+        BpmnHumanTaskLifecycleEventKind::Created => "created",
+        BpmnHumanTaskLifecycleEventKind::Claimed => "claimed",
+        BpmnHumanTaskLifecycleEventKind::Released => "released",
+        BpmnHumanTaskLifecycleEventKind::Completed => "completed",
+    }
+}
+
 pub(in crate::bpmn_cli::render) fn bpmn_human_task_form_label(
     form: &BpmnHumanTaskFormSpec,
 ) -> String {
@@ -146,6 +157,28 @@ fn bpmn_human_task_assignment_role_label(
     if let Some(expression) = role.assignment_expression.as_deref() {
         label.push_str(":expr=");
         label.push_str(expression);
+    }
+    label
+}
+
+pub(in crate::bpmn_cli::render) fn bpmn_lane_membership_label(
+    lane: &BpmnLaneMembershipSpec,
+) -> String {
+    let mut label = lane
+        .name
+        .as_deref()
+        .or(lane.id.as_deref())
+        .unwrap_or("unlabelled")
+        .to_string();
+    if let Some(lane_id) = lane.id.as_deref()
+        && lane.name.as_deref() != Some(lane_id)
+    {
+        label.push_str(" id=");
+        label.push_str(lane_id);
+    }
+    if let Some(lane_set) = lane.set_name.as_deref().or(lane.set_id.as_deref()) {
+        label.push_str(" set=");
+        label.push_str(lane_set);
     }
     label
 }

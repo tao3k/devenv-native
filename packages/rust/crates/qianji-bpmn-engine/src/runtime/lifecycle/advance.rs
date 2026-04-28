@@ -7,6 +7,7 @@ use super::scope::{
 use super::{
     blocking, call_activity, completion, error, gateway, prepare, repeat, state, transaction,
 };
+use crate::runtime_instance_api::BpmnHumanTaskLifecycleEventKind;
 use std::collections::BTreeSet;
 
 pub(super) fn advance_active_node(
@@ -470,6 +471,7 @@ pub(crate) fn apply_pending_host_work_result_impl(
         && transaction::detached_compensation_matches_pending(instance, &pending)
     {
         transaction::complete_detached_compensation_handler(package, instance, completed_at_ms)?;
+        record_human_task_completion_event(instance, &pending, completed_at_ms);
         maybe_clear_boundary_wait_after_host_completion(
             instance,
             pending_process_id.as_str(),
@@ -491,6 +493,7 @@ pub(crate) fn apply_pending_host_work_result_impl(
             pending.node_index,
             completed_at_ms,
         )?;
+        record_human_task_completion_event(instance, &pending, completed_at_ms);
         maybe_clear_boundary_wait_after_host_completion(
             instance,
             pending_process_id.as_str(),
@@ -506,6 +509,7 @@ pub(crate) fn apply_pending_host_work_result_impl(
         result.data(),
         completed_at_ms,
     )?;
+    record_human_task_completion_event(instance, &pending, completed_at_ms);
     maybe_clear_boundary_wait_after_host_completion(
         instance,
         pending_process_id.as_str(),
@@ -570,6 +574,20 @@ fn validate_human_task_completion_form(
     }
 
     Ok(())
+}
+
+fn record_human_task_completion_event(
+    instance: &mut BpmnInstanceState,
+    pending: &PendingHostWork,
+    completed_at_ms: u64,
+) {
+    state::record_human_task_lifecycle_event(
+        instance,
+        BpmnHumanTaskLifecycleEventKind::Completed,
+        pending,
+        completed_at_ms,
+        pending.claim.as_ref().map(|claim| claim.claimant.clone()),
+    );
 }
 
 fn maybe_clear_boundary_wait_after_host_completion(

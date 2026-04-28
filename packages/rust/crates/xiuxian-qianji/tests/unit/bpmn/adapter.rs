@@ -30,6 +30,7 @@ async fn default_bridge_keeps_unsupported_host_operations_explicit() {
                 activity_id: "Task_Review".to_string(),
                 variables: json!({ "approved": false }),
                 repeat: None,
+                lane: None,
                 form: None,
                 assignment: None,
                 claim: None,

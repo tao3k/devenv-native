@@ -12186,6 +12186,7 @@ dependencies = [
  "tokio",
  "tokio-util",
  "toml",
+ "tower",
  "walkdir",
  "xiuxian-ast",
  "xiuxian-config-core",
