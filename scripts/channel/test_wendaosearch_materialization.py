@@ -8,6 +8,7 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 PROCESS_RUNTIME = PROJECT_ROOT / "scripts/channel/process-runtime.sh"
 WENDAOSEARCH_COMMON = PROJECT_ROOT / "scripts/channel/wendaosearch-common.sh"
+CI_WORKFLOW = PROJECT_ROOT / ".github/workflows/ci.yaml"
 
 
 def _git(*args: str, cwd: Path) -> str:
@@ -122,6 +123,17 @@ def test_wendaosearch_materialize_package_repo_rejects_existing_nongit_directory
 
     assert result.returncode == 1
     assert "is not a git checkout" in result.stderr
+
+
+def test_ci_bootstraps_wendaosearch_from_package_project() -> None:
+    workflow = CI_WORKFLOW.read_text(encoding="utf-8")
+
+    assert (
+        'WENDAOSEARCH_JULIA_PROJECT="${GITHUB_WORKSPACE}/.data/WendaoSearch.jl"'
+        in workflow
+    )
+    assert "prepare_wendao_search_env.jl" not in workflow
+    assert "WENDAO_SEARCH_BOOTSTRAP_ENV" not in workflow
 
 
 def test_wendaosearch_launch_materializes_missing_package_checkout(
