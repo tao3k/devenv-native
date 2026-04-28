@@ -48,6 +48,57 @@ fn bundled_gateway_openapi_document_is_valid_json() {
 }
 
 #[test]
+fn bundled_gateway_openapi_document_declares_public_json_bearer_boundary() {
+    let document = load_bundled_wendao_gateway_openapi_document()
+        .unwrap_or_else(|error| panic!("bundled gateway OpenAPI should parse: {error}"));
+
+    let description = document["info"]["description"].as_str().unwrap_or_default();
+    assert!(
+        description.contains("HTTPS JSON"),
+        "bundled gateway OpenAPI should describe the public JSON API boundary"
+    );
+    assert!(
+        description.contains("Accept: text/event-stream"),
+        "bundled gateway OpenAPI should describe the public SSE streaming boundary"
+    );
+    assert_eq!(
+        document["security"][0]["WendaoBearerAuth"],
+        Value::Array(vec![])
+    );
+    assert_eq!(
+        document["components"]["securitySchemes"]["WendaoBearerAuth"]["type"],
+        Value::String("http".to_string())
+    );
+    assert_eq!(
+        document["components"]["securitySchemes"]["WendaoBearerAuth"]["scheme"],
+        Value::String("bearer".to_string())
+    );
+    assert_eq!(
+        document["components"]["securitySchemes"]["WendaoBearerAuth"]["bearerFormat"],
+        Value::String("Wendao bearer token, for example wd_...".to_string())
+    );
+    assert_eq!(
+        document["paths"]["/api/health"]["get"]["security"],
+        Value::Array(vec![])
+    );
+    assert!(
+        document["paths"]["/v1/responses"]["post"]["responses"]["200"]["content"]
+            .get("text/event-stream")
+            .is_some(),
+        "public responses route should document the SSE response contract"
+    );
+    assert_eq!(
+        document["paths"]["/v1/responses"]["post"]["requestBody"]["content"]["application/json"]["schema"]
+            ["$ref"],
+        Value::String("#/components/schemas/GatewayResponseRequest".to_string())
+    );
+    assert_eq!(
+        document["components"]["schemas"]["GatewayResponse"]["properties"]["object"]["const"],
+        Value::String("response".to_string())
+    );
+}
+
+#[test]
 fn bundled_gateway_openapi_document_covers_declared_route_inventory() {
     let document = load_bundled_wendao_gateway_openapi_document()
         .unwrap_or_else(|error| panic!("bundled gateway OpenAPI should parse: {error}"));
@@ -239,5 +290,9 @@ fn bundled_gateway_openapi_document_omits_flight_only_http_paths() {
     assert!(
         !paths.contains_key("/api/analysis/code-ast/retrieval-arrow"),
         "bundled gateway OpenAPI must not expose the retired code-ast retrieval-arrow path"
+    );
+    assert!(
+        !paths.contains_key("/arrow.flight.protocol.FlightService/{*grpc_method}"),
+        "bundled gateway OpenAPI must not expose the Flight transport route as public JSON API"
     );
 }

@@ -9,7 +9,10 @@ use anyhow::{Result, anyhow};
 use arrow_flight::flight_service_server::FlightServiceServer;
 use axum::Json;
 use axum::error_handling::HandleErrorLayer;
-use axum::http::StatusCode;
+use axum::extract::Request;
+use axum::http::{StatusCode, header};
+use axum::middleware::{self, Next};
+use axum::response::{IntoResponse, Response};
 #[cfg(feature = "zhenfa-router")]
 use axum::routing::any_service;
 use axum::routing::{Router, get, post};
@@ -27,13 +30,13 @@ use crate::execute::gateway::{
         resolve_config_path, resolve_port, resolve_webhook_config,
     },
     health::health,
-    query::{GATEWAY_QUERY_AXUM_PATH, query},
+    query::{GATEWAY_QUERY_AXUM_PATH, GATEWAY_RESPONSES_AXUM_PATH, query, responses},
     registry::build_plugin_registry,
     shared::AppState,
     status::{notify_status, stats},
 };
 use crate::types::{Cli, GatewayArgs, GatewayCommand, GatewayStartArgs};
-use xiuxian_config_core::lookup_positive_parsed;
+use xiuxian_config_core::{lookup_bool_flag, lookup_positive_parsed};
 use xiuxian_wendao::LinkGraphIndex;
 #[cfg(feature = "zhenfa-router")]
 use xiuxian_wendao::gateway::studio::build_studio_flight_service_with_weights;
@@ -58,6 +61,12 @@ const GATEWAY_STUDIO_CONCURRENCY_LIMIT_ENV: &str =
     "XIUXIAN_WENDAO_GATEWAY_STUDIO_CONCURRENCY_LIMIT";
 const GATEWAY_STUDIO_REQUEST_TIMEOUT_SECS_ENV: &str =
     "XIUXIAN_WENDAO_GATEWAY_STUDIO_REQUEST_TIMEOUT_SECS";
+const GATEWAY_FLIGHT_CONCURRENCY_LIMIT_ENV: &str =
+    "XIUXIAN_WENDAO_GATEWAY_FLIGHT_CONCURRENCY_LIMIT";
+const GATEWAY_FLIGHT_REQUEST_TIMEOUT_SECS_ENV: &str =
+    "XIUXIAN_WENDAO_GATEWAY_FLIGHT_REQUEST_TIMEOUT_SECS";
+const GATEWAY_FLIGHT_GRPC_WEB_ENABLED_ENV: &str = "XIUXIAN_WENDAO_GATEWAY_FLIGHT_GRPC_WEB_ENABLED";
+const GATEWAY_BEARER_TOKEN_ENV: &str = "XIUXIAN_WENDAO_GATEWAY_BEARER_TOKEN";
 const DEFAULT_GATEWAY_LISTEN_BACKLOG: u32 = 2048;
 const MIN_GATEWAY_LISTEN_BACKLOG: u32 = 128;
 const MAX_GATEWAY_LISTEN_BACKLOG: u32 = 8192;
@@ -67,6 +76,11 @@ const MAX_GATEWAY_STUDIO_CONCURRENCY_LIMIT: usize = 128;
 const DEFAULT_GATEWAY_STUDIO_REQUEST_TIMEOUT_SECS: u64 = 15;
 const MIN_GATEWAY_STUDIO_REQUEST_TIMEOUT_SECS: u64 = 5;
 const MAX_GATEWAY_STUDIO_REQUEST_TIMEOUT_SECS: u64 = 60;
+const MIN_GATEWAY_FLIGHT_CONCURRENCY_LIMIT: usize = 4;
+const MAX_GATEWAY_FLIGHT_CONCURRENCY_LIMIT: usize = 128;
+const MIN_GATEWAY_FLIGHT_REQUEST_TIMEOUT_SECS: u64 = 5;
+const MAX_GATEWAY_FLIGHT_REQUEST_TIMEOUT_SECS: u64 = 120;
+const DEFAULT_GATEWAY_FLIGHT_GRPC_WEB_ENABLED: bool = false;
 pub(crate) const GATEWAY_FLIGHT_SERVICE_AXUM_PATH: &str =
     "/arrow.flight.protocol.FlightService/{*grpc_method}";
 #[cfg(feature = "zhenfa-router")]
@@ -134,12 +148,21 @@ async fn handle_start(
     let listen_backlog = gateway_listen_backlog(gateway_runtime);
     let studio_concurrency_limit = gateway_studio_concurrency_limit(gateway_runtime);
     let studio_request_timeout = gateway_studio_request_timeout(gateway_runtime);
+    let flight_concurrency_limit = gateway_flight_concurrency_limit(studio_concurrency_limit);
+    let flight_request_timeout = gateway_flight_request_timeout(studio_request_timeout);
+    let flight_grpc_web_enabled = gateway_flight_grpc_web_enabled();
+    let bearer_token = gateway_bearer_token();
+    let bearer_auth_required = bearer_token.is_some();
 
     // 3. Build the Axum router
     let app = build_gateway_router(
         app_state.clone(),
         studio_concurrency_limit,
         studio_request_timeout,
+        flight_concurrency_limit,
+        flight_request_timeout,
+        flight_grpc_web_enabled,
+        bearer_token,
     )?;
 
     // 4. Start the server
@@ -149,6 +172,19 @@ async fn handle_start(
     info!(
         "Gateway listener backlog={listen_backlog}, studio concurrency limit={studio_concurrency_limit}, studio request timeout={}s",
         studio_request_timeout.as_secs()
+    );
+    #[cfg(feature = "zhenfa-router")]
+    info!(
+        "Gateway Flight concurrency limit={flight_concurrency_limit}, Flight request timeout={}s, gRPC-Web enabled={flight_grpc_web_enabled}",
+        flight_request_timeout.as_secs(),
+    );
+    info!(
+        "Gateway bearer auth required={}",
+        if bearer_auth_required {
+            "true"
+        } else {
+            "false"
+        }
     );
     info!("Endpoints:");
     info!(
@@ -163,6 +199,7 @@ async fn handle_start(
         "  - GET {}  - Notification service status",
         openapi_paths::API_NOTIFY_AXUM_PATH
     );
+    info!("  - POST {GATEWAY_RESPONSES_AXUM_PATH}  - Public JSON/SSE query response");
     #[cfg(feature = "zhenfa-router")]
     info!("  - POST {GATEWAY_FLIGHT_SERVICE_AXUM_PATH}  - Arrow Flight business plane");
 
@@ -198,6 +235,10 @@ pub(crate) fn build_gateway_router(
     app_state: Arc<AppState>,
     studio_concurrency_limit: usize,
     studio_request_timeout: Duration,
+    flight_concurrency_limit: usize,
+    flight_request_timeout: Duration,
+    flight_grpc_web_enabled: bool,
+    bearer_token: Option<Arc<str>>,
 ) -> Result<Router> {
     let studio_app = studio_routes().layer(
         ServiceBuilder::new()
@@ -206,22 +247,80 @@ pub(crate) fn build_gateway_router(
             .timeout(studio_request_timeout)
             .concurrency_limit(studio_concurrency_limit),
     );
-    let app = Router::new()
-        .route(openapi_paths::API_HEALTH_AXUM_PATH, get(health))
+    let protected_app = Router::new()
         .route(openapi_paths::API_STATS_AXUM_PATH, get(stats))
         .route(openapi_paths::API_NOTIFY_AXUM_PATH, get(notify_status))
         .route(GATEWAY_QUERY_AXUM_PATH, post(query))
-        .merge(studio_app)
+        .route(GATEWAY_RESPONSES_AXUM_PATH, post(responses))
+        .merge(studio_app);
+    let protected_app = if let Some(token) = bearer_token {
+        protected_app.route_layer(middleware::from_fn_with_state(
+            GatewayBearerAuth { token },
+            require_gateway_bearer_auth,
+        ))
+    } else {
+        protected_app
+    };
+    let app = Router::new()
+        .route(openapi_paths::API_HEALTH_AXUM_PATH, get(health))
+        .merge(protected_app)
         .with_state(app_state.clone());
 
     #[cfg(feature = "zhenfa-router")]
-    let app = mount_gateway_flight_service(app, app_state)?;
+    let app = mount_gateway_flight_service(
+        app,
+        app_state,
+        flight_concurrency_limit,
+        flight_request_timeout,
+        flight_grpc_web_enabled,
+    )?;
+    #[cfg(not(feature = "zhenfa-router"))]
+    let _ = (
+        flight_concurrency_limit,
+        flight_request_timeout,
+        flight_grpc_web_enabled,
+    );
 
     Ok(app)
 }
 
+#[derive(Clone)]
+struct GatewayBearerAuth {
+    token: Arc<str>,
+}
+
+async fn require_gateway_bearer_auth(
+    axum::extract::State(auth): axum::extract::State<GatewayBearerAuth>,
+    request: Request,
+    next: Next,
+) -> Response {
+    let expected = format!("Bearer {}", auth.token);
+    let authorized = request
+        .headers()
+        .get(header::AUTHORIZATION)
+        .and_then(|value| value.to_str().ok())
+        .is_some_and(|value| value == expected);
+    if authorized {
+        return next.run(request).await;
+    }
+    (
+        StatusCode::UNAUTHORIZED,
+        Json(serde_json::json!({
+            "error": "missing or invalid bearer token",
+            "code": "UNAUTHORIZED",
+        })),
+    )
+        .into_response()
+}
+
 #[cfg(feature = "zhenfa-router")]
-fn mount_gateway_flight_service(app: Router, app_state: Arc<AppState>) -> Result<Router> {
+fn mount_gateway_flight_service(
+    app: Router,
+    app_state: Arc<AppState>,
+    flight_concurrency_limit: usize,
+    flight_request_timeout: Duration,
+    flight_grpc_web_enabled: bool,
+) -> Result<Router> {
     let effective_settings = resolve_gateway_effective_search_host_settings()?;
     let flight_service = build_studio_flight_service_with_weights(
         Arc::new(app_state.studio.search_plane_service()),
@@ -231,7 +330,27 @@ fn mount_gateway_flight_service(app: Router, app_state: Arc<AppState>) -> Result
         effective_settings.rerank_weights,
     )
     .map_err(anyhow::Error::msg)?;
-    let flight_service = GrpcWebLayer::new().layer(FlightServiceServer::new(flight_service));
+    let flight_service = FlightServiceServer::new(flight_service);
+    if flight_grpc_web_enabled {
+        let flight_service = GrpcWebLayer::new().layer(flight_service);
+        let flight_service = ServiceBuilder::new()
+            .layer(HandleErrorLayer::new(handle_gateway_service_error))
+            .load_shed()
+            .timeout(flight_request_timeout)
+            .concurrency_limit(flight_concurrency_limit)
+            .service(flight_service);
+        return Ok(app.route(
+            GATEWAY_FLIGHT_SERVICE_AXUM_PATH,
+            any_service(flight_service),
+        ));
+    }
+
+    let flight_service = ServiceBuilder::new()
+        .layer(HandleErrorLayer::new(handle_gateway_service_error))
+        .load_shed()
+        .timeout(flight_request_timeout)
+        .concurrency_limit(flight_concurrency_limit)
+        .service(flight_service);
     Ok(app.route(
         GATEWAY_FLIGHT_SERVICE_AXUM_PATH,
         any_service(flight_service),
@@ -331,6 +450,67 @@ pub(crate) fn gateway_studio_request_timeout(
         runtime_config,
         &|key| std::env::var(key).ok(),
     ))
+}
+
+pub(crate) fn gateway_flight_concurrency_limit(studio_concurrency_limit: usize) -> usize {
+    gateway_flight_concurrency_limit_with_lookup(studio_concurrency_limit, &|key| {
+        std::env::var(key).ok()
+    })
+}
+
+pub(crate) fn gateway_flight_concurrency_limit_with_lookup(
+    studio_concurrency_limit: usize,
+    lookup: &dyn Fn(&str) -> Option<String>,
+) -> usize {
+    lookup_positive_parsed::<usize>(GATEWAY_FLIGHT_CONCURRENCY_LIMIT_ENV, lookup)
+        .unwrap_or(studio_concurrency_limit)
+        .clamp(
+            MIN_GATEWAY_FLIGHT_CONCURRENCY_LIMIT,
+            MAX_GATEWAY_FLIGHT_CONCURRENCY_LIMIT,
+        )
+}
+
+pub(crate) fn gateway_flight_request_timeout(studio_request_timeout: Duration) -> Duration {
+    Duration::from_secs(gateway_flight_request_timeout_secs_with_lookup(
+        studio_request_timeout.as_secs(),
+        &|key| std::env::var(key).ok(),
+    ))
+}
+
+pub(crate) fn gateway_flight_request_timeout_secs_with_lookup(
+    studio_request_timeout_secs: u64,
+    lookup: &dyn Fn(&str) -> Option<String>,
+) -> u64 {
+    lookup_positive_parsed::<u64>(GATEWAY_FLIGHT_REQUEST_TIMEOUT_SECS_ENV, lookup)
+        .unwrap_or(studio_request_timeout_secs)
+        .clamp(
+            MIN_GATEWAY_FLIGHT_REQUEST_TIMEOUT_SECS,
+            MAX_GATEWAY_FLIGHT_REQUEST_TIMEOUT_SECS,
+        )
+}
+
+pub(crate) fn gateway_flight_grpc_web_enabled() -> bool {
+    gateway_flight_grpc_web_enabled_with_lookup(&|key| std::env::var(key).ok())
+}
+
+pub(crate) fn gateway_flight_grpc_web_enabled_with_lookup(
+    lookup: &dyn Fn(&str) -> Option<String>,
+) -> bool {
+    lookup_bool_flag(GATEWAY_FLIGHT_GRPC_WEB_ENABLED_ENV, lookup)
+        .unwrap_or(DEFAULT_GATEWAY_FLIGHT_GRPC_WEB_ENABLED)
+}
+
+pub(crate) fn gateway_bearer_token() -> Option<Arc<str>> {
+    gateway_bearer_token_with_lookup(&|key| std::env::var(key).ok())
+}
+
+pub(crate) fn gateway_bearer_token_with_lookup(
+    lookup: &dyn Fn(&str) -> Option<String>,
+) -> Option<Arc<str>> {
+    lookup(GATEWAY_BEARER_TOKEN_ENV)
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty())
+        .map(Arc::<str>::from)
 }
 
 pub(crate) fn gateway_studio_request_timeout_secs_with_lookup(

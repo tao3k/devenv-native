@@ -3,19 +3,157 @@ use crate::transport::{
     REPO_SEARCH_DOC_ID_COLUMN, REPO_SEARCH_LANGUAGE_COLUMN, REPO_SEARCH_PATH_COLUMN,
     REPO_SEARCH_SCORE_COLUMN, REPO_SEARCH_TITLE_COLUMN, RERANK_ROUTE, WendaoFlightService,
 };
+use std::pin::Pin;
 use std::sync::Arc;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Duration;
 
-use arrow_flight::flight_service_server::FlightServiceServer;
+use arrow_flight::encode::FlightDataEncoderBuilder;
+use arrow_flight::flight_service_server::{FlightService, FlightServiceServer};
+use arrow_flight::{
+    Action, ActionType, Criteria, Empty, FlightData, FlightDescriptor, FlightInfo,
+    HandshakeRequest, HandshakeResponse, PollInfo, PutResult, SchemaResult, Ticket,
+};
+use async_trait::async_trait;
+use futures::{Stream, StreamExt};
 use tokio::net::TcpListener;
+use tokio::sync::Notify;
 use tokio::time::timeout;
 use tokio_stream::wrappers::TcpListenerStream;
 use tonic::transport::Server;
+use tonic::{Request, Response, Status};
 use xiuxian_db_store::{
     EngineRecordBatch, LanceDataType, LanceField, LanceFloat64Array,
     LanceFloat64Array as Float64Array, LanceInt32Array as Int32Array, LanceRecordBatch,
     LanceSchema, LanceStringArray as StringArray, engine_batches_to_lance_batches,
 };
+
+type BoxFlightStream<T> = Pin<Box<dyn Stream<Item = Result<T, Status>> + Send + 'static>>;
+
+#[derive(Clone)]
+struct ConcurrentExchangeProbeService {
+    arrivals: Arc<AtomicUsize>,
+    notify: Arc<Notify>,
+}
+
+impl ConcurrentExchangeProbeService {
+    fn new() -> Self {
+        Self {
+            arrivals: Arc::new(AtomicUsize::new(0)),
+            notify: Arc::new(Notify::new()),
+        }
+    }
+}
+
+#[async_trait]
+impl FlightService for ConcurrentExchangeProbeService {
+    type HandshakeStream = BoxFlightStream<HandshakeResponse>;
+    type ListFlightsStream = BoxFlightStream<FlightInfo>;
+    type DoGetStream = BoxFlightStream<FlightData>;
+    type DoPutStream = BoxFlightStream<PutResult>;
+    type DoExchangeStream = BoxFlightStream<FlightData>;
+    type DoActionStream = BoxFlightStream<arrow_flight::Result>;
+    type ListActionsStream = BoxFlightStream<ActionType>;
+
+    async fn handshake(
+        &self,
+        _request: Request<tonic::Streaming<HandshakeRequest>>,
+    ) -> Result<Response<Self::HandshakeStream>, Status> {
+        Err(Status::unimplemented("handshake is not used by this probe"))
+    }
+
+    async fn list_flights(
+        &self,
+        _request: Request<Criteria>,
+    ) -> Result<Response<Self::ListFlightsStream>, Status> {
+        Err(Status::unimplemented(
+            "list_flights is not used by this probe",
+        ))
+    }
+
+    async fn get_flight_info(
+        &self,
+        _request: Request<FlightDescriptor>,
+    ) -> Result<Response<FlightInfo>, Status> {
+        Err(Status::unimplemented(
+            "get_flight_info is not used by this probe",
+        ))
+    }
+
+    async fn poll_flight_info(
+        &self,
+        _request: Request<FlightDescriptor>,
+    ) -> Result<Response<PollInfo>, Status> {
+        Err(Status::unimplemented(
+            "poll_flight_info is not used by this probe",
+        ))
+    }
+
+    async fn get_schema(
+        &self,
+        _request: Request<FlightDescriptor>,
+    ) -> Result<Response<SchemaResult>, Status> {
+        Err(Status::unimplemented(
+            "get_schema is not used by this probe",
+        ))
+    }
+
+    async fn do_get(
+        &self,
+        _request: Request<Ticket>,
+    ) -> Result<Response<Self::DoGetStream>, Status> {
+        Err(Status::unimplemented("do_get is not used by this probe"))
+    }
+
+    async fn do_put(
+        &self,
+        _request: Request<tonic::Streaming<FlightData>>,
+    ) -> Result<Response<Self::DoPutStream>, Status> {
+        Err(Status::unimplemented("do_put is not used by this probe"))
+    }
+
+    async fn do_exchange(
+        &self,
+        _request: Request<tonic::Streaming<FlightData>>,
+    ) -> Result<Response<Self::DoExchangeStream>, Status> {
+        let arrivals = self.arrivals.fetch_add(1, Ordering::SeqCst) + 1;
+        if arrivals >= 2 {
+            self.notify.notify_waiters();
+        } else {
+            timeout(Duration::from_secs(1), self.notify.notified())
+                .await
+                .map_err(|_| {
+                    Status::deadline_exceeded("second request did not arrive concurrently")
+                })?;
+        }
+
+        let response_stream = FlightDataEncoderBuilder::new()
+            .build(futures::stream::iter(vec![Ok::<
+                EngineRecordBatch,
+                arrow_flight::error::FlightError,
+            >(
+                build_rerank_request_batch()
+            )]))
+            .map(|item| item.map_err(|error| Status::internal(error.to_string())));
+        Ok(Response::new(Box::pin(response_stream)))
+    }
+
+    async fn do_action(
+        &self,
+        _request: Request<Action>,
+    ) -> Result<Response<Self::DoActionStream>, Status> {
+        Err(Status::unimplemented("do_action is not used by this probe"))
+    }
+
+    async fn list_actions(
+        &self,
+        _request: Request<Empty>,
+    ) -> Result<Response<Self::ListActionsStream>, Status> {
+        Err(Status::unimplemented(
+            "list_actions is not used by this probe",
+        ))
+    }
+}
 
 fn build_rerank_request_batch() -> EngineRecordBatch {
     use arrow_array::types::Float32Type;
@@ -194,6 +332,54 @@ async fn flight_transport_client_roundtrips_batches_over_lance_arrow_line() {
     assert_eq!(client.route(), RERANK_ROUTE);
     assert_eq!(client.schema_version(), "v2");
     assert_eq!(client.timeout().as_secs(), 5);
+
+    server.abort();
+}
+
+#[tokio::test]
+async fn flight_transport_client_runs_admitted_requests_without_client_lock_serialization() {
+    let listener = TcpListener::bind("127.0.0.1:0")
+        .await
+        .unwrap_or_else(|error| panic!("listener should bind: {error}"));
+    let address = listener
+        .local_addr()
+        .unwrap_or_else(|error| panic!("listener should expose a local address: {error}"));
+    let service = ConcurrentExchangeProbeService::new();
+    let arrivals = Arc::clone(&service.arrivals);
+    let server = tokio::spawn(async move {
+        Server::builder()
+            .add_service(FlightServiceServer::new(service))
+            .serve_with_incoming(TcpListenerStream::new(listener))
+            .await
+            .unwrap_or_else(|error| panic!("mock Flight server should serve: {error}"));
+    });
+
+    let client = ArrowFlightTransportClient::new(
+        format!("http://{address}"),
+        RERANK_ROUTE,
+        "v2",
+        Duration::from_secs(5),
+        2,
+    )
+    .unwrap_or_else(|error| panic!("flight client should build: {error}"));
+    let request_batch = build_rerank_request_batch();
+
+    let first_client = client.clone();
+    let second_client = client.clone();
+    let first_batch = request_batch.clone();
+    let second_batch = request_batch.clone();
+    let (first_response, second_response) = timeout(Duration::from_secs(3), async move {
+        tokio::join!(
+            first_client.process_batch(&first_batch),
+            second_client.process_batch(&second_batch)
+        )
+    })
+    .await
+    .unwrap_or_else(|error| panic!("concurrent requests should complete before timeout: {error}"));
+
+    first_response.unwrap_or_else(|error| panic!("first request should succeed: {error}"));
+    second_response.unwrap_or_else(|error| panic!("second request should succeed: {error}"));
+    assert_eq!(arrivals.load(Ordering::SeqCst), 2);
 
     server.abort();
 }

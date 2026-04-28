@@ -52,6 +52,7 @@ Standardized documentation repository for the Wendao DocOS Kernel, leveraging AS
 ## 📁 05_research: Theoretical Hardening
 
 - [[05_research/301_research_papers|Research Index: Map of Content]]: Academic foundations.
+- [[05_research/305_http_grpc_tower_performance_audit|HTTP, gRPC, and Tower Performance Audit]]: Audit of Wendao's Axum, Tonic, Tower, and Arrow Flight transport surfaces.
 
 ## 📁 06_roadmap: Future Evolution
 

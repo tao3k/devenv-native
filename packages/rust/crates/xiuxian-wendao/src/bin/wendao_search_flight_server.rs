@@ -29,6 +29,8 @@ use tonic::transport::Server;
 #[cfg(feature = "zhenfa-router")]
 use tonic_web::GrpcWebLayer;
 #[cfg(feature = "zhenfa-router")]
+use xiuxian_config_core::lookup_bool_flag;
+#[cfg(feature = "zhenfa-router")]
 use xiuxian_wendao::gateway::studio::{
     bootstrap_sample_repo_search_content, build_studio_flight_service_for_roots_with_weights,
     resolve_studio_config_root,
@@ -45,6 +47,11 @@ use xiuxian_wendao_runtime::transport::{
     resolve_effective_rerank_flight_host_settings as resolve_runtime_effective_rerank_flight_host_settings,
     split_rerank_flight_host_overrides,
 };
+
+#[cfg(feature = "zhenfa-router")]
+const SEARCH_FLIGHT_GRPC_WEB_ENABLED_ENV: &str = "XIUXIAN_WENDAO_SEARCH_FLIGHT_GRPC_WEB_ENABLED";
+#[cfg(feature = "zhenfa-router")]
+const DEFAULT_SEARCH_FLIGHT_GRPC_WEB_ENABLED: bool = false;
 
 #[cfg(feature = "zhenfa-router")]
 #[tokio::main]
@@ -109,15 +116,24 @@ async fn main() -> Result<()> {
     let local_addr = listener
         .local_addr()
         .map_err(|error| anyhow!("failed to read Wendao search Flight server address: {error}"))?;
+    let grpc_web_enabled = search_flight_grpc_web_enabled();
     println!("READY http://{local_addr}");
 
-    Server::builder()
-        .accept_http1(true)
-        .layer(GrpcWebLayer::new())
-        .add_service(FlightServiceServer::new(flight_service))
-        .serve_with_incoming(TcpListenerStream::new(listener))
-        .await
-        .map_err(|error| anyhow!("Wendao search Flight server failed: {error}"))?;
+    if grpc_web_enabled {
+        Server::builder()
+            .accept_http1(true)
+            .layer(GrpcWebLayer::new())
+            .add_service(FlightServiceServer::new(flight_service))
+            .serve_with_incoming(TcpListenerStream::new(listener))
+            .await
+            .map_err(|error| anyhow!("Wendao search Flight server failed: {error}"))?;
+    } else {
+        Server::builder()
+            .add_service(FlightServiceServer::new(flight_service))
+            .serve_with_incoming(TcpListenerStream::new(listener))
+            .await
+            .map_err(|error| anyhow!("Wendao search Flight server failed: {error}"))?;
+    }
 
     Ok(())
 }
@@ -157,4 +173,41 @@ fn resolve_search_host_studio_config_root(project_root: &std::path::Path) -> Pat
     resolve_runtime_config_path(project_root)
         .and_then(|path| path.parent().map(std::path::Path::to_path_buf))
         .unwrap_or_else(|| resolve_studio_config_root(project_root))
+}
+
+#[cfg(feature = "zhenfa-router")]
+fn search_flight_grpc_web_enabled() -> bool {
+    search_flight_grpc_web_enabled_with_lookup(&|key| std::env::var(key).ok())
+}
+
+#[cfg(feature = "zhenfa-router")]
+fn search_flight_grpc_web_enabled_with_lookup(lookup: &dyn Fn(&str) -> Option<String>) -> bool {
+    lookup_bool_flag(SEARCH_FLIGHT_GRPC_WEB_ENABLED_ENV, lookup)
+        .unwrap_or(DEFAULT_SEARCH_FLIGHT_GRPC_WEB_ENABLED)
+}
+
+#[cfg(all(test, feature = "zhenfa-router"))]
+mod tests {
+    use super::search_flight_grpc_web_enabled_with_lookup;
+
+    #[test]
+    fn search_flight_grpc_web_defaults_to_disabled() {
+        assert!(!search_flight_grpc_web_enabled_with_lookup(&|_| None));
+    }
+
+    #[test]
+    fn search_flight_grpc_web_accepts_explicit_override() {
+        assert!(search_flight_grpc_web_enabled_with_lookup(
+            &|key| match key {
+                "XIUXIAN_WENDAO_SEARCH_FLIGHT_GRPC_WEB_ENABLED" => Some("true".to_string()),
+                _ => None,
+            }
+        ));
+        assert!(!search_flight_grpc_web_enabled_with_lookup(
+            &|key| match key {
+                "XIUXIAN_WENDAO_SEARCH_FLIGHT_GRPC_WEB_ENABLED" => Some("false".to_string()),
+                _ => None,
+            }
+        ));
+    }
 }

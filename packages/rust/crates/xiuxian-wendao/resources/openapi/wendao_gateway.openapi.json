@@ -3,8 +3,13 @@
   "info": {
     "title": "Wendao Gateway",
     "version": "v1",
-    "description": "Stable contract surface for the Wendao HTTP gateway, including health, studio, VFS, graph, and search endpoints."
+    "description": "Stable contract surface for the Wendao HTTP gateway, including health, studio, VFS, graph, and search endpoints. Public callers use HTTPS JSON with bearer authentication. User-facing streaming routes use server-sent events through Accept: text/event-stream; Arrow Flight, FlightSQL, gRPC-Web, and HTTP/1 compatibility are deployment transport controls outside this OpenAPI surface."
   },
+  "security": [
+    {
+      "WendaoBearerAuth": []
+    }
+  ],
   "servers": [
     {
       "url": "http://127.0.0.1:9517",
@@ -12,12 +17,84 @@
     }
   ],
   "paths": {
+    "/v1/responses": {
+      "post": {
+        "operationId": "gatewayCreateResponse",
+        "tags": ["gateway"],
+        "summary": "Create a public query response",
+        "description": "Execute one public Wendao query response over the HTTPS JSON gateway. This route is intentionally JSON/SSE-facing; Arrow Flight and gRPC-Web transport controls are not part of this public contract.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GatewayResponseRequest"
+              },
+              "example": {
+                "query_language": "sql",
+                "input": "SELECT sql_table_name FROM wendao_sql_tables ORDER BY sql_table_name LIMIT 1",
+                "stream": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Completed response payload. When the request sets `stream: true` or sends `Accept: text/event-stream`, the gateway returns server-sent response events instead.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GatewayResponse"
+                },
+                "example": {
+                  "id": "resp_00000000000000000000000000000000",
+                  "object": "response",
+                  "status": "completed",
+                  "output": [
+                    {
+                      "type": "output_json",
+                      "json": {
+                        "query_language": "sql",
+                        "payload": {
+                          "metadata": {
+                            "registeredTableCount": 1
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              "text/event-stream": {
+                "example": "event: response.output_json.delta\ndata: {\"object\":\"response\",\"status\":\"completed\"}\n\nevent: response.completed\ndata: {\"object\":\"response\",\"status\":\"completed\"}\n\n"
+              }
+            }
+          },
+          "400": {
+            "description": "The public response request could not be planned or executed.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "failed to execute public response request",
+                  "code": "RESPONSE_EXECUTION_FAILED",
+                  "details": "query must not be empty"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Bearer authentication is enabled and the request did not provide the configured token."
+          }
+        }
+      }
+    },
     "/api/health": {
       "get": {
         "operationId": "gatewayHealth",
         "tags": ["gateway"],
         "summary": "Health check",
         "description": "Return a lightweight readiness response for the Wendao gateway process.",
+        "security": [],
         "responses": {
           "200": {
             "description": "Gateway process is alive and able to serve requests."
@@ -5965,6 +6042,83 @@
           },
           "500": {
             "description": "The gateway failed while executing the projected-page-index-trees task."
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "WendaoBearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "Wendao bearer token, for example wd_...",
+        "description": "Public Wendao gateway callers authenticate with Authorization: Bearer wd_..."
+      }
+    },
+    "schemas": {
+      "GatewayResponseRequest": {
+        "type": "object",
+        "description": "Public Wendao response request. SQL is the default query language. GraphQL requests use `document` or `input`; SQL requests use `query` or `input`.",
+        "properties": {
+          "input": {
+            "type": "string",
+            "description": "Default query body used when the query-language-specific field is omitted."
+          },
+          "query": {
+            "type": "string",
+            "description": "SQL statement for `query_language: sql`."
+          },
+          "document": {
+            "type": "string",
+            "description": "GraphQL document for `query_language: graphql`."
+          },
+          "query_language": {
+            "type": "string",
+            "enum": ["sql", "graphql"],
+            "default": "sql"
+          },
+          "stream": {
+            "type": "boolean",
+            "default": false,
+            "description": "When true, return server-sent response events."
+          }
+        }
+      },
+      "GatewayResponse": {
+        "type": "object",
+        "required": ["id", "object", "status", "output"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^resp_[0-9a-f]{32}$"
+          },
+          "object": {
+            "type": "string",
+            "const": "response"
+          },
+          "status": {
+            "type": "string",
+            "const": "completed"
+          },
+          "output": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GatewayResponseOutput"
+            }
+          }
+        }
+      },
+      "GatewayResponseOutput": {
+        "type": "object",
+        "required": ["type", "json"],
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "output_json"
+          },
+          "json": {
+            "description": "Shared Wendao query payload encoded as JSON."
           }
         }
       }

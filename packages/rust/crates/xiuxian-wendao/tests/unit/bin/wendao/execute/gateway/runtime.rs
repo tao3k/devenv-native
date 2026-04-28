@@ -1,7 +1,9 @@
 use xiuxian_wendao::gateway::studio::{GatewayStartupDependencyCheck, GatewayStartupHealthReport};
 
 use crate::execute::gateway::command::{
-    ensure_gateway_startup_health, gateway_listen_backlog_with_lookup,
+    ensure_gateway_startup_health, gateway_bearer_token_with_lookup,
+    gateway_flight_concurrency_limit_with_lookup, gateway_flight_grpc_web_enabled_with_lookup,
+    gateway_flight_request_timeout_secs_with_lookup, gateway_listen_backlog_with_lookup,
     gateway_studio_concurrency_limit_with_lookup, gateway_studio_request_timeout_secs_with_lookup,
 };
 use crate::execute::gateway::config::{GatewayRuntimeTomlConfig, get_gateway_runtime_from_config};
@@ -128,6 +130,71 @@ fn test_gateway_studio_request_timeout_clamps_invalid_override() {
         }
     });
     assert_eq!(timeout, 15);
+}
+
+#[test]
+fn test_gateway_flight_concurrency_limit_defaults_to_studio_budget() {
+    let limit = gateway_flight_concurrency_limit_with_lookup(48, &|_| None);
+    assert_eq!(limit, 48);
+}
+
+#[test]
+fn test_gateway_flight_concurrency_limit_accepts_positive_override() {
+    let limit = gateway_flight_concurrency_limit_with_lookup(48, &|key| {
+        if key == "XIUXIAN_WENDAO_GATEWAY_FLIGHT_CONCURRENCY_LIMIT" {
+            Some("24".to_string())
+        } else {
+            None
+        }
+    });
+    assert_eq!(limit, 24);
+}
+
+#[test]
+fn test_gateway_flight_request_timeout_defaults_to_studio_budget() {
+    let timeout = gateway_flight_request_timeout_secs_with_lookup(18, &|_| None);
+    assert_eq!(timeout, 18);
+}
+
+#[test]
+fn test_gateway_flight_request_timeout_accepts_positive_override() {
+    let timeout = gateway_flight_request_timeout_secs_with_lookup(18, &|key| {
+        if key == "XIUXIAN_WENDAO_GATEWAY_FLIGHT_REQUEST_TIMEOUT_SECS" {
+            Some("45".to_string())
+        } else {
+            None
+        }
+    });
+    assert_eq!(timeout, 45);
+}
+
+#[test]
+fn test_gateway_flight_grpc_web_defaults_to_disabled() {
+    assert!(!gateway_flight_grpc_web_enabled_with_lookup(&|_| None));
+}
+
+#[test]
+fn test_gateway_flight_grpc_web_accepts_false_override() {
+    let enabled = gateway_flight_grpc_web_enabled_with_lookup(&|key| {
+        if key == "XIUXIAN_WENDAO_GATEWAY_FLIGHT_GRPC_WEB_ENABLED" {
+            Some("off".to_string())
+        } else {
+            None
+        }
+    });
+    assert!(!enabled);
+}
+
+#[test]
+fn test_gateway_bearer_token_accepts_non_empty_override() {
+    let token = gateway_bearer_token_with_lookup(&|key| {
+        if key == "XIUXIAN_WENDAO_GATEWAY_BEARER_TOKEN" {
+            Some("wd_runtime".to_string())
+        } else {
+            None
+        }
+    });
+    assert_eq!(token.as_deref(), Some("wd_runtime"));
 }
 
 #[test]

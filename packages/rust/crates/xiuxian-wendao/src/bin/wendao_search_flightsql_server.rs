@@ -26,11 +26,19 @@ use tonic::transport::Server;
 #[cfg(feature = "julia")]
 use tonic_web::GrpcWebLayer;
 #[cfg(feature = "julia")]
+use xiuxian_config_core::lookup_bool_flag;
+#[cfg(feature = "julia")]
 use xiuxian_wendao::gateway::studio::bootstrap_sample_repo_search_content;
 #[cfg(feature = "julia")]
 use xiuxian_wendao::search::SearchPlaneService;
 #[cfg(feature = "julia")]
 use xiuxian_wendao::search::queries::flightsql::build_studio_flightsql_service;
+
+#[cfg(feature = "julia")]
+const SEARCH_FLIGHTSQL_GRPC_WEB_ENABLED_ENV: &str =
+    "XIUXIAN_WENDAO_SEARCH_FLIGHTSQL_GRPC_WEB_ENABLED";
+#[cfg(feature = "julia")]
+const DEFAULT_SEARCH_FLIGHTSQL_GRPC_WEB_ENABLED: bool = false;
 
 #[cfg(feature = "julia")]
 #[tokio::main]
@@ -63,15 +71,61 @@ async fn main() -> Result<()> {
     let local_addr = listener
         .local_addr()
         .map_err(|error| anyhow!("failed to read Wendao FlightSQL server address: {error}"))?;
+    let grpc_web_enabled = search_flightsql_grpc_web_enabled();
     println!("READY http://{local_addr}");
 
-    Server::builder()
-        .accept_http1(true)
-        .layer(GrpcWebLayer::new())
-        .add_service(FlightServiceServer::new(flightsql_service))
-        .serve_with_incoming(TcpListenerStream::new(listener))
-        .await
-        .map_err(|error| anyhow!("Wendao FlightSQL server failed: {error}"))?;
+    if grpc_web_enabled {
+        Server::builder()
+            .accept_http1(true)
+            .layer(GrpcWebLayer::new())
+            .add_service(FlightServiceServer::new(flightsql_service))
+            .serve_with_incoming(TcpListenerStream::new(listener))
+            .await
+            .map_err(|error| anyhow!("Wendao FlightSQL server failed: {error}"))?;
+    } else {
+        Server::builder()
+            .add_service(FlightServiceServer::new(flightsql_service))
+            .serve_with_incoming(TcpListenerStream::new(listener))
+            .await
+            .map_err(|error| anyhow!("Wendao FlightSQL server failed: {error}"))?;
+    }
 
     Ok(())
+}
+
+#[cfg(feature = "julia")]
+fn search_flightsql_grpc_web_enabled() -> bool {
+    search_flightsql_grpc_web_enabled_with_lookup(&|key| std::env::var(key).ok())
+}
+
+#[cfg(feature = "julia")]
+fn search_flightsql_grpc_web_enabled_with_lookup(lookup: &dyn Fn(&str) -> Option<String>) -> bool {
+    lookup_bool_flag(SEARCH_FLIGHTSQL_GRPC_WEB_ENABLED_ENV, lookup)
+        .unwrap_or(DEFAULT_SEARCH_FLIGHTSQL_GRPC_WEB_ENABLED)
+}
+
+#[cfg(all(test, feature = "julia"))]
+mod tests {
+    use super::search_flightsql_grpc_web_enabled_with_lookup;
+
+    #[test]
+    fn search_flightsql_grpc_web_defaults_to_disabled() {
+        assert!(!search_flightsql_grpc_web_enabled_with_lookup(&|_| None));
+    }
+
+    #[test]
+    fn search_flightsql_grpc_web_accepts_explicit_override() {
+        assert!(search_flightsql_grpc_web_enabled_with_lookup(
+            &|key| match key {
+                "XIUXIAN_WENDAO_SEARCH_FLIGHTSQL_GRPC_WEB_ENABLED" => Some("yes".to_string()),
+                _ => None,
+            }
+        ));
+        assert!(!search_flightsql_grpc_web_enabled_with_lookup(
+            &|key| match key {
+                "XIUXIAN_WENDAO_SEARCH_FLIGHTSQL_GRPC_WEB_ENABLED" => Some("off".to_string()),
+                _ => None,
+            }
+        ));
+    }
 }

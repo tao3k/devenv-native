@@ -45,6 +45,62 @@ downstream proof.
 
 ## Contract Notes
 
+### Public Gateway API Boundary
+
+The public gateway contract should stay on the HTTPS JSON surface described by
+the checked-in OpenAPI artifact. External callers should authenticate with a
+bearer token and send ordinary JSON requests:
+
+```http
+Authorization: Bearer wd_...
+Content-Type: application/json
+```
+
+Streaming responses should use HTTP streaming through server-sent events when
+the route is user-facing:
+
+```http
+Accept: text/event-stream
+```
+
+Arrow Flight, FlightSQL, gRPC-Web, and HTTP/1 compatibility layers are
+deployment and operator controls for internal transport, colocated browser
+clients, or server-to-server query paths. They are not the default public API
+shape, and clients should not need to know whether Wendao uses gRPC internally
+to consume the public gateway.
+
+The first public response route is `POST /v1/responses`. It is a thin
+JSON/SSE adapter over the existing shared Wendao query service: JSON requests
+return a completed response object by default, while `Accept: text/event-stream`
+or `stream: true` returns server-sent response events. This route does not
+change the non-public Flight transport boundary. The checked-in OpenAPI
+artifact owns the request and response schemas for this route under
+`GatewayResponseRequest`, `GatewayResponse`, and `GatewayResponseOutput`.
+
+### Gateway Flight Runtime Controls
+
+The gateway can mount the Studio HTTP router and the Arrow Flight route on the
+same listener, but the two branches have independent Tower budgets. Operators
+should treat the following environment variables as the stable runtime contract
+for public-gateway authentication plus the non-public gateway and search-plane
+Flight compatibility surfaces.
+
+| Environment variable                                 | Default                                                       | Operational use                                                                                                                                                                                                                                      |
+| ---------------------------------------------------- | ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `XIUXIAN_WENDAO_GATEWAY_BEARER_TOKEN`                | unset                                                         | Enables bearer-token enforcement for public gateway JSON routes when set to a non-empty value. `/api/health` remains unauthenticated for readiness probes. Callers send `Authorization: Bearer <value>`, for example `Authorization: Bearer wd_...`. |
+| `XIUXIAN_WENDAO_GATEWAY_STUDIO_CONCURRENCY_LIMIT`    | `available_parallelism * 4`, clamped to `32..=128`            | Sets the Studio HTTP router request budget.                                                                                                                                                                                                          |
+| `XIUXIAN_WENDAO_GATEWAY_STUDIO_REQUEST_TIMEOUT_SECS` | `15`, clamped to `5..=60`                                     | Sets the Studio HTTP router request timeout.                                                                                                                                                                                                         |
+| `XIUXIAN_WENDAO_GATEWAY_FLIGHT_CONCURRENCY_LIMIT`    | Effective Studio HTTP concurrency limit, clamped to `4..=128` | Sets the same-listener gateway Arrow Flight route budget. Lower this before the HTTP budget when Flight traffic is heavier or stream-oriented.                                                                                                       |
+| `XIUXIAN_WENDAO_GATEWAY_FLIGHT_REQUEST_TIMEOUT_SECS` | Effective Studio HTTP timeout, clamped to `5..=120`           | Sets the gateway Arrow Flight route timeout. Use a longer value than Studio HTTP only for known long-running Flight exchanges.                                                                                                                       |
+| `XIUXIAN_WENDAO_GATEWAY_FLIGHT_GRPC_WEB_ENABLED`     | `false`                                                       | Enables `GrpcWebLayer` on the same-origin gateway Flight mount. Set to `true`, `1`, `yes`, or `on` only for a colocated browser client that intentionally consumes Flight directly instead of the public JSON/SSE gateway.                           |
+| `XIUXIAN_WENDAO_SEARCH_FLIGHT_GRPC_WEB_ENABLED`      | `false`                                                       | Controls the standalone repo-search Flight host. Enable it only when that host must serve browser gRPC-Web or HTTP/1-compatible clients.                                                                                                             |
+| `XIUXIAN_WENDAO_SEARCH_FLIGHTSQL_GRPC_WEB_ENABLED`   | `false`                                                       | Controls the standalone FlightSQL host. Enable it only when that host must serve browser gRPC-Web or HTTP/1-compatible clients.                                                                                                                      |
+
+By default, standalone search hosts omit
+`accept_http1(true)` and run as narrower Tonic HTTP/2 Flight services. The
+gateway option only controls the mounted `GrpcWebLayer`; the shared Axum
+listener owns the lower-level HTTP server settings.
+
 - The bundled artifact is version-controlled and repository-local, so contract
   tests do not depend on runtime schema generation.
 - The `/api/health` response now also carries `X-Wendao-Process-Id`, and the

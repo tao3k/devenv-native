@@ -8,7 +8,7 @@ use arrow_flight::flight_service_client::FlightServiceClient as TonicFlightServi
 use arrow_schema::DataType;
 use futures::{TryStreamExt, stream};
 use tokio::sync::{Mutex, Semaphore};
-use tonic::transport::Endpoint;
+use tonic::transport::{Channel, Endpoint};
 use xiuxian_db_store::EngineRecordBatch;
 
 use super::query_contract::{
@@ -31,7 +31,7 @@ pub(crate) struct ArrowFlightTransportClient {
     #[cfg(test)]
     timeout: Duration,
     endpoint: Endpoint,
-    client: Arc<Mutex<Option<FlightClient>>>,
+    channel: Arc<Mutex<Option<Channel>>>,
     in_flight_gate: Arc<Semaphore>,
 }
 
@@ -77,7 +77,7 @@ impl ArrowFlightTransportClient {
             #[cfg(test)]
             timeout,
             endpoint,
-            client: Arc::new(Mutex::new(None)),
+            channel: Arc::new(Mutex::new(None)),
             in_flight_gate: Arc::new(Semaphore::new(max_in_flight_requests)),
         })
     }
@@ -166,49 +166,45 @@ impl ArrowFlightTransportClient {
                 Ok::<EngineRecordBatch, arrow_flight::error::FlightError>,
             )));
 
-        let response = {
-            let mut client = self.client.lock().await;
-            if client.is_none() {
-                let channel =
-                    self.endpoint.clone().connect().await.map_err(|error| {
-                        format!("failed to connect Arrow Flight endpoint: {error}")
-                    })?;
-                let inner_client = TonicFlightServiceClient::new(channel)
-                    .max_encoding_message_size(DEFAULT_FLIGHT_MESSAGE_SIZE_BYTES)
-                    .max_decoding_message_size(DEFAULT_FLIGHT_MESSAGE_SIZE_BYTES);
-                let mut flight_client = FlightClient::new_from_inner(inner_client);
-                flight_client
-                    .add_header(WENDAO_SCHEMA_VERSION_HEADER, self.schema_version.as_str())
-                    .map_err(|error| {
-                        format!("invalid Arrow Flight schema-version metadata: {error}")
-                    })?;
-                if let Some(rerank_dimension_header) = rerank_dimension_header.as_deref() {
-                    flight_client
-                        .add_header(WENDAO_RERANK_DIMENSION_HEADER, rerank_dimension_header)
-                        .map_err(|error| {
-                            format!("invalid Arrow Flight rerank-dimension metadata: {error}")
-                        })?;
-                }
-                *client = Some(flight_client);
-            }
-
-            let Some(flight_client) = client.as_mut() else {
-                return Err(
-                    "Arrow Flight client initialization unexpectedly returned no client"
-                        .to_string(),
-                );
-            };
+        let channel = self.channel().await?;
+        let inner_client = TonicFlightServiceClient::new(channel)
+            .max_encoding_message_size(DEFAULT_FLIGHT_MESSAGE_SIZE_BYTES)
+            .max_decoding_message_size(DEFAULT_FLIGHT_MESSAGE_SIZE_BYTES);
+        let mut flight_client = FlightClient::new_from_inner(inner_client);
+        flight_client
+            .add_header(WENDAO_SCHEMA_VERSION_HEADER, self.schema_version.as_str())
+            .map_err(|error| format!("invalid Arrow Flight schema-version metadata: {error}"))?;
+        if let Some(rerank_dimension_header) = rerank_dimension_header.as_deref() {
             flight_client
-                .do_exchange(request_stream)
-                .await
-                .map_err(|error| format!("Arrow Flight request failed: {error}"))?
-        };
+                .add_header(WENDAO_RERANK_DIMENSION_HEADER, rerank_dimension_header)
+                .map_err(|error| {
+                    format!("invalid Arrow Flight rerank-dimension metadata: {error}")
+                })?;
+        }
+
+        let response = flight_client
+            .do_exchange(request_stream)
+            .await
+            .map_err(|error| format!("Arrow Flight request failed: {error}"))?;
 
         let response_batches = response
             .try_collect::<Vec<EngineRecordBatch>>()
             .await
             .map_err(|error| format!("failed to decode Arrow Flight response: {error}"))?;
         Ok(response_batches)
+    }
+
+    async fn channel(&self) -> Result<Channel, String> {
+        let mut channel = self.channel.lock().await;
+        if channel.is_none() {
+            *channel =
+                Some(self.endpoint.clone().connect().await.map_err(|error| {
+                    format!("failed to connect Arrow Flight endpoint: {error}")
+                })?);
+        }
+        channel.clone().ok_or_else(|| {
+            "Arrow Flight channel initialization unexpectedly returned no channel".to_string()
+        })
     }
 }
 
