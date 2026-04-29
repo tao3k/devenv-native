@@ -522,6 +522,13 @@ Current implementation status:
   Arrow Flight exchange. The benchmark harness can now drive
   `hybrid-page-ocr` through the Rust provider with the PDF render feature
   selected explicitly.
+- The real hybrid benchmark proof then exposed a text-only hybrid candidate:
+  `pdf-inspector` classified the real `2206.01062.pdf` fixture as a
+  `hybrid_page_ocr_candidate`, but the shard selector found no raster OCR
+  pages. The provider now materializes complete native `text_page` rows for
+  that case instead of falling back to full Docling. On the same real PDF, the
+  force path improved from about 41.9 seconds to about 1.38 seconds, cache-hit
+  latency stayed around 3-5 ms, and `totalErrorRows` stayed 0.
 
 ### Milestone 5: Hybrid Mixed-PDF Pipeline
 
@@ -544,6 +551,9 @@ Current implementation status:
 - Native per-page text rows are available as stable `text_page` resource rows.
 - The explicit `hybrid-page-ocr` route can merge native text pages with OCR
   shard rows only when every page is covered and every OCR row succeeded.
+- Text-only hybrid candidates with zero OCR shards now complete directly from
+  Rust-native text-page rows when page coverage is complete; coverage failure
+  still falls back to full Docling.
 - The Python analyzer service can provide real Docling image OCR for those
   shard rows when explicitly started with `--pdf-ocr-worker docling`; the
   default worker still returns `skipped` rows.
