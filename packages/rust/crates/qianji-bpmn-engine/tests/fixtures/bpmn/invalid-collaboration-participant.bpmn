@@ -2,6 +2,8 @@
 <bpmn:definitions
   xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
   id="pkg_invalid_collaboration">
+  <bpmn:message id="order_message" name="OrderMessage" itemRef="tns:Order" />
+  <bpmn:correlationProperty id="order_correlation" name="orderId" type="tns:OrderId" />
   <bpmn:process id="order_flow" isExecutable="true">
     <bpmn:startEvent id="start" />
     <bpmn:endEvent id="end" />
@@ -9,5 +11,7 @@
   </bpmn:process>
   <bpmn:collaboration id="collaboration_order">
     <bpmn:participant id="participant_customer" processRef="order_flow" />
+    <bpmn:participant id="participant_fulfillment" />
+    <bpmn:messageFlow id="order_message_flow" sourceRef="participant_customer" targetRef="participant_fulfillment" messageRef="order_message" />
   </bpmn:collaboration>
 </bpmn:definitions>

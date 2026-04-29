@@ -3,7 +3,7 @@ use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{BpmnEngineError, BpmnSourceFile, snapshot_bpmn_source};
 
 #[test]
-fn bpmn_snapshot_preserves_collaboration_lane_and_data_metadata() {
+fn bpmn_snapshot_preserves_collaboration_metadata_lane_and_data_metadata() {
     let snapshot = snapshot_bpmn_source(&fixture_source("metadata-collaboration-lane-data.bpmn"))
         .must("metadata-only BPMN source should still produce a document snapshot");
 
@@ -17,6 +17,26 @@ fn bpmn_snapshot_preserves_collaboration_lane_and_data_metadata() {
     );
     assert_eq!(snapshot.root.collaboration_count, 1);
     assert_eq!(snapshot.root.process_count, 1);
+    assert_eq!(snapshot.root.message_count, 1);
+    assert_eq!(
+        snapshot.root.messages[0].message_id.as_deref(),
+        Some("Message_1")
+    );
+    assert_eq!(
+        snapshot.root.messages[0].item_ref.as_deref(),
+        Some("tns:Order")
+    );
+    assert_eq!(snapshot.root.correlation_property_count, 1);
+    assert_eq!(
+        snapshot.root.correlation_properties[0]
+            .correlation_property_id
+            .as_deref(),
+        Some("Correlation_Order")
+    );
+    assert_eq!(
+        snapshot.root.correlation_properties[0].type_ref.as_deref(),
+        Some("tns:OrderId")
+    );
     assert_eq!(snapshot.root.data_store_count, 1);
     assert_eq!(
         snapshot.root.data_stores[0].data_store_id.as_deref(),
@@ -36,6 +56,10 @@ fn bpmn_snapshot_preserves_collaboration_lane_and_data_metadata() {
     assert_eq!(
         collaboration.message_flows[0].source_ref.as_deref(),
         Some("Participant_A")
+    );
+    assert_eq!(
+        collaboration.message_flows[0].message_ref.as_deref(),
+        Some("Message_1")
     );
 
     let process = snapshot

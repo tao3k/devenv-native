@@ -1,10 +1,10 @@
 use super::xml::{attribute_value, boolean_attribute_value, bpmn_model_namespace, local_name};
 use crate::bpmn_model_api::{
-    BpmnCollaborationSnapshot, BpmnDataAssociationSnapshot, BpmnDataInputOutputSnapshot,
-    BpmnDataObjectReferenceSnapshot, BpmnDataObjectSnapshot, BpmnDataStoreReferenceSnapshot,
-    BpmnDataStoreSnapshot, BpmnDocumentSnapshot, BpmnIoSpecificationSnapshot, BpmnLaneSetSnapshot,
-    BpmnLaneSnapshot, BpmnMessageFlowSnapshot, BpmnParticipantSnapshot, BpmnProcessSnapshot,
-    BpmnRootSnapshot,
+    BpmnCollaborationSnapshot, BpmnCorrelationPropertySnapshot, BpmnDataAssociationSnapshot,
+    BpmnDataInputOutputSnapshot, BpmnDataObjectReferenceSnapshot, BpmnDataObjectSnapshot,
+    BpmnDataStoreReferenceSnapshot, BpmnDataStoreSnapshot, BpmnDocumentSnapshot,
+    BpmnIoSpecificationSnapshot, BpmnLaneSetSnapshot, BpmnLaneSnapshot, BpmnMessageFlowSnapshot,
+    BpmnMessageSnapshot, BpmnParticipantSnapshot, BpmnProcessSnapshot, BpmnRootSnapshot,
 };
 use crate::bpmn_parse_api::BpmnSourceFile;
 use crate::error::Result;
@@ -68,6 +68,12 @@ impl BpmnSnapshotScanState {
             }
             "process" if parent_tag == Some("definitions") => {
                 self.start_process(source, reader, event, is_empty)
+            }
+            "message" if parent_tag == Some("definitions") => {
+                self.capture_message(source, reader, event)
+            }
+            "correlationProperty" if parent_tag == Some("definitions") => {
+                self.capture_correlation_property(source, reader, event)
             }
             "dataStore" if parent_tag == Some("definitions") => {
                 self.capture_data_store(source, reader, event)
@@ -235,6 +241,43 @@ impl BpmnSnapshotScanState {
             target_ref: attribute_value(source, reader, event, "targetRef")?,
             message_ref: attribute_value(source, reader, event, "messageRef")?,
         });
+        Ok(())
+    }
+
+    fn capture_message(
+        &mut self,
+        source: &BpmnSourceFile,
+        reader: &Reader<&[u8]>,
+        event: &BytesStart<'_>,
+    ) -> Result<()> {
+        let Some(root) = self.root.as_mut() else {
+            return Ok(());
+        };
+        root.message_count += 1;
+        root.messages.push(BpmnMessageSnapshot {
+            message_id: attribute_value(source, reader, event, "id")?,
+            name: attribute_value(source, reader, event, "name")?,
+            item_ref: attribute_value(source, reader, event, "itemRef")?,
+        });
+        Ok(())
+    }
+
+    fn capture_correlation_property(
+        &mut self,
+        source: &BpmnSourceFile,
+        reader: &Reader<&[u8]>,
+        event: &BytesStart<'_>,
+    ) -> Result<()> {
+        let Some(root) = self.root.as_mut() else {
+            return Ok(());
+        };
+        root.correlation_property_count += 1;
+        root.correlation_properties
+            .push(BpmnCorrelationPropertySnapshot {
+                correlation_property_id: attribute_value(source, reader, event, "id")?,
+                name: attribute_value(source, reader, event, "name")?,
+                type_ref: attribute_value(source, reader, event, "type")?,
+            });
         Ok(())
     }
 
@@ -599,6 +642,10 @@ fn root_from_event(
         model_namespace_uri: bpmn_model_namespace(source, reader, event)?,
         collaboration_count: 0,
         process_count: 0,
+        message_count: 0,
+        messages: Vec::new(),
+        correlation_property_count: 0,
+        correlation_properties: Vec::new(),
         data_store_count: 0,
         data_stores: Vec::new(),
     })

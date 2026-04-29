@@ -1,7 +1,7 @@
 use super::{LintDomain, bpmn_fixture_source, lint_bpmn_source};
 
 #[test]
-fn bpmn_linter_reports_collaboration_surface_with_llm_guidance() {
+fn bpmn_linter_reports_collaboration_metadata_surface_with_llm_guidance() {
     let report = lint_bpmn_source(&bpmn_fixture_source(
         "invalid-collaboration-participant.bpmn",
     ));
@@ -14,10 +14,25 @@ fn bpmn_linter_reports_collaboration_surface_with_llm_guidance() {
     assert!(issue.why_it_failed.contains("pool"));
     assert!(issue.llm_fix_prompt.contains("host-level routing metadata"));
     assert_eq!(issue.evidence["snapshot_available"], true);
-    assert_eq!(issue.evidence["snapshot"]["participant_count"], 1);
+    assert_eq!(issue.evidence["snapshot"]["participant_count"], 2);
+    assert_eq!(issue.evidence["snapshot"]["message_flow_count"], 1);
+    assert_eq!(issue.evidence["snapshot"]["message_count"], 1);
+    assert_eq!(issue.evidence["snapshot"]["correlation_property_count"], 1);
+    assert_eq!(
+        issue.evidence["snapshot"]["messages"][0]["message_id"],
+        "order_message"
+    );
+    assert_eq!(
+        issue.evidence["snapshot"]["correlation_properties"][0]["type_ref"],
+        "tns:OrderId"
+    );
     assert_eq!(
         issue.evidence["snapshot"]["collaborations"][0]["participants"][0]["process_ref"],
         "order_flow"
+    );
+    assert_eq!(
+        issue.evidence["snapshot"]["collaborations"][0]["message_flows"][0]["message_ref"],
+        "order_message"
     );
 }
 

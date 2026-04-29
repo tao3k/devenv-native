@@ -115,6 +115,8 @@ fn root_snapshot_summary(snapshot: &BpmnDocumentSnapshot) -> Value {
         "model_namespace_uri": snapshot.root.model_namespace_uri,
         "collaboration_count": snapshot.root.collaboration_count,
         "process_count": snapshot.root.process_count,
+        "message_count": snapshot.root.message_count,
+        "correlation_property_count": snapshot.root.correlation_property_count,
         "data_store_count": snapshot.root.data_store_count,
     })
 }
@@ -156,13 +158,45 @@ fn collaboration_snapshot_summary(snapshot: &BpmnDocumentSnapshot) -> Value {
             })
         })
         .collect::<Vec<_>>();
+    let messages = snapshot
+        .root
+        .messages
+        .iter()
+        .take(SNAPSHOT_EVIDENCE_LIMIT)
+        .map(|message| {
+            json!({
+                "message_id": message.message_id,
+                "name": message.name,
+                "item_ref": message.item_ref,
+            })
+        })
+        .collect::<Vec<_>>();
+    let correlation_properties = snapshot
+        .root
+        .correlation_properties
+        .iter()
+        .take(SNAPSHOT_EVIDENCE_LIMIT)
+        .map(|property| {
+            json!({
+                "correlation_property_id": property.correlation_property_id,
+                "name": property.name,
+                "type_ref": property.type_ref,
+            })
+        })
+        .collect::<Vec<_>>();
 
     json!({
         "root": root_snapshot_summary(snapshot),
         "collaboration_count": snapshot.collaborations.len(),
         "participant_count": participant_count,
         "message_flow_count": message_flow_count,
+        "message_count": snapshot.root.message_count,
+        "correlation_property_count": snapshot.root.correlation_property_count,
         "collaborations_truncated": snapshot.collaborations.len() > SNAPSHOT_EVIDENCE_LIMIT,
+        "messages_truncated": snapshot.root.messages.len() > SNAPSHOT_EVIDENCE_LIMIT,
+        "correlation_properties_truncated": snapshot.root.correlation_properties.len() > SNAPSHOT_EVIDENCE_LIMIT,
+        "messages": messages,
+        "correlation_properties": correlation_properties,
         "collaborations": collaborations,
     })
 }

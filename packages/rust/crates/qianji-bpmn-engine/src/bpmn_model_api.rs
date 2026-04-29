@@ -40,10 +40,44 @@ pub struct BpmnRootSnapshot {
     pub collaboration_count: usize,
     /// Number of top-level `process` elements discovered in the document.
     pub process_count: usize,
+    /// Number of top-level `message` elements discovered in the document.
+    #[serde(default)]
+    pub message_count: usize,
+    /// Bounded top-level `message` metadata preserved from the document.
+    #[serde(default)]
+    pub messages: Vec<BpmnMessageSnapshot>,
+    /// Number of top-level `correlationProperty` elements discovered in the document.
+    #[serde(default)]
+    pub correlation_property_count: usize,
+    /// Bounded top-level `correlationProperty` metadata preserved from the document.
+    #[serde(default)]
+    pub correlation_properties: Vec<BpmnCorrelationPropertySnapshot>,
     /// Number of top-level `dataStore` elements discovered in the document.
     pub data_store_count: usize,
     /// Bounded top-level `dataStore` metadata preserved from the document.
     pub data_stores: Vec<BpmnDataStoreSnapshot>,
+}
+
+/// Snapshot of one BPMN `message`.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct BpmnMessageSnapshot {
+    /// Optional stable message identifier.
+    pub message_id: Option<String>,
+    /// Optional human-readable message name.
+    pub name: Option<String>,
+    /// Optional BPMN item definition reference.
+    pub item_ref: Option<String>,
+}
+
+/// Snapshot of one BPMN `correlationProperty`.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct BpmnCorrelationPropertySnapshot {
+    /// Optional stable correlation-property identifier.
+    pub correlation_property_id: Option<String>,
+    /// Optional human-readable correlation-property name.
+    pub name: Option<String>,
+    /// Optional BPMN type reference.
+    pub type_ref: Option<String>,
 }
 
 /// Snapshot of one BPMN `collaboration`.
@@ -240,6 +274,10 @@ pub(crate) fn empty_bpmn_root_snapshot(source: &BpmnSourceFile) -> BpmnRootSnaps
         model_namespace_uri: None,
         collaboration_count: 0,
         process_count: 0,
+        message_count: 0,
+        messages: Vec::new(),
+        correlation_property_count: 0,
+        correlation_properties: Vec::new(),
         data_store_count: 0,
         data_stores: Vec::new(),
     }

@@ -8,6 +8,8 @@ official [BPMN 2.0.2 specification](https://www.omg.org/spec/BPMN/2.0.2).
 The current engine preserves non-executable BPMN metadata for these families:
 
 - collaboration-level participant and message-flow structure
+- top-level message and correlation-property catalogs used by collaboration
+  evidence
 - lane-set, lane, and lane-owned flow-node references
 - data-object, data-store, and item-definition metadata
 - lint evidence that reports those preserved structures back to `qianji lint`
@@ -24,11 +26,20 @@ host-work payloads, waits, and DMN inputs, but it does not treat those BPMN
 collaboration, lane, data-object, or data-store families as engine-owned
 execution semantics.
 
+The first collaboration-alignment slice is metadata-only: Rust snapshots
+preserve standard BPMN `message` and `correlationProperty` declarations and
+surface that catalog through collaboration lint evidence. That makes
+participant/message-flow references auditable without requiring adapters to
+re-scan XML, but it does not dispatch message flows or evaluate correlation
+subscriptions.
+
 ## Runtime Boundary
 
 These BPMN surfaces remain deferred:
 
 - collaboration-aware message routing across pools or participants
+- executable correlation keys, correlation subscriptions, and retrieval
+  expressions
 - lane-driven assignment, authorization, or execution ownership semantics
 - executable `dataObject` or `dataStore` persistence semantics
 - transformations, multiple-source data associations, and data-store-backed
@@ -42,3 +53,9 @@ When executable behavior is required in the current bounded slice, route
 task-local operational payloads through native BPMN task IO and route broader
 state through workflow variables, host dispatch, waits, or DMN inputs instead
 of fabricating partial collaboration or data-object execution rules.
+
+For collaboration documents, keep `participant`, `messageFlow`, `message`, and
+`correlationProperty` definitions standard and explicit. The linter can report
+that metadata as evidence, but runtime behavior must still be modeled through
+one supported process graph, host work, or event waits until collaboration
+routing lands.
