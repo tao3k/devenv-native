@@ -228,6 +228,23 @@ def default_python_lang_rule_packs() -> tuple[PythonLangRulePack, ...]:
     return (PythonSyntaxRulePack(), PythonModernDesignRulePack())
 
 
+@dataclass(frozen=True, slots=True)
+class PythonHarnessConfig:
+    """Configuration for an embedded Python language harness run."""
+
+    ignored_dir_names: frozenset[str] = _IGNORED_DIR_NAMES
+    blocking_severities: frozenset[PythonDiagnosticSeverity] = (
+        _DEFAULT_BLOCKING_SEVERITIES
+    )
+    rule_packs: tuple[PythonLangRulePack, ...] | None = None
+
+
+def default_python_harness_config() -> PythonHarnessConfig:
+    """Return the default Python language harness configuration."""
+
+    return PythonHarnessConfig(rule_packs=default_python_lang_rule_packs())
+
+
 def python_modern_design_rules() -> tuple[PythonHarnessRule, ...]:
     """Return compact metadata for the default modern-design rules."""
 
@@ -314,9 +331,18 @@ def render_python_lang_harness(report: PythonHarnessReport) -> str:
     return rendered
 
 
-def discover_python_files(paths: Sequence[str | Path]) -> tuple[Path, ...]:
+def discover_python_files(
+    paths: Sequence[str | Path],
+    *,
+    ignored_dir_names: Iterable[str] | None = None,
+) -> tuple[Path, ...]:
     """Discover Python files below the provided paths."""
 
+    ignored_names = (
+        _IGNORED_DIR_NAMES
+        if ignored_dir_names is None
+        else frozenset(ignored_dir_names)
+    )
     discovered: list[Path] = []
     for raw_path in paths:
         path = Path(raw_path)
@@ -328,7 +354,7 @@ def discover_python_files(paths: Sequence[str | Path]) -> tuple[Path, ...]:
             discovered.extend(
                 candidate
                 for candidate in path.rglob("*.py")
-                if _is_scannable_python_file(candidate)
+                if _is_scannable_python_file(candidate, ignored_dir_names=ignored_names)
             )
     return tuple(sorted(discovered, key=lambda item: item.as_posix()))
 
@@ -336,14 +362,24 @@ def discover_python_files(paths: Sequence[str | Path]) -> tuple[Path, ...]:
 def run_python_lang_harness(
     paths: Sequence[str | Path],
     *,
+    config: PythonHarnessConfig | None = None,
     rule_packs: Sequence[PythonLangRulePack] | None = None,
 ) -> PythonHarnessReport:
     """Run the Python language harness over files or directories."""
 
-    selected_rule_packs: Sequence[PythonLangRulePack] = (
-        rule_packs or default_python_lang_rule_packs()
+    selected_config = _resolve_harness_config(config, rule_packs=rule_packs)
+    selected_rule_packs = (
+        selected_config.rule_packs
+        if selected_config.rule_packs is not None
+        else default_python_lang_rule_packs()
     )
-    modules = tuple(parse_python_file(path) for path in discover_python_files(paths))
+    modules = tuple(
+        parse_python_file(path)
+        for path in discover_python_files(
+            paths,
+            ignored_dir_names=selected_config.ignored_dir_names,
+        )
+    )
     findings = tuple(
         finding
         for module in modules
@@ -360,18 +396,41 @@ def run_python_lang_harness(
 def assert_python_lang_harness_clean(
     paths: Sequence[str | Path],
     *,
+    config: PythonHarnessConfig | None = None,
     rule_packs: Sequence[PythonLangRulePack] | None = None,
     severities: frozenset[PythonDiagnosticSeverity] | None = None,
 ) -> PythonHarnessReport:
     """Run the harness and raise when error or warning findings are present."""
 
-    report = run_python_lang_harness(paths, rule_packs=rule_packs)
-    report.assert_clean(severities=severities)
+    selected_config = _resolve_harness_config(config, rule_packs=rule_packs)
+    report = run_python_lang_harness(paths, config=selected_config)
+    report.assert_clean(
+        severities=(
+            severities
+            if severities is not None
+            else selected_config.blocking_severities
+        )
+    )
     return report
 
 
-def _is_scannable_python_file(path: Path) -> bool:
-    return not any(part in _IGNORED_DIR_NAMES for part in path.parts)
+def _resolve_harness_config(
+    config: PythonHarnessConfig | None,
+    *,
+    rule_packs: Sequence[PythonLangRulePack] | None,
+) -> PythonHarnessConfig:
+    selected_config = default_python_harness_config() if config is None else config
+    if rule_packs is None:
+        return selected_config
+    return replace(selected_config, rule_packs=tuple(rule_packs))
+
+
+def _is_scannable_python_file(
+    path: Path,
+    *,
+    ignored_dir_names: frozenset[str],
+) -> bool:
+    return not any(part in ignored_dir_names for part in path.parts)
 
 
 def _render_header(report: PythonHarnessReport) -> str:

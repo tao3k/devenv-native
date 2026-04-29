@@ -20,6 +20,7 @@ from python_lang_parser import (
 )
 
 from .harness import (
+    PythonHarnessConfig,
     PythonHarnessFinding,
     PythonHarnessReport,
     PythonHarnessRule,
@@ -28,6 +29,7 @@ from .harness import (
     PythonRulePackDescriptor,
     PythonSyntaxRulePack,
     assert_python_lang_harness_clean,
+    default_python_harness_config,
     default_python_lang_rule_packs,
     discover_python_files,
     python_modern_design_rules,
@@ -39,6 +41,7 @@ __all__ = [
     "PythonCall",
     "PythonDiagnostic",
     "PythonDiagnosticSeverity",
+    "PythonHarnessConfig",
     "PythonHarnessFinding",
     "PythonHarnessReport",
     "PythonHarnessRule",
@@ -56,6 +59,7 @@ __all__ = [
     "PythonSyntaxRulePack",
     "SourceLocation",
     "assert_python_lang_harness_clean",
+    "default_python_harness_config",
     "default_python_lang_rule_packs",
     "discover_python_files",
     "parse_python_file",
