@@ -35,7 +35,6 @@ julia = [
 builtin-plugins = ["dep:xiuxian-wendao-builtin"]
 runtime-transport = ["xiuxian-wendao-runtime/transport"]
 vector-store = [
-  "dep:arrow",
   "dep:reqwest",
   "dep:xiuxian-db-store",
   "xiuxian-db-store/vector-store",
@@ -59,7 +58,7 @@ studio = [
   "dep:xiuxian-ast",
   "dep:xiuxian-zhenfa",
 ]
-performance = ["dep:arrow", "xiuxian-testing/performance"]
+performance = ["xiuxian-testing/performance"]
 performance-stress = ["performance"]
 document-extract-pdf-inspector = [
   "dep:xiuxian-wendao-attachments",
@@ -70,7 +69,6 @@ document-extract-pdf-render = [
   "xiuxian-wendao-attachments/pdf-render",
 ]
 duckdb = [
-  "dep:arrow",
   "dep:duckdb",
   "dep:xiuxian-db-store",
   "xiuxian-db-store/duckdb",
@@ -178,7 +176,7 @@ rayon = { workspace = true }
 # Unicode normalization for entity deduplication
 unicode-normalization = { workspace = true }
 
-arrow = { workspace = true, optional = true }
+arrow = { workspace = true }
 arrow-flight = { workspace = true, features = ["flight-sql"], optional = true }
 datafusion = { workspace = true, optional = true }
 parquet = { workspace = true, optional = true }
