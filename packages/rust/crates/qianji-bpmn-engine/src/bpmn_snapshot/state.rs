@@ -7,9 +7,9 @@ use crate::bpmn_model_api::{
     BpmnCorrelationPropertyBindingSnapshot, BpmnCorrelationPropertySnapshot,
     BpmnCorrelationRetrievalExpressionSnapshot, BpmnCorrelationSubscriptionSnapshot,
     BpmnDataAssociationSnapshot, BpmnDataInputOutputSnapshot, BpmnDataObjectReferenceSnapshot,
-    BpmnDataObjectSnapshot, BpmnDataStoreReferenceSnapshot, BpmnDataStoreSnapshot,
-    BpmnDiagramSnapshot, BpmnDocumentSnapshot, BpmnEdgeSnapshot, BpmnEndPointSnapshot,
-    BpmnErrorSnapshot, BpmnEscalationSnapshot, BpmnExtensionSnapshot,
+    BpmnDataObjectSnapshot, BpmnDataStateSnapshot, BpmnDataStoreReferenceSnapshot,
+    BpmnDataStoreSnapshot, BpmnDiagramSnapshot, BpmnDocumentSnapshot, BpmnEdgeSnapshot,
+    BpmnEndPointSnapshot, BpmnErrorSnapshot, BpmnEscalationSnapshot, BpmnExtensionSnapshot,
     BpmnFlowElementMetadataSnapshot, BpmnFontSnapshot, BpmnGlobalTaskSnapshot, BpmnGroupSnapshot,
     BpmnImportSnapshot, BpmnInterfaceSnapshot, BpmnIoBindingSnapshot, BpmnIoSpecificationSnapshot,
     BpmnItemDefinitionSnapshot, BpmnLabelSnapshot, BpmnLabelStyleSnapshot, BpmnLaneSetSnapshot,
@@ -98,6 +98,16 @@ enum IoSpecificationOwner {
     GlobalTask(usize, usize),
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum DataStateOwner {
+    RootDataStore(usize),
+    ProcessDataObject(usize, usize),
+    ProcessDataObjectReference(usize, usize),
+    ProcessDataStoreReference(usize, usize),
+    IoDataInput(IoSpecificationOwner, usize),
+    IoDataOutput(IoSpecificationOwner, usize),
+}
+
 #[derive(Debug, Default)]
 pub(super) struct BpmnSnapshotScanState {
     root: Option<BpmnRootSnapshot>,
@@ -144,6 +154,7 @@ pub(super) struct BpmnSnapshotScanState {
     current_label: Option<BpmnDiLabelTarget>,
     current_label_style: Option<(usize, usize)>,
     io_specification_stack: Vec<IoSpecificationOwner>,
+    current_data_state_owner: Option<DataStateOwner>,
     current_data_association: Option<(usize, DataAssociationKind, BpmnDataAssociationSnapshot)>,
 }
 
@@ -183,6 +194,9 @@ impl BpmnSnapshotScanState {
             source, reader, event, parent_tag, tag, is_empty,
         )?;
         if self.handle_process_start_event(source, reader, event, parent_tag, tag, is_empty)? {
+            return Ok(());
+        }
+        if self.handle_data_metadata_start_event(source, reader, event, tag)? {
             return Ok(());
         }
         if self.handle_callable_io_start_event(source, reader, event, parent_tag, tag, is_empty)? {
@@ -294,22 +308,22 @@ impl BpmnSnapshotScanState {
                 self.attach_correlation_binding_data_path_metadata(source, reader, event)?;
             }
             "dataObject" if self.current_process.is_some() => {
-                self.capture_data_object(source, reader, event)?;
+                self.start_data_object(source, reader, event, is_empty)?;
             }
             "dataObjectReference" if self.current_process.is_some() => {
-                self.capture_data_object_reference(source, reader, event)?;
+                self.start_data_object_reference(source, reader, event, is_empty)?;
             }
             "dataStoreReference" if self.current_process.is_some() => {
-                self.capture_data_store_reference(source, reader, event)?;
+                self.start_data_store_reference(source, reader, event, is_empty)?;
             }
             "ioSpecification" if self.current_process.is_some() => {
                 self.start_io_specification(source, reader, event, is_empty)?;
             }
             "dataInput" if self.current_io_specification().is_some() => {
-                self.capture_io_data_input(source, reader, event)?;
+                self.capture_io_data_input(source, reader, event, is_empty)?;
             }
             "dataOutput" if self.current_io_specification().is_some() => {
-                self.capture_io_data_output(source, reader, event)?;
+                self.capture_io_data_output(source, reader, event, is_empty)?;
             }
             "dataInputAssociation" if self.current_process.is_some() => self
                 .start_data_association(
@@ -371,10 +385,26 @@ impl BpmnSnapshotScanState {
                 self.capture_global_task_io_binding(source, reader, event)?;
             }
             "dataInput" if self.current_io_specification().is_some() => {
-                self.capture_io_data_input(source, reader, event)?;
+                self.capture_io_data_input(source, reader, event, is_empty)?;
             }
             "dataOutput" if self.current_io_specification().is_some() => {
-                self.capture_io_data_output(source, reader, event)?;
+                self.capture_io_data_output(source, reader, event, is_empty)?;
+            }
+            _ => return Ok(false),
+        }
+        Ok(true)
+    }
+
+    fn handle_data_metadata_start_event(
+        &mut self,
+        source: &BpmnSourceFile,
+        reader: &Reader<&[u8]>,
+        event: &BytesStart<'_>,
+        tag: &str,
+    ) -> Result<bool> {
+        match tag {
+            "dataState" if self.current_data_state_owner.is_some() => {
+                self.attach_data_state(source, reader, event)?;
             }
             _ => return Ok(false),
         }
@@ -563,7 +593,7 @@ impl BpmnSnapshotScanState {
             "error" => self.capture_error(source, reader, event)?,
             "escalation" => self.capture_escalation(source, reader, event)?,
             "signal" => self.capture_signal(source, reader, event)?,
-            "dataStore" => self.capture_data_store(source, reader, event)?,
+            "dataStore" => self.start_data_store(source, reader, event, is_empty)?,
             _ => return Ok(false),
         }
         Ok(true)
@@ -630,6 +660,12 @@ impl BpmnSnapshotScanState {
             "ioSpecification" => {
                 let _ = self.io_specification_stack.pop();
             }
+            "dataInput"
+            | "dataOutput"
+            | "dataObject"
+            | "dataObjectReference"
+            | "dataStore"
+            | "dataStoreReference" => self.current_data_state_owner = None,
             "dataInputAssociation" => self.finish_data_association(DataAssociationKind::Input),
             "dataOutputAssociation" => self.finish_data_association(DataAssociationKind::Output),
             _ => {}
@@ -789,6 +825,7 @@ impl BpmnSnapshotScanState {
         self.current_resource_assignment_expression = None;
         self.current_resource_parameter_binding = None;
         self.current_resource_role = None;
+        self.current_data_state_owner = None;
         self.finish_flow_element_metadata();
         self.collecting_flow_element_category_value_ref = false;
         self.current_partner_entity = None;
@@ -2240,11 +2277,12 @@ impl BpmnSnapshotScanState {
         Ok(())
     }
 
-    fn capture_data_store(
+    fn start_data_store(
         &mut self,
         source: &BpmnSourceFile,
         reader: &Reader<&[u8]>,
         event: &BytesStart<'_>,
+        is_empty: bool,
     ) -> Result<()> {
         let Some(root) = self.root.as_mut() else {
             return Ok(());
@@ -2256,7 +2294,12 @@ impl BpmnSnapshotScanState {
             item_subject_ref: attribute_value(source, reader, event, "itemSubjectRef")?,
             capacity: attribute_value(source, reader, event, "capacity")?,
             is_unlimited: boolean_attribute_value(source, reader, event, "isUnlimited")?,
+            data_state: None,
         });
+        if !is_empty {
+            let data_store_index = root.data_stores.len().saturating_sub(1);
+            self.current_data_state_owner = Some(DataStateOwner::RootDataStore(data_store_index));
+        }
         Ok(())
     }
 
@@ -2314,12 +2357,16 @@ impl BpmnSnapshotScanState {
         Ok(())
     }
 
-    fn capture_data_object(
+    fn start_data_object(
         &mut self,
         source: &BpmnSourceFile,
         reader: &Reader<&[u8]>,
         event: &BytesStart<'_>,
+        is_empty: bool,
     ) -> Result<()> {
+        let Some(process_index) = self.current_process else {
+            return Ok(());
+        };
         let Some(process) = self.current_process_mut() else {
             return Ok(());
         };
@@ -2329,16 +2376,28 @@ impl BpmnSnapshotScanState {
             name: attribute_value(source, reader, event, "name")?,
             item_subject_ref: attribute_value(source, reader, event, "itemSubjectRef")?,
             is_collection: boolean_attribute_value(source, reader, event, "isCollection")?,
+            data_state: None,
         });
+        if !is_empty {
+            let data_object_index = process.data_objects.len().saturating_sub(1);
+            self.current_data_state_owner = Some(DataStateOwner::ProcessDataObject(
+                process_index,
+                data_object_index,
+            ));
+        }
         Ok(())
     }
 
-    fn capture_data_object_reference(
+    fn start_data_object_reference(
         &mut self,
         source: &BpmnSourceFile,
         reader: &Reader<&[u8]>,
         event: &BytesStart<'_>,
+        is_empty: bool,
     ) -> Result<()> {
+        let Some(process_index) = self.current_process else {
+            return Ok(());
+        };
         let Some(process) = self.current_process_mut() else {
             return Ok(());
         };
@@ -2349,16 +2408,29 @@ impl BpmnSnapshotScanState {
                 data_object_reference_id: attribute_value(source, reader, event, "id")?,
                 name: attribute_value(source, reader, event, "name")?,
                 data_object_ref: attribute_value(source, reader, event, "dataObjectRef")?,
+                item_subject_ref: attribute_value(source, reader, event, "itemSubjectRef")?,
+                data_state: None,
             });
+        if !is_empty {
+            let reference_index = process.data_object_references.len().saturating_sub(1);
+            self.current_data_state_owner = Some(DataStateOwner::ProcessDataObjectReference(
+                process_index,
+                reference_index,
+            ));
+        }
         Ok(())
     }
 
-    fn capture_data_store_reference(
+    fn start_data_store_reference(
         &mut self,
         source: &BpmnSourceFile,
         reader: &Reader<&[u8]>,
         event: &BytesStart<'_>,
+        is_empty: bool,
     ) -> Result<()> {
+        let Some(process_index) = self.current_process else {
+            return Ok(());
+        };
         let Some(process) = self.current_process_mut() else {
             return Ok(());
         };
@@ -2369,7 +2441,77 @@ impl BpmnSnapshotScanState {
                 data_store_reference_id: attribute_value(source, reader, event, "id")?,
                 name: attribute_value(source, reader, event, "name")?,
                 data_store_ref: attribute_value(source, reader, event, "dataStoreRef")?,
+                item_subject_ref: attribute_value(source, reader, event, "itemSubjectRef")?,
+                data_state: None,
             });
+        if !is_empty {
+            let reference_index = process.data_store_references.len().saturating_sub(1);
+            self.current_data_state_owner = Some(DataStateOwner::ProcessDataStoreReference(
+                process_index,
+                reference_index,
+            ));
+        }
+        Ok(())
+    }
+
+    fn attach_data_state(
+        &mut self,
+        source: &BpmnSourceFile,
+        reader: &Reader<&[u8]>,
+        event: &BytesStart<'_>,
+    ) -> Result<()> {
+        let state = data_state_from_event(source, reader, event)?;
+        let Some(owner) = self.current_data_state_owner else {
+            return Ok(());
+        };
+        match owner {
+            DataStateOwner::RootDataStore(data_store_index) => {
+                if let Some(data_store) = self
+                    .root
+                    .as_mut()
+                    .and_then(|root| root.data_stores.get_mut(data_store_index))
+                {
+                    data_store.data_state = Some(state);
+                }
+            }
+            DataStateOwner::ProcessDataObject(process_index, data_object_index) => {
+                if let Some(data_object) = self
+                    .processes
+                    .get_mut(process_index)
+                    .and_then(|process| process.data_objects.get_mut(data_object_index))
+                {
+                    data_object.data_state = Some(state);
+                }
+            }
+            DataStateOwner::ProcessDataObjectReference(process_index, reference_index) => {
+                if let Some(reference) = self
+                    .processes
+                    .get_mut(process_index)
+                    .and_then(|process| process.data_object_references.get_mut(reference_index))
+                {
+                    reference.data_state = Some(state);
+                }
+            }
+            DataStateOwner::ProcessDataStoreReference(process_index, reference_index) => {
+                if let Some(reference) = self
+                    .processes
+                    .get_mut(process_index)
+                    .and_then(|process| process.data_store_references.get_mut(reference_index))
+                {
+                    reference.data_state = Some(state);
+                }
+            }
+            DataStateOwner::IoDataInput(io_owner, data_index) => {
+                if let Some(input) = self.io_data_input_mut(io_owner, data_index) {
+                    input.data_state = Some(state);
+                }
+            }
+            DataStateOwner::IoDataOutput(io_owner, data_index) => {
+                if let Some(output) = self.io_data_output_mut(io_owner, data_index) {
+                    output.data_state = Some(state);
+                }
+            }
+        }
         Ok(())
     }
 
@@ -2465,13 +2607,21 @@ impl BpmnSnapshotScanState {
         source: &BpmnSourceFile,
         reader: &Reader<&[u8]>,
         event: &BytesStart<'_>,
+        is_empty: bool,
     ) -> Result<()> {
+        let Some(owner) = self.current_io_specification() else {
+            return Ok(());
+        };
         let Some(io_specification) = self.current_io_specification_mut() else {
             return Ok(());
         };
         io_specification
             .data_inputs
             .push(data_input_output_from_event(source, reader, event)?);
+        if !is_empty {
+            let data_index = io_specification.data_inputs.len().saturating_sub(1);
+            self.current_data_state_owner = Some(DataStateOwner::IoDataInput(owner, data_index));
+        }
         Ok(())
     }
 
@@ -2480,13 +2630,21 @@ impl BpmnSnapshotScanState {
         source: &BpmnSourceFile,
         reader: &Reader<&[u8]>,
         event: &BytesStart<'_>,
+        is_empty: bool,
     ) -> Result<()> {
+        let Some(owner) = self.current_io_specification() else {
+            return Ok(());
+        };
         let Some(io_specification) = self.current_io_specification_mut() else {
             return Ok(());
         };
         io_specification
             .data_outputs
             .push(data_input_output_from_event(source, reader, event)?);
+        if !is_empty {
+            let data_index = io_specification.data_outputs.len().saturating_sub(1);
+            self.current_data_state_owner = Some(DataStateOwner::IoDataOutput(owner, data_index));
+        }
         Ok(())
     }
 
@@ -3247,6 +3405,56 @@ impl BpmnSnapshotScanState {
         }
     }
 
+    fn io_data_input_mut(
+        &mut self,
+        owner: IoSpecificationOwner,
+        data_index: usize,
+    ) -> Option<&mut BpmnDataInputOutputSnapshot> {
+        match owner {
+            IoSpecificationOwner::Process(process_index, io_index) => self
+                .processes
+                .get_mut(process_index)?
+                .io_specifications
+                .get_mut(io_index)?
+                .data_inputs
+                .get_mut(data_index),
+            IoSpecificationOwner::GlobalTask(task_index, io_index) => self
+                .root
+                .as_mut()?
+                .global_tasks
+                .get_mut(task_index)?
+                .io_specifications
+                .get_mut(io_index)?
+                .data_inputs
+                .get_mut(data_index),
+        }
+    }
+
+    fn io_data_output_mut(
+        &mut self,
+        owner: IoSpecificationOwner,
+        data_index: usize,
+    ) -> Option<&mut BpmnDataInputOutputSnapshot> {
+        match owner {
+            IoSpecificationOwner::Process(process_index, io_index) => self
+                .processes
+                .get_mut(process_index)?
+                .io_specifications
+                .get_mut(io_index)?
+                .data_outputs
+                .get_mut(data_index),
+            IoSpecificationOwner::GlobalTask(task_index, io_index) => self
+                .root
+                .as_mut()?
+                .global_tasks
+                .get_mut(task_index)?
+                .io_specifications
+                .get_mut(io_index)?
+                .data_outputs
+                .get_mut(data_index),
+        }
+    }
+
     fn current_operation_mut(&mut self) -> Option<&mut BpmnOperationSnapshot> {
         let (interface_index, operation_index) = self.current_operation?;
         self.root
@@ -3431,6 +3639,18 @@ fn data_input_output_from_event(
         name: attribute_value(source, reader, event, "name")?,
         item_subject_ref: attribute_value(source, reader, event, "itemSubjectRef")?,
         is_collection: boolean_attribute_value(source, reader, event, "isCollection")?,
+        data_state: None,
+    })
+}
+
+fn data_state_from_event(
+    source: &BpmnSourceFile,
+    reader: &Reader<&[u8]>,
+    event: &BytesStart<'_>,
+) -> Result<BpmnDataStateSnapshot> {
+    Ok(BpmnDataStateSnapshot {
+        data_state_id: attribute_value(source, reader, event, "id")?,
+        name: attribute_value(source, reader, event, "name")?,
     })
 }
 

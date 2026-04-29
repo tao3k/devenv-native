@@ -128,18 +128,18 @@ The field-level user/manual task contract is tracked in the
   metadata-driven dispatch
 - signal or timer task-event execution on `sendTask` or `receiveTask`
 - broader data-object/data-store execution, IO transformations,
-  multiple-source data associations, authorization, lane scheduling, full
-  task-assignment semantics, delegation, administrative reassignment, and BPMN
-  resource-role expression resolution
+  data-state transition behavior, multiple-source data associations,
+  authorization, lane scheduling, full task-assignment semantics, delegation,
+  administrative reassignment, and BPMN resource-role expression resolution
 - native BPMN `rendering` execution for `userTask`; use bounded
   native BPMN IO metadata for executable form rendering in the current
   slice
 
-The linter reports BPMN data-object, data-store, IO transformations, and
-unsupported data association shapes as explicit deferred execution semantics.
-Use bounded task-local BPMN Data/IO, JSON workflow variables, host-work payload
-fields, or DMN inputs for executable data exchange in the current bounded
-slice.
+The linter reports BPMN data-object, data-store, data-state transition, IO
+transformation, and unsupported data association shapes as explicit deferred
+execution semantics. Use bounded task-local BPMN Data/IO, JSON workflow
+variables, host-work payload fields, or DMN inputs for executable data
+exchange in the current bounded slice.
 The linter also reports native BPMN `rendering`, generic `performer` or
 `resourceRole`, `participantRef`, and `resourceParameterBinding` usage as
 explicit deferred human-task interaction semantics. Keep current human-task

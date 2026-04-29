@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  id="Definitions_DataState"
+  targetNamespace="https://example.com/bpmn/data-state-metadata">
+  <bpmn:itemDefinition id="Item_Order" structureRef="tns:Order" />
+  <bpmn:dataStore id="DataStore_Orders" name="Orders" itemSubjectRef="Item_Order" capacity="100" isUnlimited="false">
+    <bpmn:dataState id="DataState_StoreArchived" name="archived" />
+  </bpmn:dataStore>
+  <bpmn:process id="Process_DataState" isExecutable="false">
+    <bpmn:dataObject id="DataObject_Order" name="Order" itemSubjectRef="Item_Order" isCollection="false">
+      <bpmn:dataState id="DataState_ObjectDraft" name="draft" />
+    </bpmn:dataObject>
+    <bpmn:dataObjectReference id="DataObjectReference_Order" name="Order Ref" dataObjectRef="DataObject_Order" itemSubjectRef="Item_Order">
+      <bpmn:dataState id="DataState_ObjectRefSubmitted" name="submitted" />
+    </bpmn:dataObjectReference>
+    <bpmn:dataStoreReference id="DataStoreReference_Orders" name="Orders Ref" dataStoreRef="DataStore_Orders" itemSubjectRef="Item_Order">
+      <bpmn:dataState id="DataState_StoreRefAvailable" name="available" />
+    </bpmn:dataStoreReference>
+    <bpmn:ioSpecification id="IoSpec_DataState">
+      <bpmn:dataInput id="DataInput_Order" name="order_input" itemSubjectRef="Item_Order">
+        <bpmn:dataState id="DataState_InputReceived" name="received" />
+      </bpmn:dataInput>
+      <bpmn:dataOutput id="DataOutput_Order" name="order_output" itemSubjectRef="Item_Order">
+        <bpmn:dataState id="DataState_OutputApproved" name="approved" />
+      </bpmn:dataOutput>
+    </bpmn:ioSpecification>
+    <bpmn:startEvent id="Start_DataState" />
+    <bpmn:endEvent id="End_DataState" />
+    <bpmn:sequenceFlow id="Flow_DataState" sourceRef="Start_DataState" targetRef="End_DataState" />
+  </bpmn:process>
+</bpmn:definitions>

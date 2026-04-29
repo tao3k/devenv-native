@@ -1053,6 +1053,9 @@ pub struct BpmnDataObjectSnapshot {
     pub item_subject_ref: Option<String>,
     /// Optional BPMN collection marker.
     pub is_collection: Option<bool>,
+    /// Optional direct `dataState` metadata.
+    #[serde(default)]
+    pub data_state: Option<BpmnDataStateSnapshot>,
 }
 
 /// Snapshot of one BPMN `dataObjectReference`.
@@ -1064,6 +1067,12 @@ pub struct BpmnDataObjectReferenceSnapshot {
     pub name: Option<String>,
     /// Optional referenced `dataObject` identifier.
     pub data_object_ref: Option<String>,
+    /// Optional BPMN item-subject reference.
+    #[serde(default)]
+    pub item_subject_ref: Option<String>,
+    /// Optional direct `dataState` metadata.
+    #[serde(default)]
+    pub data_state: Option<BpmnDataStateSnapshot>,
 }
 
 /// Snapshot of one BPMN `dataStore`.
@@ -1079,6 +1088,9 @@ pub struct BpmnDataStoreSnapshot {
     pub capacity: Option<String>,
     /// Optional BPMN unlimited-capacity marker.
     pub is_unlimited: Option<bool>,
+    /// Optional direct `dataState` metadata.
+    #[serde(default)]
+    pub data_state: Option<BpmnDataStateSnapshot>,
 }
 
 /// Snapshot of one BPMN `dataStoreReference`.
@@ -1090,6 +1102,12 @@ pub struct BpmnDataStoreReferenceSnapshot {
     pub name: Option<String>,
     /// Optional referenced `dataStore` identifier.
     pub data_store_ref: Option<String>,
+    /// Optional BPMN item-subject reference.
+    #[serde(default)]
+    pub item_subject_ref: Option<String>,
+    /// Optional direct `dataState` metadata.
+    #[serde(default)]
+    pub data_state: Option<BpmnDataStateSnapshot>,
 }
 
 /// Snapshot of one BPMN `ioSpecification`.
@@ -1114,6 +1132,18 @@ pub struct BpmnDataInputOutputSnapshot {
     pub item_subject_ref: Option<String>,
     /// Optional BPMN collection marker.
     pub is_collection: Option<bool>,
+    /// Optional direct `dataState` metadata.
+    #[serde(default)]
+    pub data_state: Option<BpmnDataStateSnapshot>,
+}
+
+/// Snapshot of one BPMN `dataState`.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct BpmnDataStateSnapshot {
+    /// Optional stable data-state identifier.
+    pub data_state_id: Option<String>,
+    /// Optional human-readable data-state name.
+    pub name: Option<String>,
 }
 
 /// Snapshot of one BPMN callable `ioBinding`.

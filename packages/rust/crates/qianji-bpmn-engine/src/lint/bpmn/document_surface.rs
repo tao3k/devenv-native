@@ -1,9 +1,10 @@
 use crate::bpmn_model_api::{
     BpmnAssociationSnapshot, BpmnChoreographyActivitySnapshot, BpmnCollaborationSnapshot,
-    BpmnConversationNodeSnapshot, BpmnDocumentSnapshot, BpmnFlowElementMetadataSnapshot,
-    BpmnGlobalTaskSnapshot, BpmnGroupSnapshot, BpmnIoBindingSnapshot, BpmnParticipantSnapshot,
-    BpmnPartnerEntitySnapshot, BpmnPartnerRoleSnapshot, BpmnProcessSnapshot,
-    BpmnResourceRoleSnapshot, BpmnTextAnnotationSnapshot,
+    BpmnConversationNodeSnapshot, BpmnDataStateSnapshot, BpmnDocumentSnapshot,
+    BpmnFlowElementMetadataSnapshot, BpmnGlobalTaskSnapshot, BpmnGroupSnapshot,
+    BpmnIoBindingSnapshot, BpmnParticipantSnapshot, BpmnPartnerEntitySnapshot,
+    BpmnPartnerRoleSnapshot, BpmnProcessSnapshot, BpmnResourceRoleSnapshot,
+    BpmnTextAnnotationSnapshot,
 };
 use crate::bpmn_parse_api::BpmnSourceFile;
 use crate::bpmn_snapshot_api::snapshot_bpmn_source;
@@ -925,6 +926,16 @@ fn data_snapshot_summary(snapshot: &BpmnDocumentSnapshot) -> Value {
         "data_object_count": data_object_count,
         "data_object_reference_count": data_object_reference_count,
         "data_store_count": snapshot.root.data_store_count,
+        "data_stores": snapshot.root.data_stores.iter().take(SNAPSHOT_EVIDENCE_LIMIT).map(|store| {
+            json!({
+                "data_store_id": store.data_store_id,
+                "name": store.name,
+                "item_subject_ref": store.item_subject_ref,
+                "capacity": store.capacity,
+                "is_unlimited": store.is_unlimited,
+                "data_state": data_state_evidence(store.data_state.as_ref()),
+            })
+        }).collect::<Vec<_>>(),
         "data_store_reference_count": data_store_reference_count,
         "io_specification_count": io_specification_count,
         "data_input_association_count": data_input_association_count,
@@ -962,18 +973,49 @@ fn process_data_evidence(snapshot: &BpmnDocumentSnapshot) -> Vec<Value> {
                         "data_object_id": object.data_object_id,
                         "name": object.name,
                         "item_subject_ref": object.item_subject_ref,
+                        "is_collection": object.is_collection,
+                        "data_state": data_state_evidence(object.data_state.as_ref()),
                     })
                 }).collect::<Vec<_>>(),
                 "data_object_references": process.data_object_references.iter().take(SNAPSHOT_EVIDENCE_LIMIT).map(|reference| {
                     json!({
                         "data_object_reference_id": reference.data_object_reference_id,
+                        "name": reference.name,
                         "data_object_ref": reference.data_object_ref,
+                        "item_subject_ref": reference.item_subject_ref,
+                        "data_state": data_state_evidence(reference.data_state.as_ref()),
                     })
                 }).collect::<Vec<_>>(),
                 "data_store_references": process.data_store_references.iter().take(SNAPSHOT_EVIDENCE_LIMIT).map(|reference| {
                     json!({
                         "data_store_reference_id": reference.data_store_reference_id,
+                        "name": reference.name,
                         "data_store_ref": reference.data_store_ref,
+                        "item_subject_ref": reference.item_subject_ref,
+                        "data_state": data_state_evidence(reference.data_state.as_ref()),
+                    })
+                }).collect::<Vec<_>>(),
+                "io_specifications": process.io_specifications.iter().take(SNAPSHOT_EVIDENCE_LIMIT).map(|spec| {
+                    json!({
+                        "io_specification_id": spec.io_specification_id,
+                        "data_inputs": spec.data_inputs.iter().take(SNAPSHOT_EVIDENCE_LIMIT).map(|input| {
+                            json!({
+                                "data_id": input.data_id,
+                                "name": input.name,
+                                "item_subject_ref": input.item_subject_ref,
+                                "is_collection": input.is_collection,
+                                "data_state": data_state_evidence(input.data_state.as_ref()),
+                            })
+                        }).collect::<Vec<_>>(),
+                        "data_outputs": spec.data_outputs.iter().take(SNAPSHOT_EVIDENCE_LIMIT).map(|output| {
+                            json!({
+                                "data_id": output.data_id,
+                                "name": output.name,
+                                "item_subject_ref": output.item_subject_ref,
+                                "is_collection": output.is_collection,
+                                "data_state": data_state_evidence(output.data_state.as_ref()),
+                            })
+                        }).collect::<Vec<_>>(),
                     })
                 }).collect::<Vec<_>>(),
                 "data_input_associations": process.data_input_associations.iter().take(SNAPSHOT_EVIDENCE_LIMIT).map(|association| {
@@ -993,4 +1035,13 @@ fn process_data_evidence(snapshot: &BpmnDocumentSnapshot) -> Vec<Value> {
             })
         })
         .collect()
+}
+
+fn data_state_evidence(state: Option<&BpmnDataStateSnapshot>) -> Value {
+    state.map_or(Value::Null, |state| {
+        json!({
+            "data_state_id": state.data_state_id,
+            "name": state.name,
+        })
+    })
 }

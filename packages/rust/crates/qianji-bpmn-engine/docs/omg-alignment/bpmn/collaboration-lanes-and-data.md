@@ -34,7 +34,7 @@ The current engine preserves non-executable BPMN metadata for these families:
 - direct process flow-element common metadata, including `auditing`,
   `monitoring`, and `categoryValueRef`
 - lane-set, lane, and lane-owned flow-node references
-- data-object, data-store, and item-definition metadata
+- data-object, data-store, item-definition, and direct `dataState` metadata
 - lint evidence that reports those preserved structures back to `qianji lint`
   in an LLM-friendly way
 
@@ -59,15 +59,15 @@ correlation-key, choreography-reference, and choreography activity
 declarations plus artifact associations, groups, and text annotations and
 surface that catalog through collaboration lint evidence. That makes partner,
 participant, message-flow, conversation, choreography, artifact, process
-callable, callable IO, resource-role, flow-element metadata, and correlation
-references auditable without requiring adapters to re-scan XML, but it does
-not dispatch message flows, route conversations, execute choreography, invoke
-endpoints, execute groups, interpret annotations, schedule participant
-multiplicity, resolve process support, execute process properties, bind
-callable operations, invoke callable IO bindings, execute generic resource
-assignments, authorize roles, execute auditing or monitoring declarations,
-classify category values, or evaluate correlation subscriptions, keys, or
-retrieval expressions.
+callable, callable IO, data-state, resource-role, flow-element metadata, and
+correlation references auditable without requiring adapters to re-scan XML,
+but it does not dispatch message flows, route conversations, execute
+choreography, invoke endpoints, execute groups, interpret annotations,
+schedule participant multiplicity, resolve process support, execute process
+properties, bind callable operations, invoke callable IO bindings, execute
+data-state transitions, execute generic resource assignments, authorize roles,
+execute auditing or monitoring declarations, classify category values, or
+evaluate correlation subscriptions, keys, or retrieval expressions.
 
 ## Runtime Boundary
 
@@ -90,6 +90,7 @@ These BPMN surfaces remain deferred:
 - executable item-definition schema validation or payload coercion
 - lane-driven assignment, authorization, or execution ownership semantics
 - executable `dataObject` or `dataStore` persistence semantics
+- executable data-state transition behavior
 - transformations, multiple-source data associations, and data-store-backed
   task IO
 - runtime behavior inferred from BPMN DI layout artifacts

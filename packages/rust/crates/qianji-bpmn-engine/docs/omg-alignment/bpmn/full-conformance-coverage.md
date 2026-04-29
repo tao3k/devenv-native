@@ -59,8 +59,8 @@ guidance.
 | Artifacts                 | metadata-only      | Association, group, and text-annotation metadata is preserved without execution semantics.                       |
 | Lanes                     | metadata-only      | Preserved for passive routing/display; no scheduling or authorization.                                           |
 | Item definitions          | metadata-only      | Top-level item catalogs are preserved; schema validation remains deferred.                                       |
-| Data objects              | metadata-only      | Preserved in snapshots; bounded task IO execution is handled separately.                                         |
-| Data stores               | lint-deferred      | Persistence semantics require a separate storage policy.                                                         |
+| Data objects              | metadata-only      | Data object/reference metadata and direct `dataState` declarations are preserved passively.                      |
+| Data stores               | lint-deferred      | Data store/reference metadata and direct `dataState` are preserved; persistence execution remains deferred.      |
 | IO specification          | bounded executable | Human-task form IO and bounded host-task Data/IO metadata are executable.                                        |
 | Data associations         | bounded executable | Bounded host-task input resolution and output target mapping are executable.                                     |
 | BPMN DI                   | metadata-only      | Diagram, plane, shape, edge, bounds, waypoint, label, and font metadata is preserved.                            |
@@ -91,18 +91,20 @@ interface refs, participant endpoint refs, participant multiplicity, process
 callable attributes, process support refs, process properties, process
 correlation subscriptions, direct process resource roles, direct global-task
 resource roles, direct process/global-task callable IO bindings, direct
-global-task IO specifications, direct flow-element
-auditing/monitoring/category metadata, and data references. This gives
-Rust-owned evidence for future routing and type-alignment work while keeping
+global-task IO specifications, direct `dataState` metadata on standard BPMN
+data owners, direct flow-element auditing/monitoring/category metadata, and
+data references. This gives Rust-owned evidence for future routing and
+type-alignment work while keeping
 pool routing, message dispatch, conversation routing, choreography execution,
 endpoint invocation, participant multiplicity execution, global task
 execution, process support resolution, process property execution,
 callable-operation binding, callable IO operation invocation, generic resource
 assignment execution, resource authorization, delegation, escalation,
-scheduling, audit execution, monitoring execution, category classification,
-group execution, annotation interpretation, import resolution, extension
-behavior, extension payload parsing, diagram rendering, layout validation,
-relationship endpoint resolution, event subscription registries, correlation
+scheduling, data-state transition execution, audit execution, monitoring
+execution, category classification, group execution, annotation
+interpretation, import resolution, extension behavior, extension payload
+parsing, diagram rendering, layout validation, relationship endpoint
+resolution, event subscription registries, correlation
 matching, correlation subscription matching, correlation-key evaluation,
 retrieval expression evaluation, and schema validation deferred.
 
