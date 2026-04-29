@@ -189,6 +189,44 @@ optimized `shard_fallback_pages` mode would not invoke OCR for this fixture.
 The next routing slice should improve OCR-page recall for image-bearing text
 PDFs before enabling this path by default.
 
+Milestone 4 starts that routing slice without changing production defaults.
+Python/Docling extraction now writes an internal `_structure.arrow` sidecar
+next to the stable `_resources.arrow` table. The sidecar uses
+`xiuxian_wendao.document_structure.v1` and records page index, block index,
+reading order key, block type, resource element id, content, engine,
+confidence, bounding boxes when Docling exposes them, and provenance. The
+stable nine-column `_resources.arrow` contract is unchanged.
+
+The explicit Rust `hybrid-page-ocr` route also writes `_structure.arrow` after
+successful hybrid extraction. Rust projects the stable resource rows into
+ordered structure blocks and sorts by page index, reading order key, block
+index, and block id before writing the sidecar. This keeps the user-facing
+resource table stable while giving merge, debug, benchmark, and future UI code
+a deterministic structural order source that does not depend on OCR shard
+completion order.
+
+The page router now has a high-recall OCR page hint pass for image-bearing
+markdown emitted by `pdf-inspector`. If a hybrid candidate has no explicit
+`pages_needing_ocr` hints, Rust checks per-page markdown for image placeholders
+before deciding that no raster OCR pages are required. Scanned, image-based,
+and mixed PDFs with no reliable page hints now escalate to page OCR rather than
+silently selecting zero shards. Complex hybrid candidates also escalate to page
+OCR when no reliable region can be derived yet; Docling remains the precision
+fallback for cases the hybrid merge cannot prove complete.
+
+Post-change rerun on arXiv `2604.17337`:
+
+| Profile                | Pages | Shards | Elapsed ms | Status     |
+| ---------------------- | ----: | -----: | ---------: | ---------- |
+| `shard_fallback_pages` |    21 |     21 |  63889.030 | `rendered` |
+
+This closes the immediate precision risk exposed by the previous `0` shard
+selection: the router no longer misses OCR-bearing complex candidates. It does
+not yet deliver the desired speedup for this fixture, because the safe fallback
+is still full page OCR when no region can be derived. The next optimization
+milestone is therefore region discovery and crop rendering, with Docling still
+serving as the accuracy oracle.
+
 The current proof slices add an Arrow-only OCR worker contract under
 `xiuxian-wendao-attachments` plus a feature-gated Studio-side Flight client.
 Rendered page manifests are projected into

@@ -377,6 +377,38 @@ fn document_extract_pdf_text_page_resources_skip_ocr_pages() -> Result<(), Strin
 }
 
 #[test]
+fn document_extract_pdf_audit_selects_image_placeholder_pages_for_high_recall_ocr() {
+    let pages = PagesExtractionResult {
+        pages: vec![
+            PageMarkdown {
+                page: 0,
+                markdown: "Native text".to_string(),
+                needs_ocr: false,
+            },
+            PageMarkdown {
+                page: 1,
+                markdown: "Caption\n\n![Image: scan](image)".to_string(),
+                needs_ocr: false,
+            },
+            PageMarkdown {
+                page: 2,
+                markdown: String::new(),
+                needs_ocr: true,
+            },
+        ],
+        pages_with_tables: Vec::new(),
+        pages_with_columns: Vec::new(),
+        pages_needing_ocr: Vec::new(),
+        is_complex: true,
+    };
+
+    assert_eq!(
+        high_recall_ocr_page_numbers_from_extraction(&pages),
+        vec![2, 3]
+    );
+}
+
+#[test]
 fn document_extract_pdf_text_fast_path_extracts_simple_text_pdf() -> Result<(), String> {
     let temp = tempfile::tempdir().map_err(|error| error.to_string())?;
     let source = temp.path().join("simple.pdf");

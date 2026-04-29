@@ -1,4 +1,8 @@
 use std::collections::{HashMap, HashSet};
+#[cfg(feature = "document-extract-pdf-render")]
+use std::fs::File;
+#[cfg(feature = "document-extract-pdf-render")]
+use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex as StdMutex, OnceLock, Weak};
 use std::time::{Duration, Instant};
@@ -9,6 +13,8 @@ use arrow_flight::client::FlightClient;
 use arrow_flight::flight_service_client::FlightServiceClient as TonicFlightServiceClient;
 use async_trait::async_trait;
 use futures::TryStreamExt;
+#[cfg(feature = "document-extract-pdf-render")]
+use sha2::{Digest, Sha256};
 use tokio::sync::{Mutex, Semaphore};
 use tonic::transport::{Channel, Endpoint};
 use xiuxian_wendao_runtime::transport::{
@@ -29,6 +35,11 @@ use xiuxian_wendao_attachments::pdf::ocr::{
 use xiuxian_wendao_attachments::pdf::render::{
     PdfPageRenderProfile, PdfPageRenderSelection, PdfPageRenderShardReport,
     PdfRenderRoutingDecision, PdfRenderStatus, render_pdf_page_shards_with_selection,
+};
+#[cfg(feature = "document-extract-pdf-render")]
+use xiuxian_wendao_attachments::pdf::structure::{
+    DOCUMENT_STRUCTURE_ARROW_CACHE_NAME, build_document_structure_batch,
+    document_resource_batch_to_structure_blocks,
 };
 
 #[cfg(feature = "document-extract-pdf-render")]
@@ -337,9 +348,10 @@ impl StudioDocumentExtractFlightRouteProvider {
                 }
             }
         };
-        write_arrow_file(
-            output.join(DOCUMENT_RESOURCE_ARROW_CACHE_NAME).as_path(),
-            std::slice::from_ref(&resource_batch),
+        write_hybrid_document_resource_artifacts(
+            output.as_path(),
+            source.as_path(),
+            &resource_batch,
         )?;
         tokio::fs::File::create(output.join("_complete.marker"))
             .await
@@ -664,6 +676,47 @@ async fn materialize_hybrid_page_ocr_resource_batch(
     merge_document_resource_batches_by_page(&[text_batch.batch, response.resource_batch])
 }
 
+#[cfg(feature = "document-extract-pdf-render")]
+fn write_hybrid_document_resource_artifacts(
+    output: &Path,
+    source: &Path,
+    resource_batch: &EngineRecordBatch,
+) -> Result<(), String> {
+    write_arrow_file(
+        output.join(DOCUMENT_RESOURCE_ARROW_CACHE_NAME).as_path(),
+        std::slice::from_ref(resource_batch),
+    )?;
+    let source_content_hash = sha256_file_hex(source)?;
+    let structure_blocks = document_resource_batch_to_structure_blocks(
+        resource_batch,
+        source_content_hash.as_str(),
+        "wendao-hybrid-page-ocr",
+    )?;
+    let structure_batch = build_document_structure_batch(structure_blocks.as_slice())?;
+    write_arrow_file(
+        output.join(DOCUMENT_STRUCTURE_ARROW_CACHE_NAME).as_path(),
+        std::slice::from_ref(&structure_batch),
+    )
+}
+
+#[cfg(feature = "document-extract-pdf-render")]
+fn sha256_file_hex(path: &Path) -> Result<String, String> {
+    let mut file = File::open(path)
+        .map_err(|error| format!("open `{}` for hashing: {error}", path.display()))?;
+    let mut hasher = Sha256::new();
+    let mut buffer = vec![0_u8; 1024 * 1024];
+    loop {
+        let read = file
+            .read(&mut buffer)
+            .map_err(|error| format!("read `{}` for hashing: {error}", path.display()))?;
+        if read == 0 {
+            break;
+        }
+        hasher.update(&buffer[..read]);
+    }
+    Ok(format!("{:x}", hasher.finalize()))
+}
+
 impl DocumentExtractProviderRuntime {
     fn new(registry: Result<DocumentExtractJobRegistry, String>, conversion_limit: usize) -> Self {
         let conversion_limit = conversion_limit.max(1);
@@ -893,6 +946,12 @@ fn validate_hybrid_page_coverage(
     }
     let mut covered = text_page_indices.iter().copied().collect::<HashSet<_>>();
     for result in ocr_results {
+        if covered.contains(&result.page_index) {
+            return Err(format!(
+                "hybrid merge has duplicate page coverage for page {}",
+                result.page_index
+            ));
+        }
         covered.insert(result.page_index);
     }
     let missing = (0..page_count)
@@ -1063,6 +1122,41 @@ mod tests {
         assert!(error.contains("missing page coverage"));
     }
 
+    #[cfg(feature = "document-extract-pdf-render")]
+    #[test]
+    fn hybrid_page_ocr_coverage_rejects_duplicate_pages() {
+        let error = match validate_hybrid_page_coverage(3, &[0, 1], &[sample_ocr_result(1, true)]) {
+            Ok(()) => panic!("expected duplicate page coverage to fail"),
+            Err(error) => error,
+        };
+
+        assert!(error.contains("duplicate page coverage"));
+    }
+
+    #[cfg(feature = "document-extract-pdf-render")]
+    #[test]
+    fn hybrid_page_ocr_writes_structure_sidecar() -> Result<(), String> {
+        let temp = tempfile::tempdir().map_err(|error| error.to_string())?;
+        let source = temp.path().join("source.pdf");
+        let output = temp.path().join("out");
+        fs::write(source.as_path(), b"%PDF-1.4\n").map_err(|error| error.to_string())?;
+        fs::create_dir_all(output.as_path()).map_err(|error| error.to_string())?;
+        let resource_batch = test_resource_batch(&[("text_page", 0, "text-0")])?;
+
+        write_hybrid_document_resource_artifacts(
+            output.as_path(),
+            source.as_path(),
+            &resource_batch,
+        )?;
+
+        let structure_path = output
+            .join(xiuxian_wendao_attachments::pdf::structure::DOCUMENT_STRUCTURE_ARROW_CACHE_NAME);
+        let structure_batches = read_arrow_file(structure_path.as_path())?;
+        assert_eq!(structure_batches.len(), 1);
+        assert_eq!(structure_batches[0].num_rows(), 1);
+        Ok(())
+    }
+
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
     async fn document_extract_job_remains_queued_until_conversion_permit_is_available()
     -> Result<(), String> {
@@ -1195,5 +1289,60 @@ mod tests {
             shard_element_id: format!("shard-{page_index}"),
             element_id: format!("ocr-{page_index}"),
         }
+    }
+
+    #[cfg(feature = "document-extract-pdf-render")]
+    fn test_resource_batch(rows: &[(&str, i32, &str)]) -> Result<EngineRecordBatch, String> {
+        arrow::record_batch::RecordBatch::try_new(
+            std::sync::Arc::new(arrow::datatypes::Schema::new(vec![
+                arrow::datatypes::Field::new("sourcePath", arrow::datatypes::DataType::Utf8, true),
+                arrow::datatypes::Field::new(
+                    "resourceType",
+                    arrow::datatypes::DataType::Utf8,
+                    true,
+                ),
+                arrow::datatypes::Field::new(
+                    "resourcePath",
+                    arrow::datatypes::DataType::Utf8,
+                    true,
+                ),
+                arrow::datatypes::Field::new("pageIndex", arrow::datatypes::DataType::Int32, true),
+                arrow::datatypes::Field::new("caption", arrow::datatypes::DataType::Utf8, true),
+                arrow::datatypes::Field::new("content", arrow::datatypes::DataType::Utf8, true),
+                arrow::datatypes::Field::new("mimeType", arrow::datatypes::DataType::Utf8, true),
+                arrow::datatypes::Field::new("status", arrow::datatypes::DataType::Utf8, true),
+                arrow::datatypes::Field::new("elementId", arrow::datatypes::DataType::Utf8, true),
+            ])),
+            vec![
+                std::sync::Arc::new(arrow::array::StringArray::from(vec![
+                    "/tmp/source.pdf";
+                    rows.len()
+                ])) as arrow::array::ArrayRef,
+                std::sync::Arc::new(arrow::array::StringArray::from(
+                    rows.iter().map(|row| row.0).collect::<Vec<_>>(),
+                )) as arrow::array::ArrayRef,
+                std::sync::Arc::new(arrow::array::StringArray::from(vec![
+                    "/tmp/source.pdf";
+                    rows.len()
+                ])) as arrow::array::ArrayRef,
+                std::sync::Arc::new(arrow::array::Int32Array::from(
+                    rows.iter().map(|row| row.1).collect::<Vec<_>>(),
+                )) as arrow::array::ArrayRef,
+                std::sync::Arc::new(arrow::array::StringArray::from(vec![""; rows.len()]))
+                    as arrow::array::ArrayRef,
+                std::sync::Arc::new(arrow::array::StringArray::from(vec!["content"; rows.len()]))
+                    as arrow::array::ArrayRef,
+                std::sync::Arc::new(arrow::array::StringArray::from(vec![
+                    "text/markdown";
+                    rows.len()
+                ])) as arrow::array::ArrayRef,
+                std::sync::Arc::new(arrow::array::StringArray::from(vec!["ok"; rows.len()]))
+                    as arrow::array::ArrayRef,
+                std::sync::Arc::new(arrow::array::StringArray::from(
+                    rows.iter().map(|row| row.2).collect::<Vec<_>>(),
+                )) as arrow::array::ArrayRef,
+            ],
+        )
+        .map_err(|error| error.to_string())
     }
 }

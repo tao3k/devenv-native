@@ -126,6 +126,7 @@ pub(super) fn build_status_batch(status: &DocumentExtractJobStatus) -> Result<Re
 #[cfg(feature = "document-extract-pdf-render")]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) struct DocumentResourceRow {
+    sequence_index: usize,
     source_path: String,
     resource_type: String,
     resource_path: String,
@@ -143,12 +144,15 @@ pub(super) fn merge_document_resource_batches_by_page(
 ) -> Result<RecordBatch, String> {
     let mut rows = Vec::new();
     for batch in batches {
-        rows.extend(document_resource_rows_from_batch(batch)?);
+        for mut row in document_resource_rows_from_batch(batch)? {
+            row.sequence_index = rows.len();
+            rows.push(row);
+        }
     }
     rows.sort_by(|left, right| {
         left.page_index
             .cmp(&right.page_index)
-            .then(left.resource_type.cmp(&right.resource_type))
+            .then(left.sequence_index.cmp(&right.sequence_index))
             .then(left.element_id.cmp(&right.element_id))
     });
     build_document_resource_batch_from_rows(rows.as_slice())
@@ -171,6 +175,7 @@ fn document_resource_rows_from_batch(
     let mut rows = Vec::with_capacity(batch.num_rows());
     for row in 0..batch.num_rows() {
         rows.push(DocumentResourceRow {
+            sequence_index: row,
             source_path: string_value(source_path, row),
             resource_type: string_value(resource_type, row),
             resource_path: string_value(resource_path, row),
@@ -408,4 +413,47 @@ fn copy_dir_all(source: &Path, target: &Path) -> Result<(), String> {
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[cfg(feature = "document-extract-pdf-render")]
+    #[test]
+    fn document_extract_merge_preserves_in_page_sequence() -> Result<(), String> {
+        let first = resource_batch(&[("ocr_text", 1, "ocr-1")])?;
+        let second = resource_batch(&[("text_page", 1, "text-1")])?;
+
+        let merged = merge_document_resource_batches_by_page(&[first, second])?;
+        let resource_type = merged
+            .column_by_name("resourceType")
+            .and_then(|column| column.as_any().downcast_ref::<StringArray>())
+            .ok_or_else(|| "missing resourceType column".to_string())?;
+
+        assert_eq!(resource_type.value(0), "ocr_text");
+        assert_eq!(resource_type.value(1), "text_page");
+        Ok(())
+    }
+
+    #[cfg(feature = "document-extract-pdf-render")]
+    fn resource_batch(rows: &[(&str, i32, &str)]) -> Result<RecordBatch, String> {
+        RecordBatch::try_new(
+            document_resource_schema(),
+            vec![
+                string_column(rows.iter().map(|_| "/tmp/source.pdf")),
+                string_column(rows.iter().map(|row| row.0)),
+                string_column(rows.iter().map(|_| "/tmp/source.pdf")),
+                Arc::new(Int32Array::from(
+                    rows.iter().map(|row| row.1).collect::<Vec<_>>(),
+                )) as ArrayRef,
+                string_column(rows.iter().map(|_| "")),
+                string_column(rows.iter().map(|_| "content")),
+                string_column(rows.iter().map(|_| "text/markdown")),
+                string_column(rows.iter().map(|_| "ok")),
+                string_column(rows.iter().map(|row| row.2)),
+            ],
+        )
+        .map_err(|error| error.to_string())
+    }
 }

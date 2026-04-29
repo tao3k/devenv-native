@@ -16,7 +16,10 @@ use pdfium_render::prelude::{
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
-use super::audit::{PdfInspectorRoutingDecision, analyze_pdf_routing_signals, routing_assessment};
+use super::audit::{
+    PdfInspectorPdfType, PdfInspectorRoutingDecision, PdfInspectorRoutingSignals,
+    analyze_pdf_routing_signals, high_recall_ocr_page_numbers, routing_assessment,
+};
 use super::ocr::{PdfOcrWorkerProfile, build_ocr_shard_input_batch, build_ocr_shard_inputs};
 
 pub const PDFIUM_LIBRARY_PATH_ENV: &str = "WENDAO_PDFIUM_LIBRARY_PATH";
@@ -675,14 +678,15 @@ fn resolve_shard_fallback_page_selection(path: &Path) -> Result<RenderPageSelect
             reason: "unsupported non-PDF input".to_string(),
         }),
         PdfInspectorRoutingDecision::HybridPageOcrCandidate => {
+            let pages_needing_ocr = if signals.pages_needing_ocr.is_empty() {
+                high_recall_ocr_page_numbers(path)?
+            } else {
+                signals.pages_needing_ocr.clone()
+            };
             let page_indices = raster_ocr_page_indices(
                 signals.page_count,
-                signals.pages_needing_ocr.as_slice(),
-                matches!(
-                    signals.pdf_type,
-                    super::audit::PdfInspectorPdfType::Scanned
-                        | super::audit::PdfInspectorPdfType::ImageBased
-                ),
+                pages_needing_ocr.as_slice(),
+                should_render_all_when_no_ocr_hints(&signals),
             );
             if page_indices.is_empty() {
                 return Ok(RenderPageSelection::Skip {
@@ -695,6 +699,16 @@ fn resolve_shard_fallback_page_selection(path: &Path) -> Result<RenderPageSelect
             Ok(RenderPageSelection::Selected(page_indices))
         }
     }
+}
+
+fn should_render_all_when_no_ocr_hints(signals: &PdfInspectorRoutingSignals) -> bool {
+    signals.is_complex
+        || matches!(
+            signals.pdf_type,
+            PdfInspectorPdfType::Scanned
+                | PdfInspectorPdfType::ImageBased
+                | PdfInspectorPdfType::Mixed
+        )
 }
 
 fn raster_ocr_page_indices(

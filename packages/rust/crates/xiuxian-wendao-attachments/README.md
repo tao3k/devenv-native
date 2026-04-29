@@ -40,10 +40,26 @@ Complex layout and OCR-required pages are routed to the hybrid shard fallback
 candidate, not to unconditional full-document fallback. The hybrid proof mode
 uses `PdfPageRenderSelection::ShardFallbackPages`: it renders only pages that
 need raster OCR, renders all pages only for scanned/image PDFs without reliable
-page hints, and skips raster rendering for complex text PDFs whose text layer is
-available and whose OCR page set is empty. Full Docling fallback is reserved for
-preflight failures, encoding problems, empty documents, or low-confidence PDFs
-that have no page-level shard signal.
+page hints, checks per-page markdown image placeholders when explicit OCR hints
+are absent, and escalates complex hybrid candidates to page OCR when no
+reliable region can be derived yet. Mixed PDFs without reliable page hints also
+escalate to page OCR instead of silently selecting zero shards. Full Docling
+fallback is reserved for preflight failures, encoding problems, empty
+documents, or low-confidence PDFs that have no page-level shard signal.
+
+## Structure Sidecar
+
+The stable user-facing extraction result remains `_resources.arrow` with the
+nine-column document resource schema. Internal merge, debug, benchmark, and
+future UI code may also use `_structure.arrow`, an Arrow sidecar with schema
+version `xiuxian_wendao.document_structure.v1`.
+
+The sidecar records source content hash, block id, parent block id, page index,
+block index, reading order key, block type, linked resource element id, content,
+MIME type, status, engine, optional confidence, optional bounding box, and
+provenance. Structure rows are sorted by page index, reading order key, block
+index, and block id. This makes document order explicit and prevents OCR shard
+completion order from becoming the reconstructed document order.
 
 ## PDFium Runtime
 

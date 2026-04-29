@@ -513,6 +513,38 @@ fn pages_needing_ocr_from_extraction(pages: &PagesExtractionResult) -> Vec<u32> 
     pages_needing_ocr
 }
 
+/// # Errors
+///
+/// Returns an error if `pdf-inspector` cannot extract per-page markdown.
+pub fn high_recall_ocr_page_numbers(path: &Path) -> Result<Vec<u32>, String> {
+    let pages = extract_pages_markdown(path, None).map_err(|error| error.to_string())?;
+    Ok(high_recall_ocr_page_numbers_from_extraction(&pages))
+}
+
+#[must_use]
+pub fn high_recall_ocr_page_numbers_from_extraction(pages: &PagesExtractionResult) -> Vec<u32> {
+    let mut page_numbers = pages_needing_ocr_from_extraction(pages);
+    page_numbers.extend(
+        pages
+            .pages
+            .iter()
+            .filter(|page| page_markdown_has_image_placeholder(page.markdown.as_str()))
+            .map(|page| page.page + 1),
+    );
+    page_numbers.sort_unstable();
+    page_numbers.dedup();
+    page_numbers
+}
+
+fn page_markdown_has_image_placeholder(markdown: &str) -> bool {
+    let normalized = markdown.to_ascii_lowercase();
+    normalized.contains("](image)")
+        || normalized.contains("![image:")
+        || normalized.contains("![image ")
+        || normalized.contains("![image]")
+        || normalized.contains("<img")
+}
+
 fn markdown_from_pages(pages: &PagesExtractionResult) -> String {
     pages
         .pages

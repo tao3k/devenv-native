@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -25,6 +26,8 @@ DOCUMENT_RESOURCE_FIELDS = (
 )
 
 DOCUMENT_RESOURCE_ARROW_CACHE_NAME = "_resources.arrow"
+DOCUMENT_STRUCTURE_ARROW_CACHE_NAME = "_structure.arrow"
+DOCUMENT_STRUCTURE_SCHEMA_VERSION = "xiuxian_wendao.document_structure.v1"
 
 DOCLING_SUPPORTED_DOCUMENT_FORMATS = (
     "PDF",
@@ -102,6 +105,31 @@ DOCUMENT_RESOURCE_SCHEMA = pa.schema(
     ]
 )
 
+DOCUMENT_STRUCTURE_SCHEMA = pa.schema(
+    [
+        pa.field("contractVersion", pa.utf8()),
+        pa.field("sourcePath", pa.utf8()),
+        pa.field("sourceContentHash", pa.utf8()),
+        pa.field("blockId", pa.utf8()),
+        pa.field("parentBlockId", pa.utf8()),
+        pa.field("pageIndex", pa.int32()),
+        pa.field("blockIndex", pa.int32()),
+        pa.field("readingOrderKey", pa.utf8()),
+        pa.field("blockType", pa.utf8()),
+        pa.field("resourceElementId", pa.utf8()),
+        pa.field("content", pa.utf8()),
+        pa.field("mimeType", pa.utf8()),
+        pa.field("status", pa.utf8()),
+        pa.field("engine", pa.utf8()),
+        pa.field("confidence", pa.float64()),
+        pa.field("bboxLeft", pa.float64()),
+        pa.field("bboxTop", pa.float64()),
+        pa.field("bboxRight", pa.float64()),
+        pa.field("bboxBottom", pa.float64()),
+        pa.field("provenance", pa.utf8()),
+    ]
+)
+
 
 class DoclingDocumentProtocol(Protocol):
     """Docling document behavior used by this module."""
@@ -148,6 +176,37 @@ class DocumentResourceRow:
         return asdict(self)
 
 
+@dataclass(frozen=True, slots=True)
+class DocumentStructureBlock:
+    """Internal Arrow-friendly structure block used to preserve read order."""
+
+    contractVersion: str
+    sourcePath: str
+    sourceContentHash: str
+    blockId: str
+    parentBlockId: str
+    pageIndex: int
+    blockIndex: int
+    readingOrderKey: str
+    blockType: str
+    resourceElementId: str
+    content: str
+    mimeType: str
+    status: str
+    engine: str
+    confidence: float | None
+    bboxLeft: float | None
+    bboxTop: float | None
+    bboxRight: float | None
+    bboxBottom: float | None
+    provenance: str
+
+    def to_mapping(self) -> dict[str, object]:
+        """Return a mapping with the internal structure Arrow columns."""
+
+        return asdict(self)
+
+
 def default_document_output_dir(source_path: str | Path) -> Path:
     """Return the default extraction directory for one source document."""
 
@@ -170,10 +229,31 @@ def document_resources_to_table(
     """Convert document resource rows into the stable Arrow table shape."""
 
     rows = [
-        resource.to_mapping() if isinstance(resource, DocumentResourceRow) else dict(resource)
+        (
+            resource.to_mapping()
+            if isinstance(resource, DocumentResourceRow)
+            else dict(resource)
+        )
         for resource in resources
     ]
     return pa.Table.from_pylist(rows, schema=DOCUMENT_RESOURCE_SCHEMA)
+
+
+def document_structure_to_table(
+    blocks: Iterable[DocumentStructureBlock | Mapping[str, object]],
+) -> pa.Table:
+    """Convert structure blocks into the internal Arrow sidecar table."""
+
+    rows = [
+        block.to_mapping() if isinstance(block, DocumentStructureBlock) else dict(block)
+        for block in sorted(
+            blocks,
+            key=lambda item: _structure_sort_key(
+                item.to_mapping() if isinstance(item, DocumentStructureBlock) else item
+            ),
+        )
+    ]
+    return pa.Table.from_pylist(rows, schema=DOCUMENT_STRUCTURE_SCHEMA)
 
 
 def extract_document_table(
@@ -195,7 +275,11 @@ def extract_document_table(
 
     source = Path(source_path)
     if source.exists() and not force:
-        out = Path(output_dir) if output_dir is not None else default_document_output_dir(source)
+        out = (
+            Path(output_dir)
+            if output_dir is not None
+            else default_document_output_dir(source)
+        )
         cached_table = _read_cached_table(source, out)
         if cached_table is not None:
             return cached_table
@@ -246,7 +330,11 @@ def extract_document_resources(
             ]
         raise FileNotFoundError(f"document source path does not exist: {source}")
 
-    out = Path(output_dir) if output_dir is not None else default_document_output_dir(source)
+    out = (
+        Path(output_dir)
+        if output_dir is not None
+        else default_document_output_dir(source)
+    )
     out.mkdir(parents=True, exist_ok=True)
 
     if not force:
@@ -255,11 +343,14 @@ def extract_document_resources(
             return cached
 
     try:
-        resolved_converter = converter if converter is not None else _new_docling_converter()
+        resolved_converter = (
+            converter if converter is not None else _new_docling_converter()
+        )
         document = resolved_converter.convert(source).document
         markdown_text = document.export_to_markdown()
         markdown_path = out / f"{source.stem}.md"
         markdown_path.write_text(markdown_text, encoding="utf-8")
+        source_content_hash = _file_sha256(source)
         resources = [
             DocumentResourceRow(
                 sourcePath=str(source),
@@ -274,6 +365,13 @@ def extract_document_resources(
             )
         ]
         resources.extend(_structured_document_resources(source, out, document))
+        structure = _document_structure_blocks(
+            source,
+            document,
+            resources,
+            source_content_hash=source_content_hash,
+        )
+        _write_cached_structure(out, structure)
         _write_cached_resources(out, resources)
         return resources
     except Exception as exc:
@@ -353,7 +451,9 @@ def _new_docling_converter() -> DocumentConverterProtocol:
     return DocumentConverter()
 
 
-def _read_cached_resources(source: Path, output_dir: Path) -> list[DocumentResourceRow] | None:
+def _read_cached_resources(
+    source: Path, output_dir: Path
+) -> list[DocumentResourceRow] | None:
     table = _read_cached_table(source, output_dir)
     if table is None:
         return None
@@ -378,12 +478,24 @@ def _read_cached_table(source: Path, output_dir: Path) -> pa.Table | None:
     return table
 
 
-def _write_cached_resources(output_dir: Path, resources: list[DocumentResourceRow]) -> None:
+def _write_cached_resources(
+    output_dir: Path, resources: list[DocumentResourceRow]
+) -> None:
     resources_path = output_dir / DOCUMENT_RESOURCE_ARROW_CACHE_NAME
     table = document_resources_to_table(resources)
     with pa.ipc.new_file(resources_path, DOCUMENT_RESOURCE_SCHEMA) as writer:
         writer.write_table(table)
     (output_dir / "_complete.marker").touch()
+
+
+def _write_cached_structure(
+    output_dir: Path,
+    blocks: list[DocumentStructureBlock],
+) -> None:
+    structure_path = output_dir / DOCUMENT_STRUCTURE_ARROW_CACHE_NAME
+    table = document_structure_to_table(blocks)
+    with pa.ipc.new_file(structure_path, DOCUMENT_STRUCTURE_SCHEMA) as writer:
+        writer.write_table(table)
 
 
 def _structured_document_resources(
@@ -399,11 +511,130 @@ def _structured_document_resources(
             _iter_document_elements(document, attribute_names),
             start=1,
         ):
-            row = _resource_from_element(source, output_dir, resource_type, element, index)
+            row = _resource_from_element(
+                source, output_dir, resource_type, element, index
+            )
             if row is not None:
                 resources.append(row)
 
     return resources
+
+
+def _document_structure_blocks(
+    source: Path,
+    document: DoclingDocumentProtocol,
+    resources: list[DocumentResourceRow],
+    *,
+    source_content_hash: str,
+) -> list[DocumentStructureBlock]:
+    blocks: list[DocumentStructureBlock] = []
+    resource_by_element_id = {resource.elementId: resource for resource in resources}
+    main_resource = resource_by_element_id.get("_main")
+    markdown_text = main_resource.content if main_resource is not None else ""
+    blocks.append(
+        _structure_block(
+            source,
+            source_content_hash,
+            block_id="docling-main",
+            parent_block_id="",
+            page_index=0,
+            block_index=0,
+            block_type="document",
+            resource_element_id="_main",
+            content=markdown_text,
+            mime_type="text/markdown",
+            status="ok",
+            engine="docling",
+            confidence=None,
+            bbox=None,
+            provenance={"source": "docling_export_to_markdown"},
+        )
+    )
+
+    block_index = 1
+    for resource_type, attribute_names in _STRUCTURED_RESOURCE_COLLECTIONS:
+        for element_index, element in enumerate(
+            _iter_document_elements(document, attribute_names),
+            start=1,
+        ):
+            element_id = _element_id(element, resource_type, element_index)
+            resource = resource_by_element_id.get(element_id)
+            if resource is None:
+                continue
+            page_index = resource.pageIndex
+            blocks.append(
+                _structure_block(
+                    source,
+                    source_content_hash,
+                    block_id=element_id,
+                    parent_block_id="docling-main",
+                    page_index=page_index,
+                    block_index=block_index,
+                    block_type=resource.resourceType,
+                    resource_element_id=resource.elementId,
+                    content=resource.content,
+                    mime_type=resource.mimeType,
+                    status=resource.status,
+                    engine="docling",
+                    confidence=_element_confidence(element),
+                    bbox=_element_bbox(element),
+                    provenance=_element_provenance(element),
+                )
+            )
+            block_index += 1
+    return blocks
+
+
+def _structure_block(
+    source: Path,
+    source_content_hash: str,
+    *,
+    block_id: str,
+    parent_block_id: str,
+    page_index: int,
+    block_index: int,
+    block_type: str,
+    resource_element_id: str,
+    content: str,
+    mime_type: str,
+    status: str,
+    engine: str,
+    confidence: float | None,
+    bbox: tuple[float, float, float, float] | None,
+    provenance: object,
+) -> DocumentStructureBlock:
+    bbox_left, bbox_top, bbox_right, bbox_bottom = bbox or (None, None, None, None)
+    return DocumentStructureBlock(
+        contractVersion=DOCUMENT_STRUCTURE_SCHEMA_VERSION,
+        sourcePath=str(source),
+        sourceContentHash=source_content_hash,
+        blockId=block_id,
+        parentBlockId=parent_block_id,
+        pageIndex=page_index,
+        blockIndex=block_index,
+        readingOrderKey=f"{page_index:06}.{block_index:06}",
+        blockType=block_type,
+        resourceElementId=resource_element_id,
+        content=content,
+        mimeType=mime_type,
+        status=status,
+        engine=engine,
+        confidence=confidence,
+        bboxLeft=bbox_left,
+        bboxTop=bbox_top,
+        bboxRight=bbox_right,
+        bboxBottom=bbox_bottom,
+        provenance=json.dumps(provenance, ensure_ascii=False, sort_keys=True),
+    )
+
+
+def _structure_sort_key(row: Mapping[str, object]) -> tuple[int, str, int, str]:
+    return (
+        int(row.get("pageIndex") or 0),
+        str(row.get("readingOrderKey") or ""),
+        int(row.get("blockIndex") or 0),
+        str(row.get("blockId") or ""),
+    )
 
 
 _STRUCTURED_RESOURCE_COLLECTIONS: tuple[tuple[str, tuple[str, ...]], ...] = (
@@ -542,14 +773,111 @@ def _element_caption(element: Any) -> str:
 def _element_page_index(element: Any) -> int:
     page_no = getattr(element, "page_no", None)
     if page_no is None:
-        provenance = getattr(element, "prov", None) or getattr(element, "provenance", None)
+        provenance = getattr(element, "prov", None) or getattr(
+            element, "provenance", None
+        )
         if provenance:
-            first = provenance[0] if isinstance(provenance, (list, tuple)) else provenance
+            first = (
+                provenance[0] if isinstance(provenance, (list, tuple)) else provenance
+            )
             page_no = getattr(first, "page_no", None)
     try:
         return max(int(page_no) - 1, 0) if page_no is not None else 0
     except (TypeError, ValueError):
         return 0
+
+
+def _element_confidence(element: Any) -> float | None:
+    value = getattr(element, "confidence", None)
+    if value is None:
+        value = getattr(element, "score", None)
+    try:
+        return float(value) if value is not None else None
+    except (TypeError, ValueError):
+        return None
+
+
+def _element_bbox(element: Any) -> tuple[float, float, float, float] | None:
+    bbox = getattr(element, "bbox", None)
+    if bbox is None:
+        provenance = getattr(element, "prov", None) or getattr(
+            element, "provenance", None
+        )
+        if provenance:
+            first = (
+                provenance[0] if isinstance(provenance, (list, tuple)) else provenance
+            )
+            bbox = getattr(first, "bbox", None)
+    if bbox is None:
+        return None
+    values = (
+        _bbox_value(bbox, ("l", "left", "x0")),
+        _bbox_value(bbox, ("t", "top", "y0")),
+        _bbox_value(bbox, ("r", "right", "x1")),
+        _bbox_value(bbox, ("b", "bottom", "y1")),
+    )
+    if any(value is None for value in values):
+        return None
+    left, top, right, bottom = values
+    assert left is not None
+    assert top is not None
+    assert right is not None
+    assert bottom is not None
+    return (left, top, right, bottom)
+
+
+def _bbox_value(bbox: Any, names: tuple[str, ...]) -> float | None:
+    for name in names:
+        value = getattr(bbox, name, None)
+        if value is not None:
+            try:
+                return float(value)
+            except (TypeError, ValueError):
+                return None
+    return None
+
+
+def _element_provenance(element: Any) -> object:
+    provenance = getattr(element, "prov", None) or getattr(element, "provenance", None)
+    if provenance is None:
+        return {"source": "docling_element"}
+    if isinstance(provenance, (str, int, float, bool)):
+        return {"value": provenance}
+    if isinstance(provenance, (list, tuple)):
+        return [_safe_mapping(item) for item in provenance]
+    return _safe_mapping(provenance)
+
+
+def _safe_mapping(value: Any) -> object:
+    if isinstance(value, dict):
+        return {str(key): _safe_scalar(item) for key, item in value.items()}
+    mapping: dict[str, object] = {}
+    for key in ("page_no", "self_ref", "cref", "id"):
+        item = getattr(value, key, None)
+        if item is not None:
+            mapping[key] = _safe_scalar(item)
+    bbox = getattr(value, "bbox", None)
+    if bbox is not None:
+        mapping["bbox"] = {
+            name: _bbox_value(bbox, (name,))
+            for name in ("l", "t", "r", "b")
+            if _bbox_value(bbox, (name,)) is not None
+        }
+    return mapping or str(value)
+
+
+def _safe_scalar(value: Any) -> object:
+    if isinstance(value, (str, int, float, bool)) or value is None:
+        return value
+    return str(value)
+
+
+def _file_sha256(source: Path) -> str:
+    hasher = hashlib.sha256()
+    with source.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            hasher.update(chunk)
+    return hasher.hexdigest()
 
 
 def _element_id(element: Any, resource_type: str, index: int) -> str:
@@ -632,10 +960,15 @@ __all__ = [
     "DOCUMENT_RESOURCE_ARROW_CACHE_NAME",
     "DOCUMENT_RESOURCE_FIELDS",
     "DOCUMENT_RESOURCE_SCHEMA",
+    "DOCUMENT_STRUCTURE_ARROW_CACHE_NAME",
+    "DOCUMENT_STRUCTURE_SCHEMA",
+    "DOCUMENT_STRUCTURE_SCHEMA_VERSION",
     "DocumentConverterProtocol",
     "DocumentResourceRow",
+    "DocumentStructureBlock",
     "default_document_output_dir",
     "document_resources_to_table",
+    "document_structure_to_table",
     "extract_document_resources",
     "extract_document_table",
     "extract_pdf_resources",

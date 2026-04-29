@@ -11,9 +11,14 @@ from xiuxian_wendao_analyzer import (
     DOCUMENT_RESOURCE_ARROW_CACHE_NAME,
     DOCUMENT_RESOURCE_FIELDS,
     DOCUMENT_RESOURCE_SCHEMA,
+    DOCUMENT_STRUCTURE_ARROW_CACHE_NAME,
+    DOCUMENT_STRUCTURE_SCHEMA,
+    DOCUMENT_STRUCTURE_SCHEMA_VERSION,
     DocumentResourceRow,
+    DocumentStructureBlock,
     default_document_output_dir,
     document_resources_to_table,
+    document_structure_to_table,
     extract_document_resources,
     extract_document_table,
     extract_pdf_resources,
@@ -38,12 +43,14 @@ class FakeDoclingElement:
         caption: str = "",
         page_no: int = 1,
         resource_path: str = "",
+        confidence: float | None = None,
     ) -> None:
         self.text = text
         self.self_ref = self_ref
         self.caption = caption
         self.page_no = page_no
         self.resource_path = resource_path
+        self.confidence = confidence
 
 
 class FakeStructuredDoclingDocument:
@@ -54,6 +61,7 @@ class FakeStructuredDoclingDocument:
                 self_ref="#/tables/0",
                 caption="Example table",
                 page_no=2,
+                confidence=0.97,
             )
         ]
         self.pictures = [
@@ -64,7 +72,9 @@ class FakeStructuredDoclingDocument:
                 page_no=3,
             )
         ]
-        self.formulas = [FakeDoclingElement(text="E = mc^2", self_ref="#/formulas/0", page_no=4)]
+        self.formulas = [
+            FakeDoclingElement(text="E = mc^2", self_ref="#/formulas/0", page_no=4)
+        ]
         self.code_blocks = [
             FakeDoclingElement(text="print('hello')", self_ref="#/code/0", page_no=5)
         ]
@@ -77,7 +87,9 @@ class FakeStructuredDoclingDocument:
             )
         ]
         self.subtitles = [
-            FakeDoclingElement(text="00:00.000 --> 00:01.000\nHello", self_ref="#/cues/0")
+            FakeDoclingElement(
+                text="00:00.000 --> 00:01.000\nHello", self_ref="#/cues/0"
+            )
         ]
 
     def export_to_markdown(self) -> str:
@@ -89,7 +101,9 @@ class FakeStructuredDoclingDocument:
 
 class FakeDoclingResult:
     def __init__(self, markdown: str, document: object | None = None) -> None:
-        self.document = document if document is not None else FakeDoclingDocument(markdown)
+        self.document = (
+            document if document is not None else FakeDoclingDocument(markdown)
+        )
 
 
 class FakeDoclingConverter:
@@ -112,7 +126,9 @@ class FailingConverter:
         raise RuntimeError(f"cannot parse {source}")
 
 
-def test_extract_document_resources_writes_markdown_and_arrow_cache(tmp_path: Path) -> None:
+def test_extract_document_resources_writes_markdown_and_arrow_cache(
+    tmp_path: Path,
+) -> None:
     source = tmp_path / "handbook.docx"
     source.write_bytes(b"docx fixture")
     output_dir = tmp_path / "handbook-output"
@@ -134,7 +150,9 @@ def test_extract_document_resources_writes_markdown_and_arrow_cache(tmp_path: Pa
             elementId="_main",
         )
     ]
-    assert (output_dir / "handbook.md").read_text(encoding="utf-8") == "# Handbook\n\nText\n"
+    assert (output_dir / "handbook.md").read_text(
+        encoding="utf-8"
+    ) == "# Handbook\n\nText\n"
     assert (output_dir / DOCUMENT_RESOURCE_ARROW_CACHE_NAME).exists()
     assert not (output_dir / "_metadata.json").exists()
     assert (output_dir / "_complete.marker").exists()
@@ -150,7 +168,9 @@ def test_extract_document_resources_uses_fresh_cache(tmp_path: Path) -> None:
         output_dir,
         converter=FakeDoclingConverter("# Notes\n"),
     )
-    cached_rows = extract_document_resources(source, output_dir, converter=FailingConverter())
+    cached_rows = extract_document_resources(
+        source, output_dir, converter=FailingConverter()
+    )
 
     assert cached_rows == first_rows
 
@@ -159,7 +179,9 @@ def test_extract_document_table_uses_resource_schema(tmp_path: Path) -> None:
     source = tmp_path / "report.xlsx"
     source.write_bytes(b"xlsx fixture")
 
-    table = extract_document_table(source, converter=FakeDoclingConverter("# Workbook\n"))
+    table = extract_document_table(
+        source, converter=FakeDoclingConverter("# Workbook\n")
+    )
 
     assert table.schema == DOCUMENT_RESOURCE_SCHEMA
     assert table.column_names == list(DOCUMENT_RESOURCE_FIELDS)
@@ -190,7 +212,9 @@ def test_extract_document_table_returns_cached_arrow_table_without_row_roundtrip
     assert table.to_pylist()[0]["content"] == "# Cached\n"
 
 
-def test_extract_document_resources_emits_structured_docling_rows(tmp_path: Path) -> None:
+def test_extract_document_resources_emits_structured_docling_rows(
+    tmp_path: Path,
+) -> None:
     source = tmp_path / "lecture.mp3"
     source.write_bytes(b"audio fixture")
     output_dir = tmp_path / "lecture-output"
@@ -222,6 +246,20 @@ def test_extract_document_resources_emits_structured_docling_rows(tmp_path: Path
     assert row_by_type["formula"].mimeType == "application/x-tex"
     assert row_by_type["subtitle"].mimeType == "text/vtt"
     assert (output_dir / "lecture.docling.json").exists()
+    structure_path = output_dir / DOCUMENT_STRUCTURE_ARROW_CACHE_NAME
+    assert structure_path.exists()
+    with documents.pa.ipc.open_file(structure_path) as reader:
+        structure = reader.read_all()
+    assert structure.schema == DOCUMENT_STRUCTURE_SCHEMA
+    structure_rows = structure.to_pylist()
+    assert [row["contractVersion"] for row in structure_rows] == [
+        DOCUMENT_STRUCTURE_SCHEMA_VERSION
+    ] * len(structure_rows)
+    assert [row["blockType"] for row in structure_rows[:2]] == ["document", "audio"]
+    table_row = next(row for row in structure_rows if row["blockType"] == "table")
+    assert table_row["pageIndex"] == 1
+    assert table_row["confidence"] == 0.97
+    assert table_row["resourceElementId"] == "tables-0"
 
 
 def test_document_resources_to_table_accepts_mappings() -> None:
@@ -245,11 +283,67 @@ def test_document_resources_to_table_accepts_mappings() -> None:
     assert table.to_pylist()[0]["sourcePath"] == "source.pdf"
 
 
+def test_document_structure_to_table_sorts_reading_order() -> None:
+    table = document_structure_to_table(
+        [
+            DocumentStructureBlock(
+                contractVersion=DOCUMENT_STRUCTURE_SCHEMA_VERSION,
+                sourcePath="source.pdf",
+                sourceContentHash="hash",
+                blockId="b",
+                parentBlockId="",
+                pageIndex=1,
+                blockIndex=2,
+                readingOrderKey="000001.000002",
+                blockType="ocr_text",
+                resourceElementId="b",
+                content="second",
+                mimeType="text/plain",
+                status="succeeded",
+                engine="docling",
+                confidence=None,
+                bboxLeft=None,
+                bboxTop=None,
+                bboxRight=None,
+                bboxBottom=None,
+                provenance="{}",
+            ),
+            DocumentStructureBlock(
+                contractVersion=DOCUMENT_STRUCTURE_SCHEMA_VERSION,
+                sourcePath="source.pdf",
+                sourceContentHash="hash",
+                blockId="a",
+                parentBlockId="",
+                pageIndex=0,
+                blockIndex=1,
+                readingOrderKey="000000.000001",
+                blockType="text_page",
+                resourceElementId="a",
+                content="first",
+                mimeType="text/markdown",
+                status="ok",
+                engine="pdf-inspector",
+                confidence=None,
+                bboxLeft=None,
+                bboxTop=None,
+                bboxRight=None,
+                bboxBottom=None,
+                provenance="{}",
+            ),
+        ]
+    )
+
+    assert table.schema == DOCUMENT_STRUCTURE_SCHEMA
+    assert [row["blockId"] for row in table.to_pylist()] == ["a", "b"]
+
+
 def test_extract_document_resources_can_return_error_row(tmp_path: Path) -> None:
     source = tmp_path / "broken.pdf"
     source.write_bytes(b"bad fixture")
 
-    rows = extract_document_resources(source, converter=FailingConverter(), error_row=True)
+    rows = extract_document_resources(
+        source, converter=FailingConverter(), error_row=True
+    )
 
     assert rows[0].resourceType == "error"
     assert rows[0].status == "error"
@@ -258,10 +352,14 @@ def test_extract_document_resources_can_return_error_row(tmp_path: Path) -> None
 
 def test_extract_document_resources_raises_for_missing_source(tmp_path: Path) -> None:
     with pytest.raises(FileNotFoundError):
-        extract_document_resources(tmp_path / "missing.pdf", converter=FakeDoclingConverter())
+        extract_document_resources(
+            tmp_path / "missing.pdf", converter=FakeDoclingConverter()
+        )
 
 
-def test_pdf_compatibility_wrapper_delegates_to_document_extraction(tmp_path: Path) -> None:
+def test_pdf_compatibility_wrapper_delegates_to_document_extraction(
+    tmp_path: Path,
+) -> None:
     source = tmp_path / "legacy.pdf"
     source.write_bytes(b"%PDF fixture")
 
