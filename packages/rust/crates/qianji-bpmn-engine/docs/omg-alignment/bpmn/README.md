@@ -39,8 +39,8 @@ The current package owns bounded support for:
 - bounded task-local Data/IO through native `ioSpecification`,
   `dataInputAssociation`, and `dataOutputAssociation` mappings
 - non-executable BPMN document snapshots for collaboration, choreography,
-  lane, data-object, data-store, import, extension, relationship, BPMN DI,
-  conversation, catalog, and category metadata
+  artifact, lane, data-object, data-store, import, extension, relationship,
+  BPMN DI, conversation, catalog, and category metadata
 
 The current package still defers:
 
@@ -49,11 +49,12 @@ The current package still defers:
 - unbounded event families and event subprocesses
 - broader FEEL or script-backed flow semantics
 
-Deferred collaboration, choreography, lane, data-object, data-store, import,
-extension, relationship, BPMN DI, category, and unsupported IO surfaces are
-reported by the linter with explicit repair guidance instead of being treated
-as executable runtime semantics. Those lint reports also include bounded
-snapshot-derived evidence for the deferred family, such as
+Deferred collaboration, choreography, artifact, lane, data-object, data-store,
+import, extension, relationship, BPMN DI, category, and unsupported IO
+surfaces are reported by the linter with explicit repair guidance instead of
+being treated as executable runtime semantics. Those lint reports also include
+bounded snapshot-derived evidence for the deferred family, such as
 participant/message-flow counts, conversation node/link/association counts,
-choreography activity counts, lane flow-node refs, data-object and
+choreography activity counts, artifact association/group/text-annotation
+counts, lane flow-node refs, data-object and
 data-association references, or diagram element counts.

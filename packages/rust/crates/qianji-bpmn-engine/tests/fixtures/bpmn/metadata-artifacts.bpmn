@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  id="Defs_Artifact_Metadata"
+  targetNamespace="https://qianji.example/bpmn/artifact-metadata">
+  <bpmn:category id="Category_Review" name="Review">
+    <bpmn:categoryValue id="CategoryValue_ManualReview" value="manual-review" />
+  </bpmn:category>
+  <bpmn:collaboration id="Collaboration_Artifacts" name="Artifact Collaboration">
+    <bpmn:participant id="Participant_Requester" processRef="Process_Artifacts" />
+    <bpmn:participant id="Participant_Reviewer" />
+    <bpmn:messageFlow id="MessageFlow_Request" sourceRef="Participant_Requester" targetRef="Participant_Reviewer" />
+    <bpmn:textAnnotation id="TextAnnotation_Collaboration" textFormat="text/markdown">
+      <bpmn:text>Review note from collaboration scope</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:group id="Group_Collaboration" categoryValueRef="CategoryValue_ManualReview" />
+    <bpmn:association id="Association_Collaboration" sourceRef="TextAnnotation_Collaboration" targetRef="MessageFlow_Request" associationDirection="One" />
+  </bpmn:collaboration>
+  <bpmn:process id="Process_Artifacts" name="Artifact Metadata Process" isExecutable="true">
+    <bpmn:startEvent id="Start_1" />
+    <bpmn:serviceTask id="Task_1" name="Handle" />
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="Start_1" targetRef="Task_1" />
+    <bpmn:endEvent id="End_1" />
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_1" targetRef="End_1" />
+    <bpmn:textAnnotation id="TextAnnotation_Process">
+      <bpmn:text>Process owner note</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:group id="Group_Process" categoryValueRef="CategoryValue_ManualReview" />
+    <bpmn:association id="Association_Process" sourceRef="TextAnnotation_Process" targetRef="Task_1" associationDirection="Both" />
+  </bpmn:process>
+</bpmn:definitions>

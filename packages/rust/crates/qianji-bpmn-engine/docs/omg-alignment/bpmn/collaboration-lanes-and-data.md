@@ -13,6 +13,7 @@ The current engine preserves non-executable BPMN metadata for these families:
 - choreography roots and choreography activity metadata, including
   participant refs, message-flow refs, nested correlation keys, participant
   associations, and called choreography refs
+- BPMN artifact metadata for `association`, `group`, and `textAnnotation`
 - top-level item-definition catalog metadata used by message and data
   references
 - top-level message and correlation-property catalogs, including correlation
@@ -39,11 +40,13 @@ preserve standard BPMN `message`, `correlationProperty`, nested
 `correlationPropertyRetrievalExpression`, conversation node, conversation link,
 conversation association, participant association, message-flow association,
 correlation-key, choreography-reference, and choreography activity declarations
-and surface that catalog through collaboration lint evidence. That makes
-participant, message-flow, conversation, choreography, and correlation
-references auditable without requiring adapters to re-scan XML, but it does
-not dispatch message flows, route conversations, execute choreography, or
-evaluate correlation subscriptions, keys, or retrieval expressions.
+plus artifact associations, groups, and text annotations and surface that
+catalog through collaboration lint evidence. That makes participant,
+message-flow, conversation, choreography, artifact, and correlation references
+auditable without requiring adapters to re-scan XML, but it does not dispatch
+message flows, route conversations, execute choreography, execute groups,
+interpret annotations, or evaluate correlation subscriptions, keys, or
+retrieval expressions.
 
 ## Runtime Boundary
 
@@ -51,6 +54,7 @@ These BPMN surfaces remain deferred:
 
 - collaboration-aware message routing across pools or participants
 - executable conversation routing and choreography execution
+- executable group semantics or text-annotation interpretation
 - executable correlation keys, correlation subscriptions, and retrieval
   expression evaluation
 - executable item-definition schema validation or payload coercion
@@ -71,9 +75,10 @@ or data-object execution rules.
 
 For collaboration documents, keep `participant`, `messageFlow`,
 `conversation`, `conversationLink`, `choreography`, `choreographyTask`,
-`subChoreography`, `callChoreography`, `correlationKey`, `message`, and
-`correlationProperty` definitions standard and explicit, including retrieval
-expressions when a correlation property depends on a specific message path.
-The linter can report that metadata as evidence, but runtime behavior must
-still be modeled through one supported process graph, host work, or event waits
-until collaboration routing and choreography execution land.
+`subChoreography`, `callChoreography`, `association`, `group`,
+`textAnnotation`, `correlationKey`, `message`, and `correlationProperty`
+definitions standard and explicit, including retrieval expressions when a
+correlation property depends on a specific message path. The linter can report
+that metadata as evidence, but runtime behavior must still be modeled through
+one supported process graph, host work, or event waits until collaboration
+routing and choreography execution land.

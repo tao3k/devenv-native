@@ -1,6 +1,6 @@
 use super::xml::{attribute_value, boolean_attribute_value, bpmn_model_namespace, local_name};
 use crate::bpmn_model_api::{
-    BpmnBoundsSnapshot, BpmnCategorySnapshot, BpmnCategoryValueSnapshot,
+    BpmnAssociationSnapshot, BpmnBoundsSnapshot, BpmnCategorySnapshot, BpmnCategoryValueSnapshot,
     BpmnChoreographyActivitySnapshot, BpmnCollaborationSnapshot,
     BpmnConversationAssociationSnapshot, BpmnConversationLinkSnapshot,
     BpmnConversationNodeSnapshot, BpmnCorrelationKeySnapshot, BpmnCorrelationPropertySnapshot,
@@ -8,14 +8,14 @@ use crate::bpmn_model_api::{
     BpmnDataInputOutputSnapshot, BpmnDataObjectReferenceSnapshot, BpmnDataObjectSnapshot,
     BpmnDataStoreReferenceSnapshot, BpmnDataStoreSnapshot, BpmnDiagramSnapshot,
     BpmnDocumentSnapshot, BpmnEdgeSnapshot, BpmnErrorSnapshot, BpmnEscalationSnapshot,
-    BpmnExtensionSnapshot, BpmnFontSnapshot, BpmnImportSnapshot, BpmnInterfaceSnapshot,
-    BpmnIoSpecificationSnapshot, BpmnItemDefinitionSnapshot, BpmnLabelSnapshot,
-    BpmnLabelStyleSnapshot, BpmnLaneSetSnapshot, BpmnLaneSnapshot,
+    BpmnExtensionSnapshot, BpmnFontSnapshot, BpmnGroupSnapshot, BpmnImportSnapshot,
+    BpmnInterfaceSnapshot, BpmnIoSpecificationSnapshot, BpmnItemDefinitionSnapshot,
+    BpmnLabelSnapshot, BpmnLabelStyleSnapshot, BpmnLaneSetSnapshot, BpmnLaneSnapshot,
     BpmnMessageFlowAssociationSnapshot, BpmnMessageFlowSnapshot, BpmnMessageSnapshot,
     BpmnOperationSnapshot, BpmnParticipantAssociationSnapshot, BpmnParticipantSnapshot,
     BpmnPlaneSnapshot, BpmnProcessSnapshot, BpmnRelationshipSnapshot,
     BpmnResourceParameterSnapshot, BpmnResourceSnapshot, BpmnRootSnapshot, BpmnShapeSnapshot,
-    BpmnSignalSnapshot, BpmnWaypointSnapshot,
+    BpmnSignalSnapshot, BpmnTextAnnotationSnapshot, BpmnWaypointSnapshot,
 };
 use crate::bpmn_parse_api::BpmnSourceFile;
 use crate::error::Result;
@@ -38,6 +38,7 @@ pub(super) enum TextTarget {
     ConversationMessageFlowRef,
     ChoreographyParticipantRef,
     ChoreographyMessageFlowRef,
+    TextAnnotationText,
     CorrelationKeyPropertyRef,
     ParticipantAssociationInnerRef,
     ParticipantAssociationOuterRef,
@@ -63,6 +64,12 @@ enum CollaborationMetadataOwner {
     ChoreographyActivity(usize, Vec<usize>),
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ArtifactMetadataOwner {
+    Collaboration(usize),
+    Process(usize),
+}
+
 #[derive(Debug, Default)]
 pub(super) struct BpmnSnapshotScanState {
     root: Option<BpmnRootSnapshot>,
@@ -77,6 +84,7 @@ pub(super) struct BpmnSnapshotScanState {
         CollaborationMetadataOwner,
         BpmnParticipantAssociationSnapshot,
     )>,
+    current_text_annotation: Option<(ArtifactMetadataOwner, BpmnTextAnnotationSnapshot)>,
     current_process: Option<usize>,
     lane_set_stack: Vec<(usize, usize)>,
     lane_stack: Vec<(usize, usize, usize)>,
@@ -194,6 +202,19 @@ impl BpmnSnapshotScanState {
                     DataAssociationKind::Output,
                     is_empty,
                 ),
+            "association"
+                if self.current_process.is_some() && is_artifact_container(parent_tag) =>
+            {
+                self.capture_artifact_association(source, reader, event)
+            }
+            "group" if self.current_process.is_some() && is_artifact_container(parent_tag) => {
+                self.capture_artifact_group(source, reader, event)
+            }
+            "textAnnotation"
+                if self.current_process.is_some() && is_artifact_container(parent_tag) =>
+            {
+                self.start_text_annotation(source, reader, event, is_empty)
+            }
             _ => Ok(()),
         }
     }
@@ -287,6 +308,15 @@ impl BpmnSnapshotScanState {
             "conversationLink" if is_collaboration_container(parent_tag) => {
                 self.capture_conversation_link(source, reader, event)?;
             }
+            "association" if is_artifact_container(parent_tag) => {
+                self.capture_artifact_association(source, reader, event)?;
+            }
+            "group" if is_artifact_container(parent_tag) => {
+                self.capture_artifact_group(source, reader, event)?;
+            }
+            "textAnnotation" if is_artifact_container(parent_tag) => {
+                self.start_text_annotation(source, reader, event, is_empty)?;
+            }
             _ => return Ok(false),
         }
         Ok(true)
@@ -345,6 +375,7 @@ impl BpmnSnapshotScanState {
                 self.finish_participant_association();
                 let _ = self.choreography_activity_stack.pop();
             }
+            "textAnnotation" => self.finish_text_annotation(),
             "correlationKey" => self.finish_conversation_correlation_key(),
             "participantAssociation" => self.finish_participant_association(),
             "correlationProperty" => {
@@ -433,6 +464,7 @@ impl BpmnSnapshotScanState {
             TextTarget::ChoreographyMessageFlowRef => {
                 self.push_choreography_message_flow_ref(text);
             }
+            TextTarget::TextAnnotationText => self.append_text_annotation_text(text),
             TextTarget::CorrelationKeyPropertyRef => {
                 self.push_conversation_correlation_property_ref(text);
             }
@@ -464,6 +496,7 @@ impl BpmnSnapshotScanState {
         self.current_category = None;
         self.finish_extension_documentation();
         self.current_extension = None;
+        self.finish_text_annotation();
         self.finish_conversation_correlation_key();
         self.finish_participant_association();
         self.conversation_node_stack.clear();
@@ -517,6 +550,9 @@ impl BpmnSnapshotScanState {
             choreography_refs: Vec::new(),
             choreography_activities: Vec::new(),
             conversation_links: Vec::new(),
+            associations: Vec::new(),
+            groups: Vec::new(),
+            text_annotations: Vec::new(),
         };
         self.collaborations.push(collaboration);
         if let Some(root) = self.root.as_mut() {
@@ -762,6 +798,65 @@ impl BpmnSnapshotScanState {
                 source_ref: attribute_value(source, reader, event, "sourceRef")?,
                 target_ref: attribute_value(source, reader, event, "targetRef")?,
             });
+        Ok(())
+    }
+
+    fn capture_artifact_association(
+        &mut self,
+        source: &BpmnSourceFile,
+        reader: &Reader<&[u8]>,
+        event: &BytesStart<'_>,
+    ) -> Result<()> {
+        let Some(owner) = self.current_artifact_owner() else {
+            return Ok(());
+        };
+        let association = BpmnAssociationSnapshot {
+            association_id: attribute_value(source, reader, event, "id")?,
+            source_ref: attribute_value(source, reader, event, "sourceRef")?,
+            target_ref: attribute_value(source, reader, event, "targetRef")?,
+            association_direction: attribute_value(source, reader, event, "associationDirection")?,
+        };
+        self.push_artifact_association(owner, association);
+        Ok(())
+    }
+
+    fn capture_artifact_group(
+        &mut self,
+        source: &BpmnSourceFile,
+        reader: &Reader<&[u8]>,
+        event: &BytesStart<'_>,
+    ) -> Result<()> {
+        let Some(owner) = self.current_artifact_owner() else {
+            return Ok(());
+        };
+        let group = BpmnGroupSnapshot {
+            group_id: attribute_value(source, reader, event, "id")?,
+            category_value_ref: attribute_value(source, reader, event, "categoryValueRef")?,
+        };
+        self.push_artifact_group(owner, group);
+        Ok(())
+    }
+
+    fn start_text_annotation(
+        &mut self,
+        source: &BpmnSourceFile,
+        reader: &Reader<&[u8]>,
+        event: &BytesStart<'_>,
+        is_empty: bool,
+    ) -> Result<()> {
+        let Some(owner) = self.current_artifact_owner() else {
+            return Ok(());
+        };
+        let annotation = BpmnTextAnnotationSnapshot {
+            annotation_id: attribute_value(source, reader, event, "id")?,
+            text_format: attribute_value(source, reader, event, "textFormat")?,
+            text: None,
+        };
+        if is_empty {
+            self.push_text_annotation(owner, annotation);
+            return Ok(());
+        }
+        self.current_text_annotation = Some((owner, annotation));
         Ok(())
     }
 
@@ -1400,6 +1495,12 @@ impl BpmnSnapshotScanState {
             data_input_associations: Vec::new(),
             data_output_association_count: 0,
             data_output_associations: Vec::new(),
+            association_count: 0,
+            associations: Vec::new(),
+            group_count: 0,
+            groups: Vec::new(),
+            text_annotation_count: 0,
+            text_annotations: Vec::new(),
         };
         self.processes.push(process);
         if let Some(root) = self.root.as_mut() {
@@ -1765,6 +1866,17 @@ impl BpmnSnapshotScanState {
         documentation.push_str(text);
     }
 
+    fn append_text_annotation_text(&mut self, text: &str) {
+        let Some((_, annotation)) = self.current_text_annotation.as_mut() else {
+            return;
+        };
+        let payload = annotation.text.get_or_insert_with(String::new);
+        if !payload.is_empty() {
+            payload.push(' ');
+        }
+        payload.push_str(text);
+    }
+
     fn finish_extension_documentation(&mut self) {
         let Some((extension_index, documentation)) = self.current_extension_documentation.take()
         else {
@@ -1781,6 +1893,19 @@ impl BpmnSnapshotScanState {
             return;
         };
         extension.documentation.push(documentation.to_string());
+    }
+
+    fn finish_text_annotation(&mut self) {
+        let Some((owner, mut annotation)) = self.current_text_annotation.take() else {
+            return;
+        };
+        annotation.text = annotation
+            .text
+            .as_deref()
+            .map(str::trim)
+            .filter(|text| !text.is_empty())
+            .map(ToString::to_string);
+        self.push_text_annotation(owner, annotation);
     }
 
     fn finish_correlation_retrieval_expression(&mut self) {
@@ -1904,6 +2029,75 @@ impl BpmnSnapshotScanState {
             DataAssociationKind::Output => {
                 process.data_output_association_count += 1;
                 process.data_output_associations.push(association);
+            }
+        }
+    }
+
+    fn current_artifact_owner(&self) -> Option<ArtifactMetadataOwner> {
+        if let Some(collaboration_index) = self.current_collaboration {
+            return Some(ArtifactMetadataOwner::Collaboration(collaboration_index));
+        }
+        self.current_process.map(ArtifactMetadataOwner::Process)
+    }
+
+    fn push_artifact_association(
+        &mut self,
+        owner: ArtifactMetadataOwner,
+        association: BpmnAssociationSnapshot,
+    ) {
+        match owner {
+            ArtifactMetadataOwner::Collaboration(collaboration_index) => {
+                let Some(collaboration) = self.collaborations.get_mut(collaboration_index) else {
+                    return;
+                };
+                collaboration.associations.push(association);
+            }
+            ArtifactMetadataOwner::Process(process_index) => {
+                let Some(process) = self.processes.get_mut(process_index) else {
+                    return;
+                };
+                process.association_count += 1;
+                process.associations.push(association);
+            }
+        }
+    }
+
+    fn push_artifact_group(&mut self, owner: ArtifactMetadataOwner, group: BpmnGroupSnapshot) {
+        match owner {
+            ArtifactMetadataOwner::Collaboration(collaboration_index) => {
+                let Some(collaboration) = self.collaborations.get_mut(collaboration_index) else {
+                    return;
+                };
+                collaboration.groups.push(group);
+            }
+            ArtifactMetadataOwner::Process(process_index) => {
+                let Some(process) = self.processes.get_mut(process_index) else {
+                    return;
+                };
+                process.group_count += 1;
+                process.groups.push(group);
+            }
+        }
+    }
+
+    fn push_text_annotation(
+        &mut self,
+        owner: ArtifactMetadataOwner,
+        annotation: BpmnTextAnnotationSnapshot,
+    ) {
+        match owner {
+            ArtifactMetadataOwner::Collaboration(collaboration_index) => {
+                let Some(collaboration) = self.collaborations.get_mut(collaboration_index) else {
+                    return;
+                };
+                collaboration.text_annotations.push(annotation);
+            }
+            ArtifactMetadataOwner::Process(process_index) => {
+                let Some(process) = self.processes.get_mut(process_index) else {
+                    return;
+                };
+                process.text_annotation_count += 1;
+                process.text_annotations.push(annotation);
             }
         }
     }
@@ -2249,5 +2443,21 @@ fn is_choreography_activity_tag(tag: &str) -> bool {
     matches!(
         tag,
         "choreographyTask" | "subChoreography" | "callChoreography"
+    )
+}
+
+fn is_artifact_container(tag: Option<&str>) -> bool {
+    matches!(
+        tag,
+        Some(
+            "collaboration"
+                | "globalConversation"
+                | "choreography"
+                | "globalChoreographyTask"
+                | "process"
+                | "subProcess"
+                | "transaction"
+                | "subChoreography"
+        )
     )
 }

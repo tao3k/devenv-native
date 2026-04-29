@@ -51,6 +51,7 @@ guidance.
 | Sequential multi-instance | bounded executable | Cardinality and bounded collection-backed input/output subset.                                |
 | Parallel multi-instance   | bounded executable | Cardinality and bounded collection-backed input/output subset.                                |
 | Collaboration and pools   | metadata-only      | Participant, message-flow, conversation, choreography, and correlation metadata is preserved. |
+| Artifacts                 | metadata-only      | Association, group, and text-annotation metadata is preserved without execution semantics.    |
 | Lanes                     | metadata-only      | Preserved for passive routing/display; no scheduling or authorization.                        |
 | Item definitions          | metadata-only      | Top-level item catalogs are preserved; schema validation remains deferred.                    |
 | Data objects              | metadata-only      | Preserved in snapshots; bounded task IO execution is handled separately.                      |
@@ -79,14 +80,16 @@ preserve top-level `import`, `extension`, `relationship`, `BPMNDiagram`,
 participants, message flows, conversation nodes, conversation associations,
 participant associations, message-flow associations, conversation links,
 correlation keys, choreography references, choreography activity metadata, and
-data references. This gives Rust-owned evidence for future routing and
+artifact metadata, and data references. This gives Rust-owned evidence for
+future routing and
 type-alignment work while keeping pool routing, message dispatch, conversation
 routing, choreography execution, callable-operation binding, resource
-assignment binding, flow-element classification, import resolution, extension
-behavior, extension payload parsing, diagram rendering, layout validation,
-relationship endpoint resolution, event subscription registries, correlation
-matching, correlation-key evaluation, retrieval expression evaluation, and
-schema validation deferred.
+assignment binding, group execution, annotation interpretation, flow-element
+classification, import resolution, extension behavior, extension payload
+parsing, diagram rendering, layout validation, relationship endpoint
+resolution, event subscription registries, correlation matching,
+correlation-key evaluation, retrieval expression evaluation, and schema
+validation deferred.
 
 ## Active M2 Event Milestone
 

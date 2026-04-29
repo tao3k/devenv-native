@@ -203,21 +203,21 @@ mod runtime_token_api;
 mod runtime_wait_api;
 
 pub use bpmn_model_api::{
-    BpmnBoundsSnapshot, BpmnCategorySnapshot, BpmnCategoryValueSnapshot,
+    BpmnAssociationSnapshot, BpmnBoundsSnapshot, BpmnCategorySnapshot, BpmnCategoryValueSnapshot,
     BpmnChoreographyActivitySnapshot, BpmnCollaborationSnapshot,
     BpmnConversationAssociationSnapshot, BpmnConversationLinkSnapshot,
     BpmnConversationNodeSnapshot, BpmnCorrelationKeySnapshot, BpmnCorrelationPropertySnapshot,
     BpmnDataAssociationSnapshot, BpmnDataInputOutputSnapshot, BpmnDataObjectReferenceSnapshot,
     BpmnDataObjectSnapshot, BpmnDataStoreReferenceSnapshot, BpmnDataStoreSnapshot,
     BpmnDiagramSnapshot, BpmnDocumentSnapshot, BpmnEdgeSnapshot, BpmnErrorSnapshot,
-    BpmnEscalationSnapshot, BpmnExtensionSnapshot, BpmnFontSnapshot, BpmnImportSnapshot,
-    BpmnInterfaceSnapshot, BpmnIoSpecificationSnapshot, BpmnItemDefinitionSnapshot,
-    BpmnLabelSnapshot, BpmnLabelStyleSnapshot, BpmnLaneSetSnapshot, BpmnLaneSnapshot,
-    BpmnMessageFlowAssociationSnapshot, BpmnMessageFlowSnapshot, BpmnMessageSnapshot,
-    BpmnOperationSnapshot, BpmnParticipantAssociationSnapshot, BpmnParticipantSnapshot,
-    BpmnPlaneSnapshot, BpmnProcessSnapshot, BpmnRelationshipSnapshot,
+    BpmnEscalationSnapshot, BpmnExtensionSnapshot, BpmnFontSnapshot, BpmnGroupSnapshot,
+    BpmnImportSnapshot, BpmnInterfaceSnapshot, BpmnIoSpecificationSnapshot,
+    BpmnItemDefinitionSnapshot, BpmnLabelSnapshot, BpmnLabelStyleSnapshot, BpmnLaneSetSnapshot,
+    BpmnLaneSnapshot, BpmnMessageFlowAssociationSnapshot, BpmnMessageFlowSnapshot,
+    BpmnMessageSnapshot, BpmnOperationSnapshot, BpmnParticipantAssociationSnapshot,
+    BpmnParticipantSnapshot, BpmnPlaneSnapshot, BpmnProcessSnapshot, BpmnRelationshipSnapshot,
     BpmnResourceParameterSnapshot, BpmnResourceSnapshot, BpmnRootSnapshot, BpmnShapeSnapshot,
-    BpmnSignalSnapshot, BpmnWaypointSnapshot,
+    BpmnSignalSnapshot, BpmnTextAnnotationSnapshot, BpmnWaypointSnapshot,
 };
 pub use bpmn_parse_api::{
     BpmnBundleSnapshot, BpmnParseOptions, BpmnSourceFile, parse_bpmn_bundle, parse_bpmn_package,

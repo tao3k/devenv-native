@@ -508,6 +508,15 @@ pub struct BpmnCollaborationSnapshot {
     /// Direct conversation-link metadata preserved from the collaboration.
     #[serde(default)]
     pub conversation_links: Vec<BpmnConversationLinkSnapshot>,
+    /// Direct artifact associations preserved from the collaboration.
+    #[serde(default)]
+    pub associations: Vec<BpmnAssociationSnapshot>,
+    /// Direct artifact groups preserved from the collaboration.
+    #[serde(default)]
+    pub groups: Vec<BpmnGroupSnapshot>,
+    /// Direct text annotations preserved from the collaboration.
+    #[serde(default)]
+    pub text_annotations: Vec<BpmnTextAnnotationSnapshot>,
 }
 
 /// Snapshot of one BPMN `participant`.
@@ -654,6 +663,39 @@ pub struct BpmnConversationLinkSnapshot {
     pub target_ref: Option<String>,
 }
 
+/// Snapshot of one BPMN artifact `association`.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct BpmnAssociationSnapshot {
+    /// Optional stable association identifier.
+    pub association_id: Option<String>,
+    /// Optional source reference.
+    pub source_ref: Option<String>,
+    /// Optional target reference.
+    pub target_ref: Option<String>,
+    /// Optional BPMN association direction.
+    pub association_direction: Option<String>,
+}
+
+/// Snapshot of one BPMN artifact `group`.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct BpmnGroupSnapshot {
+    /// Optional stable group identifier.
+    pub group_id: Option<String>,
+    /// Optional referenced category value.
+    pub category_value_ref: Option<String>,
+}
+
+/// Snapshot of one BPMN artifact `textAnnotation`.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct BpmnTextAnnotationSnapshot {
+    /// Optional stable text-annotation identifier.
+    pub annotation_id: Option<String>,
+    /// Optional BPMN text format.
+    pub text_format: Option<String>,
+    /// Optional nested text payload.
+    pub text: Option<String>,
+}
+
 /// Snapshot of one BPMN `process` metadata shell.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct BpmnProcessSnapshot {
@@ -691,6 +733,24 @@ pub struct BpmnProcessSnapshot {
     pub data_output_association_count: usize,
     /// Bounded `dataOutputAssociation` metadata preserved from this process.
     pub data_output_associations: Vec<BpmnDataAssociationSnapshot>,
+    /// Number of artifact `association` elements discovered inside this process.
+    #[serde(default)]
+    pub association_count: usize,
+    /// Bounded artifact `association` metadata preserved from this process.
+    #[serde(default)]
+    pub associations: Vec<BpmnAssociationSnapshot>,
+    /// Number of artifact `group` elements discovered inside this process.
+    #[serde(default)]
+    pub group_count: usize,
+    /// Bounded artifact `group` metadata preserved from this process.
+    #[serde(default)]
+    pub groups: Vec<BpmnGroupSnapshot>,
+    /// Number of `textAnnotation` elements discovered inside this process.
+    #[serde(default)]
+    pub text_annotation_count: usize,
+    /// Bounded `textAnnotation` metadata preserved from this process.
+    #[serde(default)]
+    pub text_annotations: Vec<BpmnTextAnnotationSnapshot>,
 }
 
 /// Snapshot of one BPMN `laneSet`.

@@ -1,6 +1,7 @@
 use crate::bpmn_model_api::{
-    BpmnChoreographyActivitySnapshot, BpmnCollaborationSnapshot, BpmnConversationNodeSnapshot,
-    BpmnDocumentSnapshot,
+    BpmnAssociationSnapshot, BpmnChoreographyActivitySnapshot, BpmnCollaborationSnapshot,
+    BpmnConversationNodeSnapshot, BpmnDocumentSnapshot, BpmnGroupSnapshot,
+    BpmnTextAnnotationSnapshot,
 };
 use crate::bpmn_parse_api::BpmnSourceFile;
 use crate::bpmn_snapshot_api::snapshot_bpmn_source;
@@ -166,6 +167,9 @@ fn collaboration_snapshot_summary(snapshot: &BpmnDocumentSnapshot) -> Value {
         "message_flow_association_count": counts.message_flow_association,
         "correlation_key_count": counts.correlation_key,
         "choreography_activity_count": counts.choreography_activity,
+        "artifact_association_count": counts.association,
+        "artifact_group_count": counts.group,
+        "text_annotation_count": counts.text_annotation,
         "item_definition_count": snapshot.root.item_definition_count,
         "message_count": snapshot.root.message_count,
         "interface_count": snapshot.root.interface_count,
@@ -194,6 +198,9 @@ struct CollaborationCounts {
     message_flow_association: usize,
     correlation_key: usize,
     choreography_activity: usize,
+    association: usize,
+    group: usize,
+    text_annotation: usize,
 }
 
 fn collaboration_counts(snapshot: &BpmnDocumentSnapshot) -> CollaborationCounts {
@@ -217,6 +224,9 @@ fn collaboration_counts(snapshot: &BpmnDocumentSnapshot) -> CollaborationCounts 
                 .iter()
                 .map(choreography_activity_count)
                 .sum::<usize>();
+            counts.association += collaboration.associations.len();
+            counts.group += collaboration.groups.len();
+            counts.text_annotation += collaboration.text_annotations.len();
             counts
         },
     )
@@ -235,6 +245,9 @@ fn collaboration_evidence(collaboration: &BpmnCollaborationSnapshot) -> Value {
         "correlation_key_count": collaboration_correlation_key_count(collaboration),
         "choreography_ref_count": collaboration.choreography_refs.len(),
         "choreography_activity_count": collaboration.choreography_activities.iter().map(choreography_activity_count).sum::<usize>(),
+        "artifact_association_count": collaboration.associations.len(),
+        "artifact_group_count": collaboration.groups.len(),
+        "text_annotation_count": collaboration.text_annotations.len(),
         "initiating_participant_ref": collaboration.initiating_participant_ref,
         "participants": collaboration.participants.iter().take(SNAPSHOT_EVIDENCE_LIMIT).map(|participant| {
             json!({
@@ -252,6 +265,9 @@ fn collaboration_evidence(collaboration: &BpmnCollaborationSnapshot) -> Value {
         }).collect::<Vec<_>>(),
         "conversation_nodes": collaboration.conversation_nodes.iter().take(SNAPSHOT_EVIDENCE_LIMIT).map(conversation_node_evidence).collect::<Vec<_>>(),
         "choreography_activities": collaboration.choreography_activities.iter().take(SNAPSHOT_EVIDENCE_LIMIT).map(choreography_activity_evidence).collect::<Vec<_>>(),
+        "associations": collaboration.associations.iter().take(SNAPSHOT_EVIDENCE_LIMIT).map(artifact_association_evidence).collect::<Vec<_>>(),
+        "groups": collaboration.groups.iter().take(SNAPSHOT_EVIDENCE_LIMIT).map(artifact_group_evidence).collect::<Vec<_>>(),
+        "text_annotations": collaboration.text_annotations.iter().take(SNAPSHOT_EVIDENCE_LIMIT).map(text_annotation_evidence).collect::<Vec<_>>(),
         "conversation_links": collaboration.conversation_links.iter().take(SNAPSHOT_EVIDENCE_LIMIT).map(|link| {
             json!({
                 "link_id": link.link_id,
@@ -337,6 +353,30 @@ fn choreography_activity_evidence(activity: &BpmnChoreographyActivitySnapshot) -
         "correlation_key_count": choreography_activity_correlation_key_count(activity),
         "participant_association_count": activity.participant_associations.len(),
         "child_activity_count": activity.child_activities.iter().map(choreography_activity_count).sum::<usize>(),
+    })
+}
+
+fn artifact_association_evidence(association: &BpmnAssociationSnapshot) -> Value {
+    json!({
+        "association_id": association.association_id,
+        "source_ref": association.source_ref,
+        "target_ref": association.target_ref,
+        "association_direction": association.association_direction,
+    })
+}
+
+fn artifact_group_evidence(group: &BpmnGroupSnapshot) -> Value {
+    json!({
+        "group_id": group.group_id,
+        "category_value_ref": group.category_value_ref,
+    })
+}
+
+fn text_annotation_evidence(annotation: &BpmnTextAnnotationSnapshot) -> Value {
+    json!({
+        "annotation_id": annotation.annotation_id,
+        "text_format": annotation.text_format,
+        "text": annotation.text,
     })
 }
 
