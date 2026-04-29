@@ -4,9 +4,10 @@ use crate::bpmn_model_api::{
     BpmnCorrelationRetrievalExpressionSnapshot, BpmnDataAssociationSnapshot,
     BpmnDataInputOutputSnapshot, BpmnDataObjectReferenceSnapshot, BpmnDataObjectSnapshot,
     BpmnDataStoreReferenceSnapshot, BpmnDataStoreSnapshot, BpmnDocumentSnapshot, BpmnErrorSnapshot,
-    BpmnEscalationSnapshot, BpmnIoSpecificationSnapshot, BpmnItemDefinitionSnapshot,
-    BpmnLaneSetSnapshot, BpmnLaneSnapshot, BpmnMessageFlowSnapshot, BpmnMessageSnapshot,
-    BpmnParticipantSnapshot, BpmnProcessSnapshot, BpmnRootSnapshot, BpmnSignalSnapshot,
+    BpmnEscalationSnapshot, BpmnInterfaceSnapshot, BpmnIoSpecificationSnapshot,
+    BpmnItemDefinitionSnapshot, BpmnLaneSetSnapshot, BpmnLaneSnapshot, BpmnMessageFlowSnapshot,
+    BpmnMessageSnapshot, BpmnOperationSnapshot, BpmnParticipantSnapshot, BpmnProcessSnapshot,
+    BpmnRootSnapshot, BpmnSignalSnapshot,
 };
 use crate::bpmn_parse_api::BpmnSourceFile;
 use crate::error::Result;
@@ -19,6 +20,9 @@ pub(super) enum TextTarget {
     DataAssociationSource,
     DataAssociationTarget,
     CorrelationMessagePath,
+    OperationInMessageRef,
+    OperationOutMessageRef,
+    OperationErrorRef,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -39,6 +43,8 @@ pub(super) struct BpmnSnapshotScanState {
     current_correlation_property: Option<usize>,
     current_correlation_retrieval_expression:
         Option<(usize, BpmnCorrelationRetrievalExpressionSnapshot)>,
+    current_interface: Option<usize>,
+    current_operation: Option<(usize, usize)>,
     io_specification_stack: Vec<(usize, usize)>,
     current_data_association: Option<(usize, DataAssociationKind, BpmnDataAssociationSnapshot)>,
 }
@@ -80,6 +86,12 @@ impl BpmnSnapshotScanState {
             }
             "message" if parent_tag == Some("definitions") => {
                 self.capture_message(source, reader, event)
+            }
+            "interface" if parent_tag == Some("definitions") => {
+                self.start_interface(source, reader, event, is_empty)
+            }
+            "operation" if self.current_interface.is_some() => {
+                self.start_operation(source, reader, event, is_empty)
             }
             "correlationProperty" if parent_tag == Some("definitions") => {
                 self.capture_correlation_property(source, reader, event, is_empty)
@@ -155,6 +167,11 @@ impl BpmnSnapshotScanState {
             "correlationPropertyRetrievalExpression" => {
                 self.finish_correlation_retrieval_expression();
             }
+            "operation" => self.current_operation = None,
+            "interface" => {
+                self.current_operation = None;
+                self.current_interface = None;
+            }
             "process" => {
                 self.current_process = None;
                 self.lane_set_stack.clear();
@@ -189,6 +206,9 @@ impl BpmnSnapshotScanState {
             TextTarget::DataAssociationSource => self.push_data_association_source_ref(text),
             TextTarget::DataAssociationTarget => self.set_data_association_target_ref(text),
             TextTarget::CorrelationMessagePath => self.append_correlation_message_path(text),
+            TextTarget::OperationInMessageRef => self.set_operation_in_message_ref(text),
+            TextTarget::OperationOutMessageRef => self.set_operation_out_message_ref(text),
+            TextTarget::OperationErrorRef => self.push_operation_error_ref(text),
         }
     }
 
@@ -204,6 +224,8 @@ impl BpmnSnapshotScanState {
             self.finish_data_association(DataAssociationKind::Output);
         }
         self.finish_correlation_retrieval_expression();
+        self.current_operation = None;
+        self.current_interface = None;
     }
 
     pub(super) fn into_snapshot(self, source: &BpmnSourceFile) -> BpmnDocumentSnapshot {
@@ -291,6 +313,61 @@ impl BpmnSnapshotScanState {
             name: attribute_value(source, reader, event, "name")?,
             item_ref: attribute_value(source, reader, event, "itemRef")?,
         });
+        Ok(())
+    }
+
+    fn start_interface(
+        &mut self,
+        source: &BpmnSourceFile,
+        reader: &Reader<&[u8]>,
+        event: &BytesStart<'_>,
+        is_empty: bool,
+    ) -> Result<()> {
+        let Some(root) = self.root.as_mut() else {
+            return Ok(());
+        };
+        root.interface_count += 1;
+        root.interfaces.push(BpmnInterfaceSnapshot {
+            interface_id: attribute_value(source, reader, event, "id")?,
+            name: attribute_value(source, reader, event, "name")?,
+            implementation_ref: attribute_value(source, reader, event, "implementationRef")?,
+            operations: Vec::new(),
+        });
+        if !is_empty {
+            self.current_interface = root.interfaces.len().checked_sub(1);
+        }
+        Ok(())
+    }
+
+    fn start_operation(
+        &mut self,
+        source: &BpmnSourceFile,
+        reader: &Reader<&[u8]>,
+        event: &BytesStart<'_>,
+        is_empty: bool,
+    ) -> Result<()> {
+        let Some(interface_index) = self.current_interface else {
+            return Ok(());
+        };
+        let operation = BpmnOperationSnapshot {
+            operation_id: attribute_value(source, reader, event, "id")?,
+            name: attribute_value(source, reader, event, "name")?,
+            implementation_ref: attribute_value(source, reader, event, "implementationRef")?,
+            in_message_ref: None,
+            out_message_ref: None,
+            error_refs: Vec::new(),
+        };
+        let Some(root) = self.root.as_mut() else {
+            return Ok(());
+        };
+        let Some(interface) = root.interfaces.get_mut(interface_index) else {
+            return Ok(());
+        };
+        interface.operations.push(operation);
+        if !is_empty {
+            let operation_index = interface.operations.len().saturating_sub(1);
+            self.current_operation = Some((interface_index, operation_index));
+        }
         Ok(())
     }
 
@@ -706,6 +783,27 @@ impl BpmnSnapshotScanState {
             .push_str(text);
     }
 
+    fn set_operation_in_message_ref(&mut self, text: &str) {
+        let Some(operation) = self.current_operation_mut() else {
+            return;
+        };
+        operation.in_message_ref = Some(text.to_string());
+    }
+
+    fn set_operation_out_message_ref(&mut self, text: &str) {
+        let Some(operation) = self.current_operation_mut() else {
+            return;
+        };
+        operation.out_message_ref = Some(text.to_string());
+    }
+
+    fn push_operation_error_ref(&mut self, text: &str) {
+        let Some(operation) = self.current_operation_mut() else {
+            return;
+        };
+        operation.error_refs.push(text.to_string());
+    }
+
     fn finish_correlation_retrieval_expression(&mut self) {
         let Some((property_index, retrieval_expression)) =
             self.current_correlation_retrieval_expression.take()
@@ -797,6 +895,16 @@ impl BpmnSnapshotScanState {
             .io_specifications
             .get_mut(io_index)
     }
+
+    fn current_operation_mut(&mut self) -> Option<&mut BpmnOperationSnapshot> {
+        let (interface_index, operation_index) = self.current_operation?;
+        self.root
+            .as_mut()?
+            .interfaces
+            .get_mut(interface_index)?
+            .operations
+            .get_mut(operation_index)
+    }
 }
 
 fn root_from_event(
@@ -817,6 +925,8 @@ fn root_from_event(
         item_definitions: Vec::new(),
         message_count: 0,
         messages: Vec::new(),
+        interface_count: 0,
+        interfaces: Vec::new(),
         correlation_property_count: 0,
         correlation_properties: Vec::new(),
         error_count: 0,

@@ -33,6 +33,10 @@ The field-level user/manual task contract is tracked in the
 - `businessRuleTask` may execute locally when one matching DMN decision is
   already available inside the parsed package; otherwise it also falls back
   to the host seam.
+- Top-level BPMN `interface` and nested `operation` declarations are preserved
+  in document snapshots as callable-operation metadata. The current runtime
+  does not resolve service bindings from those catalogs; supported task
+  dispatch remains driven by the explicit task node and host-work metadata.
 - `userTask` and `manualTask` host requests carry the engine-owned
   `process_id`, BPMN `activity_id`, `token_id`, `node_index`, and workflow
   variables. UI and CLI adapters must treat those fields as the canonical
@@ -90,6 +94,8 @@ The field-level user/manual task contract is tracked in the
 
 - in-engine script execution
 - correlations and broader collaboration-aware message routing
+- service interface binding, operation invocation resolution, and external
+  callable contract validation
 - signal or timer task-event execution on `sendTask` or `receiveTask`
 - broader data-object/data-store execution, IO transformations,
   multiple-source data associations, authorization, lane scheduling, full

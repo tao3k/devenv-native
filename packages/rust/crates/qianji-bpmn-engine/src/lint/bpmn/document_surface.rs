@@ -117,6 +117,7 @@ fn root_snapshot_summary(snapshot: &BpmnDocumentSnapshot) -> Value {
         "process_count": snapshot.root.process_count,
         "item_definition_count": snapshot.root.item_definition_count,
         "message_count": snapshot.root.message_count,
+        "interface_count": snapshot.root.interface_count,
         "correlation_property_count": snapshot.root.correlation_property_count,
         "error_count": snapshot.root.error_count,
         "escalation_count": snapshot.root.escalation_count,
@@ -164,6 +165,7 @@ fn collaboration_snapshot_summary(snapshot: &BpmnDocumentSnapshot) -> Value {
         .collect::<Vec<_>>();
     let item_definitions = item_definition_evidence(snapshot);
     let messages = message_evidence(snapshot);
+    let interfaces = interface_evidence(snapshot);
     let correlation_properties = correlation_property_evidence(snapshot);
 
     json!({
@@ -173,13 +175,16 @@ fn collaboration_snapshot_summary(snapshot: &BpmnDocumentSnapshot) -> Value {
         "message_flow_count": message_flow_count,
         "item_definition_count": snapshot.root.item_definition_count,
         "message_count": snapshot.root.message_count,
+        "interface_count": snapshot.root.interface_count,
         "correlation_property_count": snapshot.root.correlation_property_count,
         "collaborations_truncated": snapshot.collaborations.len() > SNAPSHOT_EVIDENCE_LIMIT,
         "item_definitions_truncated": snapshot.root.item_definitions.len() > SNAPSHOT_EVIDENCE_LIMIT,
         "messages_truncated": snapshot.root.messages.len() > SNAPSHOT_EVIDENCE_LIMIT,
+        "interfaces_truncated": snapshot.root.interfaces.len() > SNAPSHOT_EVIDENCE_LIMIT,
         "correlation_properties_truncated": snapshot.root.correlation_properties.len() > SNAPSHOT_EVIDENCE_LIMIT,
         "item_definitions": item_definitions,
         "messages": messages,
+        "interfaces": interfaces,
         "correlation_properties": correlation_properties,
         "collaborations": collaborations,
     })
@@ -213,6 +218,33 @@ fn message_evidence(snapshot: &BpmnDocumentSnapshot) -> Vec<Value> {
                 "message_id": message.message_id,
                 "name": message.name,
                 "item_ref": message.item_ref,
+            })
+        })
+        .collect()
+}
+
+fn interface_evidence(snapshot: &BpmnDocumentSnapshot) -> Vec<Value> {
+    snapshot
+        .root
+        .interfaces
+        .iter()
+        .take(SNAPSHOT_EVIDENCE_LIMIT)
+        .map(|interface| {
+            json!({
+                "interface_id": interface.interface_id,
+                "name": interface.name,
+                "implementation_ref": interface.implementation_ref,
+                "operation_count": interface.operations.len(),
+                "operations": interface.operations.iter().take(SNAPSHOT_EVIDENCE_LIMIT).map(|operation| {
+                    json!({
+                        "operation_id": operation.operation_id,
+                        "name": operation.name,
+                        "implementation_ref": operation.implementation_ref,
+                        "in_message_ref": operation.in_message_ref,
+                        "out_message_ref": operation.out_message_ref,
+                        "error_refs": operation.error_refs,
+                    })
+                }).collect::<Vec<_>>(),
             })
         })
         .collect()

@@ -136,6 +136,9 @@ fn text_target(element_stack: &[String]) -> Option<TextTarget> {
         (Some("messagePath"), Some("correlationPropertyRetrievalExpression")) => {
             Some(TextTarget::CorrelationMessagePath)
         }
+        (Some("inMessageRef"), Some("operation")) => Some(TextTarget::OperationInMessageRef),
+        (Some("outMessageRef"), Some("operation")) => Some(TextTarget::OperationOutMessageRef),
+        (Some("errorRef"), Some("operation")) => Some(TextTarget::OperationErrorRef),
         _ => None,
     }
 }

@@ -181,6 +181,37 @@ fn bpmn_snapshot_preserves_event_definition_metadata_catalogs() {
     );
 }
 
+#[test]
+fn bpmn_snapshot_preserves_interface_operation_metadata_catalogs() {
+    let snapshot =
+        snapshot_bpmn_source(&fixture_source("metadata-interface-operation-catalog.bpmn"))
+            .must("interface metadata-only BPMN source should produce a document snapshot");
+
+    assert_eq!(snapshot.root.interface_count, 1);
+    let interface = &snapshot.root.interfaces[0];
+    assert_eq!(interface.interface_id.as_deref(), Some("Interface_Order"));
+    assert_eq!(interface.name.as_deref(), Some("Order Interface"));
+    assert_eq!(
+        interface.implementation_ref.as_deref(),
+        Some("tns:OrderPort")
+    );
+    assert_eq!(interface.operations.len(), 1);
+
+    let operation = &interface.operations[0];
+    assert_eq!(operation.operation_id.as_deref(), Some("Operation_Submit"));
+    assert_eq!(operation.name.as_deref(), Some("Submit Order"));
+    assert_eq!(
+        operation.implementation_ref.as_deref(),
+        Some("tns:submitOrder")
+    );
+    assert_eq!(operation.in_message_ref.as_deref(), Some("Message_Request"));
+    assert_eq!(
+        operation.out_message_ref.as_deref(),
+        Some("Message_Response")
+    );
+    assert_eq!(operation.error_refs, ["Service_Error"]);
+}
+
 fn metadata_snapshot() -> BpmnDocumentSnapshot {
     snapshot_bpmn_source(&fixture_source("metadata-collaboration-lane-data.bpmn"))
         .must("metadata-only BPMN source should still produce a document snapshot")

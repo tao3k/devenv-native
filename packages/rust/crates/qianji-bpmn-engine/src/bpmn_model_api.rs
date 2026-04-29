@@ -52,6 +52,12 @@ pub struct BpmnRootSnapshot {
     /// Bounded top-level `message` metadata preserved from the document.
     #[serde(default)]
     pub messages: Vec<BpmnMessageSnapshot>,
+    /// Number of top-level `interface` elements discovered in the document.
+    #[serde(default)]
+    pub interface_count: usize,
+    /// Bounded top-level `interface` metadata preserved from the document.
+    #[serde(default)]
+    pub interfaces: Vec<BpmnInterfaceSnapshot>,
     /// Number of top-level `correlationProperty` elements discovered in the document.
     #[serde(default)]
     pub correlation_property_count: usize,
@@ -104,6 +110,38 @@ pub struct BpmnMessageSnapshot {
     pub name: Option<String>,
     /// Optional BPMN item definition reference.
     pub item_ref: Option<String>,
+}
+
+/// Snapshot of one BPMN `interface`.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct BpmnInterfaceSnapshot {
+    /// Optional stable interface identifier.
+    pub interface_id: Option<String>,
+    /// Optional human-readable interface name.
+    pub name: Option<String>,
+    /// Optional referenced implementation artifact.
+    pub implementation_ref: Option<String>,
+    /// Direct operation metadata preserved from this interface.
+    #[serde(default)]
+    pub operations: Vec<BpmnOperationSnapshot>,
+}
+
+/// Snapshot of one BPMN `operation`.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct BpmnOperationSnapshot {
+    /// Optional stable operation identifier.
+    pub operation_id: Option<String>,
+    /// Optional human-readable operation name.
+    pub name: Option<String>,
+    /// Optional referenced implementation artifact.
+    pub implementation_ref: Option<String>,
+    /// Optional nested input message reference.
+    pub in_message_ref: Option<String>,
+    /// Optional nested output message reference.
+    pub out_message_ref: Option<String>,
+    /// Direct nested error references preserved in source order.
+    #[serde(default)]
+    pub error_refs: Vec<String>,
 }
 
 /// Snapshot of one BPMN `correlationProperty`.
@@ -366,6 +404,8 @@ pub(crate) fn empty_bpmn_root_snapshot(source: &BpmnSourceFile) -> BpmnRootSnaps
         item_definitions: Vec::new(),
         message_count: 0,
         messages: Vec::new(),
+        interface_count: 0,
+        interfaces: Vec::new(),
         correlation_property_count: 0,
         correlation_properties: Vec::new(),
         error_count: 0,
