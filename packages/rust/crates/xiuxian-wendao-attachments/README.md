@@ -103,6 +103,12 @@ Use the benchmark script's `--pdf-render-shard-audit` lane with
 arguments to drive the ignored cargo-test proof against explicit real-PDF
 regions. This stays an audit surface; it does not change default extraction.
 
+The same explicit region fixture syntax can drive the opt-in live
+`hybrid-page-ocr` benchmark through `--hybrid-pdf-render-selection
+region-shards`. In that mode, region OCR is supplemental: native text page
+coverage remains required for the page, and full-page OCR shards continue to
+replace only their selected pages.
+
 The `pdf-inspector` text helpers can also project native non-OCR pages into
 per-page `text_page` rows. The Studio provider uses those rows only for the
 explicit hybrid OCR mode and only when page coverage can be proven complete.

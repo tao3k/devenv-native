@@ -633,6 +633,11 @@ Current implementation status:
   writes the same OCR shard Arrow artifacts as page rendering. This keeps
   region OCR evidence reproducible without changing production sync or async
   extraction.
+- Explicit region fixtures can now also drive the opt-in
+  `hybrid-page-ocr` benchmark provider. `region_shards` remains disabled unless
+  requested by benchmark configuration, and region OCR is validated as
+  supplemental to native text page coverage rather than as a full-page
+  replacement. Full-page shard coverage gates remain strict.
 
 ### Milestone 5: Hybrid Mixed-PDF Pipeline
 

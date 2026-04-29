@@ -649,6 +649,52 @@ def test_pdf_render_region_rejects_non_region_selection(tmp_path: Path) -> None:
         raise AssertionError("region fixture on page selection should fail")
 
 
+def test_hybrid_pdf_render_region_env_uses_selected_fixtures(tmp_path: Path) -> None:
+    benchmark = _load_benchmark_module()
+    args = benchmark.argparse.Namespace(
+        hybrid_pdf_render_selection="region-shards",
+        pdf_render_region=["pdf=0,4,10,20,110,220,000000.000004"],
+        benchmark_fixtures={"pdf": tmp_path / "sample.pdf"},
+    )
+
+    env = benchmark.build_hybrid_pdf_render_region_env(args)
+
+    regions = benchmark.json.loads(
+        env["WENDAO_DOCUMENT_EXTRACT_PDF_RENDER_REGIONS_JSON"]
+    )
+    assert regions == [
+        {
+            "source": str(tmp_path / "sample.pdf"),
+            "regions": [
+                {
+                    "pageIndex": 0,
+                    "regionIndex": 4,
+                    "regionBox": {
+                        "left": 10.0,
+                        "bottom": 20.0,
+                        "right": 110.0,
+                        "top": 220.0,
+                    },
+                    "readingOrderKey": "000000.000004",
+                }
+            ],
+        }
+    ]
+
+
+def test_hybrid_pdf_render_region_env_ignores_non_region_selection(
+    tmp_path: Path,
+) -> None:
+    benchmark = _load_benchmark_module()
+    args = benchmark.argparse.Namespace(
+        hybrid_pdf_render_selection="shard-fallback-pages",
+        pdf_render_region=["pdf=0,0,10,20,110,220"],
+        benchmark_fixtures={"pdf": tmp_path / "sample.pdf"},
+    )
+
+    assert benchmark.build_hybrid_pdf_render_region_env(args) == {}
+
+
 def test_pdfium_asset_selection_covers_primary_platforms() -> None:
     benchmark = _load_benchmark_module()
 
@@ -810,6 +856,51 @@ def test_start_gateway_server_sets_document_extract_and_valkey_env(
     config = (tmp_path / "gateway" / "wendao.toml").read_text(encoding="utf-8")
     assert "[search.cache]" in config
     assert 'valkey_url = "redis://127.0.0.1:51079/0"' in config
+
+
+def test_start_rust_provider_forwards_hybrid_region_env(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    benchmark = _load_benchmark_module()
+    calls = []
+
+    class FakePopen:
+        def __init__(self, command, **kwargs):
+            calls.append((command, kwargs))
+
+    monkeypatch.setattr(benchmark.subprocess, "Popen", FakePopen)
+    monkeypatch.setenv("SDKROOT", "/tmp/macos-sdk")
+    monkeypatch.setenv("LIBRARY_PATH", "/tmp/macos-sdk/usr/lib")
+    monkeypatch.setenv("PRJ_ROOT", str(tmp_path / "repo"))
+    args = benchmark.argparse.Namespace(
+        cargo="cargo",
+        rust_provider_features="studio,zhenfa-router,duckdb,builtin-plugins",
+        flight_mode="hybrid-page-ocr",
+        hybrid_pdf_render_selection="region-shards",
+        pdf_render_region=["pdf=0,1,10,20,110,220"],
+        benchmark_fixtures={"pdf": tmp_path / "sample.pdf"},
+        pdfium_library_path=None,
+        prepare_pdfium_runtime=False,
+    )
+
+    benchmark.start_rust_provider_server(
+        args,
+        rust_host="127.0.0.1",
+        rust_port=51052,
+        python_host="127.0.0.1",
+        python_port=51051,
+        temp_root=tmp_path,
+    )
+
+    _command, kwargs = calls[0]
+    env = kwargs["env"]
+    assert env["WENDAO_DOCUMENT_EXTRACT_PDF_RENDER_SELECTION"] == "region_shards"
+    regions = benchmark.json.loads(
+        env["WENDAO_DOCUMENT_EXTRACT_PDF_RENDER_REGIONS_JSON"]
+    )
+    assert regions[0]["source"] == str(tmp_path / "sample.pdf")
+    assert regions[0]["regions"][0]["regionIndex"] == 1
 
 
 def test_start_valkey_server_uses_temp_runtime_flags(

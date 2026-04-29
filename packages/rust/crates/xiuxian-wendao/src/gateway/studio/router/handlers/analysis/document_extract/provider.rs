@@ -33,8 +33,9 @@ use xiuxian_wendao_attachments::pdf::ocr::{
 };
 #[cfg(feature = "document-extract-pdf-render")]
 use xiuxian_wendao_attachments::pdf::render::{
-    PdfPageRenderProfile, PdfPageRenderSelection, PdfPageRenderShardReport,
-    PdfRenderRoutingDecision, PdfRenderStatus, render_pdf_page_shards_with_selection,
+    PdfPageRegionRenderRequest, PdfPageRenderProfile, PdfPageRenderSelection,
+    PdfPageRenderShardReport, PdfRenderRoutingDecision, PdfRenderStatus,
+    render_pdf_page_shards_with_selection, render_pdf_region_shards,
 };
 #[cfg(feature = "document-extract-pdf-render")]
 use xiuxian_wendao_attachments::pdf::structure::{
@@ -64,7 +65,18 @@ const DOCUMENT_EXTRACT_MAX_RUNNING_CONVERSIONS_ENV: &str =
 #[cfg(feature = "document-extract-pdf-render")]
 const DOCUMENT_EXTRACT_PDF_RENDER_SELECTION_ENV: &str =
     "WENDAO_DOCUMENT_EXTRACT_PDF_RENDER_SELECTION";
+#[cfg(feature = "document-extract-pdf-render")]
+const DOCUMENT_EXTRACT_PDF_RENDER_REGIONS_ENV: &str =
+    "WENDAO_DOCUMENT_EXTRACT_PDF_RENDER_REGIONS_JSON";
 const DEFAULT_DOCUMENT_EXTRACT_MAX_RUNNING_CONVERSIONS: usize = 4;
+
+#[cfg(feature = "document-extract-pdf-render")]
+#[derive(Debug, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct HybridPdfRegionInput {
+    source: PathBuf,
+    regions: Vec<PdfPageRegionRenderRequest>,
+}
 
 #[derive(Clone)]
 pub(crate) struct StudioDocumentExtractFlightRouteProvider {
@@ -285,8 +297,16 @@ impl StudioDocumentExtractFlightRouteProvider {
                 )
             })?;
 
-        let render_report =
-            render_hybrid_page_ocr_shards(source.as_path(), output.as_path()).await?;
+        let render_report = match render_hybrid_page_ocr_shards(source.as_path(), output.as_path())
+            .await
+        {
+            Ok(report) => report,
+            Err(reason) => {
+                return self
+                    .fallback_python_document_extract(request, output.as_path(), reason.as_str())
+                    .await;
+            }
+        };
 
         let resource_batch = if is_hybrid_text_only_report(&render_report) {
             match materialize_hybrid_text_only_resource_batch(source.as_path(), &render_report)
@@ -601,14 +621,28 @@ async fn render_hybrid_page_ocr_shards(
     source: &Path,
     output: &Path,
 ) -> Result<PdfPageRenderShardReport, String> {
+    let selection = hybrid_page_ocr_render_selection();
+    let regions = if selection == PdfPageRenderSelection::RegionShards {
+        Some(hybrid_page_ocr_region_requests_for_source(source)?)
+    } else {
+        None
+    };
     let source_for_render = source.to_path_buf();
     let output_for_render = output.to_path_buf();
     tokio::task::spawn_blocking(move || {
+        if let Some(regions) = regions {
+            return render_pdf_region_shards(
+                source_for_render.as_path(),
+                output_for_render.as_path(),
+                &PdfPageRenderProfile::ocr_default(),
+                regions.as_slice(),
+            );
+        }
         render_pdf_page_shards_with_selection(
             source_for_render.as_path(),
             output_for_render.as_path(),
             &PdfPageRenderProfile::ocr_default(),
-            hybrid_page_ocr_render_selection(),
+            selection,
         )
     })
     .await
@@ -631,8 +665,60 @@ fn hybrid_page_ocr_render_selection_with_lookup(
         .as_str()
     {
         "all_pages" => PdfPageRenderSelection::AllPages,
+        "region_shards" => PdfPageRenderSelection::RegionShards,
         _ => PdfPageRenderSelection::ShardFallbackPages,
     }
+}
+
+#[cfg(feature = "document-extract-pdf-render")]
+fn hybrid_page_ocr_region_requests_for_source(
+    source: &Path,
+) -> Result<Vec<PdfPageRegionRenderRequest>, String> {
+    hybrid_page_ocr_region_requests_for_source_with_lookup(source, &|key| std::env::var(key).ok())
+}
+
+#[cfg(feature = "document-extract-pdf-render")]
+fn hybrid_page_ocr_region_requests_for_source_with_lookup(
+    source: &Path,
+    lookup: &dyn Fn(&str) -> Option<String>,
+) -> Result<Vec<PdfPageRegionRenderRequest>, String> {
+    let regions_json = lookup(DOCUMENT_EXTRACT_PDF_RENDER_REGIONS_ENV).ok_or_else(|| {
+        format!("{DOCUMENT_EXTRACT_PDF_RENDER_REGIONS_ENV} is required for region_shards")
+    })?;
+    let region_inputs = serde_json::from_str::<Vec<HybridPdfRegionInput>>(regions_json.as_str())
+        .map_err(|error| format!("parse hybrid PDF region JSON: {error}"))?;
+    let mut matching_regions = None;
+    for input in region_inputs {
+        if paths_match(source, input.source.as_path()) {
+            if input.regions.is_empty() {
+                return Err(format!(
+                    "hybrid PDF region fixture has no regions for `{}`",
+                    input.source.display()
+                ));
+            }
+            if matching_regions.replace(input.regions).is_some() {
+                return Err(format!(
+                    "duplicate hybrid PDF region fixture for `{}`",
+                    source.display()
+                ));
+            }
+        }
+    }
+    matching_regions.ok_or_else(|| {
+        format!(
+            "no hybrid PDF region fixture matched source `{}`",
+            source.display()
+        )
+    })
+}
+
+#[cfg(feature = "document-extract-pdf-render")]
+fn paths_match(left: &Path, right: &Path) -> bool {
+    left == right
+        || match (left.canonicalize(), right.canonicalize()) {
+            (Ok(left), Ok(right)) => left == right,
+            _ => false,
+        }
 }
 
 #[cfg(feature = "document-extract-pdf-render")]
@@ -652,14 +738,17 @@ async fn materialize_hybrid_page_ocr_resource_batch(
         render_report.page_count,
         render_report.shard_count,
     )?;
+    validate_ocr_results_match_inputs(inputs.as_slice(), response.results.as_slice())?;
+    let has_region_shards = inputs.iter().any(|input| input.shard_type == "region");
 
-    if render_report.shard_count == render_report.page_count {
+    if render_report.shard_count == render_report.page_count && !has_region_shards {
         validate_hybrid_page_coverage(render_report.page_count, &[], response.results.as_slice())?;
         return Ok(response.resource_batch);
     }
 
     let ocr_page_indices = inputs
         .iter()
+        .filter(|input| input.shard_type == "page")
         .map(|input| input.page_index)
         .collect::<Vec<_>>();
     let source_for_text = source.to_path_buf();
@@ -668,9 +757,10 @@ async fn materialize_hybrid_page_ocr_resource_batch(
     })
     .await
     .map_err(|error| format!("join hybrid PDF text-page extraction task: {error}"))??;
-    validate_hybrid_page_coverage(
+    validate_hybrid_shard_coverage(
         render_report.page_count,
         text_batch.page_indices.as_slice(),
+        inputs.as_slice(),
         response.results.as_slice(),
     )?;
     merge_document_resource_batches_by_page(&[text_batch.batch, response.resource_batch])
@@ -930,6 +1020,62 @@ fn validate_successful_ocr_results(
 }
 
 #[cfg(feature = "document-extract-pdf-render")]
+fn validate_ocr_results_match_inputs(
+    inputs: &[PdfOcrShardInput],
+    results: &[PdfOcrShardResult],
+) -> Result<(), String> {
+    if inputs.len() != results.len() {
+        return Err(format!(
+            "OCR worker returned {} rows for {} inputs",
+            results.len(),
+            inputs.len()
+        ));
+    }
+    let mut inputs_by_shard = HashMap::new();
+    for input in inputs {
+        if inputs_by_shard
+            .insert(input.shard_element_id.as_str(), input)
+            .is_some()
+        {
+            return Err(format!(
+                "duplicate OCR shard input id `{}`",
+                input.shard_element_id
+            ));
+        }
+    }
+    let mut result_shards = HashSet::new();
+    for result in results {
+        if !result_shards.insert(result.shard_element_id.as_str()) {
+            return Err(format!(
+                "duplicate OCR shard result id `{}`",
+                result.shard_element_id
+            ));
+        }
+        let input = inputs_by_shard
+            .get(result.shard_element_id.as_str())
+            .ok_or_else(|| {
+                format!(
+                    "OCR worker returned unknown shard id `{}`",
+                    result.shard_element_id
+                )
+            })?;
+        if input.page_index != result.page_index {
+            return Err(format!(
+                "OCR worker returned page {} for shard `{}` but input page was {}",
+                result.page_index, result.shard_element_id, input.page_index
+            ));
+        }
+        if input.raster_sha256 != result.raster_sha256 {
+            return Err(format!(
+                "OCR worker returned raster hash `{}` for shard `{}` but input hash was `{}`",
+                result.raster_sha256, result.shard_element_id, input.raster_sha256
+            ));
+        }
+    }
+    Ok(())
+}
+
+#[cfg(feature = "document-extract-pdf-render")]
 fn validate_hybrid_page_coverage(
     page_count: u32,
     text_page_indices: &[u32],
@@ -956,6 +1102,71 @@ fn validate_hybrid_page_coverage(
     }
     let missing = (0..page_count)
         .filter(|page_index| !covered.contains(page_index))
+        .collect::<Vec<_>>();
+    if !missing.is_empty() {
+        return Err(format!(
+            "hybrid merge is missing page coverage: {missing:?}"
+        ));
+    }
+    Ok(())
+}
+
+#[cfg(feature = "document-extract-pdf-render")]
+fn validate_hybrid_shard_coverage(
+    page_count: u32,
+    text_page_indices: &[u32],
+    ocr_inputs: &[PdfOcrShardInput],
+    ocr_results: &[PdfOcrShardResult],
+) -> Result<(), String> {
+    validate_ocr_results_match_inputs(ocr_inputs, ocr_results)?;
+    if let Some(page_index) = text_page_indices
+        .iter()
+        .copied()
+        .find(|page_index| *page_index >= page_count)
+    {
+        return Err(format!(
+            "native text page {page_index} is out of range for {page_count} page PDF"
+        ));
+    }
+
+    let mut covered_pages = HashSet::new();
+    for page_index in text_page_indices {
+        if !covered_pages.insert(*page_index) {
+            return Err(format!(
+                "hybrid merge has duplicate native text page coverage for page {page_index}"
+            ));
+        }
+    }
+
+    for input in ocr_inputs {
+        match input.shard_type.as_str() {
+            "page" => {
+                if !covered_pages.insert(input.page_index) {
+                    return Err(format!(
+                        "hybrid merge has duplicate page coverage for page {}",
+                        input.page_index
+                    ));
+                }
+            }
+            "region" => {
+                if !covered_pages.contains(&input.page_index) {
+                    return Err(format!(
+                        "region OCR shard `{}` has no native text coverage for page {}",
+                        input.shard_element_id, input.page_index
+                    ));
+                }
+            }
+            other => {
+                return Err(format!(
+                    "unsupported OCR shard input type `{other}` for shard `{}`",
+                    input.shard_element_id
+                ));
+            }
+        }
+    }
+
+    let missing = (0..page_count)
+        .filter(|page_index| !covered_pages.contains(page_index))
         .collect::<Vec<_>>();
     if !missing.is_empty() {
         return Err(format!(
@@ -1016,6 +1227,58 @@ mod tests {
         });
 
         assert_eq!(selection, PdfPageRenderSelection::AllPages);
+    }
+
+    #[cfg(feature = "document-extract-pdf-render")]
+    #[test]
+    fn hybrid_page_ocr_render_selection_accepts_region_shards_override() {
+        let selection = hybrid_page_ocr_render_selection_with_lookup(&|key| {
+            (key == DOCUMENT_EXTRACT_PDF_RENDER_SELECTION_ENV).then(|| "region-shards".to_string())
+        });
+
+        assert_eq!(selection, PdfPageRenderSelection::RegionShards);
+    }
+
+    #[cfg(feature = "document-extract-pdf-render")]
+    #[test]
+    fn hybrid_page_ocr_region_requests_match_selected_source() -> Result<(), String> {
+        let temp = tempfile::tempdir().map_err(|error| error.to_string())?;
+        let source = temp.path().join("source.pdf");
+        fs::write(source.as_path(), b"%PDF").map_err(|error| error.to_string())?;
+        let source_text = source.to_string_lossy();
+        let regions_json = format!(
+            r#"[{{"source":"{source_text}","regions":[{{"pageIndex":0,"regionIndex":3,"regionBox":{{"left":72.0,"bottom":72.0,"right":144.0,"top":144.0}},"readingOrderKey":"000000.000003"}}]}}]"#
+        );
+
+        let regions =
+            hybrid_page_ocr_region_requests_for_source_with_lookup(source.as_path(), &|key| {
+                (key == DOCUMENT_EXTRACT_PDF_RENDER_REGIONS_ENV).then(|| regions_json.clone())
+            })?;
+
+        assert_eq!(regions.len(), 1);
+        assert_eq!(regions[0].page_index, 0);
+        assert_eq!(regions[0].region_index, 3);
+        assert_eq!(
+            regions[0].reading_order_key.as_deref(),
+            Some("000000.000003")
+        );
+        Ok(())
+    }
+
+    #[cfg(feature = "document-extract-pdf-render")]
+    #[test]
+    fn hybrid_page_ocr_region_requests_reject_missing_source() {
+        let regions_json = r#"[{"source":"/tmp/other.pdf","regions":[{"pageIndex":0,"regionIndex":0,"regionBox":{"left":0.0,"bottom":0.0,"right":10.0,"top":10.0}}]}]"#;
+
+        let error = match hybrid_page_ocr_region_requests_for_source_with_lookup(
+            Path::new("/tmp/source.pdf"),
+            &|key| (key == DOCUMENT_EXTRACT_PDF_RENDER_REGIONS_ENV).then(|| regions_json.into()),
+        ) {
+            Ok(regions) => panic!("expected missing source to fail: {regions:?}"),
+            Err(error) => error,
+        };
+
+        assert!(error.contains("no hybrid PDF region fixture matched"));
     }
 
     #[cfg(feature = "document-extract-pdf-render")]
@@ -1131,6 +1394,53 @@ mod tests {
         };
 
         assert!(error.contains("duplicate page coverage"));
+    }
+
+    #[cfg(feature = "document-extract-pdf-render")]
+    #[test]
+    fn hybrid_page_ocr_region_coverage_keeps_native_text_page() -> Result<(), String> {
+        let input = sample_ocr_input(1, "region");
+        let result = sample_ocr_result(1, true);
+
+        validate_hybrid_shard_coverage(3, &[0, 1, 2], &[input], &[result])
+    }
+
+    #[cfg(feature = "document-extract-pdf-render")]
+    #[test]
+    fn hybrid_page_ocr_region_coverage_requires_native_text_page() {
+        let input = sample_ocr_input(1, "region");
+        let result = sample_ocr_result(1, true);
+
+        let error = match validate_hybrid_shard_coverage(3, &[0, 2], &[input], &[result]) {
+            Ok(()) => panic!("expected region without native text page to fail"),
+            Err(error) => error,
+        };
+
+        assert!(error.contains("has no native text coverage"));
+    }
+
+    #[cfg(feature = "document-extract-pdf-render")]
+    #[test]
+    fn hybrid_page_ocr_page_shard_coverage_still_replaces_full_page() -> Result<(), String> {
+        let input = sample_ocr_input(1, "page");
+        let result = sample_ocr_result(1, true);
+
+        validate_hybrid_shard_coverage(3, &[0, 2], &[input], &[result])
+    }
+
+    #[cfg(feature = "document-extract-pdf-render")]
+    #[test]
+    fn hybrid_page_ocr_validation_rejects_unknown_shard_result() {
+        let input = sample_ocr_input(1, "region");
+        let mut result = sample_ocr_result(1, true);
+        result.shard_element_id = "unknown-shard".to_string();
+
+        let error = match validate_ocr_results_match_inputs(&[input], &[result]) {
+            Ok(()) => panic!("expected unknown OCR result shard to fail"),
+            Err(error) => error,
+        };
+
+        assert!(error.contains("unknown shard id"));
     }
 
     #[cfg(feature = "document-extract-pdf-render")]
@@ -1288,6 +1598,49 @@ mod tests {
             error_message: (!succeeded).then(|| "worker skipped".to_string()),
             shard_element_id: format!("shard-{page_index}"),
             element_id: format!("ocr-{page_index}"),
+        }
+    }
+
+    #[cfg(feature = "document-extract-pdf-render")]
+    fn sample_ocr_input(page_index: u32, shard_type: &str) -> PdfOcrShardInput {
+        PdfOcrShardInput {
+            contract_version:
+                xiuxian_wendao_attachments::pdf::ocr::PDF_OCR_SHARD_INPUT_SCHEMA_VERSION.to_string(),
+            source_path: "/tmp/source.pdf".to_string(),
+            source_content_hash: "sourcehash".to_string(),
+            page_index,
+            image_path: format!("/tmp/out/page-{page_index}.png"),
+            image_mime_type: "image/png".to_string(),
+            raster_sha256: format!("raster-{page_index}"),
+            render_profile: "pdfium-render-page-shards-v1".to_string(),
+            ocr_profile: "docling-compatible-page-ocr-v1".to_string(),
+            ocr_engine: "docling-compatible-ocr".to_string(),
+            preferred_languages: vec!["auto".to_string()],
+            min_confidence: 0.0,
+            preserve_layout: true,
+            raster_width_px: 1000,
+            raster_height_px: 1000,
+            render_dpi: 216,
+            rotation_degrees: 0,
+            crop_left: 0.0,
+            crop_bottom: 0.0,
+            crop_right: 612.0,
+            crop_top: 792.0,
+            point_to_pixel_scale_x: 3.0,
+            point_to_pixel_scale_y: 3.0,
+            shard_element_id: format!("shard-{page_index}"),
+            shard_type: shard_type.to_string(),
+            region_index: u32::from(shard_type == "region"),
+            parent_shard_element_id: if shard_type == "region" {
+                format!("page-shard-{page_index}")
+            } else {
+                String::new()
+            },
+            reading_order_key: format!("{page_index:06}.000001"),
+            source_page_pixel_left: 0,
+            source_page_pixel_top: 0,
+            source_page_pixel_right: 1000,
+            source_page_pixel_bottom: 1000,
         }
     }
 

@@ -249,21 +249,22 @@ def parse_args() -> argparse.Namespace:
         default=[],
         metavar="NAME=PAGE,REGION,LEFT,BOTTOM,RIGHT,TOP[,ORDER]",
         help=(
-            "Explicit region fixture for --pdf-render-selection region-shards. "
-            "NAME must match the selected fixture alias; coordinates are PDF "
-            "points in the source page coordinate space. May be passed more "
-            "than once."
+            "Explicit region fixture for --pdf-render-selection region-shards "
+            "or --hybrid-pdf-render-selection region-shards. NAME must match "
+            "the selected fixture alias; coordinates are PDF points in the "
+            "source page coordinate space. May be passed more than once."
         ),
     )
     parser.add_argument(
         "--hybrid-pdf-render-selection",
-        choices=("all-pages", "shard-fallback-pages"),
+        choices=("all-pages", "shard-fallback-pages", "region-shards"),
         default="shard-fallback-pages",
         help=(
             "Page selection mode used by the live hybrid-page-ocr provider "
             "during benchmark runs. Defaults to shard-fallback-pages so live "
             "benchmarks keep routing behavior unless OCR worker proof explicitly "
-            "forces all pages."
+            "forces all pages. `region-shards` uses explicit regions from "
+            "--pdf-render-region."
         ),
     )
     parser.add_argument(
@@ -397,6 +398,7 @@ def main() -> int:
         output_dir.mkdir()
         fixtures, real_fixture_root = resolve_fixtures(args, fixture_dir)
         fixtures = select_fixtures(fixtures, args.only_fixture)
+        args.benchmark_fixtures = fixtures
         distinct_miss_fixtures = prepare_distinct_miss_fixtures(
             args,
             fixtures,
@@ -732,6 +734,25 @@ def build_pdf_render_region_env(
         return {}
     return {
         "WENDAO_PDF_RENDER_REGIONS_JSON": json.dumps(
+            parse_pdf_render_regions(region_specs, fixtures)
+        )
+    }
+
+
+def build_hybrid_pdf_render_region_env(args: argparse.Namespace) -> dict[str, str]:
+    selection = normalize_render_selection(
+        getattr(args, "hybrid_pdf_render_selection", "shard-fallback-pages")
+    )
+    region_specs = getattr(args, "pdf_render_region", [])
+    if selection != "region_shards":
+        return {}
+    fixtures = getattr(args, "benchmark_fixtures", {})
+    if not fixtures:
+        raise SystemExit(
+            "--hybrid-pdf-render-selection region-shards requires selected fixtures"
+        )
+    return {
+        "WENDAO_DOCUMENT_EXTRACT_PDF_RENDER_REGIONS_JSON": json.dumps(
             parse_pdf_render_regions(region_specs, fixtures)
         )
     }
@@ -1218,6 +1239,7 @@ def start_rust_provider_server(
             ),
         }
     )
+    env.update(build_hybrid_pdf_render_region_env(args))
     if pdfium_library_path is not None:
         env["WENDAO_PDFIUM_LIBRARY_PATH"] = str(pdfium_library_path)
     command = [
@@ -1312,6 +1334,7 @@ def start_gateway_server(
             "XIUXIAN_WENDAO_GATEWAY_BOOTSTRAP_BACKGROUND_INDEXING": "false",
         }
     )
+    env.update(build_hybrid_pdf_render_region_env(args))
     if pdfium_library_path is not None:
         env["WENDAO_PDFIUM_LIBRARY_PATH"] = str(pdfium_library_path)
     command = [
