@@ -402,7 +402,7 @@ impl Default for BpmnHumanTaskResourceRoleSpec {
 /// Bounded human-task form metadata preserved for host dispatch.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct BpmnHumanTaskFormSpec {
-    /// Source-level qianji interaction type.
+    /// Native BPMN IO interaction type.
     pub interaction_type: Arc<str>,
     /// Optional variable reference containing the question prompt.
     #[serde(default)]
@@ -413,10 +413,10 @@ pub struct BpmnHumanTaskFormSpec {
     /// Optional variable reference containing choices.
     #[serde(default)]
     pub choices_ref: Option<Arc<str>>,
-    /// Optional inline choices preserved from extension metadata.
+    /// Optional inline choices preserved from native BPMN IO metadata.
     #[serde(default)]
     pub choices: Vec<BpmnHumanTaskChoiceSpec>,
-    /// Optional free-text fields preserved from extension metadata.
+    /// Optional free-text fields preserved from native BPMN IO metadata.
     #[serde(default)]
     pub free_text_fields: Vec<BpmnHumanTaskFreeTextSpec>,
     /// Optional output variable that receives the primary interaction result.

@@ -14,6 +14,34 @@ fn bpmn_linter_accepts_native_choice_input_contract() {
 }
 
 #[test]
+fn bpmn_linter_accepts_all_supported_native_interaction_types() {
+    for (interaction_type, choices) in [
+        ("input", None),
+        ("confirm", None),
+        (
+            "choice",
+            Some(r#"[{"value":"approve"},{"value":"reject"}]"#),
+        ),
+        (
+            "choice_input",
+            Some(r#"[{"value":"approve"},{"value":"revise"}]"#),
+        ),
+    ] {
+        let report = lint_bpmn_source(&BpmnSourceFile::new(
+            format!("native-{interaction_type}.bpmn"),
+            native_user_task(interaction_type, None, choices, Some("answer")),
+        ));
+
+        assert!(
+            report.ok,
+            "{interaction_type} should be accepted as native BPMN IO: {:#?}",
+            report.issues
+        );
+        assert!(report.issues.is_empty());
+    }
+}
+
+#[test]
 fn bpmn_linter_rejects_legacy_custom_interaction_xml() {
     let report = lint_bpmn_source(&BpmnSourceFile::new(
         "legacy-custom-interaction.bpmn",
