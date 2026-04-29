@@ -197,7 +197,7 @@ reqwest = { workspace = true, optional = true }
 tantivy = { version = "0.25", optional = true }
 graphql-parser = { workspace = true, optional = true }
 duckdb = { workspace = true, optional = true }
-pdf-inspector = { git = "https://github.com/firecrawl/pdf-inspector", rev = "63b55731337c18baf23319b73cc9780bb23ac61b", optional = true }
+pdf-inspector = { git = "https://github.com/tao3k/pdf-inspector", branch = "xiuxian", optional = true }
 
 [dev-dependencies]
 tempfile = { workspace = true }
