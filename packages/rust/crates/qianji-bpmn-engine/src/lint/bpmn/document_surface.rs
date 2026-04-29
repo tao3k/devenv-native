@@ -1,8 +1,8 @@
 use crate::bpmn_model_api::{
     BpmnAssociationSnapshot, BpmnChoreographyActivitySnapshot, BpmnCollaborationSnapshot,
-    BpmnConversationNodeSnapshot, BpmnDocumentSnapshot, BpmnGroupSnapshot, BpmnParticipantSnapshot,
-    BpmnPartnerEntitySnapshot, BpmnPartnerRoleSnapshot, BpmnProcessSnapshot,
-    BpmnTextAnnotationSnapshot,
+    BpmnConversationNodeSnapshot, BpmnDocumentSnapshot, BpmnGlobalTaskSnapshot, BpmnGroupSnapshot,
+    BpmnParticipantSnapshot, BpmnPartnerEntitySnapshot, BpmnPartnerRoleSnapshot,
+    BpmnProcessSnapshot, BpmnResourceRoleSnapshot, BpmnTextAnnotationSnapshot,
 };
 use crate::bpmn_parse_api::BpmnSourceFile;
 use crate::bpmn_snapshot_api::snapshot_bpmn_source;
@@ -164,6 +164,7 @@ fn collaboration_snapshot_summary(snapshot: &BpmnDocumentSnapshot) -> Value {
     let partner_roles = partner_role_evidence(snapshot);
     let correlation_properties = correlation_property_evidence(snapshot);
     let process_callable = process_callable_summary(snapshot);
+    let resource_roles = resource_role_summary(snapshot);
 
     json!({
         "root": root_snapshot_summary(snapshot),
@@ -198,6 +199,7 @@ fn collaboration_snapshot_summary(snapshot: &BpmnDocumentSnapshot) -> Value {
         "interfaces_truncated": snapshot.root.interfaces.len() > SNAPSHOT_EVIDENCE_LIMIT,
         "correlation_properties_truncated": snapshot.root.correlation_properties.len() > SNAPSHOT_EVIDENCE_LIMIT,
         "process_callable": process_callable,
+        "resource_roles": resource_roles,
         "item_definitions": item_definitions,
         "messages": messages,
         "interfaces": interfaces,
@@ -233,6 +235,106 @@ struct ProcessCallableCounts {
     property: usize,
     correlation_subscription: usize,
     correlation_binding: usize,
+}
+
+#[derive(Debug, Default)]
+struct ResourceRoleCounts {
+    process_role: usize,
+    global_task_role: usize,
+    parameter_binding: usize,
+    assignment_expression: usize,
+}
+
+fn resource_role_counts(snapshot: &BpmnDocumentSnapshot) -> ResourceRoleCounts {
+    let mut counts = ResourceRoleCounts::default();
+    for process in &snapshot.processes {
+        counts.process_role += process.resource_role_count;
+        for role in &process.resource_roles {
+            counts.parameter_binding += role.parameter_bindings.len();
+            counts.assignment_expression += usize::from(role.assignment_expression.is_some());
+        }
+    }
+    for task in &snapshot.root.global_tasks {
+        counts.global_task_role += task.resource_role_count;
+        for role in &task.resource_roles {
+            counts.parameter_binding += role.parameter_bindings.len();
+            counts.assignment_expression += usize::from(role.assignment_expression.is_some());
+        }
+    }
+    counts
+}
+
+fn resource_role_summary(snapshot: &BpmnDocumentSnapshot) -> Value {
+    let counts = resource_role_counts(snapshot);
+    json!({
+        "process_role_count": counts.process_role,
+        "global_task_role_count": counts.global_task_role,
+        "parameter_binding_count": counts.parameter_binding,
+        "assignment_expression_count": counts.assignment_expression,
+        "processes_truncated": snapshot.processes.len() > SNAPSHOT_EVIDENCE_LIMIT,
+        "global_tasks_truncated": snapshot.root.global_tasks.len() > SNAPSHOT_EVIDENCE_LIMIT,
+        "processes": process_resource_role_evidence(snapshot),
+        "global_tasks": global_task_resource_role_evidence(snapshot),
+    })
+}
+
+fn process_resource_role_evidence(snapshot: &BpmnDocumentSnapshot) -> Vec<Value> {
+    snapshot
+        .processes
+        .iter()
+        .filter(|process| process.resource_role_count > 0)
+        .take(SNAPSHOT_EVIDENCE_LIMIT)
+        .map(|process| {
+            json!({
+                "process_id": process.process_id,
+                "resource_role_count": process.resource_role_count,
+                "resource_roles": process.resource_roles.iter().take(SNAPSHOT_EVIDENCE_LIMIT).map(resource_role_evidence).collect::<Vec<_>>(),
+            })
+        })
+        .collect()
+}
+
+fn global_task_resource_role_evidence(snapshot: &BpmnDocumentSnapshot) -> Vec<Value> {
+    snapshot
+        .root
+        .global_tasks
+        .iter()
+        .filter(|task| task.resource_role_count > 0)
+        .take(SNAPSHOT_EVIDENCE_LIMIT)
+        .map(global_task_resource_role_item_evidence)
+        .collect()
+}
+
+fn global_task_resource_role_item_evidence(task: &BpmnGlobalTaskSnapshot) -> Value {
+    json!({
+        "task_kind": task.task_kind,
+        "task_id": task.task_id,
+        "resource_role_count": task.resource_role_count,
+        "resource_roles": task.resource_roles.iter().take(SNAPSHOT_EVIDENCE_LIMIT).map(resource_role_evidence).collect::<Vec<_>>(),
+    })
+}
+
+fn resource_role_evidence(role: &BpmnResourceRoleSnapshot) -> Value {
+    json!({
+        "role_kind": role.role_kind,
+        "role_id": role.role_id,
+        "name": role.name,
+        "resource_ref": role.resource_ref,
+        "assignment_expression_id": role.assignment_expression_id,
+        "assignment_expression": role.assignment_expression,
+        "assignment_expression_language": role.assignment_expression_language,
+        "assignment_expression_evaluates_to_type_ref": role.assignment_expression_evaluates_to_type_ref,
+        "parameter_binding_count": role.parameter_bindings.len(),
+        "parameter_bindings": role.parameter_bindings.iter().take(SNAPSHOT_EVIDENCE_LIMIT).map(|binding| {
+            json!({
+                "binding_id": binding.binding_id,
+                "parameter_ref": binding.parameter_ref,
+                "expression": binding.expression,
+                "expression_language": binding.expression_language,
+                "expression_evaluates_to_type_ref": binding.expression_evaluates_to_type_ref,
+            })
+        }).collect::<Vec<_>>(),
+    })
 }
 
 fn process_callable_counts(snapshot: &BpmnDocumentSnapshot) -> ProcessCallableCounts {

@@ -17,8 +17,9 @@ use crate::bpmn_model_api::{
     BpmnOperationSnapshot, BpmnParticipantAssociationSnapshot, BpmnParticipantMultiplicitySnapshot,
     BpmnParticipantSnapshot, BpmnPartnerEntitySnapshot, BpmnPartnerRoleSnapshot, BpmnPlaneSnapshot,
     BpmnProcessPropertySnapshot, BpmnProcessSnapshot, BpmnRelationshipSnapshot,
-    BpmnResourceParameterSnapshot, BpmnResourceSnapshot, BpmnRootSnapshot, BpmnShapeSnapshot,
-    BpmnSignalSnapshot, BpmnTextAnnotationSnapshot, BpmnWaypointSnapshot,
+    BpmnResourceParameterBindingSnapshot, BpmnResourceParameterSnapshot, BpmnResourceRoleSnapshot,
+    BpmnResourceSnapshot, BpmnRootSnapshot, BpmnShapeSnapshot, BpmnSignalSnapshot,
+    BpmnTextAnnotationSnapshot, BpmnWaypointSnapshot,
 };
 use crate::bpmn_parse_api::BpmnSourceFile;
 use crate::error::Result;
@@ -32,6 +33,9 @@ pub(super) enum TextTarget {
     DataAssociationTarget,
     CorrelationMessagePath,
     CorrelationBindingDataPath,
+    ResourceRoleResourceRef,
+    ResourceRoleAssignmentExpression,
+    ResourceRoleParameterBindingExpression,
     OperationInMessageRef,
     OperationOutMessageRef,
     OperationErrorRef,
@@ -81,6 +85,12 @@ enum ArtifactMetadataOwner {
     Process(usize),
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ResourceRoleOwner {
+    Process(usize),
+    GlobalTask(usize),
+}
+
 #[derive(Debug, Default)]
 pub(super) struct BpmnSnapshotScanState {
     root: Option<BpmnRootSnapshot>,
@@ -100,6 +110,9 @@ pub(super) struct BpmnSnapshotScanState {
     current_process: Option<usize>,
     current_correlation_subscription: Option<(usize, usize)>,
     current_correlation_property_binding: Option<(usize, usize, usize)>,
+    current_resource_role: Option<(ResourceRoleOwner, usize)>,
+    current_resource_parameter_binding: Option<(ResourceRoleOwner, usize, usize)>,
+    current_resource_assignment_expression: Option<(ResourceRoleOwner, usize)>,
     lane_set_stack: Vec<(usize, usize)>,
     lane_stack: Vec<(usize, usize, usize)>,
     current_correlation_property: Option<usize>,
@@ -158,6 +171,11 @@ impl BpmnSnapshotScanState {
             return Ok(());
         }
         if self.handle_process_start_event(source, reader, event, parent_tag, tag, is_empty)? {
+            return Ok(());
+        }
+        if self
+            .handle_resource_role_start_event(source, reader, event, parent_tag, tag, is_empty)?
+        {
             return Ok(());
         }
 
@@ -273,6 +291,51 @@ impl BpmnSnapshotScanState {
                 if self.current_process.is_some() && is_artifact_container(parent_tag) =>
             {
                 self.start_text_annotation(source, reader, event, is_empty)?;
+            }
+            _ => return Ok(false),
+        }
+        Ok(true)
+    }
+
+    fn handle_resource_role_start_event(
+        &mut self,
+        source: &BpmnSourceFile,
+        reader: &Reader<&[u8]>,
+        event: &BytesStart<'_>,
+        parent_tag: Option<&str>,
+        tag: &str,
+        is_empty: bool,
+    ) -> Result<bool> {
+        match tag {
+            tag if is_resource_role_tag(tag) && parent_tag == Some("process") => {
+                self.start_process_resource_role(source, reader, event, tag, is_empty)?;
+            }
+            tag if is_resource_role_tag(tag) && parent_tag.is_some_and(is_global_task_tag) => {
+                self.start_global_task_resource_role(source, reader, event, tag, is_empty)?;
+            }
+            "resourceParameterBinding"
+                if parent_tag.is_some_and(is_resource_role_tag)
+                    && self.current_resource_role.is_some() =>
+            {
+                self.start_resource_parameter_binding(source, reader, event, is_empty)?;
+            }
+            "resourceAssignmentExpression"
+                if parent_tag.is_some_and(is_resource_role_tag)
+                    && self.current_resource_role.is_some() =>
+            {
+                self.start_resource_assignment_expression(source, reader, event, is_empty)?;
+            }
+            "formalExpression"
+                if parent_tag == Some("resourceAssignmentExpression")
+                    && self.current_resource_assignment_expression.is_some() =>
+            {
+                self.attach_resource_assignment_expression_metadata(source, reader, event)?;
+            }
+            "formalExpression"
+                if parent_tag == Some("resourceParameterBinding")
+                    && self.current_resource_parameter_binding.is_some() =>
+            {
+                self.attach_resource_parameter_binding_expression_metadata(source, reader, event)?;
             }
             _ => return Ok(false),
         }
@@ -436,6 +499,11 @@ impl BpmnSnapshotScanState {
             "partnerEntity" => self.current_partner_entity = None,
             "partnerRole" => self.current_partner_role = None,
             tag if is_global_task_tag(tag) => self.current_global_task = None,
+            tag if is_resource_role_tag(tag) => {
+                self.current_resource_assignment_expression = None;
+                self.current_resource_parameter_binding = None;
+                self.current_resource_role = None;
+            }
             "conversation" | "subConversation" | "callConversation" => {
                 self.finish_conversation_correlation_key();
                 self.finish_participant_association();
@@ -500,6 +568,8 @@ impl BpmnSnapshotScanState {
                 self.current_correlation_property_binding = None;
                 self.current_correlation_subscription = None;
             }
+            "resourceAssignmentExpression" => self.current_resource_assignment_expression = None,
+            "resourceParameterBinding" => self.current_resource_parameter_binding = None,
             "laneSet" => {
                 let _ = self.lane_set_stack.pop();
             }
@@ -530,6 +600,13 @@ impl BpmnSnapshotScanState {
             TextTarget::CorrelationMessagePath => self.append_correlation_message_path(text),
             TextTarget::CorrelationBindingDataPath => {
                 self.append_correlation_binding_data_path(text);
+            }
+            TextTarget::ResourceRoleResourceRef => self.set_resource_role_resource_ref(text),
+            TextTarget::ResourceRoleAssignmentExpression => {
+                self.append_resource_role_assignment_expression(text);
+            }
+            TextTarget::ResourceRoleParameterBindingExpression => {
+                self.append_resource_parameter_binding_expression(text);
             }
             TextTarget::OperationInMessageRef => self.set_operation_in_message_ref(text),
             TextTarget::OperationOutMessageRef => self.set_operation_out_message_ref(text),
@@ -593,6 +670,9 @@ impl BpmnSnapshotScanState {
         self.finish_participant_association();
         self.current_correlation_property_binding = None;
         self.current_correlation_subscription = None;
+        self.current_resource_assignment_expression = None;
+        self.current_resource_parameter_binding = None;
+        self.current_resource_role = None;
         self.current_partner_entity = None;
         self.current_partner_role = None;
         self.current_global_task = None;
@@ -1085,9 +1165,36 @@ impl BpmnSnapshotScanState {
             script_language: attribute_value(source, reader, event, "scriptLanguage")?,
             script: None,
             supported_interface_refs: Vec::new(),
+            resource_role_count: 0,
+            resource_roles: Vec::new(),
         });
         if !is_empty {
             self.current_global_task = root.global_tasks.len().checked_sub(1);
+        }
+        Ok(())
+    }
+
+    fn start_global_task_resource_role(
+        &mut self,
+        source: &BpmnSourceFile,
+        reader: &Reader<&[u8]>,
+        event: &BytesStart<'_>,
+        tag: &str,
+        is_empty: bool,
+    ) -> Result<()> {
+        let Some(task_index) = self.current_global_task else {
+            return Ok(());
+        };
+        let role = resource_role_from_event(source, reader, event, tag)?;
+        let Some(task) = self.current_global_task_mut() else {
+            return Ok(());
+        };
+        task.resource_role_count += 1;
+        task.resource_roles.push(role);
+        if !is_empty {
+            let role_index = task.resource_roles.len().saturating_sub(1);
+            self.current_resource_role =
+                Some((ResourceRoleOwner::GlobalTask(task_index), role_index));
         }
         Ok(())
     }
@@ -1709,6 +1816,8 @@ impl BpmnSnapshotScanState {
             properties: Vec::new(),
             correlation_subscription_count: 0,
             correlation_subscriptions: Vec::new(),
+            resource_role_count: 0,
+            resource_roles: Vec::new(),
             lane_set_count: 0,
             lane_sets: Vec::new(),
             data_object_count: 0,
@@ -1756,6 +1865,112 @@ impl BpmnSnapshotScanState {
         };
         process.property_count += 1;
         process.properties.push(property);
+        Ok(())
+    }
+
+    fn start_process_resource_role(
+        &mut self,
+        source: &BpmnSourceFile,
+        reader: &Reader<&[u8]>,
+        event: &BytesStart<'_>,
+        tag: &str,
+        is_empty: bool,
+    ) -> Result<()> {
+        let Some(process_index) = self.current_process else {
+            return Ok(());
+        };
+        let role = resource_role_from_event(source, reader, event, tag)?;
+        let Some(process) = self.processes.get_mut(process_index) else {
+            return Ok(());
+        };
+        process.resource_role_count += 1;
+        process.resource_roles.push(role);
+        if !is_empty {
+            let role_index = process.resource_roles.len().saturating_sub(1);
+            self.current_resource_role =
+                Some((ResourceRoleOwner::Process(process_index), role_index));
+        }
+        Ok(())
+    }
+
+    fn start_resource_parameter_binding(
+        &mut self,
+        source: &BpmnSourceFile,
+        reader: &Reader<&[u8]>,
+        event: &BytesStart<'_>,
+        is_empty: bool,
+    ) -> Result<()> {
+        let Some((owner, role_index)) = self.current_resource_role else {
+            return Ok(());
+        };
+        let binding = BpmnResourceParameterBindingSnapshot {
+            binding_id: attribute_value(source, reader, event, "id")?,
+            parameter_ref: attribute_value(source, reader, event, "parameterRef")?,
+            expression: None,
+            expression_language: None,
+            expression_evaluates_to_type_ref: None,
+        };
+        let Some(role) = self.resource_role_mut(owner, role_index) else {
+            return Ok(());
+        };
+        role.parameter_bindings.push(binding);
+        if !is_empty {
+            let binding_index = role.parameter_bindings.len().saturating_sub(1);
+            self.current_resource_parameter_binding = Some((owner, role_index, binding_index));
+        }
+        Ok(())
+    }
+
+    fn start_resource_assignment_expression(
+        &mut self,
+        source: &BpmnSourceFile,
+        reader: &Reader<&[u8]>,
+        event: &BytesStart<'_>,
+        is_empty: bool,
+    ) -> Result<()> {
+        let Some((owner, role_index)) = self.current_resource_role else {
+            return Ok(());
+        };
+        let assignment_expression_id = attribute_value(source, reader, event, "id")?;
+        let Some(role) = self.resource_role_mut(owner, role_index) else {
+            return Ok(());
+        };
+        role.assignment_expression_id = assignment_expression_id;
+        if !is_empty {
+            self.current_resource_assignment_expression = Some((owner, role_index));
+        }
+        Ok(())
+    }
+
+    fn attach_resource_assignment_expression_metadata(
+        &mut self,
+        source: &BpmnSourceFile,
+        reader: &Reader<&[u8]>,
+        event: &BytesStart<'_>,
+    ) -> Result<()> {
+        let language = attribute_value(source, reader, event, "language")?;
+        let evaluates_to_type_ref = attribute_value(source, reader, event, "evaluatesToTypeRef")?;
+        let Some(role) = self.current_resource_assignment_expression_mut() else {
+            return Ok(());
+        };
+        role.assignment_expression_language = language;
+        role.assignment_expression_evaluates_to_type_ref = evaluates_to_type_ref;
+        Ok(())
+    }
+
+    fn attach_resource_parameter_binding_expression_metadata(
+        &mut self,
+        source: &BpmnSourceFile,
+        reader: &Reader<&[u8]>,
+        event: &BytesStart<'_>,
+    ) -> Result<()> {
+        let language = attribute_value(source, reader, event, "language")?;
+        let evaluates_to_type_ref = attribute_value(source, reader, event, "evaluatesToTypeRef")?;
+        let Some(binding) = self.current_resource_parameter_binding_mut() else {
+            return Ok(());
+        };
+        binding.expression_language = language;
+        binding.expression_evaluates_to_type_ref = evaluates_to_type_ref;
         Ok(())
     }
 
@@ -2098,6 +2313,35 @@ impl BpmnSnapshotScanState {
         };
         binding
             .data_path
+            .get_or_insert_with(String::new)
+            .push_str(text);
+    }
+
+    fn set_resource_role_resource_ref(&mut self, text: &str) {
+        let Some((owner, role_index)) = self.current_resource_role else {
+            return;
+        };
+        let Some(role) = self.resource_role_mut(owner, role_index) else {
+            return;
+        };
+        role.resource_ref = Some(text.to_string());
+    }
+
+    fn append_resource_role_assignment_expression(&mut self, text: &str) {
+        let Some(role) = self.current_resource_assignment_expression_mut() else {
+            return;
+        };
+        role.assignment_expression
+            .get_or_insert_with(String::new)
+            .push_str(text);
+    }
+
+    fn append_resource_parameter_binding_expression(&mut self, text: &str) {
+        let Some(binding) = self.current_resource_parameter_binding_mut() else {
+            return;
+        };
+        binding
+            .expression
             .get_or_insert_with(String::new)
             .push_str(text);
     }
@@ -2519,6 +2763,43 @@ impl BpmnSnapshotScanState {
         self.root.as_mut()?.global_tasks.get_mut(global_task_index)
     }
 
+    fn resource_role_mut(
+        &mut self,
+        owner: ResourceRoleOwner,
+        role_index: usize,
+    ) -> Option<&mut BpmnResourceRoleSnapshot> {
+        match owner {
+            ResourceRoleOwner::Process(process_index) => self
+                .processes
+                .get_mut(process_index)?
+                .resource_roles
+                .get_mut(role_index),
+            ResourceRoleOwner::GlobalTask(task_index) => self
+                .root
+                .as_mut()?
+                .global_tasks
+                .get_mut(task_index)?
+                .resource_roles
+                .get_mut(role_index),
+        }
+    }
+
+    fn current_resource_assignment_expression_mut(
+        &mut self,
+    ) -> Option<&mut BpmnResourceRoleSnapshot> {
+        let (owner, role_index) = self.current_resource_assignment_expression?;
+        self.resource_role_mut(owner, role_index)
+    }
+
+    fn current_resource_parameter_binding_mut(
+        &mut self,
+    ) -> Option<&mut BpmnResourceParameterBindingSnapshot> {
+        let (owner, role_index, binding_index) = self.current_resource_parameter_binding?;
+        self.resource_role_mut(owner, role_index)?
+            .parameter_bindings
+            .get_mut(binding_index)
+    }
+
     fn current_collaboration_metadata_owner(&self) -> Option<CollaborationMetadataOwner> {
         if let Some((collaboration_index, path)) = self.choreography_activity_stack.last() {
             return Some(CollaborationMetadataOwner::ChoreographyActivity(
@@ -2869,6 +3150,25 @@ fn data_input_output_from_event(
     })
 }
 
+fn resource_role_from_event(
+    source: &BpmnSourceFile,
+    reader: &Reader<&[u8]>,
+    event: &BytesStart<'_>,
+    tag: &str,
+) -> Result<BpmnResourceRoleSnapshot> {
+    Ok(BpmnResourceRoleSnapshot {
+        role_kind: tag.to_string(),
+        role_id: attribute_value(source, reader, event, "id")?,
+        name: attribute_value(source, reader, event, "name")?,
+        resource_ref: None,
+        assignment_expression_id: None,
+        assignment_expression: None,
+        assignment_expression_language: None,
+        assignment_expression_evaluates_to_type_ref: None,
+        parameter_bindings: Vec::new(),
+    })
+}
+
 fn is_collaboration_container(tag: Option<&str>) -> bool {
     matches!(
         tag,
@@ -2911,5 +3211,12 @@ fn is_global_task_tag(tag: &str) -> bool {
             | "globalManualTask"
             | "globalScriptTask"
             | "globalUserTask"
+    )
+}
+
+fn is_resource_role_tag(tag: &str) -> bool {
+    matches!(
+        tag,
+        "resourceRole" | "performer" | "humanPerformer" | "potentialOwner"
     )
 }

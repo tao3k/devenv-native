@@ -58,6 +58,10 @@ The field-level user/manual task contract is tracked in the
   resource roles. The current contract preserves role names, `resourceRef`
   text, and `resourceAssignmentExpression/formalExpression` text as host
   routing metadata only.
+- Direct process and global-task `resourceRole`, `performer`,
+  `humanPerformer`, and `potentialOwner` declarations are preserved in
+  document snapshots as metadata-only catalogs. They do not widen host
+  dispatch, claim checks, worklist filtering, or authorization.
 - Top-level BPMN `resource` and nested `resourceParameter` catalogs are
   preserved in document snapshots as assignment metadata. Current assignment
   routing keeps `resourceRef` as text; it does not resolve the referenced
@@ -108,6 +112,8 @@ The field-level user/manual task contract is tracked in the
   callable contract validation
 - executable global task reuse and `callActivity` binding to global task
   definitions
+- executable process/global-task resource-role assignment, authorization,
+  scheduling, delegation, escalation, or reassignment
 - signal or timer task-event execution on `sendTask` or `receiveTask`
 - broader data-object/data-store execution, IO transformations,
   multiple-source data associations, authorization, lane scheduling, full

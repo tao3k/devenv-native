@@ -389,6 +389,12 @@ pub struct BpmnGlobalTaskSnapshot {
     /// Direct supported interface references preserved in source order.
     #[serde(default)]
     pub supported_interface_refs: Vec<String>,
+    /// Number of direct resource-role declarations discovered on this global task.
+    #[serde(default)]
+    pub resource_role_count: usize,
+    /// Direct resource-role metadata preserved from this global task.
+    #[serde(default)]
+    pub resource_roles: Vec<BpmnResourceRoleSnapshot>,
 }
 
 /// Snapshot of one BPMN `operation`.
@@ -432,6 +438,51 @@ pub struct BpmnResourceParameterSnapshot {
     pub type_ref: Option<String>,
     /// Optional required-parameter marker.
     pub is_required: Option<bool>,
+}
+
+/// Snapshot of one BPMN resource-role declaration.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct BpmnResourceRoleSnapshot {
+    /// Local BPMN resource-role kind.
+    pub role_kind: String,
+    /// Optional stable role identifier.
+    pub role_id: Option<String>,
+    /// Optional role name.
+    pub name: Option<String>,
+    /// Optional nested `resourceRef` payload.
+    pub resource_ref: Option<String>,
+    /// Optional stable `resourceAssignmentExpression` identifier.
+    #[serde(default)]
+    pub assignment_expression_id: Option<String>,
+    /// Optional nested resource assignment expression payload.
+    #[serde(default)]
+    pub assignment_expression: Option<String>,
+    /// Optional formal expression language for the assignment expression.
+    #[serde(default)]
+    pub assignment_expression_language: Option<String>,
+    /// Optional formal expression result type for the assignment expression.
+    #[serde(default)]
+    pub assignment_expression_evaluates_to_type_ref: Option<String>,
+    /// Direct resource-parameter bindings preserved from this role.
+    #[serde(default)]
+    pub parameter_bindings: Vec<BpmnResourceParameterBindingSnapshot>,
+}
+
+/// Snapshot of one BPMN `resourceParameterBinding`.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct BpmnResourceParameterBindingSnapshot {
+    /// Optional stable binding identifier.
+    pub binding_id: Option<String>,
+    /// Optional referenced resource parameter.
+    pub parameter_ref: Option<String>,
+    /// Optional nested binding expression payload.
+    pub expression: Option<String>,
+    /// Optional formal expression language for the binding expression.
+    #[serde(default)]
+    pub expression_language: Option<String>,
+    /// Optional formal expression result type for the binding expression.
+    #[serde(default)]
+    pub expression_evaluates_to_type_ref: Option<String>,
 }
 
 /// Snapshot of one BPMN `category`.
@@ -827,6 +878,12 @@ pub struct BpmnProcessSnapshot {
     /// Direct process correlation subscriptions preserved from this process.
     #[serde(default)]
     pub correlation_subscriptions: Vec<BpmnCorrelationSubscriptionSnapshot>,
+    /// Number of direct resource-role declarations discovered inside this process.
+    #[serde(default)]
+    pub resource_role_count: usize,
+    /// Direct process resource-role metadata preserved from this process.
+    #[serde(default)]
+    pub resource_roles: Vec<BpmnResourceRoleSnapshot>,
     /// Number of `laneSet` elements discovered inside this process.
     pub lane_set_count: usize,
     /// Bounded `laneSet` metadata preserved from this process.

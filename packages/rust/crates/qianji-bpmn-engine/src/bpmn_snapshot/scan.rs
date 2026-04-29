@@ -139,6 +139,16 @@ fn text_target(element_stack: &[String]) -> Option<TextTarget> {
         (Some("dataPath"), Some("correlationPropertyBinding")) => {
             Some(TextTarget::CorrelationBindingDataPath)
         }
+        (
+            Some("resourceRef"),
+            Some("resourceRole" | "performer" | "humanPerformer" | "potentialOwner"),
+        ) => Some(TextTarget::ResourceRoleResourceRef),
+        (Some("formalExpression"), Some("resourceAssignmentExpression")) => {
+            Some(TextTarget::ResourceRoleAssignmentExpression)
+        }
+        (Some("formalExpression"), Some("resourceParameterBinding")) => {
+            Some(TextTarget::ResourceRoleParameterBindingExpression)
+        }
         (Some("inMessageRef"), Some("operation")) => Some(TextTarget::OperationInMessageRef),
         (Some("outMessageRef"), Some("operation")) => Some(TextTarget::OperationOutMessageRef),
         (Some("errorRef"), Some("operation")) => Some(TextTarget::OperationErrorRef),

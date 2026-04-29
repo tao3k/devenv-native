@@ -9,6 +9,7 @@ mod conversation;
 mod diagram;
 mod partners;
 mod process;
+mod resource_roles;
 mod root_catalogs;
 mod typed_catalogs;
 mod xml_errors;

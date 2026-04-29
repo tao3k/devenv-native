@@ -41,7 +41,7 @@ The current package owns bounded support for:
 - non-executable BPMN document snapshots for collaboration, partner,
   participant, choreography, artifact, lane, data-object, data-store, import,
   extension, relationship, BPMN DI, conversation, global task, process
-  callable, catalog, and category metadata
+  callable, resource-role, catalog, and category metadata
 
 The current package still defers:
 
@@ -52,13 +52,13 @@ The current package still defers:
 
 Deferred collaboration, choreography, artifact, lane, data-object, data-store,
 import, extension, relationship, BPMN DI, global task, process callable,
-category, and unsupported IO surfaces are reported by the linter with explicit
-repair guidance instead of being treated as executable runtime semantics.
-Those lint reports also include bounded snapshot-derived evidence for the
-deferred family, such as
+resource-role, category, and unsupported IO surfaces are reported by the
+linter with explicit repair guidance instead of being treated as executable
+runtime semantics. Those lint reports also include bounded snapshot-derived
+evidence for the deferred family, such as
 participant/message-flow counts, conversation node/link/association counts,
 partner/entity/role counts, participant interface/endpoint/multiplicity
 metadata, choreography activity counts, artifact association/group and
 text-annotation counts, lane flow-node refs, data-object and data-association
 references, process support/property/correlation-subscription metadata, or
-diagram element counts.
+process/global-task resource-role metadata, or diagram element counts.

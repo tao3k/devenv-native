@@ -219,8 +219,9 @@ pub use bpmn_model_api::{
     BpmnOperationSnapshot, BpmnParticipantAssociationSnapshot, BpmnParticipantMultiplicitySnapshot,
     BpmnParticipantSnapshot, BpmnPartnerEntitySnapshot, BpmnPartnerRoleSnapshot, BpmnPlaneSnapshot,
     BpmnProcessPropertySnapshot, BpmnProcessSnapshot, BpmnRelationshipSnapshot,
-    BpmnResourceParameterSnapshot, BpmnResourceSnapshot, BpmnRootSnapshot, BpmnShapeSnapshot,
-    BpmnSignalSnapshot, BpmnTextAnnotationSnapshot, BpmnWaypointSnapshot,
+    BpmnResourceParameterBindingSnapshot, BpmnResourceParameterSnapshot, BpmnResourceRoleSnapshot,
+    BpmnResourceSnapshot, BpmnRootSnapshot, BpmnShapeSnapshot, BpmnSignalSnapshot,
+    BpmnTextAnnotationSnapshot, BpmnWaypointSnapshot,
 };
 pub use bpmn_parse_api::{
     BpmnBundleSnapshot, BpmnParseOptions, BpmnSourceFile, parse_bpmn_bundle, parse_bpmn_package,
