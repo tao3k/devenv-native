@@ -100,6 +100,22 @@ the source page raster. This metadata is internal routing and merge state; it
 does not change the stable `_resources.arrow` schema or switch production
 extraction away from Docling.
 
+The Rust Studio provider controls Python OCR pressure with a global OCR worker
+pool and the internal `x-wendao-pdf-ocr-workers` Flight metadata header. The
+pool is sized from available machine parallelism, with
+`WENDAO_DOCUMENT_EXTRACT_PDF_OCR_WORKERS` available for deployment override.
+Rust splits OCR shard batches into scheduled chunks, sends only the acquired
+worker count to Python for each exchange, and Python keeps output rows ordered
+by the input Arrow batch so worker completion order cannot become document
+order.
+
+For full-page PDF OCR shards, the hybrid provider can prepare source-PDF
+page-range shard manifests without rendering high-DPI PNG files first. The
+manifest still carries page geometry, content hash, reading order, and stable
+OCR shard v1 fields, but Python reads the original `sourcePath` page range
+through Docling and returns one row per page. Region shards still use real
+PDFium crop rendering because their OCR input is a raster region.
+
 The region crop proof accepts explicit PDF-point region requests and emits real
 region shard PNGs plus the same `_ocr_shards.arrow`, `_ocr_input.arrow`, and
 `_ocr_pending.arrow` artifacts used by page shards. The first proof renders a

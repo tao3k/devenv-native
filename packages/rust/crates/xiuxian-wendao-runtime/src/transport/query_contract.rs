@@ -18,8 +18,9 @@ pub use analysis::{
     WENDAO_DOCUMENT_EXTRACT_ERROR_ROW_HEADER, WENDAO_DOCUMENT_EXTRACT_FORCE_HEADER,
     WENDAO_DOCUMENT_EXTRACT_JOB_ID_HEADER, WENDAO_DOCUMENT_EXTRACT_MODE_HEADER,
     WENDAO_DOCUMENT_EXTRACT_OUTPUT_DIR_HEADER, WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_HEADER,
-    WENDAO_DOCUMENT_EXTRACT_WAIT_MS_HEADER, validate_code_ast_analysis_request,
-    validate_document_extract_request, validate_markdown_analysis_request,
+    WENDAO_DOCUMENT_EXTRACT_WAIT_MS_HEADER, WENDAO_PDF_OCR_WORKERS_HEADER,
+    validate_code_ast_analysis_request, validate_document_extract_request,
+    validate_markdown_analysis_request,
 };
 pub use common::{WENDAO_SCHEMA_VERSION_HEADER, flight_descriptor_path, normalize_flight_route};
 pub use graph::{

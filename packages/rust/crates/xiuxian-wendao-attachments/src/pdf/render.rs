@@ -25,6 +25,7 @@ use super::ocr::{PdfOcrWorkerProfile, build_ocr_shard_input_batch, build_ocr_sha
 
 pub const PDFIUM_LIBRARY_PATH_ENV: &str = "WENDAO_PDFIUM_LIBRARY_PATH";
 const PDF_RENDER_SHARD_PROFILE: &str = "pdfium-render-page-shards-v1";
+const PDF_SOURCE_PAGE_RANGE_PROFILE: &str = "source-pdf-page-range-shards-v1";
 const OCR_SHARD_MANIFEST_ARROW_NAME: &str = "_ocr_shards.arrow";
 const OCR_SHARD_INPUT_ARROW_NAME: &str = "_ocr_input.arrow";
 const OCR_PENDING_RESOURCE_ARROW_NAME: &str = "_ocr_pending.arrow";
@@ -712,6 +713,87 @@ pub fn render_pdf_page_shards_with_selection(
 
 /// # Errors
 ///
+/// Returns an error if the path cannot be read or Arrow report files cannot be
+/// written. Missing `PDFium` libraries are represented as fallback reports rather
+/// than errors.
+pub fn prepare_pdf_source_page_range_ocr_shards_with_selection(
+    path: &Path,
+    output_dir: &Path,
+    profile: &PdfPageRenderProfile,
+    selection: PdfPageRenderSelection,
+) -> Result<PdfPageRenderShardReport, String> {
+    let source_profile = source_page_range_profile(profile);
+    let context = RenderShardContext::new(path, output_dir, &source_profile, selection);
+    if !is_pdf_path(path) {
+        return Ok(context.report(ReportParts::unsupported("unsupported non-PDF input")));
+    }
+
+    let page_selection = match resolve_page_selection(path, selection) {
+        Ok(page_selection) => page_selection,
+        Err(error) => {
+            return Ok(context.report(ReportParts::preflight_failed(format!(
+                "analyze PDF `{}` for source page range selection: {error}",
+                path.display()
+            ))));
+        }
+    };
+    if let RenderPageSelection::Skip {
+        page_count,
+        routing_decision,
+        reason,
+    } = &page_selection
+    {
+        return Ok(context.report(ReportParts::skipped(
+            *page_count,
+            *routing_decision,
+            reason.clone(),
+        )));
+    }
+
+    let source_bytes =
+        fs::read(path).map_err(|error| format!("read PDF `{}`: {error}", path.display()))?;
+    let source_hash = sha256_hex(&source_bytes);
+    let pdfium = match bind_pdfium() {
+        Ok(pdfium) => pdfium,
+        Err(error) => return Ok(context.report(ReportParts::fallback(0, 0, error))),
+    };
+
+    let document = match pdfium.load_pdf_from_file(path, None) {
+        Ok(document) => document,
+        Err(error) => {
+            return Ok(context.report(ReportParts::preflight_failed(format!(
+                "load PDF `{}`: {error}",
+                path.display()
+            ))));
+        }
+    };
+
+    let page_count = u32::try_from(document.pages().len()).unwrap_or_default();
+    let manifests = match source_page_range_document_manifests(
+        &document,
+        &context,
+        &source_hash,
+        page_selection.selected_page_indices(),
+    ) {
+        Ok(manifests) => manifests,
+        Err(fallback) => return Ok(context.report(fallback)),
+    };
+
+    let manifest_batch = build_shard_manifest_batch(&manifests)?;
+    let (manifest_arrow_path, ocr_input_arrow_path, pending_resource_arrow_path) =
+        write_shard_artifact_batches(output_dir, manifests.as_slice(), manifest_batch)?;
+
+    Ok(context.report(ReportParts::rendered(
+        page_count,
+        checked_len_u32(manifests.len()),
+        manifest_arrow_path,
+        ocr_input_arrow_path,
+        pending_resource_arrow_path,
+    )))
+}
+
+/// # Errors
+///
 /// Returns an error if the PDF cannot be read, the requested regions cannot be
 /// rendered, or Arrow artifact files cannot be written. Missing `PDFium`
 /// libraries are represented as fallback reports rather than errors.
@@ -1286,6 +1368,35 @@ fn render_document_manifests(
     Ok(manifests)
 }
 
+fn source_page_range_document_manifests(
+    document: &PdfDocument<'_>,
+    context: &RenderShardContext<'_>,
+    source_hash: &str,
+    selected_page_indices: Option<&[i32]>,
+) -> Result<Vec<PdfPageShardManifest>, ReportParts> {
+    let page_count = u32::try_from(document.pages().len()).unwrap_or_default();
+    let mut manifests = Vec::new();
+    let page_indices = selected_page_indices.map_or_else(
+        || document.pages().as_range().collect::<Vec<_>>(),
+        <[i32]>::to_vec,
+    );
+    for page_index in page_indices {
+        let page = document.pages().get(page_index).map_err(|error| {
+            ReportParts::fallback(
+                page_count,
+                checked_len_u32(manifests.len()),
+                format!("load page {page_index}: {error}"),
+            )
+        })?;
+        let manifest = source_page_range_manifest(&page, page_index, context, source_hash)
+            .map_err(|error| {
+                ReportParts::fallback(page_count, checked_len_u32(manifests.len()), error)
+            })?;
+        manifests.push(manifest);
+    }
+    Ok(manifests)
+}
+
 fn render_document_region_manifests(
     document: &PdfDocument<'_>,
     context: &RenderShardContext<'_>,
@@ -1371,6 +1482,36 @@ fn render_page_manifest(
     }))
 }
 
+fn source_page_range_manifest(
+    page: &PdfPage<'_>,
+    page_index: i32,
+    context: &RenderShardContext<'_>,
+    source_hash: &str,
+) -> Result<PdfPageShardManifest, String> {
+    let geometry = page_geometry(page, page_index, context.profile)?;
+    let page_index_u32 = u32::try_from(page_index).unwrap_or_default();
+    let placeholder_path = context.shard_dir(source_hash).join(format!(
+        "source-page-range-{page_index:05}.{}",
+        context.profile.image_extension
+    ));
+    let raster = RenderedRasterIdentity {
+        path: placeholder_path,
+        sha256: sha256_hex(format!("source-page-range:{source_hash}:{page_index_u32}").as_bytes()),
+        width_px: geometry.raster_width_px,
+        height_px: geometry.raster_height_px,
+    };
+    Ok(build_shard_manifest(PdfPageShardManifestInput {
+        source_path: context.path,
+        source_content_hash: source_hash,
+        page_index: page_index_u32,
+        profile: context.profile,
+        media_box: geometry.media_box,
+        crop_box: geometry.crop_box,
+        rotation_degrees: geometry.rotation_degrees,
+        raster,
+    }))
+}
+
 fn render_page_region_manifests(
     page: &PdfPage<'_>,
     page_index: u32,
@@ -1432,11 +1573,47 @@ struct RenderedPageImage {
     rotation_degrees: u16,
 }
 
+struct PageGeometry {
+    media_box: PdfPageBox,
+    crop_box: PdfPageBox,
+    rotation_degrees: u16,
+    raster_width_px: u32,
+    raster_height_px: u32,
+}
+
 fn render_page_image(
     page: &PdfPage<'_>,
     page_index: i32,
     profile: &PdfPageRenderProfile,
 ) -> Result<RenderedPageImage, String> {
+    let geometry = page_geometry(page, page_index, profile)?;
+    let config = PdfRenderConfig::new()
+        .set_target_size(
+            checked_pixels_i32(geometry.raster_width_px)?,
+            checked_pixels_i32(geometry.raster_height_px)?,
+        )
+        .set_format(PdfBitmapFormat::BGRA)
+        .render_annotations(profile.render_annotations)
+        .render_form_data(profile.render_form_data);
+    let bitmap = page
+        .render_with_config(&config)
+        .map_err(|error| format!("render page {page_index}: {error}"))?;
+    let image = bitmap
+        .as_image()
+        .map_err(|error| format!("convert page {page_index} bitmap to image: {error}"))?;
+    Ok(RenderedPageImage {
+        image,
+        media_box: geometry.media_box,
+        crop_box: geometry.crop_box,
+        rotation_degrees: geometry.rotation_degrees,
+    })
+}
+
+fn page_geometry(
+    page: &PdfPage<'_>,
+    page_index: i32,
+    profile: &PdfPageRenderProfile,
+) -> Result<PageGeometry, String> {
     let media_box = page.boundaries().media().map_or_else(
         |_| PdfPageBox::from_pdfium_rect(page.page_size()),
         |boundary| PdfPageBox::from_pdfium_rect(boundary.bounds),
@@ -1450,26 +1627,21 @@ fn render_page_image(
     );
     let (target_width, target_height) =
         render_dimensions_for_box(crop_box, rotation_degrees, profile);
-    let config = PdfRenderConfig::new()
-        .set_target_size(
-            checked_pixels_i32(target_width)?,
-            checked_pixels_i32(target_height)?,
-        )
-        .set_format(PdfBitmapFormat::BGRA)
-        .render_annotations(profile.render_annotations)
-        .render_form_data(profile.render_form_data);
-    let bitmap = page
-        .render_with_config(&config)
-        .map_err(|error| format!("render page {page_index}: {error}"))?;
-    let image = bitmap
-        .as_image()
-        .map_err(|error| format!("convert page {page_index} bitmap to image: {error}"))?;
-    Ok(RenderedPageImage {
-        image,
+    Ok(PageGeometry {
         media_box,
         crop_box,
         rotation_degrees,
+        raster_width_px: target_width,
+        raster_height_px: target_height,
     })
+}
+
+fn source_page_range_profile(profile: &PdfPageRenderProfile) -> PdfPageRenderProfile {
+    let mut source_profile = profile.clone();
+    source_profile.profile_id = PDF_SOURCE_PAGE_RANGE_PROFILE.to_string();
+    source_profile.image_extension = "source-page-range".to_string();
+    source_profile.image_mime_type = "application/x-wendao-source-pdf-page".to_string();
+    source_profile
 }
 
 fn save_image_identity(

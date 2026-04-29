@@ -10,7 +10,7 @@ use xiuxian_wendao_attachments::pdf::ocr::{
     build_ocr_shard_input_batch, decode_ocr_shard_result_batches,
 };
 use xiuxian_wendao_runtime::transport::{
-    ANALYSIS_PDF_OCR_SHARDS_ROUTE, WENDAO_SCHEMA_VERSION_HEADER,
+    ANALYSIS_PDF_OCR_SHARDS_ROUTE, WENDAO_PDF_OCR_WORKERS_HEADER, WENDAO_SCHEMA_VERSION_HEADER,
 };
 
 const PDF_OCR_SHARD_FLIGHT_MESSAGE_SIZE_BYTES: usize = 256 * 1024 * 1024;
@@ -67,13 +67,28 @@ impl PdfOcrShardFlightClient {
         &self,
         inputs: &[PdfOcrShardInput],
     ) -> Result<PdfOcrShardFlightResponse, String> {
-        request_pdf_ocr_shards_on_channel(self.channel.clone(), inputs).await
+        self.request_with_worker_budget(inputs, None).await
+    }
+
+    /// Send OCR shard inputs with an optional Python worker budget.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the Flight exchange fails or the worker response
+    /// does not match the stable OCR shard result contract.
+    pub async fn request_with_worker_budget(
+        &self,
+        inputs: &[PdfOcrShardInput],
+        worker_budget: Option<usize>,
+    ) -> Result<PdfOcrShardFlightResponse, String> {
+        request_pdf_ocr_shards_on_channel(self.channel.clone(), inputs, worker_budget).await
     }
 }
 
 async fn request_pdf_ocr_shards_on_channel(
     channel: Channel,
     inputs: &[PdfOcrShardInput],
+    worker_budget: Option<usize>,
 ) -> Result<PdfOcrShardFlightResponse, String> {
     if inputs.is_empty() {
         return Err("PDF OCR shard request inputs cannot be empty".to_string());
@@ -96,6 +111,14 @@ async fn request_pdf_ocr_shards_on_channel(
     client
         .add_header(WENDAO_SCHEMA_VERSION_HEADER, "v2")
         .map_err(|error| format!("invalid PDF OCR shard schema-version header: {error}"))?;
+    let worker_budget_header = worker_budget
+        .filter(|budget| *budget > 0)
+        .map(|budget| budget.to_string());
+    if let Some(worker_budget_header) = worker_budget_header.as_deref() {
+        client
+            .add_header(WENDAO_PDF_OCR_WORKERS_HEADER, worker_budget_header)
+            .map_err(|error| format!("invalid PDF OCR workers header: {error}"))?;
+    }
 
     let response_batches = client
         .do_exchange(request_stream)
@@ -162,6 +185,7 @@ mod tests {
         descriptor_path: Vec<String>,
         row_count: usize,
         page_index: i32,
+        worker_budget_header: Option<String>,
     }
 
     #[derive(Clone)]
@@ -239,6 +263,11 @@ mod tests {
             &self,
             request: Request<tonic::Streaming<FlightData>>,
         ) -> Result<Response<Self::DoExchangeStream>, Status> {
+            let worker_budget_header = request
+                .metadata()
+                .get(WENDAO_PDF_OCR_WORKERS_HEADER)
+                .and_then(|value| value.to_str().ok())
+                .map(ToString::to_string);
             let (descriptor_path, batches) = collect_request(request.into_inner()).await?;
             let batch = batches
                 .first()
@@ -252,6 +281,7 @@ mod tests {
                     descriptor_path,
                     row_count: batch.num_rows(),
                     page_index,
+                    worker_budget_header,
                 });
 
             let response_stream = FlightDataEncoderBuilder::new()
@@ -314,6 +344,33 @@ mod tests {
         assert_eq!(observed.descriptor_path, vec!["analysis", "pdf-ocr-shards"]);
         assert_eq!(observed.row_count, 1);
         assert_eq!(observed.page_index, 0);
+        assert_eq!(observed.worker_budget_header, None);
+
+        server_handle.abort();
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn pdf_ocr_shard_flight_client_sends_worker_budget_header() -> Result<(), String> {
+        let input = sample_input();
+        let success = PdfOcrShardResult::succeeded(&input, "page text", 0.93);
+        let response_batch = build_ocr_shard_result_batch(std::slice::from_ref(&success))?;
+        let observed = Arc::new(Mutex::new(None));
+        let (endpoint, server_handle) =
+            spawn_ocr_shard_service(response_batch, Arc::clone(&observed)).await;
+
+        let client = PdfOcrShardFlightClient::connect(endpoint.as_str()).await?;
+        let response = client
+            .request_with_worker_budget(std::slice::from_ref(&input), Some(3))
+            .await?;
+
+        assert_eq!(response.results, vec![success]);
+        let observed = observed
+            .lock()
+            .map_err(|_| "observed request lock poisoned".to_string())?
+            .clone()
+            .ok_or_else(|| "test service did not observe a request".to_string())?;
+        assert_eq!(observed.worker_budget_header.as_deref(), Some("3"));
 
         server_handle.abort();
         Ok(())

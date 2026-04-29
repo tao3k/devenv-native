@@ -35,7 +35,7 @@ use xiuxian_wendao_attachments::pdf::ocr::{
 use xiuxian_wendao_attachments::pdf::render::{
     PdfPageRegionRenderRequest, PdfPageRenderProfile, PdfPageRenderSelection,
     PdfPageRenderShardReport, PdfRenderRoutingDecision, PdfRenderStatus,
-    render_pdf_page_shards_with_selection, render_pdf_region_shards,
+    prepare_pdf_source_page_range_ocr_shards_with_selection, render_pdf_region_shards,
 };
 #[cfg(feature = "document-extract-pdf-render")]
 use xiuxian_wendao_attachments::pdf::structure::{
@@ -50,12 +50,12 @@ use super::arrow_cache::{
     build_status_batch, mirror_artifact_to_output, read_arrow_file, read_cached_document_batches,
     write_arrow_file,
 };
+#[cfg(feature = "document-extract-pdf-render")]
+use super::pdf_ocr_scheduler::PdfOcrWorkerScheduler;
 use super::registry::{
     DocumentExtractJobRegistry, DocumentExtractJobRegistrySnapshot, DocumentExtractJobStatus,
     artifact_ready, default_output_dir,
 };
-#[cfg(feature = "document-extract-pdf-render")]
-use crate::gateway::studio::document_extract_pdf_ocr_client::PdfOcrShardFlightClient;
 use crate::gateway::studio::router::GatewayState;
 
 const DEFAULT_DOCUMENT_EXTRACT_ENDPOINT: &str = "http://localhost:50051";
@@ -110,6 +110,8 @@ struct DocumentExtractProviderRuntime {
     artifact_lock: Arc<Mutex<()>>,
     conversion_permits: Arc<Semaphore>,
     conversion_limit: usize,
+    #[cfg(feature = "document-extract-pdf-render")]
+    pdf_ocr_scheduler: PdfOcrWorkerScheduler,
 }
 
 #[derive(Clone)]
@@ -123,6 +125,12 @@ pub(crate) struct DocumentExtractRuntimeSnapshot {
     pub(crate) max_running_conversions: usize,
     pub(crate) available_conversion_permits: usize,
     pub(crate) in_process_running_conversions: usize,
+    #[cfg(feature = "document-extract-pdf-render")]
+    pub(crate) max_pdf_ocr_workers: usize,
+    #[cfg(feature = "document-extract-pdf-render")]
+    pub(crate) available_pdf_ocr_worker_permits: usize,
+    #[cfg(feature = "document-extract-pdf-render")]
+    pub(crate) in_process_pdf_ocr_workers: usize,
     pub(crate) in_process_scheduled_jobs: usize,
     pub(crate) registry: DocumentExtractJobRegistrySnapshot,
 }
@@ -149,6 +157,23 @@ impl StudioDocumentExtractFlightRouteProvider {
                 registry,
                 conversion_limit,
             )),
+        }
+    }
+
+    #[cfg(all(test, feature = "document-extract-pdf-render"))]
+    fn from_registry_with_pdf_ocr_worker_limit(
+        registry: Result<DocumentExtractJobRegistry, String>,
+        conversion_limit: usize,
+        pdf_ocr_worker_limit: usize,
+    ) -> Self {
+        Self {
+            runtime: Arc::new(
+                DocumentExtractProviderRuntime::new_with_pdf_ocr_worker_limit(
+                    registry,
+                    conversion_limit,
+                    pdf_ocr_worker_limit,
+                ),
+            ),
         }
     }
 
@@ -196,6 +221,10 @@ impl StudioDocumentExtractFlightRouteProvider {
     pub(crate) async fn runtime_snapshot(&self) -> Result<DocumentExtractRuntimeSnapshot, String> {
         let scheduled_count = self.runtime.scheduled.lock().await.len();
         let available_conversion_permits = self.runtime.conversion_permits.available_permits();
+        #[cfg(feature = "document-extract-pdf-render")]
+        let available_pdf_ocr_worker_permits = self.runtime.pdf_ocr_scheduler.available_permits();
+        #[cfg(feature = "document-extract-pdf-render")]
+        let max_pdf_ocr_workers = self.runtime.pdf_ocr_scheduler.worker_limit();
         let registry_snapshot = {
             let _registry_guard = self.registry_lock();
             self.registry()?.snapshot()?
@@ -207,6 +236,13 @@ impl StudioDocumentExtractFlightRouteProvider {
                 .runtime
                 .conversion_limit
                 .saturating_sub(available_conversion_permits),
+            #[cfg(feature = "document-extract-pdf-render")]
+            max_pdf_ocr_workers,
+            #[cfg(feature = "document-extract-pdf-render")]
+            available_pdf_ocr_worker_permits,
+            #[cfg(feature = "document-extract-pdf-render")]
+            in_process_pdf_ocr_workers: max_pdf_ocr_workers
+                .saturating_sub(available_pdf_ocr_worker_permits),
             in_process_scheduled_jobs: scheduled_count,
             registry: registry_snapshot,
         })
@@ -366,6 +402,7 @@ impl StudioDocumentExtractFlightRouteProvider {
                 source.as_path(),
                 &render_report,
                 inputs,
+                &self.runtime.pdf_ocr_scheduler,
             )
             .await
             {
@@ -653,7 +690,7 @@ async fn render_hybrid_page_ocr_shards(
                 regions.as_slice(),
             );
         }
-        render_pdf_page_shards_with_selection(
+        prepare_pdf_source_page_range_ocr_shards_with_selection(
             source_for_render.as_path(),
             output_for_render.as_path(),
             &PdfPageRenderProfile::ocr_default(),
@@ -741,12 +778,12 @@ async fn materialize_hybrid_page_ocr_resource_batch(
     source: &Path,
     render_report: &PdfPageRenderShardReport,
     inputs: Vec<PdfOcrShardInput>,
+    pdf_ocr_scheduler: &PdfOcrWorkerScheduler,
 ) -> Result<HybridDocumentResourceBatch, String> {
     let endpoint_url = std::env::var("WENDAO_DOCUMENT_EXTRACT_ENDPOINT")
         .unwrap_or_else(|_| DEFAULT_DOCUMENT_EXTRACT_ENDPOINT.to_string());
-    let response = PdfOcrShardFlightClient::connect(endpoint_url)
-        .await?
-        .request(inputs.as_slice())
+    let response = pdf_ocr_scheduler
+        .request_shards(endpoint_url, inputs.as_slice())
         .await?;
     validate_successful_ocr_results(
         response.results.as_slice(),
@@ -906,6 +943,25 @@ fn sha256_file_hex(path: &Path) -> Result<String, String> {
 
 impl DocumentExtractProviderRuntime {
     fn new(registry: Result<DocumentExtractJobRegistry, String>, conversion_limit: usize) -> Self {
+        #[cfg(feature = "document-extract-pdf-render")]
+        {
+            Self::new_with_pdf_ocr_scheduler(
+                registry,
+                conversion_limit,
+                PdfOcrWorkerScheduler::from_environment(),
+            )
+        }
+        #[cfg(not(feature = "document-extract-pdf-render"))]
+        {
+            Self::new_without_pdf_ocr_scheduler(registry, conversion_limit)
+        }
+    }
+
+    #[cfg(not(feature = "document-extract-pdf-render"))]
+    fn new_without_pdf_ocr_scheduler(
+        registry: Result<DocumentExtractJobRegistry, String>,
+        conversion_limit: usize,
+    ) -> Self {
         let conversion_limit = conversion_limit.max(1);
         Self {
             channel: Arc::new(Mutex::new(None)),
@@ -916,6 +972,39 @@ impl DocumentExtractProviderRuntime {
             artifact_lock: Arc::new(Mutex::new(())),
             conversion_permits: Arc::new(Semaphore::new(conversion_limit)),
             conversion_limit,
+        }
+    }
+
+    #[cfg(all(test, feature = "document-extract-pdf-render"))]
+    fn new_with_pdf_ocr_worker_limit(
+        registry: Result<DocumentExtractJobRegistry, String>,
+        conversion_limit: usize,
+        pdf_ocr_worker_limit: usize,
+    ) -> Self {
+        Self::new_with_pdf_ocr_scheduler(
+            registry,
+            conversion_limit,
+            PdfOcrWorkerScheduler::with_limit(pdf_ocr_worker_limit),
+        )
+    }
+
+    #[cfg(feature = "document-extract-pdf-render")]
+    fn new_with_pdf_ocr_scheduler(
+        registry: Result<DocumentExtractJobRegistry, String>,
+        conversion_limit: usize,
+        pdf_ocr_scheduler: PdfOcrWorkerScheduler,
+    ) -> Self {
+        let conversion_limit = conversion_limit.max(1);
+        Self {
+            channel: Arc::new(Mutex::new(None)),
+            registry: Arc::new(registry),
+            registry_lock: Arc::new(StdMutex::new(())),
+            scheduled: Arc::new(Mutex::new(HashSet::new())),
+            submit_lock: Arc::new(Mutex::new(())),
+            artifact_lock: Arc::new(Mutex::new(())),
+            conversion_permits: Arc::new(Semaphore::new(conversion_limit)),
+            conversion_limit,
+            pdf_ocr_scheduler,
         }
     }
 }
@@ -1730,6 +1819,37 @@ mod tests {
         assert_eq!(snapshot.in_process_scheduled_jobs, 1);
         assert_eq!(snapshot.registry.queued_jobs, 1);
         assert_eq!(snapshot.registry.total_jobs, 1);
+        Ok(())
+    }
+
+    #[cfg(feature = "document-extract-pdf-render")]
+    #[tokio::test]
+    async fn document_extract_runtime_snapshot_reports_pdf_ocr_worker_capacity()
+    -> Result<(), String> {
+        let temp = tempfile::tempdir().map_err(|error| error.to_string())?;
+        let registry = DocumentExtractJobRegistry::new(
+            temp.path().join("jobs.duckdb"),
+            temp.path().join("artifacts"),
+        )?;
+        let provider =
+            StudioDocumentExtractFlightRouteProvider::from_registry_with_pdf_ocr_worker_limit(
+                Ok(registry),
+                2,
+                5,
+            );
+        let _held_permits = provider
+            .runtime
+            .pdf_ocr_scheduler
+            .permits_for_tests()
+            .acquire_many_owned(2)
+            .await
+            .map_err(|error| error.to_string())?;
+
+        let snapshot = provider.runtime_snapshot().await?;
+
+        assert_eq!(snapshot.max_pdf_ocr_workers, 5);
+        assert_eq!(snapshot.available_pdf_ocr_worker_permits, 3);
+        assert_eq!(snapshot.in_process_pdf_ocr_workers, 2);
         Ok(())
     }
 

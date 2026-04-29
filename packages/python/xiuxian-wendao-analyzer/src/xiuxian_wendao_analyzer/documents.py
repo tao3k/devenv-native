@@ -153,7 +153,11 @@ class DoclingConversionResultProtocol(Protocol):
 class DocumentConverterProtocol(Protocol):
     """Minimal converter seam for Docling and tests."""
 
-    def convert(self, source: str | Path) -> DoclingConversionResultProtocol: ...
+    def convert(
+        self,
+        source: str | Path,
+        **kwargs: Any,
+    ) -> DoclingConversionResultProtocol: ...
 
 
 @dataclass(frozen=True, slots=True)

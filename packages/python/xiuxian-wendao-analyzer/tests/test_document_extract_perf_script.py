@@ -339,8 +339,11 @@ def test_real_docling_server_code_can_record_converter_count(tmp_path: Path) -> 
     )
 
     assert "class CountingConverter" in code
-    assert "converter = CountingConverter(converter)" in code
-    assert "DoclingPdfOcrShardWorker(converter)" in code
+    assert "return CountingConverter(converter)" in code
+    assert "def make_converter()" in code
+    assert "DoclingPdfOcrShardWorker(" in code
+    assert "converter_factory=make_converter" in code
+    assert "max_workers='auto'" in code
     assert "write_text(str(self.calls)" in code
 
 
@@ -853,6 +856,7 @@ def test_start_gateway_server_sets_document_extract_and_valkey_env(
     args = benchmark.argparse.Namespace(
         cargo="cargo",
         gateway_features="studio,zhenfa-router,duckdb,builtin-plugins",
+        rust_pdf_ocr_workers="6",
     )
 
     benchmark.start_gateway_server(
@@ -885,6 +889,7 @@ def test_start_gateway_server_sets_document_extract_and_valkey_env(
         "51080",
     ]
     env = kwargs["env"]
+    assert env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_WORKERS"] == "6"
     assert env["WENDAO_DOCUMENT_EXTRACT_ENDPOINT"] == "http://127.0.0.1:51051"
     assert env["WENDAO_DOCUMENT_EXTRACT_PDF_RENDER_SELECTION"] == (
         "shard_fallback_pages"
@@ -923,6 +928,7 @@ def test_start_rust_provider_forwards_hybrid_region_env(
         benchmark_fixtures={"pdf": tmp_path / "sample.pdf"},
         pdfium_library_path=None,
         prepare_pdfium_runtime=False,
+        rust_pdf_ocr_workers="6",
     )
 
     benchmark.start_rust_provider_server(
@@ -936,6 +942,7 @@ def test_start_rust_provider_forwards_hybrid_region_env(
 
     _command, kwargs = calls[0]
     env = kwargs["env"]
+    assert env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_WORKERS"] == "6"
     assert env["WENDAO_DOCUMENT_EXTRACT_PDF_RENDER_SELECTION"] == "region_shards"
     regions = benchmark.json.loads(
         env["WENDAO_DOCUMENT_EXTRACT_PDF_RENDER_REGIONS_JSON"]
@@ -1047,6 +1054,10 @@ def test_summary_and_markdown_report_distinct_miss_burst() -> None:
             "concurrency": 1,
             "flightMode": "async",
             "waitMs": 0,
+            "pdfOcrWorker": "skip",
+            "pdfOcrWorkers": "auto",
+            "rustPdfOcrWorkers": None,
+            "pdfOcrProfile": "skip",
             "summary": summary,
             "results": [result],
             "distinctMiss": distinct_report,

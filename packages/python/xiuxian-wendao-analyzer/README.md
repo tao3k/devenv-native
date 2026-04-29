@@ -92,6 +92,7 @@ The document service entrypoints are:
 uv run wendao-document-extract --host 0.0.0.0 --port 50051
 uv run xiuxian-wendao-document-extract --host 0.0.0.0 --port 50051
 uv run wendao-document-extract --host 0.0.0.0 --port 50051 --pdf-ocr-worker docling
+uv run wendao-document-extract --host 0.0.0.0 --port 50051 --pdf-ocr-worker docling --pdf-ocr-workers auto
 ```
 
 The Arrow Flight route is `/analysis/document-extract`. Request metadata uses:
@@ -134,6 +135,18 @@ models by accident. Passing `--pdf-ocr-worker docling` enables the opt-in
 Docling image worker for rendered shards; failed or empty shard OCR rows remain
 table-shaped failures so the Rust hybrid provider can fall back to full Docling
 when coverage is incomplete.
+
+Docling shard OCR is bounded and adaptive. The service accepts
+`--pdf-ocr-workers auto|N` as a direct local default, but the Rust provider may
+override it per exchange through the internal `x-wendao-pdf-ocr-workers` Flight
+metadata header. Rust owns the global OCR worker budget, splits shard batches
+into scheduled chunks, and sends only the acquired worker count to Python for
+that exchange. Python remains the Docling OCR execution boundary. Full-page PDF
+shards from the same source are grouped into Docling `sourcePath` page ranges
+and then split back into one OCR result row per page with Docling's
+`page_no`-scoped Markdown export. Rendered images remain the fallback path for
+failed page ranges, region shards, and explicit raster tests. Result rows are
+still returned in input shard order.
 
 The built-in strategy is intentionally small:
 

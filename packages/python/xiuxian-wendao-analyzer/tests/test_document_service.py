@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import threading
+import time
 from pathlib import Path
 
 import pyarrow as pa
@@ -21,6 +22,7 @@ from xiuxian_wendao_analyzer import (
     WENDAO_DOCUMENT_EXTRACT_FORCE_HEADER,
     WENDAO_DOCUMENT_EXTRACT_OUTPUT_DIR_HEADER,
     WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_HEADER,
+    WENDAO_PDF_OCR_WORKERS_HEADER,
     WENDAO_SCHEMA_VERSION_HEADER,
     DoclingPdfOcrShardWorker,
     DocumentExtractFlightServer,
@@ -29,34 +31,57 @@ from xiuxian_wendao_analyzer import (
     succeeded_pdf_ocr_shard_result,
 )
 from xiuxian_wendao_analyzer.document_service import _build_pdf_ocr_worker
-from xiuxian_wendao_analyzer.pdf_ocr import SkippingPdfOcrShardWorker
+from xiuxian_wendao_analyzer.pdf_ocr import (
+    SkippingPdfOcrShardWorker,
+    resolve_pdf_ocr_worker_count,
+)
 
 
 class FakeDoclingDocument:
-    def __init__(self, markdown: str) -> None:
+    def __init__(
+        self,
+        markdown: str,
+        *,
+        markdown_by_page: dict[int, str] | None = None,
+    ) -> None:
         self.markdown = markdown
+        self.markdown_by_page = markdown_by_page or {}
 
-    def export_to_markdown(self) -> str:
+    def export_to_markdown(self, **kwargs: object) -> str:
+        page_no = kwargs.get("page_no")
+        if isinstance(page_no, int) and page_no in self.markdown_by_page:
+            return self.markdown_by_page[page_no]
         return self.markdown
 
 
 class FakeDoclingResult:
-    def __init__(self, markdown: str) -> None:
-        self.document = FakeDoclingDocument(markdown)
+    def __init__(
+        self,
+        markdown: str,
+        *,
+        markdown_by_page: dict[int, str] | None = None,
+    ) -> None:
+        self.document = FakeDoclingDocument(
+            markdown,
+            markdown_by_page=markdown_by_page,
+        )
 
 
 class FakeDoclingConverter:
     def __init__(self, markdown: str = "# Service\n") -> None:
         self.markdown = markdown
         self.calls: list[Path] = []
+        self.kwargs_calls: list[dict[str, object]] = []
 
-    def convert(self, source: str | Path) -> FakeDoclingResult:
+    def convert(self, source: str | Path, **kwargs: object) -> FakeDoclingResult:
         self.calls.append(Path(source))
+        self.kwargs_calls.append(dict(kwargs))
         return FakeDoclingResult(self.markdown)
 
 
 class FailingDoclingConverter:
-    def convert(self, source: str | Path) -> FakeDoclingResult:
+    def convert(self, source: str | Path, **kwargs: object) -> FakeDoclingResult:
+        _ = kwargs
         raise RuntimeError(f"cannot OCR {source}")
 
 
@@ -132,9 +157,11 @@ def test_document_extract_routes_include_only_primary_document_route() -> None:
 class FakePdfOcrShardWorker:
     def __init__(self) -> None:
         self.inputs: list[dict[str, object]] = []
+        self.max_workers: int | str | None = None
 
-    def recognize(self, inputs):
+    def recognize(self, inputs, *, max_workers=None):
         self.inputs = list(inputs)
+        self.max_workers = max_workers
         return [succeeded_pdf_ocr_shard_result(inputs[0], "page text", 0.91)]
 
 
@@ -203,6 +230,178 @@ def test_docling_pdf_ocr_worker_converts_page_images(tmp_path: Path) -> None:
     assert row["confidence"] is None
 
 
+def test_docling_pdf_ocr_worker_prefers_source_pdf_page_range(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "source.pdf"
+    source.write_bytes(b"%PDF fixture")
+    image = tmp_path / "page-00000.png"
+    converter = FakeDoclingConverter("OCR from source page\n")
+
+    table = build_pdf_ocr_shard_result_table(
+        _sample_pdf_ocr_input_table(source_path=str(source), image_path=str(image)),
+        worker=DoclingPdfOcrShardWorker(converter),
+    )
+
+    assert converter.calls == [source]
+    assert converter.kwargs_calls == [{"page_range": (1, 1)}]
+    row = table.to_pylist()[0]
+    assert row["status"] == "succeeded"
+    assert row["text"] == "OCR from source page\n"
+
+
+def test_docling_pdf_ocr_worker_falls_back_to_image_after_page_range_failure(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "source.pdf"
+    source.write_bytes(b"%PDF fixture")
+    image = tmp_path / "page-00000.png"
+    image.write_bytes(b"png fixture")
+
+    class PageRangeFailingConverter(FakeDoclingConverter):
+        def convert(self, source: str | Path, **kwargs: object) -> FakeDoclingResult:
+            self.calls.append(Path(source))
+            self.kwargs_calls.append(dict(kwargs))
+            if "page_range" in kwargs:
+                raise RuntimeError("page range unavailable")
+            return FakeDoclingResult("OCR from image\n")
+
+    converter = PageRangeFailingConverter()
+
+    table = build_pdf_ocr_shard_result_table(
+        _sample_pdf_ocr_input_table(source_path=str(source), image_path=str(image)),
+        worker=DoclingPdfOcrShardWorker(converter),
+    )
+
+    assert converter.calls == [source, image]
+    assert converter.kwargs_calls == [{"page_range": (1, 1)}, {}]
+    row = table.to_pylist()[0]
+    assert row["status"] == "succeeded"
+    assert row["text"] == "OCR from image\n"
+
+
+def test_docling_pdf_ocr_worker_batches_contiguous_source_pdf_pages(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "source.pdf"
+    source.write_bytes(b"%PDF fixture")
+
+    class PageBatchConverter(FakeDoclingConverter):
+        def convert(self, source: str | Path, **kwargs: object) -> FakeDoclingResult:
+            self.calls.append(Path(source))
+            self.kwargs_calls.append(dict(kwargs))
+            return FakeDoclingResult(
+                "all pages\n",
+                markdown_by_page={
+                    1: "OCR page 1\n",
+                    2: "OCR page 2\n",
+                    3: "OCR page 3\n",
+                },
+            )
+
+    converter = PageBatchConverter()
+    input_tables = []
+    for page_index in range(3):
+        input_tables.append(
+            _sample_pdf_ocr_input_table(
+                source_path=str(source),
+                image_path=str(tmp_path / f"page-{page_index:05}.png"),
+                page_index=page_index,
+                shard_element_id=f"shard-{page_index}",
+            )
+        )
+
+    table = build_pdf_ocr_shard_result_table(
+        pa.concat_tables(input_tables),
+        worker=DoclingPdfOcrShardWorker(converter, max_workers=4),
+    )
+
+    assert converter.calls == [source]
+    assert converter.kwargs_calls == [{"page_range": (1, 3)}]
+    assert [row["text"] for row in table.to_pylist()] == [
+        "OCR page 1\n",
+        "OCR page 2\n",
+        "OCR page 3\n",
+    ]
+
+
+def test_docling_pdf_ocr_worker_preserves_order_with_concurrent_shards(
+    tmp_path: Path,
+) -> None:
+    records: list[tuple[int, str]] = []
+    records_lock = threading.Lock()
+
+    class ThreadLocalConverter:
+        def convert(self, source: str | Path, **kwargs: object) -> FakeDoclingResult:
+            _ = kwargs
+            time.sleep(0.005)
+            with records_lock:
+                records.append((threading.get_ident(), Path(source).name))
+            return FakeDoclingResult(f"OCR {Path(source).stem}\n")
+
+    tables = []
+    for page_index in range(20):
+        image = tmp_path / f"page-{page_index:05}.png"
+        image.write_bytes(b"png fixture")
+        tables.append(
+            _sample_pdf_ocr_input_table(
+                source_path=str(tmp_path / "missing-source.pdf"),
+                image_path=str(image),
+                page_index=page_index,
+                shard_element_id=f"shard-{page_index}",
+            )
+        )
+
+    table = build_pdf_ocr_shard_result_table(
+        pa.concat_tables(tables),
+        worker=DoclingPdfOcrShardWorker(
+            converter_factory=ThreadLocalConverter,
+            max_workers=4,
+        ),
+    )
+
+    rows = table.to_pylist()
+    assert [row["pageIndex"] for row in rows] == list(range(20))
+    assert [row["text"] for row in rows] == [
+        f"OCR page-{page_index:05}\n" for page_index in range(20)
+    ]
+    assert len({thread_id for thread_id, _ in records}) > 1
+
+
+def test_docling_pdf_ocr_worker_failure_isolated_per_shard(tmp_path: Path) -> None:
+    class PartiallyFailingConverter:
+        def convert(self, source: str | Path, **kwargs: object) -> FakeDoclingResult:
+            _ = kwargs
+            if Path(source).name == "page-00001.png":
+                raise RuntimeError("selected shard failed")
+            return FakeDoclingResult(f"OCR {Path(source).stem}\n")
+
+    tables = []
+    for page_index in range(3):
+        image = tmp_path / f"page-{page_index:05}.png"
+        image.write_bytes(b"png fixture")
+        tables.append(
+            _sample_pdf_ocr_input_table(
+                source_path=str(tmp_path / "missing-source.pdf"),
+                image_path=str(image),
+                page_index=page_index,
+                shard_element_id=f"shard-{page_index}",
+            )
+        )
+
+    table = build_pdf_ocr_shard_result_table(
+        pa.concat_tables(tables),
+        worker=DoclingPdfOcrShardWorker(
+            converter_factory=PartiallyFailingConverter,
+            max_workers=3,
+        ),
+    )
+
+    rows = table.to_pylist()
+    assert [row["status"] for row in rows] == ["succeeded", "failed", "succeeded"]
+    assert "Docling OCR failed" in rows[1]["errorMessage"]
+
+
 def test_docling_pdf_ocr_worker_reports_missing_images() -> None:
     converter = FakeDoclingConverter("OCR\n")
 
@@ -250,6 +449,23 @@ def test_document_service_pdf_ocr_worker_selection_is_explicit() -> None:
     assert isinstance(_build_pdf_ocr_worker("docling"), DoclingPdfOcrShardWorker)
 
 
+def test_pdf_ocr_worker_count_is_adaptive(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("WENDAO_PDF_OCR_WORKERS", raising=False)
+    monkeypatch.delenv("WENDAO_PDF_OCR_MAX_WORKERS", raising=False)
+
+    assert resolve_pdf_ocr_worker_count(2, 8) == 2
+    assert resolve_pdf_ocr_worker_count(8, "3") == 3
+    assert resolve_pdf_ocr_worker_count(8, "invalid") >= 1
+
+
+def test_pdf_ocr_worker_count_respects_max_cap(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("WENDAO_PDF_OCR_MAX_WORKERS", "2")
+
+    assert resolve_pdf_ocr_worker_count(8, 6) == 2
+
+
 def test_document_service_exchanges_pdf_ocr_shards_over_arrow_flight() -> None:
     worker = FakePdfOcrShardWorker()
     server = DocumentExtractFlightServer("grpc://127.0.0.1:0", ocr_worker=worker)
@@ -277,9 +493,39 @@ def test_document_service_exchanges_pdf_ocr_shards_over_arrow_flight() -> None:
     assert worker.inputs[0]["sourcePath"] == "/tmp/source.pdf"
 
 
+def test_document_service_forwards_pdf_ocr_worker_budget_header() -> None:
+    worker = FakePdfOcrShardWorker()
+    server = DocumentExtractFlightServer("grpc://127.0.0.1:0", ocr_worker=worker)
+    thread = threading.Thread(target=server.serve, daemon=True)
+    thread.start()
+    client = flight.FlightClient(f"grpc://127.0.0.1:{server.port}")
+    descriptor = flight.FlightDescriptor.for_path("analysis", "pdf-ocr-shards")
+    options = flight.FlightCallOptions(
+        headers=[(WENDAO_PDF_OCR_WORKERS_HEADER.encode("utf-8"), b"3")]
+    )
+    writer, reader = client.do_exchange(descriptor, options=options)
+    input_table = _sample_pdf_ocr_input_table()
+
+    try:
+        writer.begin(input_table.schema)
+        writer.write_table(input_table)
+        writer.done_writing()
+        result = reader.read_all()
+    finally:
+        writer.close()
+        server.shutdown()
+        thread.join(timeout=5)
+
+    assert result.schema == PDF_OCR_SHARD_RESULT_SCHEMA
+    assert worker.max_workers == "3"
+
+
 def _sample_pdf_ocr_input_table(
     image_path: str = "/tmp/page-00000.png",
     *,
+    source_path: str = "/tmp/source.pdf",
+    page_index: int = 0,
+    shard_element_id: str = "shard-id",
     shard_type: str = "page",
     region_index: int = 0,
     parent_shard_element_id: str = "",
@@ -289,9 +535,9 @@ def _sample_pdf_ocr_input_table(
         [
             {
                 "contractVersion": PDF_OCR_SHARD_INPUT_SCHEMA_VERSION,
-                "sourcePath": "/tmp/source.pdf",
+                "sourcePath": source_path,
                 "sourceContentHash": "sourcehash",
-                "pageIndex": 0,
+                "pageIndex": page_index,
                 "imagePath": image_path,
                 "imageMimeType": "image/png",
                 "rasterSha256": "rasterhash",
@@ -311,7 +557,7 @@ def _sample_pdf_ocr_input_table(
                 "cropTop": 792.0,
                 "pointToPixelScaleX": 3.921568627,
                 "pointToPixelScaleY": 3.914141414,
-                "shardElementId": "shard-id",
+                "shardElementId": shard_element_id,
                 "shardType": shard_type,
                 "regionIndex": region_index,
                 "parentShardElementId": parent_shard_element_id,

@@ -28,6 +28,7 @@ ANALYSIS_DOCUMENT_EXTRACT_ROUTE = "/analysis/document-extract"
 ANALYSIS_PDF_OCR_SHARDS_ROUTE = "/analysis/pdf-ocr-shards"
 
 WENDAO_SCHEMA_VERSION_HEADER = "x-wendao-schema-version"
+WENDAO_PDF_OCR_WORKERS_HEADER = "x-wendao-pdf-ocr-workers"
 WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_HEADER = "x-wendao-document-extract-source-path"
 WENDAO_DOCUMENT_EXTRACT_OUTPUT_DIR_HEADER = "x-wendao-document-extract-output-dir"
 WENDAO_DOCUMENT_EXTRACT_FORCE_HEADER = "x-wendao-document-extract-force"
@@ -156,6 +157,9 @@ class DocumentExtractFlightServer(flight.FlightServerBase):
             result_table = build_pdf_ocr_shard_result_table(
                 reader.read_all(),
                 worker=self._ocr_worker,
+                max_workers=self._get_headers(context).get(
+                    WENDAO_PDF_OCR_WORKERS_HEADER
+                ),
             )
         except ValueError as exc:
             raise flight.FlightServerError(
@@ -204,21 +208,33 @@ def main() -> int:
         default="skip",
         help="OCR worker used by the internal /analysis/pdf-ocr-shards exchange",
     )
+    parser.add_argument(
+        "--pdf-ocr-workers",
+        default="auto",
+        help=(
+            "Maximum Docling OCR shard workers for direct local requests. "
+            "Rust providers may override this per request with "
+            "x-wendao-pdf-ocr-workers."
+        ),
+    )
     args = parser.parse_args()
 
     location = f"grpc://{args.host}:{args.port}"
     server = DocumentExtractFlightServer(
         location,
-        ocr_worker=_build_pdf_ocr_worker(args.pdf_ocr_worker),
+        ocr_worker=_build_pdf_ocr_worker(args.pdf_ocr_worker, args.pdf_ocr_workers),
     )
     print(f"Wendao document extraction service listening on {location}")
     server.serve()
     return 0
 
 
-def _build_pdf_ocr_worker(worker_name: str) -> PdfOcrShardWorkerProtocol:
+def _build_pdf_ocr_worker(
+    worker_name: str,
+    max_workers: int | str | None = "auto",
+) -> PdfOcrShardWorkerProtocol:
     if worker_name == "docling":
-        return DoclingPdfOcrShardWorker()
+        return DoclingPdfOcrShardWorker(max_workers=max_workers)
     return SkippingPdfOcrShardWorker()
 
 
@@ -287,6 +303,7 @@ __all__ = [
     "WENDAO_DOCUMENT_EXTRACT_FORCE_HEADER",
     "WENDAO_DOCUMENT_EXTRACT_OUTPUT_DIR_HEADER",
     "WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_HEADER",
+    "WENDAO_PDF_OCR_WORKERS_HEADER",
     "WENDAO_SCHEMA_VERSION_HEADER",
     "DocumentExtractFlightServer",
     "DocumentExtractMiddleware",

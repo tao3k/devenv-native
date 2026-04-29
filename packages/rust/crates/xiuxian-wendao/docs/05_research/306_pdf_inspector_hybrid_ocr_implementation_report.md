@@ -620,6 +620,29 @@ Current implementation status:
   Arrow Flight exchange. The benchmark harness can now drive
   `hybrid-page-ocr` through the Rust provider with the PDF render feature
   selected explicitly.
+- The cold-miss worker scheduling slice keeps the same Arrow v1 OCR shard
+  contracts but changes the execution shape: Rust owns a global PDF OCR worker
+  pool, splits OCR shard batches into scheduled chunks, and sends
+  `x-wendao-pdf-ocr-workers` with the acquired worker count for each Python
+  exchange. The pool is sized from available parallelism, with
+  `WENDAO_DOCUMENT_EXTRACT_PDF_OCR_WORKERS` available as a deployment override.
+  Python keeps result rows in input order and isolates failures per shard.
+- Full-page PDF OCR shards now try Docling `sourcePath` page ranges before
+  rendered images. This preserves Docling's native PDF backend behavior for
+  page shards while keeping rendered images as the fallback for region shards,
+  page-range failures, and raster tests.
+- The source-PDF page range path now avoids high-DPI PNG rendering for
+  full-page shards. Rust prepares stable OCR shard v1 rows from PDF page
+  geometry and sends the original `sourcePath` to Python; Python converts one
+  contiguous Docling page range and exports page-scoped Markdown back into one
+  result row per shard. Region shards still use PDFium crop rendering.
+- Real `2604.17337` proof after this change:
+  - previous full OCR-positive cold miss baseline: about `256s`
+  - Rust scheduled per-page Docling OCR: `141.1s`
+  - source page-range batch without page PNG rendering: `53.85s`
+  - cache hit: `7.85ms`
+  - resource rows: `21`, error rows: `0`
+  - `_structure.arrow`: `21` rows, `21` OCR page blocks, reading order sorted
 - The real hybrid benchmark proof then exposed a text-only hybrid candidate:
   `pdf-inspector` classified the real `2206.01062.pdf` fixture as a
   `hybrid_page_ocr_candidate`, but the shard selector found no raster OCR

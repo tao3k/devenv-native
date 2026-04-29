@@ -102,6 +102,21 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--pdf-ocr-workers",
+        default="auto",
+        help=(
+            "Local Python Docling OCR worker budget when Rust does not send "
+            "x-wendao-pdf-ocr-workers. Use `auto` for CPU-adaptive sizing."
+        ),
+    )
+    parser.add_argument(
+        "--rust-pdf-ocr-workers",
+        help=(
+            "Optional Rust provider override for WENDAO_DOCUMENT_EXTRACT_PDF_OCR_WORKERS. "
+            "When omitted, Rust sizes OCR worker budgets from available parallelism."
+        ),
+    )
+    parser.add_argument(
         "--wait-ms",
         type=int,
         default=0,
@@ -428,6 +443,7 @@ def main() -> int:
                 include_audio=not args.skip_audio,
                 converter_count_path=converter_count_path,
                 pdf_ocr_worker=args.pdf_ocr_worker,
+                pdf_ocr_workers=args.pdf_ocr_workers,
             )
         try:
             if server is not None:
@@ -519,6 +535,10 @@ def main() -> int:
         "concurrency": args.concurrency,
         "flightMode": args.flight_mode,
         "waitMs": args.wait_ms,
+        "pdfOcrWorker": args.pdf_ocr_worker,
+        "pdfOcrWorkers": args.pdf_ocr_workers,
+        "rustPdfOcrWorkers": args.rust_pdf_ocr_workers,
+        "pdfOcrProfile": pdf_ocr_profile_label(args),
         "distinctMiss": distinct_miss_report,
         "doclingFixtureRoot": str(real_fixture_root) if real_fixture_root else None,
         "results": results,
@@ -1181,6 +1201,7 @@ def start_server(
     include_audio: bool,
     converter_count_path: Path | None,
     pdf_ocr_worker: str = "skip",
+    pdf_ocr_workers: str = "auto",
 ) -> subprocess.Popen[str]:
     if pdf_ocr_worker == "docling" and not real_docling:
         raise SystemExit("--pdf-ocr-worker docling requires --real-docling")
@@ -1197,6 +1218,7 @@ def start_server(
                 include_audio,
                 converter_count_path,
                 pdf_ocr_worker,
+                pdf_ocr_workers,
             ),
         ]
     else:
@@ -1205,7 +1227,13 @@ def start_server(
             "run",
             "python",
             "-c",
-            fixture_server_code(host, port, converter_count_path, pdf_ocr_worker),
+            fixture_server_code(
+                host,
+                port,
+                converter_count_path,
+                pdf_ocr_worker,
+                pdf_ocr_workers,
+            ),
         ]
     return subprocess.Popen(
         command,
@@ -1242,6 +1270,9 @@ def start_rust_provider_server(
     env.update(build_hybrid_pdf_render_region_env(args))
     if pdfium_library_path is not None:
         env["WENDAO_PDFIUM_LIBRARY_PATH"] = str(pdfium_library_path)
+    rust_pdf_ocr_workers = getattr(args, "rust_pdf_ocr_workers", None)
+    if rust_pdf_ocr_workers:
+        env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_WORKERS"] = str(rust_pdf_ocr_workers)
     command = [
         args.cargo,
         "run",
@@ -1337,6 +1368,9 @@ def start_gateway_server(
     env.update(build_hybrid_pdf_render_region_env(args))
     if pdfium_library_path is not None:
         env["WENDAO_PDFIUM_LIBRARY_PATH"] = str(pdfium_library_path)
+    rust_pdf_ocr_workers = getattr(args, "rust_pdf_ocr_workers", None)
+    if rust_pdf_ocr_workers:
+        env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_WORKERS"] = str(rust_pdf_ocr_workers)
     command = [
         args.cargo,
         "run",
@@ -1551,6 +1585,7 @@ def real_docling_server_code(
     include_audio: bool,
     converter_count_path: Path | None,
     pdf_ocr_worker: str = "skip",
+    pdf_ocr_workers: str = "auto",
 ) -> str:
     fixture_root_text = str(fixture_root) if fixture_root is not None else ""
     count_path_text = (
@@ -1579,12 +1614,12 @@ def real_docling_server_code(
                 self.calls = 0
                 self.lock = Lock()
 
-            def convert(self, source):
+            def convert(self, source, **kwargs):
                 with self.lock:
                     self.calls += 1
                     if CONVERTER_COUNT_PATH is not None:
                         CONVERTER_COUNT_PATH.write_text(str(self.calls), encoding="utf-8")
-                return self.inner.convert(source)
+                return self.inner.convert(source, **kwargs)
 
         format_options = {{}}
         if fixture_root is not None:
@@ -1633,12 +1668,19 @@ def real_docling_server_code(
                 pipeline_options=audio_options,
             )
 
-        converter = DocumentConverter(format_options=format_options)
-        if CONVERTER_COUNT_PATH is not None:
-            converter = CountingConverter(converter)
+        def make_converter():
+            converter = DocumentConverter(format_options=format_options)
+            if CONVERTER_COUNT_PATH is not None:
+                return CountingConverter(converter)
+            return converter
+
+        converter = make_converter()
         ocr_worker = None
         if {pdf_ocr_worker!r} == "docling":
-            ocr_worker = DoclingPdfOcrShardWorker(converter)
+            ocr_worker = DoclingPdfOcrShardWorker(
+                converter_factory=make_converter,
+                max_workers={pdf_ocr_workers!r},
+            )
         server = DocumentExtractFlightServer(
             "grpc://{host}:{port}",
             converter=converter,
@@ -1654,6 +1696,7 @@ def fixture_server_code(
     port: int,
     converter_count_path: Path | None,
     pdf_ocr_worker: str = "skip",
+    pdf_ocr_workers: str = "auto",
 ) -> str:
     count_path_text = (
         str(converter_count_path) if converter_count_path is not None else ""
@@ -1697,7 +1740,8 @@ def fixture_server_code(
             def __init__(self):
                 self.calls = 0
                 self.lock = Lock()
-            def convert(self, source):
+            def convert(self, source, **kwargs):
+                _ = kwargs
                 with self.lock:
                     self.calls += 1
                     if CONVERTER_COUNT_PATH is not None:
@@ -1706,7 +1750,8 @@ def fixture_server_code(
                 return Result(source)
 
         class FixtureOcrWorker:
-            def recognize(self, inputs):
+            def recognize(self, inputs, *, max_workers=None):
+                _ = max_workers
                 return [
                     succeeded_pdf_ocr_shard_result(
                         input_row,
@@ -2363,6 +2408,16 @@ def summarize_results(
     }
 
 
+def pdf_ocr_profile_label(args: argparse.Namespace) -> str:
+    if args.pdf_ocr_worker == "skip":
+        return "skip"
+    if args.pdf_ocr_worker == "fixture":
+        return "fixture"
+    if args.flight_mode != "hybrid-page-ocr":
+        return "docling-full-document"
+    return "source-page-range-or-parallel-image"
+
+
 def all_structure_reading_order_sorted(results: list[dict[str, Any]]) -> bool | None:
     values = [
         result.get("structureReadingOrderSorted")
@@ -2385,6 +2440,10 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"- Concurrency: `{payload['concurrency']}`",
         f"- Flight mode: `{payload['flightMode']}`",
         f"- Wait ms: `{payload['waitMs']}`",
+        f"- PDF OCR worker: `{payload['pdfOcrWorker']}`",
+        f"- PDF OCR workers: `{payload['pdfOcrWorkers']}`",
+        f"- Rust PDF OCR worker pool: `{payload['rustPdfOcrWorkers']}`",
+        f"- PDF OCR profile: `{payload['pdfOcrProfile']}`",
         "- Duplicate miss converter calls: "
         f"`{payload['summary']['totalDuplicateMissConverterCalls']}`",
         "- Distinct cold-miss converter calls: "

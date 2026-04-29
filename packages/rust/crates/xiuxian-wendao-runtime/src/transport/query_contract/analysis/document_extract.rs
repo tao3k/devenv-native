@@ -20,6 +20,8 @@ pub const WENDAO_DOCUMENT_EXTRACT_MODE_HEADER: &str = "x-wendao-document-extract
 pub const WENDAO_DOCUMENT_EXTRACT_WAIT_MS_HEADER: &str = "x-wendao-document-extract-wait-ms";
 /// Canonical document extraction job-id header for status requests.
 pub const WENDAO_DOCUMENT_EXTRACT_JOB_ID_HEADER: &str = "x-wendao-document-extract-job-id";
+/// Internal PDF OCR worker budget header for Python shard OCR requests.
+pub const WENDAO_PDF_OCR_WORKERS_HEADER: &str = "x-wendao-pdf-ocr-workers";
 
 /// Document extraction execution mode decoded from Flight metadata.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
