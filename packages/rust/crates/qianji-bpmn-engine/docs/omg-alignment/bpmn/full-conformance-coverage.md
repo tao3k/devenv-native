@@ -35,6 +35,7 @@ guidance.
 | Conditional events        | bounded executable | Start events, catches, task boundaries, and interrupting subprocess-like boundaries.     |
 | Escalation events         | bounded executable | Child-scope end/throw routes execute; deferred escalation shapes get diagnostics.        |
 | Import declarations       | metadata-only      | Top-level import declarations are preserved; external dependency resolution is deferred. |
+| Extension declarations    | metadata-only      | Top-level extension declarations are preserved; extension behavior remains deferred.     |
 | Relationship declarations | metadata-only      | Top-level relationships are preserved; endpoint resolution and graph semantics defer.    |
 | Event definition catalogs | metadata-only      | Message/error/escalation/signal catalogs are preserved, not schema-validated.            |
 | Interfaces/operations     | metadata-only      | Callable-operation catalogs are preserved; host dispatch binding remains explicit.       |
@@ -70,16 +71,18 @@ collaboration-aware routing remain deferred until separate milestones define
 their execution contracts.
 
 The collaboration, data, callable-operation, and event metadata slices
-preserve top-level `import`, `relationship`, `itemDefinition`, `message`,
-`interface`, `operation`, `resource`, `resourceParameter`, `category`,
-`categoryValue`, `error`, `escalation`, `signal`, `correlationProperty`, and
-nested `correlationPropertyRetrievalExpression` metadata alongside
-collaboration participants, message flows, and data references. This gives
-Rust-owned evidence for future routing and type-alignment work while keeping
-pool routing, message dispatch, callable-operation binding, resource
-assignment binding, flow-element classification, import resolution,
-relationship endpoint resolution, event subscription registries, correlation
-matching, retrieval expression evaluation, and schema validation deferred.
+preserve top-level `import`, `extension`, `relationship`, `itemDefinition`,
+`message`, `interface`, `operation`, `resource`, `resourceParameter`,
+`category`, `categoryValue`, `error`, `escalation`, `signal`,
+`correlationProperty`, and nested `correlationPropertyRetrievalExpression`
+metadata alongside collaboration participants, message flows, and data
+references. This gives Rust-owned evidence for future routing and
+type-alignment work while keeping pool routing, message dispatch,
+callable-operation binding, resource assignment binding, flow-element
+classification, import resolution, extension behavior, extension payload
+parsing, relationship endpoint resolution, event subscription registries,
+correlation matching, retrieval expression evaluation, and schema validation
+deferred.
 
 ## Active M2 Event Milestone
 

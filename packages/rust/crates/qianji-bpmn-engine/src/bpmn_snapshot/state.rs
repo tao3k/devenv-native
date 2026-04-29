@@ -4,11 +4,12 @@ use crate::bpmn_model_api::{
     BpmnCorrelationPropertySnapshot, BpmnCorrelationRetrievalExpressionSnapshot,
     BpmnDataAssociationSnapshot, BpmnDataInputOutputSnapshot, BpmnDataObjectReferenceSnapshot,
     BpmnDataObjectSnapshot, BpmnDataStoreReferenceSnapshot, BpmnDataStoreSnapshot,
-    BpmnDocumentSnapshot, BpmnErrorSnapshot, BpmnEscalationSnapshot, BpmnImportSnapshot,
-    BpmnInterfaceSnapshot, BpmnIoSpecificationSnapshot, BpmnItemDefinitionSnapshot,
-    BpmnLaneSetSnapshot, BpmnLaneSnapshot, BpmnMessageFlowSnapshot, BpmnMessageSnapshot,
-    BpmnOperationSnapshot, BpmnParticipantSnapshot, BpmnProcessSnapshot, BpmnRelationshipSnapshot,
-    BpmnResourceParameterSnapshot, BpmnResourceSnapshot, BpmnRootSnapshot, BpmnSignalSnapshot,
+    BpmnDocumentSnapshot, BpmnErrorSnapshot, BpmnEscalationSnapshot, BpmnExtensionSnapshot,
+    BpmnImportSnapshot, BpmnInterfaceSnapshot, BpmnIoSpecificationSnapshot,
+    BpmnItemDefinitionSnapshot, BpmnLaneSetSnapshot, BpmnLaneSnapshot, BpmnMessageFlowSnapshot,
+    BpmnMessageSnapshot, BpmnOperationSnapshot, BpmnParticipantSnapshot, BpmnProcessSnapshot,
+    BpmnRelationshipSnapshot, BpmnResourceParameterSnapshot, BpmnResourceSnapshot,
+    BpmnRootSnapshot, BpmnSignalSnapshot,
 };
 use crate::bpmn_parse_api::BpmnSourceFile;
 use crate::error::Result;
@@ -24,6 +25,7 @@ pub(super) enum TextTarget {
     OperationInMessageRef,
     OperationOutMessageRef,
     OperationErrorRef,
+    ExtensionDocumentation,
     RelationshipSource,
     RelationshipTarget,
 }
@@ -50,6 +52,8 @@ pub(super) struct BpmnSnapshotScanState {
     current_operation: Option<(usize, usize)>,
     current_resource: Option<usize>,
     current_category: Option<usize>,
+    current_extension: Option<usize>,
+    current_extension_documentation: Option<(usize, String)>,
     current_relationship: Option<usize>,
     io_specification_stack: Vec<(usize, usize)>,
     current_data_association: Option<(usize, DataAssociationKind, BpmnDataAssociationSnapshot)>,
@@ -100,6 +104,12 @@ impl BpmnSnapshotScanState {
                 if self.current_correlation_property.is_some() =>
             {
                 self.start_correlation_retrieval_expression(source, reader, event, is_empty)
+            }
+            "documentation"
+                if parent_tag == Some("extension") && self.current_extension.is_some() =>
+            {
+                self.start_extension_documentation(is_empty);
+                Ok(())
             }
             "laneSet" if self.current_process.is_some() => {
                 self.start_lane_set(source, reader, event, is_empty)
@@ -155,6 +165,7 @@ impl BpmnSnapshotScanState {
     ) -> Result<bool> {
         match tag {
             "import" => self.capture_import(source, reader, event)?,
+            "extension" => self.start_extension(source, reader, event, is_empty)?,
             "relationship" => self.start_relationship(source, reader, event, is_empty)?,
             "collaboration" => self.start_collaboration(source, reader, event, is_empty)?,
             "process" => self.start_process(source, reader, event, is_empty)?,
@@ -189,6 +200,11 @@ impl BpmnSnapshotScanState {
             "interface" => {
                 self.current_operation = None;
                 self.current_interface = None;
+            }
+            "documentation" => self.finish_extension_documentation(),
+            "extension" => {
+                self.finish_extension_documentation();
+                self.current_extension = None;
             }
             "resource" => self.current_resource = None,
             "category" => self.current_category = None,
@@ -230,6 +246,7 @@ impl BpmnSnapshotScanState {
             TextTarget::OperationInMessageRef => self.set_operation_in_message_ref(text),
             TextTarget::OperationOutMessageRef => self.set_operation_out_message_ref(text),
             TextTarget::OperationErrorRef => self.push_operation_error_ref(text),
+            TextTarget::ExtensionDocumentation => self.append_extension_documentation(text),
             TextTarget::RelationshipSource => self.push_relationship_source_ref(text),
             TextTarget::RelationshipTarget => self.push_relationship_target_ref(text),
         }
@@ -251,6 +268,8 @@ impl BpmnSnapshotScanState {
         self.current_interface = None;
         self.current_resource = None;
         self.current_category = None;
+        self.finish_extension_documentation();
+        self.current_extension = None;
         self.current_relationship = None;
     }
 
@@ -630,6 +649,39 @@ impl BpmnSnapshotScanState {
         Ok(())
     }
 
+    fn start_extension(
+        &mut self,
+        source: &BpmnSourceFile,
+        reader: &Reader<&[u8]>,
+        event: &BytesStart<'_>,
+        is_empty: bool,
+    ) -> Result<()> {
+        let Some(root) = self.root.as_mut() else {
+            return Ok(());
+        };
+        root.extension_count += 1;
+        root.extensions.push(BpmnExtensionSnapshot {
+            definition: attribute_value(source, reader, event, "definition")?,
+            must_understand: boolean_attribute_value(source, reader, event, "mustUnderstand")?
+                .unwrap_or(false),
+            documentation: Vec::new(),
+        });
+        if !is_empty {
+            self.current_extension = root.extensions.len().checked_sub(1);
+        }
+        Ok(())
+    }
+
+    fn start_extension_documentation(&mut self, is_empty: bool) {
+        if is_empty {
+            return;
+        }
+        let Some(extension_index) = self.current_extension else {
+            return;
+        };
+        self.current_extension_documentation = Some((extension_index, String::new()));
+    }
+
     fn start_relationship(
         &mut self,
         source: &BpmnSourceFile,
@@ -978,6 +1030,34 @@ impl BpmnSnapshotScanState {
         relationship.target_refs.push(text.to_string());
     }
 
+    fn append_extension_documentation(&mut self, text: &str) {
+        let Some((_, documentation)) = self.current_extension_documentation.as_mut() else {
+            return;
+        };
+        if !documentation.is_empty() {
+            documentation.push(' ');
+        }
+        documentation.push_str(text);
+    }
+
+    fn finish_extension_documentation(&mut self) {
+        let Some((extension_index, documentation)) = self.current_extension_documentation.take()
+        else {
+            return;
+        };
+        let documentation = documentation.trim();
+        if documentation.is_empty() {
+            return;
+        }
+        let Some(root) = self.root.as_mut() else {
+            return;
+        };
+        let Some(extension) = root.extensions.get_mut(extension_index) else {
+            return;
+        };
+        extension.documentation.push(documentation.to_string());
+    }
+
     fn finish_correlation_retrieval_expression(&mut self) {
         let Some((property_index, retrieval_expression)) =
             self.current_correlation_retrieval_expression.take()
@@ -1103,6 +1183,8 @@ fn root_from_event(
         model_namespace_uri: bpmn_model_namespace(source, reader, event)?,
         import_count: 0,
         imports: Vec::new(),
+        extension_count: 0,
+        extensions: Vec::new(),
         relationship_count: 0,
         relationships: Vec::new(),
         collaboration_count: 0,

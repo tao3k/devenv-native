@@ -42,6 +42,12 @@ pub struct BpmnRootSnapshot {
     /// Bounded top-level `import` metadata preserved from the document.
     #[serde(default)]
     pub imports: Vec<BpmnImportSnapshot>,
+    /// Number of top-level `extension` elements discovered in the document.
+    #[serde(default)]
+    pub extension_count: usize,
+    /// Bounded top-level `extension` metadata preserved from the document.
+    #[serde(default)]
+    pub extensions: Vec<BpmnExtensionSnapshot>,
     /// Number of top-level `relationship` elements discovered in the document.
     #[serde(default)]
     pub relationship_count: usize,
@@ -121,6 +127,19 @@ pub struct BpmnImportSnapshot {
     pub location: Option<String>,
     /// Optional imported model type URI.
     pub import_type: Option<String>,
+}
+
+/// Snapshot of one BPMN `extension` declaration.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct BpmnExtensionSnapshot {
+    /// Optional extension definition `QName`.
+    pub definition: Option<String>,
+    /// Resolved BPMN `mustUnderstand` marker; absent attributes default to `false`.
+    #[serde(default)]
+    pub must_understand: bool,
+    /// Direct documentation text values preserved in source order.
+    #[serde(default)]
+    pub documentation: Vec<String>,
 }
 
 /// Snapshot of one BPMN `relationship`.
@@ -498,6 +517,8 @@ pub(crate) fn empty_bpmn_root_snapshot(source: &BpmnSourceFile) -> BpmnRootSnaps
         model_namespace_uri: None,
         import_count: 0,
         imports: Vec::new(),
+        extension_count: 0,
+        extensions: Vec::new(),
         relationship_count: 0,
         relationships: Vec::new(),
         collaboration_count: 0,

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:ext="https://example.com/bpmn/extensions"
+  id="Defs_ExtensionCatalog"
+  targetNamespace="https://example.com/bpmn/extension">
+  <bpmn:extension definition="ext:analytics" mustUnderstand="true">
+    <bpmn:documentation>Host extension declaration</bpmn:documentation>
+  </bpmn:extension>
+  <bpmn:extension definition="ext:passive">
+    <bpmn:documentation>Passive extension declaration</bpmn:documentation>
+  </bpmn:extension>
+  <bpmn:process id="extension_catalog_process" isExecutable="true">
+    <bpmn:startEvent id="start" />
+    <bpmn:sequenceFlow id="flow_start_review" sourceRef="start" targetRef="review" />
+    <bpmn:userTask id="review" name="Review" />
+    <bpmn:sequenceFlow id="flow_review_end" sourceRef="review" targetRef="end" />
+    <bpmn:endEvent id="end" />
+  </bpmn:process>
+</bpmn:definitions>

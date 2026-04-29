@@ -207,7 +207,7 @@ pub use bpmn_model_api::{
     BpmnCorrelationPropertySnapshot, BpmnDataAssociationSnapshot, BpmnDataInputOutputSnapshot,
     BpmnDataObjectReferenceSnapshot, BpmnDataObjectSnapshot, BpmnDataStoreReferenceSnapshot,
     BpmnDataStoreSnapshot, BpmnDocumentSnapshot, BpmnErrorSnapshot, BpmnEscalationSnapshot,
-    BpmnImportSnapshot, BpmnInterfaceSnapshot, BpmnIoSpecificationSnapshot,
+    BpmnExtensionSnapshot, BpmnImportSnapshot, BpmnInterfaceSnapshot, BpmnIoSpecificationSnapshot,
     BpmnItemDefinitionSnapshot, BpmnLaneSetSnapshot, BpmnLaneSnapshot, BpmnMessageFlowSnapshot,
     BpmnMessageSnapshot, BpmnOperationSnapshot, BpmnParticipantSnapshot, BpmnProcessSnapshot,
     BpmnRelationshipSnapshot, BpmnResourceParameterSnapshot, BpmnResourceSnapshot,

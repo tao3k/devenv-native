@@ -19,6 +19,33 @@ fn bpmn_snapshot_preserves_import_metadata_catalogs() {
 }
 
 #[test]
+fn bpmn_snapshot_preserves_extension_metadata_catalogs() {
+    let snapshot = snapshot_fixture("metadata-extension-catalog.bpmn");
+
+    assert_eq!(snapshot.root.extension_count, 2);
+    assert_eq!(snapshot.root.extensions.len(), 2);
+
+    let required_extension = &snapshot.root.extensions[0];
+    assert_eq!(
+        required_extension.definition.as_deref(),
+        Some("ext:analytics")
+    );
+    assert!(required_extension.must_understand);
+    assert_eq!(
+        required_extension.documentation,
+        ["Host extension declaration"]
+    );
+
+    let passive_extension = &snapshot.root.extensions[1];
+    assert_eq!(passive_extension.definition.as_deref(), Some("ext:passive"));
+    assert!(!passive_extension.must_understand);
+    assert_eq!(
+        passive_extension.documentation,
+        ["Passive extension declaration"]
+    );
+}
+
+#[test]
 fn bpmn_snapshot_preserves_relationship_metadata_catalogs() {
     let snapshot = snapshot_fixture("metadata-relationship-catalog.bpmn");
 
