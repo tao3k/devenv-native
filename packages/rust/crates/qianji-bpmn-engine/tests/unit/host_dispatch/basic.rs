@@ -22,6 +22,8 @@ async fn host_dispatch_send_request_materializes_from_blocked_instance() {
             message_reference: "invoice_dispatched".to_string(),
             message_name: Some("InvoiceDispatched".to_string()),
             variables: json!({ "amount": 7 }),
+            inputs: json!({}),
+            output_bindings: vec![],
         }),
     )
     .await;
@@ -36,6 +38,8 @@ async fn host_dispatch_service_request_materializes_from_blocked_instance() {
             token_id: 0,
             node_index: 1,
             variables: json!({ "amount": 7 }),
+            inputs: json!({}),
+            output_bindings: vec![],
             repeat: None,
         }),
     )
@@ -53,6 +57,8 @@ async fn host_dispatch_script_request_materializes_from_blocked_instance() {
             script_format: Some("feel".to_string()),
             script_body: Some("result = amount + tax".to_string()),
             variables: json!({ "amount": 7 }),
+            inputs: json!({}),
+            output_bindings: vec![],
             repeat: None,
         }),
     )
@@ -70,6 +76,8 @@ async fn host_dispatch_user_request_materializes_from_blocked_instance() {
             node_index: 1,
             activity_id: "task".to_string(),
             variables: json!({ "amount": 7 }),
+            inputs: json!({}),
+            output_bindings: vec![],
             repeat: None,
             lane: None,
             form: None,
@@ -136,6 +144,8 @@ async fn host_dispatch_manual_request_materializes_from_blocked_instance() {
             node_index: 1,
             activity_id: "task".to_string(),
             variables: json!({ "amount": 7 }),
+            inputs: json!({}),
+            output_bindings: vec![],
             repeat: None,
             lane: None,
             form: None,
@@ -210,6 +220,8 @@ async fn host_dispatch_business_rule_request_materializes_from_blocked_instance(
                 DmnDecisionRef::new("loan-decision"),
                 json!({ "amount": 7 }),
             ),
+            inputs: json!({}),
+            output_bindings: vec![],
             repeat: None,
         }),
     )

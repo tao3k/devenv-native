@@ -113,8 +113,8 @@ Current status: the canonical
 [Host Request ABI Ledger](host-request-abi-ledger.md) is present, and HTTP
 snapshot, stream, CLI start/status, and CLI worklist wire or text fields are
 covered by focused tests. pi-wendao now has contract and executor tests that
-reject missing streamed `form` or `result_output` metadata before user
-interaction starts. M2 is complete for the bounded ABI ledger; adapter
+reject missing streamed `form`, `result_output`, or output-binding metadata
+before user interaction starts. M2 is complete for the bounded ABI ledger; adapter
 assignment, claim, and generated BPMN conformance are covered by M10.
 
 Exit criteria:
@@ -132,10 +132,10 @@ a concrete form requirement needs it.
 
 Current status: implemented for the bounded M3 task-data shape slice.
 Form-backed user/manual completion data must be a JSON object. Its top-level
-keys must be declared by Rust-owned form metadata. The required
-`result_output` key must be present, optional `freeText` data input fields may be
-omitted, undeclared keys are rejected, and nested form-output envelopes are not
-a compatibility path.
+keys must be declared by Rust-owned output bindings. The required BPMN
+`dataOutput` name, usually `answer`, must be present; optional `freeText` data
+input fields may be omitted, undeclared keys are rejected, and nested
+form-output envelopes are not a compatibility path.
 
 Deliverables:
 
@@ -323,12 +323,12 @@ Exit criteria:
 - all user-visible prompts are backed by Rust-owned pending host work.
 
 Current status: complete for the bounded M10 adapter-conformance milestone.
-pi-wendao rejects missing Rust-streamed `form` and `result_output` before
-rendering. It exposes streamed `claim` metadata to the human-task handler,
+pi-wendao rejects missing Rust-streamed `form`, `result_output`, and output
+bindings before rendering. It exposes streamed `claim` metadata to the human-task handler,
 forwards the same claimant on typed completion, and proves that missing
 optional `assignment` or `claim` metadata remains absent rather than being
 synthesized from local BPMN XML or stale config. A generated-BPMN smoke also
-proves that local native BPMN IO metadata metadata is not an execution-time
+proves that local native BPMN IO metadata is not an execution-time
 fallback when qianji streams a different form, result output, assignment, and
 claim.
 

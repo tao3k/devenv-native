@@ -26,6 +26,10 @@ The field-level user/manual task contract is tracked in the
   message metadata in the pending request.
 - `scriptTask` reuses that same host-dispatch shell family and preserves
   bounded script metadata in the pending request.
+- Supported host-dispatched tasks may carry bounded native BPMN task Data/IO:
+  `dataInputAssociation` resolves request `inputs`, and
+  `dataOutputAssociation` declares completion fields plus target workflow
+  variable mappings.
 - `businessRuleTask` may execute locally when one matching DMN decision is
   already available inside the parsed package; otherwise it also falls back
   to the host seam.
@@ -65,10 +69,11 @@ The field-level user/manual task contract is tracked in the
   is a required field in the current checkpoint API, does not store submitted
   completion payload data, and does not implement task-listener or interceptor
   callbacks.
-- When a pending user/manual task carries `form` metadata, completion data must
-  be a JSON object whose fields are declared by the form. The primary
-  `result_output` and non-optional `freeText` fields are required; undeclared
-  completion fields are rejected before variable merge.
+- Completion data for host-dispatched work must be a JSON object whose fields
+  are declared by Rust-owned `output_bindings`. The primary human answer field
+  is usually the BPMN `dataOutput` name `answer`; the
+  `dataOutputAssociation targetRef` maps that answer into workflow variables.
+  Undeclared completion fields are rejected before variable merge.
 - Control-service worklist output is derived from checkpointed user/manual
   `PendingHostWork` entries. Optional claimant filtering returns unclaimed
   work plus work already claimed by the same claimant. Optional
@@ -86,17 +91,19 @@ The field-level user/manual task contract is tracked in the
 - in-engine script execution
 - correlations and broader collaboration-aware message routing
 - signal or timer task-event execution on `sendTask` or `receiveTask`
-- broader data-object, IO-specification, authorization, lane scheduling, full
+- broader data-object/data-store execution, IO transformations,
+  multiple-source data associations, authorization, lane scheduling, full
   task-assignment semantics, delegation, administrative reassignment, and BPMN
   resource-role expression resolution
 - native BPMN `rendering` execution for `userTask`; use bounded
-  native BPMN IO metadata metadata for executable form rendering in the current
+  native BPMN IO metadata for executable form rendering in the current
   slice
 
-The linter reports BPMN data-object, data-store, IO-specification, and data
-association surfaces as explicit deferred execution semantics. Use JSON
-workflow variables, host-work payload fields, or DMN inputs for executable
-data exchange in the current bounded slice.
+The linter reports BPMN data-object, data-store, IO transformations, and
+unsupported data association shapes as explicit deferred execution semantics.
+Use bounded task-local BPMN Data/IO, JSON workflow variables, host-work payload
+fields, or DMN inputs for executable data exchange in the current bounded
+slice.
 The linter also reports native BPMN `rendering`, generic `performer` or
 `resourceRole`, `participantRef`, and `resourceParameterBinding` usage as
 explicit deferred human-task interaction semantics. Keep current human-task

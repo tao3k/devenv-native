@@ -3,13 +3,13 @@ use qianji_bpmn_engine::{
     BpmnEdgeSpec, BpmnEventKind, BpmnEventSpec, BpmnGatewayKind, BpmnHostBridge,
     BpmnMultiInstanceDataBindingSpec, BpmnNodeKind, BpmnNodeSpec, BpmnParallelMultiInstanceSpec,
     BpmnProcessSpec, BpmnRepeatSpec, BpmnScriptTaskSpec, BpmnSequentialMultiInstanceSpec,
-    BpmnStandardLoopSpec, BpmnTimerKind, BpmnTimerSpec, BusinessRuleTaskOutcome,
-    BusinessRuleTaskRequest, DmnBusinessKnowledgeModelDefinition, DmnDecisionDefinition,
-    DmnDecisionRef, DmnDecisionServiceDefinition, DmnInputDataDefinition, DmnSourceFile,
-    EventPollOutcome, EventPollRequest, HostBridgeError, ManualTaskOutcome, ManualTaskRequest,
-    ProcessKey, ScriptTaskOutcome, ScriptTaskRequest, SendTaskOutcome, SendTaskRequest,
-    ServiceTaskOutcome, ServiceTaskRequest, UserTaskOutcome, UserTaskRequest, parse_dmn_decision,
-    parse_dmn_decisions, snapshot_dmn_source,
+    BpmnStandardLoopSpec, BpmnTaskIoSpec, BpmnTaskOutputBinding, BpmnTimerKind, BpmnTimerSpec,
+    BusinessRuleTaskOutcome, BusinessRuleTaskRequest, DmnBusinessKnowledgeModelDefinition,
+    DmnDecisionDefinition, DmnDecisionRef, DmnDecisionServiceDefinition, DmnInputDataDefinition,
+    DmnSourceFile, EventPollOutcome, EventPollRequest, HostBridgeError, ManualTaskOutcome,
+    ManualTaskRequest, ProcessKey, ScriptTaskOutcome, ScriptTaskRequest, SendTaskOutcome,
+    SendTaskRequest, ServiceTaskOutcome, ServiceTaskRequest, UserTaskOutcome, UserTaskRequest,
+    parse_dmn_decision, parse_dmn_decisions, snapshot_dmn_source,
 };
 use serde_json::json;
 
@@ -50,12 +50,13 @@ fn linear_blocking_process(process_id: &str, node_kind: BpmnNodeKind) -> BpmnPro
         _ => Vec::new(),
     };
     let task = match node_kind {
-        BpmnNodeKind::ScriptTask => {
-            BpmnNodeSpec::new(1, "task", BpmnNodeKind::ScriptTask).with_script_task(
-                BpmnScriptTaskSpec::new(Some("feel"), Some("result = amount + tax")),
-            )
-        }
-        _ => BpmnNodeSpec::new(1, "task", node_kind),
+        BpmnNodeKind::ScriptTask => BpmnNodeSpec::new(1, "task", BpmnNodeKind::ScriptTask)
+            .with_script_task(BpmnScriptTaskSpec::new(
+                Some("feel"),
+                Some("result = amount + tax"),
+            ))
+            .with_task_io(runtime_optional_output_io()),
+        _ => BpmnNodeSpec::new(1, "task", node_kind).with_task_io(runtime_optional_output_io()),
     };
     BpmnProcessSpec::new(
         ProcessKey::new("pkg_runtime", process_id, format!("digest_{process_id}")),
@@ -70,6 +71,35 @@ fn linear_blocking_process(process_id: &str, node_kind: BpmnNodeKind) -> BpmnPro
         ],
         events,
     )
+}
+
+fn runtime_optional_output_io() -> BpmnTaskIoSpec {
+    [
+        "acknowledged",
+        "answer",
+        "approval",
+        "approved",
+        "captured",
+        "completed_iteration",
+        "done",
+        "escalated",
+        "handled",
+        "last_completed",
+        "payment_error",
+        "refunded",
+        "release_timestamp",
+        "reserved",
+        "released_capture",
+        "released_reserve",
+        "result",
+        "reviewer",
+        "timed_out",
+        "winner",
+    ]
+    .into_iter()
+    .fold(BpmnTaskIoSpec::new(), |task_io, name| {
+        task_io.with_output(BpmnTaskOutputBinding::new(name, name).optional())
+    })
 }
 
 fn parallel_join_process(process_id: &str) -> BpmnProcessSpec {
@@ -106,7 +136,8 @@ fn parallel_host_block_process(process_id: &str) -> BpmnProcessSpec {
             BpmnNodeSpec::new(0, "start", BpmnNodeKind::StartEvent),
             BpmnNodeSpec::new(1, "fork", BpmnNodeKind::Gateway)
                 .with_gateway_kind(BpmnGatewayKind::Parallel),
-            BpmnNodeSpec::new(2, "service", BpmnNodeKind::ServiceTask),
+            BpmnNodeSpec::new(2, "service", BpmnNodeKind::ServiceTask)
+                .with_task_io(runtime_optional_output_io()),
             BpmnNodeSpec::new(3, "pass_through", BpmnNodeKind::Gateway)
                 .with_gateway_kind(BpmnGatewayKind::Exclusive),
             BpmnNodeSpec::new(4, "join", BpmnNodeKind::Gateway)
@@ -132,8 +163,10 @@ fn parallel_dual_host_block_process(process_id: &str) -> BpmnProcessSpec {
             BpmnNodeSpec::new(0, "start", BpmnNodeKind::StartEvent),
             BpmnNodeSpec::new(1, "fork", BpmnNodeKind::Gateway)
                 .with_gateway_kind(BpmnGatewayKind::Parallel),
-            BpmnNodeSpec::new(2, "left_service", BpmnNodeKind::ServiceTask),
-            BpmnNodeSpec::new(3, "right_service", BpmnNodeKind::ServiceTask),
+            BpmnNodeSpec::new(2, "left_service", BpmnNodeKind::ServiceTask)
+                .with_task_io(runtime_optional_output_io()),
+            BpmnNodeSpec::new(3, "right_service", BpmnNodeKind::ServiceTask)
+                .with_task_io(runtime_optional_output_io()),
             BpmnNodeSpec::new(4, "join", BpmnNodeKind::Gateway)
                 .with_gateway_kind(BpmnGatewayKind::Parallel),
             BpmnNodeSpec::new(5, "end", BpmnNodeKind::EndEvent),
@@ -157,7 +190,8 @@ fn parallel_host_and_wait_process(process_id: &str) -> BpmnProcessSpec {
             BpmnNodeSpec::new(0, "start", BpmnNodeKind::StartEvent),
             BpmnNodeSpec::new(1, "fork", BpmnNodeKind::Gateway)
                 .with_gateway_kind(BpmnGatewayKind::Parallel),
-            BpmnNodeSpec::new(2, "service", BpmnNodeKind::ServiceTask),
+            BpmnNodeSpec::new(2, "service", BpmnNodeKind::ServiceTask)
+                .with_task_io(runtime_optional_output_io()),
             BpmnNodeSpec::new(3, "wait_message", BpmnNodeKind::IntermediateCatchEvent),
             BpmnNodeSpec::new(4, "service_end", BpmnNodeKind::EndEvent),
             BpmnNodeSpec::new(5, "wait_end", BpmnNodeKind::EndEvent),
@@ -191,7 +225,8 @@ fn parallel_join_same_edge_duplicate_process(process_id: &str) -> BpmnProcessSpe
             BpmnNodeSpec::new(4, "wait_right", BpmnNodeKind::IntermediateCatchEvent),
             BpmnNodeSpec::new(5, "join", BpmnNodeKind::Gateway)
                 .with_gateway_kind(BpmnGatewayKind::Parallel),
-            BpmnNodeSpec::new(6, "post_join_service", BpmnNodeKind::ServiceTask),
+            BpmnNodeSpec::new(6, "post_join_service", BpmnNodeKind::ServiceTask)
+                .with_task_io(runtime_optional_output_io()),
             BpmnNodeSpec::new(7, "end", BpmnNodeKind::EndEvent),
         ],
         vec![
@@ -331,7 +366,8 @@ fn inclusive_host_block_process(process_id: &str) -> BpmnProcessSpec {
             BpmnNodeSpec::new(1, "decision", BpmnNodeKind::Gateway)
                 .with_gateway_kind(BpmnGatewayKind::Inclusive)
                 .with_inclusive_join_node(4),
-            BpmnNodeSpec::new(2, "left_service", BpmnNodeKind::ServiceTask),
+            BpmnNodeSpec::new(2, "left_service", BpmnNodeKind::ServiceTask)
+                .with_task_io(runtime_optional_output_io()),
             BpmnNodeSpec::new(3, "right_pass", BpmnNodeKind::Gateway)
                 .with_gateway_kind(BpmnGatewayKind::Exclusive),
             BpmnNodeSpec::new(4, "join", BpmnNodeKind::Gateway)
@@ -405,7 +441,8 @@ fn receive_task_wait_process(process_id: &str) -> BpmnProcessSpec {
         ProcessKey::new("pkg_runtime", process_id, format!("digest_{process_id}")),
         vec![
             BpmnNodeSpec::new(0, "start", BpmnNodeKind::StartEvent),
-            BpmnNodeSpec::new(1, "wait_message", BpmnNodeKind::ReceiveTask),
+            BpmnNodeSpec::new(1, "wait_message", BpmnNodeKind::ReceiveTask)
+                .with_task_io(runtime_optional_output_io()),
             BpmnNodeSpec::new(2, "end", BpmnNodeKind::EndEvent),
         ],
         vec![
@@ -445,11 +482,11 @@ fn standard_loop_service_process(process_id: &str) -> BpmnProcessSpec {
         ProcessKey::new("pkg_runtime", process_id, format!("digest_{process_id}")),
         vec![
             BpmnNodeSpec::new(0, "start", BpmnNodeKind::StartEvent),
-            BpmnNodeSpec::new(1, "review", BpmnNodeKind::ServiceTask).with_repeat(
-                BpmnRepeatSpec::StandardLoop(
+            BpmnNodeSpec::new(1, "review", BpmnNodeKind::ServiceTask)
+                .with_repeat(BpmnRepeatSpec::StandardLoop(
                     BpmnStandardLoopSpec::new(true, Some(3)).with_loop_condition("not done"),
-                ),
-            ),
+                ))
+                .with_task_io(runtime_optional_output_io()),
             BpmnNodeSpec::new(2, "end", BpmnNodeKind::EndEvent),
         ],
         vec![
@@ -470,6 +507,7 @@ fn standard_loop_business_rule_process(process_id: &str) -> BpmnProcessSpec {
                     DmnDecisionRef::new("loan-decision")
                         .with_source_id("simple-unique-eligibility.dmn"),
                 )
+                .with_task_io(runtime_optional_output_io())
                 .with_repeat(BpmnRepeatSpec::StandardLoop(BpmnStandardLoopSpec::new(
                     true,
                     Some(3),
@@ -493,11 +531,11 @@ fn sequential_multi_instance_process(
         ProcessKey::new("pkg_runtime", process_id, format!("digest_{process_id}")),
         vec![
             BpmnNodeSpec::new(0, "start", BpmnNodeKind::StartEvent),
-            BpmnNodeSpec::new(1, "review", node_kind).with_repeat(
-                BpmnRepeatSpec::SequentialMultiInstance(BpmnSequentialMultiInstanceSpec::new(
-                    loop_cardinality,
-                )),
-            ),
+            BpmnNodeSpec::new(1, "review", node_kind)
+                .with_repeat(BpmnRepeatSpec::SequentialMultiInstance(
+                    BpmnSequentialMultiInstanceSpec::new(loop_cardinality),
+                ))
+                .with_task_io(runtime_optional_output_io()),
             BpmnNodeSpec::new(2, "end", BpmnNodeKind::EndEvent),
         ],
         vec![
@@ -518,12 +556,12 @@ fn sequential_multi_instance_process_with_completion_condition(
         ProcessKey::new("pkg_runtime", process_id, format!("digest_{process_id}")),
         vec![
             BpmnNodeSpec::new(0, "start", BpmnNodeKind::StartEvent),
-            BpmnNodeSpec::new(1, "review", node_kind).with_repeat(
-                BpmnRepeatSpec::SequentialMultiInstance(
+            BpmnNodeSpec::new(1, "review", node_kind)
+                .with_repeat(BpmnRepeatSpec::SequentialMultiInstance(
                     BpmnSequentialMultiInstanceSpec::new(loop_cardinality)
                         .with_completion_condition(completion_condition),
-                ),
-            ),
+                ))
+                .with_task_io(runtime_optional_output_io()),
             BpmnNodeSpec::new(2, "end", BpmnNodeKind::EndEvent),
         ],
         vec![
@@ -547,6 +585,7 @@ fn sequential_multi_instance_business_rule_process(
                     DmnDecisionRef::new("loan-decision")
                         .with_source_id("simple-unique-eligibility.dmn"),
                 )
+                .with_task_io(runtime_optional_output_io())
                 .with_repeat(BpmnRepeatSpec::SequentialMultiInstance(
                     BpmnSequentialMultiInstanceSpec::new(loop_cardinality),
                 )),
@@ -569,11 +608,11 @@ fn parallel_multi_instance_process(
         ProcessKey::new("pkg_runtime", process_id, format!("digest_{process_id}")),
         vec![
             BpmnNodeSpec::new(0, "start", BpmnNodeKind::StartEvent),
-            BpmnNodeSpec::new(1, "review", node_kind).with_repeat(
-                BpmnRepeatSpec::ParallelMultiInstance(BpmnParallelMultiInstanceSpec::new(
-                    loop_cardinality,
-                )),
-            ),
+            BpmnNodeSpec::new(1, "review", node_kind)
+                .with_repeat(BpmnRepeatSpec::ParallelMultiInstance(
+                    BpmnParallelMultiInstanceSpec::new(loop_cardinality),
+                ))
+                .with_task_io(runtime_optional_output_io()),
             BpmnNodeSpec::new(2, "end", BpmnNodeKind::EndEvent),
         ],
         vec![
@@ -594,12 +633,12 @@ fn parallel_multi_instance_process_with_completion_condition(
         ProcessKey::new("pkg_runtime", process_id, format!("digest_{process_id}")),
         vec![
             BpmnNodeSpec::new(0, "start", BpmnNodeKind::StartEvent),
-            BpmnNodeSpec::new(1, "review", node_kind).with_repeat(
-                BpmnRepeatSpec::ParallelMultiInstance(
+            BpmnNodeSpec::new(1, "review", node_kind)
+                .with_repeat(BpmnRepeatSpec::ParallelMultiInstance(
                     BpmnParallelMultiInstanceSpec::new(loop_cardinality)
                         .with_completion_condition(completion_condition),
-                ),
-            ),
+                ))
+                .with_task_io(runtime_optional_output_io()),
             BpmnNodeSpec::new(2, "end", BpmnNodeKind::EndEvent),
         ],
         vec![
@@ -623,6 +662,7 @@ fn parallel_multi_instance_business_rule_process(
                     DmnDecisionRef::new("loan-decision")
                         .with_source_id("simple-unique-eligibility.dmn"),
                 )
+                .with_task_io(runtime_optional_output_io())
                 .with_repeat(BpmnRepeatSpec::ParallelMultiInstance(
                     BpmnParallelMultiInstanceSpec::new(loop_cardinality),
                 )),
@@ -646,11 +686,11 @@ fn sequential_multi_instance_data_binding_process(
         ProcessKey::new("pkg_runtime", process_id, format!("digest_{process_id}")),
         vec![
             BpmnNodeSpec::new(0, "start", BpmnNodeKind::StartEvent),
-            BpmnNodeSpec::new(1, "review", node_kind).with_repeat(
-                BpmnRepeatSpec::SequentialMultiInstance(
+            BpmnNodeSpec::new(1, "review", node_kind)
+                .with_repeat(BpmnRepeatSpec::SequentialMultiInstance(
                     BpmnSequentialMultiInstanceSpec::from_data_binding(binding),
-                ),
-            ),
+                ))
+                .with_task_io(runtime_optional_output_io()),
             BpmnNodeSpec::new(2, "end", BpmnNodeKind::EndEvent),
         ],
         vec![
@@ -671,11 +711,11 @@ fn parallel_multi_instance_data_binding_process(
         ProcessKey::new("pkg_runtime", process_id, format!("digest_{process_id}")),
         vec![
             BpmnNodeSpec::new(0, "start", BpmnNodeKind::StartEvent),
-            BpmnNodeSpec::new(1, "review", node_kind).with_repeat(
-                BpmnRepeatSpec::ParallelMultiInstance(
+            BpmnNodeSpec::new(1, "review", node_kind)
+                .with_repeat(BpmnRepeatSpec::ParallelMultiInstance(
                     BpmnParallelMultiInstanceSpec::from_data_binding(binding),
-                ),
-            ),
+                ))
+                .with_task_io(runtime_optional_output_io()),
             BpmnNodeSpec::new(2, "end", BpmnNodeKind::EndEvent),
         ],
         vec![
@@ -700,6 +740,7 @@ fn sequential_multi_instance_data_binding_business_rule_process(
                     DmnDecisionRef::new("loan-decision")
                         .with_source_id("simple-unique-eligibility.dmn"),
                 )
+                .with_task_io(runtime_optional_output_io())
                 .with_repeat(BpmnRepeatSpec::SequentialMultiInstance(
                     BpmnSequentialMultiInstanceSpec::from_data_binding(binding),
                 )),
@@ -718,7 +759,8 @@ fn boundary_timer_process(process_id: &str) -> BpmnProcessSpec {
         ProcessKey::new("pkg_runtime", process_id, format!("digest_{process_id}")),
         vec![
             BpmnNodeSpec::new(0, "start", BpmnNodeKind::StartEvent),
-            BpmnNodeSpec::new(1, "review", BpmnNodeKind::UserTask),
+            BpmnNodeSpec::new(1, "review", BpmnNodeKind::UserTask)
+                .with_task_io(runtime_optional_output_io()),
             BpmnNodeSpec::new(2, "review_timeout", BpmnNodeKind::BoundaryEvent)
                 .with_boundary_attachment(1, true),
             BpmnNodeSpec::new(3, "approved_end", BpmnNodeKind::EndEvent),
@@ -742,7 +784,8 @@ fn non_interrupting_boundary_timer_process(process_id: &str) -> BpmnProcessSpec 
         ProcessKey::new("pkg_runtime", process_id, format!("digest_{process_id}")),
         vec![
             BpmnNodeSpec::new(0, "start", BpmnNodeKind::StartEvent),
-            BpmnNodeSpec::new(1, "review", BpmnNodeKind::UserTask),
+            BpmnNodeSpec::new(1, "review", BpmnNodeKind::UserTask)
+                .with_task_io(runtime_optional_output_io()),
             BpmnNodeSpec::new(2, "review_timeout", BpmnNodeKind::BoundaryEvent)
                 .with_boundary_attachment(1, false),
             BpmnNodeSpec::new(3, "approved_end", BpmnNodeKind::EndEvent),
@@ -772,7 +815,8 @@ fn boundary_external_process_with_cancel(
         ProcessKey::new("pkg_runtime", process_id, format!("digest_{process_id}")),
         vec![
             BpmnNodeSpec::new(0, "start", BpmnNodeKind::StartEvent),
-            BpmnNodeSpec::new(1, "review", BpmnNodeKind::UserTask),
+            BpmnNodeSpec::new(1, "review", BpmnNodeKind::UserTask)
+                .with_task_io(runtime_optional_output_io()),
             BpmnNodeSpec::new(2, "review_boundary", BpmnNodeKind::BoundaryEvent)
                 .with_boundary_attachment(1, cancel_activity),
             BpmnNodeSpec::new(3, "approved_end", BpmnNodeKind::EndEvent),
@@ -831,7 +875,8 @@ fn call_activity_child_process() -> BpmnProcessSpec {
         ProcessKey::new("pkg_runtime", "child_process", "digest_child_process"),
         vec![
             BpmnNodeSpec::new(0, "child_start", BpmnNodeKind::StartEvent),
-            BpmnNodeSpec::new(1, "child_review", BpmnNodeKind::UserTask),
+            BpmnNodeSpec::new(1, "child_review", BpmnNodeKind::UserTask)
+                .with_task_io(runtime_optional_output_io()),
             BpmnNodeSpec::new(2, "child_end", BpmnNodeKind::EndEvent),
         ],
         vec![

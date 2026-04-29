@@ -314,7 +314,7 @@ impl<'a> ProcessContractCollector<'a> {
 fn is_task_tag(tag: &str) -> bool {
     matches!(
         tag,
-        "serviceTask" | "userTask" | "manualTask" | "businessRuleTask" | "scriptTask"
+        "sendTask" | "serviceTask" | "userTask" | "manualTask" | "businessRuleTask" | "scriptTask"
     )
 }
 

@@ -32,7 +32,7 @@ interaction:
   and `node_index`.
 - Typed completion targets the pending task by process/activity/token/kind
   instead of by display label or list position.
-- Bounded native BPMN IO metadata metadata is parsed into Rust form metadata and
+- Bounded native BPMN IO metadata is parsed into Rust form metadata and
   surfaced through requests, stream JSON, HTTP snapshots, and CLI text output.
 - Completion data for form-backed user/manual tasks is validated before
   variable merge.
@@ -141,9 +141,9 @@ useful, but nested form-output support may be needed later for richer forms.
 
 Current status: Qianji keeps a flat declared-field merge for form-backed
 user/manual task completion. Completion data must be a JSON object, required
-`result_output` fields must be present, optional free-text fields may be
-omitted, undeclared fields are rejected, and nested envelopes are rejected
-instead of treated as a compatibility path.
+BPMN `dataOutput` names such as `answer` must be present, optional free-text
+fields may be omitted, undeclared fields are rejected, and nested envelopes are
+rejected instead of treated as a compatibility path.
 
 Recommended next step: defer nested output envelopes until a real form needs
 them. Do not weaken the current declared-field validation.

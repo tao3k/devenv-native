@@ -46,7 +46,7 @@ async fn workflow_control_service_task_complete_rejects_undeclared_form_field() 
     assert!(
         error
             .to_string()
-            .contains("contains undeclared field 'source'")
+            .contains("contains undeclared output 'source'")
     );
 }
 
@@ -141,7 +141,7 @@ async fn workflow_control_service_task_complete_rejects_nested_form_output_envel
     assert!(
         error
             .to_string()
-            .contains("missing required field 'answer'")
+            .contains("missing declared output 'answer'")
     );
 }
 

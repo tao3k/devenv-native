@@ -8,7 +8,8 @@ use super::{
     blocking, call_activity, completion, error, gateway, prepare, repeat, state, transaction,
 };
 use crate::runtime_instance_api::BpmnHumanTaskLifecycleEventKind;
-use std::collections::BTreeSet;
+use serde_json::{Map, Value};
+use std::collections::{BTreeMap, BTreeSet};
 
 pub(super) fn advance_active_node(
     package: &BpmnPackage,
@@ -457,11 +458,11 @@ pub(crate) fn apply_pending_host_work_result_impl(
             operation: "apply_pending_host_work_result_node_kind_mismatch",
         });
     }
-    validate_human_task_completion_form(
+    let mapped_output = map_task_completion_output(
         &pending,
         pending_process_id.as_str(),
         current_node.bpmn_id.as_ref(),
-        result,
+        result.data(),
     )?;
 
     state::clear_pending_host_work(instance, token_id);
@@ -501,12 +502,13 @@ pub(crate) fn apply_pending_host_work_result_impl(
         );
         return Ok(BpmnAdvanceOutcome::Advanced);
     }
-    completion::complete_local_task_execution(
+    completion::complete_local_task_execution_with_variable_output(
         process,
         instance,
         token_index,
         pending.node_index,
         result.data(),
+        &mapped_output,
         completed_at_ms,
     )?;
     record_human_task_completion_event(instance, &pending, completed_at_ms);
@@ -519,60 +521,93 @@ pub(crate) fn apply_pending_host_work_result_impl(
     Ok(BpmnAdvanceOutcome::Advanced)
 }
 
-fn validate_human_task_completion_form(
+fn map_task_completion_output(
     pending: &PendingHostWork,
     process_id: &str,
     activity_id: &str,
-    result: &PendingHostWorkResult,
-) -> Result<()> {
-    if !matches!(
-        pending.kind,
-        PendingHostWorkKind::User | PendingHostWorkKind::Manual
-    ) {
-        return Ok(());
-    }
-    let Some(form) = pending.human_task_form.as_ref() else {
-        return Ok(());
-    };
-    let Some(data) = result.data().as_object() else {
-        return Err(BpmnEngineError::HumanTaskCompletionDataNotObject {
+    data: &Value,
+) -> Result<Value> {
+    let Some(task_io) = pending
+        .task_io
+        .as_ref()
+        .filter(|task_io| !task_io.outputs.is_empty())
+    else {
+        return Err(BpmnEngineError::MissingTaskOutputMapping {
             process_id: process_id.to_string(),
             activity_id: activity_id.to_string(),
         });
     };
-
-    let mut declared_fields = BTreeSet::<String>::new();
-    let mut required_fields = BTreeSet::<String>::new();
-    if let Some(result_output) = form.result_output.as_deref() {
-        declared_fields.insert(result_output.to_string());
-        required_fields.insert(result_output.to_string());
+    let Some(data) = data.as_object() else {
+        return Err(BpmnEngineError::TaskCompletionDataNotObject {
+            process_id: process_id.to_string(),
+            activity_id: activity_id.to_string(),
+        });
+    };
+    let mut declared_targets = BTreeMap::<String, (String, bool)>::new();
+    for output in &task_io.outputs {
+        declared_targets.insert(
+            output.name.to_string(),
+            (output.target_ref.to_string(), output.required),
+        );
     }
-    for field in &form.free_text_fields {
-        declared_fields.insert(field.name.to_string());
-        if !field.optional {
-            required_fields.insert(field.name.to_string());
-        }
-    }
-
-    for field in required_fields {
-        if !data.contains_key(field.as_str()) {
-            return Err(BpmnEngineError::MissingHumanTaskCompletionField {
-                process_id: process_id.to_string(),
-                activity_id: activity_id.to_string(),
-                field,
-            });
-        }
-    }
-    for field in data.keys() {
-        if !declared_fields.contains(field) {
-            return Err(BpmnEngineError::UndeclaredHumanTaskCompletionField {
+    let declared_fields = declared_targets.keys().cloned().collect::<BTreeSet<_>>();
+    for (field, (_, required)) in &declared_targets {
+        if *required && !data.contains_key(field.as_str()) {
+            return Err(BpmnEngineError::MissingTaskCompletionField {
                 process_id: process_id.to_string(),
                 activity_id: activity_id.to_string(),
                 field: field.clone(),
             });
         }
     }
+    for field in data.keys() {
+        if !declared_fields.contains(field) {
+            return Err(BpmnEngineError::UndeclaredTaskCompletionField {
+                process_id: process_id.to_string(),
+                activity_id: activity_id.to_string(),
+                field: field.clone(),
+            });
+        }
+    }
+    let mut mapped = Value::Object(Map::new());
+    for (field, (target_ref, _)) in declared_targets {
+        let Some(value) = data.get(field.as_str()).cloned() else {
+            continue;
+        };
+        assign_value_path(&mut mapped, target_ref.as_str(), value)?;
+    }
+    Ok(mapped)
+}
 
+fn assign_value_path(variables: &mut Value, path: &str, value: Value) -> Result<()> {
+    let Some(object) = variables.as_object_mut() else {
+        return Err(BpmnEngineError::UnsupportedOperation {
+            operation: "task_output_assignment_non_object_root",
+        });
+    };
+    let mut segments = path
+        .split('.')
+        .filter(|segment| !segment.is_empty())
+        .peekable();
+    let Some(last_segment) = segments.next_back() else {
+        return Err(BpmnEngineError::UnsupportedOperation {
+            operation: "task_output_assignment_empty_target",
+        });
+    };
+
+    let mut current = object;
+    for segment in segments {
+        let entry = current
+            .entry(segment.to_string())
+            .or_insert_with(|| Value::Object(Map::new()));
+        let Some(next) = entry.as_object_mut() else {
+            return Err(BpmnEngineError::UnsupportedOperation {
+                operation: "task_output_assignment_conflicting_non_object_segment",
+            });
+        };
+        current = next;
+    }
+    current.insert(last_segment.to_string(), value);
     Ok(())
 }
 

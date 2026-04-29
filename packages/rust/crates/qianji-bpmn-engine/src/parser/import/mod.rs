@@ -8,12 +8,14 @@ mod model;
 mod nested;
 mod process;
 mod reader;
+mod task_io;
 
 pub(crate) use lane::attach_lane_memberships;
 pub(crate) use model::{
     RawHumanTaskAssignmentSpec, RawHumanTaskChoiceSpec, RawHumanTaskFormSpec,
-    RawHumanTaskFreeTextSpec, RawHumanTaskResourceRoleKind, RawHumanTaskResourceRoleSpec,
-    RawLaneMembershipSpec,
+    RawHumanTaskFreeTextSpec, RawHumanTaskNativeIoSpec, RawHumanTaskResourceRoleKind,
+    RawHumanTaskResourceRoleSpec, RawLaneMembershipSpec, RawTaskInputBinding, RawTaskInputSource,
+    RawTaskIoSpec, RawTaskOutputBinding,
 };
 pub(crate) use reader::{
     NestedShellKind, RawAssociation, RawEventSpec, RawNode, RawPackageDocument,

@@ -3,6 +3,7 @@
 use crate::dmn_model_api::{DmnEvaluationRequest, DmnEvaluationResult};
 use crate::ir_node_api::{
     BpmnHumanTaskAssignmentSpec, BpmnHumanTaskFormSpec, BpmnLaneMembershipSpec,
+    BpmnTaskOutputBinding,
 };
 use crate::runtime::WaitRegistration;
 use crate::runtime::{PendingHostWorkClaim, PendingHostWorkKind};
@@ -65,6 +66,12 @@ pub struct SendTaskRequest {
     pub message_name: Option<String>,
     /// Current workflow variables snapshot.
     pub variables: Value,
+    /// Resolved standard BPMN task inputs for this dispatch.
+    #[serde(default)]
+    pub inputs: Value,
+    /// Declared standard BPMN task outputs for strict completion mapping.
+    #[serde(default)]
+    pub output_bindings: Vec<BpmnTaskOutputBinding>,
 }
 
 /// Common send-task dispatch outcome.
@@ -85,6 +92,12 @@ pub struct ServiceTaskRequest {
     pub node_index: u32,
     /// Current workflow variables snapshot.
     pub variables: Value,
+    /// Resolved standard BPMN task inputs for this dispatch.
+    #[serde(default)]
+    pub inputs: Value,
+    /// Declared standard BPMN task outputs for strict completion mapping.
+    #[serde(default)]
+    pub output_bindings: Vec<BpmnTaskOutputBinding>,
     /// Optional repeat-execution metadata for the blocked task.
     pub repeat: Option<RepeatExecutionContext>,
 }
@@ -111,6 +124,12 @@ pub struct ScriptTaskRequest {
     pub script_body: Option<String>,
     /// Current workflow variables snapshot.
     pub variables: Value,
+    /// Resolved standard BPMN task inputs for this dispatch.
+    #[serde(default)]
+    pub inputs: Value,
+    /// Declared standard BPMN task outputs for strict completion mapping.
+    #[serde(default)]
+    pub output_bindings: Vec<BpmnTaskOutputBinding>,
     /// Optional repeat-execution metadata for the blocked task.
     pub repeat: Option<RepeatExecutionContext>,
 }
@@ -137,6 +156,12 @@ pub struct UserTaskRequest {
     pub activity_id: String,
     /// Current workflow variables snapshot.
     pub variables: Value,
+    /// Resolved standard BPMN task inputs for this dispatch.
+    #[serde(default)]
+    pub inputs: Value,
+    /// Declared standard BPMN task outputs for strict completion mapping.
+    #[serde(default)]
+    pub output_bindings: Vec<BpmnTaskOutputBinding>,
     /// Optional repeat-execution metadata for the blocked task.
     pub repeat: Option<RepeatExecutionContext>,
     /// Optional BPMN lane membership metadata for passive routing/display.
@@ -171,6 +196,12 @@ pub struct ManualTaskRequest {
     pub activity_id: String,
     /// Current workflow variables snapshot.
     pub variables: Value,
+    /// Resolved standard BPMN task inputs for this dispatch.
+    #[serde(default)]
+    pub inputs: Value,
+    /// Declared standard BPMN task outputs for strict completion mapping.
+    #[serde(default)]
+    pub output_bindings: Vec<BpmnTaskOutputBinding>,
     /// Optional repeat-execution metadata for the blocked task.
     pub repeat: Option<RepeatExecutionContext>,
     /// Optional BPMN lane membership metadata for passive routing/display.
@@ -201,6 +232,12 @@ pub struct BusinessRuleTaskRequest {
     pub node_index: u32,
     /// Current DMN evaluation request.
     pub evaluation: DmnEvaluationRequest,
+    /// Resolved standard BPMN task inputs used for host-visible dispatch.
+    #[serde(default)]
+    pub inputs: Value,
+    /// Declared standard BPMN task outputs for strict completion mapping.
+    #[serde(default)]
+    pub output_bindings: Vec<BpmnTaskOutputBinding>,
     /// Optional repeat-execution metadata for the blocked task.
     pub repeat: Option<RepeatExecutionContext>,
 }

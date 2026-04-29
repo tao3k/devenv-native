@@ -4,6 +4,7 @@ use crate::parser::import::{
     RawAssociation, RawHumanTaskAssignmentSpec, RawHumanTaskFormSpec, RawHumanTaskResourceRoleSpec,
     RawLaneMembershipSpec, RawNode, RawParallelMultiInstanceSpec, RawProcess, RawRepeatSpec,
     RawScriptTaskSpec, RawSequenceFlow, RawSequentialMultiInstanceSpec, RawSubProcessKind,
+    RawTaskInputSource, RawTaskIoSpec,
 };
 
 pub(super) fn process_digest_hex(package_id: &str, source_id: &str, raw: &RawProcess) -> String {
@@ -51,6 +52,9 @@ fn append_node_digest(material: &mut String, node: &RawNode) {
     }
     if let Some(assignment) = &node.human_task_assignment {
         append_human_task_assignment_digest(material, assignment);
+    }
+    if let Some(task_io) = &node.task_io {
+        append_task_io_digest(material, task_io);
     }
     if let Some(lane) = &node.lane {
         append_lane_membership_digest(material, lane);
@@ -101,6 +105,31 @@ fn append_node_digest(material: &mut String, node: &RawNode) {
         }
     }
     material.push('\n');
+}
+
+fn append_task_io_digest(material: &mut String, task_io: &RawTaskIoSpec) {
+    for input in &task_io.inputs {
+        material.push(':');
+        material.push_str("task_input=");
+        material.push_str(&input.name);
+        match &input.source {
+            RawTaskInputSource::Variable { source_ref } => {
+                material.push_str(":source_ref=");
+                material.push_str(source_ref);
+            }
+            RawTaskInputSource::Literal { value } => {
+                material.push_str(":literal=");
+                material.push_str(value);
+            }
+        }
+    }
+    for output in &task_io.outputs {
+        material.push(':');
+        material.push_str("task_output=");
+        material.push_str(&output.name);
+        material.push_str(":target_ref=");
+        material.push_str(&output.target_ref);
+    }
 }
 
 fn append_lane_membership_digest(material: &mut String, lane: &RawLaneMembershipSpec) {

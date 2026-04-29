@@ -1,4 +1,4 @@
-use super::super::StubHost;
+use super::super::{StubHost, runtime_optional_output_io};
 use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnEdgeSpec, BpmnEventKind, BpmnEventSpec, BpmnGatewayKind,
@@ -123,7 +123,8 @@ fn human_interaction_loop_process() -> BpmnProcessSpec {
             BpmnNodeSpec::new(0, "start", BpmnNodeKind::StartEvent),
             BpmnNodeSpec::new(1, "route_to_human", BpmnNodeKind::Gateway)
                 .with_gateway_kind(BpmnGatewayKind::Exclusive),
-            BpmnNodeSpec::new(2, "collect_answer", BpmnNodeKind::UserTask),
+            BpmnNodeSpec::new(2, "collect_answer", BpmnNodeKind::UserTask)
+                .with_task_io(runtime_optional_output_io()),
             BpmnNodeSpec::new(3, "wait_ack", BpmnNodeKind::IntermediateCatchEvent),
             BpmnNodeSpec::new(4, "end", BpmnNodeKind::EndEvent),
         ],

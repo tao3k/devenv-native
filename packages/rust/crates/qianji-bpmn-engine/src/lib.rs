@@ -252,7 +252,8 @@ pub use ir_index_api::{BpmnIndexRange, BpmnNodeIndex};
 pub use ir_node_api::{
     BpmnGatewayKind, BpmnHumanTaskAssignmentSpec, BpmnHumanTaskChoiceSpec, BpmnHumanTaskFormSpec,
     BpmnHumanTaskFreeTextSpec, BpmnHumanTaskResourceRoleSpec, BpmnLaneMembershipSpec, BpmnNodeKind,
-    BpmnNodeSpec, BpmnScriptTaskSpec, BpmnSubProcessKind,
+    BpmnNodeSpec, BpmnScriptTaskSpec, BpmnSubProcessKind, BpmnTaskInputBinding,
+    BpmnTaskInputSource, BpmnTaskIoSpec, BpmnTaskOutputBinding,
 };
 pub use ir_package_api::BpmnPackage;
 pub use ir_process_compensation::BpmnCompensationHandlerSpec;

@@ -3,7 +3,7 @@
 use crate::dmn_model_api::DmnDecisionRef;
 use crate::ir_index_api::BpmnNodeIndex;
 use crate::ir_node_api::{
-    BpmnHumanTaskAssignmentSpec, BpmnHumanTaskFormSpec, BpmnLaneMembershipSpec,
+    BpmnHumanTaskAssignmentSpec, BpmnHumanTaskFormSpec, BpmnLaneMembershipSpec, BpmnTaskIoSpec,
 };
 
 /// Host work categories owned by the bridge layer.
@@ -65,6 +65,9 @@ pub struct PendingHostWork {
     /// Optional source-level human-task assignment metadata.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub human_task_assignment: Option<BpmnHumanTaskAssignmentSpec>,
+    /// Optional standard BPMN task IO metadata.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub task_io: Option<BpmnTaskIoSpec>,
     /// Optional checkpointed claim metadata for human tasks.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub claim: Option<PendingHostWorkClaim>,

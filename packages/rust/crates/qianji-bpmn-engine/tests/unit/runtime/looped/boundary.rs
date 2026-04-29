@@ -1,4 +1,4 @@
-use super::super::StubHost;
+use super::super::{StubHost, runtime_optional_output_io};
 use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnEdgeSpec, BpmnEventKind, BpmnEventSpec, BpmnInstanceInit,
@@ -15,11 +15,11 @@ fn standard_loop_non_interrupting_boundary_timer_process(process_id: &str) -> Bp
         ProcessKey::new("pkg_runtime", process_id, format!("digest_{process_id}")),
         vec![
             BpmnNodeSpec::new(0, "start", BpmnNodeKind::StartEvent),
-            BpmnNodeSpec::new(1, "review", BpmnNodeKind::ServiceTask).with_repeat(
-                BpmnRepeatSpec::StandardLoop(
+            BpmnNodeSpec::new(1, "review", BpmnNodeKind::ServiceTask)
+                .with_repeat(BpmnRepeatSpec::StandardLoop(
                     BpmnStandardLoopSpec::new(true, Some(3)).with_loop_condition("not done"),
-                ),
-            ),
+                ))
+                .with_task_io(runtime_optional_output_io()),
             BpmnNodeSpec::new(2, "review_timeout", BpmnNodeKind::BoundaryEvent)
                 .with_boundary_attachment(1, false),
             BpmnNodeSpec::new(3, "approved_end", BpmnNodeKind::EndEvent),

@@ -215,7 +215,18 @@ fn write_business_rule_bundle(temp_dir: &TempDir) -> BusinessRuleBundlePaths {
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" id="pkg_review">
   <bpmn:process id="review" isExecutable="true">
     <bpmn:startEvent id="start" />
-    <bpmn:businessRuleTask id="review_task" decisionRef="loan-decision" decisionRefSource="loan-decision.dmn" />
+    <bpmn:businessRuleTask id="review_task" decisionRef="loan-decision" decisionRefSource="loan-decision.dmn">
+      <bpmn:ioSpecification>
+        <bpmn:dataOutput id="review_task_output_approval" name="approval" />
+        <bpmn:outputSet id="review_task_output_set">
+          <bpmn:dataOutputRefs>review_task_output_approval</bpmn:dataOutputRefs>
+        </bpmn:outputSet>
+      </bpmn:ioSpecification>
+      <bpmn:dataOutputAssociation>
+        <bpmn:sourceRef>review_task_output_approval</bpmn:sourceRef>
+        <bpmn:targetRef>approval</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:businessRuleTask>
     <bpmn:endEvent id="end" />
     <bpmn:sequenceFlow id="flow_1" sourceRef="start" targetRef="review_task" />
     <bpmn:sequenceFlow id="flow_2" sourceRef="review_task" targetRef="end" />

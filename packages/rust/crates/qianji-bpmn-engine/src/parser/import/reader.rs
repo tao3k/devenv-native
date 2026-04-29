@@ -335,11 +335,18 @@ fn handle_end_tag(
         return Ok(());
     };
 
+    super::task_io::complete_task_io_end_tag(source, process, tag)?;
     super::human_task_io::complete_human_task_io_end_tag(source, process, tag)?;
 
     let Some(target) = capture_target.clone() else {
         return Ok(());
     };
+
+    if apply_task_io_capture_end(source, process, &target, tag, capture_buffer.trim())? {
+        *capture_target = None;
+        capture_buffer.clear();
+        return Ok(());
+    }
 
     if apply_human_task_io_capture_end(source, process, &target, tag, capture_buffer.trim())? {
         *capture_target = None;
@@ -412,6 +419,31 @@ fn handle_end_tag(
     *capture_target = None;
     capture_buffer.clear();
     Ok(())
+}
+
+fn apply_task_io_capture_end(
+    source: &BpmnSourceFile,
+    process: &mut RawProcess,
+    target: &CaptureTarget,
+    tag: &str,
+    text: &str,
+) -> Result<bool> {
+    match (target, tag) {
+        (CaptureTarget::TaskIoSourceRef, "sourceRef") => {
+            super::task_io::apply_task_io_source_ref(source, process, text)?;
+        }
+        (CaptureTarget::TaskIoTargetRef, "targetRef") => {
+            super::task_io::apply_task_io_target_ref(source, process, text)?;
+        }
+        (CaptureTarget::TaskIoAssignmentFrom, "from") => {
+            super::task_io::apply_task_io_assignment_from(source, process, text)?;
+        }
+        (CaptureTarget::TaskIoAssignmentTo, "to") => {
+            super::task_io::apply_task_io_assignment_to(source, process, text)?;
+        }
+        _ => return Ok(false),
+    }
+    Ok(true)
 }
 
 fn apply_human_task_io_capture_end(

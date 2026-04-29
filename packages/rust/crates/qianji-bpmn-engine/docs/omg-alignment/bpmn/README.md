@@ -17,6 +17,7 @@ The source-backed clause registry for these notes lives in
 - [Official Source Map](spec-source-map.md)
 - [Collaboration, Lanes, and Data](collaboration-lanes-and-data.md)
 - [Events and Boundaries](events-and-boundaries.md)
+- [Full Conformance Coverage](full-conformance-coverage.md)
 - [Gateways and Concurrency](gateways-and-concurrency.md)
 - [Human Interaction Spiff/OMG Audit](human-interaction-spiff-omg-audit.md)
 - [Human Interaction Milestone Plan](human-interaction-milestone-plan.md)
@@ -35,17 +36,19 @@ The current package owns bounded support for:
 - bounded host-dispatched task families including `sendTask` and `scriptTask`
 - bounded subprocess, transaction, and same-package call-activity slices
 - bounded transaction-owned compensation slices
+- bounded task-local Data/IO through native `ioSpecification`,
+  `dataInputAssociation`, and `dataOutputAssociation` mappings
 - non-executable BPMN document snapshots for collaboration, lane, data-object,
-  data-store, IO-specification, and data-association metadata
+  and data-store metadata
 
 The current package still defers:
 
 - collaboration and lane semantics
-- full BPMN data-object and IO-specification coverage
+- full BPMN data-object/data-store execution and broader IO execution coverage
 - unbounded event families and event subprocesses
 - broader FEEL or script-backed flow semantics
 
-Deferred collaboration, lane, data-object, data-store, and IO-specification
+Deferred collaboration, lane, data-object, data-store, and unsupported IO
 surfaces are reported by the linter with explicit repair guidance instead of
 being treated as executable runtime semantics.
 Those lint reports also include bounded snapshot-derived evidence for the

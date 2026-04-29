@@ -5,12 +5,14 @@ use crate::ir_edge_api::BpmnEdgeSpec;
 use crate::ir_node_api::{
     BpmnHumanTaskAssignmentSpec, BpmnHumanTaskChoiceSpec, BpmnHumanTaskFormSpec,
     BpmnHumanTaskFreeTextSpec, BpmnHumanTaskResourceRoleSpec, BpmnLaneMembershipSpec, BpmnNodeSpec,
-    BpmnScriptTaskSpec, BpmnSubProcessKind,
+    BpmnScriptTaskSpec, BpmnSubProcessKind, BpmnTaskInputBinding, BpmnTaskInputSource,
+    BpmnTaskIoSpec, BpmnTaskOutputBinding,
 };
 use crate::parser::import::{
     RawHumanTaskAssignmentSpec, RawHumanTaskChoiceSpec, RawHumanTaskFormSpec,
-    RawHumanTaskFreeTextSpec, RawHumanTaskResourceRoleSpec, RawLaneMembershipSpec, RawNode,
-    RawProcess, RawScriptTaskSpec, RawSubProcessKind,
+    RawHumanTaskFreeTextSpec, RawHumanTaskNativeIoSpec, RawHumanTaskResourceRoleSpec,
+    RawLaneMembershipSpec, RawNode, RawProcess, RawScriptTaskSpec, RawSubProcessKind,
+    RawTaskInputBinding, RawTaskInputSource, RawTaskIoSpec, RawTaskOutputBinding,
 };
 use crate::parser::validate::resolve_structured_inclusive_join;
 use std::collections::HashMap;
@@ -71,6 +73,10 @@ fn normalize_node(
         Some(assignment) => {
             spec.with_human_task_assignment(normalize_human_task_assignment(assignment))
         }
+        None => spec,
+    };
+    let spec = match normalize_node_task_io(node) {
+        Some(task_io) => spec.with_task_io(task_io),
         None => spec,
     };
     let spec = normalize_repeat_spec(raw, node, spec)?;
@@ -187,6 +193,144 @@ fn normalize_subprocess_kind(kind: RawSubProcessKind) -> BpmnSubProcessKind {
 
 fn normalize_script_task(raw: &RawScriptTaskSpec) -> BpmnScriptTaskSpec {
     BpmnScriptTaskSpec::new(raw.script_format.as_deref(), raw.script_body.as_deref())
+}
+
+fn normalize_node_task_io(node: &RawNode) -> Option<BpmnTaskIoSpec> {
+    node.task_io.as_ref().map(normalize_task_io).or_else(|| {
+        node.native_human_task_io
+            .as_ref()
+            .and_then(normalize_human_native_task_io)
+    })
+}
+
+fn normalize_task_io(raw: &RawTaskIoSpec) -> BpmnTaskIoSpec {
+    let mut task_io = BpmnTaskIoSpec::new();
+    for input in &raw.inputs {
+        task_io = task_io.with_input(normalize_task_input(input));
+    }
+    for output in &raw.outputs {
+        task_io = task_io.with_output(normalize_task_output(output));
+    }
+    task_io
+}
+
+fn normalize_task_input(raw: &RawTaskInputBinding) -> BpmnTaskInputBinding {
+    BpmnTaskInputBinding::new(&raw.name, normalize_task_input_source(&raw.source))
+}
+
+fn normalize_task_input_source(raw: &RawTaskInputSource) -> BpmnTaskInputSource {
+    match raw {
+        RawTaskInputSource::Variable { source_ref } => BpmnTaskInputSource::variable(source_ref),
+        RawTaskInputSource::Literal { value } => BpmnTaskInputSource::literal(value),
+    }
+}
+
+fn normalize_task_output(raw: &RawTaskOutputBinding) -> BpmnTaskOutputBinding {
+    BpmnTaskOutputBinding::new(&raw.name, &raw.target_ref)
+}
+
+fn normalize_human_native_task_io(raw: &RawHumanTaskNativeIoSpec) -> Option<BpmnTaskIoSpec> {
+    let mut task_io = BpmnTaskIoSpec::new();
+    if let Some(interaction_type) = &raw.interaction_type {
+        task_io = task_io.with_input(BpmnTaskInputBinding::new(
+            "interactionType",
+            BpmnTaskInputSource::literal(interaction_type),
+        ));
+    }
+    match (
+        &raw.question_ref,
+        &raw.question_text,
+        &raw.documentation_text,
+    ) {
+        (Some(question_ref), _, _) => {
+            task_io = task_io.with_input(BpmnTaskInputBinding::new(
+                "question",
+                BpmnTaskInputSource::variable(question_ref),
+            ));
+        }
+        (None, Some(question_text), _) => {
+            task_io = task_io.with_input(BpmnTaskInputBinding::new(
+                "question",
+                BpmnTaskInputSource::literal(question_text),
+            ));
+        }
+        (None, None, Some(documentation_text)) => {
+            task_io = task_io.with_input(BpmnTaskInputBinding::new(
+                "question",
+                BpmnTaskInputSource::literal(documentation_text),
+            ));
+        }
+        (None, None, None) => {}
+    }
+    if let Some(choices_ref) = &raw.choices_ref {
+        task_io = task_io.with_input(BpmnTaskInputBinding::new(
+            "choices",
+            BpmnTaskInputSource::variable(choices_ref),
+        ));
+    } else if !raw.choices.is_empty() {
+        task_io = task_io.with_input(BpmnTaskInputBinding::new(
+            "choices",
+            BpmnTaskInputSource::literal(human_choices_literal(&raw.choices)),
+        ));
+    }
+    if !raw.free_text_fields.is_empty() {
+        task_io = task_io.with_input(BpmnTaskInputBinding::new(
+            "freeText",
+            BpmnTaskInputSource::literal(human_free_text_literal(&raw.free_text_fields)),
+        ));
+    }
+    if let Some(result_output) = &raw.result_output {
+        task_io = task_io.with_output(BpmnTaskOutputBinding::new("answer", result_output));
+    }
+    if task_io.inputs.is_empty() && task_io.outputs.is_empty() {
+        None
+    } else {
+        Some(task_io)
+    }
+}
+
+fn human_choices_literal(choices: &[RawHumanTaskChoiceSpec]) -> String {
+    serde_json::Value::Array(
+        choices
+            .iter()
+            .map(|choice| {
+                let mut item = serde_json::Map::new();
+                item.insert(
+                    "value".to_string(),
+                    serde_json::Value::String(choice.value.clone()),
+                );
+                if let Some(label) = &choice.label {
+                    item.insert(
+                        "label".to_string(),
+                        serde_json::Value::String(label.clone()),
+                    );
+                }
+                serde_json::Value::Object(item)
+            })
+            .collect(),
+    )
+    .to_string()
+}
+
+fn human_free_text_literal(fields: &[RawHumanTaskFreeTextSpec]) -> String {
+    serde_json::Value::Array(
+        fields
+            .iter()
+            .map(|field| {
+                let mut item = serde_json::Map::new();
+                item.insert(
+                    "name".to_string(),
+                    serde_json::Value::String(field.name.clone()),
+                );
+                item.insert(
+                    "optional".to_string(),
+                    serde_json::Value::Bool(field.optional),
+                );
+                serde_json::Value::Object(item)
+            })
+            .collect(),
+    )
+    .to_string()
 }
 
 fn normalize_human_task_form(raw: &RawHumanTaskFormSpec) -> BpmnHumanTaskFormSpec {

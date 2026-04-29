@@ -85,6 +85,10 @@ pub(super) fn block_on_host_work(
         .nodes
         .get(node_index as usize)
         .and_then(|node| node.human_task_assignment.clone());
+    let task_io = process
+        .nodes
+        .get(node_index as usize)
+        .and_then(|node| node.task_io.clone());
     let lane = process
         .nodes
         .get(node_index as usize)
@@ -105,6 +109,7 @@ pub(super) fn block_on_host_work(
         script_body,
         human_task_form,
         human_task_assignment,
+        task_io,
         claim: None,
         event_reference,
         event_name,
@@ -157,6 +162,10 @@ pub(super) fn block_on_business_rule_work(
             .nodes
             .get(node_index as usize)
             .and_then(|node| node.human_task_assignment.clone()),
+        task_io: process
+            .nodes
+            .get(node_index as usize)
+            .and_then(|node| node.task_io.clone()),
         claim: None,
         event_reference: None,
         event_name: None,

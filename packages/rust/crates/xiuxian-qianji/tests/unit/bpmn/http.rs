@@ -323,7 +323,7 @@ async fn bpmn_workflow_http_preserves_claim_identity_across_checkpoint_roundtrip
         ],
     );
     assert_eq!(
-        complete.workflow.variables["source"],
+        complete.workflow.variables["answer"],
         json!("http_claim_identity")
     );
 }
@@ -447,8 +447,7 @@ impl HttpHumanTaskIdentity {
             "activity_id": self.activity,
             "kind": "user",
             "data": {
-                "approved": true,
-                "source": "http_claim_identity"
+                "answer": "http_claim_identity"
             },
             "claimant": claimant
         })
@@ -587,7 +586,18 @@ fn write_http_user_task_bundle(temp_dir: &TempDir) -> PathBuf {
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" id="pkg_http_review">
   <bpmn:process id="review" isExecutable="true">
     <bpmn:startEvent id="start" />
-    <bpmn:userTask id="review_task" />
+    <bpmn:userTask id="review_task">
+      <bpmn:ioSpecification>
+        <bpmn:dataOutput id="review_task_output_answer" name="answer" />
+        <bpmn:outputSet id="review_task_output_set">
+          <bpmn:dataOutputRefs>review_task_output_answer</bpmn:dataOutputRefs>
+        </bpmn:outputSet>
+      </bpmn:ioSpecification>
+      <bpmn:dataOutputAssociation>
+        <bpmn:sourceRef>review_task_output_answer</bpmn:sourceRef>
+        <bpmn:targetRef>answer</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
     <bpmn:endEvent id="end" />
     <bpmn:sequenceFlow id="flow_1" sourceRef="start" targetRef="review_task" />
     <bpmn:sequenceFlow id="flow_2" sourceRef="review_task" targetRef="end" />

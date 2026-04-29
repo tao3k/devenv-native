@@ -1,3 +1,4 @@
+use super::super::super::runtime_optional_output_io;
 use qianji_bpmn_engine::{
     BpmnEdgeSpec, BpmnEventKind, BpmnEventSpec, BpmnNodeKind, BpmnNodeSpec,
     BpmnParallelMultiInstanceSpec, BpmnProcessSpec, BpmnRepeatSpec, BpmnTimerKind, BpmnTimerSpec,
@@ -11,9 +12,11 @@ pub(super) fn parallel_multi_instance_non_interrupting_boundary_process(
         ProcessKey::new("pkg_runtime", process_id, format!("digest_{process_id}")),
         vec![
             BpmnNodeSpec::new(0, "start", BpmnNodeKind::StartEvent),
-            BpmnNodeSpec::new(1, "review", BpmnNodeKind::UserTask).with_repeat(
-                BpmnRepeatSpec::ParallelMultiInstance(BpmnParallelMultiInstanceSpec::new(3)),
-            ),
+            BpmnNodeSpec::new(1, "review", BpmnNodeKind::UserTask)
+                .with_repeat(BpmnRepeatSpec::ParallelMultiInstance(
+                    BpmnParallelMultiInstanceSpec::new(3),
+                ))
+                .with_task_io(runtime_optional_output_io()),
             BpmnNodeSpec::new(2, "review_timeout", BpmnNodeKind::BoundaryEvent)
                 .with_boundary_attachment(1, false),
             BpmnNodeSpec::new(3, "approved_end", BpmnNodeKind::EndEvent),

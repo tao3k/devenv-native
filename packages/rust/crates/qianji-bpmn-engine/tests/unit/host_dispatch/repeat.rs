@@ -46,6 +46,8 @@ async fn host_dispatch_sequential_multi_instance_request_includes_repeat_context
                 token_id: 0,
                 node_index: 1,
                 variables: json!({ "amount": 7 }),
+                inputs: json!({}),
+                output_bindings: vec![],
                 repeat: Some(RepeatExecutionContext::SequentialMultiInstance(
                     SequentialMultiInstanceContext {
                         iteration_index: 0,
@@ -96,6 +98,8 @@ async fn host_dispatch_sequential_multi_instance_data_binding_overlays_input_ite
                     "items": [2, 4, 6],
                     "item": 2,
                 }),
+                inputs: json!({}),
+                output_bindings: vec![],
                 repeat: Some(RepeatExecutionContext::SequentialMultiInstance(
                     SequentialMultiInstanceContext {
                         iteration_index: 0,
@@ -147,6 +151,8 @@ async fn host_dispatch_parallel_multi_instance_requests_include_repeat_context()
                 token_id: pending[0].token_id,
                 node_index: 1,
                 variables: json!({ "amount": 7 }),
+                inputs: json!({}),
+                output_bindings: vec![],
                 repeat: Some(RepeatExecutionContext::ParallelMultiInstance(
                     ParallelMultiInstanceContext {
                         iteration_index: 0,
@@ -159,6 +165,8 @@ async fn host_dispatch_parallel_multi_instance_requests_include_repeat_context()
                 token_id: pending[1].token_id,
                 node_index: 1,
                 variables: json!({ "amount": 7 }),
+                inputs: json!({}),
+                output_bindings: vec![],
                 repeat: Some(RepeatExecutionContext::ParallelMultiInstance(
                     ParallelMultiInstanceContext {
                         iteration_index: 1,
@@ -171,6 +179,8 @@ async fn host_dispatch_parallel_multi_instance_requests_include_repeat_context()
                 token_id: pending[2].token_id,
                 node_index: 1,
                 variables: json!({ "amount": 7 }),
+                inputs: json!({}),
+                output_bindings: vec![],
                 repeat: Some(RepeatExecutionContext::ParallelMultiInstance(
                     ParallelMultiInstanceContext {
                         iteration_index: 2,
@@ -222,6 +232,8 @@ async fn host_dispatch_parallel_multi_instance_data_binding_overlays_iteration_i
                     "items": ["alpha", "beta"],
                     "item": "alpha",
                 }),
+                inputs: json!({}),
+                output_bindings: vec![],
                 repeat: Some(RepeatExecutionContext::ParallelMultiInstance(
                     ParallelMultiInstanceContext {
                         iteration_index: 0,
@@ -237,6 +249,8 @@ async fn host_dispatch_parallel_multi_instance_data_binding_overlays_iteration_i
                     "items": ["alpha", "beta"],
                     "item": "beta",
                 }),
+                inputs: json!({}),
+                output_bindings: vec![],
                 repeat: Some(RepeatExecutionContext::ParallelMultiInstance(
                     ParallelMultiInstanceContext {
                         iteration_index: 1,

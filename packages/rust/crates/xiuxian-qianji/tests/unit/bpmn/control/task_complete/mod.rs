@@ -104,7 +104,7 @@ async fn seed_pending_service_task_checkpoint_with_instance(
             first_user_token_id,
             PendingHostWorkResult::User(UserTaskOutcome {
                 data: json!({
-                    "firstAnswer": "ready",
+                    "answer": "ready",
                 }),
             }),
             completed_at_ms,

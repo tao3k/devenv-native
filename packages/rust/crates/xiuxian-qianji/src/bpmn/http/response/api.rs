@@ -5,8 +5,8 @@ use crate::bpmn::control::{
 use crate::bpmn::driver::QianjiBpmnExecutionReport;
 use qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnHumanTaskAssignmentSpec, BpmnHumanTaskFormSpec,
-    BpmnHumanTaskLifecycleEvent, BpmnInstanceState, BpmnLaneMembershipSpec, InstanceLifecycle,
-    PendingHostWork, PendingHostWorkClaim, PendingHostWorkKind,
+    BpmnHumanTaskLifecycleEvent, BpmnInstanceState, BpmnLaneMembershipSpec, BpmnTaskIoSpec,
+    InstanceLifecycle, PendingHostWork, PendingHostWorkClaim, PendingHostWorkKind,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -32,6 +32,8 @@ pub struct QianjiBpmnPendingHostWorkHttpResponse {
     pub assignment: Option<BpmnHumanTaskAssignmentSpec>,
     /// Optional BPMN lane membership metadata preserved for host routing.
     pub lane: Option<BpmnLaneMembershipSpec>,
+    /// Optional standard BPMN task IO metadata preserved for host routing.
+    pub task_io: Option<BpmnTaskIoSpec>,
     /// Optional checkpointed claim metadata.
     pub claim: Option<PendingHostWorkClaim>,
 }
@@ -48,6 +50,7 @@ impl QianjiBpmnPendingHostWorkHttpResponse {
             form: work.human_task_form.clone(),
             assignment: work.human_task_assignment.clone(),
             lane: work.lane.clone(),
+            task_io: work.task_io.clone(),
             claim: work.claim.clone(),
         }
     }

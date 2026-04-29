@@ -40,6 +40,8 @@ async fn host_dispatch_parallel_host_work_requires_plural_builder() {
                 token_id: pending[0].token_id,
                 node_index: 2,
                 variables: json!({ "amount": 7 }),
+                inputs: json!({}),
+                output_bindings: vec![],
                 repeat: None,
             }),
             PendingHostWorkRequest::Service(ServiceTaskRequest {
@@ -47,6 +49,8 @@ async fn host_dispatch_parallel_host_work_requires_plural_builder() {
                 token_id: pending[1].token_id,
                 node_index: 3,
                 variables: json!({ "amount": 7 }),
+                inputs: json!({}),
+                output_bindings: vec![],
                 repeat: None,
             }),
         ]

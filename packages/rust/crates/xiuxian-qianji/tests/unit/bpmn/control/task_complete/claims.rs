@@ -30,7 +30,6 @@ async fn workflow_control_service_task_complete_accepts_declared_form_payload() 
                         kind: QianjiBpmnWorkflowTaskCompletionKind::User,
                         data: json!({
                             "answer": "approve",
-                            "feedback": "looks good",
                         }),
                         claimant: None,
                     },
@@ -47,7 +46,6 @@ async fn workflow_control_service_task_complete_accepts_declared_form_payload() 
         json!({
             "risk": "high",
             "answer": "approve",
-            "feedback": "looks good",
         })
     );
 }
@@ -150,6 +148,6 @@ async fn workflow_control_service_task_complete_rejects_missing_form_result() {
     assert!(
         error
             .to_string()
-            .contains("missing required field 'answer'")
+            .contains("missing declared output 'answer'")
     );
 }

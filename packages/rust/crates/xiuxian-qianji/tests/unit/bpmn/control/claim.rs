@@ -413,7 +413,7 @@ async fn workflow_control_service_rejects_claimed_task_completion_by_different_c
             activity_id: pending_activity_id.clone(),
             kind: QianjiBpmnWorkflowTaskCompletionKind::User,
             data: json!({
-                "approved": true,
+                "answer": "approved",
             }),
             claimant: claimant.map(str::to_string),
         },
@@ -649,8 +649,7 @@ impl HumanTaskIdentity {
                 activity_id: self.activity.clone(),
                 kind: QianjiBpmnWorkflowTaskCompletionKind::User,
                 data: json!({
-                    "approved": true,
-                    "source": "claim_identity_roundtrip",
+                    "answer": "claim_identity_roundtrip",
                 }),
                 claimant: Some(claimant.to_string()),
             },
@@ -880,8 +879,7 @@ async fn complete_same_claimant(
         report.execution.session.instance().variables,
         json!({
             "risk": "high",
-            "approved": true,
-            "source": "claim_identity_roundtrip",
+            "answer": "claim_identity_roundtrip",
         })
     );
 }

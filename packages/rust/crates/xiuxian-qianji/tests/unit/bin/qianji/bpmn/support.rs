@@ -41,7 +41,24 @@ pub(crate) fn write_service_task_bundle(temp_dir: &TempDir) -> PathBuf {
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" id="pkg_review">
   <bpmn:process id="review" isExecutable="true">
     <bpmn:startEvent id="start" />
-    <bpmn:serviceTask id="review_task" />
+    <bpmn:serviceTask id="review_task">
+      <bpmn:ioSpecification>
+        <bpmn:dataOutput id="review_task_output_approved" name="approved" />
+        <bpmn:dataOutput id="review_task_output_reviewed_by" name="reviewed_by" />
+        <bpmn:outputSet id="review_task_output_set">
+          <bpmn:dataOutputRefs>review_task_output_approved</bpmn:dataOutputRefs>
+          <bpmn:dataOutputRefs>review_task_output_reviewed_by</bpmn:dataOutputRefs>
+        </bpmn:outputSet>
+      </bpmn:ioSpecification>
+      <bpmn:dataOutputAssociation>
+        <bpmn:sourceRef>review_task_output_approved</bpmn:sourceRef>
+        <bpmn:targetRef>approved</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+      <bpmn:dataOutputAssociation>
+        <bpmn:sourceRef>review_task_output_reviewed_by</bpmn:sourceRef>
+        <bpmn:targetRef>reviewed_by</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:serviceTask>
     <bpmn:endEvent id="end" />
     <bpmn:sequenceFlow id="flow_1" sourceRef="start" targetRef="review_task" />
     <bpmn:sequenceFlow id="flow_2" sourceRef="review_task" targetRef="end" />
@@ -59,7 +76,24 @@ pub(crate) fn write_send_task_bundle(temp_dir: &TempDir) -> PathBuf {
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" id="pkg_send">
   <bpmn:process id="send_flow" isExecutable="true">
     <bpmn:startEvent id="start" />
-    <bpmn:sendTask id="send_invoice_message" messageRef="invoice_dispatched" />
+    <bpmn:sendTask id="send_invoice_message" messageRef="invoice_dispatched">
+      <bpmn:ioSpecification>
+        <bpmn:dataOutput id="send_invoice_output_sent" name="sent" />
+        <bpmn:dataOutput id="send_invoice_output_transport" name="transport" />
+        <bpmn:outputSet id="send_invoice_output_set">
+          <bpmn:dataOutputRefs>send_invoice_output_sent</bpmn:dataOutputRefs>
+          <bpmn:dataOutputRefs>send_invoice_output_transport</bpmn:dataOutputRefs>
+        </bpmn:outputSet>
+      </bpmn:ioSpecification>
+      <bpmn:dataOutputAssociation>
+        <bpmn:sourceRef>send_invoice_output_sent</bpmn:sourceRef>
+        <bpmn:targetRef>sent</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+      <bpmn:dataOutputAssociation>
+        <bpmn:sourceRef>send_invoice_output_transport</bpmn:sourceRef>
+        <bpmn:targetRef>transport</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:sendTask>
     <bpmn:endEvent id="end" />
     <bpmn:sequenceFlow id="flow_1" sourceRef="start" targetRef="send_invoice_message" />
     <bpmn:sequenceFlow id="flow_2" sourceRef="send_invoice_message" targetRef="end" />
@@ -78,7 +112,24 @@ pub(crate) fn write_business_rule_bundle(temp_dir: &TempDir) -> BusinessRuleBund
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" id="pkg_review">
   <bpmn:process id="review" isExecutable="true">
     <bpmn:startEvent id="start" />
-    <bpmn:businessRuleTask id="review_task" decisionRef="loan-decision" decisionRefSource="loan-decision.dmn" />
+    <bpmn:businessRuleTask id="review_task" decisionRef="loan-decision" decisionRefSource="loan-decision.dmn">
+      <bpmn:ioSpecification>
+        <bpmn:dataOutput id="review_task_output_approval" name="approval" />
+        <bpmn:dataOutput id="review_task_output_reason" name="reason" />
+        <bpmn:outputSet id="review_task_output_set">
+          <bpmn:dataOutputRefs>review_task_output_approval</bpmn:dataOutputRefs>
+          <bpmn:dataOutputRefs>review_task_output_reason</bpmn:dataOutputRefs>
+        </bpmn:outputSet>
+      </bpmn:ioSpecification>
+      <bpmn:dataOutputAssociation>
+        <bpmn:sourceRef>review_task_output_approval</bpmn:sourceRef>
+        <bpmn:targetRef>approval</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+      <bpmn:dataOutputAssociation>
+        <bpmn:sourceRef>review_task_output_reason</bpmn:sourceRef>
+        <bpmn:targetRef>reason</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:businessRuleTask>
     <bpmn:endEvent id="end" />
     <bpmn:sequenceFlow id="flow_1" sourceRef="start" targetRef="review_task" />
     <bpmn:sequenceFlow id="flow_2" sourceRef="review_task" targetRef="end" />
@@ -135,7 +186,18 @@ pub(crate) fn write_user_task_bundle(temp_dir: &TempDir) -> PathBuf {
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" id="pkg_review">
   <bpmn:process id="review" isExecutable="true">
     <bpmn:startEvent id="start" />
-    <bpmn:userTask id="review_task" />
+    <bpmn:userTask id="review_task">
+      <bpmn:ioSpecification>
+        <bpmn:dataOutput id="review_task_output_answer" name="answer" />
+        <bpmn:outputSet id="review_task_output_set">
+          <bpmn:dataOutputRefs>review_task_output_answer</bpmn:dataOutputRefs>
+        </bpmn:outputSet>
+      </bpmn:ioSpecification>
+      <bpmn:dataOutputAssociation>
+        <bpmn:sourceRef>review_task_output_answer</bpmn:sourceRef>
+        <bpmn:targetRef>answer</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
     <bpmn:endEvent id="end" />
     <bpmn:sequenceFlow id="flow_1" sourceRef="start" targetRef="review_task" />
     <bpmn:sequenceFlow id="flow_2" sourceRef="review_task" targetRef="end" />

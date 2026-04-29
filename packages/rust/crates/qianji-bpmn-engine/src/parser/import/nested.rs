@@ -17,6 +17,7 @@ use super::model::{
     RawSequentialMultiInstanceSpec, RawStandardLoopSpec,
 };
 use super::process::is_supported_node_tag;
+use super::task_io::handle_task_io_child_start;
 use crate::bpmn_parse_api::BpmnSourceFile;
 use crate::error::{BpmnEngineError, Result};
 use crate::ir_event_api::{BpmnEventKind, BpmnTimerKind};
@@ -76,6 +77,19 @@ pub(super) fn handle_nested_start_tag(
     )? {
         return Ok(());
     }
+    if handle_task_io_child_start(
+        source,
+        reader,
+        event,
+        tag,
+        parent,
+        process,
+        capture_target,
+        capture_buffer,
+        is_empty,
+    )? {
+        return Ok(());
+    }
     if handle_human_task_io_child_start(
         source,
         reader,
@@ -105,27 +119,50 @@ pub(super) fn handle_nested_start_tag(
     if handle_supported_node_child_start(source, reader, event, tag, parent, process)? {
         return Ok(());
     }
-    if parent == "sequenceFlow" {
-        if tag == "conditionExpression" {
-            *capture_target = Some(CaptureTarget::SequenceFlowConditionExpression);
-            capture_buffer.clear();
-            if is_empty {
-                apply_sequence_flow_condition_expression(process, "")?;
-                *capture_target = None;
-                capture_buffer.clear();
-            }
-            return Ok(());
-        }
-        if is_ignored_flow_child(tag) {
-            return Ok(());
-        }
-        return Err(BpmnEngineError::UnsupportedElement {
-            source_id: source.source_id.clone(),
-            process_id: process.process_id.clone(),
-            element: tag.to_string(),
-        });
+    if handle_sequence_flow_child_start(
+        source,
+        process,
+        tag,
+        parent,
+        capture_target,
+        capture_buffer,
+        is_empty,
+    )? {
+        return Ok(());
     }
     Ok(())
+}
+
+fn handle_sequence_flow_child_start(
+    source: &BpmnSourceFile,
+    process: &mut RawProcess,
+    tag: &str,
+    parent: &str,
+    capture_target: &mut Option<CaptureTarget>,
+    capture_buffer: &mut String,
+    is_empty: bool,
+) -> Result<bool> {
+    if parent != "sequenceFlow" {
+        return Ok(false);
+    }
+    if tag == "conditionExpression" {
+        *capture_target = Some(CaptureTarget::SequenceFlowConditionExpression);
+        capture_buffer.clear();
+        if is_empty {
+            apply_sequence_flow_condition_expression(process, "")?;
+            *capture_target = None;
+            capture_buffer.clear();
+        }
+        return Ok(true);
+    }
+    if is_ignored_flow_child(tag) {
+        return Ok(true);
+    }
+    Err(BpmnEngineError::UnsupportedElement {
+        source_id: source.source_id.clone(),
+        process_id: process.process_id.clone(),
+        element: tag.to_string(),
+    })
 }
 
 #[allow(clippy::too_many_arguments)]
