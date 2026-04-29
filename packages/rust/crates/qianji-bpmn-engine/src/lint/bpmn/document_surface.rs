@@ -1,5 +1,6 @@
 use crate::bpmn_model_api::{
-    BpmnCollaborationSnapshot, BpmnConversationNodeSnapshot, BpmnDocumentSnapshot,
+    BpmnChoreographyActivitySnapshot, BpmnCollaborationSnapshot, BpmnConversationNodeSnapshot,
+    BpmnDocumentSnapshot,
 };
 use crate::bpmn_parse_api::BpmnSourceFile;
 use crate::bpmn_snapshot_api::snapshot_bpmn_source;
@@ -36,9 +37,15 @@ fn local_name(raw: &[u8]) -> Option<&str> {
 
 fn issue_for_tag(source: &BpmnSourceFile, tag: &str) -> Option<LintIssue> {
     match tag {
-        "collaboration" | "participant" | "messageFlow" | "conversation" => {
-            Some(collaboration_issue(source, tag))
-        }
+        "collaboration"
+        | "participant"
+        | "messageFlow"
+        | "conversation"
+        | "choreography"
+        | "globalChoreographyTask"
+        | "choreographyTask"
+        | "subChoreography"
+        | "callChoreography" => Some(collaboration_issue(source, tag)),
         "dataObject" | "dataObjectReference" | "dataStore" | "dataStoreReference" => {
             Some(data_artifact_issue(source, tag))
         }
@@ -50,13 +57,13 @@ fn collaboration_issue(source: &BpmnSourceFile, tag: &str) -> LintIssue {
     let source_id = &source.source_id;
     LintIssue::new(
         "bpmn.unsupported_collaboration_surface",
-        "Collaboration and pool semantics are deferred",
+        "Collaboration, choreography, and pool semantics are deferred",
         format!("Source '{source_id}' contains collaboration-level BPMN element '<{tag}>'."),
-        "The bounded engine executes one process graph at a time and does not yet own pool, participant, message-flow, or conversation semantics.",
+        "The bounded engine executes one process graph at a time and does not yet own pool, participant, message-flow, conversation, or choreography semantics.",
         vec![
             "Move the executable control flow into one supported `<bpmn:process>` before running it with this engine.".to_string(),
             "Preserve pool or participant ownership as documentation metadata outside the executable BPMN subset.".to_string(),
-            "If cross-pool messaging is required, remodel the current slice as explicit host-dispatched tasks or wait events until collaboration execution is implemented.".to_string(),
+            "If cross-pool messaging or choreography is required, remodel the current slice as explicit host-dispatched tasks or wait events until collaboration execution is implemented.".to_string(),
         ],
         format!(
             "Repair BPMN source '{source_id}' by removing executable dependency on `<{tag}>`. Keep one supported `<bpmn:process>` with explicit sequence flows, and preserve pool/participant intent as non-executable documentation or host-level routing metadata."
@@ -158,6 +165,7 @@ fn collaboration_snapshot_summary(snapshot: &BpmnDocumentSnapshot) -> Value {
         "participant_association_count": counts.participant_association,
         "message_flow_association_count": counts.message_flow_association,
         "correlation_key_count": counts.correlation_key,
+        "choreography_activity_count": counts.choreography_activity,
         "item_definition_count": snapshot.root.item_definition_count,
         "message_count": snapshot.root.message_count,
         "interface_count": snapshot.root.interface_count,
@@ -185,6 +193,7 @@ struct CollaborationCounts {
     participant_association: usize,
     message_flow_association: usize,
     correlation_key: usize,
+    choreography_activity: usize,
 }
 
 fn collaboration_counts(snapshot: &BpmnDocumentSnapshot) -> CollaborationCounts {
@@ -203,6 +212,11 @@ fn collaboration_counts(snapshot: &BpmnDocumentSnapshot) -> CollaborationCounts 
             counts.participant_association += collaboration.participant_associations.len();
             counts.message_flow_association += collaboration.message_flow_associations.len();
             counts.correlation_key += collaboration_correlation_key_count(collaboration);
+            counts.choreography_activity += collaboration
+                .choreography_activities
+                .iter()
+                .map(choreography_activity_count)
+                .sum::<usize>();
             counts
         },
     )
@@ -220,6 +234,8 @@ fn collaboration_evidence(collaboration: &BpmnCollaborationSnapshot) -> Value {
         "message_flow_association_count": collaboration.message_flow_associations.len(),
         "correlation_key_count": collaboration_correlation_key_count(collaboration),
         "choreography_ref_count": collaboration.choreography_refs.len(),
+        "choreography_activity_count": collaboration.choreography_activities.iter().map(choreography_activity_count).sum::<usize>(),
+        "initiating_participant_ref": collaboration.initiating_participant_ref,
         "participants": collaboration.participants.iter().take(SNAPSHOT_EVIDENCE_LIMIT).map(|participant| {
             json!({
                 "participant_id": participant.participant_id,
@@ -235,6 +251,7 @@ fn collaboration_evidence(collaboration: &BpmnCollaborationSnapshot) -> Value {
             })
         }).collect::<Vec<_>>(),
         "conversation_nodes": collaboration.conversation_nodes.iter().take(SNAPSHOT_EVIDENCE_LIMIT).map(conversation_node_evidence).collect::<Vec<_>>(),
+        "choreography_activities": collaboration.choreography_activities.iter().take(SNAPSHOT_EVIDENCE_LIMIT).map(choreography_activity_evidence).collect::<Vec<_>>(),
         "conversation_links": collaboration.conversation_links.iter().take(SNAPSHOT_EVIDENCE_LIMIT).map(|link| {
             json!({
                 "link_id": link.link_id,
@@ -260,6 +277,11 @@ fn collaboration_correlation_key_count(collaboration: &BpmnCollaborationSnapshot
             .iter()
             .map(conversation_node_correlation_key_count)
             .sum::<usize>()
+        + collaboration
+            .choreography_activities
+            .iter()
+            .map(choreography_activity_correlation_key_count)
+            .sum::<usize>()
 }
 
 fn conversation_node_correlation_key_count(node: &BpmnConversationNodeSnapshot) -> usize {
@@ -281,6 +303,40 @@ fn conversation_node_evidence(node: &BpmnConversationNodeSnapshot) -> Value {
         "correlation_key_count": conversation_node_correlation_key_count(node),
         "participant_association_count": node.participant_associations.len(),
         "child_node_count": node.child_nodes.iter().map(conversation_node_count).sum::<usize>(),
+    })
+}
+
+fn choreography_activity_count(activity: &BpmnChoreographyActivitySnapshot) -> usize {
+    1 + activity
+        .child_activities
+        .iter()
+        .map(choreography_activity_count)
+        .sum::<usize>()
+}
+
+fn choreography_activity_correlation_key_count(
+    activity: &BpmnChoreographyActivitySnapshot,
+) -> usize {
+    activity.correlation_keys.len()
+        + activity
+            .child_activities
+            .iter()
+            .map(choreography_activity_correlation_key_count)
+            .sum::<usize>()
+}
+
+fn choreography_activity_evidence(activity: &BpmnChoreographyActivitySnapshot) -> Value {
+    json!({
+        "activity_kind": activity.activity_kind,
+        "activity_id": activity.activity_id,
+        "initiating_participant_ref": activity.initiating_participant_ref,
+        "loop_type": activity.loop_type,
+        "called_choreography_ref": activity.called_choreography_ref,
+        "participant_refs": activity.participant_refs,
+        "message_flow_refs": activity.message_flow_refs,
+        "correlation_key_count": choreography_activity_correlation_key_count(activity),
+        "participant_association_count": activity.participant_associations.len(),
+        "child_activity_count": activity.child_activities.iter().map(choreography_activity_count).sum::<usize>(),
     })
 }
 

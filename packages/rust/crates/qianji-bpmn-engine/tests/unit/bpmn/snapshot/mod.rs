@@ -2,6 +2,7 @@ use super::fixture_source;
 use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{BpmnDocumentSnapshot, snapshot_bpmn_source};
 
+mod choreography;
 mod collaboration;
 mod conversation;
 mod diagram;

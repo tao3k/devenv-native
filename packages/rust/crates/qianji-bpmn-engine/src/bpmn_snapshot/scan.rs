@@ -148,6 +148,14 @@ fn text_target(element_stack: &[String]) -> Option<TextTarget> {
         (Some("messageFlowRef"), Some("conversation" | "subConversation" | "callConversation")) => {
             Some(TextTarget::ConversationMessageFlowRef)
         }
+        (
+            Some("participantRef"),
+            Some("choreographyTask" | "subChoreography" | "callChoreography"),
+        ) => Some(TextTarget::ChoreographyParticipantRef),
+        (
+            Some("messageFlowRef"),
+            Some("choreographyTask" | "subChoreography" | "callChoreography"),
+        ) => Some(TextTarget::ChoreographyMessageFlowRef),
         (Some("correlationPropertyRef"), Some("correlationKey")) => {
             Some(TextTarget::CorrelationKeyPropertyRef)
         }

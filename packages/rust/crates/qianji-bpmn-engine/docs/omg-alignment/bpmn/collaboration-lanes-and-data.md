@@ -10,6 +10,9 @@ The current engine preserves non-executable BPMN metadata for these families:
 - collaboration-level participant and message-flow structure
 - collaboration-level conversation nodes, links, associations, correlation
   keys, and choreography references
+- choreography roots and choreography activity metadata, including
+  participant refs, message-flow refs, nested correlation keys, participant
+  associations, and called choreography refs
 - top-level item-definition catalog metadata used by message and data
   references
 - top-level message and correlation-property catalogs, including correlation
@@ -35,12 +38,12 @@ The first collaboration-alignment slices are metadata-only: Rust snapshots
 preserve standard BPMN `message`, `correlationProperty`, nested
 `correlationPropertyRetrievalExpression`, conversation node, conversation link,
 conversation association, participant association, message-flow association,
-correlation-key, and choreography-reference declarations and surface that
-catalog through collaboration lint evidence. That makes participant,
-message-flow, conversation, and correlation references auditable without
-requiring adapters to re-scan XML, but it does not dispatch message flows,
-route conversations, execute choreography, or evaluate correlation
-subscriptions, keys, or retrieval expressions.
+correlation-key, choreography-reference, and choreography activity declarations
+and surface that catalog through collaboration lint evidence. That makes
+participant, message-flow, conversation, choreography, and correlation
+references auditable without requiring adapters to re-scan XML, but it does
+not dispatch message flows, route conversations, execute choreography, or
+evaluate correlation subscriptions, keys, or retrieval expressions.
 
 ## Runtime Boundary
 
@@ -67,9 +70,10 @@ or DMN inputs instead of fabricating partial collaboration, type-validation,
 or data-object execution rules.
 
 For collaboration documents, keep `participant`, `messageFlow`,
-`conversation`, `conversationLink`, `correlationKey`, `message`, and
+`conversation`, `conversationLink`, `choreography`, `choreographyTask`,
+`subChoreography`, `callChoreography`, `correlationKey`, `message`, and
 `correlationProperty` definitions standard and explicit, including retrieval
 expressions when a correlation property depends on a specific message path.
 The linter can report that metadata as evidence, but runtime behavior must
-still be modeled through one supported process graph, host work, or event
-waits until collaboration routing lands.
+still be modeled through one supported process graph, host work, or event waits
+until collaboration routing and choreography execution land.

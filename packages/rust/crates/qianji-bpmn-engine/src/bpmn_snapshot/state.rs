@@ -1,6 +1,7 @@
 use super::xml::{attribute_value, boolean_attribute_value, bpmn_model_namespace, local_name};
 use crate::bpmn_model_api::{
-    BpmnBoundsSnapshot, BpmnCategorySnapshot, BpmnCategoryValueSnapshot, BpmnCollaborationSnapshot,
+    BpmnBoundsSnapshot, BpmnCategorySnapshot, BpmnCategoryValueSnapshot,
+    BpmnChoreographyActivitySnapshot, BpmnCollaborationSnapshot,
     BpmnConversationAssociationSnapshot, BpmnConversationLinkSnapshot,
     BpmnConversationNodeSnapshot, BpmnCorrelationKeySnapshot, BpmnCorrelationPropertySnapshot,
     BpmnCorrelationRetrievalExpressionSnapshot, BpmnDataAssociationSnapshot,
@@ -35,6 +36,8 @@ pub(super) enum TextTarget {
     RelationshipTarget,
     ConversationParticipantRef,
     ConversationMessageFlowRef,
+    ChoreographyParticipantRef,
+    ChoreographyMessageFlowRef,
     CorrelationKeyPropertyRef,
     ParticipantAssociationInnerRef,
     ParticipantAssociationOuterRef,
@@ -54,9 +57,10 @@ enum BpmnDiLabelTarget {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-enum ConversationMetadataOwner {
+enum CollaborationMetadataOwner {
     Collaboration(usize),
     ConversationNode(usize, Vec<usize>),
+    ChoreographyActivity(usize, Vec<usize>),
 }
 
 #[derive(Debug, Default)]
@@ -66,10 +70,11 @@ pub(super) struct BpmnSnapshotScanState {
     processes: Vec<BpmnProcessSnapshot>,
     current_collaboration: Option<usize>,
     conversation_node_stack: Vec<(usize, Vec<usize>)>,
+    choreography_activity_stack: Vec<(usize, Vec<usize>)>,
     current_conversation_correlation_key:
-        Option<(ConversationMetadataOwner, BpmnCorrelationKeySnapshot)>,
+        Option<(CollaborationMetadataOwner, BpmnCorrelationKeySnapshot)>,
     current_participant_association: Option<(
-        ConversationMetadataOwner,
+        CollaborationMetadataOwner,
         BpmnParticipantAssociationSnapshot,
     )>,
     current_process: Option<usize>,
@@ -259,20 +264,24 @@ impl BpmnSnapshotScanState {
             tag if is_conversation_node_tag(tag) && self.current_collaboration.is_some() => {
                 self.start_conversation_node(source, reader, event, tag, is_empty)?;
             }
+            tag if is_choreography_activity_tag(tag) && self.current_collaboration.is_some() => {
+                self.start_choreography_activity(source, reader, event, tag, is_empty)?;
+            }
             "conversationAssociation" if is_collaboration_container(parent_tag) => {
                 self.capture_conversation_association(source, reader, event)?;
             }
             "participantAssociation"
-                if self.current_conversation_owner().is_some()
+                if self.current_collaboration_metadata_owner().is_some()
                     && (is_collaboration_container(parent_tag)
-                        || parent_tag == Some("callConversation")) =>
+                        || parent_tag == Some("callConversation")
+                        || parent_tag == Some("callChoreography")) =>
             {
                 self.start_participant_association(source, reader, event, is_empty)?;
             }
             "messageFlowAssociation" if is_collaboration_container(parent_tag) => {
                 self.capture_message_flow_association(source, reader, event)?;
             }
-            "correlationKey" if self.current_conversation_owner().is_some() => {
+            "correlationKey" if self.current_collaboration_metadata_owner().is_some() => {
                 self.start_conversation_correlation_key(source, reader, event, is_empty)?;
             }
             "conversationLink" if is_collaboration_container(parent_tag) => {
@@ -296,7 +305,7 @@ impl BpmnSnapshotScanState {
             "extension" => self.start_extension(source, reader, event, is_empty)?,
             "BPMNDiagram" => self.start_bpmn_diagram(source, reader, event, is_empty)?,
             "relationship" => self.start_relationship(source, reader, event, is_empty)?,
-            "collaboration" | "globalConversation" => {
+            "collaboration" | "globalConversation" | "choreography" | "globalChoreographyTask" => {
                 self.start_collaboration(source, reader, event, tag, is_empty)?;
             }
             "process" => self.start_process(source, reader, event, is_empty)?,
@@ -319,16 +328,22 @@ impl BpmnSnapshotScanState {
 
     pub(super) fn finish_end_event(&mut self, tag: &str) {
         match tag {
-            "collaboration" | "globalConversation" => {
+            "collaboration" | "globalConversation" | "choreography" | "globalChoreographyTask" => {
                 self.finish_conversation_correlation_key();
                 self.finish_participant_association();
                 self.conversation_node_stack.clear();
+                self.choreography_activity_stack.clear();
                 self.current_collaboration = None;
             }
             "conversation" | "subConversation" | "callConversation" => {
                 self.finish_conversation_correlation_key();
                 self.finish_participant_association();
                 let _ = self.conversation_node_stack.pop();
+            }
+            "choreographyTask" | "subChoreography" | "callChoreography" => {
+                self.finish_conversation_correlation_key();
+                self.finish_participant_association();
+                let _ = self.choreography_activity_stack.pop();
             }
             "correlationKey" => self.finish_conversation_correlation_key(),
             "participantAssociation" => self.finish_participant_association(),
@@ -412,6 +427,12 @@ impl BpmnSnapshotScanState {
             TextTarget::RelationshipTarget => self.push_relationship_target_ref(text),
             TextTarget::ConversationParticipantRef => self.push_conversation_participant_ref(text),
             TextTarget::ConversationMessageFlowRef => self.push_conversation_message_flow_ref(text),
+            TextTarget::ChoreographyParticipantRef => {
+                self.push_choreography_participant_ref(text);
+            }
+            TextTarget::ChoreographyMessageFlowRef => {
+                self.push_choreography_message_flow_ref(text);
+            }
             TextTarget::CorrelationKeyPropertyRef => {
                 self.push_conversation_correlation_property_ref(text);
             }
@@ -446,6 +467,7 @@ impl BpmnSnapshotScanState {
         self.finish_conversation_correlation_key();
         self.finish_participant_association();
         self.conversation_node_stack.clear();
+        self.choreography_activity_stack.clear();
         self.current_relationship = None;
         self.current_label = None;
         self.current_label_style = None;
@@ -479,6 +501,12 @@ impl BpmnSnapshotScanState {
             collaboration_id: attribute_value(source, reader, event, "id")?,
             name: attribute_value(source, reader, event, "name")?,
             is_closed: boolean_attribute_value(source, reader, event, "isClosed")?,
+            initiating_participant_ref: attribute_value(
+                source,
+                reader,
+                event,
+                "initiatingParticipantRef",
+            )?,
             participants: Vec::new(),
             message_flows: Vec::new(),
             conversation_nodes: Vec::new(),
@@ -487,6 +515,7 @@ impl BpmnSnapshotScanState {
             message_flow_associations: Vec::new(),
             correlation_keys: Vec::new(),
             choreography_refs: Vec::new(),
+            choreography_activities: Vec::new(),
             conversation_links: Vec::new(),
         };
         self.collaborations.push(collaboration);
@@ -570,6 +599,48 @@ impl BpmnSnapshotScanState {
         Ok(())
     }
 
+    fn start_choreography_activity(
+        &mut self,
+        source: &BpmnSourceFile,
+        reader: &Reader<&[u8]>,
+        event: &BytesStart<'_>,
+        tag: &str,
+        is_empty: bool,
+    ) -> Result<()> {
+        let Some(collaboration_index) = self.current_collaboration else {
+            return Ok(());
+        };
+        let activity = BpmnChoreographyActivitySnapshot {
+            activity_kind: tag.to_string(),
+            activity_id: attribute_value(source, reader, event, "id")?,
+            name: attribute_value(source, reader, event, "name")?,
+            initiating_participant_ref: attribute_value(
+                source,
+                reader,
+                event,
+                "initiatingParticipantRef",
+            )?,
+            loop_type: attribute_value(source, reader, event, "loopType")?,
+            called_choreography_ref: attribute_value(
+                source,
+                reader,
+                event,
+                "calledChoreographyRef",
+            )?,
+            participant_refs: Vec::new(),
+            message_flow_refs: Vec::new(),
+            correlation_keys: Vec::new(),
+            participant_associations: Vec::new(),
+            child_activities: Vec::new(),
+        };
+        let path = self.push_choreography_activity(collaboration_index, activity);
+        if !is_empty {
+            self.choreography_activity_stack
+                .push((collaboration_index, path));
+        }
+        Ok(())
+    }
+
     fn capture_conversation_association(
         &mut self,
         source: &BpmnSourceFile,
@@ -606,7 +677,7 @@ impl BpmnSnapshotScanState {
         event: &BytesStart<'_>,
         is_empty: bool,
     ) -> Result<()> {
-        let Some(owner) = self.current_conversation_owner() else {
+        let Some(owner) = self.current_collaboration_metadata_owner() else {
             return Ok(());
         };
         let association = BpmnParticipantAssociationSnapshot {
@@ -658,7 +729,7 @@ impl BpmnSnapshotScanState {
         event: &BytesStart<'_>,
         is_empty: bool,
     ) -> Result<()> {
-        let Some(owner) = self.current_conversation_owner() else {
+        let Some(owner) = self.current_collaboration_metadata_owner() else {
             return Ok(());
         };
         let key = BpmnCorrelationKeySnapshot {
@@ -1642,6 +1713,20 @@ impl BpmnSnapshotScanState {
         conversation.message_flow_refs.push(text.to_string());
     }
 
+    fn push_choreography_participant_ref(&mut self, text: &str) {
+        let Some(activity) = self.current_choreography_activity_mut() else {
+            return;
+        };
+        activity.participant_refs.push(text.to_string());
+    }
+
+    fn push_choreography_message_flow_ref(&mut self, text: &str) {
+        let Some(activity) = self.current_choreography_activity_mut() else {
+            return;
+        };
+        activity.message_flow_refs.push(text.to_string());
+    }
+
     fn push_conversation_correlation_property_ref(&mut self, text: &str) {
         let Some((_, key)) = self.current_conversation_correlation_key.as_mut() else {
             return;
@@ -1730,21 +1815,28 @@ impl BpmnSnapshotScanState {
 
     fn push_conversation_correlation_key(
         &mut self,
-        owner: ConversationMetadataOwner,
+        owner: CollaborationMetadataOwner,
         key: BpmnCorrelationKeySnapshot,
     ) {
         match owner {
-            ConversationMetadataOwner::Collaboration(collaboration_index) => {
+            CollaborationMetadataOwner::Collaboration(collaboration_index) => {
                 let Some(collaboration) = self.collaborations.get_mut(collaboration_index) else {
                     return;
                 };
                 collaboration.correlation_keys.push(key);
             }
-            ConversationMetadataOwner::ConversationNode(collaboration_index, path) => {
+            CollaborationMetadataOwner::ConversationNode(collaboration_index, path) => {
                 let Some(node) = self.conversation_node_mut(collaboration_index, &path) else {
                     return;
                 };
                 node.correlation_keys.push(key);
+            }
+            CollaborationMetadataOwner::ChoreographyActivity(collaboration_index, path) => {
+                let Some(activity) = self.choreography_activity_mut(collaboration_index, &path)
+                else {
+                    return;
+                };
+                activity.correlation_keys.push(key);
             }
         }
     }
@@ -1758,21 +1850,28 @@ impl BpmnSnapshotScanState {
 
     fn push_participant_association(
         &mut self,
-        owner: ConversationMetadataOwner,
+        owner: CollaborationMetadataOwner,
         association: BpmnParticipantAssociationSnapshot,
     ) {
         match owner {
-            ConversationMetadataOwner::Collaboration(collaboration_index) => {
+            CollaborationMetadataOwner::Collaboration(collaboration_index) => {
                 let Some(collaboration) = self.collaborations.get_mut(collaboration_index) else {
                     return;
                 };
                 collaboration.participant_associations.push(association);
             }
-            ConversationMetadataOwner::ConversationNode(collaboration_index, path) => {
+            CollaborationMetadataOwner::ConversationNode(collaboration_index, path) => {
                 let Some(node) = self.conversation_node_mut(collaboration_index, &path) else {
                     return;
                 };
                 node.participant_associations.push(association);
+            }
+            CollaborationMetadataOwner::ChoreographyActivity(collaboration_index, path) => {
+                let Some(activity) = self.choreography_activity_mut(collaboration_index, &path)
+                else {
+                    return;
+                };
+                activity.participant_associations.push(association);
             }
         }
     }
@@ -1814,15 +1913,21 @@ impl BpmnSnapshotScanState {
             .and_then(|index| self.collaborations.get_mut(index))
     }
 
-    fn current_conversation_owner(&self) -> Option<ConversationMetadataOwner> {
+    fn current_collaboration_metadata_owner(&self) -> Option<CollaborationMetadataOwner> {
+        if let Some((collaboration_index, path)) = self.choreography_activity_stack.last() {
+            return Some(CollaborationMetadataOwner::ChoreographyActivity(
+                *collaboration_index,
+                path.clone(),
+            ));
+        }
         if let Some((collaboration_index, path)) = self.conversation_node_stack.last() {
-            return Some(ConversationMetadataOwner::ConversationNode(
+            return Some(CollaborationMetadataOwner::ConversationNode(
                 *collaboration_index,
                 path.clone(),
             ));
         }
         self.current_collaboration
-            .map(ConversationMetadataOwner::Collaboration)
+            .map(CollaborationMetadataOwner::Collaboration)
     }
 
     fn push_conversation_node(
@@ -1846,9 +1951,42 @@ impl BpmnSnapshotScanState {
         path
     }
 
+    fn push_choreography_activity(
+        &mut self,
+        collaboration_index: usize,
+        activity: BpmnChoreographyActivitySnapshot,
+    ) -> Vec<usize> {
+        let Some((_, parent_path)) = self.choreography_activity_stack.last().cloned() else {
+            let Some(collaboration) = self.collaborations.get_mut(collaboration_index) else {
+                return Vec::new();
+            };
+            collaboration.choreography_activities.push(activity);
+            return vec![
+                collaboration
+                    .choreography_activities
+                    .len()
+                    .saturating_sub(1),
+            ];
+        };
+        let Some(parent) = self.choreography_activity_mut(collaboration_index, &parent_path) else {
+            return parent_path;
+        };
+        parent.child_activities.push(activity);
+        let mut path = parent_path;
+        path.push(parent.child_activities.len().saturating_sub(1));
+        path
+    }
+
     fn current_conversation_node_mut(&mut self) -> Option<&mut BpmnConversationNodeSnapshot> {
         let (collaboration_index, path) = self.conversation_node_stack.last().cloned()?;
         self.conversation_node_mut(collaboration_index, &path)
+    }
+
+    fn current_choreography_activity_mut(
+        &mut self,
+    ) -> Option<&mut BpmnChoreographyActivitySnapshot> {
+        let (collaboration_index, path) = self.choreography_activity_stack.last().cloned()?;
+        self.choreography_activity_mut(collaboration_index, &path)
     }
 
     fn conversation_node_mut(
@@ -1866,6 +2004,23 @@ impl BpmnSnapshotScanState {
             node = node.child_nodes.get_mut(*index)?;
         }
         Some(node)
+    }
+
+    fn choreography_activity_mut(
+        &mut self,
+        collaboration_index: usize,
+        path: &[usize],
+    ) -> Option<&mut BpmnChoreographyActivitySnapshot> {
+        let (first, rest) = path.split_first()?;
+        let mut activity = self
+            .collaborations
+            .get_mut(collaboration_index)?
+            .choreography_activities
+            .get_mut(*first)?;
+        for index in rest {
+            activity = activity.child_activities.get_mut(*index)?;
+        }
+        Some(activity)
     }
 
     fn current_process_mut(&mut self) -> Option<&mut BpmnProcessSnapshot> {
@@ -2080,9 +2235,19 @@ fn data_input_output_from_event(
 }
 
 fn is_collaboration_container(tag: Option<&str>) -> bool {
-    matches!(tag, Some("collaboration" | "globalConversation"))
+    matches!(
+        tag,
+        Some("collaboration" | "globalConversation" | "choreography" | "globalChoreographyTask")
+    )
 }
 
 fn is_conversation_node_tag(tag: &str) -> bool {
     matches!(tag, "conversation" | "subConversation" | "callConversation")
+}
+
+fn is_choreography_activity_tag(tag: &str) -> bool {
+    matches!(
+        tag,
+        "choreographyTask" | "subChoreography" | "callChoreography"
+    )
 }

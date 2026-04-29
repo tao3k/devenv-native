@@ -203,7 +203,8 @@ mod runtime_token_api;
 mod runtime_wait_api;
 
 pub use bpmn_model_api::{
-    BpmnBoundsSnapshot, BpmnCategorySnapshot, BpmnCategoryValueSnapshot, BpmnCollaborationSnapshot,
+    BpmnBoundsSnapshot, BpmnCategorySnapshot, BpmnCategoryValueSnapshot,
+    BpmnChoreographyActivitySnapshot, BpmnCollaborationSnapshot,
     BpmnConversationAssociationSnapshot, BpmnConversationLinkSnapshot,
     BpmnConversationNodeSnapshot, BpmnCorrelationKeySnapshot, BpmnCorrelationPropertySnapshot,
     BpmnDataAssociationSnapshot, BpmnDataInputOutputSnapshot, BpmnDataObjectReferenceSnapshot,

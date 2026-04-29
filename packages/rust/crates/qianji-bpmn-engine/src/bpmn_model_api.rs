@@ -478,6 +478,8 @@ pub struct BpmnCollaborationSnapshot {
     pub name: Option<String>,
     /// Optional BPMN closed-collaboration marker.
     pub is_closed: Option<bool>,
+    /// Optional initiating participant for `globalChoreographyTask`.
+    pub initiating_participant_ref: Option<String>,
     /// Direct participant metadata preserved from the collaboration.
     pub participants: Vec<BpmnParticipantSnapshot>,
     /// Direct message-flow metadata preserved from the collaboration.
@@ -500,6 +502,9 @@ pub struct BpmnCollaborationSnapshot {
     /// Direct choreography references preserved from the collaboration.
     #[serde(default)]
     pub choreography_refs: Vec<String>,
+    /// Direct choreography activity metadata preserved from the choreography.
+    #[serde(default)]
+    pub choreography_activities: Vec<BpmnChoreographyActivitySnapshot>,
     /// Direct conversation-link metadata preserved from the collaboration.
     #[serde(default)]
     pub conversation_links: Vec<BpmnConversationLinkSnapshot>,
@@ -557,6 +562,38 @@ pub struct BpmnConversationNodeSnapshot {
     /// Direct child conversation nodes preserved from this conversation node.
     #[serde(default)]
     pub child_nodes: Vec<BpmnConversationNodeSnapshot>,
+}
+
+/// Snapshot of one BPMN choreography activity.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct BpmnChoreographyActivitySnapshot {
+    /// Local BPMN choreography activity kind.
+    pub activity_kind: String,
+    /// Optional stable choreography activity identifier.
+    pub activity_id: Option<String>,
+    /// Optional human-readable choreography activity name.
+    pub name: Option<String>,
+    /// Optional initiating participant reference.
+    pub initiating_participant_ref: Option<String>,
+    /// Optional BPMN choreography loop type.
+    pub loop_type: Option<String>,
+    /// Optional called choreography reference for `callChoreography`.
+    pub called_choreography_ref: Option<String>,
+    /// Direct participant references preserved in source order.
+    #[serde(default)]
+    pub participant_refs: Vec<String>,
+    /// Direct message-flow references preserved in source order.
+    #[serde(default)]
+    pub message_flow_refs: Vec<String>,
+    /// Direct correlation keys preserved from this choreography activity.
+    #[serde(default)]
+    pub correlation_keys: Vec<BpmnCorrelationKeySnapshot>,
+    /// Direct participant associations preserved from this choreography activity.
+    #[serde(default)]
+    pub participant_associations: Vec<BpmnParticipantAssociationSnapshot>,
+    /// Direct child choreography activities preserved from this activity.
+    #[serde(default)]
+    pub child_activities: Vec<BpmnChoreographyActivitySnapshot>,
 }
 
 /// Snapshot of one BPMN `conversationAssociation`.
