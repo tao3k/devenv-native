@@ -1,7 +1,8 @@
 use std::path::PathBuf;
 
 use xiuxian_wendao::gateway::studio::document_extract_pdf_audit::{
-    audit_pdf_paths, read_audit_paths_from_json, write_audit_reports,
+    PdfInspectorTextFastPathConfig, audit_pdf_paths, extract_text_pdf_fast_path_artifacts,
+    read_audit_paths_from_json, write_audit_reports, write_text_fast_path_reports,
 };
 
 #[test]
@@ -21,12 +22,22 @@ fn pdf_inspector_detect_audit_reports_pdf_routing_candidates() -> Result<(), Str
     let paths = read_audit_paths_from_json(inputs_json.as_str())?;
     let records = audit_pdf_paths(&paths);
     write_audit_reports(report_dir.as_path(), &records)?;
+    let text_fast_path_records = extract_text_pdf_fast_path_artifacts(
+        &paths,
+        report_dir.join("text-fast-path-artifacts").as_path(),
+        &PdfInspectorTextFastPathConfig::enabled(),
+    );
+    write_text_fast_path_reports(report_dir.as_path(), &text_fast_path_records)?;
     if records.is_empty() {
         return Err("PDF inspector audit produced no records".to_string());
     }
     println!(
         "{}",
-        serde_json::to_string_pretty(&records).map_err(|error| error.to_string())?
+        serde_json::to_string_pretty(&serde_json::json!({
+            "audit": records,
+            "textFastPath": text_fast_path_records,
+        }))
+        .map_err(|error| error.to_string())?
     );
     Ok(())
 }

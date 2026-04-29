@@ -467,7 +467,9 @@ def run_pdf_inspector_audit(args: argparse.Namespace, report_dir: Path) -> int:
         env.update(env_update)
         subprocess.run(command, check=True, env=env)
     print(
-        f"PDF inspector audit report: {report_dir / 'pdf_inspector_detect_audit.json'}"
+        "PDF inspector reports: "
+        f"{report_dir / 'pdf_inspector_detect_audit.json'}, "
+        f"{report_dir / 'pdf_inspector_text_fast_path.json'}"
     )
     return 0
 

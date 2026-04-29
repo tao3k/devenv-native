@@ -75,14 +75,28 @@ ran it against the real Docling `2206.01062.pdf` fixture.
 
 | Profile        | PDF type     | Pages | Confidence | Complex | Decision                | Elapsed ms |
 | -------------- | ------------ | ----: | ---------: | ------- | ----------------------- | ---------: |
-| `detect_full`  | `text_based` |     9 |      1.000 | false   | `fast_rust_candidate`   |    244.738 |
-| `analyze_full` | `text_based` |     9 |      1.000 | true    | `full_docling_fallback` |    641.798 |
+| `detect_full`  | `text_based` |     9 |      1.000 | false   | `fast_rust_candidate`   |    102.814 |
+| `analyze_full` | `text_based` |     9 |      1.000 | true    | `full_docling_fallback` |    796.432 |
 
 This is the intended safety behavior. The cheaper detect-only pass shows that
 the file has a reliable text layer, while the analyze pass finds multi-column
 and table-heavy layout complexity and routes the current milestone back to
-Docling. That preserves precision until a later text fast path proves quality
-parity against the Docling baseline.
+Docling.
+
+Milestone 2 now has an internal, feature-gated Rust text fast-path artifact
+builder. It is disabled by default and is not wired into production
+Flight/REST extraction. The builder writes the same stable document resource
+Arrow schema and only produces `_resources.arrow` for PDFs that pass every
+quality gate.
+
+| Input                      | Gate result | Arrow rows | Markdown bytes | Decision                | Elapsed ms |
+| -------------------------- | ----------- | ---------: | -------------: | ----------------------- | ---------: |
+| Minimal generated text PDF | `ok`        |          1 |            > 0 | `fast_rust_candidate`   |  unit test |
+| Real Docling PDF fixture   | `fallback`  |          0 |              0 | `full_docling_fallback` |    711.710 |
+
+The real fixture result is deliberately conservative: the document has a valid
+text layer, but full analysis marks it as complex, so Python/Docling remains
+the extraction authority for that file.
 
 ## `pdf-inspector` Fit
 
@@ -353,8 +367,12 @@ Scope:
 
 Acceptance:
 
-- Text coverage and reading order are compared against Docling baseline.
-- Cache key includes inspector version and routing profile.
+- Simple generated text PDF extraction writes one stable document row and an
+  Arrow IPC `_resources.arrow` artifact.
+- Complex real fixture analysis falls back before writing any Rust extraction
+  artifact.
+- Cache profile material records the inspector fork branch pin and routing
+  profile.
 - Cache-hit latency does not regress.
 - Fast path can be disabled by config.
 
