@@ -1,7 +1,8 @@
 use std::sync::{Arc, Mutex};
 
 use arrow_array::{
-    Int32Array as ArrowInt32Array, RecordBatch as ArrowRecordBatch, StringArray as ArrowStringArray,
+    Int32Array as ArrowInt32Array, Int64Array as ArrowInt64Array, RecordBatch as ArrowRecordBatch,
+    StringArray as ArrowStringArray,
 };
 use arrow_schema::{DataType as ArrowDataType, Field as ArrowField, Schema as ArrowSchema};
 use async_trait::async_trait;
@@ -1095,6 +1096,7 @@ impl RepoDocCoverageFlightRouteProvider for RecordingRepoDocCoverageProvider {
 pub(super) struct RecordingDocumentExtractProvider {
     request: Mutex<Option<DocumentExtractRequestRecord>>,
     call_count: Mutex<usize>,
+    status_call_count: Mutex<usize>,
 }
 
 impl RecordingDocumentExtractProvider {
@@ -1110,6 +1112,13 @@ impl RecordingDocumentExtractProvider {
         *lock_or_panic(
             &self.call_count,
             "document extract provider call count should lock",
+        )
+    }
+
+    pub(super) fn status_call_count(&self) -> usize {
+        *lock_or_panic(
+            &self.status_call_count,
+            "document extract status provider call count should lock",
         )
     }
 }
@@ -1152,6 +1161,53 @@ impl DocumentExtractFlightRouteProvider for RecordingDocumentExtractProvider {
                 )])),
                 Arc::new(ArrowInt32Array::from(vec![0])),
                 Arc::new(ArrowStringArray::from(vec!["ok".to_string()])),
+            ],
+        )
+        .map_err(|error| error.to_string())?;
+        Ok(DocumentExtractFlightRouteResponse::new(batch))
+    }
+
+    async fn document_extract_status_batch(
+        &self,
+        job_id: &str,
+    ) -> Result<DocumentExtractFlightRouteResponse, String> {
+        let mut call_count = lock_or_panic(
+            &self.status_call_count,
+            "document extract status provider call count should lock",
+        );
+        *call_count += 1;
+        let status = if *call_count == 1 {
+            "queued"
+        } else {
+            "running"
+        };
+        let attempt_count = i32::try_from(*call_count).unwrap_or(i32::MAX);
+        let batch = ArrowRecordBatch::try_new(
+            Arc::new(ArrowSchema::new(vec![
+                ArrowField::new("jobId", ArrowDataType::Utf8, false),
+                ArrowField::new("sourcePath", ArrowDataType::Utf8, false),
+                ArrowField::new("outputDir", ArrowDataType::Utf8, false),
+                ArrowField::new("contentHash", ArrowDataType::Utf8, false),
+                ArrowField::new("status", ArrowDataType::Utf8, false),
+                ArrowField::new("attemptCount", ArrowDataType::Int32, false),
+                ArrowField::new("createdAtMs", ArrowDataType::Int64, false),
+                ArrowField::new("startedAtMs", ArrowDataType::Int64, false),
+                ArrowField::new("finishedAtMs", ArrowDataType::Int64, false),
+                ArrowField::new("errorMessage", ArrowDataType::Utf8, false),
+            ])),
+            vec![
+                Arc::new(ArrowStringArray::from(vec![job_id.to_string()])),
+                Arc::new(ArrowStringArray::from(vec!["docs/manual.pdf".to_string()])),
+                Arc::new(ArrowStringArray::from(vec![
+                    ".cache/document-extract".to_string(),
+                ])),
+                Arc::new(ArrowStringArray::from(vec!["hash:manual".to_string()])),
+                Arc::new(ArrowStringArray::from(vec![status.to_string()])),
+                Arc::new(ArrowInt32Array::from(vec![attempt_count])),
+                Arc::new(ArrowInt64Array::from(vec![100_i64])),
+                Arc::new(ArrowInt64Array::from(vec![200_i64])),
+                Arc::new(ArrowInt64Array::from(vec![0_i64])),
+                Arc::new(ArrowStringArray::from(vec![String::new()])),
             ],
         )
         .map_err(|error| error.to_string())?;

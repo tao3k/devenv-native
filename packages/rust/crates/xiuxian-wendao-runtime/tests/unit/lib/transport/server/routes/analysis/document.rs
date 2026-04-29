@@ -5,12 +5,14 @@ use arrow_flight::flight_service_server::FlightService;
 use futures::StreamExt;
 use tonic::Request;
 
-use crate::transport::ANALYSIS_DOCUMENT_EXTRACT_ROUTE;
+use crate::transport::{ANALYSIS_DOCUMENT_EXTRACT_ROUTE, ANALYSIS_DOCUMENT_EXTRACT_STATUS_ROUTE};
 
 use super::super::super::assertions::{batch_column, must_err, must_ok, route_descriptor};
 use super::super::super::fixtures::{build_service_with_route_providers, decode_flight_batches};
 use super::super::super::providers::{RecordingDocumentExtractProvider, RecordingSearchProvider};
-use super::super::super::request_headers::populate_schema_and_document_extract_headers;
+use super::super::super::request_headers::{
+    build_document_extract_status_metadata, populate_schema_and_document_extract_headers,
+};
 
 #[tokio::test]
 async fn wendao_flight_service_get_flight_info_uses_document_extract_provider() {
@@ -103,6 +105,31 @@ async fn wendao_flight_service_do_get_reuses_cached_document_extract_payload_aft
     );
     assert_eq!(source_paths.value(0), "docs/manual.pdf");
     assert_eq!(page_indexes.value(0), 0);
+}
+
+#[tokio::test]
+async fn wendao_flight_service_does_not_cache_document_extract_status_payloads() {
+    let provider = Arc::new(RecordingDocumentExtractProvider::default());
+    let service = build_service_with_route_providers(|route_providers| {
+        route_providers.document_extract = Some(provider.clone());
+    });
+    let metadata = build_document_extract_status_metadata("job-1");
+
+    let mut first_request = Request::new(route_descriptor(ANALYSIS_DOCUMENT_EXTRACT_STATUS_ROUTE));
+    *first_request.metadata_mut() = metadata.clone();
+    must_ok(
+        service.get_flight_info(first_request).await,
+        "first status request should resolve through the provider",
+    );
+
+    let mut second_request = Request::new(route_descriptor(ANALYSIS_DOCUMENT_EXTRACT_STATUS_ROUTE));
+    *second_request.metadata_mut() = metadata;
+    must_ok(
+        service.get_flight_info(second_request).await,
+        "second status request should resolve through the provider again",
+    );
+
+    assert_eq!(provider.status_call_count(), 2);
 }
 
 #[tokio::test]

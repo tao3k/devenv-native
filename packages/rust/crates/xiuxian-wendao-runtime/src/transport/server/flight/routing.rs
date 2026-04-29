@@ -674,6 +674,9 @@ impl WendaoFlightService {
         metadata: &tonic::metadata::MetadataMap,
         cache_key: &str,
     ) -> Result<Arc<FlightRoutePayload>, Status> {
+        if route == ANALYSIS_DOCUMENT_EXTRACT_STATUS_ROUTE {
+            return self.read_route_payload(route, metadata).await.map(Arc::new);
+        }
         if let Some(cached) = self.route_payload_cache.get(cache_key).await {
             return Ok(cached);
         }

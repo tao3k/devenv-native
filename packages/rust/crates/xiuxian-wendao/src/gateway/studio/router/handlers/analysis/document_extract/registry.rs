@@ -162,6 +162,14 @@ impl DocumentExtractJobRegistry {
         fetch_status(&conn, job_id)
     }
 
+    pub(super) fn latest_succeeded_status_for_source(
+        &self,
+        source_path: &Path,
+    ) -> Result<Option<DocumentExtractJobStatus>, String> {
+        let conn = self.connection()?;
+        fetch_latest_succeeded_status_for_source(&conn, source_path)
+    }
+
     pub(super) fn snapshot(&self) -> Result<DocumentExtractJobRegistrySnapshot, String> {
         let conn = self.connection()?;
         let counts = fetch_job_counts(&conn)?;
@@ -370,7 +378,7 @@ impl DocumentExtractJobStatus {
     }
 }
 
-pub(super) fn default_output_dir(source_path: &Path) -> PathBuf {
+pub(crate) fn default_output_dir(source_path: &Path) -> PathBuf {
     let Some(extension) = source_path.extension().and_then(std::ffi::OsStr::to_str) else {
         return source_path.with_extension("extracted");
     };
@@ -446,6 +454,38 @@ fn fetch_status(
             .get(10)
             .map_err(|error| format!("read error_message: {error}"))?,
     }))
+}
+
+fn fetch_latest_succeeded_status_for_source(
+    conn: &Connection,
+    source_path: &Path,
+) -> Result<Option<DocumentExtractJobStatus>, String> {
+    let mut statement = conn
+        .prepare(
+            r"
+            SELECT job_id
+            FROM document_extract_jobs
+            WHERE source_path = ? AND status = 'succeeded'
+            ORDER BY finished_at_ms DESC, created_at_ms DESC
+            LIMIT 1
+            ",
+        )
+        .map_err(|error| format!("prepare document extract source output-dir lookup: {error}"))?;
+    let mut rows = statement
+        .query(params![source_path.to_string_lossy().to_string()])
+        .map_err(|error| format!("query document extract source output-dir lookup: {error}"))?;
+    let Some(row) = rows
+        .next()
+        .map_err(|error| format!("read document extract source output-dir row: {error}"))?
+    else {
+        return Ok(None);
+    };
+    let job_id = row
+        .get::<_, String>(0)
+        .map_err(|error| format!("read source output-dir job_id: {error}"))?;
+    drop(rows);
+    drop(statement);
+    fetch_status(conn, job_id.as_str())
 }
 
 fn fetch_job_counts(conn: &Connection) -> Result<DocumentExtractJobCounts, String> {
@@ -711,6 +751,31 @@ mod tests {
         assert_eq!(snapshot.last_finished_status.as_deref(), Some("succeeded"));
         assert!(snapshot.last_conversion_duration_ms.is_some());
         assert!(snapshot.max_conversion_duration_ms.is_some());
+        Ok(())
+    }
+
+    #[test]
+    fn document_extract_registry_finds_succeeded_output_dir_by_source() -> Result<(), String> {
+        let temp = tempfile::tempdir().map_err(|error| error.to_string())?;
+        let source = temp.path().join("manual.pdf");
+        fs::write(source.as_path(), b"pdf fixture").map_err(|error| error.to_string())?;
+        let registry = DocumentExtractJobRegistry::new(
+            temp.path().join("jobs.duckdb"),
+            temp.path().join("artifacts"),
+        )?;
+        let output = temp.path().join("custom-output");
+        let queued = registry.submit(source.as_path(), output.as_path(), false)?;
+        let running = registry
+            .start_job(queued.job_id.as_str())?
+            .ok_or_else(|| "queued job should start".to_string())?;
+        registry.mark_succeeded(running.job_id.as_str())?;
+
+        let status = registry
+            .latest_succeeded_status_for_source(source.as_path())?
+            .ok_or_else(|| "succeeded source status should exist".to_string())?;
+
+        assert_eq!(status.job_id, running.job_id);
+        assert_eq!(status.output_dir, output.to_string_lossy());
         Ok(())
     }
 }

@@ -1,6 +1,7 @@
 //! REST endpoint for projecting cached Arrow document extraction results.
 
 use std::fs::File;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::UNIX_EPOCH;
 
@@ -10,6 +11,8 @@ use arrow::record_batch::RecordBatch;
 use axum::{Json, extract::Query};
 use serde::Deserialize;
 
+use super::analysis::StudioDocumentExtractFlightRouteProvider;
+use super::analysis::document_extract::default_output_dir;
 use crate::gateway::studio::router::{GatewayState, StudioApiError};
 use crate::gateway::studio::types::{DocumentExtractResource, DocumentExtractResult};
 use crate::gateway::studio::vfs;
@@ -21,6 +24,12 @@ const DOCUMENT_RESOURCE_ARROW_CACHE_NAME: &str = "_resources.arrow";
 pub struct DocumentExtractResultQuery {
     /// VFS path to the source document.
     pub path: String,
+}
+
+#[derive(Debug, Clone)]
+pub(super) struct DocumentExtractCacheLocation {
+    pub(super) output_dir: PathBuf,
+    pub(super) resources_path: PathBuf,
 }
 
 /// Reads the cached Arrow IPC resource table for a document and returns structured results.
@@ -41,27 +50,13 @@ pub async fn get_document_extract_result(
         ));
     }
 
-    // Resolve the document path to a filesystem path so we can locate the .extracted dir
-    let document_full_path =
-        vfs::resolve_vfs_file_path(&state.studio, document_path).map_err(|_error| {
-            StudioApiError::not_found(format!("Document not found: {document_path}"))
-        })?;
-
-    let extracted_dir = format!("{}.extracted", document_full_path.display());
-    let resources_path =
-        std::path::Path::new(&extracted_dir).join(DOCUMENT_RESOURCE_ARROW_CACHE_NAME);
-
-    if !resources_path.exists() {
-        return Err(StudioApiError::not_found(format!(
-            "No extraction resources found for `{document_path}`. Run document extraction first."
-        )));
-    }
-
-    let resources = read_document_extract_resources(&resources_path)?;
+    let cache_location = document_extract_cache_location(&state, document_path)?;
+    let resources = read_document_extract_resources(&cache_location.resources_path)?;
     let total_pages = total_pages_from_resources(resources.as_slice());
 
     // Extraction timestamp from marker file
-    let extracted_at = std::path::Path::new(&extracted_dir)
+    let extracted_at = cache_location
+        .output_dir
         .join("_complete.marker")
         .metadata()
         .ok()
@@ -77,6 +72,44 @@ pub async fn get_document_extract_result(
         extracted_at,
         resources,
     }))
+}
+
+pub(super) fn document_extract_cache_location(
+    state: &GatewayState,
+    document_path: &str,
+) -> Result<DocumentExtractCacheLocation, StudioApiError> {
+    let document_full_path =
+        vfs::resolve_vfs_file_path(&state.studio, document_path).map_err(|_error| {
+            StudioApiError::not_found(format!("Document not found: {document_path}"))
+        })?;
+    let output_dir = document_extract_output_dir_for_source(state, document_full_path.as_path())?;
+    let resources_path = output_dir.join(DOCUMENT_RESOURCE_ARROW_CACHE_NAME);
+    if resources_path.exists() {
+        return Ok(DocumentExtractCacheLocation {
+            output_dir,
+            resources_path,
+        });
+    }
+    Err(StudioApiError::not_found(format!(
+        "No extraction resources found for `{document_path}`. Run document extraction first."
+    )))
+}
+
+fn document_extract_output_dir_for_source(
+    state: &GatewayState,
+    source_path: &Path,
+) -> Result<PathBuf, StudioApiError> {
+    let provider = StudioDocumentExtractFlightRouteProvider::new(state);
+    provider
+        .succeeded_output_dir_for_source(source_path)
+        .map_err(|error| {
+            StudioApiError::internal(
+                "DOCUMENT_EXTRACT_JOB_LOOKUP_FAILED",
+                "Failed to read document extraction job registry",
+                Some(error),
+            )
+        })
+        .map(|output_dir| output_dir.unwrap_or_else(|| default_output_dir(source_path)))
 }
 
 pub(super) fn read_document_extract_resources(

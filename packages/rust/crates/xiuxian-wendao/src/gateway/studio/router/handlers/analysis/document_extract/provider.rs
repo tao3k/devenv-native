@@ -123,6 +123,16 @@ impl StudioDocumentExtractFlightRouteProvider {
         self.registry()?.status(job_id)
     }
 
+    pub(crate) fn succeeded_output_dir_for_source(
+        &self,
+        source_path: &Path,
+    ) -> Result<Option<PathBuf>, String> {
+        let _registry_guard = self.registry_lock();
+        self.registry()?
+            .latest_succeeded_status_for_source(source_path)
+            .map(|status| status.map(|status| PathBuf::from(status.output_dir)))
+    }
+
     pub(crate) async fn runtime_snapshot(&self) -> Result<DocumentExtractRuntimeSnapshot, String> {
         let scheduled_count = self.runtime.scheduled.lock().await.len();
         let available_conversion_permits = self.runtime.conversion_permits.available_permits();

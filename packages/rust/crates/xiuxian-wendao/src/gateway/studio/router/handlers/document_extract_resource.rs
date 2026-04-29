@@ -14,11 +14,10 @@ use axum::{
 };
 use serde::Deserialize;
 
-use super::document_extract_result::read_document_extract_resources;
+use super::document_extract_result::{
+    document_extract_cache_location, read_document_extract_resources,
+};
 use crate::gateway::studio::router::{GatewayState, StudioApiError};
-use crate::gateway::studio::vfs;
-
-const DOCUMENT_RESOURCE_ARROW_CACHE_NAME: &str = "_resources.arrow";
 
 /// Query parameters for document extract resource retrieval.
 #[derive(Debug, Deserialize)]
@@ -40,8 +39,8 @@ pub async fn get_document_extract_resource(
     axum::extract::State(state): axum::extract::State<Arc<GatewayState>>,
 ) -> Result<Response, StudioApiError> {
     let (document_path, element_id) = validate_resource_query(&query)?;
-    let resources_path = document_extract_resources_path(&state, document_path)?;
-    let resources = read_document_extract_resources(&resources_path)?;
+    let cache_location = document_extract_cache_location(&state, document_path)?;
+    let resources = read_document_extract_resources(&cache_location.resources_path)?;
     let resource = find_resource(resources, document_path, element_id)?;
 
     let mime_type = if resource.mime_type.is_empty() {
@@ -65,12 +64,7 @@ pub async fn get_document_extract_resource(
         )));
     }
 
-    let file_path = Path::new(resource_path);
-    if !file_path.exists() {
-        return Err(StudioApiError::not_found(format!(
-            "Extracted file not found: {resource_path}"
-        )));
-    }
+    let file_path = resolve_resource_file(cache_location.output_dir.as_path(), resource_path)?;
 
     let bytes = std::fs::read(file_path).map_err(|error| {
         StudioApiError::internal(
@@ -104,24 +98,6 @@ fn validate_resource_query(
     Ok((document_path, element_id))
 }
 
-fn document_extract_resources_path(
-    state: &GatewayState,
-    document_path: &str,
-) -> Result<PathBuf, StudioApiError> {
-    let document_full_path =
-        vfs::resolve_vfs_file_path(&state.studio, document_path).map_err(|_error| {
-            StudioApiError::not_found(format!("Document not found: {document_path}"))
-        })?;
-    let extracted_dir = format!("{}.extracted", document_full_path.display());
-    let resources_path = Path::new(&extracted_dir).join(DOCUMENT_RESOURCE_ARROW_CACHE_NAME);
-    if resources_path.exists() {
-        return Ok(resources_path);
-    }
-    Err(StudioApiError::not_found(format!(
-        "No extraction resources found for `{document_path}`. Run document extraction first."
-    )))
-}
-
 fn find_resource(
     resources: Vec<crate::gateway::studio::types::DocumentExtractResource>,
     document_path: &str,
@@ -137,6 +113,50 @@ fn find_resource(
         })
 }
 
+fn resolve_resource_file(
+    extraction_root: &Path,
+    resource_path: &str,
+) -> Result<PathBuf, StudioApiError> {
+    let raw_path = Path::new(resource_path);
+    let candidate = if raw_path.is_absolute() {
+        raw_path.to_path_buf()
+    } else {
+        extraction_root.join(raw_path)
+    };
+    if !candidate.exists() {
+        return Err(StudioApiError::not_found(format!(
+            "Extracted file not found: {resource_path}"
+        )));
+    }
+    let root = extraction_root.canonicalize().map_err(|error| {
+        StudioApiError::internal(
+            "EXTRACTION_ROOT_RESOLVE_ERROR",
+            "Failed to resolve extraction output directory",
+            Some(error.to_string()),
+        )
+    })?;
+    let file = candidate.canonicalize().map_err(|error| {
+        StudioApiError::internal(
+            "RESOURCE_PATH_RESOLVE_ERROR",
+            "Failed to resolve extracted resource path",
+            Some(error.to_string()),
+        )
+    })?;
+    if !file.starts_with(root.as_path()) {
+        return Err(StudioApiError::bad_request(
+            "RESOURCE_OUTSIDE_EXTRACTION_ROOT",
+            "Extracted resource path is outside the extraction output directory",
+        ));
+    }
+    if !file.is_file() {
+        return Err(StudioApiError::bad_request(
+            "RESOURCE_NOT_FILE",
+            "Extracted resource path does not point to a file",
+        ));
+    }
+    Ok(file)
+}
+
 fn response_with_content_type(
     mime_type: &str,
     body: impl IntoResponse,
@@ -149,4 +169,49 @@ fn response_with_content_type(
         )
     })?;
     Ok((StatusCode::OK, [(CONTENT_TYPE, content_type)], body).into_response())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn resolve_resource_file_accepts_paths_inside_extraction_root() {
+        let temp = tempfile::tempdir().unwrap_or_else(|error| panic!("temp dir: {error}"));
+        let resource = temp.path().join("image.png");
+        std::fs::write(resource.as_path(), b"image")
+            .unwrap_or_else(|error| panic!("write resource: {error}"));
+
+        let resolved = resolve_resource_file(temp.path(), "image.png")
+            .unwrap_or_else(|error| panic!("resource should resolve: {error:?}"));
+
+        assert_eq!(
+            resolved,
+            resource
+                .canonicalize()
+                .unwrap_or_else(|error| panic!("canonicalize resource: {error}"))
+        );
+    }
+
+    #[test]
+    fn resolve_resource_file_rejects_paths_outside_extraction_root() {
+        let temp = tempfile::tempdir().unwrap_or_else(|error| panic!("temp dir: {error}"));
+        let outside = temp.path().join("outside.txt");
+        let root = temp.path().join("extract");
+        std::fs::create_dir_all(root.as_path())
+            .unwrap_or_else(|error| panic!("create root: {error}"));
+        std::fs::write(outside.as_path(), b"secret")
+            .unwrap_or_else(|error| panic!("write outside: {error}"));
+
+        let error = match resolve_resource_file(root.as_path(), outside.to_string_lossy().as_ref())
+        {
+            Ok(path) => panic!(
+                "outside resource path should be rejected: {}",
+                path.display()
+            ),
+            Err(error) => error,
+        };
+
+        assert!(format!("{error:?}").contains("RESOURCE_OUTSIDE_EXTRACTION_ROOT"));
+    }
 }
