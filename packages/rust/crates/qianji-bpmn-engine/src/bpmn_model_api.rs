@@ -42,6 +42,12 @@ pub struct BpmnRootSnapshot {
     /// Bounded top-level `import` metadata preserved from the document.
     #[serde(default)]
     pub imports: Vec<BpmnImportSnapshot>,
+    /// Number of top-level `relationship` elements discovered in the document.
+    #[serde(default)]
+    pub relationship_count: usize,
+    /// Bounded top-level `relationship` metadata preserved from the document.
+    #[serde(default)]
+    pub relationships: Vec<BpmnRelationshipSnapshot>,
     /// Number of top-level `collaboration` elements discovered in the document.
     pub collaboration_count: usize,
     /// Number of top-level `process` elements discovered in the document.
@@ -115,6 +121,23 @@ pub struct BpmnImportSnapshot {
     pub location: Option<String>,
     /// Optional imported model type URI.
     pub import_type: Option<String>,
+}
+
+/// Snapshot of one BPMN `relationship`.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct BpmnRelationshipSnapshot {
+    /// Optional stable relationship identifier.
+    pub relationship_id: Option<String>,
+    /// Required relationship type preserved as optional metadata for recovery.
+    pub relationship_type: Option<String>,
+    /// Optional relationship direction.
+    pub direction: Option<String>,
+    /// Direct source references preserved in source order.
+    #[serde(default)]
+    pub source_refs: Vec<String>,
+    /// Direct target references preserved in source order.
+    #[serde(default)]
+    pub target_refs: Vec<String>,
 }
 
 /// Snapshot of one BPMN `itemDefinition`.
@@ -475,6 +498,8 @@ pub(crate) fn empty_bpmn_root_snapshot(source: &BpmnSourceFile) -> BpmnRootSnaps
         model_namespace_uri: None,
         import_count: 0,
         imports: Vec::new(),
+        relationship_count: 0,
+        relationships: Vec::new(),
         collaboration_count: 0,
         process_count: 0,
         item_definition_count: 0,

@@ -19,6 +19,26 @@ fn bpmn_snapshot_preserves_import_metadata_catalogs() {
 }
 
 #[test]
+fn bpmn_snapshot_preserves_relationship_metadata_catalogs() {
+    let snapshot = snapshot_fixture("metadata-relationship-catalog.bpmn");
+
+    assert_eq!(snapshot.root.relationship_count, 1);
+    assert_eq!(snapshot.root.relationships.len(), 1);
+    let relationship = &snapshot.root.relationships[0];
+    assert_eq!(
+        relationship.relationship_id.as_deref(),
+        Some("Relationship_RequestLineage")
+    );
+    assert_eq!(relationship.relationship_type.as_deref(), Some("lineage"));
+    assert_eq!(relationship.direction.as_deref(), Some("Forward"));
+    assert_eq!(
+        relationship.source_refs,
+        ["Message_Request", "Item_Request"]
+    );
+    assert_eq!(relationship.target_refs, ["review"]);
+}
+
+#[test]
 fn bpmn_snapshot_preserves_event_definition_metadata_catalogs() {
     let snapshot = snapshot_fixture("metadata-event-definition-catalog.bpmn");
 

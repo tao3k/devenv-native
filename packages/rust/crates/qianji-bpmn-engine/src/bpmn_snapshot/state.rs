@@ -7,7 +7,7 @@ use crate::bpmn_model_api::{
     BpmnDocumentSnapshot, BpmnErrorSnapshot, BpmnEscalationSnapshot, BpmnImportSnapshot,
     BpmnInterfaceSnapshot, BpmnIoSpecificationSnapshot, BpmnItemDefinitionSnapshot,
     BpmnLaneSetSnapshot, BpmnLaneSnapshot, BpmnMessageFlowSnapshot, BpmnMessageSnapshot,
-    BpmnOperationSnapshot, BpmnParticipantSnapshot, BpmnProcessSnapshot,
+    BpmnOperationSnapshot, BpmnParticipantSnapshot, BpmnProcessSnapshot, BpmnRelationshipSnapshot,
     BpmnResourceParameterSnapshot, BpmnResourceSnapshot, BpmnRootSnapshot, BpmnSignalSnapshot,
 };
 use crate::bpmn_parse_api::BpmnSourceFile;
@@ -24,6 +24,8 @@ pub(super) enum TextTarget {
     OperationInMessageRef,
     OperationOutMessageRef,
     OperationErrorRef,
+    RelationshipSource,
+    RelationshipTarget,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -48,6 +50,7 @@ pub(super) struct BpmnSnapshotScanState {
     current_operation: Option<(usize, usize)>,
     current_resource: Option<usize>,
     current_category: Option<usize>,
+    current_relationship: Option<usize>,
     io_specification_stack: Vec<(usize, usize)>,
     current_data_association: Option<(usize, DataAssociationKind, BpmnDataAssociationSnapshot)>,
 }
@@ -152,6 +155,7 @@ impl BpmnSnapshotScanState {
     ) -> Result<bool> {
         match tag {
             "import" => self.capture_import(source, reader, event)?,
+            "relationship" => self.start_relationship(source, reader, event, is_empty)?,
             "collaboration" => self.start_collaboration(source, reader, event, is_empty)?,
             "process" => self.start_process(source, reader, event, is_empty)?,
             "itemDefinition" => self.capture_item_definition(source, reader, event)?,
@@ -188,6 +192,7 @@ impl BpmnSnapshotScanState {
             }
             "resource" => self.current_resource = None,
             "category" => self.current_category = None,
+            "relationship" => self.current_relationship = None,
             "process" => {
                 self.current_process = None;
                 self.lane_set_stack.clear();
@@ -225,6 +230,8 @@ impl BpmnSnapshotScanState {
             TextTarget::OperationInMessageRef => self.set_operation_in_message_ref(text),
             TextTarget::OperationOutMessageRef => self.set_operation_out_message_ref(text),
             TextTarget::OperationErrorRef => self.push_operation_error_ref(text),
+            TextTarget::RelationshipSource => self.push_relationship_source_ref(text),
+            TextTarget::RelationshipTarget => self.push_relationship_target_ref(text),
         }
     }
 
@@ -244,6 +251,7 @@ impl BpmnSnapshotScanState {
         self.current_interface = None;
         self.current_resource = None;
         self.current_category = None;
+        self.current_relationship = None;
     }
 
     pub(super) fn into_snapshot(self, source: &BpmnSourceFile) -> BpmnDocumentSnapshot {
@@ -622,6 +630,30 @@ impl BpmnSnapshotScanState {
         Ok(())
     }
 
+    fn start_relationship(
+        &mut self,
+        source: &BpmnSourceFile,
+        reader: &Reader<&[u8]>,
+        event: &BytesStart<'_>,
+        is_empty: bool,
+    ) -> Result<()> {
+        let Some(root) = self.root.as_mut() else {
+            return Ok(());
+        };
+        root.relationship_count += 1;
+        root.relationships.push(BpmnRelationshipSnapshot {
+            relationship_id: attribute_value(source, reader, event, "id")?,
+            relationship_type: attribute_value(source, reader, event, "type")?,
+            direction: attribute_value(source, reader, event, "direction")?,
+            source_refs: Vec::new(),
+            target_refs: Vec::new(),
+        });
+        if !is_empty {
+            self.current_relationship = root.relationships.len().checked_sub(1);
+        }
+        Ok(())
+    }
+
     fn start_process(
         &mut self,
         source: &BpmnSourceFile,
@@ -932,6 +964,20 @@ impl BpmnSnapshotScanState {
         operation.error_refs.push(text.to_string());
     }
 
+    fn push_relationship_source_ref(&mut self, text: &str) {
+        let Some(relationship) = self.current_relationship_mut() else {
+            return;
+        };
+        relationship.source_refs.push(text.to_string());
+    }
+
+    fn push_relationship_target_ref(&mut self, text: &str) {
+        let Some(relationship) = self.current_relationship_mut() else {
+            return;
+        };
+        relationship.target_refs.push(text.to_string());
+    }
+
     fn finish_correlation_retrieval_expression(&mut self) {
         let Some((property_index, retrieval_expression)) =
             self.current_correlation_retrieval_expression.take()
@@ -1033,6 +1079,14 @@ impl BpmnSnapshotScanState {
             .operations
             .get_mut(operation_index)
     }
+
+    fn current_relationship_mut(&mut self) -> Option<&mut BpmnRelationshipSnapshot> {
+        let relationship_index = self.current_relationship?;
+        self.root
+            .as_mut()?
+            .relationships
+            .get_mut(relationship_index)
+    }
 }
 
 fn root_from_event(
@@ -1049,6 +1103,8 @@ fn root_from_event(
         model_namespace_uri: bpmn_model_namespace(source, reader, event)?,
         import_count: 0,
         imports: Vec::new(),
+        relationship_count: 0,
+        relationships: Vec::new(),
         collaboration_count: 0,
         process_count: 0,
         item_definition_count: 0,

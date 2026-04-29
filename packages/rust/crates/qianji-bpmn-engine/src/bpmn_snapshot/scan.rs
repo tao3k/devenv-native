@@ -139,6 +139,8 @@ fn text_target(element_stack: &[String]) -> Option<TextTarget> {
         (Some("inMessageRef"), Some("operation")) => Some(TextTarget::OperationInMessageRef),
         (Some("outMessageRef"), Some("operation")) => Some(TextTarget::OperationOutMessageRef),
         (Some("errorRef"), Some("operation")) => Some(TextTarget::OperationErrorRef),
+        (Some("source"), Some("relationship")) => Some(TextTarget::RelationshipSource),
+        (Some("target"), Some("relationship")) => Some(TextTarget::RelationshipTarget),
         _ => None,
     }
 }
