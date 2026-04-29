@@ -39,7 +39,7 @@ The current package owns bounded support for:
 - bounded task-local Data/IO through native `ioSpecification`,
   `dataInputAssociation`, and `dataOutputAssociation` mappings
 - non-executable BPMN document snapshots for collaboration, lane, data-object,
-  and data-store metadata
+  data-store, catalog, and category metadata
 
 The current package still defers:
 
@@ -48,7 +48,7 @@ The current package still defers:
 - unbounded event families and event subprocesses
 - broader FEEL or script-backed flow semantics
 
-Deferred collaboration, lane, data-object, data-store, and unsupported IO
+Deferred collaboration, lane, data-object, data-store, category, and unsupported IO
 surfaces are reported by the linter with explicit repair guidance instead of
 being treated as executable runtime semantics.
 Those lint reports also include bounded snapshot-derived evidence for the

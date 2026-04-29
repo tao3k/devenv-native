@@ -1,13 +1,14 @@
 use super::xml::{attribute_value, boolean_attribute_value, bpmn_model_namespace, local_name};
 use crate::bpmn_model_api::{
-    BpmnCollaborationSnapshot, BpmnCorrelationPropertySnapshot,
-    BpmnCorrelationRetrievalExpressionSnapshot, BpmnDataAssociationSnapshot,
-    BpmnDataInputOutputSnapshot, BpmnDataObjectReferenceSnapshot, BpmnDataObjectSnapshot,
-    BpmnDataStoreReferenceSnapshot, BpmnDataStoreSnapshot, BpmnDocumentSnapshot, BpmnErrorSnapshot,
-    BpmnEscalationSnapshot, BpmnInterfaceSnapshot, BpmnIoSpecificationSnapshot,
-    BpmnItemDefinitionSnapshot, BpmnLaneSetSnapshot, BpmnLaneSnapshot, BpmnMessageFlowSnapshot,
-    BpmnMessageSnapshot, BpmnOperationSnapshot, BpmnParticipantSnapshot, BpmnProcessSnapshot,
-    BpmnResourceParameterSnapshot, BpmnResourceSnapshot, BpmnRootSnapshot, BpmnSignalSnapshot,
+    BpmnCategorySnapshot, BpmnCategoryValueSnapshot, BpmnCollaborationSnapshot,
+    BpmnCorrelationPropertySnapshot, BpmnCorrelationRetrievalExpressionSnapshot,
+    BpmnDataAssociationSnapshot, BpmnDataInputOutputSnapshot, BpmnDataObjectReferenceSnapshot,
+    BpmnDataObjectSnapshot, BpmnDataStoreReferenceSnapshot, BpmnDataStoreSnapshot,
+    BpmnDocumentSnapshot, BpmnErrorSnapshot, BpmnEscalationSnapshot, BpmnInterfaceSnapshot,
+    BpmnIoSpecificationSnapshot, BpmnItemDefinitionSnapshot, BpmnLaneSetSnapshot, BpmnLaneSnapshot,
+    BpmnMessageFlowSnapshot, BpmnMessageSnapshot, BpmnOperationSnapshot, BpmnParticipantSnapshot,
+    BpmnProcessSnapshot, BpmnResourceParameterSnapshot, BpmnResourceSnapshot, BpmnRootSnapshot,
+    BpmnSignalSnapshot,
 };
 use crate::bpmn_parse_api::BpmnSourceFile;
 use crate::error::Result;
@@ -46,6 +47,7 @@ pub(super) struct BpmnSnapshotScanState {
     current_interface: Option<usize>,
     current_operation: Option<(usize, usize)>,
     current_resource: Option<usize>,
+    current_category: Option<usize>,
     io_specification_stack: Vec<(usize, usize)>,
     current_data_association: Option<(usize, DataAssociationKind, BpmnDataAssociationSnapshot)>,
 }
@@ -69,56 +71,32 @@ impl BpmnSnapshotScanState {
 
         let event_name = event.name();
         let tag = local_name(event_name.as_ref());
+        if parent_tag == Some("definitions")
+            && self.handle_definitions_start_event(source, reader, event, tag, is_empty)?
+        {
+            return Ok(());
+        }
+
         match tag {
-            "collaboration" if parent_tag == Some("definitions") => {
-                self.start_collaboration(source, reader, event, is_empty)
-            }
             "participant" if parent_tag == Some("collaboration") => {
                 self.capture_participant(source, reader, event)
             }
             "messageFlow" if parent_tag == Some("collaboration") => {
                 self.capture_message_flow(source, reader, event)
             }
-            "process" if parent_tag == Some("definitions") => {
-                self.start_process(source, reader, event, is_empty)
-            }
-            "itemDefinition" if parent_tag == Some("definitions") => {
-                self.capture_item_definition(source, reader, event)
-            }
-            "message" if parent_tag == Some("definitions") => {
-                self.capture_message(source, reader, event)
-            }
-            "interface" if parent_tag == Some("definitions") => {
-                self.start_interface(source, reader, event, is_empty)
-            }
             "operation" if self.current_interface.is_some() => {
                 self.start_operation(source, reader, event, is_empty)
-            }
-            "resource" if parent_tag == Some("definitions") => {
-                self.start_resource(source, reader, event, is_empty)
             }
             "resourceParameter" if self.current_resource.is_some() => {
                 self.capture_resource_parameter(source, reader, event)
             }
-            "correlationProperty" if parent_tag == Some("definitions") => {
-                self.capture_correlation_property(source, reader, event, is_empty)
-            }
-            "error" if parent_tag == Some("definitions") => {
-                self.capture_error(source, reader, event)
-            }
-            "escalation" if parent_tag == Some("definitions") => {
-                self.capture_escalation(source, reader, event)
-            }
-            "signal" if parent_tag == Some("definitions") => {
-                self.capture_signal(source, reader, event)
+            "categoryValue" if self.current_category.is_some() => {
+                self.capture_category_value(source, reader, event)
             }
             "correlationPropertyRetrievalExpression"
                 if self.current_correlation_property.is_some() =>
             {
                 self.start_correlation_retrieval_expression(source, reader, event, is_empty)
-            }
-            "dataStore" if parent_tag == Some("definitions") => {
-                self.capture_data_store(source, reader, event)
             }
             "laneSet" if self.current_process.is_some() => {
                 self.start_lane_set(source, reader, event, is_empty)
@@ -164,6 +142,34 @@ impl BpmnSnapshotScanState {
         }
     }
 
+    fn handle_definitions_start_event(
+        &mut self,
+        source: &BpmnSourceFile,
+        reader: &Reader<&[u8]>,
+        event: &BytesStart<'_>,
+        tag: &str,
+        is_empty: bool,
+    ) -> Result<bool> {
+        match tag {
+            "collaboration" => self.start_collaboration(source, reader, event, is_empty)?,
+            "process" => self.start_process(source, reader, event, is_empty)?,
+            "itemDefinition" => self.capture_item_definition(source, reader, event)?,
+            "message" => self.capture_message(source, reader, event)?,
+            "interface" => self.start_interface(source, reader, event, is_empty)?,
+            "resource" => self.start_resource(source, reader, event, is_empty)?,
+            "category" => self.start_category(source, reader, event, is_empty)?,
+            "correlationProperty" => {
+                self.capture_correlation_property(source, reader, event, is_empty)?;
+            }
+            "error" => self.capture_error(source, reader, event)?,
+            "escalation" => self.capture_escalation(source, reader, event)?,
+            "signal" => self.capture_signal(source, reader, event)?,
+            "dataStore" => self.capture_data_store(source, reader, event)?,
+            _ => return Ok(false),
+        }
+        Ok(true)
+    }
+
     pub(super) fn finish_end_event(&mut self, tag: &str) {
         match tag {
             "collaboration" => self.current_collaboration = None,
@@ -180,6 +186,7 @@ impl BpmnSnapshotScanState {
                 self.current_interface = None;
             }
             "resource" => self.current_resource = None,
+            "category" => self.current_category = None,
             "process" => {
                 self.current_process = None;
                 self.lane_set_stack.clear();
@@ -235,6 +242,7 @@ impl BpmnSnapshotScanState {
         self.current_operation = None;
         self.current_interface = None;
         self.current_resource = None;
+        self.current_category = None;
     }
 
     pub(super) fn into_snapshot(self, source: &BpmnSourceFile) -> BpmnDocumentSnapshot {
@@ -425,6 +433,50 @@ impl BpmnSnapshotScanState {
                 type_ref: attribute_value(source, reader, event, "type")?,
                 is_required: boolean_attribute_value(source, reader, event, "isRequired")?,
             });
+        Ok(())
+    }
+
+    fn start_category(
+        &mut self,
+        source: &BpmnSourceFile,
+        reader: &Reader<&[u8]>,
+        event: &BytesStart<'_>,
+        is_empty: bool,
+    ) -> Result<()> {
+        let Some(root) = self.root.as_mut() else {
+            return Ok(());
+        };
+        root.category_count += 1;
+        root.categories.push(BpmnCategorySnapshot {
+            category_id: attribute_value(source, reader, event, "id")?,
+            name: attribute_value(source, reader, event, "name")?,
+            category_values: Vec::new(),
+        });
+        if !is_empty {
+            self.current_category = root.categories.len().checked_sub(1);
+        }
+        Ok(())
+    }
+
+    fn capture_category_value(
+        &mut self,
+        source: &BpmnSourceFile,
+        reader: &Reader<&[u8]>,
+        event: &BytesStart<'_>,
+    ) -> Result<()> {
+        let Some(category_index) = self.current_category else {
+            return Ok(());
+        };
+        let Some(root) = self.root.as_mut() else {
+            return Ok(());
+        };
+        let Some(category) = root.categories.get_mut(category_index) else {
+            return Ok(());
+        };
+        category.category_values.push(BpmnCategoryValueSnapshot {
+            category_value_id: attribute_value(source, reader, event, "id")?,
+            value: attribute_value(source, reader, event, "value")?,
+        });
         Ok(())
     }
 
@@ -986,6 +1038,8 @@ fn root_from_event(
         interfaces: Vec::new(),
         resource_count: 0,
         resources: Vec::new(),
+        category_count: 0,
+        categories: Vec::new(),
         correlation_property_count: 0,
         correlation_properties: Vec::new(),
         error_count: 0,

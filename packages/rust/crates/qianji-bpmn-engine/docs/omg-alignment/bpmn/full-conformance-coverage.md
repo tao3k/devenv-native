@@ -37,6 +37,7 @@ guidance.
 | Event definition catalogs | metadata-only      | Message/error/escalation/signal catalogs are preserved, not schema-validated.          |
 | Interfaces/operations     | metadata-only      | Callable-operation catalogs are preserved; host dispatch binding remains explicit.     |
 | Resource catalogs         | metadata-only      | Top-level resources and parameters are preserved; assignment binding remains deferred. |
+| Category catalogs         | metadata-only      | Top-level categories and values are preserved; classification remains passive.         |
 | Terminate events          | bounded executable | `terminateEventDefinition` end events terminate the current runtime scope.             |
 | Multiple events           | lint-deferred      | Multiple and parallel-multiple event definitions have stable parser/lint diagnostics.  |
 | Embedded subprocess       | bounded executable | One nested start event and at least one nested end event.                              |
@@ -68,14 +69,15 @@ their execution contracts.
 
 The collaboration, data, callable-operation, and event metadata slices
 preserve top-level `itemDefinition`, `message`, `interface`, `operation`,
-`resource`, `resourceParameter`, `error`, `escalation`, `signal`,
-`correlationProperty`, and nested `correlationPropertyRetrievalExpression`
-metadata alongside collaboration participants, message flows, and data
-references. This gives Rust-owned evidence for future routing and
-type-alignment work while keeping pool routing, message dispatch,
-callable-operation binding, resource assignment binding, event subscription
-registries, correlation matching, retrieval expression evaluation, and schema
-validation deferred.
+`resource`, `resourceParameter`, `category`, `categoryValue`, `error`,
+`escalation`, `signal`, `correlationProperty`, and nested
+`correlationPropertyRetrievalExpression` metadata alongside collaboration
+participants, message flows, and data references. This gives Rust-owned
+evidence for future routing and type-alignment work while keeping pool
+routing, message dispatch, callable-operation binding, resource assignment
+binding, flow-element classification, event subscription registries,
+correlation matching, retrieval expression evaluation, and schema validation
+deferred.
 
 ## Active M2 Event Milestone
 

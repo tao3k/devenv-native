@@ -242,6 +242,32 @@ fn bpmn_snapshot_preserves_resource_metadata_catalogs() {
     assert_eq!(level.is_required, Some(false));
 }
 
+#[test]
+fn bpmn_snapshot_preserves_category_metadata_catalogs() {
+    let snapshot = snapshot_bpmn_source(&fixture_source("metadata-category-catalog.bpmn"))
+        .must("category metadata-only BPMN source should produce a document snapshot");
+
+    assert_eq!(snapshot.root.category_count, 1);
+    let category = &snapshot.root.categories[0];
+    assert_eq!(category.category_id.as_deref(), Some("Category_Risk"));
+    assert_eq!(category.name.as_deref(), Some("Risk"));
+    assert_eq!(category.category_values.len(), 2);
+
+    let high_risk = &category.category_values[0];
+    assert_eq!(
+        high_risk.category_value_id.as_deref(),
+        Some("CategoryValue_HighRisk")
+    );
+    assert_eq!(high_risk.value.as_deref(), Some("high-risk"));
+
+    let manual_review = &category.category_values[1];
+    assert_eq!(
+        manual_review.category_value_id.as_deref(),
+        Some("CategoryValue_ManualReview")
+    );
+    assert_eq!(manual_review.value.as_deref(), Some("manual-review"));
+}
+
 fn metadata_snapshot() -> BpmnDocumentSnapshot {
     snapshot_bpmn_source(&fixture_source("metadata-collaboration-lane-data.bpmn"))
         .must("metadata-only BPMN source should still produce a document snapshot")

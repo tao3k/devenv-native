@@ -203,12 +203,13 @@ mod runtime_token_api;
 mod runtime_wait_api;
 
 pub use bpmn_model_api::{
-    BpmnCollaborationSnapshot, BpmnCorrelationPropertySnapshot, BpmnDataAssociationSnapshot,
-    BpmnDataInputOutputSnapshot, BpmnDataObjectReferenceSnapshot, BpmnDataObjectSnapshot,
-    BpmnDataStoreReferenceSnapshot, BpmnDataStoreSnapshot, BpmnDocumentSnapshot, BpmnErrorSnapshot,
-    BpmnEscalationSnapshot, BpmnInterfaceSnapshot, BpmnIoSpecificationSnapshot,
-    BpmnItemDefinitionSnapshot, BpmnLaneSetSnapshot, BpmnLaneSnapshot, BpmnMessageFlowSnapshot,
-    BpmnMessageSnapshot, BpmnOperationSnapshot, BpmnParticipantSnapshot, BpmnProcessSnapshot,
+    BpmnCategorySnapshot, BpmnCategoryValueSnapshot, BpmnCollaborationSnapshot,
+    BpmnCorrelationPropertySnapshot, BpmnDataAssociationSnapshot, BpmnDataInputOutputSnapshot,
+    BpmnDataObjectReferenceSnapshot, BpmnDataObjectSnapshot, BpmnDataStoreReferenceSnapshot,
+    BpmnDataStoreSnapshot, BpmnDocumentSnapshot, BpmnErrorSnapshot, BpmnEscalationSnapshot,
+    BpmnInterfaceSnapshot, BpmnIoSpecificationSnapshot, BpmnItemDefinitionSnapshot,
+    BpmnLaneSetSnapshot, BpmnLaneSnapshot, BpmnMessageFlowSnapshot, BpmnMessageSnapshot,
+    BpmnOperationSnapshot, BpmnParticipantSnapshot, BpmnProcessSnapshot,
     BpmnResourceParameterSnapshot, BpmnResourceSnapshot, BpmnRootSnapshot, BpmnSignalSnapshot,
 };
 pub use bpmn_parse_api::{

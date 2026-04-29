@@ -64,6 +64,12 @@ pub struct BpmnRootSnapshot {
     /// Bounded top-level `resource` metadata preserved from the document.
     #[serde(default)]
     pub resources: Vec<BpmnResourceSnapshot>,
+    /// Number of top-level `category` elements discovered in the document.
+    #[serde(default)]
+    pub category_count: usize,
+    /// Bounded top-level `category` metadata preserved from the document.
+    #[serde(default)]
+    pub categories: Vec<BpmnCategorySnapshot>,
     /// Number of top-level `correlationProperty` elements discovered in the document.
     #[serde(default)]
     pub correlation_property_count: usize,
@@ -173,6 +179,27 @@ pub struct BpmnResourceParameterSnapshot {
     pub type_ref: Option<String>,
     /// Optional required-parameter marker.
     pub is_required: Option<bool>,
+}
+
+/// Snapshot of one BPMN `category`.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct BpmnCategorySnapshot {
+    /// Optional stable category identifier.
+    pub category_id: Option<String>,
+    /// Optional human-readable category name.
+    pub name: Option<String>,
+    /// Direct category values preserved from this category.
+    #[serde(default)]
+    pub category_values: Vec<BpmnCategoryValueSnapshot>,
+}
+
+/// Snapshot of one BPMN `categoryValue`.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct BpmnCategoryValueSnapshot {
+    /// Optional stable category-value identifier.
+    pub category_value_id: Option<String>,
+    /// Optional category value payload.
+    pub value: Option<String>,
 }
 
 /// Snapshot of one BPMN `correlationProperty`.
@@ -439,6 +466,8 @@ pub(crate) fn empty_bpmn_root_snapshot(source: &BpmnSourceFile) -> BpmnRootSnaps
         interfaces: Vec::new(),
         resource_count: 0,
         resources: Vec::new(),
+        category_count: 0,
+        categories: Vec::new(),
         correlation_property_count: 0,
         correlation_properties: Vec::new(),
         error_count: 0,
