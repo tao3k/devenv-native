@@ -2,6 +2,8 @@
 pub const ANALYSIS_DOCUMENT_EXTRACT_ROUTE: &str = "/analysis/document-extract";
 /// Stable route for the Rust-owned document extraction job status contract.
 pub const ANALYSIS_DOCUMENT_EXTRACT_STATUS_ROUTE: &str = "/analysis/document-extract-status";
+/// Internal route for page-shard OCR exchange with the Python analyzer worker.
+pub const ANALYSIS_PDF_OCR_SHARDS_ROUTE: &str = "/analysis/pdf-ocr-shards";
 
 /// Canonical document source-path metadata header for Wendao Flight requests.
 pub const WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_HEADER: &str =

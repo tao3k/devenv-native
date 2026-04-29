@@ -134,6 +134,22 @@ fn document_extract_pdf_ocr_result_batch_preserves_success_and_failure() -> Resu
 }
 
 #[test]
+fn document_extract_pdf_ocr_decodes_result_batch() -> Result<(), String> {
+    let inputs = build_ocr_shard_inputs(
+        &[sample_manifest()],
+        &PdfOcrWorkerProfile::docling_compatible(),
+    );
+    let success = PdfOcrShardResult::succeeded(&inputs[0], "recognized text", 0.98);
+    let skipped = PdfOcrShardResult::skipped(&inputs[0], "worker not configured");
+    let batch = build_ocr_shard_result_batch(&[success.clone(), skipped.clone()])?;
+
+    let decoded = decode_ocr_shard_result_batch(&batch)?;
+
+    assert_eq!(decoded, vec![success, skipped]);
+    Ok(())
+}
+
+#[test]
 fn document_extract_pdf_ocr_result_resource_rows_use_stable_schema() -> Result<(), String> {
     let inputs = build_ocr_shard_inputs(
         &[sample_manifest()],

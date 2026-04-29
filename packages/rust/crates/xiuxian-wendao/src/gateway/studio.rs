@@ -20,6 +20,12 @@ pub use xiuxian_wendao_attachments::pdf::render as document_extract_pdf_render;
 #[doc(hidden)]
 pub use xiuxian_wendao_attachments::pdf::ocr as document_extract_pdf_ocr;
 
+/// Feature-gated PDF OCR shard Flight client proof helpers.
+#[cfg(feature = "document-extract-pdf-render")]
+#[doc(hidden)]
+#[path = "studio/document_extract_pdf_ocr_client.rs"]
+pub mod document_extract_pdf_ocr_client;
+
 #[cfg(feature = "zhenfa-router")]
 #[path = "studio/analysis/mod.rs"]
 mod analysis;

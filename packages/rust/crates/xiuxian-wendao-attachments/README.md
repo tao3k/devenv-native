@@ -64,6 +64,8 @@ contract. Rendered page manifests can be projected into `_ocr_input.arrow`
 using `xiuxian_wendao.pdf_ocr_shard_input.v1`; OCR workers return
 `xiuxian_wendao.pdf_ocr_shard_result.v1`; successful, failed, or skipped OCR
 results can then be projected back into the stable document resource schema.
+The crate provides both Arrow batch builders and result decoders so the Studio
+gateway can roundtrip worker responses without JSON as an internal contract.
 
 This is still proof infrastructure. No OCR worker is started by the production
 Wendao gateway, and no live document extraction route consumes these rows yet.

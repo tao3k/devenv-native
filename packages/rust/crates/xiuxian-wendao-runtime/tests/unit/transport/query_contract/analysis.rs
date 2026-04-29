@@ -1,9 +1,10 @@
 use super::{
     ANALYSIS_DOCUMENT_EXTRACT_ROUTE, ANALYSIS_DOCUMENT_EXTRACT_STATUS_ROUTE,
-    WENDAO_DOCUMENT_EXTRACT_JOB_ID_HEADER, WENDAO_DOCUMENT_EXTRACT_MODE_HEADER,
-    WENDAO_DOCUMENT_EXTRACT_OUTPUT_DIR_HEADER, WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_HEADER,
-    WENDAO_DOCUMENT_EXTRACT_WAIT_MS_HEADER, validate_code_ast_analysis_request,
-    validate_document_extract_request, validate_markdown_analysis_request,
+    ANALYSIS_PDF_OCR_SHARDS_ROUTE, WENDAO_DOCUMENT_EXTRACT_JOB_ID_HEADER,
+    WENDAO_DOCUMENT_EXTRACT_MODE_HEADER, WENDAO_DOCUMENT_EXTRACT_OUTPUT_DIR_HEADER,
+    WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_HEADER, WENDAO_DOCUMENT_EXTRACT_WAIT_MS_HEADER,
+    validate_code_ast_analysis_request, validate_document_extract_request,
+    validate_markdown_analysis_request,
 };
 
 #[test]
@@ -58,6 +59,7 @@ fn document_extract_contract_uses_document_route_and_headers() {
         ANALYSIS_DOCUMENT_EXTRACT_STATUS_ROUTE,
         "/analysis/document-extract-status"
     );
+    assert_eq!(ANALYSIS_PDF_OCR_SHARDS_ROUTE, "/analysis/pdf-ocr-shards");
     assert_eq!(
         WENDAO_DOCUMENT_EXTRACT_MODE_HEADER,
         "x-wendao-document-extract-mode"

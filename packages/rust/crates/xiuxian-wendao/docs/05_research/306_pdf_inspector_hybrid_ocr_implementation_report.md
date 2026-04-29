@@ -145,14 +145,16 @@ no raster OCR pages, so Rust does not render all pages. Later hybrid extraction
 can preserve the native text layer and invoke Python/Docling only for explicit
 OCR or semantic shard work.
 
-The next proof slice adds an Arrow-only OCR worker contract under
-`xiuxian-wendao-attachments`. Rendered page manifests are projected into
+The current proof slices add an Arrow-only OCR worker contract under
+`xiuxian-wendao-attachments` plus a feature-gated Studio-side Flight client.
+Rendered page manifests are projected into
 `xiuxian_wendao.pdf_ocr_shard_input.v1`, while OCR outputs use
-`xiuxian_wendao.pdf_ocr_shard_result.v1`. The result rows can be projected back
-into the stable document resource schema as `ocr_text`, `ocr_error`, or
-`ocr_skipped` rows. The render proof now writes `_ocr_input.arrow` next to
-`_ocr_shards.arrow` and `_ocr_pending.arrow`, but no production provider
-consumes those rows yet.
+`xiuxian_wendao.pdf_ocr_shard_result.v1`. Rust can now send those batches to
+the Python analyzer's internal `/analysis/pdf-ocr-shards` exchange route,
+decode the returned OCR result rows, and project them back into the stable
+document resource schema as `ocr_text`, `ocr_error`, or `ocr_skipped` rows. The
+render proof still writes `_ocr_input.arrow` next to `_ocr_shards.arrow` and
+`_ocr_pending.arrow`, and no production provider consumes those rows yet.
 
 The audit report now records two additional routing diagnostics:
 
@@ -491,6 +493,11 @@ Current implementation status:
 - The default worker returns deterministic `skipped` rows until a real OCR
   worker is injected. This keeps the production `/analysis/document-extract`
   sync and async paths unchanged while proving the shard-level Arrow handoff.
+- Feature-gated Rust code now proves the reverse side of that handoff: it sends
+  OCR shard input batches through Flight `do_exchange`, decodes the returned
+  OCR result rows, and materializes stable resource rows.
+- The Rust proof remains disconnected from production sync and async document
+  extraction, so the live fallback behavior is unchanged.
 
 ### Milestone 5: Hybrid Mixed-PDF Pipeline
 
