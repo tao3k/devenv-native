@@ -122,55 +122,82 @@ where
 }
 
 fn text_target(element_stack: &[String]) -> Option<TextTarget> {
-    match (
-        element_stack.last().map(String::as_str),
-        parent_tag(element_stack),
-    ) {
-        (Some("flowNodeRef"), Some("lane")) => Some(TextTarget::LaneFlowNode),
-        (Some("sourceRef"), Some("dataInputAssociation" | "dataOutputAssociation")) => {
+    let tag = element_stack.last().map(String::as_str)?;
+    let parent = parent_tag(element_stack);
+    data_text_target(tag, parent)
+        .or_else(|| catalog_text_target(tag, parent))
+        .or_else(|| collaboration_text_target(tag, parent))
+        .or_else(|| process_text_target(tag, parent))
+        .or_else(|| artifact_text_target(tag, parent))
+}
+
+fn data_text_target(tag: &str, parent: Option<&str>) -> Option<TextTarget> {
+    match (tag, parent) {
+        ("flowNodeRef", Some("lane")) => Some(TextTarget::LaneFlowNode),
+        ("sourceRef", Some("dataInputAssociation" | "dataOutputAssociation")) => {
             Some(TextTarget::DataAssociationSource)
         }
-        (Some("targetRef"), Some("dataInputAssociation" | "dataOutputAssociation")) => {
+        ("targetRef", Some("dataInputAssociation" | "dataOutputAssociation")) => {
             Some(TextTarget::DataAssociationTarget)
         }
-        (Some("transformation"), Some("dataInputAssociation" | "dataOutputAssociation")) => {
+        ("transformation", Some("dataInputAssociation" | "dataOutputAssociation")) => {
             Some(TextTarget::DataAssociationTransformation)
         }
-        (Some("from"), Some("assignment")) => Some(TextTarget::DataAssociationAssignmentFrom),
-        (Some("to"), Some("assignment")) => Some(TextTarget::DataAssociationAssignmentTo),
-        (Some("messagePath"), Some("correlationPropertyRetrievalExpression")) => {
+        ("from", Some("assignment")) => Some(TextTarget::DataAssociationAssignmentFrom),
+        ("to", Some("assignment")) => Some(TextTarget::DataAssociationAssignmentTo),
+        ("dataInputRefs", Some("inputSet")) => Some(TextTarget::IoInputSetDataInputRef),
+        ("optionalInputRefs", Some("inputSet")) => Some(TextTarget::IoInputSetOptionalInputRef),
+        ("whileExecutingInputRefs", Some("inputSet")) => {
+            Some(TextTarget::IoInputSetWhileExecutingInputRef)
+        }
+        ("outputSetRefs", Some("inputSet")) => Some(TextTarget::IoInputSetOutputSetRef),
+        ("dataOutputRefs", Some("outputSet")) => Some(TextTarget::IoOutputSetDataOutputRef),
+        ("optionalOutputRefs", Some("outputSet")) => Some(TextTarget::IoOutputSetOptionalOutputRef),
+        ("whileExecutingOutputRefs", Some("outputSet")) => {
+            Some(TextTarget::IoOutputSetWhileExecutingOutputRef)
+        }
+        ("inputSetRefs", Some("outputSet")) => Some(TextTarget::IoOutputSetInputSetRef),
+        _ => None,
+    }
+}
+
+fn catalog_text_target(tag: &str, parent: Option<&str>) -> Option<TextTarget> {
+    match (tag, parent) {
+        ("messagePath", Some("correlationPropertyRetrievalExpression")) => {
             Some(TextTarget::CorrelationMessagePath)
         }
-        (Some("dataPath"), Some("correlationPropertyBinding")) => {
+        ("dataPath", Some("correlationPropertyBinding")) => {
             Some(TextTarget::CorrelationBindingDataPath)
         }
         (
-            Some("resourceRef"),
+            "resourceRef",
             Some("resourceRole" | "performer" | "humanPerformer" | "potentialOwner"),
         ) => Some(TextTarget::ResourceRoleResourceRef),
-        (Some("formalExpression"), Some("resourceAssignmentExpression")) => {
+        ("formalExpression", Some("resourceAssignmentExpression")) => {
             Some(TextTarget::ResourceRoleAssignmentExpression)
         }
-        (Some("formalExpression"), Some("resourceParameterBinding")) => {
+        ("formalExpression", Some("resourceParameterBinding")) => {
             Some(TextTarget::ResourceRoleParameterBindingExpression)
         }
-        (Some("categoryValueRef"), _) => Some(TextTarget::FlowElementCategoryValueRef),
-        (Some("inMessageRef"), Some("operation")) => Some(TextTarget::OperationInMessageRef),
-        (Some("outMessageRef"), Some("operation")) => Some(TextTarget::OperationOutMessageRef),
-        (Some("errorRef"), Some("operation")) => Some(TextTarget::OperationErrorRef),
-        (Some("documentation"), Some("extension")) => Some(TextTarget::ExtensionDocumentation),
-        (Some("source"), Some("relationship")) => Some(TextTarget::RelationshipSource),
-        (Some("target"), Some("relationship")) => Some(TextTarget::RelationshipTarget),
-        (Some("interfaceRef"), Some("participant")) => Some(TextTarget::ParticipantInterfaceRef),
-        (Some("endPointRef"), Some("participant")) => Some(TextTarget::ParticipantEndPointRef),
-        (Some("participantRef"), Some("partnerEntity")) => {
-            Some(TextTarget::PartnerEntityParticipantRef)
-        }
-        (Some("participantRef"), Some("partnerRole")) => {
-            Some(TextTarget::PartnerRoleParticipantRef)
-        }
+        ("categoryValueRef", _) => Some(TextTarget::FlowElementCategoryValueRef),
+        ("inMessageRef", Some("operation")) => Some(TextTarget::OperationInMessageRef),
+        ("outMessageRef", Some("operation")) => Some(TextTarget::OperationOutMessageRef),
+        ("errorRef", Some("operation")) => Some(TextTarget::OperationErrorRef),
+        ("documentation", Some("extension")) => Some(TextTarget::ExtensionDocumentation),
+        ("source", Some("relationship")) => Some(TextTarget::RelationshipSource),
+        ("target", Some("relationship")) => Some(TextTarget::RelationshipTarget),
+        _ => None,
+    }
+}
+
+fn collaboration_text_target(tag: &str, parent: Option<&str>) -> Option<TextTarget> {
+    match (tag, parent) {
+        ("interfaceRef", Some("participant")) => Some(TextTarget::ParticipantInterfaceRef),
+        ("endPointRef", Some("participant")) => Some(TextTarget::ParticipantEndPointRef),
+        ("participantRef", Some("partnerEntity")) => Some(TextTarget::PartnerEntityParticipantRef),
+        ("participantRef", Some("partnerRole")) => Some(TextTarget::PartnerRoleParticipantRef),
         (
-            Some("supportedInterfaceRef"),
+            "supportedInterfaceRef",
             Some(
                 "globalTask"
                 | "globalBusinessRuleTask"
@@ -179,35 +206,45 @@ fn text_target(element_stack: &[String]) -> Option<TextTarget> {
                 | "globalUserTask",
             ),
         ) => Some(TextTarget::GlobalTaskSupportedInterfaceRef),
-        (Some("script"), Some("globalScriptTask")) => Some(TextTarget::GlobalTaskScript),
-        (Some("supports"), Some("process")) => Some(TextTarget::ProcessSupport),
-        (Some("participantRef"), Some("conversation" | "subConversation" | "callConversation")) => {
+        ("participantRef", Some("conversation" | "subConversation" | "callConversation")) => {
             Some(TextTarget::ConversationParticipantRef)
         }
-        (Some("messageFlowRef"), Some("conversation" | "subConversation" | "callConversation")) => {
+        ("messageFlowRef", Some("conversation" | "subConversation" | "callConversation")) => {
             Some(TextTarget::ConversationMessageFlowRef)
         }
-        (
-            Some("participantRef"),
-            Some("choreographyTask" | "subChoreography" | "callChoreography"),
-        ) => Some(TextTarget::ChoreographyParticipantRef),
-        (
-            Some("messageFlowRef"),
-            Some("choreographyTask" | "subChoreography" | "callChoreography"),
-        ) => Some(TextTarget::ChoreographyMessageFlowRef),
-        (Some("text"), Some("textAnnotation")) => Some(TextTarget::TextAnnotationText),
-        (Some("correlationPropertyRef"), Some("correlationKey")) => {
-            Some(TextTarget::CorrelationKeyPropertyRef)
+        ("participantRef", Some("choreographyTask" | "subChoreography" | "callChoreography")) => {
+            Some(TextTarget::ChoreographyParticipantRef)
         }
-        (Some("innerParticipantRef"), Some("participantAssociation")) => {
+        ("messageFlowRef", Some("choreographyTask" | "subChoreography" | "callChoreography")) => {
+            Some(TextTarget::ChoreographyMessageFlowRef)
+        }
+        ("innerParticipantRef", Some("participantAssociation")) => {
             Some(TextTarget::ParticipantAssociationInnerRef)
         }
-        (Some("outerParticipantRef"), Some("participantAssociation")) => {
+        ("outerParticipantRef", Some("participantAssociation")) => {
             Some(TextTarget::ParticipantAssociationOuterRef)
         }
-        (Some("choreographyRef"), Some("collaboration" | "globalConversation")) => {
+        ("choreographyRef", Some("collaboration" | "globalConversation")) => {
             Some(TextTarget::CollaborationChoreographyRef)
         }
+        _ => None,
+    }
+}
+
+fn process_text_target(tag: &str, parent: Option<&str>) -> Option<TextTarget> {
+    match (tag, parent) {
+        ("script", Some("globalScriptTask")) => Some(TextTarget::GlobalTaskScript),
+        ("supports", Some("process")) => Some(TextTarget::ProcessSupport),
+        ("correlationPropertyRef", Some("correlationKey")) => {
+            Some(TextTarget::CorrelationKeyPropertyRef)
+        }
+        _ => None,
+    }
+}
+
+fn artifact_text_target(tag: &str, parent: Option<&str>) -> Option<TextTarget> {
+    match (tag, parent) {
+        ("text", Some("textAnnotation")) => Some(TextTarget::TextAnnotationText),
         _ => None,
     }
 }

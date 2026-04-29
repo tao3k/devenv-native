@@ -12,10 +12,11 @@ use crate::bpmn_model_api::{
     BpmnDataStoreSnapshot, BpmnDiagramSnapshot, BpmnDocumentSnapshot, BpmnEdgeSnapshot,
     BpmnEndPointSnapshot, BpmnErrorSnapshot, BpmnEscalationSnapshot, BpmnExtensionSnapshot,
     BpmnFlowElementMetadataSnapshot, BpmnFontSnapshot, BpmnGlobalTaskSnapshot, BpmnGroupSnapshot,
-    BpmnImportSnapshot, BpmnInterfaceSnapshot, BpmnIoBindingSnapshot, BpmnIoSpecificationSnapshot,
-    BpmnItemDefinitionSnapshot, BpmnLabelSnapshot, BpmnLabelStyleSnapshot, BpmnLaneSetSnapshot,
-    BpmnLaneSnapshot, BpmnMessageFlowAssociationSnapshot, BpmnMessageFlowSnapshot,
-    BpmnMessageSnapshot, BpmnOperationSnapshot, BpmnParticipantAssociationSnapshot,
+    BpmnImportSnapshot, BpmnInputSetSnapshot, BpmnInterfaceSnapshot, BpmnIoBindingSnapshot,
+    BpmnIoSpecificationSnapshot, BpmnItemDefinitionSnapshot, BpmnLabelSnapshot,
+    BpmnLabelStyleSnapshot, BpmnLaneSetSnapshot, BpmnLaneSnapshot,
+    BpmnMessageFlowAssociationSnapshot, BpmnMessageFlowSnapshot, BpmnMessageSnapshot,
+    BpmnOperationSnapshot, BpmnOutputSetSnapshot, BpmnParticipantAssociationSnapshot,
     BpmnParticipantMultiplicitySnapshot, BpmnParticipantSnapshot, BpmnPartnerEntitySnapshot,
     BpmnPartnerRoleSnapshot, BpmnPlaneSnapshot, BpmnProcessPropertySnapshot, BpmnProcessSnapshot,
     BpmnRelationshipSnapshot, BpmnResourceParameterBindingSnapshot, BpmnResourceParameterSnapshot,
@@ -44,6 +45,14 @@ pub(super) enum TextTarget {
     OperationInMessageRef,
     OperationOutMessageRef,
     OperationErrorRef,
+    IoInputSetDataInputRef,
+    IoInputSetOptionalInputRef,
+    IoInputSetWhileExecutingInputRef,
+    IoInputSetOutputSetRef,
+    IoOutputSetDataOutputRef,
+    IoOutputSetOptionalOutputRef,
+    IoOutputSetWhileExecutingOutputRef,
+    IoOutputSetInputSetRef,
     ExtensionDocumentation,
     RelationshipSource,
     RelationshipTarget,
@@ -75,6 +84,12 @@ enum DataAssociationKind {
 enum DataAssociationAssignmentExpressionKind {
     From,
     To,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum IoSetKind {
+    Input,
+    Output,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -164,6 +179,7 @@ pub(super) struct BpmnSnapshotScanState {
     current_label: Option<BpmnDiLabelTarget>,
     current_label_style: Option<(usize, usize)>,
     io_specification_stack: Vec<IoSpecificationOwner>,
+    current_io_set: Option<(IoSetKind, usize)>,
     current_data_state_owner: Option<DataStateOwner>,
     current_data_association: Option<(usize, DataAssociationKind, BpmnDataAssociationSnapshot)>,
     current_data_association_assignment: Option<usize>,
@@ -402,6 +418,12 @@ impl BpmnSnapshotScanState {
             }
             "dataOutput" if self.current_io_specification().is_some() => {
                 self.capture_io_data_output(source, reader, event, is_empty)?;
+            }
+            "inputSet" if self.current_io_specification().is_some() => {
+                self.start_io_input_set(source, reader, event, is_empty)?;
+            }
+            "outputSet" if self.current_io_specification().is_some() => {
+                self.start_io_output_set(source, reader, event, is_empty)?;
             }
             _ => return Ok(false),
         }
@@ -706,8 +728,10 @@ impl BpmnSnapshotScanState {
                 let _ = self.lane_stack.pop();
             }
             "ioSpecification" => {
+                self.current_io_set = None;
                 let _ = self.io_specification_stack.pop();
             }
+            "inputSet" | "outputSet" => self.current_io_set = None,
             "dataInput"
             | "dataOutput"
             | "dataObject"
@@ -776,6 +800,7 @@ impl BpmnSnapshotScanState {
         self.lane_set_stack.clear();
         self.lane_stack.clear();
         self.io_specification_stack.clear();
+        self.current_io_set = None;
         self.current_data_association = None;
         self.current_data_association_assignment = None;
     }
@@ -823,6 +848,22 @@ impl BpmnSnapshotScanState {
             TextTarget::OperationInMessageRef => self.set_operation_in_message_ref(text),
             TextTarget::OperationOutMessageRef => self.set_operation_out_message_ref(text),
             TextTarget::OperationErrorRef => self.push_operation_error_ref(text),
+            TextTarget::IoInputSetDataInputRef => self.push_io_input_set_data_input_ref(text),
+            TextTarget::IoInputSetOptionalInputRef => {
+                self.push_io_input_set_optional_input_ref(text);
+            }
+            TextTarget::IoInputSetWhileExecutingInputRef => {
+                self.push_io_input_set_while_executing_input_ref(text);
+            }
+            TextTarget::IoInputSetOutputSetRef => self.push_io_input_set_output_set_ref(text),
+            TextTarget::IoOutputSetDataOutputRef => self.push_io_output_set_data_output_ref(text),
+            TextTarget::IoOutputSetOptionalOutputRef => {
+                self.push_io_output_set_optional_output_ref(text);
+            }
+            TextTarget::IoOutputSetWhileExecutingOutputRef => {
+                self.push_io_output_set_while_executing_output_ref(text);
+            }
+            TextTarget::IoOutputSetInputSetRef => self.push_io_output_set_input_set_ref(text),
             TextTarget::ExtensionDocumentation => self.append_extension_documentation(text),
             TextTarget::RelationshipSource => self.push_relationship_source_ref(text),
             TextTarget::RelationshipTarget => self.push_relationship_target_ref(text),
@@ -2593,6 +2634,8 @@ impl BpmnSnapshotScanState {
             io_specification_id: attribute_value(source, reader, event, "id")?,
             data_inputs: Vec::new(),
             data_outputs: Vec::new(),
+            input_sets: Vec::new(),
+            output_sets: Vec::new(),
         });
         if !is_empty {
             let io_index = process.io_specifications.len().saturating_sub(1);
@@ -2623,6 +2666,8 @@ impl BpmnSnapshotScanState {
             io_specification_id: attribute_value(source, reader, event, "id")?,
             data_inputs: Vec::new(),
             data_outputs: Vec::new(),
+            input_sets: Vec::new(),
+            output_sets: Vec::new(),
         });
         if !is_empty {
             let io_index = task.io_specifications.len().saturating_sub(1);
@@ -2706,6 +2751,120 @@ impl BpmnSnapshotScanState {
             self.current_data_state_owner = Some(DataStateOwner::IoDataOutput(owner, data_index));
         }
         Ok(())
+    }
+
+    fn start_io_input_set(
+        &mut self,
+        source: &BpmnSourceFile,
+        reader: &Reader<&[u8]>,
+        event: &BytesStart<'_>,
+        is_empty: bool,
+    ) -> Result<()> {
+        self.current_io_set = None;
+        let Some(io_specification) = self.current_io_specification_mut() else {
+            return Ok(());
+        };
+        io_specification.input_sets.push(BpmnInputSetSnapshot {
+            set_id: attribute_value(source, reader, event, "id")?,
+            name: attribute_value(source, reader, event, "name")?,
+            data_input_refs: Vec::new(),
+            optional_input_refs: Vec::new(),
+            while_executing_input_refs: Vec::new(),
+            output_set_refs: Vec::new(),
+        });
+        if !is_empty {
+            self.current_io_set = Some((
+                IoSetKind::Input,
+                io_specification.input_sets.len().saturating_sub(1),
+            ));
+        }
+        Ok(())
+    }
+
+    fn start_io_output_set(
+        &mut self,
+        source: &BpmnSourceFile,
+        reader: &Reader<&[u8]>,
+        event: &BytesStart<'_>,
+        is_empty: bool,
+    ) -> Result<()> {
+        self.current_io_set = None;
+        let Some(io_specification) = self.current_io_specification_mut() else {
+            return Ok(());
+        };
+        io_specification.output_sets.push(BpmnOutputSetSnapshot {
+            set_id: attribute_value(source, reader, event, "id")?,
+            name: attribute_value(source, reader, event, "name")?,
+            data_output_refs: Vec::new(),
+            optional_output_refs: Vec::new(),
+            while_executing_output_refs: Vec::new(),
+            input_set_refs: Vec::new(),
+        });
+        if !is_empty {
+            self.current_io_set = Some((
+                IoSetKind::Output,
+                io_specification.output_sets.len().saturating_sub(1),
+            ));
+        }
+        Ok(())
+    }
+
+    fn push_io_input_set_data_input_ref(&mut self, text: &str) {
+        let Some(input_set) = self.current_io_input_set_mut() else {
+            return;
+        };
+        input_set.data_input_refs.push(text.to_string());
+    }
+
+    fn push_io_input_set_optional_input_ref(&mut self, text: &str) {
+        let Some(input_set) = self.current_io_input_set_mut() else {
+            return;
+        };
+        input_set.optional_input_refs.push(text.to_string());
+    }
+
+    fn push_io_input_set_while_executing_input_ref(&mut self, text: &str) {
+        let Some(input_set) = self.current_io_input_set_mut() else {
+            return;
+        };
+        input_set.while_executing_input_refs.push(text.to_string());
+    }
+
+    fn push_io_input_set_output_set_ref(&mut self, text: &str) {
+        let Some(input_set) = self.current_io_input_set_mut() else {
+            return;
+        };
+        input_set.output_set_refs.push(text.to_string());
+    }
+
+    fn push_io_output_set_data_output_ref(&mut self, text: &str) {
+        let Some(output_set) = self.current_io_output_set_mut() else {
+            return;
+        };
+        output_set.data_output_refs.push(text.to_string());
+    }
+
+    fn push_io_output_set_optional_output_ref(&mut self, text: &str) {
+        let Some(output_set) = self.current_io_output_set_mut() else {
+            return;
+        };
+        output_set.optional_output_refs.push(text.to_string());
+    }
+
+    fn push_io_output_set_while_executing_output_ref(&mut self, text: &str) {
+        let Some(output_set) = self.current_io_output_set_mut() else {
+            return;
+        };
+        output_set
+            .while_executing_output_refs
+            .push(text.to_string());
+    }
+
+    fn push_io_output_set_input_set_ref(&mut self, text: &str) {
+        let Some(output_set) = self.current_io_output_set_mut() else {
+            return;
+        };
+        output_set.input_set_refs.push(text.to_string());
     }
 
     fn start_data_association(
@@ -3575,6 +3734,26 @@ impl BpmnSnapshotScanState {
                 .io_specifications
                 .get_mut(io_index),
         }
+    }
+
+    fn current_io_input_set_mut(&mut self) -> Option<&mut BpmnInputSetSnapshot> {
+        let (kind, set_index) = self.current_io_set?;
+        if kind != IoSetKind::Input {
+            return None;
+        }
+        self.current_io_specification_mut()?
+            .input_sets
+            .get_mut(set_index)
+    }
+
+    fn current_io_output_set_mut(&mut self) -> Option<&mut BpmnOutputSetSnapshot> {
+        let (kind, set_index) = self.current_io_set?;
+        if kind != IoSetKind::Output {
+            return None;
+        }
+        self.current_io_specification_mut()?
+            .output_sets
+            .get_mut(set_index)
     }
 
     fn io_data_input_mut(

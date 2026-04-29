@@ -11,6 +11,7 @@ mod data_associations;
 mod data_states;
 mod diagram;
 mod flow_elements;
+mod io_sets;
 mod partners;
 mod process;
 mod resource_roles;

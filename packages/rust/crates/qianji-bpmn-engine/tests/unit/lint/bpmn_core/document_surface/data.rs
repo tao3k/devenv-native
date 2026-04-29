@@ -96,3 +96,35 @@ fn bpmn_linter_reports_data_association_expression_metadata_surface_with_llm_gui
         "decision.approved"
     );
 }
+
+#[test]
+fn bpmn_linter_reports_io_set_metadata_surface_with_llm_guidance() {
+    let report = lint_bpmn_source(&bpmn_fixture_source("metadata-io-sets.bpmn"));
+
+    assert_eq!(report.domain, LintDomain::Bpmn);
+    assert!(!report.ok);
+    assert_eq!(report.issues.len(), 1);
+    let issue = &report.issues[0];
+    assert_eq!(issue.code, "bpmn.unsupported_data_surface");
+    assert_eq!(issue.evidence["snapshot_available"], true);
+    assert_eq!(
+        issue.evidence["snapshot"]["process_data"][0]["io_specifications"][0]["input_sets"][0]["optional_input_refs"]
+            [0],
+        "ProcessInput_Optional"
+    );
+    assert_eq!(
+        issue.evidence["snapshot"]["process_data"][0]["io_specifications"][0]["input_sets"][0]["while_executing_input_refs"]
+            [0],
+        "ProcessInput_Stream"
+    );
+    assert_eq!(
+        issue.evidence["snapshot"]["process_data"][0]["io_specifications"][0]["output_sets"][0]["optional_output_refs"]
+            [0],
+        "ProcessOutput_Optional"
+    );
+    assert_eq!(
+        issue.evidence["snapshot"]["process_data"][0]["io_specifications"][0]["output_sets"][0]["while_executing_output_refs"]
+            [0],
+        "ProcessOutput_Stream"
+    );
+}

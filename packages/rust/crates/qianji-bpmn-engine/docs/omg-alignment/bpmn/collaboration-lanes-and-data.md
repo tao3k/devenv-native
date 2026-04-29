@@ -22,6 +22,8 @@ The current engine preserves non-executable BPMN metadata for these families:
 - top-level message and correlation-property catalogs, including correlation
   retrieval `messageRef` and `messagePath` metadata, used by collaboration
   evidence
+- IO-set metadata under process and global-task IO specifications, including
+  input/output set names and direct reference lists
 - process callable metadata, including `processType`, `isClosed`,
   `definitionalCollaborationRef`, `supports`, process `property`, and process
   `correlationSubscription` bindings
@@ -60,7 +62,7 @@ correlation-key, choreography-reference, and choreography activity
 declarations plus artifact associations, groups, and text annotations and
 surface that catalog through collaboration lint evidence. That makes partner,
 participant, message-flow, conversation, choreography, artifact, process
-callable, callable IO, data-state, data-association expression,
+callable, callable IO, IO-set, data-state, data-association expression,
 resource-role, flow-element metadata, and correlation references auditable
 without requiring adapters to re-scan XML, but it does not dispatch message
 flows, route conversations, execute
@@ -85,6 +87,7 @@ These BPMN surfaces remain deferred:
   process inheritance
 - executable callable-operation binding or callable IO invocation from
   process/global-task metadata
+- executable optional or while-executing IO-set lifecycle semantics
 - executable generic resource-role assignment, authorization, delegation,
   escalation, scheduling, or reassignment
 - executable flow-element auditing, monitoring, category classification, or

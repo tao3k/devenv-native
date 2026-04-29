@@ -3,9 +3,9 @@ use crate::bpmn_model_api::{
     BpmnConversationNodeSnapshot, BpmnDataAssociationExpressionSnapshot,
     BpmnDataAssociationSnapshot, BpmnDataStateSnapshot, BpmnDocumentSnapshot,
     BpmnFlowElementMetadataSnapshot, BpmnGlobalTaskSnapshot, BpmnGroupSnapshot,
-    BpmnIoBindingSnapshot, BpmnParticipantSnapshot, BpmnPartnerEntitySnapshot,
-    BpmnPartnerRoleSnapshot, BpmnProcessSnapshot, BpmnResourceRoleSnapshot,
-    BpmnTextAnnotationSnapshot,
+    BpmnInputSetSnapshot, BpmnIoBindingSnapshot, BpmnOutputSetSnapshot, BpmnParticipantSnapshot,
+    BpmnPartnerEntitySnapshot, BpmnPartnerRoleSnapshot, BpmnProcessSnapshot,
+    BpmnResourceRoleSnapshot, BpmnTextAnnotationSnapshot,
 };
 use crate::bpmn_parse_api::BpmnSourceFile;
 use crate::bpmn_snapshot_api::snapshot_bpmn_source;
@@ -1017,6 +1017,10 @@ fn process_data_evidence(snapshot: &BpmnDocumentSnapshot) -> Vec<Value> {
                                 "data_state": data_state_evidence(output.data_state.as_ref()),
                             })
                         }).collect::<Vec<_>>(),
+                        "input_sets": spec.input_sets.iter().take(SNAPSHOT_EVIDENCE_LIMIT).map(input_set_evidence).collect::<Vec<_>>(),
+                        "output_sets": spec.output_sets.iter().take(SNAPSHOT_EVIDENCE_LIMIT).map(output_set_evidence).collect::<Vec<_>>(),
+                        "input_sets_truncated": spec.input_sets.len() > SNAPSHOT_EVIDENCE_LIMIT,
+                        "output_sets_truncated": spec.output_sets.len() > SNAPSHOT_EVIDENCE_LIMIT,
                     })
                 }).collect::<Vec<_>>(),
                 "data_input_associations": process.data_input_associations.iter().take(SNAPSHOT_EVIDENCE_LIMIT).map(|association| {
@@ -1045,6 +1049,28 @@ fn data_association_evidence(association: &BpmnDataAssociationSnapshot) -> Value
             })
         }).collect::<Vec<_>>(),
         "assignments_truncated": association.assignments.len() > SNAPSHOT_EVIDENCE_LIMIT,
+    })
+}
+
+fn input_set_evidence(input_set: &BpmnInputSetSnapshot) -> Value {
+    json!({
+        "set_id": input_set.set_id,
+        "name": input_set.name,
+        "data_input_refs": input_set.data_input_refs,
+        "optional_input_refs": input_set.optional_input_refs,
+        "while_executing_input_refs": input_set.while_executing_input_refs,
+        "output_set_refs": input_set.output_set_refs,
+    })
+}
+
+fn output_set_evidence(output_set: &BpmnOutputSetSnapshot) -> Value {
+    json!({
+        "set_id": output_set.set_id,
+        "name": output_set.name,
+        "data_output_refs": output_set.data_output_refs,
+        "optional_output_refs": output_set.optional_output_refs,
+        "while_executing_output_refs": output_set.while_executing_output_refs,
+        "input_set_refs": output_set.input_set_refs,
     })
 }
 

@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  id="Definitions_IoSets"
+  targetNamespace="https://example.com/bpmn/io-set-metadata">
+  <bpmn:itemDefinition id="Item_Request" structureRef="tns:Request" />
+  <bpmn:itemDefinition id="Item_Response" structureRef="tns:Response" />
+  <bpmn:globalTask id="GlobalTask_IoSets" name="Reusable IO set task">
+    <bpmn:ioSpecification id="GlobalIoSpec_IoSets">
+      <bpmn:dataInput id="GlobalInput_Request" name="request" itemSubjectRef="Item_Request" />
+      <bpmn:dataOutput id="GlobalOutput_Response" name="response" itemSubjectRef="Item_Response" />
+      <bpmn:inputSet id="GlobalInputSet_Main" name="global input set">
+        <bpmn:dataInputRefs>GlobalInput_Request</bpmn:dataInputRefs>
+        <bpmn:outputSetRefs>GlobalOutputSet_Main</bpmn:outputSetRefs>
+      </bpmn:inputSet>
+      <bpmn:outputSet id="GlobalOutputSet_Main" name="global output set">
+        <bpmn:dataOutputRefs>GlobalOutput_Response</bpmn:dataOutputRefs>
+        <bpmn:inputSetRefs>GlobalInputSet_Main</bpmn:inputSetRefs>
+      </bpmn:outputSet>
+    </bpmn:ioSpecification>
+  </bpmn:globalTask>
+  <bpmn:process id="Process_IoSets" isExecutable="false">
+    <bpmn:dataObject id="DataObject_Request" name="Request" itemSubjectRef="Item_Request" />
+    <bpmn:ioSpecification id="ProcessIoSpec_IoSets">
+      <bpmn:dataInput id="ProcessInput_Request" name="request" itemSubjectRef="Item_Request" />
+      <bpmn:dataInput id="ProcessInput_Optional" name="optional_request" itemSubjectRef="Item_Request" />
+      <bpmn:dataInput id="ProcessInput_Stream" name="stream_request" itemSubjectRef="Item_Request" />
+      <bpmn:dataOutput id="ProcessOutput_Response" name="response" itemSubjectRef="Item_Response" />
+      <bpmn:dataOutput id="ProcessOutput_Optional" name="optional_response" itemSubjectRef="Item_Response" />
+      <bpmn:dataOutput id="ProcessOutput_Stream" name="stream_response" itemSubjectRef="Item_Response" />
+      <bpmn:inputSet id="ProcessInputSet_Main" name="process input set">
+        <bpmn:dataInputRefs>ProcessInput_Request</bpmn:dataInputRefs>
+        <bpmn:optionalInputRefs>ProcessInput_Optional</bpmn:optionalInputRefs>
+        <bpmn:whileExecutingInputRefs>ProcessInput_Stream</bpmn:whileExecutingInputRefs>
+        <bpmn:outputSetRefs>ProcessOutputSet_Main</bpmn:outputSetRefs>
+      </bpmn:inputSet>
+      <bpmn:outputSet id="ProcessOutputSet_Main" name="process output set">
+        <bpmn:dataOutputRefs>ProcessOutput_Response</bpmn:dataOutputRefs>
+        <bpmn:optionalOutputRefs>ProcessOutput_Optional</bpmn:optionalOutputRefs>
+        <bpmn:whileExecutingOutputRefs>ProcessOutput_Stream</bpmn:whileExecutingOutputRefs>
+        <bpmn:inputSetRefs>ProcessInputSet_Main</bpmn:inputSetRefs>
+      </bpmn:outputSet>
+    </bpmn:ioSpecification>
+    <bpmn:startEvent id="Start_IoSets" />
+    <bpmn:endEvent id="End_IoSets" />
+    <bpmn:sequenceFlow id="Flow_IoSets" sourceRef="Start_IoSets" targetRef="End_IoSets" />
+  </bpmn:process>
+</bpmn:definitions>

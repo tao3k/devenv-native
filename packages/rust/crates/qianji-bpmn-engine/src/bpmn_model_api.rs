@@ -1119,6 +1119,54 @@ pub struct BpmnIoSpecificationSnapshot {
     pub data_inputs: Vec<BpmnDataInputOutputSnapshot>,
     /// Direct data-output metadata preserved from this IO specification.
     pub data_outputs: Vec<BpmnDataInputOutputSnapshot>,
+    /// Direct input-set metadata preserved from this IO specification.
+    #[serde(default)]
+    pub input_sets: Vec<BpmnInputSetSnapshot>,
+    /// Direct output-set metadata preserved from this IO specification.
+    #[serde(default)]
+    pub output_sets: Vec<BpmnOutputSetSnapshot>,
+}
+
+/// Snapshot of one BPMN `inputSet`.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct BpmnInputSetSnapshot {
+    /// Optional stable input-set identifier.
+    pub set_id: Option<String>,
+    /// Optional human-readable input-set name.
+    pub name: Option<String>,
+    /// Direct `dataInputRefs` payloads preserved in source order.
+    #[serde(default)]
+    pub data_input_refs: Vec<String>,
+    /// Direct `optionalInputRefs` payloads preserved in source order.
+    #[serde(default)]
+    pub optional_input_refs: Vec<String>,
+    /// Direct `whileExecutingInputRefs` payloads preserved in source order.
+    #[serde(default)]
+    pub while_executing_input_refs: Vec<String>,
+    /// Direct `outputSetRefs` payloads preserved in source order.
+    #[serde(default)]
+    pub output_set_refs: Vec<String>,
+}
+
+/// Snapshot of one BPMN `outputSet`.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct BpmnOutputSetSnapshot {
+    /// Optional stable output-set identifier.
+    pub set_id: Option<String>,
+    /// Optional human-readable output-set name.
+    pub name: Option<String>,
+    /// Direct `dataOutputRefs` payloads preserved in source order.
+    #[serde(default)]
+    pub data_output_refs: Vec<String>,
+    /// Direct `optionalOutputRefs` payloads preserved in source order.
+    #[serde(default)]
+    pub optional_output_refs: Vec<String>,
+    /// Direct `whileExecutingOutputRefs` payloads preserved in source order.
+    #[serde(default)]
+    pub while_executing_output_refs: Vec<String>,
+    /// Direct `inputSetRefs` payloads preserved in source order.
+    #[serde(default)]
+    pub input_set_refs: Vec<String>,
 }
 
 /// Snapshot of one BPMN `dataInput` or `dataOutput`.
