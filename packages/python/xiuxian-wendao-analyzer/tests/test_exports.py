@@ -74,7 +74,7 @@ def test_public_exports_preserve_expected_symbol_kinds() -> None:
     assert analyzer.DOCUMENT_RESOURCE_ARROW_CACHE_NAME == "_resources.arrow"
     assert (
         analyzer.PDF_OCR_SHARD_INPUT_SCHEMA_VERSION
-        == "xiuxian_wendao.pdf_ocr_shard_input.v1"
+        == "xiuxian_wendao.pdf_ocr_shard_input.v2"
     )
     assert (
         analyzer.PDF_OCR_SHARD_RESULT_SCHEMA_VERSION

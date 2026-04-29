@@ -125,13 +125,13 @@ force every cache-hit response to carry the full Docling JSON export.
 
 The same service also exposes an internal OCR shard exchange route at
 `/analysis/pdf-ocr-shards`. This route uses Arrow Flight `do_exchange`, not
-JSON metadata: callers upload `xiuxian_wendao.pdf_ocr_shard_input.v1` Arrow
+JSON metadata: callers upload `xiuxian_wendao.pdf_ocr_shard_input.v2` Arrow
 batches and receive `xiuxian_wendao.pdf_ocr_shard_result.v1` Arrow batches.
-It is a worker contract for Rust-rendered page shards and does not change the
-primary `/analysis/document-extract` sync or async extraction path. The default
-worker returns explicit `skipped` rows so deployments never load OCR models by
-accident. Passing `--pdf-ocr-worker docling` enables the opt-in Docling image
-worker for rendered page shards; failed or empty shard OCR rows remain
+It is a worker contract for Rust-rendered page or region shards and does not
+change the primary `/analysis/document-extract` sync or async extraction path.
+The default worker returns explicit `skipped` rows so deployments never load OCR
+models by accident. Passing `--pdf-ocr-worker docling` enables the opt-in
+Docling image worker for rendered shards; failed or empty shard OCR rows remain
 table-shaped failures so the Rust hybrid provider can fall back to full Docling
 when coverage is incomplete.
 

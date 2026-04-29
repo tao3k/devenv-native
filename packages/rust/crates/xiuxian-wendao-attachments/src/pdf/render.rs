@@ -160,6 +160,15 @@ impl PdfPageBox {
         self.top - self.bottom
     }
 
+    #[must_use]
+    pub fn intersection(&self, other: Self) -> Option<Self> {
+        let left = self.left.max(other.left);
+        let bottom = self.bottom.max(other.bottom);
+        let right = self.right.min(other.right);
+        let top = self.top.min(other.top);
+        (left < right && bottom < top).then(|| Self::new(left, bottom, right, top))
+    }
+
     fn from_pdfium_rect(rect: PdfRect) -> Self {
         Self::new(
             f64::from(rect.left().value),
@@ -167,6 +176,80 @@ impl PdfPageBox {
             f64::from(rect.right().value),
             f64::from(rect.top().value),
         )
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum PdfOcrShardType {
+    Page,
+    Region,
+}
+
+impl PdfOcrShardType {
+    #[must_use]
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Page => "page",
+            Self::Region => "region",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PdfPagePixelBox {
+    pub left: u32,
+    pub top: u32,
+    pub right: u32,
+    pub bottom: u32,
+}
+
+impl PdfPagePixelBox {
+    #[must_use]
+    pub fn new(left: u32, top: u32, right: u32, bottom: u32) -> Self {
+        Self {
+            left,
+            top,
+            right,
+            bottom,
+        }
+    }
+
+    #[must_use]
+    pub fn width_px(&self) -> u32 {
+        self.right.saturating_sub(self.left)
+    }
+
+    #[must_use]
+    pub fn height_px(&self) -> u32 {
+        self.bottom.saturating_sub(self.top)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PdfPageRegion {
+    pub region_index: u32,
+    pub region_box: PdfPageBox,
+    pub parent_shard_element_id: String,
+    pub reading_order_key: String,
+}
+
+impl PdfPageRegion {
+    #[must_use]
+    pub fn new(
+        region_index: u32,
+        region_box: PdfPageBox,
+        parent_shard_element_id: impl Into<String>,
+        reading_order_key: impl Into<String>,
+    ) -> Self {
+        Self {
+            region_index,
+            region_box,
+            parent_shard_element_id: parent_shard_element_id.into(),
+            reading_order_key: reading_order_key.into(),
+        }
     }
 }
 
@@ -189,11 +272,16 @@ pub struct PdfPageShardManifest {
     pub source_path: String,
     pub source_content_hash: String,
     pub page_index: u32,
+    pub shard_type: PdfOcrShardType,
+    pub region_index: u32,
+    pub parent_shard_element_id: String,
+    pub reading_order_key: String,
     pub render_profile: String,
     pub image_path: String,
     pub image_mime_type: String,
     pub raster_sha256: String,
     pub geometry: PdfPageShardGeometry,
+    pub source_page_pixel_box: PdfPagePixelBox,
     pub element_id: String,
 }
 
@@ -242,6 +330,21 @@ pub struct PdfPageShardManifestInput<'a> {
     pub raster: RenderedRasterIdentity,
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub struct PdfPageRegionShardManifestInput<'a> {
+    pub source_path: &'a Path,
+    pub source_content_hash: &'a str,
+    pub page_index: u32,
+    pub profile: &'a PdfPageRenderProfile,
+    pub media_box: PdfPageBox,
+    pub page_crop_box: PdfPageBox,
+    pub region: PdfPageRegion,
+    pub rotation_degrees: u16,
+    pub page_raster_width_px: u32,
+    pub page_raster_height_px: u32,
+    pub raster: RenderedRasterIdentity,
+}
+
 #[must_use]
 pub fn build_shard_manifest(input: PdfPageShardManifestInput<'_>) -> PdfPageShardManifest {
     let element_id = shard_element_id(
@@ -255,6 +358,10 @@ pub fn build_shard_manifest(input: PdfPageShardManifestInput<'_>) -> PdfPageShar
         source_path: input.source_path.to_string_lossy().to_string(),
         source_content_hash: input.source_content_hash.to_string(),
         page_index: input.page_index,
+        shard_type: PdfOcrShardType::Page,
+        region_index: 0,
+        parent_shard_element_id: String::new(),
+        reading_order_key: page_reading_order_key(input.page_index),
         render_profile: input.profile.profile_id.clone(),
         image_path: input.raster.path.to_string_lossy().to_string(),
         image_mime_type: input.profile.image_mime_type.clone(),
@@ -269,8 +376,73 @@ pub fn build_shard_manifest(input: PdfPageShardManifestInput<'_>) -> PdfPageShar
             point_to_pixel_scale_x: scale_x,
             point_to_pixel_scale_y: scale_y,
         },
+        source_page_pixel_box: PdfPagePixelBox::new(
+            0,
+            0,
+            input.raster.width_px,
+            input.raster.height_px,
+        ),
         element_id,
     }
+}
+
+/// # Errors
+///
+/// Returns an error if the requested region does not intersect the source page
+/// crop box or cannot be represented in source-page pixel coordinates.
+pub fn build_region_shard_manifest(
+    input: PdfPageRegionShardManifestInput<'_>,
+) -> Result<PdfPageShardManifest, String> {
+    let region_box = input
+        .region
+        .region_box
+        .intersection(input.page_crop_box)
+        .ok_or_else(|| {
+            format!(
+                "region {} does not intersect page {} crop box",
+                input.region.region_index, input.page_index
+            )
+        })?;
+    let source_page_pixel_box = region_pixel_box_for_crop(
+        input.page_crop_box,
+        region_box,
+        input.page_raster_width_px,
+        input.page_raster_height_px,
+    )?;
+    let element_id = region_shard_element_id(
+        input.source_content_hash,
+        input.page_index,
+        &input.profile.profile_id,
+        input.region.region_index,
+        region_box,
+    );
+    let scale_x = f64::from(input.raster.width_px) / region_box.width_points().max(1.0);
+    let scale_y = f64::from(input.raster.height_px) / region_box.height_points().max(1.0);
+    Ok(PdfPageShardManifest {
+        source_path: input.source_path.to_string_lossy().to_string(),
+        source_content_hash: input.source_content_hash.to_string(),
+        page_index: input.page_index,
+        shard_type: PdfOcrShardType::Region,
+        region_index: input.region.region_index,
+        parent_shard_element_id: input.region.parent_shard_element_id,
+        reading_order_key: input.region.reading_order_key,
+        render_profile: input.profile.profile_id.clone(),
+        image_path: input.raster.path.to_string_lossy().to_string(),
+        image_mime_type: input.profile.image_mime_type.clone(),
+        raster_sha256: input.raster.sha256,
+        geometry: PdfPageShardGeometry {
+            media_box: input.media_box,
+            crop_box: region_box,
+            rotation_degrees: input.rotation_degrees,
+            render_dpi: input.profile.dpi,
+            raster_width_px: input.raster.width_px,
+            raster_height_px: input.raster.height_px,
+            point_to_pixel_scale_x: scale_x,
+            point_to_pixel_scale_y: scale_y,
+        },
+        source_page_pixel_box,
+        element_id,
+    })
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -321,6 +493,18 @@ pub fn build_shard_manifest_batch(
                 manifest.geometry.point_to_pixel_scale_y
             }),
             string_manifest_column(manifests, |manifest| manifest.element_id.clone()),
+            string_manifest_column(manifests, |manifest| {
+                manifest.shard_type.as_str().to_string()
+            }),
+            int_manifest_column(manifests, |manifest| manifest.region_index),
+            string_manifest_column(manifests, |manifest| {
+                manifest.parent_shard_element_id.clone()
+            }),
+            string_manifest_column(manifests, |manifest| manifest.reading_order_key.clone()),
+            int_manifest_column(manifests, |manifest| manifest.source_page_pixel_box.left),
+            int_manifest_column(manifests, |manifest| manifest.source_page_pixel_box.top),
+            int_manifest_column(manifests, |manifest| manifest.source_page_pixel_box.right),
+            int_manifest_column(manifests, |manifest| manifest.source_page_pixel_box.bottom),
         ],
     )
     .map_err(|error| format!("build OCR shard manifest Arrow batch: {error}"))
@@ -357,7 +541,7 @@ pub fn build_ocr_pending_resource_batch(
             Arc::new(StringArray::from(
                 manifests
                     .iter()
-                    .map(|manifest| format!("OCR pending PDF page {}", manifest.page_index + 1))
+                    .map(pending_caption)
                     .collect::<Vec<_>>(),
             )),
             Arc::new(StringArray::from(
@@ -365,10 +549,12 @@ pub fn build_ocr_pending_resource_batch(
                     .iter()
                     .map(|manifest| {
                         format!(
-                            "manifest={},raster_sha256={},profile={}",
+                            "manifest={},raster_sha256={},profile={},shard_type={},reading_order_key={}",
                             OCR_SHARD_MANIFEST_ARROW_NAME,
                             manifest.raster_sha256,
-                            manifest.render_profile
+                            manifest.render_profile,
+                            manifest.shard_type.as_str(),
+                            manifest.reading_order_key
                         )
                     })
                     .collect::<Vec<_>>(),
@@ -562,6 +748,37 @@ fn shard_element_id(content_hash: &str, page_index: u32, profile_id: &str) -> St
     sha256_hex(format!("{content_hash}:{page_index}:{profile_id}").as_bytes())
 }
 
+fn region_shard_element_id(
+    content_hash: &str,
+    page_index: u32,
+    profile_id: &str,
+    region_index: u32,
+    region_box: PdfPageBox,
+) -> String {
+    sha256_hex(
+        format!(
+            "{content_hash}:{page_index}:{profile_id}:region:{region_index}:{:.6}:{:.6}:{:.6}:{:.6}",
+            region_box.left, region_box.bottom, region_box.right, region_box.top
+        )
+        .as_bytes(),
+    )
+}
+
+fn page_reading_order_key(page_index: u32) -> String {
+    format!("{page_index:06}.000000")
+}
+
+fn pending_caption(manifest: &PdfPageShardManifest) -> String {
+    match manifest.shard_type {
+        PdfOcrShardType::Page => format!("OCR pending PDF page {}", manifest.page_index + 1),
+        PdfOcrShardType::Region => format!(
+            "OCR pending PDF page {} region {}",
+            manifest.page_index + 1,
+            manifest.region_index
+        ),
+    }
+}
+
 fn sha256_hex(bytes: &[u8]) -> String {
     let mut hasher = Sha256::new();
     hasher.update(bytes);
@@ -574,6 +791,62 @@ fn checked_len_u32(len: usize) -> u32 {
 
 fn checked_pixels_i32(value: u32) -> Result<i32, String> {
     i32::try_from(value).map_err(|_| format!("render target pixel dimension is too large: {value}"))
+}
+
+/// # Errors
+///
+/// Returns an error if the region is outside the page crop box or the source
+/// raster dimensions cannot represent a non-empty pixel crop.
+pub fn region_pixel_box_for_crop(
+    page_crop_box: PdfPageBox,
+    region_box: PdfPageBox,
+    raster_width_px: u32,
+    raster_height_px: u32,
+) -> Result<PdfPagePixelBox, String> {
+    if raster_width_px == 0 || raster_height_px == 0 {
+        return Err("source page raster dimensions must be non-zero".to_string());
+    }
+    let clipped = region_box
+        .intersection(page_crop_box)
+        .ok_or_else(|| "region does not intersect page crop box".to_string())?;
+    let scale_x = f64::from(raster_width_px) / page_crop_box.width_points().max(1.0);
+    let scale_y = f64::from(raster_height_px) / page_crop_box.height_points().max(1.0);
+    let left = floor_pixel(
+        (clipped.left - page_crop_box.left) * scale_x,
+        raster_width_px,
+    );
+    let right = ceil_pixel(
+        (clipped.right - page_crop_box.left) * scale_x,
+        raster_width_px,
+    );
+    let top = floor_pixel(
+        (page_crop_box.top - clipped.top) * scale_y,
+        raster_height_px,
+    );
+    let bottom = ceil_pixel(
+        (page_crop_box.top - clipped.bottom) * scale_y,
+        raster_height_px,
+    );
+    if left >= right || top >= bottom {
+        return Err("region maps to an empty source page pixel box".to_string());
+    }
+    Ok(PdfPagePixelBox::new(left, top, right, bottom))
+}
+
+fn floor_pixel(value: f64, max: u32) -> u32 {
+    value
+        .floor()
+        .clamp(0.0, f64::from(max))
+        .to_u32()
+        .unwrap_or(max)
+}
+
+fn ceil_pixel(value: f64, max: u32) -> u32 {
+    value
+        .ceil()
+        .clamp(0.0, f64::from(max))
+        .to_u32()
+        .unwrap_or(max)
 }
 
 fn is_pdf_path(path: &Path) -> bool {
@@ -997,6 +1270,14 @@ fn shard_manifest_schema() -> SchemaRef {
         Field::new("pointToPixelScaleX", DataType::Float64, false),
         Field::new("pointToPixelScaleY", DataType::Float64, false),
         Field::new("elementId", DataType::Utf8, false),
+        Field::new("shardType", DataType::Utf8, false),
+        Field::new("regionIndex", DataType::Int32, false),
+        Field::new("parentShardElementId", DataType::Utf8, false),
+        Field::new("readingOrderKey", DataType::Utf8, false),
+        Field::new("sourcePagePixelLeft", DataType::Int32, false),
+        Field::new("sourcePagePixelTop", DataType::Int32, false),
+        Field::new("sourcePagePixelRight", DataType::Int32, false),
+        Field::new("sourcePagePixelBottom", DataType::Int32, false),
     ]))
 }
 

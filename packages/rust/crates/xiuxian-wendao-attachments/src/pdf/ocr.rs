@@ -8,7 +8,7 @@ use sha2::{Digest, Sha256};
 
 use super::render::PdfPageShardManifest;
 
-pub const PDF_OCR_SHARD_INPUT_SCHEMA_VERSION: &str = "xiuxian_wendao.pdf_ocr_shard_input.v1";
+pub const PDF_OCR_SHARD_INPUT_SCHEMA_VERSION: &str = "xiuxian_wendao.pdf_ocr_shard_input.v2";
 pub const PDF_OCR_SHARD_RESULT_SCHEMA_VERSION: &str = "xiuxian_wendao.pdf_ocr_shard_result.v1";
 pub const PDF_OCR_DEFAULT_PROFILE: &str = "docling-compatible-page-ocr-v1";
 
@@ -68,6 +68,14 @@ pub struct PdfOcrShardInput {
     pub point_to_pixel_scale_x: f64,
     pub point_to_pixel_scale_y: f64,
     pub shard_element_id: String,
+    pub shard_type: String,
+    pub region_index: u32,
+    pub parent_shard_element_id: String,
+    pub reading_order_key: String,
+    pub source_page_pixel_left: u32,
+    pub source_page_pixel_top: u32,
+    pub source_page_pixel_right: u32,
+    pub source_page_pixel_bottom: u32,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
@@ -218,6 +226,14 @@ pub fn build_ocr_shard_inputs(
             point_to_pixel_scale_x: manifest.geometry.point_to_pixel_scale_x,
             point_to_pixel_scale_y: manifest.geometry.point_to_pixel_scale_y,
             shard_element_id: manifest.element_id.clone(),
+            shard_type: manifest.shard_type.as_str().to_string(),
+            region_index: manifest.region_index,
+            parent_shard_element_id: manifest.parent_shard_element_id.clone(),
+            reading_order_key: manifest.reading_order_key.clone(),
+            source_page_pixel_left: manifest.source_page_pixel_box.left,
+            source_page_pixel_top: manifest.source_page_pixel_box.top,
+            source_page_pixel_right: manifest.source_page_pixel_box.right,
+            source_page_pixel_bottom: manifest.source_page_pixel_box.bottom,
         })
         .collect()
 }
@@ -263,6 +279,14 @@ pub fn build_ocr_shard_input_batch(inputs: &[PdfOcrShardInput]) -> Result<Record
             input_float_column(inputs, |input| input.point_to_pixel_scale_x),
             input_float_column(inputs, |input| input.point_to_pixel_scale_y),
             input_string_column(inputs, |input| input.shard_element_id.clone()),
+            input_string_column(inputs, |input| input.shard_type.clone()),
+            input_int_column(inputs, |input| input.region_index),
+            input_string_column(inputs, |input| input.parent_shard_element_id.clone()),
+            input_string_column(inputs, |input| input.reading_order_key.clone()),
+            input_int_column(inputs, |input| input.source_page_pixel_left),
+            input_int_column(inputs, |input| input.source_page_pixel_top),
+            input_int_column(inputs, |input| input.source_page_pixel_right),
+            input_int_column(inputs, |input| input.source_page_pixel_bottom),
         ],
     )
     .map_err(|error| format!("build OCR shard input Arrow batch: {error}"))
@@ -339,42 +363,94 @@ pub fn decode_ocr_shard_input_batch(batch: &RecordBatch) -> Result<Vec<PdfOcrSha
         ocr_shard_input_schema().as_ref(),
         "OCR shard input",
     )?;
+    let columns = OcrShardInputColumns::from_batch(batch)?;
+    (0..batch.num_rows())
+        .map(|row| columns.decode_row(row))
+        .collect()
+}
 
-    let contract_version = string_column(batch, "contractVersion")?;
-    let source_path = string_column(batch, "sourcePath")?;
-    let source_content_hash = string_column(batch, "sourceContentHash")?;
-    let page_index = int32_column(batch, "pageIndex")?;
-    let image_path = string_column(batch, "imagePath")?;
-    let image_mime_type = string_column(batch, "imageMimeType")?;
-    let raster_sha256 = string_column(batch, "rasterSha256")?;
-    let render_profile = string_column(batch, "renderProfile")?;
-    let ocr_profile = string_column(batch, "ocrProfile")?;
-    let ocr_engine = string_column(batch, "ocrEngine")?;
-    let preferred_languages = string_column(batch, "preferredLanguages")?;
-    let min_confidence = float64_column(batch, "minConfidence")?;
-    let preserve_layout = bool_column(batch, "preserveLayout")?;
-    let raster_width_px = int32_column(batch, "rasterWidthPx")?;
-    let raster_height_px = int32_column(batch, "rasterHeightPx")?;
-    let render_dpi = int32_column(batch, "renderDpi")?;
-    let rotation_degrees = int32_column(batch, "rotationDegrees")?;
-    let crop_left = float64_column(batch, "cropLeft")?;
-    let crop_bottom = float64_column(batch, "cropBottom")?;
-    let crop_right = float64_column(batch, "cropRight")?;
-    let crop_top = float64_column(batch, "cropTop")?;
-    let point_to_pixel_scale_x = float64_column(batch, "pointToPixelScaleX")?;
-    let point_to_pixel_scale_y = float64_column(batch, "pointToPixelScaleY")?;
-    let shard_element_id = string_column(batch, "shardElementId")?;
+struct OcrShardInputColumns<'a> {
+    contract_version: &'a StringArray,
+    source_path: &'a StringArray,
+    source_content_hash: &'a StringArray,
+    page_index: &'a Int32Array,
+    image_path: &'a StringArray,
+    image_mime_type: &'a StringArray,
+    raster_sha256: &'a StringArray,
+    render_profile: &'a StringArray,
+    ocr_profile: &'a StringArray,
+    ocr_engine: &'a StringArray,
+    preferred_languages: &'a StringArray,
+    min_confidence: &'a Float64Array,
+    preserve_layout: &'a BooleanArray,
+    raster_width_px: &'a Int32Array,
+    raster_height_px: &'a Int32Array,
+    render_dpi: &'a Int32Array,
+    rotation_degrees: &'a Int32Array,
+    crop_left: &'a Float64Array,
+    crop_bottom: &'a Float64Array,
+    crop_right: &'a Float64Array,
+    crop_top: &'a Float64Array,
+    point_to_pixel_scale_x: &'a Float64Array,
+    point_to_pixel_scale_y: &'a Float64Array,
+    shard_element_id: &'a StringArray,
+    shard_type: &'a StringArray,
+    region_index: &'a Int32Array,
+    parent_shard_element_id: &'a StringArray,
+    reading_order_key: &'a StringArray,
+    source_page_pixel_left: &'a Int32Array,
+    source_page_pixel_top: &'a Int32Array,
+    source_page_pixel_right: &'a Int32Array,
+    source_page_pixel_bottom: &'a Int32Array,
+}
 
-    let mut inputs = Vec::with_capacity(batch.num_rows());
-    for row in 0..batch.num_rows() {
-        let version = required_string(contract_version, row, "contractVersion")?;
+impl<'a> OcrShardInputColumns<'a> {
+    fn from_batch(batch: &'a RecordBatch) -> Result<Self, String> {
+        Ok(Self {
+            contract_version: string_column(batch, "contractVersion")?,
+            source_path: string_column(batch, "sourcePath")?,
+            source_content_hash: string_column(batch, "sourceContentHash")?,
+            page_index: int32_column(batch, "pageIndex")?,
+            image_path: string_column(batch, "imagePath")?,
+            image_mime_type: string_column(batch, "imageMimeType")?,
+            raster_sha256: string_column(batch, "rasterSha256")?,
+            render_profile: string_column(batch, "renderProfile")?,
+            ocr_profile: string_column(batch, "ocrProfile")?,
+            ocr_engine: string_column(batch, "ocrEngine")?,
+            preferred_languages: string_column(batch, "preferredLanguages")?,
+            min_confidence: float64_column(batch, "minConfidence")?,
+            preserve_layout: bool_column(batch, "preserveLayout")?,
+            raster_width_px: int32_column(batch, "rasterWidthPx")?,
+            raster_height_px: int32_column(batch, "rasterHeightPx")?,
+            render_dpi: int32_column(batch, "renderDpi")?,
+            rotation_degrees: int32_column(batch, "rotationDegrees")?,
+            crop_left: float64_column(batch, "cropLeft")?,
+            crop_bottom: float64_column(batch, "cropBottom")?,
+            crop_right: float64_column(batch, "cropRight")?,
+            crop_top: float64_column(batch, "cropTop")?,
+            point_to_pixel_scale_x: float64_column(batch, "pointToPixelScaleX")?,
+            point_to_pixel_scale_y: float64_column(batch, "pointToPixelScaleY")?,
+            shard_element_id: string_column(batch, "shardElementId")?,
+            shard_type: string_column(batch, "shardType")?,
+            region_index: int32_column(batch, "regionIndex")?,
+            parent_shard_element_id: string_column(batch, "parentShardElementId")?,
+            reading_order_key: string_column(batch, "readingOrderKey")?,
+            source_page_pixel_left: int32_column(batch, "sourcePagePixelLeft")?,
+            source_page_pixel_top: int32_column(batch, "sourcePagePixelTop")?,
+            source_page_pixel_right: int32_column(batch, "sourcePagePixelRight")?,
+            source_page_pixel_bottom: int32_column(batch, "sourcePagePixelBottom")?,
+        })
+    }
+
+    fn decode_row(&self, row: usize) -> Result<PdfOcrShardInput, String> {
+        let version = required_string(self.contract_version, row, "contractVersion")?;
         if version != PDF_OCR_SHARD_INPUT_SCHEMA_VERSION {
             return Err(format!(
                 "unexpected OCR shard input contract version `{version}`"
             ));
         }
 
-        let languages = required_string(preferred_languages, row, "preferredLanguages")?
+        let languages = required_string(self.preferred_languages, row, "preferredLanguages")?
             .split(',')
             .filter_map(|value| {
                 let trimmed = value.trim();
@@ -382,42 +458,80 @@ pub fn decode_ocr_shard_input_batch(batch: &RecordBatch) -> Result<Vec<PdfOcrSha
             })
             .collect();
 
-        inputs.push(PdfOcrShardInput {
+        let shard_type_value = required_string(self.shard_type, row, "shardType")?;
+        if !matches!(shard_type_value.as_str(), "page" | "region") {
+            return Err(format!(
+                "unsupported OCR shard input type `{shard_type_value}` at row {row}"
+            ));
+        }
+
+        Ok(PdfOcrShardInput {
             contract_version: version,
-            source_path: required_string(source_path, row, "sourcePath")?,
-            source_content_hash: required_string(source_content_hash, row, "sourceContentHash")?,
-            page_index: required_u32(page_index, row, "pageIndex")?,
-            image_path: required_string(image_path, row, "imagePath")?,
-            image_mime_type: required_string(image_mime_type, row, "imageMimeType")?,
-            raster_sha256: required_string(raster_sha256, row, "rasterSha256")?,
-            render_profile: required_string(render_profile, row, "renderProfile")?,
-            ocr_profile: required_string(ocr_profile, row, "ocrProfile")?,
-            ocr_engine: required_string(ocr_engine, row, "ocrEngine")?,
+            source_path: required_string(self.source_path, row, "sourcePath")?,
+            source_content_hash: required_string(
+                self.source_content_hash,
+                row,
+                "sourceContentHash",
+            )?,
+            page_index: required_u32(self.page_index, row, "pageIndex")?,
+            image_path: required_string(self.image_path, row, "imagePath")?,
+            image_mime_type: required_string(self.image_mime_type, row, "imageMimeType")?,
+            raster_sha256: required_string(self.raster_sha256, row, "rasterSha256")?,
+            render_profile: required_string(self.render_profile, row, "renderProfile")?,
+            ocr_profile: required_string(self.ocr_profile, row, "ocrProfile")?,
+            ocr_engine: required_string(self.ocr_engine, row, "ocrEngine")?,
             preferred_languages: languages,
-            min_confidence: required_f64(min_confidence, row, "minConfidence")?,
-            preserve_layout: required_bool(preserve_layout, row, "preserveLayout")?,
-            raster_width_px: required_u32(raster_width_px, row, "rasterWidthPx")?,
-            raster_height_px: required_u32(raster_height_px, row, "rasterHeightPx")?,
-            render_dpi: required_u32(render_dpi, row, "renderDpi")?,
-            rotation_degrees: required_u16(rotation_degrees, row, "rotationDegrees")?,
-            crop_left: required_f64(crop_left, row, "cropLeft")?,
-            crop_bottom: required_f64(crop_bottom, row, "cropBottom")?,
-            crop_right: required_f64(crop_right, row, "cropRight")?,
-            crop_top: required_f64(crop_top, row, "cropTop")?,
+            min_confidence: required_f64(self.min_confidence, row, "minConfidence")?,
+            preserve_layout: required_bool(self.preserve_layout, row, "preserveLayout")?,
+            raster_width_px: required_u32(self.raster_width_px, row, "rasterWidthPx")?,
+            raster_height_px: required_u32(self.raster_height_px, row, "rasterHeightPx")?,
+            render_dpi: required_u32(self.render_dpi, row, "renderDpi")?,
+            rotation_degrees: required_u16(self.rotation_degrees, row, "rotationDegrees")?,
+            crop_left: required_f64(self.crop_left, row, "cropLeft")?,
+            crop_bottom: required_f64(self.crop_bottom, row, "cropBottom")?,
+            crop_right: required_f64(self.crop_right, row, "cropRight")?,
+            crop_top: required_f64(self.crop_top, row, "cropTop")?,
             point_to_pixel_scale_x: required_f64(
-                point_to_pixel_scale_x,
+                self.point_to_pixel_scale_x,
                 row,
                 "pointToPixelScaleX",
             )?,
             point_to_pixel_scale_y: required_f64(
-                point_to_pixel_scale_y,
+                self.point_to_pixel_scale_y,
                 row,
                 "pointToPixelScaleY",
             )?,
-            shard_element_id: required_string(shard_element_id, row, "shardElementId")?,
-        });
+            shard_element_id: required_string(self.shard_element_id, row, "shardElementId")?,
+            shard_type: shard_type_value,
+            region_index: required_u32(self.region_index, row, "regionIndex")?,
+            parent_shard_element_id: required_string(
+                self.parent_shard_element_id,
+                row,
+                "parentShardElementId",
+            )?,
+            reading_order_key: required_string(self.reading_order_key, row, "readingOrderKey")?,
+            source_page_pixel_left: required_u32(
+                self.source_page_pixel_left,
+                row,
+                "sourcePagePixelLeft",
+            )?,
+            source_page_pixel_top: required_u32(
+                self.source_page_pixel_top,
+                row,
+                "sourcePagePixelTop",
+            )?,
+            source_page_pixel_right: required_u32(
+                self.source_page_pixel_right,
+                row,
+                "sourcePagePixelRight",
+            )?,
+            source_page_pixel_bottom: required_u32(
+                self.source_page_pixel_bottom,
+                row,
+                "sourcePagePixelBottom",
+            )?,
+        })
     }
-    Ok(inputs)
 }
 
 /// Decode stable OCR worker result rows from Arrow batches.
@@ -553,11 +667,12 @@ fn resource_content(result: &PdfOcrShardResult) -> String {
 fn ocr_result_element_id(input: &PdfOcrShardInput) -> String {
     sha256_hex(
         format!(
-            "{}:{}:{}:{}:{}",
+            "{}:{}:{}:{}:{}:{}",
             input.source_content_hash,
             input.page_index,
             input.render_profile,
             input.ocr_profile,
+            input.shard_element_id,
             input.raster_sha256
         )
         .as_bytes(),
@@ -760,6 +875,14 @@ fn ocr_shard_input_schema() -> SchemaRef {
         Field::new("pointToPixelScaleX", DataType::Float64, false),
         Field::new("pointToPixelScaleY", DataType::Float64, false),
         Field::new("shardElementId", DataType::Utf8, false),
+        Field::new("shardType", DataType::Utf8, false),
+        Field::new("regionIndex", DataType::Int32, false),
+        Field::new("parentShardElementId", DataType::Utf8, false),
+        Field::new("readingOrderKey", DataType::Utf8, false),
+        Field::new("sourcePagePixelLeft", DataType::Int32, false),
+        Field::new("sourcePagePixelTop", DataType::Int32, false),
+        Field::new("sourcePagePixelRight", DataType::Int32, false),
+        Field::new("sourcePagePixelBottom", DataType::Int32, false),
     ]))
 }
 

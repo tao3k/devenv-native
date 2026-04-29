@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
     from .documents import DocumentConverterProtocol
 
-PDF_OCR_SHARD_INPUT_SCHEMA_VERSION = "xiuxian_wendao.pdf_ocr_shard_input.v1"
+PDF_OCR_SHARD_INPUT_SCHEMA_VERSION = "xiuxian_wendao.pdf_ocr_shard_input.v2"
 PDF_OCR_SHARD_RESULT_SCHEMA_VERSION = "xiuxian_wendao.pdf_ocr_shard_result.v1"
 PDF_OCR_DEFAULT_PROFILE = "docling-compatible-page-ocr-v1"
 
@@ -43,6 +43,14 @@ PDF_OCR_SHARD_INPUT_SCHEMA = pa.schema(
         pa.field("pointToPixelScaleX", pa.float64(), nullable=False),
         pa.field("pointToPixelScaleY", pa.float64(), nullable=False),
         pa.field("shardElementId", pa.string(), nullable=False),
+        pa.field("shardType", pa.string(), nullable=False),
+        pa.field("regionIndex", pa.int32(), nullable=False),
+        pa.field("parentShardElementId", pa.string(), nullable=False),
+        pa.field("readingOrderKey", pa.string(), nullable=False),
+        pa.field("sourcePagePixelLeft", pa.int32(), nullable=False),
+        pa.field("sourcePagePixelTop", pa.int32(), nullable=False),
+        pa.field("sourcePagePixelRight", pa.int32(), nullable=False),
+        pa.field("sourcePagePixelBottom", pa.int32(), nullable=False),
     ],
 )
 
@@ -181,6 +189,9 @@ def validate_pdf_ocr_shard_input_table(input_table: pa.Table) -> None:
         raise ValueError(
             f"Unexpected OCR shard input contract versions: {sorted(versions)}"
         )
+    shard_types = set(input_table.column("shardType").to_pylist())
+    if shard_types - {"page", "region"}:
+        raise ValueError(f"Unexpected OCR shard types: {sorted(shard_types)}")
 
 
 def succeeded_pdf_ocr_shard_result(
@@ -291,7 +302,7 @@ def _ocr_result_element_id(input_row: Mapping[str, Any]) -> str:
     material = (
         f"{input_row['sourceContentHash']}:{input_row['pageIndex']}:"
         f"{input_row['renderProfile']}:{input_row['ocrProfile']}:"
-        f"{input_row['rasterSha256']}"
+        f"{input_row['shardElementId']}:{input_row['rasterSha256']}"
     )
     return hashlib.sha256(material.encode("utf-8")).hexdigest()
 

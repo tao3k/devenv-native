@@ -158,10 +158,31 @@ def test_pdf_ocr_shard_result_table_uses_injected_worker() -> None:
     )
 
     assert worker.inputs[0]["imagePath"] == "/tmp/page-00000.png"
+    assert worker.inputs[0]["shardType"] == "page"
+    assert worker.inputs[0]["readingOrderKey"] == "000000.000000"
     row = table.to_pylist()[0]
     assert row["status"] == "succeeded"
     assert row["text"] == "page text"
     assert row["confidence"] == 0.91
+
+
+def test_pdf_ocr_shard_result_table_accepts_region_inputs() -> None:
+    worker = FakePdfOcrShardWorker()
+    table = build_pdf_ocr_shard_result_table(
+        _sample_pdf_ocr_input_table(
+            shard_type="region",
+            region_index=2,
+            parent_shard_element_id="parent-page",
+            reading_order_key="000000.000002",
+        ),
+        worker=worker,
+    )
+
+    assert worker.inputs[0]["shardType"] == "region"
+    assert worker.inputs[0]["regionIndex"] == 2
+    assert worker.inputs[0]["parentShardElementId"] == "parent-page"
+    assert worker.inputs[0]["readingOrderKey"] == "000000.000002"
+    assert table.to_pylist()[0]["status"] == "succeeded"
 
 
 def test_docling_pdf_ocr_worker_converts_page_images(tmp_path: Path) -> None:
@@ -256,7 +277,14 @@ def test_document_service_exchanges_pdf_ocr_shards_over_arrow_flight() -> None:
     assert worker.inputs[0]["sourcePath"] == "/tmp/source.pdf"
 
 
-def _sample_pdf_ocr_input_table(image_path: str = "/tmp/page-00000.png"):
+def _sample_pdf_ocr_input_table(
+    image_path: str = "/tmp/page-00000.png",
+    *,
+    shard_type: str = "page",
+    region_index: int = 0,
+    parent_shard_element_id: str = "",
+    reading_order_key: str = "000000.000000",
+):
     return pa.Table.from_pylist(
         [
             {
@@ -284,6 +312,14 @@ def _sample_pdf_ocr_input_table(image_path: str = "/tmp/page-00000.png"):
                 "pointToPixelScaleX": 3.921568627,
                 "pointToPixelScaleY": 3.914141414,
                 "shardElementId": "shard-id",
+                "shardType": shard_type,
+                "regionIndex": region_index,
+                "parentShardElementId": parent_shard_element_id,
+                "readingOrderKey": reading_order_key,
+                "sourcePagePixelLeft": 0,
+                "sourcePagePixelTop": 0,
+                "sourcePagePixelRight": 2400,
+                "sourcePagePixelBottom": 3100,
             }
         ],
         schema=PDF_OCR_SHARD_INPUT_SCHEMA,

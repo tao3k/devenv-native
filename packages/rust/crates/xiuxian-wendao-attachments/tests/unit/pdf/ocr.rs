@@ -4,8 +4,9 @@ use arrow::array::{Array, BooleanArray, Float64Array, Int32Array, StringArray};
 use arrow::record_batch::RecordBatch;
 
 use super::super::render::{
-    PdfPageBox, PdfPageRenderProfile, PdfPageShardManifest, PdfPageShardManifestInput,
-    RenderedRasterIdentity, build_shard_manifest,
+    PdfPageBox, PdfPageRegion, PdfPageRegionShardManifestInput, PdfPageRenderProfile,
+    PdfPageShardManifest, PdfPageShardManifestInput, RenderedRasterIdentity,
+    build_region_shard_manifest, build_shard_manifest,
 };
 use super::*;
 
@@ -71,6 +72,34 @@ fn sample_manifest() -> PdfPageShardManifest {
     })
 }
 
+fn sample_region_manifest() -> Result<PdfPageShardManifest, String> {
+    let page_manifest = sample_manifest();
+    let profile = PdfPageRenderProfile::ocr_default();
+    build_region_shard_manifest(PdfPageRegionShardManifestInput {
+        source_path: Path::new("/tmp/source.pdf"),
+        source_content_hash: "sourcehash",
+        page_index: 3,
+        profile: &profile,
+        media_box: PdfPageBox::new(0.0, 0.0, 612.0, 792.0),
+        page_crop_box: PdfPageBox::new(18.0, 24.0, 594.0, 768.0),
+        region: PdfPageRegion::new(
+            4,
+            PdfPageBox::new(162.0, 210.0, 306.0, 396.0),
+            page_manifest.element_id,
+            "000003.000004",
+        ),
+        rotation_degrees: 90,
+        page_raster_width_px: 3100,
+        page_raster_height_px: 2400,
+        raster: RenderedRasterIdentity {
+            path: PathBuf::from("/tmp/shards/page-00003-region-00004.png"),
+            sha256: "regionhash".to_string(),
+            width_px: 620,
+            height_px: 800,
+        },
+    })
+}
+
 #[test]
 fn document_extract_pdf_ocr_builds_worker_input_batch() -> Result<(), String> {
     let profile = PdfOcrWorkerProfile {
@@ -102,6 +131,33 @@ fn document_extract_pdf_ocr_builds_worker_input_batch() -> Result<(), String> {
     assert_eq!(int32_column(&batch, "rotationDegrees")?.value(0), 90);
     assert_eq!(int32_column(&batch, "rasterWidthPx")?.value(0), 3100);
     assert_close(float64_column(&batch, "cropLeft")?.value(0), 18.0);
+    assert_eq!(string_column(&batch, "shardType")?.value(0), "page");
+    assert_eq!(int32_column(&batch, "regionIndex")?.value(0), 0);
+    assert_eq!(
+        string_column(&batch, "readingOrderKey")?.value(0),
+        "000003.000000"
+    );
+    assert_eq!(int32_column(&batch, "sourcePagePixelRight")?.value(0), 3100);
+    Ok(())
+}
+
+#[test]
+fn document_extract_pdf_ocr_builds_region_worker_input_batch() -> Result<(), String> {
+    let inputs = build_ocr_shard_inputs(
+        &[sample_region_manifest()?],
+        &PdfOcrWorkerProfile::docling_compatible(),
+    );
+    let batch = build_ocr_shard_input_batch(&inputs)?;
+
+    assert_eq!(batch.num_rows(), 1);
+    assert_eq!(string_column(&batch, "shardType")?.value(0), "region");
+    assert_eq!(int32_column(&batch, "regionIndex")?.value(0), 4);
+    assert_eq!(
+        string_column(&batch, "readingOrderKey")?.value(0),
+        "000003.000004"
+    );
+    assert_eq!(int32_column(&batch, "sourcePagePixelLeft")?.value(0), 775);
+    assert_eq!(int32_column(&batch, "sourcePagePixelTop")?.value(0), 1200);
     Ok(())
 }
 
@@ -220,4 +276,24 @@ fn document_extract_pdf_ocr_result_id_changes_with_profile() {
 
     assert_ne!(first.element_id, second.element_id);
     assert_eq!(first.shard_element_id, second.shard_element_id);
+}
+
+#[test]
+fn document_extract_pdf_ocr_result_id_changes_with_shard_element_id() {
+    let first_input = build_ocr_shard_inputs(
+        &[sample_manifest()],
+        &PdfOcrWorkerProfile::docling_compatible(),
+    )
+    .remove(0);
+    let mut second_input = first_input.clone();
+    second_input.shard_type = "region".to_string();
+    second_input.region_index = 1;
+    second_input.shard_element_id = "same-raster-other-region".to_string();
+    second_input.reading_order_key = "000003.000001".to_string();
+
+    let first = PdfOcrShardResult::succeeded(&first_input, "recognized text", 0.98);
+    let second = PdfOcrShardResult::succeeded(&second_input, "recognized text", 0.98);
+
+    assert_eq!(first_input.raster_sha256, second_input.raster_sha256);
+    assert_ne!(first.element_id, second.element_id);
 }
