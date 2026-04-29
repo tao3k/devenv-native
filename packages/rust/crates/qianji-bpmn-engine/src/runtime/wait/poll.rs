@@ -65,13 +65,31 @@ pub(crate) fn apply_event_poll_outcome_impl(
     let outcome = outcome.borrow();
     let wait_set = event_poll_waits(instance)?;
 
-    if !outcome.ready && !single_conditional_wait_candidate(&wait_set.waits) {
+    let mut poll_data_merged = false;
+    let wait = if outcome.ready || single_conditional_wait_candidate(&wait_set.waits) {
+        resolve_winning_wait(&wait_set.waits, outcome)?
+    } else if has_conditional_wait_candidate(&wait_set.waits) {
+        merge_output_data(&mut instance.variables, &outcome.data);
+        poll_data_merged = true;
+        let Some(wait) = first_satisfied_conditional_wait(package, instance, &wait_set)? else {
+            if outcome
+                .data
+                .as_object()
+                .is_some_and(|object| !object.is_empty())
+            {
+                record_transition(instance, polled_at_ms, InstanceLifecycle::Waiting);
+            }
+            return Ok(BpmnAdvanceOutcome::WaitingExternalEvent);
+        };
+        wait
+    } else {
         return Ok(BpmnAdvanceOutcome::WaitingExternalEvent);
-    }
+    };
 
-    let wait = resolve_winning_wait(&wait_set.waits, outcome)?;
     let process = resolve_wait_process(package, instance, &wait, wait_set.source)?;
-    merge_output_data(&mut instance.variables, &outcome.data);
+    if !poll_data_merged {
+        merge_output_data(&mut instance.variables, &outcome.data);
+    }
     if is_conditional_wait(&wait)
         && !conditional_event_is_satisfied(process, wait.node_index, &instance.variables)?
     {
@@ -157,8 +175,30 @@ fn single_conditional_wait_candidate(waits: &[RuntimeWaitRegistration]) -> bool 
     matches!(waits, [wait] if is_conditional_wait(wait))
 }
 
+fn has_conditional_wait_candidate(waits: &[RuntimeWaitRegistration]) -> bool {
+    waits.iter().any(is_conditional_wait)
+}
+
 fn is_conditional_wait(wait: &RuntimeWaitRegistration) -> bool {
     wait.event_kind == Some(crate::ir_event_api::BpmnEventKind::Conditional)
+}
+
+fn first_satisfied_conditional_wait(
+    package: &BpmnPackage,
+    instance: &BpmnInstanceState,
+    wait_set: &EventPollWaitSet,
+) -> Result<Option<RuntimeWaitRegistration>> {
+    for wait in wait_set
+        .waits
+        .iter()
+        .filter(|wait| is_conditional_wait(wait))
+    {
+        let process = resolve_wait_process(package, instance, wait, wait_set.source)?;
+        if conditional_event_is_satisfied(process, wait.node_index, &instance.variables)? {
+            return Ok(Some(wait.clone()));
+        }
+    }
+    Ok(None)
 }
 
 fn apply_interrupting_parent_frame_boundary_wait(

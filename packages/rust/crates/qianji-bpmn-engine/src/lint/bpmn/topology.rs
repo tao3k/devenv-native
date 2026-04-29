@@ -44,13 +44,13 @@ pub(super) fn issue_from_bpmn_topology_error(error: &BpmnEngineError) -> Option<
             format!(
                 "Process '{process_id}' event-based gateway '{node_id}' uses unsupported configuration '{detail}'."
             ),
-            "The current engine supports only one bounded event-based gateway shape: one exclusive eventBasedGateway whose outgoing paths all target message, signal, or timer intermediate catch events.",
+            "The current engine supports only one bounded event-based gateway shape: one exclusive eventBasedGateway whose outgoing paths all target message, signal, timer, or conditional intermediate catch events.",
             vec![
                 "Keep the winner-takes-all intent, but make every outgoing branch from the eventBasedGateway point to one intermediateCatchEvent.".to_string(),
-                "Use only messageEventDefinition, signalEventDefinition, or timerEventDefinition on those waiting nodes in this bounded slice.".to_string(),
+                "Use only messageEventDefinition, signalEventDefinition, timerEventDefinition, or conditionalEventDefinition with one bounded condition on those waiting nodes in this bounded slice.".to_string(),
             ],
             format!(
-                "Rewrite event-based gateway '{node_id}' in process '{process_id}' so it fits the bounded slice: use one exclusive `eventBasedGateway` with at least two outgoing branches, and make every outgoing target one `intermediateCatchEvent` with exactly one `messageEventDefinition`, `signalEventDefinition`, or `timerEventDefinition`. Preserve workflow intent, but remove unsupported configuration '{detail}'."
+                "Rewrite event-based gateway '{node_id}' in process '{process_id}' so it fits the bounded slice: use one exclusive `eventBasedGateway` with at least two outgoing branches, and make every outgoing target one `intermediateCatchEvent` with exactly one `messageEventDefinition`, `signalEventDefinition`, `timerEventDefinition`, or `conditionalEventDefinition` with one bounded condition. Preserve workflow intent, but remove unsupported configuration '{detail}'."
             ),
             json!({
                 "process_id": process_id,

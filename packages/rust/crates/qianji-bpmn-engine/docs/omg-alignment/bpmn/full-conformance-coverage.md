@@ -26,7 +26,7 @@ guidance.
 | Parallel gateway          | bounded executable | Split and join with deterministic active-token and join-buffer behavior.            |
 | Exclusive gateway         | bounded executable | Default flow plus simple boolean-path and numeric condition expressions.            |
 | Inclusive gateway         | bounded executable | Structured split and one matching linear join fragment.                             |
-| Event-based gateway       | bounded executable | Exclusive competition over message, signal, or timer intermediate catches.          |
+| Event-based gateway       | bounded executable | Exclusive competition over message, signal, timer, or conditional catches.          |
 | Complex gateway           | lint-deferred      | No executable semantics yet.                                                        |
 | Intermediate catch events | bounded executable | Message, signal, timer, and bounded conditional waits.                              |
 | Boundary events           | bounded executable | Bounded task owners plus interrupting subprocess-like external boundaries.          |
@@ -98,3 +98,10 @@ boundaries, then re-evaluates the bounded condition after event-poll data is
 merged. Non-interrupting conditional boundaries on subprocess-like owners,
 conditional start events, and conditional event subprocess triggers remain
 deferred.
+
+The sixth event-family slice promotes native `conditionalEventDefinition` as
+an exclusive `eventBasedGateway` `intermediateCatchEvent` wait target. Runtime
+event competition still uses a single winning branch, and non-ready poll data
+can select the first conditional wait whose bounded expression becomes true.
+Conditional start events, conditional event subprocess triggers, parallel
+event-based gateways, and collaboration-aware correlation remain deferred.

@@ -26,6 +26,16 @@ fn bpmn_linter_reports_invalid_event_based_gateway_target_with_llm_guidance() {
     assert!(issue.summary.contains("wait_race"));
     assert!(issue.llm_fix_prompt.contains("eventBasedGateway"));
 }
+
+#[test]
+fn bpmn_linter_accepts_event_based_gateway_conditional_wait_target() {
+    let report = lint_bpmn_source(&bpmn_fixture_source("event-based-gateway-conditional.bpmn"));
+
+    assert_eq!(report.domain, LintDomain::Bpmn);
+    assert!(report.ok);
+    assert!(report.issues.is_empty());
+}
+
 #[test]
 fn bpmn_linter_reports_unsupported_gateway_condition_with_llm_guidance() {
     let report = lint_bpmn_source(&bpmn_fixture_source(

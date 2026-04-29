@@ -63,6 +63,36 @@ fn parser_event_based_gateway_materializes_gateway_kind_and_wait_targets() {
 }
 
 #[test]
+fn parser_event_based_gateway_accepts_conditional_wait_target() {
+    let package = parse_fixture_package("event-based-gateway-conditional.bpmn");
+    let process = package
+        .find_process("event_race_conditional")
+        .must("process should be present");
+
+    assert_eq!(process.nodes[1].kind, BpmnNodeKind::Gateway);
+    assert_eq!(
+        process.nodes[1].gateway_kind,
+        Some(BpmnGatewayKind::EventBased)
+    );
+    assert_eq!(process.outgoing_edge_indices(1), [1, 2]);
+    assert_eq!(
+        process
+            .event_for_node(2)
+            .must("message wait should exist")
+            .kind,
+        BpmnEventKind::Message
+    );
+    let conditional_event = process
+        .event_for_node(3)
+        .must("conditional wait should exist");
+    assert_eq!(conditional_event.kind, BpmnEventKind::Conditional);
+    assert_eq!(
+        conditional_event.condition_expression.as_deref(),
+        Some("approved")
+    );
+}
+
+#[test]
 fn parser_event_based_gateway_requires_wait_targets() {
     let error = parse_fixture_error(
         "invalid-event-based-gateway-task-target.bpmn",

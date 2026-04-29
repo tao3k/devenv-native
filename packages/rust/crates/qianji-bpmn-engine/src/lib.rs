@@ -24,7 +24,7 @@
 //! same condition/default routing rules plus one matching linear join
 //! fragment,
 //! and one bounded exclusive `eventBasedGateway` whose outgoing targets are
-//! message/signal/timer `intermediateCatchEvent` waits, plus
+//! message/signal/timer/conditional `intermediateCatchEvent` waits, plus
 //! `intermediateCatchEvent` waits backed by `messageEventDefinition`,
 //! `signalEventDefinition`, and snapshot-style `timerEventDefinition`, plus
 //! one interrupting timer, message, signal, or conditional `boundaryEvent` on one

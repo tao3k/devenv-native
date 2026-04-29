@@ -1443,7 +1443,10 @@ fn validate_event_based_gateways(process: &RawProcess, node_ids: &HashSet<&str>)
             };
             if !matches!(
                 event.kind,
-                BpmnEventKind::Message | BpmnEventKind::Signal | BpmnEventKind::Timer
+                BpmnEventKind::Message
+                    | BpmnEventKind::Signal
+                    | BpmnEventKind::Timer
+                    | BpmnEventKind::Conditional
             ) {
                 return Err(BpmnEngineError::UnsupportedEventBasedGatewayConfiguration {
                     process_id: process.process_id.clone(),

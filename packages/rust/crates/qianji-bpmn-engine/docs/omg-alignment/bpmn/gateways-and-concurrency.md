@@ -15,8 +15,8 @@ The current engine supports these gateway families:
 - structured `inclusiveGateway` with the same bounded condition/default subset
   plus one linear matching join fragment.
 - exclusive `eventBasedGateway` whose outgoing targets are
-  `intermediateCatchEvent` nodes with exactly one message, signal, or timer
-  event definition.
+  `intermediateCatchEvent` nodes with exactly one message, signal, timer, or
+  conditional event definition.
 
 ## Runtime Guarantees
 
@@ -33,6 +33,8 @@ Within that bounded slice, the runtime guarantees:
   one activation fires
 - deterministic event-competition ownership where one event-based gateway
   winner cancels the losing waits
+- conditional event-based gateway wait targets are selected by the runtime
+  when poll data satisfies the bounded condition expression
 - optional Rayon-backed immutable frontier inspection without parallel mutable
   state writes
 
