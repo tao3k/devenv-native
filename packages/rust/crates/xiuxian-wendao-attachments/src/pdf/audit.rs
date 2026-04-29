@@ -20,8 +20,7 @@ const FAST_RUST_CONFIDENCE_THRESHOLD: f32 = 0.90;
 const DOCUMENT_RESOURCE_ARROW_CACHE_NAME: &str = "_resources.arrow";
 const DOCUMENT_EXTRACT_COMPLETE_MARKER_NAME: &str = "_complete.marker";
 const PDF_INSPECTOR_TEXT_FAST_PATH_PROFILE: &str = "pdf-inspector-text-fast-path-v1";
-const PDF_INSPECTOR_DEPENDENCY_PIN: &str =
-    "tao3k/pdf-inspector@xiuxian#63b55731337c18baf23319b73cc9780bb23ac61b";
+const PDF_INSPECTOR_VERSION_SOURCE: &str = "cargo-lock";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
@@ -181,7 +180,7 @@ impl<'a> TextFastPathContext<'a> {
                 .arrow_cache_path
                 .map(|path| path.to_string_lossy().to_string()),
             file_size_bytes: self.file_size_bytes,
-            inspector_version: PDF_INSPECTOR_DEPENDENCY_PIN.to_string(),
+            inspector_version: PDF_INSPECTOR_VERSION_SOURCE.to_string(),
             routing_profile: PDF_INSPECTOR_TEXT_FAST_PATH_PROFILE.to_string(),
             converter_profile: text_fast_path_converter_profile(),
             pdf_type: parts.pdf_type,
@@ -279,7 +278,7 @@ pub enum PdfInspectorRoutingGateFailure {
 
 #[must_use]
 pub fn text_fast_path_converter_profile() -> String {
-    format!("{PDF_INSPECTOR_DEPENDENCY_PIN}:{PDF_INSPECTOR_TEXT_FAST_PATH_PROFILE}")
+    PDF_INSPECTOR_TEXT_FAST_PATH_PROFILE.to_string()
 }
 
 #[must_use]

@@ -278,10 +278,7 @@ fn document_extract_pdf_text_fast_path_can_be_disabled_by_config() {
     );
 
     assert_eq!(record.status, "disabled");
-    assert_eq!(
-        record.converter_profile,
-        "tao3k/pdf-inspector@xiuxian#63b55731337c18baf23319b73cc9780bb23ac61b:pdf-inspector-text-fast-path-v1"
-    );
+    assert_eq!(record.converter_profile, "pdf-inspector-text-fast-path-v1");
     assert_eq!(record.arrow_rows, 0);
 }
 

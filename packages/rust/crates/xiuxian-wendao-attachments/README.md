@@ -10,10 +10,10 @@ gateway can depend on the crate without pulling PDF accelerators into default,
 
 ## Features
 
-| Feature         | Purpose                                                                      |
-| --------------- | ---------------------------------------------------------------------------- |
-| `pdf-inspector` | Enables the pinned `tao3k/pdf-inspector` audit and text-layer proof helpers. |
-| `pdf-render`    | Enables PDFium-backed page rendering and OCR shard manifest helpers.         |
+| Feature         | Purpose                                                                                   |
+| --------------- | ----------------------------------------------------------------------------------------- |
+| `pdf-inspector` | Enables the pinned upstream `firecrawl/pdf-inspector` audit and text-layer proof helpers. |
+| `pdf-render`    | Enables PDFium-backed page rendering and OCR shard manifest helpers.                      |
 
 ## Boundaries
 
