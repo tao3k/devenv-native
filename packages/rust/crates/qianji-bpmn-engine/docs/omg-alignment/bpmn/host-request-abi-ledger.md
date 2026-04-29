@@ -183,5 +183,5 @@ do not reintroduce local XML interaction fallback during execution. M3 also
 locks form-backed human completion data to a flat declared-field object and
 keeps nested output envelopes deferred. The bounded lifecycle-event slice also
 adds a checkpointed `human_task_events` audit ledger for user/manual created,
-claimed, released, and completed milestones without adding Flowable-style
-listeners or authorization semantics.
+claimed, released, and completed milestones without adding task-listener
+callbacks or authorization semantics.

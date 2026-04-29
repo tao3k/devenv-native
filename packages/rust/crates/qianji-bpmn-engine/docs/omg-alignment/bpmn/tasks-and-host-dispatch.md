@@ -35,10 +35,10 @@ The field-level user/manual task contract is tracked in the
   waiting-work identity instead of reconstructing activity identity from
   labels, list position, or display text.
 - `userTask` and `manualTask` requests may also carry optional `form` metadata
-  parsed from bounded native BPMN IO metadata extension elements. The current
-  form contract preserves interaction type, question references or inline
-  prompt text, dynamic or inline choices, free-text fields, and the primary
-  result output variable for host rendering.
+  parsed from bounded native BPMN IO metadata. The current form contract
+  preserves interaction type, question references or inline prompt text,
+  dynamic or inline choices, free-text fields, and the primary result output
+  variable for host rendering.
 - `userTask` and `manualTask` requests may also carry optional `assignment`
   metadata parsed from standard BPMN `humanPerformer` and `potentialOwner`
   resource roles. The current contract preserves role names, `resourceRef`
@@ -63,8 +63,8 @@ The field-level user/manual task contract is tracked in the
   checkpointed `human_task_events` after the state change succeeds. The ledger
   stores task identity, work kind, optional claimant, and optional work id; it
   is a required field in the current checkpoint API, does not store submitted
-  completion payload data, and does not implement Flowable-style listeners or
-  interceptors.
+  completion payload data, and does not implement task-listener or interceptor
+  callbacks.
 - When a pending user/manual task carries `form` metadata, completion data must
   be a JSON object whose fields are declared by the form. The primary
   `result_output` and non-optional `freeText` fields are required; undeclared
