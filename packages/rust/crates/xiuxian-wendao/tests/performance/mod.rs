@@ -11,4 +11,6 @@ mod latency_related_search;
 mod local_duckdb_cache;
 #[cfg(feature = "duckdb")]
 mod parquet_query_engine;
+#[cfg(feature = "document-extract-pdf-inspector")]
+mod pdf_inspector_detect_audit;
 mod throughput_related_search;

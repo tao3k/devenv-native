@@ -111,7 +111,9 @@ def test_docling_real_fixture_root_defaults_to_prj_data_home(
     )
 
 
-def test_prepare_docling_fixtures_uses_sparse_checkout(monkeypatch, tmp_path: Path) -> None:
+def test_prepare_docling_fixtures_uses_sparse_checkout(
+    monkeypatch, tmp_path: Path
+) -> None:
     benchmark = _load_benchmark_module()
     commands: list[list[str]] = []
 
@@ -325,6 +327,48 @@ def test_cargo_perf_probe_uses_minimal_feature_set(monkeypatch, tmp_path: Path) 
     assert report["rustJobsStatusSummary"]["sampleCount"] == 0
 
 
+def test_pdf_inspector_audit_command_adds_feature_and_fixture_manifest(
+    tmp_path: Path,
+) -> None:
+    benchmark = _load_benchmark_module()
+    args = benchmark.argparse.Namespace(
+        cargo="cargo",
+        cargo_features="performance,studio,zhenfa-router,duckdb",
+    )
+
+    command, env = benchmark.build_pdf_inspector_audit_command(
+        args,
+        {"pdf": tmp_path / "sample.pdf"},
+        tmp_path / "reports",
+    )
+
+    assert command[:4] == ["cargo", "test", "-p", "xiuxian-wendao"]
+    assert command[command.index("--test") + 1] == "xiuxian-testing-gate"
+    assert command[command.index("--features") + 1] == (
+        "performance,studio,zhenfa-router,duckdb,document-extract-pdf-inspector"
+    )
+    assert command[-4:] == [
+        "pdf_inspector_detect_audit",
+        "--",
+        "--ignored",
+        "--nocapture",
+    ]
+    inputs = benchmark.json.loads(env["WENDAO_PDF_INSPECTOR_AUDIT_INPUTS_JSON"])
+    assert inputs == [{"name": "pdf", "source": str(tmp_path / "sample.pdf")}]
+    assert env["WENDAO_PDF_INSPECTOR_AUDIT_REPORT_DIR"] == str(tmp_path / "reports")
+
+
+def test_pdf_inspector_audit_features_are_not_duplicated() -> None:
+    benchmark = _load_benchmark_module()
+
+    assert (
+        benchmark.cargo_features_with_pdf_inspector(
+            "performance document-extract-pdf-inspector"
+        )
+        == "performance,document-extract-pdf-inspector"
+    )
+
+
 def test_cargo_perf_probe_can_send_distinct_input_manifest(
     monkeypatch,
     tmp_path: Path,
@@ -371,7 +415,9 @@ def test_cargo_perf_probe_can_send_distinct_input_manifest(
         wait_ms=60000,
     )
 
-    manifest = benchmark.json.loads(captured_env["WENDAO_DOCUMENT_EXTRACT_PERF_INPUTS_JSON"])
+    manifest = benchmark.json.loads(
+        captured_env["WENDAO_DOCUMENT_EXTRACT_PERF_INPUTS_JSON"]
+    )
     assert captured_env["WENDAO_DOCUMENT_EXTRACT_PERF_WAIT_MS"] == "60000"
     assert [item["name"] for item in manifest] == ["first", "second"]
     assert [Path(item["outputDir"]).name for item in manifest] == ["first", "second"]
@@ -429,14 +475,18 @@ def test_start_gateway_server_sets_document_extract_and_valkey_env(
     env = kwargs["env"]
     assert env["WENDAO_DOCUMENT_EXTRACT_ENDPOINT"] == "http://127.0.0.1:51051"
     assert env["VALKEY_URL"] == "redis://127.0.0.1:51079/0"
-    assert env["XIUXIAN_WENDAO_SEARCH_PLANE_VALKEY_URL"] == ("redis://127.0.0.1:51079/0")
+    assert env["XIUXIAN_WENDAO_SEARCH_PLANE_VALKEY_URL"] == (
+        "redis://127.0.0.1:51079/0"
+    )
     assert env["XIUXIAN_WENDAO_GATEWAY_BOOTSTRAP_BACKGROUND_INDEXING"] == "false"
     config = (tmp_path / "gateway" / "wendao.toml").read_text(encoding="utf-8")
     assert "[search.cache]" in config
     assert 'valkey_url = "redis://127.0.0.1:51079/0"' in config
 
 
-def test_start_valkey_server_uses_temp_runtime_flags(monkeypatch, tmp_path: Path) -> None:
+def test_start_valkey_server_uses_temp_runtime_flags(
+    monkeypatch, tmp_path: Path
+) -> None:
     benchmark = _load_benchmark_module()
     calls = []
 

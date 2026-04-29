@@ -160,7 +160,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--converter-count-path",
         type=Path,
-        help=("Optional converter count file to read in external-endpoint benchmark mode."),
+        help=(
+            "Optional converter count file to read in external-endpoint benchmark mode."
+        ),
     )
     parser.add_argument(
         "--fail-on-duplicate-conversions",
@@ -178,6 +180,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--report-dir",
         default=".run/reports/xiuxian-wendao/document-extract-perf",
+    )
+    parser.add_argument(
+        "--pdf-inspector-audit",
+        action="store_true",
+        help=(
+            "Run the feature-gated Rust pdf-inspector detect/analyze audit "
+            "against selected fixtures and exit without starting extraction workers."
+        ),
     )
     parser.add_argument("--cargo", default="cargo")
     parser.add_argument("--real-docling", action="store_true")
@@ -248,13 +258,20 @@ def main() -> int:
             real_fixture_root,
             include_audio=not args.skip_audio,
         )
-        print(f"prepared {len(fixtures)} Docling real fixtures under {real_fixture_root}")
+        print(
+            f"prepared {len(fixtures)} Docling real fixtures under {real_fixture_root}"
+        )
         return 0
 
     report_dir = Path(args.report_dir)
     report_dir.mkdir(parents=True, exist_ok=True)
 
-    with tempfile.TemporaryDirectory(prefix="wendao-doc-extract-perf-") as temp_root_text:
+    if args.pdf_inspector_audit:
+        return run_pdf_inspector_audit(args, report_dir / "pdf-inspector-detect-audit")
+
+    with tempfile.TemporaryDirectory(
+        prefix="wendao-doc-extract-perf-"
+    ) as temp_root_text:
         temp_root = Path(temp_root_text)
         fixture_dir = temp_root / "fixtures"
         output_dir = temp_root / "outputs"
@@ -276,7 +293,10 @@ def main() -> int:
         valkey_server = None
         if not args.external_endpoint:
             converter_count_path = None
-            if args.duplicate_miss_concurrency > 0 or args.distinct_miss_concurrency > 0:
+            if (
+                args.duplicate_miss_concurrency > 0
+                or args.distinct_miss_concurrency > 0
+            ):
                 converter_count_path = temp_root / "converter-count.txt"
                 converter_count_path.write_text("0", encoding="utf-8")
                 args.converter_count_path = converter_count_path
@@ -414,9 +434,89 @@ def resolve_fixtures(
             git_ref=args.docling_git_ref,
         )
     require_docling_source_root(real_fixture_root)
-    return docling_real_fixtures(
-        real_fixture_root, include_audio=not args.skip_audio
-    ), real_fixture_root
+    return (
+        docling_real_fixtures(real_fixture_root, include_audio=not args.skip_audio),
+        real_fixture_root,
+    )
+
+
+def run_pdf_inspector_audit(args: argparse.Namespace, report_dir: Path) -> int:
+    with tempfile.TemporaryDirectory(
+        prefix="wendao-pdf-inspector-audit-"
+    ) as temp_root_text:
+        fixture_dir = Path(temp_root_text) / "fixtures"
+        fixture_dir.mkdir()
+        fixtures, _real_fixture_root = resolve_fixtures(args, fixture_dir)
+        fixtures = select_fixtures(fixtures, args.only_fixture)
+        if not args.only_fixture:
+            fixtures = {
+                name: path
+                for name, path in fixtures.items()
+                if path.suffix.lower() == ".pdf"
+            }
+        if not fixtures:
+            raise SystemExit(
+                "PDF inspector audit requires at least one selected PDF fixture"
+            )
+        command, env_update = build_pdf_inspector_audit_command(
+            args,
+            fixtures,
+            report_dir.resolve(),
+        )
+        env = rust_process_env()
+        env.update(env_update)
+        subprocess.run(command, check=True, env=env)
+    print(
+        f"PDF inspector audit report: {report_dir / 'pdf_inspector_detect_audit.json'}"
+    )
+    return 0
+
+
+def build_pdf_inspector_audit_command(
+    args: argparse.Namespace,
+    fixtures: dict[str, Path],
+    report_dir: Path,
+) -> tuple[list[str], dict[str, str]]:
+    inputs = [
+        {
+            "name": name,
+            "source": str(path),
+        }
+        for name, path in fixtures.items()
+    ]
+    command = [
+        args.cargo,
+        "test",
+        "-p",
+        "xiuxian-wendao",
+        "--test",
+        "xiuxian-testing-gate",
+        "--features",
+        cargo_features_with_pdf_inspector(args.cargo_features),
+        "pdf_inspector_detect_audit",
+        "--",
+        "--ignored",
+        "--nocapture",
+    ]
+    env = {
+        "WENDAO_PDF_INSPECTOR_AUDIT_INPUTS_JSON": json.dumps(inputs),
+        "WENDAO_PDF_INSPECTOR_AUDIT_REPORT_DIR": str(report_dir),
+    }
+    return command, env
+
+
+def cargo_features_with_pdf_inspector(features: str) -> str:
+    parts = [
+        part.strip()
+        for chunk in features.split(",")
+        for part in chunk.split()
+        if part.strip()
+    ]
+    if "document-extract-pdf-inspector" not in parts:
+        parts.append("document-extract-pdf-inspector")
+    if "performance" not in parts:
+        parts.insert(0, "performance")
+    return ",".join(parts)
 
 
 def select_fixtures(
@@ -430,7 +530,9 @@ def select_fixtures(
     if missing:
         available = ", ".join(sorted(fixtures))
         raise SystemExit(
-            "Unknown fixture(s): " + ", ".join(missing) + f"\nAvailable fixtures: {available}"
+            "Unknown fixture(s): "
+            + ", ".join(missing)
+            + f"\nAvailable fixtures: {available}"
         )
     return {fixture_name: fixtures[fixture_name] for fixture_name in fixture_names}
 
@@ -478,7 +580,9 @@ def prepare_docling_fixtures(root: Path, *, repo_url: str, git_ref: str) -> None
                 ["git", "-C", str(root), "fetch", "--depth", "1", "origin", git_ref],
                 check=True,
             )
-            subprocess.run(["git", "-C", str(root), "checkout", "FETCH_HEAD"], check=True)
+            subprocess.run(
+                ["git", "-C", str(root), "checkout", "FETCH_HEAD"], check=True
+            )
     subprocess.run(
         [
             "git",
@@ -499,7 +603,8 @@ def docling_real_fixtures(root: Path, *, include_audio: bool) -> dict[str, Path]
         selected_paths.pop("audio", None)
 
     fixtures = {
-        fixture_name: root / relative_path for fixture_name, relative_path in selected_paths.items()
+        fixture_name: root / relative_path
+        for fixture_name, relative_path in selected_paths.items()
     }
     missing = [
         f"{fixture_name}: {fixture_path}"
@@ -759,7 +864,9 @@ def wait_for_http_endpoint(
     while time.monotonic() < deadline:
         if server.poll() is not None:
             stderr = server.stderr.read() if server.stderr is not None else ""
-            raise RuntimeError(f"server exited before HTTP endpoint was ready:\n{stderr}")
+            raise RuntimeError(
+                f"server exited before HTTP endpoint was ready:\n{stderr}"
+            )
         try:
             with urllib.request.urlopen(url, timeout=1.0) as response:
                 if 200 <= response.status < 500:
@@ -781,7 +888,12 @@ def fetch_rust_jobs_status(
     try:
         with urllib.request.urlopen(url, timeout=1.0) as response:
             payload = json.loads(response.read().decode("utf-8"))
-    except (OSError, TimeoutError, urllib.error.URLError, json.JSONDecodeError) as error:
+    except (
+        OSError,
+        TimeoutError,
+        urllib.error.URLError,
+        json.JSONDecodeError,
+    ) as error:
         if require_status:
             raise RuntimeError(
                 f"failed to sample Rust document extract jobs status: {error}"
@@ -856,7 +968,9 @@ def real_docling_server_code(
     converter_count_path: Path | None,
 ) -> str:
     fixture_root_text = str(fixture_root) if fixture_root is not None else ""
-    count_path_text = str(converter_count_path) if converter_count_path is not None else ""
+    count_path_text = (
+        str(converter_count_path) if converter_count_path is not None else ""
+    )
     return textwrap.dedent(
         f"""
         from pathlib import Path
@@ -943,7 +1057,9 @@ def real_docling_server_code(
 
 
 def fixture_server_code(host: str, port: int, converter_count_path: Path | None) -> str:
-    count_path_text = str(converter_count_path) if converter_count_path is not None else ""
+    count_path_text = (
+        str(converter_count_path) if converter_count_path is not None else ""
+    )
     return textwrap.dedent(
         f"""
         from pathlib import Path
@@ -1007,7 +1123,9 @@ def wait_for_port(
     while time.monotonic() < deadline:
         if server.poll() is not None:
             stderr = server.stderr.read() if server.stderr is not None else ""
-            raise RuntimeError("document extract service exited before listening:\n" + stderr)
+            raise RuntimeError(
+                "document extract service exited before listening:\n" + stderr
+            )
         try:
             with socket.create_connection((host, port), timeout=1):
                 return
@@ -1147,8 +1265,12 @@ def run_distinct_miss_probe(
         "rustJobsMinAvailableConversionPermits": rust_jobs_status_summary[
             "minAvailableConversionPermits"
         ],
-        "rustJobsMaxRunningConversions": rust_jobs_status_summary["maxRunningConversions"],
-        "rustJobsMaxConversionDurationMs": rust_jobs_status_summary["maxConversionDurationMs"],
+        "rustJobsMaxRunningConversions": rust_jobs_status_summary[
+            "maxRunningConversions"
+        ],
+        "rustJobsMaxConversionDurationMs": rust_jobs_status_summary[
+            "maxConversionDurationMs"
+        ],
     }
 
 
@@ -1173,7 +1295,9 @@ def run_fixture_probe(
         )
         converter_count_after = read_converter_count(args)
         if converter_count_before is not None and converter_count_after is not None:
-            duplicate_miss_converter_calls = converter_count_after - converter_count_before
+            duplicate_miss_converter_calls = (
+                converter_count_after - converter_count_before
+            )
         duplicate_error_rows = duplicate_report.get("errorRowCount", 0)
         if args.fail_on_error_rows and duplicate_error_rows:
             raise SystemExit(
@@ -1221,7 +1345,11 @@ def run_fixture_probe(
         )
     rust_jobs_status_summary = combine_rust_jobs_status_summaries(
         [
-            duplicate_report.get("rustJobsStatusSummary", {}) if duplicate_report else {},
+            (
+                duplicate_report.get("rustJobsStatusSummary", {})
+                if duplicate_report
+                else {}
+            ),
             force_report.get("rustJobsStatusSummary", {}),
             cached_report.get("rustJobsStatusSummary", {}),
         ]
@@ -1260,11 +1388,15 @@ def run_fixture_probe(
         "rustJobsMaxInProcessRunningConversions": rust_jobs_status_summary[
             "maxInProcessRunningConversions"
         ],
-        "rustJobsMaxInProcessScheduledJobs": rust_jobs_status_summary["maxInProcessScheduledJobs"],
+        "rustJobsMaxInProcessScheduledJobs": rust_jobs_status_summary[
+            "maxInProcessScheduledJobs"
+        ],
         "rustJobsMinAvailableConversionPermits": rust_jobs_status_summary[
             "minAvailableConversionPermits"
         ],
-        "rustJobsMaxConversionDurationMs": rust_jobs_status_summary["maxConversionDurationMs"],
+        "rustJobsMaxConversionDurationMs": rust_jobs_status_summary[
+            "maxConversionDurationMs"
+        ],
         "rows": row_count,
         "totalRows": total_rows,
         "batches": cached_report["batchCount"],
@@ -1342,7 +1474,9 @@ def run_cargo_perf_test(
     report["maxRssKb"] = max_rss_kb()
     report["rustJobsStatusSamples"] = status_samples
     report["rustJobsStatusSummary"] = summarize_rust_jobs_status_samples(status_samples)
-    report_path.write_text(json.dumps(report, indent=2, sort_keys=True), encoding="utf-8")
+    report_path.write_text(
+        json.dumps(report, indent=2, sort_keys=True), encoding="utf-8"
+    )
     return report
 
 
@@ -1422,12 +1556,16 @@ def summarize_rust_jobs_status_samples(samples: list[dict[str, Any]]) -> dict[st
 
 
 def max_int_sample(samples: list[dict[str, Any]], key: str) -> int | None:
-    values = [value for sample in samples if isinstance((value := sample.get(key)), int)]
+    values = [
+        value for sample in samples if isinstance((value := sample.get(key)), int)
+    ]
     return max(values, default=None)
 
 
 def min_int_sample(samples: list[dict[str, Any]], key: str) -> int | None:
-    values = [value for sample in samples if isinstance((value := sample.get(key)), int)]
+    values = [
+        value for sample in samples if isinstance((value := sample.get(key)), int)
+    ]
     return min(values, default=None)
 
 
@@ -1442,7 +1580,11 @@ def last_present_sample(samples: list[dict[str, Any]], key: str) -> Any:
 def combine_rust_jobs_status_summaries(
     summaries: list[dict[str, Any]],
 ) -> dict[str, Any]:
-    samples = [summary for summary in summaries if summary and summary.get("sampleCount", 0) > 0]
+    samples = [
+        summary
+        for summary in summaries
+        if summary and summary.get("sampleCount", 0) > 0
+    ]
     if not samples:
         return summarize_rust_jobs_status_samples([])
     return {
@@ -1490,9 +1632,17 @@ def summarize_results(
 ) -> dict[str, Any]:
     rust_jobs_status = combine_rust_jobs_status_summaries(
         [result.get("rustJobsStatusSummary", {}) for result in results]
-        + [distinct_miss_report.get("rustJobsStatusSummary", {}) if distinct_miss_report else {}]
+        + [
+            (
+                distinct_miss_report.get("rustJobsStatusSummary", {})
+                if distinct_miss_report
+                else {}
+            )
+        ]
     )
-    distinct_error_rows = distinct_miss_report.get("errorRows", 0) if distinct_miss_report else 0
+    distinct_error_rows = (
+        distinct_miss_report.get("errorRows", 0) if distinct_miss_report else 0
+    )
     return {
         "fixtureCount": len(results),
         "totalRows": sum(result["totalRows"] for result in results),
@@ -1502,7 +1652,9 @@ def summarize_results(
         + distinct_error_rows,
         "totalRequests": sum(result["requestCount"] for result in results),
         "totalArrowIpcBytes": sum(result["arrowIpcBytes"] for result in results),
-        "minCacheSpeedup": min((result["cacheSpeedup"] for result in results), default=0.0),
+        "minCacheSpeedup": min(
+            (result["cacheSpeedup"] for result in results), default=0.0
+        ),
         "totalDuplicateMissConverterCalls": sum(
             result["duplicateMissConverterCalls"] or 0 for result in results
         ),
@@ -1587,12 +1739,15 @@ def render_markdown(payload: dict[str, Any]) -> str:
                     maxInProcessRunningConversions=distinct_status[
                         "maxInProcessRunningConversions"
                     ],
-                    minAvailablePermits=distinct_status["minAvailableConversionPermits"],
+                    minAvailablePermits=distinct_status[
+                        "minAvailableConversionPermits"
+                    ],
                     maxRunningConversions=distinct_status["maxRunningConversions"],
                     maxConversionDurationMs=distinct_status["maxConversionDurationMs"],
                 ),
                 "",
-                "Fixtures: " + ", ".join(f"`{fixture}`" for fixture in distinct_miss["fixtures"]),
+                "Fixtures: "
+                + ", ".join(f"`{fixture}`" for fixture in distinct_miss["fixtures"]),
             ]
         )
     lines.append("")

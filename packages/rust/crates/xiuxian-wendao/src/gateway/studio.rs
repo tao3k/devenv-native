@@ -5,6 +5,12 @@
 #[path = "studio/types/mod.rs"]
 pub mod types;
 
+/// Feature-gated PDF inspection audit helpers for document extraction research.
+#[cfg(feature = "document-extract-pdf-inspector")]
+#[doc(hidden)]
+#[path = "studio/router/handlers/analysis/document_extract/pdf_audit.rs"]
+pub mod document_extract_pdf_audit;
+
 #[cfg(feature = "zhenfa-router")]
 #[path = "studio/analysis/mod.rs"]
 mod analysis;
