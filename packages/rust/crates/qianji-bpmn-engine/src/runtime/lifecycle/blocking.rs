@@ -60,7 +60,7 @@ pub(super) fn build_wait_registration(
         event_name: event.name.as_ref().map(ToString::to_string),
         timer: event.timer.clone(),
         condition_expression: event.condition_expression.as_ref().map(ToString::to_string),
-        correlation_key: event.reference_id.as_ref().map(ToString::to_string),
+        deduplication_key: event.reference_id.as_ref().map(ToString::to_string),
     })
 }
 

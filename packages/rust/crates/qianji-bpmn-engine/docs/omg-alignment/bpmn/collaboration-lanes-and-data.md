@@ -95,6 +95,10 @@ references, but it does not evaluate `correlationSubscription`,
 `correlationPropertyBinding`, `correlationKey`, or `dataPath` declarations for
 matching.
 
+Executable wait metadata uses `event_reference` for the source BPMN reference
+and `deduplication_key` for an optional host-side de-duplication hint. It does
+not expose the explicit event reference as a BPMN correlation key.
+
 ## Runtime Boundary
 
 These BPMN surfaces remain deferred:

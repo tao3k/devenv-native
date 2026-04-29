@@ -211,6 +211,12 @@ event reference, but it does not evaluate `correlationSubscription`,
 `correlationPropertyBinding`, `correlationKey`, or `dataPath` declarations as
 runtime matching policy.
 
+The third collaboration-boundary slice aligns the executable wait ABI with
+that terminology: wait metadata exposes an optional `deduplication_key` for
+host-side event de-duplication, not a BPMN `correlation_key`. When present,
+that key is derived from the explicit event reference and must not be treated
+as correlation subscription matching.
+
 Current executable behavior must still be modeled through one supported
 process graph, host-dispatched tasks, or supported event waits. This milestone
 does not implement cross-pool message dispatch or correlation-aware runtime
