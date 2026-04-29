@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
     from .documents import DocumentConverterProtocol
 
-PDF_OCR_SHARD_INPUT_SCHEMA_VERSION = "xiuxian_wendao.pdf_ocr_shard_input.v2"
+PDF_OCR_SHARD_INPUT_SCHEMA_VERSION = "xiuxian_wendao.pdf_ocr_shard_input.v1"
 PDF_OCR_SHARD_RESULT_SCHEMA_VERSION = "xiuxian_wendao.pdf_ocr_shard_result.v1"
 PDF_OCR_DEFAULT_PROFILE = "docling-compatible-page-ocr-v1"
 

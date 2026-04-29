@@ -230,7 +230,7 @@ serving as the accuracy oracle.
 The current proof slices add an Arrow-only OCR worker contract under
 `xiuxian-wendao-attachments` plus a feature-gated Studio-side Flight client.
 Rendered page manifests are projected into
-`xiuxian_wendao.pdf_ocr_shard_input.v2`, while OCR outputs use
+`xiuxian_wendao.pdf_ocr_shard_input.v1`, while OCR outputs use
 `xiuxian_wendao.pdf_ocr_shard_result.v1`. Rust can now send those batches to
 the Python analyzer's internal `/analysis/pdf-ocr-shards` exchange route,
 decode the returned OCR result rows, and project them back into the stable
@@ -240,8 +240,8 @@ render proof still writes `_ocr_input.arrow` next to `_ocr_shards.arrow` and
 ignore those rows, while the explicit feature-gated `hybrid-page-ocr` mode may
 consume them.
 
-The current region-shard slice upgrades only the internal OCR input contract.
-`xiuxian_wendao.pdf_ocr_shard_input.v2` adds `shardType`, `regionIndex`,
+The current region-shard slice stabilizes the internal OCR input contract.
+`xiuxian_wendao.pdf_ocr_shard_input.v1` includes `shardType`, `regionIndex`,
 `parentShardElementId`, `readingOrderKey`, and source-page pixel coordinates so
 later crop rendering and structure-aware merge code can insert OCR blocks by
 document order rather than worker completion order. Page shards still emit
@@ -580,7 +580,7 @@ Current implementation status:
 
 - The Python analyzer document service now exposes an internal
   `/analysis/pdf-ocr-shards` Flight `do_exchange` route.
-- The route accepts `xiuxian_wendao.pdf_ocr_shard_input.v2` Arrow batches and
+- The route accepts `xiuxian_wendao.pdf_ocr_shard_input.v1` Arrow batches and
   returns `xiuxian_wendao.pdf_ocr_shard_result.v1` Arrow batches.
 - The default worker returns deterministic `skipped` rows until a real OCR
   worker is injected. This keeps the production `/analysis/document-extract`

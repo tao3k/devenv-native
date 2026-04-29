@@ -8,7 +8,7 @@ use sha2::{Digest, Sha256};
 
 use super::render::PdfPageShardManifest;
 
-pub const PDF_OCR_SHARD_INPUT_SCHEMA_VERSION: &str = "xiuxian_wendao.pdf_ocr_shard_input.v2";
+pub const PDF_OCR_SHARD_INPUT_SCHEMA_VERSION: &str = "xiuxian_wendao.pdf_ocr_shard_input.v1";
 pub const PDF_OCR_SHARD_RESULT_SCHEMA_VERSION: &str = "xiuxian_wendao.pdf_ocr_shard_result.v1";
 pub const PDF_OCR_DEFAULT_PROFILE: &str = "docling-compatible-page-ocr-v1";
 

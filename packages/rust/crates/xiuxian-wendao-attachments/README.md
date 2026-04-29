@@ -77,14 +77,14 @@ the proof must fail instead of recording a Docling fallback.
 
 The `pdf-render` feature also exposes an internal Arrow-only OCR worker
 contract. Rendered page manifests can be projected into `_ocr_input.arrow`
-using `xiuxian_wendao.pdf_ocr_shard_input.v2`; OCR workers return
+using `xiuxian_wendao.pdf_ocr_shard_input.v1`; OCR workers return
 `xiuxian_wendao.pdf_ocr_shard_result.v1`; successful, failed, or skipped OCR
 results can then be projected back into the stable document resource schema.
 The crate provides Arrow batch builders plus input and result decoders so the
 Studio gateway can roundtrip worker requests and responses without JSON as an
 internal contract.
 
-The v2 shard input keeps page shards compatible while carrying region
+The stable v1 shard input keeps page shards compatible while carrying region
 provenance for later crop rendering: `shardType`, `regionIndex`,
 `parentShardElementId`, `readingOrderKey`, and the region's pixel box within
 the source page raster. This metadata is internal routing and merge state; it
