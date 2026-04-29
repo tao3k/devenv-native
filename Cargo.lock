@@ -12696,6 +12696,7 @@ name = "xiuxian-wendao-attachments"
 version = "0.1.1"
 dependencies = [
  "arrow 58.1.0",
+ "image",
  "num-traits",
  "pdf-inspector",
  "pdfium-render",

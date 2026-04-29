@@ -91,6 +91,13 @@ the source page raster. This metadata is internal routing and merge state; it
 does not change the stable `_resources.arrow` schema or switch production
 extraction away from Docling.
 
+The region crop proof accepts explicit PDF-point region requests and emits real
+region shard PNGs plus the same `_ocr_shards.arrow`, `_ocr_input.arrow`, and
+`_ocr_pending.arrow` artifacts used by page shards. The first proof renders a
+page and crops the requested region from that raster, which reduces OCR payload
+size without relying on unproven PDFium clip semantics. Automatic region
+discovery and production routing are later milestones.
+
 The `pdf-inspector` text helpers can also project native non-OCR pages into
 per-page `text_page` rows. The Studio provider uses those rows only for the
 explicit hybrid OCR mode and only when page coverage can be proven complete.

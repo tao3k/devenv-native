@@ -248,6 +248,14 @@ document order rather than worker completion order. Page shards still emit
 `shardType=page` with full-page source pixel bounds, and the stable
 `_resources.arrow` schema remains unchanged.
 
+The next proof slice adds configured region crop rendering under
+`xiuxian-wendao-attachments`. It accepts explicit PDF-point regions, renders the
+owning page, crops each region into a real OCR shard PNG, and writes the same
+manifest/input/pending Arrow artifacts used by page shards. This is not yet
+automatic region discovery and does not switch production routing; it proves
+that a future router can reduce OCR payload size while preserving page,
+reading-order, and bbox provenance.
+
 The audit report now records two additional routing diagnostics:
 
 - `fastPathScore`: a conservative score for direct Rust text fast-path

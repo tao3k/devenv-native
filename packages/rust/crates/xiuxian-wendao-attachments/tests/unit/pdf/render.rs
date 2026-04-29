@@ -1,5 +1,6 @@
 use arrow::array::{Array, Float64Array, Int32Array, StringArray};
 use arrow::record_batch::RecordBatch;
+use image::{DynamicImage, ImageBuffer, Rgba};
 
 use super::*;
 
@@ -156,6 +157,43 @@ fn document_extract_pdf_render_region_manifest_preserves_provenance() -> Result<
 }
 
 #[test]
+fn document_extract_pdf_render_region_request_defaults_reading_order_key() {
+    let request =
+        PdfPageRegionRenderRequest::new(12, 34, PdfPageBox::new(10.0, 20.0, 30.0, 40.0), None);
+
+    assert_eq!(request.effective_reading_order_key(), "000012.000034");
+}
+
+#[test]
+fn document_extract_pdf_render_writes_region_crop_image_identity() -> Result<(), String> {
+    let image = DynamicImage::ImageRgba8(ImageBuffer::from_fn(10, 8, |x, y| {
+        Rgba([
+            u8::try_from(x).unwrap_or_default(),
+            u8::try_from(y).unwrap_or_default(),
+            128,
+            255,
+        ])
+    }));
+    let temp_dir = tempfile::tempdir().map_err(|error| error.to_string())?;
+    let crop_path = temp_dir.path().join("region.png");
+
+    let identity = save_region_crop_image(
+        &image,
+        PdfPagePixelBox::new(2, 1, 7, 5),
+        crop_path.as_path(),
+    )?;
+
+    assert_eq!(identity.width_px, 5);
+    assert_eq!(identity.height_px, 4);
+    assert_eq!(identity.sha256.len(), 64);
+    assert!(identity.path.is_file());
+    let cropped = image::open(identity.path.as_path()).map_err(|error| error.to_string())?;
+    assert_eq!(cropped.width(), 5);
+    assert_eq!(cropped.height(), 4);
+    Ok(())
+}
+
+#[test]
 fn document_extract_pdf_render_shard_id_is_content_addressed() {
     let first = sample_manifest(0);
     let second = sample_manifest(0);
@@ -206,6 +244,24 @@ fn document_extract_pdf_render_builds_region_manifest_arrow_batch() -> Result<()
         int32_column(&batch, "sourcePagePixelBottom")?.value(0),
         2325
     );
+    Ok(())
+}
+
+#[test]
+fn document_extract_pdf_render_writes_region_arrow_artifacts() -> Result<(), String> {
+    let manifest = sample_region_manifest()?;
+    let manifest_batch = build_shard_manifest_batch(std::slice::from_ref(&manifest))?;
+    let temp_dir = tempfile::tempdir().map_err(|error| error.to_string())?;
+
+    let (manifest_path, input_path, pending_path) = write_shard_artifact_batches(
+        temp_dir.path(),
+        std::slice::from_ref(&manifest),
+        manifest_batch,
+    )?;
+
+    assert!(manifest_path.is_file());
+    assert!(input_path.is_file());
+    assert!(pending_path.is_file());
     Ok(())
 }
 

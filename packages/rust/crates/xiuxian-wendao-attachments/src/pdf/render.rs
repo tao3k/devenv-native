@@ -8,6 +8,7 @@ use arrow::array::{ArrayRef, Float64Array, Int32Array, StringArray};
 use arrow::datatypes::{DataType, Field, Schema, SchemaRef};
 use arrow::ipc::writer::FileWriter;
 use arrow::record_batch::RecordBatch;
+use image::DynamicImage;
 use num_traits::ToPrimitive;
 use pdfium_render::prelude::{
     PdfBitmapFormat, PdfDocument, PdfPage, PdfPageRenderRotation, PdfRect, PdfRenderConfig, Pdfium,
@@ -77,6 +78,7 @@ impl PdfRenderStatus {
 pub enum PdfPageRenderSelection {
     AllPages,
     ShardFallbackPages,
+    RegionShards,
 }
 
 impl PdfPageRenderSelection {
@@ -85,6 +87,7 @@ impl PdfPageRenderSelection {
         match self {
             Self::AllPages => "all_pages",
             Self::ShardFallbackPages => "shard_fallback_pages",
+            Self::RegionShards => "region_shards",
         }
     }
 }
@@ -343,6 +346,38 @@ pub struct PdfPageRegionShardManifestInput<'a> {
     pub page_raster_width_px: u32,
     pub page_raster_height_px: u32,
     pub raster: RenderedRasterIdentity,
+}
+
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PdfPageRegionRenderRequest {
+    pub page_index: u32,
+    pub region_index: u32,
+    pub region_box: PdfPageBox,
+    pub reading_order_key: Option<String>,
+}
+
+impl PdfPageRegionRenderRequest {
+    #[must_use]
+    pub fn new(
+        page_index: u32,
+        region_index: u32,
+        region_box: PdfPageBox,
+        reading_order_key: Option<String>,
+    ) -> Self {
+        Self {
+            page_index,
+            region_index,
+            region_box,
+            reading_order_key,
+        }
+    }
+
+    fn effective_reading_order_key(&self) -> String {
+        self.reading_order_key
+            .clone()
+            .unwrap_or_else(|| region_reading_order_key(self.page_index, self.region_index))
+    }
 }
 
 #[must_use]
@@ -663,15 +698,72 @@ pub fn render_pdf_page_shards_with_selection(
     };
 
     let manifest_batch = build_shard_manifest_batch(&manifests)?;
-    let ocr_inputs = build_ocr_shard_inputs(&manifests, &PdfOcrWorkerProfile::docling_compatible());
-    let ocr_input_batch = build_ocr_shard_input_batch(&ocr_inputs)?;
-    let pending_batch = build_ocr_pending_resource_batch(&manifests)?;
-    let manifest_arrow_path = output_dir.join(OCR_SHARD_MANIFEST_ARROW_NAME);
-    let ocr_input_arrow_path = output_dir.join(OCR_SHARD_INPUT_ARROW_NAME);
-    let pending_resource_arrow_path = output_dir.join(OCR_PENDING_RESOURCE_ARROW_NAME);
-    write_arrow_file(manifest_arrow_path.as_path(), &[manifest_batch])?;
-    write_arrow_file(ocr_input_arrow_path.as_path(), &[ocr_input_batch])?;
-    write_arrow_file(pending_resource_arrow_path.as_path(), &[pending_batch])?;
+    let (manifest_arrow_path, ocr_input_arrow_path, pending_resource_arrow_path) =
+        write_shard_artifact_batches(output_dir, manifests.as_slice(), manifest_batch)?;
+
+    Ok(context.report(ReportParts::rendered(
+        page_count,
+        checked_len_u32(manifests.len()),
+        manifest_arrow_path,
+        ocr_input_arrow_path,
+        pending_resource_arrow_path,
+    )))
+}
+
+/// # Errors
+///
+/// Returns an error if the PDF cannot be read, the requested regions cannot be
+/// rendered, or Arrow artifact files cannot be written. Missing `PDFium`
+/// libraries are represented as fallback reports rather than errors.
+pub fn render_pdf_region_shards(
+    path: &Path,
+    output_dir: &Path,
+    profile: &PdfPageRenderProfile,
+    regions: &[PdfPageRegionRenderRequest],
+) -> Result<PdfPageRenderShardReport, String> {
+    let context = RenderShardContext::new(
+        path,
+        output_dir,
+        profile,
+        PdfPageRenderSelection::RegionShards,
+    );
+    if !is_pdf_path(path) {
+        return Ok(context.report(ReportParts::unsupported("unsupported non-PDF input")));
+    }
+    if regions.is_empty() {
+        return Ok(context.report(ReportParts::skipped(
+            0,
+            PdfRenderRoutingDecision::HybridPageOcrCandidate,
+            "no region shards requested".to_string(),
+        )));
+    }
+
+    let source_bytes =
+        fs::read(path).map_err(|error| format!("read PDF `{}`: {error}", path.display()))?;
+    let source_hash = sha256_hex(&source_bytes);
+    let pdfium = match bind_pdfium() {
+        Ok(pdfium) => pdfium,
+        Err(error) => return Ok(context.report(ReportParts::fallback(0, 0, error))),
+    };
+    let document = match pdfium.load_pdf_from_file(path, None) {
+        Ok(document) => document,
+        Err(error) => {
+            return Ok(context.report(ReportParts::preflight_failed(format!(
+                "load PDF `{}`: {error}",
+                path.display()
+            ))));
+        }
+    };
+
+    let page_count = u32::try_from(document.pages().len()).unwrap_or_default();
+    let manifests =
+        match render_document_region_manifests(&document, &context, &source_hash, regions) {
+            Ok(manifests) => manifests,
+            Err(fallback) => return Ok(context.report(fallback)),
+        };
+    let manifest_batch = build_shard_manifest_batch(&manifests)?;
+    let (manifest_arrow_path, ocr_input_arrow_path, pending_resource_arrow_path) =
+        write_shard_artifact_batches(output_dir, manifests.as_slice(), manifest_batch)?;
 
     Ok(context.report(ReportParts::rendered(
         page_count,
@@ -766,6 +858,10 @@ fn region_shard_element_id(
 
 fn page_reading_order_key(page_index: u32) -> String {
     format!("{page_index:06}.000000")
+}
+
+fn region_reading_order_key(page_index: u32, region_index: u32) -> String {
+    format!("{page_index:06}.{region_index:06}")
 }
 
 fn pending_caption(manifest: &PdfPageShardManifest) -> String {
@@ -923,6 +1019,9 @@ fn resolve_page_selection(
     match selection {
         PdfPageRenderSelection::AllPages => Ok(RenderPageSelection::All),
         PdfPageRenderSelection::ShardFallbackPages => resolve_shard_fallback_page_selection(path),
+        PdfPageRenderSelection::RegionShards => {
+            Err("region_shards selection requires configured region requests".to_string())
+        }
     }
 }
 
@@ -1187,12 +1286,157 @@ fn render_document_manifests(
     Ok(manifests)
 }
 
+fn render_document_region_manifests(
+    document: &PdfDocument<'_>,
+    context: &RenderShardContext<'_>,
+    source_hash: &str,
+    regions: &[PdfPageRegionRenderRequest],
+) -> Result<Vec<PdfPageShardManifest>, ReportParts> {
+    let page_count = u32::try_from(document.pages().len()).unwrap_or_default();
+    let shard_dir = context.shard_dir(source_hash);
+    fs::create_dir_all(shard_dir.as_path()).map_err(|error| {
+        ReportParts::fallback(
+            page_count,
+            0,
+            format!("create shard dir `{}`: {error}", shard_dir.display()),
+        )
+    })?;
+
+    let mut sorted_regions = regions.to_vec();
+    sorted_regions.sort_by(|left, right| {
+        left.page_index
+            .cmp(&right.page_index)
+            .then_with(|| {
+                left.effective_reading_order_key()
+                    .cmp(&right.effective_reading_order_key())
+            })
+            .then_with(|| left.region_index.cmp(&right.region_index))
+    });
+
+    let mut manifests = Vec::new();
+    let mut cursor = 0;
+    while cursor < sorted_regions.len() {
+        let page_index = sorted_regions[cursor].page_index;
+        let next_cursor = sorted_regions[cursor..]
+            .iter()
+            .position(|region| region.page_index != page_index)
+            .map_or(sorted_regions.len(), |offset| cursor + offset);
+        let page = document
+            .pages()
+            .get(i32::try_from(page_index).unwrap_or(i32::MAX))
+            .map_err(|error| {
+                ReportParts::fallback(
+                    page_count,
+                    checked_len_u32(manifests.len()),
+                    format!("load page {page_index}: {error}"),
+                )
+            })?;
+        let page_manifests = render_page_region_manifests(
+            &page,
+            page_index,
+            context,
+            source_hash,
+            &sorted_regions[cursor..next_cursor],
+        )
+        .map_err(|error| {
+            ReportParts::fallback(page_count, checked_len_u32(manifests.len()), error)
+        })?;
+        manifests.extend(page_manifests);
+        cursor = next_cursor;
+    }
+    Ok(manifests)
+}
+
 fn render_page_manifest(
     page: &PdfPage<'_>,
     page_index: i32,
     context: &RenderShardContext<'_>,
     source_hash: &str,
 ) -> Result<PdfPageShardManifest, String> {
+    let rendered = render_page_image(page, page_index, context.profile)?;
+    let image_path = context.shard_dir(source_hash).join(format!(
+        "page-{page_index:05}.{}",
+        context.profile.image_extension
+    ));
+    let raster = save_image_identity(&rendered.image, image_path.as_path())?;
+    Ok(build_shard_manifest(PdfPageShardManifestInput {
+        source_path: context.path,
+        source_content_hash: source_hash,
+        page_index: u32::try_from(page_index).unwrap_or_default(),
+        profile: context.profile,
+        media_box: rendered.media_box,
+        crop_box: rendered.crop_box,
+        rotation_degrees: rendered.rotation_degrees,
+        raster,
+    }))
+}
+
+fn render_page_region_manifests(
+    page: &PdfPage<'_>,
+    page_index: u32,
+    context: &RenderShardContext<'_>,
+    source_hash: &str,
+    regions: &[PdfPageRegionRenderRequest],
+) -> Result<Vec<PdfPageShardManifest>, String> {
+    let rendered = render_page_image(
+        page,
+        i32::try_from(page_index).unwrap_or(i32::MAX),
+        context.profile,
+    )?;
+    let parent_shard_element_id =
+        shard_element_id(source_hash, page_index, context.profile.profile_id.as_str());
+    regions
+        .iter()
+        .map(|request| {
+            let source_page_pixel_box = region_pixel_box_for_crop(
+                rendered.crop_box,
+                request.region_box,
+                rendered.image.width(),
+                rendered.image.height(),
+            )?;
+            let image_path = context.shard_dir(source_hash).join(format!(
+                "page-{page_index:05}-region-{:05}.{}",
+                request.region_index, context.profile.image_extension
+            ));
+            let raster = save_region_crop_image(
+                &rendered.image,
+                source_page_pixel_box,
+                image_path.as_path(),
+            )?;
+            build_region_shard_manifest(PdfPageRegionShardManifestInput {
+                source_path: context.path,
+                source_content_hash: source_hash,
+                page_index,
+                profile: context.profile,
+                media_box: rendered.media_box,
+                page_crop_box: rendered.crop_box,
+                region: PdfPageRegion::new(
+                    request.region_index,
+                    request.region_box,
+                    parent_shard_element_id.clone(),
+                    request.effective_reading_order_key(),
+                ),
+                rotation_degrees: rendered.rotation_degrees,
+                page_raster_width_px: rendered.image.width(),
+                page_raster_height_px: rendered.image.height(),
+                raster,
+            })
+        })
+        .collect()
+}
+
+struct RenderedPageImage {
+    image: DynamicImage,
+    media_box: PdfPageBox,
+    crop_box: PdfPageBox,
+    rotation_degrees: u16,
+}
+
+fn render_page_image(
+    page: &PdfPage<'_>,
+    page_index: i32,
+    profile: &PdfPageRenderProfile,
+) -> Result<RenderedPageImage, String> {
     let media_box = page.boundaries().media().map_or_else(
         |_| PdfPageBox::from_pdfium_rect(page.page_size()),
         |boundary| PdfPageBox::from_pdfium_rect(boundary.bounds),
@@ -1205,45 +1449,90 @@ fn render_page_manifest(
             .map_err(|error| format!("read page {page_index} rotation: {error}"))?,
     );
     let (target_width, target_height) =
-        render_dimensions_for_box(crop_box, rotation_degrees, context.profile);
+        render_dimensions_for_box(crop_box, rotation_degrees, profile);
     let config = PdfRenderConfig::new()
         .set_target_size(
             checked_pixels_i32(target_width)?,
             checked_pixels_i32(target_height)?,
         )
         .set_format(PdfBitmapFormat::BGRA)
-        .render_annotations(context.profile.render_annotations)
-        .render_form_data(context.profile.render_form_data);
+        .render_annotations(profile.render_annotations)
+        .render_form_data(profile.render_form_data);
     let bitmap = page
         .render_with_config(&config)
         .map_err(|error| format!("render page {page_index}: {error}"))?;
     let image = bitmap
         .as_image()
         .map_err(|error| format!("convert page {page_index} bitmap to image: {error}"))?;
-    let image_path = context.shard_dir(source_hash).join(format!(
-        "page-{page_index:05}.{}",
-        context.profile.image_extension
-    ));
-    image
-        .save(image_path.as_path())
-        .map_err(|error| format!("write shard image `{}`: {error}", image_path.display()))?;
-    let raster_bytes = fs::read(image_path.as_path())
-        .map_err(|error| format!("read shard image `{}`: {error}", image_path.display()))?;
-    Ok(build_shard_manifest(PdfPageShardManifestInput {
-        source_path: context.path,
-        source_content_hash: source_hash,
-        page_index: u32::try_from(page_index).unwrap_or_default(),
-        profile: context.profile,
+    Ok(RenderedPageImage {
+        image,
         media_box,
         crop_box,
         rotation_degrees,
-        raster: RenderedRasterIdentity {
-            path: image_path,
-            sha256: sha256_hex(&raster_bytes),
-            width_px: image.width(),
-            height_px: image.height(),
-        },
-    }))
+    })
+}
+
+fn save_image_identity(
+    image: &DynamicImage,
+    image_path: &Path,
+) -> Result<RenderedRasterIdentity, String> {
+    image
+        .save(image_path)
+        .map_err(|error| format!("write shard image `{}`: {error}", image_path.display()))?;
+    let raster_bytes = fs::read(image_path)
+        .map_err(|error| format!("read shard image `{}`: {error}", image_path.display()))?;
+    Ok(RenderedRasterIdentity {
+        path: image_path.to_path_buf(),
+        sha256: sha256_hex(&raster_bytes),
+        width_px: image.width(),
+        height_px: image.height(),
+    })
+}
+
+fn save_region_crop_image(
+    page_image: &DynamicImage,
+    pixel_box: PdfPagePixelBox,
+    image_path: &Path,
+) -> Result<RenderedRasterIdentity, String> {
+    if pixel_box.right > page_image.width() || pixel_box.bottom > page_image.height() {
+        return Err(format!(
+            "region pixel box exceeds source raster: box=({}, {}, {}, {}), raster={}x{}",
+            pixel_box.left,
+            pixel_box.top,
+            pixel_box.right,
+            pixel_box.bottom,
+            page_image.width(),
+            page_image.height()
+        ));
+    }
+    let crop = page_image.crop_imm(
+        pixel_box.left,
+        pixel_box.top,
+        pixel_box.width_px(),
+        pixel_box.height_px(),
+    );
+    save_image_identity(&crop, image_path)
+}
+
+fn write_shard_artifact_batches(
+    output_dir: &Path,
+    manifests: &[PdfPageShardManifest],
+    manifest_batch: RecordBatch,
+) -> Result<(PathBuf, PathBuf, PathBuf), String> {
+    let ocr_inputs = build_ocr_shard_inputs(manifests, &PdfOcrWorkerProfile::docling_compatible());
+    let ocr_input_batch = build_ocr_shard_input_batch(&ocr_inputs)?;
+    let pending_batch = build_ocr_pending_resource_batch(manifests)?;
+    let manifest_arrow_path = output_dir.join(OCR_SHARD_MANIFEST_ARROW_NAME);
+    let ocr_input_arrow_path = output_dir.join(OCR_SHARD_INPUT_ARROW_NAME);
+    let pending_resource_arrow_path = output_dir.join(OCR_PENDING_RESOURCE_ARROW_NAME);
+    write_arrow_file(manifest_arrow_path.as_path(), &[manifest_batch])?;
+    write_arrow_file(ocr_input_arrow_path.as_path(), &[ocr_input_batch])?;
+    write_arrow_file(pending_resource_arrow_path.as_path(), &[pending_batch])?;
+    Ok((
+        manifest_arrow_path,
+        ocr_input_arrow_path,
+        pending_resource_arrow_path,
+    ))
 }
 
 fn shard_manifest_schema() -> SchemaRef {
