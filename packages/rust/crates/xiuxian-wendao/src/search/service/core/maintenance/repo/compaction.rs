@@ -95,25 +95,24 @@ impl SearchPlaneService {
                 return;
             }
         };
-        match store.compact(task.table_name.as_str()).await {
-            Ok(_) => match store.get_table_info(task.table_name.as_str()).await {
-                Ok(table_info) => {
-                    let _ = self.complete_repo_compaction(&task, &table_info).await;
-                }
-                Err(error) => {
-                    log::warn!(
-                        "search-plane repo compaction failed to inspect {} repo {} table {} after compact: {}",
-                        task.corpus,
-                        task.repo_id,
-                        task.table_name,
-                        error
-                    );
-                    let _ = self.stop_repo_compaction(&task, true).await;
-                }
-            },
+        if let Err(error) = store.compact(task.table_name.as_str()).await {
+            log::warn!(
+                "search-plane repo compaction failed for {} repo {} table {}: {}",
+                task.corpus,
+                task.repo_id,
+                task.table_name,
+                error
+            );
+            let _ = self.stop_repo_compaction(&task, true).await;
+            return;
+        }
+        match store.get_table_info(task.table_name.as_str()).await {
+            Ok(table_info) => {
+                let _ = self.complete_repo_compaction(&task, &table_info).await;
+            }
             Err(error) => {
                 log::warn!(
-                    "search-plane repo compaction failed for {} repo {} table {}: {}",
+                    "search-plane repo compaction failed to inspect {} repo {} table {} after compact: {}",
                     task.corpus,
                     task.repo_id,
                     task.table_name,

@@ -16,6 +16,7 @@ use pdfium_render::prelude::{
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
+use super::audit::{PdfInspectorRoutingDecision, analyze_pdf_routing_signals, routing_assessment};
 use super::ocr::{PdfOcrWorkerProfile, build_ocr_shard_input_batch, build_ocr_shard_inputs};
 
 pub const PDFIUM_LIBRARY_PATH_ENV: &str = "WENDAO_PDFIUM_LIBRARY_PATH";
@@ -24,9 +25,10 @@ const OCR_SHARD_MANIFEST_ARROW_NAME: &str = "_ocr_shards.arrow";
 const OCR_SHARD_INPUT_ARROW_NAME: &str = "_ocr_input.arrow";
 const OCR_PENDING_RESOURCE_ARROW_NAME: &str = "_ocr_pending.arrow";
 
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum PdfRenderRoutingDecision {
+    FastRustCandidate,
     HybridPageOcrCandidate,
     FullDoclingFallback,
     PreflightFailed,
@@ -35,8 +37,9 @@ pub enum PdfRenderRoutingDecision {
 
 impl PdfRenderRoutingDecision {
     #[must_use]
-    pub fn as_str(&self) -> &'static str {
+    pub fn as_str(self) -> &'static str {
         match self {
+            Self::FastRustCandidate => "fast_rust_candidate",
             Self::HybridPageOcrCandidate => "hybrid_page_ocr_candidate",
             Self::FullDoclingFallback => "full_docling_fallback",
             Self::PreflightFailed => "preflight_failed",
@@ -45,21 +48,40 @@ impl PdfRenderRoutingDecision {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum PdfRenderStatus {
     Rendered,
     Fallback,
+    Skipped,
     Unsupported,
 }
 
 impl PdfRenderStatus {
     #[must_use]
-    pub fn as_str(&self) -> &'static str {
+    pub fn as_str(self) -> &'static str {
         match self {
             Self::Rendered => "rendered",
             Self::Fallback => "fallback",
+            Self::Skipped => "skipped",
             Self::Unsupported => "unsupported",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum PdfPageRenderSelection {
+    AllPages,
+    ShardFallbackPages,
+}
+
+impl PdfPageRenderSelection {
+    #[must_use]
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::AllPages => "all_pages",
+            Self::ShardFallbackPages => "shard_fallback_pages",
         }
     }
 }
@@ -183,6 +205,7 @@ pub struct PdfPageRenderShardReport {
     pub ocr_input_arrow_path: Option<String>,
     pub pending_resource_arrow_path: Option<String>,
     pub render_profile: String,
+    pub render_selection: String,
     pub status: String,
     pub routing_decision: String,
     pub elapsed_ms: f64,
@@ -375,9 +398,50 @@ pub fn render_pdf_page_shards(
     output_dir: &Path,
     profile: &PdfPageRenderProfile,
 ) -> Result<PdfPageRenderShardReport, String> {
-    let context = RenderShardContext::new(path, output_dir, profile);
+    render_pdf_page_shards_with_selection(
+        path,
+        output_dir,
+        profile,
+        PdfPageRenderSelection::AllPages,
+    )
+}
+
+/// # Errors
+///
+/// Returns an error if the path cannot be read or Arrow report files cannot be
+/// written. Missing `PDFium` libraries are represented as fallback reports rather
+/// than errors.
+pub fn render_pdf_page_shards_with_selection(
+    path: &Path,
+    output_dir: &Path,
+    profile: &PdfPageRenderProfile,
+    selection: PdfPageRenderSelection,
+) -> Result<PdfPageRenderShardReport, String> {
+    let context = RenderShardContext::new(path, output_dir, profile, selection);
     if !is_pdf_path(path) {
         return Ok(context.report(ReportParts::unsupported("unsupported non-PDF input")));
+    }
+
+    let page_selection = match resolve_page_selection(path, selection) {
+        Ok(page_selection) => page_selection,
+        Err(error) => {
+            return Ok(context.report(ReportParts::preflight_failed(format!(
+                "analyze PDF `{}` for render selection: {error}",
+                path.display()
+            ))));
+        }
+    };
+    if let RenderPageSelection::Skip {
+        page_count,
+        routing_decision,
+        reason,
+    } = &page_selection
+    {
+        return Ok(context.report(ReportParts::skipped(
+            *page_count,
+            *routing_decision,
+            reason.clone(),
+        )));
     }
 
     let source_bytes =
@@ -399,7 +463,12 @@ pub fn render_pdf_page_shards(
     };
 
     let page_count = u32::try_from(document.pages().len()).unwrap_or_default();
-    let manifests = match render_document_manifests(&document, &context, &source_hash) {
+    let manifests = match render_document_manifests(
+        &document,
+        &context,
+        &source_hash,
+        page_selection.selected_page_indices(),
+    ) {
         Ok(manifests) => manifests,
         Err(fallback) => return Ok(context.report(fallback)),
     };
@@ -552,20 +621,125 @@ fn bind_pdfium() -> Result<Pdfium, String> {
     }
 }
 
+enum RenderPageSelection {
+    All,
+    Selected(Vec<i32>),
+    Skip {
+        page_count: u32,
+        routing_decision: PdfRenderRoutingDecision,
+        reason: String,
+    },
+}
+
+impl RenderPageSelection {
+    fn selected_page_indices(&self) -> Option<&[i32]> {
+        match self {
+            Self::Selected(page_indices) => Some(page_indices.as_slice()),
+            Self::All | Self::Skip { .. } => None,
+        }
+    }
+}
+
+fn resolve_page_selection(
+    path: &Path,
+    selection: PdfPageRenderSelection,
+) -> Result<RenderPageSelection, String> {
+    match selection {
+        PdfPageRenderSelection::AllPages => Ok(RenderPageSelection::All),
+        PdfPageRenderSelection::ShardFallbackPages => resolve_shard_fallback_page_selection(path),
+    }
+}
+
+fn resolve_shard_fallback_page_selection(path: &Path) -> Result<RenderPageSelection, String> {
+    let signals = analyze_pdf_routing_signals(path)?;
+    let assessment = routing_assessment(&signals);
+    match assessment.decision {
+        PdfInspectorRoutingDecision::FastRustCandidate => Ok(RenderPageSelection::Skip {
+            page_count: signals.page_count,
+            routing_decision: PdfRenderRoutingDecision::FastRustCandidate,
+            reason: "fast text path candidate; raster OCR render is not needed".to_string(),
+        }),
+        PdfInspectorRoutingDecision::FullDoclingFallback => Ok(RenderPageSelection::Skip {
+            page_count: signals.page_count,
+            routing_decision: PdfRenderRoutingDecision::FullDoclingFallback,
+            reason: "routing gates require full Docling fallback".to_string(),
+        }),
+        PdfInspectorRoutingDecision::PreflightFailed => Ok(RenderPageSelection::Skip {
+            page_count: signals.page_count,
+            routing_decision: PdfRenderRoutingDecision::PreflightFailed,
+            reason: "PDF preflight failed".to_string(),
+        }),
+        PdfInspectorRoutingDecision::UnsupportedNonPdf => Ok(RenderPageSelection::Skip {
+            page_count: signals.page_count,
+            routing_decision: PdfRenderRoutingDecision::UnsupportedNonPdf,
+            reason: "unsupported non-PDF input".to_string(),
+        }),
+        PdfInspectorRoutingDecision::HybridPageOcrCandidate => {
+            let page_indices = raster_ocr_page_indices(
+                signals.page_count,
+                signals.pages_needing_ocr.as_slice(),
+                matches!(
+                    signals.pdf_type,
+                    super::audit::PdfInspectorPdfType::Scanned
+                        | super::audit::PdfInspectorPdfType::ImageBased
+                ),
+            );
+            if page_indices.is_empty() {
+                return Ok(RenderPageSelection::Skip {
+                    page_count: signals.page_count,
+                    routing_decision: PdfRenderRoutingDecision::HybridPageOcrCandidate,
+                    reason: "hybrid shard fallback selected; no raster OCR pages are required"
+                        .to_string(),
+                });
+            }
+            Ok(RenderPageSelection::Selected(page_indices))
+        }
+    }
+}
+
+fn raster_ocr_page_indices(
+    page_count: u32,
+    pages_needing_ocr: &[u32],
+    render_all_when_no_hints: bool,
+) -> Vec<i32> {
+    let mut page_indices = if pages_needing_ocr.is_empty() && render_all_when_no_hints {
+        (0..page_count)
+            .filter_map(|page_index| i32::try_from(page_index).ok())
+            .collect::<Vec<_>>()
+    } else {
+        pages_needing_ocr
+            .iter()
+            .filter_map(|page_number| page_number.checked_sub(1))
+            .filter(|page_index| *page_index < page_count)
+            .filter_map(|page_index| i32::try_from(page_index).ok())
+            .collect::<Vec<_>>()
+    };
+    page_indices.sort_unstable();
+    page_indices.dedup();
+    page_indices
+}
+
 struct RenderShardContext<'a> {
     path: &'a Path,
     output_dir: &'a Path,
     profile: &'a PdfPageRenderProfile,
+    selection: PdfPageRenderSelection,
     source_path: String,
     started: Instant,
 }
 
 impl<'a> RenderShardContext<'a> {
-    fn new(path: &'a Path, output_dir: &'a Path, profile: &'a PdfPageRenderProfile) -> Self {
+    fn new(
+        path: &'a Path,
+        output_dir: &'a Path,
+        profile: &'a PdfPageRenderProfile,
+        selection: PdfPageRenderSelection,
+    ) -> Self {
         Self {
             path,
             output_dir,
             profile,
+            selection,
             source_path: path.to_string_lossy().to_string(),
             started: Instant::now(),
         }
@@ -587,6 +761,7 @@ impl<'a> RenderShardContext<'a> {
                 .pending_resource_arrow_path
                 .map(|path| path.to_string_lossy().to_string()),
             render_profile: self.profile.profile_id.clone(),
+            render_selection: self.selection.as_str().to_string(),
             status: parts.status.as_str().to_string(),
             routing_decision: parts.routing_decision.as_str().to_string(),
             elapsed_ms: self.started.elapsed().as_secs_f64() * 1000.0,
@@ -650,6 +825,23 @@ impl ReportParts {
         }
     }
 
+    fn skipped(
+        page_count: u32,
+        routing_decision: PdfRenderRoutingDecision,
+        error_message: String,
+    ) -> Self {
+        Self {
+            page_count,
+            shard_count: 0,
+            manifest_arrow_path: None,
+            ocr_input_arrow_path: None,
+            pending_resource_arrow_path: None,
+            status: PdfRenderStatus::Skipped,
+            routing_decision,
+            error_message: Some(error_message),
+        }
+    }
+
     fn rendered(
         page_count: u32,
         shard_count: u32,
@@ -674,6 +866,7 @@ fn render_document_manifests(
     document: &PdfDocument<'_>,
     context: &RenderShardContext<'_>,
     source_hash: &str,
+    selected_page_indices: Option<&[i32]>,
 ) -> Result<Vec<PdfPageShardManifest>, ReportParts> {
     let page_count = u32::try_from(document.pages().len()).unwrap_or_default();
     let shard_dir = context.shard_dir(source_hash);
@@ -686,7 +879,11 @@ fn render_document_manifests(
     })?;
 
     let mut manifests = Vec::new();
-    for page_index in document.pages().as_range() {
+    let page_indices = selected_page_indices.map_or_else(
+        || document.pages().as_range().collect::<Vec<_>>(),
+        <[i32]>::to_vec,
+    );
+    for page_index in page_indices {
         let page = document.pages().get(page_index).map_err(|error| {
             ReportParts::fallback(
                 page_count,

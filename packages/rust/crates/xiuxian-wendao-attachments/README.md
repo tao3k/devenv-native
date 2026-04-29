@@ -36,6 +36,15 @@ extraction may bypass Docling. A high-confidence scanned PDF is therefore still
 blocked from the direct text fast path and routed toward OCR or Docling
 fallback.
 
+Complex layout and OCR-required pages are routed to the hybrid shard fallback
+candidate, not to unconditional full-document fallback. The hybrid proof mode
+uses `PdfPageRenderSelection::ShardFallbackPages`: it renders only pages that
+need raster OCR, renders all pages only for scanned/image PDFs without reliable
+page hints, and skips raster rendering for complex text PDFs whose text layer is
+available and whose OCR page set is empty. Full Docling fallback is reserved for
+preflight failures, encoding problems, empty documents, or low-confidence PDFs
+that have no page-level shard signal.
+
 ## PDFium Runtime
 
 The `pdf-render` feature uses `pdfium-render`, which binds to a native PDFium

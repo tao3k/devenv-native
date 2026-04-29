@@ -134,3 +134,16 @@ fn document_extract_pdf_render_builds_ocr_pending_resource_rows() -> Result<(), 
     );
     Ok(())
 }
+
+#[test]
+fn document_extract_pdf_render_selects_only_ocr_pages_for_shard_fallback() {
+    assert_eq!(
+        raster_ocr_page_indices(9, &[1, 3, 3, 12], false),
+        vec![0, 2]
+    );
+}
+
+#[test]
+fn document_extract_pdf_render_selects_all_pages_for_scanned_without_hints() {
+    assert_eq!(raster_ocr_page_indices(3, &[], true), vec![0, 1, 2]);
+}

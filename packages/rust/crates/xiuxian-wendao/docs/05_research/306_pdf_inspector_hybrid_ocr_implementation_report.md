@@ -23,8 +23,10 @@ The target architecture is precision-preserving:
    understanding fallback.
 3. Fast or hybrid extraction is enabled only when measurable quality gates prove
    that it does not reduce output quality against the Docling baseline.
-4. Low-confidence, complex-layout, encoding-problem, table-heavy, formula-heavy,
-   or uncertain PDFs fall back to full Docling conversion.
+4. OCR-required and complex-layout PDFs route to hybrid shard fallback first.
+   Full Docling conversion remains the fallback for encoding problems, empty
+   documents, preflight failures, or low-confidence PDFs without a safe
+   page-level shard signal.
 
 This keeps the existing Arrow Flight contract intact while moving expensive
 all-or-nothing Python PDF conversion toward a Rust-owned page routing pipeline.
@@ -73,15 +75,16 @@ Interpretation:
 Milestone 1 added a feature-gated `pdf-inspector` detect/analyze audit lane and
 ran it against the real Docling `2206.01062.pdf` fixture.
 
-| Profile        | PDF type     | Pages | Confidence | Complex | Decision                | Elapsed ms |
-| -------------- | ------------ | ----: | ---------: | ------- | ----------------------- | ---------: |
-| `detect_full`  | `text_based` |     9 |      1.000 | false   | `fast_rust_candidate`   |    102.814 |
-| `analyze_full` | `text_based` |     9 |      1.000 | true    | `full_docling_fallback` |    796.432 |
+| Profile        | PDF type     | Pages | Confidence | Complex | Decision                    | Elapsed ms |
+| -------------- | ------------ | ----: | ---------: | ------- | --------------------------- | ---------: |
+| `detect_full`  | `text_based` |     9 |      1.000 | false   | `fast_rust_candidate`       |    102.814 |
+| `analyze_full` | `text_based` |     9 |      1.000 | true    | `hybrid_page_ocr_candidate` |    796.432 |
 
 This is the intended safety behavior. The cheaper detect-only pass shows that
 the file has a reliable text layer, while the analyze pass finds multi-column
-and table-heavy layout complexity and routes the current milestone back to
-Docling.
+and table-heavy layout complexity and blocks the direct Rust text fast path.
+The current router sends that case to the hybrid shard fallback candidate
+instead of unconditional full-document fallback.
 
 Milestone 2 now has an internal, feature-gated Rust text fast-path artifact
 builder. It is disabled by default and is not wired into production
@@ -89,14 +92,16 @@ Flight/REST extraction. The builder writes the same stable document resource
 Arrow schema and only produces `_resources.arrow` for PDFs that pass every
 quality gate.
 
-| Input                      | Gate result | Arrow rows | Markdown bytes | Decision                | Elapsed ms |
-| -------------------------- | ----------- | ---------: | -------------: | ----------------------- | ---------: |
-| Minimal generated text PDF | `ok`        |          1 |            > 0 | `fast_rust_candidate`   |  unit test |
-| Real Docling PDF fixture   | `fallback`  |          0 |              0 | `full_docling_fallback` |    711.710 |
+| Input                      | Gate result | Arrow rows | Markdown bytes | Decision                    | Elapsed ms |
+| -------------------------- | ----------- | ---------: | -------------: | --------------------------- | ---------: |
+| Minimal generated text PDF | `ok`        |          1 |            > 0 | `fast_rust_candidate`       |  unit test |
+| Real Docling PDF fixture   | `fallback`  |          0 |              0 | `hybrid_page_ocr_candidate` |    711.710 |
 
 The real fixture result is deliberately conservative: the document has a valid
-text layer, but full analysis marks it as complex, so Python/Docling remains
-the extraction authority for that file.
+text layer, but full analysis marks it as complex, so direct Rust text
+extraction is not allowed. The router now keeps the file in the hybrid shard
+fallback lane so later OCR/text merge work can operate at page or shard
+granularity.
 
 Milestone 3 moved the reusable PDF accelerator boundary into
 `xiuxian-wendao-attachments`. The optional `pdf-inspector`, `pdfium-render`, and
@@ -117,15 +122,28 @@ API release for the current platform into the project cache, and
 shards are rendered. This is benchmark-only plumbing; it does not add PDFium to
 default Wendao features or to production extraction.
 
-Real render proof on the Docling `2206.01062.pdf` fixture:
+All-pages render proof on the Docling `2206.01062.pdf` fixture:
 
 | Status     | Decision                    | Pages | Shards | Elapsed ms |
 | ---------- | --------------------------- | ----: | -----: | ---------: |
 | `rendered` | `hybrid_page_ocr_candidate` |     9 |      9 |  24869.386 |
 
-The result proves that the feature-gated Rust path can render page shards and
+This result is a renderer capacity proof, not the optimized path. It deliberately
+uses all-page 300 DPI PNG rendering to prove that the feature-gated Rust path can
 write the internal shard manifest, OCR worker input, and pending OCR Arrow
 resource rows when a native PDFium runtime is explicitly provided.
+
+Shard-fallback routing proof on the same fixture:
+
+| Status    | Decision                    | Selection              | Pages | Shards | Elapsed ms |
+| --------- | --------------------------- | ---------------------- | ----: | -----: | ---------: |
+| `skipped` | `hybrid_page_ocr_candidate` | `shard_fallback_pages` |     9 |      0 |    504.064 |
+
+This is the optimized routing behavior for the current fixture. The file is
+complex enough to block direct fast-path extraction, but `pdf-inspector` reports
+no raster OCR pages, so Rust does not render all pages. Later hybrid extraction
+can preserve the native text layer and invoke Python/Docling only for explicit
+OCR or semantic shard work.
 
 The next proof slice adds an Arrow-only OCR worker contract under
 `xiuxian-wendao-attachments`. Rendered page manifests are projected into
@@ -197,19 +215,20 @@ Mandatory rules:
    allows it. OCR must not overwrite reliable text-layer content.
 4. OCR input can be generated by Rust, but OCR output quality is judged against
    Docling baseline output before fast or hybrid paths are enabled by default.
-5. Any uncertain routing decision must fall back to full Docling conversion.
+5. Any uncertain routing decision without a safe page-level shard signal must
+   fall back to full Docling conversion.
 
 Recommended quality gates for an initial production profile:
 
-| Signal            | Fast path condition                                      |
-| ----------------- | -------------------------------------------------------- |
-| PDF type          | `TextBased`                                              |
-| Confidence        | `>= 0.90`                                                |
-| Encoding issues   | false                                                    |
-| Pages needing OCR | empty                                                    |
-| Complex layout    | false, unless an explicit index-only profile is selected |
-| Tables/formulas   | fallback until table/formula parity is proven            |
-| Renderer parity   | required for image/scanned hybrid paths                  |
+| Signal            | Fast path condition                                       |
+| ----------------- | --------------------------------------------------------- |
+| PDF type          | `TextBased`                                               |
+| Confidence        | `>= 0.90`                                                 |
+| Encoding issues   | false                                                     |
+| Pages needing OCR | empty                                                     |
+| Complex layout    | false for direct fast path; hybrid shard fallback allowed |
+| Tables/formulas   | fallback until table/formula parity is proven             |
+| Renderer parity   | required for image/scanned hybrid paths                   |
 
 ## Target Architecture
 
@@ -236,14 +255,14 @@ Responsibilities:
 
 Decision matrix:
 
-| Input class              | Rust action                                       | Python/Docling action   | Default result         |
-| ------------------------ | ------------------------------------------------- | ----------------------- | ---------------------- |
-| High-confidence text PDF | Extract markdown and page text in Rust            | None                    | Rust Arrow rows        |
-| Mixed PDF                | Extract text-layer pages in Rust; shard OCR pages | OCR selected pages only | Hybrid Arrow rows      |
-| Scanned/image PDF        | Render page images; shard pages                   | OCR page shards         | OCR Arrow rows         |
-| Low confidence PDF       | None beyond diagnostics                           | Full Docling conversion | Docling Arrow rows     |
-| Complex tables/formulas  | Optional diagnostics only                         | Full Docling conversion | Docling Arrow rows     |
-| Encoding issues          | None beyond diagnostics                           | Full Docling or OCR     | Docling/OCR Arrow rows |
+| Input class              | Rust action                                              | Python/Docling action                  | Default result         |
+| ------------------------ | -------------------------------------------------------- | -------------------------------------- | ---------------------- |
+| High-confidence text PDF | Extract markdown and page text in Rust                   | None                                   | Rust Arrow rows        |
+| Mixed PDF                | Extract text-layer pages in Rust; shard OCR pages        | OCR selected pages only                | Hybrid Arrow rows      |
+| Scanned/image PDF        | Render page images; shard pages                          | OCR page shards                        | OCR Arrow rows         |
+| Low confidence PDF       | Diagnostics; shard only when OCR/page signal is explicit | Full Docling otherwise                 | Hybrid or Docling rows |
+| Complex tables/formulas  | Page/object diagnostics; no direct text fast path        | Shard OCR or Docling semantic fallback | Hybrid or Docling rows |
+| Encoding issues          | None beyond diagnostics                                  | Full Docling or OCR                    | Docling/OCR Arrow rows |
 
 The routing result should be represented as a small Rust enum rather than hidden
 stringly metadata:
@@ -370,7 +389,9 @@ The architecture can improve precision if implemented conservatively:
 - OCR is focused on pages or regions that actually need visual recognition.
 - Page shards carry exact coordinate transforms, which improves merge order and
   provenance.
-- Low-confidence cases preserve current Docling behavior.
+- Low-confidence cases preserve current Docling behavior unless there is an
+  explicit OCR/page-level shard signal that can be processed without losing
+  provenance.
 - Multiple OCR engines can later be merged by confidence and bounding box
   without changing the Arrow Flight contract.
 
@@ -442,7 +463,8 @@ Acceptance:
 
 - Rotation, crop box, media box, DPI, and raster dimensions are proven by tests.
 - Shards are content-addressed.
-- Rendering errors fall back to full Docling.
+- Rendering errors emit a fallback report and keep live extraction on the
+  existing Python/Docling path.
 - Default Wendao, `studio`, and `performance` features do not pull renderer
   dependencies.
 
@@ -466,7 +488,9 @@ Scope:
 
 - Combine Rust text-layer extraction and selected-page OCR.
 - Preserve page order and provenance.
-- Keep full Docling fallback for complex tables, formulas, and uncertain layout.
+- Keep full Docling fallback available for complex tables, formulas, and
+  uncertain layout, but prefer shard fallback whenever routing can preserve
+  page-level provenance.
 
 Acceptance:
 

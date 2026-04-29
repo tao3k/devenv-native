@@ -356,7 +356,7 @@ pub fn extract_text_pdf_fast_path_artifact(
             pdf_type,
             &pages,
             pages_needing_ocr,
-            PdfInspectorRoutingDecision::FullDoclingFallback,
+            PdfInspectorRoutingDecision::HybridPageOcrCandidate,
             "fallback",
         ));
     }
@@ -411,6 +411,15 @@ fn analyze_pdf_for_text_fast_path(path: &Path) -> Result<PdfProcessResult, Strin
         .mode(ProcessMode::Analyze)
         .detection(detection);
     process_pdf_with_options(path, options).map_err(|error| error.to_string())
+}
+
+/// # Errors
+///
+/// Returns an error if `pdf-inspector` cannot analyze the PDF.
+pub fn analyze_pdf_routing_signals(path: &Path) -> Result<PdfInspectorRoutingSignals, String> {
+    let analysis = analyze_pdf_for_text_fast_path(path)?;
+    let pdf_type = normalize_pdf_type(analysis.pdf_type);
+    Ok(signals_from_analysis(&analysis, pdf_type))
 }
 
 fn signals_from_analysis(
@@ -541,8 +550,7 @@ pub fn routing_assessment(signals: &PdfInspectorRoutingSignals) -> PdfInspectorR
 fn routing_decision_from_failures(
     gate_failures: &[PdfInspectorRoutingGateFailure],
 ) -> PdfInspectorRoutingDecision {
-    if gate_failures.contains(&PdfInspectorRoutingGateFailure::LowConfidence)
-        || gate_failures.contains(&PdfInspectorRoutingGateFailure::EncodingIssues)
+    if gate_failures.contains(&PdfInspectorRoutingGateFailure::EncodingIssues)
         || gate_failures.contains(&PdfInspectorRoutingGateFailure::EmptyDocument)
     {
         return PdfInspectorRoutingDecision::FullDoclingFallback;
@@ -550,8 +558,14 @@ fn routing_decision_from_failures(
     if gate_failures.is_empty() {
         return PdfInspectorRoutingDecision::FastRustCandidate;
     }
-    if gate_failures.contains(&PdfInspectorRoutingGateFailure::PagesNeedOcr) {
+    if gate_failures.contains(&PdfInspectorRoutingGateFailure::NonTextPdf)
+        || gate_failures.contains(&PdfInspectorRoutingGateFailure::PagesNeedOcr)
+        || gate_failures.contains(&PdfInspectorRoutingGateFailure::ComplexLayout)
+    {
         return PdfInspectorRoutingDecision::HybridPageOcrCandidate;
+    }
+    if gate_failures.contains(&PdfInspectorRoutingGateFailure::LowConfidence) {
+        return PdfInspectorRoutingDecision::FullDoclingFallback;
     }
     PdfInspectorRoutingDecision::FullDoclingFallback
 }

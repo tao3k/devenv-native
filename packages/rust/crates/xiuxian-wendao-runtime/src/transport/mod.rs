@@ -37,15 +37,17 @@ pub use negotiation::{
 pub use plugin_arrow_exchange::{
     NegotiatedPluginArrowScoreRows, PluginArrowCandidateProjection,
     PluginArrowRequestBatchBuildError, PluginArrowRequestRow, PluginArrowScoreRoundtripError,
-    PluginArrowScoreRow, PluginArrowScoredCandidate, PluginArrowVectorStoreRequestBuildError,
-    attach_plugin_arrow_request_metadata, build_plugin_arrow_request_batch,
-    build_plugin_arrow_request_batch_from_embeddings,
-    build_plugin_arrow_request_batch_from_embeddings_with_metadata,
-    build_plugin_arrow_request_batch_from_vector_store,
-    build_plugin_arrow_request_batch_from_vector_store_with_metadata,
-    decode_plugin_arrow_score_rows, plugin_arrow_request_trace_id,
-    prepare_plugin_arrow_request_rows_from_vector_store, project_plugin_arrow_scored_candidates,
+    PluginArrowScoreRow, PluginArrowScoredCandidate, attach_plugin_arrow_request_metadata,
+    build_plugin_arrow_request_batch, build_plugin_arrow_request_batch_from_embeddings,
+    build_plugin_arrow_request_batch_from_embeddings_with_metadata, decode_plugin_arrow_score_rows,
+    plugin_arrow_request_trace_id, project_plugin_arrow_scored_candidates,
     roundtrip_plugin_arrow_score_rows_with_binding, validate_plugin_arrow_response_batches,
+};
+#[cfg(all(feature = "transport", feature = "vector-store"))]
+pub use plugin_arrow_exchange::{
+    PluginArrowVectorStoreRequestBuildError, build_plugin_arrow_request_batch_from_vector_store,
+    build_plugin_arrow_request_batch_from_vector_store_with_metadata,
+    prepare_plugin_arrow_request_rows_from_vector_store,
 };
 pub use query_contract::RerankScoreWeights;
 #[cfg(feature = "transport")]

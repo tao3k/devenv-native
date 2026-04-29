@@ -140,13 +140,13 @@ fn document_extract_pdf_audit_routes_encoding_issues_to_docling_fallback() {
 }
 
 #[test]
-fn document_extract_pdf_audit_routes_complex_text_pdf_to_docling_fallback() {
+fn document_extract_pdf_audit_routes_complex_text_pdf_to_hybrid_shard_candidate() {
     let mut input = signals(PdfInspectorPdfType::TextBased);
     input.is_complex = true;
 
     assert_eq!(
         routing_decision(&input),
-        PdfInspectorRoutingDecision::FullDoclingFallback
+        PdfInspectorRoutingDecision::HybridPageOcrCandidate
     );
     let assessment = routing_assessment(&input);
     assert_eq!(
@@ -154,6 +154,22 @@ fn document_extract_pdf_audit_routes_complex_text_pdf_to_docling_fallback() {
         vec![PdfInspectorRoutingGateFailure::ComplexLayout]
     );
     assert!(assessment.fast_path_score < 0.90);
+}
+
+#[test]
+fn document_extract_pdf_audit_routes_non_text_without_page_hints_to_hybrid_shard_candidate() {
+    let input = signals(PdfInspectorPdfType::ImageBased);
+
+    let assessment = routing_assessment(&input);
+
+    assert_eq!(
+        assessment.decision,
+        PdfInspectorRoutingDecision::HybridPageOcrCandidate
+    );
+    assert_eq!(
+        assessment.gate_failures,
+        vec![PdfInspectorRoutingGateFailure::NonTextPdf]
+    );
 }
 
 #[test]
@@ -175,6 +191,28 @@ fn document_extract_pdf_audit_explains_high_confidence_scanned_hybrid_candidate(
         ]
     );
     assert!(assessment.fast_path_score < 0.90);
+}
+
+#[test]
+fn document_extract_pdf_audit_routes_low_confidence_ocr_pdf_to_hybrid_shard_candidate() {
+    let mut input = signals(PdfInspectorPdfType::Mixed);
+    input.confidence = 0.5;
+    input.pages_needing_ocr = vec![2];
+
+    let assessment = routing_assessment(&input);
+
+    assert_eq!(
+        assessment.decision,
+        PdfInspectorRoutingDecision::HybridPageOcrCandidate
+    );
+    assert_eq!(
+        assessment.gate_failures,
+        vec![
+            PdfInspectorRoutingGateFailure::LowConfidence,
+            PdfInspectorRoutingGateFailure::NonTextPdf,
+            PdfInspectorRoutingGateFailure::PagesNeedOcr,
+        ]
+    );
 }
 
 #[test]

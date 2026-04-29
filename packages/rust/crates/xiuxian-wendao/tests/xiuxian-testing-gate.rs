@@ -22,7 +22,7 @@ mod coactivation_multihop_diffusion;
 #[path = "integration/coactivation_weighted_propagation.rs"]
 mod coactivation_weighted_propagation;
 
-#[cfg(not(feature = "performance"))]
+#[cfg(all(not(feature = "performance"), feature = "vector-store"))]
 #[path = "integration/planned_search_semantic_ignition.rs"]
 mod planned_search_semantic_ignition;
 
@@ -30,15 +30,15 @@ mod planned_search_semantic_ignition;
 #[path = "integration/ppr_weight_precision.rs"]
 mod ppr_weight_precision;
 
-#[cfg(not(feature = "performance"))]
+#[cfg(all(not(feature = "performance"), feature = "vector-store"))]
 #[path = "integration/quantum_fusion_openai_ignition.rs"]
 mod quantum_fusion_openai_ignition;
 
-#[cfg(not(feature = "performance"))]
+#[cfg(all(not(feature = "performance"), feature = "vector-store"))]
 #[path = "integration/quantum_fusion_saliency_budget.rs"]
 mod quantum_fusion_saliency_budget;
 
-#[cfg(not(feature = "performance"))]
+#[cfg(all(not(feature = "performance"), feature = "vector-store"))]
 #[path = "integration/quantum_fusion_saliency_window.rs"]
 mod quantum_fusion_saliency_window;
 

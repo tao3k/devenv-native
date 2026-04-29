@@ -379,6 +379,7 @@ def test_pdf_render_shard_audit_command_adds_feature_and_fixture_manifest(
         pdfium_library_path=None,
         prepare_pdfium_runtime=False,
         require_pdfium=False,
+        pdf_render_selection="all-pages",
     )
 
     command, env = benchmark.build_pdf_render_shard_audit_command(
@@ -401,6 +402,7 @@ def test_pdf_render_shard_audit_command_adds_feature_and_fixture_manifest(
     inputs = benchmark.json.loads(env["WENDAO_PDF_RENDER_SHARD_INPUTS_JSON"])
     assert inputs == [{"name": "pdf", "source": str(tmp_path / "sample.pdf")}]
     assert env["WENDAO_PDF_RENDER_SHARD_REPORT_DIR"] == str(tmp_path / "reports")
+    assert env["WENDAO_PDF_RENDER_SELECTION"] == "all_pages"
 
 
 def test_pdf_render_shard_audit_can_pin_pdfium_runtime_path(
@@ -415,6 +417,7 @@ def test_pdf_render_shard_audit_can_pin_pdfium_runtime_path(
         pdfium_library_path=pdfium_library,
         prepare_pdfium_runtime=False,
         require_pdfium=True,
+        pdf_render_selection="shard-fallback-pages",
     )
 
     _command, env = benchmark.build_pdf_render_shard_audit_command(
@@ -425,6 +428,7 @@ def test_pdf_render_shard_audit_can_pin_pdfium_runtime_path(
 
     assert env["WENDAO_PDFIUM_LIBRARY_PATH"] == str(pdfium_library.resolve())
     assert env["WENDAO_PDF_RENDER_REQUIRE_PDFIUM"] == "1"
+    assert env["WENDAO_PDF_RENDER_SELECTION"] == "shard_fallback_pages"
 
 
 def test_pdfium_asset_selection_covers_primary_platforms() -> None:

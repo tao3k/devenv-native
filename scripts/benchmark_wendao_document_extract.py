@@ -204,6 +204,16 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--pdf-render-selection",
+        choices=("all-pages", "shard-fallback-pages"),
+        default="all-pages",
+        help=(
+            "Page selection mode for --pdf-render-shard-audit. "
+            "`all-pages` proves renderer capacity; `shard-fallback-pages` "
+            "uses routing signals and renders only raster OCR pages."
+        ),
+    )
+    parser.add_argument(
         "--pdfium-library-path",
         type=Path,
         help=("Path to a libpdfium shared library used by --pdf-render-shard-audit."),
@@ -606,6 +616,7 @@ def build_pdf_render_shard_audit_command(
     env = {
         "WENDAO_PDF_RENDER_SHARD_INPUTS_JSON": json.dumps(inputs),
         "WENDAO_PDF_RENDER_SHARD_REPORT_DIR": str(report_dir),
+        "WENDAO_PDF_RENDER_SELECTION": args.pdf_render_selection.replace("-", "_"),
     }
     pdfium_library_path = resolve_pdfium_library_path(args)
     if pdfium_library_path is not None:

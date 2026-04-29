@@ -16,7 +16,6 @@ default = [
   "julia",
   "search-runtime",
   "studio",
-  "vector-store",
 ]
 pybindings = ["dep:pyo3", "repo-lexical-index"]
 repo-lexical-index = ["dep:tantivy"]
@@ -40,11 +39,13 @@ vector-store = [
   "dep:reqwest",
   "dep:xiuxian-db-store",
   "xiuxian-db-store/vector-store",
+  "xiuxian-wendao-runtime/vector-store",
 ]
 search-runtime = [
   "dep:graphql-parser",
   "dep:xiuxian-ast",
-  "vector-store",
+  "dep:xiuxian-db-store",
+  "xiuxian-db-store/engine",
   "runtime-transport",
   "dep:arrow-flight",
   "dep:datafusion",

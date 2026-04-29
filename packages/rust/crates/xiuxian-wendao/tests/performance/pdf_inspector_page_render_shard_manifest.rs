@@ -1,8 +1,8 @@
 use std::path::PathBuf;
 
 use xiuxian_wendao::gateway::studio::document_extract_pdf_render::{
-    PdfPageRenderProfile, read_render_paths_from_json, render_pdf_page_shards,
-    write_page_render_shard_reports,
+    PdfPageRenderProfile, PdfPageRenderSelection, read_render_paths_from_json,
+    render_pdf_page_shards_with_selection, write_page_render_shard_reports,
 };
 
 #[test]
@@ -24,6 +24,7 @@ fn pdf_inspector_page_render_shard_manifest_reports_pdf_shards() -> Result<(), S
     );
     let artifact_dir = report_dir.join("artifacts");
     let profile = PdfPageRenderProfile::ocr_default();
+    let selection = read_render_selection_from_env()?;
 
     let paths = read_render_paths_from_json(inputs_json.as_str())?;
     let records = paths
@@ -34,14 +35,15 @@ fn pdf_inspector_page_render_shard_manifest_reports_pdf_shards() -> Result<(), S
                     .and_then(|stem| stem.to_str())
                     .unwrap_or("pdf"),
             );
-            render_pdf_page_shards(path, output_dir.as_path(), &profile)
+            render_pdf_page_shards_with_selection(path, output_dir.as_path(), &profile, selection)
         })
         .collect::<Result<Vec<_>, _>>()?;
     write_page_render_shard_reports(report_dir.as_path(), &records)?;
     if records.is_empty() {
         return Err("PDF render shard manifest audit produced no records".to_string());
     }
-    if std::env::var("WENDAO_PDF_RENDER_REQUIRE_PDFIUM").as_deref() == Ok("1")
+    if selection == PdfPageRenderSelection::AllPages
+        && std::env::var("WENDAO_PDF_RENDER_REQUIRE_PDFIUM").as_deref() == Ok("1")
         && records.iter().all(|record| record.status != "rendered")
     {
         return Err("PDFium was required but no PDF render shards were produced".to_string());
@@ -69,4 +71,15 @@ fn pdf_inspector_page_render_shard_manifest_reports_pdf_shards() -> Result<(), S
         .map_err(|error| error.to_string())?
     );
     Ok(())
+}
+
+fn read_render_selection_from_env() -> Result<PdfPageRenderSelection, String> {
+    match std::env::var("WENDAO_PDF_RENDER_SELECTION")
+        .unwrap_or_else(|_| PdfPageRenderSelection::AllPages.as_str().to_string())
+        .as_str()
+    {
+        "all_pages" => Ok(PdfPageRenderSelection::AllPages),
+        "shard_fallback_pages" => Ok(PdfPageRenderSelection::ShardFallbackPages),
+        value => Err(format!("unsupported PDF render selection: {value}")),
+    }
 }

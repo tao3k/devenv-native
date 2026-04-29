@@ -5,10 +5,16 @@
 [![Rust](https://img.shields.io/badge/language-Rust-orange.svg)](https://www.rust-lang.org/)
 [![Valkey](https://img.shields.io/badge/storage-Valkey-red.svg)](https://valkey.io/)
 [![DuckDB](https://img.shields.io/badge/local%20cache-DuckDB-yellow.svg)](https://duckdb.org/)
-[![LanceDB](https://img.shields.io/badge/vector-LanceDB-blue.svg)](https://lancedb.com/)
+[![LanceDB](https://img.shields.io/badge/vector%20opt--in-LanceDB-blue.svg)](https://lancedb.com/)
 [![Arrow](https://img.shields.io/badge/protocol-Apache--Arrow-brightgreen.svg)](https://arrow.apache.org/)
 
 **Wendao** is a next-generation knowledge management engine. While tools like Obsidian revolutionized human note-taking, **Wendao** is designed for the era of Autonomous Agents, providing a high-performance, programmable substrate for structured reasoning and massive-scale retrieval.
+
+Default Wendao builds do not depend on `xiuxian-vector`, `xiuxian-lance`, or
+LanceDB. SQL, document parsing, and Arrow Flight surfaces use the lightweight
+`xiuxian-db-store/engine` boundary; Lance-backed storage remains available only
+through the explicit `vector-store` feature for vector or retrieval-storage
+paths.
 
 ## Package Position In The Split
 
