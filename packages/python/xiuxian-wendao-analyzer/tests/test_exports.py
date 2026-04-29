@@ -41,6 +41,7 @@ def test_public_exports_include_core_analyzer_surface() -> None:
     assert "ANALYSIS_PDF_OCR_SHARDS_ROUTE" in analyzer.__all__
     assert "PDF_OCR_SHARD_INPUT_SCHEMA" in analyzer.__all__
     assert "PDF_OCR_SHARD_RESULT_SCHEMA" in analyzer.__all__
+    assert "DoclingPdfOcrShardWorker" in analyzer.__all__
     assert "PdfOcrShardWorkerProtocol" in analyzer.__all__
     assert "ScoreRankAnalyzer" in analyzer.__all__
     assert "analyze_query" in analyzer.__all__
@@ -68,6 +69,7 @@ def test_public_exports_preserve_expected_symbol_kinds() -> None:
     assert isclass(analyzer.RowsAnalysisRun)
     assert isclass(analyzer.TableAnalysisRun)
     assert isclass(analyzer.DocumentResourceRow)
+    assert isclass(analyzer.DoclingPdfOcrShardWorker)
     assert isclass(analyzer.PdfOcrShardWorkerProtocol)
     assert analyzer.DOCUMENT_RESOURCE_ARROW_CACHE_NAME == "_resources.arrow"
     assert (

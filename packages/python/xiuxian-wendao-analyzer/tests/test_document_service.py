@@ -22,11 +22,14 @@ from xiuxian_wendao_analyzer import (
     WENDAO_DOCUMENT_EXTRACT_OUTPUT_DIR_HEADER,
     WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_HEADER,
     WENDAO_SCHEMA_VERSION_HEADER,
+    DoclingPdfOcrShardWorker,
     DocumentExtractFlightServer,
     build_document_extract_table,
     build_pdf_ocr_shard_result_table,
     succeeded_pdf_ocr_shard_result,
 )
+from xiuxian_wendao_analyzer.document_service import _build_pdf_ocr_worker
+from xiuxian_wendao_analyzer.pdf_ocr import SkippingPdfOcrShardWorker
 
 
 class FakeDoclingDocument:
@@ -50,6 +53,11 @@ class FakeDoclingConverter:
     def convert(self, source: str | Path) -> FakeDoclingResult:
         self.calls.append(Path(source))
         return FakeDoclingResult(self.markdown)
+
+
+class FailingDoclingConverter:
+    def convert(self, source: str | Path) -> FakeDoclingResult:
+        raise RuntimeError(f"cannot OCR {source}")
 
 
 def test_document_extract_table_uses_document_headers(tmp_path: Path) -> None:
@@ -156,6 +164,71 @@ def test_pdf_ocr_shard_result_table_uses_injected_worker() -> None:
     assert row["confidence"] == 0.91
 
 
+def test_docling_pdf_ocr_worker_converts_page_images(tmp_path: Path) -> None:
+    image = tmp_path / "page-00000.png"
+    image.write_bytes(b"png fixture")
+    converter = FakeDoclingConverter("OCR **page**\n")
+
+    table = build_pdf_ocr_shard_result_table(
+        _sample_pdf_ocr_input_table(image_path=str(image)),
+        worker=DoclingPdfOcrShardWorker(converter),
+    )
+
+    assert converter.calls == [image]
+    row = table.to_pylist()[0]
+    assert row["status"] == "succeeded"
+    assert row["text"] == "OCR **page**\n"
+    assert row["textMimeType"] == "text/markdown"
+    assert row["confidence"] is None
+
+
+def test_docling_pdf_ocr_worker_reports_missing_images() -> None:
+    converter = FakeDoclingConverter("OCR\n")
+
+    table = build_pdf_ocr_shard_result_table(
+        _sample_pdf_ocr_input_table(image_path="/tmp/missing-page.png"),
+        worker=DoclingPdfOcrShardWorker(converter),
+    )
+
+    row = table.to_pylist()[0]
+    assert converter.calls == []
+    assert row["status"] == "failed"
+    assert "does not exist" in row["errorMessage"]
+
+
+def test_docling_pdf_ocr_worker_rejects_empty_output(tmp_path: Path) -> None:
+    image = tmp_path / "page-00000.png"
+    image.write_bytes(b"png fixture")
+
+    table = build_pdf_ocr_shard_result_table(
+        _sample_pdf_ocr_input_table(image_path=str(image)),
+        worker=DoclingPdfOcrShardWorker(FakeDoclingConverter(" \n")),
+    )
+
+    row = table.to_pylist()[0]
+    assert row["status"] == "failed"
+    assert row["errorMessage"] == "Docling OCR returned empty text"
+
+
+def test_docling_pdf_ocr_worker_reports_converter_errors(tmp_path: Path) -> None:
+    image = tmp_path / "page-00000.png"
+    image.write_bytes(b"png fixture")
+
+    table = build_pdf_ocr_shard_result_table(
+        _sample_pdf_ocr_input_table(image_path=str(image)),
+        worker=DoclingPdfOcrShardWorker(FailingDoclingConverter()),
+    )
+
+    row = table.to_pylist()[0]
+    assert row["status"] == "failed"
+    assert "Docling OCR failed" in row["errorMessage"]
+
+
+def test_document_service_pdf_ocr_worker_selection_is_explicit() -> None:
+    assert isinstance(_build_pdf_ocr_worker("skip"), SkippingPdfOcrShardWorker)
+    assert isinstance(_build_pdf_ocr_worker("docling"), DoclingPdfOcrShardWorker)
+
+
 def test_document_service_exchanges_pdf_ocr_shards_over_arrow_flight() -> None:
     worker = FakePdfOcrShardWorker()
     server = DocumentExtractFlightServer("grpc://127.0.0.1:0", ocr_worker=worker)
@@ -183,7 +256,7 @@ def test_document_service_exchanges_pdf_ocr_shards_over_arrow_flight() -> None:
     assert worker.inputs[0]["sourcePath"] == "/tmp/source.pdf"
 
 
-def _sample_pdf_ocr_input_table():
+def _sample_pdf_ocr_input_table(image_path: str = "/tmp/page-00000.png"):
     return pa.Table.from_pylist(
         [
             {
@@ -191,7 +264,7 @@ def _sample_pdf_ocr_input_table():
                 "sourcePath": "/tmp/source.pdf",
                 "sourceContentHash": "sourcehash",
                 "pageIndex": 0,
-                "imagePath": "/tmp/page-00000.png",
+                "imagePath": image_path,
                 "imageMimeType": "image/png",
                 "rasterSha256": "rasterhash",
                 "renderProfile": "pdfium-render-page-shards-v1",

@@ -515,6 +515,13 @@ Current implementation status:
   shard rows into one page-sorted stable resource batch. Any skipped, failed,
   duplicate, out-of-range, or incomplete page coverage path still falls back to
   full Docling.
+- Milestone 6 adds the first real shard OCR worker option on the Python side:
+  the document service keeps skipped shard rows as the default, but
+  `--pdf-ocr-worker docling` converts Rust-rendered page images through
+  Docling and returns `succeeded` or `failed` OCR shard rows over the existing
+  Arrow Flight exchange. The benchmark harness can now drive
+  `hybrid-page-ocr` through the Rust provider with the PDF render feature
+  selected explicitly.
 
 ### Milestone 5: Hybrid Mixed-PDF Pipeline
 
@@ -537,6 +544,9 @@ Current implementation status:
 - Native per-page text rows are available as stable `text_page` resource rows.
 - The explicit `hybrid-page-ocr` route can merge native text pages with OCR
   shard rows only when every page is covered and every OCR row succeeded.
+- The Python analyzer service can provide real Docling image OCR for those
+  shard rows when explicitly started with `--pdf-ocr-worker docling`; the
+  default worker still returns `skipped` rows.
 - Default `sync` and `async` extraction are unchanged.
 
 ## Test and Benchmark Plan
@@ -547,6 +557,8 @@ Unit tests:
   issue, and complex-layout cases.
 - Fake renderer proves page index, dimensions, rotation, and hash propagation.
 - Fake OCR proves page-level retry, failure row, and merge ordering.
+- Fake and Docling-injected shard workers prove skipped, succeeded, failed, and
+  empty-output paths without requiring live OCR models in unit tests.
 - Arrow schema tests prove `_resources.arrow` remains stable.
 
 Real tests:
@@ -554,6 +566,7 @@ Real tests:
 - Text PDF benchmark against Docling output.
 - Scanned/image PDF page-rendering parity.
 - Mixed PDF page routing and OCR shard count.
+- Opt-in `hybrid-page-ocr` benchmark with Docling shard OCR enabled.
 - Table-heavy and formula-heavy fallback tests.
 - Large PDF detect-only latency test.
 

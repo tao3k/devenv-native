@@ -248,11 +248,17 @@ def test_fetch_rust_jobs_status_reads_gateway_payload(monkeypatch) -> None:
 def test_fixture_server_code_can_record_converter_count(tmp_path: Path) -> None:
     benchmark = _load_benchmark_module()
 
-    code = benchmark.fixture_server_code("127.0.0.1", 50051, tmp_path / "count.txt")
+    code = benchmark.fixture_server_code(
+        "127.0.0.1",
+        50051,
+        tmp_path / "count.txt",
+        "fixture",
+    )
 
     assert "CONVERTER_COUNT_PATH" in code
     assert "self.calls += 1" in code
     assert "write_text(str(self.calls)" in code
+    assert "class FixtureOcrWorker" in code
 
 
 def test_real_docling_server_code_can_record_converter_count(tmp_path: Path) -> None:
@@ -264,10 +270,12 @@ def test_real_docling_server_code_can_record_converter_count(tmp_path: Path) -> 
         tmp_path / "docling-fixtures",
         False,
         tmp_path / "count.txt",
+        "docling",
     )
 
     assert "class CountingConverter" in code
     assert "converter = CountingConverter(converter)" in code
+    assert "DoclingPdfOcrShardWorker(converter)" in code
     assert "write_text(str(self.calls)" in code
 
 
@@ -325,6 +333,52 @@ def test_cargo_perf_probe_uses_minimal_feature_set(monkeypatch, tmp_path: Path) 
     assert commands[0][commands[0].index("--test") + 1] == "xiuxian-testing-gate"
     report = benchmark.json.loads(report_path.read_text(encoding="utf-8"))
     assert report["rustJobsStatusSummary"]["sampleCount"] == 0
+
+
+def test_cargo_perf_probe_adds_pdf_render_for_hybrid_page_ocr(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    benchmark = _load_benchmark_module()
+    report_path = tmp_path / "report.json"
+    commands: list[list[str]] = []
+
+    def fake_run(command: list[str], *, check: bool, env) -> None:
+        commands.append(command)
+        assert check
+        assert env["WENDAO_DOCUMENT_EXTRACT_PERF_MODE"] == "hybrid-page-ocr"
+        report_path.write_text(
+            '{"latenciesMs":[1.0],"requestCount":1,"rowCount":1,'
+            '"batchCount":1,"arrowIpcBytes":1,"errorRowCount":0,'
+            '"statusCounts":{"ok":1},"wallTimeMs":1.0}',
+            encoding="utf-8",
+        )
+
+    monkeypatch.setattr(benchmark.subprocess, "run", fake_run)
+    monkeypatch.setenv("SDKROOT", "/tmp/macos-sdk")
+    monkeypatch.setenv("LIBRARY_PATH", "/tmp/macos-sdk/usr/lib")
+    args = benchmark.argparse.Namespace(
+        benchmark_host="127.0.0.1",
+        benchmark_port=50052,
+        cargo="cargo",
+        cargo_features="performance,studio,zhenfa-router,duckdb",
+        flight_mode="hybrid-page-ocr",
+        wait_ms=0,
+    )
+
+    benchmark.run_cargo_perf_test(
+        args,
+        tmp_path / "sample.pdf",
+        tmp_path / "out",
+        force=False,
+        iterations=1,
+        concurrency=1,
+        report_path=report_path,
+    )
+
+    assert commands[0][commands[0].index("--features") + 1] == (
+        "performance,studio,zhenfa-router,duckdb,document-extract-pdf-render"
+    )
 
 
 def test_pdf_inspector_audit_command_adds_feature_and_fixture_manifest(

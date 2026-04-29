@@ -69,9 +69,19 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--flight-mode",
-        choices=("sync", "async"),
+        choices=("sync", "async", "hybrid-page-ocr"),
         default="sync",
         help="Document extraction Flight mode header sent by the Rust probe.",
+    )
+    parser.add_argument(
+        "--pdf-ocr-worker",
+        choices=("skip", "fixture", "docling"),
+        default="skip",
+        help=(
+            "OCR worker started by the local Python service for "
+            "/analysis/pdf-ocr-shards. `fixture` is deterministic test OCR; "
+            "`docling` requires --real-docling."
+        ),
     )
     parser.add_argument(
         "--wait-ms",
@@ -353,6 +363,7 @@ def main() -> int:
                 real_fixture_root=real_fixture_root,
                 include_audio=not args.skip_audio,
                 converter_count_path=converter_count_path,
+                pdf_ocr_worker=args.pdf_ocr_worker,
             )
         try:
             if server is not None:
@@ -394,7 +405,10 @@ def main() -> int:
                     rust_server,
                     timeout_seconds=args.server_start_timeout,
                 )
-            elif args.flight_mode == "async" and not args.external_endpoint:
+            elif (
+                args.flight_mode in {"async", "hybrid-page-ocr"}
+                and not args.external_endpoint
+            ):
                 rust_host = args.rust_provider_host or args.host
                 rust_port = args.rust_provider_port or (args.port + 1)
                 args.benchmark_host = rust_host
@@ -772,6 +786,12 @@ def cargo_features_with_pdf_render(features: str) -> str:
     return cargo_features_with_pdf_feature(features, "document-extract-pdf-render")
 
 
+def cargo_features_for_flight_mode(features: str, flight_mode: str) -> str:
+    if flight_mode == "hybrid-page-ocr":
+        return cargo_features_with_pdf_render(features)
+    return features
+
+
 def cargo_features_with_pdf_feature(features: str, feature: str) -> str:
     parts = [
         part.strip()
@@ -891,7 +911,10 @@ def start_server(
     real_fixture_root: Path | None,
     include_audio: bool,
     converter_count_path: Path | None,
+    pdf_ocr_worker: str = "skip",
 ) -> subprocess.Popen[str]:
+    if pdf_ocr_worker == "docling" and not real_docling:
+        raise SystemExit("--pdf-ocr-worker docling requires --real-docling")
     if real_docling:
         command = [
             "uv",
@@ -904,6 +927,7 @@ def start_server(
                 real_fixture_root,
                 include_audio,
                 converter_count_path,
+                pdf_ocr_worker,
             ),
         ]
     else:
@@ -912,7 +936,7 @@ def start_server(
             "run",
             "python",
             "-c",
-            fixture_server_code(host, port, converter_count_path),
+            fixture_server_code(host, port, converter_count_path, pdf_ocr_worker),
         ]
     return subprocess.Popen(
         command,
@@ -949,7 +973,10 @@ def start_rust_provider_server(
         "xiuxian-wendao",
         "--no-default-features",
         "--features",
-        args.rust_provider_features,
+        cargo_features_for_flight_mode(
+            args.rust_provider_features,
+            getattr(args, "flight_mode", "sync"),
+        ),
         "--bin",
         "wendao_search_flight_server",
         "--",
@@ -1034,7 +1061,10 @@ def start_gateway_server(
         "xiuxian-wendao",
         "--no-default-features",
         "--features",
-        args.gateway_features,
+        cargo_features_for_flight_mode(
+            args.gateway_features,
+            getattr(args, "flight_mode", "sync"),
+        ),
         "--bin",
         "wendao",
         "--",
@@ -1233,6 +1263,7 @@ def real_docling_server_code(
     fixture_root: Path | None,
     include_audio: bool,
     converter_count_path: Path | None,
+    pdf_ocr_worker: str = "skip",
 ) -> str:
     fixture_root_text = str(fixture_root) if fixture_root is not None else ""
     count_path_text = (
@@ -1247,6 +1278,7 @@ def real_docling_server_code(
         from docling.datamodel.base_models import InputFormat
         from docling.document_converter import DocumentConverter, XBRLFormatOption
         from xiuxian_wendao_analyzer.document_service import DocumentExtractFlightServer
+        from xiuxian_wendao_analyzer.pdf_ocr import DoclingPdfOcrShardWorker
 
         fixture_root = Path({fixture_root_text!r}) if {bool(fixture_root_text)!r} else None
         CONVERTER_COUNT_PATH = Path({count_path_text!r}) if {bool(count_path_text)!r} else None
@@ -1317,13 +1349,25 @@ def real_docling_server_code(
         converter = DocumentConverter(format_options=format_options)
         if CONVERTER_COUNT_PATH is not None:
             converter = CountingConverter(converter)
-        server = DocumentExtractFlightServer("grpc://{host}:{port}", converter=converter)
+        ocr_worker = None
+        if {pdf_ocr_worker!r} == "docling":
+            ocr_worker = DoclingPdfOcrShardWorker(converter)
+        server = DocumentExtractFlightServer(
+            "grpc://{host}:{port}",
+            converter=converter,
+            ocr_worker=ocr_worker,
+        )
         server.serve()
         """
     )
 
 
-def fixture_server_code(host: str, port: int, converter_count_path: Path | None) -> str:
+def fixture_server_code(
+    host: str,
+    port: int,
+    converter_count_path: Path | None,
+    pdf_ocr_worker: str = "skip",
+) -> str:
     count_path_text = (
         str(converter_count_path) if converter_count_path is not None else ""
     )
@@ -1333,6 +1377,7 @@ def fixture_server_code(host: str, port: int, converter_count_path: Path | None)
         from threading import Lock
         import time
         from xiuxian_wendao_analyzer.document_service import DocumentExtractFlightServer
+        from xiuxian_wendao_analyzer.pdf_ocr import succeeded_pdf_ocr_shard_result
 
         CONVERTER_COUNT_PATH = Path({count_path_text!r}) if {bool(count_path_text)!r} else None
         if CONVERTER_COUNT_PATH is not None:
@@ -1373,7 +1418,23 @@ def fixture_server_code(host: str, port: int, converter_count_path: Path | None)
                 time.sleep(0.025)
                 return Result(source)
 
-        server = DocumentExtractFlightServer("grpc://{host}:{port}", converter=Converter())
+        class FixtureOcrWorker:
+            def recognize(self, inputs):
+                return [
+                    succeeded_pdf_ocr_shard_result(
+                        input_row,
+                        "fixture OCR page " + str(input_row["pageIndex"]),
+                        0.99,
+                    )
+                    for input_row in inputs
+                ]
+
+        ocr_worker = FixtureOcrWorker() if {pdf_ocr_worker!r} == "fixture" else None
+        server = DocumentExtractFlightServer(
+            "grpc://{host}:{port}",
+            converter=Converter(),
+            ocr_worker=ocr_worker,
+        )
         server.serve()
         """
     )
@@ -1722,7 +1783,7 @@ def run_cargo_perf_test(
         "xiuxian-wendao",
         "--no-default-features",
         "--features",
-        args.cargo_features,
+        cargo_features_for_flight_mode(args.cargo_features, args.flight_mode),
         "--test",
         "xiuxian-testing-gate",
         "document_extract_python_flight_perf_smoke",

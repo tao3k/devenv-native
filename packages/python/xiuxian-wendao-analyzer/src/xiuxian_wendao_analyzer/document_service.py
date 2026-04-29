@@ -15,7 +15,9 @@ from .documents import (
 )
 from .pdf_ocr import (
     PDF_OCR_SHARD_RESULT_SCHEMA,
+    DoclingPdfOcrShardWorker,
     PdfOcrShardWorkerProtocol,
+    SkippingPdfOcrShardWorker,
     build_pdf_ocr_shard_result_table,
 )
 
@@ -196,13 +198,28 @@ def main() -> int:
     )
     parser.add_argument("--host", default="0.0.0.0", help="Bind host")
     parser.add_argument("--port", type=int, default=50051, help="Bind port")
+    parser.add_argument(
+        "--pdf-ocr-worker",
+        choices=("skip", "docling"),
+        default="skip",
+        help="OCR worker used by the internal /analysis/pdf-ocr-shards exchange",
+    )
     args = parser.parse_args()
 
     location = f"grpc://{args.host}:{args.port}"
-    server = DocumentExtractFlightServer(location)
+    server = DocumentExtractFlightServer(
+        location,
+        ocr_worker=_build_pdf_ocr_worker(args.pdf_ocr_worker),
+    )
     print(f"Wendao document extraction service listening on {location}")
     server.serve()
     return 0
+
+
+def _build_pdf_ocr_worker(worker_name: str) -> PdfOcrShardWorkerProtocol:
+    if worker_name == "docling":
+        return DoclingPdfOcrShardWorker()
+    return SkippingPdfOcrShardWorker()
 
 
 def _validate_route(route: str) -> None:

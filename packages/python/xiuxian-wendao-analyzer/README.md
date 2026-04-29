@@ -59,7 +59,8 @@ The current beta exports:
 26. `DocumentExtractFlightServer`
 27. `build_document_extract_table(...)`
 28. `/analysis/document-extract` as the primary document extraction route
-29. summary helpers over the same rows, table, query, and repo-search runs
+29. `DoclingPdfOcrShardWorker` for opt-in page-shard OCR
+30. summary helpers over the same rows, table, query, and repo-search runs
 
 Docling is optional through the `documents` extra. That extra includes
 Docling's XBRL support so the documented XML/XBRL coverage is real, not only a
@@ -90,6 +91,7 @@ The document service entrypoints are:
 ```bash
 uv run wendao-document-extract --host 0.0.0.0 --port 50051
 uv run xiuxian-wendao-document-extract --host 0.0.0.0 --port 50051
+uv run wendao-document-extract --host 0.0.0.0 --port 50051 --pdf-ocr-worker docling
 ```
 
 The Arrow Flight route is `/analysis/document-extract`. Request metadata uses:
@@ -126,7 +128,12 @@ The same service also exposes an internal OCR shard exchange route at
 JSON metadata: callers upload `xiuxian_wendao.pdf_ocr_shard_input.v1` Arrow
 batches and receive `xiuxian_wendao.pdf_ocr_shard_result.v1` Arrow batches.
 It is a worker contract for Rust-rendered page shards and does not change the
-primary `/analysis/document-extract` sync or async extraction path.
+primary `/analysis/document-extract` sync or async extraction path. The default
+worker returns explicit `skipped` rows so deployments never load OCR models by
+accident. Passing `--pdf-ocr-worker docling` enables the opt-in Docling image
+worker for rendered page shards; failed or empty shard OCR rows remain
+table-shaped failures so the Rust hybrid provider can fall back to full Docling
+when coverage is incomplete.
 
 The built-in strategy is intentionally small:
 

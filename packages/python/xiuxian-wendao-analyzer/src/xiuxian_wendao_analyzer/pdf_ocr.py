@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 import hashlib
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Protocol
 
 import pyarrow as pa
 
 if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence
+
+    from .documents import DocumentConverterProtocol
 
 PDF_OCR_SHARD_INPUT_SCHEMA_VERSION = "xiuxian_wendao.pdf_ocr_shard_input.v1"
 PDF_OCR_SHARD_RESULT_SCHEMA_VERSION = "xiuxian_wendao.pdf_ocr_shard_result.v1"
@@ -88,6 +91,52 @@ class SkippingPdfOcrShardWorker:
             )
             for input_row in inputs
         ]
+
+
+class DoclingPdfOcrShardWorker:
+    """Docling-backed OCR worker for Rust-rendered PDF page images."""
+
+    def __init__(self, converter: DocumentConverterProtocol | None = None) -> None:
+        self._converter = converter
+
+    def recognize(
+        self,
+        inputs: Sequence[Mapping[str, Any]],
+    ) -> Sequence[Mapping[str, Any]]:
+        converter = self._converter
+        if converter is None:
+            converter = _new_docling_converter()
+            self._converter = converter
+        return [self._recognize_one(converter, input_row) for input_row in inputs]
+
+    def _recognize_one(
+        self,
+        converter: DocumentConverterProtocol,
+        input_row: Mapping[str, Any],
+    ) -> Mapping[str, Any]:
+        image_path = Path(str(input_row["imagePath"]))
+        if not image_path.is_file():
+            return failed_pdf_ocr_shard_result(
+                input_row,
+                f"OCR shard image does not exist: {image_path}",
+            )
+        try:
+            result = converter.convert(image_path)
+            markdown = result.document.export_to_markdown()
+        except Exception as exc:
+            return failed_pdf_ocr_shard_result(input_row, f"Docling OCR failed: {exc}")
+        if not markdown.strip():
+            return failed_pdf_ocr_shard_result(
+                input_row,
+                "Docling OCR returned empty text",
+            )
+        return {
+            "status": "succeeded",
+            "text": markdown,
+            "textMimeType": "text/markdown",
+            "confidence": None,
+            "errorMessage": None,
+        }
 
 
 def build_pdf_ocr_shard_result_table(
@@ -258,12 +307,24 @@ def _validate_schema_compatible(actual: pa.Schema, expected: pa.Schema) -> None:
             )
 
 
+def _new_docling_converter() -> DocumentConverterProtocol:
+    try:
+        from docling.document_converter import DocumentConverter
+    except ModuleNotFoundError as exc:
+        raise RuntimeError(
+            "docling is not installed; install xiuxian-wendao-analyzer[documents] "
+            "to enable Docling-backed PDF OCR shards"
+        ) from exc
+    return DocumentConverter()
+
+
 __all__ = [
     "PDF_OCR_DEFAULT_PROFILE",
     "PDF_OCR_SHARD_INPUT_SCHEMA",
     "PDF_OCR_SHARD_INPUT_SCHEMA_VERSION",
     "PDF_OCR_SHARD_RESULT_SCHEMA",
     "PDF_OCR_SHARD_RESULT_SCHEMA_VERSION",
+    "DoclingPdfOcrShardWorker",
     "PdfOcrShardWorkerProtocol",
     "SkippingPdfOcrShardWorker",
     "build_pdf_ocr_shard_result_table",
