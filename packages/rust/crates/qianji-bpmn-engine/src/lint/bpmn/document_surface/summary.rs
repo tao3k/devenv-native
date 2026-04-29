@@ -3,7 +3,7 @@ use super::{
     collaboration_evidence, correlation_property_evidence, data_snapshot_summary,
     flow_element_metadata_summary, interface_evidence, item_definition_evidence, json,
     message_evidence, partner_entity_evidence, partner_role_evidence, process_callable_summary,
-    resource_role_summary, snapshot_bpmn_source,
+    resource_role_summary, routing_boundary_evidence, snapshot_bpmn_source,
 };
 
 pub(super) fn document_surface_evidence(source: &BpmnSourceFile, tag: &str, family: &str) -> Value {
@@ -78,7 +78,7 @@ pub(super) fn collaboration_snapshot_summary(snapshot: &BpmnDocumentSnapshot) ->
     let resource_roles = resource_role_summary(snapshot);
     let flow_element_metadata = flow_element_metadata_summary(snapshot);
 
-    json!({
+    let mut summary = json!({
         "root": root_snapshot_summary(snapshot),
         "collaboration_count": snapshot.collaborations.len(),
         "partner_entity_count": snapshot.root.partner_entity_count,
@@ -120,5 +120,9 @@ pub(super) fn collaboration_snapshot_summary(snapshot: &BpmnDocumentSnapshot) ->
         "partner_roles": partner_roles,
         "correlation_properties": correlation_properties,
         "collaborations": collaborations,
-    })
+    });
+    if let Some(summary_object) = summary.as_object_mut() {
+        summary_object.insert("routing_boundary".to_string(), routing_boundary_evidence());
+    }
+    summary
 }

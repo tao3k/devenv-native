@@ -30,7 +30,7 @@ mod xml;
 use collaboration::{
     collaboration_counts, collaboration_evidence, correlation_property_evidence,
     interface_evidence, item_definition_evidence, message_evidence, partner_entity_evidence,
-    partner_role_evidence,
+    partner_role_evidence, routing_boundary_evidence,
 };
 use data::data_snapshot_summary;
 use issue::issue_for_tag;

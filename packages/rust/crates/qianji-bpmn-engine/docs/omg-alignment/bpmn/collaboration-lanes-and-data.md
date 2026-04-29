@@ -40,6 +40,10 @@ The current engine preserves non-executable BPMN metadata for these families:
   data-association `transformation` and `assignment` payloads
 - lint evidence that reports those preserved structures back to `qianji lint`
   in an LLM-friendly way
+- a Rust-owned collaboration routing-boundary evidence object that marks
+  preserved metadata separately from deferred participant dispatch,
+  message-flow routing, conversation routing, choreography execution, and
+  correlation matching semantics
 
 The current engine executes a bounded task-local Data/IO subset for supported
 host-dispatched tasks. `ioSpecification`, `dataInputAssociation`, and
@@ -73,11 +77,19 @@ data-state transitions, execute generic resource assignments, authorize roles,
 execute auditing or monitoring declarations, classify category values, or
 evaluate correlation subscriptions, keys, or retrieval expressions.
 
+The linter includes a `routing_boundary` evidence object for collaboration
+documents. That object declares `metadata_only` status, `deferred` execution
+policy, a `single_process_graph` runtime scope, the preserved collaboration
+metadata families, and the exact deferred routing and correlation semantics.
+This is evidence for future routing work, not an executable routing contract.
+
 ## Runtime Boundary
 
 These BPMN surfaces remain deferred:
 
 - collaboration-aware message routing across pools or participants
+- runtime routing inferred from `messageFlow`, `conversation`,
+  `choreography`, or correlation metadata
 - endpoint invocation, partner routing, or participant multiplicity execution
 - executable conversation routing and choreography execution
 - executable group semantics or text-annotation interpretation

@@ -15,6 +15,7 @@ mod counts;
 mod evidence;
 mod participant;
 mod root;
+mod routing;
 
 use artifact::{artifact_association_evidence, artifact_group_evidence, text_annotation_evidence};
 use choreography::{
@@ -29,5 +30,5 @@ use participant::participant_evidence;
 pub(super) use api::{
     collaboration_counts, collaboration_evidence, correlation_property_evidence,
     interface_evidence, item_definition_evidence, message_evidence, partner_entity_evidence,
-    partner_role_evidence,
+    partner_role_evidence, routing_boundary_evidence,
 };

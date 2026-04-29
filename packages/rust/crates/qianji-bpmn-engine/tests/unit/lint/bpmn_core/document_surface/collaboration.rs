@@ -1,4 +1,5 @@
 use super::*;
+use serde_json::json;
 
 #[test]
 fn bpmn_linter_reports_collaboration_metadata_surface_with_llm_guidance() {
@@ -19,6 +20,27 @@ fn bpmn_linter_reports_collaboration_metadata_surface_with_llm_guidance() {
     assert_eq!(issue.evidence["snapshot"]["conversation_node_count"], 1);
     assert_eq!(issue.evidence["snapshot"]["conversation_link_count"], 1);
     assert_eq!(issue.evidence["snapshot"]["correlation_key_count"], 1);
+    assert_eq!(
+        issue.evidence["snapshot"]["routing_boundary"]["status"],
+        "metadata_only"
+    );
+    assert_eq!(
+        issue.evidence["snapshot"]["routing_boundary"]["execution_policy"],
+        "deferred"
+    );
+    assert_eq!(
+        issue.evidence["snapshot"]["routing_boundary"]["runtime_scope"],
+        "single_process_graph"
+    );
+    let Some(deferred_semantics) =
+        issue.evidence["snapshot"]["routing_boundary"]["deferred_semantics"].as_array()
+    else {
+        panic!("routing boundary deferred semantics evidence");
+    };
+    assert!(deferred_semantics.contains(&json!("message_flow_routing")));
+    assert!(deferred_semantics.contains(&json!("conversation_routing")));
+    assert!(deferred_semantics.contains(&json!("choreography_execution")));
+    assert!(deferred_semantics.contains(&json!("correlation_matching")));
     assert_eq!(issue.evidence["snapshot"]["item_definition_count"], 1);
     assert_eq!(issue.evidence["snapshot"]["message_count"], 1);
     assert_eq!(issue.evidence["snapshot"]["correlation_property_count"], 1);

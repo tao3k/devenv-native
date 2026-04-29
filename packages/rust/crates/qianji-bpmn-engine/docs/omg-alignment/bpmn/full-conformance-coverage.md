@@ -18,53 +18,53 @@ guidance.
 
 ## Coverage Matrix
 
-| BPMN family               | Current status     | Current boundary                                                                                                 |
-| ------------------------- | ------------------ | ---------------------------------------------------------------------------------------------------------------- |
-| Linear process flow       | bounded executable | Start/end events, bounded start waits, sequence flow, and deterministic tokens.                                  |
-| Host-dispatched tasks     | bounded executable | Service, send, script, business-rule, user, and manual task families.                                            |
-| Human interaction         | bounded executable | Native BPMN documentation and IO metadata feed Rust-owned host-work forms.                                       |
-| Parallel gateway          | bounded executable | Split and join with deterministic active-token and join-buffer behavior.                                         |
-| Exclusive gateway         | bounded executable | Default flow plus simple boolean-path and numeric condition expressions.                                         |
-| Inclusive gateway         | bounded executable | Structured split and one matching linear join fragment.                                                          |
-| Event-based gateway       | bounded executable | Exclusive competition over message, signal, timer, or conditional catches.                                       |
-| Complex gateway           | lint-deferred      | No executable semantics yet.                                                                                     |
-| Intermediate catch events | bounded executable | Message, signal, timer, and bounded conditional waits.                                                           |
-| Boundary events           | bounded executable | Bounded task owners plus interrupting subprocess-like external boundaries.                                       |
-| Error and cancel events   | bounded executable | Bounded subprocess, call-activity, transaction, and top-level error paths.                                       |
-| Compensation              | bounded executable | Transaction-owned compensation handlers and throw-compensation paths.                                            |
-| Conditional events        | bounded executable | Start events, catches, task boundaries, and interrupting subprocess-like boundaries.                             |
-| Escalation events         | bounded executable | Child-scope end/throw routes execute; deferred escalation shapes get diagnostics.                                |
-| Import declarations       | metadata-only      | Top-level import declarations are preserved; external dependency resolution is deferred.                         |
-| Extension declarations    | metadata-only      | Top-level extension declarations are preserved; extension behavior remains deferred.                             |
-| Relationship declarations | metadata-only      | Top-level relationships are preserved; endpoint resolution and graph semantics defer.                            |
-| Event definition catalogs | metadata-only      | Message/error/escalation/signal catalogs are preserved, not schema-validated.                                    |
-| Interfaces/operations     | metadata-only      | Callable-operation catalogs are preserved; host dispatch binding remains explicit.                               |
-| Global task catalogs      | metadata-only      | Top-level global task definitions are preserved; call-activity binding remains deferred.                         |
-| Process callable metadata | metadata-only      | Process callable attributes, support refs, properties, and correlation subscriptions are preserved passively.    |
-| Callable IO metadata      | metadata-only      | Process/global-task `ioBinding` and global-task `ioSpecification` declarations are preserved passively.          |
-| Resource catalogs         | metadata-only      | Top-level resources and parameters are preserved; assignment binding remains deferred.                           |
-| Resource-role metadata    | metadata-only      | Direct process and global-task resource-role declarations are preserved; generic assignment execution defers.    |
-| Flow-element metadata     | metadata-only      | Direct process flow-element auditing, monitoring, and category refs are preserved passively.                     |
-| Category catalogs         | metadata-only      | Top-level categories and values are preserved; classification remains passive.                                   |
-| Terminate events          | bounded executable | `terminateEventDefinition` end events terminate the current runtime scope.                                       |
-| Multiple events           | lint-deferred      | Multiple and parallel-multiple event definitions have stable parser/lint diagnostics.                            |
-| Embedded subprocess       | bounded executable | One nested start event and at least one nested end event.                                                        |
-| Call activity             | bounded executable | Same-package executable process targets.                                                                         |
-| Transaction               | bounded executable | Bounded shell with cancel/error/compensation behavior.                                                           |
-| Event subprocess          | lint-deferred      | Deferred, including compensation event subprocesses.                                                             |
-| Standard loop             | bounded executable | Supported on selected host-dispatched task families.                                                             |
-| Sequential multi-instance | bounded executable | Cardinality and bounded collection-backed input/output subset.                                                   |
-| Parallel multi-instance   | bounded executable | Cardinality and bounded collection-backed input/output subset.                                                   |
-| Collaboration and pools   | metadata-only      | Participant, partner, endpoint, message-flow, conversation, choreography, and correlation metadata is preserved. |
-| Artifacts                 | metadata-only      | Association, group, and text-annotation metadata is preserved without execution semantics.                       |
-| Lanes                     | metadata-only      | Preserved for passive routing/display; no scheduling or authorization.                                           |
-| Item definitions          | metadata-only      | Top-level item catalogs are preserved; schema validation remains deferred.                                       |
-| Data objects              | metadata-only      | Data object/reference metadata and direct `dataState` declarations are preserved passively.                      |
-| Data stores               | lint-deferred      | Data store/reference metadata and direct `dataState` are preserved; persistence execution remains deferred.      |
-| IO specification          | bounded executable | Human-task form IO and bounded host-task Data/IO metadata are executable; IO sets are preserved passively.       |
-| Data associations         | bounded executable | Bounded host-task source/target mapping is executable; transformation and assignment payloads are preserved.     |
-| BPMN DI                   | metadata-only      | Diagram, plane, shape, edge, bounds, waypoint, label, and font metadata is preserved.                            |
-| DMN links                 | bounded executable | Business-rule tasks can execute local bounded DMN decisions when available.                                      |
+| BPMN family               | Current status     | Current boundary                                                                                                                                         |
+| ------------------------- | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Linear process flow       | bounded executable | Start/end events, bounded start waits, sequence flow, and deterministic tokens.                                                                          |
+| Host-dispatched tasks     | bounded executable | Service, send, script, business-rule, user, and manual task families.                                                                                    |
+| Human interaction         | bounded executable | Native BPMN documentation and IO metadata feed Rust-owned host-work forms.                                                                               |
+| Parallel gateway          | bounded executable | Split and join with deterministic active-token and join-buffer behavior.                                                                                 |
+| Exclusive gateway         | bounded executable | Default flow plus simple boolean-path and numeric condition expressions.                                                                                 |
+| Inclusive gateway         | bounded executable | Structured split and one matching linear join fragment.                                                                                                  |
+| Event-based gateway       | bounded executable | Exclusive competition over message, signal, timer, or conditional catches.                                                                               |
+| Complex gateway           | lint-deferred      | No executable semantics yet.                                                                                                                             |
+| Intermediate catch events | bounded executable | Message, signal, timer, and bounded conditional waits.                                                                                                   |
+| Boundary events           | bounded executable | Bounded task owners plus interrupting subprocess-like external boundaries.                                                                               |
+| Error and cancel events   | bounded executable | Bounded subprocess, call-activity, transaction, and top-level error paths.                                                                               |
+| Compensation              | bounded executable | Transaction-owned compensation handlers and throw-compensation paths.                                                                                    |
+| Conditional events        | bounded executable | Start events, catches, task boundaries, and interrupting subprocess-like boundaries.                                                                     |
+| Escalation events         | bounded executable | Child-scope end/throw routes execute; deferred escalation shapes get diagnostics.                                                                        |
+| Import declarations       | metadata-only      | Top-level import declarations are preserved; external dependency resolution is deferred.                                                                 |
+| Extension declarations    | metadata-only      | Top-level extension declarations are preserved; extension behavior remains deferred.                                                                     |
+| Relationship declarations | metadata-only      | Top-level relationships are preserved; endpoint resolution and graph semantics defer.                                                                    |
+| Event definition catalogs | metadata-only      | Message/error/escalation/signal catalogs are preserved, not schema-validated.                                                                            |
+| Interfaces/operations     | metadata-only      | Callable-operation catalogs are preserved; host dispatch binding remains explicit.                                                                       |
+| Global task catalogs      | metadata-only      | Top-level global task definitions are preserved; call-activity binding remains deferred.                                                                 |
+| Process callable metadata | metadata-only      | Process callable attributes, support refs, properties, and correlation subscriptions are preserved passively.                                            |
+| Callable IO metadata      | metadata-only      | Process/global-task `ioBinding` and global-task `ioSpecification` declarations are preserved passively.                                                  |
+| Resource catalogs         | metadata-only      | Top-level resources and parameters are preserved; assignment binding remains deferred.                                                                   |
+| Resource-role metadata    | metadata-only      | Direct process and global-task resource-role declarations are preserved; generic assignment execution defers.                                            |
+| Flow-element metadata     | metadata-only      | Direct process flow-element auditing, monitoring, and category refs are preserved passively.                                                             |
+| Category catalogs         | metadata-only      | Top-level categories and values are preserved; classification remains passive.                                                                           |
+| Terminate events          | bounded executable | `terminateEventDefinition` end events terminate the current runtime scope.                                                                               |
+| Multiple events           | lint-deferred      | Multiple and parallel-multiple event definitions have stable parser/lint diagnostics.                                                                    |
+| Embedded subprocess       | bounded executable | One nested start event and at least one nested end event.                                                                                                |
+| Call activity             | bounded executable | Same-package executable process targets.                                                                                                                 |
+| Transaction               | bounded executable | Bounded shell with cancel/error/compensation behavior.                                                                                                   |
+| Event subprocess          | lint-deferred      | Deferred, including compensation event subprocesses.                                                                                                     |
+| Standard loop             | bounded executable | Supported on selected host-dispatched task families.                                                                                                     |
+| Sequential multi-instance | bounded executable | Cardinality and bounded collection-backed input/output subset.                                                                                           |
+| Parallel multi-instance   | bounded executable | Cardinality and bounded collection-backed input/output subset.                                                                                           |
+| Collaboration and pools   | metadata-only      | Participant, partner, endpoint, message-flow, conversation, choreography, and correlation metadata is preserved with explicit routing-boundary evidence. |
+| Artifacts                 | metadata-only      | Association, group, and text-annotation metadata is preserved without execution semantics.                                                               |
+| Lanes                     | metadata-only      | Preserved for passive routing/display; no scheduling or authorization.                                                                                   |
+| Item definitions          | metadata-only      | Top-level item catalogs are preserved; schema validation remains deferred.                                                                               |
+| Data objects              | metadata-only      | Data object/reference metadata and direct `dataState` declarations are preserved passively.                                                              |
+| Data stores               | lint-deferred      | Data store/reference metadata and direct `dataState` are preserved; persistence execution remains deferred.                                              |
+| IO specification          | bounded executable | Human-task form IO and bounded host-task Data/IO metadata are executable; IO sets are preserved passively.                                               |
+| Data associations         | bounded executable | Bounded host-task source/target mapping is executable; transformation and assignment payloads are preserved.                                             |
+| BPMN DI                   | metadata-only      | Diagram, plane, shape, edge, bounds, waypoint, label, and font metadata is preserved.                                                                    |
+| DMN links                 | bounded executable | Business-rule tasks can execute local bounded DMN decisions when available.                                                                              |
 
 ## Completed M1 Milestone
 
@@ -186,3 +186,23 @@ escalation boundaries now report stable parser/lint diagnostics with repair
 guidance. Executable semantics remain limited to escalation end events or
 intermediate escalation throws inside bounded subprocess-like child scopes,
 routed to matching interrupting escalation boundaries on those parent owners.
+
+## Active M3 Collaboration Boundary Milestone
+
+The first collaboration-boundary slice keeps collaboration and pool semantics
+metadata-only, but makes the runtime boundary machine-checkable in Rust-owned
+lint evidence. Collaboration diagnostics now report a `routing_boundary`
+object that separates preserved metadata from deferred execution semantics.
+
+Preserved metadata includes participants, partner catalogs, endpoints,
+messages, message flows, conversations, choreography declarations,
+correlation properties, and correlation retrieval expressions. Deferred
+execution semantics include participant dispatch, endpoint invocation,
+message-flow routing, conversation routing, choreography execution,
+correlation matching, correlation subscription matching, correlation-key
+evaluation, and retrieval-expression evaluation.
+
+Current executable behavior must still be modeled through one supported
+process graph, host-dispatched tasks, or supported event waits. This milestone
+does not implement cross-pool message dispatch or correlation-aware runtime
+routing.
