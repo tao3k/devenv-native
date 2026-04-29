@@ -994,6 +994,92 @@ def test_summary_reports_duplicate_miss_converter_calls() -> None:
     assert summary["rustJobsStatusSummary"]["sampleCount"] == 0
 
 
+def test_run_fixture_probe_can_measure_shard_cache_reuse(monkeypatch, tmp_path) -> None:
+    benchmark = _load_benchmark_module()
+    calls = []
+
+    def fake_run_cargo_perf_test(
+        args,
+        source,
+        output_dir,
+        *,
+        force,
+        iterations,
+        concurrency,
+        report_path,
+        **_kwargs,
+    ):
+        calls.append(
+            {
+                "source": source,
+                "output_dir": output_dir,
+                "force": force,
+                "iterations": iterations,
+                "concurrency": concurrency,
+                "report_path": report_path,
+            }
+        )
+        latency_by_report = {
+            "force.json": 1000.0,
+            "shard-cache-reuse.json": 42.0,
+            "cache.json": 4.0,
+        }
+        latency = latency_by_report[report_path.name]
+        return {
+            "latenciesMs": [latency],
+            "requestCount": 1,
+            "rowCount": 21,
+            "batchCount": 1,
+            "arrowIpcBytes": 117128,
+            "wallTimeMs": latency,
+            "concurrency": concurrency,
+            "errorRowCount": 0,
+            "statusCounts": {"succeeded": 21},
+            "maxRssKb": None,
+            "artifactReports": [
+                {
+                    "resourcesArrowExists": True,
+                    "resourcesRowCount": 21,
+                    "structureArrowExists": True,
+                    "structureRowCount": 21,
+                    "structureOcrPageBlocks": 21,
+                    "structureOcrRegionBlocks": 0,
+                    "structureBboxBlocks": 21,
+                    "structureReadingOrderSorted": True,
+                }
+            ],
+        }
+
+    monkeypatch.setattr(benchmark, "run_cargo_perf_test", fake_run_cargo_perf_test)
+    args = benchmark.argparse.Namespace(
+        duplicate_miss_concurrency=0,
+        fail_on_error_rows=True,
+        fail_on_duplicate_conversions=False,
+        iterations=1,
+        concurrency=1,
+        shard_cache_reuse_probe=True,
+    )
+
+    result = benchmark.run_fixture_probe(
+        args,
+        "arxiv",
+        tmp_path / "source.pdf",
+        tmp_path / "out",
+    )
+
+    assert [call["report_path"].name for call in calls] == [
+        "force.json",
+        "shard-cache-reuse.json",
+        "cache.json",
+    ]
+    assert calls[1]["output_dir"] == tmp_path / "out" / "shard-cache-reuse"
+    assert calls[1]["force"] is True
+    assert result["shardCacheReuseEnabled"] is True
+    assert result["shardCacheReuseForceMs"] == 42.0
+    assert result["shardCacheReuseErrorRows"] == 0
+    assert result["cacheHitP50Ms"] == 4.0
+
+
 def test_summary_and_markdown_report_distinct_miss_burst() -> None:
     benchmark = _load_benchmark_module()
     result = {
@@ -1001,6 +1087,9 @@ def test_summary_and_markdown_report_distinct_miss_burst() -> None:
         "totalRows": 10,
         "forceErrorRows": 0,
         "cacheErrorRows": 0,
+        "shardCacheReuseEnabled": True,
+        "shardCacheReuseForceMs": 42.0,
+        "shardCacheReuseErrorRows": 0,
         "requestCount": 2,
         "arrowIpcBytes": 1024,
         "cacheSpeedup": 2.0,
@@ -1058,6 +1147,7 @@ def test_summary_and_markdown_report_distinct_miss_burst() -> None:
             "pdfOcrWorkers": "auto",
             "rustPdfOcrWorkers": None,
             "pdfOcrProfile": "skip",
+            "shardCacheReuseProbe": True,
             "summary": summary,
             "results": [result],
             "distinctMiss": distinct_report,
@@ -1065,3 +1155,5 @@ def test_summary_and_markdown_report_distinct_miss_burst() -> None:
     )
     assert "## Distinct Cold Miss Burst" in markdown
     assert "distinct-01" in markdown
+    assert "Shard reuse force ms" in markdown
+    assert "42.000" in markdown

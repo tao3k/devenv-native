@@ -659,6 +659,11 @@ Current implementation status:
   - whole-document cache hit after that run: `4.28ms`
   - resource rows: `21`, error rows: `0`
   - `_structure.arrow`: `21` rows, `21` OCR page blocks, reading order sorted
+- The benchmark harness now has `--shard-cache-reuse-probe` so JSON and
+  Markdown reports carry `shardCacheReuseForceMs` directly. With the populated
+  `2604.17337` shard cache, the report-field proof measured force `319ms`,
+  shard-cache forced reuse `162ms`, whole-document cache hit `4.67ms`, 21 OCR
+  rows, zero error rows, and sorted structure order.
 - The real hybrid benchmark proof then exposed a text-only hybrid candidate:
   `pdf-inspector` classified the real `2206.01062.pdf` fixture as a
   `hybrid_page_ocr_candidate`, but the shard selector found no raster OCR

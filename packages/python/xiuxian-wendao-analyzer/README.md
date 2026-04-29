@@ -253,6 +253,11 @@ cache-hit path and `--server-start-timeout` for cold Docling starts. The report
 captures request counts, wall-clock timing, Arrow IPC bytes, status counts, and
 error-row counts; `--fail-on-error-rows` makes table-shaped conversion failures
 fail the benchmark run.
+For `hybrid-page-ocr`, pass `--shard-cache-reuse-probe` when you need explicit
+evidence that OCR shard cache reuse works independently from the
+whole-document `_resources.arrow` cache. The probe runs a second forced
+extraction into a fresh output directory after the first force run and reports
+`shardCacheReuseForceMs` in JSON and Markdown output.
 For async provider validation, run with `--flight-mode async`; the driver starts
 the synchronous Python worker plus the existing Rust Flight provider and can
 verify cold duplicate-miss deduplication with `--duplicate-miss-concurrency`

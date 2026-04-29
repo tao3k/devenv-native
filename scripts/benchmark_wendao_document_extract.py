@@ -219,6 +219,15 @@ def parse_args() -> argparse.Namespace:
         help="Fail when fake duplicate-miss benchmarking observes more than one conversion.",
     )
     parser.add_argument(
+        "--shard-cache-reuse-probe",
+        action="store_true",
+        help=(
+            "After the force run, run a second forced hybrid-page-ocr extraction "
+            "into a fresh output directory to measure OCR shard cache reuse "
+            "without relying on the whole-document _resources.arrow cache."
+        ),
+    )
+    parser.add_argument(
         "--fail-on-distinct-miss-conversions",
         action="store_true",
         help=(
@@ -375,6 +384,10 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
+    if args.shard_cache_reuse_probe and args.flight_mode != "hybrid-page-ocr":
+        raise SystemExit(
+            "--shard-cache-reuse-probe requires --flight-mode hybrid-page-ocr"
+        )
     if args.prepare_only:
         real_fixture_root = resolve_docling_source_root(args.docling_source_root)
         prepare_docling_fixtures(
@@ -539,6 +552,7 @@ def main() -> int:
         "pdfOcrWorkers": args.pdf_ocr_workers,
         "rustPdfOcrWorkers": args.rust_pdf_ocr_workers,
         "pdfOcrProfile": pdf_ocr_profile_label(args),
+        "shardCacheReuseProbe": args.shard_cache_reuse_probe,
         "distinctMiss": distinct_miss_report,
         "doclingFixtureRoot": str(real_fixture_root) if real_fixture_root else None,
         "results": results,
@@ -1983,6 +1997,17 @@ def run_fixture_probe(
         concurrency=1,
         report_path=output_dir / "force.json",
     )
+    shard_cache_reuse_report = None
+    if args.shard_cache_reuse_probe:
+        shard_cache_reuse_report = run_cargo_perf_test(
+            args,
+            fixture_path,
+            output_dir / "shard-cache-reuse",
+            force=True,
+            iterations=1,
+            concurrency=1,
+            report_path=output_dir / "shard-cache-reuse.json",
+        )
     cached_report = run_cargo_perf_test(
         args,
         fixture_path,
@@ -1997,14 +2022,23 @@ def run_fixture_probe(
     row_count = cached_report["rowCount"]
     total_rows = row_count * request_count
     force_error_rows = force_report.get("errorRowCount", 0)
+    shard_cache_reuse_error_rows = (
+        shard_cache_reuse_report.get("errorRowCount", 0)
+        if shard_cache_reuse_report
+        else 0
+    )
     cache_error_rows = cached_report.get("errorRowCount", 0)
     artifact_summary = summarize_artifact_reports(
         cached_report.get("artifactReports", [])
     )
-    if args.fail_on_error_rows and (force_error_rows or cache_error_rows):
+    if args.fail_on_error_rows and (
+        force_error_rows or shard_cache_reuse_error_rows or cache_error_rows
+    ):
         raise SystemExit(
             f"fixture `{fixture_name}` produced document extraction error rows: "
-            f"force={force_error_rows}, cache={cache_error_rows}"
+            f"force={force_error_rows}, "
+            f"shard_cache_reuse={shard_cache_reuse_error_rows}, "
+            f"cache={cache_error_rows}"
         )
     rust_jobs_status_summary = combine_rust_jobs_status_summaries(
         [
@@ -2014,6 +2048,11 @@ def run_fixture_probe(
                 else {}
             ),
             force_report.get("rustJobsStatusSummary", {}),
+            (
+                shard_cache_reuse_report.get("rustJobsStatusSummary", {})
+                if shard_cache_reuse_report
+                else {}
+            ),
             cached_report.get("rustJobsStatusSummary", {}),
         ]
     )
@@ -2035,6 +2074,18 @@ def run_fixture_probe(
         "forceErrorRows": force_error_rows,
         "forceStatusCounts": force_report.get("statusCounts", {}),
         "forceMaxRssKb": force_report.get("maxRssKb"),
+        "shardCacheReuseEnabled": args.shard_cache_reuse_probe,
+        "shardCacheReuseForceMs": (
+            shard_cache_reuse_report["latenciesMs"][0]
+            if shard_cache_reuse_report
+            else None
+        ),
+        "shardCacheReuseErrorRows": shard_cache_reuse_error_rows,
+        "shardCacheReuseStatusCounts": (
+            shard_cache_reuse_report.get("statusCounts", {})
+            if shard_cache_reuse_report
+            else {}
+        ),
         "concurrency": cached_report["concurrency"],
         "requestCount": request_count,
         "wallTimeMs": cached_report["wallTimeMs"],
@@ -2364,7 +2415,10 @@ def summarize_results(
         "fixtureCount": len(results),
         "totalRows": sum(result["totalRows"] for result in results),
         "totalErrorRows": sum(
-            result["forceErrorRows"] + result["cacheErrorRows"] for result in results
+            result["forceErrorRows"]
+            + result.get("shardCacheReuseErrorRows", 0)
+            + result["cacheErrorRows"]
+            for result in results
         )
         + distinct_error_rows,
         "totalRequests": sum(result["requestCount"] for result in results),
@@ -2427,6 +2481,12 @@ def all_structure_reading_order_sorted(results: list[dict[str, Any]]) -> bool | 
     return all(bool(value) for value in values) if values else None
 
 
+def format_optional_float(value: Any) -> str:
+    if isinstance(value, (int, float)):
+        return f"{float(value):.3f}"
+    return ""
+
+
 def render_markdown(payload: dict[str, Any]) -> str:
     rust_status = payload["summary"]["rustJobsStatusSummary"]
     lines = [
@@ -2444,6 +2504,8 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"- PDF OCR workers: `{payload['pdfOcrWorkers']}`",
         f"- Rust PDF OCR worker pool: `{payload['rustPdfOcrWorkers']}`",
         f"- PDF OCR profile: `{payload['pdfOcrProfile']}`",
+        "- Shard-cache reuse probe: "
+        f"`{any(result.get('shardCacheReuseEnabled') for result in payload['results'])}`",
         "- Duplicate miss converter calls: "
         f"`{payload['summary']['totalDuplicateMissConverterCalls']}`",
         "- Distinct cold-miss converter calls: "
@@ -2462,11 +2524,15 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"`{payload['summary']['allStructureReadingOrderSorted']}`",
         f"- Artifact errors: `{payload['summary']['artifactErrorCount']}`",
         "",
-        "| Fixture | Requests | Rows/request | Error rows | Duplicate conversions | Queue max | Running max | Permits min | Total rows | Structure rows | OCR blocks | Order sorted | IPC bytes | Force ms | Cache p50 ms | Cache p95 ms | Wall ms | Max RSS KB | Speedup |",
-        "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+        "| Fixture | Requests | Rows/request | Error rows | Duplicate conversions | Queue max | Running max | Permits min | Total rows | Structure rows | OCR blocks | Order sorted | IPC bytes | Force ms | Shard reuse force ms | Cache p50 ms | Cache p95 ms | Wall ms | Max RSS KB | Speedup |",
+        "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
     ]
     for result in payload["results"]:
-        error_rows = result["forceErrorRows"] + result["cacheErrorRows"]
+        error_rows = (
+            result["forceErrorRows"]
+            + result.get("shardCacheReuseErrorRows", 0)
+            + result["cacheErrorRows"]
+        )
         ocr_blocks = result.get("structureOcrPageBlocks", 0) + result.get(
             "structureOcrRegionBlocks", 0
         )
@@ -2477,6 +2543,9 @@ def render_markdown(payload: dict[str, Any]) -> str:
             "structureRows": result.get("structureRows", 0),
             "ocrBlocks": ocr_blocks,
             "orderSorted": result.get("structureReadingOrderSorted"),
+            "shardCacheReuseForceMs": format_optional_float(
+                result.get("shardCacheReuseForceMs")
+            ),
         }
         lines.append(
             "| {fixture} | {requestCount} | {rows} | {errorRows} | "
@@ -2484,7 +2553,8 @@ def render_markdown(payload: dict[str, Any]) -> str:
             "{rustJobsMaxRunningJobs} | {rustJobsMinAvailableConversionPermits} | "
             "{totalRows} | {structureRows} | {ocrBlocks} | {orderSorted} | "
             "{arrowIpcBytes} | "
-            "{forceRefreshMs:.3f} | {cacheHitP50Ms:.3f} | {cacheHitP95Ms:.3f} | "
+            "{forceRefreshMs:.3f} | {shardCacheReuseForceMs} | "
+            "{cacheHitP50Ms:.3f} | {cacheHitP95Ms:.3f} | "
             "{wallTimeMs:.3f} | {cacheMaxRssKb} | {cacheSpeedup:.2f} |".format(**row)
         )
     distinct_miss = payload.get("distinctMiss")
