@@ -1,6 +1,7 @@
 use super::xml::{attribute_value, boolean_attribute_value, bpmn_model_namespace, local_name};
 use crate::bpmn_model_api::{
-    BpmnCollaborationSnapshot, BpmnCorrelationPropertySnapshot, BpmnDataAssociationSnapshot,
+    BpmnCollaborationSnapshot, BpmnCorrelationPropertySnapshot,
+    BpmnCorrelationRetrievalExpressionSnapshot, BpmnDataAssociationSnapshot,
     BpmnDataInputOutputSnapshot, BpmnDataObjectReferenceSnapshot, BpmnDataObjectSnapshot,
     BpmnDataStoreReferenceSnapshot, BpmnDataStoreSnapshot, BpmnDocumentSnapshot,
     BpmnIoSpecificationSnapshot, BpmnLaneSetSnapshot, BpmnLaneSnapshot, BpmnMessageFlowSnapshot,
@@ -16,6 +17,7 @@ pub(super) enum TextTarget {
     LaneFlowNode,
     DataAssociationSource,
     DataAssociationTarget,
+    CorrelationMessagePath,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -33,6 +35,9 @@ pub(super) struct BpmnSnapshotScanState {
     current_process: Option<usize>,
     lane_set_stack: Vec<(usize, usize)>,
     lane_stack: Vec<(usize, usize, usize)>,
+    current_correlation_property: Option<usize>,
+    current_correlation_retrieval_expression:
+        Option<(usize, BpmnCorrelationRetrievalExpressionSnapshot)>,
     io_specification_stack: Vec<(usize, usize)>,
     current_data_association: Option<(usize, DataAssociationKind, BpmnDataAssociationSnapshot)>,
 }
@@ -73,7 +78,12 @@ impl BpmnSnapshotScanState {
                 self.capture_message(source, reader, event)
             }
             "correlationProperty" if parent_tag == Some("definitions") => {
-                self.capture_correlation_property(source, reader, event)
+                self.capture_correlation_property(source, reader, event, is_empty)
+            }
+            "correlationPropertyRetrievalExpression"
+                if self.current_correlation_property.is_some() =>
+            {
+                self.start_correlation_retrieval_expression(source, reader, event, is_empty)
             }
             "dataStore" if parent_tag == Some("definitions") => {
                 self.capture_data_store(source, reader, event)
@@ -125,6 +135,13 @@ impl BpmnSnapshotScanState {
     pub(super) fn finish_end_event(&mut self, tag: &str) {
         match tag {
             "collaboration" => self.current_collaboration = None,
+            "correlationProperty" => {
+                self.finish_correlation_retrieval_expression();
+                self.current_correlation_property = None;
+            }
+            "correlationPropertyRetrievalExpression" => {
+                self.finish_correlation_retrieval_expression();
+            }
             "process" => {
                 self.current_process = None;
                 self.lane_set_stack.clear();
@@ -158,6 +175,7 @@ impl BpmnSnapshotScanState {
             TextTarget::LaneFlowNode => self.push_lane_flow_node_ref(text),
             TextTarget::DataAssociationSource => self.push_data_association_source_ref(text),
             TextTarget::DataAssociationTarget => self.set_data_association_target_ref(text),
+            TextTarget::CorrelationMessagePath => self.append_correlation_message_path(text),
         }
     }
 
@@ -172,6 +190,7 @@ impl BpmnSnapshotScanState {
         if self.current_data_association.is_some() {
             self.finish_data_association(DataAssociationKind::Output);
         }
+        self.finish_correlation_retrieval_expression();
     }
 
     pub(super) fn into_snapshot(self, source: &BpmnSourceFile) -> BpmnDocumentSnapshot {
@@ -267,6 +286,7 @@ impl BpmnSnapshotScanState {
         source: &BpmnSourceFile,
         reader: &Reader<&[u8]>,
         event: &BytesStart<'_>,
+        is_empty: bool,
     ) -> Result<()> {
         let Some(root) = self.root.as_mut() else {
             return Ok(());
@@ -277,7 +297,35 @@ impl BpmnSnapshotScanState {
                 correlation_property_id: attribute_value(source, reader, event, "id")?,
                 name: attribute_value(source, reader, event, "name")?,
                 type_ref: attribute_value(source, reader, event, "type")?,
+                retrieval_expressions: Vec::new(),
             });
+        if !is_empty {
+            self.current_correlation_property = root.correlation_properties.len().checked_sub(1);
+        }
+        Ok(())
+    }
+
+    fn start_correlation_retrieval_expression(
+        &mut self,
+        source: &BpmnSourceFile,
+        reader: &Reader<&[u8]>,
+        event: &BytesStart<'_>,
+        is_empty: bool,
+    ) -> Result<()> {
+        let Some(property_index) = self.current_correlation_property else {
+            return Ok(());
+        };
+        let retrieval_expression = BpmnCorrelationRetrievalExpressionSnapshot {
+            retrieval_expression_id: attribute_value(source, reader, event, "id")?,
+            message_ref: attribute_value(source, reader, event, "messageRef")?,
+            message_path: None,
+        };
+        if is_empty {
+            self.push_correlation_retrieval_expression(property_index, retrieval_expression);
+            return Ok(());
+        }
+        self.current_correlation_retrieval_expression =
+            Some((property_index, retrieval_expression));
         Ok(())
     }
 
@@ -556,6 +604,41 @@ impl BpmnSnapshotScanState {
             return;
         };
         association.target_ref = Some(text.to_string());
+    }
+
+    fn append_correlation_message_path(&mut self, text: &str) {
+        let Some((_, retrieval_expression)) =
+            self.current_correlation_retrieval_expression.as_mut()
+        else {
+            return;
+        };
+        retrieval_expression
+            .message_path
+            .get_or_insert_with(String::new)
+            .push_str(text);
+    }
+
+    fn finish_correlation_retrieval_expression(&mut self) {
+        let Some((property_index, retrieval_expression)) =
+            self.current_correlation_retrieval_expression.take()
+        else {
+            return;
+        };
+        self.push_correlation_retrieval_expression(property_index, retrieval_expression);
+    }
+
+    fn push_correlation_retrieval_expression(
+        &mut self,
+        property_index: usize,
+        retrieval_expression: BpmnCorrelationRetrievalExpressionSnapshot,
+    ) {
+        let Some(root) = self.root.as_mut() else {
+            return;
+        };
+        let Some(property) = root.correlation_properties.get_mut(property_index) else {
+            return;
+        };
+        property.retrieval_expressions.push(retrieval_expression);
     }
 
     fn finish_data_association(&mut self, expected_kind: DataAssociationKind) {

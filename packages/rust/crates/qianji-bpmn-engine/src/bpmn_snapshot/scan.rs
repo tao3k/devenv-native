@@ -133,6 +133,9 @@ fn text_target(element_stack: &[String]) -> Option<TextTarget> {
         (Some("targetRef"), Some("dataInputAssociation" | "dataOutputAssociation")) => {
             Some(TextTarget::DataAssociationTarget)
         }
+        (Some("messagePath"), Some("correlationPropertyRetrievalExpression")) => {
+            Some(TextTarget::CorrelationMessagePath)
+        }
         _ => None,
     }
 }

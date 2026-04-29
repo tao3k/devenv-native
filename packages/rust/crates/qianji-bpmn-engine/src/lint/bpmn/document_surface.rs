@@ -158,32 +158,8 @@ fn collaboration_snapshot_summary(snapshot: &BpmnDocumentSnapshot) -> Value {
             })
         })
         .collect::<Vec<_>>();
-    let messages = snapshot
-        .root
-        .messages
-        .iter()
-        .take(SNAPSHOT_EVIDENCE_LIMIT)
-        .map(|message| {
-            json!({
-                "message_id": message.message_id,
-                "name": message.name,
-                "item_ref": message.item_ref,
-            })
-        })
-        .collect::<Vec<_>>();
-    let correlation_properties = snapshot
-        .root
-        .correlation_properties
-        .iter()
-        .take(SNAPSHOT_EVIDENCE_LIMIT)
-        .map(|property| {
-            json!({
-                "correlation_property_id": property.correlation_property_id,
-                "name": property.name,
-                "type_ref": property.type_ref,
-            })
-        })
-        .collect::<Vec<_>>();
+    let messages = message_evidence(snapshot);
+    let correlation_properties = correlation_property_evidence(snapshot);
 
     json!({
         "root": root_snapshot_summary(snapshot),
@@ -199,6 +175,46 @@ fn collaboration_snapshot_summary(snapshot: &BpmnDocumentSnapshot) -> Value {
         "correlation_properties": correlation_properties,
         "collaborations": collaborations,
     })
+}
+
+fn message_evidence(snapshot: &BpmnDocumentSnapshot) -> Vec<Value> {
+    snapshot
+        .root
+        .messages
+        .iter()
+        .take(SNAPSHOT_EVIDENCE_LIMIT)
+        .map(|message| {
+            json!({
+                "message_id": message.message_id,
+                "name": message.name,
+                "item_ref": message.item_ref,
+            })
+        })
+        .collect()
+}
+
+fn correlation_property_evidence(snapshot: &BpmnDocumentSnapshot) -> Vec<Value> {
+    snapshot
+        .root
+        .correlation_properties
+        .iter()
+        .take(SNAPSHOT_EVIDENCE_LIMIT)
+        .map(|property| {
+            json!({
+                "correlation_property_id": property.correlation_property_id,
+                "name": property.name,
+                "type_ref": property.type_ref,
+                "retrieval_expression_count": property.retrieval_expressions.len(),
+                "retrieval_expressions": property.retrieval_expressions.iter().take(SNAPSHOT_EVIDENCE_LIMIT).map(|retrieval| {
+                    json!({
+                        "retrieval_expression_id": retrieval.retrieval_expression_id,
+                        "message_ref": retrieval.message_ref,
+                        "message_path": retrieval.message_path,
+                    })
+                }).collect::<Vec<_>>(),
+            })
+        })
+        .collect()
 }
 
 fn data_snapshot_summary(snapshot: &BpmnDocumentSnapshot) -> Value {

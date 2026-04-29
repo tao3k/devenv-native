@@ -37,6 +37,13 @@ fn bpmn_snapshot_preserves_collaboration_metadata_lane_and_data_metadata() {
         snapshot.root.correlation_properties[0].type_ref.as_deref(),
         Some("tns:OrderId")
     );
+    let retrieval = &snapshot.root.correlation_properties[0].retrieval_expressions[0];
+    assert_eq!(
+        retrieval.retrieval_expression_id.as_deref(),
+        Some("Correlation_Order_From_Message")
+    );
+    assert_eq!(retrieval.message_ref.as_deref(), Some("Message_1"));
+    assert_eq!(retrieval.message_path.as_deref(), Some("order.id"));
     assert_eq!(snapshot.root.data_store_count, 1);
     assert_eq!(
         snapshot.root.data_stores[0].data_store_id.as_deref(),

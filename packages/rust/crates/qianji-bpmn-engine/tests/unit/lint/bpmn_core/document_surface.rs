@@ -27,6 +27,18 @@ fn bpmn_linter_reports_collaboration_metadata_surface_with_llm_guidance() {
         "tns:OrderId"
     );
     assert_eq!(
+        issue.evidence["snapshot"]["correlation_properties"][0]["retrieval_expression_count"],
+        1
+    );
+    assert_eq!(
+        issue.evidence["snapshot"]["correlation_properties"][0]["retrieval_expressions"][0]["message_ref"],
+        "order_message"
+    );
+    assert_eq!(
+        issue.evidence["snapshot"]["correlation_properties"][0]["retrieval_expressions"][0]["message_path"],
+        "payload.orderId"
+    );
+    assert_eq!(
         issue.evidence["snapshot"]["collaborations"][0]["participants"][0]["process_ref"],
         "order_flow"
     );

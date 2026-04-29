@@ -43,7 +43,7 @@ guidance.
 | Standard loop             | bounded executable | Supported on selected host-dispatched task families.                                  |
 | Sequential multi-instance | bounded executable | Cardinality and bounded collection-backed input/output subset.                        |
 | Parallel multi-instance   | bounded executable | Cardinality and bounded collection-backed input/output subset.                        |
-| Collaboration and pools   | metadata-only      | Participant/message-flow plus message/correlation catalogs are preserved, not routed. |
+| Collaboration and pools   | metadata-only      | Participant/message-flow plus message/correlation retrieval metadata is preserved.    |
 | Lanes                     | metadata-only      | Preserved for passive routing/display; no scheduling or authorization.                |
 | Data objects              | metadata-only      | Preserved in snapshots; bounded task IO execution is handled separately.              |
 | Data stores               | lint-deferred      | Persistence semantics require a separate storage policy.                              |
@@ -62,10 +62,12 @@ Data-store persistence, transformations, multiple-source associations, and
 collaboration-aware routing remain deferred until separate milestones define
 their execution contracts.
 
-The first collaboration metadata slice preserves top-level `message` and
-`correlationProperty` catalogs alongside collaboration participants and
-message flows. This gives Rust-owned evidence for future routing work while
-keeping pool routing, message dispatch, and correlation matching deferred.
+The collaboration metadata slices preserve top-level `message`,
+`correlationProperty`, and nested `correlationPropertyRetrievalExpression`
+metadata alongside collaboration participants and message flows. This gives
+Rust-owned evidence for future routing work while keeping pool routing,
+message dispatch, correlation matching, and retrieval expression evaluation
+deferred.
 
 ## Active M2 Event Milestone
 

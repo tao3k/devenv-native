@@ -78,6 +78,20 @@ pub struct BpmnCorrelationPropertySnapshot {
     pub name: Option<String>,
     /// Optional BPMN type reference.
     pub type_ref: Option<String>,
+    /// Direct retrieval expressions preserved from this correlation property.
+    #[serde(default)]
+    pub retrieval_expressions: Vec<BpmnCorrelationRetrievalExpressionSnapshot>,
+}
+
+/// Snapshot of one BPMN `correlationPropertyRetrievalExpression`.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct BpmnCorrelationRetrievalExpressionSnapshot {
+    /// Optional stable retrieval-expression identifier.
+    pub retrieval_expression_id: Option<String>,
+    /// Optional referenced BPMN message identifier.
+    pub message_ref: Option<String>,
+    /// Optional direct nested `messagePath` payload.
+    pub message_path: Option<String>,
 }
 
 /// Snapshot of one BPMN `collaboration`.
