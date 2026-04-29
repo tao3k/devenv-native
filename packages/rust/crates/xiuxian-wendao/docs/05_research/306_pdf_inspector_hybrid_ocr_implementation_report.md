@@ -109,6 +109,24 @@ schema, and treats missing native PDFium runtime support as a Docling fallback
 condition. Production sync and async document extraction still call the existing
 Python/Docling worker.
 
+The real render proof now has an explicit runtime preparation path in the
+benchmark script. `--prepare-pdfium-runtime` downloads the pinned
+`bblanchon/pdfium-binaries` runtime matching `pdfium-render`'s default Pdfium
+API release for the current platform into the project cache, and
+`--require-pdfium` turns the ignored proof lane into a hard failure when no page
+shards are rendered. This is benchmark-only plumbing; it does not add PDFium to
+default Wendao features or to production extraction.
+
+Real render proof on the Docling `2206.01062.pdf` fixture:
+
+| Status     | Decision                    | Pages | Shards | Elapsed ms |
+| ---------- | --------------------------- | ----: | -----: | ---------: |
+| `rendered` | `hybrid_page_ocr_candidate` |     9 |      9 |  24470.627 |
+
+The result proves that the feature-gated Rust path can render page shards and
+write both the internal shard manifest and pending OCR Arrow resource rows when
+a native PDFium runtime is explicitly provided.
+
 The audit report now records two additional routing diagnostics:
 
 - `fastPathScore`: a conservative score for direct Rust text fast-path

@@ -36,6 +36,18 @@ extraction may bypass Docling. A high-confidence scanned PDF is therefore still
 blocked from the direct text fast path and routed toward OCR or Docling
 fallback.
 
+## PDFium Runtime
+
+The `pdf-render` feature uses `pdfium-render`, which binds to a native PDFium
+shared library at runtime. Live Wendao extraction does not require this library.
+Only the opt-in render proof needs it.
+
+Use `WENDAO_PDFIUM_LIBRARY_PATH` to point at an existing PDFium shared library,
+or run the benchmark script with `--prepare-pdfium-runtime` to fetch the pinned
+`bblanchon/pdfium-binaries` runtime for the current platform into the project
+cache before invoking the ignored cargo-test proof. Add `--require-pdfium` when
+the proof must fail instead of recording a Docling fallback.
+
 ## Test Policy
 
 This crate depends on `xiuxian-testing` and mounts the shared crate test-policy

@@ -376,6 +376,9 @@ def test_pdf_render_shard_audit_command_adds_feature_and_fixture_manifest(
     args = benchmark.argparse.Namespace(
         cargo="cargo",
         cargo_features="performance,studio,zhenfa-router,duckdb",
+        pdfium_library_path=None,
+        prepare_pdfium_runtime=False,
+        require_pdfium=False,
     )
 
     command, env = benchmark.build_pdf_render_shard_audit_command(
@@ -398,6 +401,55 @@ def test_pdf_render_shard_audit_command_adds_feature_and_fixture_manifest(
     inputs = benchmark.json.loads(env["WENDAO_PDF_RENDER_SHARD_INPUTS_JSON"])
     assert inputs == [{"name": "pdf", "source": str(tmp_path / "sample.pdf")}]
     assert env["WENDAO_PDF_RENDER_SHARD_REPORT_DIR"] == str(tmp_path / "reports")
+
+
+def test_pdf_render_shard_audit_can_pin_pdfium_runtime_path(
+    tmp_path: Path,
+) -> None:
+    benchmark = _load_benchmark_module()
+    pdfium_library = tmp_path / "libpdfium.dylib"
+    pdfium_library.write_bytes(b"pdfium")
+    args = benchmark.argparse.Namespace(
+        cargo="cargo",
+        cargo_features="performance",
+        pdfium_library_path=pdfium_library,
+        prepare_pdfium_runtime=False,
+        require_pdfium=True,
+    )
+
+    _command, env = benchmark.build_pdf_render_shard_audit_command(
+        args,
+        {"pdf": tmp_path / "sample.pdf"},
+        tmp_path / "reports",
+    )
+
+    assert env["WENDAO_PDFIUM_LIBRARY_PATH"] == str(pdfium_library.resolve())
+    assert env["WENDAO_PDF_RENDER_REQUIRE_PDFIUM"] == "1"
+
+
+def test_pdfium_asset_selection_covers_primary_platforms() -> None:
+    benchmark = _load_benchmark_module()
+
+    assert (
+        benchmark.pdfium_asset_name(sys_platform="darwin", machine="arm64")
+        == "pdfium-mac-arm64.tgz"
+    )
+    assert (
+        benchmark.pdfium_asset_name(sys_platform="linux", machine="x86_64")
+        == "pdfium-linux-x64.tgz"
+    )
+
+
+def test_find_pdfium_library_prefers_lib_directory(tmp_path: Path) -> None:
+    benchmark = _load_benchmark_module()
+    nested = tmp_path / "nested" / "libpdfium.dylib"
+    preferred = tmp_path / "lib" / "libpdfium.dylib"
+    nested.parent.mkdir(parents=True)
+    preferred.parent.mkdir(parents=True)
+    nested.write_bytes(b"nested")
+    preferred.write_bytes(b"preferred")
+
+    assert benchmark.find_pdfium_library(tmp_path, "libpdfium.dylib") == preferred
 
 
 def test_pdf_render_shard_features_are_not_duplicated() -> None:
