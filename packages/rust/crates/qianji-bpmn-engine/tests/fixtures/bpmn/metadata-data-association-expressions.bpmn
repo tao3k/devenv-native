@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  id="Definitions_DataAssociationExpressions"
+  targetNamespace="https://example.com/bpmn/data-association-expressions">
+  <bpmn:itemDefinition id="Item_Order" structureRef="tns:Order" />
+  <bpmn:process id="Process_DataAssociationExpressions" isExecutable="false">
+    <bpmn:dataObject id="DataObject_Order" name="Order" itemSubjectRef="Item_Order" />
+    <bpmn:startEvent id="Start_DataAssociationExpressions" />
+    <bpmn:serviceTask id="Task_MapOrder" name="Map order">
+      <bpmn:ioSpecification id="IoSpec_MapOrder">
+        <bpmn:dataInput id="DataInput_Order" name="order" itemSubjectRef="Item_Order" />
+        <bpmn:dataOutput id="DataOutput_Decision" name="decision" />
+      </bpmn:ioSpecification>
+      <bpmn:dataInputAssociation id="DataInputAssociation_MapOrder">
+        <bpmn:sourceRef>DataObject_Order</bpmn:sourceRef>
+        <bpmn:targetRef>DataInput_Order</bpmn:targetRef>
+        <bpmn:transformation id="Transformation_OrderPayload" language="text/plain" evaluatesToTypeRef="Item_Order">order.payload</bpmn:transformation>
+        <bpmn:assignment id="Assignment_InputStatus">
+          <bpmn:from id="Expression_InputStatusFrom">{"status":"draft"}</bpmn:from>
+          <bpmn:to id="Expression_InputStatusTo">DataInput_Order.status</bpmn:to>
+        </bpmn:assignment>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="DataOutputAssociation_MapOrder">
+        <bpmn:sourceRef>DataOutput_Decision</bpmn:sourceRef>
+        <bpmn:targetRef>decision</bpmn:targetRef>
+        <bpmn:assignment id="Assignment_OutputDecision">
+          <bpmn:from>DataOutput_Decision.approved</bpmn:from>
+          <bpmn:to>decision.approved</bpmn:to>
+        </bpmn:assignment>
+      </bpmn:dataOutputAssociation>
+    </bpmn:serviceTask>
+    <bpmn:endEvent id="End_DataAssociationExpressions" />
+    <bpmn:sequenceFlow id="Flow_StartToTask" sourceRef="Start_DataAssociationExpressions" targetRef="Task_MapOrder" />
+    <bpmn:sequenceFlow id="Flow_TaskToEnd" sourceRef="Task_MapOrder" targetRef="End_DataAssociationExpressions" />
+  </bpmn:process>
+</bpmn:definitions>

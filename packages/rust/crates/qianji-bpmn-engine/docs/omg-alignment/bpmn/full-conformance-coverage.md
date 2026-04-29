@@ -62,7 +62,7 @@ guidance.
 | Data objects              | metadata-only      | Data object/reference metadata and direct `dataState` declarations are preserved passively.                      |
 | Data stores               | lint-deferred      | Data store/reference metadata and direct `dataState` are preserved; persistence execution remains deferred.      |
 | IO specification          | bounded executable | Human-task form IO and bounded host-task Data/IO metadata are executable.                                        |
-| Data associations         | bounded executable | Bounded host-task input resolution and output target mapping are executable.                                     |
+| Data associations         | bounded executable | Bounded host-task source/target mapping is executable; transformation and assignment payloads are preserved.     |
 | BPMN DI                   | metadata-only      | Diagram, plane, shape, edge, bounds, waypoint, label, and font metadata is preserved.                            |
 | DMN links                 | bounded executable | Business-rule tasks can execute local bounded DMN decisions when available.                                      |
 
@@ -72,9 +72,9 @@ The first Data/IO milestone promotes bounded task Data/IO execution. Supported
 host-dispatched task requests carry resolved task inputs, and task completion
 writes outputs through declared BPMN `dataOutputAssociation` targets.
 
-Data-store persistence, transformations, multiple-source associations, and
-collaboration-aware routing remain deferred until separate milestones define
-their execution contracts.
+Data-store persistence, executable transformations, multiple-source
+associations, and collaboration-aware routing remain deferred until separate
+milestones define their execution contracts.
 
 The collaboration, data, callable-operation, and event metadata slices
 preserve top-level `import`, `extension`, `relationship`, `BPMNDiagram`,
@@ -92,19 +92,20 @@ callable attributes, process support refs, process properties, process
 correlation subscriptions, direct process resource roles, direct global-task
 resource roles, direct process/global-task callable IO bindings, direct
 global-task IO specifications, direct `dataState` metadata on standard BPMN
-data owners, direct flow-element auditing/monitoring/category metadata, and
-data references. This gives Rust-owned evidence for future routing and
+data owners, data-association expression metadata, direct flow-element
+auditing/monitoring/category metadata, and data references. This gives
+Rust-owned evidence for future routing and
 type-alignment work while keeping
 pool routing, message dispatch, conversation routing, choreography execution,
 endpoint invocation, participant multiplicity execution, global task
 execution, process support resolution, process property execution,
-callable-operation binding, callable IO operation invocation, generic resource
-assignment execution, resource authorization, delegation, escalation,
-scheduling, data-state transition execution, audit execution, monitoring
-execution, category classification, group execution, annotation
-interpretation, import resolution, extension behavior, extension payload
-parsing, diagram rendering, layout validation, relationship endpoint
-resolution, event subscription registries, correlation
+callable-operation binding, callable IO operation invocation, data-association
+transformation execution, generic resource assignment execution, resource
+authorization, delegation, escalation, scheduling, data-state transition
+execution, audit execution, monitoring execution, category classification,
+group execution, annotation interpretation, import resolution, extension
+behavior, extension payload parsing, diagram rendering, layout validation,
+relationship endpoint resolution, event subscription registries, correlation
 matching, correlation subscription matching, correlation-key evaluation,
 retrieval expression evaluation, and schema validation deferred.
 

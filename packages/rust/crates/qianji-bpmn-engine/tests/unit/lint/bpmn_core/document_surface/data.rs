@@ -63,3 +63,36 @@ fn bpmn_linter_reports_data_state_metadata_surface_with_llm_guidance() {
         "approved"
     );
 }
+
+#[test]
+fn bpmn_linter_reports_data_association_expression_metadata_surface_with_llm_guidance() {
+    let report = lint_bpmn_source(&bpmn_fixture_source(
+        "metadata-data-association-expressions.bpmn",
+    ));
+
+    assert_eq!(report.domain, LintDomain::Bpmn);
+    assert!(!report.ok);
+    assert_eq!(report.issues.len(), 1);
+    let issue = &report.issues[0];
+    assert_eq!(issue.code, "bpmn.unsupported_data_surface");
+    assert_eq!(issue.evidence["snapshot_available"], true);
+    assert_eq!(
+        issue.evidence["snapshot"]["data_input_association_count"],
+        1
+    );
+    assert_eq!(
+        issue.evidence["snapshot"]["process_data"][0]["data_input_associations"][0]["transformation"]
+            ["body"],
+        "order.payload"
+    );
+    assert_eq!(
+        issue.evidence["snapshot"]["process_data"][0]["data_input_associations"][0]["assignments"]
+            [0]["from"]["body"],
+        "{\"status\":\"draft\"}"
+    );
+    assert_eq!(
+        issue.evidence["snapshot"]["process_data"][0]["data_output_associations"][0]["assignments"]
+            [0]["to"]["body"],
+        "decision.approved"
+    );
+}

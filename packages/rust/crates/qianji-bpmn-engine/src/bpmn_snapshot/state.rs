@@ -6,6 +6,7 @@ use crate::bpmn_model_api::{
     BpmnConversationNodeSnapshot, BpmnCorrelationKeySnapshot,
     BpmnCorrelationPropertyBindingSnapshot, BpmnCorrelationPropertySnapshot,
     BpmnCorrelationRetrievalExpressionSnapshot, BpmnCorrelationSubscriptionSnapshot,
+    BpmnDataAssociationAssignmentSnapshot, BpmnDataAssociationExpressionSnapshot,
     BpmnDataAssociationSnapshot, BpmnDataInputOutputSnapshot, BpmnDataObjectReferenceSnapshot,
     BpmnDataObjectSnapshot, BpmnDataStateSnapshot, BpmnDataStoreReferenceSnapshot,
     BpmnDataStoreSnapshot, BpmnDiagramSnapshot, BpmnDocumentSnapshot, BpmnEdgeSnapshot,
@@ -31,6 +32,9 @@ pub(super) enum TextTarget {
     LaneFlowNode,
     DataAssociationSource,
     DataAssociationTarget,
+    DataAssociationTransformation,
+    DataAssociationAssignmentFrom,
+    DataAssociationAssignmentTo,
     CorrelationMessagePath,
     CorrelationBindingDataPath,
     ResourceRoleResourceRef,
@@ -65,6 +69,12 @@ pub(super) enum TextTarget {
 enum DataAssociationKind {
     Input,
     Output,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum DataAssociationAssignmentExpressionKind {
+    From,
+    To,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -156,6 +166,7 @@ pub(super) struct BpmnSnapshotScanState {
     io_specification_stack: Vec<IoSpecificationOwner>,
     current_data_state_owner: Option<DataStateOwner>,
     current_data_association: Option<(usize, DataAssociationKind, BpmnDataAssociationSnapshot)>,
+    current_data_association_assignment: Option<usize>,
 }
 
 impl BpmnSnapshotScanState {
@@ -196,7 +207,9 @@ impl BpmnSnapshotScanState {
         if self.handle_process_start_event(source, reader, event, parent_tag, tag, is_empty)? {
             return Ok(());
         }
-        if self.handle_data_metadata_start_event(source, reader, event, tag)? {
+        if self
+            .handle_data_metadata_start_event(source, reader, event, parent_tag, tag, is_empty)?
+        {
             return Ok(());
         }
         if self.handle_callable_io_start_event(source, reader, event, parent_tag, tag, is_empty)? {
@@ -400,11 +413,46 @@ impl BpmnSnapshotScanState {
         source: &BpmnSourceFile,
         reader: &Reader<&[u8]>,
         event: &BytesStart<'_>,
+        parent_tag: Option<&str>,
         tag: &str,
+        is_empty: bool,
     ) -> Result<bool> {
         match tag {
             "dataState" if self.current_data_state_owner.is_some() => {
                 self.attach_data_state(source, reader, event)?;
+            }
+            "transformation"
+                if parent_tag.is_some_and(is_data_association_tag)
+                    && self.current_data_association.is_some() =>
+            {
+                self.start_data_association_transformation(source, reader, event)?;
+            }
+            "assignment"
+                if parent_tag.is_some_and(is_data_association_tag)
+                    && self.current_data_association.is_some() =>
+            {
+                self.start_data_association_assignment(source, reader, event, is_empty)?;
+            }
+            "from"
+                if parent_tag == Some("assignment")
+                    && self.current_data_association_assignment.is_some() =>
+            {
+                self.start_data_association_assignment_expression(
+                    source,
+                    reader,
+                    event,
+                    DataAssociationAssignmentExpressionKind::From,
+                )?;
+            }
+            "to" if parent_tag == Some("assignment")
+                && self.current_data_association_assignment.is_some() =>
+            {
+                self.start_data_association_assignment_expression(
+                    source,
+                    reader,
+                    event,
+                    DataAssociationAssignmentExpressionKind::To,
+                )?;
             }
             _ => return Ok(false),
         }
@@ -666,6 +714,7 @@ impl BpmnSnapshotScanState {
             | "dataObjectReference"
             | "dataStore"
             | "dataStoreReference" => self.current_data_state_owner = None,
+            "assignment" => self.current_data_association_assignment = None,
             "dataInputAssociation" => self.finish_data_association(DataAssociationKind::Input),
             "dataOutputAssociation" => self.finish_data_association(DataAssociationKind::Output),
             _ => {}
@@ -727,6 +776,8 @@ impl BpmnSnapshotScanState {
         self.lane_set_stack.clear();
         self.lane_stack.clear();
         self.io_specification_stack.clear();
+        self.current_data_association = None;
+        self.current_data_association_assignment = None;
     }
 
     fn finish_correlation_subscription(&mut self) {
@@ -746,6 +797,15 @@ impl BpmnSnapshotScanState {
             TextTarget::LaneFlowNode => self.push_lane_flow_node_ref(text),
             TextTarget::DataAssociationSource => self.push_data_association_source_ref(text),
             TextTarget::DataAssociationTarget => self.set_data_association_target_ref(text),
+            TextTarget::DataAssociationTransformation => {
+                self.append_data_association_transformation(text);
+            }
+            TextTarget::DataAssociationAssignmentFrom => {
+                self.append_data_association_assignment_from(text);
+            }
+            TextTarget::DataAssociationAssignmentTo => {
+                self.append_data_association_assignment_to(text);
+            }
             TextTarget::CorrelationMessagePath => self.append_correlation_message_path(text),
             TextTarget::CorrelationBindingDataPath => {
                 self.append_correlation_binding_data_path(text);
@@ -2663,12 +2723,70 @@ impl BpmnSnapshotScanState {
             association_id: attribute_value(source, reader, event, "id")?,
             source_refs: Vec::new(),
             target_ref: None,
+            transformation: None,
+            assignments: Vec::new(),
         };
         if is_empty {
             self.push_data_association(process_index, kind, association);
             return Ok(());
         }
         self.current_data_association = Some((process_index, kind, association));
+        Ok(())
+    }
+
+    fn start_data_association_transformation(
+        &mut self,
+        source: &BpmnSourceFile,
+        reader: &Reader<&[u8]>,
+        event: &BytesStart<'_>,
+    ) -> Result<()> {
+        let expression = data_association_expression_from_event(source, reader, event)?;
+        let Some(association) = self.current_data_association_mut() else {
+            return Ok(());
+        };
+        association.transformation = Some(expression);
+        Ok(())
+    }
+
+    fn start_data_association_assignment(
+        &mut self,
+        source: &BpmnSourceFile,
+        reader: &Reader<&[u8]>,
+        event: &BytesStart<'_>,
+        is_empty: bool,
+    ) -> Result<()> {
+        self.current_data_association_assignment = None;
+        let assignment = BpmnDataAssociationAssignmentSnapshot {
+            assignment_id: attribute_value(source, reader, event, "id")?,
+            from: None,
+            to: None,
+        };
+        let Some(association) = self.current_data_association_mut() else {
+            return Ok(());
+        };
+        association.assignments.push(assignment);
+        if !is_empty {
+            self.current_data_association_assignment =
+                Some(association.assignments.len().saturating_sub(1));
+        }
+        Ok(())
+    }
+
+    fn start_data_association_assignment_expression(
+        &mut self,
+        source: &BpmnSourceFile,
+        reader: &Reader<&[u8]>,
+        event: &BytesStart<'_>,
+        kind: DataAssociationAssignmentExpressionKind,
+    ) -> Result<()> {
+        let expression = data_association_expression_from_event(source, reader, event)?;
+        let Some(assignment) = self.current_data_association_assignment_mut() else {
+            return Ok(());
+        };
+        match kind {
+            DataAssociationAssignmentExpressionKind::From => assignment.from = Some(expression),
+            DataAssociationAssignmentExpressionKind::To => assignment.to = Some(expression),
+        }
         Ok(())
     }
 
@@ -2698,6 +2816,59 @@ impl BpmnSnapshotScanState {
             return;
         };
         association.target_ref = Some(text.to_string());
+    }
+
+    fn append_data_association_transformation(&mut self, text: &str) {
+        let Some(association) = self.current_data_association_mut() else {
+            return;
+        };
+        let Some(expression) = association.transformation.as_mut() else {
+            return;
+        };
+        expression
+            .body
+            .get_or_insert_with(String::new)
+            .push_str(text);
+    }
+
+    fn append_data_association_assignment_from(&mut self, text: &str) {
+        let Some(assignment) = self.current_data_association_assignment_mut() else {
+            return;
+        };
+        let Some(expression) = assignment.from.as_mut() else {
+            return;
+        };
+        expression
+            .body
+            .get_or_insert_with(String::new)
+            .push_str(text);
+    }
+
+    fn append_data_association_assignment_to(&mut self, text: &str) {
+        let Some(assignment) = self.current_data_association_assignment_mut() else {
+            return;
+        };
+        let Some(expression) = assignment.to.as_mut() else {
+            return;
+        };
+        expression
+            .body
+            .get_or_insert_with(String::new)
+            .push_str(text);
+    }
+
+    fn current_data_association_mut(&mut self) -> Option<&mut BpmnDataAssociationSnapshot> {
+        self.current_data_association
+            .as_mut()
+            .map(|(_, _, association)| association)
+    }
+
+    fn current_data_association_assignment_mut(
+        &mut self,
+    ) -> Option<&mut BpmnDataAssociationAssignmentSnapshot> {
+        let assignment_index = self.current_data_association_assignment?;
+        let association = self.current_data_association_mut()?;
+        association.assignments.get_mut(assignment_index)
     }
 
     fn append_correlation_message_path(&mut self, text: &str) {
@@ -3085,6 +3256,7 @@ impl BpmnSnapshotScanState {
             self.current_data_association = Some((process_index, kind, association));
             return;
         }
+        self.current_data_association_assignment = None;
         self.push_data_association(process_index, kind, association);
     }
 
@@ -3667,6 +3839,19 @@ fn io_binding_from_event(
     })
 }
 
+fn data_association_expression_from_event(
+    source: &BpmnSourceFile,
+    reader: &Reader<&[u8]>,
+    event: &BytesStart<'_>,
+) -> Result<BpmnDataAssociationExpressionSnapshot> {
+    Ok(BpmnDataAssociationExpressionSnapshot {
+        expression_id: attribute_value(source, reader, event, "id")?,
+        body: None,
+        language: attribute_value(source, reader, event, "language")?,
+        evaluates_to_type_ref: attribute_value(source, reader, event, "evaluatesToTypeRef")?,
+    })
+}
+
 fn resource_role_from_event(
     source: &BpmnSourceFile,
     reader: &Reader<&[u8]>,
@@ -3702,6 +3887,10 @@ fn is_choreography_activity_tag(tag: &str) -> bool {
         tag,
         "choreographyTask" | "subChoreography" | "callChoreography"
     )
+}
+
+fn is_data_association_tag(tag: &str) -> bool {
+    matches!(tag, "dataInputAssociation" | "dataOutputAssociation")
 }
 
 fn is_artifact_container(tag: Option<&str>) -> bool {

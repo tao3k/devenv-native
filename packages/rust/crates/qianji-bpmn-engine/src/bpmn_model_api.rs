@@ -1168,6 +1168,39 @@ pub struct BpmnDataAssociationSnapshot {
     pub source_refs: Vec<String>,
     /// Optional direct nested `targetRef` payload.
     pub target_ref: Option<String>,
+    /// Optional direct `transformation` expression metadata.
+    #[serde(default)]
+    pub transformation: Option<BpmnDataAssociationExpressionSnapshot>,
+    /// Direct nested `assignment` metadata preserved in source order.
+    #[serde(default)]
+    pub assignments: Vec<BpmnDataAssociationAssignmentSnapshot>,
+}
+
+/// Snapshot of one BPMN data-association expression payload.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct BpmnDataAssociationExpressionSnapshot {
+    /// Optional stable expression identifier.
+    pub expression_id: Option<String>,
+    /// Optional expression text payload.
+    #[serde(default)]
+    pub body: Option<String>,
+    /// Optional formal expression language metadata.
+    pub language: Option<String>,
+    /// Optional formal expression result type metadata.
+    pub evaluates_to_type_ref: Option<String>,
+}
+
+/// Snapshot of one BPMN data-association assignment.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct BpmnDataAssociationAssignmentSnapshot {
+    /// Optional stable assignment identifier.
+    pub assignment_id: Option<String>,
+    /// Optional nested `from` expression metadata.
+    #[serde(default)]
+    pub from: Option<BpmnDataAssociationExpressionSnapshot>,
+    /// Optional nested `to` expression metadata.
+    #[serde(default)]
+    pub to: Option<BpmnDataAssociationExpressionSnapshot>,
 }
 
 pub(crate) fn empty_bpmn_root_snapshot(source: &BpmnSourceFile) -> BpmnRootSnapshot {

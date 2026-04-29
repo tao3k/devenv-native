@@ -133,6 +133,11 @@ fn text_target(element_stack: &[String]) -> Option<TextTarget> {
         (Some("targetRef"), Some("dataInputAssociation" | "dataOutputAssociation")) => {
             Some(TextTarget::DataAssociationTarget)
         }
+        (Some("transformation"), Some("dataInputAssociation" | "dataOutputAssociation")) => {
+            Some(TextTarget::DataAssociationTransformation)
+        }
+        (Some("from"), Some("assignment")) => Some(TextTarget::DataAssociationAssignmentFrom),
+        (Some("to"), Some("assignment")) => Some(TextTarget::DataAssociationAssignmentTo),
         (Some("messagePath"), Some("correlationPropertyRetrievalExpression")) => {
             Some(TextTarget::CorrelationMessagePath)
         }
