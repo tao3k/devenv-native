@@ -4,8 +4,9 @@ use crate::bpmn_model_api::{
     BpmnCorrelationRetrievalExpressionSnapshot, BpmnDataAssociationSnapshot,
     BpmnDataInputOutputSnapshot, BpmnDataObjectReferenceSnapshot, BpmnDataObjectSnapshot,
     BpmnDataStoreReferenceSnapshot, BpmnDataStoreSnapshot, BpmnDocumentSnapshot,
-    BpmnIoSpecificationSnapshot, BpmnLaneSetSnapshot, BpmnLaneSnapshot, BpmnMessageFlowSnapshot,
-    BpmnMessageSnapshot, BpmnParticipantSnapshot, BpmnProcessSnapshot, BpmnRootSnapshot,
+    BpmnIoSpecificationSnapshot, BpmnItemDefinitionSnapshot, BpmnLaneSetSnapshot, BpmnLaneSnapshot,
+    BpmnMessageFlowSnapshot, BpmnMessageSnapshot, BpmnParticipantSnapshot, BpmnProcessSnapshot,
+    BpmnRootSnapshot,
 };
 use crate::bpmn_parse_api::BpmnSourceFile;
 use crate::error::Result;
@@ -73,6 +74,9 @@ impl BpmnSnapshotScanState {
             }
             "process" if parent_tag == Some("definitions") => {
                 self.start_process(source, reader, event, is_empty)
+            }
+            "itemDefinition" if parent_tag == Some("definitions") => {
+                self.capture_item_definition(source, reader, event)
             }
             "message" if parent_tag == Some("definitions") => {
                 self.capture_message(source, reader, event)
@@ -277,6 +281,25 @@ impl BpmnSnapshotScanState {
             message_id: attribute_value(source, reader, event, "id")?,
             name: attribute_value(source, reader, event, "name")?,
             item_ref: attribute_value(source, reader, event, "itemRef")?,
+        });
+        Ok(())
+    }
+
+    fn capture_item_definition(
+        &mut self,
+        source: &BpmnSourceFile,
+        reader: &Reader<&[u8]>,
+        event: &BytesStart<'_>,
+    ) -> Result<()> {
+        let Some(root) = self.root.as_mut() else {
+            return Ok(());
+        };
+        root.item_definition_count += 1;
+        root.item_definitions.push(BpmnItemDefinitionSnapshot {
+            item_definition_id: attribute_value(source, reader, event, "id")?,
+            structure_ref: attribute_value(source, reader, event, "structureRef")?,
+            item_kind: attribute_value(source, reader, event, "itemKind")?,
+            is_collection: boolean_attribute_value(source, reader, event, "isCollection")?,
         });
         Ok(())
     }
@@ -725,6 +748,8 @@ fn root_from_event(
         model_namespace_uri: bpmn_model_namespace(source, reader, event)?,
         collaboration_count: 0,
         process_count: 0,
+        item_definition_count: 0,
+        item_definitions: Vec::new(),
         message_count: 0,
         messages: Vec::new(),
         correlation_property_count: 0,

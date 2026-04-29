@@ -16,11 +16,24 @@ fn bpmn_linter_reports_collaboration_metadata_surface_with_llm_guidance() {
     assert_eq!(issue.evidence["snapshot_available"], true);
     assert_eq!(issue.evidence["snapshot"]["participant_count"], 2);
     assert_eq!(issue.evidence["snapshot"]["message_flow_count"], 1);
+    assert_eq!(issue.evidence["snapshot"]["item_definition_count"], 1);
     assert_eq!(issue.evidence["snapshot"]["message_count"], 1);
     assert_eq!(issue.evidence["snapshot"]["correlation_property_count"], 1);
     assert_eq!(
+        issue.evidence["snapshot"]["item_definitions"][0]["item_definition_id"],
+        "order_item"
+    );
+    assert_eq!(
+        issue.evidence["snapshot"]["item_definitions"][0]["structure_ref"],
+        "tns:Order"
+    );
+    assert_eq!(
         issue.evidence["snapshot"]["messages"][0]["message_id"],
         "order_message"
+    );
+    assert_eq!(
+        issue.evidence["snapshot"]["messages"][0]["item_ref"],
+        "order_item"
     );
     assert_eq!(
         issue.evidence["snapshot"]["correlation_properties"][0]["type_ref"],
@@ -69,6 +82,11 @@ fn bpmn_linter_reports_data_surface_with_llm_guidance() {
     assert!(issue.why_it_failed.contains("JSON variables"));
     assert!(issue.llm_fix_prompt.contains("DMN inputs"));
     assert_eq!(issue.evidence["snapshot_available"], true);
+    assert_eq!(issue.evidence["snapshot"]["item_definition_count"], 1);
+    assert_eq!(
+        issue.evidence["snapshot"]["item_definitions"][0]["item_definition_id"],
+        "order_item"
+    );
     assert_eq!(issue.evidence["snapshot"]["data_object_count"], 1);
     assert_eq!(issue.evidence["snapshot"]["data_object_reference_count"], 1);
     assert_eq!(

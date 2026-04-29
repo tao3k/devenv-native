@@ -1,11 +1,12 @@
 use super::fixture_source;
 use crate::test_support::MustExt as _;
-use qianji_bpmn_engine::{BpmnEngineError, BpmnSourceFile, snapshot_bpmn_source};
+use qianji_bpmn_engine::{
+    BpmnDocumentSnapshot, BpmnEngineError, BpmnSourceFile, snapshot_bpmn_source,
+};
 
 #[test]
-fn bpmn_snapshot_preserves_collaboration_metadata_lane_and_data_metadata() {
-    let snapshot = snapshot_bpmn_source(&fixture_source("metadata-collaboration-lane-data.bpmn"))
-        .must("metadata-only BPMN source should still produce a document snapshot");
+fn bpmn_snapshot_preserves_collaboration_metadata_item_catalog() {
+    let snapshot = metadata_snapshot();
 
     assert_eq!(
         snapshot.root.definitions_id.as_deref(),
@@ -17,6 +18,22 @@ fn bpmn_snapshot_preserves_collaboration_metadata_lane_and_data_metadata() {
     );
     assert_eq!(snapshot.root.collaboration_count, 1);
     assert_eq!(snapshot.root.process_count, 1);
+    assert_eq!(snapshot.root.item_definition_count, 1);
+    assert_eq!(
+        snapshot.root.item_definitions[0]
+            .item_definition_id
+            .as_deref(),
+        Some("Item_Order")
+    );
+    assert_eq!(
+        snapshot.root.item_definitions[0].structure_ref.as_deref(),
+        Some("tns:Order")
+    );
+    assert_eq!(
+        snapshot.root.item_definitions[0].item_kind.as_deref(),
+        Some("Information")
+    );
+    assert_eq!(snapshot.root.item_definitions[0].is_collection, Some(false));
     assert_eq!(snapshot.root.message_count, 1);
     assert_eq!(
         snapshot.root.messages[0].message_id.as_deref(),
@@ -24,7 +41,7 @@ fn bpmn_snapshot_preserves_collaboration_metadata_lane_and_data_metadata() {
     );
     assert_eq!(
         snapshot.root.messages[0].item_ref.as_deref(),
-        Some("tns:Order")
+        Some("Item_Order")
     );
     assert_eq!(snapshot.root.correlation_property_count, 1);
     assert_eq!(
@@ -49,6 +66,10 @@ fn bpmn_snapshot_preserves_collaboration_metadata_lane_and_data_metadata() {
         snapshot.root.data_stores[0].data_store_id.as_deref(),
         Some("Store_1")
     );
+    assert_eq!(
+        snapshot.root.data_stores[0].item_subject_ref.as_deref(),
+        Some("Item_Order")
+    );
 
     let collaboration = &snapshot.collaborations[0];
     assert_eq!(
@@ -68,6 +89,11 @@ fn bpmn_snapshot_preserves_collaboration_metadata_lane_and_data_metadata() {
         collaboration.message_flows[0].message_ref.as_deref(),
         Some("Message_1")
     );
+}
+
+#[test]
+fn bpmn_snapshot_preserves_collaboration_metadata_lane_and_data_metadata() {
+    let snapshot = metadata_snapshot();
 
     let process = snapshot
         .process("Process_1")
@@ -75,6 +101,10 @@ fn bpmn_snapshot_preserves_collaboration_metadata_lane_and_data_metadata() {
     assert_eq!(process.lane_set_count, 1);
     assert_eq!(process.lane_sets[0].lanes[0].flow_node_refs, ["Task_1"]);
     assert_eq!(process.data_object_count, 1);
+    assert_eq!(
+        process.data_objects[0].item_subject_ref.as_deref(),
+        Some("Item_Order")
+    );
     assert_eq!(process.data_object_reference_count, 1);
     assert_eq!(
         process.data_object_references[0].data_object_ref.as_deref(),
@@ -92,6 +122,12 @@ fn bpmn_snapshot_preserves_collaboration_metadata_lane_and_data_metadata() {
             .as_deref(),
         Some("Input_1")
     );
+    assert_eq!(
+        process.io_specifications[0].data_inputs[0]
+            .item_subject_ref
+            .as_deref(),
+        Some("Item_Order")
+    );
     assert_eq!(process.data_input_association_count, 1);
     assert_eq!(
         process.data_input_associations[0].source_refs,
@@ -101,6 +137,11 @@ fn bpmn_snapshot_preserves_collaboration_metadata_lane_and_data_metadata() {
         process.data_input_associations[0].target_ref.as_deref(),
         Some("Input_1")
     );
+}
+
+fn metadata_snapshot() -> BpmnDocumentSnapshot {
+    snapshot_bpmn_source(&fixture_source("metadata-collaboration-lane-data.bpmn"))
+        .must("metadata-only BPMN source should still produce a document snapshot")
 }
 
 #[test]

@@ -45,6 +45,7 @@ guidance.
 | Parallel multi-instance   | bounded executable | Cardinality and bounded collection-backed input/output subset.                        |
 | Collaboration and pools   | metadata-only      | Participant/message-flow plus message/correlation retrieval metadata is preserved.    |
 | Lanes                     | metadata-only      | Preserved for passive routing/display; no scheduling or authorization.                |
+| Item definitions          | metadata-only      | Top-level item catalogs are preserved; schema validation remains deferred.            |
 | Data objects              | metadata-only      | Preserved in snapshots; bounded task IO execution is handled separately.              |
 | Data stores               | lint-deferred      | Persistence semantics require a separate storage policy.                              |
 | IO specification          | bounded executable | Human-task form IO and bounded host-task Data/IO metadata are executable.             |
@@ -62,12 +63,13 @@ Data-store persistence, transformations, multiple-source associations, and
 collaboration-aware routing remain deferred until separate milestones define
 their execution contracts.
 
-The collaboration metadata slices preserve top-level `message`,
-`correlationProperty`, and nested `correlationPropertyRetrievalExpression`
-metadata alongside collaboration participants and message flows. This gives
-Rust-owned evidence for future routing work while keeping pool routing,
-message dispatch, correlation matching, and retrieval expression evaluation
-deferred.
+The collaboration and data metadata slices preserve top-level
+`itemDefinition`, `message`, `correlationProperty`, and nested
+`correlationPropertyRetrievalExpression` metadata alongside collaboration
+participants, message flows, and data references. This gives Rust-owned
+evidence for future routing and type-alignment work while keeping pool
+routing, message dispatch, correlation matching, retrieval expression
+evaluation, and schema validation deferred.
 
 ## Active M2 Event Milestone
 

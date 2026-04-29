@@ -2,7 +2,8 @@
 <bpmn:definitions
   xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
   id="pkg_invalid_collaboration">
-  <bpmn:message id="order_message" name="OrderMessage" itemRef="tns:Order" />
+  <bpmn:itemDefinition id="order_item" structureRef="tns:Order" itemKind="Information" isCollection="false" />
+  <bpmn:message id="order_message" name="OrderMessage" itemRef="order_item" />
   <bpmn:correlationProperty id="order_correlation" name="orderId" type="tns:OrderId">
     <bpmn:correlationPropertyRetrievalExpression id="order_correlation_from_message" messageRef="order_message">
       <bpmn:messagePath>payload.orderId</bpmn:messagePath>

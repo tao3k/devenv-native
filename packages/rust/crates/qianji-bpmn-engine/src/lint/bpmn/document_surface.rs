@@ -115,6 +115,7 @@ fn root_snapshot_summary(snapshot: &BpmnDocumentSnapshot) -> Value {
         "model_namespace_uri": snapshot.root.model_namespace_uri,
         "collaboration_count": snapshot.root.collaboration_count,
         "process_count": snapshot.root.process_count,
+        "item_definition_count": snapshot.root.item_definition_count,
         "message_count": snapshot.root.message_count,
         "correlation_property_count": snapshot.root.correlation_property_count,
         "data_store_count": snapshot.root.data_store_count,
@@ -158,6 +159,7 @@ fn collaboration_snapshot_summary(snapshot: &BpmnDocumentSnapshot) -> Value {
             })
         })
         .collect::<Vec<_>>();
+    let item_definitions = item_definition_evidence(snapshot);
     let messages = message_evidence(snapshot);
     let correlation_properties = correlation_property_evidence(snapshot);
 
@@ -166,15 +168,35 @@ fn collaboration_snapshot_summary(snapshot: &BpmnDocumentSnapshot) -> Value {
         "collaboration_count": snapshot.collaborations.len(),
         "participant_count": participant_count,
         "message_flow_count": message_flow_count,
+        "item_definition_count": snapshot.root.item_definition_count,
         "message_count": snapshot.root.message_count,
         "correlation_property_count": snapshot.root.correlation_property_count,
         "collaborations_truncated": snapshot.collaborations.len() > SNAPSHOT_EVIDENCE_LIMIT,
+        "item_definitions_truncated": snapshot.root.item_definitions.len() > SNAPSHOT_EVIDENCE_LIMIT,
         "messages_truncated": snapshot.root.messages.len() > SNAPSHOT_EVIDENCE_LIMIT,
         "correlation_properties_truncated": snapshot.root.correlation_properties.len() > SNAPSHOT_EVIDENCE_LIMIT,
+        "item_definitions": item_definitions,
         "messages": messages,
         "correlation_properties": correlation_properties,
         "collaborations": collaborations,
     })
+}
+
+fn item_definition_evidence(snapshot: &BpmnDocumentSnapshot) -> Vec<Value> {
+    snapshot
+        .root
+        .item_definitions
+        .iter()
+        .take(SNAPSHOT_EVIDENCE_LIMIT)
+        .map(|item_definition| {
+            json!({
+                "item_definition_id": item_definition.item_definition_id,
+                "structure_ref": item_definition.structure_ref,
+                "item_kind": item_definition.item_kind,
+                "is_collection": item_definition.is_collection,
+            })
+        })
+        .collect()
 }
 
 fn message_evidence(snapshot: &BpmnDocumentSnapshot) -> Vec<Value> {
@@ -248,7 +270,24 @@ fn data_snapshot_summary(snapshot: &BpmnDocumentSnapshot) -> Value {
         .iter()
         .map(|process| process.data_output_association_count)
         .sum::<usize>();
-    let process_data = snapshot
+    json!({
+        "root": root_snapshot_summary(snapshot),
+        "item_definition_count": snapshot.root.item_definition_count,
+        "item_definitions": item_definition_evidence(snapshot),
+        "data_object_count": data_object_count,
+        "data_object_reference_count": data_object_reference_count,
+        "data_store_count": snapshot.root.data_store_count,
+        "data_store_reference_count": data_store_reference_count,
+        "io_specification_count": io_specification_count,
+        "data_input_association_count": data_input_association_count,
+        "data_output_association_count": data_output_association_count,
+        "process_data_truncated": snapshot.processes.len() > SNAPSHOT_EVIDENCE_LIMIT,
+        "process_data": process_data_evidence(snapshot),
+    })
+}
+
+fn process_data_evidence(snapshot: &BpmnDocumentSnapshot) -> Vec<Value> {
+    snapshot
         .processes
         .iter()
         .filter(|process| {
@@ -305,18 +344,5 @@ fn data_snapshot_summary(snapshot: &BpmnDocumentSnapshot) -> Value {
                 }).collect::<Vec<_>>(),
             })
         })
-        .collect::<Vec<_>>();
-
-    json!({
-        "root": root_snapshot_summary(snapshot),
-        "data_object_count": data_object_count,
-        "data_object_reference_count": data_object_reference_count,
-        "data_store_count": snapshot.root.data_store_count,
-        "data_store_reference_count": data_store_reference_count,
-        "io_specification_count": io_specification_count,
-        "data_input_association_count": data_input_association_count,
-        "data_output_association_count": data_output_association_count,
-        "process_data_truncated": snapshot.processes.len() > SNAPSHOT_EVIDENCE_LIMIT,
-        "process_data": process_data,
-    })
+        .collect()
 }

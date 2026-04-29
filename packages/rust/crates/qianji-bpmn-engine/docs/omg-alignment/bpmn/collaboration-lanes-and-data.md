@@ -8,6 +8,8 @@ official [BPMN 2.0.2 specification](https://www.omg.org/spec/BPMN/2.0.2).
 The current engine preserves non-executable BPMN metadata for these families:
 
 - collaboration-level participant and message-flow structure
+- top-level item-definition catalog metadata used by message and data
+  references
 - top-level message and correlation-property catalogs, including correlation
   retrieval `messageRef` and `messagePath` metadata, used by collaboration
   evidence
@@ -24,8 +26,8 @@ bindings resolve host request inputs and validate/map host completion outputs.
 
 The runtime may still move executable data through workflow variables,
 host-work payloads, waits, and DMN inputs, but it does not treat those BPMN
-collaboration, lane, data-object, or data-store families as engine-owned
-execution semantics.
+collaboration, lane, item-definition, data-object, or data-store families as
+engine-owned execution semantics.
 
 The first collaboration-alignment slices are metadata-only: Rust snapshots
 preserve standard BPMN `message`, `correlationProperty`, and nested
@@ -42,6 +44,7 @@ These BPMN surfaces remain deferred:
 - collaboration-aware message routing across pools or participants
 - executable correlation keys, correlation subscriptions, and retrieval
   expression evaluation
+- executable item-definition schema validation or payload coercion
 - lane-driven assignment, authorization, or execution ownership semantics
 - executable `dataObject` or `dataStore` persistence semantics
 - transformations, multiple-source data associations, and data-store-backed
@@ -50,11 +53,12 @@ These BPMN surfaces remain deferred:
 
 ## Repair Guidance
 
-Preserve collaboration, lane, and data structures in the source BPMN document.
-When executable behavior is required in the current bounded slice, route
-task-local operational payloads through native BPMN task IO and route broader
-state through workflow variables, host dispatch, waits, or DMN inputs instead
-of fabricating partial collaboration or data-object execution rules.
+Preserve collaboration, lane, item-definition, and data structures in the
+source BPMN document. When executable behavior is required in the current
+bounded slice, route task-local operational payloads through native BPMN task
+IO and route broader state through workflow variables, host dispatch, waits,
+or DMN inputs instead of fabricating partial collaboration, type-validation,
+or data-object execution rules.
 
 For collaboration documents, keep `participant`, `messageFlow`, `message`, and
 `correlationProperty` definitions standard and explicit, including retrieval

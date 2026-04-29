@@ -40,6 +40,12 @@ pub struct BpmnRootSnapshot {
     pub collaboration_count: usize,
     /// Number of top-level `process` elements discovered in the document.
     pub process_count: usize,
+    /// Number of top-level `itemDefinition` elements discovered in the document.
+    #[serde(default)]
+    pub item_definition_count: usize,
+    /// Bounded top-level `itemDefinition` metadata preserved from the document.
+    #[serde(default)]
+    pub item_definitions: Vec<BpmnItemDefinitionSnapshot>,
     /// Number of top-level `message` elements discovered in the document.
     #[serde(default)]
     pub message_count: usize,
@@ -56,6 +62,19 @@ pub struct BpmnRootSnapshot {
     pub data_store_count: usize,
     /// Bounded top-level `dataStore` metadata preserved from the document.
     pub data_stores: Vec<BpmnDataStoreSnapshot>,
+}
+
+/// Snapshot of one BPMN `itemDefinition`.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct BpmnItemDefinitionSnapshot {
+    /// Optional stable item-definition identifier.
+    pub item_definition_id: Option<String>,
+    /// Optional referenced external or model structure.
+    pub structure_ref: Option<String>,
+    /// Optional BPMN item kind.
+    pub item_kind: Option<String>,
+    /// Optional BPMN collection marker.
+    pub is_collection: Option<bool>,
 }
 
 /// Snapshot of one BPMN `message`.
@@ -288,6 +307,8 @@ pub(crate) fn empty_bpmn_root_snapshot(source: &BpmnSourceFile) -> BpmnRootSnaps
         model_namespace_uri: None,
         collaboration_count: 0,
         process_count: 0,
+        item_definition_count: 0,
+        item_definitions: Vec::new(),
         message_count: 0,
         messages: Vec::new(),
         correlation_property_count: 0,
