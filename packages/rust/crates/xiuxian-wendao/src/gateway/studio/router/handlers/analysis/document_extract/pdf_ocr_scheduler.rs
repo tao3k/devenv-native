@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use futures::future::try_join_all;
 use tokio::sync::{OwnedSemaphorePermit, Semaphore};
 use xiuxian_wendao_attachments::pdf::ocr::{
     PdfOcrShardInput, PdfOcrShardResult, build_ocr_result_resource_batch,
@@ -13,6 +14,8 @@ use crate::gateway::studio::document_extract_pdf_ocr_client::{
 
 pub(super) const DOCUMENT_EXTRACT_PDF_OCR_WORKERS_ENV: &str =
     "WENDAO_DOCUMENT_EXTRACT_PDF_OCR_WORKERS";
+pub(super) const DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS_ENV: &str =
+    "WENDAO_DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS";
 
 #[derive(Debug)]
 pub(super) struct PdfOcrWorkerScheduler {
@@ -97,11 +100,9 @@ impl PdfOcrWorkerScheduler {
         inputs: &[PdfOcrShardInput],
     ) -> Result<Vec<PdfOcrShardResult>, String> {
         if is_contiguous_source_pdf_page_range(inputs) {
-            let permits = self.acquire_worker_permits(1).await?;
-            let response = client.request_with_worker_budget(inputs, Some(1)).await;
-            drop(permits);
-            let response = response?;
-            return order_ocr_results_by_inputs(inputs, response.results);
+            return self
+                .request_source_pdf_page_range_shards(client, inputs)
+                .await;
         }
         let mut results = Vec::with_capacity(inputs.len());
         let mut offset = 0;
@@ -120,6 +121,32 @@ impl PdfOcrWorkerScheduler {
             offset = end;
         }
         Ok(results)
+    }
+
+    async fn request_source_pdf_page_range_shards(
+        &self,
+        client: &PdfOcrShardFlightClient,
+        inputs: &[PdfOcrShardInput],
+    ) -> Result<Vec<PdfOcrShardResult>, String> {
+        let target = source_pdf_page_range_worker_target(inputs.len(), self.worker_limit);
+        let permits = self.acquire_worker_permits(target).await?;
+        let chunk_count = permits.len().clamp(1, inputs.len());
+        let chunks = source_pdf_page_range_chunks(inputs, chunk_count);
+        let chunk_results = try_join_all(chunks.iter().map(|chunk| {
+            let client = client.clone();
+            async move {
+                let response = client.request_with_worker_budget(chunk, Some(1)).await?;
+                order_ocr_results_by_inputs(chunk, response.results)
+            }
+        }))
+        .await?;
+        drop(permits);
+
+        let mut results = Vec::with_capacity(inputs.len());
+        for chunk in chunk_results {
+            results.extend(chunk);
+        }
+        order_ocr_results_by_inputs(inputs, results)
     }
 
     async fn acquire_worker_permits(
@@ -179,6 +206,48 @@ fn pdf_ocr_chunk_target(shard_count: usize, worker_limit: usize) -> usize {
     shard_count.max(1).min(worker_limit.max(1))
 }
 
+fn source_pdf_page_range_worker_target(shard_count: usize, worker_limit: usize) -> usize {
+    source_pdf_page_range_worker_target_with_lookup(shard_count, worker_limit, &|key| {
+        std::env::var(key).ok()
+    })
+}
+
+fn source_pdf_page_range_worker_target_with_lookup(
+    shard_count: usize,
+    worker_limit: usize,
+    lookup: &dyn Fn(&str) -> Option<String>,
+) -> usize {
+    let shard_count = shard_count.max(1);
+    let worker_limit = worker_limit.max(1);
+    if let Some(limit) = lookup(DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS_ENV)
+        .and_then(|value| value.parse::<usize>().ok())
+        .filter(|value| *value > 0)
+    {
+        return limit.min(worker_limit).min(shard_count).max(1);
+    }
+    if worker_limit <= 4 {
+        return worker_limit.min(shard_count).max(1);
+    }
+    let machine_budget = ceil_sqrt_usize(worker_limit);
+    let page_budget = shard_count.div_ceil(6);
+    machine_budget
+        .min(page_budget.max(1))
+        .min(worker_limit)
+        .min(shard_count)
+        .max(1)
+}
+
+fn ceil_sqrt_usize(value: usize) -> usize {
+    if value <= 1 {
+        return value;
+    }
+    let mut root = 1usize;
+    while root.saturating_mul(root) < value {
+        root = root.saturating_add(1);
+    }
+    root
+}
+
 fn is_contiguous_source_pdf_page_range(inputs: &[PdfOcrShardInput]) -> bool {
     let Some(first) = inputs.first() else {
         return false;
@@ -191,6 +260,27 @@ fn is_contiguous_source_pdf_page_range(inputs: &[PdfOcrShardInput]) -> bool {
             && input.shard_type == "page"
             && input.page_index == first.page_index + u32::try_from(offset).unwrap_or(u32::MAX)
     })
+}
+
+fn source_pdf_page_range_chunks(
+    inputs: &[PdfOcrShardInput],
+    chunk_count: usize,
+) -> Vec<&[PdfOcrShardInput]> {
+    if inputs.is_empty() {
+        return Vec::new();
+    }
+    let chunk_count = chunk_count.clamp(1, inputs.len());
+    let base = inputs.len() / chunk_count;
+    let extra = inputs.len() % chunk_count;
+    let mut start = 0;
+    let mut chunks = Vec::with_capacity(chunk_count);
+    for chunk_index in 0..chunk_count {
+        let size = base + usize::from(chunk_index < extra);
+        let end = start + size;
+        chunks.push(&inputs[start..end]);
+        start = end;
+    }
+    chunks
 }
 
 #[cfg(test)]
@@ -222,6 +312,46 @@ mod tests {
         );
 
         assert_eq!(budget, 6);
+    }
+
+    #[test]
+    fn source_pdf_page_range_worker_target_is_sublinear_for_large_machines() {
+        let budget = source_pdf_page_range_worker_target_with_lookup(21, 12, &|_| None);
+
+        assert_eq!(budget, 4);
+    }
+
+    #[test]
+    fn ceil_sqrt_usize_rounds_up_without_float_casts() {
+        assert_eq!(ceil_sqrt_usize(1), 1);
+        assert_eq!(ceil_sqrt_usize(12), 4);
+        assert_eq!(ceil_sqrt_usize(16), 4);
+        assert_eq!(ceil_sqrt_usize(17), 5);
+    }
+
+    #[test]
+    fn source_pdf_page_range_worker_target_uses_small_machine_capacity() {
+        let budget = source_pdf_page_range_worker_target_with_lookup(21, 4, &|_| None);
+
+        assert_eq!(budget, 4);
+    }
+
+    #[test]
+    fn source_pdf_page_range_worker_target_accepts_source_range_override() {
+        let budget = source_pdf_page_range_worker_target_with_lookup(21, 12, &|key| {
+            (key == DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS_ENV).then(|| "6".to_string())
+        });
+
+        assert_eq!(budget, 6);
+    }
+
+    #[test]
+    fn source_pdf_page_range_worker_target_caps_override_to_worker_limit_and_shards() {
+        let budget = source_pdf_page_range_worker_target_with_lookup(3, 4, &|key| {
+            (key == DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS_ENV).then(|| "99".to_string())
+        });
+
+        assert_eq!(budget, 3);
     }
 
     #[tokio::test]
@@ -311,6 +441,39 @@ mod tests {
             region_inputs.as_slice()
         ));
         assert!(!is_contiguous_source_pdf_page_range(gap_inputs.as_slice()));
+    }
+
+    #[test]
+    fn source_pdf_page_range_chunks_split_balanced_contiguous_ranges() {
+        let inputs = (0..21)
+            .map(|page_index| sample_ocr_input("/tmp/source.pdf", page_index, "page"))
+            .collect::<Vec<_>>();
+
+        let chunks = source_pdf_page_range_chunks(inputs.as_slice(), 4);
+
+        assert_eq!(chunks.len(), 4);
+        assert_eq!(chunks[0].len(), 6);
+        assert_eq!(chunks[1].len(), 5);
+        assert_eq!(chunks[2].len(), 5);
+        assert_eq!(chunks[3].len(), 5);
+        assert_eq!(chunks[0][0].page_index, 0);
+        assert_eq!(chunks[0][5].page_index, 5);
+        assert_eq!(chunks[1][0].page_index, 6);
+        assert_eq!(chunks[3][4].page_index, 20);
+    }
+
+    #[test]
+    fn source_pdf_page_range_chunks_keep_single_range_for_one_permit() {
+        let inputs = (0..3)
+            .map(|page_index| sample_ocr_input("/tmp/source.pdf", page_index, "page"))
+            .collect::<Vec<_>>();
+
+        let chunks = source_pdf_page_range_chunks(inputs.as_slice(), 1);
+
+        assert_eq!(chunks.len(), 1);
+        assert_eq!(chunks[0].len(), 3);
+        assert_eq!(chunks[0][0].page_index, 0);
+        assert_eq!(chunks[0][2].page_index, 2);
     }
 
     fn sample_ocr_input(source_path: &str, page_index: u32, shard_type: &str) -> PdfOcrShardInput {

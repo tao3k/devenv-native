@@ -265,6 +265,14 @@ limit to 10 GiB and supports
 `WENDAO_DOCUMENT_EXTRACT_OCR_SHARD_CACHE_MAX_ENTRIES`, and
 `WENDAO_DOCUMENT_EXTRACT_OCR_SHARD_CACHE_MAX_AGE_SECS` for deployment-specific
 capacity policy.
+For source-PDF page-range OCR, Rust owns the outer scheduling policy. It may
+split one contiguous source-PDF OCR range into several contiguous subranges and
+send those subranges concurrently to Python/Docling. The default source-range
+target is sublinear in the Rust worker budget because real Docling conversion
+can regress when too many page-range conversions run at once. Use
+`--rust-pdf-ocr-workers` for the global Rust OCR budget and
+`WENDAO_DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS` when a deployment needs
+a source-range-specific override.
 For async provider validation, run with `--flight-mode async`; the driver starts
 the synchronous Python worker plus the existing Rust Flight provider and can
 verify cold duplicate-miss deduplication with `--duplicate-miss-concurrency`

@@ -133,6 +133,11 @@ manifest still carries page geometry, content hash, reading order, and stable
 OCR shard v1 fields, but Python reads the original `sourcePath` page range
 through Docling and returns one row per page. Region shards still use real
 PDFium crop rendering because their OCR input is a raster region.
+Rust may split one contiguous source-PDF page range into multiple contiguous
+subranges when OCR worker permits are available. The default target is
+sublinear in the host worker budget to avoid over-parallelizing Docling PDF
+conversion, and `WENDAO_DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS` can
+override that source-range target for deployment benchmarking.
 
 The region crop proof accepts explicit PDF-point region requests and emits real
 region shard PNGs plus the same `_ocr_shards.arrow`, `_ocr_input.arrow`, and

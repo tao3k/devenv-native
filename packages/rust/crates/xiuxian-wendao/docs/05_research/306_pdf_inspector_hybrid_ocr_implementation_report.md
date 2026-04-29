@@ -643,6 +643,16 @@ Current implementation status:
   - cache hit: `7.85ms`
   - resource rows: `21`, error rows: `0`
   - `_structure.arrow`: `21` rows, `21` OCR page blocks, reading order sorted
+- The source-PDF page range scheduler can now split one contiguous source PDF
+  range into multiple contiguous subranges when Rust OCR worker permits are
+  available. Python still runs Docling page-range conversion for each subrange,
+  and Rust restores the final OCR rows to original shard order. The default
+  source-range target is sublinear in the Rust worker budget because real
+  measurements showed that over-parallelizing Docling can regress: on the
+  12-CPU test host, 4 source-range workers measured `45.09s`, 8 workers
+  regressed to `54.85s`, and the adaptive default measured `48.98s`.
+  All three runs produced `21` OCR rows, `0` error rows, `21` structure rows,
+  `21` bbox blocks, and sorted reading order.
 - The follow-up shard cache and order-gate slice makes that source page-range
   path reusable at page or region granularity. Rust now validates OCR result
   rows against the original shard input identity and reorders them to the input
@@ -706,6 +716,7 @@ Final current-branch benchmark evidence:
 | `normal_4pages` complex fallback             |        7204.978 |        4.793 | Docling rich rows  |              5 |          0 | sorted        |          0 |
 | arXiv `2604.17337` original Docling baseline |      256037.271 |        6.645 | 21 `ocr_text` rows |             21 |         21 | sorted        |          0 |
 | arXiv `2604.17337` source page-range OCR     |       53850.000 |        7.850 | 21 `ocr_text` rows |             21 |         21 | sorted        |          0 |
+| arXiv `2604.17337` adaptive source subranges |       48978.562 |        7.008 | 21 `ocr_text` rows |             21 |         21 | sorted        |          0 |
 | arXiv `2604.17337` empty shard-cache fill    |       62290.000 |        4.280 | 21 `ocr_text` rows |             21 |         21 | sorted        |          0 |
 | arXiv `2604.17337` shard-cache forced reuse  |         119.052 |        5.583 | 21 `ocr_text` rows |             21 |         21 | sorted        |          0 |
 | arXiv `2604.17337` whole-document cache hit  |           5.583 |        5.583 | 21 `ocr_text` rows |             21 |         21 | sorted        |          0 |
@@ -729,10 +740,11 @@ Milestone interpretation:
   234,594 bytes total, and the default 10 GiB capacity limit visible in the
   benchmark JSON.
 - The remaining performance risk is unique OCR-heavy content with no reusable
-  shard cache. Source-PDF page-range OCR reduced that path from about 256 s to
-  about 54-62 s while preserving the same 21 ordered OCR blocks, but the next
-  optimization milestone still needs safe region/crop routing to reduce Python
-  OCR work without losing Docling precision.
+  shard cache. Source-PDF page-range OCR and adaptive Rust subrange scheduling
+  reduced that path from about 256 s to about 45-49 s in the best current
+  proof while preserving the same 21 ordered OCR blocks. The next optimization
+  milestone still needs safe region/crop routing to reduce the amount of
+  content sent to Python OCR without losing Docling precision.
 
 ### Milestone 5: Hybrid Mixed-PDF Pipeline
 
