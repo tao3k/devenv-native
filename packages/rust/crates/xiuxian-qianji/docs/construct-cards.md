@@ -32,8 +32,8 @@ array assignment on dataInput `choices`. Dynamic choices use a
 `dataInputAssociation/sourceRef` for dataInput `choices`, where an upstream
 service task writes `currentChoices` as structured JSON choice objects with
 required `value` fields instead of embedding option text in `currentQuestion`.
-`qianji lint --llm` reports older custom QName interaction XML and proposes a
-native BPMN IO replacement.
+`qianji lint --llm` reports legacy non-native interaction XML and proposes the
+native BPMN IO contract.
 When the question and choices are fixed at compile time, declare them directly
 on the `userTask`; `qianji lint --llm` reports no-input/no-tool producer
 `serviceTask` nodes that only prepare fixed interaction metadata.

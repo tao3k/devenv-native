@@ -30,7 +30,7 @@ pub(super) const fn card(lint_mappings: &'static [ConstructLintMapping]) -> Cons
             "no-tool store or rename tasks that only persist a prior userTask result",
             "workflow routing, approval, or retry policy hidden inside prompt prose",
             "BPMN boundary error events for recoverable host failure",
-            "custom QName extension XML for prompt, tool, input, or output metadata",
+            "prompt, tool, input, or output metadata outside BPMN documentation and native IO",
         ],
         example: r#"<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
   targetNamespace="https://example.test/bpmn">
