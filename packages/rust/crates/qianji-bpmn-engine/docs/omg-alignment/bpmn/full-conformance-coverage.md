@@ -34,6 +34,7 @@ guidance.
 | Compensation              | bounded executable | Transaction-owned compensation handlers and throw-compensation paths.                 |
 | Conditional events        | bounded executable | Start events, catches, task boundaries, and interrupting subprocess-like boundaries.  |
 | Escalation events         | bounded executable | Child-scope end/throw routes execute; deferred escalation shapes get diagnostics.     |
+| Event definition catalogs | metadata-only      | Message/error/escalation/signal catalogs are preserved, not schema-validated.         |
 | Terminate events          | bounded executable | `terminateEventDefinition` end events terminate the current runtime scope.            |
 | Multiple events           | lint-deferred      | Multiple and parallel-multiple event definitions have stable parser/lint diagnostics. |
 | Embedded subprocess       | bounded executable | One nested start event and at least one nested end event.                             |
@@ -63,12 +64,13 @@ Data-store persistence, transformations, multiple-source associations, and
 collaboration-aware routing remain deferred until separate milestones define
 their execution contracts.
 
-The collaboration and data metadata slices preserve top-level
-`itemDefinition`, `message`, `correlationProperty`, and nested
-`correlationPropertyRetrievalExpression` metadata alongside collaboration
-participants, message flows, and data references. This gives Rust-owned
-evidence for future routing and type-alignment work while keeping pool
-routing, message dispatch, correlation matching, retrieval expression
+The collaboration, data, and event metadata slices preserve top-level
+`itemDefinition`, `message`, `error`, `escalation`, `signal`,
+`correlationProperty`, and nested `correlationPropertyRetrievalExpression`
+metadata alongside collaboration participants, message flows, and data
+references. This gives Rust-owned evidence for future routing and
+type-alignment work while keeping pool routing, message dispatch, event
+subscription registries, correlation matching, retrieval expression
 evaluation, and schema validation deferred.
 
 ## Active M2 Event Milestone

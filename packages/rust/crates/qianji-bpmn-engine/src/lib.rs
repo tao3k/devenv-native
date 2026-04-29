@@ -205,9 +205,10 @@ mod runtime_wait_api;
 pub use bpmn_model_api::{
     BpmnCollaborationSnapshot, BpmnCorrelationPropertySnapshot, BpmnDataAssociationSnapshot,
     BpmnDataInputOutputSnapshot, BpmnDataObjectReferenceSnapshot, BpmnDataObjectSnapshot,
-    BpmnDataStoreReferenceSnapshot, BpmnDataStoreSnapshot, BpmnDocumentSnapshot,
-    BpmnIoSpecificationSnapshot, BpmnLaneSetSnapshot, BpmnLaneSnapshot, BpmnMessageFlowSnapshot,
-    BpmnMessageSnapshot, BpmnParticipantSnapshot, BpmnProcessSnapshot, BpmnRootSnapshot,
+    BpmnDataStoreReferenceSnapshot, BpmnDataStoreSnapshot, BpmnDocumentSnapshot, BpmnErrorSnapshot,
+    BpmnEscalationSnapshot, BpmnIoSpecificationSnapshot, BpmnItemDefinitionSnapshot,
+    BpmnLaneSetSnapshot, BpmnLaneSnapshot, BpmnMessageFlowSnapshot, BpmnMessageSnapshot,
+    BpmnParticipantSnapshot, BpmnProcessSnapshot, BpmnRootSnapshot, BpmnSignalSnapshot,
 };
 pub use bpmn_parse_api::{
     BpmnBundleSnapshot, BpmnParseOptions, BpmnSourceFile, parse_bpmn_bundle, parse_bpmn_package,

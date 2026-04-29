@@ -139,6 +139,48 @@ fn bpmn_snapshot_preserves_collaboration_metadata_lane_and_data_metadata() {
     );
 }
 
+#[test]
+fn bpmn_snapshot_preserves_event_definition_metadata_catalogs() {
+    let snapshot = snapshot_bpmn_source(&fixture_source("metadata-event-definition-catalog.bpmn"))
+        .must("event metadata-only BPMN source should produce a document snapshot");
+
+    assert_eq!(snapshot.root.error_count, 1);
+    assert_eq!(
+        snapshot.root.errors[0].error_id.as_deref(),
+        Some("fatal_review_error")
+    );
+    assert_eq!(
+        snapshot.root.errors[0].error_code.as_deref(),
+        Some("fatal_review")
+    );
+    assert_eq!(
+        snapshot.root.errors[0].structure_ref.as_deref(),
+        Some("tns:ReviewError")
+    );
+    assert_eq!(snapshot.root.escalation_count, 1);
+    assert_eq!(
+        snapshot.root.escalations[0].escalation_id.as_deref(),
+        Some("review_escalated")
+    );
+    assert_eq!(
+        snapshot.root.escalations[0].escalation_code.as_deref(),
+        Some("review_escalated")
+    );
+    assert_eq!(
+        snapshot.root.escalations[0].structure_ref.as_deref(),
+        Some("tns:ReviewEscalation")
+    );
+    assert_eq!(snapshot.root.signal_count, 1);
+    assert_eq!(
+        snapshot.root.signals[0].signal_id.as_deref(),
+        Some("alert_signal")
+    );
+    assert_eq!(
+        snapshot.root.signals[0].structure_ref.as_deref(),
+        Some("tns:AlertSignal")
+    );
+}
+
 fn metadata_snapshot() -> BpmnDocumentSnapshot {
     snapshot_bpmn_source(&fixture_source("metadata-collaboration-lane-data.bpmn"))
         .must("metadata-only BPMN source should still produce a document snapshot")

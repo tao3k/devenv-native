@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  id="pkg_event_definition_catalog"
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL">
+  <bpmn:error id="fatal_review_error" name="Fatal Review Error" errorCode="fatal_review" structureRef="tns:ReviewError" />
+  <bpmn:escalation id="review_escalated" name="Review Escalated" escalationCode="review_escalated" structureRef="tns:ReviewEscalation" />
+  <bpmn:signal id="alert_signal" name="Alert Signal" structureRef="tns:AlertSignal" />
+  <bpmn:process id="event_catalog_process" isExecutable="true">
+    <bpmn:startEvent id="start" />
+    <bpmn:endEvent id="end" />
+    <bpmn:sequenceFlow id="flow_1" sourceRef="start" targetRef="end" />
+  </bpmn:process>
+</bpmn:definitions>

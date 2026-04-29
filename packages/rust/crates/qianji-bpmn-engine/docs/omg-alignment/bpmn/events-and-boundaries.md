@@ -52,6 +52,11 @@ The current engine supports these bounded families:
   that child scope
 - one bounded top-level `endEvent` with `errorEventDefinition`
 
+The snapshot surface also preserves top-level `message`, `error`,
+`escalation`, and `signal` catalogs used by standard event definitions. Those
+catalogs are metadata-only: they make event references auditable, but they do
+not add schema validation, subscription registries, or new routing behavior.
+
 ## Repeating Owner Note
 
 The current bounded repeating-owner slice keeps the owner-level
@@ -99,4 +104,6 @@ These shapes remain outside the bounded surface:
   more than one cancel boundary on that same owner
 - broader non-interrupting boundaries on subprocess-like owners
 - broader message correlation, collaboration-aware messaging, and pooling
+- schema validation or payload coercion through event definition
+  `structureRef` metadata
 - full timer semantics beyond the current bounded wait shell

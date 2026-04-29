@@ -3,10 +3,10 @@ use crate::bpmn_model_api::{
     BpmnCollaborationSnapshot, BpmnCorrelationPropertySnapshot,
     BpmnCorrelationRetrievalExpressionSnapshot, BpmnDataAssociationSnapshot,
     BpmnDataInputOutputSnapshot, BpmnDataObjectReferenceSnapshot, BpmnDataObjectSnapshot,
-    BpmnDataStoreReferenceSnapshot, BpmnDataStoreSnapshot, BpmnDocumentSnapshot,
-    BpmnIoSpecificationSnapshot, BpmnItemDefinitionSnapshot, BpmnLaneSetSnapshot, BpmnLaneSnapshot,
-    BpmnMessageFlowSnapshot, BpmnMessageSnapshot, BpmnParticipantSnapshot, BpmnProcessSnapshot,
-    BpmnRootSnapshot,
+    BpmnDataStoreReferenceSnapshot, BpmnDataStoreSnapshot, BpmnDocumentSnapshot, BpmnErrorSnapshot,
+    BpmnEscalationSnapshot, BpmnIoSpecificationSnapshot, BpmnItemDefinitionSnapshot,
+    BpmnLaneSetSnapshot, BpmnLaneSnapshot, BpmnMessageFlowSnapshot, BpmnMessageSnapshot,
+    BpmnParticipantSnapshot, BpmnProcessSnapshot, BpmnRootSnapshot, BpmnSignalSnapshot,
 };
 use crate::bpmn_parse_api::BpmnSourceFile;
 use crate::error::Result;
@@ -83,6 +83,15 @@ impl BpmnSnapshotScanState {
             }
             "correlationProperty" if parent_tag == Some("definitions") => {
                 self.capture_correlation_property(source, reader, event, is_empty)
+            }
+            "error" if parent_tag == Some("definitions") => {
+                self.capture_error(source, reader, event)
+            }
+            "escalation" if parent_tag == Some("definitions") => {
+                self.capture_escalation(source, reader, event)
+            }
+            "signal" if parent_tag == Some("definitions") => {
+                self.capture_signal(source, reader, event)
             }
             "correlationPropertyRetrievalExpression"
                 if self.current_correlation_property.is_some() =>
@@ -349,6 +358,62 @@ impl BpmnSnapshotScanState {
         }
         self.current_correlation_retrieval_expression =
             Some((property_index, retrieval_expression));
+        Ok(())
+    }
+
+    fn capture_error(
+        &mut self,
+        source: &BpmnSourceFile,
+        reader: &Reader<&[u8]>,
+        event: &BytesStart<'_>,
+    ) -> Result<()> {
+        let Some(root) = self.root.as_mut() else {
+            return Ok(());
+        };
+        root.error_count += 1;
+        root.errors.push(BpmnErrorSnapshot {
+            error_id: attribute_value(source, reader, event, "id")?,
+            name: attribute_value(source, reader, event, "name")?,
+            error_code: attribute_value(source, reader, event, "errorCode")?,
+            structure_ref: attribute_value(source, reader, event, "structureRef")?,
+        });
+        Ok(())
+    }
+
+    fn capture_escalation(
+        &mut self,
+        source: &BpmnSourceFile,
+        reader: &Reader<&[u8]>,
+        event: &BytesStart<'_>,
+    ) -> Result<()> {
+        let Some(root) = self.root.as_mut() else {
+            return Ok(());
+        };
+        root.escalation_count += 1;
+        root.escalations.push(BpmnEscalationSnapshot {
+            escalation_id: attribute_value(source, reader, event, "id")?,
+            name: attribute_value(source, reader, event, "name")?,
+            escalation_code: attribute_value(source, reader, event, "escalationCode")?,
+            structure_ref: attribute_value(source, reader, event, "structureRef")?,
+        });
+        Ok(())
+    }
+
+    fn capture_signal(
+        &mut self,
+        source: &BpmnSourceFile,
+        reader: &Reader<&[u8]>,
+        event: &BytesStart<'_>,
+    ) -> Result<()> {
+        let Some(root) = self.root.as_mut() else {
+            return Ok(());
+        };
+        root.signal_count += 1;
+        root.signals.push(BpmnSignalSnapshot {
+            signal_id: attribute_value(source, reader, event, "id")?,
+            name: attribute_value(source, reader, event, "name")?,
+            structure_ref: attribute_value(source, reader, event, "structureRef")?,
+        });
         Ok(())
     }
 
@@ -754,6 +819,12 @@ fn root_from_event(
         messages: Vec::new(),
         correlation_property_count: 0,
         correlation_properties: Vec::new(),
+        error_count: 0,
+        errors: Vec::new(),
+        escalation_count: 0,
+        escalations: Vec::new(),
+        signal_count: 0,
+        signals: Vec::new(),
         data_store_count: 0,
         data_stores: Vec::new(),
     })

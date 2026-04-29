@@ -58,6 +58,24 @@ pub struct BpmnRootSnapshot {
     /// Bounded top-level `correlationProperty` metadata preserved from the document.
     #[serde(default)]
     pub correlation_properties: Vec<BpmnCorrelationPropertySnapshot>,
+    /// Number of top-level `error` elements discovered in the document.
+    #[serde(default)]
+    pub error_count: usize,
+    /// Bounded top-level `error` metadata preserved from the document.
+    #[serde(default)]
+    pub errors: Vec<BpmnErrorSnapshot>,
+    /// Number of top-level `escalation` elements discovered in the document.
+    #[serde(default)]
+    pub escalation_count: usize,
+    /// Bounded top-level `escalation` metadata preserved from the document.
+    #[serde(default)]
+    pub escalations: Vec<BpmnEscalationSnapshot>,
+    /// Number of top-level `signal` elements discovered in the document.
+    #[serde(default)]
+    pub signal_count: usize,
+    /// Bounded top-level `signal` metadata preserved from the document.
+    #[serde(default)]
+    pub signals: Vec<BpmnSignalSnapshot>,
     /// Number of top-level `dataStore` elements discovered in the document.
     pub data_store_count: usize,
     /// Bounded top-level `dataStore` metadata preserved from the document.
@@ -111,6 +129,43 @@ pub struct BpmnCorrelationRetrievalExpressionSnapshot {
     pub message_ref: Option<String>,
     /// Optional direct nested `messagePath` payload.
     pub message_path: Option<String>,
+}
+
+/// Snapshot of one BPMN `error`.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct BpmnErrorSnapshot {
+    /// Optional stable error identifier.
+    pub error_id: Option<String>,
+    /// Optional human-readable error name.
+    pub name: Option<String>,
+    /// Optional BPMN error code.
+    pub error_code: Option<String>,
+    /// Optional referenced external or model structure.
+    pub structure_ref: Option<String>,
+}
+
+/// Snapshot of one BPMN `escalation`.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct BpmnEscalationSnapshot {
+    /// Optional stable escalation identifier.
+    pub escalation_id: Option<String>,
+    /// Optional human-readable escalation name.
+    pub name: Option<String>,
+    /// Optional BPMN escalation code.
+    pub escalation_code: Option<String>,
+    /// Optional referenced external or model structure.
+    pub structure_ref: Option<String>,
+}
+
+/// Snapshot of one BPMN `signal`.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct BpmnSignalSnapshot {
+    /// Optional stable signal identifier.
+    pub signal_id: Option<String>,
+    /// Optional human-readable signal name.
+    pub name: Option<String>,
+    /// Optional referenced external or model structure.
+    pub structure_ref: Option<String>,
 }
 
 /// Snapshot of one BPMN `collaboration`.
@@ -313,6 +368,12 @@ pub(crate) fn empty_bpmn_root_snapshot(source: &BpmnSourceFile) -> BpmnRootSnaps
         messages: Vec::new(),
         correlation_property_count: 0,
         correlation_properties: Vec::new(),
+        error_count: 0,
+        errors: Vec::new(),
+        escalation_count: 0,
+        escalations: Vec::new(),
+        signal_count: 0,
+        signals: Vec::new(),
         data_store_count: 0,
         data_stores: Vec::new(),
     }
