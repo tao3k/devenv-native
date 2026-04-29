@@ -496,8 +496,17 @@ Current implementation status:
 - Feature-gated Rust code now proves the reverse side of that handoff: it sends
   OCR shard input batches through Flight `do_exchange`, decodes the returned
   OCR result rows, and materializes stable resource rows.
-- The Rust proof remains disconnected from production sync and async document
-  extraction, so the live fallback behavior is unchanged.
+- The Studio document extraction provider now has an explicit
+  `hybrid-page-ocr` Flight metadata mode behind
+  `document-extract-pdf-render`. Default `sync` and `async` extraction remain
+  unchanged. The opt-in route renders eligible PDF OCR shards, sends
+  `_ocr_input.arrow` rows to the Python OCR shard exchange, writes the returned
+  OCR rows to `_resources.arrow`, and marks the cache complete only when every
+  page is represented by OCR shard output.
+- Partial-page OCR merge remains deferred to Milestone 5. Mixed or complex PDFs
+  that would produce only a subset of page OCR rows fall back to full Docling in
+  this slice so the stable resource table is never marked complete with missing
+  non-OCR pages.
 
 ### Milestone 5: Hybrid Mixed-PDF Pipeline
 

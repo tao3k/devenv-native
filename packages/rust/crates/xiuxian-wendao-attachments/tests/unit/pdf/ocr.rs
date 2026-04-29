@@ -106,6 +106,24 @@ fn document_extract_pdf_ocr_builds_worker_input_batch() -> Result<(), String> {
 }
 
 #[test]
+fn document_extract_pdf_ocr_decodes_worker_input_batch() -> Result<(), String> {
+    let profile = PdfOcrWorkerProfile {
+        profile_id: "ocr-profile".to_string(),
+        engine: "fixture-engine".to_string(),
+        preferred_languages: vec!["en".to_string(), "zh".to_string()],
+        min_confidence: 0.65,
+        preserve_layout: true,
+    };
+    let inputs = build_ocr_shard_inputs(&[sample_manifest()], &profile);
+    let batch = build_ocr_shard_input_batch(&inputs)?;
+
+    let decoded = decode_ocr_shard_input_batch(&batch)?;
+
+    assert_eq!(decoded, inputs);
+    Ok(())
+}
+
+#[test]
 fn document_extract_pdf_ocr_result_batch_preserves_success_and_failure() -> Result<(), String> {
     let inputs = build_ocr_shard_inputs(
         &[sample_manifest()],

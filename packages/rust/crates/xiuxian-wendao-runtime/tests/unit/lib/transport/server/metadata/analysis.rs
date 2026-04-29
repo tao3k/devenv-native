@@ -104,6 +104,28 @@ fn validate_document_extract_request_metadata_accepts_async_mode() {
 }
 
 #[test]
+fn validate_document_extract_request_metadata_accepts_hybrid_page_ocr_mode() {
+    let mut metadata = build_document_extract_metadata(
+        "docs/manual.pdf",
+        Some(".cache/document-extract"),
+        None,
+        None,
+    );
+    metadata.insert(
+        WENDAO_DOCUMENT_EXTRACT_MODE_HEADER,
+        tonic::metadata::MetadataValue::from_static("hybrid-page-ocr"),
+    );
+
+    let request = must_ok(
+        validate_document_extract_request_metadata(&metadata),
+        "hybrid page OCR document extraction metadata should validate",
+    );
+
+    assert_eq!(request.mode, DocumentExtractMode::HybridPageOcr);
+    assert_eq!(request.wait_ms, 0);
+}
+
+#[test]
 fn validate_document_extract_status_request_metadata_requires_job_id() {
     let metadata = tonic::metadata::MetadataMap::new();
 

@@ -311,6 +311,115 @@ pub fn build_ocr_shard_result_batch(results: &[PdfOcrShardResult]) -> Result<Rec
     .map_err(|error| format!("build OCR shard result Arrow batch: {error}"))
 }
 
+/// Decode stable OCR worker input rows from Arrow batches.
+///
+/// # Errors
+///
+/// Returns an error if any batch does not match the OCR shard input schema or
+/// contains unsupported contract values.
+pub fn decode_ocr_shard_input_batches(
+    batches: &[RecordBatch],
+) -> Result<Vec<PdfOcrShardInput>, String> {
+    let mut inputs = Vec::new();
+    for batch in batches {
+        inputs.extend(decode_ocr_shard_input_batch(batch)?);
+    }
+    Ok(inputs)
+}
+
+/// Decode stable OCR worker input rows from one Arrow batch.
+///
+/// # Errors
+///
+/// Returns an error if the batch does not match the OCR shard input schema or
+/// contains unsupported contract values.
+pub fn decode_ocr_shard_input_batch(batch: &RecordBatch) -> Result<Vec<PdfOcrShardInput>, String> {
+    validate_schema_compatible(
+        batch.schema().as_ref(),
+        ocr_shard_input_schema().as_ref(),
+        "OCR shard input",
+    )?;
+
+    let contract_version = string_column(batch, "contractVersion")?;
+    let source_path = string_column(batch, "sourcePath")?;
+    let source_content_hash = string_column(batch, "sourceContentHash")?;
+    let page_index = int32_column(batch, "pageIndex")?;
+    let image_path = string_column(batch, "imagePath")?;
+    let image_mime_type = string_column(batch, "imageMimeType")?;
+    let raster_sha256 = string_column(batch, "rasterSha256")?;
+    let render_profile = string_column(batch, "renderProfile")?;
+    let ocr_profile = string_column(batch, "ocrProfile")?;
+    let ocr_engine = string_column(batch, "ocrEngine")?;
+    let preferred_languages = string_column(batch, "preferredLanguages")?;
+    let min_confidence = float64_column(batch, "minConfidence")?;
+    let preserve_layout = bool_column(batch, "preserveLayout")?;
+    let raster_width_px = int32_column(batch, "rasterWidthPx")?;
+    let raster_height_px = int32_column(batch, "rasterHeightPx")?;
+    let render_dpi = int32_column(batch, "renderDpi")?;
+    let rotation_degrees = int32_column(batch, "rotationDegrees")?;
+    let crop_left = float64_column(batch, "cropLeft")?;
+    let crop_bottom = float64_column(batch, "cropBottom")?;
+    let crop_right = float64_column(batch, "cropRight")?;
+    let crop_top = float64_column(batch, "cropTop")?;
+    let point_to_pixel_scale_x = float64_column(batch, "pointToPixelScaleX")?;
+    let point_to_pixel_scale_y = float64_column(batch, "pointToPixelScaleY")?;
+    let shard_element_id = string_column(batch, "shardElementId")?;
+
+    let mut inputs = Vec::with_capacity(batch.num_rows());
+    for row in 0..batch.num_rows() {
+        let version = required_string(contract_version, row, "contractVersion")?;
+        if version != PDF_OCR_SHARD_INPUT_SCHEMA_VERSION {
+            return Err(format!(
+                "unexpected OCR shard input contract version `{version}`"
+            ));
+        }
+
+        let languages = required_string(preferred_languages, row, "preferredLanguages")?
+            .split(',')
+            .filter_map(|value| {
+                let trimmed = value.trim();
+                (!trimmed.is_empty()).then(|| trimmed.to_string())
+            })
+            .collect();
+
+        inputs.push(PdfOcrShardInput {
+            contract_version: version,
+            source_path: required_string(source_path, row, "sourcePath")?,
+            source_content_hash: required_string(source_content_hash, row, "sourceContentHash")?,
+            page_index: required_u32(page_index, row, "pageIndex")?,
+            image_path: required_string(image_path, row, "imagePath")?,
+            image_mime_type: required_string(image_mime_type, row, "imageMimeType")?,
+            raster_sha256: required_string(raster_sha256, row, "rasterSha256")?,
+            render_profile: required_string(render_profile, row, "renderProfile")?,
+            ocr_profile: required_string(ocr_profile, row, "ocrProfile")?,
+            ocr_engine: required_string(ocr_engine, row, "ocrEngine")?,
+            preferred_languages: languages,
+            min_confidence: required_f64(min_confidence, row, "minConfidence")?,
+            preserve_layout: required_bool(preserve_layout, row, "preserveLayout")?,
+            raster_width_px: required_u32(raster_width_px, row, "rasterWidthPx")?,
+            raster_height_px: required_u32(raster_height_px, row, "rasterHeightPx")?,
+            render_dpi: required_u32(render_dpi, row, "renderDpi")?,
+            rotation_degrees: required_u16(rotation_degrees, row, "rotationDegrees")?,
+            crop_left: required_f64(crop_left, row, "cropLeft")?,
+            crop_bottom: required_f64(crop_bottom, row, "cropBottom")?,
+            crop_right: required_f64(crop_right, row, "cropRight")?,
+            crop_top: required_f64(crop_top, row, "cropTop")?,
+            point_to_pixel_scale_x: required_f64(
+                point_to_pixel_scale_x,
+                row,
+                "pointToPixelScaleX",
+            )?,
+            point_to_pixel_scale_y: required_f64(
+                point_to_pixel_scale_y,
+                row,
+                "pointToPixelScaleY",
+            )?,
+            shard_element_id: required_string(shard_element_id, row, "shardElementId")?,
+        });
+    }
+    Ok(inputs)
+}
+
 /// Decode stable OCR worker result rows from Arrow batches.
 ///
 /// # Errors
@@ -336,7 +445,11 @@ pub fn decode_ocr_shard_result_batches(
 pub fn decode_ocr_shard_result_batch(
     batch: &RecordBatch,
 ) -> Result<Vec<PdfOcrShardResult>, String> {
-    validate_schema_compatible(batch.schema().as_ref(), ocr_shard_result_schema().as_ref())?;
+    validate_schema_compatible(
+        batch.schema().as_ref(),
+        ocr_shard_result_schema().as_ref(),
+        "OCR shard result",
+    )?;
 
     let contract_version = string_column(batch, "contractVersion")?;
     let source_path = string_column(batch, "sourcePath")?;
@@ -508,24 +621,28 @@ where
     ))
 }
 
-fn validate_schema_compatible(actual: &Schema, expected: &Schema) -> Result<(), String> {
+fn validate_schema_compatible(
+    actual: &Schema,
+    expected: &Schema,
+    label: &str,
+) -> Result<(), String> {
     if actual.fields().len() != expected.fields().len() {
         return Err(format!(
-            "unexpected OCR shard result column count: {}",
+            "unexpected {label} column count: {}",
             actual.fields().len()
         ));
     }
     for (actual_field, expected_field) in actual.fields().iter().zip(expected.fields()) {
         if actual_field.name() != expected_field.name() {
             return Err(format!(
-                "unexpected OCR shard result column `{}`; expected `{}`",
+                "unexpected {label} column `{}`; expected `{}`",
                 actual_field.name(),
                 expected_field.name()
             ));
         }
         if actual_field.data_type() != expected_field.data_type() {
             return Err(format!(
-                "unexpected OCR shard result type for `{}`: {:?}",
+                "unexpected {label} type for `{}`: {:?}",
                 expected_field.name(),
                 actual_field.data_type()
             ));
@@ -561,11 +678,27 @@ fn float64_column<'a>(batch: &'a RecordBatch, name: &str) -> Result<&'a Float64A
         .ok_or_else(|| format!("OCR shard result `{name}` column is not Float64"))
 }
 
+fn bool_column<'a>(batch: &'a RecordBatch, name: &str) -> Result<&'a BooleanArray, String> {
+    batch
+        .column_by_name(name)
+        .ok_or_else(|| format!("missing OCR shard result `{name}` column"))?
+        .as_any()
+        .downcast_ref::<BooleanArray>()
+        .ok_or_else(|| format!("OCR shard result `{name}` column is not Boolean"))
+}
+
 fn required_string(column: &StringArray, row: usize, name: &str) -> Result<String, String> {
     if column.is_null(row) {
         return Err(format!("OCR shard result `{name}` is null at row {row}"));
     }
     Ok(column.value(row).to_string())
+}
+
+fn required_bool(column: &BooleanArray, row: usize, name: &str) -> Result<bool, String> {
+    if column.is_null(row) {
+        return Err(format!("OCR shard result `{name}` is null at row {row}"));
+    }
+    Ok(column.value(row))
 }
 
 fn optional_string(column: &StringArray, row: usize) -> Option<String> {
@@ -582,6 +715,19 @@ fn required_u32(column: &Int32Array, row: usize, name: &str) -> Result<u32, Stri
             column.value(row)
         )
     })
+}
+
+fn required_u16(column: &Int32Array, row: usize, name: &str) -> Result<u16, String> {
+    let value = required_u32(column, row, name)?;
+    u16::try_from(value)
+        .map_err(|_| format!("OCR shard result `{name}` must fit into u16 at row {row}: {value}"))
+}
+
+fn required_f64(column: &Float64Array, row: usize, name: &str) -> Result<f64, String> {
+    if column.is_null(row) {
+        return Err(format!("OCR shard result `{name}` is null at row {row}"));
+    }
+    Ok(column.value(row))
 }
 
 fn optional_f64(column: &Float64Array, row: usize) -> Option<f64> {

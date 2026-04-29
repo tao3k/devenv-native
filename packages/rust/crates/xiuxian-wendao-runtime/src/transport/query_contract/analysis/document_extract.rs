@@ -28,6 +28,8 @@ pub enum DocumentExtractMode {
     Sync,
     /// Queue first-time conversion in the Rust provider and return job state.
     Async,
+    /// Explicit opt-in hybrid route that renders PDF page OCR shards in Rust.
+    HybridPageOcr,
 }
 
 impl DocumentExtractMode {
@@ -35,11 +37,13 @@ impl DocumentExtractMode {
     ///
     /// # Errors
     ///
-    /// Returns an error for values outside `sync` and `async`.
+    /// Returns an error for values outside `sync`, `async`, and
+    /// `hybrid-page-ocr`.
     pub fn parse(value: &str) -> Result<Self, String> {
         match value.trim().to_ascii_lowercase().as_str() {
             "" | "sync" => Ok(Self::Sync),
             "async" => Ok(Self::Async),
+            "hybrid-page-ocr" | "hybrid_page_ocr" => Ok(Self::HybridPageOcr),
             other => Err(format!("invalid document extract mode `{other}`")),
         }
     }

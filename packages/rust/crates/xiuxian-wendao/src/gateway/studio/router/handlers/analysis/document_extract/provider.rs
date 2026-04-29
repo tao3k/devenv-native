@@ -19,6 +19,14 @@ use xiuxian_wendao_runtime::transport::{
     WENDAO_SCHEMA_VERSION_HEADER,
 };
 
+#[cfg(feature = "document-extract-pdf-render")]
+use xiuxian_wendao_attachments::pdf::ocr::decode_ocr_shard_input_batches;
+#[cfg(feature = "document-extract-pdf-render")]
+use xiuxian_wendao_attachments::pdf::render::{
+    PdfPageRenderProfile, PdfPageRenderSelection, PdfPageRenderShardReport,
+    PdfRenderRoutingDecision, PdfRenderStatus, render_pdf_page_shards_with_selection,
+};
+
 use super::arrow_cache::{
     DOCUMENT_RESOURCE_ARROW_CACHE_NAME, build_error_resource_batch, build_job_resource_batch,
     build_status_batch, mirror_artifact_to_output, read_arrow_file, read_cached_document_batches,
@@ -28,6 +36,8 @@ use super::registry::{
     DocumentExtractJobRegistry, DocumentExtractJobRegistrySnapshot, DocumentExtractJobStatus,
     artifact_ready, default_output_dir,
 };
+#[cfg(feature = "document-extract-pdf-render")]
+use crate::gateway::studio::document_extract_pdf_ocr_client::PdfOcrShardFlightClient;
 use crate::gateway::studio::router::GatewayState;
 
 const DEFAULT_DOCUMENT_EXTRACT_ENDPOINT: &str = "http://localhost:50051";
@@ -226,6 +236,101 @@ impl StudioDocumentExtractFlightRouteProvider {
                 build_job_resource_batch(&status)?,
             ))
         }
+    }
+
+    #[cfg(feature = "document-extract-pdf-render")]
+    async fn hybrid_page_ocr_document_extract_batch(
+        &self,
+        request: &DocumentExtractFlightRequest,
+    ) -> Result<DocumentExtractFlightRouteResponse, String> {
+        let source = PathBuf::from(request.source_path.as_str());
+        let output = if request.output_dir.trim().is_empty() {
+            default_output_dir(source.as_path())
+        } else {
+            PathBuf::from(request.output_dir.as_str())
+        };
+        if source.exists()
+            && !request.force
+            && let Some(batches) = read_cached_document_batches(source.as_path(), output.as_path())?
+        {
+            return Ok(DocumentExtractFlightRouteResponse::from_batches(batches));
+        }
+
+        tokio::fs::create_dir_all(output.as_path())
+            .await
+            .map_err(|error| {
+                format!(
+                    "create hybrid PDF OCR output directory `{}`: {error}",
+                    output.display()
+                )
+            })?;
+
+        let source_for_render = source.clone();
+        let output_for_render = output.clone();
+        let render_report = tokio::task::spawn_blocking(move || {
+            render_pdf_page_shards_with_selection(
+                source_for_render.as_path(),
+                output_for_render.as_path(),
+                &PdfPageRenderProfile::ocr_default(),
+                PdfPageRenderSelection::ShardFallbackPages,
+            )
+        })
+        .await
+        .map_err(|error| format!("join hybrid PDF OCR render task: {error}"))??;
+
+        let ocr_input_path = match hybrid_page_ocr_input_arrow_path(&render_report) {
+            Ok(path) => path,
+            Err(reason) => {
+                log::info!(
+                    "hybrid PDF OCR route fell back to full Docling extraction for `{}`: {reason}",
+                    source.display()
+                );
+                let output_string = output.to_string_lossy().to_string();
+                return self
+                    .document_extract_batch(
+                        request.source_path.as_str(),
+                        output_string.as_str(),
+                        request.force,
+                        request.error_row,
+                    )
+                    .await;
+            }
+        };
+
+        let input_batches = read_arrow_file(ocr_input_path.as_path())?;
+        let inputs = decode_ocr_shard_input_batches(&input_batches)?;
+        if inputs.is_empty() {
+            log::info!(
+                "hybrid PDF OCR route found no OCR shard inputs for `{}`; falling back to full Docling extraction",
+                source.display()
+            );
+            let output_string = output.to_string_lossy().to_string();
+            return self
+                .document_extract_batch(
+                    request.source_path.as_str(),
+                    output_string.as_str(),
+                    request.force,
+                    request.error_row,
+                )
+                .await;
+        }
+
+        let endpoint_url = std::env::var("WENDAO_DOCUMENT_EXTRACT_ENDPOINT")
+            .unwrap_or_else(|_| DEFAULT_DOCUMENT_EXTRACT_ENDPOINT.to_string());
+        let response = PdfOcrShardFlightClient::connect(endpoint_url)
+            .await?
+            .request(inputs.as_slice())
+            .await?;
+        let resource_batch = response.resource_batch;
+        write_arrow_file(
+            output.join(DOCUMENT_RESOURCE_ARROW_CACHE_NAME).as_path(),
+            std::slice::from_ref(&resource_batch),
+        )?;
+        tokio::fs::File::create(output.join("_complete.marker"))
+            .await
+            .map_err(|error| format!("touch hybrid PDF OCR complete marker: {error}"))?;
+
+        Ok(DocumentExtractFlightRouteResponse::new(resource_batch))
     }
 
     async fn wait_for_terminal_status(
@@ -544,6 +649,19 @@ impl DocumentExtractFlightRouteProvider for StudioDocumentExtractFlightRouteProv
                 .await
             }
             DocumentExtractMode::Async => self.async_document_extract_batch(request).await,
+            DocumentExtractMode::HybridPageOcr => {
+                #[cfg(feature = "document-extract-pdf-render")]
+                {
+                    self.hybrid_page_ocr_document_extract_batch(request).await
+                }
+                #[cfg(not(feature = "document-extract-pdf-render"))]
+                {
+                    Err(
+                        "`hybrid-page-ocr` document extraction requires the `document-extract-pdf-render` feature"
+                            .to_string(),
+                    )
+                }
+            }
         }
     }
 
@@ -558,6 +676,37 @@ impl DocumentExtractFlightRouteProvider for StudioDocumentExtractFlightRouteProv
             &status,
         )?))
     }
+}
+
+#[cfg(feature = "document-extract-pdf-render")]
+fn hybrid_page_ocr_input_arrow_path(report: &PdfPageRenderShardReport) -> Result<PathBuf, String> {
+    if report.status != PdfRenderStatus::Rendered.as_str() {
+        return Err(format!(
+            "render status `{}` is not eligible for hybrid OCR",
+            report.status
+        ));
+    }
+    if report.routing_decision != PdfRenderRoutingDecision::HybridPageOcrCandidate.as_str() {
+        return Err(format!(
+            "routing decision `{}` is not eligible for hybrid OCR",
+            report.routing_decision
+        ));
+    }
+    if report.page_count == 0 {
+        return Err("hybrid OCR render report has no pages".to_string());
+    }
+    if report.shard_count != report.page_count {
+        return Err(format!(
+            "hybrid OCR rendered {} of {} pages; partial-page merge is not enabled yet",
+            report.shard_count, report.page_count
+        ));
+    }
+    report
+        .ocr_input_arrow_path
+        .as_ref()
+        .filter(|path| !path.trim().is_empty())
+        .map(PathBuf::from)
+        .ok_or_else(|| "hybrid OCR render report is missing `_ocr_input.arrow`".to_string())
 }
 
 #[cfg(test)]
@@ -593,6 +742,67 @@ mod tests {
         );
 
         assert_eq!(limit, 2);
+    }
+
+    #[cfg(feature = "document-extract-pdf-render")]
+    #[test]
+    fn hybrid_page_ocr_input_arrow_path_accepts_complete_render() -> Result<(), String> {
+        let report = sample_hybrid_page_ocr_report(
+            PdfRenderStatus::Rendered,
+            PdfRenderRoutingDecision::HybridPageOcrCandidate,
+            2,
+            2,
+            Some("/tmp/out/_ocr_input.arrow"),
+        );
+
+        let path = hybrid_page_ocr_input_arrow_path(&report)?;
+
+        assert_eq!(path, PathBuf::from("/tmp/out/_ocr_input.arrow"));
+        Ok(())
+    }
+
+    #[cfg(feature = "document-extract-pdf-render")]
+    #[test]
+    fn hybrid_page_ocr_input_arrow_path_rejects_partial_page_render() {
+        let report = sample_hybrid_page_ocr_report(
+            PdfRenderStatus::Rendered,
+            PdfRenderRoutingDecision::HybridPageOcrCandidate,
+            3,
+            1,
+            Some("/tmp/out/_ocr_input.arrow"),
+        );
+
+        let error = match hybrid_page_ocr_input_arrow_path(&report) {
+            Ok(path) => panic!(
+                "partial-page OCR merge should not be marked complete: {}",
+                path.display()
+            ),
+            Err(error) => error,
+        };
+
+        assert!(error.contains("partial-page merge is not enabled yet"));
+    }
+
+    #[cfg(feature = "document-extract-pdf-render")]
+    #[test]
+    fn hybrid_page_ocr_input_arrow_path_rejects_fallback_report() {
+        let report = sample_hybrid_page_ocr_report(
+            PdfRenderStatus::Fallback,
+            PdfRenderRoutingDecision::FullDoclingFallback,
+            1,
+            0,
+            None,
+        );
+
+        let error = match hybrid_page_ocr_input_arrow_path(&report) {
+            Ok(path) => panic!(
+                "fallback report should not become OCR input: {}",
+                path.display()
+            ),
+            Err(error) => error,
+        };
+
+        assert!(error.contains("not eligible for hybrid OCR"));
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
@@ -672,5 +882,32 @@ mod tests {
         let second = shared_document_extract_provider_runtime(temp.path());
 
         assert!(Arc::ptr_eq(&first, &second));
+    }
+
+    #[cfg(feature = "document-extract-pdf-render")]
+    fn sample_hybrid_page_ocr_report(
+        status: PdfRenderStatus,
+        routing_decision: PdfRenderRoutingDecision,
+        page_count: u32,
+        shard_count: u32,
+        ocr_input_arrow_path: Option<&str>,
+    ) -> PdfPageRenderShardReport {
+        PdfPageRenderShardReport {
+            source_path: "/tmp/source.pdf".to_string(),
+            output_dir: "/tmp/out".to_string(),
+            page_count,
+            shard_count,
+            manifest_arrow_path: None,
+            ocr_input_arrow_path: ocr_input_arrow_path.map(ToString::to_string),
+            pending_resource_arrow_path: None,
+            render_profile: "pdfium-render-page-shards-v1".to_string(),
+            render_selection: PdfPageRenderSelection::ShardFallbackPages
+                .as_str()
+                .to_string(),
+            status: status.as_str().to_string(),
+            routing_decision: routing_decision.as_str().to_string(),
+            elapsed_ms: 1.0,
+            error_message: None,
+        }
     }
 }
