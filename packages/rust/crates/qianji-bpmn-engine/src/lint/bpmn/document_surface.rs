@@ -118,6 +118,7 @@ fn root_snapshot_summary(snapshot: &BpmnDocumentSnapshot) -> Value {
         "item_definition_count": snapshot.root.item_definition_count,
         "message_count": snapshot.root.message_count,
         "interface_count": snapshot.root.interface_count,
+        "resource_count": snapshot.root.resource_count,
         "correlation_property_count": snapshot.root.correlation_property_count,
         "error_count": snapshot.root.error_count,
         "escalation_count": snapshot.root.escalation_count,

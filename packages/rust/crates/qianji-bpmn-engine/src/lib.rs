@@ -209,7 +209,7 @@ pub use bpmn_model_api::{
     BpmnEscalationSnapshot, BpmnInterfaceSnapshot, BpmnIoSpecificationSnapshot,
     BpmnItemDefinitionSnapshot, BpmnLaneSetSnapshot, BpmnLaneSnapshot, BpmnMessageFlowSnapshot,
     BpmnMessageSnapshot, BpmnOperationSnapshot, BpmnParticipantSnapshot, BpmnProcessSnapshot,
-    BpmnRootSnapshot, BpmnSignalSnapshot,
+    BpmnResourceParameterSnapshot, BpmnResourceSnapshot, BpmnRootSnapshot, BpmnSignalSnapshot,
 };
 pub use bpmn_parse_api::{
     BpmnBundleSnapshot, BpmnParseOptions, BpmnSourceFile, parse_bpmn_bundle, parse_bpmn_package,

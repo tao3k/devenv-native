@@ -58,6 +58,12 @@ pub struct BpmnRootSnapshot {
     /// Bounded top-level `interface` metadata preserved from the document.
     #[serde(default)]
     pub interfaces: Vec<BpmnInterfaceSnapshot>,
+    /// Number of top-level `resource` elements discovered in the document.
+    #[serde(default)]
+    pub resource_count: usize,
+    /// Bounded top-level `resource` metadata preserved from the document.
+    #[serde(default)]
+    pub resources: Vec<BpmnResourceSnapshot>,
     /// Number of top-level `correlationProperty` elements discovered in the document.
     #[serde(default)]
     pub correlation_property_count: usize,
@@ -142,6 +148,31 @@ pub struct BpmnOperationSnapshot {
     /// Direct nested error references preserved in source order.
     #[serde(default)]
     pub error_refs: Vec<String>,
+}
+
+/// Snapshot of one BPMN `resource`.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct BpmnResourceSnapshot {
+    /// Optional stable resource identifier.
+    pub resource_id: Option<String>,
+    /// Optional human-readable resource name.
+    pub name: Option<String>,
+    /// Direct resource-parameter metadata preserved from this resource.
+    #[serde(default)]
+    pub resource_parameters: Vec<BpmnResourceParameterSnapshot>,
+}
+
+/// Snapshot of one BPMN `resourceParameter`.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct BpmnResourceParameterSnapshot {
+    /// Optional stable resource-parameter identifier.
+    pub resource_parameter_id: Option<String>,
+    /// Optional human-readable resource-parameter name.
+    pub name: Option<String>,
+    /// Optional BPMN type reference.
+    pub type_ref: Option<String>,
+    /// Optional required-parameter marker.
+    pub is_required: Option<bool>,
 }
 
 /// Snapshot of one BPMN `correlationProperty`.
@@ -406,6 +437,8 @@ pub(crate) fn empty_bpmn_root_snapshot(source: &BpmnSourceFile) -> BpmnRootSnaps
         messages: Vec::new(),
         interface_count: 0,
         interfaces: Vec::new(),
+        resource_count: 0,
+        resources: Vec::new(),
         correlation_property_count: 0,
         correlation_properties: Vec::new(),
         error_count: 0,

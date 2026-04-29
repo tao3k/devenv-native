@@ -52,6 +52,10 @@ The field-level user/manual task contract is tracked in the
   resource roles. The current contract preserves role names, `resourceRef`
   text, and `resourceAssignmentExpression/formalExpression` text as host
   routing metadata only.
+- Top-level BPMN `resource` and nested `resourceParameter` catalogs are
+  preserved in document snapshots as assignment metadata. Current assignment
+  routing keeps `resourceRef` as text; it does not resolve the referenced
+  resource, evaluate parameter bindings, or authorize worklist access.
 - `userTask` and `manualTask` requests may also carry optional BPMN `lane`
   membership metadata parsed from `laneSet/lane/flowNodeRef`. The current
   contract preserves lane-set id/name and lane id/name as passive host routing

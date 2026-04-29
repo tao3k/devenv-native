@@ -7,7 +7,7 @@ use crate::bpmn_model_api::{
     BpmnEscalationSnapshot, BpmnInterfaceSnapshot, BpmnIoSpecificationSnapshot,
     BpmnItemDefinitionSnapshot, BpmnLaneSetSnapshot, BpmnLaneSnapshot, BpmnMessageFlowSnapshot,
     BpmnMessageSnapshot, BpmnOperationSnapshot, BpmnParticipantSnapshot, BpmnProcessSnapshot,
-    BpmnRootSnapshot, BpmnSignalSnapshot,
+    BpmnResourceParameterSnapshot, BpmnResourceSnapshot, BpmnRootSnapshot, BpmnSignalSnapshot,
 };
 use crate::bpmn_parse_api::BpmnSourceFile;
 use crate::error::Result;
@@ -45,6 +45,7 @@ pub(super) struct BpmnSnapshotScanState {
         Option<(usize, BpmnCorrelationRetrievalExpressionSnapshot)>,
     current_interface: Option<usize>,
     current_operation: Option<(usize, usize)>,
+    current_resource: Option<usize>,
     io_specification_stack: Vec<(usize, usize)>,
     current_data_association: Option<(usize, DataAssociationKind, BpmnDataAssociationSnapshot)>,
 }
@@ -92,6 +93,12 @@ impl BpmnSnapshotScanState {
             }
             "operation" if self.current_interface.is_some() => {
                 self.start_operation(source, reader, event, is_empty)
+            }
+            "resource" if parent_tag == Some("definitions") => {
+                self.start_resource(source, reader, event, is_empty)
+            }
+            "resourceParameter" if self.current_resource.is_some() => {
+                self.capture_resource_parameter(source, reader, event)
             }
             "correlationProperty" if parent_tag == Some("definitions") => {
                 self.capture_correlation_property(source, reader, event, is_empty)
@@ -172,6 +179,7 @@ impl BpmnSnapshotScanState {
                 self.current_operation = None;
                 self.current_interface = None;
             }
+            "resource" => self.current_resource = None,
             "process" => {
                 self.current_process = None;
                 self.lane_set_stack.clear();
@@ -226,6 +234,7 @@ impl BpmnSnapshotScanState {
         self.finish_correlation_retrieval_expression();
         self.current_operation = None;
         self.current_interface = None;
+        self.current_resource = None;
     }
 
     pub(super) fn into_snapshot(self, source: &BpmnSourceFile) -> BpmnDocumentSnapshot {
@@ -368,6 +377,54 @@ impl BpmnSnapshotScanState {
             let operation_index = interface.operations.len().saturating_sub(1);
             self.current_operation = Some((interface_index, operation_index));
         }
+        Ok(())
+    }
+
+    fn start_resource(
+        &mut self,
+        source: &BpmnSourceFile,
+        reader: &Reader<&[u8]>,
+        event: &BytesStart<'_>,
+        is_empty: bool,
+    ) -> Result<()> {
+        let Some(root) = self.root.as_mut() else {
+            return Ok(());
+        };
+        root.resource_count += 1;
+        root.resources.push(BpmnResourceSnapshot {
+            resource_id: attribute_value(source, reader, event, "id")?,
+            name: attribute_value(source, reader, event, "name")?,
+            resource_parameters: Vec::new(),
+        });
+        if !is_empty {
+            self.current_resource = root.resources.len().checked_sub(1);
+        }
+        Ok(())
+    }
+
+    fn capture_resource_parameter(
+        &mut self,
+        source: &BpmnSourceFile,
+        reader: &Reader<&[u8]>,
+        event: &BytesStart<'_>,
+    ) -> Result<()> {
+        let Some(resource_index) = self.current_resource else {
+            return Ok(());
+        };
+        let Some(root) = self.root.as_mut() else {
+            return Ok(());
+        };
+        let Some(resource) = root.resources.get_mut(resource_index) else {
+            return Ok(());
+        };
+        resource
+            .resource_parameters
+            .push(BpmnResourceParameterSnapshot {
+                resource_parameter_id: attribute_value(source, reader, event, "id")?,
+                name: attribute_value(source, reader, event, "name")?,
+                type_ref: attribute_value(source, reader, event, "type")?,
+                is_required: boolean_attribute_value(source, reader, event, "isRequired")?,
+            });
         Ok(())
     }
 
@@ -927,6 +984,8 @@ fn root_from_event(
         messages: Vec::new(),
         interface_count: 0,
         interfaces: Vec::new(),
+        resource_count: 0,
+        resources: Vec::new(),
         correlation_property_count: 0,
         correlation_properties: Vec::new(),
         error_count: 0,

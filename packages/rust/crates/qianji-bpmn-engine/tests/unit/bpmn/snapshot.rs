@@ -212,6 +212,36 @@ fn bpmn_snapshot_preserves_interface_operation_metadata_catalogs() {
     assert_eq!(operation.error_refs, ["Service_Error"]);
 }
 
+#[test]
+fn bpmn_snapshot_preserves_resource_metadata_catalogs() {
+    let snapshot = snapshot_bpmn_source(&fixture_source("metadata-resource-catalog.bpmn"))
+        .must("resource metadata-only BPMN source should produce a document snapshot");
+
+    assert_eq!(snapshot.root.resource_count, 1);
+    let resource = &snapshot.root.resources[0];
+    assert_eq!(resource.resource_id.as_deref(), Some("Resource_Reviewer"));
+    assert_eq!(resource.name.as_deref(), Some("Reviewer"));
+    assert_eq!(resource.resource_parameters.len(), 2);
+
+    let region = &resource.resource_parameters[0];
+    assert_eq!(
+        region.resource_parameter_id.as_deref(),
+        Some("ResourceParam_Region")
+    );
+    assert_eq!(region.name.as_deref(), Some("region"));
+    assert_eq!(region.type_ref.as_deref(), Some("Item_Region"));
+    assert_eq!(region.is_required, Some(true));
+
+    let level = &resource.resource_parameters[1];
+    assert_eq!(
+        level.resource_parameter_id.as_deref(),
+        Some("ResourceParam_Level")
+    );
+    assert_eq!(level.name.as_deref(), Some("level"));
+    assert_eq!(level.type_ref.as_deref(), Some("Item_Level"));
+    assert_eq!(level.is_required, Some(false));
+}
+
 fn metadata_snapshot() -> BpmnDocumentSnapshot {
     snapshot_bpmn_source(&fixture_source("metadata-collaboration-lane-data.bpmn"))
         .must("metadata-only BPMN source should still produce a document snapshot")
