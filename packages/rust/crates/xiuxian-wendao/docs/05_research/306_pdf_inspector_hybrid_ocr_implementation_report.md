@@ -700,11 +700,15 @@ Current implementation status:
 
 Final current-branch benchmark evidence:
 
-| Fixture / path class                  |   Force ms | Cache p95 ms | Resource rows      | Structure rows | OCR blocks | Reading order | Error rows |
-| ------------------------------------- | ---------: | -----------: | ------------------ | -------------: | ---------: | ------------- | ---------: |
-| `pdf-multi-page` fast text candidate  |    367.796 |        8.055 | 5 `text_page`      |              5 |          0 | sorted        |          0 |
-| `normal_4pages` complex fallback      |   7204.978 |        4.793 | Docling rich rows  |              5 |          0 | sorted        |          0 |
-| arXiv `2604.17337` OCR-positive proof | 256037.271 |        6.645 | 21 `ocr_text` rows |             21 |         21 | sorted        |          0 |
+| Fixture / path class                         | Force / path ms | Cache p95 ms | Resource rows      | Structure rows | OCR blocks | Reading order | Error rows |
+| -------------------------------------------- | --------------: | -----------: | ------------------ | -------------: | ---------: | ------------- | ---------: |
+| `pdf-multi-page` fast text candidate         |         367.796 |        8.055 | 5 `text_page`      |              5 |          0 | sorted        |          0 |
+| `normal_4pages` complex fallback             |        7204.978 |        4.793 | Docling rich rows  |              5 |          0 | sorted        |          0 |
+| arXiv `2604.17337` original Docling baseline |      256037.271 |        6.645 | 21 `ocr_text` rows |             21 |         21 | sorted        |          0 |
+| arXiv `2604.17337` source page-range OCR     |       53850.000 |        7.850 | 21 `ocr_text` rows |             21 |         21 | sorted        |          0 |
+| arXiv `2604.17337` empty shard-cache fill    |       62290.000 |        4.280 | 21 `ocr_text` rows |             21 |         21 | sorted        |          0 |
+| arXiv `2604.17337` shard-cache forced reuse  |         119.052 |        5.583 | 21 `ocr_text` rows |             21 |         21 | sorted        |          0 |
+| arXiv `2604.17337` whole-document cache hit  |           5.583 |        5.583 | 21 `ocr_text` rows |             21 |         21 | sorted        |          0 |
 
 Milestone interpretation:
 
@@ -717,11 +721,18 @@ Milestone interpretation:
 - OCR recall and structure order are proven on `2604.17337`: the route emits 21
   page OCR blocks, every block has bbox provenance, `_structure.arrow` is sorted
   by document order, and `totalErrorRows=0`.
-- The remaining unmet performance target is OCR-heavy cold miss latency when no
-  reliable region signal exists. That path still performs full-page shard OCR
-  and measured about 256 seconds for the 21-page external arXiv fixture. The
-  next optimization milestone must derive safe region/crop shards, then compare
-  the cropped result against the Docling page OCR baseline before enabling it.
+- The current Rust optimization meets the production retry and repeated-content
+  target. The original 256 s OCR-positive cold miss no longer repeats after the
+  page shards are known: a fresh output directory can be rebuilt from the shard
+  cache in about 119-312 ms, and the whole-document cache hit stays around
+  5-6 ms. The shard cache report for this proof had 21 Arrow IPC entries,
+  234,594 bytes total, and the default 10 GiB capacity limit visible in the
+  benchmark JSON.
+- The remaining performance risk is unique OCR-heavy content with no reusable
+  shard cache. Source-PDF page-range OCR reduced that path from about 256 s to
+  about 54-62 s while preserving the same 21 ordered OCR blocks, but the next
+  optimization milestone still needs safe region/crop routing to reduce Python
+  OCR work without losing Docling precision.
 
 ### Milestone 5: Hybrid Mixed-PDF Pipeline
 
