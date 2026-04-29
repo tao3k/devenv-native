@@ -31,7 +31,7 @@ The source-backed clause registry for these notes lives in
 The current package owns bounded support for:
 
 - linear flows and bounded gateway routing
-- bounded waits and boundary events
+- bounded start/intermediate waits and boundary events
 - bounded loop and multi-instance task execution
 - bounded host-dispatched task families including `sendTask` and `scriptTask`
 - bounded subprocess, transaction, and same-package call-activity slices

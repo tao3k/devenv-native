@@ -10,6 +10,11 @@ The current engine supports these bounded families:
 - `intermediateCatchEvent` with exactly one `messageEventDefinition`,
   `signalEventDefinition`, `timerEventDefinition`, or
   `conditionalEventDefinition` with one bounded `condition`
+- one process `startEvent` with exactly one `messageEventDefinition`,
+  `signalEventDefinition`, `timerEventDefinition`, or
+  `conditionalEventDefinition` with one bounded `condition`; runtime treats
+  this as created-instance gating, not as a collaboration subscription
+  registry
 - one interrupting timer, message, signal, or conditional `boundaryEvent`
   attached to one host-blocking task owner
 - one interrupting timer, message, signal, or conditional `boundaryEvent`
@@ -74,8 +79,8 @@ These shapes remain outside the bounded surface:
 - root-level escalation ends, non-interrupting escalation boundaries,
   intermediate throw escalation, escalation start events, and escalation event
   subprocess triggers
-- non-interrupting conditional boundaries on subprocess-like owners,
-  conditional start events, and conditional event subprocess triggers
+- non-interrupting conditional boundaries on subprocess-like owners and
+  conditional event subprocess triggers
 - event subprocesses
 - broader message, signal, timer, or conditional boundary families on
   subprocess-like owners beyond one interrupting embedded subprocess owner that may

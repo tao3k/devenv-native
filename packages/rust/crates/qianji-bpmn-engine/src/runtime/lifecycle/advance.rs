@@ -138,6 +138,14 @@ fn advance_start_event(
     current_node_index: BpmnNodeIndex,
     now_ms: u64,
 ) -> Result<()> {
+    if start_event_should_wait(process, instance, current_node_index)? {
+        return call_activity::register_intermediate_wait(
+            process,
+            instance,
+            current_node_index,
+            now_ms,
+        );
+    }
     let edge_index = state::resolve_single_outgoing_edge(
         process,
         current_node_index,
@@ -149,6 +157,32 @@ fn advance_start_event(
     state::set_node_status(instance, next_node_index, NodeRuntimeStatus::Queued);
     state::record_transition(instance, now_ms, InstanceLifecycle::Running);
     Ok(())
+}
+
+fn start_event_should_wait(
+    process: &BpmnProcessSpec,
+    instance: &BpmnInstanceState,
+    node_index: BpmnNodeIndex,
+) -> Result<bool> {
+    let Some(event) = process.event_for_node(node_index) else {
+        return Ok(false);
+    };
+    match event.kind {
+        BpmnEventKind::Message | BpmnEventKind::Signal | BpmnEventKind::Timer => Ok(true),
+        BpmnEventKind::Conditional => {
+            super::conditional_event_is_satisfied(process, node_index, &instance.variables)
+                .map(|ready| !ready)
+        }
+        BpmnEventKind::Cancel
+        | BpmnEventKind::Compensation
+        | BpmnEventKind::Error
+        | BpmnEventKind::Escalation
+        | BpmnEventKind::Terminate => Err(BpmnEngineError::UnsupportedEventConfiguration {
+            process_id: process.key.process_id.to_string(),
+            node_id: process.nodes[node_index as usize].bpmn_id.to_string(),
+            detail: "unsupported_start_event_definition",
+        }),
+    }
 }
 
 fn advance_end_event(

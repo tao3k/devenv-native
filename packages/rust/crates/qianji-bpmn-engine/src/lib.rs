@@ -25,6 +25,8 @@
 //! fragment,
 //! and one bounded exclusive `eventBasedGateway` whose outgoing targets are
 //! message/signal/timer/conditional `intermediateCatchEvent` waits, plus
+//! one bounded single `startEvent` wait backed by a message, signal, timer,
+//! or conditional event definition, plus
 //! `intermediateCatchEvent` waits backed by `messageEventDefinition`,
 //! `signalEventDefinition`, and snapshot-style `timerEventDefinition`, plus
 //! one interrupting timer, message, signal, or conditional `boundaryEvent` on one

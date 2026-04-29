@@ -22,6 +22,7 @@ mod lane;
 mod linear;
 mod looped;
 mod multi_instance;
+mod start_event;
 mod terminate;
 mod wait;
 
@@ -495,6 +496,54 @@ fn intermediate_conditional_wait_process(process_id: &str) -> BpmnProcessSpec {
                 .with_name("WaitForApproval")
                 .with_condition_expression("approved"),
         ],
+    )
+}
+
+fn start_event_message_wait_process(process_id: &str) -> BpmnProcessSpec {
+    start_event_wait_process(
+        process_id,
+        BpmnEventSpec::new(0, BpmnEventKind::Message)
+            .with_reference_id("workflow_requested")
+            .with_name("WorkflowRequested"),
+    )
+}
+
+fn start_event_signal_wait_process(process_id: &str) -> BpmnProcessSpec {
+    start_event_wait_process(
+        process_id,
+        BpmnEventSpec::new(0, BpmnEventKind::Signal)
+            .with_reference_id("workflow_signal")
+            .with_name("WorkflowSignal"),
+    )
+}
+
+fn start_event_timer_wait_process(process_id: &str) -> BpmnProcessSpec {
+    start_event_wait_process(
+        process_id,
+        BpmnEventSpec::new(0, BpmnEventKind::Timer)
+            .with_name("WorkflowTimer")
+            .with_timer(BpmnTimerSpec::new(BpmnTimerKind::Duration, "PT5M")),
+    )
+}
+
+fn start_event_conditional_wait_process(process_id: &str) -> BpmnProcessSpec {
+    start_event_wait_process(
+        process_id,
+        BpmnEventSpec::new(0, BpmnEventKind::Conditional)
+            .with_name("WorkflowCondition")
+            .with_condition_expression("approved"),
+    )
+}
+
+fn start_event_wait_process(process_id: &str, event: BpmnEventSpec) -> BpmnProcessSpec {
+    BpmnProcessSpec::new(
+        ProcessKey::new("pkg_runtime", process_id, format!("digest_{process_id}")),
+        vec![
+            BpmnNodeSpec::new(0, "start", BpmnNodeKind::StartEvent),
+            BpmnNodeSpec::new(1, "end", BpmnNodeKind::EndEvent),
+        ],
+        vec![BpmnEdgeSpec::new(0, 1, None::<&str>)],
+        vec![event],
     )
 }
 

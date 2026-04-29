@@ -418,7 +418,7 @@ fn handle_event_child_start(
     }
     if matches!(
         parent,
-        "intermediateCatchEvent" | "boundaryEvent" | "sendTask" | "receiveTask"
+        "startEvent" | "intermediateCatchEvent" | "boundaryEvent" | "sendTask" | "receiveTask"
     ) && tag == "timerEventDefinition"
     {
         assign_event_definition(source, reader, event, process, BpmnEventKind::Timer, tag)?;
@@ -684,11 +684,11 @@ fn assign_event_definition(
 fn supported_event_definition(parent: &str, tag: &str) -> Option<BpmnEventKind> {
     match (parent, tag) {
         (
-            "intermediateCatchEvent" | "boundaryEvent" | "sendTask" | "receiveTask",
+            "startEvent" | "intermediateCatchEvent" | "boundaryEvent" | "sendTask" | "receiveTask",
             "messageEventDefinition",
         ) => Some(BpmnEventKind::Message),
         (
-            "intermediateCatchEvent" | "boundaryEvent" | "sendTask" | "receiveTask",
+            "startEvent" | "intermediateCatchEvent" | "boundaryEvent" | "sendTask" | "receiveTask",
             "signalEventDefinition",
         ) => Some(BpmnEventKind::Signal),
         ("boundaryEvent" | "endEvent", "errorEventDefinition") => Some(BpmnEventKind::Error),
@@ -698,9 +698,10 @@ fn supported_event_definition(parent: &str, tag: &str) -> Option<BpmnEventKind> 
         ("boundaryEvent" | "endEvent", "cancelEventDefinition") => Some(BpmnEventKind::Cancel),
         ("boundaryEvent", "compensateEventDefinition") => Some(BpmnEventKind::Compensation),
         ("endEvent", "terminateEventDefinition") => Some(BpmnEventKind::Terminate),
-        ("intermediateCatchEvent" | "boundaryEvent", "conditionalEventDefinition") => {
-            Some(BpmnEventKind::Conditional)
-        }
+        (
+            "startEvent" | "intermediateCatchEvent" | "boundaryEvent",
+            "conditionalEventDefinition",
+        ) => Some(BpmnEventKind::Conditional),
         _ => None,
     }
 }
