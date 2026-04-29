@@ -13,4 +13,6 @@ mod local_duckdb_cache;
 mod parquet_query_engine;
 #[cfg(feature = "document-extract-pdf-inspector")]
 mod pdf_inspector_detect_audit;
+#[cfg(feature = "document-extract-pdf-render")]
+mod pdf_inspector_page_render_shard_manifest;
 mod throughput_related_search;

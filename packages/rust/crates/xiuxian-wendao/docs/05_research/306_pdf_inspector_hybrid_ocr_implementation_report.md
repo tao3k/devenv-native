@@ -98,6 +98,17 @@ The real fixture result is deliberately conservative: the document has a valid
 text layer, but full analysis marks it as complex, so Python/Docling remains
 the extraction authority for that file.
 
+Milestone 3 moved the reusable PDF accelerator boundary into
+`xiuxian-wendao-attachments`. The optional `pdf-inspector`, `pdfium-render`, and
+`xiuxian-testing` integration now live there. `xiuxian-wendao` only exposes
+feature-gated re-exports for Studio provider tests and performance lanes.
+
+The render proof is still non-production. It builds typed page shard manifests,
+projects internal `ocr_pending` rows using the stable nine-column resource
+schema, and treats missing native PDFium runtime support as a Docling fallback
+condition. Production sync and async document extraction still call the existing
+Python/Docling worker.
+
 ## `pdf-inspector` Fit
 
 `pdf-inspector` exposes capabilities that match Wendao's next optimization
@@ -167,9 +178,10 @@ Recommended quality gates for an initial production profile:
 
 Ownership:
 
-- Target package boundary: future `xiuxian-wendao-attachments`.
-- Interim implementation boundary: `xiuxian-wendao` attachment/document
-  extraction modules until the package split exists.
+- Package boundary: `xiuxian-wendao-attachments`.
+- Gateway boundary: `xiuxian-wendao` depends on the attachments crate only
+  through explicit PDF accelerator features and re-exports the internal test
+  helpers needed by Studio provider and performance lanes.
 
 Responsibilities:
 
@@ -384,12 +396,16 @@ Scope:
 - Render page images with explicit render profile.
 - Produce page shard manifests and `ocr_pending` Arrow rows.
 - Do not connect real OCR yet.
+- Keep renderer and inspector dependencies in `xiuxian-wendao-attachments`, not
+  in the main Wendao gateway crate.
 
 Acceptance:
 
 - Rotation, crop box, media box, DPI, and raster dimensions are proven by tests.
 - Shards are content-addressed.
 - Rendering errors fall back to full Docling.
+- Default Wendao, `studio`, and `performance` features do not pull renderer
+  dependencies.
 
 ### Milestone 4: Page-Level OCR Worker
 

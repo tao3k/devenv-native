@@ -11,6 +11,7 @@ members = [
   "packages/rust/crates/xiuxian-executor",
   "packages/rust/crates/xiuxian-io",
   "packages/rust/crates/xiuxian-git-repo",
+  "packages/rust/crates/xiuxian-wendao-attachments",
   "packages/rust/crates/xiuxian-wendao-parsers",
   "packages/rust/crates/xiuxian-wendao",
   "packages/rust/crates/xiuxian-wendao-builtin",

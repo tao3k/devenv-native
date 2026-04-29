@@ -1,0 +1,33 @@
+[package]
+name = "xiuxian-wendao-attachments"
+version.workspace = true
+edition.workspace = true
+description = "Attachment parsing, audit, and artifact helpers for Wendao document surfaces"
+authors.workspace = true
+license.workspace = true
+publish = false
+
+[features]
+default = []
+pdf-inspector = ["dep:arrow", "dep:pdf-inspector"]
+pdf-render = [
+  "pdf-inspector",
+  "dep:num-traits",
+  "dep:pdfium-render",
+]
+
+[dependencies]
+arrow = { workspace = true, optional = true }
+num-traits = { workspace = true, optional = true }
+pdf-inspector = { git = "https://github.com/tao3k/pdf-inspector", branch = "xiuxian", optional = true }
+pdfium-render = { version = "0.9.0", optional = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+sha2 = { workspace = true }
+xiuxian-testing = { path = "../xiuxian-testing" }
+
+[dev-dependencies]
+tempfile = { workspace = true }
+
+[lints]
+workspace = true

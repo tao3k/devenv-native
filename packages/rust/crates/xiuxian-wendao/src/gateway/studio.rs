@@ -8,8 +8,12 @@ pub mod types;
 /// Feature-gated PDF inspection audit helpers for document extraction research.
 #[cfg(feature = "document-extract-pdf-inspector")]
 #[doc(hidden)]
-#[path = "studio/router/handlers/analysis/document_extract/pdf_audit.rs"]
-pub mod document_extract_pdf_audit;
+pub use xiuxian_wendao_attachments::pdf::audit as document_extract_pdf_audit;
+
+/// Feature-gated PDF page rendering and OCR shard manifest helpers.
+#[cfg(feature = "document-extract-pdf-render")]
+#[doc(hidden)]
+pub use xiuxian_wendao_attachments::pdf::render as document_extract_pdf_render;
 
 #[cfg(feature = "zhenfa-router")]
 #[path = "studio/analysis/mod.rs"]

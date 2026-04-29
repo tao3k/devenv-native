@@ -1,0 +1,832 @@
+use std::fmt::Write as _;
+use std::fs::{self, File};
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
+use std::time::Instant;
+
+use arrow::array::{ArrayRef, Float64Array, Int32Array, StringArray};
+use arrow::datatypes::{DataType, Field, Schema, SchemaRef};
+use arrow::ipc::writer::FileWriter;
+use arrow::record_batch::RecordBatch;
+use num_traits::ToPrimitive;
+use pdfium_render::prelude::{
+    PdfBitmapFormat, PdfDocument, PdfPage, PdfPageRenderRotation, PdfRect, PdfRenderConfig, Pdfium,
+    PdfiumError,
+};
+use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
+
+pub const PDFIUM_LIBRARY_PATH_ENV: &str = "WENDAO_PDFIUM_LIBRARY_PATH";
+const PDF_RENDER_SHARD_PROFILE: &str = "pdfium-render-page-shards-v1";
+const OCR_SHARD_MANIFEST_ARROW_NAME: &str = "_ocr_shards.arrow";
+const OCR_PENDING_RESOURCE_ARROW_NAME: &str = "_ocr_pending.arrow";
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum PdfRenderRoutingDecision {
+    HybridPageOcrCandidate,
+    FullDoclingFallback,
+    PreflightFailed,
+    UnsupportedNonPdf,
+}
+
+impl PdfRenderRoutingDecision {
+    #[must_use]
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::HybridPageOcrCandidate => "hybrid_page_ocr_candidate",
+            Self::FullDoclingFallback => "full_docling_fallback",
+            Self::PreflightFailed => "preflight_failed",
+            Self::UnsupportedNonPdf => "unsupported_non_pdf",
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum PdfRenderStatus {
+    Rendered,
+    Fallback,
+    Unsupported,
+}
+
+impl PdfRenderStatus {
+    #[must_use]
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Rendered => "rendered",
+            Self::Fallback => "fallback",
+            Self::Unsupported => "unsupported",
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PdfPageRenderProfile {
+    pub profile_id: String,
+    pub dpi: u32,
+    pub image_extension: String,
+    pub image_mime_type: String,
+    pub render_annotations: bool,
+    pub render_form_data: bool,
+}
+
+impl PdfPageRenderProfile {
+    #[must_use]
+    pub fn ocr_default() -> Self {
+        Self {
+            profile_id: PDF_RENDER_SHARD_PROFILE.to_string(),
+            dpi: 300,
+            image_extension: "png".to_string(),
+            image_mime_type: "image/png".to_string(),
+            render_annotations: true,
+            render_form_data: true,
+        }
+    }
+}
+
+impl Default for PdfPageRenderProfile {
+    fn default() -> Self {
+        Self::ocr_default()
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PdfPageBox {
+    pub left: f64,
+    pub bottom: f64,
+    pub right: f64,
+    pub top: f64,
+}
+
+impl PdfPageBox {
+    #[must_use]
+    pub fn new(left: f64, bottom: f64, right: f64, top: f64) -> Self {
+        let (left, right) = if left <= right {
+            (left, right)
+        } else {
+            (right, left)
+        };
+        let (bottom, top) = if bottom <= top {
+            (bottom, top)
+        } else {
+            (top, bottom)
+        };
+        Self {
+            left,
+            bottom,
+            right,
+            top,
+        }
+    }
+
+    #[must_use]
+    pub fn width_points(&self) -> f64 {
+        self.right - self.left
+    }
+
+    #[must_use]
+    pub fn height_points(&self) -> f64 {
+        self.top - self.bottom
+    }
+
+    fn from_pdfium_rect(rect: PdfRect) -> Self {
+        Self::new(
+            f64::from(rect.left().value),
+            f64::from(rect.bottom().value),
+            f64::from(rect.right().value),
+            f64::from(rect.top().value),
+        )
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PdfPageShardGeometry {
+    pub media_box: PdfPageBox,
+    pub crop_box: PdfPageBox,
+    pub rotation_degrees: u16,
+    pub render_dpi: u32,
+    pub raster_width_px: u32,
+    pub raster_height_px: u32,
+    pub point_to_pixel_scale_x: f64,
+    pub point_to_pixel_scale_y: f64,
+}
+
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PdfPageShardManifest {
+    pub source_path: String,
+    pub source_content_hash: String,
+    pub page_index: u32,
+    pub render_profile: String,
+    pub image_path: String,
+    pub image_mime_type: String,
+    pub raster_sha256: String,
+    pub geometry: PdfPageShardGeometry,
+    pub element_id: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PdfPageRenderShardReport {
+    pub source_path: String,
+    pub output_dir: String,
+    pub page_count: u32,
+    pub shard_count: u32,
+    pub manifest_arrow_path: Option<String>,
+    pub pending_resource_arrow_path: Option<String>,
+    pub render_profile: String,
+    pub status: String,
+    pub routing_decision: String,
+    pub elapsed_ms: f64,
+    pub error_message: Option<String>,
+}
+
+#[must_use]
+pub fn render_dimensions_for_box(
+    page_box: PdfPageBox,
+    rotation_degrees: u16,
+    profile: &PdfPageRenderProfile,
+) -> (u32, u32) {
+    let width_px = points_to_pixels(page_box.width_points(), profile.dpi);
+    let height_px = points_to_pixels(page_box.height_points(), profile.dpi);
+    if rotation_degrees % 180 == 90 {
+        (height_px, width_px)
+    } else {
+        (width_px, height_px)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct PdfPageShardManifestInput<'a> {
+    pub source_path: &'a Path,
+    pub source_content_hash: &'a str,
+    pub page_index: u32,
+    pub profile: &'a PdfPageRenderProfile,
+    pub media_box: PdfPageBox,
+    pub crop_box: PdfPageBox,
+    pub rotation_degrees: u16,
+    pub raster: RenderedRasterIdentity,
+}
+
+#[must_use]
+pub fn build_shard_manifest(input: PdfPageShardManifestInput<'_>) -> PdfPageShardManifest {
+    let element_id = shard_element_id(
+        input.source_content_hash,
+        input.page_index,
+        &input.profile.profile_id,
+    );
+    let scale_x = f64::from(input.raster.width_px) / input.crop_box.width_points().max(1.0);
+    let scale_y = f64::from(input.raster.height_px) / input.crop_box.height_points().max(1.0);
+    PdfPageShardManifest {
+        source_path: input.source_path.to_string_lossy().to_string(),
+        source_content_hash: input.source_content_hash.to_string(),
+        page_index: input.page_index,
+        render_profile: input.profile.profile_id.clone(),
+        image_path: input.raster.path.to_string_lossy().to_string(),
+        image_mime_type: input.profile.image_mime_type.clone(),
+        raster_sha256: input.raster.sha256,
+        geometry: PdfPageShardGeometry {
+            media_box: input.media_box,
+            crop_box: input.crop_box,
+            rotation_degrees: input.rotation_degrees,
+            render_dpi: input.profile.dpi,
+            raster_width_px: input.raster.width_px,
+            raster_height_px: input.raster.height_px,
+            point_to_pixel_scale_x: scale_x,
+            point_to_pixel_scale_y: scale_y,
+        },
+        element_id,
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RenderedRasterIdentity {
+    pub path: PathBuf,
+    pub sha256: String,
+    pub width_px: u32,
+    pub height_px: u32,
+}
+
+/// # Errors
+///
+/// Returns an error if Arrow cannot build a typed shard manifest batch.
+pub fn build_shard_manifest_batch(
+    manifests: &[PdfPageShardManifest],
+) -> Result<RecordBatch, String> {
+    RecordBatch::try_new(
+        shard_manifest_schema(),
+        vec![
+            string_manifest_column(manifests, |manifest| manifest.source_path.clone()),
+            string_manifest_column(manifests, |manifest| manifest.source_content_hash.clone()),
+            int_manifest_column(manifests, |manifest| manifest.page_index),
+            string_manifest_column(manifests, |manifest| manifest.render_profile.clone()),
+            string_manifest_column(manifests, |manifest| manifest.image_path.clone()),
+            string_manifest_column(manifests, |manifest| manifest.image_mime_type.clone()),
+            string_manifest_column(manifests, |manifest| manifest.raster_sha256.clone()),
+            int_manifest_column(manifests, |manifest| manifest.geometry.raster_width_px),
+            int_manifest_column(manifests, |manifest| manifest.geometry.raster_height_px),
+            int_manifest_column(manifests, |manifest| manifest.geometry.render_dpi),
+            Arc::new(Int32Array::from(
+                manifests
+                    .iter()
+                    .map(|manifest| i32::from(manifest.geometry.rotation_degrees))
+                    .collect::<Vec<_>>(),
+            )),
+            float_manifest_column(manifests, |manifest| manifest.geometry.media_box.left),
+            float_manifest_column(manifests, |manifest| manifest.geometry.media_box.bottom),
+            float_manifest_column(manifests, |manifest| manifest.geometry.media_box.right),
+            float_manifest_column(manifests, |manifest| manifest.geometry.media_box.top),
+            float_manifest_column(manifests, |manifest| manifest.geometry.crop_box.left),
+            float_manifest_column(manifests, |manifest| manifest.geometry.crop_box.bottom),
+            float_manifest_column(manifests, |manifest| manifest.geometry.crop_box.right),
+            float_manifest_column(manifests, |manifest| manifest.geometry.crop_box.top),
+            float_manifest_column(manifests, |manifest| {
+                manifest.geometry.point_to_pixel_scale_x
+            }),
+            float_manifest_column(manifests, |manifest| {
+                manifest.geometry.point_to_pixel_scale_y
+            }),
+            string_manifest_column(manifests, |manifest| manifest.element_id.clone()),
+        ],
+    )
+    .map_err(|error| format!("build OCR shard manifest Arrow batch: {error}"))
+}
+
+/// # Errors
+///
+/// Returns an error if Arrow cannot build the stable document-resource batch.
+pub fn build_ocr_pending_resource_batch(
+    manifests: &[PdfPageShardManifest],
+) -> Result<RecordBatch, String> {
+    RecordBatch::try_new(
+        document_resource_schema(),
+        vec![
+            Arc::new(StringArray::from(
+                manifests
+                    .iter()
+                    .map(|manifest| manifest.source_path.as_str())
+                    .collect::<Vec<_>>(),
+            )) as ArrayRef,
+            Arc::new(StringArray::from(vec!["ocr_pending"; manifests.len()])),
+            Arc::new(StringArray::from(
+                manifests
+                    .iter()
+                    .map(|manifest| manifest.image_path.as_str())
+                    .collect::<Vec<_>>(),
+            )),
+            Arc::new(Int32Array::from(
+                manifests
+                    .iter()
+                    .map(|manifest| i32::try_from(manifest.page_index).unwrap_or(i32::MAX))
+                    .collect::<Vec<_>>(),
+            )),
+            Arc::new(StringArray::from(
+                manifests
+                    .iter()
+                    .map(|manifest| format!("OCR pending PDF page {}", manifest.page_index + 1))
+                    .collect::<Vec<_>>(),
+            )),
+            Arc::new(StringArray::from(
+                manifests
+                    .iter()
+                    .map(|manifest| {
+                        format!(
+                            "manifest={},raster_sha256={},profile={}",
+                            OCR_SHARD_MANIFEST_ARROW_NAME,
+                            manifest.raster_sha256,
+                            manifest.render_profile
+                        )
+                    })
+                    .collect::<Vec<_>>(),
+            )),
+            Arc::new(StringArray::from(
+                manifests
+                    .iter()
+                    .map(|manifest| manifest.image_mime_type.as_str())
+                    .collect::<Vec<_>>(),
+            )),
+            Arc::new(StringArray::from(vec!["pending"; manifests.len()])),
+            Arc::new(StringArray::from(
+                manifests
+                    .iter()
+                    .map(|manifest| manifest.element_id.as_str())
+                    .collect::<Vec<_>>(),
+            )),
+        ],
+    )
+    .map_err(|error| format!("build OCR pending resource Arrow batch: {error}"))
+}
+
+/// # Errors
+///
+/// Returns an error if the path cannot be read or Arrow report files cannot be
+/// written. Missing `PDFium` libraries are represented as fallback reports rather
+/// than errors.
+pub fn render_pdf_page_shards(
+    path: &Path,
+    output_dir: &Path,
+    profile: &PdfPageRenderProfile,
+) -> Result<PdfPageRenderShardReport, String> {
+    let context = RenderShardContext::new(path, output_dir, profile);
+    if !is_pdf_path(path) {
+        return Ok(context.report(ReportParts::unsupported("unsupported non-PDF input")));
+    }
+
+    let source_bytes =
+        fs::read(path).map_err(|error| format!("read PDF `{}`: {error}", path.display()))?;
+    let source_hash = sha256_hex(&source_bytes);
+    let pdfium = match bind_pdfium() {
+        Ok(pdfium) => pdfium,
+        Err(error) => return Ok(context.report(ReportParts::fallback(0, 0, error))),
+    };
+
+    let document = match pdfium.load_pdf_from_file(path, None) {
+        Ok(document) => document,
+        Err(error) => {
+            return Ok(context.report(ReportParts::preflight_failed(format!(
+                "load PDF `{}`: {error}",
+                path.display()
+            ))));
+        }
+    };
+
+    let page_count = u32::try_from(document.pages().len()).unwrap_or_default();
+    let manifests = match render_document_manifests(&document, &context, &source_hash) {
+        Ok(manifests) => manifests,
+        Err(fallback) => return Ok(context.report(fallback)),
+    };
+
+    let manifest_batch = build_shard_manifest_batch(&manifests)?;
+    let pending_batch = build_ocr_pending_resource_batch(&manifests)?;
+    let manifest_arrow_path = output_dir.join(OCR_SHARD_MANIFEST_ARROW_NAME);
+    let pending_resource_arrow_path = output_dir.join(OCR_PENDING_RESOURCE_ARROW_NAME);
+    write_arrow_file(manifest_arrow_path.as_path(), &[manifest_batch])?;
+    write_arrow_file(pending_resource_arrow_path.as_path(), &[pending_batch])?;
+
+    Ok(context.report(ReportParts::rendered(
+        page_count,
+        checked_len_u32(manifests.len()),
+        manifest_arrow_path,
+        pending_resource_arrow_path,
+    )))
+}
+
+/// # Errors
+///
+/// Returns an error if the input JSON does not decode to audit paths.
+pub fn read_render_paths_from_json(json: &str) -> Result<Vec<PathBuf>, String> {
+    #[derive(Deserialize)]
+    struct Input {
+        source: PathBuf,
+    }
+
+    serde_json::from_str::<Vec<Input>>(json)
+        .map_err(|error| format!("parse PDF render shard input JSON: {error}"))
+        .map(|inputs| inputs.into_iter().map(|input| input.source).collect())
+}
+
+/// # Errors
+///
+/// Returns an error if reports cannot be written.
+pub fn write_page_render_shard_reports(
+    report_dir: &Path,
+    records: &[PdfPageRenderShardReport],
+) -> Result<(), String> {
+    fs::create_dir_all(report_dir)
+        .map_err(|error| format!("create report dir `{}`: {error}", report_dir.display()))?;
+    let json_path = report_dir.join("pdf_page_render_shard_manifest.json");
+    let report = serde_json::json!({
+        "schema": "xiuxian_wendao.pdf_page_render_shard_manifest.v1",
+        "profile": PDF_RENDER_SHARD_PROFILE,
+        "totalInputs": records.len(),
+        "totalRenderedShards": records.iter().map(|record| record.shard_count).sum::<u32>(),
+        "renderedInputs": records.iter().filter(|record| record.status == "rendered").count(),
+        "fallbackInputs": records.iter().filter(|record| record.status == "fallback").count(),
+        "records": records,
+    });
+    fs::write(
+        json_path.as_path(),
+        serde_json::to_vec_pretty(&report).map_err(|error| error.to_string())?,
+    )
+    .map_err(|error| format!("write report `{}`: {error}", json_path.display()))?;
+
+    let markdown_path = report_dir.join("pdf_page_render_shard_manifest.md");
+    fs::write(markdown_path.as_path(), render_markdown_report(records))
+        .map_err(|error| format!("write report `{}`: {error}", markdown_path.display()))?;
+    Ok(())
+}
+
+fn points_to_pixels(points: f64, dpi: u32) -> u32 {
+    ((points / 72.0) * f64::from(dpi))
+        .round()
+        .max(1.0)
+        .to_u32()
+        .unwrap_or(u32::MAX)
+}
+
+fn rotation_to_degrees(rotation: PdfPageRenderRotation) -> u16 {
+    match rotation {
+        PdfPageRenderRotation::None => 0,
+        PdfPageRenderRotation::Degrees90 => 90,
+        PdfPageRenderRotation::Degrees180 => 180,
+        PdfPageRenderRotation::Degrees270 => 270,
+    }
+}
+
+fn shard_element_id(content_hash: &str, page_index: u32, profile_id: &str) -> String {
+    sha256_hex(format!("{content_hash}:{page_index}:{profile_id}").as_bytes())
+}
+
+fn sha256_hex(bytes: &[u8]) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(bytes);
+    format!("{:x}", hasher.finalize())
+}
+
+fn checked_len_u32(len: usize) -> u32 {
+    u32::try_from(len).unwrap_or(u32::MAX)
+}
+
+fn checked_pixels_i32(value: u32) -> Result<i32, String> {
+    i32::try_from(value).map_err(|_| format!("render target pixel dimension is too large: {value}"))
+}
+
+fn is_pdf_path(path: &Path) -> bool {
+    path.extension()
+        .and_then(|suffix| suffix.to_str())
+        .is_some_and(|suffix| suffix.eq_ignore_ascii_case("pdf"))
+}
+
+fn string_manifest_column<F>(manifests: &[PdfPageShardManifest], value: F) -> ArrayRef
+where
+    F: Fn(&PdfPageShardManifest) -> String,
+{
+    Arc::new(StringArray::from(
+        manifests.iter().map(value).collect::<Vec<_>>(),
+    ))
+}
+
+fn int_manifest_column<F>(manifests: &[PdfPageShardManifest], value: F) -> ArrayRef
+where
+    F: Fn(&PdfPageShardManifest) -> u32,
+{
+    Arc::new(Int32Array::from(
+        manifests
+            .iter()
+            .map(|manifest| i32::try_from(value(manifest)).unwrap_or(i32::MAX))
+            .collect::<Vec<_>>(),
+    ))
+}
+
+fn float_manifest_column<F>(manifests: &[PdfPageShardManifest], value: F) -> ArrayRef
+where
+    F: Fn(&PdfPageShardManifest) -> f64,
+{
+    Arc::new(Float64Array::from(
+        manifests.iter().map(value).collect::<Vec<_>>(),
+    ))
+}
+
+fn bind_pdfium() -> Result<Pdfium, String> {
+    let bindings = match std::env::var(PDFIUM_LIBRARY_PATH_ENV) {
+        Ok(path) if !path.trim().is_empty() => Pdfium::bind_to_library(path.as_str()),
+        _ => Pdfium::bind_to_system_library(),
+    };
+    match bindings {
+        Ok(bindings) => Ok(Pdfium::new(bindings)),
+        Err(PdfiumError::PdfiumLibraryBindingsAlreadyInitialized) => Ok(Pdfium),
+        Err(error) => Err(format!("bind Pdfium library: {error}")),
+    }
+}
+
+struct RenderShardContext<'a> {
+    path: &'a Path,
+    output_dir: &'a Path,
+    profile: &'a PdfPageRenderProfile,
+    source_path: String,
+    started: Instant,
+}
+
+impl<'a> RenderShardContext<'a> {
+    fn new(path: &'a Path, output_dir: &'a Path, profile: &'a PdfPageRenderProfile) -> Self {
+        Self {
+            path,
+            output_dir,
+            profile,
+            source_path: path.to_string_lossy().to_string(),
+            started: Instant::now(),
+        }
+    }
+
+    fn report(&self, parts: ReportParts) -> PdfPageRenderShardReport {
+        PdfPageRenderShardReport {
+            source_path: self.source_path.clone(),
+            output_dir: self.output_dir.to_string_lossy().to_string(),
+            page_count: parts.page_count,
+            shard_count: parts.shard_count,
+            manifest_arrow_path: parts
+                .manifest_arrow_path
+                .map(|path| path.to_string_lossy().to_string()),
+            pending_resource_arrow_path: parts
+                .pending_resource_arrow_path
+                .map(|path| path.to_string_lossy().to_string()),
+            render_profile: self.profile.profile_id.clone(),
+            status: parts.status.as_str().to_string(),
+            routing_decision: parts.routing_decision.as_str().to_string(),
+            elapsed_ms: self.started.elapsed().as_secs_f64() * 1000.0,
+            error_message: parts.error_message,
+        }
+    }
+
+    fn shard_dir(&self, source_hash: &str) -> PathBuf {
+        self.output_dir.join("ocr-shards").join(source_hash)
+    }
+}
+
+struct ReportParts {
+    page_count: u32,
+    shard_count: u32,
+    manifest_arrow_path: Option<PathBuf>,
+    pending_resource_arrow_path: Option<PathBuf>,
+    status: PdfRenderStatus,
+    routing_decision: PdfRenderRoutingDecision,
+    error_message: Option<String>,
+}
+
+impl ReportParts {
+    fn unsupported(error_message: &str) -> Self {
+        Self {
+            page_count: 0,
+            shard_count: 0,
+            manifest_arrow_path: None,
+            pending_resource_arrow_path: None,
+            status: PdfRenderStatus::Unsupported,
+            routing_decision: PdfRenderRoutingDecision::UnsupportedNonPdf,
+            error_message: Some(error_message.to_string()),
+        }
+    }
+
+    fn fallback(page_count: u32, shard_count: u32, error_message: String) -> Self {
+        Self {
+            page_count,
+            shard_count,
+            manifest_arrow_path: None,
+            pending_resource_arrow_path: None,
+            status: PdfRenderStatus::Fallback,
+            routing_decision: PdfRenderRoutingDecision::FullDoclingFallback,
+            error_message: Some(error_message),
+        }
+    }
+
+    fn preflight_failed(error_message: String) -> Self {
+        Self {
+            page_count: 0,
+            shard_count: 0,
+            manifest_arrow_path: None,
+            pending_resource_arrow_path: None,
+            status: PdfRenderStatus::Fallback,
+            routing_decision: PdfRenderRoutingDecision::PreflightFailed,
+            error_message: Some(error_message),
+        }
+    }
+
+    fn rendered(
+        page_count: u32,
+        shard_count: u32,
+        manifest_arrow_path: PathBuf,
+        pending_resource_arrow_path: PathBuf,
+    ) -> Self {
+        Self {
+            page_count,
+            shard_count,
+            manifest_arrow_path: Some(manifest_arrow_path),
+            pending_resource_arrow_path: Some(pending_resource_arrow_path),
+            status: PdfRenderStatus::Rendered,
+            routing_decision: PdfRenderRoutingDecision::HybridPageOcrCandidate,
+            error_message: None,
+        }
+    }
+}
+
+fn render_document_manifests(
+    document: &PdfDocument<'_>,
+    context: &RenderShardContext<'_>,
+    source_hash: &str,
+) -> Result<Vec<PdfPageShardManifest>, ReportParts> {
+    let page_count = u32::try_from(document.pages().len()).unwrap_or_default();
+    let shard_dir = context.shard_dir(source_hash);
+    fs::create_dir_all(shard_dir.as_path()).map_err(|error| {
+        ReportParts::fallback(
+            page_count,
+            0,
+            format!("create shard dir `{}`: {error}", shard_dir.display()),
+        )
+    })?;
+
+    let mut manifests = Vec::new();
+    for page_index in document.pages().as_range() {
+        let page = document.pages().get(page_index).map_err(|error| {
+            ReportParts::fallback(
+                page_count,
+                checked_len_u32(manifests.len()),
+                format!("load page {page_index}: {error}"),
+            )
+        })?;
+        let manifest =
+            render_page_manifest(&page, page_index, context, source_hash).map_err(|error| {
+                ReportParts::fallback(page_count, checked_len_u32(manifests.len()), error)
+            })?;
+        manifests.push(manifest);
+    }
+    Ok(manifests)
+}
+
+fn render_page_manifest(
+    page: &PdfPage<'_>,
+    page_index: i32,
+    context: &RenderShardContext<'_>,
+    source_hash: &str,
+) -> Result<PdfPageShardManifest, String> {
+    let media_box = page.boundaries().media().map_or_else(
+        |_| PdfPageBox::from_pdfium_rect(page.page_size()),
+        |boundary| PdfPageBox::from_pdfium_rect(boundary.bounds),
+    );
+    let crop_box = page.boundaries().crop().map_or(media_box, |boundary| {
+        PdfPageBox::from_pdfium_rect(boundary.bounds)
+    });
+    let rotation_degrees = rotation_to_degrees(
+        page.rotation()
+            .map_err(|error| format!("read page {page_index} rotation: {error}"))?,
+    );
+    let (target_width, target_height) =
+        render_dimensions_for_box(crop_box, rotation_degrees, context.profile);
+    let config = PdfRenderConfig::new()
+        .set_target_size(
+            checked_pixels_i32(target_width)?,
+            checked_pixels_i32(target_height)?,
+        )
+        .set_format(PdfBitmapFormat::BGRA)
+        .render_annotations(context.profile.render_annotations)
+        .render_form_data(context.profile.render_form_data);
+    let bitmap = page
+        .render_with_config(&config)
+        .map_err(|error| format!("render page {page_index}: {error}"))?;
+    let image = bitmap
+        .as_image()
+        .map_err(|error| format!("convert page {page_index} bitmap to image: {error}"))?;
+    let image_path = context.shard_dir(source_hash).join(format!(
+        "page-{page_index:05}.{}",
+        context.profile.image_extension
+    ));
+    image
+        .save(image_path.as_path())
+        .map_err(|error| format!("write shard image `{}`: {error}", image_path.display()))?;
+    let raster_bytes = fs::read(image_path.as_path())
+        .map_err(|error| format!("read shard image `{}`: {error}", image_path.display()))?;
+    Ok(build_shard_manifest(PdfPageShardManifestInput {
+        source_path: context.path,
+        source_content_hash: source_hash,
+        page_index: u32::try_from(page_index).unwrap_or_default(),
+        profile: context.profile,
+        media_box,
+        crop_box,
+        rotation_degrees,
+        raster: RenderedRasterIdentity {
+            path: image_path,
+            sha256: sha256_hex(&raster_bytes),
+            width_px: image.width(),
+            height_px: image.height(),
+        },
+    }))
+}
+
+fn shard_manifest_schema() -> SchemaRef {
+    Arc::new(Schema::new(vec![
+        Field::new("sourcePath", DataType::Utf8, false),
+        Field::new("sourceContentHash", DataType::Utf8, false),
+        Field::new("pageIndex", DataType::Int32, false),
+        Field::new("renderProfile", DataType::Utf8, false),
+        Field::new("imagePath", DataType::Utf8, false),
+        Field::new("imageMimeType", DataType::Utf8, false),
+        Field::new("rasterSha256", DataType::Utf8, false),
+        Field::new("rasterWidthPx", DataType::Int32, false),
+        Field::new("rasterHeightPx", DataType::Int32, false),
+        Field::new("renderDpi", DataType::Int32, false),
+        Field::new("rotationDegrees", DataType::Int32, false),
+        Field::new("mediaLeft", DataType::Float64, false),
+        Field::new("mediaBottom", DataType::Float64, false),
+        Field::new("mediaRight", DataType::Float64, false),
+        Field::new("mediaTop", DataType::Float64, false),
+        Field::new("cropLeft", DataType::Float64, false),
+        Field::new("cropBottom", DataType::Float64, false),
+        Field::new("cropRight", DataType::Float64, false),
+        Field::new("cropTop", DataType::Float64, false),
+        Field::new("pointToPixelScaleX", DataType::Float64, false),
+        Field::new("pointToPixelScaleY", DataType::Float64, false),
+        Field::new("elementId", DataType::Utf8, false),
+    ]))
+}
+
+fn document_resource_schema() -> SchemaRef {
+    Arc::new(Schema::new(vec![
+        Field::new("sourcePath", DataType::Utf8, true),
+        Field::new("resourceType", DataType::Utf8, true),
+        Field::new("resourcePath", DataType::Utf8, true),
+        Field::new("pageIndex", DataType::Int32, true),
+        Field::new("caption", DataType::Utf8, true),
+        Field::new("content", DataType::Utf8, true),
+        Field::new("mimeType", DataType::Utf8, true),
+        Field::new("status", DataType::Utf8, true),
+        Field::new("elementId", DataType::Utf8, true),
+    ]))
+}
+
+fn write_arrow_file(path: &Path, batches: &[RecordBatch]) -> Result<(), String> {
+    if batches.is_empty() {
+        return Err(format!(
+            "cannot write empty Arrow IPC file `{}`",
+            path.display()
+        ));
+    }
+    let file = File::create(path)
+        .map_err(|error| format!("create Arrow IPC file `{}`: {error}", path.display()))?;
+    let mut writer = FileWriter::try_new(file, batches[0].schema().as_ref())
+        .map_err(|error| format!("create Arrow IPC writer `{}`: {error}", path.display()))?;
+    for batch in batches {
+        writer
+            .write(batch)
+            .map_err(|error| format!("write Arrow IPC batch `{}`: {error}", path.display()))?;
+    }
+    writer
+        .finish()
+        .map_err(|error| format!("finish Arrow IPC file `{}`: {error}", path.display()))
+}
+
+fn render_markdown_report(records: &[PdfPageRenderShardReport]) -> String {
+    let mut markdown = String::new();
+    markdown.push_str("# PDF Page Render Shard Manifest Report\n\n");
+    markdown.push_str("| Source | Status | Decision | Pages | Shards | Elapsed ms | Error |\n");
+    markdown.push_str("| ------ | ------ | -------- | ----: | -----: | ---------: | ----- |\n");
+    for record in records {
+        let _ = writeln!(
+            markdown,
+            "| `{}` | `{}` | `{}` | {} | {} | {:.3} | {} |",
+            record.source_path,
+            record.status,
+            record.routing_decision,
+            record.page_count,
+            record.shard_count,
+            record.elapsed_ms,
+            record.error_message.as_deref().unwrap_or("")
+        );
+    }
+    markdown
+}
+
+#[cfg(test)]
+#[path = "../../tests/unit/pdf/render.rs"]
+mod tests;

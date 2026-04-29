@@ -189,6 +189,14 @@ def parse_args() -> argparse.Namespace:
             "against selected fixtures and exit without starting extraction workers."
         ),
     )
+    parser.add_argument(
+        "--pdf-render-shard-audit",
+        action="store_true",
+        help=(
+            "Run the feature-gated Rust PDF render shard manifest audit "
+            "against selected PDF fixtures and exit without starting extraction workers."
+        ),
+    )
     parser.add_argument("--cargo", default="cargo")
     parser.add_argument("--real-docling", action="store_true")
     parser.add_argument(
@@ -268,6 +276,10 @@ def main() -> int:
 
     if args.pdf_inspector_audit:
         return run_pdf_inspector_audit(args, report_dir / "pdf-inspector-detect-audit")
+    if args.pdf_render_shard_audit:
+        return run_pdf_render_shard_audit(
+            args, report_dir / "pdf-render-shard-manifest"
+        )
 
     with tempfile.TemporaryDirectory(
         prefix="wendao-doc-extract-perf-"
@@ -507,15 +519,90 @@ def build_pdf_inspector_audit_command(
     return command, env
 
 
+def run_pdf_render_shard_audit(args: argparse.Namespace, report_dir: Path) -> int:
+    with tempfile.TemporaryDirectory(
+        prefix="wendao-pdf-render-shard-audit-"
+    ) as temp_root_text:
+        fixture_dir = Path(temp_root_text) / "fixtures"
+        fixture_dir.mkdir()
+        fixtures, _real_fixture_root = resolve_fixtures(args, fixture_dir)
+        fixtures = select_fixtures(fixtures, args.only_fixture)
+        if not args.only_fixture:
+            fixtures = {
+                name: path
+                for name, path in fixtures.items()
+                if path.suffix.lower() == ".pdf"
+            }
+        if not fixtures:
+            raise SystemExit(
+                "PDF render shard audit requires at least one selected PDF fixture"
+            )
+        command, env_update = build_pdf_render_shard_audit_command(
+            args,
+            fixtures,
+            report_dir.resolve(),
+        )
+        env = rust_process_env()
+        env.update(env_update)
+        subprocess.run(command, check=True, env=env)
+    print(
+        "PDF render shard reports: "
+        f"{report_dir / 'pdf_page_render_shard_manifest.json'}, "
+        f"{report_dir / 'pdf_page_render_shard_manifest.md'}"
+    )
+    return 0
+
+
+def build_pdf_render_shard_audit_command(
+    args: argparse.Namespace,
+    fixtures: dict[str, Path],
+    report_dir: Path,
+) -> tuple[list[str], dict[str, str]]:
+    inputs = [
+        {
+            "name": name,
+            "source": str(path),
+        }
+        for name, path in fixtures.items()
+    ]
+    command = [
+        args.cargo,
+        "test",
+        "-p",
+        "xiuxian-wendao",
+        "--test",
+        "xiuxian-testing-gate",
+        "--features",
+        cargo_features_with_pdf_render(args.cargo_features),
+        "pdf_inspector_page_render_shard_manifest",
+        "--",
+        "--ignored",
+        "--nocapture",
+    ]
+    env = {
+        "WENDAO_PDF_RENDER_SHARD_INPUTS_JSON": json.dumps(inputs),
+        "WENDAO_PDF_RENDER_SHARD_REPORT_DIR": str(report_dir),
+    }
+    return command, env
+
+
 def cargo_features_with_pdf_inspector(features: str) -> str:
+    return cargo_features_with_pdf_feature(features, "document-extract-pdf-inspector")
+
+
+def cargo_features_with_pdf_render(features: str) -> str:
+    return cargo_features_with_pdf_feature(features, "document-extract-pdf-render")
+
+
+def cargo_features_with_pdf_feature(features: str, feature: str) -> str:
     parts = [
         part.strip()
         for chunk in features.split(",")
         for part in chunk.split()
         if part.strip()
     ]
-    if "document-extract-pdf-inspector" not in parts:
-        parts.append("document-extract-pdf-inspector")
+    if feature not in parts:
+        parts.append(feature)
     if "performance" not in parts:
         parts.insert(0, "performance")
     return ",".join(parts)

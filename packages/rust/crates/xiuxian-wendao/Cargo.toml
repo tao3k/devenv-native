@@ -60,7 +60,14 @@ studio = [
 ]
 performance = ["dep:arrow", "xiuxian-testing/performance"]
 performance-stress = ["performance"]
-document-extract-pdf-inspector = ["dep:pdf-inspector"]
+document-extract-pdf-inspector = [
+  "dep:xiuxian-wendao-attachments",
+  "xiuxian-wendao-attachments/pdf-inspector",
+]
+document-extract-pdf-render = [
+  "document-extract-pdf-inspector",
+  "xiuxian-wendao-attachments/pdf-render",
+]
 duckdb = [
   "dep:arrow",
   "dep:duckdb",
@@ -133,6 +140,7 @@ xiuxian-wendao-parsers = { path = "../xiuxian-wendao-parsers" }
 xiuxian-wendao-client = { path = "../xiuxian-wendao-client" }
 xiuxian-wendao-builtin = { path = "../xiuxian-wendao-builtin", default-features = false, optional = true }
 xiuxian-wendao-core = { path = "../xiuxian-wendao-core" }
+xiuxian-wendao-attachments = { path = "../xiuxian-wendao-attachments", optional = true }
 xiuxian-wendao-julia = { path = "../xiuxian-wendao-julia", optional = true }
 xiuxian-wendao-runtime = { path = "../xiuxian-wendao-runtime", default-features = false }
 xiuxian-wendao-sql = { path = "../xiuxian-wendao-sql" }
@@ -197,7 +205,6 @@ reqwest = { workspace = true, optional = true }
 tantivy = { version = "0.25", optional = true }
 graphql-parser = { workspace = true, optional = true }
 duckdb = { workspace = true, optional = true }
-pdf-inspector = { git = "https://github.com/tao3k/pdf-inspector", branch = "xiuxian", optional = true }
 
 [dev-dependencies]
 tempfile = { workspace = true }
