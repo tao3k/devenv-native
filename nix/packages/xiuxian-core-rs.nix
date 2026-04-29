@@ -64,14 +64,34 @@ python3Packages.buildPythonPackage {
 
   preConfigure = ''
     mkdir -p .cargo
-    cat > .cargo/config.toml <<EOF
-    [source.crates-io]
-    replace-with = "vendored-sources"
-
+    cat > .cargo/git-sources.toml <<EOF
     [source."git+https://github.com/tao3k/litellm-rs?branch=xiuxian"]
     git = "https://github.com/tao3k/litellm-rs"
     branch = "xiuxian"
     replace-with = "vendored-sources"
+
+    [source."git+https://github.com/J-F-Liu/lopdf?rev=7a05512d831415b1f2b1ce522391d6beab8a1284"]
+    git = "https://github.com/J-F-Liu/lopdf"
+    rev = "7a05512d831415b1f2b1ce522391d6beab8a1284"
+    replace-with = "vendored-sources"
+
+    [source."git+https://github.com/firecrawl/pdf-inspector?rev=63b55731337c18baf23319b73cc9780bb23ac61b"]
+    git = "https://github.com/firecrawl/pdf-inspector"
+    rev = "63b55731337c18baf23319b73cc9780bb23ac61b"
+    replace-with = "vendored-sources"
+    EOF
+
+    cat > .cargo/config.toml <<EOF
+    [source.crates-io]
+    replace-with = "vendored-sources"
+
+    EOF
+    cat .cargo/git-sources.toml >> .cargo/config.toml
+    if [ -n "''${CARGO_HOME:-}" ]; then
+      mkdir -p "$CARGO_HOME"
+      cat .cargo/git-sources.toml >> "$CARGO_HOME/config.toml"
+    fi
+    cat >> .cargo/config.toml <<EOF
 
     [source.vendored-sources]
     directory = "${cargoDepsWithLock}"
