@@ -7,6 +7,7 @@ mod choreography;
 mod collaboration;
 mod conversation;
 mod diagram;
+mod partners;
 mod root_catalogs;
 mod typed_catalogs;
 mod xml_errors;

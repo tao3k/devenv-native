@@ -8,6 +8,9 @@ official [BPMN 2.0.2 specification](https://www.omg.org/spec/BPMN/2.0.2).
 The current engine preserves non-executable BPMN metadata for these families:
 
 - collaboration-level participant and message-flow structure
+- top-level partner entity, partner role, and endpoint catalogs, plus
+  participant interface references, endpoint references, and multiplicity
+  metadata
 - collaboration-level conversation nodes, links, associations, correlation
   keys, and choreography references
 - choreography roots and choreography activity metadata, including
@@ -37,22 +40,26 @@ engine-owned execution semantics.
 
 The first collaboration-alignment slices are metadata-only: Rust snapshots
 preserve standard BPMN `message`, `correlationProperty`, nested
-`correlationPropertyRetrievalExpression`, conversation node, conversation link,
-conversation association, participant association, message-flow association,
-correlation-key, choreography-reference, and choreography activity declarations
-plus artifact associations, groups, and text annotations and surface that
-catalog through collaboration lint evidence. That makes participant,
-message-flow, conversation, choreography, artifact, and correlation references
-auditable without requiring adapters to re-scan XML, but it does not dispatch
-message flows, route conversations, execute choreography, execute groups,
-interpret annotations, or evaluate correlation subscriptions, keys, or
-retrieval expressions.
+`correlationPropertyRetrievalExpression`, partner entity, partner role,
+endpoint, participant interface reference, participant endpoint reference,
+participant multiplicity, conversation node, conversation link, conversation
+association, participant association, message-flow association,
+correlation-key, choreography-reference, and choreography activity
+declarations plus artifact associations, groups, and text annotations and
+surface that catalog through collaboration lint evidence. That makes partner,
+participant, message-flow, conversation, choreography, artifact, and
+correlation references auditable without requiring adapters to re-scan XML,
+but it does not dispatch message flows, route conversations, execute
+choreography, invoke endpoints, execute groups, interpret annotations,
+schedule participant multiplicity, or evaluate correlation subscriptions,
+keys, or retrieval expressions.
 
 ## Runtime Boundary
 
 These BPMN surfaces remain deferred:
 
 - collaboration-aware message routing across pools or participants
+- endpoint invocation, partner routing, or participant multiplicity execution
 - executable conversation routing and choreography execution
 - executable group semantics or text-annotation interpretation
 - executable correlation keys, correlation subscriptions, and retrieval
@@ -74,11 +81,12 @@ or DMN inputs instead of fabricating partial collaboration, type-validation,
 or data-object execution rules.
 
 For collaboration documents, keep `participant`, `messageFlow`,
-`conversation`, `conversationLink`, `choreography`, `choreographyTask`,
-`subChoreography`, `callChoreography`, `association`, `group`,
-`textAnnotation`, `correlationKey`, `message`, and `correlationProperty`
-definitions standard and explicit, including retrieval expressions when a
-correlation property depends on a specific message path. The linter can report
-that metadata as evidence, but runtime behavior must still be modeled through
-one supported process graph, host work, or event waits until collaboration
-routing and choreography execution land.
+`participantMultiplicity`, `partnerEntity`, `partnerRole`, `endPoint`,
+`messageFlow`, `conversation`, `conversationLink`, `choreography`,
+`choreographyTask`, `subChoreography`, `callChoreography`, `association`,
+`group`, `textAnnotation`, `correlationKey`, `message`, and
+`correlationProperty` definitions standard and explicit, including retrieval
+expressions when a correlation property depends on a specific message path.
+The linter can report that metadata as evidence, but runtime behavior must
+still be modeled through one supported process graph, host work, or event
+waits until collaboration routing and choreography execution land.

@@ -7,13 +7,14 @@ use crate::bpmn_model_api::{
     BpmnCorrelationRetrievalExpressionSnapshot, BpmnDataAssociationSnapshot,
     BpmnDataInputOutputSnapshot, BpmnDataObjectReferenceSnapshot, BpmnDataObjectSnapshot,
     BpmnDataStoreReferenceSnapshot, BpmnDataStoreSnapshot, BpmnDiagramSnapshot,
-    BpmnDocumentSnapshot, BpmnEdgeSnapshot, BpmnErrorSnapshot, BpmnEscalationSnapshot,
-    BpmnExtensionSnapshot, BpmnFontSnapshot, BpmnGroupSnapshot, BpmnImportSnapshot,
-    BpmnInterfaceSnapshot, BpmnIoSpecificationSnapshot, BpmnItemDefinitionSnapshot,
-    BpmnLabelSnapshot, BpmnLabelStyleSnapshot, BpmnLaneSetSnapshot, BpmnLaneSnapshot,
-    BpmnMessageFlowAssociationSnapshot, BpmnMessageFlowSnapshot, BpmnMessageSnapshot,
-    BpmnOperationSnapshot, BpmnParticipantAssociationSnapshot, BpmnParticipantSnapshot,
-    BpmnPlaneSnapshot, BpmnProcessSnapshot, BpmnRelationshipSnapshot,
+    BpmnDocumentSnapshot, BpmnEdgeSnapshot, BpmnEndPointSnapshot, BpmnErrorSnapshot,
+    BpmnEscalationSnapshot, BpmnExtensionSnapshot, BpmnFontSnapshot, BpmnGroupSnapshot,
+    BpmnImportSnapshot, BpmnInterfaceSnapshot, BpmnIoSpecificationSnapshot,
+    BpmnItemDefinitionSnapshot, BpmnLabelSnapshot, BpmnLabelStyleSnapshot, BpmnLaneSetSnapshot,
+    BpmnLaneSnapshot, BpmnMessageFlowAssociationSnapshot, BpmnMessageFlowSnapshot,
+    BpmnMessageSnapshot, BpmnOperationSnapshot, BpmnParticipantAssociationSnapshot,
+    BpmnParticipantMultiplicitySnapshot, BpmnParticipantSnapshot, BpmnPartnerEntitySnapshot,
+    BpmnPartnerRoleSnapshot, BpmnPlaneSnapshot, BpmnProcessSnapshot, BpmnRelationshipSnapshot,
     BpmnResourceParameterSnapshot, BpmnResourceSnapshot, BpmnRootSnapshot, BpmnShapeSnapshot,
     BpmnSignalSnapshot, BpmnTextAnnotationSnapshot, BpmnWaypointSnapshot,
 };
@@ -34,6 +35,10 @@ pub(super) enum TextTarget {
     ExtensionDocumentation,
     RelationshipSource,
     RelationshipTarget,
+    ParticipantInterfaceRef,
+    ParticipantEndPointRef,
+    PartnerEntityParticipantRef,
+    PartnerRoleParticipantRef,
     ConversationParticipantRef,
     ConversationMessageFlowRef,
     ChoreographyParticipantRef,
@@ -76,6 +81,7 @@ pub(super) struct BpmnSnapshotScanState {
     collaborations: Vec<BpmnCollaborationSnapshot>,
     processes: Vec<BpmnProcessSnapshot>,
     current_collaboration: Option<usize>,
+    current_participant: Option<(usize, usize)>,
     conversation_node_stack: Vec<(usize, Vec<usize>)>,
     choreography_activity_stack: Vec<(usize, Vec<usize>)>,
     current_conversation_correlation_key:
@@ -91,6 +97,8 @@ pub(super) struct BpmnSnapshotScanState {
     current_correlation_property: Option<usize>,
     current_correlation_retrieval_expression:
         Option<(usize, BpmnCorrelationRetrievalExpressionSnapshot)>,
+    current_partner_entity: Option<usize>,
+    current_partner_role: Option<usize>,
     current_interface: Option<usize>,
     current_operation: Option<(usize, usize)>,
     current_resource: Option<usize>,
@@ -150,6 +158,11 @@ impl BpmnSnapshotScanState {
             }
             "categoryValue" if self.current_category.is_some() => {
                 self.capture_category_value(source, reader, event)
+            }
+            "participantMultiplicity"
+                if parent_tag == Some("participant") && self.current_participant.is_some() =>
+            {
+                self.attach_participant_multiplicity(source, reader, event)
             }
             "correlationPropertyRetrievalExpression"
                 if self.current_correlation_property.is_some() =>
@@ -277,7 +290,7 @@ impl BpmnSnapshotScanState {
     ) -> Result<bool> {
         match tag {
             "participant" if is_collaboration_container(parent_tag) => {
-                self.capture_participant(source, reader, event)?;
+                self.start_participant(source, reader, event, is_empty)?;
             }
             "messageFlow" if is_collaboration_container(parent_tag) => {
                 self.capture_message_flow(source, reader, event)?;
@@ -342,6 +355,9 @@ impl BpmnSnapshotScanState {
             "itemDefinition" => self.capture_item_definition(source, reader, event)?,
             "message" => self.capture_message(source, reader, event)?,
             "interface" => self.start_interface(source, reader, event, is_empty)?,
+            "endPoint" => self.capture_end_point(source, reader, event)?,
+            "partnerEntity" => self.start_partner_entity(source, reader, event, is_empty)?,
+            "partnerRole" => self.start_partner_role(source, reader, event, is_empty)?,
             "resource" => self.start_resource(source, reader, event, is_empty)?,
             "category" => self.start_category(source, reader, event, is_empty)?,
             "correlationProperty" => {
@@ -361,10 +377,14 @@ impl BpmnSnapshotScanState {
             "collaboration" | "globalConversation" | "choreography" | "globalChoreographyTask" => {
                 self.finish_conversation_correlation_key();
                 self.finish_participant_association();
+                self.current_participant = None;
                 self.conversation_node_stack.clear();
                 self.choreography_activity_stack.clear();
                 self.current_collaboration = None;
             }
+            "participant" => self.current_participant = None,
+            "partnerEntity" => self.current_partner_entity = None,
+            "partnerRole" => self.current_partner_role = None,
             "conversation" | "subConversation" | "callConversation" => {
                 self.finish_conversation_correlation_key();
                 self.finish_participant_association();
@@ -456,6 +476,12 @@ impl BpmnSnapshotScanState {
             TextTarget::ExtensionDocumentation => self.append_extension_documentation(text),
             TextTarget::RelationshipSource => self.push_relationship_source_ref(text),
             TextTarget::RelationshipTarget => self.push_relationship_target_ref(text),
+            TextTarget::ParticipantInterfaceRef => self.push_participant_interface_ref(text),
+            TextTarget::ParticipantEndPointRef => self.push_participant_end_point_ref(text),
+            TextTarget::PartnerEntityParticipantRef => {
+                self.push_partner_entity_participant_ref(text);
+            }
+            TextTarget::PartnerRoleParticipantRef => self.push_partner_role_participant_ref(text),
             TextTarget::ConversationParticipantRef => self.push_conversation_participant_ref(text),
             TextTarget::ConversationMessageFlowRef => self.push_conversation_message_flow_ref(text),
             TextTarget::ChoreographyParticipantRef => {
@@ -499,6 +525,9 @@ impl BpmnSnapshotScanState {
         self.finish_text_annotation();
         self.finish_conversation_correlation_key();
         self.finish_participant_association();
+        self.current_partner_entity = None;
+        self.current_partner_role = None;
+        self.current_participant = None;
         self.conversation_node_stack.clear();
         self.choreography_activity_stack.clear();
         self.current_relationship = None;
@@ -564,20 +593,49 @@ impl BpmnSnapshotScanState {
         Ok(())
     }
 
-    fn capture_participant(
+    fn start_participant(
         &mut self,
         source: &BpmnSourceFile,
         reader: &Reader<&[u8]>,
         event: &BytesStart<'_>,
+        is_empty: bool,
     ) -> Result<()> {
-        let Some(collaboration) = self.current_collaboration_mut() else {
+        let Some(collaboration_index) = self.current_collaboration else {
+            return Ok(());
+        };
+        let Some(collaboration) = self.collaborations.get_mut(collaboration_index) else {
             return Ok(());
         };
         collaboration.participants.push(BpmnParticipantSnapshot {
             participant_id: attribute_value(source, reader, event, "id")?,
             name: attribute_value(source, reader, event, "name")?,
             process_ref: attribute_value(source, reader, event, "processRef")?,
+            interface_refs: Vec::new(),
+            end_point_refs: Vec::new(),
+            participant_multiplicity: None,
         });
+        if !is_empty {
+            let participant_index = collaboration.participants.len().saturating_sub(1);
+            self.current_participant = Some((collaboration_index, participant_index));
+        }
+        Ok(())
+    }
+
+    fn attach_participant_multiplicity(
+        &mut self,
+        source: &BpmnSourceFile,
+        reader: &Reader<&[u8]>,
+        event: &BytesStart<'_>,
+    ) -> Result<()> {
+        let multiplicity = BpmnParticipantMultiplicitySnapshot {
+            multiplicity_id: attribute_value(source, reader, event, "id")?,
+            minimum: attribute_value(source, reader, event, "minimum")?,
+            maximum: attribute_value(source, reader, event, "maximum")?,
+        };
+        let Some(participant) = self.current_participant_mut() else {
+            return Ok(());
+        };
+        participant.participant_multiplicity = Some(multiplicity);
         Ok(())
     }
 
@@ -875,6 +933,66 @@ impl BpmnSnapshotScanState {
             name: attribute_value(source, reader, event, "name")?,
             item_ref: attribute_value(source, reader, event, "itemRef")?,
         });
+        Ok(())
+    }
+
+    fn capture_end_point(
+        &mut self,
+        source: &BpmnSourceFile,
+        reader: &Reader<&[u8]>,
+        event: &BytesStart<'_>,
+    ) -> Result<()> {
+        let Some(root) = self.root.as_mut() else {
+            return Ok(());
+        };
+        root.end_point_count += 1;
+        root.end_points.push(BpmnEndPointSnapshot {
+            end_point_id: attribute_value(source, reader, event, "id")?,
+        });
+        Ok(())
+    }
+
+    fn start_partner_entity(
+        &mut self,
+        source: &BpmnSourceFile,
+        reader: &Reader<&[u8]>,
+        event: &BytesStart<'_>,
+        is_empty: bool,
+    ) -> Result<()> {
+        let Some(root) = self.root.as_mut() else {
+            return Ok(());
+        };
+        root.partner_entity_count += 1;
+        root.partner_entities.push(BpmnPartnerEntitySnapshot {
+            partner_entity_id: attribute_value(source, reader, event, "id")?,
+            name: attribute_value(source, reader, event, "name")?,
+            participant_refs: Vec::new(),
+        });
+        if !is_empty {
+            self.current_partner_entity = root.partner_entities.len().checked_sub(1);
+        }
+        Ok(())
+    }
+
+    fn start_partner_role(
+        &mut self,
+        source: &BpmnSourceFile,
+        reader: &Reader<&[u8]>,
+        event: &BytesStart<'_>,
+        is_empty: bool,
+    ) -> Result<()> {
+        let Some(root) = self.root.as_mut() else {
+            return Ok(());
+        };
+        root.partner_role_count += 1;
+        root.partner_roles.push(BpmnPartnerRoleSnapshot {
+            partner_role_id: attribute_value(source, reader, event, "id")?,
+            name: attribute_value(source, reader, event, "name")?,
+            participant_refs: Vec::new(),
+        });
+        if !is_empty {
+            self.current_partner_role = root.partner_roles.len().checked_sub(1);
+        }
         Ok(())
     }
 
@@ -1800,6 +1918,46 @@ impl BpmnSnapshotScanState {
         relationship.target_refs.push(text.to_string());
     }
 
+    fn push_participant_interface_ref(&mut self, text: &str) {
+        let Some(participant) = self.current_participant_mut() else {
+            return;
+        };
+        participant.interface_refs.push(text.to_string());
+    }
+
+    fn push_participant_end_point_ref(&mut self, text: &str) {
+        let Some(participant) = self.current_participant_mut() else {
+            return;
+        };
+        participant.end_point_refs.push(text.to_string());
+    }
+
+    fn push_partner_entity_participant_ref(&mut self, text: &str) {
+        let Some(partner_entity_index) = self.current_partner_entity else {
+            return;
+        };
+        let Some(root) = self.root.as_mut() else {
+            return;
+        };
+        let Some(partner_entity) = root.partner_entities.get_mut(partner_entity_index) else {
+            return;
+        };
+        partner_entity.participant_refs.push(text.to_string());
+    }
+
+    fn push_partner_role_participant_ref(&mut self, text: &str) {
+        let Some(partner_role_index) = self.current_partner_role else {
+            return;
+        };
+        let Some(root) = self.root.as_mut() else {
+            return;
+        };
+        let Some(partner_role) = root.partner_roles.get_mut(partner_role_index) else {
+            return;
+        };
+        partner_role.participant_refs.push(text.to_string());
+    }
+
     fn push_conversation_participant_ref(&mut self, text: &str) {
         let Some(conversation) = self.current_conversation_node_mut() else {
             return;
@@ -2107,6 +2265,14 @@ impl BpmnSnapshotScanState {
             .and_then(|index| self.collaborations.get_mut(index))
     }
 
+    fn current_participant_mut(&mut self) -> Option<&mut BpmnParticipantSnapshot> {
+        let (collaboration_index, participant_index) = self.current_participant?;
+        self.collaborations
+            .get_mut(collaboration_index)?
+            .participants
+            .get_mut(participant_index)
+    }
+
     fn current_collaboration_metadata_owner(&self) -> Option<CollaborationMetadataOwner> {
         if let Some((collaboration_index, path)) = self.choreography_activity_stack.last() {
             return Some(CollaborationMetadataOwner::ChoreographyActivity(
@@ -2398,6 +2564,8 @@ fn root_from_event(
         messages: Vec::new(),
         interface_count: 0,
         interfaces: Vec::new(),
+        end_point_count: 0,
+        end_points: Vec::new(),
         resource_count: 0,
         resources: Vec::new(),
         category_count: 0,
@@ -2412,6 +2580,10 @@ fn root_from_event(
         signals: Vec::new(),
         data_store_count: 0,
         data_stores: Vec::new(),
+        partner_entity_count: 0,
+        partner_entities: Vec::new(),
+        partner_role_count: 0,
+        partner_roles: Vec::new(),
     })
 }
 

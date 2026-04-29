@@ -142,6 +142,14 @@ fn text_target(element_stack: &[String]) -> Option<TextTarget> {
         (Some("documentation"), Some("extension")) => Some(TextTarget::ExtensionDocumentation),
         (Some("source"), Some("relationship")) => Some(TextTarget::RelationshipSource),
         (Some("target"), Some("relationship")) => Some(TextTarget::RelationshipTarget),
+        (Some("interfaceRef"), Some("participant")) => Some(TextTarget::ParticipantInterfaceRef),
+        (Some("endPointRef"), Some("participant")) => Some(TextTarget::ParticipantEndPointRef),
+        (Some("participantRef"), Some("partnerEntity")) => {
+            Some(TextTarget::PartnerEntityParticipantRef)
+        }
+        (Some("participantRef"), Some("partnerRole")) => {
+            Some(TextTarget::PartnerRoleParticipantRef)
+        }
         (Some("participantRef"), Some("conversation" | "subConversation" | "callConversation")) => {
             Some(TextTarget::ConversationParticipantRef)
         }

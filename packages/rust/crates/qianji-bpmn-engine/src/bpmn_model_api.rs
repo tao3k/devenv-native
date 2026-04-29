@@ -82,6 +82,12 @@ pub struct BpmnRootSnapshot {
     /// Bounded top-level `interface` metadata preserved from the document.
     #[serde(default)]
     pub interfaces: Vec<BpmnInterfaceSnapshot>,
+    /// Number of top-level `endPoint` elements discovered in the document.
+    #[serde(default)]
+    pub end_point_count: usize,
+    /// Bounded top-level `endPoint` metadata preserved from the document.
+    #[serde(default)]
+    pub end_points: Vec<BpmnEndPointSnapshot>,
     /// Number of top-level `resource` elements discovered in the document.
     #[serde(default)]
     pub resource_count: usize,
@@ -122,6 +128,18 @@ pub struct BpmnRootSnapshot {
     pub data_store_count: usize,
     /// Bounded top-level `dataStore` metadata preserved from the document.
     pub data_stores: Vec<BpmnDataStoreSnapshot>,
+    /// Number of top-level `partnerEntity` elements discovered in the document.
+    #[serde(default)]
+    pub partner_entity_count: usize,
+    /// Bounded top-level `partnerEntity` metadata preserved from the document.
+    #[serde(default)]
+    pub partner_entities: Vec<BpmnPartnerEntitySnapshot>,
+    /// Number of top-level `partnerRole` elements discovered in the document.
+    #[serde(default)]
+    pub partner_role_count: usize,
+    /// Bounded top-level `partnerRole` metadata preserved from the document.
+    #[serde(default)]
+    pub partner_roles: Vec<BpmnPartnerRoleSnapshot>,
 }
 
 /// Snapshot of one BPMN `import`.
@@ -340,6 +358,13 @@ pub struct BpmnInterfaceSnapshot {
     pub operations: Vec<BpmnOperationSnapshot>,
 }
 
+/// Snapshot of one BPMN `endPoint`.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct BpmnEndPointSnapshot {
+    /// Optional stable endpoint identifier.
+    pub end_point_id: Option<String>,
+}
+
 /// Snapshot of one BPMN `operation`.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct BpmnOperationSnapshot {
@@ -528,6 +553,50 @@ pub struct BpmnParticipantSnapshot {
     pub name: Option<String>,
     /// Optional referenced process identifier.
     pub process_ref: Option<String>,
+    /// Direct nested interface references preserved in source order.
+    #[serde(default)]
+    pub interface_refs: Vec<String>,
+    /// Direct nested endpoint references preserved in source order.
+    #[serde(default)]
+    pub end_point_refs: Vec<String>,
+    /// Optional direct participant multiplicity metadata.
+    #[serde(default)]
+    pub participant_multiplicity: Option<BpmnParticipantMultiplicitySnapshot>,
+}
+
+/// Snapshot of one BPMN `participantMultiplicity`.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct BpmnParticipantMultiplicitySnapshot {
+    /// Optional stable multiplicity identifier.
+    pub multiplicity_id: Option<String>,
+    /// Optional BPMN minimum payload.
+    pub minimum: Option<String>,
+    /// Optional BPMN maximum payload.
+    pub maximum: Option<String>,
+}
+
+/// Snapshot of one BPMN `partnerEntity`.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct BpmnPartnerEntitySnapshot {
+    /// Optional stable partner-entity identifier.
+    pub partner_entity_id: Option<String>,
+    /// Optional human-readable partner-entity name.
+    pub name: Option<String>,
+    /// Direct participant references preserved in source order.
+    #[serde(default)]
+    pub participant_refs: Vec<String>,
+}
+
+/// Snapshot of one BPMN `partnerRole`.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct BpmnPartnerRoleSnapshot {
+    /// Optional stable partner-role identifier.
+    pub partner_role_id: Option<String>,
+    /// Optional human-readable partner-role name.
+    pub name: Option<String>,
+    /// Direct participant references preserved in source order.
+    #[serde(default)]
+    pub participant_refs: Vec<String>,
 }
 
 /// Snapshot of one BPMN `messageFlow`.
@@ -883,6 +952,8 @@ pub(crate) fn empty_bpmn_root_snapshot(source: &BpmnSourceFile) -> BpmnRootSnaps
         messages: Vec::new(),
         interface_count: 0,
         interfaces: Vec::new(),
+        end_point_count: 0,
+        end_points: Vec::new(),
         resource_count: 0,
         resources: Vec::new(),
         category_count: 0,
@@ -897,5 +968,9 @@ pub(crate) fn empty_bpmn_root_snapshot(source: &BpmnSourceFile) -> BpmnRootSnaps
         signals: Vec::new(),
         data_store_count: 0,
         data_stores: Vec::new(),
+        partner_entity_count: 0,
+        partner_entities: Vec::new(),
+        partner_role_count: 0,
+        partner_roles: Vec::new(),
     }
 }

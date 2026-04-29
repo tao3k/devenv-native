@@ -1,7 +1,7 @@
 use crate::bpmn_model_api::{
     BpmnAssociationSnapshot, BpmnChoreographyActivitySnapshot, BpmnCollaborationSnapshot,
-    BpmnConversationNodeSnapshot, BpmnDocumentSnapshot, BpmnGroupSnapshot,
-    BpmnTextAnnotationSnapshot,
+    BpmnConversationNodeSnapshot, BpmnDocumentSnapshot, BpmnGroupSnapshot, BpmnParticipantSnapshot,
+    BpmnPartnerEntitySnapshot, BpmnPartnerRoleSnapshot, BpmnTextAnnotationSnapshot,
 };
 use crate::bpmn_parse_api::BpmnSourceFile;
 use crate::bpmn_snapshot_api::snapshot_bpmn_source;
@@ -39,6 +39,8 @@ fn local_name(raw: &[u8]) -> Option<&str> {
 fn issue_for_tag(source: &BpmnSourceFile, tag: &str) -> Option<LintIssue> {
     match tag {
         "collaboration"
+        | "partnerEntity"
+        | "partnerRole"
         | "participant"
         | "messageFlow"
         | "conversation"
@@ -132,6 +134,7 @@ fn root_snapshot_summary(snapshot: &BpmnDocumentSnapshot) -> Value {
         "item_definition_count": snapshot.root.item_definition_count,
         "message_count": snapshot.root.message_count,
         "interface_count": snapshot.root.interface_count,
+        "end_point_count": snapshot.root.end_point_count,
         "resource_count": snapshot.root.resource_count,
         "category_count": snapshot.root.category_count,
         "correlation_property_count": snapshot.root.correlation_property_count,
@@ -139,6 +142,8 @@ fn root_snapshot_summary(snapshot: &BpmnDocumentSnapshot) -> Value {
         "escalation_count": snapshot.root.escalation_count,
         "signal_count": snapshot.root.signal_count,
         "data_store_count": snapshot.root.data_store_count,
+        "partner_entity_count": snapshot.root.partner_entity_count,
+        "partner_role_count": snapshot.root.partner_role_count,
     })
 }
 
@@ -153,12 +158,20 @@ fn collaboration_snapshot_summary(snapshot: &BpmnDocumentSnapshot) -> Value {
     let item_definitions = item_definition_evidence(snapshot);
     let messages = message_evidence(snapshot);
     let interfaces = interface_evidence(snapshot);
+    let partner_entities = partner_entity_evidence(snapshot);
+    let partner_roles = partner_role_evidence(snapshot);
     let correlation_properties = correlation_property_evidence(snapshot);
 
     json!({
         "root": root_snapshot_summary(snapshot),
         "collaboration_count": snapshot.collaborations.len(),
+        "partner_entity_count": snapshot.root.partner_entity_count,
+        "partner_role_count": snapshot.root.partner_role_count,
+        "end_point_count": snapshot.root.end_point_count,
         "participant_count": counts.participant,
+        "participant_interface_ref_count": counts.participant_interface_ref,
+        "participant_end_point_ref_count": counts.participant_end_point_ref,
+        "participant_multiplicity_count": counts.participant_multiplicity,
         "message_flow_count": counts.message_flow,
         "conversation_node_count": counts.conversation_node,
         "conversation_link_count": counts.conversation_link,
@@ -174,6 +187,8 @@ fn collaboration_snapshot_summary(snapshot: &BpmnDocumentSnapshot) -> Value {
         "message_count": snapshot.root.message_count,
         "interface_count": snapshot.root.interface_count,
         "correlation_property_count": snapshot.root.correlation_property_count,
+        "partner_entities_truncated": snapshot.root.partner_entities.len() > SNAPSHOT_EVIDENCE_LIMIT,
+        "partner_roles_truncated": snapshot.root.partner_roles.len() > SNAPSHOT_EVIDENCE_LIMIT,
         "collaborations_truncated": snapshot.collaborations.len() > SNAPSHOT_EVIDENCE_LIMIT,
         "item_definitions_truncated": snapshot.root.item_definitions.len() > SNAPSHOT_EVIDENCE_LIMIT,
         "messages_truncated": snapshot.root.messages.len() > SNAPSHOT_EVIDENCE_LIMIT,
@@ -182,6 +197,8 @@ fn collaboration_snapshot_summary(snapshot: &BpmnDocumentSnapshot) -> Value {
         "item_definitions": item_definitions,
         "messages": messages,
         "interfaces": interfaces,
+        "partner_entities": partner_entities,
+        "partner_roles": partner_roles,
         "correlation_properties": correlation_properties,
         "collaborations": collaborations,
     })
@@ -190,6 +207,9 @@ fn collaboration_snapshot_summary(snapshot: &BpmnDocumentSnapshot) -> Value {
 #[derive(Debug, Default)]
 struct CollaborationCounts {
     participant: usize,
+    participant_interface_ref: usize,
+    participant_end_point_ref: usize,
+    participant_multiplicity: usize,
     message_flow: usize,
     conversation_node: usize,
     conversation_link: usize,
@@ -208,6 +228,12 @@ fn collaboration_counts(snapshot: &BpmnDocumentSnapshot) -> CollaborationCounts 
         CollaborationCounts::default(),
         |mut counts, collaboration| {
             counts.participant += collaboration.participants.len();
+            for participant in &collaboration.participants {
+                counts.participant_interface_ref += participant.interface_refs.len();
+                counts.participant_end_point_ref += participant.end_point_refs.len();
+                counts.participant_multiplicity +=
+                    usize::from(participant.participant_multiplicity.is_some());
+            }
             counts.message_flow += collaboration.message_flows.len();
             counts.conversation_node += collaboration
                 .conversation_nodes
@@ -236,6 +262,9 @@ fn collaboration_evidence(collaboration: &BpmnCollaborationSnapshot) -> Value {
     json!({
         "collaboration_id": collaboration.collaboration_id,
         "participant_count": collaboration.participants.len(),
+        "participant_interface_ref_count": collaboration.participants.iter().map(|participant| participant.interface_refs.len()).sum::<usize>(),
+        "participant_end_point_ref_count": collaboration.participants.iter().map(|participant| participant.end_point_refs.len()).sum::<usize>(),
+        "participant_multiplicity_count": collaboration.participants.iter().filter(|participant| participant.participant_multiplicity.is_some()).count(),
         "message_flow_count": collaboration.message_flows.len(),
         "conversation_node_count": collaboration.conversation_nodes.iter().map(conversation_node_count).sum::<usize>(),
         "conversation_link_count": collaboration.conversation_links.len(),
@@ -249,12 +278,7 @@ fn collaboration_evidence(collaboration: &BpmnCollaborationSnapshot) -> Value {
         "artifact_group_count": collaboration.groups.len(),
         "text_annotation_count": collaboration.text_annotations.len(),
         "initiating_participant_ref": collaboration.initiating_participant_ref,
-        "participants": collaboration.participants.iter().take(SNAPSHOT_EVIDENCE_LIMIT).map(|participant| {
-            json!({
-                "participant_id": participant.participant_id,
-                "process_ref": participant.process_ref,
-            })
-        }).collect::<Vec<_>>(),
+        "participants": collaboration.participants.iter().take(SNAPSHOT_EVIDENCE_LIMIT).map(participant_evidence).collect::<Vec<_>>(),
         "message_flows": collaboration.message_flows.iter().take(SNAPSHOT_EVIDENCE_LIMIT).map(|flow| {
             json!({
                 "message_flow_id": flow.message_flow_id,
@@ -275,6 +299,23 @@ fn collaboration_evidence(collaboration: &BpmnCollaborationSnapshot) -> Value {
                 "target_ref": link.target_ref,
             })
         }).collect::<Vec<_>>(),
+    })
+}
+
+fn participant_evidence(participant: &BpmnParticipantSnapshot) -> Value {
+    json!({
+        "participant_id": participant.participant_id,
+        "name": participant.name,
+        "process_ref": participant.process_ref,
+        "interface_refs": participant.interface_refs,
+        "end_point_refs": participant.end_point_refs,
+        "participant_multiplicity": participant.participant_multiplicity.as_ref().map(|multiplicity| {
+            json!({
+                "multiplicity_id": multiplicity.multiplicity_id,
+                "minimum": multiplicity.minimum,
+                "maximum": multiplicity.maximum,
+            })
+        }),
     })
 }
 
@@ -438,6 +479,42 @@ fn interface_evidence(snapshot: &BpmnDocumentSnapshot) -> Vec<Value> {
             })
         })
         .collect()
+}
+
+fn partner_entity_evidence(snapshot: &BpmnDocumentSnapshot) -> Vec<Value> {
+    snapshot
+        .root
+        .partner_entities
+        .iter()
+        .take(SNAPSHOT_EVIDENCE_LIMIT)
+        .map(partner_entity_item_evidence)
+        .collect()
+}
+
+fn partner_entity_item_evidence(partner_entity: &BpmnPartnerEntitySnapshot) -> Value {
+    json!({
+        "partner_entity_id": partner_entity.partner_entity_id,
+        "name": partner_entity.name,
+        "participant_refs": partner_entity.participant_refs,
+    })
+}
+
+fn partner_role_evidence(snapshot: &BpmnDocumentSnapshot) -> Vec<Value> {
+    snapshot
+        .root
+        .partner_roles
+        .iter()
+        .take(SNAPSHOT_EVIDENCE_LIMIT)
+        .map(partner_role_item_evidence)
+        .collect()
+}
+
+fn partner_role_item_evidence(partner_role: &BpmnPartnerRoleSnapshot) -> Value {
+    json!({
+        "partner_role_id": partner_role.partner_role_id,
+        "name": partner_role.name,
+        "participant_refs": partner_role.participant_refs,
+    })
 }
 
 fn correlation_property_evidence(snapshot: &BpmnDocumentSnapshot) -> Vec<Value> {
