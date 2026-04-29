@@ -10,8 +10,8 @@ The current engine supports these bounded families:
 - `intermediateCatchEvent` with exactly one `messageEventDefinition`,
   `signalEventDefinition`, `timerEventDefinition`, or
   `conditionalEventDefinition` with one bounded `condition`
-- one interrupting timer, message, or signal `boundaryEvent` attached to one
-  host-blocking task owner
+- one interrupting timer, message, signal, or conditional `boundaryEvent`
+  attached to one host-blocking task owner
 - one interrupting timer, message, or signal `boundaryEvent` attached to one
   bounded embedded subprocess owner, either alone or paired with one or more
   interrupting error boundaries on that same owner
@@ -25,12 +25,12 @@ The current engine supports these bounded families:
   interrupting cancel boundary plus one or more interrupting error
   boundaries on that same owner, while still permitting only one
   timer/message/signal boundary and one cancel boundary on that owner
-- one non-interrupting timer, message, or signal `boundaryEvent` attached to
-  one non-repeating task owner
-- one non-interrupting timer, message, or signal `boundaryEvent` attached to
-  one bounded standard-loop task owner
-- one non-interrupting timer, message, or signal `boundaryEvent` attached to
-  one bounded sequential or parallel multi-instance task owner
+- one non-interrupting timer, message, signal, or conditional `boundaryEvent`
+  attached to one non-repeating task owner
+- one non-interrupting timer, message, signal, or conditional `boundaryEvent`
+  attached to one bounded standard-loop task owner
+- one non-interrupting timer, message, signal, or conditional `boundaryEvent`
+  attached to one bounded sequential or parallel multi-instance task owner
 - one bounded transaction cancel boundary plus one or more bounded transaction
   error boundaries
 - one or more bounded interrupting error boundaries on one embedded subprocess
@@ -72,8 +72,8 @@ These shapes remain outside the bounded surface:
 - root-level escalation ends, non-interrupting escalation boundaries,
   intermediate throw escalation, escalation start events, and escalation event
   subprocess triggers
-- conditional boundary events, conditional start events, and conditional event
-  subprocess triggers
+- conditional boundaries on subprocess-like owners, conditional start events,
+  and conditional event subprocess triggers
 - event subprocesses
 - broader message, signal, or timer boundary families on subprocess-like
   owners beyond one interrupting embedded subprocess owner that may

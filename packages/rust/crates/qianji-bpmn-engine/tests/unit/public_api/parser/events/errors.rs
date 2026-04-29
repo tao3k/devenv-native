@@ -88,3 +88,37 @@ fn parser_intermediate_conditional_event_rejects_unsupported_condition_expressio
         }
     );
 }
+
+#[test]
+fn parser_conditional_boundary_event_requires_condition_expression() {
+    let error = parse_fixture_error(
+        "invalid-boundary-conditional-missing-condition.bpmn",
+        "conditional boundary events without a condition should fail validation",
+    );
+
+    assert_eq!(
+        error,
+        BpmnEngineError::MissingRequiredNodeElement {
+            process_id: "review_with_invalid_conditional_boundary".to_string(),
+            node_id: "review_condition".to_string(),
+            element: "conditional_expression",
+        }
+    );
+}
+
+#[test]
+fn parser_conditional_boundary_event_rejects_unsupported_condition_expression() {
+    let error = parse_fixture_error(
+        "invalid-boundary-conditional-unsupported-condition.bpmn",
+        "unsupported conditional boundary expression should fail validation",
+    );
+
+    assert_eq!(
+        error,
+        BpmnEngineError::UnsupportedEventConfiguration {
+            process_id: "review_with_invalid_conditional_boundary".to_string(),
+            node_id: "review_condition".to_string(),
+            detail: "unsupported_conditional_event_expression",
+        }
+    );
+}

@@ -99,7 +99,12 @@ pub(super) fn validate_boundary_event(
     }
     if !matches!(
         event_kind,
-        Some(BpmnEventKind::Timer | BpmnEventKind::Message | BpmnEventKind::Signal)
+        Some(
+            BpmnEventKind::Timer
+                | BpmnEventKind::Message
+                | BpmnEventKind::Signal
+                | BpmnEventKind::Conditional
+        )
     ) {
         return Err(BpmnEngineError::UnsupportedBoundaryEventConfiguration {
             process_id: process.process_id.clone(),
@@ -150,7 +155,12 @@ fn validate_non_interrupting_boundary(
     }
     if !matches!(
         event_kind,
-        Some(BpmnEventKind::Timer | BpmnEventKind::Message | BpmnEventKind::Signal)
+        Some(
+            BpmnEventKind::Timer
+                | BpmnEventKind::Message
+                | BpmnEventKind::Signal
+                | BpmnEventKind::Conditional
+        )
     ) {
         return Err(BpmnEngineError::UnsupportedBoundaryEventConfiguration {
             process_id: process.process_id.clone(),

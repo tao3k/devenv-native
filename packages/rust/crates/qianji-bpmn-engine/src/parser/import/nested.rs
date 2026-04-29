@@ -698,7 +698,7 @@ fn supported_event_definition(parent: &str, tag: &str) -> Option<BpmnEventKind> 
         ("boundaryEvent" | "endEvent", "cancelEventDefinition") => Some(BpmnEventKind::Cancel),
         ("boundaryEvent", "compensateEventDefinition") => Some(BpmnEventKind::Compensation),
         ("endEvent", "terminateEventDefinition") => Some(BpmnEventKind::Terminate),
-        ("intermediateCatchEvent", "conditionalEventDefinition") => {
+        ("intermediateCatchEvent" | "boundaryEvent", "conditionalEventDefinition") => {
             Some(BpmnEventKind::Conditional)
         }
         _ => None,

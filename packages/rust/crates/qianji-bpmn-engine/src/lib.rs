@@ -27,8 +27,8 @@
 //! message/signal/timer `intermediateCatchEvent` waits, plus
 //! `intermediateCatchEvent` waits backed by `messageEventDefinition`,
 //! `signalEventDefinition`, and snapshot-style `timerEventDefinition`, plus
-//! one interrupting timer, message, or signal `boundaryEvent` on one
-//! host-blocking task, plus one non-interrupting timer, message, or signal
+//! one interrupting timer, message, signal, or conditional `boundaryEvent` on one
+//! host-blocking task, plus one non-interrupting timer, message, signal, or conditional
 //! `boundaryEvent` on one non-repeating or bounded
 //! `standardLoopCharacteristics`, sequential multi-instance, or parallel
 //! multi-instance host-blocking task, plus

@@ -208,7 +208,10 @@ fn arm_boundary_wait(
     }
     if !matches!(
         event.kind,
-        BpmnEventKind::Timer | BpmnEventKind::Message | BpmnEventKind::Signal
+        BpmnEventKind::Timer
+            | BpmnEventKind::Message
+            | BpmnEventKind::Signal
+            | BpmnEventKind::Conditional
     ) {
         return Err(BpmnEngineError::UnsupportedBoundaryEventConfiguration {
             process_id: process.key.process_id.to_string(),

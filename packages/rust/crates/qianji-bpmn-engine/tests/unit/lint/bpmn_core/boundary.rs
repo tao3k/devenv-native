@@ -74,6 +74,26 @@ fn bpmn_linter_accepts_interrupting_boundary_message_subset() {
 }
 
 #[test]
+fn bpmn_linter_accepts_interrupting_conditional_boundary_subset() {
+    let report = lint_bpmn_source(&bpmn_fixture_source("boundary-conditional-interrupt.bpmn"));
+
+    assert_eq!(report.domain, LintDomain::Bpmn);
+    assert!(report.ok);
+    assert!(report.issues.is_empty());
+}
+
+#[test]
+fn bpmn_linter_accepts_non_interrupting_conditional_boundary_subset() {
+    let report = lint_bpmn_source(&bpmn_fixture_source(
+        "boundary-conditional-non-interrupt.bpmn",
+    ));
+
+    assert_eq!(report.domain, LintDomain::Bpmn);
+    assert!(report.ok);
+    assert!(report.issues.is_empty());
+}
+
+#[test]
 fn bpmn_linter_accepts_standard_loop_non_interrupting_boundary_timer_subset() {
     let report = lint_bpmn_source(&bpmn_fixture_source(
         "boundary-timer-non-interrupt-standard-loop.bpmn",

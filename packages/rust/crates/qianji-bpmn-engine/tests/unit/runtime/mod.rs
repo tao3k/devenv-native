@@ -874,6 +874,42 @@ fn non_interrupting_boundary_external_process(
     boundary_external_process_with_cancel(process_id, event_kind, reference_id, event_name, false)
 }
 
+fn boundary_conditional_process_with_cancel(
+    process_id: &str,
+    cancel_activity: bool,
+) -> BpmnProcessSpec {
+    BpmnProcessSpec::new(
+        ProcessKey::new("pkg_runtime", process_id, format!("digest_{process_id}")),
+        vec![
+            BpmnNodeSpec::new(0, "start", BpmnNodeKind::StartEvent),
+            BpmnNodeSpec::new(1, "review", BpmnNodeKind::UserTask)
+                .with_task_io(runtime_optional_output_io()),
+            BpmnNodeSpec::new(2, "review_condition", BpmnNodeKind::BoundaryEvent)
+                .with_boundary_attachment(1, cancel_activity),
+            BpmnNodeSpec::new(3, "approved_end", BpmnNodeKind::EndEvent),
+            BpmnNodeSpec::new(4, "condition_end", BpmnNodeKind::EndEvent),
+        ],
+        vec![
+            BpmnEdgeSpec::new(0, 1, None::<&str>),
+            BpmnEdgeSpec::new(1, 3, None::<&str>),
+            BpmnEdgeSpec::new(2, 4, None::<&str>),
+        ],
+        vec![
+            BpmnEventSpec::new(2, BpmnEventKind::Conditional)
+                .with_name("ReviewCondition")
+                .with_condition_expression("escalated"),
+        ],
+    )
+}
+
+fn boundary_conditional_process(process_id: &str) -> BpmnProcessSpec {
+    boundary_conditional_process_with_cancel(process_id, true)
+}
+
+fn non_interrupting_boundary_conditional_process(process_id: &str) -> BpmnProcessSpec {
+    boundary_conditional_process_with_cancel(process_id, false)
+}
+
 fn call_activity_main_process(process_id: &str) -> BpmnProcessSpec {
     BpmnProcessSpec::new(
         ProcessKey::new("pkg_runtime", process_id, format!("digest_{process_id}")),
