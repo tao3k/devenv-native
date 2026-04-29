@@ -22,6 +22,7 @@ mod lane;
 mod linear;
 mod looped;
 mod multi_instance;
+mod terminate;
 mod wait;
 
 fn start_end_process() -> BpmnProcessSpec {

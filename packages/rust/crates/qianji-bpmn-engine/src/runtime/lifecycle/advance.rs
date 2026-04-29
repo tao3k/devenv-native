@@ -5,7 +5,8 @@ use super::scope::{
     evaluate_dmn_package_binding_sync,
 };
 use super::{
-    blocking, call_activity, completion, error, gateway, prepare, repeat, state, transaction,
+    blocking, call_activity, completion, error, gateway, prepare, repeat, state, terminate,
+    transaction,
 };
 use crate::runtime_instance_api::BpmnHumanTaskLifecycleEventKind;
 use serde_json::{Map, Value};
@@ -204,6 +205,15 @@ fn advance_end_event(
                     )?;
                 }
                 return Ok(None);
+            }
+            BpmnEventKind::Terminate => {
+                return terminate::terminate_end_event(
+                    package,
+                    instance,
+                    current_token_index,
+                    current_node_index,
+                    now_ms,
+                );
             }
             _ => {}
         }

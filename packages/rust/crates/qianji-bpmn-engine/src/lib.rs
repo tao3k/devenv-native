@@ -60,6 +60,9 @@
 //! cancel the non-selected sibling boundaries, and the bounded subset still
 //! permits only one interrupting timer/message/signal boundary and one
 //! interrupting cancel boundary on that same owner, plus one bounded
+//! terminate end-event subset where `terminateEventDefinition` cancels sibling
+//! active tokens, waits, and host work in the current runtime scope before root
+//! completion or parent-scope completion, plus one bounded
 //! transaction cancel
 //! compensation subset where compensable activities may bind one explicit
 //! compensation handler and cancel routing replays those handlers in reverse

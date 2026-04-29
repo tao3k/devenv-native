@@ -13,6 +13,7 @@ mod prepare;
 mod repeat;
 mod scope;
 mod state;
+mod terminate;
 mod transaction;
 
 pub(crate) use api::{

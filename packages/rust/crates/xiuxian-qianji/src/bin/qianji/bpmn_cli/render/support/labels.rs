@@ -91,6 +91,7 @@ pub(in crate::bpmn_cli::render) fn bpmn_event_kind_label(kind: &BpmnEventKind) -
         BpmnEventKind::Cancel => "cancel",
         BpmnEventKind::Compensation => "compensation",
         BpmnEventKind::Conditional => "conditional",
+        BpmnEventKind::Terminate => "terminate",
     }
 }
 

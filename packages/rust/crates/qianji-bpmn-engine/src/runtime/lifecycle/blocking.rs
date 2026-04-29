@@ -42,6 +42,11 @@ pub(super) fn build_wait_registration(
                 operation: "advance_instance_conditional_event_wait",
             });
         }
+        BpmnEventKind::Terminate => {
+            return Err(BpmnEngineError::UnsupportedOperation {
+                operation: "advance_instance_terminate_event_wait",
+            });
+        }
     };
 
     Ok(WaitRegistration {

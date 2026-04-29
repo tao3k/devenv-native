@@ -21,6 +21,8 @@ pub enum BpmnEventKind {
     Compensation,
     /// Conditional event.
     Conditional,
+    /// Terminate end event.
+    Terminate,
 }
 
 /// Snapshot-style timer discriminator for the bounded timer slice.

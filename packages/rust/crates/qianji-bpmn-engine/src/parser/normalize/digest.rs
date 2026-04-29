@@ -389,6 +389,7 @@ fn event_kind_name(kind: &BpmnEventKind) -> &'static str {
         BpmnEventKind::Cancel => "cancel",
         BpmnEventKind::Compensation => "compensation",
         BpmnEventKind::Conditional => "conditional",
+        BpmnEventKind::Terminate => "terminate",
     }
 }
 

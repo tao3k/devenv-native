@@ -34,7 +34,7 @@ guidance.
 | Compensation              | bounded executable | Transaction-owned compensation handlers and throw-compensation paths.        |
 | Conditional events        | lint-deferred      | Event kind exists, runtime wait execution is deferred.                       |
 | Escalation events         | lint-deferred      | Not executable in the current bounded runtime.                               |
-| Terminate events          | missing            | No runtime termination family yet.                                           |
+| Terminate events          | bounded executable | `terminateEventDefinition` end events terminate the current runtime scope.   |
 | Multiple events           | lint-deferred      | Multiple and parallel-multiple event families are deferred.                  |
 | Embedded subprocess       | bounded executable | One nested start event and at least one nested end event.                    |
 | Call activity             | bounded executable | Same-package executable process targets.                                     |
@@ -61,3 +61,11 @@ writes outputs through declared BPMN `dataOutputAssociation` targets.
 Data-store persistence, transformations, multiple-source associations, and
 collaboration-aware routing remain deferred until separate milestones define
 their execution contracts.
+
+## Active M2 Event Milestone
+
+The first event-family slice promotes `terminateEventDefinition` end events
+from missing to bounded executable. A terminate end cancels sibling active
+tokens, waits, and pending host work in the current runtime scope. At the root
+process it completes the instance; inside a bounded called or embedded scope it
+completes the parent activity route.
