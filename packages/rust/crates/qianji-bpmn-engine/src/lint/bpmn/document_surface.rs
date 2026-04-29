@@ -1,4 +1,6 @@
-use crate::bpmn_model_api::BpmnDocumentSnapshot;
+use crate::bpmn_model_api::{
+    BpmnCollaborationSnapshot, BpmnConversationNodeSnapshot, BpmnDocumentSnapshot,
+};
 use crate::bpmn_parse_api::BpmnSourceFile;
 use crate::bpmn_snapshot_api::snapshot_bpmn_source;
 use crate::lint_api::LintIssue;
@@ -133,41 +135,12 @@ fn root_snapshot_summary(snapshot: &BpmnDocumentSnapshot) -> Value {
 }
 
 fn collaboration_snapshot_summary(snapshot: &BpmnDocumentSnapshot) -> Value {
-    let participant_count = snapshot
-        .collaborations
-        .iter()
-        .map(|collaboration| collaboration.participants.len())
-        .sum::<usize>();
-    let message_flow_count = snapshot
-        .collaborations
-        .iter()
-        .map(|collaboration| collaboration.message_flows.len())
-        .sum::<usize>();
+    let counts = collaboration_counts(snapshot);
     let collaborations = snapshot
         .collaborations
         .iter()
         .take(SNAPSHOT_EVIDENCE_LIMIT)
-        .map(|collaboration| {
-            json!({
-                "collaboration_id": collaboration.collaboration_id,
-                "participant_count": collaboration.participants.len(),
-                "message_flow_count": collaboration.message_flows.len(),
-                "participants": collaboration.participants.iter().take(SNAPSHOT_EVIDENCE_LIMIT).map(|participant| {
-                    json!({
-                        "participant_id": participant.participant_id,
-                        "process_ref": participant.process_ref,
-                    })
-                }).collect::<Vec<_>>(),
-                "message_flows": collaboration.message_flows.iter().take(SNAPSHOT_EVIDENCE_LIMIT).map(|flow| {
-                    json!({
-                        "message_flow_id": flow.message_flow_id,
-                        "source_ref": flow.source_ref,
-                        "target_ref": flow.target_ref,
-                        "message_ref": flow.message_ref,
-                    })
-                }).collect::<Vec<_>>(),
-            })
-        })
+        .map(collaboration_evidence)
         .collect::<Vec<_>>();
     let item_definitions = item_definition_evidence(snapshot);
     let messages = message_evidence(snapshot);
@@ -177,8 +150,14 @@ fn collaboration_snapshot_summary(snapshot: &BpmnDocumentSnapshot) -> Value {
     json!({
         "root": root_snapshot_summary(snapshot),
         "collaboration_count": snapshot.collaborations.len(),
-        "participant_count": participant_count,
-        "message_flow_count": message_flow_count,
+        "participant_count": counts.participant,
+        "message_flow_count": counts.message_flow,
+        "conversation_node_count": counts.conversation_node,
+        "conversation_link_count": counts.conversation_link,
+        "conversation_association_count": counts.conversation_association,
+        "participant_association_count": counts.participant_association,
+        "message_flow_association_count": counts.message_flow_association,
+        "correlation_key_count": counts.correlation_key,
         "item_definition_count": snapshot.root.item_definition_count,
         "message_count": snapshot.root.message_count,
         "interface_count": snapshot.root.interface_count,
@@ -193,6 +172,115 @@ fn collaboration_snapshot_summary(snapshot: &BpmnDocumentSnapshot) -> Value {
         "interfaces": interfaces,
         "correlation_properties": correlation_properties,
         "collaborations": collaborations,
+    })
+}
+
+#[derive(Debug, Default)]
+struct CollaborationCounts {
+    participant: usize,
+    message_flow: usize,
+    conversation_node: usize,
+    conversation_link: usize,
+    conversation_association: usize,
+    participant_association: usize,
+    message_flow_association: usize,
+    correlation_key: usize,
+}
+
+fn collaboration_counts(snapshot: &BpmnDocumentSnapshot) -> CollaborationCounts {
+    snapshot.collaborations.iter().fold(
+        CollaborationCounts::default(),
+        |mut counts, collaboration| {
+            counts.participant += collaboration.participants.len();
+            counts.message_flow += collaboration.message_flows.len();
+            counts.conversation_node += collaboration
+                .conversation_nodes
+                .iter()
+                .map(conversation_node_count)
+                .sum::<usize>();
+            counts.conversation_link += collaboration.conversation_links.len();
+            counts.conversation_association += collaboration.conversation_associations.len();
+            counts.participant_association += collaboration.participant_associations.len();
+            counts.message_flow_association += collaboration.message_flow_associations.len();
+            counts.correlation_key += collaboration_correlation_key_count(collaboration);
+            counts
+        },
+    )
+}
+
+fn collaboration_evidence(collaboration: &BpmnCollaborationSnapshot) -> Value {
+    json!({
+        "collaboration_id": collaboration.collaboration_id,
+        "participant_count": collaboration.participants.len(),
+        "message_flow_count": collaboration.message_flows.len(),
+        "conversation_node_count": collaboration.conversation_nodes.iter().map(conversation_node_count).sum::<usize>(),
+        "conversation_link_count": collaboration.conversation_links.len(),
+        "conversation_association_count": collaboration.conversation_associations.len(),
+        "participant_association_count": collaboration.participant_associations.len(),
+        "message_flow_association_count": collaboration.message_flow_associations.len(),
+        "correlation_key_count": collaboration_correlation_key_count(collaboration),
+        "choreography_ref_count": collaboration.choreography_refs.len(),
+        "participants": collaboration.participants.iter().take(SNAPSHOT_EVIDENCE_LIMIT).map(|participant| {
+            json!({
+                "participant_id": participant.participant_id,
+                "process_ref": participant.process_ref,
+            })
+        }).collect::<Vec<_>>(),
+        "message_flows": collaboration.message_flows.iter().take(SNAPSHOT_EVIDENCE_LIMIT).map(|flow| {
+            json!({
+                "message_flow_id": flow.message_flow_id,
+                "source_ref": flow.source_ref,
+                "target_ref": flow.target_ref,
+                "message_ref": flow.message_ref,
+            })
+        }).collect::<Vec<_>>(),
+        "conversation_nodes": collaboration.conversation_nodes.iter().take(SNAPSHOT_EVIDENCE_LIMIT).map(conversation_node_evidence).collect::<Vec<_>>(),
+        "conversation_links": collaboration.conversation_links.iter().take(SNAPSHOT_EVIDENCE_LIMIT).map(|link| {
+            json!({
+                "link_id": link.link_id,
+                "source_ref": link.source_ref,
+                "target_ref": link.target_ref,
+            })
+        }).collect::<Vec<_>>(),
+    })
+}
+
+fn conversation_node_count(node: &BpmnConversationNodeSnapshot) -> usize {
+    1 + node
+        .child_nodes
+        .iter()
+        .map(conversation_node_count)
+        .sum::<usize>()
+}
+
+fn collaboration_correlation_key_count(collaboration: &BpmnCollaborationSnapshot) -> usize {
+    collaboration.correlation_keys.len()
+        + collaboration
+            .conversation_nodes
+            .iter()
+            .map(conversation_node_correlation_key_count)
+            .sum::<usize>()
+}
+
+fn conversation_node_correlation_key_count(node: &BpmnConversationNodeSnapshot) -> usize {
+    node.correlation_keys.len()
+        + node
+            .child_nodes
+            .iter()
+            .map(conversation_node_correlation_key_count)
+            .sum::<usize>()
+}
+
+fn conversation_node_evidence(node: &BpmnConversationNodeSnapshot) -> Value {
+    json!({
+        "node_kind": node.node_kind,
+        "node_id": node.node_id,
+        "called_collaboration_ref": node.called_collaboration_ref,
+        "participant_refs": node.participant_refs,
+        "message_flow_refs": node.message_flow_refs,
+        "correlation_key_count": conversation_node_correlation_key_count(node),
+        "participant_association_count": node.participant_associations.len(),
+        "child_node_count": node.child_nodes.iter().map(conversation_node_count).sum::<usize>(),
     })
 }
 

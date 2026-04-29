@@ -142,6 +142,24 @@ fn text_target(element_stack: &[String]) -> Option<TextTarget> {
         (Some("documentation"), Some("extension")) => Some(TextTarget::ExtensionDocumentation),
         (Some("source"), Some("relationship")) => Some(TextTarget::RelationshipSource),
         (Some("target"), Some("relationship")) => Some(TextTarget::RelationshipTarget),
+        (Some("participantRef"), Some("conversation" | "subConversation" | "callConversation")) => {
+            Some(TextTarget::ConversationParticipantRef)
+        }
+        (Some("messageFlowRef"), Some("conversation" | "subConversation" | "callConversation")) => {
+            Some(TextTarget::ConversationMessageFlowRef)
+        }
+        (Some("correlationPropertyRef"), Some("correlationKey")) => {
+            Some(TextTarget::CorrelationKeyPropertyRef)
+        }
+        (Some("innerParticipantRef"), Some("participantAssociation")) => {
+            Some(TextTarget::ParticipantAssociationInnerRef)
+        }
+        (Some("outerParticipantRef"), Some("participantAssociation")) => {
+            Some(TextTarget::ParticipantAssociationOuterRef)
+        }
+        (Some("choreographyRef"), Some("collaboration" | "globalConversation")) => {
+            Some(TextTarget::CollaborationChoreographyRef)
+        }
         _ => None,
     }
 }

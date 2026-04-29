@@ -18,5 +18,13 @@
     <bpmn:participant id="participant_customer" processRef="order_flow" />
     <bpmn:participant id="participant_fulfillment" />
     <bpmn:messageFlow id="order_message_flow" sourceRef="participant_customer" targetRef="participant_fulfillment" messageRef="order_message" />
+    <bpmn:conversation id="conversation_order" name="Order conversation">
+      <bpmn:participantRef>participant_customer</bpmn:participantRef>
+      <bpmn:messageFlowRef>order_message_flow</bpmn:messageFlowRef>
+      <bpmn:correlationKey id="order_key" name="Order key">
+        <bpmn:correlationPropertyRef>order_correlation</bpmn:correlationPropertyRef>
+      </bpmn:correlationKey>
+    </bpmn:conversation>
+    <bpmn:conversationLink id="conversation_link_order" sourceRef="participant_customer" targetRef="conversation_order" />
   </bpmn:collaboration>
 </bpmn:definitions>

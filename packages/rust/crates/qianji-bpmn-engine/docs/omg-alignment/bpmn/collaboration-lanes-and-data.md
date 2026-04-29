@@ -8,6 +8,8 @@ official [BPMN 2.0.2 specification](https://www.omg.org/spec/BPMN/2.0.2).
 The current engine preserves non-executable BPMN metadata for these families:
 
 - collaboration-level participant and message-flow structure
+- collaboration-level conversation nodes, links, associations, correlation
+  keys, and choreography references
 - top-level item-definition catalog metadata used by message and data
   references
 - top-level message and correlation-property catalogs, including correlation
@@ -30,18 +32,22 @@ collaboration, lane, item-definition, data-object, or data-store families as
 engine-owned execution semantics.
 
 The first collaboration-alignment slices are metadata-only: Rust snapshots
-preserve standard BPMN `message`, `correlationProperty`, and nested
-`correlationPropertyRetrievalExpression` declarations and surface that catalog
-through collaboration lint evidence. That makes participant/message-flow and
-correlation references auditable without requiring adapters to re-scan XML,
-but it does not dispatch message flows or evaluate correlation subscriptions
-or retrieval expressions.
+preserve standard BPMN `message`, `correlationProperty`, nested
+`correlationPropertyRetrievalExpression`, conversation node, conversation link,
+conversation association, participant association, message-flow association,
+correlation-key, and choreography-reference declarations and surface that
+catalog through collaboration lint evidence. That makes participant,
+message-flow, conversation, and correlation references auditable without
+requiring adapters to re-scan XML, but it does not dispatch message flows,
+route conversations, execute choreography, or evaluate correlation
+subscriptions, keys, or retrieval expressions.
 
 ## Runtime Boundary
 
 These BPMN surfaces remain deferred:
 
 - collaboration-aware message routing across pools or participants
+- executable conversation routing and choreography execution
 - executable correlation keys, correlation subscriptions, and retrieval
   expression evaluation
 - executable item-definition schema validation or payload coercion
@@ -60,7 +66,8 @@ IO and route broader state through workflow variables, host dispatch, waits,
 or DMN inputs instead of fabricating partial collaboration, type-validation,
 or data-object execution rules.
 
-For collaboration documents, keep `participant`, `messageFlow`, `message`, and
+For collaboration documents, keep `participant`, `messageFlow`,
+`conversation`, `conversationLink`, `correlationKey`, `message`, and
 `correlationProperty` definitions standard and explicit, including retrieval
 expressions when a correlation property depends on a specific message path.
 The linter can report that metadata as evidence, but runtime behavior must

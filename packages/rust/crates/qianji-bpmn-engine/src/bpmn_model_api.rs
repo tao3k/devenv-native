@@ -469,14 +469,40 @@ pub struct BpmnSignalSnapshot {
 /// Snapshot of one BPMN `collaboration`.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct BpmnCollaborationSnapshot {
+    /// Local BPMN collaboration element kind, such as `collaboration`.
+    #[serde(default)]
+    pub collaboration_kind: String,
     /// Optional stable collaboration identifier.
     pub collaboration_id: Option<String>,
     /// Optional human-readable collaboration name.
     pub name: Option<String>,
+    /// Optional BPMN closed-collaboration marker.
+    pub is_closed: Option<bool>,
     /// Direct participant metadata preserved from the collaboration.
     pub participants: Vec<BpmnParticipantSnapshot>,
     /// Direct message-flow metadata preserved from the collaboration.
     pub message_flows: Vec<BpmnMessageFlowSnapshot>,
+    /// Direct conversation-node metadata preserved from the collaboration.
+    #[serde(default)]
+    pub conversation_nodes: Vec<BpmnConversationNodeSnapshot>,
+    /// Direct conversation-association metadata preserved from the collaboration.
+    #[serde(default)]
+    pub conversation_associations: Vec<BpmnConversationAssociationSnapshot>,
+    /// Direct participant-association metadata preserved from the collaboration.
+    #[serde(default)]
+    pub participant_associations: Vec<BpmnParticipantAssociationSnapshot>,
+    /// Direct message-flow-association metadata preserved from the collaboration.
+    #[serde(default)]
+    pub message_flow_associations: Vec<BpmnMessageFlowAssociationSnapshot>,
+    /// Direct correlation-key metadata preserved from the collaboration.
+    #[serde(default)]
+    pub correlation_keys: Vec<BpmnCorrelationKeySnapshot>,
+    /// Direct choreography references preserved from the collaboration.
+    #[serde(default)]
+    pub choreography_refs: Vec<String>,
+    /// Direct conversation-link metadata preserved from the collaboration.
+    #[serde(default)]
+    pub conversation_links: Vec<BpmnConversationLinkSnapshot>,
 }
 
 /// Snapshot of one BPMN `participant`.
@@ -503,6 +529,92 @@ pub struct BpmnMessageFlowSnapshot {
     pub target_ref: Option<String>,
     /// Optional BPMN message reference.
     pub message_ref: Option<String>,
+}
+
+/// Snapshot of one BPMN conversation node.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct BpmnConversationNodeSnapshot {
+    /// Local BPMN conversation-node kind.
+    pub node_kind: String,
+    /// Optional stable conversation-node identifier.
+    pub node_id: Option<String>,
+    /// Optional human-readable conversation-node name.
+    pub name: Option<String>,
+    /// Optional called collaboration reference for `callConversation`.
+    pub called_collaboration_ref: Option<String>,
+    /// Direct participant references preserved in source order.
+    #[serde(default)]
+    pub participant_refs: Vec<String>,
+    /// Direct message-flow references preserved in source order.
+    #[serde(default)]
+    pub message_flow_refs: Vec<String>,
+    /// Direct correlation keys preserved from this conversation node.
+    #[serde(default)]
+    pub correlation_keys: Vec<BpmnCorrelationKeySnapshot>,
+    /// Direct participant associations preserved from this conversation node.
+    #[serde(default)]
+    pub participant_associations: Vec<BpmnParticipantAssociationSnapshot>,
+    /// Direct child conversation nodes preserved from this conversation node.
+    #[serde(default)]
+    pub child_nodes: Vec<BpmnConversationNodeSnapshot>,
+}
+
+/// Snapshot of one BPMN `conversationAssociation`.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct BpmnConversationAssociationSnapshot {
+    /// Optional stable conversation-association identifier.
+    pub association_id: Option<String>,
+    /// Optional inner conversation node reference.
+    pub inner_conversation_node_ref: Option<String>,
+    /// Optional outer conversation node reference.
+    pub outer_conversation_node_ref: Option<String>,
+}
+
+/// Snapshot of one BPMN `participantAssociation`.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct BpmnParticipantAssociationSnapshot {
+    /// Optional stable participant-association identifier.
+    pub association_id: Option<String>,
+    /// Optional inner participant reference.
+    pub inner_participant_ref: Option<String>,
+    /// Optional outer participant reference.
+    pub outer_participant_ref: Option<String>,
+}
+
+/// Snapshot of one BPMN `messageFlowAssociation`.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct BpmnMessageFlowAssociationSnapshot {
+    /// Optional stable message-flow-association identifier.
+    pub association_id: Option<String>,
+    /// Optional inner message-flow reference.
+    pub inner_message_flow_ref: Option<String>,
+    /// Optional outer message-flow reference.
+    pub outer_message_flow_ref: Option<String>,
+}
+
+/// Snapshot of one BPMN `correlationKey`.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct BpmnCorrelationKeySnapshot {
+    /// Optional stable correlation-key identifier.
+    pub correlation_key_id: Option<String>,
+    /// Optional human-readable correlation-key name.
+    pub name: Option<String>,
+    /// Direct correlation-property references preserved in source order.
+    #[serde(default)]
+    pub correlation_property_refs: Vec<String>,
+}
+
+/// Snapshot of one BPMN `conversationLink`.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct BpmnConversationLinkSnapshot {
+    /// Optional stable conversation-link identifier.
+    pub link_id: Option<String>,
+    /// Optional human-readable conversation-link name.
+    pub name: Option<String>,
+    /// Optional source reference.
+    pub source_ref: Option<String>,
+    /// Optional target reference.
+    pub target_ref: Option<String>,
 }
 
 /// Snapshot of one BPMN `process` metadata shell.

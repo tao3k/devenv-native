@@ -16,6 +16,9 @@ fn bpmn_linter_reports_collaboration_metadata_surface_with_llm_guidance() {
     assert_eq!(issue.evidence["snapshot_available"], true);
     assert_eq!(issue.evidence["snapshot"]["participant_count"], 2);
     assert_eq!(issue.evidence["snapshot"]["message_flow_count"], 1);
+    assert_eq!(issue.evidence["snapshot"]["conversation_node_count"], 1);
+    assert_eq!(issue.evidence["snapshot"]["conversation_link_count"], 1);
+    assert_eq!(issue.evidence["snapshot"]["correlation_key_count"], 1);
     assert_eq!(issue.evidence["snapshot"]["item_definition_count"], 1);
     assert_eq!(issue.evidence["snapshot"]["message_count"], 1);
     assert_eq!(issue.evidence["snapshot"]["correlation_property_count"], 1);
@@ -58,6 +61,19 @@ fn bpmn_linter_reports_collaboration_metadata_surface_with_llm_guidance() {
     assert_eq!(
         issue.evidence["snapshot"]["collaborations"][0]["message_flows"][0]["message_ref"],
         "order_message"
+    );
+    assert_eq!(
+        issue.evidence["snapshot"]["collaborations"][0]["conversation_nodes"][0]["node_id"],
+        "conversation_order"
+    );
+    assert_eq!(
+        issue.evidence["snapshot"]["collaborations"][0]["conversation_nodes"][0]["participant_refs"]
+            [0],
+        "participant_customer"
+    );
+    assert_eq!(
+        issue.evidence["snapshot"]["collaborations"][0]["conversation_links"][0]["target_ref"],
+        "conversation_order"
     );
 }
 
