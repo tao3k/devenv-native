@@ -1,20 +1,31 @@
 from __future__ import annotations
 
+import threading
 from pathlib import Path
 
+import pyarrow as pa
+import pyarrow.flight as flight
 import pytest
 
 from xiuxian_wendao_analyzer import (
     ANALYSIS_DOCUMENT_EXTRACT_ROUTE,
+    ANALYSIS_PDF_OCR_SHARDS_ROUTE,
     DOCUMENT_RESOURCE_SCHEMA,
     EXPECTED_SCHEMA_VERSION,
+    PDF_OCR_SHARD_INPUT_SCHEMA,
+    PDF_OCR_SHARD_INPUT_SCHEMA_VERSION,
+    PDF_OCR_SHARD_RESULT_SCHEMA,
+    PDF_OCR_SHARD_RESULT_SCHEMA_VERSION,
     SUPPORTED_DOCUMENT_ROUTES,
     WENDAO_DOCUMENT_EXTRACT_ERROR_ROW_HEADER,
     WENDAO_DOCUMENT_EXTRACT_FORCE_HEADER,
     WENDAO_DOCUMENT_EXTRACT_OUTPUT_DIR_HEADER,
     WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_HEADER,
     WENDAO_SCHEMA_VERSION_HEADER,
+    DocumentExtractFlightServer,
     build_document_extract_table,
+    build_pdf_ocr_shard_result_table,
+    succeeded_pdf_ocr_shard_result,
 )
 
 
@@ -104,4 +115,103 @@ def test_document_extract_table_validates_required_headers(tmp_path: Path) -> No
 
 
 def test_document_extract_routes_include_only_primary_document_route() -> None:
-    assert SUPPORTED_DOCUMENT_ROUTES == (ANALYSIS_DOCUMENT_EXTRACT_ROUTE,)
+    assert SUPPORTED_DOCUMENT_ROUTES == (
+        ANALYSIS_DOCUMENT_EXTRACT_ROUTE,
+        ANALYSIS_PDF_OCR_SHARDS_ROUTE,
+    )
+
+
+class FakePdfOcrShardWorker:
+    def __init__(self) -> None:
+        self.inputs: list[dict[str, object]] = []
+
+    def recognize(self, inputs):
+        self.inputs = list(inputs)
+        return [succeeded_pdf_ocr_shard_result(inputs[0], "page text", 0.91)]
+
+
+def test_pdf_ocr_shard_result_table_defaults_to_skipped_rows() -> None:
+    table = build_pdf_ocr_shard_result_table(_sample_pdf_ocr_input_table())
+
+    assert table.schema == PDF_OCR_SHARD_RESULT_SCHEMA
+    row = table.to_pylist()[0]
+    assert row["contractVersion"] == PDF_OCR_SHARD_RESULT_SCHEMA_VERSION
+    assert row["status"] == "skipped"
+    assert row["text"] is None
+    assert row["confidence"] is None
+    assert row["errorMessage"] == "OCR shard worker is not configured"
+    assert len(row["elementId"]) == 64
+
+
+def test_pdf_ocr_shard_result_table_uses_injected_worker() -> None:
+    worker = FakePdfOcrShardWorker()
+    table = build_pdf_ocr_shard_result_table(
+        _sample_pdf_ocr_input_table(), worker=worker
+    )
+
+    assert worker.inputs[0]["imagePath"] == "/tmp/page-00000.png"
+    row = table.to_pylist()[0]
+    assert row["status"] == "succeeded"
+    assert row["text"] == "page text"
+    assert row["confidence"] == 0.91
+
+
+def test_document_service_exchanges_pdf_ocr_shards_over_arrow_flight() -> None:
+    worker = FakePdfOcrShardWorker()
+    server = DocumentExtractFlightServer("grpc://127.0.0.1:0", ocr_worker=worker)
+    thread = threading.Thread(target=server.serve, daemon=True)
+    thread.start()
+    client = flight.FlightClient(f"grpc://127.0.0.1:{server.port}")
+    descriptor = flight.FlightDescriptor.for_path("analysis", "pdf-ocr-shards")
+    writer, reader = client.do_exchange(descriptor)
+    input_table = _sample_pdf_ocr_input_table()
+
+    try:
+        writer.begin(input_table.schema)
+        writer.write_table(input_table)
+        writer.done_writing()
+        result = reader.read_all()
+    finally:
+        writer.close()
+        server.shutdown()
+        thread.join(timeout=5)
+
+    assert result.schema == PDF_OCR_SHARD_RESULT_SCHEMA
+    row = result.to_pylist()[0]
+    assert row["status"] == "succeeded"
+    assert row["text"] == "page text"
+    assert worker.inputs[0]["sourcePath"] == "/tmp/source.pdf"
+
+
+def _sample_pdf_ocr_input_table():
+    return pa.Table.from_pylist(
+        [
+            {
+                "contractVersion": PDF_OCR_SHARD_INPUT_SCHEMA_VERSION,
+                "sourcePath": "/tmp/source.pdf",
+                "sourceContentHash": "sourcehash",
+                "pageIndex": 0,
+                "imagePath": "/tmp/page-00000.png",
+                "imageMimeType": "image/png",
+                "rasterSha256": "rasterhash",
+                "renderProfile": "pdfium-render-page-shards-v1",
+                "ocrProfile": "docling-compatible-page-ocr-v1",
+                "ocrEngine": "docling-compatible-ocr",
+                "preferredLanguages": "auto",
+                "minConfidence": 0.0,
+                "preserveLayout": True,
+                "rasterWidthPx": 2400,
+                "rasterHeightPx": 3100,
+                "renderDpi": 300,
+                "rotationDegrees": 0,
+                "cropLeft": 0.0,
+                "cropBottom": 0.0,
+                "cropRight": 612.0,
+                "cropTop": 792.0,
+                "pointToPixelScaleX": 3.921568627,
+                "pointToPixelScaleY": 3.914141414,
+                "shardElementId": "shard-id",
+            }
+        ],
+        schema=PDF_OCR_SHARD_INPUT_SCHEMA,
+    )

@@ -482,6 +482,16 @@ Acceptance:
 - Failed pages can retry without reconverting successful pages.
 - OCR output is page-order stable.
 
+Current implementation status:
+
+- The Python analyzer document service now exposes an internal
+  `/analysis/pdf-ocr-shards` Flight `do_exchange` route.
+- The route accepts `xiuxian_wendao.pdf_ocr_shard_input.v1` Arrow batches and
+  returns `xiuxian_wendao.pdf_ocr_shard_result.v1` Arrow batches.
+- The default worker returns deterministic `skipped` rows until a real OCR
+  worker is injected. This keeps the production `/analysis/document-extract`
+  sync and async paths unchanged while proving the shard-level Arrow handoff.
+
 ### Milestone 5: Hybrid Mixed-PDF Pipeline
 
 Scope:

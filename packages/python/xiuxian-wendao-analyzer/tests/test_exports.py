@@ -38,6 +38,10 @@ def test_public_exports_include_core_analyzer_surface() -> None:
     assert "DOCLING_SUPPORTED_DOCUMENT_FORMATS" in analyzer.__all__
     assert "DocumentExtractFlightServer" in analyzer.__all__
     assert "ANALYSIS_DOCUMENT_EXTRACT_ROUTE" in analyzer.__all__
+    assert "ANALYSIS_PDF_OCR_SHARDS_ROUTE" in analyzer.__all__
+    assert "PDF_OCR_SHARD_INPUT_SCHEMA" in analyzer.__all__
+    assert "PDF_OCR_SHARD_RESULT_SCHEMA" in analyzer.__all__
+    assert "PdfOcrShardWorkerProtocol" in analyzer.__all__
     assert "ScoreRankAnalyzer" in analyzer.__all__
     assert "analyze_query" in analyzer.__all__
     assert "analyze_repo_search" in analyzer.__all__
@@ -51,6 +55,7 @@ def test_public_exports_include_core_analyzer_surface() -> None:
     assert "extract_pdf_resources" in analyzer.__all__
     assert "is_known_docling_source" in analyzer.__all__
     assert "build_document_extract_table" in analyzer.__all__
+    assert "build_pdf_ocr_shard_result_table" in analyzer.__all__
     assert "summarize_rows_analysis" in analyzer.__all__
 
 
@@ -63,7 +68,16 @@ def test_public_exports_preserve_expected_symbol_kinds() -> None:
     assert isclass(analyzer.RowsAnalysisRun)
     assert isclass(analyzer.TableAnalysisRun)
     assert isclass(analyzer.DocumentResourceRow)
+    assert isclass(analyzer.PdfOcrShardWorkerProtocol)
     assert analyzer.DOCUMENT_RESOURCE_ARROW_CACHE_NAME == "_resources.arrow"
+    assert (
+        analyzer.PDF_OCR_SHARD_INPUT_SCHEMA_VERSION
+        == "xiuxian_wendao.pdf_ocr_shard_input.v1"
+    )
+    assert (
+        analyzer.PDF_OCR_SHARD_RESULT_SCHEMA_VERSION
+        == "xiuxian_wendao.pdf_ocr_shard_result.v1"
+    )
     assert isclass(analyzer.DocumentExtractFlightServer)
     assert isclass(analyzer.ScoreRankAnalyzer)
 
@@ -80,6 +94,7 @@ def test_public_exports_preserve_expected_symbol_kinds() -> None:
     assert callable(analyzer.extract_pdf_resources)
     assert callable(analyzer.is_known_docling_source)
     assert callable(analyzer.build_document_extract_table)
+    assert callable(analyzer.build_pdf_ocr_shard_result_table)
     assert callable(analyzer.summarize_query_route)
     assert callable(analyzer.summarize_repo_query_text_results)
     assert callable(analyzer.summarize_rows_analysis)

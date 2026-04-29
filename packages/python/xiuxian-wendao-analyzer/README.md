@@ -121,6 +121,13 @@ resource row and is not the Python-to-Rust transport contract. The
 payload into the Arrow `content` column, so large XML/PDF conversions do not
 force every cache-hit response to carry the full Docling JSON export.
 
+The same service also exposes an internal OCR shard exchange route at
+`/analysis/pdf-ocr-shards`. This route uses Arrow Flight `do_exchange`, not
+JSON metadata: callers upload `xiuxian_wendao.pdf_ocr_shard_input.v1` Arrow
+batches and receive `xiuxian_wendao.pdf_ocr_shard_result.v1` Arrow batches.
+It is a worker contract for Rust-rendered page shards and does not change the
+primary `/analysis/document-extract` sync or async extraction path.
+
 The built-in strategy is intentionally small:
 
 1. `score_rank`
@@ -143,16 +150,16 @@ returned rows or table into `analyze_rows(...)` or `analyze_table(...)`.
 
 ## Workflow Selection Guide
 
-| Workflow                                              | Recommended entrypoint                                                                                     | Analyzer ownership                            | Host involvement                       | Validation status |
-| ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | --------------------------------------------- | -------------------------------------- | ----------------- |
-| Offline repo-search authoring with scripted results   | `WendaoArrowSession.for_repo_search_testing(...)` + `run_repo_analysis(session.client, ...)`               | downstream user code                          | none                                   | local covered     |
-| PDF attachment search then analyze the returned table | `attachment_search_request(...)` + `WendaoArrowSession.attachment_search(...)` + `run_table_analysis(...)` | downstream user code                          | scripted by default, endpoint optional | local covered     |
-| Wendao document extraction service                    | `wendao-document-extract` + `/analysis/document-extract`                                                  | analyzer package service adapter              | Arrow Flight                           | local covered     |
-| Local multi-format document parsing into Arrow rows   | `extract_document_table(...)` or `extract_document_resources(...)` with the optional `documents` extra     | Docling-backed document extraction helpers    | none                                   | local covered     |
+| Workflow                                              | Recommended entrypoint                                                                                     | Analyzer ownership                         | Host involvement                       | Validation status |
+| ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------ | -------------------------------------- | ----------------- |
+| Offline repo-search authoring with scripted results   | `WendaoArrowSession.for_repo_search_testing(...)` + `run_repo_analysis(session.client, ...)`               | downstream user code                       | none                                   | local covered     |
+| PDF attachment search then analyze the returned table | `attachment_search_request(...)` + `WendaoArrowSession.attachment_search(...)` + `run_table_analysis(...)` | downstream user code                       | scripted by default, endpoint optional | local covered     |
+| Wendao document extraction service                    | `wendao-document-extract` + `/analysis/document-extract`                                                   | analyzer package service adapter           | Arrow Flight                           | local covered     |
+| Local multi-format document parsing into Arrow rows   | `extract_document_table(...)` or `extract_document_resources(...)` with the optional `documents` extra     | Docling-backed document extraction helpers | none                                   | local covered     |
 
-| Repo search with built-in ranking                     | `run_repo_analysis(...)` + `summarize_repo_analysis(...)`                                                  | built-in `score_rank`                         | real `wendao_search_flight_server`     | real-host covered |
-| Repo search with a custom Python analyzer             | `run_repo_analysis(...)` + `summarize_repo_analysis(...)` + `analyzer=<your analyzer object>`              | downstream user code                          | real `wendao_search_flight_server`     | real-host covered |
-| Analyze an already materialized Rust query result     | `analyze_rows(...)` or `analyze_table(...)`                                                                | built-in `score_rank` or downstream user code | depends on who fetched the data        | local covered     |
+| Repo search with built-in ranking | `run_repo_analysis(...)` + `summarize_repo_analysis(...)` | built-in `score_rank` | real `wendao_search_flight_server` | real-host covered |
+| Repo search with a custom Python analyzer | `run_repo_analysis(...)` + `summarize_repo_analysis(...)` + `analyzer=<your analyzer object>` | downstream user code | real `wendao_search_flight_server` | real-host covered |
+| Analyze an already materialized Rust query result | `analyze_rows(...)` or `analyze_table(...)` | built-in `score_rank` or downstream user code | depends on who fetched the data | local covered |
 
 ## Documentation Set
 
@@ -321,15 +328,15 @@ frozen for this beta trial:
 
 1. the document extraction service route and returned Arrow resource schema
 2. the six shipped examples above
-2. `WendaoArrowSession.for_repo_search_testing(...)` as the documented offline
+3. `WendaoArrowSession.for_repo_search_testing(...)` as the documented offline
    author workflow
-3. `WendaoArrowSession.attachment_search(...)` plus `run_table_analysis(...)`
+4. `WendaoArrowSession.attachment_search(...)` plus `run_table_analysis(...)`
    as the documented PDF attachment workflow seam
-4. `extract_document_table(...)` as the documented multi-format document parsing workflow seam
-5. `wendao-document-extract` as the Wendao-facing service command
-6. `run_repo_analysis(...)` and `run_query_analysis(...)` as the host-backed
+5. `extract_document_table(...)` as the documented multi-format document parsing workflow seam
+6. `wendao-document-extract` as the Wendao-facing service command
+7. `run_repo_analysis(...)` and `run_query_analysis(...)` as the host-backed
    analyzer entrypoints
-7. the rule that analyzer-owned rerank helpers are out of scope
+8. the rule that analyzer-owned rerank helpers are out of scope
 
 not frozen for this beta trial:
 
