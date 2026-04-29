@@ -39,7 +39,8 @@ The current package owns bounded support for:
 - bounded task-local Data/IO through native `ioSpecification`,
   `dataInputAssociation`, and `dataOutputAssociation` mappings
 - non-executable BPMN document snapshots for collaboration, lane, data-object,
-  data-store, import, extension, relationship, catalog, and category metadata
+  data-store, import, extension, relationship, BPMN DI, catalog, and category
+  metadata
 
 The current package still defers:
 
@@ -49,8 +50,9 @@ The current package still defers:
 - broader FEEL or script-backed flow semantics
 
 Deferred collaboration, lane, data-object, data-store, import, extension,
-relationship, category, and unsupported IO surfaces are reported by the linter
-with explicit repair guidance instead of being treated as executable runtime
-semantics. Those lint reports also include bounded snapshot-derived evidence
-for the deferred family, such as participant/message-flow counts, lane
-flow-node refs, or data-object and data-association references.
+relationship, BPMN DI, category, and unsupported IO surfaces are reported by
+the linter with explicit repair guidance instead of being treated as
+executable runtime semantics. Those lint reports also include bounded
+snapshot-derived evidence for the deferred family, such as
+participant/message-flow counts, lane flow-node refs, data-object and
+data-association references, or diagram element counts.

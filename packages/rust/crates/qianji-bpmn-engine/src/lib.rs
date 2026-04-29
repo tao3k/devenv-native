@@ -203,15 +203,17 @@ mod runtime_token_api;
 mod runtime_wait_api;
 
 pub use bpmn_model_api::{
-    BpmnCategorySnapshot, BpmnCategoryValueSnapshot, BpmnCollaborationSnapshot,
+    BpmnBoundsSnapshot, BpmnCategorySnapshot, BpmnCategoryValueSnapshot, BpmnCollaborationSnapshot,
     BpmnCorrelationPropertySnapshot, BpmnDataAssociationSnapshot, BpmnDataInputOutputSnapshot,
     BpmnDataObjectReferenceSnapshot, BpmnDataObjectSnapshot, BpmnDataStoreReferenceSnapshot,
-    BpmnDataStoreSnapshot, BpmnDocumentSnapshot, BpmnErrorSnapshot, BpmnEscalationSnapshot,
-    BpmnExtensionSnapshot, BpmnImportSnapshot, BpmnInterfaceSnapshot, BpmnIoSpecificationSnapshot,
-    BpmnItemDefinitionSnapshot, BpmnLaneSetSnapshot, BpmnLaneSnapshot, BpmnMessageFlowSnapshot,
-    BpmnMessageSnapshot, BpmnOperationSnapshot, BpmnParticipantSnapshot, BpmnProcessSnapshot,
-    BpmnRelationshipSnapshot, BpmnResourceParameterSnapshot, BpmnResourceSnapshot,
-    BpmnRootSnapshot, BpmnSignalSnapshot,
+    BpmnDataStoreSnapshot, BpmnDiagramSnapshot, BpmnDocumentSnapshot, BpmnEdgeSnapshot,
+    BpmnErrorSnapshot, BpmnEscalationSnapshot, BpmnExtensionSnapshot, BpmnFontSnapshot,
+    BpmnImportSnapshot, BpmnInterfaceSnapshot, BpmnIoSpecificationSnapshot,
+    BpmnItemDefinitionSnapshot, BpmnLabelSnapshot, BpmnLabelStyleSnapshot, BpmnLaneSetSnapshot,
+    BpmnLaneSnapshot, BpmnMessageFlowSnapshot, BpmnMessageSnapshot, BpmnOperationSnapshot,
+    BpmnParticipantSnapshot, BpmnPlaneSnapshot, BpmnProcessSnapshot, BpmnRelationshipSnapshot,
+    BpmnResourceParameterSnapshot, BpmnResourceSnapshot, BpmnRootSnapshot, BpmnShapeSnapshot,
+    BpmnSignalSnapshot, BpmnWaypointSnapshot,
 };
 pub use bpmn_parse_api::{
     BpmnBundleSnapshot, BpmnParseOptions, BpmnSourceFile, parse_bpmn_bundle, parse_bpmn_package,

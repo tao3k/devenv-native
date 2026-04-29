@@ -57,7 +57,7 @@ guidance.
 | Data stores               | lint-deferred      | Persistence semantics require a separate storage policy.                                 |
 | IO specification          | bounded executable | Human-task form IO and bounded host-task Data/IO metadata are executable.                |
 | Data associations         | bounded executable | Bounded host-task input resolution and output target mapping are executable.             |
-| BPMN DI                   | metadata-only      | Diagram metadata is not runtime behavior.                                                |
+| BPMN DI                   | metadata-only      | Diagram, plane, shape, edge, bounds, waypoint, label, and font metadata is preserved.    |
 | DMN links                 | bounded executable | Business-rule tasks can execute local bounded DMN decisions when available.              |
 
 ## Completed M1 Milestone
@@ -71,18 +71,18 @@ collaboration-aware routing remain deferred until separate milestones define
 their execution contracts.
 
 The collaboration, data, callable-operation, and event metadata slices
-preserve top-level `import`, `extension`, `relationship`, `itemDefinition`,
-`message`, `interface`, `operation`, `resource`, `resourceParameter`,
-`category`, `categoryValue`, `error`, `escalation`, `signal`,
-`correlationProperty`, and nested `correlationPropertyRetrievalExpression`
-metadata alongside collaboration participants, message flows, and data
-references. This gives Rust-owned evidence for future routing and
-type-alignment work while keeping pool routing, message dispatch,
-callable-operation binding, resource assignment binding, flow-element
-classification, import resolution, extension behavior, extension payload
-parsing, relationship endpoint resolution, event subscription registries,
-correlation matching, retrieval expression evaluation, and schema validation
-deferred.
+preserve top-level `import`, `extension`, `relationship`, `BPMNDiagram`,
+`itemDefinition`, `message`, `interface`, `operation`, `resource`,
+`resourceParameter`, `category`, `categoryValue`, `error`, `escalation`,
+`signal`, `correlationProperty`, and nested
+`correlationPropertyRetrievalExpression` metadata alongside collaboration
+participants, message flows, and data references. This gives Rust-owned
+evidence for future routing and type-alignment work while keeping pool
+routing, message dispatch, callable-operation binding, resource assignment
+binding, flow-element classification, import resolution, extension behavior,
+extension payload parsing, diagram rendering, layout validation, relationship
+endpoint resolution, event subscription registries, correlation matching,
+retrieval expression evaluation, and schema validation deferred.
 
 ## Active M2 Event Milestone
 

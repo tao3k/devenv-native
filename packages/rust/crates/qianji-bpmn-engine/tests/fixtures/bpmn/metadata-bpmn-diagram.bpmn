@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Defs_BpmnDiagram"
+  targetNamespace="https://example.com/bpmn/diagram">
+  <bpmn:process id="diagram_process" isExecutable="true">
+    <bpmn:startEvent id="start" />
+    <bpmn:sequenceFlow id="flow_start_end" sourceRef="start" targetRef="end" />
+    <bpmn:endEvent id="end" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram
+    id="Diagram_Main"
+    name="Main diagram"
+    documentation="Passive interchange layout"
+    resolution="96">
+    <bpmndi:BPMNPlane id="Plane_Main" bpmnElement="diagram_process">
+      <bpmndi:BPMNShape
+        id="Shape_Start"
+        bpmnElement="start"
+        isHorizontal="true"
+        isExpanded="false"
+        isMarkerVisible="true">
+        <dc:Bounds x="100" y="80" width="36" height="36" />
+        <bpmndi:BPMNLabel id="Label_Start" labelStyle="Style_Default">
+          <dc:Bounds x="92" y="120" width="52" height="18" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge
+        id="Edge_Start_End"
+        bpmnElement="flow_start_end"
+        sourceElement="Shape_Start"
+        targetElement="Shape_End"
+        messageVisibleKind="initiating">
+        <di:waypoint x="136" y="98" />
+        <di:waypoint x="220" y="98" />
+        <bpmndi:BPMNLabel id="Label_Flow">
+          <dc:Bounds x="160" y="78" width="36" height="18" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+    <bpmndi:BPMNLabelStyle id="Style_Default">
+      <dc:Font
+        name="Inter"
+        size="12"
+        isBold="true"
+        isItalic="false"
+        isUnderline="false"
+        isStrikeThrough="false" />
+    </bpmndi:BPMNLabelStyle>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

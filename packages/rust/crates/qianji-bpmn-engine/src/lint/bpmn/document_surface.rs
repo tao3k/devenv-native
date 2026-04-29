@@ -116,6 +116,7 @@ fn root_snapshot_summary(snapshot: &BpmnDocumentSnapshot) -> Value {
         "import_count": snapshot.root.import_count,
         "extension_count": snapshot.root.extension_count,
         "relationship_count": snapshot.root.relationship_count,
+        "diagram_count": snapshot.root.diagram_count,
         "collaboration_count": snapshot.root.collaboration_count,
         "process_count": snapshot.root.process_count,
         "item_definition_count": snapshot.root.item_definition_count,

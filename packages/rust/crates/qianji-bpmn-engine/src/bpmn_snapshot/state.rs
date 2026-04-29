@@ -1,15 +1,17 @@
 use super::xml::{attribute_value, boolean_attribute_value, bpmn_model_namespace, local_name};
 use crate::bpmn_model_api::{
-    BpmnCategorySnapshot, BpmnCategoryValueSnapshot, BpmnCollaborationSnapshot,
+    BpmnBoundsSnapshot, BpmnCategorySnapshot, BpmnCategoryValueSnapshot, BpmnCollaborationSnapshot,
     BpmnCorrelationPropertySnapshot, BpmnCorrelationRetrievalExpressionSnapshot,
     BpmnDataAssociationSnapshot, BpmnDataInputOutputSnapshot, BpmnDataObjectReferenceSnapshot,
     BpmnDataObjectSnapshot, BpmnDataStoreReferenceSnapshot, BpmnDataStoreSnapshot,
-    BpmnDocumentSnapshot, BpmnErrorSnapshot, BpmnEscalationSnapshot, BpmnExtensionSnapshot,
-    BpmnImportSnapshot, BpmnInterfaceSnapshot, BpmnIoSpecificationSnapshot,
-    BpmnItemDefinitionSnapshot, BpmnLaneSetSnapshot, BpmnLaneSnapshot, BpmnMessageFlowSnapshot,
-    BpmnMessageSnapshot, BpmnOperationSnapshot, BpmnParticipantSnapshot, BpmnProcessSnapshot,
-    BpmnRelationshipSnapshot, BpmnResourceParameterSnapshot, BpmnResourceSnapshot,
-    BpmnRootSnapshot, BpmnSignalSnapshot,
+    BpmnDiagramSnapshot, BpmnDocumentSnapshot, BpmnEdgeSnapshot, BpmnErrorSnapshot,
+    BpmnEscalationSnapshot, BpmnExtensionSnapshot, BpmnFontSnapshot, BpmnImportSnapshot,
+    BpmnInterfaceSnapshot, BpmnIoSpecificationSnapshot, BpmnItemDefinitionSnapshot,
+    BpmnLabelSnapshot, BpmnLabelStyleSnapshot, BpmnLaneSetSnapshot, BpmnLaneSnapshot,
+    BpmnMessageFlowSnapshot, BpmnMessageSnapshot, BpmnOperationSnapshot, BpmnParticipantSnapshot,
+    BpmnPlaneSnapshot, BpmnProcessSnapshot, BpmnRelationshipSnapshot,
+    BpmnResourceParameterSnapshot, BpmnResourceSnapshot, BpmnRootSnapshot, BpmnShapeSnapshot,
+    BpmnSignalSnapshot, BpmnWaypointSnapshot,
 };
 use crate::bpmn_parse_api::BpmnSourceFile;
 use crate::error::Result;
@@ -36,6 +38,12 @@ enum DataAssociationKind {
     Output,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum BpmnDiLabelTarget {
+    Shape(usize, usize),
+    Edge(usize, usize),
+}
+
 #[derive(Debug, Default)]
 pub(super) struct BpmnSnapshotScanState {
     root: Option<BpmnRootSnapshot>,
@@ -55,6 +63,12 @@ pub(super) struct BpmnSnapshotScanState {
     current_extension: Option<usize>,
     current_extension_documentation: Option<(usize, String)>,
     current_relationship: Option<usize>,
+    current_diagram: Option<usize>,
+    current_plane: Option<usize>,
+    current_shape: Option<(usize, usize)>,
+    current_edge: Option<(usize, usize)>,
+    current_label: Option<BpmnDiLabelTarget>,
+    current_label_style: Option<(usize, usize)>,
     io_specification_stack: Vec<(usize, usize)>,
     current_data_association: Option<(usize, DataAssociationKind, BpmnDataAssociationSnapshot)>,
 }
@@ -81,6 +95,9 @@ impl BpmnSnapshotScanState {
         if parent_tag == Some("definitions")
             && self.handle_definitions_start_event(source, reader, event, tag, is_empty)?
         {
+            return Ok(());
+        }
+        if self.handle_bpmn_di_start_event(source, reader, event, parent_tag, tag, is_empty)? {
             return Ok(());
         }
 
@@ -155,6 +172,53 @@ impl BpmnSnapshotScanState {
         }
     }
 
+    fn handle_bpmn_di_start_event(
+        &mut self,
+        source: &BpmnSourceFile,
+        reader: &Reader<&[u8]>,
+        event: &BytesStart<'_>,
+        parent_tag: Option<&str>,
+        tag: &str,
+        is_empty: bool,
+    ) -> Result<bool> {
+        match tag {
+            "BPMNPlane" if self.current_diagram.is_some() => {
+                self.start_bpmn_plane(source, reader, event, is_empty)?;
+            }
+            "BPMNShape" if self.current_plane.is_some() => {
+                self.start_bpmn_shape(source, reader, event, is_empty)?;
+            }
+            "BPMNEdge" if self.current_plane.is_some() => {
+                self.start_bpmn_edge(source, reader, event, is_empty)?;
+            }
+            "BPMNLabel" if parent_tag == Some("BPMNShape") && self.current_shape.is_some() => {
+                self.start_bpmn_shape_label(source, reader, event, is_empty)?;
+            }
+            "BPMNLabel" if parent_tag == Some("BPMNEdge") && self.current_edge.is_some() => {
+                self.start_bpmn_edge_label(source, reader, event, is_empty)?;
+            }
+            "BPMNLabelStyle" if self.current_diagram.is_some() => {
+                self.start_bpmn_label_style(source, reader, event, is_empty)?;
+            }
+            "Bounds" if parent_tag == Some("BPMNShape") && self.current_shape.is_some() => {
+                self.attach_bpmn_shape_bounds(source, reader, event)?;
+            }
+            "Bounds" if parent_tag == Some("BPMNLabel") && self.current_label.is_some() => {
+                self.attach_bpmn_label_bounds(source, reader, event)?;
+            }
+            "waypoint" if self.current_edge.is_some() => {
+                self.push_bpmn_edge_waypoint(source, reader, event)?;
+            }
+            "Font"
+                if parent_tag == Some("BPMNLabelStyle") && self.current_label_style.is_some() =>
+            {
+                self.attach_bpmn_label_style_font(source, reader, event)?;
+            }
+            _ => return Ok(false),
+        }
+        Ok(true)
+    }
+
     fn handle_definitions_start_event(
         &mut self,
         source: &BpmnSourceFile,
@@ -166,6 +230,7 @@ impl BpmnSnapshotScanState {
         match tag {
             "import" => self.capture_import(source, reader, event)?,
             "extension" => self.start_extension(source, reader, event, is_empty)?,
+            "BPMNDiagram" => self.start_bpmn_diagram(source, reader, event, is_empty)?,
             "relationship" => self.start_relationship(source, reader, event, is_empty)?,
             "collaboration" => self.start_collaboration(source, reader, event, is_empty)?,
             "process" => self.start_process(source, reader, event, is_empty)?,
@@ -205,6 +270,24 @@ impl BpmnSnapshotScanState {
             "extension" => {
                 self.finish_extension_documentation();
                 self.current_extension = None;
+            }
+            "BPMNLabel" => self.current_label = None,
+            "BPMNLabelStyle" => self.current_label_style = None,
+            "BPMNShape" => self.current_shape = None,
+            "BPMNEdge" => self.current_edge = None,
+            "BPMNPlane" => {
+                self.current_label = None;
+                self.current_shape = None;
+                self.current_edge = None;
+                self.current_plane = None;
+            }
+            "BPMNDiagram" => {
+                self.current_label = None;
+                self.current_label_style = None;
+                self.current_shape = None;
+                self.current_edge = None;
+                self.current_plane = None;
+                self.current_diagram = None;
             }
             "resource" => self.current_resource = None,
             "category" => self.current_category = None,
@@ -271,6 +354,12 @@ impl BpmnSnapshotScanState {
         self.finish_extension_documentation();
         self.current_extension = None;
         self.current_relationship = None;
+        self.current_label = None;
+        self.current_label_style = None;
+        self.current_shape = None;
+        self.current_edge = None;
+        self.current_plane = None;
+        self.current_diagram = None;
     }
 
     pub(super) fn into_snapshot(self, source: &BpmnSourceFile) -> BpmnDocumentSnapshot {
@@ -680,6 +769,253 @@ impl BpmnSnapshotScanState {
             return;
         };
         self.current_extension_documentation = Some((extension_index, String::new()));
+    }
+
+    fn start_bpmn_diagram(
+        &mut self,
+        source: &BpmnSourceFile,
+        reader: &Reader<&[u8]>,
+        event: &BytesStart<'_>,
+        is_empty: bool,
+    ) -> Result<()> {
+        let Some(root) = self.root.as_mut() else {
+            return Ok(());
+        };
+        root.diagram_count += 1;
+        root.diagrams.push(BpmnDiagramSnapshot {
+            diagram_id: attribute_value(source, reader, event, "id")?,
+            name: attribute_value(source, reader, event, "name")?,
+            documentation: attribute_value(source, reader, event, "documentation")?,
+            resolution: attribute_value(source, reader, event, "resolution")?,
+            plane: None,
+            label_styles: Vec::new(),
+        });
+        if !is_empty {
+            self.current_diagram = root.diagrams.len().checked_sub(1);
+        }
+        Ok(())
+    }
+
+    fn start_bpmn_plane(
+        &mut self,
+        source: &BpmnSourceFile,
+        reader: &Reader<&[u8]>,
+        event: &BytesStart<'_>,
+        is_empty: bool,
+    ) -> Result<()> {
+        let Some(diagram_index) = self.current_diagram else {
+            return Ok(());
+        };
+        let Some(diagram) = self.diagram_mut(diagram_index) else {
+            return Ok(());
+        };
+        diagram.plane = Some(BpmnPlaneSnapshot {
+            plane_id: attribute_value(source, reader, event, "id")?,
+            bpmn_element: attribute_value(source, reader, event, "bpmnElement")?,
+            shapes: Vec::new(),
+            edges: Vec::new(),
+        });
+        if !is_empty {
+            self.current_plane = Some(diagram_index);
+        }
+        Ok(())
+    }
+
+    fn start_bpmn_shape(
+        &mut self,
+        source: &BpmnSourceFile,
+        reader: &Reader<&[u8]>,
+        event: &BytesStart<'_>,
+        is_empty: bool,
+    ) -> Result<()> {
+        let Some(diagram_index) = self.current_plane else {
+            return Ok(());
+        };
+        let shape = BpmnShapeSnapshot {
+            shape_id: attribute_value(source, reader, event, "id")?,
+            bpmn_element: attribute_value(source, reader, event, "bpmnElement")?,
+            is_horizontal: boolean_attribute_value(source, reader, event, "isHorizontal")?,
+            is_expanded: boolean_attribute_value(source, reader, event, "isExpanded")?,
+            is_marker_visible: boolean_attribute_value(source, reader, event, "isMarkerVisible")?,
+            is_message_visible: boolean_attribute_value(source, reader, event, "isMessageVisible")?,
+            participant_band_kind: attribute_value(source, reader, event, "participantBandKind")?,
+            choreography_activity_shape: attribute_value(
+                source,
+                reader,
+                event,
+                "choreographyActivityShape",
+            )?,
+            bounds: None,
+            label: None,
+        };
+        let Some(plane) = self.diagram_plane_mut(diagram_index) else {
+            return Ok(());
+        };
+        plane.shapes.push(shape);
+        let shape_index = plane.shapes.len().saturating_sub(1);
+        if !is_empty {
+            self.current_shape = Some((diagram_index, shape_index));
+        }
+        Ok(())
+    }
+
+    fn start_bpmn_edge(
+        &mut self,
+        source: &BpmnSourceFile,
+        reader: &Reader<&[u8]>,
+        event: &BytesStart<'_>,
+        is_empty: bool,
+    ) -> Result<()> {
+        let Some(diagram_index) = self.current_plane else {
+            return Ok(());
+        };
+        let edge = BpmnEdgeSnapshot {
+            edge_id: attribute_value(source, reader, event, "id")?,
+            bpmn_element: attribute_value(source, reader, event, "bpmnElement")?,
+            source_element: attribute_value(source, reader, event, "sourceElement")?,
+            target_element: attribute_value(source, reader, event, "targetElement")?,
+            message_visible_kind: attribute_value(source, reader, event, "messageVisibleKind")?,
+            waypoints: Vec::new(),
+            label: None,
+        };
+        let Some(plane) = self.diagram_plane_mut(diagram_index) else {
+            return Ok(());
+        };
+        plane.edges.push(edge);
+        let edge_index = plane.edges.len().saturating_sub(1);
+        if !is_empty {
+            self.current_edge = Some((diagram_index, edge_index));
+        }
+        Ok(())
+    }
+
+    fn start_bpmn_shape_label(
+        &mut self,
+        source: &BpmnSourceFile,
+        reader: &Reader<&[u8]>,
+        event: &BytesStart<'_>,
+        is_empty: bool,
+    ) -> Result<()> {
+        let Some((diagram_index, shape_index)) = self.current_shape else {
+            return Ok(());
+        };
+        let Some(shape) = self.diagram_shape_mut(diagram_index, shape_index) else {
+            return Ok(());
+        };
+        shape.label = Some(label_from_event(source, reader, event)?);
+        if !is_empty {
+            self.current_label = Some(BpmnDiLabelTarget::Shape(diagram_index, shape_index));
+        }
+        Ok(())
+    }
+
+    fn start_bpmn_edge_label(
+        &mut self,
+        source: &BpmnSourceFile,
+        reader: &Reader<&[u8]>,
+        event: &BytesStart<'_>,
+        is_empty: bool,
+    ) -> Result<()> {
+        let Some((diagram_index, edge_index)) = self.current_edge else {
+            return Ok(());
+        };
+        let Some(edge) = self.diagram_edge_mut(diagram_index, edge_index) else {
+            return Ok(());
+        };
+        edge.label = Some(label_from_event(source, reader, event)?);
+        if !is_empty {
+            self.current_label = Some(BpmnDiLabelTarget::Edge(diagram_index, edge_index));
+        }
+        Ok(())
+    }
+
+    fn start_bpmn_label_style(
+        &mut self,
+        source: &BpmnSourceFile,
+        reader: &Reader<&[u8]>,
+        event: &BytesStart<'_>,
+        is_empty: bool,
+    ) -> Result<()> {
+        let Some(diagram_index) = self.current_diagram else {
+            return Ok(());
+        };
+        let Some(diagram) = self.diagram_mut(diagram_index) else {
+            return Ok(());
+        };
+        diagram.label_styles.push(BpmnLabelStyleSnapshot {
+            style_id: attribute_value(source, reader, event, "id")?,
+            font: None,
+        });
+        let style_index = diagram.label_styles.len().saturating_sub(1);
+        if !is_empty {
+            self.current_label_style = Some((diagram_index, style_index));
+        }
+        Ok(())
+    }
+
+    fn attach_bpmn_shape_bounds(
+        &mut self,
+        source: &BpmnSourceFile,
+        reader: &Reader<&[u8]>,
+        event: &BytesStart<'_>,
+    ) -> Result<()> {
+        let Some((diagram_index, shape_index)) = self.current_shape else {
+            return Ok(());
+        };
+        let Some(shape) = self.diagram_shape_mut(diagram_index, shape_index) else {
+            return Ok(());
+        };
+        shape.bounds = Some(bounds_from_event(source, reader, event)?);
+        Ok(())
+    }
+
+    fn attach_bpmn_label_bounds(
+        &mut self,
+        source: &BpmnSourceFile,
+        reader: &Reader<&[u8]>,
+        event: &BytesStart<'_>,
+    ) -> Result<()> {
+        let Some(target) = self.current_label else {
+            return Ok(());
+        };
+        let Some(label) = self.diagram_label_mut(target) else {
+            return Ok(());
+        };
+        label.bounds = Some(bounds_from_event(source, reader, event)?);
+        Ok(())
+    }
+
+    fn push_bpmn_edge_waypoint(
+        &mut self,
+        source: &BpmnSourceFile,
+        reader: &Reader<&[u8]>,
+        event: &BytesStart<'_>,
+    ) -> Result<()> {
+        let Some((diagram_index, edge_index)) = self.current_edge else {
+            return Ok(());
+        };
+        let Some(edge) = self.diagram_edge_mut(diagram_index, edge_index) else {
+            return Ok(());
+        };
+        edge.waypoints
+            .push(waypoint_from_event(source, reader, event)?);
+        Ok(())
+    }
+
+    fn attach_bpmn_label_style_font(
+        &mut self,
+        source: &BpmnSourceFile,
+        reader: &Reader<&[u8]>,
+        event: &BytesStart<'_>,
+    ) -> Result<()> {
+        let Some((diagram_index, style_index)) = self.current_label_style else {
+            return Ok(());
+        };
+        let Some(style) = self.diagram_label_style_mut(diagram_index, style_index) else {
+            return Ok(());
+        };
+        style.font = Some(font_from_event(source, reader, event)?);
+        Ok(())
     }
 
     fn start_relationship(
@@ -1167,6 +1503,108 @@ impl BpmnSnapshotScanState {
             .relationships
             .get_mut(relationship_index)
     }
+
+    fn diagram_mut(&mut self, diagram_index: usize) -> Option<&mut BpmnDiagramSnapshot> {
+        self.root.as_mut()?.diagrams.get_mut(diagram_index)
+    }
+
+    fn diagram_plane_mut(&mut self, diagram_index: usize) -> Option<&mut BpmnPlaneSnapshot> {
+        self.diagram_mut(diagram_index)?.plane.as_mut()
+    }
+
+    fn diagram_shape_mut(
+        &mut self,
+        diagram_index: usize,
+        shape_index: usize,
+    ) -> Option<&mut BpmnShapeSnapshot> {
+        self.diagram_plane_mut(diagram_index)?
+            .shapes
+            .get_mut(shape_index)
+    }
+
+    fn diagram_edge_mut(
+        &mut self,
+        diagram_index: usize,
+        edge_index: usize,
+    ) -> Option<&mut BpmnEdgeSnapshot> {
+        self.diagram_plane_mut(diagram_index)?
+            .edges
+            .get_mut(edge_index)
+    }
+
+    fn diagram_label_mut(&mut self, target: BpmnDiLabelTarget) -> Option<&mut BpmnLabelSnapshot> {
+        match target {
+            BpmnDiLabelTarget::Shape(diagram_index, shape_index) => self
+                .diagram_shape_mut(diagram_index, shape_index)?
+                .label
+                .as_mut(),
+            BpmnDiLabelTarget::Edge(diagram_index, edge_index) => self
+                .diagram_edge_mut(diagram_index, edge_index)?
+                .label
+                .as_mut(),
+        }
+    }
+
+    fn diagram_label_style_mut(
+        &mut self,
+        diagram_index: usize,
+        style_index: usize,
+    ) -> Option<&mut BpmnLabelStyleSnapshot> {
+        self.diagram_mut(diagram_index)?
+            .label_styles
+            .get_mut(style_index)
+    }
+}
+
+fn label_from_event(
+    source: &BpmnSourceFile,
+    reader: &Reader<&[u8]>,
+    event: &BytesStart<'_>,
+) -> Result<BpmnLabelSnapshot> {
+    Ok(BpmnLabelSnapshot {
+        label_id: attribute_value(source, reader, event, "id")?,
+        label_style: attribute_value(source, reader, event, "labelStyle")?,
+        bounds: None,
+    })
+}
+
+fn bounds_from_event(
+    source: &BpmnSourceFile,
+    reader: &Reader<&[u8]>,
+    event: &BytesStart<'_>,
+) -> Result<BpmnBoundsSnapshot> {
+    Ok(BpmnBoundsSnapshot {
+        x: attribute_value(source, reader, event, "x")?,
+        y: attribute_value(source, reader, event, "y")?,
+        width: attribute_value(source, reader, event, "width")?,
+        height: attribute_value(source, reader, event, "height")?,
+    })
+}
+
+fn waypoint_from_event(
+    source: &BpmnSourceFile,
+    reader: &Reader<&[u8]>,
+    event: &BytesStart<'_>,
+) -> Result<BpmnWaypointSnapshot> {
+    Ok(BpmnWaypointSnapshot {
+        x: attribute_value(source, reader, event, "x")?,
+        y: attribute_value(source, reader, event, "y")?,
+    })
+}
+
+fn font_from_event(
+    source: &BpmnSourceFile,
+    reader: &Reader<&[u8]>,
+    event: &BytesStart<'_>,
+) -> Result<BpmnFontSnapshot> {
+    Ok(BpmnFontSnapshot {
+        name: attribute_value(source, reader, event, "name")?,
+        size: attribute_value(source, reader, event, "size")?,
+        is_bold: boolean_attribute_value(source, reader, event, "isBold")?,
+        is_italic: boolean_attribute_value(source, reader, event, "isItalic")?,
+        is_underline: boolean_attribute_value(source, reader, event, "isUnderline")?,
+        is_strike_through: boolean_attribute_value(source, reader, event, "isStrikeThrough")?,
+    })
 }
 
 fn root_from_event(
@@ -1187,6 +1625,8 @@ fn root_from_event(
         extensions: Vec::new(),
         relationship_count: 0,
         relationships: Vec::new(),
+        diagram_count: 0,
+        diagrams: Vec::new(),
         collaboration_count: 0,
         process_count: 0,
         item_definition_count: 0,
