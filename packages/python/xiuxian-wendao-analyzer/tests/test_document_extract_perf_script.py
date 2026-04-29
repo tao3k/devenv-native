@@ -499,6 +499,7 @@ def test_pdf_render_shard_audit_command_adds_feature_and_fixture_manifest(
         prepare_pdfium_runtime=False,
         require_pdfium=False,
         pdf_render_selection="all-pages",
+        pdf_render_region=[],
     )
 
     command, env = benchmark.build_pdf_render_shard_audit_command(
@@ -537,6 +538,7 @@ def test_pdf_render_shard_audit_can_pin_pdfium_runtime_path(
         prepare_pdfium_runtime=False,
         require_pdfium=True,
         pdf_render_selection="shard-fallback-pages",
+        pdf_render_region=[],
     )
 
     _command, env = benchmark.build_pdf_render_shard_audit_command(
@@ -548,6 +550,103 @@ def test_pdf_render_shard_audit_can_pin_pdfium_runtime_path(
     assert env["WENDAO_PDFIUM_LIBRARY_PATH"] == str(pdfium_library.resolve())
     assert env["WENDAO_PDF_RENDER_REQUIRE_PDFIUM"] == "1"
     assert env["WENDAO_PDF_RENDER_SELECTION"] == "shard_fallback_pages"
+
+
+def test_pdf_render_region_shard_audit_emits_region_manifest(
+    tmp_path: Path,
+) -> None:
+    benchmark = _load_benchmark_module()
+    args = benchmark.argparse.Namespace(
+        cargo="cargo",
+        cargo_features="performance",
+        pdfium_library_path=None,
+        prepare_pdfium_runtime=False,
+        require_pdfium=False,
+        pdf_render_selection="region-shards",
+        pdf_render_region=[
+            "pdf=0,2,72,80,540,700,000000.000002",
+        ],
+    )
+
+    _command, env = benchmark.build_pdf_render_shard_audit_command(
+        args,
+        {"pdf": tmp_path / "sample.pdf"},
+        tmp_path / "reports",
+    )
+
+    assert env["WENDAO_PDF_RENDER_SELECTION"] == "region_shards"
+    regions = benchmark.json.loads(env["WENDAO_PDF_RENDER_REGIONS_JSON"])
+    assert regions == [
+        {
+            "source": str(tmp_path / "sample.pdf"),
+            "regions": [
+                {
+                    "pageIndex": 0,
+                    "regionIndex": 2,
+                    "regionBox": {
+                        "left": 72.0,
+                        "bottom": 80.0,
+                        "right": 540.0,
+                        "top": 700.0,
+                    },
+                    "readingOrderKey": "000000.000002",
+                }
+            ],
+        }
+    ]
+
+
+def test_pdf_render_region_shard_audit_requires_all_selected_regions(
+    tmp_path: Path,
+) -> None:
+    benchmark = _load_benchmark_module()
+    args = benchmark.argparse.Namespace(
+        cargo="cargo",
+        cargo_features="performance",
+        pdfium_library_path=None,
+        prepare_pdfium_runtime=False,
+        require_pdfium=False,
+        pdf_render_selection="region-shards",
+        pdf_render_region=["pdf=0,0,72,72,540,700"],
+    )
+
+    try:
+        benchmark.build_pdf_render_shard_audit_command(
+            args,
+            {
+                "pdf": tmp_path / "sample.pdf",
+                "other-pdf": tmp_path / "other.pdf",
+            },
+            tmp_path / "reports",
+        )
+    except SystemExit as error:
+        assert "Missing --pdf-render-region" in str(error)
+    else:
+        raise AssertionError("missing selected fixture region should fail")
+
+
+def test_pdf_render_region_rejects_non_region_selection(tmp_path: Path) -> None:
+    benchmark = _load_benchmark_module()
+    args = benchmark.argparse.Namespace(
+        cargo="cargo",
+        cargo_features="performance",
+        pdfium_library_path=None,
+        prepare_pdfium_runtime=False,
+        require_pdfium=False,
+        pdf_render_selection="all-pages",
+        pdf_render_region=["pdf=0,0,72,72,540,700"],
+    )
+
+    try:
+        benchmark.build_pdf_render_shard_audit_command(
+            args,
+            {"pdf": tmp_path / "sample.pdf"},
+            tmp_path / "reports",
+        )
+    except SystemExit as error:
+        assert "--pdf-render-region requires" in str(error)
+    else:
+        raise AssertionError("region fixture on page selection should fail")
 
 
 def test_pdfium_asset_selection_covers_primary_platforms() -> None:
@@ -592,6 +691,7 @@ def test_normalize_render_selection_accepts_cli_spelling() -> None:
     assert benchmark.normalize_render_selection("shard-fallback-pages") == (
         "shard_fallback_pages"
     )
+    assert benchmark.normalize_render_selection("region-shards") == "region_shards"
 
 
 def test_cargo_perf_probe_can_send_distinct_input_manifest(

@@ -627,6 +627,12 @@ Current implementation status:
   that case instead of falling back to full Docling. On the same real PDF, the
   force path improved from about 41.9 seconds to about 1.38 seconds, cache-hit
   latency stayed around 3-5 ms, and `totalErrorRows` stayed 0.
+- Region crop proof infrastructure is available behind the existing render
+  audit lane. The benchmark script can pass explicit PDF-point region fixtures
+  into the ignored cargo test, which calls the Rust region crop helper and
+  writes the same OCR shard Arrow artifacts as page rendering. This keeps
+  region OCR evidence reproducible without changing production sync or async
+  extraction.
 
 ### Milestone 5: Hybrid Mixed-PDF Pipeline
 

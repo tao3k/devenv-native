@@ -98,6 +98,11 @@ page and crops the requested region from that raster, which reduces OCR payload
 size without relying on unproven PDFium clip semantics. Automatic region
 discovery and production routing are later milestones.
 
+Use the benchmark script's `--pdf-render-shard-audit` lane with
+`--pdf-render-selection region-shards` and one or more `--pdf-render-region`
+arguments to drive the ignored cargo-test proof against explicit real-PDF
+regions. This stays an audit surface; it does not change default extraction.
+
 The `pdf-inspector` text helpers can also project native non-OCR pages into
 per-page `text_page` rows. The Studio provider uses those rows only for the
 explicit hybrid OCR mode and only when page coverage can be proven complete.

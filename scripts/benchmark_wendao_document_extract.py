@@ -233,12 +233,26 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--pdf-render-selection",
-        choices=("all-pages", "shard-fallback-pages"),
+        choices=("all-pages", "shard-fallback-pages", "region-shards"),
         default="all-pages",
         help=(
             "Page selection mode for --pdf-render-shard-audit. "
             "`all-pages` proves renderer capacity; `shard-fallback-pages` "
-            "uses routing signals and renders only raster OCR pages."
+            "uses routing signals and renders only raster OCR pages; "
+            "`region-shards` renders explicit PDF-point regions supplied by "
+            "--pdf-render-region."
+        ),
+    )
+    parser.add_argument(
+        "--pdf-render-region",
+        action="append",
+        default=[],
+        metavar="NAME=PAGE,REGION,LEFT,BOTTOM,RIGHT,TOP[,ORDER]",
+        help=(
+            "Explicit region fixture for --pdf-render-selection region-shards. "
+            "NAME must match the selected fixture alias; coordinates are PDF "
+            "points in the source page coordinate space. May be passed more "
+            "than once."
         ),
     )
     parser.add_argument(
@@ -691,14 +705,140 @@ def build_pdf_render_shard_audit_command(
     env = {
         "WENDAO_PDF_RENDER_SHARD_INPUTS_JSON": json.dumps(inputs),
         "WENDAO_PDF_RENDER_SHARD_REPORT_DIR": str(report_dir),
-        "WENDAO_PDF_RENDER_SELECTION": args.pdf_render_selection.replace("-", "_"),
+        "WENDAO_PDF_RENDER_SELECTION": normalize_render_selection(
+            args.pdf_render_selection
+        ),
     }
+    env.update(build_pdf_render_region_env(args, fixtures))
     pdfium_library_path = resolve_pdfium_library_path(args)
     if pdfium_library_path is not None:
         env["WENDAO_PDFIUM_LIBRARY_PATH"] = str(pdfium_library_path)
     if getattr(args, "require_pdfium", False):
         env["WENDAO_PDF_RENDER_REQUIRE_PDFIUM"] = "1"
     return command, env
+
+
+def build_pdf_render_region_env(
+    args: argparse.Namespace,
+    fixtures: dict[str, Path],
+) -> dict[str, str]:
+    region_specs = getattr(args, "pdf_render_region", [])
+    selection = normalize_render_selection(args.pdf_render_selection)
+    if selection != "region_shards":
+        if region_specs:
+            raise SystemExit(
+                "--pdf-render-region requires --pdf-render-selection region-shards"
+            )
+        return {}
+    return {
+        "WENDAO_PDF_RENDER_REGIONS_JSON": json.dumps(
+            parse_pdf_render_regions(region_specs, fixtures)
+        )
+    }
+
+
+def parse_pdf_render_regions(
+    region_specs: list[str],
+    fixtures: dict[str, Path],
+) -> list[dict[str, Any]]:
+    if not region_specs:
+        raise SystemExit(
+            "--pdf-render-selection region-shards requires at least one "
+            "--pdf-render-region"
+        )
+    regions_by_fixture: dict[str, list[dict[str, Any]]] = {
+        name: [] for name in fixtures
+    }
+    seen_regions: set[tuple[str, int, int]] = set()
+    for region_spec in region_specs:
+        fixture_name, region = parse_pdf_render_region(region_spec)
+        if fixture_name not in fixtures:
+            available = ", ".join(sorted(fixtures))
+            raise SystemExit(
+                f"Unknown --pdf-render-region fixture alias: {fixture_name}\n"
+                f"Available fixtures: {available}"
+            )
+        region_key = (
+            fixture_name,
+            int(region["pageIndex"]),
+            int(region["regionIndex"]),
+        )
+        if region_key in seen_regions:
+            raise SystemExit(
+                "Duplicate --pdf-render-region page/region for fixture: "
+                f"{fixture_name} page={region_key[1]} region={region_key[2]}"
+            )
+        seen_regions.add(region_key)
+        regions_by_fixture[fixture_name].append(region)
+
+    missing = sorted(
+        fixture_name
+        for fixture_name, regions in regions_by_fixture.items()
+        if not regions
+    )
+    if missing:
+        raise SystemExit(
+            "Missing --pdf-render-region for selected fixture(s): " + ", ".join(missing)
+        )
+    return [
+        {
+            "source": str(fixtures[fixture_name]),
+            "regions": regions_by_fixture[fixture_name],
+        }
+        for fixture_name in fixtures
+    ]
+
+
+def parse_pdf_render_region(region_spec: str) -> tuple[str, dict[str, Any]]:
+    if "=" not in region_spec:
+        raise SystemExit(
+            "--pdf-render-region must use "
+            "NAME=PAGE,REGION,LEFT,BOTTOM,RIGHT,TOP[,ORDER] syntax: " + region_spec
+        )
+    fixture_name, raw_region = region_spec.split("=", maxsplit=1)
+    fixture_name = fixture_name.strip()
+    if not fixture_name:
+        raise SystemExit("--pdf-render-region fixture alias must not be empty")
+    parts = [part.strip() for part in raw_region.split(",")]
+    if len(parts) not in {6, 7}:
+        raise SystemExit(
+            "--pdf-render-region requires 6 or 7 comma-separated values after "
+            f"NAME=: {region_spec}"
+        )
+    try:
+        page_index = int(parts[0])
+        region_index = int(parts[1])
+        left = float(parts[2])
+        bottom = float(parts[3])
+        right = float(parts[4])
+        top = float(parts[5])
+    except ValueError as error:
+        raise SystemExit(
+            f"Invalid --pdf-render-region numeric value: {region_spec}"
+        ) from error
+    if page_index < 0 or region_index < 0:
+        raise SystemExit(
+            "--pdf-render-region page and region indexes must be non-negative: "
+            + region_spec
+        )
+    if right <= left or top <= bottom:
+        raise SystemExit(
+            "--pdf-render-region bbox must satisfy right > left and top > bottom: "
+            + region_spec
+        )
+    region: dict[str, Any] = {
+        "pageIndex": page_index,
+        "regionIndex": region_index,
+        "regionBox": {
+            "left": left,
+            "bottom": bottom,
+            "right": right,
+            "top": top,
+        },
+    }
+    if len(parts) == 7 and parts[6]:
+        region["readingOrderKey"] = parts[6]
+    return fixture_name, region
 
 
 def resolve_pdfium_library_path(args: argparse.Namespace) -> Path | None:
