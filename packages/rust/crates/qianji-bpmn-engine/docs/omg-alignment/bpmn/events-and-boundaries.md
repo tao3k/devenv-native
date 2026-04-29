@@ -76,7 +76,9 @@ with non-interrupting catching boundaries as an intended use case; see
 
 These shapes remain outside the bounded surface:
 
-- multiple and parallel-multiple event families
+- multiple and parallel-multiple event families; `multipleEventDefinition`,
+  `parallelMultipleEventDefinition`, and several concrete event definitions on
+  one event node are rejected with stable parser/lint diagnostics
 - root-level escalation ends or throws, non-interrupting escalation
   boundaries, escalation start events, and escalation event subprocess
   triggers

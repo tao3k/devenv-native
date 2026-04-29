@@ -4,6 +4,7 @@ use super::{
 
 mod boundary;
 mod document_surface;
+mod events;
 mod gateway;
 mod subprocess;
 

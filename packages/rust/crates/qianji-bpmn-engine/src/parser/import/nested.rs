@@ -416,6 +416,15 @@ fn handle_event_child_start(
         assign_event_definition(source, reader, event, process, kind, tag)?;
         return Ok(true);
     }
+    if let Some(detail) = deferred_multiple_event_definition(parent, tag) {
+        let process_id = process.process_id.clone();
+        let node = last_process_node_mut(source, process)?;
+        return Err(BpmnEngineError::UnsupportedEventConfiguration {
+            process_id,
+            node_id: node.bpmn_id.clone(),
+            detail,
+        });
+    }
     if matches!(
         parent,
         "startEvent" | "intermediateCatchEvent" | "boundaryEvent" | "sendTask" | "receiveTask"
@@ -702,6 +711,21 @@ fn supported_event_definition(parent: &str, tag: &str) -> Option<BpmnEventKind> 
             "startEvent" | "intermediateCatchEvent" | "boundaryEvent",
             "conditionalEventDefinition",
         ) => Some(BpmnEventKind::Conditional),
+        _ => None,
+    }
+}
+
+fn deferred_multiple_event_definition(parent: &str, tag: &str) -> Option<&'static str> {
+    if !matches!(
+        parent,
+        "startEvent" | "intermediateCatchEvent" | "boundaryEvent" | "endEvent"
+    ) {
+        return None;
+    }
+
+    match tag {
+        "multipleEventDefinition" => Some("multiple_event_definition_deferred"),
+        "parallelMultipleEventDefinition" => Some("parallel_multiple_event_definition_deferred"),
         _ => None,
     }
 }
