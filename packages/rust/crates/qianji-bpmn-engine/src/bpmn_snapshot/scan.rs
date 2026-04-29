@@ -149,6 +149,7 @@ fn text_target(element_stack: &[String]) -> Option<TextTarget> {
         (Some("formalExpression"), Some("resourceParameterBinding")) => {
             Some(TextTarget::ResourceRoleParameterBindingExpression)
         }
+        (Some("categoryValueRef"), _) => Some(TextTarget::FlowElementCategoryValueRef),
         (Some("inMessageRef"), Some("operation")) => Some(TextTarget::OperationInMessageRef),
         (Some("outMessageRef"), Some("operation")) => Some(TextTarget::OperationOutMessageRef),
         (Some("errorRef"), Some("operation")) => Some(TextTarget::OperationErrorRef),

@@ -9,17 +9,17 @@ use crate::bpmn_model_api::{
     BpmnDataAssociationSnapshot, BpmnDataInputOutputSnapshot, BpmnDataObjectReferenceSnapshot,
     BpmnDataObjectSnapshot, BpmnDataStoreReferenceSnapshot, BpmnDataStoreSnapshot,
     BpmnDiagramSnapshot, BpmnDocumentSnapshot, BpmnEdgeSnapshot, BpmnEndPointSnapshot,
-    BpmnErrorSnapshot, BpmnEscalationSnapshot, BpmnExtensionSnapshot, BpmnFontSnapshot,
-    BpmnGlobalTaskSnapshot, BpmnGroupSnapshot, BpmnImportSnapshot, BpmnInterfaceSnapshot,
-    BpmnIoSpecificationSnapshot, BpmnItemDefinitionSnapshot, BpmnLabelSnapshot,
-    BpmnLabelStyleSnapshot, BpmnLaneSetSnapshot, BpmnLaneSnapshot,
-    BpmnMessageFlowAssociationSnapshot, BpmnMessageFlowSnapshot, BpmnMessageSnapshot,
-    BpmnOperationSnapshot, BpmnParticipantAssociationSnapshot, BpmnParticipantMultiplicitySnapshot,
-    BpmnParticipantSnapshot, BpmnPartnerEntitySnapshot, BpmnPartnerRoleSnapshot, BpmnPlaneSnapshot,
-    BpmnProcessPropertySnapshot, BpmnProcessSnapshot, BpmnRelationshipSnapshot,
-    BpmnResourceParameterBindingSnapshot, BpmnResourceParameterSnapshot, BpmnResourceRoleSnapshot,
-    BpmnResourceSnapshot, BpmnRootSnapshot, BpmnShapeSnapshot, BpmnSignalSnapshot,
-    BpmnTextAnnotationSnapshot, BpmnWaypointSnapshot,
+    BpmnErrorSnapshot, BpmnEscalationSnapshot, BpmnExtensionSnapshot,
+    BpmnFlowElementMetadataSnapshot, BpmnFontSnapshot, BpmnGlobalTaskSnapshot, BpmnGroupSnapshot,
+    BpmnImportSnapshot, BpmnInterfaceSnapshot, BpmnIoSpecificationSnapshot,
+    BpmnItemDefinitionSnapshot, BpmnLabelSnapshot, BpmnLabelStyleSnapshot, BpmnLaneSetSnapshot,
+    BpmnLaneSnapshot, BpmnMessageFlowAssociationSnapshot, BpmnMessageFlowSnapshot,
+    BpmnMessageSnapshot, BpmnOperationSnapshot, BpmnParticipantAssociationSnapshot,
+    BpmnParticipantMultiplicitySnapshot, BpmnParticipantSnapshot, BpmnPartnerEntitySnapshot,
+    BpmnPartnerRoleSnapshot, BpmnPlaneSnapshot, BpmnProcessPropertySnapshot, BpmnProcessSnapshot,
+    BpmnRelationshipSnapshot, BpmnResourceParameterBindingSnapshot, BpmnResourceParameterSnapshot,
+    BpmnResourceRoleSnapshot, BpmnResourceSnapshot, BpmnRootSnapshot, BpmnShapeSnapshot,
+    BpmnSignalSnapshot, BpmnTextAnnotationSnapshot, BpmnWaypointSnapshot,
 };
 use crate::bpmn_parse_api::BpmnSourceFile;
 use crate::error::Result;
@@ -36,6 +36,7 @@ pub(super) enum TextTarget {
     ResourceRoleResourceRef,
     ResourceRoleAssignmentExpression,
     ResourceRoleParameterBindingExpression,
+    FlowElementCategoryValueRef,
     OperationInMessageRef,
     OperationOutMessageRef,
     OperationErrorRef,
@@ -113,6 +114,8 @@ pub(super) struct BpmnSnapshotScanState {
     current_resource_role: Option<(ResourceRoleOwner, usize)>,
     current_resource_parameter_binding: Option<(ResourceRoleOwner, usize, usize)>,
     current_resource_assignment_expression: Option<(ResourceRoleOwner, usize)>,
+    current_flow_element_metadata: Option<(usize, BpmnFlowElementMetadataSnapshot)>,
+    collecting_flow_element_category_value_ref: bool,
     lane_set_stack: Vec<(usize, usize)>,
     lane_stack: Vec<(usize, usize, usize)>,
     current_correlation_property: Option<usize>,
@@ -170,6 +173,9 @@ impl BpmnSnapshotScanState {
         {
             return Ok(());
         }
+        self.handle_flow_element_metadata_start_event(
+            source, reader, event, parent_tag, tag, is_empty,
+        )?;
         if self.handle_process_start_event(source, reader, event, parent_tag, tag, is_empty)? {
             return Ok(());
         }
@@ -207,6 +213,39 @@ impl BpmnSnapshotScanState {
             }
             _ => Ok(()),
         }
+    }
+
+    fn handle_flow_element_metadata_start_event(
+        &mut self,
+        source: &BpmnSourceFile,
+        reader: &Reader<&[u8]>,
+        event: &BytesStart<'_>,
+        parent_tag: Option<&str>,
+        tag: &str,
+        is_empty: bool,
+    ) -> Result<()> {
+        if parent_tag == Some("process")
+            && self.current_process.is_some()
+            && is_flow_element_metadata_owner_tag(tag)
+        {
+            self.start_flow_element_metadata(source, reader, event, tag, is_empty)?;
+            return Ok(());
+        }
+        if self
+            .current_flow_element_metadata
+            .as_ref()
+            .is_some_and(|(_, metadata)| parent_tag == Some(metadata.element_kind.as_str()))
+        {
+            match tag {
+                "auditing" => self.attach_flow_element_auditing(source, reader, event)?,
+                "monitoring" => self.attach_flow_element_monitoring(source, reader, event)?,
+                "categoryValueRef" if !is_empty => {
+                    self.collecting_flow_element_category_value_ref = true;
+                }
+                _ => {}
+            }
+        }
+        Ok(())
     }
 
     fn handle_process_start_event(
@@ -488,12 +527,7 @@ impl BpmnSnapshotScanState {
     pub(super) fn finish_end_event(&mut self, tag: &str) {
         match tag {
             "collaboration" | "globalConversation" | "choreography" | "globalChoreographyTask" => {
-                self.finish_conversation_correlation_key();
-                self.finish_participant_association();
-                self.current_participant = None;
-                self.conversation_node_stack.clear();
-                self.choreography_activity_stack.clear();
-                self.current_collaboration = None;
+                self.finish_collaboration_root();
             }
             "participant" => self.current_participant = None,
             "partnerEntity" => self.current_partner_entity = None,
@@ -504,15 +538,15 @@ impl BpmnSnapshotScanState {
                 self.current_resource_parameter_binding = None;
                 self.current_resource_role = None;
             }
+            tag if is_flow_element_metadata_owner_tag(tag) => {
+                self.finish_flow_element_metadata();
+            }
+            "categoryValueRef" => self.collecting_flow_element_category_value_ref = false,
             "conversation" | "subConversation" | "callConversation" => {
-                self.finish_conversation_correlation_key();
-                self.finish_participant_association();
-                let _ = self.conversation_node_stack.pop();
+                self.finish_conversation_node();
             }
             "choreographyTask" | "subChoreography" | "callChoreography" => {
-                self.finish_conversation_correlation_key();
-                self.finish_participant_association();
-                let _ = self.choreography_activity_stack.pop();
+                self.finish_choreography_activity();
             }
             "textAnnotation" => self.finish_text_annotation(),
             "correlationKey" => self.finish_conversation_correlation_key(),
@@ -525,49 +559,21 @@ impl BpmnSnapshotScanState {
                 self.finish_correlation_retrieval_expression();
             }
             "operation" => self.current_operation = None,
-            "interface" => {
-                self.current_operation = None;
-                self.current_interface = None;
-            }
+            "interface" => self.finish_interface(),
             "documentation" => self.finish_extension_documentation(),
-            "extension" => {
-                self.finish_extension_documentation();
-                self.current_extension = None;
-            }
+            "extension" => self.finish_extension(),
             "BPMNLabel" => self.current_label = None,
             "BPMNLabelStyle" => self.current_label_style = None,
             "BPMNShape" => self.current_shape = None,
             "BPMNEdge" => self.current_edge = None,
-            "BPMNPlane" => {
-                self.current_label = None;
-                self.current_shape = None;
-                self.current_edge = None;
-                self.current_plane = None;
-            }
-            "BPMNDiagram" => {
-                self.current_label = None;
-                self.current_label_style = None;
-                self.current_shape = None;
-                self.current_edge = None;
-                self.current_plane = None;
-                self.current_diagram = None;
-            }
+            "BPMNPlane" => self.finish_bpmn_plane(),
+            "BPMNDiagram" => self.finish_bpmn_diagram(),
             "resource" => self.current_resource = None,
             "category" => self.current_category = None,
             "relationship" => self.current_relationship = None,
-            "process" => {
-                self.current_process = None;
-                self.current_correlation_property_binding = None;
-                self.current_correlation_subscription = None;
-                self.lane_set_stack.clear();
-                self.lane_stack.clear();
-                self.io_specification_stack.clear();
-            }
+            "process" => self.finish_process(),
             "correlationPropertyBinding" => self.current_correlation_property_binding = None,
-            "correlationSubscription" => {
-                self.current_correlation_property_binding = None;
-                self.current_correlation_subscription = None;
-            }
+            "correlationSubscription" => self.finish_correlation_subscription(),
             "resourceAssignmentExpression" => self.current_resource_assignment_expression = None,
             "resourceParameterBinding" => self.current_resource_parameter_binding = None,
             "laneSet" => {
@@ -583,6 +589,68 @@ impl BpmnSnapshotScanState {
             "dataOutputAssociation" => self.finish_data_association(DataAssociationKind::Output),
             _ => {}
         }
+    }
+
+    fn finish_collaboration_root(&mut self) {
+        self.finish_conversation_correlation_key();
+        self.finish_participant_association();
+        self.current_participant = None;
+        self.conversation_node_stack.clear();
+        self.choreography_activity_stack.clear();
+        self.current_collaboration = None;
+    }
+
+    fn finish_conversation_node(&mut self) {
+        self.finish_conversation_correlation_key();
+        self.finish_participant_association();
+        let _ = self.conversation_node_stack.pop();
+    }
+
+    fn finish_choreography_activity(&mut self) {
+        self.finish_conversation_correlation_key();
+        self.finish_participant_association();
+        let _ = self.choreography_activity_stack.pop();
+    }
+
+    fn finish_interface(&mut self) {
+        self.current_operation = None;
+        self.current_interface = None;
+    }
+
+    fn finish_extension(&mut self) {
+        self.finish_extension_documentation();
+        self.current_extension = None;
+    }
+
+    fn finish_bpmn_plane(&mut self) {
+        self.current_label = None;
+        self.current_shape = None;
+        self.current_edge = None;
+        self.current_plane = None;
+    }
+
+    fn finish_bpmn_diagram(&mut self) {
+        self.current_label = None;
+        self.current_label_style = None;
+        self.current_shape = None;
+        self.current_edge = None;
+        self.current_plane = None;
+        self.current_diagram = None;
+    }
+
+    fn finish_process(&mut self) {
+        self.finish_flow_element_metadata();
+        self.current_process = None;
+        self.current_correlation_property_binding = None;
+        self.current_correlation_subscription = None;
+        self.lane_set_stack.clear();
+        self.lane_stack.clear();
+        self.io_specification_stack.clear();
+    }
+
+    fn finish_correlation_subscription(&mut self) {
+        self.current_correlation_property_binding = None;
+        self.current_correlation_subscription = None;
     }
 
     pub(super) fn handle_text_chunk(&mut self, text: &str, target: Option<TextTarget>) {
@@ -607,6 +675,9 @@ impl BpmnSnapshotScanState {
             }
             TextTarget::ResourceRoleParameterBindingExpression => {
                 self.append_resource_parameter_binding_expression(text);
+            }
+            TextTarget::FlowElementCategoryValueRef => {
+                self.push_flow_element_category_value_ref(text);
             }
             TextTarget::OperationInMessageRef => self.set_operation_in_message_ref(text),
             TextTarget::OperationOutMessageRef => self.set_operation_out_message_ref(text),
@@ -673,6 +744,8 @@ impl BpmnSnapshotScanState {
         self.current_resource_assignment_expression = None;
         self.current_resource_parameter_binding = None;
         self.current_resource_role = None;
+        self.finish_flow_element_metadata();
+        self.collecting_flow_element_category_value_ref = false;
         self.current_partner_entity = None;
         self.current_partner_role = None;
         self.current_global_task = None;
@@ -1818,6 +1891,8 @@ impl BpmnSnapshotScanState {
             correlation_subscriptions: Vec::new(),
             resource_role_count: 0,
             resource_roles: Vec::new(),
+            flow_element_metadata_count: 0,
+            flow_element_metadata: Vec::new(),
             lane_set_count: 0,
             lane_sets: Vec::new(),
             data_object_count: 0,
@@ -1846,6 +1921,65 @@ impl BpmnSnapshotScanState {
         if !is_empty {
             self.current_process = self.processes.len().checked_sub(1);
         }
+        Ok(())
+    }
+
+    fn start_flow_element_metadata(
+        &mut self,
+        source: &BpmnSourceFile,
+        reader: &Reader<&[u8]>,
+        event: &BytesStart<'_>,
+        tag: &str,
+        is_empty: bool,
+    ) -> Result<()> {
+        self.finish_flow_element_metadata();
+        if is_empty {
+            return Ok(());
+        }
+        let Some(process_index) = self.current_process else {
+            return Ok(());
+        };
+        self.current_flow_element_metadata = Some((
+            process_index,
+            BpmnFlowElementMetadataSnapshot {
+                element_kind: tag.to_string(),
+                element_id: attribute_value(source, reader, event, "id")?,
+                name: attribute_value(source, reader, event, "name")?,
+                has_auditing: false,
+                auditing_id: None,
+                has_monitoring: false,
+                monitoring_id: None,
+                category_value_refs: Vec::new(),
+            },
+        ));
+        Ok(())
+    }
+
+    fn attach_flow_element_auditing(
+        &mut self,
+        source: &BpmnSourceFile,
+        reader: &Reader<&[u8]>,
+        event: &BytesStart<'_>,
+    ) -> Result<()> {
+        let Some((_, metadata)) = self.current_flow_element_metadata.as_mut() else {
+            return Ok(());
+        };
+        metadata.has_auditing = true;
+        metadata.auditing_id = attribute_value(source, reader, event, "id")?;
+        Ok(())
+    }
+
+    fn attach_flow_element_monitoring(
+        &mut self,
+        source: &BpmnSourceFile,
+        reader: &Reader<&[u8]>,
+        event: &BytesStart<'_>,
+    ) -> Result<()> {
+        let Some((_, metadata)) = self.current_flow_element_metadata.as_mut() else {
+            return Ok(());
+        };
+        metadata.has_monitoring = true;
+        metadata.monitoring_id = attribute_value(source, reader, event, "id")?;
         Ok(())
     }
 
@@ -2344,6 +2478,34 @@ impl BpmnSnapshotScanState {
             .expression
             .get_or_insert_with(String::new)
             .push_str(text);
+    }
+
+    fn push_flow_element_category_value_ref(&mut self, text: &str) {
+        if !self.collecting_flow_element_category_value_ref {
+            return;
+        }
+        let Some((_, metadata)) = self.current_flow_element_metadata.as_mut() else {
+            return;
+        };
+        metadata.category_value_refs.push(text.to_string());
+    }
+
+    fn finish_flow_element_metadata(&mut self) {
+        self.collecting_flow_element_category_value_ref = false;
+        let Some((process_index, metadata)) = self.current_flow_element_metadata.take() else {
+            return;
+        };
+        if !metadata.has_auditing
+            && !metadata.has_monitoring
+            && metadata.category_value_refs.is_empty()
+        {
+            return;
+        }
+        let Some(process) = self.processes.get_mut(process_index) else {
+            return;
+        };
+        process.flow_element_metadata_count += 1;
+        process.flow_element_metadata.push(metadata);
     }
 
     fn set_operation_in_message_ref(&mut self, text: &str) {
@@ -3218,5 +3380,37 @@ fn is_resource_role_tag(tag: &str) -> bool {
     matches!(
         tag,
         "resourceRole" | "performer" | "humanPerformer" | "potentialOwner"
+    )
+}
+
+fn is_flow_element_metadata_owner_tag(tag: &str) -> bool {
+    matches!(
+        tag,
+        "adHocSubProcess"
+            | "boundaryEvent"
+            | "businessRuleTask"
+            | "callActivity"
+            | "complexGateway"
+            | "dataObject"
+            | "dataObjectReference"
+            | "dataStoreReference"
+            | "endEvent"
+            | "eventBasedGateway"
+            | "exclusiveGateway"
+            | "inclusiveGateway"
+            | "intermediateCatchEvent"
+            | "intermediateThrowEvent"
+            | "manualTask"
+            | "parallelGateway"
+            | "receiveTask"
+            | "scriptTask"
+            | "sendTask"
+            | "sequenceFlow"
+            | "serviceTask"
+            | "startEvent"
+            | "subProcess"
+            | "task"
+            | "transaction"
+            | "userTask"
     )
 }

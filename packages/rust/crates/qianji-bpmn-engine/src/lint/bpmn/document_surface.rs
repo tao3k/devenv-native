@@ -1,8 +1,9 @@
 use crate::bpmn_model_api::{
     BpmnAssociationSnapshot, BpmnChoreographyActivitySnapshot, BpmnCollaborationSnapshot,
-    BpmnConversationNodeSnapshot, BpmnDocumentSnapshot, BpmnGlobalTaskSnapshot, BpmnGroupSnapshot,
-    BpmnParticipantSnapshot, BpmnPartnerEntitySnapshot, BpmnPartnerRoleSnapshot,
-    BpmnProcessSnapshot, BpmnResourceRoleSnapshot, BpmnTextAnnotationSnapshot,
+    BpmnConversationNodeSnapshot, BpmnDocumentSnapshot, BpmnFlowElementMetadataSnapshot,
+    BpmnGlobalTaskSnapshot, BpmnGroupSnapshot, BpmnParticipantSnapshot, BpmnPartnerEntitySnapshot,
+    BpmnPartnerRoleSnapshot, BpmnProcessSnapshot, BpmnResourceRoleSnapshot,
+    BpmnTextAnnotationSnapshot,
 };
 use crate::bpmn_parse_api::BpmnSourceFile;
 use crate::bpmn_snapshot_api::snapshot_bpmn_source;
@@ -165,6 +166,7 @@ fn collaboration_snapshot_summary(snapshot: &BpmnDocumentSnapshot) -> Value {
     let correlation_properties = correlation_property_evidence(snapshot);
     let process_callable = process_callable_summary(snapshot);
     let resource_roles = resource_role_summary(snapshot);
+    let flow_element_metadata = flow_element_metadata_summary(snapshot);
 
     json!({
         "root": root_snapshot_summary(snapshot),
@@ -200,6 +202,7 @@ fn collaboration_snapshot_summary(snapshot: &BpmnDocumentSnapshot) -> Value {
         "correlation_properties_truncated": snapshot.root.correlation_properties.len() > SNAPSHOT_EVIDENCE_LIMIT,
         "process_callable": process_callable,
         "resource_roles": resource_roles,
+        "flow_element_metadata": flow_element_metadata,
         "item_definitions": item_definitions,
         "messages": messages,
         "interfaces": interfaces,
@@ -243,6 +246,68 @@ struct ResourceRoleCounts {
     global_task_role: usize,
     parameter_binding: usize,
     assignment_expression: usize,
+}
+
+#[derive(Debug, Default)]
+struct FlowElementMetadataCounts {
+    element: usize,
+    auditing: usize,
+    monitoring: usize,
+    category_value_ref: usize,
+}
+
+fn flow_element_metadata_counts(snapshot: &BpmnDocumentSnapshot) -> FlowElementMetadataCounts {
+    let mut counts = FlowElementMetadataCounts::default();
+    for process in &snapshot.processes {
+        counts.element += process.flow_element_metadata_count;
+        for metadata in &process.flow_element_metadata {
+            counts.auditing += usize::from(metadata.has_auditing);
+            counts.monitoring += usize::from(metadata.has_monitoring);
+            counts.category_value_ref += metadata.category_value_refs.len();
+        }
+    }
+    counts
+}
+
+fn flow_element_metadata_summary(snapshot: &BpmnDocumentSnapshot) -> Value {
+    let counts = flow_element_metadata_counts(snapshot);
+    json!({
+        "element_count": counts.element,
+        "auditing_count": counts.auditing,
+        "monitoring_count": counts.monitoring,
+        "category_value_ref_count": counts.category_value_ref,
+        "processes_truncated": snapshot.processes.len() > SNAPSHOT_EVIDENCE_LIMIT,
+        "processes": process_flow_element_metadata_evidence(snapshot),
+    })
+}
+
+fn process_flow_element_metadata_evidence(snapshot: &BpmnDocumentSnapshot) -> Vec<Value> {
+    snapshot
+        .processes
+        .iter()
+        .filter(|process| process.flow_element_metadata_count > 0)
+        .take(SNAPSHOT_EVIDENCE_LIMIT)
+        .map(|process| {
+            json!({
+                "process_id": process.process_id,
+                "flow_element_metadata_count": process.flow_element_metadata_count,
+                "flow_elements": process.flow_element_metadata.iter().take(SNAPSHOT_EVIDENCE_LIMIT).map(flow_element_metadata_evidence).collect::<Vec<_>>(),
+            })
+        })
+        .collect()
+}
+
+fn flow_element_metadata_evidence(metadata: &BpmnFlowElementMetadataSnapshot) -> Value {
+    json!({
+        "element_kind": metadata.element_kind,
+        "element_id": metadata.element_id,
+        "name": metadata.name,
+        "has_auditing": metadata.has_auditing,
+        "auditing_id": metadata.auditing_id,
+        "has_monitoring": metadata.has_monitoring,
+        "monitoring_id": metadata.monitoring_id,
+        "category_value_refs": metadata.category_value_refs,
+    })
 }
 
 fn resource_role_counts(snapshot: &BpmnDocumentSnapshot) -> ResourceRoleCounts {

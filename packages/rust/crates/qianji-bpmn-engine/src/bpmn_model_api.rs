@@ -884,6 +884,12 @@ pub struct BpmnProcessSnapshot {
     /// Direct process resource-role metadata preserved from this process.
     #[serde(default)]
     pub resource_roles: Vec<BpmnResourceRoleSnapshot>,
+    /// Number of direct process flow elements with common metadata declarations.
+    #[serde(default)]
+    pub flow_element_metadata_count: usize,
+    /// Direct process flow-element common metadata preserved from this process.
+    #[serde(default)]
+    pub flow_element_metadata: Vec<BpmnFlowElementMetadataSnapshot>,
     /// Number of `laneSet` elements discovered inside this process.
     pub lane_set_count: usize,
     /// Bounded `laneSet` metadata preserved from this process.
@@ -930,6 +936,32 @@ pub struct BpmnProcessSnapshot {
     /// Bounded `textAnnotation` metadata preserved from this process.
     #[serde(default)]
     pub text_annotations: Vec<BpmnTextAnnotationSnapshot>,
+}
+
+/// Snapshot of common metadata declared by one direct process `flowElement`.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct BpmnFlowElementMetadataSnapshot {
+    /// Local BPMN flow-element kind.
+    pub element_kind: String,
+    /// Optional stable flow-element identifier.
+    pub element_id: Option<String>,
+    /// Optional human-readable flow-element name.
+    pub name: Option<String>,
+    /// Whether this flow element declares direct `auditing` metadata.
+    #[serde(default)]
+    pub has_auditing: bool,
+    /// Optional direct `auditing` identifier.
+    #[serde(default)]
+    pub auditing_id: Option<String>,
+    /// Whether this flow element declares direct `monitoring` metadata.
+    #[serde(default)]
+    pub has_monitoring: bool,
+    /// Optional direct `monitoring` identifier.
+    #[serde(default)]
+    pub monitoring_id: Option<String>,
+    /// Direct `categoryValueRef` values preserved in source order.
+    #[serde(default)]
+    pub category_value_refs: Vec<String>,
 }
 
 /// Snapshot of one direct BPMN process `property`.

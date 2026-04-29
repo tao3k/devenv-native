@@ -43,6 +43,7 @@ guidance.
 | Process callable metadata | metadata-only      | Process callable attributes, support refs, properties, and correlation subscriptions are preserved passively.    |
 | Resource catalogs         | metadata-only      | Top-level resources and parameters are preserved; assignment binding remains deferred.                           |
 | Resource-role metadata    | metadata-only      | Direct process and global-task resource-role declarations are preserved; generic assignment execution defers.    |
+| Flow-element metadata     | metadata-only      | Direct process flow-element auditing, monitoring, and category refs are preserved passively.                     |
 | Category catalogs         | metadata-only      | Top-level categories and values are preserved; classification remains passive.                                   |
 | Terminate events          | bounded executable | `terminateEventDefinition` end events terminate the current runtime scope.                                       |
 | Multiple events           | lint-deferred      | Multiple and parallel-multiple event definitions have stable parser/lint diagnostics.                            |
@@ -88,14 +89,15 @@ artifact metadata, partner entities, partner roles, endpoints, participant
 interface refs, participant endpoint refs, participant multiplicity, process
 callable attributes, process support refs, process properties, process
 correlation subscriptions, direct process resource roles, direct global-task
-resource roles, and data references. This gives Rust-owned evidence for future
-routing and type-alignment work while keeping pool routing, message dispatch,
-conversation routing, choreography execution, endpoint invocation, participant
-multiplicity execution, global task execution, process support resolution,
-process property execution, callable-operation binding, generic resource
-assignment execution, resource authorization, delegation, escalation,
-scheduling, group execution, annotation interpretation, flow-element
-classification, import resolution, extension behavior, extension payload
+resource roles, direct flow-element auditing/monitoring/category metadata, and
+data references. This gives Rust-owned evidence for future routing and
+type-alignment work while keeping pool routing, message dispatch, conversation
+routing, choreography execution, endpoint invocation, participant multiplicity
+execution, global task execution, process support resolution, process property
+execution, callable-operation binding, generic resource assignment execution,
+resource authorization, delegation, escalation, scheduling, audit execution,
+monitoring execution, category classification, group execution, annotation
+interpretation, import resolution, extension behavior, extension payload
 parsing, diagram rendering, layout validation, relationship endpoint
 resolution, event subscription registries, correlation matching, correlation
 subscription matching, correlation-key evaluation, retrieval expression

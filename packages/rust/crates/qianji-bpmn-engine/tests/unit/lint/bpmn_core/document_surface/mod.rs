@@ -4,5 +4,6 @@ mod artifacts;
 mod choreography;
 mod collaboration;
 mod data;
+mod flow_elements;
 mod participants;
 mod process;

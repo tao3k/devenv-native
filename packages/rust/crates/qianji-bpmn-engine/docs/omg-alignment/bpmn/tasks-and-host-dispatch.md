@@ -62,6 +62,10 @@ The field-level user/manual task contract is tracked in the
   `humanPerformer`, and `potentialOwner` declarations are preserved in
   document snapshots as metadata-only catalogs. They do not widen host
   dispatch, claim checks, worklist filtering, or authorization.
+- Direct process flow-element `auditing`, `monitoring`, and
+  `categoryValueRef` declarations are preserved in document snapshots as
+  metadata-only evidence. They do not widen task dispatch, scheduling,
+  authorization, claim checks, or routing.
 - Top-level BPMN `resource` and nested `resourceParameter` catalogs are
   preserved in document snapshots as assignment metadata. Current assignment
   routing keeps `resourceRef` as text; it does not resolve the referenced
@@ -114,6 +118,8 @@ The field-level user/manual task contract is tracked in the
   definitions
 - executable process/global-task resource-role assignment, authorization,
   scheduling, delegation, escalation, or reassignment
+- executable flow-element auditing, monitoring, category classification, or
+  metadata-driven dispatch
 - signal or timer task-event execution on `sendTask` or `receiveTask`
 - broader data-object/data-store execution, IO transformations,
   multiple-source data associations, authorization, lane scheduling, full

@@ -7,6 +7,7 @@ mod choreography;
 mod collaboration;
 mod conversation;
 mod diagram;
+mod flow_elements;
 mod partners;
 mod process;
 mod resource_roles;
