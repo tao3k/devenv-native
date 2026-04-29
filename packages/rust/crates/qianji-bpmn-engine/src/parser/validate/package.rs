@@ -268,6 +268,25 @@ fn validate_node_event_shape(process: &RawProcess, node: &RawNode) -> Result<()>
         });
     }
 
+    if let Some(event) = &node.event
+        && event.kind == BpmnEventKind::Conditional
+    {
+        let Some(condition_expression) = event.condition_expression.as_deref() else {
+            return Err(BpmnEngineError::MissingRequiredNodeElement {
+                process_id: process.process_id.clone(),
+                node_id: node.bpmn_id.clone(),
+                element: "conditional_expression",
+            });
+        };
+        if !is_supported_gateway_condition(condition_expression) {
+            return Err(BpmnEngineError::UnsupportedEventConfiguration {
+                process_id: process.process_id.clone(),
+                node_id: node.bpmn_id.clone(),
+                detail: "unsupported_conditional_event_expression",
+            });
+        }
+    }
+
     validate_message_task_shape(process, node)?;
 
     Ok(())

@@ -30,6 +30,27 @@ pub(in crate::parser::import) fn apply_timer_expression(
     Ok(())
 }
 
+pub(in crate::parser::import) fn apply_conditional_expression(
+    process: &mut RawProcess,
+    expression: &str,
+) -> Result<()> {
+    let node = process
+        .nodes
+        .last_mut()
+        .ok_or(BpmnEngineError::UnsupportedOperation {
+            operation: "bpmn_conditional_expression_without_node",
+        })?;
+    let event = node
+        .event
+        .as_mut()
+        .ok_or(BpmnEngineError::UnsupportedOperation {
+            operation: "bpmn_conditional_expression_without_event_definition",
+        })?;
+    event.condition_expression =
+        (!expression.trim().is_empty()).then(|| expression.trim().to_string());
+    Ok(())
+}
+
 pub(in crate::parser::import) fn last_process_node_mut<'a>(
     source: &BpmnSourceFile,
     process: &'a mut RawProcess,

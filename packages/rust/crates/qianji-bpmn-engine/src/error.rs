@@ -601,6 +601,18 @@ pub enum BpmnEngineError {
         /// Stable unsupported configuration discriminator.
         detail: &'static str,
     },
+    /// Returned when one event definition exceeds the bounded supported slice.
+    #[error(
+        "BPMN process '{process_id}' event node '{node_id}' uses unsupported configuration '{detail}'"
+    )]
+    UnsupportedEventConfiguration {
+        /// Process identifier.
+        process_id: String,
+        /// Event BPMN node identifier.
+        node_id: String,
+        /// Stable unsupported configuration discriminator.
+        detail: &'static str,
+    },
     /// Returned when one gateway exceeds the bounded supported slice.
     #[error(
         "BPMN process '{process_id}' gateway '{node_id}' uses unsupported configuration '{detail}'"

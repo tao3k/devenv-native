@@ -28,11 +28,11 @@ guidance.
 | Inclusive gateway         | bounded executable | Structured split and one matching linear join fragment.                      |
 | Event-based gateway       | bounded executable | Exclusive competition over message, signal, or timer intermediate catches.   |
 | Complex gateway           | lint-deferred      | No executable semantics yet.                                                 |
-| Intermediate catch events | bounded executable | Message, signal, and timer waits.                                            |
+| Intermediate catch events | bounded executable | Message, signal, timer, and bounded conditional waits.                       |
 | Boundary events           | bounded executable | Bounded interrupting and non-interrupting timer/message/signal owners.       |
 | Error and cancel events   | bounded executable | Bounded subprocess, call-activity, transaction, and top-level error paths.   |
 | Compensation              | bounded executable | Transaction-owned compensation handlers and throw-compensation paths.        |
-| Conditional events        | lint-deferred      | Event kind exists, runtime wait execution is deferred.                       |
+| Conditional events        | bounded executable | Intermediate catches with bounded boolean or numeric conditions.             |
 | Escalation events         | lint-deferred      | Not executable in the current bounded runtime.                               |
 | Terminate events          | bounded executable | `terminateEventDefinition` end events terminate the current runtime scope.   |
 | Multiple events           | lint-deferred      | Multiple and parallel-multiple event families are deferred.                  |
@@ -69,3 +69,11 @@ from missing to bounded executable. A terminate end cancels sibling active
 tokens, waits, and pending host work in the current runtime scope. At the root
 process it completes the instance; inside a bounded called or embedded scope it
 completes the parent activity route.
+
+The next event-family slice promotes native `conditionalEventDefinition` on
+`intermediateCatchEvent`. The runtime evaluates the condition with the bounded
+boolean-path or numeric-comparison subset used by gateway conditions. If the
+condition is already true, the catch event routes immediately; otherwise it
+registers a conditional wait and re-evaluates after poll data is merged.
+Conditional boundary events, conditional start events, and conditional event
+subprocesses remain deferred.

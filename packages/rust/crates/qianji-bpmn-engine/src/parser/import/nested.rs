@@ -2,13 +2,13 @@ use super::attributes::{
     attribute_value, boolean_attribute_value, event_reference_id, parse_optional_u32_attribute,
 };
 use super::capture::{
-    apply_human_task_assignment_expression, apply_human_task_resource_ref,
-    apply_multi_instance_completion_condition, apply_multi_instance_input_data_item,
-    apply_multi_instance_loop_cardinality, apply_multi_instance_loop_data_input_ref,
-    apply_multi_instance_loop_data_output_ref, apply_multi_instance_output_data_item,
-    apply_script_task_body, apply_sequence_flow_condition_expression,
-    apply_standard_loop_condition, apply_timer_expression, last_process_node_mut,
-    push_human_task_resource_role,
+    apply_conditional_expression, apply_human_task_assignment_expression,
+    apply_human_task_resource_ref, apply_multi_instance_completion_condition,
+    apply_multi_instance_input_data_item, apply_multi_instance_loop_cardinality,
+    apply_multi_instance_loop_data_input_ref, apply_multi_instance_loop_data_output_ref,
+    apply_multi_instance_output_data_item, apply_script_task_body,
+    apply_sequence_flow_condition_expression, apply_standard_loop_condition,
+    apply_timer_expression, last_process_node_mut, push_human_task_resource_role,
 };
 use super::human_task_io::handle_human_task_io_child_start;
 use super::model::{
@@ -436,6 +436,16 @@ fn handle_event_child_start(
         }
         return Ok(true);
     }
+    if parent == "conditionalEventDefinition" && tag == "condition" {
+        *capture_target = Some(CaptureTarget::ConditionalExpression);
+        capture_buffer.clear();
+        if is_empty {
+            apply_conditional_expression(process, "")?;
+            *capture_target = None;
+            capture_buffer.clear();
+        }
+        return Ok(true);
+    }
     Ok(false)
 }
 
@@ -620,7 +630,12 @@ fn handle_supported_node_child_start(
         );
         return Ok(true);
     }
-    if is_supported_node_tag(parent) || parent == "timerEventDefinition" {
+    if is_supported_node_tag(parent)
+        || matches!(
+            parent,
+            "timerEventDefinition" | "conditionalEventDefinition"
+        )
+    {
         if is_ignored_node_child(tag) {
             return Ok(true);
         }
@@ -661,6 +676,7 @@ fn assign_event_definition(
         wait_for_completion: true,
         name: attribute_value(reader, event, "name")?,
         timer: None,
+        condition_expression: None,
     });
     Ok(())
 }
@@ -679,6 +695,9 @@ fn supported_event_definition(parent: &str, tag: &str) -> Option<BpmnEventKind> 
         ("boundaryEvent" | "endEvent", "cancelEventDefinition") => Some(BpmnEventKind::Cancel),
         ("boundaryEvent", "compensateEventDefinition") => Some(BpmnEventKind::Compensation),
         ("endEvent", "terminateEventDefinition") => Some(BpmnEventKind::Terminate),
+        ("intermediateCatchEvent", "conditionalEventDefinition") => {
+            Some(BpmnEventKind::Conditional)
+        }
         _ => None,
     }
 }

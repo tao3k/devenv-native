@@ -62,3 +62,22 @@ fn parser_intermediate_timer_wait_materializes_event_binding() {
     assert_eq!(timer.kind, BpmnTimerKind::Duration);
     assert_eq!(timer.expression.as_ref(), "PT5M");
 }
+
+#[test]
+fn parser_intermediate_conditional_wait_materializes_event_binding() {
+    let package = parse_fixture_package(
+        "intermediate-conditional-wait.bpmn",
+        "bounded conditional wait should parse",
+    );
+    let process = package
+        .find_process("await_condition")
+        .must("process should be present");
+
+    assert_eq!(process.nodes[1].kind, BpmnNodeKind::IntermediateCatchEvent);
+    let event = process
+        .event_for_node(1)
+        .must("conditional wait should materialize an event binding");
+    assert_eq!(event.kind, BpmnEventKind::Conditional);
+    assert_eq!(event.name.as_deref(), Some("wait_condition"));
+    assert_eq!(event.condition_expression.as_deref(), Some("approved"));
+}

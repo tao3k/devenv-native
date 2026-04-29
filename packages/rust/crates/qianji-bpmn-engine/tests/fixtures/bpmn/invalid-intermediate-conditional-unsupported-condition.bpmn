@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  id="pkg_invalid_conditional_expression"
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL">
+  <bpmn:process id="await_condition">
+    <bpmn:startEvent id="start" />
+    <bpmn:intermediateCatchEvent id="wait_condition">
+      <bpmn:conditionalEventDefinition>
+        <bpmn:condition>status == "ready"</bpmn:condition>
+      </bpmn:conditionalEventDefinition>
+    </bpmn:intermediateCatchEvent>
+    <bpmn:endEvent id="end" />
+    <bpmn:sequenceFlow id="flow_1" sourceRef="start" targetRef="wait_condition" />
+    <bpmn:sequenceFlow id="flow_2" sourceRef="wait_condition" targetRef="end" />
+  </bpmn:process>
+</bpmn:definitions>

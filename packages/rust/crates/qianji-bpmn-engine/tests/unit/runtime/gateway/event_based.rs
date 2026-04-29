@@ -68,6 +68,7 @@ async fn runtime_event_based_gateway_registers_competing_waits() {
                     event_reference: Some("invoice_received".to_string()),
                     event_name: Some("InvoiceReceived".to_string()),
                     timer: None,
+                    condition_expression: None,
                     correlation_key: Some("invoice_received".to_string()),
                 },
                 qianji_bpmn_engine::WaitRegistration {
@@ -82,6 +83,7 @@ async fn runtime_event_based_gateway_registers_competing_waits() {
                         qianji_bpmn_engine::BpmnTimerKind::Duration,
                         "PT5M",
                     )),
+                    condition_expression: None,
                     correlation_key: None,
                 },
             ],

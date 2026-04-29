@@ -72,6 +72,7 @@ fn runtime_frontier_plan_returns_waiting_idle_outcome() {
         event_reference: Some("parallel_wait_message".to_string()),
         event_name: Some("ParallelWaitMessage".to_string()),
         timer: None,
+        condition_expression: None,
         correlation_key: None,
     });
 

@@ -54,3 +54,37 @@ fn parser_intermediate_timer_event_requires_timer_expression() {
         }
     );
 }
+
+#[test]
+fn parser_intermediate_conditional_event_requires_condition_expression() {
+    let error = parse_fixture_error(
+        "invalid-intermediate-conditional-missing-condition.bpmn",
+        "conditional waits without a condition should fail validation",
+    );
+
+    assert_eq!(
+        error,
+        BpmnEngineError::MissingRequiredNodeElement {
+            process_id: "await_condition".to_string(),
+            node_id: "wait_condition".to_string(),
+            element: "conditional_expression",
+        }
+    );
+}
+
+#[test]
+fn parser_intermediate_conditional_event_rejects_unsupported_condition_expression() {
+    let error = parse_fixture_error(
+        "invalid-intermediate-conditional-unsupported-condition.bpmn",
+        "unsupported conditional wait expression should fail validation",
+    );
+
+    assert_eq!(
+        error,
+        BpmnEngineError::UnsupportedEventConfiguration {
+            process_id: "await_condition".to_string(),
+            node_id: "wait_condition".to_string(),
+            detail: "unsupported_conditional_event_expression",
+        }
+    );
+}

@@ -28,6 +28,10 @@ pub(super) fn normalize_events(raw: &RawProcess) -> Result<Vec<BpmnEventSpec>> {
             }
             None => spec,
         };
+        let spec = match &event.condition_expression {
+            Some(condition_expression) => spec.with_condition_expression(condition_expression),
+            None => spec,
+        };
         let name = event.name.as_deref().unwrap_or(node.event_label_fallback());
         events.push(spec.with_name(name));
     }
@@ -59,5 +63,6 @@ fn fallback_task_message_event(node: &RawNode) -> Option<RawEventSpec> {
             wait_for_completion: true,
             name: None,
             timer: None,
+            condition_expression: None,
         })
 }

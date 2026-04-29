@@ -323,6 +323,7 @@ pub(crate) struct RawEventSpec {
     pub(crate) wait_for_completion: bool,
     pub(crate) name: Option<String>,
     pub(crate) timer: Option<RawTimerSpec>,
+    pub(crate) condition_expression: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -334,6 +335,7 @@ pub(crate) struct RawTimerSpec {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) enum CaptureTarget {
     TimerExpression(BpmnTimerKind),
+    ConditionalExpression,
     StandardLoopCondition,
     MultiInstanceLoopCardinality,
     MultiInstanceLoopDataInputRef,

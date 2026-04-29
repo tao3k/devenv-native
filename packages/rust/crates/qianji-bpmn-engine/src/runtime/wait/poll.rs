@@ -5,8 +5,8 @@ use crate::ir::BpmnPackage;
 use crate::ir_index_api::BpmnNodeIndex;
 use crate::ir_process_spec::BpmnProcessSpec;
 use crate::runtime::lifecycle::{
-    cancel_attached_boundary_siblings, merge_output_data, record_transition,
-    resolve_single_outgoing_edge, set_active_node_index, set_node_status,
+    cancel_attached_boundary_siblings, conditional_event_is_satisfied, merge_output_data,
+    record_transition, resolve_single_outgoing_edge, set_active_node_index, set_node_status,
 };
 use crate::runtime::{
     BpmnAdvanceOutcome, BpmnInstanceState, InstanceLifecycle, NodeRuntimeStatus,
@@ -65,13 +65,25 @@ pub(crate) fn apply_event_poll_outcome_impl(
     let outcome = outcome.borrow();
     let wait_set = event_poll_waits(instance)?;
 
-    if !outcome.ready {
+    if !outcome.ready && !single_conditional_wait_candidate(&wait_set.waits) {
         return Ok(BpmnAdvanceOutcome::WaitingExternalEvent);
     }
 
     let wait = resolve_winning_wait(&wait_set.waits, outcome)?;
     let process = resolve_wait_process(package, instance, &wait, wait_set.source)?;
     merge_output_data(&mut instance.variables, &outcome.data);
+    if is_conditional_wait(&wait)
+        && !conditional_event_is_satisfied(process, wait.node_index, &instance.variables)?
+    {
+        if outcome
+            .data
+            .as_object()
+            .is_some_and(|object| !object.is_empty())
+        {
+            record_transition(instance, polled_at_ms, InstanceLifecycle::Waiting);
+        }
+        return Ok(BpmnAdvanceOutcome::WaitingExternalEvent);
+    }
 
     if let Some(blocking_node_index) = wait.blocking_node_index {
         let boundary_node = &process.nodes[wait.node_index as usize];
@@ -139,6 +151,14 @@ pub(crate) fn apply_event_poll_outcome_impl(
     record_transition(instance, polled_at_ms, InstanceLifecycle::Running);
 
     Ok(BpmnAdvanceOutcome::Advanced)
+}
+
+fn single_conditional_wait_candidate(waits: &[RuntimeWaitRegistration]) -> bool {
+    matches!(waits, [wait] if is_conditional_wait(wait))
+}
+
+fn is_conditional_wait(wait: &RuntimeWaitRegistration) -> bool {
+    wait.event_kind == Some(crate::ir_event_api::BpmnEventKind::Conditional)
 }
 
 fn apply_interrupting_parent_frame_boundary_wait(

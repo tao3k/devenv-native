@@ -8,7 +8,8 @@ the official [BPMN 2.0.2 specification](https://www.omg.org/spec/BPMN/2.0.2).
 The current engine supports these bounded families:
 
 - `intermediateCatchEvent` with exactly one `messageEventDefinition`,
-  `signalEventDefinition`, or `timerEventDefinition`
+  `signalEventDefinition`, `timerEventDefinition`, or
+  `conditionalEventDefinition` with one bounded `condition`
 - one interrupting timer, message, or signal `boundaryEvent` attached to one
   host-blocking task owner
 - one interrupting timer, message, or signal `boundaryEvent` attached to one
@@ -64,7 +65,9 @@ with non-interrupting catching boundaries as an intended use case; see
 
 These shapes remain outside the bounded surface:
 
-- escalation, conditional, multiple, and parallel-multiple event families
+- escalation, multiple, and parallel-multiple event families
+- conditional boundary events, conditional start events, and conditional event
+  subprocess triggers
 - event subprocesses
 - broader message, signal, or timer boundary families on subprocess-like
   owners beyond one interrupting embedded subprocess owner that may

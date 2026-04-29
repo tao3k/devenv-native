@@ -478,6 +478,26 @@ fn intermediate_timer_wait_process(process_id: &str) -> BpmnProcessSpec {
     )
 }
 
+fn intermediate_conditional_wait_process(process_id: &str) -> BpmnProcessSpec {
+    BpmnProcessSpec::new(
+        ProcessKey::new("pkg_runtime", process_id, format!("digest_{process_id}")),
+        vec![
+            BpmnNodeSpec::new(0, "start", BpmnNodeKind::StartEvent),
+            BpmnNodeSpec::new(1, "wait_condition", BpmnNodeKind::IntermediateCatchEvent),
+            BpmnNodeSpec::new(2, "end", BpmnNodeKind::EndEvent),
+        ],
+        vec![
+            BpmnEdgeSpec::new(0, 1, None::<&str>),
+            BpmnEdgeSpec::new(1, 2, None::<&str>),
+        ],
+        vec![
+            BpmnEventSpec::new(1, BpmnEventKind::Conditional)
+                .with_name("WaitForApproval")
+                .with_condition_expression("approved"),
+        ],
+    )
+}
+
 fn standard_loop_service_process(process_id: &str) -> BpmnProcessSpec {
     BpmnProcessSpec::new(
         ProcessKey::new("pkg_runtime", process_id, format!("digest_{process_id}")),

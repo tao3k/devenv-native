@@ -65,6 +65,7 @@ pub(in crate::bpmn_cli::render) fn bpmn_wait_kind_label(kind: &WaitKind) -> &'st
     match kind {
         WaitKind::ExternalEvent => "external_event",
         WaitKind::UserAction => "user_action",
+        WaitKind::Conditional => "conditional",
         WaitKind::Timer => "timer",
     }
 }

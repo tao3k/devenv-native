@@ -453,6 +453,7 @@ fn waiting_instance() -> (Arc<BpmnPackage>, qianji_bpmn_engine::BpmnInstanceStat
         event_reference: Some("invoice_received".to_string()),
         event_name: Some("InvoiceReceived".to_string()),
         timer: None,
+        condition_expression: None,
         correlation_key: Some("invoice:42".to_string()),
     });
 

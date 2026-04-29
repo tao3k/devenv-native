@@ -61,7 +61,17 @@ pub(super) fn advance_active_node(
             )?;
             Ok(None)
         }
-        BpmnNodeKind::IntermediateCatchEvent | BpmnNodeKind::ReceiveTask => {
+        BpmnNodeKind::IntermediateCatchEvent => {
+            advance_intermediate_catch_event(
+                process,
+                instance,
+                current_token_index,
+                current_node_index,
+                now_ms,
+            )?;
+            Ok(None)
+        }
+        BpmnNodeKind::ReceiveTask => {
             call_activity::register_intermediate_wait(
                 process,
                 instance,
@@ -245,6 +255,40 @@ fn advance_end_event(
 
     call_activity::complete_call_activity(package, instance, now_ms)?;
     Ok(None)
+}
+
+fn advance_intermediate_catch_event(
+    process: &BpmnProcessSpec,
+    instance: &mut BpmnInstanceState,
+    current_token_index: usize,
+    current_node_index: BpmnNodeIndex,
+    now_ms: u64,
+) -> Result<()> {
+    if conditional_catch_event_is_ready(process, instance, current_node_index)? {
+        return completion::complete_node_and_route(
+            process,
+            instance,
+            current_token_index,
+            current_node_index,
+            now_ms,
+            "advance_instance_conditional_catch_routing",
+        );
+    }
+    call_activity::register_intermediate_wait(process, instance, current_node_index, now_ms)
+}
+
+fn conditional_catch_event_is_ready(
+    process: &BpmnProcessSpec,
+    instance: &BpmnInstanceState,
+    node_index: BpmnNodeIndex,
+) -> Result<bool> {
+    let Some(event) = process.event_for_node(node_index) else {
+        return Ok(false);
+    };
+    if event.kind != BpmnEventKind::Conditional {
+        return Ok(false);
+    }
+    super::conditional_event_is_satisfied(process, node_index, &instance.variables)
 }
 
 fn advance_intermediate_throw_event(

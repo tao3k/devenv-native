@@ -370,6 +370,9 @@ fn handle_end_tag(
         {
             super::capture::apply_timer_expression(process, kind, capture_buffer.trim())?;
         }
+        (CaptureTarget::ConditionalExpression, "condition") => {
+            super::capture::apply_conditional_expression(process, capture_buffer.trim())?;
+        }
         (CaptureTarget::StandardLoopCondition, "loopCondition") => {
             super::capture::apply_standard_loop_condition(process, capture_buffer.trim())?;
         }

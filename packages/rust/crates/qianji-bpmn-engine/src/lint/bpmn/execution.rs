@@ -77,6 +77,30 @@ pub(super) fn issue_from_bpmn_execution_shape_error(error: &BpmnEngineError) -> 
             node_id,
             detail,
         } => return Some(gateway_configuration_issue(process_id, node_id, detail)),
+        BpmnEngineError::UnsupportedEventConfiguration {
+            process_id,
+            node_id,
+            detail,
+        } => LintIssue::new(
+            "bpmn.unsupported_event_configuration",
+            "Event configuration exceeds the bounded slice",
+            format!(
+                "Process '{process_id}' event node '{node_id}' uses unsupported configuration '{detail}'."
+            ),
+            "The current conditional-event slice supports one intermediate catch event with exactly one conditional event definition and one bounded condition expression using a boolean variable path or numeric comparison.",
+            vec![
+                "Use one `conditionalEventDefinition` with one nested `condition` expression on an `intermediateCatchEvent`.".to_string(),
+                "Keep the condition inside the bounded subset, such as `approved`, `not approved`, or `amount >= 100`.".to_string(),
+            ],
+            format!(
+                "Repair event node '{node_id}' in process '{process_id}' so it uses one bounded conditional expression, or rewrite the event to another supported wait family. Preserve workflow intent, but remove unsupported configuration '{detail}'."
+            ),
+            json!({
+                "process_id": process_id,
+                "node_id": node_id,
+                "detail": detail,
+            }),
+        ),
         BpmnEngineError::UnsupportedTransactionConfiguration {
             process_id,
             node_id,

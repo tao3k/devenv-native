@@ -22,6 +22,7 @@ pub(super) fn build_wait_registration(
     let wait_kind = match event.kind {
         BpmnEventKind::Message | BpmnEventKind::Signal => WaitKind::ExternalEvent,
         BpmnEventKind::Timer => WaitKind::Timer,
+        BpmnEventKind::Conditional => WaitKind::Conditional,
         BpmnEventKind::Error => {
             return Err(BpmnEngineError::UnsupportedOperation {
                 operation: "advance_instance_error_event_wait",
@@ -35,11 +36,6 @@ pub(super) fn build_wait_registration(
         BpmnEventKind::Compensation => {
             return Err(BpmnEngineError::UnsupportedOperation {
                 operation: "advance_instance_compensation_event_wait",
-            });
-        }
-        BpmnEventKind::Conditional => {
-            return Err(BpmnEngineError::UnsupportedOperation {
-                operation: "advance_instance_conditional_event_wait",
             });
         }
         BpmnEventKind::Terminate => {
@@ -58,6 +54,7 @@ pub(super) fn build_wait_registration(
         event_reference: event.reference_id.as_ref().map(ToString::to_string),
         event_name: event.name.as_ref().map(ToString::to_string),
         timer: event.timer.clone(),
+        condition_expression: event.condition_expression.as_ref().map(ToString::to_string),
         correlation_key: event.reference_id.as_ref().map(ToString::to_string),
     })
 }
