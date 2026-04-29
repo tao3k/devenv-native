@@ -109,6 +109,13 @@ region-shards`. In that mode, region OCR is supplemental: native text page
 coverage remains required for the page, and full-page OCR shards continue to
 replace only their selected pages.
 
+When region shards pass through the hybrid provider, `_structure.arrow`
+preserves their `readingOrderKey`, PDF-point bbox, confidence, shard identity,
+parent shard identity, and raster/image provenance. `_resources.arrow` remains
+the stable nine-column result table; structure metadata is kept in the sidecar
+so downstream consumers can restore document order without expanding the user
+resource schema.
+
 The `pdf-inspector` text helpers can also project native non-OCR pages into
 per-page `text_page` rows. The Studio provider uses those rows only for the
 explicit hybrid OCR mode and only when page coverage can be proven complete.

@@ -39,7 +39,7 @@ use xiuxian_wendao_attachments::pdf::render::{
 };
 #[cfg(feature = "document-extract-pdf-render")]
 use xiuxian_wendao_attachments::pdf::structure::{
-    DOCUMENT_STRUCTURE_ARROW_CACHE_NAME, build_document_structure_batch,
+    DOCUMENT_STRUCTURE_ARROW_CACHE_NAME, DocumentStructureBlock, build_document_structure_batch,
     document_resource_batch_to_structure_blocks,
 };
 
@@ -76,6 +76,24 @@ const DEFAULT_DOCUMENT_EXTRACT_MAX_RUNNING_CONVERSIONS: usize = 4;
 struct HybridPdfRegionInput {
     source: PathBuf,
     regions: Vec<PdfPageRegionRenderRequest>,
+}
+
+#[cfg(feature = "document-extract-pdf-render")]
+struct HybridDocumentResourceBatch {
+    batch: EngineRecordBatch,
+    ocr_inputs: Vec<PdfOcrShardInput>,
+    ocr_results: Vec<PdfOcrShardResult>,
+}
+
+#[cfg(feature = "document-extract-pdf-render")]
+impl HybridDocumentResourceBatch {
+    fn native(batch: EngineRecordBatch) -> Self {
+        Self {
+            batch,
+            ocr_inputs: Vec::new(),
+            ocr_results: Vec::new(),
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -275,12 +293,7 @@ impl StudioDocumentExtractFlightRouteProvider {
         &self,
         request: &DocumentExtractFlightRequest,
     ) -> Result<DocumentExtractFlightRouteResponse, String> {
-        let source = PathBuf::from(request.source_path.as_str());
-        let output = if request.output_dir.trim().is_empty() {
-            default_output_dir(source.as_path())
-        } else {
-            PathBuf::from(request.output_dir.as_str())
-        };
+        let (source, output) = hybrid_page_ocr_request_paths(request);
         if source.exists()
             && !request.force
             && let Some(batches) = read_cached_document_batches(source.as_path(), output.as_path())?
@@ -312,7 +325,7 @@ impl StudioDocumentExtractFlightRouteProvider {
             match materialize_hybrid_text_only_resource_batch(source.as_path(), &render_report)
                 .await
             {
-                Ok(batch) => batch,
+                Ok(batch) => HybridDocumentResourceBatch::native(batch),
                 Err(reason) => {
                     return self
                         .fallback_python_document_extract(
@@ -377,7 +390,9 @@ impl StudioDocumentExtractFlightRouteProvider {
             .await
             .map_err(|error| format!("touch hybrid PDF OCR complete marker: {error}"))?;
 
-        Ok(DocumentExtractFlightRouteResponse::new(resource_batch))
+        Ok(DocumentExtractFlightRouteResponse::new(
+            resource_batch.batch,
+        ))
     }
 
     #[cfg(feature = "document-extract-pdf-render")]
@@ -726,7 +741,7 @@ async fn materialize_hybrid_page_ocr_resource_batch(
     source: &Path,
     render_report: &PdfPageRenderShardReport,
     inputs: Vec<PdfOcrShardInput>,
-) -> Result<EngineRecordBatch, String> {
+) -> Result<HybridDocumentResourceBatch, String> {
     let endpoint_url = std::env::var("WENDAO_DOCUMENT_EXTRACT_ENDPOINT")
         .unwrap_or_else(|_| DEFAULT_DOCUMENT_EXTRACT_ENDPOINT.to_string());
     let response = PdfOcrShardFlightClient::connect(endpoint_url)
@@ -743,7 +758,11 @@ async fn materialize_hybrid_page_ocr_resource_batch(
 
     if render_report.shard_count == render_report.page_count && !has_region_shards {
         validate_hybrid_page_coverage(render_report.page_count, &[], response.results.as_slice())?;
-        return Ok(response.resource_batch);
+        return Ok(HybridDocumentResourceBatch {
+            batch: response.resource_batch,
+            ocr_inputs: inputs,
+            ocr_results: response.results,
+        });
     }
 
     let ocr_page_indices = inputs
@@ -763,21 +782,27 @@ async fn materialize_hybrid_page_ocr_resource_batch(
         inputs.as_slice(),
         response.results.as_slice(),
     )?;
-    merge_document_resource_batches_by_page(&[text_batch.batch, response.resource_batch])
+    let batch =
+        merge_document_resource_batches_by_page(&[text_batch.batch, response.resource_batch])?;
+    Ok(HybridDocumentResourceBatch {
+        batch,
+        ocr_inputs: inputs,
+        ocr_results: response.results,
+    })
 }
 
 #[cfg(feature = "document-extract-pdf-render")]
 fn write_hybrid_document_resource_artifacts(
     output: &Path,
     source: &Path,
-    resource_batch: &EngineRecordBatch,
+    resource_batch: &HybridDocumentResourceBatch,
 ) -> Result<(), String> {
     write_arrow_file(
         output.join(DOCUMENT_RESOURCE_ARROW_CACHE_NAME).as_path(),
-        std::slice::from_ref(resource_batch),
+        std::slice::from_ref(&resource_batch.batch),
     )?;
     let source_content_hash = sha256_file_hex(source)?;
-    let structure_blocks = document_resource_batch_to_structure_blocks(
+    let structure_blocks = hybrid_document_structure_blocks(
         resource_batch,
         source_content_hash.as_str(),
         "wendao-hybrid-page-ocr",
@@ -787,6 +812,78 @@ fn write_hybrid_document_resource_artifacts(
         output.join(DOCUMENT_STRUCTURE_ARROW_CACHE_NAME).as_path(),
         std::slice::from_ref(&structure_batch),
     )
+}
+
+#[cfg(feature = "document-extract-pdf-render")]
+fn hybrid_document_structure_blocks(
+    resource_batch: &HybridDocumentResourceBatch,
+    source_content_hash: &str,
+    engine: &str,
+) -> Result<Vec<DocumentStructureBlock>, String> {
+    let mut blocks = document_resource_batch_to_structure_blocks(
+        &resource_batch.batch,
+        source_content_hash,
+        engine,
+    )?;
+    if resource_batch.ocr_inputs.is_empty() {
+        return Ok(blocks);
+    }
+
+    let inputs_by_shard = resource_batch
+        .ocr_inputs
+        .iter()
+        .map(|input| (input.shard_element_id.as_str(), input))
+        .collect::<HashMap<_, _>>();
+    let results_by_element = resource_batch
+        .ocr_results
+        .iter()
+        .map(|result| (result.element_id.as_str(), result))
+        .collect::<HashMap<_, _>>();
+
+    for block in &mut blocks {
+        let Some(result) = results_by_element.get(block.resource_element_id.as_str()) else {
+            continue;
+        };
+        let Some(input) = inputs_by_shard.get(result.shard_element_id.as_str()) else {
+            continue;
+        };
+        block.reading_order_key = input.reading_order_key.clone();
+        if let Some(block_index) = parse_reading_order_block_index(input.reading_order_key.as_str())
+        {
+            block.block_index = block_index;
+        }
+        block.block_type = match input.shard_type.as_str() {
+            "region" => "ocr_region".to_string(),
+            "page" => "ocr_page".to_string(),
+            other => format!("ocr_{other}"),
+        };
+        block.parent_block_id = input.parent_shard_element_id.clone();
+        block.confidence = result.confidence;
+        block.bbox_left = Some(input.crop_left);
+        block.bbox_top = Some(input.crop_top);
+        block.bbox_right = Some(input.crop_right);
+        block.bbox_bottom = Some(input.crop_bottom);
+        block.provenance = serde_json::json!({
+            "source": "pdf_ocr_shard",
+            "shardType": input.shard_type,
+            "regionIndex": input.region_index,
+            "shardElementId": input.shard_element_id,
+            "parentShardElementId": input.parent_shard_element_id,
+            "readingOrderKey": input.reading_order_key,
+            "rasterSha256": input.raster_sha256,
+            "imagePath": input.image_path,
+        })
+        .to_string();
+    }
+    Ok(blocks)
+}
+
+#[cfg(feature = "document-extract-pdf-render")]
+fn parse_reading_order_block_index(reading_order_key: &str) -> Option<i32> {
+    reading_order_key
+        .split('.')
+        .nth(1)
+        .and_then(|value| value.parse::<i32>().ok())
 }
 
 #[cfg(feature = "document-extract-pdf-render")]
@@ -935,6 +1032,17 @@ impl DocumentExtractFlightRouteProvider for StudioDocumentExtractFlightRouteProv
             &status,
         )?))
     }
+}
+
+#[cfg(feature = "document-extract-pdf-render")]
+fn hybrid_page_ocr_request_paths(request: &DocumentExtractFlightRequest) -> (PathBuf, PathBuf) {
+    let source = PathBuf::from(request.source_path.as_str());
+    let output = if request.output_dir.trim().is_empty() {
+        default_output_dir(source.as_path())
+    } else {
+        PathBuf::from(request.output_dir.as_str())
+    };
+    (source, output)
 }
 
 #[cfg(feature = "document-extract-pdf-render")]
@@ -1451,7 +1559,11 @@ mod tests {
         let output = temp.path().join("out");
         fs::write(source.as_path(), b"%PDF-1.4\n").map_err(|error| error.to_string())?;
         fs::create_dir_all(output.as_path()).map_err(|error| error.to_string())?;
-        let resource_batch = test_resource_batch(&[("text_page", 0, "text-0")])?;
+        let resource_batch = HybridDocumentResourceBatch::native(test_resource_batch(&[(
+            "text_page",
+            0,
+            "text-0",
+        )])?);
 
         write_hybrid_document_resource_artifacts(
             output.as_path(),
@@ -1464,6 +1576,74 @@ mod tests {
         let structure_batches = read_arrow_file(structure_path.as_path())?;
         assert_eq!(structure_batches.len(), 1);
         assert_eq!(structure_batches[0].num_rows(), 1);
+        Ok(())
+    }
+
+    #[cfg(feature = "document-extract-pdf-render")]
+    #[test]
+    fn hybrid_page_ocr_structure_sidecar_preserves_region_provenance() -> Result<(), String> {
+        let mut input = sample_ocr_input(0, "region");
+        input.crop_left = 72.0;
+        input.crop_bottom = 80.0;
+        input.crop_right = 240.0;
+        input.crop_top = 320.0;
+        input.reading_order_key = "000000.000004".to_string();
+        let mut result = sample_ocr_result(0, true);
+        result.confidence = Some(0.87);
+        let resource_batch = HybridDocumentResourceBatch {
+            batch: test_resource_batch(&[
+                ("text_page", 0, "text-0"),
+                ("ocr_text", 0, result.element_id.as_str()),
+            ])?,
+            ocr_inputs: vec![input],
+            ocr_results: vec![result],
+        };
+
+        let blocks =
+            hybrid_document_structure_blocks(&resource_batch, "sourcehash", "wendao-hybrid")?;
+        let structure_batch = build_document_structure_batch(blocks.as_slice())?;
+
+        assert_eq!(
+            structure_string_column(&structure_batch, "blockId")?.value(1),
+            "ocr-0"
+        );
+        assert_eq!(
+            structure_string_column(&structure_batch, "readingOrderKey")?.value(1),
+            "000000.000004"
+        );
+        assert_eq!(
+            structure_string_column(&structure_batch, "blockType")?.value(1),
+            "ocr_region"
+        );
+        assert_eq!(
+            structure_string_column(&structure_batch, "parentBlockId")?.value(1),
+            "page-shard-0"
+        );
+        assert_close(
+            structure_float64_column(&structure_batch, "bboxLeft")?.value(1),
+            72.0,
+        );
+        assert_close(
+            structure_float64_column(&structure_batch, "bboxBottom")?.value(1),
+            80.0,
+        );
+        assert_close(
+            structure_float64_column(&structure_batch, "bboxRight")?.value(1),
+            240.0,
+        );
+        assert_close(
+            structure_float64_column(&structure_batch, "bboxTop")?.value(1),
+            320.0,
+        );
+        assert_close(
+            structure_float64_column(&structure_batch, "confidence")?.value(1),
+            0.87,
+        );
+        assert!(
+            structure_string_column(&structure_batch, "provenance")?
+                .value(1)
+                .contains(r#""shardType":"region""#)
+        );
         Ok(())
     }
 
@@ -1697,5 +1877,39 @@ mod tests {
             ],
         )
         .map_err(|error| error.to_string())
+    }
+
+    #[cfg(feature = "document-extract-pdf-render")]
+    fn structure_string_column<'a>(
+        batch: &'a EngineRecordBatch,
+        name: &str,
+    ) -> Result<&'a arrow::array::StringArray, String> {
+        batch
+            .column_by_name(name)
+            .ok_or_else(|| format!("missing structure `{name}` column"))?
+            .as_any()
+            .downcast_ref::<arrow::array::StringArray>()
+            .ok_or_else(|| format!("structure `{name}` column is not Utf8"))
+    }
+
+    #[cfg(feature = "document-extract-pdf-render")]
+    fn structure_float64_column<'a>(
+        batch: &'a EngineRecordBatch,
+        name: &str,
+    ) -> Result<&'a arrow::array::Float64Array, String> {
+        batch
+            .column_by_name(name)
+            .ok_or_else(|| format!("missing structure `{name}` column"))?
+            .as_any()
+            .downcast_ref::<arrow::array::Float64Array>()
+            .ok_or_else(|| format!("structure `{name}` column is not Float64"))
+    }
+
+    #[cfg(feature = "document-extract-pdf-render")]
+    fn assert_close(actual: f64, expected: f64) {
+        assert!(
+            (actual - expected).abs() < 0.000_001,
+            "expected {actual} to be close to {expected}"
+        );
     }
 }

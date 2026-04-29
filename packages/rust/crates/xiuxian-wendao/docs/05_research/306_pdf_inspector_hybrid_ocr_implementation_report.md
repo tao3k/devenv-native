@@ -638,6 +638,10 @@ Current implementation status:
   requested by benchmark configuration, and region OCR is validated as
   supplemental to native text page coverage rather than as a full-page
   replacement. Full-page shard coverage gates remain strict.
+- Hybrid region OCR now carries ordering and provenance into `_structure.arrow`.
+  The sidecar records the shard `readingOrderKey`, region bbox, confidence,
+  parent shard id, raster hash, and image path while keeping `_resources.arrow`
+  on the stable nine-column schema.
 
 ### Milestone 5: Hybrid Mixed-PDF Pipeline
 
