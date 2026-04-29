@@ -27,6 +27,10 @@ The current engine preserves non-executable BPMN metadata for these families:
 - process callable metadata, including `processType`, `isClosed`,
   `definitionalCollaborationRef`, `supports`, process `property`, and process
   `correlationSubscription` bindings
+- a process correlation-boundary evidence object that marks
+  `correlationSubscription`, `correlationPropertyBinding`, `correlationKey`,
+  and `dataPath` declarations as preserved metadata while keeping runtime
+  matching deferred
 - callable IO metadata, including direct process/global-task `ioBinding`
   declarations and direct global-task `ioSpecification` declarations
 - direct process and global-task resource-role metadata, including
@@ -83,6 +87,14 @@ policy, a `single_process_graph` runtime scope, the preserved collaboration
 metadata families, and the exact deferred routing and correlation semantics.
 This is evidence for future routing work, not an executable routing contract.
 
+Process callable lint evidence also includes a `correlation_boundary` object.
+That boundary records the distinction between bounded executable waits that
+use explicit event references and deferred BPMN correlation subscriptions.
+The runtime can wait on explicit message, signal, timer, or conditional event
+references, but it does not evaluate `correlationSubscription`,
+`correlationPropertyBinding`, `correlationKey`, or `dataPath` declarations for
+matching.
+
 ## Runtime Boundary
 
 These BPMN surfaces remain deferred:
@@ -95,6 +107,7 @@ These BPMN surfaces remain deferred:
 - executable group semantics or text-annotation interpretation
 - executable correlation keys, correlation subscriptions, and retrieval
   expression evaluation
+- executable correlation property binding or data-path evaluation
 - executable process support resolution, process property semantics, or
   process inheritance
 - executable callable-operation binding or callable IO invocation from

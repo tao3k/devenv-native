@@ -202,6 +202,15 @@ message-flow routing, conversation routing, choreography execution,
 correlation matching, correlation subscription matching, correlation-key
 evaluation, and retrieval-expression evaluation.
 
+The second collaboration-boundary slice extends the same evidence discipline
+to process-level `correlationSubscription` metadata. Process callable
+diagnostics now report a `correlation_boundary` object that distinguishes
+bounded explicit event-reference waits from deferred BPMN correlation matching.
+The engine may wait on an explicit message, signal, timer, or conditional
+event reference, but it does not evaluate `correlationSubscription`,
+`correlationPropertyBinding`, `correlationKey`, or `dataPath` declarations as
+runtime matching policy.
+
 Current executable behavior must still be modeled through one supported
 process graph, host-dispatched tasks, or supported event waits. This milestone
 does not implement cross-pool message dispatch or correlation-aware runtime

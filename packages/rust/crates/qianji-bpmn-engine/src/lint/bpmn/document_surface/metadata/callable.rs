@@ -1,6 +1,6 @@
 use super::{
     BpmnDocumentSnapshot, BpmnGlobalTaskSnapshot, BpmnIoBindingSnapshot, BpmnProcessSnapshot,
-    ProcessCallableCounts, SNAPSHOT_EVIDENCE_LIMIT, Value, json,
+    ProcessCallableCounts, SNAPSHOT_EVIDENCE_LIMIT, Value, correlation_boundary_evidence, json,
 };
 
 pub(in crate::lint::bpmn::document_surface) fn process_callable_counts(
@@ -49,6 +49,7 @@ pub(in crate::lint::bpmn::document_surface) fn process_callable_summary(
         "process_io_binding_count": counts.process_io_binding,
         "global_task_io_specification_count": counts.global_task_io_specification,
         "global_task_io_binding_count": counts.global_task_io_binding,
+        "correlation_boundary": correlation_boundary_evidence(),
         "metadata_truncated": snapshot.processes.len() > SNAPSHOT_EVIDENCE_LIMIT || snapshot.root.global_tasks.len() > SNAPSHOT_EVIDENCE_LIMIT,
         "processes": process_callable_metadata_evidence(snapshot),
         "global_tasks": global_task_callable_metadata_evidence(snapshot),

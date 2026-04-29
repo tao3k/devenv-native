@@ -1,4 +1,5 @@
 use super::*;
+use serde_json::json;
 
 #[test]
 fn bpmn_linter_reports_process_callable_metadata_surface_with_llm_guidance() {
@@ -26,6 +27,29 @@ fn bpmn_linter_reports_process_callable_metadata_surface_with_llm_guidance() {
         issue.evidence["snapshot"]["process_callable"]["correlation_binding_count"],
         1
     );
+    assert_eq!(
+        issue.evidence["snapshot"]["process_callable"]["correlation_boundary"]["status"],
+        "metadata_only"
+    );
+    assert_eq!(
+        issue.evidence["snapshot"]["process_callable"]["correlation_boundary"]["execution_policy"],
+        "deferred"
+    );
+    let Some(deferred_semantics) = issue.evidence["snapshot"]["process_callable"]
+        ["correlation_boundary"]["deferred_semantics"]
+        .as_array()
+    else {
+        panic!("process correlation boundary deferred semantics evidence");
+    };
+    assert!(deferred_semantics.contains(&json!("correlation_subscription_matching")));
+    assert!(deferred_semantics.contains(&json!("binding_data_path_evaluation")));
+    let Some(bounded_surface) = issue.evidence["snapshot"]["process_callable"]
+        ["correlation_boundary"]["bounded_executable_surface"]
+        .as_array()
+    else {
+        panic!("process correlation boundary bounded executable evidence");
+    };
+    assert!(bounded_surface.contains(&json!("message_event_reference_wait")));
     assert_eq!(
         issue.evidence["snapshot"]["process_callable"]["processes"][0]["process_type"],
         "Public"

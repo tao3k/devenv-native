@@ -9,8 +9,11 @@ use super::{
 
 mod api;
 mod callable;
+mod correlation;
 mod flow;
 mod resource;
+
+use correlation::correlation_boundary_evidence;
 
 pub(super) use api::{
     flow_element_metadata_summary, process_callable_summary, resource_role_summary,
