@@ -10,7 +10,7 @@ use arrow_flight::client::FlightClient;
 use arrow_flight::flight_service_client::FlightServiceClient as TonicFlightServiceClient;
 use futures::TryStreamExt;
 use futures::future::try_join_all;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use tonic::transport::{Channel, Endpoint};
 use xiuxian_wendao_runtime::transport::{
     ANALYSIS_DOCUMENT_EXTRACT_ROUTE, WENDAO_DOCUMENT_EXTRACT_ERROR_ROW_HEADER,
@@ -26,12 +26,19 @@ struct PerfConfig {
     endpoint: String,
     source: String,
     output_dir: String,
+    inputs: Vec<PerfInput>,
     iterations: usize,
-    concurrency: usize,
     force_first: bool,
     mode: String,
     wait_ms: u64,
     report_path: Option<PathBuf>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct PerfInput {
+    source: String,
+    output_dir: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -41,6 +48,8 @@ struct PerfReport {
     endpoint: String,
     source: String,
     output_dir: String,
+    sources: Vec<String>,
+    output_dirs: Vec<String>,
     iterations: usize,
     concurrency: usize,
     request_count: usize,
@@ -60,28 +69,32 @@ struct PerfReport {
 #[ignore = "requires an external Python document extraction Flight service"]
 async fn document_extract_python_flight_perf_smoke() -> Result<(), String> {
     let config = perf_config_from_env()?;
-    if config.force_first && config.concurrency > 1 {
+    let request_concurrency = config.inputs.len();
+    if config.force_first && request_concurrency > 1 {
         return Err(
             "WENDAO_DOCUMENT_EXTRACT_PERF_FORCE_FIRST cannot be combined with concurrency > 1"
                 .to_string(),
         );
     }
 
-    let mut latencies_ms = Vec::with_capacity(config.iterations * config.concurrency);
+    let mut latencies_ms = Vec::with_capacity(config.iterations * request_concurrency);
     let mut last_batches = Vec::new();
     let channel = connect_document_extract(&config.endpoint).await?;
     let overall_started = Instant::now();
 
     for iteration in 0..config.iterations {
-        let requests = (0..config.concurrency).map(|_| async {
+        let requests = config.inputs.iter().map(|input| async {
             let started = Instant::now();
-            let batches = request_document_extract(&config, iteration, channel.clone()).await?;
+            let batches =
+                request_document_extract(&config, input, iteration, channel.clone()).await?;
             Ok::<_, String>((started.elapsed().as_secs_f64() * 1000.0, batches))
         });
+        let mut iteration_batches = Vec::new();
         for (latency_ms, batches) in try_join_all(requests).await? {
             latencies_ms.push(latency_ms);
-            last_batches = batches;
+            iteration_batches.extend(batches);
         }
+        last_batches = iteration_batches;
     }
     let wall_time_ms = overall_started.elapsed().as_secs_f64() * 1000.0;
 
@@ -90,9 +103,19 @@ async fn document_extract_python_flight_perf_smoke() -> Result<(), String> {
         endpoint: config.endpoint,
         source: config.source,
         output_dir: config.output_dir,
+        sources: config
+            .inputs
+            .iter()
+            .map(|input| input.source.clone())
+            .collect(),
+        output_dirs: config
+            .inputs
+            .iter()
+            .map(|input| input.output_dir.clone())
+            .collect(),
         iterations: config.iterations,
-        concurrency: config.concurrency,
-        request_count: config.iterations * config.concurrency,
+        concurrency: request_concurrency,
+        request_count: config.iterations * request_concurrency,
         force_first: config.force_first,
         mode: config.mode,
         wait_ms: config.wait_ms,
@@ -116,10 +139,8 @@ async fn document_extract_python_flight_perf_smoke() -> Result<(), String> {
 }
 
 fn perf_config_from_env() -> Result<PerfConfig, String> {
-    let source = std::env::var("WENDAO_DOCUMENT_EXTRACT_PERF_SOURCE")
-        .map_err(|_| "WENDAO_DOCUMENT_EXTRACT_PERF_SOURCE is required".to_string())?;
-    let output_dir = std::env::var("WENDAO_DOCUMENT_EXTRACT_PERF_OUTPUT_DIR")
-        .map_err(|_| "WENDAO_DOCUMENT_EXTRACT_PERF_OUTPUT_DIR is required".to_string())?;
+    let source = std::env::var("WENDAO_DOCUMENT_EXTRACT_PERF_SOURCE").ok();
+    let output_dir = std::env::var("WENDAO_DOCUMENT_EXTRACT_PERF_OUTPUT_DIR").ok();
     let iterations = std::env::var("WENDAO_DOCUMENT_EXTRACT_PERF_ITERATIONS")
         .ok()
         .and_then(|value| value.parse::<usize>().ok())
@@ -130,13 +151,24 @@ fn perf_config_from_env() -> Result<PerfConfig, String> {
         .and_then(|value| value.parse::<usize>().ok())
         .unwrap_or(1)
         .max(1);
+    let inputs = perf_inputs_from_env(source.as_deref(), output_dir.as_deref(), concurrency)?;
+    let report_source = if inputs.len() == 1 {
+        inputs[0].source.clone()
+    } else {
+        "<multiple>".to_string()
+    };
+    let report_output_dir = if inputs.len() == 1 {
+        inputs[0].output_dir.clone()
+    } else {
+        "<multiple>".to_string()
+    };
     Ok(PerfConfig {
         endpoint: std::env::var("WENDAO_DOCUMENT_EXTRACT_PERF_ENDPOINT")
             .unwrap_or_else(|_| "http://127.0.0.1:50051".to_string()),
-        source,
-        output_dir,
+        source: report_source,
+        output_dir: report_output_dir,
+        inputs,
         iterations,
-        concurrency,
         force_first: std::env::var("WENDAO_DOCUMENT_EXTRACT_PERF_FORCE_FIRST")
             .is_ok_and(|value| matches!(value.as_str(), "1" | "true" | "yes")),
         mode: std::env::var("WENDAO_DOCUMENT_EXTRACT_PERF_MODE")
@@ -151,8 +183,34 @@ fn perf_config_from_env() -> Result<PerfConfig, String> {
     })
 }
 
+fn perf_inputs_from_env(
+    source: Option<&str>,
+    output_dir: Option<&str>,
+    concurrency: usize,
+) -> Result<Vec<PerfInput>, String> {
+    if let Ok(inputs_json) = std::env::var("WENDAO_DOCUMENT_EXTRACT_PERF_INPUTS_JSON") {
+        let inputs: Vec<PerfInput> =
+            serde_json::from_str(&inputs_json).map_err(|error| error.to_string())?;
+        if inputs.is_empty() {
+            return Err("WENDAO_DOCUMENT_EXTRACT_PERF_INPUTS_JSON must not be empty".to_string());
+        }
+        return Ok(inputs);
+    }
+    let source =
+        source.ok_or_else(|| "WENDAO_DOCUMENT_EXTRACT_PERF_SOURCE is required".to_string())?;
+    let output_dir = output_dir
+        .ok_or_else(|| "WENDAO_DOCUMENT_EXTRACT_PERF_OUTPUT_DIR is required".to_string())?;
+    Ok((0..concurrency)
+        .map(|_| PerfInput {
+            source: source.to_string(),
+            output_dir: output_dir.to_string(),
+        })
+        .collect())
+}
+
 async fn request_document_extract(
     config: &PerfConfig,
+    input: &PerfInput,
     iteration: usize,
     channel: Channel,
 ) -> Result<Vec<RecordBatch>, String> {
@@ -166,13 +224,13 @@ async fn request_document_extract(
     client
         .add_header(
             WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_HEADER,
-            config.source.as_str(),
+            input.source.as_str(),
         )
         .map_err(|error| error.to_string())?;
     client
         .add_header(
             WENDAO_DOCUMENT_EXTRACT_OUTPUT_DIR_HEADER,
-            config.output_dir.as_str(),
+            input.output_dir.as_str(),
         )
         .map_err(|error| error.to_string())?;
     client

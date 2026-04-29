@@ -141,17 +141,39 @@ def parse_args() -> argparse.Namespace:
         help="Run one cold async cache-miss burst at this concurrency before cache-hit timing.",
     )
     parser.add_argument(
+        "--distinct-miss-concurrency",
+        type=int,
+        default=0,
+        help=(
+            "Run one cold async cache-miss burst across this many different "
+            "documents and record suite-level queue/capacity metrics."
+        ),
+    )
+    parser.add_argument(
+        "--distinct-miss-wait-ms",
+        type=int,
+        help=(
+            "Async wait budget for --distinct-miss-concurrency. Defaults to "
+            "max(--wait-ms, 60000) so cold conversions can finish locally."
+        ),
+    )
+    parser.add_argument(
         "--converter-count-path",
         type=Path,
-        help=(
-            "Optional converter count file to read in external-endpoint "
-            "benchmark mode."
-        ),
+        help=("Optional converter count file to read in external-endpoint benchmark mode."),
     )
     parser.add_argument(
         "--fail-on-duplicate-conversions",
         action="store_true",
         help="Fail when fake duplicate-miss benchmarking observes more than one conversion.",
+    )
+    parser.add_argument(
+        "--fail-on-distinct-miss-conversions",
+        action="store_true",
+        help=(
+            "Fail when counted distinct cold-miss benchmarking does not "
+            "observe one conversion per distinct document."
+        ),
     )
     parser.add_argument(
         "--report-dir",
@@ -226,9 +248,7 @@ def main() -> int:
             real_fixture_root,
             include_audio=not args.skip_audio,
         )
-        print(
-            f"prepared {len(fixtures)} Docling real fixtures under {real_fixture_root}"
-        )
+        print(f"prepared {len(fixtures)} Docling real fixtures under {real_fixture_root}")
         return 0
 
     report_dir = Path(args.report_dir)
@@ -242,6 +262,11 @@ def main() -> int:
         output_dir.mkdir()
         fixtures, real_fixture_root = resolve_fixtures(args, fixture_dir)
         fixtures = select_fixtures(fixtures, args.only_fixture)
+        distinct_miss_fixtures = prepare_distinct_miss_fixtures(
+            args,
+            fixtures,
+            temp_root / "distinct-fixtures",
+        )
 
         args.benchmark_host = args.host
         args.benchmark_port = args.port
@@ -251,7 +276,7 @@ def main() -> int:
         valkey_server = None
         if not args.external_endpoint:
             converter_count_path = None
-            if args.duplicate_miss_concurrency > 0:
+            if args.duplicate_miss_concurrency > 0 or args.distinct_miss_concurrency > 0:
                 converter_count_path = temp_root / "converter-count.txt"
                 converter_count_path.write_text("0", encoding="utf-8")
                 args.converter_count_path = converter_count_path
@@ -322,6 +347,11 @@ def main() -> int:
                     rust_server,
                     timeout_seconds=args.server_start_timeout,
                 )
+            distinct_miss_report = run_distinct_miss_probe(
+                args,
+                distinct_miss_fixtures,
+                output_dir / "distinct-miss",
+            )
             results = [
                 run_fixture_probe(
                     args,
@@ -345,9 +375,10 @@ def main() -> int:
         "concurrency": args.concurrency,
         "flightMode": args.flight_mode,
         "waitMs": args.wait_ms,
+        "distinctMiss": distinct_miss_report,
         "doclingFixtureRoot": str(real_fixture_root) if real_fixture_root else None,
         "results": results,
-        "summary": summarize_results(results),
+        "summary": summarize_results(results, distinct_miss_report),
     }
     (report_dir / "document_extract_perf.json").write_text(
         json.dumps(payload, indent=2, sort_keys=True),
@@ -383,7 +414,9 @@ def resolve_fixtures(
             git_ref=args.docling_git_ref,
         )
     require_docling_source_root(real_fixture_root)
-    return docling_real_fixtures(real_fixture_root, include_audio=not args.skip_audio), real_fixture_root
+    return docling_real_fixtures(
+        real_fixture_root, include_audio=not args.skip_audio
+    ), real_fixture_root
 
 
 def select_fixtures(
@@ -397,9 +430,7 @@ def select_fixtures(
     if missing:
         available = ", ".join(sorted(fixtures))
         raise SystemExit(
-            "Unknown fixture(s): "
-            + ", ".join(missing)
-            + f"\nAvailable fixtures: {available}"
+            "Unknown fixture(s): " + ", ".join(missing) + f"\nAvailable fixtures: {available}"
         )
     return {fixture_name: fixtures[fixture_name] for fixture_name in fixture_names}
 
@@ -468,8 +499,7 @@ def docling_real_fixtures(root: Path, *, include_audio: bool) -> dict[str, Path]
         selected_paths.pop("audio", None)
 
     fixtures = {
-        fixture_name: root / relative_path
-        for fixture_name, relative_path in selected_paths.items()
+        fixture_name: root / relative_path for fixture_name, relative_path in selected_paths.items()
     }
     missing = [
         f"{fixture_name}: {fixture_path}"
@@ -753,7 +783,9 @@ def fetch_rust_jobs_status(
             payload = json.loads(response.read().decode("utf-8"))
     except (OSError, TimeoutError, urllib.error.URLError, json.JSONDecodeError) as error:
         if require_status:
-            raise RuntimeError(f"failed to sample Rust document extract jobs status: {error}") from error
+            raise RuntimeError(
+                f"failed to sample Rust document extract jobs status: {error}"
+            ) from error
         return None
     payload["sampledAtMs"] = int(time.time() * 1000)
     return payload
@@ -975,17 +1007,14 @@ def wait_for_port(
     while time.monotonic() < deadline:
         if server.poll() is not None:
             stderr = server.stderr.read() if server.stderr is not None else ""
-            raise RuntimeError(
-                "document extract service exited before listening:\n" + stderr
-            )
+            raise RuntimeError("document extract service exited before listening:\n" + stderr)
         try:
             with socket.create_connection((host, port), timeout=1):
                 return
         except OSError:
             time.sleep(0.2)
     raise TimeoutError(
-        f"document extract service did not listen on {host}:{port} "
-        f"within {timeout_seconds:.1f}s"
+        f"document extract service did not listen on {host}:{port} within {timeout_seconds:.1f}s"
     )
 
 
@@ -1002,6 +1031,125 @@ def write_fake_fixtures(fixture_dir: Path) -> dict[str, Path]:
         path.write_bytes(content)
         paths[name] = path
     return paths
+
+
+def write_distinct_fake_fixtures(fixture_dir: Path, count: int) -> dict[str, Path]:
+    fixture_dir.mkdir(parents=True, exist_ok=True)
+    templates = [
+        ("markdown", ".md", b"# Distinct fixture\n\n"),
+        ("docx", ".docx", b"distinct docx-like fixture\n"),
+        ("image", ".png", b"\x89PNG\r\n\x1a\ndistinct image fixture\n"),
+        ("audio", ".mp3", b"ID3 distinct audio fixture\n"),
+        ("webvtt", ".vtt", b"WEBVTT\n\n00:00.000 --> 00:01.000\nfixture\n"),
+        ("xml", ".xml", b'<?xml version="1.0"?><fixture/>'),
+    ]
+    paths = {}
+    for index in range(count):
+        kind, suffix, content = templates[index % len(templates)]
+        name = f"distinct-{index + 1:02d}-{kind}"
+        path = fixture_dir / f"{name}{suffix}"
+        path.write_bytes(content + f"\ninstance={index + 1}\n".encode())
+        paths[name] = path
+    return paths
+
+
+def prepare_distinct_miss_fixtures(
+    args: argparse.Namespace,
+    fixtures: dict[str, Path],
+    fixture_dir: Path,
+) -> dict[str, Path]:
+    count = args.distinct_miss_concurrency
+    if count <= 0:
+        return {}
+    if args.flight_mode != "async":
+        raise SystemExit("--distinct-miss-concurrency requires --flight-mode async")
+    if args.fixture_suite == "fake":
+        return write_distinct_fake_fixtures(fixture_dir, count)
+    if args.duplicate_miss_concurrency > 0:
+        raise SystemExit(
+            "--distinct-miss-concurrency and --duplicate-miss-concurrency should "
+            "be run separately with real Docling fixtures so both remain true "
+            "cold-miss probes"
+        )
+    if count > len(fixtures):
+        raise SystemExit(
+            f"--distinct-miss-concurrency requested {count} real fixtures, "
+            f"but only {len(fixtures)} selected fixtures are available"
+        )
+    return dict(list(fixtures.items())[:count])
+
+
+def distinct_miss_wait_ms(args: argparse.Namespace) -> int:
+    if args.distinct_miss_wait_ms is not None:
+        return max(args.distinct_miss_wait_ms, 0)
+    return max(args.wait_ms, 60_000)
+
+
+def run_distinct_miss_probe(
+    args: argparse.Namespace,
+    fixtures: dict[str, Path],
+    output_dir: Path,
+) -> dict[str, Any] | None:
+    if not fixtures:
+        return None
+    converter_count_before = read_converter_count(args)
+    report = run_cargo_perf_test(
+        args,
+        next(iter(fixtures.values())),
+        output_dir,
+        force=False,
+        iterations=1,
+        concurrency=len(fixtures),
+        report_path=output_dir / "distinct-miss.json",
+        inputs=fixtures,
+        wait_ms=distinct_miss_wait_ms(args),
+    )
+    converter_count_after = read_converter_count(args)
+    converter_calls = None
+    if converter_count_before is not None and converter_count_after is not None:
+        converter_calls = converter_count_after - converter_count_before
+    error_rows = report.get("errorRowCount", 0)
+    if args.fail_on_error_rows and error_rows:
+        raise SystemExit(
+            f"distinct cold-miss burst produced document extraction error rows: {error_rows}"
+        )
+    if (
+        args.fail_on_distinct_miss_conversions
+        and converter_calls is not None
+        and converter_calls != len(fixtures)
+    ):
+        raise SystemExit(
+            "distinct cold-miss burst converted "
+            f"{converter_calls} documents; expected {len(fixtures)}"
+        )
+    rust_jobs_status_summary = report.get(
+        "rustJobsStatusSummary",
+        summarize_rust_jobs_status_samples([]),
+    )
+    return {
+        "enabled": True,
+        "fixtures": list(fixtures),
+        "fixtureCount": len(fixtures),
+        "concurrency": len(fixtures),
+        "waitMs": distinct_miss_wait_ms(args),
+        "requestCount": report.get("requestCount", len(fixtures)),
+        "converterCalls": converter_calls,
+        "errorRows": error_rows,
+        "statusCounts": report.get("statusCounts", {}),
+        "wallTimeMs": report.get("wallTimeMs", 0.0),
+        "rustJobsStatusSummary": rust_jobs_status_summary,
+        "rustJobsStatusSampleCount": rust_jobs_status_summary["sampleCount"],
+        "rustJobsMaxQueuedJobs": rust_jobs_status_summary["maxQueuedJobs"],
+        "rustJobsMaxRunningJobs": rust_jobs_status_summary["maxRunningJobs"],
+        "rustJobsMaxInProcessRunningConversions": rust_jobs_status_summary[
+            "maxInProcessRunningConversions"
+        ],
+        "rustJobsMinAvailableConversionPermits": rust_jobs_status_summary[
+            "minAvailableConversionPermits"
+        ],
+        "rustJobsMaxRunningConversions": rust_jobs_status_summary["maxRunningConversions"],
+        "rustJobsMaxConversionDurationMs": rust_jobs_status_summary["maxConversionDurationMs"],
+    }
 
 
 def run_fixture_probe(
@@ -1112,21 +1260,18 @@ def run_fixture_probe(
         "rustJobsMaxInProcessRunningConversions": rust_jobs_status_summary[
             "maxInProcessRunningConversions"
         ],
-        "rustJobsMaxInProcessScheduledJobs": rust_jobs_status_summary[
-            "maxInProcessScheduledJobs"
-        ],
+        "rustJobsMaxInProcessScheduledJobs": rust_jobs_status_summary["maxInProcessScheduledJobs"],
         "rustJobsMinAvailableConversionPermits": rust_jobs_status_summary[
             "minAvailableConversionPermits"
         ],
-        "rustJobsMaxConversionDurationMs": rust_jobs_status_summary[
-            "maxConversionDurationMs"
-        ],
+        "rustJobsMaxConversionDurationMs": rust_jobs_status_summary["maxConversionDurationMs"],
         "rows": row_count,
         "totalRows": total_rows,
         "batches": cached_report["batchCount"],
         "arrowIpcBytes": cached_report["arrowIpcBytes"],
         "rowsPerSecond": rows_per_second(total_rows, cached_report["wallTimeMs"]),
-        "cacheSpeedup": force_report["latenciesMs"][0] / max(percentile(cached_latencies, 50), 0.001),
+        "cacheSpeedup": force_report["latenciesMs"][0]
+        / max(percentile(cached_latencies, 50), 0.001),
     }
 
 
@@ -1139,9 +1284,12 @@ def run_cargo_perf_test(
     iterations: int,
     concurrency: int,
     report_path: Path,
+    inputs: dict[str, Path] | None = None,
+    wait_ms: int | None = None,
 ) -> dict[str, Any]:
     output_dir.mkdir(parents=True, exist_ok=True)
     env = rust_process_env()
+    effective_wait_ms = args.wait_ms if wait_ms is None else wait_ms
     env.update(
         {
             "WENDAO_DOCUMENT_EXTRACT_PERF_ENDPOINT": (
@@ -1153,10 +1301,21 @@ def run_cargo_perf_test(
             "WENDAO_DOCUMENT_EXTRACT_PERF_CONCURRENCY": str(max(concurrency, 1)),
             "WENDAO_DOCUMENT_EXTRACT_PERF_FORCE_FIRST": "true" if force else "false",
             "WENDAO_DOCUMENT_EXTRACT_PERF_MODE": args.flight_mode,
-            "WENDAO_DOCUMENT_EXTRACT_PERF_WAIT_MS": str(args.wait_ms),
+            "WENDAO_DOCUMENT_EXTRACT_PERF_WAIT_MS": str(effective_wait_ms),
             "WENDAO_DOCUMENT_EXTRACT_PERF_REPORT": str(report_path),
         }
     )
+    if inputs is not None:
+        env["WENDAO_DOCUMENT_EXTRACT_PERF_INPUTS_JSON"] = json.dumps(
+            [
+                {
+                    "name": name,
+                    "source": str(input_source),
+                    "outputDir": str(output_dir / name),
+                }
+                for name, input_source in inputs.items()
+            ]
+        )
     command = [
         args.cargo,
         "test",
@@ -1283,11 +1442,7 @@ def last_present_sample(samples: list[dict[str, Any]], key: str) -> Any:
 def combine_rust_jobs_status_summaries(
     summaries: list[dict[str, Any]],
 ) -> dict[str, Any]:
-    samples = [
-        summary
-        for summary in summaries
-        if summary and summary.get("sampleCount", 0) > 0
-    ]
+    samples = [summary for summary in summaries if summary and summary.get("sampleCount", 0) > 0]
     if not samples:
         return summarize_rust_jobs_status_samples([])
     return {
@@ -1329,16 +1484,22 @@ def min_optional_int(items: list[dict[str, Any]], key: str) -> int | None:
     return min(values, default=None)
 
 
-def summarize_results(results: list[dict[str, Any]]) -> dict[str, Any]:
+def summarize_results(
+    results: list[dict[str, Any]],
+    distinct_miss_report: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     rust_jobs_status = combine_rust_jobs_status_summaries(
         [result.get("rustJobsStatusSummary", {}) for result in results]
+        + [distinct_miss_report.get("rustJobsStatusSummary", {}) if distinct_miss_report else {}]
     )
+    distinct_error_rows = distinct_miss_report.get("errorRows", 0) if distinct_miss_report else 0
     return {
         "fixtureCount": len(results),
         "totalRows": sum(result["totalRows"] for result in results),
         "totalErrorRows": sum(
             result["forceErrorRows"] + result["cacheErrorRows"] for result in results
-        ),
+        )
+        + distinct_error_rows,
         "totalRequests": sum(result["requestCount"] for result in results),
         "totalArrowIpcBytes": sum(result["arrowIpcBytes"] for result in results),
         "minCacheSpeedup": min((result["cacheSpeedup"] for result in results), default=0.0),
@@ -1353,6 +1514,13 @@ def summarize_results(results: list[dict[str, Any]]) -> dict[str, Any]:
             ),
             default=None,
         ),
+        "distinctMissFixtureCount": (
+            distinct_miss_report.get("fixtureCount", 0) if distinct_miss_report else 0
+        ),
+        "distinctMissConverterCalls": (
+            distinct_miss_report.get("converterCalls") if distinct_miss_report else None
+        ),
+        "distinctMissErrorRows": distinct_error_rows,
         "rustJobsStatusSummary": rust_jobs_status,
     }
 
@@ -1372,8 +1540,9 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"- Wait ms: `{payload['waitMs']}`",
         "- Duplicate miss converter calls: "
         f"`{payload['summary']['totalDuplicateMissConverterCalls']}`",
-        "- Rust job status samples: "
-        f"`{rust_status['sampleCount']}`",
+        "- Distinct cold-miss converter calls: "
+        f"`{payload['summary']['distinctMissConverterCalls']}`",
+        f"- Rust job status samples: `{rust_status['sampleCount']}`",
         "- Rust job pressure: "
         f"`queued={rust_status['maxQueuedJobs']}, "
         f"running={rust_status['maxRunningJobs']}, "
@@ -1396,6 +1565,35 @@ def render_markdown(payload: dict[str, Any]) -> str:
                 errorRows=error_rows,
                 duplicateConversions=result["duplicateMissConverterCalls"],
             )
+        )
+    distinct_miss = payload.get("distinctMiss")
+    if distinct_miss:
+        distinct_status = distinct_miss["rustJobsStatusSummary"]
+        lines.extend(
+            [
+                "",
+                "## Distinct Cold Miss Burst",
+                "",
+                "| Fixtures | Requests | Error rows | Converter calls | Queue max | Running max | In-process running max | Permits min | Capacity | Wall ms | Max conversion ms |",
+                "| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+                "| {fixtureCount} | {requestCount} | {errorRows} | {converterCalls} | "
+                "{maxQueuedJobs} | {maxRunningJobs} | "
+                "{maxInProcessRunningConversions} | {minAvailablePermits} | "
+                "{maxRunningConversions} | {wallTimeMs:.3f} | "
+                "{maxConversionDurationMs} |".format(
+                    **distinct_miss,
+                    maxQueuedJobs=distinct_status["maxQueuedJobs"],
+                    maxRunningJobs=distinct_status["maxRunningJobs"],
+                    maxInProcessRunningConversions=distinct_status[
+                        "maxInProcessRunningConversions"
+                    ],
+                    minAvailablePermits=distinct_status["minAvailableConversionPermits"],
+                    maxRunningConversions=distinct_status["maxRunningConversions"],
+                    maxConversionDurationMs=distinct_status["maxConversionDurationMs"],
+                ),
+                "",
+                "Fixtures: " + ", ".join(f"`{fixture}`" for fixture in distinct_miss["fixtures"]),
+            ]
         )
     lines.append("")
     return "\n".join(lines)

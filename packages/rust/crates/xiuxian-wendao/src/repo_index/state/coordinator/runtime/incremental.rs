@@ -102,23 +102,51 @@ impl RepoIndexCoordinator {
             return Ok(Some(prepared));
         }
 
-        if let Some(prepared) = self.prepare_safe_modelica_incremental(
-            repository,
-            sync_result,
-            previous_revision,
-            plugin_ids.as_slice(),
-            analysis_changes.as_slice(),
-        )? {
-            return Ok(Some(prepared));
+        #[cfg(feature = "julia")]
+        {
+            if let Some(prepared) = self.prepare_safe_modelica_incremental(
+                repository,
+                sync_result,
+                previous_revision,
+                plugin_ids.as_slice(),
+                analysis_changes.as_slice(),
+            )? {
+                return Ok(Some(prepared));
+            }
+        }
+        #[cfg(not(feature = "julia"))]
+        {
+            if let Some(prepared) = self.prepare_safe_modelica_incremental(
+                repository,
+                sync_result,
+                previous_revision,
+                plugin_ids.as_slice(),
+                analysis_changes.as_slice(),
+            ) {
+                return Ok(Some(prepared));
+            }
         }
 
-        self.prepare_safe_julia_incremental(
-            repository,
-            sync_result,
-            previous_revision,
-            plugin_ids.as_slice(),
-            analysis_changes.as_slice(),
-        )
+        #[cfg(feature = "julia")]
+        {
+            self.prepare_safe_julia_incremental(
+                repository,
+                sync_result,
+                previous_revision,
+                plugin_ids.as_slice(),
+                analysis_changes.as_slice(),
+            )
+        }
+        #[cfg(not(feature = "julia"))]
+        {
+            Ok(self.prepare_safe_julia_incremental(
+                repository,
+                sync_result,
+                previous_revision,
+                plugin_ids.as_slice(),
+                analysis_changes.as_slice(),
+            ))
+        }
     }
 
     fn prepare_non_analysis_incremental(
@@ -246,7 +274,7 @@ impl RepoIndexCoordinator {
         previous_revision: &str,
         plugin_ids: &[String],
         analysis_changes: &[RevisionPathChange],
-    ) -> Result<Option<PreparedIncrementalAnalysis>, RepoIntelligenceError> {
+    ) -> Option<PreparedIncrementalAnalysis> {
         let _ = (
             self,
             repository,
@@ -255,7 +283,7 @@ impl RepoIndexCoordinator {
             plugin_ids,
             analysis_changes,
         );
-        Ok(None)
+        None
     }
 
     #[cfg(feature = "julia")]
@@ -353,7 +381,7 @@ impl RepoIndexCoordinator {
         previous_revision: &str,
         plugin_ids: &[String],
         analysis_changes: &[RevisionPathChange],
-    ) -> Result<Option<PreparedIncrementalAnalysis>, RepoIntelligenceError> {
+    ) -> Option<PreparedIncrementalAnalysis> {
         let _ = (
             self,
             repository,
@@ -362,7 +390,7 @@ impl RepoIndexCoordinator {
             plugin_ids,
             analysis_changes,
         );
-        Ok(None)
+        None
     }
 
     fn prepare_semantically_equivalent_semantic_owner_incremental(

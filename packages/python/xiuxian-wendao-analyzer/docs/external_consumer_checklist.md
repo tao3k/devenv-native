@@ -118,6 +118,13 @@ This samples `GET /api/document-extract-jobs` during each benchmark probe and
 records queue depth, running job count, scheduled in-process jobs, conversion
 capacity, permit pressure, and last/max conversion duration in the JSON and
 Markdown reports.
+Use `--distinct-miss-concurrency <n>` for a separate capacity slice where
+different documents cold-miss concurrently through the same Rust provider. The
+result adds a `distinctMiss` report section with fixture count, converter call
+count, error rows, queue depth, running conversions, permit pressure, and
+configured conversion capacity. Keep real Docling duplicate-miss and
+distinct-miss checks as separate invocations so each remains a cold-miss
+measurement.
 For a self-contained local gateway pressure run, add
 `--rust-provider-mode gateway`. The benchmark starts a temporary Valkey process,
 the synchronous Python worker, and `wendao gateway start`, then samples

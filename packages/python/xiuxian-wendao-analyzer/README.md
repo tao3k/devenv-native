@@ -227,7 +227,12 @@ fail the benchmark run.
 For async provider validation, run with `--flight-mode async`; the driver starts
 the synchronous Python worker plus the existing Rust Flight provider and can
 verify cold duplicate-miss deduplication with `--duplicate-miss-concurrency`
-and `--fail-on-duplicate-conversions`.
+and `--fail-on-duplicate-conversions`. Use `--distinct-miss-concurrency` to
+add a suite-level burst where different documents cold-miss at the same time;
+that report section records queue depth, running conversions, permit pressure,
+and one-conversion-per-document counts when a converter counter is available.
+For real Docling fixtures, run distinct-miss and duplicate-miss probes as
+separate benchmark invocations so both remain true cold-miss measurements.
 When a Rust gateway REST endpoint is already running, pass
 `--rust-rest-endpoint http://127.0.0.1:<gateway-port>` to sample
 `GET /api/document-extract-jobs` during each cargo probe. The JSON and Markdown
@@ -243,11 +248,31 @@ uv run python scripts/benchmark_wendao_document_extract.py \
   --real-docling \
   --fixture-suite docling-real \
   --skip-audio \
+  --only-fixture pdf \
+  --only-fixture image-png \
+  --only-fixture uspto-xml \
+  --only-fixture xbrl-xml \
   --flight-mode async \
   --rust-provider-mode gateway \
   --wait-ms 70000 \
   --duplicate-miss-concurrency 4 \
   --fail-on-duplicate-conversions \
+  --fail-on-error-rows
+```
+
+For the distinct-document cold-miss capacity slice, run a separate invocation
+with `--distinct-miss-concurrency` and no duplicate-miss flag:
+
+```bash
+uv run python scripts/benchmark_wendao_document_extract.py \
+  --real-docling \
+  --fixture-suite docling-real \
+  --skip-audio \
+  --flight-mode async \
+  --rust-provider-mode gateway \
+  --wait-ms 70000 \
+  --distinct-miss-concurrency 4 \
+  --fail-on-distinct-miss-conversions \
   --fail-on-error-rows
 ```
 

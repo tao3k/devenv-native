@@ -61,6 +61,32 @@ def test_select_fixtures_filters_named_fixture(tmp_path: Path) -> None:
     assert selected == {"audio": tmp_path / "sample.mp3"}
 
 
+def test_prepare_distinct_miss_fixtures_writes_unique_fake_inputs(
+    tmp_path: Path,
+) -> None:
+    benchmark = _load_benchmark_module()
+    args = benchmark.argparse.Namespace(
+        distinct_miss_concurrency=4,
+        duplicate_miss_concurrency=0,
+        fixture_suite="fake",
+        flight_mode="async",
+    )
+
+    fixtures = benchmark.prepare_distinct_miss_fixtures(
+        args,
+        {},
+        tmp_path / "distinct-fixtures",
+    )
+
+    assert list(fixtures) == [
+        "distinct-01-markdown",
+        "distinct-02-docx",
+        "distinct-03-image",
+        "distinct-04-audio",
+    ]
+    assert len({path.read_bytes() for path in fixtures.values()}) == 4
+
+
 def test_document_extras_cover_xbrl_and_audio_asr() -> None:
     package_root = Path(__file__).resolve().parents[1]
     pyproject = tomllib.loads((package_root / "pyproject.toml").read_text())
@@ -79,9 +105,10 @@ def test_docling_real_fixture_root_defaults_to_prj_data_home(
     benchmark = _load_benchmark_module()
     monkeypatch.setenv("PRJ_DATA_HOME", str(tmp_path))
 
-    assert benchmark.resolve_docling_source_root(None) == (
-        tmp_path / "docling-real-fixtures"
-    ).resolve()
+    assert (
+        benchmark.resolve_docling_source_root(None)
+        == (tmp_path / "docling-real-fixtures").resolve()
+    )
 
 
 def test_prepare_docling_fixtures_uses_sparse_checkout(monkeypatch, tmp_path: Path) -> None:
@@ -298,6 +325,58 @@ def test_cargo_perf_probe_uses_minimal_feature_set(monkeypatch, tmp_path: Path) 
     assert report["rustJobsStatusSummary"]["sampleCount"] == 0
 
 
+def test_cargo_perf_probe_can_send_distinct_input_manifest(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    benchmark = _load_benchmark_module()
+    report_path = tmp_path / "report.json"
+    captured_env = {}
+
+    def fake_run(command: list[str], *, check: bool, env) -> None:
+        assert command[0] == "cargo"
+        assert check
+        captured_env.update(env)
+        report_path.write_text(
+            '{"latenciesMs":[1.0,2.0],"requestCount":2,"rowCount":2,'
+            '"batchCount":1,"arrowIpcBytes":2,"errorRowCount":0,'
+            '"statusCounts":{"ok":2},"wallTimeMs":2.0}',
+            encoding="utf-8",
+        )
+
+    monkeypatch.setattr(benchmark.subprocess, "run", fake_run)
+    monkeypatch.setenv("SDKROOT", "/tmp/macos-sdk")
+    monkeypatch.setenv("LIBRARY_PATH", "/tmp/macos-sdk/usr/lib")
+    args = benchmark.argparse.Namespace(
+        benchmark_host="127.0.0.1",
+        benchmark_port=50052,
+        cargo="cargo",
+        cargo_features="performance,studio,zhenfa-router,duckdb",
+        flight_mode="async",
+        wait_ms=0,
+    )
+
+    benchmark.run_cargo_perf_test(
+        args,
+        tmp_path / "first.md",
+        tmp_path / "out",
+        force=False,
+        iterations=1,
+        concurrency=2,
+        report_path=report_path,
+        inputs={
+            "first": tmp_path / "first.md",
+            "second": tmp_path / "second.md",
+        },
+        wait_ms=60000,
+    )
+
+    manifest = benchmark.json.loads(captured_env["WENDAO_DOCUMENT_EXTRACT_PERF_INPUTS_JSON"])
+    assert captured_env["WENDAO_DOCUMENT_EXTRACT_PERF_WAIT_MS"] == "60000"
+    assert [item["name"] for item in manifest] == ["first", "second"]
+    assert [Path(item["outputDir"]).name for item in manifest] == ["first", "second"]
+
+
 def test_start_gateway_server_sets_document_extract_and_valkey_env(
     monkeypatch,
     tmp_path: Path,
@@ -350,9 +429,7 @@ def test_start_gateway_server_sets_document_extract_and_valkey_env(
     env = kwargs["env"]
     assert env["WENDAO_DOCUMENT_EXTRACT_ENDPOINT"] == "http://127.0.0.1:51051"
     assert env["VALKEY_URL"] == "redis://127.0.0.1:51079/0"
-    assert env["XIUXIAN_WENDAO_SEARCH_PLANE_VALKEY_URL"] == (
-        "redis://127.0.0.1:51079/0"
-    )
+    assert env["XIUXIAN_WENDAO_SEARCH_PLANE_VALKEY_URL"] == ("redis://127.0.0.1:51079/0")
     assert env["XIUXIAN_WENDAO_GATEWAY_BOOTSTRAP_BACKGROUND_INDEXING"] == "false"
     config = (tmp_path / "gateway" / "wendao.toml").read_text(encoding="utf-8")
     assert "[search.cache]" in config
@@ -398,3 +475,72 @@ def test_summary_reports_duplicate_miss_converter_calls() -> None:
     assert summary["totalDuplicateMissConverterCalls"] == 1
     assert summary["maxDuplicateMissConverterCalls"] == 1
     assert summary["rustJobsStatusSummary"]["sampleCount"] == 0
+
+
+def test_summary_and_markdown_report_distinct_miss_burst() -> None:
+    benchmark = _load_benchmark_module()
+    result = {
+        "fixture": "small-md",
+        "totalRows": 10,
+        "forceErrorRows": 0,
+        "cacheErrorRows": 0,
+        "requestCount": 2,
+        "arrowIpcBytes": 1024,
+        "cacheSpeedup": 2.0,
+        "duplicateMissConverterCalls": None,
+        "rustJobsStatusSummary": benchmark.summarize_rust_jobs_status_samples([]),
+        "rows": 5,
+        "forceRefreshMs": 10.0,
+        "cacheHitP50Ms": 1.0,
+        "cacheHitP95Ms": 2.0,
+        "wallTimeMs": 3.0,
+        "cacheMaxRssKb": None,
+        "rustJobsMaxQueuedJobs": None,
+        "rustJobsMaxRunningJobs": None,
+        "rustJobsMinAvailableConversionPermits": None,
+    }
+    distinct_report = {
+        "enabled": True,
+        "fixtures": ["distinct-01", "distinct-02"],
+        "fixtureCount": 2,
+        "requestCount": 2,
+        "converterCalls": 2,
+        "errorRows": 0,
+        "wallTimeMs": 25.0,
+        "rustJobsStatusSummary": {
+            "sampleCount": 3,
+            "maxQueuedJobs": 2,
+            "maxRunningJobs": 2,
+            "maxInProcessRunningConversions": 2,
+            "maxInProcessScheduledJobs": 2,
+            "minAvailableConversionPermits": 2,
+            "maxRunningConversions": 4,
+            "lastConversionDurationMs": 20,
+            "maxConversionDurationMs": 21,
+        },
+    }
+
+    summary = benchmark.summarize_results([result], distinct_report)
+
+    assert summary["distinctMissFixtureCount"] == 2
+    assert summary["distinctMissConverterCalls"] == 2
+    assert summary["totalErrorRows"] == 0
+    assert summary["rustJobsStatusSummary"]["maxRunningJobs"] == 2
+
+    markdown = benchmark.render_markdown(
+        {
+            "schema": benchmark.REPORT_SCHEMA,
+            "mode": "fixture",
+            "endpoint": "http://127.0.0.1:50052",
+            "rustRestEndpoint": None,
+            "iterations": 1,
+            "concurrency": 1,
+            "flightMode": "async",
+            "waitMs": 0,
+            "summary": summary,
+            "results": [result],
+            "distinctMiss": distinct_report,
+        }
+    )
+    assert "## Distinct Cold Miss Burst" in markdown
+    assert "distinct-01" in markdown
