@@ -82,3 +82,41 @@ fn bpmn_snapshot_preserves_category_metadata_catalogs() {
     );
     assert_eq!(manual_review.value.as_deref(), Some("manual-review"));
 }
+
+#[test]
+fn bpmn_snapshot_preserves_global_task_metadata_catalogs() {
+    let snapshot = snapshot_fixture("metadata-global-task-catalog.bpmn");
+
+    assert_eq!(snapshot.root.global_task_count, 5);
+    assert_eq!(
+        snapshot.root.global_tasks[0].task_id.as_deref(),
+        Some("GlobalTask_Generic")
+    );
+    assert_eq!(
+        snapshot.root.global_tasks[0].supported_interface_refs,
+        ["Interface_Work"]
+    );
+    assert_eq!(
+        snapshot.root.global_tasks[1].task_kind,
+        "globalBusinessRuleTask"
+    );
+    assert_eq!(
+        snapshot.root.global_tasks[1].implementation.as_deref(),
+        Some("##unspecified")
+    );
+    assert_eq!(snapshot.root.global_tasks[2].task_kind, "globalManualTask");
+    assert_eq!(snapshot.root.global_tasks[3].task_kind, "globalScriptTask");
+    assert_eq!(
+        snapshot.root.global_tasks[3].script_language.as_deref(),
+        Some("text/javascript")
+    );
+    assert_eq!(
+        snapshot.root.global_tasks[3].script.as_deref(),
+        Some("return input.approved === true;")
+    );
+    assert_eq!(snapshot.root.global_tasks[4].task_kind, "globalUserTask");
+    assert_eq!(
+        snapshot.root.global_tasks[4].implementation.as_deref(),
+        Some("##WebService")
+    );
+}

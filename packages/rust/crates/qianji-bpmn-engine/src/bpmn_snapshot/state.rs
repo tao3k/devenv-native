@@ -8,8 +8,8 @@ use crate::bpmn_model_api::{
     BpmnDataInputOutputSnapshot, BpmnDataObjectReferenceSnapshot, BpmnDataObjectSnapshot,
     BpmnDataStoreReferenceSnapshot, BpmnDataStoreSnapshot, BpmnDiagramSnapshot,
     BpmnDocumentSnapshot, BpmnEdgeSnapshot, BpmnEndPointSnapshot, BpmnErrorSnapshot,
-    BpmnEscalationSnapshot, BpmnExtensionSnapshot, BpmnFontSnapshot, BpmnGroupSnapshot,
-    BpmnImportSnapshot, BpmnInterfaceSnapshot, BpmnIoSpecificationSnapshot,
+    BpmnEscalationSnapshot, BpmnExtensionSnapshot, BpmnFontSnapshot, BpmnGlobalTaskSnapshot,
+    BpmnGroupSnapshot, BpmnImportSnapshot, BpmnInterfaceSnapshot, BpmnIoSpecificationSnapshot,
     BpmnItemDefinitionSnapshot, BpmnLabelSnapshot, BpmnLabelStyleSnapshot, BpmnLaneSetSnapshot,
     BpmnLaneSnapshot, BpmnMessageFlowAssociationSnapshot, BpmnMessageFlowSnapshot,
     BpmnMessageSnapshot, BpmnOperationSnapshot, BpmnParticipantAssociationSnapshot,
@@ -39,6 +39,8 @@ pub(super) enum TextTarget {
     ParticipantEndPointRef,
     PartnerEntityParticipantRef,
     PartnerRoleParticipantRef,
+    GlobalTaskSupportedInterfaceRef,
+    GlobalTaskScript,
     ConversationParticipantRef,
     ConversationMessageFlowRef,
     ChoreographyParticipantRef,
@@ -99,6 +101,7 @@ pub(super) struct BpmnSnapshotScanState {
         Option<(usize, BpmnCorrelationRetrievalExpressionSnapshot)>,
     current_partner_entity: Option<usize>,
     current_partner_role: Option<usize>,
+    current_global_task: Option<usize>,
     current_interface: Option<usize>,
     current_operation: Option<(usize, usize)>,
     current_resource: Option<usize>,
@@ -355,6 +358,9 @@ impl BpmnSnapshotScanState {
             "itemDefinition" => self.capture_item_definition(source, reader, event)?,
             "message" => self.capture_message(source, reader, event)?,
             "interface" => self.start_interface(source, reader, event, is_empty)?,
+            tag if is_global_task_tag(tag) => {
+                self.start_global_task(source, reader, event, tag, is_empty)?;
+            }
             "endPoint" => self.capture_end_point(source, reader, event)?,
             "partnerEntity" => self.start_partner_entity(source, reader, event, is_empty)?,
             "partnerRole" => self.start_partner_role(source, reader, event, is_empty)?,
@@ -385,6 +391,7 @@ impl BpmnSnapshotScanState {
             "participant" => self.current_participant = None,
             "partnerEntity" => self.current_partner_entity = None,
             "partnerRole" => self.current_partner_role = None,
+            tag if is_global_task_tag(tag) => self.current_global_task = None,
             "conversation" | "subConversation" | "callConversation" => {
                 self.finish_conversation_correlation_key();
                 self.finish_participant_association();
@@ -482,6 +489,10 @@ impl BpmnSnapshotScanState {
                 self.push_partner_entity_participant_ref(text);
             }
             TextTarget::PartnerRoleParticipantRef => self.push_partner_role_participant_ref(text),
+            TextTarget::GlobalTaskSupportedInterfaceRef => {
+                self.push_global_task_supported_interface_ref(text);
+            }
+            TextTarget::GlobalTaskScript => self.append_global_task_script(text),
             TextTarget::ConversationParticipantRef => self.push_conversation_participant_ref(text),
             TextTarget::ConversationMessageFlowRef => self.push_conversation_message_flow_ref(text),
             TextTarget::ChoreographyParticipantRef => {
@@ -527,6 +538,7 @@ impl BpmnSnapshotScanState {
         self.finish_participant_association();
         self.current_partner_entity = None;
         self.current_partner_role = None;
+        self.current_global_task = None;
         self.current_participant = None;
         self.conversation_node_stack.clear();
         self.choreography_activity_stack.clear();
@@ -992,6 +1004,33 @@ impl BpmnSnapshotScanState {
         });
         if !is_empty {
             self.current_partner_role = root.partner_roles.len().checked_sub(1);
+        }
+        Ok(())
+    }
+
+    fn start_global_task(
+        &mut self,
+        source: &BpmnSourceFile,
+        reader: &Reader<&[u8]>,
+        event: &BytesStart<'_>,
+        tag: &str,
+        is_empty: bool,
+    ) -> Result<()> {
+        let Some(root) = self.root.as_mut() else {
+            return Ok(());
+        };
+        root.global_task_count += 1;
+        root.global_tasks.push(BpmnGlobalTaskSnapshot {
+            task_kind: tag.to_string(),
+            task_id: attribute_value(source, reader, event, "id")?,
+            name: attribute_value(source, reader, event, "name")?,
+            implementation: attribute_value(source, reader, event, "implementation")?,
+            script_language: attribute_value(source, reader, event, "scriptLanguage")?,
+            script: None,
+            supported_interface_refs: Vec::new(),
+        });
+        if !is_empty {
+            self.current_global_task = root.global_tasks.len().checked_sub(1);
         }
         Ok(())
     }
@@ -1958,6 +1997,20 @@ impl BpmnSnapshotScanState {
         partner_role.participant_refs.push(text.to_string());
     }
 
+    fn push_global_task_supported_interface_ref(&mut self, text: &str) {
+        let Some(task) = self.current_global_task_mut() else {
+            return;
+        };
+        task.supported_interface_refs.push(text.to_string());
+    }
+
+    fn append_global_task_script(&mut self, text: &str) {
+        let Some(task) = self.current_global_task_mut() else {
+            return;
+        };
+        task.script.get_or_insert_with(String::new).push_str(text);
+    }
+
     fn push_conversation_participant_ref(&mut self, text: &str) {
         let Some(conversation) = self.current_conversation_node_mut() else {
             return;
@@ -2273,6 +2326,11 @@ impl BpmnSnapshotScanState {
             .get_mut(participant_index)
     }
 
+    fn current_global_task_mut(&mut self) -> Option<&mut BpmnGlobalTaskSnapshot> {
+        let global_task_index = self.current_global_task?;
+        self.root.as_mut()?.global_tasks.get_mut(global_task_index)
+    }
+
     fn current_collaboration_metadata_owner(&self) -> Option<CollaborationMetadataOwner> {
         if let Some((collaboration_index, path)) = self.choreography_activity_stack.last() {
             return Some(CollaborationMetadataOwner::ChoreographyActivity(
@@ -2584,6 +2642,8 @@ fn root_from_event(
         partner_entities: Vec::new(),
         partner_role_count: 0,
         partner_roles: Vec::new(),
+        global_task_count: 0,
+        global_tasks: Vec::new(),
     })
 }
 
@@ -2631,5 +2691,16 @@ fn is_artifact_container(tag: Option<&str>) -> bool {
                 | "transaction"
                 | "subChoreography"
         )
+    )
+}
+
+fn is_global_task_tag(tag: &str) -> bool {
+    matches!(
+        tag,
+        "globalTask"
+            | "globalBusinessRuleTask"
+            | "globalManualTask"
+            | "globalScriptTask"
+            | "globalUserTask"
     )
 }

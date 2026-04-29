@@ -150,6 +150,17 @@ fn text_target(element_stack: &[String]) -> Option<TextTarget> {
         (Some("participantRef"), Some("partnerRole")) => {
             Some(TextTarget::PartnerRoleParticipantRef)
         }
+        (
+            Some("supportedInterfaceRef"),
+            Some(
+                "globalTask"
+                | "globalBusinessRuleTask"
+                | "globalManualTask"
+                | "globalScriptTask"
+                | "globalUserTask",
+            ),
+        ) => Some(TextTarget::GlobalTaskSupportedInterfaceRef),
+        (Some("script"), Some("globalScriptTask")) => Some(TextTarget::GlobalTaskScript),
         (Some("participantRef"), Some("conversation" | "subConversation" | "callConversation")) => {
             Some(TextTarget::ConversationParticipantRef)
         }

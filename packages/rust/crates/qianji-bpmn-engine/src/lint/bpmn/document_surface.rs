@@ -144,6 +144,7 @@ fn root_snapshot_summary(snapshot: &BpmnDocumentSnapshot) -> Value {
         "data_store_count": snapshot.root.data_store_count,
         "partner_entity_count": snapshot.root.partner_entity_count,
         "partner_role_count": snapshot.root.partner_role_count,
+        "global_task_count": snapshot.root.global_task_count,
     })
 }
 

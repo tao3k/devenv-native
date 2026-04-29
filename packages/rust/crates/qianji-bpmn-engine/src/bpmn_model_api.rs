@@ -140,6 +140,12 @@ pub struct BpmnRootSnapshot {
     /// Bounded top-level `partnerRole` metadata preserved from the document.
     #[serde(default)]
     pub partner_roles: Vec<BpmnPartnerRoleSnapshot>,
+    /// Number of top-level global task elements discovered in the document.
+    #[serde(default)]
+    pub global_task_count: usize,
+    /// Bounded top-level global task metadata preserved from the document.
+    #[serde(default)]
+    pub global_tasks: Vec<BpmnGlobalTaskSnapshot>,
 }
 
 /// Snapshot of one BPMN `import`.
@@ -363,6 +369,26 @@ pub struct BpmnInterfaceSnapshot {
 pub struct BpmnEndPointSnapshot {
     /// Optional stable endpoint identifier.
     pub end_point_id: Option<String>,
+}
+
+/// Snapshot of one top-level BPMN global task definition.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct BpmnGlobalTaskSnapshot {
+    /// Local BPMN global task kind.
+    pub task_kind: String,
+    /// Optional stable global task identifier.
+    pub task_id: Option<String>,
+    /// Optional human-readable global task name.
+    pub name: Option<String>,
+    /// Optional BPMN implementation marker.
+    pub implementation: Option<String>,
+    /// Optional BPMN script language marker for `globalScriptTask`.
+    pub script_language: Option<String>,
+    /// Optional direct script payload for `globalScriptTask`.
+    pub script: Option<String>,
+    /// Direct supported interface references preserved in source order.
+    #[serde(default)]
+    pub supported_interface_refs: Vec<String>,
 }
 
 /// Snapshot of one BPMN `operation`.
@@ -972,5 +998,7 @@ pub(crate) fn empty_bpmn_root_snapshot(source: &BpmnSourceFile) -> BpmnRootSnaps
         partner_entities: Vec::new(),
         partner_role_count: 0,
         partner_roles: Vec::new(),
+        global_task_count: 0,
+        global_tasks: Vec::new(),
     }
 }

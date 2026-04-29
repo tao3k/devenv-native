@@ -39,6 +39,7 @@ guidance.
 | Relationship declarations | metadata-only      | Top-level relationships are preserved; endpoint resolution and graph semantics defer.                            |
 | Event definition catalogs | metadata-only      | Message/error/escalation/signal catalogs are preserved, not schema-validated.                                    |
 | Interfaces/operations     | metadata-only      | Callable-operation catalogs are preserved; host dispatch binding remains explicit.                               |
+| Global task catalogs      | metadata-only      | Top-level global task definitions are preserved; call-activity binding remains deferred.                         |
 | Resource catalogs         | metadata-only      | Top-level resources and parameters are preserved; assignment binding remains deferred.                           |
 | Category catalogs         | metadata-only      | Top-level categories and values are preserved; classification remains passive.                                   |
 | Terminate events          | bounded executable | `terminateEventDefinition` end events terminate the current runtime scope.                                       |
@@ -75,7 +76,8 @@ The collaboration, data, callable-operation, and event metadata slices
 preserve top-level `import`, `extension`, `relationship`, `BPMNDiagram`,
 `itemDefinition`, `message`, `interface`, `operation`, `resource`,
 `resourceParameter`, `category`, `categoryValue`, `error`, `escalation`,
-`signal`, `correlationProperty`, nested
+`signal`, `globalTask`, `globalBusinessRuleTask`, `globalManualTask`,
+`globalScriptTask`, `globalUserTask`, `correlationProperty`, nested
 `correlationPropertyRetrievalExpression` metadata alongside collaboration
 participants, message flows, conversation nodes, conversation associations,
 participant associations, message-flow associations, conversation links,
@@ -85,12 +87,13 @@ interface refs, participant endpoint refs, participant multiplicity, and data
 references. This gives Rust-owned evidence for future routing and
 type-alignment work while keeping pool routing, message dispatch, conversation
 routing, choreography execution, endpoint invocation, participant multiplicity
-execution, callable-operation binding, resource assignment binding, group
-execution, annotation interpretation, flow-element classification, import
-resolution, extension behavior, extension payload parsing, diagram rendering,
-layout validation, relationship endpoint resolution, event subscription
-registries, correlation matching, correlation-key evaluation, retrieval
-expression evaluation, and schema validation deferred.
+execution, global task execution, callable-operation binding, resource
+assignment binding, group execution, annotation interpretation, flow-element
+classification, import resolution, extension behavior, extension payload
+parsing, diagram rendering, layout validation, relationship endpoint
+resolution, event subscription registries, correlation matching,
+correlation-key evaluation, retrieval expression evaluation, and schema
+validation deferred.
 
 ## Active M2 Event Milestone
 
