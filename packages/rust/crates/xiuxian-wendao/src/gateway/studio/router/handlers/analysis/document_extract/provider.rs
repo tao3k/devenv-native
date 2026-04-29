@@ -1047,8 +1047,10 @@ fn hybrid_page_ocr_request_paths(request: &DocumentExtractFlightRequest) -> (Pat
 
 #[cfg(feature = "document-extract-pdf-render")]
 fn is_hybrid_text_only_report(report: &PdfPageRenderShardReport) -> bool {
+    let decision = report.routing_decision.as_str();
     report.status == PdfRenderStatus::Skipped.as_str()
-        && report.routing_decision == PdfRenderRoutingDecision::HybridPageOcrCandidate.as_str()
+        && (decision == PdfRenderRoutingDecision::FastRustCandidate.as_str()
+            || decision == PdfRenderRoutingDecision::HybridPageOcrCandidate.as_str())
         && report.page_count > 0
         && report.shard_count == 0
 }
@@ -1429,6 +1431,20 @@ mod tests {
         let report = sample_hybrid_page_ocr_report(
             PdfRenderStatus::Skipped,
             PdfRenderRoutingDecision::HybridPageOcrCandidate,
+            3,
+            0,
+            None,
+        );
+
+        assert!(is_hybrid_text_only_report(&report));
+    }
+
+    #[cfg(feature = "document-extract-pdf-render")]
+    #[test]
+    fn hybrid_page_ocr_detects_fast_rust_text_only_report() {
+        let report = sample_hybrid_page_ocr_report(
+            PdfRenderStatus::Skipped,
+            PdfRenderRoutingDecision::FastRustCandidate,
             3,
             0,
             None,

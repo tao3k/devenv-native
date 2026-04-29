@@ -1953,6 +1953,9 @@ def run_fixture_probe(
     total_rows = row_count * request_count
     force_error_rows = force_report.get("errorRowCount", 0)
     cache_error_rows = cached_report.get("errorRowCount", 0)
+    artifact_summary = summarize_artifact_reports(
+        cached_report.get("artifactReports", [])
+    )
     if args.fail_on_error_rows and (force_error_rows or cache_error_rows):
         raise SystemExit(
             f"fixture `{fixture_name}` produced document extraction error rows: "
@@ -2016,6 +2019,16 @@ def run_fixture_probe(
         "totalRows": total_rows,
         "batches": cached_report["batchCount"],
         "arrowIpcBytes": cached_report["arrowIpcBytes"],
+        "resourcesArrowExists": artifact_summary["resourcesArrowExists"],
+        "resourcesRows": artifact_summary["resourcesRows"],
+        "structureArrowExists": artifact_summary["structureArrowExists"],
+        "structureRows": artifact_summary["structureRows"],
+        "structureOcrPageBlocks": artifact_summary["structureOcrPageBlocks"],
+        "structureOcrRegionBlocks": artifact_summary["structureOcrRegionBlocks"],
+        "structureBboxBlocks": artifact_summary["structureBboxBlocks"],
+        "structureReadingOrderSorted": artifact_summary["structureReadingOrderSorted"],
+        "artifactErrorCount": artifact_summary["artifactErrorCount"],
+        "artifactReports": cached_report.get("artifactReports", []),
         "rowsPerSecond": rows_per_second(total_rows, cached_report["wallTimeMs"]),
         "cacheSpeedup": force_report["latenciesMs"][0]
         / max(percentile(cached_latencies, 50), 0.001),
@@ -2106,6 +2119,50 @@ def read_converter_count(args: argparse.Namespace) -> int | None:
     if not text:
         return 0
     return int(text)
+
+
+def summarize_artifact_reports(reports: list[dict[str, Any]]) -> dict[str, Any]:
+    structure_sorted_values = [
+        report.get("structureReadingOrderSorted")
+        for report in reports
+        if report.get("structureReadingOrderSorted") is not None
+    ]
+    return {
+        "resourcesArrowExists": any(
+            bool(report.get("resourcesArrowExists")) for report in reports
+        ),
+        "resourcesRows": sum_int_report_values(reports, "resourcesRowCount"),
+        "structureArrowExists": any(
+            bool(report.get("structureArrowExists")) for report in reports
+        ),
+        "structureRows": sum_int_report_values(reports, "structureRowCount"),
+        "structureOcrPageBlocks": sum_int_report_values(
+            reports,
+            "structureOcrPageBlocks",
+        ),
+        "structureOcrRegionBlocks": sum_int_report_values(
+            reports,
+            "structureOcrRegionBlocks",
+        ),
+        "structureBboxBlocks": sum_int_report_values(
+            reports,
+            "structureBboxBlocks",
+        ),
+        "structureReadingOrderSorted": (
+            all(bool(value) for value in structure_sorted_values)
+            if structure_sorted_values
+            else None
+        ),
+        "artifactErrorCount": sum(
+            1 for report in reports if report.get("artifactError")
+        ),
+    }
+
+
+def sum_int_report_values(reports: list[dict[str, Any]], key: str) -> int:
+    return sum(
+        value for report in reports if isinstance((value := report.get(key)), int)
+    )
 
 
 def max_rss_kb() -> int | None:
@@ -2267,6 +2324,20 @@ def summarize_results(
         + distinct_error_rows,
         "totalRequests": sum(result["requestCount"] for result in results),
         "totalArrowIpcBytes": sum(result["arrowIpcBytes"] for result in results),
+        "totalStructureRows": sum(result.get("structureRows", 0) for result in results),
+        "totalStructureOcrPageBlocks": sum(
+            result.get("structureOcrPageBlocks", 0) for result in results
+        ),
+        "totalStructureOcrRegionBlocks": sum(
+            result.get("structureOcrRegionBlocks", 0) for result in results
+        ),
+        "totalStructureBboxBlocks": sum(
+            result.get("structureBboxBlocks", 0) for result in results
+        ),
+        "allStructureReadingOrderSorted": all_structure_reading_order_sorted(results),
+        "artifactErrorCount": sum(
+            result.get("artifactErrorCount", 0) for result in results
+        ),
         "minCacheSpeedup": min(
             (result["cacheSpeedup"] for result in results), default=0.0
         ),
@@ -2292,6 +2363,15 @@ def summarize_results(
     }
 
 
+def all_structure_reading_order_sorted(results: list[dict[str, Any]]) -> bool | None:
+    values = [
+        result.get("structureReadingOrderSorted")
+        for result in results
+        if result.get("structureReadingOrderSorted") is not None
+    ]
+    return all(bool(value) for value in values) if values else None
+
+
 def render_markdown(payload: dict[str, Any]) -> str:
     rust_status = payload["summary"]["rustJobsStatusSummary"]
     lines = [
@@ -2315,23 +2395,38 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"running={rust_status['maxRunningJobs']}, "
         f"inProcessRunning={rust_status['maxInProcessRunningConversions']}, "
         f"minAvailablePermits={rust_status['minAvailableConversionPermits']}`",
+        f"- Structure sidecar rows: `{payload['summary']['totalStructureRows']}`",
+        "- Structure OCR blocks: "
+        f"`page={payload['summary']['totalStructureOcrPageBlocks']}, "
+        f"region={payload['summary']['totalStructureOcrRegionBlocks']}`",
+        "- Structure reading order sorted: "
+        f"`{payload['summary']['allStructureReadingOrderSorted']}`",
+        f"- Artifact errors: `{payload['summary']['artifactErrorCount']}`",
         "",
-        "| Fixture | Requests | Rows/request | Error rows | Duplicate conversions | Queue max | Running max | Permits min | Total rows | IPC bytes | Force ms | Cache p50 ms | Cache p95 ms | Wall ms | Max RSS KB | Speedup |",
-        "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+        "| Fixture | Requests | Rows/request | Error rows | Duplicate conversions | Queue max | Running max | Permits min | Total rows | Structure rows | OCR blocks | Order sorted | IPC bytes | Force ms | Cache p50 ms | Cache p95 ms | Wall ms | Max RSS KB | Speedup |",
+        "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
     ]
     for result in payload["results"]:
         error_rows = result["forceErrorRows"] + result["cacheErrorRows"]
+        ocr_blocks = result.get("structureOcrPageBlocks", 0) + result.get(
+            "structureOcrRegionBlocks", 0
+        )
+        row = {
+            **result,
+            "errorRows": error_rows,
+            "duplicateConversions": result["duplicateMissConverterCalls"],
+            "structureRows": result.get("structureRows", 0),
+            "ocrBlocks": ocr_blocks,
+            "orderSorted": result.get("structureReadingOrderSorted"),
+        }
         lines.append(
             "| {fixture} | {requestCount} | {rows} | {errorRows} | "
             "{duplicateConversions} | {rustJobsMaxQueuedJobs} | "
             "{rustJobsMaxRunningJobs} | {rustJobsMinAvailableConversionPermits} | "
-            "{totalRows} | {arrowIpcBytes} | "
+            "{totalRows} | {structureRows} | {ocrBlocks} | {orderSorted} | "
+            "{arrowIpcBytes} | "
             "{forceRefreshMs:.3f} | {cacheHitP50Ms:.3f} | {cacheHitP95Ms:.3f} | "
-            "{wallTimeMs:.3f} | {cacheMaxRssKb} | {cacheSpeedup:.2f} |".format(
-                **result,
-                errorRows=error_rows,
-                duplicateConversions=result["duplicateMissConverterCalls"],
-            )
+            "{wallTimeMs:.3f} | {cacheMaxRssKb} | {cacheSpeedup:.2f} |".format(**row)
         )
     distinct_miss = payload.get("distinctMiss")
     if distinct_miss:

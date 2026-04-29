@@ -19,6 +19,8 @@ use xiuxian_wendao_runtime::transport::{
     WENDAO_DOCUMENT_EXTRACT_WAIT_MS_HEADER, WENDAO_SCHEMA_VERSION_HEADER,
 };
 
+use super::support::document_extract_artifacts::{ArtifactReport, inspect_artifacts};
+
 const DOCUMENT_EXTRACT_FLIGHT_MESSAGE_SIZE_BYTES: usize = 256 * 1024 * 1024;
 
 #[derive(Debug)]
@@ -63,6 +65,7 @@ struct PerfReport {
     status_counts: BTreeMap<String, usize>,
     wall_time_ms: f64,
     latencies_ms: Vec<f64>,
+    artifact_reports: Vec<ArtifactReport>,
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
@@ -97,6 +100,12 @@ async fn document_extract_python_flight_perf_smoke() -> Result<(), String> {
         last_batches = iteration_batches;
     }
     let wall_time_ms = overall_started.elapsed().as_secs_f64() * 1000.0;
+    let artifact_reports = inspect_artifacts(
+        config
+            .inputs
+            .iter()
+            .map(|input| (input.source.as_str(), input.output_dir.as_str())),
+    );
 
     let report = PerfReport {
         schema: "xiuxian_wendao.document_extract_perf_probe.v1",
@@ -126,6 +135,7 @@ async fn document_extract_python_flight_perf_smoke() -> Result<(), String> {
         status_counts: status_counts(&last_batches)?,
         wall_time_ms,
         latencies_ms,
+        artifact_reports,
     };
     let report_json = serde_json::to_string_pretty(&report).map_err(|error| error.to_string())?;
     if let Some(report_path) = config.report_path {
@@ -311,21 +321,30 @@ fn error_row_count(batches: &[RecordBatch]) -> Result<usize, String> {
 }
 
 fn status_counts(batches: &[RecordBatch]) -> Result<BTreeMap<String, usize>, String> {
+    string_counts(batches, "status")
+}
+
+fn string_counts(
+    batches: &[RecordBatch],
+    column_name: &str,
+) -> Result<BTreeMap<String, usize>, String> {
     let mut counts = BTreeMap::new();
     for batch in batches {
-        let Some(status_column) = batch.column_by_name("status") else {
+        let Some(column) = batch.column_by_name(column_name) else {
             continue;
         };
-        let Some(status_array) = status_column.as_any().downcast_ref::<StringArray>() else {
-            return Err("document extract status column is not a string array".to_string());
+        let Some(array) = column.as_any().downcast_ref::<StringArray>() else {
+            return Err(format!(
+                "document extract `{column_name}` column is not a string array"
+            ));
         };
-        for row in 0..status_array.len() {
-            let status = if status_array.is_null(row) {
+        for row in 0..array.len() {
+            let value = if array.is_null(row) {
                 ""
             } else {
-                status_array.value(row)
+                array.value(row)
             };
-            *counts.entry(status.to_string()).or_insert(0) += 1;
+            *counts.entry(value.to_string()).or_insert(0) += 1;
         }
     }
     Ok(counts)

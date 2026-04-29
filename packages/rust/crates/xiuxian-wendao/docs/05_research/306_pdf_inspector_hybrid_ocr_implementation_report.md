@@ -642,6 +642,36 @@ Current implementation status:
   The sidecar records the shard `readingOrderKey`, region bbox, confidence,
   parent shard id, raster hash, and image path while keeping `_resources.arrow`
   on the stable nine-column schema.
+- The performance probe now reports artifact health for both `_resources.arrow`
+  and `_structure.arrow`. Reports include resource row counts, structure row
+  counts, OCR page and region block counts, bbox block counts, reading-order
+  sortedness, and artifact read errors. This makes structure precision part of
+  the benchmark output instead of a manual post-run inspection.
+
+Final current-branch benchmark evidence:
+
+| Fixture / path class                  |   Force ms | Cache p95 ms | Resource rows      | Structure rows | OCR blocks | Reading order | Error rows |
+| ------------------------------------- | ---------: | -----------: | ------------------ | -------------: | ---------: | ------------- | ---------: |
+| `pdf-multi-page` fast text candidate  |    367.796 |        8.055 | 5 `text_page`      |              5 |          0 | sorted        |          0 |
+| `normal_4pages` complex fallback      |   7204.978 |        4.793 | Docling rich rows  |              5 |          0 | sorted        |          0 |
+| arXiv `2604.17337` OCR-positive proof | 256037.271 |        6.645 | 21 `ocr_text` rows |             21 |         21 | sorted        |          0 |
+
+Milestone interpretation:
+
+- The Rust fast path now meets the expected performance class for eligible text
+  PDFs: `pdf-multi-page` materializes five native `text_page` rows in about
+  368 ms and cache hits stay below 10 ms p95.
+- Precision fallback is still working: `normal_4pages` contains rich image and
+  table structure, so the route preserves Docling output instead of emitting an
+  approximate Rust text-only result.
+- OCR recall and structure order are proven on `2604.17337`: the route emits 21
+  page OCR blocks, every block has bbox provenance, `_structure.arrow` is sorted
+  by document order, and `totalErrorRows=0`.
+- The remaining unmet performance target is OCR-heavy cold miss latency when no
+  reliable region signal exists. That path still performs full-page shard OCR
+  and measured about 256 seconds for the 21-page external arXiv fixture. The
+  next optimization milestone must derive safe region/crop shards, then compare
+  the cropped result against the Docling page OCR baseline before enabling it.
 
 ### Milestone 5: Hybrid Mixed-PDF Pipeline
 

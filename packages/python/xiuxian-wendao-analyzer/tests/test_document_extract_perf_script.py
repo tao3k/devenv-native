@@ -353,6 +353,47 @@ def test_converter_count_path_reads_external_fake_counter(tmp_path: Path) -> Non
     assert benchmark.read_converter_count(args) == 9
 
 
+def test_artifact_report_summary_tracks_structure_precision() -> None:
+    benchmark = _load_benchmark_module()
+
+    summary = benchmark.summarize_artifact_reports(
+        [
+            {
+                "resourcesArrowExists": True,
+                "resourcesRowCount": 3,
+                "structureArrowExists": True,
+                "structureRowCount": 3,
+                "structureOcrPageBlocks": 1,
+                "structureOcrRegionBlocks": 2,
+                "structureBboxBlocks": 2,
+                "structureReadingOrderSorted": True,
+                "artifactError": None,
+            },
+            {
+                "resourcesArrowExists": True,
+                "resourcesRowCount": 1,
+                "structureArrowExists": True,
+                "structureRowCount": 1,
+                "structureOcrPageBlocks": 0,
+                "structureOcrRegionBlocks": 1,
+                "structureBboxBlocks": 1,
+                "structureReadingOrderSorted": True,
+                "artifactError": None,
+            },
+        ]
+    )
+
+    assert summary["resourcesArrowExists"] is True
+    assert summary["resourcesRows"] == 4
+    assert summary["structureArrowExists"] is True
+    assert summary["structureRows"] == 4
+    assert summary["structureOcrPageBlocks"] == 1
+    assert summary["structureOcrRegionBlocks"] == 3
+    assert summary["structureBboxBlocks"] == 3
+    assert summary["structureReadingOrderSorted"] is True
+    assert summary["artifactErrorCount"] == 0
+
+
 def test_cargo_perf_probe_uses_minimal_feature_set(monkeypatch, tmp_path: Path) -> None:
     benchmark = _load_benchmark_module()
     report_path = tmp_path / "report.json"

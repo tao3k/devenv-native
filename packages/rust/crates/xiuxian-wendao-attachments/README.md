@@ -61,6 +61,15 @@ provenance. Structure rows are sorted by page index, reading order key, block
 index, and block id. This makes document order explicit and prevents OCR shard
 completion order from becoming the reconstructed document order.
 
+## Benchmark Reporting
+
+The document extraction performance probe records both stable resource artifact
+health and internal structure sidecar health. Each run reports `_resources.arrow`
+and `_structure.arrow` row counts, resource/block type counts, OCR page and
+region block counts, bbox block counts, reading-order sortedness, and artifact
+read errors. These metrics are benchmark evidence only; they do not change the
+stable user-facing `_resources.arrow` schema.
+
 ## PDFium Runtime
 
 The `pdf-render` feature uses `pdfium-render`, which binds to a native PDFium
