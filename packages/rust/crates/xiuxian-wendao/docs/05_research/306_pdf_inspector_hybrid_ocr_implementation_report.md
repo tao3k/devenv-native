@@ -145,6 +145,30 @@ no raster OCR pages, so Rust does not render all pages. Later hybrid extraction
 can preserve the native text layer and invoke Python/Docling only for explicit
 OCR or semantic shard work.
 
+The benchmark harness now has an opt-in Docling PDF corpus mode for real
+shard-fallback audits. It expands the default real Docling PDF fixture to the
+additional PDFs under Docling's test corpus without changing the default real
+suite or production extraction behavior.
+
+Shard-fallback audit across 16 real Docling PDF corpus inputs:
+
+| Metric                       | Value |
+| ---------------------------- | ----: |
+| PDF inputs                   |    16 |
+| Total pages                  |    89 |
+| Fast Rust candidates         |     5 |
+| Hybrid page OCR candidates   |    11 |
+| Rendered OCR shards          |     0 |
+| Max per-file routing time ms |   623 |
+| Error rows                   |     0 |
+
+All 16 inputs completed as `skipped` for raster rendering. This is a useful
+capacity signal: the broader Docling corpus still did not require page raster
+OCR according to the current routing signals, so Rust avoided the previous
+all-page render cost. It is not a positive scanned-PDF proof. The next real
+coverage gap is to add opt-in scanned/image PDF fixtures under project data and
+prove that `shard_fallback_pages` renders only the pages that actually need OCR.
+
 The current proof slices add an Arrow-only OCR worker contract under
 `xiuxian-wendao-attachments` plus a feature-gated Studio-side Flight client.
 Rendered page manifests are projected into

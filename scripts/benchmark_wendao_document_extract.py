@@ -52,6 +52,24 @@ DOCLING_REAL_FIXTURE_PATHS = {
     "audio": "tests/data/audio/sample_10s.mp3",
 }
 
+DOCLING_REAL_PDF_CORPUS_FIXTURE_PATHS = {
+    "pdf-2203-paper": "tests/data/pdf/2203.01017v2.pdf",
+    "pdf-2305-paper-page9": "tests/data/pdf/2305.03393v1-pg9.pdf",
+    "pdf-2305-paper": "tests/data/pdf/2305.03393v1.pdf",
+    "pdf-amt-handbook": "tests/data/pdf/amt_handbook_sample.pdf",
+    "pdf-code-formula": "tests/data/pdf/code_and_formula.pdf",
+    "pdf-multi-page": "tests/data/pdf/multi_page.pdf",
+    "pdf-normal-4pages": "tests/data/pdf/normal_4pages.pdf",
+    "pdf-picture-classification": "tests/data/pdf/picture_classification.pdf",
+    "pdf-redp5110-sampled": "tests/data/pdf/redp5110_sampled.pdf",
+    "pdf-rtl-01": "tests/data/pdf/right_to_left_01.pdf",
+    "pdf-rtl-02": "tests/data/pdf/right_to_left_02.pdf",
+    "pdf-rtl-03": "tests/data/pdf/right_to_left_03.pdf",
+    "pdf-skipped-1page": "tests/data/pdf/skipped_1page.pdf",
+    "pdf-skipped-2pages": "tests/data/pdf/skipped_2pages.pdf",
+    "pdf-latex-llncsdoc": "tests/data/latex/2305.03393/llncsdoc.pdf",
+}
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -283,6 +301,14 @@ def parse_args() -> argparse.Namespace:
         help="Skip the real Docling ASR fixture in docling-real mode.",
     )
     parser.add_argument(
+        "--include-docling-pdf-corpus",
+        action="store_true",
+        help=(
+            "Add extra Docling tests/data PDF corpus fixtures to docling-real "
+            "benchmark selection. This is opt-in so the default real suite stays small."
+        ),
+    )
+    parser.add_argument(
         "--only-fixture",
         action="append",
         default=[],
@@ -309,6 +335,7 @@ def main() -> int:
         fixtures = docling_real_fixtures(
             real_fixture_root,
             include_audio=not args.skip_audio,
+            include_pdf_corpus=args.include_docling_pdf_corpus,
         )
         print(
             f"prepared {len(fixtures)} Docling real fixtures under {real_fixture_root}"
@@ -495,7 +522,11 @@ def resolve_fixtures(
         )
     require_docling_source_root(real_fixture_root)
     return (
-        docling_real_fixtures(real_fixture_root, include_audio=not args.skip_audio),
+        docling_real_fixtures(
+            real_fixture_root,
+            include_audio=not args.skip_audio,
+            include_pdf_corpus=args.include_docling_pdf_corpus,
+        ),
         real_fixture_root,
     )
 
@@ -884,8 +915,15 @@ def prepare_docling_fixtures(root: Path, *, repo_url: str, git_ref: str) -> None
     )
 
 
-def docling_real_fixtures(root: Path, *, include_audio: bool) -> dict[str, Path]:
+def docling_real_fixtures(
+    root: Path,
+    *,
+    include_audio: bool,
+    include_pdf_corpus: bool = False,
+) -> dict[str, Path]:
     selected_paths = dict(DOCLING_REAL_FIXTURE_PATHS)
+    if include_pdf_corpus:
+        selected_paths.update(DOCLING_REAL_PDF_CORPUS_FIXTURE_PATHS)
     if not include_audio:
         selected_paths.pop("audio", None)
 

@@ -49,6 +49,34 @@ def test_docling_real_fixtures_can_skip_audio(tmp_path: Path) -> None:
     assert "webvtt" in fixtures
 
 
+def test_docling_real_fixtures_keep_pdf_corpus_opt_in(tmp_path: Path) -> None:
+    benchmark = _load_benchmark_module()
+    fixture_paths = {
+        **benchmark.DOCLING_REAL_FIXTURE_PATHS,
+        **benchmark.DOCLING_REAL_PDF_CORPUS_FIXTURE_PATHS,
+    }
+    for relative_path in fixture_paths.values():
+        fixture_path = tmp_path / relative_path
+        fixture_path.parent.mkdir(parents=True, exist_ok=True)
+        fixture_path.write_bytes(b"fixture")
+
+    default_fixtures = benchmark.docling_real_fixtures(
+        tmp_path,
+        include_audio=False,
+    )
+    corpus_fixtures = benchmark.docling_real_fixtures(
+        tmp_path,
+        include_audio=False,
+        include_pdf_corpus=True,
+    )
+
+    assert "pdf-redp5110-sampled" not in default_fixtures
+    assert "pdf-redp5110-sampled" in corpus_fixtures
+    assert "pdf" in corpus_fixtures
+    assert corpus_fixtures["pdf-redp5110-sampled"].name == "redp5110_sampled.pdf"
+    assert "audio" not in corpus_fixtures
+
+
 def test_select_fixtures_filters_named_fixture(tmp_path: Path) -> None:
     benchmark = _load_benchmark_module()
     fixtures = {
