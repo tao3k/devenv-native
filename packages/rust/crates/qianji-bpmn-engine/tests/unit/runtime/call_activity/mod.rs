@@ -10,6 +10,7 @@ mod call_mixed;
 mod core;
 mod embedded_boundary;
 mod embedded_error;
+mod embedded_escalation;
 mod embedded_mixed;
 mod external_boundary;
 mod nested;

@@ -4,6 +4,7 @@ use super::boundary::validate_boundary_event;
 use super::error_paths::{
     CallActivityOwner, collect_call_activity_owners, validate_supported_error_end_paths,
 };
+use super::escalation_paths::validate_supported_escalation_end_paths;
 use super::recursion::detect_recursive_call_activity;
 use crate::error::{BpmnEngineError, Result};
 use crate::ir_event_api::BpmnEventKind;
@@ -166,6 +167,7 @@ fn validate_process_topology(
     let mut boundary_attachments = HashMap::new();
     validate_transaction_cancel_path(process, process_by_id)?;
     validate_supported_error_end_paths(process, process_by_id, call_activity_owners)?;
+    validate_supported_escalation_end_paths(process, process_by_id, call_activity_owners)?;
     for node in &process.nodes {
         validate_node_event_shape(process, node)?;
         if node.kind == BpmnNodeKind::SubProcess {

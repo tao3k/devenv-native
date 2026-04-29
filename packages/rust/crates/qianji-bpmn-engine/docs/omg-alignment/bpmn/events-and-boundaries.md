@@ -39,6 +39,9 @@ The current engine supports these bounded families:
 - one or more bounded interrupting error boundaries on one same-package
   `callActivity` owner, including the bounded mixed-owner shape with one
   interrupting timer/message/signal boundary on that same owner
+- one or more bounded interrupting escalation boundaries on one embedded
+  subprocess, same-package `callActivity`, or transaction owner, routed from a
+  matching escalation end event inside that child scope
 - one bounded top-level `endEvent` with `errorEventDefinition`
 
 ## Repeating Owner Note
@@ -65,7 +68,10 @@ with non-interrupting catching boundaries as an intended use case; see
 
 These shapes remain outside the bounded surface:
 
-- escalation, multiple, and parallel-multiple event families
+- multiple and parallel-multiple event families
+- root-level escalation ends, non-interrupting escalation boundaries,
+  intermediate throw escalation, escalation start events, and escalation event
+  subprocess triggers
 - conditional boundary events, conditional start events, and conditional event
   subprocess triggers
 - event subprocesses

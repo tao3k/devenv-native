@@ -633,7 +633,7 @@ fn handle_supported_node_child_start(
     if is_supported_node_tag(parent)
         || matches!(
             parent,
-            "timerEventDefinition" | "conditionalEventDefinition"
+            "timerEventDefinition" | "conditionalEventDefinition" | "escalationEventDefinition"
         )
     {
         if is_ignored_node_child(tag) {
@@ -692,6 +692,9 @@ fn supported_event_definition(parent: &str, tag: &str) -> Option<BpmnEventKind> 
             "signalEventDefinition",
         ) => Some(BpmnEventKind::Signal),
         ("boundaryEvent" | "endEvent", "errorEventDefinition") => Some(BpmnEventKind::Error),
+        ("boundaryEvent" | "endEvent", "escalationEventDefinition") => {
+            Some(BpmnEventKind::Escalation)
+        }
         ("boundaryEvent" | "endEvent", "cancelEventDefinition") => Some(BpmnEventKind::Cancel),
         ("boundaryEvent", "compensateEventDefinition") => Some(BpmnEventKind::Compensation),
         ("endEvent", "terminateEventDefinition") => Some(BpmnEventKind::Terminate),

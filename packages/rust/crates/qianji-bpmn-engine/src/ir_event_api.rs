@@ -15,6 +15,8 @@ pub enum BpmnEventKind {
     Signal,
     /// Error event.
     Error,
+    /// Escalation event.
+    Escalation,
     /// Cancel event.
     Cancel,
     /// Compensation event.

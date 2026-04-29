@@ -4,6 +4,7 @@
 
 mod boundary;
 mod error_paths;
+mod escalation_paths;
 mod package;
 mod recursion;
 

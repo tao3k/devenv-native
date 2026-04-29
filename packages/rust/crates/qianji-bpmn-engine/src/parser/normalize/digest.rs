@@ -386,6 +386,7 @@ fn event_kind_name(kind: &BpmnEventKind) -> &'static str {
         BpmnEventKind::Message => "message",
         BpmnEventKind::Signal => "signal",
         BpmnEventKind::Error => "error",
+        BpmnEventKind::Escalation => "escalation",
         BpmnEventKind::Cancel => "cancel",
         BpmnEventKind::Compensation => "compensation",
         BpmnEventKind::Conditional => "conditional",

@@ -87,13 +87,13 @@ pub(super) fn issue_from_bpmn_execution_shape_error(error: &BpmnEngineError) -> 
             format!(
                 "Process '{process_id}' event node '{node_id}' uses unsupported configuration '{detail}'."
             ),
-            "The current conditional-event slice supports one intermediate catch event with exactly one conditional event definition and one bounded condition expression using a boolean variable path or numeric comparison.",
+            "The current event slice supports one intermediate catch event with exactly one conditional event definition and one bounded condition expression using a boolean variable path or numeric comparison, and one escalation end event inside a bounded subprocess-like runtime scope when a matching interrupting escalation boundary exists on the parent owner.",
             vec![
                 "Use one `conditionalEventDefinition` with one nested `condition` expression on an `intermediateCatchEvent`.".to_string(),
-                "Keep the condition inside the bounded subset, such as `approved`, `not approved`, or `amount >= 100`.".to_string(),
+                "For escalation routing, place `escalationEventDefinition` on an end event inside a bounded embedded subprocess, same-package call activity, or transaction child scope and add a matching interrupting escalation boundary on the parent owner.".to_string(),
             ],
             format!(
-                "Repair event node '{node_id}' in process '{process_id}' so it uses one bounded conditional expression, or rewrite the event to another supported wait family. Preserve workflow intent, but remove unsupported configuration '{detail}'."
+                "Repair event node '{node_id}' in process '{process_id}' so it uses one bounded conditional expression, one bounded escalation end-to-boundary route, or another supported event family. Preserve workflow intent, but remove unsupported configuration '{detail}'."
             ),
             json!({
                 "process_id": process_id,

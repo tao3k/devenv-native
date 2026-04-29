@@ -89,6 +89,7 @@ pub(in crate::bpmn_cli::render) fn bpmn_event_kind_label(kind: &BpmnEventKind) -
         BpmnEventKind::Message => "message",
         BpmnEventKind::Signal => "signal",
         BpmnEventKind::Error => "error",
+        BpmnEventKind::Escalation => "escalation",
         BpmnEventKind::Cancel => "cancel",
         BpmnEventKind::Compensation => "compensation",
         BpmnEventKind::Conditional => "conditional",

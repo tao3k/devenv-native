@@ -33,7 +33,7 @@ guidance.
 | Error and cancel events   | bounded executable | Bounded subprocess, call-activity, transaction, and top-level error paths.   |
 | Compensation              | bounded executable | Transaction-owned compensation handlers and throw-compensation paths.        |
 | Conditional events        | bounded executable | Intermediate catches with bounded boolean or numeric conditions.             |
-| Escalation events         | lint-deferred      | Not executable in the current bounded runtime.                               |
+| Escalation events         | bounded executable | End-to-interrupting-boundary routing on bounded subprocess-like owners.      |
 | Terminate events          | bounded executable | `terminateEventDefinition` end events terminate the current runtime scope.   |
 | Multiple events           | lint-deferred      | Multiple and parallel-multiple event families are deferred.                  |
 | Embedded subprocess       | bounded executable | One nested start event and at least one nested end event.                    |
@@ -70,10 +70,18 @@ tokens, waits, and pending host work in the current runtime scope. At the root
 process it completes the instance; inside a bounded called or embedded scope it
 completes the parent activity route.
 
-The next event-family slice promotes native `conditionalEventDefinition` on
+The second event-family slice promotes native `conditionalEventDefinition` on
 `intermediateCatchEvent`. The runtime evaluates the condition with the bounded
 boolean-path or numeric-comparison subset used by gateway conditions. If the
 condition is already true, the catch event routes immediately; otherwise it
 registers a conditional wait and re-evaluates after poll data is merged.
 Conditional boundary events, conditional start events, and conditional event
 subprocesses remain deferred.
+
+The third event-family slice promotes native `escalationEventDefinition` for
+bounded subprocess-scope end events. The runtime routes a thrown escalation to
+matching interrupting escalation boundary events on the parent embedded
+subprocess, same-package call activity, or transaction owner. Root-level
+escalation ends, non-interrupting escalation boundaries, intermediate throw
+escalation, escalation start events, and escalation event subprocess triggers
+remain deferred.

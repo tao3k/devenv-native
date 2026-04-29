@@ -5,8 +5,8 @@ use super::scope::{
     evaluate_dmn_package_binding_sync,
 };
 use super::{
-    blocking, call_activity, completion, error, gateway, prepare, repeat, state, terminate,
-    transaction,
+    blocking, call_activity, completion, error, escalation, gateway, prepare, repeat, state,
+    terminate, transaction,
 };
 use crate::runtime_instance_api::BpmnHumanTaskLifecycleEventKind;
 use serde_json::{Map, Value};
@@ -192,6 +192,26 @@ fn advance_end_event(
                 )?;
                 return Ok(None);
             }
+            BpmnEventKind::Escalation => {
+                if instance.call_stack.is_empty() {
+                    return Err(BpmnEngineError::UnsupportedEventConfiguration {
+                        process_id: process.key.process_id.to_string(),
+                        node_id: process.nodes[current_node_index as usize]
+                            .bpmn_id
+                            .to_string(),
+                        detail: "escalation_end_requires_supported_parent_boundary",
+                    });
+                }
+                escalation::escalation_subprocess_shell(
+                    package,
+                    instance,
+                    current_token_index,
+                    current_node_index,
+                    event.reference_id.as_deref(),
+                    now_ms,
+                )?;
+                return Ok(None);
+            }
             BpmnEventKind::Compensation => {
                 if event.wait_for_completion {
                     transaction::throw_compensation_end_event(
@@ -229,6 +249,22 @@ fn advance_end_event(
         }
     }
 
+    advance_plain_end_event(
+        package,
+        instance,
+        current_token_index,
+        current_node_index,
+        now_ms,
+    )
+}
+
+fn advance_plain_end_event(
+    package: &BpmnPackage,
+    instance: &mut BpmnInstanceState,
+    current_token_index: usize,
+    current_node_index: BpmnNodeIndex,
+    now_ms: u64,
+) -> Result<Option<BpmnAdvanceOutcome>> {
     state::set_node_status(instance, current_node_index, NodeRuntimeStatus::Completed);
     let _ = state::remove_active_token(instance, current_token_index);
     if !instance.active_tokens.is_empty() {

@@ -9,6 +9,7 @@ mod completion;
 mod conditional;
 mod driver;
 mod error;
+mod escalation;
 mod gateway;
 mod prepare;
 mod repeat;

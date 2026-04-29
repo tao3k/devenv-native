@@ -28,6 +28,11 @@ pub(super) fn build_wait_registration(
                 operation: "advance_instance_error_event_wait",
             });
         }
+        BpmnEventKind::Escalation => {
+            return Err(BpmnEngineError::UnsupportedOperation {
+                operation: "advance_instance_escalation_event_wait",
+            });
+        }
         BpmnEventKind::Cancel => {
             return Err(BpmnEngineError::UnsupportedOperation {
                 operation: "advance_instance_cancel_event_wait",

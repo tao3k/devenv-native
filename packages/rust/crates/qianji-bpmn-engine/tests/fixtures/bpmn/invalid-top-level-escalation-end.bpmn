@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  id="pkg_invalid_top_level_escalation_end"
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL">
+  <bpmn:process id="main_process" isExecutable="true">
+    <bpmn:startEvent id="start" />
+    <bpmn:endEvent id="escalation_end">
+      <bpmn:escalationEventDefinition escalationRef="top_level_escalation" />
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="flow_1" sourceRef="start" targetRef="escalation_end" />
+  </bpmn:process>
+</bpmn:definitions>

@@ -9,10 +9,13 @@ pub(super) struct BoundaryAttachmentUsage {
     total: u32,
     cancel: u32,
     transaction_error: u32,
+    transaction_escalation: u32,
     transaction_external: u32,
     call_activity_error: u32,
+    call_activity_escalation: u32,
     call_activity_external: u32,
     embedded_error: u32,
+    embedded_escalation: u32,
     embedded_external: u32,
 }
 
@@ -68,6 +71,13 @@ pub(super) fn validate_boundary_event(
             process_id: process.process_id.clone(),
             node_id: node.bpmn_id.clone(),
             detail: "error_boundary_requires_supported_subprocess_shell",
+        });
+    }
+    if event_kind == Some(&BpmnEventKind::Escalation) {
+        return Err(BpmnEngineError::UnsupportedBoundaryEventConfiguration {
+            process_id: process.process_id.clone(),
+            node_id: node.bpmn_id.clone(),
+            detail: "escalation_boundary_requires_supported_subprocess_shell",
         });
     }
     if event_kind == Some(&BpmnEventKind::Compensation) {
@@ -250,6 +260,11 @@ fn validate_transaction_shell_boundary(
         usage.transaction_error += 1;
         return Ok(true);
     }
+    if event_kind == Some(&BpmnEventKind::Escalation) {
+        usage.total += 1;
+        usage.transaction_escalation += 1;
+        return Ok(true);
+    }
     if matches!(
         event_kind,
         Some(BpmnEventKind::Timer | BpmnEventKind::Message | BpmnEventKind::Signal)
@@ -279,11 +294,18 @@ fn validate_call_activity_boundary(
         usage.call_activity_error += 1;
         return Ok(true);
     }
+    if event_kind == Some(&BpmnEventKind::Escalation) {
+        usage.total += 1;
+        usage.call_activity_escalation += 1;
+        return Ok(true);
+    }
     if matches!(
         event_kind,
         Some(BpmnEventKind::Timer | BpmnEventKind::Message | BpmnEventKind::Signal)
     ) {
-        if usage.call_activity_external > 0 || usage.total > usage.call_activity_error {
+        if usage.call_activity_external > 0
+            || usage.total > usage.call_activity_error + usage.call_activity_escalation
+        {
             return boundary_configuration_error(
                 process,
                 node,
@@ -308,11 +330,18 @@ fn validate_embedded_shell_boundary(
         usage.embedded_error += 1;
         return Ok(true);
     }
+    if event_kind == Some(&BpmnEventKind::Escalation) {
+        usage.total += 1;
+        usage.embedded_escalation += 1;
+        return Ok(true);
+    }
     if matches!(
         event_kind,
         Some(BpmnEventKind::Timer | BpmnEventKind::Message | BpmnEventKind::Signal)
     ) {
-        if usage.embedded_external > 0 || usage.total > usage.embedded_error {
+        if usage.embedded_external > 0
+            || usage.total > usage.embedded_error + usage.embedded_escalation
+        {
             return boundary_configuration_error(
                 process,
                 node,
