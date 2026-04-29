@@ -692,7 +692,7 @@ fn supported_event_definition(parent: &str, tag: &str) -> Option<BpmnEventKind> 
             "signalEventDefinition",
         ) => Some(BpmnEventKind::Signal),
         ("boundaryEvent" | "endEvent", "errorEventDefinition") => Some(BpmnEventKind::Error),
-        ("boundaryEvent" | "endEvent", "escalationEventDefinition") => {
+        ("boundaryEvent" | "endEvent" | "intermediateThrowEvent", "escalationEventDefinition") => {
             Some(BpmnEventKind::Escalation)
         }
         ("boundaryEvent" | "endEvent", "cancelEventDefinition") => Some(BpmnEventKind::Cancel),

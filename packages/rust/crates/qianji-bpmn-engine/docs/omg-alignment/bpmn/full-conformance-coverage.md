@@ -33,7 +33,7 @@ guidance.
 | Error and cancel events   | bounded executable | Bounded subprocess, call-activity, transaction, and top-level error paths.           |
 | Compensation              | bounded executable | Transaction-owned compensation handlers and throw-compensation paths.                |
 | Conditional events        | bounded executable | Start events, catches, task boundaries, and interrupting subprocess-like boundaries. |
-| Escalation events         | bounded executable | End-to-interrupting-boundary routing on bounded subprocess-like owners.              |
+| Escalation events         | bounded executable | End/throw-to-interrupting-boundary routing on bounded subprocess-like owners.        |
 | Terminate events          | bounded executable | `terminateEventDefinition` end events terminate the current runtime scope.           |
 | Multiple events           | lint-deferred      | Multiple and parallel-multiple event families are deferred.                          |
 | Embedded subprocess       | bounded executable | One nested start event and at least one nested end event.                            |
@@ -81,10 +81,10 @@ subprocesses were deferred.
 The third event-family slice promotes native `escalationEventDefinition` for
 bounded subprocess-scope end events. The runtime routes a thrown escalation to
 matching interrupting escalation boundary events on the parent embedded
-subprocess, same-package call activity, or transaction owner. Root-level
-escalation ends, non-interrupting escalation boundaries, intermediate throw
-escalation, escalation start events, and escalation event subprocess triggers
-remain deferred.
+subprocess, same-package call activity, or transaction owner. At that slice
+boundary, root-level escalation ends, non-interrupting escalation boundaries,
+intermediate throw escalation, escalation start events, and escalation event
+subprocess triggers remained deferred.
 
 The fourth event-family slice promotes native `conditionalEventDefinition` on
 task-attached `boundaryEvent` nodes. The same bounded boolean-path and
@@ -114,3 +114,11 @@ start event, and routes after a matching poll outcome or already-satisfied
 bounded condition. Multiple start events, event subprocess triggers,
 collaboration-aware subscription registries, and multiple event definitions
 remain deferred.
+
+The eighth event-family slice promotes native `escalationEventDefinition` on
+`intermediateThrowEvent` inside a bounded embedded subprocess, same-package
+call activity, or transaction child scope. The runtime routes the throw
+through the existing matching interrupting parent escalation boundary path and
+cancels the child scope. Root-level escalation throws, non-interrupting
+escalation boundaries, escalation start events, and escalation event
+subprocess triggers remain deferred.

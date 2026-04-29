@@ -87,13 +87,13 @@ pub(super) fn issue_from_bpmn_execution_shape_error(error: &BpmnEngineError) -> 
             format!(
                 "Process '{process_id}' event node '{node_id}' uses unsupported configuration '{detail}'."
             ),
-            "The current event slice supports one start event, intermediate catch event, exclusive event-based gateway wait target, or task-attached boundary event with exactly one conditional event definition and one bounded condition expression using a boolean variable path or numeric comparison, and one escalation end event inside a bounded subprocess-like runtime scope when a matching interrupting escalation boundary exists on the parent owner.",
+            "The current event slice supports one start event, intermediate catch event, exclusive event-based gateway wait target, or task-attached boundary event with exactly one conditional event definition and one bounded condition expression using a boolean variable path or numeric comparison, plus one escalation end event or intermediate escalation throw inside a bounded subprocess-like runtime scope when a matching interrupting escalation boundary exists on the parent owner.",
             vec![
                 "Use one `conditionalEventDefinition` with one nested `condition` expression on a `startEvent` or `intermediateCatchEvent`, including an exclusive `eventBasedGateway` wait target, or attach that conditional definition to one supported interrupting or non-interrupting task `boundaryEvent`.".to_string(),
-                "For escalation routing, place `escalationEventDefinition` on an end event inside a bounded embedded subprocess, same-package call activity, or transaction child scope and add a matching interrupting escalation boundary on the parent owner.".to_string(),
+                "For escalation routing, place `escalationEventDefinition` on an end event or intermediate throw event inside a bounded embedded subprocess, same-package call activity, or transaction child scope and add a matching interrupting escalation boundary on the parent owner.".to_string(),
             ],
             format!(
-                "Repair event node '{node_id}' in process '{process_id}' so it uses one bounded conditional expression, one bounded escalation end-to-boundary route, or another supported event family. Preserve workflow intent, but remove unsupported configuration '{detail}'."
+                "Repair event node '{node_id}' in process '{process_id}' so it uses one bounded conditional expression, one bounded escalation end/throw-to-boundary route, or another supported event family. Preserve workflow intent, but remove unsupported configuration '{detail}'."
             ),
             json!({
                 "process_id": process_id,

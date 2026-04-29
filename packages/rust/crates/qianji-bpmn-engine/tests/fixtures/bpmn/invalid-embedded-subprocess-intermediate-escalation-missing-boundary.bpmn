@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  id="pkg_invalid_embedded_subprocess_intermediate_escalation_missing_boundary"
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL">
+  <bpmn:process id="main_process" isExecutable="true">
+    <bpmn:startEvent id="start" />
+    <bpmn:subProcess id="inline_review">
+      <bpmn:startEvent id="sub_start" />
+      <bpmn:intermediateThrowEvent id="sub_escalation_throw">
+        <bpmn:escalationEventDefinition escalationRef="review_escalated" />
+      </bpmn:intermediateThrowEvent>
+      <bpmn:endEvent id="sub_after_throw_end" />
+      <bpmn:sequenceFlow id="sub_flow_1" sourceRef="sub_start" targetRef="sub_escalation_throw" />
+      <bpmn:sequenceFlow id="sub_flow_2" sourceRef="sub_escalation_throw" targetRef="sub_after_throw_end" />
+    </bpmn:subProcess>
+    <bpmn:endEvent id="success_end" />
+    <bpmn:sequenceFlow id="flow_1" sourceRef="start" targetRef="inline_review" />
+    <bpmn:sequenceFlow id="flow_2" sourceRef="inline_review" targetRef="success_end" />
+  </bpmn:process>
+</bpmn:definitions>

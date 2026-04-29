@@ -139,7 +139,8 @@
 //! shells,
 //! broader `requiredKnowledge` execution, broader business-knowledge-model or
 //! decision-service invocation semantics, broader FEEL or script-backed
-//! gateway conditions, trailing
+//! gateway conditions, root-level escalation throws, non-interrupting
+//! escalation boundaries, escalation event subprocess triggers, trailing
 //! lower-unit fractional duration handling such as `duration("PT1.5H30S")`,
 //! mixed-family duration handling, fractional year-month duration handling
 //! such as `duration("P1.5Y")`, broader timezone/function FEEL behavior, and

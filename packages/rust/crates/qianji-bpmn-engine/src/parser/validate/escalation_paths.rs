@@ -41,21 +41,23 @@ impl SupportedEscalationOwner {
     }
 }
 
-pub(super) fn validate_supported_escalation_end_paths(
+pub(super) fn validate_supported_escalation_throw_paths(
     process: &RawProcess,
     process_by_id: &HashMap<&str, &RawProcess>,
     call_activity_owners: &HashMap<&str, Vec<CallActivityOwner<'_>>>,
 ) -> Result<()> {
-    let escalation_end_nodes = process
+    let escalation_throw_nodes = process
         .nodes
         .iter()
         .filter(|node| {
-            node.kind == BpmnNodeKind::EndEvent
-                && node.event.as_ref().map(|event| event.kind.clone())
-                    == Some(BpmnEventKind::Escalation)
+            matches!(
+                node.kind,
+                BpmnNodeKind::EndEvent | BpmnNodeKind::IntermediateThrowEvent
+            ) && node.event.as_ref().map(|event| event.kind.clone())
+                == Some(BpmnEventKind::Escalation)
         })
         .collect::<Vec<_>>();
-    if escalation_end_nodes.is_empty() {
+    if escalation_throw_nodes.is_empty() {
         return Ok(());
     }
 
@@ -63,20 +65,20 @@ pub(super) fn validate_supported_escalation_end_paths(
     if owner_requirements.is_empty() {
         return Err(BpmnEngineError::UnsupportedEventConfiguration {
             process_id: process.process_id.clone(),
-            node_id: escalation_end_nodes[0].bpmn_id.clone(),
-            detail: "escalation_end_requires_supported_parent_boundary",
+            node_id: escalation_throw_nodes[0].bpmn_id.clone(),
+            detail: escalation_throw_missing_parent_detail(&escalation_throw_nodes[0].kind),
         });
     }
 
-    for escalation_end_node in escalation_end_nodes {
-        let thrown_reference_id = escalation_end_node
+    for escalation_throw_node in escalation_throw_nodes {
+        let thrown_reference_id = escalation_throw_node
             .event
             .as_ref()
             .and_then(|event| event.reference_id.as_deref());
         for owner in &owner_requirements {
             let Some(parent_process) = process_by_id.get(owner.process_id).copied() else {
                 return Err(BpmnEngineError::UnsupportedOperation {
-                    operation: "validate_escalation_end_missing_parent_process",
+                    operation: "validate_escalation_throw_missing_parent_process",
                 });
             };
             let has_matching_boundary = parent_process.nodes.iter().any(|node| {
@@ -100,6 +102,14 @@ pub(super) fn validate_supported_escalation_end_paths(
     }
 
     Ok(())
+}
+
+fn escalation_throw_missing_parent_detail(kind: &BpmnNodeKind) -> &'static str {
+    if matches!(kind, BpmnNodeKind::EndEvent) {
+        "escalation_end_requires_supported_parent_boundary"
+    } else {
+        "escalation_throw_requires_supported_parent_boundary"
+    }
 }
 
 fn resolve_supported_escalation_owners<'a>(

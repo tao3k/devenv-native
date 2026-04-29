@@ -53,6 +53,7 @@ pub(super) fn advance_active_node(
         ),
         BpmnNodeKind::IntermediateThrowEvent => {
             advance_intermediate_throw_event(
+                package,
                 process,
                 instance,
                 current_token_index,
@@ -362,6 +363,7 @@ fn conditional_catch_event_is_ready(
 }
 
 fn advance_intermediate_throw_event(
+    package: &BpmnPackage,
     process: &BpmnProcessSpec,
     instance: &mut BpmnInstanceState,
     current_token_index: usize,
@@ -398,6 +400,25 @@ fn advance_intermediate_throw_event(
                     now_ms,
                 )
             }
+        }
+        BpmnEventKind::Escalation => {
+            if instance.call_stack.is_empty() {
+                return Err(BpmnEngineError::UnsupportedEventConfiguration {
+                    process_id: process.key.process_id.to_string(),
+                    node_id: process.nodes[current_node_index as usize]
+                        .bpmn_id
+                        .to_string(),
+                    detail: "escalation_throw_requires_supported_parent_boundary",
+                });
+            }
+            escalation::escalation_subprocess_shell(
+                package,
+                instance,
+                current_token_index,
+                current_node_index,
+                event.reference_id.as_deref(),
+                now_ms,
+            )
         }
         _ => Err(BpmnEngineError::UnsupportedOperation {
             operation: "advance_instance_intermediate_throw_event_kind",
