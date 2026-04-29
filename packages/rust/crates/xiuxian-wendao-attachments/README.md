@@ -48,6 +48,17 @@ or run the benchmark script with `--prepare-pdfium-runtime` to fetch the pinned
 cache before invoking the ignored cargo-test proof. Add `--require-pdfium` when
 the proof must fail instead of recording a Docling fallback.
 
+## OCR Contract
+
+The `pdf-render` feature also exposes an internal Arrow-only OCR worker
+contract. Rendered page manifests can be projected into `_ocr_input.arrow`
+using `xiuxian_wendao.pdf_ocr_shard_input.v1`; OCR workers return
+`xiuxian_wendao.pdf_ocr_shard_result.v1`; successful, failed, or skipped OCR
+results can then be projected back into the stable document resource schema.
+
+This is still proof infrastructure. No OCR worker is started by the production
+Wendao gateway, and no live document extraction route consumes these rows yet.
+
 ## Test Policy
 
 This crate depends on `xiuxian-testing` and mounts the shared crate test-policy

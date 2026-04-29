@@ -15,6 +15,11 @@ pub use xiuxian_wendao_attachments::pdf::audit as document_extract_pdf_audit;
 #[doc(hidden)]
 pub use xiuxian_wendao_attachments::pdf::render as document_extract_pdf_render;
 
+/// Feature-gated PDF OCR shard Arrow contract helpers.
+#[cfg(feature = "document-extract-pdf-render")]
+#[doc(hidden)]
+pub use xiuxian_wendao_attachments::pdf::ocr as document_extract_pdf_ocr;
+
 #[cfg(feature = "zhenfa-router")]
 #[path = "studio/analysis/mod.rs"]
 mod analysis;

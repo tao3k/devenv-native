@@ -16,9 +16,12 @@ use pdfium_render::prelude::{
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
+use super::ocr::{PdfOcrWorkerProfile, build_ocr_shard_input_batch, build_ocr_shard_inputs};
+
 pub const PDFIUM_LIBRARY_PATH_ENV: &str = "WENDAO_PDFIUM_LIBRARY_PATH";
 const PDF_RENDER_SHARD_PROFILE: &str = "pdfium-render-page-shards-v1";
 const OCR_SHARD_MANIFEST_ARROW_NAME: &str = "_ocr_shards.arrow";
+const OCR_SHARD_INPUT_ARROW_NAME: &str = "_ocr_input.arrow";
 const OCR_PENDING_RESOURCE_ARROW_NAME: &str = "_ocr_pending.arrow";
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
@@ -177,6 +180,7 @@ pub struct PdfPageRenderShardReport {
     pub page_count: u32,
     pub shard_count: u32,
     pub manifest_arrow_path: Option<String>,
+    pub ocr_input_arrow_path: Option<String>,
     pub pending_resource_arrow_path: Option<String>,
     pub render_profile: String,
     pub status: String,
@@ -401,16 +405,21 @@ pub fn render_pdf_page_shards(
     };
 
     let manifest_batch = build_shard_manifest_batch(&manifests)?;
+    let ocr_inputs = build_ocr_shard_inputs(&manifests, &PdfOcrWorkerProfile::docling_compatible());
+    let ocr_input_batch = build_ocr_shard_input_batch(&ocr_inputs)?;
     let pending_batch = build_ocr_pending_resource_batch(&manifests)?;
     let manifest_arrow_path = output_dir.join(OCR_SHARD_MANIFEST_ARROW_NAME);
+    let ocr_input_arrow_path = output_dir.join(OCR_SHARD_INPUT_ARROW_NAME);
     let pending_resource_arrow_path = output_dir.join(OCR_PENDING_RESOURCE_ARROW_NAME);
     write_arrow_file(manifest_arrow_path.as_path(), &[manifest_batch])?;
+    write_arrow_file(ocr_input_arrow_path.as_path(), &[ocr_input_batch])?;
     write_arrow_file(pending_resource_arrow_path.as_path(), &[pending_batch])?;
 
     Ok(context.report(ReportParts::rendered(
         page_count,
         checked_len_u32(manifests.len()),
         manifest_arrow_path,
+        ocr_input_arrow_path,
         pending_resource_arrow_path,
     )))
 }
@@ -571,6 +580,9 @@ impl<'a> RenderShardContext<'a> {
             manifest_arrow_path: parts
                 .manifest_arrow_path
                 .map(|path| path.to_string_lossy().to_string()),
+            ocr_input_arrow_path: parts
+                .ocr_input_arrow_path
+                .map(|path| path.to_string_lossy().to_string()),
             pending_resource_arrow_path: parts
                 .pending_resource_arrow_path
                 .map(|path| path.to_string_lossy().to_string()),
@@ -591,6 +603,7 @@ struct ReportParts {
     page_count: u32,
     shard_count: u32,
     manifest_arrow_path: Option<PathBuf>,
+    ocr_input_arrow_path: Option<PathBuf>,
     pending_resource_arrow_path: Option<PathBuf>,
     status: PdfRenderStatus,
     routing_decision: PdfRenderRoutingDecision,
@@ -603,6 +616,7 @@ impl ReportParts {
             page_count: 0,
             shard_count: 0,
             manifest_arrow_path: None,
+            ocr_input_arrow_path: None,
             pending_resource_arrow_path: None,
             status: PdfRenderStatus::Unsupported,
             routing_decision: PdfRenderRoutingDecision::UnsupportedNonPdf,
@@ -615,6 +629,7 @@ impl ReportParts {
             page_count,
             shard_count,
             manifest_arrow_path: None,
+            ocr_input_arrow_path: None,
             pending_resource_arrow_path: None,
             status: PdfRenderStatus::Fallback,
             routing_decision: PdfRenderRoutingDecision::FullDoclingFallback,
@@ -627,6 +642,7 @@ impl ReportParts {
             page_count: 0,
             shard_count: 0,
             manifest_arrow_path: None,
+            ocr_input_arrow_path: None,
             pending_resource_arrow_path: None,
             status: PdfRenderStatus::Fallback,
             routing_decision: PdfRenderRoutingDecision::PreflightFailed,
@@ -638,12 +654,14 @@ impl ReportParts {
         page_count: u32,
         shard_count: u32,
         manifest_arrow_path: PathBuf,
+        ocr_input_arrow_path: PathBuf,
         pending_resource_arrow_path: PathBuf,
     ) -> Self {
         Self {
             page_count,
             shard_count,
             manifest_arrow_path: Some(manifest_arrow_path),
+            ocr_input_arrow_path: Some(ocr_input_arrow_path),
             pending_resource_arrow_path: Some(pending_resource_arrow_path),
             status: PdfRenderStatus::Rendered,
             routing_decision: PdfRenderRoutingDecision::HybridPageOcrCandidate,

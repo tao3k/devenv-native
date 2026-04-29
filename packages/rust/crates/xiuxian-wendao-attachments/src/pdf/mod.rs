@@ -7,3 +7,7 @@ pub mod audit;
 #[cfg(feature = "pdf-render")]
 #[doc(hidden)]
 pub mod render;
+
+#[cfg(feature = "pdf-render")]
+#[doc(hidden)]
+pub mod ocr;

@@ -121,11 +121,20 @@ Real render proof on the Docling `2206.01062.pdf` fixture:
 
 | Status     | Decision                    | Pages | Shards | Elapsed ms |
 | ---------- | --------------------------- | ----: | -----: | ---------: |
-| `rendered` | `hybrid_page_ocr_candidate` |     9 |      9 |  24470.627 |
+| `rendered` | `hybrid_page_ocr_candidate` |     9 |      9 |  24869.386 |
 
 The result proves that the feature-gated Rust path can render page shards and
-write both the internal shard manifest and pending OCR Arrow resource rows when
-a native PDFium runtime is explicitly provided.
+write the internal shard manifest, OCR worker input, and pending OCR Arrow
+resource rows when a native PDFium runtime is explicitly provided.
+
+The next proof slice adds an Arrow-only OCR worker contract under
+`xiuxian-wendao-attachments`. Rendered page manifests are projected into
+`xiuxian_wendao.pdf_ocr_shard_input.v1`, while OCR outputs use
+`xiuxian_wendao.pdf_ocr_shard_result.v1`. The result rows can be projected back
+into the stable document resource schema as `ocr_text`, `ocr_error`, or
+`ocr_skipped` rows. The render proof now writes `_ocr_input.arrow` next to
+`_ocr_shards.arrow` and `_ocr_pending.arrow`, but no production provider
+consumes those rows yet.
 
 The audit report now records two additional routing diagnostics:
 

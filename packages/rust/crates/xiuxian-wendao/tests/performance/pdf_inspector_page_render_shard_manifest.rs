@@ -46,6 +46,21 @@ fn pdf_inspector_page_render_shard_manifest_reports_pdf_shards() -> Result<(), S
     {
         return Err("PDFium was required but no PDF render shards were produced".to_string());
     }
+    for record in records.iter().filter(|record| record.status == "rendered") {
+        for artifact_path in [
+            record.manifest_arrow_path.as_deref(),
+            record.ocr_input_arrow_path.as_deref(),
+            record.pending_resource_arrow_path.as_deref(),
+        ] {
+            let artifact_path = artifact_path
+                .ok_or_else(|| "rendered record is missing Arrow artifact".to_string())?;
+            if !PathBuf::from(artifact_path).is_file() {
+                return Err(format!(
+                    "rendered Arrow artifact does not exist: {artifact_path}"
+                ));
+            }
+        }
+    }
     println!(
         "{}",
         serde_json::to_string_pretty(&serde_json::json!({
