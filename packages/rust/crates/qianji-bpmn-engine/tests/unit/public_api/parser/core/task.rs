@@ -55,27 +55,62 @@ fn parser_script_task_preserves_bounded_script_metadata() {
 }
 
 #[test]
-fn parser_user_task_preserves_qianji_interaction_form_metadata() {
+fn parser_user_task_preserves_native_io_interaction_form_metadata() {
     let package = parse_bpmn_package(
         &[BpmnSourceFile::new(
             "user-task-interaction.bpmn",
             r#"<?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
-  xmlns:qianji="https://qianji.dev/bpmn/extensions" id="pkg_user_task_interaction">
+  id="pkg_user_task_interaction">
   <bpmn:process id="user_task_interaction" isExecutable="true">
     <bpmn:startEvent id="start" />
     <bpmn:userTask id="ask_question">
-      <bpmn:extensionElements>
-        <qianji:config>
-          <qianji:interaction type="choice_input">
-            <qianji:question ref="currentQuestion"/>
-            <qianji:choices ref="currentChoices"/>
-            <qianji:choice value="approve" label="Approve"/>
-            <qianji:freeText name="feedback" optional="true"/>
-            <qianji:result output="answer"/>
-          </qianji:interaction>
-        </qianji:config>
-      </bpmn:extensionElements>
+      <bpmn:documentation>Review the generated question.</bpmn:documentation>
+      <bpmn:ioSpecification>
+        <bpmn:dataInput id="ask_question_interaction_type" name="interactionType"/>
+        <bpmn:dataInput id="ask_question_question" name="question"/>
+        <bpmn:dataInput id="ask_question_choices" name="choices"/>
+        <bpmn:dataInput id="ask_question_free_text" name="freeText"/>
+        <bpmn:dataOutput id="ask_question_answer" name="answer"/>
+        <bpmn:inputSet>
+          <bpmn:dataInputRefs>ask_question_interaction_type</bpmn:dataInputRefs>
+          <bpmn:dataInputRefs>ask_question_question</bpmn:dataInputRefs>
+          <bpmn:dataInputRefs>ask_question_choices</bpmn:dataInputRefs>
+          <bpmn:dataInputRefs>ask_question_free_text</bpmn:dataInputRefs>
+        </bpmn:inputSet>
+        <bpmn:outputSet>
+          <bpmn:dataOutputRefs>ask_question_answer</bpmn:dataOutputRefs>
+        </bpmn:outputSet>
+      </bpmn:ioSpecification>
+      <bpmn:dataInputAssociation>
+        <bpmn:targetRef>ask_question_interaction_type</bpmn:targetRef>
+        <bpmn:assignment>
+          <bpmn:from>choice_input</bpmn:from>
+          <bpmn:to>ask_question_interaction_type</bpmn:to>
+        </bpmn:assignment>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataInputAssociation>
+        <bpmn:sourceRef>currentQuestion</bpmn:sourceRef>
+        <bpmn:targetRef>ask_question_question</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataInputAssociation>
+        <bpmn:targetRef>ask_question_choices</bpmn:targetRef>
+        <bpmn:assignment>
+          <bpmn:from>[{"value":"approve","label":"Approve"}]</bpmn:from>
+          <bpmn:to>ask_question_choices</bpmn:to>
+        </bpmn:assignment>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataInputAssociation>
+        <bpmn:targetRef>ask_question_free_text</bpmn:targetRef>
+        <bpmn:assignment>
+          <bpmn:from>{"name":"feedback","optional":true}</bpmn:from>
+          <bpmn:to>ask_question_free_text</bpmn:to>
+        </bpmn:assignment>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation>
+        <bpmn:sourceRef>ask_question_answer</bpmn:sourceRef>
+        <bpmn:targetRef>answer</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
     </bpmn:userTask>
     <bpmn:endEvent id="done" />
     <bpmn:sequenceFlow id="flow_start" sourceRef="start" targetRef="ask_question" />
@@ -96,7 +131,8 @@ fn parser_user_task_preserves_qianji_interaction_form_metadata() {
 
     assert_eq!(form.interaction_type.as_ref(), "choice_input");
     assert_eq!(form.question_ref.as_deref(), Some("currentQuestion"));
-    assert_eq!(form.choices_ref.as_deref(), Some("currentChoices"));
+    assert_eq!(form.question_text.as_deref(), None);
+    assert_eq!(form.choices_ref.as_deref(), None);
     assert_eq!(form.choices[0].value.as_ref(), "approve");
     assert_eq!(form.choices[0].label.as_deref(), Some("Approve"));
     assert_eq!(form.free_text_fields[0].name.as_ref(), "feedback");

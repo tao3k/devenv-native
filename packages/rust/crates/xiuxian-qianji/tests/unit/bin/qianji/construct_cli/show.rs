@@ -109,26 +109,22 @@ fn run_construct_show_renders_user_interaction_scaffold() {
 
     assert!(output.rendered.contains("```xml"));
     assert!(output.rendered.contains("<userTask"));
-    assert!(output.rendered.contains("<qianji:tools></qianji:tools>"));
+    assert!(output.rendered.contains("<dataInput"));
     assert!(
         output
             .rendered
-            .contains("<qianji:inputs>currentQuestion,currentChoices</qianji:inputs>")
+            .contains("<dataInput id=\"Task_Answer_Input_question\" name=\"question\"")
+    );
+    assert!(output.rendered.contains("<from>choice_input</from>"));
+    assert!(
+        output
+            .rendered
+            .contains("<sourceRef>currentChoices</sourceRef>")
     );
     assert!(
         output
             .rendered
-            .contains("<qianji:interaction type=\"choice_input\">")
-    );
-    assert!(
-        output
-            .rendered
-            .contains("<qianji:choices ref=\"currentChoices\"/>")
-    );
-    assert!(
-        output
-            .rendered
-            .contains("kind=\"choice_array\" value=\"required\"")
+            .contains("JSON array objects with required value")
     );
     assert!(
         output
@@ -147,7 +143,7 @@ fn run_construct_show_renders_user_interaction_scaffold() {
             .rendered
             .contains("numbered option prose embedded inside currentQuestion")
     );
-    assert!(output.rendered.contains("<qianji:freeText"));
+    assert!(output.rendered.contains("name=\"freeText\""));
     assert!(output.rendered.contains("loop.interactive.progress"));
 }
 
@@ -168,21 +164,25 @@ fn run_construct_show_renders_interactive_loop_progress_scaffold() {
     );
     assert!(output.rendered.contains("Task_PrepareNextQuestion"));
     assert!(output.rendered.contains("Task_AnswerQuestion"));
-    assert!(output.rendered.contains("context,userAnswer,attempt"));
     assert!(
         output
             .rendered
-            .contains("currentQuestion,currentChoices,questionsRemaining,attempt")
+            .contains("Task_PrepareNextQuestion_Input_userAnswer")
     );
     assert!(
         output
             .rendered
-            .contains("kind=\"choice_array\" value=\"required\"")
+            .contains("Task_PrepareNextQuestion_Output_questionsRemaining")
     );
     assert!(
         output
             .rendered
-            .contains("<qianji:choices ref=\"currentChoices\"/>")
+            .contains("currentChoices is emitted as JSON array objects")
+    );
+    assert!(
+        output
+            .rendered
+            .contains("<sourceRef>currentChoices</sourceRef>")
     );
     assert!(output.rendered.contains("Flow_Answer_Prepare"));
     assert!(output.rendered.contains("questionsRemaining &gt; 0"));

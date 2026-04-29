@@ -7,9 +7,9 @@ use crate::repeat_condition::{
 use quick_xml::Reader;
 use quick_xml::escape::resolve_predefined_entity;
 use quick_xml::events::{BytesStart, Event};
-use serde_json::json;
+use serde_json::{Value, json};
 use std::borrow::Cow;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 pub(super) fn ambiguous_boolean_gateway_condition_issues(
     source: &BpmnSourceFile,
@@ -332,62 +332,300 @@ struct StaticInteractionChoiceOutput {
     choice_values: Vec<String>,
 }
 
-#[derive(Default)]
-struct ActiveInteractionChoiceOutput {
-    task_id: String,
-    result_output: Option<String>,
-    choice_values: Vec<String>,
-}
-
 fn collect_static_interaction_choice_outputs(contents: &str) -> Vec<StaticInteractionChoiceOutput> {
     let mut reader = Reader::from_str(contents);
     reader.config_mut().trim_text(false);
-    let mut current_user_task_id: Option<String> = None;
-    let mut active_interaction: Option<ActiveInteractionChoiceOutput> = None;
+    let mut active_task: Option<ActiveNativeInteractionTask> = None;
     let mut outputs = Vec::new();
 
     loop {
         match reader.read_event() {
             Ok(Event::Start(event)) => {
                 if is_element(&event, "userTask") {
-                    current_user_task_id = attribute_value(&reader, &event, "id");
-                } else if is_element(&event, "interaction") {
-                    if let Some(task_id) = current_user_task_id.as_ref() {
-                        active_interaction = Some(ActiveInteractionChoiceOutput {
-                            task_id: task_id.clone(),
-                            ..ActiveInteractionChoiceOutput::default()
-                        });
-                    }
-                } else if let Some(active) = active_interaction.as_mut() {
-                    collect_interaction_choice_output_field(&reader, &event, active);
+                    active_task = attribute_value(&reader, &event, "id")
+                        .map(ActiveNativeInteractionTask::new);
+                } else if let Some(task) = active_task.as_mut() {
+                    task.handle_start(&reader, &event);
                 }
             }
             Ok(Event::Empty(event)) => {
-                if let Some(active) = active_interaction.as_mut() {
-                    collect_interaction_choice_output_field(&reader, &event, active);
+                if let Some(task) = active_task.as_mut() {
+                    task.handle_empty(&reader, &event);
+                }
+            }
+            Ok(Event::Text(event)) => {
+                if let Some(task) = active_task.as_mut()
+                    && let Ok(text) = event.decode()
+                {
+                    task.append_text(&text);
+                }
+            }
+            Ok(Event::GeneralRef(event)) => {
+                if let Some(task) = active_task.as_mut() {
+                    let reference = event.decode().ok();
+                    let mut text = String::new();
+                    append_entity_reference(&mut text, reference.as_deref());
+                    task.append_text(&text);
                 }
             }
             Ok(Event::End(event)) => {
                 let event_name = event.name();
                 let name = local_name(event_name.as_ref());
-                if name == "interaction"
-                    && let Some(active) = active_interaction.take()
-                    && let Some(output) = active.result_output
-                    && !active.choice_values.is_empty()
-                {
-                    outputs.push(StaticInteractionChoiceOutput {
-                        task_id: active.task_id,
-                        output,
-                        choice_values: active.choice_values,
-                    });
-                } else if name == "userTask" {
-                    current_user_task_id = None;
+                if name == "userTask" {
+                    if let Some(output) = active_task
+                        .take()
+                        .and_then(ActiveNativeInteractionTask::finish_output)
+                    {
+                        outputs.push(output);
+                    }
+                } else if let Some(task) = active_task.as_mut() {
+                    task.handle_end(name);
                 }
             }
             Ok(Event::Eof) | Err(_) => return outputs,
             Ok(_) => {}
         }
     }
+}
+
+#[derive(Default)]
+struct ActiveNativeInteractionTask {
+    task_id: String,
+    data_inputs: HashMap<String, String>,
+    data_outputs: HashMap<String, String>,
+    input_associations: Vec<NativeInputAssociation>,
+    output_associations: Vec<NativeOutputAssociation>,
+    active_input_association: Option<NativeInputAssociation>,
+    active_output_association: Option<NativeOutputAssociation>,
+    text_capture: Option<NativeAssociationCapture>,
+}
+
+#[derive(Default)]
+struct NativeInputAssociation {
+    source_ref: Option<String>,
+    target_ref: Option<String>,
+    assignment_from: Option<String>,
+    assignment_to: Option<String>,
+}
+
+#[derive(Default)]
+struct NativeOutputAssociation {
+    source_ref: Option<String>,
+    target_ref: Option<String>,
+}
+
+enum NativeAssociationCapture {
+    InputSourceRef,
+    InputTargetRef,
+    InputAssignmentFrom,
+    InputAssignmentTo,
+    OutputSourceRef,
+    OutputTargetRef,
+}
+
+impl ActiveNativeInteractionTask {
+    fn new(task_id: String) -> Self {
+        Self {
+            task_id,
+            ..Self::default()
+        }
+    }
+
+    fn handle_start(&mut self, reader: &Reader<&[u8]>, event: &BytesStart<'_>) {
+        let event_name = event.name();
+        let name = local_name(event_name.as_ref());
+        match name {
+            "dataInput" => self.record_data_input(reader, event),
+            "dataOutput" => self.record_data_output(reader, event),
+            "dataInputAssociation" => {
+                self.active_input_association = Some(NativeInputAssociation::default());
+            }
+            "dataOutputAssociation" => {
+                self.active_output_association = Some(NativeOutputAssociation::default());
+            }
+            "sourceRef" if self.active_input_association.is_some() => {
+                self.text_capture = Some(NativeAssociationCapture::InputSourceRef);
+            }
+            "targetRef" if self.active_input_association.is_some() => {
+                self.text_capture = Some(NativeAssociationCapture::InputTargetRef);
+            }
+            "from" if self.active_input_association.is_some() => {
+                self.text_capture = Some(NativeAssociationCapture::InputAssignmentFrom);
+            }
+            "to" if self.active_input_association.is_some() => {
+                self.text_capture = Some(NativeAssociationCapture::InputAssignmentTo);
+            }
+            "sourceRef" if self.active_output_association.is_some() => {
+                self.text_capture = Some(NativeAssociationCapture::OutputSourceRef);
+            }
+            "targetRef" if self.active_output_association.is_some() => {
+                self.text_capture = Some(NativeAssociationCapture::OutputTargetRef);
+            }
+            _ => {}
+        }
+    }
+
+    fn handle_empty(&mut self, reader: &Reader<&[u8]>, event: &BytesStart<'_>) {
+        let event_name = event.name();
+        let name = local_name(event_name.as_ref());
+        match name {
+            "dataInput" => self.record_data_input(reader, event),
+            "dataOutput" => self.record_data_output(reader, event),
+            _ => {}
+        }
+    }
+
+    fn handle_end(&mut self, name: &str) {
+        match name {
+            "sourceRef" | "targetRef" | "from" | "to" => {
+                self.text_capture = None;
+            }
+            "dataInputAssociation" => {
+                if let Some(association) = self.active_input_association.take() {
+                    self.input_associations.push(association);
+                }
+                self.text_capture = None;
+            }
+            "dataOutputAssociation" => {
+                if let Some(association) = self.active_output_association.take() {
+                    self.output_associations.push(association);
+                }
+                self.text_capture = None;
+            }
+            _ => {}
+        }
+    }
+
+    fn append_text(&mut self, text: &str) {
+        let Some(capture) = self.text_capture.as_ref() else {
+            return;
+        };
+        match capture {
+            NativeAssociationCapture::InputSourceRef => {
+                if let Some(association) = self.active_input_association.as_mut() {
+                    append_to_option(&mut association.source_ref, text);
+                }
+            }
+            NativeAssociationCapture::InputTargetRef => {
+                if let Some(association) = self.active_input_association.as_mut() {
+                    append_to_option(&mut association.target_ref, text);
+                }
+            }
+            NativeAssociationCapture::InputAssignmentFrom => {
+                if let Some(association) = self.active_input_association.as_mut() {
+                    append_to_option(&mut association.assignment_from, text);
+                }
+            }
+            NativeAssociationCapture::InputAssignmentTo => {
+                if let Some(association) = self.active_input_association.as_mut() {
+                    append_to_option(&mut association.assignment_to, text);
+                }
+            }
+            NativeAssociationCapture::OutputSourceRef => {
+                if let Some(association) = self.active_output_association.as_mut() {
+                    append_to_option(&mut association.source_ref, text);
+                }
+            }
+            NativeAssociationCapture::OutputTargetRef => {
+                if let Some(association) = self.active_output_association.as_mut() {
+                    append_to_option(&mut association.target_ref, text);
+                }
+            }
+        }
+    }
+
+    fn finish_output(mut self) -> Option<StaticInteractionChoiceOutput> {
+        self.handle_end("dataInputAssociation");
+        self.handle_end("dataOutputAssociation");
+        let output = self.answer_output_target()?;
+        let choice_values = self.static_choice_values();
+        if choice_values.is_empty() {
+            return None;
+        }
+        Some(StaticInteractionChoiceOutput {
+            task_id: self.task_id,
+            output,
+            choice_values,
+        })
+    }
+
+    fn record_data_input(&mut self, reader: &Reader<&[u8]>, event: &BytesStart<'_>) {
+        if let Some(id) = attribute_value(reader, event, "id")
+            && let Some(name) = attribute_value(reader, event, "name")
+        {
+            self.data_inputs.insert(id, name);
+        }
+    }
+
+    fn record_data_output(&mut self, reader: &Reader<&[u8]>, event: &BytesStart<'_>) {
+        if let Some(id) = attribute_value(reader, event, "id")
+            && let Some(name) = attribute_value(reader, event, "name")
+        {
+            self.data_outputs.insert(id, name);
+        }
+    }
+
+    fn answer_output_target(&self) -> Option<String> {
+        self.output_associations.iter().find_map(|association| {
+            let source_ref = association.source_ref.as_deref()?.trim();
+            let output_name = self.data_outputs.get(source_ref)?;
+            if output_name == "answer" {
+                association
+                    .target_ref
+                    .as_deref()
+                    .map(str::trim)
+                    .filter(|target| !target.is_empty())
+                    .map(ToOwned::to_owned)
+            } else {
+                None
+            }
+        })
+    }
+
+    fn static_choice_values(&self) -> Vec<String> {
+        self.input_associations
+            .iter()
+            .filter_map(|association| {
+                let target = association
+                    .target_ref
+                    .as_deref()
+                    .or(association.assignment_to.as_deref())?
+                    .trim();
+                let input_name = self.data_inputs.get(target)?;
+                if input_name == "choices" {
+                    association.assignment_from.as_deref()
+                } else {
+                    None
+                }
+            })
+            .flat_map(choice_values_from_assignment)
+            .collect()
+    }
+}
+
+fn append_to_option(target: &mut Option<String>, text: &str) {
+    target.get_or_insert_with(String::new).push_str(text);
+}
+
+fn choice_values_from_assignment(text: &str) -> Vec<String> {
+    let Ok(value) = serde_json::from_str::<Value>(text.trim()) else {
+        return Vec::new();
+    };
+    let Value::Array(items) = value else {
+        return Vec::new();
+    };
+    items
+        .into_iter()
+        .filter_map(|item| match item {
+            Value::String(value) => Some(value),
+            Value::Object(mut object) => object
+                .remove("value")
+                .and_then(|value| value.as_str().map(ToOwned::to_owned)),
+            _ => None,
+        })
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty())
+        .collect()
 }
 
 fn collect_gateway_ids(contents: &str) -> HashSet<String> {
@@ -408,26 +646,6 @@ fn collect_gateway_ids(contents: &str) -> HashSet<String> {
             Ok(Event::Eof) | Err(_) => return ids,
             Ok(_) => {}
         }
-    }
-}
-
-fn collect_interaction_choice_output_field(
-    reader: &Reader<&[u8]>,
-    event: &BytesStart<'_>,
-    active: &mut ActiveInteractionChoiceOutput,
-) {
-    if is_element(event, "choice")
-        && let Some(value) = attribute_value(reader, event, "value")
-            .map(|value| value.trim().to_string())
-            .filter(|value| !value.is_empty())
-    {
-        active.choice_values.push(value);
-    } else if is_element(event, "result")
-        && let Some(output) = attribute_value(reader, event, "output")
-            .map(|value| value.trim().to_string())
-            .filter(|value| !value.is_empty())
-    {
-        active.result_output = Some(output);
     }
 }
 
@@ -582,7 +800,7 @@ fn non_boolean_interaction_choice_condition_issue(
     )
     .with_structured_repair(json!({
         "schema_version": 1,
-        "contract": "qianji.bpmn.gateway.condition.v1",
+        "contract": "bpmn.native.gateway.condition.v1",
         "strategy": "align_interaction_choice_output_with_boolean_gateway",
         "target": {
             "process_id": process_id,
@@ -595,18 +813,16 @@ fn non_boolean_interaction_choice_condition_issue(
         "actions": [{
             "op": "choose_one",
             "examples": [
-                "<qianji:choice value=\"true\" label=\"Ask another question\"/>",
-                "<qianji:choice value=\"false\" label=\"Proceed\"/>",
-                "<qianji:result output=\"needsMoreQuestions\"/>",
+                "choices dataInput assignment with boolean-compatible values",
+                "dataOutput name=\"answer\" associated to needsMoreQuestions",
                 "<conditionExpression xsi:type=\"tFormalExpression\">needsMoreQuestions</conditionExpression>"
             ],
             "options": [
                 {
                     "op": "use_boolean_choice_values",
                     "examples": [
-                        "<qianji:choice value=\"true\" label=\"Ask another question\"/>",
-                        "<qianji:choice value=\"false\" label=\"Proceed\"/>",
-                        "<qianji:result output=\"needsMoreQuestions\"/>",
+                        "choices dataInput assignment with values true and false",
+                        "dataOutput name=\"answer\" associated to needsMoreQuestions",
                         "<conditionExpression xsi:type=\"tFormalExpression\">needsMoreQuestions</conditionExpression>"
                     ],
                     "requires": "the host maps the interaction result to a JSON boolean before completing the userTask"
@@ -714,12 +930,12 @@ fn unsupported_gateway_condition_issue(
         "The bounded runtime accepts only boolean variable paths such as `approved` or `not approved`, dotted boolean paths such as `flags.approved`, and numeric comparisons against numeric literals such as `amount > 100`. String or enum equality must be converted into an upstream boolean route output.",
         vec![
             "Rewrite the branch condition as one boolean variable path, optionally prefixed with `not`, or as one numeric comparison from an identifier path to one numeric literal.".to_string(),
-            "For string or enum decisions, add one top-level boolean qianji output on the upstream task, then route on that boolean output.".to_string(),
-            "If the string or enum value comes from a userTask `<qianji:result output=\"...\"/>`, keep that result output declared on the userTask and add a following serviceTask to derive route booleans. Do not replace the userTask's qianji:outputs with derived booleans.".to_string(),
+            "For string or enum decisions, add one top-level boolean native BPMN output on the upstream task, then route on that boolean output.".to_string(),
+            "If the string or enum value comes from a userTask answer output, keep that answer output declared on the userTask and add a following serviceTask to derive route booleans. Do not replace the userTask answer mapping with derived booleans.".to_string(),
             "Do not use string equality, boolean-literal comparisons, variable-to-variable comparisons, function calls, scripts, or logical combinations in gateway conditions.".to_string(),
         ],
         format!(
-            "Repair process '{process_id}' gateway '{gateway_id}' by replacing every unsupported conditionExpression in [{condition_list}] with bounded boolean route variables or numeric comparisons. If these conditions compare user choice/status strings, preserve the original qianji:result output on the userTask, add a following serviceTask that consumes it and emits JSON boolean route outputs, then route on those booleans."
+            "Repair process '{process_id}' gateway '{gateway_id}' by replacing every unsupported conditionExpression in [{condition_list}] with bounded boolean route variables or numeric comparisons. If these conditions compare user choice/status strings, preserve the original userTask answer output, add a following serviceTask that consumes it and emits JSON boolean route outputs, then route on those booleans."
         ),
         json!({
             "process_id": process_id,
@@ -743,7 +959,7 @@ fn unsupported_gateway_condition_issue(
     )
     .with_structured_repair(json!({
         "schema_version": 1,
-            "contract": "qianji.bpmn.gateway.condition.v1",
+            "contract": "bpmn.native.gateway.condition.v1",
             "strategy": "rewrite_condition_to_bounded_subset",
             "target": {
                 "process_id": process_id,
@@ -758,8 +974,8 @@ fn unsupported_gateway_condition_issue(
                 "numeric variable path compared to numeric literal"
             ],
             "examples": ["taskCompleted", "not blocked", "questionsRemaining > 0"],
-            "producer_change": "if the existing condition compares a string/enum/status from a userTask qianji:result, keep that result output declared on the userTask, then add a following serviceTask that consumes it and declares/emits JSON boolean route outputs",
-            "forbid": "replacing a userTask qianji:outputs list with derived booleans while qianji:result still points at the original answer",
+            "producer_change": "if the existing condition compares a string/enum/status from a userTask answer output, keep that result output declared on the userTask, then add a following serviceTask that consumes it and declares/emits JSON boolean route outputs",
+            "forbid": "replacing a userTask answer mapping with derived booleans while the answer output still points at the original reply",
             "forbidden_forms": [
                 "taskStatus == \"completed\"",
                 "choice == 'merge'",
@@ -778,7 +994,7 @@ fn unsupported_gateway_condition_issue(
     issue.with_source_diagnostic(LintSourceDiagnostic::new(
         &source.source_id,
         LintSourceSpan::new(span.start, span.end),
-        "rewrite this condition into qianji's bounded subset",
+        "rewrite this condition into the bounded native subset",
         "Use a JSON boolean route variable such as `taskCompleted`, or a numeric comparison against a literal. For status or choice strings, emit a separate boolean output upstream and route on it.",
     ))
 }
@@ -812,7 +1028,7 @@ fn ambiguous_boolean_condition_guidance(
                 "Keep the fallback branch as the gateway `default` flow without a conditionExpression.".to_string(),
             ],
             format!(
-                "Repair process '{process_id}' gateway '{gateway_id}' by replacing boolean-path condition `{condition}` with either `{variable_path} > 0` for numeric counts, or by renaming the upstream qianji output to a boolean-shaped variable and routing on that boolean."
+                "Repair process '{process_id}' gateway '{gateway_id}' by replacing boolean-path condition `{condition}` with either `{variable_path} > 0` for numeric counts, or by renaming the upstream native BPMN output to a boolean-shaped variable and routing on that boolean."
             ),
             json!([
                 {
@@ -836,10 +1052,10 @@ fn ambiguous_boolean_condition_guidance(
                     "Keep '{variable_path}' as content for prompts or task inputs, but do not route directly on it."
                 ),
                 "Add a separate boolean-shaped route output such as `hasQuestions`, `hasConcerns`, `needsHumanInput`, or `shouldEscalate`, and emit only JSON true or false.".to_string(),
-                "Route the gateway on that boolean output, and make every qianji task that can enter this gateway declare and produce the same route boolean.".to_string(),
+                "Route the gateway on that boolean output, and make every upstream task that can enter this gateway declare and produce the same route boolean.".to_string(),
             ],
             format!(
-                "Repair process '{process_id}' gateway '{gateway_id}' by replacing content-like boolean condition `{condition}` with a separate boolean route variable such as `hasQuestions`, `hasConcerns`, `needsHumanInput`, or `shouldEscalate`. Preserve `{variable_path}` for user-facing text or arrays, add that route boolean to the upstream qianji outputs/prompts, and route only on the JSON boolean."
+                "Repair process '{process_id}' gateway '{gateway_id}' by replacing content-like boolean condition `{condition}` with a separate boolean route variable such as `hasQuestions`, `hasConcerns`, `needsHumanInput`, or `shouldEscalate`. Preserve `{variable_path}` for user-facing text or arrays, add that route boolean to upstream native BPMN outputs and task prompts, and route only on the JSON boolean."
             ),
             json!([
                 {
@@ -883,7 +1099,7 @@ fn ambiguous_boolean_condition_repair(
     match kind {
         AmbiguousBooleanPathKind::CountLike => json!({
             "schema_version": 1,
-            "contract": "qianji.bpmn.gateway.condition.v1",
+            "contract": "bpmn.native.gateway.condition.v1",
             "strategy": "disambiguate_count_like_boolean_condition",
             "target": {
                 "process_id": process_id,
@@ -897,7 +1113,7 @@ fn ambiguous_boolean_condition_repair(
                     "examples": [
                         format!("<conditionExpression xsi:type=\"tFormalExpression\">{variable_path} > 0</conditionExpression>"),
                         format!("Return JSON with currentQuestion and {variable_path} as a JSON number."),
-                        "<qianji:outputs>currentQuestion,hasMoreQuestions</qianji:outputs> with <conditionExpression>hasMoreQuestions</conditionExpression>".to_string()
+                        "native BPMN dataOutput names currentQuestion and hasMoreQuestions with <conditionExpression>hasMoreQuestions</conditionExpression>".to_string()
                     ],
                     "forbidden_forms": [
                         format!("<conditionExpression>{condition}</conditionExpression>"),
@@ -910,14 +1126,14 @@ fn ambiguous_boolean_condition_repair(
                             "op": "rewrite_condition_expression",
                             "from": condition,
                             "to": format!("{variable_path} > 0"),
-                            "requires": "upstream qianji task emits a JSON number",
-                            "producer_change": format!("update every qianji task that outputs `{variable_path}` so its prompt says `{variable_path}` is a JSON number count, not a boolean or string")
+                            "requires": "upstream task emits a JSON number",
+                            "producer_change": format!("update every upstream task that outputs `{variable_path}` so its prompt says `{variable_path}` is a JSON number count, not a boolean or string")
                         },
                         {
                             "op": "rename_gateway_variable_to_boolean",
                             "examples": ["hasMoreQuestions", "needsMoreQuestions"],
-                            "requires": "upstream qianji task emits true or false",
-                            "producer_change": format!("rename every qianji output/input/condition use of `{variable_path}` consistently if choosing the boolean route")
+                            "requires": "upstream task emits true or false",
+                            "producer_change": format!("rename every native BPMN input, output, and condition use of `{variable_path}` consistently if choosing the boolean route")
                         }
                     ]
                 }
@@ -925,7 +1141,7 @@ fn ambiguous_boolean_condition_repair(
         }),
         AmbiguousBooleanPathKind::ContentLike => json!({
             "schema_version": 1,
-            "contract": "qianji.bpmn.gateway.condition.v1",
+            "contract": "bpmn.native.gateway.condition.v1",
             "strategy": "split_content_variable_from_boolean_route",
             "target": {
                 "process_id": process_id,
@@ -937,7 +1153,7 @@ fn ambiguous_boolean_condition_repair(
                 {
                     "op": "add_boolean_route_output",
                     "examples": ["hasQuestions", "hasConcerns", "needsHumanInput", "shouldEscalate"],
-                    "producer_change": format!("update every qianji task that can reach gateway `{gateway_id}` so it declares and emits a JSON boolean route variable separate from `{variable_path}`"),
+                    "producer_change": format!("update every task that can reach gateway `{gateway_id}` so it declares and emits a JSON boolean route variable separate from `{variable_path}`"),
                     "route_change": format!("replace `<conditionExpression>{condition}</conditionExpression>` with the new boolean route variable"),
                     "preserve": format!("keep `{variable_path}` available for user-facing question text, concerns, details, or other content")
                 }

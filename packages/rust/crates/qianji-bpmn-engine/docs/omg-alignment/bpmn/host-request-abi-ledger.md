@@ -22,21 +22,21 @@ The ABI has one authority chain:
 
 ## Field Ledger
 
-| Field         | Rust owner                                                | Meaning                                                                    | Required for user/manual host work                 | Transport rule                                                                                                         |
-| ------------- | --------------------------------------------------------- | -------------------------------------------------------------------------- | -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `kind`        | `PendingHostWorkKind` and `PendingHostWorkRequest`        | Host-work family. Human interaction uses `user` or `manual`.               | yes                                                | Preserve as an enum/string label; do not infer from BPMN XML downstream.                                               |
-| `instance_id` | `UserTaskRequest` and `ManualTaskRequest`                 | Workflow instance that owns the blocked task.                              | yes on typed requests and completion commands      | Preserve on stream items and worklist items; HTTP snapshots carry it through the surrounding workflow object.          |
-| `process_id`  | `PendingHostWork`, `UserTaskRequest`, `ManualTaskRequest` | BPMN process that owns the blocked activity.                               | yes                                                | Preserve as the completion target process.                                                                             |
-| `activity_id` | `PendingHostWork`, `UserTaskRequest`, `ManualTaskRequest` | Stable BPMN activity identifier for the blocked user/manual task.          | yes                                                | Preserve as the completion target activity. Do not substitute UI labels or node display text.                          |
-| `token_id`    | `PendingHostWork`, `UserTaskRequest`, `ManualTaskRequest` | Runtime token identifier for this blocked work item.                       | yes                                                | Preserve as the primary runtime completion target.                                                                     |
-| `node_index`  | `PendingHostWork`, `UserTaskRequest`, `ManualTaskRequest` | Dense runtime node index.                                                  | yes                                                | Preserve for runtime diagnostics and graph correlation; do not use as the only human-facing identity.                  |
-| `variables`   | `UserTaskRequest`, `ManualTaskRequest`                    | Current workflow data snapshot, or iteration-local data for repeat work.   | yes on host requests and stream JSON               | Hosts may render from these values but must submit only declared completion fields when form metadata exists.          |
-| `repeat`      | `UserTaskRequest`, `ManualTaskRequest`                    | Optional multi-instance iteration context.                                 | no                                                 | Preserve when present; absence means ordinary single-instance work.                                                    |
-| `form`        | `BpmnHumanTaskFormSpec`                                   | Bounded `qianji:interaction` metadata for rendering and output validation. | no, but required for generated interactive prompts | Preserve `interaction_type`, question source, choices source or inline choices, free-text fields, and `result_output`. |
-| `assignment`  | `BpmnHumanTaskAssignmentSpec`                             | Standard BPMN `humanPerformer` and `potentialOwner` routing hints.         | no                                                 | Preserve as passive routing metadata only. It is not authorization, delegation, escalation, or reassignment.           |
-| `lane`        | `BpmnLaneMembershipSpec`                                  | BPMN lane membership for passive display and worklist filtering.           | no                                                 | Preserve as passive routing metadata only. It is not scheduling, authorization, participant resolution, or escalation. |
-| `claim`       | `PendingHostWorkClaim`                                    | Checkpointed allocation state for one claimant.                            | no                                                 | Preserve when present. A claimed task requires matching claimant completion or release.                                |
-| `work_id`     | `PendingHostWork`                                         | Optional host-generated work identifier.                                   | no                                                 | Preserve for host diagnostics only. It is not the canonical completion target.                                         |
+| Field         | Rust owner                                                | Meaning                                                                       | Required for user/manual host work                 | Transport rule                                                                                                         |
+| ------------- | --------------------------------------------------------- | ----------------------------------------------------------------------------- | -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `kind`        | `PendingHostWorkKind` and `PendingHostWorkRequest`        | Host-work family. Human interaction uses `user` or `manual`.                  | yes                                                | Preserve as an enum/string label; do not infer from BPMN XML downstream.                                               |
+| `instance_id` | `UserTaskRequest` and `ManualTaskRequest`                 | Workflow instance that owns the blocked task.                                 | yes on typed requests and completion commands      | Preserve on stream items and worklist items; HTTP snapshots carry it through the surrounding workflow object.          |
+| `process_id`  | `PendingHostWork`, `UserTaskRequest`, `ManualTaskRequest` | BPMN process that owns the blocked activity.                                  | yes                                                | Preserve as the completion target process.                                                                             |
+| `activity_id` | `PendingHostWork`, `UserTaskRequest`, `ManualTaskRequest` | Stable BPMN activity identifier for the blocked user/manual task.             | yes                                                | Preserve as the completion target activity. Do not substitute UI labels or node display text.                          |
+| `token_id`    | `PendingHostWork`, `UserTaskRequest`, `ManualTaskRequest` | Runtime token identifier for this blocked work item.                          | yes                                                | Preserve as the primary runtime completion target.                                                                     |
+| `node_index`  | `PendingHostWork`, `UserTaskRequest`, `ManualTaskRequest` | Dense runtime node index.                                                     | yes                                                | Preserve for runtime diagnostics and graph correlation; do not use as the only human-facing identity.                  |
+| `variables`   | `UserTaskRequest`, `ManualTaskRequest`                    | Current workflow data snapshot, or iteration-local data for repeat work.      | yes on host requests and stream JSON               | Hosts may render from these values but must submit only declared completion fields when form metadata exists.          |
+| `repeat`      | `UserTaskRequest`, `ManualTaskRequest`                    | Optional multi-instance iteration context.                                    | no                                                 | Preserve when present; absence means ordinary single-instance work.                                                    |
+| `form`        | `BpmnHumanTaskFormSpec`                                   | Bounded native BPMN IO metadata metadata for rendering and output validation. | no, but required for generated interactive prompts | Preserve `interaction_type`, question source, choices source or inline choices, free-text fields, and `result_output`. |
+| `assignment`  | `BpmnHumanTaskAssignmentSpec`                             | Standard BPMN `humanPerformer` and `potentialOwner` routing hints.            | no                                                 | Preserve as passive routing metadata only. It is not authorization, delegation, escalation, or reassignment.           |
+| `lane`        | `BpmnLaneMembershipSpec`                                  | BPMN lane membership for passive display and worklist filtering.              | no                                                 | Preserve as passive routing metadata only. It is not scheduling, authorization, participant resolution, or escalation. |
+| `claim`       | `PendingHostWorkClaim`                                    | Checkpointed allocation state for one claimant.                               | no                                                 | Preserve when present. A claimed task requires matching claimant completion or release.                                |
+| `work_id`     | `PendingHostWork`                                         | Optional host-generated work identifier.                                      | no                                                 | Preserve for host diagnostics only. It is not the canonical completion target.                                         |
 
 ## Lifecycle Event Ledger
 
@@ -100,7 +100,7 @@ envelopes are not a compatibility path in the current ABI.
 ## Form Schema Boundary
 
 Executable form metadata is intentionally bounded. The current supported
-`qianji:interaction` catalog is:
+native BPMN IO metadata catalog is:
 
 - `input`
 - `confirm`
@@ -112,9 +112,9 @@ Each form must have deterministic host rendering inputs:
 1. a question comes from exactly one source: inline question text, a `text`
    attribute, or a dynamic `ref`;
 2. choices come from exactly one source family: either one dynamic
-   `qianji:choices ref` or inline `qianji:choice value` entries;
-3. the primary completion field is declared by `qianji:result output`;
-4. the current flat ABI supports at most one supplemental `qianji:freeText`
+   choices data input `sourceRef` or inline choices JSON literal item `value` entries;
+3. the primary completion field is declared by answer `dataOutputAssociation targetRef`;
+4. the current flat ABI supports at most one supplemental `freeText` data input
    field per interaction;
 5. unsupported multi-field schemas must fail through lint or completion
    validation before a host renders them.
@@ -144,7 +144,7 @@ The filters are exact selectors over Rust-owned metadata. They do not
 authorize claim, release, completion, participant resolution, or scheduling.
 
 Native BPMN `rendering` is not executable in the current bounded runtime.
-Executable form rendering must come from bounded `qianji:interaction`
+Executable form rendering must come from bounded native BPMN IO metadata
 metadata until a separate native-rendering design is implemented.
 
 ## Evidence Map

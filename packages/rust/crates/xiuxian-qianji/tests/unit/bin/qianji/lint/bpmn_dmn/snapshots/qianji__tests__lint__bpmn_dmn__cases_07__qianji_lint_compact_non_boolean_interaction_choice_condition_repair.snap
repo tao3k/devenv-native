@@ -7,8 +7,8 @@ Source: $TEMP/non_boolean_interaction_choice_condition.bpmn
 Issues: 1
 
 [bpmn.non_boolean_interaction_choice_condition] Error: Gateway boolean condition consumes non-boolean interaction choices
-    ,-[ $TEMP/non_boolean_interaction_choice_condition.bpmn:30:33 ]
- 30 |      <bpmn:conditionExpression>moreQuestionsNeeded</bpmn:conditionExpression>
+    ,-[ $TEMP/non_boolean_interaction_choice_condition.bpmn:42:33 ]
+ 42 |      <bpmn:conditionExpression>moreQuestionsNeeded</bpmn:conditionExpression>
     |                                `------------------- this bare gateway condition needs a JSON boolean
     |Help: The condition consumes userTask 'ask_question' choices [need_more_clarification, ready_to_proceed] through 'moreQuestionsNeeded'. Convert the interaction result to a boolean output, or derive a separate boolean before this gateway.
 
@@ -29,9 +29,8 @@ Patch focus:
 - requires: serviceTask outputs a separate JSON boolean such as needsMoreQuestions, and the gateway routes on that boolean
 
 Examples:
-- <qianji:choice value="true" label="Ask another question"/>
-- <qianji:choice value="false" label="Proceed"/>
-- <qianji:result output="needsMoreQuestions"/>
+- choices dataInput assignment with boolean-compatible values
+- dataOutput name="answer" associated to needsMoreQuestions
 - <conditionExpression xsi:type="tFormalExpression">needsMoreQuestions</conditionExpression>
 
 Forbidden forms:
@@ -41,4 +40,4 @@ Forbidden forms:
 
 Structured repair:
 - strategy: align_interaction_choice_output_with_boolean_gateway
-- contract: qianji.bpmn.gateway.condition.v1
+- contract: bpmn.native.gateway.condition.v1

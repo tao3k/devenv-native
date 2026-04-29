@@ -79,11 +79,8 @@ fn run_emit_command_renders_lint_clean_bpmn() {
     ));
 
     assert!(output.rendered.contains("<definitions"));
-    assert!(
-        output
-            .rendered
-            .contains("xmlns:qianji=\"https://qianji.dev/bpmn/extensions\"")
-    );
+    assert!(!output.rendered.contains("xmlns:qianji"));
+    assert!(output.rendered.contains("<ioSpecification>"));
     assert!(
         output
             .rendered

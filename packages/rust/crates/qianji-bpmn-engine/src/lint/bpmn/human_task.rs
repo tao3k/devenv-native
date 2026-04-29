@@ -229,12 +229,12 @@ fn unsupported_global_human_task_binding_issue(
         ),
         "OMG BPMN global human tasks are reusable root definitions, but the bounded Qianji runtime currently executes `callActivity` only when `calledElement` points to another executable process in the same BPMN package. Treating a global human task as an ordinary process child would move the runtime binding decision out of Rust and into downstream UI inference.",
         vec![
-            "Model executable human work as a process-local `userTask` or `manualTask` with one bounded `qianji:interaction` contract.".to_string(),
+            "Model executable human work as a process-local `userTask` or `manualTask` with one bounded native BPMN IO interaction contract.".to_string(),
             "If reusable behavior is required now, wrap the human task in an executable process and point `callActivity calledElement` at that process id.".to_string(),
             "Do not let adapters or UI code resolve a global human task id into executable form behavior.".to_string(),
         ],
         format!(
-            "Repair BPMN source '{source_id}' by changing call activity '{activity_id}' so `calledElement` targets an executable process id, or by replacing the call activity with a local human task that carries the typed `qianji:interaction` contract."
+            "Repair BPMN source '{source_id}' by changing call activity '{activity_id}' so `calledElement` targets an executable process id, or by replacing the call activity with a local human task that carries a typed native BPMN IO interaction contract."
         ),
         json!({
             "source_id": source_id,
@@ -252,18 +252,18 @@ fn unsupported_global_human_task_binding_issue(
         source,
         call_activity.span.clone(),
         "global human task ids are not executable callActivity targets",
-        "Point `calledElement` at an executable process, or model the human work as a local `userTask`/`manualTask` with `qianji:interaction`.",
+        "Point `calledElement` at an executable process, or model the human work as a local `userTask`/`manualTask` with native BPMN IO metadata.",
     ))
     .with_structured_repair(json!({
         "schema_version": 1,
-        "contract": "qianji.bpmn.global_human_task_policy.v1",
+        "contract": "bpmn.native.global_human_task_policy.v1",
         "strategy": "replace_global_human_task_binding_with_rust_owned_executable_surface",
         "actions": [{
             "op": "replace_call_activity_target",
             "call_activity_id": call_activity.activity_id.as_deref(),
             "forbidden_called_element": call_activity.called_element.as_str(),
             "allowed_targets": ["same-package executable process"],
-            "allowed_alternative": "local userTask/manualTask with qianji:interaction"
+            "allowed_alternative": "local userTask/manualTask with native BPMN IO metadata"
         }]
     }))
 }
@@ -296,21 +296,21 @@ fn unsupported_native_rendering_issue(
         format!(
             "Source '{source_id}' user task '{task_id}' declares standard BPMN `<rendering>` metadata."
         ),
-        "OMG BPMN defines `rendering` as the native user-task rendering hook, but the current bounded Qianji runtime executes the typed `qianji:interaction` contract instead. Silent rendering fallback would make UI interpretation the runtime authority.",
+        "OMG BPMN defines `rendering` as the native user-task rendering hook, but the current bounded runtime executes a typed native BPMN IO interaction contract instead. Silent rendering fallback would make UI interpretation the runtime authority.",
         vec![
-            "Model executable user interaction with one bounded `qianji:interaction` element on the `userTask`.".to_string(),
+            "Model executable user interaction with native BPMN `documentation`, `ioSpecification`, `dataInputAssociation`, and `dataOutputAssociation` metadata on the `userTask`.".to_string(),
             "Preserve the standard `<bpmn:rendering>` intent as documentation only, or remove it from the executable slice until native rendering support is implemented.".to_string(),
             "Do not make downstream UI infer required fields, choices, or outputs from native rendering metadata in this bounded runtime.".to_string(),
         ],
         format!(
-            "Repair BPMN source '{source_id}' by replacing runtime dependency on `<bpmn:rendering>` for user task '{task_id}' with a typed `qianji:interaction` contract. Preserve task id and workflow routing."
+            "Repair BPMN source '{source_id}' by replacing runtime dependency on `<bpmn:rendering>` for user task '{task_id}' with native BPMN IO interaction metadata. Preserve task id and workflow routing."
         ),
         json!({
             "source_id": source_id,
             "task_id": task.task_id.as_deref(),
             "task_kind": task.task_kind.as_str(),
             "element": "rendering",
-            "supported_runtime_rendering_contract": "qianji:interaction",
+            "supported_runtime_rendering_contract": "native_bpmn_io",
         }),
     )
     .with_source_diagnostic(source_diagnostic(
@@ -318,14 +318,14 @@ fn unsupported_native_rendering_issue(
         reader,
         event,
         "native BPMN rendering is not executable in this bounded slice",
-        "Use `qianji:interaction` for executable form metadata, or keep native rendering as documentation only.",
+        "Use native BPMN IO metadata for executable form metadata, or keep native rendering as documentation only.",
     ))
     .with_structured_repair(json!({
         "schema_version": 1,
-            "contract": "qianji.bpmn.human_task_interaction.v1",
-            "strategy": "replace_native_rendering_with_qianji_interaction",
+            "contract": "bpmn.native_human_task_io.v1",
+            "strategy": "replace_native_rendering_with_native_io_interaction",
             "actions": [{
-                "op": "add_or_use_qianji_interaction",
+                "op": "add_or_use_native_bpmn_io_interaction",
                 "task_id": task.task_id.as_deref(),
                 "allowed_interaction_types": ["input", "confirm", "choice", "choice_input"],
                 "forbidden_runtime_dependency": "bpmn:rendering"
@@ -349,12 +349,12 @@ fn invalid_manual_task_rendering_issue(
         ),
         "OMG BPMN defines `rendering` under `userTask` and `globalUserTask`, not `manualTask` or `globalManualTask`. Qianji exposes manual tasks as host-visible pending work for operator acknowledgement, but it does not treat manual-task rendering metadata as executable UI.",
         vec![
-            "If the activity needs a runtime-managed human form, model it as a `userTask` with one bounded `qianji:interaction` contract.".to_string(),
-            "If the activity is truly external manual work, keep it as a `manualTask` and place any executable acknowledgement fields in `qianji:interaction`, not standard `<bpmn:rendering>`.".to_string(),
+            "If the activity needs a runtime-managed human form, model it as a `userTask` with native BPMN IO interaction metadata.".to_string(),
+            "If the activity is truly external manual work, keep it as a `manualTask` and place any executable acknowledgement fields in native BPMN IO metadata, not standard `<bpmn:rendering>`.".to_string(),
             "Do not let downstream UI infer manual-task required fields, choices, or outputs from non-standard rendering metadata.".to_string(),
         ],
         format!(
-            "Repair BPMN source '{source_id}' by removing `<bpmn:rendering>` from manual task '{task_id}'. Use a `userTask` for runtime-managed form rendering, or keep the manual task with typed `qianji:interaction` acknowledgement metadata."
+            "Repair BPMN source '{source_id}' by removing `<bpmn:rendering>` from manual task '{task_id}'. Use a `userTask` for runtime-managed form rendering, or keep the manual task with native BPMN IO acknowledgement metadata."
         ),
         json!({
             "source_id": source_id,
@@ -362,7 +362,7 @@ fn invalid_manual_task_rendering_issue(
             "task_kind": task.task_kind.as_str(),
             "element": "rendering",
             "allowed_standard_rendering_tasks": ["userTask", "globalUserTask"],
-            "supported_runtime_rendering_contract": "qianji:interaction",
+            "supported_runtime_rendering_contract": "native_bpmn_io",
         }),
     )
     .with_source_diagnostic(source_diagnostic(
@@ -370,17 +370,17 @@ fn invalid_manual_task_rendering_issue(
         reader,
         event,
         "manual tasks do not own standard BPMN rendering metadata",
-        "Use `userTask` for runtime-managed forms, or keep manual acknowledgement metadata in `qianji:interaction`.",
+        "Use `userTask` for runtime-managed forms, or keep manual acknowledgement metadata in native BPMN IO.",
     ))
     .with_structured_repair(json!({
         "schema_version": 1,
-        "contract": "qianji.bpmn.human_task_interaction.v1",
+        "contract": "bpmn.native_human_task_io.v1",
         "strategy": "remove_manual_task_rendering_or_model_user_task",
         "actions": [{
             "op": "remove_bpmn_rendering_from_manual_task",
             "task_id": task.task_id.as_deref(),
             "allowed_standard_rendering_tasks": ["userTask", "globalUserTask"],
-            "allowed_executable_contract": "qianji:interaction"
+            "allowed_executable_contract": "native_bpmn_io"
         }]
     }))
 }
@@ -476,7 +476,7 @@ fn unsupported_assignment_issue(
     ))
     .with_structured_repair(json!({
         "schema_version": 1,
-            "contract": "qianji.bpmn.human_task_assignment.routing_metadata.v1",
+            "contract": "bpmn.native.human_task_assignment.routing_metadata.v1",
             "strategy": "reduce_full_assignment_to_routing_metadata",
             "actions": [{
                 "op": "remove_or_defer_unsupported_assignment_semantics",

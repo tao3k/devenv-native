@@ -100,27 +100,6 @@ pub(in crate::parser::import) fn apply_script_task_body(
     Ok(())
 }
 
-pub(in crate::parser::import) fn apply_human_task_question_text(
-    process: &mut RawProcess,
-    question_text: &str,
-) -> Result<()> {
-    let node = process
-        .nodes
-        .last_mut()
-        .ok_or(BpmnEngineError::UnsupportedOperation {
-            operation: "apply_human_task_question_text_missing_node",
-        })?;
-    let form = node
-        .human_task_form
-        .as_mut()
-        .ok_or(BpmnEngineError::UnsupportedOperation {
-            operation: "apply_human_task_question_text_missing_form",
-        })?;
-    form.question_text =
-        (!question_text.trim().is_empty()).then(|| question_text.trim().to_string());
-    Ok(())
-}
-
 pub(in crate::parser::import) fn apply_human_task_resource_ref(
     process: &mut RawProcess,
     kind: RawHumanTaskResourceRoleKind,

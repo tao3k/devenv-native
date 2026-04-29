@@ -32,7 +32,7 @@ interaction:
   and `node_index`.
 - Typed completion targets the pending task by process/activity/token/kind
   instead of by display label or list position.
-- Bounded `qianji:interaction` metadata is parsed into Rust form metadata and
+- Bounded native BPMN IO metadata metadata is parsed into Rust form metadata and
   surfaced through requests, stream JSON, HTTP snapshots, and CLI text output.
 - Completion data for form-backed user/manual tasks is validated before
   variable merge.
@@ -65,13 +65,13 @@ continue.
 ### 1. Native BPMN Rendering Element
 
 OMG BPMN has a `renderings` hook for `userTask`. Qianji currently supports
-`qianji:interaction` as the bounded form contract but does not parse native
+native BPMN IO metadata as the bounded form contract but does not parse native
 `rendering` elements. This is acceptable for current execution, but the audit
 should record it as a deliberate extension-first choice.
 
 Current status: the linter reports native `rendering` elements under
 `userTask` or `globalUserTask` as deferred rendering semantics and directs
-executable form metadata to `qianji:interaction`. It also reports `rendering`
+executable form metadata to native BPMN IO metadata. It also reports `rendering`
 under `manualTask` or `globalManualTask` as a non-standard, non-executable
 manual-task interaction surface instead of letting a downstream UI infer a
 form contract.
@@ -119,7 +119,7 @@ they do not turn manual tasks into fully runtime-managed BPMN work.
 Manual tasks must not use BPMN `rendering` as a runtime form contract. If the
 activity is runtime-managed human input, model it as a `userTask`; if it is
 external manual work, keep the executable acknowledgement schema in
-`qianji:interaction`.
+native BPMN IO metadata.
 
 ### 4. Host Loop Discipline
 

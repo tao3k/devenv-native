@@ -37,15 +37,9 @@ fn issue_for_tag(source: &BpmnSourceFile, tag: &str) -> Option<LintIssue> {
         "collaboration" | "participant" | "messageFlow" | "conversation" => {
             Some(collaboration_issue(source, tag))
         }
-        "dataObject"
-        | "dataObjectReference"
-        | "dataStore"
-        | "dataStoreReference"
-        | "dataInput"
-        | "dataOutput"
-        | "dataInputAssociation"
-        | "dataOutputAssociation"
-        | "ioSpecification" => Some(data_artifact_issue(source, tag)),
+        "dataObject" | "dataObjectReference" | "dataStore" | "dataStoreReference" => {
+            Some(data_artifact_issue(source, tag))
+        }
         _ => None,
     }
 }
@@ -73,16 +67,16 @@ fn data_artifact_issue(source: &BpmnSourceFile, tag: &str) -> LintIssue {
     let source_id = &source.source_id;
     LintIssue::new(
         "bpmn.unsupported_data_surface",
-        "BPMN data-object and IO-specification semantics are deferred",
+        "BPMN data-object and data-store semantics are deferred",
         format!("Source '{source_id}' contains BPMN data element '<{tag}>'."),
-        "The bounded engine keeps workflow data in JSON variables and host payloads; it does not yet execute BPMN data objects, data stores, IO specifications, or data associations.",
+        "The bounded engine keeps workflow data in JSON variables and host payloads; it does not yet execute BPMN data objects or data stores.",
         vec![
             "Represent runtime data through workflow variables, host-work input/output payloads, or DMN decision inputs.".to_string(),
-            "Remove `<bpmn:dataObject*>`, `<bpmn:dataStore*>`, `<bpmn:ioSpecification>`, and data-association dependencies from the executable slice.".to_string(),
+            "Remove `<bpmn:dataObject*>` and `<bpmn:dataStore*>` dependencies from the executable slice.".to_string(),
             "If the data artifact is documentation-only, keep that meaning outside the executable BPMN subset.".to_string(),
         ],
         format!(
-            "Repair BPMN source '{source_id}' by replacing `<{tag}>` execution semantics with explicit JSON variables, host-work payload fields, or DMN inputs. Preserve workflow intent, but remove BPMN data-object, data-store, IO-specification, or data-association dependencies from this bounded executable slice."
+            "Repair BPMN source '{source_id}' by replacing `<{tag}>` execution semantics with explicit JSON variables, host-work payload fields, or DMN inputs. Preserve workflow intent, but remove BPMN data-object or data-store dependencies from this bounded executable slice."
         ),
         document_surface_evidence(source, tag, "data"),
     )

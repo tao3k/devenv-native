@@ -1,5 +1,6 @@
 ---
 source: packages/rust/crates/qianji-bpmn-engine/tests/unit/lint/mod.rs
+assertion_line: 35
 expression: value
 ---
 {
@@ -11,7 +12,7 @@ expression: value
       "code": "bpmn.loop_risk.unbounded_control_cycle",
       "severity": "error",
       "title": "Workflow cycle is missing a complete loop-progress contract",
-      "summary": "Process 'default_reentry_loop' contains a cyclic path [evaluate_safety -> emergency_gate] that can re-enter host/user work without a complete qianji progress contract.",
+      "summary": "Process 'default_reentry_loop' contains a cyclic path [evaluate_safety -> emergency_gate] that can re-enter host/user work without a complete native BPMN progress contract.",
       "why_it_failed": "Cycle progress state is incomplete.",
       "repair_guidance": [
         "<sequenceFlow id=\"flow_normal\" sourceRef=\"emergency_gate\" targetRef=\"normal_intake\"/>"
@@ -39,24 +40,24 @@ expression: value
             "required": true
           },
           {
-            "op": "add_qianji_outputs_inside_cycle",
+            "op": "add_native_outputs_inside_cycle",
             "variables": []
           },
           {
-            "op": "add_qianji_inputs_to_question_service",
+            "op": "add_native_inputs_to_question_service",
             "variables": []
           }
         ],
-        "contract": "qianji.bpmn.loop.progress.v1",
-        "contract_message": "qianji.bpmn.loop.progress.v1 requires in-cycle tasks to consume user feedback and emit the gateway route state.",
+        "contract": "bpmn.native.loop.progress.v1",
+        "contract_message": "native BPMN loop progress requires in-cycle tasks to consume user feedback and emit the gateway route state through standard IO metadata.",
         "forbid": [
           "repeating a userTask question without feeding the user's prior answer into the next in-cycle serviceTask",
-          "routing a cycle on variables that no task inside the cycle declares in qianji:outputs",
+          "routing a cycle on variables that no task inside the cycle declares through native BPMN output metadata",
           "using a conditional default branch instead of an unconditional exit"
         ],
         "line_fixes": [
           {
-            "offset": 2139,
+            "offset": 3986,
             "target": "emergency_gate.default_exit_flow",
             "xml": "<sequenceFlow id=\"flow_normal\" sourceRef=\"emergency_gate\" targetRef=\"normal_intake\"/>"
           }
@@ -67,8 +68,8 @@ expression: value
       "source_diagnostic": {
         "source_id": "invalid-default-reentry-loop.bpmn",
         "span": {
-          "start": 1271,
-          "end": 1338
+          "start": 3118,
+          "end": 3185
         },
         "label": "cycle needs explicit progress state",
         "help": "Default flow `flow_normal` from `emergency_gate` currently re-enters `evaluate_safety`. Retarget that default flow to `normal_intake`; keep repeat paths conditional."

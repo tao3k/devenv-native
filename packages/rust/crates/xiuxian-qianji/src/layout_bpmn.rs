@@ -29,28 +29,39 @@ fn push_header(xml: &mut String) {
                   xmlns:bpmndi=\"http://www.omg.org/spec/BPMN/20100524/DI\" \\
                   xmlns:dc=\"http://www.omg.org/spec/DD/20100524/DC\" \\
                   xmlns:di=\"http://www.omg.org/spec/DD/20100524/DI\" \\
-                  xmlns:qianji=\"http://xiuxian.io/schema/qianji\" \\
                   targetNamespace=\"http://bpmn.io/schema/bpmn\">\n",
     );
 }
 
 fn push_process_nodes(xml: &mut String, nodes: &[NodePosition]) {
     for node in nodes {
-        let uri_attr = node
-            .context_uri
-            .as_ref()
-            .map(|uri| format!(" qianji:context_uri=\"{uri}\""))
-            .unwrap_or_default();
-        push_fmt(
-            xml,
-            format_args!(
-                "    <{} id=\"{}\" name=\"{}\"{uri_attr} />\n",
-                bpmn_tag(&node.bpmn_type),
-                node.id,
-                node.label
-            ),
-        );
+        let tag = bpmn_tag(&node.bpmn_type);
+        if let Some(uri) = node.context_uri.as_ref() {
+            push_fmt(
+                xml,
+                format_args!(
+                    "    <{tag} id=\"{}\" name=\"{}\">\n      <bpmn:documentation>context_uri: {}</bpmn:documentation>\n    </{tag}>\n",
+                    node.id,
+                    node.label,
+                    escape_xml_text(uri)
+                ),
+            );
+        } else {
+            push_fmt(
+                xml,
+                format_args!(
+                    "    <{} id=\"{}\" name=\"{}\" />\n",
+                    tag, node.id, node.label
+                ),
+            );
+        }
     }
+}
+
+fn escape_xml_text(raw: &str) -> String {
+    raw.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
 }
 
 fn push_process_edges(xml: &mut String, edges: &[EdgeLayout]) {

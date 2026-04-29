@@ -2,6 +2,7 @@
 
 mod attributes;
 mod capture;
+mod human_task_io;
 mod lane;
 mod model;
 mod nested;

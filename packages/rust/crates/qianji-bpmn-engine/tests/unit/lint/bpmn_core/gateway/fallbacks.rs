@@ -1,25 +1,18 @@
-use super::super::{BpmnSourceFile, LintDomain, lint_bpmn_source};
+use super::super::super::{
+    BpmnSourceFile, LintDomain, lint_bpmn_source, native_service_task, native_user_task,
+};
 
 #[test]
 fn bpmn_linter_reports_content_like_condition_even_when_parse_fails() {
     let report = lint_bpmn_source(&BpmnSourceFile::new(
         "invalid-unsupported-and-content-like-conditions.bpmn",
-        r#"<?xml version="1.0" encoding="UTF-8"?>
+        format!(
+            r#"<?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
-                  xmlns:qianji="https://qianji.dev/bpmn/extensions"
                   id="pkg_mixed_conditions">
   <bpmn:process id="mixed_conditions" isExecutable="true">
     <bpmn:startEvent id="start" />
-    <bpmn:serviceTask id="dispatch" implementation="${environment.services.runAgent}">
-      <bpmn:extensionElements>
-        <qianji:config>
-          <qianji:prompt>Return implementerStatus and questions.</qianji:prompt>
-          <qianji:tools></qianji:tools>
-          <qianji:inputs></qianji:inputs>
-          <qianji:outputs>implementerStatus,questions</qianji:outputs>
-        </qianji:config>
-      </bpmn:extensionElements>
-    </bpmn:serviceTask>
+    {}
     <bpmn:exclusiveGateway id="question_gate" default="flow_status_gate" />
     <bpmn:exclusiveGateway id="status_gate" default="flow_done" />
     <bpmn:userTask id="ask" />
@@ -36,8 +29,14 @@ fn bpmn_linter_reports_content_like_condition_even_when_parse_fails() {
     <bpmn:sequenceFlow id="flow_done" sourceRef="status_gate" targetRef="done" />
     <bpmn:sequenceFlow id="flow_ask_done" sourceRef="ask" targetRef="done" />
   </bpmn:process>
-</bpmn:definitions>"#
-            .to_string(),
+</bpmn:definitions>"#,
+            native_service_task(
+                "dispatch",
+                "Return implementerStatus and questions.",
+                &[],
+                &["implementerStatus", "questions"],
+            )
+        ),
     ));
 
     assert_eq!(report.domain, LintDomain::Bpmn);
@@ -56,33 +55,21 @@ fn bpmn_linter_reports_content_like_condition_even_when_parse_fails() {
     assert!(content_issue.summary.contains("questions"));
     assert!(content_issue.llm_fix_prompt.contains("hasQuestions"));
 }
+
 #[test]
 fn bpmn_linter_reports_duplicate_unconditional_default_branch_with_llm_guidance() {
     let report = lint_bpmn_source(&BpmnSourceFile::new(
         "invalid-duplicate-default-branch.bpmn",
-        r#"<?xml version="1.0" encoding="UTF-8"?>
+        format!(
+            r#"<?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
-                  xmlns:qianji="https://qianji.dev/bpmn/extensions"
                   id="pkg_duplicate_default_branch">
   <bpmn:process id="duplicate_default_branch" isExecutable="true">
     <bpmn:startEvent id="start" />
-    <bpmn:userTask id="approve">
-      <bpmn:extensionElements>
-        <qianji:config>
-          <qianji:prompt>Approve this section?</qianji:prompt>
-          <qianji:tools></qianji:tools>
-          <qianji:inputs>sectionDraft</qianji:inputs>
-          <qianji:outputs>sectionApproved</qianji:outputs>
-          <qianji:interaction type="confirm">
-            <qianji:question>Approve?</qianji:question>
-            <qianji:result output="sectionApproved"/>
-          </qianji:interaction>
-        </qianji:config>
-      </bpmn:extensionElements>
-    </bpmn:userTask>
+    {}
     <bpmn:exclusiveGateway id="decision" default="flow_revise" />
-    <bpmn:serviceTask id="next" implementation="${environment.services.runAgent}" />
-    <bpmn:serviceTask id="revise" implementation="${environment.services.runAgent}" />
+    <bpmn:serviceTask id="next" implementation="${{environment.services.runAgent}}" />
+    <bpmn:serviceTask id="revise" implementation="${{environment.services.runAgent}}" />
     <bpmn:endEvent id="done" />
     <bpmn:sequenceFlow id="flow_start" sourceRef="start" targetRef="approve" />
     <bpmn:sequenceFlow id="flow_decision" sourceRef="approve" targetRef="decision" />
@@ -94,8 +81,16 @@ fn bpmn_linter_reports_duplicate_unconditional_default_branch_with_llm_guidance(
     <bpmn:sequenceFlow id="flow_next_done" sourceRef="next" targetRef="done" />
     <bpmn:sequenceFlow id="flow_revise_done" sourceRef="revise" targetRef="done" />
   </bpmn:process>
-</bpmn:definitions>"#
-            .to_string(),
+</bpmn:definitions>"#,
+            native_user_task(
+                "approve",
+                "Approve?",
+                "confirm",
+                &["sectionDraft"],
+                None,
+                "sectionApproved",
+            )
+        ),
     ));
 
     assert_eq!(report.domain, LintDomain::Bpmn);
@@ -148,26 +143,18 @@ fn bpmn_linter_reports_duplicate_unconditional_default_branch_with_llm_guidance(
         "flow_revise"
     );
 }
+
 #[test]
 fn bpmn_linter_reports_unsupported_condition_even_when_default_flow_is_stale() {
     let report = lint_bpmn_source(&BpmnSourceFile::new(
         "invalid-stale-default-and-string-condition.bpmn",
-        r#"<?xml version="1.0" encoding="UTF-8"?>
+        format!(
+            r#"<?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
-                  xmlns:qianji="https://qianji.dev/bpmn/extensions"
                   id="pkg_stale_default_string_condition">
   <bpmn:process id="stale_default_string_condition" isExecutable="true">
     <bpmn:startEvent id="start" />
-    <bpmn:serviceTask id="execute_task" implementation="${environment.services.runAgent}">
-      <bpmn:extensionElements>
-        <qianji:config>
-          <qianji:prompt>Execute one task and return taskStatus.</qianji:prompt>
-          <qianji:tools></qianji:tools>
-          <qianji:inputs></qianji:inputs>
-          <qianji:outputs>taskStatus</qianji:outputs>
-        </qianji:config>
-      </bpmn:extensionElements>
-    </bpmn:serviceTask>
+    {}
     <bpmn:exclusiveGateway id="task_gate" default="flow_done" />
     <bpmn:userTask id="ask_human" />
     <bpmn:endEvent id="done" />
@@ -181,8 +168,14 @@ fn bpmn_linter_reports_unsupported_condition_even_when_default_flow_is_stale() {
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="flow_ask_done" sourceRef="ask_human" targetRef="done" />
   </bpmn:process>
-</bpmn:definitions>"#
-            .to_string(),
+</bpmn:definitions>"#,
+            native_service_task(
+                "execute_task",
+                "Execute one task and return taskStatus.",
+                &[],
+                &["taskStatus"],
+            )
+        ),
     ));
 
     assert_eq!(report.domain, LintDomain::Bpmn);
@@ -213,6 +206,7 @@ fn bpmn_linter_reports_unsupported_condition_even_when_default_flow_is_stale() {
     };
     assert!(source_diagnostic.span.start < source_diagnostic.span.end);
 }
+
 #[test]
 fn bpmn_linter_reports_single_outgoing_default_with_complete_fallback_guidance() {
     let report = lint_bpmn_source(&BpmnSourceFile::new(

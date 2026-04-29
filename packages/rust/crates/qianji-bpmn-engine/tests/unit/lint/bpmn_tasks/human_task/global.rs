@@ -23,7 +23,7 @@ fn bpmn_linter_reports_global_user_task_rendering_as_deferred() {
     let issue = &report.issues[0];
     assert_eq!(issue.code, "bpmn.unsupported_human_task_rendering");
     assert!(issue.summary.contains("Global_Task_Review"));
-    assert!(issue.why_it_failed.contains("qianji:interaction"));
+    assert!(issue.why_it_failed.contains("native BPMN IO"));
     assert_eq!(issue.evidence["task_id"], "Global_Task_Review");
     assert_eq!(issue.evidence["task_kind"], "globalUserTask");
     assert_eq!(issue.evidence["element"], "rendering");
@@ -85,7 +85,7 @@ fn bpmn_linter_reports_call_activity_to_global_user_task_as_unsupported() {
     assert!(issue.summary.contains("Activity_GlobalReview"));
     assert!(issue.summary.contains("Global_Task_Review"));
     assert!(issue.why_it_failed.contains("executable process"));
-    assert!(issue.llm_fix_prompt.contains("typed `qianji:interaction`"));
+    assert!(issue.llm_fix_prompt.contains("native BPMN IO"));
     assert_eq!(issue.evidence["process_id"], "Process_GlobalUserTaskCall");
     assert_eq!(issue.evidence["call_activity_id"], "Activity_GlobalReview");
     assert_eq!(issue.evidence["called_element"], "Global_Task_Review");

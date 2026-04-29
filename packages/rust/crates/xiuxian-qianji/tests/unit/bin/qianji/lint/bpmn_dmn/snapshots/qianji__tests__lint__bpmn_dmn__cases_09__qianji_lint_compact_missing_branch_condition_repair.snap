@@ -43,4 +43,4 @@ Forbidden forms:
 
 Structured repair:
 - strategy: resolve_unconditional_non_default_branch
-- contract: qianji.bpmn.gateway.bounded.v1
+- contract: bpmn.native.gateway.bounded.v1

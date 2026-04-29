@@ -225,6 +225,20 @@ fn handle_start_tag(
     capture_buffer: &mut String,
     is_empty: bool,
 ) -> Result<()> {
+    if !process_stack.is_empty()
+        && let Some(element) = legacy_custom_qname_element(event)
+    {
+        let process_id = process_stack
+            .last()
+            .map(|process| process.process_id.clone())
+            .unwrap_or_default();
+        return Err(BpmnEngineError::UnsupportedElement {
+            source_id: source.source_id.clone(),
+            process_id,
+            element,
+        });
+    }
+
     if handle_package_start_tag(
         source,
         reader,
@@ -282,6 +296,28 @@ fn handle_start_tag(
     Ok(())
 }
 
+fn legacy_custom_qname_element(event: &BytesStart<'_>) -> Option<String> {
+    let event_name = event.name();
+    let name = std::str::from_utf8(event_name.as_ref()).ok()?;
+    matches!(
+        name,
+        "qianji:config"
+            | "qianji:interaction"
+            | "qianji:choice"
+            | "qianji:choices"
+            | "qianji:freeText"
+            | "qianji:inputs"
+            | "qianji:outputSchema"
+            | "qianji:outputs"
+            | "qianji:prompt"
+            | "qianji:question"
+            | "qianji:result"
+            | "qianji:tools"
+            | "qianji:toolScope"
+    )
+    .then(|| name.to_string())
+}
+
 fn handle_end_tag(
     source: &BpmnSourceFile,
     tag: &str,
@@ -299,9 +335,17 @@ fn handle_end_tag(
         return Ok(());
     };
 
+    super::human_task_io::complete_human_task_io_end_tag(source, process, tag)?;
+
     let Some(target) = capture_target.clone() else {
         return Ok(());
     };
+
+    if apply_human_task_io_capture_end(source, process, &target, tag, capture_buffer.trim())? {
+        *capture_target = None;
+        capture_buffer.clear();
+        return Ok(());
+    }
 
     match (target, tag) {
         (CaptureTarget::TimerExpression(kind), "timeDate")
@@ -352,9 +396,6 @@ fn handle_end_tag(
         (CaptureTarget::TaskScriptBody, "script") => {
             super::capture::apply_script_task_body(process, capture_buffer.trim())?;
         }
-        (CaptureTarget::HumanTaskQuestionText, "question") => {
-            super::capture::apply_human_task_question_text(process, capture_buffer.trim())?;
-        }
         (CaptureTarget::HumanTaskResourceRef(kind), "resourceRef") => {
             super::capture::apply_human_task_resource_ref(process, kind, capture_buffer.trim())?;
         }
@@ -370,6 +411,33 @@ fn handle_end_tag(
 
     *capture_target = None;
     capture_buffer.clear();
-    let _ = source;
     Ok(())
+}
+
+fn apply_human_task_io_capture_end(
+    source: &BpmnSourceFile,
+    process: &mut RawProcess,
+    target: &CaptureTarget,
+    tag: &str,
+    text: &str,
+) -> Result<bool> {
+    match (target, tag) {
+        (CaptureTarget::HumanTaskDocumentationText, "documentation") => {
+            super::human_task_io::apply_human_task_documentation_text(source, process, text)?;
+        }
+        (CaptureTarget::HumanTaskIoSourceRef, "sourceRef") => {
+            super::human_task_io::apply_human_task_io_source_ref(source, process, text)?;
+        }
+        (CaptureTarget::HumanTaskIoTargetRef, "targetRef") => {
+            super::human_task_io::apply_human_task_io_target_ref(source, process, text)?;
+        }
+        (CaptureTarget::HumanTaskIoAssignmentFrom, "from") => {
+            super::human_task_io::apply_human_task_io_assignment_from(source, process, text)?;
+        }
+        (CaptureTarget::HumanTaskIoAssignmentTo, "to") => {
+            super::human_task_io::apply_human_task_io_assignment_to(source, process, text)?;
+        }
+        _ => return Ok(false),
+    }
+    Ok(true)
 }

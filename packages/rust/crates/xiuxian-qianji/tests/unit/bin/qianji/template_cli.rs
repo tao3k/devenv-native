@@ -45,7 +45,8 @@ fn run_template_command_renders_lint_clean_bpmn() {
     ));
 
     assert!(output.rendered.contains("<serviceTask"));
-    assert!(output.rendered.contains("qianji:config"));
+    assert!(output.rendered.contains("<ioSpecification>"));
+    assert!(output.rendered.contains("<dataOutput"));
     assert!(report.ok, "BPMN template should lint clean: {report:?}");
 }
 

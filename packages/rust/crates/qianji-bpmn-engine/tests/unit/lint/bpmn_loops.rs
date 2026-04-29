@@ -1,5 +1,6 @@
 use super::{
     BpmnSourceFile, LintDomain, assert_lint_json_snapshot, bpmn_fixture_source, lint_bpmn_source,
+    native_service_task, native_user_task,
 };
 
 #[test]
@@ -77,11 +78,8 @@ fn bpmn_linter_reports_interaction_loop_missing_feedback_progress() {
     assert_eq!(issue.code, "bpmn.loop_risk.unbounded_control_cycle");
     assert!(issue.summary.contains("prepare_question"));
     assert!(issue.summary.contains("ask_user"));
-    assert!(
-        issue
-            .llm_fix_prompt
-            .contains("<qianji:inputs>answer</qianji:inputs>")
-    );
+    assert!(issue.llm_fix_prompt.contains("dataInputAssociation"));
+    assert!(issue.llm_fix_prompt.contains("answer"));
     assert_eq!(
         issue.structured_repair.as_ref().and_then(|repair| {
             repair
@@ -98,7 +96,7 @@ fn bpmn_linter_reports_interaction_loop_missing_feedback_progress() {
             .and_then(|repair| repair.get("contract_message"))
             .and_then(serde_json::Value::as_str),
         Some(
-            "qianji.bpmn.loop.progress.v1 requires in-cycle tasks to consume user feedback and emit the gateway route state."
+            "native BPMN loop progress requires in-cycle tasks to consume user feedback and emit the gateway route state through standard IO metadata."
         )
     );
     assert!(
@@ -166,39 +164,20 @@ fn bpmn_linter_reports_default_branch_reentering_loop() {
 }
 
 fn interactive_loop_source(service_inputs: &str) -> String {
+    let service_inputs = if service_inputs.is_empty() {
+        Vec::new()
+    } else {
+        service_inputs.split(',').collect::<Vec<_>>()
+    };
     format!(
         r#"<?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
-                  xmlns:qianji="https://qianji.dev/bpmn/extensions"
                   id="pkg_interaction_loop">
   <bpmn:process id="interaction_loop" isExecutable="true">
     <bpmn:startEvent id="start" />
-    <bpmn:serviceTask id="prepare_question" implementation="${{environment.services.runAgent}}">
-      <bpmn:extensionElements>
-        <qianji:config>
-          <qianji:prompt>Return JSON with the next currentQuestion, currentChoices, and hasMoreQuestions.</qianji:prompt>
-          <qianji:tools></qianji:tools>
-          <qianji:inputs>{service_inputs}</qianji:inputs>
-          <qianji:outputs>currentQuestion,currentChoices,hasMoreQuestions</qianji:outputs>
-          <qianji:outputSchema name="currentChoices" kind="choice_array" value="required" label="optional" description="optional"/>
-        </qianji:config>
-      </bpmn:extensionElements>
-    </bpmn:serviceTask>
+    {}
     <bpmn:exclusiveGateway id="more_questions" default="flow_done" />
-    <bpmn:userTask id="ask_user">
-      <bpmn:extensionElements>
-        <qianji:config>
-          <qianji:prompt>Ask the current question.</qianji:prompt>
-          <qianji:inputs>currentQuestion,currentChoices</qianji:inputs>
-          <qianji:outputs>answer</qianji:outputs>
-          <qianji:interaction type="choice_input">
-            <qianji:question ref="currentQuestion"/>
-            <qianji:choices ref="currentChoices"/>
-            <qianji:result output="answer"/>
-          </qianji:interaction>
-        </qianji:config>
-      </bpmn:extensionElements>
-    </bpmn:userTask>
+    {}
     <bpmn:endEvent id="done" />
     <bpmn:sequenceFlow id="flow_start" sourceRef="start" targetRef="prepare_question" />
     <bpmn:sequenceFlow id="flow_decision" sourceRef="prepare_question" targetRef="more_questions" />
@@ -208,43 +187,37 @@ fn interactive_loop_source(service_inputs: &str) -> String {
     <bpmn:sequenceFlow id="flow_done" sourceRef="more_questions" targetRef="done" />
     <bpmn:sequenceFlow id="flow_repeat" sourceRef="ask_user" targetRef="prepare_question" />
   </bpmn:process>
-</bpmn:definitions>"#
+</bpmn:definitions>"#,
+        native_service_task(
+            "prepare_question",
+            "Return JSON with the next currentQuestion, currentChoices, and hasMoreQuestions.",
+            &service_inputs,
+            &["currentQuestion", "currentChoices", "hasMoreQuestions"],
+        ),
+        native_user_task(
+            "ask_user",
+            "Ask the current question.",
+            "choice_input",
+            &["currentQuestion"],
+            Some("currentChoices"),
+            "answer",
+        )
     )
 }
 
 fn default_reentry_loop_source() -> String {
-    r#"<?xml version="1.0" encoding="UTF-8"?>
+    format!(
+        r#"<?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
-                  xmlns:qianji="https://qianji.dev/bpmn/extensions"
                   id="pkg_default_reentry_loop">
   <bpmn:process id="default_reentry_loop" isExecutable="true">
     <bpmn:startEvent id="start" />
-    <bpmn:serviceTask id="prepare_safety" implementation="${environment.services.runAgent}">
-      <bpmn:extensionElements>
-        <qianji:config>
-          <qianji:outputs>safetyQuestion,safetyChoices</qianji:outputs>
-        </qianji:config>
-      </bpmn:extensionElements>
-    </bpmn:serviceTask>
-    <bpmn:userTask id="safety_screen">
-      <bpmn:extensionElements>
-        <qianji:config>
-          <qianji:inputs>safetyQuestion,safetyChoices</qianji:inputs>
-          <qianji:outputs>safetyAnswer</qianji:outputs>
-        </qianji:config>
-      </bpmn:extensionElements>
-    </bpmn:userTask>
-    <bpmn:serviceTask id="evaluate_safety" implementation="${environment.services.runAgent}">
-      <bpmn:extensionElements>
-        <qianji:config>
-          <qianji:inputs>safetyAnswer</qianji:inputs>
-          <qianji:outputs>isEmergency</qianji:outputs>
-        </qianji:config>
-      </bpmn:extensionElements>
-    </bpmn:serviceTask>
+    {}
+    {}
+    {}
     <bpmn:exclusiveGateway id="emergency_gate" default="flow_normal" />
-    <bpmn:serviceTask id="handle_emergency" implementation="${environment.services.runAgent}" />
-    <bpmn:serviceTask id="normal_intake" implementation="${environment.services.runAgent}" />
+    <bpmn:serviceTask id="handle_emergency" implementation="${{environment.services.runAgent}}" />
+    <bpmn:serviceTask id="normal_intake" implementation="${{environment.services.runAgent}}" />
     <bpmn:endEvent id="done" />
     <bpmn:sequenceFlow id="flow_start" sourceRef="start" targetRef="prepare_safety" />
     <bpmn:sequenceFlow id="flow_prepare" sourceRef="prepare_safety" targetRef="safety_screen" />
@@ -257,6 +230,26 @@ fn default_reentry_loop_source() -> String {
     <bpmn:sequenceFlow id="flow_emergency_done" sourceRef="handle_emergency" targetRef="done" />
     <bpmn:sequenceFlow id="flow_normal_done" sourceRef="normal_intake" targetRef="done" />
   </bpmn:process>
-</bpmn:definitions>"#
-        .to_string()
+</bpmn:definitions>"#,
+        native_service_task(
+            "prepare_safety",
+            "Return safetyQuestion and safetyChoices.",
+            &[],
+            &["safetyQuestion", "safetyChoices"],
+        ),
+        native_user_task(
+            "safety_screen",
+            "Ask the safety question.",
+            "choice_input",
+            &["safetyQuestion"],
+            Some("safetyChoices"),
+            "safetyAnswer",
+        ),
+        native_service_task(
+            "evaluate_safety",
+            "Evaluate safetyAnswer and return isEmergency.",
+            &["safetyAnswer"],
+            &["isEmergency"],
+        )
+    )
 }

@@ -32,4 +32,4 @@ Patch focus:
 
 Structured repair:
 - strategy: remove_or_complete_default_branch
-- contract: qianji.bpmn.gateway.bounded.v1
+- contract: bpmn.native.gateway.bounded.v1

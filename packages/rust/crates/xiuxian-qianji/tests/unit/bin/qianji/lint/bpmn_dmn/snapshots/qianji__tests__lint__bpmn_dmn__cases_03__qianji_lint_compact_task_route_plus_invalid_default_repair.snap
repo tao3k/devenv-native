@@ -43,7 +43,7 @@ Forbidden forms:
 
 Structured repair:
 - strategy: repair_task_single_outgoing_route
-- contract: qianji.bpmn.task.routing.v1
+- contract: bpmn.native.task.routing.v1
 
 [bpmn.unsupported_gateway_configuration] Error: Conditional gateway default flow reference is invalid
    ,-[ $TEMP/task_route_with_invalid_default.bpmn:6:6 ]
@@ -79,4 +79,4 @@ Forbidden forms:
 
 Structured repair:
 - strategy: retarget_default_flow_to_existing_outgoing
-- contract: qianji.bpmn.gateway.bounded.v1
+- contract: bpmn.native.gateway.bounded.v1

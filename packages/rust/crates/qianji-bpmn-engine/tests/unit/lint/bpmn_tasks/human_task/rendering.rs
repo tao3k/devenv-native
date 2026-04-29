@@ -24,8 +24,8 @@ fn bpmn_linter_reports_native_user_task_rendering_as_deferred() {
     let issue = &report.issues[0];
     assert_eq!(issue.code, "bpmn.unsupported_human_task_rendering");
     assert!(issue.summary.contains("Task_Review"));
-    assert!(issue.why_it_failed.contains("qianji:interaction"));
-    assert!(issue.llm_fix_prompt.contains("typed `qianji:interaction`"));
+    assert!(issue.why_it_failed.contains("native BPMN IO"));
+    assert!(issue.llm_fix_prompt.contains("native BPMN IO"));
     assert_eq!(issue.evidence["task_id"], "Task_Review");
     assert_eq!(issue.evidence["element"], "rendering");
     assert!(issue.source_diagnostic.is_some());
@@ -57,7 +57,7 @@ fn bpmn_linter_reports_manual_task_rendering_as_invalid_standard_surface() {
     assert!(issue.summary.contains("Task_Acknowledge"));
     assert!(issue.why_it_failed.contains("userTask"));
     assert!(issue.why_it_failed.contains("manualTask"));
-    assert!(issue.llm_fix_prompt.contains("typed `qianji:interaction`"));
+    assert!(issue.llm_fix_prompt.contains("native BPMN IO"));
     assert_eq!(issue.evidence["task_id"], "Task_Acknowledge");
     assert_eq!(issue.evidence["task_kind"], "manualTask");
     assert_eq!(issue.evidence["element"], "rendering");

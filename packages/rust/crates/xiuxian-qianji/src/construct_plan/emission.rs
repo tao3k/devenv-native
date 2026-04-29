@@ -25,7 +25,6 @@ pub(crate) fn emit_workflow_plan_bpmn(
     xml.push_str("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
     xml.push_str("<definitions xmlns=\"http://www.omg.org/spec/BPMN/20100524/MODEL\"\n");
     xml.push_str("             xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n");
-    xml.push_str("             xmlns:qianji=\"https://qianji.dev/bpmn/extensions\"\n");
     xml.push_str("             id=\"Definitions_1\"\n");
     xml.push_str("             targetNamespace=\"https://qianji.dev\">\n");
     push_xml(
@@ -93,37 +92,119 @@ fn push_task_xml(xml: &mut String, task: &WorkflowPlanTask) {
             escape_xml_attr(&task.id)
         ),
     );
-    xml.push_str("      <extensionElements>\n");
-    xml.push_str("        <qianji:config>\n");
     push_xml(
         xml,
         format_args!(
-            "          <qianji:prompt>{}</qianji:prompt>\n",
+            "      <documentation>{}</documentation>\n",
             escape_xml_text(&format!("Execute WorkflowPlan task {}.", task.id))
         ),
     );
-    push_task_io_xml(xml, task);
-    xml.push_str("        </qianji:config>\n");
-    xml.push_str("      </extensionElements>\n");
+    push_task_io_xml(xml, task, element);
     push_xml(xml, format_args!("    </{element}>\n"));
 }
 
-fn push_task_io_xml(xml: &mut String, task: &WorkflowPlanTask) {
-    if !task.inputs.is_empty() {
+fn push_task_io_xml(xml: &mut String, task: &WorkflowPlanTask, element: &str) {
+    let answer_output = task.outputs.first().map(String::as_str).unwrap_or("answer");
+    if task.inputs.is_empty() && task.outputs.is_empty() && element != "userTask" {
+        return;
+    }
+    xml.push_str("      <ioSpecification>\n");
+    if element == "userTask" {
         push_xml(
             xml,
             format_args!(
-                "          <qianji:inputs>{}</qianji:inputs>\n",
-                escape_xml_text(&task.inputs.join(","))
+                "        <dataInput id=\"{}_interaction_type\" name=\"interactionType\"/>\n",
+                stable_xml_id("Input", &task.id)
+            ),
+        );
+        push_xml(
+            xml,
+            format_args!(
+                "        <dataOutput id=\"{}_answer\" name=\"answer\"/>\n",
+                stable_xml_id("Output", &task.id)
             ),
         );
     }
-    if !task.outputs.is_empty() {
+    for input in &task.inputs {
         push_xml(
             xml,
             format_args!(
-                "          <qianji:outputs>{}</qianji:outputs>\n",
-                escape_xml_text(&task.outputs.join(","))
+                "        <dataInput id=\"{}\" name=\"{}\"/>\n",
+                stable_xml_id("Input", &format!("{}_{}", task.id, input)),
+                escape_xml_attr(input)
+            ),
+        );
+    }
+    if element != "userTask" {
+        for output in &task.outputs {
+            push_xml(
+                xml,
+                format_args!(
+                    "        <dataOutput id=\"{}\" name=\"{}\"/>\n",
+                    stable_xml_id("Output", &format!("{}_{}", task.id, output)),
+                    escape_xml_attr(output)
+                ),
+            );
+        }
+    }
+    xml.push_str("        <inputSet>\n");
+    if element == "userTask" {
+        push_xml(
+            xml,
+            format_args!(
+                "          <dataInputRefs>{}_interaction_type</dataInputRefs>\n",
+                stable_xml_id("Input", &task.id)
+            ),
+        );
+    }
+    for input in &task.inputs {
+        push_xml(
+            xml,
+            format_args!(
+                "          <dataInputRefs>{}</dataInputRefs>\n",
+                stable_xml_id("Input", &format!("{}_{}", task.id, input))
+            ),
+        );
+    }
+    xml.push_str("        </inputSet>\n");
+    xml.push_str("        <outputSet>\n");
+    if element == "userTask" {
+        push_xml(
+            xml,
+            format_args!(
+                "          <dataOutputRefs>{}_answer</dataOutputRefs>\n",
+                stable_xml_id("Output", &task.id)
+            ),
+        );
+    }
+    if element != "userTask" {
+        for output in &task.outputs {
+            push_xml(
+                xml,
+                format_args!(
+                    "          <dataOutputRefs>{}</dataOutputRefs>\n",
+                    stable_xml_id("Output", &format!("{}_{}", task.id, output))
+                ),
+            );
+        }
+    }
+    xml.push_str("        </outputSet>\n");
+    xml.push_str("      </ioSpecification>\n");
+    if element == "userTask" {
+        push_xml(
+            xml,
+            format_args!(
+                "      <dataInputAssociation><targetRef>{}_interaction_type</targetRef><assignment><from>input</from><to>{}_interaction_type</to></assignment></dataInputAssociation>\n",
+                stable_xml_id("Input", &task.id),
+                stable_xml_id("Input", &task.id)
+            ),
+        );
+        push_xml(
+            xml,
+            format_args!(
+                "      <dataOutputAssociation><sourceRef>{}_answer</sourceRef><targetRef>{}</targetRef></dataOutputAssociation>\n",
+                stable_xml_id("Output", &task.id),
+                escape_xml_text(answer_output)
             ),
         );
     }

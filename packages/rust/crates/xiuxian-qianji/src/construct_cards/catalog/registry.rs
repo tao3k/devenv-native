@@ -10,23 +10,23 @@ const GATEWAY_LINT: &[ConstructLintMapping] = &[ConstructLintMapping {
 const TASK_CONFIG_LINT: &[ConstructLintMapping] = &[
     ConstructLintMapping {
         diagnostic: "bpmn.missing_host_task_contract",
-        repair: "Add a qianji-owned extension config with prompt, inputs, outputs, and implementation metadata expected by the selected host adapter.",
+        repair: "Add native BPMN documentation plus ioSpecification, dataInputAssociation, dataOutputAssociation, and implementation metadata expected by the selected host adapter.",
     },
     ConstructLintMapping {
-        diagnostic: "bpmn.unsupported_qianji_interaction_type",
-        repair: "Use one supported qianji interaction type: input, confirm, choice, or choice_input. Use input for plain free-form text and choice_input for option selection plus free-form feedback.",
+        diagnostic: "bpmn.unsupported_native_interaction_type",
+        repair: "Use one supported native interactionType value: input, confirm, choice, or choice_input. Use input for plain free-form text and choice_input for option selection plus free-form feedback.",
     },
     ConstructLintMapping {
-        diagnostic: "bpmn.ambiguous_qianji_interaction_outputs",
-        repair: "Set userTask qianji:outputs to exactly the qianji:result output, then derive any secondary variables in a following serviceTask that consumes that answer.",
+        diagnostic: "bpmn.ambiguous_native_interaction_outputs",
+        repair: "Map userTask dataOutput name=\"answer\" to exactly one workflow variable, then derive any secondary variables in a following serviceTask that consumes that answer.",
     },
     ConstructLintMapping {
         diagnostic: "bpmn.redundant_user_answer_store_service_task",
-        repair: "Delete no-tool store serviceTasks that only rename a userTask answer, reconnect the userTask to the next task, and replace downstream qianji:inputs aliases with the original qianji:result variable.",
+        repair: "Delete no-tool store serviceTasks that only rename a userTask answer, reconnect the userTask to the next task, and replace downstream data input aliases with the original answer variable.",
     },
     ConstructLintMapping {
         diagnostic: "bpmn.service_task.tool_scope.missing",
-        repair: "Add a matching bounded qianji:toolScope for each non-empty serviceTask qianji:tools entry, or clear qianji:tools for input-only work.",
+        repair: "Declare host tool policy outside the BPMN XML envelope; keep serviceTask BPMN metadata limited to documentation and native IO.",
     },
     ConstructLintMapping {
         diagnostic: "bpmn.service_task.tool_scope.incomplete",
@@ -34,7 +34,7 @@ const TASK_CONFIG_LINT: &[ConstructLintMapping] = &[
     },
     ConstructLintMapping {
         diagnostic: "bpmn.service_task.tool_scope.undeclared",
-        repair: "Remove qianji:toolScope entries whose tool is not declared in qianji:tools, or declare the tool only when that capability is required.",
+        repair: "Remove custom tool-scope XML from BPMN; declare host capability policy in the host adapter contract.",
     },
 ];
 
@@ -46,7 +46,7 @@ const DMN_LINT: &[ConstructLintMapping] = &[ConstructLintMapping {
 const PARALLEL_MULTI_INSTANCE_LINT: &[ConstructLintMapping] = &[
     ConstructLintMapping {
         diagnostic: "bpmn.missing_host_task_contract",
-        repair: "Keep the multi-instance owner as one serviceTask with qianji prompt, inputs, outputs, and implementation metadata.",
+        repair: "Keep the multi-instance owner as one serviceTask with native BPMN documentation, inputs, outputs, and implementation metadata.",
     },
     ConstructLintMapping {
         diagnostic: "bpmn.unsupported_loop_configuration",
@@ -61,11 +61,11 @@ const INTERACTIVE_LOOP_LINT: &[ConstructLintMapping] = &[
     },
     ConstructLintMapping {
         diagnostic: "pi-wendao.runtime.user_prompt_stall",
-        repair: "Do not return to the same userTask with unchanged resolved question, choices, and qianji:inputs. Insert or repair an upstream serviceTask that consumes the prior answer and emits changed progress state before the next user prompt.",
+        repair: "Do not return to the same userTask with unchanged resolved question, choices, and native data inputs. Insert or repair an upstream serviceTask that consumes the prior answer and emits changed progress state before the next user prompt.",
     },
     ConstructLintMapping {
         diagnostic: "pi-wendao.runtime.invalid_dynamic_choices",
-        repair: "Use producer XML <qianji:outputSchema name=\"currentChoices\" kind=\"choice_array\" value=\"required\" label=\"optional\" description=\"optional\"/> with consumer XML <qianji:choices ref=\"currentChoices\"/>.",
+        repair: "Have the producer emit currentChoices as a JSON array of objects, then bind the consumer choices dataInput with dataInputAssociation/sourceRef currentChoices.",
     },
 ];
 

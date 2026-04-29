@@ -181,5 +181,5 @@ fn run_lint_command_guides_string_choice_gateway_condition_repair() {
             .rendered
             .contains("replace_string_or_enum_equality_with_boolean_route_variable")
     );
-    assert!(output.rendered.contains("qianji:outputs"));
+    assert!(output.rendered.contains("native BPMN output"));
 }

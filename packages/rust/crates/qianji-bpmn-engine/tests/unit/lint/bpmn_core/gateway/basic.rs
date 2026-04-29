@@ -44,6 +44,6 @@ fn bpmn_linter_reports_unsupported_gateway_condition_with_llm_guidance() {
         panic!("unsupported condition should carry a source diagnostic");
     };
     assert!(source_diagnostic.span.start < source_diagnostic.span.end);
-    assert!(source_diagnostic.label.contains("bounded subset"));
+    assert!(source_diagnostic.label.contains("bounded native subset"));
     assert_lint_json_snapshot("bpmn_gateway_condition_expression_lint_report", &report);
 }

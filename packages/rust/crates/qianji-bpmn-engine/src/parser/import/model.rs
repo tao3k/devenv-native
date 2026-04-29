@@ -82,6 +82,7 @@ pub(crate) struct RawNode {
     pub(crate) task_message_ref: Option<String>,
     pub(crate) script_task: Option<RawScriptTaskSpec>,
     pub(crate) human_task_form: Option<RawHumanTaskFormSpec>,
+    pub(crate) native_human_task_io: Option<RawHumanTaskNativeIoSpec>,
     pub(crate) human_task_assignment: Option<RawHumanTaskAssignmentSpec>,
     pub(crate) called_process_ref: Option<String>,
     pub(crate) subprocess_kind: Option<RawSubProcessKind>,
@@ -128,6 +129,60 @@ pub(crate) struct RawHumanTaskChoiceSpec {
 pub(crate) struct RawHumanTaskFreeTextSpec {
     pub(crate) name: String,
     pub(crate) optional: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub(crate) struct RawHumanTaskNativeIoSpec {
+    pub(crate) documentation_text: Option<String>,
+    pub(crate) declarations: Vec<RawHumanTaskIoDeclaration>,
+    pub(crate) interaction_type: Option<String>,
+    pub(crate) question_ref: Option<String>,
+    pub(crate) question_text: Option<String>,
+    pub(crate) choices_ref: Option<String>,
+    pub(crate) choices: Vec<RawHumanTaskChoiceSpec>,
+    pub(crate) free_text_fields: Vec<RawHumanTaskFreeTextSpec>,
+    pub(crate) result_output: Option<String>,
+    pub(crate) active_association: Option<RawHumanTaskIoAssociation>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct RawHumanTaskIoDeclaration {
+    pub(crate) id: String,
+    pub(crate) name: String,
+    pub(crate) kind: RawHumanTaskIoDeclarationKind,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum RawHumanTaskIoDeclarationKind {
+    DataInput,
+    DataOutput,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct RawHumanTaskIoAssociation {
+    pub(crate) kind: RawHumanTaskIoAssociationKind,
+    pub(crate) source_refs: Vec<String>,
+    pub(crate) target_ref: Option<String>,
+    pub(crate) assignment_from: Option<String>,
+    pub(crate) assignment_to: Option<String>,
+}
+
+impl RawHumanTaskIoAssociation {
+    pub(crate) fn new(kind: RawHumanTaskIoAssociationKind) -> Self {
+        Self {
+            kind,
+            source_refs: Vec::new(),
+            target_ref: None,
+            assignment_from: None,
+            assignment_to: None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum RawHumanTaskIoAssociationKind {
+    DataInput,
+    DataOutput,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -219,7 +274,11 @@ pub(super) enum CaptureTarget {
     MultiInstanceCompletionCondition,
     SequenceFlowConditionExpression,
     TaskScriptBody,
-    HumanTaskQuestionText,
+    HumanTaskDocumentationText,
+    HumanTaskIoSourceRef,
+    HumanTaskIoTargetRef,
+    HumanTaskIoAssignmentFrom,
+    HumanTaskIoAssignmentTo,
     HumanTaskResourceRef(RawHumanTaskResourceRoleKind),
     HumanTaskAssignmentExpression(RawHumanTaskResourceRoleKind),
 }

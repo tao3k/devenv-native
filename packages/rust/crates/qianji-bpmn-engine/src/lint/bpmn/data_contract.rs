@@ -96,7 +96,8 @@ struct SequenceFlowContract {
 struct ActiveTask {
     id: String,
     outputs: HashSet<String>,
-    in_outputs: bool,
+    in_output_association: bool,
+    in_output_target_ref: bool,
 }
 
 #[derive(Default)]
@@ -165,7 +166,7 @@ impl<'a> ProcessContractCollector<'a> {
                     ..ProcessContract::default()
                 });
             }
-            tag if is_qianji_task_tag(tag) && self.active_process.is_some() => {
+            tag if is_task_tag(tag) && self.active_process.is_some() => {
                 self.active_task = Some(ActiveTask {
                     id: attribute_value(reader, event, "id")
                         .unwrap_or_else(|| "unknown".to_string()),
@@ -180,9 +181,17 @@ impl<'a> ProcessContractCollector<'a> {
                     ..ActiveFlow::default()
                 });
             }
-            "outputs" if is_qianji_name(event, "outputs") => {
+            "dataOutput" => self.record_task_output(reader, event),
+            "dataOutputAssociation" => {
                 if let Some(task) = self.active_task.as_mut() {
-                    task.in_outputs = true;
+                    task.in_output_association = true;
+                }
+            }
+            "targetRef" => {
+                if let Some(task) = self.active_task.as_mut()
+                    && task.in_output_association
+                {
+                    task.in_output_target_ref = true;
                 }
             }
             "conditionExpression" => self.start_condition(reader, event),
@@ -193,6 +202,7 @@ impl<'a> ProcessContractCollector<'a> {
     fn handle_empty(&mut self, reader: &Reader<&[u8]>, event: &BytesStart<'_>) {
         match local_name(event.name().as_ref()).as_str() {
             "exclusiveGateway" => self.record_gateway(reader, event),
+            "dataOutput" => self.record_task_output(reader, event),
             "sequenceFlow" => {
                 if let Some(process) = self.active_process.as_mut() {
                     process.flows.push(SequenceFlowContract {
@@ -208,7 +218,7 @@ impl<'a> ProcessContractCollector<'a> {
 
     fn handle_text(&mut self, text: Option<&str>) {
         if let Some(task) = self.active_task.as_mut()
-            && task.in_outputs
+            && task.in_output_target_ref
             && let Some(text) = text
         {
             task.outputs.extend(parse_output_names(text));
@@ -228,9 +238,14 @@ impl<'a> ProcessContractCollector<'a> {
     fn handle_end(&mut self, raw_name: &[u8]) {
         let name = local_name(raw_name);
         match name.as_str() {
-            "outputs" => {
+            "targetRef" => {
                 if let Some(task) = self.active_task.as_mut() {
-                    task.in_outputs = false;
+                    task.in_output_target_ref = false;
+                }
+            }
+            "dataOutputAssociation" => {
+                if let Some(task) = self.active_task.as_mut() {
+                    task.in_output_association = false;
                 }
             }
             "conditionExpression" => {
@@ -239,7 +254,7 @@ impl<'a> ProcessContractCollector<'a> {
                 }
             }
             "sequenceFlow" => self.finish_flow(),
-            tag if is_qianji_task_tag(tag) => self.finish_task(),
+            tag if is_task_tag(tag) => self.finish_task(),
             "process" => {
                 if let Some(process) = self.active_process.take() {
                     self.processes.push(process);
@@ -255,6 +270,14 @@ impl<'a> ProcessContractCollector<'a> {
             attribute_value(reader, event, "id"),
         ) {
             process.gateways.insert(id);
+        }
+    }
+
+    fn record_task_output(&mut self, reader: &Reader<&[u8]>, event: &BytesStart<'_>) {
+        if let Some(task) = self.active_task.as_mut()
+            && let Some(name) = attribute_value(reader, event, "name")
+        {
+            task.outputs.insert(name);
         }
     }
 
@@ -288,7 +311,7 @@ impl<'a> ProcessContractCollector<'a> {
     }
 }
 
-fn is_qianji_task_tag(tag: &str) -> bool {
+fn is_task_tag(tag: &str) -> bool {
     matches!(
         tag,
         "serviceTask" | "userTask" | "manualTask" | "businessRuleTask" | "scriptTask"
@@ -330,21 +353,21 @@ fn undeclared_gateway_condition_output_issue(
         "bpmn.undeclared_gateway_condition_output",
         "Gateway condition variable is not declared by upstream task outputs",
         format!(
-            "Process '{}' gateway '{}' routes to '{}' with condition `{}`, but direct upstream task(s) [{producer_list}] do not declare qianji output '{}'.",
+            "Process '{}' gateway '{}' routes to '{}' with condition `{}`, but direct upstream task(s) [{producer_list}] do not declare native BPMN output '{}'.",
             context.process_id,
             context.gateway_id,
             context.target_id,
             context.condition,
             context.variable_path
         ),
-        "Qianji gateway conditions resolve against runtime variables. A serviceTask or userTask immediately before a gateway must declare any route variable it is expected to produce in `qianji:outputs`, and its prompt should say to return that JSON field.",
+        "Gateway conditions resolve against runtime variables. A task immediately before a gateway must declare any route variable it is expected to produce through native BPMN output metadata, and its prompt should say to return that JSON field.",
         vec![
-            format!("Add '{}' to `qianji:outputs` on upstream task(s) [{producer_list}].", context.variable_path),
+            format!("Add '{}' as a native BPMN data output or output association target on upstream task(s) [{producer_list}].", context.variable_path),
             format!("Update the same upstream task prompt to return JSON with boolean or numeric field '{}', matching the gateway condition type.", context.variable_path),
             "Keep the gateway condition unchanged after the producer declares and emits the variable.".to_string(),
         ],
         format!(
-            "Repair process '{}' by aligning gateway '{}' condition `{}` with upstream qianji outputs. Add `{}` to qianji:outputs of task(s) [{producer_list}] and update their qianji:prompt to return JSON field `{}`. Preserve the branch target '{}' and keep the condition inside the bounded gateway subset.",
+            "Repair process '{}' by aligning gateway '{}' condition `{}` with upstream native BPMN outputs. Add `{}` to task output metadata for task(s) [{producer_list}] and update their prompt to return JSON field `{}`. Preserve the branch target '{}' and keep the condition inside the bounded gateway subset.",
             context.process_id,
             context.gateway_id,
             context.condition,
@@ -364,14 +387,14 @@ fn undeclared_gateway_condition_output_issue(
     )
     .with_structured_repair(json!({
         "schema_version": 1,
-        "contract": "qianji.bpmn.gateway.data_contract.v1",
+        "contract": "bpmn.native.gateway.data_contract.v1",
         "strategy": "declare_gateway_condition_variable_on_upstream_task",
         "actions": [{
-            "op": "add_qianji_output",
+            "op": "add_native_bpmn_output",
             "tasks": context.producer_ids,
             "output": context.variable_path,
         }, {
-            "op": "update_qianji_prompt",
+            "op": "update_task_prompt",
             "tasks": context.producer_ids,
             "requires": format!("return JSON field `{}`", context.variable_path)
         }, {
@@ -380,7 +403,7 @@ fn undeclared_gateway_condition_output_issue(
             "condition": context.condition
         }],
         "forbid": [
-            "routing on variables missing from direct upstream qianji:outputs",
+            "routing on variables missing from direct upstream task outputs",
             "renaming the gateway condition without updating the producer prompt and outputs"
         ]
     }));
@@ -393,7 +416,7 @@ fn undeclared_gateway_condition_output_issue(
                 context.variable_path
             ),
             format!(
-                "Add `{}` to qianji:outputs and prompt JSON on upstream task(s) [{producer_list}]. Current outputs: {output_summary}.",
+                "Add `{}` to native BPMN task outputs and prompt JSON on upstream task(s) [{producer_list}]. Current outputs: {output_summary}.",
                 context.variable_path
             ),
         ));
@@ -402,7 +425,7 @@ fn undeclared_gateway_condition_output_issue(
 }
 
 fn parse_output_names(text: &str) -> Vec<String> {
-    text.split(',')
+    text.split([',', '\n', '\t', ' '])
         .map(str::trim)
         .filter(|value| !value.is_empty())
         .map(ToString::to_string)
@@ -437,20 +460,11 @@ fn attribute_value(
     None
 }
 
-fn is_qianji_name(event: &BytesStart<'_>, expected_local_name: &str) -> bool {
-    event_name_parts(event.name().as_ref()) == Some(("qianji", expected_local_name))
-}
-
 fn local_name(name: &[u8]) -> String {
     let raw = std::str::from_utf8(name).unwrap_or_default();
     raw.rsplit_once(':')
         .map_or(raw, |(_, local)| local)
         .to_string()
-}
-
-fn event_name_parts(name: &[u8]) -> Option<(&str, &str)> {
-    let raw = std::str::from_utf8(name).ok()?;
-    raw.rsplit_once(':')
 }
 
 fn append_entity_reference(target: &mut String, reference: Option<&str>) {

@@ -61,8 +61,20 @@ struct ActiveTask {
     id: String,
     inputs: BTreeSet<String>,
     outputs: BTreeSet<String>,
-    in_inputs: bool,
-    in_outputs: bool,
+    association_context: Option<TaskAssociationContext>,
+    association_capture: Option<TaskAssociationCapture>,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum TaskAssociationContext {
+    Input,
+    Output,
+}
+
+#[derive(Clone, Copy)]
+enum TaskAssociationCapture {
+    InputSourceRef,
+    OutputTargetRef,
 }
 
 fn process_loop_risk_issues(
@@ -182,7 +194,7 @@ fn unbounded_control_cycle_issue(
         "bpmn.loop_risk.unbounded_control_cycle",
         "Workflow cycle is missing a complete loop-progress contract",
         format!(
-            "Process '{process_id}' contains a cyclic path [{cycle_summary}] that can re-enter host/user work without a complete qianji progress contract."
+            "Process '{process_id}' contains a cyclic path [{cycle_summary}] that can re-enter host/user work without a complete native BPMN progress contract."
         ),
         "Cycle progress state is incomplete.",
         guidance,
@@ -205,7 +217,7 @@ fn unbounded_control_cycle_issue(
     )
     .with_structured_repair(json!({
         "schema_version": 1,
-        "contract": "qianji.bpmn.loop.progress.v1",
+        "contract": "bpmn.native.loop.progress.v1",
         "contract_message": contract_message,
         "strategy": "make_cycle_progress_explicit_or_remove_back_edge",
         "line_fixes": line_fixes,
@@ -217,15 +229,15 @@ fn unbounded_control_cycle_issue(
             "required": true,
             "default_reentry_flows": evidence.default_reentry_flows,
         }, {
-            "op": "add_qianji_outputs_inside_cycle",
+            "op": "add_native_outputs_inside_cycle",
             "variables": sorted_set_values(&evidence.missing_progress_outputs),
         }, {
-            "op": "add_qianji_inputs_to_question_service",
+            "op": "add_native_inputs_to_question_service",
             "variables": sorted_set_values(&evidence.missing_feedback_inputs),
         }],
         "forbid": [
             "repeating a userTask question without feeding the user's prior answer into the next in-cycle serviceTask",
-            "routing a cycle on variables that no task inside the cycle declares in qianji:outputs",
+            "routing a cycle on variables that no task inside the cycle declares through native BPMN output metadata",
             "using a conditional default branch instead of an unconditional exit"
         ]
     }));
@@ -662,11 +674,8 @@ fn loop_progress_line_fixes(
             .cloned()
             .unwrap_or_default();
         inputs.extend(evidence.missing_feedback_inputs.iter().cloned());
-        let target = format!("{task_id}.qianji:inputs");
-        let xml = format!(
-            "<qianji:inputs>{}</qianji:inputs>",
-            sorted_set_values(&inputs).join(",")
-        );
+        let target = format!("{task_id}.native_inputs");
+        let xml = native_input_fragment(&task_id, &inputs);
         fixes.push(line_fix(
             metadata
                 .task_input_spans
@@ -684,11 +693,8 @@ fn loop_progress_line_fixes(
             .cloned()
             .unwrap_or_default();
         outputs.extend(evidence.missing_progress_outputs.iter().cloned());
-        let target = format!("{task_id}.qianji:outputs");
-        let xml = format!(
-            "<qianji:outputs>{}</qianji:outputs>",
-            sorted_set_values(&outputs).join(",")
-        );
+        let target = format!("{task_id}.native_outputs");
+        let xml = native_output_fragment(&task_id, &outputs);
         fixes.push(line_fix(
             metadata
                 .task_output_spans
@@ -736,6 +742,61 @@ fn line_fix(span: Option<&Range<usize>>, target: &str, xml: &str) -> Value {
         fix["line"] = json!("primary");
     }
     fix
+}
+
+fn native_input_fragment(task_id: &str, inputs: &BTreeSet<String>) -> String {
+    let mut xml = String::new();
+    for input in sorted_set_values(inputs) {
+        let id = stable_xml_id(task_id, "Input", &input);
+        xml.push_str("<dataInput id=\"");
+        xml.push_str(&id);
+        xml.push_str("\" name=\"");
+        xml.push_str(&input);
+        xml.push_str("\"/><dataInputAssociation><sourceRef>");
+        xml.push_str(&input);
+        xml.push_str("</sourceRef><targetRef>");
+        xml.push_str(&id);
+        xml.push_str("</targetRef></dataInputAssociation>");
+    }
+    xml
+}
+
+fn native_output_fragment(task_id: &str, outputs: &BTreeSet<String>) -> String {
+    let mut xml = String::new();
+    for output in sorted_set_values(outputs) {
+        let id = stable_xml_id(task_id, "Output", &output);
+        xml.push_str("<dataOutput id=\"");
+        xml.push_str(&id);
+        xml.push_str("\" name=\"");
+        xml.push_str(&output);
+        xml.push_str("\"/><dataOutputAssociation><sourceRef>");
+        xml.push_str(&id);
+        xml.push_str("</sourceRef><targetRef>");
+        xml.push_str(&output);
+        xml.push_str("</targetRef></dataOutputAssociation>");
+    }
+    xml
+}
+
+fn stable_xml_id(task_id: &str, role: &str, value: &str) -> String {
+    let mut id = format!("{task_id}_{role}_{value}")
+        .chars()
+        .map(|ch| {
+            if ch.is_ascii_alphanumeric() || ch == '_' || ch == '-' {
+                ch
+            } else {
+                '_'
+            }
+        })
+        .collect::<String>();
+    if id
+        .chars()
+        .next()
+        .is_none_or(|ch| !(ch.is_ascii_alphabetic() || ch == '_'))
+    {
+        id.insert(0, '_');
+    }
+    id
 }
 
 fn line_fix_xml_strings(line_fixes: &[Value]) -> Vec<String> {
@@ -800,7 +861,7 @@ fn loop_progress_help(
 }
 
 fn loop_progress_contract_message() -> &'static str {
-    "qianji.bpmn.loop.progress.v1 requires in-cycle tasks to consume user feedback and emit the gateway route state."
+    "native BPMN loop progress requires in-cycle tasks to consume user feedback and emit the gateway route state through standard IO metadata."
 }
 
 fn default_exit_flow_id(metadata: &ProcessMetadata, evidence: &LoopRiskEvidence) -> Option<String> {
@@ -934,7 +995,7 @@ impl<'a> MetadataCollector<'a> {
                     if let Some(task) = self.active_task.as_mut()
                         && let Ok(text) = event.decode()
                     {
-                        append_task_variables(task, &text);
+                        append_task_association_variables(task, &text);
                     }
                 }
                 Ok(Event::GeneralRef(event)) => self.handle_general_ref(&event),
@@ -952,16 +1013,46 @@ impl<'a> MetadataCollector<'a> {
             tag if is_task_tag(tag) => self.start_task(reader, event),
             "sequenceFlow" => self.record_sequence_flow(reader, event),
             tag if is_span_only_node_tag(tag) => self.record_span(reader, event),
-            "inputs" if is_qianji_name(event, "inputs") => {
+            "dataInput" => {
                 self.record_active_task_io_span(reader, event, true);
-                if let Some(task) = self.active_task.as_mut() {
-                    task.in_inputs = true;
+                if let Some(task) = self.active_task.as_mut()
+                    && let Some(name) = attribute_value(reader, event, "name")
+                {
+                    task.inputs.insert(name);
                 }
             }
-            "outputs" if is_qianji_name(event, "outputs") => {
+            "dataOutput" => {
+                self.record_active_task_io_span(reader, event, false);
+                if let Some(task) = self.active_task.as_mut()
+                    && let Some(name) = attribute_value(reader, event, "name")
+                {
+                    task.outputs.insert(name);
+                }
+            }
+            "dataInputAssociation" => {
+                self.record_active_task_io_span(reader, event, true);
+                if let Some(task) = self.active_task.as_mut() {
+                    task.association_context = Some(TaskAssociationContext::Input);
+                }
+            }
+            "sourceRef" => {
+                if let Some(task) = self.active_task.as_mut()
+                    && task.association_context == Some(TaskAssociationContext::Input)
+                {
+                    task.association_capture = Some(TaskAssociationCapture::InputSourceRef);
+                }
+            }
+            "dataOutputAssociation" => {
                 self.record_active_task_io_span(reader, event, false);
                 if let Some(task) = self.active_task.as_mut() {
-                    task.in_outputs = true;
+                    task.association_context = Some(TaskAssociationContext::Output);
+                }
+            }
+            "targetRef" => {
+                if let Some(task) = self.active_task.as_mut()
+                    && task.association_context == Some(TaskAssociationContext::Output)
+                {
+                    task.association_capture = Some(TaskAssociationCapture::OutputTargetRef);
                 }
             }
             _ => {}
@@ -971,11 +1062,21 @@ impl<'a> MetadataCollector<'a> {
     fn handle_empty(&mut self, reader: &Reader<&[u8]>, event: &BytesStart<'_>) {
         let name = local_name(event.name().as_ref());
         match name.as_str() {
-            "inputs" if is_qianji_name(event, "inputs") => {
+            "dataInput" => {
                 self.record_active_task_io_span(reader, event, true);
+                if let Some(task) = self.active_task.as_mut()
+                    && let Some(name) = attribute_value(reader, event, "name")
+                {
+                    task.inputs.insert(name);
+                }
             }
-            "outputs" if is_qianji_name(event, "outputs") => {
+            "dataOutput" => {
                 self.record_active_task_io_span(reader, event, false);
+                if let Some(task) = self.active_task.as_mut()
+                    && let Some(name) = attribute_value(reader, event, "name")
+                {
+                    task.outputs.insert(name);
+                }
             }
             "sequenceFlow" => self.record_sequence_flow(reader, event),
             tag if is_task_tag(tag) => self.record_empty_task(reader, event),
@@ -989,21 +1090,21 @@ impl<'a> MetadataCollector<'a> {
             let reference = event.decode().ok();
             let mut text = String::new();
             append_entity_reference(&mut text, reference.as_deref());
-            append_task_variables(task, &text);
+            append_task_association_variables(task, &text);
         }
     }
 
     fn handle_end(&mut self, raw_name: &[u8]) {
         let name = local_name(raw_name);
         match name.as_str() {
-            "inputs" => {
+            "sourceRef" | "targetRef" => {
                 if let Some(task) = self.active_task.as_mut() {
-                    task.in_inputs = false;
+                    task.association_capture = None;
                 }
             }
-            "outputs" => {
+            "dataInputAssociation" | "dataOutputAssociation" => {
                 if let Some(task) = self.active_task.as_mut() {
-                    task.in_outputs = false;
+                    task.association_context = None;
                 }
             }
             tag if is_task_tag(tag) => self.finish_task(),
@@ -1136,12 +1237,15 @@ impl<'a> MetadataCollector<'a> {
     }
 }
 
-fn append_task_variables(task: &mut ActiveTask, text: &str) {
-    if task.in_inputs {
-        task.inputs.extend(parse_variable_names(text));
-    }
-    if task.in_outputs {
-        task.outputs.extend(parse_variable_names(text));
+fn append_task_association_variables(task: &mut ActiveTask, text: &str) {
+    match task.association_capture {
+        Some(TaskAssociationCapture::InputSourceRef) => {
+            task.inputs.extend(parse_variable_names(text));
+        }
+        Some(TaskAssociationCapture::OutputTargetRef) => {
+            task.outputs.extend(parse_variable_names(text));
+        }
+        None => {}
     }
 }
 
@@ -1235,20 +1339,11 @@ fn attribute_value(
     None
 }
 
-fn is_qianji_name(event: &BytesStart<'_>, expected_local_name: &str) -> bool {
-    event_name_parts(event.name().as_ref()) == Some(("qianji", expected_local_name))
-}
-
 fn local_name(name: &[u8]) -> String {
     let raw = std::str::from_utf8(name).unwrap_or_default();
     raw.rsplit_once(':')
         .map_or(raw, |(_, local)| local)
         .to_string()
-}
-
-fn event_name_parts(name: &[u8]) -> Option<(&str, &str)> {
-    let raw = std::str::from_utf8(name).ok()?;
-    raw.rsplit_once(':')
 }
 
 fn append_entity_reference(target: &mut String, reference: Option<&str>) {

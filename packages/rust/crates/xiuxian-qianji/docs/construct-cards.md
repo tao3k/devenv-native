@@ -24,48 +24,40 @@ The intended compiler loop is:
 7. Repair from the compact LLM lint diagnostics until the executable artifact
    passes.
 
-For user interactions, the active qianji extension contract accepts only
-`input`, `confirm`, `choice`, and `choice_input` as `qianji:interaction`
-types. Use `input` for plain free-form answers and `choice_input` when the
-checkpoint needs option selection plus optional feedback text. Static choices
-use repeated `qianji:choice` elements. Dynamic choices use
-`<qianji:choices ref="currentChoices"/>`, where an upstream service task writes
-`currentChoices` as structured JSON choice objects with required `value`
-fields instead of embedding option text in `currentQuestion`. The producer
-must also declare
-`<qianji:outputSchema name="currentChoices" kind="choice_array" value="required" label="optional" description="optional"/>`;
-`qianji lint --llm` reports older BPMN that omits this schema and proposes the
-XML insertion as a unified diff.
+For user interactions, the active native BPMN IO contract accepts only
+`input`, `confirm`, `choice`, and `choice_input` interactionType literals.
+Use `input` for plain free-form answers and `choice_input` when the checkpoint
+needs option selection plus optional feedback text. Static choices use a JSON
+array assignment on dataInput `choices`. Dynamic choices use a
+`dataInputAssociation/sourceRef` for dataInput `choices`, where an upstream
+service task writes `currentChoices` as structured JSON choice objects with
+required `value` fields instead of embedding option text in `currentQuestion`.
+`qianji lint --llm` reports older custom QName interaction XML and proposes a
+native BPMN IO replacement.
 When the question and choices are fixed at compile time, declare them directly
 on the `userTask`; `qianji lint --llm` reports no-input/no-tool producer
 `serviceTask` nodes that only prepare fixed interaction metadata.
 When choices are truly dynamic, the producer `serviceTask` must explicitly
-bind every declared `qianji:inputs` name in its `qianji:prompt`. A producer
+bind every declared data input name in its documentation prompt. A producer
 that declares runtime inputs but does not mention those input variables is
 treated as an unbound UI-metadata producer; `qianji lint --llm` reports it so
-the compiler either inlines fixed `qianji:choice` entries on the `userTask` or
-rewrites the producer prompt to bind the runtime inputs by name.
+the compiler either inlines fixed JSON choices on the `userTask` or rewrites
+the producer prompt to bind the runtime inputs by name.
 
-User answers are already persisted by qianji as the `qianji:result` variable.
+User answers are persisted through the `dataOutput name="answer"` mapping.
 Do not insert no-tool `serviceTask` nodes that only store, copy, or rename that
 answer before the next prompt. `qianji lint --llm` reports redundant
 user-answer store serviceTasks and asks the compiler to remove the store node,
-reconnect the userTask to the next task, and replace downstream
-`qianji:inputs` aliases with the original result variable. Keep a serviceTask
-only when it derives route booleans, summaries, decisions, or tool-backed
-outputs that are not already the user answer.
+reconnect the userTask to the next task, and replace downstream data-input
+aliases with the original answer variable. Keep a serviceTask only when it
+derives route booleans, summaries, decisions, or tool-backed outputs that are
+not already the user answer.
 
-For serviceTask tool scope, default `qianji:tools` to empty. Declared
-`qianji:inputs` are injected as read-only workflow variables, so reading
-`specContent` or another declared input does not justify `bash` or filesystem
-tools. Use `write` only for explicit artifact/file creation, read-only
-workspace tools only for explicit file/repository inspection, and `bash` only
-for explicit shell commands, tests, builds, lint commands, or git operations.
-Every non-empty tool list must also declare `qianji:toolScope` entries that
-bound tool parameters. For `bash`, scope the exact command and timeout:
-`<qianji:toolScope tool="bash" command="npm test" timeoutSeconds="120" writes="false" network="false"/>`.
-For file tools, scope the accessible path:
-`<qianji:toolScope tool="read" path="docs/**"/>`.
+For serviceTask tool scope, keep BPMN XML limited to standard documentation
+and native IO metadata. Host capability policy belongs in the host adapter
+contract, not in custom BPMN XML. Declared data inputs are injected as
+read-only workflow variables, so reading `specContent` or another declared
+input does not justify shell or filesystem capabilities inside the BPMN file.
 
 For gateway routing, align condition syntax with the runtime value type. A bare
 condition path such as `approved` must resolve to a JSON boolean. A count-like

@@ -85,7 +85,7 @@ fn run_lint_command_renders_bpmn_json_report() {
     );
     assert_eq!(
         json["report"]["issues"][0]["structured_repair"]["contract"],
-        "qianji.bpmn.gateway.bounded.v1"
+        "bpmn.native.gateway.bounded.v1"
     );
     assert_eq!(
         json["analysis"]["repair_plans"][0]["structured_repair"]["strategy"],

@@ -70,7 +70,7 @@ fn embedded_subprocess_start_event_issue(
         format!(
             "Process '{process_id}' subprocess node '{node_id}' contains an embedded subprocess body without exactly one nested start event."
         ),
-        "The bounded embedded `subProcess` slice follows the upstream `SpiffWorkflow` rule that an inline subprocess body must contain exactly one nested `startEvent` before the engine can materialize it as one child process.",
+        "The bounded embedded `subProcess` slice follows the native BPMN engine rule that an inline subprocess body must contain exactly one nested `startEvent` before the engine can materialize it as one child process.",
         vec![
             "Keep exactly one nested `<bpmn:startEvent>` inside the embedded `subProcess` body.".to_string(),
             "If the current model has multiple entry points, rewrite them into one bounded start path and move branching into downstream gateways or tasks.".to_string(),

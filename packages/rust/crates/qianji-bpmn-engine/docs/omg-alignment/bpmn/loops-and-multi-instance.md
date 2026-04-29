@@ -42,10 +42,10 @@ workflows:
 
 - a cycle must have an exit path, usually an unconditional default branch
 - gateway route variables used by the cycle must be declared by
-  `qianji:outputs` on a task inside the same cycle
+  `dataOutputAssociation targetRef` on a task inside the same cycle
 - if an in-cycle service task emits prompt-like outputs such as
   `currentQuestion` or `currentChoices`, user-task outputs from the same cycle
-  must feed back through that service task's `qianji:inputs`
+  must feed back through that service task's `dataInputAssociation sourceRef`
 
 The diagnostic is source-span-aware and keeps natural-language guidance in the
 diagnostic layer only. The LLM-facing output includes the issue code, title,
@@ -58,8 +58,8 @@ only the minimal hunk:
 
 ```diff
 @@ -12,1 +12,1 @@
--          <qianji:inputs></qianji:inputs>
-+          <qianji:inputs>answer</qianji:inputs>
+-          <dataInputAssociation><sourceRef></sourceRef></dataInputAssociation>
++          <dataInputAssociation><sourceRef>answer</sourceRef></dataInputAssociation>
 ```
 
 Structured lint consumers can still read the underlying `line_fixes` metadata

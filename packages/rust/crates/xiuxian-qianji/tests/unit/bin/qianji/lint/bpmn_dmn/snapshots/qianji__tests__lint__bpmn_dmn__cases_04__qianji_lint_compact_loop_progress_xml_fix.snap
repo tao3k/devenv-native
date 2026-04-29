@@ -7,19 +7,19 @@ Source: $TEMP/interaction_loop_missing_feedback.bpmn
 Issues: 1
 
 [bpmn.loop_risk.unbounded_control_cycle] Error: Workflow cycle is missing a complete loop-progress contract
-    ,-[ $TEMP/interaction_loop_missing_feedback.bpmn:12:11 ]
- 12 |          <qianji:inputs></qianji:inputs>
-    |          `--------------- cycle needs explicit progress state
-    |Help: The loop must feed answer into prepare_question before the next prompt and keep flow_done as the unconditional default exit.
-    |Contract: qianji.bpmn.loop.progress.v1 requires in-cycle tasks to consume user feedback and emit the gateway route state.
+   ,-[ $TEMP/interaction_loop_missing_feedback.bpmn:5:5 ]
+ 5 |    <bpmn:serviceTask id="prepare_question" implementation="${environment.services.runAgent}">
+   |    `------------------------------------------------------------------------------------------ cycle needs explicit progress state
+   |Help: The loop must feed answer into prepare_question before the next prompt and keep flow_done as the unconditional default exit.
+    |Contract: native BPMN loop progress requires in-cycle tasks to consume user feedback and emit the gateway route state through standard IO metadata.
 
 Proposed patch:
 ```diff
 --- $TEMP/interaction_loop_missing_feedback.bpmn
 +++ $TEMP/interaction_loop_missing_feedback.bpmn
-@@ -12,1 +12,1 @@
--          <qianji:inputs></qianji:inputs>
-+          <qianji:inputs>answer</qianji:inputs>
+@@ -5,1 +5,1 @@
+-    <bpmn:serviceTask id="prepare_question" implementation="${environment.services.runAgent}">
++    <dataInput id="prepare_question_Input_answer" name="answer"/><dataInputAssociation><sourceRef>answer</sourceRef><targetRef>prepare_question_Input_answer</targetRef></dataInputAssociation>
 ```
 
 Return unified diff only.

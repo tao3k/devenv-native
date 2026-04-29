@@ -69,20 +69,19 @@ fn bpmn_template() -> &'static str {
     r#"<?xml version="1.0" encoding="UTF-8"?>
 <definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-             xmlns:qianji="https://qianji.dev/bpmn/extensions"
              id="Definitions_1"
              targetNamespace="https://qianji.dev">
   <process id="Process_1" name="Skill Workflow" isExecutable="true">
     <startEvent id="Start_1" name="Start"/>
     <serviceTask id="Task_1" name="Do focused work" implementation="${environment.services.runAgent}">
-      <extensionElements>
-        <qianji:config>
-          <qianji:prompt>Perform one focused step from the skill and return the declared outputs as JSON.</qianji:prompt>
-          <qianji:tools></qianji:tools>
-          <qianji:inputs></qianji:inputs>
-          <qianji:outputs>result</qianji:outputs>
-        </qianji:config>
-      </extensionElements>
+      <documentation>Perform one focused step from the skill and return the declared outputs as JSON.</documentation>
+      <ioSpecification>
+        <dataOutput id="Task_1_result" name="result"/>
+        <inputSet/>
+        <outputSet>
+          <dataOutputRefs>Task_1_result</dataOutputRefs>
+        </outputSet>
+      </ioSpecification>
     </serviceTask>
     <endEvent id="End_1" name="End"/>
     <sequenceFlow id="Flow_1" sourceRef="Start_1" targetRef="Task_1"/>

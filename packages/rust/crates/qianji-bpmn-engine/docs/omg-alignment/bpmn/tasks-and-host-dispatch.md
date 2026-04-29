@@ -35,7 +35,7 @@ The field-level user/manual task contract is tracked in the
   waiting-work identity instead of reconstructing activity identity from
   labels, list position, or display text.
 - `userTask` and `manualTask` requests may also carry optional `form` metadata
-  parsed from bounded `qianji:interaction` extension elements. The current
+  parsed from bounded native BPMN IO metadata extension elements. The current
   form contract preserves interaction type, question references or inline
   prompt text, dynamic or inline choices, free-text fields, and the primary
   result output variable for host rendering.
@@ -90,7 +90,7 @@ The field-level user/manual task contract is tracked in the
   task-assignment semantics, delegation, administrative reassignment, and BPMN
   resource-role expression resolution
 - native BPMN `rendering` execution for `userTask`; use bounded
-  `qianji:interaction` metadata for executable form rendering in the current
+  native BPMN IO metadata metadata for executable form rendering in the current
   slice
 
 The linter reports BPMN data-object, data-store, IO-specification, and data
