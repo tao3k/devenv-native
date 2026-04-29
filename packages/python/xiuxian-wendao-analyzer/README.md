@@ -257,7 +257,14 @@ For `hybrid-page-ocr`, pass `--shard-cache-reuse-probe` when you need explicit
 evidence that OCR shard cache reuse works independently from the
 whole-document `_resources.arrow` cache. The probe runs a second forced
 extraction into a fresh output directory after the first force run and reports
-`shardCacheReuseForceMs` in JSON and Markdown output.
+`shardCacheReuseForceMs` in JSON and Markdown output. Reports also include an
+`ocrShardCache` summary with the shard cache root, Arrow file count, total
+bytes, and configured limits. The Rust provider defaults the OCR shard cache
+limit to 10 GiB and supports
+`WENDAO_DOCUMENT_EXTRACT_OCR_SHARD_CACHE_MAX_BYTES`,
+`WENDAO_DOCUMENT_EXTRACT_OCR_SHARD_CACHE_MAX_ENTRIES`, and
+`WENDAO_DOCUMENT_EXTRACT_OCR_SHARD_CACHE_MAX_AGE_SECS` for deployment-specific
+capacity policy.
 For async provider validation, run with `--flight-mode async`; the driver starts
 the synchronous Python worker plus the existing Rust Flight provider and can
 verify cold duplicate-miss deduplication with `--duplicate-miss-concurrency`

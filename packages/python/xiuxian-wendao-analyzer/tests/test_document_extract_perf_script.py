@@ -994,6 +994,28 @@ def test_summary_reports_duplicate_miss_converter_calls() -> None:
     assert summary["rustJobsStatusSummary"]["sampleCount"] == 0
 
 
+def test_summarize_ocr_shard_cache_reports_root_files_and_limits(
+    monkeypatch, tmp_path
+) -> None:
+    benchmark = _load_benchmark_module()
+    cache_root = tmp_path / "ocr-shards"
+    (cache_root / "aa").mkdir(parents=True)
+    (cache_root / "aa" / "one.arrow").write_bytes(b"123")
+    (cache_root / "bb").mkdir()
+    (cache_root / "bb" / "two.arrow").write_bytes(b"4567")
+    monkeypatch.setenv("WENDAO_DOCUMENT_EXTRACT_OCR_SHARD_CACHE_ROOT", str(cache_root))
+    monkeypatch.setenv("WENDAO_DOCUMENT_EXTRACT_OCR_SHARD_CACHE_MAX_BYTES", "100")
+    monkeypatch.setenv("WENDAO_DOCUMENT_EXTRACT_OCR_SHARD_CACHE_MAX_ENTRIES", "10")
+
+    summary = benchmark.summarize_ocr_shard_cache()
+
+    assert summary["root"] == str(cache_root.resolve())
+    assert summary["fileCount"] == 2
+    assert summary["totalBytes"] == 7
+    assert summary["maxBytes"] == 100
+    assert summary["maxEntries"] == 10
+
+
 def test_run_fixture_probe_can_measure_shard_cache_reuse(monkeypatch, tmp_path) -> None:
     benchmark = _load_benchmark_module()
     calls = []
@@ -1148,6 +1170,12 @@ def test_summary_and_markdown_report_distinct_miss_burst() -> None:
             "rustPdfOcrWorkers": None,
             "pdfOcrProfile": "skip",
             "shardCacheReuseProbe": True,
+            "ocrShardCache": {
+                "root": "/tmp/ocr-shards",
+                "fileCount": 2,
+                "totalBytes": 7,
+                "maxBytes": 100,
+            },
             "summary": summary,
             "results": [result],
             "distinctMiss": distinct_report,
@@ -1157,3 +1185,5 @@ def test_summary_and_markdown_report_distinct_miss_burst() -> None:
     assert "distinct-01" in markdown
     assert "Shard reuse force ms" in markdown
     assert "42.000" in markdown
+    assert "OCR shard cache" in markdown
+    assert "files=2" in markdown

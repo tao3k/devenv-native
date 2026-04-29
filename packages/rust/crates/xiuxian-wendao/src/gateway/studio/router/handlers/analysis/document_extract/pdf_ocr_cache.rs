@@ -1,6 +1,7 @@
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use sha2::{Digest, Sha256};
 use xiuxian_wendao_attachments::pdf::ocr::{
@@ -13,10 +14,38 @@ use super::pdf_ocr_order::{order_ocr_results_by_inputs, validate_ocr_result_matc
 
 pub(super) const DOCUMENT_EXTRACT_OCR_SHARD_CACHE_ROOT_ENV: &str =
     "WENDAO_DOCUMENT_EXTRACT_OCR_SHARD_CACHE_ROOT";
+pub(super) const DOCUMENT_EXTRACT_OCR_SHARD_CACHE_MAX_BYTES_ENV: &str =
+    "WENDAO_DOCUMENT_EXTRACT_OCR_SHARD_CACHE_MAX_BYTES";
+pub(super) const DOCUMENT_EXTRACT_OCR_SHARD_CACHE_MAX_ENTRIES_ENV: &str =
+    "WENDAO_DOCUMENT_EXTRACT_OCR_SHARD_CACHE_MAX_ENTRIES";
+pub(super) const DOCUMENT_EXTRACT_OCR_SHARD_CACHE_MAX_AGE_SECS_ENV: &str =
+    "WENDAO_DOCUMENT_EXTRACT_OCR_SHARD_CACHE_MAX_AGE_SECS";
+pub(super) const DOCUMENT_EXTRACT_OCR_SHARD_CACHE_SWEEP_INTERVAL_SECS_ENV: &str =
+    "WENDAO_DOCUMENT_EXTRACT_OCR_SHARD_CACHE_SWEEP_INTERVAL_SECS";
+
+const DEFAULT_OCR_SHARD_CACHE_MAX_BYTES: u64 = 10 * 1024 * 1024 * 1024;
+const DEFAULT_OCR_SHARD_CACHE_SWEEP_INTERVAL_SECS: u64 = 60;
 
 #[derive(Debug, Clone)]
 pub(super) struct PdfOcrShardCache {
     root: PathBuf,
+    policy: PdfOcrShardCachePolicy,
+    last_sweep: Arc<Mutex<Option<Instant>>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(super) struct PdfOcrShardCachePolicy {
+    max_bytes: Option<u64>,
+    max_entries: Option<usize>,
+    max_age: Option<Duration>,
+    sweep_interval: Duration,
+}
+
+#[derive(Debug, Clone)]
+struct PdfOcrShardCacheEntry {
+    path: PathBuf,
+    bytes: u64,
+    modified: SystemTime,
 }
 
 #[derive(Debug)]
@@ -30,15 +59,30 @@ pub(super) struct PdfOcrShardCacheResolution {
 impl PdfOcrShardCache {
     pub(super) fn from_environment() -> Self {
         if let Some(root) = std::env::var_os(DOCUMENT_EXTRACT_OCR_SHARD_CACHE_ROOT_ENV) {
-            return Self::new(PathBuf::from(root));
+            return Self::new_with_policy(
+                PathBuf::from(root),
+                PdfOcrShardCachePolicy::from_environment(),
+            );
         }
         let cache_root = std::env::var_os("PRJ_CACHE_HOME")
             .map_or_else(|| PathBuf::from(".cache"), PathBuf::from);
-        Self::new(cache_root.join("wendao-document-extract/ocr-shards"))
+        Self::new_with_policy(
+            cache_root.join("wendao-document-extract/ocr-shards"),
+            PdfOcrShardCachePolicy::from_environment(),
+        )
     }
 
+    #[cfg(test)]
     pub(super) fn new(root: PathBuf) -> Self {
-        Self { root }
+        Self::new_with_policy(root, PdfOcrShardCachePolicy::default())
+    }
+
+    pub(super) fn new_with_policy(root: PathBuf, policy: PdfOcrShardCachePolicy) -> Self {
+        Self {
+            root,
+            policy,
+            last_sweep: Arc::new(Mutex::new(None)),
+        }
     }
 
     pub(super) fn resolve(&self, inputs: &[PdfOcrShardInput]) -> PdfOcrShardCacheResolution {
@@ -94,7 +138,37 @@ impl PdfOcrShardCache {
                 path.display()
             )
         })?;
+        self.prune_if_due()?;
         Ok(true)
+    }
+
+    pub(super) fn prune(&self) -> Result<PdfOcrShardCachePruneReport, String> {
+        prune_ocr_shard_cache(self.root.as_path(), &self.policy)
+    }
+
+    fn prune_if_due(&self) -> Result<Option<PdfOcrShardCachePruneReport>, String> {
+        if !self.policy.has_limits() {
+            return Ok(None);
+        }
+        let now = Instant::now();
+        {
+            let last_sweep = self
+                .last_sweep
+                .lock()
+                .map_err(|error| format!("lock OCR shard cache sweep state: {error}"))?;
+            if let Some(last_sweep) = *last_sweep
+                && now.duration_since(last_sweep) < self.policy.sweep_interval
+            {
+                return Ok(None);
+            }
+        }
+        let report = self.prune()?;
+        let mut last_sweep = self
+            .last_sweep
+            .lock()
+            .map_err(|error| format!("lock OCR shard cache sweep state: {error}"))?;
+        *last_sweep = Some(now);
+        Ok(Some(report))
     }
 
     fn read(&self, input: &PdfOcrShardInput) -> Option<PdfOcrShardResult> {
@@ -115,6 +189,50 @@ impl PdfOcrShardCache {
     }
 }
 
+impl PdfOcrShardCachePolicy {
+    fn from_environment() -> Self {
+        Self {
+            max_bytes: optional_u64_env(DOCUMENT_EXTRACT_OCR_SHARD_CACHE_MAX_BYTES_ENV)
+                .or(Some(DEFAULT_OCR_SHARD_CACHE_MAX_BYTES)),
+            max_entries: optional_usize_env(DOCUMENT_EXTRACT_OCR_SHARD_CACHE_MAX_ENTRIES_ENV),
+            max_age: optional_u64_env(DOCUMENT_EXTRACT_OCR_SHARD_CACHE_MAX_AGE_SECS_ENV)
+                .map(Duration::from_secs),
+            sweep_interval: optional_u64_env(
+                DOCUMENT_EXTRACT_OCR_SHARD_CACHE_SWEEP_INTERVAL_SECS_ENV,
+            )
+            .map_or(
+                Duration::from_secs(DEFAULT_OCR_SHARD_CACHE_SWEEP_INTERVAL_SECS),
+                Duration::from_secs,
+            ),
+        }
+    }
+
+    fn has_limits(&self) -> bool {
+        self.max_bytes.is_some() || self.max_entries.is_some() || self.max_age.is_some()
+    }
+}
+
+impl Default for PdfOcrShardCachePolicy {
+    fn default() -> Self {
+        Self {
+            max_bytes: Some(DEFAULT_OCR_SHARD_CACHE_MAX_BYTES),
+            max_entries: None,
+            max_age: None,
+            sweep_interval: Duration::from_secs(DEFAULT_OCR_SHARD_CACHE_SWEEP_INTERVAL_SECS),
+        }
+    }
+}
+
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub(super) struct PdfOcrShardCachePruneReport {
+    pub(super) scanned_entries: usize,
+    pub(super) scanned_bytes: u64,
+    pub(super) removed_entries: usize,
+    pub(super) removed_bytes: u64,
+    pub(super) retained_entries: usize,
+    pub(super) retained_bytes: u64,
+}
+
 fn read_existing_result(input: &PdfOcrShardInput, path: &Path) -> Option<PdfOcrShardResult> {
     let batches = read_arrow_file(path).ok()?;
     let mut results = decode_ocr_shard_result_batches(batches.as_slice()).ok()?;
@@ -124,6 +242,163 @@ fn read_existing_result(input: &PdfOcrShardInput, path: &Path) -> Option<PdfOcrS
     let result = results.pop()?;
     validate_ocr_result_matches_input(input, &result).ok()?;
     (result.status == PdfOcrShardResultStatus::Succeeded).then_some(result)
+}
+
+fn prune_ocr_shard_cache(
+    root: &Path,
+    policy: &PdfOcrShardCachePolicy,
+) -> Result<PdfOcrShardCachePruneReport, String> {
+    let mut entries = collect_ocr_shard_cache_entries(root)?;
+    let scanned_entries = entries.len();
+    let scanned_bytes = entries.iter().map(|entry| entry.bytes).sum::<u64>();
+    let mut report = PdfOcrShardCachePruneReport {
+        scanned_entries,
+        scanned_bytes,
+        ..PdfOcrShardCachePruneReport::default()
+    };
+
+    if let Some(max_age) = policy.max_age {
+        let now = SystemTime::now();
+        entries.retain(|entry| {
+            let is_expired = now
+                .duration_since(entry.modified)
+                .is_ok_and(|age| age > max_age);
+            if is_expired && remove_cache_entry(entry, &mut report).is_err() {
+                return true;
+            }
+            !is_expired
+        });
+    }
+
+    entries.sort_by(|left, right| {
+        left.modified
+            .cmp(&right.modified)
+            .then(left.path.cmp(&right.path))
+    });
+    enforce_entry_limit(&mut entries, policy.max_entries, &mut report);
+    enforce_byte_limit(&mut entries, policy.max_bytes, &mut report);
+
+    report.retained_entries = entries.len();
+    report.retained_bytes = entries.iter().map(|entry| entry.bytes).sum();
+    Ok(report)
+}
+
+fn enforce_entry_limit(
+    entries: &mut Vec<PdfOcrShardCacheEntry>,
+    max_entries: Option<usize>,
+    report: &mut PdfOcrShardCachePruneReport,
+) {
+    let Some(max_entries) = max_entries else {
+        return;
+    };
+    while entries.len() > max_entries {
+        let entry = entries.remove(0);
+        if remove_cache_entry(&entry, report).is_err() {
+            break;
+        }
+    }
+}
+
+fn enforce_byte_limit(
+    entries: &mut Vec<PdfOcrShardCacheEntry>,
+    max_bytes: Option<u64>,
+    report: &mut PdfOcrShardCachePruneReport,
+) {
+    let Some(max_bytes) = max_bytes else {
+        return;
+    };
+    let mut retained_bytes = entries.iter().map(|entry| entry.bytes).sum::<u64>();
+    while retained_bytes > max_bytes && !entries.is_empty() {
+        let entry = entries.remove(0);
+        retained_bytes = retained_bytes.saturating_sub(entry.bytes);
+        if remove_cache_entry(&entry, report).is_err() {
+            break;
+        }
+    }
+}
+
+fn collect_ocr_shard_cache_entries(root: &Path) -> Result<Vec<PdfOcrShardCacheEntry>, String> {
+    if !root.exists() {
+        return Ok(Vec::new());
+    }
+    let mut entries = Vec::new();
+    let mut pending = vec![root.to_path_buf()];
+    while let Some(directory) = pending.pop() {
+        let read_dir = match fs::read_dir(directory.as_path()) {
+            Ok(read_dir) => read_dir,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => continue,
+            Err(error) => {
+                return Err(format!(
+                    "read OCR shard cache directory `{}`: {error}",
+                    directory.display()
+                ));
+            }
+        };
+        for entry in read_dir {
+            let entry = entry.map_err(|error| {
+                format!(
+                    "read OCR shard cache entry `{}`: {error}",
+                    directory.display()
+                )
+            })?;
+            let path = entry.path();
+            let metadata = match entry.metadata() {
+                Ok(metadata) => metadata,
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => continue,
+                Err(error) => {
+                    return Err(format!(
+                        "read OCR shard cache metadata `{}`: {error}",
+                        path.display()
+                    ));
+                }
+            };
+            if metadata.is_dir() {
+                pending.push(path);
+                continue;
+            }
+            if path.extension().and_then(|extension| extension.to_str()) != Some("arrow") {
+                continue;
+            }
+            entries.push(PdfOcrShardCacheEntry {
+                path,
+                bytes: metadata.len(),
+                modified: metadata.modified().unwrap_or(UNIX_EPOCH),
+            });
+        }
+    }
+    Ok(entries)
+}
+
+fn remove_cache_entry(
+    entry: &PdfOcrShardCacheEntry,
+    report: &mut PdfOcrShardCachePruneReport,
+) -> Result<(), String> {
+    match fs::remove_file(entry.path.as_path()) {
+        Ok(()) => {
+            report.removed_entries += 1;
+            report.removed_bytes += entry.bytes;
+            Ok(())
+        }
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(error) => Err(format!(
+            "remove OCR shard cache entry `{}`: {error}",
+            entry.path.display()
+        )),
+    }
+}
+
+fn optional_u64_env(key: &str) -> Option<u64> {
+    std::env::var(key)
+        .ok()
+        .and_then(|value| value.parse::<u64>().ok())
+        .filter(|value| *value > 0)
+}
+
+fn optional_usize_env(key: &str) -> Option<usize> {
+    std::env::var(key)
+        .ok()
+        .and_then(|value| value.parse::<usize>().ok())
+        .filter(|value| *value > 0)
 }
 
 impl PdfOcrShardCacheResolution {
@@ -298,6 +573,89 @@ mod tests {
 
         assert_eq!(resolution.hit_count(), 0);
         assert_eq!(resolution.misses().len(), 1);
+        Ok(())
+    }
+
+    #[test]
+    fn cache_prunes_oldest_entries_when_entry_limit_is_exceeded() -> Result<(), String> {
+        let temp = tempfile::tempdir().map_err(|error| error.to_string())?;
+        let cache = PdfOcrShardCache::new_with_policy(
+            temp.path().to_path_buf(),
+            PdfOcrShardCachePolicy {
+                max_bytes: None,
+                max_entries: Some(2),
+                max_age: None,
+                sweep_interval: Duration::ZERO,
+            },
+        );
+        let inputs = vec![
+            sample_ocr_input(0, "page"),
+            sample_ocr_input(1, "page"),
+            sample_ocr_input(2, "page"),
+        ];
+        for input in &inputs {
+            cache.store_successful(
+                input,
+                &PdfOcrShardResult::succeeded(input, format!("page {}", input.page_index), 1.0),
+            )?;
+            std::thread::sleep(Duration::from_millis(2));
+        }
+
+        let report = cache.prune()?;
+        let resolution = cache.resolve(inputs.as_slice());
+
+        assert!(report.retained_entries <= 2);
+        assert_eq!(resolution.hit_count(), 2);
+        assert_eq!(resolution.misses().len(), 1);
+        assert_eq!(resolution.misses()[0].shard_element_id, "page-shard-0");
+        Ok(())
+    }
+
+    #[test]
+    fn cache_prunes_oldest_entries_when_byte_limit_is_exceeded() -> Result<(), String> {
+        let temp = tempfile::tempdir().map_err(|error| error.to_string())?;
+        let cache = PdfOcrShardCache::new_with_policy(
+            temp.path().to_path_buf(),
+            PdfOcrShardCachePolicy {
+                max_bytes: Some(1),
+                max_entries: None,
+                max_age: None,
+                sweep_interval: Duration::ZERO,
+            },
+        );
+        let input = sample_ocr_input(0, "page");
+
+        cache.store_successful(&input, &PdfOcrShardResult::succeeded(&input, "page", 1.0))?;
+        let report = cache.prune()?;
+        let resolution = cache.resolve(std::slice::from_ref(&input));
+
+        assert_eq!(report.retained_entries, 0);
+        assert_eq!(resolution.hit_count(), 0);
+        assert_eq!(resolution.misses().len(), 1);
+        Ok(())
+    }
+
+    #[test]
+    fn cache_prunes_expired_entries() -> Result<(), String> {
+        let temp = tempfile::tempdir().map_err(|error| error.to_string())?;
+        let cache = PdfOcrShardCache::new_with_policy(
+            temp.path().to_path_buf(),
+            PdfOcrShardCachePolicy {
+                max_bytes: None,
+                max_entries: None,
+                max_age: Some(Duration::ZERO),
+                sweep_interval: Duration::ZERO,
+            },
+        );
+        let input = sample_ocr_input(0, "page");
+
+        cache.store_successful(&input, &PdfOcrShardResult::succeeded(&input, "page", 1.0))?;
+        std::thread::sleep(Duration::from_millis(2));
+        let report = cache.prune()?;
+        let resolution = cache.resolve(std::slice::from_ref(&input));
+
+        assert_eq!(report.retained_entries, 0);
+        assert_eq!(resolution.hit_count(), 0);
         Ok(())
     }
 

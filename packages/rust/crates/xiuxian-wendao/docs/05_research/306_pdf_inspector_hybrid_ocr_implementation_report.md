@@ -664,6 +664,12 @@ Current implementation status:
   `2604.17337` shard cache, the report-field proof measured force `319ms`,
   shard-cache forced reuse `162ms`, whole-document cache hit `4.67ms`, 21 OCR
   rows, zero error rows, and sorted structure order.
+- Shard cache capacity is now governed by an oldest-first Rust sweep. The
+  default OCR shard cache budget is 10 GiB under the document extraction cache
+  root, with optional max-bytes, max-entries, max-age, and sweep-interval
+  deployment overrides. Benchmark JSON and Markdown reports include
+  `ocrShardCache` file count, total bytes, and configured limits so capacity
+  decisions are visible next to latency and structure metrics.
 - The real hybrid benchmark proof then exposed a text-only hybrid candidate:
   `pdf-inspector` classified the real `2206.01062.pdf` fixture as a
   `hybrid_page_ocr_candidate`, but the shard selector found no raster OCR

@@ -29,6 +29,7 @@ PDFIUM_BINARIES_RELEASE = "chromium/7543"
 PDFIUM_BINARIES_BASE_URL = (
     "https://github.com/bblanchon/pdfium-binaries/releases/download"
 )
+DEFAULT_OCR_SHARD_CACHE_MAX_BYTES = 10 * 1024 * 1024 * 1024
 
 DOCLING_REAL_FIXTURE_PATHS = {
     "pdf": "tests/data/pdf/2206.01062.pdf",
@@ -553,6 +554,7 @@ def main() -> int:
         "rustPdfOcrWorkers": args.rust_pdf_ocr_workers,
         "pdfOcrProfile": pdf_ocr_profile_label(args),
         "shardCacheReuseProbe": args.shard_cache_reuse_probe,
+        "ocrShardCache": summarize_ocr_shard_cache(),
         "distinctMiss": distinct_miss_report,
         "doclingFixtureRoot": str(real_fixture_root) if real_fixture_root else None,
         "results": results,
@@ -944,6 +946,51 @@ def prepare_pdfium_runtime() -> Path:
 def resolve_project_cache_home() -> Path:
     cache_home = Path(os.environ.get("PRJ_CACHE_HOME", ".cache"))
     return cache_home.resolve()
+
+
+def resolve_ocr_shard_cache_root() -> Path:
+    configured = os.environ.get("WENDAO_DOCUMENT_EXTRACT_OCR_SHARD_CACHE_ROOT")
+    if configured:
+        return Path(configured).resolve()
+    return resolve_project_cache_home() / "wendao-document-extract" / "ocr-shards"
+
+
+def summarize_ocr_shard_cache() -> dict[str, Any]:
+    root = resolve_ocr_shard_cache_root()
+    file_count = 0
+    total_bytes = 0
+    if root.exists():
+        for path in root.rglob("*.arrow"):
+            if not path.is_file():
+                continue
+            file_count += 1
+            total_bytes += path.stat().st_size
+    return {
+        "root": str(root),
+        "fileCount": file_count,
+        "totalBytes": total_bytes,
+        "maxBytes": optional_positive_int_env(
+            "WENDAO_DOCUMENT_EXTRACT_OCR_SHARD_CACHE_MAX_BYTES"
+        )
+        or DEFAULT_OCR_SHARD_CACHE_MAX_BYTES,
+        "maxEntries": optional_positive_int_env(
+            "WENDAO_DOCUMENT_EXTRACT_OCR_SHARD_CACHE_MAX_ENTRIES"
+        ),
+        "maxAgeSecs": optional_positive_int_env(
+            "WENDAO_DOCUMENT_EXTRACT_OCR_SHARD_CACHE_MAX_AGE_SECS"
+        ),
+    }
+
+
+def optional_positive_int_env(key: str) -> int | None:
+    value = os.environ.get(key)
+    if value is None:
+        return None
+    try:
+        parsed = int(value)
+    except ValueError:
+        return None
+    return parsed if parsed > 0 else None
 
 
 def pdfium_asset_name(
@@ -2489,6 +2536,7 @@ def format_optional_float(value: Any) -> str:
 
 def render_markdown(payload: dict[str, Any]) -> str:
     rust_status = payload["summary"]["rustJobsStatusSummary"]
+    ocr_shard_cache = payload.get("ocrShardCache", {})
     lines = [
         "# Wendao Document Extract Performance",
         "",
@@ -2506,6 +2554,10 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"- PDF OCR profile: `{payload['pdfOcrProfile']}`",
         "- Shard-cache reuse probe: "
         f"`{any(result.get('shardCacheReuseEnabled') for result in payload['results'])}`",
+        "- OCR shard cache: "
+        f"`files={ocr_shard_cache.get('fileCount')}, "
+        f"bytes={ocr_shard_cache.get('totalBytes')}, "
+        f"maxBytes={ocr_shard_cache.get('maxBytes')}`",
         "- Duplicate miss converter calls: "
         f"`{payload['summary']['totalDuplicateMissConverterCalls']}`",
         "- Distinct cold-miss converter calls: "

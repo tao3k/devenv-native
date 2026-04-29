@@ -117,10 +117,15 @@ Successful OCR shard results are reusable through provider-local Arrow IPC
 cache files under the document extraction cache root. The default root is
 `$PRJ_CACHE_HOME/wendao-document-extract/ocr-shards`, with
 `WENDAO_DOCUMENT_EXTRACT_OCR_SHARD_CACHE_ROOT` available for isolated
-benchmarks or deployments. Cache hits and misses are merged in the same input
-order, so whole-document retries, forced runs, and future page or region Agent
-lookups can avoid repeating Docling OCR for unchanged shards without changing
-the stable OCR shard v1 contract.
+benchmarks or deployments. The cache has an oldest-first sweep policy with
+`WENDAO_DOCUMENT_EXTRACT_OCR_SHARD_CACHE_MAX_BYTES` defaulting to 10 GiB, plus
+optional `WENDAO_DOCUMENT_EXTRACT_OCR_SHARD_CACHE_MAX_ENTRIES`,
+`WENDAO_DOCUMENT_EXTRACT_OCR_SHARD_CACHE_MAX_AGE_SECS`, and
+`WENDAO_DOCUMENT_EXTRACT_OCR_SHARD_CACHE_SWEEP_INTERVAL_SECS` overrides. Cache
+hits and misses are merged in the same input order, so whole-document retries,
+forced runs, and future page or region Agent lookups can avoid repeating
+Docling OCR for unchanged shards without changing the stable OCR shard v1
+contract.
 
 For full-page PDF OCR shards, the hybrid provider can prepare source-PDF
 page-range shard manifests without rendering high-DPI PNG files first. The
