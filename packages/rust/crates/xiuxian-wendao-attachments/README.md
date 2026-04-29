@@ -109,6 +109,19 @@ worker count to Python for each exchange, and Python keeps output rows ordered
 by the input Arrow batch so worker completion order cannot become document
 order.
 
+The Studio provider does not rely on Python response order for correctness.
+Before projecting OCR rows into `_resources.arrow`, Rust validates every
+result against the original shard id, source hash, page index, raster hash,
+render profile, and OCR profile, then restores rows to the input shard order.
+Successful OCR shard results are reusable through provider-local Arrow IPC
+cache files under the document extraction cache root. The default root is
+`$PRJ_CACHE_HOME/wendao-document-extract/ocr-shards`, with
+`WENDAO_DOCUMENT_EXTRACT_OCR_SHARD_CACHE_ROOT` available for isolated
+benchmarks or deployments. Cache hits and misses are merged in the same input
+order, so whole-document retries, forced runs, and future page or region Agent
+lookups can avoid repeating Docling OCR for unchanged shards without changing
+the stable OCR shard v1 contract.
+
 For full-page PDF OCR shards, the hybrid provider can prepare source-PDF
 page-range shard manifests without rendering high-DPI PNG files first. The
 manifest still carries page geometry, content hash, reading order, and stable

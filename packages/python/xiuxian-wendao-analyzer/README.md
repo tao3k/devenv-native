@@ -146,7 +146,9 @@ shards from the same source are grouped into Docling `sourcePath` page ranges
 and then split back into one OCR result row per page with Docling's
 `page_no`-scoped Markdown export. Rendered images remain the fallback path for
 failed page ranges, region shards, and explicit raster tests. Result rows are
-still returned in input shard order.
+still returned in input shard order. The Rust provider also validates and
+restores result order against the original shard input rows before merge, so
+document order is not coupled to Python worker completion order.
 
 The built-in strategy is intentionally small:
 

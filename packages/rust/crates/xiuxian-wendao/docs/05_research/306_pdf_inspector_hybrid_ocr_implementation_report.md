@@ -643,6 +643,22 @@ Current implementation status:
   - cache hit: `7.85ms`
   - resource rows: `21`, error rows: `0`
   - `_structure.arrow`: `21` rows, `21` OCR page blocks, reading order sorted
+- The follow-up shard cache and order-gate slice makes that source page-range
+  path reusable at page or region granularity. Rust now validates OCR result
+  rows against the original shard input identity and reorders them to the input
+  shard order before `_resources.arrow` projection. Successful OCR rows are
+  stored as Arrow IPC shard cache entries under the document extraction cache
+  root, and cache hits are merged with live misses in the same input order.
+  This keeps `_structure.arrow` ordering independent from Python worker
+  completion order and gives future Agent page/region lookups a precise cache
+  layer below the whole-document `_resources.arrow` artifact.
+- Real `2604.17337` shard-cache proof after the cache was empty:
+  - shard-cache population force run: `62.29s`
+  - persistent OCR shard Arrow cache entries: `21`
+  - new-output forced run using shard cache: `286ms`
+  - whole-document cache hit after that run: `4.28ms`
+  - resource rows: `21`, error rows: `0`
+  - `_structure.arrow`: `21` rows, `21` OCR page blocks, reading order sorted
 - The real hybrid benchmark proof then exposed a text-only hybrid candidate:
   `pdf-inspector` classified the real `2206.01062.pdf` fixture as a
   `hybrid_page_ocr_candidate`, but the shard selector found no raster OCR
@@ -770,15 +786,17 @@ Quality metrics:
 
 ## Risks
 
-| Risk                            | Impact                     | Mitigation                                                            |
-| ------------------------------- | -------------------------- | --------------------------------------------------------------------- |
-| `pdf-inspector` API instability | Integration churn          | Keep behind optional feature and narrow wrapper                       |
-| Git dependency policy           | Build reproducibility risk | Pin, mirror, or vendor only after license and lint review             |
-| Renderer mismatch               | OCR quality loss           | Pixel and coordinate parity tests before default enablement           |
-| Complex layout degradation      | Precision loss             | Conservative fallback to Docling                                      |
-| Table/formula loss              | Retrieval quality loss     | Keep full Docling for table/formula-heavy PDFs until parity is proven |
-| Extra artifacts                 | Storage growth             | Content-addressed artifact root and cleanup policy                    |
-| OCR worker variability          | Non-deterministic output   | Record OCR profile and model version in cache key                     |
+| Risk                            | Impact                     | Mitigation                                                             |
+| ------------------------------- | -------------------------- | ---------------------------------------------------------------------- |
+| `pdf-inspector` API instability | Integration churn          | Keep behind optional feature and narrow wrapper                        |
+| Git dependency policy           | Build reproducibility risk | Pin, mirror, or vendor only after license and lint review              |
+| Renderer mismatch               | OCR quality loss           | Pixel and coordinate parity tests before default enablement            |
+| Complex layout degradation      | Precision loss             | Conservative fallback to Docling                                       |
+| Table/formula loss              | Retrieval quality loss     | Keep full Docling for table/formula-heavy PDFs until parity is proven  |
+| Extra artifacts                 | Storage growth             | Content-addressed artifact root and cleanup policy                     |
+| OCR worker variability          | Non-deterministic output   | Record OCR profile and model version in cache key                      |
+| Shard completion order drift    | Wrong document order       | Rust restores OCR rows to shard input order before resource projection |
+| Repeated shard OCR              | Cold retry latency         | Successful OCR results are cached as Arrow IPC shard rows              |
 
 ## Recommendation
 

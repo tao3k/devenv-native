@@ -1,5 +1,9 @@
 mod arrow_cache;
 #[cfg(feature = "document-extract-pdf-render")]
+mod pdf_ocr_cache;
+#[cfg(feature = "document-extract-pdf-render")]
+mod pdf_ocr_order;
+#[cfg(feature = "document-extract-pdf-render")]
 mod pdf_ocr_scheduler;
 mod provider;
 mod registry;

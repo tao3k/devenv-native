@@ -1,8 +1,12 @@
 use std::sync::Arc;
 
 use tokio::sync::{OwnedSemaphorePermit, Semaphore};
-use xiuxian_wendao_attachments::pdf::ocr::{PdfOcrShardInput, build_ocr_result_resource_batch};
+use xiuxian_wendao_attachments::pdf::ocr::{
+    PdfOcrShardInput, PdfOcrShardResult, build_ocr_result_resource_batch,
+};
 
+use super::pdf_ocr_cache::PdfOcrShardCache;
+use super::pdf_ocr_order::order_ocr_results_by_inputs;
 use crate::gateway::studio::document_extract_pdf_ocr_client::{
     PdfOcrShardFlightClient, PdfOcrShardFlightResponse,
 };
@@ -14,6 +18,7 @@ pub(super) const DOCUMENT_EXTRACT_PDF_OCR_WORKERS_ENV: &str =
 pub(super) struct PdfOcrWorkerScheduler {
     permits: Arc<Semaphore>,
     worker_limit: usize,
+    cache: PdfOcrShardCache,
 }
 
 impl PdfOcrWorkerScheduler {
@@ -22,10 +27,15 @@ impl PdfOcrWorkerScheduler {
     }
 
     pub(super) fn with_limit(worker_limit: usize) -> Self {
+        Self::with_limit_and_cache(worker_limit, PdfOcrShardCache::from_environment())
+    }
+
+    pub(super) fn with_limit_and_cache(worker_limit: usize, cache: PdfOcrShardCache) -> Self {
         let worker_limit = worker_limit.max(1);
         Self {
             permits: Arc::new(Semaphore::new(worker_limit)),
             worker_limit,
+            cache,
         }
     }
 
@@ -50,12 +60,48 @@ impl PdfOcrWorkerScheduler {
         if inputs.is_empty() {
             return Err("PDF OCR shard request inputs cannot be empty".to_string());
         }
-        let client = PdfOcrShardFlightClient::connect(endpoint_url).await?;
+        let cache_resolution = self.cache.resolve(inputs);
+        let cache_hit_count = cache_resolution.hit_count();
+        let misses = cache_resolution.misses().to_vec();
+        if cache_hit_count > 0 {
+            log::debug!(
+                "PDF OCR shard cache hits: {cache_hit_count}, misses: {}",
+                misses.len()
+            );
+        }
+        let live_results = if misses.is_empty() {
+            Vec::new()
+        } else {
+            let client = PdfOcrShardFlightClient::connect(endpoint_url).await?;
+            self.request_uncached_shards(&client, misses.as_slice())
+                .await?
+        };
+
+        for (input, result) in misses.iter().zip(live_results.iter()) {
+            if let Err(error) = self.cache.store_successful(input, result) {
+                log::warn!("failed to store PDF OCR shard cache row: {error}");
+            }
+        }
+
+        let results = cache_resolution.merge(live_results)?;
+        let resource_batch = build_ocr_result_resource_batch(results.as_slice())?;
+        Ok(PdfOcrShardFlightResponse {
+            results,
+            resource_batch,
+        })
+    }
+
+    async fn request_uncached_shards(
+        &self,
+        client: &PdfOcrShardFlightClient,
+        inputs: &[PdfOcrShardInput],
+    ) -> Result<Vec<PdfOcrShardResult>, String> {
         if is_contiguous_source_pdf_page_range(inputs) {
             let permits = self.acquire_worker_permits(1).await?;
             let response = client.request_with_worker_budget(inputs, Some(1)).await;
             drop(permits);
-            return response;
+            let response = response?;
+            return order_ocr_results_by_inputs(inputs, response.results);
         }
         let mut results = Vec::with_capacity(inputs.len());
         let mut offset = 0;
@@ -69,14 +115,11 @@ impl PdfOcrWorkerScheduler {
                 .await;
             drop(permits);
             let response = response?;
-            results.extend(response.results);
+            let ordered = order_ocr_results_by_inputs(&inputs[offset..end], response.results)?;
+            results.extend(ordered);
             offset = end;
         }
-        let resource_batch = build_ocr_result_resource_batch(results.as_slice())?;
-        Ok(PdfOcrShardFlightResponse {
-            results,
-            resource_batch,
-        })
+        Ok(results)
     }
 
     async fn acquire_worker_permits(
@@ -152,6 +195,7 @@ fn is_contiguous_source_pdf_page_range(inputs: &[PdfOcrShardInput]) -> bool {
 
 #[cfg(test)]
 mod tests {
+    use super::super::pdf_ocr_cache::PdfOcrShardCache;
     use super::*;
     use xiuxian_wendao_attachments::pdf::ocr::PDF_OCR_SHARD_INPUT_SCHEMA_VERSION;
 
@@ -206,6 +250,38 @@ mod tests {
 
         assert_eq!(permits.len(), 4);
         assert_eq!(scheduler.available_permits(), 0);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn pdf_ocr_scheduler_returns_full_cache_hits_without_python_endpoint()
+    -> Result<(), String> {
+        let temp = tempfile::tempdir().map_err(|error| error.to_string())?;
+        let cache = PdfOcrShardCache::new(temp.path().to_path_buf());
+        let inputs = vec![
+            sample_ocr_input("/tmp/source.pdf", 0, "page"),
+            sample_ocr_input("/tmp/source.pdf", 1, "page"),
+        ];
+        for input in &inputs {
+            cache.store_successful(
+                input,
+                &xiuxian_wendao_attachments::pdf::ocr::PdfOcrShardResult::succeeded(
+                    input,
+                    format!("cached page {}", input.page_index),
+                    1.0,
+                ),
+            )?;
+        }
+        let scheduler = PdfOcrWorkerScheduler::with_limit_and_cache(2, cache);
+
+        let response = scheduler
+            .request_shards("http://127.0.0.1:9".to_string(), inputs.as_slice())
+            .await?;
+
+        assert_eq!(response.results.len(), 2);
+        assert_eq!(response.results[0].text.as_deref(), Some("cached page 0"));
+        assert_eq!(response.results[1].text.as_deref(), Some("cached page 1"));
+        assert_eq!(response.resource_batch.num_rows(), 2);
         Ok(())
     }
 
