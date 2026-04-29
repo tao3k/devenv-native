@@ -1,6 +1,6 @@
-use super::super::parse_fixture_package;
+use super::super::{parse_fixture_error, parse_fixture_package};
 use crate::test_support::MustExt as _;
-use qianji_bpmn_engine::{BpmnEventKind, BpmnNodeKind, BpmnTimerKind};
+use qianji_bpmn_engine::{BpmnEngineError, BpmnEventKind, BpmnNodeKind, BpmnTimerKind};
 
 #[test]
 fn parser_boundary_timer_interrupt_materializes_attachment_and_timer_snapshot() {
@@ -101,4 +101,21 @@ fn parser_conditional_boundary_interrupt_materializes_attachment_and_condition()
         .must("boundary conditional should materialize an event binding");
     assert_eq!(event.kind, BpmnEventKind::Conditional);
     assert_eq!(event.condition_expression.as_deref(), Some("escalated"));
+}
+
+#[test]
+fn parser_escalation_deferred_task_boundary_reports_supported_owner_detail() {
+    let error = parse_fixture_error(
+        "invalid-boundary-escalation-task-owner.bpmn",
+        "task-owned escalation boundaries should report the supported owner requirement",
+    );
+
+    assert_eq!(
+        error,
+        BpmnEngineError::UnsupportedBoundaryEventConfiguration {
+            process_id: "review_with_task_escalation".to_string(),
+            node_id: "review_escalated".to_string(),
+            detail: "escalation_boundary_requires_supported_subprocess_shell",
+        }
+    );
 }

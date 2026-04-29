@@ -132,6 +132,14 @@ fn validate_non_interrupting_boundary(
     }
     usage.total += 1;
 
+    if event_kind == Some(&BpmnEventKind::Escalation) {
+        return Err(BpmnEngineError::UnsupportedBoundaryEventConfiguration {
+            process_id: process.process_id.clone(),
+            node_id: node.bpmn_id.clone(),
+            detail: "non_interrupting_escalation_boundary_deferred",
+        });
+    }
+
     if !matches!(
         attached_node.kind,
         BpmnNodeKind::ServiceTask

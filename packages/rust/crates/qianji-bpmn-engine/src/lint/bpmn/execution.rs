@@ -33,26 +33,7 @@ pub(super) fn issue_from_bpmn_execution_shape_error(error: &BpmnEngineError) -> 
             process_id,
             node_id,
             called_process_id,
-        } => LintIssue::new(
-            "bpmn.unknown_called_process",
-            "Call activity targets a missing process",
-            format!(
-                "Process '{process_id}' call activity '{node_id}' references missing called process '{called_process_id}'."
-            ),
-            "The bounded engine can only enter a call activity when `calledElement` matches another executable process id in the same BPMN package.",
-            vec![
-                format!("Change `calledElement` on call activity '{node_id}' to an existing process id in the same BPMN package."),
-                "If the child process is missing entirely, add that process definition before retrying parser validation.".to_string(),
-            ],
-            format!(
-                "Edit process '{process_id}' so call activity '{node_id}' points its `calledElement` at an existing executable process in the same BPMN package. Preserve workflow intent, but do not leave it targeting missing process '{called_process_id}'."
-            ),
-            json!({
-                "process_id": process_id,
-                "node_id": node_id,
-                "called_process_id": called_process_id,
-            }),
-        ),
+        } => unknown_called_process_issue(process_id, node_id, called_process_id),
         BpmnEngineError::UnsupportedSubProcessConfiguration {
             process_id,
             node_id,
@@ -68,6 +49,13 @@ pub(super) fn issue_from_bpmn_execution_shape_error(error: &BpmnEngineError) -> 
             node_id,
             detail,
         } => return Some(gateway_configuration_issue(process_id, node_id, detail)),
+        BpmnEngineError::UnsupportedEventConfiguration {
+            process_id,
+            node_id,
+            detail,
+        } if *detail == "escalation_start_event_deferred" => {
+            escalation_event_issue(process_id, node_id, detail)
+        }
         BpmnEngineError::UnsupportedEventConfiguration {
             process_id,
             node_id,
@@ -107,6 +95,35 @@ pub(super) fn issue_from_bpmn_execution_shape_error(error: &BpmnEngineError) -> 
         } => return Some(transaction_configuration_issue(process_id, node_id, detail)),
         _ => return None,
     })
+}
+
+fn unknown_called_process_issue(
+    process_id: &str,
+    node_id: &str,
+    called_process_id: &str,
+) -> LintIssue {
+    LintIssue::new(
+        "bpmn.unknown_called_process",
+        "Call activity targets a missing process",
+        format!(
+            "Process '{process_id}' call activity '{node_id}' references missing called process '{called_process_id}'."
+        ),
+        "The bounded engine can only enter a call activity when `calledElement` matches another executable process id in the same BPMN package.",
+        vec![
+            format!(
+                "Change `calledElement` on call activity '{node_id}' to an existing process id in the same BPMN package."
+            ),
+            "If the child process is missing entirely, add that process definition before retrying parser validation.".to_string(),
+        ],
+        format!(
+            "Edit process '{process_id}' so call activity '{node_id}' points its `calledElement` at an existing executable process in the same BPMN package. Preserve workflow intent, but do not leave it targeting missing process '{called_process_id}'."
+        ),
+        json!({
+            "process_id": process_id,
+            "node_id": node_id,
+            "called_process_id": called_process_id,
+        }),
+    )
 }
 
 fn loop_configuration_issue(process_id: &str, node_id: &str, detail: &'static str) -> LintIssue {
@@ -154,6 +171,29 @@ fn multiple_event_definition_issue(
         ),
         json!({
             "source_id": source_id,
+            "process_id": process_id,
+            "node_id": node_id,
+            "detail": detail,
+        }),
+    )
+}
+
+fn escalation_event_issue(process_id: &str, node_id: &str, detail: &'static str) -> LintIssue {
+    LintIssue::new(
+        "bpmn.unsupported_escalation_event",
+        "Escalation event configuration is deferred",
+        format!(
+            "Process '{process_id}' event node '{node_id}' uses deferred escalation configuration '{detail}'."
+        ),
+        "The current engine executes escalation only when an escalation end event or intermediate escalation throw runs inside a bounded embedded subprocess, same-package call activity, or transaction child scope and routes to a matching interrupting escalation boundary on the parent owner. Escalation start events require an event-subprocess trigger policy and are not executable in this bounded slice.",
+        vec![
+            "If the model needs a start wait, use one supported message, signal, timer, or conditional start event instead.".to_string(),
+            "If the model needs escalation handling inside a running owner, use a bounded child-scope escalation end or intermediate throw with a matching interrupting escalation boundary on the parent embedded subprocess, same-package call activity, or transaction owner.".to_string(),
+        ],
+        format!(
+            "Repair event node '{node_id}' in process '{process_id}' by replacing deferred escalation configuration '{detail}' with a supported start wait, or remodel the escalation as one bounded child-scope escalation end or intermediate throw that routes to a matching interrupting parent escalation boundary."
+        ),
+        json!({
             "process_id": process_id,
             "node_id": node_id,
             "detail": detail,

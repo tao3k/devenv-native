@@ -1,6 +1,6 @@
-use super::super::parse_fixture_package;
+use super::super::{parse_fixture_error, parse_fixture_package};
 use crate::test_support::MustExt as _;
-use qianji_bpmn_engine::{BpmnEventKind, BpmnNodeKind, BpmnTimerKind};
+use qianji_bpmn_engine::{BpmnEngineError, BpmnEventKind, BpmnNodeKind, BpmnTimerKind};
 
 #[test]
 fn parser_non_interrupting_boundary_timer_materializes_attachment_and_timer_snapshot() {
@@ -101,4 +101,21 @@ fn parser_non_interrupting_conditional_boundary_materializes_attachment_and_cond
         .must("boundary conditional should materialize an event binding");
     assert_eq!(event.kind, BpmnEventKind::Conditional);
     assert_eq!(event.condition_expression.as_deref(), Some("escalated"));
+}
+
+#[test]
+fn parser_escalation_deferred_non_interrupting_boundary_reports_stable_detail() {
+    let error = parse_fixture_error(
+        "invalid-boundary-escalation-non-interrupt.bpmn",
+        "non-interrupting escalation boundaries should stay deferred with a stable detail",
+    );
+
+    assert_eq!(
+        error,
+        BpmnEngineError::UnsupportedBoundaryEventConfiguration {
+            process_id: "review_with_non_interrupting_escalation".to_string(),
+            node_id: "review_escalated".to_string(),
+            detail: "non_interrupting_escalation_boundary_deferred",
+        }
+    );
 }

@@ -112,3 +112,43 @@ fn bpmn_linter_accepts_top_level_error_end_subset() {
     assert!(report.ok);
     assert!(report.issues.is_empty());
 }
+
+#[test]
+fn bpmn_linter_reports_escalation_deferred_non_interrupting_boundary_with_guidance() {
+    let report = lint_bpmn_source(&bpmn_fixture_source(
+        "invalid-boundary-escalation-non-interrupt.bpmn",
+    ));
+
+    assert_eq!(report.domain, LintDomain::Bpmn);
+    assert!(!report.ok);
+    assert_eq!(report.issues.len(), 1);
+    let issue = &report.issues[0];
+    assert_eq!(issue.code, "bpmn.unsupported_boundary_configuration");
+    assert!(issue.summary.contains("review_escalated"));
+    assert!(
+        issue
+            .llm_fix_prompt
+            .contains("non_interrupting_escalation_boundary_deferred")
+    );
+    assert!(issue.why_it_failed.contains("concurrent parent/child"));
+}
+
+#[test]
+fn bpmn_linter_reports_escalation_deferred_task_boundary_with_guidance() {
+    let report = lint_bpmn_source(&bpmn_fixture_source(
+        "invalid-boundary-escalation-task-owner.bpmn",
+    ));
+
+    assert_eq!(report.domain, LintDomain::Bpmn);
+    assert!(!report.ok);
+    assert_eq!(report.issues.len(), 1);
+    let issue = &report.issues[0];
+    assert_eq!(issue.code, "bpmn.unsupported_boundary_configuration");
+    assert!(issue.summary.contains("review_escalated"));
+    assert!(
+        issue
+            .llm_fix_prompt
+            .contains("escalation_boundary_requires_supported_subprocess_shell")
+    );
+    assert!(issue.why_it_failed.contains("bounded embedded subprocess"));
+}

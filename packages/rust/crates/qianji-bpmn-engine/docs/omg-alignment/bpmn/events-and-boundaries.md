@@ -80,8 +80,10 @@ These shapes remain outside the bounded surface:
   `parallelMultipleEventDefinition`, and several concrete event definitions on
   one event node are rejected with stable parser/lint diagnostics
 - root-level escalation ends or throws, non-interrupting escalation
-  boundaries, escalation start events, and escalation event subprocess
-  triggers
+  boundaries, escalation start events, task-owned interrupting escalation
+  boundaries, and escalation event subprocess triggers; start, task-owned
+  boundary, and non-interrupting boundary shapes are rejected with stable
+  parser/lint diagnostics
 - non-interrupting conditional boundaries on subprocess-like owners and
   conditional event subprocess triggers
 - event subprocesses

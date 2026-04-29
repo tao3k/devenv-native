@@ -140,7 +140,8 @@
 //! broader `requiredKnowledge` execution, broader business-knowledge-model or
 //! decision-service invocation semantics, broader FEEL or script-backed
 //! gateway conditions, multiple and parallel-multiple event definitions,
-//! root-level escalation throws, non-interrupting escalation boundaries,
+//! root-level escalation ends or throws, non-interrupting escalation boundaries,
+//! escalation start events, task-owned interrupting escalation boundaries,
 //! escalation event subprocess triggers, trailing lower-unit fractional
 //! duration handling such as `duration("PT1.5H30S")`, mixed-family duration
 //! handling, fractional year-month duration handling

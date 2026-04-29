@@ -63,3 +63,21 @@ fn bpmn_linter_reports_multiple_event_concrete_definitions_with_llm_guidance() {
             .contains("one concrete event definition")
     );
 }
+
+#[test]
+fn bpmn_linter_reports_escalation_deferred_start_event_with_guidance() {
+    let report = lint_bpmn_source(&bpmn_fixture_source("invalid-escalation-start-event.bpmn"));
+
+    assert_eq!(report.domain, LintDomain::Bpmn);
+    assert!(!report.ok);
+    assert_eq!(report.issues.len(), 1);
+    let issue = &report.issues[0];
+    assert_eq!(issue.code, "bpmn.unsupported_escalation_event");
+    assert!(issue.summary.contains("start"));
+    assert!(
+        issue
+            .llm_fix_prompt
+            .contains("escalation_start_event_deferred")
+    );
+    assert!(issue.why_it_failed.contains("event-subprocess"));
+}

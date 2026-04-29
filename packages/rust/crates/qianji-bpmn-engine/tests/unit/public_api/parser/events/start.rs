@@ -1,6 +1,6 @@
-use super::parse_fixture_package;
+use super::{parse_fixture_error, parse_fixture_package};
 use crate::test_support::MustExt as _;
-use qianji_bpmn_engine::{BpmnEventKind, BpmnNodeKind, BpmnTimerKind};
+use qianji_bpmn_engine::{BpmnEngineError, BpmnEventKind, BpmnNodeKind, BpmnTimerKind};
 
 #[test]
 fn parser_start_event_message_wait_materializes_event_binding() {
@@ -80,4 +80,21 @@ fn parser_start_event_conditional_wait_materializes_event_binding() {
     assert_eq!(event.kind, BpmnEventKind::Conditional);
     assert_eq!(event.name.as_deref(), Some("workflow_condition"));
     assert_eq!(event.condition_expression.as_deref(), Some("approved"));
+}
+
+#[test]
+fn parser_escalation_deferred_start_event_reports_stable_detail() {
+    let error = parse_fixture_error(
+        "invalid-escalation-start-event.bpmn",
+        "escalation start events should stay deferred with a stable detail",
+    );
+
+    assert_eq!(
+        error,
+        BpmnEngineError::UnsupportedEventConfiguration {
+            process_id: "escalation_start_event".to_string(),
+            node_id: "start".to_string(),
+            detail: "escalation_start_event_deferred",
+        }
+    );
 }

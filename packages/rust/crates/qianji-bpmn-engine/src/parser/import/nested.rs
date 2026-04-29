@@ -416,6 +416,15 @@ fn handle_event_child_start(
         assign_event_definition(source, reader, event, process, kind, tag)?;
         return Ok(true);
     }
+    if let Some(detail) = deferred_escalation_event_definition(parent, tag) {
+        let process_id = process.process_id.clone();
+        let node = last_process_node_mut(source, process)?;
+        return Err(BpmnEngineError::UnsupportedEventConfiguration {
+            process_id,
+            node_id: node.bpmn_id.clone(),
+            detail,
+        });
+    }
     if let Some(detail) = deferred_multiple_event_definition(parent, tag) {
         let process_id = process.process_id.clone();
         let node = last_process_node_mut(source, process)?;
@@ -711,6 +720,13 @@ fn supported_event_definition(parent: &str, tag: &str) -> Option<BpmnEventKind> 
             "startEvent" | "intermediateCatchEvent" | "boundaryEvent",
             "conditionalEventDefinition",
         ) => Some(BpmnEventKind::Conditional),
+        _ => None,
+    }
+}
+
+fn deferred_escalation_event_definition(parent: &str, tag: &str) -> Option<&'static str> {
+    match (parent, tag) {
+        ("startEvent", "escalationEventDefinition") => Some("escalation_start_event_deferred"),
         _ => None,
     }
 }

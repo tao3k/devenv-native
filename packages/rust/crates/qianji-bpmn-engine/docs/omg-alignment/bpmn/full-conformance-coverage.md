@@ -33,7 +33,7 @@ guidance.
 | Error and cancel events   | bounded executable | Bounded subprocess, call-activity, transaction, and top-level error paths.            |
 | Compensation              | bounded executable | Transaction-owned compensation handlers and throw-compensation paths.                 |
 | Conditional events        | bounded executable | Start events, catches, task boundaries, and interrupting subprocess-like boundaries.  |
-| Escalation events         | bounded executable | End/throw-to-interrupting-boundary routing on bounded subprocess-like owners.         |
+| Escalation events         | bounded executable | Child-scope end/throw routes execute; deferred escalation shapes get diagnostics.     |
 | Terminate events          | bounded executable | `terminateEventDefinition` end events terminate the current runtime scope.            |
 | Multiple events           | lint-deferred      | Multiple and parallel-multiple event definitions have stable parser/lint diagnostics. |
 | Embedded subprocess       | bounded executable | One nested start event and at least one nested end event.                             |
@@ -130,3 +130,11 @@ diagnostics and the linter provides repair guidance to remodel the behavior
 with one supported concrete event definition, an explicit event-based gateway,
 or supported boundary-event structures. Executable multiple-event fan-in and
 parallel-multiple event semantics remain deferred.
+
+The tenth event-family slice formalizes the remaining deferred escalation
+surfaces that are not part of the bounded executable route. Escalation start
+events, non-interrupting escalation boundaries, and task-owned interrupting
+escalation boundaries now report stable parser/lint diagnostics with repair
+guidance. Executable semantics remain limited to escalation end events or
+intermediate escalation throws inside bounded subprocess-like child scopes,
+routed to matching interrupting escalation boundaries on those parent owners.

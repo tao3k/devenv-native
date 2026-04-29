@@ -16,6 +16,14 @@ pub(super) fn boundary_configuration_issue(
         "error_boundary_requires_supported_subprocess_shell" => {
             error_boundary_requires_supported_subprocess_shell_issue(process_id, node_id, detail)
         }
+        "escalation_boundary_requires_supported_subprocess_shell" => {
+            escalation_boundary_requires_supported_subprocess_shell_issue(
+                process_id, node_id, detail,
+            )
+        }
+        "non_interrupting_escalation_boundary_deferred" => {
+            non_interrupting_escalation_boundary_issue(process_id, node_id, detail)
+        }
         "non_interrupting_boundary_requires_supported_task_repeat_owner" => {
             non_interrupting_boundary_requires_supported_task_repeat_owner_issue(
                 process_id, node_id, detail,
@@ -98,6 +106,60 @@ fn error_boundary_requires_supported_subprocess_shell_issue(
         ],
         format!(
             "Rewrite boundary event '{node_id}' in process '{process_id}' so `<errorEventDefinition>` is used only as one interrupting boundary event attached to one bounded `<bpmn:transaction>` shell, one bounded embedded `<bpmn:subProcess>` shell, or one bounded same-package `<bpmn:callActivity>` owner, paired with one or more error ends that execute under that same owner. Preserve workflow intent, but do not leave the error boundary attached to a task."
+        ),
+        json!({
+            "process_id": process_id,
+            "node_id": node_id,
+            "detail": detail,
+        }),
+    )
+}
+
+fn escalation_boundary_requires_supported_subprocess_shell_issue(
+    process_id: &str,
+    node_id: &str,
+    detail: &'static str,
+) -> LintIssue {
+    LintIssue::new(
+        "bpmn.unsupported_boundary_configuration",
+        "Escalation boundary must attach to a supported subprocess shell",
+        format!(
+            "Process '{process_id}' boundary event '{node_id}' uses `<escalationEventDefinition>` without attaching it to one bounded embedded subprocess, same-package call activity, or transaction owner."
+        ),
+        "The bounded engine supports interrupting escalation boundaries only on parent owners that can run a child scope: one bounded embedded subprocess, one bounded same-package call activity, or one bounded transaction shell. Task-owned escalation boundaries require a broader escalation model and are deferred.",
+        vec![
+            "Attach the escalation boundary to one bounded embedded `<bpmn:subProcess>`, one bounded same-package `<bpmn:callActivity>`, or one bounded `<bpmn:transaction>` owner.".to_string(),
+            "Keep `cancelActivity=\"true\"` and pair the boundary with one child-scope escalation end event or intermediate escalation throw whose optional `escalationRef` matches the boundary, or omit the boundary reference as a catch-all.".to_string(),
+        ],
+        format!(
+            "Rewrite boundary event '{node_id}' in process '{process_id}' so `<escalationEventDefinition>` is used only as one interrupting boundary event attached to one bounded embedded `<bpmn:subProcess>`, same-package `<bpmn:callActivity>`, or `<bpmn:transaction>` owner. Preserve workflow intent, but do not leave escalation boundary configuration '{detail}' on a task or unsupported owner."
+        ),
+        json!({
+            "process_id": process_id,
+            "node_id": node_id,
+            "detail": detail,
+        }),
+    )
+}
+
+fn non_interrupting_escalation_boundary_issue(
+    process_id: &str,
+    node_id: &str,
+    detail: &'static str,
+) -> LintIssue {
+    LintIssue::new(
+        "bpmn.unsupported_boundary_configuration",
+        "Non-interrupting escalation boundaries are deferred",
+        format!(
+            "Process '{process_id}' boundary event '{node_id}' uses `<escalationEventDefinition>` with `cancelActivity=\"false\"`, which is outside the bounded slice."
+        ),
+        "The current runtime can execute non-interrupting timer, message, signal, and conditional boundaries on supported task owners, but escalation routing is currently interrupting-only and parent-scope based. Non-interrupting escalation requires concurrent parent/child escalation semantics and remains deferred.",
+        vec![
+            "If the escalation must cancel the child scope, use `cancelActivity=\"true\"` and attach the escalation boundary to one bounded embedded subprocess, same-package call activity, or transaction owner.".to_string(),
+            "If the escalation must be non-interrupting, keep the BPMN requirement explicit but defer runtime execution until non-interrupting escalation semantics land.".to_string(),
+        ],
+        format!(
+            "Repair boundary event '{node_id}' in process '{process_id}' by either converting deferred non-interrupting escalation configuration '{detail}' into one supported interrupting parent escalation boundary on a bounded subprocess-like owner, or preserving the requirement as deferred rather than relying on runtime execution."
         ),
         json!({
             "process_id": process_id,
