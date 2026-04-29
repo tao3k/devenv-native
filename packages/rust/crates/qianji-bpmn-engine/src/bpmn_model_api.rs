@@ -389,6 +389,18 @@ pub struct BpmnGlobalTaskSnapshot {
     /// Direct supported interface references preserved in source order.
     #[serde(default)]
     pub supported_interface_refs: Vec<String>,
+    /// Number of direct `ioSpecification` elements discovered on this global task.
+    #[serde(default)]
+    pub io_specification_count: usize,
+    /// Direct global-task `ioSpecification` metadata preserved from this global task.
+    #[serde(default)]
+    pub io_specifications: Vec<BpmnIoSpecificationSnapshot>,
+    /// Number of direct `ioBinding` elements discovered on this global task.
+    #[serde(default)]
+    pub io_binding_count: usize,
+    /// Direct global-task `ioBinding` metadata preserved from this global task.
+    #[serde(default)]
+    pub io_bindings: Vec<BpmnIoBindingSnapshot>,
     /// Number of direct resource-role declarations discovered on this global task.
     #[serde(default)]
     pub resource_role_count: usize,
@@ -910,6 +922,12 @@ pub struct BpmnProcessSnapshot {
     pub io_specification_count: usize,
     /// Bounded `ioSpecification` metadata preserved from this process.
     pub io_specifications: Vec<BpmnIoSpecificationSnapshot>,
+    /// Number of direct process `ioBinding` elements discovered.
+    #[serde(default)]
+    pub io_binding_count: usize,
+    /// Bounded process `ioBinding` metadata preserved from this process.
+    #[serde(default)]
+    pub io_bindings: Vec<BpmnIoBindingSnapshot>,
     /// Number of `dataInputAssociation` elements discovered inside this process.
     pub data_input_association_count: usize,
     /// Bounded `dataInputAssociation` metadata preserved from this process.
@@ -1096,6 +1114,19 @@ pub struct BpmnDataInputOutputSnapshot {
     pub item_subject_ref: Option<String>,
     /// Optional BPMN collection marker.
     pub is_collection: Option<bool>,
+}
+
+/// Snapshot of one BPMN callable `ioBinding`.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct BpmnIoBindingSnapshot {
+    /// Optional stable IO-binding identifier.
+    pub binding_id: Option<String>,
+    /// Referenced callable operation identifier.
+    pub operation_ref: Option<String>,
+    /// Referenced input data identifier.
+    pub input_data_ref: Option<String>,
+    /// Referenced output data identifier.
+    pub output_data_ref: Option<String>,
 }
 
 /// Snapshot of one BPMN data association.

@@ -41,6 +41,7 @@ guidance.
 | Interfaces/operations     | metadata-only      | Callable-operation catalogs are preserved; host dispatch binding remains explicit.                               |
 | Global task catalogs      | metadata-only      | Top-level global task definitions are preserved; call-activity binding remains deferred.                         |
 | Process callable metadata | metadata-only      | Process callable attributes, support refs, properties, and correlation subscriptions are preserved passively.    |
+| Callable IO metadata      | metadata-only      | Process/global-task `ioBinding` and global-task `ioSpecification` declarations are preserved passively.          |
 | Resource catalogs         | metadata-only      | Top-level resources and parameters are preserved; assignment binding remains deferred.                           |
 | Resource-role metadata    | metadata-only      | Direct process and global-task resource-role declarations are preserved; generic assignment execution defers.    |
 | Flow-element metadata     | metadata-only      | Direct process flow-element auditing, monitoring, and category refs are preserved passively.                     |
@@ -89,19 +90,21 @@ artifact metadata, partner entities, partner roles, endpoints, participant
 interface refs, participant endpoint refs, participant multiplicity, process
 callable attributes, process support refs, process properties, process
 correlation subscriptions, direct process resource roles, direct global-task
-resource roles, direct flow-element auditing/monitoring/category metadata, and
-data references. This gives Rust-owned evidence for future routing and
-type-alignment work while keeping pool routing, message dispatch, conversation
-routing, choreography execution, endpoint invocation, participant multiplicity
-execution, global task execution, process support resolution, process property
-execution, callable-operation binding, generic resource assignment execution,
-resource authorization, delegation, escalation, scheduling, audit execution,
-monitoring execution, category classification, group execution, annotation
-interpretation, import resolution, extension behavior, extension payload
-parsing, diagram rendering, layout validation, relationship endpoint
-resolution, event subscription registries, correlation matching, correlation
-subscription matching, correlation-key evaluation, retrieval expression
-evaluation, and schema validation deferred.
+resource roles, direct process/global-task callable IO bindings, direct
+global-task IO specifications, direct flow-element
+auditing/monitoring/category metadata, and data references. This gives
+Rust-owned evidence for future routing and type-alignment work while keeping
+pool routing, message dispatch, conversation routing, choreography execution,
+endpoint invocation, participant multiplicity execution, global task
+execution, process support resolution, process property execution,
+callable-operation binding, callable IO operation invocation, generic resource
+assignment execution, resource authorization, delegation, escalation,
+scheduling, audit execution, monitoring execution, category classification,
+group execution, annotation interpretation, import resolution, extension
+behavior, extension payload parsing, diagram rendering, layout validation,
+relationship endpoint resolution, event subscription registries, correlation
+matching, correlation subscription matching, correlation-key evaluation,
+retrieval expression evaluation, and schema validation deferred.
 
 ## Active M2 Event Milestone
 

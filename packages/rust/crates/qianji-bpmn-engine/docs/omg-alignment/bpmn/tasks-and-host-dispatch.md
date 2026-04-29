@@ -43,6 +43,10 @@ The field-level user/manual task contract is tracked in the
   and global script text are retained for evidence, but the current runtime
   does not execute those declarations or bind `callActivity calledElement` to
   them.
+- Direct process/global-task `ioBinding` declarations and direct global-task
+  `ioSpecification` declarations are preserved in document snapshots as
+  callable IO metadata. They do not bind service operations, widen host
+  dispatch, or execute reusable callable definitions.
 - `userTask` and `manualTask` host requests carry the engine-owned
   `process_id`, BPMN `activity_id`, `token_id`, `node_index`, and workflow
   variables. UI and CLI adapters must treat those fields as the canonical
@@ -116,6 +120,8 @@ The field-level user/manual task contract is tracked in the
   callable contract validation
 - executable global task reuse and `callActivity` binding to global task
   definitions
+- executable callable IO operation binding from process or global-task
+  metadata
 - executable process/global-task resource-role assignment, authorization,
   scheduling, delegation, escalation, or reassignment
 - executable flow-element auditing, monitoring, category classification, or

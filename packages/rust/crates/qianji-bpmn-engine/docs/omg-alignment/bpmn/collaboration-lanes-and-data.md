@@ -25,6 +25,8 @@ The current engine preserves non-executable BPMN metadata for these families:
 - process callable metadata, including `processType`, `isClosed`,
   `definitionalCollaborationRef`, `supports`, process `property`, and process
   `correlationSubscription` bindings
+- callable IO metadata, including direct process/global-task `ioBinding`
+  declarations and direct global-task `ioSpecification` declarations
 - direct process and global-task resource-role metadata, including
   `resourceRole`, `performer`, `humanPerformer`, `potentialOwner`,
   `resourceRef`, `resourceParameterBinding`, and
@@ -57,14 +59,15 @@ correlation-key, choreography-reference, and choreography activity
 declarations plus artifact associations, groups, and text annotations and
 surface that catalog through collaboration lint evidence. That makes partner,
 participant, message-flow, conversation, choreography, artifact, process
-callable, resource-role, flow-element metadata, and correlation references auditable without
-requiring adapters to re-scan XML, but it does not dispatch message flows,
-route conversations, execute choreography, invoke endpoints, execute groups,
-interpret annotations, schedule participant multiplicity, resolve process
-support, execute process properties, execute generic resource assignments,
-authorize roles, execute auditing or monitoring declarations, classify
-category values, or evaluate correlation subscriptions, keys, or retrieval
-expressions.
+callable, callable IO, resource-role, flow-element metadata, and correlation
+references auditable without requiring adapters to re-scan XML, but it does
+not dispatch message flows, route conversations, execute choreography, invoke
+endpoints, execute groups, interpret annotations, schedule participant
+multiplicity, resolve process support, execute process properties, bind
+callable operations, invoke callable IO bindings, execute generic resource
+assignments, authorize roles, execute auditing or monitoring declarations,
+classify category values, or evaluate correlation subscriptions, keys, or
+retrieval expressions.
 
 ## Runtime Boundary
 
@@ -78,6 +81,8 @@ These BPMN surfaces remain deferred:
   expression evaluation
 - executable process support resolution, process property semantics, or
   process inheritance
+- executable callable-operation binding or callable IO invocation from
+  process/global-task metadata
 - executable generic resource-role assignment, authorization, delegation,
   escalation, scheduling, or reassignment
 - executable flow-element auditing, monitoring, category classification, or

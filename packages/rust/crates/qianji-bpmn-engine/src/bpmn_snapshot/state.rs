@@ -11,7 +11,7 @@ use crate::bpmn_model_api::{
     BpmnDiagramSnapshot, BpmnDocumentSnapshot, BpmnEdgeSnapshot, BpmnEndPointSnapshot,
     BpmnErrorSnapshot, BpmnEscalationSnapshot, BpmnExtensionSnapshot,
     BpmnFlowElementMetadataSnapshot, BpmnFontSnapshot, BpmnGlobalTaskSnapshot, BpmnGroupSnapshot,
-    BpmnImportSnapshot, BpmnInterfaceSnapshot, BpmnIoSpecificationSnapshot,
+    BpmnImportSnapshot, BpmnInterfaceSnapshot, BpmnIoBindingSnapshot, BpmnIoSpecificationSnapshot,
     BpmnItemDefinitionSnapshot, BpmnLabelSnapshot, BpmnLabelStyleSnapshot, BpmnLaneSetSnapshot,
     BpmnLaneSnapshot, BpmnMessageFlowAssociationSnapshot, BpmnMessageFlowSnapshot,
     BpmnMessageSnapshot, BpmnOperationSnapshot, BpmnParticipantAssociationSnapshot,
@@ -92,6 +92,12 @@ enum ResourceRoleOwner {
     GlobalTask(usize),
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum IoSpecificationOwner {
+    Process(usize, usize),
+    GlobalTask(usize, usize),
+}
+
 #[derive(Debug, Default)]
 pub(super) struct BpmnSnapshotScanState {
     root: Option<BpmnRootSnapshot>,
@@ -137,7 +143,7 @@ pub(super) struct BpmnSnapshotScanState {
     current_edge: Option<(usize, usize)>,
     current_label: Option<BpmnDiLabelTarget>,
     current_label_style: Option<(usize, usize)>,
-    io_specification_stack: Vec<(usize, usize)>,
+    io_specification_stack: Vec<IoSpecificationOwner>,
     current_data_association: Option<(usize, DataAssociationKind, BpmnDataAssociationSnapshot)>,
 }
 
@@ -177,6 +183,9 @@ impl BpmnSnapshotScanState {
             source, reader, event, parent_tag, tag, is_empty,
         )?;
         if self.handle_process_start_event(source, reader, event, parent_tag, tag, is_empty)? {
+            return Ok(());
+        }
+        if self.handle_callable_io_start_event(source, reader, event, parent_tag, tag, is_empty)? {
             return Ok(());
         }
         if self
@@ -330,6 +339,42 @@ impl BpmnSnapshotScanState {
                 if self.current_process.is_some() && is_artifact_container(parent_tag) =>
             {
                 self.start_text_annotation(source, reader, event, is_empty)?;
+            }
+            _ => return Ok(false),
+        }
+        Ok(true)
+    }
+
+    fn handle_callable_io_start_event(
+        &mut self,
+        source: &BpmnSourceFile,
+        reader: &Reader<&[u8]>,
+        event: &BytesStart<'_>,
+        parent_tag: Option<&str>,
+        tag: &str,
+        is_empty: bool,
+    ) -> Result<bool> {
+        match tag {
+            "ioSpecification"
+                if parent_tag.is_some_and(is_global_task_tag)
+                    && self.current_global_task.is_some() =>
+            {
+                self.start_global_task_io_specification(source, reader, event, is_empty)?;
+            }
+            "ioBinding" if parent_tag == Some("process") && self.current_process.is_some() => {
+                self.capture_process_io_binding(source, reader, event)?;
+            }
+            "ioBinding"
+                if parent_tag.is_some_and(is_global_task_tag)
+                    && self.current_global_task.is_some() =>
+            {
+                self.capture_global_task_io_binding(source, reader, event)?;
+            }
+            "dataInput" if self.current_io_specification().is_some() => {
+                self.capture_io_data_input(source, reader, event)?;
+            }
+            "dataOutput" if self.current_io_specification().is_some() => {
+                self.capture_io_data_output(source, reader, event)?;
             }
             _ => return Ok(false),
         }
@@ -749,6 +794,7 @@ impl BpmnSnapshotScanState {
         self.current_partner_entity = None;
         self.current_partner_role = None;
         self.current_global_task = None;
+        self.io_specification_stack.clear();
         self.current_participant = None;
         self.conversation_node_stack.clear();
         self.choreography_activity_stack.clear();
@@ -1238,6 +1284,10 @@ impl BpmnSnapshotScanState {
             script_language: attribute_value(source, reader, event, "scriptLanguage")?,
             script: None,
             supported_interface_refs: Vec::new(),
+            io_specification_count: 0,
+            io_specifications: Vec::new(),
+            io_binding_count: 0,
+            io_bindings: Vec::new(),
             resource_role_count: 0,
             resource_roles: Vec::new(),
         });
@@ -1903,6 +1953,8 @@ impl BpmnSnapshotScanState {
             data_store_references: Vec::new(),
             io_specification_count: 0,
             io_specifications: Vec::new(),
+            io_binding_count: 0,
+            io_bindings: Vec::new(),
             data_input_association_count: 0,
             data_input_associations: Vec::new(),
             data_output_association_count: 0,
@@ -2342,8 +2394,69 @@ impl BpmnSnapshotScanState {
         });
         if !is_empty {
             let io_index = process.io_specifications.len().saturating_sub(1);
-            self.io_specification_stack.push((process_index, io_index));
+            self.io_specification_stack
+                .push(IoSpecificationOwner::Process(process_index, io_index));
         }
+        Ok(())
+    }
+
+    fn start_global_task_io_specification(
+        &mut self,
+        source: &BpmnSourceFile,
+        reader: &Reader<&[u8]>,
+        event: &BytesStart<'_>,
+        is_empty: bool,
+    ) -> Result<()> {
+        let Some(task_index) = self.current_global_task else {
+            return Ok(());
+        };
+        let Some(root) = self.root.as_mut() else {
+            return Ok(());
+        };
+        let Some(task) = root.global_tasks.get_mut(task_index) else {
+            return Ok(());
+        };
+        task.io_specification_count += 1;
+        task.io_specifications.push(BpmnIoSpecificationSnapshot {
+            io_specification_id: attribute_value(source, reader, event, "id")?,
+            data_inputs: Vec::new(),
+            data_outputs: Vec::new(),
+        });
+        if !is_empty {
+            let io_index = task.io_specifications.len().saturating_sub(1);
+            self.io_specification_stack
+                .push(IoSpecificationOwner::GlobalTask(task_index, io_index));
+        }
+        Ok(())
+    }
+
+    fn capture_process_io_binding(
+        &mut self,
+        source: &BpmnSourceFile,
+        reader: &Reader<&[u8]>,
+        event: &BytesStart<'_>,
+    ) -> Result<()> {
+        let binding = io_binding_from_event(source, reader, event)?;
+        let Some(process) = self.current_process_mut() else {
+            return Ok(());
+        };
+        process.io_binding_count += 1;
+        process.io_bindings.push(binding);
+        Ok(())
+    }
+
+    fn capture_global_task_io_binding(
+        &mut self,
+        source: &BpmnSourceFile,
+        reader: &Reader<&[u8]>,
+        event: &BytesStart<'_>,
+    ) -> Result<()> {
+        let binding = io_binding_from_event(source, reader, event)?;
+        let Some(task) = self.current_global_task_mut() else {
+            return Ok(());
+        };
+        task.io_binding_count += 1;
+        task.io_bindings.push(binding);
         Ok(())
     }
 
@@ -3113,16 +3226,25 @@ impl BpmnSnapshotScanState {
             .get_mut(lane_set_index)
     }
 
-    fn current_io_specification(&self) -> Option<(usize, usize)> {
+    fn current_io_specification(&self) -> Option<IoSpecificationOwner> {
         self.io_specification_stack.last().copied()
     }
 
     fn current_io_specification_mut(&mut self) -> Option<&mut BpmnIoSpecificationSnapshot> {
-        let (process_index, io_index) = self.current_io_specification()?;
-        self.processes
-            .get_mut(process_index)?
-            .io_specifications
-            .get_mut(io_index)
+        match self.current_io_specification()? {
+            IoSpecificationOwner::Process(process_index, io_index) => self
+                .processes
+                .get_mut(process_index)?
+                .io_specifications
+                .get_mut(io_index),
+            IoSpecificationOwner::GlobalTask(task_index, io_index) => self
+                .root
+                .as_mut()?
+                .global_tasks
+                .get_mut(task_index)?
+                .io_specifications
+                .get_mut(io_index),
+        }
     }
 
     fn current_operation_mut(&mut self) -> Option<&mut BpmnOperationSnapshot> {
@@ -3309,6 +3431,19 @@ fn data_input_output_from_event(
         name: attribute_value(source, reader, event, "name")?,
         item_subject_ref: attribute_value(source, reader, event, "itemSubjectRef")?,
         is_collection: boolean_attribute_value(source, reader, event, "isCollection")?,
+    })
+}
+
+fn io_binding_from_event(
+    source: &BpmnSourceFile,
+    reader: &Reader<&[u8]>,
+    event: &BytesStart<'_>,
+) -> Result<BpmnIoBindingSnapshot> {
+    Ok(BpmnIoBindingSnapshot {
+        binding_id: attribute_value(source, reader, event, "id")?,
+        operation_ref: attribute_value(source, reader, event, "operationRef")?,
+        input_data_ref: attribute_value(source, reader, event, "inputDataRef")?,
+        output_data_ref: attribute_value(source, reader, event, "outputDataRef")?,
     })
 }
 

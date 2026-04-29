@@ -1,9 +1,9 @@
 use crate::bpmn_model_api::{
     BpmnAssociationSnapshot, BpmnChoreographyActivitySnapshot, BpmnCollaborationSnapshot,
     BpmnConversationNodeSnapshot, BpmnDocumentSnapshot, BpmnFlowElementMetadataSnapshot,
-    BpmnGlobalTaskSnapshot, BpmnGroupSnapshot, BpmnParticipantSnapshot, BpmnPartnerEntitySnapshot,
-    BpmnPartnerRoleSnapshot, BpmnProcessSnapshot, BpmnResourceRoleSnapshot,
-    BpmnTextAnnotationSnapshot,
+    BpmnGlobalTaskSnapshot, BpmnGroupSnapshot, BpmnIoBindingSnapshot, BpmnParticipantSnapshot,
+    BpmnPartnerEntitySnapshot, BpmnPartnerRoleSnapshot, BpmnProcessSnapshot,
+    BpmnResourceRoleSnapshot, BpmnTextAnnotationSnapshot,
 };
 use crate::bpmn_parse_api::BpmnSourceFile;
 use crate::bpmn_snapshot_api::snapshot_bpmn_source;
@@ -238,6 +238,9 @@ struct ProcessCallableCounts {
     property: usize,
     correlation_subscription: usize,
     correlation_binding: usize,
+    process_io_binding: usize,
+    global_task_io_specification: usize,
+    global_task_io_binding: usize,
 }
 
 #[derive(Debug, Default)]
@@ -403,20 +406,35 @@ fn resource_role_evidence(role: &BpmnResourceRoleSnapshot) -> Value {
 }
 
 fn process_callable_counts(snapshot: &BpmnDocumentSnapshot) -> ProcessCallableCounts {
-    snapshot
-        .processes
+    let mut counts =
+        snapshot
+            .processes
+            .iter()
+            .fold(ProcessCallableCounts::default(), |mut counts, process| {
+                counts.support += process.support_count;
+                counts.property += process.property_count;
+                counts.correlation_subscription += process.correlation_subscription_count;
+                counts.correlation_binding += process
+                    .correlation_subscriptions
+                    .iter()
+                    .map(|subscription| subscription.bindings.len())
+                    .sum::<usize>();
+                counts.process_io_binding += process.io_binding_count;
+                counts
+            });
+    counts.global_task_io_specification = snapshot
+        .root
+        .global_tasks
         .iter()
-        .fold(ProcessCallableCounts::default(), |mut counts, process| {
-            counts.support += process.support_count;
-            counts.property += process.property_count;
-            counts.correlation_subscription += process.correlation_subscription_count;
-            counts.correlation_binding += process
-                .correlation_subscriptions
-                .iter()
-                .map(|subscription| subscription.bindings.len())
-                .sum::<usize>();
-            counts
-        })
+        .map(|task| task.io_specification_count)
+        .sum();
+    counts.global_task_io_binding = snapshot
+        .root
+        .global_tasks
+        .iter()
+        .map(|task| task.io_binding_count)
+        .sum();
+    counts
 }
 
 fn process_callable_summary(snapshot: &BpmnDocumentSnapshot) -> Value {
@@ -426,8 +444,12 @@ fn process_callable_summary(snapshot: &BpmnDocumentSnapshot) -> Value {
         "property_count": counts.property,
         "correlation_subscription_count": counts.correlation_subscription,
         "correlation_binding_count": counts.correlation_binding,
-        "metadata_truncated": snapshot.processes.len() > SNAPSHOT_EVIDENCE_LIMIT,
+        "process_io_binding_count": counts.process_io_binding,
+        "global_task_io_specification_count": counts.global_task_io_specification,
+        "global_task_io_binding_count": counts.global_task_io_binding,
+        "metadata_truncated": snapshot.processes.len() > SNAPSHOT_EVIDENCE_LIMIT || snapshot.root.global_tasks.len() > SNAPSHOT_EVIDENCE_LIMIT,
         "processes": process_callable_metadata_evidence(snapshot),
+        "global_tasks": global_task_callable_metadata_evidence(snapshot),
     })
 }
 
@@ -471,9 +493,64 @@ fn process_callable_metadata_evidence(snapshot: &BpmnDocumentSnapshot) -> Vec<Va
                         }).collect::<Vec<_>>(),
                     })
                 }).collect::<Vec<_>>(),
+                "io_binding_count": process.io_binding_count,
+                "io_bindings": process.io_bindings.iter().take(SNAPSHOT_EVIDENCE_LIMIT).map(io_binding_evidence).collect::<Vec<_>>(),
             })
         })
         .collect()
+}
+
+fn global_task_callable_metadata_evidence(snapshot: &BpmnDocumentSnapshot) -> Vec<Value> {
+    snapshot
+        .root
+        .global_tasks
+        .iter()
+        .filter(|task| has_global_task_callable_metadata(task))
+        .take(SNAPSHOT_EVIDENCE_LIMIT)
+        .map(|task| {
+            json!({
+                "task_kind": task.task_kind,
+                "task_id": task.task_id,
+                "name": task.name,
+                "supported_interface_refs": task.supported_interface_refs,
+                "io_specification_count": task.io_specification_count,
+                "io_specifications": task.io_specifications.iter().take(SNAPSHOT_EVIDENCE_LIMIT).map(|spec| {
+                    json!({
+                        "io_specification_id": spec.io_specification_id,
+                        "data_input_count": spec.data_inputs.len(),
+                        "data_inputs": spec.data_inputs.iter().take(SNAPSHOT_EVIDENCE_LIMIT).map(|input| {
+                            json!({
+                                "data_id": input.data_id,
+                                "name": input.name,
+                                "item_subject_ref": input.item_subject_ref,
+                                "is_collection": input.is_collection,
+                            })
+                        }).collect::<Vec<_>>(),
+                        "data_output_count": spec.data_outputs.len(),
+                        "data_outputs": spec.data_outputs.iter().take(SNAPSHOT_EVIDENCE_LIMIT).map(|output| {
+                            json!({
+                                "data_id": output.data_id,
+                                "name": output.name,
+                                "item_subject_ref": output.item_subject_ref,
+                                "is_collection": output.is_collection,
+                            })
+                        }).collect::<Vec<_>>(),
+                    })
+                }).collect::<Vec<_>>(),
+                "io_binding_count": task.io_binding_count,
+                "io_bindings": task.io_bindings.iter().take(SNAPSHOT_EVIDENCE_LIMIT).map(io_binding_evidence).collect::<Vec<_>>(),
+            })
+        })
+        .collect()
+}
+
+fn io_binding_evidence(binding: &BpmnIoBindingSnapshot) -> Value {
+    json!({
+        "binding_id": binding.binding_id,
+        "operation_ref": binding.operation_ref,
+        "input_data_ref": binding.input_data_ref,
+        "output_data_ref": binding.output_data_ref,
+    })
 }
 
 fn has_process_callable_metadata(process: &BpmnProcessSnapshot) -> bool {
@@ -483,6 +560,13 @@ fn has_process_callable_metadata(process: &BpmnProcessSnapshot) -> bool {
         || process.support_count > 0
         || process.property_count > 0
         || process.correlation_subscription_count > 0
+        || process.io_binding_count > 0
+}
+
+fn has_global_task_callable_metadata(task: &BpmnGlobalTaskSnapshot) -> bool {
+    !task.supported_interface_refs.is_empty()
+        || task.io_specification_count > 0
+        || task.io_binding_count > 0
 }
 
 fn collaboration_counts(snapshot: &BpmnDocumentSnapshot) -> CollaborationCounts {

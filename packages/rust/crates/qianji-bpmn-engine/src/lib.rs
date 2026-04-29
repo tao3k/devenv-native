@@ -213,7 +213,7 @@ pub use bpmn_model_api::{
     BpmnDataStoreSnapshot, BpmnDiagramSnapshot, BpmnDocumentSnapshot, BpmnEdgeSnapshot,
     BpmnEndPointSnapshot, BpmnErrorSnapshot, BpmnEscalationSnapshot, BpmnExtensionSnapshot,
     BpmnFlowElementMetadataSnapshot, BpmnFontSnapshot, BpmnGlobalTaskSnapshot, BpmnGroupSnapshot,
-    BpmnImportSnapshot, BpmnInterfaceSnapshot, BpmnIoSpecificationSnapshot,
+    BpmnImportSnapshot, BpmnInterfaceSnapshot, BpmnIoBindingSnapshot, BpmnIoSpecificationSnapshot,
     BpmnItemDefinitionSnapshot, BpmnLabelSnapshot, BpmnLabelStyleSnapshot, BpmnLaneSetSnapshot,
     BpmnLaneSnapshot, BpmnMessageFlowAssociationSnapshot, BpmnMessageFlowSnapshot,
     BpmnMessageSnapshot, BpmnOperationSnapshot, BpmnParticipantAssociationSnapshot,

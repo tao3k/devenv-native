@@ -3,6 +3,7 @@ use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{BpmnDocumentSnapshot, snapshot_bpmn_source};
 
 mod artifacts;
+mod callable_io;
 mod choreography;
 mod collaboration;
 mod conversation;

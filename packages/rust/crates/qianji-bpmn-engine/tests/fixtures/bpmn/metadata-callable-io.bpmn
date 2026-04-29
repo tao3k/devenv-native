@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  id="Definitions_CallableIo"
+  targetNamespace="https://example.com/bpmn/callable-io-metadata">
+  <bpmn:itemDefinition id="Item_Request" structureRef="tns:Request" />
+  <bpmn:itemDefinition id="Item_Response" structureRef="tns:Response" />
+  <bpmn:message id="Message_Request" itemRef="Item_Request" />
+  <bpmn:message id="Message_Response" itemRef="Item_Response" />
+  <bpmn:interface id="Interface_Callable" name="Callable Interface">
+    <bpmn:operation id="Operation_Callable" name="Run">
+      <bpmn:inMessageRef>Message_Request</bpmn:inMessageRef>
+      <bpmn:outMessageRef>Message_Response</bpmn:outMessageRef>
+    </bpmn:operation>
+  </bpmn:interface>
+  <bpmn:globalTask id="GlobalTask_CallableIo" name="Reusable callable">
+    <bpmn:supportedInterfaceRef>Interface_Callable</bpmn:supportedInterfaceRef>
+    <bpmn:ioSpecification id="GlobalIoSpec_Callable">
+      <bpmn:dataInput id="GlobalInput_Request" name="request" itemSubjectRef="Item_Request" />
+      <bpmn:dataOutput id="GlobalOutput_Response" name="response" itemSubjectRef="Item_Response" />
+    </bpmn:ioSpecification>
+    <bpmn:ioBinding
+      id="GlobalIoBinding_Callable"
+      operationRef="Operation_Callable"
+      inputDataRef="GlobalInput_Request"
+      outputDataRef="GlobalOutput_Response" />
+  </bpmn:globalTask>
+  <bpmn:collaboration id="Collaboration_CallableIo">
+    <bpmn:participant id="Participant_Callable" processRef="Process_CallableIo" />
+  </bpmn:collaboration>
+  <bpmn:process id="Process_CallableIo" isExecutable="false">
+    <bpmn:ioSpecification id="ProcessIoSpec_Callable">
+      <bpmn:dataInput id="ProcessInput_Request" name="request" itemSubjectRef="Item_Request" />
+      <bpmn:dataOutput id="ProcessOutput_Response" name="response" itemSubjectRef="Item_Response" />
+    </bpmn:ioSpecification>
+    <bpmn:ioBinding
+      id="ProcessIoBinding_Callable"
+      operationRef="Operation_Callable"
+      inputDataRef="ProcessInput_Request"
+      outputDataRef="ProcessOutput_Response" />
+    <bpmn:startEvent id="Start_CallableIo" />
+    <bpmn:endEvent id="End_CallableIo" />
+    <bpmn:sequenceFlow id="Flow_CallableIo" sourceRef="Start_CallableIo" targetRef="End_CallableIo" />
+  </bpmn:process>
+</bpmn:definitions>
