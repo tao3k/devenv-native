@@ -242,6 +242,17 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--hybrid-pdf-render-selection",
+        choices=("all-pages", "shard-fallback-pages"),
+        default="shard-fallback-pages",
+        help=(
+            "Page selection mode used by the live hybrid-page-ocr provider "
+            "during benchmark runs. Defaults to shard-fallback-pages so live "
+            "benchmarks keep routing behavior unless OCR worker proof explicitly "
+            "forces all pages."
+        ),
+    )
+    parser.add_argument(
         "--pdfium-library-path",
         type=Path,
         help=("Path to a libpdfium shared library used by --pdf-render-shard-audit."),
@@ -313,6 +324,16 @@ def parse_args() -> argparse.Namespace:
         action="append",
         default=[],
         help="Run only the named fixture. May be passed more than once.",
+    )
+    parser.add_argument(
+        "--extra-fixture",
+        action="append",
+        default=[],
+        metavar="NAME=PATH",
+        help=(
+            "Add an explicit fixture file by alias. May be passed more than once; "
+            "useful for opt-in real PDFs under the project data directory."
+        ),
     )
     parser.add_argument(
         "--fail-on-error-rows",
@@ -509,7 +530,13 @@ def resolve_fixtures(
                 "--real-docling requires --fixture-suite docling-real and "
                 "--docling-source-root so benchmark inputs are valid documents"
             )
-        return write_fake_fixtures(fixture_dir), None
+        return (
+            merge_extra_fixtures(
+                write_fake_fixtures(fixture_dir),
+                getattr(args, "extra_fixture", []),
+            ),
+            None,
+        )
 
     if not args.real_docling:
         raise SystemExit("--fixture-suite docling-real requires --real-docling")
@@ -522,10 +549,13 @@ def resolve_fixtures(
         )
     require_docling_source_root(real_fixture_root)
     return (
-        docling_real_fixtures(
-            real_fixture_root,
-            include_audio=not args.skip_audio,
-            include_pdf_corpus=args.include_docling_pdf_corpus,
+        merge_extra_fixtures(
+            docling_real_fixtures(
+                real_fixture_root,
+                include_audio=not args.skip_audio,
+                include_pdf_corpus=args.include_docling_pdf_corpus,
+            ),
+            getattr(args, "extra_fixture", []),
         ),
         real_fixture_root,
     )
@@ -855,6 +885,46 @@ def select_fixtures(
     return {fixture_name: fixtures[fixture_name] for fixture_name in fixture_names}
 
 
+def merge_extra_fixtures(
+    fixtures: dict[str, Path],
+    fixture_specs: list[str],
+) -> dict[str, Path]:
+    extra_fixtures = parse_extra_fixtures(fixture_specs)
+    collisions = sorted(set(fixtures).intersection(extra_fixtures))
+    if collisions:
+        raise SystemExit(
+            "Extra fixture alias collides with existing fixture(s): "
+            + ", ".join(collisions)
+        )
+    return {**fixtures, **extra_fixtures}
+
+
+def parse_extra_fixtures(fixture_specs: list[str]) -> dict[str, Path]:
+    fixtures: dict[str, Path] = {}
+    for fixture_spec in fixture_specs:
+        fixture_name, fixture_path = parse_extra_fixture(fixture_spec)
+        if fixture_name in fixtures:
+            raise SystemExit(f"Duplicate extra fixture alias: {fixture_name}")
+        fixtures[fixture_name] = fixture_path
+    return fixtures
+
+
+def parse_extra_fixture(fixture_spec: str) -> tuple[str, Path]:
+    if "=" not in fixture_spec:
+        raise SystemExit("--extra-fixture must use NAME=PATH syntax: " + fixture_spec)
+    fixture_name, raw_path = fixture_spec.split("=", maxsplit=1)
+    fixture_name = fixture_name.strip()
+    raw_path = raw_path.strip()
+    if not fixture_name:
+        raise SystemExit("--extra-fixture alias must not be empty")
+    if not raw_path:
+        raise SystemExit(f"--extra-fixture path must not be empty: {fixture_name}")
+    fixture_path = Path(raw_path).expanduser().resolve()
+    if not fixture_path.is_file():
+        raise SystemExit(f"Extra fixture path does not exist: {fixture_path}")
+    return fixture_name, fixture_path
+
+
 def resolve_docling_source_root(source_root: Path | None) -> Path:
     if source_root is not None:
         return source_root.resolve()
@@ -997,13 +1067,19 @@ def start_rust_provider_server(
     provider_root = temp_root / "rust-provider"
     provider_root.mkdir(parents=True, exist_ok=True)
     env = rust_process_env()
+    pdfium_library_path = resolve_pdfium_library_path(args)
     env.update(
         {
             "WENDAO_DOCUMENT_EXTRACT_ENDPOINT": f"http://{python_host}:{python_port}",
             "WENDAO_DOCUMENT_EXTRACT_JOB_DB": str(provider_root / "jobs.duckdb"),
             "WENDAO_DOCUMENT_EXTRACT_ARTIFACT_ROOT": str(provider_root / "artifacts"),
+            "WENDAO_DOCUMENT_EXTRACT_PDF_RENDER_SELECTION": normalize_render_selection(
+                getattr(args, "hybrid_pdf_render_selection", "shard-fallback-pages")
+            ),
         }
     )
+    if pdfium_library_path is not None:
+        env["WENDAO_PDFIUM_LIBRARY_PATH"] = str(pdfium_library_path)
     command = [
         args.cargo,
         "run",
@@ -1080,11 +1156,15 @@ def start_gateway_server(
     gateway_root.mkdir(parents=True, exist_ok=True)
     config_path = write_gateway_benchmark_config(gateway_root, valkey_url=valkey_url)
     env = rust_process_env()
+    pdfium_library_path = resolve_pdfium_library_path(args)
     env.update(
         {
             "WENDAO_DOCUMENT_EXTRACT_ENDPOINT": f"http://{python_host}:{python_port}",
             "WENDAO_DOCUMENT_EXTRACT_JOB_DB": str(gateway_root / "jobs.duckdb"),
             "WENDAO_DOCUMENT_EXTRACT_ARTIFACT_ROOT": str(gateway_root / "artifacts"),
+            "WENDAO_DOCUMENT_EXTRACT_PDF_RENDER_SELECTION": normalize_render_selection(
+                getattr(args, "hybrid_pdf_render_selection", "shard-fallback-pages")
+            ),
             "VALKEY_URL": valkey_url,
             "REDIS_URL": valkey_url,
             "XIUXIAN_WENDAO_SEARCH_PLANE_VALKEY_URL": valkey_url,
@@ -1092,6 +1172,8 @@ def start_gateway_server(
             "XIUXIAN_WENDAO_GATEWAY_BOOTSTRAP_BACKGROUND_INDEXING": "false",
         }
     )
+    if pdfium_library_path is not None:
+        env["WENDAO_PDFIUM_LIBRARY_PATH"] = str(pdfium_library_path)
     command = [
         args.cargo,
         "run",
@@ -1123,6 +1205,10 @@ def start_gateway_server(
         env=env,
         start_new_session=True,
     )
+
+
+def normalize_render_selection(selection: str) -> str:
+    return selection.strip().replace("-", "_")
 
 
 def write_gateway_benchmark_config(config_root: Path, *, valkey_url: str) -> Path:

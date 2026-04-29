@@ -89,6 +89,43 @@ def test_select_fixtures_filters_named_fixture(tmp_path: Path) -> None:
     assert selected == {"audio": tmp_path / "sample.mp3"}
 
 
+def test_parse_extra_fixtures_resolves_existing_files(tmp_path: Path) -> None:
+    benchmark = _load_benchmark_module()
+    pdf_fixture = tmp_path / "2604.17337.pdf"
+    pdf_fixture.write_bytes(b"%PDF")
+
+    fixtures = benchmark.parse_extra_fixtures([f"arxiv-2604-17337={pdf_fixture}"])
+
+    assert fixtures == {"arxiv-2604-17337": pdf_fixture.resolve()}
+
+
+def test_parse_extra_fixtures_rejects_missing_files(tmp_path: Path) -> None:
+    benchmark = _load_benchmark_module()
+
+    try:
+        benchmark.parse_extra_fixtures([f"arxiv-2604-17337={tmp_path / 'missing.pdf'}"])
+    except SystemExit as error:
+        assert "Extra fixture path does not exist" in str(error)
+    else:
+        raise AssertionError("missing extra fixture should fail")
+
+
+def test_merge_extra_fixtures_rejects_alias_collision(tmp_path: Path) -> None:
+    benchmark = _load_benchmark_module()
+    pdf_fixture = tmp_path / "sample.pdf"
+    pdf_fixture.write_bytes(b"%PDF")
+
+    try:
+        benchmark.merge_extra_fixtures(
+            {"pdf": tmp_path / "base.pdf"},
+            [f"pdf={pdf_fixture}"],
+        )
+    except SystemExit as error:
+        assert "collides with existing fixture" in str(error)
+    else:
+        raise AssertionError("colliding extra fixture should fail")
+
+
 def test_prepare_distinct_miss_fixtures_writes_unique_fake_inputs(
     tmp_path: Path,
 ) -> None:
@@ -549,6 +586,14 @@ def test_pdf_render_shard_features_are_not_duplicated() -> None:
     )
 
 
+def test_normalize_render_selection_accepts_cli_spelling() -> None:
+    benchmark = _load_benchmark_module()
+
+    assert benchmark.normalize_render_selection("shard-fallback-pages") == (
+        "shard_fallback_pages"
+    )
+
+
 def test_cargo_perf_probe_can_send_distinct_input_manifest(
     monkeypatch,
     tmp_path: Path,
@@ -654,6 +699,9 @@ def test_start_gateway_server_sets_document_extract_and_valkey_env(
     ]
     env = kwargs["env"]
     assert env["WENDAO_DOCUMENT_EXTRACT_ENDPOINT"] == "http://127.0.0.1:51051"
+    assert env["WENDAO_DOCUMENT_EXTRACT_PDF_RENDER_SELECTION"] == (
+        "shard_fallback_pages"
+    )
     assert env["VALKEY_URL"] == "redis://127.0.0.1:51079/0"
     assert env["XIUXIAN_WENDAO_SEARCH_PLANE_VALKEY_URL"] == (
         "redis://127.0.0.1:51079/0"

@@ -169,6 +169,26 @@ all-page render cost. It is not a positive scanned-PDF proof. The next real
 coverage gap is to add opt-in scanned/image PDF fixtures under project data and
 prove that `shard_fallback_pages` renders only the pages that actually need OCR.
 
+The first external OCR-positive fixture was then added as an opt-in benchmark
+input from project data, using arXiv `2604.17337`. It exposed an important
+split between route recall and OCR execution:
+
+| Profile                   | Pages | Shards | Elapsed ms | Status      |
+| ------------------------- | ----: | -----: | ---------: | ----------- |
+| `shard_fallback_pages`    |    21 |      0 |   1095.312 | `skipped`   |
+| forced `all_pages` render |    21 |     21 |  61244.427 | `rendered`  |
+| forced Docling shard OCR  |    21 |     21 | 241718.175 | `succeeded` |
+| cache hit after OCR       |    21 |     21 |     12.515 | `succeeded` |
+
+The OCR worker contract is therefore proven on a real PDF: Rust can render page
+images, send Arrow OCR shard inputs through the Python analyzer, receive
+Docling OCR shard results, and materialize 21 successful stable resource rows
+with `totalErrorRows=0`. The routing gap is also clear: current
+`pdf-inspector` signals did not mark any page as needing raster OCR, so the
+optimized `shard_fallback_pages` mode would not invoke OCR for this fixture.
+The next routing slice should improve OCR-page recall for image-bearing text
+PDFs before enabling this path by default.
+
 The current proof slices add an Arrow-only OCR worker contract under
 `xiuxian-wendao-attachments` plus a feature-gated Studio-side Flight client.
 Rendered page manifests are projected into

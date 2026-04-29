@@ -50,6 +50,9 @@ const DEFAULT_DOCUMENT_EXTRACT_ENDPOINT: &str = "http://localhost:50051";
 const DOCUMENT_EXTRACT_FLIGHT_MESSAGE_SIZE_BYTES: usize = 256 * 1024 * 1024;
 const DOCUMENT_EXTRACT_MAX_RUNNING_CONVERSIONS_ENV: &str =
     "WENDAO_DOCUMENT_EXTRACT_MAX_RUNNING_CONVERSIONS";
+#[cfg(feature = "document-extract-pdf-render")]
+const DOCUMENT_EXTRACT_PDF_RENDER_SELECTION_ENV: &str =
+    "WENDAO_DOCUMENT_EXTRACT_PDF_RENDER_SELECTION";
 const DEFAULT_DOCUMENT_EXTRACT_MAX_RUNNING_CONVERSIONS: usize = 4;
 
 #[derive(Clone)]
@@ -593,11 +596,31 @@ async fn render_hybrid_page_ocr_shards(
             source_for_render.as_path(),
             output_for_render.as_path(),
             &PdfPageRenderProfile::ocr_default(),
-            PdfPageRenderSelection::ShardFallbackPages,
+            hybrid_page_ocr_render_selection(),
         )
     })
     .await
     .map_err(|error| format!("join hybrid PDF OCR render task: {error}"))?
+}
+
+#[cfg(feature = "document-extract-pdf-render")]
+fn hybrid_page_ocr_render_selection() -> PdfPageRenderSelection {
+    hybrid_page_ocr_render_selection_with_lookup(&|key| std::env::var(key).ok())
+}
+
+#[cfg(feature = "document-extract-pdf-render")]
+fn hybrid_page_ocr_render_selection_with_lookup(
+    lookup: &dyn Fn(&str) -> Option<String>,
+) -> PdfPageRenderSelection {
+    match lookup(DOCUMENT_EXTRACT_PDF_RENDER_SELECTION_ENV)
+        .unwrap_or_default()
+        .trim()
+        .replace('-', "_")
+        .as_str()
+    {
+        "all_pages" => PdfPageRenderSelection::AllPages,
+        _ => PdfPageRenderSelection::ShardFallbackPages,
+    }
 }
 
 #[cfg(feature = "document-extract-pdf-render")]
@@ -916,6 +939,24 @@ mod tests {
         );
 
         assert_eq!(limit, 2);
+    }
+
+    #[cfg(feature = "document-extract-pdf-render")]
+    #[test]
+    fn hybrid_page_ocr_render_selection_defaults_to_shard_fallback() {
+        let selection = hybrid_page_ocr_render_selection_with_lookup(&|_| None);
+
+        assert_eq!(selection, PdfPageRenderSelection::ShardFallbackPages);
+    }
+
+    #[cfg(feature = "document-extract-pdf-render")]
+    #[test]
+    fn hybrid_page_ocr_render_selection_accepts_all_pages_override() {
+        let selection = hybrid_page_ocr_render_selection_with_lookup(&|key| {
+            (key == DOCUMENT_EXTRACT_PDF_RENDER_SELECTION_ENV).then(|| "all-pages".to_string())
+        });
+
+        assert_eq!(selection, PdfPageRenderSelection::AllPages);
     }
 
     #[cfg(feature = "document-extract-pdf-render")]
