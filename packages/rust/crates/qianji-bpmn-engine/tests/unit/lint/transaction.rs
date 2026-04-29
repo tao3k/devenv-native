@@ -185,7 +185,7 @@ fn bpmn_linter_reports_transaction_multiple_external_boundaries_with_llm_guidanc
     assert_eq!(issue.code, "bpmn.unsupported_boundary_configuration");
     assert!(issue.summary.contains("tx_timeout_late"));
     assert!(issue.why_it_failed.contains(
-        "one interrupting timer, message, or signal boundary on one bounded transaction shell"
+        "one interrupting timer, message, signal, or conditional boundary on one bounded transaction shell"
     ));
     assert!(issue.repair_guidance.iter().any(|step| step.contains(
         "with one interrupting cancel boundary plus one or more interrupting error boundaries"

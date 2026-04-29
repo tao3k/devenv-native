@@ -14,8 +14,8 @@ The current engine supports these bounded nested-scope families:
   executable call-activity targets in the bounded runtime
 - `transaction` shell with exactly one nested `startEvent` and at least one
   nested `endEvent`
-- interrupting timer, message, or signal boundaries on embedded subprocess,
-  same-package call activity, and transaction owners
+- interrupting timer, message, signal, or conditional boundaries on embedded
+  subprocess, same-package call activity, and transaction owners
 - interrupting error boundaries on embedded subprocess, same-package call
   activity, and transaction owners
 - one interrupting cancel boundary on one bounded transaction owner
@@ -64,8 +64,8 @@ These nested-scope shapes remain outside the bounded surface:
 
 - event subprocesses, including compensation event subprocesses
 - recursive call-activity chains
-- non-interrupting timer, message, or signal boundaries on embedded
-  subprocess, call activity, or transaction owners
+- non-interrupting timer, message, signal, or conditional boundaries on
+  embedded subprocess, call activity, or transaction owners
 - more than one cancel boundary on a transaction owner
 - broader compensation handlers outside the bounded transaction shell
 - broader compensation throwing outside the bounded transaction-owned end and

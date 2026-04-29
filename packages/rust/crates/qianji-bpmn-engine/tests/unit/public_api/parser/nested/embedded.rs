@@ -189,7 +189,8 @@ fn parser_top_level_escalation_end_requires_supported_parent_boundary() {
 }
 
 #[test]
-fn parser_embedded_subprocess_interrupting_external_boundaries_accept_timer_message_and_signal() {
+fn parser_embedded_subprocess_interrupting_external_boundaries_accept_timer_message_signal_and_conditional()
+ {
     for (fixture_name, boundary_id, event_kind) in [
         (
             "embedded-subprocess-timer-boundary.bpmn",
@@ -205,6 +206,11 @@ fn parser_embedded_subprocess_interrupting_external_boundaries_accept_timer_mess
             "embedded-subprocess-signal-boundary.bpmn",
             "review_alert",
             BpmnEventKind::Signal,
+        ),
+        (
+            "embedded-subprocess-conditional-boundary.bpmn",
+            "review_condition",
+            BpmnEventKind::Conditional,
         ),
     ] {
         let package = parse_bpmn_package(

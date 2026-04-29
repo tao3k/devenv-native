@@ -7,6 +7,7 @@ use qianji_bpmn_engine::{
 
 mod call_error;
 mod call_mixed;
+mod conditional_boundary;
 mod core;
 mod embedded_boundary;
 mod embedded_error;

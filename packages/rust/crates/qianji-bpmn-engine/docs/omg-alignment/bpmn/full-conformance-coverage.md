@@ -18,39 +18,39 @@ guidance.
 
 ## Coverage Matrix
 
-| BPMN family               | Current status     | Current boundary                                                                        |
-| ------------------------- | ------------------ | --------------------------------------------------------------------------------------- |
-| Linear process flow       | bounded executable | Start/end events, sequence flow, and deterministic token advancement.                   |
-| Host-dispatched tasks     | bounded executable | Service, send, script, business-rule, user, and manual task families.                   |
-| Human interaction         | bounded executable | Native BPMN documentation and IO metadata feed Rust-owned host-work forms.              |
-| Parallel gateway          | bounded executable | Split and join with deterministic active-token and join-buffer behavior.                |
-| Exclusive gateway         | bounded executable | Default flow plus simple boolean-path and numeric condition expressions.                |
-| Inclusive gateway         | bounded executable | Structured split and one matching linear join fragment.                                 |
-| Event-based gateway       | bounded executable | Exclusive competition over message, signal, or timer intermediate catches.              |
-| Complex gateway           | lint-deferred      | No executable semantics yet.                                                            |
-| Intermediate catch events | bounded executable | Message, signal, timer, and bounded conditional waits.                                  |
-| Boundary events           | bounded executable | Bounded interrupting and non-interrupting timer/message/signal/conditional task owners. |
-| Error and cancel events   | bounded executable | Bounded subprocess, call-activity, transaction, and top-level error paths.              |
-| Compensation              | bounded executable | Transaction-owned compensation handlers and throw-compensation paths.                   |
-| Conditional events        | bounded executable | Intermediate catches and task boundaries with bounded boolean or numeric conditions.    |
-| Escalation events         | bounded executable | End-to-interrupting-boundary routing on bounded subprocess-like owners.                 |
-| Terminate events          | bounded executable | `terminateEventDefinition` end events terminate the current runtime scope.              |
-| Multiple events           | lint-deferred      | Multiple and parallel-multiple event families are deferred.                             |
-| Embedded subprocess       | bounded executable | One nested start event and at least one nested end event.                               |
-| Call activity             | bounded executable | Same-package executable process targets.                                                |
-| Transaction               | bounded executable | Bounded shell with cancel/error/compensation behavior.                                  |
-| Event subprocess          | lint-deferred      | Deferred, including compensation event subprocesses.                                    |
-| Standard loop             | bounded executable | Supported on selected host-dispatched task families.                                    |
-| Sequential multi-instance | bounded executable | Cardinality and bounded collection-backed input/output subset.                          |
-| Parallel multi-instance   | bounded executable | Cardinality and bounded collection-backed input/output subset.                          |
-| Collaboration and pools   | metadata-only      | Participant and message-flow structures are preserved, not routed.                      |
-| Lanes                     | metadata-only      | Preserved for passive routing/display; no scheduling or authorization.                  |
-| Data objects              | metadata-only      | Preserved in snapshots; bounded task IO execution is handled separately.                |
-| Data stores               | lint-deferred      | Persistence semantics require a separate storage policy.                                |
-| IO specification          | bounded executable | Human-task form IO and bounded host-task Data/IO metadata are executable.               |
-| Data associations         | bounded executable | Bounded host-task input resolution and output target mapping are executable.            |
-| BPMN DI                   | metadata-only      | Diagram metadata is not runtime behavior.                                               |
-| DMN links                 | bounded executable | Business-rule tasks can execute local bounded DMN decisions when available.             |
+| BPMN family               | Current status     | Current boundary                                                                    |
+| ------------------------- | ------------------ | ----------------------------------------------------------------------------------- |
+| Linear process flow       | bounded executable | Start/end events, sequence flow, and deterministic token advancement.               |
+| Host-dispatched tasks     | bounded executable | Service, send, script, business-rule, user, and manual task families.               |
+| Human interaction         | bounded executable | Native BPMN documentation and IO metadata feed Rust-owned host-work forms.          |
+| Parallel gateway          | bounded executable | Split and join with deterministic active-token and join-buffer behavior.            |
+| Exclusive gateway         | bounded executable | Default flow plus simple boolean-path and numeric condition expressions.            |
+| Inclusive gateway         | bounded executable | Structured split and one matching linear join fragment.                             |
+| Event-based gateway       | bounded executable | Exclusive competition over message, signal, or timer intermediate catches.          |
+| Complex gateway           | lint-deferred      | No executable semantics yet.                                                        |
+| Intermediate catch events | bounded executable | Message, signal, timer, and bounded conditional waits.                              |
+| Boundary events           | bounded executable | Bounded task owners plus interrupting subprocess-like external boundaries.          |
+| Error and cancel events   | bounded executable | Bounded subprocess, call-activity, transaction, and top-level error paths.          |
+| Compensation              | bounded executable | Transaction-owned compensation handlers and throw-compensation paths.               |
+| Conditional events        | bounded executable | Intermediate catches, task boundaries, and interrupting subprocess-like boundaries. |
+| Escalation events         | bounded executable | End-to-interrupting-boundary routing on bounded subprocess-like owners.             |
+| Terminate events          | bounded executable | `terminateEventDefinition` end events terminate the current runtime scope.          |
+| Multiple events           | lint-deferred      | Multiple and parallel-multiple event families are deferred.                         |
+| Embedded subprocess       | bounded executable | One nested start event and at least one nested end event.                           |
+| Call activity             | bounded executable | Same-package executable process targets.                                            |
+| Transaction               | bounded executable | Bounded shell with cancel/error/compensation behavior.                              |
+| Event subprocess          | lint-deferred      | Deferred, including compensation event subprocesses.                                |
+| Standard loop             | bounded executable | Supported on selected host-dispatched task families.                                |
+| Sequential multi-instance | bounded executable | Cardinality and bounded collection-backed input/output subset.                      |
+| Parallel multi-instance   | bounded executable | Cardinality and bounded collection-backed input/output subset.                      |
+| Collaboration and pools   | metadata-only      | Participant and message-flow structures are preserved, not routed.                  |
+| Lanes                     | metadata-only      | Preserved for passive routing/display; no scheduling or authorization.              |
+| Data objects              | metadata-only      | Preserved in snapshots; bounded task IO execution is handled separately.            |
+| Data stores               | lint-deferred      | Persistence semantics require a separate storage policy.                            |
+| IO specification          | bounded executable | Human-task form IO and bounded host-task Data/IO metadata are executable.           |
+| Data associations         | bounded executable | Bounded host-task input resolution and output target mapping are executable.        |
+| BPMN DI                   | metadata-only      | Diagram metadata is not runtime behavior.                                           |
+| DMN links                 | bounded executable | Business-rule tasks can execute local bounded DMN decisions when available.         |
 
 ## Completed M1 Milestone
 
@@ -88,6 +88,13 @@ remain deferred.
 The fourth event-family slice promotes native `conditionalEventDefinition` on
 task-attached `boundaryEvent` nodes. The same bounded boolean-path and
 numeric-comparison expression subset is used for interrupting and
-non-interrupting task boundaries. Conditional boundaries on subprocess-like
-owners, conditional start events, and conditional event subprocess triggers
-remain deferred.
+non-interrupting task boundaries.
+
+The fifth event-family slice promotes native `conditionalEventDefinition` on
+interrupting `boundaryEvent` nodes attached to bounded embedded subprocess,
+same-package call-activity, and transaction owners. The runtime arms the same
+parent-frame wait path used by bounded timer, message, and signal external
+boundaries, then re-evaluates the bounded condition after event-poll data is
+merged. Non-interrupting conditional boundaries on subprocess-like owners,
+conditional start events, and conditional event subprocess triggers remain
+deferred.

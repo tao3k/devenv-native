@@ -277,7 +277,12 @@ fn validate_transaction_shell_boundary(
     }
     if matches!(
         event_kind,
-        Some(BpmnEventKind::Timer | BpmnEventKind::Message | BpmnEventKind::Signal)
+        Some(
+            BpmnEventKind::Timer
+                | BpmnEventKind::Message
+                | BpmnEventKind::Signal
+                | BpmnEventKind::Conditional
+        )
     ) {
         if usage.transaction_external > 0 {
             return boundary_configuration_error(
@@ -311,7 +316,12 @@ fn validate_call_activity_boundary(
     }
     if matches!(
         event_kind,
-        Some(BpmnEventKind::Timer | BpmnEventKind::Message | BpmnEventKind::Signal)
+        Some(
+            BpmnEventKind::Timer
+                | BpmnEventKind::Message
+                | BpmnEventKind::Signal
+                | BpmnEventKind::Conditional
+        )
     ) {
         if usage.call_activity_external > 0
             || usage.total > usage.call_activity_error + usage.call_activity_escalation
@@ -347,7 +357,12 @@ fn validate_embedded_shell_boundary(
     }
     if matches!(
         event_kind,
-        Some(BpmnEventKind::Timer | BpmnEventKind::Message | BpmnEventKind::Signal)
+        Some(
+            BpmnEventKind::Timer
+                | BpmnEventKind::Message
+                | BpmnEventKind::Signal
+                | BpmnEventKind::Conditional
+        )
     ) {
         if usage.embedded_external > 0
             || usage.total > usage.embedded_error + usage.embedded_escalation

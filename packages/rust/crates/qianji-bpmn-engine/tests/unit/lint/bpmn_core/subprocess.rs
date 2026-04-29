@@ -77,6 +77,7 @@ fn bpmn_linter_accepts_embedded_subprocess_interrupting_external_boundary_subset
         "embedded-subprocess-timer-boundary.bpmn",
         "embedded-subprocess-message-boundary.bpmn",
         "embedded-subprocess-signal-boundary.bpmn",
+        "embedded-subprocess-conditional-boundary.bpmn",
     ] {
         let report = lint_bpmn_source(&bpmn_fixture_source(fixture_name));
         assert_eq!(report.domain, LintDomain::Bpmn);
@@ -137,6 +138,7 @@ fn bpmn_linter_accepts_call_activity_interrupting_external_boundary_subset() {
         "call-activity-timer-boundary.bpmn",
         "call-activity-message-boundary.bpmn",
         "call-activity-signal-boundary.bpmn",
+        "call-activity-conditional-boundary.bpmn",
     ] {
         let report = lint_bpmn_source(&bpmn_fixture_source(fixture_name));
         assert_eq!(report.domain, LintDomain::Bpmn);
@@ -160,6 +162,7 @@ fn bpmn_linter_accepts_transaction_interrupting_external_boundary_subset() {
         "transaction-timer-boundary.bpmn",
         "transaction-message-boundary.bpmn",
         "transaction-signal-boundary.bpmn",
+        "transaction-conditional-boundary.bpmn",
     ] {
         let report = lint_bpmn_source(&bpmn_fixture_source(fixture_name));
         assert_eq!(report.domain, LintDomain::Bpmn);

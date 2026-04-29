@@ -12,19 +12,21 @@ The current engine supports these bounded families:
   `conditionalEventDefinition` with one bounded `condition`
 - one interrupting timer, message, signal, or conditional `boundaryEvent`
   attached to one host-blocking task owner
-- one interrupting timer, message, or signal `boundaryEvent` attached to one
-  bounded embedded subprocess owner, either alone or paired with one or more
-  interrupting error boundaries on that same owner
-- one interrupting timer, message, or signal `boundaryEvent` attached to one
-  bounded same-package `callActivity` owner, either alone or paired with one
-  or more interrupting error boundaries on that same owner
-- one interrupting timer, message, or signal `boundaryEvent` attached to one
-  bounded transaction shell owner, either on its own, paired with one or
-  more interrupting error boundaries on that same owner, paired with one
+- one interrupting timer, message, signal, or conditional `boundaryEvent`
+  attached to one bounded embedded subprocess owner, either alone or paired
+  with one or more interrupting error boundaries on that same owner
+- one interrupting timer, message, signal, or conditional `boundaryEvent`
+  attached to one bounded same-package `callActivity` owner, either alone or
+  paired with one or more interrupting error boundaries on that same owner
+- one interrupting timer, message, signal, or conditional `boundaryEvent`
+  attached to one bounded transaction shell owner, either on its own, paired
+  with one or more interrupting error boundaries on that same owner, paired
+  with one
   interrupting cancel boundary on that same owner, or paired with one
   interrupting cancel boundary plus one or more interrupting error
   boundaries on that same owner, while still permitting only one
-  timer/message/signal boundary and one cancel boundary on that owner
+  timer/message/signal/conditional boundary and one cancel boundary on that
+  owner
 - one non-interrupting timer, message, signal, or conditional `boundaryEvent`
   attached to one non-repeating task owner
 - one non-interrupting timer, message, signal, or conditional `boundaryEvent`
@@ -33,12 +35,12 @@ The current engine supports these bounded families:
   attached to one bounded sequential or parallel multi-instance task owner
 - one bounded transaction cancel boundary plus one or more bounded transaction
   error boundaries
-- one or more bounded interrupting error boundaries on one embedded subprocess
-  owner, including the bounded mixed-owner shape with one interrupting
-  timer/message/signal boundary on that same owner
+- one or more bounded interrupting error boundaries on one embedded
+  subprocess owner, including the bounded mixed-owner shape with one
+  interrupting timer/message/signal/conditional boundary on that same owner
 - one or more bounded interrupting error boundaries on one same-package
   `callActivity` owner, including the bounded mixed-owner shape with one
-  interrupting timer/message/signal boundary on that same owner
+  interrupting timer/message/signal/conditional boundary on that same owner
 - one or more bounded interrupting escalation boundaries on one embedded
   subprocess, same-package `callActivity`, or transaction owner, routed from a
   matching escalation end event inside that child scope
@@ -72,19 +74,19 @@ These shapes remain outside the bounded surface:
 - root-level escalation ends, non-interrupting escalation boundaries,
   intermediate throw escalation, escalation start events, and escalation event
   subprocess triggers
-- conditional boundaries on subprocess-like owners, conditional start events,
-  and conditional event subprocess triggers
+- non-interrupting conditional boundaries on subprocess-like owners,
+  conditional start events, and conditional event subprocess triggers
 - event subprocesses
-- broader message, signal, or timer boundary families on subprocess-like
-  owners beyond one interrupting embedded subprocess owner that may
+- broader message, signal, timer, or conditional boundary families on
+  subprocess-like owners beyond one interrupting embedded subprocess owner that may
   optionally pair that boundary with one or more interrupting error
   boundaries, or beyond one interrupting same-package `callActivity` owner
   that may optionally pair that boundary with one or more interrupting error
   boundaries, or beyond one interrupting transaction shell owner that may
   optionally pair that boundary with one interrupting cancel boundary, one
   or more interrupting error boundaries, or both on that same owner, while
-  still rejecting more than one timer/message/signal boundary or more than
-  one cancel boundary on that same owner
+  still rejecting more than one timer/message/signal/conditional boundary or
+  more than one cancel boundary on that same owner
 - broader non-interrupting boundaries on subprocess-like owners
 - broader message correlation, collaboration-aware messaging, and pooling
 - full timer semantics beyond the current bounded wait shell

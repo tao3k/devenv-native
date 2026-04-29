@@ -35,9 +35,9 @@
 //! one bounded embedded `subProcess` body with
 //! exactly one nested `startEvent` and at least one nested `endEvent`, plus
 //! one bounded embedded subprocess owner that may expose one interrupting
-//! timer, message, or signal `boundaryEvent` plus one or more interrupting
+//! timer, message, signal, or conditional `boundaryEvent` plus one or more interrupting
 //! error `boundaryEvent` nodes on that same owner, where the interrupting
-//! parent timer/message/signal boundary may cancel the child shell before
+//! parent timer/message/signal/conditional boundary may cancel the child shell before
 //! restoring the parent frame, one or more nested error ends may each
 //! restore the parent frame, preserve variable mutations, and route through
 //! every matching parent error boundary including one catch-all boundary,
@@ -49,16 +49,16 @@
 //! `<transaction>` shell and one nested cancel end that restores the parent
 //! frame, rolls back transaction-local variable mutations, and routes through
 //! the parent cancel boundary, plus one bounded transaction owner that may
-//! expose one interrupting timer, message, or signal `boundaryEvent` plus one
+//! expose one interrupting timer, message, signal, or conditional `boundaryEvent` plus one
 //! interrupting cancel `boundaryEvent`, plus one or more interrupting error
 //! `boundaryEvent` nodes, or both cancel and error boundaries adjacent to
-//! that same interrupting timer/message/signal boundary, where one or more
+//! that same interrupting timer/message/signal/conditional boundary, where one or more
 //! nested error ends may each restore the parent frame, preserve
 //! transaction-local variable mutations, and route through every matching
 //! parent error boundary including one catch-all boundary, while normal
 //! completion, interrupting external wins, cancel routing, and error routing
 //! cancel the non-selected sibling boundaries, and the bounded subset still
-//! permits only one interrupting timer/message/signal boundary and one
+//! permits only one interrupting timer/message/signal/conditional boundary and one
 //! interrupting cancel boundary on that same owner, plus one bounded
 //! terminate end-event subset where `terminateEventDefinition` cancels sibling
 //! active tokens, waits, and host work in the current runtime scope before root
@@ -83,9 +83,9 @@
 //! compensation queue drains while downstream routing continues,
 //! plus one bounded `callActivity` that targets another process in the same
 //! BPMN package, and one bounded same-package `callActivity` owner may expose
-//! one interrupting timer, message, or signal `boundaryEvent` plus one or
+//! one interrupting timer, message, signal, or conditional `boundaryEvent` plus one or
 //! more interrupting error `boundaryEvent` nodes on that same owner, where
-//! the interrupting parent timer/message/signal boundary may cancel the
+//! the interrupting parent timer/message/signal/conditional boundary may cancel the
 //! called child process before restoring the parent frame, one or more child
 //! error ends may each restore the parent frame, preserve variable
 //! mutations, and route through every matching parent error boundary
@@ -125,9 +125,9 @@
 //! inclusive gateways, recursive call chains, broader mixed boundary families
 //! on same-package
 //! `callActivity` owners or embedded subprocess owners beyond one
-//! interrupting timer/message/signal boundary plus one or more interrupting
+//! interrupting timer/message/signal/conditional boundary plus one or more interrupting
 //! error boundaries, broader transaction-shell boundary families that exceed
-//! one interrupting timer/message/signal boundary, exceed one interrupting
+//! one interrupting timer/message/signal/conditional boundary, exceed one interrupting
 //! cancel boundary, or otherwise exceed the bounded same-owner
 //! external-plus-cancel-plus-error subset, broader non-interrupting boundary
 //! families on subprocess-like owners, full timer execution semantics,

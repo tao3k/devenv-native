@@ -96,7 +96,8 @@ fn parser_call_activity_error_path_requires_matching_parent_boundary() {
 }
 
 #[test]
-fn parser_call_activity_interrupting_external_boundaries_accept_timer_message_and_signal() {
+fn parser_call_activity_interrupting_external_boundaries_accept_timer_message_signal_and_conditional()
+ {
     for fixture in [
         (
             "call-activity-timer-boundary.bpmn",
@@ -112,6 +113,11 @@ fn parser_call_activity_interrupting_external_boundaries_accept_timer_message_an
             "call-activity-signal-boundary.bpmn",
             "review_alert",
             BpmnEventKind::Signal,
+        ),
+        (
+            "call-activity-conditional-boundary.bpmn",
+            "review_condition",
+            BpmnEventKind::Conditional,
         ),
     ] {
         let package =

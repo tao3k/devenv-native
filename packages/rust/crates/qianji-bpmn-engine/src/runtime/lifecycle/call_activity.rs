@@ -163,7 +163,10 @@ fn arm_subprocess_external_boundary_wait(
         })?;
         if !matches!(
             event.kind,
-            BpmnEventKind::Timer | BpmnEventKind::Message | BpmnEventKind::Signal
+            BpmnEventKind::Timer
+                | BpmnEventKind::Message
+                | BpmnEventKind::Signal
+                | BpmnEventKind::Conditional
         ) {
             continue;
         }

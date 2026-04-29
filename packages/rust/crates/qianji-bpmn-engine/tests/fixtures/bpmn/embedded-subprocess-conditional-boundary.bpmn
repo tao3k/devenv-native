@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  id="pkg_embedded_subprocess_conditional_boundary"
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL">
+  <bpmn:process id="main_process" isExecutable="true">
+    <bpmn:startEvent id="start" />
+    <bpmn:subProcess id="inline_review">
+      <bpmn:startEvent id="sub_start" />
+      <bpmn:userTask id="sub_review" />
+      <bpmn:endEvent id="sub_success_end" />
+      <bpmn:sequenceFlow id="sub_flow_1" sourceRef="sub_start" targetRef="sub_review" />
+      <bpmn:sequenceFlow id="sub_flow_2" sourceRef="sub_review" targetRef="sub_success_end" />
+    </bpmn:subProcess>
+    <bpmn:boundaryEvent id="review_condition" attachedToRef="inline_review" cancelActivity="true">
+      <bpmn:conditionalEventDefinition>
+        <bpmn:condition>escalated</bpmn:condition>
+      </bpmn:conditionalEventDefinition>
+    </bpmn:boundaryEvent>
+    <bpmn:endEvent id="success_end" />
+    <bpmn:endEvent id="condition_end" />
+    <bpmn:sequenceFlow id="flow_1" sourceRef="start" targetRef="inline_review" />
+    <bpmn:sequenceFlow id="flow_2" sourceRef="inline_review" targetRef="success_end" />
+    <bpmn:sequenceFlow id="flow_3" sourceRef="review_condition" targetRef="condition_end" />
+  </bpmn:process>
+</bpmn:definitions>

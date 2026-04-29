@@ -30,7 +30,8 @@ fn parser_transaction_shell_materializes_synthetic_child_process_reference() {
 }
 
 #[test]
-fn parser_transaction_interrupting_external_boundaries_accept_timer_message_and_signal() {
+fn parser_transaction_interrupting_external_boundaries_accept_timer_message_signal_and_conditional()
+{
     for fixture in [
         (
             "transaction-timer-boundary.bpmn",
@@ -46,6 +47,11 @@ fn parser_transaction_interrupting_external_boundaries_accept_timer_message_and_
             "transaction-signal-boundary.bpmn",
             "tx_alert",
             BpmnEventKind::Signal,
+        ),
+        (
+            "transaction-conditional-boundary.bpmn",
+            "tx_condition",
+            BpmnEventKind::Conditional,
         ),
     ] {
         let package =
