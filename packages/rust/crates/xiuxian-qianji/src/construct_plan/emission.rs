@@ -104,11 +104,20 @@ fn push_task_xml(xml: &mut String, task: &WorkflowPlanTask) {
 }
 
 fn push_task_io_xml(xml: &mut String, task: &WorkflowPlanTask, element: &str) {
-    let answer_output = task.outputs.first().map(String::as_str).unwrap_or("answer");
+    let answer_output = task.outputs.first().map_or("answer", String::as_str);
     if task.inputs.is_empty() && task.outputs.is_empty() && element != "userTask" {
         return;
     }
     xml.push_str("      <ioSpecification>\n");
+    push_task_io_declarations(xml, task, element);
+    push_task_io_sets(xml, task, element);
+    xml.push_str("      </ioSpecification>\n");
+    if element == "userTask" {
+        push_user_task_io_associations(xml, task, answer_output);
+    }
+}
+
+fn push_task_io_declarations(xml: &mut String, task: &WorkflowPlanTask, element: &str) {
     if element == "userTask" {
         push_xml(
             xml,
@@ -147,6 +156,9 @@ fn push_task_io_xml(xml: &mut String, task: &WorkflowPlanTask, element: &str) {
             );
         }
     }
+}
+
+fn push_task_io_sets(xml: &mut String, task: &WorkflowPlanTask, element: &str) {
     xml.push_str("        <inputSet>\n");
     if element == "userTask" {
         push_xml(
@@ -189,25 +201,25 @@ fn push_task_io_xml(xml: &mut String, task: &WorkflowPlanTask, element: &str) {
         }
     }
     xml.push_str("        </outputSet>\n");
-    xml.push_str("      </ioSpecification>\n");
-    if element == "userTask" {
-        push_xml(
-            xml,
-            format_args!(
-                "      <dataInputAssociation><targetRef>{}_interaction_type</targetRef><assignment><from>input</from><to>{}_interaction_type</to></assignment></dataInputAssociation>\n",
-                stable_xml_id("Input", &task.id),
-                stable_xml_id("Input", &task.id)
-            ),
-        );
-        push_xml(
-            xml,
-            format_args!(
-                "      <dataOutputAssociation><sourceRef>{}_answer</sourceRef><targetRef>{}</targetRef></dataOutputAssociation>\n",
-                stable_xml_id("Output", &task.id),
-                escape_xml_text(answer_output)
-            ),
-        );
-    }
+}
+
+fn push_user_task_io_associations(xml: &mut String, task: &WorkflowPlanTask, answer_output: &str) {
+    push_xml(
+        xml,
+        format_args!(
+            "      <dataInputAssociation><targetRef>{}_interaction_type</targetRef><assignment><from>input</from><to>{}_interaction_type</to></assignment></dataInputAssociation>\n",
+            stable_xml_id("Input", &task.id),
+            stable_xml_id("Input", &task.id)
+        ),
+    );
+    push_xml(
+        xml,
+        format_args!(
+            "      <dataOutputAssociation><sourceRef>{}_answer</sourceRef><targetRef>{}</targetRef></dataOutputAssociation>\n",
+            stable_xml_id("Output", &task.id),
+            escape_xml_text(answer_output)
+        ),
+    );
 }
 
 fn push_edge_xml(

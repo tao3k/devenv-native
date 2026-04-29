@@ -49,13 +49,13 @@ fn native_service_task_io(
         .join("\n        ");
     let input_refs = inputs
         .iter()
-        .map(|input| format!(r#"<bpmn:dataInputRefs>{task_id}_input_{input}</bpmn:dataInputRefs>"#))
+        .map(|input| format!(r"<bpmn:dataInputRefs>{task_id}_input_{input}</bpmn:dataInputRefs>"))
         .collect::<Vec<_>>()
         .join("\n          ");
     let output_refs = outputs
         .iter()
         .map(|output| {
-            format!(r#"<bpmn:dataOutputRefs>{task_id}_output_{output}</bpmn:dataOutputRefs>"#)
+            format!(r"<bpmn:dataOutputRefs>{task_id}_output_{output}</bpmn:dataOutputRefs>")
         })
         .collect::<Vec<_>>()
         .join("\n          ");
@@ -63,10 +63,10 @@ fn native_service_task_io(
         .iter()
         .map(|input| {
             format!(
-                r#"<bpmn:dataInputAssociation>
+                r"<bpmn:dataInputAssociation>
         <bpmn:sourceRef>{input}</bpmn:sourceRef>
         <bpmn:targetRef>{task_id}_input_{input}</bpmn:targetRef>
-      </bpmn:dataInputAssociation>"#
+      </bpmn:dataInputAssociation>"
             )
         })
         .collect::<Vec<_>>()
@@ -75,10 +75,10 @@ fn native_service_task_io(
         .iter()
         .map(|output| {
             format!(
-                r#"<bpmn:dataOutputAssociation>
+                r"<bpmn:dataOutputAssociation>
         <bpmn:sourceRef>{task_id}_output_{output}</bpmn:sourceRef>
         <bpmn:targetRef>{output}</bpmn:targetRef>
-      </bpmn:dataOutputAssociation>"#
+      </bpmn:dataOutputAssociation>"
             )
         })
         .collect::<Vec<_>>()
@@ -153,17 +153,17 @@ fn native_user_dynamic_choice_io(
         .map(|_| format!(r#"<bpmn:dataInput id="{task_id}_input_freeText" name="freeText" />"#))
         .unwrap_or_default();
     let free_text_ref = free_text_json
-        .map(|_| format!(r#"<bpmn:dataInputRefs>{task_id}_input_freeText</bpmn:dataInputRefs>"#))
+        .map(|_| format!(r"<bpmn:dataInputRefs>{task_id}_input_freeText</bpmn:dataInputRefs>"))
         .unwrap_or_default();
     let free_text_association = free_text_json
         .map(|json| {
             format!(
-                r#"<bpmn:dataInputAssociation>
+                r"<bpmn:dataInputAssociation>
         <bpmn:assignment>
           <bpmn:from>{json}</bpmn:from>
           <bpmn:to>{task_id}_input_freeText</bpmn:to>
         </bpmn:assignment>
-      </bpmn:dataInputAssociation>"#
+      </bpmn:dataInputAssociation>"
             )
         })
         .unwrap_or_default();
