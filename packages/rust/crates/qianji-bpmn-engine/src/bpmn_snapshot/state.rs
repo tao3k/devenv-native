@@ -4,11 +4,11 @@ use crate::bpmn_model_api::{
     BpmnCorrelationPropertySnapshot, BpmnCorrelationRetrievalExpressionSnapshot,
     BpmnDataAssociationSnapshot, BpmnDataInputOutputSnapshot, BpmnDataObjectReferenceSnapshot,
     BpmnDataObjectSnapshot, BpmnDataStoreReferenceSnapshot, BpmnDataStoreSnapshot,
-    BpmnDocumentSnapshot, BpmnErrorSnapshot, BpmnEscalationSnapshot, BpmnInterfaceSnapshot,
-    BpmnIoSpecificationSnapshot, BpmnItemDefinitionSnapshot, BpmnLaneSetSnapshot, BpmnLaneSnapshot,
-    BpmnMessageFlowSnapshot, BpmnMessageSnapshot, BpmnOperationSnapshot, BpmnParticipantSnapshot,
-    BpmnProcessSnapshot, BpmnResourceParameterSnapshot, BpmnResourceSnapshot, BpmnRootSnapshot,
-    BpmnSignalSnapshot,
+    BpmnDocumentSnapshot, BpmnErrorSnapshot, BpmnEscalationSnapshot, BpmnImportSnapshot,
+    BpmnInterfaceSnapshot, BpmnIoSpecificationSnapshot, BpmnItemDefinitionSnapshot,
+    BpmnLaneSetSnapshot, BpmnLaneSnapshot, BpmnMessageFlowSnapshot, BpmnMessageSnapshot,
+    BpmnOperationSnapshot, BpmnParticipantSnapshot, BpmnProcessSnapshot,
+    BpmnResourceParameterSnapshot, BpmnResourceSnapshot, BpmnRootSnapshot, BpmnSignalSnapshot,
 };
 use crate::bpmn_parse_api::BpmnSourceFile;
 use crate::error::Result;
@@ -151,6 +151,7 @@ impl BpmnSnapshotScanState {
         is_empty: bool,
     ) -> Result<bool> {
         match tag {
+            "import" => self.capture_import(source, reader, event)?,
             "collaboration" => self.start_collaboration(source, reader, event, is_empty)?,
             "process" => self.start_process(source, reader, event, is_empty)?,
             "itemDefinition" => self.capture_item_definition(source, reader, event)?,
@@ -603,6 +604,24 @@ impl BpmnSnapshotScanState {
         Ok(())
     }
 
+    fn capture_import(
+        &mut self,
+        source: &BpmnSourceFile,
+        reader: &Reader<&[u8]>,
+        event: &BytesStart<'_>,
+    ) -> Result<()> {
+        let Some(root) = self.root.as_mut() else {
+            return Ok(());
+        };
+        root.import_count += 1;
+        root.imports.push(BpmnImportSnapshot {
+            namespace: attribute_value(source, reader, event, "namespace")?,
+            location: attribute_value(source, reader, event, "location")?,
+            import_type: attribute_value(source, reader, event, "importType")?,
+        });
+        Ok(())
+    }
+
     fn start_process(
         &mut self,
         source: &BpmnSourceFile,
@@ -1028,6 +1047,8 @@ fn root_from_event(
         name: attribute_value(source, reader, event, "name")?,
         target_namespace: attribute_value(source, reader, event, "targetNamespace")?,
         model_namespace_uri: bpmn_model_namespace(source, reader, event)?,
+        import_count: 0,
+        imports: Vec::new(),
         collaboration_count: 0,
         process_count: 0,
         item_definition_count: 0,

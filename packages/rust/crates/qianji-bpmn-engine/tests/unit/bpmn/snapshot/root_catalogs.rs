@@ -1,0 +1,60 @@
+use super::snapshot_fixture;
+
+#[test]
+fn bpmn_snapshot_preserves_import_metadata_catalogs() {
+    let snapshot = snapshot_fixture("metadata-import-catalog.bpmn");
+
+    assert_eq!(snapshot.root.import_count, 1);
+    assert_eq!(snapshot.root.imports.len(), 1);
+    let import = &snapshot.root.imports[0];
+    assert_eq!(
+        import.namespace.as_deref(),
+        Some("https://example.com/bpmn/shared")
+    );
+    assert_eq!(import.location.as_deref(), Some("shared-processes.bpmn"));
+    assert_eq!(
+        import.import_type.as_deref(),
+        Some("http://www.omg.org/spec/BPMN/20100524/MODEL")
+    );
+}
+
+#[test]
+fn bpmn_snapshot_preserves_event_definition_metadata_catalogs() {
+    let snapshot = snapshot_fixture("metadata-event-definition-catalog.bpmn");
+
+    assert_eq!(snapshot.root.error_count, 1);
+    assert_eq!(
+        snapshot.root.errors[0].error_id.as_deref(),
+        Some("fatal_review_error")
+    );
+    assert_eq!(
+        snapshot.root.errors[0].error_code.as_deref(),
+        Some("fatal_review")
+    );
+    assert_eq!(
+        snapshot.root.errors[0].structure_ref.as_deref(),
+        Some("tns:ReviewError")
+    );
+    assert_eq!(snapshot.root.escalation_count, 1);
+    assert_eq!(
+        snapshot.root.escalations[0].escalation_id.as_deref(),
+        Some("review_escalated")
+    );
+    assert_eq!(
+        snapshot.root.escalations[0].escalation_code.as_deref(),
+        Some("review_escalated")
+    );
+    assert_eq!(
+        snapshot.root.escalations[0].structure_ref.as_deref(),
+        Some("tns:ReviewEscalation")
+    );
+    assert_eq!(snapshot.root.signal_count, 1);
+    assert_eq!(
+        snapshot.root.signals[0].signal_id.as_deref(),
+        Some("alert_signal")
+    );
+    assert_eq!(
+        snapshot.root.signals[0].structure_ref.as_deref(),
+        Some("tns:AlertSignal")
+    );
+}

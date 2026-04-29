@@ -36,6 +36,12 @@ pub struct BpmnRootSnapshot {
     pub target_namespace: Option<String>,
     /// Optional BPMN model namespace URI discovered from `xmlns` attributes.
     pub model_namespace_uri: Option<String>,
+    /// Number of top-level `import` elements discovered in the document.
+    #[serde(default)]
+    pub import_count: usize,
+    /// Bounded top-level `import` metadata preserved from the document.
+    #[serde(default)]
+    pub imports: Vec<BpmnImportSnapshot>,
     /// Number of top-level `collaboration` elements discovered in the document.
     pub collaboration_count: usize,
     /// Number of top-level `process` elements discovered in the document.
@@ -98,6 +104,17 @@ pub struct BpmnRootSnapshot {
     pub data_store_count: usize,
     /// Bounded top-level `dataStore` metadata preserved from the document.
     pub data_stores: Vec<BpmnDataStoreSnapshot>,
+}
+
+/// Snapshot of one BPMN `import`.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct BpmnImportSnapshot {
+    /// Optional imported model namespace.
+    pub namespace: Option<String>,
+    /// Optional import location.
+    pub location: Option<String>,
+    /// Optional imported model type URI.
+    pub import_type: Option<String>,
 }
 
 /// Snapshot of one BPMN `itemDefinition`.
@@ -456,6 +473,8 @@ pub(crate) fn empty_bpmn_root_snapshot(source: &BpmnSourceFile) -> BpmnRootSnaps
         name: None,
         target_namespace: None,
         model_namespace_uri: None,
+        import_count: 0,
+        imports: Vec::new(),
         collaboration_count: 0,
         process_count: 0,
         item_definition_count: 0,

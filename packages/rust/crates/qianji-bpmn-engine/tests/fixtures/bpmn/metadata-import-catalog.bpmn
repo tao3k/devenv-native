@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  id="Defs_ImportCatalog"
+  targetNamespace="https://example.com/bpmn/import">
+  <bpmn:import
+    namespace="https://example.com/bpmn/shared"
+    location="shared-processes.bpmn"
+    importType="http://www.omg.org/spec/BPMN/20100524/MODEL" />
+  <bpmn:process id="import_catalog_process" isExecutable="true">
+    <bpmn:startEvent id="start" />
+    <bpmn:sequenceFlow id="flow_start_review" sourceRef="start" targetRef="review" />
+    <bpmn:userTask id="review" name="Review" />
+    <bpmn:sequenceFlow id="flow_review_end" sourceRef="review" targetRef="end" />
+    <bpmn:endEvent id="end" />
+  </bpmn:process>
+</bpmn:definitions>
