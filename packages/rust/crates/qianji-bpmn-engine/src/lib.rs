@@ -148,7 +148,7 @@
 //! such as `duration("P1.5Y")`, broader timezone/function FEEL behavior, and
 //! richer orchestration slices remain deferred.
 
-mod bpmn_model_api;
+pub mod bpmn_model_api;
 mod bpmn_parse_api;
 mod bpmn_snapshot;
 mod bpmn_snapshot_api;
@@ -161,9 +161,9 @@ mod dmn_evaluate_api;
 mod dmn_model_api;
 mod dmn_model_business_knowledge;
 mod dmn_model_clause;
-mod dmn_model_decision;
+pub mod dmn_model_decision;
 mod dmn_model_decision_service;
-mod dmn_model_document;
+pub mod dmn_model_document;
 mod dmn_model_import;
 mod dmn_model_input_data;
 mod dmn_model_predicate;
@@ -178,7 +178,7 @@ mod ir;
 mod ir_edge_api;
 mod ir_event_api;
 mod ir_index_api;
-mod ir_node_api;
+pub mod ir_node_api;
 mod ir_package_api;
 mod ir_process_compensation;
 mod ir_process_key;
@@ -189,6 +189,7 @@ mod lint;
 mod lint_api;
 mod parser;
 mod repeat_condition;
+mod repeat_condition_api;
 mod runtime;
 mod runtime_advance_api;
 mod runtime_claim_api;
@@ -291,7 +292,7 @@ pub use ir_repeat_api::{
 pub use lint_api::{
     LintDomain, LintIssue, LintReport, LintSeverity, lint_bpmn_source, lint_dmn_source,
 };
-pub use repeat_condition::{GatewayConditionSummary, parse_gateway_condition_summary};
+pub use repeat_condition_api::{GatewayConditionSummary, parse_gateway_condition_summary};
 pub use runtime_advance_api::{BpmnAdvanceOutcome, advance_instance};
 pub use runtime_claim_api::{
     PendingHumanTaskClaimOutcome, PendingHumanTaskClaimRequest, PendingHumanTaskReleaseOutcome,

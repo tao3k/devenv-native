@@ -12,12 +12,14 @@ resolution-markers = [
 
 [manifest]
 members = [
+    "python-lang-parser",
     "qianji-workflow-contracts",
     "wendao-arrow-interface",
     "wendao-core-lib",
     "xiuxian-artisan-workshop-py",
     "xiuxian-core",
     "xiuxian-foundation",
+    "xiuxian-harness-python-lang-project",
 ]
 
 [[package]]
@@ -734,6 +736,21 @@ wheels = [
 ]
 
 [[package]]
+name = "python-lang-parser"
+version = "0.1.0"
+source = { editable = "packages/python/python-lang-parser" }
+
+[package.dev-dependencies]
+test = [
+    { name = "pytest" },
+]
+
+[package.metadata]
+
+[package.metadata.requires-dev]
+test = [{ name = "pytest", specifier = ">=8.0" }]
+
+[[package]]
 name = "pyyaml"
 version = "6.0.3"
 source = { registry = "https://pypi.org/simple" }
@@ -980,6 +997,7 @@ dev = [
     { name = "pytest-rerunfailures" },
     { name = "pytest-timeout" },
     { name = "pytest-xdist" },
+    { name = "python-lang-parser" },
     { name = "qianji-workflow-contracts" },
     { name = "ruff" },
     { name = "vulture" },
@@ -987,6 +1005,7 @@ dev = [
     { name = "wendao-core-lib" },
     { name = "xiuxian-core" },
     { name = "xiuxian-foundation" },
+    { name = "xiuxian-harness-python-lang-project" },
 ]
 
 [package.metadata]
@@ -1011,6 +1030,7 @@ dev = [
     { name = "pytest-rerunfailures", specifier = ">=14.0" },
     { name = "pytest-timeout", specifier = ">=2.3.0" },
     { name = "pytest-xdist", specifier = ">=3.6.1" },
+    { name = "python-lang-parser", editable = "packages/python/python-lang-parser" },
     { name = "qianji-workflow-contracts", editable = "packages/python/qianji-workflow-contracts" },
     { name = "ruff", specifier = ">=0.14.10" },
     { name = "vulture", specifier = ">=2.14" },
@@ -1018,6 +1038,7 @@ dev = [
     { name = "wendao-core-lib", editable = "packages/python/wendao-core-lib" },
     { name = "xiuxian-core", editable = "packages/python/core" },
     { name = "xiuxian-foundation", editable = "packages/python/foundation" },
+    { name = "xiuxian-harness-python-lang-project", editable = "packages/python/xiuxian-harness-python-lang-project" },
 ]
 
 [[package]]
@@ -1079,3 +1100,22 @@ requires-dist = [
     { name = "structlog", specifier = ">=24.0.0" },
     { name = "wendao-core-lib", editable = "packages/python/wendao-core-lib" },
 ]
+
+[[package]]
+name = "xiuxian-harness-python-lang-project"
+version = "0.1.0"
+source = { editable = "packages/python/xiuxian-harness-python-lang-project" }
+dependencies = [
+    { name = "python-lang-parser" },
+]
+
+[package.dev-dependencies]
+test = [
+    { name = "pytest" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "python-lang-parser", editable = "packages/python/python-lang-parser" }]
+
+[package.metadata.requires-dev]
+test = [{ name = "pytest", specifier = ">=8.0" }]

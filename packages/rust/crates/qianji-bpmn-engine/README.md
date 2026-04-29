@@ -114,8 +114,82 @@ Bounded BPMN and DMN workflow engine ownership for Qianji.
 - `src/lint/dmn/` is the current DMN lint owner for entry dispatch,
   document guidance, contract guidance, snapshot helpers, decision helpers,
   evidence mapping, and unexpected-error fallback.
+- `src/parser/import/` is the current XML import owner. Its root facade should
+  stay as a single API seam, raw import structs live under `model/`, and
+  native task IO capture lives under the `task_io/` and `human_task_io/`
+  feature folders.
+- `src/bpmn_model_api/` is the current public BPMN document snapshot contract
+  owner. Document, root/definition catalog, DI, collaboration, artifact,
+  process, and data/IO snapshot families should stay in dedicated API leaf
+  folders while `src/bpmn_model_api.rs` remains the public facade.
+- `src/bpmn_snapshot/state/` is the current BPMN XML snapshot scanner state
+  owner. Dispatch, finish/text handling, collaboration, artifact, definition
+  catalogs, BPMN DI, process metadata, data/IO metadata, state model, and XML
+  helper routines should stay in dedicated leaves while
+  `src/bpmn_snapshot/state.rs` remains the scanner-facing seam.
+- `src/dmn/api.rs` is the current internal DMN entry owner. `src/dmn/mod.rs`
+  should stay an interface seam that forwards only through this canonical
+  owner, while literal-expression evaluation internals stay split under
+  `src/dmn/literal_expression/`.
+- `src/dmn/parse/driver.rs` is the current DMN parse entry owner. Parse loop
+  state and XML event dispatch should stay split under
+  `src/dmn/parse/driver/`.
+- `src/dmn/parse/state/` is the current DMN parser temporary state owner.
+  Temporary parse structs, boxed-expression materialization,
+  requirement-reference conversion, decision finalization, and decision-table
+  finalization should stay in dedicated leaves while
+  `src/dmn/parse/state.rs` remains the parser state facade.
+- `src/dmn/snapshot/state/decision/` is the current DMN snapshot decision
+  temporary-state owner. Decision construction, invocation snapshots,
+  requirement references, function definitions, and text helpers should stay in
+  dedicated leaves while `src/dmn/snapshot/state/decision.rs` remains the
+  scanner-facing facade.
+- `src/dmn_model_decision/` is the current public DMN executable decision model
+  owner. Decision definitions, expression variants, invocation bindings,
+  requirement references, rule clauses, evaluation results, and decision-table
+  contracts should stay in dedicated API leaf folders while
+  `src/dmn_model_decision.rs` remains the public facade.
+- `src/dmn_model_document/` is the current public DMN document snapshot model
+  owner. Root metadata, document snapshots, decision snapshots, invocation and
+  function snapshots, DMNDI placeholders, and core snapshot structs should stay
+  in dedicated API leaf folders while `src/dmn_model_document.rs` remains the
+  public facade.
+- `src/dmn/parse/xml/start/` is the current DMN XML start-tag dispatcher
+  owner. Direct decision surfaces, list/context/relation/invocation
+  expression starts, decision-table capture, and start-tag scope structs
+  should stay in dedicated leaves while `src/dmn/parse/xml/start.rs` remains
+  the XML start entry facade.
+- `src/lint/bpmn/condition_contract/` is the current BPMN gateway-condition
+  contract lint owner. API entrypoints, source/path analysis, issue rendering,
+  guidance, XML helpers, local models, and static interaction choice-output
+  collection should stay split under the condition-contract facade.
+- `src/lint/bpmn/data_contract/` is the current BPMN data-contract lint owner.
+  API entrypoints, XML collection, condition analysis, issue rendering, and
+  local contract models should stay split under the data-contract facade.
+- `src/lint/bpmn/document_surface/` is the current BPMN document-surface lint
+  owner. Collaboration evidence, metadata summaries, data summaries, XML
+  helpers, issue rendering, and local counts should stay split under the
+  document-surface facade.
+- `src/lint/bpmn/human_task/` is the current BPMN human-task standards lint
+  owner. API entrypoints, scan state, issue rendering, XML helpers, and local
+  task context models should stay split under the human-task facade.
+- `src/lint/bpmn/loop_risk/` is the current BPMN loop-risk lint owner.
+  Metadata collection, graph analysis, repair fragments, issue rendering,
+  variable analysis, XML helpers, and local models should stay split under the
+  loop-risk facade.
+- `src/ir_node_api/` is the current public BPMN IR node contract owner.
+  Gateway/node kind enums, immutable node specs, task IO bindings, lane
+  metadata, human-task metadata, and script-task metadata should stay in
+  dedicated API leaf folders while `src/ir_node_api.rs` remains the public
+  facade.
+- `src/runtime/lifecycle/` is the current runtime advancement owner. Token
+  state helpers should stay split by active-token mutation, lookup,
+  trace/status, routing, and pending-work ownership under the lifecycle state
+  seam.
 - `mod.rs` files are interface seams only and should not regrow hidden
   implementation buckets.
+- The crate uses the shared `xiuxian-testing` modularity gate; warning-level
+  source-layout findings are treated as blocking debt for the owning slice.
 - Package-level OMG alignment notes live under [docs/README.md](docs/README.md).
 
 ## Non-Goals

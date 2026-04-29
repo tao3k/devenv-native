@@ -305,10 +305,10 @@ crate-local ancestor guessing.
 The crate source root now also mounts the shared crate-test-policy source
 harness, and the previously inline source test modules in
 `src/bin/qianji.rs` and `src/contract_feedback/rest_docs.rs` are now
-externalized under `tests/unit/`. Follow-up bounded slices now also
-externalize the remaining inline source test modules under `src/executors/`
-and `src/sovereign/` into `tests/unit/executors/` plus
-`tests/unit/sovereign/`. The shared crate-test-policy harness for
+externalized under `tests/unit/`. Follow-up bounded slices also externalized
+the remaining inline source test modules under `src/executors/` and
+`src/sovereign/` into `tests/unit/executors/` plus `tests/unit/sovereign/`.
+The shared crate-test-policy harness for
 `xiuxian-qianji` now passes end-to-end again, without changing the `show` /
 `check` behavior of the Flowhub lane.
 The same shared gate now also curates post-harness test leaves: large consumer
