@@ -27,6 +27,15 @@ gateway can depend on the crate without pulling PDF accelerators into default,
 - The stable document extraction resource table remains Arrow-based. Browser
   JSON is only an edge serialization surface.
 
+## Routing Diagnostics
+
+PDF audit helpers expose detector confidence separately from direct fast-path
+eligibility. `confidence` describes how strongly the inspector classified the
+PDF type, while `fastPathScore` and `gateFailures` explain whether Rust text
+extraction may bypass Docling. A high-confidence scanned PDF is therefore still
+blocked from the direct text fast path and routed toward OCR or Docling
+fallback.
+
 ## Test Policy
 
 This crate depends on `xiuxian-testing` and mounts the shared crate test-policy

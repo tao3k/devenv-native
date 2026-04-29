@@ -120,6 +120,12 @@ fn document_extract_pdf_audit_routes_low_confidence_to_docling_fallback() {
         routing_decision(&input),
         PdfInspectorRoutingDecision::FullDoclingFallback
     );
+    let assessment = routing_assessment(&input);
+    assert_eq!(
+        assessment.gate_failures,
+        vec![PdfInspectorRoutingGateFailure::LowConfidence]
+    );
+    assert!(assessment.fast_path_score < 0.90);
 }
 
 #[test]
@@ -142,6 +148,33 @@ fn document_extract_pdf_audit_routes_complex_text_pdf_to_docling_fallback() {
         routing_decision(&input),
         PdfInspectorRoutingDecision::FullDoclingFallback
     );
+    let assessment = routing_assessment(&input);
+    assert_eq!(
+        assessment.gate_failures,
+        vec![PdfInspectorRoutingGateFailure::ComplexLayout]
+    );
+    assert!(assessment.fast_path_score < 0.90);
+}
+
+#[test]
+fn document_extract_pdf_audit_explains_high_confidence_scanned_hybrid_candidate() {
+    let mut input = signals(PdfInspectorPdfType::Scanned);
+    input.pages_needing_ocr = vec![1, 2, 3, 4];
+
+    let assessment = routing_assessment(&input);
+
+    assert_eq!(
+        assessment.decision,
+        PdfInspectorRoutingDecision::HybridPageOcrCandidate
+    );
+    assert_eq!(
+        assessment.gate_failures,
+        vec![
+            PdfInspectorRoutingGateFailure::NonTextPdf,
+            PdfInspectorRoutingGateFailure::PagesNeedOcr,
+        ]
+    );
+    assert!(assessment.fast_path_score < 0.90);
 }
 
 #[test]
@@ -153,6 +186,7 @@ fn document_extract_pdf_audit_marks_non_pdf_as_unsupported() {
         records[0].routing_decision,
         PdfInspectorRoutingDecision::UnsupportedNonPdf.as_str()
     );
+    assert_eq!(records[0].gate_failures, vec!["unsupported_non_pdf"]);
 }
 
 #[test]
@@ -167,6 +201,11 @@ fn document_extract_pdf_audit_marks_invalid_pdf_as_preflight_failed() -> Result<
     assert!(
         records.iter().all(|record| record.routing_decision
             == PdfInspectorRoutingDecision::PreflightFailed.as_str())
+    );
+    assert!(
+        records
+            .iter()
+            .all(|record| record.gate_failures == vec!["preflight_failed"])
     );
     Ok(())
 }

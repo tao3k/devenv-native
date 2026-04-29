@@ -87,6 +87,8 @@ pub struct PdfInspectorAuditRecord {
     pub has_encoding_issues: Option<bool>,
     pub elapsed_ms: f64,
     pub routing_decision: String,
+    pub fast_path_score: Option<f64>,
+    pub gate_failures: Vec<String>,
     pub error_message: Option<String>,
 }
 
@@ -248,6 +250,23 @@ pub enum PdfInspectorPdfType {
     Scanned,
     ImageBased,
     Mixed,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct PdfInspectorRoutingAssessment {
+    pub decision: PdfInspectorRoutingDecision,
+    pub fast_path_score: f64,
+    pub gate_failures: Vec<PdfInspectorRoutingGateFailure>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum PdfInspectorRoutingGateFailure {
+    LowConfidence,
+    EmptyDocument,
+    NonTextPdf,
+    PagesNeedOcr,
+    ComplexLayout,
+    EncodingIssues,
 }
 
 #[must_use]
@@ -505,19 +524,81 @@ pub fn audit_pdf_path(path: &Path) -> Vec<PdfInspectorAuditRecord> {
 
 #[must_use]
 pub fn routing_decision(signals: &PdfInspectorRoutingSignals) -> PdfInspectorRoutingDecision {
-    if signals.confidence < FAST_RUST_CONFIDENCE_THRESHOLD || signals.has_encoding_issues {
+    routing_assessment(signals).decision
+}
+
+#[must_use]
+pub fn routing_assessment(signals: &PdfInspectorRoutingSignals) -> PdfInspectorRoutingAssessment {
+    let gate_failures = routing_gate_failures(signals);
+    let decision = routing_decision_from_failures(gate_failures.as_slice());
+    PdfInspectorRoutingAssessment {
+        decision,
+        fast_path_score: fast_path_score(signals, gate_failures.as_slice()),
+        gate_failures,
+    }
+}
+
+fn routing_decision_from_failures(
+    gate_failures: &[PdfInspectorRoutingGateFailure],
+) -> PdfInspectorRoutingDecision {
+    if gate_failures.contains(&PdfInspectorRoutingGateFailure::LowConfidence)
+        || gate_failures.contains(&PdfInspectorRoutingGateFailure::EncodingIssues)
+        || gate_failures.contains(&PdfInspectorRoutingGateFailure::EmptyDocument)
+    {
         return PdfInspectorRoutingDecision::FullDoclingFallback;
     }
-    if matches!(signals.pdf_type, PdfInspectorPdfType::TextBased)
-        && signals.pages_needing_ocr.is_empty()
-        && !signals.is_complex
-    {
+    if gate_failures.is_empty() {
         return PdfInspectorRoutingDecision::FastRustCandidate;
     }
-    if !signals.pages_needing_ocr.is_empty() {
+    if gate_failures.contains(&PdfInspectorRoutingGateFailure::PagesNeedOcr) {
         return PdfInspectorRoutingDecision::HybridPageOcrCandidate;
     }
     PdfInspectorRoutingDecision::FullDoclingFallback
+}
+
+fn routing_gate_failures(
+    signals: &PdfInspectorRoutingSignals,
+) -> Vec<PdfInspectorRoutingGateFailure> {
+    let mut failures = Vec::new();
+    if signals.confidence < FAST_RUST_CONFIDENCE_THRESHOLD {
+        failures.push(PdfInspectorRoutingGateFailure::LowConfidence);
+    }
+    if signals.page_count == 0 {
+        failures.push(PdfInspectorRoutingGateFailure::EmptyDocument);
+    }
+    if !matches!(signals.pdf_type, PdfInspectorPdfType::TextBased) {
+        failures.push(PdfInspectorRoutingGateFailure::NonTextPdf);
+    }
+    if !signals.pages_needing_ocr.is_empty() {
+        failures.push(PdfInspectorRoutingGateFailure::PagesNeedOcr);
+    }
+    if signals.is_complex {
+        failures.push(PdfInspectorRoutingGateFailure::ComplexLayout);
+    }
+    if signals.has_encoding_issues {
+        failures.push(PdfInspectorRoutingGateFailure::EncodingIssues);
+    }
+    failures
+}
+
+fn fast_path_score(
+    signals: &PdfInspectorRoutingSignals,
+    gate_failures: &[PdfInspectorRoutingGateFailure],
+) -> f64 {
+    if gate_failures.is_empty() {
+        return f64::from(signals.confidence.clamp(0.0, 1.0));
+    }
+    if gate_failures.contains(&PdfInspectorRoutingGateFailure::EncodingIssues)
+        || gate_failures.contains(&PdfInspectorRoutingGateFailure::EmptyDocument)
+    {
+        return 0.0;
+    }
+
+    let mut score = f64::from(signals.confidence.clamp(0.0, 1.0));
+    for failure in gate_failures {
+        score = score.min(failure.fast_path_score_ceiling());
+    }
+    score
 }
 
 fn audit_pdf_profile(
@@ -568,6 +649,7 @@ fn success_record(
         is_complex: result.layout.is_complex,
         has_encoding_issues: result.has_encoding_issues,
     };
+    let assessment = routing_assessment(&signals);
     PdfInspectorAuditRecord {
         source_path: path.to_string_lossy().to_string(),
         file_size_bytes,
@@ -581,7 +663,14 @@ fn success_record(
         pages_with_columns: result.layout.pages_with_columns,
         has_encoding_issues: Some(result.has_encoding_issues),
         elapsed_ms,
-        routing_decision: routing_decision(&signals).as_str().to_string(),
+        routing_decision: assessment.decision.as_str().to_string(),
+        fast_path_score: Some(assessment.fast_path_score),
+        gate_failures: assessment
+            .gate_failures
+            .into_iter()
+            .map(PdfInspectorRoutingGateFailure::as_str)
+            .map(str::to_string)
+            .collect(),
         error_message: None,
     }
 }
@@ -609,6 +698,8 @@ fn failed_record(
         routing_decision: PdfInspectorRoutingDecision::PreflightFailed
             .as_str()
             .to_string(),
+        fast_path_score: None,
+        gate_failures: vec!["preflight_failed".to_string()],
         error_message: Some(error_message),
     }
 }
@@ -630,6 +721,8 @@ fn unsupported_record(path: &Path, file_size_bytes: Option<u64>) -> PdfInspector
         routing_decision: PdfInspectorRoutingDecision::UnsupportedNonPdf
             .as_str()
             .to_string(),
+        fast_path_score: None,
+        gate_failures: vec!["unsupported_non_pdf".to_string()],
         error_message: None,
     }
 }
@@ -764,6 +857,29 @@ impl PdfInspectorPdfType {
     }
 }
 
+impl PdfInspectorRoutingGateFailure {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::LowConfidence => "low_confidence",
+            Self::EmptyDocument => "empty_document",
+            Self::NonTextPdf => "non_text_pdf",
+            Self::PagesNeedOcr => "pages_need_ocr",
+            Self::ComplexLayout => "complex_layout",
+            Self::EncodingIssues => "encoding_issues",
+        }
+    }
+
+    fn fast_path_score_ceiling(self) -> f64 {
+        match self {
+            Self::LowConfidence => f64::from(FAST_RUST_CONFIDENCE_THRESHOLD) - 0.01,
+            Self::EmptyDocument | Self::EncodingIssues => 0.0,
+            Self::NonTextPdf => 0.50,
+            Self::PagesNeedOcr => 0.60,
+            Self::ComplexLayout => 0.70,
+        }
+    }
+}
+
 #[allow(dead_code)]
 fn _assert_send_sync() {
     fn assert_send_sync<T: Send + Sync>() {}
@@ -848,16 +964,21 @@ pub fn write_text_fast_path_reports(
 fn summarize_records(records: &[PdfInspectorAuditRecord]) -> serde_json::Value {
     let mut routing_counts = std::collections::BTreeMap::<String, usize>::new();
     let mut profile_counts = std::collections::BTreeMap::<String, usize>::new();
+    let mut gate_failure_counts = std::collections::BTreeMap::<String, usize>::new();
     for record in records {
         *routing_counts
             .entry(record.routing_decision.clone())
             .or_default() += 1;
         *profile_counts.entry(record.profile.clone()).or_default() += 1;
+        for failure in &record.gate_failures {
+            *gate_failure_counts.entry(failure.clone()).or_default() += 1;
+        }
     }
     serde_json::json!({
         "recordCount": records.len(),
         "routingCounts": routing_counts,
         "profileCounts": profile_counts,
+        "gateFailureCounts": gate_failure_counts,
         "totalElapsedMs": records.iter().map(|record| record.elapsed_ms).sum::<f64>(),
     })
 }
@@ -886,13 +1007,15 @@ fn summarize_text_fast_path_records(
 fn render_markdown(records: &[PdfInspectorAuditRecord]) -> String {
     let mut output = String::from("# Wendao PDF Inspector Detect Audit\n\n");
     output.push_str(
-        "| Source | Profile | PDF type | Pages | Confidence | OCR pages | Complex | Encoding issues | Decision | Elapsed ms |\n",
+        "| Source | Profile | PDF type | Pages | Confidence | Fast path score | OCR pages | Complex | Encoding issues | Gate failures | Decision | Elapsed ms |\n",
     );
-    output.push_str("| --- | --- | --- | ---: | ---: | --- | --- | --- | --- | ---: |\n");
+    output.push_str(
+        "| --- | --- | --- | ---: | ---: | ---: | --- | --- | --- | --- | --- | ---: |\n",
+    );
     for record in records {
         let _ = writeln!(
             &mut output,
-            "| `{}` | `{}` | `{}` | {} | {} | `{}` | {} | {} | `{}` | {:.3} |",
+            "| `{}` | `{}` | `{}` | {} | {} | {} | `{}` | {} | {} | `{}` | `{}` | {:.3} |",
             record.source_path,
             record.profile,
             record.pdf_type.as_deref().unwrap_or(""),
@@ -901,6 +1024,9 @@ fn render_markdown(records: &[PdfInspectorAuditRecord]) -> String {
                 .map_or_else(String::new, |value| value.to_string()),
             record
                 .confidence
+                .map_or_else(String::new, |value| format!("{value:.3}")),
+            record
+                .fast_path_score
                 .map_or_else(String::new, |value| format!("{value:.3}")),
             record
                 .pages_needing_ocr
@@ -914,6 +1040,7 @@ fn render_markdown(records: &[PdfInspectorAuditRecord]) -> String {
             record
                 .has_encoding_issues
                 .map_or_else(String::new, |value| value.to_string()),
+            record.gate_failures.join(","),
             record.routing_decision,
             record.elapsed_ms,
         );

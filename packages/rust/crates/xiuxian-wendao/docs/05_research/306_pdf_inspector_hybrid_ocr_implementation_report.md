@@ -109,6 +109,18 @@ schema, and treats missing native PDFium runtime support as a Docling fallback
 condition. Production sync and async document extraction still call the existing
 Python/Docling worker.
 
+The audit report now records two additional routing diagnostics:
+
+- `fastPathScore`: a conservative score for direct Rust text fast-path
+  eligibility, not a general document quality score.
+- `gateFailures`: machine-readable reasons that block the direct fast path,
+  such as low confidence, non-text PDF type, OCR-required pages, complex
+  layout, or encoding issues.
+
+This distinction matters: a scanned PDF can have high detector confidence
+because the classifier is sure it needs OCR, while still having a low fast-path
+score because Rust text extraction must not bypass Docling/OCR for that file.
+
 ## `pdf-inspector` Fit
 
 `pdf-inspector` exposes capabilities that match Wendao's next optimization
