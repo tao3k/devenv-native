@@ -154,7 +154,9 @@ the Python analyzer's internal `/analysis/pdf-ocr-shards` exchange route,
 decode the returned OCR result rows, and project them back into the stable
 document resource schema as `ocr_text`, `ocr_error`, or `ocr_skipped` rows. The
 render proof still writes `_ocr_input.arrow` next to `_ocr_shards.arrow` and
-`_ocr_pending.arrow`, and no production provider consumes those rows yet.
+`_ocr_pending.arrow`. The production-default `sync` and `async` providers still
+ignore those rows, while the explicit feature-gated `hybrid-page-ocr` mode may
+consume them.
 
 The audit report now records two additional routing diagnostics:
 
@@ -503,10 +505,16 @@ Current implementation status:
   `_ocr_input.arrow` rows to the Python OCR shard exchange, writes the returned
   OCR rows to `_resources.arrow`, and marks the cache complete only when every
   page is represented by OCR shard output.
-- Partial-page OCR merge remains deferred to Milestone 5. Mixed or complex PDFs
-  that would produce only a subset of page OCR rows fall back to full Docling in
-  this slice so the stable resource table is never marked complete with missing
+- Milestone 4 did not mark partial-page OCR output complete. Mixed or complex
+  PDFs that would produce only a subset of page OCR rows fell back to full
+  Docling so the stable resource table was never marked complete with missing
   non-OCR pages.
+- The Milestone 5 merge primitive is now underway: `pdf-inspector` can project
+  native non-OCR pages into per-page `text_page` rows, and the explicit
+  `hybrid-page-ocr` provider route can merge those rows with successful OCR
+  shard rows into one page-sorted stable resource batch. Any skipped, failed,
+  duplicate, out-of-range, or incomplete page coverage path still falls back to
+  full Docling.
 
 ### Milestone 5: Hybrid Mixed-PDF Pipeline
 
@@ -523,6 +531,13 @@ Acceptance:
 - Mixed-PDF output is not worse than Docling baseline for coverage and ordering.
 - Page OCR count is lower than page count for eligible mixed PDFs.
 - Concurrent cold-miss pressure shows lower Python permit occupancy.
+
+Current implementation status:
+
+- Native per-page text rows are available as stable `text_page` resource rows.
+- The explicit `hybrid-page-ocr` route can merge native text pages with OCR
+  shard rows only when every page is covered and every OCR row succeeded.
+- Default `sync` and `async` extraction are unchanged.
 
 ## Test and Benchmark Plan
 

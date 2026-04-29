@@ -1,3 +1,4 @@
+use std::collections::BTreeSet;
 use std::fmt::Write as _;
 use std::fs::{self, File};
 use std::path::{Path, PathBuf};
@@ -9,8 +10,9 @@ use arrow::datatypes::{DataType, Field, Schema, SchemaRef};
 use arrow::ipc::writer::FileWriter;
 use arrow::record_batch::RecordBatch;
 use pdf_inspector::{
-    DetectionConfig, LayoutComplexity, PagesExtractionResult, PdfOptions, PdfProcessResult,
-    PdfType, ProcessMode, ScanStrategy, extract_pages_markdown, process_pdf_with_options,
+    DetectionConfig, LayoutComplexity, PageMarkdown, PagesExtractionResult, PdfOptions,
+    PdfProcessResult, PdfType, ProcessMode, ScanStrategy, extract_pages_markdown,
+    process_pdf_with_options,
 };
 use serde::{Deserialize, Serialize};
 
@@ -139,6 +141,12 @@ pub struct PdfInspectorTextFastPathRecord {
     pub routing_decision: String,
     pub status: String,
     pub error_message: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct PdfTextPageResourceBatch {
+    pub batch: RecordBatch,
+    pub page_indices: Vec<u32>,
 }
 
 struct TextFastPathContext<'a> {
@@ -514,6 +522,106 @@ fn markdown_from_pages(pages: &PagesExtractionResult) -> String {
         .filter(|markdown| !markdown.is_empty())
         .collect::<Vec<_>>()
         .join("\n\n")
+}
+
+/// Extract native per-page text rows for pages that do not need OCR.
+///
+/// # Errors
+///
+/// Returns an error if `pdf-inspector` cannot read the PDF or Arrow cannot
+/// build the stable resource batch.
+pub fn extract_text_page_resource_batch(
+    source_path: &Path,
+    excluded_page_indices: &[u32],
+) -> Result<PdfTextPageResourceBatch, String> {
+    if !is_pdf_path(source_path) {
+        return Err(format!(
+            "cannot extract PDF text page resources from non-PDF `{}`",
+            source_path.display()
+        ));
+    }
+    let pages = extract_pages_markdown(source_path, None).map_err(|error| error.to_string())?;
+    build_text_page_resource_batch(source_path, &pages, excluded_page_indices)
+}
+
+/// Build stable resource rows from already extracted per-page markdown.
+///
+/// # Errors
+///
+/// Returns an error if Arrow cannot build the stable resource batch.
+pub fn build_text_page_resource_batch(
+    source_path: &Path,
+    pages: &PagesExtractionResult,
+    excluded_page_indices: &[u32],
+) -> Result<PdfTextPageResourceBatch, String> {
+    let excluded = excluded_page_indices
+        .iter()
+        .copied()
+        .collect::<BTreeSet<_>>();
+    let rows = pages
+        .pages
+        .iter()
+        .filter(|page| !excluded.contains(&page.page))
+        .filter(|page| !page.needs_ocr)
+        .filter(|page| !page.markdown.trim().is_empty())
+        .collect::<Vec<_>>();
+    let page_indices = rows.iter().map(|page| page.page).collect::<Vec<_>>();
+    let batch = build_text_page_resource_batch_from_pages(source_path, rows.as_slice())?;
+    Ok(PdfTextPageResourceBatch {
+        batch,
+        page_indices,
+    })
+}
+
+fn build_text_page_resource_batch_from_pages(
+    source_path: &Path,
+    pages: &[&PageMarkdown],
+) -> Result<RecordBatch, String> {
+    RecordBatch::try_new(
+        document_resource_schema(),
+        vec![
+            Arc::new(StringArray::from(vec![
+                source_path
+                    .to_string_lossy()
+                    .to_string();
+                pages.len()
+            ])) as ArrayRef,
+            Arc::new(StringArray::from(vec!["text_page"; pages.len()])) as ArrayRef,
+            Arc::new(StringArray::from(vec![
+                source_path
+                    .to_string_lossy()
+                    .to_string();
+                pages.len()
+            ])) as ArrayRef,
+            Arc::new(Int32Array::from(
+                pages
+                    .iter()
+                    .map(|page| i32::try_from(page.page).unwrap_or(i32::MAX))
+                    .collect::<Vec<_>>(),
+            )) as ArrayRef,
+            Arc::new(StringArray::from(
+                pages
+                    .iter()
+                    .map(|page| format!("PDF text page {}", page.page + 1))
+                    .collect::<Vec<_>>(),
+            )) as ArrayRef,
+            Arc::new(StringArray::from(
+                pages
+                    .iter()
+                    .map(|page| page.markdown.trim().to_string())
+                    .collect::<Vec<_>>(),
+            )) as ArrayRef,
+            Arc::new(StringArray::from(vec!["text/markdown"; pages.len()])) as ArrayRef,
+            Arc::new(StringArray::from(vec!["ok"; pages.len()])) as ArrayRef,
+            Arc::new(StringArray::from(
+                pages
+                    .iter()
+                    .map(|page| format!("pdf-text-page-{:06}", page.page))
+                    .collect::<Vec<_>>(),
+            )) as ArrayRef,
+        ],
+    )
+    .map_err(|error| format!("build pdf-inspector text page resource batch: {error}"))
 }
 
 #[must_use]

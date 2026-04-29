@@ -123,6 +123,91 @@ pub(super) fn build_status_batch(status: &DocumentExtractJobStatus) -> Result<Re
     .map_err(|error| format!("build document extract status batch: {error}"))
 }
 
+#[cfg(feature = "document-extract-pdf-render")]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(super) struct DocumentResourceRow {
+    source_path: String,
+    resource_type: String,
+    resource_path: String,
+    page_index: i32,
+    caption: String,
+    content: String,
+    mime_type: String,
+    status: String,
+    element_id: String,
+}
+
+#[cfg(feature = "document-extract-pdf-render")]
+pub(super) fn merge_document_resource_batches_by_page(
+    batches: &[RecordBatch],
+) -> Result<RecordBatch, String> {
+    let mut rows = Vec::new();
+    for batch in batches {
+        rows.extend(document_resource_rows_from_batch(batch)?);
+    }
+    rows.sort_by(|left, right| {
+        left.page_index
+            .cmp(&right.page_index)
+            .then(left.resource_type.cmp(&right.resource_type))
+            .then(left.element_id.cmp(&right.element_id))
+    });
+    build_document_resource_batch_from_rows(rows.as_slice())
+}
+
+#[cfg(feature = "document-extract-pdf-render")]
+fn document_resource_rows_from_batch(
+    batch: &RecordBatch,
+) -> Result<Vec<DocumentResourceRow>, String> {
+    let source_path = resource_string_column(batch, "sourcePath")?;
+    let resource_type = resource_string_column(batch, "resourceType")?;
+    let resource_path = resource_string_column(batch, "resourcePath")?;
+    let page_index = resource_i32_column(batch, "pageIndex")?;
+    let caption = resource_string_column(batch, "caption")?;
+    let content = resource_string_column(batch, "content")?;
+    let mime_type = resource_string_column(batch, "mimeType")?;
+    let status = resource_string_column(batch, "status")?;
+    let element_id = resource_string_column(batch, "elementId")?;
+
+    let mut rows = Vec::with_capacity(batch.num_rows());
+    for row in 0..batch.num_rows() {
+        rows.push(DocumentResourceRow {
+            source_path: string_value(source_path, row),
+            resource_type: string_value(resource_type, row),
+            resource_path: string_value(resource_path, row),
+            page_index: i32_value(page_index, row),
+            caption: string_value(caption, row),
+            content: string_value(content, row),
+            mime_type: string_value(mime_type, row),
+            status: string_value(status, row),
+            element_id: string_value(element_id, row),
+        });
+    }
+    Ok(rows)
+}
+
+#[cfg(feature = "document-extract-pdf-render")]
+fn build_document_resource_batch_from_rows(
+    rows: &[DocumentResourceRow],
+) -> Result<RecordBatch, String> {
+    RecordBatch::try_new(
+        document_resource_schema(),
+        vec![
+            string_column(rows.iter().map(|row| row.source_path.as_str())),
+            string_column(rows.iter().map(|row| row.resource_type.as_str())),
+            string_column(rows.iter().map(|row| row.resource_path.as_str())),
+            Arc::new(Int32Array::from(
+                rows.iter().map(|row| row.page_index).collect::<Vec<_>>(),
+            )) as ArrayRef,
+            string_column(rows.iter().map(|row| row.caption.as_str())),
+            string_column(rows.iter().map(|row| row.content.as_str())),
+            string_column(rows.iter().map(|row| row.mime_type.as_str())),
+            string_column(rows.iter().map(|row| row.status.as_str())),
+            string_column(rows.iter().map(|row| row.element_id.as_str())),
+        ],
+    )
+    .map_err(|error| format!("build merged document resource batch: {error}"))
+}
+
 pub(super) fn mirror_artifact_to_output(
     artifact_dir: &Path,
     output_dir: &Path,
@@ -262,6 +347,43 @@ fn rewrite_resource_paths(
 
 fn string_column<'a>(values: impl IntoIterator<Item = &'a str>) -> ArrayRef {
     Arc::new(StringArray::from_iter_values(values)) as ArrayRef
+}
+
+#[cfg(feature = "document-extract-pdf-render")]
+fn resource_string_column<'a>(
+    batch: &'a RecordBatch,
+    name: &str,
+) -> Result<&'a StringArray, String> {
+    batch
+        .column_by_name(name)
+        .and_then(|column| column.as_any().downcast_ref::<StringArray>())
+        .ok_or_else(|| format!("document extract resource `{name}` column is not utf8"))
+}
+
+#[cfg(feature = "document-extract-pdf-render")]
+fn resource_i32_column<'a>(batch: &'a RecordBatch, name: &str) -> Result<&'a Int32Array, String> {
+    batch
+        .column_by_name(name)
+        .and_then(|column| column.as_any().downcast_ref::<Int32Array>())
+        .ok_or_else(|| format!("document extract resource `{name}` column is not int32"))
+}
+
+#[cfg(feature = "document-extract-pdf-render")]
+fn string_value(column: &StringArray, row: usize) -> String {
+    if column.is_null(row) {
+        String::new()
+    } else {
+        column.value(row).to_string()
+    }
+}
+
+#[cfg(feature = "document-extract-pdf-render")]
+fn i32_value(column: &Int32Array, row: usize) -> i32 {
+    if column.is_null(row) {
+        0
+    } else {
+        column.value(row)
+    }
 }
 
 fn copy_dir_all(source: &Path, target: &Path) -> Result<(), String> {

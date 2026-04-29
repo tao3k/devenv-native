@@ -68,6 +68,10 @@ The crate provides Arrow batch builders plus input and result decoders so the
 Studio gateway can roundtrip worker requests and responses without JSON as an
 internal contract.
 
+The `pdf-inspector` text helpers can also project native non-OCR pages into
+per-page `text_page` rows. The Studio provider uses those rows only for the
+explicit hybrid OCR mode and only when page coverage can be proven complete.
+
 This is still opt-in infrastructure. No OCR worker is started by the
 production Wendao gateway, and default document extraction does not consume
 these rows. The Studio provider may consume them only when explicitly built

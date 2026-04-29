@@ -1,4 +1,25 @@
 use super::*;
+use arrow::array::{Int32Array, StringArray};
+use arrow::record_batch::RecordBatch;
+use pdf_inspector::{PageMarkdown, PagesExtractionResult};
+
+fn string_column<'a>(batch: &'a RecordBatch, name: &str) -> Result<&'a StringArray, String> {
+    batch
+        .column_by_name(name)
+        .ok_or_else(|| format!("missing `{name}` column"))?
+        .as_any()
+        .downcast_ref::<StringArray>()
+        .ok_or_else(|| format!("`{name}` column is not Utf8"))
+}
+
+fn int32_column<'a>(batch: &'a RecordBatch, name: &str) -> Result<&'a Int32Array, String> {
+    batch
+        .column_by_name(name)
+        .ok_or_else(|| format!("missing `{name}` column"))?
+        .as_any()
+        .downcast_ref::<Int32Array>()
+        .ok_or_else(|| format!("`{name}` column is not Int32"))
+}
 
 fn signals(pdf_type: PdfInspectorPdfType) -> PdfInspectorRoutingSignals {
     PdfInspectorRoutingSignals {
@@ -304,6 +325,56 @@ fn document_extract_pdf_text_fast_path_writes_stable_arrow_resource_row() -> Res
             "status",
             "elementId",
         ]
+    );
+    Ok(())
+}
+
+#[test]
+fn document_extract_pdf_text_page_resources_skip_ocr_pages() -> Result<(), String> {
+    let source = Path::new("/tmp/mixed.pdf");
+    let pages = PagesExtractionResult {
+        pages: vec![
+            PageMarkdown {
+                page: 0,
+                markdown: "First text page".to_string(),
+                needs_ocr: false,
+            },
+            PageMarkdown {
+                page: 1,
+                markdown: String::new(),
+                needs_ocr: true,
+            },
+            PageMarkdown {
+                page: 2,
+                markdown: "Third text page".to_string(),
+                needs_ocr: false,
+            },
+        ],
+        pages_with_tables: Vec::new(),
+        pages_with_columns: Vec::new(),
+        pages_needing_ocr: vec![2],
+        is_complex: false,
+    };
+
+    let resource_batch = build_text_page_resource_batch(source, &pages, &[1])?;
+
+    assert_eq!(resource_batch.page_indices, vec![0, 2]);
+    assert_eq!(resource_batch.batch.num_rows(), 2);
+    assert_eq!(
+        string_column(&resource_batch.batch, "resourceType")?.value(0),
+        "text_page"
+    );
+    assert_eq!(
+        int32_column(&resource_batch.batch, "pageIndex")?.value(0),
+        0
+    );
+    assert_eq!(
+        int32_column(&resource_batch.batch, "pageIndex")?.value(1),
+        2
+    );
+    assert_eq!(
+        string_column(&resource_batch.batch, "content")?.value(1),
+        "Third text page"
     );
     Ok(())
 }
