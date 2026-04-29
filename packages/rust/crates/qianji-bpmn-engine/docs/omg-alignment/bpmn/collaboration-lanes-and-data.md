@@ -22,6 +22,9 @@ The current engine preserves non-executable BPMN metadata for these families:
 - top-level message and correlation-property catalogs, including correlation
   retrieval `messageRef` and `messagePath` metadata, used by collaboration
   evidence
+- process callable metadata, including `processType`, `isClosed`,
+  `definitionalCollaborationRef`, `supports`, process `property`, and process
+  `correlationSubscription` bindings
 - lane-set, lane, and lane-owned flow-node references
 - data-object, data-store, and item-definition metadata
 - lint evidence that reports those preserved structures back to `qianji lint`
@@ -47,12 +50,13 @@ association, participant association, message-flow association,
 correlation-key, choreography-reference, and choreography activity
 declarations plus artifact associations, groups, and text annotations and
 surface that catalog through collaboration lint evidence. That makes partner,
-participant, message-flow, conversation, choreography, artifact, and
-correlation references auditable without requiring adapters to re-scan XML,
-but it does not dispatch message flows, route conversations, execute
-choreography, invoke endpoints, execute groups, interpret annotations,
-schedule participant multiplicity, or evaluate correlation subscriptions,
-keys, or retrieval expressions.
+participant, message-flow, conversation, choreography, artifact, process
+callable, and correlation references auditable without requiring adapters to
+re-scan XML, but it does not dispatch message flows, route conversations,
+execute choreography, invoke endpoints, execute groups, interpret annotations,
+schedule participant multiplicity, resolve process support, execute process
+properties, or evaluate correlation subscriptions, keys, or retrieval
+expressions.
 
 ## Runtime Boundary
 
@@ -64,6 +68,8 @@ These BPMN surfaces remain deferred:
 - executable group semantics or text-annotation interpretation
 - executable correlation keys, correlation subscriptions, and retrieval
   expression evaluation
+- executable process support resolution, process property semantics, or
+  process inheritance
 - executable item-definition schema validation or payload coercion
 - lane-driven assignment, authorization, or execution ownership semantics
 - executable `dataObject` or `dataStore` persistence semantics

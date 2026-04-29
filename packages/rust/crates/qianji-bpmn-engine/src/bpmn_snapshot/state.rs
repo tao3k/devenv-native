@@ -3,18 +3,20 @@ use crate::bpmn_model_api::{
     BpmnAssociationSnapshot, BpmnBoundsSnapshot, BpmnCategorySnapshot, BpmnCategoryValueSnapshot,
     BpmnChoreographyActivitySnapshot, BpmnCollaborationSnapshot,
     BpmnConversationAssociationSnapshot, BpmnConversationLinkSnapshot,
-    BpmnConversationNodeSnapshot, BpmnCorrelationKeySnapshot, BpmnCorrelationPropertySnapshot,
-    BpmnCorrelationRetrievalExpressionSnapshot, BpmnDataAssociationSnapshot,
-    BpmnDataInputOutputSnapshot, BpmnDataObjectReferenceSnapshot, BpmnDataObjectSnapshot,
-    BpmnDataStoreReferenceSnapshot, BpmnDataStoreSnapshot, BpmnDiagramSnapshot,
-    BpmnDocumentSnapshot, BpmnEdgeSnapshot, BpmnEndPointSnapshot, BpmnErrorSnapshot,
-    BpmnEscalationSnapshot, BpmnExtensionSnapshot, BpmnFontSnapshot, BpmnGlobalTaskSnapshot,
-    BpmnGroupSnapshot, BpmnImportSnapshot, BpmnInterfaceSnapshot, BpmnIoSpecificationSnapshot,
-    BpmnItemDefinitionSnapshot, BpmnLabelSnapshot, BpmnLabelStyleSnapshot, BpmnLaneSetSnapshot,
-    BpmnLaneSnapshot, BpmnMessageFlowAssociationSnapshot, BpmnMessageFlowSnapshot,
-    BpmnMessageSnapshot, BpmnOperationSnapshot, BpmnParticipantAssociationSnapshot,
-    BpmnParticipantMultiplicitySnapshot, BpmnParticipantSnapshot, BpmnPartnerEntitySnapshot,
-    BpmnPartnerRoleSnapshot, BpmnPlaneSnapshot, BpmnProcessSnapshot, BpmnRelationshipSnapshot,
+    BpmnConversationNodeSnapshot, BpmnCorrelationKeySnapshot,
+    BpmnCorrelationPropertyBindingSnapshot, BpmnCorrelationPropertySnapshot,
+    BpmnCorrelationRetrievalExpressionSnapshot, BpmnCorrelationSubscriptionSnapshot,
+    BpmnDataAssociationSnapshot, BpmnDataInputOutputSnapshot, BpmnDataObjectReferenceSnapshot,
+    BpmnDataObjectSnapshot, BpmnDataStoreReferenceSnapshot, BpmnDataStoreSnapshot,
+    BpmnDiagramSnapshot, BpmnDocumentSnapshot, BpmnEdgeSnapshot, BpmnEndPointSnapshot,
+    BpmnErrorSnapshot, BpmnEscalationSnapshot, BpmnExtensionSnapshot, BpmnFontSnapshot,
+    BpmnGlobalTaskSnapshot, BpmnGroupSnapshot, BpmnImportSnapshot, BpmnInterfaceSnapshot,
+    BpmnIoSpecificationSnapshot, BpmnItemDefinitionSnapshot, BpmnLabelSnapshot,
+    BpmnLabelStyleSnapshot, BpmnLaneSetSnapshot, BpmnLaneSnapshot,
+    BpmnMessageFlowAssociationSnapshot, BpmnMessageFlowSnapshot, BpmnMessageSnapshot,
+    BpmnOperationSnapshot, BpmnParticipantAssociationSnapshot, BpmnParticipantMultiplicitySnapshot,
+    BpmnParticipantSnapshot, BpmnPartnerEntitySnapshot, BpmnPartnerRoleSnapshot, BpmnPlaneSnapshot,
+    BpmnProcessPropertySnapshot, BpmnProcessSnapshot, BpmnRelationshipSnapshot,
     BpmnResourceParameterSnapshot, BpmnResourceSnapshot, BpmnRootSnapshot, BpmnShapeSnapshot,
     BpmnSignalSnapshot, BpmnTextAnnotationSnapshot, BpmnWaypointSnapshot,
 };
@@ -29,6 +31,7 @@ pub(super) enum TextTarget {
     DataAssociationSource,
     DataAssociationTarget,
     CorrelationMessagePath,
+    CorrelationBindingDataPath,
     OperationInMessageRef,
     OperationOutMessageRef,
     OperationErrorRef,
@@ -41,6 +44,7 @@ pub(super) enum TextTarget {
     PartnerRoleParticipantRef,
     GlobalTaskSupportedInterfaceRef,
     GlobalTaskScript,
+    ProcessSupport,
     ConversationParticipantRef,
     ConversationMessageFlowRef,
     ChoreographyParticipantRef,
@@ -94,6 +98,8 @@ pub(super) struct BpmnSnapshotScanState {
     )>,
     current_text_annotation: Option<(ArtifactMetadataOwner, BpmnTextAnnotationSnapshot)>,
     current_process: Option<usize>,
+    current_correlation_subscription: Option<(usize, usize)>,
+    current_correlation_property_binding: Option<(usize, usize, usize)>,
     lane_set_stack: Vec<(usize, usize)>,
     lane_stack: Vec<(usize, usize, usize)>,
     current_correlation_property: Option<usize>,
@@ -151,6 +157,9 @@ impl BpmnSnapshotScanState {
         {
             return Ok(());
         }
+        if self.handle_process_start_event(source, reader, event, parent_tag, tag, is_empty)? {
+            return Ok(());
+        }
 
         match tag {
             "operation" if self.current_interface.is_some() => {
@@ -178,29 +187,63 @@ impl BpmnSnapshotScanState {
                 self.start_extension_documentation(is_empty);
                 Ok(())
             }
+            _ => Ok(()),
+        }
+    }
+
+    fn handle_process_start_event(
+        &mut self,
+        source: &BpmnSourceFile,
+        reader: &Reader<&[u8]>,
+        event: &BytesStart<'_>,
+        parent_tag: Option<&str>,
+        tag: &str,
+        is_empty: bool,
+    ) -> Result<bool> {
+        match tag {
             "laneSet" if self.current_process.is_some() => {
-                self.start_lane_set(source, reader, event, is_empty)
+                self.start_lane_set(source, reader, event, is_empty)?;
             }
             "lane" if self.current_lane_set().is_some() => {
-                self.start_lane(source, reader, event, is_empty)
+                self.start_lane(source, reader, event, is_empty)?;
+            }
+            "property" if parent_tag == Some("process") && self.current_process.is_some() => {
+                self.capture_process_property(source, reader, event)?;
+            }
+            "correlationSubscription"
+                if parent_tag == Some("process") && self.current_process.is_some() =>
+            {
+                self.start_correlation_subscription(source, reader, event, is_empty)?;
+            }
+            "correlationPropertyBinding"
+                if parent_tag == Some("correlationSubscription")
+                    && self.current_correlation_subscription.is_some() =>
+            {
+                self.start_correlation_property_binding(source, reader, event, is_empty)?;
+            }
+            "dataPath"
+                if parent_tag == Some("correlationPropertyBinding")
+                    && self.current_correlation_property_binding.is_some() =>
+            {
+                self.attach_correlation_binding_data_path_metadata(source, reader, event)?;
             }
             "dataObject" if self.current_process.is_some() => {
-                self.capture_data_object(source, reader, event)
+                self.capture_data_object(source, reader, event)?;
             }
             "dataObjectReference" if self.current_process.is_some() => {
-                self.capture_data_object_reference(source, reader, event)
+                self.capture_data_object_reference(source, reader, event)?;
             }
             "dataStoreReference" if self.current_process.is_some() => {
-                self.capture_data_store_reference(source, reader, event)
+                self.capture_data_store_reference(source, reader, event)?;
             }
             "ioSpecification" if self.current_process.is_some() => {
-                self.start_io_specification(source, reader, event, is_empty)
+                self.start_io_specification(source, reader, event, is_empty)?;
             }
             "dataInput" if self.current_io_specification().is_some() => {
-                self.capture_io_data_input(source, reader, event)
+                self.capture_io_data_input(source, reader, event)?;
             }
             "dataOutput" if self.current_io_specification().is_some() => {
-                self.capture_io_data_output(source, reader, event)
+                self.capture_io_data_output(source, reader, event)?;
             }
             "dataInputAssociation" if self.current_process.is_some() => self
                 .start_data_association(
@@ -209,7 +252,7 @@ impl BpmnSnapshotScanState {
                     event,
                     DataAssociationKind::Input,
                     is_empty,
-                ),
+                )?,
             "dataOutputAssociation" if self.current_process.is_some() => self
                 .start_data_association(
                     source,
@@ -217,22 +260,23 @@ impl BpmnSnapshotScanState {
                     event,
                     DataAssociationKind::Output,
                     is_empty,
-                ),
+                )?,
             "association"
                 if self.current_process.is_some() && is_artifact_container(parent_tag) =>
             {
-                self.capture_artifact_association(source, reader, event)
+                self.capture_artifact_association(source, reader, event)?;
             }
             "group" if self.current_process.is_some() && is_artifact_container(parent_tag) => {
-                self.capture_artifact_group(source, reader, event)
+                self.capture_artifact_group(source, reader, event)?;
             }
             "textAnnotation"
                 if self.current_process.is_some() && is_artifact_container(parent_tag) =>
             {
-                self.start_text_annotation(source, reader, event, is_empty)
+                self.start_text_annotation(source, reader, event, is_empty)?;
             }
-            _ => Ok(()),
+            _ => return Ok(false),
         }
+        Ok(true)
     }
 
     fn handle_bpmn_di_start_event(
@@ -445,9 +489,16 @@ impl BpmnSnapshotScanState {
             "relationship" => self.current_relationship = None,
             "process" => {
                 self.current_process = None;
+                self.current_correlation_property_binding = None;
+                self.current_correlation_subscription = None;
                 self.lane_set_stack.clear();
                 self.lane_stack.clear();
                 self.io_specification_stack.clear();
+            }
+            "correlationPropertyBinding" => self.current_correlation_property_binding = None,
+            "correlationSubscription" => {
+                self.current_correlation_property_binding = None;
+                self.current_correlation_subscription = None;
             }
             "laneSet" => {
                 let _ = self.lane_set_stack.pop();
@@ -477,6 +528,9 @@ impl BpmnSnapshotScanState {
             TextTarget::DataAssociationSource => self.push_data_association_source_ref(text),
             TextTarget::DataAssociationTarget => self.set_data_association_target_ref(text),
             TextTarget::CorrelationMessagePath => self.append_correlation_message_path(text),
+            TextTarget::CorrelationBindingDataPath => {
+                self.append_correlation_binding_data_path(text);
+            }
             TextTarget::OperationInMessageRef => self.set_operation_in_message_ref(text),
             TextTarget::OperationOutMessageRef => self.set_operation_out_message_ref(text),
             TextTarget::OperationErrorRef => self.push_operation_error_ref(text),
@@ -493,6 +547,7 @@ impl BpmnSnapshotScanState {
                 self.push_global_task_supported_interface_ref(text);
             }
             TextTarget::GlobalTaskScript => self.append_global_task_script(text),
+            TextTarget::ProcessSupport => self.push_process_support_ref(text),
             TextTarget::ConversationParticipantRef => self.push_conversation_participant_ref(text),
             TextTarget::ConversationMessageFlowRef => self.push_conversation_message_flow_ref(text),
             TextTarget::ChoreographyParticipantRef => {
@@ -536,6 +591,8 @@ impl BpmnSnapshotScanState {
         self.finish_text_annotation();
         self.finish_conversation_correlation_key();
         self.finish_participant_association();
+        self.current_correlation_property_binding = None;
+        self.current_correlation_subscription = None;
         self.current_partner_entity = None;
         self.current_partner_role = None;
         self.current_global_task = None;
@@ -1637,7 +1694,21 @@ impl BpmnSnapshotScanState {
         let process = BpmnProcessSnapshot {
             process_id: attribute_value(source, reader, event, "id")?,
             name: attribute_value(source, reader, event, "name")?,
+            process_type: attribute_value(source, reader, event, "processType")?,
+            is_closed: boolean_attribute_value(source, reader, event, "isClosed")?,
             is_executable: boolean_attribute_value(source, reader, event, "isExecutable")?,
+            definitional_collaboration_ref: attribute_value(
+                source,
+                reader,
+                event,
+                "definitionalCollaborationRef",
+            )?,
+            support_count: 0,
+            supports: Vec::new(),
+            property_count: 0,
+            properties: Vec::new(),
+            correlation_subscription_count: 0,
+            correlation_subscriptions: Vec::new(),
             lane_set_count: 0,
             lane_sets: Vec::new(),
             data_object_count: 0,
@@ -1666,6 +1737,105 @@ impl BpmnSnapshotScanState {
         if !is_empty {
             self.current_process = self.processes.len().checked_sub(1);
         }
+        Ok(())
+    }
+
+    fn capture_process_property(
+        &mut self,
+        source: &BpmnSourceFile,
+        reader: &Reader<&[u8]>,
+        event: &BytesStart<'_>,
+    ) -> Result<()> {
+        let property = BpmnProcessPropertySnapshot {
+            property_id: attribute_value(source, reader, event, "id")?,
+            name: attribute_value(source, reader, event, "name")?,
+            item_subject_ref: attribute_value(source, reader, event, "itemSubjectRef")?,
+        };
+        let Some(process) = self.current_process_mut() else {
+            return Ok(());
+        };
+        process.property_count += 1;
+        process.properties.push(property);
+        Ok(())
+    }
+
+    fn start_correlation_subscription(
+        &mut self,
+        source: &BpmnSourceFile,
+        reader: &Reader<&[u8]>,
+        event: &BytesStart<'_>,
+        is_empty: bool,
+    ) -> Result<()> {
+        let Some(process_index) = self.current_process else {
+            return Ok(());
+        };
+        let subscription = BpmnCorrelationSubscriptionSnapshot {
+            subscription_id: attribute_value(source, reader, event, "id")?,
+            correlation_key_ref: attribute_value(source, reader, event, "correlationKeyRef")?,
+            bindings: Vec::new(),
+        };
+        let Some(process) = self.processes.get_mut(process_index) else {
+            return Ok(());
+        };
+        process.correlation_subscription_count += 1;
+        process.correlation_subscriptions.push(subscription);
+        if !is_empty {
+            let subscription_index = process.correlation_subscriptions.len().saturating_sub(1);
+            self.current_correlation_subscription = Some((process_index, subscription_index));
+        }
+        Ok(())
+    }
+
+    fn start_correlation_property_binding(
+        &mut self,
+        source: &BpmnSourceFile,
+        reader: &Reader<&[u8]>,
+        event: &BytesStart<'_>,
+        is_empty: bool,
+    ) -> Result<()> {
+        let Some((process_index, subscription_index)) = self.current_correlation_subscription
+        else {
+            return Ok(());
+        };
+        let binding = BpmnCorrelationPropertyBindingSnapshot {
+            binding_id: attribute_value(source, reader, event, "id")?,
+            correlation_property_ref: attribute_value(
+                source,
+                reader,
+                event,
+                "correlationPropertyRef",
+            )?,
+            data_path: None,
+            data_path_language: None,
+            data_path_evaluates_to_type_ref: None,
+        };
+        let Some(subscription) =
+            self.correlation_subscription_mut(process_index, subscription_index)
+        else {
+            return Ok(());
+        };
+        subscription.bindings.push(binding);
+        if !is_empty {
+            let binding_index = subscription.bindings.len().saturating_sub(1);
+            self.current_correlation_property_binding =
+                Some((process_index, subscription_index, binding_index));
+        }
+        Ok(())
+    }
+
+    fn attach_correlation_binding_data_path_metadata(
+        &mut self,
+        source: &BpmnSourceFile,
+        reader: &Reader<&[u8]>,
+        event: &BytesStart<'_>,
+    ) -> Result<()> {
+        let language = attribute_value(source, reader, event, "language")?;
+        let evaluates_to_type_ref = attribute_value(source, reader, event, "evaluatesToTypeRef")?;
+        let Some(binding) = self.current_correlation_property_binding_mut() else {
+            return Ok(());
+        };
+        binding.data_path_language = language;
+        binding.data_path_evaluates_to_type_ref = evaluates_to_type_ref;
         Ok(())
     }
 
@@ -1922,6 +2092,16 @@ impl BpmnSnapshotScanState {
             .push_str(text);
     }
 
+    fn append_correlation_binding_data_path(&mut self, text: &str) {
+        let Some(binding) = self.current_correlation_property_binding_mut() else {
+            return;
+        };
+        binding
+            .data_path
+            .get_or_insert_with(String::new)
+            .push_str(text);
+    }
+
     fn set_operation_in_message_ref(&mut self, text: &str) {
         let Some(operation) = self.current_operation_mut() else {
             return;
@@ -2009,6 +2189,14 @@ impl BpmnSnapshotScanState {
             return;
         };
         task.script.get_or_insert_with(String::new).push_str(text);
+    }
+
+    fn push_process_support_ref(&mut self, text: &str) {
+        let Some(process) = self.current_process_mut() else {
+            return;
+        };
+        process.support_count += 1;
+        process.supports.push(text.to_string());
     }
 
     fn push_conversation_participant_ref(&mut self, text: &str) {
@@ -2444,6 +2632,27 @@ impl BpmnSnapshotScanState {
     fn current_process_mut(&mut self) -> Option<&mut BpmnProcessSnapshot> {
         self.current_process
             .and_then(|index| self.processes.get_mut(index))
+    }
+
+    fn correlation_subscription_mut(
+        &mut self,
+        process_index: usize,
+        subscription_index: usize,
+    ) -> Option<&mut BpmnCorrelationSubscriptionSnapshot> {
+        self.processes
+            .get_mut(process_index)?
+            .correlation_subscriptions
+            .get_mut(subscription_index)
+    }
+
+    fn current_correlation_property_binding_mut(
+        &mut self,
+    ) -> Option<&mut BpmnCorrelationPropertyBindingSnapshot> {
+        let (process_index, subscription_index, binding_index) =
+            self.current_correlation_property_binding?;
+        self.correlation_subscription_mut(process_index, subscription_index)?
+            .bindings
+            .get_mut(binding_index)
     }
 
     fn current_lane_set(&self) -> Option<(usize, usize)> {

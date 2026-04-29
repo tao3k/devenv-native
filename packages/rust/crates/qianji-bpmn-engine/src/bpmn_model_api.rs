@@ -798,8 +798,35 @@ pub struct BpmnProcessSnapshot {
     pub process_id: Option<String>,
     /// Optional human-readable process name.
     pub name: Option<String>,
+    /// Optional BPMN process type marker.
+    #[serde(default)]
+    pub process_type: Option<String>,
+    /// Optional BPMN closed-process marker.
+    #[serde(default)]
+    pub is_closed: Option<bool>,
     /// Optional BPMN `isExecutable` marker.
     pub is_executable: Option<bool>,
+    /// Optional BPMN definitional collaboration reference.
+    #[serde(default)]
+    pub definitional_collaboration_ref: Option<String>,
+    /// Number of direct `supports` references discovered inside this process.
+    #[serde(default)]
+    pub support_count: usize,
+    /// Direct `supports` references preserved from this process.
+    #[serde(default)]
+    pub supports: Vec<String>,
+    /// Number of direct process `property` elements discovered.
+    #[serde(default)]
+    pub property_count: usize,
+    /// Direct process property metadata preserved from this process.
+    #[serde(default)]
+    pub properties: Vec<BpmnProcessPropertySnapshot>,
+    /// Number of direct `correlationSubscription` elements discovered.
+    #[serde(default)]
+    pub correlation_subscription_count: usize,
+    /// Direct process correlation subscriptions preserved from this process.
+    #[serde(default)]
+    pub correlation_subscriptions: Vec<BpmnCorrelationSubscriptionSnapshot>,
     /// Number of `laneSet` elements discovered inside this process.
     pub lane_set_count: usize,
     /// Bounded `laneSet` metadata preserved from this process.
@@ -846,6 +873,44 @@ pub struct BpmnProcessSnapshot {
     /// Bounded `textAnnotation` metadata preserved from this process.
     #[serde(default)]
     pub text_annotations: Vec<BpmnTextAnnotationSnapshot>,
+}
+
+/// Snapshot of one direct BPMN process `property`.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct BpmnProcessPropertySnapshot {
+    /// Optional stable process-property identifier.
+    pub property_id: Option<String>,
+    /// Optional process-property name.
+    pub name: Option<String>,
+    /// Optional referenced item definition.
+    pub item_subject_ref: Option<String>,
+}
+
+/// Snapshot of one BPMN process `correlationSubscription`.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct BpmnCorrelationSubscriptionSnapshot {
+    /// Optional stable subscription identifier.
+    pub subscription_id: Option<String>,
+    /// Optional referenced correlation key.
+    pub correlation_key_ref: Option<String>,
+    /// Direct correlation property bindings preserved from this subscription.
+    #[serde(default)]
+    pub bindings: Vec<BpmnCorrelationPropertyBindingSnapshot>,
+}
+
+/// Snapshot of one BPMN `correlationPropertyBinding`.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct BpmnCorrelationPropertyBindingSnapshot {
+    /// Optional stable binding identifier.
+    pub binding_id: Option<String>,
+    /// Optional referenced correlation property.
+    pub correlation_property_ref: Option<String>,
+    /// Optional direct nested `dataPath` payload.
+    pub data_path: Option<String>,
+    /// Optional formal expression language for `dataPath`.
+    pub data_path_language: Option<String>,
+    /// Optional formal expression result type reference for `dataPath`.
+    pub data_path_evaluates_to_type_ref: Option<String>,
 }
 
 /// Snapshot of one BPMN `laneSet`.

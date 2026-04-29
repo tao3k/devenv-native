@@ -1,7 +1,8 @@
 use crate::bpmn_model_api::{
     BpmnAssociationSnapshot, BpmnChoreographyActivitySnapshot, BpmnCollaborationSnapshot,
     BpmnConversationNodeSnapshot, BpmnDocumentSnapshot, BpmnGroupSnapshot, BpmnParticipantSnapshot,
-    BpmnPartnerEntitySnapshot, BpmnPartnerRoleSnapshot, BpmnTextAnnotationSnapshot,
+    BpmnPartnerEntitySnapshot, BpmnPartnerRoleSnapshot, BpmnProcessSnapshot,
+    BpmnTextAnnotationSnapshot,
 };
 use crate::bpmn_parse_api::BpmnSourceFile;
 use crate::bpmn_snapshot_api::snapshot_bpmn_source;
@@ -162,6 +163,7 @@ fn collaboration_snapshot_summary(snapshot: &BpmnDocumentSnapshot) -> Value {
     let partner_entities = partner_entity_evidence(snapshot);
     let partner_roles = partner_role_evidence(snapshot);
     let correlation_properties = correlation_property_evidence(snapshot);
+    let process_callable = process_callable_summary(snapshot);
 
     json!({
         "root": root_snapshot_summary(snapshot),
@@ -195,6 +197,7 @@ fn collaboration_snapshot_summary(snapshot: &BpmnDocumentSnapshot) -> Value {
         "messages_truncated": snapshot.root.messages.len() > SNAPSHOT_EVIDENCE_LIMIT,
         "interfaces_truncated": snapshot.root.interfaces.len() > SNAPSHOT_EVIDENCE_LIMIT,
         "correlation_properties_truncated": snapshot.root.correlation_properties.len() > SNAPSHOT_EVIDENCE_LIMIT,
+        "process_callable": process_callable,
         "item_definitions": item_definitions,
         "messages": messages,
         "interfaces": interfaces,
@@ -222,6 +225,97 @@ struct CollaborationCounts {
     association: usize,
     group: usize,
     text_annotation: usize,
+}
+
+#[derive(Debug, Default)]
+struct ProcessCallableCounts {
+    support: usize,
+    property: usize,
+    correlation_subscription: usize,
+    correlation_binding: usize,
+}
+
+fn process_callable_counts(snapshot: &BpmnDocumentSnapshot) -> ProcessCallableCounts {
+    snapshot
+        .processes
+        .iter()
+        .fold(ProcessCallableCounts::default(), |mut counts, process| {
+            counts.support += process.support_count;
+            counts.property += process.property_count;
+            counts.correlation_subscription += process.correlation_subscription_count;
+            counts.correlation_binding += process
+                .correlation_subscriptions
+                .iter()
+                .map(|subscription| subscription.bindings.len())
+                .sum::<usize>();
+            counts
+        })
+}
+
+fn process_callable_summary(snapshot: &BpmnDocumentSnapshot) -> Value {
+    let counts = process_callable_counts(snapshot);
+    json!({
+        "support_count": counts.support,
+        "property_count": counts.property,
+        "correlation_subscription_count": counts.correlation_subscription,
+        "correlation_binding_count": counts.correlation_binding,
+        "metadata_truncated": snapshot.processes.len() > SNAPSHOT_EVIDENCE_LIMIT,
+        "processes": process_callable_metadata_evidence(snapshot),
+    })
+}
+
+fn process_callable_metadata_evidence(snapshot: &BpmnDocumentSnapshot) -> Vec<Value> {
+    snapshot
+        .processes
+        .iter()
+        .filter(|process| has_process_callable_metadata(process))
+        .take(SNAPSHOT_EVIDENCE_LIMIT)
+        .map(|process| {
+            json!({
+                "process_id": process.process_id,
+                "process_type": process.process_type,
+                "is_closed": process.is_closed,
+                "is_executable": process.is_executable,
+                "definitional_collaboration_ref": process.definitional_collaboration_ref,
+                "support_count": process.support_count,
+                "supports": process.supports,
+                "property_count": process.property_count,
+                "properties": process.properties.iter().take(SNAPSHOT_EVIDENCE_LIMIT).map(|property| {
+                    json!({
+                        "property_id": property.property_id,
+                        "name": property.name,
+                        "item_subject_ref": property.item_subject_ref,
+                    })
+                }).collect::<Vec<_>>(),
+                "correlation_subscription_count": process.correlation_subscription_count,
+                "correlation_subscriptions": process.correlation_subscriptions.iter().take(SNAPSHOT_EVIDENCE_LIMIT).map(|subscription| {
+                    json!({
+                        "subscription_id": subscription.subscription_id,
+                        "correlation_key_ref": subscription.correlation_key_ref,
+                        "binding_count": subscription.bindings.len(),
+                        "bindings": subscription.bindings.iter().take(SNAPSHOT_EVIDENCE_LIMIT).map(|binding| {
+                            json!({
+                                "binding_id": binding.binding_id,
+                                "correlation_property_ref": binding.correlation_property_ref,
+                                "data_path": binding.data_path,
+                                "data_path_language": binding.data_path_language,
+                                "data_path_evaluates_to_type_ref": binding.data_path_evaluates_to_type_ref,
+                            })
+                        }).collect::<Vec<_>>(),
+                    })
+                }).collect::<Vec<_>>(),
+            })
+        })
+        .collect()
+}
+
+fn has_process_callable_metadata(process: &BpmnProcessSnapshot) -> bool {
+    process.process_type.is_some()
+        || process.is_closed.is_some()
+        || process.definitional_collaboration_ref.is_some()
+        || process.support_count > 0
+        || process.property_count > 0
+        || process.correlation_subscription_count > 0
 }
 
 fn collaboration_counts(snapshot: &BpmnDocumentSnapshot) -> CollaborationCounts {

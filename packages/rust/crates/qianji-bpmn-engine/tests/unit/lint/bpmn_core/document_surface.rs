@@ -179,6 +179,51 @@ fn bpmn_linter_reports_partner_participant_metadata_surface_with_llm_guidance() 
 }
 
 #[test]
+fn bpmn_linter_reports_process_callable_metadata_surface_with_llm_guidance() {
+    let report = lint_bpmn_source(&bpmn_fixture_source("metadata-process-callable.bpmn"));
+
+    assert_eq!(report.domain, LintDomain::Bpmn);
+    assert!(!report.ok);
+    assert_eq!(report.issues.len(), 1);
+    let issue = &report.issues[0];
+    assert_eq!(issue.code, "bpmn.unsupported_collaboration_surface");
+    assert_eq!(issue.evidence["snapshot_available"], true);
+    assert_eq!(
+        issue.evidence["snapshot"]["process_callable"]["support_count"],
+        1
+    );
+    assert_eq!(
+        issue.evidence["snapshot"]["process_callable"]["property_count"],
+        1
+    );
+    assert_eq!(
+        issue.evidence["snapshot"]["process_callable"]["correlation_subscription_count"],
+        1
+    );
+    assert_eq!(
+        issue.evidence["snapshot"]["process_callable"]["correlation_binding_count"],
+        1
+    );
+    assert_eq!(
+        issue.evidence["snapshot"]["process_callable"]["processes"][0]["process_type"],
+        "Public"
+    );
+    assert_eq!(
+        issue.evidence["snapshot"]["process_callable"]["processes"][0]["supports"][0],
+        "Process_Base"
+    );
+    assert_eq!(
+        issue.evidence["snapshot"]["process_callable"]["processes"][0]["properties"][0]["item_subject_ref"],
+        "Item_Order"
+    );
+    assert_eq!(
+        issue.evidence["snapshot"]["process_callable"]["processes"][0]["correlation_subscriptions"]
+            [0]["bindings"][0]["data_path"],
+        "order.id"
+    );
+}
+
+#[test]
 fn bpmn_linter_accepts_passive_lane_metadata_surface() {
     let report = lint_bpmn_source(&bpmn_fixture_source("invalid-lane-set.bpmn"));
 

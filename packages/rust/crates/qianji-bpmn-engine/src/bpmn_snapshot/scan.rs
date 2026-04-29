@@ -136,6 +136,9 @@ fn text_target(element_stack: &[String]) -> Option<TextTarget> {
         (Some("messagePath"), Some("correlationPropertyRetrievalExpression")) => {
             Some(TextTarget::CorrelationMessagePath)
         }
+        (Some("dataPath"), Some("correlationPropertyBinding")) => {
+            Some(TextTarget::CorrelationBindingDataPath)
+        }
         (Some("inMessageRef"), Some("operation")) => Some(TextTarget::OperationInMessageRef),
         (Some("outMessageRef"), Some("operation")) => Some(TextTarget::OperationOutMessageRef),
         (Some("errorRef"), Some("operation")) => Some(TextTarget::OperationErrorRef),
@@ -161,6 +164,7 @@ fn text_target(element_stack: &[String]) -> Option<TextTarget> {
             ),
         ) => Some(TextTarget::GlobalTaskSupportedInterfaceRef),
         (Some("script"), Some("globalScriptTask")) => Some(TextTarget::GlobalTaskScript),
+        (Some("supports"), Some("process")) => Some(TextTarget::ProcessSupport),
         (Some("participantRef"), Some("conversation" | "subConversation" | "callConversation")) => {
             Some(TextTarget::ConversationParticipantRef)
         }

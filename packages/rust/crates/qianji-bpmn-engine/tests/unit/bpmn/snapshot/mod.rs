@@ -8,6 +8,7 @@ mod collaboration;
 mod conversation;
 mod diagram;
 mod partners;
+mod process;
 mod root_catalogs;
 mod typed_catalogs;
 mod xml_errors;

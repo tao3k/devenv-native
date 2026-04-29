@@ -40,6 +40,7 @@ guidance.
 | Event definition catalogs | metadata-only      | Message/error/escalation/signal catalogs are preserved, not schema-validated.                                    |
 | Interfaces/operations     | metadata-only      | Callable-operation catalogs are preserved; host dispatch binding remains explicit.                               |
 | Global task catalogs      | metadata-only      | Top-level global task definitions are preserved; call-activity binding remains deferred.                         |
+| Process callable metadata | metadata-only      | Process callable attributes, support refs, properties, and correlation subscriptions are preserved passively.    |
 | Resource catalogs         | metadata-only      | Top-level resources and parameters are preserved; assignment binding remains deferred.                           |
 | Category catalogs         | metadata-only      | Top-level categories and values are preserved; classification remains passive.                                   |
 | Terminate events          | bounded executable | `terminateEventDefinition` end events terminate the current runtime scope.                                       |
@@ -83,17 +84,19 @@ participants, message flows, conversation nodes, conversation associations,
 participant associations, message-flow associations, conversation links,
 correlation keys, choreography references, choreography activity metadata, and
 artifact metadata, partner entities, partner roles, endpoints, participant
-interface refs, participant endpoint refs, participant multiplicity, and data
-references. This gives Rust-owned evidence for future routing and
-type-alignment work while keeping pool routing, message dispatch, conversation
-routing, choreography execution, endpoint invocation, participant multiplicity
-execution, global task execution, callable-operation binding, resource
+interface refs, participant endpoint refs, participant multiplicity, process
+callable attributes, process support refs, process properties, process
+correlation subscriptions, and data references. This gives Rust-owned evidence
+for future routing and type-alignment work while keeping pool routing, message
+dispatch, conversation routing, choreography execution, endpoint invocation,
+participant multiplicity execution, global task execution, process support
+resolution, process property execution, callable-operation binding, resource
 assignment binding, group execution, annotation interpretation, flow-element
 classification, import resolution, extension behavior, extension payload
 parsing, diagram rendering, layout validation, relationship endpoint
-resolution, event subscription registries, correlation matching,
-correlation-key evaluation, retrieval expression evaluation, and schema
-validation deferred.
+resolution, event subscription registries, correlation matching, correlation
+subscription matching, correlation-key evaluation, retrieval expression
+evaluation, and schema validation deferred.
 
 ## Active M2 Event Milestone
 
