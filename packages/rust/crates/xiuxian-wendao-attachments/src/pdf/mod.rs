@@ -12,6 +12,9 @@ pub mod render;
 #[doc(hidden)]
 pub mod ocr;
 
+#[cfg(feature = "pdf-render")]
+mod source_range;
+
 #[cfg(feature = "pdf-inspector")]
 #[doc(hidden)]
 pub mod structure;

@@ -23,6 +23,7 @@ PDF_OCR_DEFAULT_PROFILE = "docling-compatible-page-ocr-v1"
 PDF_OCR_FAST_TEXT_PROFILE = "docling-fast-text-ocr"
 PDF_OCR_WORKERS_ENV = "WENDAO_PDF_OCR_WORKERS"
 PDF_OCR_MAX_WORKERS_ENV = "WENDAO_PDF_OCR_MAX_WORKERS"
+PDF_OCR_PAGE_BREAK_SENTINEL = "<!-- xiuxian-wendao-pdf-ocr-page-break -->"
 
 PDF_OCR_SHARD_INPUT_SCHEMA = pa.schema(
     [
@@ -278,10 +279,19 @@ class DoclingPdfOcrShardWorker:
             start_page = int(input_rows[0]["pageIndex"]) + 1
             end_page = int(input_rows[-1]["pageIndex"]) + 1
             result = converter.convert(source_path, page_range=(start_page, end_page))
+            page_markdowns = _try_export_source_page_batch_markdown(
+                result.document,
+                input_rows,
+            )
+            if page_markdowns is None:
+                page_markdowns = [
+                    result.document.export_to_markdown(
+                        page_no=int(input_row["pageIndex"]) + 1
+                    )
+                    for input_row in input_rows
+                ]
             rows = []
-            for input_row in input_rows:
-                page_number = int(input_row["pageIndex"]) + 1
-                markdown = result.document.export_to_markdown(page_no=page_number)
+            for markdown in page_markdowns:
                 if not markdown.strip():
                     return None
                 rows.append(
@@ -306,6 +316,26 @@ class DoclingPdfOcrShardWorker:
             converter = factory()
             self._thread_local.converter = converter
         return converter
+
+
+def _try_export_source_page_batch_markdown(
+    document: Any,
+    input_rows: Sequence[Mapping[str, Any]],
+) -> list[str] | None:
+    try:
+        markdown = document.export_to_markdown(
+            page_break_placeholder=PDF_OCR_PAGE_BREAK_SENTINEL
+        )
+    except (AttributeError, TypeError, ValueError):
+        return None
+    if not isinstance(markdown, str):
+        return None
+    parts = [part.strip() for part in markdown.split(PDF_OCR_PAGE_BREAK_SENTINEL)]
+    if len(parts) != len(input_rows):
+        return None
+    if any(not part for part in parts):
+        return None
+    return parts
 
 
 def build_pdf_ocr_shard_result_table(

@@ -429,6 +429,22 @@ pub fn analyze_pdf_routing_signals(path: &Path) -> Result<PdfInspectorRoutingSig
     Ok(signals_from_analysis(&analysis, pdf_type))
 }
 
+/// # Errors
+///
+/// Returns an error if `pdf-inspector` cannot detect the PDF.
+pub fn detect_pdf_routing_signals(path: &Path) -> Result<PdfInspectorRoutingSignals, String> {
+    let detection = DetectionConfig {
+        strategy: ScanStrategy::Full,
+        ..DetectionConfig::default()
+    };
+    let options = PdfOptions::new()
+        .mode(ProcessMode::DetectOnly)
+        .detection(detection);
+    let analysis = process_pdf_with_options(path, options).map_err(|error| error.to_string())?;
+    let pdf_type = normalize_pdf_type(analysis.pdf_type);
+    Ok(signals_from_analysis(&analysis, pdf_type))
+}
+
 fn signals_from_analysis(
     analysis: &PdfProcessResult,
     pdf_type: PdfInspectorPdfType,

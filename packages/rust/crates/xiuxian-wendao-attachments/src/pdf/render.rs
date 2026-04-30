@@ -9,6 +9,7 @@ use arrow::datatypes::{DataType, Field, Schema, SchemaRef};
 use arrow::ipc::writer::FileWriter;
 use arrow::record_batch::RecordBatch;
 use image::DynamicImage;
+use lopdf::Document as LopdfDocument;
 use num_traits::ToPrimitive;
 use pdfium_render::prelude::{
     PdfBitmapFormat, PdfDocument, PdfPage, PdfPageRenderRotation, PdfRect, PdfRenderConfig, Pdfium,
@@ -22,6 +23,9 @@ use super::audit::{
     analyze_pdf_routing_signals, high_recall_ocr_page_numbers, routing_assessment,
 };
 use super::ocr::{PdfOcrWorkerProfile, build_ocr_shard_input_batch, build_ocr_shard_inputs};
+use super::source_range::{
+    source_page_range_all_page_indices, source_page_range_validate_page_index,
+};
 
 pub const PDFIUM_LIBRARY_PATH_ENV: &str = "WENDAO_PDFIUM_LIBRARY_PATH";
 const PDF_RENDER_SHARD_PROFILE: &str = "pdfium-render-page-shards-v1";
@@ -728,8 +732,11 @@ pub fn prepare_pdf_source_page_range_ocr_shards_with_selection(
         return Ok(context.report(ReportParts::unsupported("unsupported non-PDF input")));
     }
 
-    let page_selection = match resolve_page_selection(path, selection) {
-        Ok(page_selection) => page_selection,
+    let source_bytes =
+        fs::read(path).map_err(|error| format!("read PDF `{}`: {error}", path.display()))?;
+    let source_hash = sha256_hex(&source_bytes);
+    let (page_count, page_selection) = match resolve_source_page_range_selection(path, selection) {
+        Ok(selection) => selection,
         Err(error) => {
             return Ok(context.report(ReportParts::preflight_failed(format!(
                 "analyze PDF `{}` for source page range selection: {error}",
@@ -750,29 +757,10 @@ pub fn prepare_pdf_source_page_range_ocr_shards_with_selection(
         )));
     }
 
-    let source_bytes =
-        fs::read(path).map_err(|error| format!("read PDF `{}`: {error}", path.display()))?;
-    let source_hash = sha256_hex(&source_bytes);
-    let pdfium = match bind_pdfium() {
-        Ok(pdfium) => pdfium,
-        Err(error) => return Ok(context.report(ReportParts::fallback(0, 0, error))),
-    };
-
-    let document = match pdfium.load_pdf_from_file(path, None) {
-        Ok(document) => document,
-        Err(error) => {
-            return Ok(context.report(ReportParts::preflight_failed(format!(
-                "load PDF `{}`: {error}",
-                path.display()
-            ))));
-        }
-    };
-
-    let page_count = u32::try_from(document.pages().len()).unwrap_or_default();
     let manifests = match source_page_range_document_manifests(
-        &document,
         &context,
         &source_hash,
+        page_count,
         page_selection.selected_page_indices(),
     ) {
         Ok(manifests) => manifests,
@@ -790,6 +778,42 @@ pub fn prepare_pdf_source_page_range_ocr_shards_with_selection(
         ocr_input_arrow_path,
         pending_resource_arrow_path,
     )))
+}
+
+fn resolve_source_page_range_selection(
+    path: &Path,
+    selection: PdfPageRenderSelection,
+) -> Result<(u32, RenderPageSelection), String> {
+    let page_count = source_page_range_lopdf_page_count(path)?;
+    match selection {
+        PdfPageRenderSelection::AllPages => Ok((page_count, RenderPageSelection::All)),
+        PdfPageRenderSelection::RegionShards => {
+            Err("region_shards selection requires configured region requests".to_string())
+        }
+        PdfPageRenderSelection::ShardFallbackPages => {
+            if page_count == 0 {
+                return Ok((
+                    page_count,
+                    RenderPageSelection::Skip {
+                        page_count,
+                        routing_decision: PdfRenderRoutingDecision::FullDoclingFallback,
+                        reason: "source PDF page tree is empty".to_string(),
+                    },
+                ));
+            }
+            Ok((
+                page_count,
+                RenderPageSelection::Selected(source_page_range_all_page_indices(page_count)),
+            ))
+        }
+    }
+}
+
+fn source_page_range_lopdf_page_count(path: &Path) -> Result<u32, String> {
+    let document = LopdfDocument::load(path)
+        .map_err(|error| format!("load PDF page tree with lopdf: {error}"))?;
+    u32::try_from(document.get_pages().len())
+        .map_err(|_| "PDF page count exceeds u32 range".to_string())
 }
 
 /// # Errors
@@ -1109,7 +1133,14 @@ fn resolve_page_selection(
 
 fn resolve_shard_fallback_page_selection(path: &Path) -> Result<RenderPageSelection, String> {
     let signals = analyze_pdf_routing_signals(path)?;
-    let assessment = routing_assessment(&signals);
+    resolve_shard_fallback_page_selection_from_signals(path, &signals)
+}
+
+fn resolve_shard_fallback_page_selection_from_signals(
+    path: &Path,
+    signals: &PdfInspectorRoutingSignals,
+) -> Result<RenderPageSelection, String> {
+    let assessment = routing_assessment(signals);
     match assessment.decision {
         PdfInspectorRoutingDecision::FastRustCandidate => Ok(RenderPageSelection::Skip {
             page_count: signals.page_count,
@@ -1140,7 +1171,7 @@ fn resolve_shard_fallback_page_selection(path: &Path) -> Result<RenderPageSelect
             let page_indices = raster_ocr_page_indices(
                 signals.page_count,
                 pages_needing_ocr.as_slice(),
-                should_render_all_when_no_ocr_hints(&signals),
+                should_render_all_when_no_ocr_hints(signals),
             );
             if page_indices.is_empty() {
                 return Ok(RenderPageSelection::Skip {
@@ -1369,29 +1400,22 @@ fn render_document_manifests(
 }
 
 fn source_page_range_document_manifests(
-    document: &PdfDocument<'_>,
     context: &RenderShardContext<'_>,
     source_hash: &str,
+    page_count: u32,
     selected_page_indices: Option<&[i32]>,
 ) -> Result<Vec<PdfPageShardManifest>, ReportParts> {
-    let page_count = u32::try_from(document.pages().len()).unwrap_or_default();
     let mut manifests = Vec::new();
     let page_indices = selected_page_indices.map_or_else(
-        || document.pages().as_range().collect::<Vec<_>>(),
+        || source_page_range_all_page_indices(page_count),
         <[i32]>::to_vec,
     );
     for page_index in page_indices {
-        let page = document.pages().get(page_index).map_err(|error| {
-            ReportParts::fallback(
-                page_count,
-                checked_len_u32(manifests.len()),
-                format!("load page {page_index}: {error}"),
-            )
-        })?;
-        let manifest = source_page_range_manifest(&page, page_index, context, source_hash)
-            .map_err(|error| {
+        let page_index =
+            source_page_range_validate_page_index(page_index, page_count).map_err(|error| {
                 ReportParts::fallback(page_count, checked_len_u32(manifests.len()), error)
             })?;
+        let manifest = source_page_range_manifest(page_index, context, source_hash);
         manifests.push(manifest);
     }
     Ok(manifests)
@@ -1483,33 +1507,33 @@ fn render_page_manifest(
 }
 
 fn source_page_range_manifest(
-    page: &PdfPage<'_>,
-    page_index: i32,
+    page_index: u32,
     context: &RenderShardContext<'_>,
     source_hash: &str,
-) -> Result<PdfPageShardManifest, String> {
-    let geometry = page_geometry(page, page_index, context.profile)?;
-    let page_index_u32 = u32::try_from(page_index).unwrap_or_default();
+) -> PdfPageShardManifest {
+    let page_box = PdfPageBox::new(0.0, 0.0, 612.0, 792.0);
+    let (raster_width_px, raster_height_px) =
+        render_dimensions_for_box(page_box, 0, context.profile);
     let placeholder_path = context.shard_dir(source_hash).join(format!(
         "source-page-range-{page_index:05}.{}",
         context.profile.image_extension
     ));
     let raster = RenderedRasterIdentity {
         path: placeholder_path,
-        sha256: sha256_hex(format!("source-page-range:{source_hash}:{page_index_u32}").as_bytes()),
-        width_px: geometry.raster_width_px,
-        height_px: geometry.raster_height_px,
+        sha256: sha256_hex(format!("source-page-range:{source_hash}:{page_index}").as_bytes()),
+        width_px: raster_width_px,
+        height_px: raster_height_px,
     };
-    Ok(build_shard_manifest(PdfPageShardManifestInput {
+    build_shard_manifest(PdfPageShardManifestInput {
         source_path: context.path,
         source_content_hash: source_hash,
-        page_index: page_index_u32,
+        page_index,
         profile: context.profile,
-        media_box: geometry.media_box,
-        crop_box: geometry.crop_box,
-        rotation_degrees: geometry.rotation_degrees,
+        media_box: page_box,
+        crop_box: page_box,
+        rotation_degrees: 0,
         raster,
-    }))
+    })
 }
 
 fn render_page_region_manifests(

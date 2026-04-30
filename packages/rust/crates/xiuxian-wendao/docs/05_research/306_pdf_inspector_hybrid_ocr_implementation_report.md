@@ -653,6 +653,19 @@ Current implementation status:
   regressed to `54.85s`, and the adaptive default measured `48.98s`.
   All three runs produced `21` OCR rows, `0` error rows, `21` structure rows,
   `21` bbox blocks, and sorted reading order.
+- Python now avoids repeated Markdown serializer passes for successful
+  source-PDF page-range groups when Docling can emit page-break-separated
+  Markdown for the converted range. If the page-break export does not produce
+  one non-empty segment per input shard, the worker falls back to the previous
+  `page_no`-scoped export path. This keeps Docling as the OCR authority while
+  reducing Python post-conversion overhead without changing
+  `xiuxian_wendao.pdf_ocr_shard_input.v1`.
+- The source-PDF page-range manifest path now avoids `pdf-inspector`, PDFium,
+  and high-DPI raster work before OCR for full-page shards. Rust reads the PDF
+  page tree with `lopdf`, emits stable whole-page source-range shard rows, and
+  sends the original `sourcePath` page range to Python/Docling. Region shards
+  and raster audit proofs remain PDFium-backed; the source-range hot path does
+  not depend on raster rendering.
 - The follow-up shard cache and order-gate slice makes that source page-range
   path reusable at page or region granularity. Rust now validates OCR result
   rows against the original shard input identity and reorders them to the input
@@ -717,6 +730,7 @@ Final current-branch benchmark evidence:
 | arXiv `2604.17337` original Docling baseline |      256037.271 |        6.645 | 21 `ocr_text` rows |             21 |         21 | sorted        |          0 |
 | arXiv `2604.17337` source page-range OCR     |       53850.000 |        7.850 | 21 `ocr_text` rows |             21 |         21 | sorted        |          0 |
 | arXiv `2604.17337` adaptive source subranges |       48978.562 |        7.008 | 21 `ocr_text` rows |             21 |         21 | sorted        |          0 |
+| arXiv `2604.17337` `lopdf` source selector   |       49117.947 |       21.698 | 21 `ocr_text` rows |             21 |         21 | sorted        |          0 |
 | arXiv `2604.17337` empty shard-cache fill    |       62290.000 |        4.280 | 21 `ocr_text` rows |             21 |         21 | sorted        |          0 |
 | arXiv `2604.17337` shard-cache forced reuse  |         119.052 |        5.583 | 21 `ocr_text` rows |             21 |         21 | sorted        |          0 |
 | arXiv `2604.17337` whole-document cache hit  |           5.583 |        5.583 | 21 `ocr_text` rows |             21 |         21 | sorted        |          0 |
@@ -735,8 +749,8 @@ Milestone interpretation:
 - The current Rust optimization meets the production retry and repeated-content
   target. The original 256 s OCR-positive cold miss no longer repeats after the
   page shards are known: a fresh output directory can be rebuilt from the shard
-  cache in about 119-312 ms, and the whole-document cache hit stays around
-  5-6 ms. The shard cache report for this proof had 21 Arrow IPC entries,
+  cache in about 119-197 ms, and the whole-document cache hit stays in the
+  low-millisecond class. The shard cache report for this proof had 21 Arrow IPC entries,
   234,594 bytes total, and the default 10 GiB capacity limit visible in the
   benchmark JSON.
 - The remaining performance risk is unique OCR-heavy content with no reusable
@@ -745,6 +759,13 @@ Milestone interpretation:
   proof while preserving the same 21 ordered OCR blocks. The next optimization
   milestone still needs safe region/crop routing to reduce the amount of
   content sent to Python OCR without losing Docling precision.
+- The newest source selector removes unnecessary pre-OCR raster work for
+  full-page source ranges: the `2604.17337` rerun used `lopdf` page-tree
+  manifests, produced `21` OCR rows with `totalErrorRows=0`, rebuilt a fresh
+  output directory from shard cache in `197 ms`, and kept `_structure.arrow`
+  sorted. The force path stayed in the same `49 s` class, which confirms Python
+  Docling OCR remains the dominant cold-miss cost after Rust routing overhead is
+  removed.
 
 ### Milestone 5: Hybrid Mixed-PDF Pipeline
 

@@ -129,10 +129,18 @@ contract.
 
 For full-page PDF OCR shards, the hybrid provider can prepare source-PDF
 page-range shard manifests without rendering high-DPI PNG files first. The
-manifest still carries page geometry, content hash, reading order, and stable
-OCR shard v1 fields, but Python reads the original `sourcePath` page range
-through Docling and returns one row per page. Region shards still use real
-PDFium crop rendering because their OCR input is a raster region.
+manifest still carries content hash, reading order, a whole-page provenance
+envelope, and stable OCR shard v1 fields, but Python reads the original
+`sourcePath` page range through Docling and returns one row per page. Region
+shards still use real PDFium crop rendering because their OCR input is a raster
+region.
+The source-PDF page-range selector is separate from the older render audit
+selector. It avoids `pdf-inspector`, PDFium, and high-DPI raster work before
+OCR: `lopdf` reads the page tree, Rust emits one source-range shard row per
+selected page, and Docling remains the OCR authority over the original PDF page
+range. PDFium-backed routing and rendering remain available for region/raster
+proofs and future native-text page filtering, but they are not required for the
+full-page source-range hot path.
 Rust may split one contiguous source-PDF page range into multiple contiguous
 subranges when OCR worker permits are available. The default target is
 sublinear in the host worker budget to avoid over-parallelizing Docling PDF

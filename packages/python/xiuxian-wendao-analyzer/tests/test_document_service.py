@@ -325,6 +325,59 @@ def test_docling_pdf_ocr_worker_batches_contiguous_source_pdf_pages(
     ]
 
 
+def test_docling_pdf_ocr_worker_uses_single_page_break_export_for_ranges(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "source.pdf"
+    source.write_bytes(b"%PDF fixture")
+    export_calls: list[dict[str, object]] = []
+
+    class PageBreakDocument:
+        def export_to_markdown(self, **kwargs: object) -> str:
+            export_calls.append(dict(kwargs))
+            if "page_break_placeholder" in kwargs:
+                separator = str(kwargs["page_break_placeholder"])
+                return separator.join(["OCR page 1", "OCR page 2", "OCR page 3"])
+            page_no = kwargs.get("page_no")
+            return f"fallback page {page_no}\n"
+
+    class PageBreakResult:
+        document = PageBreakDocument()
+
+    class PageBreakConverter(FakeDoclingConverter):
+        def convert(self, source: str | Path, **kwargs: object) -> PageBreakResult:
+            self.calls.append(Path(source))
+            self.kwargs_calls.append(dict(kwargs))
+            return PageBreakResult()
+
+    converter = PageBreakConverter()
+    input_tables = [
+        _sample_pdf_ocr_input_table(
+            source_path=str(source),
+            image_path=str(tmp_path / f"page-{page_index:05}.png"),
+            page_index=page_index,
+            shard_element_id=f"shard-{page_index}",
+        )
+        for page_index in range(3)
+    ]
+
+    table = build_pdf_ocr_shard_result_table(
+        pa.concat_tables(input_tables),
+        worker=DoclingPdfOcrShardWorker(converter, max_workers=4),
+    )
+
+    assert converter.calls == [source]
+    assert converter.kwargs_calls == [{"page_range": (1, 3)}]
+    assert export_calls == [
+        {"page_break_placeholder": "<!-- xiuxian-wendao-pdf-ocr-page-break -->"}
+    ]
+    assert [row["text"] for row in table.to_pylist()] == [
+        "OCR page 1",
+        "OCR page 2",
+        "OCR page 3",
+    ]
+
+
 def test_docling_pdf_ocr_worker_preserves_order_with_concurrent_shards(
     tmp_path: Path,
 ) -> None:

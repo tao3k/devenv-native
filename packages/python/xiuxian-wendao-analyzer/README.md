@@ -142,13 +142,19 @@ override it per exchange through the internal `x-wendao-pdf-ocr-workers` Flight
 metadata header. Rust owns the global OCR worker budget, splits shard batches
 into scheduled chunks, and sends only the acquired worker count to Python for
 that exchange. Python remains the Docling OCR execution boundary. Full-page PDF
-shards from the same source are grouped into Docling `sourcePath` page ranges
-and then split back into one OCR result row per page with Docling's
-`page_no`-scoped Markdown export. Rendered images remain the fallback path for
-failed page ranges, region shards, and explicit raster tests. Result rows are
-still returned in input shard order. The Rust provider also validates and
-restores result order against the original shard input rows before merge, so
-document order is not coupled to Python worker completion order.
+shards from the same source are selected by Rust, grouped into Docling
+`sourcePath` page ranges, and then split back into one OCR result row per page.
+The full-page source-range selector avoids `pdf-inspector`, PDFium, and
+high-DPI rendering on the hot OCR path: Rust reads the PDF page tree with
+`lopdf`, emits stable whole-page shard rows, and lets Docling convert the
+original `sourcePath` page range. Python first asks Docling for a single
+page-break-separated Markdown export for the converted range; if that shape is
+unavailable or incomplete, it falls back to Docling's `page_no`-scoped Markdown
+export for each page. Rendered images remain the fallback path for failed page
+ranges, region shards, and explicit raster tests.
+Result rows are still returned in input shard order. The Rust provider also
+validates and restores result order against the original shard input rows before
+merge, so document order is not coupled to Python worker completion order.
 
 The built-in strategy is intentionally small:
 
