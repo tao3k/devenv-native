@@ -5,7 +5,7 @@
 :PARENT: [[../index|Wendao DocOS Kernel: Map of Content]]
 :TAGS: research, document-extraction, pdf, ocr, arrow, docling, attachments
 :STATUS: UPDATED
-:VERSION: 1.4
+:VERSION: 1.5
 :END:
 
 ## Executive Summary
@@ -59,8 +59,8 @@ Responsibilities:
   schemas, source page-range manifests, PDFium-backed region/raster proof
   helpers, and structure sidecar helpers.
 - `xiuxian-wendao` owns the Studio document extraction provider, async job
-  routing, OCR worker scheduling, shard cache, coverage gates, and benchmark
-  lanes.
+  routing, adaptive OCR scheduling, shard-level in-flight deduplication, shard
+  cache, coverage gates, and benchmark lanes.
 - `xiuxian-wendao-analyzer` owns Docling conversion and the internal
   `/analysis/pdf-ocr-shards` Arrow Flight exchange.
 
@@ -74,11 +74,11 @@ region proof lanes.
 
 The retired detector was useful as a research probe:
 
-| Fixture / profile | Pages | Decision | Elapsed ms | Observation |
-| ----------------- | ----: | -------- | ---------: | ----------- |
-| `2206.01062.pdf` detect audit | 9 | `fast_rust_candidate` | 102.814 | Reliable text layer detected. |
-| `2206.01062.pdf` analyze audit | 9 | `hybrid_page_ocr_candidate` | 796.432 | Layout complexity blocked direct text fast path. |
-| `2604.17337` OCR-positive audit | 21 | zero OCR shards | 1095.312 | Detector signals missed OCR-positive pages. |
+| Fixture / profile               | Pages | Decision                    | Elapsed ms | Observation                                      |
+| ------------------------------- | ----: | --------------------------- | ---------: | ------------------------------------------------ |
+| `2206.01062.pdf` detect audit   |     9 | `fast_rust_candidate`       |    102.814 | Reliable text layer detected.                    |
+| `2206.01062.pdf` analyze audit  |     9 | `hybrid_page_ocr_candidate` |    796.432 | Layout complexity blocked direct text fast path. |
+| `2604.17337` OCR-positive audit |    21 | zero OCR shards             |   1095.312 | Detector signals missed OCR-positive pages.      |
 
 The key conclusion is that the detector was not enough for the real OCR-positive
 case. Wendao now treats page-level OCR recall as a first-order precision gate:
@@ -109,7 +109,9 @@ The provider restores OCR rows by original shard identity before projection.
 It does not trust Python worker completion order as document order. Successful
 OCR shard rows are cached as Arrow IPC entries below the whole-document cache,
 so a forced extraction into a new output directory can reuse page or region
-results without repeating Docling OCR.
+results without repeating Docling OCR. The Rust scheduler also keeps
+process-local in-flight shard ownership, so concurrent misses for the same OCR
+shard wait on one live Python request instead of issuing duplicate Docling OCR.
 
 ## Performance and Precision Assessment
 
@@ -129,15 +131,15 @@ pages. The original full-Docling cold path was observed in the 241-256 second
 range across benchmark runs. The latest comparable full-Docling run recorded
 241718.175 ms; the earlier archived proof recorded 256037.271 ms.
 
-| Benchmark class | Force ms | Cache p95 ms | Shard-cache rebuild ms | Resource rows | Structure rows | OCR page blocks | Bbox blocks | Order | Error rows |
-| ----------------| --------:| ------------:| ----------------------:| -------------:| --------------:| --------------: | ----------:| ----- | ---------:|
-| Full Docling baseline | 241718.175 | 12.515 | n/a | 21 | n/a | n/a | n/a | n/a | 0 |
-| Rust scheduled per-page OCR | 141110.984 | 10.577 | n/a | 21 | 21 | 21 | 21 | sorted | 0 |
-| Source page-range manifest | 53848.876 | 7.850 | n/a | 21 | 21 | 21 | 21 | sorted | 0 |
-| Parallel source page-range | 45094.143 | 15.219 | 200.460 | 21 | 21 | 21 | 21 | sorted | 0 |
-| Adaptive source subranges | 48978.562 | 7.008 | 130.841 | 21 | 21 | 21 | 21 | sorted | 0 |
-| Direct `lopdf` source selector | 49117.947 | 21.698 | 197.023 | 21 | 21 | 21 | 21 | sorted | 0 |
-| Warm shard-cache reuse | 286.376 | 4.280 | n/a | 21 | 21 | 21 | 21 | sorted | 0 |
+| Benchmark class                |   Force ms | Cache p95 ms | Shard-cache rebuild ms | Resource rows | Structure rows | OCR page blocks | Bbox blocks | Order  | Error rows |
+| ------------------------------ | ---------: | -----------: | ---------------------: | ------------: | -------------: | --------------: | ----------: | ------ | ---------: |
+| Full Docling baseline          | 241718.175 |       12.515 |                    n/a |            21 |            n/a |             n/a |         n/a | n/a    |          0 |
+| Rust scheduled per-page OCR    | 141110.984 |       10.577 |                    n/a |            21 |             21 |              21 |          21 | sorted |          0 |
+| Source page-range manifest     |  53848.876 |        7.850 |                    n/a |            21 |             21 |              21 |          21 | sorted |          0 |
+| Parallel source page-range     |  45094.143 |       15.219 |                200.460 |            21 |             21 |              21 |          21 | sorted |          0 |
+| Adaptive source subranges      |  48978.562 |        7.008 |                130.841 |            21 |             21 |              21 |          21 | sorted |          0 |
+| Direct `lopdf` source selector |  49117.947 |       21.698 |                197.023 |            21 |             21 |              21 |          21 | sorted |          0 |
+| Warm shard-cache reuse         |    286.376 |        4.280 |                    n/a |            21 |             21 |              21 |          21 | sorted |          0 |
 
 Interpretation:
 
@@ -152,10 +154,11 @@ Interpretation:
   rebuilds in the low hundreds of milliseconds instead of repeating Docling OCR.
   Whole-document cache hits remain in the low-millisecond class.
 - Unique OCR-heavy cold misses are still dominated by Docling OCR. Rust has
-  removed avoidable render and orchestration waste, but it has not removed the
+  removed avoidable render and orchestration waste, and now owns adaptive OCR
+  pressure control for a single provider process, but it has not removed the
   fundamental OCR cost. The next major reduction requires precision-safe region
-  discovery or a Docling OCR profile that proves parity on the same structure
-  gates.
+  discovery, horizontal Python executor pools, or a Docling OCR profile that
+  proves parity on the same structure gates.
 
 ### Real Docling Format Coverage
 
@@ -167,19 +170,19 @@ zero error rows.
 
 Selected cold timings from that suite:
 
-| Fixture | Force ms | Cache p95 ms | Rows | Error rows |
-| ------- | --------:| ------------:| ---: | ---------: |
-| PDF `2206.01062` | 23357.739 | 2.870 | 13 | 0 |
-| DOCX sample | 44.563 | 3.368 | 4 | 0 |
-| XLSX sample | 37.506 | 2.480 | 10 | 0 |
-| HTML sample | 330.743 | 2.522 | 31 | 0 |
-| PNG image | 3116.929 | 2.728 | 3 | 0 |
-| TIFF image | 4215.292 | 2.657 | 4 | 0 |
-| USPTO XML | 1270.865 | 13.623 | 19 | 0 |
-| XBRL XML | 1274.086 | 2.613 | 25 | 0 |
-| METS GBS | 12205.210 | 5.041 | 5 | 0 |
-| WebVTT | 12.361 | 4.126 | 2 | 0 |
-| LaTeX | 10.721 | 3.852 | 2 | 0 |
+| Fixture          |  Force ms | Cache p95 ms | Rows | Error rows |
+| ---------------- | --------: | -----------: | ---: | ---------: |
+| PDF `2206.01062` | 23357.739 |        2.870 |   13 |          0 |
+| DOCX sample      |    44.563 |        3.368 |    4 |          0 |
+| XLSX sample      |    37.506 |        2.480 |   10 |          0 |
+| HTML sample      |   330.743 |        2.522 |   31 |          0 |
+| PNG image        |  3116.929 |        2.728 |    3 |          0 |
+| TIFF image       |  4215.292 |        2.657 |    4 |          0 |
+| USPTO XML        |  1270.865 |       13.623 |   19 |          0 |
+| XBRL XML         |  1274.086 |        2.613 |   25 |          0 |
+| METS GBS         | 12205.210 |        5.041 |    5 |          0 |
+| WebVTT           |    12.361 |        4.126 |    2 |          0 |
+| LaTeX            |    10.721 |        3.852 |    2 |          0 |
 
 This confirms the broader Docling alignment surface remains functional while
 the PDF OCR path is being optimized. The report does not claim equal semantic
@@ -192,12 +195,12 @@ format set.
 The same-content cold-miss production risk is materially closed for the tested
 classes:
 
-| Fixture group | Duplicate converter calls | Error rows | Observation |
-| ------------- | ------------------------: | ---------: | ----------- |
-| Real PDF duplicate miss | 1 | 0 | Repeated cold requests reused the same job/cache lineage. |
-| Real mixed PDF/image/XML/XBRL pressure | 1 per fixture | 0 | Four different fixtures each converted once. |
-| Real audio pressure | 1 | 0 | Audio fixture deduplicated under the same async job path. |
-| Fake distinct cold miss smoke | 4 for 4 distinct fixtures | 0 | The conversion cap reached four in-process conversions and did not exceed it. |
+| Fixture group                          | Duplicate converter calls | Error rows | Observation                                                                   |
+| -------------------------------------- | ------------------------: | ---------: | ----------------------------------------------------------------------------- |
+| Real PDF duplicate miss                |                         1 |          0 | Repeated cold requests reused the same job/cache lineage.                     |
+| Real mixed PDF/image/XML/XBRL pressure |             1 per fixture |          0 | Four different fixtures each converted once.                                  |
+| Real audio pressure                    |                         1 |          0 | Audio fixture deduplicated under the same async job path.                     |
+| Fake distinct cold miss smoke          | 4 for 4 distinct fixtures |          0 | The conversion cap reached four in-process conversions and did not exceed it. |
 
 Capacity interpretation:
 
@@ -206,11 +209,12 @@ Capacity interpretation:
   to one conversion, then job/status/cache reuse. This is the production risk
   that the async dedup milestone was designed to close.
 - For 10000 different OCR-heavy PDFs, the risk is still real capacity, not
-  correctness. With a default cap of four running conversions and a 45-49 s
-  OCR-heavy cold miss, rough single-instance throughput is only about
-  290-320 unique OCR-heavy documents per hour before horizontal scaling or a
-  better region/text fast path. This path is safe, but it is not yet enough for
-  unbounded unique OCR-heavy ingestion.
+  correctness. The adaptive Rust scheduler prevents one static worker setting
+  from underusing or overwhelming the host, and it reports current OCR budget,
+  queue wait, latency, in-flight shards, cache hits/misses, lane counts, and
+  AIMD budget changes. A single instance still remains bounded by Docling OCR
+  time, so unbounded unique OCR-heavy ingestion needs horizontal Python
+  executor pools and finer region/text fast paths in later milestones.
 - For already-cached documents, cache p95 remains in the low-millisecond class
   in the current evidence, so query-time reuse is compatible with
   high-concurrency user traffic.
@@ -255,14 +259,14 @@ The implementation must preserve or improve extraction quality:
 
 ## Active Risks
 
-| Risk | Impact | Mitigation |
-| ---- | ------ | ---------- |
-| Unique OCR-heavy cold miss remains expensive | First-time extraction still takes roughly 45-49 s on the best current `2604.17337` runs | Continue source-range batching, safe region discovery, shard cache reuse, and Docling profile measurement |
-| Native text fast path was retired with the detector dependency | Some text-only PDFs lose the previous Rust-only proof path | Rebuild native text extraction directly over owned PDF primitives only after parity tests exist |
-| Region OCR without native text merge can produce partial coverage | User-visible document order or coverage could degrade | Keep region mode opt-in and fallback on partial coverage |
-| PDFium runtime mismatch | Raster proof output could differ across hosts | Keep PDFium confined to opt-in raster/region proof lanes; source-page OCR does not pull PDFium |
-| Shard cache growth | Project cache can grow under large OCR workloads | Keep oldest-first sweep and report cache size, entry count, and limits in benchmarks |
-| Many unique cold documents | One instance cannot absorb 10000 unique OCR-heavy cold misses quickly | Use deployment profiles for conversion limits, add horizontal workers, and keep region/text fast paths behind parity gates |
+| Risk                                                              | Impact                                                                                  | Mitigation                                                                                                                 |
+| ----------------------------------------------------------------- | --------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Unique OCR-heavy cold miss remains expensive                      | First-time extraction still takes roughly 45-49 s on the best current `2604.17337` runs | Continue source-range batching, safe region discovery, shard cache reuse, and Docling profile measurement                  |
+| Native text fast path was retired with the detector dependency    | Some text-only PDFs lose the previous Rust-only proof path                              | Rebuild native text extraction directly over owned PDF primitives only after parity tests exist                            |
+| Region OCR without native text merge can produce partial coverage | User-visible document order or coverage could degrade                                   | Keep region mode opt-in and fallback on partial coverage                                                                   |
+| PDFium runtime mismatch                                           | Raster proof output could differ across hosts                                           | Keep PDFium confined to opt-in raster/region proof lanes; source-page OCR does not pull PDFium                             |
+| Shard cache growth                                                | Project cache can grow under large OCR workloads                                        | Keep oldest-first sweep and report cache size, entry count, and limits in benchmarks                                       |
+| Many unique cold documents                                        | One instance cannot absorb 10000 unique OCR-heavy cold misses quickly                   | Use deployment profiles for conversion limits, add horizontal workers, and keep region/text fast paths behind parity gates |
 
 ## Recommendation
 

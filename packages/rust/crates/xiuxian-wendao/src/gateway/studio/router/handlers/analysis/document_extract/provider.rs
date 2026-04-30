@@ -127,9 +127,37 @@ pub(crate) struct DocumentExtractRuntimeSnapshot {
     #[cfg(feature = "document-extract-pdf-source-range")]
     pub(crate) max_pdf_ocr_workers: usize,
     #[cfg(feature = "document-extract-pdf-source-range")]
+    pub(crate) current_pdf_ocr_worker_budget: usize,
+    #[cfg(feature = "document-extract-pdf-source-range")]
     pub(crate) available_pdf_ocr_worker_permits: usize,
     #[cfg(feature = "document-extract-pdf-source-range")]
     pub(crate) in_process_pdf_ocr_workers: usize,
+    #[cfg(feature = "document-extract-pdf-source-range")]
+    pub(crate) in_flight_pdf_ocr_shards: usize,
+    #[cfg(feature = "document-extract-pdf-source-range")]
+    pub(crate) pdf_ocr_cache_hits: u64,
+    #[cfg(feature = "document-extract-pdf-source-range")]
+    pub(crate) pdf_ocr_cache_misses: u64,
+    #[cfg(feature = "document-extract-pdf-source-range")]
+    pub(crate) pdf_ocr_live_requests: u64,
+    #[cfg(feature = "document-extract-pdf-source-range")]
+    pub(crate) pdf_ocr_queue_wait_p50_ms: Option<u64>,
+    #[cfg(feature = "document-extract-pdf-source-range")]
+    pub(crate) pdf_ocr_queue_wait_p95_ms: Option<u64>,
+    #[cfg(feature = "document-extract-pdf-source-range")]
+    pub(crate) pdf_ocr_latency_p50_ms: Option<u64>,
+    #[cfg(feature = "document-extract-pdf-source-range")]
+    pub(crate) pdf_ocr_latency_p95_ms: Option<u64>,
+    #[cfg(feature = "document-extract-pdf-source-range")]
+    pub(crate) pdf_ocr_source_pdf_page_range_shards: u64,
+    #[cfg(feature = "document-extract-pdf-source-range")]
+    pub(crate) pdf_ocr_rendered_page_shards: u64,
+    #[cfg(feature = "document-extract-pdf-source-range")]
+    pub(crate) pdf_ocr_rendered_region_shards: u64,
+    #[cfg(feature = "document-extract-pdf-source-range")]
+    pub(crate) pdf_ocr_budget_increase_events: u64,
+    #[cfg(feature = "document-extract-pdf-source-range")]
+    pub(crate) pdf_ocr_budget_decrease_events: u64,
     pub(crate) in_process_scheduled_jobs: usize,
     pub(crate) registry: DocumentExtractJobRegistrySnapshot,
 }
@@ -221,9 +249,7 @@ impl StudioDocumentExtractFlightRouteProvider {
         let scheduled_count = self.runtime.scheduled.lock().await.len();
         let available_conversion_permits = self.runtime.conversion_permits.available_permits();
         #[cfg(feature = "document-extract-pdf-source-range")]
-        let available_pdf_ocr_worker_permits = self.runtime.pdf_ocr_scheduler.available_permits();
-        #[cfg(feature = "document-extract-pdf-source-range")]
-        let max_pdf_ocr_workers = self.runtime.pdf_ocr_scheduler.worker_limit();
+        let pdf_ocr_snapshot = self.runtime.pdf_ocr_scheduler.snapshot();
         let registry_snapshot = {
             let _registry_guard = self.registry_lock();
             self.registry()?.snapshot()?
@@ -236,12 +262,39 @@ impl StudioDocumentExtractFlightRouteProvider {
                 .conversion_limit
                 .saturating_sub(available_conversion_permits),
             #[cfg(feature = "document-extract-pdf-source-range")]
-            max_pdf_ocr_workers,
+            max_pdf_ocr_workers: pdf_ocr_snapshot.max_worker_bound,
             #[cfg(feature = "document-extract-pdf-source-range")]
-            available_pdf_ocr_worker_permits,
+            current_pdf_ocr_worker_budget: pdf_ocr_snapshot.current_worker_budget,
             #[cfg(feature = "document-extract-pdf-source-range")]
-            in_process_pdf_ocr_workers: max_pdf_ocr_workers
-                .saturating_sub(available_pdf_ocr_worker_permits),
+            available_pdf_ocr_worker_permits: pdf_ocr_snapshot.available_worker_permits,
+            #[cfg(feature = "document-extract-pdf-source-range")]
+            in_process_pdf_ocr_workers: pdf_ocr_snapshot.in_process_workers,
+            #[cfg(feature = "document-extract-pdf-source-range")]
+            in_flight_pdf_ocr_shards: pdf_ocr_snapshot.in_flight_shards,
+            #[cfg(feature = "document-extract-pdf-source-range")]
+            pdf_ocr_cache_hits: pdf_ocr_snapshot.cache_hits,
+            #[cfg(feature = "document-extract-pdf-source-range")]
+            pdf_ocr_cache_misses: pdf_ocr_snapshot.cache_misses,
+            #[cfg(feature = "document-extract-pdf-source-range")]
+            pdf_ocr_live_requests: pdf_ocr_snapshot.live_requests,
+            #[cfg(feature = "document-extract-pdf-source-range")]
+            pdf_ocr_queue_wait_p50_ms: pdf_ocr_snapshot.queue_wait_p50_ms,
+            #[cfg(feature = "document-extract-pdf-source-range")]
+            pdf_ocr_queue_wait_p95_ms: pdf_ocr_snapshot.queue_wait_p95_ms,
+            #[cfg(feature = "document-extract-pdf-source-range")]
+            pdf_ocr_latency_p50_ms: pdf_ocr_snapshot.ocr_latency_p50_ms,
+            #[cfg(feature = "document-extract-pdf-source-range")]
+            pdf_ocr_latency_p95_ms: pdf_ocr_snapshot.ocr_latency_p95_ms,
+            #[cfg(feature = "document-extract-pdf-source-range")]
+            pdf_ocr_source_pdf_page_range_shards: pdf_ocr_snapshot.source_pdf_page_range_shards,
+            #[cfg(feature = "document-extract-pdf-source-range")]
+            pdf_ocr_rendered_page_shards: pdf_ocr_snapshot.rendered_page_shards,
+            #[cfg(feature = "document-extract-pdf-source-range")]
+            pdf_ocr_rendered_region_shards: pdf_ocr_snapshot.rendered_region_shards,
+            #[cfg(feature = "document-extract-pdf-source-range")]
+            pdf_ocr_budget_increase_events: pdf_ocr_snapshot.budget_increase_events,
+            #[cfg(feature = "document-extract-pdf-source-range")]
+            pdf_ocr_budget_decrease_events: pdf_ocr_snapshot.budget_decrease_events,
             in_process_scheduled_jobs: scheduled_count,
             registry: registry_snapshot,
         })
@@ -1320,648 +1373,5 @@ fn validate_hybrid_shard_coverage(
 }
 
 #[cfg(test)]
-mod tests {
-    use std::fs;
-
-    use tokio::time::{Duration, sleep};
-
-    use super::*;
-
-    #[test]
-    fn document_extract_conversion_limit_defaults_to_bounded_parallelism() {
-        let limit = document_extract_conversion_concurrency_limit_with_lookup(&|_| None, Some(12));
-
-        assert_eq!(limit, DEFAULT_DOCUMENT_EXTRACT_MAX_RUNNING_CONVERSIONS);
-    }
-
-    #[test]
-    fn document_extract_conversion_limit_accepts_positive_override() {
-        let limit = document_extract_conversion_concurrency_limit_with_lookup(
-            &|key| (key == DOCUMENT_EXTRACT_MAX_RUNNING_CONVERSIONS_ENV).then(|| "7".to_string()),
-            Some(12),
-        );
-
-        assert_eq!(limit, 7);
-    }
-
-    #[test]
-    fn document_extract_conversion_limit_ignores_invalid_override() {
-        let limit = document_extract_conversion_concurrency_limit_with_lookup(
-            &|key| (key == DOCUMENT_EXTRACT_MAX_RUNNING_CONVERSIONS_ENV).then(|| "0".to_string()),
-            Some(2),
-        );
-
-        assert_eq!(limit, 2);
-    }
-
-    #[cfg(feature = "document-extract-pdf-source-range")]
-    #[test]
-    fn hybrid_page_ocr_render_selection_defaults_to_shard_fallback() {
-        let selection = hybrid_page_ocr_render_selection_with_lookup(&|_| None);
-
-        assert_eq!(selection, PdfPageRenderSelection::ShardFallbackPages);
-    }
-
-    #[cfg(feature = "document-extract-pdf-source-range")]
-    #[test]
-    fn hybrid_page_ocr_render_selection_accepts_all_pages_override() {
-        let selection = hybrid_page_ocr_render_selection_with_lookup(&|key| {
-            (key == DOCUMENT_EXTRACT_PDF_RENDER_SELECTION_ENV).then(|| "all-pages".to_string())
-        });
-
-        assert_eq!(selection, PdfPageRenderSelection::AllPages);
-    }
-
-    #[cfg(feature = "document-extract-pdf-source-range")]
-    #[test]
-    fn hybrid_page_ocr_render_selection_accepts_region_shards_override() {
-        let selection = hybrid_page_ocr_render_selection_with_lookup(&|key| {
-            (key == DOCUMENT_EXTRACT_PDF_RENDER_SELECTION_ENV).then(|| "region-shards".to_string())
-        });
-
-        assert_eq!(selection, PdfPageRenderSelection::RegionShards);
-    }
-
-    #[cfg(feature = "document-extract-pdf-source-range")]
-    #[test]
-    fn hybrid_page_ocr_region_requests_match_selected_source() -> Result<(), String> {
-        let temp = tempfile::tempdir().map_err(|error| error.to_string())?;
-        let source = temp.path().join("source.pdf");
-        fs::write(source.as_path(), b"%PDF").map_err(|error| error.to_string())?;
-        let source_text = source.to_string_lossy();
-        let regions_json = format!(
-            r#"[{{"source":"{source_text}","regions":[{{"pageIndex":0,"regionIndex":3,"regionBox":{{"left":72.0,"bottom":72.0,"right":144.0,"top":144.0}},"readingOrderKey":"000000.000003"}}]}}]"#
-        );
-
-        let regions =
-            hybrid_page_ocr_region_requests_for_source_with_lookup(source.as_path(), &|key| {
-                (key == DOCUMENT_EXTRACT_PDF_RENDER_REGIONS_ENV).then(|| regions_json.clone())
-            })?;
-
-        assert_eq!(regions.len(), 1);
-        assert_eq!(regions[0].page_index, 0);
-        assert_eq!(regions[0].region_index, 3);
-        assert_eq!(
-            regions[0].reading_order_key.as_deref(),
-            Some("000000.000003")
-        );
-        Ok(())
-    }
-
-    #[cfg(feature = "document-extract-pdf-source-range")]
-    #[test]
-    fn hybrid_page_ocr_region_requests_reject_missing_source() {
-        let regions_json = r#"[{"source":"/tmp/other.pdf","regions":[{"pageIndex":0,"regionIndex":0,"regionBox":{"left":0.0,"bottom":0.0,"right":10.0,"top":10.0}}]}]"#;
-
-        let error = match hybrid_page_ocr_region_requests_for_source_with_lookup(
-            Path::new("/tmp/source.pdf"),
-            &|key| (key == DOCUMENT_EXTRACT_PDF_RENDER_REGIONS_ENV).then(|| regions_json.into()),
-        ) {
-            Ok(regions) => panic!("expected missing source to fail: {regions:?}"),
-            Err(error) => error,
-        };
-
-        assert!(error.contains("no hybrid PDF region fixture matched"));
-    }
-
-    #[cfg(feature = "document-extract-pdf-source-range")]
-    #[test]
-    fn hybrid_page_ocr_input_arrow_path_accepts_complete_render() -> Result<(), String> {
-        let report = sample_hybrid_page_ocr_report(
-            PdfRenderStatus::Rendered,
-            PdfRenderRoutingDecision::HybridPageOcrCandidate,
-            2,
-            2,
-            Some("/tmp/out/_ocr_input.arrow"),
-        );
-
-        let path = hybrid_page_ocr_input_arrow_path(&report)?;
-
-        assert_eq!(path, PathBuf::from("/tmp/out/_ocr_input.arrow"));
-        Ok(())
-    }
-
-    #[cfg(feature = "document-extract-pdf-source-range")]
-    #[test]
-    fn hybrid_page_ocr_input_arrow_path_accepts_partial_page_render() -> Result<(), String> {
-        let report = sample_hybrid_page_ocr_report(
-            PdfRenderStatus::Rendered,
-            PdfRenderRoutingDecision::HybridPageOcrCandidate,
-            3,
-            1,
-            Some("/tmp/out/_ocr_input.arrow"),
-        );
-
-        let path = hybrid_page_ocr_input_arrow_path(&report)?;
-
-        assert_eq!(path, PathBuf::from("/tmp/out/_ocr_input.arrow"));
-        Ok(())
-    }
-
-    #[cfg(feature = "document-extract-pdf-source-range")]
-    #[test]
-    fn hybrid_page_ocr_input_arrow_path_rejects_fallback_report() {
-        let report = sample_hybrid_page_ocr_report(
-            PdfRenderStatus::Fallback,
-            PdfRenderRoutingDecision::FullDoclingFallback,
-            1,
-            0,
-            None,
-        );
-
-        let error = match hybrid_page_ocr_input_arrow_path(&report) {
-            Ok(path) => panic!(
-                "fallback report should not become OCR input: {}",
-                path.display()
-            ),
-            Err(error) => error,
-        };
-
-        assert!(error.contains("not eligible for hybrid OCR"));
-    }
-
-    #[cfg(feature = "document-extract-pdf-source-range")]
-    #[test]
-    fn hybrid_page_ocr_validation_rejects_skipped_ocr_rows() {
-        let error = match validate_successful_ocr_results(&[sample_ocr_result(1, false)], 3, 1) {
-            Ok(()) => panic!("expected non-success OCR status to fail"),
-            Err(error) => error,
-        };
-
-        assert!(error.contains("non-success status"));
-    }
-
-    #[cfg(feature = "document-extract-pdf-source-range")]
-    #[test]
-    fn hybrid_page_ocr_coverage_accepts_text_and_ocr_pages() -> Result<(), String> {
-        validate_hybrid_page_coverage(3, &[0, 2], &[sample_ocr_result(1, true)])
-    }
-
-    #[cfg(feature = "document-extract-pdf-source-range")]
-    #[test]
-    fn hybrid_page_ocr_coverage_accepts_text_only_pages() -> Result<(), String> {
-        validate_hybrid_page_coverage(3, &[0, 1, 2], &[])
-    }
-
-    #[cfg(feature = "document-extract-pdf-source-range")]
-    #[test]
-    fn hybrid_page_ocr_coverage_rejects_missing_pages() {
-        let error = match validate_hybrid_page_coverage(3, &[0], &[sample_ocr_result(1, true)]) {
-            Ok(()) => panic!("expected missing page coverage to fail"),
-            Err(error) => error,
-        };
-
-        assert!(error.contains("missing page coverage"));
-    }
-
-    #[cfg(feature = "document-extract-pdf-source-range")]
-    #[test]
-    fn hybrid_page_ocr_coverage_rejects_duplicate_pages() {
-        let error = match validate_hybrid_page_coverage(3, &[0, 1], &[sample_ocr_result(1, true)]) {
-            Ok(()) => panic!("expected duplicate page coverage to fail"),
-            Err(error) => error,
-        };
-
-        assert!(error.contains("duplicate page coverage"));
-    }
-
-    #[cfg(feature = "document-extract-pdf-source-range")]
-    #[test]
-    fn hybrid_page_ocr_region_coverage_keeps_native_text_page() -> Result<(), String> {
-        let input = sample_ocr_input(1, "region");
-        let result = sample_ocr_result(1, true);
-
-        validate_hybrid_shard_coverage(3, &[0, 1, 2], &[input], &[result])
-    }
-
-    #[cfg(feature = "document-extract-pdf-source-range")]
-    #[test]
-    fn hybrid_page_ocr_region_coverage_requires_native_text_page() {
-        let input = sample_ocr_input(1, "region");
-        let result = sample_ocr_result(1, true);
-
-        let error = match validate_hybrid_shard_coverage(3, &[0, 2], &[input], &[result]) {
-            Ok(()) => panic!("expected region without native text page to fail"),
-            Err(error) => error,
-        };
-
-        assert!(error.contains("has no native text coverage"));
-    }
-
-    #[cfg(feature = "document-extract-pdf-source-range")]
-    #[test]
-    fn hybrid_page_ocr_page_shard_coverage_still_replaces_full_page() -> Result<(), String> {
-        let input = sample_ocr_input(1, "page");
-        let result = sample_ocr_result(1, true);
-
-        validate_hybrid_shard_coverage(3, &[0, 2], &[input], &[result])
-    }
-
-    #[cfg(feature = "document-extract-pdf-source-range")]
-    #[test]
-    fn hybrid_page_ocr_validation_rejects_unknown_shard_result() {
-        let input = sample_ocr_input(1, "region");
-        let mut result = sample_ocr_result(1, true);
-        result.shard_element_id = "unknown-shard".to_string();
-
-        let error = match validate_ocr_results_match_inputs(&[input], &[result]) {
-            Ok(()) => panic!("expected unknown OCR result shard to fail"),
-            Err(error) => error,
-        };
-
-        assert!(error.contains("unknown shard id"));
-    }
-
-    #[cfg(feature = "document-extract-pdf-source-range")]
-    #[test]
-    fn hybrid_page_ocr_writes_structure_sidecar() -> Result<(), String> {
-        let temp = tempfile::tempdir().map_err(|error| error.to_string())?;
-        let source = temp.path().join("source.pdf");
-        let output = temp.path().join("out");
-        fs::write(source.as_path(), b"%PDF-1.4\n").map_err(|error| error.to_string())?;
-        fs::create_dir_all(output.as_path()).map_err(|error| error.to_string())?;
-        let resource_batch = HybridDocumentResourceBatch::native(test_resource_batch(&[(
-            "text_page",
-            0,
-            "text-0",
-        )])?);
-
-        write_hybrid_document_resource_artifacts(
-            output.as_path(),
-            source.as_path(),
-            &resource_batch,
-        )?;
-
-        let structure_path = output
-            .join(xiuxian_wendao_attachments::pdf::structure::DOCUMENT_STRUCTURE_ARROW_CACHE_NAME);
-        let structure_batches = read_arrow_file(structure_path.as_path())?;
-        assert_eq!(structure_batches.len(), 1);
-        assert_eq!(structure_batches[0].num_rows(), 1);
-        Ok(())
-    }
-
-    #[cfg(feature = "document-extract-pdf-source-range")]
-    #[test]
-    fn hybrid_page_ocr_structure_sidecar_preserves_region_provenance() -> Result<(), String> {
-        let mut input = sample_ocr_input(0, "region");
-        input.crop_left = 72.0;
-        input.crop_bottom = 80.0;
-        input.crop_right = 240.0;
-        input.crop_top = 320.0;
-        input.reading_order_key = "000000.000004".to_string();
-        let mut result = sample_ocr_result(0, true);
-        result.confidence = Some(0.87);
-        let resource_batch = HybridDocumentResourceBatch {
-            batch: test_resource_batch(&[
-                ("text_page", 0, "text-0"),
-                ("ocr_text", 0, result.element_id.as_str()),
-            ])?,
-            ocr_inputs: vec![input],
-            ocr_results: vec![result],
-        };
-
-        let blocks =
-            hybrid_document_structure_blocks(&resource_batch, "sourcehash", "wendao-hybrid")?;
-        let structure_batch = build_document_structure_batch(blocks.as_slice())?;
-
-        assert_eq!(
-            structure_string_column(&structure_batch, "blockId")?.value(1),
-            "ocr-0"
-        );
-        assert_eq!(
-            structure_string_column(&structure_batch, "readingOrderKey")?.value(1),
-            "000000.000004"
-        );
-        assert_eq!(
-            structure_string_column(&structure_batch, "blockType")?.value(1),
-            "ocr_region"
-        );
-        assert_eq!(
-            structure_string_column(&structure_batch, "parentBlockId")?.value(1),
-            "page-shard-0"
-        );
-        assert_close(
-            structure_float64_column(&structure_batch, "bboxLeft")?.value(1),
-            72.0,
-        );
-        assert_close(
-            structure_float64_column(&structure_batch, "bboxBottom")?.value(1),
-            80.0,
-        );
-        assert_close(
-            structure_float64_column(&structure_batch, "bboxRight")?.value(1),
-            240.0,
-        );
-        assert_close(
-            structure_float64_column(&structure_batch, "bboxTop")?.value(1),
-            320.0,
-        );
-        assert_close(
-            structure_float64_column(&structure_batch, "confidence")?.value(1),
-            0.87,
-        );
-        assert!(
-            structure_string_column(&structure_batch, "provenance")?
-                .value(1)
-                .contains(r#""shardType":"region""#)
-        );
-        Ok(())
-    }
-
-    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-    async fn document_extract_job_remains_queued_until_conversion_permit_is_available()
-    -> Result<(), String> {
-        let temp = tempfile::tempdir().map_err(|error| error.to_string())?;
-        let source = temp.path().join("manual.pdf");
-        fs::write(source.as_path(), b"pdf fixture").map_err(|error| error.to_string())?;
-        let registry = DocumentExtractJobRegistry::new(
-            temp.path().join("jobs.duckdb"),
-            temp.path().join("artifacts"),
-        )?;
-        let provider = StudioDocumentExtractFlightRouteProvider::from_registry(Ok(registry), 1);
-        let held_permit = Arc::clone(&provider.runtime.conversion_permits)
-            .acquire_owned()
-            .await
-            .map_err(|error| error.to_string())?;
-        let queued = provider.registry()?.submit(
-            source.as_path(),
-            temp.path().join("out").as_path(),
-            false,
-        )?;
-        let job_id = queued.job_id.clone();
-        let running_provider = provider.clone();
-
-        let handle = tokio::spawn(async move { running_provider.run_job(job_id.as_str()).await });
-        sleep(Duration::from_millis(50)).await;
-        let status = provider
-            .status(queued.job_id.as_str())?
-            .ok_or_else(|| "job should still exist".to_string())?;
-
-        assert_eq!(status.status, "queued");
-        assert_eq!(status.attempt_count, 0);
-
-        handle.abort();
-        drop(held_permit);
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn document_extract_runtime_snapshot_reports_capacity_and_registry_counts()
-    -> Result<(), String> {
-        let temp = tempfile::tempdir().map_err(|error| error.to_string())?;
-        let source = temp.path().join("manual.pdf");
-        fs::write(source.as_path(), b"pdf fixture").map_err(|error| error.to_string())?;
-        let registry = DocumentExtractJobRegistry::new(
-            temp.path().join("jobs.duckdb"),
-            temp.path().join("artifacts"),
-        )?;
-        let provider = StudioDocumentExtractFlightRouteProvider::from_registry(Ok(registry), 2);
-        let _held_permit = Arc::clone(&provider.runtime.conversion_permits)
-            .acquire_owned()
-            .await
-            .map_err(|error| error.to_string())?;
-        let queued = provider.registry()?.submit(
-            source.as_path(),
-            temp.path().join("out").as_path(),
-            false,
-        )?;
-        provider.schedule_job(queued.job_id.clone()).await;
-
-        let snapshot = provider.runtime_snapshot().await?;
-
-        assert_eq!(snapshot.max_running_conversions, 2);
-        assert_eq!(snapshot.available_conversion_permits, 1);
-        assert_eq!(snapshot.in_process_running_conversions, 1);
-        assert_eq!(snapshot.in_process_scheduled_jobs, 1);
-        assert_eq!(snapshot.registry.queued_jobs, 1);
-        assert_eq!(snapshot.registry.total_jobs, 1);
-        Ok(())
-    }
-
-    #[cfg(feature = "document-extract-pdf-source-range")]
-    #[tokio::test]
-    async fn document_extract_runtime_snapshot_reports_pdf_ocr_worker_capacity()
-    -> Result<(), String> {
-        let temp = tempfile::tempdir().map_err(|error| error.to_string())?;
-        let registry = DocumentExtractJobRegistry::new(
-            temp.path().join("jobs.duckdb"),
-            temp.path().join("artifacts"),
-        )?;
-        let provider =
-            StudioDocumentExtractFlightRouteProvider::from_registry_with_pdf_ocr_worker_limit(
-                Ok(registry),
-                2,
-                5,
-            );
-        let _held_permits = provider
-            .runtime
-            .pdf_ocr_scheduler
-            .permits_for_tests()
-            .acquire_many_owned(2)
-            .await
-            .map_err(|error| error.to_string())?;
-
-        let snapshot = provider.runtime_snapshot().await?;
-
-        assert_eq!(snapshot.max_pdf_ocr_workers, 5);
-        assert_eq!(snapshot.available_pdf_ocr_worker_permits, 3);
-        assert_eq!(snapshot.in_process_pdf_ocr_workers, 2);
-        Ok(())
-    }
-
-    #[test]
-    fn document_extract_provider_reuses_runtime_for_same_project_root() {
-        let temp = tempfile::tempdir().unwrap_or_else(|error| panic!("create tempdir: {error}"));
-        let first = shared_document_extract_provider_runtime(temp.path());
-        let second = shared_document_extract_provider_runtime(temp.path());
-
-        assert!(Arc::ptr_eq(&first, &second));
-    }
-
-    #[cfg(feature = "document-extract-pdf-source-range")]
-    fn sample_hybrid_page_ocr_report(
-        status: PdfRenderStatus,
-        routing_decision: PdfRenderRoutingDecision,
-        page_count: u32,
-        shard_count: u32,
-        ocr_input_arrow_path: Option<&str>,
-    ) -> PdfPageRenderShardReport {
-        PdfPageRenderShardReport {
-            source_path: "/tmp/source.pdf".to_string(),
-            output_dir: "/tmp/out".to_string(),
-            page_count,
-            shard_count,
-            manifest_arrow_path: None,
-            ocr_input_arrow_path: ocr_input_arrow_path.map(ToString::to_string),
-            pending_resource_arrow_path: None,
-            render_profile: "pdfium-render-page-shards-v1".to_string(),
-            render_selection: PdfPageRenderSelection::ShardFallbackPages
-                .as_str()
-                .to_string(),
-            status: status.as_str().to_string(),
-            routing_decision: routing_decision.as_str().to_string(),
-            elapsed_ms: 1.0,
-            error_message: None,
-        }
-    }
-
-    #[cfg(feature = "document-extract-pdf-source-range")]
-    fn sample_ocr_result(page_index: u32, succeeded: bool) -> PdfOcrShardResult {
-        PdfOcrShardResult {
-            contract_version:
-                xiuxian_wendao_attachments::pdf::ocr::PDF_OCR_SHARD_RESULT_SCHEMA_VERSION
-                    .to_string(),
-            source_path: "/tmp/source.pdf".to_string(),
-            source_content_hash: "sourcehash".to_string(),
-            page_index,
-            image_path: format!("/tmp/out/page-{page_index}.png"),
-            image_mime_type: "image/png".to_string(),
-            raster_sha256: format!("raster-{page_index}"),
-            render_profile: "pdfium-render-page-shards-v1".to_string(),
-            ocr_profile: "docling-compatible-page-ocr-v1".to_string(),
-            status: if succeeded {
-                PdfOcrShardResultStatus::Succeeded
-            } else {
-                PdfOcrShardResultStatus::Skipped
-            },
-            text: succeeded.then(|| format!("OCR text {page_index}")),
-            text_mime_type: "text/plain".to_string(),
-            confidence: succeeded.then_some(0.99),
-            error_message: (!succeeded).then(|| "worker skipped".to_string()),
-            shard_element_id: format!("shard-{page_index}"),
-            element_id: format!("ocr-{page_index}"),
-        }
-    }
-
-    #[cfg(feature = "document-extract-pdf-source-range")]
-    fn sample_ocr_input(page_index: u32, shard_type: &str) -> PdfOcrShardInput {
-        PdfOcrShardInput {
-            contract_version:
-                xiuxian_wendao_attachments::pdf::ocr::PDF_OCR_SHARD_INPUT_SCHEMA_VERSION.to_string(),
-            source_path: "/tmp/source.pdf".to_string(),
-            source_content_hash: "sourcehash".to_string(),
-            page_index,
-            image_path: format!("/tmp/out/page-{page_index}.png"),
-            image_mime_type: "image/png".to_string(),
-            raster_sha256: format!("raster-{page_index}"),
-            render_profile: "pdfium-render-page-shards-v1".to_string(),
-            ocr_profile: "docling-compatible-page-ocr-v1".to_string(),
-            ocr_engine: "docling-compatible-ocr".to_string(),
-            preferred_languages: vec!["auto".to_string()],
-            min_confidence: 0.0,
-            preserve_layout: true,
-            raster_width_px: 1000,
-            raster_height_px: 1000,
-            render_dpi: 216,
-            rotation_degrees: 0,
-            crop_left: 0.0,
-            crop_bottom: 0.0,
-            crop_right: 612.0,
-            crop_top: 792.0,
-            point_to_pixel_scale_x: 3.0,
-            point_to_pixel_scale_y: 3.0,
-            shard_element_id: format!("shard-{page_index}"),
-            shard_type: shard_type.to_string(),
-            region_index: u32::from(shard_type == "region"),
-            parent_shard_element_id: if shard_type == "region" {
-                format!("page-shard-{page_index}")
-            } else {
-                String::new()
-            },
-            reading_order_key: format!("{page_index:06}.000001"),
-            source_page_pixel_left: 0,
-            source_page_pixel_top: 0,
-            source_page_pixel_right: 1000,
-            source_page_pixel_bottom: 1000,
-        }
-    }
-
-    #[cfg(feature = "document-extract-pdf-source-range")]
-    fn test_resource_batch(rows: &[(&str, i32, &str)]) -> Result<EngineRecordBatch, String> {
-        arrow::record_batch::RecordBatch::try_new(
-            std::sync::Arc::new(arrow::datatypes::Schema::new(vec![
-                arrow::datatypes::Field::new("sourcePath", arrow::datatypes::DataType::Utf8, true),
-                arrow::datatypes::Field::new(
-                    "resourceType",
-                    arrow::datatypes::DataType::Utf8,
-                    true,
-                ),
-                arrow::datatypes::Field::new(
-                    "resourcePath",
-                    arrow::datatypes::DataType::Utf8,
-                    true,
-                ),
-                arrow::datatypes::Field::new("pageIndex", arrow::datatypes::DataType::Int32, true),
-                arrow::datatypes::Field::new("caption", arrow::datatypes::DataType::Utf8, true),
-                arrow::datatypes::Field::new("content", arrow::datatypes::DataType::Utf8, true),
-                arrow::datatypes::Field::new("mimeType", arrow::datatypes::DataType::Utf8, true),
-                arrow::datatypes::Field::new("status", arrow::datatypes::DataType::Utf8, true),
-                arrow::datatypes::Field::new("elementId", arrow::datatypes::DataType::Utf8, true),
-            ])),
-            vec![
-                std::sync::Arc::new(arrow::array::StringArray::from(vec![
-                    "/tmp/source.pdf";
-                    rows.len()
-                ])) as arrow::array::ArrayRef,
-                std::sync::Arc::new(arrow::array::StringArray::from(
-                    rows.iter().map(|row| row.0).collect::<Vec<_>>(),
-                )) as arrow::array::ArrayRef,
-                std::sync::Arc::new(arrow::array::StringArray::from(vec![
-                    "/tmp/source.pdf";
-                    rows.len()
-                ])) as arrow::array::ArrayRef,
-                std::sync::Arc::new(arrow::array::Int32Array::from(
-                    rows.iter().map(|row| row.1).collect::<Vec<_>>(),
-                )) as arrow::array::ArrayRef,
-                std::sync::Arc::new(arrow::array::StringArray::from(vec![""; rows.len()]))
-                    as arrow::array::ArrayRef,
-                std::sync::Arc::new(arrow::array::StringArray::from(vec!["content"; rows.len()]))
-                    as arrow::array::ArrayRef,
-                std::sync::Arc::new(arrow::array::StringArray::from(vec![
-                    "text/markdown";
-                    rows.len()
-                ])) as arrow::array::ArrayRef,
-                std::sync::Arc::new(arrow::array::StringArray::from(vec!["ok"; rows.len()]))
-                    as arrow::array::ArrayRef,
-                std::sync::Arc::new(arrow::array::StringArray::from(
-                    rows.iter().map(|row| row.2).collect::<Vec<_>>(),
-                )) as arrow::array::ArrayRef,
-            ],
-        )
-        .map_err(|error| error.to_string())
-    }
-
-    #[cfg(feature = "document-extract-pdf-source-range")]
-    fn structure_string_column<'a>(
-        batch: &'a EngineRecordBatch,
-        name: &str,
-    ) -> Result<&'a arrow::array::StringArray, String> {
-        batch
-            .column_by_name(name)
-            .ok_or_else(|| format!("missing structure `{name}` column"))?
-            .as_any()
-            .downcast_ref::<arrow::array::StringArray>()
-            .ok_or_else(|| format!("structure `{name}` column is not Utf8"))
-    }
-
-    #[cfg(feature = "document-extract-pdf-source-range")]
-    fn structure_float64_column<'a>(
-        batch: &'a EngineRecordBatch,
-        name: &str,
-    ) -> Result<&'a arrow::array::Float64Array, String> {
-        batch
-            .column_by_name(name)
-            .ok_or_else(|| format!("missing structure `{name}` column"))?
-            .as_any()
-            .downcast_ref::<arrow::array::Float64Array>()
-            .ok_or_else(|| format!("structure `{name}` column is not Float64"))
-    }
-
-    #[cfg(feature = "document-extract-pdf-source-range")]
-    fn assert_close(actual: f64, expected: f64) {
-        assert!(
-            (actual - expected).abs() < 0.000_001,
-            "expected {actual} to be close to {expected}"
-        );
-    }
-}
+#[path = "../../../../../../../tests/unit/gateway/studio/router/handlers/analysis/document_extract/provider/mod.rs"]
+mod tests;

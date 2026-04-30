@@ -96,6 +96,57 @@ pub struct DocumentExtractJobsStatus {
     pub available_conversion_permits: usize,
     /// In-process running conversions inferred from the permit pool.
     pub in_process_running_conversions: usize,
+    /// Deployment upper bound for Rust-scheduled PDF OCR workers.
+    #[serde(default)]
+    pub max_pdf_ocr_workers: usize,
+    /// Current adaptive PDF OCR worker budget selected by Rust.
+    #[serde(default)]
+    pub current_pdf_ocr_worker_budget: usize,
+    /// Currently available PDF OCR worker permits.
+    #[serde(default)]
+    pub available_pdf_ocr_worker_permits: usize,
+    /// In-process PDF OCR workers inferred from the permit pool.
+    #[serde(default)]
+    pub in_process_pdf_ocr_workers: usize,
+    /// OCR shard keys currently owned by live Rust scheduler requests.
+    #[serde(default)]
+    pub in_flight_pdf_ocr_shards: usize,
+    /// Cumulative shard cache hits observed by this provider process.
+    #[serde(default)]
+    pub pdf_ocr_cache_hits: u64,
+    /// Cumulative shard cache misses observed by this provider process.
+    #[serde(default)]
+    pub pdf_ocr_cache_misses: u64,
+    /// Cumulative live Python OCR calls issued by this provider process.
+    #[serde(default)]
+    pub pdf_ocr_live_requests: u64,
+    /// Rolling p50 wait before receiving a PDF OCR permit.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pdf_ocr_queue_wait_p50_ms: Option<u64>,
+    /// Rolling p95 wait before receiving a PDF OCR permit.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pdf_ocr_queue_wait_p95_ms: Option<u64>,
+    /// Rolling p50 Python OCR latency.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pdf_ocr_latency_p50_ms: Option<u64>,
+    /// Rolling p95 Python OCR latency.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pdf_ocr_latency_p95_ms: Option<u64>,
+    /// Cumulative source-PDF page-range OCR shard count.
+    #[serde(default)]
+    pub pdf_ocr_source_pdf_page_range_shards: u64,
+    /// Cumulative rendered page OCR shard count.
+    #[serde(default)]
+    pub pdf_ocr_rendered_page_shards: u64,
+    /// Cumulative rendered region OCR shard count.
+    #[serde(default)]
+    pub pdf_ocr_rendered_region_shards: u64,
+    /// Adaptive budget increase events observed by this provider process.
+    #[serde(default)]
+    pub pdf_ocr_budget_increase_events: u64,
+    /// Adaptive budget decrease events observed by this provider process.
+    #[serde(default)]
+    pub pdf_ocr_budget_decrease_events: u64,
     /// In-process scheduled job tasks waiting or running in this provider.
     pub in_process_scheduled_jobs: usize,
     /// Total persisted jobs in the `DuckDB` registry.

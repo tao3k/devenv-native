@@ -106,7 +106,7 @@ graphql-parser = "0.4"
 merman-core = "0.4"
 image = "0.25"
 imageproc = "0.25"
-duckdb = { version = "=1.10501.0", default-features = false, features = ["bundled", "appender-arrow"] }
+duckdb = { version = "=1.10501.0", default-features = false, features = ["bundled", "appender-arrow", "parquet"] }
 
 # Git operations
 gix = "0.81.0"

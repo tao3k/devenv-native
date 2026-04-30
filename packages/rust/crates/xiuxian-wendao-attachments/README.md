@@ -10,9 +10,9 @@ gateway can depend on the crate without pulling PDF accelerators into default,
 
 ## Features
 
-| Feature            | Purpose                                                       |
-| ------------------ | ------------------------------------------------------------- |
-| `pdf-source-range` | Enables `lopdf` source-page manifests without PDFium.         |
+| Feature            | Purpose                                                              |
+| ------------------ | -------------------------------------------------------------------- |
+| `pdf-source-range` | Enables `lopdf` source-page manifests without PDFium.                |
 | `pdf-render`       | Adds PDFium-backed region/page raster proofs on top of source range. |
 
 ## Boundaries
@@ -96,14 +96,14 @@ the source page raster. This metadata is internal routing and merge state; it
 does not change the stable `_resources.arrow` schema or switch production
 extraction away from Docling.
 
-The Rust Studio provider controls Python OCR pressure with a global OCR worker
-pool and the internal `x-wendao-pdf-ocr-workers` Flight metadata header. The
-pool is sized from available machine parallelism, with
-`WENDAO_DOCUMENT_EXTRACT_PDF_OCR_WORKERS` available for deployment override.
-Rust splits OCR shard batches into scheduled chunks, sends only the acquired
-worker count to Python for each exchange, and Python keeps output rows ordered
-by the input Arrow batch so worker completion order cannot become document
-order.
+The Rust Studio provider controls Python OCR pressure with an adaptive OCR
+scheduler and the internal `x-wendao-pdf-ocr-workers` Flight metadata header.
+The scheduler derives its upper bound from available machine parallelism, while
+`WENDAO_DOCUMENT_EXTRACT_PDF_OCR_WORKERS` is a deployment ceiling rather than a
+fixed worker truth. Rust adjusts the active budget from queue wait, OCR latency,
+errors, and timeout pressure, sends only the selected worker count to Python for
+each exchange, and Python keeps output rows ordered by the input Arrow batch so
+worker completion order cannot become document order.
 
 The Studio provider does not rely on Python response order for correctness.
 Before projecting OCR rows into `_resources.arrow`, Rust validates every
@@ -137,10 +137,11 @@ selected page, and Docling remains the OCR authority over the original PDF page
 range. PDFium-backed rendering remains available for region/raster proofs, but
 it is not required for the full-page source-range hot path.
 Rust may split one contiguous source-PDF page range into multiple contiguous
-subranges when OCR worker permits are available. The default target is
-sublinear in the host worker budget to avoid over-parallelizing Docling PDF
-conversion, and `WENDAO_DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS` can
-override that source-range target for deployment benchmarking.
+subranges when OCR worker permits are available. The source-range lane uses a
+sublinear share of the current adaptive OCR budget to avoid over-parallelizing
+Docling PDF conversion, and
+`WENDAO_DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS` remains an explicit
+benchmark override for source-range chunk count experiments.
 
 The region crop proof accepts explicit PDF-point region requests and emits real
 region shard PNGs plus the same `_ocr_shards.arrow`, `_ocr_input.arrow`, and

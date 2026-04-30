@@ -2276,6 +2276,21 @@ def summarize_rust_jobs_status_samples(samples: list[dict[str, Any]]) -> dict[st
             "maxInProcessScheduledJobs": None,
             "minAvailableConversionPermits": None,
             "maxRunningConversions": None,
+            "maxPdfOcrWorkers": None,
+            "maxCurrentPdfOcrWorkerBudget": None,
+            "minAvailablePdfOcrWorkerPermits": None,
+            "maxInProcessPdfOcrWorkers": None,
+            "maxInFlightPdfOcrShards": None,
+            "maxPdfOcrCacheHits": None,
+            "maxPdfOcrCacheMisses": None,
+            "maxPdfOcrLiveRequests": None,
+            "maxPdfOcrQueueWaitP95Ms": None,
+            "maxPdfOcrLatencyP95Ms": None,
+            "maxPdfOcrSourcePdfPageRangeShards": None,
+            "maxPdfOcrRenderedPageShards": None,
+            "maxPdfOcrRenderedRegionShards": None,
+            "maxPdfOcrBudgetIncreaseEvents": None,
+            "maxPdfOcrBudgetDecreaseEvents": None,
             "lastConversionDurationMs": None,
             "maxConversionDurationMs": None,
         }
@@ -2293,6 +2308,42 @@ def summarize_rust_jobs_status_samples(samples: list[dict[str, Any]]) -> dict[st
             "availableConversionPermits",
         ),
         "maxRunningConversions": max_int_sample(samples, "maxRunningConversions"),
+        "maxPdfOcrWorkers": max_int_sample(samples, "maxPdfOcrWorkers"),
+        "maxCurrentPdfOcrWorkerBudget": max_int_sample(
+            samples,
+            "currentPdfOcrWorkerBudget",
+        ),
+        "minAvailablePdfOcrWorkerPermits": min_int_sample(
+            samples,
+            "availablePdfOcrWorkerPermits",
+        ),
+        "maxInProcessPdfOcrWorkers": max_int_sample(samples, "inProcessPdfOcrWorkers"),
+        "maxInFlightPdfOcrShards": max_int_sample(samples, "inFlightPdfOcrShards"),
+        "maxPdfOcrCacheHits": max_int_sample(samples, "pdfOcrCacheHits"),
+        "maxPdfOcrCacheMisses": max_int_sample(samples, "pdfOcrCacheMisses"),
+        "maxPdfOcrLiveRequests": max_int_sample(samples, "pdfOcrLiveRequests"),
+        "maxPdfOcrQueueWaitP95Ms": max_int_sample(samples, "pdfOcrQueueWaitP95Ms"),
+        "maxPdfOcrLatencyP95Ms": max_int_sample(samples, "pdfOcrLatencyP95Ms"),
+        "maxPdfOcrSourcePdfPageRangeShards": max_int_sample(
+            samples,
+            "pdfOcrSourcePdfPageRangeShards",
+        ),
+        "maxPdfOcrRenderedPageShards": max_int_sample(
+            samples,
+            "pdfOcrRenderedPageShards",
+        ),
+        "maxPdfOcrRenderedRegionShards": max_int_sample(
+            samples,
+            "pdfOcrRenderedRegionShards",
+        ),
+        "maxPdfOcrBudgetIncreaseEvents": max_int_sample(
+            samples,
+            "pdfOcrBudgetIncreaseEvents",
+        ),
+        "maxPdfOcrBudgetDecreaseEvents": max_int_sample(
+            samples,
+            "pdfOcrBudgetDecreaseEvents",
+        ),
         "lastConversionDurationMs": last_present_sample(
             samples,
             "lastConversionDurationMs",
@@ -2350,6 +2401,48 @@ def combine_rust_jobs_status_summaries(
             "minAvailableConversionPermits",
         ),
         "maxRunningConversions": max_optional_int(samples, "maxRunningConversions"),
+        "maxPdfOcrWorkers": max_optional_int(samples, "maxPdfOcrWorkers"),
+        "maxCurrentPdfOcrWorkerBudget": max_optional_int(
+            samples,
+            "maxCurrentPdfOcrWorkerBudget",
+        ),
+        "minAvailablePdfOcrWorkerPermits": min_optional_int(
+            samples,
+            "minAvailablePdfOcrWorkerPermits",
+        ),
+        "maxInProcessPdfOcrWorkers": max_optional_int(
+            samples,
+            "maxInProcessPdfOcrWorkers",
+        ),
+        "maxInFlightPdfOcrShards": max_optional_int(samples, "maxInFlightPdfOcrShards"),
+        "maxPdfOcrCacheHits": max_optional_int(samples, "maxPdfOcrCacheHits"),
+        "maxPdfOcrCacheMisses": max_optional_int(samples, "maxPdfOcrCacheMisses"),
+        "maxPdfOcrLiveRequests": max_optional_int(samples, "maxPdfOcrLiveRequests"),
+        "maxPdfOcrQueueWaitP95Ms": max_optional_int(
+            samples,
+            "maxPdfOcrQueueWaitP95Ms",
+        ),
+        "maxPdfOcrLatencyP95Ms": max_optional_int(samples, "maxPdfOcrLatencyP95Ms"),
+        "maxPdfOcrSourcePdfPageRangeShards": max_optional_int(
+            samples,
+            "maxPdfOcrSourcePdfPageRangeShards",
+        ),
+        "maxPdfOcrRenderedPageShards": max_optional_int(
+            samples,
+            "maxPdfOcrRenderedPageShards",
+        ),
+        "maxPdfOcrRenderedRegionShards": max_optional_int(
+            samples,
+            "maxPdfOcrRenderedRegionShards",
+        ),
+        "maxPdfOcrBudgetIncreaseEvents": max_optional_int(
+            samples,
+            "maxPdfOcrBudgetIncreaseEvents",
+        ),
+        "maxPdfOcrBudgetDecreaseEvents": max_optional_int(
+            samples,
+            "maxPdfOcrBudgetDecreaseEvents",
+        ),
         "lastConversionDurationMs": last_present_sample(
             samples,
             "lastConversionDurationMs",
@@ -2499,6 +2592,24 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"running={rust_status['maxRunningJobs']}, "
         f"inProcessRunning={rust_status['maxInProcessRunningConversions']}, "
         f"minAvailablePermits={rust_status['minAvailableConversionPermits']}`",
+        "- Rust adaptive OCR: "
+        f"`max={rust_status.get('maxPdfOcrWorkers')}, "
+        f"budget={rust_status.get('maxCurrentPdfOcrWorkerBudget')}, "
+        f"inProcess={rust_status.get('maxInProcessPdfOcrWorkers')}, "
+        f"inFlight={rust_status.get('maxInFlightPdfOcrShards')}`",
+        "- Rust OCR cache/live: "
+        f"`hits={rust_status.get('maxPdfOcrCacheHits')}, "
+        f"misses={rust_status.get('maxPdfOcrCacheMisses')}, "
+        f"liveRequests={rust_status.get('maxPdfOcrLiveRequests')}`",
+        "- Rust OCR lanes: "
+        f"`sourceRange={rust_status.get('maxPdfOcrSourcePdfPageRangeShards')}, "
+        f"renderedPage={rust_status.get('maxPdfOcrRenderedPageShards')}, "
+        f"renderedRegion={rust_status.get('maxPdfOcrRenderedRegionShards')}`",
+        "- Rust OCR pressure: "
+        f"`queueP95Ms={rust_status.get('maxPdfOcrQueueWaitP95Ms')}, "
+        f"latencyP95Ms={rust_status.get('maxPdfOcrLatencyP95Ms')}, "
+        f"budgetUp={rust_status.get('maxPdfOcrBudgetIncreaseEvents')}, "
+        f"budgetDown={rust_status.get('maxPdfOcrBudgetDecreaseEvents')}`",
         f"- Structure sidecar rows: `{payload['summary']['totalStructureRows']}`",
         "- Structure OCR blocks: "
         f"`page={payload['summary']['totalStructureOcrPageBlocks']}, "

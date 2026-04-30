@@ -34,6 +34,9 @@ fn studio_frontend_type_collection_exports_frontend_runtime_types() {
     assert!(exported.contains("DocumentExtractJobStatus"));
     assert!(exported.contains("DocumentExtractJobsStatus"));
     assert!(exported.contains("maxRunningConversions"));
+    assert!(exported.contains("currentPdfOcrWorkerBudget"));
+    assert!(exported.contains("inFlightPdfOcrShards"));
+    assert!(exported.contains("pdfOcrLatencyP95Ms"));
     assert!(exported.contains("queuedJobs"));
     assert!(exported.contains("sourceFormat"));
     assert!(exported.contains("totalResources"));

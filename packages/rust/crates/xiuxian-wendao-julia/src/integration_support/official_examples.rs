@@ -30,6 +30,12 @@ const WENDAOSEARCH_SOLVER_DEMO_BASE_URL_ENV: &str = "WENDAOSEARCH_SOLVER_DEMO_BA
 const JULIA_PARSER_SUMMARY_ROUTE_NAMES: &[&str] = &["julia_file_summary", "julia_root_summary"];
 const MODELICA_PARSER_SUMMARY_ROUTE_NAMES: &[&str] =
     &["modelica_file_summary", "modelica_ast_query"];
+const ALL_PARSER_SUMMARY_ROUTE_NAMES: &[&str] = &[
+    "julia_file_summary",
+    "julia_root_summary",
+    "modelica_file_summary",
+    "modelica_ast_query",
+];
 
 /// Spawns the official `WendaoSearch` structural-rerank example in `demo`
 /// mode.
@@ -111,6 +117,25 @@ pub async fn spawn_wendaosearch_julia_parser_summary_service_with_attempts(
 ) -> (String, JuliaExampleServiceGuard) {
     spawn_wendaosearch_parser_summary_service(ready_attempts, JULIA_PARSER_SUMMARY_ROUTE_NAMES)
         .await
+}
+
+/// Spawns the official `WendaoSearch` parser-summary service with all native
+/// Julia and Modelica summary routes mounted on the shared Flight endpoint.
+///
+/// # Panics
+///
+/// Panics when the service script cannot be resolved, the service fails to
+/// start, or the Modelica parser-summary route readiness probe fails.
+pub async fn spawn_wendaosearch_all_parser_summary_service() -> (String, JuliaExampleServiceGuard) {
+    let (base_url, mut guard) =
+        spawn_wendaosearch_parser_summary_service(1500, ALL_PARSER_SUMMARY_ROUTE_NAMES).await;
+    probe_wendaosearch_modelica_parser_summary_route_for_tests(base_url.as_str()).unwrap_or_else(
+        |error| {
+            guard.kill();
+            panic!("wait for WendaoSearch all-routes parser-summary readiness: {error}");
+        },
+    );
+    (base_url, guard)
 }
 
 /// Spawns the official `WendaoSearch` parser-summary service for the Modelica

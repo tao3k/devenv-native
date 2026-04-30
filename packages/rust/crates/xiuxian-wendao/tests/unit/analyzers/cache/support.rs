@@ -2,7 +2,7 @@ use std::collections::{BTreeMap, HashMap};
 
 use crate::analyzers::RepositoryPluginConfig;
 pub(super) use crate::gateway::studio::search::handlers::tests::linked_parser_summary::{
-    ensure_linked_julia_parser_summary_service, ensure_linked_modelica_parser_summary_service,
+    ensure_linked_modelica_parser_summary_service, ensure_linked_parser_summary_service,
 };
 use crate::search::SearchDocumentIndex;
 

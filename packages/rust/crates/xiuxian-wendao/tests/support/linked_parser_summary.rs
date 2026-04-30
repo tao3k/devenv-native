@@ -8,7 +8,7 @@ use std::time::Duration;
 
 use toml::Value;
 use xiuxian_wendao_julia::integration_support::{
-    JuliaExampleServiceGuard, spawn_wendaosearch_modelica_parser_summary_service,
+    JuliaExampleServiceGuard, spawn_wendaosearch_all_parser_summary_service,
 };
 use xiuxian_wendao_julia::{
     clear_modelica_parser_summary_transport_cache_for_tests,
@@ -47,7 +47,7 @@ static LINKED_PARSER_SUMMARY_SERVICE: OnceLock<Result<LinkedParserSummaryService
     OnceLock::new();
 static PROCESS_MANAGED_PARSER_SUMMARY_SERVICE: OnceLock<Result<(), String>> = OnceLock::new();
 
-pub fn ensure_linked_julia_parser_summary_service() -> TestResult {
+pub fn ensure_linked_parser_summary_service() -> TestResult {
     if process_managed_wendaosearch_test_enabled() {
         return ensure_process_managed_parser_summary_service(
             ProcessManagedParserSummaryMode::Required,
@@ -61,27 +61,14 @@ pub fn ensure_linked_julia_parser_summary_service() -> TestResult {
     {
         return Ok(());
     }
-    ensure_linked_parser_summary_service()
+    ensure_in_process_linked_parser_summary_service()
 }
 
 pub fn ensure_linked_modelica_parser_summary_service() -> TestResult {
-    if process_managed_wendaosearch_test_enabled() {
-        return ensure_process_managed_parser_summary_service(
-            ProcessManagedParserSummaryMode::Required,
-        );
-    }
-    if process_managed_parser_summary_service_is_configured()
-        && ensure_process_managed_parser_summary_service(
-            ProcessManagedParserSummaryMode::BestEffort,
-        )
-        .is_ok()
-    {
-        return Ok(());
-    }
     ensure_linked_parser_summary_service()
 }
 
-fn ensure_linked_parser_summary_service() -> TestResult {
+fn ensure_in_process_linked_parser_summary_service() -> TestResult {
     let service = LINKED_PARSER_SUMMARY_SERVICE.get_or_init(|| {
         let (base_url, guard) = std::thread::spawn(|| {
             let runtime = tokio::runtime::Builder::new_current_thread()
@@ -89,7 +76,7 @@ fn ensure_linked_parser_summary_service() -> TestResult {
                 .build()
                 .map_err(|error| error.to_string())?;
             Ok::<(String, JuliaExampleServiceGuard), String>(
-                runtime.block_on(spawn_wendaosearch_modelica_parser_summary_service()),
+                runtime.block_on(spawn_wendaosearch_all_parser_summary_service()),
             )
         })
         .join()

@@ -78,6 +78,12 @@ fn build_modelica_parser_summary_client_uses_default_discovery_for_plain_plugin_
         client.selection().selected_transport,
         xiuxian_wendao_core::transport::PluginTransportKind::ArrowFlight,
     );
+    let binding = build_parser_summary_flight_transport_binding(
+        &repository,
+        ParserSummaryRouteKind::FileSummary,
+    )
+    .unwrap_or_else(|error| panic!("Modelica parser-summary binding should parse: {error}"));
+    assert_eq!(binding.endpoint.max_in_flight_requests, Some(1));
 }
 
 #[test]
@@ -224,9 +230,21 @@ fn parser_summary_transport_refresh_detects_stale_service_channel_errors() {
     let ordinary_analysis_error = RepoIntelligenceError::AnalysisFailed {
         message: "Modelica parser-summary Flight request failed: some parser error".to_string(),
     };
+    let connection_reset_error = RepoIntelligenceError::AnalysisFailed {
+        message: "Modelica parser-summary Flight request for route `/wendao/code-parser/modelica/file-summary` failed: Arrow Flight request failed: Tonic error: code: 'Unknown error', message: \"transport error\", source: tonic::transport::Error(Transport, hyper::Error(Io, Kind(ConnectionReset)))".to_string(),
+    };
+    let broken_pipe_error = RepoIntelligenceError::AnalysisFailed {
+        message: "Modelica parser-summary Flight request for route `/wendao/code-parser/modelica/file-summary` failed: Arrow Flight request failed: Tonic error: code: 'Unknown error', message: \"transport error\", source: tonic::transport::Error(Transport, hyper::Error(Io, Custom { kind: BrokenPipe, error: \"stream closed because of a broken pipe\" }))".to_string(),
+    };
 
     assert!(parser_summary_transport_error_requires_client_refresh(
         &stale_transport_error
+    ));
+    assert!(parser_summary_transport_error_requires_client_refresh(
+        &connection_reset_error
+    ));
+    assert!(parser_summary_transport_error_requires_client_refresh(
+        &broken_pipe_error
     ));
     assert!(!parser_summary_transport_error_requires_client_refresh(
         &ordinary_analysis_error

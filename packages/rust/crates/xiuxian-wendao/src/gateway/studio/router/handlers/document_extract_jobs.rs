@@ -7,9 +7,9 @@ use axum::Json;
 use axum::extract::Query;
 use serde::Deserialize;
 
-use super::analysis::StudioDocumentExtractFlightRouteProvider;
-use super::analysis::document_extract::{
+use super::analysis::{
     DocumentExtractJobStatus as RegistryDocumentExtractJobStatus, DocumentExtractRuntimeSnapshot,
+    StudioDocumentExtractFlightRouteProvider,
 };
 use crate::gateway::studio::router::{GatewayState, StudioApiError};
 use crate::gateway::studio::types::{
@@ -147,10 +147,87 @@ impl From<RegistryDocumentExtractJobStatus> for DocumentExtractJobStatus {
 
 impl From<DocumentExtractRuntimeSnapshot> for DocumentExtractJobsStatus {
     fn from(snapshot: DocumentExtractRuntimeSnapshot) -> Self {
+        #[cfg(feature = "document-extract-pdf-source-range")]
+        let (
+            max_pdf_ocr_workers,
+            current_pdf_ocr_worker_budget,
+            available_pdf_ocr_worker_permits,
+            in_process_pdf_ocr_workers,
+            in_flight_pdf_ocr_shards,
+            pdf_ocr_cache_hits,
+            pdf_ocr_cache_misses,
+            pdf_ocr_live_requests,
+            pdf_ocr_queue_wait_p50_ms,
+            pdf_ocr_queue_wait_p95_ms,
+            pdf_ocr_latency_p50_ms,
+            pdf_ocr_latency_p95_ms,
+            pdf_ocr_source_pdf_page_range_shards,
+            pdf_ocr_rendered_page_shards,
+            pdf_ocr_rendered_region_shards,
+            pdf_ocr_budget_increase_events,
+            pdf_ocr_budget_decrease_events,
+        ) = (
+            snapshot.max_pdf_ocr_workers,
+            snapshot.current_pdf_ocr_worker_budget,
+            snapshot.available_pdf_ocr_worker_permits,
+            snapshot.in_process_pdf_ocr_workers,
+            snapshot.in_flight_pdf_ocr_shards,
+            snapshot.pdf_ocr_cache_hits,
+            snapshot.pdf_ocr_cache_misses,
+            snapshot.pdf_ocr_live_requests,
+            snapshot.pdf_ocr_queue_wait_p50_ms,
+            snapshot.pdf_ocr_queue_wait_p95_ms,
+            snapshot.pdf_ocr_latency_p50_ms,
+            snapshot.pdf_ocr_latency_p95_ms,
+            snapshot.pdf_ocr_source_pdf_page_range_shards,
+            snapshot.pdf_ocr_rendered_page_shards,
+            snapshot.pdf_ocr_rendered_region_shards,
+            snapshot.pdf_ocr_budget_increase_events,
+            snapshot.pdf_ocr_budget_decrease_events,
+        );
+        #[cfg(not(feature = "document-extract-pdf-source-range"))]
+        let (
+            max_pdf_ocr_workers,
+            current_pdf_ocr_worker_budget,
+            available_pdf_ocr_worker_permits,
+            in_process_pdf_ocr_workers,
+            in_flight_pdf_ocr_shards,
+            pdf_ocr_cache_hits,
+            pdf_ocr_cache_misses,
+            pdf_ocr_live_requests,
+            pdf_ocr_queue_wait_p50_ms,
+            pdf_ocr_queue_wait_p95_ms,
+            pdf_ocr_latency_p50_ms,
+            pdf_ocr_latency_p95_ms,
+            pdf_ocr_source_pdf_page_range_shards,
+            pdf_ocr_rendered_page_shards,
+            pdf_ocr_rendered_region_shards,
+            pdf_ocr_budget_increase_events,
+            pdf_ocr_budget_decrease_events,
+        ) = (
+            0, 0, 0, 0, 0, 0, 0, 0, None, None, None, None, 0, 0, 0, 0, 0,
+        );
         Self {
             max_running_conversions: snapshot.max_running_conversions,
             available_conversion_permits: snapshot.available_conversion_permits,
             in_process_running_conversions: snapshot.in_process_running_conversions,
+            max_pdf_ocr_workers,
+            current_pdf_ocr_worker_budget,
+            available_pdf_ocr_worker_permits,
+            in_process_pdf_ocr_workers,
+            in_flight_pdf_ocr_shards,
+            pdf_ocr_cache_hits,
+            pdf_ocr_cache_misses,
+            pdf_ocr_live_requests,
+            pdf_ocr_queue_wait_p50_ms,
+            pdf_ocr_queue_wait_p95_ms,
+            pdf_ocr_latency_p50_ms,
+            pdf_ocr_latency_p95_ms,
+            pdf_ocr_source_pdf_page_range_shards,
+            pdf_ocr_rendered_page_shards,
+            pdf_ocr_rendered_region_shards,
+            pdf_ocr_budget_increase_events,
+            pdf_ocr_budget_decrease_events,
             in_process_scheduled_jobs: snapshot.in_process_scheduled_jobs,
             total_jobs: snapshot.registry.total_jobs,
             queued_jobs: snapshot.registry.queued_jobs,

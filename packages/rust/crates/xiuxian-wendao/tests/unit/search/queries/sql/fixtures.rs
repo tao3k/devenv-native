@@ -9,7 +9,7 @@ use arrow::util::display::array_value_to_string;
 use serde_json::{Map, Number, Value, json};
 #[cfg(feature = "duckdb")]
 use std::fs;
-use xiuxian_db_store::{ColumnarScanOptions, EngineRecordBatch};
+use xiuxian_db_store::{EngineRecordBatch, write_lance_batches_to_parquet_file};
 use xiuxian_wendao_runtime::transport::SqlFlightRouteResponse;
 
 use crate::analyzers::{
@@ -21,7 +21,7 @@ use crate::repo_index::RepoCodeDocument;
 use crate::search::queries::sql::provider::metadata::StudioSqlFlightMetadata;
 use crate::search::{
     BeginBuildDecision, SearchCorpusKind, SearchMaintenancePolicy, SearchManifestKeyspace,
-    SearchPlaneService, reference_occurrence_batches, reference_occurrence_schema,
+    SearchPlaneService, reference_occurrence_batches,
 };
 #[cfg(feature = "duckdb")]
 use crate::set_link_graph_wendao_config_override;
@@ -127,31 +127,15 @@ pub(super) async fn publish_reference_hits(
         BeginBuildDecision::Started(lease) => lease,
         other => panic!("unexpected begin decision: {other:?}"),
     };
-    let store = service
-        .open_store(SearchCorpusKind::ReferenceOccurrence)
-        .await
-        .unwrap_or_else(|error| panic!("open store: {error}"));
-    let table_name =
-        SearchPlaneService::table_name(SearchCorpusKind::ReferenceOccurrence, lease.epoch);
-    store
-        .replace_record_batches(
-            table_name.as_str(),
-            reference_occurrence_schema(),
-            reference_occurrence_batches(hits)
-                .unwrap_or_else(|error| panic!("reference occurrence batches: {error}")),
-        )
-        .await
-        .unwrap_or_else(|error| panic!("replace record batches: {error}"));
-    store
-        .write_vector_store_table_to_parquet_file(
-            table_name.as_str(),
-            service
-                .local_epoch_parquet_path(SearchCorpusKind::ReferenceOccurrence, lease.epoch)
-                .as_path(),
-            ColumnarScanOptions::default(),
-        )
-        .await
-        .unwrap_or_else(|error| panic!("export parquet: {error}"));
+    let batches = reference_occurrence_batches(hits)
+        .unwrap_or_else(|error| panic!("reference occurrence batches: {error}"));
+    write_lance_batches_to_parquet_file(
+        service
+            .local_epoch_parquet_path(SearchCorpusKind::ReferenceOccurrence, lease.epoch)
+            .as_path(),
+        batches.as_slice(),
+    )
+    .unwrap_or_else(|error| panic!("export reference occurrence parquet: {error}"));
     service
         .coordinator()
         .publish_ready(&lease, hits.len() as u64, 1);

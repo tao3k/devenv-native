@@ -4,7 +4,7 @@ use crate::analyzers::{
 };
 use crate::gateway::studio::search::handlers::code_search::build_code_search_response;
 use crate::gateway::studio::search::handlers::tests::linked_parser_summary::{
-    ensure_linked_julia_parser_summary_service, ensure_linked_modelica_parser_summary_service,
+    ensure_linked_modelica_parser_summary_service, ensure_linked_parser_summary_service,
 };
 use crate::gateway::studio::search::handlers::tests::test_studio_state;
 use crate::gateway::studio::test_support::{assert_studio_json_snapshot, search_response_snapshot};

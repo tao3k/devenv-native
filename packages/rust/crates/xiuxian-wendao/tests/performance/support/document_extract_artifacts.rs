@@ -241,13 +241,13 @@ fn artifact_report_reads_structure_sidecar_ordering() -> Result<(), String> {
         output_dir
             .join(DOCUMENT_RESOURCES_ARROW_CACHE_NAME)
             .as_path(),
-        resource_test_batch()?,
+        &resource_test_batch()?,
     )?;
     write_test_arrow_file(
         output_dir
             .join(DOCUMENT_STRUCTURE_ARROW_CACHE_NAME)
             .as_path(),
-        structure_test_batch()?,
+        &structure_test_batch()?,
     )?;
 
     let report = inspect_artifact_dir("fixture.pdf", output_dir.to_string_lossy().as_ref());
@@ -264,11 +264,11 @@ fn artifact_report_reads_structure_sidecar_ordering() -> Result<(), String> {
     Ok(())
 }
 
-fn write_test_arrow_file(path: &Path, batch: RecordBatch) -> Result<(), String> {
+fn write_test_arrow_file(path: &Path, batch: &RecordBatch) -> Result<(), String> {
     let file = File::create(path).map_err(|error| error.to_string())?;
     let mut writer =
         FileWriter::try_new(file, batch.schema().as_ref()).map_err(|error| error.to_string())?;
-    writer.write(&batch).map_err(|error| error.to_string())?;
+    writer.write(batch).map_err(|error| error.to_string())?;
     writer.finish().map_err(|error| error.to_string())
 }
 

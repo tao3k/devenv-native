@@ -9,7 +9,7 @@ use crate::analyzers::{
     bootstrap_builtin_registry,
 };
 use crate::gateway::studio::search::handlers::tests::linked_parser_summary::{
-    ensure_linked_julia_parser_summary_service, ensure_linked_modelica_parser_summary_service,
+    ensure_linked_modelica_parser_summary_service, ensure_linked_parser_summary_service,
 };
 use crate::gateway::studio::test_support::{
     assert_studio_json_snapshot, commit_all, init_git_repository, search_response_snapshot,
@@ -23,7 +23,7 @@ use serial_test::serial;
 #[serial(julia_live)]
 async fn search_intent_routes_code_search_to_plain_julia_plugin_repository()
 -> Result<(), Box<dyn std::error::Error>> {
-    ensure_linked_julia_parser_summary_service()?;
+    ensure_linked_parser_summary_service()?;
     let fixture = make_state_with_docs(Vec::new());
     let repo_dir = create_sample_julia_repo(fixture.temp_dir.path(), "SearchJulia")?;
     let repository = RegisteredRepository {
