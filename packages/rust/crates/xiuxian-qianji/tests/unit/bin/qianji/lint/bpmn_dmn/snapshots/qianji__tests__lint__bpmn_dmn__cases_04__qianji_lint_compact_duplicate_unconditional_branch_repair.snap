@@ -7,8 +7,8 @@ Source: $TEMP/duplicate_unconditional_branch.bpmn
 Issues: 1
 
 [bpmn.unsupported_gateway_configuration] Error: Non-default bounded conditional branches need conditions
-    ,-[ $TEMP/duplicate_unconditional_branch.bpmn:18:6 ]
- 18 |    <bpmn:sequenceFlow id="flow_duplicate" sourceRef="approval" targetRef="more" />
+    ,-[ $TEMP/duplicate_unconditional_branch.bpmn:16:6 ]
+ 16 |    <bpmn:sequenceFlow id="flow_duplicate" sourceRef="approval" targetRef="more" />
     |     `------------------------------------------------------------------------------ remove this duplicate unconditional branch
     |Help: This unconditional branch duplicates conditioned branch(es): flow_approved. Remove `flow_duplicate`; do not add a condition or make it the default.
 
@@ -27,4 +27,4 @@ Patch focus:
 
 Structured repair:
 - strategy: remove_duplicate_unconditional_gateway_branch
-- contract: qianji.bpmn.gateway.bounded.v1
+- contract: bpmn.native.gateway.bounded.v1

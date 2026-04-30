@@ -11,6 +11,8 @@ use crate::host_types_api::{
     PendingHostWorkRequest, RepeatExecutionContext, ScriptTaskRequest, SendTaskRequest,
     SequentialMultiInstanceContext, ServiceTaskRequest, UserTaskRequest,
 };
+use crate::ir_node_api::{BpmnTaskInputSource, BpmnTaskIoSpec, BpmnTaskOutputBinding};
+use serde_json::{Map, Value};
 
 /// Builds a typed host-dispatch request from the currently blocked BPMN
 /// instance state.
@@ -80,6 +82,8 @@ fn build_pending_host_work_request_for_entry(
     let lane = pending.lane.clone();
     let claim = pending.claim.clone();
     let (variables, repeat) = resolve_pending_host_work_execution_context(instance, pending)?;
+    let inputs = resolve_task_inputs(pending, &variables)?;
+    let output_bindings = task_output_bindings(pending);
 
     Ok(match pending.kind {
         super::PendingHostWorkKind::Send => PendingHostWorkRequest::Send(SendTaskRequest {
@@ -93,6 +97,8 @@ fn build_pending_host_work_request_for_entry(
             )?,
             message_name: pending.event_name.clone(),
             variables,
+            inputs,
+            output_bindings,
         }),
         super::PendingHostWorkKind::Service => {
             PendingHostWorkRequest::Service(ServiceTaskRequest {
@@ -100,6 +106,8 @@ fn build_pending_host_work_request_for_entry(
                 token_id,
                 node_index,
                 variables,
+                inputs,
+                output_bindings,
                 repeat,
             })
         }
@@ -110,6 +118,8 @@ fn build_pending_host_work_request_for_entry(
             script_format: pending.script_format.clone(),
             script_body: pending.script_body.clone(),
             variables,
+            inputs,
+            output_bindings,
             repeat,
         }),
         super::PendingHostWorkKind::User => PendingHostWorkRequest::User(UserTaskRequest {
@@ -119,6 +129,8 @@ fn build_pending_host_work_request_for_entry(
             node_index,
             activity_id,
             variables,
+            inputs,
+            output_bindings,
             repeat,
             lane,
             form,
@@ -132,6 +144,8 @@ fn build_pending_host_work_request_for_entry(
             node_index,
             activity_id,
             variables,
+            inputs,
+            output_bindings,
             repeat,
             lane,
             form,
@@ -141,11 +155,15 @@ fn build_pending_host_work_request_for_entry(
         super::PendingHostWorkKind::BusinessRule => build_business_rule_task_request(
             instance,
             pending,
-            instance_id,
-            token_id,
-            node_index,
-            variables,
-            repeat,
+            HostTaskRequestEnvelope {
+                instance_id,
+                token_id,
+                node_index,
+                variables,
+                inputs,
+                output_bindings,
+                repeat,
+            },
         )?,
     })
 }
@@ -204,14 +222,20 @@ fn resolve_pending_host_work_execution_context(
     .map(|context| context.unwrap_or_else(|| (instance.variables.clone(), None)))
 }
 
-fn build_business_rule_task_request(
-    instance: &BpmnInstanceState,
-    pending: &PendingHostWork,
+struct HostTaskRequestEnvelope {
     instance_id: String,
     token_id: u64,
     node_index: u32,
-    variables: serde_json::Value,
+    variables: Value,
+    inputs: Value,
+    output_bindings: Vec<BpmnTaskOutputBinding>,
     repeat: Option<RepeatExecutionContext>,
+}
+
+fn build_business_rule_task_request(
+    instance: &BpmnInstanceState,
+    pending: &PendingHostWork,
+    envelope: HostTaskRequestEnvelope,
 ) -> Result<PendingHostWorkRequest> {
     let decision = pending.decision.clone().ok_or_else(|| {
         BpmnEngineError::MissingBusinessRuleDecisionRef {
@@ -222,13 +246,78 @@ fn build_business_rule_task_request(
             node_id: pending.node_index.to_string(),
         }
     })?;
+    let evaluation_variables = if pending
+        .task_io
+        .as_ref()
+        .is_some_and(|task_io| !task_io.inputs.is_empty())
+    {
+        envelope.inputs.clone()
+    } else {
+        envelope.variables
+    };
     Ok(PendingHostWorkRequest::BusinessRule(
         BusinessRuleTaskRequest {
-            instance_id,
-            token_id,
-            node_index,
-            evaluation: DmnEvaluationRequest::new(decision, variables),
-            repeat,
+            instance_id: envelope.instance_id,
+            token_id: envelope.token_id,
+            node_index: envelope.node_index,
+            evaluation: DmnEvaluationRequest::new(decision, evaluation_variables),
+            inputs: envelope.inputs,
+            output_bindings: envelope.output_bindings,
+            repeat: envelope.repeat,
         },
     ))
+}
+
+fn task_output_bindings(pending: &PendingHostWork) -> Vec<BpmnTaskOutputBinding> {
+    pending
+        .task_io
+        .as_ref()
+        .map_or_else(Vec::new, |task_io| task_io.outputs.clone())
+}
+
+fn resolve_task_inputs(pending: &PendingHostWork, variables: &Value) -> Result<Value> {
+    let Some(task_io) = pending.task_io.as_ref() else {
+        return Ok(Value::Object(Map::new()));
+    };
+    materialize_task_inputs(task_io, variables, pending)
+}
+
+fn materialize_task_inputs(
+    task_io: &BpmnTaskIoSpec,
+    variables: &Value,
+    pending: &PendingHostWork,
+) -> Result<Value> {
+    let mut inputs = Map::new();
+    for input in &task_io.inputs {
+        let value = match &input.source {
+            BpmnTaskInputSource::Variable { source_ref } => {
+                resolve_value_path(variables, source_ref.as_ref())
+                    .cloned()
+                    .ok_or_else(|| BpmnEngineError::UnresolvedTaskInputSource {
+                        process_id: pending
+                            .process_id
+                            .clone()
+                            .unwrap_or_else(|| "<active>".to_string()),
+                        node_index: pending.node_index,
+                        input: input.name.to_string(),
+                        source_ref: source_ref.to_string(),
+                    })?
+            }
+            BpmnTaskInputSource::Literal { value } => parse_literal_input_value(value.as_ref()),
+        };
+        inputs.insert(input.name.to_string(), value);
+    }
+    Ok(Value::Object(inputs))
+}
+
+fn parse_literal_input_value(value: &str) -> Value {
+    serde_json::from_str(value).unwrap_or_else(|_| Value::String(value.to_string()))
+}
+
+fn resolve_value_path<'a>(variables: &'a Value, path: &str) -> Option<&'a Value> {
+    let mut current = variables;
+    for segment in path.split('.').filter(|segment| !segment.is_empty()) {
+        current = current.get(segment)?;
+    }
+    Some(current)
 }

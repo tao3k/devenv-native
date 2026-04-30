@@ -1,9 +1,10 @@
 use qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnEdgeSpec, BpmnEventKind, BpmnEventSpec, BpmnGatewayKind,
     BpmnInstanceInit, BpmnNodeKind, BpmnNodeSpec, BpmnPackage, BpmnProcessSpec, BpmnScriptTaskSpec,
-    BusinessRuleTaskOutcome, DmnDecisionRef, DmnEvaluationResult, EventPollOutcome,
-    HostBridgeError, InstanceLifecycle, PendingHostWorkRequest, ProcessKey, ScriptTaskOutcome,
-    SendTaskOutcome, ServiceTaskOutcome, UserTaskRequest, advance_instance, create_instance,
+    BpmnTaskIoSpec, BpmnTaskOutputBinding, BusinessRuleTaskOutcome, DmnDecisionRef,
+    DmnEvaluationResult, EventPollOutcome, HostBridgeError, InstanceLifecycle,
+    PendingHostWorkRequest, ProcessKey, ScriptTaskOutcome, SendTaskOutcome, ServiceTaskOutcome,
+    UserTaskRequest, advance_instance, create_instance,
 };
 use serde_json::json;
 use std::sync::Arc;
@@ -29,6 +30,8 @@ async fn default_bridge_keeps_unsupported_host_operations_explicit() {
                 node_index: 3,
                 activity_id: "Task_Review".to_string(),
                 variables: json!({ "approved": false }),
+                inputs: json!({}),
+                output_bindings: vec![],
                 repeat: None,
                 lane: None,
                 form: None,
@@ -318,7 +321,10 @@ fn send_task_process(process_id: &str) -> BpmnProcessSpec {
         ProcessKey::new("pkg_adapter", process_id, format!("digest_{process_id}")),
         vec![
             BpmnNodeSpec::new(0, "start", BpmnNodeKind::StartEvent),
-            BpmnNodeSpec::new(1, "send_invoice_message", BpmnNodeKind::SendTask),
+            node_with_outputs(
+                BpmnNodeSpec::new(1, "send_invoice_message", BpmnNodeKind::SendTask),
+                &["sent", "message_ref"],
+            ),
             BpmnNodeSpec::new(2, "end", BpmnNodeKind::EndEvent),
         ],
         vec![
@@ -338,8 +344,11 @@ fn script_task_process(process_id: &str) -> BpmnProcessSpec {
         ProcessKey::new("pkg_adapter", process_id, format!("digest_{process_id}")),
         vec![
             BpmnNodeSpec::new(0, "start", BpmnNodeKind::StartEvent),
-            BpmnNodeSpec::new(1, "evaluate_script", BpmnNodeKind::ScriptTask).with_script_task(
-                BpmnScriptTaskSpec::new(Some("feel"), Some("result = amount + tax")),
+            node_with_outputs(
+                BpmnNodeSpec::new(1, "evaluate_script", BpmnNodeKind::ScriptTask).with_script_task(
+                    BpmnScriptTaskSpec::new(Some("feel"), Some("result = amount + tax")),
+                ),
+                &["computed"],
             ),
             BpmnNodeSpec::new(2, "end", BpmnNodeKind::EndEvent),
         ],
@@ -356,8 +365,11 @@ fn business_rule_process(process_id: &str) -> BpmnProcessSpec {
         ProcessKey::new("pkg_adapter", process_id, format!("digest_{process_id}")),
         vec![
             BpmnNodeSpec::new(0, "start", BpmnNodeKind::StartEvent),
-            BpmnNodeSpec::new(1, "review", BpmnNodeKind::BusinessRuleTask)
-                .with_decision(DmnDecisionRef::new("loan-decision")),
+            node_with_outputs(
+                BpmnNodeSpec::new(1, "review", BpmnNodeKind::BusinessRuleTask)
+                    .with_decision(DmnDecisionRef::new("loan-decision")),
+                &["approved", "tier"],
+            ),
             BpmnNodeSpec::new(2, "end", BpmnNodeKind::EndEvent),
         ],
         vec![
@@ -375,8 +387,14 @@ fn parallel_service_process(process_id: &str) -> BpmnProcessSpec {
             BpmnNodeSpec::new(0, "start", BpmnNodeKind::StartEvent),
             BpmnNodeSpec::new(1, "split", BpmnNodeKind::Gateway)
                 .with_gateway_kind(BpmnGatewayKind::Parallel),
-            BpmnNodeSpec::new(2, "service_a", BpmnNodeKind::ServiceTask),
-            BpmnNodeSpec::new(3, "service_b", BpmnNodeKind::ServiceTask),
+            node_with_outputs(
+                BpmnNodeSpec::new(2, "service_a", BpmnNodeKind::ServiceTask),
+                &["branch_a"],
+            ),
+            node_with_outputs(
+                BpmnNodeSpec::new(3, "service_b", BpmnNodeKind::ServiceTask),
+                &["branch_b"],
+            ),
             BpmnNodeSpec::new(4, "join", BpmnNodeKind::Gateway)
                 .with_gateway_kind(BpmnGatewayKind::Parallel),
             BpmnNodeSpec::new(5, "end", BpmnNodeKind::EndEvent),
@@ -391,6 +409,14 @@ fn parallel_service_process(process_id: &str) -> BpmnProcessSpec {
         ],
         Vec::new(),
     )
+}
+
+fn node_with_outputs(node: BpmnNodeSpec, outputs: &[&str]) -> BpmnNodeSpec {
+    let mut task_io = BpmnTaskIoSpec::new();
+    for output in outputs {
+        task_io = task_io.with_output(BpmnTaskOutputBinding::new(*output, *output));
+    }
+    node.with_task_io(task_io)
 }
 
 fn waiting_instance() -> (Arc<BpmnPackage>, qianji_bpmn_engine::BpmnInstanceState) {
@@ -427,7 +453,8 @@ fn waiting_instance() -> (Arc<BpmnPackage>, qianji_bpmn_engine::BpmnInstanceStat
         event_reference: Some("invoice_received".to_string()),
         event_name: Some("InvoiceReceived".to_string()),
         timer: None,
-        correlation_key: Some("invoice:42".to_string()),
+        condition_expression: None,
+        deduplication_key: Some("invoice:42".to_string()),
     });
 
     (package, instance)

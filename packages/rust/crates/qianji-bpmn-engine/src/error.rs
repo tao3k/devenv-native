@@ -601,6 +601,18 @@ pub enum BpmnEngineError {
         /// Stable unsupported configuration discriminator.
         detail: &'static str,
     },
+    /// Returned when one event definition exceeds the bounded supported slice.
+    #[error(
+        "BPMN process '{process_id}' event node '{node_id}' uses unsupported configuration '{detail}'"
+    )]
+    UnsupportedEventConfiguration {
+        /// Process identifier.
+        process_id: String,
+        /// Event BPMN node identifier.
+        node_id: String,
+        /// Stable unsupported configuration discriminator.
+        detail: &'static str,
+    },
     /// Returned when one gateway exceeds the bounded supported slice.
     #[error(
         "BPMN process '{process_id}' gateway '{node_id}' uses unsupported configuration '{detail}'"
@@ -796,6 +808,80 @@ pub enum BpmnEngineError {
         /// BPMN activity identifier.
         activity_id: String,
         /// Undeclared field name.
+        field: String,
+    },
+    /// Returned when a task input binding references a missing workflow
+    /// variable path.
+    #[error(
+        "task input '{input}' for process '{process_id}' node {node_index} references unresolved source '{source_ref}'"
+    )]
+    UnresolvedTaskInputSource {
+        /// BPMN process identifier.
+        process_id: String,
+        /// BPMN node index.
+        node_index: u32,
+        /// Data input name.
+        input: String,
+        /// Missing source variable path.
+        source_ref: String,
+    },
+    /// Returned when a BPMN `dataObjectReference` points at a missing
+    /// process-level `dataObject`.
+    #[error(
+        "dataObjectReference '{reference_id}' in process '{process_id}' references missing dataObject '{data_object_ref}'"
+    )]
+    UnknownDataObjectReference {
+        /// BPMN process identifier.
+        process_id: String,
+        /// BPMN `dataObjectReference` identifier.
+        reference_id: String,
+        /// Missing BPMN `dataObject` identifier.
+        data_object_ref: String,
+    },
+    /// Returned when host-dispatched task completion has no declared standard
+    /// BPMN output mapping.
+    #[error(
+        "host task completion for process '{process_id}' activity '{activity_id}' requires declared BPMN dataOutputAssociation mappings"
+    )]
+    MissingTaskOutputMapping {
+        /// BPMN process identifier.
+        process_id: String,
+        /// BPMN activity identifier.
+        activity_id: String,
+    },
+    /// Returned when host-dispatched task completion data is not an object.
+    #[error(
+        "host task completion for process '{process_id}' activity '{activity_id}' must be a JSON object"
+    )]
+    TaskCompletionDataNotObject {
+        /// BPMN process identifier.
+        process_id: String,
+        /// BPMN activity identifier.
+        activity_id: String,
+    },
+    /// Returned when host-dispatched task completion omits a declared output.
+    #[error(
+        "host task completion for process '{process_id}' activity '{activity_id}' is missing declared output '{field}'"
+    )]
+    MissingTaskCompletionField {
+        /// BPMN process identifier.
+        process_id: String,
+        /// BPMN activity identifier.
+        activity_id: String,
+        /// Missing output field name.
+        field: String,
+    },
+    /// Returned when host-dispatched task completion submits an undeclared
+    /// output.
+    #[error(
+        "host task completion for process '{process_id}' activity '{activity_id}' contains undeclared output '{field}'"
+    )]
+    UndeclaredTaskCompletionField {
+        /// BPMN process identifier.
+        process_id: String,
+        /// BPMN activity identifier.
+        activity_id: String,
+        /// Undeclared output field name.
         field: String,
     },
     /// Returned when a checkpoint save attempts to overwrite newer state.

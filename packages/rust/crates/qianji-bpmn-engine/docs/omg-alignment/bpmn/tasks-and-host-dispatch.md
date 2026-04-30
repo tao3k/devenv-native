@@ -26,24 +26,57 @@ The field-level user/manual task contract is tracked in the
   message metadata in the pending request.
 - `scriptTask` reuses that same host-dispatch shell family and preserves
   bounded script metadata in the pending request.
+- Supported host-dispatched tasks may carry bounded native BPMN task Data/IO:
+  `dataInputAssociation` resolves request `inputs`, and
+  `dataOutputAssociation` declares completion fields plus target workflow
+  variable mappings.
 - `businessRuleTask` may execute locally when one matching DMN decision is
   already available inside the parsed package; otherwise it also falls back
   to the host seam.
+- Top-level BPMN `interface` and nested `operation` declarations are preserved
+  in document snapshots and the package callable registry as
+  callable-operation metadata. The current runtime does not resolve service
+  bindings from those catalogs; supported task dispatch remains driven by the
+  explicit task node and host-work metadata. Executable task-level
+  `operationRef` usage reports a deferred operation-binding diagnostic until a
+  callable-operation invocation policy exists.
+- Top-level BPMN `globalTask`, `globalBusinessRuleTask`, `globalManualTask`,
+  `globalScriptTask`, and `globalUserTask` declarations are preserved in the
+  package callable registry as callable-task metadata. Supported interface
+  references and global script text are retained for evidence, but the current
+  runtime does not execute those declarations or bind `callActivity
+calledElement` to them.
+- Direct process/global-task `ioBinding` declarations and direct global-task
+  `ioSpecification` declarations are preserved in the package callable
+  registry as callable IO metadata. They do not bind service operations, widen
+  host dispatch, or execute reusable callable definitions.
 - `userTask` and `manualTask` host requests carry the engine-owned
   `process_id`, BPMN `activity_id`, `token_id`, `node_index`, and workflow
   variables. UI and CLI adapters must treat those fields as the canonical
   waiting-work identity instead of reconstructing activity identity from
   labels, list position, or display text.
 - `userTask` and `manualTask` requests may also carry optional `form` metadata
-  parsed from bounded `qianji:interaction` extension elements. The current
-  form contract preserves interaction type, question references or inline
-  prompt text, dynamic or inline choices, free-text fields, and the primary
-  result output variable for host rendering.
+  parsed from bounded native BPMN IO metadata. The current form contract
+  preserves interaction type, question references or inline prompt text,
+  dynamic or inline choices, free-text fields, and the primary result output
+  variable for host rendering.
 - `userTask` and `manualTask` requests may also carry optional `assignment`
   metadata parsed from standard BPMN `humanPerformer` and `potentialOwner`
   resource roles. The current contract preserves role names, `resourceRef`
   text, and `resourceAssignmentExpression/formalExpression` text as host
   routing metadata only.
+- Direct process and global-task `resourceRole`, `performer`,
+  `humanPerformer`, and `potentialOwner` declarations are preserved in
+  document snapshots as metadata-only catalogs. They do not widen host
+  dispatch, claim checks, worklist filtering, or authorization.
+- Direct process flow-element `auditing`, `monitoring`, and
+  `categoryValueRef` declarations are preserved in document snapshots as
+  metadata-only evidence. They do not widen task dispatch, scheduling,
+  authorization, claim checks, or routing.
+- Top-level BPMN `resource` and nested `resourceParameter` catalogs are
+  preserved in document snapshots as assignment metadata. Current assignment
+  routing keeps `resourceRef` as text; it does not resolve the referenced
+  resource, evaluate parameter bindings, or authorize worklist access.
 - `userTask` and `manualTask` requests may also carry optional BPMN `lane`
   membership metadata parsed from `laneSet/lane/flowNodeRef`. The current
   contract preserves lane-set id/name and lane id/name as passive host routing
@@ -63,12 +96,13 @@ The field-level user/manual task contract is tracked in the
   checkpointed `human_task_events` after the state change succeeds. The ledger
   stores task identity, work kind, optional claimant, and optional work id; it
   is a required field in the current checkpoint API, does not store submitted
-  completion payload data, and does not implement Flowable-style listeners or
-  interceptors.
-- When a pending user/manual task carries `form` metadata, completion data must
-  be a JSON object whose fields are declared by the form. The primary
-  `result_output` and non-optional `freeText` fields are required; undeclared
-  completion fields are rejected before variable merge.
+  completion payload data, and does not implement task-listener or interceptor
+  callbacks.
+- Completion data for host-dispatched work must be a JSON object whose fields
+  are declared by Rust-owned `output_bindings`. The primary human answer field
+  is usually the BPMN `dataOutput` name `answer`; the
+  `dataOutputAssociation targetRef` maps that answer into workflow variables.
+  Undeclared completion fields are rejected before variable merge.
 - Control-service worklist output is derived from checkpointed user/manual
   `PendingHostWork` entries. Optional claimant filtering returns unclaimed
   work plus work already claimed by the same claimant. Optional
@@ -85,18 +119,30 @@ The field-level user/manual task contract is tracked in the
 
 - in-engine script execution
 - correlations and broader collaboration-aware message routing
+- service interface binding, operation invocation resolution, and external
+  callable contract validation
+- executable global task reuse and `callActivity` binding to global task
+  definitions
+- executable callable IO operation binding from process or global-task
+  metadata
+- executable process/global-task resource-role assignment, authorization,
+  scheduling, delegation, escalation, or reassignment
+- executable flow-element auditing, monitoring, category classification, or
+  metadata-driven dispatch
 - signal or timer task-event execution on `sendTask` or `receiveTask`
-- broader data-object, IO-specification, authorization, lane scheduling, full
-  task-assignment semantics, delegation, administrative reassignment, and BPMN
-  resource-role expression resolution
+- broader data-object/data-store execution, IO transformations,
+  data-state transition behavior, multiple-source data associations,
+  authorization, lane scheduling, full task-assignment semantics, delegation,
+  administrative reassignment, and BPMN resource-role expression resolution
 - native BPMN `rendering` execution for `userTask`; use bounded
-  `qianji:interaction` metadata for executable form rendering in the current
+  native BPMN IO metadata for executable form rendering in the current
   slice
 
-The linter reports BPMN data-object, data-store, IO-specification, and data
-association surfaces as explicit deferred execution semantics. Use JSON
-workflow variables, host-work payload fields, or DMN inputs for executable
-data exchange in the current bounded slice.
+The linter reports BPMN data-object, data-store, data-state transition, IO
+transformation, and unsupported data association shapes as explicit deferred
+execution semantics. Use bounded task-local BPMN Data/IO, JSON workflow
+variables, host-work payload fields, or DMN inputs for executable data
+exchange in the current bounded slice.
 The linter also reports native BPMN `rendering`, generic `performer` or
 `resourceRole`, `participantRef`, and `resourceParameterBinding` usage as
 explicit deferred human-task interaction semantics. Keep current human-task

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  id="Definitions_DataStoreBinding"
+  targetNamespace="https://example.com/bpmn/data-store-binding">
+  <bpmn:dataStore id="DataStore_Orders" name="Orders" />
+  <bpmn:process id="Process_DataStoreBinding" isExecutable="true">
+    <bpmn:dataStoreReference
+      id="DataStoreReference_Orders"
+      name="Orders"
+      dataStoreRef="DataStore_Orders" />
+    <bpmn:startEvent id="Start" />
+    <bpmn:serviceTask id="Task_SyncOrder" name="Sync order">
+      <bpmn:ioSpecification>
+        <bpmn:dataInput id="Task_SyncOrder_input" name="stored_order" />
+        <bpmn:dataOutput id="Task_SyncOrder_output" name="updated_order" />
+      </bpmn:ioSpecification>
+      <bpmn:dataInputAssociation id="Association_ReadStore">
+        <bpmn:sourceRef>DataStoreReference_Orders</bpmn:sourceRef>
+        <bpmn:targetRef>Task_SyncOrder_input</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="Association_WriteStore">
+        <bpmn:sourceRef>Task_SyncOrder_output</bpmn:sourceRef>
+        <bpmn:targetRef>DataStoreReference_Orders</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:serviceTask>
+    <bpmn:endEvent id="End" />
+    <bpmn:sequenceFlow id="Flow_Start_Task" sourceRef="Start" targetRef="Task_SyncOrder" />
+    <bpmn:sequenceFlow id="Flow_Task_End" sourceRef="Task_SyncOrder" targetRef="End" />
+  </bpmn:process>
+</bpmn:definitions>

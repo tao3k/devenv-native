@@ -20,6 +20,8 @@ pub enum WaitKind {
     UserAction,
     /// Waiting on a timer or wall-clock boundary.
     Timer,
+    /// Waiting on a bounded BPMN conditional expression.
+    Conditional,
 }
 
 /// Waiting registration for one node.
@@ -43,8 +45,12 @@ pub struct WaitRegistration {
     pub event_name: Option<String>,
     /// Optional timer-definition snapshot for timer waits.
     pub timer: Option<BpmnTimerSpec>,
-    /// Optional correlation or deduplication key.
-    pub correlation_key: Option<String>,
+    /// Optional bounded condition expression for conditional-event waits.
+    #[serde(default)]
+    pub condition_expression: Option<String>,
+    /// Optional host-level deduplication key derived from the explicit event
+    /// reference. This is not BPMN correlation matching.
+    pub deduplication_key: Option<String>,
 }
 
 /// Builds one typed event-poll request from the current blocked wait state.

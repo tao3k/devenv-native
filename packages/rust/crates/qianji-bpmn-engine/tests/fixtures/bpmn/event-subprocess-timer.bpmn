@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  id="pkg_event_subprocess_timer"
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL">
+  <bpmn:process id="event_subprocess_timer">
+    <bpmn:startEvent id="start" />
+    <bpmn:endEvent id="end" />
+    <bpmn:subProcess id="interrupting_event_subprocess" triggeredByEvent="true">
+      <bpmn:startEvent id="event_start">
+        <bpmn:timerEventDefinition name="interrupt_timer">
+          <bpmn:timeDuration>PT5M</bpmn:timeDuration>
+        </bpmn:timerEventDefinition>
+      </bpmn:startEvent>
+      <bpmn:endEvent id="event_end" />
+      <bpmn:sequenceFlow id="event_flow_1" sourceRef="event_start" targetRef="event_end" />
+    </bpmn:subProcess>
+    <bpmn:sequenceFlow id="flow_1" sourceRef="start" targetRef="end" />
+  </bpmn:process>
+</bpmn:definitions>

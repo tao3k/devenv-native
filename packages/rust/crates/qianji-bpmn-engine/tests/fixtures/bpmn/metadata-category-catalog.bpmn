@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  id="Defs_CategoryCatalog"
+  targetNamespace="https://example.com/bpmn/category">
+  <bpmn:category id="Category_Risk" name="Risk">
+    <bpmn:categoryValue id="CategoryValue_HighRisk" value="high-risk" />
+    <bpmn:categoryValue id="CategoryValue_ManualReview" value="manual-review" />
+  </bpmn:category>
+  <bpmn:process id="category_catalog_process" isExecutable="true">
+    <bpmn:startEvent id="start" />
+    <bpmn:sequenceFlow id="flow_start_review" sourceRef="start" targetRef="review" />
+    <bpmn:userTask id="review" name="Review" />
+    <bpmn:sequenceFlow id="flow_review_end" sourceRef="review" targetRef="end" />
+    <bpmn:endEvent id="end" />
+  </bpmn:process>
+</bpmn:definitions>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" id="pkg_terminate" targetNamespace="https://example.test/bpmn">
+  <bpmn:process id="terminate_process" isExecutable="true">
+    <bpmn:startEvent id="start">
+      <bpmn:outgoing>flow_start_end</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:endEvent id="terminate_end">
+      <bpmn:incoming>flow_start_end</bpmn:incoming>
+      <bpmn:terminateEventDefinition id="terminate_definition" />
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="flow_start_end" sourceRef="start" targetRef="terminate_end" />
+  </bpmn:process>
+</bpmn:definitions>

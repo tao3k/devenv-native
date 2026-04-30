@@ -21,6 +21,8 @@ pub mod lint;
 pub mod literal_addressed_target;
 /// Parser-owned Markdown note aggregation.
 pub mod note;
+/// Parser-owned Org-mode document and note aggregation.
+pub mod org;
 /// Parser-owned source-preserved reference payload shared across formats.
 pub mod reference_core;
 /// Shared Markdown reference parsing and parser-owned link contracts.
@@ -45,7 +47,8 @@ pub use blocks::{
 };
 pub use code_observation::{CodeObservation, extract_observations, path_matches_scope};
 pub use document::{
-    DocumentCore, DocumentEnvelope, DocumentFormat, MarkdownDocument, parse_markdown_document,
+    DocumentCore, DocumentEnvelope, DocumentFormat, MarkdownDocument, OrgDocument,
+    OrgDocumentMetadata, parse_markdown_document,
 };
 pub use frontmatter::{
     NoteFrontmatter, RawFrontmatter, SkillFrontmatterParseError, discover_skill_documents,
@@ -61,6 +64,10 @@ pub use note::{
     MarkdownNote, MarkdownNoteCore, MarkdownNoteParseArtifacts, NoteAggregate, NoteCore,
     fingerprint_markdown_note, fingerprint_markdown_symbol_surface, parse_markdown_note,
     parse_markdown_note_artifacts,
+};
+pub use org::{
+    OrgNote, OrgNoteCore, OrgSection, OrgTocDocument, extract_org_sections, parse_org_document,
+    parse_org_note, parse_org_toc,
 };
 pub use reference_core::ReferenceCore;
 pub use references::{

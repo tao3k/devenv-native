@@ -4,7 +4,7 @@ use super::scope::{
     install_process_state, pop_call_activity_frame, push_call_activity_frame,
     resolve_process_for_instance, restore_call_activity_frame,
 };
-use super::{blocking, boundary, completion, state};
+use super::{blocking, boundary, completion, event_subprocess, state};
 
 pub(super) fn can_bootstrap_start_token(instance: &BpmnInstanceState) -> bool {
     instance.sequence == 0
@@ -93,6 +93,7 @@ pub(super) fn enter_call_activity(
     install_process_state(instance, called_process, called_process_index);
     let _ = state::remove_active_token(instance, current_token_index);
     bootstrap_start_token(called_process, instance, now_ms)?;
+    event_subprocess::arm_event_subprocess_waits(package, called_process, instance)?;
     Ok(())
 }
 
@@ -112,6 +113,7 @@ pub(super) fn complete_call_activity(
             BpmnSubProcessKind::CallActivity
                 | BpmnSubProcessKind::Transaction
                 | BpmnSubProcessKind::Embedded
+                | BpmnSubProcessKind::EventSubProcess
         )
     ) {
         boundary::cancel_attached_boundary_siblings(process, instance, return_node_index, &[])?;
@@ -163,7 +165,10 @@ fn arm_subprocess_external_boundary_wait(
         })?;
         if !matches!(
             event.kind,
-            BpmnEventKind::Timer | BpmnEventKind::Message | BpmnEventKind::Signal
+            BpmnEventKind::Timer
+                | BpmnEventKind::Message
+                | BpmnEventKind::Signal
+                | BpmnEventKind::Conditional
         ) {
             continue;
         }

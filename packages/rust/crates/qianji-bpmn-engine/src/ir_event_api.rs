@@ -15,12 +15,16 @@ pub enum BpmnEventKind {
     Signal,
     /// Error event.
     Error,
+    /// Escalation event.
+    Escalation,
     /// Cancel event.
     Cancel,
     /// Compensation event.
     Compensation,
     /// Conditional event.
     Conditional,
+    /// Terminate end event.
+    Terminate,
 }
 
 /// Snapshot-style timer discriminator for the bounded timer slice.
@@ -71,6 +75,9 @@ pub struct BpmnEventSpec {
     pub name: Option<Arc<str>>,
     /// Optional timer-definition snapshot for timer waits.
     pub timer: Option<BpmnTimerSpec>,
+    /// Optional bounded condition expression for conditional events.
+    #[serde(default)]
+    pub condition_expression: Option<Arc<str>>,
 }
 
 impl BpmnEventSpec {
@@ -84,6 +91,7 @@ impl BpmnEventSpec {
             wait_for_completion: default_wait_for_completion(),
             name: None,
             timer: None,
+            condition_expression: None,
         }
     }
 
@@ -112,6 +120,13 @@ impl BpmnEventSpec {
     #[must_use]
     pub fn with_timer(mut self, timer: BpmnTimerSpec) -> Self {
         self.timer = Some(timer);
+        self
+    }
+
+    /// Attaches an optional bounded conditional-event expression.
+    #[must_use]
+    pub fn with_condition_expression(mut self, condition_expression: impl AsRef<str>) -> Self {
+        self.condition_expression = Some(Arc::<str>::from(condition_expression.as_ref()));
         self
     }
 }

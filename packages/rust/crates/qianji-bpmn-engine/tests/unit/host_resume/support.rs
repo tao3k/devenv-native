@@ -2,12 +2,12 @@ use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnEdgeSpec, BpmnEventKind, BpmnEventSpec, BpmnHostBridge,
     BpmnHumanTaskLifecycleEventKind, BpmnInstanceInit, BpmnNodeKind, BpmnNodeSpec, BpmnPackage,
-    BpmnProcessSpec, BpmnScriptTaskSpec, BusinessRuleTaskOutcome, BusinessRuleTaskRequest,
-    DmnDecisionRef, EventPollOutcome, EventPollRequest, HostBridgeError, InstanceLifecycle,
-    ManualTaskOutcome, ManualTaskRequest, PendingHostWorkKind, PendingHostWorkResult, ProcessKey,
-    ScriptTaskOutcome, ScriptTaskRequest, SendTaskOutcome, SendTaskRequest, ServiceTaskOutcome,
-    ServiceTaskRequest, UserTaskOutcome, UserTaskRequest, advance_instance,
-    apply_pending_host_work_result, create_instance,
+    BpmnProcessSpec, BpmnScriptTaskSpec, BpmnTaskIoSpec, BpmnTaskOutputBinding,
+    BusinessRuleTaskOutcome, BusinessRuleTaskRequest, DmnDecisionRef, EventPollOutcome,
+    EventPollRequest, HostBridgeError, InstanceLifecycle, ManualTaskOutcome, ManualTaskRequest,
+    PendingHostWorkKind, PendingHostWorkResult, ProcessKey, ScriptTaskOutcome, ScriptTaskRequest,
+    SendTaskOutcome, SendTaskRequest, ServiceTaskOutcome, ServiceTaskRequest, UserTaskOutcome,
+    UserTaskRequest, advance_instance, apply_pending_host_work_result, create_instance,
 };
 use serde_json::json;
 use std::sync::Arc;
@@ -138,7 +138,8 @@ pub(super) fn blocking_process(process_id: &str, node_kind: &BpmnNodeKind) -> Bp
             )
         }
         _ => BpmnNodeSpec::new(1, "task", node_kind.clone()),
-    };
+    }
+    .with_task_io(test_optional_output_io());
     let events = match node_kind {
         BpmnNodeKind::SendTask => vec![
             BpmnEventSpec::new(1, BpmnEventKind::Message)
@@ -160,6 +161,16 @@ pub(super) fn blocking_process(process_id: &str, node_kind: &BpmnNodeKind) -> Bp
         ],
         events,
     )
+}
+
+fn test_optional_output_io() -> BpmnTaskIoSpec {
+    [
+        "approved", "assignee", "computed", "reviewed", "sent", "tier",
+    ]
+    .into_iter()
+    .fold(BpmnTaskIoSpec::new(), |task_io, name| {
+        task_io.with_output(BpmnTaskOutputBinding::new(name, name).optional())
+    })
 }
 
 fn expected_variables(output_data: &serde_json::Value) -> serde_json::Value {

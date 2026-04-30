@@ -7,10 +7,10 @@ Source: $TEMP/invalid_prompt_placeholder.bpmn
 Issues: 1
 
 [bpmn.invalid_xml] Error: BPMN XML is not well-formed
-    ,-[ $TEMP/invalid_prompt_placeholder.bpmn:10:64 ]
- 10 |          <qianji:prompt>Write a design doc to docs/YYYY-MM-DD-<topic>-design.md</qianji:prompt>
-    |                                                               `------- escape raw XML-like placeholder `<topic>` in text
-    |Help: Replace `<topic>` with `&lt;topic&gt;` inside prompt/question text, or wrap literal examples in CDATA. Preserve BPMN ids.
+   ,-[ $TEMP/invalid_prompt_placeholder.bpmn:6:65 ]
+ 6 |      <bpmn:documentation>Write a design doc to docs/YYYY-MM-DD-<topic>-design.md</bpmn:documentation>
+   |                                                                `------- escape raw XML-like placeholder `<topic>` in text
+   |Help: Replace `<topic>` with `&lt;topic&gt;` inside prompt/question text, or wrap literal examples in CDATA. Preserve BPMN ids.
 
 Action:
 - Repair the XML syntax in BPMN source '$TEMP/invalid_prompt_placeholder.bpmn' so it becomes well-formed without changing workflow intent. Preserve existing BPMN ids and task semantics while fixing broken tags, attribute quoting, or nesting.
@@ -32,4 +32,4 @@ Forbidden forms:
 
 Structured repair:
 - strategy: escape_unescaped_xml_text_placeholder
-- contract: qianji.bpmn.xml.well_formed.v1
+- contract: bpmn.native.xml.well_formed.v1

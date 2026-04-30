@@ -30,6 +30,27 @@ pub(in crate::parser::import) fn apply_timer_expression(
     Ok(())
 }
 
+pub(in crate::parser::import) fn apply_conditional_expression(
+    process: &mut RawProcess,
+    expression: &str,
+) -> Result<()> {
+    let node = process
+        .nodes
+        .last_mut()
+        .ok_or(BpmnEngineError::UnsupportedOperation {
+            operation: "bpmn_conditional_expression_without_node",
+        })?;
+    let event = node
+        .event
+        .as_mut()
+        .ok_or(BpmnEngineError::UnsupportedOperation {
+            operation: "bpmn_conditional_expression_without_event_definition",
+        })?;
+    event.condition_expression =
+        (!expression.trim().is_empty()).then(|| expression.trim().to_string());
+    Ok(())
+}
+
 pub(in crate::parser::import) fn last_process_node_mut<'a>(
     source: &BpmnSourceFile,
     process: &'a mut RawProcess,
@@ -97,27 +118,6 @@ pub(in crate::parser::import) fn apply_script_task_body(
         })?;
     script_task.script_body =
         (!script_body.trim().is_empty()).then(|| script_body.trim().to_string());
-    Ok(())
-}
-
-pub(in crate::parser::import) fn apply_human_task_question_text(
-    process: &mut RawProcess,
-    question_text: &str,
-) -> Result<()> {
-    let node = process
-        .nodes
-        .last_mut()
-        .ok_or(BpmnEngineError::UnsupportedOperation {
-            operation: "apply_human_task_question_text_missing_node",
-        })?;
-    let form = node
-        .human_task_form
-        .as_mut()
-        .ok_or(BpmnEngineError::UnsupportedOperation {
-            operation: "apply_human_task_question_text_missing_form",
-        })?;
-    form.question_text =
-        (!question_text.trim().is_empty()).then(|| question_text.trim().to_string());
     Ok(())
 }
 

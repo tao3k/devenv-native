@@ -49,14 +49,18 @@ fn bpmn_linter_reports_event_subprocess_with_llm_guidance() {
     let issue = &report.issues[0];
     assert_eq!(issue.code, "bpmn.unsupported_subprocess_configuration");
     assert!(issue.summary.contains("comp_handler"));
-    assert!(issue.why_it_failed.contains("event subprocesses"));
+    assert!(
+        issue
+            .why_it_failed
+            .contains("compensation event subprocesses")
+    );
     assert!(
         issue
             .repair_guidance
             .iter()
-            .any(|step| step.contains("triggeredByEvent=\"true\""))
+            .any(|step| step.contains("message, signal, timer"))
     );
-    assert!(issue.llm_fix_prompt.contains("boundary-event"));
+    assert!(issue.llm_fix_prompt.contains("event subprocess"));
     assert_lint_json_snapshot("bpmn_event_subprocess_lint_report", &report);
 }
 
@@ -77,6 +81,7 @@ fn bpmn_linter_accepts_embedded_subprocess_interrupting_external_boundary_subset
         "embedded-subprocess-timer-boundary.bpmn",
         "embedded-subprocess-message-boundary.bpmn",
         "embedded-subprocess-signal-boundary.bpmn",
+        "embedded-subprocess-conditional-boundary.bpmn",
     ] {
         let report = lint_bpmn_source(&bpmn_fixture_source(fixture_name));
         assert_eq!(report.domain, LintDomain::Bpmn);
@@ -137,6 +142,7 @@ fn bpmn_linter_accepts_call_activity_interrupting_external_boundary_subset() {
         "call-activity-timer-boundary.bpmn",
         "call-activity-message-boundary.bpmn",
         "call-activity-signal-boundary.bpmn",
+        "call-activity-conditional-boundary.bpmn",
     ] {
         let report = lint_bpmn_source(&bpmn_fixture_source(fixture_name));
         assert_eq!(report.domain, LintDomain::Bpmn);
@@ -160,6 +166,7 @@ fn bpmn_linter_accepts_transaction_interrupting_external_boundary_subset() {
         "transaction-timer-boundary.bpmn",
         "transaction-message-boundary.bpmn",
         "transaction-signal-boundary.bpmn",
+        "transaction-conditional-boundary.bpmn",
     ] {
         let report = lint_bpmn_source(&bpmn_fixture_source(fixture_name));
         assert_eq!(report.domain, LintDomain::Bpmn);

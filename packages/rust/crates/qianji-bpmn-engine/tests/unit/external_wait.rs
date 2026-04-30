@@ -31,7 +31,8 @@ fn external_wait_builds_event_poll_request_from_blocked_instance() {
                 event_reference: Some("invoice_received".to_string()),
                 event_name: Some("InvoiceReceived".to_string()),
                 timer: None,
-                correlation_key: Some("invoice:42".to_string()),
+                condition_expression: None,
+                deduplication_key: Some("invoice:42".to_string()),
             }],
         }
     );
@@ -160,7 +161,8 @@ fn waiting_instance() -> (Arc<BpmnPackage>, qianji_bpmn_engine::BpmnInstanceStat
         event_reference: Some("invoice_received".to_string()),
         event_name: Some("InvoiceReceived".to_string()),
         timer: None,
-        correlation_key: Some("invoice:42".to_string()),
+        condition_expression: None,
+        deduplication_key: Some("invoice:42".to_string()),
     });
 
     (package, instance)

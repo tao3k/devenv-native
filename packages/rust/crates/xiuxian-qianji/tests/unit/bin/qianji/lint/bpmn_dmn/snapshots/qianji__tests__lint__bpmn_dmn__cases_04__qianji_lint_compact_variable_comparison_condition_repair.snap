@@ -7,27 +7,27 @@ Source: $TEMP/invalid_variable_comparison_condition.bpmn
 Issues: 1
 
 [bpmn.unsupported_gateway_configuration] Error: Conditional gateway condition exceeds the bounded subset
-    ,-[ $TEMP/invalid_variable_comparison_condition.bpmn:21:33 ]
- 21 |      <bpmn:conditionExpression>sectionNumber &lt; totalSections</bpmn:conditionExpression>
-    |                                `------------- rewrite this condition into qianji's bounded subset
+    ,-[ $TEMP/invalid_variable_comparison_condition.bpmn:35:33 ]
+ 35 |      <bpmn:conditionExpression>sectionNumber &lt; totalSections</bpmn:conditionExpression>
+    |                                `------------- rewrite this condition into the bounded native subset
     |Help: Unsupported variable-to-variable comparison `sectionNumber < totalSections`. Emit one boolean such as `hasMoreSections` from the upstream task and route on that boolean, or emit one numeric count such as `sectionsRemaining` and compare it to a numeric literal like `sectionsRemaining > 0`. Do not compare two variables directly in the gateway condition.
 
 Action:
-- Rewrite the `conditionExpression` on gateway 'more_sections' in process 'section_flow' so it stays inside the bounded subset: one boolean variable path like `approved`, `not approved`, `selectedMerge`, or `flags.approved`, or one numeric comparison like `amount > 100` or `risk >= 7`. If the current route is based on a user choice or enum string, preserve the userTask qianji:result output, add a following serviceTask that emits boolean route outputs, and route on those booleans. Preserve workflow intent, but remove FEEL, string equality, boolean-literal comparisons, logical combinations, and script-style expressions.
+- Rewrite the `conditionExpression` on gateway 'more_sections' in process 'section_flow' so it stays inside the bounded subset: one boolean variable path like `approved`, `not approved`, `selectedMerge`, or `flags.approved`, or one numeric comparison like `amount > 100` or `risk >= 7`. If the current route is based on a user choice or enum string, preserve the userTask answer output, add a following serviceTask that emits boolean route outputs, and route on those booleans. Preserve workflow intent, but remove FEEL, string equality, boolean-literal comparisons, logical combinations, and script-style expressions.
 
 Fix:
 - Rewrite the branch condition as one simple boolean variable path, optionally prefixed with `not`, or as one numeric comparison from an identifier path to one numeric literal.
-- For a choice or enum branch, have the previous task emit one top-level boolean `qianji:outputs` value per route, such as `selectedMerge` or `shouldMerge`, then use `selectedMerge` as the `conditionExpression`.
-- If the choice or enum value comes from a userTask `<qianji:result output="..."/>`, keep that result output declared on the userTask and derive route booleans in a following serviceTask. Do not replace the userTask's qianji:outputs with derived booleans.
+- For a choice or enum branch, have the previous task emit one top-level boolean native BPMN output per route, such as `selectedMerge` or `shouldMerge`, then use `selectedMerge` as the `conditionExpression`.
+- If the choice or enum value comes from a userTask answer output, keep that result output declared on the userTask and derive route booleans in a following serviceTask. Do not replace the userTask answer mapping with derived booleans.
 - Do not use FEEL, boolean-literal comparisons like `approved == true`, string equality like `chosenOption == 'merge'`, scripts, function calls, arithmetic, or logical combinations such as `approved and vip` in this bounded slice.
 
 Patch focus:
 - rewrite_condition_expression
 - replace_string_or_enum_equality_with_boolean_route_variable
 - when: the route currently compares a choice/string/enum variable to a literal
-- producer_change: if the compared value comes from userTask qianji:result, keep that result output declared on the userTask and add a following serviceTask that consumes it and emits boolean route outputs
+- producer_change: if the compared value comes from a userTask answer output, keep that result output declared on the userTask and add a following serviceTask that consumes it and emits boolean route outputs
 - route_change: replace the string equality condition with that boolean output path
-- forbid: replacing a userTask qianji:outputs list with derived booleans while qianji:result still points at the original answer
+- forbid: replacing a userTask answer mapping with derived booleans while the answer output still points at the original reply
 - replace_variable_to_variable_comparison_with_boolean_or_literal
 - when: the route currently compares two variable paths such as sectionNumber < totalSections
 - producer_change: emit one boolean route variable such as hasMoreSections, or emit one numeric count such as sectionsRemaining
@@ -70,4 +70,4 @@ Forbidden forms:
 
 Structured repair:
 - strategy: rewrite_condition_to_bounded_subset
-- contract: qianji.bpmn.gateway.bounded.v1
+- contract: bpmn.native.gateway.bounded.v1

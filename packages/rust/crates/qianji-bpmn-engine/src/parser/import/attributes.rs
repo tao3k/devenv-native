@@ -14,6 +14,7 @@ pub(super) fn event_reference_id(
         "messageEventDefinition" => "messageRef",
         "signalEventDefinition" => "signalRef",
         "errorEventDefinition" => "errorRef",
+        "escalationEventDefinition" => "escalationRef",
         "compensateEventDefinition" => "activityRef",
         _ => return Ok(None),
     };

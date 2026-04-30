@@ -72,7 +72,8 @@ fn runtime_frontier_plan_returns_waiting_idle_outcome() {
         event_reference: Some("parallel_wait_message".to_string()),
         event_name: Some("ParallelWaitMessage".to_string()),
         timer: None,
-        correlation_key: None,
+        condition_expression: None,
+        deduplication_key: None,
     });
 
     let plan = plan_frontier_step(&package.processes[0], &instance);

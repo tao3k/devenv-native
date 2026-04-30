@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  id="pkg_start_timer_wait"
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL">
+  <bpmn:process id="start_timer_wait">
+    <bpmn:startEvent id="start">
+      <bpmn:timerEventDefinition name="workflow_timer">
+        <bpmn:timeDuration>PT5M</bpmn:timeDuration>
+      </bpmn:timerEventDefinition>
+    </bpmn:startEvent>
+    <bpmn:endEvent id="end" />
+    <bpmn:sequenceFlow id="flow_1" sourceRef="start" targetRef="end" />
+  </bpmn:process>
+</bpmn:definitions>

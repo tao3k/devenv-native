@@ -77,6 +77,7 @@ fn assert_single_pending_host_work(
             script_body: expected.script_body.map(str::to_string),
             human_task_form: None,
             human_task_assignment: None,
+            task_io: pending.task_io.clone(),
             claim: None,
             event_reference: expected.event_reference.map(str::to_string),
             event_name: expected.event_name.map(str::to_string),

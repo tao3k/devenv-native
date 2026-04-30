@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  id="Definitions_ResourceRoleMetadata"
+  targetNamespace="https://example.com/bpmn/resource-role-metadata">
+  <bpmn:itemDefinition id="Item_Region" structureRef="tns:Region" />
+  <bpmn:itemDefinition id="Item_Level" structureRef="tns:ReviewLevel" />
+  <bpmn:resource id="Resource_Reviewer" name="Reviewer">
+    <bpmn:resourceParameter id="ResourceParam_Region" name="region" type="Item_Region" isRequired="true" />
+    <bpmn:resourceParameter id="ResourceParam_Level" name="level" type="Item_Level" isRequired="false" />
+  </bpmn:resource>
+  <bpmn:globalTask id="GlobalTask_ResourceRole" name="Reusable role task">
+    <bpmn:humanPerformer id="GlobalRole_Reviewer" name="global_reviewer">
+      <bpmn:resourceRef>Resource_Reviewer</bpmn:resourceRef>
+      <bpmn:resourceParameterBinding id="GlobalRole_Region" parameterRef="ResourceParam_Region">
+        <bpmn:formalExpression language="text/plain" evaluatesToTypeRef="Item_Region">emea</bpmn:formalExpression>
+      </bpmn:resourceParameterBinding>
+    </bpmn:humanPerformer>
+  </bpmn:globalTask>
+  <bpmn:collaboration id="Collaboration_ResourceRoleMetadata">
+    <bpmn:participant id="Participant_Requester" processRef="Process_ResourceRoleMetadata" />
+  </bpmn:collaboration>
+  <bpmn:process id="Process_ResourceRoleMetadata" isExecutable="false">
+    <bpmn:resourceRole id="ProcessRole_Reviewer" name="process_reviewer">
+      <bpmn:resourceRef>Resource_Reviewer</bpmn:resourceRef>
+      <bpmn:resourceParameterBinding id="ProcessRole_Level" parameterRef="ResourceParam_Level">
+        <bpmn:formalExpression language="text/plain" evaluatesToTypeRef="Item_Level">senior</bpmn:formalExpression>
+      </bpmn:resourceParameterBinding>
+    </bpmn:resourceRole>
+    <bpmn:performer id="ProcessRole_Assignee" name="process_assignee">
+      <bpmn:resourceAssignmentExpression id="ProcessRole_Assignment">
+        <bpmn:formalExpression language="https://example.com/jsonpath" evaluatesToTypeRef="Item_Level">$.review.owner</bpmn:formalExpression>
+      </bpmn:resourceAssignmentExpression>
+    </bpmn:performer>
+    <bpmn:startEvent id="Start_ResourceRoleMetadata" />
+    <bpmn:endEvent id="End_ResourceRoleMetadata" />
+    <bpmn:sequenceFlow id="Flow_ResourceRoleMetadata" sourceRef="Start_ResourceRoleMetadata" targetRef="End_ResourceRoleMetadata" />
+  </bpmn:process>
+</bpmn:definitions>

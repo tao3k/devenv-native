@@ -34,6 +34,26 @@ pub(super) fn complete_local_task_execution(
     output_data: &serde_json::Value,
     now_ms: u64,
 ) -> Result<()> {
+    complete_local_task_execution_with_variable_output(
+        process,
+        instance,
+        current_token_index,
+        node_index,
+        output_data,
+        output_data,
+        now_ms,
+    )
+}
+
+pub(super) fn complete_local_task_execution_with_variable_output(
+    process: &BpmnProcessSpec,
+    instance: &mut BpmnInstanceState,
+    current_token_index: usize,
+    node_index: BpmnNodeIndex,
+    output_data: &serde_json::Value,
+    variable_output_data: &serde_json::Value,
+    now_ms: u64,
+) -> Result<()> {
     let mut routing_token_index = current_token_index;
     let current_token_id = instance
         .active_tokens
@@ -50,7 +70,7 @@ pub(super) fn complete_local_task_execution(
     )?;
     repeat::merge_output_data_excluding(
         &mut instance.variables,
-        output_data,
+        variable_output_data,
         &excluded_output_keys,
     );
 

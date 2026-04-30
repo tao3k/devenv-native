@@ -5,8 +5,10 @@ use crate::ir::BpmnPackage;
 use crate::ir_index_api::BpmnNodeIndex;
 use crate::ir_process_spec::BpmnProcessSpec;
 use crate::runtime::lifecycle::{
-    cancel_attached_boundary_siblings, merge_output_data, record_transition,
-    resolve_single_outgoing_edge, set_active_node_index, set_node_status,
+    apply_current_frame_event_subprocess_wait, apply_parent_frame_event_subprocess_wait,
+    cancel_attached_boundary_siblings, conditional_event_is_satisfied, is_event_subprocess_wait,
+    merge_output_data, record_transition, resolve_single_outgoing_edge, set_active_node_index,
+    set_node_status,
 };
 use crate::runtime::{
     BpmnAdvanceOutcome, BpmnInstanceState, InstanceLifecycle, NodeRuntimeStatus,
@@ -65,43 +67,75 @@ pub(crate) fn apply_event_poll_outcome_impl(
     let outcome = outcome.borrow();
     let wait_set = event_poll_waits(instance)?;
 
-    if !outcome.ready {
+    let mut poll_data_merged = false;
+    let wait = if outcome.ready || single_conditional_wait_candidate(&wait_set.waits) {
+        resolve_winning_wait(&wait_set.waits, outcome)?
+    } else if has_conditional_wait_candidate(&wait_set.waits) {
+        merge_output_data(&mut instance.variables, &outcome.data);
+        poll_data_merged = true;
+        let Some(wait) = first_satisfied_conditional_wait(package, instance, &wait_set)? else {
+            if outcome
+                .data
+                .as_object()
+                .is_some_and(|object| !object.is_empty())
+            {
+                record_transition(instance, polled_at_ms, InstanceLifecycle::Waiting);
+            }
+            return Ok(BpmnAdvanceOutcome::WaitingExternalEvent);
+        };
+        wait
+    } else {
+        return Ok(BpmnAdvanceOutcome::WaitingExternalEvent);
+    };
+
+    let process = resolve_wait_process(package, instance, &wait, wait_set.source)?;
+    if !poll_data_merged {
+        merge_output_data(&mut instance.variables, &outcome.data);
+    }
+    if is_conditional_wait(&wait)
+        && !conditional_event_is_satisfied(process, wait.node_index, &instance.variables)?
+    {
+        if outcome
+            .data
+            .as_object()
+            .is_some_and(|object| !object.is_empty())
+        {
+            record_transition(instance, polled_at_ms, InstanceLifecycle::Waiting);
+        }
         return Ok(BpmnAdvanceOutcome::WaitingExternalEvent);
     }
 
-    let wait = resolve_winning_wait(&wait_set.waits, outcome)?;
-    let process = resolve_wait_process(package, instance, &wait, wait_set.source)?;
-    merge_output_data(&mut instance.variables, &outcome.data);
+    apply_ready_event_poll_wait(
+        package,
+        process,
+        instance,
+        &wait,
+        wait_set.source,
+        polled_at_ms,
+    )
+}
 
+fn apply_ready_event_poll_wait(
+    package: &BpmnPackage,
+    process: &BpmnProcessSpec,
+    instance: &mut BpmnInstanceState,
+    wait: &RuntimeWaitRegistration,
+    source: EventPollWaitSource,
+    polled_at_ms: u64,
+) -> Result<BpmnAdvanceOutcome> {
     if let Some(blocking_node_index) = wait.blocking_node_index {
-        let boundary_node = &process.nodes[wait.node_index as usize];
-        if boundary_node.cancel_activity {
-            if wait_set.source == EventPollWaitSource::ParentFrame {
-                return apply_interrupting_parent_frame_boundary_wait(
-                    package,
-                    instance,
-                    &wait,
-                    blocking_node_index,
-                    polled_at_ms,
-                );
-            }
-            return apply_interrupting_boundary_wait(
-                process,
-                instance,
-                &wait,
-                blocking_node_index,
-                polled_at_ms,
-            );
-        }
-        if wait_set.source == EventPollWaitSource::ParentFrame {
-            return Err(BpmnEngineError::UnsupportedOperation {
-                operation: "apply_event_poll_outcome_parent_frame_non_interrupting_boundary",
-            });
-        }
-        return apply_non_interrupting_boundary_wait(process, instance, &wait, polled_at_ms);
+        return apply_blocking_event_poll_wait(
+            package,
+            process,
+            instance,
+            wait,
+            source,
+            blocking_node_index,
+            polled_at_ms,
+        );
     }
 
-    if wait_set.source == EventPollWaitSource::ParentFrame {
+    if source == EventPollWaitSource::ParentFrame {
         return Err(BpmnEngineError::UnsupportedOperation {
             operation: "apply_event_poll_outcome_parent_frame_standalone_wait",
         });
@@ -112,11 +146,77 @@ pub(crate) fn apply_event_poll_outcome_impl(
             process,
             instance,
             &competition,
-            &wait,
+            wait,
             polled_at_ms,
         );
     }
 
+    apply_standalone_event_poll_wait(process, instance, wait, polled_at_ms)
+}
+
+fn apply_blocking_event_poll_wait(
+    package: &BpmnPackage,
+    process: &BpmnProcessSpec,
+    instance: &mut BpmnInstanceState,
+    wait: &RuntimeWaitRegistration,
+    source: EventPollWaitSource,
+    blocking_node_index: BpmnNodeIndex,
+    polled_at_ms: u64,
+) -> Result<BpmnAdvanceOutcome> {
+    if is_event_subprocess_wait(process, blocking_node_index) {
+        if source == EventPollWaitSource::ParentFrame {
+            return apply_parent_frame_event_subprocess_wait(
+                package,
+                instance,
+                wait,
+                blocking_node_index,
+                polled_at_ms,
+            );
+        }
+        return apply_current_frame_event_subprocess_wait(
+            package,
+            instance,
+            wait,
+            blocking_node_index,
+            polled_at_ms,
+        );
+    }
+
+    let boundary_node = &process.nodes[wait.node_index as usize];
+    if boundary_node.cancel_activity {
+        if source == EventPollWaitSource::ParentFrame {
+            return apply_interrupting_parent_frame_boundary_wait(
+                package,
+                instance,
+                wait,
+                blocking_node_index,
+                polled_at_ms,
+            );
+        }
+        return apply_interrupting_boundary_wait(
+            process,
+            instance,
+            wait,
+            blocking_node_index,
+            polled_at_ms,
+        );
+    }
+
+    if source == EventPollWaitSource::ParentFrame {
+        return Err(BpmnEngineError::UnsupportedOperation {
+            operation: "apply_event_poll_outcome_parent_frame_non_interrupting_boundary",
+        });
+    }
+
+    apply_non_interrupting_boundary_wait(process, instance, wait, polled_at_ms)
+}
+
+fn apply_standalone_event_poll_wait(
+    process: &BpmnProcessSpec,
+    instance: &mut BpmnInstanceState,
+    wait: &RuntimeWaitRegistration,
+    polled_at_ms: u64,
+) -> Result<BpmnAdvanceOutcome> {
     let Some(wait_token_index) = active_token_index(instance, wait.node_index) else {
         return Err(BpmnEngineError::UnsupportedOperation {
             operation: "apply_event_poll_outcome_wait_missing_token",
@@ -130,7 +230,6 @@ pub(crate) fn apply_event_poll_outcome_impl(
     if instance.waits.is_empty() {
         instance.suspend_reason = None;
     }
-
     let edge_index =
         resolve_single_outgoing_edge(process, wait.node_index, "apply_event_poll_outcome_routing")?;
     let next_node_index = process.edges[edge_index as usize].to;
@@ -139,6 +238,36 @@ pub(crate) fn apply_event_poll_outcome_impl(
     record_transition(instance, polled_at_ms, InstanceLifecycle::Running);
 
     Ok(BpmnAdvanceOutcome::Advanced)
+}
+
+fn single_conditional_wait_candidate(waits: &[RuntimeWaitRegistration]) -> bool {
+    matches!(waits, [wait] if is_conditional_wait(wait))
+}
+
+fn has_conditional_wait_candidate(waits: &[RuntimeWaitRegistration]) -> bool {
+    waits.iter().any(is_conditional_wait)
+}
+
+fn is_conditional_wait(wait: &RuntimeWaitRegistration) -> bool {
+    wait.event_kind == Some(crate::ir_event_api::BpmnEventKind::Conditional)
+}
+
+fn first_satisfied_conditional_wait(
+    package: &BpmnPackage,
+    instance: &BpmnInstanceState,
+    wait_set: &EventPollWaitSet,
+) -> Result<Option<RuntimeWaitRegistration>> {
+    for wait in wait_set
+        .waits
+        .iter()
+        .filter(|wait| is_conditional_wait(wait))
+    {
+        let process = resolve_wait_process(package, instance, wait, wait_set.source)?;
+        if conditional_event_is_satisfied(process, wait.node_index, &instance.variables)? {
+            return Ok(Some(wait.clone()));
+        }
+    }
+    Ok(None)
 }
 
 fn apply_interrupting_parent_frame_boundary_wait(

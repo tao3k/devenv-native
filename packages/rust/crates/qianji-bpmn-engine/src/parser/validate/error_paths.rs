@@ -8,8 +8,8 @@ use std::collections::HashMap;
 
 #[derive(Clone, Copy, Debug)]
 pub(super) struct CallActivityOwner<'a> {
-    process_id: &'a str,
-    node_id: &'a str,
+    pub(super) process_id: &'a str,
+    pub(super) node_id: &'a str,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -147,6 +147,10 @@ fn resolve_supported_error_owners<'a>(
             node_id: owner_node_id.as_str(),
             owner_kind: SupportedErrorOwner::EmbeddedSubProcess,
         }],
+        RawProcessScope::NestedShell {
+            kind: NestedShellKind::EventSubProcess,
+            ..
+        } => Vec::new(),
         RawProcessScope::TopLevel => call_activity_owners
             .get(process.process_id.as_str())
             .map(|owners| {

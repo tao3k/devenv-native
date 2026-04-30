@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:tns="https://example.com/bpmn/interface-operation"
+  id="Defs_InterfaceOperation"
+  targetNamespace="https://example.com/bpmn/interface-operation">
+  <bpmn:itemDefinition id="Item_Order" structureRef="tns:Order" itemKind="Information" />
+  <bpmn:message id="Message_Request" name="Submit request" itemRef="Item_Order" />
+  <bpmn:message id="Message_Response" name="Submit response" itemRef="Item_Order" />
+  <bpmn:error id="Service_Error" name="Service error" errorCode="service_error" structureRef="tns:ServiceError" />
+  <bpmn:interface id="Interface_Order" name="Order Interface" implementationRef="tns:OrderPort">
+    <bpmn:operation id="Operation_Submit" name="Submit Order" implementationRef="tns:submitOrder">
+      <bpmn:inMessageRef>Message_Request</bpmn:inMessageRef>
+      <bpmn:outMessageRef>Message_Response</bpmn:outMessageRef>
+      <bpmn:errorRef>Service_Error</bpmn:errorRef>
+    </bpmn:operation>
+  </bpmn:interface>
+  <bpmn:process id="interface_catalog_process" isExecutable="true">
+    <bpmn:startEvent id="start" />
+    <bpmn:sequenceFlow id="flow_start_end" sourceRef="start" targetRef="end" />
+    <bpmn:endEvent id="end" />
+  </bpmn:process>
+</bpmn:definitions>

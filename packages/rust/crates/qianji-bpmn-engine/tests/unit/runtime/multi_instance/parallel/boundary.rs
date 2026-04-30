@@ -1,4 +1,4 @@
-use super::super::super::StubHost;
+use super::super::super::{StubHost, runtime_optional_output_io};
 use super::helpers::parallel_multi_instance_non_interrupting_boundary_process;
 use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{
@@ -76,9 +76,11 @@ async fn runtime_interrupting_boundary_timer_clears_parallel_multi_instance_stat
         ),
         vec![
             BpmnNodeSpec::new(0, "start", BpmnNodeKind::StartEvent),
-            BpmnNodeSpec::new(1, "review", BpmnNodeKind::UserTask).with_repeat(
-                BpmnRepeatSpec::ParallelMultiInstance(BpmnParallelMultiInstanceSpec::new(3)),
-            ),
+            BpmnNodeSpec::new(1, "review", BpmnNodeKind::UserTask)
+                .with_repeat(BpmnRepeatSpec::ParallelMultiInstance(
+                    BpmnParallelMultiInstanceSpec::new(3),
+                ))
+                .with_task_io(runtime_optional_output_io()),
             BpmnNodeSpec::new(2, "review_timeout", BpmnNodeKind::BoundaryEvent)
                 .with_boundary_attachment(1, true),
             BpmnNodeSpec::new(3, "approved_end", BpmnNodeKind::EndEvent),

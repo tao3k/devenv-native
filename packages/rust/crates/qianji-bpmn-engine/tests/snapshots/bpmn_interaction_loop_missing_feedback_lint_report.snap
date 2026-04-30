@@ -1,5 +1,6 @@
 ---
 source: packages/rust/crates/qianji-bpmn-engine/tests/unit/lint/mod.rs
+assertion_line: 35
 expression: value
 ---
 {
@@ -11,12 +12,12 @@ expression: value
       "code": "bpmn.loop_risk.unbounded_control_cycle",
       "severity": "error",
       "title": "Workflow cycle is missing a complete loop-progress contract",
-      "summary": "Process 'interaction_loop' contains a cyclic path [prepare_question -> more_questions -> ask_user] that can re-enter host/user work without a complete qianji progress contract.",
+      "summary": "Process 'interaction_loop' contains a cyclic path [prepare_question -> more_questions -> ask_user] that can re-enter host/user work without a complete native BPMN progress contract.",
       "why_it_failed": "Cycle progress state is incomplete.",
       "repair_guidance": [
-        "<qianji:inputs>answer</qianji:inputs>"
+        "<dataInput id=\"prepare_question_Input_answer\" name=\"answer\"/><dataInputAssociation><sourceRef>answer</sourceRef><targetRef>prepare_question_Input_answer</targetRef></dataInputAssociation>"
       ],
-      "llm_fix_prompt": "<qianji:inputs>answer</qianji:inputs>",
+      "llm_fix_prompt": "<dataInput id=\"prepare_question_Input_answer\" name=\"answer\"/><dataInputAssociation><sourceRef>answer</sourceRef><targetRef>prepare_question_Input_answer</targetRef></dataInputAssociation>",
       "structured_repair": {
         "actions": [
           {
@@ -33,28 +34,28 @@ expression: value
             "required": true
           },
           {
-            "op": "add_qianji_outputs_inside_cycle",
+            "op": "add_native_outputs_inside_cycle",
             "variables": []
           },
           {
-            "op": "add_qianji_inputs_to_question_service",
+            "op": "add_native_inputs_to_question_service",
             "variables": [
               "answer"
             ]
           }
         ],
-        "contract": "qianji.bpmn.loop.progress.v1",
-        "contract_message": "qianji.bpmn.loop.progress.v1 requires in-cycle tasks to consume user feedback and emit the gateway route state.",
+        "contract": "bpmn.native.loop.progress.v1",
+        "contract_message": "native BPMN loop progress requires in-cycle tasks to consume user feedback and emit the gateway route state through standard IO metadata.",
         "forbid": [
           "repeating a userTask question without feeding the user's prior answer into the next in-cycle serviceTask",
-          "routing a cycle on variables that no task inside the cycle declares in qianji:outputs",
+          "routing a cycle on variables that no task inside the cycle declares through native BPMN output metadata",
           "using a conditional default branch instead of an unconditional exit"
         ],
         "line_fixes": [
           {
-            "offset": 643,
-            "target": "prepare_question.qianji:inputs",
-            "xml": "<qianji:inputs>answer</qianji:inputs>"
+            "offset": 257,
+            "target": "prepare_question.native_inputs",
+            "xml": "<dataInput id=\"prepare_question_Input_answer\" name=\"answer\"/><dataInputAssociation><sourceRef>answer</sourceRef><targetRef>prepare_question_Input_answer</targetRef></dataInputAssociation>"
           }
         ],
         "schema_version": 1,
@@ -63,8 +64,8 @@ expression: value
       "source_diagnostic": {
         "source_id": "invalid-interaction-loop-missing-feedback.bpmn",
         "span": {
-          "start": 643,
-          "end": 658
+          "start": 257,
+          "end": 347
         },
         "label": "cycle needs explicit progress state",
         "help": "The loop must feed answer into prepare_question before the next prompt and keep flow_done as the unconditional default exit."

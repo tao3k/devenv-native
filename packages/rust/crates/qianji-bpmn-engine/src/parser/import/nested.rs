@@ -1,23 +1,23 @@
 use super::attributes::{
     attribute_value, boolean_attribute_value, event_reference_id, parse_optional_u32_attribute,
-    required_attribute,
 };
 use super::capture::{
-    apply_human_task_assignment_expression, apply_human_task_resource_ref,
-    apply_multi_instance_completion_condition, apply_multi_instance_input_data_item,
-    apply_multi_instance_loop_cardinality, apply_multi_instance_loop_data_input_ref,
-    apply_multi_instance_loop_data_output_ref, apply_multi_instance_output_data_item,
-    apply_script_task_body, apply_sequence_flow_condition_expression,
-    apply_standard_loop_condition, apply_timer_expression, last_process_node_mut,
-    push_human_task_resource_role,
+    apply_conditional_expression, apply_human_task_assignment_expression,
+    apply_human_task_resource_ref, apply_multi_instance_completion_condition,
+    apply_multi_instance_input_data_item, apply_multi_instance_loop_cardinality,
+    apply_multi_instance_loop_data_input_ref, apply_multi_instance_loop_data_output_ref,
+    apply_multi_instance_output_data_item, apply_script_task_body,
+    apply_sequence_flow_condition_expression, apply_standard_loop_condition,
+    apply_timer_expression, last_process_node_mut, push_human_task_resource_role,
 };
+use super::human_task_io::handle_human_task_io_child_start;
 use super::model::{
-    CaptureTarget, NestedShellKind, RawEventSpec, RawHumanTaskChoiceSpec, RawHumanTaskFormSpec,
-    RawHumanTaskFreeTextSpec, RawHumanTaskResourceRoleKind, RawParallelMultiInstanceSpec,
-    RawProcess, RawProcessScope, RawRepeatSpec, RawSequentialMultiInstanceSpec,
-    RawStandardLoopSpec,
+    CaptureTarget, NestedShellKind, RawEventSpec, RawHumanTaskResourceRoleKind,
+    RawParallelMultiInstanceSpec, RawProcess, RawProcessScope, RawRepeatSpec,
+    RawSequentialMultiInstanceSpec, RawStandardLoopSpec,
 };
 use super::process::is_supported_node_tag;
+use super::task_io::handle_task_io_child_start;
 use crate::bpmn_parse_api::BpmnSourceFile;
 use crate::error::{BpmnEngineError, Result};
 use crate::ir_event_api::{BpmnEventKind, BpmnTimerKind};
@@ -77,7 +77,20 @@ pub(super) fn handle_nested_start_tag(
     )? {
         return Ok(());
     }
-    if handle_human_task_form_child_start(
+    if handle_task_io_child_start(
+        source,
+        reader,
+        event,
+        tag,
+        parent,
+        process,
+        capture_target,
+        capture_buffer,
+        is_empty,
+    )? {
+        return Ok(());
+    }
+    if handle_human_task_io_child_start(
         source,
         reader,
         event,
@@ -106,27 +119,50 @@ pub(super) fn handle_nested_start_tag(
     if handle_supported_node_child_start(source, reader, event, tag, parent, process)? {
         return Ok(());
     }
-    if parent == "sequenceFlow" {
-        if tag == "conditionExpression" {
-            *capture_target = Some(CaptureTarget::SequenceFlowConditionExpression);
-            capture_buffer.clear();
-            if is_empty {
-                apply_sequence_flow_condition_expression(process, "")?;
-                *capture_target = None;
-                capture_buffer.clear();
-            }
-            return Ok(());
-        }
-        if is_ignored_flow_child(tag) {
-            return Ok(());
-        }
-        return Err(BpmnEngineError::UnsupportedElement {
-            source_id: source.source_id.clone(),
-            process_id: process.process_id.clone(),
-            element: tag.to_string(),
-        });
+    if handle_sequence_flow_child_start(
+        source,
+        process,
+        tag,
+        parent,
+        capture_target,
+        capture_buffer,
+        is_empty,
+    )? {
+        return Ok(());
     }
     Ok(())
+}
+
+fn handle_sequence_flow_child_start(
+    source: &BpmnSourceFile,
+    process: &mut RawProcess,
+    tag: &str,
+    parent: &str,
+    capture_target: &mut Option<CaptureTarget>,
+    capture_buffer: &mut String,
+    is_empty: bool,
+) -> Result<bool> {
+    if parent != "sequenceFlow" {
+        return Ok(false);
+    }
+    if tag == "conditionExpression" {
+        *capture_target = Some(CaptureTarget::SequenceFlowConditionExpression);
+        capture_buffer.clear();
+        if is_empty {
+            apply_sequence_flow_condition_expression(process, "")?;
+            *capture_target = None;
+            capture_buffer.clear();
+        }
+        return Ok(true);
+    }
+    if is_ignored_flow_child(tag) {
+        return Ok(true);
+    }
+    Err(BpmnEngineError::UnsupportedElement {
+        source_id: source.source_id.clone(),
+        process_id: process.process_id.clone(),
+        element: tag.to_string(),
+    })
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -221,139 +257,6 @@ fn last_human_task_resource_role_kind(
         .last_role_kind
         .ok_or(BpmnEngineError::UnsupportedOperation {
             operation: "human_task_assignment_expression_without_role",
-        })
-}
-
-#[allow(clippy::too_many_arguments)]
-fn handle_human_task_form_child_start(
-    source: &BpmnSourceFile,
-    reader: &Reader<&[u8]>,
-    event: &BytesStart<'_>,
-    tag: &str,
-    parent: &str,
-    process: &mut RawProcess,
-    capture_target: &mut Option<CaptureTarget>,
-    capture_buffer: &mut String,
-    is_empty: bool,
-) -> Result<bool> {
-    if tag == "interaction" {
-        let node = last_process_node_mut(source, process)?;
-        if !matches!(
-            node.kind,
-            crate::ir_node_api::BpmnNodeKind::UserTask
-                | crate::ir_node_api::BpmnNodeKind::ManualTask
-        ) {
-            return Ok(true);
-        }
-        node.human_task_form = Some(RawHumanTaskFormSpec {
-            interaction_type: required_attribute(source, reader, event, tag, "type")?,
-            question_ref: None,
-            question_text: None,
-            choices_ref: None,
-            choices: Vec::new(),
-            free_text_fields: Vec::new(),
-            result_output: None,
-        });
-        return Ok(true);
-    }
-    if parent != "interaction" {
-        return Ok(false);
-    }
-    if process
-        .nodes
-        .last()
-        .is_none_or(|node| node.human_task_form.is_none())
-    {
-        return Ok(true);
-    }
-    match tag {
-        "question" => {
-            apply_human_task_question(
-                reader,
-                event,
-                process,
-                capture_target,
-                capture_buffer,
-                is_empty,
-            )?;
-            Ok(true)
-        }
-        "choices" => {
-            let form = last_human_task_form_mut(source, process)?;
-            form.choices_ref = attribute_value(reader, event, "ref")?;
-            Ok(true)
-        }
-        "choice" => {
-            let Some(value) = attribute_value(reader, event, "value")? else {
-                return Ok(true);
-            };
-            let form = last_human_task_form_mut(source, process)?;
-            form.choices.push(RawHumanTaskChoiceSpec {
-                value,
-                label: attribute_value(reader, event, "label")?,
-            });
-            Ok(true)
-        }
-        "freeText" => {
-            let Some(name) = attribute_value(reader, event, "name")? else {
-                return Ok(true);
-            };
-            let form = last_human_task_form_mut(source, process)?;
-            form.free_text_fields.push(RawHumanTaskFreeTextSpec {
-                name,
-                optional: boolean_attribute_value(reader, event, "optional")?.unwrap_or(false),
-            });
-            Ok(true)
-        }
-        "result" => {
-            let form = last_human_task_form_mut(source, process)?;
-            form.result_output = attribute_value(reader, event, "output")?;
-            Ok(true)
-        }
-        _ => Ok(true),
-    }
-}
-
-fn apply_human_task_question(
-    reader: &Reader<&[u8]>,
-    event: &BytesStart<'_>,
-    process: &mut RawProcess,
-    capture_target: &mut Option<CaptureTarget>,
-    capture_buffer: &mut String,
-    is_empty: bool,
-) -> Result<()> {
-    let form = process
-        .nodes
-        .last_mut()
-        .and_then(|node| node.human_task_form.as_mut())
-        .ok_or(BpmnEngineError::UnsupportedOperation {
-            operation: "human_task_question_without_form",
-        })?;
-    form.question_ref = attribute_value(reader, event, "ref")?;
-    if form.question_ref.is_none() {
-        form.question_text = attribute_value(reader, event, "text")?;
-    }
-    if form.question_ref.is_none() && form.question_text.is_none() {
-        *capture_target = Some(CaptureTarget::HumanTaskQuestionText);
-        capture_buffer.clear();
-        if is_empty {
-            super::capture::apply_human_task_question_text(process, "")?;
-            *capture_target = None;
-            capture_buffer.clear();
-        }
-    }
-    Ok(())
-}
-
-fn last_human_task_form_mut<'a>(
-    source: &BpmnSourceFile,
-    process: &'a mut RawProcess,
-) -> Result<&'a mut RawHumanTaskFormSpec> {
-    let node = last_process_node_mut(source, process)?;
-    node.human_task_form
-        .as_mut()
-        .ok_or(BpmnEngineError::UnsupportedOperation {
-            operation: "human_task_form_child_without_interaction",
         })
 }
 
@@ -513,9 +416,27 @@ fn handle_event_child_start(
         assign_event_definition(source, reader, event, process, kind, tag)?;
         return Ok(true);
     }
+    if let Some(detail) = deferred_escalation_event_definition(parent, tag) {
+        let process_id = process.process_id.clone();
+        let node = last_process_node_mut(source, process)?;
+        return Err(BpmnEngineError::UnsupportedEventConfiguration {
+            process_id,
+            node_id: node.bpmn_id.clone(),
+            detail,
+        });
+    }
+    if let Some(detail) = deferred_multiple_event_definition(parent, tag) {
+        let process_id = process.process_id.clone();
+        let node = last_process_node_mut(source, process)?;
+        return Err(BpmnEngineError::UnsupportedEventConfiguration {
+            process_id,
+            node_id: node.bpmn_id.clone(),
+            detail,
+        });
+    }
     if matches!(
         parent,
-        "intermediateCatchEvent" | "boundaryEvent" | "sendTask" | "receiveTask"
+        "startEvent" | "intermediateCatchEvent" | "boundaryEvent" | "sendTask" | "receiveTask"
     ) && tag == "timerEventDefinition"
     {
         assign_event_definition(source, reader, event, process, BpmnEventKind::Timer, tag)?;
@@ -528,6 +449,16 @@ fn handle_event_child_start(
         capture_buffer.clear();
         if is_empty {
             apply_timer_expression(process, timer_kind, "")?;
+            *capture_target = None;
+            capture_buffer.clear();
+        }
+        return Ok(true);
+    }
+    if parent == "conditionalEventDefinition" && tag == "condition" {
+        *capture_target = Some(CaptureTarget::ConditionalExpression);
+        capture_buffer.clear();
+        if is_empty {
+            apply_conditional_expression(process, "")?;
             *capture_target = None;
             capture_buffer.clear();
         }
@@ -717,7 +648,12 @@ fn handle_supported_node_child_start(
         );
         return Ok(true);
     }
-    if is_supported_node_tag(parent) || parent == "timerEventDefinition" {
+    if is_supported_node_tag(parent)
+        || matches!(
+            parent,
+            "timerEventDefinition" | "conditionalEventDefinition" | "escalationEventDefinition"
+        )
+    {
         if is_ignored_node_child(tag) {
             return Ok(true);
         }
@@ -758,6 +694,7 @@ fn assign_event_definition(
         wait_for_completion: true,
         name: attribute_value(reader, event, "name")?,
         timer: None,
+        condition_expression: None,
     });
     Ok(())
 }
@@ -765,16 +702,48 @@ fn assign_event_definition(
 fn supported_event_definition(parent: &str, tag: &str) -> Option<BpmnEventKind> {
     match (parent, tag) {
         (
-            "intermediateCatchEvent" | "boundaryEvent" | "sendTask" | "receiveTask",
+            "startEvent" | "intermediateCatchEvent" | "boundaryEvent" | "sendTask" | "receiveTask",
             "messageEventDefinition",
         ) => Some(BpmnEventKind::Message),
         (
-            "intermediateCatchEvent" | "boundaryEvent" | "sendTask" | "receiveTask",
+            "startEvent" | "intermediateCatchEvent" | "boundaryEvent" | "sendTask" | "receiveTask",
             "signalEventDefinition",
         ) => Some(BpmnEventKind::Signal),
         ("boundaryEvent" | "endEvent", "errorEventDefinition") => Some(BpmnEventKind::Error),
+        ("boundaryEvent" | "endEvent" | "intermediateThrowEvent", "escalationEventDefinition") => {
+            Some(BpmnEventKind::Escalation)
+        }
         ("boundaryEvent" | "endEvent", "cancelEventDefinition") => Some(BpmnEventKind::Cancel),
-        ("boundaryEvent", "compensateEventDefinition") => Some(BpmnEventKind::Compensation),
+        ("startEvent" | "boundaryEvent", "compensateEventDefinition") => {
+            Some(BpmnEventKind::Compensation)
+        }
+        ("endEvent", "terminateEventDefinition") => Some(BpmnEventKind::Terminate),
+        (
+            "startEvent" | "intermediateCatchEvent" | "boundaryEvent",
+            "conditionalEventDefinition",
+        ) => Some(BpmnEventKind::Conditional),
+        _ => None,
+    }
+}
+
+fn deferred_escalation_event_definition(parent: &str, tag: &str) -> Option<&'static str> {
+    match (parent, tag) {
+        ("startEvent", "escalationEventDefinition") => Some("escalation_start_event_deferred"),
+        _ => None,
+    }
+}
+
+fn deferred_multiple_event_definition(parent: &str, tag: &str) -> Option<&'static str> {
+    if !matches!(
+        parent,
+        "startEvent" | "intermediateCatchEvent" | "boundaryEvent" | "endEvent"
+    ) {
+        return None;
+    }
+
+    match tag {
+        "multipleEventDefinition" => Some("multiple_event_definition_deferred"),
+        "parallelMultipleEventDefinition" => Some("parallel_multiple_event_definition_deferred"),
         _ => None,
     }
 }

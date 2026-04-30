@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Defs_InvalidDiReference"
+  targetNamespace="https://example.com/bpmn/invalid-di-reference">
+  <bpmn:process id="invalid_di_reference_process" isExecutable="true">
+    <bpmn:startEvent id="start" />
+    <bpmn:serviceTask id="review" />
+    <bpmn:endEvent id="end" />
+    <bpmn:sequenceFlow id="flow_start_review" sourceRef="start" targetRef="review" />
+    <bpmn:sequenceFlow id="flow_review_end" sourceRef="review" targetRef="end" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="Diagram_InvalidDiReference">
+    <bpmndi:BPMNPlane id="Plane_InvalidDiReference" bpmnElement="invalid_di_reference_process">
+      <bpmndi:BPMNShape id="Shape_Review" bpmnElement="missing_review">
+        <dc:Bounds x="160" y="80" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Edge_StartReview" bpmnElement="flow_start_review">
+        <di:waypoint x="100" y="120" />
+        <di:waypoint x="160" y="120" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

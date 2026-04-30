@@ -24,20 +24,22 @@
 //! same condition/default routing rules plus one matching linear join
 //! fragment,
 //! and one bounded exclusive `eventBasedGateway` whose outgoing targets are
-//! message/signal/timer `intermediateCatchEvent` waits, plus
+//! message/signal/timer/conditional `intermediateCatchEvent` waits, plus
+//! one bounded single `startEvent` wait backed by a message, signal, timer,
+//! or conditional event definition, plus
 //! `intermediateCatchEvent` waits backed by `messageEventDefinition`,
 //! `signalEventDefinition`, and snapshot-style `timerEventDefinition`, plus
-//! one interrupting timer, message, or signal `boundaryEvent` on one
-//! host-blocking task, plus one non-interrupting timer, message, or signal
+//! one interrupting timer, message, signal, or conditional `boundaryEvent` on one
+//! host-blocking task, plus one non-interrupting timer, message, signal, or conditional
 //! `boundaryEvent` on one non-repeating or bounded
 //! `standardLoopCharacteristics`, sequential multi-instance, or parallel
 //! multi-instance host-blocking task, plus
 //! one bounded embedded `subProcess` body with
 //! exactly one nested `startEvent` and at least one nested `endEvent`, plus
 //! one bounded embedded subprocess owner that may expose one interrupting
-//! timer, message, or signal `boundaryEvent` plus one or more interrupting
+//! timer, message, signal, or conditional `boundaryEvent` plus one or more interrupting
 //! error `boundaryEvent` nodes on that same owner, where the interrupting
-//! parent timer/message/signal boundary may cancel the child shell before
+//! parent timer/message/signal/conditional boundary may cancel the child shell before
 //! restoring the parent frame, one or more nested error ends may each
 //! restore the parent frame, preserve variable mutations, and route through
 //! every matching parent error boundary including one catch-all boundary,
@@ -49,17 +51,20 @@
 //! `<transaction>` shell and one nested cancel end that restores the parent
 //! frame, rolls back transaction-local variable mutations, and routes through
 //! the parent cancel boundary, plus one bounded transaction owner that may
-//! expose one interrupting timer, message, or signal `boundaryEvent` plus one
+//! expose one interrupting timer, message, signal, or conditional `boundaryEvent` plus one
 //! interrupting cancel `boundaryEvent`, plus one or more interrupting error
 //! `boundaryEvent` nodes, or both cancel and error boundaries adjacent to
-//! that same interrupting timer/message/signal boundary, where one or more
+//! that same interrupting timer/message/signal/conditional boundary, where one or more
 //! nested error ends may each restore the parent frame, preserve
 //! transaction-local variable mutations, and route through every matching
 //! parent error boundary including one catch-all boundary, while normal
 //! completion, interrupting external wins, cancel routing, and error routing
 //! cancel the non-selected sibling boundaries, and the bounded subset still
-//! permits only one interrupting timer/message/signal boundary and one
+//! permits only one interrupting timer/message/signal/conditional boundary and one
 //! interrupting cancel boundary on that same owner, plus one bounded
+//! terminate end-event subset where `terminateEventDefinition` cancels sibling
+//! active tokens, waits, and host work in the current runtime scope before root
+//! completion or parent-scope completion, plus one bounded
 //! transaction cancel
 //! compensation subset where compensable activities may bind one explicit
 //! compensation handler and cancel routing replays those handlers in reverse
@@ -80,9 +85,9 @@
 //! compensation queue drains while downstream routing continues,
 //! plus one bounded `callActivity` that targets another process in the same
 //! BPMN package, and one bounded same-package `callActivity` owner may expose
-//! one interrupting timer, message, or signal `boundaryEvent` plus one or
+//! one interrupting timer, message, signal, or conditional `boundaryEvent` plus one or
 //! more interrupting error `boundaryEvent` nodes on that same owner, where
-//! the interrupting parent timer/message/signal boundary may cancel the
+//! the interrupting parent timer/message/signal/conditional boundary may cancel the
 //! called child process before restoring the parent frame, one or more child
 //! error ends may each restore the parent frame, preserve variable
 //! mutations, and route through every matching parent error boundary
@@ -122,9 +127,9 @@
 //! inclusive gateways, recursive call chains, broader mixed boundary families
 //! on same-package
 //! `callActivity` owners or embedded subprocess owners beyond one
-//! interrupting timer/message/signal boundary plus one or more interrupting
+//! interrupting timer/message/signal/conditional boundary plus one or more interrupting
 //! error boundaries, broader transaction-shell boundary families that exceed
-//! one interrupting timer/message/signal boundary, exceed one interrupting
+//! one interrupting timer/message/signal/conditional boundary, exceed one interrupting
 //! cancel boundary, or otherwise exceed the bounded same-owner
 //! external-plus-cancel-plus-error subset, broader non-interrupting boundary
 //! families on subprocess-like owners, full timer execution semantics,
@@ -134,13 +139,20 @@
 //! shells,
 //! broader `requiredKnowledge` execution, broader business-knowledge-model or
 //! decision-service invocation semantics, broader FEEL or script-backed
-//! gateway conditions, trailing
-//! lower-unit fractional duration handling such as `duration("PT1.5H30S")`,
-//! mixed-family duration handling, fractional year-month duration handling
+//! gateway conditions, multiple and parallel-multiple event definitions,
+//! root-level escalation ends or throws, non-interrupting escalation boundaries,
+//! escalation start events, task-owned interrupting escalation boundaries,
+//! escalation event subprocess triggers, trailing lower-unit fractional
+//! duration handling such as `duration("PT1.5H30S")`, mixed-family duration
+//! handling, fractional year-month duration handling
 //! such as `duration("P1.5Y")`, broader timezone/function FEEL behavior, and
 //! richer orchestration slices remain deferred.
 
-mod bpmn_model_api;
+pub mod bpmn_callable_api;
+pub mod bpmn_collaboration_api;
+mod bpmn_conformance;
+mod bpmn_conformance_api;
+pub mod bpmn_model_api;
 mod bpmn_parse_api;
 mod bpmn_snapshot;
 mod bpmn_snapshot_api;
@@ -153,9 +165,9 @@ mod dmn_evaluate_api;
 mod dmn_model_api;
 mod dmn_model_business_knowledge;
 mod dmn_model_clause;
-mod dmn_model_decision;
+pub mod dmn_model_decision;
 mod dmn_model_decision_service;
-mod dmn_model_document;
+pub mod dmn_model_document;
 mod dmn_model_import;
 mod dmn_model_input_data;
 mod dmn_model_predicate;
@@ -167,10 +179,11 @@ mod error;
 mod host_bridge_api;
 mod host_types_api;
 mod ir;
+mod ir_data_api;
 mod ir_edge_api;
 mod ir_event_api;
 mod ir_index_api;
-mod ir_node_api;
+pub mod ir_node_api;
 mod ir_package_api;
 mod ir_process_compensation;
 mod ir_process_key;
@@ -181,6 +194,7 @@ mod lint;
 mod lint_api;
 mod parser;
 mod repeat_condition;
+mod repeat_condition_api;
 mod runtime;
 mod runtime_advance_api;
 mod runtime_claim_api;
@@ -194,12 +208,44 @@ mod runtime_resume_api;
 mod runtime_token_api;
 mod runtime_wait_api;
 
+pub use bpmn_callable_api::{
+    BpmnCallActivityBinding, BpmnCallableBindingExecutionPolicy, BpmnCallableDataRef,
+    BpmnCallableDefinition, BpmnCallableIoBinding, BpmnCallableKind, BpmnCallableRegistry,
+};
+pub use bpmn_collaboration_api::{
+    BpmnCollaborationExecutionPolicy, BpmnCollaborationHostBoundary, BpmnCollaborationHostEnvelope,
+    BpmnCollaborationIntent, BpmnCollaborationRuntimeScope, BpmnCorrelationKeyIntent,
+    BpmnCorrelationKeyScope, BpmnCorrelationPropertyBindingIntent, BpmnCorrelationPropertyIntent,
+    BpmnCorrelationPropertyRetrievalIntent, BpmnEventDeduplicationPolicy, BpmnMessageFlowIntent,
+    BpmnParticipantIntent, BpmnParticipantMultiplicityIntent,
+    BpmnProcessCorrelationSubscriptionIntent,
+};
+pub use bpmn_conformance_api::{
+    BpmnConformanceEntry, BpmnConformanceStatus, bpmn_conformance_registry,
+};
 pub use bpmn_model_api::{
-    BpmnCollaborationSnapshot, BpmnDataAssociationSnapshot, BpmnDataInputOutputSnapshot,
-    BpmnDataObjectReferenceSnapshot, BpmnDataObjectSnapshot, BpmnDataStoreReferenceSnapshot,
-    BpmnDataStoreSnapshot, BpmnDocumentSnapshot, BpmnIoSpecificationSnapshot, BpmnLaneSetSnapshot,
-    BpmnLaneSnapshot, BpmnMessageFlowSnapshot, BpmnParticipantSnapshot, BpmnProcessSnapshot,
-    BpmnRootSnapshot,
+    BpmnAssociationSnapshot, BpmnBoundsSnapshot, BpmnCategorySnapshot, BpmnCategoryValueSnapshot,
+    BpmnChoreographyActivitySnapshot, BpmnCollaborationSnapshot,
+    BpmnConversationAssociationSnapshot, BpmnConversationLinkSnapshot,
+    BpmnConversationNodeSnapshot, BpmnCorrelationKeySnapshot,
+    BpmnCorrelationPropertyBindingSnapshot, BpmnCorrelationPropertySnapshot,
+    BpmnCorrelationSubscriptionSnapshot, BpmnDataAssociationAssignmentSnapshot,
+    BpmnDataAssociationExpressionSnapshot, BpmnDataAssociationSnapshot,
+    BpmnDataInputOutputSnapshot, BpmnDataObjectReferenceSnapshot, BpmnDataObjectSnapshot,
+    BpmnDataStateSnapshot, BpmnDataStoreReferenceSnapshot, BpmnDataStoreSnapshot,
+    BpmnDiagramSnapshot, BpmnDocumentSnapshot, BpmnEdgeSnapshot, BpmnEndPointSnapshot,
+    BpmnErrorSnapshot, BpmnEscalationSnapshot, BpmnExtensionSnapshot,
+    BpmnFlowElementMetadataSnapshot, BpmnFontSnapshot, BpmnGlobalTaskSnapshot, BpmnGroupSnapshot,
+    BpmnImportSnapshot, BpmnInputSetSnapshot, BpmnInterfaceSnapshot, BpmnIoBindingSnapshot,
+    BpmnIoSpecificationSnapshot, BpmnItemDefinitionSnapshot, BpmnLabelSnapshot,
+    BpmnLabelStyleSnapshot, BpmnLaneSetSnapshot, BpmnLaneSnapshot,
+    BpmnMessageFlowAssociationSnapshot, BpmnMessageFlowSnapshot, BpmnMessageSnapshot,
+    BpmnOperationSnapshot, BpmnOutputSetSnapshot, BpmnParticipantAssociationSnapshot,
+    BpmnParticipantMultiplicitySnapshot, BpmnParticipantSnapshot, BpmnPartnerEntitySnapshot,
+    BpmnPartnerRoleSnapshot, BpmnPlaneSnapshot, BpmnProcessPropertySnapshot, BpmnProcessSnapshot,
+    BpmnRelationshipSnapshot, BpmnResourceParameterBindingSnapshot, BpmnResourceParameterSnapshot,
+    BpmnResourceRoleSnapshot, BpmnResourceSnapshot, BpmnRootSnapshot, BpmnShapeSnapshot,
+    BpmnSignalSnapshot, BpmnTextAnnotationSnapshot, BpmnWaypointSnapshot,
 };
 pub use bpmn_parse_api::{
     BpmnBundleSnapshot, BpmnParseOptions, BpmnSourceFile, parse_bpmn_bundle, parse_bpmn_package,
@@ -246,13 +292,15 @@ pub use host_types_api::{
     ScriptTaskRequest, SendTaskOutcome, SendTaskRequest, SequentialMultiInstanceContext,
     ServiceTaskOutcome, ServiceTaskRequest, UserTaskOutcome, UserTaskRequest,
 };
+pub use ir_data_api::BpmnDataObjectBindingSpec;
 pub use ir_edge_api::BpmnEdgeSpec;
 pub use ir_event_api::{BpmnEventKind, BpmnEventSpec, BpmnTimerKind, BpmnTimerSpec};
 pub use ir_index_api::{BpmnIndexRange, BpmnNodeIndex};
 pub use ir_node_api::{
     BpmnGatewayKind, BpmnHumanTaskAssignmentSpec, BpmnHumanTaskChoiceSpec, BpmnHumanTaskFormSpec,
     BpmnHumanTaskFreeTextSpec, BpmnHumanTaskResourceRoleSpec, BpmnLaneMembershipSpec, BpmnNodeKind,
-    BpmnNodeSpec, BpmnScriptTaskSpec, BpmnSubProcessKind,
+    BpmnNodeSpec, BpmnScriptTaskSpec, BpmnSubProcessKind, BpmnTaskInputBinding,
+    BpmnTaskInputSource, BpmnTaskIoSpec, BpmnTaskOutputBinding,
 };
 pub use ir_package_api::BpmnPackage;
 pub use ir_process_compensation::BpmnCompensationHandlerSpec;
@@ -265,7 +313,7 @@ pub use ir_repeat_api::{
 pub use lint_api::{
     LintDomain, LintIssue, LintReport, LintSeverity, lint_bpmn_source, lint_dmn_source,
 };
-pub use repeat_condition::{GatewayConditionSummary, parse_gateway_condition_summary};
+pub use repeat_condition_api::{GatewayConditionSummary, parse_gateway_condition_summary};
 pub use runtime_advance_api::{BpmnAdvanceOutcome, advance_instance};
 pub use runtime_claim_api::{
     PendingHumanTaskClaimOutcome, PendingHumanTaskClaimRequest, PendingHumanTaskReleaseOutcome,

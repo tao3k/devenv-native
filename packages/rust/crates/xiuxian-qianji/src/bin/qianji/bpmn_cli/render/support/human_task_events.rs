@@ -2,9 +2,8 @@ use std::fmt::Write as _;
 
 use crate::bpmn_cli::deps::BpmnHumanTaskLifecycleEvent;
 
-use super::labels::{
-    bpmn_human_task_lifecycle_event_kind_label, bpmn_pending_host_work_kind_label,
-};
+use super::human_task_labels::bpmn_human_task_lifecycle_event_kind_label;
+use super::labels::bpmn_pending_host_work_kind_label;
 
 pub(in crate::bpmn_cli::render) fn append_bpmn_human_task_lifecycle_event_summary(
     rendered: &mut String,

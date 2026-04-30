@@ -7,24 +7,16 @@ fn run_lint_command_guides_variable_to_variable_gateway_condition_repair() {
     let path = temp_dir
         .path()
         .join("invalid_variable_comparison_condition.bpmn");
-    write_file(
-        &path,
+    let bpmn = format!(
         r#"<?xml version="1.0" encoding="UTF-8"?>
-<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
-                  xmlns:qianji="https://qianji.dev/bpmn/extensions"
-                  id="pkg_variable_comparison">
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" id="pkg_variable_comparison">
   <bpmn:process id="section_flow" isExecutable="true">
     <bpmn:startEvent id="start" />
-    <bpmn:serviceTask id="present_section" implementation="${environment.services.runAgent}">
-      <bpmn:extensionElements>
-        <qianji:config>
-          <qianji:prompt>Present one section and output sectionNumber and totalSections.</qianji:prompt>
-          <qianji:outputs>sectionNumber,totalSections</qianji:outputs>
-        </qianji:config>
-      </bpmn:extensionElements>
+    <bpmn:serviceTask id="present_section" implementation="${{environment.services.runAgent}}">
+      {present_section_io}
     </bpmn:serviceTask>
     <bpmn:exclusiveGateway id="more_sections" default="flow_done" />
-    <bpmn:serviceTask id="next_section" implementation="${environment.services.runAgent}" />
+    <bpmn:serviceTask id="next_section" implementation="${{environment.services.runAgent}}" />
     <bpmn:endEvent id="done" />
     <bpmn:sequenceFlow id="flow_start" sourceRef="start" targetRef="present_section" />
     <bpmn:sequenceFlow id="flow_check" sourceRef="present_section" targetRef="more_sections" />
@@ -35,7 +27,14 @@ fn run_lint_command_guides_variable_to_variable_gateway_condition_repair() {
     <bpmn:sequenceFlow id="flow_next_done" sourceRef="next_section" targetRef="done" />
   </bpmn:process>
 </bpmn:definitions>"#,
+        present_section_io = native_service_task_io(
+            "present_section",
+            "Present one section and output sectionNumber and totalSections.",
+            &[],
+            &["sectionNumber", "totalSections"],
+        )
     );
+    write_file(&path, &bpmn);
 
     let output = must_ok(
         run_lint_command(LintCliCommand::Bpmn { path }),
@@ -66,23 +65,13 @@ fn run_lint_command_guides_count_like_boolean_condition_repair() {
     let path = temp_dir
         .path()
         .join("invalid_questions_remaining_condition.bpmn");
-    write_file(
-        &path,
+    let bpmn = format!(
         r#"<?xml version="1.0" encoding="UTF-8"?>
-<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
-                  xmlns:qianji="https://qianji.dev/bpmn/extensions"
-                  id="pkg_questions_remaining">
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" id="pkg_questions_remaining">
   <bpmn:process id="question_flow" isExecutable="true">
     <bpmn:startEvent id="start" />
-    <bpmn:serviceTask id="make_question" implementation="${environment.services.runAgent}">
-      <bpmn:extensionElements>
-        <qianji:config>
-          <qianji:prompt>Return JSON with currentQuestion, questionsRemaining, and sectionsRemaining.</qianji:prompt>
-          <qianji:tools></qianji:tools>
-          <qianji:inputs></qianji:inputs>
-          <qianji:outputs>currentQuestion,questionsRemaining,sectionsRemaining</qianji:outputs>
-        </qianji:config>
-      </bpmn:extensionElements>
+    <bpmn:serviceTask id="make_question" implementation="${{environment.services.runAgent}}">
+      {make_question_io}
     </bpmn:serviceTask>
     <bpmn:exclusiveGateway id="decision" default="flow_done" />
     <bpmn:userTask id="ask" />
@@ -101,7 +90,14 @@ fn run_lint_command_guides_count_like_boolean_condition_repair() {
     <bpmn:sequenceFlow id="flow_section_done" sourceRef="draft_section" targetRef="done" />
   </bpmn:process>
 </bpmn:definitions>"#,
+        make_question_io = native_service_task_io(
+            "make_question",
+            "Return JSON with currentQuestion, questionsRemaining, and sectionsRemaining.",
+            &[],
+            &["currentQuestion", "questionsRemaining", "sectionsRemaining"],
+        )
     );
+    write_file(&path, &bpmn);
 
     let output = must_ok(
         run_lint_command(LintCliCommand::Bpmn { path }),
@@ -133,39 +129,17 @@ fn run_lint_command_snapshots_loop_progress_xml_fix() {
     let path = temp_dir
         .path()
         .join("interaction_loop_missing_feedback.bpmn");
-    write_file(
-        &path,
+    let bpmn = format!(
         r#"<?xml version="1.0" encoding="UTF-8"?>
-<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
-                  xmlns:qianji="https://qianji.dev/bpmn/extensions"
-                  id="pkg_interaction_loop">
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" id="pkg_interaction_loop">
   <bpmn:process id="interaction_loop" isExecutable="true">
     <bpmn:startEvent id="start" />
-    <bpmn:serviceTask id="prepare_question" implementation="${environment.services.runAgent}">
-      <bpmn:extensionElements>
-        <qianji:config>
-          <qianji:prompt>Return JSON with the next currentQuestion, currentChoices, and hasMoreQuestions.</qianji:prompt>
-          <qianji:tools></qianji:tools>
-          <qianji:inputs></qianji:inputs>
-          <qianji:outputs>currentQuestion,currentChoices,hasMoreQuestions</qianji:outputs>
-          <qianji:outputSchema name="currentChoices" kind="choice_array" value="required" label="optional" description="optional"/>
-        </qianji:config>
-      </bpmn:extensionElements>
+    <bpmn:serviceTask id="prepare_question" implementation="${{environment.services.runAgent}}">
+      {prepare_question_io}
     </bpmn:serviceTask>
     <bpmn:exclusiveGateway id="more_questions" default="flow_done" />
     <bpmn:userTask id="ask_user">
-      <bpmn:extensionElements>
-        <qianji:config>
-          <qianji:prompt>Ask the current question.</qianji:prompt>
-          <qianji:inputs>currentQuestion,currentChoices</qianji:inputs>
-          <qianji:outputs>answer</qianji:outputs>
-          <qianji:interaction type="choice_input">
-            <qianji:question ref="currentQuestion"/>
-            <qianji:choices ref="currentChoices"/>
-            <qianji:result output="answer"/>
-          </qianji:interaction>
-        </qianji:config>
-      </bpmn:extensionElements>
+      {ask_user_io}
     </bpmn:userTask>
     <bpmn:endEvent id="done" />
     <bpmn:sequenceFlow id="flow_start" sourceRef="start" targetRef="prepare_question" />
@@ -177,7 +151,22 @@ fn run_lint_command_snapshots_loop_progress_xml_fix() {
     <bpmn:sequenceFlow id="flow_repeat" sourceRef="ask_user" targetRef="prepare_question" />
   </bpmn:process>
 </bpmn:definitions>"#,
+        prepare_question_io = native_service_task_io(
+            "prepare_question",
+            "Return JSON with the next currentQuestion, currentChoices, and hasMoreQuestions.",
+            &[],
+            &["currentQuestion", "currentChoices", "hasMoreQuestions"],
+        ),
+        ask_user_io = native_user_dynamic_choice_io(
+            "ask_user",
+            "Ask the current question.",
+            "currentQuestion",
+            "currentChoices",
+            None,
+            "answer",
+        )
     );
+    write_file(&path, &bpmn);
 
     let output = must_ok(
         run_lint_command(LintCliCommand::Bpmn { path }),
@@ -190,22 +179,15 @@ fn run_lint_command_snapshots_loop_progress_xml_fix() {
             .rendered
             .contains("bpmn.loop_risk.unbounded_control_cycle")
     );
-    assert!(output.rendered.contains(
-        "    |Help: The loop must feed answer into prepare_question before the next prompt and keep flow_done as the unconditional default exit."
-    ));
-    assert!(output.rendered.contains("    |Contract: qianji.bpmn.loop.progress.v1 requires in-cycle tasks to consume user feedback and emit the gateway route state."));
+    assert!(
+        output
+            .rendered
+            .contains("feed answer into prepare_question")
+    );
+    assert!(output.rendered.contains("unconditional default exit"));
+    assert!(output.rendered.contains("    |Contract: native BPMN loop progress requires in-cycle tasks to consume user feedback and emit the gateway route state through standard IO metadata."));
     assert!(output.rendered.contains("Proposed patch:"));
-    assert!(output.rendered.contains("@@ -12,1 +12,1 @@"));
-    assert!(
-        output
-            .rendered
-            .contains("-          <qianji:inputs></qianji:inputs>")
-    );
-    assert!(
-        output
-            .rendered
-            .contains("+          <qianji:inputs>answer</qianji:inputs>")
-    );
+    assert!(output.rendered.contains("name=\"answer\""));
     assert!(output.rendered.contains("Return unified diff only."));
     assert!(!output.rendered.contains("\nAction:"));
     assert!(!output.rendered.contains("\nFix:"));
@@ -225,9 +207,7 @@ fn run_lint_command_guides_duplicate_unconditional_branch_repair() {
     write_file(
         &path,
         r#"<?xml version="1.0" encoding="UTF-8"?>
-<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
-                  xmlns:qianji="https://qianji.dev/bpmn/extensions"
-                  id="pkg_duplicate_branch">
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" id="pkg_duplicate_branch">
   <bpmn:process id="approval_flow" isExecutable="true">
     <bpmn:startEvent id="start" />
     <bpmn:userTask id="review" />

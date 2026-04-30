@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  id="Defs_Conversation_Metadata"
+  name="Conversation Metadata Fixture"
+  targetNamespace="https://qianji.example/bpmn/conversation-metadata">
+  <message id="Message_Order" name="OrderRequested" />
+  <correlationProperty id="Correlation_Order" name="orderId" type="tns:OrderId" />
+  <collaboration id="Collaboration_Conversation" name="Order Conversation" isClosed="false">
+    <participant id="Participant_Requester" name="Requester" processRef="Process_Conversation" />
+    <participant id="Participant_Approver" name="Approver" />
+    <messageFlow id="MessageFlow_Order" name="Order request" sourceRef="Participant_Requester" targetRef="Participant_Approver" messageRef="Message_Order" />
+    <conversation id="Conversation_Order" name="Order topic">
+      <participantRef>Participant_Requester</participantRef>
+      <participantRef>Participant_Approver</participantRef>
+      <messageFlowRef>MessageFlow_Order</messageFlowRef>
+      <correlationKey id="CorrelationKey_Order_Node" name="node order key">
+        <correlationPropertyRef>Correlation_Order</correlationPropertyRef>
+      </correlationKey>
+    </conversation>
+    <subConversation id="SubConversation_Returns" name="Returns">
+      <participantRef>Participant_Requester</participantRef>
+      <conversation id="Conversation_Return_Ack" name="Return acknowledgement" />
+    </subConversation>
+    <callConversation id="CallConversation_Escalation" name="Escalation" calledCollaborationRef="Collaboration_Reusable">
+      <participantAssociation id="ParticipantAssociation_Call">
+        <innerParticipantRef>Participant_Approver</innerParticipantRef>
+        <outerParticipantRef>Participant_Requester</outerParticipantRef>
+      </participantAssociation>
+    </callConversation>
+    <conversationAssociation id="ConversationAssociation_1" innerConversationNodeRef="Conversation_Return_Ack" outerConversationNodeRef="Conversation_Order" />
+    <participantAssociation id="ParticipantAssociation_1">
+      <innerParticipantRef>Participant_Approver</innerParticipantRef>
+      <outerParticipantRef>Participant_Requester</outerParticipantRef>
+    </participantAssociation>
+    <messageFlowAssociation id="MessageFlowAssociation_1" innerMessageFlowRef="MessageFlow_Order" outerMessageFlowRef="MessageFlow_Order" />
+    <correlationKey id="CorrelationKey_Order_Collaboration" name="collaboration order key">
+      <correlationPropertyRef>Correlation_Order</correlationPropertyRef>
+    </correlationKey>
+    <choreographyRef>Choreography_Order</choreographyRef>
+    <conversationLink id="ConversationLink_1" name="Conversation route" sourceRef="Participant_Requester" targetRef="Conversation_Order" />
+  </collaboration>
+  <process id="Process_Conversation" name="Conversation Metadata Process" isExecutable="true">
+    <startEvent id="Start_1" />
+    <serviceTask id="Task_1" name="Handle order" />
+    <sequenceFlow id="Flow_1" sourceRef="Start_1" targetRef="Task_1" />
+    <endEvent id="End_1" />
+    <sequenceFlow id="Flow_2" sourceRef="Task_1" targetRef="End_1" />
+  </process>
+</definitions>

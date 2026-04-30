@@ -146,7 +146,12 @@ pub(super) fn is_supported_note_candidate(path: &Path) -> bool {
     }
     path.extension()
         .and_then(|v| v.to_str())
-        .is_some_and(|ext| matches!(ext.to_lowercase().as_str(), "md" | "markdown" | "mdx"))
+        .is_some_and(|ext| {
+            matches!(
+                ext.to_lowercase().as_str(),
+                "md" | "markdown" | "mdx" | "org"
+            )
+        })
 }
 
 pub(super) fn normalized_relative_note_alias(path: &Path, root: &Path) -> Option<String> {

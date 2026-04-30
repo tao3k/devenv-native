@@ -10,8 +10,8 @@ pub(super) use crate::ir_repeat_api::{
     BpmnMultiInstanceDataBindingSpec, BpmnRepeatSpec, BpmnStandardLoopSpec,
 };
 pub(super) use crate::repeat_condition::{
-    MultiInstanceCompletionConditionError, MultiInstanceCompletionCounts,
-    evaluate_multi_instance_completion_condition,
+    GatewayConditionError, MultiInstanceCompletionConditionError, MultiInstanceCompletionCounts,
+    evaluate_gateway_condition, evaluate_multi_instance_completion_condition,
 };
 pub(super) use crate::runtime::{
     BpmnExecutionTraceEvent, BpmnExecutionTraceEventKind, BpmnFrontierExecutionProposal,

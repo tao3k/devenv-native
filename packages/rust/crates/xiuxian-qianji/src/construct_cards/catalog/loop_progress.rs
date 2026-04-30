@@ -12,9 +12,9 @@ pub(super) const fn card(lint_mappings: &'static [ConstructLintMapping]) -> Cons
         requires: &[
             "a serviceTask generates the next question, choices, and route/progress variables",
             "currentChoices is emitted as JSON array objects with required non-empty value and optional label/description",
-            "the serviceTask qianji:inputs include the prior userTask answer when the loop repeats",
-            "the serviceTask qianji:outputs include every variable used by the loop gateway",
-            "the repeated userTask declares qianji:inputs for the resolved question and choices",
+            "the serviceTask data inputs include the prior userTask answer when the loop repeats",
+            "the serviceTask data outputs include every variable used by the loop gateway",
+            "the repeated userTask declares data inputs for the resolved question and choices",
             "each loop iteration changes at least one declared userTask input before returning to that userTask",
             "the gateway has one unconditional default exit branch",
         ],
@@ -29,26 +29,44 @@ pub(super) const fn card(lint_mappings: &'static [ConstructLintMapping]) -> Cons
             "returning to the same userTask with the same resolved question and choices",
             "placing option prose inside currentQuestion instead of currentChoices",
             "routing back to a userTask when the prior userAnswer is not an input to the next-question serviceTask",
-            "gateway route variables that are not emitted by an in-loop qianji task",
+            "gateway route variables that are not emitted by an in-loop task",
             "using a conditional expression on the gateway default branch",
         ],
         example: r#"<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xmlns:qianji="https://qianji.dev/bpmn/extensions"
-  targetNamespace="https://qianji.dev/examples">
+  targetNamespace="https://example.test/bpmn">
   <process id="Process_InteractiveLoop" isExecutable="true">
     <startEvent id="Start"/>
     <sequenceFlow id="Flow_Start_Prepare" sourceRef="Start" targetRef="Task_PrepareNextQuestion"/>
     <serviceTask id="Task_PrepareNextQuestion" name="Prepare next question" implementation="${environment.services.runAgent}">
-      <extensionElements>
-        <qianji:config>
-          <qianji:prompt>Use context and prior userAnswer to decide whether another question is needed. If needed, output changed currentQuestion and currentChoices values. Always output questionsRemaining as a JSON number.</qianji:prompt>
-          <qianji:tools></qianji:tools>
-          <qianji:inputs>context,userAnswer,attempt</qianji:inputs>
-          <qianji:outputs>currentQuestion,currentChoices,questionsRemaining,attempt</qianji:outputs>
-          <qianji:outputSchema name="currentChoices" kind="choice_array" value="required" label="optional" description="optional"/>
-        </qianji:config>
-      </extensionElements>
+      <documentation>Use context and prior userAnswer to decide whether another question is needed. If needed, output changed currentQuestion and currentChoices values. Always output questionsRemaining as a JSON number.</documentation>
+      <ioSpecification>
+        <dataInput id="Task_PrepareNextQuestion_Input_context" name="context"/>
+        <dataInput id="Task_PrepareNextQuestion_Input_userAnswer" name="userAnswer"/>
+        <dataInput id="Task_PrepareNextQuestion_Input_attempt" name="attempt"/>
+        <dataOutput id="Task_PrepareNextQuestion_Output_currentQuestion" name="currentQuestion"/>
+        <dataOutput id="Task_PrepareNextQuestion_Output_currentChoices" name="currentChoices"/>
+        <dataOutput id="Task_PrepareNextQuestion_Output_questionsRemaining" name="questionsRemaining"/>
+        <dataOutput id="Task_PrepareNextQuestion_Output_attempt" name="attempt"/>
+        <inputSet>
+          <dataInputRefs>Task_PrepareNextQuestion_Input_context</dataInputRefs>
+          <dataInputRefs>Task_PrepareNextQuestion_Input_userAnswer</dataInputRefs>
+          <dataInputRefs>Task_PrepareNextQuestion_Input_attempt</dataInputRefs>
+        </inputSet>
+        <outputSet>
+          <dataOutputRefs>Task_PrepareNextQuestion_Output_currentQuestion</dataOutputRefs>
+          <dataOutputRefs>Task_PrepareNextQuestion_Output_currentChoices</dataOutputRefs>
+          <dataOutputRefs>Task_PrepareNextQuestion_Output_questionsRemaining</dataOutputRefs>
+          <dataOutputRefs>Task_PrepareNextQuestion_Output_attempt</dataOutputRefs>
+        </outputSet>
+      </ioSpecification>
+      <dataInputAssociation><sourceRef>context</sourceRef><targetRef>Task_PrepareNextQuestion_Input_context</targetRef></dataInputAssociation>
+      <dataInputAssociation><sourceRef>userAnswer</sourceRef><targetRef>Task_PrepareNextQuestion_Input_userAnswer</targetRef></dataInputAssociation>
+      <dataInputAssociation><sourceRef>attempt</sourceRef><targetRef>Task_PrepareNextQuestion_Input_attempt</targetRef></dataInputAssociation>
+      <dataOutputAssociation><sourceRef>Task_PrepareNextQuestion_Output_currentQuestion</sourceRef><targetRef>currentQuestion</targetRef></dataOutputAssociation>
+      <dataOutputAssociation><sourceRef>Task_PrepareNextQuestion_Output_currentChoices</sourceRef><targetRef>currentChoices</targetRef></dataOutputAssociation>
+      <dataOutputAssociation><sourceRef>Task_PrepareNextQuestion_Output_questionsRemaining</sourceRef><targetRef>questionsRemaining</targetRef></dataOutputAssociation>
+      <dataOutputAssociation><sourceRef>Task_PrepareNextQuestion_Output_attempt</sourceRef><targetRef>attempt</targetRef></dataOutputAssociation>
     </serviceTask>
     <sequenceFlow id="Flow_Prepare_Gateway" sourceRef="Task_PrepareNextQuestion" targetRef="Gateway_MoreQuestions"/>
     <exclusiveGateway id="Gateway_MoreQuestions" default="Flow_NoMoreQuestions"/>
@@ -57,19 +75,23 @@ pub(super) const fn card(lint_mappings: &'static [ConstructLintMapping]) -> Cons
     </sequenceFlow>
     <sequenceFlow id="Flow_NoMoreQuestions" sourceRef="Gateway_MoreQuestions" targetRef="End"/>
     <userTask id="Task_AnswerQuestion" name="Answer question">
-      <extensionElements>
-        <qianji:config>
-          <qianji:prompt>Ask the generated question.</qianji:prompt>
-          <qianji:tools></qianji:tools>
-          <qianji:inputs>currentQuestion,currentChoices</qianji:inputs>
-          <qianji:outputs>userAnswer</qianji:outputs>
-          <qianji:interaction type="choice_input">
-            <qianji:question ref="currentQuestion"/>
-            <qianji:choices ref="currentChoices"/>
-            <qianji:result output="userAnswer"/>
-          </qianji:interaction>
-        </qianji:config>
-      </extensionElements>
+      <documentation>Ask the generated question.</documentation>
+      <ioSpecification>
+        <dataInput id="Task_AnswerQuestion_Input_interactionType" name="interactionType"/>
+        <dataInput id="Task_AnswerQuestion_Input_question" name="question"/>
+        <dataInput id="Task_AnswerQuestion_Input_choices" name="choices"/>
+        <dataOutput id="Task_AnswerQuestion_Output_answer" name="answer"/>
+        <inputSet>
+          <dataInputRefs>Task_AnswerQuestion_Input_interactionType</dataInputRefs>
+          <dataInputRefs>Task_AnswerQuestion_Input_question</dataInputRefs>
+          <dataInputRefs>Task_AnswerQuestion_Input_choices</dataInputRefs>
+        </inputSet>
+        <outputSet><dataOutputRefs>Task_AnswerQuestion_Output_answer</dataOutputRefs></outputSet>
+      </ioSpecification>
+      <dataInputAssociation><targetRef>Task_AnswerQuestion_Input_interactionType</targetRef><assignment><from>choice_input</from><to>Task_AnswerQuestion_Input_interactionType</to></assignment></dataInputAssociation>
+      <dataInputAssociation><sourceRef>currentQuestion</sourceRef><targetRef>Task_AnswerQuestion_Input_question</targetRef></dataInputAssociation>
+      <dataInputAssociation><sourceRef>currentChoices</sourceRef><targetRef>Task_AnswerQuestion_Input_choices</targetRef></dataInputAssociation>
+      <dataOutputAssociation><sourceRef>Task_AnswerQuestion_Output_answer</sourceRef><targetRef>userAnswer</targetRef></dataOutputAssociation>
     </userTask>
     <sequenceFlow id="Flow_Answer_Prepare" sourceRef="Task_AnswerQuestion" targetRef="Task_PrepareNextQuestion"/>
     <endEvent id="End"/>

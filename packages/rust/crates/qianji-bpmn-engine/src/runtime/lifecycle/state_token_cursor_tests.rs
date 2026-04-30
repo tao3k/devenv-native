@@ -111,6 +111,7 @@ fn pending_host_work(token_id: u64) -> PendingHostWork {
         script_body: None,
         human_task_form: None,
         human_task_assignment: None,
+        task_io: None,
         claim: None,
         event_reference: None,
         event_name: None,

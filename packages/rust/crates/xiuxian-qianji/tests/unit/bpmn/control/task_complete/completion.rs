@@ -29,8 +29,7 @@ async fn workflow_control_service_task_complete_accepts_typed_user_payload() {
                         activity_id: pending_activity_id,
                         kind: QianjiBpmnWorkflowTaskCompletionKind::User,
                         data: json!({
-                            "approved": true,
-                            "source": "workflow_control_task_complete",
+                            "answer": "approved",
                         }),
                         claimant: None,
                     },
@@ -52,8 +51,7 @@ async fn workflow_control_service_task_complete_accepts_typed_user_payload() {
         complete_report.execution.session.instance().variables,
         json!({
             "risk": "high",
-            "approved": true,
-            "source": "workflow_control_task_complete",
+            "answer": "approved",
         })
     );
 }
@@ -100,7 +98,7 @@ async fn workflow_control_service_task_complete_can_continue_to_next_human_bound
                         activity_id: pending_activity_id,
                         kind: QianjiBpmnWorkflowTaskCompletionKind::User,
                         data: json!({
-                            "firstAnswer": "ready",
+                            "answer": "ready",
                         }),
                         claimant: None,
                     },

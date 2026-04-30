@@ -1,9 +1,4 @@
-mod answer_store;
-mod dynamic_schema;
 mod human_task;
 mod interaction_core;
-mod interaction_outputs;
-mod interaction_producer;
-mod interaction_producer_aggregate;
+mod operation;
 mod receive;
-mod result_choices;

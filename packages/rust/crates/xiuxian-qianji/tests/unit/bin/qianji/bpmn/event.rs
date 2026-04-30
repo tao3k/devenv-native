@@ -86,7 +86,7 @@ async fn run_bpmn_command_waiting_event_race_renders_competing_wait_diagnostics(
             .contains("Event fixture key: wait_message|wait_timer")
     );
     assert!(output.rendered.contains(
-        "- wait_message | kind=external_event | event=message | ref=invoice_received | name=InvoiceReceived | correlation=invoice_received"
+        "- wait_message | kind=external_event | event=message | ref=invoice_received | name=InvoiceReceived | dedupe=invoice_received"
     ));
     assert!(
         output

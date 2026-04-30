@@ -22,9 +22,15 @@ pub(super) fn build_wait_registration(
     let wait_kind = match event.kind {
         BpmnEventKind::Message | BpmnEventKind::Signal => WaitKind::ExternalEvent,
         BpmnEventKind::Timer => WaitKind::Timer,
+        BpmnEventKind::Conditional => WaitKind::Conditional,
         BpmnEventKind::Error => {
             return Err(BpmnEngineError::UnsupportedOperation {
                 operation: "advance_instance_error_event_wait",
+            });
+        }
+        BpmnEventKind::Escalation => {
+            return Err(BpmnEngineError::UnsupportedOperation {
+                operation: "advance_instance_escalation_event_wait",
             });
         }
         BpmnEventKind::Cancel => {
@@ -37,9 +43,9 @@ pub(super) fn build_wait_registration(
                 operation: "advance_instance_compensation_event_wait",
             });
         }
-        BpmnEventKind::Conditional => {
+        BpmnEventKind::Terminate => {
             return Err(BpmnEngineError::UnsupportedOperation {
-                operation: "advance_instance_conditional_event_wait",
+                operation: "advance_instance_terminate_event_wait",
             });
         }
     };
@@ -53,7 +59,8 @@ pub(super) fn build_wait_registration(
         event_reference: event.reference_id.as_ref().map(ToString::to_string),
         event_name: event.name.as_ref().map(ToString::to_string),
         timer: event.timer.clone(),
-        correlation_key: event.reference_id.as_ref().map(ToString::to_string),
+        condition_expression: event.condition_expression.as_ref().map(ToString::to_string),
+        deduplication_key: event.reference_id.as_ref().map(ToString::to_string),
     })
 }
 
@@ -85,6 +92,10 @@ pub(super) fn block_on_host_work(
         .nodes
         .get(node_index as usize)
         .and_then(|node| node.human_task_assignment.clone());
+    let task_io = process
+        .nodes
+        .get(node_index as usize)
+        .and_then(|node| node.task_io.clone());
     let lane = process
         .nodes
         .get(node_index as usize)
@@ -105,6 +116,7 @@ pub(super) fn block_on_host_work(
         script_body,
         human_task_form,
         human_task_assignment,
+        task_io,
         claim: None,
         event_reference,
         event_name,
@@ -157,6 +169,10 @@ pub(super) fn block_on_business_rule_work(
             .nodes
             .get(node_index as usize)
             .and_then(|node| node.human_task_assignment.clone()),
+        task_io: process
+            .nodes
+            .get(node_index as usize)
+            .and_then(|node| node.task_io.clone()),
         claim: None,
         event_reference: None,
         event_name: None,
@@ -192,7 +208,10 @@ fn arm_boundary_wait(
     }
     if !matches!(
         event.kind,
-        BpmnEventKind::Timer | BpmnEventKind::Message | BpmnEventKind::Signal
+        BpmnEventKind::Timer
+            | BpmnEventKind::Message
+            | BpmnEventKind::Signal
+            | BpmnEventKind::Conditional
     ) {
         return Err(BpmnEngineError::UnsupportedBoundaryEventConfiguration {
             process_id: process.key.process_id.to_string(),

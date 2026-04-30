@@ -1,4 +1,7 @@
-use super::{StubHost, intermediate_message_wait_process, intermediate_timer_wait_process};
+use super::{
+    StubHost, intermediate_conditional_wait_process, intermediate_message_wait_process,
+    intermediate_timer_wait_process,
+};
 use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnEventKind, BpmnInstanceInit, BpmnPackage, BpmnTimerKind,
@@ -112,4 +115,100 @@ async fn runtime_intermediate_timer_event_registers_timer_wait() {
         .must("timer wait should preserve timer snapshot");
     assert_eq!(timer.kind, BpmnTimerKind::Duration);
     assert_eq!(timer.expression.as_ref(), "PT5M");
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn runtime_intermediate_conditional_event_routes_immediately_when_condition_is_true() {
+    let package = Arc::new(BpmnPackage::new(
+        "pkg_runtime",
+        vec![intermediate_conditional_wait_process("conditional_wait")],
+    ));
+    let mut instance = create_instance(
+        Arc::clone(&package),
+        "conditional_wait",
+        BpmnInstanceInit::new("wf_conditional_ready", json!({ "approved": true }), 10),
+    )
+    .must("instance should be created");
+    let host = StubHost::new(77);
+
+    let outcome = advance_instance(package.as_ref(), &mut instance, &host)
+        .await
+        .must("ready conditional wait should route");
+
+    assert_eq!(outcome, BpmnAdvanceOutcome::Completed);
+    assert_eq!(instance.lifecycle, InstanceLifecycle::Completed);
+    assert!(instance.waits.is_empty());
+    assert_eq!(
+        instance.node_states[1].status,
+        qianji_bpmn_engine::NodeRuntimeStatus::Completed
+    );
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn runtime_intermediate_conditional_event_waits_and_resumes_when_condition_becomes_true() {
+    let package = Arc::new(BpmnPackage::new(
+        "pkg_runtime",
+        vec![intermediate_conditional_wait_process("conditional_wait")],
+    ));
+    let mut instance = create_instance(
+        Arc::clone(&package),
+        "conditional_wait",
+        BpmnInstanceInit::new("wf_conditional_wait", json!({ "amount": 7 }), 10),
+    )
+    .must("instance should be created");
+    let host = StubHost::new(77);
+
+    let outcome = advance_instance(package.as_ref(), &mut instance, &host)
+        .await
+        .must("unready conditional wait should register");
+
+    assert_eq!(outcome, BpmnAdvanceOutcome::WaitingExternalEvent);
+    assert_eq!(instance.lifecycle, InstanceLifecycle::Waiting);
+    assert_eq!(instance.waits.len(), 1);
+    assert_eq!(instance.waits[0].node_index, 1);
+    assert_eq!(instance.waits[0].kind, WaitKind::Conditional);
+    assert_eq!(
+        instance.waits[0].event_kind,
+        Some(BpmnEventKind::Conditional)
+    );
+    assert_eq!(
+        instance.waits[0].condition_expression.as_deref(),
+        Some("approved")
+    );
+
+    let still_waiting = apply_event_poll_outcome(
+        package.as_ref(),
+        &mut instance,
+        qianji_bpmn_engine::EventPollOutcome {
+            ready: false,
+            winning_wait_node_index: None,
+            data: json!({ "approved": false }),
+        },
+        91,
+    )
+    .must("false conditional poll should stay waiting");
+    assert_eq!(still_waiting, BpmnAdvanceOutcome::WaitingExternalEvent);
+    assert_eq!(instance.waits.len(), 1);
+    assert_eq!(instance.variables["approved"], json!(false));
+
+    let resumed = apply_event_poll_outcome(
+        package.as_ref(),
+        &mut instance,
+        qianji_bpmn_engine::EventPollOutcome {
+            ready: false,
+            winning_wait_node_index: None,
+            data: json!({ "approved": true }),
+        },
+        101,
+    )
+    .must("true conditional poll should resume");
+    assert_eq!(resumed, BpmnAdvanceOutcome::Advanced);
+    assert!(instance.waits.is_empty());
+    assert_eq!(instance.lifecycle, InstanceLifecycle::Running);
+    assert_eq!(instance.active_tokens[0].node_index, 2);
+
+    let completed = advance_instance(package.as_ref(), &mut instance, &host)
+        .await
+        .must("resumed path should complete");
+    assert_eq!(completed, BpmnAdvanceOutcome::Completed);
 }

@@ -1,0 +1,123 @@
+use super::*;
+use serde_json::json;
+
+#[test]
+fn bpmn_linter_reports_process_callable_metadata_surface_with_llm_guidance() {
+    let report = lint_bpmn_source(&bpmn_fixture_source("metadata-process-callable.bpmn"));
+
+    assert_eq!(report.domain, LintDomain::Bpmn);
+    assert!(!report.ok);
+    assert_eq!(report.issues.len(), 1);
+    let issue = &report.issues[0];
+    assert_eq!(issue.code, "bpmn.unsupported_collaboration_surface");
+    assert_eq!(issue.evidence["snapshot_available"], true);
+    assert_eq!(
+        issue.evidence["snapshot"]["process_callable"]["support_count"],
+        1
+    );
+    assert_eq!(
+        issue.evidence["snapshot"]["process_callable"]["property_count"],
+        1
+    );
+    assert_eq!(
+        issue.evidence["snapshot"]["process_callable"]["correlation_subscription_count"],
+        1
+    );
+    assert_eq!(
+        issue.evidence["snapshot"]["process_callable"]["correlation_binding_count"],
+        1
+    );
+    assert_eq!(
+        issue.evidence["snapshot"]["process_callable"]["correlation_boundary"]["status"],
+        "metadata_only"
+    );
+    assert_eq!(
+        issue.evidence["snapshot"]["process_callable"]["correlation_boundary"]["execution_policy"],
+        "deferred"
+    );
+    let Some(deferred_semantics) = issue.evidence["snapshot"]["process_callable"]
+        ["correlation_boundary"]["deferred_semantics"]
+        .as_array()
+    else {
+        panic!("process correlation boundary deferred semantics evidence");
+    };
+    assert!(deferred_semantics.contains(&json!("correlation_subscription_matching")));
+    assert!(deferred_semantics.contains(&json!("binding_data_path_evaluation")));
+    let Some(bounded_surface) = issue.evidence["snapshot"]["process_callable"]
+        ["correlation_boundary"]["bounded_executable_surface"]
+        .as_array()
+    else {
+        panic!("process correlation boundary bounded executable evidence");
+    };
+    assert!(bounded_surface.contains(&json!("message_event_reference_wait")));
+    assert_eq!(
+        issue.evidence["snapshot"]["process_callable"]["processes"][0]["process_type"],
+        "Public"
+    );
+    assert_eq!(
+        issue.evidence["snapshot"]["process_callable"]["processes"][0]["supports"][0],
+        "Process_Base"
+    );
+    assert_eq!(
+        issue.evidence["snapshot"]["process_callable"]["processes"][0]["properties"][0]["item_subject_ref"],
+        "Item_Order"
+    );
+    assert_eq!(
+        issue.evidence["snapshot"]["process_callable"]["processes"][0]["correlation_subscriptions"]
+            [0]["bindings"][0]["data_path"],
+        "order.id"
+    );
+}
+
+#[test]
+fn bpmn_linter_reports_resource_role_metadata_surface_with_llm_guidance() {
+    let report = lint_bpmn_source(&bpmn_fixture_source("metadata-resource-role.bpmn"));
+
+    assert_eq!(report.domain, LintDomain::Bpmn);
+    assert!(!report.ok);
+    assert_eq!(report.issues.len(), 1);
+    let issue = &report.issues[0];
+    assert_eq!(issue.code, "bpmn.unsupported_resource_role_metadata");
+    assert_eq!(issue.evidence["snapshot_available"], true);
+    assert_eq!(
+        issue.evidence["snapshot"]["resource_roles"]["process_role_count"],
+        2
+    );
+    assert_eq!(
+        issue.evidence["snapshot"]["resource_roles"]["global_task_role_count"],
+        1
+    );
+    assert_eq!(
+        issue.evidence["snapshot"]["resource_roles"]["parameter_binding_count"],
+        2
+    );
+    assert_eq!(
+        issue.evidence["snapshot"]["resource_roles"]["assignment_expression_count"],
+        1
+    );
+    assert_eq!(
+        issue.evidence["snapshot"]["resource_roles"]["processes"][0]["resource_roles"][0]["resource_ref"],
+        "Resource_Reviewer"
+    );
+    assert_eq!(
+        issue.evidence["snapshot"]["resource_roles"]["processes"][0]["resource_roles"][1]["assignment_expression"],
+        "$.review.owner"
+    );
+    assert_eq!(
+        issue.evidence["snapshot"]["resource_roles"]["global_tasks"][0]["resource_roles"][0]["parameter_bindings"]
+            [0]["expression"],
+        "emea"
+    );
+    assert!(
+        issue
+            .why_it_failed
+            .contains("generic assignment, scheduling, authorization")
+    );
+    assert_eq!(
+        issue
+            .structured_repair
+            .as_ref()
+            .and_then(|repair| repair["contract"].as_str()),
+        Some("bpmn.native.resource_role.metadata_only.v1")
+    );
+}

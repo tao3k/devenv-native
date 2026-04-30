@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  id="Definitions_GlobalTaskCatalog"
+  targetNamespace="https://example.com/bpmn/global-task-catalog">
+  <bpmn:interface id="Interface_Work" name="Work API" />
+  <bpmn:globalTask id="GlobalTask_Generic" name="Generic reusable task">
+    <bpmn:supportedInterfaceRef>Interface_Work</bpmn:supportedInterfaceRef>
+  </bpmn:globalTask>
+  <bpmn:globalBusinessRuleTask id="GlobalTask_Rule" name="Reusable rule" implementation="##unspecified">
+    <bpmn:supportedInterfaceRef>Interface_Work</bpmn:supportedInterfaceRef>
+  </bpmn:globalBusinessRuleTask>
+  <bpmn:globalManualTask id="GlobalTask_Manual" name="Reusable manual task" />
+  <bpmn:globalScriptTask id="GlobalTask_Script" name="Reusable script" scriptLanguage="text/javascript">
+    <bpmn:script>return input.approved === true;</bpmn:script>
+  </bpmn:globalScriptTask>
+  <bpmn:globalUserTask id="GlobalTask_User" name="Reusable user task" implementation="##WebService" />
+  <bpmn:process id="Process_GlobalTaskMetadata" isExecutable="true">
+    <bpmn:startEvent id="Start_GlobalTaskMetadata" />
+    <bpmn:endEvent id="End_GlobalTaskMetadata" />
+    <bpmn:sequenceFlow id="Flow_GlobalTaskMetadata" sourceRef="Start_GlobalTaskMetadata" targetRef="End_GlobalTaskMetadata" />
+  </bpmn:process>
+</bpmn:definitions>

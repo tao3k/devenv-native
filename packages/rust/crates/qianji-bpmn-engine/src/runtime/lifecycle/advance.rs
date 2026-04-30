@@ -5,10 +5,12 @@ use super::scope::{
     evaluate_dmn_package_binding_sync,
 };
 use super::{
-    blocking, call_activity, completion, error, gateway, prepare, repeat, state, transaction,
+    blocking, call_activity, completion, error, escalation, event_subprocess, gateway, prepare,
+    repeat, state, terminate, transaction,
 };
 use crate::runtime_instance_api::BpmnHumanTaskLifecycleEventKind;
-use std::collections::BTreeSet;
+use serde_json::{Map, Value};
+use std::collections::{BTreeMap, BTreeSet};
 
 pub(super) fn advance_active_node(
     package: &BpmnPackage,
@@ -51,6 +53,7 @@ pub(super) fn advance_active_node(
         ),
         BpmnNodeKind::IntermediateThrowEvent => {
             advance_intermediate_throw_event(
+                package,
                 process,
                 instance,
                 current_token_index,
@@ -59,7 +62,17 @@ pub(super) fn advance_active_node(
             )?;
             Ok(None)
         }
-        BpmnNodeKind::IntermediateCatchEvent | BpmnNodeKind::ReceiveTask => {
+        BpmnNodeKind::IntermediateCatchEvent => {
+            advance_intermediate_catch_event(
+                process,
+                instance,
+                current_token_index,
+                current_node_index,
+                now_ms,
+            )?;
+            Ok(None)
+        }
+        BpmnNodeKind::ReceiveTask => {
             call_activity::register_intermediate_wait(
                 process,
                 instance,
@@ -126,6 +139,14 @@ fn advance_start_event(
     current_node_index: BpmnNodeIndex,
     now_ms: u64,
 ) -> Result<()> {
+    if start_event_should_wait(process, instance, current_node_index)? {
+        return call_activity::register_intermediate_wait(
+            process,
+            instance,
+            current_node_index,
+            now_ms,
+        );
+    }
     let edge_index = state::resolve_single_outgoing_edge(
         process,
         current_node_index,
@@ -137,6 +158,32 @@ fn advance_start_event(
     state::set_node_status(instance, next_node_index, NodeRuntimeStatus::Queued);
     state::record_transition(instance, now_ms, InstanceLifecycle::Running);
     Ok(())
+}
+
+fn start_event_should_wait(
+    process: &BpmnProcessSpec,
+    instance: &BpmnInstanceState,
+    node_index: BpmnNodeIndex,
+) -> Result<bool> {
+    let Some(event) = process.event_for_node(node_index) else {
+        return Ok(false);
+    };
+    match event.kind {
+        BpmnEventKind::Message | BpmnEventKind::Signal | BpmnEventKind::Timer => Ok(true),
+        BpmnEventKind::Conditional => {
+            super::conditional_event_is_satisfied(process, node_index, &instance.variables)
+                .map(|ready| !ready)
+        }
+        BpmnEventKind::Cancel
+        | BpmnEventKind::Compensation
+        | BpmnEventKind::Error
+        | BpmnEventKind::Escalation
+        | BpmnEventKind::Terminate => Err(BpmnEngineError::UnsupportedEventConfiguration {
+            process_id: process.key.process_id.to_string(),
+            node_id: process.nodes[node_index as usize].bpmn_id.to_string(),
+            detail: "unsupported_start_event_definition",
+        }),
+    }
 }
 
 fn advance_end_event(
@@ -180,6 +227,26 @@ fn advance_end_event(
                 )?;
                 return Ok(None);
             }
+            BpmnEventKind::Escalation => {
+                if instance.call_stack.is_empty() {
+                    return Err(BpmnEngineError::UnsupportedEventConfiguration {
+                        process_id: process.key.process_id.to_string(),
+                        node_id: process.nodes[current_node_index as usize]
+                            .bpmn_id
+                            .to_string(),
+                        detail: "escalation_end_requires_supported_parent_boundary",
+                    });
+                }
+                escalation::escalation_subprocess_shell(
+                    package,
+                    instance,
+                    current_token_index,
+                    current_node_index,
+                    event.reference_id.as_deref(),
+                    now_ms,
+                )?;
+                return Ok(None);
+            }
             BpmnEventKind::Compensation => {
                 if event.wait_for_completion {
                     transaction::throw_compensation_end_event(
@@ -204,16 +271,44 @@ fn advance_end_event(
                 }
                 return Ok(None);
             }
+            BpmnEventKind::Terminate => {
+                return terminate::terminate_end_event(
+                    package,
+                    instance,
+                    current_token_index,
+                    current_node_index,
+                    now_ms,
+                );
+            }
             _ => {}
         }
     }
 
+    advance_plain_end_event(
+        package,
+        instance,
+        current_token_index,
+        process,
+        current_node_index,
+        now_ms,
+    )
+}
+
+fn advance_plain_end_event(
+    package: &BpmnPackage,
+    instance: &mut BpmnInstanceState,
+    current_token_index: usize,
+    process: &BpmnProcessSpec,
+    current_node_index: BpmnNodeIndex,
+    now_ms: u64,
+) -> Result<Option<BpmnAdvanceOutcome>> {
     state::set_node_status(instance, current_node_index, NodeRuntimeStatus::Completed);
     let _ = state::remove_active_token(instance, current_token_index);
     if !instance.active_tokens.is_empty() {
         state::record_transition(instance, now_ms, InstanceLifecycle::Running);
         return Ok(None);
     }
+    event_subprocess::clear_event_subprocess_waits(process, instance);
     if instance.call_stack.is_empty() {
         if !instance.pending_host_work.is_empty() {
             instance.suspend_reason = None;
@@ -236,7 +331,42 @@ fn advance_end_event(
     Ok(None)
 }
 
+fn advance_intermediate_catch_event(
+    process: &BpmnProcessSpec,
+    instance: &mut BpmnInstanceState,
+    current_token_index: usize,
+    current_node_index: BpmnNodeIndex,
+    now_ms: u64,
+) -> Result<()> {
+    if conditional_catch_event_is_ready(process, instance, current_node_index)? {
+        return completion::complete_node_and_route(
+            process,
+            instance,
+            current_token_index,
+            current_node_index,
+            now_ms,
+            "advance_instance_conditional_catch_routing",
+        );
+    }
+    call_activity::register_intermediate_wait(process, instance, current_node_index, now_ms)
+}
+
+fn conditional_catch_event_is_ready(
+    process: &BpmnProcessSpec,
+    instance: &BpmnInstanceState,
+    node_index: BpmnNodeIndex,
+) -> Result<bool> {
+    let Some(event) = process.event_for_node(node_index) else {
+        return Ok(false);
+    };
+    if event.kind != BpmnEventKind::Conditional {
+        return Ok(false);
+    }
+    super::conditional_event_is_satisfied(process, node_index, &instance.variables)
+}
+
 fn advance_intermediate_throw_event(
+    package: &BpmnPackage,
     process: &BpmnProcessSpec,
     instance: &mut BpmnInstanceState,
     current_token_index: usize,
@@ -273,6 +403,25 @@ fn advance_intermediate_throw_event(
                     now_ms,
                 )
             }
+        }
+        BpmnEventKind::Escalation => {
+            if instance.call_stack.is_empty() {
+                return Err(BpmnEngineError::UnsupportedEventConfiguration {
+                    process_id: process.key.process_id.to_string(),
+                    node_id: process.nodes[current_node_index as usize]
+                        .bpmn_id
+                        .to_string(),
+                    detail: "escalation_throw_requires_supported_parent_boundary",
+                });
+            }
+            escalation::escalation_subprocess_shell(
+                package,
+                instance,
+                current_token_index,
+                current_node_index,
+                event.reference_id.as_deref(),
+                now_ms,
+            )
         }
         _ => Err(BpmnEngineError::UnsupportedOperation {
             operation: "advance_instance_intermediate_throw_event_kind",
@@ -457,11 +606,11 @@ pub(crate) fn apply_pending_host_work_result_impl(
             operation: "apply_pending_host_work_result_node_kind_mismatch",
         });
     }
-    validate_human_task_completion_form(
+    let mapped_output = map_task_completion_output(
         &pending,
         pending_process_id.as_str(),
         current_node.bpmn_id.as_ref(),
-        result,
+        result.data(),
     )?;
 
     state::clear_pending_host_work(instance, token_id);
@@ -501,12 +650,13 @@ pub(crate) fn apply_pending_host_work_result_impl(
         );
         return Ok(BpmnAdvanceOutcome::Advanced);
     }
-    completion::complete_local_task_execution(
+    completion::complete_local_task_execution_with_variable_output(
         process,
         instance,
         token_index,
         pending.node_index,
         result.data(),
+        &mapped_output,
         completed_at_ms,
     )?;
     record_human_task_completion_event(instance, &pending, completed_at_ms);
@@ -519,60 +669,93 @@ pub(crate) fn apply_pending_host_work_result_impl(
     Ok(BpmnAdvanceOutcome::Advanced)
 }
 
-fn validate_human_task_completion_form(
+fn map_task_completion_output(
     pending: &PendingHostWork,
     process_id: &str,
     activity_id: &str,
-    result: &PendingHostWorkResult,
-) -> Result<()> {
-    if !matches!(
-        pending.kind,
-        PendingHostWorkKind::User | PendingHostWorkKind::Manual
-    ) {
-        return Ok(());
-    }
-    let Some(form) = pending.human_task_form.as_ref() else {
-        return Ok(());
-    };
-    let Some(data) = result.data().as_object() else {
-        return Err(BpmnEngineError::HumanTaskCompletionDataNotObject {
+    data: &Value,
+) -> Result<Value> {
+    let Some(task_io) = pending
+        .task_io
+        .as_ref()
+        .filter(|task_io| !task_io.outputs.is_empty())
+    else {
+        return Err(BpmnEngineError::MissingTaskOutputMapping {
             process_id: process_id.to_string(),
             activity_id: activity_id.to_string(),
         });
     };
-
-    let mut declared_fields = BTreeSet::<String>::new();
-    let mut required_fields = BTreeSet::<String>::new();
-    if let Some(result_output) = form.result_output.as_deref() {
-        declared_fields.insert(result_output.to_string());
-        required_fields.insert(result_output.to_string());
+    let Some(data) = data.as_object() else {
+        return Err(BpmnEngineError::TaskCompletionDataNotObject {
+            process_id: process_id.to_string(),
+            activity_id: activity_id.to_string(),
+        });
+    };
+    let mut declared_targets = BTreeMap::<String, (String, bool)>::new();
+    for output in &task_io.outputs {
+        declared_targets.insert(
+            output.name.to_string(),
+            (output.target_ref.to_string(), output.required),
+        );
     }
-    for field in &form.free_text_fields {
-        declared_fields.insert(field.name.to_string());
-        if !field.optional {
-            required_fields.insert(field.name.to_string());
-        }
-    }
-
-    for field in required_fields {
-        if !data.contains_key(field.as_str()) {
-            return Err(BpmnEngineError::MissingHumanTaskCompletionField {
-                process_id: process_id.to_string(),
-                activity_id: activity_id.to_string(),
-                field,
-            });
-        }
-    }
-    for field in data.keys() {
-        if !declared_fields.contains(field) {
-            return Err(BpmnEngineError::UndeclaredHumanTaskCompletionField {
+    let declared_fields = declared_targets.keys().cloned().collect::<BTreeSet<_>>();
+    for (field, (_, required)) in &declared_targets {
+        if *required && !data.contains_key(field.as_str()) {
+            return Err(BpmnEngineError::MissingTaskCompletionField {
                 process_id: process_id.to_string(),
                 activity_id: activity_id.to_string(),
                 field: field.clone(),
             });
         }
     }
+    for field in data.keys() {
+        if !declared_fields.contains(field) {
+            return Err(BpmnEngineError::UndeclaredTaskCompletionField {
+                process_id: process_id.to_string(),
+                activity_id: activity_id.to_string(),
+                field: field.clone(),
+            });
+        }
+    }
+    let mut mapped = Value::Object(Map::new());
+    for (field, (target_ref, _)) in declared_targets {
+        let Some(value) = data.get(field.as_str()).cloned() else {
+            continue;
+        };
+        assign_value_path(&mut mapped, target_ref.as_str(), value)?;
+    }
+    Ok(mapped)
+}
 
+fn assign_value_path(variables: &mut Value, path: &str, value: Value) -> Result<()> {
+    let Some(object) = variables.as_object_mut() else {
+        return Err(BpmnEngineError::UnsupportedOperation {
+            operation: "task_output_assignment_non_object_root",
+        });
+    };
+    let mut segments = path
+        .split('.')
+        .filter(|segment| !segment.is_empty())
+        .peekable();
+    let Some(last_segment) = segments.next_back() else {
+        return Err(BpmnEngineError::UnsupportedOperation {
+            operation: "task_output_assignment_empty_target",
+        });
+    };
+
+    let mut current = object;
+    for segment in segments {
+        let entry = current
+            .entry(segment.to_string())
+            .or_insert_with(|| Value::Object(Map::new()));
+        let Some(next) = entry.as_object_mut() else {
+            return Err(BpmnEngineError::UnsupportedOperation {
+                operation: "task_output_assignment_conflicting_non_object_segment",
+            });
+        };
+        current = next;
+    }
+    current.insert(last_segment.to_string(), value);
     Ok(())
 }
 

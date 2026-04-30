@@ -35,6 +35,8 @@ fn bpmn_engine_dependency_smoke() {
             DmnDecisionRef::new("loan-decision"),
             json!({ "scope": "linkage" }),
         ),
+        inputs: json!({}),
+        output_bindings: vec![],
         repeat: None,
     });
     assert_eq!(business_rule_request.kind_name(), "business_rule");

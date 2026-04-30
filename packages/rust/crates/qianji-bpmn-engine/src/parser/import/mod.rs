@@ -1,21 +1,23 @@
 //! BPMN source ingestion and XML extraction.
 
+mod api;
 mod attributes;
 mod capture;
+mod human_task_io;
 mod lane;
 mod model;
 mod nested;
 mod process;
 mod reader;
+mod task_io;
 
-pub(crate) use lane::attach_lane_memberships;
-pub(crate) use model::{
+pub(crate) use api::{
+    NestedShellKind, RawAssociation, RawDataObjectReferenceSpec, RawDataObjectSpec, RawEventSpec,
     RawHumanTaskAssignmentSpec, RawHumanTaskChoiceSpec, RawHumanTaskFormSpec,
-    RawHumanTaskFreeTextSpec, RawHumanTaskResourceRoleKind, RawHumanTaskResourceRoleSpec,
-    RawLaneMembershipSpec,
-};
-pub(crate) use reader::{
-    NestedShellKind, RawAssociation, RawEventSpec, RawNode, RawPackageDocument,
+    RawHumanTaskFreeTextSpec, RawHumanTaskNativeIoSpec, RawHumanTaskResourceRoleKind,
+    RawHumanTaskResourceRoleSpec, RawLaneMembershipSpec, RawNode, RawPackageDocument,
     RawParallelMultiInstanceSpec, RawProcess, RawProcessScope, RawRepeatSpec, RawScriptTaskSpec,
-    RawSequenceFlow, RawSequentialMultiInstanceSpec, RawSubProcessKind, import_bpmn_source,
+    RawSequenceFlow, RawSequentialMultiInstanceSpec, RawSubProcessKind, RawTaskInputBinding,
+    RawTaskInputSource, RawTaskIoSpec, RawTaskOutputBinding, attach_lane_memberships,
+    import_bpmn_source,
 };

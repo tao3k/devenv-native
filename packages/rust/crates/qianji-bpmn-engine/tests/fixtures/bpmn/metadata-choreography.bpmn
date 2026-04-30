@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  id="Defs_Choreography_Metadata"
+  targetNamespace="https://qianji.example/bpmn/choreography-metadata">
+  <bpmn:message id="Message_Request" name="OrderRequest" />
+  <bpmn:message id="Message_Response" name="OrderResponse" />
+  <bpmn:correlationProperty id="Correlation_Order" name="orderId" type="tns:OrderId" />
+  <bpmn:choreography id="Choreography_Order" name="Order choreography" isClosed="false">
+    <bpmn:participant id="Participant_Requester" name="Requester" />
+    <bpmn:participant id="Participant_Approver" name="Approver" />
+    <bpmn:messageFlow id="MessageFlow_Request" sourceRef="Participant_Requester" targetRef="Participant_Approver" messageRef="Message_Request" />
+    <bpmn:messageFlow id="MessageFlow_Response" sourceRef="Participant_Approver" targetRef="Participant_Requester" messageRef="Message_Response" />
+    <bpmn:choreographyTask id="ChoreographyTask_Order" name="Request order" initiatingParticipantRef="Participant_Requester" loopType="Standard">
+      <bpmn:participantRef>Participant_Requester</bpmn:participantRef>
+      <bpmn:participantRef>Participant_Approver</bpmn:participantRef>
+      <bpmn:correlationKey id="CorrelationKey_Order" name="order key">
+        <bpmn:correlationPropertyRef>Correlation_Order</bpmn:correlationPropertyRef>
+      </bpmn:correlationKey>
+      <bpmn:messageFlowRef>MessageFlow_Request</bpmn:messageFlowRef>
+      <bpmn:messageFlowRef>MessageFlow_Response</bpmn:messageFlowRef>
+    </bpmn:choreographyTask>
+    <bpmn:subChoreography id="SubChoreography_Returns" name="Returns" initiatingParticipantRef="Participant_Approver">
+      <bpmn:participantRef>Participant_Requester</bpmn:participantRef>
+      <bpmn:participantRef>Participant_Approver</bpmn:participantRef>
+      <bpmn:choreographyTask id="ChoreographyTask_Return_Ack" name="Return acknowledgement" initiatingParticipantRef="Participant_Approver">
+        <bpmn:participantRef>Participant_Requester</bpmn:participantRef>
+        <bpmn:participantRef>Participant_Approver</bpmn:participantRef>
+        <bpmn:messageFlowRef>MessageFlow_Response</bpmn:messageFlowRef>
+      </bpmn:choreographyTask>
+    </bpmn:subChoreography>
+    <bpmn:callChoreography id="CallChoreography_Escalation" name="Escalation choreography" initiatingParticipantRef="Participant_Requester" calledChoreographyRef="GlobalChoreography_Escalation">
+      <bpmn:participantRef>Participant_Requester</bpmn:participantRef>
+      <bpmn:participantRef>Participant_Approver</bpmn:participantRef>
+      <bpmn:participantAssociation id="ParticipantAssociation_Call">
+        <bpmn:innerParticipantRef>Participant_Approver</bpmn:innerParticipantRef>
+        <bpmn:outerParticipantRef>Participant_Requester</bpmn:outerParticipantRef>
+      </bpmn:participantAssociation>
+    </bpmn:callChoreography>
+  </bpmn:choreography>
+  <bpmn:globalChoreographyTask id="GlobalChoreography_Escalation" name="Reusable escalation" initiatingParticipantRef="Participant_Requester" />
+</bpmn:definitions>

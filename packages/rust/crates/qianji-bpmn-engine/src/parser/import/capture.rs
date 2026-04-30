@@ -9,7 +9,7 @@ pub(super) use multi_instance::{
     apply_multi_instance_loop_data_output_ref, apply_multi_instance_output_data_item,
 };
 pub(super) use node::{
-    apply_human_task_assignment_expression, apply_human_task_question_text,
+    apply_conditional_expression, apply_human_task_assignment_expression,
     apply_human_task_resource_ref, apply_script_task_body,
     apply_sequence_flow_condition_expression, apply_standard_loop_condition,
     apply_timer_expression, last_process_node_mut, push_human_task_resource_role,

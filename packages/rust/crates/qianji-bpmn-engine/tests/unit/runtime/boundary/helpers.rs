@@ -72,7 +72,7 @@ pub(super) fn assert_non_interrupting_boundary_external_wait(
     assert_eq!(instance.waits[0].event_name.as_deref(), Some(expected_name));
     assert!(instance.waits[0].timer.is_none());
     assert_eq!(
-        instance.waits[0].correlation_key.as_deref(),
+        instance.waits[0].deduplication_key.as_deref(),
         Some(expected_reference)
     );
 }
@@ -97,7 +97,7 @@ pub(super) fn assert_interrupting_boundary_external_wait(
     assert_eq!(instance.waits[0].event_name.as_deref(), Some(expected_name));
     assert!(instance.waits[0].timer.is_none());
     assert_eq!(
-        instance.waits[0].correlation_key.as_deref(),
+        instance.waits[0].deduplication_key.as_deref(),
         Some(expected_reference)
     );
 }

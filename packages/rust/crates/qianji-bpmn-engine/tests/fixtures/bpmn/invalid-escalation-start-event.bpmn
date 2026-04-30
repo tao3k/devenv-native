@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  id="pkg_invalid_escalation_start_event"
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL">
+  <bpmn:process id="escalation_start_event">
+    <bpmn:startEvent id="start">
+      <bpmn:escalationEventDefinition escalationRef="workflow_escalated" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="end" />
+    <bpmn:sequenceFlow id="flow_1" sourceRef="start" targetRef="end" />
+  </bpmn:process>
+</bpmn:definitions>

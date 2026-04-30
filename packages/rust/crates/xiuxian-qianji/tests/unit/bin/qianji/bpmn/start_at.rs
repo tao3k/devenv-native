@@ -358,19 +358,44 @@ fn write_gateway_user_task_bundle(temp_dir: &TempDir) -> PathBuf {
     write_file(
         &bpmn_path,
         r#"<?xml version="1.0" encoding="UTF-8"?>
-<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
-  xmlns:qianji="https://qianji.dev/bpmn/extensions" id="pkg_host_loop_stream">
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" id="pkg_host_loop_stream">
   <bpmn:process id="host_loop_stream" isExecutable="true">
     <bpmn:startEvent id="Start_1" />
     <bpmn:exclusiveGateway id="Gateway_Auto" />
     <bpmn:userTask id="Task_Review">
-      <bpmn:extensionElements>
-        <qianji:interaction type="choice_input">
-          <qianji:question ref="currentQuestion"/>
-          <qianji:choices ref="currentChoices"/>
-          <qianji:result output="answer"/>
-        </qianji:interaction>
-      </bpmn:extensionElements>
+      <bpmn:documentation>Ask the current question.</bpmn:documentation>
+      <bpmn:ioSpecification>
+        <bpmn:dataInput id="Task_Review_Input_interactionType" name="interactionType" />
+        <bpmn:dataInput id="Task_Review_Input_question" name="question" />
+        <bpmn:dataInput id="Task_Review_Input_choices" name="choices" />
+        <bpmn:dataOutput id="Task_Review_Output_answer" name="answer" />
+        <bpmn:inputSet id="Task_Review_InputSet">
+          <bpmn:dataInputRefs>Task_Review_Input_interactionType</bpmn:dataInputRefs>
+          <bpmn:dataInputRefs>Task_Review_Input_question</bpmn:dataInputRefs>
+          <bpmn:dataInputRefs>Task_Review_Input_choices</bpmn:dataInputRefs>
+        </bpmn:inputSet>
+        <bpmn:outputSet id="Task_Review_OutputSet">
+          <bpmn:dataOutputRefs>Task_Review_Output_answer</bpmn:dataOutputRefs>
+        </bpmn:outputSet>
+      </bpmn:ioSpecification>
+      <bpmn:dataInputAssociation>
+        <bpmn:assignment>
+          <bpmn:from>choice_input</bpmn:from>
+          <bpmn:to>Task_Review_Input_interactionType</bpmn:to>
+        </bpmn:assignment>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataInputAssociation>
+        <bpmn:sourceRef>currentQuestion</bpmn:sourceRef>
+        <bpmn:targetRef>Task_Review_Input_question</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataInputAssociation>
+        <bpmn:sourceRef>currentChoices</bpmn:sourceRef>
+        <bpmn:targetRef>Task_Review_Input_choices</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation>
+        <bpmn:sourceRef>Task_Review_Output_answer</bpmn:sourceRef>
+        <bpmn:targetRef>answer</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
     </bpmn:userTask>
     <bpmn:endEvent id="End_1" />
     <bpmn:sequenceFlow id="Flow_Start" sourceRef="Start_1" targetRef="Gateway_Auto" />
@@ -387,19 +412,51 @@ fn write_form_manual_task_bundle(temp_dir: &TempDir) -> PathBuf {
     write_file(
         &bpmn_path,
         r#"<?xml version="1.0" encoding="UTF-8"?>
-<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
-  xmlns:qianji="https://qianji.dev/bpmn/extensions" id="pkg_question">
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" id="pkg_question">
   <bpmn:process id="question_flow" isExecutable="true">
     <bpmn:startEvent id="Start_1" />
     <bpmn:manualTask id="Task_Question">
-      <bpmn:extensionElements>
-        <qianji:interaction type="choice_input">
-          <qianji:question ref="currentQuestion"/>
-          <qianji:choices ref="currentChoices"/>
-          <qianji:freeText name="feedback" optional="true"/>
-          <qianji:result output="answer"/>
-        </qianji:interaction>
-      </bpmn:extensionElements>
+      <bpmn:documentation>Ask the current question.</bpmn:documentation>
+      <bpmn:ioSpecification>
+        <bpmn:dataInput id="Task_Question_Input_interactionType" name="interactionType" />
+        <bpmn:dataInput id="Task_Question_Input_question" name="question" />
+        <bpmn:dataInput id="Task_Question_Input_choices" name="choices" />
+        <bpmn:dataInput id="Task_Question_Input_freeText" name="freeText" />
+        <bpmn:dataOutput id="Task_Question_Output_answer" name="answer" />
+        <bpmn:inputSet id="Task_Question_InputSet">
+          <bpmn:dataInputRefs>Task_Question_Input_interactionType</bpmn:dataInputRefs>
+          <bpmn:dataInputRefs>Task_Question_Input_question</bpmn:dataInputRefs>
+          <bpmn:dataInputRefs>Task_Question_Input_choices</bpmn:dataInputRefs>
+          <bpmn:dataInputRefs>Task_Question_Input_freeText</bpmn:dataInputRefs>
+        </bpmn:inputSet>
+        <bpmn:outputSet id="Task_Question_OutputSet">
+          <bpmn:dataOutputRefs>Task_Question_Output_answer</bpmn:dataOutputRefs>
+        </bpmn:outputSet>
+      </bpmn:ioSpecification>
+      <bpmn:dataInputAssociation>
+        <bpmn:assignment>
+          <bpmn:from>choice_input</bpmn:from>
+          <bpmn:to>Task_Question_Input_interactionType</bpmn:to>
+        </bpmn:assignment>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataInputAssociation>
+        <bpmn:sourceRef>currentQuestion</bpmn:sourceRef>
+        <bpmn:targetRef>Task_Question_Input_question</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataInputAssociation>
+        <bpmn:sourceRef>currentChoices</bpmn:sourceRef>
+        <bpmn:targetRef>Task_Question_Input_choices</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataInputAssociation>
+        <bpmn:assignment>
+          <bpmn:from>{"name":"feedback","optional":true}</bpmn:from>
+          <bpmn:to>Task_Question_Input_freeText</bpmn:to>
+        </bpmn:assignment>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation>
+        <bpmn:sourceRef>Task_Question_Output_answer</bpmn:sourceRef>
+        <bpmn:targetRef>answer</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
       <bpmn:humanPerformer name="reviewer">
         <bpmn:resourceAssignmentExpression>
           <bpmn:formalExpression>users.alice</bpmn:formalExpression>

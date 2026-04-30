@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  id="Definitions_InvalidTaskOperationBinding"
+  targetNamespace="https://example.com/bpmn/invalid-task-operation-binding">
+  <bpmn:process id="operation_binding_process" isExecutable="true">
+    <bpmn:startEvent id="start" />
+    <bpmn:serviceTask id="invoke_service" operationRef="Operation_Invoke" />
+    <bpmn:sendTask id="send_update" messageRef="Message_Update" operationRef="Operation_Send" />
+    <bpmn:receiveTask id="receive_reply" messageRef="Message_Reply" operationRef="Operation_Receive" />
+    <bpmn:endEvent id="end" />
+    <bpmn:sequenceFlow id="flow_start_service" sourceRef="start" targetRef="invoke_service" />
+    <bpmn:sequenceFlow id="flow_service_send" sourceRef="invoke_service" targetRef="send_update" />
+    <bpmn:sequenceFlow id="flow_send_receive" sourceRef="send_update" targetRef="receive_reply" />
+    <bpmn:sequenceFlow id="flow_receive_end" sourceRef="receive_reply" targetRef="end" />
+  </bpmn:process>
+</bpmn:definitions>

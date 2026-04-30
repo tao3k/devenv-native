@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
 
-use xiuxian_wendao_parsers::parse_markdown_toc;
+use xiuxian_wendao_parsers::{DocumentCore, parse_markdown_toc, parse_org_toc};
 
 use super::discovery::DiscoveredMarkdownFile;
 use super::skeleton::render_markdown_skeleton;
@@ -42,20 +42,20 @@ pub(crate) fn build_rows_for_file(
         .and_then(|stem| stem.to_str())
         .filter(|stem| !stem.is_empty())
         .unwrap_or("page");
-    let parsed = parse_markdown_toc(&body, fallback_title);
+    let (document, sections) = parse_bounded_work_document(&file.absolute_path, &body, fallback_title);
 
-    let mut rows = Vec::with_capacity(parsed.sections.len() + 1);
+    let mut rows = Vec::with_capacity(sections.len() + 1);
     rows.push(BoundedWorkMarkdownRow {
         path: file.relative_path.clone(),
         surface: file.surface.clone(),
         heading_path: String::new(),
-        title: parsed.document.core.title.clone(),
+        title: document.title.clone(),
         level: 0,
-        skeleton: render_markdown_skeleton(&parsed.document.core.title, 1, &HashMap::new(), &body),
+        skeleton: render_markdown_skeleton(&document.title, 1, &HashMap::new(), &body),
         body: body.trim().to_string(),
     });
 
-    rows.extend(parsed.sections.iter().map(|section| {
+    rows.extend(sections.iter().map(|section| {
         let heading_path = normalize_heading_path(section.scope.heading_path.as_str());
         let title = effective_title(heading_path.as_str(), section.scope.heading_title.as_str());
         BoundedWorkMarkdownRow {
@@ -75,6 +75,23 @@ pub(crate) fn build_rows_for_file(
     }));
 
     Ok(rows)
+}
+
+fn parse_bounded_work_document(
+    path: &Path,
+    body: &str,
+    fallback_title: &str,
+) -> (DocumentCore, Vec<xiuxian_wendao_parsers::sections::MarkdownSection>) {
+    if path
+        .extension()
+        .and_then(|value| value.to_str())
+        .is_some_and(|extension| extension.eq_ignore_ascii_case("org"))
+    {
+        let parsed = parse_org_toc(body, fallback_title);
+        return (parsed.document.core, parsed.sections);
+    }
+    let parsed = parse_markdown_toc(body, fallback_title);
+    (parsed.document.core, parsed.sections)
 }
 
 fn normalize_heading_path(raw: &str) -> String {

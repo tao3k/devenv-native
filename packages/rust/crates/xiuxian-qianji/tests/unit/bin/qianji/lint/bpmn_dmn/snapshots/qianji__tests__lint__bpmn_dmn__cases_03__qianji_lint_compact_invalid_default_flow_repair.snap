@@ -41,4 +41,4 @@ Forbidden forms:
 
 Structured repair:
 - strategy: retarget_default_flow_to_existing_outgoing
-- contract: qianji.bpmn.gateway.bounded.v1
+- contract: bpmn.native.gateway.bounded.v1

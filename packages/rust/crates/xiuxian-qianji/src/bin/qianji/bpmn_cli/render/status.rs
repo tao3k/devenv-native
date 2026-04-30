@@ -206,8 +206,8 @@ fn append_bpmn_status_wait_registrations(
         if let Some(blocking_node_index) = wait.blocking_node_index {
             let _ = write!(line, " | blocking_node_index={blocking_node_index}");
         }
-        if let Some(correlation_key) = wait.correlation_key.as_ref() {
-            let _ = write!(line, " | correlation={correlation_key}");
+        if let Some(deduplication_key) = wait.deduplication_key.as_ref() {
+            let _ = write!(line, " | dedupe={deduplication_key}");
         }
         let _ = writeln!(rendered, "{line}");
     }

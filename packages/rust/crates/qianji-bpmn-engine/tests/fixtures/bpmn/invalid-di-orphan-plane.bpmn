@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  id="Defs_InvalidDiOrphanPlane"
+  targetNamespace="https://example.com/bpmn/invalid-di-orphan-plane">
+  <bpmn:process id="invalid_di_orphan_plane_process" isExecutable="true">
+    <bpmn:startEvent id="start" />
+    <bpmn:endEvent id="end" />
+    <bpmn:sequenceFlow id="flow_start_end" sourceRef="start" targetRef="end" />
+  </bpmn:process>
+  <bpmndi:BPMNPlane id="Plane_Orphan" bpmnElement="invalid_di_orphan_plane_process">
+    <bpmndi:BPMNShape id="Shape_Start" bpmnElement="start">
+      <dc:Bounds x="100" y="80" width="36" height="36" />
+    </bpmndi:BPMNShape>
+  </bpmndi:BPMNPlane>
+</bpmn:definitions>

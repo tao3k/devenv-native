@@ -49,7 +49,18 @@ pub(super) fn write_user_task_bundle(temp_dir: &TempDir) -> PathBuf {
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" id="pkg_review">
   <bpmn:process id="review" isExecutable="true">
     <bpmn:startEvent id="start" />
-    <bpmn:userTask id="review_task" />
+    <bpmn:userTask id="review_task">
+      <bpmn:ioSpecification>
+        <bpmn:dataOutput id="review_task_output_answer" name="answer" />
+        <bpmn:outputSet id="review_task_output_set">
+          <bpmn:dataOutputRefs>review_task_output_answer</bpmn:dataOutputRefs>
+        </bpmn:outputSet>
+      </bpmn:ioSpecification>
+      <bpmn:dataOutputAssociation>
+        <bpmn:sourceRef>review_task_output_answer</bpmn:sourceRef>
+        <bpmn:targetRef>answer</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
     <bpmn:endEvent id="end" />
     <bpmn:sequenceFlow id="flow_1" sourceRef="start" targetRef="review_task" />
     <bpmn:sequenceFlow id="flow_2" sourceRef="review_task" targetRef="end" />
@@ -69,6 +80,16 @@ pub(super) fn write_assignment_user_task_bundle(temp_dir: &TempDir) -> PathBuf {
   <bpmn:process id="review" isExecutable="true">
     <bpmn:startEvent id="start" />
     <bpmn:userTask id="review_task">
+      <bpmn:ioSpecification>
+        <bpmn:dataOutput id="review_task_output_answer" name="answer" />
+        <bpmn:outputSet id="review_task_output_set">
+          <bpmn:dataOutputRefs>review_task_output_answer</bpmn:dataOutputRefs>
+        </bpmn:outputSet>
+      </bpmn:ioSpecification>
+      <bpmn:dataOutputAssociation>
+        <bpmn:sourceRef>review_task_output_answer</bpmn:sourceRef>
+        <bpmn:targetRef>answer</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
       <bpmn:humanPerformer name="reviewer">
         <bpmn:resourceAssignmentExpression>
           <bpmn:formalExpression>users.alice</bpmn:formalExpression>
@@ -102,6 +123,16 @@ pub(super) fn write_lane_user_task_bundle(temp_dir: &TempDir) -> PathBuf {
     </bpmn:laneSet>
     <bpmn:startEvent id="start" />
     <bpmn:userTask id="review_task">
+      <bpmn:ioSpecification>
+        <bpmn:dataOutput id="review_task_output_answer" name="answer" />
+        <bpmn:outputSet id="review_task_output_set">
+          <bpmn:dataOutputRefs>review_task_output_answer</bpmn:dataOutputRefs>
+        </bpmn:outputSet>
+      </bpmn:ioSpecification>
+      <bpmn:dataOutputAssociation>
+        <bpmn:sourceRef>review_task_output_answer</bpmn:sourceRef>
+        <bpmn:targetRef>answer</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
       <bpmn:humanPerformer name="reviewer">
         <bpmn:resourceAssignmentExpression>
           <bpmn:formalExpression>users.alice</bpmn:formalExpression>
@@ -126,19 +157,51 @@ pub(super) fn write_form_user_task_bundle(temp_dir: &TempDir) -> PathBuf {
     write_file(
         &bpmn_path,
         r#"<?xml version="1.0" encoding="UTF-8"?>
-<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
-  xmlns:qianji="https://qianji.dev/bpmn/extensions" id="pkg_review_form">
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" id="pkg_review_form">
   <bpmn:process id="review" isExecutable="true">
     <bpmn:startEvent id="start" />
     <bpmn:userTask id="review_task">
-      <bpmn:extensionElements>
-        <qianji:interaction type="choice_input">
-          <qianji:question ref="currentQuestion"/>
-          <qianji:choices ref="currentChoices"/>
-          <qianji:freeText name="feedback" optional="true"/>
-          <qianji:result output="answer"/>
-        </qianji:interaction>
-      </bpmn:extensionElements>
+      <bpmn:documentation>Ask the current question.</bpmn:documentation>
+      <bpmn:ioSpecification>
+        <bpmn:dataInput id="review_task_input_interactionType" name="interactionType" />
+        <bpmn:dataInput id="review_task_input_question" name="question" />
+        <bpmn:dataInput id="review_task_input_choices" name="choices" />
+        <bpmn:dataInput id="review_task_input_freeText" name="freeText" />
+        <bpmn:dataOutput id="review_task_output_answer" name="answer" />
+        <bpmn:inputSet id="review_task_input_set">
+          <bpmn:dataInputRefs>review_task_input_interactionType</bpmn:dataInputRefs>
+          <bpmn:dataInputRefs>review_task_input_question</bpmn:dataInputRefs>
+          <bpmn:dataInputRefs>review_task_input_choices</bpmn:dataInputRefs>
+          <bpmn:dataInputRefs>review_task_input_freeText</bpmn:dataInputRefs>
+        </bpmn:inputSet>
+        <bpmn:outputSet id="review_task_output_set">
+          <bpmn:dataOutputRefs>review_task_output_answer</bpmn:dataOutputRefs>
+        </bpmn:outputSet>
+      </bpmn:ioSpecification>
+      <bpmn:dataInputAssociation>
+        <bpmn:assignment>
+          <bpmn:from>choice_input</bpmn:from>
+          <bpmn:to>review_task_input_interactionType</bpmn:to>
+        </bpmn:assignment>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataInputAssociation>
+        <bpmn:sourceRef>currentQuestion</bpmn:sourceRef>
+        <bpmn:targetRef>review_task_input_question</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataInputAssociation>
+        <bpmn:sourceRef>currentChoices</bpmn:sourceRef>
+        <bpmn:targetRef>review_task_input_choices</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataInputAssociation>
+        <bpmn:assignment>
+          <bpmn:from>{"name":"feedback","optional":true}</bpmn:from>
+          <bpmn:to>review_task_input_freeText</bpmn:to>
+        </bpmn:assignment>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation>
+        <bpmn:sourceRef>review_task_output_answer</bpmn:sourceRef>
+        <bpmn:targetRef>answer</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
     </bpmn:userTask>
     <bpmn:endEvent id="end" />
     <bpmn:sequenceFlow id="flow_1" sourceRef="start" targetRef="review_task" />
@@ -158,9 +221,42 @@ pub(super) fn write_user_service_user_bundle(temp_dir: &TempDir) -> PathBuf {
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" id="pkg_user_service_user">
   <bpmn:process id="review" isExecutable="true">
     <bpmn:startEvent id="start" />
-    <bpmn:userTask id="first_user" />
-    <bpmn:serviceTask id="store_answer" />
-    <bpmn:userTask id="second_user" />
+    <bpmn:userTask id="first_user">
+      <bpmn:ioSpecification>
+        <bpmn:dataOutput id="first_user_output_answer" name="answer" />
+        <bpmn:outputSet id="first_user_output_set">
+          <bpmn:dataOutputRefs>first_user_output_answer</bpmn:dataOutputRefs>
+        </bpmn:outputSet>
+      </bpmn:ioSpecification>
+      <bpmn:dataOutputAssociation>
+        <bpmn:sourceRef>first_user_output_answer</bpmn:sourceRef>
+        <bpmn:targetRef>firstAnswer</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="store_answer">
+      <bpmn:ioSpecification>
+        <bpmn:dataOutput id="store_answer_output_stored" name="stored" />
+        <bpmn:outputSet id="store_answer_output_set">
+          <bpmn:dataOutputRefs>store_answer_output_stored</bpmn:dataOutputRefs>
+        </bpmn:outputSet>
+      </bpmn:ioSpecification>
+      <bpmn:dataOutputAssociation>
+        <bpmn:sourceRef>store_answer_output_stored</bpmn:sourceRef>
+        <bpmn:targetRef>stored</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:serviceTask>
+    <bpmn:userTask id="second_user">
+      <bpmn:ioSpecification>
+        <bpmn:dataOutput id="second_user_output_answer" name="answer" />
+        <bpmn:outputSet id="second_user_output_set">
+          <bpmn:dataOutputRefs>second_user_output_answer</bpmn:dataOutputRefs>
+        </bpmn:outputSet>
+      </bpmn:ioSpecification>
+      <bpmn:dataOutputAssociation>
+        <bpmn:sourceRef>second_user_output_answer</bpmn:sourceRef>
+        <bpmn:targetRef>secondAnswer</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
     <bpmn:endEvent id="end" />
     <bpmn:sequenceFlow id="flow_1" sourceRef="start" targetRef="first_user" />
     <bpmn:sequenceFlow id="flow_2" sourceRef="first_user" targetRef="store_answer" />

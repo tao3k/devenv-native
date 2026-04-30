@@ -43,4 +43,4 @@ Forbidden forms:
 
 Structured repair:
 - strategy: repair_task_single_outgoing_route
-- contract: qianji.bpmn.task.routing.v1
+- contract: bpmn.native.task.routing.v1

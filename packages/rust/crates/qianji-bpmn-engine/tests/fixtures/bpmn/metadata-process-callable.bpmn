@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  id="Definitions_ProcessCallableMetadata"
+  targetNamespace="https://example.com/bpmn/process-callable-metadata">
+  <bpmn:itemDefinition id="Item_Order" structureRef="tns:Order" />
+  <bpmn:itemDefinition id="Item_OrderId" structureRef="tns:OrderId" />
+  <bpmn:message id="Message_Order" itemRef="Item_Order" />
+  <bpmn:correlationProperty id="Correlation_Order" name="orderId" type="Item_OrderId" />
+  <bpmn:collaboration id="Collaboration_CallableMetadata">
+    <bpmn:participant id="Participant_Requester" processRef="Process_CallableMetadata" />
+    <bpmn:correlationKey id="CorrelationKey_Order">
+      <bpmn:correlationPropertyRef>Correlation_Order</bpmn:correlationPropertyRef>
+    </bpmn:correlationKey>
+  </bpmn:collaboration>
+  <bpmn:process
+    id="Process_CallableMetadata"
+    name="Callable Metadata"
+    processType="Public"
+    isClosed="true"
+    isExecutable="false"
+    definitionalCollaborationRef="Collaboration_CallableMetadata">
+    <bpmn:property id="Property_Order" name="order" itemSubjectRef="Item_Order" />
+    <bpmn:startEvent id="Start_CallableMetadata" />
+    <bpmn:endEvent id="End_CallableMetadata" />
+    <bpmn:sequenceFlow id="Flow_CallableMetadata" sourceRef="Start_CallableMetadata" targetRef="End_CallableMetadata" />
+    <bpmn:correlationSubscription id="Subscription_Order" correlationKeyRef="CorrelationKey_Order">
+      <bpmn:correlationPropertyBinding id="Binding_Order" correlationPropertyRef="Correlation_Order">
+        <bpmn:dataPath language="https://example.com/jsonpath" evaluatesToTypeRef="Item_OrderId">order.id</bpmn:dataPath>
+      </bpmn:correlationPropertyBinding>
+    </bpmn:correlationSubscription>
+    <bpmn:supports>Process_Base</bpmn:supports>
+  </bpmn:process>
+</bpmn:definitions>

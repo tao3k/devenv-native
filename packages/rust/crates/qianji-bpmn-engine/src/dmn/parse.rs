@@ -2,7 +2,7 @@
 
 #[path = "parse/driver.rs"]
 mod driver;
-#[path = "../dmn_parse_state.rs"]
+#[path = "parse/state.rs"]
 mod state;
 #[path = "../dmn_parse_unary.rs"]
 mod unary;

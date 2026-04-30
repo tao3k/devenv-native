@@ -43,6 +43,9 @@ packages/python/
   wendao-arrow-interface/    downstream-facing Arrow facade with optional dataframe examples
   qianji-workflow-contracts/ pure workflow payload contracts for BPMN/DMN handoff
   xiuxian-wendao-analyzer/   analyzer workflows on top of the same substrate
+  python-lang-parser/        standalone Python-native AST and symbol-table parser
+  xiuxian-harness-python-lang-project/
+                              pytest-embeddable Python language project harness
   foundation/                thin config/schema/logging helpers
   core/                      minimal retained helper surface
 ```
@@ -50,7 +53,9 @@ packages/python/
 The root workspace now includes the retained substrate packages
 `wendao-core-lib`, `foundation`, and `core`, plus the public consumer facade
 `wendao-arrow-interface` and the pure contract package
-`qianji-workflow-contracts`. The beta analyzer package
+`qianji-workflow-contracts`, the standalone parser package
+`python-lang-parser`, and the helper harness library
+`xiuxian-harness-python-lang-project`. The beta analyzer package
 `xiuxian-wendao-analyzer` remains an active adjacent consumer package rather
 than part of the root default workspace surface.
 
@@ -62,6 +67,8 @@ Retained Python code now ships under direct top-level packages:
 - `wendao_core_lib`
 - `wendao_arrow_interface`
 - `xiuxian_wendao_analyzer`
+- `python_lang_parser`
+- `xiuxian_harness_python_lang_project`
 
 The recommended downstream Arrow-consumer facade now lives under
 `packages/python/wendao-arrow-interface/` as `wendao_arrow_interface`.
@@ -82,6 +89,28 @@ scaffold; it is the analyzer workflow layer above `wendao-core-lib`, focused
 on analyzing rows and tables that Rust-owned query surfaces already returned.
 Rerank transport remains owned by the transport and facade packages, not by
 the analyzer package.
+
+The parser package at `packages/python/python-lang-parser/` owns only
+Python-native source parsing through Python's standard-library parser surface,
+currently `ast.parse`, `tokenize.open`, `compile`, and `symtable`. It
+intentionally does not use `tree-sitter`. It emits structured module reports
+for imports, symbols, native compiler scopes, name bindings, AST references,
+call sites, decorators, docstrings, and parser diagnostics. It does not own
+project discovery, harness policy, pytest integration, execution, routing,
+memory, indexing, transport, or workflow orchestration.
+
+The harness package at
+`packages/python/xiuxian-harness-python-lang-project/` depends on
+`python-lang-parser` and owns Python-side project harness helpers for modern
+Python projects. It is a library surface intended to be embedded in pytest:
+consumers call `assert_python_lang_harness_clean(...)` to block on error or
+warning findings, with compact rendered diagnostics as the assertion message.
+Its default rule packs include syntax validation and numbered modern Python
+design rules such as `PY-MOD-R001` for wildcard imports, `PY-MOD-R002` for
+bare library `print` calls, and `PY-MOD-R003` for package facades without
+explicit `__all__`, plus `PY-MOD-R004` for bare library `breakpoint()` calls.
+The modern-design rule catalog is available through library data rather than
+a CLI. It does not ship a CLI and does not own pytest itself.
 
 ## Removed Surface
 
@@ -107,6 +136,9 @@ The old `src/omni/...` namespace layout is gone as well.
    architecture.
 8. Downstream ergonomics facades must compose retained transport helpers
    instead of taking transport ownership themselves.
+9. Python language parser and harness helpers may parse, discover, validate,
+   and report on Python source, but they must remain helper-only and must not
+   recreate runtime ownership.
 
 ## Documentation Notes
 

@@ -43,7 +43,7 @@ Forbidden forms:
 
 Structured repair:
 - strategy: repair_task_single_outgoing_route
-- contract: qianji.bpmn.task.routing.v1
+- contract: bpmn.native.task.routing.v1
 
 [bpmn.unsupported_gateway_configuration] Error: Non-default bounded conditional branches need conditions
     ,-[ $TEMP/task_route_with_duplicate_gateway_branch.bpmn:13:6 ]
@@ -66,4 +66,4 @@ Patch focus:
 
 Structured repair:
 - strategy: remove_duplicate_unconditional_gateway_branch
-- contract: qianji.bpmn.gateway.bounded.v1
+- contract: bpmn.native.gateway.bounded.v1

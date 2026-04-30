@@ -1,7 +1,8 @@
 use super::execution::QianjiBpmnWorkflowCheckpointBackend;
 use qianji_bpmn_engine::{
     BpmnCheckpointEnvelope, BpmnHumanTaskAssignmentSpec, BpmnHumanTaskFormSpec,
-    BpmnLaneMembershipSpec, PendingHostWork, PendingHostWorkClaim, PendingHostWorkKind,
+    BpmnLaneMembershipSpec, BpmnTaskIoSpec, PendingHostWork, PendingHostWorkClaim,
+    PendingHostWorkKind,
 };
 
 /// Explicit payload for claiming pending human work on one checkpoint-backed
@@ -102,6 +103,8 @@ pub struct QianjiBpmnWorkflowWorklistItem {
     pub assignment: Option<BpmnHumanTaskAssignmentSpec>,
     /// Optional BPMN lane membership metadata preserved for host routing.
     pub lane: Option<BpmnLaneMembershipSpec>,
+    /// Optional standard BPMN task IO metadata preserved for host routing.
+    pub task_io: Option<BpmnTaskIoSpec>,
     /// Optional checkpointed claim metadata.
     pub claim: Option<PendingHostWorkClaim>,
     /// Monotonic checkpoint sequence loaded from the persisted envelope.
@@ -143,6 +146,7 @@ impl QianjiBpmnWorkflowWorklistItem {
             form: pending.human_task_form.clone(),
             assignment: pending.human_task_assignment.clone(),
             lane: pending.lane.clone(),
+            task_io: pending.task_io.clone(),
             claim: pending.claim.clone(),
             checkpoint_sequence: checkpoint.sequence,
             state_sequence: checkpoint.state.sequence,

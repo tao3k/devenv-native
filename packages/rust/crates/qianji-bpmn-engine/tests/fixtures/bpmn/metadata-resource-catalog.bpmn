@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:tns="https://example.com/bpmn/resource"
+  id="Defs_ResourceCatalog"
+  targetNamespace="https://example.com/bpmn/resource">
+  <bpmn:itemDefinition id="Item_Region" structureRef="tns:Region" itemKind="Information" />
+  <bpmn:itemDefinition id="Item_Level" structureRef="tns:ReviewLevel" itemKind="Information" />
+  <bpmn:resource id="Resource_Reviewer" name="Reviewer">
+    <bpmn:resourceParameter id="ResourceParam_Region" name="region" type="Item_Region" isRequired="true" />
+    <bpmn:resourceParameter id="ResourceParam_Level" name="level" type="Item_Level" isRequired="false" />
+  </bpmn:resource>
+  <bpmn:process id="resource_catalog_process" isExecutable="true">
+    <bpmn:startEvent id="start" />
+    <bpmn:sequenceFlow id="flow_start_review" sourceRef="start" targetRef="review" />
+    <bpmn:userTask id="review" name="Review">
+      <bpmn:potentialOwner name="review_team">
+        <bpmn:resourceRef>Resource_Reviewer</bpmn:resourceRef>
+      </bpmn:potentialOwner>
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="flow_review_end" sourceRef="review" targetRef="end" />
+    <bpmn:endEvent id="end" />
+  </bpmn:process>
+</bpmn:definitions>

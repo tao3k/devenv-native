@@ -3,24 +3,31 @@
   id="Defs_Metadata"
   name="Metadata Fixture"
   targetNamespace="https://qianji.example/bpmn/metadata">
+  <itemDefinition id="Item_Order" structureRef="tns:Order" itemKind="Information" isCollection="false" />
+  <message id="Message_1" name="OrderRequested" itemRef="Item_Order" />
+  <correlationProperty id="Correlation_Order" name="orderId" type="tns:OrderId">
+    <correlationPropertyRetrievalExpression id="Correlation_Order_From_Message" messageRef="Message_1">
+      <messagePath>order.id</messagePath>
+    </correlationPropertyRetrievalExpression>
+  </correlationProperty>
   <collaboration id="Collaboration_1" name="Order Collaboration">
     <participant id="Participant_A" name="Requester" processRef="Process_1" />
     <participant id="Participant_B" name="Approver" />
     <messageFlow id="MessageFlow_1" name="Request" sourceRef="Participant_A" targetRef="Participant_B" messageRef="Message_1" />
   </collaboration>
-  <dataStore id="Store_1" name="Orders" itemSubjectRef="tns:Order" capacity="100" isUnlimited="false" />
+  <dataStore id="Store_1" name="Orders" itemSubjectRef="Item_Order" capacity="100" isUnlimited="false" />
   <process id="Process_1" name="Metadata Process" isExecutable="true">
     <laneSet id="LaneSet_1" name="Ownership">
       <lane id="Lane_1" name="Requester Lane">
         <flowNodeRef>Task_1</flowNodeRef>
       </lane>
     </laneSet>
-    <dataObject id="DataObject_1" name="Order" itemSubjectRef="tns:Order" isCollection="false" />
+    <dataObject id="DataObject_1" name="Order" itemSubjectRef="Item_Order" isCollection="false" />
     <dataObjectReference id="DataObjectReference_1" name="Order Ref" dataObjectRef="DataObject_1" />
     <dataStoreReference id="DataStoreReference_1" name="Orders Ref" dataStoreRef="Store_1" />
     <ioSpecification id="IoSpec_1">
-      <dataInput id="Input_1" name="order_input" itemSubjectRef="tns:Order" />
-      <dataOutput id="Output_1" name="order_output" itemSubjectRef="tns:Order" />
+      <dataInput id="Input_1" name="order_input" itemSubjectRef="Item_Order" />
+      <dataOutput id="Output_1" name="order_output" itemSubjectRef="Item_Order" />
     </ioSpecification>
     <dataInputAssociation id="InputAssociation_1">
       <sourceRef>DataObjectReference_1</sourceRef>

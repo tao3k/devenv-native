@@ -49,6 +49,7 @@ async fn runtime_standard_loop_repeats_until_loop_maximum() {
                 script_body: None,
                 human_task_form: None,
                 human_task_assignment: None,
+                task_io: pending.task_io.clone(),
                 claim: None,
                 event_reference: None,
                 event_name: None,

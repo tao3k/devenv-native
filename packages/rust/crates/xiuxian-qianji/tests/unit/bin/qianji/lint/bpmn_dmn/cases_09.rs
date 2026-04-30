@@ -142,19 +142,17 @@ fn run_lint_command_json_reports_gateway_condition_structure() {
 fn run_lint_command_renders_bpmn_snapshot_evidence() {
     let temp_dir =
         TempDir::new().unwrap_or_else(|error| panic!("temp dir should allocate: {error}"));
-    let path = temp_dir.path().join("invalid_lane.bpmn");
+    let path = temp_dir.path().join("deferred_data_store_surface.bpmn");
     write_file(
         &path,
         r#"<?xml version="1.0" encoding="UTF-8"?>
-<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" id="pkg_invalid_lane_set">
-  <bpmn:process id="lane_flow" isExecutable="true">
-    <bpmn:laneSet id="lane_set_ops">
-      <bpmn:lane id="lane_ops" name="Operations">
-        <bpmn:flowNodeRef>review</bpmn:flowNodeRef>
-      </bpmn:lane>
-    </bpmn:laneSet>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" id="pkg_deferred_data_store_surface">
+  <bpmn:process id="data_surface_flow" isExecutable="true">
     <bpmn:startEvent id="start" />
     <bpmn:serviceTask id="review" />
+    <bpmn:dataObject id="order_payload" name="Order Payload" />
+    <bpmn:dataObjectReference id="order_payload_ref" dataObjectRef="order_payload" />
+    <bpmn:dataStoreReference id="orders_store_ref" name="Orders" />
     <bpmn:endEvent id="end" />
     <bpmn:sequenceFlow id="flow_1" sourceRef="start" targetRef="review" />
     <bpmn:sequenceFlow id="flow_2" sourceRef="review" targetRef="end" />
@@ -168,9 +166,17 @@ fn run_lint_command_renders_bpmn_snapshot_evidence() {
     );
 
     assert_eq!(output.exit_code, 2);
-    assert!(output.rendered.contains("bpmn.unsupported_lane_surface"));
+    assert!(output.rendered.contains("bpmn.unsupported_data_surface"));
     assert!(output.rendered.contains("\"snapshot_available\": true"));
-    assert!(output.rendered.contains("\"lane_set_count\": 1"));
-    assert!(output.rendered.contains("\"flow_node_refs\""));
-    assert!(output.rendered.contains("\"review\""));
+    assert!(
+        output
+            .rendered
+            .contains("\"data_object_reference_count\": 1")
+    );
+    assert!(
+        output
+            .rendered
+            .contains("\"data_object_ref\": \"order_payload\"")
+    );
+    assert!(output.rendered.contains("\"order_payload\""));
 }

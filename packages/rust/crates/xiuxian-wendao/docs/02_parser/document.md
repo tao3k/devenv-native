@@ -9,8 +9,8 @@
 
 ## Objective
 
-Wendao now treats one cross-format document core plus one Markdown-specific
-document wrapper as parser-owned shared surfaces in
+Wendao now treats one cross-format document core plus Markdown-specific and
+Org-specific document wrappers as parser-owned shared surfaces in
 `xiuxian-wendao-parsers`, while `xiuxian-wendao` keeps only the domain adapter
 that assembles `LinkGraphDocument`.
 
@@ -33,12 +33,17 @@ The canonical parser-owned document contracts now split into three layers:
    - Markdown-local alias over `DocumentEnvelope<serde_yaml::Value>`
    - preserves raw YAML frontmatter when the document starts with a valid
      frontmatter block
+4. `OrgDocument`
+   - Org-local alias over `DocumentEnvelope<OrgDocumentMetadata>`
+   - preserves top-level Org keywords and the document property drawer
 
 `DocumentCore` is the reusable cross-format metadata and body contract.
 `DocumentEnvelope<RawMetadata>` is the reusable cross-format top-level wrapper
 shape for `raw metadata + document core`. `MarkdownDocument` is the
 Markdown-local naming surface that keeps raw YAML metadata available for
-current Wendao adapters. None of these contracts include path identity,
+current Wendao adapters. `OrgDocument` is the Org-local naming surface that
+keeps native `#+KEY: value` metadata and the top-level `:PROPERTIES:` drawer
+available to parser consumers. None of these contracts include path identity,
 filesystem timestamps, saliency defaults, or graph records.
 
 ## Extraction Rules
@@ -64,6 +69,19 @@ The shared extractor follows these rules for Markdown:
    section-driving heading/task items
 8. `DocumentCore.format` is set to `markdown`
 
+The Org extractor follows these rules:
+
+1. top-level Org keywords and the document property drawer are preserved as
+   `OrgDocumentMetadata`
+2. the normalized body strips leading top-level keywords and the document
+   property drawer before section parsing
+3. title prefers `#+TITLE`, then the first Org headline, then the caller
+   fallback
+4. tags come from `#+FILETAGS`
+5. `TYPE` and `KIND` are normalized from the document property drawer or
+   top-level keywords into `doc_type`
+6. `DocumentCore.format` is set to `org`
+
 ## Consumer Boundary
 
 `xiuxian-wendao` now consumes these parser-owned document contracts:
@@ -88,14 +106,17 @@ The shared extractor follows these rules for Markdown:
    `LinkGraphDocument` assembly
 7. link extraction and section enrichment still happen in Wendao because they
    require workspace-aware and domain-aware adapters
+8. `.org` note files now route through `parse_org_note`, while Markdown-family
+   files continue to route through `parse_markdown_note`
 
 ## Regression Coverage
 
 Coverage for this contract lives in:
 
 1. `packages/rust/crates/xiuxian-wendao-parsers/tests/unit/document.rs`
-2. `tests/unit/parsers/markdown/document.rs`
-3. `tests/unit/parsers/markdown/namespace.rs`
+2. `packages/rust/crates/xiuxian-wendao-parsers/tests/unit/org.rs`
+3. `tests/unit/parsers/markdown/document.rs`
+4. `tests/unit/parsers/markdown/namespace.rs`
 
 :RELATIONS:
 :LINKS: [[02_parser/index|Wendao Parser Docs]], [[02_parser/architecture|Parser Architecture]], [[02_parser/note|Parser Note Aggregate]], [[02_parser/sections|Parser Sections]], [[06_roadmap/419_parser_substrate_separation|Parser Substrate Separation]]
@@ -104,5 +125,5 @@ Coverage for this contract lives in:
 ---
 
 :FOOTER:
-:LAST_SYNC: 2026-04-14
+:LAST_SYNC: 2026-04-30
 :END:

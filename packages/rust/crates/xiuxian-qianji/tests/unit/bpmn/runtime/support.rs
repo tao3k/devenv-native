@@ -14,7 +14,24 @@ pub(crate) fn write_business_rule_bundle(temp_dir: &TempDir) -> BusinessRuleBund
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" id="pkg_review">
   <bpmn:process id="review" isExecutable="true">
     <bpmn:startEvent id="start" />
-    <bpmn:businessRuleTask id="review_task" decisionRef="loan-decision" decisionRefSource="loan-decision.dmn" />
+    <bpmn:businessRuleTask id="review_task" decisionRef="loan-decision" decisionRefSource="loan-decision.dmn">
+      <bpmn:ioSpecification>
+        <bpmn:dataOutput id="review_task_output_approved" name="approved" />
+        <bpmn:dataOutput id="review_task_output_path" name="path" />
+        <bpmn:outputSet id="review_task_output_set">
+          <bpmn:dataOutputRefs>review_task_output_approved</bpmn:dataOutputRefs>
+          <bpmn:dataOutputRefs>review_task_output_path</bpmn:dataOutputRefs>
+        </bpmn:outputSet>
+      </bpmn:ioSpecification>
+      <bpmn:dataOutputAssociation>
+        <bpmn:sourceRef>review_task_output_approved</bpmn:sourceRef>
+        <bpmn:targetRef>approved</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+      <bpmn:dataOutputAssociation>
+        <bpmn:sourceRef>review_task_output_path</bpmn:sourceRef>
+        <bpmn:targetRef>path</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:businessRuleTask>
     <bpmn:endEvent id="end" />
     <bpmn:sequenceFlow id="flow_1" sourceRef="start" targetRef="review_task" />
     <bpmn:sequenceFlow id="flow_2" sourceRef="review_task" targetRef="end" />

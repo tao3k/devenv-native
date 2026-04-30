@@ -4,6 +4,9 @@ use qianji_bpmn_engine::{BpmnEngineError, BpmnPackage, BpmnParseOptions, parse_b
 
 mod boundary;
 mod errors;
+mod multiple;
+mod start;
+mod terminate;
 mod waits;
 
 fn parse_fixture_package(name: &str, context: &str) -> BpmnPackage {

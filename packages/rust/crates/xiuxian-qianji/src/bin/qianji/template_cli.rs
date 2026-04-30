@@ -68,26 +68,49 @@ pub(super) fn parse_template_command(args: &[String]) -> io::Result<Option<Templ
 fn bpmn_template() -> &'static str {
     r#"<?xml version="1.0" encoding="UTF-8"?>
 <definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-             xmlns:qianji="https://qianji.dev/bpmn/extensions"
              id="Definitions_1"
              targetNamespace="https://qianji.dev">
   <process id="Process_1" name="Skill Workflow" isExecutable="true">
     <startEvent id="Start_1" name="Start"/>
     <serviceTask id="Task_1" name="Do focused work" implementation="${environment.services.runAgent}">
-      <extensionElements>
-        <qianji:config>
-          <qianji:prompt>Perform one focused step from the skill and return the declared outputs as JSON.</qianji:prompt>
-          <qianji:tools></qianji:tools>
-          <qianji:inputs></qianji:inputs>
-          <qianji:outputs>result</qianji:outputs>
-        </qianji:config>
-      </extensionElements>
+      <documentation>Perform one focused step from the skill and return the declared outputs as JSON.</documentation>
+      <ioSpecification>
+        <dataOutput id="Task_1_result" name="result"/>
+        <inputSet/>
+        <outputSet>
+          <dataOutputRefs>Task_1_result</dataOutputRefs>
+        </outputSet>
+      </ioSpecification>
     </serviceTask>
     <endEvent id="End_1" name="End"/>
     <sequenceFlow id="Flow_1" sourceRef="Start_1" targetRef="Task_1"/>
     <sequenceFlow id="Flow_2" sourceRef="Task_1" targetRef="End_1"/>
   </process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_Process_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_Process_1" bpmnElement="Process_1">
+      <bpmndi:BPMNShape id="Shape_Start_1" bpmnElement="Start_1">
+        <dc:Bounds x="80" y="122" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_1" bpmnElement="Task_1">
+        <dc:Bounds x="236" y="100" width="160" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_End_1" bpmnElement="End_1">
+        <dc:Bounds x="516" y="122" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Edge_Flow_1" bpmnElement="Flow_1">
+        <di:waypoint x="116" y="140"/>
+        <di:waypoint x="236" y="140"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_2" bpmnElement="Flow_2">
+        <di:waypoint x="396" y="140"/>
+        <di:waypoint x="516" y="140"/>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
 </definitions>"#
 }
 

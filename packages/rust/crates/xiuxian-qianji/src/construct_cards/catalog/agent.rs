@@ -11,21 +11,18 @@ pub(super) const fn card(lint_mappings: &'static [ConstructLintMapping]) -> Cons
         purpose: "Use when workflow progress needs an LLM/tool host to perform a bounded unit of work.",
         requires: &[
             "implementation points at the host adapter",
-            "qianji:prompt, qianji:tools, qianji:inputs, and qianji:outputs are present",
+            "documentation gives the host prompt",
+            "ioSpecification declares every consumed data input and emitted data output",
+            "dataInputAssociation and dataOutputAssociation map workflow variables explicitly",
             "outputs are declared before any gateway uses them",
             "prompt describes one bounded responsibility",
-            "qianji:tools is empty unless the prompt explicitly needs workspace inspection, artifact writing, or command execution",
-            "every non-empty qianji:tools declaration has matching qianji:toolScope entries that bound command strings, paths, and side effects",
         ],
         allows: &[
-            "qianji extension config",
+            "native BPMN task documentation",
             "declared input variable names",
             "declared output variable names",
-            "empty tools for input-only analysis, summarization, classification, routing, and UI-metadata preparation",
-            "write for explicit artifact or file creation",
-            "read/grep/find/ls for explicit workspace inspection",
-            "bash for explicit shell commands, tests, builds, lint commands, or git operations",
-            "qianji:toolScope entries such as exact bash command plus timeout, or read/write path boundaries",
+            "empty input sets for source tasks",
+            "host-owned capability policy outside the BPMN XML envelope",
         ],
         forbids: &[
             "implicit outputs consumed by gateways",
@@ -33,23 +30,33 @@ pub(super) const fn card(lint_mappings: &'static [ConstructLintMapping]) -> Cons
             "no-tool store or rename tasks that only persist a prior userTask result",
             "workflow routing, approval, or retry policy hidden inside prompt prose",
             "BPMN boundary error events for recoverable host failure",
-            "bash/read tools for reading declared qianji input variables such as specContent",
+            "prompt, tool, input, or output metadata outside BPMN documentation and native IO",
         ],
         example: r#"<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
-  xmlns:qianji="https://qianji.dev/bpmn/extensions"
-  targetNamespace="https://qianji.dev/examples">
+  targetNamespace="https://example.test/bpmn">
   <process id="Process_AgentStep" isExecutable="true">
     <startEvent id="Start"/>
     <sequenceFlow id="Flow_Start_Check" sourceRef="Start" targetRef="Task_Check"/>
     <serviceTask id="Task_Check" name="Check readiness" implementation="${environment.services.runAgent}">
-      <extensionElements>
-          <qianji:config>
-            <qianji:prompt>Check whether the design is ready. Return JSON with ready.</qianji:prompt>
-            <qianji:tools></qianji:tools>
-            <qianji:inputs>designNotes</qianji:inputs>
-            <qianji:outputs>ready</qianji:outputs>
-          </qianji:config>
-      </extensionElements>
+      <documentation>Check whether the design is ready. Return JSON with ready.</documentation>
+      <ioSpecification>
+        <dataInput id="Task_Check_Input_designNotes" name="designNotes"/>
+        <dataOutput id="Task_Check_Output_ready" name="ready"/>
+        <inputSet>
+          <dataInputRefs>Task_Check_Input_designNotes</dataInputRefs>
+        </inputSet>
+        <outputSet>
+          <dataOutputRefs>Task_Check_Output_ready</dataOutputRefs>
+        </outputSet>
+      </ioSpecification>
+      <dataInputAssociation>
+        <sourceRef>designNotes</sourceRef>
+        <targetRef>Task_Check_Input_designNotes</targetRef>
+      </dataInputAssociation>
+      <dataOutputAssociation>
+        <sourceRef>Task_Check_Output_ready</sourceRef>
+        <targetRef>ready</targetRef>
+      </dataOutputAssociation>
     </serviceTask>
     <sequenceFlow id="Flow_Check_End" sourceRef="Task_Check" targetRef="End"/>
     <endEvent id="End"/>

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  id="Defs_InvalidDiLabelStyleReference"
+  targetNamespace="https://example.com/bpmn/invalid-di-label-style-reference">
+  <bpmn:process id="invalid_di_label_style_reference_process" isExecutable="true">
+    <bpmn:startEvent id="start" />
+    <bpmn:endEvent id="end" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="Diagram_InvalidDiLabelStyleReference">
+    <bpmndi:BPMNPlane id="Plane_InvalidDiLabelStyleReference" bpmnElement="invalid_di_label_style_reference_process">
+      <bpmndi:BPMNShape id="Shape_Start" bpmnElement="start">
+        <dc:Bounds x="100" y="80" width="36" height="36" />
+        <bpmndi:BPMNLabel id="Label_Start" labelStyle="Missing_LabelStyle">
+          <dc:Bounds x="92" y="120" width="52" height="18" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

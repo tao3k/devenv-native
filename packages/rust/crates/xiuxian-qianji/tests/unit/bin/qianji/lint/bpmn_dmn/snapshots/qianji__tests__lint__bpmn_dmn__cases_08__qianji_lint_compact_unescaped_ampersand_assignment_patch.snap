@@ -1,0 +1,32 @@
+---
+source: packages/rust/crates/xiuxian-qianji/src/bin/../../tests/unit/bin/qianji/lint/bpmn_dmn/cases_08.rs
+expression: "stable_temp_output(&output.rendered, &temp_dir)"
+---
+[lint:error] $TEMP/invalid_choice_ampersand.bpmn bpmn
+Source: $TEMP/invalid_choice_ampersand.bpmn
+Issues: 1
+
+[bpmn.invalid_xml] Error: BPMN XML is not well-formed
+    ,-[ $TEMP/invalid_choice_ampersand.bpmn:28:11 ]
+ 28 |          <bpmn:from>[{"value":"confirm","label":"Confirm & Submit"}]</bpmn:from>
+    |          `----------------------------------------------------------------------- repair malformed XML near this token
+    |Help: Fix tag spelling, namespace prefix spelling, closing tags, attribute quotes, or nesting. Do not escape real BPMN element tags.
+
+Action:
+- Repair the XML syntax in BPMN source '$TEMP/invalid_choice_ampersand.bpmn' so it becomes well-formed without changing workflow intent. Preserve existing BPMN ids and task semantics while fixing broken tags, attribute quoting, or nesting.
+
+Fix:
+- Repair the XML structure first: close open tags, fix broken attribute quotes, and remove overlapping elements.
+- Keep BPMN element names and ids stable while fixing XML syntax so workflow semantics do not drift.
+
+Patch focus:
+- repair_xml_tag_or_nesting
+- target: parser offset token
+
+Forbidden forms:
+- escaping real BPMN elements such as &lt;extensionElements&gt;
+- changing existing BPMN ids while repairing XML syntax
+
+Structured repair:
+- strategy: repair_malformed_xml_token
+- contract: bpmn.native.xml.well_formed.v1

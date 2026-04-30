@@ -60,6 +60,6 @@ fn is_supported_note(path: &Path) -> bool {
         .and_then(|value| value.to_str())
         .is_some_and(|extension| {
             let lower = extension.to_lowercase();
-            matches!(lower.as_str(), "md" | "markdown" | "mdx")
+            matches!(lower.as_str(), "md" | "markdown" | "mdx" | "org")
         })
 }

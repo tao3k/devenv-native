@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  id="metadata_flow_element"
+                  targetNamespace="https://example.test/bpmn/metadata-flow-element">
+  <bpmn:category id="Category_Execution">
+    <bpmn:categoryValue id="CategoryValue_Audit" value="audit" />
+    <bpmn:categoryValue id="CategoryValue_Monitoring" value="monitoring" />
+  </bpmn:category>
+  <bpmn:collaboration id="Collaboration_FlowElementMetadata">
+    <bpmn:participant id="Participant_Process" processRef="Process_FlowElementMetadata" />
+  </bpmn:collaboration>
+  <bpmn:process id="Process_FlowElementMetadata" name="Flow Element Metadata" isExecutable="false">
+    <bpmn:startEvent id="Start_Flow" name="Start">
+      <bpmn:auditing id="Audit_Start" />
+      <bpmn:categoryValueRef>CategoryValue_Audit</bpmn:categoryValueRef>
+    </bpmn:startEvent>
+    <bpmn:userTask id="Task_Review" name="Review">
+      <bpmn:auditing id="Audit_Review" />
+      <bpmn:monitoring id="Monitor_Review" />
+      <bpmn:categoryValueRef>CategoryValue_Audit</bpmn:categoryValueRef>
+      <bpmn:categoryValueRef>CategoryValue_Monitoring</bpmn:categoryValueRef>
+    </bpmn:userTask>
+    <bpmn:endEvent id="End_Flow" name="Done" />
+    <bpmn:sequenceFlow id="Flow_Start_Review" sourceRef="Start_Flow" targetRef="Task_Review">
+      <bpmn:monitoring id="Monitor_Flow" />
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Review_End" sourceRef="Task_Review" targetRef="End_Flow" />
+  </bpmn:process>
+</bpmn:definitions>

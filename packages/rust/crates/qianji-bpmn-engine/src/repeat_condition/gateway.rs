@@ -3,29 +3,8 @@ use super::common::{
     parse_boolean_path_condition, parse_comparison_operator, parse_numeric_literal,
     resolve_boolean_variable_path, resolve_numeric_variable_path,
 };
+use crate::repeat_condition_api::GatewayConditionSummary;
 use serde_json::Value;
-
-/// Structured parse summary for one bounded gateway condition.
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
-#[serde(tag = "kind", rename_all = "snake_case")]
-pub enum GatewayConditionSummary {
-    /// One boolean variable path, optionally negated by `not`.
-    BooleanPath {
-        /// Whether the condition uses `not`.
-        negated: bool,
-        /// Variable path resolved at runtime.
-        path: String,
-    },
-    /// One numeric variable-path comparison against a finite numeric literal.
-    NumericComparison {
-        /// Left-hand variable path resolved at runtime.
-        lhs: String,
-        /// Comparison operator as written in the bounded expression.
-        operator: String,
-        /// Right-hand numeric literal.
-        rhs: f64,
-    },
-}
 
 /// Evaluation error for bounded exclusive-gateway conditions.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -58,7 +37,7 @@ pub(crate) fn is_supported_gateway_condition(condition: &str) -> bool {
 
 /// Parses one bounded exclusive-gateway condition into a structured summary.
 #[must_use]
-pub fn parse_gateway_condition_summary(condition: &str) -> Option<GatewayConditionSummary> {
+pub(crate) fn parse_gateway_condition_summary(condition: &str) -> Option<GatewayConditionSummary> {
     match parse_gateway_condition(condition)? {
         ParsedGatewayCondition::BooleanPath { negated, path } => {
             Some(GatewayConditionSummary::BooleanPath {

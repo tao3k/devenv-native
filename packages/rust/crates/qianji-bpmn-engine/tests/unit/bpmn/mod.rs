@@ -1,6 +1,10 @@
 use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::BpmnSourceFile;
 
+mod callable_registry;
+mod collaboration_host_envelope;
+mod compatibility;
+mod conformance;
 mod snapshot;
 
 fn fixture_source(name: &str) -> BpmnSourceFile {

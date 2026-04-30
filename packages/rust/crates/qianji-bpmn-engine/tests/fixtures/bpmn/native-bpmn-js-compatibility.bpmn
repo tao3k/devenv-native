@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Definitions_NativeCompatibility"
+  targetNamespace="https://example.com/bpmn/native-compatibility">
+  <bpmn:process id="native_compatibility" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_OrderReceived" name="Order received">
+      <bpmn:outgoing>Flow_Start_Review</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:dataObject id="OrderData" />
+    <bpmn:dataObjectReference id="OrderRef" dataObjectRef="OrderData" />
+    <bpmn:serviceTask id="ServiceTask_ReviewOrder" name="Review order">
+      <bpmn:documentation>Review the order through native BPMN task IO.</bpmn:documentation>
+      <bpmn:incoming>Flow_Start_Review</bpmn:incoming>
+      <bpmn:outgoing>Flow_Review_Done</bpmn:outgoing>
+      <bpmn:ioSpecification>
+        <bpmn:dataInput id="ReviewOrder_Order" name="order" />
+        <bpmn:dataInput id="ReviewOrder_Policy" name="policy" />
+        <bpmn:dataOutput id="ReviewOrder_Decision" name="decision" />
+        <bpmn:inputSet>
+          <bpmn:dataInputRefs>ReviewOrder_Order</bpmn:dataInputRefs>
+          <bpmn:dataInputRefs>ReviewOrder_Policy</bpmn:dataInputRefs>
+        </bpmn:inputSet>
+        <bpmn:outputSet>
+          <bpmn:dataOutputRefs>ReviewOrder_Decision</bpmn:dataOutputRefs>
+        </bpmn:outputSet>
+      </bpmn:ioSpecification>
+      <bpmn:dataInputAssociation>
+        <bpmn:sourceRef>OrderRef</bpmn:sourceRef>
+        <bpmn:targetRef>ReviewOrder_Order</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataInputAssociation>
+        <bpmn:targetRef>ReviewOrder_Policy</bpmn:targetRef>
+        <bpmn:assignment>
+          <bpmn:from>{"mode":"compatibility","channel":"native-bpmn"}</bpmn:from>
+          <bpmn:to>ReviewOrder_Policy</bpmn:to>
+        </bpmn:assignment>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation>
+        <bpmn:sourceRef>ReviewOrder_Decision</bpmn:sourceRef>
+        <bpmn:targetRef>OrderRef</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:serviceTask>
+    <bpmn:endEvent id="EndEvent_Done" name="Done">
+      <bpmn:incoming>Flow_Review_Done</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow
+      id="Flow_Start_Review"
+      sourceRef="StartEvent_OrderReceived"
+      targetRef="ServiceTask_ReviewOrder" />
+    <bpmn:sequenceFlow
+      id="Flow_Review_Done"
+      sourceRef="ServiceTask_ReviewOrder"
+      targetRef="EndEvent_Done" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_NativeCompatibility">
+    <bpmndi:BPMNPlane id="BPMNPlane_NativeCompatibility" bpmnElement="native_compatibility">
+      <bpmndi:BPMNShape id="Shape_StartEvent_OrderReceived" bpmnElement="StartEvent_OrderReceived">
+        <dc:Bounds x="120" y="120" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_ServiceTask_ReviewOrder" bpmnElement="ServiceTask_ReviewOrder">
+        <dc:Bounds x="220" y="98" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_EndEvent_Done" bpmnElement="EndEvent_Done">
+        <dc:Bounds x="420" y="120" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Edge_Flow_Start_Review" bpmnElement="Flow_Start_Review">
+        <di:waypoint x="156" y="138" />
+        <di:waypoint x="220" y="138" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Review_Done" bpmnElement="Flow_Review_Done">
+        <di:waypoint x="340" y="138" />
+        <di:waypoint x="420" y="138" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

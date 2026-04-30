@@ -289,12 +289,12 @@ fn unsupported_condition_expression_issue(
         "The current engine accepts only one bounded gateway-condition subset on exclusive-gateway branches and structured inclusive-gateway branches: simple boolean variable paths such as `approved`, `not approved`, or dotted paths such as `flags.approved`, plus numeric comparisons such as `amount > 100` or `risk >= 7`. String or enum equality such as `chosenOption == 'merge'` must be modeled as an upstream boolean output, then routed with that boolean path.",
         vec![
             "Rewrite the branch condition as one simple boolean variable path, optionally prefixed with `not`, or as one numeric comparison from an identifier path to one numeric literal.".to_string(),
-            "For a choice or enum branch, have the previous task emit one top-level boolean `qianji:outputs` value per route, such as `selectedMerge` or `shouldMerge`, then use `selectedMerge` as the `conditionExpression`.".to_string(),
-            "If the choice or enum value comes from a userTask `<qianji:result output=\"...\"/>`, keep that result output declared on the userTask and derive route booleans in a following serviceTask. Do not replace the userTask's qianji:outputs with derived booleans.".to_string(),
+            "For a choice or enum branch, have the previous task emit one top-level boolean native BPMN output per route, such as `selectedMerge` or `shouldMerge`, then use `selectedMerge` as the `conditionExpression`.".to_string(),
+            "If the choice or enum value comes from a userTask answer output, keep that result output declared on the userTask and derive route booleans in a following serviceTask. Do not replace the userTask answer mapping with derived booleans.".to_string(),
             "Do not use FEEL, boolean-literal comparisons like `approved == true`, string equality like `chosenOption == 'merge'`, scripts, function calls, arithmetic, or logical combinations such as `approved and vip` in this bounded slice.".to_string(),
         ],
         format!(
-            "Rewrite the `conditionExpression` on gateway '{node_id}' in process '{process_id}' so it stays inside the bounded subset: one boolean variable path like `approved`, `not approved`, `selectedMerge`, or `flags.approved`, or one numeric comparison like `amount > 100` or `risk >= 7`. If the current route is based on a user choice or enum string, preserve the userTask qianji:result output, add a following serviceTask that emits boolean route outputs, and route on those booleans. Preserve workflow intent, but remove FEEL, string equality, boolean-literal comparisons, logical combinations, and script-style expressions."
+            "Rewrite the `conditionExpression` on gateway '{node_id}' in process '{process_id}' so it stays inside the bounded subset: one boolean variable path like `approved`, `not approved`, `selectedMerge`, or `flags.approved`, or one numeric comparison like `amount > 100` or `risk >= 7`. If the current route is based on a user choice or enum string, preserve the userTask answer output, add a following serviceTask that emits boolean route outputs, and route on those booleans. Preserve workflow intent, but remove FEEL, string equality, boolean-literal comparisons, logical combinations, and script-style expressions."
         ),
         json!({
             "process_id": process_id,
@@ -328,9 +328,9 @@ fn unsupported_condition_expression_issue(
         json!({
             "op": "replace_string_or_enum_equality_with_boolean_route_variable",
             "when": "the route currently compares a choice/string/enum variable to a literal",
-            "producer_change": "if the compared value comes from userTask qianji:result, keep that result output declared on the userTask and add a following serviceTask that consumes it and emits boolean route outputs",
+            "producer_change": "if the compared value comes from a userTask answer output, keep that result output declared on the userTask and add a following serviceTask that consumes it and emits boolean route outputs",
             "route_change": "replace the string equality condition with that boolean output path",
-            "forbid": "replacing a userTask qianji:outputs list with derived booleans while qianji:result still points at the original answer",
+            "forbid": "replacing a userTask answer mapping with derived booleans while the answer output still points at the original reply",
             "examples": [
                 "selectedMerge",
                 "shouldOpenPullRequest",
@@ -442,13 +442,13 @@ fn unresolved_condition_variable_issue(
         vec![
             json!({
                 "op": "declare_upstream_output",
-                "elements": ["qianji:outputs"],
+                "elements": ["bpmn:dataOutput", "bpmn:dataOutputAssociation"],
                 "construct_cards": ["service-task.agent", "user-task.interaction"],
                 "value_type": "boolean for boolean-path conditions, number for numeric comparisons"
             }),
             json!({
                 "op": "route_on_declared_output_only",
-                "forbid": "gateway conditions that read variables not produced by an earlier qianji task"
+                "forbid": "gateway conditions that read variables not produced by an earlier task"
             }),
             json!({
                 "op": "add_unconditional_default_branch",
@@ -543,7 +543,7 @@ fn gateway_repair_plan(
     let actions = Value::Array(actions);
     json!({
         "schema_version": 1,
-        "contract": "qianji.bpmn.gateway.bounded.v1",
+        "contract": "bpmn.native.gateway.bounded.v1",
         "strategy": strategy,
         "target": {
             "process_id": process_id,

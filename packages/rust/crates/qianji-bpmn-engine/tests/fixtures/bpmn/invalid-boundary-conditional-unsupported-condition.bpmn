@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  id="pkg_invalid_boundary_conditional_unsupported_condition"
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL">
+  <bpmn:process id="review_with_invalid_conditional_boundary">
+    <bpmn:startEvent id="start" />
+    <bpmn:userTask id="review" />
+    <bpmn:boundaryEvent id="review_condition" attachedToRef="review" cancelActivity="false">
+      <bpmn:conditionalEventDefinition>
+        <bpmn:condition>customer.score() &gt; 10</bpmn:condition>
+      </bpmn:conditionalEventDefinition>
+    </bpmn:boundaryEvent>
+    <bpmn:endEvent id="approved_end" />
+    <bpmn:endEvent id="condition_end" />
+    <bpmn:sequenceFlow id="flow_1" sourceRef="start" targetRef="review" />
+    <bpmn:sequenceFlow id="flow_2" sourceRef="review" targetRef="approved_end" />
+    <bpmn:sequenceFlow id="flow_3" sourceRef="review_condition" targetRef="condition_end" />
+  </bpmn:process>
+</bpmn:definitions>

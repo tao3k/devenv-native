@@ -1,6 +1,8 @@
 use super::import::{attach_lane_memberships, import_bpmn_source};
 use super::normalize::normalize_package;
 use super::validate::validate_raw_package;
+use crate::bpmn_callable_api::BpmnCallableRegistry;
+use crate::bpmn_collaboration_api::BpmnCollaborationHostEnvelope;
 use crate::bpmn_parse_api::{BpmnBundleSnapshot, BpmnParseOptions};
 use crate::bpmn_snapshot::snapshot_bpmn_source_sync;
 use crate::dmn_model_api::{
@@ -33,6 +35,12 @@ pub(crate) fn parse_bpmn_bundle_impl(
     attach_lane_memberships(&mut raw, &bpmn_snapshot);
     validate_raw_package(&raw)?;
     let package = normalize_package(raw)?;
+    let callable_registry = BpmnCallableRegistry::from_document_snapshot(&bpmn_snapshot, &package);
+    let collaboration_host_envelope =
+        BpmnCollaborationHostEnvelope::from_document_snapshot(&bpmn_snapshot);
+    let package = package
+        .with_callable_registry(callable_registry)
+        .with_collaboration_host_envelope(collaboration_host_envelope);
     let mut dmn_source_definitions = Vec::new();
     let mut dmn_imports = Vec::new();
     let mut dmn_decisions = Vec::new();

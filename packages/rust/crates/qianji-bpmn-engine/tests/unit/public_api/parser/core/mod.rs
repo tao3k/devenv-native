@@ -6,6 +6,7 @@ mod gateway;
 mod linear;
 mod repeat;
 mod task;
+mod task_io;
 
 fn parse_fixture_package(name: &str) -> BpmnPackage {
     parse_bpmn_package(&[fixture_source(name)], &BpmnParseOptions::default())

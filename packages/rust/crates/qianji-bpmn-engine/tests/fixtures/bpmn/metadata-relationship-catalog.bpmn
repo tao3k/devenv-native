@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  id="Defs_RelationshipCatalog"
+  targetNamespace="https://example.com/bpmn/relationship">
+  <bpmn:message id="Message_Request" name="Request" />
+  <bpmn:itemDefinition id="Item_Request" structureRef="tns:Request" />
+  <bpmn:relationship
+    id="Relationship_RequestLineage"
+    type="lineage"
+    direction="Forward">
+    <bpmn:source>Message_Request</bpmn:source>
+    <bpmn:source>Item_Request</bpmn:source>
+    <bpmn:target>review</bpmn:target>
+  </bpmn:relationship>
+  <bpmn:process id="relationship_catalog_process" isExecutable="true">
+    <bpmn:startEvent id="start" />
+    <bpmn:sequenceFlow id="flow_start_review" sourceRef="start" targetRef="review" />
+    <bpmn:userTask id="review" name="Review" />
+    <bpmn:sequenceFlow id="flow_review_end" sourceRef="review" targetRef="end" />
+    <bpmn:endEvent id="end" />
+  </bpmn:process>
+</bpmn:definitions>

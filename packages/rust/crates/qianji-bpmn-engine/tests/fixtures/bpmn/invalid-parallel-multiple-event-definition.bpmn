@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  id="pkg_parallel_multiple_event_definition"
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL">
+  <bpmn:process id="parallel_multiple_event_definition">
+    <bpmn:startEvent id="start" />
+    <bpmn:intermediateCatchEvent id="wait_parallel_multiple">
+      <bpmn:parallelMultipleEventDefinition />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:endEvent id="end" />
+    <bpmn:sequenceFlow id="flow_1" sourceRef="start" targetRef="wait_parallel_multiple" />
+    <bpmn:sequenceFlow id="flow_2" sourceRef="wait_parallel_multiple" targetRef="end" />
+  </bpmn:process>
+</bpmn:definitions>

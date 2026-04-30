@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  id="Defs_InvalidDiChoreographyShapeReference"
+  targetNamespace="https://example.com/bpmn/invalid-di-choreography-shape-reference">
+  <bpmn:process id="invalid_di_choreography_shape_reference_process" isExecutable="true">
+    <bpmn:startEvent id="start" />
+    <bpmn:endEvent id="end" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="Diagram_InvalidDiChoreographyShapeReference">
+    <bpmndi:BPMNPlane id="Plane_InvalidDiChoreographyShapeReference" bpmnElement="invalid_di_choreography_shape_reference_process">
+      <bpmndi:BPMNShape
+        id="Shape_Start"
+        bpmnElement="start"
+        choreographyActivityShape="Missing_ChoreographyShape">
+        <dc:Bounds x="100" y="80" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_End" bpmnElement="end">
+        <dc:Bounds x="220" y="80" width="36" height="36" />
+      </bpmndi:BPMNShape>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

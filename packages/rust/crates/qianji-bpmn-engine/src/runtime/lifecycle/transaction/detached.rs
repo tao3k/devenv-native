@@ -17,6 +17,7 @@ struct DetachedHostWorkSpec {
     decision: Option<crate::dmn_model_api::DmnDecisionRef>,
     script_format: Option<String>,
     script_body: Option<String>,
+    task_io: Option<crate::ir_node_api::BpmnTaskIoSpec>,
 }
 
 pub(super) fn install_detached_compensation_queue(
@@ -147,6 +148,7 @@ fn detached_host_work_spec(
             decision: None,
             script_format: None,
             script_body: None,
+            task_io: node.task_io.clone(),
         }),
         BpmnNodeKind::ScriptTask => Some(DetachedHostWorkSpec {
             kind: PendingHostWorkKind::Script,
@@ -161,18 +163,21 @@ fn detached_host_work_spec(
                 .as_ref()
                 .and_then(|script| script.script_body.as_ref())
                 .map(ToString::to_string),
+            task_io: node.task_io.clone(),
         }),
         BpmnNodeKind::UserTask => Some(DetachedHostWorkSpec {
             kind: PendingHostWorkKind::User,
             decision: None,
             script_format: None,
             script_body: None,
+            task_io: node.task_io.clone(),
         }),
         BpmnNodeKind::ManualTask => Some(DetachedHostWorkSpec {
             kind: PendingHostWorkKind::Manual,
             decision: None,
             script_format: None,
             script_body: None,
+            task_io: node.task_io.clone(),
         }),
         _ => None,
     }
@@ -206,6 +211,7 @@ fn advance_detached_business_rule_handler(
             decision: Some(decision),
             script_format: None,
             script_body: None,
+            task_io: node.task_io.clone(),
         },
         now_ms,
     );
@@ -248,6 +254,7 @@ fn enqueue_detached_host_work(
         script_body: spec.script_body,
         human_task_form: None,
         human_task_assignment: None,
+        task_io: spec.task_io,
         claim: None,
         event_reference: None,
         event_name: None,

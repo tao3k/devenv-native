@@ -56,6 +56,7 @@ async fn runtime_sequential_multi_instance_repeats_until_cardinality_is_reached(
                 script_body: None,
                 human_task_form: None,
                 human_task_assignment: None,
+                task_io: pending.task_io.clone(),
                 claim: None,
                 event_reference: None,
                 event_name: None,

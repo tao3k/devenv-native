@@ -6,11 +6,12 @@ use super::data_contract::undeclared_gateway_condition_output_issues;
 use super::document::issue_from_bpmn_document_error;
 use super::document_surface::deferred_document_surface_issue;
 use super::execution::issue_from_bpmn_execution_shape_error;
-use super::extension::qianji_extension_issues;
+use super::extension::human_task_interaction_issues;
 use super::human_task::{human_task_standard_issues, issue_from_bpmn_human_task_standard_error};
 use super::identity::issue_from_bpmn_identity_error;
 use super::loop_risk::loop_risk_issues;
 use super::reference::issue_from_bpmn_reference_error;
+use super::task_binding::task_operation_binding_issues;
 use super::topology::issue_from_bpmn_topology_error;
 use super::unexpected::unexpected_bpmn_issue;
 use crate::bpmn_parse_api::{BpmnParseOptions, BpmnSourceFile, parse_bpmn_package};
@@ -25,13 +26,23 @@ use std::borrow::Cow;
 /// Lints one BPMN source and returns an LLM-friendly blocking report.
 #[must_use]
 pub(crate) fn lint_bpmn_source_impl(source: &BpmnSourceFile) -> LintReport {
+    let pre_parse_interaction_issues =
+        human_task_interaction_issues(source, &crate::ir_package_api::BpmnPackage::new("", vec![]));
+    if !pre_parse_interaction_issues.is_empty() {
+        return LintReport::blocking(
+            LintDomain::Bpmn,
+            &source.source_id,
+            pre_parse_interaction_issues,
+        );
+    }
+
     if let Some(issue) = deferred_document_surface_issue(source) {
         return LintReport::blocking(LintDomain::Bpmn, &source.source_id, vec![issue]);
     }
 
     match parse_bpmn_package(std::slice::from_ref(source), &BpmnParseOptions::default()) {
         Ok(package) => {
-            let extension_issues = qianji_extension_issues(source);
+            let extension_issues = human_task_interaction_issues(source, &package);
             if !extension_issues.is_empty() {
                 return LintReport::blocking(LintDomain::Bpmn, &source.source_id, extension_issues);
             }
@@ -41,6 +52,14 @@ pub(crate) fn lint_bpmn_source_impl(source: &BpmnSourceFile) -> LintReport {
                     LintDomain::Bpmn,
                     &source.source_id,
                     human_task_issues,
+                );
+            }
+            let operation_binding_issues = task_operation_binding_issues(source);
+            if !operation_binding_issues.is_empty() {
+                return LintReport::blocking(
+                    LintDomain::Bpmn,
+                    &source.source_id,
+                    operation_binding_issues,
                 );
             }
             let data_contract_issues = undeclared_gateway_condition_output_issues(source);
@@ -149,12 +168,12 @@ fn issue_from_checkpoint_xml_escape_error(
             &source.source_id,
             LintSourceSpan::new(span.start, span.end),
             "escape raw ampersand as `&amp;`",
-            "Replace this literal `&` with `&amp;`. Preserve BPMN ids and qianji metadata.",
+            "Replace this literal `&` with `&amp;`. Preserve BPMN ids and native metadata.",
         ))
         .with_structured_repair(json!({
             "schema_version": 1,
-            "contract": "qianji.bpmn.xml.well_formed.v1",
-            "contract_message": "qianji.bpmn.xml.well_formed.v1 requires literal ampersands in XML text or attributes to be escaped as &amp;.",
+            "contract": "bpmn.native.xml.well_formed.v1",
+            "contract_message": "bpmn.native.xml.well_formed.v1 requires literal ampersands in XML text or attributes to be escaped as &amp;.",
             "strategy": "escape_raw_ampersand",
             "line_fixes": [{
                 "offset": span.start,
@@ -221,7 +240,7 @@ fn attach_invalid_xml_source_diagnostic(
             ))
             .with_structured_repair(json!({
                 "schema_version": 1,
-                "contract": "qianji.bpmn.xml.well_formed.v1",
+                "contract": "bpmn.native.xml.well_formed.v1",
                 "strategy": "escape_unescaped_xml_text_placeholder",
                 "actions": [{
                     "op": "escape_text_node_placeholder",
@@ -242,8 +261,8 @@ fn attach_invalid_xml_source_diagnostic(
     {
         json!({
             "schema_version": 1,
-            "contract": "qianji.bpmn.xml.well_formed.v1",
-            "contract_message": "qianji.bpmn.xml.well_formed.v1 requires opening and closing XML element names to match exactly.",
+            "contract": "bpmn.native.xml.well_formed.v1",
+            "contract_message": "bpmn.native.xml.well_formed.v1 requires opening and closing XML element names to match exactly.",
             "strategy": "repair_malformed_xml_closing_tag",
             "line_fixes": [{
                 "offset": span.start,
@@ -253,7 +272,7 @@ fn attach_invalid_xml_source_diagnostic(
     } else {
         json!({
             "schema_version": 1,
-            "contract": "qianji.bpmn.xml.well_formed.v1",
+            "contract": "bpmn.native.xml.well_formed.v1",
             "strategy": "repair_malformed_xml_token",
             "actions": [{
                 "op": "repair_xml_tag_or_nesting",
@@ -270,7 +289,7 @@ fn attach_invalid_xml_source_diagnostic(
             &source.source_id,
             LintSourceSpan::new(span.start, span.end),
             "repair malformed XML near this token",
-            "Fix tag spelling, namespace prefix spelling, closing tags, attribute quotes, or nesting. Do not escape real BPMN/qianji element tags.",
+            "Fix tag spelling, namespace prefix spelling, closing tags, attribute quotes, or nesting. Do not escape real BPMN element tags.",
         ))
         .with_structured_repair(structured_repair)
 }
@@ -467,7 +486,7 @@ fn invalid_default_structured_repair(
 ) -> serde_json::Value {
     json!({
         "schema_version": 1,
-        "contract": "qianji.bpmn.gateway.bounded.v1",
+        "contract": "bpmn.native.gateway.bounded.v1",
         "strategy": "retarget_default_flow_to_existing_outgoing",
         "actions": [{
             "op": "set_gateway_default",
@@ -645,7 +664,7 @@ fn missing_condition_structured_repair(
     if duplicate_kind == MissingBranchDuplicateKind::None {
         json!({
             "schema_version": 1,
-            "contract": "qianji.bpmn.gateway.bounded.v1",
+            "contract": "bpmn.native.gateway.bounded.v1",
             "strategy": "resolve_unconditional_non_default_branch",
             "target": {
                 "gateway_id": node_id,
@@ -683,7 +702,7 @@ fn missing_condition_structured_repair(
     } else {
         json!({
             "schema_version": 1,
-            "contract": "qianji.bpmn.gateway.bounded.v1",
+            "contract": "bpmn.native.gateway.bounded.v1",
             "strategy": "remove_duplicate_unconditional_gateway_branch",
             "target": {
                 "gateway_id": node_id,
@@ -724,7 +743,7 @@ fn attach_unsupported_condition_expression_source_diagnostic(
     issue.with_source_diagnostic(LintSourceDiagnostic::new(
         &source.source_id,
         LintSourceSpan::new(span.start, span.end),
-        "rewrite this condition into qianji's bounded subset",
+        "rewrite this condition into the bounded native subset",
         unsupported_condition_expression_help(&condition),
     ))
 }
@@ -978,7 +997,7 @@ fn invalid_default_gateway_issue(
     ))
     .with_structured_repair(json!({
         "schema_version": 1,
-        "contract": "qianji.bpmn.gateway.bounded.v1",
+        "contract": "bpmn.native.gateway.bounded.v1",
         "strategy": "retarget_default_flow_to_existing_outgoing",
         "actions": [{
             "op": "set_gateway_default",
@@ -1147,7 +1166,7 @@ fn task_routing_violations_json(violations: &[TaskRoutingViolation]) -> serde_js
 fn task_routing_structured_repair(violations: &[TaskRoutingViolation]) -> serde_json::Value {
     json!({
         "schema_version": 1,
-        "contract": "qianji.bpmn.task.routing.v1",
+        "contract": "bpmn.native.task.routing.v1",
         "strategy": "repair_task_single_outgoing_route",
         "target": {
             "task_route_violations": task_routing_violations_json(violations)

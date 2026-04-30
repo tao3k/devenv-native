@@ -98,7 +98,8 @@ fn boundary_owner_frontier_fixture(
         event_reference: Some("boundary_timeout".to_string()),
         event_name: Some("BoundaryTimeout".to_string()),
         timer: None,
-        correlation_key: None,
+        condition_expression: None,
+        deduplication_key: None,
     });
     instance
 }

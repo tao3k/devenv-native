@@ -44,10 +44,15 @@ pub(in crate::parser::import) fn complete_process_scope(
         ("process", Some(RawProcessScope::TopLevel))
             | (
                 "subProcess",
-                Some(RawProcessScope::NestedShell {
-                    kind: NestedShellKind::EmbeddedSubProcess,
-                    ..
-                })
+                Some(
+                    RawProcessScope::NestedShell {
+                        kind: NestedShellKind::EmbeddedSubProcess,
+                        ..
+                    } | RawProcessScope::NestedShell {
+                        kind: NestedShellKind::EventSubProcess,
+                        ..
+                    }
+                )
             )
             | (
                 "transaction",
