@@ -138,12 +138,8 @@ impl DocumentExtractFlightRouteProvider for StudioDocumentExtractFlightRouteProv
         force: bool,
         error_row: bool,
     ) -> Result<DocumentExtractFlightRouteResponse, String> {
-        let engine_batches = self
-            .request_python_document_extract(source_path, output_dir, force, error_row)
-            .await?;
-        Ok(DocumentExtractFlightRouteResponse::from_batches(
-            engine_batches,
-        ))
+        self.sync_document_extract_batch(source_path, output_dir, force, error_row)
+            .await
     }
 
     async fn document_extract_batch_for_request(

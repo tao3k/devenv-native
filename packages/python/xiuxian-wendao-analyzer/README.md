@@ -391,9 +391,13 @@ uv run python tests/scripts/benchmark_wendao_document_extract.py \
 The cache-hit path is optimized for service use: cached `_resources.arrow`
 files are returned as Arrow tables without a Python row roundtrip, and the Rust
 document extraction provider reuses its Tonic channel for the configured
-endpoint. First-time Docling conversion is still CPU/model bound and should be
-handled with queueing and worker-pool sizing in production. The Rust provider
-limits concurrently running cold conversions with
+endpoint. Sync `force=false` extraction also checks the Rust content-hash
+artifact registry before calling Python; when a complete artifact already
+exists, Rust mirrors it into the requested output directory and returns the
+Arrow table without re-running Docling. Successful sync conversions are mirrored
+back into that artifact registry for future reuse. First-time Docling
+conversion is still CPU/model bound and should be handled with queueing and
+worker-pool sizing in production. The Rust provider limits concurrently running cold conversions with
 `WENDAO_DOCUMENT_EXTRACT_MAX_RUNNING_CONVERSIONS`; the default is bounded to
 the host parallelism with a maximum of four. Jobs waiting for this capacity
 remain in `queued` status and do not occupy Python-side SQL or registry work.

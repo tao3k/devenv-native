@@ -153,6 +153,45 @@ fn test_resource_batch(rows: &[(&str, i32, &str)]) -> Result<EngineRecordBatch, 
     .map_err(|error| error.to_string())
 }
 
+fn test_document_resource_batch(
+    source_path: &str,
+    resource_path: &str,
+) -> Result<EngineRecordBatch, String> {
+    arrow::record_batch::RecordBatch::try_new(
+        std::sync::Arc::new(arrow::datatypes::Schema::new(vec![
+            arrow::datatypes::Field::new("sourcePath", arrow::datatypes::DataType::Utf8, true),
+            arrow::datatypes::Field::new("resourceType", arrow::datatypes::DataType::Utf8, true),
+            arrow::datatypes::Field::new("resourcePath", arrow::datatypes::DataType::Utf8, true),
+            arrow::datatypes::Field::new("pageIndex", arrow::datatypes::DataType::Int32, true),
+            arrow::datatypes::Field::new("caption", arrow::datatypes::DataType::Utf8, true),
+            arrow::datatypes::Field::new("content", arrow::datatypes::DataType::Utf8, true),
+            arrow::datatypes::Field::new("mimeType", arrow::datatypes::DataType::Utf8, true),
+            arrow::datatypes::Field::new("status", arrow::datatypes::DataType::Utf8, true),
+            arrow::datatypes::Field::new("elementId", arrow::datatypes::DataType::Utf8, true),
+        ])),
+        vec![
+            std::sync::Arc::new(arrow::array::StringArray::from(vec![source_path]))
+                as arrow::array::ArrayRef,
+            std::sync::Arc::new(arrow::array::StringArray::from(vec!["document"]))
+                as arrow::array::ArrayRef,
+            std::sync::Arc::new(arrow::array::StringArray::from(vec![resource_path]))
+                as arrow::array::ArrayRef,
+            std::sync::Arc::new(arrow::array::Int32Array::from(vec![0])) as arrow::array::ArrayRef,
+            std::sync::Arc::new(arrow::array::StringArray::from(vec![""]))
+                as arrow::array::ArrayRef,
+            std::sync::Arc::new(arrow::array::StringArray::from(vec!["content"]))
+                as arrow::array::ArrayRef,
+            std::sync::Arc::new(arrow::array::StringArray::from(vec!["text/markdown"]))
+                as arrow::array::ArrayRef,
+            std::sync::Arc::new(arrow::array::StringArray::from(vec!["ok"]))
+                as arrow::array::ArrayRef,
+            std::sync::Arc::new(arrow::array::StringArray::from(vec!["_main"]))
+                as arrow::array::ArrayRef,
+        ],
+    )
+    .map_err(|error| error.to_string())
+}
+
 #[cfg(feature = "document-extract-pdf-source-range")]
 fn structure_string_column<'a>(
     batch: &'a EngineRecordBatch,

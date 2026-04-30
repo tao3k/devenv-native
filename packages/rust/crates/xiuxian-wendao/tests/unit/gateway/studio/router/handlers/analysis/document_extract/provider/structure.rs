@@ -1,3 +1,4 @@
+#[cfg(feature = "document-extract-pdf-source-range")]
 use super::*;
 
 #[cfg(feature = "document-extract-pdf-source-range")]

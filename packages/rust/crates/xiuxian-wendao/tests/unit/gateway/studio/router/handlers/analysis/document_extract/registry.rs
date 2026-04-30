@@ -110,3 +110,30 @@ fn document_extract_registry_finds_succeeded_output_dir_by_source() -> Result<()
     assert_eq!(status.output_dir, output.to_string_lossy());
     Ok(())
 }
+
+#[test]
+fn document_extract_registry_finds_succeeded_status_by_content_hash() -> Result<(), String> {
+    let temp = tempfile::tempdir().map_err(|error| error.to_string())?;
+    let source = temp.path().join("scan.png");
+    fs::write(source.as_path(), b"image fixture").map_err(|error| error.to_string())?;
+    let registry = DocumentExtractJobRegistry::new(
+        temp.path().join("jobs.duckdb"),
+        temp.path().join("artifacts"),
+    )?;
+    let output = temp.path().join("output");
+    let artifact_dir = registry.artifact_dir_for_source_content(source.as_path())?;
+    fs::create_dir_all(artifact_dir.as_path()).map_err(|error| error.to_string())?;
+    fs::write(artifact_dir.join("_resources.arrow"), b"arrow placeholder")
+        .map_err(|error| error.to_string())?;
+    fs::write(artifact_dir.join("_complete.marker"), b"").map_err(|error| error.to_string())?;
+
+    let recorded = registry.record_succeeded_output(source.as_path(), output.as_path())?;
+    let found = registry
+        .succeeded_status_for_source_content(source.as_path())?
+        .ok_or_else(|| "content-hash succeeded status should exist".to_string())?;
+
+    assert_eq!(found.job_id, recorded.job_id);
+    assert_eq!(found.status, "succeeded");
+    assert_eq!(found.output_dir, output.to_string_lossy());
+    Ok(())
+}

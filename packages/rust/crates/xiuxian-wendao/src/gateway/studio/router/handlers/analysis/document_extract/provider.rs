@@ -16,7 +16,7 @@ use core::{
 };
 pub(crate) use core::{DocumentExtractRuntimeSnapshot, StudioDocumentExtractFlightRouteProvider};
 
-#[cfg(all(test, feature = "document-extract-pdf-source-range"))]
+#[cfg(test)]
 use arrow::record_batch::RecordBatch as EngineRecordBatch;
 #[cfg(test)]
 use std::sync::Arc;
@@ -31,8 +31,8 @@ use xiuxian_wendao_attachments::pdf::render::{
 #[cfg(all(test, feature = "document-extract-pdf-source-range"))]
 use xiuxian_wendao_attachments::pdf::structure::build_document_structure_batch;
 
-#[cfg(all(test, feature = "document-extract-pdf-source-range"))]
-use super::arrow_cache::read_arrow_file;
+#[cfg(test)]
+use super::arrow_cache::{read_arrow_file, write_arrow_file};
 #[cfg(test)]
 use super::registry::DocumentExtractJobRegistry;
 #[cfg(all(test, feature = "document-extract-pdf-source-range"))]

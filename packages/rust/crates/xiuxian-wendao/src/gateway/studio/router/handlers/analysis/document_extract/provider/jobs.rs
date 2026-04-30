@@ -8,7 +8,8 @@ use xiuxian_wendao_runtime::transport::{
 
 use super::super::arrow_cache::{
     DOCUMENT_RESOURCE_ARROW_CACHE_NAME, build_error_resource_batch, build_job_resource_batch,
-    mirror_artifact_to_output, read_arrow_file, read_cached_document_batches, write_arrow_file,
+    mirror_artifact_to_output, mirror_document_extract_cache, read_arrow_file,
+    read_cached_document_batches, write_arrow_file,
 };
 use super::super::registry::{
     DocumentExtractJobRegistry, DocumentExtractJobStatus, artifact_ready, default_output_dir,
@@ -16,6 +17,94 @@ use super::super::registry::{
 use super::StudioDocumentExtractFlightRouteProvider;
 
 impl StudioDocumentExtractFlightRouteProvider {
+    pub(super) async fn sync_document_extract_batch(
+        &self,
+        source_path: &str,
+        output_dir: &str,
+        force: bool,
+        error_row: bool,
+    ) -> Result<DocumentExtractFlightRouteResponse, String> {
+        let source = PathBuf::from(source_path);
+        let output = if output_dir.trim().is_empty() {
+            default_output_dir(source.as_path())
+        } else {
+            PathBuf::from(output_dir)
+        };
+        if source.exists() && !force {
+            if let Some(batches) = read_cached_document_batches(source.as_path(), output.as_path())?
+            {
+                return Ok(DocumentExtractFlightRouteResponse::from_batches(batches));
+            }
+            match self
+                .reuse_succeeded_artifact(source.as_path(), output.as_path())
+                .await
+            {
+                Ok(Some(response)) => return Ok(response),
+                Ok(None) => {}
+                Err(error) => {
+                    log::warn!("failed to reuse sync document extract artifact: {error}");
+                }
+            }
+        }
+
+        let output_string = output.to_string_lossy().to_string();
+        let engine_batches = self
+            .request_python_document_extract(source_path, output_string.as_str(), force, error_row)
+            .await?;
+        if source.exists()
+            && !error_row
+            && let Err(error) = self
+                .persist_sync_output_artifact(source.as_path(), output.as_path())
+                .await
+        {
+            log::warn!("failed to persist sync document extract artifact: {error}");
+        }
+        Ok(DocumentExtractFlightRouteResponse::from_batches(
+            engine_batches,
+        ))
+    }
+
+    async fn reuse_succeeded_artifact(
+        &self,
+        source: &Path,
+        output: &Path,
+    ) -> Result<Option<DocumentExtractFlightRouteResponse>, String> {
+        let status = {
+            let _registry_guard = self.registry_lock();
+            self.registry()?
+                .succeeded_status_for_source_content(source)?
+        };
+        let Some(status) = status else {
+            return Ok(None);
+        };
+        let _guard = self.runtime.artifact_lock.lock().await;
+        Self::mirror_and_read_succeeded(&status, output).map(Some)
+    }
+
+    pub(super) async fn persist_sync_output_artifact(
+        &self,
+        source: &Path,
+        output: &Path,
+    ) -> Result<(), String> {
+        let artifact_dir = {
+            let _registry_guard = self.registry_lock();
+            self.registry()?.artifact_dir_for_source_content(source)?
+        };
+        let _guard = self.runtime.artifact_lock.lock().await;
+        if artifact_dir.exists() {
+            std::fs::remove_dir_all(artifact_dir.as_path()).map_err(|error| {
+                format!(
+                    "remove stale sync document extract artifact `{}`: {error}",
+                    artifact_dir.display()
+                )
+            })?;
+        }
+        mirror_document_extract_cache(output, artifact_dir.as_path())?;
+        let _registry_guard = self.registry_lock();
+        self.registry()?.record_succeeded_output(source, output)?;
+        Ok(())
+    }
+
     pub(crate) async fn submit_document_extract_job(
         &self,
         source_path: &str,

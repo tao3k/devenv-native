@@ -145,6 +145,20 @@ compute document timing overhead as `forceRefreshMs -
 documentTimingTotalElapsedMs`; this keeps Python extraction time separate from
 Flight/Rust request-boundary time.
 
+## Sync Artifact Reuse Follow-Up
+
+The real image timing breakdown after writer warmup shows the image cold path
+is dominated by Docling conversion, not Rust/Flight overhead. Sync
+`force=false` extraction now participates in the same Rust content-hash
+artifact registry used by async extraction: it checks the requested output
+cache first, then mirrors an already completed content-hash artifact before
+calling Python. When Python does perform a successful sync conversion, Rust
+mirrors that output back into the artifact registry for future reuse.
+
+This is a control-plane cache optimization. It does not replace Docling image
+OCR or layout, and it does not change `_resources.arrow`, `_structure.arrow`,
+or Flight/REST schemas.
+
 ## Next Slices
 
 1. Image attachment OCR lane:

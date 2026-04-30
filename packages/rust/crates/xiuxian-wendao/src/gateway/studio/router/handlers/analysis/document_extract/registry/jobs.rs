@@ -68,6 +68,78 @@ impl DocumentExtractJobRegistry {
             .ok_or_else(|| format!("document extract job was not persisted: {job_id}"))
     }
 
+    pub(crate) fn succeeded_status_for_source_content(
+        &self,
+        source_path: &Path,
+    ) -> Result<Option<DocumentExtractJobStatus>, String> {
+        let content_hash = self.content_hash_for(source_path)?;
+        let job_id = self.job_id_for(source_path, content_hash.as_str());
+        let conn = self.connection()?;
+        let Some(status) = fetch_status(&conn, job_id.as_str())? else {
+            return Ok(None);
+        };
+        if status.status == "succeeded" && artifact_ready(&status) {
+            return Ok(Some(status));
+        }
+        Ok(None)
+    }
+
+    pub(crate) fn artifact_dir_for_source_content(
+        &self,
+        source_path: &Path,
+    ) -> Result<std::path::PathBuf, String> {
+        let content_hash = self.content_hash_for(source_path)?;
+        let job_id = self.job_id_for(source_path, content_hash.as_str());
+        Ok(self.artifact_root.join(job_id))
+    }
+
+    pub(crate) fn record_succeeded_output(
+        &self,
+        source_path: &Path,
+        output_dir: &Path,
+    ) -> Result<DocumentExtractJobStatus, String> {
+        let content_hash = self.content_hash_for(source_path)?;
+        let job_id = self.job_id_for(source_path, content_hash.as_str());
+        let artifact_dir = self.artifact_root.join(job_id.as_str());
+        let source_suffix = source_path
+            .extension()
+            .and_then(std::ffi::OsStr::to_str)
+            .map_or_else(String::new, |suffix| format!(".{suffix}"));
+        let timestamp_ms = now_ms();
+        let conn = self.connection()?;
+        conn.execute(
+            "DELETE FROM document_extract_jobs WHERE job_id = ?",
+            params![job_id.as_str()],
+        )
+        .map_err(|error| format!("replace sync document extract job row: {error}"))?;
+        conn.execute(
+            r"
+            INSERT INTO document_extract_jobs (
+                job_id, source_path, output_dir, artifact_dir, content_hash,
+                source_suffix, converter_profile, status, attempt_count,
+                created_at_ms, started_at_ms, finished_at_ms, error_message
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, 'succeeded', 1, ?, ?, ?, '')
+            ",
+            params![
+                job_id,
+                source_path.to_string_lossy().to_string(),
+                output_dir.to_string_lossy().to_string(),
+                artifact_dir.to_string_lossy().to_string(),
+                content_hash,
+                source_suffix,
+                self.converter_profile,
+                timestamp_ms,
+                timestamp_ms,
+                timestamp_ms,
+            ],
+        )
+        .map_err(|error| format!("record sync document extract artifact: {error}"))?;
+
+        fetch_status(&conn, job_id.as_str())?
+            .ok_or_else(|| format!("sync document extract job was not persisted: {job_id}"))
+    }
+
     pub(crate) fn status(&self, job_id: &str) -> Result<Option<DocumentExtractJobStatus>, String> {
         let conn = self.connection()?;
         fetch_status(&conn, job_id)

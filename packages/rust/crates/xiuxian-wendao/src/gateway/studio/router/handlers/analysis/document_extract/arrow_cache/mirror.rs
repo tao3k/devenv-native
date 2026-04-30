@@ -35,26 +35,33 @@ pub(crate) fn mirror_artifact_to_output(
     artifact_dir: &Path,
     output_dir: &Path,
 ) -> Result<(), String> {
-    fs::create_dir_all(output_dir).map_err(|error| {
+    mirror_document_extract_cache(artifact_dir, output_dir)
+}
+
+pub(crate) fn mirror_document_extract_cache(
+    source_dir: &Path,
+    target_dir: &Path,
+) -> Result<(), String> {
+    fs::create_dir_all(target_dir).map_err(|error| {
         format!(
-            "create document extract output directory `{}`: {error}",
-            output_dir.display()
+            "create document extract cache directory `{}`: {error}",
+            target_dir.display()
         )
     })?;
-    if artifact_dir.canonicalize().ok() != output_dir.canonicalize().ok() {
-        mirror_artifact_entries(artifact_dir, output_dir)?;
+    if source_dir.canonicalize().ok() != target_dir.canonicalize().ok() {
+        mirror_artifact_entries(source_dir, target_dir)?;
     }
 
-    let resources_path = output_dir.join(DOCUMENT_RESOURCE_ARROW_CACHE_NAME);
+    let resources_path = target_dir.join(DOCUMENT_RESOURCE_ARROW_CACHE_NAME);
     if resources_path.exists() {
         let batches = read_arrow_file(resources_path.as_path())?;
         let rewritten = batches
             .iter()
-            .map(|batch| rewrite_resource_paths(batch, artifact_dir, output_dir))
+            .map(|batch| rewrite_resource_paths(batch, source_dir, target_dir))
             .collect::<Result<Vec<_>, _>>()?;
         write_arrow_file(resources_path.as_path(), &rewritten)?;
     }
-    File::create(output_dir.join("_complete.marker"))
+    File::create(target_dir.join("_complete.marker"))
         .map_err(|error| format!("touch document extract complete marker: {error}"))?;
     Ok(())
 }

@@ -1,6 +1,7 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
+#[cfg(feature = "document-extract-pdf-source-range")]
 use super::*;
 
 #[test]
