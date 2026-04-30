@@ -153,6 +153,12 @@ The benchmark harness can now also start a local Python OCR endpoint pool with
 `--local-python-ocr-endpoint-count`. That is intentionally benchmark-owned:
 production deployments still provide endpoint URLs explicitly, while Rust owns
 the scheduling and pressure-control semantics once endpoints exist.
+A fixture-OCR smoke run over Docling's `normal_4pages.pdf` fixture started two
+local Python OCR endpoints and routed `hybrid-page-ocr` through the Rust
+provider. The run produced 4 resource rows, 4 structure rows, 4 OCR page
+blocks, 4 bbox-bearing blocks, sorted reading order, and zero error rows. The
+force path measured 731.788 ms and the cache path measured 3.036 ms p95 with
+the fixture OCR worker.
 
 ## Performance and Precision Assessment
 
