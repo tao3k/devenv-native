@@ -334,6 +334,12 @@ participant-band literals, and `BPMNEdge` `messageVisibleKind` values must use
 the standard message-visibility literals. Invalid enum values report a specific
 lint diagnostic before the generic metadata-only DI guidance.
 
+DI boolean-valued display hints are audited against XML Schema boolean lexical
+values before snapshot normalization. `BPMNShape` flags such as `isHorizontal`
+and `isExpanded`, plus `dc:Font` style flags such as `isBold`, must use `true`,
+`false`, `1`, or `0`. Invalid boolean values report a specific lint diagnostic
+before the generic metadata-only DI guidance.
+
 ## Completed M4.6 Global Task Binding Diagnostics Milestone
 
 The global-task binding diagnostics slice keeps top-level global task

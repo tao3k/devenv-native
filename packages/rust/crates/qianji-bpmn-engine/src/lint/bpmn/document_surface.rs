@@ -5,6 +5,7 @@ mod collaboration;
 mod data;
 mod di_anchor;
 mod di_anchor_kind;
+mod di_boolean;
 mod di_completeness;
 mod di_enum;
 mod di_identity;

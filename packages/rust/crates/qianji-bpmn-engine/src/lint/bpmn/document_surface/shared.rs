@@ -22,6 +22,7 @@ pub(super) use super::collaboration::{
 pub(super) use super::data::data_snapshot_summary;
 pub(super) use super::di_anchor::diagram_anchor_issue;
 pub(super) use super::di_anchor_kind::diagram_anchor_kind_issue;
+pub(super) use super::di_boolean::diagram_boolean_issue;
 pub(super) use super::di_completeness::diagram_completeness_issue;
 pub(super) use super::di_enum::diagram_enum_issue;
 pub(super) use super::di_identity::diagram_identity_issue;

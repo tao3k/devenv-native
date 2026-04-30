@@ -292,6 +292,7 @@ fn single_issue<'a>(report: &'a LintReport, code: &str) -> &'a LintIssue {
 fn assert_bpmn_di_boundary_evidence() {
     assert_bpmn_di_metadata_boundary_evidence();
     assert_bpmn_di_namespace_boundary_evidence();
+    assert_bpmn_di_boolean_boundary_evidence();
     assert_bpmn_di_enum_boundary_evidence();
     assert_bpmn_di_topology_boundary_evidence();
     assert_bpmn_di_anchor_boundary_evidence();
@@ -319,6 +320,18 @@ fn assert_bpmn_di_namespace_boundary_evidence() {
         issue.evidence["invalid_namespaces"][0]["expected_namespace_uri"],
         "http://www.omg.org/spec/BPMN/20100524/DI"
     );
+}
+
+fn assert_bpmn_di_boolean_boundary_evidence() {
+    let invalid_di_boolean = lint_fixture("invalid-di-boolean-values.bpmn");
+    let issue = single_issue(&invalid_di_boolean, "bpmn.invalid_di_boolean");
+    assert_eq!(
+        issue.evidence["invalid_booleans"][0]["attribute"],
+        "isHorizontal"
+    );
+    assert_eq!(issue.evidence["invalid_booleans"][0]["value"], "yes");
+    assert_eq!(issue.evidence["invalid_booleans"][2]["attribute"], "isBold");
+    assert_eq!(issue.evidence["invalid_booleans"][2]["value"], "sometimes");
 }
 
 fn assert_bpmn_di_enum_boundary_evidence() {
