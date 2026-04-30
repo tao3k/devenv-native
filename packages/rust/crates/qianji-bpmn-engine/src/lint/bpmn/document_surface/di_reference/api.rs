@@ -1,24 +1,23 @@
-use std::collections::BTreeSet;
-
 use serde_json::json;
 
 use crate::bpmn_model_api::BpmnDocumentSnapshot;
 use crate::bpmn_parse_api::BpmnSourceFile;
 use crate::bpmn_snapshot_api::snapshot_bpmn_source;
 use crate::lint::bpmn::document_surface::SNAPSHOT_EVIDENCE_LIMIT;
+use crate::lint::bpmn::document_surface::di_semantic::SemanticElementIndex;
 use crate::lint::bpmn::document_surface::summary::diagram_snapshot_summary;
 use crate::lint_api::LintIssue;
 
 use super::local::collect_local_reference_violations;
 use super::model::DiReferenceViolation;
-use super::semantic::{collect_semantic_reference_violations, semantic_ids_from_source};
+use super::semantic::collect_semantic_reference_violations;
 
 pub(in crate::lint::bpmn::document_surface) fn diagram_reference_issue(
     source: &BpmnSourceFile,
 ) -> Option<LintIssue> {
     let snapshot = snapshot_bpmn_source(source).ok()?;
-    let semantic_ids = semantic_ids_from_source(source)?;
-    let missing_references = missing_di_references(&snapshot, &semantic_ids);
+    let semantic_index = SemanticElementIndex::from_source(source)?;
+    let missing_references = missing_di_references(&snapshot, &semantic_index);
     if missing_references.is_empty() {
         return None;
     }
@@ -29,7 +28,7 @@ pub(in crate::lint::bpmn::document_surface) fn diagram_reference_issue(
         "element": "BPMNDiagram",
         "deferred_family": "diagram",
         "snapshot_available": true,
-        "semantic_id_count": semantic_ids.len(),
+        "semantic_id_count": semantic_index.len(),
         "invalid_reference_count": missing_references.len(),
         "invalid_references": missing_references
             .iter()
@@ -62,7 +61,7 @@ pub(in crate::lint::bpmn::document_surface) fn diagram_reference_issue(
 
 fn missing_di_references(
     snapshot: &BpmnDocumentSnapshot,
-    semantic_ids: &BTreeSet<String>,
+    semantic_index: &SemanticElementIndex,
 ) -> Vec<DiReferenceViolation> {
     let mut violations = Vec::new();
     for diagram in &snapshot.root.diagrams {
@@ -75,7 +74,7 @@ fn missing_di_references(
             diagram_id,
             plane.plane_id.as_deref(),
             plane,
-            semantic_ids,
+            semantic_index,
         );
         collect_local_reference_violations(&mut violations, diagram_id, diagram, plane);
     }

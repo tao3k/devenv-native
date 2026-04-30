@@ -337,6 +337,20 @@ fn assert_bpmn_di_boundary_evidence() {
     let issue = single_issue(&missing_di_edge_anchor, "bpmn.missing_di_semantic_anchor");
     assert_eq!(issue.evidence["missing_anchors"][0]["element"], "BPMNEdge");
 
+    let invalid_di_shape_anchor_kind = lint_fixture("invalid-di-shape-anchor-kind.bpmn");
+    let issue = single_issue(&invalid_di_shape_anchor_kind, "bpmn.invalid_di_anchor_kind");
+    assert_eq!(
+        issue.evidence["invalid_anchor_kinds"][0]["actual_semantic_tag"],
+        "sequenceFlow"
+    );
+
+    let invalid_di_edge_anchor_kind = lint_fixture("invalid-di-edge-anchor-kind.bpmn");
+    let issue = single_issue(&invalid_di_edge_anchor_kind, "bpmn.invalid_di_anchor_kind");
+    assert_eq!(
+        issue.evidence["invalid_anchor_kinds"][0]["actual_semantic_tag"],
+        "serviceTask"
+    );
+
     let invalid_di_edge = lint_fixture("invalid-di-edge-reference.bpmn");
     let issue = single_issue(&invalid_di_edge, "bpmn.invalid_di_reference");
     assert_eq!(

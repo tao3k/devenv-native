@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Defs_InvalidDiEdgeAnchorKind"
+  targetNamespace="https://example.com/bpmn/invalid-di-edge-anchor-kind">
+  <bpmn:process id="invalid_di_edge_anchor_kind_process" isExecutable="true">
+    <bpmn:startEvent id="start" />
+    <bpmn:serviceTask id="review" />
+    <bpmn:sequenceFlow id="flow_start_review" sourceRef="start" targetRef="review" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="Diagram_InvalidDiEdgeAnchorKind">
+    <bpmndi:BPMNPlane id="Plane_InvalidDiEdgeAnchorKind" bpmnElement="invalid_di_edge_anchor_kind_process">
+      <bpmndi:BPMNShape id="Shape_Start" bpmnElement="start">
+        <dc:Bounds x="100" y="80" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Review" bpmnElement="review">
+        <dc:Bounds x="180" y="60" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Edge_StartReview" bpmnElement="review" sourceElement="Shape_Start" targetElement="Shape_Review">
+        <di:waypoint x="136" y="98" />
+        <di:waypoint x="180" y="100" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
