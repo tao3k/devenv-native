@@ -306,6 +306,11 @@ def run_fixture_probe(
             cached_report.get("rustJobsStatusSummary", {}),
         ]
     )
+    force_refresh_ms = force_report["latenciesMs"][0]
+    document_timing_overhead_ms = document_timing_overhead(
+        force_refresh_ms,
+        artifact_summary,
+    )
     return {
         "fixture": fixture_name,
         "source": str(fixture_path),
@@ -321,7 +326,7 @@ def run_fixture_probe(
         "duplicateMissWallTimeMs": (
             duplicate_report.get("wallTimeMs", 0.0) if duplicate_report else 0.0
         ),
-        "forceRefreshMs": force_report["latenciesMs"][0],
+        "forceRefreshMs": force_refresh_ms,
         "forceErrorRows": force_error_rows,
         "forceStatusCounts": force_report.get("statusCounts", {}),
         "forceMaxRssKb": force_report.get("maxRssKb"),
@@ -390,6 +395,7 @@ def run_fixture_probe(
         "documentTimingTotalElapsedMs": artifact_summary[
             "documentTimingTotalElapsedMs"
         ],
+        "documentTimingOverheadMs": document_timing_overhead_ms,
         "documentTimingPhaseElapsedMs": artifact_summary[
             "documentTimingPhaseElapsedMs"
         ],
@@ -399,9 +405,21 @@ def run_fixture_probe(
         "artifactErrorCount": artifact_summary["artifactErrorCount"],
         "artifactReports": cached_report.get("artifactReports", []),
         "rowsPerSecond": rows_per_second(total_rows, cached_report["wallTimeMs"]),
-        "cacheSpeedup": force_report["latenciesMs"][0]
-        / max(percentile(cached_latencies, 50), 0.001),
+        "cacheSpeedup": force_refresh_ms / max(percentile(cached_latencies, 50), 0.001),
     }
+
+
+def document_timing_overhead(
+    force_refresh_ms: float,
+    artifact_summary: dict[str, Any],
+) -> float | None:
+    timing_rows = artifact_summary.get("documentTimingRows", 0)
+    if not isinstance(timing_rows, int) or timing_rows <= 0:
+        return None
+    timing_ms = artifact_summary.get("documentTimingTotalElapsedMs")
+    if not isinstance(timing_ms, int | float):
+        return None
+    return max(float(force_refresh_ms) - float(timing_ms), 0.0)
 
 
 def run_cargo_perf_test(

@@ -107,6 +107,14 @@ def speed_observation_summary(
             results,
             "documentTimingTotalElapsedMs",
         ),
+        "maxDocumentTimingOverheadMs": max_numeric(
+            results,
+            "documentTimingOverheadMs",
+        ),
+        "totalDocumentTimingOverheadMs": sum_numeric(
+            results,
+            "documentTimingOverheadMs",
+        ),
         "distinctMissWallTimeMs": (
             distinct_miss_report.get("wallTimeMs") if distinct_miss_report else None
         ),

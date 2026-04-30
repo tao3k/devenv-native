@@ -95,6 +95,9 @@ def summarize_results(
         "totalDocumentTimingElapsedMs": sum(
             result.get("documentTimingTotalElapsedMs", 0.0) for result in results
         ),
+        "totalDocumentTimingOverheadMs": sum(
+            result.get("documentTimingOverheadMs", 0.0) or 0.0 for result in results
+        ),
         "documentTimingPhaseElapsedMs": combine_float_counts(
             result.get("documentTimingPhaseElapsedMs", {}) for result in results
         ),
@@ -266,6 +269,8 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"`rows={payload['summary'].get('totalDocumentTimingRows')}, "
         "totalElapsedMs="
         f"{format_optional_float(payload['summary'].get('totalDocumentTimingElapsedMs'))}, "
+        "overheadMs="
+        f"{format_optional_float(payload['summary'].get('totalDocumentTimingOverheadMs'))}, "
         "phases="
         f"{format_float_counts(payload['summary'].get('documentTimingPhaseElapsedMs'))}`",
         "- Precision-speed summary: "
@@ -275,6 +280,8 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"orderStable={precision_speed.get('structureOrderStable')}, "
         f"parityPassed={precision_speed.get('structureParityPassed')}, "
         f"maxForceMs={format_optional_float(precision_speed.get('maxForceRefreshMs'))}, "
+        "maxTimingOverheadMs="
+        f"{format_optional_float(precision_speed.get('maxDocumentTimingOverheadMs'))}, "
         f"maxCacheP95Ms={format_optional_float(precision_speed.get('maxCacheHitP95Ms'))}`",
         f"- Artifact errors: `{payload['summary']['artifactErrorCount']}`",
         "",

@@ -1584,6 +1584,7 @@ def test_attachment_class_summary_groups_precision_and_speed() -> None:
                 "metricsRustSchedulerElapsedMs": 0.0,
                 "documentTimingRows": 3,
                 "documentTimingTotalElapsedMs": 18.0,
+                "documentTimingOverheadMs": 2.0,
                 "documentTimingPhaseElapsedMs": {
                     "doclingConvert": 12.0,
                     "total": 18.0,
@@ -1642,6 +1643,7 @@ def test_attachment_class_summary_groups_precision_and_speed() -> None:
                 "metricsRustSchedulerElapsedMs": 0.0,
                 "documentTimingRows": 3,
                 "documentTimingTotalElapsedMs": 45.0,
+                "documentTimingOverheadMs": 5.0,
                 "documentTimingPhaseElapsedMs": {
                     "doclingConvert": 40.0,
                     "total": 45.0,
@@ -1703,6 +1705,7 @@ def test_attachment_class_summary_groups_precision_and_speed() -> None:
         "latencyMs": 20.0,
     }
     assert class_summary["office"]["documentTimingTotalElapsedMs"] == 18.0
+    assert class_summary["office"]["documentTimingOverheadMs"] == 2.0
     assert class_summary["office"]["documentTimingStatusCounts"] == {"ok": 3}
     assert class_summary["image"]["structureRows"] == 1
     assert class_summary["image"]["resourceTypeCounts"]["table"] == 1
@@ -1715,7 +1718,15 @@ def test_attachment_class_summary_groups_precision_and_speed() -> None:
         "fixture": "image-png",
         "latencyMs": 5.0,
     }
+    assert class_summary["image"]["slowestTimingOverheadFixture"] == {
+        "fixture": "image-png",
+        "latencyMs": 5.0,
+    }
     assert class_summary["image"]["precisionSpeedSummary"]["maxCacheHitP95Ms"] == 5.0
+    assert (
+        class_summary["image"]["precisionSpeedSummary"]["maxDocumentTimingOverheadMs"]
+        == 5.0
+    )
     assert class_summary["image"]["documentTimingPhaseElapsedMs"] == {
         "doclingConvert": 40.0,
         "total": 45.0,
@@ -1972,6 +1983,7 @@ def test_summary_and_markdown_report_distinct_miss_burst() -> None:
         "metricsRustSchedulerElapsedMs": 12.0,
         "documentTimingRows": 3,
         "documentTimingTotalElapsedMs": 30.0,
+        "documentTimingOverheadMs": 8.0,
         "documentTimingPhaseElapsedMs": {
             "doclingConvert": 20.0,
             "total": 30.0,
@@ -2029,6 +2041,7 @@ def test_summary_and_markdown_report_distinct_miss_burst() -> None:
     assert summary["rustJobsStatusSummary"]["maxRunningJobs"] == 2
     assert summary["totalDocumentTimingRows"] == 3
     assert summary["totalDocumentTimingElapsedMs"] == 30.0
+    assert summary["totalDocumentTimingOverheadMs"] == 8.0
     assert summary["documentTimingPhaseElapsedMs"] == {
         "doclingConvert": 20.0,
         "total": 30.0,
@@ -2086,6 +2099,8 @@ def test_summary_and_markdown_report_distinct_miss_burst() -> None:
     assert "chars=80" in markdown
     assert "Document timing sidecar" in markdown
     assert "doclingConvert=20.000" in markdown
+    assert "overheadMs=8.000" in markdown
+    assert "maxTimingOverheadMs=8.000" in markdown
     assert "Rust PDF OCR source-range workers" in markdown
     assert "Structure parity" in markdown
     assert "Structure order stable across runs" in markdown

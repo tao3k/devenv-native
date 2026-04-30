@@ -140,7 +140,10 @@ row-construction-bound, or Arrow-write-bound before adding any fast path.
 The first timing run showed a one-time PyArrow IPC/table writer initialization
 cost in `writeStructureArrow`. The Python document Flight service now warms the
 resource, structure, and timing Arrow writers during startup so the first
-request does not carry that initialization cost.
+request does not carry that initialization cost. Benchmark reports now also
+compute document timing overhead as `forceRefreshMs -
+documentTimingTotalElapsedMs`; this keeps Python extraction time separate from
+Flight/Rust request-boundary time.
 
 ## Next Slices
 

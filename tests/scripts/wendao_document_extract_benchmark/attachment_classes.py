@@ -189,6 +189,9 @@ def summarize_attachment_class(
         "documentTimingTotalElapsedMs": sum(
             result.get("documentTimingTotalElapsedMs", 0.0) for result in results
         ),
+        "documentTimingOverheadMs": sum(
+            result.get("documentTimingOverheadMs", 0.0) or 0.0 for result in results
+        ),
         "documentTimingPhaseElapsedMs": aggregate_document_timing_phases(results),
         "imageAttachmentAuditCount": image_attachment_audit_count(results),
         "imageAccelerationCandidates": aggregate_image_acceleration_candidates(
@@ -196,6 +199,10 @@ def summarize_attachment_class(
         ),
         "maxImagePixelCount": max_image_pixel_count(results),
         "slowestForceFixture": slowest_fixture(results, "forceRefreshMs"),
+        "slowestTimingOverheadFixture": slowest_fixture(
+            results,
+            "documentTimingOverheadMs",
+        ),
         "slowestCacheP95Fixture": slowest_fixture(results, "cacheHitP95Ms"),
         "precisionSpeedSummary": precision_speed_summary(
             results,
