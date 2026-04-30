@@ -21,6 +21,6 @@ fn bpmn_linter_reports_diagram_interchange_metadata_surface_with_guidance() {
         issue.evidence["snapshot"]["diagrams"][0]["diagram_id"],
         "Diagram_Main"
     );
-    assert_eq!(issue.evidence["snapshot"]["diagrams"][0]["shape_count"], 1);
+    assert_eq!(issue.evidence["snapshot"]["diagrams"][0]["shape_count"], 2);
     assert_eq!(issue.evidence["snapshot"]["diagrams"][0]["edge_count"], 1);
 }

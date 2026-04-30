@@ -1,6 +1,7 @@
 use super::{
-    BpmnSourceFile, Event, LintIssue, Reader, flow_element_metadata_issue, issue_for_tag,
-    local_name, resource_role_metadata_issue,
+    BpmnSourceFile, Event, LintIssue, Reader, diagram_anchor_issue, diagram_completeness_issue,
+    diagram_identity_issue, diagram_reference_issue, diagram_topology_issue,
+    flow_element_metadata_issue, issue_for_tag, local_name, resource_role_metadata_issue,
 };
 
 pub(in crate::lint::bpmn) fn deferred_document_surface_issue(
@@ -10,6 +11,21 @@ pub(in crate::lint::bpmn) fn deferred_document_surface_issue(
         return Some(issue);
     }
     if let Some(issue) = flow_element_metadata_issue(source) {
+        return Some(issue);
+    }
+    if let Some(issue) = diagram_topology_issue(source) {
+        return Some(issue);
+    }
+    if let Some(issue) = diagram_anchor_issue(source) {
+        return Some(issue);
+    }
+    if let Some(issue) = diagram_identity_issue(source) {
+        return Some(issue);
+    }
+    if let Some(issue) = diagram_reference_issue(source) {
+        return Some(issue);
+    }
+    if let Some(issue) = diagram_completeness_issue(source) {
         return Some(issue);
     }
 

@@ -1,5 +1,7 @@
 use super::*;
-use qianji_bpmn_engine::{BpmnSourceFile, lint_bpmn_source};
+use qianji_bpmn_engine::{
+    BpmnParseOptions, BpmnSourceFile, lint_bpmn_source, parse_bpmn_package, snapshot_bpmn_source,
+};
 
 const VALID_WORKFLOW_PLAN: &str = r#"{
   "version": 1,
@@ -64,7 +66,7 @@ fn parse_emit_command_accepts_bpmn_target() {
 }
 
 #[test]
-fn run_emit_command_renders_lint_clean_bpmn() {
+fn run_emit_command_renders_native_bpmn_with_standard_di() {
     let temp_dir = must_ok(TempDir::new(), "temp dir should be created");
     let path = temp_dir.path().join("valid-plan.json");
     write_file(&path, VALID_WORKFLOW_PLAN);
@@ -77,16 +79,38 @@ fn run_emit_command_renders_lint_clean_bpmn() {
         "emit-plan.bpmn".to_string(),
         output.rendered.clone(),
     ));
+    let source = BpmnSourceFile::new("emit-plan.bpmn".to_string(), output.rendered.clone());
+    let snapshot = must_ok(
+        snapshot_bpmn_source(&source),
+        "emitted BPMN should snapshot cleanly",
+    );
+    must_ok(
+        parse_bpmn_package(&[source], &BpmnParseOptions::default()),
+        "emitted BPMN should parse cleanly",
+    );
 
     assert!(output.rendered.contains("<definitions"));
     assert!(!output.rendered.contains("xmlns:qianji"));
     assert!(output.rendered.contains("<ioSpecification>"));
+    assert!(output.rendered.contains("xmlns:bpmndi"));
+    assert!(output.rendered.contains("<bpmndi:BPMNDiagram"));
+    assert!(output.rendered.contains("<dc:Bounds"));
+    assert!(output.rendered.contains("<di:waypoint"));
     assert!(
         output
             .rendered
             .contains("<exclusiveGateway id=\"Gateway_Task_Approve\"")
     );
-    assert!(report.ok, "emitted BPMN should lint clean: {report:?}");
+    assert_eq!(snapshot.root.diagram_count, 1);
+    let plane = snapshot.root.diagrams[0]
+        .plane
+        .as_ref()
+        .unwrap_or_else(|| panic!("emitted BPMN should preserve a BPMNPlane"));
+    assert_eq!(plane.shapes.len(), 5);
+    assert_eq!(plane.edges.len(), 4);
+    assert!(!report.ok);
+    assert_eq!(report.issues.len(), 1);
+    assert_eq!(report.issues[0].code, "bpmn.metadata_di_surface");
 }
 
 #[test]

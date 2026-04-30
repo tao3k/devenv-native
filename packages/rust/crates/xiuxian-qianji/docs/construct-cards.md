@@ -174,3 +174,9 @@ executable work only: service tasks and user interactions. Gateway constructs
 are selected in `constructs`, but represented by conditional/default `edges`.
 
 Validation and emission are static. They do not execute the workflow.
+Generated BPMN from `qianji template --bpmn` and
+`qianji emit <plan.json> --bpmn` includes standard BPMN DI/DC/DI diagram
+interchange metadata for start events, tasks, bounded gateways, end events,
+and sequence flows. The DI block is interchange metadata only; workflow
+execution continues to use the BPMN process, task IO, and sequence-flow
+semantics rather than layout coordinates.

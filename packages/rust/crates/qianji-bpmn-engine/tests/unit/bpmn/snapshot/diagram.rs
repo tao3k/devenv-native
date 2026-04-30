@@ -33,7 +33,7 @@ fn bpmn_snapshot_preserves_diagram_metadata() {
     };
     assert_eq!(plane.plane_id.as_deref(), Some("Plane_Main"));
     assert_eq!(plane.bpmn_element.as_deref(), Some("diagram_process"));
-    assert_eq!(plane.shapes.len(), 1);
+    assert_eq!(plane.shapes.len(), 2);
     assert_eq!(plane.edges.len(), 1);
 
     let shape = &plane.shapes[0];
@@ -61,6 +61,17 @@ fn bpmn_snapshot_preserves_diagram_metadata() {
         Some("120"),
         Some("52"),
         Some("18"),
+    );
+
+    let shape = &plane.shapes[1];
+    assert_eq!(shape.shape_id.as_deref(), Some("Shape_End"));
+    assert_eq!(shape.bpmn_element.as_deref(), Some("end"));
+    assert_bounds(
+        shape.bounds.as_ref(),
+        Some("220"),
+        Some("80"),
+        Some("36"),
+        Some("36"),
     );
 
     let edge = &plane.edges[0];

@@ -28,6 +28,11 @@
           <dc:Bounds x="92" y="120" width="52" height="18" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape
+        id="Shape_End"
+        bpmnElement="end">
+        <dc:Bounds x="220" y="80" width="36" height="36" />
+      </bpmndi:BPMNShape>
       <bpmndi:BPMNEdge
         id="Edge_Start_End"
         bpmnElement="flow_start_end"

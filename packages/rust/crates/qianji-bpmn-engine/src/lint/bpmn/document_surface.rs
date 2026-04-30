@@ -19,6 +19,11 @@ const SNAPSHOT_EVIDENCE_LIMIT: usize = 8;
 mod api;
 mod collaboration;
 mod data;
+mod di_anchor;
+mod di_completeness;
+mod di_identity;
+mod di_reference;
+mod di_topology;
 mod issue;
 mod metadata;
 mod model;
@@ -31,6 +36,11 @@ use collaboration::{
     partner_role_evidence, routing_boundary_evidence,
 };
 use data::data_snapshot_summary;
+use di_anchor::diagram_anchor_issue;
+use di_completeness::diagram_completeness_issue;
+use di_identity::diagram_identity_issue;
+use di_reference::diagram_reference_issue;
+use di_topology::diagram_topology_issue;
 use issue::{flow_element_metadata_issue, issue_for_tag, resource_role_metadata_issue};
 use metadata::{flow_element_metadata_summary, process_callable_summary, resource_role_summary};
 use model::{

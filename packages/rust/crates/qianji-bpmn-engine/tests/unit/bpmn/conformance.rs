@@ -227,15 +227,7 @@ fn conformance_boundary_evidence_is_covered_by_lint_or_snapshot() {
     );
     assert!(issue.why_it_failed.contains("monitoring telemetry"));
 
-    let diagram = lint_fixture("metadata-bpmn-diagram.bpmn");
-    let issue = single_issue(&diagram, "bpmn.metadata_di_surface");
-    assert_eq!(issue.evidence["snapshot"]["diagram_count"], 1);
-    assert_eq!(issue.evidence["snapshot"]["diagrams"][0]["shape_count"], 1);
-    assert_eq!(issue.evidence["snapshot"]["diagrams"][0]["edge_count"], 1);
-
-    let snapshot = snapshot_bpmn_source(&fixture_source("metadata-bpmn-diagram.bpmn"))
-        .unwrap_or_else(|error| panic!("diagram fixture should snapshot cleanly: {error}"));
-    assert_eq!(snapshot.root.diagram_count, 1);
+    assert_bpmn_di_boundary_evidence();
 }
 
 fn coverage_matrix_rows() -> Vec<(&'static str, &'static str)> {
@@ -295,4 +287,107 @@ fn single_issue<'a>(report: &'a LintReport, code: &str) -> &'a LintIssue {
     let issue = &report.issues[0];
     assert_eq!(issue.code, code);
     issue
+}
+
+fn assert_bpmn_di_boundary_evidence() {
+    let diagram = lint_fixture("metadata-bpmn-diagram.bpmn");
+    let issue = single_issue(&diagram, "bpmn.metadata_di_surface");
+    assert_eq!(issue.evidence["snapshot"]["diagram_count"], 1);
+    assert_eq!(issue.evidence["snapshot"]["diagrams"][0]["shape_count"], 2);
+    assert_eq!(issue.evidence["snapshot"]["diagrams"][0]["edge_count"], 1);
+
+    let invalid_di_reference = lint_fixture("invalid-di-reference.bpmn");
+    let issue = single_issue(&invalid_di_reference, "bpmn.invalid_di_reference");
+    assert_eq!(issue.evidence["invalid_reference_count"], 1);
+    assert_eq!(
+        issue.evidence["invalid_references"][0]["reference"],
+        "missing_review"
+    );
+
+    let missing_di_plane = lint_fixture("invalid-di-missing-plane.bpmn");
+    let issue = single_issue(&missing_di_plane, "bpmn.invalid_di_plane_topology");
+    assert_eq!(
+        issue.evidence["invalid_topology"][0]["reason"],
+        "missing_direct_plane"
+    );
+
+    let multiple_di_planes = lint_fixture("invalid-di-multiple-planes.bpmn");
+    let issue = single_issue(&multiple_di_planes, "bpmn.invalid_di_plane_topology");
+    assert_eq!(
+        issue.evidence["invalid_topology"][0]["reason"],
+        "multiple_direct_planes"
+    );
+
+    let orphan_di_plane = lint_fixture("invalid-di-orphan-plane.bpmn");
+    let issue = single_issue(&orphan_di_plane, "bpmn.invalid_di_plane_topology");
+    assert_eq!(
+        issue.evidence["invalid_topology"][0]["reason"],
+        "plane_outside_diagram"
+    );
+
+    let missing_di_plane_anchor = lint_fixture("invalid-di-plane-missing-anchor.bpmn");
+    let issue = single_issue(&missing_di_plane_anchor, "bpmn.missing_di_semantic_anchor");
+    assert_eq!(issue.evidence["missing_anchors"][0]["element"], "BPMNPlane");
+
+    let missing_di_shape_anchor = lint_fixture("invalid-di-shape-missing-anchor.bpmn");
+    let issue = single_issue(&missing_di_shape_anchor, "bpmn.missing_di_semantic_anchor");
+    assert_eq!(issue.evidence["missing_anchors"][0]["element"], "BPMNShape");
+
+    let missing_di_edge_anchor = lint_fixture("invalid-di-edge-missing-anchor.bpmn");
+    let issue = single_issue(&missing_di_edge_anchor, "bpmn.missing_di_semantic_anchor");
+    assert_eq!(issue.evidence["missing_anchors"][0]["element"], "BPMNEdge");
+
+    let invalid_di_edge = lint_fixture("invalid-di-edge-reference.bpmn");
+    let issue = single_issue(&invalid_di_edge, "bpmn.invalid_di_reference");
+    assert_eq!(
+        issue.evidence["invalid_references"][0]["attribute"],
+        "sourceElement"
+    );
+    assert_eq!(
+        issue.evidence["invalid_references"][0]["reference"],
+        "Missing_StartShape"
+    );
+
+    let invalid_di_label_style = lint_fixture("invalid-di-label-style-reference.bpmn");
+    let issue = single_issue(&invalid_di_label_style, "bpmn.invalid_di_reference");
+    assert_eq!(
+        issue.evidence["invalid_references"][0]["attribute"],
+        "labelStyle"
+    );
+    assert_eq!(
+        issue.evidence["invalid_references"][0]["reference"],
+        "Missing_LabelStyle"
+    );
+
+    let duplicate_di_shape = lint_fixture("invalid-di-duplicate-shape-id.bpmn");
+    let issue = single_issue(&duplicate_di_shape, "bpmn.duplicate_di_id");
+    assert_eq!(
+        issue.evidence["duplicate_di_ids"][0]["duplicate_id"],
+        "Shape_Duplicate"
+    );
+
+    let duplicate_di_label_style = lint_fixture("invalid-di-duplicate-label-style-id.bpmn");
+    let issue = single_issue(&duplicate_di_label_style, "bpmn.duplicate_di_id");
+    assert_eq!(
+        issue.evidence["duplicate_di_ids"][0]["duplicate_id"],
+        "Style_Duplicate"
+    );
+
+    let incomplete_di_shape = lint_fixture("invalid-di-shape-missing-bounds.bpmn");
+    let issue = single_issue(&incomplete_di_shape, "bpmn.incomplete_di_surface");
+    assert_eq!(
+        issue.evidence["incomplete_surfaces"][0]["missing"],
+        "dc:Bounds"
+    );
+
+    let incomplete_di_edge = lint_fixture("invalid-di-edge-missing-waypoints.bpmn");
+    let issue = single_issue(&incomplete_di_edge, "bpmn.incomplete_di_surface");
+    assert_eq!(
+        issue.evidence["incomplete_surfaces"][0]["missing"],
+        "di:waypoint[2]"
+    );
+
+    let snapshot = snapshot_bpmn_source(&fixture_source("metadata-bpmn-diagram.bpmn"))
+        .unwrap_or_else(|error| panic!("diagram fixture should snapshot cleanly: {error}"));
+    assert_eq!(snapshot.root.diagram_count, 1);
 }

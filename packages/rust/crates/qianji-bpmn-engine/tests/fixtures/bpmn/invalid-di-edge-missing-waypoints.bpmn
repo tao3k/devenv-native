@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Defs_InvalidDiEdgeMissingWaypoints"
+  targetNamespace="https://example.com/bpmn/invalid-di-edge-missing-waypoints">
+  <bpmn:process id="invalid_di_edge_missing_waypoints_process" isExecutable="true">
+    <bpmn:startEvent id="start" />
+    <bpmn:sequenceFlow id="flow_start_end" sourceRef="start" targetRef="end" />
+    <bpmn:endEvent id="end" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="Diagram_InvalidDiEdgeMissingWaypoints">
+    <bpmndi:BPMNPlane id="Plane_InvalidDiEdgeMissingWaypoints" bpmnElement="invalid_di_edge_missing_waypoints_process">
+      <bpmndi:BPMNShape id="Shape_Start" bpmnElement="start">
+        <dc:Bounds x="100" y="80" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_End" bpmnElement="end">
+        <dc:Bounds x="220" y="80" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge
+        id="Edge_StartEnd"
+        bpmnElement="flow_start_end"
+        sourceElement="Shape_Start"
+        targetElement="Shape_End">
+        <di:waypoint x="136" y="98" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
