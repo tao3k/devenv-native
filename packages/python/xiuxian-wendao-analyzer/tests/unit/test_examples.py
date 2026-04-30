@@ -10,7 +10,7 @@ import pytest
 
 
 def _package_root() -> Path:
-    return Path(__file__).resolve().parents[1]
+    return Path(__file__).resolve().parents[2]
 
 
 def _project_root() -> Path:
@@ -22,31 +22,49 @@ def _project_root() -> Path:
 
 def _wendao_search_flight_server_binary() -> Path:
     return (
-        _project_root() / ".cache" / "pyflight-f56-target" / "debug" / "wendao_search_flight_server"
+        _project_root()
+        / ".cache"
+        / "pyflight-f56-target"
+        / "debug"
+        / "wendao_search_flight_server"
     )
 
 
 def _wendao_search_seed_binary() -> Path:
     return (
-        _project_root() / ".cache" / "pyflight-f56-target" / "debug" / "wendao_search_seed_sample"
+        _project_root()
+        / ".cache"
+        / "pyflight-f56-target"
+        / "debug"
+        / "wendao_search_seed_sample"
     )
 
 
 def _require_host_backed_repo_beta_binaries() -> None:
     search_binary = Path(
-        os.environ.get("WENDAO_SEARCH_SERVER_BINARY", str(_wendao_search_flight_server_binary()))
+        os.environ.get(
+            "WENDAO_SEARCH_SERVER_BINARY", str(_wendao_search_flight_server_binary())
+        )
     )
     seed_binary = Path(
         os.environ.get("WENDAO_SEARCH_SEED_BINARY", str(_wendao_search_seed_binary()))
     )
     if not search_binary.exists():
-        pytest.skip(f"build {search_binary} before running analyzer example integration tests")
+        pytest.skip(
+            f"build {search_binary} before running analyzer example integration tests"
+        )
     if not seed_binary.exists():
-        pytest.skip(f"build {seed_binary} before running analyzer example integration tests")
+        pytest.skip(
+            f"build {seed_binary} before running analyzer example integration tests"
+        )
 
 
-def _run_rust_search_plane_seed_binary(project_root: Path, *, repo_id: str = "alpha/repo") -> None:
-    binary = Path(os.environ.get("WENDAO_SEARCH_SEED_BINARY", str(_wendao_search_seed_binary())))
+def _run_rust_search_plane_seed_binary(
+    project_root: Path, *, repo_id: str = "alpha/repo"
+) -> None:
+    binary = Path(
+        os.environ.get("WENDAO_SEARCH_SEED_BINARY", str(_wendao_search_seed_binary()))
+    )
     if not binary.exists():
         pytest.skip(f"build {binary} before running analyzer example integration tests")
 
@@ -69,7 +87,9 @@ def _spawn_wendao_search_flight_server(
     host: str, port: int, project_root: Path
 ) -> subprocess.Popen[str]:
     binary = Path(
-        os.environ.get("WENDAO_SEARCH_SERVER_BINARY", str(_wendao_search_flight_server_binary()))
+        os.environ.get(
+            "WENDAO_SEARCH_SERVER_BINARY", str(_wendao_search_flight_server_binary())
+        )
     )
     if not binary.exists():
         pytest.skip(f"build {binary} before running analyzer example integration tests")
@@ -97,7 +117,9 @@ def _spawn_wendao_search_flight_server(
             return process
         if process.poll() is not None:
             stderr = process.stderr.read() if process.stderr is not None else ""
-            raise AssertionError(f"Wendao search Flight server exited before readiness:\n{stderr}")
+            raise AssertionError(
+                f"Wendao search Flight server exited before readiness:\n{stderr}"
+            )
 
     raise AssertionError("timed out waiting for Wendao search Flight server readiness")
 
@@ -123,7 +145,9 @@ def _run_example_via_uv(*args: str) -> subprocess.CompletedProcess[str]:
 
 def test_shipped_example_set_matches_current_beta_freeze() -> None:
     example_names = {
-        path.name for path in (_package_root() / "examples").glob("*.py") if path.is_file()
+        path.name
+        for path in (_package_root() / "examples").glob("*.py")
+        if path.is_file()
     }
 
     assert example_names == {
@@ -190,13 +214,18 @@ def test_repo_search_example_exposes_help() -> None:
 def test_custom_repo_search_example_exposes_help() -> None:
     result = _run_example_via_uv("examples/custom_repo_analyzer_workflow.py", "--help")
 
-    assert "Run a host-backed repo-search workflow with a custom Python analyzer." in result.stdout
+    assert (
+        "Run a host-backed repo-search workflow with a custom Python analyzer."
+        in result.stdout
+    )
     assert "--query-text" in result.stdout
     assert "--path-prefix" in result.stdout
 
 
 def test_attachment_pdf_analyzer_example_exposes_help() -> None:
-    result = _run_example_via_uv("examples/attachment_pdf_analyzer_workflow.py", "--help")
+    result = _run_example_via_uv(
+        "examples/attachment_pdf_analyzer_workflow.py", "--help"
+    )
 
     assert "attachment_pdf_analyzer_workflow.py" in result.stdout
     assert "--mode {scripted,endpoint}" in result.stdout
@@ -214,7 +243,9 @@ def test_document_extraction_example_exposes_help() -> None:
 
 
 def test_host_backed_beta_smoke_example_exposes_help() -> None:
-    result = _run_example_via_uv("examples/host_backed_repo_search_beta_smoke.py", "--help")
+    result = _run_example_via_uv(
+        "examples/host_backed_repo_search_beta_smoke.py", "--help"
+    )
 
     assert "Run the full host-backed repo-search beta smoke path." in result.stdout
     assert "--build" in result.stdout

@@ -360,6 +360,8 @@ ready now:
 4. Wendao-facing Arrow Flight service entrypoint for document extraction
 5. host-backed repo-search analysis with built-in or custom analyzers
 6. generic rows/table/query analysis over Rust-returned data
+7. package-local Python project harness coverage for syntax, project shape,
+   modularity, and pytest layout drift
 
 known gaps before broader adoption:
 
@@ -367,6 +369,8 @@ known gaps before broader adoption:
 2. no analyzer-owned rerank helper surface
 3. callers still need `uv run python ...` from the package directory for the
    shipped examples
+4. existing document/OCR modules and large unit-test leaves remain recorded in
+   the harness baseline until the next modularization slice retires them
 
 ## Beta Freeze Audit
 

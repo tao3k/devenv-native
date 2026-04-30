@@ -23,6 +23,7 @@ documents-audio = [
 [dependency-groups]
 test = [
     "pytest>=8.0",
+    "xiuxian-harness-python-lang-project",
 ]
 
 [build-system]
@@ -42,3 +43,4 @@ package = true
 [tool.uv.sources]
 wendao-core-lib = { workspace = true }
 wendao-arrow-interface = { workspace = true }
+xiuxian-harness-python-lang-project = { workspace = true }

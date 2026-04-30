@@ -23,7 +23,8 @@ class _DocIdAnalyzer:
     def analyze_rows(self, rows: list[dict[str, object]]) -> list[dict[str, object]]:
         ranked = sorted(rows, key=lambda row: str(row["doc_id"]))
         return [
-            {"doc_id": str(row["doc_id"]), "rank": index + 1} for index, row in enumerate(ranked)
+            {"doc_id": str(row["doc_id"]), "rank": index + 1}
+            for index, row in enumerate(ranked)
         ]
 
 
@@ -134,7 +135,9 @@ def test_summarize_rows_analysis_returns_top_row_snapshot() -> None:
 
 
 def test_summarize_table_analysis_returns_top_row_snapshot() -> None:
-    summary = summarize_table_analysis(run_table_analysis(pa.Table.from_pylist(_score_rows())))
+    summary = summarize_table_analysis(
+        run_table_analysis(pa.Table.from_pylist(_score_rows()))
+    )
 
     assert summary.row_count == 2
     assert summary.top_path == "src/lib.rs"

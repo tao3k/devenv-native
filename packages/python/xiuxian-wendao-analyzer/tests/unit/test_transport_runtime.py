@@ -120,7 +120,8 @@ class _DocIdAnalyzer:
     def analyze_rows(self, rows: list[dict[str, object]]) -> list[dict[str, object]]:
         ranked = sorted(rows, key=lambda row: str(row["doc_id"]))
         return [
-            {"doc_id": str(row["doc_id"]), "rank": index + 1} for index, row in enumerate(ranked)
+            {"doc_id": str(row["doc_id"]), "rank": index + 1}
+            for index, row in enumerate(ranked)
         ]
 
 
@@ -424,10 +425,14 @@ def _wendao_search_seed_binary() -> str:
     )
 
 
-def _run_rust_search_plane_seed_binary(project_root: str, *, repo_id: str = "alpha/repo") -> None:
+def _run_rust_search_plane_seed_binary(
+    project_root: str, *, repo_id: str = "alpha/repo"
+) -> None:
     binary = os.environ.get("WENDAO_SEARCH_SEED_BINARY", _wendao_search_seed_binary())
     if not os.path.exists(binary):
-        pytest.skip(f"build {binary} before running analyzer real-host integration tests")
+        pytest.skip(
+            f"build {binary} before running analyzer real-host integration tests"
+        )
 
     result = subprocess.run(
         [binary, repo_id, project_root],
@@ -447,9 +452,13 @@ def _run_rust_search_plane_seed_binary(project_root: str, *, repo_id: str = "alp
 def _spawn_wendao_search_flight_server(
     host: str, port: int, project_root: str
 ) -> subprocess.Popen[str]:
-    binary = os.environ.get("WENDAO_SEARCH_SERVER_BINARY", _wendao_search_flight_server_binary())
+    binary = os.environ.get(
+        "WENDAO_SEARCH_SERVER_BINARY", _wendao_search_flight_server_binary()
+    )
     if not os.path.exists(binary):
-        pytest.skip(f"build {binary} before running analyzer real-host integration tests")
+        pytest.skip(
+            f"build {binary} before running analyzer real-host integration tests"
+        )
 
     process = subprocess.Popen(
         [
@@ -475,9 +484,13 @@ def _spawn_wendao_search_flight_server(
             break
         if process.poll() is not None:
             stderr = process.stderr.read() if process.stderr is not None else ""
-            raise AssertionError(f"Wendao search Flight server exited before readiness:\n{stderr}")
+            raise AssertionError(
+                f"Wendao search Flight server exited before readiness:\n{stderr}"
+            )
     if not ready_line:
-        raise AssertionError("timed out waiting for Wendao search Flight server readiness")
+        raise AssertionError(
+            "timed out waiting for Wendao search Flight server readiness"
+        )
     time.sleep(1.0)
     return process
 
@@ -528,7 +541,9 @@ def test_run_query_analysis_reads_repo_search_rows_via_wendao_search_flight_serv
 
 
 @pytest.mark.integration
-def test_analyze_query_reads_repo_search_rows_via_wendao_search_flight_server(tmp_path) -> None:
+def test_analyze_query_reads_repo_search_rows_via_wendao_search_flight_server(
+    tmp_path,
+) -> None:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         sock.bind(("127.0.0.1", 0))
         host, port = sock.getsockname()
@@ -670,7 +685,9 @@ def test_summarize_query_results_reads_repo_search_rows_via_wendao_search_flight
 
 
 @pytest.mark.integration
-def test_analyze_repo_search_reads_rows_via_wendao_search_flight_server(tmp_path) -> None:
+def test_analyze_repo_search_reads_rows_via_wendao_search_flight_server(
+    tmp_path,
+) -> None:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         sock.bind(("127.0.0.1", 0))
         host, port = sock.getsockname()

@@ -4,18 +4,22 @@ from pathlib import Path
 
 
 def _package_root() -> Path:
-    return Path(__file__).resolve().parents[1]
+    return Path(__file__).resolve().parents[2]
 
 
 def test_first_analyzer_author_tutorial_mentions_supported_workflows() -> None:
-    tutorial = (_package_root() / "docs" / "first_analyzer_author_tutorial.md").read_text(
-        encoding="utf-8"
-    )
+    tutorial = (
+        _package_root() / "docs" / "first_analyzer_author_tutorial.md"
+    ).read_text(encoding="utf-8")
 
     assert "Workflow 1: Offline Repo Search Authoring With Scripted Results" in tutorial
     assert "Workflow 2: Host-Backed Repo Search With Built-In Ranking" in tutorial
-    assert "Workflow 3: Host-Backed Repo Search With A Custom Python Analyzer" in tutorial
-    assert "Workflow 4: PDF Attachment Search Then Analyze The Returned Table" in tutorial
+    assert (
+        "Workflow 3: Host-Backed Repo Search With A Custom Python Analyzer" in tutorial
+    )
+    assert (
+        "Workflow 4: PDF Attachment Search Then Analyze The Returned Table" in tutorial
+    )
     assert "Workflow 5: Docling Document Extraction Into Arrow Rows" in tutorial
     assert "Workflow 6: Analyze An Already Materialized Rust Query Result" in tutorial
     assert "examples/document_extraction_workflow.py" in tutorial
@@ -35,9 +39,9 @@ def test_first_analyzer_author_tutorial_mentions_supported_workflows() -> None:
 
 
 def test_custom_analyzer_tutorial_mentions_contract_and_example() -> None:
-    tutorial = (_package_root() / "docs" / "write_your_first_custom_analyzer.md").read_text(
-        encoding="utf-8"
-    )
+    tutorial = (
+        _package_root() / "docs" / "write_your_first_custom_analyzer.md"
+    ).read_text(encoding="utf-8")
 
     assert "The Smallest Honest Contract" in tutorial
     assert "def analyze_rows(self, rows: list[dict[str, object]])" in tutorial
@@ -55,9 +59,9 @@ def test_custom_analyzer_tutorial_mentions_contract_and_example() -> None:
 
 
 def test_release_policy_mentions_beta_contract_and_workflow_stability() -> None:
-    policy = (_package_root() / "docs" / "release_and_compatibility_policy.md").read_text(
-        encoding="utf-8"
-    )
+    policy = (
+        _package_root() / "docs" / "release_and_compatibility_policy.md"
+    ).read_text(encoding="utf-8")
 
     assert "This package is currently in beta." in policy
     assert "Compatibility Rule For This Beta" in policy
@@ -66,7 +70,10 @@ def test_release_policy_mentions_beta_contract_and_workflow_stability() -> None:
     assert "run_repo_analysis(...)" in policy
     assert "WendaoArrowSession.attachment_search(...)" in policy
     assert "generic rows, table, and query analysis over Rust-returned data" in policy
-    assert "Docling-backed multi-format document extraction into Arrow resource rows" in policy
+    assert (
+        "Docling-backed multi-format document extraction into Arrow resource rows"
+        in policy
+    )
     assert "analyzer format metadata is a UX hint surface" in policy
     assert "Wendao-facing `/analysis/document-extract` service route" in policy
     assert "analyzer-owned rerank helpers are out of scope" in policy
@@ -96,8 +103,14 @@ def test_external_consumer_checklist_mentions_environment_and_boundary() -> None
     assert 'wendao_search_seed_sample alpha/repo "$tmp_root"' in checklist
     assert "examples/repo_search_workflow.py --host 127.0.0.1 --port 8815" in checklist
     assert "examples/host_backed_repo_search_beta_smoke.py --port 0" in checklist
-    assert "examples/host_backed_repo_search_beta_smoke.py --mode custom --port 0" in checklist
-    assert "examples/host_backed_repo_search_beta_smoke.py --port 0 --keep-workspace" in checklist
+    assert (
+        "examples/host_backed_repo_search_beta_smoke.py --mode custom --port 0"
+        in checklist
+    )
+    assert (
+        "examples/host_backed_repo_search_beta_smoke.py --port 0 --keep-workspace"
+        in checklist
+    )
     assert "Use `--keep-workspace`" in checklist
     assert "analyze_table(...)" in checklist
     assert "extract_document_table(...)" in checklist
@@ -161,7 +174,10 @@ def test_readme_records_beta_freeze_audit() -> None:
     readme = (_package_root() / "README.md").read_text(encoding="utf-8")
 
     assert "## Beta Freeze Audit" in readme
-    assert "The current package boundary is now intentionally lockable as `0.2.1`." in readme
+    assert (
+        "The current package boundary is now intentionally lockable as `0.2.1`."
+        in readme
+    )
     assert "frozen for this beta trial:" in readme
     assert "examples/scripted_repo_search_workflow.py" in readme
     assert "examples/attachment_pdf_analyzer_workflow.py" in readme

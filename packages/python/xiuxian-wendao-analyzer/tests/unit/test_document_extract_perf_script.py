@@ -6,7 +6,7 @@ from pathlib import Path
 
 
 def _load_benchmark_module():
-    repo_root = Path(__file__).resolve().parents[4]
+    repo_root = Path(__file__).resolve().parents[5]
     script_path = repo_root / "scripts" / "benchmark_wendao_document_extract.py"
     spec = importlib.util.spec_from_file_location(
         "benchmark_wendao_document_extract",
@@ -153,7 +153,7 @@ def test_prepare_distinct_miss_fixtures_writes_unique_fake_inputs(
 
 
 def test_document_extras_cover_xbrl_and_audio_asr() -> None:
-    package_root = Path(__file__).resolve().parents[1]
+    package_root = Path(__file__).resolve().parents[2]
     pyproject = tomllib.loads((package_root / "pyproject.toml").read_text())
     optional_dependencies = pyproject["project"]["optional-dependencies"]
 

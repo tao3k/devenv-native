@@ -8,7 +8,7 @@ import xiuxian_wendao_analyzer as analyzer
 
 
 def _pyproject_version() -> str:
-    pyproject = Path(__file__).resolve().parents[1] / "pyproject.toml"
+    pyproject = Path(__file__).resolve().parents[2] / "pyproject.toml"
     return tomllib.loads(pyproject.read_text(encoding="utf-8"))["project"]["version"]
 
 

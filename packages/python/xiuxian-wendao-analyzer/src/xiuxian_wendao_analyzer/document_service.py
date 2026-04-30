@@ -224,7 +224,7 @@ def main() -> int:
         location,
         ocr_worker=_build_pdf_ocr_worker(args.pdf_ocr_worker, args.pdf_ocr_workers),
     )
-    print(f"Wendao document extraction service listening on {location}")
+    sys.stdout.write(f"Wendao document extraction service listening on {location}\n")
     server.serve()
     return 0
 
