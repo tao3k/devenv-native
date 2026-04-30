@@ -138,6 +138,14 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--rust-pdf-ocr-source-range-workers",
+        help=(
+            "Optional Rust provider override for "
+            "WENDAO_DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS. Use this "
+            "only for source-PDF page-range benchmark profiling."
+        ),
+    )
+    parser.add_argument(
         "--ocr-shard-cache-root",
         type=Path,
         help=(
@@ -583,6 +591,7 @@ def main() -> int:
         "pdfOcrWorker": args.pdf_ocr_worker,
         "pdfOcrWorkers": args.pdf_ocr_workers,
         "rustPdfOcrWorkers": args.rust_pdf_ocr_workers,
+        "rustPdfOcrSourceRangeWorkers": args.rust_pdf_ocr_source_range_workers,
         "pdfOcrProfile": pdf_ocr_profile_label(args),
         "shardCacheReuseProbe": args.shard_cache_reuse_probe,
         "ocrShardCache": ocr_shard_cache_summary
@@ -1346,6 +1355,15 @@ def start_rust_provider_server(
     rust_pdf_ocr_workers = getattr(args, "rust_pdf_ocr_workers", None)
     if rust_pdf_ocr_workers:
         env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_WORKERS"] = str(rust_pdf_ocr_workers)
+    rust_pdf_ocr_source_range_workers = getattr(
+        args,
+        "rust_pdf_ocr_source_range_workers",
+        None,
+    )
+    if rust_pdf_ocr_source_range_workers:
+        env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS"] = str(
+            rust_pdf_ocr_source_range_workers
+        )
     command = [
         args.cargo,
         "run",
@@ -1443,6 +1461,15 @@ def start_gateway_server(
     rust_pdf_ocr_workers = getattr(args, "rust_pdf_ocr_workers", None)
     if rust_pdf_ocr_workers:
         env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_WORKERS"] = str(rust_pdf_ocr_workers)
+    rust_pdf_ocr_source_range_workers = getattr(
+        args,
+        "rust_pdf_ocr_source_range_workers",
+        None,
+    )
+    if rust_pdf_ocr_source_range_workers:
+        env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS"] = str(
+            rust_pdf_ocr_source_range_workers
+        )
     command = [
         args.cargo,
         "run",
@@ -2737,6 +2764,8 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"- PDF OCR worker: `{payload['pdfOcrWorker']}`",
         f"- PDF OCR workers: `{payload['pdfOcrWorkers']}`",
         f"- Rust PDF OCR worker pool: `{payload['rustPdfOcrWorkers']}`",
+        "- Rust PDF OCR source-range workers: "
+        f"`{payload['rustPdfOcrSourceRangeWorkers']}`",
         f"- PDF OCR profile: `{payload['pdfOcrProfile']}`",
         "- Shard-cache reuse probe: "
         f"`{any(result.get('shardCacheReuseEnabled') for result in payload['results'])}`",

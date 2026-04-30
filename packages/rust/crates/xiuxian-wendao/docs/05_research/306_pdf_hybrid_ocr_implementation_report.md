@@ -5,7 +5,7 @@
 :PARENT: [[../index|Wendao DocOS Kernel: Map of Content]]
 :TAGS: research, document-extraction, pdf, ocr, arrow, docling, attachments
 :STATUS: UPDATED
-:VERSION: 1.6
+:VERSION: 1.7
 :END:
 
 ## Executive Summary
@@ -160,12 +160,23 @@ range across benchmark runs. The latest comparable full-Docling run recorded
 | Direct `lopdf` source selector |  49117.947 |       21.698 |                197.023 |            21 |             21 |              21 |          21 | sorted |          0 |
 | Warm shard-cache reuse         |    286.376 |        4.280 |                    n/a |            21 |             21 |              21 |          21 | sorted |          0 |
 
+The table above keeps the historical milestone progression. A follow-up
+source-range worker sweep on the same fixture used isolated force-only runs and
+kept the same precision shape:
+
+| Source-range override |  Force ms | Cache p95 ms | Rust scheduler elapsed ms | Resource rows | Structure rows | OCR page blocks | Bbox blocks | Order  | Error rows |
+| --------------------: | --------: | -----------: | ------------------------: | ------------: | -------------: | --------------: | ----------: | ------ | ---------: |
+|                     1 | 21373.000 |        2.646 |                 21248.243 |            21 |             21 |              21 |          21 | sorted |          0 |
+|                     2 | 20183.691 |        2.457 |                 20085.701 |            21 |             21 |              21 |          21 | sorted |          0 |
+|                     4 | 19442.132 |        2.363 |                 19334.474 |            21 |             21 |              21 |          21 | sorted |          0 |
+
 Interpretation:
 
 - The current source-range optimization reduces the OCR-positive cold miss from
-  roughly 241-256 s to a measured 45-49 s envelope on the best current runs.
-  This is about 4.9x-5.7x faster, or roughly an 80-81 percent cold-path
-  reduction.
+  roughly 241-256 s to a measured 19-21 s envelope on the best current runs.
+  This is about 11.3x-12.4x faster against the latest comparable 241 s
+  baseline, or up to 13.2x faster against the earlier 256 s proof. The
+  cold-path reduction is roughly 91-92 percent.
 - The optimized path keeps the precision-critical shape: 21 resource rows, 21
   structure rows, 21 OCR page blocks, 21 bbox-bearing blocks, sorted reading
   order, and zero error rows.
@@ -315,13 +326,16 @@ page blocks, 21 bbox-covered blocks, 21 metrics rows, 103,984 OCR result
 characters, sorted reading order, and zero error rows. The cold force path was
 21.012 s on the measured host; a forced rebuild from shard cache was 90.402 ms;
 the whole-document cache hit was 2.419 ms p50/p95. This is the current
-evidence baseline for the source-PDF page-range path.
+evidence baseline for the source-PDF page-range path. The follow-up source
+range worker sweep measured 21.373 s, 20.184 s, and 19.442 s for source-range
+overrides 1, 2, and 4 respectively, with identical row counts, sorted
+structure, and zero error rows.
 
 ## Active Risks
 
 | Risk                                                              | Impact                                                                                  | Mitigation                                                                                                                 |
 | ----------------------------------------------------------------- | --------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| Unique OCR-heavy cold miss remains expensive                      | First-time extraction still takes roughly 45-49 s on the best current `2604.17337` runs | Continue source-range batching, safe region discovery, shard cache reuse, and Docling profile measurement                  |
+| Unique OCR-heavy cold miss remains expensive                      | First-time extraction still takes roughly 19-21 s on the best current `2604.17337` runs | Continue source-range batching, safe region discovery, shard cache reuse, and Docling profile measurement                  |
 | Native text fast path was retired with the detector dependency    | Some text-only PDFs lose the previous Rust-only proof path                              | Rebuild native text extraction directly over owned PDF primitives only after parity tests exist                            |
 | Region OCR without native text merge can produce partial coverage | User-visible document order or coverage could degrade                                   | Keep region mode opt-in and fallback on partial coverage                                                                   |
 | PDFium runtime mismatch                                           | Raster proof output could differ across hosts                                           | Keep PDFium confined to opt-in raster/region proof lanes; source-page OCR does not pull PDFium                             |
@@ -338,7 +352,7 @@ Python/Docling OCR authority.
 The current milestone meets the performance and precision bar for:
 
 1. same-content cold-miss deduplication,
-2. source-page OCR cold-path reduction from the 241-256 s class to the 45-49 s
+2. source-page OCR cold-path reduction from the 241-256 s class to the 19-21 s
    class on the real OCR-positive fixture,
 3. low-millisecond whole-document cache hits,
 4. low-hundreds-of-milliseconds shard-cache forced reuse,

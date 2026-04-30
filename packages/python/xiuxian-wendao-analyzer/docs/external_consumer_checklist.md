@@ -111,7 +111,9 @@ uv run python tests/scripts/benchmark_wendao_document_extract.py \
 
 Local benchmark runs isolate the OCR shard cache by default. Pass
 `--ocr-shard-cache-root` only when the run should intentionally reuse a
-persistent shard cache.
+persistent shard cache. Use `--rust-pdf-ocr-source-range-workers` only for
+profiling source-PDF page-range chunk counts; production defaults should stay
+adaptive unless benchmark evidence justifies an override.
 
 When a Rust gateway REST endpoint is already available, add:
 

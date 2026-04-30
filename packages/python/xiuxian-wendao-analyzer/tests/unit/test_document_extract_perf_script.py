@@ -944,6 +944,7 @@ def test_start_gateway_server_sets_document_extract_and_valkey_env(
         cargo="cargo",
         gateway_features="studio,zhenfa-router,duckdb,builtin-plugins",
         rust_pdf_ocr_workers="6",
+        rust_pdf_ocr_source_range_workers="2",
     )
 
     benchmark.start_gateway_server(
@@ -977,6 +978,7 @@ def test_start_gateway_server_sets_document_extract_and_valkey_env(
     ]
     env = kwargs["env"]
     assert env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_WORKERS"] == "6"
+    assert env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS"] == "2"
     assert env["WENDAO_DOCUMENT_EXTRACT_ENDPOINT"] == "http://127.0.0.1:51051"
     assert env["WENDAO_DOCUMENT_EXTRACT_OCR_SHARD_CACHE_ROOT"] == str(
         (tmp_path / "ocr-shard-cache").resolve()
@@ -1019,6 +1021,7 @@ def test_start_rust_provider_forwards_hybrid_region_env(
         pdfium_library_path=None,
         prepare_pdfium_runtime=False,
         rust_pdf_ocr_workers="6",
+        rust_pdf_ocr_source_range_workers="2",
     )
 
     benchmark.start_rust_provider_server(
@@ -1033,6 +1036,7 @@ def test_start_rust_provider_forwards_hybrid_region_env(
     _command, kwargs = calls[0]
     env = kwargs["env"]
     assert env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_WORKERS"] == "6"
+    assert env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS"] == "2"
     assert env["WENDAO_DOCUMENT_EXTRACT_OCR_SHARD_CACHE_ROOT"] == str(
         (tmp_path / "ocr-shard-cache").resolve()
     )
@@ -1306,6 +1310,7 @@ def test_summary_and_markdown_report_distinct_miss_burst() -> None:
             "pdfOcrWorker": "skip",
             "pdfOcrWorkers": "auto",
             "rustPdfOcrWorkers": None,
+            "rustPdfOcrSourceRangeWorkers": "2",
             "pdfOcrProfile": "skip",
             "shardCacheReuseProbe": True,
             "ocrShardCache": {
@@ -1327,3 +1332,4 @@ def test_summary_and_markdown_report_distinct_miss_burst() -> None:
     assert "files=2" in markdown
     assert "Metrics sidecar" in markdown
     assert "chars=80" in markdown
+    assert "Rust PDF OCR source-range workers" in markdown

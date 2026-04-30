@@ -284,8 +284,10 @@ send those subranges concurrently to Python/Docling. The default source-range
 target is sublinear in the Rust worker budget because real Docling conversion
 can regress when too many page-range conversions run at once. Use
 `--rust-pdf-ocr-workers` for the global Rust OCR budget and
-`WENDAO_DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS` when a deployment needs
-a source-range-specific override.
+`--rust-pdf-ocr-source-range-workers` when a benchmark needs to profile a
+source-range-specific override. Production deployments can set
+`WENDAO_DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS` directly when evidence
+shows a fixed override is appropriate for that machine profile.
 For async provider validation, run with `--flight-mode async`; the driver starts
 the synchronous Python worker plus the existing Rust Flight provider and can
 verify cold duplicate-miss deduplication with `--duplicate-miss-concurrency`
