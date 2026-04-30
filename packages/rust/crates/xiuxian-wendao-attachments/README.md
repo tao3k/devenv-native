@@ -65,6 +65,13 @@ region block counts, bbox block counts, reading-order sortedness, and artifact
 read errors. These metrics are benchmark evidence only; they do not change the
 stable user-facing `_resources.arrow` schema.
 
+Mixed-format benchmark reports additionally group precision and speed signals
+by attachment class. PDF, Office, image, structured text, web, table-data, XML,
+subtitle, audio, Docling JSON, archive-backed, and unknown custom fixtures each
+receive class-level error, structure, order, force-latency, cache-latency, and
+speedup summaries. This keeps future non-PDF optimization slices measurable
+without granting Rust parser authority over Docling-owned semantics.
+
 ## PDFium Runtime
 
 The `pdf-render` feature uses `pdfium-render`, which binds to a native PDFium

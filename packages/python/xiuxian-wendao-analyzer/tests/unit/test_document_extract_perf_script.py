@@ -39,6 +39,42 @@ def test_docling_real_fixtures_select_all_supported_real_attachment_paths(
     assert fixtures["audio"].name == "sample_10s.mp3"
 
 
+def test_attachment_classification_covers_docling_real_lanes(tmp_path: Path) -> None:
+    benchmark = _load_benchmark_module()
+
+    assert benchmark.classify_attachment("pdf", tmp_path / "paper.pdf") == "pdf"
+    assert benchmark.classify_attachment("pdf-rtl-01", tmp_path / "rtl.pdf") == "pdf"
+    assert benchmark.classify_attachment("docx", tmp_path / "word.docx") == "office"
+    assert benchmark.classify_attachment("pptx", tmp_path / "deck.pptx") == "office"
+    assert benchmark.classify_attachment("xlsx", tmp_path / "book.xlsx") == "office"
+    assert (
+        benchmark.classify_attachment("markdown", tmp_path / "wiki.md")
+        == "structured_text"
+    )
+    assert benchmark.classify_attachment("latex", tmp_path / "paper.tex") == (
+        "structured_text"
+    )
+    assert benchmark.classify_attachment("html", tmp_path / "wiki.html") == "web"
+    assert benchmark.classify_attachment("csv", tmp_path / "rows.csv") == "table_data"
+    assert benchmark.classify_attachment("image-png", tmp_path / "page.png") == "image"
+    assert benchmark.classify_attachment("jats-xml", tmp_path / "article.xml") == "xml"
+    assert (
+        benchmark.classify_attachment("mets-gbs", tmp_path / "book.tar.gz")
+        == "archive_document"
+    )
+    assert (
+        benchmark.classify_attachment("docling-json", tmp_path / "docling.json")
+        == "docling_json"
+    )
+    assert benchmark.classify_attachment("webvtt", tmp_path / "captions.vtt") == (
+        "subtitle"
+    )
+    assert benchmark.classify_attachment("audio", tmp_path / "sample.mp3") == "audio"
+    assert benchmark.classify_attachment("custom", tmp_path / "unknown.bin") == (
+        "unknown"
+    )
+
+
 def test_docling_real_fixtures_can_skip_audio(tmp_path: Path) -> None:
     benchmark = _load_benchmark_module()
     for name, relative_path in benchmark.DOCLING_REAL_FIXTURE_PATHS.items():
@@ -1485,6 +1521,86 @@ def test_precision_speed_summary_tracks_quality_and_latency() -> None:
     assert precision_speed["distinctMissWallTimeMs"] == 25.0
 
 
+def test_attachment_class_summary_groups_precision_and_speed() -> None:
+    benchmark = _load_benchmark_module()
+
+    summary = benchmark.summarize_results(
+        [
+            {
+                "fixture": "docx",
+                "attachmentClass": "office",
+                "totalRows": 10,
+                "forceErrorRows": 0,
+                "cacheErrorRows": 0,
+                "shardCacheReuseErrorRows": 0,
+                "requestCount": 2,
+                "arrowIpcBytes": 100,
+                "cacheSpeedup": 4.0,
+                "duplicateMissConverterCalls": 1,
+                "artifactErrorCount": 0,
+                "structureRows": 4,
+                "structureOcrPageBlocks": 0,
+                "structureOcrRegionBlocks": 0,
+                "structureBboxBlocks": 0,
+                "structureReadingOrderSorted": True,
+                "structureOrderStable": True,
+                "structureOrderMismatchCount": 0,
+                "structureParityPassed": None,
+                "structureParityErrorCount": 0,
+                "metricsRows": 0,
+                "metricsResultChars": 0,
+                "metricsBboxCount": 0,
+                "metricsRustSchedulerElapsedMs": 0.0,
+                "forceRefreshMs": 20.0,
+                "cacheHitP95Ms": 2.0,
+                "wallTimeMs": 3.0,
+            },
+            {
+                "fixture": "image-png",
+                "attachmentClass": "image",
+                "totalRows": 5,
+                "forceErrorRows": 0,
+                "cacheErrorRows": 0,
+                "shardCacheReuseErrorRows": 0,
+                "requestCount": 1,
+                "arrowIpcBytes": 80,
+                "cacheSpeedup": 2.0,
+                "duplicateMissConverterCalls": 1,
+                "artifactErrorCount": 0,
+                "structureRows": 1,
+                "structureOcrPageBlocks": 0,
+                "structureOcrRegionBlocks": 0,
+                "structureBboxBlocks": 0,
+                "structureReadingOrderSorted": True,
+                "structureOrderStable": True,
+                "structureOrderMismatchCount": 0,
+                "structureParityPassed": None,
+                "structureParityErrorCount": 0,
+                "metricsRows": 0,
+                "metricsResultChars": 0,
+                "metricsBboxCount": 0,
+                "metricsRustSchedulerElapsedMs": 0.0,
+                "forceRefreshMs": 50.0,
+                "cacheHitP95Ms": 5.0,
+                "wallTimeMs": 6.0,
+            },
+        ],
+    )
+
+    class_summary = {
+        item["attachmentClass"]: item for item in summary["attachmentClassSummary"]
+    }
+    assert set(class_summary) == {"image", "office"}
+    assert class_summary["office"]["fixtureCount"] == 1
+    assert class_summary["office"]["fixtures"] == ["docx"]
+    assert (
+        class_summary["office"]["precisionSpeedSummary"]["precisionGatePassed"] is True
+    )
+    assert class_summary["office"]["precisionSpeedSummary"]["maxForceRefreshMs"] == 20.0
+    assert class_summary["image"]["structureRows"] == 1
+    assert class_summary["image"]["precisionSpeedSummary"]["maxCacheHitP95Ms"] == 5.0
+
+
 def test_summarize_ocr_shard_cache_reports_root_files_and_limits(
     monkeypatch, tmp_path
 ) -> None:
@@ -1770,6 +1886,7 @@ def test_summary_and_markdown_report_distinct_miss_burst() -> None:
     assert summary["precisionSpeedSummary"]["maxCacheHitP95Ms"] == 2.0
     assert summary["precisionSpeedSummary"]["precisionGatePassed"] is True
     assert summary["precisionSpeedSummary"]["structureOrderStable"] is True
+    assert summary["attachmentClassSummary"][0]["attachmentClass"] == "unknown"
 
     markdown = benchmark.render_markdown(
         {
@@ -1805,6 +1922,7 @@ def test_summary_and_markdown_report_distinct_miss_burst() -> None:
         }
     )
     assert "## Distinct Cold Miss Burst" in markdown
+    assert "## Attachment Class Summary" in markdown
     assert "distinct-01" in markdown
     assert "Shard reuse force ms" in markdown
     assert "42.000" in markdown

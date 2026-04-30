@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from .attachment_classes import attachment_class_summaries
 from .precision_speed import (
     all_structure_order_stable,
     all_structure_parity_passed,
@@ -55,6 +56,7 @@ def summarize_results(
     structure_parity_passed = all_structure_parity_passed(results)
     return {
         "fixtureCount": len(results),
+        "attachmentClassSummary": attachment_class_summaries(results),
         "totalRows": sum(result["totalRows"] for result in results),
         "totalErrorRows": total_error_rows,
         "totalRequests": sum(result["requestCount"] for result in results),
@@ -264,6 +266,36 @@ def render_markdown(payload: dict[str, Any]) -> str:
             "{cacheHitP50Ms:.3f} | {cacheHitP95Ms:.3f} | "
             "{wallTimeMs:.3f} | {cacheMaxRssKb} | {cacheSpeedup:.2f} |".format(**row)
         )
+    if payload["summary"].get("attachmentClassSummary"):
+        lines.extend(
+            [
+                "",
+                "## Attachment Class Summary",
+                "",
+                "| Class | Fixtures | Error rows | Structure rows | Order sorted | Order stable | Force max ms | Cache p95 max ms | Speedup min |",
+                "| --- | ---: | ---: | ---: | --- | --- | ---: | ---: | ---: |",
+            ]
+        )
+        for class_summary in payload["summary"]["attachmentClassSummary"]:
+            precision_speed = class_summary["precisionSpeedSummary"]
+            lines.append(
+                "| {attachmentClass} | {fixtureCount} | {totalErrorRows} | "
+                "{structureRows} | {orderSorted} | {orderStable} | "
+                "{maxForceMs} | {maxCacheP95Ms} | {minCacheSpeedup} |".format(
+                    **class_summary,
+                    orderSorted=precision_speed.get("structureReadingOrderSorted"),
+                    orderStable=precision_speed.get("structureOrderStable"),
+                    maxForceMs=format_optional_float(
+                        precision_speed.get("maxForceRefreshMs")
+                    ),
+                    maxCacheP95Ms=format_optional_float(
+                        precision_speed.get("maxCacheHitP95Ms")
+                    ),
+                    minCacheSpeedup=format_optional_float(
+                        precision_speed.get("minCacheSpeedup")
+                    ),
+                )
+            )
     distinct_miss = payload.get("distinctMiss")
     if distinct_miss:
         distinct_status = distinct_miss["rustJobsStatusSummary"]

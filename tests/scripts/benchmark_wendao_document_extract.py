@@ -17,6 +17,9 @@ _args = importlib.import_module("wendao_document_extract_benchmark.args")
 _artifact_summary = importlib.import_module(
     "wendao_document_extract_benchmark.artifact_summary"
 )
+_attachment_classes = importlib.import_module(
+    "wendao_document_extract_benchmark.attachment_classes"
+)
 _cache = importlib.import_module("wendao_document_extract_benchmark.cache")
 _constants = importlib.import_module("wendao_document_extract_benchmark.constants")
 _fake_fixtures = importlib.import_module(
@@ -47,6 +50,7 @@ _EXPORTED_MODULES: tuple[Any, ...] = (
     _args,
     _fixtures,
     _fake_fixtures,
+    _attachment_classes,
     _pdf_render,
     _pdfium,
     _precision_speed,

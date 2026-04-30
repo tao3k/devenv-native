@@ -8,6 +8,7 @@ from .artifact_summary import (
     rows_per_second,
     summarize_artifact_reports,
 )
+from .attachment_classes import classify_attachment
 from .common import (
     Any,
     Path,
@@ -308,6 +309,7 @@ def run_fixture_probe(
     return {
         "fixture": fixture_name,
         "source": str(fixture_path),
+        "attachmentClass": classify_attachment(fixture_name, fixture_path),
         "duplicateMissConcurrency": args.duplicate_miss_concurrency,
         "duplicateMissConverterCalls": duplicate_miss_converter_calls,
         "duplicateMissErrorRows": (

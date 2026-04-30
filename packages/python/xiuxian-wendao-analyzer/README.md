@@ -270,6 +270,13 @@ quality and latency signals together: error rows, artifact errors, structure
 order, force/cache/shard-reuse order stability, parity status, OCR/bbox block
 counts, force latency, cache p95, shard-cache rebuild latency, and Rust
 scheduler elapsed time.
+Mixed Docling fixture runs also include `summary.attachmentClassSummary` plus
+an `Attachment Class Summary` Markdown table. The class summary groups the same
+precision and speed signals by attachment class, including PDF, Office,
+images, structured text, web documents, table data, XML, subtitles, audio,
+Docling JSON, archive-backed documents, and unknown custom inputs. This keeps
+non-PDF attachment regressions visible without changing the Arrow Flight
+document extraction contract.
 For `hybrid-page-ocr`, pass `--shard-cache-reuse-probe` when you need explicit
 evidence that OCR shard cache reuse works independently from the
 whole-document `_resources.arrow` cache. The probe runs a second forced
