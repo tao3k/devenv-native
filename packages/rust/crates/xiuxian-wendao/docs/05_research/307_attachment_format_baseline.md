@@ -15,9 +15,10 @@ structure order, and cache behavior before it can be considered for live
 routing.
 
 The benchmark harness now emits `summary.attachmentClassSummary`, grouping the
-same precision and speed fields by attachment class. This makes mixed Docling
-fixture suites auditable without changing the document extraction Flight
-contract.
+same precision and speed fields by attachment class. The class summary also
+aggregates resource type counts, structure block type counts, bbox block
+counts, and slowest force/cache fixtures. This makes mixed Docling fixture
+suites auditable without changing the document extraction Flight contract.
 
 ## Boundary
 
@@ -86,11 +87,33 @@ This means the next optimization should not start by replacing Office parsing.
 The better next target is image attachment OCR observation and cache granularity,
 followed by XML/table-heavy extraction profiling.
 
+## Image Observability Follow-Up
+
+The follow-up image-only real fixture run confirms the added class composition
+fields work on real artifacts:
+
+| Field                  |                                 Value |
+| ---------------------- | ------------------------------------: |
+| Force latency          |                           6835.697 ms |
+| Cache p95 latency      |                              6.108 ms |
+| Resource rows          |                                     3 |
+| Structure rows         |                                     2 |
+| BBox blocks            |                                     1 |
+| Error rows             |                                     0 |
+| Resource type counts   | `docling_json=1, document=1, table=1` |
+| Structure block counts |                 `document=1, table=1` |
+
+The image fixture is therefore slow while producing a small result shape. The
+next image slice should split Docling image conversion timing before attempting
+any cache or scheduler change.
+
 ## Next Slices
 
 1. Image attachment OCR lane:
-   - add image-specific timing and structure metrics where Docling exposes
-     OCR/layout phases;
+   - use class-level resource/block composition and slowest-fixture fields to
+     identify whether the image cost is OCR, table reconstruction, or export
+     overhead;
+   - add image-specific timing where Docling exposes OCR/layout phases;
    - preserve Docling OCR authority;
    - reuse the Rust scheduler/cache model only after the image lane has stable
      parity evidence.

@@ -276,7 +276,10 @@ precision and speed signals by attachment class, including PDF, Office,
 images, structured text, web documents, table data, XML, subtitles, audio,
 Docling JSON, archive-backed documents, and unknown custom inputs. This keeps
 non-PDF attachment regressions visible without changing the Arrow Flight
-document extraction contract.
+document extraction contract. Class summaries also aggregate resource type
+counts, structure block type counts, bbox block counts, and the slowest
+force/cache fixture in each class so image OCR and XML/table-heavy hotspots can
+be diagnosed before adding a new fast path.
 For `hybrid-page-ocr`, pass `--shard-cache-reuse-probe` when you need explicit
 evidence that OCR shard cache reuse works independently from the
 whole-document `_resources.arrow` cache. The probe runs a second forced

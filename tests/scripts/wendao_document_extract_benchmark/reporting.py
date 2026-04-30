@@ -142,6 +142,26 @@ def format_optional_float(value: Any) -> str:
     return ""
 
 
+def format_counts(value: Any) -> str:
+    if not isinstance(value, dict) or not value:
+        return ""
+    return ", ".join(
+        f"{key}={count}"
+        for key, count in sorted(value.items())
+        if isinstance(key, str) and isinstance(count, int)
+    )
+
+
+def format_fixture_latency(value: Any) -> str:
+    if not isinstance(value, dict):
+        return ""
+    fixture = value.get("fixture")
+    latency = value.get("latencyMs")
+    if isinstance(fixture, str) and isinstance(latency, (int, float)):
+        return f"{fixture}:{float(latency):.3f}"
+    return ""
+
+
 def render_markdown(payload: dict[str, Any]) -> str:
     rust_status = payload["summary"]["rustJobsStatusSummary"]
     ocr_shard_cache = payload.get("ocrShardCache", {})
@@ -272,24 +292,32 @@ def render_markdown(payload: dict[str, Any]) -> str:
                 "",
                 "## Attachment Class Summary",
                 "",
-                "| Class | Fixtures | Error rows | Structure rows | Order sorted | Order stable | Force max ms | Cache p95 max ms | Speedup min |",
-                "| --- | ---: | ---: | ---: | --- | --- | ---: | ---: | ---: |",
+                "| Class | Fixtures | Error rows | Resource types | Block types | BBox blocks | Order sorted | Order stable | Slowest force | Slowest cache p95 | Speedup min |",
+                "| --- | ---: | ---: | --- | --- | ---: | --- | --- | --- | --- | ---: |",
             ]
         )
         for class_summary in payload["summary"]["attachmentClassSummary"]:
             precision_speed = class_summary["precisionSpeedSummary"]
             lines.append(
                 "| {attachmentClass} | {fixtureCount} | {totalErrorRows} | "
-                "{structureRows} | {orderSorted} | {orderStable} | "
-                "{maxForceMs} | {maxCacheP95Ms} | {minCacheSpeedup} |".format(
+                "{resourceTypes} | {blockTypes} | {bboxBlocks} | "
+                "{orderSorted} | {orderStable} | {slowestForce} | "
+                "{slowestCacheP95} | {minCacheSpeedup} |".format(
                     **class_summary,
+                    resourceTypes=format_counts(
+                        class_summary.get("resourceTypeCounts")
+                    ),
+                    blockTypes=format_counts(
+                        class_summary.get("structureBlockTypeCounts")
+                    ),
+                    bboxBlocks=class_summary.get("structureBboxBlocks", 0),
                     orderSorted=precision_speed.get("structureReadingOrderSorted"),
                     orderStable=precision_speed.get("structureOrderStable"),
-                    maxForceMs=format_optional_float(
-                        precision_speed.get("maxForceRefreshMs")
+                    slowestForce=format_fixture_latency(
+                        class_summary.get("slowestForceFixture")
                     ),
-                    maxCacheP95Ms=format_optional_float(
-                        precision_speed.get("maxCacheHitP95Ms")
+                    slowestCacheP95=format_fixture_latency(
+                        class_summary.get("slowestCacheP95Fixture")
                     ),
                     minCacheSpeedup=format_optional_float(
                         precision_speed.get("minCacheSpeedup")

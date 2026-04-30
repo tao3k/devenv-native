@@ -7,6 +7,8 @@ from typing import TYPE_CHECKING
 from .precision_speed import precision_speed_summary
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
+
     from .common import Any, Path
 
 PDF_CLASS = "pdf"
@@ -159,7 +161,29 @@ def summarize_attachment_class(
         "totalRows": sum(result.get("totalRows", 0) for result in results),
         "totalArrowIpcBytes": sum(result.get("arrowIpcBytes", 0) for result in results),
         "totalErrorRows": total_error_rows,
+        "resourcesRows": sum(result.get("resourcesRows", 0) for result in results),
+        "resourceTypeCounts": aggregate_artifact_counter(
+            results,
+            "resourceTypeCounts",
+        ),
+        "resourceStatusCounts": aggregate_artifact_counter(
+            results,
+            "resourceStatusCounts",
+        ),
         "structureRows": sum(result.get("structureRows", 0) for result in results),
+        "structureBboxBlocks": sum(
+            result.get("structureBboxBlocks", 0) for result in results
+        ),
+        "structureBlockTypeCounts": aggregate_artifact_counter(
+            results,
+            "structureBlockTypeCounts",
+        ),
+        "metricsStatusCounts": aggregate_artifact_counter(
+            results,
+            "metricsStatusCounts",
+        ),
+        "slowestForceFixture": slowest_fixture(results, "forceRefreshMs"),
+        "slowestCacheP95Fixture": slowest_fixture(results, "cacheHitP95Ms"),
         "precisionSpeedSummary": precision_speed_summary(
             results,
             None,
@@ -174,7 +198,43 @@ def summarize_attachment_class(
     }
 
 
-def aggregate_optional_bool(values: object) -> bool | None:
+def aggregate_artifact_counter(
+    results: list[dict[str, Any]],
+    counter_key: str,
+) -> dict[str, int]:
+    """Aggregate one artifact report counter across class fixtures."""
+
+    counts: dict[str, int] = {}
+    for result in results:
+        for artifact in result.get("artifactReports", []):
+            counter = artifact.get(counter_key, {})
+            if not isinstance(counter, dict):
+                continue
+            for key, value in counter.items():
+                if isinstance(key, str) and isinstance(value, int):
+                    counts[key] = counts.get(key, 0) + value
+    return dict(sorted(counts.items()))
+
+
+def slowest_fixture(
+    results: list[dict[str, Any]],
+    latency_key: str,
+) -> dict[str, Any] | None:
+    """Return the fixture with the highest numeric latency for a class."""
+
+    candidates = [
+        {
+            "fixture": result.get("fixture"),
+            "latencyMs": float(latency),
+        }
+        for result in results
+        if isinstance(result.get("fixture"), str)
+        and isinstance((latency := result.get(latency_key)), int | float)
+    ]
+    return max(candidates, key=lambda item: item["latencyMs"], default=None)
+
+
+def aggregate_optional_bool(values: Iterable[Any]) -> bool | None:
     """Return all-truthy bool for present values, or None when no value exists."""
 
     present_values = [value for value in values if value is not None]

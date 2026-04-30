@@ -1554,6 +1554,24 @@ def test_attachment_class_summary_groups_precision_and_speed() -> None:
                 "forceRefreshMs": 20.0,
                 "cacheHitP95Ms": 2.0,
                 "wallTimeMs": 3.0,
+                "resourcesRows": 4,
+                "artifactReports": [
+                    {
+                        "resourceTypeCounts": {
+                            "document": 1,
+                            "docling_json": 1,
+                            "image": 1,
+                            "table": 1,
+                        },
+                        "resourceStatusCounts": {"ok": 4},
+                        "structureBlockTypeCounts": {
+                            "document": 1,
+                            "image": 1,
+                            "table": 1,
+                        },
+                        "metricsStatusCounts": {},
+                    }
+                ],
             },
             {
                 "fixture": "image-png",
@@ -1583,6 +1601,19 @@ def test_attachment_class_summary_groups_precision_and_speed() -> None:
                 "forceRefreshMs": 50.0,
                 "cacheHitP95Ms": 5.0,
                 "wallTimeMs": 6.0,
+                "resourcesRows": 3,
+                "artifactReports": [
+                    {
+                        "resourceTypeCounts": {
+                            "document": 1,
+                            "docling_json": 1,
+                            "table": 1,
+                        },
+                        "resourceStatusCounts": {"ok": 3},
+                        "structureBlockTypeCounts": {"document": 1, "table": 1},
+                        "metricsStatusCounts": {},
+                    }
+                ],
             },
         ],
     )
@@ -1597,7 +1628,28 @@ def test_attachment_class_summary_groups_precision_and_speed() -> None:
         class_summary["office"]["precisionSpeedSummary"]["precisionGatePassed"] is True
     )
     assert class_summary["office"]["precisionSpeedSummary"]["maxForceRefreshMs"] == 20.0
+    assert class_summary["office"]["resourcesRows"] == 4
+    assert class_summary["office"]["resourceTypeCounts"] == {
+        "docling_json": 1,
+        "document": 1,
+        "image": 1,
+        "table": 1,
+    }
+    assert class_summary["office"]["structureBlockTypeCounts"] == {
+        "document": 1,
+        "image": 1,
+        "table": 1,
+    }
+    assert class_summary["office"]["slowestForceFixture"] == {
+        "fixture": "docx",
+        "latencyMs": 20.0,
+    }
     assert class_summary["image"]["structureRows"] == 1
+    assert class_summary["image"]["resourceTypeCounts"]["table"] == 1
+    assert class_summary["image"]["slowestCacheP95Fixture"] == {
+        "fixture": "image-png",
+        "latencyMs": 5.0,
+    }
     assert class_summary["image"]["precisionSpeedSummary"]["maxCacheHitP95Ms"] == 5.0
 
 
@@ -1854,6 +1906,14 @@ def test_summary_and_markdown_report_distinct_miss_burst() -> None:
         "structureParityErrorCount": 0,
         "structureOrderStable": True,
         "structureOrderMismatchCount": 0,
+        "artifactReports": [
+            {
+                "resourceTypeCounts": {"document": 1, "table": 1},
+                "resourceStatusCounts": {"ok": 2},
+                "structureBlockTypeCounts": {"document": 1, "table": 1},
+                "metricsStatusCounts": {"succeeded": 2},
+            }
+        ],
     }
     distinct_report = {
         "enabled": True,
@@ -1923,6 +1983,8 @@ def test_summary_and_markdown_report_distinct_miss_burst() -> None:
     )
     assert "## Distinct Cold Miss Burst" in markdown
     assert "## Attachment Class Summary" in markdown
+    assert "document=1, table=1" in markdown
+    assert "small-md:10.000" in markdown
     assert "distinct-01" in markdown
     assert "Shard reuse force ms" in markdown
     assert "42.000" in markdown
