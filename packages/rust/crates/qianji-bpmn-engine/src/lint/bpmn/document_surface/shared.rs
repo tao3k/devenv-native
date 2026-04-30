@@ -29,6 +29,7 @@ pub(super) use super::di_identity::diagram_identity_issue;
 pub(super) use super::di_namespace::diagram_namespace_issue;
 pub(super) use super::di_numeric::diagram_numeric_issue;
 pub(super) use super::di_reference::diagram_reference_issue;
+pub(super) use super::di_required::diagram_required_attribute_issue;
 pub(super) use super::di_topology::diagram_topology_issue;
 pub(super) use super::issue::{
     flow_element_metadata_issue, issue_for_tag, resource_role_metadata_issue,

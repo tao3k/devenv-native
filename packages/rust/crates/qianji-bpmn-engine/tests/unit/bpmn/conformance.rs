@@ -292,6 +292,7 @@ fn single_issue<'a>(report: &'a LintReport, code: &str) -> &'a LintIssue {
 fn assert_bpmn_di_boundary_evidence() {
     assert_bpmn_di_metadata_boundary_evidence();
     assert_bpmn_di_namespace_boundary_evidence();
+    assert_bpmn_di_required_attribute_boundary_evidence();
     assert_bpmn_di_boolean_boundary_evidence();
     assert_bpmn_di_numeric_boundary_evidence();
     assert_bpmn_di_enum_boundary_evidence();
@@ -320,6 +321,30 @@ fn assert_bpmn_di_namespace_boundary_evidence() {
     assert_eq!(
         issue.evidence["invalid_namespaces"][0]["expected_namespace_uri"],
         "http://www.omg.org/spec/BPMN/20100524/DI"
+    );
+}
+
+fn assert_bpmn_di_required_attribute_boundary_evidence() {
+    let invalid_required_attributes = lint_fixture("invalid-di-missing-required-attributes.bpmn");
+    let issue = single_issue(
+        &invalid_required_attributes,
+        "bpmn.missing_di_required_attribute",
+    );
+    assert_eq!(
+        issue.evidence["missing_required_attributes"][0]["element"],
+        "Bounds"
+    );
+    assert_eq!(
+        issue.evidence["missing_required_attributes"][0]["missing_attribute"],
+        "y"
+    );
+    assert_eq!(
+        issue.evidence["missing_required_attributes"][2]["element"],
+        "waypoint"
+    );
+    assert_eq!(
+        issue.evidence["missing_required_attributes"][2]["missing_attribute"],
+        "y"
     );
 }
 

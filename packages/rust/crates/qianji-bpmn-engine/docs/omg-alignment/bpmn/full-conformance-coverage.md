@@ -75,7 +75,7 @@ registry, so new milestones must update both surfaces together.
 | Data stores               | lint-deferred      | Data store/reference metadata and direct `dataState` are preserved; data-store-reference bindings have explicit deferred diagnostics.                                                                                                                          |
 | IO specification          | bounded executable | Human-task form IO and bounded host-task Data/IO metadata are executable; IO sets are preserved passively.                                                                                                                                                     |
 | Data associations         | bounded executable | Bounded host-task source/target mapping is executable; transformation and assignment payloads are preserved.                                                                                                                                                   |
-| BPMN DI                   | metadata-only      | Diagram, plane, shape, edge, bounds, waypoint, label, and font metadata is preserved; DI namespaces, topology, anchor presence/kind, links, ids, and minimum layout payloads are audited, with lexical checks for enum, boolean, and numeric display metadata. |
+| BPMN DI                   | metadata-only      | Diagram, plane, shape, edge, bounds, waypoint, label, and font metadata is preserved; DI namespaces, topology, anchor presence/kind, links, ids, minimum layout payloads, required geometry attributes, and lexical enum/boolean/numeric metadata are audited. |
 | DMN links                 | bounded executable | Business-rule tasks can execute local bounded DMN decisions when available.                                                                                                                                                                                    |
 
 ## Completed M1 Milestone
@@ -158,9 +158,10 @@ edges, conservative anchor-kind checks for obvious plane/shape/edge semantic
 mismatches, semantic `bpmnElement` references, DI-local edge endpoint and
 label-style references, duplicate DI identifiers, direct `dc:Bounds` on
 `BPMNShape`, at least two direct `di:waypoint` entries on `BPMNEdge`, and
-finite numeric values for diagram resolution, bounds, waypoints, and font-size
-metadata. Geometry quality, diagram rendering, and runtime routing from layout
-coordinates remain out of scope.
+required `dc:Bounds` and `di:waypoint` attributes with finite numeric values
+for diagram resolution, bounds, waypoints, and font-size metadata. Geometry
+quality, diagram rendering, and runtime routing from layout coordinates remain
+out of scope.
 
 ## Active M2 Event Milestone
 
@@ -328,6 +329,12 @@ least two direct `di:waypoint` entries. Missing minimum layout payloads report a
 specific lint diagnostic before the generic metadata-only DI guidance. The
 audit does not execute layout, validate coordinate geometry, or infer runtime
 behavior from diagram coordinates.
+
+DI required geometry attributes are audited before lexical numeric checks.
+Every `dc:Bounds` element must carry `x`, `y`, `width`, and `height`, and every
+`di:waypoint` element must carry `x` and `y`. Missing required geometry
+attributes report a specific lint diagnostic before generic metadata-only DI
+guidance.
 
 DI enum-valued display hints are audited against the standard BPMNDI
 enumerations. `BPMNShape` `participantBandKind` values must use the standard

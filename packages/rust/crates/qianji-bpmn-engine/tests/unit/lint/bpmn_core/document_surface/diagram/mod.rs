@@ -10,4 +10,5 @@ mod metadata;
 mod namespaces;
 mod numerics;
 mod references;
+mod required_attributes;
 mod topology;
