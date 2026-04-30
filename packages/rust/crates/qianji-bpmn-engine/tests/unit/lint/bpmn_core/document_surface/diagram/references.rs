@@ -119,3 +119,45 @@ fn bpmn_linter_reports_invalid_di_label_style_before_metadata_guidance() {
         "diagram_interchange_id"
     );
 }
+
+#[test]
+fn bpmn_linter_reports_invalid_di_choreography_shape_before_metadata_guidance() {
+    let report = lint_bpmn_source(&bpmn_fixture_source(
+        "invalid-di-choreography-shape-reference.bpmn",
+    ));
+
+    assert_eq!(report.domain, LintDomain::Bpmn);
+    assert!(!report.ok);
+    assert_eq!(report.issues.len(), 1);
+    let issue = &report.issues[0];
+    assert_eq!(issue.code, "bpmn.invalid_di_reference");
+    assert_eq!(issue.evidence["invalid_reference_count"], 1);
+    assert_eq!(
+        issue.evidence["invalid_references"][0]["diagram_id"],
+        "Diagram_InvalidDiChoreographyShapeReference"
+    );
+    assert_eq!(
+        issue.evidence["invalid_references"][0]["plane_id"],
+        "Plane_InvalidDiChoreographyShapeReference"
+    );
+    assert_eq!(
+        issue.evidence["invalid_references"][0]["element"],
+        "BPMNShape"
+    );
+    assert_eq!(
+        issue.evidence["invalid_references"][0]["element_id"],
+        "Shape_Start"
+    );
+    assert_eq!(
+        issue.evidence["invalid_references"][0]["attribute"],
+        "choreographyActivityShape"
+    );
+    assert_eq!(
+        issue.evidence["invalid_references"][0]["reference"],
+        "Missing_ChoreographyShape"
+    );
+    assert_eq!(
+        issue.evidence["invalid_references"][0]["expected_scope"],
+        "diagram_interchange_id"
+    );
+}

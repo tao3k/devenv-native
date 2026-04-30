@@ -350,6 +350,17 @@ fn assert_bpmn_di_reference_boundary_evidence() {
         issue.evidence["invalid_references"][0]["reference"],
         "Missing_LabelStyle"
     );
+
+    let invalid_choreography_shape = lint_fixture("invalid-di-choreography-shape-reference.bpmn");
+    let issue = single_issue(&invalid_choreography_shape, "bpmn.invalid_di_reference");
+    assert_eq!(
+        issue.evidence["invalid_references"][0]["attribute"],
+        "choreographyActivityShape"
+    );
+    assert_eq!(
+        issue.evidence["invalid_references"][0]["reference"],
+        "Missing_ChoreographyShape"
+    );
 }
 
 fn assert_bpmn_di_topology_boundary_evidence() {

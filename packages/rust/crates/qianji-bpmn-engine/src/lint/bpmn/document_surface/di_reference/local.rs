@@ -1,6 +1,8 @@
 use std::collections::BTreeSet;
 
-use crate::bpmn_model_api::{BpmnDiagramSnapshot, BpmnLabelSnapshot, BpmnPlaneSnapshot};
+use crate::bpmn_model_api::{
+    BpmnDiagramSnapshot, BpmnLabelSnapshot, BpmnPlaneSnapshot, BpmnShapeSnapshot,
+};
 
 use super::model::{DiReferenceScope, DiReferenceTarget, DiReferenceViolation};
 
@@ -16,12 +18,14 @@ pub(super) fn collect_local_reference_violations(
         .filter_map(|style| style.style_id.as_deref())
         .collect::<BTreeSet<_>>();
     let di_element_ids = plane_di_element_ids(plane);
+    let shape_ids = plane_shape_ids(plane);
     let scope = DiReferenceScope {
         diagram_id,
         plane_id: plane.plane_id.as_deref(),
     };
 
     for shape in &plane.shapes {
+        collect_shape_reference(violations, scope, shape, &shape_ids);
         collect_label_style_violation(violations, scope, shape.label.as_ref(), &label_style_ids);
     }
     for edge in &plane.edges {
@@ -43,6 +47,25 @@ pub(super) fn collect_local_reference_violations(
         );
         collect_label_style_violation(violations, scope, edge.label.as_ref(), &label_style_ids);
     }
+}
+
+fn collect_shape_reference(
+    violations: &mut Vec<DiReferenceViolation>,
+    scope: DiReferenceScope<'_>,
+    shape: &BpmnShapeSnapshot,
+    shape_ids: &BTreeSet<&str>,
+) {
+    collect_reference(
+        violations,
+        scope,
+        DiReferenceTarget {
+            element: "BPMNShape",
+            element_id: shape.shape_id.clone(),
+            attribute: "choreographyActivityShape",
+        },
+        shape.choreography_activity_shape.as_deref(),
+        shape_ids,
+    );
 }
 
 fn collect_edge_reference(
@@ -122,4 +145,12 @@ fn plane_di_element_ids(plane: &BpmnPlaneSnapshot) -> BTreeSet<&str> {
             .filter_map(|edge| edge.edge_id.as_deref()),
     );
     ids
+}
+
+fn plane_shape_ids(plane: &BpmnPlaneSnapshot) -> BTreeSet<&str> {
+    plane
+        .shapes
+        .iter()
+        .filter_map(|shape| shape.shape_id.as_deref())
+        .collect()
 }

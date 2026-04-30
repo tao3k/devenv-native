@@ -315,10 +315,11 @@ through the bounded runtime contract.
 Generated and imported BPMN DI is also referentially audited. `BPMNPlane`,
 `BPMNShape`, and `BPMNEdge` `bpmnElement` values must point at semantic BPMN ids
 declared in the same source. `BPMNEdge` `sourceElement` and `targetElement`
-values must point at DI element ids in the same plane, and `BPMNLabel`
-`labelStyle` values must point at label-style ids in the same diagram. Missing
-references report a specific lint diagnostic before the generic metadata-only
-DI guidance.
+values must point at DI element ids in the same plane. `BPMNShape`
+`choreographyActivityShape` values must point at `BPMNShape` ids in the same
+plane, and `BPMNLabel` `labelStyle` values must point at label-style ids in the
+same diagram. Missing references report a specific lint diagnostic before the
+generic metadata-only DI guidance.
 
 DI structural completeness is also audited for stable interchange. `BPMNShape`
 entries should carry direct `dc:Bounds`, and `BPMNEdge` entries should carry at
