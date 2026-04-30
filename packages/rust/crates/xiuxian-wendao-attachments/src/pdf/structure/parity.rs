@@ -4,13 +4,15 @@ use super::DocumentStructureBlock;
 
 const PROTECTED_BLOCK_TYPES: &[&str] = &["table", "formula", "image", "code"];
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DocumentStructureParityCount {
     pub baseline: usize,
     pub candidate: usize,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DocumentStructureParitySummary {
     pub baseline_block_count: usize,
     pub candidate_block_count: usize,

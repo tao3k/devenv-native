@@ -278,6 +278,11 @@ OCR shard cache limit to 10 GiB and supports
 capacity policy. Local benchmark runs isolate the OCR shard cache by default
 so fake and real OCR evidence do not cross-contaminate; use
 `--ocr-shard-cache-root` when a run intentionally targets a persistent cache.
+Use `--structure-baseline-root` when a golden Docling baseline artifact root is
+available. The Rust ignored benchmark reads each candidate `_structure.arrow`,
+matches it to the baseline artifact directory by fixture output name, and
+reports strict structure parity pass/error fields without changing the
+document extraction Flight contract.
 For source-PDF page-range OCR, Rust owns the outer scheduling policy. It may
 split one contiguous source-PDF OCR range into several contiguous subranges and
 send those subranges concurrently to Python/Docling. The default source-range

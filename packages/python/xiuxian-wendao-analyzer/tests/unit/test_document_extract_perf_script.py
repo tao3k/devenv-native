@@ -473,6 +473,16 @@ def test_artifact_report_summary_tracks_structure_precision() -> None:
                 "structureOcrRegionBlocks": 2,
                 "structureBboxBlocks": 2,
                 "structureReadingOrderSorted": True,
+                "structureParity": {
+                    "baselineBlockCount": 2,
+                    "candidateBlockCount": 3,
+                    "baselinePageCount": 1,
+                    "candidatePageCount": 1,
+                    "baselineTextChars": 80,
+                    "candidateTextChars": 120,
+                    "protectedBlockCounts": {},
+                },
+                "structureParityError": None,
                 "metricsArrowExists": True,
                 "metricsRowCount": 3,
                 "metricsResultChars": 120,
@@ -507,6 +517,9 @@ def test_artifact_report_summary_tracks_structure_precision() -> None:
     assert summary["structureOcrRegionBlocks"] == 3
     assert summary["structureBboxBlocks"] == 3
     assert summary["structureReadingOrderSorted"] is True
+    assert summary["structureParityChecked"] is True
+    assert summary["structureParityPassed"] is True
+    assert summary["structureParityErrorCount"] == 0
     assert summary["metricsArrowExists"] is True
     assert summary["metricsRows"] == 4
     assert summary["metricsResultChars"] == 160
@@ -605,6 +618,54 @@ def test_cargo_perf_probe_adds_pdf_source_range_for_hybrid_page_ocr(
 
     assert commands[0][commands[0].index("--features") + 1] == (
         "performance,studio,zhenfa-router,duckdb,document-extract-pdf-source-range"
+    )
+
+
+def test_cargo_perf_probe_forwards_structure_baseline_root(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    benchmark = _load_benchmark_module()
+    report_path = tmp_path / "report.json"
+    baseline_root = tmp_path / "baselines"
+    captured_env = {}
+
+    def fake_run(command: list[str], *, check: bool, env) -> None:
+        assert command[0] == "cargo"
+        assert check
+        captured_env.update(env)
+        report_path.write_text(
+            '{"latenciesMs":[1.0],"requestCount":1,"rowCount":1,'
+            '"batchCount":1,"arrowIpcBytes":1,"errorRowCount":0,'
+            '"statusCounts":{"ok":1},"wallTimeMs":1.0}',
+            encoding="utf-8",
+        )
+
+    monkeypatch.setattr(benchmark.subprocess, "run", fake_run)
+    monkeypatch.setenv("SDKROOT", "/tmp/macos-sdk")
+    monkeypatch.setenv("LIBRARY_PATH", "/tmp/macos-sdk/usr/lib")
+    args = benchmark.argparse.Namespace(
+        benchmark_host="127.0.0.1",
+        benchmark_port=50052,
+        cargo="cargo",
+        cargo_features="performance,studio,zhenfa-router,duckdb",
+        flight_mode="async",
+        wait_ms=0,
+        structure_baseline_root=baseline_root,
+    )
+
+    benchmark.run_cargo_perf_test(
+        args,
+        tmp_path / "sample.md",
+        tmp_path / "out",
+        force=False,
+        iterations=1,
+        concurrency=1,
+        report_path=report_path,
+    )
+
+    assert captured_env["WENDAO_DOCUMENT_EXTRACT_PERF_STRUCTURE_BASELINE_ROOT"] == str(
+        baseline_root
     )
 
 
@@ -1268,6 +1329,9 @@ def test_summary_and_markdown_report_distinct_miss_burst() -> None:
         "metricsResultChars": 80,
         "metricsBboxCount": 2,
         "metricsRustSchedulerElapsedMs": 12.0,
+        "structureParityChecked": True,
+        "structureParityPassed": True,
+        "structureParityErrorCount": 0,
     }
     distinct_report = {
         "enabled": True,
@@ -1311,6 +1375,7 @@ def test_summary_and_markdown_report_distinct_miss_burst() -> None:
             "pdfOcrWorkers": "auto",
             "rustPdfOcrWorkers": None,
             "rustPdfOcrSourceRangeWorkers": "2",
+            "structureBaselineRoot": "/tmp/baselines",
             "pdfOcrProfile": "skip",
             "shardCacheReuseProbe": True,
             "ocrShardCache": {
@@ -1333,3 +1398,4 @@ def test_summary_and_markdown_report_distinct_miss_burst() -> None:
     assert "Metrics sidecar" in markdown
     assert "chars=80" in markdown
     assert "Rust PDF OCR source-range workers" in markdown
+    assert "Structure parity" in markdown

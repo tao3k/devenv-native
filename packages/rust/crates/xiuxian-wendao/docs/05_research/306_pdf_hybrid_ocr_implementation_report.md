@@ -5,7 +5,7 @@
 :PARENT: [[../index|Wendao DocOS Kernel: Map of Content]]
 :TAGS: research, document-extraction, pdf, ocr, arrow, docling, attachments
 :STATUS: UPDATED
-:VERSION: 1.9
+:VERSION: 1.10
 :END:
 
 ## Executive Summary
@@ -43,7 +43,10 @@ The structure sidecar has a reusable strict baseline parity helper for golden
 benchmark lanes. Before a future region or native-text fast path can claim
 parity with Docling, its candidate structure must preserve baseline page
 coverage, per-page text coverage, protected table/formula/image/code block
-counts, and sorted reading order.
+counts, and sorted reading order. The benchmark harness can now point at a
+golden baseline artifact root and report the parity summary or exact parity
+error alongside the usual `_resources.arrow`, `_structure.arrow`, and
+`_metrics.arrow` fields.
 
 The next implementation slice is verification infrastructure, not a broader
 parser replacement. Rust stays the deterministic control plane: acceleration,
@@ -330,7 +333,10 @@ The benchmark harness now lives under `tests/scripts/` and reads
 sidecar in JSON and Markdown reports with metrics row count, OCR result
 characters, bbox count, and total Rust scheduler elapsed time. This keeps
 performance and precision evidence attached to the same Arrow artifact set as
-`_resources.arrow` and `_structure.arrow`.
+`_resources.arrow` and `_structure.arrow`. When supplied with a golden
+structure baseline root, the same cargo-test lane decodes baseline and
+candidate `_structure.arrow` sidecars into the shared structure block model and
+reports strict parity checked/passed/error counts.
 
 A fixture-OCR smoke run against the `2604.17337` PDF confirmed the reporting
 path without invoking real Docling OCR: 21 resource rows, 21 structure rows, 21

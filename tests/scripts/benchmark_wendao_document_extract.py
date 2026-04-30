@@ -155,6 +155,14 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--structure-baseline-root",
+        type=Path,
+        help=(
+            "Optional artifact root containing per-fixture Docling baseline "
+            "_structure.arrow files for strict structure parity reporting."
+        ),
+    )
+    parser.add_argument(
         "--wait-ms",
         type=int,
         default=0,
@@ -592,6 +600,9 @@ def main() -> int:
         "pdfOcrWorkers": args.pdf_ocr_workers,
         "rustPdfOcrWorkers": args.rust_pdf_ocr_workers,
         "rustPdfOcrSourceRangeWorkers": args.rust_pdf_ocr_source_range_workers,
+        "structureBaselineRoot": (
+            str(args.structure_baseline_root) if args.structure_baseline_root else None
+        ),
         "pdfOcrProfile": pdf_ocr_profile_label(args),
         "shardCacheReuseProbe": args.shard_cache_reuse_probe,
         "ocrShardCache": ocr_shard_cache_summary
@@ -2255,6 +2266,9 @@ def run_fixture_probe(
         "structureOcrRegionBlocks": artifact_summary["structureOcrRegionBlocks"],
         "structureBboxBlocks": artifact_summary["structureBboxBlocks"],
         "structureReadingOrderSorted": artifact_summary["structureReadingOrderSorted"],
+        "structureParityChecked": artifact_summary["structureParityChecked"],
+        "structureParityPassed": artifact_summary["structureParityPassed"],
+        "structureParityErrorCount": artifact_summary["structureParityErrorCount"],
         "metricsArrowExists": artifact_summary["metricsArrowExists"],
         "metricsRows": artifact_summary["metricsRows"],
         "metricsResultChars": artifact_summary["metricsResultChars"],
@@ -2311,6 +2325,11 @@ def run_cargo_perf_test(
                 for name, input_source in inputs.items()
             ]
         )
+    structure_baseline_root = getattr(args, "structure_baseline_root", None)
+    if structure_baseline_root is not None:
+        env["WENDAO_DOCUMENT_EXTRACT_PERF_STRUCTURE_BASELINE_ROOT"] = str(
+            structure_baseline_root
+        )
     command = [
         args.cargo,
         "test",
@@ -2362,6 +2381,10 @@ def summarize_artifact_reports(reports: list[dict[str, Any]]) -> dict[str, Any]:
         for report in reports
         if report.get("structureReadingOrderSorted") is not None
     ]
+    structure_parity_checked = any(
+        report.get("structureParity") is not None or report.get("structureParityError")
+        for report in reports
+    )
     return {
         "resourcesArrowExists": any(
             bool(report.get("resourcesArrowExists")) for report in reports
@@ -2388,6 +2411,11 @@ def summarize_artifact_reports(reports: list[dict[str, Any]]) -> dict[str, Any]:
             if structure_sorted_values
             else None
         ),
+        "structureParityChecked": structure_parity_checked,
+        "structureParityPassed": structure_parity_passed(reports),
+        "structureParityErrorCount": sum(
+            1 for report in reports if report.get("structureParityError")
+        ),
         "metricsArrowExists": any(
             bool(report.get("metricsArrowExists")) for report in reports
         ),
@@ -2402,6 +2430,22 @@ def summarize_artifact_reports(reports: list[dict[str, Any]]) -> dict[str, Any]:
             1 for report in reports if report.get("artifactError")
         ),
     }
+
+
+def structure_parity_passed(reports: list[dict[str, Any]]) -> bool | None:
+    checked_reports = [
+        report
+        for report in reports
+        if report.get("structureParity") is not None
+        or report.get("structureParityError")
+    ]
+    if not checked_reports:
+        return None
+    return all(
+        report.get("structureParity") is not None
+        and not report.get("structureParityError")
+        for report in checked_reports
+    )
 
 
 def sum_int_report_values(reports: list[dict[str, Any]], key: str) -> int:
@@ -2684,6 +2728,13 @@ def summarize_results(
             result.get("structureBboxBlocks", 0) for result in results
         ),
         "allStructureReadingOrderSorted": all_structure_reading_order_sorted(results),
+        "structureParityCheckedFixtures": sum(
+            1 for result in results if result.get("structureParityChecked")
+        ),
+        "allStructureParityPassed": all_structure_parity_passed(results),
+        "totalStructureParityErrors": sum(
+            result.get("structureParityErrorCount", 0) for result in results
+        ),
         "totalMetricsRows": sum(result.get("metricsRows", 0) for result in results),
         "totalMetricsResultChars": sum(
             result.get("metricsResultChars", 0) for result in results
@@ -2741,6 +2792,15 @@ def all_structure_reading_order_sorted(results: list[dict[str, Any]]) -> bool | 
     return all(bool(value) for value in values) if values else None
 
 
+def all_structure_parity_passed(results: list[dict[str, Any]]) -> bool | None:
+    values = [
+        result.get("structureParityPassed")
+        for result in results
+        if result.get("structureParityPassed") is not None
+    ]
+    return all(bool(value) for value in values) if values else None
+
+
 def format_optional_float(value: Any) -> str:
     if isinstance(value, (int, float)):
         return f"{float(value):.3f}"
@@ -2766,6 +2826,7 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"- Rust PDF OCR worker pool: `{payload['rustPdfOcrWorkers']}`",
         "- Rust PDF OCR source-range workers: "
         f"`{payload['rustPdfOcrSourceRangeWorkers']}`",
+        f"- Structure baseline root: `{payload.get('structureBaselineRoot')}`",
         f"- PDF OCR profile: `{payload['pdfOcrProfile']}`",
         "- Shard-cache reuse probe: "
         f"`{any(result.get('shardCacheReuseEnabled') for result in payload['results'])}`",
@@ -2807,6 +2868,10 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"region={payload['summary']['totalStructureOcrRegionBlocks']}`",
         "- Structure reading order sorted: "
         f"`{payload['summary']['allStructureReadingOrderSorted']}`",
+        "- Structure parity: "
+        f"`checked={payload['summary'].get('structureParityCheckedFixtures')}, "
+        f"passed={payload['summary'].get('allStructureParityPassed')}, "
+        f"errors={payload['summary'].get('totalStructureParityErrors')}`",
         "- Metrics sidecar: "
         f"`rows={payload['summary'].get('totalMetricsRows')}, "
         f"chars={payload['summary'].get('totalMetricsResultChars')}, "

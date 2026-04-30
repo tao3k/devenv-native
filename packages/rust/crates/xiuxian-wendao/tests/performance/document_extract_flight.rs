@@ -33,6 +33,7 @@ struct PerfConfig {
     force_first: bool,
     mode: String,
     wait_ms: u64,
+    structure_baseline_root: Option<PathBuf>,
     report_path: Option<PathBuf>,
 }
 
@@ -105,6 +106,7 @@ async fn document_extract_python_flight_perf_smoke() -> Result<(), String> {
             .inputs
             .iter()
             .map(|input| (input.source.as_str(), input.output_dir.as_str())),
+        config.structure_baseline_root.as_deref(),
     );
 
     let report = PerfReport {
@@ -187,6 +189,11 @@ fn perf_config_from_env() -> Result<PerfConfig, String> {
             .ok()
             .and_then(|value| value.parse::<u64>().ok())
             .unwrap_or_default(),
+        structure_baseline_root: std::env::var(
+            "WENDAO_DOCUMENT_EXTRACT_PERF_STRUCTURE_BASELINE_ROOT",
+        )
+        .ok()
+        .map(PathBuf::from),
         report_path: std::env::var("WENDAO_DOCUMENT_EXTRACT_PERF_REPORT")
             .ok()
             .map(PathBuf::from),
