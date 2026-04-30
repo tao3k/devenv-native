@@ -35,12 +35,30 @@ fn adaptive_capacity_halves_on_latency_pressure() {
 }
 
 #[test]
-fn source_range_budget_is_sublinear_under_current_budget() {
+fn source_range_budget_is_capped_by_machine_and_page_count() {
     let controller = OcrCapacityController::new_with_current_budget(12, 12);
 
     let budget = controller.budget_for_lane(21, OcrSchedulerLane::SourcePdfPageRange, None);
 
     assert_eq!(budget, 4);
+}
+
+#[test]
+fn source_range_budget_uses_initial_adaptive_budget_without_second_sqrt() {
+    let controller = OcrCapacityController::new_with_current_budget(12, 4);
+
+    let budget = controller.budget_for_lane(21, OcrSchedulerLane::SourcePdfPageRange, None);
+
+    assert_eq!(budget, 4);
+}
+
+#[test]
+fn source_range_budget_respects_pressure_reduced_current_budget() {
+    let controller = OcrCapacityController::new_with_current_budget(12, 2);
+
+    let budget = controller.budget_for_lane(21, OcrSchedulerLane::SourcePdfPageRange, None);
+
+    assert_eq!(budget, 2);
 }
 
 #[test]

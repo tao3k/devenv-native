@@ -190,14 +190,18 @@ fn source_pdf_page_range_worker_target(
             .min(shard_count)
             .max(1);
     }
-    let machine_budget = ceil_sqrt_usize(current_worker_budget);
+    let machine_budget = source_pdf_page_range_machine_ceiling(max_worker_bound);
     let page_budget = shard_count.div_ceil(6);
-    machine_budget
+    current_worker_budget
+        .min(machine_budget)
         .min(page_budget.max(1))
-        .min(current_worker_budget)
         .min(max_worker_bound)
         .min(shard_count)
         .max(1)
+}
+
+fn source_pdf_page_range_machine_ceiling(max_worker_bound: usize) -> usize {
+    ceil_sqrt_usize(max_worker_bound.max(1)).max(1)
 }
 
 fn initial_worker_budget(max_worker_bound: usize) -> usize {

@@ -281,9 +281,10 @@ so fake and real OCR evidence do not cross-contaminate; use
 For source-PDF page-range OCR, Rust owns the outer scheduling policy. It may
 split one contiguous source-PDF OCR range into several contiguous subranges and
 send those subranges concurrently to Python/Docling. The default source-range
-target is sublinear in the Rust worker budget because real Docling conversion
-can regress when too many page-range conversions run at once. Use
-`--rust-pdf-ocr-workers` for the global Rust OCR budget and
+target uses the current adaptive Rust OCR budget, capped by a machine-derived
+source-range ceiling and page count because real Docling conversion can regress
+when too many page-range conversions run at once. Use
+`--rust-pdf-ocr-workers` for the global Rust OCR budget ceiling and
 `--rust-pdf-ocr-source-range-workers` when a benchmark needs to profile a
 source-range-specific override. Production deployments can set
 `WENDAO_DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS` directly when evidence

@@ -5,7 +5,7 @@
 :PARENT: [[../index|Wendao DocOS Kernel: Map of Content]]
 :TAGS: research, document-extraction, pdf, ocr, arrow, docling, attachments
 :STATUS: UPDATED
-:VERSION: 1.7
+:VERSION: 1.8
 :END:
 
 ## Executive Summary
@@ -169,6 +169,13 @@ kept the same precision shape:
 |                     1 | 21373.000 |        2.646 |                 21248.243 |            21 |             21 |              21 |          21 | sorted |          0 |
 |                     2 | 20183.691 |        2.457 |                 20085.701 |            21 |             21 |              21 |          21 | sorted |          0 |
 |                     4 | 19442.132 |        2.363 |                 19334.474 |            21 |             21 |              21 |          21 | sorted |          0 |
+
+The mainline scheduler now reflects this evidence without hardcoding a fixed
+worker count: source-range OCR uses the current adaptive Rust budget directly,
+capped by a machine-derived source-range ceiling and page count. The explicit
+source-range worker override remains available for benchmark and deployment
+profile experiments, but the default path no longer applies a second square
+root to the current adaptive budget at cold start.
 
 Interpretation:
 

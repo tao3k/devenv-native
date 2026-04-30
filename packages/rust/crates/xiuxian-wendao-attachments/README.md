@@ -138,8 +138,8 @@ range. PDFium-backed rendering remains available for region/raster proofs, but
 it is not required for the full-page source-range hot path.
 Rust may split one contiguous source-PDF page range into multiple contiguous
 subranges when OCR worker permits are available. The source-range lane uses a
-sublinear share of the current adaptive OCR budget to avoid over-parallelizing
-Docling PDF conversion, and
+the current adaptive OCR budget capped by a machine-derived source-range ceiling
+and page count to avoid over-parallelizing Docling PDF conversion, and
 `WENDAO_DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS` remains an explicit
 benchmark override for source-range chunk count experiments.
 
