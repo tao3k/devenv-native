@@ -11,7 +11,7 @@ pub(super) struct HumanTaskContext {
 }
 
 #[derive(Clone)]
-pub(super) struct GlobalHumanTaskContext {
+pub(super) struct GlobalTaskContext {
     pub(super) task_id: String,
     pub(super) task_kind: String,
 }

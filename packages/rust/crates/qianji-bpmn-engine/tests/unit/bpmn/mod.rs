@@ -3,6 +3,7 @@ use qianji_bpmn_engine::BpmnSourceFile;
 
 mod callable_registry;
 mod collaboration_host_envelope;
+mod compatibility;
 mod conformance;
 mod snapshot;
 

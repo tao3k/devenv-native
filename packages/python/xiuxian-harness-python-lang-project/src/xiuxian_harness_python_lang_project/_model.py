@@ -193,10 +193,30 @@ class PythonHarnessReport:
             if finding.severity in blocking_severities
         )
 
+    def advisory_findings(
+        self,
+        *,
+        severities: frozenset[PythonDiagnosticSeverity] | None = None,
+    ) -> tuple[PythonHarnessFinding, ...]:
+        """Return non-blocking advisory findings for agent-guided repair."""
+
+        if severities is None:
+            from python_lang_parser import PythonDiagnosticSeverity
+
+            selected_severities = frozenset({PythonDiagnosticSeverity.INFO})
+        else:
+            selected_severities = severities
+        return tuple(
+            finding
+            for finding in self.findings
+            if finding.severity in selected_severities
+        )
+
     def assert_clean(
         self,
         *,
         severities: frozenset[PythonDiagnosticSeverity] | None = None,
+        include_advice: bool = True,
     ) -> None:
         """Raise `AssertionError` when blocking findings are present."""
 
@@ -204,5 +224,9 @@ class PythonHarnessReport:
             from ._render import render_python_lang_harness
 
             raise AssertionError(
-                render_python_lang_harness(self, severities=severities)
+                render_python_lang_harness(
+                    self,
+                    severities=severities,
+                    include_advice=include_advice,
+                )
             )

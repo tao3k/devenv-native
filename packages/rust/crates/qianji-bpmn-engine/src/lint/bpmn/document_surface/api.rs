@@ -1,8 +1,18 @@
-use super::{BpmnSourceFile, Event, LintIssue, Reader, issue_for_tag, local_name};
+use super::{
+    BpmnSourceFile, Event, LintIssue, Reader, flow_element_metadata_issue, issue_for_tag,
+    local_name, resource_role_metadata_issue,
+};
 
 pub(in crate::lint::bpmn) fn deferred_document_surface_issue(
     source: &BpmnSourceFile,
 ) -> Option<LintIssue> {
+    if let Some(issue) = resource_role_metadata_issue(source) {
+        return Some(issue);
+    }
+    if let Some(issue) = flow_element_metadata_issue(source) {
+        return Some(issue);
+    }
+
     let mut reader = Reader::from_str(&source.contents);
     reader.config_mut().trim_text(true);
     let mut stack = Vec::<String>::new();

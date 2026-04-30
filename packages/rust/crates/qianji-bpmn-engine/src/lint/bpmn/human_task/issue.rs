@@ -1,31 +1,31 @@
 use super::{
-    BpmnSourceFile, BytesStart, CallActivityContext, GlobalHumanTaskContext, HumanTaskContext,
+    BpmnSourceFile, BytesStart, CallActivityContext, GlobalTaskContext, HumanTaskContext,
     LintIssue, Reader, json, source_diagnostic, source_diagnostic_from_span,
 };
 
-pub(super) fn unsupported_global_human_task_binding_issue(
+pub(super) fn unsupported_global_task_binding_issue(
     source: &BpmnSourceFile,
     call_activity: &CallActivityContext,
-    task: &GlobalHumanTaskContext,
+    task: &GlobalTaskContext,
 ) -> LintIssue {
     let source_id = &source.source_id;
     let process_id = call_activity.process_id.as_deref().unwrap_or("<unknown>");
     let activity_id = call_activity.activity_id.as_deref().unwrap_or("<unknown>");
     LintIssue::new(
-        "bpmn.unsupported_global_human_task_binding",
-        "Global human task binding is not executable",
+        "bpmn.unsupported_global_task_binding",
+        "Global task binding is not executable",
         format!(
-            "Source '{source_id}' process '{process_id}' call activity '{activity_id}' targets global human task '{}'.",
+            "Source '{source_id}' process '{process_id}' call activity '{activity_id}' targets global task '{}'.",
             task.task_id
         ),
-        "OMG BPMN global human tasks are reusable root definitions, but the bounded Qianji runtime currently executes `callActivity` only when `calledElement` points to another executable process in the same BPMN package. Treating a global human task as an ordinary process child would move the runtime binding decision out of Rust and into downstream UI inference.",
+        "OMG BPMN global tasks are reusable root definitions, but the bounded Rust runtime currently executes `callActivity` only when `calledElement` points to another executable process in the same BPMN package. Treating a global task as an ordinary process child would move the runtime binding decision out of Rust and into downstream adapter inference.",
         vec![
-            "Model executable human work as a process-local `userTask` or `manualTask` with one bounded native BPMN IO interaction contract.".to_string(),
-            "If reusable behavior is required now, wrap the human task in an executable process and point `callActivity calledElement` at that process id.".to_string(),
-            "Do not let adapters or UI code resolve a global human task id into executable form behavior.".to_string(),
+            "Model executable work as a process-local task with one bounded native BPMN IO contract.".to_string(),
+            "If reusable behavior is required now, wrap the global task intent in an executable process and point `callActivity calledElement` at that process id.".to_string(),
+            "Do not let adapters or UI code resolve a global task id into executable host dispatch behavior.".to_string(),
         ],
         format!(
-            "Repair BPMN source '{source_id}' by changing call activity '{activity_id}' so `calledElement` targets an executable process id, or by replacing the call activity with a local human task that carries a typed native BPMN IO interaction contract."
+            "Repair BPMN source '{source_id}' by changing call activity '{activity_id}' so `calledElement` targets an executable process id, or by replacing the call activity with a local task that carries a typed native BPMN IO contract."
         ),
         json!({
             "source_id": source_id,
@@ -36,25 +36,25 @@ pub(super) fn unsupported_global_human_task_binding_issue(
             "global_task_kind": task.task_kind.as_str(),
             "element": "callActivity",
             "supported_call_activity_target": "same-package executable process",
-            "unsupported_binding": "global human task",
+            "unsupported_binding": "global task",
         }),
     )
     .with_source_diagnostic(source_diagnostic_from_span(
         source,
         call_activity.span.clone(),
-        "global human task ids are not executable callActivity targets",
-        "Point `calledElement` at an executable process, or model the human work as a local `userTask`/`manualTask` with native BPMN IO metadata.",
+        "global task ids are not executable callActivity targets",
+        "Point `calledElement` at an executable process, or model the work as a local task with native BPMN IO metadata.",
     ))
     .with_structured_repair(json!({
         "schema_version": 1,
-        "contract": "bpmn.native.global_human_task_policy.v1",
-        "strategy": "replace_global_human_task_binding_with_rust_owned_executable_surface",
+        "contract": "bpmn.native.global_task_policy.v1",
+        "strategy": "replace_global_task_binding_with_rust_owned_executable_surface",
         "actions": [{
             "op": "replace_call_activity_target",
             "call_activity_id": call_activity.activity_id.as_deref(),
             "forbidden_called_element": call_activity.called_element.as_str(),
             "allowed_targets": ["same-package executable process"],
-            "allowed_alternative": "local userTask/manualTask with native BPMN IO metadata"
+            "allowed_alternative": "local executable task with native BPMN IO metadata"
         }]
     }))
 }

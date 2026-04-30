@@ -37,7 +37,9 @@ The field-level user/manual task contract is tracked in the
   in document snapshots and the package callable registry as
   callable-operation metadata. The current runtime does not resolve service
   bindings from those catalogs; supported task dispatch remains driven by the
-  explicit task node and host-work metadata.
+  explicit task node and host-work metadata. Executable task-level
+  `operationRef` usage reports a deferred operation-binding diagnostic until a
+  callable-operation invocation policy exists.
 - Top-level BPMN `globalTask`, `globalBusinessRuleTask`, `globalManualTask`,
   `globalScriptTask`, and `globalUserTask` declarations are preserved in the
   package callable registry as callable-task metadata. Supported interface

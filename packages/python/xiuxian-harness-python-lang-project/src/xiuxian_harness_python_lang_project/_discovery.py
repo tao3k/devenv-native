@@ -73,13 +73,50 @@ def python_project_harness_scope(
         if include_tests
         else ()
     )
-    fallback_paths = () if source_paths or test_paths else (root,)
+    fallback_paths = _fallback_project_paths(
+        root,
+        source_paths=source_paths,
+        test_paths=test_paths,
+        include_tests=include_tests,
+        test_dir_names=test_dir_names,
+    )
     return PythonProjectHarnessScope(
         project_root=root,
         source_paths=source_paths,
         test_paths=test_paths,
         fallback_paths=fallback_paths,
     )
+
+
+def _fallback_project_paths(
+    root: Path,
+    *,
+    source_paths: tuple[Path, ...],
+    test_paths: tuple[Path, ...],
+    include_tests: bool,
+    test_dir_names: Sequence[str],
+) -> tuple[Path, ...]:
+    if source_paths or test_paths:
+        return ()
+    if include_tests:
+        return (root,)
+
+    excluded_test_dir_names = {
+        name for name in test_dir_names if (root / name).is_dir()
+    }
+    if not excluded_test_dir_names:
+        return (root,)
+
+    candidates = (
+        child
+        for child in root.iterdir()
+        if child.name not in excluded_test_dir_names
+        and (
+            child.suffix == ".py"
+            or (child.is_dir() and (child / "__init__.py").is_file())
+        )
+    )
+    return tuple(sorted(candidates, key=lambda path: path.as_posix()))
 
 
 def is_scannable_python_file(

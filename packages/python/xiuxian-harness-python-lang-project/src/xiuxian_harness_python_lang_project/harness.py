@@ -21,8 +21,10 @@ from ._model import (
 from ._modern_design import PythonModernDesignRulePack
 from ._modern_design_catalog import python_modern_design_rules
 from ._modularity import PythonModularityRulePack, python_modularity_rules
+from ._project_policy import PythonProjectPolicyRulePack
+from ._project_policy_catalog import python_project_policy_rules
 from ._pytest import python_project_harness_test
-from ._render import render_python_lang_harness
+from ._render import render_python_lang_harness, render_python_lang_harness_advice
 from ._runner import (
     assert_python_lang_harness_clean,
     assert_python_project_harness_clean,
@@ -45,6 +47,7 @@ __all__ = [
     "PythonModernDesignRulePack",
     "PythonModularityRulePack",
     "PythonProjectHarnessScope",
+    "PythonProjectPolicyRulePack",
     "PythonRulePackDescriptor",
     "PythonSyntaxRulePack",
     "PythonTestLayoutRulePack",
@@ -59,8 +62,10 @@ __all__ = [
     "python_project_harness_paths",
     "python_project_harness_scope",
     "python_project_harness_test",
+    "python_project_policy_rules",
     "python_test_layout_rules",
     "render_python_lang_harness",
+    "render_python_lang_harness_advice",
     "run_python_lang_harness",
     "run_python_project_harness",
 ]

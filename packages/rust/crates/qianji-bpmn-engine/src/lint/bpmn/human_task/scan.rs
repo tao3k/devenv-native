@@ -1,9 +1,9 @@
 use super::{
-    BpmnSourceFile, BytesStart, CallActivityContext, GlobalHumanTaskContext, HumanTaskContext,
+    BpmnSourceFile, BytesStart, CallActivityContext, GlobalTaskContext, HumanTaskContext,
     LintIssue, ProcessContext, Reader, attribute_value, event_span, is_assignment_role,
-    is_global_human_interaction_task, is_human_interaction_task, is_unsupported_assignment_role,
-    local_name, native_rendering_issue, unsupported_assignment_child_issue,
-    unsupported_assignment_semantics_issue, unsupported_global_human_task_binding_issue,
+    is_global_task, is_human_interaction_task, is_unsupported_assignment_role, local_name,
+    native_rendering_issue, unsupported_assignment_child_issue,
+    unsupported_assignment_semantics_issue, unsupported_global_task_binding_issue,
 };
 
 #[derive(Default)]
@@ -11,7 +11,7 @@ pub(super) struct HumanTaskStandardScanState {
     active_tasks: Vec<HumanTaskContext>,
     active_roles: Vec<String>,
     active_processes: Vec<ProcessContext>,
-    global_human_tasks: Vec<GlobalHumanTaskContext>,
+    global_tasks: Vec<GlobalTaskContext>,
     call_activities: Vec<CallActivityContext>,
 }
 
@@ -49,11 +49,11 @@ impl HumanTaskStandardScanState {
             });
         }
 
-        if is_global_human_interaction_task(&tag)
+        if is_global_task(&tag)
             && self.active_processes.is_empty()
             && let Some(task_id) = attribute_value(reader, event, "id")
         {
-            self.global_human_tasks.push(GlobalHumanTaskContext {
+            self.global_tasks.push(GlobalTaskContext {
                 task_id,
                 task_kind: tag.clone(),
             });
@@ -112,19 +112,14 @@ impl HumanTaskStandardScanState {
         }
     }
 
-    pub(super) fn global_human_task_binding_issues(
-        &self,
-        source: &BpmnSourceFile,
-    ) -> Vec<LintIssue> {
+    pub(super) fn global_task_binding_issues(&self, source: &BpmnSourceFile) -> Vec<LintIssue> {
         self.call_activities
             .iter()
             .filter_map(|call_activity| {
-                self.global_human_tasks
+                self.global_tasks
                     .iter()
                     .find(|task| task.task_id == call_activity.called_element)
-                    .map(|task| {
-                        unsupported_global_human_task_binding_issue(source, call_activity, task)
-                    })
+                    .map(|task| unsupported_global_task_binding_issue(source, call_activity, task))
             })
             .collect()
     }

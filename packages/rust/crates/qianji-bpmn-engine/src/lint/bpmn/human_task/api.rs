@@ -18,7 +18,7 @@ pub(in crate::lint::bpmn) fn human_task_standard_issues(source: &BpmnSourceFile)
             }
             Ok(Event::End(event)) => state.handle_end(&event),
             Ok(Event::Eof) => {
-                issues.extend(state.global_human_task_binding_issues(source));
+                issues.extend(state.global_task_binding_issues(source));
                 return issues;
             }
             Err(_) => return issues,
@@ -40,7 +40,7 @@ pub(in crate::lint::bpmn) fn issue_from_bpmn_human_task_standard_error(
         return human_task_standard_issues(source)
             .into_iter()
             .find(|issue| {
-                issue.code == "bpmn.unsupported_global_human_task_binding"
+                issue.code == "bpmn.unsupported_global_task_binding"
                     && issue.evidence["process_id"].as_str() == Some(process_id.as_str())
                     && issue.evidence["call_activity_id"].as_str() == Some(node_id.as_str())
                     && issue.evidence["called_element"].as_str() == Some(called_process_id.as_str())

@@ -42,7 +42,10 @@ Within that bounded slice, the runtime guarantees:
 
 These gateway shapes remain outside the bounded surface:
 
-- `complexGateway`
+- `complexGateway`; lint reports `bpmn.unsupported_complex_gateway` and asks
+  authors to remodel activation, fan-in, or fan-out intent through bounded
+  `exclusiveGateway`, structured `inclusiveGateway`, `parallelGateway`, or
+  exclusive `eventBasedGateway` shapes.
 - unstructured inclusive joins
 - parallel event-based gateway instantiation semantics
 - broader FEEL or script-backed gateway conditions

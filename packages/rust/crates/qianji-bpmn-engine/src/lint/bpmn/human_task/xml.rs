@@ -37,8 +37,15 @@ pub(super) fn event_span(reader: &Reader<&[u8]>, event: &BytesStart<'_>) -> Opti
     Some(start..event_end)
 }
 
-pub(super) fn is_global_human_interaction_task(tag: &str) -> bool {
-    matches!(tag, "globalUserTask" | "globalManualTask")
+pub(super) fn is_global_task(tag: &str) -> bool {
+    matches!(
+        tag,
+        "globalTask"
+            | "globalBusinessRuleTask"
+            | "globalManualTask"
+            | "globalScriptTask"
+            | "globalUserTask"
+    )
 }
 
 pub(super) fn is_human_interaction_task(tag: &str) -> bool {

@@ -14,6 +14,7 @@ def render_python_lang_harness(
     report: PythonHarnessReport,
     *,
     severities: frozenset[PythonDiagnosticSeverity] | None = None,
+    include_advice: bool = True,
 ) -> str:
     """Render a compact diagnostic report for humans and repair workflows."""
 
@@ -24,7 +25,25 @@ def render_python_lang_harness(
 
     for finding in blocking_findings:
         rendered += "\n" + _render_finding(finding)
+    if include_advice:
+        advice_findings = _deduplicate_advice_findings(
+            report.advisory_findings(),
+            blocking_findings=blocking_findings,
+        )
+        if advice_findings:
+            rendered += f"\n[advice]\nIssues: {len(advice_findings)}\n"
+            for finding in advice_findings:
+                rendered += "\n" + _render_finding(finding)
     return rendered
+
+
+def render_python_lang_harness_advice(report: PythonHarnessReport) -> str:
+    """Render non-blocking advisory findings for agent-guided repair."""
+
+    return render_python_lang_harness(
+        report,
+        severities=frozenset({PythonDiagnosticSeverity.INFO}),
+    )
 
 
 def _render_header(
@@ -66,3 +85,25 @@ def _render_findings_status(findings: tuple[PythonHarnessFinding, ...]) -> str:
     ):
         return "warning"
     return "info"
+
+
+def _deduplicate_advice_findings(
+    advice_findings: tuple[PythonHarnessFinding, ...],
+    *,
+    blocking_findings: tuple[PythonHarnessFinding, ...],
+) -> tuple[PythonHarnessFinding, ...]:
+    blocking_keys = {_finding_key(finding) for finding in blocking_findings}
+    return tuple(
+        finding
+        for finding in advice_findings
+        if _finding_key(finding) not in blocking_keys
+    )
+
+
+def _finding_key(finding: PythonHarnessFinding) -> tuple[str, str | None, int, int]:
+    return (
+        finding.rule_id,
+        finding.location.path,
+        finding.location.line,
+        finding.location.column,
+    )

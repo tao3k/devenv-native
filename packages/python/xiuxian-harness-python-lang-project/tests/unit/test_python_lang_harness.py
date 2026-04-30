@@ -119,6 +119,28 @@ def test_render_python_lang_harness_uses_compact_source_diagnostic(
     assert "Evidence:" not in output
 
 
+def test_render_python_lang_harness_attaches_agent_advice_by_default(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "module.py"
+    source.write_text("def run(value):\n    print(value)\n", encoding="utf-8")
+    report = run_python_lang_harness([source])
+
+    default_output = render_python_lang_harness(report)
+    quiet_output = render_python_lang_harness(report, include_advice=False)
+
+    assert "[PY-MOD-R002] Warning: Library module uses bare print" in default_output
+    assert "[advice]\nIssues: 2" in default_output
+    assert (
+        "[PY-AGENT-R001] Info: Library module lacks a module intent docstring"
+        in default_output
+    )
+    assert (
+        "[PY-AGENT-R002] Info: Public callable lacks type annotations" in default_output
+    )
+    assert "PY-AGENT" not in quiet_output
+
+
 def test_assert_python_lang_harness_clean_blocks_for_pytest(tmp_path: Path) -> None:
     bad = tmp_path / "bad.py"
     bad.write_text("def broken(:\n    pass\n", encoding="utf-8")
@@ -132,6 +154,43 @@ def test_assert_python_lang_harness_clean_blocks_for_pytest(tmp_path: Path) -> N
 
     assert "[lint:error]" in message
     assert "python.syntax.invalid" in message
+
+
+def test_assert_python_lang_harness_clean_includes_agent_advice_by_default(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "module.py"
+    source.write_text("def run(value):\n    print(value)\n", encoding="utf-8")
+
+    try:
+        assert_python_lang_harness_clean([source])
+    except AssertionError as error:
+        message = str(error)
+    else:
+        raise AssertionError("harness should block warning findings")
+
+    assert "[advice]" in message
+    assert (
+        "[PY-AGENT-R001] Info: Library module lacks a module intent docstring"
+        in message
+    )
+
+
+def test_assert_python_lang_harness_clean_can_disable_agent_advice(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "module.py"
+    source.write_text("def run(value):\n    print(value)\n", encoding="utf-8")
+
+    try:
+        assert_python_lang_harness_clean([source], include_advice=False)
+    except AssertionError as error:
+        message = str(error)
+    else:
+        raise AssertionError("harness should block warning findings")
+
+    assert "[PY-MOD-R002] Warning: Library module uses bare print" in message
+    assert "[advice]" not in message
 
 
 def test_assert_python_lang_harness_clean_blocks_warning_findings(
@@ -204,6 +263,7 @@ def test_default_python_harness_config_uses_default_rule_packs() -> None:
     }
     assert [rule_pack.pack_id for rule_pack in config.rule_packs or ()] == [
         "python.syntax",
+        "python.project_policy",
         "python.modern_design",
         "python.agent_policy",
         "python.modularity",

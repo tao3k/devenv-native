@@ -2,10 +2,8 @@
 
 use crate::bpmn_model_api::{
     BpmnAssociationSnapshot, BpmnChoreographyActivitySnapshot, BpmnCollaborationSnapshot,
-    BpmnConversationNodeSnapshot, BpmnDataAssociationExpressionSnapshot,
-    BpmnDataAssociationSnapshot, BpmnDataStateSnapshot, BpmnDocumentSnapshot,
-    BpmnFlowElementMetadataSnapshot, BpmnGlobalTaskSnapshot, BpmnGroupSnapshot,
-    BpmnInputSetSnapshot, BpmnIoBindingSnapshot, BpmnOutputSetSnapshot, BpmnParticipantSnapshot,
+    BpmnConversationNodeSnapshot, BpmnDocumentSnapshot, BpmnFlowElementMetadataSnapshot,
+    BpmnGlobalTaskSnapshot, BpmnGroupSnapshot, BpmnIoBindingSnapshot, BpmnParticipantSnapshot,
     BpmnPartnerEntitySnapshot, BpmnPartnerRoleSnapshot, BpmnProcessSnapshot,
     BpmnResourceRoleSnapshot, BpmnTextAnnotationSnapshot,
 };
@@ -33,12 +31,11 @@ use collaboration::{
     partner_role_evidence, routing_boundary_evidence,
 };
 use data::data_snapshot_summary;
-use issue::issue_for_tag;
+use issue::{flow_element_metadata_issue, issue_for_tag, resource_role_metadata_issue};
 use metadata::{flow_element_metadata_summary, process_callable_summary, resource_role_summary};
 use model::{
     CollaborationCounts, FlowElementMetadataCounts, ProcessCallableCounts, ResourceRoleCounts,
 };
-use summary::{document_surface_evidence, root_snapshot_summary};
 use xml::local_name;
 
 pub(super) use api::deferred_document_surface_issue;

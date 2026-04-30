@@ -43,11 +43,20 @@ The current package owns bounded support for:
   `dataInputAssociation`, and `dataOutputAssociation` mappings
 - bounded process-level data-object copy-in/copy-out through standard task
   data associations
+- explicit data-store binding diagnostics that keep `dataStoreReference`
+  persistence out of executable task IO until a storage policy exists
 - a Rust-owned callable registry for process/global-task metadata, callable
   IO metadata, and existing same-package process-target callActivity bindings
+- explicit global-task callActivity diagnostics that keep top-level
+  global-task definitions metadata-only until a bounded execution policy exists
+- explicit operation-binding diagnostics that keep task-level `operationRef`
+  metadata from implying interface-operation invocation
 - a Rust-owned collaboration host envelope for collaboration shells,
   participants, message-flow intent, correlation properties, correlation
   keys, and process correlation subscriptions
+- a native BPMN compatibility proof that representative standard XML with BPMN
+  DI and task IO parses, lints, and runs without custom XML namespaces or
+  custom moddle descriptors
 - non-executable BPMN document snapshots for collaboration, partner,
   participant, choreography, artifact, lane, data-store, import,
   extension, relationship, BPMN DI, conversation, global task, process
@@ -58,10 +67,12 @@ The current package still defers:
 
 - collaboration and lane semantics
 - full BPMN data-store execution and broader IO execution coverage
+- complex-gateway activation and unstructured synchronization semantics
 - unbounded event families and unsupported event-subprocess shapes
 - broader FEEL or script-backed flow semantics
 
-Deferred collaboration, choreography, artifact, lane, data-store,
+Deferred collaboration, choreography, artifact, lane, data-store, complex
+gateway,
 import, extension, relationship, BPMN DI, global task, process callable,
 callable IO, IO-set, data-state, data-association expression, resource-role,
 flow-element, category, and unsupported IO surfaces are reported by the linter
@@ -73,8 +84,9 @@ partner/entity/role counts, participant interface/endpoint/multiplicity
 metadata, choreography activity counts, artifact association/group and
 text-annotation counts, lane flow-node refs, data-object and data-association
 references, direct `dataState` metadata on standard BPMN data owners,
-IO-set reference metadata, data-association `transformation` and `assignment`
-payloads, process support/property/correlation-subscription metadata,
+data-store-reference binding evidence, IO-set reference metadata,
+data-association `transformation` and `assignment` payloads,
+process support/property/correlation-subscription metadata,
 process/global-task resource-role metadata, direct callable IO binding
 metadata, global-task IO specification metadata, direct flow-element
 auditing/monitoring/category metadata, or diagram element counts.

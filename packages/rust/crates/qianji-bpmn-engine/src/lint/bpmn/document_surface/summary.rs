@@ -6,7 +6,11 @@ use super::{
     resource_role_summary, routing_boundary_evidence, snapshot_bpmn_source,
 };
 
-pub(super) fn document_surface_evidence(source: &BpmnSourceFile, tag: &str, family: &str) -> Value {
+pub(in crate::lint::bpmn::document_surface) fn document_surface_evidence(
+    source: &BpmnSourceFile,
+    tag: &str,
+    family: &str,
+) -> Value {
     let Ok(snapshot) = snapshot_bpmn_source(source) else {
         return json!({
             "source_id": source.source_id,
@@ -30,6 +34,8 @@ pub(super) fn snapshot_family_summary(snapshot: &BpmnDocumentSnapshot, family: &
         "collaboration" => collaboration_snapshot_summary(snapshot),
         "data" => data_snapshot_summary(snapshot),
         "diagram" => diagram_snapshot_summary(snapshot),
+        "flow_element_metadata" => flow_element_metadata_snapshot_summary(snapshot),
+        "resource_role" => resource_role_snapshot_summary(snapshot),
         _ => json!({ "root": root_snapshot_summary(snapshot) }),
     }
 }
@@ -86,6 +92,20 @@ pub(super) fn diagram_snapshot_summary(snapshot: &BpmnDocumentSnapshot) -> Value
         "diagram_count": snapshot.root.diagram_count,
         "diagrams_truncated": snapshot.root.diagrams.len() > SNAPSHOT_EVIDENCE_LIMIT,
         "diagrams": diagrams,
+    })
+}
+
+pub(super) fn resource_role_snapshot_summary(snapshot: &BpmnDocumentSnapshot) -> Value {
+    json!({
+        "root": root_snapshot_summary(snapshot),
+        "resource_roles": resource_role_summary(snapshot),
+    })
+}
+
+pub(super) fn flow_element_metadata_snapshot_summary(snapshot: &BpmnDocumentSnapshot) -> Value {
+    json!({
+        "root": root_snapshot_summary(snapshot),
+        "flow_element_metadata": flow_element_metadata_summary(snapshot),
     })
 }
 

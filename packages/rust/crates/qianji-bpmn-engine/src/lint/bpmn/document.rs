@@ -89,6 +89,10 @@ fn missing_attribute_issue(source_id: &str, element: &str, attribute: &str) -> L
 }
 
 fn unsupported_element_issue(source_id: &str, process_id: &str, element: &str) -> LintIssue {
+    if element == "complexGateway" {
+        return unsupported_complex_gateway_issue(source_id, process_id);
+    }
+
     LintIssue::new(
         "bpmn.unsupported_element",
         "BPMN element is outside the supported subset",
@@ -109,6 +113,60 @@ fn unsupported_element_issue(source_id: &str, process_id: &str, element: &str) -
             "element": element,
         }),
     )
+}
+
+fn unsupported_complex_gateway_issue(source_id: &str, process_id: &str) -> LintIssue {
+    LintIssue::new(
+        "bpmn.unsupported_complex_gateway",
+        "Complex gateway execution is deferred",
+        format!(
+            "Process '{process_id}' in source '{source_id}' uses unsupported element '<complexGateway>'."
+        ),
+        "BPMN complex gateways can combine custom activation, fan-in, and fan-out rules. The bounded engine does not execute those semantics yet, so complex gateways must be remodeled into one supported gateway family before runtime validation.",
+        vec![
+            "Use `exclusiveGateway` when exactly one conditional branch should win.".to_string(),
+            "Use the bounded `inclusiveGateway` subset when one or more conditionally selected branches must rejoin through the supported structured join shape.".to_string(),
+            "Use `parallelGateway` when every branch should run and then synchronize deterministically.".to_string(),
+            "Use `eventBasedGateway` when the route is an exclusive race over supported message, signal, timer, or conditional waits.".to_string(),
+        ],
+        format!(
+            "Repair BPMN source '{source_id}' by replacing `<complexGateway>` in process '{process_id}' with a supported bounded gateway structure: `exclusiveGateway` for one winning branch, structured `inclusiveGateway` for one-or-more branches with a supported join, `parallelGateway` for deterministic all-branch fan-out/fan-in, or `eventBasedGateway` for an exclusive race over supported waits. Preserve the branch intent, but do not rely on complex gateway activation conditions or unstructured synchronization."
+        ),
+        json!({
+            "source_id": source_id,
+            "process_id": process_id,
+            "element": "complexGateway",
+            "deferred_semantics": [
+                "activation_condition",
+                "custom_fan_in",
+                "custom_fan_out",
+                "unstructured_synchronization"
+            ],
+            "recommended_rewrites": [
+                "exclusiveGateway",
+                "inclusiveGateway",
+                "parallelGateway",
+                "eventBasedGateway"
+            ],
+        }),
+    )
+    .with_structured_repair(json!({
+        "schema_version": 1,
+        "contract": "bpmn.native.gateway.complex_deferred.v1",
+        "strategy": "replace_complex_gateway_with_bounded_gateway",
+        "actions": [{
+            "op": "replace_element",
+            "from": "complexGateway",
+            "to_options": [
+                "exclusiveGateway",
+                "inclusiveGateway",
+                "parallelGateway",
+                "eventBasedGateway"
+            ],
+            "preserve": "branch intent and BPMN ids where possible",
+            "forbid": "complex gateway activation conditions or unstructured synchronization"
+        }]
+    }))
 }
 
 fn missing_process_definitions_issue(source_id: &str) -> LintIssue {

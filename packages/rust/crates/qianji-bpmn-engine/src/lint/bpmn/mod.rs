@@ -16,6 +16,7 @@ mod loop_risk;
 mod reference;
 mod subprocess;
 mod task;
+mod task_binding;
 mod topology;
 mod transaction;
 mod unexpected;

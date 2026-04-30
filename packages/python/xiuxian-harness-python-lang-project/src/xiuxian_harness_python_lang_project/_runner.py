@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 from python_lang_parser import PythonDiagnosticSeverity, parse_python_file
 
 from ._agent_policy import PythonAgentPolicyRulePack
+from ._agent_policy_catalog import PY_AGENT_R002
 from ._discovery import discover_python_files, python_project_harness_scope
 from ._model import (
     PythonHarnessConfig,
@@ -19,6 +20,8 @@ from ._model import (
 )
 from ._modern_design import PythonModernDesignRulePack
 from ._modularity import PythonModularityRulePack
+from ._project_policy import PythonProjectPolicyRulePack
+from ._project_policy_catalog import PY_PROJ_R004
 from ._syntax import PythonSyntaxRulePack
 from ._test_layout import PythonTestLayoutRulePack
 
@@ -33,6 +36,7 @@ def default_python_lang_rule_packs() -> tuple[PythonLangRulePack, ...]:
 
     return (
         PythonSyntaxRulePack(),
+        PythonProjectPolicyRulePack(),
         PythonModernDesignRulePack(),
         PythonAgentPolicyRulePack(),
         PythonModularityRulePack(),
@@ -78,7 +82,7 @@ def run_python_project_harness(
     return replace(
         report,
         project_scope=scope,
-        findings=(*report.findings, *project_findings),
+        findings=_compact_project_findings(report.findings, project_findings),
     )
 
 
@@ -91,6 +95,7 @@ def assert_python_project_harness_clean(
     include_tests: bool = True,
     source_dir_names: Sequence[str] = ("src",),
     test_dir_names: Sequence[str] = ("tests",),
+    include_advice: bool = True,
 ) -> PythonHarnessReport:
     """Run the project harness and raise when configured-blocking findings exist."""
 
@@ -107,7 +112,8 @@ def assert_python_project_harness_clean(
             severities
             if severities is not None
             else selected_config.blocking_severities
-        )
+        ),
+        include_advice=include_advice,
     )
     return report
 
@@ -149,6 +155,7 @@ def assert_python_lang_harness_clean(
     config: PythonHarnessConfig | None = None,
     rule_packs: Sequence[PythonLangRulePack] | None = None,
     severities: frozenset[PythonDiagnosticSeverity] | None = None,
+    include_advice: bool = True,
 ) -> PythonHarnessReport:
     """Run the harness and raise when configured-blocking findings are present."""
 
@@ -159,7 +166,8 @@ def assert_python_lang_harness_clean(
             severities
             if severities is not None
             else selected_config.blocking_severities
-        )
+        ),
+        include_advice=include_advice,
     )
     return report
 
@@ -203,3 +211,33 @@ def _evaluate_project_rule_packs(
             continue
         findings.extend(evaluator(scope.project_root))
     return tuple(findings)
+
+
+def _compact_project_findings(
+    module_findings: Sequence[PythonHarnessFinding],
+    project_findings: Sequence[PythonHarnessFinding],
+) -> tuple[PythonHarnessFinding, ...]:
+    typed_package_annotation_locations = {
+        _finding_location_key(finding)
+        for finding in project_findings
+        if finding.rule_id == PY_PROJ_R004
+    }
+    compact_module_findings = tuple(
+        finding
+        for finding in module_findings
+        if not (
+            finding.rule_id == PY_AGENT_R002
+            and _finding_location_key(finding) in typed_package_annotation_locations
+        )
+    )
+    return (*compact_module_findings, *project_findings)
+
+
+def _finding_location_key(
+    finding: PythonHarnessFinding,
+) -> tuple[str | None, int, int]:
+    return (
+        finding.location.path,
+        finding.location.line,
+        finding.location.column,
+    )

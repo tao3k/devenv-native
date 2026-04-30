@@ -39,7 +39,7 @@ registry, so new milestones must update both surfaces together.
 | Exclusive gateway         | bounded executable | Default flow plus simple boolean-path and numeric condition expressions.                                                                                 |
 | Inclusive gateway         | bounded executable | Structured split and one matching linear join fragment.                                                                                                  |
 | Event-based gateway       | bounded executable | Exclusive competition over message, signal, timer, or conditional catches.                                                                               |
-| Complex gateway           | lint-deferred      | No executable semantics yet.                                                                                                                             |
+| Complex gateway           | lint-deferred      | Activation/fan-in/fan-out semantics remain deferred; unsupported usage has a specific repair diagnostic.                                                 |
 | Intermediate catch events | bounded executable | Message, signal, timer, and bounded conditional waits.                                                                                                   |
 | Boundary events           | bounded executable | Bounded task owners plus interrupting subprocess-like external boundaries.                                                                               |
 | Error and cancel events   | bounded executable | Bounded subprocess, call-activity, transaction, and top-level error paths.                                                                               |
@@ -50,12 +50,12 @@ registry, so new milestones must update both surfaces together.
 | Extension declarations    | metadata-only      | Top-level extension declarations are preserved; extension behavior remains deferred.                                                                     |
 | Relationship declarations | metadata-only      | Top-level relationships are preserved; endpoint resolution and graph semantics defer.                                                                    |
 | Event definition catalogs | metadata-only      | Message/error/escalation/signal catalogs are preserved, not schema-validated.                                                                            |
-| Interfaces/operations     | metadata-only      | Callable-operation catalogs are preserved; host dispatch binding remains explicit.                                                                       |
-| Global task catalogs      | metadata-only      | Top-level global task definitions are preserved in the Rust-owned callable registry; global-task execution remains deferred.                             |
+| Interfaces/operations     | metadata-only      | Callable-operation catalogs are preserved; executable task `operationRef` binding has explicit deferred diagnostics.                                     |
+| Global task catalogs      | metadata-only      | Top-level global task definitions are preserved in the Rust-owned callable registry; `callActivity` bindings to them get explicit deferred diagnostics.  |
 | Process callable metadata | metadata-only      | Process callable attributes, support refs, properties, and correlation subscriptions are preserved in the callable registry.                             |
 | Callable IO metadata      | metadata-only      | Process/global-task `ioBinding` and global-task `ioSpecification` declarations are preserved in the callable registry.                                   |
 | Resource catalogs         | metadata-only      | Top-level resources and parameters are preserved; assignment binding remains deferred.                                                                   |
-| Resource-role metadata    | metadata-only      | Direct process and global-task resource-role declarations are preserved; generic assignment execution defers.                                            |
+| Resource-role metadata    | metadata-only      | Direct process and global-task resource-role declarations are preserved with explicit deferred assignment diagnostics.                                   |
 | Flow-element metadata     | metadata-only      | Direct process flow-element auditing, monitoring, and category refs are preserved passively.                                                             |
 | Category catalogs         | metadata-only      | Top-level categories and values are preserved; classification remains passive.                                                                           |
 | Terminate events          | bounded executable | `terminateEventDefinition` end events terminate the current runtime scope.                                                                               |
@@ -72,7 +72,7 @@ registry, so new milestones must update both surfaces together.
 | Lanes                     | metadata-only      | Preserved for passive routing/display; no scheduling or authorization.                                                                                   |
 | Item definitions          | metadata-only      | Top-level item catalogs are preserved; schema validation remains deferred.                                                                               |
 | Data objects              | bounded executable | Process-level data object/reference ids can be used as bounded task data-association variable bindings.                                                  |
-| Data stores               | lint-deferred      | Data store/reference metadata and direct `dataState` are preserved; persistence execution remains deferred.                                              |
+| Data stores               | lint-deferred      | Data store/reference metadata and direct `dataState` are preserved; data-store-reference bindings have explicit deferred diagnostics.                    |
 | IO specification          | bounded executable | Human-task form IO and bounded host-task Data/IO metadata are executable; IO sets are preserved passively.                                               |
 | Data associations         | bounded executable | Bounded host-task source/target mapping is executable; transformation and assignment payloads are preserved.                                             |
 | BPMN DI                   | metadata-only      | Diagram, plane, shape, edge, bounds, waypoint, label, and font metadata is preserved.                                                                    |
@@ -95,7 +95,9 @@ same standard BPMN data object/reference surface, and completion writes back
 through that canonical variable binding.
 
 `dataStore` and `dataStoreReference` remain lint-deferred because executable
-persistence still needs an explicit storage and transaction policy.
+persistence still needs an explicit storage and transaction policy. Direct
+standard data associations that bind through `dataStoreReference` ids are
+reported as data-store binding diagnostics, not as executable Data/IO support.
 
 ## Completed M4.2 Event Subprocess Milestone
 
@@ -286,3 +288,95 @@ conversation routing, choreography execution, BPMN correlation matching,
 correlation subscription matching, correlation-key evaluation, or data-path
 evaluation. Existing wait metadata may expose a host `deduplication_key`, but
 that value is not a BPMN correlation key.
+
+## Completed M4.5 Compatibility Suite Milestone
+
+The compatibility-suite slice adds representative native BPMN interchange
+fixtures and tests. The proof combines standard BPMN process XML, task-local
+`ioSpecification`, `dataInputAssociation`, `dataOutputAssociation`, and BPMN DI
+layout metadata. It verifies that parse, lint evidence, host-work request
+materialization, strict output mapping, and runtime completion work without a
+custom XML namespace or custom moddle descriptor.
+
+BPMN DI remains metadata-only. The compatibility proof may report the standard
+DI metadata lint issue while executable process semantics still parse and run
+through the bounded runtime contract.
+
+## Completed M4.6 Global Task Binding Diagnostics Milestone
+
+The global-task binding diagnostics slice keeps top-level global task
+definitions metadata-only, but makes invalid executable bindings precise. A
+`callActivity` whose `calledElement` points at a same-package `globalTask`,
+`globalBusinessRuleTask`, `globalScriptTask`, `globalUserTask`, or
+`globalManualTask` must report a specific deferred-binding diagnostic with
+source evidence and repair guidance.
+
+Runtime execution remains limited to `callActivity` targets that resolve to
+another executable process in the same BPMN package. Global-task execution,
+interface-operation invocation, and host dispatch inferred from top-level
+global-task metadata remain deferred.
+
+## Completed M4.7 Data Store Binding Diagnostics Milestone
+
+The data-store binding diagnostics slice keeps `dataStore` and
+`dataStoreReference` persistence lint-deferred, but makes executable binding
+misuse precise. A standard `dataInputAssociation/sourceRef` or
+`dataOutputAssociation/targetRef` that points at a process-level
+`dataStoreReference` reports `bpmn.unsupported_data_store_binding` with
+snapshot evidence for the process id, association kind, association id, usage
+site, data-store-reference id, and referenced data-store id.
+
+Runtime semantics remain unchanged. Persistent data-store reads and writes
+require a future storage and transaction policy; current executable BPMN should
+use workflow variables, bounded `dataObjectReference` mappings, or explicit
+host-dispatched task payloads instead.
+
+## Completed M4.8 Complex Gateway Diagnostics Milestone
+
+The complex-gateway diagnostics slice keeps `complexGateway` lint-deferred, but
+replaces the generic unsupported-element fallback with
+`bpmn.unsupported_complex_gateway`. The diagnostic states that activation,
+fan-in, and fan-out semantics remain deferred, and guides BPMN authors toward
+bounded `exclusiveGateway`, `inclusiveGateway`, `parallelGateway`, or
+`eventBasedGateway` rewrites.
+
+Runtime semantics remain unchanged. Complex gateway activation conditions and
+unstructured synchronization still require a future advanced-control-flow
+policy.
+
+## Completed M4.9 Operation Binding Diagnostics Milestone
+
+The operation-binding diagnostics slice keeps top-level BPMN `interface` and
+`operation` catalogs metadata-only, but makes executable task-level
+`operationRef` usage explicit. A `serviceTask`, `sendTask`, or `receiveTask`
+whose runtime behavior would otherwise appear to bind through an operation
+reference must report a deferred operation-binding diagnostic.
+
+Runtime semantics remain unchanged. Host-dispatched task execution still comes
+from the explicit task node, bounded task Data/IO, message metadata where
+supported, and host-work request metadata. Interface-operation invocation,
+endpoint binding, and external callable contract validation remain deferred.
+
+## Completed M4.10 Resource Role Diagnostics Milestone
+
+The resource-role diagnostics slice keeps direct process and global-task
+`resourceRole`, `performer`, `humanPerformer`, and `potentialOwner`
+declarations metadata-only, but makes the deferred assignment boundary explicit
+instead of reporting the surface through generic collaboration diagnostics.
+
+Runtime semantics remain unchanged. Human-task local `humanPerformer` and
+`potentialOwner` declarations continue to provide bounded routing hints, but
+generic process/global-task assignment, scheduling, authorization, delegation,
+escalation, and resource-parameter binding execution remain deferred.
+
+## Completed M4.11 Flow Element Diagnostics Milestone
+
+The flow-element diagnostics slice keeps direct BPMN `auditing`, `monitoring`,
+and `categoryValueRef` declarations on process flow elements metadata-only,
+but makes the deferred audit, monitoring, and classification boundary explicit
+instead of reporting the surface through generic collaboration diagnostics.
+
+Runtime semantics remain unchanged. Executable behavior still comes from
+supported process flow, events, tasks, gateways, and bounded data mappings;
+audit execution, monitoring telemetry, category classification, scheduling,
+authorization, and policy enforcement remain deferred.

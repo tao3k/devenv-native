@@ -7,6 +7,7 @@ from xiuxian_harness_python_lang_project import (
     PythonAgentPolicyRulePack,
     python_agent_policy_rules,
     render_python_lang_harness,
+    render_python_lang_harness_advice,
     run_python_lang_harness,
     run_python_project_harness,
 )
@@ -19,22 +20,25 @@ def test_agent_policy_reports_compact_repairable_snapshot(tmp_path: Path) -> Non
     source = tmp_path / "service.py"
     source.write_text("def build(value):\n    return value\n", encoding="utf-8")
 
-    output = render_python_lang_harness(run_python_lang_harness([source]))
+    report = run_python_lang_harness([source])
+    output = render_python_lang_harness_advice(report)
     output = output.replace(str(source), "$TMP/service.py")
 
+    assert report.is_clean
+    assert render_python_lang_harness(report).startswith("[ok]")
     assert (
         output
-        == """[lint:warning] $TMP/service.py python
+        == """[lint:info] $TMP/service.py python
 Source: $TMP/service.py
 Issues: 2
 
-[PY-AGENT-R001] Warning: Library module lacks a module intent docstring
+[PY-AGENT-R001] Info: Library module lacks a module intent docstring
    ,-[ $TMP/service.py:1:1 ]
  1 | def build(value):
    | `- add a concise module responsibility docstring
    |Required: Add a concise module docstring that names the module responsibility for agent search and repair.
 
-[PY-AGENT-R002] Warning: Public callable lacks type annotations
+[PY-AGENT-R002] Info: Public callable lacks type annotations
    ,-[ $TMP/service.py:1:1 ]
  1 | def build(value):
    | `- add parameter and return annotations to this public callable
@@ -93,6 +97,56 @@ def test_agent_policy_blocks_duplicate_public_callable_names(
     assert "namespace this public callable" in report.findings[0].label
 
 
+def test_agent_policy_blocks_duplicate_public_type_names(
+    tmp_path: Path,
+) -> None:
+    package = tmp_path / "src" / "pkg"
+    package.mkdir(parents=True)
+    (package / "alpha.py").write_text(
+        '"""Alpha namespace."""\n\n\nclass Service:\n    pass\n',
+        encoding="utf-8",
+    )
+    (package / "beta.py").write_text(
+        '"""Beta namespace."""\n\n\nclass Service:\n    pass\n',
+        encoding="utf-8",
+    )
+
+    report = run_python_project_harness(tmp_path)
+
+    assert [
+        (finding.rule_id, finding.location.path) for finding in report.findings
+    ] == [
+        ("PY-AGENT-R005", str(package / "beta.py")),
+    ]
+    assert "unambiguous type names" in report.findings[0].requirement
+    assert "namespace this public type" in report.findings[0].label
+
+
+def test_agent_policy_blocks_duplicate_public_value_names(
+    tmp_path: Path,
+) -> None:
+    package = tmp_path / "src" / "pkg"
+    package.mkdir(parents=True)
+    (package / "alpha.py").write_text(
+        '"""Alpha namespace."""\n\nDEFAULT_LIMIT = 1\n',
+        encoding="utf-8",
+    )
+    (package / "beta.py").write_text(
+        '"""Beta namespace."""\n\nDEFAULT_LIMIT = 2\n',
+        encoding="utf-8",
+    )
+
+    report = run_python_project_harness(tmp_path)
+
+    assert [
+        (finding.rule_id, finding.location.path) for finding in report.findings
+    ] == [
+        ("PY-AGENT-R006", str(package / "beta.py")),
+    ]
+    assert "configuration exports" in report.findings[0].requirement
+    assert "namespace this public value" in report.findings[0].label
+
+
 def test_agent_policy_blocks_repeated_module_namespace_segments(
     tmp_path: Path,
 ) -> None:
@@ -120,11 +174,39 @@ def test_agent_policy_deduplicates_repeated_namespace_branches(
     namespace = tmp_path / "src" / "domain" / "domain"
     namespace.mkdir(parents=True)
     (namespace / "alpha.py").write_text('"""Alpha."""\n\nVALUE = 1\n', encoding="utf-8")
-    (namespace / "beta.py").write_text('"""Beta."""\n\nVALUE = 2\n', encoding="utf-8")
+    (namespace / "beta.py").write_text(
+        '"""Beta."""\n\nOTHER_VALUE = 2\n',
+        encoding="utf-8",
+    )
 
     report = run_python_project_harness(tmp_path)
 
     assert [finding.rule_id for finding in report.findings] == ["PY-AGENT-R004"]
+
+
+def test_agent_policy_advice_can_be_promoted_to_blocking(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "service.py"
+    source.write_text("def build(value):\n    return value\n", encoding="utf-8")
+
+    report = run_python_lang_harness([source])
+
+    assert report.is_clean
+    assert [finding.rule_id for finding in report.advisory_findings()] == [
+        "PY-AGENT-R001",
+        "PY-AGENT-R002",
+    ]
+    assert [finding.rule_id for finding in report.blocking_findings()] == []
+    assert [
+        finding.rule_id
+        for finding in report.blocking_findings(
+            severities=frozenset({PythonDiagnosticSeverity.INFO})
+        )
+    ] == [
+        "PY-AGENT-R001",
+        "PY-AGENT-R002",
+    ]
 
 
 def test_agent_policy_descriptor_and_catalog_are_stable() -> None:
@@ -142,5 +224,7 @@ def test_agent_policy_descriptor_and_catalog_are_stable() -> None:
         "PY-AGENT-R002",
         "PY-AGENT-R003",
         "PY-AGENT-R004",
+        "PY-AGENT-R005",
+        "PY-AGENT-R006",
     ]
-    assert {rule.severity for rule in rules} == {PythonDiagnosticSeverity.WARNING}
+    assert {rule.severity for rule in rules} == {PythonDiagnosticSeverity.INFO}

@@ -81,7 +81,7 @@ fn bpmn_linter_reports_call_activity_to_global_user_task_as_unsupported() {
     assert!(!report.ok);
     assert_eq!(report.issues.len(), 1);
     let issue = &report.issues[0];
-    assert_eq!(issue.code, "bpmn.unsupported_global_human_task_binding");
+    assert_eq!(issue.code, "bpmn.unsupported_global_task_binding");
     assert!(issue.summary.contains("Activity_GlobalReview"));
     assert!(issue.summary.contains("Global_Task_Review"));
     assert!(issue.why_it_failed.contains("executable process"));
@@ -115,7 +115,7 @@ fn bpmn_linter_reports_call_activity_to_global_manual_task_as_unsupported() {
     assert!(!report.ok);
     assert_eq!(report.issues.len(), 1);
     let issue = &report.issues[0];
-    assert_eq!(issue.code, "bpmn.unsupported_global_human_task_binding");
+    assert_eq!(issue.code, "bpmn.unsupported_global_task_binding");
     assert!(issue.summary.contains("Activity_GlobalAcknowledge"));
     assert!(issue.summary.contains("Global_Task_Acknowledge"));
     assert_eq!(issue.evidence["process_id"], "Process_GlobalManualTaskCall");
@@ -126,6 +126,63 @@ fn bpmn_linter_reports_call_activity_to_global_manual_task_as_unsupported() {
     assert_eq!(issue.evidence["called_element"], "Global_Task_Acknowledge");
     assert_eq!(issue.evidence["global_task_kind"], "globalManualTask");
     assert!(issue.source_diagnostic.is_some());
+}
+
+#[test]
+fn bpmn_linter_reports_call_activity_to_non_human_global_task_as_unsupported() {
+    for (task_kind, task_id, process_id, activity_id) in [
+        (
+            "globalTask",
+            "Global_Task_Generic",
+            "Process_GlobalTaskCall",
+            "Activity_GlobalGeneric",
+        ),
+        (
+            "globalBusinessRuleTask",
+            "Global_Task_Rule",
+            "Process_GlobalRuleTaskCall",
+            "Activity_GlobalRule",
+        ),
+        (
+            "globalScriptTask",
+            "Global_Task_Script",
+            "Process_GlobalScriptTaskCall",
+            "Activity_GlobalScript",
+        ),
+    ] {
+        let report = lint_bpmn_source(&BpmnSourceFile::new(
+            format!("call-activity-{task_kind}.bpmn"),
+            format!(
+                r#"<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  targetNamespace="https://qianji.dev/tests">
+  <{task_kind} id="{task_id}" name="Reusable task"/>
+  <process id="{process_id}" isExecutable="true">
+    <startEvent id="Start"/>
+    <sequenceFlow id="Flow_Start_Call" sourceRef="Start" targetRef="{activity_id}"/>
+    <callActivity id="{activity_id}" calledElement="{task_id}"/>
+    <sequenceFlow id="Flow_Call_End" sourceRef="{activity_id}" targetRef="End"/>
+    <endEvent id="End"/>
+  </process>
+</definitions>"#
+            ),
+        ));
+
+        assert_eq!(report.domain, LintDomain::Bpmn);
+        assert!(!report.ok);
+        assert_eq!(report.issues.len(), 1);
+        let issue = &report.issues[0];
+        assert_eq!(issue.code, "bpmn.unsupported_global_task_binding");
+        assert!(issue.summary.contains(activity_id));
+        assert!(issue.summary.contains(task_id));
+        assert!(issue.why_it_failed.contains("executable process"));
+        assert_eq!(issue.evidence["process_id"], process_id);
+        assert_eq!(issue.evidence["call_activity_id"], activity_id);
+        assert_eq!(issue.evidence["called_element"], task_id);
+        assert_eq!(issue.evidence["global_task_kind"], task_kind);
+        assert_eq!(issue.evidence["element"], "callActivity");
+        assert_eq!(issue.evidence["unsupported_binding"], "global task");
+        assert!(issue.source_diagnostic.is_some());
+    }
 }
 
 #[test]

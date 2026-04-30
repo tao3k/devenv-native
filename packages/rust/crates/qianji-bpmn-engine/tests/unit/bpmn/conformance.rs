@@ -117,12 +117,6 @@ fn conformance_registry_entries_have_canonical_tracking_fields() {
             "docs anchor must not point at hidden workspace paths for {}",
             entry.family
         );
-        assert!(
-            !entry.docs_anchor.to_ascii_lowercase().contains("flowable")
-                && !entry.docs_anchor.to_ascii_lowercase().contains("spiff"),
-            "docs anchor must stay on canonical package docs for {}",
-            entry.family
-        );
     }
 }
 
@@ -136,16 +130,23 @@ fn conformance_registry_tracks_m4_boundary_families() {
     );
     assert_boundary("Data objects", BpmnConformanceStatus::BoundedExecutable);
     assert_boundary("Data stores", BpmnConformanceStatus::LintDeferred);
+    assert_boundary("Interfaces/operations", BpmnConformanceStatus::MetadataOnly);
     assert_boundary("Global task catalogs", BpmnConformanceStatus::MetadataOnly);
     assert_boundary("Callable IO metadata", BpmnConformanceStatus::MetadataOnly);
+    assert_boundary(
+        "Resource-role metadata",
+        BpmnConformanceStatus::MetadataOnly,
+    );
+    assert_boundary("Flow-element metadata", BpmnConformanceStatus::MetadataOnly);
     assert_boundary("BPMN DI", BpmnConformanceStatus::MetadataOnly);
 }
 
 #[test]
 fn conformance_boundary_evidence_is_covered_by_lint_or_snapshot() {
     let complex_gateway = lint_fixture("invalid-unsupported-gateway.bpmn");
-    let issue = single_issue(&complex_gateway, "bpmn.unsupported_element");
-    assert!(issue.llm_fix_prompt.contains("complexGateway"));
+    let issue = single_issue(&complex_gateway, "bpmn.unsupported_complex_gateway");
+    assert!(issue.llm_fix_prompt.contains("exclusiveGateway"));
+    assert!(issue.why_it_failed.contains("fan-in"));
 
     let event_subprocess = lint_fixture("invalid-compensation-event-subprocess.bpmn");
     let issue = single_issue(
@@ -156,6 +157,22 @@ fn conformance_boundary_evidence_is_covered_by_lint_or_snapshot() {
         issue
             .why_it_failed
             .contains("compensation event subprocesses")
+    );
+
+    let operation_binding = lint_fixture("invalid-task-operation-binding.bpmn");
+    assert!(!operation_binding.ok);
+    let issue = operation_binding
+        .issues
+        .iter()
+        .find(|issue| issue.evidence["task_id"].as_str() == Some("invoke_service"))
+        .unwrap_or_else(|| panic!("operation binding evidence should include service task"));
+    assert_eq!(issue.code, "bpmn.unsupported_operation_binding");
+    assert_eq!(issue.evidence["task_id"], "invoke_service");
+    assert_eq!(issue.evidence["operation_ref"], "Operation_Invoke");
+    assert!(
+        issue
+            .why_it_failed
+            .contains("interface and operation catalogs as metadata")
     );
 
     let collaboration = lint_fixture("invalid-collaboration-participant.bpmn");
@@ -186,6 +203,29 @@ fn conformance_boundary_evidence_is_covered_by_lint_or_snapshot() {
         issue.evidence["snapshot"]["process_callable"]["global_task_io_specification_count"],
         1
     );
+
+    let resource_role = lint_fixture("metadata-resource-role.bpmn");
+    let issue = single_issue(&resource_role, "bpmn.unsupported_resource_role_metadata");
+    assert_eq!(
+        issue.evidence["snapshot"]["resource_roles"]["process_role_count"],
+        2
+    );
+    assert!(issue.why_it_failed.contains("resource-parameter binding"));
+
+    let flow_element_metadata = lint_fixture("metadata-flow-element.bpmn");
+    let issue = single_issue(
+        &flow_element_metadata,
+        "bpmn.unsupported_flow_element_metadata",
+    );
+    assert_eq!(
+        issue.evidence["snapshot"]["flow_element_metadata"]["element_count"],
+        3
+    );
+    assert_eq!(
+        issue.evidence["snapshot"]["flow_element_metadata"]["category_value_ref_count"],
+        3
+    );
+    assert!(issue.why_it_failed.contains("monitoring telemetry"));
 
     let diagram = lint_fixture("metadata-bpmn-diagram.bpmn");
     let issue = single_issue(&diagram, "bpmn.metadata_di_surface");

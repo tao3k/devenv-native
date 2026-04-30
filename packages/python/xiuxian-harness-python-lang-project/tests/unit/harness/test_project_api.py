@@ -119,6 +119,24 @@ def test_run_python_project_harness_can_exclude_tests_from_scope(
     assert report.project_scope.test_paths == ()
 
 
+def test_run_python_project_harness_does_not_fallback_into_excluded_tests(
+    tmp_path: Path,
+) -> None:
+    package = tmp_path / "pkg"
+    tests = tmp_path / "tests"
+    package.mkdir()
+    tests.mkdir()
+    (package / "__init__.py").write_text('"""Package docs."""\n', encoding="utf-8")
+    (tests / "test_bad.py").write_text("def broken(:\n    pass\n", encoding="utf-8")
+
+    report = run_python_project_harness(tmp_path, include_tests=False)
+
+    assert report.is_clean
+    assert [module.path for module in report.modules] == [str(package / "__init__.py")]
+    assert report.project_scope is not None
+    assert report.project_scope.fallback_paths == (package,)
+
+
 def test_assert_python_project_harness_clean_blocks_for_pytest(tmp_path: Path) -> None:
     src = tmp_path / "src"
     src.mkdir()

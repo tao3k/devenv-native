@@ -7,6 +7,19 @@ fn bpmn_linter_reports_unsupported_gateway_with_llm_guidance() {
     assert_eq!(report.domain, LintDomain::Bpmn);
     assert!(!report.ok);
     assert_eq!(report.issues.len(), 1);
+    let issue = &report.issues[0];
+    assert_eq!(issue.code, "bpmn.unsupported_complex_gateway");
+    assert!(issue.why_it_failed.contains("activation"));
+    assert!(issue.llm_fix_prompt.contains("exclusiveGateway"));
+    assert!(issue.llm_fix_prompt.contains("parallelGateway"));
+    assert_eq!(issue.evidence["element"], "complexGateway");
+    assert_eq!(
+        issue
+            .structured_repair
+            .as_ref()
+            .and_then(|repair| { repair.get("contract").and_then(serde_json::Value::as_str) }),
+        Some("bpmn.native.gateway.complex_deferred.v1")
+    );
     assert_lint_json_snapshot("bpmn_unsupported_gateway_lint_report", &report);
 }
 #[test]

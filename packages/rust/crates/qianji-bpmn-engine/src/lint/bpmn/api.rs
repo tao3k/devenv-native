@@ -11,6 +11,7 @@ use super::human_task::{human_task_standard_issues, issue_from_bpmn_human_task_s
 use super::identity::issue_from_bpmn_identity_error;
 use super::loop_risk::loop_risk_issues;
 use super::reference::issue_from_bpmn_reference_error;
+use super::task_binding::task_operation_binding_issues;
 use super::topology::issue_from_bpmn_topology_error;
 use super::unexpected::unexpected_bpmn_issue;
 use crate::bpmn_parse_api::{BpmnParseOptions, BpmnSourceFile, parse_bpmn_package};
@@ -51,6 +52,14 @@ pub(crate) fn lint_bpmn_source_impl(source: &BpmnSourceFile) -> LintReport {
                     LintDomain::Bpmn,
                     &source.source_id,
                     human_task_issues,
+                );
+            }
+            let operation_binding_issues = task_operation_binding_issues(source);
+            if !operation_binding_issues.is_empty() {
+                return LintReport::blocking(
+                    LintDomain::Bpmn,
+                    &source.source_id,
+                    operation_binding_issues,
                 );
             }
             let data_contract_issues = undeclared_gateway_condition_output_issues(source);

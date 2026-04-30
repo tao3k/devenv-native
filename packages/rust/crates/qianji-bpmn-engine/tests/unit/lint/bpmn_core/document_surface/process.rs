@@ -77,7 +77,7 @@ fn bpmn_linter_reports_resource_role_metadata_surface_with_llm_guidance() {
     assert!(!report.ok);
     assert_eq!(report.issues.len(), 1);
     let issue = &report.issues[0];
-    assert_eq!(issue.code, "bpmn.unsupported_collaboration_surface");
+    assert_eq!(issue.code, "bpmn.unsupported_resource_role_metadata");
     assert_eq!(issue.evidence["snapshot_available"], true);
     assert_eq!(
         issue.evidence["snapshot"]["resource_roles"]["process_role_count"],
@@ -107,5 +107,17 @@ fn bpmn_linter_reports_resource_role_metadata_surface_with_llm_guidance() {
         issue.evidence["snapshot"]["resource_roles"]["global_tasks"][0]["resource_roles"][0]["parameter_bindings"]
             [0]["expression"],
         "emea"
+    );
+    assert!(
+        issue
+            .why_it_failed
+            .contains("generic assignment, scheduling, authorization")
+    );
+    assert_eq!(
+        issue
+            .structured_repair
+            .as_ref()
+            .and_then(|repair| repair["contract"].as_str()),
+        Some("bpmn.native.resource_role.metadata_only.v1")
     );
 }

@@ -24,6 +24,8 @@ def python_project_harness_test(
     include_tests: bool = True,
     source_dir_names: Sequence[str] = ("src",),
     test_dir_names: Sequence[str] = ("tests",),
+    test_name: str = "test_python_project_harness_policy",
+    include_advice: bool = True,
 ) -> Callable[[], None]:
     """Return a pytest-collectable test function for one Python project."""
 
@@ -38,12 +40,11 @@ def python_project_harness_test(
             include_tests=include_tests,
             source_dir_names=source_dir_names,
             test_dir_names=test_dir_names,
+            include_advice=include_advice,
         )
 
-    test_python_project_harness_policy.__name__ = "test_python_project_harness_policy"
-    test_python_project_harness_policy.__qualname__ = (
-        "test_python_project_harness_policy"
-    )
+    test_python_project_harness_policy.__name__ = test_name
+    test_python_project_harness_policy.__qualname__ = test_name
     test_python_project_harness_policy.__doc__ = (
         "Run the Xiuxian Python project harness over src/** and tests/**."
     )

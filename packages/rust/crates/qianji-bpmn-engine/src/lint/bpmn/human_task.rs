@@ -17,14 +17,13 @@ mod xml;
 
 use issue::{
     native_rendering_issue, unsupported_assignment_child_issue,
-    unsupported_assignment_semantics_issue, unsupported_global_human_task_binding_issue,
+    unsupported_assignment_semantics_issue, unsupported_global_task_binding_issue,
 };
-use model::{CallActivityContext, GlobalHumanTaskContext, HumanTaskContext, ProcessContext};
+use model::{CallActivityContext, GlobalTaskContext, HumanTaskContext, ProcessContext};
 use scan::HumanTaskStandardScanState;
 use xml::{
-    attribute_value, event_span, is_assignment_role, is_global_human_interaction_task,
-    is_human_interaction_task, is_unsupported_assignment_role, local_name, source_diagnostic,
-    source_diagnostic_from_span,
+    attribute_value, event_span, is_assignment_role, is_global_task, is_human_interaction_task,
+    is_unsupported_assignment_role, local_name, source_diagnostic, source_diagnostic_from_span,
 };
 
 pub(super) use api::{human_task_standard_issues, issue_from_bpmn_human_task_standard_error};
