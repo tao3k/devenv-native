@@ -18,17 +18,18 @@ def test_ci_bootstraps_wendaosearch_with_julia_pkg() -> None:
         'Pkg.add(Pkg.PackageSpec(url="https://github.com/tao3k/WendaoSearch.jl.git"))'
         not in workflow
     )
+    assert "WENDAOSEARCH_REV" not in workflow
     assert (
-        "git clone --depth 1 https://github.com/tao3k/WendaoSearch.jl.git"
+        "git clone --depth 1 --branch main https://github.com/tao3k/WendaoSearch.jl.git"
         in workflow
     )
+    assert 'git -C "${WENDAOSEARCH_PACKAGE_DIR}" rev-parse HEAD' in workflow
+    assert "WendaoSearch main Project.toml must declare HiGHS" in workflow
     assert 'WENDAOSEARCH_JULIA_PROJECT="${WENDAOSEARCH_PACKAGE_DIR}"' in workflow
     assert "WendaoCodeParser" not in workflow
     assert "WendaoArrow" not in workflow
     assert "Pkg.instantiate()" in workflow
     assert 'Pkg.update("Absyn")' in workflow
-    assert 'Pkg.PackageSpec(name="HiGHS"' in workflow
-    assert "preserve=Pkg.PRESERVE_ALL" in workflow
     assert "WENDAOSEARCH_PACKAGE_DIR" in workflow
     assert (
         "WENDAOSEARCH_CONFIG=${WENDAOSEARCH_PACKAGE_DIR}/config/live/parser_summary.toml"

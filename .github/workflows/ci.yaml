@@ -372,10 +372,16 @@ jobs:
           export WENDAOSEARCH_PACKAGE_DIR="${RUNNER_TEMP}/WendaoSearch.jl"
           export WENDAOSEARCH_JULIA_PROJECT="${WENDAOSEARCH_PACKAGE_DIR}"
           export WENDAOSEARCH_PACKAGE_DIR_FILE="${RUNNER_TEMP}/wendaosearch-package-dir.txt"
-          git clone --depth 1 https://github.com/tao3k/WendaoSearch.jl.git "${WENDAOSEARCH_PACKAGE_DIR}"
+          git clone --depth 1 --branch main https://github.com/tao3k/WendaoSearch.jl.git "${WENDAOSEARCH_PACKAGE_DIR}"
+          git -C "${WENDAOSEARCH_PACKAGE_DIR}" rev-parse HEAD
           julia --project="${WENDAOSEARCH_JULIA_PROJECT}" -e '
             using Pkg
+            using TOML
             Pkg.activate(ENV["WENDAOSEARCH_JULIA_PROJECT"])
+            project = TOML.parsefile(joinpath(ENV["WENDAOSEARCH_JULIA_PROJECT"], "Project.toml"))
+            deps = get(project, "deps", Dict{String,Any}())
+            haskey(deps, "HiGHS") ||
+              error("WendaoSearch main Project.toml must declare HiGHS for solver_demo runtime")
             function ensure_registry(name::String; spec=nothing)
               registries = Pkg.Registry.reachable_registries()
               any(registry -> registry.name == name, registries) && return
@@ -393,10 +399,6 @@ jobs:
             )
             Pkg.instantiate()
             Pkg.update("Absyn")
-            Pkg.add(
-              Pkg.PackageSpec(name="HiGHS", uuid="87dc4568-4c63-4d18-b0c0-bb2238e4078b");
-              preserve=Pkg.PRESERVE_ALL,
-            )
             Pkg.precompile()
             using WendaoSearch
             package_dir = dirname(dirname(pathof(WendaoSearch)))
