@@ -10,15 +10,14 @@ gateway can depend on the crate without pulling PDF accelerators into default,
 
 ## Features
 
-| Feature         | Purpose                                                                                   |
-| --------------- | ----------------------------------------------------------------------------------------- |
-| `pdf-inspector` | Enables the pinned upstream `firecrawl/pdf-inspector` audit and text-layer proof helpers. |
-| `pdf-render`    | Enables PDFium-backed page rendering and OCR shard manifest helpers.                      |
+| Feature      | Purpose                                                                      |
+| ------------ | ---------------------------------------------------------------------------- |
+| `pdf-render` | Enables `lopdf` source-page manifests plus PDFium-backed region/page renders. |
 
 ## Boundaries
 
 - `xiuxian-wendao-attachments` owns optional PDF accelerator dependencies such
-  as `pdf-inspector` and `pdfium-render`.
+  as `lopdf` and `pdfium-render`.
 - `xiuxian-wendao` owns the Studio gateway, Flight/REST routes, and production
   document extraction behavior.
 - Production extraction still falls back to Python/Docling unless a later
@@ -27,25 +26,19 @@ gateway can depend on the crate without pulling PDF accelerators into default,
 - The stable document extraction resource table remains Arrow-based. Browser
   JSON is only an edge serialization surface.
 
-## Routing Diagnostics
+## Source Page-Range Routing
 
-PDF audit helpers expose detector confidence separately from direct fast-path
-eligibility. `confidence` describes how strongly the inspector classified the
-PDF type, while `fastPathScore` and `gateFailures` explain whether Rust text
-extraction may bypass Docling. A high-confidence scanned PDF is therefore still
-blocked from the direct text fast path and routed toward OCR or Docling
-fallback.
+Full-page OCR shards use direct source-PDF page-range manifests before falling
+back to raster input. `lopdf` reads the page tree, Rust writes stable OCR shard
+v1 rows with whole-page provenance, and Python/Docling performs OCR against the
+original source PDF page range.
 
-Complex layout and OCR-required pages are routed to the hybrid shard fallback
-candidate, not to unconditional full-document fallback. The hybrid proof mode
-uses `PdfPageRenderSelection::ShardFallbackPages`: it renders only pages that
-need raster OCR, renders all pages only for scanned/image PDFs without reliable
-page hints, checks per-page markdown image placeholders when explicit OCR hints
-are absent, and escalates complex hybrid candidates to page OCR when no
-reliable region can be derived yet. Mixed PDFs without reliable page hints also
-escalate to page OCR instead of silently selecting zero shards. Full Docling
-fallback is reserved for preflight failures, encoding problems, empty
-documents, or low-confidence PDFs that have no page-level shard signal.
+`PdfPageRenderSelection::ShardFallbackPages` is intentionally high-recall in
+the current source-range path. When no narrower safe region signal exists, it
+selects every page instead of silently producing zero OCR shards. Preflight
+failures, empty PDFs, region requests without configured regions, and partial
+coverage still fall back to the Docling document path unless the opt-in route
+can prove complete coverage.
 
 ## Structure Sidecar
 
@@ -135,12 +128,11 @@ envelope, and stable OCR shard v1 fields, but Python reads the original
 shards still use real PDFium crop rendering because their OCR input is a raster
 region.
 The source-PDF page-range selector is separate from the older render audit
-selector. It avoids `pdf-inspector`, PDFium, and high-DPI raster work before
+selector. It avoids detector middleware, PDFium, and high-DPI raster work before
 OCR: `lopdf` reads the page tree, Rust emits one source-range shard row per
 selected page, and Docling remains the OCR authority over the original PDF page
-range. PDFium-backed routing and rendering remain available for region/raster
-proofs and future native-text page filtering, but they are not required for the
-full-page source-range hot path.
+range. PDFium-backed rendering remains available for region/raster proofs, but
+it is not required for the full-page source-range hot path.
 Rust may split one contiguous source-PDF page range into multiple contiguous
 subranges when OCR worker permits are available. The default target is
 sublinear in the host worker budget to avoid over-parallelizing Docling PDF
@@ -171,10 +163,6 @@ parent shard identity, and raster/image provenance. `_resources.arrow` remains
 the stable nine-column result table; structure metadata is kept in the sidecar
 so downstream consumers can restore document order without expanding the user
 resource schema.
-
-The `pdf-inspector` text helpers can also project native non-OCR pages into
-per-page `text_page` rows. The Studio provider uses those rows only for the
-explicit hybrid OCR mode and only when page coverage can be proven complete.
 
 This is still opt-in infrastructure. No OCR worker is started by the
 production Wendao gateway, and default document extraction does not consume

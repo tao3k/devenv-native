@@ -922,5 +922,5 @@ fn document_resource_schema() -> SchemaRef {
 }
 
 #[cfg(test)]
-#[path = "../../tests/unit/pdf/ocr.rs"]
+#[path = "../../tests/unit/pdf/ocr/mod.rs"]
 mod tests;

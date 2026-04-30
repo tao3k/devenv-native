@@ -322,7 +322,7 @@ def test_document_structure_to_table_sorts_reading_order() -> None:
                 content="first",
                 mimeType="text/markdown",
                 status="ok",
-                engine="pdf-inspector",
+                engine="wendao-hybrid",
                 confidence=None,
                 bboxLeft=None,
                 bboxTop=None,

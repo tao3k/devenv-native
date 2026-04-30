@@ -26,8 +26,6 @@ use xiuxian_wendao_runtime::transport::{
 };
 
 #[cfg(feature = "document-extract-pdf-render")]
-use xiuxian_wendao_attachments::pdf::audit::extract_text_page_resource_batch;
-#[cfg(feature = "document-extract-pdf-render")]
 use xiuxian_wendao_attachments::pdf::ocr::{
     PdfOcrShardInput, PdfOcrShardResult, PdfOcrShardResultStatus, decode_ocr_shard_input_batches,
 };
@@ -43,8 +41,6 @@ use xiuxian_wendao_attachments::pdf::structure::{
     document_resource_batch_to_structure_blocks,
 };
 
-#[cfg(feature = "document-extract-pdf-render")]
-use super::arrow_cache::merge_document_resource_batches_by_page;
 use super::arrow_cache::{
     DOCUMENT_RESOURCE_ARROW_CACHE_NAME, build_error_resource_batch, build_job_resource_batch,
     build_status_batch, mirror_artifact_to_output, read_arrow_file, read_cached_document_batches,
@@ -87,6 +83,7 @@ struct HybridDocumentResourceBatch {
 
 #[cfg(feature = "document-extract-pdf-render")]
 impl HybridDocumentResourceBatch {
+    #[cfg(test)]
     fn native(batch: EngineRecordBatch) -> Self {
         Self {
             batch,
@@ -357,22 +354,7 @@ impl StudioDocumentExtractFlightRouteProvider {
             }
         };
 
-        let resource_batch = if is_hybrid_text_only_report(&render_report) {
-            match materialize_hybrid_text_only_resource_batch(source.as_path(), &render_report)
-                .await
-            {
-                Ok(batch) => HybridDocumentResourceBatch::native(batch),
-                Err(reason) => {
-                    return self
-                        .fallback_python_document_extract(
-                            request,
-                            output.as_path(),
-                            reason.as_str(),
-                        )
-                        .await;
-                }
-            }
-        } else {
+        let resource_batch = {
             let ocr_input_path = match hybrid_page_ocr_input_arrow_path(&render_report) {
                 Ok(path) => path,
                 Err(reason) => {
@@ -775,7 +757,7 @@ fn paths_match(left: &Path, right: &Path) -> bool {
 
 #[cfg(feature = "document-extract-pdf-render")]
 async fn materialize_hybrid_page_ocr_resource_batch(
-    source: &Path,
+    _source: &Path,
     render_report: &PdfPageRenderShardReport,
     inputs: Vec<PdfOcrShardInput>,
     pdf_ocr_scheduler: &PdfOcrWorkerScheduler,
@@ -802,30 +784,10 @@ async fn materialize_hybrid_page_ocr_resource_batch(
         });
     }
 
-    let ocr_page_indices = inputs
-        .iter()
-        .filter(|input| input.shard_type == "page")
-        .map(|input| input.page_index)
-        .collect::<Vec<_>>();
-    let source_for_text = source.to_path_buf();
-    let text_batch = tokio::task::spawn_blocking(move || {
-        extract_text_page_resource_batch(source_for_text.as_path(), &ocr_page_indices)
-    })
-    .await
-    .map_err(|error| format!("join hybrid PDF text-page extraction task: {error}"))??;
-    validate_hybrid_shard_coverage(
-        render_report.page_count,
-        text_batch.page_indices.as_slice(),
-        inputs.as_slice(),
-        response.results.as_slice(),
-    )?;
-    let batch =
-        merge_document_resource_batches_by_page(&[text_batch.batch, response.resource_batch])?;
-    Ok(HybridDocumentResourceBatch {
-        batch,
-        ocr_inputs: inputs,
-        ocr_results: response.results,
-    })
+    Err(
+        "hybrid PDF OCR partial or region coverage requires native text merge support; falling back to Docling"
+            .to_string(),
+    )
 }
 
 #[cfg(feature = "document-extract-pdf-render")]
@@ -1135,35 +1097,6 @@ fn hybrid_page_ocr_request_paths(request: &DocumentExtractFlightRequest) -> (Pat
 }
 
 #[cfg(feature = "document-extract-pdf-render")]
-fn is_hybrid_text_only_report(report: &PdfPageRenderShardReport) -> bool {
-    let decision = report.routing_decision.as_str();
-    report.status == PdfRenderStatus::Skipped.as_str()
-        && (decision == PdfRenderRoutingDecision::FastRustCandidate.as_str()
-            || decision == PdfRenderRoutingDecision::HybridPageOcrCandidate.as_str())
-        && report.page_count > 0
-        && report.shard_count == 0
-}
-
-#[cfg(feature = "document-extract-pdf-render")]
-async fn materialize_hybrid_text_only_resource_batch(
-    source: &Path,
-    render_report: &PdfPageRenderShardReport,
-) -> Result<EngineRecordBatch, String> {
-    let source_for_text = source.to_path_buf();
-    let text_batch = tokio::task::spawn_blocking(move || {
-        extract_text_page_resource_batch(source_for_text.as_path(), &[])
-    })
-    .await
-    .map_err(|error| format!("join hybrid PDF text-only extraction task: {error}"))??;
-    validate_hybrid_page_coverage(
-        render_report.page_count,
-        text_batch.page_indices.as_slice(),
-        &[],
-    )?;
-    Ok(text_batch.batch)
-}
-
-#[cfg(feature = "document-extract-pdf-render")]
 fn hybrid_page_ocr_input_arrow_path(report: &PdfPageRenderShardReport) -> Result<PathBuf, String> {
     if report.status != PdfRenderStatus::Rendered.as_str() {
         return Err(format!(
@@ -1311,6 +1244,7 @@ fn validate_hybrid_page_coverage(
 }
 
 #[cfg(feature = "document-extract-pdf-render")]
+#[cfg(test)]
 fn validate_hybrid_shard_coverage(
     page_count: u32,
     text_page_indices: &[u32],
@@ -1512,34 +1446,6 @@ mod tests {
 
         assert_eq!(path, PathBuf::from("/tmp/out/_ocr_input.arrow"));
         Ok(())
-    }
-
-    #[cfg(feature = "document-extract-pdf-render")]
-    #[test]
-    fn hybrid_page_ocr_detects_text_only_hybrid_report() {
-        let report = sample_hybrid_page_ocr_report(
-            PdfRenderStatus::Skipped,
-            PdfRenderRoutingDecision::HybridPageOcrCandidate,
-            3,
-            0,
-            None,
-        );
-
-        assert!(is_hybrid_text_only_report(&report));
-    }
-
-    #[cfg(feature = "document-extract-pdf-render")]
-    #[test]
-    fn hybrid_page_ocr_detects_fast_rust_text_only_report() {
-        let report = sample_hybrid_page_ocr_report(
-            PdfRenderStatus::Skipped,
-            PdfRenderRoutingDecision::FastRustCandidate,
-            3,
-            0,
-            None,
-        );
-
-        assert!(is_hybrid_text_only_report(&report));
     }
 
     #[cfg(feature = "document-extract-pdf-render")]

@@ -54,7 +54,7 @@ fn block(block_id: &str, page_index: i32, block_index: i32) -> DocumentStructure
         content: block_id.to_string(),
         mime_type: "text/markdown".to_string(),
         status: "ok".to_string(),
-        engine: "pdf-inspector".to_string(),
+        engine: "wendao-hybrid".to_string(),
         confidence: None,
         bbox_left: None,
         bbox_top: None,

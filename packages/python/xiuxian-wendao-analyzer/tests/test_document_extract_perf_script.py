@@ -490,48 +490,6 @@ def test_cargo_perf_probe_adds_pdf_render_for_hybrid_page_ocr(
     )
 
 
-def test_pdf_inspector_audit_command_adds_feature_and_fixture_manifest(
-    tmp_path: Path,
-) -> None:
-    benchmark = _load_benchmark_module()
-    args = benchmark.argparse.Namespace(
-        cargo="cargo",
-        cargo_features="performance,studio,zhenfa-router,duckdb",
-    )
-
-    command, env = benchmark.build_pdf_inspector_audit_command(
-        args,
-        {"pdf": tmp_path / "sample.pdf"},
-        tmp_path / "reports",
-    )
-
-    assert command[:4] == ["cargo", "test", "-p", "xiuxian-wendao"]
-    assert command[command.index("--test") + 1] == "xiuxian-testing-gate"
-    assert command[command.index("--features") + 1] == (
-        "performance,studio,zhenfa-router,duckdb,document-extract-pdf-inspector"
-    )
-    assert command[-4:] == [
-        "pdf_inspector_detect_audit",
-        "--",
-        "--ignored",
-        "--nocapture",
-    ]
-    inputs = benchmark.json.loads(env["WENDAO_PDF_INSPECTOR_AUDIT_INPUTS_JSON"])
-    assert inputs == [{"name": "pdf", "source": str(tmp_path / "sample.pdf")}]
-    assert env["WENDAO_PDF_INSPECTOR_AUDIT_REPORT_DIR"] == str(tmp_path / "reports")
-
-
-def test_pdf_inspector_audit_features_are_not_duplicated() -> None:
-    benchmark = _load_benchmark_module()
-
-    assert (
-        benchmark.cargo_features_with_pdf_inspector(
-            "performance document-extract-pdf-inspector"
-        )
-        == "performance,document-extract-pdf-inspector"
-    )
-
-
 def test_pdf_render_shard_audit_command_adds_feature_and_fixture_manifest(
     tmp_path: Path,
 ) -> None:
@@ -558,7 +516,7 @@ def test_pdf_render_shard_audit_command_adds_feature_and_fixture_manifest(
         "performance,studio,zhenfa-router,duckdb,document-extract-pdf-render"
     )
     assert command[-4:] == [
-        "pdf_inspector_page_render_shard_manifest",
+        "pdf_render_page_render_shard_manifest",
         "--",
         "--ignored",
         "--nocapture",

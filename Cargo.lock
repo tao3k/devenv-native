@@ -3570,29 +3570,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b5320ae4c3782150d900b79807611a59a99fc9a1d61d686faafc24b93fc8d7ca"
 
 [[package]]
-name = "env_filter"
-version = "1.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "32e90c2accc4b07a8456ea0debdc2e7587bdd890680d71173a15d4ae604f6eef"
-dependencies = [
- "log",
- "regex",
-]
-
-[[package]]
-name = "env_logger"
-version = "0.11.10"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0621c04f2196ac3f488dd583365b9c09be011a4ab8b9f37248ffcc8f6198b56a"
-dependencies = [
- "anstream",
- "anstyle",
- "env_filter",
- "jiff",
- "log",
-]
-
-[[package]]
 name = "equator"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7670,22 +7647,6 @@ dependencies = [
  "serde_derive",
  "std_prelude",
  "stfu8",
-]
-
-[[package]]
-name = "pdf-inspector"
-version = "0.1.0"
-source = "git+https://github.com/firecrawl/pdf-inspector?rev=63b55731337c18baf23319b73cc9780bb23ac61b#63b55731337c18baf23319b73cc9780bb23ac61b"
-dependencies = [
- "env_logger",
- "log",
- "lopdf",
- "once_cell",
- "rayon",
- "regex",
- "thiserror 2.0.18",
- "ttf-parser",
- "unicode-normalization",
 ]
 
 [[package]]
@@ -12699,7 +12660,6 @@ dependencies = [
  "image",
  "lopdf",
  "num-traits",
- "pdf-inspector",
  "pdfium-render",
  "serde",
  "serde_json",

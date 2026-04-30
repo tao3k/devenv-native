@@ -241,14 +241,6 @@ def parse_args() -> argparse.Namespace:
         default=".run/reports/xiuxian-wendao/document-extract-perf",
     )
     parser.add_argument(
-        "--pdf-inspector-audit",
-        action="store_true",
-        help=(
-            "Run the feature-gated Rust pdf-inspector detect/analyze audit "
-            "against selected fixtures and exit without starting extraction workers."
-        ),
-    )
-    parser.add_argument(
         "--pdf-render-shard-audit",
         action="store_true",
         help=(
@@ -263,8 +255,8 @@ def parse_args() -> argparse.Namespace:
         help=(
             "Page selection mode for --pdf-render-shard-audit. "
             "`all-pages` proves renderer capacity; `shard-fallback-pages` "
-            "uses routing signals and renders only raster OCR pages; "
-            "`region-shards` renders explicit PDF-point regions supplied by "
+            "uses the current high-recall raster fallback; `region-shards` "
+            "renders explicit PDF-point regions supplied by "
             "--pdf-render-region."
         ),
     )
@@ -410,8 +402,6 @@ def main() -> int:
     report_dir = Path(args.report_dir)
     report_dir.mkdir(parents=True, exist_ok=True)
 
-    if args.pdf_inspector_audit:
-        return run_pdf_inspector_audit(args, report_dir / "pdf-inspector-detect-audit")
     if args.pdf_render_shard_audit:
         return run_pdf_render_shard_audit(
             args, report_dir / "pdf-render-shard-manifest"
@@ -613,73 +603,6 @@ def resolve_fixtures(
     )
 
 
-def run_pdf_inspector_audit(args: argparse.Namespace, report_dir: Path) -> int:
-    with tempfile.TemporaryDirectory(
-        prefix="wendao-pdf-inspector-audit-"
-    ) as temp_root_text:
-        fixture_dir = Path(temp_root_text) / "fixtures"
-        fixture_dir.mkdir()
-        fixtures, _real_fixture_root = resolve_fixtures(args, fixture_dir)
-        fixtures = select_fixtures(fixtures, args.only_fixture)
-        if not args.only_fixture:
-            fixtures = {
-                name: path
-                for name, path in fixtures.items()
-                if path.suffix.lower() == ".pdf"
-            }
-        if not fixtures:
-            raise SystemExit(
-                "PDF inspector audit requires at least one selected PDF fixture"
-            )
-        command, env_update = build_pdf_inspector_audit_command(
-            args,
-            fixtures,
-            report_dir.resolve(),
-        )
-        env = rust_process_env()
-        env.update(env_update)
-        subprocess.run(command, check=True, env=env)
-    print(
-        "PDF inspector reports: "
-        f"{report_dir / 'pdf_inspector_detect_audit.json'}, "
-        f"{report_dir / 'pdf_inspector_text_fast_path.json'}"
-    )
-    return 0
-
-
-def build_pdf_inspector_audit_command(
-    args: argparse.Namespace,
-    fixtures: dict[str, Path],
-    report_dir: Path,
-) -> tuple[list[str], dict[str, str]]:
-    inputs = [
-        {
-            "name": name,
-            "source": str(path),
-        }
-        for name, path in fixtures.items()
-    ]
-    command = [
-        args.cargo,
-        "test",
-        "-p",
-        "xiuxian-wendao",
-        "--test",
-        "xiuxian-testing-gate",
-        "--features",
-        cargo_features_with_pdf_inspector(args.cargo_features),
-        "pdf_inspector_detect_audit",
-        "--",
-        "--ignored",
-        "--nocapture",
-    ]
-    env = {
-        "WENDAO_PDF_INSPECTOR_AUDIT_INPUTS_JSON": json.dumps(inputs),
-        "WENDAO_PDF_INSPECTOR_AUDIT_REPORT_DIR": str(report_dir),
-    }
-    return command, env
-
-
 def run_pdf_render_shard_audit(args: argparse.Namespace, report_dir: Path) -> int:
     with tempfile.TemporaryDirectory(
         prefix="wendao-pdf-render-shard-audit-"
@@ -735,7 +658,7 @@ def build_pdf_render_shard_audit_command(
         "xiuxian-testing-gate",
         "--features",
         cargo_features_with_pdf_render(args.cargo_features),
-        "pdf_inspector_page_render_shard_manifest",
+        "pdf_render_page_render_shard_manifest",
         "--",
         "--ignored",
         "--nocapture",
@@ -1079,10 +1002,6 @@ def find_pdfium_library(root: Path, library_name: str) -> Path | None:
     if not matches:
         return None
     return matches[0].resolve()
-
-
-def cargo_features_with_pdf_inspector(features: str) -> str:
-    return cargo_features_with_pdf_feature(features, "document-extract-pdf-inspector")
 
 
 def cargo_features_with_pdf_render(features: str) -> str:

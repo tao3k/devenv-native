@@ -15,13 +15,9 @@ struct RegionInput {
 
 #[test]
 #[ignore = "requires real PDF fixtures and optionally a PDFium runtime library"]
-fn pdf_inspector_page_render_shard_manifest_reports_pdf_shards() -> Result<(), String> {
+fn pdf_render_page_render_shard_manifest_reports_pdf_shards() -> Result<(), String> {
     let inputs_json = std::env::var("WENDAO_PDF_RENDER_SHARD_INPUTS_JSON")
-        .or_else(|_| std::env::var("WENDAO_PDF_INSPECTOR_AUDIT_INPUTS_JSON"))
-        .map_err(|_| {
-            "WENDAO_PDF_RENDER_SHARD_INPUTS_JSON or WENDAO_PDF_INSPECTOR_AUDIT_INPUTS_JSON is required"
-                .to_string()
-        })?;
+        .map_err(|_| "WENDAO_PDF_RENDER_SHARD_INPUTS_JSON is required".to_string())?;
     let report_dir = std::env::var("WENDAO_PDF_RENDER_SHARD_REPORT_DIR").map_or_else(
         |_| {
             PathBuf::from(

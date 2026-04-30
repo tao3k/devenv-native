@@ -53,7 +53,7 @@ Standardized documentation repository for the Wendao DocOS Kernel, leveraging AS
 
 - [[05_research/301_research_papers|Research Index: Map of Content]]: Academic foundations.
 - [[05_research/305_http_grpc_tower_performance_audit|HTTP, gRPC, and Tower Performance Audit]]: Audit of Wendao's Axum, Tonic, Tower, and Arrow Flight transport surfaces.
-- [[05_research/306_pdf_inspector_hybrid_ocr_implementation_report|PDF Inspector Hybrid OCR Implementation Report]]: Precision-preserving PDF routing, page OCR sharding, and Rust-side document extraction acceleration plan.
+- [[05_research/306_pdf_hybrid_ocr_implementation_report|PDF Hybrid OCR Implementation Report]]: Precision-preserving PDF routing, page OCR sharding, and Rust-side document extraction acceleration plan.
 
 ## 📁 06_roadmap: Future Evolution
 

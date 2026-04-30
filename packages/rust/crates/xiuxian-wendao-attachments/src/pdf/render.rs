@@ -18,10 +18,6 @@ use pdfium_render::prelude::{
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
-use super::audit::{
-    PdfInspectorPdfType, PdfInspectorRoutingDecision, PdfInspectorRoutingSignals,
-    analyze_pdf_routing_signals, high_recall_ocr_page_numbers, routing_assessment,
-};
 use super::ocr::{PdfOcrWorkerProfile, build_ocr_shard_input_batch, build_ocr_shard_inputs};
 use super::source_range::{
     source_page_range_all_page_indices, source_page_range_validate_page_index,
@@ -1124,98 +1120,17 @@ fn resolve_page_selection(
 ) -> Result<RenderPageSelection, String> {
     match selection {
         PdfPageRenderSelection::AllPages => Ok(RenderPageSelection::All),
-        PdfPageRenderSelection::ShardFallbackPages => resolve_shard_fallback_page_selection(path),
+        PdfPageRenderSelection::ShardFallbackPages => {
+            Ok(resolve_shard_fallback_page_selection(path))
+        }
         PdfPageRenderSelection::RegionShards => {
             Err("region_shards selection requires configured region requests".to_string())
         }
     }
 }
 
-fn resolve_shard_fallback_page_selection(path: &Path) -> Result<RenderPageSelection, String> {
-    let signals = analyze_pdf_routing_signals(path)?;
-    resolve_shard_fallback_page_selection_from_signals(path, &signals)
-}
-
-fn resolve_shard_fallback_page_selection_from_signals(
-    path: &Path,
-    signals: &PdfInspectorRoutingSignals,
-) -> Result<RenderPageSelection, String> {
-    let assessment = routing_assessment(signals);
-    match assessment.decision {
-        PdfInspectorRoutingDecision::FastRustCandidate => Ok(RenderPageSelection::Skip {
-            page_count: signals.page_count,
-            routing_decision: PdfRenderRoutingDecision::FastRustCandidate,
-            reason: "fast text path candidate; raster OCR render is not needed".to_string(),
-        }),
-        PdfInspectorRoutingDecision::FullDoclingFallback => Ok(RenderPageSelection::Skip {
-            page_count: signals.page_count,
-            routing_decision: PdfRenderRoutingDecision::FullDoclingFallback,
-            reason: "routing gates require full Docling fallback".to_string(),
-        }),
-        PdfInspectorRoutingDecision::PreflightFailed => Ok(RenderPageSelection::Skip {
-            page_count: signals.page_count,
-            routing_decision: PdfRenderRoutingDecision::PreflightFailed,
-            reason: "PDF preflight failed".to_string(),
-        }),
-        PdfInspectorRoutingDecision::UnsupportedNonPdf => Ok(RenderPageSelection::Skip {
-            page_count: signals.page_count,
-            routing_decision: PdfRenderRoutingDecision::UnsupportedNonPdf,
-            reason: "unsupported non-PDF input".to_string(),
-        }),
-        PdfInspectorRoutingDecision::HybridPageOcrCandidate => {
-            let pages_needing_ocr = if signals.pages_needing_ocr.is_empty() {
-                high_recall_ocr_page_numbers(path)?
-            } else {
-                signals.pages_needing_ocr.clone()
-            };
-            let page_indices = raster_ocr_page_indices(
-                signals.page_count,
-                pages_needing_ocr.as_slice(),
-                should_render_all_when_no_ocr_hints(signals),
-            );
-            if page_indices.is_empty() {
-                return Ok(RenderPageSelection::Skip {
-                    page_count: signals.page_count,
-                    routing_decision: PdfRenderRoutingDecision::HybridPageOcrCandidate,
-                    reason: "hybrid shard fallback selected; no raster OCR pages are required"
-                        .to_string(),
-                });
-            }
-            Ok(RenderPageSelection::Selected(page_indices))
-        }
-    }
-}
-
-fn should_render_all_when_no_ocr_hints(signals: &PdfInspectorRoutingSignals) -> bool {
-    signals.is_complex
-        || matches!(
-            signals.pdf_type,
-            PdfInspectorPdfType::Scanned
-                | PdfInspectorPdfType::ImageBased
-                | PdfInspectorPdfType::Mixed
-        )
-}
-
-fn raster_ocr_page_indices(
-    page_count: u32,
-    pages_needing_ocr: &[u32],
-    render_all_when_no_hints: bool,
-) -> Vec<i32> {
-    let mut page_indices = if pages_needing_ocr.is_empty() && render_all_when_no_hints {
-        (0..page_count)
-            .filter_map(|page_index| i32::try_from(page_index).ok())
-            .collect::<Vec<_>>()
-    } else {
-        pages_needing_ocr
-            .iter()
-            .filter_map(|page_number| page_number.checked_sub(1))
-            .filter(|page_index| *page_index < page_count)
-            .filter_map(|page_index| i32::try_from(page_index).ok())
-            .collect::<Vec<_>>()
-    };
-    page_indices.sort_unstable();
-    page_indices.dedup();
-    page_indices
+fn resolve_shard_fallback_page_selection(_path: &Path) -> RenderPageSelection {
+    RenderPageSelection::All
 }
 
 struct RenderShardContext<'a> {

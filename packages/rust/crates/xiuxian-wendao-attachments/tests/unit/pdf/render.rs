@@ -289,45 +289,13 @@ fn document_extract_pdf_render_builds_ocr_pending_resource_rows() -> Result<(), 
 }
 
 #[test]
-fn document_extract_pdf_render_selects_only_ocr_pages_for_shard_fallback() {
-    assert_eq!(
-        raster_ocr_page_indices(9, &[1, 3, 3, 12], false),
-        vec![0, 2]
-    );
-}
+fn document_extract_pdf_render_shard_fallback_defaults_to_all_pages_without_detector()
+-> Result<(), String> {
+    let selection = resolve_page_selection(
+        Path::new("fixture.pdf"),
+        PdfPageRenderSelection::ShardFallbackPages,
+    )?;
 
-#[test]
-fn document_extract_pdf_render_selects_all_pages_for_scanned_without_hints() {
-    assert_eq!(raster_ocr_page_indices(3, &[], true), vec![0, 1, 2]);
-}
-
-#[test]
-fn document_extract_pdf_render_escalates_mixed_without_hints_to_page_ocr() {
-    assert!(should_render_all_when_no_ocr_hints(&routing_signals(
-        PdfInspectorPdfType::Mixed,
-        false,
-    )));
-    assert!(should_render_all_when_no_ocr_hints(&routing_signals(
-        PdfInspectorPdfType::Scanned,
-        false,
-    )));
-    assert!(should_render_all_when_no_ocr_hints(&routing_signals(
-        PdfInspectorPdfType::TextBased,
-        true,
-    )));
-    assert!(!should_render_all_when_no_ocr_hints(&routing_signals(
-        PdfInspectorPdfType::TextBased,
-        false,
-    )));
-}
-
-fn routing_signals(pdf_type: PdfInspectorPdfType, is_complex: bool) -> PdfInspectorRoutingSignals {
-    PdfInspectorRoutingSignals {
-        pdf_type,
-        page_count: 3,
-        confidence: 0.95,
-        pages_needing_ocr: Vec::new(),
-        is_complex,
-        has_encoding_issues: false,
-    }
+    assert!(matches!(selection, RenderPageSelection::All));
+    Ok(())
 }
