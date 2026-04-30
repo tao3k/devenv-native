@@ -292,6 +292,7 @@ fn single_issue<'a>(report: &'a LintReport, code: &str) -> &'a LintIssue {
 fn assert_bpmn_di_boundary_evidence() {
     assert_bpmn_di_metadata_boundary_evidence();
     assert_bpmn_di_namespace_boundary_evidence();
+    assert_bpmn_di_enum_boundary_evidence();
     assert_bpmn_di_topology_boundary_evidence();
     assert_bpmn_di_anchor_boundary_evidence();
     assert_bpmn_di_reference_boundary_evidence();
@@ -318,6 +319,21 @@ fn assert_bpmn_di_namespace_boundary_evidence() {
         issue.evidence["invalid_namespaces"][0]["expected_namespace_uri"],
         "http://www.omg.org/spec/BPMN/20100524/DI"
     );
+}
+
+fn assert_bpmn_di_enum_boundary_evidence() {
+    let invalid_di_enum = lint_fixture("invalid-di-enum-values.bpmn");
+    let issue = single_issue(&invalid_di_enum, "bpmn.invalid_di_enum");
+    assert_eq!(
+        issue.evidence["invalid_enums"][0]["attribute"],
+        "participantBandKind"
+    );
+    assert_eq!(issue.evidence["invalid_enums"][0]["value"], "top_primary");
+    assert_eq!(
+        issue.evidence["invalid_enums"][1]["attribute"],
+        "messageVisibleKind"
+    );
+    assert_eq!(issue.evidence["invalid_enums"][1]["value"], "both");
 }
 
 fn assert_bpmn_di_reference_boundary_evidence() {

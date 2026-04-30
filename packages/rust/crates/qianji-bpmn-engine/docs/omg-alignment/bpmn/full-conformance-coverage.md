@@ -328,6 +328,12 @@ specific lint diagnostic before the generic metadata-only DI guidance. The
 audit does not execute layout, validate coordinate geometry, or infer runtime
 behavior from diagram coordinates.
 
+DI enum-valued display hints are audited against the standard BPMNDI
+enumerations. `BPMNShape` `participantBandKind` values must use the standard
+participant-band literals, and `BPMNEdge` `messageVisibleKind` values must use
+the standard message-visibility literals. Invalid enum values report a specific
+lint diagnostic before the generic metadata-only DI guidance.
+
 ## Completed M4.6 Global Task Binding Diagnostics Milestone
 
 The global-task binding diagnostics slice keeps top-level global task

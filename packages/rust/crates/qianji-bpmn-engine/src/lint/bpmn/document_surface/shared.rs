@@ -23,6 +23,7 @@ pub(super) use super::data::data_snapshot_summary;
 pub(super) use super::di_anchor::diagram_anchor_issue;
 pub(super) use super::di_anchor_kind::diagram_anchor_kind_issue;
 pub(super) use super::di_completeness::diagram_completeness_issue;
+pub(super) use super::di_enum::diagram_enum_issue;
 pub(super) use super::di_identity::diagram_identity_issue;
 pub(super) use super::di_namespace::diagram_namespace_issue;
 pub(super) use super::di_reference::diagram_reference_issue;
