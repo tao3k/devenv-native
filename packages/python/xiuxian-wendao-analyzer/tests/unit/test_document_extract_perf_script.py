@@ -465,6 +465,61 @@ def test_python_worker_command_adds_workspace_package_and_extras() -> None:
     ]
 
 
+def test_start_server_pool_starts_counted_local_ocr_endpoints(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    benchmark = _load_benchmark_module()
+    calls = []
+    extra_ports = iter([52052, 52053])
+
+    class FakeProcess:
+        pass
+
+    def fake_pick_free_port(host: str) -> int:
+        assert host == "127.0.0.1"
+        return next(extra_ports)
+
+    def fake_start_server(host: str, port: int, **kwargs):
+        calls.append((host, port, kwargs))
+        return FakeProcess()
+
+    monkeypatch.setattr(benchmark._workers, "pick_free_port", fake_pick_free_port)
+    monkeypatch.setattr(benchmark._workers, "start_server", fake_start_server)
+
+    workers = benchmark.start_server_pool(
+        "127.0.0.1",
+        52051,
+        endpoint_count=3,
+        real_docling=False,
+        real_fixture_root=None,
+        include_audio=False,
+        converter_count_path=tmp_path / "counts",
+        pdf_ocr_worker="fixture",
+        pdf_ocr_workers="auto",
+        python_uv_package="xiuxian-wendao-analyzer",
+        python_uv_extras=[],
+        log_dir=tmp_path / "logs",
+    )
+
+    assert [worker.port for worker in workers] == [52051, 52052, 52053]
+    assert [worker.endpoint_url for worker in workers] == [
+        "http://127.0.0.1:52051",
+        "http://127.0.0.1:52052",
+        "http://127.0.0.1:52053",
+    ]
+    assert [call[2]["process_name"] for call in calls] == [
+        "python-worker-0",
+        "python-worker-1",
+        "python-worker-2",
+    ]
+    assert [call[2]["converter_count_path"].name for call in calls] == [
+        "python-worker-0.txt",
+        "python-worker-1.txt",
+        "python-worker-2.txt",
+    ]
+
+
 def test_converter_count_path_reads_external_fake_counter(tmp_path: Path) -> None:
     benchmark = _load_benchmark_module()
     count_path = tmp_path / "count.txt"
@@ -472,6 +527,17 @@ def test_converter_count_path_reads_external_fake_counter(tmp_path: Path) -> Non
     args = benchmark.argparse.Namespace(converter_count_path=count_path)
 
     assert benchmark.read_converter_count(args) == 9
+
+
+def test_converter_count_path_sums_local_worker_counter_dir(tmp_path: Path) -> None:
+    benchmark = _load_benchmark_module()
+    count_dir = tmp_path / "counts"
+    count_dir.mkdir()
+    (count_dir / "python-worker-0.txt").write_text("3", encoding="utf-8")
+    (count_dir / "python-worker-1.txt").write_text("4", encoding="utf-8")
+    args = benchmark.argparse.Namespace(converter_count_path=count_dir)
+
+    assert benchmark.read_converter_count(args) == 7
 
 
 def test_artifact_report_summary_tracks_structure_precision() -> None:

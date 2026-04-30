@@ -297,11 +297,13 @@ when too many page-range conversions run at once. Use
 source-range-specific override. Production deployments can set
 `WENDAO_DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS` directly when evidence
 shows a fixed override is appropriate for that machine profile.
-Use `--rust-pdf-ocr-endpoint` more than once when a benchmark should expose
-multiple Python OCR Flight executors to the Rust scheduler. The script forwards
-those endpoints through `WENDAO_DOCUMENT_EXTRACT_PDF_OCR_ENDPOINTS`; when the
-flag is omitted, Rust keeps using the normal document extraction endpoint as
-the single OCR executor.
+Use `--local-python-ocr-endpoint-count N` when a local benchmark should start
+`N` Python OCR Flight executors, including the primary document worker, and
+expose that pool to the Rust scheduler. Use `--rust-pdf-ocr-endpoint` more
+than once when a benchmark should target already-running Python OCR Flight
+executors. The script forwards those endpoints through
+`WENDAO_DOCUMENT_EXTRACT_PDF_OCR_ENDPOINTS`; when both flags are omitted, Rust
+keeps using the normal document extraction endpoint as the single OCR executor.
 For async provider validation, run with `--flight-mode async`; the driver starts
 the synchronous Python worker plus the existing Rust Flight provider and can
 verify cold duplicate-miss deduplication with `--duplicate-miss-concurrency`

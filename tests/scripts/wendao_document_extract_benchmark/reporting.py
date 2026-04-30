@@ -146,6 +146,7 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"- Wait ms: `{payload['waitMs']}`",
         f"- PDF OCR worker: `{payload['pdfOcrWorker']}`",
         f"- PDF OCR workers: `{payload['pdfOcrWorkers']}`",
+        f"- Local Python OCR endpoints: `{payload.get('localPythonOcrEndpointCount', 1)}`",
         f"- Rust PDF OCR worker pool: `{payload['rustPdfOcrWorkers']}`",
         f"- Rust PDF OCR source-range workers: `{payload['rustPdfOcrSourceRangeWorkers']}`",
         f"- Rust PDF OCR endpoints: `{payload.get('rustPdfOcrEndpoints', [])}`",

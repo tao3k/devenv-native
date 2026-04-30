@@ -5,7 +5,7 @@
 :PARENT: [[../index|Wendao DocOS Kernel: Map of Content]]
 :TAGS: research, document-extraction, pdf, ocr, arrow, docling, attachments
 :STATUS: UPDATED
-:VERSION: 1.12
+:VERSION: 1.13
 :END:
 
 ## Executive Summary
@@ -149,6 +149,10 @@ Python worker behavior. When a deployment or benchmark supplies multiple OCR
 Flight endpoints, Rust round-robins live OCR requests and source-range chunks
 across that pool while retaining the same Arrow shard input/result contracts,
 ordering gate, shard cache, and Docling OCR authority.
+The benchmark harness can now also start a local Python OCR endpoint pool with
+`--local-python-ocr-endpoint-count`. That is intentionally benchmark-owned:
+production deployments still provide endpoint URLs explicitly, while Rust owns
+the scheduling and pressure-control semantics once endpoints exist.
 
 ## Performance and Precision Assessment
 

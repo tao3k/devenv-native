@@ -2,13 +2,83 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 from .common import (
     Path,
     os,
     subprocess,
 )
+from .http_status import pick_free_port
 from .processes import start_logged_process
 from .server_code import fixture_server_code, real_docling_server_code
+
+
+@dataclass(frozen=True)
+class PythonWorkerServer:
+    process: subprocess.Popen[str]
+    host: str
+    port: int
+    endpoint_url: str
+
+
+def start_server_pool(
+    host: str,
+    port: int,
+    *,
+    endpoint_count: int,
+    real_docling: bool,
+    real_fixture_root: Path | None,
+    include_audio: bool,
+    converter_count_path: Path | None,
+    pdf_ocr_worker: str = "skip",
+    pdf_ocr_workers: str = "auto",
+    python_uv_package: str | None = "xiuxian-wendao-analyzer",
+    python_uv_extras: list[str] | None = None,
+    log_dir: Path | None = None,
+) -> list[PythonWorkerServer]:
+    if endpoint_count < 1:
+        raise SystemExit("--local-python-ocr-endpoint-count must be at least 1")
+    ports = [port]
+    while len(ports) < endpoint_count:
+        candidate = pick_free_port(host)
+        if candidate not in ports:
+            ports.append(candidate)
+
+    count_root = None
+    if converter_count_path is not None and endpoint_count > 1:
+        count_root = converter_count_path
+        count_root.mkdir(parents=True, exist_ok=True)
+
+    workers = []
+    for index, worker_port in enumerate(ports):
+        worker_count_path = converter_count_path
+        if count_root is not None:
+            worker_count_path = count_root / f"python-worker-{index}.txt"
+        name = "python-worker" if endpoint_count == 1 else f"python-worker-{index}"
+        process = start_server(
+            host,
+            worker_port,
+            real_docling=real_docling,
+            real_fixture_root=real_fixture_root,
+            include_audio=include_audio,
+            converter_count_path=worker_count_path,
+            pdf_ocr_worker=pdf_ocr_worker,
+            pdf_ocr_workers=pdf_ocr_workers,
+            python_uv_package=python_uv_package,
+            python_uv_extras=python_uv_extras,
+            log_dir=log_dir,
+            process_name=name,
+        )
+        workers.append(
+            PythonWorkerServer(
+                process=process,
+                host=host,
+                port=worker_port,
+                endpoint_url=f"http://{host}:{worker_port}",
+            )
+        )
+    return workers
 
 
 def start_server(
@@ -24,6 +94,7 @@ def start_server(
     python_uv_package: str | None = "xiuxian-wendao-analyzer",
     python_uv_extras: list[str] | None = None,
     log_dir: Path | None = None,
+    process_name: str = "python-worker",
 ) -> subprocess.Popen[str]:
     if pdf_ocr_worker == "docling" and not real_docling:
         raise SystemExit("--pdf-ocr-worker docling requires --real-docling")
@@ -57,9 +128,7 @@ def start_server(
         Path(os.environ.get("PRJ_RUNTIME_DIR", ".run"))
         / "document-extract-perf-process-logs"
     )
-    return start_logged_process(
-        command, log_dir=effective_log_dir, name="python-worker"
-    )
+    return start_logged_process(command, log_dir=effective_log_dir, name=process_name)
 
 
 def python_worker_command(

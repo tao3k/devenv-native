@@ -53,6 +53,15 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--local-python-ocr-endpoint-count",
+        type=int,
+        default=1,
+        help=(
+            "Number of local Python OCR Flight endpoints to start for Rust "
+            "endpoint-pool benchmarks, including the primary document worker."
+        ),
+    )
+    parser.add_argument(
         "--python-uv-package",
         default="xiuxian-wendao-analyzer",
         help=(

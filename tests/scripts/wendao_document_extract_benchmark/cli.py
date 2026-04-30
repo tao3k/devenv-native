@@ -36,11 +36,18 @@ from .providers import (
 )
 from .reporting import pdf_ocr_profile_label, render_markdown, summarize_results
 from .runtime import wait_for_port
-from .workers import start_server
+from .workers import start_server_pool
 
 
 def main() -> int:
     args = parse_args()
+    if args.local_python_ocr_endpoint_count < 1:
+        raise SystemExit("--local-python-ocr-endpoint-count must be at least 1")
+    if args.external_endpoint and args.local_python_ocr_endpoint_count != 1:
+        raise SystemExit(
+            "--local-python-ocr-endpoint-count cannot start workers in "
+            "--external-endpoint mode"
+        )
     if args.shard_cache_reuse_probe and args.flight_mode != "hybrid-page-ocr":
         raise SystemExit(
             "--shard-cache-reuse-probe requires --flight-mode hybrid-page-ocr"
@@ -94,22 +101,29 @@ def main() -> int:
         args.benchmark_host = args.host
         args.benchmark_port = args.port
         args.converter_count_path = args.converter_count_path
-        server = None
+        python_workers = []
         rust_server = None
         valkey_server = None
         ocr_shard_cache_summary = None
+        args.rust_pdf_ocr_endpoint = list(args.rust_pdf_ocr_endpoint)
         if not args.external_endpoint:
             converter_count_path = None
             if (
                 args.duplicate_miss_concurrency > 0
                 or args.distinct_miss_concurrency > 0
             ):
-                converter_count_path = temp_root / "converter-count.txt"
-                converter_count_path.write_text("0", encoding="utf-8")
+                converter_count_path = (
+                    temp_root / "converter-counts"
+                    if args.local_python_ocr_endpoint_count > 1
+                    else temp_root / "converter-count.txt"
+                )
+                if args.local_python_ocr_endpoint_count == 1:
+                    converter_count_path.write_text("0", encoding="utf-8")
                 args.converter_count_path = converter_count_path
-            server = start_server(
+            python_workers = start_server_pool(
                 args.host,
                 args.port,
+                endpoint_count=args.local_python_ocr_endpoint_count,
                 real_docling=args.real_docling,
                 real_fixture_root=real_fixture_root,
                 include_audio=not args.skip_audio,
@@ -120,12 +134,16 @@ def main() -> int:
                 python_uv_extras=args.python_uv_extra,
                 log_dir=process_log_dir,
             )
+            if args.local_python_ocr_endpoint_count > 1:
+                args.rust_pdf_ocr_endpoint.extend(
+                    worker.endpoint_url for worker in python_workers
+                )
         try:
-            if server is not None:
+            for worker in python_workers:
                 wait_for_port(
-                    args.host,
-                    args.port,
-                    server,
+                    worker.host,
+                    worker.port,
+                    worker.process,
                     timeout_seconds=args.server_start_timeout,
                 )
             if args.rust_provider_mode == "gateway" and not args.external_endpoint:
@@ -210,7 +228,8 @@ def main() -> int:
         finally:
             terminate_server(rust_server)
             terminate_server(valkey_server)
-            terminate_server(server)
+            for worker in reversed(python_workers):
+                terminate_server(worker.process)
 
     payload = {
         "schema": REPORT_SCHEMA,
@@ -223,6 +242,7 @@ def main() -> int:
         "waitMs": args.wait_ms,
         "pdfOcrWorker": args.pdf_ocr_worker,
         "pdfOcrWorkers": args.pdf_ocr_workers,
+        "localPythonOcrEndpointCount": args.local_python_ocr_endpoint_count,
         "rustPdfOcrWorkers": args.rust_pdf_ocr_workers,
         "rustPdfOcrSourceRangeWorkers": args.rust_pdf_ocr_source_range_workers,
         "rustPdfOcrEndpoints": args.rust_pdf_ocr_endpoint,

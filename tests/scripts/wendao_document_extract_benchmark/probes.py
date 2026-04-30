@@ -464,6 +464,11 @@ def read_converter_count(args: argparse.Namespace) -> int | None:
     path = Path(count_path)
     if not path.exists():
         return 0
+    if path.is_dir():
+        return sum(
+            int(child.read_text(encoding="utf-8").strip() or "0")
+            for child in sorted(path.glob("*.txt"))
+        )
     text = path.read_text(encoding="utf-8").strip()
     if not text:
         return 0
