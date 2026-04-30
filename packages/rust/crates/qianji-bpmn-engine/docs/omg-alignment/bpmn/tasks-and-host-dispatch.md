@@ -34,19 +34,20 @@ The field-level user/manual task contract is tracked in the
   already available inside the parsed package; otherwise it also falls back
   to the host seam.
 - Top-level BPMN `interface` and nested `operation` declarations are preserved
-  in document snapshots as callable-operation metadata. The current runtime
-  does not resolve service bindings from those catalogs; supported task
-  dispatch remains driven by the explicit task node and host-work metadata.
+  in document snapshots and the package callable registry as
+  callable-operation metadata. The current runtime does not resolve service
+  bindings from those catalogs; supported task dispatch remains driven by the
+  explicit task node and host-work metadata.
 - Top-level BPMN `globalTask`, `globalBusinessRuleTask`, `globalManualTask`,
-  `globalScriptTask`, and `globalUserTask` declarations are preserved in
-  document snapshots as callable-task metadata. Supported interface references
-  and global script text are retained for evidence, but the current runtime
-  does not execute those declarations or bind `callActivity calledElement` to
-  them.
+  `globalScriptTask`, and `globalUserTask` declarations are preserved in the
+  package callable registry as callable-task metadata. Supported interface
+  references and global script text are retained for evidence, but the current
+  runtime does not execute those declarations or bind `callActivity
+calledElement` to them.
 - Direct process/global-task `ioBinding` declarations and direct global-task
-  `ioSpecification` declarations are preserved in document snapshots as
-  callable IO metadata. They do not bind service operations, widen host
-  dispatch, or execute reusable callable definitions.
+  `ioSpecification` declarations are preserved in the package callable
+  registry as callable IO metadata. They do not bind service operations, widen
+  host dispatch, or execute reusable callable definitions.
 - `userTask` and `manualTask` host requests carry the engine-owned
   `process_id`, BPMN `activity_id`, `token_id`, `node_index`, and workflow
   variables. UI and CLI adapters must treat those fields as the canonical

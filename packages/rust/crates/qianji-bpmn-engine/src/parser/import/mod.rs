@@ -12,11 +12,12 @@ mod reader;
 mod task_io;
 
 pub(crate) use api::{
-    NestedShellKind, RawAssociation, RawEventSpec, RawHumanTaskAssignmentSpec,
-    RawHumanTaskChoiceSpec, RawHumanTaskFormSpec, RawHumanTaskFreeTextSpec,
-    RawHumanTaskNativeIoSpec, RawHumanTaskResourceRoleKind, RawHumanTaskResourceRoleSpec,
-    RawLaneMembershipSpec, RawNode, RawPackageDocument, RawParallelMultiInstanceSpec, RawProcess,
-    RawProcessScope, RawRepeatSpec, RawScriptTaskSpec, RawSequenceFlow,
-    RawSequentialMultiInstanceSpec, RawSubProcessKind, RawTaskInputBinding, RawTaskInputSource,
-    RawTaskIoSpec, RawTaskOutputBinding, attach_lane_memberships, import_bpmn_source,
+    NestedShellKind, RawAssociation, RawDataObjectReferenceSpec, RawDataObjectSpec, RawEventSpec,
+    RawHumanTaskAssignmentSpec, RawHumanTaskChoiceSpec, RawHumanTaskFormSpec,
+    RawHumanTaskFreeTextSpec, RawHumanTaskNativeIoSpec, RawHumanTaskResourceRoleKind,
+    RawHumanTaskResourceRoleSpec, RawLaneMembershipSpec, RawNode, RawPackageDocument,
+    RawParallelMultiInstanceSpec, RawProcess, RawProcessScope, RawRepeatSpec, RawScriptTaskSpec,
+    RawSequenceFlow, RawSequentialMultiInstanceSpec, RawSubProcessKind, RawTaskInputBinding,
+    RawTaskInputSource, RawTaskIoSpec, RawTaskOutputBinding, attach_lane_memberships,
+    import_bpmn_source,
 };

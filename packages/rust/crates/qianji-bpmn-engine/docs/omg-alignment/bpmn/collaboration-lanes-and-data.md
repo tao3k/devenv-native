@@ -48,6 +48,9 @@ The current engine preserves non-executable BPMN metadata for these families:
   preserved metadata separately from deferred participant dispatch,
   message-flow routing, conversation routing, choreography execution, and
   correlation matching semantics
+- a Rust-owned parsed-package collaboration host envelope for collaboration
+  shells, participants, message-flow intent, correlation properties,
+  correlation keys, and process correlation subscriptions
 
 The current engine executes a bounded task-local Data/IO subset for supported
 host-dispatched tasks. `ioSpecification`, `dataInputAssociation`, and
@@ -86,6 +89,12 @@ documents. That object declares `metadata_only` status, `deferred` execution
 policy, a `single_process_graph` runtime scope, the preserved collaboration
 metadata families, and the exact deferred routing and correlation semantics.
 This is evidence for future routing work, not an executable routing contract.
+
+The parsed package also exposes the same boundary as a host envelope. Hosts can
+read preserved collaboration shells, participants, message flows, correlation
+properties, correlation keys, and process correlation subscriptions from the
+Rust package surface. This avoids adapter-side XML re-scans while preserving
+the same metadata-only status.
 
 Process callable lint evidence also includes a `correlation_boundary` object.
 That boundary records the distinction between bounded executable waits that

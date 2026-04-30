@@ -7,7 +7,14 @@ pub(super) fn subprocess_configuration_issue(
     detail: &'static str,
 ) -> LintIssue {
     match detail {
-        "event_subprocess" => event_subprocess_issue(process_id, node_id, detail),
+        "event_subprocess"
+        | "event_subprocess_start_event_count"
+        | "event_subprocess_missing_end_event"
+        | "event_subprocess_sequence_flow"
+        | "event_subprocess_non_interrupting"
+        | "event_subprocess_start_event_definition"
+        | "event_subprocess_compensation_deferred"
+        | "multiple_event_subprocesses" => event_subprocess_issue(process_id, node_id, detail),
         "embedded_subprocess_start_event_count" => {
             embedded_subprocess_start_event_issue(process_id, node_id, detail)
         }
@@ -38,18 +45,18 @@ pub(super) fn subprocess_configuration_issue(
 fn event_subprocess_issue(process_id: &str, node_id: &str, detail: &'static str) -> LintIssue {
     LintIssue::new(
         "bpmn.unsupported_subprocess_configuration",
-        "Event subprocesses are deferred",
+        "Unsupported event subprocess shape",
         format!(
-            "Process '{process_id}' subprocess node '{node_id}' uses `triggeredByEvent=\"true\"`, which is outside the bounded slice."
+            "Process '{process_id}' subprocess node '{node_id}' uses an event subprocess shape outside the bounded executable slice."
         ),
-        "The current engine supports one bounded embedded `subProcess` body, one bounded `<transaction>` shell, and one bounded non-recursive `callActivity`. It does not support event subprocesses, including compensation event subprocesses.",
+        "The current engine supports one interrupting event subprocess per scope when its start event uses exactly one message, signal, timer, or bounded conditional event definition. Non-interrupting event subprocesses, compensation event subprocesses, parent sequence-flow routing through the event-subprocess owner, and multiple event subprocesses in one scope remain deferred.",
         vec![
-            "If the nested flow is not meant to be event-triggered, remove `triggeredByEvent=\"true\"` and keep a bounded embedded `subProcess` with exactly one nested `startEvent` and at least one nested `endEvent`.".to_string(),
-            "If the model depends on triggered interruption, remodel it with the currently supported boundary-event or transaction-boundary subset instead of an event subprocess.".to_string(),
-            "Do not rely on compensation event subprocesses or other `triggeredByEvent=\"true\"` subprocess forms in this bounded slice.".to_string(),
+            "Keep exactly one `subProcess triggeredByEvent=\"true\"` in the scope, with no incoming or outgoing parent sequence flows on the event-subprocess owner.".to_string(),
+            "Use exactly one interrupting nested `startEvent` with a message, signal, timer, or bounded conditional event definition, followed by a bounded child body and at least one nested `endEvent`.".to_string(),
+            "Do not rely on non-interrupting or compensation event subprocesses in this slice.".to_string(),
         ],
         format!(
-            "Rewrite subprocess node '{node_id}' in process '{process_id}' so it no longer uses `triggeredByEvent=\"true\"`. Preserve workflow intent, but either remodel it as a bounded embedded subprocess or move the triggered behavior into the supported boundary-event or transaction-boundary subset."
+            "Repair subprocess node '{node_id}' in process '{process_id}' so the event subprocess fits the bounded interrupting slice: one `triggeredByEvent=\"true\"` owner, no parent sequence-flow routing through that owner, one interrupting nested start event with message, signal, timer, or bounded conditional trigger metadata, and a bounded child body ending in at least one `endEvent`. Preserve workflow intent, but remove unsupported configuration '{detail}'."
         ),
         json!({
             "process_id": process_id,

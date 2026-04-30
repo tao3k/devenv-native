@@ -6,6 +6,18 @@ means the parser accepts one explicit shape, the runtime executes that same
 shape deterministically, and lint reports unsupported shapes with repair
 guidance.
 
+## Registry Source Of Truth
+
+The Rust API `bpmn_conformance_registry()` is the machine-checkable source of
+truth for this coverage table. Each registry row records the BPMN family,
+overall status, parser coverage, snapshot coverage, lint coverage, runtime
+coverage, host-surface coverage, a stable package-doc anchor, and the next
+milestone that should maintain or promote that family.
+
+This document remains the human-readable explanation of the registry. Tests
+assert that every BPMN family and status below stays aligned with the Rust
+registry, so new milestones must update both surfaces together.
+
 ## Status Vocabulary
 
 | Status               | Meaning                                                                |
@@ -39,9 +51,9 @@ guidance.
 | Relationship declarations | metadata-only      | Top-level relationships are preserved; endpoint resolution and graph semantics defer.                                                                    |
 | Event definition catalogs | metadata-only      | Message/error/escalation/signal catalogs are preserved, not schema-validated.                                                                            |
 | Interfaces/operations     | metadata-only      | Callable-operation catalogs are preserved; host dispatch binding remains explicit.                                                                       |
-| Global task catalogs      | metadata-only      | Top-level global task definitions are preserved; call-activity binding remains deferred.                                                                 |
-| Process callable metadata | metadata-only      | Process callable attributes, support refs, properties, and correlation subscriptions are preserved passively.                                            |
-| Callable IO metadata      | metadata-only      | Process/global-task `ioBinding` and global-task `ioSpecification` declarations are preserved passively.                                                  |
+| Global task catalogs      | metadata-only      | Top-level global task definitions are preserved in the Rust-owned callable registry; global-task execution remains deferred.                             |
+| Process callable metadata | metadata-only      | Process callable attributes, support refs, properties, and correlation subscriptions are preserved in the callable registry.                             |
+| Callable IO metadata      | metadata-only      | Process/global-task `ioBinding` and global-task `ioSpecification` declarations are preserved in the callable registry.                                   |
 | Resource catalogs         | metadata-only      | Top-level resources and parameters are preserved; assignment binding remains deferred.                                                                   |
 | Resource-role metadata    | metadata-only      | Direct process and global-task resource-role declarations are preserved; generic assignment execution defers.                                            |
 | Flow-element metadata     | metadata-only      | Direct process flow-element auditing, monitoring, and category refs are preserved passively.                                                             |
@@ -51,7 +63,7 @@ guidance.
 | Embedded subprocess       | bounded executable | One nested start event and at least one nested end event.                                                                                                |
 | Call activity             | bounded executable | Same-package executable process targets.                                                                                                                 |
 | Transaction               | bounded executable | Bounded shell with cancel/error/compensation behavior.                                                                                                   |
-| Event subprocess          | lint-deferred      | Deferred, including compensation event subprocesses.                                                                                                     |
+| Event subprocess          | bounded executable | One interrupting event subprocess per scope with message, signal, timer, or bounded conditional start trigger.                                           |
 | Standard loop             | bounded executable | Supported on selected host-dispatched task families.                                                                                                     |
 | Sequential multi-instance | bounded executable | Cardinality and bounded collection-backed input/output subset.                                                                                           |
 | Parallel multi-instance   | bounded executable | Cardinality and bounded collection-backed input/output subset.                                                                                           |
@@ -59,7 +71,7 @@ guidance.
 | Artifacts                 | metadata-only      | Association, group, and text-annotation metadata is preserved without execution semantics.                                                               |
 | Lanes                     | metadata-only      | Preserved for passive routing/display; no scheduling or authorization.                                                                                   |
 | Item definitions          | metadata-only      | Top-level item catalogs are preserved; schema validation remains deferred.                                                                               |
-| Data objects              | metadata-only      | Data object/reference metadata and direct `dataState` declarations are preserved passively.                                                              |
+| Data objects              | bounded executable | Process-level data object/reference ids can be used as bounded task data-association variable bindings.                                                  |
 | Data stores               | lint-deferred      | Data store/reference metadata and direct `dataState` are preserved; persistence execution remains deferred.                                              |
 | IO specification          | bounded executable | Human-task form IO and bounded host-task Data/IO metadata are executable; IO sets are preserved passively.                                               |
 | Data associations         | bounded executable | Bounded host-task source/target mapping is executable; transformation and assignment payloads are preserved.                                             |
@@ -71,6 +83,33 @@ guidance.
 The first Data/IO milestone promotes bounded task Data/IO execution. Supported
 host-dispatched task requests carry resolved task inputs, and task completion
 writes outputs through declared BPMN `dataOutputAssociation` targets.
+
+## Active M4.1 Data Object Milestone
+
+The data-object milestone promotes process-level `dataObject` and
+`dataObjectReference` declarations to bounded executable copy-in/copy-out
+bindings. A task `dataInputAssociation/sourceRef` may point at a data object
+or data object reference, and the runtime request reads the referenced
+workflow variable. A task `dataOutputAssociation/targetRef` may point at the
+same standard BPMN data object/reference surface, and completion writes back
+through that canonical variable binding.
+
+`dataStore` and `dataStoreReference` remain lint-deferred because executable
+persistence still needs an explicit storage and transaction policy.
+
+## Completed M4.2 Event Subprocess Milestone
+
+The event-subprocess milestone promotes one interrupting
+`subProcess triggeredByEvent="true"` shape to bounded executable behavior.
+The supported trigger start event must use exactly one standard message,
+signal, timer, or bounded conditional event definition. Runtime will expose the
+trigger as a passive scope-level wait; when the wait wins, the parent scope is
+cancelled and execution enters the event-subprocess body after its start
+event.
+
+Non-interrupting event subprocesses, compensation event subprocesses, multiple
+event subprocesses in one scope, and BPMN correlation matching remain
+deferred.
 
 Data-store persistence, executable transformations, multiple-source
 associations, and collaboration-aware routing remain deferred until separate
@@ -144,24 +183,23 @@ interrupting `boundaryEvent` nodes attached to bounded embedded subprocess,
 same-package call-activity, and transaction owners. The runtime arms the same
 parent-frame wait path used by bounded timer, message, and signal external
 boundaries, then re-evaluates the bounded condition after event-poll data is
-merged. Non-interrupting conditional boundaries on subprocess-like owners,
-and conditional event subprocess triggers remain deferred.
+merged. Non-interrupting conditional boundaries on subprocess-like owners
+remained deferred at that slice boundary.
 
 The sixth event-family slice promotes native `conditionalEventDefinition` as
 an exclusive `eventBasedGateway` `intermediateCatchEvent` wait target. Runtime
 event competition still uses a single winning branch, and non-ready poll data
 can select the first conditional wait whose bounded expression becomes true.
-Conditional event subprocess triggers, parallel event-based gateways, and
-collaboration-aware correlation remain deferred.
+Parallel event-based gateways and collaboration-aware correlation remain
+deferred.
 
 The seventh event-family slice promotes native event definitions on the single
 process `startEvent` to bounded executable start waits. The parser accepts one
 `messageEventDefinition`, `signalEventDefinition`, `timerEventDefinition`, or
 `conditionalEventDefinition`; the runtime creates the instance, blocks at the
 start event, and routes after a matching poll outcome or already-satisfied
-bounded condition. Multiple start events, event subprocess triggers,
-collaboration-aware subscription registries, and multiple event definitions
-remain deferred.
+bounded condition. Multiple start events, collaboration-aware subscription
+registries, and multiple event definitions remain deferred.
 
 The eighth event-family slice promotes native `escalationEventDefinition` on
 `intermediateThrowEvent` inside a bounded embedded subprocess, same-package
@@ -221,3 +259,30 @@ Current executable behavior must still be modeled through one supported
 process graph, host-dispatched tasks, or supported event waits. This milestone
 does not implement cross-pool message dispatch or correlation-aware runtime
 routing.
+
+## Completed M4.3 Callable Binding Milestone
+
+The callable-binding slice adds a Rust-owned callable registry to the parsed
+package surface. The registry records same-package process callable
+definitions, top-level global task definitions, process/global-task callable
+IO metadata, and existing process-target `callActivity` bindings.
+
+This milestone does not execute top-level global task definitions, invoke
+interface operations, resolve remote imports, dispatch endpoint bindings, or
+apply BPMN correlation matching. Existing `callActivity` runtime execution
+remains limited to another executable process in the same parsed BPMN package.
+
+## Completed M4.4 Collaboration Host Envelope Milestone
+
+The collaboration host-envelope slice exposes collaboration intent from the
+parsed package surface instead of requiring hosts to reread BPMN XML. The
+envelope covers collaboration shells, participants, message-flow intent,
+correlation properties, correlation keys, and process correlation
+subscriptions.
+
+The milestone keeps collaboration execution metadata-only. It does not execute
+pool routing, participant dispatch, endpoint invocation, message-flow routing,
+conversation routing, choreography execution, BPMN correlation matching,
+correlation subscription matching, correlation-key evaluation, or data-path
+evaluation. Existing wait metadata may expose a host `deduplication_key`, but
+that value is not a BPMN correlation key.

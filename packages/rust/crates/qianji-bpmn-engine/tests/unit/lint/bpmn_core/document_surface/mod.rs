@@ -5,6 +5,7 @@ mod callable_io;
 mod choreography;
 mod collaboration;
 mod data;
+mod diagram;
 mod flow_elements;
 mod participants;
 mod process;

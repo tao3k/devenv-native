@@ -56,4 +56,6 @@ pub enum BpmnSubProcessKind {
     Embedded,
     /// One inline transaction shell.
     Transaction,
+    /// One interrupting event subprocess body.
+    EventSubProcess,
 }

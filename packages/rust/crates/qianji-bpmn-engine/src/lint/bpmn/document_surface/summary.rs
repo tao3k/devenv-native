@@ -29,6 +29,7 @@ pub(super) fn snapshot_family_summary(snapshot: &BpmnDocumentSnapshot, family: &
     match family {
         "collaboration" => collaboration_snapshot_summary(snapshot),
         "data" => data_snapshot_summary(snapshot),
+        "diagram" => diagram_snapshot_summary(snapshot),
         _ => json!({ "root": root_snapshot_summary(snapshot) }),
     }
 }
@@ -57,6 +58,34 @@ pub(super) fn root_snapshot_summary(snapshot: &BpmnDocumentSnapshot) -> Value {
         "partner_entity_count": snapshot.root.partner_entity_count,
         "partner_role_count": snapshot.root.partner_role_count,
         "global_task_count": snapshot.root.global_task_count,
+    })
+}
+
+pub(super) fn diagram_snapshot_summary(snapshot: &BpmnDocumentSnapshot) -> Value {
+    let diagrams = snapshot
+        .root
+        .diagrams
+        .iter()
+        .take(SNAPSHOT_EVIDENCE_LIMIT)
+        .map(|diagram| {
+            let shape_count = diagram.plane.as_ref().map_or(0, |plane| plane.shapes.len());
+            let edge_count = diagram.plane.as_ref().map_or(0, |plane| plane.edges.len());
+            json!({
+                "diagram_id": diagram.diagram_id,
+                "name": diagram.name,
+                "resolution": diagram.resolution,
+                "label_style_count": diagram.label_styles.len(),
+                "shape_count": shape_count,
+                "edge_count": edge_count,
+            })
+        })
+        .collect::<Vec<_>>();
+
+    json!({
+        "root": root_snapshot_summary(snapshot),
+        "diagram_count": snapshot.root.diagram_count,
+        "diagrams_truncated": snapshot.root.diagrams.len() > SNAPSHOT_EVIDENCE_LIMIT,
+        "diagrams": diagrams,
     })
 }
 

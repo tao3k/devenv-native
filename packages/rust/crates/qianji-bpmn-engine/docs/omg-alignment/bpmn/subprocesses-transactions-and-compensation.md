@@ -62,7 +62,8 @@ Within that bounded slice, the runtime guarantees:
 
 These nested-scope shapes remain outside the bounded surface:
 
-- event subprocesses, including compensation event subprocesses
+- non-interrupting event subprocesses, compensation event subprocesses, and
+  multiple event subprocesses in one scope
 - recursive call-activity chains
 - non-interrupting timer, message, signal, or conditional boundaries on
   embedded subprocess, call activity, or transaction owners
@@ -72,7 +73,8 @@ These nested-scope shapes remain outside the bounded surface:
   intermediate event paths
 - ad hoc child-process resolution outside the same parsed BPMN package
 - `callActivity calledElement` bindings to top-level global task definitions
-  until a Rust-owned callable binding exists
+  even though those global task definitions are now present in the Rust-owned
+  callable registry
 
 ## Alignment Notes
 

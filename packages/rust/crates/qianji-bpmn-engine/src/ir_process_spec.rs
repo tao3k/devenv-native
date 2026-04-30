@@ -1,3 +1,4 @@
+use crate::ir_data_api::BpmnDataObjectBindingSpec;
 use crate::ir_edge_api::BpmnEdgeSpec;
 use crate::ir_event_api::BpmnEventSpec;
 use crate::ir_index_api::{BpmnIndexRange, BpmnNodeIndex};
@@ -23,6 +24,9 @@ pub struct BpmnProcessSpec {
     /// Bounded compensation handler bindings.
     #[serde(default)]
     pub compensation_handlers: Vec<BpmnCompensationHandlerSpec>,
+    /// Bounded executable process-level BPMN data-object bindings.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub data_object_bindings: Vec<BpmnDataObjectBindingSpec>,
     /// Dense lookup from node index to event-spec index.
     pub event_index_by_node: Vec<Option<u32>>,
     /// Dense lookup from activity node index to compensation-handler binding index.
@@ -76,6 +80,7 @@ impl BpmnProcessSpec {
             edges,
             events,
             compensation_handlers,
+            data_object_bindings: Vec::new(),
             event_index_by_node,
             compensation_handler_index_by_activity,
             boundary_event_offsets,
@@ -85,6 +90,16 @@ impl BpmnProcessSpec {
             outgoing_offsets,
             outgoing_edge_order,
         }
+    }
+
+    /// Attaches bounded executable process-level data-object bindings.
+    #[must_use]
+    pub fn with_data_object_bindings(
+        mut self,
+        data_object_bindings: Vec<BpmnDataObjectBindingSpec>,
+    ) -> Self {
+        self.data_object_bindings = data_object_bindings;
+        self
     }
 
     /// Returns the ordered incoming edge indices for one node.

@@ -135,6 +135,10 @@ fn resolve_supported_escalation_owners<'a>(
             node_id: owner_node_id.as_str(),
             owner_kind: SupportedEscalationOwner::EmbeddedSubProcess,
         }],
+        RawProcessScope::NestedShell {
+            kind: NestedShellKind::EventSubProcess,
+            ..
+        } => Vec::new(),
         RawProcessScope::TopLevel => call_activity_owners
             .get(process.process_id.as_str())
             .map(|owners| {

@@ -1,3 +1,4 @@
+use super::data::{RawDataObjectReferenceSpec, RawDataObjectSpec};
 use super::node::RawNode;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -14,6 +15,8 @@ pub(crate) struct RawProcess {
     pub(crate) nodes: Vec<RawNode>,
     pub(crate) flows: Vec<RawSequenceFlow>,
     pub(crate) associations: Vec<RawAssociation>,
+    pub(crate) data_objects: Vec<RawDataObjectSpec>,
+    pub(crate) data_object_references: Vec<RawDataObjectReferenceSpec>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -30,6 +33,7 @@ pub(crate) enum RawProcessScope {
 pub(crate) enum NestedShellKind {
     EmbeddedSubProcess,
     Transaction,
+    EventSubProcess,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -37,6 +41,7 @@ pub(crate) enum RawSubProcessKind {
     CallActivity,
     EmbeddedSubProcess,
     Transaction,
+    EventSubProcess,
 }
 
 impl RawProcess {
@@ -47,6 +52,8 @@ impl RawProcess {
             nodes: Vec::new(),
             flows: Vec::new(),
             associations: Vec::new(),
+            data_objects: Vec::new(),
+            data_object_references: Vec::new(),
         }
     }
 
@@ -66,6 +73,8 @@ impl RawProcess {
             nodes: Vec::new(),
             flows: Vec::new(),
             associations: Vec::new(),
+            data_objects: Vec::new(),
+            data_object_references: Vec::new(),
         }
     }
 }

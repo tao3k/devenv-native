@@ -825,6 +825,19 @@ pub enum BpmnEngineError {
         /// Missing source variable path.
         source_ref: String,
     },
+    /// Returned when a BPMN `dataObjectReference` points at a missing
+    /// process-level `dataObject`.
+    #[error(
+        "dataObjectReference '{reference_id}' in process '{process_id}' references missing dataObject '{data_object_ref}'"
+    )]
+    UnknownDataObjectReference {
+        /// BPMN process identifier.
+        process_id: String,
+        /// BPMN `dataObjectReference` identifier.
+        reference_id: String,
+        /// Missing BPMN `dataObject` identifier.
+        data_object_ref: String,
+    },
     /// Returned when host-dispatched task completion has no declared standard
     /// BPMN output mapping.
     #[error(

@@ -1,6 +1,7 @@
-use crate::test_support::MustExt as _;
+use crate::test_support::{MustExt as _, data_object_io_bpmn};
 use qianji_bpmn_engine::{
-    BpmnEngineError, BpmnParseOptions, BpmnSourceFile, BpmnTaskInputSource, parse_bpmn_package,
+    BpmnDataObjectBindingSpec, BpmnEngineError, BpmnParseOptions, BpmnSourceFile,
+    BpmnTaskInputSource, parse_bpmn_package,
 };
 
 #[test]
@@ -73,6 +74,71 @@ fn parser_service_task_preserves_native_io_bindings() {
     assert_eq!(task_io.outputs[0].name.as_ref(), "approval");
     assert_eq!(task_io.outputs[0].target_ref.as_ref(), "review.approval");
     assert!(task_io.outputs[0].required);
+}
+
+#[test]
+fn parser_service_task_resolves_data_object_reference_io_bindings() {
+    let package = parse_bpmn_package(
+        &[BpmnSourceFile::new(
+            "service-task-data-object-io.bpmn",
+            data_object_io_bpmn(),
+        )],
+        &BpmnParseOptions::default(),
+    )
+    .must("data object task IO metadata should parse");
+    let process = package
+        .find_process("service_task_data_object_io")
+        .must("process should be present");
+    let task_io = process.nodes[1]
+        .task_io
+        .as_ref()
+        .must("service task should preserve task IO");
+
+    assert_eq!(
+        process.data_object_bindings,
+        vec![
+            BpmnDataObjectBindingSpec::object("OrderData"),
+            BpmnDataObjectBindingSpec::reference("OrderRef", "OrderData"),
+        ]
+    );
+    assert_eq!(task_io.inputs.len(), 1);
+    assert_eq!(task_io.inputs[0].name.as_ref(), "order");
+    assert_eq!(
+        task_io.inputs[0].source,
+        BpmnTaskInputSource::variable("OrderData")
+    );
+    assert_eq!(task_io.outputs.len(), 1);
+    assert_eq!(task_io.outputs[0].name.as_ref(), "decision");
+    assert_eq!(task_io.outputs[0].target_ref.as_ref(), "OrderData");
+}
+
+#[test]
+fn parser_service_task_rejects_unknown_data_object_reference_target() {
+    let error = parse_bpmn_package(
+        &[BpmnSourceFile::new(
+            "unknown-data-object-reference.bpmn",
+            r#"<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" id="pkg_unknown_data_object_reference">
+  <bpmn:process id="unknown_data_object_reference" isExecutable="true">
+    <bpmn:startEvent id="start" />
+    <bpmn:dataObjectReference id="OrderRef" dataObjectRef="MissingOrderData" />
+    <bpmn:endEvent id="done" />
+    <bpmn:sequenceFlow id="flow_start" sourceRef="start" targetRef="done" />
+  </bpmn:process>
+</bpmn:definitions>"#,
+        )],
+        &BpmnParseOptions::default(),
+    )
+    .must_err("dataObjectReference should require an existing dataObject");
+
+    assert_eq!(
+        error,
+        BpmnEngineError::UnknownDataObjectReference {
+            process_id: "unknown_data_object_reference".to_string(),
+            reference_id: "OrderRef".to_string(),
+            data_object_ref: "MissingOrderData".to_string(),
+        }
+    );
 }
 
 #[test]

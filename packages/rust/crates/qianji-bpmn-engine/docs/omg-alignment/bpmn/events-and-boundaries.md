@@ -90,8 +90,9 @@ These shapes remain outside the bounded surface:
   boundary, and non-interrupting boundary shapes are rejected with stable
   parser/lint diagnostics
 - non-interrupting conditional boundaries on subprocess-like owners and
-  conditional event subprocess triggers
-- event subprocesses
+  unsupported event-subprocess shapes
+- non-interrupting event subprocesses, compensation event subprocesses, and
+  multiple event subprocesses in one scope
 - broader message, signal, timer, or conditional boundary families on
   subprocess-like owners beyond one interrupting embedded subprocess owner that may
   optionally pair that boundary with one or more interrupting error

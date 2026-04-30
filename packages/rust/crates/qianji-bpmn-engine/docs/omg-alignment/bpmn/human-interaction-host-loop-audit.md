@@ -1,8 +1,7 @@
 # Human Interaction Alignment Audit
 
 This note records the current Qianji alignment position against OMG BPMN 2.0.2
-human interaction semantics and the SpiffWorkflow reference implementation
-pattern.
+human interaction semantics and a host-loop reference implementation pattern.
 
 ## Source Anchors
 
@@ -17,7 +16,7 @@ pattern.
 - `manualTask` represents work outside runtime management; in an executable
   engine, Qianji still exposes it as host-visible pending work so operators can
   acknowledge or record the external action.
-- SpiffWorkflow's useful implementation pattern is the execution loop: run
+- A useful host-loop implementation pattern is the execution loop: run
   READY non-manual engine tasks, expose READY manual tasks to an application,
   let the application update task data, run the human task, then refresh
   WAITING tasks.
@@ -55,7 +54,7 @@ interaction:
   checkpoints that omit it. Events do not store submitted completion payload
   data.
 
-This matches SpiffWorkflow's strongest practice: the engine owns state
+This matches the strongest host-loop practice: the engine owns state
 progression and exposes human work as a task boundary; the application only
 renders, collects data, updates the task payload, and asks the engine to
 continue.
@@ -92,7 +91,7 @@ UI-only filters and not as full WSHumanTask authorization.
 
 ### 2.1 Lane Metadata and Filtering
 
-SpiffWorkflow exposes lane metadata on task specs and lets host code filter
+Host-loop engines can expose lane metadata on task specs and let host code filter
 ready tasks by lane. Qianji now preserves BPMN lane membership as passive
 metadata on user/manual pending host work and allows worklists to filter by
 lane id or lane name. This is host routing/display metadata only: it does not
@@ -123,7 +122,7 @@ native BPMN IO metadata.
 
 ### 4. Host Loop Discipline
 
-SpiffWorkflow keeps a clear host loop: engine advances until human input is
+A disciplined host loop keeps a clear boundary: engine advances until human input is
 required, the host updates task data, then the engine continues. Qianji has the
 pieces, but downstream adapters must not re-run graph logic or infer output
 mapping locally.
@@ -134,7 +133,7 @@ the typed task-complete surface.
 
 ### 5. Task Data Shape
 
-SpiffWorkflow lets the application choose whether form data becomes individual
+A host-rendered form model can choose whether form data becomes individual
 task-data keys or one nested object. Qianji currently validates declared fields
 and merges them into workflow variables. That is simple and operationally
 useful, but nested form-output support may be needed later for richer forms.

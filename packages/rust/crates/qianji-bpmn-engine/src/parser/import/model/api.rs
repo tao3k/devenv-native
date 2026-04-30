@@ -1,4 +1,5 @@
 pub(in crate::parser::import) use super::capture::{CaptureTarget, ProcessChildStartOutcome};
+pub(crate) use super::data::{RawDataObjectReferenceSpec, RawDataObjectSpec};
 pub(crate) use super::event::{RawEventSpec, RawTimerSpec};
 pub(crate) use super::human_task::{
     RawHumanTaskAssignmentSpec, RawHumanTaskChoiceSpec, RawHumanTaskFormSpec,

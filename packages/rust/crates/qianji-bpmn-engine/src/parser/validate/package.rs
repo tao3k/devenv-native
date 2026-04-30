@@ -11,7 +11,7 @@ use crate::ir_event_api::BpmnEventKind;
 use crate::ir_node_api::{BpmnGatewayKind, BpmnNodeKind};
 use crate::parser::import::{
     NestedShellKind, RawAssociation, RawNode, RawPackageDocument, RawProcess, RawProcessScope,
-    RawRepeatSpec, RawSequenceFlow,
+    RawRepeatSpec, RawSequenceFlow, RawSubProcessKind,
 };
 use crate::repeat_condition::{
     is_supported_gateway_condition, is_supported_multi_instance_completion_condition,
@@ -147,6 +147,7 @@ fn nested_shell_start_event_detail(kind: NestedShellKind) -> &'static str {
     match kind {
         NestedShellKind::EmbeddedSubProcess => "embedded_subprocess_start_event_count",
         NestedShellKind::Transaction => "transaction_start_event_count",
+        NestedShellKind::EventSubProcess => "event_subprocess_start_event_count",
     }
 }
 
@@ -154,6 +155,7 @@ fn nested_shell_missing_end_detail(kind: NestedShellKind) -> &'static str {
     match kind {
         NestedShellKind::EmbeddedSubProcess => "embedded_subprocess_missing_end_event",
         NestedShellKind::Transaction => "transaction_missing_end_event",
+        NestedShellKind::EventSubProcess => "event_subprocess_missing_end_event",
     }
 }
 
@@ -165,6 +167,7 @@ fn validate_process_topology(
     call_activity_owners: &HashMap<&str, Vec<CallActivityOwner<'_>>>,
 ) -> Result<()> {
     let mut boundary_attachments = HashMap::new();
+    validate_event_subprocesses(process, process_by_id)?;
     validate_transaction_cancel_path(process, process_by_id)?;
     validate_supported_error_end_paths(process, process_by_id, call_activity_owners)?;
     validate_supported_escalation_throw_paths(process, process_by_id, call_activity_owners)?;
@@ -176,6 +179,106 @@ fn validate_process_topology(
         if node.kind == BpmnNodeKind::BoundaryEvent {
             validate_boundary_event(process, node, node_ids, &mut boundary_attachments)?;
         }
+    }
+    Ok(())
+}
+
+fn validate_event_subprocesses(
+    process: &RawProcess,
+    process_by_id: &HashMap<&str, &RawProcess>,
+) -> Result<()> {
+    let event_subprocesses = process
+        .nodes
+        .iter()
+        .filter(|node| node.subprocess_kind == Some(RawSubProcessKind::EventSubProcess))
+        .collect::<Vec<_>>();
+    if event_subprocesses.len() > 1 {
+        return Err(BpmnEngineError::UnsupportedSubProcessConfiguration {
+            process_id: process.process_id.clone(),
+            node_id: event_subprocesses[1].bpmn_id.clone(),
+            detail: "multiple_event_subprocesses",
+        });
+    }
+
+    for owner in event_subprocesses {
+        validate_event_subprocess_owner(process, owner, process_by_id)?;
+    }
+    Ok(())
+}
+
+fn validate_event_subprocess_owner(
+    process: &RawProcess,
+    owner: &RawNode,
+    process_by_id: &HashMap<&str, &RawProcess>,
+) -> Result<()> {
+    if process
+        .flows
+        .iter()
+        .any(|flow| flow.source_ref == owner.bpmn_id || flow.target_ref == owner.bpmn_id)
+    {
+        return Err(BpmnEngineError::UnsupportedSubProcessConfiguration {
+            process_id: process.process_id.clone(),
+            node_id: owner.bpmn_id.clone(),
+            detail: "event_subprocess_sequence_flow",
+        });
+    }
+
+    let called_process_id = owner.called_process_ref.as_ref().ok_or_else(|| {
+        BpmnEngineError::UnsupportedSubProcessConfiguration {
+            process_id: process.process_id.clone(),
+            node_id: owner.bpmn_id.clone(),
+            detail: "missing_event_subprocess_body",
+        }
+    })?;
+    let child = process_by_id
+        .get(called_process_id.as_str())
+        .ok_or_else(|| BpmnEngineError::UnsupportedSubProcessConfiguration {
+            process_id: process.process_id.clone(),
+            node_id: owner.bpmn_id.clone(),
+            detail: "missing_event_subprocess_body",
+        })?;
+    let start = child
+        .nodes
+        .iter()
+        .find(|node| node.kind == BpmnNodeKind::StartEvent)
+        .ok_or_else(|| BpmnEngineError::UnsupportedSubProcessConfiguration {
+            process_id: process.process_id.clone(),
+            node_id: owner.bpmn_id.clone(),
+            detail: "event_subprocess_start_event_count",
+        })?;
+    if !start.cancel_activity {
+        return Err(BpmnEngineError::UnsupportedSubProcessConfiguration {
+            process_id: process.process_id.clone(),
+            node_id: owner.bpmn_id.clone(),
+            detail: "event_subprocess_non_interrupting",
+        });
+    }
+    let Some(event) = start.event.as_ref() else {
+        return Err(BpmnEngineError::UnsupportedSubProcessConfiguration {
+            process_id: process.process_id.clone(),
+            node_id: owner.bpmn_id.clone(),
+            detail: "event_subprocess_start_event_definition",
+        });
+    };
+    if event.kind == BpmnEventKind::Compensation {
+        return Err(BpmnEngineError::UnsupportedSubProcessConfiguration {
+            process_id: process.process_id.clone(),
+            node_id: owner.bpmn_id.clone(),
+            detail: "event_subprocess_compensation_deferred",
+        });
+    }
+    if !matches!(
+        event.kind,
+        BpmnEventKind::Message
+            | BpmnEventKind::Signal
+            | BpmnEventKind::Timer
+            | BpmnEventKind::Conditional
+    ) {
+        return Err(BpmnEngineError::UnsupportedSubProcessConfiguration {
+            process_id: process.process_id.clone(),
+            node_id: owner.bpmn_id.clone(),
+            detail: "event_subprocess_start_event_definition",
+        });
     }
     Ok(())
 }

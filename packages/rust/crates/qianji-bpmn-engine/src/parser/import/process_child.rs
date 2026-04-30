@@ -8,8 +8,8 @@ use crate::parser::import::attributes::{
 };
 use crate::parser::import::model::ProcessChildStartOutcome;
 use crate::parser::import::{
-    NestedShellKind, RawAssociation, RawNode, RawProcess, RawScriptTaskSpec, RawSequenceFlow,
-    RawSubProcessKind,
+    NestedShellKind, RawAssociation, RawDataObjectReferenceSpec, RawDataObjectSpec, RawNode,
+    RawProcess, RawScriptTaskSpec, RawSequenceFlow, RawSubProcessKind,
 };
 use quick_xml::Reader;
 use quick_xml::events::BytesStart;
@@ -26,7 +26,7 @@ pub(in crate::parser::import) fn handle_process_child_start_tag(
     if !parent.is_some_and(is_process_scope_tag) {
         return Ok(ProcessChildStartOutcome::NotHandled);
     }
-    if let Some(kind) = nested_shell_kind(tag) {
+    if let Some(kind) = nested_shell_kind(reader, event, tag)? {
         open_nested_shell(source, reader, event, tag, kind, process_stack)?;
         return Ok(ProcessChildStartOutcome::OpenedNestedShell);
     }
@@ -37,6 +37,9 @@ pub(in crate::parser::import) fn handle_process_child_start_tag(
         return Ok(ProcessChildStartOutcome::Handled);
     }
     if push_process_child_association(source, reader, event, tag, process_stack)? {
+        return Ok(ProcessChildStartOutcome::Handled);
+    }
+    if push_process_child_data_object(source, reader, event, tag, process_stack)? {
         return Ok(ProcessChildStartOutcome::Handled);
     }
     if is_ignored_process_child(tag) {
@@ -66,15 +69,6 @@ fn open_nested_shell(
         .process_id
         .clone();
     let bpmn_id = required_attribute(source, reader, event, tag, "id")?;
-    if kind == NestedShellKind::EmbeddedSubProcess
-        && boolean_attribute_value(reader, event, "triggeredByEvent")?.unwrap_or(false)
-    {
-        return Err(BpmnEngineError::UnsupportedSubProcessConfiguration {
-            process_id: parent_process_id,
-            node_id: bpmn_id,
-            detail: "event_subprocess",
-        });
-    }
     let decision = decision_reference(reader, event)?;
     let synthetic_process_id =
         synthetic_nested_shell_process_id(kind, &parent_process_id, &bpmn_id);
@@ -163,10 +157,12 @@ fn push_process_child_node(
     } else {
         None
     };
-    let cancel_activity = if kind == BpmnNodeKind::BoundaryEvent {
-        cancel_activity_value(reader, event)?
-    } else {
-        true
+    let cancel_activity = match kind {
+        BpmnNodeKind::BoundaryEvent => cancel_activity_value(reader, event)?,
+        BpmnNodeKind::StartEvent => {
+            boolean_attribute_value(reader, event, "isInterrupting")?.unwrap_or(true)
+        }
+        _ => true,
     };
     let is_for_compensation =
         boolean_attribute_value(reader, event, "isForCompensation")?.unwrap_or(false);
@@ -239,6 +235,40 @@ fn push_process_child_association(
     Ok(true)
 }
 
+fn push_process_child_data_object(
+    source: &BpmnSourceFile,
+    reader: &Reader<&[u8]>,
+    event: &BytesStart<'_>,
+    tag: &str,
+    process_stack: &mut [RawProcess],
+) -> Result<bool> {
+    let process = current_process_mut(process_stack, "bpmn_process_child_without_process_frame")?;
+    match tag {
+        "dataObject" => {
+            process.data_objects.push(RawDataObjectSpec {
+                id: required_attribute(source, reader, event, tag, "id")?,
+            });
+            Ok(true)
+        }
+        "dataObjectReference" => {
+            process
+                .data_object_references
+                .push(RawDataObjectReferenceSpec {
+                    id: required_attribute(source, reader, event, tag, "id")?,
+                    data_object_ref: required_attribute(
+                        source,
+                        reader,
+                        event,
+                        tag,
+                        "dataObjectRef",
+                    )?,
+                });
+            Ok(true)
+        }
+        _ => Ok(false),
+    }
+}
+
 fn supported_node_kind(tag: &str) -> Option<(BpmnNodeKind, Option<BpmnGatewayKind>)> {
     match tag {
         "startEvent" => Some((BpmnNodeKind::StartEvent, None)),
@@ -266,12 +296,21 @@ pub(in crate::parser::import) fn is_supported_node_tag(tag: &str) -> bool {
     supported_node_kind(tag).is_some()
 }
 
-fn nested_shell_kind(tag: &str) -> Option<NestedShellKind> {
-    match tag {
+fn nested_shell_kind(
+    reader: &Reader<&[u8]>,
+    event: &BytesStart<'_>,
+    tag: &str,
+) -> Result<Option<NestedShellKind>> {
+    Ok(match tag {
+        "subProcess"
+            if boolean_attribute_value(reader, event, "triggeredByEvent")?.unwrap_or(false) =>
+        {
+            Some(NestedShellKind::EventSubProcess)
+        }
         "subProcess" => Some(NestedShellKind::EmbeddedSubProcess),
         "transaction" => Some(NestedShellKind::Transaction),
         _ => None,
-    }
+    })
 }
 
 fn synthetic_nested_shell_process_id(
@@ -282,6 +321,7 @@ fn synthetic_nested_shell_process_id(
     let prefix = match kind {
         NestedShellKind::EmbeddedSubProcess => "__embedded_subprocess__",
         NestedShellKind::Transaction => "__transaction__",
+        NestedShellKind::EventSubProcess => "__event_subprocess__",
     };
     format!("{prefix}::{parent_process_id}::{node_id}")
 }
@@ -290,6 +330,7 @@ fn raw_subprocess_kind_for_nested_shell(kind: NestedShellKind) -> RawSubProcessK
     match kind {
         NestedShellKind::EmbeddedSubProcess => RawSubProcessKind::EmbeddedSubProcess,
         NestedShellKind::Transaction => RawSubProcessKind::Transaction,
+        NestedShellKind::EventSubProcess => RawSubProcessKind::EventSubProcess,
     }
 }
 
@@ -301,6 +342,13 @@ fn is_ignored_process_child(tag: &str) -> bool {
             | "incoming"
             | "outgoing"
             | "laneSet"
+            | "supports"
+            | "property"
+            | "correlationSubscription"
+            | "ioSpecification"
+            | "ioBinding"
+            | "dataInputAssociation"
+            | "dataOutputAssociation"
             | "textAnnotation"
     )
 }

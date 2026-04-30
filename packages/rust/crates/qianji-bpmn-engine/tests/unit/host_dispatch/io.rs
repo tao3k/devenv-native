@@ -1,9 +1,11 @@
-use crate::test_support::MustExt as _;
+use crate::test_support::{MustExt as _, data_object_io_bpmn};
 use qianji_bpmn_engine::{
     BpmnEdgeSpec, BpmnEventKind, BpmnEventSpec, BpmnInstanceInit, BpmnNodeKind, BpmnNodeSpec,
-    BpmnPackage, BpmnProcessSpec, BpmnScriptTaskSpec, BpmnTaskInputBinding, BpmnTaskInputSource,
-    BpmnTaskIoSpec, BpmnTaskOutputBinding, DmnDecisionRef, PendingHostWorkRequest, ProcessKey,
-    advance_instance, build_pending_host_work_request, create_instance,
+    BpmnPackage, BpmnParseOptions, BpmnProcessSpec, BpmnScriptTaskSpec, BpmnSourceFile,
+    BpmnTaskInputBinding, BpmnTaskInputSource, BpmnTaskIoSpec, BpmnTaskOutputBinding,
+    DmnDecisionRef, PendingHostWorkRequest, PendingHostWorkResult, ProcessKey, ServiceTaskOutcome,
+    advance_instance, apply_pending_host_work_result, build_pending_host_work_request,
+    create_instance, parse_bpmn_package,
 };
 use serde_json::json;
 use std::sync::Arc;
@@ -64,6 +66,60 @@ async fn host_dispatch_service_request_materializes_task_io_metadata() {
         request.output_bindings,
         vec![BpmnTaskOutputBinding::new("approval", "review.approval")]
     );
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn host_dispatch_and_resume_copy_through_data_object_reference_associations() {
+    let package = Arc::new(
+        parse_bpmn_package(
+            &[BpmnSourceFile::new(
+                "service-task-data-object-io.bpmn",
+                data_object_io_bpmn(),
+            )],
+            &BpmnParseOptions::default(),
+        )
+        .must("data object IO BPMN should parse"),
+    );
+    let mut instance = create_instance(
+        Arc::clone(&package),
+        "service_task_data_object_io",
+        BpmnInstanceInit::new(
+            "wf_data_object_io",
+            json!({ "OrderData": { "amount": 7 } }),
+            10,
+        ),
+    )
+    .must("instance should be created");
+    let host = super::support::StubHost::new(55);
+
+    advance_instance(package.as_ref(), &mut instance, &host)
+        .await
+        .must("initial advance should block on host work");
+    let request =
+        build_pending_host_work_request(&instance).must("blocked instance should emit request");
+    let PendingHostWorkRequest::Service(request) = request else {
+        panic!("expected service request");
+    };
+
+    assert_eq!(request.inputs, json!({ "order": { "amount": 7 } }));
+    assert_eq!(
+        request.output_bindings,
+        vec![BpmnTaskOutputBinding::new("decision", "OrderData")]
+    );
+    let token_id = request.token_id;
+
+    apply_pending_host_work_result(
+        package.as_ref(),
+        &mut instance,
+        token_id,
+        PendingHostWorkResult::Service(ServiceTaskOutcome {
+            data: json!({ "decision": { "approved": true } }),
+        }),
+        100,
+    )
+    .must("data object target should receive mapped completion data");
+
+    assert_eq!(instance.variables["OrderData"], json!({ "approved": true }));
 }
 
 #[tokio::test(flavor = "current_thread")]

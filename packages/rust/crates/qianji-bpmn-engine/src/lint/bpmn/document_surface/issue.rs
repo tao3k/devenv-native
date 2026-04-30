@@ -1,6 +1,10 @@
 use super::{BpmnSourceFile, LintIssue, document_surface_evidence};
 
-pub(super) fn issue_for_tag(source: &BpmnSourceFile, tag: &str) -> Option<LintIssue> {
+pub(super) fn issue_for_tag(
+    source: &BpmnSourceFile,
+    tag: &str,
+    parent: Option<&str>,
+) -> Option<LintIssue> {
     match tag {
         "collaboration"
         | "partnerEntity"
@@ -13,8 +17,12 @@ pub(super) fn issue_for_tag(source: &BpmnSourceFile, tag: &str) -> Option<LintIs
         | "choreographyTask"
         | "subChoreography"
         | "callChoreography" => Some(collaboration_issue(source, tag)),
-        "dataObject" | "dataObjectReference" | "dataStore" | "dataStoreReference" => {
+        "dataStore" | "dataStoreReference" => Some(data_artifact_issue(source, tag)),
+        "ioSpecification" if parent.is_some_and(|parent| parent == "process") => {
             Some(data_artifact_issue(source, tag))
+        }
+        "BPMNDiagram" | "BPMNPlane" | "BPMNShape" | "BPMNEdge" | "BPMNLabel" | "BPMNLabelStyle" => {
+            Some(diagram_issue(source, tag))
         }
         _ => None,
     }
@@ -43,17 +51,35 @@ pub(super) fn data_artifact_issue(source: &BpmnSourceFile, tag: &str) -> LintIss
     let source_id = &source.source_id;
     LintIssue::new(
         "bpmn.unsupported_data_surface",
-        "BPMN data-object and data-store semantics are deferred",
+        "BPMN data-store persistence semantics are deferred",
         format!("Source '{source_id}' contains BPMN data element '<{tag}>'."),
-        "The bounded engine keeps workflow data in JSON variables and host payloads; it does not yet execute BPMN data objects or data stores.",
+        "The bounded engine can copy through process-level data objects, but it does not execute BPMN data stores or persistent store references.",
         vec![
             "Represent runtime data through workflow variables, host-work input/output payloads, or DMN decision inputs.".to_string(),
-            "Remove `<bpmn:dataObject*>` and `<bpmn:dataStore*>` dependencies from the executable slice.".to_string(),
-            "If the data artifact is documentation-only, keep that meaning outside the executable BPMN subset.".to_string(),
+            "Use process-level `<bpmn:dataObject>` and `<bpmn:dataObjectReference>` only for bounded in-instance copy-in/copy-out.".to_string(),
+            "Remove `<bpmn:dataStore*>` dependencies from the executable slice until a storage policy exists.".to_string(),
         ],
         format!(
-            "Repair BPMN source '{source_id}' by replacing `<{tag}>` execution semantics with explicit JSON variables, host-work payload fields, or DMN inputs. Preserve workflow intent, but remove BPMN data-object or data-store dependencies from this bounded executable slice."
+            "Repair BPMN source '{source_id}' by replacing `<{tag}>` persistence semantics with explicit JSON variables, host-work payload fields, or DMN inputs. Preserve workflow intent, but remove BPMN data-store dependencies from this bounded executable slice."
         ),
         document_surface_evidence(source, tag, "data"),
+    )
+}
+
+pub(super) fn diagram_issue(source: &BpmnSourceFile, tag: &str) -> LintIssue {
+    let source_id = &source.source_id;
+    LintIssue::new(
+        "bpmn.metadata_di_surface",
+        "BPMN diagram interchange is metadata-only",
+        format!("Source '{source_id}' contains BPMN diagram-interchange element '<{tag}>'."),
+        "The bounded engine preserves BPMN DI layout metadata for round-trip compatibility, but runtime execution does not depend on diagram coordinates, shapes, or label styles.",
+        vec![
+            "Keep BPMN DI blocks when interchange or visual round-tripping matters.".to_string(),
+            "Do not rely on BPMN DI shapes, edges, bounds, waypoints, labels, or fonts for executable runtime semantics.".to_string(),
+        ],
+        format!(
+            "Treat `<{tag}>` in BPMN source '{source_id}' as diagram-interchange metadata only. Preserve the layout block for editor compatibility, and keep executable behavior in standard process flow, events, tasks, gateways, and data mappings."
+        ),
+        document_surface_evidence(source, tag, "diagram"),
     )
 }

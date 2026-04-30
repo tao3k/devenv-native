@@ -5,8 +5,10 @@ use crate::ir::BpmnPackage;
 use crate::ir_index_api::BpmnNodeIndex;
 use crate::ir_process_spec::BpmnProcessSpec;
 use crate::runtime::lifecycle::{
-    cancel_attached_boundary_siblings, conditional_event_is_satisfied, merge_output_data,
-    record_transition, resolve_single_outgoing_edge, set_active_node_index, set_node_status,
+    apply_current_frame_event_subprocess_wait, apply_parent_frame_event_subprocess_wait,
+    cancel_attached_boundary_siblings, conditional_event_is_satisfied, is_event_subprocess_wait,
+    merge_output_data, record_transition, resolve_single_outgoing_edge, set_active_node_index,
+    set_node_status,
 };
 use crate::runtime::{
     BpmnAdvanceOutcome, BpmnInstanceState, InstanceLifecycle, NodeRuntimeStatus,
@@ -103,35 +105,37 @@ pub(crate) fn apply_event_poll_outcome_impl(
         return Ok(BpmnAdvanceOutcome::WaitingExternalEvent);
     }
 
+    apply_ready_event_poll_wait(
+        package,
+        process,
+        instance,
+        &wait,
+        wait_set.source,
+        polled_at_ms,
+    )
+}
+
+fn apply_ready_event_poll_wait(
+    package: &BpmnPackage,
+    process: &BpmnProcessSpec,
+    instance: &mut BpmnInstanceState,
+    wait: &RuntimeWaitRegistration,
+    source: EventPollWaitSource,
+    polled_at_ms: u64,
+) -> Result<BpmnAdvanceOutcome> {
     if let Some(blocking_node_index) = wait.blocking_node_index {
-        let boundary_node = &process.nodes[wait.node_index as usize];
-        if boundary_node.cancel_activity {
-            if wait_set.source == EventPollWaitSource::ParentFrame {
-                return apply_interrupting_parent_frame_boundary_wait(
-                    package,
-                    instance,
-                    &wait,
-                    blocking_node_index,
-                    polled_at_ms,
-                );
-            }
-            return apply_interrupting_boundary_wait(
-                process,
-                instance,
-                &wait,
-                blocking_node_index,
-                polled_at_ms,
-            );
-        }
-        if wait_set.source == EventPollWaitSource::ParentFrame {
-            return Err(BpmnEngineError::UnsupportedOperation {
-                operation: "apply_event_poll_outcome_parent_frame_non_interrupting_boundary",
-            });
-        }
-        return apply_non_interrupting_boundary_wait(process, instance, &wait, polled_at_ms);
+        return apply_blocking_event_poll_wait(
+            package,
+            process,
+            instance,
+            wait,
+            source,
+            blocking_node_index,
+            polled_at_ms,
+        );
     }
 
-    if wait_set.source == EventPollWaitSource::ParentFrame {
+    if source == EventPollWaitSource::ParentFrame {
         return Err(BpmnEngineError::UnsupportedOperation {
             operation: "apply_event_poll_outcome_parent_frame_standalone_wait",
         });
@@ -142,11 +146,77 @@ pub(crate) fn apply_event_poll_outcome_impl(
             process,
             instance,
             &competition,
-            &wait,
+            wait,
             polled_at_ms,
         );
     }
 
+    apply_standalone_event_poll_wait(process, instance, wait, polled_at_ms)
+}
+
+fn apply_blocking_event_poll_wait(
+    package: &BpmnPackage,
+    process: &BpmnProcessSpec,
+    instance: &mut BpmnInstanceState,
+    wait: &RuntimeWaitRegistration,
+    source: EventPollWaitSource,
+    blocking_node_index: BpmnNodeIndex,
+    polled_at_ms: u64,
+) -> Result<BpmnAdvanceOutcome> {
+    if is_event_subprocess_wait(process, blocking_node_index) {
+        if source == EventPollWaitSource::ParentFrame {
+            return apply_parent_frame_event_subprocess_wait(
+                package,
+                instance,
+                wait,
+                blocking_node_index,
+                polled_at_ms,
+            );
+        }
+        return apply_current_frame_event_subprocess_wait(
+            package,
+            instance,
+            wait,
+            blocking_node_index,
+            polled_at_ms,
+        );
+    }
+
+    let boundary_node = &process.nodes[wait.node_index as usize];
+    if boundary_node.cancel_activity {
+        if source == EventPollWaitSource::ParentFrame {
+            return apply_interrupting_parent_frame_boundary_wait(
+                package,
+                instance,
+                wait,
+                blocking_node_index,
+                polled_at_ms,
+            );
+        }
+        return apply_interrupting_boundary_wait(
+            process,
+            instance,
+            wait,
+            blocking_node_index,
+            polled_at_ms,
+        );
+    }
+
+    if source == EventPollWaitSource::ParentFrame {
+        return Err(BpmnEngineError::UnsupportedOperation {
+            operation: "apply_event_poll_outcome_parent_frame_non_interrupting_boundary",
+        });
+    }
+
+    apply_non_interrupting_boundary_wait(process, instance, wait, polled_at_ms)
+}
+
+fn apply_standalone_event_poll_wait(
+    process: &BpmnProcessSpec,
+    instance: &mut BpmnInstanceState,
+    wait: &RuntimeWaitRegistration,
+    polled_at_ms: u64,
+) -> Result<BpmnAdvanceOutcome> {
     let Some(wait_token_index) = active_token_index(instance, wait.node_index) else {
         return Err(BpmnEngineError::UnsupportedOperation {
             operation: "apply_event_poll_outcome_wait_missing_token",
@@ -160,7 +230,6 @@ pub(crate) fn apply_event_poll_outcome_impl(
     if instance.waits.is_empty() {
         instance.suspend_reason = None;
     }
-
     let edge_index =
         resolve_single_outgoing_edge(process, wait.node_index, "apply_event_poll_outcome_routing")?;
     let next_node_index = process.edges[edge_index as usize].to;

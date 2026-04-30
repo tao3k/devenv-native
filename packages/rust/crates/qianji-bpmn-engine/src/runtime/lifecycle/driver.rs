@@ -5,7 +5,7 @@ use super::scope::{
     JoinRuntimeState, NodeRuntimeStatus, Result, plan_frontier_runtime_action,
     resolve_process_for_instance,
 };
-use super::{advance, call_activity, state};
+use super::{advance, call_activity, event_subprocess, state};
 use std::collections::HashMap;
 
 pub(crate) async fn advance_instance_impl<H: BpmnHostBridge>(
@@ -32,6 +32,7 @@ pub(crate) async fn advance_instance_impl<H: BpmnHostBridge>(
         let process = resolve_process_for_instance(package, instance)?;
         if call_activity::can_bootstrap_start_token(instance) {
             call_activity::bootstrap_start_token(process, instance, host.now_unix_ms())?;
+            event_subprocess::arm_event_subprocess_waits(package, process, instance)?;
         } else {
             return Err(BpmnEngineError::UnsupportedOperation {
                 operation: "advance_instance_missing_frontier",

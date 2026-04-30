@@ -75,7 +75,7 @@ fn normalize_node(
         }
         None => spec,
     };
-    let spec = match normalize_node_task_io(node) {
+    let spec = match normalize_node_task_io(raw, node) {
         Some(task_io) => spec.with_task_io(task_io),
         None => spec,
     };
@@ -188,6 +188,7 @@ fn normalize_subprocess_kind(kind: RawSubProcessKind) -> BpmnSubProcessKind {
         RawSubProcessKind::CallActivity => BpmnSubProcessKind::CallActivity,
         RawSubProcessKind::EmbeddedSubProcess => BpmnSubProcessKind::Embedded,
         RawSubProcessKind::Transaction => BpmnSubProcessKind::Transaction,
+        RawSubProcessKind::EventSubProcess => BpmnSubProcessKind::EventSubProcess,
     }
 }
 
@@ -195,41 +196,64 @@ fn normalize_script_task(raw: &RawScriptTaskSpec) -> BpmnScriptTaskSpec {
     BpmnScriptTaskSpec::new(raw.script_format.as_deref(), raw.script_body.as_deref())
 }
 
-fn normalize_node_task_io(node: &RawNode) -> Option<BpmnTaskIoSpec> {
-    node.task_io.as_ref().map(normalize_task_io).or_else(|| {
-        node.native_human_task_io
-            .as_ref()
-            .and_then(normalize_human_native_task_io)
-    })
+fn normalize_node_task_io(raw_process: &RawProcess, node: &RawNode) -> Option<BpmnTaskIoSpec> {
+    node.task_io
+        .as_ref()
+        .map(|task_io| normalize_task_io(raw_process, task_io))
+        .or_else(|| {
+            node.native_human_task_io
+                .as_ref()
+                .and_then(|task_io| normalize_human_native_task_io(raw_process, task_io))
+        })
 }
 
-fn normalize_task_io(raw: &RawTaskIoSpec) -> BpmnTaskIoSpec {
+fn normalize_task_io(raw_process: &RawProcess, raw: &RawTaskIoSpec) -> BpmnTaskIoSpec {
     let mut task_io = BpmnTaskIoSpec::new();
     for input in &raw.inputs {
-        task_io = task_io.with_input(normalize_task_input(input));
+        task_io = task_io.with_input(normalize_task_input(raw_process, input));
     }
     for output in &raw.outputs {
-        task_io = task_io.with_output(normalize_task_output(output));
+        task_io = task_io.with_output(normalize_task_output(raw_process, output));
     }
     task_io
 }
 
-fn normalize_task_input(raw: &RawTaskInputBinding) -> BpmnTaskInputBinding {
-    BpmnTaskInputBinding::new(&raw.name, normalize_task_input_source(&raw.source))
+fn normalize_task_input(
+    raw_process: &RawProcess,
+    raw: &RawTaskInputBinding,
+) -> BpmnTaskInputBinding {
+    BpmnTaskInputBinding::new(
+        &raw.name,
+        normalize_task_input_source(raw_process, &raw.source),
+    )
 }
 
-fn normalize_task_input_source(raw: &RawTaskInputSource) -> BpmnTaskInputSource {
+fn normalize_task_input_source(
+    raw_process: &RawProcess,
+    raw: &RawTaskInputSource,
+) -> BpmnTaskInputSource {
     match raw {
-        RawTaskInputSource::Variable { source_ref } => BpmnTaskInputSource::variable(source_ref),
+        RawTaskInputSource::Variable { source_ref } => {
+            BpmnTaskInputSource::variable(data_object_variable_ref(raw_process, source_ref))
+        }
         RawTaskInputSource::Literal { value } => BpmnTaskInputSource::literal(value),
     }
 }
 
-fn normalize_task_output(raw: &RawTaskOutputBinding) -> BpmnTaskOutputBinding {
-    BpmnTaskOutputBinding::new(&raw.name, &raw.target_ref)
+fn normalize_task_output(
+    raw_process: &RawProcess,
+    raw: &RawTaskOutputBinding,
+) -> BpmnTaskOutputBinding {
+    BpmnTaskOutputBinding::new(
+        &raw.name,
+        data_object_variable_ref(raw_process, &raw.target_ref),
+    )
 }
 
-fn normalize_human_native_task_io(raw: &RawHumanTaskNativeIoSpec) -> Option<BpmnTaskIoSpec> {
+fn normalize_human_native_task_io(
+    raw_process: &RawProcess,
+    raw: &RawHumanTaskNativeIoSpec,
+) -> Option<BpmnTaskIoSpec> {
     let mut task_io = BpmnTaskIoSpec::new();
     if let Some(interaction_type) = &raw.interaction_type {
         task_io = task_io.with_input(BpmnTaskInputBinding::new(
@@ -245,7 +269,7 @@ fn normalize_human_native_task_io(raw: &RawHumanTaskNativeIoSpec) -> Option<Bpmn
         (Some(question_ref), _, _) => {
             task_io = task_io.with_input(BpmnTaskInputBinding::new(
                 "question",
-                BpmnTaskInputSource::variable(question_ref),
+                BpmnTaskInputSource::variable(data_object_variable_ref(raw_process, question_ref)),
             ));
         }
         (None, Some(question_text), _) => {
@@ -265,7 +289,7 @@ fn normalize_human_native_task_io(raw: &RawHumanTaskNativeIoSpec) -> Option<Bpmn
     if let Some(choices_ref) = &raw.choices_ref {
         task_io = task_io.with_input(BpmnTaskInputBinding::new(
             "choices",
-            BpmnTaskInputSource::variable(choices_ref),
+            BpmnTaskInputSource::variable(data_object_variable_ref(raw_process, choices_ref)),
         ));
     } else if !raw.choices.is_empty() {
         task_io = task_io.with_input(BpmnTaskInputBinding::new(
@@ -280,13 +304,33 @@ fn normalize_human_native_task_io(raw: &RawHumanTaskNativeIoSpec) -> Option<Bpmn
         ));
     }
     if let Some(result_output) = &raw.result_output {
-        task_io = task_io.with_output(BpmnTaskOutputBinding::new("answer", result_output));
+        task_io = task_io.with_output(BpmnTaskOutputBinding::new(
+            "answer",
+            data_object_variable_ref(raw_process, result_output),
+        ));
     }
     if task_io.inputs.is_empty() && task_io.outputs.is_empty() {
         None
     } else {
         Some(task_io)
     }
+}
+
+fn data_object_variable_ref<'a>(raw_process: &'a RawProcess, reference: &'a str) -> &'a str {
+    if raw_process
+        .data_objects
+        .iter()
+        .any(|data_object| data_object.id == reference)
+    {
+        return reference;
+    }
+    raw_process
+        .data_object_references
+        .iter()
+        .find(|data_object_reference| data_object_reference.id == reference)
+        .map_or(reference, |data_object_reference| {
+            data_object_reference.data_object_ref.as_str()
+        })
 }
 
 fn human_choices_literal(choices: &[RawHumanTaskChoiceSpec]) -> String {

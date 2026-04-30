@@ -19,7 +19,7 @@ The source-backed clause registry for these notes lives in
 - [Events and Boundaries](events-and-boundaries.md)
 - [Full Conformance Coverage](full-conformance-coverage.md)
 - [Gateways and Concurrency](gateways-and-concurrency.md)
-- [Human Interaction Spiff/OMG Audit](human-interaction-spiff-omg-audit.md)
+- [Human Interaction Host-Loop Audit](human-interaction-host-loop-audit.md)
 - [Human Interaction Milestone Plan](human-interaction-milestone-plan.md)
 - [Host Request ABI Ledger](host-request-abi-ledger.md)
 - [Loops and Multi-Instance](loops-and-multi-instance.md)
@@ -31,15 +31,25 @@ The source-backed clause registry for these notes lives in
 The current package owns bounded support for:
 
 - linear flows and bounded gateway routing
+- a Rust-owned BPMN conformance registry that keeps the full coverage matrix
+  machine-checkable
 - bounded start/intermediate waits and boundary events
 - bounded loop and multi-instance task execution
 - bounded host-dispatched task families including `sendTask` and `scriptTask`
 - bounded subprocess, transaction, and same-package call-activity slices
 - bounded transaction-owned compensation slices
+- bounded interrupting event-subprocess execution for one trigger shape
 - bounded task-local Data/IO through native `ioSpecification`,
   `dataInputAssociation`, and `dataOutputAssociation` mappings
+- bounded process-level data-object copy-in/copy-out through standard task
+  data associations
+- a Rust-owned callable registry for process/global-task metadata, callable
+  IO metadata, and existing same-package process-target callActivity bindings
+- a Rust-owned collaboration host envelope for collaboration shells,
+  participants, message-flow intent, correlation properties, correlation
+  keys, and process correlation subscriptions
 - non-executable BPMN document snapshots for collaboration, partner,
-  participant, choreography, artifact, lane, data-object, data-store, import,
+  participant, choreography, artifact, lane, data-store, import,
   extension, relationship, BPMN DI, conversation, global task, process
   callable, callable IO, IO-set, data-state, data-association expression,
   resource-role, flow-element, catalog, and category metadata
@@ -47,11 +57,11 @@ The current package owns bounded support for:
 The current package still defers:
 
 - collaboration and lane semantics
-- full BPMN data-object/data-store execution and broader IO execution coverage
-- unbounded event families and event subprocesses
+- full BPMN data-store execution and broader IO execution coverage
+- unbounded event families and unsupported event-subprocess shapes
 - broader FEEL or script-backed flow semantics
 
-Deferred collaboration, choreography, artifact, lane, data-object, data-store,
+Deferred collaboration, choreography, artifact, lane, data-store,
 import, extension, relationship, BPMN DI, global task, process callable,
 callable IO, IO-set, data-state, data-association expression, resource-role,
 flow-element, category, and unsupported IO surfaces are reported by the linter
@@ -68,3 +78,10 @@ payloads, process support/property/correlation-subscription metadata,
 process/global-task resource-role metadata, direct callable IO binding
 metadata, global-task IO specification metadata, direct flow-element
 auditing/monitoring/category metadata, or diagram element counts.
+
+The collaboration host envelope is also metadata-only. It lets hosts inspect
+participant, message-flow, and correlation intent from the parsed package, but
+it does not execute pool routing, participant dispatch, endpoint invocation,
+message-flow routing, or BPMN correlation matching. Runtime wait
+`deduplication_key` remains a host event de-duplication hint derived from
+explicit event references, not a BPMN correlation key.

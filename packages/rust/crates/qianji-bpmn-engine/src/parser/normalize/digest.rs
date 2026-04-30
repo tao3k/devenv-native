@@ -408,6 +408,7 @@ fn subprocess_kind_name(kind: RawSubProcessKind) -> &'static str {
         RawSubProcessKind::CallActivity => "call_activity",
         RawSubProcessKind::EmbeddedSubProcess => "embedded",
         RawSubProcessKind::Transaction => "transaction",
+        RawSubProcessKind::EventSubProcess => "event_subprocess",
     }
 }
 

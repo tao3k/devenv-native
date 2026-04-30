@@ -16,6 +16,7 @@ use serde_json::json;
 mod boundary;
 mod call_activity;
 mod claim;
+mod event_subprocess;
 mod frontier;
 mod gateway;
 mod lane;

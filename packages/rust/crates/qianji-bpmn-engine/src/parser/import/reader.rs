@@ -1,9 +1,10 @@
 use super::attributes::local_name;
 use super::model::{CaptureTarget, ProcessChildStartOutcome};
 pub(crate) use super::model::{
-    NestedShellKind, RawAssociation, RawEventSpec, RawNode, RawPackageDocument,
-    RawParallelMultiInstanceSpec, RawProcess, RawProcessScope, RawRepeatSpec, RawScriptTaskSpec,
-    RawSequenceFlow, RawSequentialMultiInstanceSpec, RawSubProcessKind,
+    NestedShellKind, RawAssociation, RawDataObjectReferenceSpec, RawDataObjectSpec, RawEventSpec,
+    RawNode, RawPackageDocument, RawParallelMultiInstanceSpec, RawProcess, RawProcessScope,
+    RawRepeatSpec, RawScriptTaskSpec, RawSequenceFlow, RawSequentialMultiInstanceSpec,
+    RawSubProcessKind,
 };
 use super::nested::handle_nested_start_tag;
 use super::process::{

@@ -1,3 +1,7 @@
+use crate::bpmn_callable_api::{
+    BpmnCallActivityBinding, BpmnCallableDefinition, BpmnCallableRegistry,
+};
+use crate::bpmn_collaboration_api::BpmnCollaborationHostEnvelope;
 use crate::dmn_model_api::{
     DmnBusinessKnowledgeModelDefinition, DmnDecisionDefinition, DmnDecisionRef,
     DmnDecisionServiceDefinition, DmnImportDefinition, DmnImportSourceBinding,
@@ -15,6 +19,15 @@ pub struct BpmnPackage {
     pub package_id: Arc<str>,
     /// Parsed processes in the package.
     pub processes: Vec<BpmnProcessSpec>,
+    /// Package-owned BPMN callable definition and binding registry.
+    #[serde(default, skip_serializing_if = "BpmnCallableRegistry::is_empty")]
+    pub callable_registry: BpmnCallableRegistry,
+    /// Package-owned BPMN collaboration host envelope.
+    #[serde(
+        default,
+        skip_serializing_if = "BpmnCollaborationHostEnvelope::is_empty"
+    )]
+    pub collaboration_host_envelope: BpmnCollaborationHostEnvelope,
     /// Optional package-owned non-executable DMN import registry.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub dmn_imports: Vec<DmnImportDefinition>,
@@ -44,6 +57,8 @@ impl BpmnPackage {
         Self {
             package_id: Arc::<str>::from(package_id.as_ref()),
             processes,
+            callable_registry: BpmnCallableRegistry::default(),
+            collaboration_host_envelope: BpmnCollaborationHostEnvelope::default(),
             dmn_imports: Vec::new(),
             dmn_source_definitions: Vec::new(),
             dmn_decisions: Vec::new(),
@@ -51,6 +66,23 @@ impl BpmnPackage {
             dmn_business_knowledge_models: Vec::new(),
             dmn_decision_services: Vec::new(),
         }
+    }
+
+    /// Attaches package-owned BPMN callable metadata.
+    #[must_use]
+    pub fn with_callable_registry(mut self, callable_registry: BpmnCallableRegistry) -> Self {
+        self.callable_registry = callable_registry;
+        self
+    }
+
+    /// Attaches package-owned BPMN collaboration host metadata.
+    #[must_use]
+    pub fn with_collaboration_host_envelope(
+        mut self,
+        collaboration_host_envelope: BpmnCollaborationHostEnvelope,
+    ) -> Self {
+        self.collaboration_host_envelope = collaboration_host_envelope;
+        self
     }
 
     /// Attaches package-owned DMN source-root definitions.
@@ -121,6 +153,30 @@ impl BpmnPackage {
     pub fn find_process(&self, process_id: &str) -> Option<&BpmnProcessSpec> {
         self.find_process_position(process_id)
             .map(|(_, process)| process)
+    }
+
+    /// Returns the package-owned BPMN callable registry.
+    #[must_use]
+    pub fn callable_registry(&self) -> &BpmnCallableRegistry {
+        &self.callable_registry
+    }
+
+    /// Returns the package-owned BPMN collaboration host envelope.
+    #[must_use]
+    pub fn collaboration_host_envelope(&self) -> &BpmnCollaborationHostEnvelope {
+        &self.collaboration_host_envelope
+    }
+
+    /// Finds one callable definition by BPMN identifier.
+    #[must_use]
+    pub fn find_callable_definition(&self, callable_id: &str) -> Option<&BpmnCallableDefinition> {
+        self.callable_registry.find_definition(callable_id)
+    }
+
+    /// Returns recorded process-target `callActivity` bindings.
+    #[must_use]
+    pub fn call_activity_bindings(&self) -> &[BpmnCallActivityBinding] {
+        &self.callable_registry.call_activity_bindings
     }
 
     /// Returns the registered non-executable DMN import definitions.

@@ -714,7 +714,9 @@ fn supported_event_definition(parent: &str, tag: &str) -> Option<BpmnEventKind> 
             Some(BpmnEventKind::Escalation)
         }
         ("boundaryEvent" | "endEvent", "cancelEventDefinition") => Some(BpmnEventKind::Cancel),
-        ("boundaryEvent", "compensateEventDefinition") => Some(BpmnEventKind::Compensation),
+        ("startEvent" | "boundaryEvent", "compensateEventDefinition") => {
+            Some(BpmnEventKind::Compensation)
+        }
         ("endEvent", "terminateEventDefinition") => Some(BpmnEventKind::Terminate),
         (
             "startEvent" | "intermediateCatchEvent" | "boundaryEvent",

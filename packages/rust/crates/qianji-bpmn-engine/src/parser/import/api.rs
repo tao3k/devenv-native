@@ -6,7 +6,8 @@ pub(crate) use super::model::{
     RawTaskIoSpec, RawTaskOutputBinding,
 };
 pub(crate) use super::reader::{
-    NestedShellKind, RawAssociation, RawEventSpec, RawNode, RawPackageDocument,
-    RawParallelMultiInstanceSpec, RawProcess, RawProcessScope, RawRepeatSpec, RawScriptTaskSpec,
-    RawSequenceFlow, RawSequentialMultiInstanceSpec, RawSubProcessKind, import_bpmn_source,
+    NestedShellKind, RawAssociation, RawDataObjectReferenceSpec, RawDataObjectSpec, RawEventSpec,
+    RawNode, RawPackageDocument, RawParallelMultiInstanceSpec, RawProcess, RawProcessScope,
+    RawRepeatSpec, RawScriptTaskSpec, RawSequenceFlow, RawSequentialMultiInstanceSpec,
+    RawSubProcessKind, import_bpmn_source,
 };

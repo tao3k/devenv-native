@@ -5,8 +5,8 @@ use super::scope::{
     evaluate_dmn_package_binding_sync,
 };
 use super::{
-    blocking, call_activity, completion, error, escalation, gateway, prepare, repeat, state,
-    terminate, transaction,
+    blocking, call_activity, completion, error, escalation, event_subprocess, gateway, prepare,
+    repeat, state, terminate, transaction,
 };
 use crate::runtime_instance_api::BpmnHumanTaskLifecycleEventKind;
 use serde_json::{Map, Value};
@@ -288,6 +288,7 @@ fn advance_end_event(
         package,
         instance,
         current_token_index,
+        process,
         current_node_index,
         now_ms,
     )
@@ -297,6 +298,7 @@ fn advance_plain_end_event(
     package: &BpmnPackage,
     instance: &mut BpmnInstanceState,
     current_token_index: usize,
+    process: &BpmnProcessSpec,
     current_node_index: BpmnNodeIndex,
     now_ms: u64,
 ) -> Result<Option<BpmnAdvanceOutcome>> {
@@ -306,6 +308,7 @@ fn advance_plain_end_event(
         state::record_transition(instance, now_ms, InstanceLifecycle::Running);
         return Ok(None);
     }
+    event_subprocess::clear_event_subprocess_waits(process, instance);
     if instance.call_stack.is_empty() {
         if !instance.pending_host_work.is_empty() {
             instance.suspend_reason = None;

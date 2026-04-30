@@ -148,6 +148,10 @@
 //! such as `duration("P1.5Y")`, broader timezone/function FEEL behavior, and
 //! richer orchestration slices remain deferred.
 
+pub mod bpmn_callable_api;
+pub mod bpmn_collaboration_api;
+mod bpmn_conformance;
+mod bpmn_conformance_api;
 pub mod bpmn_model_api;
 mod bpmn_parse_api;
 mod bpmn_snapshot;
@@ -175,6 +179,7 @@ mod error;
 mod host_bridge_api;
 mod host_types_api;
 mod ir;
+mod ir_data_api;
 mod ir_edge_api;
 mod ir_event_api;
 mod ir_index_api;
@@ -203,6 +208,21 @@ mod runtime_resume_api;
 mod runtime_token_api;
 mod runtime_wait_api;
 
+pub use bpmn_callable_api::{
+    BpmnCallActivityBinding, BpmnCallableBindingExecutionPolicy, BpmnCallableDataRef,
+    BpmnCallableDefinition, BpmnCallableIoBinding, BpmnCallableKind, BpmnCallableRegistry,
+};
+pub use bpmn_collaboration_api::{
+    BpmnCollaborationExecutionPolicy, BpmnCollaborationHostBoundary, BpmnCollaborationHostEnvelope,
+    BpmnCollaborationIntent, BpmnCollaborationRuntimeScope, BpmnCorrelationKeyIntent,
+    BpmnCorrelationKeyScope, BpmnCorrelationPropertyBindingIntent, BpmnCorrelationPropertyIntent,
+    BpmnCorrelationPropertyRetrievalIntent, BpmnEventDeduplicationPolicy, BpmnMessageFlowIntent,
+    BpmnParticipantIntent, BpmnParticipantMultiplicityIntent,
+    BpmnProcessCorrelationSubscriptionIntent,
+};
+pub use bpmn_conformance_api::{
+    BpmnConformanceEntry, BpmnConformanceStatus, bpmn_conformance_registry,
+};
 pub use bpmn_model_api::{
     BpmnAssociationSnapshot, BpmnBoundsSnapshot, BpmnCategorySnapshot, BpmnCategoryValueSnapshot,
     BpmnChoreographyActivitySnapshot, BpmnCollaborationSnapshot,
@@ -272,6 +292,7 @@ pub use host_types_api::{
     ScriptTaskRequest, SendTaskOutcome, SendTaskRequest, SequentialMultiInstanceContext,
     ServiceTaskOutcome, ServiceTaskRequest, UserTaskOutcome, UserTaskRequest,
 };
+pub use ir_data_api::BpmnDataObjectBindingSpec;
 pub use ir_edge_api::BpmnEdgeSpec;
 pub use ir_event_api::{BpmnEventKind, BpmnEventSpec, BpmnTimerKind, BpmnTimerSpec};
 pub use ir_index_api::{BpmnIndexRange, BpmnNodeIndex};

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  id="pkg_event_subprocess_conditional"
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL">
+  <bpmn:process id="event_subprocess_conditional">
+    <bpmn:startEvent id="start" />
+    <bpmn:serviceTask id="work" />
+    <bpmn:endEvent id="end" />
+    <bpmn:subProcess id="interrupting_event_subprocess" triggeredByEvent="true">
+      <bpmn:startEvent id="event_start">
+        <bpmn:conditionalEventDefinition name="interrupt_condition">
+          <bpmn:condition>approved</bpmn:condition>
+        </bpmn:conditionalEventDefinition>
+      </bpmn:startEvent>
+      <bpmn:endEvent id="event_end" />
+      <bpmn:sequenceFlow id="event_flow_1" sourceRef="event_start" targetRef="event_end" />
+    </bpmn:subProcess>
+    <bpmn:sequenceFlow id="flow_1" sourceRef="start" targetRef="work" />
+    <bpmn:sequenceFlow id="flow_2" sourceRef="work" targetRef="end" />
+  </bpmn:process>
+</bpmn:definitions>
