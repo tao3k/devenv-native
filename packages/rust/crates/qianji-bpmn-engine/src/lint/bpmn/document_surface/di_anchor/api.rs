@@ -3,7 +3,7 @@ use serde_json::json;
 use crate::bpmn_model_api::{BpmnDocumentSnapshot, BpmnPlaneSnapshot};
 use crate::bpmn_parse_api::BpmnSourceFile;
 use crate::bpmn_snapshot_api::snapshot_bpmn_source;
-use crate::lint::bpmn::document_surface::SNAPSHOT_EVIDENCE_LIMIT;
+use crate::lint::bpmn::document_surface::shared::SNAPSHOT_EVIDENCE_LIMIT;
 use crate::lint::bpmn::document_surface::summary::diagram_snapshot_summary;
 use crate::lint_api::LintIssue;
 

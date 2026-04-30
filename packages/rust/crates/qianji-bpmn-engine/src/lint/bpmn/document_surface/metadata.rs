@@ -1,6 +1,6 @@
 //! Canonical `api` entry for metadata document-surface summaries.
 
-use super::{
+use super::shared::{
     BpmnDocumentSnapshot, BpmnFlowElementMetadataSnapshot, BpmnGlobalTaskSnapshot,
     BpmnIoBindingSnapshot, BpmnProcessSnapshot, BpmnResourceRoleSnapshot,
     FlowElementMetadataCounts, ProcessCallableCounts, ResourceRoleCounts, SNAPSHOT_EVIDENCE_LIMIT,

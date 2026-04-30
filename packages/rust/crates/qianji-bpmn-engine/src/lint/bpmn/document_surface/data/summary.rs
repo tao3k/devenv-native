@@ -1,6 +1,6 @@
 use crate::bpmn_model_api::BpmnDocumentSnapshot;
-use crate::lint::bpmn::document_surface::SNAPSHOT_EVIDENCE_LIMIT;
 use crate::lint::bpmn::document_surface::collaboration::item_definition_evidence;
+use crate::lint::bpmn::document_surface::shared::SNAPSHOT_EVIDENCE_LIMIT;
 use crate::lint::bpmn::document_surface::summary::root_snapshot_summary;
 use serde_json::{Value, json};
 

@@ -1,5 +1,5 @@
 use crate::bpmn_model_api::BpmnDocumentSnapshot;
-use crate::lint::bpmn::document_surface::SNAPSHOT_EVIDENCE_LIMIT;
+use crate::lint::bpmn::document_surface::shared::SNAPSHOT_EVIDENCE_LIMIT;
 use serde_json::{Value, json};
 
 use super::association::data_association_evidence;

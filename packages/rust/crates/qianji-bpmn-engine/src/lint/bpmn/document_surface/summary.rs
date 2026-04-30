@@ -1,4 +1,4 @@
-use super::{
+use super::shared::{
     BpmnDocumentSnapshot, BpmnSourceFile, SNAPSHOT_EVIDENCE_LIMIT, Value, collaboration_counts,
     collaboration_evidence, correlation_property_evidence, data_snapshot_summary,
     flow_element_metadata_summary, interface_evidence, item_definition_evidence, json,

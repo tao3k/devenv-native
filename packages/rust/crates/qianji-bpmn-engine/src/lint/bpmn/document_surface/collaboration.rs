@@ -1,6 +1,6 @@
 //! Canonical `api` entry for collaboration document-surface evidence.
 
-use super::{
+use super::shared::{
     BpmnAssociationSnapshot, BpmnChoreographyActivitySnapshot, BpmnCollaborationSnapshot,
     BpmnConversationNodeSnapshot, BpmnDocumentSnapshot, BpmnGroupSnapshot, BpmnParticipantSnapshot,
     BpmnPartnerEntitySnapshot, BpmnPartnerRoleSnapshot, BpmnTextAnnotationSnapshot,
