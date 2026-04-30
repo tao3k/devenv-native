@@ -19,14 +19,14 @@ pub(super) const DEFAULT_OCR_SHARD_CACHE_MAX_BYTES: u64 = 10 * 1024 * 1024 * 102
 pub(super) const DEFAULT_OCR_SHARD_CACHE_SWEEP_INTERVAL_SECS: u64 = 60;
 
 #[derive(Debug, Clone)]
-pub(in super::super) struct PdfOcrShardCache {
+pub(crate) struct PdfOcrShardCache {
     pub(super) root: PathBuf,
     pub(super) policy: PdfOcrShardCachePolicy,
     pub(super) last_sweep: Arc<Mutex<Option<Instant>>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(in super::super) struct PdfOcrShardCachePolicy {
+pub(crate) struct PdfOcrShardCachePolicy {
     pub(super) max_bytes: Option<u64>,
     pub(super) max_entries: Option<usize>,
     pub(super) max_age: Option<Duration>,
@@ -41,7 +41,7 @@ pub(super) struct PdfOcrShardCacheEntry {
 }
 
 #[derive(Debug)]
-pub(in super::super) struct PdfOcrShardCacheResolution {
+pub(crate) struct PdfOcrShardCacheResolution {
     pub(super) slots: Vec<Option<PdfOcrShardResult>>,
     pub(super) misses: Vec<PdfOcrShardInput>,
     pub(super) miss_positions: Vec<usize>,
@@ -49,7 +49,7 @@ pub(in super::super) struct PdfOcrShardCacheResolution {
 }
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
-pub(in super::super) struct PdfOcrShardCachePruneReport {
+pub(crate) struct PdfOcrShardCachePruneReport {
     pub(super) scanned_entries: usize,
     pub(super) scanned_bytes: u64,
     pub(super) removed_entries: usize,

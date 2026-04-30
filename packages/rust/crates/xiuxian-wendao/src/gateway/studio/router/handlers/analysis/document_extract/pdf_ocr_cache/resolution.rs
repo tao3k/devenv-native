@@ -4,19 +4,15 @@ use super::types::PdfOcrShardCacheResolution;
 use crate::gateway::studio::router::handlers::analysis::document_extract::pdf_ocr_order::order_ocr_results_by_inputs;
 
 impl PdfOcrShardCacheResolution {
-    pub(in crate::gateway::studio::router::handlers::analysis::document_extract) fn misses(
-        &self,
-    ) -> &[PdfOcrShardInput] {
+    pub(crate) fn misses(&self) -> &[PdfOcrShardInput] {
         self.misses.as_slice()
     }
 
-    pub(in crate::gateway::studio::router::handlers::analysis::document_extract) fn hit_count(
-        &self,
-    ) -> usize {
+    pub(crate) fn hit_count(&self) -> usize {
         self.hit_count
     }
 
-    pub(in crate::gateway::studio::router::handlers::analysis::document_extract) fn merge(
+    pub(crate) fn merge(
         mut self,
         live_results: Vec<PdfOcrShardResult>,
     ) -> Result<Vec<PdfOcrShardResult>, String> {

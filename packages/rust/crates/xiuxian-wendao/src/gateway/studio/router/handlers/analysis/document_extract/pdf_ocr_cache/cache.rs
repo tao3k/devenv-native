@@ -20,8 +20,7 @@ use crate::gateway::studio::router::handlers::analysis::document_extract::arrow_
 use crate::gateway::studio::router::handlers::analysis::document_extract::pdf_ocr_order::validate_ocr_result_matches_input;
 
 impl PdfOcrShardCache {
-    pub(in crate::gateway::studio::router::handlers::analysis::document_extract) fn from_environment()
-    -> Self {
+    pub(crate) fn from_environment() -> Self {
         if let Some(root) = std::env::var_os(DOCUMENT_EXTRACT_OCR_SHARD_CACHE_ROOT_ENV) {
             return Self::new_with_policy(
                 PathBuf::from(root),
@@ -37,16 +36,11 @@ impl PdfOcrShardCache {
     }
 
     #[cfg(test)]
-    pub(in crate::gateway::studio::router::handlers::analysis::document_extract) fn new(
-        root: PathBuf,
-    ) -> Self {
+    pub(crate) fn new(root: PathBuf) -> Self {
         Self::new_with_policy(root, PdfOcrShardCachePolicy::default())
     }
 
-    pub(in crate::gateway::studio::router::handlers::analysis::document_extract) fn new_with_policy(
-        root: PathBuf,
-        policy: PdfOcrShardCachePolicy,
-    ) -> Self {
+    pub(crate) fn new_with_policy(root: PathBuf, policy: PdfOcrShardCachePolicy) -> Self {
         Self {
             root,
             policy,
@@ -54,10 +48,7 @@ impl PdfOcrShardCache {
         }
     }
 
-    pub(in crate::gateway::studio::router::handlers::analysis::document_extract) fn resolve(
-        &self,
-        inputs: &[PdfOcrShardInput],
-    ) -> PdfOcrShardCacheResolution {
+    pub(crate) fn resolve(&self, inputs: &[PdfOcrShardInput]) -> PdfOcrShardCacheResolution {
         let mut slots = vec![None; inputs.len()];
         let mut misses = Vec::new();
         let mut miss_positions = Vec::new();
@@ -81,7 +72,7 @@ impl PdfOcrShardCache {
         }
     }
 
-    pub(in crate::gateway::studio::router::handlers::analysis::document_extract) fn store_successful(
+    pub(crate) fn store_successful(
         &self,
         input: &PdfOcrShardInput,
         result: &PdfOcrShardResult,
@@ -114,9 +105,7 @@ impl PdfOcrShardCache {
         Ok(true)
     }
 
-    pub(in crate::gateway::studio::router::handlers::analysis::document_extract) fn prune(
-        &self,
-    ) -> Result<PdfOcrShardCachePruneReport, String> {
+    pub(crate) fn prune(&self) -> Result<PdfOcrShardCachePruneReport, String> {
         prune_ocr_shard_cache(self.root.as_path(), &self.policy)
     }
 

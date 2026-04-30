@@ -18,6 +18,11 @@ fn hybrid_page_ocr_writes_structure_sidecar() -> Result<(), String> {
     let structure_batches = read_arrow_file(structure_path.as_path())?;
     assert_eq!(structure_batches.len(), 1);
     assert_eq!(structure_batches[0].num_rows(), 1);
+    let metrics_path =
+        output.join(xiuxian_wendao_attachments::pdf::metrics::DOCUMENT_METRICS_ARROW_CACHE_NAME);
+    let metrics_batches = read_arrow_file(metrics_path.as_path())?;
+    assert_eq!(metrics_batches.len(), 1);
+    assert_eq!(metrics_batches[0].num_rows(), 0);
     Ok(())
 }
 
@@ -85,5 +90,46 @@ fn hybrid_page_ocr_structure_sidecar_preserves_region_provenance() -> Result<(),
             .value(1)
             .contains(r#""shardType":"region""#)
     );
+    Ok(())
+}
+
+#[cfg(feature = "document-extract-pdf-source-range")]
+#[test]
+fn hybrid_precision_gate_rejects_error_resource_rows() -> Result<(), String> {
+    let batch = test_resource_batch(&[("ocr_error", 0, "err-0")])?;
+    let resource_batch = HybridDocumentResourceBatch::native(batch.clone());
+    let blocks = hybrid_document_structure_blocks(&resource_batch, "sourcehash", "wendao-hybrid")?;
+
+    let Err(error) = validate_hybrid_precision_gate(1, &[0], &batch, blocks.as_slice(), &[], &[])
+    else {
+        panic!("expected precision gate to reject error resource row");
+    };
+
+    assert!(error.contains("rejected resource row"));
+    Ok(())
+}
+
+#[cfg(feature = "document-extract-pdf-source-range")]
+#[test]
+fn hybrid_precision_gate_requires_ocr_bbox_provenance() -> Result<(), String> {
+    let input = sample_ocr_input(0, "page");
+    let result = sample_ocr_result(0, true);
+    let batch = test_resource_batch(&[("ocr_text", 0, result.element_id.as_str())])?;
+    let resource_batch = HybridDocumentResourceBatch::with_ocr(
+        batch.clone(),
+        vec![input.clone()],
+        vec![result.clone()],
+    );
+    let mut blocks =
+        hybrid_document_structure_blocks(&resource_batch, "sourcehash", "wendao-hybrid")?;
+    blocks[0].bbox_left = None;
+
+    let Err(error) =
+        validate_hybrid_precision_gate(1, &[], &batch, blocks.as_slice(), &[input], &[result])
+    else {
+        panic!("expected precision gate to reject OCR block without bbox");
+    };
+
+    assert!(error.contains("missing bbox provenance"));
     Ok(())
 }

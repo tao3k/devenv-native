@@ -30,6 +30,7 @@ PDFIUM_BINARIES_BASE_URL = (
     "https://github.com/bblanchon/pdfium-binaries/releases/download"
 )
 DEFAULT_OCR_SHARD_CACHE_MAX_BYTES = 10 * 1024 * 1024 * 1024
+OCR_SHARD_CACHE_ROOT_ENV = "WENDAO_DOCUMENT_EXTRACT_OCR_SHARD_CACHE_ROOT"
 
 DOCLING_REAL_FIXTURE_PATHS = {
     "pdf": "tests/data/pdf/2206.01062.pdf",
@@ -111,10 +112,38 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--python-uv-package",
+        default="xiuxian-wendao-analyzer",
+        help=(
+            "Workspace package used when the benchmark starts its local Python "
+            "document worker through `uv run --package`."
+        ),
+    )
+    parser.add_argument(
+        "--python-uv-extra",
+        action="append",
+        default=[],
+        metavar="EXTRA",
+        help=(
+            "Optional uv extra passed to the local Python worker. Use "
+            "`--python-uv-extra documents` for real Docling OCR and "
+            "`--python-uv-extra documents-audio` for audio ASR runs."
+        ),
+    )
+    parser.add_argument(
         "--rust-pdf-ocr-workers",
         help=(
             "Optional Rust provider override for WENDAO_DOCUMENT_EXTRACT_PDF_OCR_WORKERS. "
             "When omitted, Rust sizes OCR worker budgets from available parallelism."
+        ),
+    )
+    parser.add_argument(
+        "--ocr-shard-cache-root",
+        type=Path,
+        help=(
+            "Optional OCR shard cache root for local Rust provider/gateway runs. "
+            "When omitted, local benchmark runs use an isolated temporary cache "
+            f"unless {OCR_SHARD_CACHE_ROOT_ENV} is already set."
         ),
     )
     parser.add_argument(
@@ -413,8 +442,10 @@ def main() -> int:
         temp_root = Path(temp_root_text)
         fixture_dir = temp_root / "fixtures"
         output_dir = temp_root / "outputs"
+        process_log_dir = report_dir / "process-logs"
         fixture_dir.mkdir()
         output_dir.mkdir()
+        args.ocr_shard_cache_root = benchmark_ocr_shard_cache_root(args, temp_root)
         fixtures, real_fixture_root = resolve_fixtures(args, fixture_dir)
         fixtures = select_fixtures(fixtures, args.only_fixture)
         args.benchmark_fixtures = fixtures
@@ -430,6 +461,7 @@ def main() -> int:
         server = None
         rust_server = None
         valkey_server = None
+        ocr_shard_cache_summary = None
         if not args.external_endpoint:
             converter_count_path = None
             if (
@@ -448,6 +480,9 @@ def main() -> int:
                 converter_count_path=converter_count_path,
                 pdf_ocr_worker=args.pdf_ocr_worker,
                 pdf_ocr_workers=args.pdf_ocr_workers,
+                python_uv_package=args.python_uv_package,
+                python_uv_extras=args.python_uv_extra,
+                log_dir=process_log_dir,
             )
         try:
             if server is not None:
@@ -465,6 +500,7 @@ def main() -> int:
                     host=args.host,
                     port=valkey_port,
                     temp_root=temp_root,
+                    log_dir=process_log_dir,
                 )
                 wait_for_port(
                     args.host,
@@ -483,6 +519,7 @@ def main() -> int:
                     python_port=args.port,
                     valkey_url=f"redis://{args.host}:{valkey_port}/0",
                     temp_root=temp_root,
+                    log_dir=process_log_dir,
                 )
                 wait_for_http_endpoint(
                     f"http://{gateway_host}:{gateway_port}/api/health",
@@ -504,6 +541,7 @@ def main() -> int:
                     python_host=args.host,
                     python_port=args.port,
                     temp_root=temp_root,
+                    log_dir=process_log_dir,
                 )
                 wait_for_port(
                     rust_host,
@@ -525,6 +563,9 @@ def main() -> int:
                 )
                 for fixture_name, fixture_path in fixtures.items()
             ]
+            ocr_shard_cache_summary = summarize_ocr_shard_cache(
+                args.ocr_shard_cache_root
+            )
         finally:
             terminate_server(rust_server)
             terminate_server(valkey_server)
@@ -544,7 +585,8 @@ def main() -> int:
         "rustPdfOcrWorkers": args.rust_pdf_ocr_workers,
         "pdfOcrProfile": pdf_ocr_profile_label(args),
         "shardCacheReuseProbe": args.shard_cache_reuse_probe,
-        "ocrShardCache": summarize_ocr_shard_cache(),
+        "ocrShardCache": ocr_shard_cache_summary
+        or summarize_ocr_shard_cache(args.ocr_shard_cache_root),
         "distinctMiss": distinct_miss_report,
         "doclingFixtureRoot": str(real_fixture_root) if real_fixture_root else None,
         "results": results,
@@ -871,15 +913,27 @@ def resolve_project_cache_home() -> Path:
     return cache_home.resolve()
 
 
+def benchmark_ocr_shard_cache_root(args: argparse.Namespace, temp_root: Path) -> Path:
+    explicit_root = getattr(args, "ocr_shard_cache_root", None)
+    if explicit_root is not None:
+        return explicit_root.resolve()
+    configured = os.environ.get(OCR_SHARD_CACHE_ROOT_ENV)
+    if configured:
+        return Path(configured).resolve()
+    if getattr(args, "external_endpoint", False):
+        return resolve_ocr_shard_cache_root()
+    return (temp_root / "ocr-shard-cache").resolve()
+
+
 def resolve_ocr_shard_cache_root() -> Path:
-    configured = os.environ.get("WENDAO_DOCUMENT_EXTRACT_OCR_SHARD_CACHE_ROOT")
+    configured = os.environ.get(OCR_SHARD_CACHE_ROOT_ENV)
     if configured:
         return Path(configured).resolve()
     return resolve_project_cache_home() / "wendao-document-extract" / "ocr-shards"
 
 
-def summarize_ocr_shard_cache() -> dict[str, Any]:
-    root = resolve_ocr_shard_cache_root()
+def summarize_ocr_shard_cache(root: Path | None = None) -> dict[str, Any]:
+    root = root.resolve() if root is not None else resolve_ocr_shard_cache_root()
     file_count = 0
     total_bytes = 0
     if root.exists():
@@ -1200,15 +1254,14 @@ def start_server(
     converter_count_path: Path | None,
     pdf_ocr_worker: str = "skip",
     pdf_ocr_workers: str = "auto",
+    python_uv_package: str | None = "xiuxian-wendao-analyzer",
+    python_uv_extras: list[str] | None = None,
+    log_dir: Path | None = None,
 ) -> subprocess.Popen[str]:
     if pdf_ocr_worker == "docling" and not real_docling:
         raise SystemExit("--pdf-ocr-worker docling requires --real-docling")
     if real_docling:
-        command = [
-            "uv",
-            "run",
-            "python",
-            "-c",
+        command = python_worker_command(
             real_docling_server_code(
                 host,
                 port,
@@ -1218,13 +1271,11 @@ def start_server(
                 pdf_ocr_worker,
                 pdf_ocr_workers,
             ),
-        ]
+            uv_package=python_uv_package,
+            uv_extras=python_uv_extras,
+        )
     else:
-        command = [
-            "uv",
-            "run",
-            "python",
-            "-c",
+        command = python_worker_command(
             fixture_server_code(
                 host,
                 port,
@@ -1232,14 +1283,31 @@ def start_server(
                 pdf_ocr_worker,
                 pdf_ocr_workers,
             ),
-        ]
-    return subprocess.Popen(
-        command,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-        start_new_session=True,
+            uv_package=python_uv_package,
+            uv_extras=python_uv_extras,
+        )
+    effective_log_dir = log_dir or (
+        Path(os.environ.get("PRJ_RUNTIME_DIR", ".run"))
+        / "document-extract-perf-process-logs"
     )
+    return start_logged_process(
+        command, log_dir=effective_log_dir, name="python-worker"
+    )
+
+
+def python_worker_command(
+    code: str,
+    *,
+    uv_package: str | None,
+    uv_extras: list[str] | None,
+) -> list[str]:
+    command = ["uv", "run"]
+    if uv_package:
+        command.extend(["--package", uv_package])
+    for extra in uv_extras or []:
+        command.extend(["--extra", extra])
+    command.extend(["python", "-c", code])
+    return command
 
 
 def start_rust_provider_server(
@@ -1250,16 +1318,23 @@ def start_rust_provider_server(
     python_host: str,
     python_port: int,
     temp_root: Path,
+    log_dir: Path | None = None,
 ) -> subprocess.Popen[str]:
     provider_root = temp_root / "rust-provider"
     provider_root.mkdir(parents=True, exist_ok=True)
     env = rust_process_env()
     pdfium_library_path = resolve_pdfium_library_path(args)
+    ocr_shard_cache_root = getattr(
+        args,
+        "ocr_shard_cache_root",
+        (temp_root / "ocr-shard-cache").resolve(),
+    )
     env.update(
         {
             "WENDAO_DOCUMENT_EXTRACT_ENDPOINT": f"http://{python_host}:{python_port}",
             "WENDAO_DOCUMENT_EXTRACT_JOB_DB": str(provider_root / "jobs.duckdb"),
             "WENDAO_DOCUMENT_EXTRACT_ARTIFACT_ROOT": str(provider_root / "artifacts"),
+            OCR_SHARD_CACHE_ROOT_ENV: str(ocr_shard_cache_root),
             "WENDAO_DOCUMENT_EXTRACT_PDF_RENDER_SELECTION": normalize_render_selection(
                 getattr(args, "hybrid_pdf_render_selection", "shard-fallback-pages")
             ),
@@ -1287,13 +1362,11 @@ def start_rust_provider_server(
         str(resolve_project_root()),
         "--schema-version=v2",
     ]
-    return subprocess.Popen(
+    return start_logged_process(
         command,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
+        log_dir=log_dir or temp_root / "process-logs",
+        name="rust-provider",
         env=env,
-        start_new_session=True,
     )
 
 
@@ -1302,6 +1375,7 @@ def start_valkey_server(
     host: str,
     port: int,
     temp_root: Path,
+    log_dir: Path | None = None,
 ) -> subprocess.Popen[str]:
     valkey_root = temp_root / "valkey"
     valkey_root.mkdir(parents=True, exist_ok=True)
@@ -1322,12 +1396,8 @@ def start_valkey_server(
         "--protected-mode",
         "no",
     ]
-    return subprocess.Popen(
-        command,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-        start_new_session=True,
+    return start_logged_process(
+        command, log_dir=log_dir or temp_root / "process-logs", name="valkey"
     )
 
 
@@ -1339,17 +1409,24 @@ def start_gateway_server(
     python_port: int,
     valkey_url: str,
     temp_root: Path,
+    log_dir: Path | None = None,
 ) -> subprocess.Popen[str]:
     gateway_root = temp_root / "gateway"
     gateway_root.mkdir(parents=True, exist_ok=True)
     config_path = write_gateway_benchmark_config(gateway_root, valkey_url=valkey_url)
     env = rust_process_env()
     pdfium_library_path = resolve_pdfium_library_path(args)
+    ocr_shard_cache_root = getattr(
+        args,
+        "ocr_shard_cache_root",
+        (temp_root / "ocr-shard-cache").resolve(),
+    )
     env.update(
         {
             "WENDAO_DOCUMENT_EXTRACT_ENDPOINT": f"http://{python_host}:{python_port}",
             "WENDAO_DOCUMENT_EXTRACT_JOB_DB": str(gateway_root / "jobs.duckdb"),
             "WENDAO_DOCUMENT_EXTRACT_ARTIFACT_ROOT": str(gateway_root / "artifacts"),
+            OCR_SHARD_CACHE_ROOT_ENV: str(ocr_shard_cache_root),
             "WENDAO_DOCUMENT_EXTRACT_PDF_RENDER_SELECTION": normalize_render_selection(
                 getattr(args, "hybrid_pdf_render_selection", "shard-fallback-pages")
             ),
@@ -1386,14 +1463,41 @@ def start_gateway_server(
         "--port",
         str(gateway_port),
     ]
-    return subprocess.Popen(
+    return start_logged_process(
         command,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
+        log_dir=log_dir or temp_root / "process-logs",
+        name="gateway",
         env=env,
-        start_new_session=True,
     )
+
+
+def start_logged_process(
+    command: list[str],
+    *,
+    log_dir: Path,
+    name: str,
+    env: dict[str, str] | None = None,
+) -> subprocess.Popen[str]:
+    log_dir.mkdir(parents=True, exist_ok=True)
+    stdout_path = log_dir / f"{name}.stdout.log"
+    stderr_path = log_dir / f"{name}.stderr.log"
+    stdout_file = stdout_path.open("w", encoding="utf-8")
+    stderr_file = stderr_path.open("w", encoding="utf-8")
+    try:
+        process = subprocess.Popen(
+            command,
+            stdout=stdout_file,
+            stderr=stderr_file,
+            text=True,
+            env=env,
+            start_new_session=True,
+        )
+    finally:
+        stdout_file.close()
+        stderr_file.close()
+    process.wendao_stdout_log = stdout_path
+    process.wendao_stderr_log = stderr_path
+    return process
 
 
 def normalize_render_selection(selection: str) -> str:
@@ -1774,9 +1878,9 @@ def wait_for_port(
     deadline = time.monotonic() + timeout_seconds
     while time.monotonic() < deadline:
         if server.poll() is not None:
-            stderr = server.stderr.read() if server.stderr is not None else ""
             raise RuntimeError(
-                "document extract service exited before listening:\n" + stderr
+                "document extract service exited before listening:\n"
+                + process_log_tail(server)
             )
         try:
             with socket.create_connection((host, port), timeout=1):
@@ -1784,8 +1888,31 @@ def wait_for_port(
         except OSError:
             time.sleep(0.2)
     raise TimeoutError(
-        f"document extract service did not listen on {host}:{port} within {timeout_seconds:.1f}s"
+        f"document extract service did not listen on {host}:{port} "
+        f"within {timeout_seconds:.1f}s\n{process_log_tail(server)}"
     )
+
+
+def process_log_tail(server: subprocess.Popen[str]) -> str:
+    stderr_log = getattr(server, "wendao_stderr_log", None)
+    stdout_log = getattr(server, "wendao_stdout_log", None)
+    parts = []
+    if stderr_log is not None:
+        parts.append(f"stderr log: {stderr_log}\n{tail_file(Path(stderr_log))}")
+    elif server.stderr is not None:
+        parts.append(server.stderr.read())
+    if stdout_log is not None:
+        parts.append(f"stdout log: {stdout_log}\n{tail_file(Path(stdout_log))}")
+    elif server.stdout is not None:
+        parts.append(server.stdout.read())
+    return "\n".join(part for part in parts if part).strip()
+
+
+def tail_file(path: Path, limit: int = 4000) -> str:
+    if not path.exists():
+        return ""
+    text = path.read_text(encoding="utf-8", errors="replace")
+    return text[-limit:]
 
 
 def write_fake_fixtures(fixture_dir: Path) -> dict[str, Path]:
@@ -2101,6 +2228,13 @@ def run_fixture_probe(
         "structureOcrRegionBlocks": artifact_summary["structureOcrRegionBlocks"],
         "structureBboxBlocks": artifact_summary["structureBboxBlocks"],
         "structureReadingOrderSorted": artifact_summary["structureReadingOrderSorted"],
+        "metricsArrowExists": artifact_summary["metricsArrowExists"],
+        "metricsRows": artifact_summary["metricsRows"],
+        "metricsResultChars": artifact_summary["metricsResultChars"],
+        "metricsBboxCount": artifact_summary["metricsBboxCount"],
+        "metricsRustSchedulerElapsedMs": artifact_summary[
+            "metricsRustSchedulerElapsedMs"
+        ],
         "artifactErrorCount": artifact_summary["artifactErrorCount"],
         "artifactReports": cached_report.get("artifactReports", []),
         "rowsPerSecond": rows_per_second(total_rows, cached_report["wallTimeMs"]),
@@ -2227,6 +2361,16 @@ def summarize_artifact_reports(reports: list[dict[str, Any]]) -> dict[str, Any]:
             if structure_sorted_values
             else None
         ),
+        "metricsArrowExists": any(
+            bool(report.get("metricsArrowExists")) for report in reports
+        ),
+        "metricsRows": sum_int_report_values(reports, "metricsRowCount"),
+        "metricsResultChars": sum_int_report_values(reports, "metricsResultChars"),
+        "metricsBboxCount": sum_int_report_values(reports, "metricsBboxCount"),
+        "metricsRustSchedulerElapsedMs": sum_float_report_values(
+            reports,
+            "metricsRustSchedulerElapsedMs",
+        ),
         "artifactErrorCount": sum(
             1 for report in reports if report.get("artifactError")
         ),
@@ -2236,6 +2380,14 @@ def summarize_artifact_reports(reports: list[dict[str, Any]]) -> dict[str, Any]:
 def sum_int_report_values(reports: list[dict[str, Any]], key: str) -> int:
     return sum(
         value for report in reports if isinstance((value := report.get(key)), int)
+    )
+
+
+def sum_float_report_values(reports: list[dict[str, Any]], key: str) -> float:
+    return sum(
+        float(value)
+        for report in reports
+        if isinstance((value := report.get(key)), int | float)
     )
 
 
@@ -2505,6 +2657,16 @@ def summarize_results(
             result.get("structureBboxBlocks", 0) for result in results
         ),
         "allStructureReadingOrderSorted": all_structure_reading_order_sorted(results),
+        "totalMetricsRows": sum(result.get("metricsRows", 0) for result in results),
+        "totalMetricsResultChars": sum(
+            result.get("metricsResultChars", 0) for result in results
+        ),
+        "totalMetricsBboxCount": sum(
+            result.get("metricsBboxCount", 0) for result in results
+        ),
+        "totalMetricsRustSchedulerElapsedMs": sum(
+            result.get("metricsRustSchedulerElapsedMs", 0.0) for result in results
+        ),
         "artifactErrorCount": sum(
             result.get("artifactErrorCount", 0) for result in results
         ),
@@ -2616,6 +2778,12 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"region={payload['summary']['totalStructureOcrRegionBlocks']}`",
         "- Structure reading order sorted: "
         f"`{payload['summary']['allStructureReadingOrderSorted']}`",
+        "- Metrics sidecar: "
+        f"`rows={payload['summary'].get('totalMetricsRows')}, "
+        f"chars={payload['summary'].get('totalMetricsResultChars')}, "
+        f"bbox={payload['summary'].get('totalMetricsBboxCount')}, "
+        "rustSchedulerElapsedMs="
+        f"{format_optional_float(payload['summary'].get('totalMetricsRustSchedulerElapsedMs'))}`",
         f"- Artifact errors: `{payload['summary']['artifactErrorCount']}`",
         "",
         "| Fixture | Requests | Rows/request | Error rows | Duplicate conversions | Queue max | Running max | Permits min | Total rows | Structure rows | OCR blocks | Order sorted | IPC bytes | Force ms | Shard reuse force ms | Cache p50 ms | Cache p95 ms | Wall ms | Max RSS KB | Speedup |",

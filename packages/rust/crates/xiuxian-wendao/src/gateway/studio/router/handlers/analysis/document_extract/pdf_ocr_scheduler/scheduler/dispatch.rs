@@ -30,7 +30,7 @@ struct OwnedShardRequest {
 }
 
 impl PdfOcrWorkerScheduler {
-    pub(in crate::gateway::studio::router::handlers::analysis::document_extract) async fn request_shards(
+    pub(crate) async fn request_shards(
         &self,
         endpoint_url: String,
         inputs: &[PdfOcrShardInput],

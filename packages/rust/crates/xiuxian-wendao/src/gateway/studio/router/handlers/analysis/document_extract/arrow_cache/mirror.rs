@@ -8,7 +8,7 @@ use arrow::record_batch::RecordBatch;
 use super::DOCUMENT_RESOURCE_ARROW_CACHE_NAME;
 use super::io::{read_arrow_file, write_arrow_file};
 
-pub(in super::super) fn read_cached_document_batches(
+pub(crate) fn read_cached_document_batches(
     source_path: &Path,
     output_dir: &Path,
 ) -> Result<Option<Vec<RecordBatch>>, String> {
@@ -31,7 +31,7 @@ pub(in super::super) fn read_cached_document_batches(
     read_arrow_file(resources_path.as_path()).map(Some)
 }
 
-pub(in super::super) fn mirror_artifact_to_output(
+pub(crate) fn mirror_artifact_to_output(
     artifact_dir: &Path,
     output_dir: &Path,
 ) -> Result<(), String> {

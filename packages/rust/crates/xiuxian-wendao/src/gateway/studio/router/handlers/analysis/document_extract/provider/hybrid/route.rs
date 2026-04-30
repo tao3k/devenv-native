@@ -1,5 +1,7 @@
 use std::path::Path;
+use std::time::Instant;
 
+use xiuxian_wendao_attachments::pdf::metrics::PdfOcrShardMetric;
 use xiuxian_wendao_attachments::pdf::ocr::{PdfOcrShardInput, decode_ocr_shard_input_batches};
 use xiuxian_wendao_attachments::pdf::render::PdfPageRenderShardReport;
 use xiuxian_wendao_runtime::transport::{
@@ -8,22 +10,22 @@ use xiuxian_wendao_runtime::transport::{
 };
 
 use super::super::{DEFAULT_DOCUMENT_EXTRACT_ENDPOINT, StudioDocumentExtractFlightRouteProvider};
+use super::precision_gate::{
+    validate_hybrid_page_coverage, validate_ocr_results_match_inputs,
+    validate_successful_ocr_results,
+};
 use super::render::{
     hybrid_page_ocr_input_arrow_path, hybrid_page_ocr_request_paths, render_hybrid_page_ocr_shards,
 };
 use super::structure::write_hybrid_document_resource_artifacts;
 use super::types::HybridDocumentResourceBatch;
-use super::validate::{
-    validate_hybrid_page_coverage, validate_ocr_results_match_inputs,
-    validate_successful_ocr_results,
-};
 use crate::gateway::studio::router::handlers::analysis::document_extract::arrow_cache::{
     read_arrow_file, read_cached_document_batches,
 };
 use crate::gateway::studio::router::handlers::analysis::document_extract::pdf_ocr_scheduler::PdfOcrWorkerScheduler;
 
 impl StudioDocumentExtractFlightRouteProvider {
-    pub(in super::super) async fn hybrid_page_ocr_document_extract_batch(
+    pub(crate) async fn hybrid_page_ocr_document_extract_batch(
         &self,
         request: &DocumentExtractFlightRequest,
     ) -> Result<DocumentExtractFlightRouteResponse, String> {
@@ -100,11 +102,15 @@ impl StudioDocumentExtractFlightRouteProvider {
                 }
             }
         };
-        write_hybrid_document_resource_artifacts(
+        if let Err(reason) = write_hybrid_document_resource_artifacts(
             output.as_path(),
             source.as_path(),
             &resource_batch,
-        )?;
+        ) {
+            return self
+                .fallback_python_document_extract(request, output.as_path(), reason.as_str())
+                .await;
+        }
         tokio::fs::File::create(output.join("_complete.marker"))
             .await
             .map_err(|error| format!("touch hybrid PDF OCR complete marker: {error}"))?;
@@ -142,9 +148,11 @@ async fn materialize_hybrid_page_ocr_resource_batch(
 ) -> Result<HybridDocumentResourceBatch, String> {
     let endpoint_url = std::env::var("WENDAO_DOCUMENT_EXTRACT_ENDPOINT")
         .unwrap_or_else(|_| DEFAULT_DOCUMENT_EXTRACT_ENDPOINT.to_string());
+    let scheduler_started = Instant::now();
     let response = pdf_ocr_scheduler
         .request_shards(endpoint_url, inputs.as_slice())
         .await?;
+    let scheduler_elapsed_ms = scheduler_started.elapsed().as_secs_f64() * 1000.0;
     validate_successful_ocr_results(
         response.results.as_slice(),
         render_report.page_count,
@@ -155,11 +163,27 @@ async fn materialize_hybrid_page_ocr_resource_batch(
 
     if render_report.shard_count == render_report.page_count && !has_region_shards {
         validate_hybrid_page_coverage(render_report.page_count, &[], response.results.as_slice())?;
-        return Ok(HybridDocumentResourceBatch {
-            batch: response.resource_batch,
-            ocr_inputs: inputs,
-            ocr_results: response.results,
-        });
+        let metrics = response
+            .results
+            .iter()
+            .zip(inputs.iter())
+            .map(|(result, input)| {
+                PdfOcrShardMetric::from_ocr_result(
+                    input,
+                    result,
+                    render_report.page_count,
+                    Some(scheduler_elapsed_ms),
+                )
+            })
+            .collect::<Vec<_>>();
+        return Ok(HybridDocumentResourceBatch::new(
+            response.resource_batch,
+            inputs,
+            response.results,
+            metrics,
+            render_report.page_count,
+            Vec::new(),
+        ));
     }
 
     Err(

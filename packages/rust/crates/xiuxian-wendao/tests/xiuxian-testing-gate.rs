@@ -287,6 +287,22 @@ fn enforce_modularity_contract_gate() {
     );
 }
 
+#[test]
+fn enforce_no_new_relative_ancestor_visibility_gate() {
+    let crate_root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let findings = collect_relative_ancestor_visibility_findings(crate_root);
+    let blocking_findings = findings
+        .iter()
+        .filter(|finding| !is_legacy_relative_visibility_finding(finding))
+        .collect::<Vec<_>>();
+
+    assert!(
+        blocking_findings.is_empty(),
+        "{}",
+        format_relative_visibility_gate_report(&blocking_findings)
+    );
+}
+
 const LEGACY_MOD_R006_FILE_BLOAT_BASELINE: &[&str] = &[
     "src/analyzers/projection/gap_report.rs",
     "src/analyzers/service/analysis.rs",
@@ -335,6 +351,25 @@ const LEGACY_MOD_R006_FILE_BLOAT_BASELINE: &[&str] = &[
     "src/zhenfa_router/native/semantic_check/report.rs",
 ];
 
+const LEGACY_RELATIVE_ANCESTOR_VISIBILITY_BASELINE: &[&str] = &[
+    "src/search/queries/flightsql/discovery/catalogs.rs::pub(in super::super) const WENDAO_FLIGHTSQL_CATALOG_NAME: &str = \"wendao\";",
+    "src/search/queries/flightsql/discovery/catalogs.rs::pub(in super::super) fn build_catalogs_flight_info_schema(query: CommandGetCatalogs) -> SchemaRef {",
+    "src/search/queries/flightsql/discovery/catalogs.rs::pub(in super::super) fn build_catalogs_batch(",
+    "src/search/queries/flightsql/discovery/schemas.rs::pub(in super::super) fn build_schemas_flight_info_schema(query: CommandGetDbSchemas) -> SchemaRef {",
+    "src/search/queries/flightsql/discovery/schemas.rs::pub(in super::super) fn build_schemas_batch(",
+    "src/search/queries/flightsql/discovery/schemas.rs::pub(in super::super) fn flightsql_schema_name(scope: &str) -> &str {",
+    "src/search/queries/flightsql/discovery/tables.rs::pub(in super::super) fn build_tables_flight_info_schema(query: CommandGetTables) -> SchemaRef {",
+    "src/search/queries/flightsql/discovery/tables.rs::pub(in super::super) fn build_tables_batch(",
+    "src/search/queries/flightsql/discovery/tables.rs::pub(in super::super) fn flightsql_table_type(sql_object_kind: &str) -> &str {",
+];
+
+#[derive(Debug)]
+struct RelativeVisibilityFinding {
+    relative_path: String,
+    line_number: usize,
+    declaration: String,
+}
+
 fn collect_modularity_findings(crate_root: &Path) -> Vec<ContractFinding> {
     let Some(crate_name) = crate_root.file_name().and_then(|value| value.to_str()) else {
         panic!("failed to derive crate name from {}", crate_root.display());
@@ -351,6 +386,81 @@ fn collect_modularity_findings(crate_root: &Path) -> Vec<ContractFinding> {
         .unwrap_or_else(|error| panic!("failed to collect modularity artifacts: {error}"));
     pack.evaluate(&artifacts)
         .unwrap_or_else(|error| panic!("failed to evaluate modularity artifacts: {error}"))
+}
+
+fn collect_relative_ancestor_visibility_findings(
+    crate_root: &Path,
+) -> Vec<RelativeVisibilityFinding> {
+    let source_root = crate_root.join("src");
+    let mut files = Vec::new();
+    collect_rust_source_files(source_root.as_path(), &mut files)
+        .unwrap_or_else(|error| panic!("failed to collect Rust source files: {error}"));
+    let mut findings = Vec::new();
+    for path in files {
+        let content = fs::read_to_string(path.as_path())
+            .unwrap_or_else(|error| panic!("failed to read `{}`: {error}", path.display()));
+        let relative_path = path.strip_prefix(crate_root).map_or_else(
+            |_| path.display().to_string(),
+            |relative| relative.display().to_string(),
+        );
+        findings.extend(
+            content
+                .lines()
+                .enumerate()
+                .filter_map(|(line_index, line)| {
+                    let declaration = line.trim();
+                    declaration
+                        .contains("pub(in super::")
+                        .then(|| RelativeVisibilityFinding {
+                            relative_path: relative_path.clone(),
+                            line_number: line_index + 1,
+                            declaration: declaration.to_string(),
+                        })
+                }),
+        );
+    }
+    findings
+}
+
+fn collect_rust_source_files(dir: &Path, files: &mut Vec<PathBuf>) -> std::io::Result<()> {
+    if !dir.exists() {
+        return Ok(());
+    }
+    for entry in fs::read_dir(dir)? {
+        let entry = entry?;
+        let path = entry.path();
+        if path.is_dir() {
+            collect_rust_source_files(path.as_path(), files)?;
+        } else if path.extension().and_then(|value| value.to_str()) == Some("rs") {
+            files.push(path);
+        }
+    }
+    Ok(())
+}
+
+fn is_legacy_relative_visibility_finding(finding: &RelativeVisibilityFinding) -> bool {
+    let key = relative_visibility_key(finding);
+    LEGACY_RELATIVE_ANCESTOR_VISIBILITY_BASELINE
+        .iter()
+        .any(|baseline| key == *baseline)
+}
+
+fn relative_visibility_key(finding: &RelativeVisibilityFinding) -> String {
+    format!("{}::{}", finding.relative_path, finding.declaration)
+}
+
+fn format_relative_visibility_gate_report(findings: &[&RelativeVisibilityFinding]) -> String {
+    let mut output = String::from(
+        "relative ancestor visibility gate failed with new `pub(in super::...)` declarations:\n",
+    );
+    for finding in findings {
+        let _ = writeln!(
+            output,
+            "- {}:{} :: {}",
+            finding.relative_path, finding.line_number, finding.declaration
+        );
+    }
+    output
 }
 
 fn resolve_workspace_root(crate_root: &Path) -> PathBuf {

@@ -2,9 +2,9 @@ use std::time::Duration;
 
 use xiuxian_wendao_attachments::pdf::ocr::PdfOcrShardInput;
 
-pub(in super::super) const DOCUMENT_EXTRACT_PDF_OCR_WORKERS_ENV: &str =
+pub(crate) const DOCUMENT_EXTRACT_PDF_OCR_WORKERS_ENV: &str =
     "WENDAO_DOCUMENT_EXTRACT_PDF_OCR_WORKERS";
-pub(in super::super) const DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS_ENV: &str =
+pub(crate) const DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS_ENV: &str =
     "WENDAO_DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS";
 
 pub(super) fn pdf_ocr_worker_limit() -> usize {
@@ -16,7 +16,7 @@ pub(super) fn pdf_ocr_worker_limit() -> usize {
     )
 }
 
-pub(in super::super) fn pdf_ocr_worker_limit_with_lookup(
+pub(crate) fn pdf_ocr_worker_limit_with_lookup(
     lookup: &dyn Fn(&str) -> Option<String>,
     available_parallelism: Option<usize>,
 ) -> usize {
@@ -32,7 +32,7 @@ pub(super) fn duration_to_ms(duration: Duration) -> u64 {
     u64::try_from(duration.as_millis()).unwrap_or(u64::MAX)
 }
 
-pub(in super::super) fn source_pdf_page_range_chunks(
+pub(crate) fn source_pdf_page_range_chunks(
     inputs: &[PdfOcrShardInput],
     chunk_count: usize,
 ) -> Vec<&[PdfOcrShardInput]> {

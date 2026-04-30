@@ -4,39 +4,56 @@ use std::io::Read;
 use std::path::Path;
 
 use sha2::{Digest, Sha256};
+use xiuxian_wendao_attachments::pdf::metrics::{
+    DOCUMENT_METRICS_ARROW_CACHE_NAME, build_pdf_ocr_metrics_batch,
+};
 use xiuxian_wendao_attachments::pdf::structure::{
     DOCUMENT_STRUCTURE_ARROW_CACHE_NAME, DocumentStructureBlock, build_document_structure_batch,
     document_resource_batch_to_structure_blocks,
 };
 
+use super::precision_gate::validate_hybrid_precision_gate;
 use super::types::HybridDocumentResourceBatch;
 use crate::gateway::studio::router::handlers::analysis::document_extract::arrow_cache::{
     DOCUMENT_RESOURCE_ARROW_CACHE_NAME, write_arrow_file,
 };
 
-pub(in super::super) fn write_hybrid_document_resource_artifacts(
+pub(crate) fn write_hybrid_document_resource_artifacts(
     output: &Path,
     source: &Path,
     resource_batch: &HybridDocumentResourceBatch,
 ) -> Result<(), String> {
-    write_arrow_file(
-        output.join(DOCUMENT_RESOURCE_ARROW_CACHE_NAME).as_path(),
-        std::slice::from_ref(&resource_batch.batch),
-    )?;
     let source_content_hash = sha256_file_hex(source)?;
     let structure_blocks = hybrid_document_structure_blocks(
         resource_batch,
         source_content_hash.as_str(),
         "wendao-hybrid-page-ocr",
     )?;
+    validate_hybrid_precision_gate(
+        resource_batch.page_count,
+        resource_batch.text_page_indices.as_slice(),
+        &resource_batch.batch,
+        structure_blocks.as_slice(),
+        resource_batch.ocr_inputs.as_slice(),
+        resource_batch.ocr_results.as_slice(),
+    )?;
     let structure_batch = build_document_structure_batch(structure_blocks.as_slice())?;
+    let metrics_batch = build_pdf_ocr_metrics_batch(resource_batch.ocr_metrics.as_slice())?;
+    write_arrow_file(
+        output.join(DOCUMENT_RESOURCE_ARROW_CACHE_NAME).as_path(),
+        std::slice::from_ref(&resource_batch.batch),
+    )?;
     write_arrow_file(
         output.join(DOCUMENT_STRUCTURE_ARROW_CACHE_NAME).as_path(),
         std::slice::from_ref(&structure_batch),
+    )?;
+    write_arrow_file(
+        output.join(DOCUMENT_METRICS_ARROW_CACHE_NAME).as_path(),
+        std::slice::from_ref(&metrics_batch),
     )
 }
 
-pub(in super::super) fn hybrid_document_structure_blocks(
+pub(crate) fn hybrid_document_structure_blocks(
     resource_batch: &HybridDocumentResourceBatch,
     source_content_hash: &str,
     engine: &str,

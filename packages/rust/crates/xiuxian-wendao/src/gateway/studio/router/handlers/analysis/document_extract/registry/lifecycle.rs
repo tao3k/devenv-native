@@ -6,10 +6,7 @@ use duckdb::Connection;
 use super::types::{DEFAULT_CONVERTER_PROFILE, DocumentExtractJobRegistry};
 
 impl DocumentExtractJobRegistry {
-    pub(in crate::gateway::studio::router::handlers::analysis::document_extract) fn new(
-        job_db: PathBuf,
-        artifact_root: PathBuf,
-    ) -> Result<Self, String> {
+    pub(crate) fn new(job_db: PathBuf, artifact_root: PathBuf) -> Result<Self, String> {
         if let Some(parent) = job_db.parent() {
             fs::create_dir_all(parent).map_err(|error| {
                 format!(
@@ -34,9 +31,7 @@ impl DocumentExtractJobRegistry {
         Ok(registry)
     }
 
-    pub(in crate::gateway::studio::router::handlers::analysis::document_extract) fn default_for_project(
-        project_root: &Path,
-    ) -> Result<Self, String> {
+    pub(crate) fn default_for_project(project_root: &Path) -> Result<Self, String> {
         let cache_root = std::env::var_os("PRJ_CACHE_HOME")
             .map_or_else(|| project_root.join(".cache"), PathBuf::from);
         let job_db = std::env::var_os("WENDAO_DOCUMENT_EXTRACT_JOB_DB").map_or_else(

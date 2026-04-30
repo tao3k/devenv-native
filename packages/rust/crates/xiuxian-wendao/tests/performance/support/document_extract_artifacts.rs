@@ -12,6 +12,7 @@ use serde::Serialize;
 
 const DOCUMENT_RESOURCES_ARROW_CACHE_NAME: &str = "_resources.arrow";
 const DOCUMENT_STRUCTURE_ARROW_CACHE_NAME: &str = "_structure.arrow";
+const DOCUMENT_METRICS_ARROW_CACHE_NAME: &str = "_metrics.arrow";
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -31,6 +32,15 @@ pub(crate) struct ArtifactReport {
     pub(crate) structure_ocr_region_blocks: usize,
     pub(crate) structure_bbox_blocks: usize,
     pub(crate) structure_reading_order_sorted: Option<bool>,
+    pub(crate) metrics_arrow_exists: bool,
+    pub(crate) metrics_arrow_bytes: u64,
+    pub(crate) metrics_row_count: usize,
+    pub(crate) metrics_status_counts: BTreeMap<String, usize>,
+    pub(crate) metrics_shard_type_counts: BTreeMap<String, usize>,
+    pub(crate) metrics_ocr_profile_counts: BTreeMap<String, usize>,
+    pub(crate) metrics_result_chars: usize,
+    pub(crate) metrics_bbox_count: usize,
+    pub(crate) metrics_rust_scheduler_elapsed_ms: f64,
     pub(crate) artifact_error: Option<String>,
 }
 
@@ -66,6 +76,15 @@ fn inspect_artifact_dir(source: &str, output_dir: &str) -> ArtifactReport {
         structure_ocr_region_blocks: 0,
         structure_bbox_blocks: 0,
         structure_reading_order_sorted: None,
+        metrics_arrow_exists: false,
+        metrics_arrow_bytes: 0,
+        metrics_row_count: 0,
+        metrics_status_counts: BTreeMap::new(),
+        metrics_shard_type_counts: BTreeMap::new(),
+        metrics_ocr_profile_counts: BTreeMap::new(),
+        metrics_result_chars: 0,
+        metrics_bbox_count: 0,
+        metrics_rust_scheduler_elapsed_ms: 0.0,
         artifact_error: None,
     };
     if let Err(error) = populate_artifact_report(&mut report) {
@@ -103,6 +122,20 @@ fn populate_artifact_report(report: &mut ArtifactReport) -> Result<(), String> {
             .unwrap_or_default();
         report.structure_bbox_blocks = bbox_block_count(&batches)?;
         report.structure_reading_order_sorted = Some(structure_reading_order_sorted(&batches)?);
+    }
+
+    let metrics_path = output_dir.join(DOCUMENT_METRICS_ARROW_CACHE_NAME);
+    if let Some(batches) = read_arrow_file_batches(metrics_path.as_path())? {
+        report.metrics_arrow_exists = true;
+        report.metrics_arrow_bytes = file_len(metrics_path.as_path())?;
+        report.metrics_row_count = batches.iter().map(RecordBatch::num_rows).sum();
+        report.metrics_status_counts = string_counts(&batches, "status")?;
+        report.metrics_shard_type_counts = string_counts(&batches, "shardType")?;
+        report.metrics_ocr_profile_counts = string_counts(&batches, "ocrProfile")?;
+        report.metrics_result_chars = sum_int32_column_values(&batches, "resultChars")?;
+        report.metrics_bbox_count = sum_int32_column_values(&batches, "bboxCount")?;
+        report.metrics_rust_scheduler_elapsed_ms =
+            max_float64_column_value(&batches, "rustSchedulerElapsedMs")?;
     }
     Ok(())
 }
@@ -169,6 +202,47 @@ fn bbox_block_count(batches: &[RecordBatch]) -> Result<usize, String> {
         }
     }
     Ok(count)
+}
+
+fn sum_int32_column_values(batches: &[RecordBatch], column_name: &str) -> Result<usize, String> {
+    let mut total = 0usize;
+    for batch in batches {
+        let Some(column) = batch.column_by_name(column_name) else {
+            continue;
+        };
+        let Some(array) = column.as_any().downcast_ref::<Int32Array>() else {
+            return Err(format!(
+                "document metrics `{column_name}` column is not int32"
+            ));
+        };
+        for row in 0..array.len() {
+            if !array.is_null(row) && array.value(row) > 0 {
+                total =
+                    total.saturating_add(usize::try_from(array.value(row)).unwrap_or(usize::MAX));
+            }
+        }
+    }
+    Ok(total)
+}
+
+fn max_float64_column_value(batches: &[RecordBatch], column_name: &str) -> Result<f64, String> {
+    let mut max_value = 0.0f64;
+    for batch in batches {
+        let Some(column) = batch.column_by_name(column_name) else {
+            continue;
+        };
+        let Some(array) = column.as_any().downcast_ref::<Float64Array>() else {
+            return Err(format!(
+                "document metrics `{column_name}` column is not float64"
+            ));
+        };
+        for row in 0..array.len() {
+            if !array.is_null(row) {
+                max_value = max_value.max(array.value(row));
+            }
+        }
+    }
+    Ok(max_value)
 }
 
 fn structure_reading_order_sorted(batches: &[RecordBatch]) -> Result<bool, String> {
@@ -249,6 +323,10 @@ fn artifact_report_reads_structure_sidecar_ordering() -> Result<(), String> {
             .as_path(),
         &structure_test_batch()?,
     )?;
+    write_test_arrow_file(
+        output_dir.join(DOCUMENT_METRICS_ARROW_CACHE_NAME).as_path(),
+        &metrics_test_batch()?,
+    )?;
 
     let report = inspect_artifact_dir("fixture.pdf", output_dir.to_string_lossy().as_ref());
 
@@ -261,6 +339,14 @@ fn artifact_report_reads_structure_sidecar_ordering() -> Result<(), String> {
     assert_eq!(report.structure_ocr_region_blocks, 1);
     assert_eq!(report.structure_bbox_blocks, 1);
     assert_eq!(report.structure_reading_order_sorted, Some(true));
+    assert!(report.metrics_arrow_exists);
+    assert_eq!(report.metrics_row_count, 2);
+    assert_eq!(report.metrics_status_counts.get("succeeded"), Some(&2));
+    assert_eq!(report.metrics_shard_type_counts.get("region"), Some(&1));
+    assert_eq!(report.metrics_ocr_profile_counts.get("docling"), Some(&2));
+    assert_eq!(report.metrics_result_chars, 42);
+    assert_eq!(report.metrics_bbox_count, 1);
+    assert!((report.metrics_rust_scheduler_elapsed_ms - 7.5).abs() < f64::EPSILON);
     Ok(())
 }
 
@@ -311,6 +397,29 @@ fn structure_test_batch() -> Result<RecordBatch, String> {
             Arc::new(Float64Array::from(vec![None, Some(20.0)])) as ArrayRef,
             Arc::new(Float64Array::from(vec![None, Some(110.0)])) as ArrayRef,
             Arc::new(Float64Array::from(vec![None, Some(220.0)])) as ArrayRef,
+        ],
+    )
+    .map_err(|error| error.to_string())
+}
+
+fn metrics_test_batch() -> Result<RecordBatch, String> {
+    let schema = Arc::new(Schema::new(vec![
+        Field::new("status", DataType::Utf8, true),
+        Field::new("shardType", DataType::Utf8, true),
+        Field::new("ocrProfile", DataType::Utf8, true),
+        Field::new("resultChars", DataType::Int32, true),
+        Field::new("bboxCount", DataType::Int32, true),
+        Field::new("rustSchedulerElapsedMs", DataType::Float64, true),
+    ]));
+    RecordBatch::try_new(
+        schema,
+        vec![
+            Arc::new(StringArray::from(vec!["succeeded", "succeeded"])) as ArrayRef,
+            Arc::new(StringArray::from(vec!["page", "region"])) as ArrayRef,
+            Arc::new(StringArray::from(vec!["docling", "docling"])) as ArrayRef,
+            Arc::new(Int32Array::from(vec![21, 21])) as ArrayRef,
+            Arc::new(Int32Array::from(vec![0, 1])) as ArrayRef,
+            Arc::new(Float64Array::from(vec![Some(5.0), Some(7.5)])) as ArrayRef,
         ],
     )
     .map_err(|error| error.to_string())

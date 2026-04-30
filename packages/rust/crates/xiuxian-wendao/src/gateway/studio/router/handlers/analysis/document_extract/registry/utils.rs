@@ -20,7 +20,7 @@ pub(crate) fn default_output_dir(source_path: &Path) -> PathBuf {
     source_path.with_extension(format!("{extension}.extracted"))
 }
 
-pub(in super::super) fn artifact_ready(status: &DocumentExtractJobStatus) -> bool {
+pub(crate) fn artifact_ready(status: &DocumentExtractJobStatus) -> bool {
     Path::new(status.artifact_dir.as_str())
         .join(DOCUMENT_RESOURCE_ARROW_CACHE_NAME)
         .exists()

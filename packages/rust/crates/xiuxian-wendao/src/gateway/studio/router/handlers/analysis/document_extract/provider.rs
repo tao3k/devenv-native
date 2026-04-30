@@ -19,8 +19,6 @@ pub(crate) use core::{DocumentExtractRuntimeSnapshot, StudioDocumentExtractFligh
 #[cfg(all(test, feature = "document-extract-pdf-source-range"))]
 use arrow::record_batch::RecordBatch as EngineRecordBatch;
 #[cfg(test)]
-use std::path::{Path, PathBuf};
-#[cfg(test)]
 use std::sync::Arc;
 #[cfg(all(test, feature = "document-extract-pdf-source-range"))]
 use xiuxian_wendao_attachments::pdf::ocr::{
@@ -43,8 +41,9 @@ use hybrid::{
     HybridDocumentResourceBatch, hybrid_document_structure_blocks,
     hybrid_page_ocr_input_arrow_path, hybrid_page_ocr_region_requests_for_source_with_lookup,
     hybrid_page_ocr_render_selection_with_lookup, validate_hybrid_page_coverage,
-    validate_hybrid_shard_coverage, validate_ocr_results_match_inputs,
-    validate_successful_ocr_results, write_hybrid_document_resource_artifacts,
+    validate_hybrid_precision_gate, validate_hybrid_shard_coverage,
+    validate_ocr_results_match_inputs, validate_successful_ocr_results,
+    write_hybrid_document_resource_artifacts,
 };
 #[cfg(test)]
 use runtime::{

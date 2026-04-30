@@ -5,7 +5,7 @@ use arrow::ipc::reader::FileReader;
 use arrow::ipc::writer::FileWriter;
 use arrow::record_batch::RecordBatch;
 
-pub(in super::super) fn read_arrow_file(path: &Path) -> Result<Vec<RecordBatch>, String> {
+pub(crate) fn read_arrow_file(path: &Path) -> Result<Vec<RecordBatch>, String> {
     let file = File::open(path)
         .map_err(|error| format!("open Arrow IPC file `{}`: {error}", path.display()))?;
     let reader = FileReader::try_new(file, None)
@@ -19,10 +19,7 @@ pub(in super::super) fn read_arrow_file(path: &Path) -> Result<Vec<RecordBatch>,
     Ok(batches)
 }
 
-pub(in super::super) fn write_arrow_file(
-    path: &Path,
-    batches: &[RecordBatch],
-) -> Result<(), String> {
+pub(crate) fn write_arrow_file(path: &Path, batches: &[RecordBatch]) -> Result<(), String> {
     let Some(first) = batches.first() else {
         return Err(format!(
             "cannot write empty Arrow IPC file `{}`",

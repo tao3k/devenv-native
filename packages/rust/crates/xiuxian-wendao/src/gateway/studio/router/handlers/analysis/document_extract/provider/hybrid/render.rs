@@ -15,7 +15,7 @@ use super::types::{
 };
 use crate::gateway::studio::router::handlers::analysis::document_extract::registry::default_output_dir;
 
-pub(in super::super) async fn render_hybrid_page_ocr_shards(
+pub(crate) async fn render_hybrid_page_ocr_shards(
     source: &Path,
     output: &Path,
 ) -> Result<PdfPageRenderShardReport, String> {
@@ -59,7 +59,7 @@ fn hybrid_page_ocr_render_selection() -> PdfPageRenderSelection {
     hybrid_page_ocr_render_selection_with_lookup(&|key| std::env::var(key).ok())
 }
 
-pub(in super::super) fn hybrid_page_ocr_render_selection_with_lookup(
+pub(crate) fn hybrid_page_ocr_render_selection_with_lookup(
     lookup: &dyn Fn(&str) -> Option<String>,
 ) -> PdfPageRenderSelection {
     match lookup(DOCUMENT_EXTRACT_PDF_RENDER_SELECTION_ENV)
@@ -80,7 +80,7 @@ fn hybrid_page_ocr_region_requests_for_source(
     hybrid_page_ocr_region_requests_for_source_with_lookup(source, &|key| std::env::var(key).ok())
 }
 
-pub(in super::super) fn hybrid_page_ocr_region_requests_for_source_with_lookup(
+pub(crate) fn hybrid_page_ocr_region_requests_for_source_with_lookup(
     source: &Path,
     lookup: &dyn Fn(&str) -> Option<String>,
 ) -> Result<Vec<PdfPageRegionRenderRequest>, String> {
@@ -122,7 +122,7 @@ fn paths_match(left: &Path, right: &Path) -> bool {
         }
 }
 
-pub(in super::super) fn hybrid_page_ocr_request_paths(
+pub(crate) fn hybrid_page_ocr_request_paths(
     request: &DocumentExtractFlightRequest,
 ) -> (PathBuf, PathBuf) {
     let source = PathBuf::from(request.source_path.as_str());
@@ -134,7 +134,7 @@ pub(in super::super) fn hybrid_page_ocr_request_paths(
     (source, output)
 }
 
-pub(in super::super) fn hybrid_page_ocr_input_arrow_path(
+pub(crate) fn hybrid_page_ocr_input_arrow_path(
     report: &PdfPageRenderShardReport,
 ) -> Result<PathBuf, String> {
     if report.status != PdfRenderStatus::Rendered.as_str() {

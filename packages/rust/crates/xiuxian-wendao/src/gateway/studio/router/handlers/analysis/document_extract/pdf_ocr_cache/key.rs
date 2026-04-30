@@ -4,7 +4,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use sha2::{Digest, Sha256};
 use xiuxian_wendao_attachments::pdf::ocr::PdfOcrShardInput;
 
-pub(in super::super) fn ocr_shard_cache_key(input: &PdfOcrShardInput) -> String {
+pub(crate) fn ocr_shard_cache_key(input: &PdfOcrShardInput) -> String {
     let mut hasher = Sha256::new();
     for fragment in ocr_shard_cache_fragments(input) {
         hasher.update(fragment.as_bytes());

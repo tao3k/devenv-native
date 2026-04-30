@@ -7,7 +7,9 @@ from pathlib import Path
 
 def _load_benchmark_module():
     repo_root = Path(__file__).resolve().parents[5]
-    script_path = repo_root / "scripts" / "benchmark_wendao_document_extract.py"
+    script_path = (
+        repo_root / "tests" / "scripts" / "benchmark_wendao_document_extract.py"
+    )
     spec = importlib.util.spec_from_file_location(
         "benchmark_wendao_document_extract",
         script_path,
@@ -424,6 +426,30 @@ def test_real_docling_server_code_can_record_converter_count(tmp_path: Path) -> 
     assert "write_text(str(self.calls)" in code
 
 
+def test_python_worker_command_adds_workspace_package_and_extras() -> None:
+    benchmark = _load_benchmark_module()
+
+    command = benchmark.python_worker_command(
+        "print('worker')",
+        uv_package="xiuxian-wendao-analyzer",
+        uv_extras=["documents", "documents-audio"],
+    )
+
+    assert command == [
+        "uv",
+        "run",
+        "--package",
+        "xiuxian-wendao-analyzer",
+        "--extra",
+        "documents",
+        "--extra",
+        "documents-audio",
+        "python",
+        "-c",
+        "print('worker')",
+    ]
+
+
 def test_converter_count_path_reads_external_fake_counter(tmp_path: Path) -> None:
     benchmark = _load_benchmark_module()
     count_path = tmp_path / "count.txt"
@@ -447,6 +473,11 @@ def test_artifact_report_summary_tracks_structure_precision() -> None:
                 "structureOcrRegionBlocks": 2,
                 "structureBboxBlocks": 2,
                 "structureReadingOrderSorted": True,
+                "metricsArrowExists": True,
+                "metricsRowCount": 3,
+                "metricsResultChars": 120,
+                "metricsBboxCount": 2,
+                "metricsRustSchedulerElapsedMs": 10.5,
                 "artifactError": None,
             },
             {
@@ -458,6 +489,11 @@ def test_artifact_report_summary_tracks_structure_precision() -> None:
                 "structureOcrRegionBlocks": 1,
                 "structureBboxBlocks": 1,
                 "structureReadingOrderSorted": True,
+                "metricsArrowExists": True,
+                "metricsRowCount": 1,
+                "metricsResultChars": 40,
+                "metricsBboxCount": 1,
+                "metricsRustSchedulerElapsedMs": 2.5,
                 "artifactError": None,
             },
         ]
@@ -471,6 +507,11 @@ def test_artifact_report_summary_tracks_structure_precision() -> None:
     assert summary["structureOcrRegionBlocks"] == 3
     assert summary["structureBboxBlocks"] == 3
     assert summary["structureReadingOrderSorted"] is True
+    assert summary["metricsArrowExists"] is True
+    assert summary["metricsRows"] == 4
+    assert summary["metricsResultChars"] == 160
+    assert summary["metricsBboxCount"] == 3
+    assert summary["metricsRustSchedulerElapsedMs"] == 13.0
     assert summary["artifactErrorCount"] == 0
 
 
@@ -937,6 +978,9 @@ def test_start_gateway_server_sets_document_extract_and_valkey_env(
     env = kwargs["env"]
     assert env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_WORKERS"] == "6"
     assert env["WENDAO_DOCUMENT_EXTRACT_ENDPOINT"] == "http://127.0.0.1:51051"
+    assert env["WENDAO_DOCUMENT_EXTRACT_OCR_SHARD_CACHE_ROOT"] == str(
+        (tmp_path / "ocr-shard-cache").resolve()
+    )
     assert env["WENDAO_DOCUMENT_EXTRACT_PDF_RENDER_SELECTION"] == (
         "shard_fallback_pages"
     )
@@ -989,6 +1033,9 @@ def test_start_rust_provider_forwards_hybrid_region_env(
     _command, kwargs = calls[0]
     env = kwargs["env"]
     assert env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_WORKERS"] == "6"
+    assert env["WENDAO_DOCUMENT_EXTRACT_OCR_SHARD_CACHE_ROOT"] == str(
+        (tmp_path / "ocr-shard-cache").resolve()
+    )
     assert env["WENDAO_DOCUMENT_EXTRACT_PDF_RENDER_SELECTION"] == "region_shards"
     regions = benchmark.json.loads(
         env["WENDAO_DOCUMENT_EXTRACT_PDF_RENDER_REGIONS_JSON"]
@@ -1062,6 +1109,39 @@ def test_summarize_ocr_shard_cache_reports_root_files_and_limits(
     assert summary["maxEntries"] == 10
 
 
+def test_benchmark_ocr_shard_cache_root_defaults_to_temp_for_local_runs(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    benchmark = _load_benchmark_module()
+    monkeypatch.delenv("WENDAO_DOCUMENT_EXTRACT_OCR_SHARD_CACHE_ROOT", raising=False)
+    args = benchmark.argparse.Namespace(
+        ocr_shard_cache_root=None,
+        external_endpoint=False,
+    )
+
+    assert (
+        benchmark.benchmark_ocr_shard_cache_root(args, tmp_path)
+        == (tmp_path / "ocr-shard-cache").resolve()
+    )
+
+
+def test_benchmark_ocr_shard_cache_root_honors_explicit_root(
+    tmp_path: Path,
+) -> None:
+    benchmark = _load_benchmark_module()
+    explicit_root = tmp_path / "explicit-ocr-shards"
+    args = benchmark.argparse.Namespace(
+        ocr_shard_cache_root=explicit_root,
+        external_endpoint=False,
+    )
+
+    assert (
+        benchmark.benchmark_ocr_shard_cache_root(args, tmp_path)
+        == explicit_root.resolve()
+    )
+
+
 def test_run_fixture_probe_can_measure_shard_cache_reuse(monkeypatch, tmp_path) -> None:
     benchmark = _load_benchmark_module()
     calls = []
@@ -1114,6 +1194,11 @@ def test_run_fixture_probe_can_measure_shard_cache_reuse(monkeypatch, tmp_path) 
                     "structureOcrRegionBlocks": 0,
                     "structureBboxBlocks": 21,
                     "structureReadingOrderSorted": True,
+                    "metricsArrowExists": True,
+                    "metricsRowCount": 21,
+                    "metricsResultChars": 2048,
+                    "metricsBboxCount": 21,
+                    "metricsRustSchedulerElapsedMs": 40.0,
                 }
             ],
         }
@@ -1146,6 +1231,9 @@ def test_run_fixture_probe_can_measure_shard_cache_reuse(monkeypatch, tmp_path) 
     assert result["shardCacheReuseForceMs"] == 42.0
     assert result["shardCacheReuseErrorRows"] == 0
     assert result["cacheHitP50Ms"] == 4.0
+    assert result["metricsRows"] == 21
+    assert result["metricsResultChars"] == 2048
+    assert result["metricsBboxCount"] == 21
 
 
 def test_summary_and_markdown_report_distinct_miss_burst() -> None:
@@ -1172,6 +1260,10 @@ def test_summary_and_markdown_report_distinct_miss_burst() -> None:
         "rustJobsMaxQueuedJobs": None,
         "rustJobsMaxRunningJobs": None,
         "rustJobsMinAvailableConversionPermits": None,
+        "metricsRows": 2,
+        "metricsResultChars": 80,
+        "metricsBboxCount": 2,
+        "metricsRustSchedulerElapsedMs": 12.0,
     }
     distinct_report = {
         "enabled": True,
@@ -1233,3 +1325,5 @@ def test_summary_and_markdown_report_distinct_miss_burst() -> None:
     assert "42.000" in markdown
     assert "OCR shard cache" in markdown
     assert "files=2" in markdown
+    assert "Metrics sidecar" in markdown
+    assert "chars=80" in markdown

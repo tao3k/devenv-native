@@ -11,8 +11,7 @@ use crate::gateway::studio::router::handlers::analysis::document_extract::pdf_oc
 };
 
 #[derive(Debug)]
-pub(in crate::gateway::studio::router::handlers::analysis::document_extract) struct PdfOcrWorkerScheduler
-{
+pub(crate) struct PdfOcrWorkerScheduler {
     pub(super) permits: Arc<Semaphore>,
     pub(super) worker_limit: usize,
     pub(super) capacity: OcrCapacityController,
@@ -22,14 +21,11 @@ pub(in crate::gateway::studio::router::handlers::analysis::document_extract) str
 }
 
 impl PdfOcrWorkerScheduler {
-    pub(in crate::gateway::studio::router::handlers::analysis::document_extract) fn from_environment()
-    -> Self {
+    pub(crate) fn from_environment() -> Self {
         Self::with_limit(pdf_ocr_worker_limit())
     }
 
-    pub(in crate::gateway::studio::router::handlers::analysis::document_extract) fn with_limit(
-        worker_limit: usize,
-    ) -> Self {
+    pub(crate) fn with_limit(worker_limit: usize) -> Self {
         Self::with_limit_and_cache(worker_limit, PdfOcrShardCache::from_environment())
     }
 
@@ -49,18 +45,14 @@ impl PdfOcrWorkerScheduler {
         self.permits.available_permits()
     }
 
-    pub(in crate::gateway::studio::router::handlers::analysis::document_extract) fn snapshot(
-        &self,
-    ) -> PdfOcrSchedulerSnapshot {
+    pub(crate) fn snapshot(&self) -> PdfOcrSchedulerSnapshot {
         let capacity = self.capacity.snapshot();
         self.metrics
             .snapshot(&capacity, self.available_permits(), self.inflight.len())
     }
 
     #[cfg(test)]
-    pub(in crate::gateway::studio::router::handlers::analysis::document_extract) fn permits_for_tests(
-        &self,
-    ) -> Arc<Semaphore> {
+    pub(crate) fn permits_for_tests(&self) -> Arc<Semaphore> {
         Arc::clone(&self.permits)
     }
 }

@@ -12,7 +12,7 @@ use super::types::{
 use super::utils::{artifact_ready, now_ms};
 
 impl DocumentExtractJobRegistry {
-    pub(in crate::gateway::studio::router::handlers::analysis::document_extract) fn submit(
+    pub(crate) fn submit(
         &self,
         source_path: &Path,
         output_dir: &Path,
@@ -68,15 +68,12 @@ impl DocumentExtractJobRegistry {
             .ok_or_else(|| format!("document extract job was not persisted: {job_id}"))
     }
 
-    pub(in crate::gateway::studio::router::handlers::analysis::document_extract) fn status(
-        &self,
-        job_id: &str,
-    ) -> Result<Option<DocumentExtractJobStatus>, String> {
+    pub(crate) fn status(&self, job_id: &str) -> Result<Option<DocumentExtractJobStatus>, String> {
         let conn = self.connection()?;
         fetch_status(&conn, job_id)
     }
 
-    pub(in crate::gateway::studio::router::handlers::analysis::document_extract) fn latest_succeeded_status_for_source(
+    pub(crate) fn latest_succeeded_status_for_source(
         &self,
         source_path: &Path,
     ) -> Result<Option<DocumentExtractJobStatus>, String> {
@@ -84,9 +81,7 @@ impl DocumentExtractJobRegistry {
         fetch_latest_succeeded_status_for_source(&conn, source_path)
     }
 
-    pub(in crate::gateway::studio::router::handlers::analysis::document_extract) fn snapshot(
-        &self,
-    ) -> Result<DocumentExtractJobRegistrySnapshot, String> {
+    pub(crate) fn snapshot(&self) -> Result<DocumentExtractJobRegistrySnapshot, String> {
         let conn = self.connection()?;
         let counts = fetch_job_counts(&conn)?;
         let last_finished = fetch_last_finished_job(&conn)?;
@@ -103,7 +98,7 @@ impl DocumentExtractJobRegistry {
         })
     }
 
-    pub(in crate::gateway::studio::router::handlers::analysis::document_extract) fn start_job(
+    pub(crate) fn start_job(
         &self,
         job_id: &str,
     ) -> Result<Option<DocumentExtractJobStatus>, String> {
@@ -128,10 +123,7 @@ impl DocumentExtractJobRegistry {
         fetch_status(&conn, job_id)
     }
 
-    pub(in crate::gateway::studio::router::handlers::analysis::document_extract) fn mark_succeeded(
-        &self,
-        job_id: &str,
-    ) -> Result<(), String> {
+    pub(crate) fn mark_succeeded(&self, job_id: &str) -> Result<(), String> {
         let conn = self.connection()?;
         conn.execute(
             r"
@@ -145,11 +137,7 @@ impl DocumentExtractJobRegistry {
         Ok(())
     }
 
-    pub(in crate::gateway::studio::router::handlers::analysis::document_extract) fn mark_failed(
-        &self,
-        job_id: &str,
-        error_message: &str,
-    ) -> Result<(), String> {
+    pub(crate) fn mark_failed(&self, job_id: &str, error_message: &str) -> Result<(), String> {
         let conn = self.connection()?;
         conn.execute(
             r"

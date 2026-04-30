@@ -5,7 +5,7 @@
 :PARENT: [[../index|Wendao DocOS Kernel: Map of Content]]
 :TAGS: research, document-extraction, pdf, ocr, arrow, docling, attachments
 :STATUS: UPDATED
-:VERSION: 1.5
+:VERSION: 1.6
 :END:
 
 ## Executive Summary
@@ -39,6 +39,13 @@ future UI structure order. The OCR shard contracts remain Arrow-only and stay
 at `xiuxian_wendao.pdf_ocr_shard_input.v1` and
 `xiuxian_wendao.pdf_ocr_shard_result.v1`.
 
+The next implementation slice is verification infrastructure, not a broader
+parser replacement. Rust stays the deterministic control plane: acceleration,
+scheduling, caching, slicing, ordering, merging, and validation. Docling
+remains the OCR, layout, and semantic document-understanding authority. Future
+VLM integration is limited to hard-region enhancement after Docling baseline
+comparison exists.
+
 ## Current Architecture
 
 The active hybrid PDF path is:
@@ -52,6 +59,18 @@ PDF source
   -> Rust order gate, shard cache, and resource projection
   -> _resources.arrow + _structure.arrow
 ```
+
+The hardened acceptance shape adds one more internal artifact:
+
+```text
+OCR shard result/projection
+  -> Rust precision gate
+  -> _metrics.arrow + _resources.arrow + _structure.arrow
+```
+
+`_metrics.arrow` is internal observability. It does not change the user-facing
+resource table, the structure sidecar, or the OCR shard input/result v1
+contracts.
 
 Responsibilities:
 
@@ -256,6 +275,47 @@ The implementation must preserve or improve extraction quality:
    back conservatively.
 5. Any uncertain route that cannot prove coverage emits a Docling fallback
    rather than a partial `_resources.arrow` artifact.
+
+## Precision Gate And Metrics Slice
+
+The current slice centralizes the fast-path acceptance rules before any default
+region OCR work. A hybrid result is accepted only after the Rust precision gate
+proves:
+
+1. OCR worker results match the input shard identity and page index.
+2. Every required page has native or OCR coverage.
+3. Resource rows contain no error, failed, or skipped OCR rows.
+4. OCR structure blocks keep bbox and provenance.
+5. Structure rows remain sortable by page, reading-order key, block index, and
+   block id.
+
+The metrics sidecar records one row per OCR shard output. Initial Rust-owned
+fields include source path, page index, shard id, OCR profile, page count, bbox
+count, result characters, status, and available Rust scheduler/provenance
+timing. Docling phase timings remain nullable until Python can expose them
+without changing the stable OCR result v1 contract.
+
+The benchmark harness now lives under `tests/scripts/` and reads
+`_metrics.arrow` from each extraction artifact directory. It includes the
+sidecar in JSON and Markdown reports with metrics row count, OCR result
+characters, bbox count, and total Rust scheduler elapsed time. This keeps
+performance and precision evidence attached to the same Arrow artifact set as
+`_resources.arrow` and `_structure.arrow`.
+
+A fixture-OCR smoke run against the `2604.17337` PDF confirmed the reporting
+path without invoking real Docling OCR: 21 resource rows, 21 structure rows, 21
+metrics rows, 21 bbox-covered OCR page blocks, sorted reading order, and zero
+error rows. The run also verified that benchmark child-process logs are written
+to report-local files instead of undrained pipes, avoiding startup deadlocks
+during slow Cargo builds.
+
+A real Docling OCR run on the same PDF, using an isolated shard cache and the
+`documents` Python extra, produced 21 resource rows, 21 structure rows, 21 OCR
+page blocks, 21 bbox-covered blocks, 21 metrics rows, 103,984 OCR result
+characters, sorted reading order, and zero error rows. The cold force path was
+21.012 s on the measured host; a forced rebuild from shard cache was 90.402 ms;
+the whole-document cache hit was 2.419 ms p50/p95. This is the current
+evidence baseline for the source-PDF page-range path.
 
 ## Active Risks
 

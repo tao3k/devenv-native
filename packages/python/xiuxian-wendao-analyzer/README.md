@@ -230,7 +230,7 @@ Document extraction performance can be measured through the Rust ignored test
 harness, driven by the local benchmark script:
 
 ```bash
-uv run python scripts/benchmark_wendao_document_extract.py
+uv run python tests/scripts/benchmark_wendao_document_extract.py
 ```
 
 Reports are written to the script's configured report directory. The default
@@ -241,17 +241,20 @@ adding those files to this repository:
 
 ```bash
 uv sync --extra documents
-uv run python scripts/benchmark_wendao_document_extract.py --prepare-only
-uv run python scripts/benchmark_wendao_document_extract.py \
+uv run python tests/scripts/benchmark_wendao_document_extract.py --prepare-only
+uv run python tests/scripts/benchmark_wendao_document_extract.py \
   --real-docling \
   --fixture-suite docling-real \
   --prepare-docling-fixtures \
+  --python-uv-extra documents \
   --fail-on-error-rows
 ```
 
 Use `--skip-audio` when ASR model artifacts should not be loaded. For real
 audio ASR, install `documents-audio` and run without `--skip-audio`; the
-benchmark configures the bundled `imageio-ffmpeg` executable for Whisper.
+benchmark configures the bundled `imageio-ffmpeg` executable for Whisper. Pass
+`--python-uv-extra documents` for real Docling document OCR and
+`--python-uv-extra documents-audio` for real audio ASR worker starts.
 Use `--only-fixture audio` or another fixture name for targeted real fixture
 diagnostics. Use `--docling-source-root` only when you already have a prepared
 Docling fixture checkout. Use `--concurrency` to stress the Rust-to-Python
@@ -265,12 +268,16 @@ whole-document `_resources.arrow` cache. The probe runs a second forced
 extraction into a fresh output directory after the first force run and reports
 `shardCacheReuseForceMs` in JSON and Markdown output. Reports also include an
 `ocrShardCache` summary with the shard cache root, Arrow file count, total
-bytes, and configured limits. The Rust provider defaults the OCR shard cache
-limit to 10 GiB and supports
+bytes, and configured limits. Hybrid OCR reports also summarize the internal
+`_metrics.arrow` sidecar: shard metric row count, OCR result characters, bbox
+coverage count, and Rust scheduler elapsed time. The Rust provider defaults the
+OCR shard cache limit to 10 GiB and supports
 `WENDAO_DOCUMENT_EXTRACT_OCR_SHARD_CACHE_MAX_BYTES`,
 `WENDAO_DOCUMENT_EXTRACT_OCR_SHARD_CACHE_MAX_ENTRIES`, and
 `WENDAO_DOCUMENT_EXTRACT_OCR_SHARD_CACHE_MAX_AGE_SECS` for deployment-specific
-capacity policy.
+capacity policy. Local benchmark runs isolate the OCR shard cache by default
+so fake and real OCR evidence do not cross-contaminate; use
+`--ocr-shard-cache-root` when a run intentionally targets a persistent cache.
 For source-PDF page-range OCR, Rust owns the outer scheduling policy. It may
 split one contiguous source-PDF OCR range into several contiguous subranges and
 send those subranges concurrently to Python/Docling. The default source-range
@@ -299,7 +306,7 @@ and `wendao gateway start`, then samples the gateway REST status endpoint while
 the Rust Flight probes run:
 
 ```bash
-uv run python scripts/benchmark_wendao_document_extract.py \
+uv run python tests/scripts/benchmark_wendao_document_extract.py \
   --real-docling \
   --fixture-suite docling-real \
   --skip-audio \
@@ -319,7 +326,7 @@ For the distinct-document cold-miss capacity slice, run a separate invocation
 with `--distinct-miss-concurrency` and no duplicate-miss flag:
 
 ```bash
-uv run python scripts/benchmark_wendao_document_extract.py \
+uv run python tests/scripts/benchmark_wendao_document_extract.py \
   --real-docling \
   --fixture-suite docling-real \
   --skip-audio \

@@ -7,24 +7,24 @@ use super::capacity::{OcrCapacitySnapshot, OcrSchedulerLane};
 const METRIC_WINDOW: usize = 128;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(in super::super) struct PdfOcrSchedulerSnapshot {
-    pub(in super::super) max_worker_bound: usize,
-    pub(in super::super) current_worker_budget: usize,
-    pub(in super::super) available_worker_permits: usize,
-    pub(in super::super) in_process_workers: usize,
-    pub(in super::super) in_flight_shards: usize,
-    pub(in super::super) cache_hits: u64,
-    pub(in super::super) cache_misses: u64,
-    pub(in super::super) live_requests: u64,
-    pub(in super::super) queue_wait_p50_ms: Option<u64>,
-    pub(in super::super) queue_wait_p95_ms: Option<u64>,
-    pub(in super::super) ocr_latency_p50_ms: Option<u64>,
-    pub(in super::super) ocr_latency_p95_ms: Option<u64>,
-    pub(in super::super) source_pdf_page_range_shards: u64,
-    pub(in super::super) rendered_page_shards: u64,
-    pub(in super::super) rendered_region_shards: u64,
-    pub(in super::super) budget_increase_events: u64,
-    pub(in super::super) budget_decrease_events: u64,
+pub(crate) struct PdfOcrSchedulerSnapshot {
+    pub(crate) max_worker_bound: usize,
+    pub(crate) current_worker_budget: usize,
+    pub(crate) available_worker_permits: usize,
+    pub(crate) in_process_workers: usize,
+    pub(crate) in_flight_shards: usize,
+    pub(crate) cache_hits: u64,
+    pub(crate) cache_misses: u64,
+    pub(crate) live_requests: u64,
+    pub(crate) queue_wait_p50_ms: Option<u64>,
+    pub(crate) queue_wait_p95_ms: Option<u64>,
+    pub(crate) ocr_latency_p50_ms: Option<u64>,
+    pub(crate) ocr_latency_p95_ms: Option<u64>,
+    pub(crate) source_pdf_page_range_shards: u64,
+    pub(crate) rendered_page_shards: u64,
+    pub(crate) rendered_region_shards: u64,
+    pub(crate) budget_increase_events: u64,
+    pub(crate) budget_decrease_events: u64,
 }
 
 #[derive(Debug, Default)]

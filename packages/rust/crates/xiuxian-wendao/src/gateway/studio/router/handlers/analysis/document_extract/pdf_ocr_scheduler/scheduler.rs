@@ -4,7 +4,7 @@ mod core;
 mod dispatch;
 mod limit;
 
-pub(in super::super) use core::PdfOcrWorkerScheduler;
+pub(crate) use core::PdfOcrWorkerScheduler;
 pub(super) use limit::DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS_ENV;
 
 #[cfg(test)]

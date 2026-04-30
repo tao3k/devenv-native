@@ -19,7 +19,7 @@ pub(crate) struct DocumentExtractJobStatus {
 }
 
 #[derive(Debug)]
-pub(in super::super) struct DocumentExtractJobRegistry {
+pub(crate) struct DocumentExtractJobRegistry {
     pub(super) job_db: PathBuf,
     pub(super) artifact_root: PathBuf,
     pub(super) converter_profile: String,

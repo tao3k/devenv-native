@@ -78,7 +78,7 @@ The Python service to Rust provider performance path is covered by an ignored
 Cargo test and the local benchmark driver:
 
 ```bash
-uv run python scripts/benchmark_wendao_document_extract.py
+uv run python tests/scripts/benchmark_wendao_document_extract.py
 ```
 
 The default benchmark uses fake converter fixtures, including audio and image
@@ -88,11 +88,12 @@ attachments:
 
 ```bash
 uv sync --extra documents
-uv run python scripts/benchmark_wendao_document_extract.py --prepare-only
-uv run python scripts/benchmark_wendao_document_extract.py \
+uv run python tests/scripts/benchmark_wendao_document_extract.py --prepare-only
+uv run python tests/scripts/benchmark_wendao_document_extract.py \
   --real-docling \
   --fixture-suite docling-real \
   --prepare-docling-fixtures \
+  --python-uv-extra documents \
   --fail-on-error-rows
 ```
 
@@ -100,13 +101,17 @@ For Rust-owned async queue and dedup validation, keep Python as the synchronous
 worker and let the benchmark driver start the existing Rust Flight provider:
 
 ```bash
-uv run python scripts/benchmark_wendao_document_extract.py \
+uv run python tests/scripts/benchmark_wendao_document_extract.py \
   --flight-mode async \
   --wait-ms 5000 \
   --duplicate-miss-concurrency 20 \
   --fail-on-duplicate-conversions \
   --fail-on-error-rows
 ```
+
+Local benchmark runs isolate the OCR shard cache by default. Pass
+`--ocr-shard-cache-root` only when the run should intentionally reuse a
+persistent shard cache.
 
 When a Rust gateway REST endpoint is already available, add:
 

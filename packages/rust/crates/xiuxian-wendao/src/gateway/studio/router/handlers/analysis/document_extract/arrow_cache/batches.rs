@@ -6,7 +6,7 @@ use arrow::record_batch::RecordBatch;
 use super::schema::{document_extract_status_schema, document_resource_schema, string_column};
 use crate::gateway::studio::router::handlers::analysis::document_extract::registry::DocumentExtractJobStatus;
 
-pub(in super::super) fn build_job_resource_batch(
+pub(crate) fn build_job_resource_batch(
     status: &DocumentExtractJobStatus,
 ) -> Result<RecordBatch, String> {
     RecordBatch::try_new(
@@ -26,7 +26,7 @@ pub(in super::super) fn build_job_resource_batch(
     .map_err(|error| format!("build document extract job batch: {error}"))
 }
 
-pub(in super::super) fn build_error_resource_batch(
+pub(crate) fn build_error_resource_batch(
     status: &DocumentExtractJobStatus,
 ) -> Result<RecordBatch, String> {
     RecordBatch::try_new(
@@ -46,9 +46,7 @@ pub(in super::super) fn build_error_resource_batch(
     .map_err(|error| format!("build document extract error batch: {error}"))
 }
 
-pub(in super::super) fn build_status_batch(
-    status: &DocumentExtractJobStatus,
-) -> Result<RecordBatch, String> {
+pub(crate) fn build_status_batch(status: &DocumentExtractJobStatus) -> Result<RecordBatch, String> {
     RecordBatch::try_new(
         document_extract_status_schema(),
         vec![
