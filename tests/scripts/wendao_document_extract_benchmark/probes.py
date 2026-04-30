@@ -22,6 +22,7 @@ from .rust_status import (
     combine_rust_jobs_status_summaries,
     summarize_rust_jobs_status_samples,
 )
+from .structure_consistency import fixture_structure_order_consistency
 
 
 def run_distinct_miss_probe(
@@ -266,6 +267,11 @@ def run_fixture_probe(
     artifact_summary = summarize_artifact_reports(
         cached_report.get("artifactReports", [])
     )
+    structure_order_consistency = fixture_structure_order_consistency(
+        force_report,
+        cached_report,
+        shard_cache_reuse_report,
+    )
     if args.fail_on_error_rows and (
         force_error_rows or shard_cache_reuse_error_rows or cache_error_rows
     ):
@@ -358,6 +364,7 @@ def run_fixture_probe(
         "structureOcrRegionBlocks": artifact_summary["structureOcrRegionBlocks"],
         "structureBboxBlocks": artifact_summary["structureBboxBlocks"],
         "structureReadingOrderSorted": artifact_summary["structureReadingOrderSorted"],
+        **structure_order_consistency,
         "structureParityChecked": artifact_summary["structureParityChecked"],
         "structureParityPassed": artifact_summary["structureParityPassed"],
         "structureParityErrorCount": artifact_summary["structureParityErrorCount"],

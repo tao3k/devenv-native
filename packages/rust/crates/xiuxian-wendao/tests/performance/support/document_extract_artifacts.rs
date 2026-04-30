@@ -1,16 +1,24 @@
 use std::collections::BTreeMap;
 use std::fs::{self, File};
 use std::path::Path;
+#[cfg(feature = "document-extract-pdf-source-range")]
 use std::sync::Arc;
 
-use arrow::array::{Array, ArrayRef, Float64Array, Int32Array, StringArray};
+#[cfg(feature = "document-extract-pdf-source-range")]
+use arrow::array::ArrayRef;
+use arrow::array::{Array, Float64Array, Int32Array, StringArray};
+#[cfg(feature = "document-extract-pdf-source-range")]
 use arrow::datatypes::{DataType, Field, Schema};
 use arrow::ipc::reader::FileReader;
+#[cfg(feature = "document-extract-pdf-source-range")]
 use arrow::ipc::writer::FileWriter;
 use arrow::record_batch::RecordBatch;
 use serde::Serialize;
+use serde_json::Value;
+
+#[cfg(feature = "document-extract-pdf-source-range")]
 use xiuxian_wendao_attachments::pdf::structure::{
-    DocumentStructureBlock, DocumentStructureParitySummary, validate_document_structure_parity,
+    DocumentStructureBlock, validate_document_structure_parity,
 };
 
 const DOCUMENT_RESOURCES_ARROW_CACHE_NAME: &str = "_resources.arrow";
@@ -35,8 +43,11 @@ pub(crate) struct ArtifactReport {
     pub(crate) structure_ocr_region_blocks: usize,
     pub(crate) structure_bbox_blocks: usize,
     pub(crate) structure_reading_order_sorted: Option<bool>,
+    pub(crate) structure_order_signature: Option<String>,
+    pub(crate) structure_order_first_key: Option<String>,
+    pub(crate) structure_order_last_key: Option<String>,
     pub(crate) structure_baseline_dir: Option<String>,
-    pub(crate) structure_parity: Option<DocumentStructureParitySummary>,
+    pub(crate) structure_parity: Option<Value>,
     pub(crate) structure_parity_error: Option<String>,
     pub(crate) metrics_arrow_exists: bool,
     pub(crate) metrics_arrow_bytes: u64,
@@ -93,6 +104,9 @@ fn inspect_artifact_dir(
         structure_ocr_region_blocks: 0,
         structure_bbox_blocks: 0,
         structure_reading_order_sorted: None,
+        structure_order_signature: None,
+        structure_order_first_key: None,
+        structure_order_last_key: None,
         structure_baseline_dir: None,
         structure_parity: None,
         structure_parity_error: None,
@@ -145,15 +159,25 @@ fn populate_artifact_report(
             .copied()
             .unwrap_or_default();
         report.structure_bbox_blocks = bbox_block_count(&batches)?;
-        report.structure_reading_order_sorted = Some(structure_reading_order_sorted(&batches)?);
+        let order_audit = structure_order_audit(&batches)?;
+        report.structure_reading_order_sorted = Some(order_audit.sorted);
+        report.structure_order_signature = order_audit.signature;
+        report.structure_order_first_key = order_audit.first_key;
+        report.structure_order_last_key = order_audit.last_key;
         structure_batches = Some(batches);
     }
+    #[cfg(feature = "document-extract-pdf-source-range")]
     populate_structure_parity(
         report,
         output_dir.as_path(),
         structure_batches.as_deref(),
         structure_baseline_root,
     )?;
+    #[cfg(not(feature = "document-extract-pdf-source-range"))]
+    {
+        let _ = structure_batches.as_deref();
+        populate_structure_parity(report, output_dir.as_path(), structure_baseline_root);
+    }
 
     let metrics_path = output_dir.join(DOCUMENT_METRICS_ARROW_CACHE_NAME);
     if let Some(batches) = read_arrow_file_batches(metrics_path.as_path())? {
@@ -276,14 +300,32 @@ fn max_float64_column_value(batches: &[RecordBatch], column_name: &str) -> Resul
     Ok(max_value)
 }
 
-fn structure_reading_order_sorted(batches: &[RecordBatch]) -> Result<bool, String> {
+#[derive(Debug, Default)]
+struct StructureOrderAudit {
+    sorted: bool,
+    signature: Option<String>,
+    first_key: Option<String>,
+    last_key: Option<String>,
+}
+
+fn structure_order_audit(batches: &[RecordBatch]) -> Result<StructureOrderAudit, String> {
+    let mut hasher = blake3::Hasher::new();
+    let mut sorted = true;
     let mut previous: Option<(i32, String, i32, String)> = None;
+    let mut first_key = None;
+    let mut last_key = None;
+    let mut row_count = 0usize;
     for batch in batches {
         let page_index = int32_column(batch, "pageIndex")?;
         let reading_order_key = string_column(batch, "readingOrderKey")?;
         let block_index = int32_column(batch, "blockIndex")?;
         let block_id = string_column(batch, "blockId")?;
+        let block_type = string_column(batch, "blockType")?;
+        let resource_element_id = string_column(batch, "resourceElementId")?;
+        let content = string_column(batch, "content")?;
+        let status = string_column(batch, "status")?;
         for row in 0..batch.num_rows() {
+            row_count += 1;
             let current = (
                 int32_value(page_index, row),
                 string_value(reading_order_key, row),
@@ -293,14 +335,62 @@ fn structure_reading_order_sorted(batches: &[RecordBatch]) -> Result<bool, Strin
             if let Some(previous) = &previous
                 && current < *previous
             {
-                return Ok(false);
+                sorted = false;
             }
+            let order_key = format!(
+                "{:06}|{}|{:06}|{}",
+                current.0, current.1, current.2, current.3
+            );
+            first_key.get_or_insert_with(|| order_key.clone());
+            last_key = Some(order_key);
+            update_structure_order_signature(
+                &mut hasher,
+                &[
+                    current.0.to_string(),
+                    current.1.clone(),
+                    current.2.to_string(),
+                    current.3.clone(),
+                    string_value(block_type, row),
+                    string_value(resource_element_id, row),
+                    string_value(status, row),
+                    string_value(content, row),
+                ],
+            );
             previous = Some(current);
         }
     }
-    Ok(true)
+    Ok(StructureOrderAudit {
+        sorted,
+        signature: (row_count > 0).then(|| hasher.finalize().to_hex().to_string()),
+        first_key,
+        last_key,
+    })
 }
 
+fn update_structure_order_signature(hasher: &mut blake3::Hasher, fields: &[String]) {
+    for field in fields {
+        hasher.update(field.len().to_string().as_bytes());
+        hasher.update(b":");
+        hasher.update(field.as_bytes());
+        hasher.update(b"\n");
+    }
+}
+
+#[cfg(not(feature = "document-extract-pdf-source-range"))]
+fn populate_structure_parity(
+    report: &mut ArtifactReport,
+    output_dir: &Path,
+    baseline_root: Option<&Path>,
+) {
+    let Some(baseline_root) = baseline_root else {
+        return;
+    };
+    let _ = (output_dir, baseline_root);
+    report.structure_parity_error =
+        Some("structure parity requires document-extract-pdf-source-range feature".to_string());
+}
+
+#[cfg(feature = "document-extract-pdf-source-range")]
 fn populate_structure_parity(
     report: &mut ArtifactReport,
     output_dir: &Path,
@@ -328,12 +418,16 @@ fn populate_structure_parity(
     let baseline = decode_structure_blocks(&baseline_batches)?;
     let candidate = decode_structure_blocks(candidate_batches)?;
     match validate_document_structure_parity(baseline.as_slice(), candidate.as_slice()) {
-        Ok(summary) => report.structure_parity = Some(summary),
+        Ok(summary) => {
+            report.structure_parity =
+                Some(serde_json::to_value(summary).map_err(|error| error.to_string())?);
+        }
         Err(error) => report.structure_parity_error = Some(error),
     }
     Ok(())
 }
 
+#[cfg(feature = "document-extract-pdf-source-range")]
 fn baseline_artifact_dir(
     baseline_root: &Path,
     output_dir: &Path,
@@ -347,6 +441,7 @@ fn baseline_artifact_dir(
     Ok(baseline_root.join(name))
 }
 
+#[cfg(feature = "document-extract-pdf-source-range")]
 fn decode_structure_blocks(batches: &[RecordBatch]) -> Result<Vec<DocumentStructureBlock>, String> {
     let mut blocks = Vec::new();
     for batch in batches {
@@ -435,6 +530,7 @@ fn int32_value(column: &Int32Array, row: usize) -> i32 {
     }
 }
 
+#[cfg(feature = "document-extract-pdf-source-range")]
 fn optional_float64_value(column: &Float64Array, row: usize) -> Option<f64> {
     if column.is_null(row) {
         None
@@ -444,6 +540,7 @@ fn optional_float64_value(column: &Float64Array, row: usize) -> Option<f64> {
 }
 
 #[test]
+#[cfg(feature = "document-extract-pdf-source-range")]
 fn artifact_report_reads_structure_sidecar_ordering() -> Result<(), String> {
     let temp_dir = tempfile::tempdir().map_err(|error| error.to_string())?;
     let output_dir = temp_dir.path().join("outputs").join("fixture-a");
@@ -489,6 +586,15 @@ fn artifact_report_reads_structure_sidecar_ordering() -> Result<(), String> {
     assert_eq!(report.structure_ocr_region_blocks, 1);
     assert_eq!(report.structure_bbox_blocks, 1);
     assert_eq!(report.structure_reading_order_sorted, Some(true));
+    assert!(report.structure_order_signature.is_some());
+    assert_eq!(
+        report.structure_order_first_key.as_deref(),
+        Some("000000|000000.000000|000000|native")
+    );
+    assert_eq!(
+        report.structure_order_last_key.as_deref(),
+        Some("000000|000000.000001|000001|region")
+    );
     assert!(report.metrics_arrow_exists);
     assert_eq!(report.metrics_row_count, 2);
     assert_eq!(report.metrics_status_counts.get("succeeded"), Some(&2));
@@ -500,12 +606,19 @@ fn artifact_report_reads_structure_sidecar_ordering() -> Result<(), String> {
     let parity = report
         .structure_parity
         .ok_or_else(|| "expected structure parity summary".to_string())?;
-    assert_eq!(parity.baseline_block_count, 1);
-    assert_eq!(parity.candidate_block_count, 2);
+    assert_eq!(
+        parity.get("baselineBlockCount").and_then(Value::as_u64),
+        Some(1)
+    );
+    assert_eq!(
+        parity.get("candidateBlockCount").and_then(Value::as_u64),
+        Some(2)
+    );
     assert_eq!(report.structure_parity_error, None);
     Ok(())
 }
 
+#[cfg(feature = "document-extract-pdf-source-range")]
 fn write_test_arrow_file(path: &Path, batch: &RecordBatch) -> Result<(), String> {
     let file = File::create(path).map_err(|error| error.to_string())?;
     let mut writer =
@@ -514,6 +627,7 @@ fn write_test_arrow_file(path: &Path, batch: &RecordBatch) -> Result<(), String>
     writer.finish().map_err(|error| error.to_string())
 }
 
+#[cfg(feature = "document-extract-pdf-source-range")]
 fn resource_test_batch() -> Result<RecordBatch, String> {
     let schema = Arc::new(Schema::new(vec![
         Field::new("resourceType", DataType::Utf8, true),
@@ -529,6 +643,7 @@ fn resource_test_batch() -> Result<RecordBatch, String> {
     .map_err(|error| error.to_string())
 }
 
+#[cfg(feature = "document-extract-pdf-source-range")]
 fn structure_test_batch() -> Result<RecordBatch, String> {
     let schema = Arc::new(Schema::new(vec![
         Field::new("contractVersion", DataType::Utf8, true),
@@ -583,6 +698,7 @@ fn structure_test_batch() -> Result<RecordBatch, String> {
     .map_err(|error| error.to_string())
 }
 
+#[cfg(feature = "document-extract-pdf-source-range")]
 fn structure_baseline_test_batch() -> Result<RecordBatch, String> {
     let schema = Arc::new(Schema::new(vec![
         Field::new("contractVersion", DataType::Utf8, true),
@@ -636,6 +752,7 @@ fn structure_baseline_test_batch() -> Result<RecordBatch, String> {
     .map_err(|error| error.to_string())
 }
 
+#[cfg(feature = "document-extract-pdf-source-range")]
 fn metrics_test_batch() -> Result<RecordBatch, String> {
     let schema = Arc::new(Schema::new(vec![
         Field::new("status", DataType::Utf8, true),

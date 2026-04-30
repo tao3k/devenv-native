@@ -34,6 +34,9 @@ _probes = importlib.import_module("wendao_document_extract_benchmark.probes")
 _providers = importlib.import_module("wendao_document_extract_benchmark.providers")
 _reporting = importlib.import_module("wendao_document_extract_benchmark.reporting")
 _rust_status = importlib.import_module("wendao_document_extract_benchmark.rust_status")
+_structure_consistency = importlib.import_module(
+    "wendao_document_extract_benchmark.structure_consistency"
+)
 _workers = importlib.import_module("wendao_document_extract_benchmark.workers")
 main = importlib.import_module("wendao_document_extract_benchmark.cli").main
 
@@ -54,6 +57,7 @@ _EXPORTED_MODULES: tuple[Any, ...] = (
     _probes,
     _artifact_summary,
     _rust_status,
+    _structure_consistency,
     _cache,
     _reporting,
 )

@@ -5,9 +5,11 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from .precision_speed import (
+    all_structure_order_stable,
     all_structure_parity_passed,
     all_structure_reading_order_sorted,
     precision_speed_summary,
+    structure_order_mismatch_count,
 )
 from .rust_status import combine_rust_jobs_status_summaries
 
@@ -48,6 +50,8 @@ def summarize_results(
         result.get("structureParityErrorCount", 0) for result in results
     )
     structure_reading_order_sorted = all_structure_reading_order_sorted(results)
+    structure_order_stable = all_structure_order_stable(results)
+    structure_order_mismatches = structure_order_mismatch_count(results)
     structure_parity_passed = all_structure_parity_passed(results)
     return {
         "fixtureCount": len(results),
@@ -66,6 +70,8 @@ def summarize_results(
             result.get("structureBboxBlocks", 0) for result in results
         ),
         "allStructureReadingOrderSorted": structure_reading_order_sorted,
+        "allStructureOrderStable": structure_order_stable,
+        "totalStructureOrderMismatches": structure_order_mismatches,
         "structureParityCheckedFixtures": sum(
             1 for result in results if result.get("structureParityChecked")
         ),
@@ -111,6 +117,8 @@ def summarize_results(
             artifact_error_count=artifact_error_count,
             structure_parity_error_count=structure_parity_error_count,
             structure_reading_order_sorted=structure_reading_order_sorted,
+            structure_order_stable=structure_order_stable,
+            structure_order_mismatch_count=structure_order_mismatches,
             structure_parity_passed=structure_parity_passed,
         ),
     }
@@ -196,6 +204,9 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"region={payload['summary']['totalStructureOcrRegionBlocks']}`",
         "- Structure reading order sorted: "
         f"`{payload['summary']['allStructureReadingOrderSorted']}`",
+        "- Structure order stable across runs: "
+        f"`stable={payload['summary'].get('allStructureOrderStable')}, "
+        f"mismatches={payload['summary'].get('totalStructureOrderMismatches')}`",
         "- Structure parity: "
         f"`checked={payload['summary'].get('structureParityCheckedFixtures')}, "
         f"passed={payload['summary'].get('allStructureParityPassed')}, "
@@ -214,6 +225,7 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"`precisionPassed={precision_speed.get('precisionGatePassed')}, "
         f"errorRows={precision_speed.get('errorRows')}, "
         f"orderSorted={precision_speed.get('structureReadingOrderSorted')}, "
+        f"orderStable={precision_speed.get('structureOrderStable')}, "
         f"parityPassed={precision_speed.get('structureParityPassed')}, "
         f"maxForceMs={format_optional_float(precision_speed.get('maxForceRefreshMs'))}, "
         f"maxCacheP95Ms={format_optional_float(precision_speed.get('maxCacheHitP95Ms'))}`",

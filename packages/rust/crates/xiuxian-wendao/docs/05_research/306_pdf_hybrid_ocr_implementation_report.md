@@ -5,7 +5,7 @@
 :PARENT: [[../index|Wendao DocOS Kernel: Map of Content]]
 :TAGS: research, document-extraction, pdf, ocr, arrow, docling, attachments
 :STATUS: UPDATED
-:VERSION: 1.14
+:VERSION: 1.15
 :END:
 
 ## Executive Summary
@@ -85,8 +85,9 @@ contracts.
 Benchmark reports now also publish an explicit `precisionSpeedSummary` that
 keeps quality and latency observations together. The summary records the
 precision gate verdict, error rows, artifact errors, sorted structure status,
-parity status, OCR and bbox block counts, force latency, cache p95,
-shard-cache rebuild latency, and Rust scheduler elapsed time.
+force/cache/shard-reuse structure order stability, parity status, OCR and bbox
+block counts, force latency, cache p95, shard-cache rebuild latency, and Rust
+scheduler elapsed time.
 
 Responsibilities:
 
@@ -202,6 +203,14 @@ kept the same precision shape:
 |                     1 | 21373.000 |        2.646 |                 21248.243 |            21 |             21 |              21 |          21 | sorted |          0 |
 |                     2 | 20183.691 |        2.457 |                 20085.701 |            21 |             21 |              21 |          21 | sorted |          0 |
 |                     4 | 19442.132 |        2.363 |                 19334.474 |            21 |             21 |              21 |          21 | sorted |          0 |
+
+The current order-stability run measured the same fixture at 19946.379 ms force
+latency, 92.512 ms shard-cache rebuild latency, and 2.445 ms cache p95. It
+also compared the force, shard-cache rebuild, and cache-hit artifacts with the
+same structure order signature
+`723d9b0859e3825d0704a226cfed2f050f21ddc12a9b7a8955e1d31b9c087d89`,
+confirming `structureOrderStable=true` and zero order mismatches across all
+three runs.
 
 The mainline scheduler now reflects this evidence without hardcoding a fixed
 worker count: source-range OCR uses the current adaptive Rust budget directly,
@@ -383,6 +392,15 @@ evidence baseline for the source-PDF page-range path. The follow-up source
 range worker sweep measured 21.373 s, 20.184 s, and 19.442 s for source-range
 overrides 1, 2, and 4 respectively, with identical row counts, sorted
 structure, and zero error rows.
+
+A later order-stability run kept the same precision shape and added
+force/cache/shard-cache order comparison. The run produced 21 resource rows,
+21 structure rows, 21 OCR page blocks, 21 bbox-covered blocks, 21 metrics rows,
+103,984 OCR result characters, sorted reading order, zero error rows, and a
+matching structure order signature across all three runs. The report-level
+`precisionSpeedSummary` recorded `precisionGatePassed=true`,
+`structureOrderStable=true`, `structureOrderMismatches=0`, force latency
+19946.379 ms, shard-cache rebuild latency 92.512 ms, and cache p95 2.445 ms.
 
 ## Active Risks
 

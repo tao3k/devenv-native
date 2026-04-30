@@ -264,8 +264,9 @@ error-row counts; `--fail-on-error-rows` makes table-shaped conversion failures
 fail the benchmark run.
 Each report also includes a `precisionSpeedSummary` section that keeps the
 quality and latency signals together: error rows, artifact errors, structure
-order, parity status, OCR/bbox block counts, force latency, cache p95,
-shard-cache rebuild latency, and Rust scheduler elapsed time.
+order, force/cache/shard-reuse order stability, parity status, OCR/bbox block
+counts, force latency, cache p95, shard-cache rebuild latency, and Rust
+scheduler elapsed time.
 For `hybrid-page-ocr`, pass `--shard-cache-reuse-probe` when you need explicit
 evidence that OCR shard cache reuse works independently from the
 whole-document `_resources.arrow` cache. The probe runs a second forced

@@ -1,19 +1,18 @@
-{
-  lib,
-  stdenv,
-  python3Packages,
-  rustPlatform,
-  maturin,
-  pkg-config,
-  openssl,
-  libiconv,
-  python3,
-  protobuf,
-  runCommand,
-  workspaceRoot,
-  cargoDeps,
-  version,
-  ...
+{ lib
+, stdenv
+, python3Packages
+, rustPlatform
+, maturin
+, pkg-config
+, openssl
+, libiconv
+, python3
+, protobuf
+, runCommand
+, workspaceRoot
+, cargoDeps
+, version
+, ...
 }:
 
 let
@@ -28,7 +27,7 @@ let
       (workspaceRoot + "/packages/rust/bindings/python")
     ];
   };
-  cargoDepsWithLock = runCommand "${pname}-cargo-deps" {} ''
+  cargoDepsWithLock = runCommand "${pname}-cargo-deps" { } ''
     mkdir -p "$out"
     cp -R ${cargoDeps}/. "$out"/
     cp ${workspaceRoot}/Cargo.lock "$out/Cargo.lock"
@@ -73,6 +72,11 @@ python3Packages.buildPythonPackage {
     [source."git+https://github.com/J-F-Liu/lopdf?rev=7a05512d831415b1f2b1ce522391d6beab8a1284"]
     git = "https://github.com/J-F-Liu/lopdf"
     rev = "7a05512d831415b1f2b1ce522391d6beab8a1284"
+    replace-with = "vendored-sources"
+
+    [source."git+https://github.com/tao3k/orgize?rev=b663a07fc9697ee82bac6c4995de1bc92b88ba05"]
+    git = "https://github.com/tao3k/orgize"
+    rev = "b663a07fc9697ee82bac6c4995de1bc92b88ba05"
     replace-with = "vendored-sources"
 
     [source."git+https://github.com/firecrawl/pdf-inspector?rev=63b55731337c18baf23319b73cc9780bb23ac61b"]

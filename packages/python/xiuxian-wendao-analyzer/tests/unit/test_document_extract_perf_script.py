@@ -554,6 +554,9 @@ def test_artifact_report_summary_tracks_structure_precision() -> None:
                 "structureOcrRegionBlocks": 2,
                 "structureBboxBlocks": 2,
                 "structureReadingOrderSorted": True,
+                "structureOrderSignature": "order-a",
+                "structureOrderFirstKey": "000000|000000.000000|000000|a",
+                "structureOrderLastKey": "000000|000000.000002|000002|c",
                 "structureParity": {
                     "baselineBlockCount": 2,
                     "candidateBlockCount": 3,
@@ -580,6 +583,9 @@ def test_artifact_report_summary_tracks_structure_precision() -> None:
                 "structureOcrRegionBlocks": 1,
                 "structureBboxBlocks": 1,
                 "structureReadingOrderSorted": True,
+                "structureOrderSignature": "order-b",
+                "structureOrderFirstKey": "000001|000001.000000|000000|d",
+                "structureOrderLastKey": "000001|000001.000000|000000|d",
                 "metricsArrowExists": True,
                 "metricsRowCount": 1,
                 "metricsResultChars": 40,
@@ -607,6 +613,41 @@ def test_artifact_report_summary_tracks_structure_precision() -> None:
     assert summary["metricsBboxCount"] == 3
     assert summary["metricsRustSchedulerElapsedMs"] == 13.0
     assert summary["artifactErrorCount"] == 0
+
+
+def test_structure_order_consistency_compares_force_cache_and_shard_reuse() -> None:
+    benchmark = _load_benchmark_module()
+
+    def report(signature: str) -> dict[str, object]:
+        return {
+            "artifactReports": [
+                {
+                    "structureArrowExists": True,
+                    "structureRowCount": 21,
+                    "structureOrderSignature": signature,
+                    "structureOrderFirstKey": "000000|000000.000000|000000|page-0",
+                    "structureOrderLastKey": "000020|000020.000000|000020|page-20",
+                }
+            ]
+        }
+
+    stable = benchmark.fixture_structure_order_consistency(
+        report("same-order"),
+        report("same-order"),
+        report("same-order"),
+    )
+    mismatch = benchmark.fixture_structure_order_consistency(
+        report("force-order"),
+        report("cache-order"),
+    )
+
+    assert stable["structureOrderStable"] is True
+    assert stable["structureOrderComparedRuns"] == 3
+    assert stable["structureOrderMismatchCount"] == 0
+    assert stable["structureOrderFirstKey"] == "000000|000000.000000|000000|page-0"
+    assert stable["structureOrderLastKey"] == "000020|000020.000000|000020|page-20"
+    assert mismatch["structureOrderStable"] is False
+    assert mismatch["structureOrderMismatchCount"] == 1
 
 
 def test_cargo_perf_probe_uses_minimal_feature_set(monkeypatch, tmp_path: Path) -> None:
@@ -1405,6 +1446,8 @@ def test_precision_speed_summary_tracks_quality_and_latency() -> None:
                 "structureOcrRegionBlocks": 0,
                 "structureBboxBlocks": 21,
                 "structureReadingOrderSorted": True,
+                "structureOrderStable": True,
+                "structureOrderMismatchCount": 0,
                 "structureParityChecked": True,
                 "structureParityPassed": True,
                 "structureParityErrorCount": 0,
@@ -1428,6 +1471,8 @@ def test_precision_speed_summary_tracks_quality_and_latency() -> None:
     precision_speed = summary["precisionSpeedSummary"]
     assert precision_speed["precisionGatePassed"] is True
     assert precision_speed["structureReadingOrderSorted"] is True
+    assert precision_speed["structureOrderStable"] is True
+    assert precision_speed["structureOrderMismatches"] == 0
     assert precision_speed["structureParityPassed"] is True
     assert precision_speed["ocrPageBlocks"] == 21
     assert precision_speed["bboxBlocks"] == 21
@@ -1545,6 +1590,9 @@ def test_run_fixture_probe_can_measure_shard_cache_reuse(monkeypatch, tmp_path) 
                     "structureOcrRegionBlocks": 0,
                     "structureBboxBlocks": 21,
                     "structureReadingOrderSorted": True,
+                    "structureOrderSignature": "stable-order",
+                    "structureOrderFirstKey": "000000|000000.000000|000000|page-0",
+                    "structureOrderLastKey": "000020|000020.000000|000020|page-20",
                     "metricsArrowExists": True,
                     "metricsRowCount": 21,
                     "metricsResultChars": 2048,
@@ -1585,6 +1633,9 @@ def test_run_fixture_probe_can_measure_shard_cache_reuse(monkeypatch, tmp_path) 
     assert result["metricsRows"] == 21
     assert result["metricsResultChars"] == 2048
     assert result["metricsBboxCount"] == 21
+    assert result["structureOrderStable"] is True
+    assert result["structureOrderComparedRuns"] == 3
+    assert result["structureOrderMismatchCount"] == 0
 
 
 def test_summary_and_markdown_report_distinct_miss_burst() -> None:
@@ -1618,6 +1669,8 @@ def test_summary_and_markdown_report_distinct_miss_burst() -> None:
         "structureParityChecked": True,
         "structureParityPassed": True,
         "structureParityErrorCount": 0,
+        "structureOrderStable": True,
+        "structureOrderMismatchCount": 0,
     }
     distinct_report = {
         "enabled": True,
@@ -1649,6 +1702,7 @@ def test_summary_and_markdown_report_distinct_miss_burst() -> None:
     assert summary["precisionSpeedSummary"]["maxForceRefreshMs"] == 10.0
     assert summary["precisionSpeedSummary"]["maxCacheHitP95Ms"] == 2.0
     assert summary["precisionSpeedSummary"]["precisionGatePassed"] is True
+    assert summary["precisionSpeedSummary"]["structureOrderStable"] is True
 
     markdown = benchmark.render_markdown(
         {
@@ -1693,6 +1747,8 @@ def test_summary_and_markdown_report_distinct_miss_burst() -> None:
     assert "chars=80" in markdown
     assert "Rust PDF OCR source-range workers" in markdown
     assert "Structure parity" in markdown
+    assert "Structure order stable across runs" in markdown
     assert "Structure baseline generation" in markdown
     assert "Precision-speed summary" in markdown
+    assert "orderStable=True" in markdown
     assert "maxForceMs=10.000" in markdown

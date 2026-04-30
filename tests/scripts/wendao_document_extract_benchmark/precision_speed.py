@@ -16,6 +16,8 @@ def precision_speed_summary(
     artifact_error_count: int,
     structure_parity_error_count: int,
     structure_reading_order_sorted: bool | None,
+    structure_order_stable: bool | None,
+    structure_order_mismatch_count: int,
     structure_parity_passed: bool | None,
 ) -> dict[str, Any]:
     precision_gate_passed = (
@@ -23,6 +25,8 @@ def precision_speed_summary(
         and artifact_error_count == 0
         and structure_parity_error_count == 0
         and structure_reading_order_sorted is not False
+        and structure_order_stable is not False
+        and structure_order_mismatch_count == 0
         and structure_parity_passed is not False
     )
     return {
@@ -30,6 +34,8 @@ def precision_speed_summary(
         "errorRows": total_error_rows,
         "artifactErrors": artifact_error_count,
         "structureReadingOrderSorted": structure_reading_order_sorted,
+        "structureOrderStable": structure_order_stable,
+        "structureOrderMismatches": structure_order_mismatch_count,
         "structureParityPassed": structure_parity_passed,
         "structureParityErrors": structure_parity_error_count,
         "structureRows": sum(result.get("structureRows", 0) for result in results),
@@ -64,6 +70,23 @@ def all_structure_parity_passed(results: list[dict[str, Any]]) -> bool | None:
         if result.get("structureParityPassed") is not None
     ]
     return all(bool(value) for value in values) if values else None
+
+
+def all_structure_order_stable(results: list[dict[str, Any]]) -> bool | None:
+    values = [
+        result.get("structureOrderStable")
+        for result in results
+        if result.get("structureOrderStable") is not None
+    ]
+    return all(bool(value) for value in values) if values else None
+
+
+def structure_order_mismatch_count(results: list[dict[str, Any]]) -> int:
+    return sum(
+        int(value)
+        for result in results
+        if isinstance((value := result.get("structureOrderMismatchCount")), int)
+    )
 
 
 def speed_observation_summary(
