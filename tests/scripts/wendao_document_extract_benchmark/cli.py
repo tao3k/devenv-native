@@ -1,0 +1,252 @@
+"""CLI orchestration for Wendao document extraction benchmarks."""
+
+from __future__ import annotations
+
+from .args import parse_args
+from .cache import benchmark_ocr_shard_cache_root, summarize_ocr_shard_cache
+from .common import (
+    Path,
+    json,
+    sys,
+    tempfile,
+)
+from .constants import REPORT_SCHEMA
+from .fake_fixtures import prepare_distinct_miss_fixtures
+from .fixtures import (
+    docling_real_fixtures,
+    prepare_docling_fixtures,
+    require_docling_source_root,
+    resolve_docling_source_root,
+    resolve_fixtures,
+    select_fixtures,
+)
+from .http_status import normalize_rest_endpoint, pick_free_port, wait_for_http_endpoint
+from .pdf_render import run_pdf_render_shard_audit
+from .probes import (
+    resolve_structure_baseline_root,
+    run_distinct_miss_probe,
+    run_fixture_probe,
+    run_structure_baseline_probe,
+)
+from .processes import terminate_server
+from .providers import (
+    start_gateway_server,
+    start_rust_provider_server,
+    start_valkey_server,
+)
+from .reporting import pdf_ocr_profile_label, render_markdown, summarize_results
+from .runtime import wait_for_port
+from .workers import start_server
+
+
+def main() -> int:
+    args = parse_args()
+    if args.shard_cache_reuse_probe and args.flight_mode != "hybrid-page-ocr":
+        raise SystemExit(
+            "--shard-cache-reuse-probe requires --flight-mode hybrid-page-ocr"
+        )
+    if args.prepare_only:
+        real_fixture_root = resolve_docling_source_root(args.docling_source_root)
+        prepare_docling_fixtures(
+            real_fixture_root,
+            repo_url=args.docling_repo_url,
+            git_ref=args.docling_git_ref,
+        )
+        require_docling_source_root(real_fixture_root)
+        fixtures = docling_real_fixtures(
+            real_fixture_root,
+            include_audio=not args.skip_audio,
+            include_pdf_corpus=args.include_docling_pdf_corpus,
+        )
+        sys.stdout.write(
+            f"prepared {len(fixtures)} Docling real fixtures under {real_fixture_root}\n"
+        )
+        return 0
+
+    report_dir = Path(args.report_dir)
+    report_dir.mkdir(parents=True, exist_ok=True)
+    args.structure_baseline_root = resolve_structure_baseline_root(args, report_dir)
+
+    if args.pdf_render_shard_audit:
+        return run_pdf_render_shard_audit(
+            args, report_dir / "pdf-render-shard-manifest"
+        )
+
+    with tempfile.TemporaryDirectory(
+        prefix="wendao-doc-extract-perf-"
+    ) as temp_root_text:
+        temp_root = Path(temp_root_text)
+        fixture_dir = temp_root / "fixtures"
+        output_dir = temp_root / "outputs"
+        process_log_dir = report_dir / "process-logs"
+        fixture_dir.mkdir()
+        output_dir.mkdir()
+        args.ocr_shard_cache_root = benchmark_ocr_shard_cache_root(args, temp_root)
+        fixtures, real_fixture_root = resolve_fixtures(args, fixture_dir)
+        fixtures = select_fixtures(fixtures, args.only_fixture)
+        args.benchmark_fixtures = fixtures
+        distinct_miss_fixtures = prepare_distinct_miss_fixtures(
+            args,
+            fixtures,
+            temp_root / "distinct-fixtures",
+        )
+
+        args.benchmark_host = args.host
+        args.benchmark_port = args.port
+        args.converter_count_path = args.converter_count_path
+        server = None
+        rust_server = None
+        valkey_server = None
+        ocr_shard_cache_summary = None
+        if not args.external_endpoint:
+            converter_count_path = None
+            if (
+                args.duplicate_miss_concurrency > 0
+                or args.distinct_miss_concurrency > 0
+            ):
+                converter_count_path = temp_root / "converter-count.txt"
+                converter_count_path.write_text("0", encoding="utf-8")
+                args.converter_count_path = converter_count_path
+            server = start_server(
+                args.host,
+                args.port,
+                real_docling=args.real_docling,
+                real_fixture_root=real_fixture_root,
+                include_audio=not args.skip_audio,
+                converter_count_path=converter_count_path,
+                pdf_ocr_worker=args.pdf_ocr_worker,
+                pdf_ocr_workers=args.pdf_ocr_workers,
+                python_uv_package=args.python_uv_package,
+                python_uv_extras=args.python_uv_extra,
+                log_dir=process_log_dir,
+            )
+        try:
+            if server is not None:
+                wait_for_port(
+                    args.host,
+                    args.port,
+                    server,
+                    timeout_seconds=args.server_start_timeout,
+                )
+            if args.rust_provider_mode == "gateway" and not args.external_endpoint:
+                gateway_host = args.rust_provider_host or args.host
+                gateway_port = args.rust_provider_port or (args.port + 1)
+                valkey_port = args.gateway_valkey_port or pick_free_port(args.host)
+                valkey_server = start_valkey_server(
+                    host=args.host,
+                    port=valkey_port,
+                    temp_root=temp_root,
+                    log_dir=process_log_dir,
+                )
+                wait_for_port(
+                    args.host,
+                    valkey_port,
+                    valkey_server,
+                    timeout_seconds=args.server_start_timeout,
+                )
+                args.benchmark_host = gateway_host
+                args.benchmark_port = gateway_port
+                if normalize_rest_endpoint(args.rust_rest_endpoint) is None:
+                    args.rust_rest_endpoint = f"http://{gateway_host}:{gateway_port}"
+                rust_server = start_gateway_server(
+                    args,
+                    gateway_port=gateway_port,
+                    python_host=args.host,
+                    python_port=args.port,
+                    valkey_url=f"redis://{args.host}:{valkey_port}/0",
+                    temp_root=temp_root,
+                    log_dir=process_log_dir,
+                )
+                wait_for_http_endpoint(
+                    f"http://{gateway_host}:{gateway_port}/api/health",
+                    rust_server,
+                    timeout_seconds=args.server_start_timeout,
+                )
+            elif (
+                args.flight_mode in {"async", "hybrid-page-ocr"}
+                and not args.external_endpoint
+            ):
+                rust_host = args.rust_provider_host or args.host
+                rust_port = args.rust_provider_port or (args.port + 1)
+                args.benchmark_host = rust_host
+                args.benchmark_port = rust_port
+                rust_server = start_rust_provider_server(
+                    args,
+                    rust_host=rust_host,
+                    rust_port=rust_port,
+                    python_host=args.host,
+                    python_port=args.port,
+                    temp_root=temp_root,
+                    log_dir=process_log_dir,
+                )
+                wait_for_port(
+                    rust_host,
+                    rust_port,
+                    rust_server,
+                    timeout_seconds=args.server_start_timeout,
+                )
+            structure_baseline_report = run_structure_baseline_probe(
+                args,
+                {**fixtures, **distinct_miss_fixtures},
+                args.structure_baseline_root,
+            )
+            distinct_miss_report = run_distinct_miss_probe(
+                args,
+                distinct_miss_fixtures,
+                output_dir / "distinct-miss",
+            )
+            results = [
+                run_fixture_probe(
+                    args,
+                    fixture_name,
+                    fixture_path,
+                    output_dir / fixture_name,
+                )
+                for fixture_name, fixture_path in fixtures.items()
+            ]
+            ocr_shard_cache_summary = summarize_ocr_shard_cache(
+                args.ocr_shard_cache_root
+            )
+        finally:
+            terminate_server(rust_server)
+            terminate_server(valkey_server)
+            terminate_server(server)
+
+    payload = {
+        "schema": REPORT_SCHEMA,
+        "mode": "real-docling" if args.real_docling else "fixture",
+        "endpoint": f"http://{args.benchmark_host}:{args.benchmark_port}",
+        "rustRestEndpoint": normalize_rest_endpoint(args.rust_rest_endpoint),
+        "iterations": args.iterations,
+        "concurrency": args.concurrency,
+        "flightMode": args.flight_mode,
+        "waitMs": args.wait_ms,
+        "pdfOcrWorker": args.pdf_ocr_worker,
+        "pdfOcrWorkers": args.pdf_ocr_workers,
+        "rustPdfOcrWorkers": args.rust_pdf_ocr_workers,
+        "rustPdfOcrSourceRangeWorkers": args.rust_pdf_ocr_source_range_workers,
+        "structureBaselineRoot": (
+            str(args.structure_baseline_root) if args.structure_baseline_root else None
+        ),
+        "pdfOcrProfile": pdf_ocr_profile_label(args),
+        "shardCacheReuseProbe": args.shard_cache_reuse_probe,
+        "ocrShardCache": ocr_shard_cache_summary
+        or summarize_ocr_shard_cache(args.ocr_shard_cache_root),
+        "distinctMiss": distinct_miss_report,
+        "structureBaseline": structure_baseline_report,
+        "doclingFixtureRoot": str(real_fixture_root) if real_fixture_root else None,
+        "results": results,
+        "summary": summarize_results(results, distinct_miss_report),
+    }
+    (report_dir / "document_extract_perf.json").write_text(
+        json.dumps(payload, indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
+    (report_dir / "document_extract_perf.md").write_text(
+        render_markdown(payload),
+        encoding="utf-8",
+    )
+    sys.stdout.write(
+        f"document extract perf report: {report_dir / 'document_extract_perf.json'}\n"
+    )
+    return 0

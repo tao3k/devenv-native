@@ -27,13 +27,6 @@ _BASELINED_BLOCKING_FINDINGS = frozenset(
     }
 )
 
-_BENCHMARK_SCRIPT_BASELINED_BLOCKING_FINDINGS = frozenset(
-    {
-        ("PY-MOD-R002", "tests/scripts/benchmark_wendao_document_extract.py"),
-        ("PY-MOD-R006", "tests/scripts/benchmark_wendao_document_extract.py"),
-    }
-)
-
 
 def test_python_project_harness_blocks_unbaselined_findings() -> None:
     package_root = Path(__file__).resolve().parents[2]
@@ -58,22 +51,21 @@ def test_python_project_harness_blocks_unbaselined_findings() -> None:
 def test_benchmark_script_harness_blocks_unbaselined_findings() -> None:
     package_root = Path(__file__).resolve().parents[2]
     repo_root = package_root.parents[2]
-    benchmark_script = repo_root / "tests/scripts/benchmark_wendao_document_extract.py"
-    report = run_python_lang_harness([benchmark_script])
+    benchmark_root = repo_root / "tests/scripts"
+    report = run_python_lang_harness(
+        [
+            benchmark_root / "benchmark_wendao_document_extract.py",
+            benchmark_root / "wendao_document_extract_benchmark",
+        ]
+    )
 
     current = {
         _finding_key(repo_root, finding) for finding in report.blocking_findings()
     }
-    unexpected = current - _BENCHMARK_SCRIPT_BASELINED_BLOCKING_FINDINGS
-    retired = _BENCHMARK_SCRIPT_BASELINED_BLOCKING_FINDINGS - current
 
-    assert not unexpected, _render_finding_set(
+    assert not current, _render_finding_set(
         "unexpected benchmark script harness findings",
-        unexpected,
-    )
-    assert not retired, _render_finding_set(
-        "retired benchmark script harness baseline entries",
-        retired,
+        current,
     )
 
 
