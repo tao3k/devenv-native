@@ -513,4 +513,15 @@ fn assert_bpmn_di_completeness_boundary_evidence() {
         issue.evidence["incomplete_surfaces"][0]["missing"],
         "di:waypoint[2]"
     );
+
+    let incomplete_label_style = lint_fixture("invalid-di-label-style-missing-font.bpmn");
+    let issue = single_issue(&incomplete_label_style, "bpmn.incomplete_di_surface");
+    assert_eq!(
+        issue.evidence["incomplete_surfaces"][0]["element"],
+        "BPMNLabelStyle"
+    );
+    assert_eq!(
+        issue.evidence["incomplete_surfaces"][0]["missing"],
+        "dc:Font"
+    );
 }

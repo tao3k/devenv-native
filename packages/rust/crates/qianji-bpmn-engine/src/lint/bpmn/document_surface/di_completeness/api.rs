@@ -40,14 +40,15 @@ pub(in crate::lint::bpmn::document_surface) fn diagram_completeness_issue(
         format!(
             "Source '{source_id}' contains BPMN DI elements without the minimum layout payload needed for stable interchange."
         ),
-        "BPMN DI stays metadata-only in the bounded runtime, but shapes and edges should carry their direct layout payloads so editors can round-trip the diagram without deriving runtime behavior from coordinates.",
+        "BPMN DI stays metadata-only in the bounded runtime, but shapes, edges, and label styles should carry their direct interchange payloads so editors can round-trip the diagram without deriving runtime behavior from coordinates or labels.",
         vec![
             "Add direct `dc:Bounds` metadata to every BPMN DI `BPMNShape`.".to_string(),
             "Add at least two direct `di:waypoint` entries to every BPMN DI `BPMNEdge`.".to_string(),
+            "Add a direct `dc:Font` child to every `BPMNLabelStyle` entry.".to_string(),
             "Keep executable behavior in process flow, events, tasks, gateways, and data mappings rather than in diagram coordinates.".to_string(),
         ],
         format!(
-            "Repair BPMN source '{source_id}' so each BPMN DI shape has `dc:Bounds` and each BPMN DI edge has at least two `di:waypoint` entries. Preserve diagram metadata for interchange, but do not move executable behavior into layout coordinates."
+            "Repair BPMN source '{source_id}' so each BPMN DI shape has `dc:Bounds`, each BPMN DI edge has at least two `di:waypoint` entries, and each `BPMNLabelStyle` has a direct `dc:Font` child. Preserve diagram metadata for interchange, but do not move executable behavior into layout coordinates or labels."
         ),
         evidence,
     ))
@@ -62,6 +63,7 @@ fn incomplete_di_surfaces(snapshot: &BpmnDocumentSnapshot) -> Vec<DiCompleteness
         };
         collect_plane_violations(&mut violations, diagram_id, plane);
     }
+    collect_label_style_violations(&mut violations, snapshot);
     violations
 }
 
@@ -88,6 +90,23 @@ fn collect_plane_violations(
                 edge.edge_id.as_deref(),
                 edge.waypoints.len(),
             ));
+        }
+    }
+}
+
+fn collect_label_style_violations(
+    violations: &mut Vec<DiCompletenessViolation>,
+    snapshot: &BpmnDocumentSnapshot,
+) {
+    for diagram in &snapshot.root.diagrams {
+        let diagram_id = diagram.diagram_id.as_deref();
+        for label_style in &diagram.label_styles {
+            if label_style.font.is_none() {
+                violations.push(DiCompletenessViolation::label_style_font(
+                    diagram_id,
+                    label_style.style_id.as_deref(),
+                ));
+            }
         }
     }
 }

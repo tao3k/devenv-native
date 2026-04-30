@@ -42,6 +42,17 @@ impl DiCompletenessViolation {
         }
     }
 
+    pub(super) fn label_style_font(diagram_id: Option<&str>, style_id: Option<&str>) -> Self {
+        Self {
+            diagram_id: diagram_id.map(str::to_string),
+            plane_id: None,
+            element: "BPMNLabelStyle",
+            element_id: style_id.map(str::to_string),
+            missing: "dc:Font",
+            observed_count: None,
+        }
+    }
+
     pub(super) fn evidence(&self) -> Value {
         json!({
             "diagram_id": self.diagram_id.as_deref(),
