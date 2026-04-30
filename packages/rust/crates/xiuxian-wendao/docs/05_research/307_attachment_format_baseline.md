@@ -192,6 +192,17 @@ control plane: content hash, preflight, routing, cache, scheduler, provenance,
 and validation. Docling remains the image OCR and layout authority until a
 class-specific fast path proves parity.
 
+## Adaptive Conversion Capacity Follow-Up
+
+The general Rust document extraction scheduler no longer uses a frozen
+four-conversion default for full-document Docling cache misses. The default
+permit count now follows host `available_parallelism()`, while
+`WENDAO_DOCUMENT_EXTRACT_MAX_RUNNING_CONVERSIONS` acts as a deployment upper
+bound. This gives image, XML, Office, audio, and other non-PDF cold misses the
+same Rust-owned scheduling posture as the PDF OCR lane: Rust controls capacity,
+Python/Docling executes conversion, and queued jobs remain observable through
+the existing job status snapshot.
+
 ## Next Slices
 
 1. Image attachment OCR lane:

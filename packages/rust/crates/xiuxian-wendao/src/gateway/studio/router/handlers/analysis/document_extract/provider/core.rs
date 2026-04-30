@@ -15,7 +15,6 @@ pub(super) const DEFAULT_DOCUMENT_EXTRACT_ENDPOINT: &str = "http://localhost:500
 pub(super) const DOCUMENT_EXTRACT_FLIGHT_MESSAGE_SIZE_BYTES: usize = 256 * 1024 * 1024;
 pub(super) const DOCUMENT_EXTRACT_MAX_RUNNING_CONVERSIONS_ENV: &str =
     "WENDAO_DOCUMENT_EXTRACT_MAX_RUNNING_CONVERSIONS";
-pub(super) const DEFAULT_DOCUMENT_EXTRACT_MAX_RUNNING_CONVERSIONS: usize = 4;
 
 #[derive(Clone)]
 pub(crate) struct StudioDocumentExtractFlightRouteProvider {

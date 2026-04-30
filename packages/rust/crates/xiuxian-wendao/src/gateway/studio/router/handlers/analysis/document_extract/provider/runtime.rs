@@ -8,9 +8,8 @@ use tokio::sync::{Mutex, Semaphore};
 use super::super::pdf_ocr_scheduler::PdfOcrWorkerScheduler;
 use super::super::registry::DocumentExtractJobRegistry;
 use super::{
-    DEFAULT_DOCUMENT_EXTRACT_MAX_RUNNING_CONVERSIONS, DOCUMENT_EXTRACT_MAX_RUNNING_CONVERSIONS_ENV,
-    DOCUMENT_EXTRACT_PROVIDER_RUNTIMES, DocumentExtractProviderRuntime,
-    StudioDocumentExtractFlightRouteProvider,
+    DOCUMENT_EXTRACT_MAX_RUNNING_CONVERSIONS_ENV, DOCUMENT_EXTRACT_PROVIDER_RUNTIMES,
+    DocumentExtractProviderRuntime, StudioDocumentExtractFlightRouteProvider,
 };
 
 impl DocumentExtractProviderRuntime {
@@ -117,16 +116,15 @@ pub(super) fn document_extract_conversion_concurrency_limit_with_lookup(
     lookup: &dyn Fn(&str) -> Option<String>,
     available_parallelism: Option<usize>,
 ) -> usize {
+    let machine_budget = available_parallelism.filter(|budget| *budget > 0);
     if let Some(limit) = lookup(DOCUMENT_EXTRACT_MAX_RUNNING_CONVERSIONS_ENV)
         .and_then(|value| value.parse::<usize>().ok())
         .filter(|limit| *limit > 0)
     {
-        return limit;
+        return machine_budget.map_or(limit, |budget| limit.min(budget));
     }
 
-    available_parallelism
-        .unwrap_or(1)
-        .clamp(1, DEFAULT_DOCUMENT_EXTRACT_MAX_RUNNING_CONVERSIONS)
+    machine_budget.unwrap_or(1)
 }
 
 impl std::fmt::Debug for StudioDocumentExtractFlightRouteProvider {

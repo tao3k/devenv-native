@@ -403,9 +403,11 @@ exists, Rust mirrors it into the requested output directory and returns the
 Arrow table without re-running Docling. Successful sync conversions are mirrored
 back into that artifact registry for future reuse. First-time Docling
 conversion is still CPU/model bound and should be handled with queueing and
-worker-pool sizing in production. The Rust provider limits concurrently running cold conversions with
-`WENDAO_DOCUMENT_EXTRACT_MAX_RUNNING_CONVERSIONS`; the default is bounded to
-the host parallelism with a maximum of four. Jobs waiting for this capacity
+worker-pool sizing in production. The Rust provider limits concurrently
+running cold conversions with host `available_parallelism()` by default.
+`WENDAO_DOCUMENT_EXTRACT_MAX_RUNNING_CONVERSIONS` is a deployment upper bound:
+set it when a host should run fewer simultaneous Docling conversions than its
+CPU budget would otherwise allow. Jobs waiting for this Rust-owned capacity
 remain in `queued` status and do not occupy Python-side SQL or registry work.
 The browser-facing `GET /api/document-extract-jobs` endpoint returns the Rust
 provider runtime snapshot, including queue counts, running counts, conversion
