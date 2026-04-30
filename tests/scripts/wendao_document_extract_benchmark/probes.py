@@ -385,6 +385,14 @@ def run_fixture_probe(
         "metricsRustSchedulerElapsedMs": artifact_summary[
             "metricsRustSchedulerElapsedMs"
         ],
+        "documentTimingArrowExists": artifact_summary["documentTimingArrowExists"],
+        "documentTimingRows": artifact_summary["documentTimingRows"],
+        "documentTimingTotalElapsedMs": artifact_summary[
+            "documentTimingTotalElapsedMs"
+        ],
+        "documentTimingPhaseElapsedMs": artifact_summary[
+            "documentTimingPhaseElapsedMs"
+        ],
         "imageAttachmentAuditCount": artifact_summary["imageAttachmentAuditCount"],
         "imageAccelerationCandidates": artifact_summary["imageAccelerationCandidates"],
         "maxImagePixelCount": artifact_summary["maxImagePixelCount"],

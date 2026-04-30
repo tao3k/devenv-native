@@ -2,6 +2,13 @@
 
 from ._version import __version__
 from .config import AnalyzerConfig, AnalyzerStrategy
+from .document_metrics import (
+    DOCUMENT_TIMING_ARROW_CACHE_NAME,
+    DOCUMENT_TIMING_SCHEMA,
+    DOCUMENT_TIMING_SCHEMA_VERSION,
+    DocumentTimingRow,
+    document_timing_to_table,
+)
 from .document_service import (
     ANALYSIS_DOCUMENT_EXTRACT_ROUTE,
     ANALYSIS_PDF_OCR_SHARDS_ROUTE,
@@ -108,6 +115,9 @@ __all__ = [
     "DOCUMENT_STRUCTURE_ARROW_CACHE_NAME",
     "DOCUMENT_STRUCTURE_SCHEMA",
     "DOCUMENT_STRUCTURE_SCHEMA_VERSION",
+    "DOCUMENT_TIMING_ARROW_CACHE_NAME",
+    "DOCUMENT_TIMING_SCHEMA",
+    "DOCUMENT_TIMING_SCHEMA_VERSION",
     "EXPECTED_SCHEMA_VERSION",
     "PDF_OCR_DEFAULT_PROFILE",
     "PDF_OCR_FAST_TEXT_PROFILE",
@@ -132,6 +142,7 @@ __all__ = [
     "DocumentExtractFlightServer",
     "DocumentResourceRow",
     "DocumentStructureBlock",
+    "DocumentTimingRow",
     "PdfOcrShardWorkerProtocol",
     "QueryAnalysisRun",
     "RepoAnalysisRun",
@@ -156,6 +167,7 @@ __all__ = [
     "default_document_output_dir",
     "document_resources_to_table",
     "document_structure_to_table",
+    "document_timing_to_table",
     "extract_document_resources",
     "extract_document_table",
     "extract_pdf_resources",

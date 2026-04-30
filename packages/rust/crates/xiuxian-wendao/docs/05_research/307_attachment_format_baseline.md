@@ -122,6 +122,21 @@ identify future whole-image OCR cache and oversized-image preflight candidates,
 but live image extraction still uses Python/Docling and the same resource and
 structure Arrow contracts.
 
+## Full-Document Timing Follow-Up
+
+The Python analyzer now writes an additive `_document_metrics.arrow` sidecar on
+full-document conversion cache misses. The sidecar records phase timings for
+Docling conversion, Markdown export, resource row construction, structure row
+construction, and Arrow cache writes. The Rust benchmark artifact inspector
+reads this sidecar and the benchmark summary aggregates total elapsed
+milliseconds plus phase-level elapsed milliseconds.
+
+This does not change the extraction contract. `_resources.arrow`,
+`_structure.arrow`, OCR `_metrics.arrow`, Flight routes, REST routes, and
+Docling parser authority remain unchanged. The purpose is to identify whether a
+slow image, XML, or Office cold path is parser-bound, export-bound,
+row-construction-bound, or Arrow-write-bound before adding any fast path.
+
 ## Next Slices
 
 1. Image attachment OCR lane:
@@ -130,7 +145,8 @@ structure Arrow contracts.
      overhead;
    - use Rust image audit fields to decide whether whole-image OCR cache,
      oversized image preflight, or crop/tile planning is the right next proof;
-   - add image-specific timing where Docling exposes OCR/layout phases;
+   - use `_document_metrics.arrow` to split image cold-miss timing before
+     changing routing or cache behavior;
    - preserve Docling OCR authority;
    - reuse the Rust scheduler/cache model only after the image lane has stable
      parity evidence.

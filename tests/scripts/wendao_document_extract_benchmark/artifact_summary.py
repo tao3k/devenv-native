@@ -60,6 +60,21 @@ def summarize_artifact_reports(reports: list[dict[str, Any]]) -> dict[str, Any]:
             reports,
             "metricsRustSchedulerElapsedMs",
         ),
+        "documentTimingArrowExists": any(
+            document_timing_arrow_exists(report) for report in reports
+        ),
+        "documentTimingRows": sum_int_report_values(
+            reports,
+            "documentTimingRowCount",
+        ),
+        "documentTimingTotalElapsedMs": sum_float_report_values(
+            reports,
+            "documentTimingTotalElapsedMs",
+        ),
+        "documentTimingPhaseElapsedMs": aggregate_float_report_maps(
+            reports,
+            "documentTimingPhaseElapsedMs",
+        ),
         "imageAttachmentAuditCount": image_attachment_audit_count(reports),
         "imageAccelerationCandidates": image_acceleration_candidates(reports),
         "maxImagePixelCount": max_image_pixel_count(reports),
@@ -96,6 +111,31 @@ def sum_float_report_values(reports: list[dict[str, Any]], key: str) -> float:
         float(value)
         for report in reports
         if isinstance((value := report.get(key)), int | float)
+    )
+
+
+def aggregate_float_report_maps(
+    reports: list[dict[str, Any]],
+    key: str,
+) -> dict[str, float]:
+    totals: dict[str, float] = {}
+    for report in reports:
+        values = report.get(key)
+        if not isinstance(values, dict):
+            continue
+        for item_key, item_value in values.items():
+            if isinstance(item_key, str) and isinstance(item_value, int | float):
+                totals[item_key] = totals.get(item_key, 0.0) + float(item_value)
+    return dict(sorted(totals.items()))
+
+
+def document_timing_arrow_exists(report: dict[str, Any]) -> bool:
+    if bool(report.get("documentTimingArrowExists")):
+        return True
+    arrow_bytes = report.get("documentTimingArrowBytes")
+    row_count = report.get("documentTimingRowCount")
+    return (isinstance(arrow_bytes, int) and arrow_bytes > 0) or (
+        isinstance(row_count, int) and row_count > 0
     )
 
 

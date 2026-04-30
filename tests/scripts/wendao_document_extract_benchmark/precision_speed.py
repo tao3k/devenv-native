@@ -103,6 +103,10 @@ def speed_observation_summary(
             results,
             "metricsRustSchedulerElapsedMs",
         ),
+        "totalDocumentTimingElapsedMs": sum_numeric(
+            results,
+            "documentTimingTotalElapsedMs",
+        ),
         "distinctMissWallTimeMs": (
             distinct_miss_report.get("wallTimeMs") if distinct_miss_report else None
         ),

@@ -610,6 +610,14 @@ def test_artifact_report_summary_tracks_structure_precision() -> None:
                 "metricsResultChars": 120,
                 "metricsBboxCount": 2,
                 "metricsRustSchedulerElapsedMs": 10.5,
+                "documentTimingArrowExists": True,
+                "documentTimingRowCount": 3,
+                "documentTimingTotalElapsedMs": 20.0,
+                "documentTimingPhaseElapsedMs": {
+                    "doclingConvert": 15.0,
+                    "writeResourcesArrow": 2.0,
+                    "total": 20.0,
+                },
                 "imageAttachmentAudit": {
                     "format": "png",
                     "pixelCount": 307200,
@@ -634,6 +642,13 @@ def test_artifact_report_summary_tracks_structure_precision() -> None:
                 "metricsResultChars": 40,
                 "metricsBboxCount": 1,
                 "metricsRustSchedulerElapsedMs": 2.5,
+                "documentTimingArrowExists": True,
+                "documentTimingRowCount": 2,
+                "documentTimingTotalElapsedMs": 5.0,
+                "documentTimingPhaseElapsedMs": {
+                    "doclingConvert": 4.0,
+                    "total": 5.0,
+                },
                 "artifactError": None,
             },
         ]
@@ -655,6 +670,14 @@ def test_artifact_report_summary_tracks_structure_precision() -> None:
     assert summary["metricsResultChars"] == 160
     assert summary["metricsBboxCount"] == 3
     assert summary["metricsRustSchedulerElapsedMs"] == 13.0
+    assert summary["documentTimingArrowExists"] is True
+    assert summary["documentTimingRows"] == 5
+    assert summary["documentTimingTotalElapsedMs"] == 25.0
+    assert summary["documentTimingPhaseElapsedMs"] == {
+        "doclingConvert": 19.0,
+        "total": 25.0,
+        "writeResourcesArrow": 2.0,
+    }
     assert summary["imageAttachmentAuditCount"] == 1
     assert summary["imageAccelerationCandidates"] == {"image_ocr_cache_candidate": 1}
     assert summary["maxImagePixelCount"] == 307200
@@ -1559,6 +1582,12 @@ def test_attachment_class_summary_groups_precision_and_speed() -> None:
                 "metricsResultChars": 0,
                 "metricsBboxCount": 0,
                 "metricsRustSchedulerElapsedMs": 0.0,
+                "documentTimingRows": 3,
+                "documentTimingTotalElapsedMs": 18.0,
+                "documentTimingPhaseElapsedMs": {
+                    "doclingConvert": 12.0,
+                    "total": 18.0,
+                },
                 "forceRefreshMs": 20.0,
                 "cacheHitP95Ms": 2.0,
                 "wallTimeMs": 3.0,
@@ -1578,6 +1607,11 @@ def test_attachment_class_summary_groups_precision_and_speed() -> None:
                             "table": 1,
                         },
                         "metricsStatusCounts": {},
+                        "documentTimingStatusCounts": {"ok": 3},
+                        "documentTimingPhaseElapsedMs": {
+                            "doclingConvert": 12.0,
+                            "total": 18.0,
+                        },
                     }
                 ],
             },
@@ -1606,6 +1640,12 @@ def test_attachment_class_summary_groups_precision_and_speed() -> None:
                 "metricsResultChars": 0,
                 "metricsBboxCount": 0,
                 "metricsRustSchedulerElapsedMs": 0.0,
+                "documentTimingRows": 3,
+                "documentTimingTotalElapsedMs": 45.0,
+                "documentTimingPhaseElapsedMs": {
+                    "doclingConvert": 40.0,
+                    "total": 45.0,
+                },
                 "forceRefreshMs": 50.0,
                 "cacheHitP95Ms": 5.0,
                 "wallTimeMs": 6.0,
@@ -1620,6 +1660,11 @@ def test_attachment_class_summary_groups_precision_and_speed() -> None:
                         "resourceStatusCounts": {"ok": 3},
                         "structureBlockTypeCounts": {"document": 1, "table": 1},
                         "metricsStatusCounts": {},
+                        "documentTimingStatusCounts": {"ok": 3},
+                        "documentTimingPhaseElapsedMs": {
+                            "doclingConvert": 40.0,
+                            "total": 45.0,
+                        },
                         "imageAttachmentAudit": {
                             "format": "png",
                             "pixelCount": 307200,
@@ -1657,6 +1702,8 @@ def test_attachment_class_summary_groups_precision_and_speed() -> None:
         "fixture": "docx",
         "latencyMs": 20.0,
     }
+    assert class_summary["office"]["documentTimingTotalElapsedMs"] == 18.0
+    assert class_summary["office"]["documentTimingStatusCounts"] == {"ok": 3}
     assert class_summary["image"]["structureRows"] == 1
     assert class_summary["image"]["resourceTypeCounts"]["table"] == 1
     assert class_summary["image"]["imageAttachmentAuditCount"] == 1
@@ -1669,6 +1716,10 @@ def test_attachment_class_summary_groups_precision_and_speed() -> None:
         "latencyMs": 5.0,
     }
     assert class_summary["image"]["precisionSpeedSummary"]["maxCacheHitP95Ms"] == 5.0
+    assert class_summary["image"]["documentTimingPhaseElapsedMs"] == {
+        "doclingConvert": 40.0,
+        "total": 45.0,
+    }
 
 
 def test_summarize_ocr_shard_cache_reports_root_files_and_limits(
@@ -1919,6 +1970,12 @@ def test_summary_and_markdown_report_distinct_miss_burst() -> None:
         "metricsResultChars": 80,
         "metricsBboxCount": 2,
         "metricsRustSchedulerElapsedMs": 12.0,
+        "documentTimingRows": 3,
+        "documentTimingTotalElapsedMs": 30.0,
+        "documentTimingPhaseElapsedMs": {
+            "doclingConvert": 20.0,
+            "total": 30.0,
+        },
         "structureParityChecked": True,
         "structureParityPassed": True,
         "structureParityErrorCount": 0,
@@ -1930,6 +1987,11 @@ def test_summary_and_markdown_report_distinct_miss_burst() -> None:
                 "resourceStatusCounts": {"ok": 2},
                 "structureBlockTypeCounts": {"document": 1, "table": 1},
                 "metricsStatusCounts": {"succeeded": 2},
+                "documentTimingStatusCounts": {"ok": 3},
+                "documentTimingPhaseElapsedMs": {
+                    "doclingConvert": 20.0,
+                    "total": 30.0,
+                },
                 "imageAttachmentAudit": {
                     "format": "png",
                     "pixelCount": 307200,
@@ -1965,6 +2027,12 @@ def test_summary_and_markdown_report_distinct_miss_burst() -> None:
     assert summary["distinctMissConverterCalls"] == 2
     assert summary["totalErrorRows"] == 0
     assert summary["rustJobsStatusSummary"]["maxRunningJobs"] == 2
+    assert summary["totalDocumentTimingRows"] == 3
+    assert summary["totalDocumentTimingElapsedMs"] == 30.0
+    assert summary["documentTimingPhaseElapsedMs"] == {
+        "doclingConvert": 20.0,
+        "total": 30.0,
+    }
     assert summary["precisionSpeedSummary"]["maxForceRefreshMs"] == 10.0
     assert summary["precisionSpeedSummary"]["maxCacheHitP95Ms"] == 2.0
     assert summary["precisionSpeedSummary"]["precisionGatePassed"] is True
@@ -2016,6 +2084,8 @@ def test_summary_and_markdown_report_distinct_miss_burst() -> None:
     assert "files=2" in markdown
     assert "Metrics sidecar" in markdown
     assert "chars=80" in markdown
+    assert "Document timing sidecar" in markdown
+    assert "doclingConvert=20.000" in markdown
     assert "Rust PDF OCR source-range workers" in markdown
     assert "Structure parity" in markdown
     assert "Structure order stable across runs" in markdown

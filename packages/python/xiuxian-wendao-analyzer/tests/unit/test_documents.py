@@ -14,11 +14,15 @@ from xiuxian_wendao_analyzer import (
     DOCUMENT_STRUCTURE_ARROW_CACHE_NAME,
     DOCUMENT_STRUCTURE_SCHEMA,
     DOCUMENT_STRUCTURE_SCHEMA_VERSION,
+    DOCUMENT_TIMING_ARROW_CACHE_NAME,
+    DOCUMENT_TIMING_SCHEMA,
+    DOCUMENT_TIMING_SCHEMA_VERSION,
     DocumentResourceRow,
     DocumentStructureBlock,
     default_document_output_dir,
     document_resources_to_table,
     document_structure_to_table,
+    document_timing_to_table,
     extract_document_resources,
     extract_document_table,
     extract_pdf_resources,
@@ -156,6 +160,45 @@ def test_extract_document_resources_writes_markdown_and_arrow_cache(
     assert (output_dir / DOCUMENT_RESOURCE_ARROW_CACHE_NAME).exists()
     assert not (output_dir / "_metadata.json").exists()
     assert (output_dir / "_complete.marker").exists()
+
+
+def test_extract_document_resources_writes_timing_sidecar(tmp_path: Path) -> None:
+    source = tmp_path / "image.png"
+    source.write_bytes(b"png fixture")
+    output_dir = tmp_path / "image-output"
+
+    extract_document_resources(
+        source,
+        output_dir,
+        converter=FakeDoclingConverter("# Image\n"),
+    )
+
+    timing_path = output_dir / DOCUMENT_TIMING_ARROW_CACHE_NAME
+    assert timing_path.exists()
+    with documents.pa.ipc.open_file(timing_path) as reader:
+        timing = reader.read_all()
+
+    assert timing.schema == DOCUMENT_TIMING_SCHEMA
+    rows = timing.to_pylist()
+    phases = {row["phase"] for row in rows}
+    assert {
+        "doclingConvert",
+        "doclingMarkdownExport",
+        "writeMarkdown",
+        "sourceHash",
+        "resourceRowsBuild",
+        "structureRowsBuild",
+        "writeStructureArrow",
+        "writeResourcesArrow",
+        "total",
+    }.issubset(phases)
+    total = next(row for row in rows if row["phase"] == "total")
+    assert total["contractVersion"] == DOCUMENT_TIMING_SCHEMA_VERSION
+    assert total["sourceSuffix"] == ".png"
+    assert total["status"] == "ok"
+    assert total["resourceRows"] == 1
+    assert total["structureRows"] == 1
+    assert total["elapsedMs"] >= 0.0
 
 
 def test_extract_document_resources_uses_fresh_cache(tmp_path: Path) -> None:
@@ -335,6 +378,27 @@ def test_document_structure_to_table_sorts_reading_order() -> None:
 
     assert table.schema == DOCUMENT_STRUCTURE_SCHEMA
     assert [row["blockId"] for row in table.to_pylist()] == ["a", "b"]
+
+
+def test_document_timing_to_table_uses_stable_schema() -> None:
+    table = document_timing_to_table(
+        [
+            {
+                "contractVersion": DOCUMENT_TIMING_SCHEMA_VERSION,
+                "sourcePath": "source.png",
+                "sourceSuffix": ".png",
+                "phase": "doclingConvert",
+                "elapsedMs": 12.5,
+                "status": "ok",
+                "detail": "",
+                "resourceRows": 1,
+                "structureRows": 1,
+            }
+        ]
+    )
+
+    assert table.schema == DOCUMENT_TIMING_SCHEMA
+    assert table.to_pylist()[0]["phase"] == "doclingConvert"
 
 
 def test_extract_document_resources_can_return_error_row(tmp_path: Path) -> None:

@@ -89,6 +89,15 @@ def summarize_results(
         "totalMetricsRustSchedulerElapsedMs": sum(
             result.get("metricsRustSchedulerElapsedMs", 0.0) for result in results
         ),
+        "totalDocumentTimingRows": sum(
+            result.get("documentTimingRows", 0) for result in results
+        ),
+        "totalDocumentTimingElapsedMs": sum(
+            result.get("documentTimingTotalElapsedMs", 0.0) for result in results
+        ),
+        "documentTimingPhaseElapsedMs": combine_float_counts(
+            result.get("documentTimingPhaseElapsedMs", {}) for result in results
+        ),
         "artifactErrorCount": artifact_error_count,
         "minCacheSpeedup": min(
             (result["cacheSpeedup"] for result in results), default=0.0
@@ -149,6 +158,16 @@ def format_counts(value: Any) -> str:
         f"{key}={count}"
         for key, count in sorted(value.items())
         if isinstance(key, str) and isinstance(count, int)
+    )
+
+
+def format_float_counts(value: Any) -> str:
+    if not isinstance(value, dict) or not value:
+        return ""
+    return ", ".join(
+        f"{key}={float(count):.3f}"
+        for key, count in sorted(value.items())
+        if isinstance(key, str) and isinstance(count, int | float)
     )
 
 
@@ -243,6 +262,12 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"bbox={payload['summary'].get('totalMetricsBboxCount')}, "
         "rustSchedulerElapsedMs="
         f"{format_optional_float(payload['summary'].get('totalMetricsRustSchedulerElapsedMs'))}`",
+        "- Document timing sidecar: "
+        f"`rows={payload['summary'].get('totalDocumentTimingRows')}, "
+        "totalElapsedMs="
+        f"{format_optional_float(payload['summary'].get('totalDocumentTimingElapsedMs'))}, "
+        "phases="
+        f"{format_float_counts(payload['summary'].get('documentTimingPhaseElapsedMs'))}`",
         "- Precision-speed summary: "
         f"`precisionPassed={precision_speed.get('precisionGatePassed')}, "
         f"errorRows={precision_speed.get('errorRows')}, "
@@ -362,3 +387,14 @@ def render_markdown(payload: dict[str, Any]) -> str:
         )
     lines.append("")
     return "\n".join(lines)
+
+
+def combine_float_counts(values: Any) -> dict[str, float]:
+    totals: dict[str, float] = {}
+    for value in values:
+        if not isinstance(value, dict):
+            continue
+        for key, count in value.items():
+            if isinstance(key, str) and isinstance(count, int | float):
+                totals[key] = totals.get(key, 0.0) + float(count)
+    return dict(sorted(totals.items()))

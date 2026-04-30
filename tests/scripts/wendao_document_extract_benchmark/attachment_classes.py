@@ -182,6 +182,14 @@ def summarize_attachment_class(
             results,
             "metricsStatusCounts",
         ),
+        "documentTimingStatusCounts": aggregate_artifact_counter(
+            results,
+            "documentTimingStatusCounts",
+        ),
+        "documentTimingTotalElapsedMs": sum(
+            result.get("documentTimingTotalElapsedMs", 0.0) for result in results
+        ),
+        "documentTimingPhaseElapsedMs": aggregate_document_timing_phases(results),
         "imageAttachmentAuditCount": image_attachment_audit_count(results),
         "imageAccelerationCandidates": aggregate_image_acceleration_candidates(
             results,
@@ -218,6 +226,23 @@ def aggregate_artifact_counter(
             for key, value in counter.items():
                 if isinstance(key, str) and isinstance(value, int):
                     counts[key] = counts.get(key, 0) + value
+    return dict(sorted(counts.items()))
+
+
+def aggregate_document_timing_phases(
+    results: list[dict[str, Any]],
+) -> dict[str, float]:
+    """Aggregate document timing phase elapsed milliseconds."""
+
+    counts: dict[str, float] = {}
+    for result in results:
+        for artifact in result.get("artifactReports", []):
+            counter = artifact.get("documentTimingPhaseElapsedMs", {})
+            if not isinstance(counter, dict):
+                continue
+            for key, value in counter.items():
+                if isinstance(key, str) and isinstance(value, int | float):
+                    counts[key] = counts.get(key, 0.0) + float(value)
     return dict(sorted(counts.items()))
 
 

@@ -270,6 +270,12 @@ quality and latency signals together: error rows, artifact errors, structure
 order, force/cache/shard-reuse order stability, parity status, OCR/bbox block
 counts, force latency, cache p95, shard-cache rebuild latency, and Rust
 scheduler elapsed time.
+Full-document Docling cache misses also write an internal
+`_document_metrics.arrow` sidecar. It records phase timings for conversion,
+Markdown export, resource row construction, structure sidecar construction,
+and Arrow cache writes. The sidecar is benchmark evidence only; it does not
+change the returned resource table, `_resources.arrow`, `_structure.arrow`,
+OCR `_metrics.arrow`, or the Flight/REST extraction contracts.
 Mixed Docling fixture runs also include `summary.attachmentClassSummary` plus
 an `Attachment Class Summary` Markdown table. The class summary groups the same
 precision and speed signals by attachment class, including PDF, Office,

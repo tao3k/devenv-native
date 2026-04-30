@@ -1,16 +1,12 @@
 use std::collections::BTreeMap;
 use std::fs::{self, File};
 use std::path::Path;
-#[cfg(feature = "document-extract-pdf-source-range")]
 use std::sync::Arc;
 
-#[cfg(feature = "document-extract-pdf-source-range")]
 use arrow::array::ArrayRef;
 use arrow::array::{Array, Float64Array, Int32Array, StringArray};
-#[cfg(feature = "document-extract-pdf-source-range")]
 use arrow::datatypes::{DataType, Field, Schema};
 use arrow::ipc::reader::FileReader;
-#[cfg(feature = "document-extract-pdf-source-range")]
 use arrow::ipc::writer::FileWriter;
 use arrow::record_batch::RecordBatch;
 use serde::Serialize;
@@ -28,6 +24,7 @@ use xiuxian_wendao_attachments::pdf::structure::{
 const DOCUMENT_RESOURCES_ARROW_CACHE_NAME: &str = "_resources.arrow";
 const DOCUMENT_STRUCTURE_ARROW_CACHE_NAME: &str = "_structure.arrow";
 const DOCUMENT_METRICS_ARROW_CACHE_NAME: &str = "_metrics.arrow";
+const DOCUMENT_TIMING_ARROW_CACHE_NAME: &str = "_document_metrics.arrow";
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -62,6 +59,11 @@ pub(crate) struct ArtifactReport {
     pub(crate) metrics_result_chars: usize,
     pub(crate) metrics_bbox_count: usize,
     pub(crate) metrics_rust_scheduler_elapsed_ms: f64,
+    pub(crate) document_timing_arrow_bytes: u64,
+    pub(crate) document_timing_row_count: usize,
+    pub(crate) document_timing_status_counts: BTreeMap<String, usize>,
+    pub(crate) document_timing_phase_elapsed_ms: BTreeMap<String, f64>,
+    pub(crate) document_timing_total_elapsed_ms: f64,
     #[cfg(feature = "document-extract-attachment-audit")]
     pub(crate) image_attachment_audit: Option<AttachmentAudit>,
     #[cfg(feature = "document-extract-attachment-audit")]
@@ -127,6 +129,11 @@ fn inspect_artifact_dir(
         metrics_result_chars: 0,
         metrics_bbox_count: 0,
         metrics_rust_scheduler_elapsed_ms: 0.0,
+        document_timing_arrow_bytes: 0,
+        document_timing_row_count: 0,
+        document_timing_status_counts: BTreeMap::new(),
+        document_timing_phase_elapsed_ms: BTreeMap::new(),
+        document_timing_total_elapsed_ms: 0.0,
         #[cfg(feature = "document-extract-attachment-audit")]
         image_attachment_audit: None,
         #[cfg(feature = "document-extract-attachment-audit")]
@@ -206,6 +213,20 @@ fn populate_artifact_report(
         report.metrics_bbox_count = sum_int32_column_values(&batches, "bboxCount")?;
         report.metrics_rust_scheduler_elapsed_ms =
             max_float64_column_value(&batches, "rustSchedulerElapsedMs")?;
+    }
+
+    let document_timing_path = output_dir.join(DOCUMENT_TIMING_ARROW_CACHE_NAME);
+    if let Some(batches) = read_arrow_file_batches(document_timing_path.as_path())? {
+        report.document_timing_arrow_bytes = file_len(document_timing_path.as_path())?;
+        report.document_timing_row_count = batches.iter().map(RecordBatch::num_rows).sum();
+        report.document_timing_status_counts = string_counts(&batches, "status")?;
+        report.document_timing_phase_elapsed_ms =
+            sum_float64_by_string_column(&batches, "phase", "elapsedMs")?;
+        report.document_timing_total_elapsed_ms = report
+            .document_timing_phase_elapsed_ms
+            .get("total")
+            .copied()
+            .unwrap_or_default();
     }
     Ok(())
 }
@@ -325,6 +346,39 @@ fn max_float64_column_value(batches: &[RecordBatch], column_name: &str) -> Resul
         }
     }
     Ok(max_value)
+}
+
+fn sum_float64_by_string_column(
+    batches: &[RecordBatch],
+    key_column_name: &str,
+    value_column_name: &str,
+) -> Result<BTreeMap<String, f64>, String> {
+    let mut totals = BTreeMap::new();
+    for batch in batches {
+        let Some(key_column) = batch.column_by_name(key_column_name) else {
+            continue;
+        };
+        let Some(value_column) = batch.column_by_name(value_column_name) else {
+            continue;
+        };
+        let Some(keys) = key_column.as_any().downcast_ref::<StringArray>() else {
+            return Err(format!(
+                "document timing `{key_column_name}` column is not utf8"
+            ));
+        };
+        let Some(values) = value_column.as_any().downcast_ref::<Float64Array>() else {
+            return Err(format!(
+                "document timing `{value_column_name}` column is not float64"
+            ));
+        };
+        for row in 0..batch.num_rows() {
+            if keys.is_null(row) || values.is_null(row) {
+                continue;
+            }
+            *totals.entry(keys.value(row).to_string()).or_insert(0.0) += values.value(row);
+        }
+    }
+    Ok(totals)
 }
 
 #[derive(Debug, Default)]
@@ -576,6 +630,48 @@ fn write_test_png(path: &Path, width: u32, height: u32) -> Result<(), String> {
 }
 
 #[test]
+fn artifact_report_reads_document_timing_sidecar() -> Result<(), String> {
+    let temp_dir = tempfile::tempdir().map_err(|error| error.to_string())?;
+    let output_dir = temp_dir.path().join("outputs").join("image");
+    fs::create_dir_all(output_dir.as_path()).map_err(|error| error.to_string())?;
+    write_test_arrow_file(
+        output_dir.join(DOCUMENT_TIMING_ARROW_CACHE_NAME).as_path(),
+        &document_timing_test_batch()?,
+    )?;
+
+    let report = inspect_artifact_dir("fixture.png", output_dir.to_string_lossy().as_ref(), None);
+
+    assert_eq!(report.artifact_error, None);
+    assert!(report.document_timing_arrow_bytes > 0);
+    assert_eq!(report.document_timing_row_count, 3);
+    assert_eq!(report.document_timing_status_counts.get("ok"), Some(&3));
+    assert_float_eq(
+        report
+            .document_timing_phase_elapsed_ms
+            .get("doclingConvert")
+            .copied(),
+        10.0,
+    )?;
+    assert_float_eq(
+        report
+            .document_timing_phase_elapsed_ms
+            .get("writeResourcesArrow")
+            .copied(),
+        2.0,
+    )?;
+    assert_float_eq(Some(report.document_timing_total_elapsed_ms), 15.0)?;
+    Ok(())
+}
+
+fn assert_float_eq(actual: Option<f64>, expected: f64) -> Result<(), String> {
+    let actual = actual.ok_or_else(|| format!("missing expected float value {expected}"))?;
+    if (actual - expected).abs() > f64::EPSILON {
+        return Err(format!("expected {expected}, got {actual}"));
+    }
+    Ok(())
+}
+
+#[test]
 #[cfg(feature = "document-extract-attachment-audit")]
 fn artifact_report_reads_image_attachment_audit() -> Result<(), String> {
     let temp_dir = tempfile::tempdir().map_err(|error| error.to_string())?;
@@ -685,13 +781,53 @@ fn artifact_report_reads_structure_sidecar_ordering() -> Result<(), String> {
     Ok(())
 }
 
-#[cfg(feature = "document-extract-pdf-source-range")]
 fn write_test_arrow_file(path: &Path, batch: &RecordBatch) -> Result<(), String> {
     let file = File::create(path).map_err(|error| error.to_string())?;
     let mut writer =
         FileWriter::try_new(file, batch.schema().as_ref()).map_err(|error| error.to_string())?;
     writer.write(batch).map_err(|error| error.to_string())?;
     writer.finish().map_err(|error| error.to_string())
+}
+
+fn document_timing_test_batch() -> Result<RecordBatch, String> {
+    let schema = Arc::new(Schema::new(vec![
+        Field::new("contractVersion", DataType::Utf8, true),
+        Field::new("sourcePath", DataType::Utf8, true),
+        Field::new("sourceSuffix", DataType::Utf8, true),
+        Field::new("phase", DataType::Utf8, true),
+        Field::new("elapsedMs", DataType::Float64, true),
+        Field::new("status", DataType::Utf8, true),
+        Field::new("detail", DataType::Utf8, true),
+        Field::new("resourceRows", DataType::Int32, true),
+        Field::new("structureRows", DataType::Int32, true),
+    ]));
+    RecordBatch::try_new(
+        schema,
+        vec![
+            Arc::new(StringArray::from(vec![
+                "xiuxian_wendao.document_timing.v1",
+                "xiuxian_wendao.document_timing.v1",
+                "xiuxian_wendao.document_timing.v1",
+            ])) as ArrayRef,
+            Arc::new(StringArray::from(vec![
+                "fixture.png",
+                "fixture.png",
+                "fixture.png",
+            ])) as ArrayRef,
+            Arc::new(StringArray::from(vec![".png", ".png", ".png"])) as ArrayRef,
+            Arc::new(StringArray::from(vec![
+                "doclingConvert",
+                "writeResourcesArrow",
+                "total",
+            ])) as ArrayRef,
+            Arc::new(Float64Array::from(vec![Some(10.0), Some(2.0), Some(15.0)])) as ArrayRef,
+            Arc::new(StringArray::from(vec!["ok", "ok", "ok"])) as ArrayRef,
+            Arc::new(StringArray::from(vec!["", "", ""])) as ArrayRef,
+            Arc::new(Int32Array::from(vec![0, 0, 1])) as ArrayRef,
+            Arc::new(Int32Array::from(vec![0, 0, 1])) as ArrayRef,
+        ],
+    )
+    .map_err(|error| error.to_string())
 }
 
 #[cfg(feature = "document-extract-pdf-source-range")]

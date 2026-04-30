@@ -10,6 +10,11 @@ from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 import pyarrow as pa
 
+from .document_metrics import (
+    DocumentTimingRecorder,
+    write_document_timing_cache,
+)
+
 if TYPE_CHECKING:
     from collections.abc import Iterable, Mapping
 
@@ -346,15 +351,22 @@ def extract_document_resources(
         if cached is not None:
             return cached
 
+    timing = DocumentTimingRecorder(source)
     try:
-        resolved_converter = (
-            converter if converter is not None else _new_docling_converter()
-        )
-        document = resolved_converter.convert(source).document
-        markdown_text = document.export_to_markdown()
+        if converter is not None:
+            resolved_converter = converter
+        else:
+            with timing.phase("doclingConverterInit"):
+                resolved_converter = _new_docling_converter()
+        with timing.phase("doclingConvert"):
+            document = resolved_converter.convert(source).document
+        with timing.phase("doclingMarkdownExport"):
+            markdown_text = document.export_to_markdown()
         markdown_path = out / f"{source.stem}.md"
-        markdown_path.write_text(markdown_text, encoding="utf-8")
-        source_content_hash = _file_sha256(source)
+        with timing.phase("writeMarkdown"):
+            markdown_path.write_text(markdown_text, encoding="utf-8")
+        with timing.phase("sourceHash"):
+            source_content_hash = _file_sha256(source)
         resources = [
             DocumentResourceRow(
                 sourcePath=str(source),
@@ -368,17 +380,29 @@ def extract_document_resources(
                 elementId="_main",
             )
         ]
-        resources.extend(_structured_document_resources(source, out, document))
-        structure = _document_structure_blocks(
-            source,
-            document,
-            resources,
-            source_content_hash=source_content_hash,
+        with timing.phase("resourceRowsBuild"):
+            resources.extend(_structured_document_resources(source, out, document))
+        with timing.phase("structureRowsBuild"):
+            structure = _document_structure_blocks(
+                source,
+                document,
+                resources,
+                source_content_hash=source_content_hash,
+            )
+        with timing.phase("writeStructureArrow"):
+            _write_cached_structure(out, structure)
+        with timing.phase("writeResourcesArrow"):
+            _write_cached_resources(out, resources)
+        timing.finish(
+            status="ok",
+            resource_rows=len(resources),
+            structure_rows=len(structure),
         )
-        _write_cached_structure(out, structure)
-        _write_cached_resources(out, resources)
+        _write_document_timing_sidecar(out, timing)
         return resources
     except Exception as exc:
+        timing.finish(status="error", detail=str(exc))
+        _write_document_timing_sidecar(out, timing)
         if not error_row:
             raise
         return [
@@ -394,6 +418,16 @@ def extract_document_resources(
                 elementId="",
             )
         ]
+
+
+def _write_document_timing_sidecar(
+    output_dir: Path,
+    timing: DocumentTimingRecorder,
+) -> None:
+    try:
+        write_document_timing_cache(output_dir, timing.rows)
+    except (OSError, pa.ArrowException, ValueError):
+        return
 
 
 def extract_pdf_resources(
