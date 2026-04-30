@@ -5,7 +5,11 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from .common import Any
+
+    NumericGetter = Callable[[dict[str, Any]], float | None]
 
 
 def precision_speed_summary(
@@ -107,6 +111,21 @@ def speed_observation_summary(
             results,
             "documentTimingTotalElapsedMs",
         ),
+        "totalDoclingConvertMs": sum_nested_numeric(
+            results,
+            "documentTimingPhaseElapsedMs",
+            "doclingConvert",
+        ),
+        "maxDoclingConvertMs": max_nested_numeric(
+            results,
+            "documentTimingPhaseElapsedMs",
+            "doclingConvert",
+        ),
+        "maxDoclingConvertShare": max_ratio(
+            results,
+            nested_numeric_value("documentTimingPhaseElapsedMs", "doclingConvert"),
+            numeric_value("documentTimingTotalElapsedMs"),
+        ),
         "maxDocumentTimingOverheadMs": max_numeric(
             results,
             "documentTimingOverheadMs",
@@ -114,6 +133,11 @@ def speed_observation_summary(
         "totalDocumentTimingOverheadMs": sum_numeric(
             results,
             "documentTimingOverheadMs",
+        ),
+        "maxDocumentTimingOverheadShare": max_ratio(
+            results,
+            numeric_value("documentTimingOverheadMs"),
+            numeric_value("forceRefreshMs"),
         ),
         "distinctMissWallTimeMs": (
             distinct_miss_report.get("wallTimeMs") if distinct_miss_report else None
@@ -135,9 +159,73 @@ def sum_numeric(results: list[dict[str, Any]], key: str) -> float:
     return sum(numeric_values(results, key))
 
 
+def max_nested_numeric(
+    results: list[dict[str, Any]],
+    mapping_key: str,
+    value_key: str,
+) -> float | None:
+    values = nested_numeric_values(results, mapping_key, value_key)
+    return max(values) if values else None
+
+
+def sum_nested_numeric(
+    results: list[dict[str, Any]],
+    mapping_key: str,
+    value_key: str,
+) -> float:
+    return sum(nested_numeric_values(results, mapping_key, value_key))
+
+
 def numeric_values(results: list[dict[str, Any]], key: str) -> list[float]:
     return [
         float(value)
         for result in results
         if isinstance((value := result.get(key)), int | float)
     ]
+
+
+def nested_numeric_values(
+    results: list[dict[str, Any]],
+    mapping_key: str,
+    value_key: str,
+) -> list[float]:
+    return [
+        float(value)
+        for result in results
+        if isinstance((mapping := result.get(mapping_key)), dict)
+        and isinstance((value := mapping.get(value_key)), int | float)
+    ]
+
+
+def max_ratio(
+    results: list[dict[str, Any]],
+    numerator_fn: NumericGetter,
+    denominator_fn: NumericGetter,
+) -> float | None:
+    ratios: list[float] = []
+    for result in results:
+        numerator = numerator_fn(result)
+        denominator = denominator_fn(result)
+        if numerator is None or denominator is None or denominator <= 0.0:
+            continue
+        ratios.append(numerator / denominator)
+    return max(ratios) if ratios else None
+
+
+def numeric_value(key: str) -> NumericGetter:
+    def getter(result: dict[str, Any]) -> float | None:
+        value = result.get(key)
+        return float(value) if isinstance(value, int | float) else None
+
+    return getter
+
+
+def nested_numeric_value(mapping_key: str, value_key: str) -> NumericGetter:
+    def getter(result: dict[str, Any]) -> float | None:
+        mapping = result.get(mapping_key)
+        if not isinstance(mapping, dict):
+            return None
+        value = mapping.get(value_key)
+        return float(value) if isinstance(value, int | float) else None
+
+    return getter

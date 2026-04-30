@@ -1524,6 +1524,12 @@ def test_precision_speed_summary_tracks_quality_and_latency() -> None:
                 "metricsResultChars": 4096,
                 "metricsBboxCount": 21,
                 "metricsRustSchedulerElapsedMs": 45.5,
+                "documentTimingTotalElapsedMs": 950.0,
+                "documentTimingOverheadMs": 50.0,
+                "documentTimingPhaseElapsedMs": {
+                    "doclingConvert": 900.0,
+                    "total": 950.0,
+                },
                 "forceRefreshMs": 1000.0,
                 "cacheHitP95Ms": 4.0,
                 "shardCacheReuseForceMs": 80.0,
@@ -1549,6 +1555,12 @@ def test_precision_speed_summary_tracks_quality_and_latency() -> None:
     assert precision_speed["maxCacheHitP95Ms"] == 4.0
     assert precision_speed["maxShardCacheReuseForceMs"] == 80.0
     assert precision_speed["totalRustSchedulerElapsedMs"] == 45.5
+    assert precision_speed["totalDocumentTimingElapsedMs"] == 950.0
+    assert precision_speed["totalDoclingConvertMs"] == 900.0
+    assert precision_speed["maxDoclingConvertMs"] == 900.0
+    assert precision_speed["maxDoclingConvertShare"] == pytest.approx(900.0 / 950.0)
+    assert precision_speed["maxDocumentTimingOverheadMs"] == 50.0
+    assert precision_speed["maxDocumentTimingOverheadShare"] == pytest.approx(0.05)
     assert precision_speed["distinctMissWallTimeMs"] == 25.0
 
 
@@ -1707,6 +1719,12 @@ def test_attachment_class_summary_groups_precision_and_speed() -> None:
     assert class_summary["office"]["documentTimingTotalElapsedMs"] == 18.0
     assert class_summary["office"]["documentTimingOverheadMs"] == 2.0
     assert class_summary["office"]["documentTimingStatusCounts"] == {"ok": 3}
+    assert class_summary["office"]["precisionSpeedSummary"][
+        "maxDoclingConvertShare"
+    ] == pytest.approx(12.0 / 18.0)
+    assert class_summary["office"]["precisionSpeedSummary"][
+        "maxDocumentTimingOverheadShare"
+    ] == pytest.approx(0.1)
     assert class_summary["image"]["structureRows"] == 1
     assert class_summary["image"]["resourceTypeCounts"]["table"] == 1
     assert class_summary["image"]["imageAttachmentAuditCount"] == 1
@@ -1731,6 +1749,12 @@ def test_attachment_class_summary_groups_precision_and_speed() -> None:
         "doclingConvert": 40.0,
         "total": 45.0,
     }
+    assert class_summary["image"]["precisionSpeedSummary"]["maxDoclingConvertMs"] == (
+        40.0
+    )
+    assert class_summary["image"]["precisionSpeedSummary"][
+        "maxDoclingConvertShare"
+    ] == pytest.approx(40.0 / 45.0)
 
 
 def test_summarize_ocr_shard_cache_reports_root_files_and_limits(
@@ -2048,6 +2072,14 @@ def test_summary_and_markdown_report_distinct_miss_burst() -> None:
     }
     assert summary["precisionSpeedSummary"]["maxForceRefreshMs"] == 10.0
     assert summary["precisionSpeedSummary"]["maxCacheHitP95Ms"] == 2.0
+    assert summary["precisionSpeedSummary"]["totalDoclingConvertMs"] == 20.0
+    assert summary["precisionSpeedSummary"]["maxDoclingConvertMs"] == 20.0
+    assert summary["precisionSpeedSummary"]["maxDoclingConvertShare"] == pytest.approx(
+        20.0 / 30.0
+    )
+    assert summary["precisionSpeedSummary"][
+        "maxDocumentTimingOverheadShare"
+    ] == pytest.approx(0.8)
     assert summary["precisionSpeedSummary"]["precisionGatePassed"] is True
     assert summary["precisionSpeedSummary"]["structureOrderStable"] is True
     assert summary["attachmentClassSummary"][0]["attachmentClass"] == "unknown"
@@ -2100,7 +2132,10 @@ def test_summary_and_markdown_report_distinct_miss_burst() -> None:
     assert "Document timing sidecar" in markdown
     assert "doclingConvert=20.000" in markdown
     assert "overheadMs=8.000" in markdown
+    assert "maxDoclingConvertMs=20.000" in markdown
+    assert "maxDoclingShare=66.7%" in markdown
     assert "maxTimingOverheadMs=8.000" in markdown
+    assert "maxBoundaryOverheadShare=80.0%" in markdown
     assert "Rust PDF OCR source-range workers" in markdown
     assert "Structure parity" in markdown
     assert "Structure order stable across runs" in markdown

@@ -154,6 +154,12 @@ def format_optional_float(value: Any) -> str:
     return ""
 
 
+def format_optional_percent(value: Any) -> str:
+    if isinstance(value, (int, float)):
+        return f"{float(value) * 100.0:.1f}%"
+    return ""
+
+
 def format_counts(value: Any) -> str:
     if not isinstance(value, dict) or not value:
         return ""
@@ -280,8 +286,14 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"orderStable={precision_speed.get('structureOrderStable')}, "
         f"parityPassed={precision_speed.get('structureParityPassed')}, "
         f"maxForceMs={format_optional_float(precision_speed.get('maxForceRefreshMs'))}, "
+        "maxDoclingConvertMs="
+        f"{format_optional_float(precision_speed.get('maxDoclingConvertMs'))}, "
+        "maxDoclingShare="
+        f"{format_optional_percent(precision_speed.get('maxDoclingConvertShare'))}, "
         "maxTimingOverheadMs="
         f"{format_optional_float(precision_speed.get('maxDocumentTimingOverheadMs'))}, "
+        "maxBoundaryOverheadShare="
+        f"{format_optional_percent(precision_speed.get('maxDocumentTimingOverheadShare'))}, "
         f"maxCacheP95Ms={format_optional_float(precision_speed.get('maxCacheHitP95Ms'))}`",
         f"- Artifact errors: `{payload['summary']['artifactErrorCount']}`",
         "",
@@ -324,8 +336,8 @@ def render_markdown(payload: dict[str, Any]) -> str:
                 "",
                 "## Attachment Class Summary",
                 "",
-                "| Class | Fixtures | Error rows | Resource types | Block types | BBox blocks | Rust image candidates | Order sorted | Order stable | Slowest force | Slowest cache p95 | Speedup min |",
-                "| --- | ---: | ---: | --- | --- | ---: | --- | --- | --- | --- | --- | ---: |",
+                "| Class | Fixtures | Error rows | Resource types | Block types | BBox blocks | Rust image candidates | Order sorted | Order stable | Slowest force | Docling max ms | Docling max share | Boundary overhead max share | Slowest cache p95 | Speedup min |",
+                "| --- | ---: | ---: | --- | --- | ---: | --- | --- | --- | --- | ---: | ---: | ---: | --- | ---: |",
             ]
         )
         for class_summary in payload["summary"]["attachmentClassSummary"]:
@@ -335,7 +347,9 @@ def render_markdown(payload: dict[str, Any]) -> str:
                 "{resourceTypes} | {blockTypes} | {bboxBlocks} | "
                 "{imageCandidates} | "
                 "{orderSorted} | {orderStable} | {slowestForce} | "
-                "{slowestCacheP95} | {minCacheSpeedup} |".format(
+                "{maxDoclingConvert} | {maxDoclingShare} | "
+                "{maxBoundaryOverheadShare} | {slowestCacheP95} | "
+                "{minCacheSpeedup} |".format(
                     **class_summary,
                     resourceTypes=format_counts(
                         class_summary.get("resourceTypeCounts")
@@ -351,6 +365,15 @@ def render_markdown(payload: dict[str, Any]) -> str:
                     orderStable=precision_speed.get("structureOrderStable"),
                     slowestForce=format_fixture_latency(
                         class_summary.get("slowestForceFixture")
+                    ),
+                    maxDoclingConvert=format_optional_float(
+                        precision_speed.get("maxDoclingConvertMs")
+                    ),
+                    maxDoclingShare=format_optional_percent(
+                        precision_speed.get("maxDoclingConvertShare")
+                    ),
+                    maxBoundaryOverheadShare=format_optional_percent(
+                        precision_speed.get("maxDocumentTimingOverheadShare")
                     ),
                     slowestCacheP95=format_fixture_latency(
                         class_summary.get("slowestCacheP95Fixture")

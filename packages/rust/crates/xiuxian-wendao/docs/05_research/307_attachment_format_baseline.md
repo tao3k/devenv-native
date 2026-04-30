@@ -145,6 +145,14 @@ compute document timing overhead as `forceRefreshMs -
 documentTimingTotalElapsedMs`; this keeps Python extraction time separate from
 Flight/Rust request-boundary time.
 
+`precisionSpeedSummary` now carries Docling convert time and two ratios:
+Docling convert share of full-document extraction time, and request-boundary
+overhead share of force latency. These are benchmark fields only. They make
+the image, XML, Office, audio, and structured-text lanes comparable with the
+same precision gate, and they let each future optimization prove whether it
+reduced parser-bound work or only shifted overhead around the Rust/Flight
+boundary.
+
 ## Sync Artifact Reuse Follow-Up
 
 The real image timing breakdown after writer warmup shows the image cold path

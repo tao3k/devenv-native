@@ -268,8 +268,10 @@ structure order signatures.
 Each report also includes a `precisionSpeedSummary` section that keeps the
 quality and latency signals together: error rows, artifact errors, structure
 order, force/cache/shard-reuse order stability, parity status, OCR/bbox block
-counts, force latency, cache p95, shard-cache rebuild latency, and Rust
-scheduler elapsed time.
+counts, force latency, cache p95, shard-cache rebuild latency, Rust scheduler
+elapsed time, Docling convert time, Docling convert share, and request-boundary
+overhead share. These fields make it explicit whether a cold miss is dominated
+by Docling parsing or by Rust/Flight/Arrow overhead.
 Full-document Docling cache misses also write an internal
 `_document_metrics.arrow` sidecar. It records phase timings for conversion,
 Markdown export, resource row construction, structure sidecar construction,
@@ -281,6 +283,10 @@ startup so the first user request does not pay the one-time PyArrow writer
 initialization cost. Reports also compute document timing overhead as
 `forceRefreshMs - documentTimingTotalElapsedMs` when a timing sidecar exists,
 which separates Python extraction work from Flight/Rust request-boundary cost.
+`precisionSpeedSummary.maxDoclingConvertShare` and
+`precisionSpeedSummary.maxDocumentTimingOverheadShare` keep those two costs
+visible in the same precision gate used for PDF, image, Office, XML, audio, and
+structured-text regressions.
 Mixed Docling fixture runs also include `summary.attachmentClassSummary` plus
 an `Attachment Class Summary` Markdown table. The class summary groups the same
 precision and speed signals by attachment class, including PDF, Office,
