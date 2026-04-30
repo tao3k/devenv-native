@@ -444,7 +444,7 @@ def test_cargo_perf_probe_uses_minimal_feature_set(monkeypatch, tmp_path: Path) 
     assert report["rustJobsStatusSummary"]["sampleCount"] == 0
 
 
-def test_cargo_perf_probe_adds_pdf_render_for_hybrid_page_ocr(
+def test_cargo_perf_probe_adds_pdf_source_range_for_hybrid_page_ocr(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -486,7 +486,7 @@ def test_cargo_perf_probe_adds_pdf_render_for_hybrid_page_ocr(
     )
 
     assert commands[0][commands[0].index("--features") + 1] == (
-        "performance,studio,zhenfa-router,duckdb,document-extract-pdf-render"
+        "performance,studio,zhenfa-router,duckdb,document-extract-pdf-source-range"
     )
 
 
@@ -730,6 +730,17 @@ def test_pdf_render_shard_features_are_not_duplicated() -> None:
             "performance document-extract-pdf-render"
         )
         == "performance,document-extract-pdf-render"
+    )
+
+
+def test_hybrid_source_range_features_do_not_pull_pdfium() -> None:
+    benchmark = _load_benchmark_module()
+
+    assert (
+        benchmark.cargo_features_for_flight_mode(
+            "performance studio", "hybrid-page-ocr"
+        )
+        == "performance,studio,document-extract-pdf-source-range"
     )
 
 

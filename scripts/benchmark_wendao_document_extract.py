@@ -1008,10 +1008,28 @@ def cargo_features_with_pdf_render(features: str) -> str:
     return cargo_features_with_pdf_feature(features, "document-extract-pdf-render")
 
 
+def cargo_features_with_pdf_source_range(features: str) -> str:
+    return cargo_features_with_pdf_feature(
+        features, "document-extract-pdf-source-range"
+    )
+
+
 def cargo_features_for_flight_mode(features: str, flight_mode: str) -> str:
     if flight_mode == "hybrid-page-ocr":
-        return cargo_features_with_pdf_render(features)
+        return cargo_features_with_pdf_source_range(features)
     return features
+
+
+def cargo_features_for_provider_mode(features: str, args: argparse.Namespace) -> str:
+    flight_mode = getattr(args, "flight_mode", "sync")
+    if flight_mode != "hybrid-page-ocr":
+        return features
+    selection = normalize_render_selection(
+        getattr(args, "hybrid_pdf_render_selection", "shard-fallback-pages")
+    )
+    if selection == "region_shards":
+        return cargo_features_with_pdf_render(features)
+    return cargo_features_with_pdf_source_range(features)
 
 
 def cargo_features_with_pdf_feature(features: str, feature: str) -> str:
@@ -1260,10 +1278,7 @@ def start_rust_provider_server(
         "xiuxian-wendao",
         "--no-default-features",
         "--features",
-        cargo_features_for_flight_mode(
-            args.rust_provider_features,
-            getattr(args, "flight_mode", "sync"),
-        ),
+        cargo_features_for_provider_mode(args.rust_provider_features, args),
         "--bin",
         "wendao_search_flight_server",
         "--",
@@ -1358,10 +1373,7 @@ def start_gateway_server(
         "xiuxian-wendao",
         "--no-default-features",
         "--features",
-        cargo_features_for_flight_mode(
-            args.gateway_features,
-            getattr(args, "flight_mode", "sync"),
-        ),
+        cargo_features_for_provider_mode(args.gateway_features, args),
         "--bin",
         "wendao",
         "--",

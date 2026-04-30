@@ -6,17 +6,17 @@
 pub mod types;
 
 /// Feature-gated PDF page rendering and OCR shard manifest helpers.
-#[cfg(feature = "document-extract-pdf-render")]
+#[cfg(feature = "document-extract-pdf-source-range")]
 #[doc(hidden)]
 pub use xiuxian_wendao_attachments::pdf::render as document_extract_pdf_render;
 
 /// Feature-gated PDF OCR shard Arrow contract helpers.
-#[cfg(feature = "document-extract-pdf-render")]
+#[cfg(feature = "document-extract-pdf-source-range")]
 #[doc(hidden)]
 pub use xiuxian_wendao_attachments::pdf::ocr as document_extract_pdf_ocr;
 
 /// Feature-gated PDF OCR shard Flight client proof helpers.
-#[cfg(feature = "document-extract-pdf-render")]
+#[cfg(feature = "document-extract-pdf-source-range")]
 #[doc(hidden)]
 #[path = "studio/document_extract_pdf_ocr_client.rs"]
 pub mod document_extract_pdf_ocr_client;

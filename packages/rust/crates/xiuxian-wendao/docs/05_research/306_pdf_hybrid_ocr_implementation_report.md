@@ -5,7 +5,7 @@
 :PARENT: [[../index|Wendao DocOS Kernel: Map of Content]]
 :TAGS: research, document-extraction, pdf, ocr, arrow, docling, attachments
 :STATUS: UPDATED
-:VERSION: 1.2
+:VERSION: 1.3
 :END:
 
 ## Executive Summary
@@ -65,8 +65,10 @@ Responsibilities:
   `/analysis/pdf-ocr-shards` Arrow Flight exchange.
 
 The default `sync` and `async` document extraction modes still use the existing
-Docling extraction path. The hybrid path is explicit and feature-gated behind
-`document-extract-pdf-render`.
+Docling extraction path. The hybrid source-page OCR path is explicit and
+feature-gated behind `document-extract-pdf-source-range`; the narrower
+`document-extract-pdf-render` feature is reserved for PDFium-backed raster and
+region proof lanes.
 
 ## Retired Detector Evidence
 
@@ -96,6 +98,12 @@ region shard is a raster OCR input. Region OCR remains opt-in and supplemental;
 partial or region coverage falls back to Docling unless native text merge
 support is explicitly available and coverage gates prove that no page is
 missing.
+
+This dependency boundary is strict: no-OCR and source-page OCR acceleration
+must not pull PDFium. A Rust dependency is accepted only when it either reduces
+Python-side work while preserving Docling precision, improves structural
+provenance, or creates reusable shard/cache artifacts for later high-performance
+query paths.
 
 The provider restores OCR rows by original shard identity before projection.
 It does not trust Python worker completion order as document order. Successful

@@ -8,9 +8,11 @@ use arrow::array::{ArrayRef, Float64Array, Int32Array, StringArray};
 use arrow::datatypes::{DataType, Field, Schema, SchemaRef};
 use arrow::ipc::writer::FileWriter;
 use arrow::record_batch::RecordBatch;
+#[cfg(feature = "pdf-render")]
 use image::DynamicImage;
 use lopdf::Document as LopdfDocument;
 use num_traits::ToPrimitive;
+#[cfg(feature = "pdf-render")]
 use pdfium_render::prelude::{
     PdfBitmapFormat, PdfDocument, PdfPage, PdfPageRenderRotation, PdfRect, PdfRenderConfig, Pdfium,
     PdfiumError,
@@ -23,6 +25,7 @@ use super::source_range::{
     source_page_range_all_page_indices, source_page_range_validate_page_index,
 };
 
+#[cfg(feature = "pdf-render")]
 pub const PDFIUM_LIBRARY_PATH_ENV: &str = "WENDAO_PDFIUM_LIBRARY_PATH";
 const PDF_RENDER_SHARD_PROFILE: &str = "pdfium-render-page-shards-v1";
 const PDF_SOURCE_PAGE_RANGE_PROFILE: &str = "source-pdf-page-range-shards-v1";
@@ -173,6 +176,7 @@ impl PdfPageBox {
         (left < right && bottom < top).then(|| Self::new(left, bottom, right, top))
     }
 
+    #[cfg(feature = "pdf-render")]
     fn from_pdfium_rect(rect: PdfRect) -> Self {
         Self::new(
             f64::from(rect.left().value),
@@ -374,6 +378,7 @@ impl PdfPageRegionRenderRequest {
         }
     }
 
+    #[cfg(feature = "pdf-render")]
     fn effective_reading_order_key(&self) -> String {
         self.reading_order_key
             .clone()
@@ -618,6 +623,7 @@ pub fn build_ocr_pending_resource_batch(
 /// Returns an error if the path cannot be read or Arrow report files cannot be
 /// written. Missing `PDFium` libraries are represented as fallback reports rather
 /// than errors.
+#[cfg(feature = "pdf-render")]
 pub fn render_pdf_page_shards(
     path: &Path,
     output_dir: &Path,
@@ -636,6 +642,7 @@ pub fn render_pdf_page_shards(
 /// Returns an error if the path cannot be read or Arrow report files cannot be
 /// written. Missing `PDFium` libraries are represented as fallback reports rather
 /// than errors.
+#[cfg(feature = "pdf-render")]
 pub fn render_pdf_page_shards_with_selection(
     path: &Path,
     output_dir: &Path,
@@ -817,6 +824,7 @@ fn source_page_range_lopdf_page_count(path: &Path) -> Result<u32, String> {
 /// Returns an error if the PDF cannot be read, the requested regions cannot be
 /// rendered, or Arrow artifact files cannot be written. Missing `PDFium`
 /// libraries are represented as fallback reports rather than errors.
+#[cfg(feature = "pdf-render")]
 pub fn render_pdf_region_shards(
     path: &Path,
     output_dir: &Path,
@@ -922,13 +930,10 @@ pub fn write_page_render_shard_reports(
 }
 
 fn points_to_pixels(points: f64, dpi: u32) -> u32 {
-    ((points / 72.0) * f64::from(dpi))
-        .round()
-        .max(1.0)
-        .to_u32()
-        .unwrap_or(u32::MAX)
+    f64_to_u32_saturating(((points / 72.0) * f64::from(dpi)).round().max(1.0))
 }
 
+#[cfg(feature = "pdf-render")]
 fn rotation_to_degrees(rotation: PdfPageRenderRotation) -> u16 {
     match rotation {
         PdfPageRenderRotation::None => 0,
@@ -962,6 +967,7 @@ fn page_reading_order_key(page_index: u32) -> String {
     format!("{page_index:06}.000000")
 }
 
+#[cfg(feature = "pdf-render")]
 fn region_reading_order_key(page_index: u32, region_index: u32) -> String {
     format!("{page_index:06}.{region_index:06}")
 }
@@ -987,6 +993,7 @@ fn checked_len_u32(len: usize) -> u32 {
     u32::try_from(len).unwrap_or(u32::MAX)
 }
 
+#[cfg(feature = "pdf-render")]
 fn checked_pixels_i32(value: u32) -> Result<i32, String> {
     i32::try_from(value).map_err(|_| format!("render target pixel dimension is too large: {value}"))
 }
@@ -1032,19 +1039,18 @@ pub fn region_pixel_box_for_crop(
 }
 
 fn floor_pixel(value: f64, max: u32) -> u32 {
-    value
-        .floor()
-        .clamp(0.0, f64::from(max))
-        .to_u32()
-        .unwrap_or(max)
+    f64_to_u32_saturating(value.floor().clamp(0.0, f64::from(max)))
 }
 
 fn ceil_pixel(value: f64, max: u32) -> u32 {
-    value
-        .ceil()
-        .clamp(0.0, f64::from(max))
-        .to_u32()
-        .unwrap_or(max)
+    f64_to_u32_saturating(value.ceil().clamp(0.0, f64::from(max)))
+}
+
+fn f64_to_u32_saturating(value: f64) -> u32 {
+    if !value.is_finite() || value <= 0.0 {
+        return 0;
+    }
+    value.to_u32().unwrap_or(u32::MAX)
 }
 
 fn is_pdf_path(path: &Path) -> bool {
@@ -1083,6 +1089,7 @@ where
     ))
 }
 
+#[cfg(feature = "pdf-render")]
 fn bind_pdfium() -> Result<Pdfium, String> {
     let bindings = match std::env::var(PDFIUM_LIBRARY_PATH_ENV) {
         Ok(path) if !path.trim().is_empty() => Pdfium::bind_to_library(path.as_str()),
@@ -1114,6 +1121,7 @@ impl RenderPageSelection {
     }
 }
 
+#[cfg(feature = "pdf-render")]
 fn resolve_page_selection(
     path: &Path,
     selection: PdfPageRenderSelection,
@@ -1129,6 +1137,7 @@ fn resolve_page_selection(
     }
 }
 
+#[cfg(feature = "pdf-render")]
 fn resolve_shard_fallback_page_selection(_path: &Path) -> RenderPageSelection {
     RenderPageSelection::All
 }
@@ -1276,6 +1285,7 @@ impl ReportParts {
     }
 }
 
+#[cfg(feature = "pdf-render")]
 fn render_document_manifests(
     document: &PdfDocument<'_>,
     context: &RenderShardContext<'_>,
@@ -1336,6 +1346,7 @@ fn source_page_range_document_manifests(
     Ok(manifests)
 }
 
+#[cfg(feature = "pdf-render")]
 fn render_document_region_manifests(
     document: &PdfDocument<'_>,
     context: &RenderShardContext<'_>,
@@ -1397,6 +1408,7 @@ fn render_document_region_manifests(
     Ok(manifests)
 }
 
+#[cfg(feature = "pdf-render")]
 fn render_page_manifest(
     page: &PdfPage<'_>,
     page_index: i32,
@@ -1451,6 +1463,7 @@ fn source_page_range_manifest(
     })
 }
 
+#[cfg(feature = "pdf-render")]
 fn render_page_region_manifests(
     page: &PdfPage<'_>,
     page_index: u32,
@@ -1505,6 +1518,7 @@ fn render_page_region_manifests(
         .collect()
 }
 
+#[cfg(feature = "pdf-render")]
 struct RenderedPageImage {
     image: DynamicImage,
     media_box: PdfPageBox,
@@ -1512,6 +1526,7 @@ struct RenderedPageImage {
     rotation_degrees: u16,
 }
 
+#[cfg(feature = "pdf-render")]
 struct PageGeometry {
     media_box: PdfPageBox,
     crop_box: PdfPageBox,
@@ -1520,6 +1535,7 @@ struct PageGeometry {
     raster_height_px: u32,
 }
 
+#[cfg(feature = "pdf-render")]
 fn render_page_image(
     page: &PdfPage<'_>,
     page_index: i32,
@@ -1548,6 +1564,7 @@ fn render_page_image(
     })
 }
 
+#[cfg(feature = "pdf-render")]
 fn page_geometry(
     page: &PdfPage<'_>,
     page_index: i32,
@@ -1583,6 +1600,7 @@ fn source_page_range_profile(profile: &PdfPageRenderProfile) -> PdfPageRenderPro
     source_profile
 }
 
+#[cfg(feature = "pdf-render")]
 fn save_image_identity(
     image: &DynamicImage,
     image_path: &Path,
@@ -1600,6 +1618,7 @@ fn save_image_identity(
     })
 }
 
+#[cfg(feature = "pdf-render")]
 fn save_region_crop_image(
     page_image: &DynamicImage,
     pixel_box: PdfPagePixelBox,
@@ -1737,6 +1756,6 @@ fn render_markdown_report(records: &[PdfPageRenderShardReport]) -> String {
     markdown
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "pdf-render"))]
 #[path = "../../tests/unit/pdf/render.rs"]
 mod tests;

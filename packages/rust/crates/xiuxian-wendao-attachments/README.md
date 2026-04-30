@@ -10,14 +10,16 @@ gateway can depend on the crate without pulling PDF accelerators into default,
 
 ## Features
 
-| Feature      | Purpose                                                                      |
-| ------------ | ---------------------------------------------------------------------------- |
-| `pdf-render` | Enables `lopdf` source-page manifests plus PDFium-backed region/page renders. |
+| Feature            | Purpose                                                       |
+| ------------------ | ------------------------------------------------------------- |
+| `pdf-source-range` | Enables `lopdf` source-page manifests without PDFium.         |
+| `pdf-render`       | Adds PDFium-backed region/page raster proofs on top of source range. |
 
 ## Boundaries
 
-- `xiuxian-wendao-attachments` owns optional PDF accelerator dependencies such
-  as `lopdf` and `pdfium-render`.
+- `xiuxian-wendao-attachments` owns optional PDF accelerator dependencies.
+  `lopdf` is the source-page intake dependency; `pdfium-render` is limited to
+  explicit raster and region proof lanes.
 - `xiuxian-wendao` owns the Studio gateway, Flight/REST routes, and production
   document extraction behavior.
 - Production extraction still falls back to Python/Docling unless a later
@@ -67,7 +69,8 @@ stable user-facing `_resources.arrow` schema.
 
 The `pdf-render` feature uses `pdfium-render`, which binds to a native PDFium
 shared library at runtime. Live Wendao extraction does not require this library.
-Only the opt-in render proof needs it.
+The source-page OCR path uses `pdf-source-range` and does not pull PDFium. Only
+the opt-in raster or region render proof needs PDFium.
 
 Use `WENDAO_PDFIUM_LIBRARY_PATH` to point at an existing PDFium shared library,
 or run the benchmark script with `--prepare-pdfium-runtime` to fetch the pinned

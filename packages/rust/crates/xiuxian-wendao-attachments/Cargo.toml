@@ -9,11 +9,14 @@ publish = false
 
 [features]
 default = []
-pdf-render = [
+pdf-source-range = [
   "dep:arrow",
-  "dep:image",
   "dep:lopdf",
   "dep:num-traits",
+]
+pdf-render = [
+  "pdf-source-range",
+  "dep:image",
   "dep:pdfium-render",
 ]
 

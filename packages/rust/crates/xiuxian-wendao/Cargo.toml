@@ -60,8 +60,12 @@ studio = [
 ]
 performance = ["xiuxian-testing/performance"]
 performance-stress = ["performance"]
-document-extract-pdf-render = [
+document-extract-pdf-source-range = [
   "dep:xiuxian-wendao-attachments",
+  "xiuxian-wendao-attachments/pdf-source-range",
+]
+document-extract-pdf-render = [
+  "document-extract-pdf-source-range",
   "xiuxian-wendao-attachments/pdf-render",
 ]
 duckdb = [
