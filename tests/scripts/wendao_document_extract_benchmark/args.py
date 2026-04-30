@@ -386,4 +386,12 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Fail when the Rust perf report receives any document extraction error rows.",
     )
+    parser.add_argument(
+        "--fail-on-structure-order-mismatch",
+        action="store_true",
+        help=(
+            "Fail when force, shard-cache rebuild, and cache-hit runs produce "
+            "different structure order signatures."
+        ),
+    )
     return parser.parse_args()

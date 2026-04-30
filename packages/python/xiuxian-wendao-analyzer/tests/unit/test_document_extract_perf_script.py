@@ -4,6 +4,8 @@ import importlib.util
 import tomllib
 from pathlib import Path
 
+import pytest
+
 
 def _load_benchmark_module():
     repo_root = Path(__file__).resolve().parents[5]
@@ -1607,6 +1609,7 @@ def test_run_fixture_probe_can_measure_shard_cache_reuse(monkeypatch, tmp_path) 
         duplicate_miss_concurrency=0,
         fail_on_error_rows=True,
         fail_on_duplicate_conversions=False,
+        fail_on_structure_order_mismatch=True,
         iterations=1,
         concurrency=1,
         shard_cache_reuse_probe=True,
@@ -1636,6 +1639,70 @@ def test_run_fixture_probe_can_measure_shard_cache_reuse(monkeypatch, tmp_path) 
     assert result["structureOrderStable"] is True
     assert result["structureOrderComparedRuns"] == 3
     assert result["structureOrderMismatchCount"] == 0
+
+
+def test_run_fixture_probe_can_fail_on_structure_order_mismatch(
+    monkeypatch,
+    tmp_path,
+) -> None:
+    benchmark = _load_benchmark_module()
+
+    def fake_run_cargo_perf_test(
+        args,
+        source,
+        output_dir,
+        *,
+        force,
+        iterations,
+        concurrency,
+        report_path,
+        **_kwargs,
+    ):
+        signature_by_report = {
+            "force.json": "force-order",
+            "shard-cache-reuse.json": "force-order",
+            "cache.json": "cache-order",
+        }
+        return {
+            "latenciesMs": [1.0],
+            "requestCount": 1,
+            "rowCount": 1,
+            "batchCount": 1,
+            "arrowIpcBytes": 1,
+            "wallTimeMs": 1.0,
+            "concurrency": concurrency,
+            "errorRowCount": 0,
+            "statusCounts": {"succeeded": 1},
+            "artifactReports": [
+                {
+                    "structureArrowExists": True,
+                    "structureRowCount": 1,
+                    "structureReadingOrderSorted": True,
+                    "structureOrderSignature": signature_by_report[report_path.name],
+                    "structureOrderFirstKey": "000000|000000.000000|000000|a",
+                    "structureOrderLastKey": "000000|000000.000000|000000|a",
+                }
+            ],
+        }
+
+    monkeypatch.setattr(benchmark, "run_cargo_perf_test", fake_run_cargo_perf_test)
+    args = benchmark.argparse.Namespace(
+        duplicate_miss_concurrency=0,
+        fail_on_error_rows=True,
+        fail_on_duplicate_conversions=False,
+        fail_on_structure_order_mismatch=True,
+        iterations=1,
+        concurrency=1,
+        shard_cache_reuse_probe=True,
+    )
+
+    with pytest.raises(SystemExit, match="unstable structure order"):
+        benchmark.run_fixture_probe(
+            args,
+            "arxiv",
+            tmp_path / "source.pdf",
+            tmp_path / "out",
+        )
 
 
 def test_summary_and_markdown_report_distinct_miss_burst() -> None:

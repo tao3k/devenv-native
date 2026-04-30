@@ -281,6 +281,14 @@ def run_fixture_probe(
             f"shard_cache_reuse={shard_cache_reuse_error_rows}, "
             f"cache={cache_error_rows}"
         )
+    if (
+        getattr(args, "fail_on_structure_order_mismatch", False)
+        and structure_order_consistency["structureOrderStable"] is False
+    ):
+        raise SystemExit(
+            f"fixture `{fixture_name}` produced unstable structure order across runs: "
+            f"mismatches={structure_order_consistency['structureOrderMismatchCount']}"
+        )
     rust_jobs_status_summary = combine_rust_jobs_status_summaries(
         [
             (

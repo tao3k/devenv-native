@@ -262,6 +262,9 @@ cache-hit path and `--server-start-timeout` for cold Docling starts. The report
 captures request counts, wall-clock timing, Arrow IPC bytes, status counts, and
 error-row counts; `--fail-on-error-rows` makes table-shaped conversion failures
 fail the benchmark run.
+Use `--fail-on-structure-order-mismatch` when a real OCR benchmark must fail
+if force, shard-cache rebuild, and cache-hit artifacts produce different
+structure order signatures.
 Each report also includes a `precisionSpeedSummary` section that keeps the
 quality and latency signals together: error rows, artifact errors, structure
 order, force/cache/shard-reuse order stability, parity status, OCR/bbox block

@@ -88,6 +88,8 @@ precision gate verdict, error rows, artifact errors, sorted structure status,
 force/cache/shard-reuse structure order stability, parity status, OCR and bbox
 block counts, force latency, cache p95, shard-cache rebuild latency, and Rust
 scheduler elapsed time.
+Benchmarks can make this a hard regression gate with
+`--fail-on-structure-order-mismatch`.
 
 Responsibilities:
 
