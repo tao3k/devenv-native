@@ -60,6 +60,9 @@ def summarize_artifact_reports(reports: list[dict[str, Any]]) -> dict[str, Any]:
             reports,
             "metricsRustSchedulerElapsedMs",
         ),
+        "imageAttachmentAuditCount": image_attachment_audit_count(reports),
+        "imageAccelerationCandidates": image_acceleration_candidates(reports),
+        "maxImagePixelCount": max_image_pixel_count(reports),
         "artifactErrorCount": sum(
             1 for report in reports if report.get("artifactError")
         ),
@@ -94,6 +97,36 @@ def sum_float_report_values(reports: list[dict[str, Any]], key: str) -> float:
         for report in reports
         if isinstance((value := report.get(key)), int | float)
     )
+
+
+def image_attachment_audit_count(reports: list[dict[str, Any]]) -> int:
+    return sum(
+        1 for report in reports if isinstance(report.get("imageAttachmentAudit"), dict)
+    )
+
+
+def image_acceleration_candidates(reports: list[dict[str, Any]]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for report in reports:
+        audit = report.get("imageAttachmentAudit")
+        if not isinstance(audit, dict):
+            continue
+        candidate = audit.get("rustAccelerationCandidate")
+        if isinstance(candidate, str):
+            counts[candidate] = counts.get(candidate, 0) + 1
+    return dict(sorted(counts.items()))
+
+
+def max_image_pixel_count(reports: list[dict[str, Any]]) -> int | None:
+    values = []
+    for report in reports:
+        audit = report.get("imageAttachmentAudit")
+        if not isinstance(audit, dict):
+            continue
+        pixel_count = audit.get("pixelCount")
+        if isinstance(pixel_count, int):
+            values.append(pixel_count)
+    return max(values, default=None)
 
 
 def max_rss_kb() -> int | None:

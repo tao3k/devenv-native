@@ -28,6 +28,20 @@ gateway can depend on the crate without pulling PDF accelerators into default,
 - The stable document extraction resource table remains Arrow-based. Browser
   JSON is only an edge serialization surface.
 
+## Image Attachment Audit
+
+The crate exposes a lightweight image preflight audit with no OCR dependency
+and no image decoding dependency. It reads file metadata and bounded headers for
+known Docling image suffixes, records MIME/format hints, and extracts
+PNG/JPEG/BMP dimensions when they are available directly from the header.
+
+This audit is a Rust control-plane signal. It can identify future candidates
+for whole-image OCR cache keys, oversized image preflight, and later
+crop/tile planning, but it does not replace Docling OCR or layout authority.
+The Wendao performance probe can include these audit fields through the
+`document-extract-attachment-audit` feature on `xiuxian-wendao`; default live
+extraction still calls the existing Python/Docling path.
+
 ## Source Page-Range Routing
 
 Full-page OCR shards use direct source-PDF page-range manifests before falling
@@ -69,8 +83,10 @@ Mixed-format benchmark reports additionally group precision and speed signals
 by attachment class. PDF, Office, image, structured text, web, table-data, XML,
 subtitle, audio, Docling JSON, archive-backed, and unknown custom fixtures each
 receive class-level error, structure, order, force-latency, cache-latency, and
-speedup summaries. This keeps future non-PDF optimization slices measurable
-without granting Rust parser authority over Docling-owned semantics.
+speedup summaries. Image class summaries may also include Rust image audit
+candidate counts, such as whole-image OCR cache candidates or oversized image
+preflight candidates. These remain benchmark evidence only, not live parser
+authority over Docling-owned semantics.
 
 ## PDFium Runtime
 

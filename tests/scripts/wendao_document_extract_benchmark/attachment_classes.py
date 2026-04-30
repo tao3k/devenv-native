@@ -182,6 +182,11 @@ def summarize_attachment_class(
             results,
             "metricsStatusCounts",
         ),
+        "imageAttachmentAuditCount": image_attachment_audit_count(results),
+        "imageAccelerationCandidates": aggregate_image_acceleration_candidates(
+            results,
+        ),
+        "maxImagePixelCount": max_image_pixel_count(results),
         "slowestForceFixture": slowest_fixture(results, "forceRefreshMs"),
         "slowestCacheP95Fixture": slowest_fixture(results, "cacheHitP95Ms"),
         "precisionSpeedSummary": precision_speed_summary(
@@ -214,6 +219,49 @@ def aggregate_artifact_counter(
                 if isinstance(key, str) and isinstance(value, int):
                     counts[key] = counts.get(key, 0) + value
     return dict(sorted(counts.items()))
+
+
+def image_attachment_audit_count(results: list[dict[str, Any]]) -> int:
+    """Count image attachment audits across class fixture artifacts."""
+
+    return sum(
+        1
+        for result in results
+        for artifact in result.get("artifactReports", [])
+        if isinstance(artifact.get("imageAttachmentAudit"), dict)
+    )
+
+
+def aggregate_image_acceleration_candidates(
+    results: list[dict[str, Any]],
+) -> dict[str, int]:
+    """Aggregate Rust image acceleration candidate counts."""
+
+    counts: dict[str, int] = {}
+    for result in results:
+        for artifact in result.get("artifactReports", []):
+            audit = artifact.get("imageAttachmentAudit")
+            if not isinstance(audit, dict):
+                continue
+            candidate = audit.get("rustAccelerationCandidate")
+            if isinstance(candidate, str):
+                counts[candidate] = counts.get(candidate, 0) + 1
+    return dict(sorted(counts.items()))
+
+
+def max_image_pixel_count(results: list[dict[str, Any]]) -> int | None:
+    """Return the largest image pixel count across class fixture artifacts."""
+
+    values = []
+    for result in results:
+        for artifact in result.get("artifactReports", []):
+            audit = artifact.get("imageAttachmentAudit")
+            if not isinstance(audit, dict):
+                continue
+            pixel_count = audit.get("pixelCount")
+            if isinstance(pixel_count, int):
+                values.append(pixel_count)
+    return max(values, default=None)
 
 
 def slowest_fixture(

@@ -385,6 +385,9 @@ def run_fixture_probe(
         "metricsRustSchedulerElapsedMs": artifact_summary[
             "metricsRustSchedulerElapsedMs"
         ],
+        "imageAttachmentAuditCount": artifact_summary["imageAttachmentAuditCount"],
+        "imageAccelerationCandidates": artifact_summary["imageAccelerationCandidates"],
+        "maxImagePixelCount": artifact_summary["maxImagePixelCount"],
         "artifactErrorCount": artifact_summary["artifactErrorCount"],
         "artifactReports": cached_report.get("artifactReports", []),
         "rowsPerSecond": rows_per_second(total_rows, cached_report["wallTimeMs"]),

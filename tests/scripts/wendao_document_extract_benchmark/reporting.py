@@ -292,8 +292,8 @@ def render_markdown(payload: dict[str, Any]) -> str:
                 "",
                 "## Attachment Class Summary",
                 "",
-                "| Class | Fixtures | Error rows | Resource types | Block types | BBox blocks | Order sorted | Order stable | Slowest force | Slowest cache p95 | Speedup min |",
-                "| --- | ---: | ---: | --- | --- | ---: | --- | --- | --- | --- | ---: |",
+                "| Class | Fixtures | Error rows | Resource types | Block types | BBox blocks | Rust image candidates | Order sorted | Order stable | Slowest force | Slowest cache p95 | Speedup min |",
+                "| --- | ---: | ---: | --- | --- | ---: | --- | --- | --- | --- | --- | ---: |",
             ]
         )
         for class_summary in payload["summary"]["attachmentClassSummary"]:
@@ -301,6 +301,7 @@ def render_markdown(payload: dict[str, Any]) -> str:
             lines.append(
                 "| {attachmentClass} | {fixtureCount} | {totalErrorRows} | "
                 "{resourceTypes} | {blockTypes} | {bboxBlocks} | "
+                "{imageCandidates} | "
                 "{orderSorted} | {orderStable} | {slowestForce} | "
                 "{slowestCacheP95} | {minCacheSpeedup} |".format(
                     **class_summary,
@@ -311,6 +312,9 @@ def render_markdown(payload: dict[str, Any]) -> str:
                         class_summary.get("structureBlockTypeCounts")
                     ),
                     bboxBlocks=class_summary.get("structureBboxBlocks", 0),
+                    imageCandidates=format_counts(
+                        class_summary.get("imageAccelerationCandidates")
+                    ),
                     orderSorted=precision_speed.get("structureReadingOrderSorted"),
                     orderStable=precision_speed.get("structureOrderStable"),
                     slowestForce=format_fixture_latency(

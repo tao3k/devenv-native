@@ -195,7 +195,10 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--cargo-features",
-        default="performance,studio,zhenfa-router,duckdb",
+        default=(
+            "performance,studio,zhenfa-router,duckdb,"
+            "document-extract-attachment-audit"
+        ),
         help="Cargo feature set used by the Rust benchmark probe.",
     )
     parser.add_argument(

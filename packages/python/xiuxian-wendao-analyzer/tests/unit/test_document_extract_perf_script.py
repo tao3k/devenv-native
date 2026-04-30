@@ -610,6 +610,11 @@ def test_artifact_report_summary_tracks_structure_precision() -> None:
                 "metricsResultChars": 120,
                 "metricsBboxCount": 2,
                 "metricsRustSchedulerElapsedMs": 10.5,
+                "imageAttachmentAudit": {
+                    "format": "png",
+                    "pixelCount": 307200,
+                    "rustAccelerationCandidate": "image_ocr_cache_candidate",
+                },
                 "artifactError": None,
             },
             {
@@ -650,6 +655,9 @@ def test_artifact_report_summary_tracks_structure_precision() -> None:
     assert summary["metricsResultChars"] == 160
     assert summary["metricsBboxCount"] == 3
     assert summary["metricsRustSchedulerElapsedMs"] == 13.0
+    assert summary["imageAttachmentAuditCount"] == 1
+    assert summary["imageAccelerationCandidates"] == {"image_ocr_cache_candidate": 1}
+    assert summary["maxImagePixelCount"] == 307200
     assert summary["artifactErrorCount"] == 0
 
 
@@ -1612,6 +1620,11 @@ def test_attachment_class_summary_groups_precision_and_speed() -> None:
                         "resourceStatusCounts": {"ok": 3},
                         "structureBlockTypeCounts": {"document": 1, "table": 1},
                         "metricsStatusCounts": {},
+                        "imageAttachmentAudit": {
+                            "format": "png",
+                            "pixelCount": 307200,
+                            "rustAccelerationCandidate": ("image_ocr_cache_candidate"),
+                        },
                     }
                 ],
             },
@@ -1646,6 +1659,11 @@ def test_attachment_class_summary_groups_precision_and_speed() -> None:
     }
     assert class_summary["image"]["structureRows"] == 1
     assert class_summary["image"]["resourceTypeCounts"]["table"] == 1
+    assert class_summary["image"]["imageAttachmentAuditCount"] == 1
+    assert class_summary["image"]["imageAccelerationCandidates"] == {
+        "image_ocr_cache_candidate": 1
+    }
+    assert class_summary["image"]["maxImagePixelCount"] == 307200
     assert class_summary["image"]["slowestCacheP95Fixture"] == {
         "fixture": "image-png",
         "latencyMs": 5.0,
@@ -1912,6 +1930,11 @@ def test_summary_and_markdown_report_distinct_miss_burst() -> None:
                 "resourceStatusCounts": {"ok": 2},
                 "structureBlockTypeCounts": {"document": 1, "table": 1},
                 "metricsStatusCounts": {"succeeded": 2},
+                "imageAttachmentAudit": {
+                    "format": "png",
+                    "pixelCount": 307200,
+                    "rustAccelerationCandidate": "image_ocr_cache_candidate",
+                },
             }
         ],
     }
@@ -1984,6 +2007,7 @@ def test_summary_and_markdown_report_distinct_miss_burst() -> None:
     assert "## Distinct Cold Miss Burst" in markdown
     assert "## Attachment Class Summary" in markdown
     assert "document=1, table=1" in markdown
+    assert "image_ocr_cache_candidate=1" in markdown
     assert "small-md:10.000" in markdown
     assert "distinct-01" in markdown
     assert "Shard reuse force ms" in markdown

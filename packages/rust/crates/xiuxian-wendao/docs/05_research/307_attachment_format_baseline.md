@@ -107,12 +107,29 @@ The image fixture is therefore slow while producing a small result shape. The
 next image slice should split Docling image conversion timing before attempting
 any cache or scheduler change.
 
+## Rust Image Audit Follow-Up
+
+The Rust side now has a bounded image preflight audit surface in
+`xiuxian-wendao-attachments`. It reads file metadata plus bounded headers for
+known Docling image suffixes, records MIME/format hints, and extracts
+PNG/JPEG/BMP dimensions when those dimensions are available directly from the
+header. The `xiuxian-wendao` benchmark probe can include the audit through the
+`document-extract-attachment-audit` feature and then aggregate
+`imageAccelerationCandidates` in `summary.attachmentClassSummary`.
+
+This is an optimization planning signal, not a parser change. Rust can now
+identify future whole-image OCR cache and oversized-image preflight candidates,
+but live image extraction still uses Python/Docling and the same resource and
+structure Arrow contracts.
+
 ## Next Slices
 
 1. Image attachment OCR lane:
    - use class-level resource/block composition and slowest-fixture fields to
      identify whether the image cost is OCR, table reconstruction, or export
      overhead;
+   - use Rust image audit fields to decide whether whole-image OCR cache,
+     oversized image preflight, or crop/tile planning is the right next proof;
    - add image-specific timing where Docling exposes OCR/layout phases;
    - preserve Docling OCR authority;
    - reuse the Rust scheduler/cache model only after the image lane has stable

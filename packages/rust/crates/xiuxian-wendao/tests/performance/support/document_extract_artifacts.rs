@@ -16,6 +16,10 @@ use arrow::record_batch::RecordBatch;
 use serde::Serialize;
 use serde_json::Value;
 
+#[cfg(feature = "document-extract-attachment-audit")]
+use xiuxian_wendao_attachments::image_audit::{
+    AttachmentAudit, audit_image_attachment, is_supported_image_path,
+};
 #[cfg(feature = "document-extract-pdf-source-range")]
 use xiuxian_wendao_attachments::pdf::structure::{
     DocumentStructureBlock, validate_document_structure_parity,
@@ -58,6 +62,10 @@ pub(crate) struct ArtifactReport {
     pub(crate) metrics_result_chars: usize,
     pub(crate) metrics_bbox_count: usize,
     pub(crate) metrics_rust_scheduler_elapsed_ms: f64,
+    #[cfg(feature = "document-extract-attachment-audit")]
+    pub(crate) image_attachment_audit: Option<AttachmentAudit>,
+    #[cfg(feature = "document-extract-attachment-audit")]
+    pub(crate) image_attachment_audit_error: Option<String>,
     pub(crate) artifact_error: Option<String>,
 }
 
@@ -119,6 +127,10 @@ fn inspect_artifact_dir(
         metrics_result_chars: 0,
         metrics_bbox_count: 0,
         metrics_rust_scheduler_elapsed_ms: 0.0,
+        #[cfg(feature = "document-extract-attachment-audit")]
+        image_attachment_audit: None,
+        #[cfg(feature = "document-extract-attachment-audit")]
+        image_attachment_audit_error: None,
         artifact_error: None,
     };
     if let Err(error) = populate_artifact_report(&mut report, structure_baseline_root) {
@@ -131,6 +143,9 @@ fn populate_artifact_report(
     report: &mut ArtifactReport,
     structure_baseline_root: Option<&Path>,
 ) -> Result<(), String> {
+    #[cfg(feature = "document-extract-attachment-audit")]
+    populate_image_attachment_audit(report);
+
     let output_dir = std::path::PathBuf::from(&report.output_dir);
     let resources_path = output_dir.join(DOCUMENT_RESOURCES_ARROW_CACHE_NAME);
     if let Some(batches) = read_arrow_file_batches(resources_path.as_path())? {
@@ -193,6 +208,18 @@ fn populate_artifact_report(
             max_float64_column_value(&batches, "rustSchedulerElapsedMs")?;
     }
     Ok(())
+}
+
+#[cfg(feature = "document-extract-attachment-audit")]
+fn populate_image_attachment_audit(report: &mut ArtifactReport) {
+    let source_path = Path::new(&report.source);
+    if !is_supported_image_path(source_path) {
+        return;
+    }
+    match audit_image_attachment(source_path) {
+        Ok(audit) => report.image_attachment_audit = Some(audit),
+        Err(error) => report.image_attachment_audit_error = Some(error),
+    }
 }
 
 fn read_arrow_file_batches(path: &Path) -> Result<Option<Vec<RecordBatch>>, String> {
@@ -537,6 +564,46 @@ fn optional_float64_value(column: &Float64Array, row: usize) -> Option<f64> {
     } else {
         Some(column.value(row))
     }
+}
+
+#[cfg(feature = "document-extract-attachment-audit")]
+fn write_test_png(path: &Path, width: u32, height: u32) -> Result<(), String> {
+    let mut bytes = Vec::from(&b"\x89PNG\r\n\x1a\n\0\0\0\rIHDR"[..]);
+    bytes.extend_from_slice(&width.to_be_bytes());
+    bytes.extend_from_slice(&height.to_be_bytes());
+    bytes.extend_from_slice(&[8, 2, 0, 0, 0, 0, 0, 0, 0]);
+    fs::write(path, bytes).map_err(|error| error.to_string())
+}
+
+#[test]
+#[cfg(feature = "document-extract-attachment-audit")]
+fn artifact_report_reads_image_attachment_audit() -> Result<(), String> {
+    let temp_dir = tempfile::tempdir().map_err(|error| error.to_string())?;
+    let output_dir = temp_dir.path().join("outputs").join("image");
+    fs::create_dir_all(output_dir.as_path()).map_err(|error| error.to_string())?;
+    let image_path = temp_dir.path().join("source.png");
+    write_test_png(image_path.as_path(), 320, 240)?;
+
+    let report = inspect_artifact_dir(
+        image_path.to_string_lossy().as_ref(),
+        output_dir.to_string_lossy().as_ref(),
+        None,
+    );
+
+    assert_eq!(report.artifact_error, None);
+    assert_eq!(report.image_attachment_audit_error, None);
+    let audit = report
+        .image_attachment_audit
+        .ok_or_else(|| "expected image attachment audit".to_string())?;
+    assert_eq!(audit.format, "png");
+    assert_eq!(audit.width_px, Some(320));
+    assert_eq!(audit.height_px, Some(240));
+    assert_eq!(audit.pixel_count, Some(76_800));
+    assert_eq!(
+        audit.rust_acceleration_candidate,
+        "image_ocr_cache_candidate"
+    );
+    Ok(())
 }
 
 #[test]
