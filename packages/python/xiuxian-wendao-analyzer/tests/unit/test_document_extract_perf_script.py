@@ -669,6 +669,145 @@ def test_cargo_perf_probe_forwards_structure_baseline_root(
     )
 
 
+def test_cargo_perf_probe_can_override_flight_mode_without_self_parity(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    benchmark = _load_benchmark_module()
+    report_path = tmp_path / "report.json"
+    captured_env = {}
+    commands: list[list[str]] = []
+
+    def fake_run(command: list[str], *, check: bool, env) -> None:
+        commands.append(command)
+        assert check
+        captured_env.update(env)
+        report_path.write_text(
+            '{"latenciesMs":[1.0],"requestCount":1,"rowCount":1,'
+            '"batchCount":1,"arrowIpcBytes":1,"errorRowCount":0,'
+            '"statusCounts":{"ok":1},"wallTimeMs":1.0}',
+            encoding="utf-8",
+        )
+
+    monkeypatch.setattr(benchmark.subprocess, "run", fake_run)
+    monkeypatch.setenv("SDKROOT", "/tmp/macos-sdk")
+    monkeypatch.setenv("LIBRARY_PATH", "/tmp/macos-sdk/usr/lib")
+    args = benchmark.argparse.Namespace(
+        benchmark_host="127.0.0.1",
+        benchmark_port=50052,
+        cargo="cargo",
+        cargo_features="performance,studio,zhenfa-router,duckdb",
+        flight_mode="hybrid-page-ocr",
+        wait_ms=0,
+        structure_baseline_root=tmp_path / "baselines",
+    )
+
+    benchmark.run_cargo_perf_test(
+        args,
+        tmp_path / "sample.pdf",
+        tmp_path / "baseline",
+        force=True,
+        iterations=1,
+        concurrency=1,
+        report_path=report_path,
+        flight_mode="sync",
+        include_structure_baseline_root=False,
+    )
+
+    assert captured_env["WENDAO_DOCUMENT_EXTRACT_PERF_MODE"] == "sync"
+    assert "WENDAO_DOCUMENT_EXTRACT_PERF_STRUCTURE_BASELINE_ROOT" not in captured_env
+    assert commands[0][commands[0].index("--features") + 1] == (
+        "performance,studio,zhenfa-router,duckdb"
+    )
+
+
+def test_run_structure_baseline_probe_generates_sync_fixture_baselines(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    benchmark = _load_benchmark_module()
+    calls = []
+
+    def fake_run_cargo_perf_test(
+        args,
+        source,
+        output_dir,
+        *,
+        force,
+        iterations,
+        concurrency,
+        report_path,
+        flight_mode,
+        include_structure_baseline_root,
+        **_kwargs,
+    ):
+        calls.append(
+            {
+                "source": source,
+                "output_dir": output_dir,
+                "force": force,
+                "iterations": iterations,
+                "concurrency": concurrency,
+                "report_path": report_path,
+                "flight_mode": flight_mode,
+                "include_structure_baseline_root": include_structure_baseline_root,
+            }
+        )
+        return {
+            "errorRowCount": 0,
+            "artifactReports": [
+                {
+                    "resourcesArrowExists": True,
+                    "resourcesRowCount": 2,
+                    "structureArrowExists": True,
+                    "structureRowCount": 2,
+                    "structureReadingOrderSorted": True,
+                }
+            ],
+        }
+
+    monkeypatch.setattr(benchmark, "run_cargo_perf_test", fake_run_cargo_perf_test)
+    args = benchmark.argparse.Namespace(
+        generate_structure_baselines=True,
+        fail_on_error_rows=True,
+    )
+    baseline_root = tmp_path / "baselines"
+
+    report = benchmark.run_structure_baseline_probe(
+        args,
+        {
+            "pdf": tmp_path / "sample.pdf",
+            "image": tmp_path / "sample.png",
+        },
+        baseline_root,
+    )
+
+    assert report["enabled"] is True
+    assert report["root"] == str(baseline_root)
+    assert report["fixtureCount"] == 2
+    assert report["totalStructureRows"] == 4
+    assert report["allStructureReadingOrderSorted"] is True
+    assert [call["output_dir"].name for call in calls] == ["pdf", "image"]
+    assert all(call["flight_mode"] == "sync" for call in calls)
+    assert all(call["force"] is True for call in calls)
+    assert all(call["include_structure_baseline_root"] is False for call in calls)
+
+
+def test_structure_baseline_root_defaults_to_report_dir_when_generating(
+    tmp_path: Path,
+) -> None:
+    benchmark = _load_benchmark_module()
+    args = benchmark.argparse.Namespace(
+        generate_structure_baselines=True,
+        structure_baseline_root=None,
+    )
+
+    assert (
+        benchmark.resolve_structure_baseline_root(args, tmp_path)
+        == (tmp_path / "structure-baselines").resolve()
+    )
+
+
 def test_pdf_render_shard_audit_command_adds_feature_and_fixture_manifest(
     tmp_path: Path,
 ) -> None:
@@ -1387,6 +1526,11 @@ def test_summary_and_markdown_report_distinct_miss_burst() -> None:
             "summary": summary,
             "results": [result],
             "distinctMiss": distinct_report,
+            "structureBaseline": {
+                "enabled": True,
+                "fixtureCount": 1,
+                "totalErrorRows": 0,
+            },
         }
     )
     assert "## Distinct Cold Miss Burst" in markdown
@@ -1399,3 +1543,4 @@ def test_summary_and_markdown_report_distinct_miss_burst() -> None:
     assert "chars=80" in markdown
     assert "Rust PDF OCR source-range workers" in markdown
     assert "Structure parity" in markdown
+    assert "Structure baseline generation" in markdown

@@ -282,7 +282,10 @@ Use `--structure-baseline-root` when a golden Docling baseline artifact root is
 available. The Rust ignored benchmark reads each candidate `_structure.arrow`,
 matches it to the baseline artifact directory by fixture output name, and
 reports strict structure parity pass/error fields without changing the
-document extraction Flight contract.
+document extraction Flight contract. Pass `--generate-structure-baselines` to
+run a sync/full-Docling baseline pass before candidate probes; when no explicit
+baseline root is provided, the script writes those baseline artifacts below the
+configured report directory.
 For source-PDF page-range OCR, Rust owns the outer scheduling policy. It may
 split one contiguous source-PDF OCR range into several contiguous subranges and
 send those subranges concurrently to Python/Docling. The default source-range

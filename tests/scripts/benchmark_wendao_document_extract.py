@@ -163,6 +163,14 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--generate-structure-baselines",
+        action="store_true",
+        help=(
+            "Generate sync/full-Docling baseline artifacts before candidate "
+            "probes, then reuse that baseline root for strict structure parity."
+        ),
+    )
+    parser.add_argument(
         "--wait-ms",
         type=int,
         default=0,
@@ -446,6 +454,7 @@ def main() -> int:
 
     report_dir = Path(args.report_dir)
     report_dir.mkdir(parents=True, exist_ok=True)
+    args.structure_baseline_root = resolve_structure_baseline_root(args, report_dir)
 
     if args.pdf_render_shard_audit:
         return run_pdf_render_shard_audit(
@@ -565,6 +574,11 @@ def main() -> int:
                     rust_server,
                     timeout_seconds=args.server_start_timeout,
                 )
+            structure_baseline_report = run_structure_baseline_probe(
+                args,
+                {**fixtures, **distinct_miss_fixtures},
+                args.structure_baseline_root,
+            )
             distinct_miss_report = run_distinct_miss_probe(
                 args,
                 distinct_miss_fixtures,
@@ -608,6 +622,7 @@ def main() -> int:
         "ocrShardCache": ocr_shard_cache_summary
         or summarize_ocr_shard_cache(args.ocr_shard_cache_root),
         "distinctMiss": distinct_miss_report,
+        "structureBaseline": structure_baseline_report,
         "doclingFixtureRoot": str(real_fixture_root) if real_fixture_root else None,
         "results": results,
         "summary": summarize_results(results, distinct_miss_report),
@@ -2091,6 +2106,94 @@ def run_distinct_miss_probe(
     }
 
 
+def resolve_structure_baseline_root(
+    args: argparse.Namespace,
+    report_dir: Path,
+) -> Path | None:
+    explicit_root = getattr(args, "structure_baseline_root", None)
+    if explicit_root is not None:
+        return explicit_root.resolve()
+    if getattr(args, "generate_structure_baselines", False):
+        return (report_dir / "structure-baselines").resolve()
+    return None
+
+
+def run_structure_baseline_probe(
+    args: argparse.Namespace,
+    fixtures: dict[str, Path],
+    baseline_root: Path | None,
+) -> dict[str, Any] | None:
+    if not getattr(args, "generate_structure_baselines", False):
+        return None
+    if baseline_root is None:
+        raise SystemExit("--generate-structure-baselines requires a baseline root")
+    if not fixtures:
+        return {
+            "enabled": True,
+            "root": str(baseline_root),
+            "fixtureCount": 0,
+            "totalErrorRows": 0,
+            "totalStructureRows": 0,
+            "allStructureReadingOrderSorted": None,
+            "fixtures": [],
+        }
+
+    baseline_root.mkdir(parents=True, exist_ok=True)
+    fixture_reports = []
+    for fixture_name, fixture_path in fixtures.items():
+        output_dir = baseline_root / fixture_name
+        report = run_cargo_perf_test(
+            args,
+            fixture_path,
+            output_dir,
+            force=True,
+            iterations=1,
+            concurrency=1,
+            report_path=output_dir / "baseline.json",
+            flight_mode="sync",
+            include_structure_baseline_root=False,
+        )
+        error_rows = report.get("errorRowCount", 0)
+        if args.fail_on_error_rows and error_rows:
+            raise SystemExit(
+                f"structure baseline `{fixture_name}` produced error rows: {error_rows}"
+            )
+        artifact_summary = summarize_artifact_reports(report.get("artifactReports", []))
+        fixture_reports.append(
+            {
+                "fixture": fixture_name,
+                "source": str(fixture_path),
+                "outputDir": str(output_dir),
+                "reportPath": str(output_dir / "baseline.json"),
+                "errorRows": error_rows,
+                "resourcesRows": artifact_summary["resourcesRows"],
+                "structureRows": artifact_summary["structureRows"],
+                "structureReadingOrderSorted": artifact_summary[
+                    "structureReadingOrderSorted"
+                ],
+            }
+        )
+
+    sorted_values = [
+        report["structureReadingOrderSorted"]
+        for report in fixture_reports
+        if report["structureReadingOrderSorted"] is not None
+    ]
+    return {
+        "enabled": True,
+        "root": str(baseline_root),
+        "fixtureCount": len(fixture_reports),
+        "totalErrorRows": sum(report["errorRows"] for report in fixture_reports),
+        "totalStructureRows": sum(
+            report["structureRows"] for report in fixture_reports
+        ),
+        "allStructureReadingOrderSorted": (
+            all(bool(value) for value in sorted_values) if sorted_values else None
+        ),
+        "fixtures": fixture_reports,
+    }
+
+
 def run_fixture_probe(
     args: argparse.Namespace,
     fixture_name: str,
@@ -2295,10 +2398,13 @@ def run_cargo_perf_test(
     report_path: Path,
     inputs: dict[str, Path] | None = None,
     wait_ms: int | None = None,
+    flight_mode: str | None = None,
+    include_structure_baseline_root: bool = True,
 ) -> dict[str, Any]:
     output_dir.mkdir(parents=True, exist_ok=True)
     env = rust_process_env()
     effective_wait_ms = args.wait_ms if wait_ms is None else wait_ms
+    effective_flight_mode = flight_mode or args.flight_mode
     env.update(
         {
             "WENDAO_DOCUMENT_EXTRACT_PERF_ENDPOINT": (
@@ -2309,7 +2415,7 @@ def run_cargo_perf_test(
             "WENDAO_DOCUMENT_EXTRACT_PERF_ITERATIONS": str(iterations),
             "WENDAO_DOCUMENT_EXTRACT_PERF_CONCURRENCY": str(max(concurrency, 1)),
             "WENDAO_DOCUMENT_EXTRACT_PERF_FORCE_FIRST": "true" if force else "false",
-            "WENDAO_DOCUMENT_EXTRACT_PERF_MODE": args.flight_mode,
+            "WENDAO_DOCUMENT_EXTRACT_PERF_MODE": effective_flight_mode,
             "WENDAO_DOCUMENT_EXTRACT_PERF_WAIT_MS": str(effective_wait_ms),
             "WENDAO_DOCUMENT_EXTRACT_PERF_REPORT": str(report_path),
         }
@@ -2326,7 +2432,7 @@ def run_cargo_perf_test(
             ]
         )
     structure_baseline_root = getattr(args, "structure_baseline_root", None)
-    if structure_baseline_root is not None:
+    if include_structure_baseline_root and structure_baseline_root is not None:
         env["WENDAO_DOCUMENT_EXTRACT_PERF_STRUCTURE_BASELINE_ROOT"] = str(
             structure_baseline_root
         )
@@ -2337,7 +2443,7 @@ def run_cargo_perf_test(
         "xiuxian-wendao",
         "--no-default-features",
         "--features",
-        cargo_features_for_flight_mode(args.cargo_features, args.flight_mode),
+        cargo_features_for_flight_mode(args.cargo_features, effective_flight_mode),
         "--test",
         "xiuxian-testing-gate",
         "document_extract_python_flight_perf_smoke",
@@ -2810,6 +2916,7 @@ def format_optional_float(value: Any) -> str:
 def render_markdown(payload: dict[str, Any]) -> str:
     rust_status = payload["summary"]["rustJobsStatusSummary"]
     ocr_shard_cache = payload.get("ocrShardCache", {})
+    structure_baseline = payload.get("structureBaseline") or {}
     lines = [
         "# Wendao Document Extract Performance",
         "",
@@ -2872,6 +2979,10 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"`checked={payload['summary'].get('structureParityCheckedFixtures')}, "
         f"passed={payload['summary'].get('allStructureParityPassed')}, "
         f"errors={payload['summary'].get('totalStructureParityErrors')}`",
+        "- Structure baseline generation: "
+        f"`enabled={bool(structure_baseline.get('enabled'))}, "
+        f"fixtures={structure_baseline.get('fixtureCount')}, "
+        f"errors={structure_baseline.get('totalErrorRows')}`",
         "- Metrics sidecar: "
         f"`rows={payload['summary'].get('totalMetricsRows')}, "
         f"chars={payload['summary'].get('totalMetricsResultChars')}, "

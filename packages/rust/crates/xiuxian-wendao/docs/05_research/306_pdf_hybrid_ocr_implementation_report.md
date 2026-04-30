@@ -5,7 +5,7 @@
 :PARENT: [[../index|Wendao DocOS Kernel: Map of Content]]
 :TAGS: research, document-extraction, pdf, ocr, arrow, docling, attachments
 :STATUS: UPDATED
-:VERSION: 1.10
+:VERSION: 1.11
 :END:
 
 ## Executive Summary
@@ -46,7 +46,9 @@ coverage, per-page text coverage, protected table/formula/image/code block
 counts, and sorted reading order. The benchmark harness can now point at a
 golden baseline artifact root and report the parity summary or exact parity
 error alongside the usual `_resources.arrow`, `_structure.arrow`, and
-`_metrics.arrow` fields.
+`_metrics.arrow` fields. The same harness can generate sync/full-Docling
+baseline artifacts before candidate probes so parity comparisons are tied to
+the exact fixture set being measured.
 
 The next implementation slice is verification infrastructure, not a broader
 parser replacement. Rust stays the deterministic control plane: acceleration,
@@ -336,7 +338,10 @@ performance and precision evidence attached to the same Arrow artifact set as
 `_resources.arrow` and `_structure.arrow`. When supplied with a golden
 structure baseline root, the same cargo-test lane decodes baseline and
 candidate `_structure.arrow` sidecars into the shared structure block model and
-reports strict parity checked/passed/error counts.
+reports strict parity checked/passed/error counts. The harness also supports a
+baseline generation pass that runs the existing ignored cargo probe in `sync`
+mode with force refresh, writes fixture-named baseline artifact directories,
+and then points the candidate run at that generated root.
 
 A fixture-OCR smoke run against the `2604.17337` PDF confirmed the reporting
 path without invoking real Docling OCR: 21 resource rows, 21 structure rows, 21
