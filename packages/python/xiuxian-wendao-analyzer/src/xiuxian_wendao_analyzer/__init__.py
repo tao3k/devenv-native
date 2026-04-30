@@ -42,6 +42,7 @@ from .documents import (
     extract_pdf_resources,
     extract_pdf_table,
     is_known_docling_source,
+    warm_document_arrow_runtime,
 )
 from .models import (
     AnalysisSummary,
@@ -198,4 +199,5 @@ __all__ = [
     "summarize_table",
     "summarize_table_analysis",
     "validate_pdf_ocr_shard_input_table",
+    "warm_document_arrow_runtime",
 ]

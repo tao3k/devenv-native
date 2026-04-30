@@ -11,6 +11,8 @@ from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 import pyarrow as pa
 
 from .document_metrics import (
+    DOCUMENT_TIMING_SCHEMA,
+    DOCUMENT_TIMING_SCHEMA_VERSION,
     DocumentTimingRecorder,
     write_document_timing_cache,
 )
@@ -134,6 +136,8 @@ DOCUMENT_STRUCTURE_SCHEMA = pa.schema(
         pa.field("provenance", pa.utf8()),
     ]
 )
+
+_DOCUMENT_ARROW_RUNTIME_WARMED = False
 
 
 class DoclingDocumentProtocol(Protocol):
@@ -263,6 +267,25 @@ def document_structure_to_table(
         )
     ]
     return pa.Table.from_pylist(rows, schema=DOCUMENT_STRUCTURE_SCHEMA)
+
+
+def warm_document_arrow_runtime() -> None:
+    """Pre-initialize Arrow table conversion and IPC writers."""
+
+    global _DOCUMENT_ARROW_RUNTIME_WARMED
+    if _DOCUMENT_ARROW_RUNTIME_WARMED:
+        return
+    for schema, row in (
+        (DOCUMENT_RESOURCE_SCHEMA, _resource_warmup_row()),
+        (DOCUMENT_STRUCTURE_SCHEMA, _structure_warmup_row()),
+        (DOCUMENT_TIMING_SCHEMA, _timing_warmup_row()),
+    ):
+        table = pa.Table.from_pylist([row], schema=schema)
+        sink = pa.BufferOutputStream()
+        with pa.ipc.new_file(sink, schema) as writer:
+            writer.write_table(table)
+        sink.getvalue()
+    _DOCUMENT_ARROW_RUNTIME_WARMED = True
 
 
 def extract_document_table(
@@ -428,6 +451,59 @@ def _write_document_timing_sidecar(
         write_document_timing_cache(output_dir, timing.rows)
     except (OSError, pa.ArrowException, ValueError):
         return
+
+
+def _resource_warmup_row() -> dict[str, object]:
+    return {
+        "sourcePath": "",
+        "resourceType": "warmup",
+        "resourcePath": "",
+        "pageIndex": 0,
+        "caption": "",
+        "content": "",
+        "mimeType": "application/x-wendao-warmup",
+        "status": "ok",
+        "elementId": "_warmup",
+    }
+
+
+def _structure_warmup_row() -> dict[str, object]:
+    return {
+        "contractVersion": DOCUMENT_STRUCTURE_SCHEMA_VERSION,
+        "sourcePath": "",
+        "sourceContentHash": "",
+        "blockId": "_warmup",
+        "parentBlockId": "",
+        "pageIndex": 0,
+        "blockIndex": 0,
+        "readingOrderKey": "000000.000000",
+        "blockType": "warmup",
+        "resourceElementId": "_warmup",
+        "content": "",
+        "mimeType": "application/x-wendao-warmup",
+        "status": "ok",
+        "engine": "wendao",
+        "confidence": None,
+        "bboxLeft": None,
+        "bboxTop": None,
+        "bboxRight": None,
+        "bboxBottom": None,
+        "provenance": "{}",
+    }
+
+
+def _timing_warmup_row() -> dict[str, object]:
+    return {
+        "contractVersion": DOCUMENT_TIMING_SCHEMA_VERSION,
+        "sourcePath": "",
+        "sourceSuffix": "",
+        "phase": "warmup",
+        "elapsedMs": 0.0,
+        "status": "ok",
+        "detail": "",
+        "resourceRows": 0,
+        "structureRows": 0,
+    }
 
 
 def extract_pdf_resources(
@@ -1012,4 +1088,5 @@ __all__ = [
     "extract_pdf_resources",
     "extract_pdf_table",
     "is_known_docling_source",
+    "warm_document_arrow_runtime",
 ]

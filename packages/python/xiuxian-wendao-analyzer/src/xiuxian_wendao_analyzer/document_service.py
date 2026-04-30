@@ -12,6 +12,7 @@ from .documents import (
     DOCUMENT_RESOURCE_SCHEMA,
     DocumentConverterProtocol,
     extract_document_table,
+    warm_document_arrow_runtime,
 )
 from .pdf_ocr import (
     PDF_OCR_SHARD_RESULT_SCHEMA,
@@ -114,6 +115,7 @@ class DocumentExtractFlightServer(flight.FlightServerBase):
             location,
             middleware={"document-extract": DocumentExtractMiddlewareFactory()},
         )
+        warm_document_arrow_runtime()
         self._converter = converter
         self._ocr_worker = ocr_worker
 

@@ -109,6 +109,25 @@ def test_document_extract_table_uses_document_headers(tmp_path: Path) -> None:
     assert row["content"] == "# Manual\n"
 
 
+def test_document_flight_server_warms_arrow_runtime(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls = 0
+
+    def warm_runtime() -> None:
+        nonlocal calls
+        calls += 1
+
+    monkeypatch.setattr(
+        "xiuxian_wendao_analyzer.document_service.warm_document_arrow_runtime",
+        warm_runtime,
+    )
+
+    DocumentExtractFlightServer("grpc://127.0.0.1:0")
+
+    assert calls == 1
+
+
 def test_document_extract_table_can_return_error_rows(tmp_path: Path) -> None:
     missing = tmp_path / "missing.pdf"
 

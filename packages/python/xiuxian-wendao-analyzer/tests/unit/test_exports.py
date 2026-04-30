@@ -55,6 +55,7 @@ def test_public_exports_include_core_analyzer_surface() -> None:
     assert "extract_document_table" in analyzer.__all__
     assert "extract_pdf_resources" in analyzer.__all__
     assert "is_known_docling_source" in analyzer.__all__
+    assert "warm_document_arrow_runtime" in analyzer.__all__
     assert "build_document_extract_table" in analyzer.__all__
     assert "build_pdf_ocr_shard_result_table" in analyzer.__all__
     assert "summarize_rows_analysis" in analyzer.__all__
@@ -95,6 +96,7 @@ def test_public_exports_preserve_expected_symbol_kinds() -> None:
     assert callable(analyzer.extract_document_table)
     assert callable(analyzer.extract_pdf_resources)
     assert callable(analyzer.is_known_docling_source)
+    assert callable(analyzer.warm_document_arrow_runtime)
     assert callable(analyzer.build_document_extract_table)
     assert callable(analyzer.build_pdf_ocr_shard_result_table)
     assert callable(analyzer.summarize_query_route)

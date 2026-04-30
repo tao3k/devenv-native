@@ -137,6 +137,11 @@ Docling parser authority remain unchanged. The purpose is to identify whether a
 slow image, XML, or Office cold path is parser-bound, export-bound,
 row-construction-bound, or Arrow-write-bound before adding any fast path.
 
+The first timing run showed a one-time PyArrow IPC/table writer initialization
+cost in `writeStructureArrow`. The Python document Flight service now warms the
+resource, structure, and timing Arrow writers during startup so the first
+request does not carry that initialization cost.
+
 ## Next Slices
 
 1. Image attachment OCR lane:

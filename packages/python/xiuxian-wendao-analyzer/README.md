@@ -276,6 +276,9 @@ Markdown export, resource row construction, structure sidecar construction,
 and Arrow cache writes. The sidecar is benchmark evidence only; it does not
 change the returned resource table, `_resources.arrow`, `_structure.arrow`,
 OCR `_metrics.arrow`, or the Flight/REST extraction contracts.
+The document Flight service pre-initializes the Arrow table and IPC writers at
+startup so the first user request does not pay the one-time PyArrow writer
+initialization cost.
 Mixed Docling fixture runs also include `summary.attachmentClassSummary` plus
 an `Attachment Class Summary` Markdown table. The class summary groups the same
 precision and speed signals by attachment class, including PDF, Office,

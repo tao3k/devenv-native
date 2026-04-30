@@ -27,6 +27,7 @@ from xiuxian_wendao_analyzer import (
     extract_document_table,
     extract_pdf_resources,
     is_known_docling_source,
+    warm_document_arrow_runtime,
 )
 
 
@@ -399,6 +400,11 @@ def test_document_timing_to_table_uses_stable_schema() -> None:
 
     assert table.schema == DOCUMENT_TIMING_SCHEMA
     assert table.to_pylist()[0]["phase"] == "doclingConvert"
+
+
+def test_warm_document_arrow_runtime_is_idempotent() -> None:
+    warm_document_arrow_runtime()
+    warm_document_arrow_runtime()
 
 
 def test_extract_document_resources_can_return_error_row(tmp_path: Path) -> None:
