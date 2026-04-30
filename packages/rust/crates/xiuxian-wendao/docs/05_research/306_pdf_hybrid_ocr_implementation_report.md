@@ -5,7 +5,7 @@
 :PARENT: [[../index|Wendao DocOS Kernel: Map of Content]]
 :TAGS: research, document-extraction, pdf, ocr, arrow, docling, attachments
 :STATUS: UPDATED
-:VERSION: 1.13
+:VERSION: 1.14
 :END:
 
 ## Executive Summary
@@ -82,6 +82,11 @@ OCR shard result/projection
 `_metrics.arrow` is internal observability. It does not change the user-facing
 resource table, the structure sidecar, or the OCR shard input/result v1
 contracts.
+Benchmark reports now also publish an explicit `precisionSpeedSummary` that
+keeps quality and latency observations together. The summary records the
+precision gate verdict, error rows, artifact errors, sorted structure status,
+parity status, OCR and bbox block counts, force latency, cache p95,
+shard-cache rebuild latency, and Rust scheduler elapsed time.
 
 Responsibilities:
 

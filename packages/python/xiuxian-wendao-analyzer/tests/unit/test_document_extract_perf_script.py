@@ -1381,6 +1381,61 @@ def test_summary_reports_duplicate_miss_converter_calls() -> None:
     assert summary["totalDuplicateMissConverterCalls"] == 1
     assert summary["maxDuplicateMissConverterCalls"] == 1
     assert summary["rustJobsStatusSummary"]["sampleCount"] == 0
+    assert summary["precisionSpeedSummary"]["precisionGatePassed"] is True
+    assert summary["precisionSpeedSummary"]["errorRows"] == 0
+
+
+def test_precision_speed_summary_tracks_quality_and_latency() -> None:
+    benchmark = _load_benchmark_module()
+
+    summary = benchmark.summarize_results(
+        [
+            {
+                "totalRows": 21,
+                "forceErrorRows": 0,
+                "cacheErrorRows": 0,
+                "shardCacheReuseErrorRows": 0,
+                "requestCount": 2,
+                "arrowIpcBytes": 2048,
+                "cacheSpeedup": 12.5,
+                "duplicateMissConverterCalls": 1,
+                "artifactErrorCount": 0,
+                "structureRows": 21,
+                "structureOcrPageBlocks": 21,
+                "structureOcrRegionBlocks": 0,
+                "structureBboxBlocks": 21,
+                "structureReadingOrderSorted": True,
+                "structureParityChecked": True,
+                "structureParityPassed": True,
+                "structureParityErrorCount": 0,
+                "metricsRows": 21,
+                "metricsResultChars": 4096,
+                "metricsBboxCount": 21,
+                "metricsRustSchedulerElapsedMs": 45.5,
+                "forceRefreshMs": 1000.0,
+                "cacheHitP95Ms": 4.0,
+                "shardCacheReuseForceMs": 80.0,
+                "wallTimeMs": 1005.0,
+            }
+        ],
+        {
+            "errorRows": 0,
+            "wallTimeMs": 25.0,
+            "rustJobsStatusSummary": benchmark.summarize_rust_jobs_status_samples([]),
+        },
+    )
+
+    precision_speed = summary["precisionSpeedSummary"]
+    assert precision_speed["precisionGatePassed"] is True
+    assert precision_speed["structureReadingOrderSorted"] is True
+    assert precision_speed["structureParityPassed"] is True
+    assert precision_speed["ocrPageBlocks"] == 21
+    assert precision_speed["bboxBlocks"] == 21
+    assert precision_speed["maxForceRefreshMs"] == 1000.0
+    assert precision_speed["maxCacheHitP95Ms"] == 4.0
+    assert precision_speed["maxShardCacheReuseForceMs"] == 80.0
+    assert precision_speed["totalRustSchedulerElapsedMs"] == 45.5
+    assert precision_speed["distinctMissWallTimeMs"] == 25.0
 
 
 def test_summarize_ocr_shard_cache_reports_root_files_and_limits(
@@ -1591,6 +1646,9 @@ def test_summary_and_markdown_report_distinct_miss_burst() -> None:
     assert summary["distinctMissConverterCalls"] == 2
     assert summary["totalErrorRows"] == 0
     assert summary["rustJobsStatusSummary"]["maxRunningJobs"] == 2
+    assert summary["precisionSpeedSummary"]["maxForceRefreshMs"] == 10.0
+    assert summary["precisionSpeedSummary"]["maxCacheHitP95Ms"] == 2.0
+    assert summary["precisionSpeedSummary"]["precisionGatePassed"] is True
 
     markdown = benchmark.render_markdown(
         {
@@ -1636,3 +1694,5 @@ def test_summary_and_markdown_report_distinct_miss_burst() -> None:
     assert "Rust PDF OCR source-range workers" in markdown
     assert "Structure parity" in markdown
     assert "Structure baseline generation" in markdown
+    assert "Precision-speed summary" in markdown
+    assert "maxForceMs=10.000" in markdown

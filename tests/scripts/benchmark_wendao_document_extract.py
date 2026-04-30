@@ -27,6 +27,9 @@ _fixtures = importlib.import_module("wendao_document_extract_benchmark.fixtures"
 _http_status = importlib.import_module("wendao_document_extract_benchmark.http_status")
 _pdf_render = importlib.import_module("wendao_document_extract_benchmark.pdf_render")
 _pdfium = importlib.import_module("wendao_document_extract_benchmark.pdfium")
+_precision_speed = importlib.import_module(
+    "wendao_document_extract_benchmark.precision_speed"
+)
 _probes = importlib.import_module("wendao_document_extract_benchmark.probes")
 _providers = importlib.import_module("wendao_document_extract_benchmark.providers")
 _reporting = importlib.import_module("wendao_document_extract_benchmark.reporting")
@@ -43,6 +46,7 @@ _EXPORTED_MODULES: tuple[Any, ...] = (
     _fake_fixtures,
     _pdf_render,
     _pdfium,
+    _precision_speed,
     _features,
     _workers,
     _providers,

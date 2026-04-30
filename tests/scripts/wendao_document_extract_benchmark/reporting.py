@@ -4,6 +4,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from .precision_speed import (
+    all_structure_parity_passed,
+    all_structure_reading_order_sorted,
+    precision_speed_summary,
+)
 from .rust_status import combine_rust_jobs_status_summaries
 
 if TYPE_CHECKING:
@@ -27,16 +32,27 @@ def summarize_results(
     distinct_error_rows = (
         distinct_miss_report.get("errorRows", 0) if distinct_miss_report else 0
     )
-    return {
-        "fixtureCount": len(results),
-        "totalRows": sum(result["totalRows"] for result in results),
-        "totalErrorRows": sum(
+    total_error_rows = (
+        sum(
             result["forceErrorRows"]
             + result.get("shardCacheReuseErrorRows", 0)
             + result["cacheErrorRows"]
             for result in results
         )
-        + distinct_error_rows,
+        + distinct_error_rows
+    )
+    artifact_error_count = sum(
+        result.get("artifactErrorCount", 0) for result in results
+    )
+    structure_parity_error_count = sum(
+        result.get("structureParityErrorCount", 0) for result in results
+    )
+    structure_reading_order_sorted = all_structure_reading_order_sorted(results)
+    structure_parity_passed = all_structure_parity_passed(results)
+    return {
+        "fixtureCount": len(results),
+        "totalRows": sum(result["totalRows"] for result in results),
+        "totalErrorRows": total_error_rows,
         "totalRequests": sum(result["requestCount"] for result in results),
         "totalArrowIpcBytes": sum(result["arrowIpcBytes"] for result in results),
         "totalStructureRows": sum(result.get("structureRows", 0) for result in results),
@@ -49,14 +65,12 @@ def summarize_results(
         "totalStructureBboxBlocks": sum(
             result.get("structureBboxBlocks", 0) for result in results
         ),
-        "allStructureReadingOrderSorted": all_structure_reading_order_sorted(results),
+        "allStructureReadingOrderSorted": structure_reading_order_sorted,
         "structureParityCheckedFixtures": sum(
             1 for result in results if result.get("structureParityChecked")
         ),
-        "allStructureParityPassed": all_structure_parity_passed(results),
-        "totalStructureParityErrors": sum(
-            result.get("structureParityErrorCount", 0) for result in results
-        ),
+        "allStructureParityPassed": structure_parity_passed,
+        "totalStructureParityErrors": structure_parity_error_count,
         "totalMetricsRows": sum(result.get("metricsRows", 0) for result in results),
         "totalMetricsResultChars": sum(
             result.get("metricsResultChars", 0) for result in results
@@ -67,9 +81,7 @@ def summarize_results(
         "totalMetricsRustSchedulerElapsedMs": sum(
             result.get("metricsRustSchedulerElapsedMs", 0.0) for result in results
         ),
-        "artifactErrorCount": sum(
-            result.get("artifactErrorCount", 0) for result in results
-        ),
+        "artifactErrorCount": artifact_error_count,
         "minCacheSpeedup": min(
             (result["cacheSpeedup"] for result in results), default=0.0
         ),
@@ -92,6 +104,15 @@ def summarize_results(
         ),
         "distinctMissErrorRows": distinct_error_rows,
         "rustJobsStatusSummary": rust_jobs_status,
+        "precisionSpeedSummary": precision_speed_summary(
+            results,
+            distinct_miss_report,
+            total_error_rows=total_error_rows,
+            artifact_error_count=artifact_error_count,
+            structure_parity_error_count=structure_parity_error_count,
+            structure_reading_order_sorted=structure_reading_order_sorted,
+            structure_parity_passed=structure_parity_passed,
+        ),
     }
 
 
@@ -105,24 +126,6 @@ def pdf_ocr_profile_label(args: argparse.Namespace) -> str:
     return "source-page-range-or-parallel-image"
 
 
-def all_structure_reading_order_sorted(results: list[dict[str, Any]]) -> bool | None:
-    values = [
-        result.get("structureReadingOrderSorted")
-        for result in results
-        if result.get("structureReadingOrderSorted") is not None
-    ]
-    return all(bool(value) for value in values) if values else None
-
-
-def all_structure_parity_passed(results: list[dict[str, Any]]) -> bool | None:
-    values = [
-        result.get("structureParityPassed")
-        for result in results
-        if result.get("structureParityPassed") is not None
-    ]
-    return all(bool(value) for value in values) if values else None
-
-
 def format_optional_float(value: Any) -> str:
     if isinstance(value, (int, float)):
         return f"{float(value):.3f}"
@@ -133,6 +136,7 @@ def render_markdown(payload: dict[str, Any]) -> str:
     rust_status = payload["summary"]["rustJobsStatusSummary"]
     ocr_shard_cache = payload.get("ocrShardCache", {})
     structure_baseline = payload.get("structureBaseline") or {}
+    precision_speed = payload["summary"].get("precisionSpeedSummary", {})
     lines = [
         "# Wendao Document Extract Performance",
         "",
@@ -206,6 +210,13 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"bbox={payload['summary'].get('totalMetricsBboxCount')}, "
         "rustSchedulerElapsedMs="
         f"{format_optional_float(payload['summary'].get('totalMetricsRustSchedulerElapsedMs'))}`",
+        "- Precision-speed summary: "
+        f"`precisionPassed={precision_speed.get('precisionGatePassed')}, "
+        f"errorRows={precision_speed.get('errorRows')}, "
+        f"orderSorted={precision_speed.get('structureReadingOrderSorted')}, "
+        f"parityPassed={precision_speed.get('structureParityPassed')}, "
+        f"maxForceMs={format_optional_float(precision_speed.get('maxForceRefreshMs'))}, "
+        f"maxCacheP95Ms={format_optional_float(precision_speed.get('maxCacheHitP95Ms'))}`",
         f"- Artifact errors: `{payload['summary']['artifactErrorCount']}`",
         "",
         "| Fixture | Requests | Rows/request | Error rows | Duplicate conversions | Queue max | Running max | Permits min | Total rows | Structure rows | OCR blocks | Order sorted | IPC bytes | Force ms | Shard reuse force ms | Cache p50 ms | Cache p95 ms | Wall ms | Max RSS KB | Speedup |",
