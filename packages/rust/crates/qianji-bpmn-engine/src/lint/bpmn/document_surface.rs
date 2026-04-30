@@ -10,6 +10,7 @@ mod di_completeness;
 mod di_enum;
 mod di_identity;
 mod di_namespace;
+mod di_numeric;
 mod di_reference;
 mod di_semantic;
 mod di_topology;

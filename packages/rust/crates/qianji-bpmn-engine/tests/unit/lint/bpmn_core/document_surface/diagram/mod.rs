@@ -8,5 +8,6 @@ mod enums;
 mod identity;
 mod metadata;
 mod namespaces;
+mod numerics;
 mod references;
 mod topology;

@@ -293,6 +293,7 @@ fn assert_bpmn_di_boundary_evidence() {
     assert_bpmn_di_metadata_boundary_evidence();
     assert_bpmn_di_namespace_boundary_evidence();
     assert_bpmn_di_boolean_boundary_evidence();
+    assert_bpmn_di_numeric_boundary_evidence();
     assert_bpmn_di_enum_boundary_evidence();
     assert_bpmn_di_topology_boundary_evidence();
     assert_bpmn_di_anchor_boundary_evidence();
@@ -332,6 +333,20 @@ fn assert_bpmn_di_boolean_boundary_evidence() {
     assert_eq!(issue.evidence["invalid_booleans"][0]["value"], "yes");
     assert_eq!(issue.evidence["invalid_booleans"][2]["attribute"], "isBold");
     assert_eq!(issue.evidence["invalid_booleans"][2]["value"], "sometimes");
+}
+
+fn assert_bpmn_di_numeric_boundary_evidence() {
+    let invalid_di_numeric = lint_fixture("invalid-di-numeric-values.bpmn");
+    let issue = single_issue(&invalid_di_numeric, "bpmn.invalid_di_numeric");
+    assert_eq!(
+        issue.evidence["invalid_numerics"][0]["attribute"],
+        "resolution"
+    );
+    assert_eq!(issue.evidence["invalid_numerics"][0]["value"], "dense");
+    assert_eq!(issue.evidence["invalid_numerics"][2]["attribute"], "width");
+    assert_eq!(issue.evidence["invalid_numerics"][2]["value"], "NaN");
+    assert_eq!(issue.evidence["invalid_numerics"][4]["attribute"], "size");
+    assert_eq!(issue.evidence["invalid_numerics"][4]["value"], "huge");
 }
 
 fn assert_bpmn_di_enum_boundary_evidence() {
