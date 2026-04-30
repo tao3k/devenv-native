@@ -21,14 +21,15 @@ mod time;
 #[path = "markdown/types.rs"]
 mod types;
 
-#[cfg(feature = "search-runtime")]
-pub(crate) use self::api::adapt_markdown_note;
 pub use self::api::parse_note;
+#[cfg(feature = "search-runtime")]
+pub(crate) use self::api::{adapt_markdown_note, adapt_org_note};
 pub use self::code_observation::{CodeObservation, extract_observations};
 #[cfg(test)]
 pub(crate) use self::links::ResolvedNoteReference;
 #[cfg(any(test, feature = "studio"))]
 pub(crate) use self::links::extract_resolved_note_references;
+pub(crate) use self::paths::is_org_note;
 pub use self::paths::{is_supported_note, normalize_alias};
 pub use self::relations::{
     ExplicitRelationSource, ExplicitRelationTarget, ExplicitSectionRelation,

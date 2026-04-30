@@ -79,6 +79,7 @@ regex = "1"
 blake3 = "1"
 inventory = "0.3"
 comrak = { version = "0.50.0", default-features = false }
+orgize = { git = "https://github.com/tao3k/orgize", rev = "0ef8457efc44177f776afabcae0b5c87429aa952" }
 pulldown-cmark = "0.12"
 quick-xml = "0.39.2"
 petgraph = "0.7"

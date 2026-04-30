@@ -14,6 +14,8 @@ mod frontmatter;
 mod lint;
 #[path = "unit/note.rs"]
 mod note;
+#[path = "unit/org.rs"]
+mod org;
 #[path = "unit/references.rs"]
 mod references;
 #[path = "unit/section_create.rs"]

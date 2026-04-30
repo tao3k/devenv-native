@@ -5,9 +5,12 @@ use std::sync::{Arc, OnceLock};
 use crate::gateway::studio::compile_markdown_nodes;
 use crate::gateway::studio::search::{build_markdown_ast_hits_from_sections, markdown_scope_name};
 use crate::gateway::studio::types::AstSearchHit;
-use crate::parsers::markdown::{ParsedNote, adapt_markdown_note, is_supported_note};
+use crate::parsers::markdown::{
+    ParsedNote, adapt_markdown_note, adapt_org_note, is_org_note, is_supported_note,
+};
 use xiuxian_wendao_parsers::{
-    fingerprint_markdown_note, parse_markdown_note_artifacts, sections::MarkdownSection,
+    fingerprint_markdown_note, parse_markdown_note_artifacts, parse_org_note,
+    sections::MarkdownSection,
 };
 
 use super::ProjectScannedFile;
@@ -137,12 +140,34 @@ pub(crate) fn build_markdown_snapshot_entry(
         .and_then(|stem| stem.to_str())
         .filter(|stem| !stem.is_empty())
         .unwrap_or("page");
-    let parser_artifacts = parse_markdown_note_artifacts(&content, fallback_title);
-    let note_fingerprint = fingerprint_markdown_note(&parser_artifacts.note);
-    let symbol_fingerprint = parser_artifacts.symbol_fingerprint.clone();
-    let parser_note = parser_artifacts.note;
-    let parser_sections = parser_note.core.sections.clone();
-    let parsed_note = adapt_markdown_note(file.absolute_path.as_path(), project_root, parser_note);
+    let (parsed_note, note_fingerprint, symbol_fingerprint, parser_sections) =
+        if is_org_note(file.absolute_path.as_path()) {
+            let parser_note = parse_org_note(&content, fallback_title);
+            let fingerprint = blake3::hash(content.as_bytes()).to_hex().to_string();
+            let parser_sections = parser_note.core.sections.clone();
+            let parsed_note =
+                adapt_org_note(file.absolute_path.as_path(), project_root, parser_note);
+            (
+                parsed_note,
+                fingerprint.clone(),
+                fingerprint,
+                parser_sections,
+            )
+        } else {
+            let parser_artifacts = parse_markdown_note_artifacts(&content, fallback_title);
+            let note_fingerprint = fingerprint_markdown_note(&parser_artifacts.note);
+            let symbol_fingerprint = parser_artifacts.symbol_fingerprint.clone();
+            let parser_note = parser_artifacts.note;
+            let parser_sections = parser_note.core.sections.clone();
+            let parsed_note =
+                adapt_markdown_note(file.absolute_path.as_path(), project_root, parser_note);
+            (
+                parsed_note,
+                note_fingerprint,
+                symbol_fingerprint,
+                parser_sections,
+            )
+        };
 
     MarkdownSnapshotEntry {
         file: file.clone(),

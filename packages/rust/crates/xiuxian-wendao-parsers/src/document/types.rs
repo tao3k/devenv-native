@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use serde_yaml::Value;
+use std::collections::BTreeMap;
 
 /// Parser-owned document format family.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -48,3 +49,18 @@ pub struct DocumentEnvelope<RawMetadata> {
 
 /// Parser-owned Markdown document metadata extracted from raw content.
 pub type MarkdownDocument = DocumentEnvelope<Value>;
+
+/// Parser-owned Org document metadata extracted from top-level keywords and
+/// the document property drawer.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub struct OrgDocumentMetadata {
+    /// Top-level `#+KEY: value` metadata, grouped by upper-cased key.
+    #[serde(default)]
+    pub keywords: BTreeMap<String, Vec<String>>,
+    /// Top-level Org property drawer attributes.
+    #[serde(default)]
+    pub properties: BTreeMap<String, String>,
+}
+
+/// Parser-owned Org document metadata extracted from raw content.
+pub type OrgDocument = DocumentEnvelope<OrgDocumentMetadata>;

@@ -1,5 +1,5 @@
 use crate::parsers::markdown::links::extract_link_targets_from_occurrences;
-use crate::parsers::markdown::parse_note;
+use crate::parsers::markdown::{is_supported_note, parse_note};
 use serde_yaml::Value;
 use std::path::Path;
 use xiuxian_wendao_parsers::document::{DocumentEnvelope, DocumentFormat};
@@ -121,4 +121,51 @@ fn parse_note_uses_parser_owned_target_occurrences_for_links_and_attachments() {
 
     assert_eq!(parsed.link_targets, vec!["docs/guide", "graph-c"]);
     assert_eq!(parsed.attachment_targets, vec!["assets/logo.png"]);
+}
+
+#[test]
+fn parse_note_accepts_org_documents_with_native_property_drawers() {
+    let content = concat!(
+        "#+TITLE: Org Native Contract\n",
+        "#+FILETAGS: :org:parser:\n",
+        "\n",
+        "* TODO First Section\n",
+        ":PROPERTIES:\n",
+        ":ID: first-section\n",
+        ":RELATED: second-section\n",
+        ":END:\n",
+        "Org body text.\n",
+        "** Second Section\n",
+        ":PROPERTIES:\n",
+        ":ID: second-section\n",
+        ":END:\n",
+        "Child body text.\n",
+    );
+    let root = Path::new("/tmp/parser-doc");
+    let path = Path::new("/tmp/parser-doc/agenda.org");
+
+    assert!(is_supported_note(path));
+    let parsed =
+        parse_note(path, root, content).unwrap_or_else(|| panic!("expected parsed org note"));
+
+    assert_eq!(parsed.doc.id, "agenda");
+    assert_eq!(parsed.doc.title, "Org Native Contract");
+    assert_eq!(parsed.doc.tags, vec!["org", "parser"]);
+    assert_eq!(parsed.sections.len(), 2);
+    assert_eq!(parsed.sections[0].heading_title, "First Section");
+    assert_eq!(
+        parsed.sections[0].attributes.get("ID").map(String::as_str),
+        Some("first-section")
+    );
+    assert_eq!(
+        parsed.sections[0]
+            .attributes
+            .get("RELATED")
+            .map(String::as_str),
+        Some("second-section")
+    );
+    assert_eq!(
+        parsed.sections[1].heading_path,
+        "First Section / Second Section"
+    );
 }
