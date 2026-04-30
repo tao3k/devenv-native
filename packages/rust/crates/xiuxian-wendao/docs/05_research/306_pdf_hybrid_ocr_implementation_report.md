@@ -5,7 +5,7 @@
 :PARENT: [[../index|Wendao DocOS Kernel: Map of Content]]
 :TAGS: research, document-extraction, pdf, ocr, arrow, docling, attachments
 :STATUS: UPDATED
-:VERSION: 1.3
+:VERSION: 1.4
 :END:
 
 ## Executive Summary
@@ -111,35 +111,132 @@ OCR shard rows are cached as Arrow IPC entries below the whole-document cache,
 so a forced extraction into a new output directory can reuse page or region
 results without repeating Docling OCR.
 
-## Performance Evidence
+## Performance and Precision Assessment
 
-Real `2604.17337` OCR-positive PDF evidence from the current lane:
+The current benchmark evidence separates four questions that should not be
+mixed:
 
-| Path class | Force / path ms | Cache p95 ms | Resource rows | Structure rows | OCR blocks | Reading order | Error rows |
-| ---------- | --------------: | -----------: | ------------: | -------------: | ---------: | ------------- | ---------: |
-| Original Docling baseline | 256037.271 | 6.645 | 21 | 21 | 21 | sorted | 0 |
-| Rust scheduled per-page Docling OCR | 141100.000 | 7.850 | 21 | 21 | 21 | sorted | 0 |
-| Source page-range OCR | 53850.000 | 7.850 | 21 | 21 | 21 | sorted | 0 |
-| Adaptive source subranges | 48978.562 | 7.008 | 21 | 21 | 21 | sorted | 0 |
-| Direct `lopdf` source selector | 49117.947 | 21.698 | 21 | 21 | 21 | sorted | 0 |
-| Empty shard-cache fill | 62290.000 | 4.280 | 21 | 21 | 21 | sorted | 0 |
-| Shard-cache forced reuse | 119.052 | 5.583 | 21 | 21 | 21 | sorted | 0 |
-| Whole-document cache hit | 5.583 | 5.583 | 21 | 21 | 21 | sorted | 0 |
+1. How fast is the first OCR-heavy cold miss?
+2. How fast is a repeated document or repeated page shard?
+3. Does the optimized path preserve Docling-quality OCR coverage and document
+   order?
+4. Which Rust dependency is justified by the measured gain?
+
+### OCR-Positive PDF Latency
+
+The real OCR-positive fixture is arXiv `2604.17337`, with 21 OCR-positive
+pages. The original full-Docling cold path was observed in the 241-256 second
+range across benchmark runs. The latest comparable full-Docling run recorded
+241718.175 ms; the earlier archived proof recorded 256037.271 ms.
+
+| Benchmark class | Force ms | Cache p95 ms | Shard-cache rebuild ms | Resource rows | Structure rows | OCR page blocks | Bbox blocks | Order | Error rows |
+| ----------------| --------:| ------------:| ----------------------:| -------------:| --------------:| --------------: | ----------:| ----- | ---------:|
+| Full Docling baseline | 241718.175 | 12.515 | n/a | 21 | n/a | n/a | n/a | n/a | 0 |
+| Rust scheduled per-page OCR | 141110.984 | 10.577 | n/a | 21 | 21 | 21 | 21 | sorted | 0 |
+| Source page-range manifest | 53848.876 | 7.850 | n/a | 21 | 21 | 21 | 21 | sorted | 0 |
+| Parallel source page-range | 45094.143 | 15.219 | 200.460 | 21 | 21 | 21 | 21 | sorted | 0 |
+| Adaptive source subranges | 48978.562 | 7.008 | 130.841 | 21 | 21 | 21 | 21 | sorted | 0 |
+| Direct `lopdf` source selector | 49117.947 | 21.698 | 197.023 | 21 | 21 | 21 | 21 | sorted | 0 |
+| Warm shard-cache reuse | 286.376 | 4.280 | n/a | 21 | 21 | 21 | 21 | sorted | 0 |
 
 Interpretation:
 
-- The original 256 s OCR-positive cold miss no longer repeats after page shards
-  are known. Fresh output directories can rebuild from the shard cache in the
-  low hundreds of milliseconds, and whole-document cache hits stay in the
-  low-millisecond class.
-- Unique OCR-heavy content is still dominated by Docling OCR. Source page-range
-  OCR reduced the cold path to roughly the 49-54 s class without losing the 21
-  ordered OCR blocks, but the next large gain requires safe region discovery or
-  lower-cost Docling OCR profiles that keep precision parity.
-- Retiring the detector removes the previous direct native text materialization
-  proof from the active path. Text-only PDF acceleration should return only
-  after Wendao has a direct, tested `lopdf`-owned text/page structure extractor
-  or another stable Rust-native source that passes Docling parity gates.
+- The current source-range optimization reduces the OCR-positive cold miss from
+  roughly 241-256 s to a measured 45-49 s envelope on the best current runs.
+  This is about 4.9x-5.7x faster, or roughly an 80-81 percent cold-path
+  reduction.
+- The optimized path keeps the precision-critical shape: 21 resource rows, 21
+  structure rows, 21 OCR page blocks, 21 bbox-bearing blocks, sorted reading
+  order, and zero error rows.
+- Once page shards are cached, forced extraction into a fresh output directory
+  rebuilds in the low hundreds of milliseconds instead of repeating Docling OCR.
+  Whole-document cache hits remain in the low-millisecond class.
+- Unique OCR-heavy cold misses are still dominated by Docling OCR. Rust has
+  removed avoidable render and orchestration waste, but it has not removed the
+  fundamental OCR cost. The next major reduction requires precision-safe region
+  discovery or a Docling OCR profile that proves parity on the same structure
+  gates.
+
+### Real Docling Format Coverage
+
+The real non-audio Docling fixture suite covers 18 document classes: PDF, DOCX,
+XLSX, PPTX, Markdown, AsciiDoc, HTML, CSV, PNG, TIFF, WebP, USPTO XML, JATS
+XML, XBRL XML, METS GBS, Docling JSON, WebVTT, and LaTeX. The strict run
+produced 304 rows across 36 force/cache requests, 1640656 Arrow IPC bytes, and
+zero error rows.
+
+Selected cold timings from that suite:
+
+| Fixture | Force ms | Cache p95 ms | Rows | Error rows |
+| ------- | --------:| ------------:| ---: | ---------: |
+| PDF `2206.01062` | 23357.739 | 2.870 | 13 | 0 |
+| DOCX sample | 44.563 | 3.368 | 4 | 0 |
+| XLSX sample | 37.506 | 2.480 | 10 | 0 |
+| HTML sample | 330.743 | 2.522 | 31 | 0 |
+| PNG image | 3116.929 | 2.728 | 3 | 0 |
+| TIFF image | 4215.292 | 2.657 | 4 | 0 |
+| USPTO XML | 1270.865 | 13.623 | 19 | 0 |
+| XBRL XML | 1274.086 | 2.613 | 25 | 0 |
+| METS GBS | 12205.210 | 5.041 | 5 | 0 |
+| WebVTT | 12.361 | 4.126 | 2 | 0 |
+| LaTeX | 10.721 | 3.852 | 2 | 0 |
+
+This confirms the broader Docling alignment surface remains functional while
+the PDF OCR path is being optimized. The report does not claim equal semantic
+depth for every format; it claims the Arrow transport, resource projection, and
+cache path return stable rows with zero error rows across the represented
+format set.
+
+### Deduplication and Capacity Evidence
+
+The same-content cold-miss production risk is materially closed for the tested
+classes:
+
+| Fixture group | Duplicate converter calls | Error rows | Observation |
+| ------------- | ------------------------: | ---------: | ----------- |
+| Real PDF duplicate miss | 1 | 0 | Repeated cold requests reused the same job/cache lineage. |
+| Real mixed PDF/image/XML/XBRL pressure | 1 per fixture | 0 | Four different fixtures each converted once. |
+| Real audio pressure | 1 | 0 | Audio fixture deduplicated under the same async job path. |
+| Fake distinct cold miss smoke | 4 for 4 distinct fixtures | 0 | The conversion cap reached four in-process conversions and did not exceed it. |
+
+Capacity interpretation:
+
+- For 10000 users requesting the same unchanged OCR-heavy PDF, the important
+  number is not 10000 Docling conversions. The tested duplicate path converges
+  to one conversion, then job/status/cache reuse. This is the production risk
+  that the async dedup milestone was designed to close.
+- For 10000 different OCR-heavy PDFs, the risk is still real capacity, not
+  correctness. With a default cap of four running conversions and a 45-49 s
+  OCR-heavy cold miss, rough single-instance throughput is only about
+  290-320 unique OCR-heavy documents per hour before horizontal scaling or a
+  better region/text fast path. This path is safe, but it is not yet enough for
+  unbounded unique OCR-heavy ingestion.
+- For already-cached documents, cache p95 remains in the low-millisecond class
+  in the current evidence, so query-time reuse is compatible with
+  high-concurrency user traffic.
+
+### Dependency and Precision Judgment
+
+The latest source-range feature split makes the dependency decision explicit:
+`document-extract-pdf-source-range` powers default `hybrid-page-ocr` source
+page-range OCR, while `document-extract-pdf-render` is required only for
+PDFium-backed raster or region proof lanes. A `cargo tree` proof over the
+source-range feature set produced no `pdfium` or `pdfium-render` matches.
+
+That boundary matches the precision policy:
+
+- `lopdf` is justified because it removes avoidable page selection and
+  high-DPI raster work before Docling OCR while preserving the original source
+  PDF as the OCR input.
+- PDFium is not justified for no-OCR or source-page OCR acceleration. It is
+  reserved for explicit region/raster proofs where a crop image is the actual
+  OCR input.
+- Rust does not replace Docling OCR. Rust schedules work, emits Arrow shard
+  contracts, validates coverage, restores input shard order, writes structure
+  sidecars, and caches reusable page results.
+- The precision gate is structural, not just latency-based: zero error rows,
+  complete page coverage, stable resource rows, sorted `_structure.arrow`, and
+  bbox/provenance preservation for OCR blocks.
 
 ## Precision Rules
 
@@ -160,11 +257,12 @@ The implementation must preserve or improve extraction quality:
 
 | Risk | Impact | Mitigation |
 | ---- | ------ | ---------- |
-| Unique OCR-heavy cold miss remains expensive | First-time extraction can still take tens of seconds | Continue source-range batching, safe region discovery, shard cache reuse, and Docling profile measurement |
+| Unique OCR-heavy cold miss remains expensive | First-time extraction still takes roughly 45-49 s on the best current `2604.17337` runs | Continue source-range batching, safe region discovery, shard cache reuse, and Docling profile measurement |
 | Native text fast path was retired with the detector dependency | Some text-only PDFs lose the previous Rust-only proof path | Rebuild native text extraction directly over owned PDF primitives only after parity tests exist |
 | Region OCR without native text merge can produce partial coverage | User-visible document order or coverage could degrade | Keep region mode opt-in and fallback on partial coverage |
-| PDFium runtime mismatch | Raster proof output could differ across hosts | Keep PDFium confined to opt-in raster/region proof lanes and validate geometry |
+| PDFium runtime mismatch | Raster proof output could differ across hosts | Keep PDFium confined to opt-in raster/region proof lanes; source-page OCR does not pull PDFium |
 | Shard cache growth | Project cache can grow under large OCR workloads | Keep oldest-first sweep and report cache size, entry count, and limits in benchmarks |
+| Many unique cold documents | One instance cannot absorb 10000 unique OCR-heavy cold misses quickly | Use deployment profiles for conversion limits, add horizontal workers, and keep region/text fast paths behind parity gates |
 
 ## Recommendation
 
@@ -173,8 +271,19 @@ dependency graph. The current hot path should stay on direct `lopdf` page-tree
 intake, Arrow shard contracts, Rust-owned ordering and cache gates, and
 Python/Docling OCR authority.
 
-The next optimization milestone should focus on precision-safe region discovery
+The current milestone meets the performance and precision bar for:
+
+1. same-content cold-miss deduplication,
+2. source-page OCR cold-path reduction from the 241-256 s class to the 45-49 s
+   class on the real OCR-positive fixture,
+3. low-millisecond whole-document cache hits,
+4. low-hundreds-of-milliseconds shard-cache forced reuse,
+5. stable Arrow contracts and sorted structure sidecars, and
+6. removing unjustified PDFium usage from the no-OCR and source-page OCR path.
+
+It does not yet solve the many-unique-OCR-heavy-document capacity problem. The
+next optimization milestone should focus on precision-safe region discovery
 and native text structure extraction over dependencies Wendao already owns or
-can justify independently. The acceptance bar remains the same: `totalErrorRows
-= 0`, sorted `_structure.arrow`, stable `_resources.arrow`, and no precision
-regression against Docling baselines.
+can justify independently. The acceptance bar remains the same:
+`totalErrorRows = 0`, sorted `_structure.arrow`, stable `_resources.arrow`,
+complete page coverage, and no precision regression against Docling baselines.

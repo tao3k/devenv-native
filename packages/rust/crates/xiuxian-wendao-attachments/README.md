@@ -80,8 +80,8 @@ the proof must fail instead of recording a Docling fallback.
 
 ## OCR Contract
 
-The `pdf-render` feature also exposes an internal Arrow-only OCR worker
-contract. Rendered page manifests can be projected into `_ocr_input.arrow`
+The `pdf-source-range` feature exposes the internal Arrow-only OCR worker
+contract. Source page-range manifests can be projected into `_ocr_input.arrow`
 using `xiuxian_wendao.pdf_ocr_shard_input.v1`; OCR workers return
 `xiuxian_wendao.pdf_ocr_shard_result.v1`; successful, failed, or skipped OCR
 results can then be projected back into the stable document resource schema.
@@ -170,8 +170,9 @@ resource schema.
 This is still opt-in infrastructure. No OCR worker is started by the
 production Wendao gateway, and default document extraction does not consume
 these rows. The Studio provider may consume them only when explicitly built
-with `document-extract-pdf-render` and called with the `hybrid-page-ocr`
-document extraction mode.
+with `document-extract-pdf-source-range` and called with the `hybrid-page-ocr`
+document extraction mode. Region raster shards additionally require
+`document-extract-pdf-render`.
 
 ## Test Policy
 
