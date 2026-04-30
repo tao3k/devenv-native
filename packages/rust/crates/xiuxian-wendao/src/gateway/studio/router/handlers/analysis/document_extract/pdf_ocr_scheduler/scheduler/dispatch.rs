@@ -30,13 +30,16 @@ struct OwnedShardRequest {
 }
 
 impl PdfOcrWorkerScheduler {
-    pub(crate) async fn request_shards(
+    pub(crate) async fn request_shards_with_endpoints(
         &self,
-        endpoint_url: String,
+        endpoint_urls: &[String],
         inputs: &[PdfOcrShardInput],
     ) -> Result<PdfOcrShardFlightResponse, String> {
         if inputs.is_empty() {
             return Err("PDF OCR shard request inputs cannot be empty".to_string());
+        }
+        if endpoint_urls.is_empty() {
+            return Err("PDF OCR shard endpoint pool cannot be empty".to_string());
         }
         let cache_resolution = self.cache.resolve(inputs);
         let cache_hit_count = cache_resolution.hit_count();
@@ -52,7 +55,7 @@ impl PdfOcrWorkerScheduler {
         let live_results = if misses.is_empty() {
             Vec::new()
         } else {
-            self.request_missed_shards(endpoint_url, misses.as_slice())
+            self.request_missed_shards(endpoint_urls, misses.as_slice())
                 .await?
         };
 
@@ -66,7 +69,7 @@ impl PdfOcrWorkerScheduler {
 
     async fn request_missed_shards(
         &self,
-        endpoint_url: String,
+        endpoint_urls: &[String],
         inputs: &[PdfOcrShardInput],
     ) -> Result<Vec<PdfOcrShardResult>, String> {
         let mut slots = vec![None; inputs.len()];
@@ -91,7 +94,7 @@ impl PdfOcrWorkerScheduler {
         }
 
         if !owner_requests.is_empty() {
-            self.handle_owned_shard_requests(endpoint_url, &mut slots, owner_requests)
+            self.handle_owned_shard_requests(endpoint_urls, &mut slots, owner_requests)
                 .await?;
         }
 
@@ -112,17 +115,17 @@ impl PdfOcrWorkerScheduler {
 
     async fn handle_owned_shard_requests(
         &self,
-        endpoint_url: String,
+        endpoint_urls: &[String],
         slots: &mut [Option<PdfOcrShardResult>],
         owner_requests: Vec<OwnedShardRequest>,
     ) -> Result<(), String> {
-        let client = PdfOcrShardFlightClient::connect(endpoint_url).await?;
+        let clients = connect_pdf_ocr_clients(endpoint_urls).await?;
         let owner_inputs = owner_requests
             .iter()
             .map(|request| request.input.clone())
             .collect::<Vec<_>>();
         let live_results = match self
-            .request_uncached_shards(&client, owner_inputs.as_slice())
+            .request_uncached_shards(clients.as_slice(), owner_inputs.as_slice())
             .await
         {
             Ok(results) => order_ocr_results_by_inputs(owner_inputs.as_slice(), results),
@@ -148,17 +151,21 @@ impl PdfOcrWorkerScheduler {
 
     async fn request_uncached_shards(
         &self,
-        client: &PdfOcrShardFlightClient,
+        clients: &[PdfOcrShardFlightClient],
         inputs: &[PdfOcrShardInput],
     ) -> Result<Vec<PdfOcrShardResult>, String> {
+        if clients.is_empty() {
+            return Err("PDF OCR shard endpoint pool cannot be empty".to_string());
+        }
         if classify_ocr_lane(inputs) == OcrSchedulerLane::SourcePdfPageRange {
             return self
-                .request_source_pdf_page_range_shards(client, inputs)
+                .request_source_pdf_page_range_shards(clients, inputs)
                 .await;
         }
         let lane = classify_ocr_lane(inputs);
         let mut results = Vec::with_capacity(inputs.len());
         let mut offset = 0;
+        let mut request_index = 0usize;
         while offset < inputs.len() {
             let remaining = inputs.len() - offset;
             let target = self.capacity.budget_for_lane(
@@ -173,6 +180,8 @@ impl PdfOcrWorkerScheduler {
             let latency_start = Instant::now();
             self.metrics
                 .record_live_request(lane, inputs[offset..end].len());
+            let client = endpoint_client_for_index(clients, request_index)?;
+            request_index = request_index.saturating_add(1);
             let response = client
                 .request_with_worker_budget(&inputs[offset..end], Some(worker_budget))
                 .await;
@@ -200,7 +209,7 @@ impl PdfOcrWorkerScheduler {
 
     async fn request_source_pdf_page_range_shards(
         &self,
-        client: &PdfOcrShardFlightClient,
+        clients: &[PdfOcrShardFlightClient],
         inputs: &[PdfOcrShardInput],
     ) -> Result<Vec<PdfOcrShardResult>, String> {
         let lane = OcrSchedulerLane::SourcePdfPageRange;
@@ -215,9 +224,10 @@ impl PdfOcrWorkerScheduler {
         let chunks = source_pdf_page_range_chunks(inputs, chunk_count);
         self.metrics.record_live_request(lane, inputs.len());
         let latency_start = Instant::now();
-        let chunk_results = try_join_all(chunks.iter().map(|chunk| {
-            let client = client.clone();
+        let chunk_results = try_join_all(chunks.iter().enumerate().map(|(index, chunk)| {
+            let client = endpoint_client_for_index(clients, index).cloned();
             async move {
+                let client = client?;
                 let response = client.request_with_worker_budget(chunk, Some(1)).await?;
                 order_ocr_results_by_inputs(chunk, response.results)
             }
@@ -266,4 +276,36 @@ impl PdfOcrWorkerScheduler {
         }
         Ok((permits, queue_wait))
     }
+}
+
+async fn connect_pdf_ocr_clients(
+    endpoint_urls: &[String],
+) -> Result<Vec<PdfOcrShardFlightClient>, String> {
+    if endpoint_urls.is_empty() {
+        return Err("PDF OCR shard endpoint pool cannot be empty".to_string());
+    }
+    try_join_all(endpoint_urls.iter().map(|endpoint_url| async move {
+        PdfOcrShardFlightClient::connect(endpoint_url.clone()).await
+    }))
+    .await
+}
+
+fn endpoint_client_for_index(
+    clients: &[PdfOcrShardFlightClient],
+    request_index: usize,
+) -> Result<&PdfOcrShardFlightClient, String> {
+    let endpoint_index = endpoint_index_for_request(request_index, clients.len())?;
+    clients
+        .get(endpoint_index)
+        .ok_or_else(|| "PDF OCR shard endpoint pool cannot be empty".to_string())
+}
+
+pub(crate) fn endpoint_index_for_request(
+    request_index: usize,
+    endpoint_count: usize,
+) -> Result<usize, String> {
+    if endpoint_count == 0 {
+        return Err("PDF OCR shard endpoint pool cannot be empty".to_string());
+    }
+    Ok(request_index % endpoint_count)
 }

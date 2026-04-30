@@ -22,7 +22,9 @@ use super::types::HybridDocumentResourceBatch;
 use crate::gateway::studio::router::handlers::analysis::document_extract::arrow_cache::{
     read_arrow_file, read_cached_document_batches,
 };
-use crate::gateway::studio::router::handlers::analysis::document_extract::pdf_ocr_scheduler::PdfOcrWorkerScheduler;
+use crate::gateway::studio::router::handlers::analysis::document_extract::pdf_ocr_scheduler::{
+    PdfOcrWorkerScheduler, pdf_ocr_endpoint_urls,
+};
 
 impl StudioDocumentExtractFlightRouteProvider {
     pub(crate) async fn hybrid_page_ocr_document_extract_batch(
@@ -148,9 +150,10 @@ async fn materialize_hybrid_page_ocr_resource_batch(
 ) -> Result<HybridDocumentResourceBatch, String> {
     let endpoint_url = std::env::var("WENDAO_DOCUMENT_EXTRACT_ENDPOINT")
         .unwrap_or_else(|_| DEFAULT_DOCUMENT_EXTRACT_ENDPOINT.to_string());
+    let endpoint_urls = pdf_ocr_endpoint_urls(endpoint_url.as_str());
     let scheduler_started = Instant::now();
     let response = pdf_ocr_scheduler
-        .request_shards(endpoint_url, inputs.as_slice())
+        .request_shards_with_endpoints(endpoint_urls.as_slice(), inputs.as_slice())
         .await?;
     let scheduler_elapsed_ms = scheduler_started.elapsed().as_secs_f64() * 1000.0;
     validate_successful_ocr_results(

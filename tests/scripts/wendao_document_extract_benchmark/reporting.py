@@ -147,8 +147,8 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"- PDF OCR worker: `{payload['pdfOcrWorker']}`",
         f"- PDF OCR workers: `{payload['pdfOcrWorkers']}`",
         f"- Rust PDF OCR worker pool: `{payload['rustPdfOcrWorkers']}`",
-        "- Rust PDF OCR source-range workers: "
-        f"`{payload['rustPdfOcrSourceRangeWorkers']}`",
+        f"- Rust PDF OCR source-range workers: `{payload['rustPdfOcrSourceRangeWorkers']}`",
+        f"- Rust PDF OCR endpoints: `{payload.get('rustPdfOcrEndpoints', [])}`",
         f"- Structure baseline root: `{payload.get('structureBaselineRoot')}`",
         f"- PDF OCR profile: `{payload['pdfOcrProfile']}`",
         "- Shard-cache reuse probe: "

@@ -137,8 +137,7 @@ def parse_pdf_render_regions(
 ) -> list[dict[str, Any]]:
     if not region_specs:
         raise SystemExit(
-            "--pdf-render-selection region-shards requires at least one "
-            "--pdf-render-region"
+            "--pdf-render-selection region-shards requires at least one --pdf-render-region"
         )
     regions_by_fixture: dict[str, list[dict[str, Any]]] = {
         name: [] for name in fixtures
@@ -196,8 +195,7 @@ def parse_pdf_render_region(region_spec: str) -> tuple[str, dict[str, Any]]:
     parts = [part.strip() for part in raw_region.split(",")]
     if len(parts) not in {6, 7}:
         raise SystemExit(
-            "--pdf-render-region requires 6 or 7 comma-separated values after "
-            f"NAME=: {region_spec}"
+            f"--pdf-render-region requires 6 or 7 comma-separated values after NAME=: {region_spec}"
         )
     try:
         page_index = int(parts[0])

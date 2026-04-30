@@ -43,8 +43,7 @@ def prepare_pdfium_runtime() -> Path:
     library_path = find_pdfium_library(target_dir, expected_library_name)
     if library_path is None:
         raise SystemExit(
-            "Downloaded PDFium archive did not contain "
-            f"{expected_library_name}: {archive_path}"
+            f"Downloaded PDFium archive did not contain {expected_library_name}: {archive_path}"
         )
     return library_path
 
@@ -74,8 +73,7 @@ def pdfium_asset_name(
         if machine in {"x86", "i386", "i686"}:
             return "pdfium-win-x86.tgz"
     raise SystemExit(
-        "No pinned PDFium binary is configured for "
-        f"platform={sys_platform} machine={machine}"
+        f"No pinned PDFium binary is configured for platform={sys_platform} machine={machine}"
     )
 
 

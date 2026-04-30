@@ -81,9 +81,10 @@ async fn pdf_ocr_scheduler_returns_full_cache_hits_without_python_endpoint() -> 
         )?;
     }
     let scheduler = PdfOcrWorkerScheduler::with_limit_and_cache(2, cache);
+    let endpoint_urls = vec!["http://127.0.0.1:9".to_string()];
 
     let response = scheduler
-        .request_shards("http://127.0.0.1:9".to_string(), inputs.as_slice())
+        .request_shards_with_endpoints(endpoint_urls.as_slice(), inputs.as_slice())
         .await?;
 
     assert_eq!(response.results.len(), 2);
@@ -128,6 +129,16 @@ fn source_pdf_page_range_chunks_keep_single_range_for_one_permit() {
     assert_eq!(chunks[0].len(), 3);
     assert_eq!(chunks[0][0].page_index, 0);
     assert_eq!(chunks[0][2].page_index, 2);
+}
+
+#[test]
+fn endpoint_index_for_request_round_robins_endpoint_pool() -> Result<(), String> {
+    assert_eq!(endpoint_index_for_request(0, 3)?, 0);
+    assert_eq!(endpoint_index_for_request(1, 3)?, 1);
+    assert_eq!(endpoint_index_for_request(2, 3)?, 2);
+    assert_eq!(endpoint_index_for_request(3, 3)?, 0);
+    assert!(endpoint_index_for_request(0, 0).is_err());
+    Ok(())
 }
 
 fn sample_ocr_input(source_path: &str, page_index: u32, shard_type: &str) -> PdfOcrShardInput {

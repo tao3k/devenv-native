@@ -225,6 +225,7 @@ def main() -> int:
         "pdfOcrWorkers": args.pdf_ocr_workers,
         "rustPdfOcrWorkers": args.rust_pdf_ocr_workers,
         "rustPdfOcrSourceRangeWorkers": args.rust_pdf_ocr_source_range_workers,
+        "rustPdfOcrEndpoints": args.rust_pdf_ocr_endpoint,
         "structureBaselineRoot": (
             str(args.structure_baseline_root) if args.structure_baseline_root else None
         ),

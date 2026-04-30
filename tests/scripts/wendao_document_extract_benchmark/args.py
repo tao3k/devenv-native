@@ -87,6 +87,17 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--rust-pdf-ocr-endpoint",
+        action="append",
+        default=[],
+        metavar="ENDPOINT",
+        help=(
+            "Optional Python OCR Flight endpoint forwarded to "
+            "WENDAO_DOCUMENT_EXTRACT_PDF_OCR_ENDPOINTS. May be repeated to "
+            "exercise Rust-side OCR endpoint-pool scheduling."
+        ),
+    )
+    parser.add_argument(
         "--ocr-shard-cache-root",
         type=Path,
         help=(

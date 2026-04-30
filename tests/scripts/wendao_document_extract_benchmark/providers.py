@@ -16,6 +16,17 @@ from .processes import start_logged_process
 from .runtime import resolve_project_root, rust_process_env
 
 
+def rust_pdf_ocr_endpoint_pool(args: argparse.Namespace) -> str | None:
+    endpoints = [
+        endpoint.strip().rstrip("/")
+        for endpoint in getattr(args, "rust_pdf_ocr_endpoint", [])
+        if endpoint.strip()
+    ]
+    if not endpoints:
+        return None
+    return ",".join(endpoints)
+
+
 def start_rust_provider_server(
     args: argparse.Namespace,
     *,
@@ -61,6 +72,9 @@ def start_rust_provider_server(
         env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS"] = str(
             rust_pdf_ocr_source_range_workers
         )
+    ocr_endpoint_pool = rust_pdf_ocr_endpoint_pool(args)
+    if ocr_endpoint_pool:
+        env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_ENDPOINTS"] = ocr_endpoint_pool
     command = [
         args.cargo,
         "run",
@@ -167,6 +181,9 @@ def start_gateway_server(
         env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS"] = str(
             rust_pdf_ocr_source_range_workers
         )
+    ocr_endpoint_pool = rust_pdf_ocr_endpoint_pool(args)
+    if ocr_endpoint_pool:
+        env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_ENDPOINTS"] = ocr_endpoint_pool
     command = [
         args.cargo,
         "run",

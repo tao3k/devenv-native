@@ -5,7 +5,7 @@
 :PARENT: [[../index|Wendao DocOS Kernel: Map of Content]]
 :TAGS: research, document-extraction, pdf, ocr, arrow, docling, attachments
 :STATUS: UPDATED
-:VERSION: 1.11
+:VERSION: 1.12
 :END:
 
 ## Executive Summary
@@ -142,6 +142,13 @@ so a forced extraction into a new output directory can reuse page or region
 results without repeating Docling OCR. The Rust scheduler also keeps
 process-local in-flight shard ownership, so concurrent misses for the same OCR
 shard wait on one live Python request instead of issuing duplicate Docling OCR.
+The scheduler can also target an explicit Python OCR endpoint pool through
+`WENDAO_DOCUMENT_EXTRACT_PDF_OCR_ENDPOINTS`. The default remains the existing
+`WENDAO_DOCUMENT_EXTRACT_ENDPOINT`, so current deployments keep the same single
+Python worker behavior. When a deployment or benchmark supplies multiple OCR
+Flight endpoints, Rust round-robins live OCR requests and source-range chunks
+across that pool while retaining the same Arrow shard input/result contracts,
+ordering gate, shard cache, and Docling OCR authority.
 
 ## Performance and Precision Assessment
 
@@ -261,8 +268,9 @@ Capacity interpretation:
   from underusing or overwhelming the host, and it reports current OCR budget,
   queue wait, latency, in-flight shards, cache hits/misses, lane counts, and
   AIMD budget changes. A single instance still remains bounded by Docling OCR
-  time, so unbounded unique OCR-heavy ingestion needs horizontal Python
-  executor pools and finer region/text fast paths in later milestones.
+  time. The next capacity slice now has a concrete execution surface:
+  horizontal Python OCR executor pools exposed as multiple Flight endpoints and
+  scheduled by Rust, plus finer region/text fast paths after parity gates.
 - For already-cached documents, cache p95 remains in the low-millisecond class
   in the current evidence, so query-time reuse is compatible with
   high-concurrency user traffic.
