@@ -277,15 +277,63 @@ fn enforce_modularity_contract_gate() {
     let findings = collect_modularity_findings(crate_root);
     let blocking_findings = findings
         .iter()
-        .filter(|finding| finding.severity >= FindingSeverity::Error)
+        .filter(|finding| is_blocking_modularity_finding(crate_root, finding))
         .collect::<Vec<_>>();
 
     assert!(
         blocking_findings.is_empty(),
         "{}",
-        format_modularity_gate_report(&findings, &blocking_findings)
+        format_modularity_gate_report(crate_root, &findings, &blocking_findings)
     );
 }
+
+const LEGACY_MOD_R006_FILE_BLOAT_BASELINE: &[&str] = &[
+    "src/analyzers/projection/gap_report.rs",
+    "src/analyzers/service/analysis.rs",
+    "src/analyzers/service/projection/docs_tool/contracts.rs",
+    "src/analyzers/service/projection/index_tree.rs",
+    "src/bin/wendao/execute/audit.rs",
+    "src/bin/wendao/execute/gateway/command.rs",
+    "src/duckdb/engine.rs",
+    "src/enhancer/markdown_config/links.rs",
+    "src/gateway/studio/pathing.rs",
+    "src/gateway/studio/router/handlers/graph/flight.rs",
+    "src/gateway/studio/router/handlers/graph/topology_flight.rs",
+    "src/gateway/studio/router/handlers/repo/analysis/index_status_flight/diagnostics.rs",
+    "src/gateway/studio/router/state/lifecycle.rs",
+    "src/gateway/studio/router/state/search.rs",
+    "src/gateway/studio/router/state/ui.rs",
+    "src/gateway/studio/search/handlers/flight/repo_search.rs",
+    "src/gateway/studio/search/handlers/knowledge/intent/flight.rs",
+    "src/gateway/studio/types/search_index/diagnostics.rs",
+    "src/gateway/studio/types/search_index/status.rs",
+    "src/graph/query/tool_relevance.rs",
+    "src/link_graph/index/build/cache/arrow_snapshot.rs",
+    "src/link_graph/index/build/cache/duckdb.rs",
+    "src/link_graph/index/search/plan/payload/policy.rs",
+    "src/link_graph/index/search/plan/payload/quantum/rerank.rs",
+    "src/parsers/docs_governance/api.rs",
+    "src/pybindings/link_graph_py/engine/refresh/plan_apply.rs",
+    "src/query_core/service.rs",
+    "src/repo_index/state/coordinator/runtime/incremental.rs",
+    "src/repo_index/state/task/adaptive.rs",
+    "src/search/local_symbol/build/plan.rs",
+    "src/search/perf_support.rs",
+    "src/search/project_fingerprint.rs",
+    "src/search/queries/graphql/document.rs",
+    "src/search/queries/sql/registration/table.rs",
+    "src/search/repo_content_chunk/build/write.rs",
+    "src/search/repo_content_chunk/query/lookup/helpers.rs",
+    "src/search/repo_search/ast.rs",
+    "src/search/repo_search/batch.rs",
+    "src/search/repo_search/search.rs",
+    "src/search/service/core/repeat_work.rs",
+    "src/search/service/helpers/status.rs",
+    "src/skill_runtime/zhixing/resources/discovery.rs",
+    "src/zhenfa_router/http.rs",
+    "src/zhenfa_router/native/semantic_check/episteme.rs",
+    "src/zhenfa_router/native/semantic_check/report.rs",
+];
 
 fn collect_modularity_findings(crate_root: &Path) -> Vec<ContractFinding> {
     let Some(crate_name) = crate_root.file_name().and_then(|value| value.to_str()) else {
@@ -324,12 +372,28 @@ fn resolve_workspace_root(crate_root: &Path) -> PathBuf {
         })
 }
 
+fn is_blocking_modularity_finding(crate_root: &Path, finding: &ContractFinding) -> bool {
+    if finding.severity >= FindingSeverity::Error {
+        return true;
+    }
+    if finding.rule_id != "MOD-R006" {
+        return false;
+    }
+    let path = finding_relative_path(crate_root, finding);
+    !LEGACY_MOD_R006_FILE_BLOAT_BASELINE
+        .iter()
+        .any(|baseline| path == *baseline)
+}
+
 fn format_modularity_gate_report(
+    crate_root: &Path,
     findings: &[ContractFinding],
     blocking_findings: &[&ContractFinding],
 ) -> String {
     let mut output = String::new();
-    output.push_str("modularity gate failed with blocking findings (severity >= Error):\n");
+    output.push_str(
+        "modularity gate failed with blocking findings (severity >= Error or new MOD-R006):\n",
+    );
 
     for finding in blocking_findings {
         let _ = writeln!(
@@ -337,7 +401,7 @@ fn format_modularity_gate_report(
             "- [{}] {} :: {}:{}",
             finding.rule_id,
             finding.summary,
-            finding_path(finding),
+            finding_relative_path(crate_root, finding),
             finding_locator(finding)
         );
     }
@@ -349,8 +413,32 @@ fn format_modularity_gate_report(
     if warning_count > 0 {
         let _ = writeln!(output, "non-blocking warnings: {warning_count}");
     }
+    let legacy_file_bloat_count = findings
+        .iter()
+        .filter(|finding| {
+            finding.rule_id == "MOD-R006"
+                && LEGACY_MOD_R006_FILE_BLOAT_BASELINE
+                    .iter()
+                    .any(|baseline| finding_relative_path(crate_root, finding) == *baseline)
+        })
+        .count();
+    if legacy_file_bloat_count > 0 {
+        let _ = writeln!(
+            output,
+            "legacy MOD-R006 baseline entries: {legacy_file_bloat_count}"
+        );
+    }
 
     output
+}
+
+fn finding_relative_path(crate_root: &Path, finding: &ContractFinding) -> String {
+    let path = finding_path(finding);
+    let path = Path::new(path.as_str());
+    path.strip_prefix(crate_root).map_or_else(
+        |_| path.display().to_string(),
+        |path| path.display().to_string(),
+    )
 }
 
 fn finding_path(finding: &ContractFinding) -> String {

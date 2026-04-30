@@ -32,14 +32,14 @@ fn hybrid_page_ocr_structure_sidecar_preserves_region_provenance() -> Result<(),
     input.reading_order_key = "000000.000004".to_string();
     let mut result = sample_ocr_result(0, true);
     result.confidence = Some(0.87);
-    let resource_batch = HybridDocumentResourceBatch {
-        batch: test_resource_batch(&[
+    let resource_batch = HybridDocumentResourceBatch::with_ocr(
+        test_resource_batch(&[
             ("text_page", 0, "text-0"),
             ("ocr_text", 0, result.element_id.as_str()),
         ])?,
-        ocr_inputs: vec![input],
-        ocr_results: vec![result],
-    };
+        vec![input],
+        vec![result],
+    );
 
     let blocks = hybrid_document_structure_blocks(&resource_batch, "sourcehash", "wendao-hybrid")?;
     let structure_batch = build_document_structure_batch(blocks.as_slice())?;
