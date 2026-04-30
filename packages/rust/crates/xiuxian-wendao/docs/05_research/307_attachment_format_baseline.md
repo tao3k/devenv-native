@@ -167,6 +167,31 @@ This is a control-plane cache optimization. It does not replace Docling image
 OCR or layout, and it does not change `_resources.arrow`, `_structure.arrow`,
 or Flight/REST schemas.
 
+The current real image benchmark confirms the boundary after the
+`precisionSpeedSummary` Docling-share fields were added:
+
+| Metric                          |       Value |
+| ------------------------------- | ----------: |
+| Error rows                      |           0 |
+| Precision gate                  |        true |
+| Structure order stable          |        true |
+| Resource rows                   |           3 |
+| Structure rows                  |           2 |
+| BBox blocks                     |           1 |
+| Force latency                   | 6961.179 ms |
+| Cache p95 latency               |    2.344 ms |
+| Docling convert                 | 6923.778 ms |
+| Docling convert share           |      99.53% |
+| Request-boundary overhead       |    4.437 ms |
+| Request-boundary overhead share |       0.06% |
+
+This shifts the next real optimization away from Flight/Arrow overhead and
+toward image-specific Docling invocation shape, image OCR cache granularity,
+and parity-gated crop or tile planning. Rust should continue to act as the
+control plane: content hash, preflight, routing, cache, scheduler, provenance,
+and validation. Docling remains the image OCR and layout authority until a
+class-specific fast path proves parity.
+
 ## Next Slices
 
 1. Image attachment OCR lane:
