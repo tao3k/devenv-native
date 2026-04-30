@@ -96,6 +96,12 @@ the source page raster. This metadata is internal routing and merge state; it
 does not change the stable `_resources.arrow` schema or switch production
 extraction away from Docling.
 
+The structure sidecar boundary also provides a strict Docling-baseline parity
+helper for future golden benchmark lanes. A candidate structure must preserve
+baseline page coverage, per-page text coverage, protected `table`, `formula`,
+`image`, and `code` block counts, and sorted reading order before a faster
+path can be accepted by a benchmark or later routing gate.
+
 The Rust Studio provider controls Python OCR pressure with an adaptive OCR
 scheduler and the internal `x-wendao-pdf-ocr-workers` Flight metadata header.
 The scheduler derives its upper bound from available machine parallelism, while

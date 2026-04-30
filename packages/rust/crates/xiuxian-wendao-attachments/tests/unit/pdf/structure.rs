@@ -64,6 +64,19 @@ fn block(block_id: &str, page_index: i32, block_index: i32) -> DocumentStructure
     }
 }
 
+fn typed_block(
+    block_id: &str,
+    page_index: i32,
+    block_index: i32,
+    block_type: &str,
+    content: &str,
+) -> DocumentStructureBlock {
+    let mut block = block(block_id, page_index, block_index);
+    block.block_type = block_type.to_string();
+    block.content = content.to_string();
+    block
+}
+
 #[test]
 fn document_extract_structure_batch_uses_stable_schema_and_order() -> Result<(), String> {
     let mut second = block("second", 1, 1);
@@ -133,4 +146,102 @@ fn document_extract_structure_projects_resource_rows_without_json_contract() -> 
     );
     assert_eq!(int32_column(&batch, "blockIndex")?.value(1), 0);
     Ok(())
+}
+
+#[test]
+fn document_structure_parity_accepts_candidate_with_full_baseline_coverage() -> Result<(), String> {
+    let baseline = vec![
+        typed_block("text-0", 0, 0, "text_page", "alpha beta"),
+        typed_block("table-0", 0, 1, "table", "| a | b |"),
+        typed_block("formula-1", 1, 0, "formula", "x = y"),
+    ];
+    let candidate = vec![
+        typed_block("text-0", 0, 0, "text_page", "alpha beta plus"),
+        typed_block("table-0", 0, 1, "table", "| a | b |"),
+        typed_block("formula-1", 1, 0, "formula", "x = y"),
+        typed_block("ocr-1", 1, 1, "ocr_page", "extra text"),
+    ];
+
+    let summary = validate_document_structure_parity(baseline.as_slice(), candidate.as_slice())?;
+
+    assert_eq!(summary.baseline_block_count, 3);
+    assert_eq!(summary.candidate_block_count, 4);
+    assert_eq!(summary.baseline_page_count, 2);
+    assert_eq!(summary.candidate_page_count, 2);
+    assert_eq!(
+        summary
+            .protected_block_counts
+            .get("table")
+            .ok_or_else(|| "missing table parity count".to_string())?
+            .candidate,
+        1
+    );
+    Ok(())
+}
+
+#[test]
+fn document_structure_parity_rejects_missing_page() {
+    let baseline = vec![
+        typed_block("text-0", 0, 0, "text_page", "alpha"),
+        typed_block("text-1", 1, 0, "text_page", "beta"),
+    ];
+    let candidate = vec![typed_block("text-0", 0, 0, "text_page", "alpha beta")];
+
+    let Err(error) = validate_document_structure_parity(baseline.as_slice(), candidate.as_slice())
+    else {
+        panic!("missing page should fail parity");
+    };
+
+    assert!(error.contains("missing baseline pages: 1"));
+}
+
+#[test]
+fn document_structure_parity_rejects_lower_page_text_coverage() {
+    let baseline = vec![typed_block("text-0", 0, 0, "text_page", "abcdef")];
+    let candidate = vec![typed_block("text-0", 0, 0, "text_page", "abc")];
+
+    let Err(error) = validate_document_structure_parity(baseline.as_slice(), candidate.as_slice())
+    else {
+        panic!("lower text coverage should fail parity");
+    };
+
+    assert!(error.contains("text chars, below baseline"));
+}
+
+#[test]
+fn document_structure_parity_rejects_protected_block_loss() {
+    let baseline = vec![
+        typed_block("text-0", 0, 0, "text_page", "alpha"),
+        typed_block("table-0", 0, 1, "table", "| a | b |"),
+    ];
+    let candidate = vec![
+        typed_block("text-0", 0, 0, "text_page", "alpha"),
+        typed_block("ocr-0", 0, 1, "ocr_page", "| a | b |"),
+    ];
+
+    let Err(error) = validate_document_structure_parity(baseline.as_slice(), candidate.as_slice())
+    else {
+        panic!("protected block loss should fail parity");
+    };
+
+    assert!(error.contains("`table` blocks"));
+}
+
+#[test]
+fn document_structure_parity_rejects_unsorted_candidate_order() {
+    let baseline = vec![
+        typed_block("text-0", 0, 0, "text_page", "alpha"),
+        typed_block("text-1", 1, 0, "text_page", "beta"),
+    ];
+    let candidate = vec![
+        typed_block("text-1", 1, 0, "text_page", "alpha beta"),
+        typed_block("text-0", 0, 0, "text_page", "alpha beta"),
+    ];
+
+    let Err(error) = validate_document_structure_parity(baseline.as_slice(), candidate.as_slice())
+    else {
+        panic!("unsorted candidate should fail parity");
+    };
+
+    assert!(error.contains("candidate is not sorted"));
 }

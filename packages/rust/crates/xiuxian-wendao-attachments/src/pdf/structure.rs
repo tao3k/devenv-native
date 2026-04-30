@@ -4,8 +4,15 @@ use arrow::array::{Array, ArrayRef, Float64Array, Int32Array, StringArray};
 use arrow::datatypes::{DataType, Field, Schema, SchemaRef};
 use arrow::record_batch::RecordBatch;
 
+mod parity;
+
 pub const DOCUMENT_STRUCTURE_ARROW_CACHE_NAME: &str = "_structure.arrow";
 pub const DOCUMENT_STRUCTURE_SCHEMA_VERSION: &str = "xiuxian_wendao.document_structure.v1";
+
+pub use parity::{
+    DocumentStructureParityCount, DocumentStructureParitySummary,
+    validate_document_structure_parity,
+};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct DocumentStructureBlock {

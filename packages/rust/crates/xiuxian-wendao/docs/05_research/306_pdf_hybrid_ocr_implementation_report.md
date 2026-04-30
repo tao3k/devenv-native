@@ -5,7 +5,7 @@
 :PARENT: [[../index|Wendao DocOS Kernel: Map of Content]]
 :TAGS: research, document-extraction, pdf, ocr, arrow, docling, attachments
 :STATUS: UPDATED
-:VERSION: 1.8
+:VERSION: 1.9
 :END:
 
 ## Executive Summary
@@ -38,6 +38,12 @@ The stable user contract remains the nine-column `_resources.arrow` table:
 future UI structure order. The OCR shard contracts remain Arrow-only and stay
 at `xiuxian_wendao.pdf_ocr_shard_input.v1` and
 `xiuxian_wendao.pdf_ocr_shard_result.v1`.
+
+The structure sidecar has a reusable strict baseline parity helper for golden
+benchmark lanes. Before a future region or native-text fast path can claim
+parity with Docling, its candidate structure must preserve baseline page
+coverage, per-page text coverage, protected table/formula/image/code block
+counts, and sorted reading order.
 
 The next implementation slice is verification infrastructure, not a broader
 parser replacement. Rust stays the deterministic control plane: acceleration,
@@ -312,6 +318,12 @@ fields include source path, page index, shard id, OCR profile, page count, bbox
 count, result characters, status, and available Rust scheduler/provenance
 timing. Docling phase timings remain nullable until Python can expose them
 without changing the stable OCR result v1 contract.
+
+The strict structure parity helper is the first reusable building block for the
+golden baseline suite. It intentionally stays outside the default extraction
+route in this slice; benchmark lanes and later candidate fast paths can use it
+to reject candidates that lose baseline pages, text coverage, protected
+semantic block types, or reading order before falling back to full Docling.
 
 The benchmark harness now lives under `tests/scripts/` and reads
 `_metrics.arrow` from each extraction artifact directory. It includes the
