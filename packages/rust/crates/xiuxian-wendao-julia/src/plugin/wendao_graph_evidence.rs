@@ -3,13 +3,13 @@ use std::sync::Arc;
 use arrow::datatypes::{DataType, Field, Schema};
 use xiuxian_wendao_runtime::transport::normalize_flight_route;
 
-/// Default schema version for the Rust mirror of the WendaoGraph evidence contract.
+/// Default schema version for the Rust mirror of the `WendaoGraph` evidence contract.
 pub const WENDAO_GRAPH_EVIDENCE_SCHEMA_VERSION: &str = "v0-draft";
 
-/// Planned Flight route for LinkGraph evidence requests handled by `WendaoGraph.jl`.
+/// Planned Flight route for `LinkGraph` evidence requests handled by `WendaoGraph.jl`.
 pub const WENDAO_GRAPH_LINK_EVIDENCE_ROUTE: &str = "/graph/link/evidence";
 
-/// Canonical WendaoGraph evidence request table names.
+/// Canonical `WendaoGraph` evidence request table names.
 pub const WENDAO_GRAPH_EVIDENCE_REQUEST_TABLE_NAMES: [&str; 5] = [
     "nodes",
     "edges",
@@ -18,7 +18,7 @@ pub const WENDAO_GRAPH_EVIDENCE_REQUEST_TABLE_NAMES: [&str; 5] = [
     "semantic_overlay",
 ];
 
-/// Canonical WendaoGraph evidence response table names.
+/// Canonical `WendaoGraph` evidence response table names.
 pub const WENDAO_GRAPH_EVIDENCE_RESPONSE_TABLE_NAMES: [&str; 17] = [
     "graph_metrics",
     "components",
@@ -39,7 +39,7 @@ pub const WENDAO_GRAPH_EVIDENCE_RESPONSE_TABLE_NAMES: [&str; 17] = [
     "link_frontier",
 ];
 
-/// Scalar Arrow type used by a WendaoGraph evidence table column.
+/// Scalar Arrow type used by a `WendaoGraph` evidence table column.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum WendaoGraphEvidenceColumnType {
     /// UTF-8 string column.
@@ -64,7 +64,7 @@ impl WendaoGraphEvidenceColumnType {
     }
 }
 
-/// One column in a WendaoGraph evidence table contract.
+/// One column in a `WendaoGraph` evidence table contract.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct WendaoGraphEvidenceColumnContract {
     /// Canonical column name.
@@ -82,7 +82,7 @@ pub enum WendaoGraphEvidenceTableKind {
     Response,
 }
 
-/// One table in the WendaoGraph evidence contract.
+/// One table in the `WendaoGraph` evidence contract.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct WendaoGraphEvidenceTableContract {
     /// Canonical table name.
@@ -364,7 +364,7 @@ const LINK_FRONTIER_COLUMNS: [WendaoGraphEvidenceColumnContract; 10] = [
     column("disclosure_budget", WendaoGraphEvidenceColumnType::Int64),
 ];
 
-/// Canonical WendaoGraph request table contracts.
+/// Canonical `WendaoGraph` request table contracts.
 pub const WENDAO_GRAPH_EVIDENCE_REQUEST_TABLE_CONTRACTS: [WendaoGraphEvidenceTableContract; 5] = [
     request_table("nodes", true, &NODE_COLUMNS),
     request_table("edges", true, &EDGE_COLUMNS),
@@ -373,7 +373,7 @@ pub const WENDAO_GRAPH_EVIDENCE_REQUEST_TABLE_CONTRACTS: [WendaoGraphEvidenceTab
     request_table("semantic_overlay", false, &SEMANTIC_OVERLAY_COLUMNS),
 ];
 
-/// Canonical WendaoGraph response table contracts.
+/// Canonical `WendaoGraph` response table contracts.
 pub const WENDAO_GRAPH_EVIDENCE_RESPONSE_TABLE_CONTRACTS: [WendaoGraphEvidenceTableContract; 17] = [
     response_table("graph_metrics", &GRAPH_METRIC_COLUMNS),
     response_table("components", &COMPONENT_COLUMNS),
@@ -432,12 +432,12 @@ const fn response_table(
     }
 }
 
-/// Resolve one route into the planned WendaoGraph LinkGraph evidence route.
+/// Resolve one route into the planned `WendaoGraph` `LinkGraph` evidence route.
 ///
 /// # Errors
 ///
 /// Returns an error when the route does not normalize to the planned
-/// WendaoGraph evidence path.
+/// `WendaoGraph` evidence path.
 pub fn wendao_graph_link_evidence_route(route: impl AsRef<str>) -> Result<&'static str, String> {
     let normalized = normalize_flight_route(route)?;
     if normalized == WENDAO_GRAPH_LINK_EVIDENCE_ROUTE {
@@ -449,7 +449,7 @@ pub fn wendao_graph_link_evidence_route(route: impl AsRef<str>) -> Result<&'stat
     }
 }
 
-/// Return whether one route belongs to the WendaoGraph evidence contract.
+/// Return whether one route belongs to the `WendaoGraph` evidence contract.
 #[must_use]
 pub fn is_wendao_graph_link_evidence_route(route: impl AsRef<str>) -> bool {
     wendao_graph_link_evidence_route(route).is_ok()
@@ -460,7 +460,7 @@ pub fn is_wendao_graph_link_evidence_route(route: impl AsRef<str>) -> bool {
 /// # Errors
 ///
 /// Returns an error when the table name is not part of the canonical
-/// WendaoGraph evidence request contract.
+/// `WendaoGraph` evidence request contract.
 pub fn wendao_graph_evidence_request_table_contract(
     table_name: impl AsRef<str>,
 ) -> Result<&'static WendaoGraphEvidenceTableContract, String> {
@@ -476,7 +476,7 @@ pub fn wendao_graph_evidence_request_table_contract(
 /// # Errors
 ///
 /// Returns an error when the table name is not part of the canonical
-/// WendaoGraph evidence response contract.
+/// `WendaoGraph` evidence response contract.
 pub fn wendao_graph_evidence_response_table_contract(
     table_name: impl AsRef<str>,
 ) -> Result<&'static WendaoGraphEvidenceTableContract, String> {
@@ -487,7 +487,7 @@ pub fn wendao_graph_evidence_response_table_contract(
     )
 }
 
-/// Materialize the Arrow schema for one WendaoGraph evidence table.
+/// Materialize the Arrow schema for one `WendaoGraph` evidence table.
 ///
 /// # Errors
 ///

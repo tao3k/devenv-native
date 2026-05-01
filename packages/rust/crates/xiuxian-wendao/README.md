@@ -687,6 +687,14 @@ defaults, host staging, transport, and composed downcalls belong in
 `xiuxian-wendao-julia`. `xiuxian-wendao` now keeps only the thin
 `memory::julia` bridge that points at those plugin-owned surfaces.
 
+For LinkGraph-to-WendaoGraph evidence, `xiuxian-wendao` now provides the local
+`link_graph::wendao_graph_evidence` adapter. It maps `LinkGraphIndex` document
+links, PageIndex parent-child topology, and optional seed rows into validated
+WendaoGraph request `RecordBatch` bundles by reusing the
+`xiuxian-wendao-julia` contract mirror. This is still transport-neutral: the
+adapter does not call Julia, does not add a Flight route, and does not change
+search ranking behavior.
+
 For link-graph semantic retrieval, `VectorStoreSemanticIgnition` now also
 provides `build_julia_rerank_request_batch(...)`, which reuses anchor ids as
 the stable request-row identity and assembles a Julia-ready Arrow batch from

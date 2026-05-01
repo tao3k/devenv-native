@@ -30,6 +30,7 @@ zhenfa-router = [
   "search-runtime",
 ]
 julia = [
+  "dep:arrow",
   "dep:xiuxian-wendao-julia",
 ]
 builtin-plugins = ["dep:xiuxian-wendao-builtin"]
