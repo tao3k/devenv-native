@@ -29,6 +29,7 @@ pub use self::code_observation::{CodeObservation, extract_observations};
 pub(crate) use self::links::ResolvedNoteReference;
 #[cfg(any(test, feature = "studio"))]
 pub(crate) use self::links::extract_resolved_note_references;
+#[cfg(feature = "search-runtime")]
 pub(crate) use self::paths::is_org_note;
 pub use self::paths::{is_supported_note, normalize_alias};
 pub use self::relations::{

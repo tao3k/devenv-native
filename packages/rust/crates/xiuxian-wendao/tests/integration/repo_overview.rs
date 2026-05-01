@@ -6,7 +6,7 @@ use std::process::Command;
 
 use serde_json::json;
 use uuid::Uuid;
-use xiuxian_config_core::resolve_data_home;
+use xiuxian_io::PrjDirs;
 use xiuxian_wendao::analyzers::{
     RepoIntelligenceError, RepoOverviewQuery, RepositoryRefreshPolicy,
     analyze_repository_from_config, bootstrap_builtin_registry, load_repo_intelligence_config,
@@ -429,11 +429,10 @@ fn append_repo_file_and_commit(
     )
 }
 
-fn repo_cache_root(cwd: &Path) -> std::path::PathBuf {
-    let Some(data_home) = resolve_data_home(Some(cwd)) else {
-        panic!("data home should resolve for repo overview tests");
-    };
-    data_home.join("xiuxian-wendao").join("repo-intelligence")
+fn repo_cache_root(_cwd: &Path) -> std::path::PathBuf {
+    PrjDirs::data_home()
+        .join("xiuxian-wendao")
+        .join("repo-intelligence")
 }
 
 fn managed_mirror_root(cwd: &Path, repo_id: &str) -> std::path::PathBuf {

@@ -17,4 +17,5 @@ pub use sql::{
 };
 
 #[cfg(all(test, feature = "duckdb"))]
+#[path = "../../tests/unit/duckdb/mod.rs"]
 mod tests;
