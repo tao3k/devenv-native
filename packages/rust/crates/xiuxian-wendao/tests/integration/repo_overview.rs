@@ -22,6 +22,10 @@ use xiuxian_wendao::analyzers::{
     ExampleSearchQuery, ModuleSearchQuery, example_search_from_config, module_search_from_config,
 };
 
+use crate::support::linked_parser_summary::{
+    ensure_linked_parser_summary_service, linked_parser_summary_base_url,
+};
+
 type TestResult = Result<(), Box<dyn std::error::Error>>;
 
 #[test]
@@ -394,6 +398,7 @@ fn write_repo_url_config_with_ref(
     refresh: Option<&str>,
 ) -> Result<std::path::PathBuf, Box<dyn std::error::Error>> {
     let config_path = base.join(format!("{repo_id}.wendao.toml"));
+    let plugin = linked_julia_parser_summary_plugin_toml()?;
     let ref_block = git_ref
         .map(|value| format!("ref = \"{value}\"\n"))
         .unwrap_or_default();
@@ -405,7 +410,7 @@ fn write_repo_url_config_with_ref(
         format!(
             r#"[link_graph.projects.{repo_id}]
 url = "{}"
-{}{}plugins = ["julia"]
+{}{}plugins = [{plugin}]
 "#,
             repo_url.display(),
             ref_block,
@@ -413,6 +418,14 @@ url = "{}"
         ),
     )?;
     Ok(config_path)
+}
+
+fn linked_julia_parser_summary_plugin_toml() -> Result<String, Box<dyn std::error::Error>> {
+    ensure_linked_parser_summary_service()?;
+    let base_url = linked_parser_summary_base_url()?;
+    Ok(format!(
+        r#"{{ id = "julia", parser_summary_transport = {{ base_url = "{base_url}", file_summary = {{ schema_version = "v3" }}, root_summary = {{ schema_version = "v3" }} }} }}"#
+    ))
 }
 
 fn append_repo_file_and_commit(

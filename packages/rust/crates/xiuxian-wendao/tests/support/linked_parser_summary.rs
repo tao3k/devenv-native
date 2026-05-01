@@ -28,6 +28,7 @@ const PROCESS_MANAGED_PARSER_SUMMARY_SERVICE_NAME: &str = "wendaosearch-parser-s
 const PROCESS_MANAGED_READY_ATTEMPTS: usize = 600;
 
 struct LinkedParserSummaryService {
+    base_url: String,
     _guard: Mutex<LinkedParserSummaryGuard>,
 }
 
@@ -60,10 +61,22 @@ static LINKED_PARSER_SUMMARY_SERVICE: OnceLock<Result<LinkedParserSummaryService
 static PROCESS_MANAGED_PARSER_SUMMARY_SERVICE: OnceLock<Result<(), String>> = OnceLock::new();
 
 pub fn ensure_linked_parser_summary_service() -> TestResult {
+    linked_parser_summary_base_url().map(|_| ())
+}
+
+pub fn ensure_linked_modelica_parser_summary_service() -> TestResult {
+    linked_modelica_parser_summary_base_url().map(|_| ())
+}
+
+pub fn linked_modelica_parser_summary_base_url() -> Result<String, Box<dyn std::error::Error>> {
+    linked_parser_summary_base_url()
+}
+
+pub fn linked_parser_summary_base_url() -> Result<String, Box<dyn std::error::Error>> {
     if process_managed_wendaosearch_test_enabled() {
-        return ensure_process_managed_parser_summary_service(
-            ProcessManagedParserSummaryMode::Required,
-        );
+        ensure_process_managed_parser_summary_service(ProcessManagedParserSummaryMode::Required)?;
+        return process_managed_parser_summary_base_url()
+            .map_err(|message| Box::new(IoError::other(message)) as Box<dyn std::error::Error>);
     }
     if process_managed_parser_summary_service_is_configured()
         && ensure_process_managed_parser_summary_service(
@@ -71,25 +84,27 @@ pub fn ensure_linked_parser_summary_service() -> TestResult {
         )
         .is_ok()
     {
-        return Ok(());
+        return process_managed_parser_summary_base_url()
+            .map_err(|message| Box::new(IoError::other(message)) as Box<dyn std::error::Error>);
     }
-    ensure_in_process_linked_parser_summary_service()
+    let service = linked_parser_summary_service()?;
+    configure_linked_parser_summary_base_url(service.base_url.as_str())
+        .map_err(|message| Box::new(IoError::other(message)) as Box<dyn std::error::Error>)?;
+    Ok(service.base_url.clone())
 }
 
-pub fn ensure_linked_modelica_parser_summary_service() -> TestResult {
-    ensure_linked_parser_summary_service()
-}
-
-fn ensure_in_process_linked_parser_summary_service() -> TestResult {
+fn linked_parser_summary_service()
+-> Result<&'static LinkedParserSummaryService, Box<dyn std::error::Error>> {
     let service = LINKED_PARSER_SUMMARY_SERVICE.get_or_init(|| {
         let (base_url, guard) = spawn_in_process_linked_parser_summary_service()?;
         configure_linked_parser_summary_base_url(base_url.as_str())?;
         Ok(LinkedParserSummaryService {
+            base_url,
             _guard: Mutex::new(guard),
         })
     });
     match service.as_ref() {
-        Ok(_) => Ok(()),
+        Ok(service) => Ok(service),
         Err(message) => {
             Err(Box::new(IoError::other(message.clone())) as Box<dyn std::error::Error>)
         }

@@ -5,13 +5,11 @@ use std::fs;
 use std::path::Path;
 use std::process::Command;
 
+use crate::support::linked_parser_summary::linked_modelica_parser_summary_base_url;
 use crate::support::repo_intelligence::create_sample_modelica_repo;
 use xiuxian_wendao::analyzers::{
     DocsNavigationOptions, DocsPageIndexTreeResult, DocsToolService, ProjectedPageIndexNode,
     ProjectedPageIndexTree, ProjectionPageKind,
-};
-use xiuxian_wendao_julia::integration_support::{
-    JuliaExampleServiceGuard, spawn_wendaosearch_modelica_parser_summary_service,
 };
 
 type TestResult = Result<(), Box<dyn std::error::Error>>;
@@ -44,14 +42,6 @@ plugins = [{plugin}]
         ),
     )?;
     Ok(())
-}
-
-fn spawn_modelica_parser_summary_transport() -> Result<(String, JuliaExampleServiceGuard), String> {
-    let runtime = tokio::runtime::Builder::new_current_thread()
-        .enable_all()
-        .build()
-        .map_err(|error| error.to_string())?;
-    Ok(runtime.block_on(spawn_wendaosearch_modelica_parser_summary_service()))
 }
 
 #[cfg(feature = "julia")]
@@ -167,8 +157,7 @@ fn cli_docs_page_index_outline_returns_text_free_tree_payload() -> TestResult {
     let config_path = temp
         .path()
         .join("modelica-docs-tree-outline-cli.wendao.toml");
-    let (parser_summary_base_url, _parser_summary_guard) =
-        spawn_modelica_parser_summary_transport().map_err(std::io::Error::other)?;
+    let parser_summary_base_url = linked_modelica_parser_summary_base_url()?;
     write_modelica_docs_config(
         &config_path,
         "modelica-docs-cli",
@@ -204,8 +193,7 @@ fn cli_docs_page_index_returns_text_free_trees_payload() -> TestResult {
     let temp = tempfile::tempdir()?;
     let repo_dir = create_sample_modelica_repo(temp.path(), "Projectionica")?;
     let config_path = temp.path().join("modelica-docs-page-index-cli.wendao.toml");
-    let (parser_summary_base_url, _parser_summary_guard) =
-        spawn_modelica_parser_summary_transport().map_err(std::io::Error::other)?;
+    let parser_summary_base_url = linked_modelica_parser_summary_base_url()?;
     write_modelica_docs_config(
         &config_path,
         "modelica-docs-cli",
@@ -245,8 +233,7 @@ fn cli_docs_segment_returns_serialized_segment_payload() -> TestResult {
     let temp = tempfile::tempdir()?;
     let repo_dir = create_sample_modelica_repo(temp.path(), "Projectionica")?;
     let config_path = temp.path().join("modelica-docs-segment-cli.wendao.toml");
-    let (parser_summary_base_url, _parser_summary_guard) =
-        spawn_modelica_parser_summary_transport().map_err(std::io::Error::other)?;
+    let parser_summary_base_url = linked_modelica_parser_summary_base_url()?;
     write_modelica_docs_config(
         &config_path,
         "modelica-docs-cli",
@@ -305,8 +292,7 @@ fn cli_docs_search_page_index_returns_serialized_hits_payload() -> TestResult {
     let config_path = temp
         .path()
         .join("modelica-docs-search-structure-cli.wendao.toml");
-    let (parser_summary_base_url, _parser_summary_guard) =
-        spawn_modelica_parser_summary_transport().map_err(std::io::Error::other)?;
+    let parser_summary_base_url = linked_modelica_parser_summary_base_url()?;
     write_modelica_docs_config(
         &config_path,
         "modelica-docs-cli",
@@ -354,8 +340,7 @@ fn cli_docs_node_returns_serialized_node_payload() -> TestResult {
     let temp = tempfile::tempdir()?;
     let repo_dir = create_sample_modelica_repo(temp.path(), "Projectionica")?;
     let config_path = temp.path().join("modelica-docs-node-cli.wendao.toml");
-    let (parser_summary_base_url, _parser_summary_guard) =
-        spawn_modelica_parser_summary_transport().map_err(std::io::Error::other)?;
+    let parser_summary_base_url = linked_modelica_parser_summary_base_url()?;
     write_modelica_docs_config(
         &config_path,
         "modelica-docs-cli",
@@ -399,8 +384,7 @@ fn cli_docs_page_returns_serialized_page_payload() -> TestResult {
     let temp = tempfile::tempdir()?;
     let repo_dir = create_sample_modelica_repo(temp.path(), "Projectionica")?;
     let config_path = temp.path().join("modelica-docs-cli.wendao.toml");
-    let (parser_summary_base_url, _parser_summary_guard) =
-        spawn_modelica_parser_summary_transport().map_err(std::io::Error::other)?;
+    let parser_summary_base_url = linked_modelica_parser_summary_base_url()?;
     write_modelica_docs_config(
         &config_path,
         "modelica-docs-cli",
@@ -434,8 +418,7 @@ fn cli_docs_toc_returns_serialized_toc_payload() -> TestResult {
     let temp = tempfile::tempdir()?;
     let repo_dir = create_sample_modelica_repo(temp.path(), "Projectionica")?;
     let config_path = temp.path().join("modelica-docs-toc-cli.wendao.toml");
-    let (parser_summary_base_url, _parser_summary_guard) =
-        spawn_modelica_parser_summary_transport().map_err(std::io::Error::other)?;
+    let parser_summary_base_url = linked_modelica_parser_summary_base_url()?;
     write_modelica_docs_config(
         &config_path,
         "modelica-docs-cli",

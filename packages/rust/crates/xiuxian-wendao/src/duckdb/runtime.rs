@@ -26,6 +26,7 @@ fn resolved_wendao_settings_root() -> PathBuf {
                     .join(path)
             }
         })
+        .filter(|path| path.is_file())
         .and_then(|path| path.parent().map(std::path::Path::to_path_buf))
         .unwrap_or_else(resolve_project_root_or_cwd)
 }

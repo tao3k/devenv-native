@@ -47,14 +47,18 @@ impl Drop for FakeParserSummaryServiceGuard {
 
 pub(crate) fn spawn_fake_julia_parser_summary_service()
 -> Result<(String, FakeParserSummaryServiceGuard), String> {
-    let runtime = tokio::runtime::Builder::new_multi_thread()
-        .worker_threads(1)
-        .thread_name("wendao-repo-parser-summary-fake")
-        .enable_all()
-        .build()
-        .map_err(|error| error.to_string())?;
-    let (base_url, server) = runtime.block_on(spawn_service())?;
-    Ok((base_url, FakeParserSummaryServiceGuard { runtime, server }))
+    std::thread::spawn(|| {
+        let runtime = tokio::runtime::Builder::new_multi_thread()
+            .worker_threads(1)
+            .thread_name("wendao-repo-parser-summary-fake")
+            .enable_all()
+            .build()
+            .map_err(|error| error.to_string())?;
+        let (base_url, server) = runtime.block_on(spawn_service())?;
+        Ok((base_url, FakeParserSummaryServiceGuard { runtime, server }))
+    })
+    .join()
+    .map_err(|_| "fake parser-summary service thread panicked".to_string())?
 }
 
 async fn spawn_service() -> Result<(String, tokio::task::JoinHandle<()>), String> {
@@ -205,6 +209,13 @@ fn response_batch_for_requests(request_batches: &[RecordBatch]) -> Result<Record
         .is_some_and(|request| request.request_id.starts_with("modelica-file-summary:"))
     {
         return modelica::response_batch_for_requests(requests.as_slice())
+            .map_err(|error| Status::internal(error.to_string()));
+    }
+    if requests
+        .first()
+        .is_some_and(|request| request.request_id.starts_with("modelica-ast-query:"))
+    {
+        return modelica::ast_query_response_batch_for_requests(requests.as_slice())
             .map_err(|error| Status::internal(error.to_string()));
     }
     let mut rows = Vec::new();

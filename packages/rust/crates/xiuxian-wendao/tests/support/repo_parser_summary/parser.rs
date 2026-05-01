@@ -245,6 +245,11 @@ fn parse_julia_source(source: &str) -> ParsedJuliaFile {
     while index < lines.len() {
         let line = lines[index].trim();
         let line_number = i64::try_from(index + 1).unwrap_or(i64::MAX);
+        if let Some(docstring) = parse_inline_docstring(line) {
+            pending_docstring = Some(docstring);
+            index += 1;
+            continue;
+        }
         if line == "\"\"\"" {
             let (docstring, next_index) = collect_docstring(&lines, index + 1);
             pending_docstring = Some(docstring);
@@ -281,6 +286,13 @@ fn parse_julia_source(source: &str) -> ParsedJuliaFile {
     }
 
     parsed
+}
+
+fn parse_inline_docstring(line: &str) -> Option<PendingDocstring> {
+    let content = line.strip_prefix("\"\"\"")?.strip_suffix("\"\"\"")?;
+    (line.len() >= 6).then(|| PendingDocstring {
+        content: content.trim().to_string(),
+    })
 }
 
 fn collect_docstring(lines: &[&str], mut index: usize) -> (PendingDocstring, usize) {
@@ -451,4 +463,30 @@ fn push_symbol_and_docstring(
         });
     }
     parsed.symbols.push(symbol);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn inline_docstring_is_attached_to_next_symbol() -> Result<(), String> {
+        let request = ParserSummaryRequest {
+            request_id: "julia-root-summary:inline-docstring".to_string(),
+            source_id: "src/ProjectionPkg.jl".to_string(),
+            source_text: "module ProjectionPkg\n\"\"\"solve docs\"\"\"\nsolve() = nothing\nend\n"
+                .to_string(),
+        };
+
+        let rows = build_response_rows(&request);
+        let docstring = rows
+            .iter()
+            .find(|row| row.item_group.as_deref() == Some("docstring"))
+            .ok_or_else(|| "expected inline docstring row".to_string())?;
+
+        assert_eq!(docstring.summary_kind, ROOT_SUMMARY_KIND);
+        assert_eq!(docstring.item_target_name.as_deref(), Some("solve"));
+        assert_eq!(docstring.item_content.as_deref(), Some("solve docs"));
+        Ok(())
+    }
 }
