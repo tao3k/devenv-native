@@ -14,6 +14,7 @@ mod project;
 mod rerank_exchange;
 mod sources;
 mod transport;
+mod wendao_graph_evidence;
 
 #[cfg(test)]
 #[path = "../../tests/unit/plugin/mod.rs"]
@@ -153,4 +154,15 @@ pub use rerank_exchange::{
 pub use transport::{
     JULIA_ARROW_RESPONSE_SCHEMA_VERSION, build_julia_flight_transport_client,
     process_julia_flight_batches, process_julia_flight_batches_for_repository,
+};
+pub use wendao_graph_evidence::{
+    WENDAO_GRAPH_EVIDENCE_REQUEST_TABLE_CONTRACTS, WENDAO_GRAPH_EVIDENCE_REQUEST_TABLE_NAMES,
+    WENDAO_GRAPH_EVIDENCE_RESPONSE_TABLE_CONTRACTS, WENDAO_GRAPH_EVIDENCE_RESPONSE_TABLE_NAMES,
+    WENDAO_GRAPH_EVIDENCE_SCHEMA_VERSION, WENDAO_GRAPH_LINK_EVIDENCE_ROUTE,
+    WendaoGraphEvidenceColumnContract, WendaoGraphEvidenceColumnType,
+    WendaoGraphEvidenceTableContract, WendaoGraphEvidenceTableKind,
+    is_wendao_graph_link_evidence_route, validate_wendao_graph_evidence_request_schema,
+    validate_wendao_graph_evidence_response_schema, wendao_graph_evidence_request_table_contract,
+    wendao_graph_evidence_response_table_contract, wendao_graph_evidence_table_schema,
+    wendao_graph_link_evidence_route,
 };

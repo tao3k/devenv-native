@@ -74,8 +74,13 @@ pub use plugin::{
     JULIA_PLUGIN_CAPABILITY_MANIFEST_TIMEOUT_SECS_COLUMN,
     JULIA_PLUGIN_CAPABILITY_MANIFEST_TRANSPORT_KIND_COLUMN,
     JuliaPluginCapabilityManifestRequestRow, JuliaPluginCapabilityManifestRow,
-    JuliaRepoIntelligencePlugin, JuliaSourceId, build_graph_structural_filter_request_batch,
-    build_graph_structural_filter_request_row, build_graph_structural_flight_transport_client,
+    JuliaRepoIntelligencePlugin, JuliaSourceId, WENDAO_GRAPH_EVIDENCE_REQUEST_TABLE_CONTRACTS,
+    WENDAO_GRAPH_EVIDENCE_REQUEST_TABLE_NAMES, WENDAO_GRAPH_EVIDENCE_RESPONSE_TABLE_CONTRACTS,
+    WENDAO_GRAPH_EVIDENCE_RESPONSE_TABLE_NAMES, WENDAO_GRAPH_EVIDENCE_SCHEMA_VERSION,
+    WENDAO_GRAPH_LINK_EVIDENCE_ROUTE, WendaoGraphEvidenceColumnContract,
+    WendaoGraphEvidenceColumnType, WendaoGraphEvidenceTableContract, WendaoGraphEvidenceTableKind,
+    build_graph_structural_filter_request_batch, build_graph_structural_filter_request_row,
+    build_graph_structural_flight_transport_client,
     build_graph_structural_generic_topology_candidate_inputs,
     build_graph_structural_generic_topology_candidate_inputs_from_pair_collection,
     build_graph_structural_generic_topology_candidate_inputs_from_raw_connected_pairs,
@@ -127,6 +132,7 @@ pub use plugin::{
     fetch_julia_plugin_capability_manifest_rows_for_repository,
     fetch_plugin_arrow_score_rows_for_repository, graph_structural_pair_candidate_id,
     graph_structural_route_kind, graph_structural_shared_tag_anchors, is_graph_structural_route,
+    is_wendao_graph_link_evidence_route,
     julia_parser_summary_allows_safe_incremental_file_for_repository,
     julia_parser_summary_file_semantic_fingerprint_for_repository,
     process_graph_structural_flight_batches,
@@ -145,6 +151,9 @@ pub use plugin::{
     validate_graph_structural_rerank_response_schema, validate_graph_structural_response_batches,
     validate_julia_plugin_capability_manifest_request_batches,
     validate_julia_plugin_capability_manifest_response_batches,
+    validate_wendao_graph_evidence_request_schema, validate_wendao_graph_evidence_response_schema,
+    wendao_graph_evidence_request_table_contract, wendao_graph_evidence_response_table_contract,
+    wendao_graph_evidence_table_schema, wendao_graph_link_evidence_route,
 };
 
 #[cfg(test)]

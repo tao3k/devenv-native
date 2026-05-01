@@ -271,6 +271,12 @@ needs a feature-gated second plugin bundle for these languages.
 - `graph_structural_route_kind`
 - `is_graph_structural_route`
 - `validate_graph_structural_*`
+- `WENDAO_GRAPH_LINK_EVIDENCE_ROUTE`
+- `WENDAO_GRAPH_EVIDENCE_SCHEMA_VERSION`
+- `WENDAO_GRAPH_EVIDENCE_*_TABLE_NAMES`
+- `WENDAO_GRAPH_EVIDENCE_*_TABLE_CONTRACTS`
+- `wendao_graph_evidence_table_schema`
+- `validate_wendao_graph_evidence_*_schema`
 - `GraphStructuralQueryAnchor`
 - `GraphStructuralQueryContext`
 - `GraphStructuralCandidateSubgraph`
