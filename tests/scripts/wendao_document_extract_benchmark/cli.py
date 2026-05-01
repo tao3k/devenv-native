@@ -5,6 +5,7 @@ from __future__ import annotations
 from .args import parse_args
 from .cache import benchmark_ocr_shard_cache_root, summarize_ocr_shard_cache
 from .common import (
+    Any,
     Path,
     json,
     sys,
@@ -218,7 +219,37 @@ def main() -> int:
             for worker in reversed(python_workers):
                 terminate_server(worker.process)
 
-    payload = {
+    payload = build_report_payload(
+        args,
+        real_fixture_root=real_fixture_root,
+        results=results,
+        distinct_miss_report=distinct_miss_report,
+        structure_baseline_report=structure_baseline_report,
+        ocr_shard_cache_summary=ocr_shard_cache_summary,
+    )
+    (report_dir / "document_extract_perf.json").write_text(
+        json.dumps(payload, indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
+    (report_dir / "document_extract_perf.md").write_text(
+        render_markdown(payload),
+        encoding="utf-8",
+    )
+    sys.stdout.write(f"document extract perf report: {report_dir / 'document_extract_perf.json'}\n")
+    return 0
+
+
+def build_report_payload(
+    args,
+    *,
+    real_fixture_root: Path | None,
+    results: list[dict[str, Any]],
+    distinct_miss_report: dict[str, Any] | None,
+    structure_baseline_report: dict[str, Any] | None,
+    ocr_shard_cache_summary: dict[str, Any] | None,
+) -> dict[str, Any]:
+    summary = summarize_results(results, distinct_miss_report)
+    return {
         "schema": REPORT_SCHEMA,
         "mode": "real-docling" if args.real_docling else "fixture",
         "endpoint": f"http://{args.benchmark_host}:{args.benchmark_port}",
@@ -246,18 +277,9 @@ def main() -> int:
         "structureBaseline": structure_baseline_report,
         "doclingFixtureRoot": str(real_fixture_root) if real_fixture_root else None,
         "results": results,
-        "summary": summarize_results(results, distinct_miss_report),
+        "summary": summary,
+        "precisionSpeedSummary": summary.get("precisionSpeedSummary"),
     }
-    (report_dir / "document_extract_perf.json").write_text(
-        json.dumps(payload, indent=2, sort_keys=True),
-        encoding="utf-8",
-    )
-    (report_dir / "document_extract_perf.md").write_text(
-        render_markdown(payload),
-        encoding="utf-8",
-    )
-    sys.stdout.write(f"document extract perf report: {report_dir / 'document_extract_perf.json'}\n")
-    return 0
 
 
 def should_start_local_rust_provider(args) -> bool:

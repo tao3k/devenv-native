@@ -942,6 +942,63 @@ def test_artifact_registry_reuse_probe_routes_through_rust_provider(
     assert benchmark.should_start_local_rust_provider(args) is expected
 
 
+def test_report_payload_exposes_top_level_precision_speed_summary(tmp_path: Path) -> None:
+    benchmark = _load_benchmark_module()
+    args = benchmark.argparse.Namespace(
+        real_docling=False,
+        benchmark_host="127.0.0.1",
+        benchmark_port=50052,
+        rust_rest_endpoint=None,
+        iterations=1,
+        concurrency=1,
+        flight_mode="sync",
+        wait_ms=0,
+        pdf_ocr_worker="skip",
+        pdf_ocr_workers="auto",
+        local_python_ocr_endpoint_count=1,
+        rust_pdf_ocr_workers=None,
+        rust_pdf_ocr_source_range_workers=None,
+        rust_document_extract_endpoint=[],
+        rust_pdf_ocr_endpoint=[],
+        structure_baseline_root=None,
+        shard_cache_reuse_probe=False,
+        artifact_registry_reuse_probe=True,
+        ocr_shard_cache_root=tmp_path / "ocr-shards",
+    )
+    result = {
+        "fixture": "markdown",
+        "attachmentClass": "structured_text",
+        "forceRefreshMs": 10.0,
+        "artifactRegistryReuseForceMs": 4.0,
+        "cacheHitP95Ms": 2.0,
+        "wallTimeMs": 3.0,
+        "cacheSpeedup": 5.0,
+        "forceErrorRows": 0,
+        "artifactRegistryReuseErrorRows": 0,
+        "cacheErrorRows": 0,
+        "totalRows": 2,
+        "requestCount": 1,
+        "arrowIpcBytes": 64,
+        "duplicateMissConverterCalls": None,
+        "structureRows": 1,
+        "structureReadingOrderSorted": True,
+        "structureOrderStable": True,
+        "structureOrderMismatchCount": 0,
+    }
+
+    payload = benchmark.build_report_payload(
+        args,
+        real_fixture_root=None,
+        results=[result],
+        distinct_miss_report=None,
+        structure_baseline_report=None,
+        ocr_shard_cache_summary={"root": str(tmp_path), "fileCount": 0, "totalBytes": 0},
+    )
+
+    assert payload["precisionSpeedSummary"] == payload["summary"]["precisionSpeedSummary"]
+    assert payload["precisionSpeedSummary"]["maxArtifactRegistryReuseForceMs"] == 4.0
+
+
 def test_run_structure_baseline_probe_generates_sync_fixture_baselines(
     monkeypatch,
     tmp_path: Path,
