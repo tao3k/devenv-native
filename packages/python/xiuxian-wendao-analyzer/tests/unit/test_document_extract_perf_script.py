@@ -1691,6 +1691,14 @@ def test_attachment_class_summary_groups_precision_and_speed() -> None:
 
     class_summary = {item["attachmentClass"]: item for item in summary["attachmentClassSummary"]}
     assert set(class_summary) == {"image", "office"}
+    assert summary["imageAttachmentAuditCount"] == 1
+    assert summary["imageKnownDimensionCount"] == 1
+    assert summary["imageFormatCounts"] == {"png": 1}
+    assert summary["imageDimensionSourceCounts"] == {"png_ihdr": 1}
+    assert summary["imageAccelerationCandidates"] == {"image_ocr_cache_candidate": 1}
+    assert summary["maxImageWidthPx"] == 640
+    assert summary["maxImageHeightPx"] == 480
+    assert summary["maxImagePixelCount"] == 307200
     assert class_summary["office"]["fixtureCount"] == 1
     assert class_summary["office"]["fixtures"] == ["docx"]
     assert class_summary["office"]["precisionSpeedSummary"]["precisionGatePassed"] is True
@@ -2018,7 +2026,10 @@ def test_summary_and_markdown_report_distinct_miss_burst() -> None:
                 },
                 "imageAttachmentAudit": {
                     "format": "png",
+                    "widthPx": 640,
+                    "heightPx": 480,
                     "pixelCount": 307200,
+                    "dimensionSource": "png_ihdr",
                     "rustAccelerationCandidate": "image_ocr_cache_candidate",
                 },
             }
@@ -2054,6 +2065,14 @@ def test_summary_and_markdown_report_distinct_miss_burst() -> None:
     assert summary["totalDocumentTimingRows"] == 3
     assert summary["totalDocumentTimingElapsedMs"] == 30.0
     assert summary["totalDocumentTimingOverheadMs"] == 8.0
+    assert summary["imageAttachmentAuditCount"] == 1
+    assert summary["imageKnownDimensionCount"] == 1
+    assert summary["imageFormatCounts"] == {"png": 1}
+    assert summary["imageDimensionSourceCounts"] == {"png_ihdr": 1}
+    assert summary["imageAccelerationCandidates"] == {"image_ocr_cache_candidate": 1}
+    assert summary["maxImageWidthPx"] == 640
+    assert summary["maxImageHeightPx"] == 480
+    assert summary["maxImagePixelCount"] == 307200
     assert summary["documentTimingPhaseElapsedMs"] == {
         "doclingConvert": 20.0,
         "total": 30.0,
@@ -2114,6 +2133,9 @@ def test_summary_and_markdown_report_distinct_miss_burst() -> None:
     assert "Metrics sidecar" in markdown
     assert "chars=80" in markdown
     assert "Document timing sidecar" in markdown
+    assert "Image audit summary" in markdown
+    assert "knownDims=1" in markdown
+    assert "dimensionSources=png_ihdr=1" in markdown
     assert "doclingConvert=20.000" in markdown
     assert "overheadMs=8.000" in markdown
     assert "maxDoclingConvertMs=20.000" in markdown

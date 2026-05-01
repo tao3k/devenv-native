@@ -4,7 +4,15 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from .attachment_classes import attachment_class_summaries
+from .attachment_classes import (
+    aggregate_image_acceleration_candidates,
+    aggregate_image_audit_strings,
+    attachment_class_summaries,
+    image_attachment_audit_count,
+    image_known_dimension_count,
+    max_image_dimension,
+    max_image_pixel_count,
+)
 from .precision_speed import (
     all_structure_order_stable,
     all_structure_parity_passed,
@@ -83,6 +91,19 @@ def summarize_results(
         "documentTimingPhaseElapsedMs": combine_float_counts(
             result.get("documentTimingPhaseElapsedMs", {}) for result in results
         ),
+        "imageAttachmentAuditCount": image_attachment_audit_count(results),
+        "imageKnownDimensionCount": image_known_dimension_count(results),
+        "imageFormatCounts": aggregate_image_audit_strings(results, "format"),
+        "imageDimensionSourceCounts": aggregate_image_audit_strings(
+            results,
+            "dimensionSource",
+        ),
+        "imageAccelerationCandidates": aggregate_image_acceleration_candidates(
+            results,
+        ),
+        "maxImageWidthPx": max_image_dimension(results, "widthPx"),
+        "maxImageHeightPx": max_image_dimension(results, "heightPx"),
+        "maxImagePixelCount": max_image_pixel_count(results),
         "artifactErrorCount": artifact_error_count,
         "minCacheSpeedup": min((result["cacheSpeedup"] for result in results), default=0.0),
         "totalDuplicateMissConverterCalls": sum(
@@ -260,6 +281,16 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"{format_optional_float(payload['summary'].get('totalDocumentTimingOverheadMs'))}, "
         "phases="
         f"{format_float_counts(payload['summary'].get('documentTimingPhaseElapsedMs'))}`",
+        "- Image audit summary: "
+        f"`audits={payload['summary'].get('imageAttachmentAuditCount')}, "
+        f"knownDims={payload['summary'].get('imageKnownDimensionCount')}, "
+        f"formats={format_counts(payload['summary'].get('imageFormatCounts'))}, "
+        "dimensionSources="
+        f"{format_counts(payload['summary'].get('imageDimensionSourceCounts'))}, "
+        f"candidates={format_counts(payload['summary'].get('imageAccelerationCandidates'))}, "
+        f"maxWidthPx={payload['summary'].get('maxImageWidthPx')}, "
+        f"maxHeightPx={payload['summary'].get('maxImageHeightPx')}, "
+        f"maxPixels={payload['summary'].get('maxImagePixelCount')}`",
         "- Precision-speed summary: "
         f"`precisionPassed={precision_speed.get('precisionGatePassed')}, "
         f"errorRows={precision_speed.get('errorRows')}, "
