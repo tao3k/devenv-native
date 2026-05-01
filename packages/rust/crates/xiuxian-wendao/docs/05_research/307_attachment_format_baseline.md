@@ -214,6 +214,24 @@ TIFF, and WebP produced zero error rows, stable structure order, cache-hit p95
 below 8 ms, and fresh-output artifact-registry reuse below 141 ms while force
 conversion remained Docling-bound at roughly 2.4-10.0 seconds.
 
+## Structured Attachment Follow-Up
+
+A second real fixture run expanded the non-PDF scope to DOCX, XLSX, PPTX,
+Markdown, AsciiDoc, HTML, CSV, USPTO XML, JATS XML, XBRL XML, METS GBS,
+Docling JSON, WebVTT, and LaTeX. It produced zero error rows and passed the
+precision gate across all 14 fixtures. Fresh-output artifact-registry reuse
+remained below 177 ms, and cache-hit p95 stayed below 16 ms.
+
+The slowest fixture was METS GBS: cold force extraction took roughly
+20.7 seconds, with Docling conversion responsible for roughly 20.5 seconds.
+This identifies archive-backed structured attachments as the next control-plane
+candidate after image OCR. The first Rust slice is intentionally
+non-behavior-changing: `xiuxian-wendao-attachments` now has an optional
+`archive-audit` feature that reads tar and tar.gz member manifests, counts XML
+and image members, identifies the likely METS XML member, and records suffix
+composition. This creates evidence for future member-level cache keys and
+selective routing while Python/Docling remains the extraction authority.
+
 ## Adaptive Conversion Capacity Follow-Up
 
 The general Rust document extraction scheduler no longer uses a frozen
@@ -249,7 +267,12 @@ non-PDF conversion lanes without changing Docling authority or Arrow schemas.
    - record table count, table character volume, and Arrow IPC size per XML
      fixture;
    - identify whether time is parser-bound or Arrow/export-bound.
-3. Office lane:
+3. Archive-backed structured lane:
+   - use the optional archive audit to separate archive manifest cost from
+     Docling conversion cost;
+   - design member-level cache and selective routing only after the manifest
+     audit proves stable METS/XML/image composition on real fixtures.
+4. Office lane:
    - keep as a regression gate first;
    - optimize only if larger real Office fixtures show cold-path pressure.
 

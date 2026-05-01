@@ -12657,6 +12657,7 @@ name = "xiuxian-wendao-attachments"
 version = "0.1.1"
 dependencies = [
  "arrow 58.1.0",
+ "flate2",
  "image",
  "lopdf",
  "num-traits",
@@ -12664,6 +12665,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
+ "tar",
  "tempfile",
  "xiuxian-testing",
 ]

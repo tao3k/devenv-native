@@ -12,6 +12,7 @@ gateway can depend on the crate without pulling PDF accelerators into default,
 
 | Feature            | Purpose                                                              |
 | ------------------ | -------------------------------------------------------------------- |
+| `archive-audit`    | Enables tar and tar.gz member manifest audits for archive fixtures.  |
 | `pdf-source-range` | Enables `lopdf` source-page manifests without PDFium.                |
 | `pdf-render`       | Adds PDFium-backed region/page raster proofs on top of source range. |
 
@@ -42,6 +43,18 @@ crop/tile planning, but it does not replace Docling OCR or layout authority.
 The Wendao performance probe can include these audit fields through the
 `document-extract-attachment-audit` feature on `xiuxian-wendao`; default live
 extraction still calls the existing Python/Docling path.
+
+## Archive Attachment Audit
+
+The optional `archive-audit` feature adds a non-extracting tar and tar.gz
+member manifest audit. It records entry counts, regular file and directory
+counts, total member sizes, lowercase suffix counts, image member counts, XML
+member counts, the likely METS XML member, and the largest regular member.
+
+This audit targets archive-backed Docling fixtures such as METS GBS. It is a
+control-plane signal for future member-level cache keys and selective routing,
+not a parser path. Live extraction still calls Python/Docling, and the stable
+resource and structure Arrow schemas do not change.
 
 ## Source Page-Range Routing
 

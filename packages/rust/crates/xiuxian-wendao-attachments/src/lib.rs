@@ -2,6 +2,9 @@
 
 xiuxian_testing::crate_test_policy_source_harness!("../tests/unit/lib_policy.rs");
 
+#[cfg(feature = "archive-audit")]
+pub mod archive_audit;
+
 pub mod image_audit;
 
 #[doc(hidden)]
