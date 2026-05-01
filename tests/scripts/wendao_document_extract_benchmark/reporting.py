@@ -24,17 +24,9 @@ def summarize_results(
 ) -> dict[str, Any]:
     rust_jobs_status = combine_rust_jobs_status_summaries(
         [result.get("rustJobsStatusSummary", {}) for result in results]
-        + [
-            (
-                distinct_miss_report.get("rustJobsStatusSummary", {})
-                if distinct_miss_report
-                else {}
-            )
-        ]
+        + [(distinct_miss_report.get("rustJobsStatusSummary", {}) if distinct_miss_report else {})]
     )
-    distinct_error_rows = (
-        distinct_miss_report.get("errorRows", 0) if distinct_miss_report else 0
-    )
+    distinct_error_rows = distinct_miss_report.get("errorRows", 0) if distinct_miss_report else 0
     total_error_rows = (
         sum(
             result["forceErrorRows"]
@@ -44,9 +36,7 @@ def summarize_results(
         )
         + distinct_error_rows
     )
-    artifact_error_count = sum(
-        result.get("artifactErrorCount", 0) for result in results
-    )
+    artifact_error_count = sum(result.get("artifactErrorCount", 0) for result in results)
     structure_parity_error_count = sum(
         result.get("structureParityErrorCount", 0) for result in results
     )
@@ -68,9 +58,7 @@ def summarize_results(
         "totalStructureOcrRegionBlocks": sum(
             result.get("structureOcrRegionBlocks", 0) for result in results
         ),
-        "totalStructureBboxBlocks": sum(
-            result.get("structureBboxBlocks", 0) for result in results
-        ),
+        "totalStructureBboxBlocks": sum(result.get("structureBboxBlocks", 0) for result in results),
         "allStructureReadingOrderSorted": structure_reading_order_sorted,
         "allStructureOrderStable": structure_order_stable,
         "totalStructureOrderMismatches": structure_order_mismatches,
@@ -80,18 +68,12 @@ def summarize_results(
         "allStructureParityPassed": structure_parity_passed,
         "totalStructureParityErrors": structure_parity_error_count,
         "totalMetricsRows": sum(result.get("metricsRows", 0) for result in results),
-        "totalMetricsResultChars": sum(
-            result.get("metricsResultChars", 0) for result in results
-        ),
-        "totalMetricsBboxCount": sum(
-            result.get("metricsBboxCount", 0) for result in results
-        ),
+        "totalMetricsResultChars": sum(result.get("metricsResultChars", 0) for result in results),
+        "totalMetricsBboxCount": sum(result.get("metricsBboxCount", 0) for result in results),
         "totalMetricsRustSchedulerElapsedMs": sum(
             result.get("metricsRustSchedulerElapsedMs", 0.0) for result in results
         ),
-        "totalDocumentTimingRows": sum(
-            result.get("documentTimingRows", 0) for result in results
-        ),
+        "totalDocumentTimingRows": sum(result.get("documentTimingRows", 0) for result in results),
         "totalDocumentTimingElapsedMs": sum(
             result.get("documentTimingTotalElapsedMs", 0.0) for result in results
         ),
@@ -102,9 +84,7 @@ def summarize_results(
             result.get("documentTimingPhaseElapsedMs", {}) for result in results
         ),
         "artifactErrorCount": artifact_error_count,
-        "minCacheSpeedup": min(
-            (result["cacheSpeedup"] for result in results), default=0.0
-        ),
+        "minCacheSpeedup": min((result["cacheSpeedup"] for result in results), default=0.0),
         "totalDuplicateMissConverterCalls": sum(
             result["duplicateMissConverterCalls"] or 0 for result in results
         ),
@@ -317,9 +297,7 @@ def render_markdown(payload: dict[str, Any]) -> str:
             "structureRows": result.get("structureRows", 0),
             "ocrBlocks": ocr_blocks,
             "orderSorted": result.get("structureReadingOrderSorted"),
-            "shardCacheReuseForceMs": format_optional_float(
-                result.get("shardCacheReuseForceMs")
-            ),
+            "shardCacheReuseForceMs": format_optional_float(result.get("shardCacheReuseForceMs")),
         }
         lines.append(
             "| {fixture} | {requestCount} | {rows} | {errorRows} | "
@@ -337,8 +315,8 @@ def render_markdown(payload: dict[str, Any]) -> str:
                 "",
                 "## Attachment Class Summary",
                 "",
-                "| Class | Fixtures | Error rows | Resource types | Block types | BBox blocks | Rust image candidates | Order sorted | Order stable | Slowest force | Docling max ms | Docling max share | Boundary overhead max share | Slowest cache p95 | Speedup min |",
-                "| --- | ---: | ---: | --- | --- | ---: | --- | --- | --- | --- | ---: | ---: | ---: | --- | ---: |",
+                "| Class | Fixtures | Error rows | Resource types | Block types | BBox blocks | Image formats | Image dim sources | Image dims | Rust image candidates | Order sorted | Order stable | Slowest force | Docling max ms | Docling max share | Boundary overhead max share | Slowest cache p95 | Speedup min |",
+                "| --- | ---: | ---: | --- | --- | ---: | --- | --- | ---: | --- | --- | --- | --- | ---: | ---: | ---: | --- | ---: |",
             ]
         )
         for class_summary in payload["summary"]["attachmentClassSummary"]:
@@ -346,27 +324,25 @@ def render_markdown(payload: dict[str, Any]) -> str:
             lines.append(
                 "| {attachmentClass} | {fixtureCount} | {totalErrorRows} | "
                 "{resourceTypes} | {blockTypes} | {bboxBlocks} | "
+                "{imageFormats} | {imageDimensionSources} | {imageDimensions} | "
                 "{imageCandidates} | "
                 "{orderSorted} | {orderStable} | {slowestForce} | "
                 "{maxDoclingConvert} | {maxDoclingShare} | "
                 "{maxBoundaryOverheadShare} | {slowestCacheP95} | "
                 "{minCacheSpeedup} |".format(
                     **class_summary,
-                    resourceTypes=format_counts(
-                        class_summary.get("resourceTypeCounts")
-                    ),
-                    blockTypes=format_counts(
-                        class_summary.get("structureBlockTypeCounts")
-                    ),
+                    resourceTypes=format_counts(class_summary.get("resourceTypeCounts")),
+                    blockTypes=format_counts(class_summary.get("structureBlockTypeCounts")),
                     bboxBlocks=class_summary.get("structureBboxBlocks", 0),
-                    imageCandidates=format_counts(
-                        class_summary.get("imageAccelerationCandidates")
+                    imageFormats=format_counts(class_summary.get("imageFormatCounts")),
+                    imageDimensionSources=format_counts(
+                        class_summary.get("imageDimensionSourceCounts")
                     ),
+                    imageDimensions=class_summary.get("imageKnownDimensionCount", 0),
+                    imageCandidates=format_counts(class_summary.get("imageAccelerationCandidates")),
                     orderSorted=precision_speed.get("structureReadingOrderSorted"),
                     orderStable=precision_speed.get("structureOrderStable"),
-                    slowestForce=format_fixture_latency(
-                        class_summary.get("slowestForceFixture")
-                    ),
+                    slowestForce=format_fixture_latency(class_summary.get("slowestForceFixture")),
                     maxDoclingConvert=format_optional_float(
                         precision_speed.get("maxDoclingConvertMs")
                     ),
@@ -379,9 +355,7 @@ def render_markdown(payload: dict[str, Any]) -> str:
                     slowestCacheP95=format_fixture_latency(
                         class_summary.get("slowestCacheP95Fixture")
                     ),
-                    minCacheSpeedup=format_optional_float(
-                        precision_speed.get("minCacheSpeedup")
-                    ),
+                    minCacheSpeedup=format_optional_float(precision_speed.get("minCacheSpeedup")),
                 )
             )
     distinct_miss = payload.get("distinctMiss")
@@ -405,15 +379,12 @@ def render_markdown(payload: dict[str, Any]) -> str:
                     maxInProcessRunningConversions=distinct_status[
                         "maxInProcessRunningConversions"
                     ],
-                    minAvailablePermits=distinct_status[
-                        "minAvailableConversionPermits"
-                    ],
+                    minAvailablePermits=distinct_status["minAvailableConversionPermits"],
                     maxRunningConversions=distinct_status["maxRunningConversions"],
                     maxConversionDurationMs=distinct_status["maxConversionDurationMs"],
                 ),
                 "",
-                "Fixtures: "
-                + ", ".join(f"`{fixture}`" for fixture in distinct_miss["fixtures"]),
+                "Fixtures: " + ", ".join(f"`{fixture}`" for fixture in distinct_miss["fixtures"]),
             ]
         )
     lines.append("")

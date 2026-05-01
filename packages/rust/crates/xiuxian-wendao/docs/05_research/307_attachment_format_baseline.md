@@ -192,6 +192,15 @@ control plane: content hash, preflight, routing, cache, scheduler, provenance,
 and validation. Docling remains the image OCR and layout authority until a
 class-specific fast path proves parity.
 
+The benchmark summary now also exposes image audit format counts,
+dimension-source counts, known-dimension counts, maximum width, maximum height,
+and maximum pixel count at both whole-run and attachment-class levels. These
+fields make the next crop/tile/cache decision evidence-based: if Rust cannot
+prove dimensions from bounded headers, the image remains a Docling passthrough
+candidate; if it can prove dimensions, the report has enough control-plane
+signal to select whole-image cache, oversized preflight, or a future
+parity-gated crop/tile proof without changing Docling OCR authority.
+
 ## Adaptive Conversion Capacity Follow-Up
 
 The general Rust document extraction scheduler no longer uses a frozen

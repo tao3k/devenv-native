@@ -9,9 +9,7 @@ import pytest
 
 def _load_benchmark_module():
     repo_root = Path(__file__).resolve().parents[5]
-    script_path = (
-        repo_root / "tests" / "scripts" / "benchmark_wendao_document_extract.py"
-    )
+    script_path = repo_root / "tests" / "scripts" / "benchmark_wendao_document_extract.py"
     spec = importlib.util.spec_from_file_location(
         "benchmark_wendao_document_extract",
         script_path,
@@ -47,32 +45,19 @@ def test_attachment_classification_covers_docling_real_lanes(tmp_path: Path) -> 
     assert benchmark.classify_attachment("docx", tmp_path / "word.docx") == "office"
     assert benchmark.classify_attachment("pptx", tmp_path / "deck.pptx") == "office"
     assert benchmark.classify_attachment("xlsx", tmp_path / "book.xlsx") == "office"
-    assert (
-        benchmark.classify_attachment("markdown", tmp_path / "wiki.md")
-        == "structured_text"
-    )
-    assert benchmark.classify_attachment("latex", tmp_path / "paper.tex") == (
-        "structured_text"
-    )
+    assert benchmark.classify_attachment("markdown", tmp_path / "wiki.md") == "structured_text"
+    assert benchmark.classify_attachment("latex", tmp_path / "paper.tex") == ("structured_text")
     assert benchmark.classify_attachment("html", tmp_path / "wiki.html") == "web"
     assert benchmark.classify_attachment("csv", tmp_path / "rows.csv") == "table_data"
     assert benchmark.classify_attachment("image-png", tmp_path / "page.png") == "image"
     assert benchmark.classify_attachment("jats-xml", tmp_path / "article.xml") == "xml"
+    assert benchmark.classify_attachment("mets-gbs", tmp_path / "book.tar.gz") == "archive_document"
     assert (
-        benchmark.classify_attachment("mets-gbs", tmp_path / "book.tar.gz")
-        == "archive_document"
+        benchmark.classify_attachment("docling-json", tmp_path / "docling.json") == "docling_json"
     )
-    assert (
-        benchmark.classify_attachment("docling-json", tmp_path / "docling.json")
-        == "docling_json"
-    )
-    assert benchmark.classify_attachment("webvtt", tmp_path / "captions.vtt") == (
-        "subtitle"
-    )
+    assert benchmark.classify_attachment("webvtt", tmp_path / "captions.vtt") == ("subtitle")
     assert benchmark.classify_attachment("audio", tmp_path / "sample.mp3") == "audio"
-    assert benchmark.classify_attachment("custom", tmp_path / "unknown.bin") == (
-        "unknown"
-    )
+    assert benchmark.classify_attachment("custom", tmp_path / "unknown.bin") == ("unknown")
 
 
 def test_docling_real_fixtures_can_skip_audio(tmp_path: Path) -> None:
@@ -216,9 +201,7 @@ def test_docling_real_fixture_root_defaults_to_prj_data_home(
     )
 
 
-def test_prepare_docling_fixtures_uses_sparse_checkout(
-    monkeypatch, tmp_path: Path
-) -> None:
+def test_prepare_docling_fixtures_uses_sparse_checkout(monkeypatch, tmp_path: Path) -> None:
     benchmark = _load_benchmark_module()
     commands: list[list[str]] = []
 
@@ -636,7 +619,10 @@ def test_artifact_report_summary_tracks_structure_precision() -> None:
                 },
                 "imageAttachmentAudit": {
                     "format": "png",
+                    "widthPx": 640,
+                    "heightPx": 480,
                     "pixelCount": 307200,
+                    "dimensionSource": "png_ihdr",
                     "rustAccelerationCandidate": "image_ocr_cache_candidate",
                 },
                 "artifactError": None,
@@ -695,7 +681,12 @@ def test_artifact_report_summary_tracks_structure_precision() -> None:
         "writeResourcesArrow": 2.0,
     }
     assert summary["imageAttachmentAuditCount"] == 1
+    assert summary["imageKnownDimensionCount"] == 1
+    assert summary["imageFormatCounts"] == {"png": 1}
+    assert summary["imageDimensionSourceCounts"] == {"png_ihdr": 1}
     assert summary["imageAccelerationCandidates"] == {"image_ocr_cache_candidate": 1}
+    assert summary["maxImageWidthPx"] == 640
+    assert summary["maxImageHeightPx"] == 480
     assert summary["maxImagePixelCount"] == 307200
     assert summary["artifactErrorCount"] == 0
 
@@ -1186,9 +1177,7 @@ def test_hybrid_pdf_render_region_env_uses_selected_fixtures(tmp_path: Path) -> 
 
     env = benchmark.build_hybrid_pdf_render_region_env(args)
 
-    regions = benchmark.json.loads(
-        env["WENDAO_DOCUMENT_EXTRACT_PDF_RENDER_REGIONS_JSON"]
-    )
+    regions = benchmark.json.loads(env["WENDAO_DOCUMENT_EXTRACT_PDF_RENDER_REGIONS_JSON"])
     assert regions == [
         {
             "source": str(tmp_path / "sample.pdf"),
@@ -1251,9 +1240,7 @@ def test_pdf_render_shard_features_are_not_duplicated() -> None:
     benchmark = _load_benchmark_module()
 
     assert (
-        benchmark.cargo_features_with_pdf_render(
-            "performance document-extract-pdf-render"
-        )
+        benchmark.cargo_features_with_pdf_render("performance document-extract-pdf-render")
         == "performance,document-extract-pdf-render"
     )
 
@@ -1262,9 +1249,7 @@ def test_hybrid_source_range_features_do_not_pull_pdfium() -> None:
     benchmark = _load_benchmark_module()
 
     assert (
-        benchmark.cargo_features_for_flight_mode(
-            "performance studio", "hybrid-page-ocr"
-        )
+        benchmark.cargo_features_for_flight_mode("performance studio", "hybrid-page-ocr")
         == "performance,studio,document-extract-pdf-source-range"
     )
 
@@ -1272,9 +1257,7 @@ def test_hybrid_source_range_features_do_not_pull_pdfium() -> None:
 def test_normalize_render_selection_accepts_cli_spelling() -> None:
     benchmark = _load_benchmark_module()
 
-    assert benchmark.normalize_render_selection("shard-fallback-pages") == (
-        "shard_fallback_pages"
-    )
+    assert benchmark.normalize_render_selection("shard-fallback-pages") == ("shard_fallback_pages")
     assert benchmark.normalize_render_selection("region-shards") == "region_shards"
 
 
@@ -1324,9 +1307,7 @@ def test_cargo_perf_probe_can_send_distinct_input_manifest(
         wait_ms=60000,
     )
 
-    manifest = benchmark.json.loads(
-        captured_env["WENDAO_DOCUMENT_EXTRACT_PERF_INPUTS_JSON"]
-    )
+    manifest = benchmark.json.loads(captured_env["WENDAO_DOCUMENT_EXTRACT_PERF_INPUTS_JSON"])
     assert captured_env["WENDAO_DOCUMENT_EXTRACT_PERF_WAIT_MS"] == "60000"
     assert [item["name"] for item in manifest] == ["first", "second"]
     assert [Path(item["outputDir"]).name for item in manifest] == ["first", "second"]
@@ -1404,13 +1385,9 @@ def test_start_gateway_server_sets_document_extract_and_valkey_env(
     assert env["WENDAO_DOCUMENT_EXTRACT_OCR_SHARD_CACHE_ROOT"] == str(
         (tmp_path / "ocr-shard-cache").resolve()
     )
-    assert env["WENDAO_DOCUMENT_EXTRACT_PDF_RENDER_SELECTION"] == (
-        "shard_fallback_pages"
-    )
+    assert env["WENDAO_DOCUMENT_EXTRACT_PDF_RENDER_SELECTION"] == ("shard_fallback_pages")
     assert env["VALKEY_URL"] == "redis://127.0.0.1:51079/0"
-    assert env["XIUXIAN_WENDAO_SEARCH_PLANE_VALKEY_URL"] == (
-        "redis://127.0.0.1:51079/0"
-    )
+    assert env["XIUXIAN_WENDAO_SEARCH_PLANE_VALKEY_URL"] == ("redis://127.0.0.1:51079/0")
     assert env["XIUXIAN_WENDAO_GATEWAY_BOOTSTRAP_BACKGROUND_INDEXING"] == "false"
     config = (tmp_path / "gateway" / "wendao.toml").read_text(encoding="utf-8")
     assert "[search.cache]" in config
@@ -1460,24 +1437,18 @@ def test_start_rust_provider_forwards_hybrid_region_env(
     env = kwargs["env"]
     assert env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_WORKERS"] == "6"
     assert env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS"] == "2"
-    assert env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_ENDPOINTS"] == (
-        "http://127.0.0.1:52051"
-    )
+    assert env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_ENDPOINTS"] == ("http://127.0.0.1:52051")
     assert env["WENDAO_DOCUMENT_EXTRACT_ENDPOINTS"] == "http://127.0.0.1:53051"
     assert env["WENDAO_DOCUMENT_EXTRACT_OCR_SHARD_CACHE_ROOT"] == str(
         (tmp_path / "ocr-shard-cache").resolve()
     )
     assert env["WENDAO_DOCUMENT_EXTRACT_PDF_RENDER_SELECTION"] == "region_shards"
-    regions = benchmark.json.loads(
-        env["WENDAO_DOCUMENT_EXTRACT_PDF_RENDER_REGIONS_JSON"]
-    )
+    regions = benchmark.json.loads(env["WENDAO_DOCUMENT_EXTRACT_PDF_RENDER_REGIONS_JSON"])
     assert regions[0]["source"] == str(tmp_path / "sample.pdf")
     assert regions[0]["regions"][0]["regionIndex"] == 1
 
 
-def test_start_valkey_server_uses_temp_runtime_flags(
-    monkeypatch, tmp_path: Path
-) -> None:
+def test_start_valkey_server_uses_temp_runtime_flags(monkeypatch, tmp_path: Path) -> None:
     benchmark = _load_benchmark_module()
     calls = []
 
@@ -1706,7 +1677,10 @@ def test_attachment_class_summary_groups_precision_and_speed() -> None:
                         },
                         "imageAttachmentAudit": {
                             "format": "png",
+                            "widthPx": 640,
+                            "heightPx": 480,
                             "pixelCount": 307200,
+                            "dimensionSource": "png_ihdr",
                             "rustAccelerationCandidate": ("image_ocr_cache_candidate"),
                         },
                     }
@@ -1715,15 +1689,11 @@ def test_attachment_class_summary_groups_precision_and_speed() -> None:
         ],
     )
 
-    class_summary = {
-        item["attachmentClass"]: item for item in summary["attachmentClassSummary"]
-    }
+    class_summary = {item["attachmentClass"]: item for item in summary["attachmentClassSummary"]}
     assert set(class_summary) == {"image", "office"}
     assert class_summary["office"]["fixtureCount"] == 1
     assert class_summary["office"]["fixtures"] == ["docx"]
-    assert (
-        class_summary["office"]["precisionSpeedSummary"]["precisionGatePassed"] is True
-    )
+    assert class_summary["office"]["precisionSpeedSummary"]["precisionGatePassed"] is True
     assert class_summary["office"]["precisionSpeedSummary"]["maxForceRefreshMs"] == 20.0
     assert class_summary["office"]["resourcesRows"] == 4
     assert class_summary["office"]["resourceTypeCounts"] == {
@@ -1753,9 +1723,12 @@ def test_attachment_class_summary_groups_precision_and_speed() -> None:
     assert class_summary["image"]["structureRows"] == 1
     assert class_summary["image"]["resourceTypeCounts"]["table"] == 1
     assert class_summary["image"]["imageAttachmentAuditCount"] == 1
-    assert class_summary["image"]["imageAccelerationCandidates"] == {
-        "image_ocr_cache_candidate": 1
-    }
+    assert class_summary["image"]["imageKnownDimensionCount"] == 1
+    assert class_summary["image"]["imageFormatCounts"] == {"png": 1}
+    assert class_summary["image"]["imageDimensionSourceCounts"] == {"png_ihdr": 1}
+    assert class_summary["image"]["imageAccelerationCandidates"] == {"image_ocr_cache_candidate": 1}
+    assert class_summary["image"]["maxImageWidthPx"] == 640
+    assert class_summary["image"]["maxImageHeightPx"] == 480
     assert class_summary["image"]["maxImagePixelCount"] == 307200
     assert class_summary["image"]["slowestCacheP95Fixture"] == {
         "fixture": "image-png",
@@ -1766,25 +1739,18 @@ def test_attachment_class_summary_groups_precision_and_speed() -> None:
         "latencyMs": 5.0,
     }
     assert class_summary["image"]["precisionSpeedSummary"]["maxCacheHitP95Ms"] == 5.0
-    assert (
-        class_summary["image"]["precisionSpeedSummary"]["maxDocumentTimingOverheadMs"]
-        == 5.0
-    )
+    assert class_summary["image"]["precisionSpeedSummary"]["maxDocumentTimingOverheadMs"] == 5.0
     assert class_summary["image"]["documentTimingPhaseElapsedMs"] == {
         "doclingConvert": 40.0,
         "total": 45.0,
     }
-    assert class_summary["image"]["precisionSpeedSummary"]["maxDoclingConvertMs"] == (
-        40.0
-    )
+    assert class_summary["image"]["precisionSpeedSummary"]["maxDoclingConvertMs"] == (40.0)
     assert class_summary["image"]["precisionSpeedSummary"][
         "maxDoclingConvertShare"
     ] == pytest.approx(40.0 / 45.0)
 
 
-def test_summarize_ocr_shard_cache_reports_root_files_and_limits(
-    monkeypatch, tmp_path
-) -> None:
+def test_summarize_ocr_shard_cache_reports_root_files_and_limits(monkeypatch, tmp_path) -> None:
     benchmark = _load_benchmark_module()
     cache_root = tmp_path / "ocr-shards"
     (cache_root / "aa").mkdir(parents=True)
@@ -1831,10 +1797,7 @@ def test_benchmark_ocr_shard_cache_root_honors_explicit_root(
         external_endpoint=False,
     )
 
-    assert (
-        benchmark.benchmark_ocr_shard_cache_root(args, tmp_path)
-        == explicit_root.resolve()
-    )
+    assert benchmark.benchmark_ocr_shard_cache_root(args, tmp_path) == explicit_root.resolve()
 
 
 def test_run_fixture_probe_can_measure_shard_cache_reuse(monkeypatch, tmp_path) -> None:
@@ -2099,12 +2062,8 @@ def test_summary_and_markdown_report_distinct_miss_burst() -> None:
     assert summary["precisionSpeedSummary"]["maxCacheHitP95Ms"] == 2.0
     assert summary["precisionSpeedSummary"]["totalDoclingConvertMs"] == 20.0
     assert summary["precisionSpeedSummary"]["maxDoclingConvertMs"] == 20.0
-    assert summary["precisionSpeedSummary"]["maxDoclingConvertShare"] == pytest.approx(
-        20.0 / 30.0
-    )
-    assert summary["precisionSpeedSummary"][
-        "maxDocumentTimingOverheadShare"
-    ] == pytest.approx(0.8)
+    assert summary["precisionSpeedSummary"]["maxDoclingConvertShare"] == pytest.approx(20.0 / 30.0)
+    assert summary["precisionSpeedSummary"]["maxDocumentTimingOverheadShare"] == pytest.approx(0.8)
     assert summary["precisionSpeedSummary"]["precisionGatePassed"] is True
     assert summary["precisionSpeedSummary"]["structureOrderStable"] is True
     assert summary["attachmentClassSummary"][0]["attachmentClass"] == "unknown"

@@ -20,13 +20,9 @@ def summarize_artifact_reports(reports: list[dict[str, Any]]) -> dict[str, Any]:
         for report in reports
     )
     return {
-        "resourcesArrowExists": any(
-            bool(report.get("resourcesArrowExists")) for report in reports
-        ),
+        "resourcesArrowExists": any(bool(report.get("resourcesArrowExists")) for report in reports),
         "resourcesRows": sum_int_report_values(reports, "resourcesRowCount"),
-        "structureArrowExists": any(
-            bool(report.get("structureArrowExists")) for report in reports
-        ),
+        "structureArrowExists": any(bool(report.get("structureArrowExists")) for report in reports),
         "structureRows": sum_int_report_values(reports, "structureRowCount"),
         "structureOcrPageBlocks": sum_int_report_values(
             reports,
@@ -50,9 +46,7 @@ def summarize_artifact_reports(reports: list[dict[str, Any]]) -> dict[str, Any]:
         "structureParityErrorCount": sum(
             1 for report in reports if report.get("structureParityError")
         ),
-        "metricsArrowExists": any(
-            bool(report.get("metricsArrowExists")) for report in reports
-        ),
+        "metricsArrowExists": any(bool(report.get("metricsArrowExists")) for report in reports),
         "metricsRows": sum_int_report_values(reports, "metricsRowCount"),
         "metricsResultChars": sum_int_report_values(reports, "metricsResultChars"),
         "metricsBboxCount": sum_int_report_values(reports, "metricsBboxCount"),
@@ -76,11 +70,14 @@ def summarize_artifact_reports(reports: list[dict[str, Any]]) -> dict[str, Any]:
             "documentTimingPhaseElapsedMs",
         ),
         "imageAttachmentAuditCount": image_attachment_audit_count(reports),
+        "imageKnownDimensionCount": image_known_dimension_count(reports),
+        "imageFormatCounts": image_format_counts(reports),
+        "imageDimensionSourceCounts": image_dimension_source_counts(reports),
         "imageAccelerationCandidates": image_acceleration_candidates(reports),
+        "maxImageWidthPx": max_image_dimension(reports, "widthPx"),
+        "maxImageHeightPx": max_image_dimension(reports, "heightPx"),
         "maxImagePixelCount": max_image_pixel_count(reports),
-        "artifactErrorCount": sum(
-            1 for report in reports if report.get("artifactError")
-        ),
+        "artifactErrorCount": sum(1 for report in reports if report.get("artifactError")),
     }
 
 
@@ -88,29 +85,23 @@ def structure_parity_passed(reports: list[dict[str, Any]]) -> bool | None:
     checked_reports = [
         report
         for report in reports
-        if report.get("structureParity") is not None
-        or report.get("structureParityError")
+        if report.get("structureParity") is not None or report.get("structureParityError")
     ]
     if not checked_reports:
         return None
     return all(
-        report.get("structureParity") is not None
-        and not report.get("structureParityError")
+        report.get("structureParity") is not None and not report.get("structureParityError")
         for report in checked_reports
     )
 
 
 def sum_int_report_values(reports: list[dict[str, Any]], key: str) -> int:
-    return sum(
-        value for report in reports if isinstance((value := report.get(key)), int)
-    )
+    return sum(value for report in reports if isinstance((value := report.get(key)), int))
 
 
 def sum_float_report_values(reports: list[dict[str, Any]], key: str) -> float:
     return sum(
-        float(value)
-        for report in reports
-        if isinstance((value := report.get(key)), int | float)
+        float(value) for report in reports if isinstance((value := report.get(key)), int | float)
     )
 
 
@@ -140,9 +131,40 @@ def document_timing_arrow_exists(report: dict[str, Any]) -> bool:
 
 
 def image_attachment_audit_count(reports: list[dict[str, Any]]) -> int:
+    return sum(1 for report in reports if isinstance(report.get("imageAttachmentAudit"), dict))
+
+
+def image_known_dimension_count(reports: list[dict[str, Any]]) -> int:
     return sum(
-        1 for report in reports if isinstance(report.get("imageAttachmentAudit"), dict)
+        1
+        for report in reports
+        if isinstance((audit := report.get("imageAttachmentAudit")), dict)
+        and isinstance(audit.get("widthPx"), int)
+        and isinstance(audit.get("heightPx"), int)
     )
+
+
+def image_format_counts(reports: list[dict[str, Any]]) -> dict[str, int]:
+    return image_audit_string_counts(reports, "format")
+
+
+def image_dimension_source_counts(reports: list[dict[str, Any]]) -> dict[str, int]:
+    return image_audit_string_counts(reports, "dimensionSource")
+
+
+def image_audit_string_counts(
+    reports: list[dict[str, Any]],
+    key: str,
+) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for report in reports:
+        audit = report.get("imageAttachmentAudit")
+        if not isinstance(audit, dict):
+            continue
+        value = audit.get(key)
+        if isinstance(value, str):
+            counts[value] = counts.get(value, 0) + 1
+    return dict(sorted(counts.items()))
 
 
 def image_acceleration_candidates(reports: list[dict[str, Any]]) -> dict[str, int]:
@@ -155,6 +177,18 @@ def image_acceleration_candidates(reports: list[dict[str, Any]]) -> dict[str, in
         if isinstance(candidate, str):
             counts[candidate] = counts.get(candidate, 0) + 1
     return dict(sorted(counts.items()))
+
+
+def max_image_dimension(reports: list[dict[str, Any]], key: str) -> int | None:
+    values = []
+    for report in reports:
+        audit = report.get("imageAttachmentAudit")
+        if not isinstance(audit, dict):
+            continue
+        value = audit.get(key)
+        if isinstance(value, int):
+            values.append(value)
+    return max(values, default=None)
 
 
 def max_image_pixel_count(reports: list[dict[str, Any]]) -> int | None:

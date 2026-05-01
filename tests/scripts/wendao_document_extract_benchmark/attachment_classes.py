@@ -131,9 +131,7 @@ def summarize_attachment_class(
         + result.get("cacheErrorRows", 0)
         for result in results
     )
-    artifact_error_count = sum(
-        result.get("artifactErrorCount", 0) for result in results
-    )
+    artifact_error_count = sum(result.get("artifactErrorCount", 0) for result in results)
     structure_parity_error_count = sum(
         result.get("structureParityErrorCount", 0) for result in results
     )
@@ -153,9 +151,7 @@ def summarize_attachment_class(
         "attachmentClass": attachment_class,
         "fixtureCount": len(results),
         "fixtures": [
-            fixture
-            for result in results
-            if isinstance((fixture := result.get("fixture")), str)
+            fixture for result in results if isinstance((fixture := result.get("fixture")), str)
         ],
         "totalRequests": sum(result.get("requestCount", 0) for result in results),
         "totalRows": sum(result.get("totalRows", 0) for result in results),
@@ -171,9 +167,7 @@ def summarize_attachment_class(
             "resourceStatusCounts",
         ),
         "structureRows": sum(result.get("structureRows", 0) for result in results),
-        "structureBboxBlocks": sum(
-            result.get("structureBboxBlocks", 0) for result in results
-        ),
+        "structureBboxBlocks": sum(result.get("structureBboxBlocks", 0) for result in results),
         "structureBlockTypeCounts": aggregate_artifact_counter(
             results,
             "structureBlockTypeCounts",
@@ -194,9 +188,17 @@ def summarize_attachment_class(
         ),
         "documentTimingPhaseElapsedMs": aggregate_document_timing_phases(results),
         "imageAttachmentAuditCount": image_attachment_audit_count(results),
+        "imageKnownDimensionCount": image_known_dimension_count(results),
+        "imageFormatCounts": aggregate_image_audit_strings(results, "format"),
+        "imageDimensionSourceCounts": aggregate_image_audit_strings(
+            results,
+            "dimensionSource",
+        ),
         "imageAccelerationCandidates": aggregate_image_acceleration_candidates(
             results,
         ),
+        "maxImageWidthPx": max_image_dimension(results, "widthPx"),
+        "maxImageHeightPx": max_image_dimension(results, "heightPx"),
         "maxImagePixelCount": max_image_pixel_count(results),
         "slowestForceFixture": slowest_fixture(results, "forceRefreshMs"),
         "slowestTimingOverheadFixture": slowest_fixture(
@@ -264,6 +266,37 @@ def image_attachment_audit_count(results: list[dict[str, Any]]) -> int:
     )
 
 
+def image_known_dimension_count(results: list[dict[str, Any]]) -> int:
+    """Count image audits with dimensions proven by Rust bounded headers."""
+
+    return sum(
+        1
+        for result in results
+        for artifact in result.get("artifactReports", [])
+        if isinstance((audit := artifact.get("imageAttachmentAudit")), dict)
+        and isinstance(audit.get("widthPx"), int)
+        and isinstance(audit.get("heightPx"), int)
+    )
+
+
+def aggregate_image_audit_strings(
+    results: list[dict[str, Any]],
+    key: str,
+) -> dict[str, int]:
+    """Aggregate string-valued image audit fields."""
+
+    counts: dict[str, int] = {}
+    for result in results:
+        for artifact in result.get("artifactReports", []):
+            audit = artifact.get("imageAttachmentAudit")
+            if not isinstance(audit, dict):
+                continue
+            value = audit.get(key)
+            if isinstance(value, str):
+                counts[value] = counts.get(value, 0) + 1
+    return dict(sorted(counts.items()))
+
+
 def aggregate_image_acceleration_candidates(
     results: list[dict[str, Any]],
 ) -> dict[str, int]:
@@ -279,6 +312,21 @@ def aggregate_image_acceleration_candidates(
             if isinstance(candidate, str):
                 counts[candidate] = counts.get(candidate, 0) + 1
     return dict(sorted(counts.items()))
+
+
+def max_image_dimension(results: list[dict[str, Any]], key: str) -> int | None:
+    """Return the largest image dimension value across class fixture artifacts."""
+
+    values = []
+    for result in results:
+        for artifact in result.get("artifactReports", []):
+            audit = artifact.get("imageAttachmentAudit")
+            if not isinstance(audit, dict):
+                continue
+            value = audit.get(key)
+            if isinstance(value, int):
+                values.append(value)
+    return max(values, default=None)
 
 
 def max_image_pixel_count(results: list[dict[str, Any]]) -> int | None:

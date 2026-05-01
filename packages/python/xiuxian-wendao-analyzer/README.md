@@ -295,6 +295,7 @@ Docling JSON, archive-backed documents, and unknown custom inputs. This keeps
 non-PDF attachment regressions visible without changing the Arrow Flight
 document extraction contract. Class summaries also aggregate resource type
 counts, structure block type counts, bbox block counts, Rust image audit
+format counts, dimension-source counts, known-dimension counts, acceleration
 candidate counts, and the slowest force/cache fixture in each class so image
 OCR and XML/table-heavy hotspots can be diagnosed before adding a new fast
 path. Rust image audit is a preflight/control-plane signal only; Docling
