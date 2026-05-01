@@ -112,10 +112,10 @@ any cache or scheduler change.
 The Rust side now has a bounded image preflight audit surface in
 `xiuxian-wendao-attachments`. It reads file metadata plus bounded headers for
 known Docling image suffixes, records MIME/format hints, and extracts
-PNG/JPEG/BMP dimensions when those dimensions are available directly from the
-header. The `xiuxian-wendao` benchmark probe can include the audit through the
-`document-extract-attachment-audit` feature and then aggregate
-`imageAccelerationCandidates` in `summary.attachmentClassSummary`.
+PNG/JPEG/BMP/GIF/WebP/TIFF dimensions when those dimensions are available
+directly from the header. The `xiuxian-wendao` benchmark probe can include the
+audit through the `document-extract-attachment-audit` feature and then
+aggregate `imageAccelerationCandidates` in `summary.attachmentClassSummary`.
 
 This is an optimization planning signal, not a parser change. Rust can now
 identify future whole-image OCR cache and oversized-image preflight candidates,

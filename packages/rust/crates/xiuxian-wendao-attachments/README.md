@@ -33,7 +33,8 @@ gateway can depend on the crate without pulling PDF accelerators into default,
 The crate exposes a lightweight image preflight audit with no OCR dependency
 and no image decoding dependency. It reads file metadata and bounded headers for
 known Docling image suffixes, records MIME/format hints, and extracts
-PNG/JPEG/BMP dimensions when they are available directly from the header.
+PNG/JPEG/BMP/GIF/WebP/TIFF dimensions when they are available directly from
+the header.
 
 This audit is a Rust control-plane signal. It can identify future candidates
 for whole-image OCR cache keys, oversized image preflight, and later
