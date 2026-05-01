@@ -39,6 +39,7 @@ def summarize_results(
         sum(
             result["forceErrorRows"]
             + result.get("shardCacheReuseErrorRows", 0)
+            + result.get("artifactRegistryReuseErrorRows", 0)
             + result["cacheErrorRows"]
             for result in results
         )
@@ -218,6 +219,8 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"- PDF OCR profile: `{payload['pdfOcrProfile']}`",
         "- Shard-cache reuse probe: "
         f"`{any(result.get('shardCacheReuseEnabled') for result in payload['results'])}`",
+        "- Artifact-registry reuse probe: "
+        f"`{any(result.get('artifactRegistryReuseEnabled') for result in payload['results'])}`",
         "- OCR shard cache: "
         f"`files={ocr_shard_cache.get('fileCount')}, "
         f"bytes={ocr_shard_cache.get('totalBytes')}, "
@@ -309,13 +312,14 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"maxCacheP95Ms={format_optional_float(precision_speed.get('maxCacheHitP95Ms'))}`",
         f"- Artifact errors: `{payload['summary']['artifactErrorCount']}`",
         "",
-        "| Fixture | Requests | Rows/request | Error rows | Duplicate conversions | Queue max | Running max | Permits min | Total rows | Structure rows | OCR blocks | Order sorted | IPC bytes | Force ms | Shard reuse force ms | Cache p50 ms | Cache p95 ms | Wall ms | Max RSS KB | Speedup |",
-        "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+        "| Fixture | Requests | Rows/request | Error rows | Duplicate conversions | Queue max | Running max | Permits min | Total rows | Structure rows | OCR blocks | Order sorted | IPC bytes | Force ms | Artifact reuse ms | Shard reuse force ms | Cache p50 ms | Cache p95 ms | Wall ms | Max RSS KB | Speedup |",
+        "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
     ]
     for result in payload["results"]:
         error_rows = (
             result["forceErrorRows"]
             + result.get("shardCacheReuseErrorRows", 0)
+            + result.get("artifactRegistryReuseErrorRows", 0)
             + result["cacheErrorRows"]
         )
         ocr_blocks = result.get("structureOcrPageBlocks", 0) + result.get(
@@ -329,6 +333,9 @@ def render_markdown(payload: dict[str, Any]) -> str:
             "ocrBlocks": ocr_blocks,
             "orderSorted": result.get("structureReadingOrderSorted"),
             "shardCacheReuseForceMs": format_optional_float(result.get("shardCacheReuseForceMs")),
+            "artifactRegistryReuseForceMs": format_optional_float(
+                result.get("artifactRegistryReuseForceMs")
+            ),
         }
         lines.append(
             "| {fixture} | {requestCount} | {rows} | {errorRows} | "
@@ -336,7 +343,8 @@ def render_markdown(payload: dict[str, Any]) -> str:
             "{rustJobsMaxRunningJobs} | {rustJobsMinAvailableConversionPermits} | "
             "{totalRows} | {structureRows} | {ocrBlocks} | {orderSorted} | "
             "{arrowIpcBytes} | "
-            "{forceRefreshMs:.3f} | {shardCacheReuseForceMs} | "
+            "{forceRefreshMs:.3f} | {artifactRegistryReuseForceMs} | "
+            "{shardCacheReuseForceMs} | "
             "{cacheHitP50Ms:.3f} | {cacheHitP95Ms:.3f} | "
             "{wallTimeMs:.3f} | {cacheMaxRssKb} | {cacheSpeedup:.2f} |".format(**row)
         )

@@ -43,17 +43,11 @@ def precision_speed_summary(
         "structureParityPassed": structure_parity_passed,
         "structureParityErrors": structure_parity_error_count,
         "structureRows": sum(result.get("structureRows", 0) for result in results),
-        "ocrPageBlocks": sum(
-            result.get("structureOcrPageBlocks", 0) for result in results
-        ),
-        "ocrRegionBlocks": sum(
-            result.get("structureOcrRegionBlocks", 0) for result in results
-        ),
+        "ocrPageBlocks": sum(result.get("structureOcrPageBlocks", 0) for result in results),
+        "ocrRegionBlocks": sum(result.get("structureOcrRegionBlocks", 0) for result in results),
         "bboxBlocks": sum(result.get("structureBboxBlocks", 0) for result in results),
         "metricsRows": sum(result.get("metricsRows", 0) for result in results),
-        "metricsResultChars": sum(
-            result.get("metricsResultChars", 0) for result in results
-        ),
+        "metricsResultChars": sum(result.get("metricsResultChars", 0) for result in results),
         **speed_observation_summary(results, distinct_miss_report),
     }
 
@@ -101,6 +95,10 @@ def speed_observation_summary(
         "maxForceRefreshMs": max_numeric(results, "forceRefreshMs"),
         "maxCacheHitP95Ms": max_numeric(results, "cacheHitP95Ms"),
         "maxShardCacheReuseForceMs": max_numeric(results, "shardCacheReuseForceMs"),
+        "maxArtifactRegistryReuseForceMs": max_numeric(
+            results,
+            "artifactRegistryReuseForceMs",
+        ),
         "maxWallTimeMs": max_numeric(results, "wallTimeMs"),
         "minCacheSpeedup": min_numeric(results, "cacheSpeedup"),
         "totalRustSchedulerElapsedMs": sum_numeric(
@@ -178,9 +176,7 @@ def sum_nested_numeric(
 
 def numeric_values(results: list[dict[str, Any]], key: str) -> list[float]:
     return [
-        float(value)
-        for result in results
-        if isinstance((value := result.get(key)), int | float)
+        float(value) for result in results if isinstance((value := result.get(key)), int | float)
     ]
 
 

@@ -2,6 +2,8 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
+use arrow::array::{Array, StringArray};
+use arrow::record_batch::RecordBatch;
 use xiuxian_wendao_runtime::transport::{
     DocumentExtractFlightRequest, DocumentExtractFlightRouteResponse,
 };
@@ -52,7 +54,7 @@ impl StudioDocumentExtractFlightRouteProvider {
             .request_python_document_extract(source_path, output_string.as_str(), force, error_row)
             .await?;
         if source.exists()
-            && !error_row
+            && document_extract_batches_are_cacheable(engine_batches.as_slice())
             && let Err(error) = self
                 .persist_sync_output_artifact(source.as_path(), output.as_path())
                 .await
@@ -322,4 +324,36 @@ impl StudioDocumentExtractFlightRouteProvider {
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner)
     }
+}
+
+pub(super) fn document_extract_batches_are_cacheable(batches: &[RecordBatch]) -> bool {
+    !batches.is_empty() && batches.iter().all(document_extract_batch_is_cacheable)
+}
+
+fn document_extract_batch_is_cacheable(batch: &RecordBatch) -> bool {
+    if batch.num_rows() == 0 {
+        return false;
+    }
+    let Some(resource_types) = document_extract_string_column(batch, "resourceType") else {
+        return false;
+    };
+    let Some(statuses) = document_extract_string_column(batch, "status") else {
+        return false;
+    };
+    (0..batch.num_rows()).all(|row| {
+        !resource_types.is_null(row)
+            && resource_types.value(row) != "error"
+            && !statuses.is_null(row)
+            && statuses.value(row) == "ok"
+    })
+}
+
+fn document_extract_string_column<'a>(
+    batch: &'a RecordBatch,
+    name: &str,
+) -> Option<&'a StringArray> {
+    batch
+        .column_by_name(name)?
+        .as_any()
+        .downcast_ref::<StringArray>()
 }

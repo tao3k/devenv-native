@@ -128,6 +128,7 @@ def summarize_attachment_class(
     total_error_rows = sum(
         result.get("forceErrorRows", 0)
         + result.get("shardCacheReuseErrorRows", 0)
+        + result.get("artifactRegistryReuseErrorRows", 0)
         + result.get("cacheErrorRows", 0)
         for result in results
     )

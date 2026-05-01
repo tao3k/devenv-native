@@ -201,6 +201,19 @@ candidate; if it can prove dimensions, the report has enough control-plane
 signal to select whole-image cache, oversized preflight, or a future
 parity-gated crop/tile proof without changing Docling OCR authority.
 
+The benchmark harness can now also run `--artifact-registry-reuse-probe`.
+Unlike the normal cache-hit loop, this probe targets a fresh output directory
+after the force run and calls extraction with `force=false`, proving whether
+the Rust content-hash artifact registry can mirror an already completed
+Docling result without another Python conversion. This is the relevant reuse
+proof for non-PDF attachments before any image-specific crop or tile path is
+introduced. In local sync benchmark mode, this probe starts the Rust Flight
+provider so the measurement does not accidentally bypass the registry by
+calling the Python worker directly. The current real image probe over PNG,
+TIFF, and WebP produced zero error rows, stable structure order, cache-hit p95
+below 8 ms, and fresh-output artifact-registry reuse below 141 ms while force
+conversion remained Docling-bound at roughly 2.4-10.0 seconds.
+
 ## Adaptive Conversion Capacity Follow-Up
 
 The general Rust document extraction scheduler no longer uses a frozen

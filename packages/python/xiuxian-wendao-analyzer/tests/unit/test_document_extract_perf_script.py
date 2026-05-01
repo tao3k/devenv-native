@@ -919,6 +919,29 @@ def test_cargo_perf_probe_can_override_flight_mode_without_self_parity(
     )
 
 
+@pytest.mark.parametrize(
+    ("flight_mode", "artifact_registry_reuse_probe", "expected"),
+    [
+        ("sync", False, False),
+        ("sync", True, True),
+        ("async", False, True),
+        ("hybrid-page-ocr", False, True),
+    ],
+)
+def test_artifact_registry_reuse_probe_routes_through_rust_provider(
+    flight_mode: str,
+    artifact_registry_reuse_probe: bool,
+    expected: bool,
+) -> None:
+    benchmark = _load_benchmark_module()
+    args = benchmark.argparse.Namespace(
+        flight_mode=flight_mode,
+        artifact_registry_reuse_probe=artifact_registry_reuse_probe,
+    )
+
+    assert benchmark.should_start_local_rust_provider(args) is expected
+
+
 def test_run_structure_baseline_probe_generates_sync_fixture_baselines(
     monkeypatch,
     tmp_path: Path,
@@ -1529,6 +1552,7 @@ def test_precision_speed_summary_tracks_quality_and_latency() -> None:
                 "forceRefreshMs": 1000.0,
                 "cacheHitP95Ms": 4.0,
                 "shardCacheReuseForceMs": 80.0,
+                "artifactRegistryReuseForceMs": 12.0,
                 "wallTimeMs": 1005.0,
             }
         ],
@@ -1550,6 +1574,7 @@ def test_precision_speed_summary_tracks_quality_and_latency() -> None:
     assert precision_speed["maxForceRefreshMs"] == 1000.0
     assert precision_speed["maxCacheHitP95Ms"] == 4.0
     assert precision_speed["maxShardCacheReuseForceMs"] == 80.0
+    assert precision_speed["maxArtifactRegistryReuseForceMs"] == 12.0
     assert precision_speed["totalRustSchedulerElapsedMs"] == 45.5
     assert precision_speed["totalDocumentTimingElapsedMs"] == 950.0
     assert precision_speed["totalDoclingConvertMs"] == 900.0
@@ -1808,7 +1833,7 @@ def test_benchmark_ocr_shard_cache_root_honors_explicit_root(
     assert benchmark.benchmark_ocr_shard_cache_root(args, tmp_path) == explicit_root.resolve()
 
 
-def test_run_fixture_probe_can_measure_shard_cache_reuse(monkeypatch, tmp_path) -> None:
+def test_run_fixture_probe_can_measure_cache_reuse_probes(monkeypatch, tmp_path) -> None:
     benchmark = _load_benchmark_module()
     calls = []
 
@@ -1836,6 +1861,7 @@ def test_run_fixture_probe_can_measure_shard_cache_reuse(monkeypatch, tmp_path) 
         latency_by_report = {
             "force.json": 1000.0,
             "shard-cache-reuse.json": 42.0,
+            "artifact-registry-reuse.json": 9.0,
             "cache.json": 4.0,
         }
         latency = latency_by_report[report_path.name]
@@ -1881,6 +1907,7 @@ def test_run_fixture_probe_can_measure_shard_cache_reuse(monkeypatch, tmp_path) 
         iterations=1,
         concurrency=1,
         shard_cache_reuse_probe=True,
+        artifact_registry_reuse_probe=True,
     )
 
     result = benchmark.run_fixture_probe(
@@ -1893,19 +1920,25 @@ def test_run_fixture_probe_can_measure_shard_cache_reuse(monkeypatch, tmp_path) 
     assert [call["report_path"].name for call in calls] == [
         "force.json",
         "shard-cache-reuse.json",
+        "artifact-registry-reuse.json",
         "cache.json",
     ]
     assert calls[1]["output_dir"] == tmp_path / "out" / "shard-cache-reuse"
     assert calls[1]["force"] is True
+    assert calls[2]["output_dir"] == tmp_path / "out" / "artifact-registry-reuse"
+    assert calls[2]["force"] is False
     assert result["shardCacheReuseEnabled"] is True
     assert result["shardCacheReuseForceMs"] == 42.0
     assert result["shardCacheReuseErrorRows"] == 0
+    assert result["artifactRegistryReuseEnabled"] is True
+    assert result["artifactRegistryReuseForceMs"] == 9.0
+    assert result["artifactRegistryReuseErrorRows"] == 0
     assert result["cacheHitP50Ms"] == 4.0
     assert result["metricsRows"] == 21
     assert result["metricsResultChars"] == 2048
     assert result["metricsBboxCount"] == 21
     assert result["structureOrderStable"] is True
-    assert result["structureOrderComparedRuns"] == 3
+    assert result["structureOrderComparedRuns"] == 4
     assert result["structureOrderMismatchCount"] == 0
 
 
@@ -1962,6 +1995,7 @@ def test_run_fixture_probe_can_fail_on_structure_order_mismatch(
         iterations=1,
         concurrency=1,
         shard_cache_reuse_probe=True,
+        artifact_registry_reuse_probe=False,
     )
 
     with pytest.raises(SystemExit, match="unstable structure order"):
@@ -1983,6 +2017,9 @@ def test_summary_and_markdown_report_distinct_miss_burst() -> None:
         "shardCacheReuseEnabled": True,
         "shardCacheReuseForceMs": 42.0,
         "shardCacheReuseErrorRows": 0,
+        "artifactRegistryReuseEnabled": True,
+        "artifactRegistryReuseForceMs": 9.0,
+        "artifactRegistryReuseErrorRows": 0,
         "requestCount": 2,
         "arrowIpcBytes": 1024,
         "cacheSpeedup": 2.0,
@@ -2104,6 +2141,7 @@ def test_summary_and_markdown_report_distinct_miss_burst() -> None:
             "structureBaselineRoot": "/tmp/baselines",
             "pdfOcrProfile": "skip",
             "shardCacheReuseProbe": True,
+            "artifactRegistryReuseProbe": True,
             "ocrShardCache": {
                 "root": "/tmp/ocr-shards",
                 "fileCount": 2,
@@ -2127,6 +2165,9 @@ def test_summary_and_markdown_report_distinct_miss_burst() -> None:
     assert "small-md:10.000" in markdown
     assert "distinct-01" in markdown
     assert "Shard reuse force ms" in markdown
+    assert "Artifact-registry reuse probe" in markdown
+    assert "Artifact reuse ms" in markdown
+    assert "9.000" in markdown
     assert "42.000" in markdown
     assert "OCR shard cache" in markdown
     assert "files=2" in markdown

@@ -317,6 +317,13 @@ OCR shard cache limit to 10 GiB and supports
 capacity policy. Local benchmark runs isolate the OCR shard cache by default
 so fake and real OCR evidence do not cross-contaminate; use
 `--ocr-shard-cache-root` when a run intentionally targets a persistent cache.
+For non-PDF and full-document cache validation, pass
+`--artifact-registry-reuse-probe`. That probe runs `force=false` into a fresh
+output directory after the force run and reports `artifactRegistryReuseForceMs`,
+which measures Rust content-hash artifact mirroring separately from the normal
+same-output cache-hit path. In local mode this probe starts the Rust Flight
+provider even when `--flight-mode sync` is selected, because Python-direct sync
+benchmarks do not exercise the Rust artifact registry.
 Use `--structure-baseline-root` when a golden Docling baseline artifact root is
 available. The Rust ignored benchmark reads each candidate `_structure.arrow`,
 matches it to the baseline artifact directory by fixture output name, and

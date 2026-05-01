@@ -122,6 +122,48 @@ async fn sync_document_extract_reuses_succeeded_content_artifact() -> Result<(),
     Ok(())
 }
 
+#[test]
+fn document_extract_success_resource_rows_are_cacheable() -> Result<(), String> {
+    let batch = test_document_resource_batch("/tmp/source.png", "/tmp/output/source.md")?;
+
+    assert!(document_extract_batches_are_cacheable(&[batch]));
+    Ok(())
+}
+
+#[test]
+fn document_extract_error_resource_rows_are_not_cacheable() -> Result<(), String> {
+    let batch = arrow::record_batch::RecordBatch::try_new(
+        Arc::new(arrow::datatypes::Schema::new(vec![
+            arrow::datatypes::Field::new("sourcePath", arrow::datatypes::DataType::Utf8, true),
+            arrow::datatypes::Field::new("resourceType", arrow::datatypes::DataType::Utf8, true),
+            arrow::datatypes::Field::new("resourcePath", arrow::datatypes::DataType::Utf8, true),
+            arrow::datatypes::Field::new("pageIndex", arrow::datatypes::DataType::Int32, true),
+            arrow::datatypes::Field::new("caption", arrow::datatypes::DataType::Utf8, true),
+            arrow::datatypes::Field::new("content", arrow::datatypes::DataType::Utf8, true),
+            arrow::datatypes::Field::new("mimeType", arrow::datatypes::DataType::Utf8, true),
+            arrow::datatypes::Field::new("status", arrow::datatypes::DataType::Utf8, true),
+            arrow::datatypes::Field::new("elementId", arrow::datatypes::DataType::Utf8, true),
+        ])),
+        vec![
+            Arc::new(arrow::array::StringArray::from(vec!["/tmp/source.png"]))
+                as arrow::array::ArrayRef,
+            Arc::new(arrow::array::StringArray::from(vec!["error"])) as arrow::array::ArrayRef,
+            Arc::new(arrow::array::StringArray::from(vec![""])) as arrow::array::ArrayRef,
+            Arc::new(arrow::array::Int32Array::from(vec![-1])) as arrow::array::ArrayRef,
+            Arc::new(arrow::array::StringArray::from(vec![""])) as arrow::array::ArrayRef,
+            Arc::new(arrow::array::StringArray::from(vec!["conversion failed"]))
+                as arrow::array::ArrayRef,
+            Arc::new(arrow::array::StringArray::from(vec!["text/plain"])) as arrow::array::ArrayRef,
+            Arc::new(arrow::array::StringArray::from(vec!["failed"])) as arrow::array::ArrayRef,
+            Arc::new(arrow::array::StringArray::from(vec!["error"])) as arrow::array::ArrayRef,
+        ],
+    )
+    .map_err(|error| error.to_string())?;
+
+    assert!(!document_extract_batches_are_cacheable(&[batch]));
+    Ok(())
+}
+
 #[cfg(feature = "document-extract-pdf-source-range")]
 #[tokio::test]
 async fn document_extract_runtime_snapshot_reports_pdf_ocr_worker_capacity() -> Result<(), String> {

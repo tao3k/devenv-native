@@ -88,12 +88,8 @@ def run_distinct_miss_probe(
         "rustJobsMinAvailableConversionPermits": rust_jobs_status_summary[
             "minAvailableConversionPermits"
         ],
-        "rustJobsMaxRunningConversions": rust_jobs_status_summary[
-            "maxRunningConversions"
-        ],
-        "rustJobsMaxConversionDurationMs": rust_jobs_status_summary[
-            "maxConversionDurationMs"
-        ],
+        "rustJobsMaxRunningConversions": rust_jobs_status_summary["maxRunningConversions"],
+        "rustJobsMaxConversionDurationMs": rust_jobs_status_summary["maxConversionDurationMs"],
     }
 
 
@@ -159,9 +155,7 @@ def run_structure_baseline_probe(
                 "errorRows": error_rows,
                 "resourcesRows": artifact_summary["resourcesRows"],
                 "structureRows": artifact_summary["structureRows"],
-                "structureReadingOrderSorted": artifact_summary[
-                    "structureReadingOrderSorted"
-                ],
+                "structureReadingOrderSorted": artifact_summary["structureReadingOrderSorted"],
             }
         )
 
@@ -175,9 +169,7 @@ def run_structure_baseline_probe(
         "root": str(baseline_root),
         "fixtureCount": len(fixture_reports),
         "totalErrorRows": sum(report["errorRows"] for report in fixture_reports),
-        "totalStructureRows": sum(
-            report["structureRows"] for report in fixture_reports
-        ),
+        "totalStructureRows": sum(report["structureRows"] for report in fixture_reports),
         "allStructureReadingOrderSorted": (
             all(bool(value) for value in sorted_values) if sorted_values else None
         ),
@@ -206,9 +198,7 @@ def run_fixture_probe(
         )
         converter_count_after = read_converter_count(args)
         if converter_count_before is not None and converter_count_after is not None:
-            duplicate_miss_converter_calls = (
-                converter_count_after - converter_count_before
-            )
+            duplicate_miss_converter_calls = converter_count_after - converter_count_before
         duplicate_error_rows = duplicate_report.get("errorRowCount", 0)
         if args.fail_on_error_rows and duplicate_error_rows:
             raise SystemExit(
@@ -245,6 +235,17 @@ def run_fixture_probe(
             concurrency=1,
             report_path=output_dir / "shard-cache-reuse.json",
         )
+    artifact_registry_reuse_report = None
+    if args.artifact_registry_reuse_probe:
+        artifact_registry_reuse_report = run_cargo_perf_test(
+            args,
+            fixture_path,
+            output_dir / "artifact-registry-reuse",
+            force=False,
+            iterations=1,
+            concurrency=1,
+            report_path=output_dir / "artifact-registry-reuse.json",
+        )
     cached_report = run_cargo_perf_test(
         args,
         fixture_path,
@@ -260,26 +261,32 @@ def run_fixture_probe(
     total_rows = row_count * request_count
     force_error_rows = force_report.get("errorRowCount", 0)
     shard_cache_reuse_error_rows = (
-        shard_cache_reuse_report.get("errorRowCount", 0)
-        if shard_cache_reuse_report
+        shard_cache_reuse_report.get("errorRowCount", 0) if shard_cache_reuse_report else 0
+    )
+    artifact_registry_reuse_error_rows = (
+        artifact_registry_reuse_report.get("errorRowCount", 0)
+        if artifact_registry_reuse_report
         else 0
     )
     cache_error_rows = cached_report.get("errorRowCount", 0)
-    artifact_summary = summarize_artifact_reports(
-        cached_report.get("artifactReports", [])
-    )
+    artifact_summary = summarize_artifact_reports(cached_report.get("artifactReports", []))
     structure_order_consistency = fixture_structure_order_consistency(
         force_report,
         cached_report,
         shard_cache_reuse_report,
+        artifact_registry_reuse_report,
     )
     if args.fail_on_error_rows and (
-        force_error_rows or shard_cache_reuse_error_rows or cache_error_rows
+        force_error_rows
+        or shard_cache_reuse_error_rows
+        or artifact_registry_reuse_error_rows
+        or cache_error_rows
     ):
         raise SystemExit(
             f"fixture `{fixture_name}` produced document extraction error rows: "
             f"force={force_error_rows}, "
             f"shard_cache_reuse={shard_cache_reuse_error_rows}, "
+            f"artifact_registry_reuse={artifact_registry_reuse_error_rows}, "
             f"cache={cache_error_rows}"
         )
     if (
@@ -292,15 +299,16 @@ def run_fixture_probe(
         )
     rust_jobs_status_summary = combine_rust_jobs_status_summaries(
         [
-            (
-                duplicate_report.get("rustJobsStatusSummary", {})
-                if duplicate_report
-                else {}
-            ),
+            (duplicate_report.get("rustJobsStatusSummary", {}) if duplicate_report else {}),
             force_report.get("rustJobsStatusSummary", {}),
             (
                 shard_cache_reuse_report.get("rustJobsStatusSummary", {})
                 if shard_cache_reuse_report
+                else {}
+            ),
+            (
+                artifact_registry_reuse_report.get("rustJobsStatusSummary", {})
+                if artifact_registry_reuse_report
                 else {}
             ),
             cached_report.get("rustJobsStatusSummary", {}),
@@ -332,14 +340,22 @@ def run_fixture_probe(
         "forceMaxRssKb": force_report.get("maxRssKb"),
         "shardCacheReuseEnabled": args.shard_cache_reuse_probe,
         "shardCacheReuseForceMs": (
-            shard_cache_reuse_report["latenciesMs"][0]
-            if shard_cache_reuse_report
-            else None
+            shard_cache_reuse_report["latenciesMs"][0] if shard_cache_reuse_report else None
         ),
         "shardCacheReuseErrorRows": shard_cache_reuse_error_rows,
         "shardCacheReuseStatusCounts": (
-            shard_cache_reuse_report.get("statusCounts", {})
-            if shard_cache_reuse_report
+            shard_cache_reuse_report.get("statusCounts", {}) if shard_cache_reuse_report else {}
+        ),
+        "artifactRegistryReuseEnabled": args.artifact_registry_reuse_probe,
+        "artifactRegistryReuseForceMs": (
+            artifact_registry_reuse_report["latenciesMs"][0]
+            if artifact_registry_reuse_report
+            else None
+        ),
+        "artifactRegistryReuseErrorRows": artifact_registry_reuse_error_rows,
+        "artifactRegistryReuseStatusCounts": (
+            artifact_registry_reuse_report.get("statusCounts", {})
+            if artifact_registry_reuse_report
             else {}
         ),
         "concurrency": cached_report["concurrency"],
@@ -358,15 +374,11 @@ def run_fixture_probe(
         "rustJobsMaxInProcessRunningConversions": rust_jobs_status_summary[
             "maxInProcessRunningConversions"
         ],
-        "rustJobsMaxInProcessScheduledJobs": rust_jobs_status_summary[
-            "maxInProcessScheduledJobs"
-        ],
+        "rustJobsMaxInProcessScheduledJobs": rust_jobs_status_summary["maxInProcessScheduledJobs"],
         "rustJobsMinAvailableConversionPermits": rust_jobs_status_summary[
             "minAvailableConversionPermits"
         ],
-        "rustJobsMaxConversionDurationMs": rust_jobs_status_summary[
-            "maxConversionDurationMs"
-        ],
+        "rustJobsMaxConversionDurationMs": rust_jobs_status_summary["maxConversionDurationMs"],
         "rows": row_count,
         "totalRows": total_rows,
         "batches": cached_report["batchCount"],
@@ -387,20 +399,19 @@ def run_fixture_probe(
         "metricsRows": artifact_summary["metricsRows"],
         "metricsResultChars": artifact_summary["metricsResultChars"],
         "metricsBboxCount": artifact_summary["metricsBboxCount"],
-        "metricsRustSchedulerElapsedMs": artifact_summary[
-            "metricsRustSchedulerElapsedMs"
-        ],
+        "metricsRustSchedulerElapsedMs": artifact_summary["metricsRustSchedulerElapsedMs"],
         "documentTimingArrowExists": artifact_summary["documentTimingArrowExists"],
         "documentTimingRows": artifact_summary["documentTimingRows"],
-        "documentTimingTotalElapsedMs": artifact_summary[
-            "documentTimingTotalElapsedMs"
-        ],
+        "documentTimingTotalElapsedMs": artifact_summary["documentTimingTotalElapsedMs"],
         "documentTimingOverheadMs": document_timing_overhead_ms,
-        "documentTimingPhaseElapsedMs": artifact_summary[
-            "documentTimingPhaseElapsedMs"
-        ],
+        "documentTimingPhaseElapsedMs": artifact_summary["documentTimingPhaseElapsedMs"],
         "imageAttachmentAuditCount": artifact_summary["imageAttachmentAuditCount"],
+        "imageKnownDimensionCount": artifact_summary["imageKnownDimensionCount"],
+        "imageFormatCounts": artifact_summary["imageFormatCounts"],
+        "imageDimensionSourceCounts": artifact_summary["imageDimensionSourceCounts"],
         "imageAccelerationCandidates": artifact_summary["imageAccelerationCandidates"],
+        "maxImageWidthPx": artifact_summary["maxImageWidthPx"],
+        "maxImageHeightPx": artifact_summary["maxImageHeightPx"],
         "maxImagePixelCount": artifact_summary["maxImagePixelCount"],
         "artifactErrorCount": artifact_summary["artifactErrorCount"],
         "artifactReports": cached_report.get("artifactReports", []),
@@ -468,9 +479,7 @@ def run_cargo_perf_test(
         )
     structure_baseline_root = getattr(args, "structure_baseline_root", None)
     if include_structure_baseline_root and structure_baseline_root is not None:
-        env["WENDAO_DOCUMENT_EXTRACT_PERF_STRUCTURE_BASELINE_ROOT"] = str(
-            structure_baseline_root
-        )
+        env["WENDAO_DOCUMENT_EXTRACT_PERF_STRUCTURE_BASELINE_ROOT"] = str(structure_baseline_root)
     command = [
         args.cargo,
         "test",
@@ -497,9 +506,7 @@ def run_cargo_perf_test(
     report["maxRssKb"] = max_rss_kb()
     report["rustJobsStatusSamples"] = status_samples
     report["rustJobsStatusSummary"] = summarize_rust_jobs_status_samples(status_samples)
-    report_path.write_text(
-        json.dumps(report, indent=2, sort_keys=True), encoding="utf-8"
-    )
+    report_path.write_text(json.dumps(report, indent=2, sort_keys=True), encoding="utf-8")
     return report
 
 

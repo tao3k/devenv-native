@@ -46,6 +46,8 @@ use hybrid::{
     write_hybrid_document_resource_artifacts,
 };
 #[cfg(test)]
+use jobs::document_extract_batches_are_cacheable;
+#[cfg(test)]
 use runtime::{
     document_extract_conversion_concurrency_limit_with_lookup,
     shared_document_extract_provider_runtime,

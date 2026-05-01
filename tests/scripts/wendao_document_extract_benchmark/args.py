@@ -206,10 +206,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--cargo-features",
-        default=(
-            "performance,studio,zhenfa-router,duckdb,"
-            "document-extract-attachment-audit"
-        ),
+        default=("performance,studio,zhenfa-router,duckdb,document-extract-attachment-audit"),
         help="Cargo feature set used by the Rust benchmark probe.",
     )
     parser.add_argument(
@@ -238,9 +235,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--converter-count-path",
         type=Path,
-        help=(
-            "Optional converter count file to read in external-endpoint benchmark mode."
-        ),
+        help=("Optional converter count file to read in external-endpoint benchmark mode."),
     )
     parser.add_argument(
         "--fail-on-duplicate-conversions",
@@ -254,6 +249,14 @@ def parse_args() -> argparse.Namespace:
             "After the force run, run a second forced hybrid-page-ocr extraction "
             "into a fresh output directory to measure OCR shard cache reuse "
             "without relying on the whole-document _resources.arrow cache."
+        ),
+    )
+    parser.add_argument(
+        "--artifact-registry-reuse-probe",
+        action="store_true",
+        help=(
+            "After the force run, run a force=false extraction into a fresh "
+            "output directory to measure Rust content-hash artifact registry reuse."
         ),
     )
     parser.add_argument(
