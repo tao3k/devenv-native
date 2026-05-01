@@ -15,6 +15,7 @@ pub(super) use crate::analyzers::{
 pub(super) use crate::analyzers::{ModuleRecord, RepoSymbolKind, RepositoryRecord, SymbolRecord};
 pub(super) use crate::analyzers::{RepoSourceKind, RepoSyncResult};
 pub(super) use crate::gateway::studio::search::handlers::tests::linked_parser_summary::ensure_linked_modelica_parser_summary_service;
+use crate::gateway::studio::search::handlers::tests::linked_parser_summary::linked_parser_summary_base_url;
 pub(super) use crate::gateway::studio::test_support::{commit_all, init_git_repository};
 pub(super) use crate::repo_index::state::coordinator::PreparedIncrementalAnalysis;
 pub(super) use crate::repo_index::state::fingerprint::timestamp_now;
@@ -27,10 +28,29 @@ pub(super) use crate::search::{
 };
 pub(super) use chrono::Utc;
 pub(super) use xiuxian_git_repo::discover_checkout_metadata;
-pub(super) use xiuxian_wendao_julia::integration_support::{
-    spawn_wendaosearch_julia_parser_summary_service,
-    spawn_wendaosearch_modelica_parser_summary_service,
-};
+pub(super) struct LinkedParserSummaryTestGuard;
+
+impl LinkedParserSummaryTestGuard {
+    pub(super) fn kill(&mut self) {}
+}
+
+pub(super) async fn spawn_wendaosearch_julia_parser_summary_service()
+-> (String, LinkedParserSummaryTestGuard) {
+    (
+        linked_parser_summary_base_url()
+            .unwrap_or_else(|error| panic!("linked Julia parser-summary service: {error}")),
+        LinkedParserSummaryTestGuard,
+    )
+}
+
+pub(super) async fn spawn_wendaosearch_modelica_parser_summary_service()
+-> (String, LinkedParserSummaryTestGuard) {
+    (
+        linked_parser_summary_base_url()
+            .unwrap_or_else(|error| panic!("linked Modelica parser-summary service: {error}")),
+        LinkedParserSummaryTestGuard,
+    )
+}
 
 pub(super) fn julia_parser_summary_plugin_config(base_url: &str) -> RepositoryPluginConfig {
     RepositoryPluginConfig::Config {

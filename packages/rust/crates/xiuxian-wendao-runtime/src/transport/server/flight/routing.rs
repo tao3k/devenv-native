@@ -3,7 +3,8 @@ use std::sync::Arc;
 use tonic::Status;
 
 use crate::transport::query_contract::{
-    ANALYSIS_CODE_AST_ROUTE, ANALYSIS_MARKDOWN_ROUTE, ANALYSIS_REFINE_DOC_ROUTE,
+    ANALYSIS_CODE_AST_ROUTE, ANALYSIS_DOCUMENT_EXTRACT_ROUTE,
+    ANALYSIS_DOCUMENT_EXTRACT_STATUS_ROUTE, ANALYSIS_MARKDOWN_ROUTE, ANALYSIS_REFINE_DOC_ROUTE,
     ANALYSIS_REPO_DOC_COVERAGE_ROUTE, ANALYSIS_REPO_INDEX_ROUTE, ANALYSIS_REPO_INDEX_STATUS_ROUTE,
     ANALYSIS_REPO_OVERVIEW_ROUTE, ANALYSIS_REPO_PROJECTED_PAGE_INDEX_TREE_ROUTE,
     ANALYSIS_REPO_SYNC_ROUTE, GRAPH_NEIGHBORS_ROUTE, QUERY_SQL_ROUTE, REPO_SEARCH_ROUTE,
@@ -14,7 +15,8 @@ use crate::transport::query_contract::{
 use super::super::request_metadata::{
     is_search_family_route, join_sorted_set, validate_attachment_search_request_metadata,
     validate_autocomplete_request_metadata, validate_code_ast_analysis_request_metadata,
-    validate_definition_request_metadata, validate_graph_neighbors_request_metadata,
+    validate_definition_request_metadata, validate_document_extract_request_metadata,
+    validate_document_extract_status_request_metadata, validate_graph_neighbors_request_metadata,
     validate_markdown_analysis_request_metadata, validate_refine_doc_request_metadata,
     validate_repo_doc_coverage_request_metadata, validate_repo_index_request_metadata,
     validate_repo_index_status_request_metadata, validate_repo_overview_request_metadata,
@@ -25,6 +27,30 @@ use super::super::request_metadata::{
 };
 use super::core::WendaoFlightService;
 use super::payload::FlightRoutePayload;
+
+fn document_extract_cache_key(
+    route: &str,
+    metadata: &tonic::metadata::MetadataMap,
+) -> Result<String, Status> {
+    let request = validate_document_extract_request_metadata(metadata)?;
+    Ok(format!(
+        "{route}|{:?}|{:?}|{}|{}|{:?}|{}",
+        request.source_path,
+        request.output_dir,
+        request.force,
+        request.error_row,
+        request.mode,
+        request.wait_ms
+    ))
+}
+
+fn document_extract_status_cache_key(
+    route: &str,
+    metadata: &tonic::metadata::MetadataMap,
+) -> Result<String, Status> {
+    let job_id = validate_document_extract_status_request_metadata(metadata)?;
+    Ok(format!("{route}|{job_id:?}"))
+}
 
 impl WendaoFlightService {
     pub(super) fn route_request_cache_key(
@@ -109,6 +135,10 @@ impl WendaoFlightService {
             let (repo_id, page_id) =
                 validate_repo_projected_page_index_tree_request_metadata(metadata)?;
             Ok(format!("{route}|{repo_id:?}|{page_id:?}"))
+        } else if route == ANALYSIS_DOCUMENT_EXTRACT_ROUTE {
+            document_extract_cache_key(route, metadata)
+        } else if route == ANALYSIS_DOCUMENT_EXTRACT_STATUS_ROUTE {
+            document_extract_status_cache_key(route, metadata)
         } else if route == ANALYSIS_REFINE_DOC_ROUTE {
             let (repo_id, entity_id, user_hints) = validate_refine_doc_request_metadata(metadata)?;
             Ok(format!("{route}|{repo_id:?}|{entity_id:?}|{user_hints:?}"))
@@ -168,6 +198,11 @@ impl WendaoFlightService {
             self.read_repo_doc_coverage_payload(route, metadata).await
         } else if route == ANALYSIS_REPO_PROJECTED_PAGE_INDEX_TREE_ROUTE {
             self.read_repo_projected_page_index_tree_payload(route, metadata)
+                .await
+        } else if route == ANALYSIS_DOCUMENT_EXTRACT_ROUTE {
+            self.read_document_extract_payload(route, metadata).await
+        } else if route == ANALYSIS_DOCUMENT_EXTRACT_STATUS_ROUTE {
+            self.read_document_extract_status_payload(route, metadata)
                 .await
         } else if route == ANALYSIS_REFINE_DOC_ROUTE {
             self.read_refine_doc_payload(route, metadata).await
@@ -293,7 +328,10 @@ impl WendaoFlightService {
             .sql_query_batches(query_text.as_str())
             .await
             .map_err(Status::internal)?;
-        FlightRoutePayload::from_batches_with_app_metadata(&response.batches, response.app_metadata)
+        FlightRoutePayload::from_engine_batches_with_app_metadata(
+            &response.batches,
+            response.app_metadata,
+        )
     }
 
     async fn read_vfs_resolve_payload(
@@ -558,6 +596,52 @@ impl WendaoFlightService {
             })
     }
 
+    async fn read_document_extract_payload(
+        &self,
+        route: &str,
+        metadata: &tonic::metadata::MetadataMap,
+    ) -> Result<FlightRoutePayload, Status> {
+        let request = validate_document_extract_request_metadata(metadata)?;
+        let provider = self.document_extract_provider.as_ref().ok_or_else(|| {
+            Status::unimplemented(format!(
+                "document extract Flight route `{route}` is not configured for this runtime host"
+            ))
+        })?;
+        provider
+            .document_extract_batch_for_request(&request)
+            .await
+            .map_err(Status::internal)
+            .and_then(|response| {
+                FlightRoutePayload::from_engine_batches_with_app_metadata(
+                    &response.batches,
+                    response.app_metadata,
+                )
+            })
+    }
+
+    async fn read_document_extract_status_payload(
+        &self,
+        route: &str,
+        metadata: &tonic::metadata::MetadataMap,
+    ) -> Result<FlightRoutePayload, Status> {
+        let job_id = validate_document_extract_status_request_metadata(metadata)?;
+        let provider = self.document_extract_provider.as_ref().ok_or_else(|| {
+            Status::unimplemented(format!(
+                "document extract Flight route `{route}` is not configured for this runtime host"
+            ))
+        })?;
+        provider
+            .document_extract_status_batch(job_id.as_str())
+            .await
+            .map_err(Status::internal)
+            .and_then(|response| {
+                FlightRoutePayload::from_engine_batches_with_app_metadata(
+                    &response.batches,
+                    response.app_metadata,
+                )
+            })
+    }
+
     async fn read_search_family_payload(
         &self,
         route: &str,
@@ -590,6 +674,9 @@ impl WendaoFlightService {
         metadata: &tonic::metadata::MetadataMap,
         cache_key: &str,
     ) -> Result<Arc<FlightRoutePayload>, Status> {
+        if route == ANALYSIS_DOCUMENT_EXTRACT_STATUS_ROUTE {
+            return self.read_route_payload(route, metadata).await.map(Arc::new);
+        }
         if let Some(cached) = self.route_payload_cache.get(cache_key).await {
             return Ok(cached);
         }

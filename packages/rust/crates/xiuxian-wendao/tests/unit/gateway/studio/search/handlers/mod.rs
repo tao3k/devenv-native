@@ -5,6 +5,8 @@ mod intent;
 pub(crate) mod linked_parser_summary;
 mod query;
 mod repo_content;
+#[path = "../../../../../support/repo_parser_summary/mod.rs"]
+pub(crate) mod repo_parser_summary;
 
 #[cfg(feature = "duckdb")]
 pub(crate) use helpers::{

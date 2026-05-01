@@ -4,5 +4,7 @@ pub(crate) mod linked_parser_summary;
 pub(crate) mod repo_fixture;
 #[path = "../../support/repo_intelligence.rs"]
 pub(crate) mod repo_intelligence;
+#[path = "../../support/repo_parser_summary/mod.rs"]
+pub(crate) mod repo_parser_summary;
 #[path = "../../support/repo_projection_support.rs"]
 pub(crate) mod repo_projection_support;

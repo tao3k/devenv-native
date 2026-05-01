@@ -20,9 +20,11 @@
       inputs.uv2nix.follows = "uv2nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-
+    dream2nix.url = "github:tao3k/dream2nix";
+    dream2nix.inputs.nixpkgs.follows = "nixpkgs";
     nci.url = "github:90-008/nix-cargo-integration";
     nci.inputs.nixpkgs.follows = "nixpkgs";
+    nci.inputs.dream2nix.follows = "dream2nix";
     nix2container.url = "github:nlewo/nix2container";
     nix2container.inputs.nixpkgs.follows = "nixpkgs";
     parts.url = "github:hercules-ci/flake-parts";

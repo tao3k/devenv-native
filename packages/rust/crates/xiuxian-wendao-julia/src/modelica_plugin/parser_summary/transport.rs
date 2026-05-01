@@ -34,6 +34,7 @@ const DEFAULT_MODELICA_HEALTH_ROUTE: &str = "/healthz";
 const DEFAULT_WENDAOSEARCH_PARSER_SUMMARY_BASE_URL_FALLBACK: &str = "http://127.0.0.1:41081";
 const PARSER_SUMMARY_BASE_URL_ENV: &str = "WENDAO_PARSER_SUMMARY_BASE_URL";
 const DEFAULT_PARSER_SUMMARY_TIMEOUT_SECS: u64 = 120;
+const DEFAULT_MODELICA_PARSER_SUMMARY_MAX_IN_FLIGHT_REQUESTS: u64 = 1;
 
 fn resolve_parser_summary_base_url() -> String {
     std::env::var(PARSER_SUMMARY_BASE_URL_ENV)
@@ -250,6 +251,10 @@ fn parser_summary_transport_error_requires_client_refresh(error: &RepoIntelligen
         error,
         RepoIntelligenceError::AnalysisFailed { message }
             if message.contains("Service was not ready: transport error")
+                || (message.contains("transport error")
+                    && (message.contains("ConnectionReset")
+                        || message.contains("BrokenPipe")
+                        || message.contains("stream closed because of a broken pipe")))
     )
 }
 
@@ -530,7 +535,7 @@ fn resolve_parser_summary_transport_options(
             health_route: None,
             schema_version: Some(MODELICA_PARSER_SUMMARY_SCHEMA_VERSION.to_string()),
             timeout_secs: None,
-            max_in_flight_requests: None,
+            max_in_flight_requests: Some(DEFAULT_MODELICA_PARSER_SUMMARY_MAX_IN_FLIGHT_REQUESTS),
         }));
     }
 
@@ -542,7 +547,7 @@ fn resolve_parser_summary_transport_options(
             health_route: None,
             schema_version: Some(MODELICA_PARSER_SUMMARY_SCHEMA_VERSION.to_string()),
             timeout_secs: None,
-            max_in_flight_requests: None,
+            max_in_flight_requests: Some(DEFAULT_MODELICA_PARSER_SUMMARY_MAX_IN_FLIGHT_REQUESTS),
         }));
     }
 

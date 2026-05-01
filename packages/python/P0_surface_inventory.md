@@ -57,6 +57,7 @@ Retained role:
 - analyzer strategies and ranking workflows
 - typed analysis models and run objects
 - analyzer-facing workflows above `wendao_core_lib`
+- Docling-backed document parsing service for Wendao Arrow resource rows
 
 ### `xiuxian_foundation`
 

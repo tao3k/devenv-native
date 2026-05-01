@@ -9,14 +9,14 @@ use crate::analyzers::{RegisteredRepository, RepositoryPluginConfig, RepositoryR
 
 use super::super::build_repository_analysis_cache_key;
 use super::support::{
-    ensure_linked_julia_parser_summary_service, ensure_linked_modelica_parser_summary_service,
+    ensure_linked_modelica_parser_summary_service, ensure_linked_parser_summary_service,
 };
 
 #[test]
 #[serial(mixed_julia_modelica_live)]
 fn build_repository_analysis_cache_key_reuses_mixed_julia_modelica_identity_for_julia_ast_equivalent_source_churn()
 -> Result<(), Box<dyn std::error::Error>> {
-    ensure_linked_julia_parser_summary_service()?;
+    ensure_linked_parser_summary_service()?;
     ensure_linked_modelica_parser_summary_service()?;
     let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
     fs::write(
@@ -91,7 +91,7 @@ fn build_repository_analysis_cache_key_reuses_mixed_julia_modelica_identity_for_
 #[serial(mixed_julia_modelica_live)]
 fn build_repository_analysis_cache_key_reuses_mixed_julia_modelica_identity_for_modelica_ast_equivalent_source_churn()
 -> Result<(), Box<dyn std::error::Error>> {
-    ensure_linked_julia_parser_summary_service()?;
+    ensure_linked_parser_summary_service()?;
     ensure_linked_modelica_parser_summary_service()?;
     let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
     fs::write(

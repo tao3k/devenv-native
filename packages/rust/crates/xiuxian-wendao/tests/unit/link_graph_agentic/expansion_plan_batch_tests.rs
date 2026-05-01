@@ -11,7 +11,6 @@ use xiuxian_wendao_builtin::{
     GRAPH_STRUCTURAL_QUERY_ID_COLUMN, GRAPH_STRUCTURAL_QUERY_MAX_LAYERS_COLUMN,
     GRAPH_STRUCTURAL_REQUIRED_BOUNDARY_SIZE_COLUMN, GRAPH_STRUCTURAL_RETRIEVAL_LAYER_COLUMN,
     GRAPH_STRUCTURAL_SEMANTIC_SCORE_COLUMN, GRAPH_STRUCTURAL_TAG_SCORE_COLUMN,
-    linked_builtin_spawn_wendaosearch_solver_demo_multi_route_service,
 };
 
 #[cfg(feature = "julia")]
@@ -29,6 +28,8 @@ use super::super::expansion_support::{
     assert_solver_demo_generic_topology_row_shape, default_agentic_execution_relation_edge_kind,
     required_column, required_utf8_list_row_values,
 };
+#[cfg(feature = "julia")]
+use super::support::linked_builtin_spawn_wendaosearch_solver_demo_multi_route_service;
 #[cfg(feature = "julia")]
 use super::{TestResult, build_index_fixture, expansion_config};
 

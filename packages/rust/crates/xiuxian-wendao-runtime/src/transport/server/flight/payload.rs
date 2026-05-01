@@ -47,6 +47,22 @@ impl FlightRoutePayload {
         })
     }
 
+    pub(super) fn from_engine_batches_with_app_metadata(
+        batches: &[EngineRecordBatch],
+        app_metadata: Vec<u8>,
+    ) -> Result<Self, Status> {
+        if batches.is_empty() {
+            return Err(Status::internal(
+                "Flight route payload must contain at least one record batch",
+            ));
+        }
+        Ok(Self {
+            batches: batches.to_vec(),
+            app_metadata,
+            encoded_do_get_frames: OnceCell::new(),
+        })
+    }
+
     pub(super) fn schema(&self) -> Arc<arrow_schema::Schema> {
         self.batches[0].schema()
     }

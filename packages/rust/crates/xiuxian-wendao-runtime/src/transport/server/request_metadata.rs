@@ -7,12 +7,17 @@ use super::types::RepoSearchFlightRequest;
 #[cfg(feature = "transport")]
 use crate::transport::query_contract::validate_sql_query_request;
 use crate::transport::query_contract::{
-    SEARCH_INTENT_ROUTE, SEARCH_KNOWLEDGE_ROUTE, SEARCH_REFERENCES_ROUTE, SEARCH_SYMBOLS_ROUTE,
-    WENDAO_ANALYSIS_LINE_HEADER, WENDAO_ANALYSIS_PATH_HEADER, WENDAO_ANALYSIS_REPO_HEADER,
+    DocumentExtractFlightRequest, DocumentExtractMode, SEARCH_INTENT_ROUTE, SEARCH_KNOWLEDGE_ROUTE,
+    SEARCH_REFERENCES_ROUTE, SEARCH_SYMBOLS_ROUTE, WENDAO_ANALYSIS_LINE_HEADER,
+    WENDAO_ANALYSIS_PATH_HEADER, WENDAO_ANALYSIS_REPO_HEADER,
     WENDAO_ATTACHMENT_SEARCH_CASE_SENSITIVE_HEADER, WENDAO_ATTACHMENT_SEARCH_EXT_FILTERS_HEADER,
     WENDAO_ATTACHMENT_SEARCH_KIND_FILTERS_HEADER, WENDAO_AUTOCOMPLETE_LIMIT_HEADER,
     WENDAO_AUTOCOMPLETE_PREFIX_HEADER, WENDAO_DEFINITION_LINE_HEADER,
-    WENDAO_DEFINITION_PATH_HEADER, WENDAO_DEFINITION_QUERY_HEADER, WENDAO_GRAPH_DIRECTION_HEADER,
+    WENDAO_DEFINITION_PATH_HEADER, WENDAO_DEFINITION_QUERY_HEADER,
+    WENDAO_DOCUMENT_EXTRACT_ERROR_ROW_HEADER, WENDAO_DOCUMENT_EXTRACT_FORCE_HEADER,
+    WENDAO_DOCUMENT_EXTRACT_JOB_ID_HEADER, WENDAO_DOCUMENT_EXTRACT_MODE_HEADER,
+    WENDAO_DOCUMENT_EXTRACT_OUTPUT_DIR_HEADER, WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_HEADER,
+    WENDAO_DOCUMENT_EXTRACT_WAIT_MS_HEADER, WENDAO_GRAPH_DIRECTION_HEADER,
     WENDAO_GRAPH_HOPS_HEADER, WENDAO_GRAPH_LIMIT_HEADER, WENDAO_GRAPH_NODE_ID_HEADER,
     WENDAO_REFINE_DOC_ENTITY_ID_HEADER, WENDAO_REFINE_DOC_REPO_HEADER,
     WENDAO_REFINE_DOC_USER_HINTS_HEADER, WENDAO_REPO_DOC_COVERAGE_MODULE_HEADER,
@@ -29,8 +34,9 @@ use crate::transport::query_contract::{
     WENDAO_SEARCH_REPO_HEADER, WENDAO_SQL_QUERY_HEADER, WENDAO_VFS_PATH_HEADER,
     normalize_flight_route, validate_attachment_search_request, validate_autocomplete_request,
     validate_code_ast_analysis_request, validate_definition_request,
-    validate_graph_neighbors_request, validate_markdown_analysis_request,
-    validate_refine_doc_request, validate_repo_doc_coverage_request, validate_repo_index_request,
+    validate_document_extract_request, validate_graph_neighbors_request,
+    validate_markdown_analysis_request, validate_refine_doc_request,
+    validate_repo_doc_coverage_request, validate_repo_index_request,
     validate_repo_index_status_request, validate_repo_overview_request,
     validate_repo_projected_page_index_tree_request, validate_repo_search_request,
     validate_repo_sync_request, validate_vfs_content_request, validate_vfs_resolve_request,
@@ -423,6 +429,104 @@ pub(crate) fn validate_graph_neighbors_request_metadata(
 
     validate_graph_neighbors_request(node_id, direction, parsed_hops, parsed_limit)
         .map_err(Status::invalid_argument)
+}
+
+pub(crate) fn validate_document_extract_request_metadata(
+    metadata: &MetadataMap,
+) -> Result<DocumentExtractFlightRequest, Status> {
+    let source_path = metadata
+        .get(WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_HEADER)
+        .and_then(|value| value.to_str().ok())
+        .unwrap_or_default()
+        .to_string();
+    validate_document_extract_request(source_path.as_str()).map_err(Status::invalid_argument)?;
+    let output_dir = metadata
+        .get(WENDAO_DOCUMENT_EXTRACT_OUTPUT_DIR_HEADER)
+        .and_then(|value| value.to_str().ok())
+        .unwrap_or_default()
+        .to_string();
+    let force = optional_document_extract_bool(
+        metadata,
+        WENDAO_DOCUMENT_EXTRACT_FORCE_HEADER,
+        "force",
+        false,
+    )?;
+    let error_row = optional_document_extract_bool(
+        metadata,
+        WENDAO_DOCUMENT_EXTRACT_ERROR_ROW_HEADER,
+        "error_row",
+        true,
+    )?;
+    let mode = metadata
+        .get(WENDAO_DOCUMENT_EXTRACT_MODE_HEADER)
+        .and_then(|value| value.to_str().ok())
+        .map_or(Ok(DocumentExtractMode::Sync), DocumentExtractMode::parse)
+        .map_err(Status::invalid_argument)?;
+    let wait_ms = optional_document_extract_u64(
+        metadata,
+        WENDAO_DOCUMENT_EXTRACT_WAIT_MS_HEADER,
+        "wait_ms",
+        0,
+    )?;
+    Ok(DocumentExtractFlightRequest {
+        source_path,
+        output_dir,
+        force,
+        error_row,
+        mode,
+        wait_ms,
+    })
+}
+
+fn optional_document_extract_bool(
+    metadata: &MetadataMap,
+    header: &'static str,
+    label: &str,
+    default: bool,
+) -> Result<bool, Status> {
+    let Some(raw) = metadata.get(header).and_then(|value| value.to_str().ok()) else {
+        return Ok(default);
+    };
+    match raw.trim().to_ascii_lowercase().as_str() {
+        "true" | "1" | "yes" => Ok(true),
+        "false" | "0" | "no" => Ok(false),
+        _ => Err(Status::invalid_argument(format!(
+            "invalid document extract {label} header `{header}`"
+        ))),
+    }
+}
+
+pub(crate) fn validate_document_extract_status_request_metadata(
+    metadata: &MetadataMap,
+) -> Result<String, Status> {
+    let job_id = metadata
+        .get(WENDAO_DOCUMENT_EXTRACT_JOB_ID_HEADER)
+        .and_then(|value| value.to_str().ok())
+        .unwrap_or_default()
+        .trim()
+        .to_string();
+    if job_id.is_empty() {
+        return Err(Status::invalid_argument(
+            "document extract job id must not be blank",
+        ));
+    }
+    Ok(job_id)
+}
+
+fn optional_document_extract_u64(
+    metadata: &MetadataMap,
+    header: &'static str,
+    label: &str,
+    default: u64,
+) -> Result<u64, Status> {
+    let Some(raw) = metadata.get(header).and_then(|value| value.to_str().ok()) else {
+        return Ok(default);
+    };
+    raw.trim().parse::<u64>().map_err(|_| {
+        Status::invalid_argument(format!(
+            "invalid document extract {label} header `{header}`: expected non-negative integer"
+        ))
+    })
 }
 
 pub(crate) fn validate_markdown_analysis_request_metadata(

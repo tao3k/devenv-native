@@ -375,10 +375,12 @@ The crate-local Rust Flight roundtrip now also mounts that same
 attaches the rerank embedding-dimension metadata header for `/rerank/flight`,
 so both the local Rust roundtrip and the external Python smoke now hit the same
 stable rerank exchange contract.
-There is now also a non-example runtime entrypoint for that same service
-surface: `xiuxian-wendao-runtime` ships a `wendao_flight_server` binary, and
-the Python transport smoke can target that binary directly instead of relying
-on the example-only server path.
+There is now also a runtime-owned entrypoint for that same service surface:
+`xiuxian-wendao-runtime` ships a `wendao_flight_server` binary, and the Python
+transport smoke can target that binary directly instead of relying on an
+example-local server path. Document extraction is served by the
+`xiuxian-wendao-analyzer` package through the `/analysis/document-extract`
+Arrow Flight route.
 That runtime service is no longer hard-wired to one static repo-search batch:
 `WendaoFlightService` now accepts a pluggable repo-search provider seam, so a
 future `xiuxian-wendao` search backend can be mounted behind the same stable

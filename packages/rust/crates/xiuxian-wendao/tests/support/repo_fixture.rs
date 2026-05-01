@@ -2,9 +2,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-pub use super::linked_parser_summary::{
-    ensure_linked_julia_parser_summary_service, ensure_linked_modelica_parser_summary_service,
-};
+use super::linked_parser_summary::ensure_linked_modelica_parser_summary_service;
 
 pub type TestResult = Result<(), Box<dyn std::error::Error>>;
 pub type TestResultPath = Result<PathBuf, Box<dyn std::error::Error>>;

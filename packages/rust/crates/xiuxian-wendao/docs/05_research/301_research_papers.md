@@ -19,6 +19,13 @@ Map of Content for theoretical foundations supporting the Wendao Kernel.
 - [[303_structural_proprioception|Structural Proprioception: Agent Self-Awareness of Topology]]: Global tree awareness for agents.
 - [[304_semantic_consistency_protocols|Agentic Workflow & Context Engineering (OpenDev 2026)]]: Logical integrity via semantic contracts.
 
+## 2026 Implementation Evidence
+
+- [[305_http_grpc_tower_performance_audit|HTTP/GRPC Tower Performance Audit]]: transport cost and gateway runtime evidence.
+- [[306_pdf_hybrid_ocr_implementation_report|PDF Hybrid OCR Implementation Report]]: Rust-scheduled Docling OCR with stable structure sidecars.
+- [[307_attachment_format_baseline|Attachment Format Precision And Speed Baseline]]: non-PDF attachment precision and class-level speed evidence.
+- [[308_document_extract_pr_closing_report|Document Extraction PR Closing Report]]: PR closing precision, cache, and remaining capacity-risk assessment.
+
 ---
 
 :FOOTER:

@@ -1,5 +1,10 @@
 use std::sync::{Arc, Mutex};
 
+use arrow_array::{
+    Int32Array as ArrowInt32Array, Int64Array as ArrowInt64Array, RecordBatch as ArrowRecordBatch,
+    StringArray as ArrowStringArray,
+};
+use arrow_schema::{DataType as ArrowDataType, Field as ArrowField, Schema as ArrowSchema};
 use async_trait::async_trait;
 use xiuxian_db_store::{
     LanceBooleanArray, LanceDataType, LanceField, LanceFloat64Array, LanceInt32Array,
@@ -10,7 +15,8 @@ use crate::transport::{
     AnalysisFlightRouteResponse, AstSearchFlightRouteProvider, AttachmentSearchFlightRouteProvider,
     AutocompleteFlightRouteProvider, AutocompleteFlightRouteResponse,
     CodeAstAnalysisFlightRouteProvider, DefinitionFlightRouteProvider,
-    DefinitionFlightRouteResponse, GraphNeighborsFlightRouteProvider,
+    DefinitionFlightRouteResponse, DocumentExtractFlightRouteProvider,
+    DocumentExtractFlightRouteResponse, GraphNeighborsFlightRouteProvider,
     GraphNeighborsFlightRouteResponse, MarkdownAnalysisFlightRouteProvider,
     RepoDocCoverageFlightRouteProvider, RepoIndexStatusFlightRouteProvider,
     RepoOverviewFlightRouteProvider, RepoSearchFlightRequest, RepoSearchFlightRouteProvider,
@@ -30,6 +36,7 @@ type RepoOverviewRequestRecord = String;
 type RepoIndexStatusRequestRecord = Option<String>;
 type RepoSyncRequestRecord = (String, String);
 type RepoDocCoverageRequestRecord = (String, Option<String>);
+type DocumentExtractRequestRecord = (String, String, bool, bool);
 type VfsContentRequestRecord = String;
 
 fn lock_or_panic<'a, T>(mutex: &'a Mutex<T>, context: &str) -> std::sync::MutexGuard<'a, T> {
@@ -275,23 +282,23 @@ impl SqlFlightRouteProvider for RecordingSqlProvider {
         *lock_or_panic(&self.request, "SQL provider record should lock") =
             Some(query_text.to_string());
         *lock_or_panic(&self.call_count, "SQL provider call count should lock") += 1;
-        let schema = Arc::new(LanceSchema::new(vec![
-            LanceField::new("table_name", LanceDataType::Utf8, false),
-            LanceField::new("row_id", LanceDataType::Int32, false),
+        let schema = Arc::new(ArrowSchema::new(vec![
+            ArrowField::new("table_name", ArrowDataType::Utf8, false),
+            ArrowField::new("row_id", ArrowDataType::Int32, false),
         ]));
-        let first_batch = LanceRecordBatch::try_new(
+        let first_batch = ArrowRecordBatch::try_new(
             Arc::clone(&schema),
             vec![
-                Arc::new(StringArray::from(vec!["repo_entity"])),
-                Arc::new(LanceInt32Array::from(vec![1])),
+                Arc::new(ArrowStringArray::from(vec!["repo_entity"])),
+                Arc::new(ArrowInt32Array::from(vec![1])),
             ],
         )
         .map_err(|error| error.to_string())?;
-        let second_batch = LanceRecordBatch::try_new(
+        let second_batch = ArrowRecordBatch::try_new(
             schema,
             vec![
-                Arc::new(StringArray::from(vec!["repo_content_chunk"])),
-                Arc::new(LanceInt32Array::from(vec![2])),
+                Arc::new(ArrowStringArray::from(vec!["repo_content_chunk"])),
+                Arc::new(ArrowInt32Array::from(vec![2])),
             ],
         )
         .map_err(|error| error.to_string())?;
@@ -1082,5 +1089,128 @@ impl RepoDocCoverageFlightRouteProvider for RecordingRepoDocCoverageProvider {
             .to_string()
             .into_bytes(),
         ))
+    }
+}
+
+#[derive(Debug, Default)]
+pub(super) struct RecordingDocumentExtractProvider {
+    request: Mutex<Option<DocumentExtractRequestRecord>>,
+    call_count: Mutex<usize>,
+    status_call_count: Mutex<usize>,
+}
+
+impl RecordingDocumentExtractProvider {
+    pub(super) fn recorded_request(&self) -> Option<DocumentExtractRequestRecord> {
+        lock_or_panic(
+            &self.request,
+            "document extract provider record should lock",
+        )
+        .clone()
+    }
+
+    pub(super) fn call_count(&self) -> usize {
+        *lock_or_panic(
+            &self.call_count,
+            "document extract provider call count should lock",
+        )
+    }
+
+    pub(super) fn status_call_count(&self) -> usize {
+        *lock_or_panic(
+            &self.status_call_count,
+            "document extract status provider call count should lock",
+        )
+    }
+}
+
+#[async_trait]
+impl DocumentExtractFlightRouteProvider for RecordingDocumentExtractProvider {
+    async fn document_extract_batch(
+        &self,
+        source_path: &str,
+        output_dir: &str,
+        force: bool,
+        error_row: bool,
+    ) -> Result<DocumentExtractFlightRouteResponse, String> {
+        *lock_or_panic(
+            &self.request,
+            "document extract provider record should lock",
+        ) = Some((
+            source_path.to_string(),
+            output_dir.to_string(),
+            force,
+            error_row,
+        ));
+        *lock_or_panic(
+            &self.call_count,
+            "document extract provider call count should lock",
+        ) += 1;
+        let batch = ArrowRecordBatch::try_new(
+            Arc::new(ArrowSchema::new(vec![
+                ArrowField::new("sourcePath", ArrowDataType::Utf8, false),
+                ArrowField::new("resourceType", ArrowDataType::Utf8, false),
+                ArrowField::new("resourcePath", ArrowDataType::Utf8, false),
+                ArrowField::new("pageIndex", ArrowDataType::Int32, false),
+                ArrowField::new("status", ArrowDataType::Utf8, false),
+            ])),
+            vec![
+                Arc::new(ArrowStringArray::from(vec![source_path.to_string()])),
+                Arc::new(ArrowStringArray::from(vec!["document".to_string()])),
+                Arc::new(ArrowStringArray::from(vec![format!(
+                    "{source_path}.extracted/_main.md"
+                )])),
+                Arc::new(ArrowInt32Array::from(vec![0])),
+                Arc::new(ArrowStringArray::from(vec!["ok".to_string()])),
+            ],
+        )
+        .map_err(|error| error.to_string())?;
+        Ok(DocumentExtractFlightRouteResponse::new(batch))
+    }
+
+    async fn document_extract_status_batch(
+        &self,
+        job_id: &str,
+    ) -> Result<DocumentExtractFlightRouteResponse, String> {
+        let mut call_count = lock_or_panic(
+            &self.status_call_count,
+            "document extract status provider call count should lock",
+        );
+        *call_count += 1;
+        let status = if *call_count == 1 {
+            "queued"
+        } else {
+            "running"
+        };
+        let attempt_count = i32::try_from(*call_count).unwrap_or(i32::MAX);
+        let batch = ArrowRecordBatch::try_new(
+            Arc::new(ArrowSchema::new(vec![
+                ArrowField::new("jobId", ArrowDataType::Utf8, false),
+                ArrowField::new("sourcePath", ArrowDataType::Utf8, false),
+                ArrowField::new("outputDir", ArrowDataType::Utf8, false),
+                ArrowField::new("contentHash", ArrowDataType::Utf8, false),
+                ArrowField::new("status", ArrowDataType::Utf8, false),
+                ArrowField::new("attemptCount", ArrowDataType::Int32, false),
+                ArrowField::new("createdAtMs", ArrowDataType::Int64, false),
+                ArrowField::new("startedAtMs", ArrowDataType::Int64, false),
+                ArrowField::new("finishedAtMs", ArrowDataType::Int64, false),
+                ArrowField::new("errorMessage", ArrowDataType::Utf8, false),
+            ])),
+            vec![
+                Arc::new(ArrowStringArray::from(vec![job_id.to_string()])),
+                Arc::new(ArrowStringArray::from(vec!["docs/manual.pdf".to_string()])),
+                Arc::new(ArrowStringArray::from(vec![
+                    ".cache/document-extract".to_string(),
+                ])),
+                Arc::new(ArrowStringArray::from(vec!["hash:manual".to_string()])),
+                Arc::new(ArrowStringArray::from(vec![status.to_string()])),
+                Arc::new(ArrowInt32Array::from(vec![attempt_count])),
+                Arc::new(ArrowInt64Array::from(vec![100_i64])),
+                Arc::new(ArrowInt64Array::from(vec![200_i64])),
+                Arc::new(ArrowInt64Array::from(vec![0_i64])),
+                Arc::new(ArrowStringArray::from(vec![String::new()])),
+            ],
+        )
+        .map_err(|error| error.to_string())?;
+        Ok(DocumentExtractFlightRouteResponse::new(batch))
     }
 }

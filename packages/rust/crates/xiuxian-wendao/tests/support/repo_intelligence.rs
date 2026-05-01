@@ -1,16 +1,41 @@
 use std::collections::BTreeMap;
 use std::fs;
+use std::io::Error as IoError;
 use std::path::Path;
+use std::sync::{Mutex, OnceLock};
 
 use serde::Serialize;
 use xiuxian_wendao::analyzers::{
     DocRecord, ModuleRecord, RelationKind, RelationRecord, RepoSymbolKind,
     RepositoryAnalysisOutput, RepositoryRecord, SymbolRecord,
 };
+use xiuxian_wendao_julia::integration_support::{
+    JuliaExampleServiceGuard, spawn_wendaosearch_all_parser_summary_service,
+};
 
-use super::repo_fixture::{self, ensure_linked_julia_parser_summary_service};
+use super::repo_fixture;
+use super::repo_parser_summary;
+use repo_parser_summary::{FakeParserSummaryServiceGuard, spawn_fake_julia_parser_summary_service};
 
 pub type TestResultPath = repo_fixture::TestResultPath;
+
+struct RepoIntelligenceParserSummaryService {
+    base_url: String,
+    _guard: Mutex<RepoIntelligenceParserSummaryGuard>,
+}
+
+enum RepoIntelligenceParserSummaryGuard {
+    Real {
+        _guard: JuliaExampleServiceGuard,
+    },
+    Fake {
+        _guard: FakeParserSummaryServiceGuard,
+    },
+}
+
+static REPO_INTELLIGENCE_PARSER_SUMMARY_SERVICE: OnceLock<
+    Result<RepoIntelligenceParserSummaryService, String>,
+> = OnceLock::new();
 
 pub fn create_sample_julia_repo(
     base: &Path,
@@ -35,19 +60,86 @@ pub fn assert_repo_json_snapshot(name: &str, value: impl Serialize) {
 }
 
 pub fn write_repo_config(base: &Path, repo_dir: &Path, repo_id: &str) -> TestResultPath {
-    ensure_linked_julia_parser_summary_service()?;
+    let parser_summary_base_url = repo_intelligence_parser_summary_base_url()?;
     let config_path = base.join(format!("{repo_id}.wendao.toml"));
     fs::write(
         &config_path,
         format!(
             r#"[link_graph.projects.{repo_id}]
 root = "{}"
-plugins = ["julia"]
+plugins = [
+  {{ id = "julia", parser_summary_transport = {{ base_url = "{parser_summary_base_url}", file_summary = {{ schema_version = "v3" }}, root_summary = {{ schema_version = "v3" }} }} }}
+]
 "#,
             repo_dir.display(),
         ),
     )?;
     Ok(config_path)
+}
+
+fn repo_intelligence_parser_summary_base_url() -> Result<String, Box<dyn std::error::Error>> {
+    let service = REPO_INTELLIGENCE_PARSER_SUMMARY_SERVICE.get_or_init(|| {
+        let (base_url, guard) = spawn_repo_intelligence_parser_summary_service()?;
+        Ok(RepoIntelligenceParserSummaryService {
+            base_url,
+            _guard: Mutex::new(guard),
+        })
+    });
+    match service {
+        Ok(service) => Ok(service.base_url.clone()),
+        Err(message) => {
+            Err(Box::new(IoError::other(message.clone())) as Box<dyn std::error::Error>)
+        }
+    }
+}
+
+fn spawn_repo_intelligence_parser_summary_service()
+-> Result<(String, RepoIntelligenceParserSummaryGuard), String> {
+    if !real_repo_intelligence_parser_summary_service_is_available() {
+        return spawn_fake_julia_parser_summary_service().map(|(base_url, guard)| {
+            (
+                base_url,
+                RepoIntelligenceParserSummaryGuard::Fake { _guard: guard },
+            )
+        });
+    }
+    match spawn_real_repo_intelligence_parser_summary_service() {
+        Ok((base_url, guard)) => Ok((
+            base_url,
+            RepoIntelligenceParserSummaryGuard::Real { _guard: guard },
+        )),
+        Err(_) => spawn_fake_julia_parser_summary_service().map(|(base_url, guard)| {
+            (
+                base_url,
+                RepoIntelligenceParserSummaryGuard::Fake { _guard: guard },
+            )
+        }),
+    }
+}
+
+fn real_repo_intelligence_parser_summary_service_is_available() -> bool {
+    std::env::var_os("WENDAOSEARCH_PACKAGE_DIR")
+        .filter(|value| !value.is_empty())
+        .is_some_and(|path| Path::new(&path).exists())
+        || Path::new(env!("CARGO_MANIFEST_DIR"))
+            .ancestors()
+            .nth(4)
+            .is_some_and(|root| root.join(".data").join("WendaoSearch.jl").is_dir())
+}
+
+fn spawn_real_repo_intelligence_parser_summary_service()
+-> Result<(String, JuliaExampleServiceGuard), String> {
+    std::thread::spawn(|| {
+        let runtime = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .map_err(|error| error.to_string())?;
+        Ok::<(String, JuliaExampleServiceGuard), String>(
+            runtime.block_on(spawn_wendaosearch_all_parser_summary_service()),
+        )
+    })
+    .join()
+    .map_err(|_| "repo-intelligence parser-summary service thread panicked".to_string())?
 }
 
 #[must_use]

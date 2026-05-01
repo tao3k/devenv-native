@@ -66,6 +66,7 @@ pub(super) fn invalid_response_missing_analyzer_score_batch() -> RecordBatch {
     .unwrap_or_else(|error| panic!("invalid response batch should build: {error}"))
 }
 
+#[cfg(feature = "vector-store")]
 pub(super) fn tempdir_or_panic() -> tempfile::TempDir {
     tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"))
 }

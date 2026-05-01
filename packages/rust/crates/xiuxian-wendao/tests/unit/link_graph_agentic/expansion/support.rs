@@ -1,4 +1,7 @@
-use std::{fs, path::Path};
+use std::{
+    env, fs,
+    path::{Path, PathBuf},
+};
 
 use tempfile::TempDir;
 use xiuxian_wendao::{LinkGraphAgenticExpansionConfig, LinkGraphIndex};
@@ -24,12 +27,17 @@ pub(super) use xiuxian_wendao_builtin::{
     build_graph_structural_keyword_overlap_raw_candidate_inputs,
     fetch_graph_structural_filter_rows_for_repository,
     fetch_graph_structural_keyword_overlap_pair_rerank_rows_for_repository_from_raw_candidates,
-    linked_builtin_spawn_wendaosearch_solver_demo_multi_route_service,
-    linked_builtin_spawn_wendaosearch_solver_demo_structural_rerank_service,
 };
+#[cfg(feature = "julia")]
+use xiuxian_wendao_builtin::{
+    linked_builtin_spawn_wendaosearch_solver_demo_multi_route_service as spawn_real_solver_demo_multi_route_service,
+    linked_builtin_spawn_wendaosearch_solver_demo_structural_rerank_service as spawn_real_solver_demo_structural_rerank_service,
+};
+#[cfg(feature = "julia")]
+use xiuxian_wendao_julia::integration_support::JuliaExampleServiceGuard;
 
 #[cfg(feature = "julia")]
-pub(super) use super::super::expansion_support::{
+pub(super) use crate::link_graph_agentic::expansion_support::{
     GenericTopologyCandidateBuildOptions, GenericTopologyCandidateScores,
     assert_solver_demo_generic_topology_row_basics,
     assert_solver_demo_generic_topology_row_infeasible,
@@ -41,6 +49,10 @@ pub(super) use super::super::expansion_support::{
     default_agentic_execution_relation_edge_kind,
     fetch_generic_topology_rows_via_manifest_discovery, first_connected_pair_collection,
     first_worker_pair, required_column,
+};
+#[cfg(feature = "julia")]
+use crate::link_graph_agentic::graph_structural_fake::{
+    FakeGraphStructuralServiceGuard, spawn_fake_graph_structural_service,
 };
 
 pub(super) type TestResult = Result<(), Box<dyn std::error::Error>>;
@@ -84,4 +96,77 @@ pub(super) fn expansion_config(
         max_pairs_per_worker,
         time_budget_ms: 1_000.0,
     }
+}
+
+#[cfg(feature = "julia")]
+pub(super) enum GraphStructuralServiceGuard {
+    Real {
+        guard: JuliaExampleServiceGuard,
+    },
+    Fake {
+        guard: FakeGraphStructuralServiceGuard,
+    },
+}
+
+#[cfg(feature = "julia")]
+impl GraphStructuralServiceGuard {
+    pub(super) fn kill(&mut self) {
+        match self {
+            Self::Real { guard } => guard.kill(),
+            Self::Fake { guard } => guard.kill(),
+        }
+    }
+}
+
+#[cfg(feature = "julia")]
+pub(super) async fn linked_builtin_spawn_wendaosearch_solver_demo_structural_rerank_service()
+-> (String, GraphStructuralServiceGuard) {
+    if wendaosearch_solver_demo_available() {
+        let (base_url, guard) = spawn_real_solver_demo_structural_rerank_service().await;
+        return (base_url, GraphStructuralServiceGuard::Real { guard });
+    }
+    let (base_url, guard) = spawn_fake_graph_structural_service()
+        .unwrap_or_else(|error| panic!("spawn fake graph-structural service: {error}"));
+    (base_url, GraphStructuralServiceGuard::Fake { guard })
+}
+
+#[cfg(feature = "julia")]
+pub(super) async fn linked_builtin_spawn_wendaosearch_solver_demo_multi_route_service()
+-> (String, GraphStructuralServiceGuard) {
+    if wendaosearch_solver_demo_available() {
+        let (base_url, guard) = spawn_real_solver_demo_multi_route_service().await;
+        return (base_url, GraphStructuralServiceGuard::Real { guard });
+    }
+    let (base_url, guard) = spawn_fake_graph_structural_service()
+        .unwrap_or_else(|error| panic!("spawn fake graph-structural service: {error}"));
+    (base_url, GraphStructuralServiceGuard::Fake { guard })
+}
+
+#[cfg(feature = "julia")]
+fn wendaosearch_solver_demo_available() -> bool {
+    if env::var("WENDAOSEARCH_SOLVER_DEMO_BASE_URL").is_ok_and(|value| !value.is_empty()) {
+        return true;
+    }
+    if let Some(package_dir) = env::var_os("WENDAOSEARCH_PACKAGE_DIR") {
+        return existing_path_from_env(package_dir).is_dir();
+    }
+    repo_root().join(".data/WendaoSearch.jl").is_dir()
+}
+
+#[cfg(feature = "julia")]
+fn existing_path_from_env(path: impl Into<PathBuf>) -> PathBuf {
+    let path = path.into();
+    if path.is_absolute() {
+        return path;
+    }
+    repo_root().join(path)
+}
+
+#[cfg(feature = "julia")]
+fn repo_root() -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR"))
+        .ancestors()
+        .nth(4)
+        .unwrap_or_else(|| panic!("resolve test repo root"))
+        .to_path_buf()
 }

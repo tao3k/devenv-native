@@ -15,7 +15,7 @@ use super::support::{
 #[serial(julia_live)]
 async fn load_code_ast_analysis_response_supports_plain_julia_plugin_repository()
 -> Result<(), Box<dyn std::error::Error>> {
-    crate::gateway::studio::search::handlers::tests::linked_parser_summary::ensure_linked_julia_parser_summary_service()?;
+    crate::gateway::studio::search::handlers::tests::linked_parser_summary::ensure_linked_parser_summary_service()?;
     let fixture = make_gateway_fixture()?;
     let repo_dir = create_sample_julia_repo(fixture.temp_dir.path(), "CodeAstJulia")?;
     let repository = RegisteredRepository {

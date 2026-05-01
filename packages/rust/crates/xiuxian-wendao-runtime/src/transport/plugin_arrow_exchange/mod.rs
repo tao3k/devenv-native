@@ -1,5 +1,6 @@
 mod errors;
 mod metadata;
+#[cfg(feature = "vector-store")]
 mod prepare;
 mod request;
 mod response;
@@ -9,6 +10,7 @@ mod roundtrip;
 mod tests;
 
 pub use metadata::{attach_plugin_arrow_request_metadata, plugin_arrow_request_trace_id};
+#[cfg(feature = "vector-store")]
 pub use prepare::{
     PluginArrowVectorStoreRequestBuildError, build_plugin_arrow_request_batch_from_vector_store,
     build_plugin_arrow_request_batch_from_vector_store_with_metadata,

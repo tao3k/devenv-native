@@ -8,13 +8,16 @@ use std::time::Duration;
 
 use toml::Value;
 use xiuxian_wendao_julia::integration_support::{
-    JuliaExampleServiceGuard, spawn_wendaosearch_modelica_parser_summary_service,
+    JuliaExampleServiceGuard, spawn_wendaosearch_all_parser_summary_service,
 };
 use xiuxian_wendao_julia::{
     clear_modelica_parser_summary_transport_cache_for_tests,
     set_linked_julia_parser_summary_base_url_for_tests,
     set_linked_modelica_parser_summary_base_url_for_tests,
 };
+
+use super::repo_parser_summary;
+use repo_parser_summary::{FakeParserSummaryServiceGuard, spawn_fake_julia_parser_summary_service};
 
 type TestResult = Result<(), Box<dyn std::error::Error>>;
 
@@ -25,7 +28,17 @@ const PROCESS_MANAGED_PARSER_SUMMARY_SERVICE_NAME: &str = "wendaosearch-parser-s
 const PROCESS_MANAGED_READY_ATTEMPTS: usize = 600;
 
 struct LinkedParserSummaryService {
-    _guard: Mutex<JuliaExampleServiceGuard>,
+    base_url: String,
+    _guard: Mutex<LinkedParserSummaryGuard>,
+}
+
+enum LinkedParserSummaryGuard {
+    Real {
+        _guard: JuliaExampleServiceGuard,
+    },
+    Fake {
+        _guard: FakeParserSummaryServiceGuard,
+    },
 }
 
 #[derive(Clone, Copy)]
@@ -47,28 +60,23 @@ static LINKED_PARSER_SUMMARY_SERVICE: OnceLock<Result<LinkedParserSummaryService
     OnceLock::new();
 static PROCESS_MANAGED_PARSER_SUMMARY_SERVICE: OnceLock<Result<(), String>> = OnceLock::new();
 
-pub fn ensure_linked_julia_parser_summary_service() -> TestResult {
-    if process_managed_wendaosearch_test_enabled() {
-        return ensure_process_managed_parser_summary_service(
-            ProcessManagedParserSummaryMode::Required,
-        );
-    }
-    if process_managed_parser_summary_service_is_configured()
-        && ensure_process_managed_parser_summary_service(
-            ProcessManagedParserSummaryMode::BestEffort,
-        )
-        .is_ok()
-    {
-        return Ok(());
-    }
-    ensure_linked_parser_summary_service()
+pub fn ensure_linked_parser_summary_service() -> TestResult {
+    linked_parser_summary_base_url().map(|_| ())
 }
 
 pub fn ensure_linked_modelica_parser_summary_service() -> TestResult {
+    linked_modelica_parser_summary_base_url().map(|_| ())
+}
+
+pub fn linked_modelica_parser_summary_base_url() -> Result<String, Box<dyn std::error::Error>> {
+    linked_parser_summary_base_url()
+}
+
+pub fn linked_parser_summary_base_url() -> Result<String, Box<dyn std::error::Error>> {
     if process_managed_wendaosearch_test_enabled() {
-        return ensure_process_managed_parser_summary_service(
-            ProcessManagedParserSummaryMode::Required,
-        );
+        ensure_process_managed_parser_summary_service(ProcessManagedParserSummaryMode::Required)?;
+        return process_managed_parser_summary_base_url()
+            .map_err(|message| Box::new(IoError::other(message)) as Box<dyn std::error::Error>);
     }
     if process_managed_parser_summary_service_is_configured()
         && ensure_process_managed_parser_summary_service(
@@ -76,36 +84,68 @@ pub fn ensure_linked_modelica_parser_summary_service() -> TestResult {
         )
         .is_ok()
     {
-        return Ok(());
+        return process_managed_parser_summary_base_url()
+            .map_err(|message| Box::new(IoError::other(message)) as Box<dyn std::error::Error>);
     }
-    ensure_linked_parser_summary_service()
+    let service = linked_parser_summary_service()?;
+    configure_linked_parser_summary_base_url(service.base_url.as_str())
+        .map_err(|message| Box::new(IoError::other(message)) as Box<dyn std::error::Error>)?;
+    Ok(service.base_url.clone())
 }
 
-fn ensure_linked_parser_summary_service() -> TestResult {
+fn linked_parser_summary_service()
+-> Result<&'static LinkedParserSummaryService, Box<dyn std::error::Error>> {
     let service = LINKED_PARSER_SUMMARY_SERVICE.get_or_init(|| {
-        let (base_url, guard) = std::thread::spawn(|| {
-            let runtime = tokio::runtime::Builder::new_current_thread()
-                .enable_all()
-                .build()
-                .map_err(|error| error.to_string())?;
-            Ok::<(String, JuliaExampleServiceGuard), String>(
-                runtime.block_on(spawn_wendaosearch_modelica_parser_summary_service()),
-            )
-        })
-        .join()
-        .map_err(|_| "linked parser-summary service thread panicked".to_string())??;
-        set_linked_julia_parser_summary_base_url_for_tests(base_url.as_str())?;
-        set_linked_modelica_parser_summary_base_url_for_tests(base_url.as_str())?;
+        let (base_url, guard) = spawn_in_process_linked_parser_summary_service()?;
+        configure_linked_parser_summary_base_url(base_url.as_str())?;
         Ok(LinkedParserSummaryService {
+            base_url,
             _guard: Mutex::new(guard),
         })
     });
     match service.as_ref() {
-        Ok(_) => Ok(()),
+        Ok(service) => Ok(service),
         Err(message) => {
             Err(Box::new(IoError::other(message.clone())) as Box<dyn std::error::Error>)
         }
     }
+}
+
+fn spawn_in_process_linked_parser_summary_service()
+-> Result<(String, LinkedParserSummaryGuard), String> {
+    if !real_parser_summary_service_is_available() {
+        return spawn_fake_julia_parser_summary_service()
+            .map(|(base_url, guard)| (base_url, LinkedParserSummaryGuard::Fake { _guard: guard }));
+    }
+    match std::thread::spawn(|| {
+        let runtime = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .map_err(|error| error.to_string())?;
+        Ok::<(String, JuliaExampleServiceGuard), String>(
+            runtime.block_on(spawn_wendaosearch_all_parser_summary_service()),
+        )
+    })
+    .join()
+    .map_err(|_| "linked parser-summary service thread panicked".to_string())?
+    {
+        Ok((base_url, guard)) => Ok((base_url, LinkedParserSummaryGuard::Real { _guard: guard })),
+        Err(_) => spawn_fake_julia_parser_summary_service()
+            .map(|(base_url, guard)| (base_url, LinkedParserSummaryGuard::Fake { _guard: guard })),
+    }
+}
+
+fn real_parser_summary_service_is_available() -> bool {
+    std::env::var_os(WENDAOSEARCH_PACKAGE_DIR_ENV)
+        .filter(|value| !value.is_empty())
+        .is_some_and(|path| Path::new(&path).exists())
+        || repo_root().join(".data").join("WendaoSearch.jl").is_dir()
+}
+
+fn configure_linked_parser_summary_base_url(base_url: &str) -> Result<(), String> {
+    set_linked_julia_parser_summary_base_url_for_tests(base_url)?;
+    set_linked_modelica_parser_summary_base_url_for_tests(base_url)?;
+    Ok(())
 }
 
 fn process_managed_wendaosearch_test_enabled() -> bool {

@@ -9,6 +9,7 @@ mod code_ast;
 mod collection;
 mod config;
 mod definitions;
+mod document_extract;
 mod error;
 mod graph;
 mod navigation;
@@ -39,6 +40,10 @@ pub use config::{
 pub use definitions::{
     AstSearchHit, AstSearchResponse, DefinitionResolveResponse, DefinitionSearchHit,
     ObservationHint, ReferenceSearchHit, ReferenceSearchResponse,
+};
+pub use document_extract::{
+    DocumentExtractJobStatus, DocumentExtractJobSubmitRequest, DocumentExtractJobsStatus,
+    DocumentExtractResource, DocumentExtractResult,
 };
 pub use error::ApiError;
 pub use graph::{

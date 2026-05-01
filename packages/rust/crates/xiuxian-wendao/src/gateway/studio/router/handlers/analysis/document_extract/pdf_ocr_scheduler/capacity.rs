@@ -1,0 +1,224 @@
+use std::sync::{Mutex, MutexGuard};
+
+use xiuxian_wendao_attachments::pdf::ocr::PdfOcrShardInput;
+
+use super::scheduler::DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS_ENV;
+
+const HEALTHY_STREAK_BEFORE_INCREASE: usize = 2;
+const PRESSURE_LATENCY_MS: u64 = 60_000;
+const PRESSURE_QUEUE_WAIT_MS: u64 = 15_000;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum OcrSchedulerLane {
+    SourcePdfPageRange,
+    RenderedPage,
+    RenderedRegion,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(super) struct OcrCapacitySnapshot {
+    pub(super) max_worker_bound: usize,
+    pub(super) current_worker_budget: usize,
+    pub(super) healthy_streak: usize,
+    pub(super) budget_increase_events: u64,
+    pub(super) budget_decrease_events: u64,
+}
+
+#[derive(Debug)]
+pub(super) struct OcrCapacityController {
+    state: Mutex<OcrCapacityState>,
+}
+
+#[derive(Debug, Clone)]
+struct OcrCapacityState {
+    max_worker_bound: usize,
+    current_worker_budget: usize,
+    healthy_streak: usize,
+    budget_increase_events: u64,
+    budget_decrease_events: u64,
+}
+
+impl OcrCapacityController {
+    pub(super) fn new(max_worker_bound: usize) -> Self {
+        let max_worker_bound = max_worker_bound.max(1);
+        Self {
+            state: Mutex::new(OcrCapacityState {
+                max_worker_bound,
+                current_worker_budget: initial_worker_budget(max_worker_bound),
+                healthy_streak: 0,
+                budget_increase_events: 0,
+                budget_decrease_events: 0,
+            }),
+        }
+    }
+
+    #[cfg(test)]
+    pub(super) fn new_with_current_budget(
+        max_worker_bound: usize,
+        current_worker_budget: usize,
+    ) -> Self {
+        let max_worker_bound = max_worker_bound.max(1);
+        Self {
+            state: Mutex::new(OcrCapacityState {
+                max_worker_bound,
+                current_worker_budget: current_worker_budget.clamp(1, max_worker_bound),
+                healthy_streak: 0,
+                budget_increase_events: 0,
+                budget_decrease_events: 0,
+            }),
+        }
+    }
+
+    pub(super) fn budget_for_lane(
+        &self,
+        shard_count: usize,
+        lane: OcrSchedulerLane,
+        source_range_override: Option<usize>,
+    ) -> usize {
+        let snapshot = self.snapshot();
+        let shard_count = shard_count.max(1);
+        let worker_budget = snapshot
+            .current_worker_budget
+            .min(snapshot.max_worker_bound)
+            .min(shard_count)
+            .max(1);
+        match lane {
+            OcrSchedulerLane::SourcePdfPageRange => source_pdf_page_range_worker_target(
+                shard_count,
+                worker_budget,
+                snapshot.max_worker_bound,
+                source_range_override,
+            ),
+            OcrSchedulerLane::RenderedPage | OcrSchedulerLane::RenderedRegion => worker_budget,
+        }
+    }
+
+    pub(super) fn record_success(&self, queue_wait_ms: u64, latency_ms: u64) {
+        if queue_wait_ms > PRESSURE_QUEUE_WAIT_MS || latency_ms > PRESSURE_LATENCY_MS {
+            self.record_pressure();
+            return;
+        }
+
+        let mut state = self.lock_state();
+        state.healthy_streak = state.healthy_streak.saturating_add(1);
+        if state.healthy_streak >= HEALTHY_STREAK_BEFORE_INCREASE
+            && state.current_worker_budget < state.max_worker_bound
+        {
+            state.current_worker_budget = state.current_worker_budget.saturating_add(1);
+            state.healthy_streak = 0;
+            state.budget_increase_events = state.budget_increase_events.saturating_add(1);
+        }
+    }
+
+    pub(super) fn record_failure(&self) {
+        self.record_pressure();
+    }
+
+    pub(super) fn snapshot(&self) -> OcrCapacitySnapshot {
+        let state = self.lock_state();
+        OcrCapacitySnapshot {
+            max_worker_bound: state.max_worker_bound,
+            current_worker_budget: state.current_worker_budget,
+            healthy_streak: state.healthy_streak,
+            budget_increase_events: state.budget_increase_events,
+            budget_decrease_events: state.budget_decrease_events,
+        }
+    }
+
+    fn record_pressure(&self) {
+        let mut state = self.lock_state();
+        state.healthy_streak = 0;
+        let reduced = state.current_worker_budget.div_ceil(2).max(1);
+        if reduced < state.current_worker_budget {
+            state.current_worker_budget = reduced;
+            state.budget_decrease_events = state.budget_decrease_events.saturating_add(1);
+        }
+    }
+
+    fn lock_state(&self) -> MutexGuard<'_, OcrCapacityState> {
+        match self.state.lock() {
+            Ok(state) => state,
+            Err(poisoned) => poisoned.into_inner(),
+        }
+    }
+}
+
+pub(super) fn classify_ocr_lane(inputs: &[PdfOcrShardInput]) -> OcrSchedulerLane {
+    if is_contiguous_source_pdf_page_range(inputs) {
+        return OcrSchedulerLane::SourcePdfPageRange;
+    }
+    if inputs.iter().any(|input| input.shard_type == "region") {
+        return OcrSchedulerLane::RenderedRegion;
+    }
+    OcrSchedulerLane::RenderedPage
+}
+
+pub(super) fn source_range_override_from_environment() -> Option<usize> {
+    std::env::var(DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS_ENV)
+        .ok()
+        .and_then(|value| value.parse::<usize>().ok())
+        .filter(|value| *value > 0)
+}
+
+pub(super) fn is_contiguous_source_pdf_page_range(inputs: &[PdfOcrShardInput]) -> bool {
+    let Some(first) = inputs.first() else {
+        return false;
+    };
+    if !first.source_path.to_ascii_lowercase().ends_with(".pdf") {
+        return false;
+    }
+    inputs.iter().enumerate().all(|(offset, input)| {
+        input.source_path == first.source_path
+            && input.shard_type == "page"
+            && input.page_index == first.page_index + u32::try_from(offset).unwrap_or(u32::MAX)
+    })
+}
+
+fn source_pdf_page_range_worker_target(
+    shard_count: usize,
+    current_worker_budget: usize,
+    max_worker_bound: usize,
+    source_range_override: Option<usize>,
+) -> usize {
+    let shard_count = shard_count.max(1);
+    let current_worker_budget = current_worker_budget.max(1);
+    let max_worker_bound = max_worker_bound.max(1);
+    if let Some(limit) = source_range_override {
+        return limit
+            .min(max_worker_bound)
+            .min(current_worker_budget)
+            .min(shard_count)
+            .max(1);
+    }
+    let machine_budget = source_pdf_page_range_machine_ceiling(max_worker_bound);
+    let page_budget = shard_count.div_ceil(6);
+    current_worker_budget
+        .min(machine_budget)
+        .min(page_budget.max(1))
+        .min(max_worker_bound)
+        .min(shard_count)
+        .max(1)
+}
+
+fn source_pdf_page_range_machine_ceiling(max_worker_bound: usize) -> usize {
+    ceil_sqrt_usize(max_worker_bound.max(1)).max(1)
+}
+
+fn initial_worker_budget(max_worker_bound: usize) -> usize {
+    ceil_sqrt_usize(max_worker_bound.max(1)).max(1)
+}
+
+fn ceil_sqrt_usize(value: usize) -> usize {
+    if value <= 1 {
+        return value;
+    }
+    let mut root = 1usize;
+    while root.saturating_mul(root) < value {
+        root = root.saturating_add(1);
+    }
+    root
+}
+
+#[cfg(test)]
+#[path = "../../../../../../../../tests/unit/gateway/studio/router/handlers/analysis/document_extract/pdf_ocr_scheduler/capacity.rs"]
+mod tests;

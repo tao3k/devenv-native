@@ -1,3 +1,4 @@
+pub(crate) mod document_extract_artifacts;
 pub(crate) mod gateway;
 mod link_graph;
 pub(crate) mod repo_index_audit;

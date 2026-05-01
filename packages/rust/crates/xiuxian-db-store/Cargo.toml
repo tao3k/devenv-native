@@ -8,8 +8,18 @@ license = "Apache-2.0"
 publish = false
 
 [features]
-default = ["vector-store"]
-vector-store = ["dep:xiuxian-vector"]
+default = []
+engine = [
+  "dep:arrow",
+  "dep:arrow-ipc",
+  "dep:datafusion",
+  "dep:parquet",
+  "dep:serde",
+  "dep:serde_json",
+  "dep:thiserror",
+  "dep:tokio",
+]
+vector-store = ["engine", "dep:xiuxian-vector", "xiuxian-vector/vector-store"]
 duckdb-types = ["dep:serde"]
 duckdb = ["duckdb-types", "dep:duckdb"]
 qianji-bpmn-workflow-state = [
@@ -20,12 +30,18 @@ qianji-bpmn-workflow-state = [
 ]
 
 [dependencies]
+arrow = { workspace = true, optional = true }
+arrow-ipc = { workspace = true, optional = true }
+datafusion = { workspace = true, optional = true }
 duckdb = { workspace = true, optional = true }
+parquet = { workspace = true, optional = true }
 qianji-bpmn-engine = { path = "../qianji-bpmn-engine", default-features = false, optional = true }
 serde = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
 thiserror = { workspace = true, optional = true }
-xiuxian-vector = { path = "../xiuxian-vector", features = ["vector-store"], optional = true }
+tokio = { workspace = true, optional = true }
+xiuxian-vector = { path = "../xiuxian-vector", default-features = false, optional = true }
+xiuxian-testing = { path = "../xiuxian-testing" }
 
 [dev-dependencies]
 tempfile = { workspace = true }

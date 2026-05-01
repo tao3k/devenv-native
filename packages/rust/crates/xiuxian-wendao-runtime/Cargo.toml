@@ -16,8 +16,9 @@ transport = [
     "dep:tokio",
     "dep:tokio-stream",
     "dep:tonic",
-    "xiuxian-db-store/vector-store",
+    "xiuxian-db-store/engine",
 ]
+vector-store = ["transport", "xiuxian-db-store/vector-store"]
 
 [dependencies]
 anyhow = { workspace = true }

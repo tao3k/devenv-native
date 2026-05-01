@@ -3,11 +3,15 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Mapping
-from wendao_core_lib import (
-    WendaoFlightRouteQuery,
-    WendaoRepoSearchRequest,
-)
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
+
+    from wendao_core_lib import (
+        WendaoFlightRouteQuery,
+        WendaoRepoSearchRequest,
+    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -24,7 +28,7 @@ class AnalyzerResultRow:
     final_score: float | None
 
     @classmethod
-    def from_mapping(cls, row: Mapping[str, object]) -> "AnalyzerResultRow":
+    def from_mapping(cls, row: Mapping[str, object]) -> AnalyzerResultRow:
         """Build one typed analyzer result row from a generic mapping."""
 
         rank = row.get("rank")

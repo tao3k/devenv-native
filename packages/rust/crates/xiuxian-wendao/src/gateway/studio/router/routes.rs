@@ -121,6 +121,23 @@ pub fn studio_routes() -> Router<Arc<GatewayState>> {
             post(handlers::repo::refine::refine_entity_doc),
         )
         .route(
+            "/api/document-extract-result",
+            get(handlers::document_extract_result::get_document_extract_result),
+        )
+        .route(
+            "/api/document-extract-resource",
+            get(handlers::document_extract_resource::get_document_extract_resource),
+        )
+        .route(
+            "/api/document-extract-jobs",
+            get(handlers::document_extract_jobs::get_document_extract_jobs_status)
+                .post(handlers::document_extract_jobs::submit_document_extract_job),
+        )
+        .route(
+            "/api/document-extract-job",
+            get(handlers::document_extract_jobs::get_document_extract_job),
+        )
+        .route(
             openapi_paths::API_REPO_OVERVIEW_AXUM_PATH,
             get(handlers::repo::analysis::overview::overview),
         )

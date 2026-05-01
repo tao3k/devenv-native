@@ -46,6 +46,11 @@ pub(crate) fn build_note_tables(parsed_notes: Vec<ParsedNote>) -> NoteTables {
         }
     }
 
+    // Expand Docling-supported document attachments into derived resources.
+    for attachments in attachments_by_doc.values_mut() {
+        crate::link_graph::index::build::attachments::expand_document_attachments(attachments);
+    }
+
     NoteTables {
         parsed_notes,
         docs_by_id,

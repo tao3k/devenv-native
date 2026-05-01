@@ -11,7 +11,7 @@ use crate::support::repo_intelligence::{
 };
 use serde_json::json;
 use uuid::Uuid;
-use xiuxian_config_core::resolve_data_home;
+use xiuxian_io::PrjDirs;
 use xiuxian_wendao::analyzers::{
     RepoSyncDriftState, RepoSyncHealthState, RepoSyncMode, RepoSyncQuery, RepoSyncStalenessState,
     repo_sync_from_config,
@@ -101,9 +101,9 @@ fn repo_sync_status_reports_missing_managed_assets_without_materializing() -> Te
         temp.path(),
     )?;
 
-    assert!(!managed_mirror_root(temp.path(), "managed-status")?.exists());
+    assert!(!managed_mirror_root(temp.path(), "managed-status").exists());
     assert!(
-        !repo_cache_root(temp.path())?
+        !repo_cache_root(temp.path())
             .join("repos")
             .join(sanitize_repo_id("managed-status"))
             .exists()
@@ -141,7 +141,7 @@ fn repo_sync_status_reports_ahead_when_managed_checkout_drifts_locally() -> Test
         temp.path(),
     )?;
 
-    let managed_checkout = repo_cache_root(temp.path())?
+    let managed_checkout = repo_cache_root(temp.path())
         .join("repos")
         .join(sanitize_repo_id("managed-drift"));
     append_repo_file_and_commit(
@@ -245,7 +245,7 @@ fn repo_sync_status_reports_diverged_when_mirror_and_checkout_both_move() -> Tes
     )?;
     refresh_managed_mirror_only(temp.path(), "managed-diverged")?;
 
-    let managed_checkout = repo_cache_root(temp.path())?
+    let managed_checkout = repo_cache_root(temp.path())
         .join("repos")
         .join(sanitize_repo_id("managed-diverged"));
     append_repo_file_and_commit(
@@ -493,28 +493,25 @@ fn append_repo_file_and_commit(
     )
 }
 
-fn repo_cache_root(cwd: &Path) -> Result<std::path::PathBuf, Box<dyn std::error::Error>> {
-    let data_home = resolve_data_home(Some(cwd))
-        .ok_or_else(|| "failed to resolve data home for repo sync tests".to_string())?;
-    Ok(data_home.join("xiuxian-wendao").join("repo-intelligence"))
+fn repo_cache_root(_cwd: &Path) -> std::path::PathBuf {
+    PrjDirs::data_home()
+        .join("xiuxian-wendao")
+        .join("repo-intelligence")
 }
 
-fn managed_mirror_root(
-    cwd: &Path,
-    repo_id: &str,
-) -> Result<std::path::PathBuf, Box<dyn std::error::Error>> {
-    Ok(repo_cache_root(cwd)?
+fn managed_mirror_root(cwd: &Path, repo_id: &str) -> std::path::PathBuf {
+    repo_cache_root(cwd)
         .join("mirrors")
-        .join(format!("{}.git", sanitize_repo_id(repo_id))))
+        .join(format!("{}.git", sanitize_repo_id(repo_id)))
 }
 
 fn clear_managed_repo_cache(cwd: &Path, repo_id: &str) -> TestResult {
-    let mirror_root = managed_mirror_root(cwd, repo_id)?;
+    let mirror_root = managed_mirror_root(cwd, repo_id);
     if mirror_root.exists() {
         fs::remove_dir_all(&mirror_root)?;
     }
 
-    let checkout_root = repo_cache_root(cwd)?
+    let checkout_root = repo_cache_root(cwd)
         .join("repos")
         .join(sanitize_repo_id(repo_id));
     if checkout_root.exists() {
@@ -537,12 +534,12 @@ fn sanitize_repo_id(repo_id: &str) -> String {
 }
 
 fn refresh_managed_mirror_only(cwd: &Path, repo_id: &str) -> TestResult {
-    let mirror_root = managed_mirror_root(cwd, repo_id)?;
+    let mirror_root = managed_mirror_root(cwd, repo_id);
     refresh_remote(&mirror_root, "origin")
 }
 
 fn set_managed_mirror_fetch_age(cwd: &Path, repo_id: &str, age: Duration) -> TestResult {
-    let mirror_root = managed_mirror_root(cwd, repo_id)?;
+    let mirror_root = managed_mirror_root(cwd, repo_id);
     let target_time = SystemTime::now()
         .checked_sub(age)
         .ok_or_else(|| "failed to compute mirror age timestamp".to_string())?;

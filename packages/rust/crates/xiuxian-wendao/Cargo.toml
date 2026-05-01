@@ -16,7 +16,6 @@ default = [
   "julia",
   "search-runtime",
   "studio",
-  "vector-store",
 ]
 pybindings = ["dep:pyo3", "repo-lexical-index"]
 repo-lexical-index = ["dep:tantivy"]
@@ -36,15 +35,16 @@ julia = [
 builtin-plugins = ["dep:xiuxian-wendao-builtin"]
 runtime-transport = ["xiuxian-wendao-runtime/transport"]
 vector-store = [
-  "dep:arrow",
   "dep:reqwest",
   "dep:xiuxian-db-store",
   "xiuxian-db-store/vector-store",
+  "xiuxian-wendao-runtime/vector-store",
 ]
 search-runtime = [
   "dep:graphql-parser",
   "dep:xiuxian-ast",
-  "vector-store",
+  "dep:xiuxian-db-store",
+  "xiuxian-db-store/engine",
   "runtime-transport",
   "dep:arrow-flight",
   "dep:datafusion",
@@ -58,10 +58,21 @@ studio = [
   "dep:xiuxian-ast",
   "dep:xiuxian-zhenfa",
 ]
-performance = ["dep:arrow", "xiuxian-testing/performance"]
+performance = ["xiuxian-testing/performance"]
 performance-stress = ["performance"]
+document-extract-attachment-audit = [
+  "dep:xiuxian-wendao-attachments",
+  "xiuxian-wendao-attachments/archive-audit",
+]
+document-extract-pdf-source-range = [
+  "dep:xiuxian-wendao-attachments",
+  "xiuxian-wendao-attachments/pdf-source-range",
+]
+document-extract-pdf-render = [
+  "document-extract-pdf-source-range",
+  "xiuxian-wendao-attachments/pdf-render",
+]
 duckdb = [
-  "dep:arrow",
   "dep:duckdb",
   "dep:xiuxian-db-store",
   "xiuxian-db-store/duckdb",
@@ -132,6 +143,7 @@ xiuxian-wendao-parsers = { path = "../xiuxian-wendao-parsers" }
 xiuxian-wendao-client = { path = "../xiuxian-wendao-client" }
 xiuxian-wendao-builtin = { path = "../xiuxian-wendao-builtin", default-features = false, optional = true }
 xiuxian-wendao-core = { path = "../xiuxian-wendao-core" }
+xiuxian-wendao-attachments = { path = "../xiuxian-wendao-attachments", optional = true }
 xiuxian-wendao-julia = { path = "../xiuxian-wendao-julia", optional = true }
 xiuxian-wendao-runtime = { path = "../xiuxian-wendao-runtime", default-features = false }
 xiuxian-wendao-sql = { path = "../xiuxian-wendao-sql" }
@@ -168,7 +180,7 @@ rayon = { workspace = true }
 # Unicode normalization for entity deduplication
 unicode-normalization = { workspace = true }
 
-arrow = { workspace = true, optional = true }
+arrow = { workspace = true }
 arrow-flight = { workspace = true, features = ["flight-sql"], optional = true }
 datafusion = { workspace = true, optional = true }
 parquet = { workspace = true, optional = true }

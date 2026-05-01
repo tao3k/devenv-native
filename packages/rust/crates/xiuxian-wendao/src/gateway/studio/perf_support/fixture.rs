@@ -9,10 +9,9 @@ use xiuxian_wendao_julia::integration_support::{
     JuliaExampleServiceGuard, spawn_wendaosearch_julia_parser_summary_service_with_attempts,
 };
 
-use crate::gateway::studio::perf_support::git::{
-    create_local_git_repo, write_default_repo_config,
-    write_repo_config_with_julia_parser_summary_transport,
-};
+#[cfg(feature = "julia")]
+use crate::gateway::studio::perf_support::git::write_repo_config_with_julia_parser_summary_transport;
+use crate::gateway::studio::perf_support::git::{create_local_git_repo, write_default_repo_config};
 use crate::gateway::studio::perf_support::root::{
     DEFAULT_REAL_WORKSPACE_ROOT, GatewayPerfRoot, REAL_WORKSPACE_ROOT_ENV, create_perf_root,
     resolve_real_workspace_root,

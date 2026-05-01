@@ -187,27 +187,5 @@ fn search_flight_grpc_web_enabled_with_lookup(lookup: &dyn Fn(&str) -> Option<St
 }
 
 #[cfg(all(test, feature = "zhenfa-router"))]
-mod tests {
-    use super::search_flight_grpc_web_enabled_with_lookup;
-
-    #[test]
-    fn search_flight_grpc_web_defaults_to_disabled() {
-        assert!(!search_flight_grpc_web_enabled_with_lookup(&|_| None));
-    }
-
-    #[test]
-    fn search_flight_grpc_web_accepts_explicit_override() {
-        assert!(search_flight_grpc_web_enabled_with_lookup(
-            &|key| match key {
-                "XIUXIAN_WENDAO_SEARCH_FLIGHT_GRPC_WEB_ENABLED" => Some("true".to_string()),
-                _ => None,
-            }
-        ));
-        assert!(!search_flight_grpc_web_enabled_with_lookup(
-            &|key| match key {
-                "XIUXIAN_WENDAO_SEARCH_FLIGHT_GRPC_WEB_ENABLED" => Some("false".to_string()),
-                _ => None,
-            }
-        ));
-    }
-}
+#[path = "../../tests/unit/bin/wendao_search_flight_server.rs"]
+mod tests;

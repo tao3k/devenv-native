@@ -87,8 +87,14 @@ The analyzer-layer package at
 It stays outside the transport-substrate set, but it is no longer a mere
 scaffold; it is the analyzer workflow layer above `wendao-core-lib`, focused
 on analyzing rows and tables that Rust-owned query surfaces already returned.
-Rerank transport remains owned by the transport and facade packages, not by
-the analyzer package.
+It also owns optional Docling-backed local document extraction into
+Arrow-shaped resource rows and a Wendao-facing Arrow Flight service adapter for
+document extraction. Rerank transport remains owned by the transport and facade
+packages, not by the analyzer package.
+
+The retired standalone parser package has been removed. Active multi-format
+document parsing goes through `xiuxian-wendao-analyzer` with its optional
+`documents` extra and `wendao-document-extract` service command.
 
 The parser package at `packages/python/python-lang-parser/` owns only
 Python-native source parsing through Python's standard-library parser surface,

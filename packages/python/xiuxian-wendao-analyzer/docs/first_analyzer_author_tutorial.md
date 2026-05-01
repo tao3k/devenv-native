@@ -6,6 +6,8 @@
 2. `wendao-arrow-interface` owns downstream session ergonomics
 3. `xiuxian-wendao-analyzer` owns analysis over rows and tables that already
    came back from Rust
+4. `xiuxian-wendao-analyzer` owns the Wendao-facing document extraction service
+   adapter for Docling-backed parsing
 
 The important boundary is simple: this package does not own rerank workflows.
 If Rust returns a table, this package can analyze that table. It does not
@@ -73,7 +75,48 @@ That workflow keeps the boundary explicit:
 If you already have a live Flight endpoint that serves `/search/attachments`,
 switch the same example to endpoint mode with `--mode endpoint --port <port>`.
 
-## Workflow 5: Analyze An Already Materialized Rust Query Result
+## Workflow 5: Docling Document Extraction Into Arrow Rows
+
+Use this when Python should parse a local Docling-supported source and produce
+Arrow-shaped resource rows. The documented Docling input set includes PDF,
+DOCX, XLSX, PPTX, Markdown, AsciiDoc, HTML/XHTML, CSV, image formats such as
+PNG/JPEG/TIFF/BMP/WEBP, XML-based patent or article formats, XBRL XML,
+METS GBS, WebVTT, LaTeX, plain text, audio, and Docling JSON.
+
+```bash
+uv run python examples/document_extraction_workflow.py
+```
+
+Install the optional document parser dependency before using real Docling mode:
+
+```bash
+uv sync --extra documents
+uv run python examples/document_extraction_workflow.py --mode docling --source path/to/document.docx
+```
+
+The helper surface is:
+
+1. `extract_document_table(...)`
+2. `extract_document_resources(...)`
+3. `DOCLING_SUPPORTED_DOCUMENT_FORMATS` and `DOCLING_COMMON_SOURCE_SUFFIXES`
+   for downstream UX
+4. `is_known_docling_source(...)` as a suffix helper, not a parser gate
+5. `extract_pdf_table(...)` for PDF compatibility callers
+
+The stable Arrow resource schema covers all extracted rows. The helper always
+emits a main markdown `document` row and may also emit Docling-backed
+structured rows such as `table`, `image`, `formula`, `code`, `docling_json`,
+`audio`, and `subtitle`.
+
+For Wendao integration, run the Arrow Flight service:
+
+```bash
+uv run wendao-document-extract --host 0.0.0.0 --port 50051
+```
+
+The route is `/analysis/document-extract`.
+
+## Workflow 6: Analyze An Already Materialized Rust Query Result
 
 If another package already fetched the data, analyze it directly.
 

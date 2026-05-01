@@ -11,6 +11,7 @@ members = [
   "packages/rust/crates/xiuxian-executor",
   "packages/rust/crates/xiuxian-io",
   "packages/rust/crates/xiuxian-git-repo",
+  "packages/rust/crates/xiuxian-wendao-attachments",
   "packages/rust/crates/xiuxian-wendao-parsers",
   "packages/rust/crates/xiuxian-wendao",
   "packages/rust/crates/xiuxian-wendao-builtin",
@@ -74,12 +75,14 @@ rand = "0.8"
 futures = "0.3.32"
 tokio-util = "0.7.18"
 tokio-stream = { version = "0.1", features = ["net"] }
+flate2 = "1.1.9"
+tar = "0.4.45"
 md5 = "0.8.0"
 regex = "1"
 blake3 = "1"
 inventory = "0.3"
 comrak = { version = "0.50.0", default-features = false }
-orgize = { git = "https://github.com/tao3k/orgize", rev = "0ef8457efc44177f776afabcae0b5c87429aa952" }
+orgize = { git = "https://github.com/tao3k/orgize", rev = "b663a07fc9697ee82bac6c4995de1bc92b88ba05" }
 pulldown-cmark = "0.12"
 quick-xml = "0.39.2"
 petgraph = "0.7"
@@ -105,7 +108,7 @@ graphql-parser = "0.4"
 merman-core = "0.4"
 image = "0.25"
 imageproc = "0.25"
-duckdb = { version = "=1.10501.0", default-features = false, features = ["bundled", "appender-arrow"] }
+duckdb = { version = "=1.10501.0", default-features = false, features = ["bundled", "appender-arrow", "parquet"] }
 
 # Git operations
 gix = "0.81.0"

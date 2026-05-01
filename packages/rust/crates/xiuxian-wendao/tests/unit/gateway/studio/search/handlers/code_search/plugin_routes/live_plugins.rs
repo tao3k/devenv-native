@@ -4,7 +4,7 @@ use super::*;
 #[serial_test::serial(julia_live)]
 async fn build_code_search_response_returns_hits_for_plain_julia_plugin_repository()
 -> Result<(), Box<dyn std::error::Error>> {
-    ensure_linked_julia_parser_summary_service()?;
+    ensure_linked_parser_summary_service()?;
     let temp = tempfile::tempdir()?;
     let repo_dir = create_sample_julia_repo(temp.path(), "SearchJulia")?;
     let repository = RegisteredRepository {

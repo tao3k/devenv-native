@@ -5,7 +5,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal
 
-
 AnalyzerStrategy = Literal["score_rank"]
 
 

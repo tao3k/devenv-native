@@ -19,7 +19,8 @@ Only these Python package responsibilities remain endorsed:
 2. `wendao-arrow-interface`
    Downstream-facing Arrow/Polars facade over the transport substrate.
 3. `xiuxian-wendao-analyzer`
-   Analyzer workflow package above the transport substrate.
+   Analyzer workflow and Wendao document parsing service package above the
+   transport substrate.
 4. `foundation`
    Thin config/schema/logging helpers.
 5. `core`

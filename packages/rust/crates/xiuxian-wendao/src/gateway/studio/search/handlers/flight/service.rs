@@ -8,7 +8,8 @@ use xiuxian_wendao_runtime::transport::{
 use super::provider::StudioSearchFlightRouteProvider;
 use crate::gateway::studio::GatewayState;
 use crate::gateway::studio::router::handlers::analysis::{
-    StudioCodeAstAnalysisFlightRouteProvider, StudioMarkdownAnalysisFlightRouteProvider,
+    StudioCodeAstAnalysisFlightRouteProvider, StudioDocumentExtractFlightRouteProvider,
+    StudioMarkdownAnalysisFlightRouteProvider,
 };
 use crate::gateway::studio::router::handlers::graph::flight::StudioGraphNeighborsFlightRouteProvider;
 use crate::gateway::studio::router::handlers::graph::topology_flight::StudioTopology3dFlightRouteProvider;
@@ -58,6 +59,9 @@ pub(crate) fn build_studio_search_flight_service_with_repo_provider(
     ));
     route_providers.code_ast_analysis = Some(Arc::new(
         StudioCodeAstAnalysisFlightRouteProvider::new(Arc::clone(&state)),
+    ));
+    route_providers.document_extract = Some(Arc::new(
+        StudioDocumentExtractFlightRouteProvider::new(state.as_ref()),
     ));
     route_providers.repo_overview = Some(Arc::new(StudioRepoOverviewFlightRouteProvider::new(
         Arc::clone(&state),

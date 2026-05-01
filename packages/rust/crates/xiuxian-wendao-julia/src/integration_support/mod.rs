@@ -13,7 +13,8 @@ pub use gateway_artifact::{
 };
 pub use official_examples::{
     probe_wendaosearch_modelica_parser_summary_route_for_tests,
-    spawn_wendaosearch_demo_multi_route_service, spawn_wendaosearch_demo_structural_rerank_service,
+    spawn_wendaosearch_all_parser_summary_service, spawn_wendaosearch_demo_multi_route_service,
+    spawn_wendaosearch_demo_structural_rerank_service,
     spawn_wendaosearch_julia_parser_summary_service,
     spawn_wendaosearch_julia_parser_summary_service_with_attempts,
     spawn_wendaosearch_modelica_parser_summary_service,

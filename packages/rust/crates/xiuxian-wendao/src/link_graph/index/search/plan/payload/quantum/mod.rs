@@ -6,6 +6,6 @@ mod flow;
 #[cfg(feature = "vector-store")]
 mod rerank;
 
-#[cfg(all(test, feature = "julia"))]
+#[cfg(all(test, feature = "julia", feature = "vector-store"))]
 #[path = "../../../../../../../tests/unit/link_graph/index/search/plan/payload/quantum/mod.rs"]
 mod tests;

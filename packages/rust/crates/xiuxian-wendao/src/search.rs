@@ -130,7 +130,7 @@ pub(crate) use project_fingerprint::{
 #[cfg(feature = "search-runtime")]
 pub(crate) use reference_occurrence::ReferenceOccurrenceSearchError;
 #[cfg(all(test, feature = "search-runtime"))]
-pub(crate) use reference_occurrence::{reference_occurrence_batches, reference_occurrence_schema};
+pub(crate) use reference_occurrence::reference_occurrence_batches;
 #[cfg(feature = "search-runtime")]
 pub(crate) use repo_content_chunk::RepoContentChunkSearchFilters;
 #[cfg(any(test, feature = "performance"))]

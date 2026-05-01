@@ -1,7 +1,7 @@
 [project]
 name = "xiuxian-wendao-analyzer"
 version = "0.2.1"
-description = "Analyzer-layer Python package built on top of wendao-core-lib"
+description = "Wendao analyzer package for Arrow-backed analysis and Docling document parsing"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -10,14 +10,29 @@ dependencies = [
     "wendao-core-lib",
 ]
 
+[project.optional-dependencies]
+documents = [
+    "docling[xbrl]>=2.70.0",
+]
+documents-audio = [
+    "docling[xbrl]>=2.70.0",
+    "imageio-ffmpeg>=0.6.0",
+    "openai-whisper>=20250625",
+]
+
 [dependency-groups]
 test = [
     "pytest>=8.0",
+    "xiuxian-harness-python-lang-project",
 ]
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[project.scripts]
+xiuxian-wendao-document-extract = "xiuxian_wendao_analyzer.document_service:main"
+wendao-document-extract = "xiuxian_wendao_analyzer.document_service:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/xiuxian_wendao_analyzer"]
@@ -26,5 +41,6 @@ packages = ["src/xiuxian_wendao_analyzer"]
 package = true
 
 [tool.uv.sources]
-wendao-core-lib = { path = "../wendao-core-lib" }
-wendao-arrow-interface = { path = "../wendao-arrow-interface" }
+wendao-core-lib = { workspace = true }
+wendao-arrow-interface = { workspace = true }
+xiuxian-harness-python-lang-project = { workspace = true }

@@ -7,12 +7,13 @@ use async_trait::async_trait;
 use futures::Stream;
 use tonic::Status;
 use xiuxian_db_store::{
-    LanceDataType, LanceField, LanceFloat64Array, LanceInt32Array, LanceRecordBatch, LanceSchema,
-    LanceStringArray,
+    EngineRecordBatch, LanceDataType, LanceField, LanceFloat64Array, LanceInt32Array,
+    LanceRecordBatch, LanceSchema, LanceStringArray,
 };
 
 use crate::transport::query_contract::{
-    RERANK_RESPONSE_DOC_ID_COLUMN, RERANK_RESPONSE_FINAL_SCORE_COLUMN, RERANK_RESPONSE_RANK_COLUMN,
+    DocumentExtractFlightRequest, RERANK_RESPONSE_DOC_ID_COLUMN,
+    RERANK_RESPONSE_FINAL_SCORE_COLUMN, RERANK_RESPONSE_RANK_COLUMN,
     RERANK_RESPONSE_SEMANTIC_SCORE_COLUMN, RERANK_RESPONSE_VECTOR_SCORE_COLUMN, RerankScoreWeights,
     score_rerank_request_batch_with_weights,
 };
@@ -91,6 +92,8 @@ pub struct WendaoFlightRouteProviders {
     pub graph_neighbors: Option<Arc<dyn GraphNeighborsFlightRouteProvider>>,
     /// Optional topology-3d provider.
     pub topology_3d: Option<Arc<dyn Topology3dFlightRouteProvider>>,
+    /// Optional document extraction provider.
+    pub document_extract: Option<Arc<dyn DocumentExtractFlightRouteProvider>>,
     /// Optional SQL provider.
     pub sql: Option<Arc<dyn SqlFlightRouteProvider>>,
 }
@@ -120,6 +123,7 @@ impl WendaoFlightRouteProviders {
             vfs_resolve: None,
             graph_neighbors: None,
             topology_3d: None,
+            document_extract: None,
             sql: None,
         }
     }
@@ -210,7 +214,7 @@ impl AutocompleteFlightRouteResponse {
 #[derive(Debug, Clone)]
 pub struct SqlFlightRouteResponse {
     /// Arrow batches returned by the provider.
-    pub batches: Vec<LanceRecordBatch>,
+    pub batches: Vec<EngineRecordBatch>,
     /// Optional application metadata returned through `FlightInfo.app_metadata`.
     pub app_metadata: Vec<u8>,
 }
@@ -218,7 +222,7 @@ pub struct SqlFlightRouteResponse {
 impl SqlFlightRouteResponse {
     /// Create one SQL Flight payload without application metadata.
     #[must_use]
-    pub fn new(batches: Vec<LanceRecordBatch>) -> Self {
+    pub fn new(batches: Vec<EngineRecordBatch>) -> Self {
         Self {
             batches,
             app_metadata: Vec::new(),
@@ -383,6 +387,43 @@ impl AnalysisFlightRouteResponse {
     pub fn new(batch: LanceRecordBatch) -> Self {
         Self {
             batch,
+            app_metadata: Vec::new(),
+        }
+    }
+
+    /// Attach application metadata that should flow through `FlightInfo`.
+    #[must_use]
+    pub fn with_app_metadata(mut self, app_metadata: impl Into<Vec<u8>>) -> Self {
+        self.app_metadata = app_metadata.into();
+        self
+    }
+}
+
+/// Runtime-owned document extraction Flight payload.
+#[derive(Debug, Clone)]
+pub struct DocumentExtractFlightRouteResponse {
+    /// Arrow batches returned by the provider.
+    pub batches: Vec<RecordBatch>,
+    /// Optional application metadata returned through `FlightInfo.app_metadata`.
+    pub app_metadata: Vec<u8>,
+}
+
+impl DocumentExtractFlightRouteResponse {
+    /// Create one document extraction Flight payload without application metadata.
+    #[must_use]
+    pub fn new(batch: RecordBatch) -> Self {
+        Self {
+            batches: vec![batch],
+            app_metadata: Vec::new(),
+        }
+    }
+
+    /// Create a document extraction Flight payload from already materialized
+    /// Arrow batches.
+    #[must_use]
+    pub fn from_batches(batches: Vec<RecordBatch>) -> Self {
+        Self {
+            batches,
             app_metadata: Vec::new(),
         }
     }
@@ -599,6 +640,57 @@ pub trait MarkdownAnalysisFlightRouteProvider: std::fmt::Debug + Send + Sync {
     ) -> Result<AnalysisFlightRouteResponse, String>;
 }
 
+/// Runtime-owned provider contract for stable document extraction Flight reads.
+#[async_trait]
+pub trait DocumentExtractFlightRouteProvider: std::fmt::Debug + Send + Sync {
+    /// Resolve one stable document extraction response batch.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the requested document extraction payload cannot be
+    /// materialized for the current runtime host.
+    async fn document_extract_batch(
+        &self,
+        source_path: &str,
+        output_dir: &str,
+        force: bool,
+        error_row: bool,
+    ) -> Result<DocumentExtractFlightRouteResponse, String>;
+
+    /// Resolve a document extraction request with the latest metadata shape.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the requested document extraction payload cannot
+    /// be materialized for the current runtime host.
+    async fn document_extract_batch_for_request(
+        &self,
+        request: &DocumentExtractFlightRequest,
+    ) -> Result<DocumentExtractFlightRouteResponse, String> {
+        self.document_extract_batch(
+            request.source_path.as_str(),
+            request.output_dir.as_str(),
+            request.force,
+            request.error_row,
+        )
+        .await
+    }
+
+    /// Resolve one Rust-owned document extraction job status batch.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the job id is unknown or cannot be read.
+    async fn document_extract_status_batch(
+        &self,
+        job_id: &str,
+    ) -> Result<DocumentExtractFlightRouteResponse, String> {
+        Err(format!(
+            "document extract status route is not configured for job `{job_id}`"
+        ))
+    }
+}
+
 /// Runtime-owned provider contract for stable code-AST analysis Flight reads.
 #[async_trait]
 pub trait CodeAstAnalysisFlightRouteProvider: std::fmt::Debug + Send + Sync {
@@ -786,7 +878,7 @@ impl RerankFlightRouteHandler {
     ///
     /// Returns an error when any request batch fails the shared rerank request
     /// contract, when the combined candidate list is empty, or when the
-    /// response batch cannot be represented on the Lance Arrow line.
+    /// response batch cannot be represented as the Lance-backed rerank output.
     pub fn handle_exchange_batches(
         &self,
         request_batches: &[RecordBatch],
