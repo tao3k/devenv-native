@@ -77,6 +77,19 @@ def summarize_artifact_reports(reports: list[dict[str, Any]]) -> dict[str, Any]:
         "maxImageWidthPx": max_image_dimension(reports, "widthPx"),
         "maxImageHeightPx": max_image_dimension(reports, "heightPx"),
         "maxImagePixelCount": max_image_pixel_count(reports),
+        "archiveAttachmentAuditCount": archive_attachment_audit_count(reports),
+        "archiveMemberCount": sum_archive_audit_int(reports, "memberCount"),
+        "archiveRegularFileCount": sum_archive_audit_int(reports, "regularFileCount"),
+        "archiveXmlMemberCount": sum_archive_audit_int(reports, "xmlMemberCount"),
+        "archiveImageMemberCount": sum_archive_audit_int(reports, "imageMemberCount"),
+        "archiveTotalMemberSizeBytes": sum_archive_audit_int(
+            reports,
+            "totalMemberSizeBytes",
+        ),
+        "archiveFormatCounts": archive_audit_string_counts(reports, "archiveFormat"),
+        "archiveAccelerationCandidates": archive_acceleration_candidates(reports),
+        "archiveExtensionCounts": archive_extension_counts(reports),
+        "maxArchiveLargestMemberSizeBytes": max_archive_largest_member_size(reports),
         "artifactErrorCount": sum(1 for report in reports if report.get("artifactError")),
     }
 
@@ -200,6 +213,73 @@ def max_image_pixel_count(reports: list[dict[str, Any]]) -> int | None:
         pixel_count = audit.get("pixelCount")
         if isinstance(pixel_count, int):
             values.append(pixel_count)
+    return max(values, default=None)
+
+
+def archive_attachment_audit_count(reports: list[dict[str, Any]]) -> int:
+    return sum(1 for report in reports if isinstance(report.get("archiveAttachmentAudit"), dict))
+
+
+def sum_archive_audit_int(reports: list[dict[str, Any]], key: str) -> int:
+    return sum(
+        value
+        for report in reports
+        if isinstance((audit := report.get("archiveAttachmentAudit")), dict)
+        and isinstance((value := audit.get(key)), int)
+    )
+
+
+def archive_audit_string_counts(
+    reports: list[dict[str, Any]],
+    key: str,
+) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for report in reports:
+        audit = report.get("archiveAttachmentAudit")
+        if not isinstance(audit, dict):
+            continue
+        value = audit.get(key)
+        if isinstance(value, str):
+            counts[value] = counts.get(value, 0) + 1
+    return dict(sorted(counts.items()))
+
+
+def archive_acceleration_candidates(reports: list[dict[str, Any]]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for report in reports:
+        audit = report.get("archiveAttachmentAudit")
+        if not isinstance(audit, dict):
+            continue
+        candidate = audit.get("rustAccelerationCandidate")
+        if isinstance(candidate, str):
+            counts[candidate] = counts.get(candidate, 0) + 1
+    return dict(sorted(counts.items()))
+
+
+def archive_extension_counts(reports: list[dict[str, Any]]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for report in reports:
+        audit = report.get("archiveAttachmentAudit")
+        if not isinstance(audit, dict):
+            continue
+        extension_counts = audit.get("extensionCounts")
+        if not isinstance(extension_counts, dict):
+            continue
+        for suffix, count in extension_counts.items():
+            if isinstance(suffix, str) and isinstance(count, int):
+                counts[suffix] = counts.get(suffix, 0) + count
+    return dict(sorted(counts.items()))
+
+
+def max_archive_largest_member_size(reports: list[dict[str, Any]]) -> int | None:
+    values = []
+    for report in reports:
+        audit = report.get("archiveAttachmentAudit")
+        if not isinstance(audit, dict):
+            continue
+        value = audit.get("largestMemberSizeBytes")
+        if isinstance(value, int):
+            values.append(value)
     return max(values, default=None)
 
 

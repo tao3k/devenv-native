@@ -13,6 +13,10 @@ use serde::Serialize;
 use serde_json::Value;
 
 #[cfg(feature = "document-extract-attachment-audit")]
+use xiuxian_wendao_attachments::archive_audit::{
+    ArchiveAttachmentAudit, audit_archive_attachment, is_supported_archive_path,
+};
+#[cfg(feature = "document-extract-attachment-audit")]
 use xiuxian_wendao_attachments::image_audit::{
     AttachmentAudit, audit_image_attachment, is_supported_image_path,
 };
@@ -68,6 +72,10 @@ pub(crate) struct ArtifactReport {
     pub(crate) image_attachment_audit: Option<AttachmentAudit>,
     #[cfg(feature = "document-extract-attachment-audit")]
     pub(crate) image_attachment_audit_error: Option<String>,
+    #[cfg(feature = "document-extract-attachment-audit")]
+    pub(crate) archive_attachment_audit: Option<ArchiveAttachmentAudit>,
+    #[cfg(feature = "document-extract-attachment-audit")]
+    pub(crate) archive_attachment_audit_error: Option<String>,
     pub(crate) artifact_error: Option<String>,
 }
 
@@ -138,6 +146,10 @@ fn inspect_artifact_dir(
         image_attachment_audit: None,
         #[cfg(feature = "document-extract-attachment-audit")]
         image_attachment_audit_error: None,
+        #[cfg(feature = "document-extract-attachment-audit")]
+        archive_attachment_audit: None,
+        #[cfg(feature = "document-extract-attachment-audit")]
+        archive_attachment_audit_error: None,
         artifact_error: None,
     };
     if let Err(error) = populate_artifact_report(&mut report, structure_baseline_root) {
@@ -152,6 +164,8 @@ fn populate_artifact_report(
 ) -> Result<(), String> {
     #[cfg(feature = "document-extract-attachment-audit")]
     populate_image_attachment_audit(report);
+    #[cfg(feature = "document-extract-attachment-audit")]
+    populate_archive_attachment_audit(report);
 
     let output_dir = std::path::PathBuf::from(&report.output_dir);
     let resources_path = output_dir.join(DOCUMENT_RESOURCES_ARROW_CACHE_NAME);
@@ -240,6 +254,18 @@ fn populate_image_attachment_audit(report: &mut ArtifactReport) {
     match audit_image_attachment(source_path) {
         Ok(audit) => report.image_attachment_audit = Some(audit),
         Err(error) => report.image_attachment_audit_error = Some(error),
+    }
+}
+
+#[cfg(feature = "document-extract-attachment-audit")]
+fn populate_archive_attachment_audit(report: &mut ArtifactReport) {
+    let source_path = Path::new(&report.source);
+    if !is_supported_archive_path(source_path) {
+        return;
+    }
+    match audit_archive_attachment(source_path) {
+        Ok(audit) => report.archive_attachment_audit = Some(audit),
+        Err(error) => report.archive_attachment_audit_error = Some(error),
     }
 }
 
@@ -629,6 +655,55 @@ fn write_test_png(path: &Path, width: u32, height: u32) -> Result<(), String> {
     fs::write(path, bytes).map_err(|error| error.to_string())
 }
 
+#[cfg(feature = "document-extract-attachment-audit")]
+fn write_test_tar(path: &Path, files: &[(&str, &[u8])]) -> Result<(), String> {
+    let mut bytes = Vec::new();
+    for (member_path, content) in files {
+        append_test_tar_entry(&mut bytes, member_path, content)?;
+    }
+    bytes.resize(bytes.len() + 1024, 0);
+    fs::write(path, bytes).map_err(|error| error.to_string())
+}
+
+#[cfg(feature = "document-extract-attachment-audit")]
+fn append_test_tar_entry(
+    archive: &mut Vec<u8>,
+    member_path: &str,
+    content: &[u8],
+) -> Result<(), String> {
+    let mut header = [0_u8; 512];
+    let path_bytes = member_path.as_bytes();
+    if path_bytes.len() > 100 {
+        return Err(format!("test tar member path is too long: {member_path}"));
+    }
+    header[..path_bytes.len()].copy_from_slice(path_bytes);
+    write_tar_octal(&mut header[100..108], 0o644);
+    write_tar_octal(&mut header[108..116], 0);
+    write_tar_octal(&mut header[116..124], 0);
+    write_tar_octal(&mut header[124..136], content.len() as u64);
+    write_tar_octal(&mut header[136..148], 0);
+    header[148..156].fill(b' ');
+    header[156] = b'0';
+    header[257..263].copy_from_slice(b"ustar\0");
+    header[263..265].copy_from_slice(b"00");
+    let checksum: u64 = header.iter().map(|byte| u64::from(*byte)).sum();
+    let checksum_text = format!("{checksum:06o}\0 ");
+    header[148..156].copy_from_slice(checksum_text.as_bytes());
+
+    archive.extend_from_slice(&header);
+    archive.extend_from_slice(content);
+    let padding = (512 - (content.len() % 512)) % 512;
+    archive.resize(archive.len() + padding, 0);
+    Ok(())
+}
+
+#[cfg(feature = "document-extract-attachment-audit")]
+fn write_tar_octal(field: &mut [u8], value: u64) {
+    let width = field.len() - 1;
+    let text = format!("{value:0width$o}\0");
+    field.copy_from_slice(text.as_bytes());
+}
+
 #[test]
 fn artifact_report_reads_document_timing_sidecar() -> Result<(), String> {
     let temp_dir = tempfile::tempdir().map_err(|error| error.to_string())?;
@@ -698,6 +773,48 @@ fn artifact_report_reads_image_attachment_audit() -> Result<(), String> {
     assert_eq!(
         audit.rust_acceleration_candidate,
         "image_ocr_cache_candidate"
+    );
+    Ok(())
+}
+
+#[test]
+#[cfg(feature = "document-extract-attachment-audit")]
+fn artifact_report_reads_archive_attachment_audit() -> Result<(), String> {
+    let temp_dir = tempfile::tempdir().map_err(|error| error.to_string())?;
+    let output_dir = temp_dir.path().join("outputs").join("archive");
+    fs::create_dir_all(output_dir.as_path()).map_err(|error| error.to_string())?;
+    let archive_path = temp_dir.path().join("source.tar");
+    write_test_tar(
+        archive_path.as_path(),
+        &[
+            ("book/mets.xml", b"<mets/>".as_slice()),
+            ("book/images/page0001.tif", b"tiff-image".as_slice()),
+            ("book/text/page0001.txt", b"text".as_slice()),
+        ],
+    )?;
+
+    let report = inspect_artifact_dir(
+        archive_path.to_string_lossy().as_ref(),
+        output_dir.to_string_lossy().as_ref(),
+        None,
+    );
+
+    assert_eq!(report.artifact_error, None);
+    assert_eq!(report.archive_attachment_audit_error, None);
+    let audit = report
+        .archive_attachment_audit
+        .ok_or_else(|| "expected archive attachment audit".to_string())?;
+    assert_eq!(audit.archive_format, "tar");
+    assert_eq!(audit.member_count, 3);
+    assert_eq!(audit.xml_member_count, 1);
+    assert_eq!(audit.image_member_count, 1);
+    assert_eq!(
+        audit.likely_mets_member_path.as_deref(),
+        Some("book/mets.xml")
+    );
+    assert_eq!(
+        audit.rust_acceleration_candidate,
+        "mets_gbs_member_manifest_candidate"
     );
     Ok(())
 }

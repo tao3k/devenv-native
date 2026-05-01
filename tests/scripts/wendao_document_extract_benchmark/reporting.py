@@ -5,13 +5,19 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from .attachment_classes import (
+    aggregate_archive_acceleration_candidates,
+    aggregate_archive_audit_strings,
+    aggregate_archive_extension_counts,
     aggregate_image_acceleration_candidates,
     aggregate_image_audit_strings,
+    archive_attachment_audit_count,
     attachment_class_summaries,
     image_attachment_audit_count,
     image_known_dimension_count,
+    max_archive_largest_member_size,
     max_image_dimension,
     max_image_pixel_count,
+    sum_archive_audit_int,
 )
 from .precision_speed import (
     all_structure_order_stable,
@@ -105,6 +111,21 @@ def summarize_results(
         "maxImageWidthPx": max_image_dimension(results, "widthPx"),
         "maxImageHeightPx": max_image_dimension(results, "heightPx"),
         "maxImagePixelCount": max_image_pixel_count(results),
+        "archiveAttachmentAuditCount": archive_attachment_audit_count(results),
+        "archiveMemberCount": sum_archive_audit_int(results, "memberCount"),
+        "archiveRegularFileCount": sum_archive_audit_int(results, "regularFileCount"),
+        "archiveXmlMemberCount": sum_archive_audit_int(results, "xmlMemberCount"),
+        "archiveImageMemberCount": sum_archive_audit_int(results, "imageMemberCount"),
+        "archiveTotalMemberSizeBytes": sum_archive_audit_int(
+            results,
+            "totalMemberSizeBytes",
+        ),
+        "archiveFormatCounts": aggregate_archive_audit_strings(results, "archiveFormat"),
+        "archiveAccelerationCandidates": aggregate_archive_acceleration_candidates(
+            results,
+        ),
+        "archiveExtensionCounts": aggregate_archive_extension_counts(results),
+        "maxArchiveLargestMemberSizeBytes": max_archive_largest_member_size(results),
         "artifactErrorCount": artifact_error_count,
         "minCacheSpeedup": min((result["cacheSpeedup"] for result in results), default=0.0),
         "totalDuplicateMissConverterCalls": sum(
@@ -294,6 +315,16 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"maxWidthPx={payload['summary'].get('maxImageWidthPx')}, "
         f"maxHeightPx={payload['summary'].get('maxImageHeightPx')}, "
         f"maxPixels={payload['summary'].get('maxImagePixelCount')}`",
+        "- Archive audit summary: "
+        f"`audits={payload['summary'].get('archiveAttachmentAuditCount')}, "
+        f"members={payload['summary'].get('archiveMemberCount')}, "
+        f"xml={payload['summary'].get('archiveXmlMemberCount')}, "
+        f"images={payload['summary'].get('archiveImageMemberCount')}, "
+        f"formats={format_counts(payload['summary'].get('archiveFormatCounts'))}, "
+        f"suffixes={format_counts(payload['summary'].get('archiveExtensionCounts'))}, "
+        f"candidates={format_counts(payload['summary'].get('archiveAccelerationCandidates'))}, "
+        "largestMemberBytes="
+        f"{payload['summary'].get('maxArchiveLargestMemberSizeBytes')}`",
         "- Precision-speed summary: "
         f"`precisionPassed={precision_speed.get('precisionGatePassed')}, "
         f"errorRows={precision_speed.get('errorRows')}, "
@@ -354,8 +385,8 @@ def render_markdown(payload: dict[str, Any]) -> str:
                 "",
                 "## Attachment Class Summary",
                 "",
-                "| Class | Fixtures | Error rows | Resource types | Block types | BBox blocks | Image formats | Image dim sources | Image dims | Rust image candidates | Order sorted | Order stable | Slowest force | Docling max ms | Docling max share | Boundary overhead max share | Slowest cache p95 | Speedup min |",
-                "| --- | ---: | ---: | --- | --- | ---: | --- | --- | ---: | --- | --- | --- | --- | ---: | ---: | ---: | --- | ---: |",
+                "| Class | Fixtures | Error rows | Resource types | Block types | BBox blocks | Image formats | Image dim sources | Image dims | Rust image candidates | Archive formats | Archive members | Rust archive candidates | Order sorted | Order stable | Slowest force | Docling max ms | Docling max share | Boundary overhead max share | Slowest cache p95 | Speedup min |",
+                "| --- | ---: | ---: | --- | --- | ---: | --- | --- | ---: | --- | --- | ---: | --- | --- | --- | --- | ---: | ---: | ---: | --- | ---: |",
             ]
         )
         for class_summary in payload["summary"]["attachmentClassSummary"]:
@@ -364,7 +395,8 @@ def render_markdown(payload: dict[str, Any]) -> str:
                 "| {attachmentClass} | {fixtureCount} | {totalErrorRows} | "
                 "{resourceTypes} | {blockTypes} | {bboxBlocks} | "
                 "{imageFormats} | {imageDimensionSources} | {imageDimensions} | "
-                "{imageCandidates} | "
+                "{imageCandidates} | {archiveFormats} | {archiveMembers} | "
+                "{archiveCandidates} | "
                 "{orderSorted} | {orderStable} | {slowestForce} | "
                 "{maxDoclingConvert} | {maxDoclingShare} | "
                 "{maxBoundaryOverheadShare} | {slowestCacheP95} | "
@@ -379,6 +411,11 @@ def render_markdown(payload: dict[str, Any]) -> str:
                     ),
                     imageDimensions=class_summary.get("imageKnownDimensionCount", 0),
                     imageCandidates=format_counts(class_summary.get("imageAccelerationCandidates")),
+                    archiveFormats=format_counts(class_summary.get("archiveFormatCounts")),
+                    archiveMembers=class_summary.get("archiveMemberCount", 0),
+                    archiveCandidates=format_counts(
+                        class_summary.get("archiveAccelerationCandidates")
+                    ),
                     orderSorted=precision_speed.get("structureReadingOrderSorted"),
                     orderStable=precision_speed.get("structureOrderStable"),
                     slowestForce=format_fixture_latency(class_summary.get("slowestForceFixture")),

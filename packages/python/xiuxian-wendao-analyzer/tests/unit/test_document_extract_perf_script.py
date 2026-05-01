@@ -625,6 +625,22 @@ def test_artifact_report_summary_tracks_structure_precision() -> None:
                     "dimensionSource": "png_ihdr",
                     "rustAccelerationCandidate": "image_ocr_cache_candidate",
                 },
+                "archiveAttachmentAudit": {
+                    "archiveFormat": "tar.gz",
+                    "memberCount": 10,
+                    "regularFileCount": 10,
+                    "xmlMemberCount": 1,
+                    "imageMemberCount": 3,
+                    "totalMemberSizeBytes": 267702,
+                    "extensionCounts": {
+                        "html": 3,
+                        "tif": 3,
+                        "txt": 3,
+                        "xml": 1,
+                    },
+                    "largestMemberSizeBytes": 59518,
+                    "rustAccelerationCandidate": "mets_gbs_member_manifest_candidate",
+                },
                 "artifactError": None,
             },
             {
@@ -688,6 +704,23 @@ def test_artifact_report_summary_tracks_structure_precision() -> None:
     assert summary["maxImageWidthPx"] == 640
     assert summary["maxImageHeightPx"] == 480
     assert summary["maxImagePixelCount"] == 307200
+    assert summary["archiveAttachmentAuditCount"] == 1
+    assert summary["archiveMemberCount"] == 10
+    assert summary["archiveRegularFileCount"] == 10
+    assert summary["archiveXmlMemberCount"] == 1
+    assert summary["archiveImageMemberCount"] == 3
+    assert summary["archiveTotalMemberSizeBytes"] == 267702
+    assert summary["archiveFormatCounts"] == {"tar.gz": 1}
+    assert summary["archiveExtensionCounts"] == {
+        "html": 3,
+        "tif": 3,
+        "txt": 3,
+        "xml": 1,
+    }
+    assert summary["archiveAccelerationCandidates"] == {
+        "mets_gbs_member_manifest_candidate": 1,
+    }
+    assert summary["maxArchiveLargestMemberSizeBytes"] == 59518
     assert summary["artifactErrorCount"] == 0
 
 
@@ -2126,6 +2159,22 @@ def test_summary_and_markdown_report_distinct_miss_burst() -> None:
                     "dimensionSource": "png_ihdr",
                     "rustAccelerationCandidate": "image_ocr_cache_candidate",
                 },
+                "archiveAttachmentAudit": {
+                    "archiveFormat": "tar.gz",
+                    "memberCount": 10,
+                    "regularFileCount": 10,
+                    "xmlMemberCount": 1,
+                    "imageMemberCount": 3,
+                    "totalMemberSizeBytes": 267702,
+                    "extensionCounts": {
+                        "html": 3,
+                        "tif": 3,
+                        "txt": 3,
+                        "xml": 1,
+                    },
+                    "largestMemberSizeBytes": 59518,
+                    "rustAccelerationCandidate": "mets_gbs_member_manifest_candidate",
+                },
             }
         ],
     }
@@ -2167,6 +2216,21 @@ def test_summary_and_markdown_report_distinct_miss_burst() -> None:
     assert summary["maxImageWidthPx"] == 640
     assert summary["maxImageHeightPx"] == 480
     assert summary["maxImagePixelCount"] == 307200
+    assert summary["archiveAttachmentAuditCount"] == 1
+    assert summary["archiveMemberCount"] == 10
+    assert summary["archiveXmlMemberCount"] == 1
+    assert summary["archiveImageMemberCount"] == 3
+    assert summary["archiveFormatCounts"] == {"tar.gz": 1}
+    assert summary["archiveExtensionCounts"] == {
+        "html": 3,
+        "tif": 3,
+        "txt": 3,
+        "xml": 1,
+    }
+    assert summary["archiveAccelerationCandidates"] == {
+        "mets_gbs_member_manifest_candidate": 1,
+    }
+    assert summary["maxArchiveLargestMemberSizeBytes"] == 59518
     assert summary["documentTimingPhaseElapsedMs"] == {
         "doclingConvert": 20.0,
         "total": 30.0,
@@ -2180,6 +2244,12 @@ def test_summary_and_markdown_report_distinct_miss_burst() -> None:
     assert summary["precisionSpeedSummary"]["precisionGatePassed"] is True
     assert summary["precisionSpeedSummary"]["structureOrderStable"] is True
     assert summary["attachmentClassSummary"][0]["attachmentClass"] == "unknown"
+    assert summary["attachmentClassSummary"][0]["archiveAttachmentAuditCount"] == 1
+    assert summary["attachmentClassSummary"][0]["archiveMemberCount"] == 10
+    assert summary["attachmentClassSummary"][0]["archiveFormatCounts"] == {"tar.gz": 1}
+    assert summary["attachmentClassSummary"][0]["archiveAccelerationCandidates"] == {
+        "mets_gbs_member_manifest_candidate": 1,
+    }
 
     markdown = benchmark.render_markdown(
         {
@@ -2234,6 +2304,10 @@ def test_summary_and_markdown_report_distinct_miss_burst() -> None:
     assert "Image audit summary" in markdown
     assert "knownDims=1" in markdown
     assert "dimensionSources=png_ihdr=1" in markdown
+    assert "Archive audit summary" in markdown
+    assert "members=10" in markdown
+    assert "suffixes=html=3, tif=3, txt=3, xml=1" in markdown
+    assert "mets_gbs_member_manifest_candidate=1" in markdown
     assert "doclingConvert=20.000" in markdown
     assert "overheadMs=8.000" in markdown
     assert "maxDoclingConvertMs=20.000" in markdown

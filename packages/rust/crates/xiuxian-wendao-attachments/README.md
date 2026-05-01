@@ -99,8 +99,11 @@ subtitle, audio, Docling JSON, archive-backed, and unknown custom fixtures each
 receive class-level error, structure, order, force-latency, cache-latency, and
 speedup summaries. Image class summaries may also include Rust image audit
 candidate counts, such as whole-image OCR cache candidates or oversized image
-preflight candidates. These remain benchmark evidence only, not live parser
-authority over Docling-owned semantics.
+preflight candidates. Archive-backed class summaries may include Rust archive
+audit counts for archive formats, member counts, XML/image member counts,
+member suffixes, and member-manifest routing candidates. These remain
+benchmark evidence only, not live parser authority over Docling-owned
+semantics.
 
 ## PDFium Runtime
 

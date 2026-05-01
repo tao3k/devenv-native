@@ -62,6 +62,7 @@ performance = ["xiuxian-testing/performance"]
 performance-stress = ["performance"]
 document-extract-attachment-audit = [
   "dep:xiuxian-wendao-attachments",
+  "xiuxian-wendao-attachments/archive-audit",
 ]
 document-extract-pdf-source-range = [
   "dep:xiuxian-wendao-attachments",

@@ -232,6 +232,12 @@ and image members, identifies the likely METS XML member, and records suffix
 composition. This creates evidence for future member-level cache keys and
 selective routing while Python/Docling remains the extraction authority.
 
+The benchmark harness now also carries archive audit fields through artifact,
+whole-run, and attachment-class summaries when the existing attachment audit
+feature is enabled. This means future structured attachment runs can compare
+Docling cold latency against Rust manifest evidence directly in the
+precision-speed report without changing live extraction behavior.
+
 ## Adaptive Conversion Capacity Follow-Up
 
 The general Rust document extraction scheduler no longer uses a frozen
