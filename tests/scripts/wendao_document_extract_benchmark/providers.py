@@ -27,6 +27,17 @@ def rust_pdf_ocr_endpoint_pool(args: argparse.Namespace) -> str | None:
     return ",".join(endpoints)
 
 
+def rust_document_extract_endpoint_pool(args: argparse.Namespace) -> str | None:
+    endpoints = [
+        endpoint.strip().rstrip("/")
+        for endpoint in getattr(args, "rust_document_extract_endpoint", [])
+        if endpoint.strip()
+    ]
+    if not endpoints:
+        return None
+    return ",".join(dict.fromkeys(endpoints))
+
+
 def start_rust_provider_server(
     args: argparse.Namespace,
     *,
@@ -57,6 +68,9 @@ def start_rust_provider_server(
             ),
         }
     )
+    document_endpoint_pool = rust_document_extract_endpoint_pool(args)
+    if document_endpoint_pool:
+        env["WENDAO_DOCUMENT_EXTRACT_ENDPOINTS"] = document_endpoint_pool
     env.update(build_hybrid_pdf_render_region_env(args))
     if pdfium_library_path is not None:
         env["WENDAO_PDFIUM_LIBRARY_PATH"] = str(pdfium_library_path)
@@ -166,6 +180,9 @@ def start_gateway_server(
             "XIUXIAN_WENDAO_GATEWAY_BOOTSTRAP_BACKGROUND_INDEXING": "false",
         }
     )
+    document_endpoint_pool = rust_document_extract_endpoint_pool(args)
+    if document_endpoint_pool:
+        env["WENDAO_DOCUMENT_EXTRACT_ENDPOINTS"] = document_endpoint_pool
     env.update(build_hybrid_pdf_render_region_env(args))
     if pdfium_library_path is not None:
         env["WENDAO_PDFIUM_LIBRARY_PATH"] = str(pdfium_library_path)

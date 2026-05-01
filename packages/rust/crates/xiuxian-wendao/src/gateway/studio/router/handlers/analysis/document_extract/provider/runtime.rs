@@ -38,7 +38,8 @@ impl DocumentExtractProviderRuntime {
     ) -> Self {
         let conversion_limit = conversion_limit.max(1);
         Self {
-            channel: Arc::new(Mutex::new(None)),
+            channels: Arc::new(Mutex::new(HashMap::new())),
+            endpoint_round_robin: std::sync::atomic::AtomicUsize::new(0),
             registry: Arc::new(registry),
             registry_lock: Arc::new(StdMutex::new(())),
             scheduled: Arc::new(Mutex::new(HashSet::new())),
@@ -70,7 +71,8 @@ impl DocumentExtractProviderRuntime {
     ) -> Self {
         let conversion_limit = conversion_limit.max(1);
         Self {
-            channel: Arc::new(Mutex::new(None)),
+            channels: Arc::new(Mutex::new(HashMap::new())),
+            endpoint_round_robin: std::sync::atomic::AtomicUsize::new(0),
             registry: Arc::new(registry),
             registry_lock: Arc::new(StdMutex::new(())),
             scheduled: Arc::new(Mutex::new(HashSet::new())),

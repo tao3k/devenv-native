@@ -105,6 +105,7 @@ def main() -> int:
         rust_server = None
         valkey_server = None
         ocr_shard_cache_summary = None
+        args.rust_document_extract_endpoint = list(args.rust_document_extract_endpoint)
         args.rust_pdf_ocr_endpoint = list(args.rust_pdf_ocr_endpoint)
         if not args.external_endpoint:
             converter_count_path = None
@@ -135,6 +136,9 @@ def main() -> int:
                 log_dir=process_log_dir,
             )
             if args.local_python_ocr_endpoint_count > 1:
+                args.rust_document_extract_endpoint.extend(
+                    worker.endpoint_url for worker in python_workers
+                )
                 args.rust_pdf_ocr_endpoint.extend(
                     worker.endpoint_url for worker in python_workers
                 )
@@ -245,6 +249,7 @@ def main() -> int:
         "localPythonOcrEndpointCount": args.local_python_ocr_endpoint_count,
         "rustPdfOcrWorkers": args.rust_pdf_ocr_workers,
         "rustPdfOcrSourceRangeWorkers": args.rust_pdf_ocr_source_range_workers,
+        "rustDocumentExtractEndpoints": args.rust_document_extract_endpoint,
         "rustPdfOcrEndpoints": args.rust_pdf_ocr_endpoint,
         "structureBaselineRoot": (
             str(args.structure_baseline_root) if args.structure_baseline_root else None

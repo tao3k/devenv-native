@@ -442,6 +442,22 @@ def test_rust_pdf_ocr_endpoint_pool_normalizes_repeated_endpoints() -> None:
     )
 
 
+def test_rust_document_extract_endpoint_pool_normalizes_repeated_endpoints() -> None:
+    benchmark = _load_benchmark_module()
+    args = benchmark.argparse.Namespace(
+        rust_document_extract_endpoint=[
+            " http://127.0.0.1:53051/ ",
+            "",
+            "http://127.0.0.1:53052",
+            "http://127.0.0.1:53051",
+        ]
+    )
+
+    assert benchmark.rust_document_extract_endpoint_pool(args) == (
+        "http://127.0.0.1:53051,http://127.0.0.1:53052"
+    )
+
+
 def test_fixture_server_code_can_record_converter_count(tmp_path: Path) -> None:
     benchmark = _load_benchmark_module()
 
@@ -1340,6 +1356,10 @@ def test_start_gateway_server_sets_document_extract_and_valkey_env(
             "http://127.0.0.1:52051",
             "http://127.0.0.1:52052/",
         ],
+        rust_document_extract_endpoint=[
+            "http://127.0.0.1:53051/",
+            "http://127.0.0.1:53052",
+        ],
     )
 
     benchmark.start_gateway_server(
@@ -1378,6 +1398,9 @@ def test_start_gateway_server_sets_document_extract_and_valkey_env(
         "http://127.0.0.1:52051,http://127.0.0.1:52052"
     )
     assert env["WENDAO_DOCUMENT_EXTRACT_ENDPOINT"] == "http://127.0.0.1:51051"
+    assert env["WENDAO_DOCUMENT_EXTRACT_ENDPOINTS"] == (
+        "http://127.0.0.1:53051,http://127.0.0.1:53052"
+    )
     assert env["WENDAO_DOCUMENT_EXTRACT_OCR_SHARD_CACHE_ROOT"] == str(
         (tmp_path / "ocr-shard-cache").resolve()
     )
@@ -1421,6 +1444,7 @@ def test_start_rust_provider_forwards_hybrid_region_env(
         rust_pdf_ocr_workers="6",
         rust_pdf_ocr_source_range_workers="2",
         rust_pdf_ocr_endpoint=["http://127.0.0.1:52051"],
+        rust_document_extract_endpoint=["http://127.0.0.1:53051"],
     )
 
     benchmark.start_rust_provider_server(
@@ -1439,6 +1463,7 @@ def test_start_rust_provider_forwards_hybrid_region_env(
     assert env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_ENDPOINTS"] == (
         "http://127.0.0.1:52051"
     )
+    assert env["WENDAO_DOCUMENT_EXTRACT_ENDPOINTS"] == "http://127.0.0.1:53051"
     assert env["WENDAO_DOCUMENT_EXTRACT_OCR_SHARD_CACHE_ROOT"] == str(
         (tmp_path / "ocr-shard-cache").resolve()
     )

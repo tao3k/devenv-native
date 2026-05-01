@@ -203,6 +203,13 @@ same Rust-owned scheduling posture as the PDF OCR lane: Rust controls capacity,
 Python/Docling executes conversion, and queued jobs remain observable through
 the existing job status snapshot.
 
+The full-document path now also supports `WENDAO_DOCUMENT_EXTRACT_ENDPOINTS`,
+a comma- or whitespace-separated Python Flight worker pool. Rust keeps the
+queue, content-hash deduplication, and artifact registry centralized, then
+round-robins cache misses across the configured Python workers. This mirrors
+the PDF OCR endpoint-pool model for image, XML, Office, audio, and other
+non-PDF conversion lanes without changing Docling authority or Arrow schemas.
+
 ## Next Slices
 
 1. Image attachment OCR lane:

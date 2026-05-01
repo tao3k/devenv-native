@@ -336,12 +336,15 @@ source-range-specific override. Production deployments can set
 `WENDAO_DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS` directly when evidence
 shows a fixed override is appropriate for that machine profile.
 Use `--local-python-ocr-endpoint-count N` when a local benchmark should start
-`N` Python OCR Flight executors, including the primary document worker, and
-expose that pool to the Rust scheduler. Use `--rust-pdf-ocr-endpoint` more
-than once when a benchmark should target already-running Python OCR Flight
+`N` Python Flight executors, including the primary document worker, and expose
+that pool to the Rust scheduler for both full-document conversion and PDF OCR
+shards. Use `--rust-document-extract-endpoint` or `--rust-pdf-ocr-endpoint`
+more than once when a benchmark should target already-running Python Flight
 executors. The script forwards those endpoints through
-`WENDAO_DOCUMENT_EXTRACT_PDF_OCR_ENDPOINTS`; when both flags are omitted, Rust
-keeps using the normal document extraction endpoint as the single OCR executor.
+`WENDAO_DOCUMENT_EXTRACT_ENDPOINTS` and
+`WENDAO_DOCUMENT_EXTRACT_PDF_OCR_ENDPOINTS`; when these flags are omitted,
+Rust keeps using the normal document extraction endpoint as the single Python
+executor.
 For async provider validation, run with `--flight-mode async`; the driver starts
 the synchronous Python worker plus the existing Rust Flight provider and can
 verify cold duplicate-miss deduplication with `--duplicate-miss-concurrency`
@@ -418,6 +421,12 @@ The Python service stays a synchronous Arrow Flight worker. Async queueing,
 content-hash deduplication, job status, and DuckDB-backed durability are owned
 by the Rust Wendao provider/gateway so Python does not spend cycles on SQL
 registry work before returning Arrow data.
+Deployments can run multiple Python document workers and set
+`WENDAO_DOCUMENT_EXTRACT_ENDPOINTS` to a comma- or whitespace-separated pool.
+Rust round-robins full-document cache misses across that pool while keeping
+content-hash deduplication, queue state, and artifact mirroring in the Rust
+control plane. `WENDAO_DOCUMENT_EXTRACT_ENDPOINT` remains the single-endpoint
+fallback and the default endpoint used when the pool is not configured.
 
 ## Beta Readiness
 

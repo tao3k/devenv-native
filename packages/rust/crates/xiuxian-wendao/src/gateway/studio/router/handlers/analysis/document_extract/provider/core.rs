@@ -1,5 +1,6 @@
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
+use std::sync::atomic::AtomicUsize;
 use std::sync::{Arc, Mutex as StdMutex, OnceLock, Weak};
 
 use tokio::sync::{Mutex, Semaphore};
@@ -12,6 +13,8 @@ use crate::gateway::studio::router::handlers::analysis::document_extract::regist
 };
 
 pub(super) const DEFAULT_DOCUMENT_EXTRACT_ENDPOINT: &str = "http://localhost:50051";
+pub(super) const DOCUMENT_EXTRACT_ENDPOINT_ENV: &str = "WENDAO_DOCUMENT_EXTRACT_ENDPOINT";
+pub(super) const DOCUMENT_EXTRACT_ENDPOINTS_ENV: &str = "WENDAO_DOCUMENT_EXTRACT_ENDPOINTS";
 pub(super) const DOCUMENT_EXTRACT_FLIGHT_MESSAGE_SIZE_BYTES: usize = 256 * 1024 * 1024;
 pub(super) const DOCUMENT_EXTRACT_MAX_RUNNING_CONVERSIONS_ENV: &str =
     "WENDAO_DOCUMENT_EXTRACT_MAX_RUNNING_CONVERSIONS";
@@ -22,7 +25,8 @@ pub(crate) struct StudioDocumentExtractFlightRouteProvider {
 }
 
 pub(super) struct DocumentExtractProviderRuntime {
-    pub(super) channel: Arc<Mutex<Option<CachedDocumentExtractChannel>>>,
+    pub(super) channels: Arc<Mutex<HashMap<String, Channel>>>,
+    pub(super) endpoint_round_robin: AtomicUsize,
     pub(super) registry: Arc<Result<DocumentExtractJobRegistry, String>>,
     pub(super) registry_lock: Arc<StdMutex<()>>,
     pub(super) scheduled: Arc<Mutex<HashSet<String>>>,
@@ -32,12 +36,6 @@ pub(super) struct DocumentExtractProviderRuntime {
     pub(super) conversion_limit: usize,
     #[cfg(feature = "document-extract-pdf-source-range")]
     pub(super) pdf_ocr_scheduler: PdfOcrWorkerScheduler,
-}
-
-#[derive(Clone)]
-pub(super) struct CachedDocumentExtractChannel {
-    pub(super) endpoint_url: String,
-    pub(super) channel: Channel,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

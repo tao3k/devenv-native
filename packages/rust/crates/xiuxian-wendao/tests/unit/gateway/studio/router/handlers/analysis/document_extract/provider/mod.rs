@@ -8,6 +8,7 @@ mod config;
 mod routing;
 mod runtime;
 mod structure;
+mod transport;
 
 #[cfg(feature = "document-extract-pdf-source-range")]
 fn sample_hybrid_page_ocr_report(

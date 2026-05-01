@@ -211,6 +211,7 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"- Local Python OCR endpoints: `{payload.get('localPythonOcrEndpointCount', 1)}`",
         f"- Rust PDF OCR worker pool: `{payload['rustPdfOcrWorkers']}`",
         f"- Rust PDF OCR source-range workers: `{payload['rustPdfOcrSourceRangeWorkers']}`",
+        f"- Rust document extract endpoints: `{payload.get('rustDocumentExtractEndpoints', [])}`",
         f"- Rust PDF OCR endpoints: `{payload.get('rustPdfOcrEndpoints', [])}`",
         f"- Structure baseline root: `{payload.get('structureBaselineRoot')}`",
         f"- PDF OCR profile: `{payload['pdfOcrProfile']}`",
