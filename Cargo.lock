@@ -12274,6 +12274,7 @@ version = "0.1.1"
 dependencies = [
  "arrow 58.1.0",
  "arrow-ipc 58.1.0",
+ "criterion",
  "datafusion 53.1.0",
  "duckdb",
  "parquet",

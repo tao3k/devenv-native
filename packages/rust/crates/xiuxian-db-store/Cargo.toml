@@ -43,8 +43,13 @@ tokio = { workspace = true, optional = true }
 xiuxian-vector = { path = "../xiuxian-vector", default-features = false, optional = true }
 
 [dev-dependencies]
+criterion = { workspace = true }
 rust-lang-project-harness = { workspace = true }
 tempfile = { workspace = true }
+
+[[bench]]
+name = "db_store_performance"
+harness = false
 
 [lints]
 workspace = true
