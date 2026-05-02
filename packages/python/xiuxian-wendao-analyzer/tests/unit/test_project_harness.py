@@ -2,14 +2,18 @@
 
 from __future__ import annotations
 
+import json
+import os
 from pathlib import Path
 
 from python_lang_project_harness import (
     PythonHarnessFinding,
+    PythonHarnessReport,
     default_python_harness_config,
     python_agent_policy_rules,
     python_modularity_rules,
     python_project_policy_rules,
+    python_reasoning_tree_facts,
     run_python_lang_harness,
     run_python_project_harness,
 )
@@ -45,6 +49,7 @@ def test_python_project_harness_blocks_all_default_findings() -> None:
         "Python project harness findings",
         report.findings,
     )
+    assert_python_harness_baseline(package_root, report)
 
 
 def test_benchmark_script_harness_blocks_all_default_findings() -> None:
@@ -87,3 +92,113 @@ def _render_finding_set(
         for rule_id, path in sorted(_finding_key(root, finding) for finding in findings)
     )
     return f"{title}:\n{rendered}"
+
+
+def assert_python_harness_baseline(
+    package_root: Path,
+    report: PythonHarnessReport,
+) -> None:
+    report_dir = package_root / "resources" / "verification" / "reports"
+    manifest_path = report_dir / "python_harness_report_manifest.json"
+    summary_path = report_dir / "python_harness_summary.json"
+    manifest = python_harness_report_manifest()
+    summary = python_harness_summary(report)
+
+    if os.environ.get("XIUXIAN_WRITE_PYTHON_HARNESS_REPORTS"):
+        report_dir.mkdir(parents=True, exist_ok=True)
+        write_json(manifest_path, manifest)
+        write_json(summary_path, summary)
+
+    assert json.loads(manifest_path.read_text(encoding="utf-8")) == manifest
+    assert json.loads(summary_path.read_text(encoding="utf-8")) == summary
+
+
+def python_harness_report_manifest() -> dict[str, object]:
+    return {
+        "artifacts": [
+            {
+                "key": "python_harness_summary_json",
+                "artifact_name": "python_harness_summary.json",
+                "persistence": "source_baseline",
+                "renderer": "xiuxian-wendao-analyzer test_project_harness.py",
+                "reason": (
+                    "persist compact Python harness policy state so parser, "
+                    "modularity, project, test-layout, and agent-policy drift "
+                    "stay reviewable"
+                ),
+            }
+        ],
+        "schema_version": 1,
+    }
+
+
+def python_harness_summary(report: PythonHarnessReport) -> dict[str, object]:
+    config = default_python_harness_config()
+    project_scope = report.project_scope
+    project_metadata = None if project_scope is None else project_scope.project_metadata
+    reasoning_tree = python_reasoning_tree_facts(
+        report.modules,
+        import_roots=() if project_scope is None else project_scope.source_paths,
+        project_root=None if project_scope is None else project_scope.project_root,
+        project_metadata=project_metadata,
+    )
+    return {
+        "blocking_rule_ids": sorted(config.blocking_rule_ids),
+        "blocking_severities": sorted(severity.value for severity in config.blocking_severities),
+        "disabled_rule_ids": sorted(config.disabled_rule_ids),
+        "finding_counts": {
+            "advisory": len(report.advisory_findings()),
+            "blocking": len(report.blocking_findings()),
+            "total": len(report.findings),
+        },
+        "is_clean": report.is_clean,
+        "parsed_count": report.parsed_count,
+        "project": {
+            "import_names": (
+                []
+                if project_metadata is None
+                else sorted(import_name.name for import_name in project_metadata.import_names)
+            ),
+            "name": None if project_metadata is None else project_metadata.project_name,
+            "package_roots": (
+                []
+                if project_metadata is None
+                else sorted(
+                    _package_relative_path(project_metadata.project_root, path)
+                    for path in project_metadata.package_roots
+                )
+            ),
+            "requires_python": (
+                None if project_metadata is None else project_metadata.requires_python
+            ),
+            "scripts": (
+                []
+                if project_metadata is None
+                else sorted(script.name for script in project_metadata.scripts)
+            ),
+        },
+        "reasoning_tree": {
+            "import_edge_count": len(reasoning_tree.import_edges),
+            "node_count": len(reasoning_tree.nodes),
+            "shadowed_module_source_count": len(reasoning_tree.shadowed_module_sources),
+        },
+        "rule_packs": [rule_pack.pack_id for rule_pack in config.rule_packs or ()],
+        "source": {
+            "file_count": report.file_count,
+            "module_count": len(report.modules),
+        },
+    }
+
+
+def _package_relative_path(project_root: Path, path: Path) -> str:
+    try:
+        return path.relative_to(project_root).as_posix()
+    except ValueError:
+        return path.as_posix()
+
+
+def write_json(path: Path, payload: object) -> None:
+    path.write_text(
+        json.dumps(payload, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
