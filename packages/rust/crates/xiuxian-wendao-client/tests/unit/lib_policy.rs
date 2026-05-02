@@ -1,10 +1,14 @@
+use std::env;
+use std::fs;
 use std::path::{Path, PathBuf};
 
 use rust_lang_project_harness::{
     RustHarnessConfig, RustOwnerResponsibility, RustVerificationPhase, RustVerificationProfileHint,
-    RustVerificationRequirement, RustVerificationSkillBinding, RustVerificationSkillDescriptor,
-    RustVerificationTaskContract, RustVerificationTaskKind, default_rust_harness_config,
-    plan_rust_project_verification_with_config, render_rust_verification_skill_contracts,
+    RustVerificationReportBundle, RustVerificationReportPersistence, RustVerificationRequirement,
+    RustVerificationSkillBinding, RustVerificationSkillDescriptor, RustVerificationTaskContract,
+    RustVerificationTaskKind, build_rust_verification_report_bundle, default_rust_harness_config,
+    plan_rust_project_verification_with_config, render_rust_verification_report_artifact_json,
+    render_rust_verification_report_bundle_json, render_rust_verification_skill_contracts,
     run_rust_project_harness_with_config,
 };
 
@@ -66,6 +70,7 @@ fn client_verification_profile_hints_bind_active_skill_tasks() {
         contracts.contains("[skill-contract] rust-verification-regression@insta"),
         "{contracts}"
     );
+    write_verification_reports_when_requested(&manifest_dir, &plan);
 }
 
 fn client_manifest_dir() -> PathBuf {
@@ -122,8 +127,20 @@ fn client_rust_harness_config() -> RustHarnessConfig {
                             "cargo bench -p xiuxian-wendao-client --features performance --bench wendao_client_get",
                         ),
                         RustVerificationRequirement::new(
+                            "baseline",
+                            "Criterion baseline name or commit",
+                        ),
+                        RustVerificationRequirement::new(
+                            "regression_threshold",
+                            "accepted latency regression threshold",
+                        ),
+                        RustVerificationRequirement::new(
                             "latency_or_throughput",
-                            "get command latency or throughput result",
+                            "Criterion latency or throughput result",
+                        ),
+                        RustVerificationRequirement::new(
+                            "profile_artifact",
+                            "target/criterion artifact path for the relevant benchmark group",
                         ),
                     ],
                 ),
@@ -236,4 +253,98 @@ fn assert_bound_task(
 
     assert_eq!(binding_label, expected_binding);
     assert_eq!(task.skill_contract_ref.as_deref(), Some(expected_binding));
+}
+
+fn write_verification_reports_when_requested(
+    manifest_dir: &Path,
+    plan: &rust_lang_project_harness::RustVerificationPlan,
+) {
+    if env::var_os("XIUXIAN_WRITE_VERIFICATION_REPORTS").is_none() {
+        return;
+    }
+
+    let source_dir = verification_source_report_output_dir(manifest_dir);
+    let cache_dir = verification_cache_report_output_dir(manifest_dir);
+    fs::create_dir_all(&source_dir).expect("create verification source report output dir");
+    fs::create_dir_all(&cache_dir).expect("create verification cache report output dir");
+    let bundle = build_rust_verification_report_bundle(plan);
+    let source_bundle = RustVerificationReportBundle {
+        project_root: bundle.project_root.clone(),
+        artifacts: bundle
+            .source_baseline_artifacts()
+            .into_iter()
+            .cloned()
+            .collect(),
+    };
+    fs::write(
+        source_dir.join("verification_report_manifest.json"),
+        normalize_report_paths(
+            serde_json::to_string(&source_bundle).expect("render source report manifest"),
+            manifest_dir,
+        ),
+    )
+    .expect("write verification report manifest");
+    fs::write(
+        cache_dir.join("verification_report_manifest.json"),
+        normalize_report_paths(
+            render_rust_verification_report_bundle_json(plan).expect("render report manifest"),
+            manifest_dir,
+        ),
+    )
+    .expect("write verification cache report manifest");
+
+    for artifact in bundle.artifacts {
+        let Some(payload) = render_rust_verification_report_artifact_json(plan, &artifact.key)
+            .expect("render report artifact")
+        else {
+            continue;
+        };
+        let output_dir = match artifact.persistence {
+            RustVerificationReportPersistence::SourceBaseline => &source_dir,
+            RustVerificationReportPersistence::RuntimeCache => &cache_dir,
+        };
+        fs::write(
+            output_dir.join(&artifact.artifact_name),
+            normalize_report_paths(payload, manifest_dir),
+        )
+        .expect("write verification report artifact");
+    }
+}
+
+fn verification_source_report_output_dir(manifest_dir: &Path) -> PathBuf {
+    manifest_dir
+        .join("resources")
+        .join("verification")
+        .join("reports")
+}
+
+fn verification_cache_report_output_dir(manifest_dir: &Path) -> PathBuf {
+    let project_root = env::var_os("PRJ_ROOT")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| {
+            manifest_dir
+                .ancestors()
+                .nth(4)
+                .expect("workspace root")
+                .to_path_buf()
+        });
+    let cache_home = env::var_os("PRJ_CACHE_HOME")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from(".cache"));
+    let cache_home = if cache_home.is_absolute() {
+        cache_home
+    } else {
+        project_root.join(cache_home)
+    };
+    cache_home
+        .join("agent")
+        .join("verification")
+        .join("xiuxian-wendao-client")
+}
+
+fn normalize_report_paths(report_json: String, manifest_dir: &Path) -> String {
+    let manifest_dir = manifest_dir.display().to_string();
+    report_json
+        .replace(&manifest_dir, "$CRATE_ROOT")
+        .replace(&manifest_dir.replace('\\', "/"), "$CRATE_ROOT")
 }
