@@ -30,6 +30,8 @@ pub use xiuxian_qianji::{
 mod bpmn_engine_dependency;
 #[path = "unit/bpmn/mod.rs"]
 mod bpmn_tests;
+#[path = "unit/lib_policy.rs"]
+mod lib_policy;
 #[cfg(feature = "qianji-full")]
 #[path = "unit/unit_adversarial_loop.rs"]
 mod unit_adversarial_loop;
