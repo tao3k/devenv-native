@@ -12730,6 +12730,7 @@ dependencies = [
  "anyhow",
  "ariadne",
  "clap",
+ "criterion",
  "insta",
  "rayon",
  "rust-lang-project-harness",

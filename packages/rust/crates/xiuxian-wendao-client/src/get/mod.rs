@@ -2,6 +2,8 @@
 
 mod command;
 mod config;
+#[cfg(feature = "performance")]
+pub mod perf_support;
 mod run;
 mod scope;
 mod types;

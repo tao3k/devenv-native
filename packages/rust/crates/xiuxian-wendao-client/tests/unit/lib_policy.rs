@@ -115,11 +115,11 @@ fn client_rust_harness_config() -> RustHarnessConfig {
                 RustVerificationTaskKind::Performance,
                 RustVerificationTaskContract::new(
                     RustVerificationPhase::AfterUnitTestsPass,
-                    "performance skill must report get-runtime latency evidence",
+                    "performance skill must report get-runtime latency evidence from cargo bench -p xiuxian-wendao-client --features performance --bench wendao_client_get",
                     [
                         RustVerificationRequirement::new(
                             "benchmark_command",
-                            "get command benchmark command",
+                            "cargo bench -p xiuxian-wendao-client --features performance --bench wendao_client_get",
                         ),
                         RustVerificationRequirement::new(
                             "latency_or_throughput",

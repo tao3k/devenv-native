@@ -13,6 +13,8 @@ mod output;
 pub use cli::{ClientCli, ClientCommand};
 pub use context::ClientContext;
 pub use execute::{CommandOutcome, run_command};
+#[cfg(feature = "performance")]
+pub use get::perf_support;
 pub use get::{
     DocsPageIndexDocumentsResult, DocsPageIndexTreesResult, GetCommand, GetScopeArgs,
     ProjectedPageIndexDocument, ProjectedPageIndexLink, ProjectedPageIndexNode,

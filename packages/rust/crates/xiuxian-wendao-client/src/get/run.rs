@@ -52,7 +52,7 @@ enum ScopeTargetKind {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-struct CanonicalScopeTarget {
+pub(super) struct CanonicalScopeTarget {
     path: PathBuf,
     kind: ScopeTargetKind,
 }
@@ -87,7 +87,7 @@ fn handle_page_index(args: &GetScopeArgs, context: &ClientContext) -> Result<Com
     Ok(CommandOutcome::success())
 }
 
-fn canonical_scope_target(cwd: &Path, target: &Path) -> Result<CanonicalScopeTarget> {
+pub(super) fn canonical_scope_target(cwd: &Path, target: &Path) -> Result<CanonicalScopeTarget> {
     let requested_target = if target.is_absolute() {
         target.to_path_buf()
     } else {
@@ -124,7 +124,7 @@ fn build_local_toc_documents(
     build_local_toc_documents_with_ignore(scope, client_root, default_ignored_dirs.as_slice())
 }
 
-fn build_local_toc_documents_with_ignore(
+pub(super) fn build_local_toc_documents_with_ignore(
     scope: &CanonicalScopeTarget,
     client_root: &Path,
     ignore_dir_names: &[String],
@@ -154,7 +154,7 @@ fn build_local_page_index_trees(
     build_local_page_index_trees_with_ignore(scope, client_root, default_ignored_dirs.as_slice())
 }
 
-fn build_local_page_index_trees_with_ignore(
+pub(super) fn build_local_page_index_trees_with_ignore(
     scope: &CanonicalScopeTarget,
     client_root: &Path,
     ignore_dir_names: &[String],
@@ -202,7 +202,7 @@ fn resolved_ignore_dir_names(args: &GetScopeArgs, context: &ClientContext) -> Re
     Ok(ignore_dir_names)
 }
 
-fn default_ignore_dir_names() -> Vec<String> {
+pub(super) fn default_ignore_dir_names() -> Vec<String> {
     DEFAULT_LOCAL_IGNORED_DIRS
         .iter()
         .map(|value| (*value).to_string())
