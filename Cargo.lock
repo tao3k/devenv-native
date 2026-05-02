@@ -12316,19 +12316,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "xiuxian-executor"
-version = "0.1.1"
-dependencies = [
- "ast-grep-core",
- "ast-grep-language",
- "rust-lang-project-harness",
- "serde",
- "serde_json",
- "tempfile",
- "thiserror 2.0.18",
-]
-
-[[package]]
 name = "xiuxian-git-repo"
 version = "0.1.1"
 dependencies = [

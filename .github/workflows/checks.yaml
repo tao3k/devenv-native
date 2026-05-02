@@ -21,7 +21,6 @@ jobs:
           - xiuxian-daochang-release
           - xiuxian-edit-release
           - xiuxian-event-release
-          - xiuxian-executor-release
           - xiuxian-io-release
           - xiuxian-lance-release
           - xiuxian-llm-release
