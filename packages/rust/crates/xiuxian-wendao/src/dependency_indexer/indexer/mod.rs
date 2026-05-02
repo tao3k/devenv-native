@@ -2,6 +2,7 @@
 //!
 //! Uses `fd` command for fast file finding.
 
+#[path = "core/mod.rs"]
 mod core;
 mod files;
 mod types;

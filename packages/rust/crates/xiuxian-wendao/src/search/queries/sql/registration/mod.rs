@@ -1,3 +1,4 @@
+#[path = "catalog/mod.rs"]
 mod catalog;
 #[cfg(not(feature = "duckdb"))]
 mod collector;
@@ -8,6 +9,7 @@ mod repo;
 mod session;
 mod surface;
 mod table;
+#[path = "views/mod.rs"]
 mod views;
 
 #[cfg(feature = "duckdb")]

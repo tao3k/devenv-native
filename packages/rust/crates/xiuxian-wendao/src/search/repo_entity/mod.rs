@@ -1,5 +1,8 @@
+#[path = "build/mod.rs"]
 mod build;
+#[path = "query/mod.rs"]
 mod query;
+#[path = "schema/mod.rs"]
 mod schema;
 
 pub(crate) use build::publish_repo_entities;

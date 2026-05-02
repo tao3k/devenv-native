@@ -1,6 +1,8 @@
 //! Zhixing domain specific indexing and address constants.
 
+#[path = "indexer/mod.rs"]
 mod indexer;
+#[path = "resources/mod.rs"]
 mod resources;
 mod types;
 

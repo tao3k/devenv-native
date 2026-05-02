@@ -1,6 +1,7 @@
 //! Stable `OpenAPI` contract surface for the Wendao gateway.
 
 mod document;
+#[path = "paths/mod.rs"]
 mod paths;
 
 pub use document::{

@@ -1,4 +1,4 @@
-use super::RelatedPprKernelTelemetry;
+use super::types::RelatedPprKernelTelemetry;
 use crate::link_graph::index::ppr::types::RelatedPprComputation;
 use crate::link_graph::index::{LinkGraphIndex, LinkGraphPprSubgraphMode, doc_sort_key};
 use crate::link_graph::models::LinkGraphRelatedPprDiagnostics;

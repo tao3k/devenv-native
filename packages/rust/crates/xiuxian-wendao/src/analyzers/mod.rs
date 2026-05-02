@@ -9,19 +9,24 @@
 //! - plugin registration and dispatch boundaries
 
 /// Analysis cache layer for repository intelligence results.
+#[path = "cache/mod.rs"]
 mod cache;
 /// Configuration types for repository registration.
+#[path = "config/mod.rs"]
 mod config;
 /// Error types for repository intelligence operations.
 mod errors;
 /// Language-specific plugin guidance; plugin-specific public APIs live in the
 /// plugin crates.
+#[path = "languages/mod.rs"]
 mod languages;
 /// Plugin trait definitions and analysis context types.
 mod plugin;
 /// Projection layer for transforming analysis records into consumable outputs.
+#[path = "projection/mod.rs"]
 mod projection;
 /// Query request and response contracts.
+#[path = "query/mod.rs"]
 mod query;
 /// Normalized record types for repository understanding.
 mod records;
@@ -31,6 +36,7 @@ mod repo_source;
 /// Saliency scoring for symbol and module importance.
 mod saliency;
 /// Analysis orchestration and repository processing services.
+#[path = "service/mod.rs"]
 mod service;
 /// Verification auditing (skeptic) for documentation coverage.
 mod skeptic;

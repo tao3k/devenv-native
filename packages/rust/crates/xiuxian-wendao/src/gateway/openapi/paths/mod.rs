@@ -4,6 +4,7 @@ mod docs;
 mod graph;
 mod repo;
 mod search;
+#[path = "shared/mod.rs"]
 mod shared;
 mod ui;
 mod vfs;

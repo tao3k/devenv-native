@@ -1,5 +1,6 @@
 //! Markdown analysis engine for Studio.
 
+#[path = "compile/mod.rs"]
 mod compile;
 mod metadata;
 mod text;

@@ -1,7 +1,9 @@
+#[path = "agentic/mod.rs"]
 mod agentic;
 mod cache;
 mod coactivation;
 mod index_scope;
+#[path = "policy/mod.rs"]
 mod policy;
 mod related;
 

@@ -1,5 +1,7 @@
 mod conversions;
+#[path = "definitions/mod.rs"]
 mod definitions;
+#[path = "diagnostics/mod.rs"]
 mod diagnostics;
 mod status;
 #[cfg(test)]

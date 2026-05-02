@@ -80,7 +80,7 @@ duckdb = [
 
 [[bin]]
 name = "wendao"
-path = "src/bin/wendao.rs"
+path = "src/bin/wendao/main.rs"
 required-features = ["studio", "zhenfa-router"]
 
 [[bin]]

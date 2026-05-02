@@ -1,4 +1,6 @@
+#[path = "build/mod.rs"]
 mod build;
+#[path = "query/mod.rs"]
 mod query;
 mod schema;
 

@@ -2,7 +2,9 @@
 
 mod idempotency;
 mod keys;
+#[path = "store/mod.rs"]
 mod store;
+#[path = "types/mod.rs"]
 mod types;
 
 pub use idempotency::{suggested_link_signature_from_request, suggested_link_signature_from_row};

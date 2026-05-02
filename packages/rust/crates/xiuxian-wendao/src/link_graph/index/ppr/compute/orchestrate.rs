@@ -1,4 +1,4 @@
-use super::RelatedPprKernelTelemetry;
+use super::types::RelatedPprKernelTelemetry;
 use crate::link_graph::index::ppr::types::RelatedPprKernelResult;
 use crate::link_graph::index::{LinkGraphIndex, LinkGraphPprSubgraphMode};
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};

@@ -8,11 +8,11 @@ use xiuxian_logging::init_from_cli;
 
 use crate::{LinkGraphIndex, set_link_graph_wendao_config_override};
 
-#[path = "../bin/wendao/execute.rs"]
+#[path = "../bin/wendao/execute/mod.rs"]
 mod execute;
 #[path = "../bin/wendao/helpers/mod.rs"]
 mod helpers;
-#[path = "../bin/wendao/types.rs"]
+#[path = "../bin/wendao/types/mod.rs"]
 mod types;
 
 use execute::{can_execute_immediate, execute, execute_immediate};

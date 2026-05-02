@@ -1,8 +1,10 @@
 mod collect;
+#[path = "coordinator/mod.rs"]
 mod coordinator;
 mod filters;
 mod fingerprint;
 mod language;
+#[path = "task/mod.rs"]
 mod task;
 
 #[cfg(feature = "performance")]

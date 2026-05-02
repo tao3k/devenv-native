@@ -13,6 +13,7 @@ mod indexed_fuzzy;
 mod legacy;
 mod module;
 mod overview;
+#[path = "ranking/mod.rs"]
 mod ranking;
 mod symbol;
 

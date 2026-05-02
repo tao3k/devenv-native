@@ -1,3 +1,4 @@
+#[path = "lookup/mod.rs"]
 mod lookup;
 
 #[cfg(test)]

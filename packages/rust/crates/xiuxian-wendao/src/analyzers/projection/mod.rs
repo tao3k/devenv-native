@@ -1,3 +1,4 @@
+#[path = "builder/mod.rs"]
 mod builder;
 mod contracts;
 mod family_context;
@@ -14,6 +15,7 @@ mod pages;
 mod related_pages;
 mod retrieval_context;
 mod retrieval_lookup;
+#[path = "search/mod.rs"]
 mod search;
 mod tree_lookup;
 mod tree_search;

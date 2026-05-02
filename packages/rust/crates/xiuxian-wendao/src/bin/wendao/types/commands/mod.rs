@@ -2,6 +2,7 @@ mod agentic;
 mod attachments;
 mod audit;
 mod command;
+#[path = "docs/mod.rs"]
 mod docs;
 mod fix;
 #[cfg(feature = "zhenfa-router")]
@@ -9,6 +10,7 @@ mod gateway;
 mod graph;
 mod hmas;
 #[cfg(feature = "zhenfa-router")]
+#[path = "query/mod.rs"]
 mod query;
 mod repo;
 mod saliency;

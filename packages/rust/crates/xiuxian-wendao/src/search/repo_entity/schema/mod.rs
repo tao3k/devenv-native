@@ -2,6 +2,7 @@ mod batches;
 mod columns;
 mod definitions;
 mod helpers;
+#[path = "rows/mod.rs"]
 mod rows;
 
 pub(crate) use batches::repo_entity_batches;

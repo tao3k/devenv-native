@@ -1,5 +1,6 @@
 //! Background local-project symbol index coordinator for Studio.
 
+#[path = "state/mod.rs"]
 mod state;
 mod types;
 

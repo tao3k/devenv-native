@@ -49,6 +49,7 @@ mod registry;
 mod resolve;
 mod skeleton_rerank;
 mod structural_transaction;
+#[path = "topology/mod.rs"]
 mod topology;
 
 #[cfg(test)]

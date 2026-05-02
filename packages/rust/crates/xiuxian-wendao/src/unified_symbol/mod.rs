@@ -28,6 +28,7 @@
 //! let usage = index.find_external_usage("tokio");
 //! ```
 
+#[path = "index/mod.rs"]
 mod index;
 mod stats;
 mod symbol;

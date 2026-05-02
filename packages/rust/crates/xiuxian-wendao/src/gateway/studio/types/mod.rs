@@ -15,6 +15,7 @@ mod graph;
 mod navigation;
 mod retrieval;
 mod search;
+#[path = "search_index/mod.rs"]
 mod search_index;
 mod symbols;
 mod vfs;

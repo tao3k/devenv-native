@@ -1,6 +1,7 @@
 //! `PyO3` bindings for markdown link graph engine.
 
 mod cache;
+#[path = "engine/mod.rs"]
 mod engine;
 
 pub use cache::{

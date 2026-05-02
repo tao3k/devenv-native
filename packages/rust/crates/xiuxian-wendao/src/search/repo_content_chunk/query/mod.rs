@@ -1,3 +1,4 @@
+#[path = "lookup/mod.rs"]
 mod lookup;
 #[cfg(test)]
 #[path = "../../../../tests/unit/search/repo_content_chunk/query/mod.rs"]

@@ -1,5 +1,8 @@
+#[path = "autocomplete/mod.rs"]
 mod autocomplete;
+#[path = "lookup/mod.rs"]
 mod lookup;
+#[path = "shared/mod.rs"]
 mod shared;
 #[cfg(test)]
 #[path = "../../../../tests/unit/search/local_symbol/query/mod.rs"]

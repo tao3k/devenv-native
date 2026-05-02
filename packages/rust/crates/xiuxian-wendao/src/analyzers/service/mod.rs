@@ -3,14 +3,19 @@
 mod analysis;
 mod bootstrap;
 mod cached;
+#[path = "helpers/mod.rs"]
 mod helpers;
 #[cfg(all(feature = "zhenfa-router", feature = "julia"))]
+#[path = "incremental/mod.rs"]
 mod incremental;
+#[path = "julia_transport/mod.rs"]
 mod julia_transport;
 mod merge;
+#[path = "projection/mod.rs"]
 mod projection;
 mod registry;
 mod relation_dedupe;
+#[path = "search/mod.rs"]
 mod search;
 mod sync;
 

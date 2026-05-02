@@ -1,5 +1,6 @@
 //! Repository projection functions (projected pages, retrieval, navigation, and gap reports).
 
+#[path = "docs_tool/mod.rs"]
 mod docs_tool;
 mod family;
 mod gap;

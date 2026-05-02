@@ -1,4 +1,5 @@
 mod content;
+#[path = "execution/mod.rs"]
 mod execution;
 mod helpers;
 mod query;

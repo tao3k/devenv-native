@@ -1,7 +1,9 @@
 //! Studio API endpoint handlers.
 
+#[path = "document_extract/mod.rs"]
 mod document_extract;
 mod flight;
+#[path = "service/mod.rs"]
 mod service;
 
 pub(crate) use document_extract::{

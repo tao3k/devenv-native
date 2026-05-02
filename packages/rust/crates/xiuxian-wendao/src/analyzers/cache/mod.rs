@@ -3,9 +3,11 @@
 mod analysis;
 #[cfg(feature = "studio")]
 mod artifacts;
+#[path = "identity/mod.rs"]
 mod identity;
 mod keys;
 mod query;
+#[path = "valkey/mod.rs"]
 mod valkey;
 
 #[cfg(test)]

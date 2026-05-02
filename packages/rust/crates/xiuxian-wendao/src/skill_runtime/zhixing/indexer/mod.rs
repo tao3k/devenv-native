@@ -1,7 +1,9 @@
 mod documents;
 mod file_discovery;
+#[path = "resource_graph/mod.rs"]
 mod resource_graph;
 mod stats;
+#[path = "tasks/mod.rs"]
 mod tasks;
 mod types;
 

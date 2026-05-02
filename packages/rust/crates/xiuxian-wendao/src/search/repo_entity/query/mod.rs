@@ -1,5 +1,8 @@
+#[path = "hydrate/mod.rs"]
 mod hydrate;
+#[path = "lookup/mod.rs"]
 mod lookup;
+#[path = "results/mod.rs"]
 mod results;
 
 #[cfg(test)]

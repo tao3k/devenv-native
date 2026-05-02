@@ -1,4 +1,5 @@
 mod helpers;
+#[path = "intent/mod.rs"]
 mod intent;
 mod merge;
 mod search;

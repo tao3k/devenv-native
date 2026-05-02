@@ -1,5 +1,6 @@
 //! Query request and response contracts for repository intelligence.
 
+#[path = "docs/mod.rs"]
 mod docs;
 mod example;
 mod family;

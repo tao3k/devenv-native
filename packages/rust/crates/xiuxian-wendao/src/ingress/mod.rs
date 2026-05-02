@@ -1,5 +1,6 @@
 //! Ingress pipeline adapters for bringing external content into Wendao.
 
+#[path = "spider/mod.rs"]
 mod spider;
 mod transmuter;
 

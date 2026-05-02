@@ -1,6 +1,7 @@
 //! Docs-facing query and response contracts for repository intelligence.
 
 mod coverage;
+#[path = "planner/mod.rs"]
 mod planner;
 mod search;
 

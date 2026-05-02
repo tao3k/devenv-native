@@ -1,6 +1,8 @@
 mod api;
+#[path = "helpers/mod.rs"]
 mod helpers;
 mod merge;
+#[path = "scan/mod.rs"]
 mod scan;
 mod state;
 
