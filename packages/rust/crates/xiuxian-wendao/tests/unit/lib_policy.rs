@@ -30,7 +30,7 @@ fn wendao_verification_profile_hints_bind_active_skill_tasks() {
 
     assert_bound_task(
         &plan,
-        "src/gateway/studio.rs",
+        "src/gateway/studio/mod.rs",
         RustVerificationTaskKind::Security,
         "rust-verification-security@semgrep",
     );
@@ -48,7 +48,7 @@ fn wendao_verification_profile_hints_bind_active_skill_tasks() {
     );
     assert_bound_task(
         &plan,
-        "src/gateway/studio.rs",
+        "src/gateway/studio/mod.rs",
         RustVerificationTaskKind::Stress,
         "rust-verification-stress@k6",
     );
@@ -81,7 +81,7 @@ fn wendao_rust_harness_config() -> RustHarnessConfig {
     default_rust_harness_config()
         .with_verification_profile_hint(
             RustVerificationProfileHint::new(
-                "src/gateway/studio.rs",
+                "src/gateway/studio/mod.rs",
                 [
                     RustOwnerResponsibility::PublicApi,
                     RustOwnerResponsibility::SecurityBoundary,

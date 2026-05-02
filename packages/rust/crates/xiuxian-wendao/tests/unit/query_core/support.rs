@@ -2,7 +2,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use tempfile::tempdir;
+use tempfile::Builder;
 
 use crate::analyzers::{
     ExampleRecord, ModuleRecord, RepoSymbolKind, RepositoryAnalysisOutput, SymbolRecord,
@@ -13,7 +13,15 @@ use crate::query_core::{WendaoQueryCoreError, WendaoRelation};
 use crate::repo_index::RepoCodeDocument;
 
 pub(super) fn tempdir_or_panic(context: &str) -> tempfile::TempDir {
-    tempdir().unwrap_or_else(|error| panic!("{context}: {error}"))
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join(".cache")
+        .join("query-core-tests");
+    std::fs::create_dir_all(&root)
+        .unwrap_or_else(|error| panic!("create query-core test temp root: {error}"));
+    Builder::new()
+        .prefix("query-core-")
+        .tempdir_in(root)
+        .unwrap_or_else(|error| panic!("{context}: {error}"))
 }
 
 pub(super) fn write_fixture(path: &Path, contents: &str, context: &str) {
