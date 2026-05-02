@@ -256,7 +256,5 @@ mod performance;
 #[path = "performance/stress/mod.rs"]
 mod performance_stress;
 
-rust_lang_project_harness::rust_project_harness_gate!();
-
 #[path = "support/relative_visibility_gate.rs"]
 mod relative_visibility_gate;

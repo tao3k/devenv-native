@@ -1,7 +1,5 @@
 //! Canonical unit test harness for `xiuxian-wendao-parsers`.
 
-rust_lang_project_harness::rust_project_harness_gate!();
-
 #[path = "unit/blocks.rs"]
 mod blocks;
 #[path = "unit/code_observation.rs"]
@@ -10,6 +8,8 @@ mod code_observation;
 mod document;
 #[path = "unit/frontmatter.rs"]
 mod frontmatter;
+#[path = "unit/lib_policy.rs"]
+mod lib_policy;
 #[path = "unit/lint/mod.rs"]
 mod lint;
 #[path = "unit/note.rs"]

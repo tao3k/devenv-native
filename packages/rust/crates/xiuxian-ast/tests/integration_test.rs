@@ -1,7 +1,5 @@
 //! Cargo entry point for `xiuxian-ast` integration tests.
 
-rust_lang_project_harness::rust_project_harness_gate!();
-
 #[path = "integration/extract.rs"]
 mod extract;
 #[path = "integration/item.rs"]

@@ -1,7 +1,7 @@
 //! Cargo entry point for `qianji-bpmn-engine` unit tests.
 
-rust_lang_project_harness::rust_project_harness_gate!();
-
+#[path = "unit/lib_policy.rs"]
+mod lib_policy;
 #[path = "unit/test_support.rs"]
 mod test_support;
 

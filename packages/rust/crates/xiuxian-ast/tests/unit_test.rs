@@ -1,13 +1,13 @@
 //! Cargo entry point for `xiuxian-ast` unit tests.
 
-rust_lang_project_harness::rust_project_harness_gate!();
-
 #[path = "unit/chunk.rs"]
 mod chunk;
 #[path = "unit/extract.rs"]
 mod extract;
 #[path = "unit/lang.rs"]
 mod lang;
+#[path = "unit/lib_policy.rs"]
+mod lib_policy;
 #[path = "unit/python.rs"]
 mod python;
 #[path = "unit/python_tree_sitter.rs"]

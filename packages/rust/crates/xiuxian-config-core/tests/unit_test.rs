@@ -1,7 +1,5 @@
 //! Cargo entry point for `xiuxian-config-core` unit tests.
 
-rust_lang_project_harness::rust_project_harness_gate!();
-
 #[path = "unit/cache.rs"]
 mod cache;
 #[path = "unit/imports.rs"]

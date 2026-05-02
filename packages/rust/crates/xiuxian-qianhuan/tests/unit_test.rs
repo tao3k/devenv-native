@@ -1,9 +1,9 @@
 //! Canonical unit test harness for `xiuxian-qianhuan`.
 
-rust_lang_project_harness::rust_project_harness_gate!();
-
 #[path = "unit/contracts.rs"]
 mod contracts;
+#[path = "unit/lib_policy.rs"]
+mod lib_policy;
 #[path = "unit/test_ccs_gating_integration.rs"]
 mod test_ccs_gating_integration;
 #[path = "unit/test_dynamic_template_loading.rs"]

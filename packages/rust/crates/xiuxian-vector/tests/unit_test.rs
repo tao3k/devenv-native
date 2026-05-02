@@ -1,10 +1,10 @@
 //! Cargo entry point for xiuxian-vector unit tests.
 #![cfg(feature = "vector-store")]
 
-rust_lang_project_harness::rust_project_harness_gate!();
-
 #[path = "unit/filter_expr.rs"]
 mod filter_expr;
+#[path = "unit/lib_policy.rs"]
+mod lib_policy;
 #[path = "unit/ops_column_read.rs"]
 mod ops_column_read;
 #[path = "unit/search_engine/context.rs"]

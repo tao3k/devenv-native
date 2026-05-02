@@ -1,7 +1,5 @@
 //! Cargo entry point for `xiuxian-wendao-client` unit tests.
 
-rust_lang_project_harness::rust_project_harness_gate!();
-
 #[path = "unit/cli.rs"]
 mod cli;
 #[path = "unit/get_runtime.rs"]

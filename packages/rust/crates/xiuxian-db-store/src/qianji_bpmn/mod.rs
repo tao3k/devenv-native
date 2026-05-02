@@ -12,7 +12,3 @@ pub use error::QianjiBpmnDataStoreError;
 pub use record::QianjiBpmnDataRecord;
 pub use state::QIANJI_BPMN_WORKFLOW_STATE_RECORD_KEY;
 pub use store::QianjiBpmnDuckDbDataStore;
-
-#[cfg(test)]
-#[path = "../../tests/unit/qianji_bpmn/mod.rs"]
-mod tests;

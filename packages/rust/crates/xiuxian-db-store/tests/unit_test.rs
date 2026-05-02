@@ -1,7 +1,5 @@
 //! Cargo entry point for `xiuxian-db-store` unit tests.
 
-rust_lang_project_harness::rust_project_harness_gate!();
-
 #[cfg(feature = "duckdb")]
 use xiuxian_db_store::duckdb::{
     DuckDbConnection, DuckDbDatabasePath, DuckDbExecutionConfig, DuckDbRuntimeConfig,

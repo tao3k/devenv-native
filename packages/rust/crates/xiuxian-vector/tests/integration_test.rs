@@ -1,8 +1,6 @@
 //! Cargo entry point for xiuxian-vector integration tests.
 #![cfg(feature = "vector-store")]
 
-rust_lang_project_harness::rust_project_harness_gate!();
-
 #[path = "integration/columnar_tables.rs"]
 mod columnar_tables;
 #[path = "integration/data_layer_snapshots.rs"]
