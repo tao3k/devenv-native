@@ -1,4 +1,4 @@
-//! Process-managed WendaoSearch example services used by integration tests.
+//! Process-managed `WendaoSearch` example services used by integration tests.
 
 use std::env;
 use std::process::{Command, Stdio};

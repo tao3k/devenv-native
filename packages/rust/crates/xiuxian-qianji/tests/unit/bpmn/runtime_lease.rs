@@ -11,7 +11,7 @@ use crate::{
     SchedulerAgentIdentity, load_bpmn_package_from_files,
 };
 
-use super::valkey_support::TestValkey;
+use super::{unique_instance_id, valkey_support::TestValkey};
 
 #[tokio::test(flavor = "current_thread")]
 async fn execution_scheduler_lease_conflict_rejects_competing_owner() {
@@ -27,11 +27,12 @@ async fn execution_scheduler_lease_conflict_rejects_competing_owner() {
         "wait bundle should load from disk",
     );
     let store = QianjiBpmnCheckpointStore::valkey(valkey.url().to_string());
+    let instance_id = unique_instance_id("wf_wait_lease_conflict");
 
     assert!(
         ok_of(
             store
-                .try_acquire_lease("wf_wait_lease_conflict", "owner-a", 30_000)
+                .try_acquire_lease(instance_id.as_str(), "owner-a", 30_000)
                 .await,
             "owner-a should acquire the lease directly",
         ),
@@ -42,7 +43,7 @@ async fn execution_scheduler_lease_conflict_rejects_competing_owner() {
         .with_checkpoint_lease(QianjiBpmnSchedulerLeaseConfig::new("owner-b", 30_000));
     let request = QianjiBpmnExecutionRequest::new(
         "wait_flow",
-        "wf_wait_lease_conflict",
+        instance_id.as_str(),
         Some(json!({ "amount": 7 })),
         11,
     );
@@ -54,10 +55,10 @@ async fn execution_scheduler_lease_conflict_rejects_competing_owner() {
     };
     match error {
         BpmnOrchestrationError::CheckpointLeaseConflict {
-            instance_id,
+            instance_id: conflict_instance_id,
             owner_token,
         } => {
-            assert_eq!(instance_id, "wf_wait_lease_conflict");
+            assert_eq!(conflict_instance_id, instance_id);
             assert_eq!(owner_token, "owner-b");
         }
         other => panic!("unexpected error: {other:?}"),
@@ -65,9 +66,7 @@ async fn execution_scheduler_lease_conflict_rejects_competing_owner() {
 
     assert!(
         ok_of(
-            store
-                .release_lease("wf_wait_lease_conflict", "owner-a")
-                .await,
+            store.release_lease(instance_id.as_str(), "owner-a").await,
             "owner-a should release the direct lease cleanly",
         ),
         "owner-a should release the lease after the conflict proof",
@@ -90,6 +89,7 @@ async fn execution_scheduler_lease_waiting_run_saves_and_releases_owner_guardedl
     let store = QianjiBpmnCheckpointStore::valkey(valkey.url().to_string());
     let scheduler_identity =
         SchedulerAgentIdentity::new(Some("owner-a".to_string()), Some("manager".to_string()));
+    let instance_id = unique_instance_id("wf_wait_lease_waiting");
     let scheduler = ok_of(
         QianjiBpmnExecutionScheduler::new(Arc::clone(&package), Some(store.clone()))
             .with_scheduler_identity(&scheduler_identity, 30_000),
@@ -97,7 +97,7 @@ async fn execution_scheduler_lease_waiting_run_saves_and_releases_owner_guardedl
     );
     let request = QianjiBpmnExecutionRequest::new(
         "wait_flow",
-        "wf_wait_lease_waiting",
+        instance_id.as_str(),
         Some(json!({ "amount": 7 })),
         11,
     );
@@ -117,7 +117,7 @@ async fn execution_scheduler_lease_waiting_run_saves_and_releases_owner_guardedl
     assert!(!execution.checkpoint_deleted);
 
     let Some(stored) = ok_of(
-        store.load("wf_wait_lease_waiting").await,
+        store.load(instance_id.as_str()).await,
         "waiting run should persist checkpoint state",
     ) else {
         panic!("waiting checkpoint should exist");
@@ -128,7 +128,7 @@ async fn execution_scheduler_lease_waiting_run_saves_and_releases_owner_guardedl
     assert!(
         ok_of(
             store
-                .try_acquire_lease("wf_wait_lease_waiting", "owner-b", 30_000)
+                .try_acquire_lease(instance_id.as_str(), "owner-b", 30_000)
                 .await,
             "owner-b should reacquire after scheduler release",
         ),
@@ -150,11 +150,12 @@ async fn execution_scheduler_lease_terminal_run_deletes_and_releases_owner_guard
         "business-rule bundle should load from disk",
     );
     let store = QianjiBpmnCheckpointStore::valkey(valkey.url().to_string());
+    let instance_id = unique_instance_id("wf_terminal_lease");
     let scheduler = QianjiBpmnExecutionScheduler::new(Arc::clone(&package), Some(store.clone()))
         .with_checkpoint_lease(QianjiBpmnSchedulerLeaseConfig::new("owner-a", 30_000));
     let request = QianjiBpmnExecutionRequest::new(
         "review",
-        "wf_terminal_lease",
+        instance_id.as_str(),
         Some(json!({ "risk": "low" })),
         11,
     );
@@ -185,7 +186,7 @@ async fn execution_scheduler_lease_terminal_run_deletes_and_releases_owner_guard
     assert!(execution.checkpoint_deleted);
 
     let stored = ok_of(
-        store.load("wf_terminal_lease").await,
+        store.load(instance_id.as_str()).await,
         "terminal run should load checkpoint state cleanly after delete",
     );
     assert!(stored.is_none());
@@ -193,7 +194,7 @@ async fn execution_scheduler_lease_terminal_run_deletes_and_releases_owner_guard
     assert!(
         ok_of(
             store
-                .try_acquire_lease("wf_terminal_lease", "owner-b", 30_000)
+                .try_acquire_lease(instance_id.as_str(), "owner-b", 30_000)
                 .await,
             "owner-b should reacquire after scheduler release",
         ),

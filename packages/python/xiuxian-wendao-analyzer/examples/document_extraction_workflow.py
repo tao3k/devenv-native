@@ -1,6 +1,9 @@
+"""Run a document extraction workflow with fixture or Docling-backed conversion."""
+
 from __future__ import annotations
 
 import argparse
+import sys
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -12,7 +15,7 @@ from xiuxian_wendao_analyzer import (
 )
 
 
-class FixtureDocument:
+class _FixtureDocument:
     def __init__(self, markdown: str) -> None:
         self.markdown = markdown
 
@@ -20,17 +23,19 @@ class FixtureDocument:
         return self.markdown
 
 
-class FixtureConversionResult:
+class _FixtureConversionResult:
     def __init__(self, markdown: str) -> None:
-        self.document = FixtureDocument(markdown)
+        self.document = _FixtureDocument(markdown)
 
 
-class FixtureDocumentConverter:
-    def convert(self, source: str | Path) -> FixtureConversionResult:
-        return FixtureConversionResult(f"# Parsed fixture\n\nSource: {Path(source).name}\n")
+class _FixtureDocumentConverter:
+    def convert(self, source: str | Path) -> _FixtureConversionResult:
+        return _FixtureConversionResult(
+            f"# Parsed fixture\n\nSource: {Path(source).name}\n"
+        )
 
 
-def parse_args() -> argparse.Namespace:
+def _parse_document_extraction_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Run a Docling-backed multi-format document extraction workflow into Arrow rows.",
     )
@@ -42,8 +47,12 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def main() -> None:
-    args = parse_args()
+def _emit(label: str, value: object) -> None:
+    sys.stdout.write(f"{label}= {value}\n")
+
+
+def _run_document_extraction_workflow() -> None:
+    args = _parse_document_extraction_args()
     with TemporaryDirectory(prefix="xiuxian-wendao-docs-") as temp_dir:
         source = Path(args.source)
         if args.mode == "fixture":
@@ -51,7 +60,7 @@ def main() -> None:
                 source = Path(temp_dir) / "sample.docx"
             source.parent.mkdir(parents=True, exist_ok=True)
             source.write_bytes(b"Docling fixture document\n")
-            converter = FixtureDocumentConverter()
+            converter = _FixtureDocumentConverter()
         else:
             converter = None
 
@@ -65,18 +74,18 @@ def main() -> None:
         )
         rows = table.to_pylist()
 
-        print("mode=", args.mode)
-        print("known_docling_source=", is_known_docling_source(source))
-        print("supported_formats=", ",".join(DOCLING_SUPPORTED_DOCUMENT_FORMATS))
-        print("common_suffixes=", ",".join(DOCLING_COMMON_SOURCE_SUFFIXES))
-        print("rows=", table.num_rows)
-        print("columns=", ",".join(table.column_names))
+        _emit("mode", args.mode)
+        _emit("known_docling_source", is_known_docling_source(source))
+        _emit("supported_formats", ",".join(DOCLING_SUPPORTED_DOCUMENT_FORMATS))
+        _emit("common_suffixes", ",".join(DOCLING_COMMON_SOURCE_SUFFIXES))
+        _emit("rows", table.num_rows)
+        _emit("columns", ",".join(table.column_names))
         if rows:
-            print("top_status=", rows[0]["status"])
-            print("top_resource_type=", rows[0]["resourceType"])
-            print("top_mime_type=", rows[0]["mimeType"])
-            print("top_content=", rows[0]["content"].splitlines()[0])
+            _emit("top_status", rows[0]["status"])
+            _emit("top_resource_type", rows[0]["resourceType"])
+            _emit("top_mime_type", rows[0]["mimeType"])
+            _emit("top_content", rows[0]["content"].splitlines()[0])
 
 
 if __name__ == "__main__":
-    main()
+    _run_document_extraction_workflow()

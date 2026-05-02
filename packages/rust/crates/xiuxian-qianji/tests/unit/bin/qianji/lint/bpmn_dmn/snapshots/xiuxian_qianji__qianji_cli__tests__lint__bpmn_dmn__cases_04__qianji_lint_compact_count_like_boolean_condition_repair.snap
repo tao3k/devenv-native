@@ -1,0 +1,83 @@
+---
+source: packages/rust/crates/xiuxian-qianji/src/../tests/unit/bin/qianji/lint/bpmn_dmn/cases_04.rs
+expression: "stable_temp_output(&output.rendered, &temp_dir)"
+---
+[lint:error] $TEMP/invalid_questions_remaining_condition.bpmn bpmn
+Source: $TEMP/invalid_questions_remaining_condition.bpmn
+Issues: 2
+
+[bpmn.ambiguous_boolean_gateway_condition] Error: Gateway boolean condition uses a count-like variable
+    ,-[ $TEMP/invalid_questions_remaining_condition.bpmn:42:33 ]
+ 42 |      <bpmn:conditionExpression>questionsRemaining</bpmn:conditionExpression>
+    |                                `------------------ bare condition paths must resolve to JSON boolean values
+    |Help: Use `questionsRemaining > 0` for a numeric count, or rename the producer output to a boolean-shaped variable and emit true/false.
+
+Action:
+- Repair process 'question_flow' gateway 'decision' by replacing boolean-path condition `questionsRemaining` with either `questionsRemaining > 0` for numeric counts, or by renaming the upstream native BPMN output to a boolean-shaped variable and routing on that boolean.
+
+Fix:
+- If 'questionsRemaining' is a count, rewrite the branch condition to `questionsRemaining > 0` and ensure the upstream task emits a JSON number.
+- If the branch is boolean, rename the output to a boolean-shaped variable such as `hasMoreQuestions` or `needsMoreQuestions` and emit only `true` or `false`.
+- Keep the fallback branch as the gateway `default` flow without a conditionExpression.
+
+Patch focus:
+- choose_one
+- rewrite_condition_expression
+- requires: upstream task emits a JSON number
+- producer_change: update every upstream task that outputs `questionsRemaining` so its prompt says `questionsRemaining` is a JSON number count, not a boolean or string
+- rename_gateway_variable_to_boolean
+- requires: upstream task emits true or false
+- producer_change: rename every native BPMN input, output, and condition use of `questionsRemaining` consistently if choosing the boolean route
+
+Examples:
+- <conditionExpression xsi:type="tFormalExpression">questionsRemaining > 0</conditionExpression>
+- Return JSON with currentQuestion and questionsRemaining as a JSON number.
+- native BPMN dataOutput names currentQuestion and hasMoreQuestions with <conditionExpression>hasMoreQuestions</conditionExpression>
+
+Forbidden forms:
+- <conditionExpression>questionsRemaining</conditionExpression>
+- questionsRemaining as a string such as "5"
+- questionsRemaining as a boolean while the gateway uses `questionsRemaining > 0`
+- routing count-like variables through bare boolean paths
+
+Structured repair:
+- strategy: disambiguate_count_like_boolean_condition
+- contract: bpmn.native.gateway.condition.v1
+
+[bpmn.ambiguous_boolean_gateway_condition] Error: Gateway boolean condition uses a count-like variable
+    ,-[ $TEMP/invalid_questions_remaining_condition.bpmn:45:33 ]
+ 45 |      <bpmn:conditionExpression>sectionsRemaining</bpmn:conditionExpression>
+    |                                `----------------- bare condition paths must resolve to JSON boolean values
+    |Help: Use `sectionsRemaining > 0` for a numeric count, or rename the producer output to a boolean-shaped variable and emit true/false.
+
+Action:
+- Repair process 'question_flow' gateway 'decision' by replacing boolean-path condition `sectionsRemaining` with either `sectionsRemaining > 0` for numeric counts, or by renaming the upstream native BPMN output to a boolean-shaped variable and routing on that boolean.
+
+Fix:
+- If 'sectionsRemaining' is a count, rewrite the branch condition to `sectionsRemaining > 0` and ensure the upstream task emits a JSON number.
+- If the branch is boolean, rename the output to a boolean-shaped variable such as `hasMoreQuestions` or `needsMoreQuestions` and emit only `true` or `false`.
+- Keep the fallback branch as the gateway `default` flow without a conditionExpression.
+
+Patch focus:
+- choose_one
+- rewrite_condition_expression
+- requires: upstream task emits a JSON number
+- producer_change: update every upstream task that outputs `sectionsRemaining` so its prompt says `sectionsRemaining` is a JSON number count, not a boolean or string
+- rename_gateway_variable_to_boolean
+- requires: upstream task emits true or false
+- producer_change: rename every native BPMN input, output, and condition use of `sectionsRemaining` consistently if choosing the boolean route
+
+Examples:
+- <conditionExpression xsi:type="tFormalExpression">sectionsRemaining > 0</conditionExpression>
+- Return JSON with currentQuestion and sectionsRemaining as a JSON number.
+- native BPMN dataOutput names currentQuestion and hasMoreQuestions with <conditionExpression>hasMoreQuestions</conditionExpression>
+
+Forbidden forms:
+- <conditionExpression>sectionsRemaining</conditionExpression>
+- sectionsRemaining as a string such as "5"
+- sectionsRemaining as a boolean while the gateway uses `sectionsRemaining > 0`
+- routing count-like variables through bare boolean paths
+
+Structured repair:
+- strategy: disambiguate_count_like_boolean_condition
+- contract: bpmn.native.gateway.condition.v1

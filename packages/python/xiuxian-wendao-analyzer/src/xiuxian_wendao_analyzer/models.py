@@ -45,12 +45,16 @@ class AnalyzerResultRow:
             path=str(path) if path is not None else None,
             score=float(score) if score is not None else None,
             vector_score=float(vector_score) if vector_score is not None else None,
-            semantic_score=float(semantic_score) if semantic_score is not None else None,
+            semantic_score=(
+                float(semantic_score) if semantic_score is not None else None
+            ),
             final_score=float(final_score) if final_score is not None else None,
         )
 
 
-def parse_analyzer_result_rows(rows: list[Mapping[str, object]]) -> list[AnalyzerResultRow]:
+def parse_analyzer_result_rows(
+    rows: list[Mapping[str, object]],
+) -> list[AnalyzerResultRow]:
     """Parse one list of generic analyzer rows into typed analyzer result rows."""
 
     return [AnalyzerResultRow.from_mapping(row) for row in rows]

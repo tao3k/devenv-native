@@ -83,6 +83,11 @@ python3Packages.buildPythonPackage {
     git = "https://github.com/firecrawl/pdf-inspector"
     rev = "63b55731337c18baf23319b73cc9780bb23ac61b"
     replace-with = "vendored-sources"
+
+    [source."git+https://github.com/tao3k/rust-lang-project-harness?rev=7b5313bb543e729583da630164629e5db40d627b"]
+    git = "https://github.com/tao3k/rust-lang-project-harness"
+    rev = "7b5313bb543e729583da630164629e5db40d627b"
+    replace-with = "vendored-sources"
     EOF
 
     cat > .cargo/config.toml <<EOF

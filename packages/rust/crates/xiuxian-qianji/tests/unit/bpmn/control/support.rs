@@ -1,4 +1,4 @@
-pub(super) use super::{TestValkey, ok_of, write_wait_bundle};
+pub(super) use super::{TestValkey, ok_of, unique_instance_id, write_wait_bundle};
 pub(super) use crate::runtime_config::QianjiRuntimeEnv;
 pub(super) use crate::{
     QianjiBpmnHostBridge, QianjiBpmnWorkflowCancelRequest, QianjiBpmnWorkflowCheckpointBackend,

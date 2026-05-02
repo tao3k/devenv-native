@@ -20,19 +20,23 @@ def summarize_artifact_reports(reports: list[dict[str, Any]]) -> dict[str, Any]:
         for report in reports
     )
     return {
-        "resourcesArrowExists": any(bool(report.get("resourcesArrowExists")) for report in reports),
-        "resourcesRows": sum_int_report_values(reports, "resourcesRowCount"),
-        "structureArrowExists": any(bool(report.get("structureArrowExists")) for report in reports),
-        "structureRows": sum_int_report_values(reports, "structureRowCount"),
-        "structureOcrPageBlocks": sum_int_report_values(
+        "resourcesArrowExists": any(
+            bool(report.get("resourcesArrowExists")) for report in reports
+        ),
+        "resourcesRows": _sum_int_report_values(reports, "resourcesRowCount"),
+        "structureArrowExists": any(
+            bool(report.get("structureArrowExists")) for report in reports
+        ),
+        "structureRows": _sum_int_report_values(reports, "structureRowCount"),
+        "structureOcrPageBlocks": _sum_int_report_values(
             reports,
             "structureOcrPageBlocks",
         ),
-        "structureOcrRegionBlocks": sum_int_report_values(
+        "structureOcrRegionBlocks": _sum_int_report_values(
             reports,
             "structureOcrRegionBlocks",
         ),
-        "structureBboxBlocks": sum_int_report_values(
+        "structureBboxBlocks": _sum_int_report_values(
             reports,
             "structureBboxBlocks",
         ),
@@ -42,83 +46,93 @@ def summarize_artifact_reports(reports: list[dict[str, Any]]) -> dict[str, Any]:
             else None
         ),
         "structureParityChecked": structure_parity_checked,
-        "structureParityPassed": structure_parity_passed(reports),
+        "structureParityPassed": _structure_parity_passed(reports),
         "structureParityErrorCount": sum(
             1 for report in reports if report.get("structureParityError")
         ),
-        "metricsArrowExists": any(bool(report.get("metricsArrowExists")) for report in reports),
-        "metricsRows": sum_int_report_values(reports, "metricsRowCount"),
-        "metricsResultChars": sum_int_report_values(reports, "metricsResultChars"),
-        "metricsBboxCount": sum_int_report_values(reports, "metricsBboxCount"),
-        "metricsRustSchedulerElapsedMs": sum_float_report_values(
+        "metricsArrowExists": any(
+            bool(report.get("metricsArrowExists")) for report in reports
+        ),
+        "metricsRows": _sum_int_report_values(reports, "metricsRowCount"),
+        "metricsResultChars": _sum_int_report_values(reports, "metricsResultChars"),
+        "metricsBboxCount": _sum_int_report_values(reports, "metricsBboxCount"),
+        "metricsRustSchedulerElapsedMs": _sum_float_report_values(
             reports,
             "metricsRustSchedulerElapsedMs",
         ),
         "documentTimingArrowExists": any(
-            document_timing_arrow_exists(report) for report in reports
+            _document_timing_arrow_exists(report) for report in reports
         ),
-        "documentTimingRows": sum_int_report_values(
+        "documentTimingRows": _sum_int_report_values(
             reports,
             "documentTimingRowCount",
         ),
-        "documentTimingTotalElapsedMs": sum_float_report_values(
+        "documentTimingTotalElapsedMs": _sum_float_report_values(
             reports,
             "documentTimingTotalElapsedMs",
         ),
-        "documentTimingPhaseElapsedMs": aggregate_float_report_maps(
+        "documentTimingPhaseElapsedMs": _aggregate_float_report_maps(
             reports,
             "documentTimingPhaseElapsedMs",
         ),
-        "imageAttachmentAuditCount": image_attachment_audit_count(reports),
-        "imageKnownDimensionCount": image_known_dimension_count(reports),
-        "imageFormatCounts": image_format_counts(reports),
-        "imageDimensionSourceCounts": image_dimension_source_counts(reports),
-        "imageAccelerationCandidates": image_acceleration_candidates(reports),
-        "maxImageWidthPx": max_image_dimension(reports, "widthPx"),
-        "maxImageHeightPx": max_image_dimension(reports, "heightPx"),
-        "maxImagePixelCount": max_image_pixel_count(reports),
-        "archiveAttachmentAuditCount": archive_attachment_audit_count(reports),
-        "archiveMemberCount": sum_archive_audit_int(reports, "memberCount"),
-        "archiveRegularFileCount": sum_archive_audit_int(reports, "regularFileCount"),
-        "archiveXmlMemberCount": sum_archive_audit_int(reports, "xmlMemberCount"),
-        "archiveImageMemberCount": sum_archive_audit_int(reports, "imageMemberCount"),
-        "archiveTotalMemberSizeBytes": sum_archive_audit_int(
+        "imageAttachmentAuditCount": _image_attachment_audit_count(reports),
+        "imageKnownDimensionCount": _image_known_dimension_count(reports),
+        "imageFormatCounts": _image_format_counts(reports),
+        "imageDimensionSourceCounts": _image_dimension_source_counts(reports),
+        "imageAccelerationCandidates": _image_acceleration_candidates(reports),
+        "maxImageWidthPx": _max_image_dimension(reports, "widthPx"),
+        "maxImageHeightPx": _max_image_dimension(reports, "heightPx"),
+        "maxImagePixelCount": _max_image_pixel_count(reports),
+        "archiveAttachmentAuditCount": _archive_attachment_audit_count(reports),
+        "archiveMemberCount": _sum_archive_audit_int(reports, "memberCount"),
+        "archiveRegularFileCount": _sum_archive_audit_int(reports, "regularFileCount"),
+        "archiveXmlMemberCount": _sum_archive_audit_int(reports, "xmlMemberCount"),
+        "archiveImageMemberCount": _sum_archive_audit_int(reports, "imageMemberCount"),
+        "archiveTotalMemberSizeBytes": _sum_archive_audit_int(
             reports,
             "totalMemberSizeBytes",
         ),
-        "archiveFormatCounts": archive_audit_string_counts(reports, "archiveFormat"),
-        "archiveAccelerationCandidates": archive_acceleration_candidates(reports),
-        "archiveExtensionCounts": archive_extension_counts(reports),
-        "maxArchiveLargestMemberSizeBytes": max_archive_largest_member_size(reports),
-        "artifactErrorCount": sum(1 for report in reports if report.get("artifactError")),
+        "archiveFormatCounts": _archive_audit_string_counts(reports, "archiveFormat"),
+        "archiveAccelerationCandidates": _archive_acceleration_candidates(reports),
+        "archiveExtensionCounts": _archive_extension_counts(reports),
+        "maxArchiveLargestMemberSizeBytes": _max_archive_largest_member_size(reports),
+        "artifactErrorCount": sum(
+            1 for report in reports if report.get("artifactError")
+        ),
     }
 
 
-def structure_parity_passed(reports: list[dict[str, Any]]) -> bool | None:
+def _structure_parity_passed(reports: list[dict[str, Any]]) -> bool | None:
     checked_reports = [
         report
         for report in reports
-        if report.get("structureParity") is not None or report.get("structureParityError")
+        if report.get("structureParity") is not None
+        or report.get("structureParityError")
     ]
     if not checked_reports:
         return None
     return all(
-        report.get("structureParity") is not None and not report.get("structureParityError")
+        report.get("structureParity") is not None
+        and not report.get("structureParityError")
         for report in checked_reports
     )
 
 
-def sum_int_report_values(reports: list[dict[str, Any]], key: str) -> int:
-    return sum(value for report in reports if isinstance((value := report.get(key)), int))
-
-
-def sum_float_report_values(reports: list[dict[str, Any]], key: str) -> float:
+def _sum_int_report_values(reports: list[dict[str, Any]], key: str) -> int:
     return sum(
-        float(value) for report in reports if isinstance((value := report.get(key)), int | float)
+        value for report in reports if isinstance((value := report.get(key)), int)
     )
 
 
-def aggregate_float_report_maps(
+def _sum_float_report_values(reports: list[dict[str, Any]], key: str) -> float:
+    return sum(
+        float(value)
+        for report in reports
+        if isinstance((value := report.get(key)), int | float)
+    )
+
+
+def _aggregate_float_report_maps(
     reports: list[dict[str, Any]],
     key: str,
 ) -> dict[str, float]:
@@ -133,7 +147,7 @@ def aggregate_float_report_maps(
     return dict(sorted(totals.items()))
 
 
-def document_timing_arrow_exists(report: dict[str, Any]) -> bool:
+def _document_timing_arrow_exists(report: dict[str, Any]) -> bool:
     if bool(report.get("documentTimingArrowExists")):
         return True
     arrow_bytes = report.get("documentTimingArrowBytes")
@@ -143,11 +157,13 @@ def document_timing_arrow_exists(report: dict[str, Any]) -> bool:
     )
 
 
-def image_attachment_audit_count(reports: list[dict[str, Any]]) -> int:
-    return sum(1 for report in reports if isinstance(report.get("imageAttachmentAudit"), dict))
+def _image_attachment_audit_count(reports: list[dict[str, Any]]) -> int:
+    return sum(
+        1 for report in reports if isinstance(report.get("imageAttachmentAudit"), dict)
+    )
 
 
-def image_known_dimension_count(reports: list[dict[str, Any]]) -> int:
+def _image_known_dimension_count(reports: list[dict[str, Any]]) -> int:
     return sum(
         1
         for report in reports
@@ -157,15 +173,15 @@ def image_known_dimension_count(reports: list[dict[str, Any]]) -> int:
     )
 
 
-def image_format_counts(reports: list[dict[str, Any]]) -> dict[str, int]:
-    return image_audit_string_counts(reports, "format")
+def _image_format_counts(reports: list[dict[str, Any]]) -> dict[str, int]:
+    return _image_audit_string_counts(reports, "format")
 
 
-def image_dimension_source_counts(reports: list[dict[str, Any]]) -> dict[str, int]:
-    return image_audit_string_counts(reports, "dimensionSource")
+def _image_dimension_source_counts(reports: list[dict[str, Any]]) -> dict[str, int]:
+    return _image_audit_string_counts(reports, "dimensionSource")
 
 
-def image_audit_string_counts(
+def _image_audit_string_counts(
     reports: list[dict[str, Any]],
     key: str,
 ) -> dict[str, int]:
@@ -180,7 +196,7 @@ def image_audit_string_counts(
     return dict(sorted(counts.items()))
 
 
-def image_acceleration_candidates(reports: list[dict[str, Any]]) -> dict[str, int]:
+def _image_acceleration_candidates(reports: list[dict[str, Any]]) -> dict[str, int]:
     counts: dict[str, int] = {}
     for report in reports:
         audit = report.get("imageAttachmentAudit")
@@ -192,7 +208,7 @@ def image_acceleration_candidates(reports: list[dict[str, Any]]) -> dict[str, in
     return dict(sorted(counts.items()))
 
 
-def max_image_dimension(reports: list[dict[str, Any]], key: str) -> int | None:
+def _max_image_dimension(reports: list[dict[str, Any]], key: str) -> int | None:
     values = []
     for report in reports:
         audit = report.get("imageAttachmentAudit")
@@ -204,7 +220,7 @@ def max_image_dimension(reports: list[dict[str, Any]], key: str) -> int | None:
     return max(values, default=None)
 
 
-def max_image_pixel_count(reports: list[dict[str, Any]]) -> int | None:
+def _max_image_pixel_count(reports: list[dict[str, Any]]) -> int | None:
     values = []
     for report in reports:
         audit = report.get("imageAttachmentAudit")
@@ -216,11 +232,15 @@ def max_image_pixel_count(reports: list[dict[str, Any]]) -> int | None:
     return max(values, default=None)
 
 
-def archive_attachment_audit_count(reports: list[dict[str, Any]]) -> int:
-    return sum(1 for report in reports if isinstance(report.get("archiveAttachmentAudit"), dict))
+def _archive_attachment_audit_count(reports: list[dict[str, Any]]) -> int:
+    return sum(
+        1
+        for report in reports
+        if isinstance(report.get("archiveAttachmentAudit"), dict)
+    )
 
 
-def sum_archive_audit_int(reports: list[dict[str, Any]], key: str) -> int:
+def _sum_archive_audit_int(reports: list[dict[str, Any]], key: str) -> int:
     return sum(
         value
         for report in reports
@@ -229,7 +249,7 @@ def sum_archive_audit_int(reports: list[dict[str, Any]], key: str) -> int:
     )
 
 
-def archive_audit_string_counts(
+def _archive_audit_string_counts(
     reports: list[dict[str, Any]],
     key: str,
 ) -> dict[str, int]:
@@ -244,7 +264,7 @@ def archive_audit_string_counts(
     return dict(sorted(counts.items()))
 
 
-def archive_acceleration_candidates(reports: list[dict[str, Any]]) -> dict[str, int]:
+def _archive_acceleration_candidates(reports: list[dict[str, Any]]) -> dict[str, int]:
     counts: dict[str, int] = {}
     for report in reports:
         audit = report.get("archiveAttachmentAudit")
@@ -256,7 +276,7 @@ def archive_acceleration_candidates(reports: list[dict[str, Any]]) -> dict[str, 
     return dict(sorted(counts.items()))
 
 
-def archive_extension_counts(reports: list[dict[str, Any]]) -> dict[str, int]:
+def _archive_extension_counts(reports: list[dict[str, Any]]) -> dict[str, int]:
     counts: dict[str, int] = {}
     for report in reports:
         audit = report.get("archiveAttachmentAudit")
@@ -271,7 +291,7 @@ def archive_extension_counts(reports: list[dict[str, Any]]) -> dict[str, int]:
     return dict(sorted(counts.items()))
 
 
-def max_archive_largest_member_size(reports: list[dict[str, Any]]) -> int | None:
+def _max_archive_largest_member_size(reports: list[dict[str, Any]]) -> int | None:
     values = []
     for report in reports:
         audit = report.get("archiveAttachmentAudit")

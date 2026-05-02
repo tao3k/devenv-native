@@ -2,7 +2,8 @@ use super::support::{
     BpmnAdvanceOutcome, QianjiBpmnHostBridge, QianjiBpmnWorkflowCheckpointBackend,
     QianjiBpmnWorkflowControlService, QianjiBpmnWorkflowInterruptRequest,
     QianjiBpmnWorkflowResumeRequest, QianjiBpmnWorkflowStartRequest, QianjiRuntimeEnv,
-    SchedulerAgentIdentity, TempDir, TestValkey, json, ok_of, write_wait_bundle,
+    SchedulerAgentIdentity, TempDir, TestValkey, json, ok_of, unique_instance_id,
+    write_wait_bundle,
 };
 
 #[cfg(feature = "duckdb")]
@@ -122,6 +123,7 @@ async fn workflow_control_service_runtime_valkey_interrupt_preserves_checkpoint_
         qianji_checkpoint_valkey_url: Some(valkey.url().to_string()),
         ..QianjiRuntimeEnv::default()
     };
+    let instance_id = unique_instance_id("wf_interrupt_runtime");
 
     let seeded_report = ok_of(
         QianjiBpmnWorkflowControlService::new()
@@ -131,7 +133,7 @@ async fn workflow_control_service_runtime_valkey_interrupt_preserves_checkpoint_
                     bpmn_path,
                     dmn_paths: Vec::new(),
                     process_id: "wait_flow".to_string(),
-                    instance_id: "wf_interrupt_runtime".to_string(),
+                    instance_id: instance_id.clone(),
                     initial_variables: Some(json!({ "risk": "high" })),
                     start_at_node_id: None,
                     checkpoint_backend: Some(QianjiBpmnWorkflowCheckpointBackend::RuntimeValkey),
@@ -157,7 +159,7 @@ async fn workflow_control_service_runtime_valkey_interrupt_preserves_checkpoint_
     let interrupt_report = ok_of(
         service
             .interrupt_workflow(&QianjiBpmnWorkflowInterruptRequest {
-                instance_id: "wf_interrupt_runtime".to_string(),
+                instance_id: instance_id.clone(),
                 checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend::RuntimeValkey,
             })
             .await,
@@ -165,10 +167,7 @@ async fn workflow_control_service_runtime_valkey_interrupt_preserves_checkpoint_
     );
 
     assert_eq!(interrupt_report.checkpoint_store.backend_name(), "valkey");
-    assert_eq!(
-        interrupt_report.instance.instance_id.as_ref(),
-        "wf_interrupt_runtime"
-    );
+    assert_eq!(interrupt_report.instance.instance_id.as_ref(), instance_id);
     assert!(matches!(
         interrupt_report.instance.lifecycle,
         qianji_bpmn_engine::InstanceLifecycle::Suspended
@@ -181,7 +180,7 @@ async fn workflow_control_service_runtime_valkey_interrupt_preserves_checkpoint_
     let checkpoint = ok_of(
         interrupt_report
             .checkpoint_store
-            .load("wf_interrupt_runtime")
+            .load(instance_id.as_str())
             .await,
         "interrupted runtime checkpoint should be preserved",
     )
@@ -191,7 +190,7 @@ async fn workflow_control_service_runtime_valkey_interrupt_preserves_checkpoint_
     let reacquired = ok_of(
         interrupt_report
             .checkpoint_store
-            .try_acquire_lease("wf_interrupt_runtime", "bpmn-scheduler:worker-b", 30_000)
+            .try_acquire_lease(instance_id.as_str(), "bpmn-scheduler:worker-b", 30_000)
             .await,
         "interrupted runtime checkpoint should release the lease for reuse",
     );

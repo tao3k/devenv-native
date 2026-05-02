@@ -10,65 +10,19 @@ from python_lang_project_harness import (
     run_python_project_harness,
 )
 
-_BASELINED_BLOCKING_FINDINGS = frozenset(
-    {
-        ("PY-MOD-R006", "src/xiuxian_wendao_analyzer/document_service.py"),
-        ("PY-MOD-R006", "src/xiuxian_wendao_analyzer/documents.py"),
-        ("PY-MOD-R006", "src/xiuxian_wendao_analyzer/pdf_ocr.py"),
-        ("PY-MOD-R006", "src/xiuxian_wendao_analyzer/runtime.py"),
-        ("PY-MOD-R006", "tests/unit/test_document_service.py"),
-        ("PY-MOD-R006", "tests/unit/test_documents.py"),
-        ("PY-MOD-R006", "tests/unit/test_transport_runtime.py"),
-        ("PY-MOD-R002", "examples/attachment_pdf_analyzer_workflow.py"),
-        ("PY-MOD-R002", "examples/custom_repo_analyzer_workflow.py"),
-        ("PY-MOD-R002", "examples/document_extraction_workflow.py"),
-        ("PY-MOD-R002", "examples/host_backed_repo_search_beta_smoke.py"),
-        ("PY-MOD-R002", "examples/repo_search_workflow.py"),
-        ("PY-MOD-R002", "examples/scripted_repo_search_workflow.py"),
-        ("PY-TEST-R003", "tests/unit/test_document_extract_perf_script.py"),
-        ("PY-TEST-R003", "tests/unit/test_document_service.py"),
-        ("PY-TEST-R003", "tests/unit/test_documents.py"),
-        ("PY-TEST-R003", "tests/unit/test_examples.py"),
-        ("PY-TEST-R003", "tests/unit/test_transport_runtime.py"),
-    }
-)
 
-_BASELINED_BENCHMARK_BLOCKING_FINDINGS = frozenset(
-    {
-        (
-            "PY-MOD-R006",
-            "tests/scripts/wendao_document_extract_benchmark/artifact_summary.py",
-        ),
-        (
-            "PY-MOD-R006",
-            "tests/scripts/wendao_document_extract_benchmark/attachment_classes.py",
-        ),
-        ("PY-MOD-R006", "tests/scripts/wendao_document_extract_benchmark/reporting.py"),
-    }
-)
-
-
-def test_python_project_harness_blocks_unbaselined_findings() -> None:
+def test_python_project_harness_blocks_all_default_findings() -> None:
     package_root = Path(__file__).resolve().parents[2]
     report = run_python_project_harness(package_root)
 
-    current = {
-        _finding_key(package_root, finding) for finding in report.blocking_findings()
-    }
-    unexpected = current - _BASELINED_BLOCKING_FINDINGS
-    retired = _BASELINED_BLOCKING_FINDINGS - current
-
-    assert not unexpected, _render_finding_set(
-        "unexpected Python project harness findings",
-        unexpected,
-    )
-    assert not retired, _render_finding_set(
-        "retired Python project harness baseline entries",
-        retired,
+    assert not report.findings, _render_finding_set(
+        package_root,
+        "Python project harness findings",
+        report.findings,
     )
 
 
-def test_benchmark_script_harness_blocks_unbaselined_findings() -> None:
+def test_benchmark_script_harness_blocks_all_default_findings() -> None:
     package_root = Path(__file__).resolve().parents[2]
     repo_root = package_root.parents[2]
     benchmark_root = repo_root / "tests/scripts"
@@ -79,19 +33,10 @@ def test_benchmark_script_harness_blocks_unbaselined_findings() -> None:
         ]
     )
 
-    current = {
-        _finding_key(repo_root, finding) for finding in report.blocking_findings()
-    }
-    unexpected = current - _BASELINED_BENCHMARK_BLOCKING_FINDINGS
-    retired = _BASELINED_BENCHMARK_BLOCKING_FINDINGS - current
-
-    assert not unexpected, _render_finding_set(
-        "unexpected benchmark script harness findings",
-        unexpected,
-    )
-    assert not retired, _render_finding_set(
-        "retired benchmark script harness baseline entries",
-        retired,
+    assert not report.findings, _render_finding_set(
+        repo_root,
+        "benchmark script harness findings",
+        report.findings,
     )
 
 
@@ -108,8 +53,12 @@ def _finding_key(
 
 
 def _render_finding_set(
+    root: Path,
     title: str,
-    findings: set[tuple[str, str]] | frozenset[tuple[str, str]],
+    findings: tuple[PythonHarnessFinding, ...],
 ) -> str:
-    rendered = "\n".join(f"- {rule_id}: {path}" for rule_id, path in sorted(findings))
+    rendered = "\n".join(
+        f"- {rule_id}: {path}"
+        for rule_id, path in sorted(_finding_key(root, finding) for finding in findings)
+    )
     return f"{title}:\n{rendered}"

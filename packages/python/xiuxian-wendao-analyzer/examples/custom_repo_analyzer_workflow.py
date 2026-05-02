@@ -1,6 +1,9 @@
+"""Run a host-backed repo-search workflow with a custom score-rank analyzer."""
+
 from __future__ import annotations
 
 import argparse
+import sys
 
 from wendao_core_lib import (
     WendaoTransportClient,
@@ -10,7 +13,7 @@ from wendao_core_lib import (
 from xiuxian_wendao_analyzer import run_repo_analysis, summarize_repo_analysis
 
 
-class CustomScoreAnalyzer:
+class _HostBackedCustomScoreAnalyzer:
     def analyze_rows(self, rows: list[dict[str, object]]) -> list[dict[str, object]]:
         ranked = sorted(rows, key=lambda row: float(row["score"]), reverse=True)
         return [
@@ -23,7 +26,7 @@ class CustomScoreAnalyzer:
         ]
 
 
-def parse_args() -> argparse.Namespace:
+def _parse_custom_repo_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Run a host-backed repo-search workflow with a custom Python analyzer.",
     )
@@ -36,8 +39,12 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def main() -> None:
-    args = parse_args()
+def _emit(label: str, value: object) -> None:
+    sys.stdout.write(f"{label}= {value}\n")
+
+
+def _run_custom_repo_workflow() -> None:
+    args = _parse_custom_repo_args()
     client = WendaoTransportClient(
         WendaoTransportConfig(
             endpoint=WendaoTransportEndpoint(host=args.host, port=args.port),
@@ -50,15 +57,15 @@ def main() -> None:
         args.query_text,
         limit=args.limit,
         path_prefixes=tuple(args.path_prefix),
-        analyzer=CustomScoreAnalyzer(),
+        analyzer=_HostBackedCustomScoreAnalyzer(),
     )
     summary = summarize_repo_analysis(run)
 
-    print("query_text=", run.request.query_text)
-    print("rows=", len(run.rows))
-    print("top_path=", summary.top_path)
-    print("top_rank=", summary.top_rank)
+    _emit("query_text", run.request.query_text)
+    _emit("rows", len(run.rows))
+    _emit("top_path", summary.top_path)
+    _emit("top_rank", summary.top_rank)
 
 
 if __name__ == "__main__":
-    main()
+    _run_custom_repo_workflow()

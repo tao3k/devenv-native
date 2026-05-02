@@ -1,4 +1,4 @@
-//! OpenAPI example payloads for Julia link-graph compatibility routes.
+//! `OpenAPI` example payloads for Julia link-graph compatibility routes.
 
 use serde_json::{Value, json};
 

@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import argparse
-import sys
 from typing import TYPE_CHECKING, Any
 
 import pyarrow.flight as flight
@@ -16,9 +14,7 @@ from .documents import (
 )
 from .pdf_ocr import (
     PDF_OCR_SHARD_RESULT_SCHEMA,
-    DoclingPdfOcrShardWorker,
     PdfOcrShardWorkerProtocol,
-    SkippingPdfOcrShardWorker,
     build_pdf_ocr_shard_result_table,
 )
 
@@ -196,48 +192,13 @@ class DocumentExtractFlightServer(flight.FlightServerBase):
         )
 
 
-def main() -> int:
-    """Run the Wendao document extraction Arrow Flight service."""
-
-    parser = argparse.ArgumentParser(
-        description="Wendao document extraction Arrow Flight service"
-    )
-    parser.add_argument("--host", default="0.0.0.0", help="Bind host")
-    parser.add_argument("--port", type=int, default=50051, help="Bind port")
-    parser.add_argument(
-        "--pdf-ocr-worker",
-        choices=("skip", "docling"),
-        default="skip",
-        help="OCR worker used by the internal /analysis/pdf-ocr-shards exchange",
-    )
-    parser.add_argument(
-        "--pdf-ocr-workers",
-        default="auto",
-        help=(
-            "Maximum Docling OCR shard workers for direct local requests. "
-            "Rust providers may override this per request with "
-            "x-wendao-pdf-ocr-workers."
-        ),
-    )
-    args = parser.parse_args()
-
-    location = f"grpc://{args.host}:{args.port}"
-    server = DocumentExtractFlightServer(
-        location,
-        ocr_worker=_build_pdf_ocr_worker(args.pdf_ocr_worker, args.pdf_ocr_workers),
-    )
-    sys.stdout.write(f"Wendao document extraction service listening on {location}\n")
-    server.serve()
-    return 0
-
-
 def _build_pdf_ocr_worker(
     worker_name: str,
     max_workers: int | str | None = "auto",
 ) -> PdfOcrShardWorkerProtocol:
-    if worker_name == "docling":
-        return DoclingPdfOcrShardWorker(max_workers=max_workers)
-    return SkippingPdfOcrShardWorker()
+    from .document_service_cli import build_pdf_ocr_worker
+
+    return build_pdf_ocr_worker(worker_name, max_workers)
 
 
 def _validate_route(route: str) -> None:
@@ -311,9 +272,4 @@ __all__ = [
     "DocumentExtractMiddleware",
     "DocumentExtractMiddlewareFactory",
     "build_document_extract_table",
-    "main",
 ]
-
-
-if __name__ == "__main__":
-    sys.exit(main())
