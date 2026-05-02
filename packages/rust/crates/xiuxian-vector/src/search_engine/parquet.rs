@@ -1,3 +1,5 @@
+//! Parquet write helpers for search-plane and Lance record batches.
+
 use std::fs::File;
 use std::path::Path;
 

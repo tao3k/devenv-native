@@ -1,4 +1,4 @@
-use super::super::super::{
+use crate::link_graph::index::{
     DEFAULT_MIN_SECTION_WORDS, DEFAULT_PER_DOC_SECTION_CAP, LinkGraphIndex, LinkGraphScope,
     LinkGraphSearchFilters, LinkGraphSearchOptions,
 };

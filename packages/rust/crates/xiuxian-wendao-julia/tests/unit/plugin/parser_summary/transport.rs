@@ -7,6 +7,7 @@ use super::{
     clear_julia_parser_summary_transport_cache_for_tests,
     julia_parser_summary_transport_cache_len_for_tests,
     julia_parser_summary_transport_slot_id_for_tests,
+    parser_summary_transport_error_requires_client_refresh,
 };
 
 #[test]
@@ -270,4 +271,24 @@ fn build_parser_summary_client_separates_cached_clients_by_in_flight_budget() {
 
     assert_ne!(slot_three, slot_five);
     assert_eq!(julia_parser_summary_transport_cache_len_for_tests(), 2);
+}
+
+#[test]
+fn parser_summary_transport_refreshes_dispatch_gone_errors() {
+    let dispatch_gone_error =
+        xiuxian_wendao_core::repo_intelligence::RepoIntelligenceError::AnalysisFailed {
+        message: "Julia parser-summary Flight request failed: Tonic error: code: 'Unknown error', message: \"transport error\", source: tonic::transport::Error(Transport, hyper::Error(User(DispatchGone), \"runtime dropped the dispatch task\"))".to_string(),
+    };
+    let transport_closed_error =
+        xiuxian_wendao_core::repo_intelligence::RepoIntelligenceError::AnalysisFailed {
+            message: "Julia parser-summary Flight request failed: Tonic error: code: 'Unknown error', message: \"transport error\", source: tonic::transport::Error(Transport, Closed)"
+                .to_string(),
+        };
+
+    assert!(parser_summary_transport_error_requires_client_refresh(
+        &dispatch_gone_error
+    ));
+    assert!(parser_summary_transport_error_requires_client_refresh(
+        &transport_closed_error
+    ));
 }

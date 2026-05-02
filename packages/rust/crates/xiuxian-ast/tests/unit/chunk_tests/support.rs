@@ -1,4 +1,4 @@
-use super::super::*;
+use xiuxian_ast::{CodeChunk, Lang, chunk_code};
 
 pub(super) fn chunk_or_panic(
     content: &str,

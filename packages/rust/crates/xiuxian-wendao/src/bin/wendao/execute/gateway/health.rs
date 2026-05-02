@@ -10,7 +10,9 @@ use axum::{
 };
 use serde_json::json;
 
-use crate::execute::gateway::shared::{GATEWAY_PIDFILE_ENV, GATEWAY_PROCESS_ID_HEADER};
+use crate::bin_support::wendao::execute::gateway::shared::{
+    GATEWAY_PIDFILE_ENV, GATEWAY_PROCESS_ID_HEADER,
+};
 
 /// Health check endpoint.
 pub(crate) async fn health() -> Response {

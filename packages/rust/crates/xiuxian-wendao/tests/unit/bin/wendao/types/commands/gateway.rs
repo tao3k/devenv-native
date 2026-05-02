@@ -1,5 +1,5 @@
-use super::super::Command;
-use super::*;
+use super::{GatewayArgs, GatewayCommand, GatewayStartArgs, gateway};
+use crate::bin_support::wendao::types::Command;
 
 #[test]
 fn test_gateway_start_args_default() {

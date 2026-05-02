@@ -1,12 +1,7 @@
 //! Tests for xiuxian-macros.
 
-use xiuxian_macros::{
-    assert_timing, bench_case, env_non_empty, patterns, project_config_paths, py_from,
-    string_first_non_empty, temp_dir, topics,
-};
-
 mod test_patterns {
-    use super::*;
+    use xiuxian_macros::patterns;
 
     patterns![
         (TEST_PATTERN_1, "pattern one"),
@@ -21,7 +16,7 @@ mod test_patterns {
 }
 
 mod test_topics {
-    use super::*;
+    use xiuxian_macros::topics;
 
     topics![(TOPIC_ONE, "topic/one"), (TOPIC_TWO, "topic/two"),];
 
@@ -33,7 +28,7 @@ mod test_topics {
 }
 
 mod test_py_from {
-    use super::*;
+    use xiuxian_macros::py_from;
 
     struct Inner {
         value: i32,
@@ -54,8 +49,8 @@ mod test_py_from {
 }
 
 mod test_temp_dir {
-    use super::*;
     use std::fs;
+    use xiuxian_macros::temp_dir;
 
     #[test]
     fn test_temp_dir_creates_directory() {
@@ -84,7 +79,7 @@ mod test_temp_dir {
 }
 
 mod test_assert_timing {
-    use super::*;
+    use xiuxian_macros::assert_timing;
 
     #[test]
     fn test_assert_timing_passes_fast_operation() {
@@ -105,7 +100,7 @@ mod test_assert_timing {
 }
 
 mod test_bench_case {
-    use super::*;
+    use xiuxian_macros::bench_case;
 
     #[test]
     fn test_bench_case_measures_time() {
@@ -123,9 +118,9 @@ mod test_bench_case {
 }
 
 mod test_project_config_paths {
-    use super::*;
     use std::path::PathBuf;
     use std::sync::{Mutex, OnceLock};
+    use xiuxian_macros::project_config_paths;
 
     struct EnvRestore {
         key: &'static str,
@@ -177,8 +172,8 @@ mod test_project_config_paths {
 }
 
 mod test_llm_env_macros {
-    use super::*;
     use std::sync::{Mutex, OnceLock};
+    use xiuxian_macros::{env_non_empty, string_first_non_empty};
 
     struct EnvRestore {
         key: &'static str,

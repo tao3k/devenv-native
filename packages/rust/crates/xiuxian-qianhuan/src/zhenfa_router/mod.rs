@@ -1,3 +1,5 @@
+//! Zhenfa router adapters for Qianhuan rendering and reload tools.
+
 mod http;
 mod models;
 mod native;

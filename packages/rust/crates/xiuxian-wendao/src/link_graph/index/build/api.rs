@@ -1,10 +1,12 @@
-use super::super::{LinkGraphCacheBuildMeta, LinkGraphIndex};
+//! Coordinates link-graph index builds across cache, Valkey, graph memory, and runtime config.
+
 use super::cache::{
     CacheLookupOutcome, LINK_GRAPH_CACHE_SCHEMA_VERSION, cache_schema_fingerprint,
     default_local_duckdb_cache_path, load_cached_index_from_duckdb, load_cached_index_from_valkey,
     save_cached_index_to_duckdb, save_cached_index_to_valkey,
 };
 use super::graphmem::{sync_graphmem_state_best_effort, sync_graphmem_state_to_valkey};
+use crate::link_graph::index::{LinkGraphCacheBuildMeta, LinkGraphIndex};
 use crate::link_graph::runtime_config::{
     LinkGraphCacheRuntimeConfig, resolve_link_graph_cache_runtime,
 };

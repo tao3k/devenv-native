@@ -1,3 +1,5 @@
+//! Org note aggregate parsing.
+
 use crate::note::NoteCore;
 
 use super::types::OrgNote;

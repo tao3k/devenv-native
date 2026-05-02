@@ -1,5 +1,6 @@
-use super::super::manifest::{parse_manifest, parsed_manifest_requires_link_graph};
-use super::inject_llm_model_fallback_if_missing;
+use super::{
+    inject_llm_model_fallback_if_missing, parse_manifest, parsed_manifest_requires_link_graph,
+};
 use serde_json::json;
 
 #[test]

@@ -23,7 +23,10 @@ use xiuxian_wendao_attachments::pdf::render::{
     build_shard_manifest,
 };
 
-use super::*;
+use super::{
+    EngineRecordBatch, FlightDataEncoderBuilder, FlightDescriptor, PdfOcrShardFlightClient,
+    PdfOcrShardInput, PdfOcrShardResult, WENDAO_PDF_OCR_WORKERS_HEADER,
+};
 
 type BoxFlightStream<T> = Pin<Box<dyn Stream<Item = Result<T, Status>> + Send + 'static>>;
 

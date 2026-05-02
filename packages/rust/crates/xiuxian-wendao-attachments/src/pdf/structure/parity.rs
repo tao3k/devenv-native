@@ -1,9 +1,12 @@
+//! Parity checks between baseline and candidate document structure rows.
+
 use std::collections::{BTreeMap, BTreeSet};
 
 use super::DocumentStructureBlock;
 
 const PROTECTED_BLOCK_TYPES: &[&str] = &["table", "formula", "image", "code"];
 
+/// Protected block counts observed in baseline and candidate structures.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DocumentStructureParityCount {
@@ -11,6 +14,7 @@ pub struct DocumentStructureParityCount {
     pub candidate: usize,
 }
 
+/// Summary of candidate document structure coverage against a baseline.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DocumentStructureParitySummary {

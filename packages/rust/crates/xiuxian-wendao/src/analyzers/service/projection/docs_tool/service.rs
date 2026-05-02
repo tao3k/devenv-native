@@ -1,3 +1,5 @@
+//! Coordinates docs-tool projection requests across registry, page, and retrieval owners.
+
 use std::path::{Path, PathBuf};
 
 #[cfg(feature = "zhenfa-router")]

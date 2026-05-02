@@ -1,3 +1,5 @@
+//! Agent memory branch for lifecycle, feedback, and storage operations.
+
 mod decay;
 mod recall_credit;
 

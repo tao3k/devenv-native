@@ -2,11 +2,11 @@ use std::collections::HashMap;
 
 use crate::config::{TelegramAclPrincipalSettings, TelegramGroupSettings, TelegramTopicSettings};
 
-use super::super::group_policy::{
+use super::normalization::normalize_optional_allowed_user_entries_with_context;
+use crate::channels::telegram::channel::group_policy::{
     TelegramGroupOverrideConfig, TelegramTopicPolicyConfig, parse_group_policy_mode,
 };
-use super::super::identity::normalize_group_identity;
-use super::normalization::normalize_optional_allowed_user_entries_with_context;
+use crate::channels::telegram::channel::identity::normalize_group_identity;
 
 pub(super) fn parse_group_overrides(
     groups: HashMap<String, TelegramGroupSettings>,

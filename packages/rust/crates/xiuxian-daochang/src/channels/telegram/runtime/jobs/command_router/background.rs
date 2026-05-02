@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::channels::traits::{Channel, ChannelMessage};
 use crate::jobs::JobManager;
 
-use super::super::command_handlers::background_jobs::{
+use crate::channels::telegram::runtime::jobs::command_handlers::background_jobs::{
     try_handle_background_prompt_command, try_handle_job_status_command,
     try_handle_jobs_summary_command,
 };

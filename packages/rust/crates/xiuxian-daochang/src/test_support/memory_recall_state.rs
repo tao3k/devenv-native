@@ -5,15 +5,20 @@ use crate::agent::memory_recall_state as internal;
 
 pub use crate::{SessionMemoryRecallDecision, SessionMemoryRecallSnapshot};
 
+/// Canonical embedding-source marker for direct embedding recall.
 pub const EMBEDDING_SOURCE_EMBEDDING: &str = internal::EMBEDDING_SOURCE_EMBEDDING;
+/// Canonical embedding-source marker for repaired embedding recall.
 pub const EMBEDDING_SOURCE_EMBEDDING_REPAIRED: &str = internal::EMBEDDING_SOURCE_EMBEDDING_REPAIRED;
+/// Canonical embedding-source marker for unknown recall sources.
 pub const EMBEDDING_SOURCE_UNKNOWN: &str = internal::EMBEDDING_SOURCE_UNKNOWN;
 
 #[must_use]
+/// Builds the storage key session id for recall snapshots.
 pub fn snapshot_session_id(session_id: &str) -> String {
     internal::test_snapshot_session_id(session_id)
 }
 
+/// Records a typed memory-recall snapshot for a session.
 pub async fn record_memory_recall_snapshot(
     agent: &Agent,
     session_id: &str,

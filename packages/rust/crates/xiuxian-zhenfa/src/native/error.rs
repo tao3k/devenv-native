@@ -1,3 +1,5 @@
+//! Native tool dispatch error taxonomy.
+
 use thiserror::Error;
 
 /// Native tool dispatch errors in the zhenfa microkernel.

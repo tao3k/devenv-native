@@ -1,3 +1,5 @@
+//! Code observation DTOs parsed from Markdown property drawers.
+
 use super::glob::{find_closing_quote, path_matches_scope};
 use serde::{Deserialize, Serialize};
 

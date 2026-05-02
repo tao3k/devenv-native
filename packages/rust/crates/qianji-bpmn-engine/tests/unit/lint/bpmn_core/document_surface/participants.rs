@@ -1,4 +1,4 @@
-use super::*;
+use crate::lint::{LintDomain, bpmn_fixture_source, lint_bpmn_source};
 
 #[test]
 fn bpmn_linter_reports_partner_participant_metadata_surface_with_llm_guidance() {

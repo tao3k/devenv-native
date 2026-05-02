@@ -1,4 +1,4 @@
-use super::super::{
+use crate::runtime::{
     StubHost, dmn_fixture_business_knowledge_models, dmn_fixture_decision_services,
     dmn_fixture_definitions, dmn_fixture_input_data,
 };

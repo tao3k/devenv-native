@@ -1,8 +1,9 @@
-use super::inference::{
-    parse_embedding_backend_mode, resolve_runtime_embedding_backend_mode,
+//! Runtime agent factory memory branch for store and embedding setup.
+
+use super::{
+    MemoryRuntimeOptions, parse_embedding_backend_mode, resolve_runtime_embedding_backend_mode,
     resolve_runtime_embedding_base_url,
 };
-use super::types::MemoryRuntimeOptions;
 use crate::{MemoryConfig, RuntimeSettings};
 
 mod embedding;

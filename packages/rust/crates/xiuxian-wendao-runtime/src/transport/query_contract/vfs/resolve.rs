@@ -1,3 +1,5 @@
+//! VFS resolve route contract and metadata validation.
+
 /// Stable route for the VFS navigation-resolution contract.
 pub const VFS_RESOLVE_ROUTE: &str = "/vfs/resolve";
 

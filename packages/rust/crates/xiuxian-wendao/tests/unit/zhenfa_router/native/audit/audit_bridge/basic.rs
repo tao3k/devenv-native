@@ -1,4 +1,9 @@
-use super::*;
+use std::collections::HashMap;
+
+use super::{
+    BatchFix, ByteRange, FixResult, FuzzySuggestionData, IssueLocation, SemanticIssue,
+    compute_hash, generate_surgical_fixes, observe_line_range, test_file_content,
+};
 
 #[test]
 fn test_batch_fix_from_fuzzy_suggestion() {
@@ -210,7 +215,7 @@ fn test_generate_surgical_fixes() {
     let doc_path = "docs/api.md".to_string();
     let file_content = "line 1\n:OBSERVE: lang:rust \"fn process_data\"\nline 3".to_string();
 
-    let mut file_contents = std::collections::HashMap::new();
+    let mut file_contents = HashMap::new();
     file_contents.insert(doc_path.clone(), file_content.clone());
 
     let issues = vec![SemanticIssue {

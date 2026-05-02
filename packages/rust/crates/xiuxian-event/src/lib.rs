@@ -15,7 +15,8 @@
 //! Each component receives events asynchronously
 //! ```
 
-xiuxian_testing::crate_test_policy_source_harness!("../tests/unit/lib_policy.rs");
+#[cfg(test)]
+rust_lang_project_harness::rust_project_harness_cargo_test_gate!();
 
 mod bus;
 mod event;

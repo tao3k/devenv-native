@@ -1,4 +1,10 @@
-use super::*;
+use std::collections::HashMap;
+
+use super::{
+    IssueLocation, MISSING_PACKAGE_DOCS_INDEX_ISSUE_TYPE,
+    MISSING_PACKAGE_DOCS_SECTION_LANDING_ISSUE_TYPE, MISSING_PACKAGE_DOCS_TREE_ISSUE_TYPE,
+    SemanticIssue, generate_surgical_fixes,
+};
 
 #[test]
 fn test_generate_surgical_fixes_supports_missing_package_docs_index() {
@@ -17,7 +23,7 @@ fn test_generate_surgical_fixes_supports_missing_package_docs_index() {
         fuzzy_suggestion: None,
     }];
 
-    let fixes = generate_surgical_fixes(&issues, &std::collections::HashMap::new());
+    let fixes = generate_surgical_fixes(&issues, &HashMap::new());
 
     assert_eq!(fixes.len(), 1);
     assert!(fixes[0].is_create_file());
@@ -41,7 +47,7 @@ fn test_generate_surgical_fixes_supports_missing_package_docs_tree() {
         fuzzy_suggestion: None,
     }];
 
-    let fixes = generate_surgical_fixes(&issues, &std::collections::HashMap::new());
+    let fixes = generate_surgical_fixes(&issues, &HashMap::new());
 
     assert_eq!(fixes.len(), 1);
     assert!(fixes[0].is_create_file());
@@ -65,7 +71,7 @@ fn test_generate_surgical_fixes_supports_missing_package_docs_section_landing() 
         fuzzy_suggestion: None,
     }];
 
-    let fixes = generate_surgical_fixes(&issues, &std::collections::HashMap::new());
+    let fixes = generate_surgical_fixes(&issues, &HashMap::new());
 
     assert_eq!(fixes.len(), 1);
     assert!(fixes[0].is_create_file());

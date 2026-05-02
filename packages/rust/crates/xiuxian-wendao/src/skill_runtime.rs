@@ -6,19 +6,18 @@
 /// Asset request handle and callback types.
 #[path = "skill_runtime/asset_request/mod.rs"]
 pub mod asset_request;
-/// Error types for skill runtime operations.
-#[path = "skill_runtime/error.rs"]
-pub mod error;
-/// Inventory discovery and semantic mount preloading for skill documents.
-#[path = "skill_runtime/index/mod.rs"]
-pub mod inventory;
-/// Compatibility re-export for the older `index` namespace.
-pub mod index {
-    pub use super::inventory::*;
-}
 /// Authority auditing for skill runtime manifests.
 #[path = "skill_runtime/authority/mod.rs"]
 pub mod authority;
+/// Error types for skill runtime operations.
+#[path = "skill_runtime/error.rs"]
+pub mod error;
+/// Compatibility re-export for the older `index` namespace.
+#[path = "skill_runtime/legacy_index.rs"]
+pub mod index;
+/// Inventory discovery and semantic mount preloading for skill documents.
+#[path = "skill_runtime/index/mod.rs"]
+pub mod inventory;
 /// Skill runtime manifest loading and scanning.
 #[path = "skill_runtime/manifest/mod.rs"]
 pub mod manifest;

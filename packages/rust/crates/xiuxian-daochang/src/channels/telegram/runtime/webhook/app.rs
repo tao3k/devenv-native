@@ -1,3 +1,5 @@
+//! Axum application assembly for Telegram webhook ingress.
+
 use std::sync::Arc;
 
 use axum::Router;

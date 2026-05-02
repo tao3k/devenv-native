@@ -1,3 +1,5 @@
+//! Runtime profile helpers for Julia memory compute backends.
+
 use xiuxian_wendao_runtime::config::{
     DEFAULT_MEMORY_JULIA_COMPUTE_CALIBRATION_ROUTE,
     DEFAULT_MEMORY_JULIA_COMPUTE_EPISODIC_RECALL_ROUTE,

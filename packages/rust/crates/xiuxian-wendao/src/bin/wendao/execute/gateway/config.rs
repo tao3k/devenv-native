@@ -3,6 +3,7 @@
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 
+use crate::gateway::studio::studio_effective_wendao_toml_path;
 use log::info;
 use serde::Deserialize;
 #[cfg(test)]
@@ -11,10 +12,9 @@ use xiuxian_config_core::{
     first_non_empty_lookup, first_non_empty_named_lookup, load_toml_value_with_imports,
     resolve_project_root,
 };
-use xiuxian_wendao::gateway::studio::studio_effective_wendao_toml_path;
 use xiuxian_zhenfa::WebhookConfig;
 
-use crate::execute::gateway::shared::{DEFAULT_BIND_ADDR, DEFAULT_PORT};
+use crate::bin_support::wendao::execute::gateway::shared::{DEFAULT_BIND_ADDR, DEFAULT_PORT};
 
 /// Resolve the effective config file from CLI override, local project file, or
 /// `PRJ_ROOT`.

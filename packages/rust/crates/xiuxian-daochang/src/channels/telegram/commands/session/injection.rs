@@ -1,3 +1,5 @@
+//! Telegram session prompt-injection command parser.
+
 use super::{SessionInjectionAction, SessionInjectionCommand, SessionOutputFormat};
 use crate::channels::managed_runtime::parsing::{
     normalize_command_input, slice_original_command_suffix,

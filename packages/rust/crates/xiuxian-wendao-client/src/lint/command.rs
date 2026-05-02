@@ -1,3 +1,5 @@
+//! Command-line argument model for markdown lint operations.
+
 use clap::{Args, Subcommand};
 use std::path::PathBuf;
 

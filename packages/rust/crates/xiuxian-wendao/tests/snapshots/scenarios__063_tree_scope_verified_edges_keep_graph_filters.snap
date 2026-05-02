@@ -1,5 +1,5 @@
 ---
-source: packages/rust/crates/xiuxian-testing/src/scenario.rs
+source: packages/rust/crates/xiuxian-wendao/tests/support/scenario.rs
 description: "Scenario 063_tree_scope_verified_edges_keep_graph_filters [tree_scope_filters]: verified edges keep graph filters"
 expression: result
 info:

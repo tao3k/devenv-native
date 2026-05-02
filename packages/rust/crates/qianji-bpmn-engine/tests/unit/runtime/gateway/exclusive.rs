@@ -1,4 +1,4 @@
-use super::super::{StubHost, exclusive_branch_process, exclusive_numeric_branch_process};
+use crate::runtime::{StubHost, exclusive_branch_process, exclusive_numeric_branch_process};
 use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnEngineError, BpmnInstanceInit, BpmnPackage, advance_instance,

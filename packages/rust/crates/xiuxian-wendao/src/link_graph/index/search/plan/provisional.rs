@@ -1,5 +1,5 @@
-use super::super::super::{LinkGraphIndex, normalize_with_case, tokenize};
 use crate::link_graph::agentic::LinkGraphSuggestedLink;
+use crate::link_graph::index::{LinkGraphIndex, normalize_with_case, tokenize};
 use std::collections::HashMap;
 
 const AGENTIC_PROVISIONAL_MIN_BOOST: f64 = 0.08;

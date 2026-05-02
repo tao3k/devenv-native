@@ -1,3 +1,5 @@
+//! Persisted Qianji BPMN workflow data record types.
+
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 

@@ -1,4 +1,9 @@
-use super::*;
+use super::{
+    Arc, DataFusionLocalRelationEngine, DataType, DuckDbLocalRelationEngine,
+    DuckDbRegistrationStrategy, Field, Int64Array, LocalRelationEngine, LocalRelationEngineKind,
+    LocalRelationRegistrationHint, RecordBatch, Schema, StringArray, TestResult,
+    in_memory_search_duckdb_runtime,
+};
 
 #[tokio::test]
 async fn datafusion_local_relation_engine_registers_and_queries_batches() -> TestResult {

@@ -1,5 +1,4 @@
-use super::super::core::read_lock;
-use super::super::{GraphError, KnowledgeGraph};
+use crate::graph::{GraphError, KnowledgeGraph, read_lock};
 use serde_json::{Value, json, to_string};
 
 impl KnowledgeGraph {

@@ -9,7 +9,7 @@ use crate::channels::managed_commands::{
     SLASH_SCOPE_SESSION_STATUS as TELEGRAM_SLASH_SCOPE_SESSION_STATUS,
 };
 
-use super::super::{TelegramSlashCommandPolicy, TelegramSlashCommandRule};
+use crate::channels::telegram::channel::{TelegramSlashCommandPolicy, TelegramSlashCommandRule};
 
 pub(in crate::channels::telegram::channel) fn build_slash_command_policy(
     admin_users: Vec<String>,

@@ -3,7 +3,7 @@ use crate::ir_node_api::BpmnNodeKind;
 use crate::parser::import::RawPackageDocument;
 use std::collections::HashSet;
 
-pub(super) fn detect_recursive_call_activity(raw: &RawPackageDocument) -> Result<()> {
+pub(in crate::parser) fn detect_recursive_call_activity(raw: &RawPackageDocument) -> Result<()> {
     let call_graph = raw
         .processes
         .iter()

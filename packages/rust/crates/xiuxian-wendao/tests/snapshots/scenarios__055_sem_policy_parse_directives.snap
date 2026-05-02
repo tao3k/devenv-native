@@ -1,5 +1,5 @@
 ---
-source: packages/rust/crates/xiuxian-testing/src/scenario.rs
+source: packages/rust/crates/xiuxian-wendao/tests/support/scenario.rs
 description: "Scenario 055_sem_policy_parse_directives [semantic_policy]: parse directives"
 expression: result
 info:

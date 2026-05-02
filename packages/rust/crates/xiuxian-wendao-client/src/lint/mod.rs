@@ -1,3 +1,5 @@
+//! Markdown lint command surface, diagnostics, and contract assets.
+
 mod command;
 mod contract;
 mod diagnostic;

@@ -1,5 +1,5 @@
-use crate::cli::QianjiServerServeCommand;
-use crate::run::build_qianji_server_router;
+use crate::qianji_server_cli::cli::QianjiServerServeCommand;
+use crate::qianji_server_cli::run::build_qianji_server_router;
 use std::fs;
 use std::net::SocketAddr;
 use std::path::Path;

@@ -2,8 +2,12 @@ use std::collections::HashMap;
 
 use anyhow::Result;
 
+use crate::channels::discord::channel::{
+    DiscordCommandAdminRule, build_discord_command_admin_rule,
+};
+use crate::config::DiscordAclControlSettings;
+
 use super::principals::collect_principals;
-use super::{DiscordAclControlSettings, DiscordCommandAdminRule, build_discord_command_admin_rule};
 
 pub(super) fn control_rules(
     control: &DiscordAclControlSettings,

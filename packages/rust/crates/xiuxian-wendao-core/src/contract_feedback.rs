@@ -1,11 +1,115 @@
-use std::collections::HashMap;
+//! Stable contract-feedback knowledge DTOs and Wendao adaptation helpers.
 
+use std::collections::{BTreeMap, HashMap};
+use std::path::PathBuf;
+
+use serde::{Deserialize, Serialize};
 use serde_json::json;
-use xiuxian_testing::{
-    ContractKnowledgeBatch, ContractKnowledgeDecision, ContractKnowledgeEnvelope,
-};
 
 use crate::{KnowledgeCategory, KnowledgeEntry};
+
+/// Severity exported by a contract-feedback producer.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub enum ContractFindingSeverity {
+    /// Informational finding.
+    Info,
+    /// Warning-level finding.
+    Warning,
+    /// Error-level finding.
+    Error,
+    /// Critical finding.
+    Critical,
+}
+
+/// Confidence attached to a contract-feedback finding.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ContractFindingConfidence {
+    /// High-confidence finding.
+    High,
+    /// Medium-confidence finding.
+    Medium,
+    /// Low-confidence finding.
+    Low,
+}
+
+/// Decision label exported alongside one contract-feedback finding.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ContractKnowledgeDecision {
+    /// The finding is informational and should not block the flow.
+    Pass,
+    /// The finding should be surfaced as advisory guidance.
+    Warn,
+    /// The finding should be treated as a failing contract signal.
+    Fail,
+}
+
+impl ContractKnowledgeDecision {
+    /// Return the canonical serialized label.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Pass => "pass",
+            Self::Warn => "warn",
+            Self::Fail => "fail",
+        }
+    }
+}
+
+/// One ingestion-ready knowledge envelope derived from a contract finding.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ContractKnowledgeEnvelope {
+    /// Stable export identifier for downstream storage.
+    pub entry_id: String,
+    /// Contract suite identifier that produced the finding.
+    pub suite_id: String,
+    /// Generation timestamp inherited from the parent report.
+    pub generated_at: String,
+    /// Stable rule identifier.
+    pub rule_id: String,
+    /// Rule-pack identifier.
+    pub pack_id: String,
+    /// Logical domain for grouping and filtering.
+    pub domain: String,
+    /// Exported severity.
+    pub severity: ContractFindingSeverity,
+    /// Exported decision.
+    pub decision: ContractKnowledgeDecision,
+    /// Confidence attached to the original finding.
+    pub confidence: ContractFindingConfidence,
+    /// Human-readable title suitable for `KnowledgeEntry.title`.
+    pub title: String,
+    /// Human-readable body suitable for `KnowledgeEntry.content`.
+    pub content: String,
+    /// Short summary from the original finding.
+    pub summary: String,
+    /// First evidence excerpt for fast inspection.
+    pub evidence_excerpt: Option<String>,
+    /// Why the finding matters.
+    pub why_it_matters: String,
+    /// Actionable remediation guidance.
+    pub remediation: String,
+    /// First positive example, if any.
+    pub good_example: Option<String>,
+    /// First negative example, if any.
+    pub bad_example: Option<String>,
+    /// First source path discovered from the finding evidence.
+    pub source_path: Option<PathBuf>,
+    /// Search-friendly tags for downstream indexing.
+    pub tags: Vec<String>,
+    /// Structured metadata for later adaptation into Wendao-specific types.
+    pub metadata: BTreeMap<String, serde_json::Value>,
+}
+
+/// Batch export for one contract-feedback report.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ContractKnowledgeBatch {
+    /// Contract suite identifier.
+    pub suite_id: String,
+    /// Timestamp inherited from the parent report.
+    pub generated_at: String,
+    /// Exported knowledge envelopes.
+    pub entries: Vec<ContractKnowledgeEnvelope>,
+}
 
 /// Adapter that turns contract findings into Wendao-native knowledge entries.
 #[derive(Debug, Default, Clone, Copy)]

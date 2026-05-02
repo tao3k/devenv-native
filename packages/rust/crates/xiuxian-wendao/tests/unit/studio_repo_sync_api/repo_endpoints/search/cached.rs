@@ -1,4 +1,11 @@
-use super::super::super::*;
+use crate::gateway::studio::studio_repo_sync_api_tests::support::{
+    create_local_git_repo, gateway_state_for_project_with_options,
+    publish_repo_entity_search_plane, request_json, write_default_repo_config,
+    write_default_repo_config_without_priming,
+};
+use crate::gateway::studio::studio_repo_sync_api_tests::{
+    StatusCode, TestResult, fs, studio_router,
+};
 
 #[tokio::test]
 async fn repo_cached_search_endpoints_return_pending_without_ready_analysis_cache() -> TestResult {

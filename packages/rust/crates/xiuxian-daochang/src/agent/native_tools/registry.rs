@@ -1,3 +1,5 @@
+//! Native tool registry construction and dispatch lookup.
+
 use anyhow::Result;
 use async_trait::async_trait;
 use serde_json::Value;

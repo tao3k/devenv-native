@@ -1,3 +1,5 @@
+//! Public bpmn conformance api contracts for BPMN/DMN engine integration.
+
 use std::fmt;
 
 /// Conformance status used by the `BPMN` coverage registry.

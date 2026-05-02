@@ -1,5 +1,5 @@
 ---
-source: packages/rust/crates/xiuxian-testing/src/scenario.rs
+source: packages/rust/crates/xiuxian-wendao/tests/support/scenario.rs
 description: "Scenario 053_seed_seed_accuracy_cluster_grounded [seed_and_priors]: seed accuracy cluster grounded"
 expression: result
 info:

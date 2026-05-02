@@ -1,19 +1,19 @@
+//! bpmn snapshot state branch wiring for focused BPMN/DMN owner leaves.
+
 mod artifact;
 mod collaboration;
 mod data;
+mod decode;
 mod definitions;
 mod di;
 mod dispatch;
 mod finish;
-mod helpers;
 mod model;
 mod process;
 mod text;
 
-pub(super) use super::xml::{
-    attribute_value, boolean_attribute_value, bpmn_model_namespace, local_name,
-};
-use helpers::{
+use super::{attribute_value, boolean_attribute_value, bpmn_model_namespace, local_name};
+use decode::{
     bounds_from_event, data_association_expression_from_event, data_input_output_from_event,
     data_state_from_event, font_from_event, io_binding_from_event, is_artifact_container,
     is_choreography_activity_tag, is_collaboration_container, is_conversation_node_tag,

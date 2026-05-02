@@ -1,7 +1,12 @@
 use crate::search::service::tests::status::helpers::ready_repo_status;
 use crate::search::service::tests::status::helpers::sample_repo_documents;
 use crate::search::service::tests::status::repo_content::helpers::test_service;
-use crate::search::service::tests::support::*;
+use crate::search::service::tests::support::{
+    corpus_status, last_query_telemetry, publish_repo_bundle,
+};
+use crate::search::{
+    SearchCorpusKind, SearchPlanePhase, SearchQueryTelemetry, SearchQueryTelemetrySource,
+};
 
 #[tokio::test]
 async fn status_snapshot_reuses_last_synchronized_repo_corpus_state() {

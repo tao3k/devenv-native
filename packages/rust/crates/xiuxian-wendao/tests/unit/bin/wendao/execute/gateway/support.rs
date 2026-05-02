@@ -1,13 +1,13 @@
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
+use crate::analyzers::PluginRegistry;
 use tempfile::Builder;
 use tokio::sync::mpsc;
-use xiuxian_wendao::analyzers::PluginRegistry;
 use xiuxian_zhenfa::ZhenfaSignal;
 
-use crate::execute::gateway::registry::build_plugin_registry;
-use crate::execute::gateway::shared::AppState;
+use crate::bin_support::wendao::execute::gateway::registry::build_plugin_registry;
+use crate::bin_support::wendao::execute::gateway::shared::AppState;
 
 pub(crate) fn write_temp_gateway_config(contents: &str) -> PathBuf {
     let (mut file, path) = Builder::new()

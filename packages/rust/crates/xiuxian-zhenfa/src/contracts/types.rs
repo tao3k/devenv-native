@@ -1,3 +1,5 @@
+//! JSON-RPC envelope types shared by clients and gateway handlers.
+
 use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};

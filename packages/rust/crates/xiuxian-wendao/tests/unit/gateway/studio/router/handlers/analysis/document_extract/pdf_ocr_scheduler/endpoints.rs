@@ -1,4 +1,4 @@
-use super::*;
+use super::{DOCUMENT_EXTRACT_PDF_OCR_ENDPOINTS_ENV, pdf_ocr_endpoint_urls_with_lookup};
 
 #[test]
 fn pdf_ocr_endpoint_urls_default_to_document_extract_endpoint() {

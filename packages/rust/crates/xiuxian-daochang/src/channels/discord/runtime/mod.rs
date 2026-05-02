@@ -9,6 +9,7 @@ mod interrupt;
 mod managed;
 mod run;
 mod telemetry;
+mod test_api;
 
 pub use config::DiscordRuntimeConfig;
 pub use gateway::{run_discord_gateway, run_discord_gateway_listener};
@@ -19,67 +20,14 @@ pub use ingress::{
 };
 pub use run::{DiscordIngressRunRequest, run_discord_ingress};
 
-use crate::agent::Agent;
-use crate::channels::managed_runtime::ForegroundQueueMode;
-use crate::channels::traits::{Channel, ChannelMessage};
-use crate::jobs::{JobCompletion, JobManager};
-use std::sync::Arc;
-
 pub(crate) use foreground::{
-    DiscordForegroundRuntime as TestDiscordForegroundRuntime,
-    build_foreground_runtime as test_build_discord_foreground_runtime,
+    DiscordForegroundRuntime, DiscordForegroundRuntime as TestDiscordForegroundRuntime,
+    build_foreground_runtime, build_foreground_runtime as test_build_discord_foreground_runtime,
 };
 pub(crate) use interrupt::ForegroundInterruptController;
-
-pub(crate) async fn test_process_discord_message(
-    agent: Arc<Agent>,
-    channel: Arc<dyn Channel>,
-    msg: ChannelMessage,
-    job_manager: &Arc<JobManager>,
-    turn_timeout_secs: u64,
-) {
-    dispatch::process_discord_message(agent, channel, msg, job_manager, turn_timeout_secs).await;
-}
-
-pub(crate) async fn test_process_discord_message_with_interrupt(
-    agent: Arc<Agent>,
-    channel: Arc<dyn Channel>,
-    msg: ChannelMessage,
-    job_manager: &Arc<JobManager>,
-    turn_timeout_secs: u64,
-    foreground_queue_mode: ForegroundQueueMode,
-    interrupt_controller: &ForegroundInterruptController,
-) {
-    dispatch::process_discord_message_with_interrupt(
-        agent,
-        channel,
-        msg,
-        job_manager,
-        turn_timeout_secs,
-        foreground_queue_mode,
-        interrupt_controller,
-    )
-    .await;
-}
-
-pub(crate) fn test_resolve_snapshot_interval_secs<F>(lookup: F) -> Option<u64>
-where
-    F: Fn(&str) -> Option<String>,
-{
-    telemetry::resolve_snapshot_interval_secs(lookup)
-}
-
-pub(crate) fn test_interrupted_reply_is_suppressed(
-    msg: &ChannelMessage,
-    turn_timeout_secs: u64,
-) -> bool {
-    dispatch::test_interrupted_reply_is_suppressed(msg, turn_timeout_secs)
-}
-
-pub(crate) async fn test_push_background_completion(
-    channel: &Arc<dyn Channel>,
-    agent: &Arc<Agent>,
-    completion: JobCompletion,
-) {
-    managed::push_background_completion(channel, agent, completion).await;
-}
+pub(crate) use telemetry::snapshot_interval_from_env;
+pub(crate) use test_api::{
+    test_interrupted_reply_is_suppressed, test_process_discord_message,
+    test_process_discord_message_with_interrupt, test_push_background_completion,
+    test_resolve_snapshot_interval_secs,
+};

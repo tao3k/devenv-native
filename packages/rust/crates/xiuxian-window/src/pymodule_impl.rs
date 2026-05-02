@@ -1,7 +1,7 @@
 //! Python bindings for omni-window.
 
-use pyo3::prelude::*;
-use pyo3::types::PyDict;
+use pyo3::types::{PyDict, PyDictMethods, PyList, PyListMethods};
+use pyo3::{Py, PyAny, PyResult, Python, pyclass, pymethods};
 
 use crate::SessionWindow;
 
@@ -35,7 +35,7 @@ impl PySessionWindow {
 
     fn get_recent_turns(&self, max_turns: usize, py: Python<'_>) -> PyResult<Py<PyAny>> {
         let turns = self.inner.get_recent_turns(max_turns);
-        let list = pyo3::types::PyList::empty(py);
+        let list = PyList::empty(py);
         for slot in turns {
             let dict = PyDict::new(py);
             dict.set_item("role", slot.role.as_str())?;

@@ -6,7 +6,7 @@ use xiuxian_memory_engine::{
 use crate::agent::Agent;
 use crate::observability::SessionEvent;
 
-use super::{StoredTurnEpisode, TurnStoreOutcome};
+use super::types::{StoredTurnEpisode, TurnStoreOutcome};
 
 impl Agent {
     pub(super) async fn evaluate_turn_memory_gate(

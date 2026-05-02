@@ -14,7 +14,13 @@
     clippy::unnecessary_to_owned,
     clippy::too_many_lines
 )]
-use super::*;
+use super::{TEST_VALKEY_URL, clear_prefix, unique_prefix};
+use xiuxian_wendao::{
+    LinkGraphSuggestedLinkDecisionRequest, LinkGraphSuggestedLinkRequest,
+    LinkGraphSuggestedLinkState, valkey_suggested_link_decide_with_valkey,
+    valkey_suggested_link_decisions_recent_with_valkey, valkey_suggested_link_log_with_valkey,
+    valkey_suggested_link_recent_latest_with_valkey,
+};
 
 #[test]
 fn test_suggested_link_decide_promoted_with_audit() -> Result<(), Box<dyn std::error::Error>> {

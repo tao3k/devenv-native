@@ -14,11 +14,11 @@ datafusion = { workspace = true }
 serde_json = { workspace = true }
 tokio = { workspace = true }
 walkdir = { workspace = true }
-xiuxian-testing = { path = "../xiuxian-testing" }
 xiuxian-wendao-core = { path = "../xiuxian-wendao-core" }
 xiuxian-wendao-parsers = { path = "../xiuxian-wendao-parsers" }
 
 [dev-dependencies]
+rust-lang-project-harness = { workspace = true }
 tempfile = { workspace = true }
 
 [lints]

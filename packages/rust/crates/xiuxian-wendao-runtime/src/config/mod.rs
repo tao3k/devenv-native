@@ -1,3 +1,5 @@
+//! Runtime configuration model and resolver boundary for Wendao host behavior.
+
 mod constants;
 mod duckdb;
 mod memory;

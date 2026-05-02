@@ -1,4 +1,7 @@
-use super::*;
+use super::{
+    Arc, ArtifactIngestionResult, ArtifactObserverConfig, CognitiveTraceRecord,
+    NoopWendaoIngestionSink, WendaoIngestionSink,
+};
 
 #[test]
 fn config_default_values() {

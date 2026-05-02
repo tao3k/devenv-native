@@ -1,3 +1,5 @@
+//! Repository index route contract and metadata validation.
+
 /// Canonical repo-index repository metadata header for Wendao Flight requests.
 pub const WENDAO_REPO_INDEX_REPO_HEADER: &str = "x-wendao-repo-index-repo";
 /// Canonical repo-index refresh metadata header for Wendao Flight requests.

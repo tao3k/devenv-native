@@ -1,4 +1,7 @@
-use super::*;
+use super::{
+    Duration, PdfOcrShardCache, PdfOcrShardCachePolicy, PdfOcrShardInput, PdfOcrShardResult,
+    ocr_shard_cache_key,
+};
 use xiuxian_wendao_attachments::pdf::ocr::PDF_OCR_SHARD_INPUT_SCHEMA_VERSION;
 
 #[test]

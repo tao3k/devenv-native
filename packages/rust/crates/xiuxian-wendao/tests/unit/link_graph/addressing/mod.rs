@@ -1,6 +1,8 @@
 //! Unit tests for addressing mod module.
 
-use super::*;
+use super::{
+    Address, ModificationError, adjust_line_range, replace_byte_range, update_section_content,
+};
 use crate::link_graph::PageIndexNode;
 use std::collections::HashMap;
 

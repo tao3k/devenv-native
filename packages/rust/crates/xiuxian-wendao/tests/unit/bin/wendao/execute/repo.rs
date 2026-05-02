@@ -1,4 +1,4 @@
-use super::*;
+use super::{DocCoverageQuery, RepoOverviewQuery};
 
 #[test]
 fn repo_overview_query_preserves_repo_id() {

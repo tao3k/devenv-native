@@ -3,7 +3,7 @@ use xiuxian_wendao_parsers::sections::{
     LogbookEntry, MarkdownSection, SectionCore, SectionMetadata,
 };
 
-use super::super::code_observation::CodeObservation;
+use crate::parsers::markdown::code_observation::CodeObservation;
 
 /// Parsed section row for section-aware retrieval and `HippoRAG 2` `Passage Nodes`.
 #[derive(Debug, Clone)]

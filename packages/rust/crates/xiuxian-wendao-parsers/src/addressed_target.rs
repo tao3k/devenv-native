@@ -1,3 +1,5 @@
+//! Parser-owned addressed-target contract with optional scoped fragment parts.
+
 use serde::{Deserialize, Serialize};
 
 /// Parser-owned reusable target plus scoped-address contract.

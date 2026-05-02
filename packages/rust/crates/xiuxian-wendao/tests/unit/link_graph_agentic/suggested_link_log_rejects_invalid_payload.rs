@@ -1,4 +1,5 @@
-use super::*;
+use super::{TEST_VALKEY_URL, unique_prefix};
+use xiuxian_wendao::{LinkGraphSuggestedLinkRequest, valkey_suggested_link_log_with_valkey};
 
 #[test]
 fn test_suggested_link_log_rejects_invalid_payload() {

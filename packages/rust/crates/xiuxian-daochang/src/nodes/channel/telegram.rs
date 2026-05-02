@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use xiuxian_daochang::{
+use crate::{
     DEFAULT_REDIS_KEY_PREFIX, RuntimeSettings, TelegramControlCommandPolicy,
     TelegramSlashCommandPolicy, TelegramWebhookPolicyRunRequest, WebhookDedupBackend,
     WebhookDedupConfig, build_telegram_acl_overrides,
@@ -9,15 +9,15 @@ use xiuxian_daochang::{
 };
 use xiuxian_macros::env_non_empty;
 
-use crate::cli::{TelegramChannelMode, WebhookDedupBackendMode};
+use crate::build_agent;
 use crate::resolve::{
     resolve_channel_mode, resolve_dedup_backend, resolve_positive_u64, resolve_string,
     resolve_valkey_url_env,
 };
-use xiuxian_daochang::build_agent;
+use crate::{TelegramChannelMode, WebhookDedupBackendMode};
 
 use super::ChannelCommandRequest;
-use super::common::{
+use super::runtime_guard::{
     apply_channel_embedding_memory_guard, log_control_command_allow_override,
     log_slash_command_allow_override,
 };

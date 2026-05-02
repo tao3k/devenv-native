@@ -1,3 +1,5 @@
+//! Conversation context pruning helpers built on token counting.
+
 use crate::TokenCounter;
 use serde::{Deserialize, Serialize};
 

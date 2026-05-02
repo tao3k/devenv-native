@@ -1,3 +1,5 @@
+//! SQL query metadata validation for Wendao Flight routes.
+
 use datafusion::sql::parser::{DFParser, Statement as DataFusionStatement};
 use datafusion::sql::sqlparser::ast::Statement as SqlStatement;
 

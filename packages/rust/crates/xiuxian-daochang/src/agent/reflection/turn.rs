@@ -1,3 +1,5 @@
+//! Turn reflection data model and builder utilities.
+
 use serde::{Deserialize, Serialize};
 
 const OBJECTIVE_MAX_CHARS: usize = 160;

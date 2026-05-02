@@ -1,3 +1,5 @@
+//! Telegram runtime job branch for command routing and completion replies.
+
 mod api;
 mod background_completion;
 mod command_handlers;

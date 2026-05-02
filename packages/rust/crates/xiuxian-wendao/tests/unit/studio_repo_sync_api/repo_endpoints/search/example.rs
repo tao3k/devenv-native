@@ -1,4 +1,12 @@
-use super::super::super::*;
+use serde_json::Value;
+
+use crate::gateway::studio::studio_repo_sync_api_tests::support::{
+    create_local_git_repo, create_local_modelica_repo, gateway_state_for_project, request_json,
+    write_default_repo_config,
+};
+use crate::gateway::studio::studio_repo_sync_api_tests::{
+    StatusCode, TestResult, assert_studio_json_snapshot, fs, studio_router,
+};
 
 #[tokio::test]
 async fn repo_example_search_endpoint_returns_example_payload() -> TestResult {

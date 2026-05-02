@@ -1,8 +1,6 @@
 //! Cargo entry point for dormant `xiuxian-qianji` integration suites.
 #![cfg(feature = "qianji-full")]
 
-xiuxian_testing::crate_test_policy_harness!();
-
 #[path = "integration/executors_annotation.rs"]
 mod executors_annotation;
 #[path = "integration/executors_formal_audit.rs"]

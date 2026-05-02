@@ -4,7 +4,8 @@ use std::collections::HashMap;
 
 use crate::parsers::markdown::ParsedSection;
 
-use super::*;
+use super::extract_property_drawer_edges;
+use crate::link_graph::models::LinkGraphEdgeType;
 
 fn parsed_section(attrs: &[(&str, &str)], heading_path: &str) -> ParsedSection {
     ParsedSection {

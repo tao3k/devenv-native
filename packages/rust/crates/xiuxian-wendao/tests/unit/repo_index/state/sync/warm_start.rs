@@ -1,4 +1,8 @@
-use super::support::*;
+use super::support::{
+    PathBuf, RepoIndexPhase, SearchCorpusKind, SearchMaintenancePolicy, SearchManifestKeyspace,
+    SearchPlaneService, fs, new_coordinator, remote_repo, repo, repo_analysis_output,
+    repo_documents,
+};
 
 #[tokio::test]
 async fn sync_repositories_warm_starts_local_checkout_from_persisted_repo_publications() {

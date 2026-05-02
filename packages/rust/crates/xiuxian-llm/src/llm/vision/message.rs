@@ -1,3 +1,5 @@
+//! Vision prompt message construction for image content.
+
 use crate::llm::client::{ChatMessage, ContentPart, ImageUrlContent, MessageContent, MessageRole};
 use crate::llm::error::{LlmError, LlmResult};
 

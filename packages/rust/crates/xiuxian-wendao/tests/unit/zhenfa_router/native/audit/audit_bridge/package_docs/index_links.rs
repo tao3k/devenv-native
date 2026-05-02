@@ -1,10 +1,17 @@
-use super::*;
+use std::collections::HashMap;
+
+use super::{
+    ByteRange, IssueLocation, MISSING_PACKAGE_DOCS_INDEX_FOOTER_BLOCK_ISSUE_TYPE,
+    MISSING_PACKAGE_DOCS_INDEX_RELATION_LINK_ISSUE_TYPE,
+    MISSING_PACKAGE_DOCS_INDEX_RELATIONS_BLOCK_ISSUE_TYPE,
+    MISSING_PACKAGE_DOCS_INDEX_SECTION_LINK_ISSUE_TYPE, SemanticIssue, generate_surgical_fixes,
+};
 
 #[test]
 fn test_generate_surgical_fixes_supports_missing_package_docs_index_section_link() {
     let doc_path = "/tmp/demo/docs/index.md".to_string();
     let file_content = "# Demo\n\n## 01_core\n\n".to_string();
-    let mut file_contents = std::collections::HashMap::new();
+    let mut file_contents = HashMap::new();
     file_contents.insert(doc_path.clone(), file_content.clone());
 
     let issues = vec![SemanticIssue {
@@ -39,7 +46,7 @@ fn test_generate_surgical_fixes_supports_missing_package_docs_index_relation_lin
     let doc_path = "/tmp/demo/docs/index.md".to_string();
     let file_content =
         ":RELATIONS:\n:LINKS: [[01_core/101_demo_core_boundary]]\n:END:\n".to_string();
-    let mut file_contents = std::collections::HashMap::new();
+    let mut file_contents = HashMap::new();
     file_contents.insert(doc_path.clone(), file_content.clone());
 
     let relation_value = "[[01_core/101_demo_core_boundary]]";
@@ -84,7 +91,7 @@ fn test_generate_surgical_fixes_supports_missing_package_docs_index_relation_lin
 fn test_generate_surgical_fixes_supports_missing_package_docs_index_relations_block() {
     let doc_path = "/tmp/demo/docs/index.md".to_string();
     let file_content = "# Demo\n\n- [[01_core/101_demo_core_boundary]]\n\n---\n".to_string();
-    let mut file_contents = std::collections::HashMap::new();
+    let mut file_contents = HashMap::new();
     file_contents.insert(doc_path.clone(), file_content.clone());
 
     let insert_offset = file_content
@@ -127,7 +134,7 @@ fn test_generate_surgical_fixes_supports_missing_package_docs_index_footer_block
     let doc_path = "/tmp/demo/docs/index.md".to_string();
     let file_content =
         ":RELATIONS:\n:LINKS: [[01_core/101_demo_core_boundary]]\n:END:\n".to_string();
-    let mut file_contents = std::collections::HashMap::new();
+    let mut file_contents = HashMap::new();
     file_contents.insert(doc_path.clone(), file_content.clone());
 
     let insert_offset = file_content.len();

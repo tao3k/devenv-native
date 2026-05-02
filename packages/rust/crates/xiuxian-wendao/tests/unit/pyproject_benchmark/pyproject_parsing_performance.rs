@@ -1,4 +1,8 @@
-use super::*;
+use std::io::Write as StdWrite;
+
+use super::generate_pyproject_toml;
+use tempfile::NamedTempFile;
+use xiuxian_wendao::parsers::languages::python::pyproject::dependencies::parse_pyproject_dependencies;
 
 #[test]
 fn test_pyproject_parsing_performance() -> Result<(), Box<dyn std::error::Error>> {

@@ -1,5 +1,5 @@
 ---
-source: packages/rust/crates/xiuxian-testing/src/scenario.rs
+source: packages/rust/crates/xiuxian-wendao/tests/support/scenario.rs
 description: "Scenario 057_tree_scope_mixed_scope_collapse_toggle [tree_scope_filters]: mixed scope collapse toggle"
 expression: result
 info:

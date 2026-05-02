@@ -1,13 +1,13 @@
-//! Advisory-audit bridge from `xiuxian-testing` into `Qianji` and `Qianhuan`.
+//! Advisory-audit bridge from Qianji contract feedback into `Qianhuan`.
 
 use std::sync::Arc;
 
+use crate::contract_feedback::{AdvisoryAuditExecutor, AdvisoryAuditRequest, RoleAuditFinding};
 use anyhow::Result;
 use async_trait::async_trait;
 use xiuxian_qianhuan::{
     InjectionPolicy, InjectionSnapshot, PersonaRegistry, RoleMixProfile, ThousandFacesOrchestrator,
 };
-use xiuxian_testing::{AdvisoryAuditExecutor, AdvisoryAuditRequest, RoleAuditFinding};
 #[path = "executors_formal_audit_advisory/helpers.rs"]
 mod helpers;
 #[path = "executors_formal_audit_advisory/planning.rs"]
@@ -44,7 +44,7 @@ pub struct QianjiAdvisoryExecutionPlan {
 /// Qianji-side advisory executor scaffold backed by `Qianhuan` persona resolution.
 ///
 /// This executor does not perform live LLM critique yet. Instead, it converts a
-/// `xiuxian-testing` `AdvisoryAuditRequest` into:
+/// Qianji `AdvisoryAuditRequest` into:
 /// - a `RoleMixProfile`
 /// - typed `InjectionSnapshot` values for each role
 /// - normalized `RoleAuditFinding` values that preserve deterministic evidence and trace context

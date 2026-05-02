@@ -1,5 +1,5 @@
 ---
-source: packages/rust/crates/xiuxian-testing/src/scenario.rs
+source: packages/rust/crates/xiuxian-wendao/tests/support/scenario.rs
 description: "Scenario 052_seed_journal_semantic_pull_surfaces_agenda [seed_and_priors]: journal semantic pull surfaces agenda"
 expression: result
 info:

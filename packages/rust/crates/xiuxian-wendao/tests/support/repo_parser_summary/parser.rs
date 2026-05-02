@@ -467,7 +467,7 @@ fn push_symbol_and_docstring(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{ParserSummaryRequest, ROOT_SUMMARY_KIND, build_response_rows};
 
     #[test]
     fn inline_docstring_is_attached_to_next_symbol() -> Result<(), String> {

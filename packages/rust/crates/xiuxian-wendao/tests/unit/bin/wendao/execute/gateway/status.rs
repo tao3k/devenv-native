@@ -3,7 +3,7 @@ use xiuxian_zhenfa::ZhenfaSignal;
 
 use axum::extract::State;
 
-use crate::execute::gateway::status::{notify_status, stats};
+use crate::bin_support::wendao::execute::gateway::status::{notify_status, stats};
 
 use super::support::{app_state, app_state_with_webhook_url};
 

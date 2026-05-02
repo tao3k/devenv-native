@@ -1,4 +1,4 @@
-use super::super::{
+use crate::link_graph::index::{
     LinkGraphDocument, LinkGraphHit, LinkGraphIndex, LinkGraphMatchStrategy,
     LinkGraphSearchOptions, ScoredSearchRow, SectionCandidate, SectionMatch,
     deterministic_random_key,

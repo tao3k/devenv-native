@@ -565,7 +565,7 @@ What landed:
 3. one focused 20191111 namespaced fixture proved the placeholder surface for
    one direct `relation` decision while keeping it non-executable inside that
    slice's bounded evaluator subset
-4. full validation surfaced one immediate touched-scope testing-gate debt in
+4. full validation surfaced one immediate touched-scope project-harness debt in
    the DMN lint suite, and it was closed in the same slice by splitting the
    tests into the folder-first `tests/unit/lint/dmn/{mod,core,constructs}.rs`
    seam

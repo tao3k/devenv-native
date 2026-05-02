@@ -1,13 +1,13 @@
-use crate::types::{AuditArgs, Cli};
+use crate::bin_support::wendao::types::{AuditArgs, Cli};
+use crate::link_graph::LinkGraphIndex;
+use crate::zhenfa_router::native::semantic_check::{
+    WendaoSemanticCheckArgs, wendao_semantic_check,
+};
 use anyhow::{Context, Result};
 use serde::Deserialize;
 use std::fmt::Write as _;
 use std::fs;
 use std::path::{Path, PathBuf};
-use xiuxian_wendao::link_graph::LinkGraphIndex;
-use xiuxian_wendao::zhenfa_router::native::semantic_check::{
-    WendaoSemanticCheckArgs, wendao_semantic_check,
-};
 use xiuxian_zhenfa::ZhenfaContext;
 
 const DEFAULT_EPISTEME_DIR: &str = "wendao-episteme";

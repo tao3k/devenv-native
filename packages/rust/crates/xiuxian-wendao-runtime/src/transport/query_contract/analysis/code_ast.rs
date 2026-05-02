@@ -1,3 +1,5 @@
+//! Code-AST analysis route contract and metadata validation.
+
 /// Stable route for the code-AST analysis contract.
 pub const ANALYSIS_CODE_AST_ROUTE: &str = "/analysis/code-ast";
 

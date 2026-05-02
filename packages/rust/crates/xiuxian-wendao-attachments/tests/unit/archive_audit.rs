@@ -6,7 +6,7 @@ use flate2::Compression;
 use flate2::write::GzEncoder;
 use tar::{Builder, Header};
 
-use super::*;
+use super::{audit_archive_attachment, is_supported_archive_path};
 
 #[test]
 fn archive_audit_reads_mets_gbs_member_manifest() -> Result<(), String> {

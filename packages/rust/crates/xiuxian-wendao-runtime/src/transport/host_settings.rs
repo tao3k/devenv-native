@@ -1,3 +1,5 @@
+//! Runtime host setting resolution for Wendao Flight rerank services.
+
 use super::RerankScoreWeights;
 use std::env;
 

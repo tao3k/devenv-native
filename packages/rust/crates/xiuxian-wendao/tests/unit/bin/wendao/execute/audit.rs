@@ -2,7 +2,7 @@ use super::{
     AuthoringTemplate, EpistemeTemplateManifest, collect_authoring_templates,
     render_authoring_template, validate_authoring_template,
 };
-use crate::types::{Cli, Command};
+use crate::bin_support::wendao::types::{Cli, Command};
 use clap::Parser;
 use std::fs;
 use std::path::{Path, PathBuf};

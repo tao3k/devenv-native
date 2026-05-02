@@ -1,4 +1,7 @@
-use super::*;
+use super::{SequencedMockLlmClient, make_test_mechanism};
+use serde_json::json;
+use std::sync::Arc;
+use xiuxian_qianji::contracts::QianjiMechanism;
 
 #[tokio::test]
 async fn llm_augmented_audit_resolves_claude_provider() {

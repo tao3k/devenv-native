@@ -1,3 +1,5 @@
+//! Runtime artifact rendering and path-resolution boundary for generated Wendao assets.
+
 /// Runtime-owned bundled `OpenAPI` artifact helpers.
 pub mod openapi;
 

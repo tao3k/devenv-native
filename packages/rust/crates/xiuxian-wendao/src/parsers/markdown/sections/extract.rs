@@ -1,8 +1,8 @@
 use std::path::Path;
 
-use super::super::code_observation::extract_observations;
-use super::super::links::extract_link_targets_from_occurrences_in_range;
 use super::types::ParsedSection;
+use crate::parsers::markdown::code_observation::extract_observations;
+use crate::parsers::markdown::links::extract_link_targets_from_occurrences_in_range;
 #[cfg(test)]
 use xiuxian_wendao_parsers::sections as parser_sections;
 use xiuxian_wendao_parsers::sections::MarkdownSection;

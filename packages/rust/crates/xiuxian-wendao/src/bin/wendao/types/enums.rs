@@ -1,8 +1,8 @@
-use clap::ValueEnum;
-use xiuxian_wendao::{
+use crate::{
     LinkGraphAttachmentKind, LinkGraphPprSubgraphMode, LinkGraphScope, LinkGraphSuggestedLinkState,
     analyzers::ProjectionPageKind,
 };
+use clap::ValueEnum;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, ValueEnum)]
 pub(crate) enum OutputFormat {

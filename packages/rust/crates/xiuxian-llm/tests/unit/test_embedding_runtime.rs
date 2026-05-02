@@ -2,7 +2,7 @@
 
 use std::time::Duration;
 
-use xiuxian_llm::embedding::runtime::{
+use xiuxian_llm::embedding::{
     EMBEDDING_SOURCE_EMBEDDING_REPAIRED, EmbeddingRuntime, MemoryEmbeddingErrorKind,
 };
 

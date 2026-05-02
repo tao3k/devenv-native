@@ -1,4 +1,12 @@
-use crate::search::service::tests::support::*;
+use std::path::PathBuf;
+
+use crate::search::service::tests::support::{
+    assert_status_reason, corpus_status, service_test_manifest_keyspace, temp_dir,
+};
+use crate::search::{
+    SearchCorpusKind, SearchCorpusStatusAction, SearchCorpusStatusReasonCode,
+    SearchCorpusStatusSeverity, SearchMaintenancePolicy, SearchPlanePhase, SearchPlaneService,
+};
 
 #[test]
 fn status_marks_indexing_corpus_with_running_prewarm_reason() {

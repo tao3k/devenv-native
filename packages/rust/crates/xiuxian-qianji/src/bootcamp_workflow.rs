@@ -1,8 +1,6 @@
 use super::llm::resolve_bootcamp_llm_client;
-use super::manifest::{
-    parse_manifest, parsed_manifest_requires_link_graph, parsed_manifest_requires_llm,
-    resolve_flow_manifest_toml,
-};
+pub(super) use super::manifest::{parse_manifest, parsed_manifest_requires_link_graph};
+use super::manifest::{parsed_manifest_requires_llm, resolve_flow_manifest_toml};
 use super::runtime::{
     build_link_graph_index, build_placeholder_link_graph_index, unix_timestamp_millis,
 };

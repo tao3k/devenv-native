@@ -1,0 +1,16 @@
+---
+source: packages/rust/crates/xiuxian-types/tests/unit/scenarios.rs
+assertion_line: 27
+expression: output
+---
+{
+  "description": "desc",
+  "metadata": {
+    "routing_keywords": [
+      "alpha",
+      "beta",
+      "gamma"
+    ]
+  },
+  "name": "git"
+}

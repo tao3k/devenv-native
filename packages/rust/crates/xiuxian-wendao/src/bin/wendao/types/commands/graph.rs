@@ -1,4 +1,4 @@
-use super::super::enums::RelatedPprSubgraphModeArg;
+use crate::bin_support::wendao::types::RelatedPprSubgraphModeArg;
 use clap::Args;
 
 #[derive(Args, Debug)]

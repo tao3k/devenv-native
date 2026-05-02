@@ -1,9 +1,9 @@
-use super::super::{TRANSACTION_PROCESS_ID, node_index};
 use super::helpers::{
     advance_and_expect_blocked, assert_main_success_completion, assert_pending_handler_node,
     complete_default_compensation_pair, complete_user_task_expect_advanced,
     create_transaction_test_instance,
 };
+use crate::runtime::call_activity::{TRANSACTION_PROCESS_ID, node_index};
 use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnInstanceInit, PendingHostWorkResult, UserTaskOutcome, advance_instance,
@@ -93,7 +93,7 @@ async fn runtime_transaction_default_throw_compensation_intermediate_replays_all
 
 #[tokio::test(flavor = "current_thread")]
 async fn runtime_transaction_throw_compensation_intermediate_runs_handler_then_routes_forward() {
-    let package = Arc::new(super::super::parsed_fixture_package(
+    let package = Arc::new(crate::runtime::call_activity::parsed_fixture_package(
         "transaction-throw-compensation-intermediate.bpmn",
     ));
     let mut instance = create_instance(
@@ -106,7 +106,7 @@ async fn runtime_transaction_throw_compensation_intermediate_runs_handler_then_r
         ),
     )
     .must("instance should be created");
-    let host = super::super::StubHost::new(55);
+    let host = crate::runtime::call_activity::StubHost::new(55);
 
     let blocked = advance_instance(package.as_ref(), &mut instance, &host)
         .await

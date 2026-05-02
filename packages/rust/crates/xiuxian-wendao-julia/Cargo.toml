@@ -22,9 +22,9 @@ inventory = { workspace = true }
 xiuxian-memory-engine = { path = "../xiuxian-memory-engine" }
 xiuxian-wendao-core = { path = "../xiuxian-wendao-core" }
 xiuxian-wendao-runtime = { path = "../xiuxian-wendao-runtime", features = ["transport"] }
-xiuxian-testing = { path = "../xiuxian-testing" }
 
 [dev-dependencies]
+rust-lang-project-harness = { workspace = true }
 tempfile = { workspace = true }
 insta = { workspace = true }
 serial_test = { workspace = true }

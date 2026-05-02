@@ -11,6 +11,7 @@
 #[cfg(all(feature = "engine", not(feature = "vector-store")))]
 mod arrow_codec;
 #[cfg(feature = "duckdb-types")]
+/// Bounded DuckDB configuration and local connection helpers.
 pub mod duckdb;
 #[cfg(all(feature = "engine", not(feature = "vector-store")))]
 mod engine;
@@ -21,6 +22,7 @@ mod error;
 pub use ::duckdb as duckdb_crate;
 
 #[cfg(feature = "qianji-bpmn-workflow-state")]
+/// Qianji BPMN workflow-state persistence surface.
 pub mod qianji_bpmn;
 
 #[cfg(all(feature = "engine", not(feature = "vector-store")))]
@@ -100,4 +102,5 @@ pub use xiuxian_vector::{
 #[cfg(all(feature = "engine", not(feature = "vector-store")))]
 pub use engine::{ColumnarScanOptions, TableInfo, VectorStore};
 
-xiuxian_testing::crate_test_policy_source_harness!("../tests/unit/lib_policy.rs");
+#[cfg(test)]
+rust_lang_project_harness::rust_project_harness_cargo_test_gate!();

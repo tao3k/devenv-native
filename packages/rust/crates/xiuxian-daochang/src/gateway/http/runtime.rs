@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use axum::http::StatusCode;
-use xiuxian_llm::embedding::backend::{EmbeddingBackendKind, parse_embedding_backend_kind};
+use xiuxian_llm::embedding::{EmbeddingBackendKind, parse_embedding_backend_kind};
 use xiuxian_macros::env_non_empty;
 
 use crate::config::{RuntimeSettings, load_runtime_settings};

@@ -1,3 +1,5 @@
+//! Coordinates related-PPR computation across runtime policy, orchestration, and result finalization.
+
 #[path = "compute/finalize.rs"]
 mod finalize;
 #[path = "compute/orchestrate.rs"]

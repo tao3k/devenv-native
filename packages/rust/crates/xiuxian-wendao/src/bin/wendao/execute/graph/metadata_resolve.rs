@@ -1,17 +1,17 @@
 //! Metadata and alias resolution command handlers.
 
-use crate::helpers::emit;
-use crate::types::Cli;
+use crate::LinkGraphIndex;
+use crate::bin_support::wendao::helpers::emit;
+use crate::bin_support::wendao::types::Cli;
 use anyhow::{Context, Result};
 use serde_json::json;
-use xiuxian_wendao::LinkGraphIndex;
 
 pub(super) fn handle_metadata(cli: &Cli, index: Option<&LinkGraphIndex>, stem: &str) -> Result<()> {
     let index = index.context("link_graph index is required for metadata command")?;
     let candidates = index.resolve_metadata_candidates(stem);
     match candidates.len() {
         0 => emit(
-            &Option::<xiuxian_wendao::LinkGraphMetadata>::None,
+            &Option::<crate::LinkGraphMetadata>::None,
             cli.output_or_json(),
         ),
         1 => {

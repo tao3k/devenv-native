@@ -1,4 +1,8 @@
-use super::*;
+use super::{
+    CODE_CONTENT_EXCLUDE_GLOBS, is_supported_code_extension, parse_content_search_line,
+    path_matches_language_filters, repo_navigation_target, strip_option,
+    truncate_content_search_snippet,
+};
 
 #[test]
 fn test_strip_option() {

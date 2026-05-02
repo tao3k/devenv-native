@@ -1,4 +1,4 @@
-use xiuxian_wendao::{LinkGraphSortField, LinkGraphSortOrder, LinkGraphSortTerm};
+use crate::{LinkGraphSortField, LinkGraphSortOrder, LinkGraphSortTerm};
 
 fn parse_sort_field(raw: &str) -> Option<LinkGraphSortField> {
     match raw.trim().to_lowercase().as_str() {

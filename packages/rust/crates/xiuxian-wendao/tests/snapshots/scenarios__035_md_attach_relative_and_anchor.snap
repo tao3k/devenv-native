@@ -1,5 +1,5 @@
 ---
-source: packages/rust/crates/xiuxian-testing/src/scenario.rs
+source: packages/rust/crates/xiuxian-wendao/tests/support/scenario.rs
 description: "Scenario 035_md_attach_relative_and_anchor [markdown_attachments]: relative and anchor"
 expression: result
 info:

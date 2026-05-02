@@ -1,3 +1,5 @@
+//! Repository source materialization and refresh orchestration.
+
 use std::fs;
 use std::path::Path;
 
@@ -12,9 +14,9 @@ use crate::error::{RepoError, RepoErrorKind};
 use crate::layout::{managed_checkout_root_for, managed_mirror_root_for};
 use crate::lock::acquire_managed_checkout_lock;
 use crate::metadata::{
-    clear_managed_remote_probe_state, compute_managed_drift_state, discover_last_fetched_at,
-    record_managed_remote_probe_failure, record_managed_remote_probe_state, resolve_head_revision,
-    resolve_tracking_revision,
+    RepoDriftState, clear_managed_remote_probe_state, compute_managed_drift_state,
+    discover_last_fetched_at, record_managed_remote_probe_failure,
+    record_managed_remote_probe_state, resolve_head_revision, resolve_tracking_revision,
 };
 use crate::revision::{desired_managed_checkout_revision, sync_checkout_head};
 use crate::spec::{RepoRefreshPolicy, RepoSpec, RevisionSelector};
@@ -58,24 +60,6 @@ pub enum RepoLifecycleState {
     Reused,
     /// The asset was refreshed.
     Refreshed,
-}
-
-/// Drift state between managed mirror and checkout.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub enum RepoDriftState {
-    /// Drift does not apply.
-    #[default]
-    NotApplicable,
-    /// Drift could not be determined.
-    Unknown,
-    /// Checkout and mirror are aligned.
-    InSync,
-    /// Checkout has local commits ahead of mirror.
-    Ahead,
-    /// Checkout is behind mirror.
-    Behind,
-    /// Checkout and mirror diverged.
-    Diverged,
 }
 
 /// Resolved materialized repository state.

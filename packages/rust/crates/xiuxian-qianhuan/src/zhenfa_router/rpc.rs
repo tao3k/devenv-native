@@ -1,3 +1,5 @@
+//! JSON-RPC helpers for Qianhuan Zhenfa render and reload actions.
+
 use std::sync::Arc;
 
 use anyhow::Context;

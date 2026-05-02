@@ -1,3 +1,5 @@
+//! Persona registry and provider implementations.
+
 use super::loader::{collect_persona_files, parse_profile_from_file};
 use super::profile::PersonaProfile;
 use anyhow::{Result, anyhow};

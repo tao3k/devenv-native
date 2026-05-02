@@ -1,7 +1,6 @@
-use crate::channels::traits::ChannelMessage;
-
-use super::ForegroundInterruptController;
 use super::preview::log_preview;
+use crate::channels::ChannelMessage;
+use crate::channels::discord::runtime::ForegroundInterruptController;
 
 pub(super) fn log_inbound_user_message(msg: &ChannelMessage) {
     tracing::info!(

@@ -130,3 +130,10 @@ The `get` commands stay local and parser-owned by design:
 The standalone binary is named `wendao-client`, while the reusable command
 tree remains small enough to embed into the main `wendao` CLI without pulling
 `xiuxian-wendao` back into the client crate.
+
+## Project Policy Gate
+
+`xiuxian-wendao-client` uses `rust-lang-project-harness` for source and unit
+project-policy checks without disabled rules. The crate root remains a facade,
+`src/get/run.rs` keeps output rendering in an owned child module, and markdown
+lint discovery keeps `mod.rs` as an interface-only owner.

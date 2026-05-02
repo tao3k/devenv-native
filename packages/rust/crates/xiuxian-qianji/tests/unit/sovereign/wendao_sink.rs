@@ -1,5 +1,8 @@
-use super::*;
+use super::{CompositeWendaoSink, FileWendaoSink, InMemoryWendaoSink, WendaoIngestionSink};
+use std::path::Path;
+use std::sync::Arc;
 use tempfile::TempDir;
+use xiuxian_wendao_core::CognitiveTraceRecord;
 
 #[test]
 fn file_sink_new_creates_base_dir() {

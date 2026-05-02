@@ -1,11 +1,21 @@
-use super::process::build_node_states;
 use crate::error::{BpmnEngineError, Result};
-use crate::ir::BpmnPackage;
+use crate::ir::{BpmnPackage, BpmnProcessSpec};
 pub(crate) use crate::runtime_instance_api::{
     BpmnInstanceInit, BpmnInstanceState, CallActivityFrame, EventCompetitionState,
     InstanceLifecycle, NodeRuntimeState, NodeRuntimeStatus, SuspendReason,
 };
 use std::borrow::Borrow;
+
+pub(crate) fn build_node_states(process: &BpmnProcessSpec) -> Vec<NodeRuntimeState> {
+    process
+        .nodes
+        .iter()
+        .map(|node| NodeRuntimeState {
+            node_index: node.index,
+            status: NodeRuntimeStatus::Idle,
+        })
+        .collect()
+}
 
 pub(crate) fn create_instance_impl(
     package: impl Borrow<BpmnPackage>,

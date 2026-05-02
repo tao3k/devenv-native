@@ -1,6 +1,8 @@
+//! Stable Wendao Flight query-contract boundary and public re-exports.
+
 mod analysis;
-mod common;
 mod graph;
+mod metadata;
 mod query;
 mod repo;
 mod rerank;
@@ -22,12 +24,12 @@ pub use analysis::{
     validate_code_ast_analysis_request, validate_document_extract_request,
     validate_markdown_analysis_request,
 };
-pub use common::{WENDAO_SCHEMA_VERSION_HEADER, flight_descriptor_path, normalize_flight_route};
 pub use graph::{
     GRAPH_NEIGHBORS_DEFAULT_HOPS, GRAPH_NEIGHBORS_DEFAULT_LIMIT, GRAPH_NEIGHBORS_ROUTE,
     TOPOLOGY_3D_ROUTE, WENDAO_GRAPH_DIRECTION_HEADER, WENDAO_GRAPH_HOPS_HEADER,
     WENDAO_GRAPH_LIMIT_HEADER, WENDAO_GRAPH_NODE_ID_HEADER, validate_graph_neighbors_request,
 };
+pub use metadata::{WENDAO_SCHEMA_VERSION_HEADER, flight_descriptor_path, normalize_flight_route};
 #[cfg(feature = "transport")]
 pub use query::validate_sql_query_request;
 pub use query::{QUERY_SQL_ROUTE, WENDAO_SQL_QUERY_HEADER};

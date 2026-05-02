@@ -1,5 +1,5 @@
 use super::Cli;
-use crate::types::Command;
+use crate::bin_support::wendao::types::Command;
 use clap::Parser;
 
 #[test]

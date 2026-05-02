@@ -17,11 +17,11 @@ ast-grep-config = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 anyhow = { workspace = true }
 blake3 = { workspace = true }
-xiuxian-testing = { path = "../xiuxian-testing" }
 tree-sitter = { workspace = true }
 tree-sitter-python = { workspace = true }
 
 [dev-dependencies]
+rust-lang-project-harness = { workspace = true }
 insta = { workspace = true }
 tempfile = { workspace = true }
 

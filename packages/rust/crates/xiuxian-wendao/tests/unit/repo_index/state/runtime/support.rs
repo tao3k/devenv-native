@@ -28,27 +28,31 @@ pub(super) use crate::search::{
 };
 pub(super) use chrono::Utc;
 pub(super) use xiuxian_git_repo::discover_checkout_metadata;
-pub(super) struct LinkedParserSummaryTestGuard;
-
-impl LinkedParserSummaryTestGuard {
-    pub(super) fn kill(&mut self) {}
+pub(super) struct LinkedParserSummaryTestGuard {
+    killed: bool,
 }
 
-pub(super) async fn spawn_wendaosearch_julia_parser_summary_service()
+impl LinkedParserSummaryTestGuard {
+    pub(super) fn kill(&mut self) {
+        self.killed = true;
+    }
+}
+
+pub(super) fn spawn_wendaosearch_julia_parser_summary_service()
 -> (String, LinkedParserSummaryTestGuard) {
     (
         linked_parser_summary_base_url()
             .unwrap_or_else(|error| panic!("linked Julia parser-summary service: {error}")),
-        LinkedParserSummaryTestGuard,
+        LinkedParserSummaryTestGuard { killed: false },
     )
 }
 
-pub(super) async fn spawn_wendaosearch_modelica_parser_summary_service()
+pub(super) fn spawn_wendaosearch_modelica_parser_summary_service()
 -> (String, LinkedParserSummaryTestGuard) {
     (
         linked_parser_summary_base_url()
             .unwrap_or_else(|error| panic!("linked Modelica parser-summary service: {error}")),
-        LinkedParserSummaryTestGuard,
+        LinkedParserSummaryTestGuard { killed: false },
     )
 }
 

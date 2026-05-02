@@ -1,3 +1,5 @@
+//! Flight transport for Julia graph-structural routes.
+
 use arrow::record_batch::RecordBatch;
 use serde_json::Value;
 use xiuxian_wendao_core::{

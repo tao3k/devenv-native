@@ -7,10 +7,16 @@ use tonic::Request;
 
 use crate::transport::{ANALYSIS_DOCUMENT_EXTRACT_ROUTE, ANALYSIS_DOCUMENT_EXTRACT_STATUS_ROUTE};
 
-use super::super::super::assertions::{batch_column, must_err, must_ok, route_descriptor};
-use super::super::super::fixtures::{build_service_with_route_providers, decode_flight_batches};
-use super::super::super::providers::{RecordingDocumentExtractProvider, RecordingSearchProvider};
-use super::super::super::request_headers::{
+use crate::tests::transport::server::assertions::{
+    batch_column, must_err, must_ok, route_descriptor,
+};
+use crate::tests::transport::server::fixtures::{
+    build_service_with_route_providers, decode_flight_batches,
+};
+use crate::tests::transport::server::providers::{
+    RecordingDocumentExtractProvider, RecordingSearchProvider,
+};
+use crate::tests::transport::server::request_headers::{
     build_document_extract_status_metadata, populate_schema_and_document_extract_headers,
 };
 

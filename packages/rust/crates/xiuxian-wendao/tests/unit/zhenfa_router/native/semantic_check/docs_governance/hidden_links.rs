@@ -1,4 +1,13 @@
-use crate::zhenfa_router::native::semantic_check::docs_governance::tests::support::*;
+use std::fs;
+
+use tempfile::TempDir;
+
+use crate::parsers::docs_governance::derive_opaque_doc_id;
+use crate::zhenfa_router::native::semantic_check::docs_governance::tests::support::PanicExt;
+use crate::zhenfa_router::native::semantic_check::docs_governance::{
+    CANONICAL_DOC_HIDDEN_PATH_LINK_ISSUE_TYPE, collect_doc_governance_issues,
+    collect_workspace_doc_governance_issues,
+};
 
 #[test]
 fn detects_hidden_wikilink_in_package_doc() {

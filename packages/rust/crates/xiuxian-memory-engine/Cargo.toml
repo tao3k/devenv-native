@@ -27,7 +27,6 @@ anyhow = { workspace = true }
 
 # Reuse common types
 xiuxian-types = { path = "../xiuxian-types" }
-xiuxian-testing = { path = "../xiuxian-testing" }
 
 # Vector operations for embedding similarity (using our own simple implementation)
 # lance-linalg = "2.0"  # Deferred
@@ -36,16 +35,13 @@ xiuxian-testing = { path = "../xiuxian-testing" }
 log = { workspace = true }
 redis = { workspace = true, optional = true }
 
-# Python bindings
-pyo3 = { workspace = true, optional = true }
-
 [features]
 default = []
-pybindings = ["pyo3"]
 valkey = ["dep:redis"]
 # lance = []  # Reserved for future LanceDB upgrade
 
 [dev-dependencies]
+rust-lang-project-harness = { workspace = true }
 xiuxian-io = { path = "../xiuxian-io" }
 tempfile = { workspace = true }
 rand = { workspace = true }

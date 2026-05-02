@@ -1,3 +1,5 @@
+//! Typed runtime configuration records loaded from Wendao config sources.
+
 mod agentic;
 mod cache;
 mod coactivation;

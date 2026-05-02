@@ -1,6 +1,8 @@
+//! parser import task io branch wiring for focused BPMN/DMN owner leaves.
+
 use super::model::RawProcess;
-use crate::bpmn_parse_api::BpmnSourceFile;
-use crate::error::Result;
+use crate::{BpmnEngineError, BpmnSourceFile};
+type Result<T> = std::result::Result<T, BpmnEngineError>;
 
 mod binding;
 mod declaration;

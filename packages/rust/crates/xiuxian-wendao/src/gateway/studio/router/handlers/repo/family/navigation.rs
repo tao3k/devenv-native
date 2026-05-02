@@ -11,11 +11,11 @@ use crate::gateway::studio::router::handlers::repo::projected_service::family::{
 };
 use crate::gateway::studio::router::{GatewayState, StudioApiError};
 
-use super::super::parse::projection::parse_projection_page_kind;
-use super::super::parse::repo::required_registered_repo_id;
-use super::super::parse::resource::required_page_id;
-use super::super::parse::search::required_search_query;
-use super::super::query::family::{
+use crate::gateway::studio::router::handlers::repo::parse::projection::parse_projection_page_kind;
+use crate::gateway::studio::router::handlers::repo::parse::repo::required_registered_repo_id;
+use crate::gateway::studio::router::handlers::repo::parse::resource::required_page_id;
+use crate::gateway::studio::router::handlers::repo::parse::search::required_search_query;
+use crate::gateway::studio::router::handlers::repo::query::family::{
     RepoProjectedPageNavigationApiQuery, RepoProjectedPageNavigationSearchApiQuery,
 };
 

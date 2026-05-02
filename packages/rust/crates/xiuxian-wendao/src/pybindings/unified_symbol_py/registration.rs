@@ -1,4 +1,5 @@
-use pyo3::prelude::*;
+use pyo3::types::{PyModule, PyModuleMethods};
+use pyo3::{Bound, PyResult};
 
 use super::{PyUnifiedIndexStats, PyUnifiedSymbol, PyUnifiedSymbolIndex};
 

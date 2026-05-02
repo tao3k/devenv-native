@@ -1,4 +1,13 @@
-use crate::zhenfa_router::native::semantic_check::docs_governance::tests::support::*;
+use std::fs;
+
+use tempfile::TempDir;
+
+use crate::parsers::docs_governance::derive_opaque_doc_id;
+use crate::zhenfa_router::native::semantic_check::docs_governance::tests::support::PanicExt;
+use crate::zhenfa_router::native::semantic_check::docs_governance::{
+    MISSING_PACKAGE_DOCS_INDEX_ISSUE_TYPE, MISSING_PACKAGE_DOCS_TREE_ISSUE_TYPE,
+    collect_workspace_doc_governance_issues,
+};
 
 #[test]
 fn detects_missing_package_docs_index_for_workspace_crate_docs() {

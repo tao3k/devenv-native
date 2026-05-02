@@ -1,3 +1,5 @@
+//! Julia memory capability manifest transport contract and row processing.
+
 use std::sync::Arc;
 
 use arrow::array::{Array, BooleanArray, StringArray, UInt64Array};

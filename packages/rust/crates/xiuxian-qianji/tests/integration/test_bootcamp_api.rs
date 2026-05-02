@@ -9,5 +9,3 @@ mod core;
 #[cfg(feature = "llm")]
 #[path = "test_bootcamp_api/forge.rs"]
 mod forge;
-
-xiuxian_testing::crate_test_policy_harness!();

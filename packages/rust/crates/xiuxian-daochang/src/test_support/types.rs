@@ -1,6 +1,7 @@
 //! Test-support mirror types for managed and Telegram command parsing.
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// Test-facing mirror of managed control command selectors.
 pub enum ManagedControlCommand {
     Reset,
     ResumeRestore,
@@ -13,6 +14,7 @@ pub enum ManagedControlCommand {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// Test-facing mirror of managed slash command selectors.
 pub enum ManagedSlashCommand {
     SessionStatus,
     SessionBudget,
@@ -24,12 +26,14 @@ pub enum ManagedSlashCommand {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// Output rendering mode used by command parser fixtures.
 pub enum OutputFormat {
     Dashboard,
     Json,
 }
 
 impl OutputFormat {
+    /// Returns whether the fixture output requests JSON.
     #[must_use]
     pub const fn is_json(self) -> bool {
         matches!(self, Self::Json)
@@ -37,12 +41,16 @@ impl OutputFormat {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Parsed job-status command fixture.
 pub struct JobStatusCommand {
+    /// Target job identifier.
     pub job_id: String,
+    /// Requested output format.
     pub format: OutputFormat,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// Resume-context command fixture.
 pub enum ResumeContextCommand {
     Restore,
     Status,
@@ -50,18 +58,23 @@ pub enum ResumeContextCommand {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// Session feedback direction fixture.
 pub enum SessionFeedbackDirection {
     Up,
     Down,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// Parsed session feedback command fixture.
 pub struct SessionFeedbackCommand {
+    /// Feedback direction supplied by the command.
     pub direction: SessionFeedbackDirection,
+    /// Requested output format.
     pub format: OutputFormat,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// Session partition mode fixture.
 pub enum SessionPartitionMode {
     Chat,
     ChatUser,
@@ -70,6 +83,7 @@ pub enum SessionPartitionMode {
 }
 
 impl SessionPartitionMode {
+    /// Returns the canonical parser token for the partition mode.
     #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {
@@ -82,12 +96,16 @@ impl SessionPartitionMode {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Parsed session partition command fixture.
 pub struct SessionPartitionCommand {
+    /// Optional partition mode requested by the command.
     pub mode: Option<SessionPartitionMode>,
+    /// Requested output format.
     pub format: OutputFormat,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// Mention policy mode fixture for Telegram sessions.
 pub enum SessionMentionMode {
     Require,
     Open,
@@ -95,12 +113,16 @@ pub enum SessionMentionMode {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// Parsed session mention command fixture.
 pub struct SessionMentionCommand {
+    /// Optional mention policy mode.
     pub mode: Option<SessionMentionMode>,
+    /// Requested output format.
     pub format: OutputFormat,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Session administrator action fixture.
 pub enum SessionAdminAction {
     List,
     Set(Vec<String>),
@@ -110,12 +132,16 @@ pub enum SessionAdminAction {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Parsed session administrator command fixture.
 pub struct SessionAdminCommand {
+    /// Administrator action selected by the command.
     pub action: SessionAdminAction,
+    /// Requested output format.
     pub format: OutputFormat,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Session prompt-injection action fixture.
 pub enum SessionInjectionAction {
     Status,
     Clear,
@@ -123,8 +149,11 @@ pub enum SessionInjectionAction {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Parsed session prompt-injection command fixture.
 pub struct SessionInjectionCommand {
+    /// Prompt-injection action selected by the command.
     pub action: SessionInjectionAction,
+    /// Requested output format.
     pub format: OutputFormat,
 }
 

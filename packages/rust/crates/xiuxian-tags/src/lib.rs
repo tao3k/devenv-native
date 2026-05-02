@@ -29,7 +29,8 @@
 //! println!("{}", outline);
 //! ```
 
-xiuxian_testing::crate_test_policy_source_harness!("../tests/unit/lib_policy.rs");
+#[cfg(test)]
+rust_lang_project_harness::rust_project_harness_cargo_test_gate!();
 
 // ============================================================================
 // Module Declarations (ODF-REP: Atomic Structure)
@@ -37,6 +38,7 @@ xiuxian_testing::crate_test_policy_source_harness!("../tests/unit/lib_policy.rs"
 
 mod error;
 mod extractor;
+/// Language-specific ast-grep pattern constants and grouped pattern tables.
 pub mod patterns;
 mod types;
 

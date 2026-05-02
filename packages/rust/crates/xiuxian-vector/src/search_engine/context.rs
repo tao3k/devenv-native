@@ -1,3 +1,5 @@
+//! `DataFusion` session setup for Arrow-native search-plane batches.
+
 use std::path::Path;
 use std::sync::Arc;
 

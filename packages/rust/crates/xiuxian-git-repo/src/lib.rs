@@ -22,15 +22,15 @@ pub use lock::{
     checkout_lock_max_wait_with_lookup, is_descriptor_pressure_error, managed_lock_path_for,
 };
 pub use metadata::{
-    LocalCheckoutMetadata, ManagedRemoteProbeState, ManagedRemoteProbeStatus,
+    LocalCheckoutMetadata, ManagedRemoteProbeState, ManagedRemoteProbeStatus, RepoDriftState,
     clear_managed_remote_probe_state, discover_checkout_metadata,
     discover_managed_remote_probe_state, record_managed_remote_probe_failure,
     record_managed_remote_probe_state,
 };
 pub use spec::{RepoRefreshPolicy, RepoSpec, RevisionSelector};
 pub use sync::{
-    MaterializedRepo, RepoDriftState, RepoLifecycleState, RepoSourceKind, SyncMode,
-    resolve_repository_source,
+    MaterializedRepo, RepoLifecycleState, RepoSourceKind, SyncMode, resolve_repository_source,
 };
 
-xiuxian_testing::crate_test_policy_source_harness!("../tests/unit/lib_policy.rs");
+#[cfg(test)]
+rust_lang_project_harness::rust_project_harness_cargo_test_gate!();

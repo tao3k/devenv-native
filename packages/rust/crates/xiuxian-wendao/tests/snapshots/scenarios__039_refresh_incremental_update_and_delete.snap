@@ -1,5 +1,5 @@
 ---
-source: packages/rust/crates/xiuxian-testing/src/scenario.rs
+source: packages/rust/crates/xiuxian-wendao/tests/support/scenario.rs
 description: "Scenario 039_refresh_incremental_update_and_delete [refresh]: incremental update and delete"
 expression: result
 info:

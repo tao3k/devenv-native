@@ -4,8 +4,8 @@ use anyhow::{Context, Result};
 
 use crate::observability::SessionEvent;
 
-use super::super::summary::SessionSummarySegment;
 use super::BoundedSessionStore;
+use crate::session::SessionSummarySegment;
 
 impl BoundedSessionStore {
     /// Append a compact summary segment produced during consolidation.

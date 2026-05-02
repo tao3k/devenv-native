@@ -1,5 +1,5 @@
 ---
-source: packages/rust/crates/xiuxian-testing/src/scenario.rs
+source: packages/rust/crates/xiuxian-wendao/tests/support/scenario.rs
 description: "Scenario 014_search_core_phrase_specific [search_core]: Search Core Phrase Specific"
 expression: result
 info:

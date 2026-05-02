@@ -1,5 +1,5 @@
-use super::super::super::fixture_source;
 use super::support::assert_shape_bounds;
+use crate::dmn::fixture_source;
 use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{parse_dmn_decision, snapshot_dmn_source};
 

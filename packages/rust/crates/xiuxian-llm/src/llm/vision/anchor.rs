@@ -1,3 +1,5 @@
+//! Text anchor geometry for vision-grounded LLM outputs.
+
 use std::sync::Arc;
 
 /// OCR- or heuristic-extracted textual anchor used for visual grounding.

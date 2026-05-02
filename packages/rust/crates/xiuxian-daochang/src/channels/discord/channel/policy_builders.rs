@@ -1,3 +1,5 @@
+//! Discord channel policy builders from ACL config.
+
 use crate::channels::control_command_authorization::ControlCommandPolicy;
 use crate::channels::control_command_rule_specs::parse_control_command_rule;
 use crate::channels::managed_commands::{

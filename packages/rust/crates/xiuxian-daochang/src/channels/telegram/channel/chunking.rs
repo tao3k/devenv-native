@@ -1,3 +1,5 @@
+//! Telegram message chunking and caption preparation.
+
 use super::constants::{
     CHUNK_CONTINUED_PREFIX, CHUNK_CONTINUES_SUFFIX, TELEGRAM_MAX_MESSAGE_LENGTH,
 };

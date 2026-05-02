@@ -1,4 +1,8 @@
-use super::*;
+use super::{TEST_VALKEY_URL, clear_prefix, unique_prefix};
+use xiuxian_wendao::{
+    LinkGraphSuggestedLinkRequest, LinkGraphSuggestedLinkState,
+    valkey_suggested_link_log_with_valkey, valkey_suggested_link_recent_with_valkey,
+};
 
 #[test]
 fn test_suggested_link_log_roundtrip() -> Result<(), Box<dyn std::error::Error>> {

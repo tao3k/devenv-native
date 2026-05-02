@@ -1,15 +1,15 @@
 //! Search command execution handler.
 
-use crate::helpers::{
+use crate::bin_support::wendao::helpers::{
     build_optional_link_filter, build_optional_related_filter, build_optional_related_ppr_options,
     build_optional_tag_filter, emit, parse_sort_terms,
 };
-use crate::types::{Cli, Command, LinkGraphScopeArg};
-use anyhow::{Context, Result};
-use xiuxian_wendao::{
+use crate::bin_support::wendao::types::{Cli, Command, LinkGraphScopeArg};
+use crate::{
     LinkGraphIndex, LinkGraphMatchStrategy, LinkGraphScope, LinkGraphSearchFilters,
     LinkGraphSearchOptions,
 };
+use anyhow::{Context, Result};
 
 pub(super) fn handle(cli: &Cli, index: Option<&LinkGraphIndex>) -> Result<()> {
     let Command::Search(args) = &cli.command else {
@@ -85,7 +85,7 @@ pub(super) fn handle(cli: &Cli, index: Option<&LinkGraphIndex>) -> Result<()> {
         emit(&planned, cli.output_or_json())
     } else {
         let (parsed, hits) = index.search_planned(&args.query, args.limit, base_options);
-        if cli.output_or_json() == crate::types::OutputFormat::Json {
+        if cli.output_or_json() == crate::bin_support::wendao::types::OutputFormat::Json {
             emit(&hits, cli.output_or_json())
         } else {
             println!("Query: {}", parsed.query);

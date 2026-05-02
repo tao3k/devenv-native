@@ -1,3 +1,5 @@
+//! Public dmn model document root contracts for BPMN/DMN engine integration.
+
 use super::{
     DmnAssociationSnapshot, DmnBusinessKnowledgeModelSnapshot, DmnDecisionServiceSnapshot,
     DmnDmndiSnapshot, DmnElementCollectionSnapshot, DmnGroupSnapshot, DmnImportSnapshot,

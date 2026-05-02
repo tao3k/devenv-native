@@ -1,3 +1,5 @@
+//! Shared target-scope arguments for local document projection commands.
+
 use clap::Args;
 use std::path::PathBuf;
 

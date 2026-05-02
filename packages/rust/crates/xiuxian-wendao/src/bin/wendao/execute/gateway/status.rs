@@ -5,8 +5,8 @@ use std::sync::Arc;
 use axum::{Json, extract::State};
 use serde_json::json;
 
-use crate::execute::gateway::shared::AppState;
-use xiuxian_wendao::LinkGraphIndex;
+use crate::LinkGraphIndex;
+use crate::bin_support::wendao::execute::gateway::shared::AppState;
 
 /// Stats endpoint.
 pub(crate) async fn stats(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {

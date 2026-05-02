@@ -1,4 +1,8 @@
-use super::*;
+use super::{
+    ContractFeedbackCliCommand, DEFAULT_CONTRACT_FEEDBACK_TABLE_NAME, DirCliCommand,
+    MaterializeCliTarget, PathBuf, ShowCliTarget, must_ok, must_some,
+    parse_contract_feedback_command, parse_dir_command, to_args,
+};
 
 #[test]
 fn parse_rest_docs_contract_feedback_command_uses_defaults() {

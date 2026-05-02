@@ -1,4 +1,4 @@
-use super::support::*;
+use super::support::{generate_navigation_hint, validated_hit};
 
 #[test]
 fn test_generate_navigation_hint_invalid_anchor() {

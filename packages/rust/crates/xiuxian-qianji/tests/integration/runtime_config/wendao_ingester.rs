@@ -1,4 +1,6 @@
-use super::*;
+use super::{resolve_wendao, write_file};
+use tempfile::TempDir;
+use xiuxian_qianji::runtime_config::QianjiRuntimeEnv;
 
 #[test]
 fn runtime_wendao_config_uses_system_defaults() {

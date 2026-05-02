@@ -1,7 +1,7 @@
-use super::super::transport::{
+use super::DOCUMENT_EXTRACT_ENDPOINTS_ENV;
+use crate::gateway::studio::router::handlers::analysis::document_extract::provider::transport::{
     document_extract_endpoint_urls_with_lookup, endpoint_index_for_request,
 };
-use super::*;
 
 #[test]
 fn document_extract_endpoint_urls_default_to_primary_endpoint() {

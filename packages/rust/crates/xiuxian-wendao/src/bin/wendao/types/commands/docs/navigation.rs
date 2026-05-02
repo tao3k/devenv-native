@@ -1,6 +1,6 @@
 use clap::Args;
 
-use crate::types::ProjectionPageKindArg;
+use crate::bin_support::wendao::types::ProjectionPageKindArg;
 
 #[derive(Args, Debug, Clone)]
 pub(crate) struct DocsNavigationArgs {

@@ -4,8 +4,9 @@ use std::error::Error;
 use std::path::Path;
 
 use serde_json::{Value, json};
-use xiuxian_testing::{Scenario, ScenarioRunner};
 use xiuxian_wendao::LinkGraphIndex;
+
+use crate::scenarios::support::{Scenario, ScenarioRunner};
 
 /// Runner for search-related category scenarios.
 ///

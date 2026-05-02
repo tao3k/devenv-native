@@ -6,7 +6,7 @@ use crate::search::{
     SearchPlaneStatusSnapshot, SearchQueryTelemetry, SearchQueryTelemetrySource,
 };
 
-use super::helpers::*;
+use super::helpers::telemetry_attachment_status;
 
 #[test]
 fn response_maintenance_summary_rolls_up_queue_and_aging_state() {

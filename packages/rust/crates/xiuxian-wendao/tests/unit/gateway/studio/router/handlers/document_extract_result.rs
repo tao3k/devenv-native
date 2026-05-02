@@ -4,7 +4,10 @@ use arrow::array::{ArrayRef, Int32Array, StringArray};
 use arrow::datatypes::{DataType, Field, Schema};
 use arrow::ipc::writer::FileWriter;
 
-use super::*;
+use super::{
+    DOCUMENT_RESOURCE_ARROW_CACHE_NAME, File, RecordBatch, document_extract_resources_from_batch,
+    document_source_format, read_document_extract_resources, total_pages_from_resources,
+};
 
 #[test]
 fn document_source_format_normalizes_common_docling_suffixes() {

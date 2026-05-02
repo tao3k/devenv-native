@@ -1,3 +1,5 @@
+//! Markdown note aggregate DTOs.
+
 use crate::document::MarkdownDocument;
 use crate::references::MarkdownReference;
 use crate::sections::MarkdownSection;

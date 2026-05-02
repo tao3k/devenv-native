@@ -1,4 +1,7 @@
-use super::*;
+use super::{
+    AuditBridge, DefaultAuditBridge, FuzzySuggestionData, IssueLocation, SemanticIssue,
+    generate_batch_fixes,
+};
 
 #[test]
 fn test_default_audit_bridge_generate_fixes() {

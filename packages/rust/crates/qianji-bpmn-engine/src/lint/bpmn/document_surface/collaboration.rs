@@ -1,11 +1,12 @@
 //! Canonical `api` entry for collaboration document-surface evidence.
 
-use super::shared::{
+use super::{CollaborationCounts, SNAPSHOT_EVIDENCE_LIMIT};
+use crate::bpmn_model_api::{
     BpmnAssociationSnapshot, BpmnChoreographyActivitySnapshot, BpmnCollaborationSnapshot,
     BpmnConversationNodeSnapshot, BpmnDocumentSnapshot, BpmnGroupSnapshot, BpmnParticipantSnapshot,
     BpmnPartnerEntitySnapshot, BpmnPartnerRoleSnapshot, BpmnTextAnnotationSnapshot,
-    CollaborationCounts, SNAPSHOT_EVIDENCE_LIMIT, Value, json,
 };
+use serde_json::{Value, json};
 
 mod api;
 mod artifact;

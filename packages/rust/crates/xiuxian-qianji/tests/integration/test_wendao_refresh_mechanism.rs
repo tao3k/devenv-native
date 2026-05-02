@@ -13,8 +13,6 @@ fn write_file(path: &std::path::Path, content: &str) -> Result<(), Box<dyn std::
     Ok(())
 }
 
-xiuxian_testing::crate_test_policy_harness!();
-
 #[tokio::test]
 async fn wendao_refresh_returns_delta_when_changed_paths_present()
 -> Result<(), Box<dyn std::error::Error>> {

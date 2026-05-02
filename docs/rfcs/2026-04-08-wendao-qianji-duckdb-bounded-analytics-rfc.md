@@ -274,8 +274,9 @@ The currently landed Wendao slices are:
 37. a bounded performance-gate slice now compares the same deterministic
     synthetic Parquet fixture through the DataFusion and DuckDB
     `ParquetQueryEngine` lanes, emits durable perf reports through
-    `xiuxian-testing`, and enforces a configurable DuckDB/DataFusion p95
-    ratio budget without widening storage or protocol ownership
+    Wendao-owned performance support, and enforces a configurable
+    DuckDB/DataFusion p95 ratio budget without widening storage or protocol
+    ownership
 38. a bounded GraphQL execution cutover now keeps document parsing and
     GraphQL argument decoding adapter-local, but translates the resulting
     table query into SQL text and executes it through the shared SQL seam

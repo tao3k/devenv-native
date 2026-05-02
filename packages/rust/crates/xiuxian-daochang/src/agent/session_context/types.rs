@@ -1,3 +1,5 @@
+//! Session context snapshot and memory window types.
+
 use serde::{Deserialize, Serialize};
 use xiuxian_window::TurnSlot;
 

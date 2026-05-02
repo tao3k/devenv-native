@@ -1,3 +1,5 @@
+//! Markdown target occurrence DTOs.
+
 use serde::{Deserialize, Serialize};
 
 /// Parser-owned ordered target-occurrence contract shared across formats.

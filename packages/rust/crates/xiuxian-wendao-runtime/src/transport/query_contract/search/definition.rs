@@ -1,3 +1,5 @@
+//! Definition search route contract and metadata validation.
+
 /// Canonical definition-resolution query metadata header for Wendao Flight requests.
 pub const WENDAO_DEFINITION_QUERY_HEADER: &str = "x-wendao-definition-query";
 /// Canonical definition-resolution source-path metadata header for Wendao Flight requests.

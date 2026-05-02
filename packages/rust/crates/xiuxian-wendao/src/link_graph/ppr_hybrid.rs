@@ -4,7 +4,7 @@
 use petgraph::Direction;
 use petgraph::stable_graph::{NodeIndex, StableGraph};
 use petgraph::visit::{EdgeRef, NodeIndexable};
-use rayon::prelude::*;
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use std::collections::HashMap;
 
 /// Types of nodes in the `HippoRAG` 2 mixed graph.

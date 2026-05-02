@@ -1,6 +1,6 @@
 //! LLM backend parsing tests.
 
-use xiuxian_llm::llm::backend::{LlmBackendKind, parse_llm_backend_kind};
+use xiuxian_llm::llm::{LlmBackendKind, parse_llm_backend_kind};
 
 #[test]
 fn parse_llm_backend_kind_supports_http_aliases() {

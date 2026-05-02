@@ -2,11 +2,11 @@
 
 use std::sync::Arc;
 
+use crate::contract_feedback::{AdvisoryAuditExecutor, AdvisoryAuditRequest, RoleAuditFinding};
 use anyhow::Result;
 use async_trait::async_trait;
 use futures::StreamExt;
 use xiuxian_llm::llm::{ChatRequest, LlmClient};
-use xiuxian_testing::{AdvisoryAuditExecutor, AdvisoryAuditRequest, RoleAuditFinding};
 use xiuxian_zhenfa::ZhenfaPipeline;
 
 use super::{QianjiAdvisoryAuditExecutor, QianjiAdvisoryExecutionPlan, QianjiAdvisoryRolePlan};

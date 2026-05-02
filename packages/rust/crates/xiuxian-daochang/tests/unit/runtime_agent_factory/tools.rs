@@ -1,6 +1,6 @@
 use crate::RuntimeSettings;
 
-use super::*;
+use super::resolve_runtime_tool_options;
 
 #[test]
 fn resolve_runtime_tool_options_uses_expected_defaults() {

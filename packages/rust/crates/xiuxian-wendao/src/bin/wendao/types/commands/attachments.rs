@@ -1,4 +1,4 @@
-use super::super::enums::AttachmentKindArg;
+use crate::bin_support::wendao::types::AttachmentKindArg;
 use clap::Args;
 
 #[derive(Args, Debug)]

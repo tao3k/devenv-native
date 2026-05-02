@@ -1,3 +1,5 @@
+//! Notification dispatch loop for agent state change events.
+
 use std::sync::Arc;
 
 use anyhow::Result;

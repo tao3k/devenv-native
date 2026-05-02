@@ -1,9 +1,16 @@
+use crate::repo_index::{RepoIndexPhase, RepoIndexStatusResponse};
 use crate::search::service::tests::status::helpers::{
     assert_manifest_missing_status, assert_revision_mismatch_status, ready_repo_status,
     sample_repo_documents,
 };
 use crate::search::service::tests::status::repo_content::helpers::test_service;
-use crate::search::service::tests::support::*;
+use crate::search::service::tests::support::{
+    assert_status_reason, corpus_status, publish_repo_bundle, repo_status_entry,
+};
+use crate::search::{
+    SearchCorpusKind, SearchCorpusStatusAction, SearchCorpusStatusReasonCode,
+    SearchCorpusStatusSeverity, SearchPlanePhase,
+};
 
 #[tokio::test]
 async fn status_with_repo_content_keeps_published_metadata_while_repo_refreshes() {

@@ -1,3 +1,5 @@
+//! Metadata attribute constants used by Zhixing-Heyi task synchronization.
+
 /// Unified Journaling Syntax key for carryover count.
 pub const ATTR_JOURNAL_CARRYOVER: &str = "journal:carryover";
 /// Key for scheduled time metadata in RFC3339 format.

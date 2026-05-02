@@ -1,9 +1,8 @@
+//! Builder helpers for keyword-overlap graph-structural request rows.
+
 use arrow::record_batch::RecordBatch;
 use xiuxian_wendao_core::repo_intelligence::RepoIntelligenceError;
 
-use super::super::graph_structural_exchange::{
-    GraphStructuralRerankRequestRow, build_graph_structural_rerank_request_batch,
-};
 use super::overlap::{
     GraphStructuralKeywordOverlapCandidateInputs, GraphStructuralKeywordOverlapPairInputs,
     GraphStructuralKeywordOverlapPairRequestInputs, GraphStructuralKeywordOverlapPairRerankInputs,
@@ -13,6 +12,7 @@ use super::overlap::{
 use super::pair::{GraphStructuralKeywordTagQueryInputs, GraphStructuralPairCandidateInputs};
 use super::pair_builders::build_graph_structural_keyword_tag_pair_rerank_request_row;
 use super::support::normalize_string_list;
+use crate::{GraphStructuralRerankRequestRow, build_graph_structural_rerank_request_batch};
 
 /// Return normalized shared tags between the left and right metadata slices.
 ///

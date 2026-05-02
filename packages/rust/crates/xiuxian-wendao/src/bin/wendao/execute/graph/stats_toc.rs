@@ -1,9 +1,9 @@
 //! Stats and table-of-contents command handlers.
 
-use crate::helpers::emit;
-use crate::types::Cli;
+use crate::LinkGraphIndex;
+use crate::bin_support::wendao::helpers::emit;
+use crate::bin_support::wendao::types::Cli;
 use anyhow::{Context, Result};
-use xiuxian_wendao::LinkGraphIndex;
 
 pub(super) fn handle_stats(cli: &Cli, index: Option<&LinkGraphIndex>) -> Result<()> {
     let index = index.context("link_graph index is required for stats command")?;

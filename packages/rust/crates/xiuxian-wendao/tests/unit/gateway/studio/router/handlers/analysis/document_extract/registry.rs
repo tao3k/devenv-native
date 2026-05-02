@@ -1,4 +1,4 @@
-use super::*;
+use super::{DocumentExtractJobRegistry, fs};
 
 #[test]
 fn document_extract_registry_deduplicates_same_content_job() -> Result<(), String> {

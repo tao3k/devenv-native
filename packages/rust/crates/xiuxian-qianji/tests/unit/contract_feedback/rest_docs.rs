@@ -3,11 +3,13 @@ use super::{
     build_rest_docs_contract_suite, run_and_persist_rest_docs_contract_feedback,
     run_rest_docs_contract_feedback,
 };
+use crate::contract_feedback::{
+    CollectionContext, ContractRunConfig, NoopAdvisoryAuditExecutor, RulePack,
+};
 use crate::sovereign::InMemoryContractFeedbackSink;
 use std::fs;
 use std::path::PathBuf;
 use tempfile::TempDir;
-use xiuxian_testing::{CollectionContext, ContractRunConfig, NoopAdvisoryAuditExecutor, RulePack};
 
 fn must_ok<T, E: std::fmt::Display>(result: Result<T, E>, context: &str) -> T {
     result.unwrap_or_else(|error| panic!("{context}: {error}"))

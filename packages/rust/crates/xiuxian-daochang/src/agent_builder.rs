@@ -1,1 +1,1 @@
-pub use xiuxian_daochang::build_agent;
+pub use crate::build_agent;

@@ -13,8 +13,6 @@ pub struct FormalAuditMechanism {
     pub retry_target_ids: Vec<String>,
 }
 
-xiuxian_testing::crate_test_policy_harness!();
-
 #[async_trait]
 impl QianjiMechanism for FormalAuditMechanism {
     async fn execute(&self, context: &serde_json::Value) -> Result<QianjiOutput, String> {
@@ -63,8 +61,10 @@ impl QianjiMechanism for FormalAuditMechanism {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::FormalAuditMechanism;
     use serde_json::json;
+    use xiuxian_qianji::contracts::{FlowInstruction, QianjiMechanism};
+    use xiuxian_qianji::safety::logic::Invariant;
 
     #[tokio::test]
     async fn test_formal_audit_passes() -> Result<(), String> {

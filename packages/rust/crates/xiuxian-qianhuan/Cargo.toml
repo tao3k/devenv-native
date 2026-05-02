@@ -30,9 +30,9 @@ redis = { workspace = true }
 xiuxian-zhenfa = { path = "../xiuxian-zhenfa", optional = true }
 xiuxian-wendao = { path = "../xiuxian-wendao", optional = true }
 xiuxian-wendao-core = { path = "../xiuxian-wendao-core", optional = true }
-xiuxian-testing = { path = "../xiuxian-testing" }
 
 [dev-dependencies]
+rust-lang-project-harness = { workspace = true }
 tempfile = { workspace = true }
 serde_json = { workspace = true }
 tokio = { workspace = true, features = ["macros", "rt"] }

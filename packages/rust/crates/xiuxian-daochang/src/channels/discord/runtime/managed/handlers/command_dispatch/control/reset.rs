@@ -3,9 +3,9 @@ use std::sync::Arc;
 use crate::agent::Agent;
 use crate::channels::traits::{Channel, ChannelMessage};
 
-use super::super::super::auth::ensure_control_command_authorized;
-use super::super::super::events::EVENT_DISCORD_COMMAND_SESSION_RESET_REPLIED;
-use super::super::super::send::send_response;
+use crate::channels::discord::runtime::managed::handlers::auth::ensure_control_command_authorized;
+use crate::channels::discord::runtime::managed::handlers::events::EVENT_DISCORD_COMMAND_SESSION_RESET_REPLIED;
+use crate::channels::discord::runtime::managed::handlers::send::send_response;
 
 pub(in super::super) async fn handle_reset(
     agent: &Arc<Agent>,

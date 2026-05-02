@@ -1,3 +1,5 @@
+//! Discord managed job-command branch for status and summary handling.
+
 mod status;
 mod submit;
 mod summary;

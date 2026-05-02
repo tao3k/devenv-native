@@ -1,11 +1,17 @@
-use super::*;
+use std::io::Write;
+use std::time::{Duration, Instant};
+
+use tempfile::NamedTempFile;
+use xiuxian_wendao::dependency_indexer::extract_symbols;
+
+use super::generate_rust_test_file;
 
 #[test]
 fn test_rust_symbol_extraction_performance() -> Result<(), Box<dyn std::error::Error>> {
     const FILE_COUNT: usize = 50;
     const LINES_PER_FILE: usize = 500;
 
-    let start = std::time::Instant::now();
+    let start = Instant::now();
 
     // Create and process multiple test files
     let mut temp_files = Vec::new();
@@ -30,7 +36,7 @@ fn test_rust_symbol_extraction_performance() -> Result<(), Box<dyn std::error::E
 
     // Performance assertion: should process 50 files with 500 lines each in under 2 seconds
     // This is generous to account for slower CI environments
-    let max_duration = std::time::Duration::from_secs(2);
+    let max_duration = Duration::from_secs(2);
     assert!(
         elapsed < max_duration,
         "Rust symbol extraction took {:.2}s, expected < 2s for {} files x {} lines",

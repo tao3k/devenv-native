@@ -4,8 +4,8 @@ use std::io;
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::path::Path;
 
+use super::{PerfBudget, PerfReport, PerfRunConfig, assert_perf_budget, run_sync_budget};
 use serde_json::Value;
-use xiuxian_testing::{PerfBudget, PerfReport, PerfRunConfig, assert_perf_budget, run_sync_budget};
 
 pub(crate) const REPO_MODULE_SEARCH_CASE: &str = "repo_module_search_formal";
 pub(crate) const REPO_SYMBOL_SEARCH_CASE: &str = "repo_symbol_search_formal";

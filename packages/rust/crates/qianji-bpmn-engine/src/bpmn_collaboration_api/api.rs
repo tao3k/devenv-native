@@ -1,3 +1,5 @@
+//! Public bpmn collaboration api contracts for BPMN/DMN engine integration.
+
 use std::sync::Arc;
 
 /// Package-owned host envelope for BPMN collaboration metadata.

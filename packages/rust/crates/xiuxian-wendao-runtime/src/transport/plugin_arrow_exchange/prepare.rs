@@ -1,3 +1,5 @@
+//! Request-row preparation helpers for Plugin Arrow exchange scoring.
+
 use std::fmt;
 
 use arrow_array::RecordBatch;

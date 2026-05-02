@@ -7,7 +7,7 @@ use crate::parser::import::{
 use std::collections::HashMap;
 
 #[derive(Clone, Copy, Debug)]
-pub(super) struct CallActivityOwner<'a> {
+pub(in crate::parser) struct CallActivityOwner<'a> {
     pub(super) process_id: &'a str,
     pub(super) node_id: &'a str,
 }
@@ -48,7 +48,7 @@ impl SupportedErrorOwner {
     }
 }
 
-pub(super) fn collect_call_activity_owners(
+pub(in crate::parser) fn collect_call_activity_owners(
     raw: &RawPackageDocument,
 ) -> HashMap<&str, Vec<CallActivityOwner<'_>>> {
     let mut owners = HashMap::new();
@@ -71,7 +71,7 @@ pub(super) fn collect_call_activity_owners(
     owners
 }
 
-pub(super) fn validate_supported_error_end_paths(
+pub(in crate::parser) fn validate_supported_error_end_paths(
     process: &RawProcess,
     process_by_id: &HashMap<&str, &RawProcess>,
     call_activity_owners: &HashMap<&str, Vec<CallActivityOwner<'_>>>,

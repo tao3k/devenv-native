@@ -6,7 +6,7 @@ use crate::analyzers::{ModuleRecord, SymbolRecord};
 use crate::search::{SearchDocument, SearchDocumentIndex};
 use std::collections::BTreeMap;
 
-use super::super::helpers::{
+use crate::analyzers::service::{
     example_match_score, example_relation_lookup, related_modules_for_example,
     related_symbols_for_example,
 };

@@ -1,4 +1,4 @@
 //! Top-level integration tests for `channels::telegram::runtime`.
 
-#[path = "channels/telegram/runtime/tests/mod.rs"]
+#[path = "channels/telegram/runtime/cases/mod.rs"]
 mod tests;

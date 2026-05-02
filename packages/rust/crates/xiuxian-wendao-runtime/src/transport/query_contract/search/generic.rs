@@ -1,3 +1,5 @@
+//! Generic search-family route contracts and shared metadata validation.
+
 /// Canonical generic search query text metadata header for Wendao Flight requests.
 pub const WENDAO_SEARCH_QUERY_HEADER: &str = "x-wendao-search-query";
 /// Canonical generic search result-limit metadata header for Wendao Flight requests.

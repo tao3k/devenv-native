@@ -1,9 +1,9 @@
+//! OpenAI-compatible provider construction and Responses API transport.
+
 #[cfg(feature = "provider-litellm")]
-use crate::llm::error::sanitize_user_visible;
+use crate::llm::{Base64ImageSource, resolve_image_source_to_base64};
 #[cfg(feature = "provider-litellm")]
-use crate::llm::error::{LlmError, LlmResult};
-#[cfg(feature = "provider-litellm")]
-use crate::llm::multimodal::{Base64ImageSource, resolve_image_source_to_base64};
+use crate::llm::{LlmError, LlmResult, sanitize_user_visible};
 #[cfg(feature = "provider-litellm")]
 use litellm_rs::core::providers::openai_like::{OpenAILikeConfig, OpenAILikeProvider};
 #[cfg(feature = "provider-litellm")]

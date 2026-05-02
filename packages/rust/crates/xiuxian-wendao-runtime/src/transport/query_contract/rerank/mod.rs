@@ -1,3 +1,5 @@
+//! Rerank route contract, schema, and scoring boundary for Wendao Flight.
+
 mod contract;
 mod request;
 mod response;

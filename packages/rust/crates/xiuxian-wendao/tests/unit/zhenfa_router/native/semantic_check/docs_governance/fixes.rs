@@ -1,4 +1,22 @@
-use crate::zhenfa_router::native::semantic_check::docs_governance::tests::support::*;
+use std::collections::HashMap;
+use std::fs;
+
+use tempfile::TempDir;
+use xiuxian_zhenfa::ZhenfaContext;
+
+use crate::link_graph::LinkGraphIndex;
+use crate::parsers::docs_governance::derive_opaque_doc_id;
+use crate::zhenfa_router::native::audit::fix::AtomicFixBatch;
+use crate::zhenfa_router::native::audit::generate_surgical_fixes;
+use crate::zhenfa_router::native::semantic_check::docs_governance::collection::collect_stale_index_footer_standards;
+use crate::zhenfa_router::native::semantic_check::docs_governance::tests::support::PanicExt;
+use crate::zhenfa_router::native::semantic_check::docs_governance::{
+    DOC_IDENTITY_PROTOCOL_ISSUE_TYPE, STALE_PACKAGE_DOCS_INDEX_FOOTER_STANDARDS_ISSUE_TYPE,
+    collect_doc_governance_issues,
+};
+use crate::zhenfa_router::native::semantic_check::{
+    CheckType, WendaoSemanticCheckArgs, run_audit_core,
+};
 
 #[test]
 fn surgical_fixes_repair_non_opaque_doc_identity() {

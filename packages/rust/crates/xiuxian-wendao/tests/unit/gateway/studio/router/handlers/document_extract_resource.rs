@@ -1,4 +1,4 @@
-use super::*;
+use super::resolve_resource_file;
 
 #[test]
 fn resolve_resource_file_accepts_paths_inside_extraction_root() {

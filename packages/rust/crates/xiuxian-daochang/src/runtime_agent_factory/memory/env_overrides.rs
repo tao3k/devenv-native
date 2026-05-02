@@ -4,7 +4,7 @@ use crate::env_parse::{
     parse_bool_from_env, parse_positive_f32_from_env, parse_positive_u32_from_env,
     parse_positive_u64_from_env, parse_positive_usize_from_env, parse_unit_f32_from_env,
 };
-use crate::runtime_agent_factory::shared::non_empty_env;
+use crate::runtime_agent_factory::env_lookup::non_empty_env;
 
 pub(super) fn apply_memory_env_overrides(memory: &mut MemoryConfig) {
     apply_memory_env_embedding_overrides(memory);

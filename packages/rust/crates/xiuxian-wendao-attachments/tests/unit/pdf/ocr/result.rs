@@ -1,4 +1,10 @@
-use super::*;
+use arrow::array::Array;
+
+use super::{
+    PDF_OCR_SHARD_RESULT_SCHEMA_VERSION, PdfOcrShardResult, PdfOcrWorkerProfile, assert_close,
+    build_ocr_result_resource_batch, build_ocr_shard_inputs, build_ocr_shard_result_batch,
+    decode_ocr_shard_result_batch, float64_column, sample_manifest, string_column,
+};
 
 #[test]
 fn document_extract_pdf_ocr_result_batch_preserves_success_and_failure() -> Result<(), String> {

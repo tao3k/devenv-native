@@ -40,6 +40,13 @@ those languages through `WendaoCodeParser.jl` native routes consumed by
 - `cargo test -p xiuxian-ast`
 - `cargo clippy -p xiuxian-ast --lib --tests -- -D warnings`
 
+## Project Harness Boundary
+
+`xiuxian-ast` uses `rust-lang-project-harness` for project-policy gates. The
+source and test gate roots run without disabled rules. Public ast-grep
+re-exports are explicit, fingerprinting has an owner doc, and nested unit tests
+import package APIs directly so harness facts stay tied to owner modules.
+
 ## License
 
 Apache-2.0

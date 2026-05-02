@@ -40,7 +40,6 @@ members = [
   "packages/rust/crates/xiuxian-memory",
   "packages/rust/crates/xiuxian-zhixing",
   "packages/rust/crates/xiuxian-zhenfa",
-  "packages/rust/crates/xiuxian-testing",
 ]
 
 # Workspace package metadata (inherited by all crates)
@@ -177,6 +176,7 @@ insta = { version = "1.46.3", features = ["json", "redactions"] }
 serial_test = { version = "3", features = ["file_locks"] }
 criterion = { version = "0.5", features = ["html_reports"] }
 hdrhistogram = "7.5"
+rust-lang-project-harness = { git = "https://github.com/tao3k/rust-lang-project-harness", rev = "7b5313bb543e729583da630164629e5db40d627b" }
 
 
 # Performance optimization - Thin LTO for reduced memory

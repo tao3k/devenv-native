@@ -1,3 +1,5 @@
+//! Job manager queue and record types.
+
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
 use anyhow::Result;

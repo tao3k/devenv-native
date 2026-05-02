@@ -1,3 +1,5 @@
+//! `OpenAI` `LiteLLM` provider construction and endpoint routing.
+
 #[cfg(feature = "provider-litellm")]
 use crate::llm::error::sanitize_user_visible;
 #[cfg(feature = "provider-litellm")]

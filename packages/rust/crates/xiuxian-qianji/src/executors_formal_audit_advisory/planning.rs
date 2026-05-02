@@ -1,10 +1,11 @@
+use crate::contract_feedback::{
+    AdvisoryAuditRequest, ContractFinding, EvidenceKind, FindingEvidence, FindingSeverity,
+    RoleAuditFinding,
+};
 use anyhow::{Result, anyhow};
 use xiuxian_qianhuan::{
     PersonaProfile, PromptContextBlock, PromptContextCategory, PromptContextSource, RoleMixProfile,
     RoleMixRole,
-};
-use xiuxian_testing::{
-    AdvisoryAuditRequest, ContractFinding, EvidenceKind, FindingEvidence, RoleAuditFinding,
 };
 
 use super::helpers::{
@@ -95,9 +96,7 @@ impl QianjiAdvisoryAuditExecutor {
                     role_plan.role_id.clone(),
                     primary_finding
                         .as_ref()
-                        .map_or(xiuxian_testing::FindingSeverity::Warning, |finding| {
-                            finding.severity
-                        }),
+                        .map_or(FindingSeverity::Warning, |finding| finding.severity),
                     advisory_summary(role_plan, request.findings.len(), primary_finding.as_ref()),
                 );
 

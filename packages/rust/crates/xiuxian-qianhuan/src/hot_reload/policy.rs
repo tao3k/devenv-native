@@ -1,3 +1,5 @@
+//! Hot-reload watch-pattern and extension normalization policy.
+
 use std::collections::HashSet;
 
 /// Resolve normalized watch extension allowlist.

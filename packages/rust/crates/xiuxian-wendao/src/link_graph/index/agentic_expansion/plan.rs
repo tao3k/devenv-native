@@ -1,7 +1,7 @@
-use super::super::LinkGraphIndex;
 use crate::link_graph::agentic::{
     LinkGraphAgenticCandidatePair, LinkGraphAgenticExpansionConfig, LinkGraphAgenticExpansionPlan,
 };
+use crate::link_graph::index::LinkGraphIndex;
 use std::cmp::Ordering;
 use std::collections::HashSet;
 use std::time::Instant;

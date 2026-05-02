@@ -1,11 +1,9 @@
-use crate::types::{Cli, FixArgs};
+use crate::bin_support::wendao::types::{Cli, FixArgs};
+use crate::link_graph::LinkGraphIndex;
+use crate::zhenfa_router::native::audit::fix::{AtomicFixBatch, format_fix_preview};
+use crate::zhenfa_router::native::audit::generate_surgical_fixes;
+use crate::zhenfa_router::native::semantic_check::{WendaoSemanticCheckArgs, run_audit_core};
 use anyhow::Result;
-use xiuxian_wendao::link_graph::LinkGraphIndex;
-use xiuxian_wendao::zhenfa_router::native::audit::fix::{AtomicFixBatch, format_fix_preview};
-use xiuxian_wendao::zhenfa_router::native::audit::generate_surgical_fixes;
-use xiuxian_wendao::zhenfa_router::native::semantic_check::{
-    WendaoSemanticCheckArgs, run_audit_core,
-};
 use xiuxian_zhenfa::ZhenfaContext;
 
 pub(super) fn handle(_cli: &Cli, args: &FixArgs, index: Option<&LinkGraphIndex>) -> Result<()> {

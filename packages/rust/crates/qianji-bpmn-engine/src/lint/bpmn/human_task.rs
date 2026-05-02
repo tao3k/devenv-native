@@ -1,8 +1,8 @@
 //! Canonical api seam for BPMN human-task lint checks.
 
-use crate::bpmn_parse_api::BpmnSourceFile;
-use crate::error::BpmnEngineError;
-use crate::lint_api::{LintIssue, LintSourceDiagnostic, LintSourceSpan};
+use crate::BpmnEngineError;
+use crate::BpmnSourceFile;
+use crate::{LintIssue, LintSourceDiagnostic, LintSourceSpan};
 use quick_xml::Reader;
 use quick_xml::events::{BytesStart, Event};
 use serde_json::json;

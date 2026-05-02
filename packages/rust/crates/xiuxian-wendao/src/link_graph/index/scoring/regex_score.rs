@@ -1,4 +1,4 @@
-use super::super::LinkGraphDocument;
+use crate::link_graph::index::LinkGraphDocument;
 use regex::Regex;
 
 pub(in crate::link_graph::index) fn score_document_regex(

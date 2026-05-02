@@ -1,10 +1,12 @@
+//! Process-managed WendaoSearch example services used by integration tests.
+
 use std::env;
 use std::process::{Command, Stdio};
 
 use serde_json::json;
 use xiuxian_wendao_core::repo_intelligence::{RegisteredRepository, RepositoryPluginConfig};
 
-use super::common::{
+use super::service_runtime::{
     JuliaExampleServiceGuard, repo_root, reserve_service_port,
     wait_for_service_ready_with_attempts, wendaosearch_julia_project,
     wendaosearch_parser_summary_contract, wendaosearch_script,
@@ -232,6 +234,10 @@ async fn spawn_wendaosearch_parser_summary_service(
         .arg(code_parser_route_names.join(","))
         .current_dir(repo_root())
         .env("JULIA_LOAD_PATH", "@:@stdlib")
+        .env(
+            "JULIA_NUM_THREADS",
+            env::var("WENDAOSEARCH_JULIA_NUM_THREADS").unwrap_or_else(|_| "8".to_string()),
+        )
         .env("WENDAO_SEARCH_USE_ACTIVE_PROJECT", "1")
         .stdout(Stdio::null())
         .stderr(Stdio::null())
@@ -268,7 +274,7 @@ fn wait_for_modelica_parser_summary_route_ready(base_url: &str) -> Result<(), St
 
     let analysis = fetch_modelica_ast_query_analysis_blocking_for_repository(
         &repository,
-        MODELICA_PARSER_SUMMARY_READY_SOURCE_ID,
+        MODELICA_PARSER_SUMMARY_READY_SOURCE_ID.into(),
         MODELICA_PARSER_SUMMARY_READY_SOURCE,
     )
     .map_err(|error| {

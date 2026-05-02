@@ -1,4 +1,4 @@
-use super::*;
+use xiuxian_ast::Lang;
 
 #[test]
 fn test_lang_all_returns_supported_languages_in_stable_order() {

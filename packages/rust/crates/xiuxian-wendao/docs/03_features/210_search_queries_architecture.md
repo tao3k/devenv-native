@@ -940,7 +940,7 @@ metadata idle while preserving the repo-backed compaction status path.
 The next bounded performance-gate slice is landed too. The Wendao performance
 suite now compares the DataFusion and DuckDB `ParquetQueryEngine` lanes over
 the same deterministic synthetic Parquet fixture, emits durable perf reports
-through the shared `xiuxian-testing` harness, and enforces a configurable
+through Wendao's local performance support, and enforces a configurable
 DuckDB/DataFusion p95 ratio budget at the execution seam itself. This keeps
 performance evidence attached to the bounded query-engine surface without
 widening protocol or storage ownership.
@@ -949,7 +949,7 @@ The next bounded FlightSQL performance-gate slice is landed too. Wendao now
 also benchmarks the routed single-table `CommandStatementQuery` surface over a
 Julia parser-summary-aware gateway perf fixture, so the same published
 repo-content source-table statement executes through both DataFusion and
-DuckDB under the shared `xiuxian-testing` harness. The gate stays narrow: it
+DuckDB under Wendao's local performance support. The gate stays narrow: it
 measures only the already-routed FlightSQL statement seam, emits durable perf
 reports, and enforces a configurable DuckDB/DataFusion p95 ratio budget
 without widening FlightSQL planning or storage ownership.

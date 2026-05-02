@@ -1,3 +1,5 @@
+//! SQL query route contract boundary for Wendao Flight metadata.
+
 mod headers;
 #[cfg(feature = "transport")]
 mod validation;

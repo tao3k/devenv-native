@@ -1,4 +1,7 @@
+//! Compatibility contracts for Julia-backed link-graph rerank and gateway artifacts.
+
 mod artifact;
+mod deployment;
 mod launch;
 mod openapi_examples;
 mod paths;
@@ -10,9 +13,11 @@ mod settings;
 mod tests;
 
 pub use artifact::{
-    DEFAULT_JULIA_DEPLOYMENT_ARTIFACT_SCHEMA_VERSION, LinkGraphJuliaDeploymentArtifact,
     render_julia_plugin_artifact_toml_for_selector, resolve_julia_deployment_artifact_payload,
     resolve_julia_plugin_artifact_payload_for_selector,
+};
+pub use deployment::{
+    DEFAULT_JULIA_DEPLOYMENT_ARTIFACT_SCHEMA_VERSION, LinkGraphJuliaDeploymentArtifact,
 };
 pub use launch::{LinkGraphJuliaSearchLaunchManifest, LinkGraphJuliaSearchServiceDescriptor};
 pub use openapi_examples::{

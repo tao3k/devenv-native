@@ -1,7 +1,10 @@
 use std::sync::Arc;
 
-use super::super::super::pdf_ocr_cache::PdfOcrShardCache;
-use super::*;
+use super::{
+    DOCUMENT_EXTRACT_PDF_OCR_WORKERS_ENV, PdfOcrWorkerScheduler, endpoint_index_for_request,
+    pdf_ocr_worker_limit_with_lookup, source_pdf_page_range_chunks,
+};
+use crate::gateway::studio::router::handlers::analysis::document_extract::pdf_ocr_cache::PdfOcrShardCache;
 use xiuxian_wendao_attachments::pdf::ocr::{PDF_OCR_SHARD_INPUT_SCHEMA_VERSION, PdfOcrShardInput};
 
 #[test]

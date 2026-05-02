@@ -1,3 +1,5 @@
+//! Julia memory calibration transport contract and row processing.
+
 use std::sync::Arc;
 
 use arrow::array::{Array, StringArray};

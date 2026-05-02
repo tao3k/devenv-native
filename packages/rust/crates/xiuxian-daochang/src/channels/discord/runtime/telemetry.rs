@@ -11,7 +11,7 @@ const RUNTIME_SNAPSHOT_INTERVAL_ENV: &str =
     "XIUXIAN_DAOCHANG_DISCORD_RUNTIME_SNAPSHOT_INTERVAL_SECS";
 const DEFAULT_RUNTIME_SNAPSHOT_INTERVAL_SECS: u64 = 30;
 
-pub(super) fn snapshot_interval_from_env() -> Option<Duration> {
+pub(crate) fn snapshot_interval_from_env() -> Option<Duration> {
     resolve_snapshot_interval_secs(|name| std::env::var(name).ok()).map(Duration::from_secs)
 }
 

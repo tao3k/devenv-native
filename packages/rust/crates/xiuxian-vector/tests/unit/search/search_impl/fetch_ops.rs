@@ -1,4 +1,4 @@
-use super::*;
+use crate::VectorStore;
 use anyhow::Result;
 
 #[tokio::test]

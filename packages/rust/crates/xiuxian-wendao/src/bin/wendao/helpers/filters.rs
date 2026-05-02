@@ -1,5 +1,5 @@
-use super::super::types::RelatedPprSubgraphModeArg;
-use xiuxian_wendao::{
+use crate::bin_support::wendao::types::RelatedPprSubgraphModeArg;
+use crate::{
     LinkGraphLinkFilter, LinkGraphPprSubgraphMode, LinkGraphRelatedFilter,
     LinkGraphRelatedPprOptions, LinkGraphTagFilter,
 };

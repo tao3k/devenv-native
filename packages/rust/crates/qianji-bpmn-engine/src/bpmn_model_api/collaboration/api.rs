@@ -1,3 +1,5 @@
+//! Public bpmn model api collaboration contracts for BPMN/DMN engine integration.
+
 use super::artifact::{BpmnAssociationSnapshot, BpmnGroupSnapshot, BpmnTextAnnotationSnapshot};
 
 /// Snapshot of one BPMN `collaboration`.

@@ -93,7 +93,7 @@ For the full three-package boundary matrix, see
 ## Transport Server Test Layout
 
 The transport server tests now follow a feature-folder layout under
-`src/tests/transport/server/` instead of a single flat `server.rs`.
+`tests/unit/lib/transport/server/` instead of a single flat `server.rs`.
 
 - `assertions.rs`: shared test assertions and Flight decoding helpers
 - `construction.rs`: service-construction boundaries
@@ -109,9 +109,9 @@ The transport server tests now follow a feature-folder layout under
 The query-contract surface now follows the same folder-first rule.
 `src/transport/query_contract.rs` is only the stable re-export seam, while the
 implementation lives under `src/transport/query_contract/` and the contract
-tests live under `src/transport/query_contract/tests/`.
+tests live under `tests/unit/transport/query_contract/`.
 
-- `common.rs`: route normalization plus descriptor helpers
+- `metadata.rs`: route normalization plus descriptor helpers
 - `search/`: repo search, attachments, definition, autocomplete, and AST
   contract constants
 - `query/`: SQL query contract
@@ -124,14 +124,34 @@ tests live under `src/transport/query_contract/tests/`.
 - `rerank/`: rerank schema, batch validation, and scoring
 - `tests/`: query contract coverage split by the same feature families
 
+## Project Policy Gate
+
+The crate uses `rust-lang-project-harness` as its active project-policy gate
+with no disabled-rule baseline. The gate is mounted from the library, root
+unit-test target, and shared lib-policy test target.
+
+The strict gate requires all diagnostics to be closed, including informational
+agent-policy output. Current owner-boundary fixes include:
+
+- `src/bin/wendao_flight_server.rs` stays a thin entrypoint and delegates to
+  `src/transport/server/sample_host.rs`
+- the Flight service implementation lives in
+  `src/transport/server/flight/service.rs` rather than a repeated
+  `transport` module segment
+- scalar config helpers and shared query metadata use responsibility-specific
+  module names
+- runtime source modules carry concise intent docs for agent traversal
+- tests use explicit owner paths instead of deep `super::super` imports
+
 ## Verification
 
 Current runtime verification for this lane:
 
-- `direnv exec . cargo clippy -p xiuxian-wendao-runtime --tests --features transport -- -D warnings`
-- `direnv exec . cargo test -p xiuxian-wendao-runtime --features transport`
-- `direnv exec . cargo test -p xiuxian-wendao-runtime query_contract --features transport`
-- `direnv exec . cargo clippy -p xiuxian-wendao -p xiuxian-wendao-runtime --all-targets --all-features -- -D warnings`
+- `cargo test -p xiuxian-wendao-runtime enforce_rust_project_harness_gate -- --nocapture`
+- `cargo test -p xiuxian-wendao-runtime --lib --test unit_test`
+- `cargo test -p xiuxian-wendao-runtime --all-features`
+- `cargo fmt --package xiuxian-wendao-runtime --check`
+- `cargo clippy -p xiuxian-wendao-runtime --all-targets --all-features -- -D warnings`
 
 The `plugin_arrow_exchange` transport tests now satisfy strict clippy without
 `expect_err(...)`-style assertions, so test-scope warning closure is back to a

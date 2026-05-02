@@ -1,5 +1,5 @@
 ---
-source: packages/rust/crates/xiuxian-testing/src/scenario.rs
+source: packages/rust/crates/xiuxian-wendao/tests/support/scenario.rs
 description: "Scenario 019_build_scope_excluded_dirs [build_scope]: Build Scope: excluded dirs"
 expression: result
 info:

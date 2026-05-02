@@ -1,5 +1,5 @@
-use super::super::super::{LinkGraphDocument, LinkGraphIndex, LinkGraphSearchOptions};
-use super::super::context::SearchExecutionContext;
+use crate::link_graph::index::search::context::SearchExecutionContext;
+use crate::link_graph::index::{LinkGraphDocument, LinkGraphIndex, LinkGraphSearchOptions};
 
 impl LinkGraphIndex {
     pub(in crate::link_graph::index::search) fn matches_temporal_filters(

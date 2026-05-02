@@ -26,7 +26,8 @@
 //!     .unwrap_or_else(|error| panic!("scan failed: {error}"));
 //! ```
 //!
-xiuxian_testing::crate_test_policy_source_harness!("../tests/unit/lib_policy.rs");
+#[cfg(test)]
+rust_lang_project_harness::rust_project_harness_cargo_test_gate!();
 
 // ============================================================================
 // Module Declarations
@@ -47,8 +48,10 @@ mod security;
 // Re-exports (for backwards compatibility)
 // ============================================================================
 
-// Re-exports module
-pub use re_exports::*;
+pub use re_exports::{
+    AstLanguage, DeserializeEnv, Doc, LangParser, LanguageExt, MatcherExt, MetaVarEnv,
+    MetaVariable, NodeMatch, Pattern, RuleCore, SerializableRuleCore, SupportLang,
+};
 
 // Lang enum
 pub use lang::Lang;

@@ -1,11 +1,11 @@
 use anyhow::{Context, Result, bail};
 use serde_json::Value as JsonValue;
 
-use super::super::types::{
+use crate::agent::memory_stream_consumer::types::{
     MemoryStreamConsumerRuntimeConfig, MemoryStreamEvent, field_value_or_default, now_unix_ms,
 };
 
-pub(in super::super) async fn queue_promoted_candidate(
+pub(in crate::agent::memory_stream_consumer) async fn queue_promoted_candidate(
     connection: &mut redis::aio::MultiplexedConnection,
     config: &MemoryStreamConsumerRuntimeConfig,
     event: &MemoryStreamEvent,

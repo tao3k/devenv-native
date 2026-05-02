@@ -1,3 +1,5 @@
+//! HTTP gateway shared state and response types.
+
 use axum::Json;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;

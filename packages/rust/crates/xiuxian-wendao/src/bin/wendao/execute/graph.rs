@@ -7,9 +7,9 @@ mod neighbors_related;
 #[path = "graph/stats_toc.rs"]
 mod stats_toc;
 
-use crate::types::{Cli, Command};
+use crate::LinkGraphIndex;
+use crate::bin_support::wendao::types::{Cli, Command};
 use anyhow::Result;
-use xiuxian_wendao::LinkGraphIndex;
 
 pub(super) fn handle(cli: &Cli, index: Option<&LinkGraphIndex>) -> Result<()> {
     match &cli.command {

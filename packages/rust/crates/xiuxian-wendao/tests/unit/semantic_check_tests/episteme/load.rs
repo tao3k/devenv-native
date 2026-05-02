@@ -1,4 +1,4 @@
-use super::*;
+use super::{load_episteme_manifest, write_minimal_episteme};
 
 #[test]
 fn load_episteme_manifest_accepts_directory_input() {

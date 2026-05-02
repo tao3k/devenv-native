@@ -5,14 +5,14 @@ use tonic::Request;
 
 use crate::transport::{ANALYSIS_REPO_INDEX_STATUS_ROUTE, ANALYSIS_REPO_SYNC_ROUTE};
 
-use super::super::super::assertions::{
+use crate::tests::transport::server::assertions::{
     must_err, must_ok, parse_json, route_descriptor, ticket_string,
 };
-use super::super::super::fixtures::build_service_with_route_providers;
-use super::super::super::providers::{
+use crate::tests::transport::server::fixtures::build_service_with_route_providers;
+use crate::tests::transport::server::providers::{
     RecordingRepoIndexStatusProvider, RecordingRepoSyncProvider, RecordingSearchProvider,
 };
-use super::super::super::request_headers::{
+use crate::tests::transport::server::request_headers::{
     populate_schema_and_repo_index_status_headers, populate_schema_and_repo_sync_headers,
 };
 

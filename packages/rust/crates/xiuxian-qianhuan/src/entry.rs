@@ -1,3 +1,5 @@
+//! XML Q&A entry model for system prompt injection windows.
+
 /// One Q&A record in the injection window.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct QaEntry {

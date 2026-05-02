@@ -1,3 +1,5 @@
+//! Template manifestation manager, request, and catalog boundary.
+
 /// Embedded-template catalog helpers.
 pub mod catalog;
 /// Manifestation manager logic.

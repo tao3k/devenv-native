@@ -1,13 +1,15 @@
-use xiuxian_wendao::gateway::studio::{GatewayStartupDependencyCheck, GatewayStartupHealthReport};
+use crate::gateway::studio::{GatewayStartupDependencyCheck, GatewayStartupHealthReport};
 
-use crate::execute::gateway::command::{
+use crate::bin_support::wendao::execute::gateway::command::{
     ensure_gateway_startup_health, gateway_bearer_token_with_lookup,
     gateway_flight_concurrency_limit_with_lookup, gateway_flight_grpc_web_enabled_with_lookup,
     gateway_flight_request_timeout_secs_with_lookup, gateway_listen_backlog_with_lookup,
     gateway_studio_concurrency_limit_with_lookup, gateway_studio_request_timeout_secs_with_lookup,
 };
-use crate::execute::gateway::config::{GatewayRuntimeTomlConfig, get_gateway_runtime_from_config};
-use crate::execute::gateway::shared::DEFAULT_PORT;
+use crate::bin_support::wendao::execute::gateway::config::{
+    GatewayRuntimeTomlConfig, get_gateway_runtime_from_config,
+};
+use crate::bin_support::wendao::execute::gateway::shared::DEFAULT_PORT;
 
 use super::support::{
     bootstrap_builtin_registry, remove_temp_gateway_config, write_temp_gateway_config,

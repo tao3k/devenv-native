@@ -1,3 +1,5 @@
+//! Graph-structural Julia service fixtures for builtin integration tests.
+
 use xiuxian_wendao_julia::integration_support::{
     JuliaExampleServiceGuard, spawn_wendaosearch_solver_demo_multi_route_service,
     spawn_wendaosearch_solver_demo_structural_rerank_service,

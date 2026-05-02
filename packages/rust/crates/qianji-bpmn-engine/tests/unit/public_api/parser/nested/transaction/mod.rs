@@ -1,5 +1,5 @@
-use super::super::super::fixture_source;
 use super::TRANSACTION_PROCESS_ID;
+use crate::public_api::fixture_source;
 
 pub(super) use qianji_bpmn_engine::{
     BpmnEngineError, BpmnEventKind, BpmnNodeKind, BpmnParseOptions, BpmnSubProcessKind,

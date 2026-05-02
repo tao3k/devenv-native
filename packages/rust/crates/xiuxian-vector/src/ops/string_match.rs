@@ -1,3 +1,5 @@
+//! String matching kernels used by scalar column filters.
+
 use crate::{LanceBooleanArray, LanceStringArray};
 
 /// Compute a boolean mask for `contains` against one UTF-8 array and one scalar needle.

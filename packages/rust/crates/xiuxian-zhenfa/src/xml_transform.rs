@@ -1,3 +1,5 @@
+//! Markdown and JSON conversion helpers for XML-facing prompts.
+
 use pulldown_cmark::{
     CodeBlockKind, Event, LinkType, MetadataBlockKind, Options, Parser, Tag, TagEnd,
 };

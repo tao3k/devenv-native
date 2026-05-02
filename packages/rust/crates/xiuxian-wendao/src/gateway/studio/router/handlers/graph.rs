@@ -3,7 +3,7 @@
 #[path = "graph/flight.rs"]
 pub(crate) mod flight;
 #[cfg(test)]
-#[path = "graph/neighbors.rs"]
+#[path = "../../../../../tests/unit/gateway/studio/router/handlers/graph/neighbors_impl.rs"]
 pub(crate) mod neighbors;
 #[path = "graph/service.rs"]
 mod service;

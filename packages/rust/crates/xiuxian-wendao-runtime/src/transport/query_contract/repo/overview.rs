@@ -1,3 +1,5 @@
+//! Repository overview route contract and metadata validation.
+
 /// Canonical repo-overview repository metadata header for Wendao Flight requests.
 pub const WENDAO_REPO_OVERVIEW_REPO_HEADER: &str = "x-wendao-repo-overview-repo";
 /// Stable route for the repo overview analysis contract.

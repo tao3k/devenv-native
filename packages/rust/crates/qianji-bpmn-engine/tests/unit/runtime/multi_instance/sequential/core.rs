@@ -1,4 +1,4 @@
-use super::super::super::{
+use crate::runtime::{
     StubHost, sequential_multi_instance_process,
     sequential_multi_instance_process_with_completion_condition,
 };

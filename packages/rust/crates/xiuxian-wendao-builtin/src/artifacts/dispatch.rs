@@ -1,3 +1,5 @@
+//! Dispatch helpers for resolving linked builtin plugin artifacts.
+
 use serde_yaml::Value;
 use xiuxian_wendao_core::artifacts::{PluginArtifactPayload, PluginArtifactSelector};
 

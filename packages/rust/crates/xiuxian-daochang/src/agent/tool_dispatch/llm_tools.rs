@@ -2,8 +2,8 @@ use std::collections::HashSet;
 
 use anyhow::Result;
 
-use super::super::Agent;
-use super::helpers::llm_tool_definitions;
+use super::execution::llm_tool_definitions;
+use crate::Agent;
 
 impl Agent {
     /// List all tools (Native + Zhenfa + external tool runtime) for the LLM.

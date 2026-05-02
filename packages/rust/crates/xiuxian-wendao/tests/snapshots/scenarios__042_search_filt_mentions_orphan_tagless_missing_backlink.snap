@@ -1,5 +1,5 @@
 ---
-source: packages/rust/crates/xiuxian-testing/src/scenario.rs
+source: packages/rust/crates/xiuxian-wendao/tests/support/scenario.rs
 description: "Scenario 042_search_filt_mentions_orphan_tagless_missing_backlink [search_filters]: mentions orphan tagless missing backlink"
 expression: result
 info:

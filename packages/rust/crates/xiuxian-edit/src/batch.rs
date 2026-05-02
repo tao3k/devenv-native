@@ -11,7 +11,7 @@ use std::path::Path;
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use rayon::prelude::*;
+use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use xiuxian_ast::AstLanguage;
 
 use crate::StructuralEditor;

@@ -1,9 +1,10 @@
-mod common;
+//! Integration fixtures for Julia-backed WendaoSearch examples and gateway artifacts.
+
 mod gateway_artifact;
 mod official_examples;
 mod planned_search;
+mod service_runtime;
 
-pub use common::JuliaExampleServiceGuard;
 pub use gateway_artifact::{
     julia_gateway_artifact_base_url, julia_gateway_artifact_expected_json_fragments,
     julia_gateway_artifact_expected_toml_fragments, julia_gateway_artifact_path,
@@ -25,3 +26,4 @@ pub use planned_search::{
     julia_planned_search_openai_runtime_config_toml,
     julia_planned_search_vector_store_runtime_config_toml,
 };
+pub use service_runtime::JuliaExampleServiceGuard;

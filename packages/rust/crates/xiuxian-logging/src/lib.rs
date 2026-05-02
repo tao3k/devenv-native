@@ -6,7 +6,8 @@
 //! - structured JSON output mode,
 //! - bridging from `log` macros to `tracing` (`tracing_log::LogTracer`).
 
-xiuxian_testing::crate_test_policy_source_harness!("../tests/unit/lib_policy.rs");
+#[cfg(test)]
+rust_lang_project_harness::rust_project_harness_cargo_test_gate!();
 
 mod argv_split;
 mod cli_args;

@@ -1,3 +1,5 @@
+//! Agent bootstrap branch wiring for memory, tools, and runtime services.
+
 pub(crate) mod memory;
 pub(crate) mod native_tools;
 pub(crate) mod qianhuan;

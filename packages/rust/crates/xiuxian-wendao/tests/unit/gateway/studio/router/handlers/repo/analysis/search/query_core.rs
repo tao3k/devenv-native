@@ -1,5 +1,10 @@
 use super::support::sample_repo_entity_service;
-use super::*;
+use super::{
+    PathBuf, SearchMaintenancePolicy, SearchPlaneService, StudioApiError,
+    assert_studio_json_snapshot, query_repo_entity_example_results_if_published,
+    query_repo_entity_import_results_if_published, query_repo_entity_module_results_if_published,
+    query_repo_entity_symbol_results_if_published,
+};
 
 #[tokio::test]
 async fn repo_entity_query_core_returns_none_when_publication_is_not_ready() {

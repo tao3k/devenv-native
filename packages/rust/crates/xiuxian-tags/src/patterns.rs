@@ -88,60 +88,15 @@ pub const ALL_PATTERNS: &[(&str, &str)] = &[
     ("JAVA_METHOD", JAVA_METHOD),
 ];
 
-/// Patterns grouped by language
-pub mod python {
-    use super::{PYTHON_ASYNC_DEF, PYTHON_CLASS, PYTHON_DEF};
-
-    /// Python symbol extraction patterns.
-    pub const PATTERNS: &[(&str, &str)] = &[
-        ("CLASS", PYTHON_CLASS),
-        ("DEF", PYTHON_DEF),
-        ("ASYNC_DEF", PYTHON_ASYNC_DEF),
-    ];
-}
-
-/// Rust symbol extraction patterns.
-pub mod rust {
-    use super::{RUST_ENUM, RUST_FN, RUST_IMPL, RUST_STRUCT, RUST_TRAIT};
-
-    /// Rust symbol extraction patterns.
-    pub const PATTERNS: &[(&str, &str)] = &[
-        ("STRUCT", RUST_STRUCT),
-        ("FN", RUST_FN),
-        ("ENUM", RUST_ENUM),
-        ("TRAIT", RUST_TRAIT),
-        ("IMPL", RUST_IMPL),
-    ];
-}
-
-/// JavaScript symbol extraction patterns.
-pub mod javascript {
-    use super::{JS_CLASS, JS_FN};
-
-    /// JavaScript symbol extraction patterns.
-    pub const PATTERNS: &[(&str, &str)] = &[("CLASS", JS_CLASS), ("FN", JS_FN)];
-}
-
-/// TypeScript symbol extraction patterns.
-pub mod typescript {
-    use super::TS_INTERFACE;
-
-    /// TypeScript symbol extraction patterns.
-    pub const PATTERNS: &[(&str, &str)] = &[("INTERFACE", TS_INTERFACE)];
-}
-
 /// Go symbol extraction patterns.
-pub mod go {
-    use super::{GO_FN, GO_STRUCT};
-
-    /// Go symbol extraction patterns.
-    pub const PATTERNS: &[(&str, &str)] = &[("STRUCT", GO_STRUCT), ("FN", GO_FN)];
-}
-
+pub mod go;
 /// Java symbol extraction patterns.
-pub mod java {
-    use super::{JAVA_CLASS, JAVA_METHOD};
-
-    /// Java symbol extraction patterns.
-    pub const PATTERNS: &[(&str, &str)] = &[("CLASS", JAVA_CLASS), ("METHOD", JAVA_METHOD)];
-}
+pub mod java;
+/// JavaScript symbol extraction patterns.
+pub mod javascript;
+/// Python symbol extraction patterns.
+pub mod python;
+/// Rust symbol extraction patterns.
+pub mod rust;
+/// TypeScript symbol extraction patterns.
+pub mod typescript;

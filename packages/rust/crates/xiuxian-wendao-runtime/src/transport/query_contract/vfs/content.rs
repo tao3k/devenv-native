@@ -1,3 +1,5 @@
+//! VFS content-read route contract and metadata validation.
+
 /// Stable route for the VFS content-read contract.
 pub const VFS_CONTENT_ROUTE: &str = "/vfs/content";
 

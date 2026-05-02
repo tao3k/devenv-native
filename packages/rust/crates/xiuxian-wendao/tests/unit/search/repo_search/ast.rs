@@ -4,7 +4,7 @@ use std::path::Path;
 use serde_json::json;
 use xiuxian_ast::Lang;
 
-use super::*;
+use super::{excluded_ast_languages_for_repository, supported_ast_lang};
 use crate::analyzers::{RegisteredRepository, RepositoryPluginConfig};
 
 #[test]

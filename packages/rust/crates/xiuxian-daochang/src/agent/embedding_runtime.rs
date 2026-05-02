@@ -1,6 +1,6 @@
 use super::Agent;
-pub(crate) use xiuxian_llm::embedding::runtime::EMBEDDING_SOURCE_UNAVAILABLE;
-pub(crate) use xiuxian_llm::embedding::runtime::MemoryEmbeddingErrorKind;
+pub(crate) use xiuxian_llm::embedding::EMBEDDING_SOURCE_UNAVAILABLE;
+pub(crate) use xiuxian_llm::embedding::MemoryEmbeddingErrorKind;
 
 impl Agent {
     pub(crate) async fn embedding_for_memory(

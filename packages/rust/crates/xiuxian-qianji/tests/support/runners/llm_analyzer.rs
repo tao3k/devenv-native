@@ -6,7 +6,8 @@ use std::error::Error;
 use std::path::Path;
 
 use serde_json::{Value, json};
-use xiuxian_testing::{Scenario, ScenarioRunner};
+
+use crate::support::scenario::{Scenario, ScenarioRunner};
 
 /// Runner for `llm_analyzer` category scenarios.
 pub struct LlmAnalyzerRunner;

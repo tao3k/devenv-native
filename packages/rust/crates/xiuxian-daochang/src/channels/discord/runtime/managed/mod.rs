@@ -1,3 +1,5 @@
+//! Discord managed runtime branch for handlers, replies, and scheduling.
+
 mod handlers;
 mod parsing;
 mod replies;

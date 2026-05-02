@@ -29,11 +29,11 @@ fn to_litellm_role(raw_role: &str) -> Result<LiteMessageRole> {
     }
 }
 
-pub(super) fn chat_message_to_litellm_message(message: ChatMessage) -> Result<LiteChatMessage> {
+pub(crate) fn chat_message_to_litellm_message(message: ChatMessage) -> Result<LiteChatMessage> {
     chat_message_to_litellm_message_with_encoding(message, ToolMessageEncoding::ToolResultParts)
 }
 
-pub(in crate::llm) fn chat_message_to_litellm_message_for_openai_chat(
+pub(crate) fn chat_message_to_litellm_message_for_openai_chat(
     message: ChatMessage,
 ) -> Result<LiteChatMessage> {
     chat_message_to_litellm_message_with_encoding(
@@ -125,7 +125,7 @@ fn multimodal_part_to_litellm(part: MultimodalContentPart) -> LiteContentPart {
     }
 }
 
-pub(super) fn content_from_litellm(content: Option<LiteMessageContent>) -> Option<String> {
+pub(crate) fn content_from_litellm(content: Option<LiteMessageContent>) -> Option<String> {
     match content {
         None => None,
         Some(LiteMessageContent::Text(text)) => Some(text),
@@ -143,7 +143,7 @@ pub(super) fn content_from_litellm(content: Option<LiteMessageContent>) -> Optio
     }
 }
 
-pub(super) fn tool_call_from_litellm(call: LiteToolCall) -> ToolCallOut {
+pub(crate) fn tool_call_from_litellm(call: LiteToolCall) -> ToolCallOut {
     ToolCallOut {
         id: call.id,
         typ: call.tool_type,

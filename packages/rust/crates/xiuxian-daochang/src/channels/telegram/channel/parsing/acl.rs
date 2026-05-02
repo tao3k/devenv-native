@@ -1,8 +1,10 @@
 use std::sync::PoisonError;
 
-use super::super::TelegramChannel;
-use super::super::identity::{normalize_group_identity, normalize_user_identity};
 use super::types::ParsedTelegramUpdate;
+use crate::channels::telegram::TelegramChannel;
+use crate::channels::telegram::channel::identity::{
+    normalize_group_identity, normalize_user_identity,
+};
 
 pub(super) fn is_user_allowed(channel: &TelegramChannel, identity: &str) -> bool {
     let normalized = normalize_user_identity(identity);

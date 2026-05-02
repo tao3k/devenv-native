@@ -1,13 +1,13 @@
 use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};
 
+use super::support::{PerfRunConfig, run_async_budget};
 use anyhow::{Result, anyhow};
 use axum::body::{Body, to_bytes};
 use axum::http::{Request, StatusCode};
 use serde_json::Value;
 use serial_test::file_serial;
 use tower::util::ServiceExt;
-use xiuxian_testing::{PerfRunConfig, run_async_budget};
 use xiuxian_wendao::gateway::studio::perf_support::{
     GatewayPerfFixture, prepare_gateway_perf_fixture, prepare_gateway_real_workspace_perf_fixture,
 };

@@ -1,3 +1,5 @@
+//! Local `wendao get` projections for document table-of-contents and page-index views.
+
 mod command;
 mod config;
 mod run;

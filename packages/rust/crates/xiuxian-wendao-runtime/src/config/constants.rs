@@ -1,13 +1,21 @@
+//! Runtime configuration constants shared by Wendao resolver modules.
+
+/// Environment variable that overrides the Valkey URL for link-graph cache state.
 pub const LINK_GRAPH_CACHE_VALKEY_URL_ENV: &str = "VALKEY_URL";
+/// Environment variable that overrides the Valkey key prefix for link-graph cache state.
 pub const LINK_GRAPH_VALKEY_KEY_PREFIX_ENV: &str = "XIUXIAN_WENDAO_LINK_GRAPH_VALKEY_KEY_PREFIX";
+/// Environment variable that overrides the Valkey TTL seconds for link-graph cache state.
 pub const LINK_GRAPH_VALKEY_TTL_SECONDS_ENV: &str = "XIUXIAN_WENDAO_LINK_GRAPH_VALKEY_TTL_SECONDS";
 /// Default Valkey key prefix for link-graph cache-backed runtime data.
 pub const DEFAULT_LINK_GRAPH_VALKEY_KEY_PREFIX: &str = "xiuxian_wendao:link_graph:index";
 
+/// Environment variable that overrides the related-candidate upper bound.
 pub const LINK_GRAPH_RELATED_MAX_CANDIDATES_ENV: &str =
     "XIUXIAN_WENDAO_LINK_GRAPH_RELATED_MAX_CANDIDATES";
+/// Environment variable that overrides the related-query partition count.
 pub const LINK_GRAPH_RELATED_MAX_PARTITIONS_ENV: &str =
     "XIUXIAN_WENDAO_LINK_GRAPH_RELATED_MAX_PARTITIONS";
+/// Environment variable that overrides the related-query time budget.
 pub const LINK_GRAPH_RELATED_TIME_BUDGET_MS_ENV: &str =
     "XIUXIAN_WENDAO_LINK_GRAPH_RELATED_TIME_BUDGET_MS";
 /// Default upper bound for related-candidate collection.
@@ -17,18 +25,25 @@ pub const DEFAULT_LINK_GRAPH_RELATED_MAX_PARTITIONS: usize = 8;
 /// Default budget for related-query execution, in milliseconds.
 pub const DEFAULT_LINK_GRAPH_RELATED_TIME_BUDGET_MS: f64 = 250.0;
 
+/// Environment variable that toggles coactivation runtime behavior.
 pub const LINK_GRAPH_COACTIVATION_ENABLED_ENV: &str =
     "XIUXIAN_WENDAO_LINK_GRAPH_COACTIVATION_ENABLED";
+/// Environment variable that overrides the coactivation alpha scale.
 pub const LINK_GRAPH_COACTIVATION_ALPHA_SCALE_ENV: &str =
     "XIUXIAN_WENDAO_LINK_GRAPH_COACTIVATION_ALPHA_SCALE";
+/// Environment variable that overrides the coactivation neighbor fanout.
 pub const LINK_GRAPH_COACTIVATION_MAX_NEIGHBORS_PER_DIRECTION_ENV: &str =
     "XIUXIAN_WENDAO_LINK_GRAPH_COACTIVATION_MAX_NEIGHBORS_PER_DIRECTION";
+/// Environment variable that overrides the coactivation hop count.
 pub const LINK_GRAPH_COACTIVATION_MAX_HOPS_ENV: &str =
     "XIUXIAN_WENDAO_LINK_GRAPH_COACTIVATION_MAX_HOPS";
+/// Environment variable that overrides the coactivation propagation cap.
 pub const LINK_GRAPH_COACTIVATION_MAX_TOTAL_PROPAGATIONS_ENV: &str =
     "XIUXIAN_WENDAO_LINK_GRAPH_COACTIVATION_MAX_TOTAL_PROPAGATIONS";
+/// Environment variable that overrides the coactivation hop-decay scale.
 pub const LINK_GRAPH_COACTIVATION_HOP_DECAY_SCALE_ENV: &str =
     "XIUXIAN_WENDAO_LINK_GRAPH_COACTIVATION_HOP_DECAY_SCALE";
+/// Environment variable that overrides the coactivation touch queue depth.
 pub const LINK_GRAPH_COACTIVATION_TOUCH_QUEUE_DEPTH_ENV: &str =
     "XIUXIAN_WENDAO_LINK_GRAPH_COACTIVATION_TOUCH_QUEUE_DEPTH";
 /// Default toggle for coactivation runtime behavior.

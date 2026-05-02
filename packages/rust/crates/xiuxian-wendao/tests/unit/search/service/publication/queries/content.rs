@@ -1,4 +1,11 @@
-use super::support::{publish_repo_content_chunks, repo_search_service, *};
+use std::collections::HashSet;
+use std::sync::Arc;
+use std::time::Duration;
+
+use crate::search::RepoContentChunkSearchFilters;
+use crate::search::service::tests::support::ok_or_panic;
+
+use super::support::{publish_repo_content_chunks, repo_search_service};
 
 #[tokio::test]
 async fn search_repo_content_chunks_waits_for_repo_read_permit() {

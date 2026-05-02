@@ -10,14 +10,13 @@ pub mod memory;
 mod modelica_plugin;
 mod plugin;
 
-xiuxian_testing::crate_test_policy_source_harness!("../tests/unit/lib_policy.rs");
-
 pub(crate) use modelica_plugin::fetch_modelica_parser_file_summary_blocking_for_repository;
 #[cfg(test)]
 pub(crate) use plugin::test_support as julia_plugin_test_support;
 
 pub use modelica_plugin::{
-    ModelicaRepoIntelligencePlugin, clear_modelica_parser_summary_transport_cache_for_tests,
+    ModelicaRepoIntelligencePlugin, ModelicaSourceId,
+    clear_modelica_parser_summary_transport_cache_for_tests,
     fetch_modelica_ast_query_analysis_blocking_for_repository,
     modelica_package_incremental_semantic_fingerprint_for_repository,
     modelica_parser_summary_allows_safe_incremental_file_for_repository,
@@ -75,7 +74,7 @@ pub use plugin::{
     JULIA_PLUGIN_CAPABILITY_MANIFEST_TIMEOUT_SECS_COLUMN,
     JULIA_PLUGIN_CAPABILITY_MANIFEST_TRANSPORT_KIND_COLUMN,
     JuliaPluginCapabilityManifestRequestRow, JuliaPluginCapabilityManifestRow,
-    JuliaRepoIntelligencePlugin, build_graph_structural_filter_request_batch,
+    JuliaRepoIntelligencePlugin, JuliaSourceId, build_graph_structural_filter_request_batch,
     build_graph_structural_filter_request_row, build_graph_structural_flight_transport_client,
     build_graph_structural_generic_topology_candidate_inputs,
     build_graph_structural_generic_topology_candidate_inputs_from_pair_collection,
@@ -147,3 +146,6 @@ pub use plugin::{
     validate_julia_plugin_capability_manifest_request_batches,
     validate_julia_plugin_capability_manifest_response_batches,
 };
+
+#[cfg(test)]
+rust_lang_project_harness::rust_project_harness_cargo_test_gate!();

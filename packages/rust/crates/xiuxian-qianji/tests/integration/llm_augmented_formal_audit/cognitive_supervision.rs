@@ -1,4 +1,9 @@
-use super::*;
+use super::{
+    SequencedMockLlmClient, make_test_mechanism, must_bool, must_f64, must_object, must_ok,
+};
+use serde_json::json;
+use std::sync::Arc;
+use xiuxian_qianji::contracts::{FlowInstruction, QianjiMechanism};
 
 #[tokio::test]
 async fn llm_augmented_audit_includes_cognitive_metrics_when_enabled() {

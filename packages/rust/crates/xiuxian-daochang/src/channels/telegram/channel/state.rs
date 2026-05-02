@@ -1,14 +1,16 @@
+//! Telegram outbound pacing and deduplication state.
+
 use std::sync::RwLock;
 use std::time::Duration;
 
 use crate::channels::control_command_authorization::ControlCommandPolicy;
 
-use super::super::session_partition::TelegramSessionPartition;
 use super::acl_reload::TelegramAclReloadState;
 use super::admin_rules::TelegramCommandAdminRule;
 use super::group_policy::TelegramGroupPolicyConfig;
 use super::policy::TelegramSlashCommandRule;
 use super::send_gate::{TelegramSendRateLimitBackend, TelegramSendRateLimitGateState};
+use crate::channels::telegram::session_partition::TelegramSessionPartition;
 
 pub(super) const TELEGRAM_ACL_RELOAD_CHECK_INTERVAL: Duration = Duration::from_millis(500);
 pub(super) const TELEGRAM_API_BASE_ENV: &str = "XIUXIAN_DAOCHANG_TELEGRAM_API_BASE_URL";

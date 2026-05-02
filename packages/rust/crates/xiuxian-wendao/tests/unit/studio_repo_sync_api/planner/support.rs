@@ -1,4 +1,9 @@
-pub(super) use super::super::*;
+use serde_json::Value;
+
+use crate::gateway::studio::studio_repo_sync_api_tests::support::{
+    create_local_modelica_repo, gateway_state_for_project, write_modelica_repo_config,
+};
+use crate::gateway::studio::studio_repo_sync_api_tests::{fs, studio_router};
 
 pub(super) fn gap_matches_needle(gap: &serde_json::Map<String, Value>, needle: &str) -> bool {
     let title = gap.get("title").and_then(Value::as_str).unwrap_or_default();

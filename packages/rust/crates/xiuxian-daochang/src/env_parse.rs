@@ -1,4 +1,7 @@
+//! Environment parsing helpers shared across runtime configuration.
+
 #[must_use]
+/// Looks up a raw environment variable through an injected lookup function.
 pub fn lookup_env<F>(lookup: &F, name: &str) -> Option<String>
 where
     F: Fn(&str) -> Option<String>,
@@ -7,6 +10,7 @@ where
 }
 
 #[must_use]
+/// Looks up a non-empty environment variable through an injected lookup function.
 pub fn lookup_non_empty_env<F>(lookup: &F, name: &str) -> Option<String>
 where
     F: Fn(&str) -> Option<String>,
@@ -15,16 +19,19 @@ where
 }
 
 #[must_use]
+/// Reads a raw process environment variable.
 pub fn read_env(name: &str) -> Option<String> {
     lookup_env(&|env_name| std::env::var(env_name).ok(), name)
 }
 
 #[must_use]
+/// Reads a non-empty process environment variable.
 pub fn read_non_empty_env(name: &str) -> Option<String> {
     lookup_non_empty_env(&|env_name| std::env::var(env_name).ok(), name)
 }
 
 #[must_use]
+/// Parses a positive `u32` from the named process environment variable.
 pub fn parse_positive_u32_from_env(name: &str) -> Option<u32> {
     parse_env_value(
         name,
@@ -34,6 +41,7 @@ pub fn parse_positive_u32_from_env(name: &str) -> Option<u32> {
 }
 
 #[must_use]
+/// Parses a positive `usize` from the named process environment variable.
 pub fn parse_positive_usize_from_env(name: &str) -> Option<usize> {
     parse_env_value(
         name,
@@ -43,6 +51,7 @@ pub fn parse_positive_usize_from_env(name: &str) -> Option<usize> {
 }
 
 #[must_use]
+/// Parses a positive `u64` from the named process environment variable.
 pub fn parse_positive_u64_from_env(name: &str) -> Option<u64> {
     parse_env_value(
         name,
@@ -52,6 +61,7 @@ pub fn parse_positive_u64_from_env(name: &str) -> Option<u64> {
 }
 
 #[must_use]
+/// Parses a positive `f32` from the named process environment variable.
 pub fn parse_positive_f32_from_env(name: &str) -> Option<f32> {
     parse_env_value(
         name,
@@ -61,6 +71,7 @@ pub fn parse_positive_f32_from_env(name: &str) -> Option<f32> {
 }
 
 #[must_use]
+/// Parses a unit-range `f32` from the named process environment variable.
 pub fn parse_unit_f32_from_env(name: &str) -> Option<f32> {
     parse_env_value(
         name,
@@ -74,6 +85,7 @@ pub fn parse_unit_f32_from_env(name: &str) -> Option<f32> {
 }
 
 #[must_use]
+/// Parses a boolean from the named process environment variable.
 pub fn parse_bool_from_env(name: &str) -> Option<bool> {
     parse_env_value(
         name,
@@ -87,6 +99,7 @@ pub fn parse_bool_from_env(name: &str) -> Option<bool> {
 }
 
 #[must_use]
+/// Resolves the configured valkey URL from supported environment variables.
 pub fn resolve_valkey_url_env() -> Option<String> {
     std::env::var("XIUXIAN_WENDAO_VALKEY_URL")
         .ok()

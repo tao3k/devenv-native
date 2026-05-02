@@ -1,3 +1,5 @@
+//! lint bpmn condition contract interaction branch wiring for focused BPMN/DMN owner leaves.
+
 use super::{
     BytesStart, Event, HashMap, Reader, StaticInteractionChoiceOutput, Value,
     append_entity_reference, attribute_value, is_element, local_name,

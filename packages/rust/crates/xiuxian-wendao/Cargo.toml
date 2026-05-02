@@ -58,7 +58,7 @@ studio = [
   "dep:xiuxian-ast",
   "dep:xiuxian-zhenfa",
 ]
-performance = ["xiuxian-testing/performance"]
+performance = []
 performance-stress = ["performance"]
 document-extract-attachment-audit = [
   "dep:xiuxian-wendao-attachments",
@@ -149,7 +149,6 @@ xiuxian-wendao-runtime = { path = "../xiuxian-wendao-runtime", default-features 
 xiuxian-wendao-sql = { path = "../xiuxian-wendao-sql" }
 xiuxian-ast = { path = "../xiuxian-ast", optional = true }
 xiuxian-config-core = { path = "../xiuxian-config-core" }
-xiuxian-testing = { path = "../xiuxian-testing" }
 
 # Macro utilities
 xiuxian-macros = { path = "../xiuxian-macros" }
@@ -213,6 +212,7 @@ duckdb = { workspace = true, optional = true }
 tempfile = { workspace = true }
 reqwest = { workspace = true }
 insta = { workspace = true }
+rust-lang-project-harness = { workspace = true }
 serial_test = { workspace = true }
 criterion = { workspace = true }
 

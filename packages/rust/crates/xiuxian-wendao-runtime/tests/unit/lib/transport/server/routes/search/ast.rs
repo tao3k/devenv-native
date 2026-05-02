@@ -5,12 +5,14 @@ use tonic::Request;
 
 use crate::transport::SEARCH_AST_ROUTE;
 
-use super::super::super::assertions::{
+use crate::tests::transport::server::assertions::{
     must_err, must_ok, parse_json, route_descriptor, ticket_string,
 };
-use super::super::super::fixtures::build_service_with_route_providers;
-use super::super::super::providers::{RecordingAstSearchProvider, RecordingSearchProvider};
-use super::super::super::request_headers::populate_schema_and_search_headers;
+use crate::tests::transport::server::fixtures::build_service_with_route_providers;
+use crate::tests::transport::server::providers::{
+    RecordingAstSearchProvider, RecordingSearchProvider,
+};
+use crate::tests::transport::server::request_headers::populate_schema_and_search_headers;
 
 #[tokio::test]
 async fn wendao_flight_service_get_flight_info_uses_ast_search_provider() {

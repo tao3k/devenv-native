@@ -1,3 +1,5 @@
+//! Discord managed handler branch for auth and command routing.
+
 mod auth;
 mod background_completion;
 mod command_dispatch;

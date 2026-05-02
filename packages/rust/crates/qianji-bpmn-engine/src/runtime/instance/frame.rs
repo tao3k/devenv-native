@@ -1,5 +1,4 @@
-use super::process::build_node_states;
-use super::shell::{BpmnInstanceState, CallActivityFrame};
+use super::shell::{BpmnInstanceState, CallActivityFrame, build_node_states};
 use crate::ir::BpmnProcessSpec;
 use crate::ir_index_api::BpmnNodeIndex;
 use crate::runtime_instance_api::TransactionCompensationState;

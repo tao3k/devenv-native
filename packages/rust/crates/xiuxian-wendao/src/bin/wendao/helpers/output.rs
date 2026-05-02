@@ -1,4 +1,4 @@
-use super::super::types::OutputFormat;
+use crate::bin_support::wendao::types::OutputFormat;
 use anyhow::{Context, Result};
 use serde::Serialize;
 

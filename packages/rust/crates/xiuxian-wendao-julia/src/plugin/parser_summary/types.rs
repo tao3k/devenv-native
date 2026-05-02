@@ -1,6 +1,26 @@
+//! Julia parser-summary decoded row and public source-id types.
+
 use std::collections::BTreeMap;
 
 use serde::Serialize;
+
+/// Borrowed Julia repository source identifier accepted by public helpers.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct JuliaSourceId<'a>(&'a str);
+
+impl<'a> JuliaSourceId<'a> {
+    /// Return the raw repository source identifier.
+    #[must_use]
+    pub fn as_str(self) -> &'a str {
+        self.0
+    }
+}
+
+impl<'a> From<&'a str> for JuliaSourceId<'a> {
+    fn from(value: &'a str) -> Self {
+        Self(value)
+    }
+}
 
 /// Target kinds preserved by the native Julia parser docstring contract.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize)]

@@ -77,8 +77,8 @@ needs a feature-gated second plugin bundle for these languages.
   `tests/unit/memory/mod.rs` instead of production `src/` files, while
   `src/lib.rs` mounts `tests/unit/lib_policy.rs` and `tests/unit_test.rs`
   owns the root harness target so both `cargo test --lib` and
-  `cargo test --test unit_test` execute the shared `xiuxian-testing` policy
-  gate
+  `cargo test --test unit_test` execute the shared
+  `rust-lang-project-harness` policy gate
 - the process-managed `WendaoSearch.jl` background service now also has one
   opt-in Rust live proof under
   `RUN_PROCESS_MANAGED_WENDAOSEARCH_TEST=1 cargo test -p xiuxian-wendao-julia plugin::graph_structural_exchange::tests::fetch_graph_structural_solver_demo_rows_for_repository_against_process_managed_wendaosearch_service -- --exact --nocapture`,
@@ -415,7 +415,7 @@ these structural routes:
 
 The same rule also now has a bounded host-side proof in
 `xiuxian-wendao`: the integration target
-`packages/rust/crates/xiuxian-wendao/tests/xiuxian-testing-gate.rs`
+`packages/rust/crates/xiuxian-wendao/tests/wendao-validation-gate.rs`
 through the `link_graph_agentic_expansion` unit module projects a real
 `LinkGraphIndex` agentic-expansion pair through these Julia-owned pair helpers
 and DTOs, then into a validated structural-rerank request batch, without
@@ -641,9 +641,9 @@ That means:
 - `direnv exec . cargo test -p xiuxian-wendao-julia real_wendaoarrow_metadata_example_roundtrip_decodes_trace_id_column --lib`
 - `direnv exec . cargo test -p xiuxian-wendao-julia fetch_graph_structural_keyword_overlap_pair_rerank_rows_for_repository_from_raw_candidates_against_real_wendaosearch_demo_service --lib`
 - `direnv exec . cargo check -p xiuxian-wendao-julia --lib`
-- `direnv exec . cargo test -p xiuxian-wendao --test xiuxian-testing-gate test_agentic_expansion_pair_projects_into_julia_graph_structural_request`
-- `direnv exec . cargo test -p xiuxian-wendao --test xiuxian-testing-gate test_agentic_expansion_pair_uses_julia_graph_structural_fetch_helper`
-- `direnv exec . cargo check -p xiuxian-wendao --features julia --test xiuxian-testing-gate`
+- `direnv exec . cargo test -p xiuxian-wendao --test wendao-validation-gate test_agentic_expansion_pair_projects_into_julia_graph_structural_request`
+- `direnv exec . cargo test -p xiuxian-wendao --test wendao-validation-gate test_agentic_expansion_pair_uses_julia_graph_structural_fetch_helper`
+- `direnv exec . cargo check -p xiuxian-wendao --features julia --test wendao-validation-gate`
 
 The real loopback tests now speak only to the Flight examples. They spawn
 `.data/WendaoArrow.jl/scripts/run_stream_scoring_flight_server.sh` and

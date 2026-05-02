@@ -1,9 +1,9 @@
-use super::super::types::{
+use super::common::{normalize_optional_string, now_unix_f64, suggestion_id_from_parts};
+use crate::link_graph::agentic::types::{
     LINK_GRAPH_SUGGESTED_LINK_SCHEMA_VERSION, LinkGraphSuggestedLink,
     LinkGraphSuggestedLinkDecisionRequest, LinkGraphSuggestedLinkRequest,
     LinkGraphSuggestedLinkState,
 };
-use super::common::{normalize_optional_string, now_unix_f64, suggestion_id_from_parts};
 
 pub fn normalize_record_for_read(mut record: LinkGraphSuggestedLink) -> LinkGraphSuggestedLink {
     if record.suggestion_id.trim().is_empty() {

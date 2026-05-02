@@ -1,3 +1,5 @@
+//! Native tool registry, context, orchestration, and signal contracts.
+
 mod context;
 mod error;
 mod orchestrator;

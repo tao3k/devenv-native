@@ -1,3 +1,5 @@
+//! XML escaping and validation helpers for prompt-injection payloads.
+
 use crate::entry::QaEntry;
 use crate::error::InjectionError;
 

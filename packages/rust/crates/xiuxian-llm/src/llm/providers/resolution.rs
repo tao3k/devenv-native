@@ -1,3 +1,5 @@
+//! Provider environment and runtime override resolution helpers.
+
 use crate::llm::error::LlmError;
 
 /// Resolve provider API key from explicit input or environment fallback chain.

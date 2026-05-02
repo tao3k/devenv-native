@@ -1,4 +1,7 @@
-use super::*;
+use super::{
+    DocsNavigationArgs, DocsNodeArgs, DocsPageArgs, DocsPageIndexArgs, DocsPageIndexOutlineArgs,
+    DocsSearchArgs, DocsSearchPageIndexArgs, DocsSegmentArgs, DocsTocArgs, ProjectionPageKindArg,
+};
 
 #[test]
 fn docs_page_args_capture_repo_and_page_id() {

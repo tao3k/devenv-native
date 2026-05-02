@@ -69,7 +69,7 @@ def build_pdf_render_shard_audit_command(
         "-p",
         "xiuxian-wendao",
         "--test",
-        "xiuxian-testing-gate",
+        "wendao-validation-gate",
         "--features",
         cargo_features_with_pdf_render(args.cargo_features),
         "pdf_render_page_render_shard_manifest",

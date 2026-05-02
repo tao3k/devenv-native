@@ -1,3 +1,5 @@
+//! Shared error type and result alias for Zhixing workflows.
+
 use thiserror::Error;
 
 /// Core error type for the Xiuxian-Zhixing system.

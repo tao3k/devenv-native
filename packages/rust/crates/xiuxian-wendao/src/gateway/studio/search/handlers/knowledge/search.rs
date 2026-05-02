@@ -1,3 +1,5 @@
+//! Coordinates Studio knowledge-search responses across cache, corpus, and Flight owners.
+
 use std::sync::Arc;
 
 use xiuxian_wendao_runtime::transport::SearchFlightRouteResponse;

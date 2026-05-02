@@ -1,3 +1,5 @@
+//! Public dmn model document invocation contracts for BPMN/DMN engine integration.
+
 /// Snapshot of one direct invocation literal-expression placeholder.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct DmnInvocationLiteralSnapshot {

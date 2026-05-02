@@ -1,4 +1,4 @@
-use super::super::{
+use crate::runtime::{
     StubHost, inclusive_branch_process, inclusive_host_block_process,
     inclusive_numeric_branch_process,
 };

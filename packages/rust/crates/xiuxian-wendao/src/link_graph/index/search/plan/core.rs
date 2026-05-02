@@ -1,4 +1,6 @@
-use super::super::{LinkGraphHit, LinkGraphIndex, LinkGraphScope, LinkGraphSearchOptions};
+use crate::link_graph::index::{
+    LinkGraphHit, LinkGraphIndex, LinkGraphScope, LinkGraphSearchOptions,
+};
 use crate::parsers::link_graph::query::{ParsedLinkGraphQuery, parse_search_query};
 use std::collections::HashMap;
 

@@ -1,4 +1,18 @@
-use super::super::*;
+use std::sync::Arc;
+
+use serde_json::Value;
+
+use crate as xiuxian_wendao;
+use crate::gateway::studio::studio_repo_sync_api_tests::support::{
+    create_local_git_repo, create_local_modelica_repo, gateway_state_for_project,
+    gateway_state_for_ui_config, request_json, write_default_repo_config,
+};
+use crate::gateway::studio::studio_repo_sync_api_tests::{
+    ProjectionPageKind, RegisteredRepository, RepoProjectedPagesQuery, RepositoryPluginConfig,
+    RepositoryRefreshPolicy, StatusCode, TestResult, UiConfig, UiRepoProjectConfig,
+    analyze_registered_repository_with_registry, assert_studio_json_snapshot,
+    build_projected_pages, fs, repo_projected_pages_from_config, studio_router,
+};
 
 #[tokio::test]
 async fn docs_page_endpoint_returns_projection_payload() -> TestResult {

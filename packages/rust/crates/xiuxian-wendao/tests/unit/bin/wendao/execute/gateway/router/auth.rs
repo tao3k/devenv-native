@@ -1,4 +1,7 @@
-use super::*;
+use super::{
+    AUTHORIZATION, Arc, Body, CONTENT_TYPE, Request, ServiceExt, StatusCode, app_state,
+    build_gateway_router,
+};
 
 #[tokio::test]
 async fn test_gateway_router_requires_bearer_token_when_configured() {

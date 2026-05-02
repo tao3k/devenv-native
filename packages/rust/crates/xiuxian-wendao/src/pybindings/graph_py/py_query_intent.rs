@@ -1,4 +1,4 @@
-use pyo3::prelude::*;
+use pyo3::{pyclass, pyfunction, pymethods};
 use serde_json::json;
 
 use crate::graph::{QueryIntent, extract_intent};

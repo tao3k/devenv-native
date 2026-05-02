@@ -1,5 +1,8 @@
-pub(super) use super::super::*;
+pub(super) use crate::link_graph::QuantumAnchorHit;
 pub(super) use crate::link_graph::addressing::SkeletonValidatedHit;
+pub(super) use crate::zhenfa_router::native::agentic_nav::{
+    generate_navigation_hint, render_agentic_nav_result, xml_escape,
+};
 
 pub(super) fn validated_hit(
     anchor_id: &str,

@@ -1,7 +1,7 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+use super::support::{PerfBudget, PerfRunConfig, assert_perf_budget, run_sync_budget};
 use serial_test::file_serial;
-use xiuxian_testing::{PerfBudget, PerfRunConfig, assert_perf_budget, run_sync_budget};
 
 use super::support::{
     RELATED_LIMIT, RELATED_MAX_DISTANCE, build_index, default_ppr_options, env_f64, env_u64,

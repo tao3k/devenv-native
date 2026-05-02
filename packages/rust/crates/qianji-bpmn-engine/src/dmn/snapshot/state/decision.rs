@@ -1,13 +1,14 @@
 //! Canonical api seam for DMN decision snapshot temporary owners.
 
-use crate::dmn::snapshot::xml::{attribute_value, required_attribute};
-use crate::dmn_model_api::{
+use super::{attribute_value, required_attribute};
+use crate::BpmnEngineError;
+use crate::{
     DmnDecisionSnapshot, DmnFunctionDefinitionLiteralSnapshot,
     DmnFunctionDefinitionParameterSnapshot, DmnFunctionDefinitionSnapshot,
     DmnInvocationBindingSnapshot, DmnInvocationLiteralSnapshot, DmnInvocationParameterSnapshot,
     DmnInvocationSnapshot, DmnRequirementReferenceSnapshot, DmnSourceFile,
 };
-use crate::error::Result;
+type Result<T> = std::result::Result<T, BpmnEngineError>;
 use quick_xml::Reader;
 use quick_xml::events::BytesStart;
 

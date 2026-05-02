@@ -680,7 +680,7 @@ Current status:
     host loads Modelica through a normal optional crate dependency instead of
     sibling-source inclusion, Modelica keeps `xiuxian-wendao` only as a
     dev-dependency for registry-aware integration-query validation, and the
-    host `xiuxian-testing-gate` now carries a real builtin-registry
+    host `wendao-validation-gate` now carries a real builtin-registry
     Modelica repo-overview/module-search/example-search regression
 31. that same `M6` proof is now two host consumers deep instead of one:
     the shared support topology under `tests/integration/support/` no longer
@@ -1247,7 +1247,7 @@ canonical_web_uri}`
     the workspace `packages/**` Rust source and test scope
 13. bounded verification is clean on the seam:
     `xiuxian-zhixing --lib` and
-    `xiuxian-wendao --test xiuxian-testing-gate --no-run` pass, while
+    `xiuxian-wendao --test wendao-validation-gate --no-run` pass, while
     `xiuxian-daochang --lib` and
     `xiuxian-zhixing --test test_wendao_indexer --no-run` remain blocked
     only by deeper pre-existing drift outside this family
@@ -1265,7 +1265,7 @@ ZhixingWendaoIndexer}`
 18. bounded verification is clean on the seam:
     `xiuxian-zhixing --lib`,
     `xiuxian-zhixing --test test_wendao_indexer --no-run`, and
-    `xiuxian-wendao --test xiuxian-testing-gate --no-run` pass, while
+    `xiuxian-wendao --test wendao-validation-gate --no-run` pass, while
     `xiuxian-zhixing --tests --no-run` and `xiuxian-daochang --lib`
     remain blocked only by deeper pre-existing drift outside this family
 19. the next bounded contract-feedback / knowledge-entry slice is now also
@@ -1283,7 +1283,7 @@ ZhixingWendaoIndexer}`
 23. bounded verification is clean on that seam:
     `xiuxian-qianji --lib`,
     `xiuxian-qianji --tests --no-run`, and
-    `xiuxian-wendao --test xiuxian-testing-gate --no-run` pass
+    `xiuxian-wendao --test wendao-validation-gate --no-run` pass
 24. the next bounded graph-primitive slice is now also landed across the
     touched `xiuxian-qianji` and `xiuxian-zhixing` source/test consumers
 25. those touched consumers now use the owner seams:
@@ -1322,7 +1322,7 @@ extract_markdown_config_blocks}`
 35. root-qualified imports for that markdown-config family are now cleared
     across the workspace `packages/**` Rust source and test scope
 36. bounded verification is clean on the Wendao-owned seam:
-    `xiuxian-wendao --test xiuxian-testing-gate --no-run` passes, and the
+    `xiuxian-wendao --test wendao-validation-gate --no-run` passes, and the
     workspace grep for root-qualified `MarkdownConfigBlock` /
     `extract_markdown_config_blocks` imports is clean
 37. the affected-package `xiuxian-daochang --test agent_suite --no-run`
@@ -1344,7 +1344,7 @@ extract_markdown_config_blocks}`
     - `xiuxian-daochang/tests/agent/native_tools_web.rs`
 42. bounded verification for this residual tail is clean on the owner-path
     seam:
-    - `xiuxian-wendao --test xiuxian-testing-gate --no-run` passes
+    - `xiuxian-wendao --test wendao-validation-gate --no-run` passes
     - grep for crate-root `Entity` / `EntityType` / `KnowledgeGraph`
       imports in the touched files is clean
 43. the affected-package `xiuxian-daochang --test agent_suite --no-run`
@@ -1573,7 +1573,7 @@ The landed changes are:
    `tests/integration/docs_*` family
 2. keep the slice out of query/runtime implementation and out of the
    Julia-specific plugin-first lane
-3. rerun a focused non-plugin `xiuxian-testing-gate` probe and confirm the
+3. rerun a focused non-plugin `wendao-validation-gate` probe and confirm the
    `docs_*` warning front disappears while test semantics remain unchanged
 
 ## Landed Slice: Modelica Repo Integration Warning Closure
@@ -1600,7 +1600,7 @@ The landed changes are:
    cases
 2. gate `create_sample_modelica_repo` in the shared test-support helpers so
    non-plugin lanes no longer compile dead Modelica-only setup code
-3. rerun a focused non-plugin `xiuxian-testing-gate` warning probe and confirm
+3. rerun a focused non-plugin `wendao-validation-gate` warning probe and confirm
    the remaining `repo_*` / `tests/support/repo_*` warning front narrows
    without changing plugin semantics
 

@@ -1,3 +1,5 @@
+//! Embedded contract identifiers and snapshots for markdown lint diagnostics.
+
 /// Stable contract identifier for markdown lint diagnostic rendering.
 pub const MARKDOWN_LINT_DIAGNOSTICS_CONTRACT_ID: &str = "wendao.markdown_lint.diagnostics";
 /// Ordered markdown lint diagnostic contracts exposed by the lightweight client.

@@ -4,7 +4,7 @@ mod config {
     mod tests {
         include!(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/tests/unit/config/tests.rs"
+            "/tests/unit/config/loading.rs"
         ));
     }
 }

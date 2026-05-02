@@ -1,6 +1,9 @@
-use super::super::Command;
-use super::*;
-use crate::types::ProjectionPageKindArg;
+use super::{
+    DocsCommand, DocsNavigationArgs, DocsNodeArgs, DocsPageArgs, DocsPageIndexArgs,
+    DocsPageIndexOutlineArgs, DocsSearchArgs, DocsSearchPageIndexArgs, DocsSegmentArgs,
+    DocsTocArgs, docs,
+};
+use crate::bin_support::wendao::types::{Command, ProjectionPageKindArg};
 
 mod args;
 mod command_creation;

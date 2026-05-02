@@ -1,3 +1,5 @@
+//! Graph-route query contracts for Wendao Flight metadata.
+
 mod neighbors;
 mod topology_3d;
 

@@ -1,6 +1,11 @@
 use std::path::PathBuf;
 
-use super::*;
+use super::{
+    ZHIXING_SKILL_DOC_PATH, build_embedded_wendao_registry, embedded_discover_canonical_uris,
+    embedded_resource_text, embedded_resource_text_from_wendao_uri,
+    embedded_semantic_reference_mounts, embedded_skill_links_for_id,
+    embedded_skill_links_for_reference_type, embedded_skill_links_index, embedded_skill_markdown,
+};
 
 fn ok_or_panic<T, E: std::fmt::Display>(result: Result<T, E>, context: &str) -> T {
     match result {

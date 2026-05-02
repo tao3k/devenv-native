@@ -6,7 +6,7 @@ pub(super) use crate::gateway::studio::search::handlers::tests::linked_parser_su
 };
 use crate::search::SearchDocumentIndex;
 
-use super::super::{RepositoryAnalysisCacheKey, RepositorySearchArtifacts};
+use crate::analyzers::cache::{RepositoryAnalysisCacheKey, RepositorySearchArtifacts};
 
 pub(super) fn ok_or_panic<T, E>(result: Result<T, E>, context: &str) -> T
 where

@@ -1,12 +1,12 @@
 use super::support::{must_ok, must_parse_addr, write_file};
-use crate::cli::QianjiServerServeCommand;
-use crate::run::{
+use crate::qianji_server_cli::cli::QianjiServerServeCommand;
+use crate::qianji_server_cli::run::{
     build_workflow_control_service, resolve_qianji_server_bind_addr_with_env,
     resolve_qianji_server_require_valkey_ready_with_env, resolve_qianji_server_valkey_url_with_env,
 };
+use crate::runtime_config::QianjiRuntimeEnv;
+use crate::{QianjiBpmnCheckpointStore, QianjiBpmnWorkflowCheckpointBackend};
 use tempfile::TempDir;
-use xiuxian_qianji::runtime_config::QianjiRuntimeEnv;
-use xiuxian_qianji::{QianjiBpmnCheckpointStore, QianjiBpmnWorkflowCheckpointBackend};
 
 #[test]
 fn qianji_server_valkey_url_overrides_runtime_checkpoint_store() {

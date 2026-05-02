@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from xiuxian_harness_python_lang_project import (
+from python_lang_project_harness import (
     PythonHarnessFinding,
     run_python_lang_harness,
     run_python_project_harness,
@@ -19,11 +19,31 @@ _BASELINED_BLOCKING_FINDINGS = frozenset(
         ("PY-MOD-R006", "tests/unit/test_document_service.py"),
         ("PY-MOD-R006", "tests/unit/test_documents.py"),
         ("PY-MOD-R006", "tests/unit/test_transport_runtime.py"),
+        ("PY-MOD-R002", "examples/attachment_pdf_analyzer_workflow.py"),
+        ("PY-MOD-R002", "examples/custom_repo_analyzer_workflow.py"),
+        ("PY-MOD-R002", "examples/document_extraction_workflow.py"),
+        ("PY-MOD-R002", "examples/host_backed_repo_search_beta_smoke.py"),
+        ("PY-MOD-R002", "examples/repo_search_workflow.py"),
+        ("PY-MOD-R002", "examples/scripted_repo_search_workflow.py"),
         ("PY-TEST-R003", "tests/unit/test_document_extract_perf_script.py"),
         ("PY-TEST-R003", "tests/unit/test_document_service.py"),
         ("PY-TEST-R003", "tests/unit/test_documents.py"),
         ("PY-TEST-R003", "tests/unit/test_examples.py"),
         ("PY-TEST-R003", "tests/unit/test_transport_runtime.py"),
+    }
+)
+
+_BASELINED_BENCHMARK_BLOCKING_FINDINGS = frozenset(
+    {
+        (
+            "PY-MOD-R006",
+            "tests/scripts/wendao_document_extract_benchmark/artifact_summary.py",
+        ),
+        (
+            "PY-MOD-R006",
+            "tests/scripts/wendao_document_extract_benchmark/attachment_classes.py",
+        ),
+        ("PY-MOD-R006", "tests/scripts/wendao_document_extract_benchmark/reporting.py"),
     }
 )
 
@@ -62,10 +82,16 @@ def test_benchmark_script_harness_blocks_unbaselined_findings() -> None:
     current = {
         _finding_key(repo_root, finding) for finding in report.blocking_findings()
     }
+    unexpected = current - _BASELINED_BENCHMARK_BLOCKING_FINDINGS
+    retired = _BASELINED_BENCHMARK_BLOCKING_FINDINGS - current
 
-    assert not current, _render_finding_set(
+    assert not unexpected, _render_finding_set(
         "unexpected benchmark script harness findings",
-        current,
+        unexpected,
+    )
+    assert not retired, _render_finding_set(
+        "retired benchmark script harness baseline entries",
+        retired,
     )
 
 

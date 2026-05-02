@@ -1,3 +1,5 @@
+//! Julia selector and binding fixtures for builtin integration tests.
+
 use xiuxian_wendao_core::{
     PluginCapabilityBinding, PluginProviderSelector, artifacts::PluginArtifactSelector,
 };

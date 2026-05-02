@@ -1,3 +1,5 @@
+//! Contract-backed diagnostic rendering assets for markdown lint output.
+
 mod assets;
 mod loader;
 mod manifest;

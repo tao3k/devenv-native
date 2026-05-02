@@ -1,4 +1,9 @@
-use super::support::*;
+use super::support::{
+    Arc, PathBuf, PluginRegistry, PreparedIncrementalAnalysis, RegisteredRepository,
+    RepoSourceKind, RepoSyncResult, RepositoryPluginConfig, RepositoryRefreshPolicy,
+    RuntimeRustPlugin, SearchPlaneService, analyze_registered_repository_with_registry, commit_all,
+    fs, init_git_repository, new_coordinator_with_registry,
+};
 
 #[tokio::test]
 async fn prepare_incremental_analysis_reuses_cached_analysis_for_ast_equivalent_generic_rust_source_churn()

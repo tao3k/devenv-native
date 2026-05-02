@@ -1,4 +1,40 @@
-use super::*;
+use crate as xiuxian_wendao;
+
+use std::collections::BTreeMap;
+use std::fs;
+use std::io::Error as IoError;
+use std::path::Path;
+use std::sync::{Arc, RwLock};
+use std::time::UNIX_EPOCH;
+
+use axum::body::{Body, to_bytes};
+use axum::http::header::CONTENT_TYPE;
+use axum::http::{Request, StatusCode};
+use serde_json::Value;
+use tower::util::ServiceExt;
+
+use xiuxian_git_repo::{SyncMode, discover_checkout_metadata};
+use xiuxian_wendao::analyzers::resolve_registered_repository_source;
+use xiuxian_wendao::analyzers::{
+    DocRecord, ExampleRecord, ModuleRecord, ProjectedPageIndexNode, ProjectionPageKind,
+    RelationKind, RelationRecord, RepoProjectedPageIndexTreesQuery, RepoProjectedPagesQuery,
+    RepoSymbolKind, RepositoryAnalysisOutput, RepositoryRecord, SymbolRecord,
+    analyze_registered_repository_with_registry, build_repository_analysis_cache_key,
+    load_repo_intelligence_config, repo_projected_page_index_trees_from_config,
+    repo_projected_pages_from_config, store_cached_repository_analysis,
+};
+use xiuxian_wendao::gateway::studio::search::handlers::tests::linked_parser_summary::ensure_linked_modelica_parser_summary_service;
+use xiuxian_wendao::gateway::studio::symbol_index::SymbolIndexCoordinator;
+use xiuxian_wendao::gateway::studio::test_support::{
+    add_git_remote, commit_all, init_git_repository,
+};
+use xiuxian_wendao::gateway::studio::types::UiConfig;
+use xiuxian_wendao::gateway::studio::{GatewayState, StudioState};
+use xiuxian_wendao::repo_index::RepoCodeDocument;
+use xiuxian_wendao::repo_index::RepoIndexCoordinator;
+use xiuxian_wendao::search::{SearchPlaneService, publish_repo_entities};
+
+use super::LocalProjectMetadata;
 
 pub(super) async fn request_json(
     router: axum::Router,

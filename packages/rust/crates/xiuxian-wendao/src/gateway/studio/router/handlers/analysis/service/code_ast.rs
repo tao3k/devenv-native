@@ -179,7 +179,7 @@ fn maybe_build_modelica_code_ast_response(
     };
     let analysis = fetch_modelica_ast_query_analysis_blocking_for_repository(
         repository,
-        repo_path,
+        repo_path.into(),
         source_content,
     )
     .map_err(map_repo_intelligence_error)?;

@@ -356,7 +356,7 @@ impl EpisodeStore {
         self.recall_with_embedding_for_scope(scope, &embedding, top_k)
     }
 
-    /// Recall episodes using pre-computed embedding (for real embeddings from Python).
+    /// Recall episodes using a host-provided pre-computed embedding.
     pub fn recall_with_embedding(&self, embedding: &[f32], top_k: usize) -> Vec<(Episode, f32)> {
         self.recall_with_embedding_internal(embedding, top_k, None)
     }
@@ -496,7 +496,7 @@ impl EpisodeStore {
         current_results
     }
 
-    /// Multi-hop with pre-computed embeddings (for Python integration).
+    /// Multi-hop recall using host-provided pre-computed embeddings.
     pub fn multi_hop_recall_with_embeddings(
         &self,
         query_embeddings: &[Vec<f32>],

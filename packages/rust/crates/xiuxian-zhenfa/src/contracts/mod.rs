@@ -1,3 +1,5 @@
+//! JSON-RPC contract types, errors, and file validation helpers.
+
 mod errors;
 mod types;
 mod validation;

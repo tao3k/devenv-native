@@ -1,3 +1,5 @@
+//! Managed command parser branch for general, session, and job commands.
+
 mod general;
 mod session;
 

@@ -1,3 +1,5 @@
+//! Related-node configuration resolver for runtime graph behavior.
+
 use crate::config::LinkGraphRelatedRuntimeConfig;
 use crate::config::constants::{
     LINK_GRAPH_RELATED_MAX_CANDIDATES_ENV, LINK_GRAPH_RELATED_MAX_PARTITIONS_ENV,

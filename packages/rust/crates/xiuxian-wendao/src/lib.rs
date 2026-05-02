@@ -57,11 +57,12 @@
 //!
 //! graph.add_entity(entity).unwrap();
 //! ```
-extern crate self as xiuxian_wendao;
-
 // ---------------------------------------------------------------------------
 // Core domain modules
 // ---------------------------------------------------------------------------
+#[cfg(any(feature = "zhenfa-router", feature = "julia"))]
+#[doc(hidden)]
+pub mod bin_support;
 pub mod entity;
 pub mod graph;
 /// HMAS blackboard protocol contracts and validators.
@@ -115,8 +116,6 @@ pub mod unified_symbol;
 /// High-level search router for integrating multiple backends.
 #[cfg(feature = "zhenfa-router")]
 pub mod zhenfa_router;
-
-xiuxian_testing::crate_test_policy_source_harness!("../tests/unit/lib_policy.rs");
 
 // ---------------------------------------------------------------------------
 // Public re-exports (crate API)
@@ -252,3 +251,6 @@ pub use zhenfa_router::execute_search;
 /// Execute a search via the router using raw RPC parameters.
 #[cfg(feature = "zhenfa-router")]
 pub use zhenfa_router::search_from_rpc_params;
+
+#[cfg(test)]
+rust_lang_project_harness::rust_project_harness_cargo_test_gate!();

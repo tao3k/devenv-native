@@ -1,3 +1,5 @@
+//! lint bpmn document surface data branch wiring for focused BPMN/DMN owner leaves.
+
 mod association;
 mod binding;
 mod process;

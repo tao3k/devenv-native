@@ -1,3 +1,5 @@
+//! Native orchestration pipeline for tool dispatch and audit hooks.
+
 use std::sync::Arc;
 use std::time::Instant;
 

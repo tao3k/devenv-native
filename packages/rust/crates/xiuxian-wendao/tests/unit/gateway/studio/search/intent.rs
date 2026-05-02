@@ -1,4 +1,9 @@
-use super::*;
+use super::{
+    Arc, RepoIndexEntryStatus, RepoIndexPhase, RepoIndexSnapshot, SearchQuery, UiConfig,
+    UiRepoProjectConfig, ensure_intent_indices, json, load_intent_search_response_with_metadata,
+    make_state_with_docs, publish_knowledge_section_index, publish_local_symbol_index,
+    publish_repo_content_chunk_index, round_f64,
+};
 
 #[tokio::test]
 async fn search_intent_requires_query() {

@@ -1,3 +1,5 @@
+//! OpenAI-compatible embedding request and response utilities.
+
 use std::time::{Duration, Instant};
 
 use reqwest::Client;

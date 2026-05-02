@@ -1,28 +1,5 @@
 //! Lance-backed vector-table storage shell for Xiuxian.
 
-#[cfg(feature = "vector-store")]
-use std::collections::HashMap;
-#[cfg(feature = "vector-store")]
-use std::path::PathBuf;
-#[cfg(feature = "vector-store")]
-use std::sync::Arc;
-#[cfg(feature = "vector-store")]
-use std::sync::RwLock as StdRwLock;
-#[cfg(feature = "vector-store")]
-use std::sync::atomic::AtomicU64;
-
-#[cfg(feature = "vector-store")]
-use anyhow::Result;
-#[cfg(feature = "vector-store")]
-use lance::dataset::Dataset;
-#[cfg(feature = "vector-store")]
-use tokio::sync::RwLock;
-
-#[cfg(feature = "vector-store")]
-use ops::DatasetCache;
-#[cfg(feature = "vector-store")]
-use ops::DatasetCacheConfig;
-
 // ============================================================================
 // Re-exports from xiuxian-lance
 // ============================================================================
@@ -86,19 +63,28 @@ pub use search_engine::{
 #[cfg(feature = "vector-store")]
 pub use search_impl::json_to_lance_where;
 #[cfg(feature = "vector-store")]
+pub use store::{IndexProgressCallback, QueryMetricsCell, ScalarIndexType, VectorStore};
+/// Vector record-batch construction helpers.
+#[cfg(feature = "vector-store")]
 pub mod batch;
+/// Error types surfaced by vector storage and conversion APIs.
 pub mod error;
+/// Vector index planning and parameter helpers.
 #[cfg(feature = "vector-store")]
 pub mod index;
+/// Table administration, scan, and maintenance operations.
 #[cfg(feature = "vector-store")]
 pub mod ops;
 /// Arrow-native retrieval batch helpers used by Wendao query-core adapters.
 pub mod query_support;
 #[cfg(feature = "vector-store")]
 pub mod search;
+/// Search cache utilities for deterministic retrieval tests and runtime reuse.
 #[cfg(feature = "vector-store")]
 pub mod search_cache;
+/// Engine-neutral Arrow conversion and parquet helpers.
 pub mod search_engine;
+/// Test-only fixtures for vector-store integration coverage.
 #[cfg(feature = "vector-store")]
 pub mod test_support;
 
@@ -106,104 +92,8 @@ mod arrow_codec;
 #[cfg(feature = "vector-store")]
 #[path = "search/search_impl/mod.rs"]
 mod search_impl;
-
-xiuxian_testing::crate_test_policy_source_harness!("../tests/unit/lib_policy.rs");
-
-// ============================================================================
-// Vector Store Core
-// ============================================================================
-
-/// Per-table query metrics (in-process; not persisted). Used by [`crate::ops::observability::get_query_metrics`].
 #[cfg(feature = "vector-store")]
-pub type QueryMetricsCell = Arc<(AtomicU64, AtomicU64)>; // (query_count, last_query_ms; 0 means None)
+mod store;
 
-/// Callback for index build progress (Started / Progress / Done). Set optionally for polling or UI.
-#[cfg(feature = "vector-store")]
-pub type IndexProgressCallback = Arc<dyn Fn(crate::ops::IndexBuildProgress) + Send + Sync>;
-
-/// Lance-backed vector-table storage shell.
-#[cfg(feature = "vector-store")]
-#[derive(Clone)]
-pub struct VectorStore {
-    base_path: PathBuf,
-    datasets: Arc<RwLock<DatasetCache>>,
-    dimension: usize,
-    /// Optional index cache size in bytes. When set, datasets are opened via `DatasetBuilder`.
-    pub index_cache_size_bytes: Option<usize>,
-    /// In-process per-table query metrics (`query_count`, `last_query_ms`).
-    pub(crate) query_metrics: Arc<StdRwLock<HashMap<String, QueryMetricsCell>>>,
-    /// Optional callback for index build progress (Started/Done; Progress when Lance exposes API).
-    pub(crate) index_progress_callback: Option<IndexProgressCallback>,
-    /// When `base_path` is ":memory:", a unique id so each store uses its own temp subdir (avoids `DatasetAlreadyExists`).
-    pub(crate) memory_mode_id: Option<u64>,
-}
-
-// ----------------------------------------------------------------------------
-// Vector Store Implementations (Included via include!)
-// ----------------------------------------------------------------------------
-
-#[cfg(feature = "vector-store")]
-include!("ops/core.rs");
-#[cfg(feature = "vector-store")]
-include!("ops/writer_impl.rs");
-#[cfg(feature = "vector-store")]
-include!("ops/admin_impl.rs");
-
-#[cfg(feature = "vector-store")]
-impl VectorStore {
-    /// Check if a metadata value matches the filter conditions.
-    #[must_use]
-    pub fn matches_filter(metadata: &serde_json::Value, conditions: &serde_json::Value) -> bool {
-        match conditions {
-            serde_json::Value::Object(obj) => {
-                for (key, value) in obj {
-                    let meta_value = if key.contains('.') {
-                        let parts: Vec<&str> = key.split('.').collect();
-                        let mut current = metadata.clone();
-                        for part in parts {
-                            if let serde_json::Value::Object(map) = current {
-                                current = map.get(part).cloned().unwrap_or(serde_json::Value::Null);
-                            } else {
-                                return false;
-                            }
-                        }
-                        Some(current)
-                    } else {
-                        metadata.get(key).cloned()
-                    };
-
-                    if let Some(meta_val) = meta_value {
-                        match (&meta_val, value) {
-                            (serde_json::Value::String(mv), serde_json::Value::String(v)) => {
-                                if mv != v {
-                                    return false;
-                                }
-                            }
-                            (serde_json::Value::Number(mv), serde_json::Value::Number(v)) => {
-                                if mv != v {
-                                    return false;
-                                }
-                            }
-                            (serde_json::Value::Bool(mv), serde_json::Value::Bool(v)) => {
-                                if mv != v {
-                                    return false;
-                                }
-                            }
-                            _ => {
-                                let meta_str = meta_val.to_string().trim_matches('"').to_string();
-                                let value_str = value.to_string().trim_matches('"').to_string();
-                                if meta_str != value_str {
-                                    return false;
-                                }
-                            }
-                        }
-                    } else {
-                        return false;
-                    }
-                }
-                true
-            }
-            _ => true,
-        }
-    }
-}
+#[cfg(test)]
+rust_lang_project_harness::rust_project_harness_cargo_test_gate!();

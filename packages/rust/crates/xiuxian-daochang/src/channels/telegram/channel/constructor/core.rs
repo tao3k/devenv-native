@@ -3,17 +3,19 @@ use std::sync::RwLock;
 use crate::channels::control_command_authorization::ControlCommandPolicy;
 use crate::config::runtime_settings_paths;
 
-use super::super::TelegramSessionPartition;
-use super::super::acl::{
+use crate::channels::telegram::TelegramSessionPartition;
+use crate::channels::telegram::channel::acl::{
     normalize_allowed_group_entries, normalize_allowed_user_entries_with_context,
     normalize_control_command_policy, normalize_slash_command_policy,
 };
-use super::super::acl_reload::TelegramAclReloadState;
-use super::super::admin_rules::TelegramCommandAdminRule;
-use super::super::group_policy::TelegramGroupPolicyConfig;
-use super::super::policy::TelegramSlashCommandRule;
-use super::super::send_gate::{TelegramSendRateLimitBackend, TelegramSendRateLimitGateState};
-use super::super::state::TelegramChannel;
+use crate::channels::telegram::channel::acl_reload::TelegramAclReloadState;
+use crate::channels::telegram::channel::admin_rules::TelegramCommandAdminRule;
+use crate::channels::telegram::channel::group_policy::TelegramGroupPolicyConfig;
+use crate::channels::telegram::channel::policy::TelegramSlashCommandRule;
+use crate::channels::telegram::channel::send_gate::{
+    TelegramSendRateLimitBackend, TelegramSendRateLimitGateState,
+};
+use crate::channels::telegram::channel::state::TelegramChannel;
 
 pub(super) struct TelegramChannelCoreInit {
     pub(super) bot_token: String,

@@ -1,11 +1,14 @@
+use crate::{LinkGraphIndex, LinkGraphSuggestedLinkRequest};
 use anyhow::{Context, Result};
-use xiuxian_wendao::{LinkGraphIndex, LinkGraphSuggestedLinkRequest};
 
 use super::plan_run::{handle_plan, handle_run};
 use super::suggested_links::{handle_decide, handle_decisions, handle_log, handle_recent};
-use crate::types::{AgenticCommand, Cli, Command};
+use crate::bin_support::wendao::types::{AgenticCommand, Cli, Command};
 
-pub(in crate::execute) fn handle(cli: &Cli, index: Option<&LinkGraphIndex>) -> Result<()> {
+pub(in crate::bin_support::wendao::execute) fn handle(
+    cli: &Cli,
+    index: Option<&LinkGraphIndex>,
+) -> Result<()> {
     let Command::Agentic { command } = &cli.command else {
         unreachable!("agentic handler must be called with agentic command");
     };

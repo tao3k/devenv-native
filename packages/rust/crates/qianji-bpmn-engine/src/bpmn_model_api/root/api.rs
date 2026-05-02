@@ -1,3 +1,5 @@
+//! Public bpmn model api root contracts for BPMN/DMN engine integration.
+
 use super::collaboration::{BpmnPartnerEntitySnapshot, BpmnPartnerRoleSnapshot};
 use super::data::BpmnDataStoreSnapshot;
 use super::definitions::{

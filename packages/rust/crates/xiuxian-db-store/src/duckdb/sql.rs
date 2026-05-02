@@ -1,3 +1,5 @@
+//! SQL rendering helpers for bounded `DuckDB` view and relation registration.
+
 use std::path::Path;
 
 /// Builds SQL that drops any temp view or table registered with a `DuckDB` name.

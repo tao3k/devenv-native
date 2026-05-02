@@ -1,3 +1,5 @@
+//! Persistent reminder queue settings and storage helpers.
+
 use super::reminders::ReminderSignal;
 use chrono::{DateTime, Duration, Utc};
 use chrono_tz::Tz;

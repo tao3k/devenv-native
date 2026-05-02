@@ -7,7 +7,7 @@ use super::{
     resolve_config_path_with_project_root_value, resolve_port, resolve_webhook_config,
     resolve_webhook_config_with_lookup,
 };
-use crate::execute::gateway::tests::support::{
+use crate::bin_support::wendao::execute::gateway::tests::support::{
     remove_temp_gateway_config, write_temp_gateway_config,
 };
 

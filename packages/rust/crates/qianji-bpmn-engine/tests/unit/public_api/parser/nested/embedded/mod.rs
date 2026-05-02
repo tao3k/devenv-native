@@ -1,5 +1,5 @@
-pub(super) use super::super::super::fixture_source;
 pub(super) use super::EMBEDDED_REVIEW_PROCESS_ID;
+pub(super) use crate::public_api::fixture_source;
 
 mod boundary;
 mod core;

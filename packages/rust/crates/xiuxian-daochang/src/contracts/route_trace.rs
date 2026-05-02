@@ -1,3 +1,5 @@
+//! Route trace contract payloads for agent audit trails.
+
 use serde::{Deserialize, Serialize};
 
 use super::{

@@ -47,6 +47,7 @@ mod markdown_fallback;
 mod routing;
 #[path = "media_api/server_bootstrap.rs"]
 mod server_bootstrap;
+use super::bootstrap;
 use server_bootstrap::spawn_media_api_server;
 
 #[derive(Clone, Debug)]

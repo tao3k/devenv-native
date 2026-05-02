@@ -1,11 +1,11 @@
 //! Canonical api seam for BPMN loop-risk lint checks.
 
-use crate::bpmn_parse_api::BpmnSourceFile;
-use crate::ir_node_api::{BpmnGatewayKind, BpmnNodeKind};
-use crate::ir_package_api::BpmnPackage;
-use crate::ir_process_spec::BpmnProcessSpec;
-use crate::lint_api::{LintIssue, LintSourceDiagnostic, LintSourceSpan};
+use crate::BpmnPackage;
+use crate::BpmnProcessSpec;
+use crate::BpmnSourceFile;
 use crate::repeat_condition::{GatewayConditionSummary, parse_gateway_condition_summary};
+use crate::{BpmnGatewayKind, BpmnNodeKind};
+use crate::{LintIssue, LintSourceDiagnostic, LintSourceSpan};
 use quick_xml::Reader;
 use quick_xml::escape::resolve_predefined_entity;
 use quick_xml::events::{BytesStart, Event};

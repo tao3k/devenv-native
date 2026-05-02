@@ -1,3 +1,5 @@
+//! Error type for Qianhuan prompt-injection rendering and parsing.
+
 use thiserror::Error;
 
 /// Error during prompt context injection.

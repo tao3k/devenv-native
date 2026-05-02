@@ -1,3 +1,5 @@
+//! Repository-analysis route contracts for Wendao Flight metadata.
+
 mod doc_coverage;
 mod index;
 mod index_status;

@@ -7,11 +7,11 @@ use xiuxian_git_repo::{
 
 use crate::analyzers::{RegisteredRepository, RepositoryRefreshPolicy};
 
-use super::super::build_repository_analysis_cache_key;
 use super::support::{
     ensure_linked_modelica_parser_summary_service, mixed_modelica_unknown_plugin_configs,
     mixed_rust_unknown_plugin_configs,
 };
+use crate::analyzers::cache::build_repository_analysis_cache_key;
 
 #[test]
 fn build_repository_analysis_cache_key_invalidates_mixed_rust_unknown_plugin_ast_equivalent_source_churn()

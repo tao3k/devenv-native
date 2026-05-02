@@ -1,3 +1,5 @@
+//! parser import model branch wiring for focused BPMN/DMN owner leaves.
+
 mod api;
 mod capture;
 mod data;

@@ -1,3 +1,5 @@
+//! Telegram webhook runtime branch for startup and loop control.
+
 mod loop_control;
 mod run;
 mod secret;

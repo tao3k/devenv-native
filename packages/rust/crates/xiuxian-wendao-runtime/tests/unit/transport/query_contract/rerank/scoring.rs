@@ -1,8 +1,8 @@
-use super::super::{
-    RerankScoreWeights, must_err, must_ok, score_rerank_request_batch,
-    score_rerank_request_batch_with_weights,
-};
 use super::support::build_rerank_request_batch;
+use crate::transport::query_contract::tests::{must_err, must_ok};
+use crate::transport::query_contract::{
+    RerankScoreWeights, score_rerank_request_batch, score_rerank_request_batch_with_weights,
+};
 
 #[test]
 fn rerank_request_batch_scoring_blends_vector_and_semantic_similarity() {

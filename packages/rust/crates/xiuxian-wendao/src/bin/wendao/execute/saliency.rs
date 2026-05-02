@@ -1,13 +1,13 @@
 //! Saliency command execution.
 
-use crate::helpers::emit;
-use crate::types::{Cli, Command, SaliencyCommand};
-use anyhow::Result;
-use serde_json::json;
-use xiuxian_wendao::{
+use crate::bin_support::wendao::helpers::emit;
+use crate::bin_support::wendao::types::{Cli, Command, SaliencyCommand};
+use crate::{
     LinkGraphSaliencyDecaySweepRequest, LinkGraphSaliencyTouchRequest, valkey_saliency_decay_all,
     valkey_saliency_get, valkey_saliency_touch,
 };
+use anyhow::Result;
+use serde_json::json;
 
 pub(super) fn handle(cli: &Cli) -> Result<()> {
     let Command::Saliency { command } = &cli.command else {

@@ -7,12 +7,14 @@ use tonic::Request;
 
 use crate::transport::{RerankScoreWeights, SEARCH_INTENT_ROUTE, WendaoFlightService};
 
-use super::super::super::assertions::{
+use crate::tests::transport::server::assertions::{
     must_err, must_ok, must_some, parse_json, route_descriptor, ticket_string,
 };
-use super::super::super::fixtures::build_service_with_route_providers;
-use super::super::super::providers::{RecordingRepoSearchProvider, RecordingSearchProvider};
-use super::super::super::request_headers::populate_schema_and_search_headers;
+use crate::tests::transport::server::fixtures::build_service_with_route_providers;
+use crate::tests::transport::server::providers::{
+    RecordingRepoSearchProvider, RecordingSearchProvider,
+};
+use crate::tests::transport::server::request_headers::populate_schema_and_search_headers;
 
 #[tokio::test]
 async fn wendao_flight_service_get_flight_info_uses_search_family_provider() {

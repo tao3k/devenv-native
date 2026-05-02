@@ -1,3 +1,5 @@
+//! Discord memory reply branch for metrics, runtime status, and snapshots.
+
 mod metrics;
 mod runtime_status;
 mod snapshot;

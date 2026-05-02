@@ -1,6 +1,6 @@
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
-use syn::{Expr, parse_macro_input};
+use syn::{parse_macro_input, Expr};
 
 pub(crate) fn expand(input: TokenStream) -> TokenStream {
     let args: Vec<Expr> = parse_macro_input!(

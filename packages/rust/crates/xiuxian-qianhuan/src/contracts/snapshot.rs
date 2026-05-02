@@ -1,3 +1,5 @@
+//! Snapshot records produced by prompt-injection policy evaluation.
+
 use serde::{Deserialize, Serialize};
 
 use crate::{InjectionPolicy, PromptContextBlock, RoleMixProfile};

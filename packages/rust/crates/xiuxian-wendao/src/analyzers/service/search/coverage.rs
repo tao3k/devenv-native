@@ -5,11 +5,13 @@ use crate::analyzers::RepoIntelligenceError;
 use crate::analyzers::RepositoryAnalysisOutput;
 use crate::analyzers::{DocCoverageQuery, DocCoverageResult};
 
-use super::super::helpers::{
+use crate::analyzers::service::{
+    analyze_repository_from_config_with_registry, bootstrap_builtin_registry,
+};
+use crate::analyzers::service::{
     docs_in_scope, documented_symbol_ids, repo_hierarchical_uri, resolve_module_scope,
     symbols_in_scope,
 };
-use super::super::{analyze_repository_from_config_with_registry, bootstrap_builtin_registry};
 
 /// Build a documentation coverage result from normalized analysis records.
 #[must_use]

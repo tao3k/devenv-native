@@ -1,4 +1,23 @@
-use super::*;
+use std::collections::HashSet;
+#[cfg(unix)]
+use std::{fs, os::unix::fs::MetadataExt};
+
+use crate::search::cache::SearchPlaneFileFingerprintScope;
+use crate::search::repo_content_chunk::build::orchestration::{
+    publish_repo_content_chunks, publish_repo_content_chunks_incremental,
+};
+#[cfg(unix)]
+use crate::search::repo_content_chunk::build::partitions::{
+    repo_content_chunk_partition_count_for_document_count,
+    repo_content_chunk_partition_id_for_count,
+};
+use crate::search::{SearchCorpusKind, SearchPublicationStorageFormat};
+
+use super::{
+    assert_no_lance_table, assert_repo_content_hit_paths, assert_repo_content_prewarmed,
+    repo_content_publication_or_panic, repo_content_record_or_panic, repo_content_service,
+    repo_content_untouched_partition_paths, repo_document, temp_dir_or_panic,
+};
 
 #[tokio::test]
 async fn repo_content_chunk_incremental_refresh_reuses_unchanged_rows() {

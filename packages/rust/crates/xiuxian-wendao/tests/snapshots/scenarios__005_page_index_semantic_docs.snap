@@ -1,5 +1,5 @@
 ---
-source: packages/rust/crates/xiuxian-testing/src/scenario.rs
+source: packages/rust/crates/xiuxian-wendao/tests/support/scenario.rs
 description: "Scenario 005_page_index_semantic_docs [page_index]: Page Index Semantic Documents"
 expression: result
 info:

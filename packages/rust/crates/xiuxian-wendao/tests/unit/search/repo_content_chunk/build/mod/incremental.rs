@@ -1,4 +1,13 @@
-use super::*;
+use std::collections::BTreeMap;
+
+use crate::search::repo_content_chunk::build::plan::{
+    merge_repo_content_chunk_file_fingerprints, plan_repo_content_chunk_build,
+    plan_repo_content_chunk_incremental_build,
+};
+use crate::search::repo_content_chunk::build::types::RepoContentChunkBuildAction;
+use crate::search::{SearchCorpusKind, SearchRepoPublicationInput, SearchRepoPublicationRecord};
+
+use super::repo_document;
 
 #[test]
 fn plan_repo_content_chunk_incremental_build_only_rewrites_changed_files() {

@@ -409,7 +409,7 @@ dependencies = [
  "arrow-schema 57.3.0",
  "arrow-select 57.3.0",
  "atoi",
- "base64 0.22.1",
+ "base64",
  "chrono",
  "comfy-table",
  "half",
@@ -431,7 +431,7 @@ dependencies = [
  "arrow-schema 58.1.0",
  "arrow-select 58.1.0",
  "atoi",
- "base64 0.22.1",
+ "base64",
  "chrono",
  "comfy-table",
  "half",
@@ -513,7 +513,7 @@ dependencies = [
  "arrow-schema 58.1.0",
  "arrow-select 58.1.0",
  "arrow-string 58.1.0",
- "base64 0.22.1",
+ "base64",
  "bytes",
  "futures",
  "once_cell",
@@ -1074,12 +1074,6 @@ dependencies = [
 
 [[package]]
 name = "base64"
-version = "0.21.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9d297deb1925b89f2ccc13d7635fa0714f12c87adce1c75356b39ca9b7178567"
-
-[[package]]
-name = "base64"
 version = "0.22.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "72b3254f16251a8381aa12e40e3c4d2f0199f8c6508fbecb9d91f575e0fbb8c6"
@@ -1386,6 +1380,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f3a53fac24f34a81bc9954b5d6cfce0c21e18ec6959f44f56e8e90e4bb7c346c"
 dependencies = [
  "libbz2-rs-sys",
+]
+
+[[package]]
+name = "cargo_toml"
+version = "0.22.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "374b7c592d9c00c1f4972ea58390ac6b18cbb6ab79011f3bdc90a0b82ca06b77"
+dependencies = [
+ "serde",
+ "toml 0.9.12+spec-1.1.0",
 ]
 
 [[package]]
@@ -2705,7 +2709,7 @@ checksum = "07356c94118d881130dd0ffbff127540407d969c8978736e324edcd6c41cd48f"
 dependencies = [
  "arrow 57.3.0",
  "arrow-buffer 57.3.0",
- "base64 0.22.1",
+ "base64",
  "blake2",
  "blake3",
  "chrono",
@@ -2736,7 +2740,7 @@ checksum = "f28aa4e10384e782774b10e72aca4d93ef7b31aa653095d9d4536b0a3dbc51b6"
 dependencies = [
  "arrow 58.1.0",
  "arrow-buffer 58.1.0",
- "base64 0.22.1",
+ "base64",
  "blake2",
  "blake3",
  "chrono",
@@ -4890,7 +4894,7 @@ version = "0.55.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a521e39c6235ce63ed6c001e2dd79818c830b82c3b7b59247ee7b229c39ec9bb"
 dependencies = [
- "base64 0.22.1",
+ "base64",
  "bstr",
  "gix-command",
  "gix-credentials",
@@ -5139,20 +5143,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "hdrhistogram"
-version = "7.5.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "765c9198f173dd59ce26ff9f95ef0aafd0a0fe01fb9d72841bc5066a4c06511d"
-dependencies = [
- "base64 0.21.7",
- "byteorder",
- "crossbeam-channel",
- "flate2",
- "nom 7.1.3",
- "num-traits",
-]
-
-[[package]]
 name = "heapless"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5332,7 +5322,7 @@ version = "0.1.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "96547c2556ec9d12fb1578c4eaf448b04993e7fb79cbaad930a656880a6bdfa0"
 dependencies = [
- "base64 0.22.1",
+ "base64",
  "bytes",
  "futures-channel",
  "futures-util",
@@ -5958,7 +5948,7 @@ checksum = "fa0f4bea31643be4c6a678e9aa4ae44f0db9e5609d5ca9dc9083d06eb3e9a27a"
 dependencies = [
  "ahash 0.8.12",
  "anyhow",
- "base64 0.22.1",
+ "base64",
  "bytecount",
  "clap",
  "fancy-regex",
@@ -5986,7 +5976,7 @@ version = "9.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5a87cc7a48537badeae96744432de36f4be2b4a34a05a5ef32e9dd8a1c169dde"
 dependencies = [
- "base64 0.22.1",
+ "base64",
  "js-sys",
  "pem",
  "ring",
@@ -6704,7 +6694,7 @@ dependencies = [
  "arc-swap",
  "async-stream",
  "async-trait",
- "base64 0.22.1",
+ "base64",
  "bytes",
  "chrono",
  "dashmap 5.5.3",
@@ -7593,7 +7583,7 @@ dependencies = [
  "arrow-ipc 58.1.0",
  "arrow-schema 58.1.0",
  "arrow-select 58.1.0",
- "base64 0.22.1",
+ "base64",
  "brotli",
  "bytes",
  "chrono",
@@ -7681,7 +7671,7 @@ version = "3.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1d30c53c26bc5b31a98cd02d20f25a7c8567146caf63ed593a9d87b2775291be"
 dependencies = [
- "base64 0.22.1",
+ "base64",
  "serde_core",
 ]
 
@@ -8268,12 +8258,12 @@ dependencies = [
  "quick-xml",
  "rayon",
  "redis",
+ "rust-lang-project-harness",
  "serde",
  "serde_json",
  "tempfile",
  "thiserror 2.0.18",
  "tokio",
- "xiuxian-testing",
 ]
 
 [[package]]
@@ -8739,7 +8729,7 @@ version = "0.12.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "eddd3ca559203180a307f12d114c268abf583f59b03cb906fd0b3ff8646c1147"
 dependencies = [
- "base64 0.22.1",
+ "base64",
  "bytes",
  "encoding_rs",
  "futures-channel",
@@ -8786,7 +8776,7 @@ version = "0.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ab3f43e3283ab1488b624b44b0e988d0acea0b3214e694730a055cb6b2efa801"
 dependencies = [
- "base64 0.22.1",
+ "base64",
  "bytes",
  "encoding_rs",
  "futures-channel",
@@ -8914,6 +8904,20 @@ dependencies = [
  "hashbrown 0.14.5",
  "rustc-hash 1.1.0",
  "text-size",
+]
+
+[[package]]
+name = "rust-lang-project-harness"
+version = "0.1.0"
+source = "git+https://github.com/tao3k/rust-lang-project-harness?rev=7b5313bb543e729583da630164629e5db40d627b#7b5313bb543e729583da630164629e5db40d627b"
+dependencies = [
+ "cargo_toml",
+ "proc-macro2",
+ "quote",
+ "serde",
+ "serde_json",
+ "syn 2.0.117",
+ "toml 1.1.2+spec-1.1.0",
 ]
 
 [[package]]
@@ -9354,6 +9358,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde_spanned"
+version = "1.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6662b5879511e06e8999a8a235d848113e942c9124f211511b16466ee2995f26"
+dependencies = [
+ "serde_core",
+]
+
+[[package]]
 name = "serde_urlencoded"
 version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -9401,7 +9414,7 @@ checksum = "9bde37f42765dfdc34e2a039e0c84afbf79a3101c1941763b0beb816c2f17541"
 dependencies = [
  "arrayvec",
  "async-trait",
- "base64 0.22.1",
+ "base64",
  "bitflags 2.11.1",
  "bytes",
  "flate2",
@@ -10046,7 +10059,7 @@ checksum = "64a966cb0e76e311f09cf18507c9af192f15d34886ee43d7ba7c7e3803660c43"
 dependencies = [
  "aho-corasick",
  "arc-swap",
- "base64 0.22.1",
+ "base64",
  "bitpacking",
  "bon",
  "byteorder",
@@ -10098,7 +10111,7 @@ checksum = "502915c7381c5cb2d2781503962610cb880ad8f1a0ca95df1bae645d5ebf2545"
 dependencies = [
  "aho-corasick",
  "arc-swap",
- "base64 0.22.1",
+ "base64",
  "bitpacking",
  "bon",
  "byteorder",
@@ -10484,7 +10497,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3a19830747d9034cd9da43a60eaa8e552dfda7712424aebf187b7a60126bae0d"
 dependencies = [
  "anyhow",
- "base64 0.22.1",
+ "base64",
  "bstr",
  "fancy-regex",
  "lazy_static",
@@ -10665,9 +10678,39 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dc1beb996b9d83529a9e75c17a1686767d148d70663143c7854d8b4a09ced362"
 dependencies = [
  "serde",
- "serde_spanned",
+ "serde_spanned 0.6.9",
  "toml_datetime 0.6.11",
  "toml_edit 0.22.27",
+]
+
+[[package]]
+name = "toml"
+version = "0.9.12+spec-1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cf92845e79fc2e2def6a5d828f0801e29a2f8acc037becc5ab08595c7d5e9863"
+dependencies = [
+ "indexmap",
+ "serde_core",
+ "serde_spanned 1.1.1",
+ "toml_datetime 0.7.5+spec-1.1.0",
+ "toml_parser",
+ "toml_writer",
+ "winnow 0.7.15",
+]
+
+[[package]]
+name = "toml"
+version = "1.1.2+spec-1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "81f3d15e84cbcd896376e6730314d59fb5a87f31e4b038454184435cd57defee"
+dependencies = [
+ "indexmap",
+ "serde_core",
+ "serde_spanned 1.1.1",
+ "toml_datetime 1.1.1+spec-1.1.0",
+ "toml_parser",
+ "toml_writer",
+ "winnow 1.0.1",
 ]
 
 [[package]]
@@ -10677,6 +10720,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "22cddaf88f4fbc13c51aebbf5f8eceb5c7c5a9da2ac40a13519eb5b0a0e8f11c"
 dependencies = [
  "serde",
+]
+
+[[package]]
+name = "toml_datetime"
+version = "0.7.5+spec-1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "92e1cfed4a3038bc5a127e35a2d360f145e1f4b971b551a2ba5fd7aedf7e1347"
+dependencies = [
+ "serde_core",
 ]
 
 [[package]]
@@ -10696,7 +10748,7 @@ checksum = "41fe8c660ae4257887cf66394862d21dbca4a6ddd26f04a3560410406a2f819a"
 dependencies = [
  "indexmap",
  "serde",
- "serde_spanned",
+ "serde_spanned 0.6.9",
  "toml_datetime 0.6.11",
  "toml_write",
  "winnow 0.7.15",
@@ -10730,6 +10782,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5d99f8c9a7727884afe522e9bd5edbfc91a3312b36a77b5fb8926e4c31a41801"
 
 [[package]]
+name = "toml_writer"
+version = "1.1.1+spec-1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "756daf9b1013ebe47a8776667b466417e2d4c5679d441c26230efd9ef78692db"
+
+[[package]]
 name = "tonic"
 version = "0.14.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -10737,7 +10795,7 @@ checksum = "fec7c61a0695dc1887c1b53952990f3ad2e3a31453e1f49f10e75424943a93ec"
 dependencies = [
  "async-trait",
  "axum",
- "base64 0.22.1",
+ "base64",
  "bytes",
  "h2",
  "http",
@@ -10775,7 +10833,7 @@ version = "0.14.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "29453d84de05f4f1b573db22e6f9f6c95c189a6089a440c9a098aa9dea009299"
 dependencies = [
- "base64 0.22.1",
+ "base64",
  "bytes",
  "http",
  "http-body",
@@ -12139,23 +12197,23 @@ dependencies = [
  "ast-grep-language",
  "blake3",
  "insta",
+ "rust-lang-project-harness",
  "serde",
  "tempfile",
  "tree-sitter",
  "tree-sitter-python",
- "xiuxian-testing",
 ]
 
 [[package]]
 name = "xiuxian-config-core"
 version = "0.1.1"
 dependencies = [
+ "rust-lang-project-harness",
  "serde",
  "tempfile",
  "thiserror 2.0.18",
- "toml",
+ "toml 0.8.23",
  "xiuxian-macros",
- "xiuxian-testing",
 ]
 
 [[package]]
@@ -12183,6 +12241,7 @@ dependencies = [
  "pulldown-cmark",
  "redis",
  "reqwest 0.13.2",
+ "rust-lang-project-harness",
  "serde",
  "serde_json",
  "serde_yaml",
@@ -12190,7 +12249,7 @@ dependencies = [
  "sha2",
  "tempfile",
  "tokio",
- "toml",
+ "toml 0.8.23",
  "tower",
  "tracing",
  "tracing-subscriber",
@@ -12201,7 +12260,6 @@ dependencies = [
  "xiuxian-memory-engine",
  "xiuxian-qianhuan",
  "xiuxian-qianji",
- "xiuxian-testing",
  "xiuxian-tokenizer",
  "xiuxian-types",
  "xiuxian-wendao",
@@ -12220,12 +12278,12 @@ dependencies = [
  "duckdb",
  "parquet",
  "qianji-bpmn-engine",
+ "rust-lang-project-harness",
  "serde",
  "serde_json",
  "tempfile",
  "thiserror 2.0.18",
  "tokio",
- "xiuxian-testing",
  "xiuxian-vector",
 ]
 
@@ -12236,13 +12294,13 @@ dependencies = [
  "ignore",
  "rayon",
  "regex",
+ "rust-lang-project-harness",
  "serde",
  "similar",
  "tempfile",
  "thiserror 2.0.18",
  "xiuxian-ast",
  "xiuxian-io",
- "xiuxian-testing",
 ]
 
 [[package]]
@@ -12250,11 +12308,11 @@ name = "xiuxian-event"
 version = "0.1.1"
 dependencies = [
  "chrono",
+ "rust-lang-project-harness",
  "serde",
  "serde_json",
  "tokio",
  "uuid",
- "xiuxian-testing",
 ]
 
 [[package]]
@@ -12263,11 +12321,11 @@ version = "0.1.1"
 dependencies = [
  "ast-grep-core",
  "ast-grep-language",
+ "rust-lang-project-harness",
  "serde",
  "serde_json",
  "tempfile",
  "thiserror 2.0.18",
- "xiuxian-testing",
 ]
 
 [[package]]
@@ -12276,6 +12334,7 @@ version = "0.1.1"
 dependencies = [
  "chrono",
  "gix",
+ "rust-lang-project-harness",
  "serde",
  "serde_json",
  "tempfile",
@@ -12283,7 +12342,6 @@ dependencies = [
  "url",
  "uuid",
  "xiuxian-io",
- "xiuxian-testing",
 ]
 
 [[package]]
@@ -12294,13 +12352,13 @@ dependencies = [
  "memchr",
  "notify",
  "rayon",
+ "rust-lang-project-harness",
  "serde_json",
  "tempfile",
  "tera",
  "thiserror 2.0.18",
  "tokio",
  "xiuxian-event",
- "xiuxian-testing",
  "xiuxian-tokenizer",
 ]
 
@@ -12309,7 +12367,7 @@ name = "xiuxian-lance"
 version = "0.1.1"
 dependencies = [
  "lance",
- "xiuxian-testing",
+ "rust-lang-project-harness",
 ]
 
 [[package]]
@@ -12319,7 +12377,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "axum",
- "base64 0.22.1",
+ "base64",
  "futures",
  "image",
  "imageproc",
@@ -12327,18 +12385,18 @@ dependencies = [
  "num-traits",
  "regex",
  "reqwest 0.13.2",
+ "rust-lang-project-harness",
  "serde",
  "serde_json",
  "spider",
  "tempfile",
  "thiserror 2.0.18",
  "tokio",
- "toml",
+ "toml 0.8.23",
  "tracing",
  "tracing-subscriber",
  "xiuxian-config-core",
  "xiuxian-macros",
- "xiuxian-testing",
 ]
 
 [[package]]
@@ -12346,10 +12404,10 @@ name = "xiuxian-logging"
 version = "0.1.1"
 dependencies = [
  "clap",
+ "rust-lang-project-harness",
  "thiserror 2.0.18",
  "tracing-log",
  "tracing-subscriber",
- "xiuxian-testing",
 ]
 
 [[package]]
@@ -12358,21 +12416,21 @@ version = "0.1.0"
 dependencies = [
  "proc-macro2",
  "quote",
+ "rust-lang-project-harness",
  "serde",
  "syn 2.0.117",
  "tempfile",
- "toml",
+ "toml 0.8.23",
  "uuid",
  "xiuxian-config-core",
- "xiuxian-testing",
 ]
 
 [[package]]
 name = "xiuxian-memory"
 version = "0.1.1"
 dependencies = [
+ "rust-lang-project-harness",
  "serde",
- "xiuxian-testing",
 ]
 
 [[package]]
@@ -12383,9 +12441,9 @@ dependencies = [
  "chrono",
  "log",
  "num-traits",
- "pyo3",
  "rand 0.8.6",
  "redis",
+ "rust-lang-project-harness",
  "schemars",
  "serde",
  "serde_json",
@@ -12393,7 +12451,6 @@ dependencies = [
  "thiserror 2.0.18",
  "uuid",
  "xiuxian-io",
- "xiuxian-testing",
  "xiuxian-types",
 ]
 
@@ -12408,6 +12465,7 @@ dependencies = [
  "log",
  "redis",
  "reqwest 0.13.2",
+ "rust-lang-project-harness",
  "schemars",
  "serde",
  "serde_json",
@@ -12415,10 +12473,9 @@ dependencies = [
  "tera",
  "thiserror 2.0.18",
  "tokio",
- "toml",
+ "toml 0.8.23",
  "walkdir",
  "xiuxian-io",
- "xiuxian-testing",
  "xiuxian-wendao",
  "xiuxian-wendao-core",
  "xiuxian-zhenfa",
@@ -12447,6 +12504,7 @@ dependencies = [
  "redis",
  "regex",
  "reqwest 0.13.2",
+ "rust-lang-project-harness",
  "serde",
  "serde_json",
  "serde_yaml",
@@ -12454,7 +12512,7 @@ dependencies = [
  "thiserror 2.0.18",
  "tokio",
  "tokio-util",
- "toml",
+ "toml 0.8.23",
  "tower",
  "walkdir",
  "xiuxian-ast",
@@ -12464,7 +12522,6 @@ dependencies = [
  "xiuxian-logging",
  "xiuxian-macros",
  "xiuxian-qianhuan",
- "xiuxian-testing",
  "xiuxian-wendao",
  "xiuxian-wendao-core",
  "xiuxian-wendao-parsers",
@@ -12479,11 +12536,11 @@ name = "xiuxian-sandbox"
 version = "0.1.1"
 dependencies = [
  "async-trait",
+ "rust-lang-project-harness",
  "serde",
  "serde_json",
  "tempfile",
  "tokio",
- "xiuxian-testing",
 ]
 
 [[package]]
@@ -12491,40 +12548,22 @@ name = "xiuxian-security"
 version = "0.1.1"
 dependencies = [
  "regex",
+ "rust-lang-project-harness",
  "serde",
  "thiserror 2.0.18",
- "xiuxian-testing",
 ]
 
 [[package]]
 name = "xiuxian-tags"
 version = "0.1.1"
 dependencies = [
+ "rust-lang-project-harness",
  "serde",
  "tempfile",
  "thiserror 2.0.18",
  "walkdir",
  "xiuxian-ast",
  "xiuxian-io",
- "xiuxian-testing",
-]
-
-[[package]]
-name = "xiuxian-testing"
-version = "0.1.1"
-dependencies = [
- "anyhow",
- "async-trait",
- "futures",
- "hdrhistogram",
- "insta",
- "proc-macro2",
- "serde",
- "serde_json",
- "syn 2.0.117",
- "tempfile",
- "tokio",
- "toml",
 ]
 
 [[package]]
@@ -12532,21 +12571,22 @@ name = "xiuxian-tokenizer"
 version = "0.1.1"
 dependencies = [
  "rand 0.8.6",
+ "rust-lang-project-harness",
  "serde",
  "thiserror 2.0.18",
  "tiktoken-rs",
- "xiuxian-testing",
 ]
 
 [[package]]
 name = "xiuxian-types"
 version = "0.1.1"
 dependencies = [
+ "insta",
+ "rust-lang-project-harness",
  "schemars",
  "serde",
  "serde_json",
  "thiserror 2.0.18",
- "xiuxian-testing",
 ]
 
 [[package]]
@@ -12567,13 +12607,13 @@ dependencies = [
  "log",
  "parquet",
  "rand 0.8.6",
+ "rust-lang-project-harness",
  "serde",
  "serde_json",
  "tempfile",
  "thiserror 2.0.18",
  "tokio",
  "xiuxian-lance",
- "xiuxian-testing",
  "xiuxian-types",
 ]
 
@@ -12609,6 +12649,7 @@ dependencies = [
  "redis",
  "regex",
  "reqwest 0.13.2",
+ "rust-lang-project-harness",
  "schemars",
  "serde",
  "serde_json",
@@ -12623,7 +12664,7 @@ dependencies = [
  "tokio",
  "tokio-stream",
  "tokio-util",
- "toml",
+ "toml 0.8.23",
  "tonic",
  "tonic-web",
  "tower",
@@ -12639,7 +12680,6 @@ dependencies = [
  "xiuxian-llm",
  "xiuxian-logging",
  "xiuxian-macros",
- "xiuxian-testing",
  "xiuxian-wendao-attachments",
  "xiuxian-wendao-builtin",
  "xiuxian-wendao-client",
@@ -12662,22 +12702,22 @@ dependencies = [
  "lopdf",
  "num-traits",
  "pdfium-render",
+ "rust-lang-project-harness",
  "serde",
  "serde_json",
  "sha2",
  "tar",
  "tempfile",
- "xiuxian-testing",
 ]
 
 [[package]]
 name = "xiuxian-wendao-builtin"
 version = "0.1.1"
 dependencies = [
+ "rust-lang-project-harness",
  "serde_json",
  "serde_yaml",
- "toml",
- "xiuxian-testing",
+ "toml 0.8.23",
  "xiuxian-wendao-core",
  "xiuxian-wendao-julia",
  "xiuxian-wendao-runtime",
@@ -12692,15 +12732,15 @@ dependencies = [
  "clap",
  "insta",
  "rayon",
+ "rust-lang-project-harness",
  "schemars",
  "serde",
  "serde_json",
  "tempfile",
- "toml",
+ "toml 0.8.23",
  "walkdir",
  "xiuxian-config-core",
  "xiuxian-logging",
- "xiuxian-testing",
  "xiuxian-wendao-parsers",
 ]
 
@@ -12711,13 +12751,12 @@ dependencies = [
  "arrow 58.1.0",
  "chrono",
  "inventory",
+ "rust-lang-project-harness",
  "schemars",
  "serde",
  "serde_json",
- "tempfile",
  "thiserror 2.0.18",
- "toml",
- "xiuxian-testing",
+ "toml 0.8.23",
  "xiuxian-types",
 ]
 
@@ -12733,6 +12772,7 @@ dependencies = [
  "insta",
  "inventory",
  "regex",
+ "rust-lang-project-harness",
  "serde",
  "serde_json",
  "serde_yaml",
@@ -12740,11 +12780,10 @@ dependencies = [
  "tempfile",
  "tokio",
  "tokio-stream",
- "toml",
+ "toml 0.8.23",
  "tonic",
  "walkdir",
  "xiuxian-memory-engine",
- "xiuxian-testing",
  "xiuxian-wendao-core",
  "xiuxian-wendao-runtime",
 ]
@@ -12757,6 +12796,7 @@ dependencies = [
  "chrono",
  "comrak",
  "orgize",
+ "rust-lang-project-harness",
  "serde",
  "serde_json",
  "serde_yaml",
@@ -12764,7 +12804,6 @@ dependencies = [
  "uuid",
  "walkdir",
  "xiuxian-ast",
- "xiuxian-testing",
 ]
 
 [[package]]
@@ -12776,21 +12815,21 @@ dependencies = [
  "arrow-flight",
  "arrow-schema 58.1.0",
  "async-trait",
- "base64 0.22.1",
+ "base64",
  "datafusion 53.1.0",
  "futures",
  "include_dir",
+ "rust-lang-project-harness",
  "serde",
  "serde_json",
  "serde_yaml",
  "tempfile",
  "tokio",
  "tokio-stream",
- "toml",
+ "toml 0.8.23",
  "tonic",
  "xiuxian-config-core",
  "xiuxian-db-store",
- "xiuxian-testing",
  "xiuxian-wendao-core",
  "xiuxian-wendao-parsers",
 ]
@@ -12802,11 +12841,11 @@ dependencies = [
  "arrow 58.1.0",
  "async-trait",
  "datafusion 53.1.0",
+ "rust-lang-project-harness",
  "serde_json",
  "tempfile",
  "tokio",
  "walkdir",
- "xiuxian-testing",
  "xiuxian-wendao-core",
  "xiuxian-wendao-parsers",
 ]
@@ -12816,8 +12855,8 @@ name = "xiuxian-window"
 version = "0.1.1"
 dependencies = [
  "pyo3",
+ "rust-lang-project-harness",
  "serde",
- "xiuxian-testing",
 ]
 
 [[package]]
@@ -12829,6 +12868,7 @@ dependencies = [
  "pulldown-cmark",
  "quick-xml",
  "reqwest 0.13.2",
+ "rust-lang-project-harness",
  "schemars",
  "serde",
  "serde_json",
@@ -12838,7 +12878,6 @@ dependencies = [
  "tracing",
  "uuid",
  "xiuxian-macros",
- "xiuxian-testing",
 ]
 
 [[package]]
@@ -12851,6 +12890,7 @@ dependencies = [
  "include_dir",
  "log",
  "redis",
+ "rust-lang-project-harness",
  "serde",
  "serde_json",
  "tempfile",
@@ -12859,7 +12899,6 @@ dependencies = [
  "uuid",
  "xiuxian-qianhuan",
  "xiuxian-qianji",
- "xiuxian-testing",
  "xiuxian-wendao",
 ]
 

@@ -1,5 +1,12 @@
+use crate::repo_index::{RepoIndexEntryStatus, RepoIndexPhase, RepoIndexStatusResponse};
 use crate::search::service::tests::status::repo_content::helpers::{repo_document, test_service};
-use crate::search::service::tests::support::*;
+use crate::search::service::tests::support::{
+    assert_status_reason, corpus_status, issue_summary, publish_repo_bundle, repo_status_entry,
+};
+use crate::search::{
+    SearchCorpusIssueCode, SearchCorpusIssueFamily, SearchCorpusKind, SearchCorpusStatusAction,
+    SearchCorpusStatusReasonCode, SearchCorpusStatusSeverity, SearchPlanePhase,
+};
 
 #[tokio::test]
 async fn status_with_repo_content_reports_repo_failure_issue_while_rows_remain_readable() {

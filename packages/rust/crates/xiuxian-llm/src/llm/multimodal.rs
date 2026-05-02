@@ -1,3 +1,5 @@
+//! Multimodal marker parsing and image-source normalization.
+
 use super::error::LlmError;
 use super::error::LlmResult;
 use base64::Engine;

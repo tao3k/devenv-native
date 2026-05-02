@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 
 SUMMARY_SCHEMA = "xiuxian_wendao.gateway_perf_summary.v1"
-PERF_REPORT_SCHEMA = "xiuxian-testing.perf-report.v1"
+PERF_REPORT_SCHEMA = "wendao.perf-report.v1"
 PERF_GATEWAY_SUITE = "xiuxian-wendao/perf-gateway"
 REAL_WORKSPACE_PERF_GATEWAY_SUITE = "xiuxian-wendao/perf-gateway-real-workspace"
 FORMAL_GATEWAY_CASES = (
@@ -72,7 +72,9 @@ def _as_int(value: Any, default: int = 0) -> int:
     return default
 
 
-def _case_diagnostics(metadata: dict[str, Any]) -> tuple[str, str, str, dict[str, str], str]:
+def _case_diagnostics(
+    metadata: dict[str, Any],
+) -> tuple[str, str, str, dict[str, str], str]:
     uri = str(metadata.get(GATEWAY_URI_METADATA_KEY, "")).strip()
     search_index = str(metadata.get(GATEWAY_SEARCH_INDEX_METADATA_KEY, "")).strip()
     repo_index = str(metadata.get(GATEWAY_REPO_INDEX_METADATA_KEY, "")).strip()
@@ -209,7 +211,10 @@ def _collect_suite_summary(
                 auxiliary_cases[case] = case_summary
             continue
         current = latest_cases.get(case)
-        if current is None or case_summary["captured_at_unix_ms"] >= current["captured_at_unix_ms"]:
+        if (
+            current is None
+            or case_summary["captured_at_unix_ms"] >= current["captured_at_unix_ms"]
+        ):
             latest_cases[case] = case_summary
 
     cases = sorted(latest_cases.values(), key=lambda item: str(item["case"]))
@@ -295,7 +300,9 @@ def _build_markdown(payload: dict[str, Any]) -> str:
             f"{formal.get('overall', {}).get('expected_case_count', 0)}`"
         ),
         f"- Summary healthy: `{str(overall.get('ok', False)).lower()}`",
-        (f"- Missing expected cases: `{', '.join(missing_cases) if missing_cases else 'none'}`"),
+        (
+            f"- Missing expected cases: `{', '.join(missing_cases) if missing_cases else 'none'}`"
+        ),
         (
             f"- Ignored non-formal cases: "
             f"`{', '.join(entry.get('case', 'unknown') for entry in auxiliary_cases) if auxiliary_cases else 'none'}`"
@@ -324,7 +331,9 @@ def _build_markdown(payload: dict[str, Any]) -> str:
             )
         lines.extend(["", "### Diagnostics", ""])
         for case in cases:
-            lines.append(f"- `{case.get('case', 'unknown')}`: {case.get('diagnostics', 'none')}")
+            lines.append(
+                f"- `{case.get('case', 'unknown')}`: {case.get('diagnostics', 'none')}"
+            )
         lines.extend(["", "### Formal Repo-Read Pressure", ""])
         for case in cases:
             lines.append(
@@ -368,7 +377,10 @@ def _build_markdown(payload: dict[str, Any]) -> str:
             lines.append("")
         else:
             lines.extend(
-                ["- Real-workspace report directory exists, but no sample reports were found.", ""]
+                [
+                    "- Real-workspace report directory exists, but no sample reports were found.",
+                    "",
+                ]
             )
     else:
         lines.extend(["- Real-workspace samples not present in this run.", ""])
@@ -402,11 +414,15 @@ def _write_summary_outputs(
         (mirror_output_dir / SUMMARY_JSON_NAME).write_text(
             json.dumps(payload, ensure_ascii=True, indent=2) + "\n", encoding="utf-8"
         )
-        (mirror_output_dir / SUMMARY_MARKDOWN_NAME).write_text(markdown, encoding="utf-8")
+        (mirror_output_dir / SUMMARY_MARKDOWN_NAME).write_text(
+            markdown, encoding="utf-8"
+        )
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Render xiuxian-wendao gateway perf summary")
+    parser = argparse.ArgumentParser(
+        description="Render xiuxian-wendao gateway perf summary"
+    )
     parser.add_argument(
         "--report-dir",
         default=".run/reports/xiuxian-wendao/perf-gateway",
@@ -419,7 +435,9 @@ def main() -> int:
     )
     parser.add_argument("--runner-os", default="", help="runner os label for summary")
     parser.add_argument("--output-json", default="", help="optional output JSON path")
-    parser.add_argument("--output-markdown", default="", help="optional output markdown path")
+    parser.add_argument(
+        "--output-markdown", default="", help="optional output markdown path"
+    )
     parser.add_argument(
         "--mirror-output-dir",
         default="",

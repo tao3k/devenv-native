@@ -1,4 +1,8 @@
-use crate::search::service::tests::support::*;
+use crate::search::service::tests::support::{derive_status_reason, some_or_panic};
+use crate::search::{
+    SearchCorpusKind, SearchCorpusStatus, SearchCorpusStatusAction, SearchCorpusStatusReasonCode,
+    SearchCorpusStatusSeverity, SearchPlanePhase,
+};
 
 #[test]
 fn derive_status_reason_marks_failed_refresh_as_retryable_warning() {

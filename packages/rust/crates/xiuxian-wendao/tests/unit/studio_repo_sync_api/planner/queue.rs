@@ -1,4 +1,14 @@
-use super::support::*;
+use serde_json::Value;
+
+use super::support::{
+    group_gaps_match_needle, group_preview_within_limit, modelica_nodocs_router, sum_u64_field,
+};
+use crate::gateway::studio::studio_repo_sync_api_tests::support::{
+    create_local_git_repo, gateway_state_for_project, request_json, write_default_repo_config,
+};
+use crate::gateway::studio::studio_repo_sync_api_tests::{
+    StatusCode, TestResult, assert_studio_json_snapshot, fs, studio_router,
+};
 
 #[tokio::test]
 async fn docs_planner_queue_endpoint_returns_grouped_gap_backlog() -> TestResult {

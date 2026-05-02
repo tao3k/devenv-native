@@ -1,4 +1,4 @@
-use super::super::enums::{DecisionTargetStateArg, SuggestedLinkStateArg};
+use crate::bin_support::wendao::types::{DecisionTargetStateArg, SuggestedLinkStateArg};
 use clap::Subcommand;
 
 #[derive(Subcommand, Debug)]

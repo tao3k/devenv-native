@@ -1,3 +1,5 @@
+//! Telegram channel authorization policy implementation.
+
 use crate::channels::control_command_authorization::ControlCommandAuthRule;
 
 use super::admin_rules::TelegramCommandAdminRule;

@@ -1,3 +1,5 @@
+//! Autocomplete route contract and metadata validation.
+
 /// Canonical autocomplete prefix metadata header for Wendao Flight requests.
 pub const WENDAO_AUTOCOMPLETE_PREFIX_HEADER: &str = "x-wendao-autocomplete-prefix";
 /// Canonical autocomplete result-limit metadata header for Wendao Flight requests.

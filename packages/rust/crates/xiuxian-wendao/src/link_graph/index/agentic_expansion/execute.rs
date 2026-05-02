@@ -1,9 +1,9 @@
-use super::super::LinkGraphIndex;
 use crate::link_graph::agentic::{
     LinkGraphAgenticExecutionConfig, LinkGraphAgenticExecutionResult,
     LinkGraphAgenticWorkerExecution, suggested_link_signature_from_row,
     valkey_suggested_link_recent_latest,
 };
+use crate::link_graph::index::LinkGraphIndex;
 use std::collections::HashSet;
 use std::time::Instant;
 

@@ -11,14 +11,8 @@ use crate::zhenfa_router::native::audit::FuzzySuggestion;
 use super::episteme::EpistemeLoadReport;
 
 /// Standard property drawer attribute keys (Blueprint v2.0).
-pub(super) mod attrs {
-    /// Explicit node identifier - takes precedence over `structural_path`.
-    pub const ID: &str = "ID";
-    /// Node status: STABLE | DRAFT | DEPRECATED.
-    pub const STATUS: &str = "STATUS";
-    /// Semantic contract constraint (e.g., `must_contain("Rust", "Lock")`).
-    pub const CONTRACT: &str = "CONTRACT";
-}
+#[path = "types/attrs.rs"]
+pub(super) mod attrs;
 
 /// Node status values (Blueprint v2.0 Section 3.1).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]

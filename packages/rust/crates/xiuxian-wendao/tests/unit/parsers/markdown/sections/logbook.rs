@@ -1,5 +1,5 @@
-use super::super::*;
 use super::support::extract_sections_from;
+use crate::parsers::markdown::sections::{extract_logbook_entries, parse_logbook_entry};
 
 #[test]
 fn test_parse_logbook_entry_valid() {

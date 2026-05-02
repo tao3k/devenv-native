@@ -1,3 +1,5 @@
+//! Settings access helpers for YAML-backed runtime configuration.
+
 use serde_yaml::Value;
 
 fn setting_value_to_string(value: &Value) -> Option<String> {

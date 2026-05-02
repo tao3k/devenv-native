@@ -1,3 +1,5 @@
+//! Search-family route contracts for Wendao Flight metadata.
+
 mod ast;
 mod attachments;
 mod autocomplete;

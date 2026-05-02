@@ -1,3 +1,5 @@
+//! Columnar Lance table utilities for scans, merge-inserts, and schema updates.
+
 use std::future::Future;
 use std::path::Path;
 use std::sync::Arc;

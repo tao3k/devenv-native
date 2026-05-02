@@ -1,4 +1,8 @@
-use super::support::*;
+use super::support::{
+    Arc, PathBuf, RepoSourceKind, RepoSyncResult, RepositoryAnalysisOutput, SearchCorpusKind,
+    SearchMaintenancePolicy, SearchManifestKeyspace, SearchPlaneCache, SearchPlaneService,
+    SearchPublicationStorageFormat, SearchRepoPublicationInput, new_coordinator,
+};
 
 #[tokio::test]
 async fn managed_remote_skips_reindex_when_repo_publications_already_match_revision() {

@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use super::DiscordAclSettings;
+use crate::config::DiscordAclSettings;
 
 pub(super) fn normalize_role_aliases(acl: &DiscordAclSettings) -> HashMap<String, String> {
     let mut normalized = HashMap::new();

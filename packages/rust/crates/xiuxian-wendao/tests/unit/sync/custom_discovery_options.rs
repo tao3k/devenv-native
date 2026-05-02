@@ -1,9 +1,10 @@
-use super::*;
+use std::fs;
+
+use tempfile::TempDir;
+use xiuxian_wendao::{DiscoveryOptions, SyncEngine};
 
 #[test]
 fn test_custom_discovery_options() -> Result<(), Box<dyn std::error::Error>> {
-    use xiuxian_wendao::{DiscoveryOptions, SyncEngine};
-
     let temp_dir = TempDir::new()?;
 
     // Create files with different extensions

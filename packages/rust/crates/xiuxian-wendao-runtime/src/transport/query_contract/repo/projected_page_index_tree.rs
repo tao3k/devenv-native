@@ -1,3 +1,5 @@
+//! Projected page-index tree route contract and metadata validation.
+
 /// Canonical projected page-index tree repository metadata header for Wendao
 /// Flight requests.
 pub const WENDAO_REPO_PROJECTED_PAGE_INDEX_TREE_REPO_HEADER: &str =

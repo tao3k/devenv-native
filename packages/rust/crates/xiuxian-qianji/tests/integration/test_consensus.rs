@@ -15,8 +15,6 @@ fn must_ok<T, E: Display>(value: Result<T, E>, context: &str) -> T {
     }
 }
 
-xiuxian_testing::crate_test_policy_harness!();
-
 fn now_millis() -> u128 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)

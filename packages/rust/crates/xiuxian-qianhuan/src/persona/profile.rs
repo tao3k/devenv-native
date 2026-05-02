@@ -1,3 +1,5 @@
+//! Persona profile records for prompt voice and reasoning style.
+
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 

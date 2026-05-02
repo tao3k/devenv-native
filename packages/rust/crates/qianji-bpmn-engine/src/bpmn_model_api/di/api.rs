@@ -1,3 +1,5 @@
+//! Public bpmn model api di contracts for BPMN/DMN engine integration.
+
 /// Snapshot of one BPMN DI `BPMNDiagram`.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct BpmnDiagramSnapshot {

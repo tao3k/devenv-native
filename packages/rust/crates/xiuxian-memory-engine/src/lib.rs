@@ -9,10 +9,10 @@
 //!
 //! ```text
 //! ┌─────────────────────────────────────────────────────────────┐
-//! │                    Python Layer (Orchestration)             │
-//! │  - Workflow orchestration                                 │
-//! │  - State management                                      │
-//! │  - LLM interaction                                       │
+//! │                    Host Layer (Orchestration)               │
+//! │  - Workflow orchestration                                  │
+//! │  - State management                                        │
+//! │  - LLM interaction                                         │
 //! └─────────────────────────────────────────────────────────────┘
 //!                             │
 //!                             ▼
@@ -52,7 +52,8 @@
 //! let q_value = q_table.get_q("ep-001");
 //! ```
 
-xiuxian_testing::crate_test_policy_source_harness!("../tests/unit/lib_policy.rs");
+#[cfg(test)]
+rust_lang_project_harness::rust_project_harness_cargo_test_gate!();
 
 // ============================================================================
 // Core modules
@@ -69,13 +70,6 @@ mod schema;
 mod state_backend;
 mod store;
 mod two_phase;
-
-// ============================================================================
-// Python bindings (optional)
-// ============================================================================
-
-#[cfg(feature = "pybindings")]
-mod pymodule_impl;
 
 // ============================================================================
 // Public exports
@@ -102,12 +96,3 @@ pub use state_backend::{
 };
 pub use store::{EpisodeStore, MemoryStateSnapshot, StoreConfig};
 pub use two_phase::{TwoPhaseConfig, TwoPhaseSearch, calculate_score};
-
-// Python bindings re-exports
-#[cfg(feature = "pybindings")]
-pub use pymodule_impl::{
-    PyEpisode, PyEpisodeStore, PyIntentEncoder, PyQTable, PyStoreConfig, PyTwoPhaseConfig,
-    PyTwoPhaseSearch, calculate_score as py_calculate_score, create_episode, create_episode_store,
-    create_episode_with_embedding, create_intent_encoder, create_q_table, create_two_phase_search,
-    register_memory_module,
-};

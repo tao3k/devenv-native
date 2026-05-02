@@ -1,3 +1,5 @@
+//! LiteLLM compatibility maps provider payloads, tool calls, and response metadata into the local chat contract.
+
 use anyhow::Result;
 use futures::StreamExt;
 use litellm_rs::core::traits::provider::llm_provider::trait_definition::LLMProvider;
@@ -13,16 +15,14 @@ use tokio::sync::OnceCell;
 mod anthropic_custom;
 mod responses;
 
-use crate::llm::converters::{
-    chat_message_to_litellm_message, chat_message_to_litellm_message_for_openai_chat,
-    content_from_litellm, tool_call_from_litellm,
-};
 use crate::llm::providers::{
     DEFAULT_ANTHROPIC_KEY_ENV, DEFAULT_MINIMAX_KEY_ENV, DEFAULT_OPENAI_KEY_ENV,
     LiteLlmProviderMode, LiteLlmWireApi,
 };
-use crate::llm::tools::PreparedTool;
-use crate::llm::types::AssistantMessage;
+use crate::llm::{
+    AssistantMessage, PreparedTool, chat_message_to_litellm_message,
+    chat_message_to_litellm_message_for_openai_chat, content_from_litellm, tool_call_from_litellm,
+};
 use crate::session::ChatMessage;
 use anthropic_custom::chat_anthropic_without_model_registry;
 use xiuxian_llm::llm::providers::{

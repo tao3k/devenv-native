@@ -1,4 +1,4 @@
-use super::*;
+use super::{InFlightShardRegistry, InFlightShardReservation, PdfOcrShardResult};
 use xiuxian_wendao_attachments::pdf::ocr::{PDF_OCR_SHARD_INPUT_SCHEMA_VERSION, PdfOcrShardInput};
 
 #[tokio::test]

@@ -3,8 +3,6 @@ use std::time::Duration;
 
 use tokio::sync::Semaphore;
 
-use super::super::backend::resolve_backend_settings;
-use super::super::cache::EmbeddingCache;
 #[cfg(feature = "agent-provider-litellm")]
 use super::support::resolve_litellm_embed_api_key;
 use super::support::{build_http_client, parse_positive_env_u64, parse_positive_env_usize};
@@ -14,6 +12,8 @@ use super::{
     MAX_EMBED_BATCH_MAX_CONCURRENCY, MAX_EMBED_BATCH_MAX_SIZE, MAX_EMBED_CACHE_MAX_ENTRIES,
     MAX_EMBED_CACHE_TTL_SECS,
 };
+use crate::embedding::backend::resolve_backend_settings;
+use crate::embedding::cache::EmbeddingCache;
 
 impl EmbeddingClient {
     /// Construct a client with default backend resolution.

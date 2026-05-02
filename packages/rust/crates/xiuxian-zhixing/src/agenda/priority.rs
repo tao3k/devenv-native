@@ -1,3 +1,5 @@
+//! Agenda priority levels for cultivation tasks.
+
 use serde::{Deserialize, Serialize};
 
 /// Priority levels for cultivation tasks.

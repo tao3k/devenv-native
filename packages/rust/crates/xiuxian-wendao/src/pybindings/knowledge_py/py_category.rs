@@ -1,4 +1,4 @@
-use pyo3::prelude::*;
+use pyo3::{PyResult, pyclass, pymethods};
 
 use crate::types::KnowledgeCategory;
 

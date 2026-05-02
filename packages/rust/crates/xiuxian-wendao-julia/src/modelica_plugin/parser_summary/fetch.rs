@@ -9,8 +9,9 @@ use super::contract::{
     ModelicaParserSummaryRequestRow, build_modelica_parser_summary_request_batch,
     decode_modelica_parser_file_summary, decode_modelica_parser_summary_response_rows,
 };
+use super::route::ParserSummaryRouteKind;
 use super::transport::{
-    ParserSummaryRouteKind, build_modelica_parser_summary_flight_transport_client,
+    build_modelica_parser_summary_flight_transport_client,
     modelica_parser_summary_timeout_secs_for_repository,
     process_modelica_parser_summary_flight_batches_for_repository,
 };

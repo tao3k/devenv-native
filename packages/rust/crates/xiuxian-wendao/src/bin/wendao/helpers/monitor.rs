@@ -2,8 +2,8 @@
 
 use std::cmp::Ordering;
 
+use crate::{LinkGraphAgenticExecutionResult, LinkGraphRelatedPprDiagnostics};
 use serde_json::json;
-use xiuxian_wendao::{LinkGraphAgenticExecutionResult, LinkGraphRelatedPprDiagnostics};
 
 pub(crate) fn build_agentic_monitor_phases(
     result: &LinkGraphAgenticExecutionResult,

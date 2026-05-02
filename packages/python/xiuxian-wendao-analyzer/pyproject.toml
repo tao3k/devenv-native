@@ -23,7 +23,7 @@ documents-audio = [
 [dependency-groups]
 test = [
     "pytest>=8.0",
-    "xiuxian-harness-python-lang-project",
+    "python-lang-project-harness",
 ]
 
 [build-system]
@@ -43,4 +43,4 @@ package = true
 [tool.uv.sources]
 wendao-core-lib = { workspace = true }
 wendao-arrow-interface = { workspace = true }
-xiuxian-harness-python-lang-project = { workspace = true }
+python-lang-project-harness = { git = "https://github.com/tao3k/python-lang-project-harness", rev = "11bd8e60921541ecaf9afcc9502b7b0811d3d108" }

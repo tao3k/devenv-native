@@ -1,6 +1,6 @@
 //! `PyO3` bindings for sync engine (incremental file sync).
 
-use pyo3::prelude::*;
+use pyo3::{PyResult, pyclass, pyfunction, pymethods};
 use serde_json::to_string;
 use std::collections::HashMap;
 use std::path::PathBuf;

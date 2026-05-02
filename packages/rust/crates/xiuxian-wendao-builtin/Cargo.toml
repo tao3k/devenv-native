@@ -10,11 +10,13 @@ publish = false
 [dependencies]
 serde_yaml = { workspace = true }
 serde_json = { workspace = true }
-xiuxian-testing = { path = "../xiuxian-testing" }
 xiuxian-wendao-runtime = { path = "../xiuxian-wendao-runtime", default-features = false, features = ["transport"] }
 xiuxian-wendao-core = { path = "../xiuxian-wendao-core" }
 xiuxian-wendao-julia = { path = "../xiuxian-wendao-julia" }
 toml = { workspace = true }
+
+[dev-dependencies]
+rust-lang-project-harness = { workspace = true }
 
 [lints]
 workspace = true

@@ -1,5 +1,5 @@
 ---
-source: packages/rust/crates/xiuxian-testing/src/scenario.rs
+source: packages/rust/crates/xiuxian-wendao/tests/support/scenario.rs
 description: "Scenario 045_search_filt_temporal_filters_and_sorting [search_filters]: temporal filters and sorting"
 expression: result
 info:

@@ -2,7 +2,7 @@ use axum::body::to_bytes;
 use axum::http::StatusCode;
 
 use super::support::{mismatched_pid, remove_temp_gateway_pidfile, write_temp_gateway_pidfile};
-use crate::execute::gateway::health::gateway_health_response;
+use crate::bin_support::wendao::execute::gateway::health::gateway_health_response;
 
 #[test]
 fn test_health_endpoint_reports_process_id_header() {

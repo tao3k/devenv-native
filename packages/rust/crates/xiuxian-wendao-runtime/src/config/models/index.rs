@@ -1,3 +1,5 @@
+//! Index runtime configuration records for Wendao search scope.
+
 /// Resolved index-scope directory filters for the link graph.
 #[derive(Debug, Clone, Default)]
 pub struct LinkGraphIndexRuntimeConfig {

@@ -4,7 +4,7 @@ use crate::{
 };
 use anyhow::{Result, anyhow};
 
-use super::shared::non_empty_env;
+use super::env_lookup::non_empty_env;
 use super::types::SessionRuntimeOptions;
 
 fn parse_context_budget_strategy(raw: &str, source: &str) -> Result<ContextBudgetStrategy> {

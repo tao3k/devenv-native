@@ -4,9 +4,10 @@ use std::error::Error;
 use std::path::Path;
 
 use serde_json::{Value, json};
-use xiuxian_testing::{Scenario, ScenarioRunner, find_first_doc_name};
 use xiuxian_wendao::LinkGraphIndex;
 use xiuxian_wendao::link_graph::PageIndexNode;
+
+use crate::scenarios::support::{Scenario, ScenarioRunner, find_first_doc_name};
 
 /// Runner for `page_index` category scenarios.
 pub struct PageIndexRunner;

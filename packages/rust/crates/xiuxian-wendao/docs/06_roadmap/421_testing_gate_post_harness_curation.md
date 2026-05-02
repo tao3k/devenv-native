@@ -3,7 +3,7 @@
 ## Context
 
 `xiuxian-wendao` already mounts the shared crate test-policy gate through both
-`tests/unit_test.rs` and `tests/xiuxian-testing-gate.rs`, so the current
+`tests/unit_test.rs` and `tests/wendao-validation-gate.rs`, so the current
 problem is not missing harness wiring.
 
 The real debt is post-harness growth inside `tests/unit/...`: large suites were
@@ -714,7 +714,7 @@ includes:
   `direnv exec . cargo check -p xiuxian-wendao --tests`,
   which was rerun for closure on the same lane
 
-At this point the Wendao shared `unit_test` testing-gate remediation lane is
+At this point the Wendao shared `unit_test` project-harness remediation lane is
 structurally green. Remaining work in this crate is no longer oversized
 test-leaf debt; it is the separate repeated-namespace warning backlog and any
 future owner-cluster curation done for readability rather than gate recovery.

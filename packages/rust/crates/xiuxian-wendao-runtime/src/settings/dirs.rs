@@ -1,3 +1,5 @@
+//! Project settings directory resolution for runtime configuration loading.
+
 /// Normalize one relative directory entry for config-driven path lists.
 #[must_use]
 pub fn normalize_relative_dir(value: &str) -> Option<String> {

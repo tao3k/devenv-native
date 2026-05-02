@@ -1,6 +1,21 @@
-use super::*;
-use serde_json::json;
-use xiuxian_qianji::SchedulerAgentIdentity;
+pub(super) use super::{
+    BpmnCliCheckpointBackend, BpmnCliCommand, BpmnHostSessionCliCommand, BpmnRunCliCommand,
+    BpmnStartAtCliCommand, BpmnStartCliCommand, PathBuf, QianjiRuntimeEnv, must_ok, must_some,
+    parse_bpmn_command, resolve_bpmn_checkpoint_store_with_env, run_bpmn_command,
+    run_bpmn_run_command_with_runtime_env, run_bpmn_start_at_command_with_runtime_env,
+    run_bpmn_status_command_with_runtime_env, to_args, write_file,
+};
+#[cfg(feature = "duckdb")]
+pub(super) use super::{
+    BpmnStatusCliCommand, BpmnTaskClaimCliCommand, BpmnTaskCompleteCliCommand,
+    BpmnTaskCompleteCliKind, BpmnTaskReleaseCliCommand, BpmnTaskWorklistCliCommand,
+    run_bpmn_task_claim_command_with_runtime_env, run_bpmn_task_complete_command_with_runtime_env,
+    run_bpmn_task_release_command_with_runtime_env,
+    run_bpmn_task_worklist_command_with_runtime_env,
+};
+pub(super) use crate::SchedulerAgentIdentity;
+pub(super) use serde_json::json;
+pub(super) use tempfile::TempDir;
 
 #[path = "../../../../integration/support/valkey.rs"]
 mod valkey_support;

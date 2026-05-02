@@ -7,10 +7,14 @@ use tonic::Request;
 
 use crate::transport::{SEARCH_AUTOCOMPLETE_ROUTE, SEARCH_DEFINITION_ROUTE};
 
-use super::super::assertions::{must_ok, parse_json, route_descriptor, ticket_string};
-use super::super::fixtures::build_service_with_route_providers;
-use super::super::providers::{RecordingAutocompleteProvider, RecordingDefinitionProvider};
-use super::super::request_headers::{
+use crate::tests::transport::server::assertions::{
+    must_ok, parse_json, route_descriptor, ticket_string,
+};
+use crate::tests::transport::server::fixtures::build_service_with_route_providers;
+use crate::tests::transport::server::providers::{
+    RecordingAutocompleteProvider, RecordingDefinitionProvider,
+};
+use crate::tests::transport::server::request_headers::{
     populate_schema_and_autocomplete_headers, populate_schema_and_definition_headers,
 };
 

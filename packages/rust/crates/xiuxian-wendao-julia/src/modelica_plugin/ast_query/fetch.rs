@@ -1,3 +1,5 @@
+//! Fetch helpers for Modelica AST query analysis routes.
+
 use std::sync::mpsc::RecvTimeoutError;
 use std::time::Duration;
 
@@ -12,6 +14,7 @@ use crate::modelica_plugin::parser_summary::{
     ParserSummaryRouteKind, modelica_parser_summary_timeout_secs_for_repository,
     process_modelica_parser_summary_flight_batches_for_repository,
 };
+use crate::modelica_plugin::types::ModelicaSourceId;
 
 const DEFAULT_MODELICA_PACKAGE_AST_QUERY_LIMIT: i64 = 128;
 
@@ -29,9 +32,10 @@ const DEFAULT_MODELICA_PACKAGE_AST_QUERY_LIMIT: i64 = 128;
 /// roundtrip fails, or the response violates the staged AST-query contract.
 pub fn fetch_modelica_ast_query_analysis_blocking_for_repository(
     repository: &RegisteredRepository,
-    source_id: &str,
+    source_id: ModelicaSourceId<'_>,
     source_text: &str,
 ) -> Result<RepositoryAnalysisOutput, RepoIntelligenceError> {
+    let source_id = source_id.as_str();
     let request = ModelicaAstQueryRequest {
         request_id: format!("modelica-ast-query:{source_id}"),
         source_id: source_id.to_string(),

@@ -1,3 +1,5 @@
+//! Graph-neighbors route contract and metadata validation.
+
 /// Canonical graph-neighbors node identifier metadata header for Wendao Flight
 /// requests.
 pub const WENDAO_GRAPH_NODE_ID_HEADER: &str = "x-wendao-graph-node-id";

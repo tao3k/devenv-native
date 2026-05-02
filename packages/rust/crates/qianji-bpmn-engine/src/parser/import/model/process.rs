@@ -36,14 +36,6 @@ pub(crate) enum NestedShellKind {
     EventSubProcess,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum RawSubProcessKind {
-    CallActivity,
-    EmbeddedSubProcess,
-    Transaction,
-    EventSubProcess,
-}
-
 impl RawProcess {
     pub(in crate::parser::import) fn new_top_level(process_id: String) -> Self {
         Self {

@@ -1,4 +1,7 @@
-use super::*;
+use super::{
+    assert_studio_json_snapshot, build_autocomplete_response, json, make_state_with_docs,
+    publish_local_symbol_index,
+};
 
 #[tokio::test]
 async fn autocomplete_limits_and_filters_prefix() {

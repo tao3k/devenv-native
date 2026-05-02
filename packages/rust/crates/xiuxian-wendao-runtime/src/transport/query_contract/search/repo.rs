@@ -1,3 +1,5 @@
+//! Repository search route contract and metadata validation.
+
 /// Canonical repo-search query text metadata header for Wendao Flight requests.
 pub const WENDAO_REPO_SEARCH_QUERY_HEADER: &str = "x-wendao-repo-search-query";
 /// Canonical repo-search result-limit metadata header for Wendao Flight requests.

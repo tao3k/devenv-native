@@ -1,6 +1,8 @@
-use super::super::helpers::eq_any_ignore_ascii;
-use super::super::normalize::{normalize_command_input, slice_original_command_suffix};
-use super::super::types::{JobStatusCommand, OutputFormat, ResumeCommand};
+use crate::channels::managed_runtime::parsing::matching::eq_any_ignore_ascii;
+use crate::channels::managed_runtime::parsing::normalize::{
+    normalize_command_input, slice_original_command_suffix,
+};
+use crate::channels::managed_runtime::parsing::{JobStatusCommand, OutputFormat, ResumeCommand};
 
 pub(crate) fn parse_help_command(input: &str) -> Option<OutputFormat> {
     let normalized = normalize_command_input(input);

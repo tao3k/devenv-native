@@ -1,3 +1,5 @@
+//! `OpenAPI` examples for linked builtin artifact routes.
+
 use serde_json::Value;
 
 use xiuxian_wendao_julia::compatibility::link_graph::{

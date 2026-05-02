@@ -30,18 +30,18 @@
 //! that led to Commit-X".
 
 #[cfg(test)]
-#[path = "../sovereign_artifact_observer.rs"]
+#[path = "../../tests/unit/sovereign/source_artifact_observer.rs"]
 mod artifact_observer;
 #[path = "../sovereign_contract_feedback_sink.rs"]
 mod contract_feedback_sink;
 #[cfg(test)]
-#[path = "../sovereign_thought_aggregator.rs"]
+#[path = "../../tests/unit/sovereign/source_thought_aggregator.rs"]
 mod thought_aggregator;
 #[cfg(test)]
-#[path = "../sovereign_wendao_adapter.rs"]
+#[path = "../../tests/unit/sovereign/source_wendao_adapter.rs"]
 mod wendao_adapter;
 #[cfg(test)]
-#[path = "../sovereign_wendao_sink.rs"]
+#[path = "../../tests/unit/sovereign/source_wendao_sink.rs"]
 mod wendao_sink;
 
 pub use self::contract_feedback_sink::{

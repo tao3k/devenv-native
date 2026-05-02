@@ -1,8 +1,8 @@
 //! Canonical api seam for BPMN data contract lint checks.
 
-use crate::bpmn_parse_api::BpmnSourceFile;
-use crate::lint_api::{LintIssue, LintSourceDiagnostic, LintSourceSpan};
+use crate::BpmnSourceFile;
 use crate::repeat_condition::{GatewayConditionSummary, parse_gateway_condition_summary};
+use crate::{LintIssue, LintSourceDiagnostic, LintSourceSpan};
 use quick_xml::Reader;
 use quick_xml::escape::resolve_predefined_entity;
 use quick_xml::events::{BytesStart, Event};

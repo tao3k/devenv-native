@@ -1,3 +1,5 @@
+//! Public bpmn model api process contracts for BPMN/DMN engine integration.
+
 use super::artifact::{BpmnAssociationSnapshot, BpmnGroupSnapshot, BpmnTextAnnotationSnapshot};
 use super::data::{
     BpmnDataAssociationSnapshot, BpmnDataObjectReferenceSnapshot, BpmnDataObjectSnapshot,

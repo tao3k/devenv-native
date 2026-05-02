@@ -1,3 +1,5 @@
+//! Rerank request schema validation for Wendao Flight batches.
+
 #[cfg(feature = "transport")]
 use std::collections::HashSet;
 

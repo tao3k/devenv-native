@@ -1,3 +1,5 @@
+//! Telegram job command parser.
+
 use super::shared::{
     JobStatusCommand, OutputFormat as JobOutputFormat,
     parse_job_status_command as parse_job_status_command_shared,

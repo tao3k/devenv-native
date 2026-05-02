@@ -1,3 +1,5 @@
+//! Attachment search route contract and metadata validation.
+
 use super::repo::validate_repo_search_request;
 
 /// Canonical attachment-search extension-filter metadata header for Wendao Flight requests.

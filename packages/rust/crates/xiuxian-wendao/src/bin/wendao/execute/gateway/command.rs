@@ -24,7 +24,8 @@ use tonic_web::GrpcWebLayer;
 use tower::Layer;
 use tower::{BoxError, ServiceBuilder};
 
-use crate::execute::gateway::{
+use crate::LinkGraphIndex;
+use crate::bin_support::wendao::execute::gateway::{
     config::{
         GatewayRuntimeTomlConfig, get_gateway_runtime_from_config, resolve_bind_addr,
         resolve_config_path, resolve_port, resolve_webhook_config,
@@ -35,12 +36,10 @@ use crate::execute::gateway::{
     shared::AppState,
     status::{notify_status, stats},
 };
-use crate::types::{Cli, GatewayArgs, GatewayCommand, GatewayStartArgs};
-use xiuxian_config_core::{lookup_bool_flag, lookup_positive_parsed};
-use xiuxian_wendao::LinkGraphIndex;
+use crate::bin_support::wendao::types::{Cli, GatewayArgs, GatewayCommand, GatewayStartArgs};
 #[cfg(feature = "zhenfa-router")]
-use xiuxian_wendao::gateway::studio::build_studio_flight_service_with_weights;
-use xiuxian_wendao::gateway::{
+use crate::gateway::studio::build_studio_flight_service_with_weights;
+use crate::gateway::{
     self as openapi_paths,
     studio::{
         GatewayStartupHealthReport, describe_gateway_startup_health, probe_gateway_startup_health,
@@ -48,7 +47,8 @@ use xiuxian_wendao::gateway::{
     },
 };
 #[cfg(feature = "zhenfa-router")]
-use xiuxian_wendao::link_graph::resolve_link_graph_rerank_flight_runtime_settings;
+use crate::link_graph::resolve_link_graph_rerank_flight_runtime_settings;
+use xiuxian_config_core::{lookup_bool_flag, lookup_positive_parsed};
 #[cfg(feature = "zhenfa-router")]
 use xiuxian_wendao_runtime::transport::{
     EffectiveRerankFlightHostSettings, rerank_score_weights_from_env,
@@ -210,9 +210,7 @@ async fn handle_start(
     Ok(axum::serve(listener, app).await?)
 }
 
-fn log_gateway_startup_health(
-    report: &xiuxian_wendao::gateway::studio::GatewayStartupHealthReport,
-) {
+fn log_gateway_startup_health(report: &crate::gateway::studio::GatewayStartupHealthReport) {
     info!("Gateway startup dependency health checks:");
     for line in describe_gateway_startup_health(report) {
         if line.contains("=failed ") {

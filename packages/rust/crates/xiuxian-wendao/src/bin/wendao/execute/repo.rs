@@ -4,9 +4,9 @@ use std::env;
 
 use anyhow::Result;
 
-use crate::helpers::emit;
-use crate::types::{Cli, Command, RepoCommand, RepoSyncModeArg};
-use xiuxian_wendao::{
+use crate::bin_support::wendao::helpers::emit;
+use crate::bin_support::wendao::types::{Cli, Command, RepoCommand, RepoSyncModeArg};
+use crate::{
     DocCoverageQuery, ExampleSearchQuery, ModuleSearchQuery, RepoOverviewQuery, RepoSyncMode,
     RepoSyncQuery, SymbolSearchQuery, doc_coverage_from_config, example_search_from_config,
     module_search_from_config, repo_overview_from_config, repo_sync_from_config,

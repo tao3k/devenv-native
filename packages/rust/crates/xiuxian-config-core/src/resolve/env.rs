@@ -1,3 +1,5 @@
+//! Import path environment expansion for project-local config files.
+
 use crate::{ConfigCoreError, normalize_config_home, resolve_cache_home, resolve_data_home};
 use std::path::{Path, PathBuf};
 

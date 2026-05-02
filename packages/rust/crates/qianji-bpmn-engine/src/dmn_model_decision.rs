@@ -1,6 +1,6 @@
 //! Public `api` facade for DMN decision model contracts.
 
-use crate::dmn_model_api::{
+use crate::{
     DmnDecisionRef, DmnHitPolicy, DmnInputClause, DmnInputEntry, DmnOutputClause, DmnOutputEntry,
 };
 use serde_json::Value;

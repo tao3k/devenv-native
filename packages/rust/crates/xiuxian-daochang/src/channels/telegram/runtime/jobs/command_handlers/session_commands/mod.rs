@@ -1,5 +1,6 @@
+//! Telegram session-command handler branch for session state mutations.
+
 mod events;
-mod helpers;
 mod session_admin;
 mod session_budget;
 mod session_feedback;
@@ -7,6 +8,7 @@ mod session_injection;
 mod session_memory;
 mod session_partition;
 mod session_status;
+mod session_updates;
 pub(in crate::channels::telegram::runtime::jobs) use session_admin::try_handle_session_admin_command;
 pub(in crate::channels::telegram::runtime::jobs) use session_budget::try_handle_session_budget_command;
 pub(in crate::channels::telegram::runtime::jobs) use session_feedback::try_handle_session_feedback_command;
@@ -32,4 +34,4 @@ pub(super) use events::{
     EVENT_TELEGRAM_COMMAND_SESSION_STATUS_JSON_REPLIED,
     EVENT_TELEGRAM_COMMAND_SESSION_STATUS_REPLIED,
 };
-pub(super) use helpers::{truncate_preview, update_session_admin_users};
+pub(super) use session_updates::{truncate_preview, update_session_admin_users};

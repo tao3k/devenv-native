@@ -27,6 +27,6 @@ pub(crate) enum DocsCommand {
 }
 
 #[cfg(test)]
-pub(crate) fn docs(command: DocsCommand) -> super::super::Command {
-    super::super::Command::Docs { command }
+pub(crate) fn docs(command: DocsCommand) -> crate::bin_support::wendao::types::Command {
+    crate::bin_support::wendao::types::Command::Docs { command }
 }

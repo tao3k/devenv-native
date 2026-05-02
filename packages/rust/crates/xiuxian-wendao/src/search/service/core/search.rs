@@ -1,3 +1,5 @@
+//! Coordinates search-plane query methods across repository, symbol, attachment, and vector owners.
+
 use super::types::SearchPlaneService;
 use crate::gateway::studio::types::UiProjectConfig;
 use crate::search::{

@@ -15,10 +15,10 @@ use crate::gateway::studio::router::handlers::repo::projected_service::retrieval
 };
 use crate::gateway::studio::router::{GatewayState, StudioApiError};
 
-use super::super::parse::projection::parse_projection_page_kind;
-use super::super::parse::repo::required_registered_repo_id;
-use super::super::parse::search::required_search_query;
-use super::super::query::retrieval::RepoProjectedPageSearchApiQuery;
+use crate::gateway::studio::router::handlers::repo::parse::projection::parse_projection_page_kind;
+use crate::gateway::studio::router::handlers::repo::parse::repo::required_registered_repo_id;
+use crate::gateway::studio::router::handlers::repo::parse::search::required_search_query;
+use crate::gateway::studio::router::handlers::repo::query::retrieval::RepoProjectedPageSearchApiQuery;
 
 /// Projected page index tree search endpoint.
 ///

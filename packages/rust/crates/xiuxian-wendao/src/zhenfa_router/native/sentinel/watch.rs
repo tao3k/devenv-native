@@ -10,13 +10,13 @@ use tokio::sync::mpsc;
 use xiuxian_zhenfa::ZhenfaContext;
 use xiuxian_zhenfa::ZhenfaSignal;
 
-use super::super::forwarder::ForwardNotifier;
 use super::analysis::propagate_source_change;
 use super::filters::{
     is_high_noise_file, is_ignorable_path, is_source_code, is_supported_doc, verify_file_stable,
 };
 use super::observations::ObservationBus;
 use crate::zhenfa_router::native::WendaoContextExt;
+use crate::zhenfa_router::native::forwarder::ForwardNotifier;
 
 /// Configuration for the Sentinel observer.
 #[derive(Debug, Clone)]

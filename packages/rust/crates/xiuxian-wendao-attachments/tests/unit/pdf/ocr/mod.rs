@@ -3,12 +3,17 @@ use std::path::{Path, PathBuf};
 use arrow::array::{Array, BooleanArray, Float64Array, Int32Array, StringArray};
 use arrow::record_batch::RecordBatch;
 
-use super::super::render::{
+use crate::pdf::ocr::{
+    PDF_OCR_SHARD_INPUT_SCHEMA_VERSION, PDF_OCR_SHARD_RESULT_SCHEMA_VERSION, PdfOcrShardResult,
+    PdfOcrWorkerProfile, build_ocr_result_resource_batch, build_ocr_shard_input_batch,
+    build_ocr_shard_inputs, build_ocr_shard_result_batch, decode_ocr_shard_input_batch,
+    decode_ocr_shard_result_batch,
+};
+use crate::pdf::render::{
     PdfPageBox, PdfPageRegion, PdfPageRegionShardManifestInput, PdfPageRenderProfile,
     PdfPageShardManifest, PdfPageShardManifestInput, RenderedRasterIdentity,
     build_region_shard_manifest, build_shard_manifest,
 };
-use super::*;
 
 mod input;
 mod result;

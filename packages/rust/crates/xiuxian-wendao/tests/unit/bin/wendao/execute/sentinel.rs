@@ -1,4 +1,7 @@
-use super::*;
+use super::{
+    Duration, PathBuf, SentinelArgs, SentinelCommand, SentinelConfig, SentinelWatchArgs,
+    parse_paths,
+};
 
 #[test]
 fn test_sentinel_watch_args_default() {

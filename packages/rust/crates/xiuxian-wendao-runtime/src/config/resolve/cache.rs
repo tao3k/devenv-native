@@ -1,3 +1,5 @@
+//! Cache configuration resolver for runtime host behavior.
+
 use crate::config::LinkGraphCacheRuntimeConfig;
 use crate::config::constants::{
     DEFAULT_LINK_GRAPH_VALKEY_KEY_PREFIX, LINK_GRAPH_CACHE_VALKEY_URL_ENV,

@@ -1,4 +1,6 @@
-use super::*;
+use crate::transmuter::streaming::traits::{
+    accumulate_text, is_ignorable_line, strip_ndjson_prefix,
+};
 
 #[test]
 fn trait_helpers_accumulate_and_strip_text() {

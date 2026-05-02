@@ -1,4 +1,4 @@
-use super::*;
+use super::{ByteRange, FixResult};
 
 #[test]
 fn test_fix_result_display_success() {

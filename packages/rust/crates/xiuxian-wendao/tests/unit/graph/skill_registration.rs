@@ -1,4 +1,4 @@
-use super::*;
+use xiuxian_wendao::graph::{KnowledgeGraph, SkillDoc};
 
 #[test]
 fn test_register_skill_entities_creates_entities_and_relations() {

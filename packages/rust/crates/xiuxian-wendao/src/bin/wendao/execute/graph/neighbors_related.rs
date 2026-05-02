@@ -1,10 +1,12 @@
 //! Neighbor and related-traversal command handlers.
 
-use crate::helpers::{build_optional_related_ppr_options, build_related_monitor_phases, emit};
-use crate::types::{Cli, RelatedPprSubgraphModeArg};
+use crate::bin_support::wendao::helpers::{
+    build_optional_related_ppr_options, build_related_monitor_phases, emit,
+};
+use crate::bin_support::wendao::types::{Cli, RelatedPprSubgraphModeArg};
+use crate::{LinkGraphDirection, LinkGraphIndex};
 use anyhow::{Context, Result};
 use serde_json::json;
-use xiuxian_wendao::{LinkGraphDirection, LinkGraphIndex};
 
 pub(crate) struct RelatedArgs<'a> {
     pub stem: &'a str,

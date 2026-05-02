@@ -17,7 +17,6 @@ serde_json = { workspace = true }
 xiuxian-tokenizer = { path = "../xiuxian-tokenizer" }
 # Event Bus for reactive file watching (optional)
 xiuxian-event = { path = "../xiuxian-event", optional = true }
-xiuxian-testing = { path = "../xiuxian-testing" }
 # File watching crate (optional, requires notify feature)
 notify = { workspace = true, features = ["serde"], optional = true }
 # Glob pattern matching (optional, for notify feature)
@@ -29,4 +28,5 @@ assembler = []  # Enable context assembly functionality
 notify = ["xiuxian-event", "dep:notify", "dep:globset"]  # Enable file watching with event publishing
 
 [dev-dependencies]
+rust-lang-project-harness = { workspace = true }
 tempfile = { workspace = true }

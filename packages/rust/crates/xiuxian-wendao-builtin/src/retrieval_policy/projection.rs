@@ -1,3 +1,5 @@
+//! Runtime projection helpers for linked builtin rerank policy.
+
 use serde_yaml::Value;
 use xiuxian_wendao_core::capabilities::PluginCapabilityBinding;
 use xiuxian_wendao_runtime::transport::RerankScoreWeights;

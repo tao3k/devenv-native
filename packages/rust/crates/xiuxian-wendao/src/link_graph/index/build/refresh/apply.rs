@@ -1,7 +1,7 @@
-use super::super::filters::{
+use crate::link_graph::index::build::filters::{
     is_supported_note_candidate, normalized_relative_note_alias, should_skip_entry,
 };
-use super::super::graphmem::sync_graphmem_state_best_effort;
+use crate::link_graph::index::build::graphmem::sync_graphmem_state_best_effort;
 use crate::link_graph::index::{
     INCREMENTAL_REBUILD_THRESHOLD, LinkGraphIndex, LinkGraphRefreshMode,
 };

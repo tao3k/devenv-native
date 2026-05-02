@@ -1,3 +1,5 @@
+//! `DuckDB` runtime configuration defaults for Wendao host behavior.
+
 use std::path::{Path, PathBuf};
 
 use crate::settings::{first_non_empty, get_setting_bool, get_setting_string, parse_positive_u64};

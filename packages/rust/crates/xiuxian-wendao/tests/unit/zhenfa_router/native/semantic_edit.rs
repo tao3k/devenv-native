@@ -1,4 +1,4 @@
-use super::*;
+use super::format_sibling_context;
 use crate::parsers::markdown::section_create::InsertionInfo;
 use xiuxian_wendao_parsers::section_create::SiblingInfo;
 

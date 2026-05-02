@@ -2,17 +2,24 @@
 
 #[cfg(feature = "llm")]
 use std::sync::Arc;
+use std::{collections::BTreeMap, path::PathBuf};
 
+use crate::contract_feedback::{
+    AdvisoryAuditExecutor, CollectionContext, ContractFinding, ContractReport, ContractRunConfig,
+    ContractSuite, ContractSuiteRunner, EvidenceKind, FindingConfidence, FindingMode,
+    FindingSeverity,
+};
 use anyhow::Result;
+use serde_json::{Value, json};
 #[cfg(feature = "llm")]
 use xiuxian_llm::llm::LlmClient;
 #[cfg(feature = "llm")]
 use xiuxian_qianhuan::{PersonaRegistry, ThousandFacesOrchestrator};
-use xiuxian_testing::{
-    AdvisoryAuditExecutor, CollectionContext, ContractKnowledgeBatch, ContractReport,
-    ContractRunConfig, ContractSuite, ContractSuiteRunner,
+use xiuxian_wendao_core::{
+    ContractFindingConfidence, ContractFindingSeverity, ContractKnowledgeBatch,
+    ContractKnowledgeDecision, ContractKnowledgeEnvelope, KnowledgeEntry,
+    WendaoContractFeedbackAdapter,
 };
-use xiuxian_wendao_core::{KnowledgeEntry, WendaoContractFeedbackAdapter};
 
 #[cfg(feature = "llm")]
 use crate::executors::{QianjiAdvisoryAuditExecutor, QianjiLlmAdvisoryAuditExecutor};
@@ -38,7 +45,7 @@ impl QianjiContractFeedbackRun {
     /// Build one Qianji contract-feedback output from an existing contract report.
     #[must_use]
     pub fn from_report(report: ContractReport) -> Self {
-        let knowledge_batch = ContractKnowledgeBatch::from_report(&report);
+        let knowledge_batch = wendao_contract_knowledge_batch_from_report(&report);
         let knowledge_entries =
             WendaoContractFeedbackAdapter::knowledge_entries_from_batch(&knowledge_batch);
 
@@ -47,6 +54,278 @@ impl QianjiContractFeedbackRun {
             knowledge_batch,
             knowledge_entries,
         }
+    }
+}
+
+fn wendao_contract_knowledge_batch_from_report(report: &ContractReport) -> ContractKnowledgeBatch {
+    ContractKnowledgeBatch {
+        suite_id: report.suite_id.clone(),
+        generated_at: report.generated_at.clone(),
+        entries: report
+            .findings
+            .iter()
+            .map(|finding| {
+                wendao_contract_knowledge_envelope_from_finding(
+                    report.suite_id.as_str(),
+                    report.generated_at.as_str(),
+                    finding,
+                )
+            })
+            .collect(),
+    }
+}
+
+fn wendao_contract_knowledge_envelope_from_finding(
+    suite_id: &str,
+    generated_at: &str,
+    finding: &ContractFinding,
+) -> ContractKnowledgeEnvelope {
+    let domain = finding
+        .labels
+        .get("domain")
+        .cloned()
+        .unwrap_or_else(|| finding.pack_id.clone());
+    let evidence_excerpt = finding
+        .evidence
+        .first()
+        .map(|evidence| evidence.message.clone());
+    let source_path = first_source_path(finding);
+    let decision = wendao_contract_knowledge_decision_from_severity(finding.severity);
+
+    ContractKnowledgeEnvelope {
+        entry_id: build_contract_feedback_entry_id(suite_id, finding),
+        suite_id: suite_id.to_string(),
+        generated_at: generated_at.to_string(),
+        rule_id: finding.rule_id.clone(),
+        pack_id: finding.pack_id.clone(),
+        domain: domain.clone(),
+        severity: wendao_contract_finding_severity(finding.severity),
+        decision,
+        confidence: wendao_contract_finding_confidence(finding.confidence),
+        title: format!("[{}] {}", finding.rule_id, finding.title),
+        content: render_contract_feedback_content(finding, evidence_excerpt.as_deref()),
+        summary: finding.summary.clone(),
+        evidence_excerpt,
+        why_it_matters: finding.why_it_matters.clone(),
+        remediation: finding.remediation.clone(),
+        good_example: finding.examples.good.first().cloned(),
+        bad_example: finding.examples.bad.first().cloned(),
+        source_path,
+        tags: build_contract_feedback_tags(&domain, finding),
+        metadata: build_contract_feedback_metadata(
+            suite_id,
+            generated_at,
+            &domain,
+            decision,
+            finding,
+        ),
+    }
+}
+
+const fn wendao_contract_finding_severity(severity: FindingSeverity) -> ContractFindingSeverity {
+    match severity {
+        FindingSeverity::Info => ContractFindingSeverity::Info,
+        FindingSeverity::Warning => ContractFindingSeverity::Warning,
+        FindingSeverity::Error => ContractFindingSeverity::Error,
+        FindingSeverity::Critical => ContractFindingSeverity::Critical,
+    }
+}
+
+const fn wendao_contract_finding_confidence(
+    confidence: FindingConfidence,
+) -> ContractFindingConfidence {
+    match confidence {
+        FindingConfidence::High => ContractFindingConfidence::High,
+        FindingConfidence::Medium => ContractFindingConfidence::Medium,
+        FindingConfidence::Low => ContractFindingConfidence::Low,
+    }
+}
+
+const fn wendao_contract_knowledge_decision_from_severity(
+    severity: FindingSeverity,
+) -> ContractKnowledgeDecision {
+    match severity {
+        FindingSeverity::Info => ContractKnowledgeDecision::Pass,
+        FindingSeverity::Warning => ContractKnowledgeDecision::Warn,
+        FindingSeverity::Error | FindingSeverity::Critical => ContractKnowledgeDecision::Fail,
+    }
+}
+
+fn build_contract_feedback_entry_id(suite_id: &str, finding: &ContractFinding) -> String {
+    let path_fragment = finding
+        .labels
+        .get("path")
+        .cloned()
+        .or_else(|| {
+            first_source_path(finding).map(|path| {
+                path.to_string_lossy()
+                    .replace(std::path::MAIN_SEPARATOR, "::")
+            })
+        })
+        .unwrap_or_else(|| "global".to_string());
+    let mode_fragment = finding_mode_label(finding.mode);
+    let advisory_role_fragment = advisory_role_fragment(finding);
+    format!(
+        "{suite_id}::{}::{}::{mode_fragment}::{path_fragment}{advisory_role_fragment}",
+        finding.pack_id, finding.rule_id,
+    )
+}
+
+fn render_contract_feedback_content(
+    finding: &ContractFinding,
+    evidence_excerpt: Option<&str>,
+) -> String {
+    let mut sections = vec![
+        format!("Summary: {}", finding.summary),
+        format!("Why it matters: {}", finding.why_it_matters),
+        format!("Remediation: {}", finding.remediation),
+    ];
+
+    if let Some(evidence_excerpt) = evidence_excerpt {
+        sections.push(format!("Evidence: {evidence_excerpt}"));
+    }
+    if let Some(example) = finding.examples.good.first() {
+        sections.push(format!("Good example: {example}"));
+    }
+    if let Some(example) = finding.examples.bad.first() {
+        sections.push(format!("Bad example: {example}"));
+    }
+
+    sections.join("\n")
+}
+
+fn build_contract_feedback_tags(domain: &str, finding: &ContractFinding) -> Vec<String> {
+    let mut tags = vec![
+        "contract_finding".to_string(),
+        format!("pack:{}", finding.pack_id),
+        format!("rule:{}", finding.rule_id),
+        format!("severity:{}", finding_severity_label(finding.severity)),
+        format!("mode:{}", finding_mode_label(finding.mode)),
+        format!("domain:{domain}"),
+    ];
+
+    if let Some(path) = finding.labels.get("path") {
+        tags.push(format!("path:{path}"));
+    }
+
+    tags.sort();
+    tags.dedup();
+    tags
+}
+
+fn build_contract_feedback_metadata(
+    suite_id: &str,
+    generated_at: &str,
+    domain: &str,
+    decision: ContractKnowledgeDecision,
+    finding: &ContractFinding,
+) -> BTreeMap<String, Value> {
+    BTreeMap::from([
+        ("suite_id".to_string(), json!(suite_id)),
+        ("generated_at".to_string(), json!(generated_at)),
+        ("domain".to_string(), json!(domain)),
+        (
+            "decision".to_string(),
+            json!(contract_decision_label(decision)),
+        ),
+        (
+            "confidence".to_string(),
+            json!(finding_confidence_label(finding.confidence)),
+        ),
+        (
+            "advisory_role_ids".to_string(),
+            json!(finding.advisory_role_ids),
+        ),
+        ("trace_ids".to_string(), json!(finding.trace_ids)),
+        ("labels".to_string(), json!(finding.labels)),
+        (
+            "evidence_kinds".to_string(),
+            json!(
+                finding
+                    .evidence
+                    .iter()
+                    .map(|evidence| evidence_kind_label(evidence.kind))
+                    .collect::<Vec<_>>()
+            ),
+        ),
+    ])
+}
+
+fn first_source_path(finding: &ContractFinding) -> Option<PathBuf> {
+    finding
+        .evidence
+        .iter()
+        .find_map(|evidence| evidence.path.clone())
+        .or_else(|| finding.labels.get("source_path").map(PathBuf::from))
+}
+
+const fn contract_decision_label(decision: ContractKnowledgeDecision) -> &'static str {
+    match decision {
+        ContractKnowledgeDecision::Pass => "pass",
+        ContractKnowledgeDecision::Warn => "warn",
+        ContractKnowledgeDecision::Fail => "fail",
+    }
+}
+
+const fn finding_severity_label(severity: FindingSeverity) -> &'static str {
+    match severity {
+        FindingSeverity::Info => "info",
+        FindingSeverity::Warning => "warning",
+        FindingSeverity::Error => "error",
+        FindingSeverity::Critical => "critical",
+    }
+}
+
+const fn finding_mode_label(mode: FindingMode) -> &'static str {
+    match mode {
+        FindingMode::Deterministic => "deterministic",
+        FindingMode::Advisory => "advisory",
+        FindingMode::Research => "research",
+    }
+}
+
+fn advisory_role_fragment(finding: &ContractFinding) -> String {
+    if finding.mode != FindingMode::Advisory {
+        return String::new();
+    }
+
+    finding
+        .advisory_role_ids
+        .first()
+        .cloned()
+        .or_else(|| finding.labels.get("role_id").cloned())
+        .map(|role_id| format!("::role:{}", normalized_contract_fragment(&role_id)))
+        .unwrap_or_default()
+}
+
+fn normalized_contract_fragment(fragment: &str) -> String {
+    let mut normalized = String::with_capacity(fragment.len());
+    for character in fragment.chars() {
+        if character.is_ascii_alphanumeric() {
+            normalized.push(character.to_ascii_lowercase());
+        } else {
+            normalized.push('_');
+        }
+    }
+    normalized
+}
+
+const fn finding_confidence_label(confidence: FindingConfidence) -> &'static str {
+    match confidence {
+        FindingConfidence::High => "high",
+        FindingConfidence::Medium => "medium",
+        FindingConfidence::Low => "low",
+    }
+}
+
+const fn evidence_kind_label(kind: EvidenceKind) -> &'static str {
+    match kind {
+        EvidenceKind::SourceSpan => "source_span",
+        EvidenceKind::OpenApiNode => "openapi_node",
+        EvidenceKind::DocSection => "doc_section",
+        EvidenceKind::RuntimeTrace => "runtime_trace",
+        EvidenceKind::ScenarioSnapshot => "scenario_snapshot",
+        EvidenceKind::DerivedInvariant => "derived_invariant",
     }
 }
 

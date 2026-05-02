@@ -1,3 +1,5 @@
+//! Zhixing artifact text rendering for runtime package wiring.
+
 use xiuxian_wendao_core::WendaoResourceUri;
 
 use super::mounts::embedded_skill_mount_index;

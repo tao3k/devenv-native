@@ -1,3 +1,5 @@
+//! Coordinates repository search across source discovery, AST extraction, and batch rendering.
+
 use std::collections::HashSet;
 use std::path::Path;
 

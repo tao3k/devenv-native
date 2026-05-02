@@ -1,4 +1,4 @@
-use pyo3::prelude::*;
+use pyo3::{PyResult, pyfunction};
 
 use crate::link_graph::{valkey_stats_cache_del, valkey_stats_cache_get, valkey_stats_cache_set};
 

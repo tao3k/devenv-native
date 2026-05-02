@@ -1,4 +1,4 @@
-use super::*;
+use super::{extract_hash_references, extract_id_references};
 
 #[test]
 fn test_extract_id_references() {

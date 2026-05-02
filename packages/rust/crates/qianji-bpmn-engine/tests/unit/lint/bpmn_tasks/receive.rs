@@ -1,4 +1,4 @@
-use super::super::{LintDomain, assert_lint_json_snapshot, bpmn_fixture_source, lint_bpmn_source};
+use crate::lint::{LintDomain, assert_lint_json_snapshot, bpmn_fixture_source, lint_bpmn_source};
 
 #[test]
 fn bpmn_linter_reports_receive_task_multiple_binding_sources_with_llm_guidance() {

@@ -1,4 +1,9 @@
-use super::{build_compiler, manifests::*};
+use super::build_compiler;
+use super::manifests::{
+    CALIBRATION_MANIFEST, COMMAND_MANIFEST, KNOWLEDGE_MANIFEST, MOCK_MANIFEST,
+    ROUTER_INVALID_WEIGHT_MANIFEST, ROUTER_MANIFEST, SECURITY_SCAN_MANIFEST, SUSPEND_MANIFEST,
+    UNKNOWN_TASK_MANIFEST, WRITE_FILE_MANIFEST,
+};
 
 #[test]
 fn compiler_dispatches_knowledge_task_via_stateless_lane() -> Result<(), Box<dyn std::error::Error>>

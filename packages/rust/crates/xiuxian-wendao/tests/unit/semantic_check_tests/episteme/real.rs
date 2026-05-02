@@ -1,4 +1,4 @@
-use super::*;
+use super::{load_episteme_manifest, workspace_root};
 
 #[test]
 #[ignore = "requires the real wendao-episteme submodule checkout"]

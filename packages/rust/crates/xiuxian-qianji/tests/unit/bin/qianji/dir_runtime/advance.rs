@@ -1,4 +1,8 @@
-use super::super::*;
+use super::{
+    DirCliCommand, MaterializeCliTarget, TempDir, anchored_workdir_fixture_anchor,
+    anchored_workdir_fixture_scenario, fs, must_ok, run_dir_command,
+};
+use std::path::PathBuf;
 
 fn materialize_claim_extract_run(temp_dir: &TempDir) -> PathBuf {
     let run_dir = temp_dir.path().join("runs/run_005");
@@ -80,7 +84,7 @@ fn run_advance_command_updates_runtime_state_and_trace() {
             .is_file()
     );
 
-    let report = xiuxian_qianji::check_workdir(&run_dir)
+    let report = crate::check_workdir(&run_dir)
         .unwrap_or_else(|error| panic!("advanced workdir should still check: {error}"));
     assert!(report.is_valid());
 }
@@ -139,7 +143,7 @@ fn run_advance_command_rejects_non_adjacent_target_without_mutation() {
         original_trace
     );
 
-    let report = xiuxian_qianji::check_workdir(&run_dir).unwrap_or_else(|error| {
+    let report = crate::check_workdir(&run_dir).unwrap_or_else(|error| {
         panic!("failed advance should leave the localized workdir checkable: {error}")
     });
     assert!(report.is_valid());

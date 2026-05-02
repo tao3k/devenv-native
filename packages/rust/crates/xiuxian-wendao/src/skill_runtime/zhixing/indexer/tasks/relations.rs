@@ -3,7 +3,7 @@ use crate::skill_runtime::zhixing::{Error, Result};
 use serde_json::json;
 use std::path::Path;
 
-use super::super::ZhixingWendaoIndexer;
+use crate::skill_runtime::zhixing::indexer::ZhixingWendaoIndexer;
 
 impl ZhixingWendaoIndexer {
     pub(in crate::skill_runtime::zhixing) fn link_task_to_agenda_document(

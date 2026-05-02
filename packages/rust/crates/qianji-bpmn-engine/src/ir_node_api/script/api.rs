@@ -1,3 +1,5 @@
+//! Public ir node api script contracts for BPMN/DMN engine integration.
+
 use std::sync::Arc;
 
 /// Bounded script-task metadata preserved for host dispatch.

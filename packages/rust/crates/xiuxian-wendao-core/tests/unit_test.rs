@@ -1,6 +1,6 @@
 //! Cargo entry point for `xiuxian-wendao-core` unit tests.
 
-xiuxian_testing::crate_test_policy_harness!();
+rust_lang_project_harness::rust_project_harness_gate!();
 
 #[path = "unit/contract_feedback.rs"]
 mod contract_feedback;

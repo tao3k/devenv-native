@@ -1,4 +1,4 @@
-use super::process::normalize_node_index;
+use super::normalize_node_index;
 use crate::error::Result;
 use crate::ir_event_api::{BpmnEventSpec, BpmnTimerSpec};
 use crate::parser::import::{RawEventSpec, RawNode, RawProcess};

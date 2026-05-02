@@ -50,7 +50,7 @@ pub(crate) fn apply_incremental_plugin_outputs(
         &base.relations,
         context.plugins,
     )?;
-    super::super::relation_dedupe::dedupe_relations(&mut relations);
+    crate::analyzers::service::relation_dedupe::dedupe_relations(&mut relations);
     base.relations = relations;
     Ok(())
 }
@@ -76,7 +76,7 @@ fn refresh_repository_record(
         analysis.repository = Some(RepositoryRecord::from(repository));
     }
     if let Some(record) = analysis.repository.as_mut() {
-        super::super::merge::hydrate_repository_record(
+        crate::analyzers::service::merge::hydrate_repository_record(
             record,
             repository,
             repository_root,

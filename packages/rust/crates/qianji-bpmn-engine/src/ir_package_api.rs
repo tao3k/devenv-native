@@ -1,3 +1,5 @@
+//! Public ir package api contracts for BPMN/DMN engine integration.
+
 use crate::bpmn_callable_api::{
     BpmnCallActivityBinding, BpmnCallableDefinition, BpmnCallableRegistry,
 };

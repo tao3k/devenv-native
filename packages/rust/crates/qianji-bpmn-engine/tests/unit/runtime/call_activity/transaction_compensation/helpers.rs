@@ -1,4 +1,4 @@
-use super::super::{StubHost, node_index, parsed_fixture_package};
+use crate::runtime::call_activity::{StubHost, node_index, parsed_fixture_package};
 use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnInstanceInit, BpmnInstanceState, BpmnPackage, InstanceLifecycle,

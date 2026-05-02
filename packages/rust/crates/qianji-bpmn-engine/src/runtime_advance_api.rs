@@ -1,3 +1,5 @@
+//! Public runtime advance api contracts for BPMN/DMN engine integration.
+
 use crate::error::Result;
 use crate::host_bridge_api::BpmnHostBridge;
 use crate::ir::BpmnPackage;

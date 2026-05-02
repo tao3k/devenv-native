@@ -1,3 +1,5 @@
+//! Public dmn model predicate contracts for BPMN/DMN engine integration.
+
 use serde_json::Value;
 use std::sync::Arc;
 

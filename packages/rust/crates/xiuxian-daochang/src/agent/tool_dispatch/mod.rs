@@ -2,7 +2,7 @@
 
 mod diagnostics;
 mod dispatch;
-mod helpers;
+mod execution;
 mod llm_tools;
 mod soft_fail;
 mod tool_types;

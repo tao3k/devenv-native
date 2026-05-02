@@ -1,3 +1,5 @@
+//! Markdown file storage backend for journals and agenda tasks.
+
 use crate::agenda::AgendaEntry;
 use crate::journal::JournalEntry;
 use crate::{Error, Result};

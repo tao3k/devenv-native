@@ -1,3 +1,5 @@
+//! Markdown table-of-contents DTOs.
+
 use crate::document::MarkdownDocument;
 use crate::sections::MarkdownSection;
 use serde::{Deserialize, Serialize};

@@ -1,3 +1,5 @@
+//! Discord ingress loop wiring from Serenity events into managed runtime turns.
+
 use std::sync::Arc;
 use std::time::Duration;
 use std::time::Instant;
@@ -14,8 +16,8 @@ use tokio::time::timeout;
 
 use crate::channels::traits::ChannelMessage;
 
-use super::super::channel::{DiscordChannel, DiscordControlCommandPolicy};
-use super::super::session_partition::DiscordSessionPartition;
+use crate::channels::discord::channel::{DiscordChannel, DiscordControlCommandPolicy};
+use crate::channels::discord::session_partition::DiscordSessionPartition;
 
 const DISCORD_INGRESS_SECRET_HEADER: &str = "x-xiuxian-discord-ingress-token";
 const DISCORD_INGRESS_INBOUND_SEND_TIMEOUT_SECS: u64 = 2;

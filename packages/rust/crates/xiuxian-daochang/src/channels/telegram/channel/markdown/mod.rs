@@ -1,3 +1,5 @@
+//! Telegram markdown branch for escaping and parse-mode formatting.
+
 mod escape;
 mod html;
 mod markdown_v2;

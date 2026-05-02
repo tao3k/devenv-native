@@ -1,3 +1,5 @@
+//! Reflection lifecycle stages and runtime error projection.
+
 use std::fmt;
 
 use serde::{Deserialize, Serialize};

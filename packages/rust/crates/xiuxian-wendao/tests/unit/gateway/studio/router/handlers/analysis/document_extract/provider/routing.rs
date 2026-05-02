@@ -2,7 +2,14 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 #[cfg(feature = "document-extract-pdf-source-range")]
-use super::*;
+use super::{
+    DOCUMENT_EXTRACT_PDF_RENDER_REGIONS_ENV, DOCUMENT_EXTRACT_PDF_RENDER_SELECTION_ENV,
+    PdfPageRenderSelection, PdfRenderRoutingDecision, PdfRenderStatus,
+    hybrid_page_ocr_input_arrow_path, hybrid_page_ocr_region_requests_for_source_with_lookup,
+    hybrid_page_ocr_render_selection_with_lookup, sample_hybrid_page_ocr_report, sample_ocr_input,
+    sample_ocr_result, validate_hybrid_page_coverage, validate_hybrid_shard_coverage,
+    validate_ocr_results_match_inputs, validate_successful_ocr_results,
+};
 
 #[test]
 fn document_extract_scope_forbids_relative_ancestor_visibility() -> Result<(), String> {

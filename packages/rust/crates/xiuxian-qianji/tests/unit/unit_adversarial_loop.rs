@@ -11,8 +11,6 @@ struct SelfResolvingProspector {
     pub retry_count: Arc<std::sync::atomic::AtomicU32>,
 }
 
-xiuxian_testing::crate_test_policy_harness!();
-
 #[async_trait]
 impl QianjiMechanism for SelfResolvingProspector {
     async fn execute(&self, _context: &serde_json::Value) -> Result<QianjiOutput, String> {

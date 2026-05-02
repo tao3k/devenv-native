@@ -1,8 +1,8 @@
-use super::super::transport_http::embed_http;
-#[cfg(feature = "agent-provider-litellm")]
-use super::super::transport_litellm::embed_litellm;
-use super::super::transport_openai::embed_openai_http;
 use super::EmbeddingDispatchRuntime;
+use crate::embedding::transport_http::embed_http;
+#[cfg(feature = "agent-provider-litellm")]
+use crate::embedding::transport_litellm::embed_litellm;
+use crate::embedding::transport_openai::embed_openai_http;
 
 #[cfg(feature = "agent-provider-litellm")]
 fn has_non_empty(value: Option<&str>) -> bool {
@@ -15,13 +15,13 @@ pub(super) async fn dispatch_chunk_by_backend(
     model: Option<&str>,
 ) -> Option<Vec<Vec<f32>>> {
     match runtime.backend_mode {
-        super::super::backend::EmbeddingBackendMode::Http => {
+        crate::embedding::backend::EmbeddingBackendMode::Http => {
             dispatch_http_backend(runtime, texts, model).await
         }
-        super::super::backend::EmbeddingBackendMode::OpenAiHttp => {
+        crate::embedding::backend::EmbeddingBackendMode::OpenAiHttp => {
             dispatch_openai_backend(runtime, texts, model).await
         }
-        super::super::backend::EmbeddingBackendMode::LiteLlmRs => {
+        crate::embedding::backend::EmbeddingBackendMode::LiteLlmRs => {
             dispatch_litellm_backend(runtime, texts, model).await
         }
     }

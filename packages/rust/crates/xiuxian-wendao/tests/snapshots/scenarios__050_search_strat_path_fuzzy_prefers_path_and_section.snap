@@ -1,5 +1,5 @@
 ---
-source: packages/rust/crates/xiuxian-testing/src/scenario.rs
+source: packages/rust/crates/xiuxian-wendao/tests/support/scenario.rs
 description: "Scenario 050_search_strat_path_fuzzy_prefers_path_and_section [search_match_strategies]: path fuzzy prefers path and section"
 expression: result
 info:

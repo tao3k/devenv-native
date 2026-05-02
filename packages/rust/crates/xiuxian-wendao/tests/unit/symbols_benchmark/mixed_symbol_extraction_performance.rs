@@ -1,10 +1,16 @@
-use super::*;
+use std::io::Write;
+use std::time::{Duration, Instant};
+
+use tempfile::NamedTempFile;
+use xiuxian_wendao::dependency_indexer::extract_symbols;
+
+use super::{generate_python_test_file, generate_rust_test_file};
 
 #[test]
 fn test_mixed_symbol_extraction_performance() -> Result<(), Box<dyn std::error::Error>> {
     const TOTAL_FILES: usize = 100; // 50 Rust + 50 Python
 
-    let start = std::time::Instant::now();
+    let start = Instant::now();
 
     let mut all_symbols = Vec::new();
 
@@ -31,7 +37,7 @@ fn test_mixed_symbol_extraction_performance() -> Result<(), Box<dyn std::error::
     let elapsed = start.elapsed();
 
     // Performance assertion
-    let max_duration = std::time::Duration::from_secs(3);
+    let max_duration = Duration::from_secs(3);
     assert!(
         elapsed < max_duration,
         "Mixed symbol extraction took {:.2}s, expected < 3s",

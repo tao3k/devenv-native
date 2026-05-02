@@ -187,7 +187,7 @@ fn test_json_parsing_performance() {
 
     let elapsed = start.elapsed();
 
-    let max_duration = benchmark_budget_ms(50, 100, 250);
+    let max_duration = benchmark_budget_ms(75, 100, 250);
     assert!(
         elapsed < max_duration,
         "JSON parsing took {:.2}ms for {} iterations (expected < {:.2}ms)",

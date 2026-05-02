@@ -1,3 +1,5 @@
+//! Public Markdown note aggregation API.
+
 use super::fingerprint::fingerprint_markdown_symbol_surface_with_structure;
 use super::types::{MarkdownNote, MarkdownNoteCore, MarkdownNoteParseArtifacts};
 use crate::document::parse_markdown_document_from_parts;

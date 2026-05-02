@@ -3,14 +3,14 @@ use std::sync::Arc;
 use crate::agent::Agent;
 use crate::channels::traits::{Channel, ChannelMessage};
 
-use super::super::super::super::parsing::ResumeCommand;
-use super::super::super::auth::ensure_control_command_authorized;
-use super::super::super::events::{
+use crate::channels::discord::runtime::managed::handlers::auth::ensure_control_command_authorized;
+use crate::channels::discord::runtime::managed::handlers::events::{
     EVENT_DISCORD_COMMAND_SESSION_RESUME_DROP_REPLIED,
     EVENT_DISCORD_COMMAND_SESSION_RESUME_REPLIED,
     EVENT_DISCORD_COMMAND_SESSION_RESUME_STATUS_REPLIED,
 };
-use super::super::super::send::send_response;
+use crate::channels::discord::runtime::managed::handlers::send::send_response;
+use crate::channels::discord::runtime::managed::parsing::ResumeCommand;
 
 pub(in super::super) async fn handle_resume(
     agent: &Arc<Agent>,

@@ -1,3 +1,5 @@
+//! Repository index-status route contract and metadata validation.
+
 /// Canonical repo-index-status repository metadata header for Wendao Flight requests.
 pub const WENDAO_REPO_INDEX_STATUS_REPO_HEADER: &str = "x-wendao-repo-index-status-repo";
 /// Stable route for the repo index-status analysis contract.

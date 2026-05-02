@@ -1,4 +1,4 @@
-use super::*;
+use xiuxian_wendao::KnowledgeCategory;
 
 #[test]
 fn test_knowledge_category_equality() {

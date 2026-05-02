@@ -34,8 +34,6 @@ fn agenda_validation_manifest_toml() -> &'static str {
     })
 }
 
-xiuxian_testing::crate_test_policy_harness!();
-
 fn parse_agenda_validation_manifest() -> QianjiManifest {
     let manifest_toml = agenda_validation_manifest_toml();
     toml::from_str(manifest_toml)

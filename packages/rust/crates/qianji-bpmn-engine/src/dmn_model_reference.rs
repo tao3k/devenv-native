@@ -1,3 +1,5 @@
+//! Public dmn model reference contracts for BPMN/DMN engine integration.
+
 use std::sync::Arc;
 
 /// Future DMN binding kind associated with one BPMN node or evaluation request.

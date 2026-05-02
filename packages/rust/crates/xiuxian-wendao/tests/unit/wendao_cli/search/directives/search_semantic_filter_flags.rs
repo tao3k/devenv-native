@@ -1,8 +1,10 @@
-use super::*;
+use serde_json::Value;
 
 use fixture_contract_support::{
     SearchDirectivesFixture, assert_search_directives_fixture, search_payload_snapshot,
 };
+
+use super::wendao_cmd;
 
 #[test]
 fn test_wendao_search_semantic_filter_flags() -> Result<(), Box<dyn std::error::Error>> {

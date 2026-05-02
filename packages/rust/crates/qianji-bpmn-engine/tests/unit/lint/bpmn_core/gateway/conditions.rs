@@ -1,4 +1,4 @@
-use super::super::super::{BpmnSourceFile, LintDomain, lint_bpmn_source, native_service_task};
+use crate::lint::{BpmnSourceFile, LintDomain, lint_bpmn_source, native_service_task};
 
 #[test]
 fn bpmn_linter_aggregates_multiple_unsupported_gateway_conditions() {

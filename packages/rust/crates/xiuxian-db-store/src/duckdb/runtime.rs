@@ -1,3 +1,5 @@
+//! `DuckDB` runtime path and execution configuration types.
+
 use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};

@@ -1,3 +1,5 @@
+//! Telegram ACL branch for group overrides and policy construction.
+
 mod group_overrides;
 mod normalization;
 mod parsing;

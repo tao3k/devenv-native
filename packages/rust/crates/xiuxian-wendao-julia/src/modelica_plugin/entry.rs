@@ -1,3 +1,5 @@
+//! Modelica repository plugin entry point and capability registration.
+
 use std::ffi::OsStr;
 use std::path::Path;
 

@@ -8,14 +8,16 @@ use crate::analyzers::cache::RepositorySearchArtifacts;
 use crate::analyzers::compute_repository_saliency;
 use crate::analyzers::{SymbolSearchHit, SymbolSearchQuery, SymbolSearchResult};
 
-use super::super::helpers::{
-    backlinks_for, documents_backlink_lookup, hierarchy_segments_from_path, infer_ecosystem,
-    projection_page_lookup, projection_pages_for, record_hierarchical_uri,
-};
-use super::super::{analyze_repository_from_config_with_registry, bootstrap_builtin_registry};
 #[cfg(all(feature = "studio", feature = "repo-lexical-index"))]
 use super::ranking::ranked_symbol_matches_with_artifacts;
 use super::ranking::{RankedSearchRecord, ranked_symbol_matches};
+use crate::analyzers::service::{
+    analyze_repository_from_config_with_registry, bootstrap_builtin_registry,
+};
+use crate::analyzers::service::{
+    backlinks_for, documents_backlink_lookup, hierarchy_segments_from_path, infer_ecosystem,
+    projection_page_lookup, projection_pages_for, record_hierarchical_uri,
+};
 
 /// Build a symbol search result from normalized analysis records.
 #[must_use]

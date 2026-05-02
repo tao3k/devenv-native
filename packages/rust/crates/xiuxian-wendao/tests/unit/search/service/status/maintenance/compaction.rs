@@ -1,4 +1,11 @@
-use crate::search::service::tests::support::*;
+use std::path::PathBuf;
+
+use crate::search::service::tests::support::{
+    corpus_status, service_test_manifest_keyspace, temp_dir,
+};
+use crate::search::{
+    SearchCorpusKind, SearchMaintenancePolicy, SearchPlanePhase, SearchPlaneService,
+};
 
 #[tokio::test]
 async fn status_keeps_ready_local_corpus_out_of_compaction_reason() {

@@ -9,11 +9,13 @@ use crate::search::queries::sql::SqlQuerySurface;
 
 use super::catalogs::WENDAO_FLIGHTSQL_CATALOG_NAME;
 
-pub(in super::super) fn build_schemas_flight_info_schema(query: CommandGetDbSchemas) -> SchemaRef {
+pub(in crate::search::queries::flightsql) fn build_schemas_flight_info_schema(
+    query: CommandGetDbSchemas,
+) -> SchemaRef {
     query.into_builder().schema()
 }
 
-pub(in super::super) fn build_schemas_batch(
+pub(in crate::search::queries::flightsql) fn build_schemas_batch(
     query: CommandGetDbSchemas,
     surface: &SqlQuerySurface,
 ) -> Result<RecordBatch, Status> {
@@ -28,7 +30,7 @@ pub(in super::super) fn build_schemas_batch(
     })
 }
 
-pub(in super::super) fn flightsql_schema_name(scope: &str) -> &str {
+pub(in crate::search::queries::flightsql) fn flightsql_schema_name(scope: &str) -> &str {
     match scope {
         "local" | "local_logical" => "local",
         "repo" | "repo_logical" => "repo",

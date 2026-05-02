@@ -1,7 +1,7 @@
-use super::super::super::{
+use crate::link_graph::index::search::context::{SearchExecutionContext, SearchRuntimePolicy};
+use crate::link_graph::index::{
     LinkGraphIndex, SectionCandidate, section_tree_distance, token_match_ratio,
 };
-use super::super::context::{SearchExecutionContext, SearchRuntimePolicy};
 use std::cmp::Ordering;
 
 impl LinkGraphIndex {

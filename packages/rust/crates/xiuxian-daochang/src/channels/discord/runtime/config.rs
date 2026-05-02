@@ -1,4 +1,6 @@
-use super::super::session_partition::DiscordSessionPartition;
+//! Discord foreground runtime configuration types.
+
+use crate::channels::discord::session_partition::DiscordSessionPartition;
 use crate::channels::managed_runtime::ForegroundQueueMode;
 use crate::config::{DiscordSettings, load_runtime_settings};
 use crate::env_parse::lookup_non_empty_env;

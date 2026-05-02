@@ -1,6 +1,6 @@
 //! Observability and telemetry helpers for the agent lifecycle.
 
-use super::super::Agent;
+use crate::Agent;
 use crate::contracts::OmegaDecision;
 use crate::observability::SessionEvent;
 use std::time::{SystemTime, UNIX_EPOCH};

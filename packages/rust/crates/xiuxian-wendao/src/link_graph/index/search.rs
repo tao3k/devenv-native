@@ -27,4 +27,4 @@ mod structured_filters;
 mod traversal_candidates;
 
 pub use super::shared::{ScoredSearchRow, deterministic_random_key, sort_hits};
-pub use crate::link_graph::{LinkGraphHit, LinkGraphIndex, LinkGraphScope, LinkGraphSearchOptions};
+pub use crate::link_graph::{LinkGraphHit, LinkGraphIndex, LinkGraphSearchOptions};

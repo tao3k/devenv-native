@@ -1,3 +1,5 @@
+//! Artifact path resolution helpers for runtime package outputs.
+
 use xiuxian_wendao_core::{
     artifacts::{PluginArtifactPayload, PluginArtifactSelector},
     ids::{ArtifactId, PluginId},

@@ -1,3 +1,5 @@
+//! Public ir node api task io contracts for BPMN/DMN engine integration.
+
 use std::sync::Arc;
 
 /// Bounded standard BPMN task IO bindings preserved for host dispatch.

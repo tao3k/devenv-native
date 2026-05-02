@@ -1,3 +1,5 @@
+//! parser import human task io branch wiring for focused BPMN/DMN owner leaves.
+
 mod api;
 mod binding;
 mod declaration;

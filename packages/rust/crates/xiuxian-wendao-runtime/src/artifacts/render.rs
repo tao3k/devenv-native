@@ -1,3 +1,5 @@
+//! Artifact rendering helpers for runtime package outputs.
+
 use xiuxian_wendao_core::artifacts::{PluginArtifactPayload, PluginArtifactSelector};
 
 /// Render a resolved plugin artifact as pretty TOML via a runtime-owned resolver.

@@ -1,3 +1,5 @@
+//! Discord budget reply branch for text and JSON rendering.
+
 mod class_format;
 mod dashboard;
 mod json;

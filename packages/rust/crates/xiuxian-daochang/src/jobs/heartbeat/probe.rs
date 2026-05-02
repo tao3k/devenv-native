@@ -1,3 +1,5 @@
+//! Heartbeat job probe execution.
+
 use tokio::time::error::Elapsed;
 
 /// Result classification for a heartbeat probe with timeout.

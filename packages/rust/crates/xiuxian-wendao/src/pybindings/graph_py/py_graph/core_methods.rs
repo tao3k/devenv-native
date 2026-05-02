@@ -1,9 +1,9 @@
-use pyo3::prelude::*;
+use pyo3::PyResult;
 use serde_json::{Value, json};
 
-use super::super::parsers::parse_persisted_relation_type;
-use super::super::{PyEntity, PyRelation};
 use super::PyKnowledgeGraph;
+use crate::pybindings::graph_py::parsers::parse_persisted_relation_type;
+use crate::pybindings::graph_py::{PyEntity, PyRelation};
 
 pub(super) fn add_entity(graph: &PyKnowledgeGraph, entity: PyEntity) -> PyResult<()> {
     graph

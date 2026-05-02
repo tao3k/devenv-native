@@ -1,7 +1,6 @@
 use crate::agent::Agent;
-use crate::channels::traits::{Channel, ChannelMessage};
-
-use super::ForegroundInterruptController;
+use crate::channels::discord::runtime::ForegroundInterruptController;
+use crate::channels::{Channel, ChannelMessage};
 
 pub(super) async fn try_handle_stop_command(
     agent: &Agent,

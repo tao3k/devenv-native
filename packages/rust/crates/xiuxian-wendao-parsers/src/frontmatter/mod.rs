@@ -1,3 +1,5 @@
+//! Markdown frontmatter parsing and SKILL.md frontmatter contracts.
+
 mod api;
 mod raw;
 mod types;

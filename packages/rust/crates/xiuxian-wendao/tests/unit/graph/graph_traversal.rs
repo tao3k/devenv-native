@@ -1,4 +1,5 @@
-use super::*;
+use xiuxian_wendao::graph::KnowledgeGraph;
+use xiuxian_wendao::{Entity, EntityType, Relation, RelationType};
 
 #[test]
 fn test_multi_hop_search() {

@@ -41,9 +41,9 @@ serde_json = { workspace = true, optional = true }
 thiserror = { workspace = true, optional = true }
 tokio = { workspace = true, optional = true }
 xiuxian-vector = { path = "../xiuxian-vector", default-features = false, optional = true }
-xiuxian-testing = { path = "../xiuxian-testing" }
 
 [dev-dependencies]
+rust-lang-project-harness = { workspace = true }
 tempfile = { workspace = true }
 
 [lints]

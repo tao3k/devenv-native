@@ -1,3 +1,5 @@
+//! Public ir process compensation contracts for BPMN/DMN engine integration.
+
 use crate::ir_index_api::BpmnNodeIndex;
 
 /// One bounded compensation handler binding.

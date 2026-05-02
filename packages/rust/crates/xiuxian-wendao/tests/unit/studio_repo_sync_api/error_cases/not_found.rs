@@ -1,4 +1,10 @@
-use super::super::*;
+use crate::gateway::studio::studio_repo_sync_api_tests::support::{
+    create_local_git_repo, gateway_state_for_project, request_json, write_default_repo_config,
+};
+use crate::gateway::studio::studio_repo_sync_api_tests::{
+    ProjectionPageKind, RepoProjectedPagesQuery, StatusCode, TestResult,
+    assert_studio_json_snapshot, fs, repo_projected_pages_from_config, studio_router,
+};
 
 #[tokio::test]
 async fn repo_projected_page_endpoint_returns_not_found_for_unknown_page() -> TestResult {

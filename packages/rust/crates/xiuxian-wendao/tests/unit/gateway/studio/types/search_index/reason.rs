@@ -8,7 +8,7 @@ use crate::search::{
     SearchPlanePhase, SearchPlaneStatusSnapshot,
 };
 
-use super::helpers::*;
+use super::helpers::{corpus_status_reason, status_reason};
 
 #[test]
 fn response_status_reason_prefers_blocking_error_over_warning_and_info() {

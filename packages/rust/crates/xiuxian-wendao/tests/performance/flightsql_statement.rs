@@ -2,6 +2,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 
+use super::support::{PerfBudget, PerfReport, PerfRunConfig, assert_perf_budget, run_async_budget};
 use arrow::array::Array;
 use arrow::record_batch::RecordBatch;
 use arrow::util::display::array_value_to_string;
@@ -15,9 +16,6 @@ use tokio_stream::StreamExt;
 use tonic::Request;
 #[cfg(not(feature = "duckdb"))]
 use xiuxian_db_store::SearchEngineContext;
-use xiuxian_testing::{
-    PerfBudget, PerfReport, PerfRunConfig, assert_perf_budget, run_async_budget,
-};
 use xiuxian_wendao::duckdb::ParquetQueryEngine;
 use xiuxian_wendao::gateway::studio::perf_support::{
     GatewayPerfFixture, prepare_gateway_perf_fixture_with_julia_parser_summary_transport,

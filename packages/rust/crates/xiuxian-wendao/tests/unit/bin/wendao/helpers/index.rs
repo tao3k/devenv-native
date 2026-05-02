@@ -1,5 +1,5 @@
 use super::{build_index, resolve_index_filters};
-use crate::types::Cli;
+use crate::bin_support::wendao::types::Cli;
 use clap::Parser;
 use std::fs;
 
@@ -39,10 +39,6 @@ fn local_cli_index_build_uses_local_cache_entrypoint() {
     ]);
 
     let index = build_index(&cli).unwrap_or_else(|error| panic!("build local CLI index: {error}"));
-    let (_, hits) = index.search_planned(
-        "Alpha",
-        5,
-        xiuxian_wendao::LinkGraphSearchOptions::default(),
-    );
+    let (_, hits) = index.search_planned("Alpha", 5, crate::LinkGraphSearchOptions::default());
     assert_eq!(hits.len(), 1);
 }

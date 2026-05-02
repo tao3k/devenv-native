@@ -6,6 +6,7 @@
 
 mod washing;
 
+/// Streaming parser and pipeline contracts for CLI agent output.
 pub mod streaming;
 
 pub use washing::{ZhenfaResolveAndWashError, ZhenfaTransmuter, ZhenfaTransmuterError};

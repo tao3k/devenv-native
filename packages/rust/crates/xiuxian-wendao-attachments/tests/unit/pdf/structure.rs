@@ -3,7 +3,11 @@ use arrow::datatypes::{DataType, Field, Schema};
 use arrow::record_batch::RecordBatch;
 use std::sync::Arc;
 
-use super::*;
+use crate::pdf::structure::{
+    DOCUMENT_STRUCTURE_SCHEMA_VERSION, DocumentStructureBlock, build_document_structure_batch,
+    document_resource_batch_to_structure_blocks, document_structure_schema,
+    validate_document_structure_parity,
+};
 
 fn assert_close(actual: f64, expected: f64) {
     assert!(

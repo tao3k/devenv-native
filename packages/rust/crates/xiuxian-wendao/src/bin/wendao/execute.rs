@@ -33,9 +33,9 @@ mod search;
 #[path = "execute/sentinel.rs"]
 mod sentinel;
 
-use crate::types::{Cli, Command, OutputFormat};
+use crate::LinkGraphIndex;
+use crate::bin_support::wendao::types::{Cli, Command, OutputFormat};
 use anyhow::Result;
-use xiuxian_wendao::LinkGraphIndex;
 use xiuxian_wendao_client::{
     ClientContext as EmbeddedClientContext, OutputFormat as ClientOutputFormat,
 };

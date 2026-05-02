@@ -1,4 +1,4 @@
-use super::super::super::{
+use crate::runtime::{
     StubHost, dmn_fixture_definition, sequential_multi_instance_business_rule_process,
 };
 use crate::test_support::MustExt as _;

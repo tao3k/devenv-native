@@ -1,13 +1,16 @@
+//! Constructors for the runtime-owned Wendao Flight service.
+
 use std::sync::Arc;
 
 use xiuxian_db_store::LanceRecordBatch;
 
 use crate::transport::RerankScoreWeights;
 
-use super::super::types::{
+use crate::transport::server::{
     RepoSearchFlightRouteProvider, StaticRepoSearchFlightRouteProvider, WendaoFlightRouteProviders,
 };
-use super::core::WendaoFlightService;
+
+use super::ServiceCore as WendaoFlightService;
 
 impl WendaoFlightService {
     /// Create one runtime-owned Wendao Flight service.

@@ -1,4 +1,4 @@
-use super::*;
+use crate::transmuter::streaming::{CognitiveDistribution, StreamProvider, ZhenfaPipeline};
 
 #[test]
 fn pipeline_creates_correct_parser() {

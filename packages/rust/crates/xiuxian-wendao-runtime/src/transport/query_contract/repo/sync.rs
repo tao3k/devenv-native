@@ -1,3 +1,5 @@
+//! Repository sync route contract and metadata validation.
+
 /// Canonical repo-sync repository metadata header for Wendao Flight requests.
 pub const WENDAO_REPO_SYNC_REPO_HEADER: &str = "x-wendao-repo-sync-repo";
 /// Canonical repo-sync mode metadata header for Wendao Flight requests.

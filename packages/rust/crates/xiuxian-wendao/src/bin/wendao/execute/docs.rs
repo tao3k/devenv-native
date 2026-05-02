@@ -1,12 +1,10 @@
 use std::env;
 
+use crate::analyzers::{DocsNavigationOptions, DocsRetrievalContextOptions, DocsToolService};
 use anyhow::{Context, Result};
-use xiuxian_wendao::analyzers::{
-    DocsNavigationOptions, DocsRetrievalContextOptions, DocsToolService,
-};
 
-use crate::helpers::emit;
-use crate::types::{Cli, Command, DocsCommand};
+use crate::bin_support::wendao::helpers::emit;
+use crate::bin_support::wendao::types::{Cli, Command, DocsCommand};
 
 pub(super) fn handle(cli: &Cli) -> Result<()> {
     let Command::Docs { command } = &cli.command else {
@@ -47,7 +45,10 @@ impl<'a> DocsCommandContext<'a> {
     }
 }
 
-fn handle_page(context: &DocsCommandContext<'_>, args: &crate::types::DocsPageArgs) -> Result<()> {
+fn handle_page(
+    context: &DocsCommandContext<'_>,
+    args: &crate::bin_support::wendao::types::DocsPageArgs,
+) -> Result<()> {
     let result = context
         .service(args.repo.clone())
         .get_document(&args.page_id)
@@ -55,7 +56,10 @@ fn handle_page(context: &DocsCommandContext<'_>, args: &crate::types::DocsPageAr
     emit(&result, context.cli.output_or_json())
 }
 
-fn handle_tree(context: &DocsCommandContext<'_>, args: &crate::types::DocsTreeArgs) -> Result<()> {
+fn handle_tree(
+    context: &DocsCommandContext<'_>,
+    args: &crate::bin_support::wendao::types::DocsTreeArgs,
+) -> Result<()> {
     let result = context
         .service(args.repo.clone())
         .get_page_index_tree(&args.page_id)
@@ -70,7 +74,7 @@ fn handle_tree(context: &DocsCommandContext<'_>, args: &crate::types::DocsTreeAr
 
 fn handle_page_index_outline(
     context: &DocsCommandContext<'_>,
-    args: &crate::types::DocsPageIndexOutlineArgs,
+    args: &crate::bin_support::wendao::types::DocsPageIndexOutlineArgs,
 ) -> Result<()> {
     let result = context
         .service(args.repo.clone())
@@ -86,7 +90,7 @@ fn handle_page_index_outline(
 
 fn handle_page_index(
     context: &DocsCommandContext<'_>,
-    args: &crate::types::DocsPageIndexArgs,
+    args: &crate::bin_support::wendao::types::DocsPageIndexArgs,
 ) -> Result<()> {
     let result = context
         .service(args.repo.clone())
@@ -102,7 +106,7 @@ fn handle_page_index(
 
 fn handle_segment(
     context: &DocsCommandContext<'_>,
-    args: &crate::types::DocsSegmentArgs,
+    args: &crate::bin_support::wendao::types::DocsSegmentArgs,
 ) -> Result<()> {
     let result = context
         .service(args.repo.clone())
@@ -118,7 +122,7 @@ fn handle_segment(
 
 fn handle_search(
     context: &DocsCommandContext<'_>,
-    args: &crate::types::DocsSearchArgs,
+    args: &crate::bin_support::wendao::types::DocsSearchArgs,
 ) -> Result<()> {
     let result = context
         .service(args.repo.clone())
@@ -129,7 +133,7 @@ fn handle_search(
 
 fn handle_search_page_index(
     context: &DocsCommandContext<'_>,
-    args: &crate::types::DocsSearchPageIndexArgs,
+    args: &crate::bin_support::wendao::types::DocsSearchPageIndexArgs,
 ) -> Result<()> {
     let result = context
         .service(args.repo.clone())
@@ -143,7 +147,10 @@ fn handle_search_page_index(
     emit(&result, context.cli.output_or_json())
 }
 
-fn handle_node(context: &DocsCommandContext<'_>, args: &crate::types::DocsNodeArgs) -> Result<()> {
+fn handle_node(
+    context: &DocsCommandContext<'_>,
+    args: &crate::bin_support::wendao::types::DocsNodeArgs,
+) -> Result<()> {
     let result = context
         .service(args.repo.clone())
         .get_document_node(&args.page_id, &args.node_id)
@@ -156,7 +163,10 @@ fn handle_node(context: &DocsCommandContext<'_>, args: &crate::types::DocsNodeAr
     emit(&result, context.cli.output_or_json())
 }
 
-fn handle_toc(context: &DocsCommandContext<'_>, args: &crate::types::DocsTocArgs) -> Result<()> {
+fn handle_toc(
+    context: &DocsCommandContext<'_>,
+    args: &crate::bin_support::wendao::types::DocsTocArgs,
+) -> Result<()> {
     let result = context
         .service(args.repo.clone())
         .get_toc_documents()
@@ -171,7 +181,7 @@ fn handle_toc(context: &DocsCommandContext<'_>, args: &crate::types::DocsTocArgs
 
 fn handle_navigation(
     context: &DocsCommandContext<'_>,
-    args: &crate::types::DocsNavigationArgs,
+    args: &crate::bin_support::wendao::types::DocsNavigationArgs,
 ) -> Result<()> {
     let result = context
         .service(args.repo.clone())
@@ -195,7 +205,7 @@ fn handle_navigation(
 
 fn handle_context(
     context: &DocsCommandContext<'_>,
-    args: &crate::types::DocsContextArgs,
+    args: &crate::bin_support::wendao::types::DocsContextArgs,
 ) -> Result<()> {
     let result = context
         .service(args.repo.clone())

@@ -12,9 +12,9 @@ use anyhow::Result;
 use log::info;
 use tokio::sync::mpsc;
 
-use crate::types::{Cli, SentinelArgs, SentinelCommand, SentinelWatchArgs};
-use xiuxian_wendao::LinkGraphIndex;
-use xiuxian_wendao::zhenfa_router::native::sentinel::{Sentinel, SentinelConfig};
+use crate::LinkGraphIndex;
+use crate::bin_support::wendao::types::{Cli, SentinelArgs, SentinelCommand, SentinelWatchArgs};
+use crate::zhenfa_router::native::sentinel::{Sentinel, SentinelConfig};
 use xiuxian_zhenfa::{ZhenfaContext, ZhenfaSignal};
 
 /// Handle the sentinel command.

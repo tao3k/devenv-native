@@ -1,4 +1,8 @@
-use super::*;
+use super::{
+    AttachmentSearchQuery, UiConfig, UiProjectConfig, assert_studio_json_snapshot, json,
+    load_attachment_search_response_from_studio, make_state_with_docs, publish_attachment_index,
+    round_f64,
+};
 
 #[tokio::test]
 async fn search_attachments_requires_query() {

@@ -11,9 +11,9 @@ use crate::gateway::studio::router::handlers::repo::projected_service::retrieval
 };
 use crate::gateway::studio::router::{GatewayState, StudioApiError};
 
-use super::super::parse::repo::required_registered_repo_id;
-use super::super::parse::resource::required_page_id;
-use super::super::query::retrieval::{
+use crate::gateway::studio::router::handlers::repo::parse::repo::required_registered_repo_id;
+use crate::gateway::studio::router::handlers::repo::parse::resource::required_page_id;
+use crate::gateway::studio::router::handlers::repo::query::retrieval::{
     RepoProjectedRetrievalContextApiQuery, RepoProjectedRetrievalHitApiQuery,
 };
 

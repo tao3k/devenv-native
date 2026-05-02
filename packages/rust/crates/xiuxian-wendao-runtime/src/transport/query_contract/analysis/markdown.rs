@@ -1,3 +1,5 @@
+//! Markdown-analysis route contract and metadata validation.
+
 /// Stable route for the markdown analysis contract.
 pub const ANALYSIS_MARKDOWN_ROUTE: &str = "/analysis/markdown";
 

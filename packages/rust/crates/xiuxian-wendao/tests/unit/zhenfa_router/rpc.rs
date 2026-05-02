@@ -1,11 +1,13 @@
 //! Unit tests for `zhenfa_router/rpc` module.
 
-use super::*;
 use crate::zhenfa_router::models::WendaoSearchRequest;
 
+#[cfg(feature = "julia")]
+use super::export_plugin_artifact_from_rpc_params;
+use super::{DEFAULT_SEARCH_LIMIT, MAX_SEARCH_LIMIT, normalize_limit, render_markdown};
 use crate::link_graph::{
-    LinkGraphConfidenceLevel, LinkGraphJuliaRerankTelemetry, LinkGraphRetrievalMode,
-    LinkGraphSemanticIgnitionTelemetry, QuantumContext,
+    LinkGraphConfidenceLevel, LinkGraphJuliaRerankTelemetry, LinkGraphPlannedSearchPayload,
+    LinkGraphRetrievalMode, LinkGraphSemanticIgnitionTelemetry, QuantumContext,
 };
 #[cfg(feature = "julia")]
 use crate::set_link_graph_wendao_config_override;

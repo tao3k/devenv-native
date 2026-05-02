@@ -1,3 +1,5 @@
+//! Metadata helpers for Plugin Arrow exchange requests.
+
 use arrow_array::RecordBatch;
 use xiuxian_db_store::attach_record_batch_metadata;
 use xiuxian_wendao_core::repo_intelligence::RepoIntelligenceError;

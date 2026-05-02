@@ -1,7 +1,7 @@
 use crate::contracts::{NodeDefinition, NodeLlmBinding};
 use crate::error::QianjiError;
 use crate::runtime_config::resolve_qianji_runtime_llm_config;
-use xiuxian_llm::llm::backend::{LlmBackendKind, parse_llm_backend_kind};
+use xiuxian_llm::llm::{LlmBackendKind, parse_llm_backend_kind};
 
 pub(super) struct LlmMechanismConfig {
     pub(super) model: String,

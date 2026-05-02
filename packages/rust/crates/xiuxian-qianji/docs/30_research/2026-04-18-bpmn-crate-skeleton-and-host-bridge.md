@@ -824,7 +824,7 @@ Current landed status:
     `cargo test -p xiuxian-qianji --lib scheduler::`,
     and `git diff --check`, so the active modularity backlog has now moved on
     again to later non-scheduler seams
-65. the shared `xiuxian-testing` modularity gate is also now more operator- and
+65. the external `rust-lang-project-harness` project-policy gate is also now more operator- and
     LLM-friendly during the remaining cleanup work: blocking reports include
     `why:` plus `fix:` guidance, and the relevant root-seam rules now state
     the private `mod` / private `#[path = "..."] mod` plus selective

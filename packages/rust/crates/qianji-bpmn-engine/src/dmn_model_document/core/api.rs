@@ -1,3 +1,5 @@
+//! Public dmn model document core contracts for BPMN/DMN engine integration.
+
 use super::DmnFunctionDefinitionSnapshot;
 
 /// Snapshot of one top-level DMN `import`.

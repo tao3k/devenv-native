@@ -1,3 +1,5 @@
+//! Runtime configuration resolver boundary for merged Wendao settings.
+
 mod agentic;
 mod cache;
 mod coactivation;

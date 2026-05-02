@@ -1,4 +1,4 @@
-use super::super::{StubHost, standard_loop_service_process};
+use crate::runtime::{StubHost, standard_loop_service_process};
 use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnInstanceInit, BpmnPackage, NodeRuntimeStatus, PendingHostWork,

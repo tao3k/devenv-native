@@ -1,6 +1,6 @@
 //! Tests for `LinkGraph` entity reference extraction.
 
-use xiuxian_wendao::link_graph_refs::{
+use crate::link_graph_refs::{
     LinkGraphEntityRef, LinkGraphRefStats, extract_entity_refs, find_notes_referencing_entity,
     get_ref_stats, is_valid_entity_ref, parse_entity_ref,
 };

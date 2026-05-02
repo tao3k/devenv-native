@@ -1,3 +1,5 @@
+//! Telegram webhook runtime startup loop.
+
 use std::sync::Arc;
 
 use anyhow::Result;

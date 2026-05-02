@@ -1,5 +1,7 @@
-use super::super::capacity::{OcrCapacityController, OcrSchedulerLane};
-use super::*;
+use super::{Duration, PdfOcrSchedulerMetrics};
+use crate::gateway::studio::router::handlers::analysis::document_extract::pdf_ocr_scheduler::capacity::{
+    OcrCapacityController, OcrSchedulerLane,
+};
 
 #[test]
 fn metrics_snapshot_reports_cache_lanes_and_percentiles() {

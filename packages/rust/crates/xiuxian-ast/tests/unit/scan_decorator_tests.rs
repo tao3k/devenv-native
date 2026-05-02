@@ -1,4 +1,4 @@
-use super::*;
+use xiuxian_ast::{Lang, Match, scan};
 
 fn scan_or_panic(content: &str, pattern: &str, lang: Lang) -> Vec<Match> {
     match scan(content, pattern, lang) {

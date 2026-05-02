@@ -1,4 +1,7 @@
-use super::*;
+use super::{
+    OcrCapacityController, OcrSchedulerLane, PRESSURE_LATENCY_MS,
+    is_contiguous_source_pdf_page_range,
+};
 use xiuxian_wendao_attachments::pdf::ocr::{PDF_OCR_SHARD_INPUT_SCHEMA_VERSION, PdfOcrShardInput};
 
 #[test]

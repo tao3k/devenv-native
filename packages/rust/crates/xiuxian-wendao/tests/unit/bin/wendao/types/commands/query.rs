@@ -1,5 +1,5 @@
-use super::super::Command;
-use super::*;
+use super::{GraphqlQueryArgs, QueryCommand, RestQueryArgs, SqlQueryArgs, query};
+use crate::bin_support::wendao::types::Command;
 
 #[test]
 fn test_graphql_query_args_capture_document_text() {

@@ -1,3 +1,5 @@
+//! Tool-runtime request, response, and schema types.
+
 use serde::{Deserialize, Serialize};
 
 /// Result payload returned by the remote tool runtime `tools/list` operation.

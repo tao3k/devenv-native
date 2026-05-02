@@ -13,8 +13,6 @@ fn unique(prefix: &str) -> String {
     format!("{prefix}_{now}")
 }
 
-xiuxian_testing::crate_test_policy_harness!();
-
 #[tokio::test]
 async fn heartbeat_registers_nodes_and_discovers_by_role() -> Result<(), Box<dyn std::error::Error>>
 {

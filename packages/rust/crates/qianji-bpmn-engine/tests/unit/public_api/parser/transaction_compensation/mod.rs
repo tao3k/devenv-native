@@ -1,4 +1,4 @@
-use super::super::fixture_source;
+use crate::public_api::fixture_source;
 
 const TRANSACTION_PROCESS_ID: &str = "__transaction__::main_process::payment_tx";
 

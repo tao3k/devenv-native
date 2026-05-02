@@ -1,3 +1,5 @@
+//! Telegram webhook API client builder.
+
 use anyhow::Result;
 use tokio::sync::mpsc;
 
@@ -6,11 +8,11 @@ use crate::channels::telegram::session_partition::TelegramSessionPartition;
 use crate::channels::telegram::{TelegramCommandAdminRule, TelegramControlCommandPolicy};
 use crate::channels::traits::ChannelMessage;
 
-use super::super::app::TelegramWebhookApp;
 use super::core::{
     TelegramWebhookCoreBuildRequest,
     build_telegram_webhook_app_with_partition_and_control_command_policy,
 };
+use crate::channels::telegram::runtime::webhook::app::TelegramWebhookApp;
 
 /// Request payload for building a Telegram webhook app with an explicit control
 /// command policy.

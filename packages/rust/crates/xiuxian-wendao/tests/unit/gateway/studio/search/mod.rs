@@ -1,10 +1,22 @@
-use super::test_prelude::*;
-use super::*;
+use std::sync::Arc;
+
+use super::{
+    build_autocomplete_response, build_definition_response, build_knowledge_search_response,
+    load_attachment_search_response_from_studio, load_intent_search_response_with_metadata,
+    load_reference_search_response, load_symbol_search_response, search_ast,
+};
 use crate::analyzers::{
     ExampleRecord, ModuleRecord, RepoSymbolKind, RepositoryAnalysisOutput, SymbolRecord,
 };
 use crate::gateway::studio::build_ast_index;
+use crate::gateway::studio::search::handlers::code_search::{
+    CODE_CONTENT_EXCLUDE_GLOBS, is_supported_code_extension, parse_content_search_line,
+    path_matches_language_filters, repo_navigation_target, truncate_content_search_snippet,
+};
 use crate::gateway::studio::search::handlers::knowledge::ensure_intent_indices;
+use crate::gateway::studio::search::handlers::queries::{
+    AstSearchQuery, AttachmentSearchQuery, ReferenceSearchQuery, SearchQuery, SymbolSearchQuery,
+};
 use crate::gateway::studio::search::handlers::status::search_index_status;
 use crate::gateway::studio::search::strip_option;
 use crate::gateway::studio::test_support::{assert_studio_json_snapshot, round_f64};
@@ -15,6 +27,7 @@ use crate::repo_index::{
     RepoIndexStatusResponse,
 };
 use crate::search::SearchPlaneService;
+use axum::extract::{Query, State};
 use serde_json::json;
 use tempfile::tempdir;
 

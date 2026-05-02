@@ -1,3 +1,5 @@
+//! Public agentic configuration resolver API for Wendao runtime settings.
+
 use super::apply;
 use super::finalize;
 use crate::config::LinkGraphAgenticRuntimeConfig;

@@ -5,9 +5,9 @@ use crate::channels::traits::{
     Channel, ChannelMessage, RecipientCommandAdminUsersMutation, RecipientMentionPolicyStatus,
 };
 
-use super::super::session_partition::DiscordSessionPartition;
 use super::auth::normalize_discord_identity;
 use super::state::DiscordChannel;
+use crate::channels::discord::session_partition::DiscordSessionPartition;
 
 #[async_trait]
 impl Channel for DiscordChannel {

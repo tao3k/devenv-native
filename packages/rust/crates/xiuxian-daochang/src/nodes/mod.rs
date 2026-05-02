@@ -1,3 +1,5 @@
+//! Runtime node branch for agents, channels, tools, and scheduler nodes.
+
 mod channel;
 mod gateway;
 mod repl;

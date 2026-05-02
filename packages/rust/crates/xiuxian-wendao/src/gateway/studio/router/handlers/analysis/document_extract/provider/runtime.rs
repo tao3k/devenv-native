@@ -4,13 +4,13 @@ use std::sync::{Arc, Mutex as StdMutex, Weak};
 
 use tokio::sync::{Mutex, Semaphore};
 
-#[cfg(feature = "document-extract-pdf-source-range")]
-use super::super::pdf_ocr_scheduler::PdfOcrWorkerScheduler;
-use super::super::registry::DocumentExtractJobRegistry;
 use super::{
     DOCUMENT_EXTRACT_MAX_RUNNING_CONVERSIONS_ENV, DOCUMENT_EXTRACT_PROVIDER_RUNTIMES,
     DocumentExtractProviderRuntime, StudioDocumentExtractFlightRouteProvider,
 };
+#[cfg(feature = "document-extract-pdf-source-range")]
+use crate::gateway::studio::router::handlers::analysis::document_extract::pdf_ocr_scheduler::PdfOcrWorkerScheduler;
+use crate::gateway::studio::router::handlers::analysis::document_extract::registry::DocumentExtractJobRegistry;
 
 impl DocumentExtractProviderRuntime {
     pub(super) fn new(

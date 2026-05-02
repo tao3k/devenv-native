@@ -1,5 +1,5 @@
 use super::{can_execute_immediate, client_context_from_cli};
-use crate::types::Cli;
+use crate::bin_support::wendao::types::Cli;
 use clap::Parser;
 use xiuxian_wendao_client::OutputFormat as ClientOutputFormat;
 

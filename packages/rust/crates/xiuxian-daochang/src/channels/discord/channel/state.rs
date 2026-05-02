@@ -1,17 +1,19 @@
+//! Discord channel session state and interrupt bookkeeping.
+
 use std::collections::HashMap;
 use std::sync::{PoisonError, RwLock};
 
 use crate::channels::control_command_authorization::ControlCommandPolicy;
 
-use super::super::session_partition::DiscordSessionPartition;
 use super::policy::{DiscordCommandAdminRule, DiscordSlashCommandRule};
+use crate::channels::discord::session_partition::DiscordSessionPartition;
 
 /// Discord channel transport state and ACL policy.
 pub struct DiscordChannel {
-    pub(in super::super) bot_token: String,
+    pub(in crate::channels::discord) bot_token: String,
     pub(super) api_base_url: String,
-    pub(in super::super) allowed_users: Vec<String>,
-    pub(in super::super) allowed_guilds: Vec<String>,
+    pub(in crate::channels::discord) allowed_users: Vec<String>,
+    pub(in crate::channels::discord) allowed_guilds: Vec<String>,
     pub(super) control_command_policy: ControlCommandPolicy<DiscordCommandAdminRule>,
     pub(super) slash_command_policy: ControlCommandPolicy<DiscordSlashCommandRule>,
     pub(super) session_partition: RwLock<DiscordSessionPartition>,
@@ -21,7 +23,7 @@ pub struct DiscordChannel {
     pub(super) default_require_mention: RwLock<bool>,
     pub(super) require_mention_persist: RwLock<bool>,
     pub(super) recipient_require_mention: RwLock<HashMap<String, bool>>,
-    pub(in super::super) client: reqwest::Client,
+    pub(in crate::channels::discord) client: reqwest::Client,
 }
 
 impl DiscordChannel {

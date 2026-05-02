@@ -1,4 +1,4 @@
-use super::super::{StubHost, runtime_optional_output_io};
+use crate::runtime::{StubHost, runtime_optional_output_io};
 use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnEdgeSpec, BpmnEventKind, BpmnEventSpec, BpmnGatewayKind,

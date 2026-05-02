@@ -1,6 +1,9 @@
 //! Unit tests for graph collapse operators.
 
-use super::*;
+use std::collections::{HashMap, HashSet};
+
+use super::{DenseCluster, VirtualNode, collapse_clusters};
+use crate::link_graph::models::LinkGraphDocument;
 
 fn make_cluster(members: &[&str], avg_saliency: f64) -> DenseCluster {
     DenseCluster {

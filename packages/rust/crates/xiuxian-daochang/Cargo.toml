@@ -62,13 +62,13 @@ xiuxian-logging = { path = "../xiuxian-logging" }
 xiuxian-window = { path = "../xiuxian-window" }
 xiuxian-tokenizer = { path = "../xiuxian-tokenizer" }
 xiuxian-zhixing = { path = "../xiuxian-zhixing" }
-xiuxian-testing = { path = "../xiuxian-testing" }
 axum = { workspace = true, features = ["multipart"] }
 clap = { workspace = true }
 xiuxian-macros = { path = "../xiuxian-macros" }
 
 [dev-dependencies]
 chrono = { workspace = true }
+rust-lang-project-harness = { workspace = true }
 tempfile = { workspace = true }
 tower = { workspace = true, features = ["util"] }
 

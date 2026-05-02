@@ -8,15 +8,15 @@ use xiuxian_wendao_runtime::transport::{
     DocumentExtractFlightRequest, DocumentExtractFlightRouteResponse,
 };
 
-use super::super::arrow_cache::{
+use super::StudioDocumentExtractFlightRouteProvider;
+use crate::gateway::studio::router::handlers::analysis::document_extract::arrow_cache::{
     DOCUMENT_RESOURCE_ARROW_CACHE_NAME, build_error_resource_batch, build_job_resource_batch,
     mirror_artifact_to_output, mirror_document_extract_cache, read_arrow_file,
     read_cached_document_batches, write_arrow_file,
 };
-use super::super::registry::{
+use crate::gateway::studio::router::handlers::analysis::document_extract::registry::{
     DocumentExtractJobRegistry, DocumentExtractJobStatus, artifact_ready, default_output_dir,
 };
-use super::StudioDocumentExtractFlightRouteProvider;
 
 impl StudioDocumentExtractFlightRouteProvider {
     pub(super) async fn sync_document_extract_batch(

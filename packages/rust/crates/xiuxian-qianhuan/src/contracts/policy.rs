@@ -1,3 +1,5 @@
+//! Injection policy records for prompt-context ordering and selection.
+
 use serde::{Deserialize, Serialize};
 
 use crate::PromptContextCategory;

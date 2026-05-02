@@ -188,7 +188,7 @@ Bounded BPMN and DMN workflow engine ownership for Qianji.
   seam.
 - `mod.rs` files are interface seams only and should not regrow hidden
   implementation buckets.
-- The crate uses the shared `xiuxian-testing` modularity gate; warning-level
+- The crate uses the shared `rust-lang-project-harness` gate; warning-level
   source-layout findings are treated as blocking debt for the owning slice.
 - Package-level OMG alignment notes live under [docs/README.md](docs/README.md).
 

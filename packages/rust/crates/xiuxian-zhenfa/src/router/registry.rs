@@ -1,3 +1,5 @@
+//! JSON-RPC method registry and closure adapter.
+
 use std::collections::HashMap;
 use std::future::Future;
 use std::sync::Arc;

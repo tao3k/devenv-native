@@ -1,3 +1,5 @@
+//! Channel runtime mode selection shared by CLI and tests.
+
 use clap::ValueEnum;
 
 /// Runtime transport mode for the Telegram channel.

@@ -1,4 +1,7 @@
-use super::support::*;
+use super::support::{
+    Arc, EchoManifestation, KnowledgeGraph, MarkdownStorage, TestResult, ZhixingHeyi, context,
+    tempdir,
+};
 
 #[test]
 fn test_time_zone_parsing() -> TestResult {
@@ -12,7 +15,7 @@ fn test_invalid_time_zone_returns_config_error() -> TestResult {
     let graph = Arc::new(KnowledgeGraph::new());
     let temp_dir = tempdir()?;
     let storage = Arc::new(MarkdownStorage::new(temp_dir.path().to_path_buf()));
-    let manifestation = Arc::new(super::support::EchoManifestation);
+    let manifestation = Arc::new(EchoManifestation);
 
     let result = ZhixingHeyi::new(
         graph,

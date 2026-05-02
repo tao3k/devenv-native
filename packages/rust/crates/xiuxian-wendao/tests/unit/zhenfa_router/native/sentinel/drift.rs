@@ -1,4 +1,4 @@
-use super::*;
+use super::{AffectedDoc, DriftConfidence, SemanticDriftSignal};
 
 #[test]
 fn test_semantic_drift_signal_summary() {

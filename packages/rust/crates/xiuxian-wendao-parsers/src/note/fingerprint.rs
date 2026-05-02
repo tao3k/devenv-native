@@ -1,3 +1,5 @@
+//! Stable Markdown note fingerprint construction.
+
 use std::collections::BTreeMap;
 
 use serde::Serialize;

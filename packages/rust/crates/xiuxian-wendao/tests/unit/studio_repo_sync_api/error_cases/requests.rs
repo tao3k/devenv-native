@@ -1,4 +1,9 @@
-use super::super::*;
+use crate::gateway::studio::studio_repo_sync_api_tests::support::{
+    gateway_state_for_project, request_json,
+};
+use crate::gateway::studio::studio_repo_sync_api_tests::{
+    StatusCode, TestResult, assert_studio_json_snapshot, studio_router,
+};
 
 #[tokio::test]
 async fn repo_gateway_returns_missing_repo_error() -> TestResult {

@@ -15,11 +15,16 @@ mod di_reference;
 mod di_required;
 mod di_semantic;
 mod di_topology;
+mod evidence;
 mod issue;
 mod metadata;
 mod model;
-mod shared;
 mod summary;
 mod xml;
 
+pub(in crate::lint::bpmn::document_surface) const SNAPSHOT_EVIDENCE_LIMIT: usize = 8;
+
 pub(super) use api::deferred_document_surface_issue;
+pub(in crate::lint::bpmn::document_surface) use model::{
+    CollaborationCounts, FlowElementMetadataCounts, ProcessCallableCounts, ResourceRoleCounts,
+};

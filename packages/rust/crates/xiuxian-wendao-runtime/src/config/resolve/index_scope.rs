@@ -1,3 +1,5 @@
+//! Index-scope configuration resolver for Wendao runtime search behavior.
+
 use crate::config::LinkGraphIndexRuntimeConfig;
 use crate::settings::{
     dedup_dirs, get_setting_bool, get_setting_string_list, normalize_relative_dir,

@@ -1,17 +1,6 @@
-use super::shell::{BpmnInstanceState, NodeRuntimeState, NodeRuntimeStatus};
+use super::shell::BpmnInstanceState;
 use crate::error::{BpmnEngineError, Result};
 use crate::ir::{BpmnPackage, BpmnProcessSpec};
-
-pub(crate) fn build_node_states(process: &BpmnProcessSpec) -> Vec<NodeRuntimeState> {
-    process
-        .nodes
-        .iter()
-        .map(|node| NodeRuntimeState {
-            node_index: node.index,
-            status: NodeRuntimeStatus::Idle,
-        })
-        .collect()
-}
 
 pub(crate) fn resolve_process_for_instance<'a>(
     package: &'a BpmnPackage,

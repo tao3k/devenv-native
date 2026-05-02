@@ -3,21 +3,27 @@
 use xiuxian_daochang::test_support::{
     ManagedControlCommand, ManagedSlashCommand, OutputFormat, ResumeContextCommand,
     SessionAdminAction, SessionFeedbackDirection, SessionInjectionAction, SessionPartitionMode,
-    detect_managed_control_command, detect_managed_slash_command, is_agenda_command,
-    parse_help_command, parse_job_status_command, parse_resume_context_command,
-    parse_session_admin_command, parse_session_feedback_command, parse_session_injection_command,
-    parse_session_partition_command,
+    detect_managed_control_command, detect_managed_slash_command, test_is_agenda_command,
+    test_parse_help_command, test_parse_job_status_command, test_parse_resume_context_command,
+    test_parse_session_admin_command, test_parse_session_feedback_command,
+    test_parse_session_injection_command, test_parse_session_partition_command,
 };
 
 #[test]
 fn test_support_parses_help_and_job_status_output_formats() {
-    assert_eq!(parse_help_command("/help"), Some(OutputFormat::Dashboard));
-    assert_eq!(parse_help_command("/help json"), Some(OutputFormat::Json));
-    assert!(is_agenda_command("/agenda"));
-    assert!(is_agenda_command("agenda"));
-    assert!(!is_agenda_command("/agenda tomorrow"));
+    assert_eq!(
+        test_parse_help_command("/help"),
+        Some(OutputFormat::Dashboard)
+    );
+    assert_eq!(
+        test_parse_help_command("/help json"),
+        Some(OutputFormat::Json)
+    );
+    assert!(test_is_agenda_command("/agenda"));
+    assert!(test_is_agenda_command("agenda"));
+    assert!(!test_is_agenda_command("/agenda tomorrow"));
 
-    let Some(job) = parse_job_status_command("/job abc123 json") else {
+    let Some(job) = test_parse_job_status_command("/job abc123 json") else {
         panic!("expected /job json parse");
     };
     assert_eq!(job.job_id, "abc123");
@@ -27,17 +33,17 @@ fn test_support_parses_help_and_job_status_output_formats() {
 #[test]
 fn test_support_maps_resume_feedback_and_partition_modes() {
     assert_eq!(
-        parse_resume_context_command("/resume drop"),
+        test_parse_resume_context_command("/resume drop"),
         Some(ResumeContextCommand::Drop)
     );
 
-    let Some(feedback) = parse_session_feedback_command("/feedback up") else {
+    let Some(feedback) = test_parse_session_feedback_command("/feedback up") else {
         panic!("expected /feedback up parse");
     };
     assert_eq!(feedback.direction, SessionFeedbackDirection::Up);
     assert_eq!(feedback.format, OutputFormat::Dashboard);
 
-    let Some(partition) = parse_session_partition_command("/session partition chat_user json")
+    let Some(partition) = test_parse_session_partition_command("/session partition chat_user json")
     else {
         panic!("expected /session partition chat_user json parse");
     };
@@ -47,19 +53,20 @@ fn test_support_maps_resume_feedback_and_partition_modes() {
         SessionPartitionMode::ChatThreadUser.as_str(),
         "chat_thread_user"
     );
-    let Some(scope_alias) = parse_session_partition_command("/session scope on") else {
+    let Some(scope_alias) = test_parse_session_partition_command("/session scope on") else {
         panic!("expected /session scope on parse");
     };
     assert_eq!(scope_alias.mode, Some(SessionPartitionMode::Chat));
     assert_eq!(scope_alias.format, OutputFormat::Dashboard);
 
-    let Some(injection) = parse_session_injection_command("/session inject status json") else {
+    let Some(injection) = test_parse_session_injection_command("/session inject status json")
+    else {
         panic!("expected /session inject status json parse");
     };
     assert_eq!(injection.action, SessionInjectionAction::Status);
     assert_eq!(injection.format, OutputFormat::Json);
 
-    let Some(admin) = parse_session_admin_command("/session admin add 1001,1002") else {
+    let Some(admin) = test_parse_session_admin_command("/session admin add 1001,1002") else {
         panic!("expected admin parse");
     };
     assert_eq!(

@@ -1,5 +1,7 @@
+//! Managed runtime parsing branch for commands, formats, and matching.
+
 mod commands;
-mod helpers;
+mod matching;
 mod normalize;
 mod types;
 

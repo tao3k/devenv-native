@@ -78,12 +78,12 @@ xiuxian-zhenfa = { path = "../xiuxian-zhenfa", optional = true }
 xiuxian-logging = { path = "../xiuxian-logging", optional = true }
 xiuxian-llm = { path = "../xiuxian-llm", optional = true }
 xiuxian-window = { path = "../xiuxian-window", optional = true }
-xiuxian-testing = { path = "../xiuxian-testing" }
 xiuxian-config-core = { path = "../xiuxian-config-core" }
 
 [dev-dependencies]
 insta = { workspace = true }
 reqwest = { workspace = true }
+rust-lang-project-harness = { workspace = true }
 tower = { workspace = true }
 
 [lints]

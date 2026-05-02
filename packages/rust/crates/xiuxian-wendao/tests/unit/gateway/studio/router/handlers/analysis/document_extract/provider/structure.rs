@@ -1,5 +1,10 @@
 #[cfg(feature = "document-extract-pdf-source-range")]
-use super::*;
+use super::{
+    HybridDocumentResourceBatch, assert_close, build_document_structure_batch, fs,
+    hybrid_document_structure_blocks, read_arrow_file, sample_ocr_input, sample_ocr_result,
+    structure_float64_column, structure_string_column, test_resource_batch,
+    validate_hybrid_precision_gate, write_hybrid_document_resource_artifacts,
+};
 
 #[cfg(feature = "document-extract-pdf-source-range")]
 #[test]

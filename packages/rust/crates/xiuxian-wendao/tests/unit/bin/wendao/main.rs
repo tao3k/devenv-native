@@ -1,5 +1,5 @@
 use super::command_requires_index;
-use crate::types::{Cli, Command};
+use crate::bin_support::wendao::types::{Cli, Command};
 use clap::Parser;
 
 #[test]

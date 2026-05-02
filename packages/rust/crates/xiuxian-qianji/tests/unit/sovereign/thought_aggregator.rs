@@ -1,5 +1,6 @@
-use super::*;
+use super::{ThoughtAggregator, ZhenfaStreamingEvent};
 use serde_json::json;
+use std::sync::Arc;
 
 #[test]
 fn thought_aggregator_creates_trace_with_intent() {

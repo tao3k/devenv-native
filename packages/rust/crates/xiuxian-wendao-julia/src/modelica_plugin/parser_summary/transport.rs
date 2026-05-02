@@ -1,3 +1,5 @@
+//! Transport client cache and route decoding for Modelica parser summaries.
+
 use std::collections::HashMap;
 #[cfg(test)]
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -24,12 +26,14 @@ use super::contract::{
     validate_modelica_parser_summary_request_batches,
     validate_modelica_parser_summary_response_batches,
 };
+#[cfg(test)]
+pub(crate) use super::route::MODELICA_FILE_SUMMARY_ROUTE;
+pub(crate) use super::route::ParserSummaryRouteKind;
 use crate::arrow_metadata::attach_record_batch_metadata;
 
 const MODELICA_PLUGIN_ID: &str = "modelica";
 const MODELICA_PARSER_SUMMARY_CAPABILITY_ID: &str = "parser-summary";
 const PARSER_SUMMARY_TRANSPORT_KEY: &str = "parser_summary_transport";
-const FILE_SUMMARY_TRANSPORT_KEY: &str = "file_summary";
 const DEFAULT_MODELICA_HEALTH_ROUTE: &str = "/healthz";
 const DEFAULT_WENDAOSEARCH_PARSER_SUMMARY_BASE_URL_FALLBACK: &str = "http://127.0.0.1:41081";
 const PARSER_SUMMARY_BASE_URL_ENV: &str = "WENDAO_PARSER_SUMMARY_BASE_URL";
@@ -44,8 +48,6 @@ fn resolve_parser_summary_base_url() -> String {
 }
 
 pub(crate) const MODELICA_PARSER_SUMMARY_SCHEMA_VERSION: &str = "v3";
-pub(crate) const MODELICA_FILE_SUMMARY_ROUTE: &str = "/wendao/code-parser/modelica/file-summary";
-pub(crate) const MODELICA_AST_QUERY_ROUTE: &str = "/wendao/code-parser/modelica/ast-query";
 
 static LINKED_MODELICA_PARSER_SUMMARY_BASE_URL: OnceLock<String> = OnceLock::new();
 static MODELICA_PARSER_SUMMARY_CLIENT_CACHE: OnceLock<
@@ -53,12 +55,6 @@ static MODELICA_PARSER_SUMMARY_CLIENT_CACHE: OnceLock<
 > = OnceLock::new();
 #[cfg(test)]
 static NEXT_MODELICA_PARSER_SUMMARY_CLIENT_SLOT: AtomicUsize = AtomicUsize::new(1);
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum ParserSummaryRouteKind {
-    FileSummary,
-    AstQuery,
-}
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 struct ParserSummaryTransportCacheKey {
@@ -74,22 +70,6 @@ struct CachedParserSummaryFlightClient {
     #[cfg(test)]
     slot_id: usize,
     client: NegotiatedFlightTransportClient,
-}
-
-impl ParserSummaryRouteKind {
-    pub(crate) fn option_key(self) -> &'static str {
-        match self {
-            Self::FileSummary => FILE_SUMMARY_TRANSPORT_KEY,
-            Self::AstQuery => "ast_query",
-        }
-    }
-
-    pub(crate) fn route(self) -> &'static str {
-        match self {
-            Self::FileSummary => MODELICA_FILE_SUMMARY_ROUTE,
-            Self::AstQuery => MODELICA_AST_QUERY_ROUTE,
-        }
-    }
 }
 
 /// Register a process-local Modelica parser-summary base URL for linked test

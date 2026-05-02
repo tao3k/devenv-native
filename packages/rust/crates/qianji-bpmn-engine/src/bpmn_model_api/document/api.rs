@@ -1,3 +1,5 @@
+//! Public bpmn model api document contracts for BPMN/DMN engine integration.
+
 use super::collaboration::BpmnCollaborationSnapshot;
 use super::process::BpmnProcessSnapshot;
 use super::root::BpmnRootSnapshot;

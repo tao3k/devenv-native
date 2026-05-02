@@ -38,6 +38,9 @@ Current implementation note:
   instead of operator-specific absolute paths
 - the internal `gix` backend now lives under `src/backend/gix/` as a
   responsibility-sliced feature folder instead of one monolithic backend file
+- project-policy gates now run through `rust-lang-project-harness` without
+  disabled rules; public and branch modules carry intent docs for low-noise
+  agent traversal
 - remote clone/fetch/probe paths now also share
   `src/backend/gix/interrupt.rs`, which drives a bounded interrupt watchdog for
   managed remote operations and returns deterministic timeout errors through

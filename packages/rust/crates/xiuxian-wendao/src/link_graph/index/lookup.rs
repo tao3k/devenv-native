@@ -187,8 +187,8 @@ impl LinkGraphIndex {
     ///
     /// The registry index provides fast access to nodes with explicit `:ID:` attributes.
     #[must_use]
-    pub fn build_registry_index(&self) -> super::super::addressing::RegistryIndex {
-        super::super::addressing::RegistryIndex::build_from_trees(&self.trees_by_doc)
+    pub fn build_registry_index(&self) -> crate::link_graph::addressing::RegistryIndex {
+        crate::link_graph::addressing::RegistryIndex::build_from_trees(&self.trees_by_doc)
     }
 
     /// Build a `RegistryIndex` with collision detection.
@@ -198,8 +198,8 @@ impl LinkGraphIndex {
     #[must_use]
     pub fn build_registry_index_with_collisions(
         &self,
-    ) -> super::super::addressing::RegistryBuildResult {
-        super::super::addressing::RegistryIndex::build_from_trees_with_collisions(
+    ) -> crate::link_graph::addressing::RegistryBuildResult {
+        crate::link_graph::addressing::RegistryIndex::build_from_trees_with_collisions(
             &self.trees_by_doc,
         )
     }
@@ -208,8 +208,8 @@ impl LinkGraphIndex {
     ///
     /// The topology index enables structural path lookup and fuzzy matching.
     #[must_use]
-    pub fn build_topology_index(&self) -> super::super::addressing::TopologyIndex {
-        super::super::addressing::TopologyIndex::build_from_trees(&self.trees_by_doc)
+    pub fn build_topology_index(&self) -> crate::link_graph::addressing::TopologyIndex {
+        crate::link_graph::addressing::TopologyIndex::build_from_trees(&self.trees_by_doc)
     }
 }
 

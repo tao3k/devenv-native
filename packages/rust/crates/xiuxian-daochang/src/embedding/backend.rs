@@ -1,5 +1,5 @@
 use crate::config::load_runtime_settings;
-use xiuxian_llm::embedding::backend::{EmbeddingBackendKind, parse_embedding_backend_kind};
+use xiuxian_llm::embedding::{EmbeddingBackendKind, parse_embedding_backend_kind};
 use xiuxian_macros::env_non_empty;
 
 const DEFAULT_EMBED_TIMEOUT_SECS: u64 = 15;

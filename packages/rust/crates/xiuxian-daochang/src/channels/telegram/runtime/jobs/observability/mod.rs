@@ -1,3 +1,5 @@
+//! Telegram job observability branch for JSON and text summaries.
+
 pub(crate) mod json_summary;
 pub(crate) mod preview;
 mod render;

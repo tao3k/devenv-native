@@ -39,5 +39,3 @@ async fn test_smart_commit_workflow_mechanisms() -> Result<(), Box<dyn std::erro
     // But since `run` without session_id starts fresh, let's use the checkpointer.
     Ok(())
 }
-
-xiuxian_testing::crate_test_policy_harness!();

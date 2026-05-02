@@ -1,5 +1,5 @@
 ---
-source: packages/rust/crates/xiuxian-testing/src/scenario.rs
+source: packages/rust/crates/xiuxian-qianji/tests/support/scenario.rs
 description: "Scenario cognitive_drift_early_halt [llm_analyzer]: Adversarial Cognitive Drift Drill"
 expression: result
 info:

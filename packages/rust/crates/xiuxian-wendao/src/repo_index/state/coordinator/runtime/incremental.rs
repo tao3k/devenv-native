@@ -625,19 +625,19 @@ fn modified_julia_change_requires_rebuild(
     };
     if !julia_parser_summary_allows_safe_incremental_file_for_repository(
         repository,
-        previous_path,
+        previous_path.into(),
         &previous_contents,
     )? {
         return Ok(None);
     }
     let previous_fingerprint = julia_parser_summary_file_semantic_fingerprint_for_repository(
         repository,
-        previous_path,
+        previous_path.into(),
         &previous_contents,
     )?;
     let current_fingerprint = julia_parser_summary_file_semantic_fingerprint_for_repository(
         repository,
-        change.path.as_str(),
+        change.path.as_str().into(),
         current_contents,
     )?;
     Ok(Some(previous_fingerprint != current_fingerprint))
@@ -661,7 +661,7 @@ fn collect_safe_incremental_julia_files(
         let contents = read_checked_out_source_text(repository, &file_path)?;
         if !julia_parser_summary_allows_safe_incremental_file_for_repository(
             repository,
-            change.path.as_str(),
+            change.path.as_str().into(),
             &contents,
         )? {
             return Ok(None);
@@ -730,7 +730,7 @@ fn detect_modelica_incremental_shape(
     if modelica_parser_summary_allows_safe_incremental_file_for_repository(
         repository,
         checkout_root,
-        path,
+        path.into(),
         contents,
     )? {
         return Ok(Some(ModelicaIncrementalShape::Leaf));
@@ -739,7 +739,7 @@ fn detect_modelica_incremental_shape(
         && modelica_parser_summary_allows_safe_root_package_incremental_file_for_repository(
             repository,
             checkout_root,
-            path,
+            path.into(),
             contents,
         )?
     {
@@ -749,7 +749,7 @@ fn detect_modelica_incremental_shape(
         && modelica_parser_summary_allows_safe_package_incremental_file_for_repository(
             repository,
             checkout_root,
-            path,
+            path.into(),
             contents,
         )?
     {
@@ -770,12 +770,12 @@ fn validate_modelica_incremental_shapes(
             modelica_parser_summary_root_package_name_matches_repository_context(
                 repository,
                 checkout_root,
-                current.path,
+                current.path.into(),
                 current.contents,
             )? && modelica_parser_summary_root_package_name_matches_repository_context(
                 repository,
                 checkout_root,
-                previous.path,
+                previous.path.into(),
                 previous.contents,
             )?,
         ),
@@ -796,14 +796,16 @@ fn modelica_incremental_fingerprint_for_shape(
     match shape {
         ModelicaIncrementalShape::Leaf => {
             modelica_parser_summary_file_semantic_fingerprint_for_repository(
-                repository, path, contents,
+                repository,
+                path.into(),
+                contents,
             )
         }
         ModelicaIncrementalShape::RootPackage => {
             modelica_root_package_incremental_semantic_fingerprint_for_repository(
                 repository,
                 checkout_root,
-                path,
+                path.into(),
                 contents,
             )?
             .ok_or_else(|| RepoIntelligenceError::AnalysisFailed {
@@ -817,7 +819,7 @@ fn modelica_incremental_fingerprint_for_shape(
             modelica_package_incremental_semantic_fingerprint_for_repository(
                 repository,
                 checkout_root,
-                path,
+                path.into(),
                 contents,
             )?
             .ok_or_else(|| RepoIntelligenceError::AnalysisFailed {

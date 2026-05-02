@@ -1,4 +1,4 @@
-use super::*;
+use crate::{FuzzySearchOptions, UnifiedSymbol, UnifiedSymbolIndex};
 
 #[test]
 fn test_unified_symbol_creation() {
@@ -62,11 +62,8 @@ fn test_unified_search_fuzzy_options() {
     let mut index = UnifiedSymbolIndex::new();
     index.add_external_symbol("spawn_local", "fn", "lib.rs:1", "tokio");
 
-    let results = index.search_unified_with_options(
-        "spwan_local",
-        10,
-        crate::FuzzySearchOptions::symbol_search(),
-    );
+    let results =
+        index.search_unified_with_options("spwan_local", 10, FuzzySearchOptions::symbol_search());
     assert_eq!(results.len(), 1);
     assert_eq!(results[0].name, "spawn_local");
 }

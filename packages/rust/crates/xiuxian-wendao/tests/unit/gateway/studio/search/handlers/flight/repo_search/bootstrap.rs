@@ -1,4 +1,7 @@
-use super::*;
+use super::{
+    HashSet, PathBuf, SearchMaintenancePolicy, SearchManifestKeyspace, SearchPlaneService,
+    bootstrap_sample_repo_search_content, create_dir_all_or_panic, tempdir_or_panic,
+};
 
 #[tokio::test]
 async fn bootstrap_sample_repo_search_content_publishes_queryable_rows() {

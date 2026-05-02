@@ -1,4 +1,7 @@
-use super::*;
+use super::{
+    AffectedDoc, DriftConfidence, ObservationBus, ObservationRef, ObservationSignal,
+    SemanticDriftSignal, mpsc, signals_to_status_batch,
+};
 
 #[test]
 fn test_observation_signal_stale_from_drift() {

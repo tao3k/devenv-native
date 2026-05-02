@@ -1,3 +1,5 @@
+//! Error types emitted by config path resolution, loading, and merging.
+
 use thiserror::Error;
 
 /// Errors produced while resolving cascading TOML configuration.

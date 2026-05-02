@@ -1,3 +1,5 @@
+//! Arrow IPC conversion between engine-native and Lance-native record batches.
+
 use std::io::Cursor;
 
 use arrow::record_batch::RecordBatch as EngineRecordBatch;

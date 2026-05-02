@@ -1,3 +1,5 @@
+//! JSON filter conversion for Lance SQL-like WHERE clauses.
+
 /// Convert JSON filter expression to `LanceDB` WHERE clause.
 #[must_use]
 pub fn json_to_lance_where(expr: &serde_json::Value) -> String {

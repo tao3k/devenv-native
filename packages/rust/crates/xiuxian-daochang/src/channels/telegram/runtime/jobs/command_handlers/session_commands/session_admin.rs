@@ -2,15 +2,15 @@ use std::sync::Arc;
 
 use crate::channels::traits::{Channel, ChannelMessage, RecipientCommandAdminUsersMutation};
 
-use super::super::super::observability::send_with_observability;
-use super::super::super::replies::{
-    format_command_error_json, format_control_command_admin_required, format_session_admin_status,
-    format_session_admin_status_json,
-};
 use super::{
     EVENT_TELEGRAM_COMMAND_CONTROL_ADMIN_REQUIRED_REPLIED,
     EVENT_TELEGRAM_COMMAND_SESSION_ADMIN_JSON_REPLIED,
     EVENT_TELEGRAM_COMMAND_SESSION_ADMIN_REPLIED, update_session_admin_users,
+};
+use crate::channels::telegram::runtime::jobs::observability::send_with_observability;
+use crate::channels::telegram::runtime::jobs::replies::{
+    format_command_error_json, format_control_command_admin_required, format_session_admin_status,
+    format_session_admin_status_json,
 };
 
 use crate::channels::telegram::commands::{SessionAdminAction, parse_session_admin_command};

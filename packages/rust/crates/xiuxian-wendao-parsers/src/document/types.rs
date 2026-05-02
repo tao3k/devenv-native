@@ -1,3 +1,5 @@
+//! Document DTOs shared by Markdown and Org parser surfaces.
+
 use serde::{Deserialize, Serialize};
 use serde_yaml::Value;
 use std::collections::BTreeMap;

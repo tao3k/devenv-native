@@ -1,3 +1,5 @@
+//! runtime lifecycle repeat branch wiring for focused BPMN/DMN owner leaves.
+
 mod conditions;
 mod data;
 

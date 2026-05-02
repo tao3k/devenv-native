@@ -94,5 +94,5 @@ fn max_parallel_iteration_token_id(parallel_states: &[ParallelMultiInstanceState
 }
 
 #[cfg(test)]
-#[path = "state_token_cursor_tests.rs"]
+#[path = "../../../tests/unit/runtime/lifecycle/state_token_cursor.rs"]
 mod tests;

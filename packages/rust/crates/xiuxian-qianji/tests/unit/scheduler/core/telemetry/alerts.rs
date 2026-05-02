@@ -1,6 +1,6 @@
-use super::*;
 use crate::engine::QianjiEngine;
-use crate::telemetry::ConsensusStatus;
+use crate::scheduler::core::QianjiScheduler;
+use crate::telemetry::{ConsensusStatus, SwarmEvent, unix_millis_now};
 
 impl QianjiScheduler {
     pub(in crate::scheduler::core) fn emit_consensus_spike(

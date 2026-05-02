@@ -4,16 +4,18 @@ use crate::agent::{Agent, SessionRecallFeedbackDirection};
 use crate::channels::managed_commands::SLASH_SCOPE_SESSION_FEEDBACK;
 use crate::channels::traits::{Channel, ChannelMessage};
 
-use super::super::super::super::parsing::{FeedbackDirection, SessionFeedbackCommand};
-use super::super::super::super::replies::{
-    format_session_feedback, format_session_feedback_json, format_session_feedback_unavailable_json,
-};
-use super::super::super::auth::ensure_slash_command_authorized;
-use super::super::super::events::{
+use crate::channels::discord::runtime::managed::handlers::auth::ensure_slash_command_authorized;
+use crate::channels::discord::runtime::managed::handlers::events::{
     EVENT_DISCORD_COMMAND_SESSION_FEEDBACK_JSON_REPLIED,
     EVENT_DISCORD_COMMAND_SESSION_FEEDBACK_REPLIED,
 };
-use super::super::super::send::send_response;
+use crate::channels::discord::runtime::managed::handlers::send::send_response;
+use crate::channels::discord::runtime::managed::parsing::{
+    FeedbackDirection, SessionFeedbackCommand,
+};
+use crate::channels::discord::runtime::managed::replies::{
+    format_session_feedback, format_session_feedback_json, format_session_feedback_unavailable_json,
+};
 
 pub(in super::super) async fn handle_session_feedback(
     agent: &Arc<Agent>,

@@ -33,7 +33,8 @@
 //! let content = read_text_safe_async("file.txt", 1024 * 1024).await?;
 //! ```
 
-xiuxian_testing::crate_test_policy_source_harness!("../tests/unit/lib_policy.rs");
+#[cfg(test)]
+rust_lang_project_harness::rust_project_harness_cargo_test_gate!();
 
 // ============================================================================
 // Module Declarations (ODF-REP: Atomic Structure)

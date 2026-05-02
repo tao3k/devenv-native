@@ -1,9 +1,9 @@
 //! HMAS command execution.
 
-use crate::helpers::emit;
-use crate::types::{Cli, Command, HmasCommand};
+use crate::bin_support::wendao::helpers::emit;
+use crate::bin_support::wendao::types::{Cli, Command, HmasCommand};
+use crate::validate_blackboard_file;
 use anyhow::Result;
-use xiuxian_wendao::validate_blackboard_file;
 
 pub(super) fn handle(cli: &Cli) -> Result<()> {
     let Command::Hmas { command } = &cli.command else {

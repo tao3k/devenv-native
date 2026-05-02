@@ -87,6 +87,7 @@ pub fn build_discord_foreground_runtime(
     }
 }
 
+/// Processes one Discord foreground message.
 pub async fn process_discord_message(
     agent: Arc<Agent>,
     channel: Arc<dyn Channel>,
@@ -98,6 +99,7 @@ pub async fn process_discord_message(
         .await;
 }
 
+/// Processes one Discord foreground message with interrupt coordination.
 pub async fn process_discord_message_with_interrupt(
     agent: Arc<Agent>,
     channel: Arc<dyn Channel>,
@@ -119,6 +121,7 @@ pub async fn process_discord_message_with_interrupt(
     .await;
 }
 
+/// Pushes a background job completion into the Discord runtime surface.
 pub async fn push_discord_background_completion(
     channel: &Arc<dyn Channel>,
     agent: &Arc<Agent>,
@@ -128,6 +131,7 @@ pub async fn push_discord_background_completion(
 }
 
 #[must_use]
+/// Resolves the Discord runtime snapshot interval from a lookup function.
 pub fn resolve_discord_snapshot_interval_secs<F>(lookup: F) -> Option<u64>
 where
     F: Fn(&str) -> Option<String>,

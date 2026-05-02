@@ -13,8 +13,8 @@ use crate::gateway::studio::router::handlers::repo::projected_service::collectio
 };
 use crate::gateway::studio::router::{GatewayState, StudioApiError};
 
-use super::super::parse::repo::required_registered_repo_id;
-use super::super::query::pages::RepoApiQuery;
+use crate::gateway::studio::router::handlers::repo::parse::repo::required_registered_repo_id;
+use crate::gateway::studio::router::handlers::repo::query::pages::RepoApiQuery;
 
 /// Projected pages endpoint.
 ///

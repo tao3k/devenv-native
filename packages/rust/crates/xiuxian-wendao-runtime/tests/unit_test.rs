@@ -1,6 +1,6 @@
 //! Root unit-test harness for `xiuxian-wendao-runtime`.
 
-xiuxian_testing::crate_test_policy_harness!();
+rust_lang_project_harness::rust_project_harness_gate!();
 
 #[path = "unit/artifacts_openapi.rs"]
 mod artifacts_openapi;

@@ -1,4 +1,7 @@
-use super::super::*;
+use super::{
+    DirCliCommand, ShowCliTarget, TempDir, assert_common_show_shape, create_workdir_fixture, fs,
+    must_ok, run_dir_command,
+};
 
 #[test]
 fn run_show_workdir_command_renders_surface_summary() {

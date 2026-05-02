@@ -1,5 +1,5 @@
 ---
-source: packages/rust/crates/xiuxian-testing/src/scenario.rs
+source: packages/rust/crates/xiuxian-wendao/tests/support/scenario.rs
 description: "Scenario 061_tree_scope_tree_hops_limit_section_expansion [tree_scope_filters]: tree hops limit section expansion"
 expression: result
 info:

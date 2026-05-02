@@ -1,3 +1,5 @@
+//! Public dmn model decision expression contracts for BPMN/DMN engine integration.
+
 use super::Arc;
 
 /// One bounded direct DMN literal expression.

@@ -1,3 +1,5 @@
+//! VFS route contracts for Wendao Flight metadata.
+
 mod content;
 mod path;
 mod resolve;

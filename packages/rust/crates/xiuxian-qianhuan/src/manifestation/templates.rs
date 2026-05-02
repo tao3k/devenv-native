@@ -1,3 +1,5 @@
+//! Template registry and rendering helpers for Qianhuan manifestation.
+
 use crate::xml::SYSTEM_PROMPT_INJECTION_TAG;
 use anyhow::{Result, anyhow};
 use std::collections::BTreeMap;

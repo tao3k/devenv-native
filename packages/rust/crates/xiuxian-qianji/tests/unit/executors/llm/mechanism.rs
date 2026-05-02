@@ -1,8 +1,12 @@
-use super::*;
+use crate::contracts::{FlowInstruction, QianjiMechanism};
+use crate::executors::LlmAnalyzer;
 use async_trait::async_trait;
 use futures::stream;
+use serde_json::json;
+use std::sync::Arc;
 use xiuxian_llm::llm::client::ChatStream;
-use xiuxian_llm::llm::{ChatRequest, LlmError};
+use xiuxian_llm::llm::{ChatRequest, LlmClient, LlmError};
+use xiuxian_zhenfa::StreamProvider;
 
 /// Mock LLM client that returns predefined responses.
 struct MockLlmClient {

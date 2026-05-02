@@ -1,3 +1,5 @@
+//! HTTP router surface for Qianhuan Zhenfa endpoints.
+
 use std::sync::Arc;
 
 use axum::{

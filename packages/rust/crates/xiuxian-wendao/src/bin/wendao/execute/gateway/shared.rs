@@ -1,6 +1,6 @@
 //! Shared gateway command state and constants.
 
-use xiuxian_wendao::gateway::studio::GatewayState;
+use crate::gateway::studio::GatewayState;
 
 /// Shared state for the gateway server.
 pub(crate) type AppState = GatewayState;

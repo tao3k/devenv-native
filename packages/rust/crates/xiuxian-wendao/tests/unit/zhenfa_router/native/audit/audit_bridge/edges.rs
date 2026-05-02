@@ -1,4 +1,7 @@
-use super::*;
+use super::{
+    BatchFix, BatchFixMode, ByteRange, FixResult, compute_hash, observe_line_range,
+    test_file_content,
+};
 
 #[test]
 fn test_surgical_fix_empty_content() {

@@ -1,4 +1,11 @@
-use super::*;
+use super::{
+    Arc, PathBuf, RepoSearchFlightRouteProvider, RepoSearchRequestFilters, SearchMaintenancePolicy,
+    SearchManifestKeyspace, SearchPlaneService, StudioRepoSearchFlightRouteProvider, StudioState,
+    SyncMode, UiConfig, UiRepoProjectConfig, commit_all_or_panic, configured_repositories,
+    create_dir_all_or_panic, init_git_repo_or_panic, repo_document, repo_search_batch_or_panic,
+    repo_search_request, resolve_registered_repository_source, string_column, tempdir_or_panic,
+    write_file_or_panic,
+};
 
 #[tokio::test]
 async fn studio_repo_search_flight_provider_reads_repo_content_hits() {

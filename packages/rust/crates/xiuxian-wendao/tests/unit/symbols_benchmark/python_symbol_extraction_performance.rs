@@ -1,11 +1,17 @@
-use super::*;
+use std::io::Write;
+use std::time::{Duration, Instant};
+
+use tempfile::NamedTempFile;
+use xiuxian_wendao::dependency_indexer::extract_symbols;
+
+use super::generate_python_test_file;
 
 #[test]
 fn test_python_symbol_extraction_performance() -> Result<(), Box<dyn std::error::Error>> {
     const FILE_COUNT: usize = 50;
     const LINES_PER_FILE: usize = 500;
 
-    let start = std::time::Instant::now();
+    let start = Instant::now();
 
     // Create and process multiple test files
     let mut temp_files = Vec::new();
@@ -29,7 +35,7 @@ fn test_python_symbol_extraction_performance() -> Result<(), Box<dyn std::error:
     assert!(!all_symbols.is_empty(), "Should extract symbols");
 
     // Performance assertion
-    let max_duration = std::time::Duration::from_secs(2);
+    let max_duration = Duration::from_secs(2);
     assert!(
         elapsed < max_duration,
         "Python symbol extraction took {:.2}s, expected < 2s",

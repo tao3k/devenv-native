@@ -1,4 +1,4 @@
-use super::*;
+use super::{DirCliCommand, ShowCliTarget, must_ok, run_dir_command};
 
 #[test]
 fn run_show_contract_command_renders_wendao_docs_contract_snapshot() {

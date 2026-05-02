@@ -1,9 +1,7 @@
 use std::io::Write as IoWrite;
 use std::path::PathBuf;
 
-use xiuxian_wendao::dependency_indexer::{
-    ExternalSymbol, SymbolIndex, SymbolKind, extract_symbols,
-};
+use crate::dependency_indexer::{ExternalSymbol, SymbolIndex, SymbolKind, extract_symbols};
 
 type TestResult = Result<(), Box<dyn std::error::Error>>;
 

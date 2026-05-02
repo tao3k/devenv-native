@@ -1,3 +1,5 @@
+//! LLM message and tool-call data types.
+
 use serde::{Deserialize, Serialize};
 
 use crate::session::ToolCallOut;
@@ -36,11 +38,13 @@ pub struct ChatCompletionResponse {
 }
 
 #[derive(Debug, Deserialize)]
+/// One chat completion choice.
 pub struct Choice {
     pub message: AssistantMessage,
 }
 
 #[derive(Debug, Deserialize)]
+/// Assistant message returned by the LLM provider.
 pub struct AssistantMessage {
     #[serde(default)]
     pub content: Option<String>,

@@ -1,3 +1,5 @@
+//! Telegram API text, caption, and rate-limit constants.
+
 /// Telegram's maximum message length for text messages.
 #[doc(hidden)]
 pub const TELEGRAM_MAX_MESSAGE_LENGTH: usize = 4096;

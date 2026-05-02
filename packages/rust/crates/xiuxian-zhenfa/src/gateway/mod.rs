@@ -1,3 +1,5 @@
+//! HTTP gateway assembly, handlers, and webhook notification support.
+
 mod builder;
 mod handlers;
 mod notification;

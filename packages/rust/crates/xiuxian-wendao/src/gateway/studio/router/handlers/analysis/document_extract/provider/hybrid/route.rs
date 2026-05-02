@@ -9,7 +9,6 @@ use xiuxian_wendao_runtime::transport::{
     DocumentExtractFlightRouteResponse,
 };
 
-use super::super::{DEFAULT_DOCUMENT_EXTRACT_ENDPOINT, StudioDocumentExtractFlightRouteProvider};
 use super::precision_gate::{
     validate_hybrid_page_coverage, validate_ocr_results_match_inputs,
     validate_successful_ocr_results,
@@ -24,6 +23,9 @@ use crate::gateway::studio::router::handlers::analysis::document_extract::arrow_
 };
 use crate::gateway::studio::router::handlers::analysis::document_extract::pdf_ocr_scheduler::{
     PdfOcrWorkerScheduler, pdf_ocr_endpoint_urls,
+};
+use crate::gateway::studio::router::handlers::analysis::document_extract::provider::{
+    DEFAULT_DOCUMENT_EXTRACT_ENDPOINT, StudioDocumentExtractFlightRouteProvider,
 };
 
 impl StudioDocumentExtractFlightRouteProvider {

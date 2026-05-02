@@ -1,4 +1,4 @@
-use super::*;
+use crate::lint::{LintDomain, bpmn_fixture_source, lint_bpmn_source};
 
 #[test]
 fn bpmn_linter_accepts_process_data_object_execution_surface() {

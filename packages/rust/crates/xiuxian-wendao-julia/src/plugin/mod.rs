@@ -1,3 +1,5 @@
+//! Julia repository intelligence plugin contracts and transport owners.
+
 mod capability_manifest;
 mod discovery;
 mod entry;
@@ -6,6 +8,7 @@ pub(crate) mod graph_structural_exchange;
 mod graph_structural_projection;
 mod graph_structural_transport;
 mod linking;
+/// Parser-summary contract and transport helpers for Julia source analysis.
 pub mod parser_summary;
 mod project;
 mod rerank_exchange;
@@ -140,6 +143,7 @@ pub use graph_structural_transport::{
     process_graph_structural_flight_batches_for_repository,
     validate_graph_structural_request_batches, validate_graph_structural_response_batches,
 };
+pub use parser_summary::JuliaSourceId;
 pub use parser_summary::julia_parser_summary_allows_safe_incremental_file_for_repository;
 pub use parser_summary::julia_parser_summary_file_semantic_fingerprint_for_repository;
 pub use parser_summary::set_linked_julia_parser_summary_base_url_for_tests;

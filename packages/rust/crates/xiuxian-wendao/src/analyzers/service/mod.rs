@@ -26,17 +26,14 @@ pub use cached::analyze_registered_repository_cached_with_registry;
 pub(crate) use cached::{
     CachedRepositoryAnalysis, analyze_registered_repository_cached_bundle_with_registry,
 };
-#[cfg(any(feature = "search-runtime", feature = "studio"))]
-pub(crate) use helpers::{
-    backlinks_for, documents_backlink_lookup, example_match_score, example_relation_lookup,
-    hierarchy_segments_from_path, infer_ecosystem, module_match_score, projection_page_lookup,
-    projection_pages_for, record_hierarchical_uri, related_modules_for_example,
-    related_symbols_for_example, symbol_match_score,
-};
 #[cfg(test)]
+pub(crate) use helpers::relation_kind_label;
 pub(crate) use helpers::{
-    docs_in_scope, documented_symbol_ids, relation_kind_label, repo_hierarchical_uri,
-    resolve_module_scope, symbols_in_scope,
+    backlinks_for, docs_in_scope, documented_symbol_ids, documents_backlink_lookup,
+    example_match_score, example_relation_lookup, hierarchy_segments_from_path, infer_ecosystem,
+    module_match_score, projection_page_lookup, projection_pages_for, record_hierarchical_uri,
+    related_modules_for_example, related_symbols_for_example, repo_hierarchical_uri,
+    resolve_module_scope, symbol_match_score, symbols_in_scope,
 };
 pub(crate) use helpers::{import_match_score, normalized_rank_score};
 #[cfg(all(feature = "zhenfa-router", feature = "julia"))]

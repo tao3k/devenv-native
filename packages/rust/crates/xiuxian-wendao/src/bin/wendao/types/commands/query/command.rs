@@ -9,6 +9,6 @@ pub(crate) enum QueryCommand {
 }
 
 #[cfg(test)]
-pub(crate) fn query(command: QueryCommand) -> super::super::Command {
-    super::super::Command::Query { command }
+pub(crate) fn query(command: QueryCommand) -> crate::bin_support::wendao::types::Command {
+    crate::bin_support::wendao::types::Command::Query { command }
 }

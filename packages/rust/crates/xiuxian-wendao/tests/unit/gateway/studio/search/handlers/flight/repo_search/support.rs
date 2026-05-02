@@ -1,4 +1,11 @@
-use super::*;
+use super::{
+    Arc, Command, FlightInfo, HashSet, LanceFloat64Array, LanceRecordBatch, LanceStringArray, Path,
+    PathBuf, RepoCodeDocument, RepoSearchFlightRequest, RepoSearchFlightRouteProvider,
+    SearchPlaneService, StudioRepoSearchFlightRouteProvider, StudioState,
+    WENDAO_ANALYSIS_LINE_HEADER, WENDAO_ANALYSIS_PATH_HEADER, WENDAO_ANALYSIS_REPO_HEADER,
+    WENDAO_SCHEMA_VERSION_HEADER, WENDAO_SEARCH_LIMIT_HEADER, WENDAO_SEARCH_QUERY_HEADER,
+    bootstrap_builtin_registry, commit_all,
+};
 
 #[derive(Default)]
 pub(super) struct RepoSearchRequestFilters {

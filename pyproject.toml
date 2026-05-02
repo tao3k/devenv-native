@@ -12,9 +12,8 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-  "python-lang-parser",
+  "python-lang-project-harness",
   "qianji-workflow-contracts",
-  "xiuxian-harness-python-lang-project",
   "wendao-core-lib",
   "wendao-arrow-interface",
   "xiuxian-wendao-analyzer",
@@ -49,9 +48,8 @@ source = "vcs"
 
 
 [tool.uv.sources]
-python-lang-parser = { workspace = true }
+python-lang-project-harness = { git = "https://github.com/tao3k/python-lang-project-harness", rev = "11bd8e60921541ecaf9afcc9502b7b0811d3d108" }
 qianji-workflow-contracts = { workspace = true }
-xiuxian-harness-python-lang-project = { workspace = true }
 wendao-core-lib = { workspace = true }
 wendao-arrow-interface = { workspace = true }
 xiuxian-wendao-analyzer = { workspace = true }
@@ -63,9 +61,7 @@ xiuxian-core = { workspace = true }
 members = [
   "packages/python/core",
   "packages/python/foundation",
-  "packages/python/python-lang-parser",
   "packages/python/qianji-workflow-contracts",
-  "packages/python/xiuxian-harness-python-lang-project",
   "packages/python/wendao-arrow-interface",
   "packages/python/wendao-core-lib",
   "packages/python/xiuxian-wendao-analyzer",
@@ -82,9 +78,7 @@ line-length = 100
 src = [
   "packages/python/core/src",
   "packages/python/foundation/src",
-  "packages/python/python-lang-parser/src",
   "packages/python/qianji-workflow-contracts/src",
-  "packages/python/xiuxian-harness-python-lang-project/src",
   "packages/python/wendao-arrow-interface/src",
   "packages/python/wendao-core-lib/src",
   "packages/python/xiuxian-wendao-analyzer/src",
@@ -110,10 +104,8 @@ keep-runtime-typing = true
 
 [tool.ruff.lint.isort]
 known-first-party = [
-  "python_lang_parser",
   "xiuxian_core",
   "xiuxian_foundation",
-  "xiuxian_harness_python_lang_project",
   "qianji_workflow_contracts",
   "wendao_arrow_interface",
   "wendao_core_lib",
@@ -136,9 +128,7 @@ explicit_package_bases = true
 mypy_path = [
   "packages/python/core/src",
   "packages/python/foundation/src",
-  "packages/python/python-lang-parser/src",
   "packages/python/qianji-workflow-contracts/src",
-  "packages/python/xiuxian-harness-python-lang-project/src",
   "packages/python/wendao-arrow-interface/src",
   "packages/python/wendao-core-lib/src",
   "packages/python/xiuxian-wendao-analyzer/src",
@@ -162,9 +152,7 @@ addopts = [
 testpaths = [
   "packages/python/core/tests",
   "packages/python/foundation/tests",
-  "packages/python/python-lang-parser/tests",
   "packages/python/qianji-workflow-contracts/tests",
-  "packages/python/xiuxian-harness-python-lang-project/tests",
   "packages/python/wendao-arrow-interface/tests",
   "packages/python/wendao-core-lib/tests",
   "packages/python/xiuxian-wendao-analyzer/tests",
@@ -201,10 +189,8 @@ markers = [
 # Coverage configuration for package sources
 [tool.coverage.run]
 source = [
-  "python_lang_parser",
   "xiuxian_core",
   "xiuxian_foundation",
-  "xiuxian_harness_python_lang_project",
   "qianji_workflow_contracts",
   "wendao_arrow_interface",
   "wendao_core_lib",

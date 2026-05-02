@@ -1,4 +1,4 @@
-use super::*;
+use super::{AtomicFixBatch, BatchFix, FixPreview, FixReport};
 use crate::zhenfa_router::native::audit::ByteRange;
 use std::io::Write;
 use std::path::Path;

@@ -1,3 +1,5 @@
+//! runtime lifecycle state token branch wiring for focused BPMN/DMN owner leaves.
+
 #[path = "state_token/active.rs"]
 mod active;
 #[path = "state_token/api.rs"]

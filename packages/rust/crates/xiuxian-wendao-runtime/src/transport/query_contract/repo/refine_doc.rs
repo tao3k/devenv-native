@@ -1,3 +1,5 @@
+//! Refine-doc route contract and metadata validation.
+
 use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64_STANDARD};
 
 /// Canonical refine-doc repository metadata header for Wendao Flight requests.

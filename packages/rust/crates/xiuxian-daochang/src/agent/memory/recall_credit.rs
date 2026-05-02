@@ -1,6 +1,6 @@
 use xiuxian_memory_engine::{Episode, EpisodeStore};
 
-use super::super::memory_recall_feedback::RecallOutcome;
+use crate::agent::memory_recall_feedback::RecallOutcome;
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct RecalledEpisodeCandidate {

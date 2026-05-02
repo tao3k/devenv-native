@@ -5,7 +5,7 @@ use xiuxian_wendao_core::repo_intelligence::{
     DocRecord, ExampleRecord, ModuleRecord, RelationKind, RelationRecord, SymbolRecord,
 };
 
-use super::discovery::{
+use super::pathing::{
     containing_module_name, modules_by_qualified_name, path_components, qualified_module_name,
 };
 use super::types::CollectedDoc;

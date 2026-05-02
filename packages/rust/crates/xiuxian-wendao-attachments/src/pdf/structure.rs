@@ -1,3 +1,5 @@
+//! Document structure Arrow sidecar schema, projection, and parity API.
+
 use std::sync::Arc;
 
 use arrow::array::{Array, ArrayRef, Float64Array, Int32Array, StringArray};
@@ -6,7 +8,9 @@ use arrow::record_batch::RecordBatch;
 
 mod parity;
 
+/// Stable Arrow filename for document structure sidecars.
 pub const DOCUMENT_STRUCTURE_ARROW_CACHE_NAME: &str = "_structure.arrow";
+/// Stable schema version for document structure sidecars.
 pub const DOCUMENT_STRUCTURE_SCHEMA_VERSION: &str = "xiuxian_wendao.document_structure.v1";
 
 pub use parity::{
@@ -14,6 +18,7 @@ pub use parity::{
     validate_document_structure_parity,
 };
 
+/// One normalized document structure row derived from resource extraction.
 #[derive(Debug, Clone, PartialEq)]
 pub struct DocumentStructureBlock {
     pub contract_version: String,
@@ -38,6 +43,7 @@ pub struct DocumentStructureBlock {
     pub provenance: String,
 }
 
+/// Return the stable Arrow schema for document structure rows.
 #[must_use]
 pub fn document_structure_schema() -> SchemaRef {
     Arc::new(Schema::new(vec![

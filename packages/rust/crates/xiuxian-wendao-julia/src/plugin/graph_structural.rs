@@ -1,3 +1,5 @@
+//! Graph-structural route constants and schema validation.
+
 use std::collections::BTreeSet;
 
 use arrow::array::{Array, BooleanArray, Float64Array, Int32Array, ListArray, StringArray};

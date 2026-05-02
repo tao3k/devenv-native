@@ -1,5 +1,5 @@
 ---
-source: packages/rust/crates/xiuxian-testing/src/scenario.rs
+source: packages/rust/crates/xiuxian-wendao/tests/support/scenario.rs
 description: "Scenario 062_tree_scope_tree_level_and_min_words [tree_scope_filters]: tree level and min words"
 expression: result
 info:

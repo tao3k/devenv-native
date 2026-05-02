@@ -1,3 +1,5 @@
+//! Test support fixtures exposed for linked builtin plugin integration tests.
+
 mod graph_structural;
 mod julia;
 mod planned_search;

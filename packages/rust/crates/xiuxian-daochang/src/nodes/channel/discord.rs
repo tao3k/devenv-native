@@ -2,22 +2,22 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use xiuxian_daochang::{
+use crate::{
     DiscordCommandAdminRule, DiscordControlCommandPolicy, DiscordIngressRunRequest,
     DiscordRuntimeConfig, DiscordSessionPartition, DiscordSlashCommandPolicy, ForegroundQueueMode,
     RuntimeSettings, build_discord_acl_overrides, run_discord_gateway, run_discord_ingress,
 };
 use xiuxian_macros::env_non_empty;
 
-use crate::cli::DiscordRuntimeMode;
+use crate::DiscordRuntimeMode;
+use crate::build_agent;
 use crate::resolve::{
     resolve_bool, resolve_discord_runtime_mode, resolve_positive_u64, resolve_positive_usize,
     resolve_string,
 };
-use xiuxian_daochang::build_agent;
 
 use super::ChannelCommandRequest;
-use super::common::{
+use super::runtime_guard::{
     apply_channel_embedding_memory_guard, log_control_command_allow_override,
     log_slash_command_allow_override,
 };

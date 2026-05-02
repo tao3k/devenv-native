@@ -105,7 +105,7 @@ fn modelica_parser_summary_semantic_fingerprint(
     {
         modelica_parser_summary_file_semantic_fingerprint_for_repository(
             repository,
-            relative_path,
+            relative_path.into(),
             source_text,
         )
         .ok()

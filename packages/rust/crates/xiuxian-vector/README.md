@@ -67,11 +67,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 ```
 xiuxian-vector/
 ├── src/lib.rs                # Main exports / module wiring
+├── src/store.rs              # VectorStore state and method-family includes
 ├── src/arrow_codec.rs        # Generic Arrow IPC codec + metadata helpers
 ├── src/ops/                  # Core CRUD + admin + writer operations
 ├── src/search/               # generic vector search helpers
 └── tests/                    # snapshots + data-layer + perf guard
 ```
+
+## Project Harness Boundary
+
+`xiuxian-vector` uses `rust-lang-project-harness` for project-policy gates.
+The source and test gate roots run without disabled rules. The current layout
+keeps `lib.rs` as the public facade, `store.rs` as the `VectorStore` owner, and
+search/admin/writer implementation files under explicit feature owners so the
+parser-to-reasoning-tree harness can report low-noise module facts.
 
 ## Out Of Scope
 

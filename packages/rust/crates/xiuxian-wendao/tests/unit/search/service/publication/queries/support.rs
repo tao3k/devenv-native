@@ -1,6 +1,10 @@
 #[cfg(feature = "duckdb")]
 use std::fs;
 
+use crate::search::service::tests::support::{
+    PathBuf, SearchMaintenancePolicy, SearchPlaneService, ok_or_panic, sample_repo_analysis,
+    sample_repo_documents, service_test_manifest_keyspace, temp_dir,
+};
 #[cfg(feature = "duckdb")]
 use crate::set_link_graph_wendao_config_override;
 
@@ -47,5 +51,3 @@ pub(super) fn write_search_duckdb_runtime_override(
     set_link_graph_wendao_config_override(&config_path.to_string_lossy());
     Ok(temp)
 }
-
-pub(super) use crate::search::service::tests::support::*;

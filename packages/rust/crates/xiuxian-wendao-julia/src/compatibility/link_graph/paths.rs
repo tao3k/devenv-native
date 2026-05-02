@@ -1,3 +1,5 @@
+//! Canonical path and route constants for Julia link-graph compatibility.
+
 /// Default Julia search launcher path used by Wendao compatibility surfaces.
 pub const DEFAULT_JULIA_SEARCH_LAUNCHER_PATH: &str =
     ".data/WendaoSearch.jl/scripts/run_search_service.jl";

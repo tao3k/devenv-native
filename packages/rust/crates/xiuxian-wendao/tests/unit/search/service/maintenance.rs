@@ -1,4 +1,9 @@
-use crate::search::service::tests::support::*;
+use std::path::PathBuf;
+
+use crate::search::service::tests::support::{
+    ok_or_panic, sample_hit, service_test_manifest_keyspace, temp_dir,
+};
+use crate::search::{SearchCorpusKind, SearchMaintenancePolicy, SearchPlaneService};
 
 #[tokio::test]
 async fn stop_local_maintenance_marks_runtime_shutdown() {

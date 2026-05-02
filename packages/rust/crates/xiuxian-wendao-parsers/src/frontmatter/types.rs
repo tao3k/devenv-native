@@ -1,3 +1,5 @@
+//! Frontmatter DTOs for Markdown note metadata.
+
 use serde::{Deserialize, Serialize};
 
 /// Parser-owned YAML frontmatter extracted from a Markdown document.

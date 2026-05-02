@@ -1,4 +1,13 @@
-use crate::search::service::tests::support::*;
+use std::sync::Arc;
+
+use crate::repo_index::{RepoCodeDocument, RepoIndexPhase, RepoIndexStatusResponse};
+use crate::search::service::tests::support::{
+    assert_status_reason, issue_summary, repo_status_entry,
+};
+use crate::search::{
+    SearchCorpusIssueCode, SearchCorpusIssueFamily, SearchCorpusStatus, SearchCorpusStatusAction,
+    SearchCorpusStatusReasonCode, SearchCorpusStatusSeverity, SearchPlanePhase,
+};
 
 pub(super) fn sample_repo_documents() -> Vec<RepoCodeDocument> {
     vec![RepoCodeDocument {

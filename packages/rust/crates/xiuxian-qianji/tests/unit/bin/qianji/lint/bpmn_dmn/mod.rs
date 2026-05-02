@@ -1,4 +1,4 @@
-use super::*;
+use super::{LintCliCommand, TempDir, must_ok, must_some, run_lint_command, write_file};
 
 fn stable_temp_output(output: &str, temp_dir: &TempDir) -> String {
     output.replace(&temp_dir.path().display().to_string(), "$TEMP")

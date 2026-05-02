@@ -1,3 +1,5 @@
+//! OCR text refinement and anchor-aware deduplication.
+
 use std::cmp::Ordering;
 use std::sync::Arc;
 

@@ -10,17 +10,16 @@
 
 ## Overview
 
-`xiuxian-wendao` now integrates the `xiuxian-testing` performance kernel behind
-crate features and keeps a single gate entrypoint at
-`tests/xiuxian-testing-gate.rs`.
+`xiuxian-wendao` now owns its performance gate helpers locally under
+`tests/performance/support/perf.rs` and keeps a single gate entrypoint at
+`tests/wendao-validation-gate.rs`.
 
 No default test semantics were changed: performance suites run only when
 feature flags are enabled.
 
 ## Feature Flags
 
-- `performance`: enables performance gate tests and forwards
-  `xiuxian-testing/performance`.
+- `performance`: enables performance gate tests.
 - `performance-stress`: depends on `performance` and enables long-running
   ignored stress suites.
 
@@ -32,14 +31,13 @@ The unified gate mounts:
 - `tests/performance/stress/*` under `#[cfg(feature = "performance-stress")]`
 - required integration suites via `#[path = "integration/*.rs"]` under
   `#[cfg(not(feature = "performance"))]`
-- a source modularity contract gate (`ModularityRulePack`) that runs in default
-  mode and fails on `Error/Critical` findings
+- a Rust project harness gate backed by `rust-lang-project-harness`
 
-Root-level test wrappers are intentionally minimized. Integration tests are
-mounted from `tests/xiuxian-testing-gate.rs` instead of duplicated
+Root-level test wrappers are intentionally minimized. Integration and
+performance tests are mounted from `tests/wendao-validation-gate.rs` instead of duplicated
 `tests/*_test.rs` pass-through files.
 Current root Rust entry files are:
-`tests/xiuxian-testing-gate.rs`.
+`tests/wendao-validation-gate.rs`.
 
 Suite layout:
 
@@ -134,17 +132,17 @@ not used as a PR blocker.
   `code_search` and `repo/index/status`. The current local `wendao-frontend`
   sample covers `179` configured repositories.
 - Direct formal gateway nextest proof:
-  `direnv exec . cargo nextest run -p xiuxian-wendao --features performance --test xiuxian-testing-gate -E "test(performance::gateway_search::repo_module_search_perf_gate_reports_warm_cache_latency_formal_gate) | test(performance::gateway_search::repo_symbol_search_perf_gate_reports_warm_cache_latency_formal_gate) | test(performance::gateway_search::repo_example_search_perf_gate_reports_warm_cache_latency_formal_gate) | test(performance::gateway_search::repo_projected_page_search_perf_gate_reports_warm_cache_latency_formal_gate) | test(performance::gateway_search::studio_code_search_perf_gate_reports_warm_cache_latency_formal_gate) | test(performance::gateway_search::search_index_status_perf_gate_reports_query_telemetry_summary_formal_gate)"`
+  `direnv exec . cargo nextest run -p xiuxian-wendao --features performance --test wendao-validation-gate -E "test(performance::gateway_search::repo_module_search_perf_gate_reports_warm_cache_latency_formal_gate) | test(performance::gateway_search::repo_symbol_search_perf_gate_reports_warm_cache_latency_formal_gate) | test(performance::gateway_search::repo_example_search_perf_gate_reports_warm_cache_latency_formal_gate) | test(performance::gateway_search::repo_projected_page_search_perf_gate_reports_warm_cache_latency_formal_gate) | test(performance::gateway_search::studio_code_search_perf_gate_reports_warm_cache_latency_formal_gate) | test(performance::gateway_search::search_index_status_perf_gate_reports_query_telemetry_summary_formal_gate)"`
 - PR quick gate:
-  `direnv exec . cargo nextest run -p xiuxian-wendao --features performance --test xiuxian-testing-gate -E "not (test(performance::gateway_search::repo_module_search_perf_gate_reports_warm_cache_latency_formal_gate) | test(performance::gateway_search::repo_symbol_search_perf_gate_reports_warm_cache_latency_formal_gate) | test(performance::gateway_search::repo_example_search_perf_gate_reports_warm_cache_latency_formal_gate) | test(performance::gateway_search::repo_projected_page_search_perf_gate_reports_warm_cache_latency_formal_gate) | test(performance::gateway_search::studio_code_search_perf_gate_reports_warm_cache_latency_formal_gate) | test(performance::gateway_search::search_index_status_perf_gate_reports_query_telemetry_summary_formal_gate))"`
+  `direnv exec . cargo nextest run -p xiuxian-wendao --features performance --test wendao-validation-gate -E "not (test(performance::gateway_search::repo_module_search_perf_gate_reports_warm_cache_latency_formal_gate) | test(performance::gateway_search::repo_symbol_search_perf_gate_reports_warm_cache_latency_formal_gate) | test(performance::gateway_search::repo_example_search_perf_gate_reports_warm_cache_latency_formal_gate) | test(performance::gateway_search::repo_projected_page_search_perf_gate_reports_warm_cache_latency_formal_gate) | test(performance::gateway_search::studio_code_search_perf_gate_reports_warm_cache_latency_formal_gate) | test(performance::gateway_search::search_index_status_perf_gate_reports_query_telemetry_summary_formal_gate))"`
 - Formal gateway perf listing:
-  `direnv exec . cargo nextest list -p xiuxian-wendao --features performance --test xiuxian-testing-gate`
+  `direnv exec . cargo nextest list -p xiuxian-wendao --features performance --test wendao-validation-gate`
 - Formal gateway six-case proof:
   `direnv exec . just rust-wendao-performance-gateway-formal`
 - Default integration + structure gate:
-  `direnv exec . cargo test -p xiuxian-wendao --test xiuxian-testing-gate`
+  `direnv exec . cargo test -p xiuxian-wendao --test wendao-validation-gate`
 - Nightly stress gate:
-  `direnv exec . cargo nextest run -p xiuxian-wendao --features "performance performance-stress" --test xiuxian-testing-gate --run-ignored ignored-only`
+  `direnv exec . cargo nextest run -p xiuxian-wendao --features "performance performance-stress" --test wendao-validation-gate --run-ignored ignored-only`
 - Bench fast compile proof (recommended):
   `direnv exec . env CARGO_PROFILE_BENCH_LTO=off CARGO_PROFILE_BENCH_CODEGEN_UNITS=16 CARGO_PROFILE_BENCH_DEBUG=0 cargo check -p xiuxian-wendao --features performance --benches`
 - Bench no-run lane (heavy, advisory):

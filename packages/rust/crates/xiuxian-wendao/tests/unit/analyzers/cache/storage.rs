@@ -7,13 +7,13 @@ use xiuxian_git_repo::{
 use crate::analyzers::{RegisteredRepository, RepositoryPluginConfig, RepositoryRefreshPolicy};
 use crate::search::FuzzySearchOptions;
 
-use super::super::{
+use super::support::{empty_artifacts, ok_or_panic, sample_analysis_key, some_or_panic};
+use crate::analyzers::cache::{
     RepositorySearchQueryCacheKey, build_repository_analysis_cache_key,
     load_cached_repository_analysis_for_revision, load_cached_repository_search_artifacts,
     load_cached_repository_search_result, store_cached_repository_analysis,
     store_cached_repository_search_artifacts, store_cached_repository_search_result,
 };
-use super::support::{empty_artifacts, ok_or_panic, sample_analysis_key, some_or_panic};
 
 #[test]
 fn repository_search_artifacts_cache_roundtrip_uses_analysis_identity() {

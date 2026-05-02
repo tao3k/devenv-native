@@ -1,3 +1,5 @@
+//! Recursive TOML merge semantics shared by config loaders and import helpers.
+
 use crate::ArrayMergeStrategy;
 
 pub(super) fn merge_values(

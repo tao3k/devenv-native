@@ -50,12 +50,12 @@ serde_json = { workspace = true }
 
 # Reuse our common types
 xiuxian-types = { path = "../xiuxian-types" }
-xiuxian-testing = { path = "../xiuxian-testing" }
 
 # Logging
 log = { workspace = true }
 
 [dev-dependencies]
+rust-lang-project-harness = { workspace = true }
 lance = { workspace = true }
 tempfile = { workspace = true }
 rand = { workspace = true }

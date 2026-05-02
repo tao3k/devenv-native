@@ -1,3 +1,5 @@
+//! Telegram polling runtime event loop.
+
 use std::sync::Arc;
 
 use anyhow::Result;

@@ -1,3 +1,5 @@
+//! LLM backend mode parsing and normalized backend kinds.
+
 /// Normalized LLM backend kind.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LlmBackendKind {

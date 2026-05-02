@@ -1,4 +1,12 @@
-use super::*;
+use serde_json::Value;
+
+use crate::gateway::studio::studio_repo_sync_api_tests::support::{
+    create_local_git_repo, create_local_modelica_repo, gateway_state_for_project, request_json,
+    write_default_repo_config, write_modelica_repo_config,
+};
+use crate::gateway::studio::studio_repo_sync_api_tests::{
+    StatusCode, TestResult, assert_studio_json_snapshot, fs, studio_router,
+};
 
 fn assert_count_matches_len(count: u64, len: usize, message: &str) {
     assert_eq!(usize::try_from(count).ok(), Some(len), "{message}");

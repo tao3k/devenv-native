@@ -1,4 +1,7 @@
-use super::*;
+use super::{
+    LintCliCommand, TempDir, assert_llm_repair_snapshot_shape, must_ok, native_user_choice_io,
+    run_lint_command, stable_temp_output, write_file,
+};
 
 #[test]
 fn run_lint_command_guides_non_boolean_interaction_choice_condition_repair() {

@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
-use super::DiscordAclSlashSettings;
 use super::principals::collect_principals;
+use crate::config::DiscordAclSlashSettings;
 
 pub(super) struct SlashOverrides {
     pub(super) command: Option<Vec<String>>,

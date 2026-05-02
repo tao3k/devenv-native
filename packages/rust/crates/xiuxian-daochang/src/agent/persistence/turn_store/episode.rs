@@ -1,11 +1,11 @@
-use xiuxian_llm::embedding::runtime::repair_embedding_dimension;
+use xiuxian_llm::embedding::repair_embedding_dimension;
 use xiuxian_memory_engine::{Episode, EpisodeStore};
 
 use crate::agent::Agent;
 use crate::agent::memory_recall_feedback::classify_assistant_outcome;
 use crate::observability::SessionEvent;
 
-use super::{StoredTurnEpisode, TurnStoreOutcome};
+use super::types::{StoredTurnEpisode, TurnStoreOutcome};
 
 impl Agent {
     pub(super) async fn resolve_turn_episode(

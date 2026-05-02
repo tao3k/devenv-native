@@ -1,4 +1,5 @@
-use crate::search::service::tests::support::*;
+use crate::search::service::tests::support::{some_or_panic, summarize_issues};
+use crate::search::{SearchCorpusIssue, SearchCorpusIssueCode, SearchCorpusIssueFamily};
 
 #[test]
 fn summarize_issues_prefers_highest_priority_code_and_marks_mixed_family() {

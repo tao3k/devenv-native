@@ -1,5 +1,5 @@
-use super::super::Command;
-use super::*;
+use super::{SentinelArgs, SentinelCommand, SentinelWatchArgs, sentinel};
+use crate::bin_support::wendao::types::Command;
 
 #[test]
 fn test_sentinel_watch_args_default() {

@@ -2,7 +2,7 @@ use serde_json::json;
 
 use crate::agent::{DownstreamAdmissionRuntimeSnapshot, MemoryRuntimeStatusSnapshot};
 
-use super::helpers::is_backend_ready;
+use super::readiness::is_backend_ready;
 
 pub(in crate::channels::discord::runtime::managed::replies::memory) fn format_memory_runtime_status_json(
     status: &MemoryRuntimeStatusSnapshot,

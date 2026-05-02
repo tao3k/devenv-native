@@ -1,6 +1,8 @@
 //! Unit tests for `cluster_finder` module.
 
-use super::*;
+use std::collections::{HashMap, HashSet};
+
+use super::{DenseCluster, MIN_CLUSTER_SIZE, MIN_EDGE_DENSITY, find_dense_clusters};
 
 fn make_saliency_map(nodes: &[(&str, f64)]) -> HashMap<String, f64> {
     nodes.iter().map(|(id, s)| (id.to_string(), *s)).collect()

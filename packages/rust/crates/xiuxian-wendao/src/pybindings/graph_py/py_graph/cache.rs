@@ -1,4 +1,4 @@
-use pyo3::prelude::*;
+use pyo3::{PyResult, pyfunction};
 
 use crate::kg_cache;
 

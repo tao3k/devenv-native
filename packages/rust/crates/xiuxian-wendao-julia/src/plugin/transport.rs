@@ -1,3 +1,5 @@
+//! Flight transport helpers for Julia repository intelligence analysis.
+
 use arrow::record_batch::RecordBatch;
 use serde_json::Value;
 use xiuxian_wendao_core::{

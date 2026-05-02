@@ -16,11 +16,10 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
 toml = { workspace = true }
-xiuxian-testing = { path = "../xiuxian-testing" }
 xiuxian-types = { path = "../xiuxian-types" }
 
 [dev-dependencies]
-tempfile = { workspace = true }
+rust-lang-project-harness = { workspace = true }
 
 [lints]
 workspace = true

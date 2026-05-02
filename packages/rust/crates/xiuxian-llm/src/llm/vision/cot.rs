@@ -1,3 +1,5 @@
+//! Chain-of-thought redaction for vision OCR traces.
+
 use super::anchor::TextAnchor;
 use super::scrub::{VisibilityScrubPolicy, scrub_text_anchors};
 

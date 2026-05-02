@@ -1,3 +1,5 @@
+//! Analysis-route query contracts for Wendao Flight metadata.
+
 mod code_ast;
 mod document_extract;
 mod headers;

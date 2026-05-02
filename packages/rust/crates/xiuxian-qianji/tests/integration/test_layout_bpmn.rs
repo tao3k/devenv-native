@@ -41,8 +41,6 @@ async fn test_omg_standard_compliance_branching_flow() {
     assert!(xml.contains("<bpmndi:BPMNLabel>"));
 }
 
-xiuxian_testing::crate_test_policy_harness!();
-
 struct MockMechanism;
 
 #[async_trait]

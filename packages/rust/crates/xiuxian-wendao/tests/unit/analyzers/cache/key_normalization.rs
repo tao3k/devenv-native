@@ -5,7 +5,7 @@ use xiuxian_git_repo::{
     LocalCheckoutMetadata, MaterializedRepo, RepoDriftState, RepoLifecycleState, RepoSourceKind,
 };
 
-use super::super::build_repository_analysis_cache_key;
+use crate::analyzers::cache::build_repository_analysis_cache_key;
 
 #[test]
 fn build_repository_analysis_cache_key_sorts_and_deduplicates_plugin_ids() {

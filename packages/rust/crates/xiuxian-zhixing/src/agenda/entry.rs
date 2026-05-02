@@ -1,17 +1,10 @@
+//! Agenda entry record for actionable cultivation tasks.
+
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-/// Importance of an agenda item.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum Priority {
-    /// High importance - requires immediate attention.
-    High,
-    /// Standard importance.
-    Medium,
-    /// Low importance - can be deferred.
-    Low,
-}
+use super::Priority;
 
 /// Represents an actionable item in the cultivation agenda (a 'Vow').
 #[derive(Debug, Clone, Serialize, Deserialize)]

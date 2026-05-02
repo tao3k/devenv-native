@@ -1,4 +1,4 @@
-use super::*;
+use super::{ArcStreamingEvent, ArcStreamingOutcome, EventBuffer};
 
 #[test]
 fn arc_event_creates_thought() {

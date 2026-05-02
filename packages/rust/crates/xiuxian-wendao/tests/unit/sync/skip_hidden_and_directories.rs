@@ -1,9 +1,10 @@
-use super::*;
+use std::fs;
+
+use tempfile::TempDir;
+use xiuxian_wendao::SyncEngine;
 
 #[test]
 fn test_skip_hidden_and_directories() -> Result<(), Box<dyn std::error::Error>> {
-    use xiuxian_wendao::SyncEngine;
-
     let temp_dir = TempDir::new()?;
 
     // Create hidden file/dir

@@ -1,3 +1,5 @@
+//! Fetch helpers for Julia rerank exchange routes.
+
 use std::collections::BTreeMap;
 
 use arrow::record_batch::RecordBatch;

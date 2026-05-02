@@ -1,6 +1,8 @@
 //! Unit tests for `skeleton_rerank` module.
 
-use super::*;
+use super::{SkeletonRerankOptions, parse_anchor_id, skeleton_rerank};
+use crate::link_graph::addressing::{RegistryIndex, TopologyIndex};
+use crate::link_graph::models::QuantumAnchorHit;
 use crate::link_graph::{PageIndexMeta, PageIndexNode};
 use std::collections::HashMap;
 use std::sync::Arc;

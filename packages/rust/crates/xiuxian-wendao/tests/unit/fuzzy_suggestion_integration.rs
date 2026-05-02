@@ -5,7 +5,6 @@
 use xiuxian_wendao::zhenfa_router::native::audit::{
     SourceFile, suggest_pattern_fix, suggest_pattern_fix_with_threshold,
 };
-use xiuxian_wendao::zhenfa_router::native::semantic_check::test_api::*;
 
 // =============================================================================
 // Fuzzy Suggestion Integration Tests

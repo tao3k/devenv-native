@@ -1,10 +1,8 @@
+//! Builder helpers for explicit-edge graph topology request rows.
+
 use arrow::record_batch::RecordBatch;
 use xiuxian_wendao_core::repo_intelligence::RepoIntelligenceError;
 
-use super::super::graph_structural_exchange::{
-    GraphStructuralFilterRequestRow, GraphStructuralRerankRequestRow,
-    build_graph_structural_filter_request_batch, build_graph_structural_rerank_request_batch,
-};
 use super::core::{
     GraphStructuralCandidateSubgraph, GraphStructuralQueryContext, GraphStructuralRerankSignals,
 };
@@ -17,6 +15,10 @@ use super::topology::{
     GraphStructuralGenericTopologyCandidateMetadataInputs,
     GraphStructuralRawConnectedPairCollectionCandidateInputs,
     build_graph_structural_generic_topology_candidate_inputs_from_raw_connected_pairs,
+};
+use crate::{
+    GraphStructuralFilterRequestRow, GraphStructuralRerankRequestRow,
+    build_graph_structural_filter_request_batch, build_graph_structural_rerank_request_batch,
 };
 
 /// Build one generic explicit-edge topology candidate subgraph from staged

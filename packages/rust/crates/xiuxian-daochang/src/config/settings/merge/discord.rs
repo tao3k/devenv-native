@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use super::super::types::{
+use crate::config::settings::{
     DiscordAclAllowSettings, DiscordAclControlSettings, DiscordAclPrincipalSettings,
     DiscordAclSettings, DiscordAclSlashSettings, DiscordChannelSettings, DiscordSettings,
 };

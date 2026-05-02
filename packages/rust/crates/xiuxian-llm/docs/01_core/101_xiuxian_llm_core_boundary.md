@@ -8,4 +8,4 @@
 
 Architecture boundary note for the `xiuxian-llm` library crate. Capture core responsibilities, integration edges, and invariants here.
 
-Document the stable architectural boundary for `xiuxian-llm` before expanding deeper feature notes.
+The active project-policy gate uses `rust-lang-project-harness` without disabled rules. The public module tree exposes explicit embedding, LLM, model-runtime, and web boundaries; provider-specific Anthropic message handling is split into focused child modules for routing, media normalization, HTTP retry, request conversion, response parsing, and provider construction.

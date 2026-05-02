@@ -1,3 +1,5 @@
+//! File-watcher driver that triggers Qianhuan hot-reload runtime updates.
+
 use super::HotReloadRuntime;
 use anyhow::{Result, anyhow};
 use std::path::PathBuf;

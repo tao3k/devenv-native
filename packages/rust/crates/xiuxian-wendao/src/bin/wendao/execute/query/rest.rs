@@ -1,12 +1,12 @@
-use anyhow::{Context, Result, anyhow};
-use xiuxian_io::PrjDirs;
-use xiuxian_wendao::search::queries::{
+use crate::search::queries::{
     SearchQueryService,
     rest::{RestQueryRequest, query_rest_payload},
 };
+use anyhow::{Context, Result, anyhow};
+use xiuxian_io::PrjDirs;
 
-use crate::helpers::emit;
-use crate::types::{Cli, RestQueryArgs};
+use crate::bin_support::wendao::helpers::emit;
+use crate::bin_support::wendao::types::{Cli, RestQueryArgs};
 
 pub(super) async fn handle(cli: &Cli, args: &RestQueryArgs) -> Result<()> {
     let service = SearchQueryService::from_project_root(PrjDirs::project_root());

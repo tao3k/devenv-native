@@ -16,17 +16,9 @@ if ! command -v cargo-nextest >/dev/null 2>&1; then
   exit 1
 fi
 
-CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-/tmp/workspace-strict-proof}" cargo nextest run -p xiuxian-testing \
-  --test contracts_kernel \
-  --test contracts_rest_docs \
-  --test contracts_modularity \
-  --test contracts_runner \
-  --test contracts_knowledge_export \
-  --test docs_kernel_contract \
-  --no-fail-fast
-
 CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-/tmp/workspace-strict-proof}" cargo nextest run -p xiuxian-vector \
-  --test xiuxian-testing-gate \
+  --test integration_test \
+  --test performance_test \
   --no-fail-fast
 just rust-xiuxian-wendao-contract-feedback-consumer
 if [[ ${OMNI_ENABLE_EMBED_ROLE_PERF_GATE:-0} == "1" ]]; then

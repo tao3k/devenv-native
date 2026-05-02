@@ -1,7 +1,7 @@
-use super::super::types::Cli;
+use crate::bin_support::wendao::types::Cli;
+use crate::{LinkGraphIndex, resolve_link_graph_index_runtime};
 use anyhow::Result;
 use std::path::PathBuf;
-use xiuxian_wendao::{LinkGraphIndex, resolve_link_graph_index_runtime};
 
 pub(crate) fn build_index(cli: &Cli) -> Result<LinkGraphIndex> {
     let (include_dirs, exclude_dirs) = resolve_index_filters(cli);

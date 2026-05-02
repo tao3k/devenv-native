@@ -24,11 +24,11 @@ walkdir = { workspace = true }
 rayon = { workspace = true }
 xiuxian-config-core = { path = "../xiuxian-config-core" }
 xiuxian-logging = { path = "../xiuxian-logging" }
-xiuxian-testing = { path = "../xiuxian-testing" }
 xiuxian-wendao-parsers = { path = "../xiuxian-wendao-parsers" }
 
 [dev-dependencies]
 insta = { workspace = true }
+rust-lang-project-harness = { workspace = true }
 tempfile = { workspace = true }
 
 [lints]

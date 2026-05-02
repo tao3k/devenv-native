@@ -1,3 +1,5 @@
+//! Parquet export helpers for Arrow engine and Lance-compatible batches.
+
 use std::fs::File;
 use std::path::Path;
 

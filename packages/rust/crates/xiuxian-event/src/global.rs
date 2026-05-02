@@ -1,3 +1,5 @@
+//! Process-global event bus convenience surface.
+
 use serde_json::Value;
 use std::sync::{Arc, LazyLock};
 use tokio::sync::broadcast;

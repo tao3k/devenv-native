@@ -1,10 +1,10 @@
 //! Attachment search command execution.
 
-use crate::helpers::emit;
-use crate::types::{Cli, Command};
+use crate::bin_support::wendao::helpers::emit;
+use crate::bin_support::wendao::types::{Cli, Command};
+use crate::{LinkGraphAttachmentKind, LinkGraphIndex};
 use anyhow::{Context, Result};
 use serde_json::json;
-use xiuxian_wendao::{LinkGraphAttachmentKind, LinkGraphIndex};
 
 pub(super) fn handle(cli: &Cli, index: Option<&LinkGraphIndex>) -> Result<()> {
     let Command::Attachments(args) = &cli.command else {

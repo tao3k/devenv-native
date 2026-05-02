@@ -1,3 +1,5 @@
+//! dmn parse driver branch wiring for focused BPMN/DMN owner leaves.
+
 #[path = "driver/event.rs"]
 mod event;
 #[path = "driver/state.rs"]
@@ -5,8 +7,8 @@ mod state;
 
 use self::event::{finalize_loop_state, handle_parse_event};
 use self::state::ParseLoopState;
-use crate::dmn_model_api::{DmnDecisionDefinition, DmnSourceFile};
-use crate::error::{BpmnEngineError, Result};
+use crate::{BpmnEngineError, DmnDecisionDefinition, DmnSourceFile};
+type Result<T> = std::result::Result<T, BpmnEngineError>;
 use quick_xml::Reader;
 use quick_xml::events::Event;
 

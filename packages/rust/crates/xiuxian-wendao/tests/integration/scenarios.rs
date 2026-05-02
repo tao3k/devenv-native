@@ -5,12 +5,13 @@
 
 use std::path::PathBuf;
 
-use xiuxian_testing::{ScenarioFramework, ScenarioSnapshotPolicy};
-
 #[path = "../support/mod.rs"]
 mod support;
 
-use support::{GraphRunner, PageIndexRunner, SearchRunner, SemanticCheckRunner};
+use support::{
+    GraphRunner, PageIndexRunner, ScenarioFramework, ScenarioSnapshotPolicy, SearchRunner,
+    SemanticCheckRunner,
+};
 
 /// Get the manifest directory for this crate.
 fn manifest_dir() -> PathBuf {

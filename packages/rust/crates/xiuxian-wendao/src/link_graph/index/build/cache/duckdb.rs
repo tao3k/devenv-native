@@ -1,6 +1,6 @@
-use super::super::fingerprint::LinkGraphFingerprint;
 use super::CacheLookupOutcome;
 use crate::link_graph::index::LinkGraphIndex;
+use crate::link_graph::index::build::fingerprint::LinkGraphFingerprint;
 use std::path::{Path, PathBuf};
 
 #[cfg(feature = "duckdb")]

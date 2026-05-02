@@ -1,4 +1,4 @@
-use super::*;
+use super::{PdfOcrShardInput, order_ocr_results_by_inputs, validate_ocr_result_matches_input};
 use xiuxian_wendao_attachments::pdf::ocr::{PDF_OCR_SHARD_INPUT_SCHEMA_VERSION, PdfOcrShardResult};
 
 #[test]

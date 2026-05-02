@@ -1,4 +1,4 @@
-use super::*;
+pub(super) use super::{wendao_cmd, write_file};
 
 mod search_query_directives_apply_without_cli_flags;
 mod search_query_limit_directive_overrides_cli_limit;

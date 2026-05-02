@@ -1,3 +1,5 @@
+//! Core graph-structural query and candidate DTOs.
+
 use xiuxian_wendao_core::repo_intelligence::RepoIntelligenceError;
 
 use super::support::{

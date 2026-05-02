@@ -1,3 +1,5 @@
+//! Markdown reference extraction and literal parsing.
+
 mod api;
 mod scan;
 mod types;

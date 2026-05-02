@@ -1,4 +1,7 @@
-use super::*;
+use super::{
+    DOCUMENT_EXTRACT_MAX_RUNNING_CONVERSIONS_ENV,
+    document_extract_conversion_concurrency_limit_with_lookup,
+};
 
 #[test]
 fn document_extract_conversion_limit_defaults_to_available_parallelism() {

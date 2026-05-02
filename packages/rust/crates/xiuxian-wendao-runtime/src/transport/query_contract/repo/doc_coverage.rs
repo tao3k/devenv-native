@@ -1,3 +1,5 @@
+//! Repository doc-coverage route contract and metadata validation.
+
 /// Canonical repo-doc-coverage repository metadata header for Wendao Flight requests.
 pub const WENDAO_REPO_DOC_COVERAGE_REPO_HEADER: &str = "x-wendao-repo-doc-coverage-repo";
 /// Canonical repo-doc-coverage module metadata header for Wendao Flight requests.

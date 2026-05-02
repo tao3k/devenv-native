@@ -1,7 +1,7 @@
+use crate::link_graph::LinkGraphDirection;
+
 #[cfg(test)]
 use serde::Deserialize;
-
-use crate::link_graph::LinkGraphDirection;
 
 const DEFAULT_GRAPH_HOPS: usize = 2;
 const DEFAULT_GRAPH_LIMIT: usize = 50;

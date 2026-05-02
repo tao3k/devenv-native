@@ -1,5 +1,5 @@
-use super::super::TelegramChannel;
-use super::super::error::{
+use crate::channels::telegram::channel::TelegramChannel;
+use crate::channels::telegram::channel::error::{
     TelegramApiError, telegram_api_error_code, telegram_api_error_description,
     telegram_api_error_retry_after_secs,
 };

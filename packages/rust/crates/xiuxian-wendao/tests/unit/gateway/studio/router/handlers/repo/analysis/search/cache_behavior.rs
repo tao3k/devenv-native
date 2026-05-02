@@ -1,7 +1,11 @@
 use super::support::{
     CachedRepoSearchProbe, normalized_gateway_analysis_keys, unique_repo_gateway_keyspace,
 };
-use super::*;
+use super::{
+    Arc, AtomicUsize, FuzzySearchOptions, Ordering, PathBuf, RepositorySearchQueryCacheKey,
+    SearchMaintenancePolicy, SearchPlaneService, StudioApiError, repository_search_key,
+    with_cached_repo_search_result,
+};
 
 #[tokio::test]
 async fn cached_repo_search_result_reuses_hot_query_payload() {

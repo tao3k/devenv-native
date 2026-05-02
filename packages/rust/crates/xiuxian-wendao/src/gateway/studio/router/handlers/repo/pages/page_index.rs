@@ -11,9 +11,13 @@ use crate::gateway::studio::router::handlers::repo::projected_service::pages::{
 };
 use crate::gateway::studio::router::{GatewayState, StudioApiError};
 
-use super::super::parse::repo::required_registered_repo_id;
-use super::super::parse::resource::{required_node_id, required_page_id};
-use super::super::query::pages::{RepoProjectedPageApiQuery, RepoProjectedPageIndexNodeApiQuery};
+use crate::gateway::studio::router::handlers::repo::parse::repo::required_registered_repo_id;
+use crate::gateway::studio::router::handlers::repo::parse::resource::{
+    required_node_id, required_page_id,
+};
+use crate::gateway::studio::router::handlers::repo::query::pages::{
+    RepoProjectedPageApiQuery, RepoProjectedPageIndexNodeApiQuery,
+};
 
 /// Projected page index tree endpoint.
 ///

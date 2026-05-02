@@ -1,3 +1,5 @@
+//! Base retrieval runtime configuration records for Wendao search behavior.
+
 use crate::config::constants::{
     DEFAULT_LINK_GRAPH_CANDIDATE_MULTIPLIER, DEFAULT_LINK_GRAPH_HYBRID_MIN_HITS,
     DEFAULT_LINK_GRAPH_HYBRID_MIN_TOP_SCORE, DEFAULT_LINK_GRAPH_MAX_SOURCES,

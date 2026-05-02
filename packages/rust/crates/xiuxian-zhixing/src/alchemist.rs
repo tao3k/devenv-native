@@ -1,6 +1,5 @@
 //! Alchemist module for Knowledge-Action synthesis.
 
-/// Processor primitives for alchemy workflows.
-pub mod processor;
+mod engine;
 
-pub use processor::AlchemistProcessor;
+pub use engine::AlchemistProcessor;

@@ -21,7 +21,7 @@ use std::sync::Arc;
 use std::sync::atomic::AtomicU64;
 use std::time::{Duration, Instant};
 use tokio::sync::RwLock;
-use xiuxian_llm::embedding::runtime::EmbeddingRuntime;
+use xiuxian_llm::embedding::EmbeddingRuntime;
 use xiuxian_memory_engine::{EpisodeStore, StoreConfig};
 use xiuxian_qianhuan::{ManifestationInterface, ManifestationManager};
 use xiuxian_wendao::graph::KnowledgeGraph;

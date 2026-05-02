@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use xiuxian_daochang::{
+use crate::{
     JobManager, JobManagerConfig, RecurringScheduleConfig, RuntimeSettings, TurnRunner,
     run_recurring_schedule,
 };

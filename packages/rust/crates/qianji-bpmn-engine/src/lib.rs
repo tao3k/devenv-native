@@ -148,10 +148,13 @@
 //! such as `duration("P1.5Y")`, broader timezone/function FEEL behavior, and
 //! richer orchestration slices remain deferred.
 
+/// Public BPMN callable activity registry contracts.
 pub mod bpmn_callable_api;
+/// Public BPMN collaboration and correlation contracts.
 pub mod bpmn_collaboration_api;
 mod bpmn_conformance;
 mod bpmn_conformance_api;
+/// Public BPMN snapshot model contracts.
 pub mod bpmn_model_api;
 mod bpmn_parse_api;
 mod bpmn_snapshot;
@@ -165,8 +168,10 @@ mod dmn_evaluate_api;
 mod dmn_model_api;
 mod dmn_model_business_knowledge;
 mod dmn_model_clause;
+/// Public DMN decision model contracts.
 pub mod dmn_model_decision;
 mod dmn_model_decision_service;
+/// Public DMN document model contracts.
 pub mod dmn_model_document;
 mod dmn_model_import;
 mod dmn_model_input_data;
@@ -183,6 +188,7 @@ mod ir_data_api;
 mod ir_edge_api;
 mod ir_event_api;
 mod ir_index_api;
+/// Public BPMN IR node model contracts.
 pub mod ir_node_api;
 mod ir_package_api;
 mod ir_process_compensation;
@@ -208,60 +214,56 @@ mod runtime_resume_api;
 mod runtime_token_api;
 mod runtime_wait_api;
 
-pub use bpmn_callable_api::{
-    BpmnCallActivityBinding, BpmnCallableBindingExecutionPolicy, BpmnCallableDataRef,
-    BpmnCallableDefinition, BpmnCallableIoBinding, BpmnCallableKind, BpmnCallableRegistry,
-};
-pub use bpmn_collaboration_api::{
-    BpmnCollaborationExecutionPolicy, BpmnCollaborationHostBoundary, BpmnCollaborationHostEnvelope,
-    BpmnCollaborationIntent, BpmnCollaborationRuntimeScope, BpmnCorrelationKeyIntent,
-    BpmnCorrelationKeyScope, BpmnCorrelationPropertyBindingIntent, BpmnCorrelationPropertyIntent,
-    BpmnCorrelationPropertyRetrievalIntent, BpmnEventDeduplicationPolicy, BpmnMessageFlowIntent,
-    BpmnParticipantIntent, BpmnParticipantMultiplicityIntent,
-    BpmnProcessCorrelationSubscriptionIntent,
-};
-pub use bpmn_conformance_api::{
-    BpmnConformanceEntry, BpmnConformanceStatus, bpmn_conformance_registry,
-};
-pub use bpmn_model_api::{
-    BpmnAssociationSnapshot, BpmnBoundsSnapshot, BpmnCategorySnapshot, BpmnCategoryValueSnapshot,
-    BpmnChoreographyActivitySnapshot, BpmnCollaborationSnapshot,
-    BpmnConversationAssociationSnapshot, BpmnConversationLinkSnapshot,
-    BpmnConversationNodeSnapshot, BpmnCorrelationKeySnapshot,
-    BpmnCorrelationPropertyBindingSnapshot, BpmnCorrelationPropertySnapshot,
+mod facade;
+
+pub use facade::{
+    BPMN_CHECKPOINT_FORMAT_VERSION, BpmnAdvanceOutcome, BpmnAssociationSnapshot,
+    BpmnBoundsSnapshot, BpmnBundleSnapshot, BpmnCallActivityBinding,
+    BpmnCallableBindingExecutionPolicy, BpmnCallableDataRef, BpmnCallableDefinition,
+    BpmnCallableIoBinding, BpmnCallableKind, BpmnCallableRegistry, BpmnCategorySnapshot,
+    BpmnCategoryValueSnapshot, BpmnCheckpointEnvelope, BpmnCheckpointInstanceId,
+    BpmnChoreographyActivitySnapshot, BpmnCollaborationExecutionPolicy,
+    BpmnCollaborationHostBoundary, BpmnCollaborationHostEnvelope, BpmnCollaborationIntent,
+    BpmnCollaborationRuntimeScope, BpmnCollaborationSnapshot, BpmnCompensationHandlerSpec,
+    BpmnConformanceEntry, BpmnConformanceStatus, BpmnConversationAssociationSnapshot,
+    BpmnConversationLinkSnapshot, BpmnConversationNodeSnapshot, BpmnCorrelationKeyIntent,
+    BpmnCorrelationKeyScope, BpmnCorrelationKeySnapshot, BpmnCorrelationPropertyBindingIntent,
+    BpmnCorrelationPropertyBindingSnapshot, BpmnCorrelationPropertyIntent,
+    BpmnCorrelationPropertyRetrievalIntent, BpmnCorrelationPropertySnapshot,
     BpmnCorrelationSubscriptionSnapshot, BpmnDataAssociationAssignmentSnapshot,
     BpmnDataAssociationExpressionSnapshot, BpmnDataAssociationSnapshot,
-    BpmnDataInputOutputSnapshot, BpmnDataObjectReferenceSnapshot, BpmnDataObjectSnapshot,
-    BpmnDataStateSnapshot, BpmnDataStoreReferenceSnapshot, BpmnDataStoreSnapshot,
-    BpmnDiagramSnapshot, BpmnDocumentSnapshot, BpmnEdgeSnapshot, BpmnEndPointSnapshot,
-    BpmnErrorSnapshot, BpmnEscalationSnapshot, BpmnExtensionSnapshot,
-    BpmnFlowElementMetadataSnapshot, BpmnFontSnapshot, BpmnGlobalTaskSnapshot, BpmnGroupSnapshot,
-    BpmnImportSnapshot, BpmnInputSetSnapshot, BpmnInterfaceSnapshot, BpmnIoBindingSnapshot,
-    BpmnIoSpecificationSnapshot, BpmnItemDefinitionSnapshot, BpmnLabelSnapshot,
-    BpmnLabelStyleSnapshot, BpmnLaneSetSnapshot, BpmnLaneSnapshot,
-    BpmnMessageFlowAssociationSnapshot, BpmnMessageFlowSnapshot, BpmnMessageSnapshot,
-    BpmnOperationSnapshot, BpmnOutputSetSnapshot, BpmnParticipantAssociationSnapshot,
-    BpmnParticipantMultiplicitySnapshot, BpmnParticipantSnapshot, BpmnPartnerEntitySnapshot,
-    BpmnPartnerRoleSnapshot, BpmnPlaneSnapshot, BpmnProcessPropertySnapshot, BpmnProcessSnapshot,
-    BpmnRelationshipSnapshot, BpmnResourceParameterBindingSnapshot, BpmnResourceParameterSnapshot,
-    BpmnResourceRoleSnapshot, BpmnResourceSnapshot, BpmnRootSnapshot, BpmnShapeSnapshot,
-    BpmnSignalSnapshot, BpmnTextAnnotationSnapshot, BpmnWaypointSnapshot,
-};
-pub use bpmn_parse_api::{
-    BpmnBundleSnapshot, BpmnParseOptions, BpmnSourceFile, parse_bpmn_bundle, parse_bpmn_package,
-};
-pub use bpmn_snapshot_api::snapshot_bpmn_source;
-pub use checkpoint_api::{
-    BPMN_CHECKPOINT_FORMAT_VERSION, BpmnCheckpointEnvelope, decode_checkpoint_json,
-    encode_checkpoint_json, lease_key, state_key,
-};
-#[cfg(feature = "valkey")]
-pub use checkpoint_api::{
-    delete_checkpoint, delete_checkpoint_as_owner, load_checkpoint, release_checkpoint_lease,
-    renew_checkpoint_lease, save_checkpoint, save_checkpoint_as_owner,
-    try_acquire_checkpoint_lease,
-};
-pub use dmn_api::{
+    BpmnDataInputOutputSnapshot, BpmnDataObjectBindingSpec, BpmnDataObjectReferenceSnapshot,
+    BpmnDataObjectSnapshot, BpmnDataStateSnapshot, BpmnDataStoreReferenceSnapshot,
+    BpmnDataStoreSnapshot, BpmnDiagramSnapshot, BpmnDocumentSnapshot, BpmnEdgeSnapshot,
+    BpmnEdgeSpec, BpmnEndPointSnapshot, BpmnEngineError, BpmnErrorSnapshot, BpmnEscalationSnapshot,
+    BpmnEventDeduplicationPolicy, BpmnEventKind, BpmnEventSpec, BpmnExecutionTraceEvent,
+    BpmnExecutionTraceEventKind, BpmnExtensionSnapshot, BpmnFlowElementMetadataSnapshot,
+    BpmnFontSnapshot, BpmnFrontierEntry, BpmnFrontierEntryStatus, BpmnFrontierExecutionBatch,
+    BpmnFrontierExecutionProposal, BpmnFrontierExecutionStep, BpmnFrontierParallelJoinMerge,
+    BpmnFrontierPlan, BpmnFrontierPlanAction, BpmnFrontierProposalSet, BpmnFrontierSnapshot,
+    BpmnGatewayKind, BpmnGlobalTaskSnapshot, BpmnGroupSnapshot, BpmnHostBridge,
+    BpmnHostWorkTokenId, BpmnHumanTaskAssignmentSpec, BpmnHumanTaskChoiceSpec,
+    BpmnHumanTaskFormSpec, BpmnHumanTaskFreeTextSpec, BpmnHumanTaskLifecycleEvent,
+    BpmnHumanTaskLifecycleEventKind, BpmnHumanTaskResourceRoleSpec, BpmnImportSnapshot,
+    BpmnIndexRange, BpmnInputSetSnapshot, BpmnInstanceInit, BpmnInstanceState,
+    BpmnInterfaceSnapshot, BpmnIoBindingSnapshot, BpmnIoSpecificationSnapshot,
+    BpmnItemDefinitionSnapshot, BpmnLabelSnapshot, BpmnLabelStyleSnapshot, BpmnLaneMembershipSpec,
+    BpmnLaneSetSnapshot, BpmnLaneSnapshot, BpmnMessageFlowAssociationSnapshot,
+    BpmnMessageFlowIntent, BpmnMessageFlowSnapshot, BpmnMessageSnapshot,
+    BpmnMultiInstanceDataBindingSpec, BpmnNodeIndex, BpmnNodeKind, BpmnNodeSpec,
+    BpmnOperationSnapshot, BpmnOutputSetSnapshot, BpmnPackage, BpmnParallelMultiInstanceSpec,
+    BpmnParseOptions, BpmnParticipantAssociationSnapshot, BpmnParticipantIntent,
+    BpmnParticipantMultiplicityIntent, BpmnParticipantMultiplicitySnapshot,
+    BpmnParticipantSnapshot, BpmnPartnerEntitySnapshot, BpmnPartnerRoleSnapshot,
+    BpmnPendingHostWorkIdentityMismatch, BpmnPlaneSnapshot,
+    BpmnProcessCorrelationSubscriptionIntent, BpmnProcessId, BpmnProcessPropertySnapshot,
+    BpmnProcessSnapshot, BpmnProcessSpec, BpmnRelationshipSnapshot, BpmnRepeatSpec,
+    BpmnResourceParameterBindingSnapshot, BpmnResourceParameterSnapshot, BpmnResourceRoleSnapshot,
+    BpmnResourceSnapshot, BpmnRootSnapshot, BpmnScriptTaskSpec, BpmnSequentialMultiInstanceSpec,
+    BpmnShapeSnapshot, BpmnSignalSnapshot, BpmnSourceFile, BpmnStandardLoopSpec,
+    BpmnSubProcessKind, BpmnTaskInputBinding, BpmnTaskInputSource, BpmnTaskIoSpec,
+    BpmnTaskOutputBinding, BpmnTextAnnotationSnapshot, BpmnTimerKind, BpmnTimerSpec,
+    BpmnWaypointSnapshot, BusinessRuleTaskOutcome, BusinessRuleTaskRequest, CallActivityFrame,
     DmnAssociationSnapshot, DmnBindingKind, DmnBoundsSnapshot, DmnBusinessKnowledgeModelDefinition,
     DmnBusinessKnowledgeModelSnapshot, DmnComparisonOperator, DmnContextEntry,
     DmnContextExpression, DmnDateComparison, DmnDateRange, DmnDateRangeBound,
@@ -270,83 +272,47 @@ pub use dmn_api::{
     DmnDecisionServiceReference, DmnDecisionServiceSnapshot, DmnDecisionSnapshot, DmnDecisionTable,
     DmnDiagramSnapshot, DmnDmndiSnapshot, DmnDocumentSnapshot, DmnDurationComparison,
     DmnDurationRange, DmnDurationRangeBound, DmnEdgeSnapshot, DmnElementCollectionSnapshot,
-    DmnEvaluationRequest, DmnEvaluationResult, DmnGroupSnapshot, DmnHitPolicy, DmnImportDefinition,
-    DmnImportSourceBinding, DmnInformationRequirementReference, DmnInputClause,
-    DmnInputDataDefinition, DmnInputDataSnapshot, DmnInputEntry, DmnInvocation,
-    DmnInvocationBinding, DmnInvocationParameter, DmnItemComponentSnapshot,
-    DmnItemDefinitionSnapshot, DmnKnowledgeRequirementReference, DmnKnowledgeSourceSnapshot,
-    DmnLabelSnapshot, DmnListExpression, DmnLiteralExpression, DmnNumericComparison,
-    DmnNumericRange, DmnNumericRangeBound, DmnOrganizationUnitSnapshot, DmnOutputClause,
-    DmnOutputEntry, DmnPerformanceIndicatorSnapshot, DmnRelationColumn, DmnRelationExpression,
-    DmnRelationRow, DmnRootSnapshot, DmnRule, DmnShapeSnapshot, DmnSourceDefinition, DmnSourceFile,
-    DmnTextAnnotationSnapshot, DmnTimeComparison, DmnTimeRange, DmnTimeRangeBound,
-    DmnVariableSnapshot, DmnWaypointSnapshot, evaluate_dmn_decision, parse_dmn_decision,
-    parse_dmn_decisions, snapshot_dmn_source,
-};
-pub use error::{BpmnEngineError, BpmnPendingHostWorkIdentityMismatch};
-pub use host_bridge_api::BpmnHostBridge;
-pub use host_types_api::{
-    BusinessRuleTaskOutcome, BusinessRuleTaskRequest, EventPollOutcome, EventPollRequest,
-    HostBridgeError, ManualTaskOutcome, ManualTaskRequest, ParallelMultiInstanceContext,
-    PendingHostWorkRequest, PendingHostWorkResult, RepeatExecutionContext, ScriptTaskOutcome,
-    ScriptTaskRequest, SendTaskOutcome, SendTaskRequest, SequentialMultiInstanceContext,
-    ServiceTaskOutcome, ServiceTaskRequest, UserTaskOutcome, UserTaskRequest,
-};
-pub use ir_data_api::BpmnDataObjectBindingSpec;
-pub use ir_edge_api::BpmnEdgeSpec;
-pub use ir_event_api::{BpmnEventKind, BpmnEventSpec, BpmnTimerKind, BpmnTimerSpec};
-pub use ir_index_api::{BpmnIndexRange, BpmnNodeIndex};
-pub use ir_node_api::{
-    BpmnGatewayKind, BpmnHumanTaskAssignmentSpec, BpmnHumanTaskChoiceSpec, BpmnHumanTaskFormSpec,
-    BpmnHumanTaskFreeTextSpec, BpmnHumanTaskResourceRoleSpec, BpmnLaneMembershipSpec, BpmnNodeKind,
-    BpmnNodeSpec, BpmnScriptTaskSpec, BpmnSubProcessKind, BpmnTaskInputBinding,
-    BpmnTaskInputSource, BpmnTaskIoSpec, BpmnTaskOutputBinding,
-};
-pub use ir_package_api::BpmnPackage;
-pub use ir_process_compensation::BpmnCompensationHandlerSpec;
-pub use ir_process_key::ProcessKey;
-pub use ir_process_spec::BpmnProcessSpec;
-pub use ir_repeat_api::{
-    BpmnMultiInstanceDataBindingSpec, BpmnParallelMultiInstanceSpec, BpmnRepeatSpec,
-    BpmnSequentialMultiInstanceSpec, BpmnStandardLoopSpec,
-};
-pub use lint_api::{
-    LintDomain, LintIssue, LintReport, LintSeverity, lint_bpmn_source, lint_dmn_source,
-};
-pub use repeat_condition_api::{GatewayConditionSummary, parse_gateway_condition_summary};
-pub use runtime_advance_api::{BpmnAdvanceOutcome, advance_instance};
-pub use runtime_claim_api::{
+    DmnEvaluationRequest, DmnEvaluationResult, DmnFunctionDefinitionLiteralSnapshot,
+    DmnFunctionDefinitionParameterSnapshot, DmnFunctionDefinitionSnapshot, DmnGroupSnapshot,
+    DmnHitPolicy, DmnImportDefinition, DmnImportSourceBinding, DmnInformationRequirementReference,
+    DmnInputClause, DmnInputDataDefinition, DmnInputDataSnapshot, DmnInputEntry, DmnInvocation,
+    DmnInvocationBinding, DmnInvocationBindingSnapshot, DmnInvocationLiteralSnapshot,
+    DmnInvocationParameter, DmnInvocationParameterSnapshot, DmnInvocationSnapshot,
+    DmnItemComponentSnapshot, DmnItemDefinitionSnapshot, DmnKnowledgeRequirementReference,
+    DmnKnowledgeSourceSnapshot, DmnLabelSnapshot, DmnListExpression, DmnLiteralExpression,
+    DmnNumericComparison, DmnNumericRange, DmnNumericRangeBound, DmnOrganizationUnitSnapshot,
+    DmnOutputClause, DmnOutputEntry, DmnPerformanceIndicatorSnapshot, DmnRelationColumn,
+    DmnRelationExpression, DmnRelationRow, DmnRequirementReferenceSnapshot, DmnRootSnapshot,
+    DmnRule, DmnShapeSnapshot, DmnSourceDefinition, DmnSourceFile, DmnTextAnnotationSnapshot,
+    DmnTimeComparison, DmnTimeRange, DmnTimeRangeBound, DmnVariableSnapshot, DmnWaypointSnapshot,
+    EventCompetitionState, EventPollOutcome, EventPollRequest, GatewayConditionSummary,
+    HostBridgeError, InclusiveJoinHint, InstanceLifecycle, JoinRuntimeState, LintDomain, LintIssue,
+    LintReport, LintSeverity, LintSourceDiagnostic, LintSourceSpan, ManualTaskOutcome,
+    ManualTaskRequest, MultiInstanceCollectionKey, MultiInstanceCollectionKind,
+    MultiInstanceCollectionSlot, MultiInstanceDataRuntimeState, MultiInstanceOutputCollectionState,
+    NodeRuntimeState, NodeRuntimeStatus, ParallelMultiInstanceContext,
+    ParallelMultiInstanceIterationState, ParallelMultiInstanceState, PendingHostWork,
+    PendingHostWorkClaim, PendingHostWorkKind, PendingHostWorkRequest, PendingHostWorkResult,
     PendingHumanTaskClaimOutcome, PendingHumanTaskClaimRequest, PendingHumanTaskReleaseOutcome,
-    PendingHumanTaskReleaseRequest, claim_pending_human_task, release_pending_human_task,
+    PendingHumanTaskReleaseRequest, ProcessKey, RepeatExecutionContext, ScriptTaskOutcome,
+    ScriptTaskRequest, SendTaskOutcome, SendTaskRequest, SequentialMultiInstanceContext,
+    SequentialMultiInstanceState, ServiceTaskOutcome, ServiceTaskRequest, StandardLoopState,
+    SuspendReason, TokenRecord, UserTaskOutcome, UserTaskRequest, WaitKind, WaitRegistration,
+    advance_instance, apply_event_poll_outcome, apply_pending_host_work_result,
+    bpmn_conformance_registry, build_event_poll_request, build_pending_host_work_request,
+    build_pending_host_work_requests, claim_pending_human_task, collect_frontier_proposals,
+    create_instance, decode_checkpoint_json, encode_checkpoint_json, evaluate_dmn_decision,
+    lease_key, lint_bpmn_source, lint_dmn_source, merge_frontier_execution_steps,
+    parse_bpmn_bundle, parse_bpmn_package, parse_dmn_decision, parse_dmn_decisions,
+    parse_gateway_condition_summary, plan_frontier_step, reduce_frontier_plan,
+    release_pending_human_task, snapshot_bpmn_source, snapshot_dmn_source, snapshot_frontier,
+    state_key,
 };
-pub use runtime_dispatch_api::{PendingHostWork, PendingHostWorkClaim, PendingHostWorkKind};
-pub use runtime_frontier_api::{
-    BpmnFrontierEntry, BpmnFrontierEntryStatus, BpmnFrontierExecutionBatch,
-    BpmnFrontierExecutionProposal, BpmnFrontierExecutionStep, BpmnFrontierParallelJoinMerge,
-    BpmnFrontierPlan, BpmnFrontierPlanAction, BpmnFrontierProposalSet, BpmnFrontierSnapshot,
-    collect_frontier_proposals, merge_frontier_execution_steps, plan_frontier_step,
-    reduce_frontier_plan, snapshot_frontier,
+#[cfg(feature = "valkey")]
+pub use facade::{
+    delete_checkpoint, delete_checkpoint_as_owner, load_checkpoint, release_checkpoint_lease,
+    renew_checkpoint_lease, save_checkpoint, save_checkpoint_as_owner,
+    try_acquire_checkpoint_lease,
 };
-pub use runtime_host_dispatch_api::{
-    build_pending_host_work_request, build_pending_host_work_requests,
-};
-pub use runtime_instance_api::{
-    BpmnExecutionTraceEvent, BpmnExecutionTraceEventKind, BpmnHumanTaskLifecycleEvent,
-    BpmnHumanTaskLifecycleEventKind, BpmnInstanceInit, BpmnInstanceState, CallActivityFrame,
-    EventCompetitionState, InstanceLifecycle, NodeRuntimeState, NodeRuntimeStatus, SuspendReason,
-    create_instance,
-};
-pub use runtime_join_api::JoinRuntimeState;
-pub use runtime_repeat_api::{
-    MultiInstanceCollectionKey, MultiInstanceCollectionKind, MultiInstanceCollectionSlot,
-    MultiInstanceDataRuntimeState, MultiInstanceOutputCollectionState,
-    ParallelMultiInstanceIterationState, ParallelMultiInstanceState, SequentialMultiInstanceState,
-    StandardLoopState,
-};
-pub use runtime_resume_api::apply_pending_host_work_result;
-pub use runtime_token_api::{InclusiveJoinHint, TokenRecord};
-pub use runtime_wait_api::{
-    WaitKind, WaitRegistration, apply_event_poll_outcome, build_event_poll_request,
-};
-
-xiuxian_testing::crate_testing_source_gate!("../tests/unit/lib_policy.rs");
+#[cfg(test)]
+rust_lang_project_harness::rust_project_harness_cargo_test_gate!();

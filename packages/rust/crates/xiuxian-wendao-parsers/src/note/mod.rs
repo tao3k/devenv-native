@@ -1,3 +1,5 @@
+//! Markdown note aggregation and fingerprinting.
+
 mod api;
 mod fingerprint;
 mod types;

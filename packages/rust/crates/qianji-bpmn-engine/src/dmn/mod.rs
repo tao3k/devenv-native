@@ -12,3 +12,4 @@ pub(crate) use api::{
     snapshot_dmn_source_sync, validate_dmn_context_expression_syntax,
     validate_dmn_literal_expression_syntax, validate_dmn_relation_expression_syntax,
 };
+pub(crate) use literal_expression::evaluate_dmn_literal_expression;

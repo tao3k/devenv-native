@@ -1,9 +1,9 @@
 use std::collections::BTreeMap;
 
-use xiuxian_qianhuan::RoleMixProfile;
-use xiuxian_testing::{
+use crate::contract_feedback::{
     AdvisoryAuditRequest, ArtifactKind, ContractFinding, EvidenceKind, FindingEvidence,
 };
+use xiuxian_qianhuan::RoleMixProfile;
 
 use super::QianjiAdvisoryRolePlan;
 

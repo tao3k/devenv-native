@@ -1,3 +1,5 @@
+//! Public operation result types for vector-store administration APIs.
+
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 

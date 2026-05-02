@@ -1,8 +1,8 @@
 use anyhow::{Context, Result};
 
-use super::super::types::{MemoryStreamConsumerRuntimeConfig, now_unix_ms};
+use crate::agent::memory_stream_consumer::types::{MemoryStreamConsumerRuntimeConfig, now_unix_ms};
 
-pub(in super::super) async fn ack_and_record_metrics(
+pub(in crate::agent::memory_stream_consumer) async fn ack_and_record_metrics(
     connection: &mut redis::aio::MultiplexedConnection,
     config: &MemoryStreamConsumerRuntimeConfig,
     event_id: &str,

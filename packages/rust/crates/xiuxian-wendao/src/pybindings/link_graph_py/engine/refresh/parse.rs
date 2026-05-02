@@ -1,4 +1,4 @@
-use super::super::PyLinkGraphEngine;
+use crate::pybindings::link_graph_py::engine::PyLinkGraphEngine;
 use pyo3::PyResult;
 use std::path::PathBuf;
 use std::time::Instant;

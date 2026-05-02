@@ -1,3 +1,5 @@
+//! MarkdownV2 escaping and formatting helpers for Telegram messages.
+
 use std::fmt::Write as _;
 
 use pulldown_cmark::{Event, Parser, Tag, TagEnd};

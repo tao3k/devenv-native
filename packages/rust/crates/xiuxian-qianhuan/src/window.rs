@@ -1,3 +1,5 @@
+//! System prompt injection window renderer for XML Q&A blocks.
+
 use std::collections::VecDeque;
 
 use crate::{InjectionError, InjectionWindowConfig, QaEntry, xml};

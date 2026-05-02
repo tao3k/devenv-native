@@ -1,3 +1,5 @@
+//! Rerank route metadata and schema constant contract.
+
 /// Canonical rerank-embedding dimension metadata header for Wendao Flight exchange requests.
 pub const WENDAO_RERANK_DIMENSION_HEADER: &str = "x-wendao-rerank-embedding-dimension";
 /// Canonical rerank top-k metadata header for Wendao Flight exchange requests.

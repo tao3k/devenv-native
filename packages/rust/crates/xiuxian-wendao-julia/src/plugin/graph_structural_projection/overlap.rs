@@ -1,3 +1,5 @@
+//! Keyword-overlap DTOs for graph-structural projection.
+
 use xiuxian_wendao_core::repo_intelligence::RepoIntelligenceError;
 
 use super::core::{

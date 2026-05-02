@@ -1,3 +1,5 @@
+//! HTTP handlers for JSON-RPC dispatch and health checks.
+
 use axum::{Extension, Json, body::Bytes};
 use serde::Serialize;
 use serde_json::{Value, json};

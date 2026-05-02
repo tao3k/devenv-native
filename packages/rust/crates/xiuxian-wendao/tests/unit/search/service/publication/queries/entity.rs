@@ -1,6 +1,11 @@
+use std::collections::HashSet;
 use std::iter::FromIterator;
+use std::sync::Arc;
+use std::time::Duration;
 
-use super::support::{publish_repo_entities, repo_search_service, *};
+use crate::search::service::tests::support::ok_or_panic;
+
+use super::support::{publish_repo_entities, repo_search_service};
 
 #[tokio::test]
 async fn search_repo_entities_reads_hits_from_published_table() {

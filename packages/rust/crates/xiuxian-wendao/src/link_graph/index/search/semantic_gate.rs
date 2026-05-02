@@ -1,4 +1,4 @@
-use super::super::{
+use crate::link_graph::index::{
     LinkGraphDirection, LinkGraphEdgeType, LinkGraphIndex, LinkGraphLinkFilter,
     LinkGraphRelatedFilter, LinkGraphSearchFilters, LinkGraphSearchOptions,
 };

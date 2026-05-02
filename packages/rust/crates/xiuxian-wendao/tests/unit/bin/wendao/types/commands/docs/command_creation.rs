@@ -1,4 +1,8 @@
-use super::*;
+use super::{
+    Command, DocsCommand, DocsNodeArgs, DocsPageArgs, DocsPageIndexArgs, DocsPageIndexOutlineArgs,
+    DocsSearchArgs, DocsSearchPageIndexArgs, DocsSegmentArgs, DocsTocArgs, ProjectionPageKindArg,
+    docs,
+};
 
 #[test]
 fn docs_command_creation_wraps_page_variant() {

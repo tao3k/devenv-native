@@ -1,4 +1,4 @@
-use super::helpers::{resolve_bool, resolve_usize};
+use super::scalar::{resolve_bool, resolve_usize};
 use crate::config::LinkGraphAgenticRuntimeConfig;
 use crate::config::constants::{
     LINK_GRAPH_AGENTIC_SEARCH_INCLUDE_PROVISIONAL_DEFAULT_ENV,

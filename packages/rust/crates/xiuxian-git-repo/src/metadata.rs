@@ -1,3 +1,5 @@
+//! Checkout metadata discovery and managed remote probe state.
+
 use std::cmp::Ordering;
 use std::fs;
 use std::path::Path;
@@ -8,8 +10,6 @@ use gix::bstr::ByteSlice;
 use serde::{Deserialize, Serialize};
 
 use crate::spec::RevisionSelector;
-use crate::sync::RepoDriftState;
-
 const MANAGED_REMOTE_PROBE_STATE_FILE: &str = "xiuxian-upstream-probe-state.json";
 
 /// Minimal metadata observed from a local checkout.
@@ -54,6 +54,24 @@ pub struct ManagedRemoteProbeState {
     /// Target revision from the last successful probe.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub last_success_target_revision: Option<String>,
+}
+
+/// Drift state between managed mirror and checkout.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum RepoDriftState {
+    /// Drift does not apply.
+    #[default]
+    NotApplicable,
+    /// Drift could not be determined.
+    Unknown,
+    /// Checkout and mirror are aligned.
+    InSync,
+    /// Checkout has local commits ahead of mirror.
+    Ahead,
+    /// Checkout is behind mirror.
+    Behind,
+    /// Checkout and mirror diverged.
+    Diverged,
 }
 
 /// Discovers metadata from a local checkout path.

@@ -5,9 +5,11 @@ use anyhow::{Result, anyhow};
 use tempfile::TempDir;
 use xiuxian_qianhuan::ManifestationManager;
 use xiuxian_wendao::graph::KnowledgeGraph;
-use xiuxian_zhixing::storage::MarkdownStorage;
+use xiuxian_zhixing::{ZhixingHeyi, storage::MarkdownStorage};
 
-use super::*;
+use super::{
+    NativeToolRegistry, ServiceMountCatalog, SkillRuntimeResolver, mount_native_tool_cauldron,
+};
 use crate::config::{WendaoGatewayConfig, XiuxianConfig};
 
 const AGENDA_ADD_MANIFEST: &str = r#"id = "xiuxian.zhixing.agenda.add"

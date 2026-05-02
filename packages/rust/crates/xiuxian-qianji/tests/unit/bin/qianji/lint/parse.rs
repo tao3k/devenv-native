@@ -1,4 +1,4 @@
-use super::*;
+use super::{LintCliCommand, PathBuf, must_ok, must_some, parse_lint_command, to_args};
 
 #[test]
 fn parse_lint_command_accepts_inferred_target() {

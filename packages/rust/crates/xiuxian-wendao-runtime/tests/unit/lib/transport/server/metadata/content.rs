@@ -4,8 +4,8 @@ use crate::transport::{
     validate_vfs_content_request_metadata, validate_vfs_resolve_request_metadata,
 };
 
-use super::super::assertions::{must_err, must_ok};
-use super::super::request_headers::{
+use crate::tests::transport::server::assertions::{must_err, must_ok};
+use crate::tests::transport::server::request_headers::{
     build_autocomplete_metadata, build_code_ast_analysis_metadata, build_definition_metadata,
     build_sql_metadata, build_vfs_content_metadata, build_vfs_resolve_metadata,
 };

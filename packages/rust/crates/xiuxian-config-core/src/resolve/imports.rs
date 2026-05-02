@@ -1,4 +1,7 @@
+//! Recursive TOML import loading and merge helpers.
+
 use super::env::ImportPathContext;
+use super::io::read_toml;
 use super::merge::merge_values;
 use crate::{ArrayMergeStrategy, ConfigCoreError};
 use std::path::{Path, PathBuf};
@@ -8,15 +11,7 @@ pub(super) fn load_file_with_imports(
     array_merge_strategy: ArrayMergeStrategy,
     import_context: &ImportPathContext,
 ) -> Result<toml::Value, ConfigCoreError> {
-    let raw_toml = std::fs::read_to_string(path).map_err(|source| ConfigCoreError::ReadFile {
-        path: path.display().to_string(),
-        source,
-    })?;
-    let value =
-        toml::from_str::<toml::Value>(&raw_toml).map_err(|source| ConfigCoreError::ParseFile {
-            path: path.display().to_string(),
-            source,
-        })?;
+    let value = read_toml(path)?;
     let mut stack = Vec::new();
     load_value_with_imports(
         value,
@@ -87,7 +82,7 @@ pub fn merge_toml_values(
     merge_values(base, overlay, array_merge_strategy);
 }
 
-fn load_value_with_imports(
+pub(super) fn load_value_with_imports(
     value: toml::Value,
     source_path: Option<&Path>,
     array_merge_strategy: ArrayMergeStrategy,
@@ -216,15 +211,7 @@ fn load_imported_value(
     }
 
     stack.push(normalized_path);
-    let raw_toml = std::fs::read_to_string(path).map_err(|source| ConfigCoreError::ReadFile {
-        path: path.display().to_string(),
-        source,
-    })?;
-    let value =
-        toml::from_str::<toml::Value>(&raw_toml).map_err(|source| ConfigCoreError::ParseFile {
-            path: path.display().to_string(),
-            source,
-        })?;
+    let value = read_toml(path)?;
     let resolved = load_value_with_imports(
         value,
         Some(path),

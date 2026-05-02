@@ -1,5 +1,5 @@
 use super::support::{create_node_with_observations, parse_observation};
-use super::*;
+use super::{SourceFile, check_code_observations};
 
 #[test]
 fn test_check_code_observations_valid_pattern() {

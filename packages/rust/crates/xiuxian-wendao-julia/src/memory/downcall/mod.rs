@@ -1,3 +1,5 @@
+//! Public downcall helpers for staging memory requests into Julia compute contracts.
+
 mod calibration;
 mod episodic_recall;
 mod gate_score;

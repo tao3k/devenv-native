@@ -1,4 +1,4 @@
-use super::super::enums::{LinkGraphScopeArg, RelatedPprSubgraphModeArg};
+use crate::bin_support::wendao::types::{LinkGraphScopeArg, RelatedPprSubgraphModeArg};
 use clap::Args;
 
 #[derive(Args, Debug, Default)]

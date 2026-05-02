@@ -1,3 +1,5 @@
+//! Retrieval runtime configuration records for Wendao search behavior.
+
 mod base;
 mod semantic_ignition;
 

@@ -1,4 +1,6 @@
-use super::*;
+use xiuxian_ast::{
+    Lang, extract_items, extract_skeleton, get_skeleton_patterns, semantic_fingerprint,
+};
 
 #[test]
 fn test_extract_python_functions() {

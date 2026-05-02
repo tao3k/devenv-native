@@ -21,5 +21,6 @@ pub(crate) use commands::{
 };
 pub(crate) use commands::{RepoCommand, RepoSyncModeArg};
 pub(crate) use enums::{
-    LinkGraphScopeArg, OutputFormat, ProjectionPageKindArg, RelatedPprSubgraphModeArg,
+    AttachmentKindArg, DecisionTargetStateArg, LinkGraphScopeArg, OutputFormat,
+    ProjectionPageKindArg, RelatedPprSubgraphModeArg, SuggestedLinkStateArg,
 };

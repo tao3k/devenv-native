@@ -1,6 +1,5 @@
 //! Action compiler module for Knowledge-Action synthesis.
 
-/// Processor primitives for action-compiler workflows.
-pub mod processor;
+mod compiler;
 
-pub use processor::ActionCompiler;
+pub use compiler::ActionCompiler;

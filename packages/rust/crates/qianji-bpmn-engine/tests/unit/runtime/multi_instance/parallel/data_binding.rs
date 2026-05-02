@@ -1,4 +1,4 @@
-use super::super::super::{StubHost, parallel_multi_instance_data_binding_process};
+use crate::runtime::{StubHost, parallel_multi_instance_data_binding_process};
 use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnInstanceInit, BpmnNodeKind, BpmnPackage, ServiceTaskOutcome,

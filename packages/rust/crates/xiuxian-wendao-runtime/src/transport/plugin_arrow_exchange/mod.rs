@@ -1,3 +1,5 @@
+//! Plugin Arrow exchange boundary for negotiated scoring roundtrips.
+
 mod errors;
 mod metadata;
 #[cfg(feature = "vector-store")]

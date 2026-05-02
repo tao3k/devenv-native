@@ -1,4 +1,4 @@
-use super::*;
+use super::analyze_markdown;
 use crate::gateway::studio::StudioState;
 use crate::gateway::studio::analysis::service::AnalysisError;
 use crate::gateway::studio::router::{GraphIndexCacheEntry, GraphSourceSignature};

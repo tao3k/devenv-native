@@ -1,3 +1,5 @@
+//! Test-only helpers for deterministic path resolution assertions.
+
 use std::path::{Path, PathBuf};
 
 /// Resolve a project-local home directory from an explicit env-like value.

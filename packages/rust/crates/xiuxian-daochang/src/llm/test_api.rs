@@ -1,3 +1,5 @@
+//! Test-only LLM backend adapters.
+
 use anyhow::Result;
 #[cfg(feature = "agent-provider-litellm")]
 use litellm_rs::core::types::chat::ChatMessage as LiteChatMessage;

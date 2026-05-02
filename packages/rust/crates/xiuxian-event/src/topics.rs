@@ -1,5 +1,12 @@
 //! Event topic constants for type-safe routing.
 
+/// Agent-related topic group.
+pub mod agent;
+/// File-related topic group.
+pub mod file;
+/// Omega workflow topic group.
+pub mod omega;
+
 /// File changed event
 pub const FILE_CHANGED: &str = "file/changed";
 /// File created event
@@ -126,46 +133,3 @@ pub const ALL_TOPICS: &[(&str, &str)] = &[
     ("OMEGA_SKILL_CRYSTALLIZED", OMEGA_SKILL_CRYSTALLIZED),
     ("TUI_EVENT", TUI_EVENT),
 ];
-
-/// Topics grouped by category
-pub mod file {
-    use super::{FILE_CHANGED, FILE_CREATED, FILE_DELETED, FILE_RENAMED};
-
-    /// File-related topics.
-    pub const TOPICS: &[(&str, &str)] = &[
-        ("CHANGED", FILE_CHANGED),
-        ("CREATED", FILE_CREATED),
-        ("DELETED", FILE_DELETED),
-        ("RENAMED", FILE_RENAMED),
-    ];
-}
-
-/// Agent-related topics.
-pub mod agent {
-    use super::{AGENT_ACTION, AGENT_RESULT, AGENT_THINK};
-
-    /// Agent lifecycle topics.
-    pub const TOPICS: &[(&str, &str)] = &[
-        ("THINK", AGENT_THINK),
-        ("ACTION", AGENT_ACTION),
-        ("RESULT", AGENT_RESULT),
-    ];
-}
-
-/// Omega workflow topics.
-pub mod omega {
-    use super::{
-        OMEGA_MISSION_COMPLETE, OMEGA_MISSION_FAIL, OMEGA_MISSION_START, OMEGA_TASK_COMPLETE,
-        OMEGA_TASK_FAIL, OMEGA_TASK_START,
-    };
-
-    /// Core omega execution topics.
-    pub const TOPICS: &[(&str, &str)] = &[
-        ("MISSION_START", OMEGA_MISSION_START),
-        ("MISSION_COMPLETE", OMEGA_MISSION_COMPLETE),
-        ("MISSION_FAIL", OMEGA_MISSION_FAIL),
-        ("TASK_START", OMEGA_TASK_START),
-        ("TASK_COMPLETE", OMEGA_TASK_COMPLETE),
-        ("TASK_FAIL", OMEGA_TASK_FAIL),
-    ];
-}

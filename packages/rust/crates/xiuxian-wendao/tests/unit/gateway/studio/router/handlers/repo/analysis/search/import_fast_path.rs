@@ -1,5 +1,5 @@
 use super::support::{sample_import_gateway_fixture, sample_repo_entity_gateway_fixture};
-use super::*;
+use super::{Arc, assert_studio_json_snapshot, run_repo_import_search};
 
 #[tokio::test]
 async fn repo_import_search_uses_repo_entity_fast_path_when_publication_ready() {

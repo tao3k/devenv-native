@@ -1,3 +1,5 @@
+//! Markdown target occurrence extraction.
+
 mod api;
 mod scan;
 mod types;

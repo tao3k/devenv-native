@@ -1,3 +1,5 @@
+//! Command model for host-runtime-agnostic `wendao get` subcommands.
+
 /// Reusable `wendao get` subcommands that stay host-runtime agnostic.
 #[derive(Debug, clap::Subcommand, Clone)]
 pub enum GetCommand {

@@ -289,10 +289,10 @@ Initial bounded progress for that slice is now landed:
 - LinkGraph topology discovery now has a typo-tolerant lexical title fallback backed by the same shared fuzzy primitives
 - Studio definition resolution, semantic-auditor fuzzy scoring, and graph dedup edit-distance scoring now reuse the shared primitives instead of carrying isolated edit-distance implementations
 - dedicated projection integration targets now validate the shared projected-page search/navigation/retrieval slice through a stable in-memory analysis fixture, avoiding the currently broken built-in Julia plugin bootstrap path while keeping the search-contract assertions in place
-- the `repo_projected_` slice of `xiuxian-testing-gate` is now back to green after updating the stale projection fixtures to the current contracts and accepting the deterministic snapshot drift
-- the `repo_example_search` slice of `xiuxian-testing-gate` now also passes with shared Tantivy-backed typo handling for example-title queries, and the stale CLI JSON snapshot baseline has been refreshed to the current payload shape
-- the filtered `repo_overview` and `repo_sync` slices of `xiuxian-testing-gate` are now green again after restoring overview aggregation semantics and managed-source drift/freshness classification, and the affected overview snapshots have been refreshed to the current symbol/diagnostic payload shape
-- focused lib tests now validate typo-tolerant Repo Intelligence module/symbol retrieval through `analyzers::service::search::tests::*`, which stays runnable even while the broader `xiuxian-testing-gate` target is blocked by unrelated compile failures
+- the `repo_projected_` slice of `wendao-validation-gate` is now back to green after updating the stale projection fixtures to the current contracts and accepting the deterministic snapshot drift
+- the `repo_example_search` slice of `wendao-validation-gate` now also passes with shared Tantivy-backed typo handling for example-title queries, and the stale CLI JSON snapshot baseline has been refreshed to the current payload shape
+- the filtered `repo_overview` and `repo_sync` slices of `wendao-validation-gate` are now green again after restoring overview aggregation semantics and managed-source drift/freshness classification, and the affected overview snapshots have been refreshed to the current symbol/diagnostic payload shape
+- focused lib tests now validate typo-tolerant Repo Intelligence module/symbol retrieval through `analyzers::service::search::tests::*`, which stays runnable even while the broader `wendao-validation-gate` target is blocked by unrelated compile failures
 - projected doc-kind inference now also honors the shared doc-format contract for standalone `reference` docs while still upgrading symbol-anchored explanation docs to `Reference`, which unblocked the shared projected-page lib tests and removed one source of repo-sync payload drift
 - the bundled Wendao gateway OpenAPI artifact now also covers `/api/analysis/code-ast`, keeping the route inventory test aligned with the runtime gateway surface
 - `cargo test -p xiuxian-wendao --lib` is now green again after refreshing the affected studio Markdown-analysis and repo-sync snapshot baselines to the current response contracts
@@ -377,13 +377,13 @@ rust-wendao-performance-gate` expands into
   perf entrypoint no longer depends on a duplicate in-crate gateway suite to
   keep `nextest` and `clippy` green
 - focused verification now covers the full default Wendao lib surface, the
-  `xiuxian-testing-gate` contract target, and the full default feature-gated
+  `wendao-validation-gate` contract target, and the full default feature-gated
   gateway perf suite:
   - `cargo test -p xiuxian-wendao --lib`
-  - `cargo test -p xiuxian-wendao --test xiuxian-testing-gate`
+  - `cargo test -p xiuxian-wendao --test wendao-validation-gate`
   - `cargo check -p xiuxian-wendao --features performance --tests`
-  - `cargo test -p xiuxian-wendao --features performance --test xiuxian-testing-gate -- --list`
-  - `cargo nextest run -p xiuxian-wendao --features performance --test xiuxian-testing-gate -E "not (test(performance::gateway_search::repo_module_search_perf_gate_reports_warm_cache_latency_formal_gate) | test(performance::gateway_search::repo_symbol_search_perf_gate_reports_warm_cache_latency_formal_gate) | test(performance::gateway_search::repo_example_search_perf_gate_reports_warm_cache_latency_formal_gate) | test(performance::gateway_search::repo_projected_page_search_perf_gate_reports_warm_cache_latency_formal_gate) | test(performance::gateway_search::studio_code_search_perf_gate_reports_warm_cache_latency_formal_gate) | test(performance::gateway_search::search_index_status_perf_gate_reports_query_telemetry_summary_formal_gate))"`
+  - `cargo test -p xiuxian-wendao --features performance --test wendao-validation-gate -- --list`
+  - `cargo nextest run -p xiuxian-wendao --features performance --test wendao-validation-gate -E "not (test(performance::gateway_search::repo_module_search_perf_gate_reports_warm_cache_latency_formal_gate) | test(performance::gateway_search::repo_symbol_search_perf_gate_reports_warm_cache_latency_formal_gate) | test(performance::gateway_search::repo_example_search_perf_gate_reports_warm_cache_latency_formal_gate) | test(performance::gateway_search::repo_projected_page_search_perf_gate_reports_warm_cache_latency_formal_gate) | test(performance::gateway_search::studio_code_search_perf_gate_reports_warm_cache_latency_formal_gate) | test(performance::gateway_search::search_index_status_perf_gate_reports_query_telemetry_summary_formal_gate))"`
   - `just rust-wendao-performance-gateway-formal`
   - `just rust-wendao-performance-gate`
   - `cargo nextest run -p xiuxian-wendao`

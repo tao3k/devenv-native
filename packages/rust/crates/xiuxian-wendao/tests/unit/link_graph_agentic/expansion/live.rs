@@ -1,4 +1,24 @@
-use super::support::*;
+use super::support::{
+    GenericTopologyCandidateBuildOptions, GenericTopologyCandidateScores,
+    GraphStructuralFilterRequestRow, RegisteredRepository, RepositoryPluginConfig,
+    RepositoryRefreshPolicy, TestResult, assert_solver_demo_generic_topology_row_basics,
+    assert_solver_demo_generic_topology_row_infeasible,
+    assert_solver_demo_generic_topology_row_shape, build_graph_structural_filter_request_batch,
+    build_graph_structural_keyword_overlap_pair_candidate_metadata_inputs,
+    build_graph_structural_keyword_overlap_query_inputs,
+    build_graph_structural_keyword_overlap_raw_candidate_inputs, build_index_fixture,
+    build_raw_connected_pair_collection_candidate_from_pairs,
+    build_raw_connected_pair_collection_candidates_from_plan,
+    build_raw_seed_centered_pair_collection_candidates_from_plan,
+    build_worker_partition_generic_topology_candidate_fixtures_from_plan,
+    default_agentic_execution_relation_edge_kind, expansion_config,
+    fetch_generic_topology_rows_via_manifest_discovery,
+    fetch_graph_structural_filter_rows_for_repository,
+    fetch_graph_structural_keyword_overlap_pair_rerank_rows_for_repository_from_raw_candidates,
+    first_connected_pair_collection,
+    linked_builtin_spawn_wendaosearch_solver_demo_multi_route_service,
+    linked_builtin_spawn_wendaosearch_solver_demo_structural_rerank_service,
+};
 
 #[tokio::test]
 #[serial_test::serial(julia_live)]

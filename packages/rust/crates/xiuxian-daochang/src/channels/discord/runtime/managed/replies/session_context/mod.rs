@@ -1,3 +1,5 @@
+//! Discord session-context reply branch for status, budget, and memory output.
+
 mod json;
 mod mode;
 mod text;

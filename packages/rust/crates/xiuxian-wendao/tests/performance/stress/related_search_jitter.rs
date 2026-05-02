@@ -1,11 +1,9 @@
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use xiuxian_testing::{PerfBudget, PerfRunConfig, assert_perf_budget, run_async_budget};
-
 use crate::performance::support::{
-    RELATED_LIMIT, RELATED_MAX_DISTANCE, build_index, default_ppr_options, env_f64, env_u64,
-    env_usize, seed_set,
+    PerfBudget, PerfRunConfig, RELATED_LIMIT, RELATED_MAX_DISTANCE, assert_perf_budget,
+    build_index, default_ppr_options, env_f64, env_u64, env_usize, run_async_budget, seed_set,
 };
 
 const SUITE: &str = "xiuxian-wendao/perf/stress";

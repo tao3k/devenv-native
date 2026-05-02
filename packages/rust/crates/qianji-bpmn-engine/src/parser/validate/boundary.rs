@@ -5,7 +5,7 @@ use crate::parser::import::{RawNode, RawProcess, RawRepeatSpec, RawSubProcessKin
 use std::collections::{HashMap, HashSet};
 
 #[derive(Debug, Default)]
-pub(super) struct BoundaryAttachmentUsage {
+pub(in crate::parser) struct BoundaryAttachmentUsage {
     total: u32,
     cancel: u32,
     transaction_error: u32,
@@ -27,7 +27,7 @@ enum BoundaryOwnerKind {
     TransactionShell,
 }
 
-pub(super) fn validate_boundary_event(
+pub(in crate::parser) fn validate_boundary_event(
     process: &RawProcess,
     node: &RawNode,
     node_ids: &HashSet<&str>,

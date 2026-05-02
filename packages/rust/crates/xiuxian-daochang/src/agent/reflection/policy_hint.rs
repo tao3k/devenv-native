@@ -1,3 +1,5 @@
+//! Policy hint derivation from turn reflection snapshots.
+
 use serde::{Deserialize, Serialize};
 
 use crate::contracts::{OmegaFallbackPolicy, OmegaRiskLevel, OmegaRoute, OmegaToolTrustClass};

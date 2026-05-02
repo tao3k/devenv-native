@@ -1,3 +1,5 @@
+//! Native Zhenfa tool adapters for Qianhuan render and reload actions.
+
 use schemars::JsonSchema;
 use serde::Deserialize;
 use serde_json::Value;

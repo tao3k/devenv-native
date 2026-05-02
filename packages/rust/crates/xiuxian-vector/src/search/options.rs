@@ -1,3 +1,5 @@
+//! User-tunable search scanner options and projection defaults.
+
 use crate::{
     CONTENT_COLUMN, FILE_PATH_COLUMN, ID_COLUMN, INTENTS_COLUMN, ROUTING_KEYWORDS_COLUMN,
     TOOL_NAME_COLUMN,

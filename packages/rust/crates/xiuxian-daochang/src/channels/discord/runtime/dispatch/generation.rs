@@ -1,4 +1,4 @@
-use super::ForegroundInterruptController;
+use crate::channels::discord::runtime::ForegroundInterruptController;
 
 pub(super) fn begin_active_generation(
     interrupt_controller: &ForegroundInterruptController,

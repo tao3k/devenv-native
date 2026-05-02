@@ -27,8 +27,6 @@ impl QianjiMechanism for EchoAssetMechanism {
     }
 }
 
-xiuxian_testing::crate_test_policy_harness!();
-
 #[derive(Debug, Default)]
 struct ProduceAgendaMechanism;
 

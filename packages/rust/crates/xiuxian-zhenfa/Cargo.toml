@@ -20,11 +20,11 @@ tracing = { workspace = true }
 tempfile = { workspace = true }
 uuid = { workspace = true }
 xiuxian-macros = { path = "../xiuxian-macros" }
-xiuxian-testing = { path = "../xiuxian-testing" }
 pulldown-cmark = { workspace = true }
 quick-xml = { workspace = true }
 
 [dev-dependencies]
+rust-lang-project-harness = { workspace = true }
 tokio = { workspace = true, features = ["rt-multi-thread", "macros", "time", "sync"] }
 
 [lints]

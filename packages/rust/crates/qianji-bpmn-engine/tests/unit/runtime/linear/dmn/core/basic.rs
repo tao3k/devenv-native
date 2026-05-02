@@ -1,4 +1,4 @@
-use super::super::assert_local_business_rule_task;
+use crate::runtime::linear::dmn::assert_local_business_rule_task;
 use serde_json::json;
 
 #[tokio::test(flavor = "current_thread")]

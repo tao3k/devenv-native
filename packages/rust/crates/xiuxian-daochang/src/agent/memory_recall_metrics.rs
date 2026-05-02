@@ -1,3 +1,5 @@
+//! Memory recall metric aggregation and summary snapshots.
+
 use num_traits::ToPrimitive;
 
 use crate::{Agent, SessionMemoryRecallDecision};

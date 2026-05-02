@@ -41,6 +41,7 @@ mod photo;
 #[path = "upload_api/server_bootstrap.rs"]
 mod server_bootstrap;
 
+use super::bootstrap;
 use server_bootstrap::{spawn_upload_media_group_server, spawn_upload_photo_server};
 
 #[derive(Clone, Debug)]

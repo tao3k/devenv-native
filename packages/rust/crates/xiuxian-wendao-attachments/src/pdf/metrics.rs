@@ -1,3 +1,5 @@
+//! OCR shard metrics Arrow sidecar schema and batch builders.
+
 use std::sync::Arc;
 
 use arrow::array::{ArrayRef, Float64Array, Int32Array, StringArray};
@@ -6,9 +8,12 @@ use arrow::record_batch::RecordBatch;
 
 use super::ocr::{PdfOcrShardInput, PdfOcrShardResult};
 
+/// Stable Arrow filename for OCR shard metrics sidecars.
 pub const DOCUMENT_METRICS_ARROW_CACHE_NAME: &str = "_metrics.arrow";
+/// Stable schema version for OCR shard metrics sidecars.
 pub const DOCUMENT_METRICS_SCHEMA_VERSION: &str = "xiuxian_wendao.document_metrics.v1";
 
+/// One normalized metric row emitted for a PDF OCR shard result.
 #[derive(Debug, Clone, PartialEq)]
 pub struct PdfOcrShardMetric {
     pub contract_version: String,
@@ -35,6 +40,7 @@ pub struct PdfOcrShardMetric {
 }
 
 impl PdfOcrShardMetric {
+    /// Build a metric row from the OCR worker input/result pair.
     #[must_use]
     pub fn from_ocr_result(
         input: &PdfOcrShardInput,
@@ -86,6 +92,7 @@ impl PdfOcrShardMetric {
     }
 }
 
+/// Return the stable Arrow schema for OCR shard metrics.
 #[must_use]
 pub fn document_metrics_schema() -> SchemaRef {
     Arc::new(Schema::new(vec![

@@ -37,6 +37,26 @@ Execution results are fed back into the **Wendao** knowledge graph as "Episodic 
 - **Reminders**: Time-aware semantic triggers for agentic re-activation.
 - **Blockers**: Formal detection and handling of physical obstacles to the "Unity of Action."
 
+## Project Policy Gate
+
+`xiuxian-zhixing` uses `rust-lang-project-harness` as its active
+project-policy gate with no disabled-rule baseline. The gate is mounted from
+the library, root unit-test target, and shared lib-policy target.
+
+The strict gate requires all diagnostics to be closed, including informational
+agent-policy output. Current owner-boundary fixes connect the action compiler,
+config, and interface modules to the crate tree, keep facade files thin, move
+embedded resources to `src/resources.rs`, remove duplicate public names, and
+replace test glob imports with explicit owner imports.
+
+Current verification:
+
+- `cargo test -p xiuxian-zhixing enforce_rust_project_harness_gate -- --nocapture`
+- `cargo test -p xiuxian-zhixing --lib --test unit_test`
+- `cargo test -p xiuxian-zhixing --all-features`
+- `cargo fmt --package xiuxian-zhixing --check`
+- `cargo clippy -p xiuxian-zhixing --all-targets --all-features -- -D warnings`
+
 ---
 
 **CyberXiuXian Artisan Workshop** - _Unifying Knowledge and Action in the Neural Backbone._

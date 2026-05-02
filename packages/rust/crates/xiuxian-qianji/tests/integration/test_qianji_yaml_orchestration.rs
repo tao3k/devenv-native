@@ -33,5 +33,3 @@ async fn test_qianji_native_toml_orchestration_diamond() {
     assert_eq!(result["A"], "done");
     assert_eq!(result["D"], "done");
 }
-
-xiuxian_testing::crate_test_policy_harness!();

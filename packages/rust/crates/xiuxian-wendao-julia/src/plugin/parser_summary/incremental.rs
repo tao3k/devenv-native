@@ -1,8 +1,10 @@
+//! Incremental parser-summary helpers for Julia sources.
+
 use serde::Serialize;
 use xiuxian_wendao_core::repo_intelligence::{RegisteredRepository, RepoIntelligenceError};
 
 use super::fetch::fetch_julia_parser_file_summary_blocking_for_repository;
-use super::types::JuliaParserFileSummary;
+use super::types::{JuliaParserFileSummary, JuliaSourceId};
 
 /// Return whether one Julia source file is safe for leaf-only incremental
 /// analysis under the native parser-summary contract.
@@ -18,9 +20,10 @@ use super::types::JuliaParserFileSummary;
 /// fails.
 pub fn julia_parser_summary_allows_safe_incremental_file_for_repository(
     repository: &RegisteredRepository,
-    source_id: &str,
+    source_id: JuliaSourceId<'_>,
     source_text: &str,
 ) -> Result<bool, RepoIntelligenceError> {
+    let source_id = source_id.as_str();
     let summary = fetch_julia_parser_file_summary_blocking_for_repository(
         repository,
         source_id,
@@ -39,9 +42,10 @@ pub fn julia_parser_summary_allows_safe_incremental_file_for_repository(
 /// fails.
 pub fn julia_parser_summary_file_semantic_fingerprint_for_repository(
     repository: &RegisteredRepository,
-    source_id: &str,
+    source_id: JuliaSourceId<'_>,
     source_text: &str,
 ) -> Result<String, RepoIntelligenceError> {
+    let source_id = source_id.as_str();
     let summary = fetch_julia_parser_file_summary_blocking_for_repository(
         repository,
         source_id,

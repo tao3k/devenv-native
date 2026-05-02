@@ -1,6 +1,8 @@
+//! Agentic settings application boundary for typed runtime config updates.
+
 mod execution;
 mod expansion;
-mod helpers;
+mod scalar;
 mod search;
 mod suggested;
 

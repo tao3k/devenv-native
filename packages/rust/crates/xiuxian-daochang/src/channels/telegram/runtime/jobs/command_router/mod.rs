@@ -1,3 +1,5 @@
+//! Telegram command router branch for background, managed, and session routes.
+
 mod background;
 mod dispatch;
 mod foreground;

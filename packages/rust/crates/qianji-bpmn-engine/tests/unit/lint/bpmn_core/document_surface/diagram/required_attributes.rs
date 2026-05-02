@@ -1,4 +1,4 @@
-use super::*;
+use crate::lint::{LintDomain, bpmn_fixture_source, lint_bpmn_source};
 
 #[test]
 fn bpmn_linter_reports_missing_di_required_attributes_before_metadata_guidance() {

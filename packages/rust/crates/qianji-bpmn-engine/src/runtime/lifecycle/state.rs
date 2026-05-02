@@ -1,3 +1,5 @@
+//! runtime lifecycle state branch wiring for focused BPMN/DMN owner leaves.
+
 #[path = "state_join.rs"]
 mod join;
 #[path = "state_lookup.rs"]

@@ -27,6 +27,16 @@ Retained Python testing covers only:
 
 Python agent/skill/runtime test suites are gone with the deleted packages.
 
+Python project-policy checks consume `python-lang-project-harness` from its
+standalone repository. Do not add new repo-local Python parser or project
+harness forks for package tests.
+
+Rust project-policy gates consume `rust-lang-project-harness` where a crate
+only needs layout, modularity, and agent-policy checks. The retired repo-local
+testing crate must not be reintroduced; scenario, contract, or performance
+helper needs must use explicit successor surfaces owned by the relevant package
+or standalone harness.
+
 ## Recommended Commands
 
 ```bash

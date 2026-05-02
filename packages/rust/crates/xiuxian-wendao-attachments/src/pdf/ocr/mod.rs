@@ -1,0 +1,19 @@
+//! OCR shard input/result contracts and Arrow batch conversion helpers.
+
+mod batches;
+mod types;
+
+pub use batches::{
+    build_ocr_result_resource_batch, build_ocr_shard_input_batch, build_ocr_shard_inputs,
+    build_ocr_shard_result_batch, decode_ocr_shard_input_batch, decode_ocr_shard_input_batches,
+    decode_ocr_shard_result_batch, decode_ocr_shard_result_batches,
+};
+pub use types::{
+    OcrShardManifestSource, PDF_OCR_DEFAULT_PROFILE, PDF_OCR_SHARD_INPUT_SCHEMA_VERSION,
+    PDF_OCR_SHARD_RESULT_SCHEMA_VERSION, PdfOcrShardInput, PdfOcrShardResult,
+    PdfOcrShardResultStatus, PdfOcrWorkerProfile,
+};
+
+#[cfg(test)]
+#[path = "../../../tests/unit/pdf/ocr/mod.rs"]
+mod tests;

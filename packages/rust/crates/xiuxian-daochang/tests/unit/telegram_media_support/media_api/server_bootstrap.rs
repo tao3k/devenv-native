@@ -3,7 +3,7 @@
 use anyhow::Result;
 use axum::{Router, routing::post};
 
-use super::super::bootstrap::spawn_test_server;
+use super::bootstrap::spawn_test_server;
 use super::{MockTelegramMediaState, routing::handle_method};
 
 pub(super) async fn spawn_media_api_server(

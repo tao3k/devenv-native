@@ -1,3 +1,5 @@
+//! Parser-owned document metadata aggregation.
+
 mod api;
 mod types;
 

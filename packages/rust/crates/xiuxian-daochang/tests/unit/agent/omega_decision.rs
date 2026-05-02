@@ -1,6 +1,6 @@
 //! Test coverage for xiuxian-daochang behavior.
 
-use xiuxian_daochang::test_support::PolicyHintDirective;
+use xiuxian_daochang::test_support::TestPolicyHintDirective;
 use xiuxian_daochang::{
     OmegaDecision, OmegaFallbackPolicy, OmegaRiskLevel, OmegaRoute, OmegaToolTrustClass,
 };
@@ -27,7 +27,7 @@ fn apply_policy_hint_overrides_route_risk_and_trust() {
         drift_tolerance: None,
         next_audit_turn: None,
     };
-    let hint = PolicyHintDirective {
+    let hint = TestPolicyHintDirective {
         source_turn_id: 10,
         preferred_route: OmegaRoute::Graph,
         confidence_delta: -0.2,

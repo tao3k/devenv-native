@@ -1,3 +1,5 @@
+//! Context budget telemetry and reset-window persistence.
+
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::config::ContextBudgetStrategy;

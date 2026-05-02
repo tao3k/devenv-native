@@ -3,6 +3,10 @@
 use std::sync::Arc;
 use std::time::Duration;
 
+use crate::search::queries::{
+    SearchQueryService,
+    rest::{RestQueryPayload, RestQueryRequest, query_rest_payload},
+};
 use axum::{
     Json,
     extract::State,
@@ -16,12 +20,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use tokio_stream::iter;
 use uuid::Uuid;
-use xiuxian_wendao::search::queries::{
-    SearchQueryService,
-    rest::{RestQueryPayload, RestQueryRequest, query_rest_payload},
-};
 
-use crate::execute::gateway::shared::AppState;
+use crate::bin_support::wendao::execute::gateway::shared::AppState;
 
 /// Compatibility HTTP route used by bounded external query clients.
 pub(crate) const GATEWAY_QUERY_AXUM_PATH: &str = "/query";

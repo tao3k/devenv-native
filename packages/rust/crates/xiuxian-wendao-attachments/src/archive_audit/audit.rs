@@ -1,3 +1,5 @@
+//! Archive manifest audit implementation and supported-path checks.
+
 use std::collections::BTreeMap;
 use std::fs::File;
 use std::io::{BufReader, Read};

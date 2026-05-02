@@ -1,3 +1,5 @@
+//! Arrow request batch construction for Plugin Arrow exchange scoring.
+
 use std::{collections::BTreeMap, fmt, sync::Arc};
 
 use arrow_array::{FixedSizeListArray, Float32Array, Float64Array, RecordBatch, StringArray};

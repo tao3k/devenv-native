@@ -1,6 +1,6 @@
 //! Cargo entry point for `qianji-bpmn-engine` unit tests.
 
-xiuxian_testing::crate_test_policy_harness!();
+rust_lang_project_harness::rust_project_harness_gate!();
 
 #[path = "unit/test_support.rs"]
 mod test_support;

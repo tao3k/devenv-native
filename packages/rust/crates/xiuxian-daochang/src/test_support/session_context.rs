@@ -22,14 +22,17 @@ pub async fn build_session_context_test_agent(
 }
 
 #[must_use]
+/// Returns the current Unix timestamp in milliseconds.
 pub fn now_unix_ms() -> u64 {
     session_context::test_now_unix_ms()
 }
 
+/// Overrides the session reset idle timeout on a test agent.
 pub fn set_session_reset_idle_timeout_ms(agent: &mut Agent, timeout_ms: Option<u64>) {
     agent.test_set_session_reset_idle_timeout_ms(timeout_ms);
 }
 
+/// Sets the last-activity timestamp for a test session.
 pub async fn set_session_last_activity(agent: &Agent, session_id: &str, unix_ms: u64) {
     agent
         .test_set_session_last_activity(session_id, unix_ms)
