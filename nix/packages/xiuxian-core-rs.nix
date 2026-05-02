@@ -63,6 +63,14 @@ python3Packages.buildPythonPackage {
 
   preConfigure = ''
     mkdir -p .cargo
+    rust_harness_rev="$(
+      sed -n 's#^source = "git+https://github\.com/tao3k/rust-lang-project-harness?rev=\([^#"]*\).*#\1#p' ${workspaceRoot}/Cargo.lock | head -n1
+    )"
+    if [ -z "$rust_harness_rev" ]; then
+      echo "failed to resolve rust-lang-project-harness rev from Cargo.lock" >&2
+      exit 1
+    fi
+
     cat > .cargo/git-sources.toml <<EOF
     [source."git+https://github.com/tao3k/litellm-rs?branch=xiuxian"]
     git = "https://github.com/tao3k/litellm-rs"
@@ -84,9 +92,9 @@ python3Packages.buildPythonPackage {
     rev = "63b55731337c18baf23319b73cc9780bb23ac61b"
     replace-with = "vendored-sources"
 
-    [source."git+https://github.com/tao3k/rust-lang-project-harness?rev=0b38834b220038f0c0edb6e5435ed23069a1a343"]
+    [source."git+https://github.com/tao3k/rust-lang-project-harness?rev=''${rust_harness_rev}"]
     git = "https://github.com/tao3k/rust-lang-project-harness"
-    rev = "0b38834b220038f0c0edb6e5435ed23069a1a343"
+    rev = "''${rust_harness_rev}"
     replace-with = "vendored-sources"
     EOF
 
