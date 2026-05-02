@@ -6,9 +6,34 @@ from pathlib import Path
 
 from python_lang_project_harness import (
     PythonHarnessFinding,
+    default_python_harness_config,
+    python_agent_policy_rules,
+    python_modularity_rules,
+    python_project_policy_rules,
     run_python_lang_harness,
     run_python_project_harness,
 )
+
+EXPECTED_DEFAULT_RULE_PACKS = {
+    "python.agent_policy",
+    "python.modern_design",
+    "python.modularity",
+    "python.project_policy",
+    "python.syntax",
+    "python.test_layout",
+}
+
+
+def test_python_project_harness_uses_all_default_rule_packs() -> None:
+    config = default_python_harness_config()
+
+    assert not config.disabled_rule_ids
+    assert {
+        rule_pack.pack_id for rule_pack in config.rule_packs or ()
+    } == EXPECTED_DEFAULT_RULE_PACKS
+    assert tuple(python_agent_policy_rules())
+    assert tuple(python_modularity_rules())
+    assert tuple(python_project_policy_rules())
 
 
 def test_python_project_harness_blocks_all_default_findings() -> None:
