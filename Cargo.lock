@@ -8909,7 +8909,7 @@ dependencies = [
 [[package]]
 name = "rust-lang-project-harness"
 version = "0.1.0"
-source = "git+https://github.com/tao3k/rust-lang-project-harness?rev=dc88f30251151209ac9b47ac5b88a57483cb8d54#dc88f30251151209ac9b47ac5b88a57483cb8d54"
+source = "git+https://github.com/tao3k/rust-lang-project-harness?rev=20e9456e94ce59500c830ccde32ec78299480f84#20e9456e94ce59500c830ccde32ec78299480f84"
 dependencies = [
  "cargo_toml",
  "proc-macro2",
