@@ -63,13 +63,34 @@ python3Packages.buildPythonPackage {
 
   preConfigure = ''
     mkdir -p .cargo
-    rust_harness_rev="$(
-      sed -n 's#^source = "git+https://github\.com/tao3k/rust-lang-project-harness?rev=\([^#"]*\).*#\1#p' ${workspaceRoot}/Cargo.lock | head -n1
-    )"
-    if [ -z "$rust_harness_rev" ]; then
-      echo "failed to resolve rust-lang-project-harness rev from Cargo.lock" >&2
-      exit 1
-    fi
+    cargo_lock_git_rev() {
+      repo_url="$1"
+      rev="$(
+        sed -n "s#^source = \"git+''${repo_url//./\\.}?rev=\\([^#\"]*\\).*#\\1#p" ${workspaceRoot}/Cargo.lock | head -n1
+      )"
+      if [ -z "$rev" ]; then
+        echo "failed to resolve git rev for $repo_url from Cargo.lock" >&2
+        exit 1
+      fi
+      printf "%s" "$rev"
+    }
+    cargo_lock_git_rev_or_default() {
+      repo_url="$1"
+      fallback_rev="$2"
+      rev="$(
+        sed -n "s#^source = \"git+''${repo_url//./\\.}?rev=\\([^#\"]*\\).*#\\1#p" ${workspaceRoot}/Cargo.lock | head -n1
+      )"
+      if [ -n "$rev" ]; then
+        printf "%s" "$rev"
+      else
+        printf "%s" "$fallback_rev"
+      fi
+    }
+
+    export LOPDF_REV="$(cargo_lock_git_rev "https://github.com/J-F-Liu/lopdf")"
+    export ORGIZE_REV="$(cargo_lock_git_rev "https://github.com/tao3k/orgize")"
+    export PDF_INSPECTOR_REV="$(cargo_lock_git_rev_or_default "https://github.com/firecrawl/pdf-inspector" "63b55731337c18baf23319b73cc9780bb23ac61b")"
+    export RUST_LANG_PROJECT_HARNESS_REV="$(cargo_lock_git_rev "https://github.com/tao3k/rust-lang-project-harness")"
 
     cat > .cargo/git-sources.toml <<EOF
     [source."git+https://github.com/tao3k/litellm-rs?branch=xiuxian"]
@@ -77,24 +98,24 @@ python3Packages.buildPythonPackage {
     branch = "xiuxian"
     replace-with = "vendored-sources"
 
-    [source."git+https://github.com/J-F-Liu/lopdf?rev=7a05512d831415b1f2b1ce522391d6beab8a1284"]
+    [source."git+https://github.com/J-F-Liu/lopdf?rev=''${LOPDF_REV}"]
     git = "https://github.com/J-F-Liu/lopdf"
-    rev = "7a05512d831415b1f2b1ce522391d6beab8a1284"
+    rev = "''${LOPDF_REV}"
     replace-with = "vendored-sources"
 
-    [source."git+https://github.com/tao3k/orgize?rev=b663a07fc9697ee82bac6c4995de1bc92b88ba05"]
+    [source."git+https://github.com/tao3k/orgize?rev=''${ORGIZE_REV}"]
     git = "https://github.com/tao3k/orgize"
-    rev = "b663a07fc9697ee82bac6c4995de1bc92b88ba05"
+    rev = "''${ORGIZE_REV}"
     replace-with = "vendored-sources"
 
-    [source."git+https://github.com/firecrawl/pdf-inspector?rev=63b55731337c18baf23319b73cc9780bb23ac61b"]
+    [source."git+https://github.com/firecrawl/pdf-inspector?rev=''${PDF_INSPECTOR_REV}"]
     git = "https://github.com/firecrawl/pdf-inspector"
-    rev = "63b55731337c18baf23319b73cc9780bb23ac61b"
+    rev = "''${PDF_INSPECTOR_REV}"
     replace-with = "vendored-sources"
 
-    [source."git+https://github.com/tao3k/rust-lang-project-harness?rev=''${rust_harness_rev}"]
+    [source."git+https://github.com/tao3k/rust-lang-project-harness?rev=''${RUST_LANG_PROJECT_HARNESS_REV}"]
     git = "https://github.com/tao3k/rust-lang-project-harness"
-    rev = "''${rust_harness_rev}"
+    rev = "''${RUST_LANG_PROJECT_HARNESS_REV}"
     replace-with = "vendored-sources"
     EOF
 
