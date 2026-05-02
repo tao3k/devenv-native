@@ -1,6 +1,6 @@
 ---
 type: knowledge
-title: "Research Report Workflow: From \"Give me the UltraRAG report\" to Delivery"
+title: 'Research Report Workflow: From "Give me the UltraRAG report" to Delivery'
 category: "workflows"
 tags:
   - workflows
@@ -8,7 +8,7 @@ tags:
 saliency_base: 6.0
 decay_rate: 0.05
 metadata:
-  title: "Research Report Workflow: From \"Give me the UltraRAG report\" to Delivery"
+  title: 'Research Report Workflow: From "Give me the UltraRAG report" to Delivery'
 ---
 
 # Research Report Workflow: From "Give me the UltraRAG report" to Delivery

@@ -44,10 +44,10 @@ Agent interprets results and answers user
 
 ## Knowledge Tools to Use
 
-| Tool                 | When to use                                                                                  | Example                                                     |
-| -------------------- | -------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| **knowledge.recall** | Semantic search over the vector store (ingested PDFs, markdown, etc.)                        | Query: "multimodal document parsing overview abstract"      |
-| **knowledge.search** | Hybrid (LinkGraph + vector) or keyword-only; good when you want both notes and ingested docs | Query: "document parsing ingest paper", mode: "hybrid"      |
+| Tool                 | When to use                                                                                  | Example                                                |
+| -------------------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| **knowledge.recall** | Semantic search over the vector store (ingested PDFs, markdown, etc.)                        | Query: "multimodal document parsing overview abstract" |
+| **knowledge.search** | Hybrid (LinkGraph + vector) or keyword-only; good when you want both notes and ingested docs | Query: "document parsing ingest paper", mode: "hybrid" |
 
 Both can surface content from an ingested PDF. Recall returns `content`, `source`, `score`; search returns merged results with `source` and reasoning.
 

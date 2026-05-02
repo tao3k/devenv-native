@@ -30,12 +30,7 @@
       "minimum": 0
     }
   },
-  "required": [
-    "checked_files",
-    "files_with_issues",
-    "issue_count",
-    "files"
-  ],
+  "required": ["checked_files", "files_with_issues", "issue_count", "files"],
   "$defs": {
     "MarkdownLintFileReport": {
       "description": "Aggregate lint results for one Markdown file.",
@@ -59,11 +54,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "path",
-        "issue_count",
-        "issues"
-      ]
+      "required": ["path", "issue_count", "issues"]
     },
     "MarkdownLintIssue": {
       "description": "One rendered Markdown lint issue scoped to a specific file.",
@@ -81,17 +72,11 @@
         },
         "expected": {
           "description": "Concrete expected rewrite when available.",
-          "type": [
-            "string",
-            "null"
-          ]
+          "type": ["string", "null"]
         },
         "found": {
           "description": "Exact offending source literal when available.",
-          "type": [
-            "string",
-            "null"
-          ]
+          "type": ["string", "null"]
         },
         "kind": {
           "description": "High-level classification for this issue.",
@@ -113,48 +98,26 @@
         },
         "source": {
           "description": "Exact source line when available.",
-          "type": [
-            "string",
-            "null"
-          ]
+          "type": ["string", "null"]
         },
         "target": {
           "description": "Target extracted from the offending link when available.",
-          "type": [
-            "string",
-            "null"
-          ]
+          "type": ["string", "null"]
         },
         "target_heading": {
           "description": "Heading fragment extracted from the target when available.",
-          "type": [
-            "string",
-            "null"
-          ]
+          "type": ["string", "null"]
         },
         "target_title": {
           "description": "Resolved title for the target document when available.",
-          "type": [
-            "string",
-            "null"
-          ]
+          "type": ["string", "null"]
         },
         "tip": {
           "description": "Short extra fix hint for human or LLM consumers.",
-          "type": [
-            "string",
-            "null"
-          ]
+          "type": ["string", "null"]
         }
       },
-      "required": [
-        "code",
-        "kind",
-        "problem",
-        "message",
-        "line",
-        "column"
-      ]
+      "required": ["code", "kind", "problem", "message", "line", "column"]
     }
   }
 }

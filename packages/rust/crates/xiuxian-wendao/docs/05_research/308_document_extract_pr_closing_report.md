@@ -43,23 +43,23 @@ The structured attachment suite covered DOCX, XLSX, PPTX, Markdown, AsciiDoc,
 HTML, CSV, USPTO XML, JATS XML, XBRL XML, METS GBS, Docling JSON, WebVTT, and
 LaTeX.
 
-| Metric                         |       Value |
-| ------------------------------ | ----------: |
-| Fixtures                       |          14 |
-| Error rows                     |           0 |
-| Precision gate                 |        true |
-| Structure rows                 |         116 |
-| BBox blocks                    |          23 |
-| Structure order sorted         |        true |
-| Structure order stable         |        true |
-| Max force latency              | 16213.839 ms |
-| Max Docling convert latency    | 15988.353 ms |
-| Max cache p95 latency          |    10.482 ms |
-| Max artifact registry reuse    |   120.525 ms |
-| Archive audit count            |           1 |
-| Archive member count           |          10 |
-| Archive XML members            |           1 |
-| Archive image members          |           3 |
+| Metric                         |                                Value |
+| ------------------------------ | -----------------------------------: |
+| Fixtures                       |                                   14 |
+| Error rows                     |                                    0 |
+| Precision gate                 |                                 true |
+| Structure rows                 |                                  116 |
+| BBox blocks                    |                                   23 |
+| Structure order sorted         |                                 true |
+| Structure order stable         |                                 true |
+| Max force latency              |                         16213.839 ms |
+| Max Docling convert latency    |                         15988.353 ms |
+| Max cache p95 latency          |                            10.482 ms |
+| Max artifact registry reuse    |                           120.525 ms |
+| Archive audit count            |                                    1 |
+| Archive member count           |                                   10 |
+| Archive XML members            |                                    1 |
+| Archive image members          |                                    3 |
 | Archive acceleration candidate | `mets_gbs_member_manifest_candidate` |
 
 Class-level result:
@@ -91,12 +91,12 @@ Interpretation:
 The real OCR-positive PDF fixture was arXiv `2604.17337`, with 21
 OCR-positive pages.
 
-| Profile                         | Force ms | Cache p95 ms | Shard-cache rebuild ms | Resource rows | Structure rows | OCR page blocks | BBox blocks | Result chars | Order stable | Error rows |
-| ------------------------------- | -------: | -----------: | ---------------------: | ------------: | -------------: | --------------: | ----------: | -----------: | ------------ | ---------: |
-| Current default adaptive profile | 45941.076 |       11.921 |                144.232 |            21 |             21 |              21 |          21 |      103984 | true         |          0 |
-| Source-range override 4          | 43917.250 |       23.209 |                213.161 |            21 |             21 |              21 |          21 |      103984 | true         |          0 |
-| Source-range override 1          | 53258.791 |        5.954 |                171.860 |            21 |             21 |              21 |          21 |      103984 | true         |          0 |
-| Four local OCR endpoints         | 47726.578 |        5.021 |                168.824 |            21 |             21 |              21 |          21 |      103984 | true         |          0 |
+| Profile                          |  Force ms | Cache p95 ms | Shard-cache rebuild ms | Resource rows | Structure rows | OCR page blocks | BBox blocks | Result chars | Order stable | Error rows |
+| -------------------------------- | --------: | -----------: | ---------------------: | ------------: | -------------: | --------------: | ----------: | -----------: | ------------ | ---------: |
+| Current default adaptive profile | 45941.076 |       11.921 |                144.232 |            21 |             21 |              21 |          21 |       103984 | true         |          0 |
+| Source-range override 4          | 43917.250 |       23.209 |                213.161 |            21 |             21 |              21 |          21 |       103984 | true         |          0 |
+| Source-range override 1          | 53258.791 |        5.954 |                171.860 |            21 |             21 |              21 |          21 |       103984 | true         |          0 |
+| Four local OCR endpoints         | 47726.578 |        5.021 |                168.824 |            21 |             21 |              21 |          21 |       103984 | true         |          0 |
 
 The current local closing run is slower than the earlier 19-21 second
 source-range evidence recorded during the PDF milestone, but it keeps the same
@@ -106,15 +106,15 @@ error rows.
 
 A direct Docling probe on the same PDF showed the source of the slowdown:
 
-| Probe                                   |       Value |
-| --------------------------------------- | ----------: |
-| Docling version in lockfile             |      2.91.0 |
-| `convert(page_range=(1, 21))`           | 47855.014 ms |
-| Page-break markdown export             |    94.900 ms |
-| Exported page parts                     |          21 |
-| Exported markdown chars                 |      104903 |
-| `num_threads=8` convert                 | 50130.220 ms |
-| `num_threads=12` convert                | 52044.386 ms |
+| Probe                         |        Value |
+| ----------------------------- | -----------: |
+| Docling version in lockfile   |       2.91.0 |
+| `convert(page_range=(1, 21))` | 47855.014 ms |
+| Page-break markdown export    |    94.900 ms |
+| Exported page parts           |           21 |
+| Exported markdown chars       |       104903 |
+| `num_threads=8` convert       | 50130.220 ms |
+| `num_threads=12` convert      | 52044.386 ms |
 
 Interpretation:
 
