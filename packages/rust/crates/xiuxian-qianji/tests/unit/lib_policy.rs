@@ -125,11 +125,11 @@ fn qianji_rust_harness_config() -> RustHarnessConfig {
                 RustVerificationTaskKind::Performance,
                 RustVerificationTaskContract::new(
                     RustVerificationPhase::AfterUnitTestsPass,
-                    "performance skill must report BPMN runtime scheduler latency evidence",
+                    "performance skill must report BPMN runtime scheduler latency evidence from cargo bench -p xiuxian-qianji --no-default-features --features performance --bench qianji_bpmn_runtime",
                     [
                         RustVerificationRequirement::new(
                             "benchmark_command",
-                            "criterion benchmark command",
+                            "cargo bench -p xiuxian-qianji --no-default-features --features performance --bench qianji_bpmn_runtime",
                         ),
                         RustVerificationRequirement::new(
                             "latency_or_throughput",
