@@ -23,3 +23,12 @@ fn exposes_gateway_route_contract_namespace() {
         "gateway route contracts should expose the health route"
     );
 }
+
+#[cfg(feature = "studio")]
+#[test]
+fn exposes_studio_namespace_when_enabled() {
+    assert_eq!(
+        std::any::type_name::<xiuxian_wendao_web::studio::StudioState>(),
+        "xiuxian_wendao::gateway::studio::router::state::types::StudioState"
+    );
+}

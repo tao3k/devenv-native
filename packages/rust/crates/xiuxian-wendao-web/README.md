@@ -12,8 +12,8 @@ before the gateway implementation is physically moved.
 This crate owns:
 
 - HTTP and gateway namespace exports.
-- Studio web API namespace exports.
 - OpenAPI document and route contract exports.
+- Studio web API namespace exports behind the `studio` feature.
 - Web-facing compatibility imports during the migration.
 
 `xiuxian-wendao` continues to own graph, search, repository indexing, parser,
@@ -26,3 +26,7 @@ not depend on `xiuxian-wendao-web`.
 New web and gateway callers should prefer `xiuxian_wendao_web`. Existing
 `xiuxian_wendao::gateway` callers remain supported while implementation modules
 are migrated in later slices.
+
+The default feature set stays light and exposes the gateway/OpenAPI contract
+surface. Enable `studio` when a caller needs the full Studio router, gateway
+state, and service-boundary handlers.
