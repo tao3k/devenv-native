@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use crate::duckdb::ParquetQueryEngine;
-use crate::gateway::studio::types::SearchHit;
+use crate::search::contracts::SearchHit;
 use crate::search::repo_entity::query::hydrate::{
     engine_float64_column, engine_list_string_column, engine_list_string_values,
     engine_string_column, engine_uint32_column, hit_json_projection_columns, id_filter_expression,

@@ -1,0 +1,38 @@
+---
+source: packages/rust/crates/xiuxian-wendao-studio/tests/unit/gateway/studio/support.rs
+expression: value
+---
+{
+  "repo_id": "alpha/repo",
+  "examples": [
+    {
+      "repo_id": "alpha/repo",
+      "example_id": "example:solve",
+      "title": "Solve example",
+      "path": "examples/solve.jl",
+      "summary": "Shows solve"
+    }
+  ],
+  "example_hits": [
+    {
+      "example": {
+        "repo_id": "alpha/repo",
+        "example_id": "example:solve",
+        "title": "Solve example",
+        "path": "examples/solve.jl",
+        "summary": "Shows solve"
+      },
+      "score": 0.9090909090909091,
+      "rank": 1,
+      "saliency_score": 0.0,
+      "hierarchical_uri": "wendao://repo/unknown/alpha/repo/examples/examples:solve.jl/example:solve",
+      "hierarchy": [
+        "examples",
+        "solve.jl"
+      ],
+      "projection_page_ids": [
+        "repo:alpha/repo:projection:howto:example:example:solve"
+      ]
+    }
+  ]
+}

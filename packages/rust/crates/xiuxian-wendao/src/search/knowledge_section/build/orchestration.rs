@@ -1,13 +1,13 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
-use crate::gateway::studio::types::UiProjectConfig;
 use crate::search::cache::SearchPlaneFileFingerprintScope;
+use crate::search::contracts::UiProjectConfig;
 use crate::search::knowledge_section::build::rows::build_knowledge_section_rows_for_entry;
 use crate::search::knowledge_section::build::types::KnowledgeSectionBuildPlan;
 use crate::search::knowledge_section::build::write::write_knowledge_section_epoch;
 use crate::search::knowledge_section::schema::projected_columns;
-#[cfg(test)]
+#[cfg(any(test, feature = "test-support"))]
 use crate::search::scan_note_project_files;
 use crate::search::{
     BeginBuildDecision, ProjectScannedFile, SearchCorpusKind, SearchFileFingerprint,
@@ -17,8 +17,8 @@ use tokio::runtime::Handle;
 
 const KNOWLEDGE_SECTION_EXTRACTOR_VERSION: u32 = 1;
 
-#[cfg(test)]
-pub(crate) fn ensure_knowledge_section_index_started(
+#[cfg(any(test, feature = "test-support"))]
+pub fn ensure_knowledge_section_index_started(
     service: &SearchPlaneService,
     project_root: &Path,
     config_root: &Path,
@@ -44,7 +44,7 @@ pub(crate) fn ensure_knowledge_section_index_started(
     )
 }
 
-pub(crate) fn ensure_knowledge_section_index_started_with_scanned_files(
+pub fn ensure_knowledge_section_index_started_with_scanned_files(
     service: &SearchPlaneService,
     project_root: &Path,
     config_root: &Path,
@@ -175,7 +175,7 @@ fn ensure_knowledge_section_index_started_with_fingerprint_and_scanned_files(
     true
 }
 
-#[cfg(test)]
+#[cfg(any(test, feature = "test-support"))]
 pub(super) fn plan_knowledge_section_build(
     service: &SearchPlaneService,
     project_root: &Path,

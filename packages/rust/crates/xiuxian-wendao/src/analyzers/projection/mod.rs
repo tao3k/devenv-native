@@ -42,10 +42,10 @@ pub use node_lookup::build_repo_projected_page_index_node as build_projected_pag
 pub use pages::build_projected_pages;
 pub use retrieval_context::build_projected_retrieval_context;
 pub use retrieval_lookup::build_projected_retrieval_hit;
-#[cfg(feature = "studio")]
-pub(crate) use search::build_projected_page_search_index;
+#[cfg(feature = "search-runtime")]
+pub use search::build_projected_page_search_index;
 pub use search::build_repo_projected_page_search as build_projected_page_search;
-#[cfg(feature = "studio")]
-pub(crate) use search::build_repo_projected_page_search_with_artifacts;
+#[cfg(feature = "search-runtime")]
+pub use search::build_repo_projected_page_search_with_artifacts;
 pub use tree_lookup::build_projected_page_index_tree;
 pub use tree_search::build_repo_projected_page_index_tree_search as build_projected_page_index_tree_search;

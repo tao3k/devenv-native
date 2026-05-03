@@ -1,36 +1,32 @@
-use xiuxian_wendao_web::openapi::{
-    bundled_wendao_gateway_openapi_path, load_bundled_wendao_gateway_openapi_document,
-};
+const WEB_MANIFEST: &str = include_str!("../../Cargo.toml");
 
 #[test]
-fn exposes_openapi_document_namespace() {
-    let document = load_bundled_wendao_gateway_openapi_document().unwrap_or_else(|error| {
-        panic!("bundled Wendao gateway OpenAPI document should parse: {error}")
-    });
-
-    assert_eq!(document["openapi"].as_str(), Some("3.1.0"));
-    let path = bundled_wendao_gateway_openapi_path();
-    assert!(path.is_file(), "bundled OpenAPI path should exist");
-}
-
-#[cfg(feature = "studio")]
-#[test]
-fn exposes_gateway_route_contract_namespace() {
-    use xiuxian_wendao_web::openapi::WENDAO_GATEWAY_ROUTE_CONTRACTS;
+fn web_manifest_does_not_own_studio_or_domain_dependencies() {
+    let forbidden_dependencies = [
+        "xiuxian-wendao =",
+        "xiuxian-wendao-julia",
+        "xiuxian-wendao-parsers",
+        "xiuxian-wendao-attachments",
+        "xiuxian-wendao-runtime",
+        "xiuxian-zhenfa",
+        "xiuxian-db-store",
+        "xiuxian-git-repo",
+        "xiuxian-config-core",
+        "xiuxian-ast",
+        "axum =",
+        "duckdb =",
+        "comrak =",
+        "notify =",
+        "reqwest =",
+    ];
+    let leaked_dependencies = forbidden_dependencies
+        .iter()
+        .copied()
+        .filter(|dependency| WEB_MANIFEST.contains(dependency))
+        .collect::<Vec<_>>();
 
     assert!(
-        WENDAO_GATEWAY_ROUTE_CONTRACTS
-            .iter()
-            .any(|contract| contract.axum_path == "/api/health"),
-        "gateway route contracts should expose the health route"
-    );
-}
-
-#[cfg(feature = "studio")]
-#[test]
-fn exposes_studio_namespace_when_enabled() {
-    assert_eq!(
-        std::any::type_name::<xiuxian_wendao_web::studio::StudioState>(),
-        "xiuxian_wendao::gateway::studio::router::state::types::StudioState"
+        leaked_dependencies.is_empty(),
+        "xiuxian-wendao-web still owns non-transport dependencies: {leaked_dependencies:?}"
     );
 }

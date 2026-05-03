@@ -2,8 +2,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 use std::time::Duration;
 
-use crate::gateway::studio::types::UiProjectConfig;
 use crate::search::cache::SearchPlaneCache;
+use crate::search::contracts::UiProjectConfig;
 use crate::search::local_symbol::plan_local_symbol_build;
 use crate::search::reference_occurrence::build::{
     ensure_reference_occurrence_index_started, fingerprint_projects,

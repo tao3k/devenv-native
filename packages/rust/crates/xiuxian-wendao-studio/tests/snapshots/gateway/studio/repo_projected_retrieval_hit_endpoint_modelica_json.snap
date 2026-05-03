@@ -1,0 +1,91 @@
+---
+source: packages/rust/crates/xiuxian-wendao-studio/tests/unit/gateway/studio/support.rs
+expression: value
+---
+{
+  "hit": {
+    "kind": "page_index_node",
+    "node": {
+      "doc_id": "reference/projectionica-controllers-pi-7fb7f723f28e",
+      "line_range": [
+        19,
+        28
+      ],
+      "node_id": "reference/projectionica-controllers-pi-7fb7f723f28e#anchors",
+      "node_title": "Anchors",
+      "page_id": "repo:modelica-gateway-projected-retrieval-hit:projection:reference:symbol:repo:modelica-gateway-projected-retrieval-hit:symbol:Projectionica.Controllers.PI",
+      "page_kind": "reference",
+      "page_title": "Projectionica.Controllers.PI",
+      "path": "reference/projectionica-controllers-pi-7fb7f723f28e.md",
+      "repo_id": "modelica-gateway-projected-retrieval-hit",
+      "structural_path": [
+        "Overview",
+        "Anchors"
+      ],
+      "text": ":ID: anchors\n:PATHS: Controllers/PI.mo, Controllers/package.mo\n\nModules:\n- `Projectionica.Controllers` (Controllers/package.mo)\n\nSymbols:\n- `Projectionica.Controllers.PI` (Controllers/PI.mo)"
+    },
+    "page": {
+      "doc_id": "repo:modelica-gateway-projected-retrieval-hit:doc:Controllers/PI.mo#annotation.documentation",
+      "doc_ids": [
+        "repo:modelica-gateway-projected-retrieval-hit:doc:Controllers/PI.mo#annotation.documentation"
+      ],
+      "example_ids": [],
+      "format_hints": [
+        "modelica_annotation"
+      ],
+      "keywords": [
+        "Controllers/PI.mo",
+        "Projectionica.Controllers.PI",
+        "modelica_annotation",
+        "repo:modelica-gateway-projected-retrieval-hit:doc:Controllers/PI.mo#annotation.documentation"
+      ],
+      "kind": "reference",
+      "module_ids": [
+        "repo:modelica-gateway-projected-retrieval-hit:module:Projectionica.Controllers"
+      ],
+      "page_id": "repo:modelica-gateway-projected-retrieval-hit:projection:reference:symbol:repo:modelica-gateway-projected-retrieval-hit:symbol:Projectionica.Controllers.PI",
+      "path": "Controllers/PI.mo",
+      "paths": [
+        "Controllers/PI.mo",
+        "Controllers/PI.mo#annotation.documentation"
+      ],
+      "repo_id": "modelica-gateway-projected-retrieval-hit",
+      "sections": [
+        {
+          "body": "Projected reference page for `Projectionica.Controllers.PI`.\nFormat hints:\n- `modelica_annotation`\nSource paths:\n- `Controllers/PI.mo`\n- `Controllers/PI.mo#annotation.documentation`",
+          "level": 1,
+          "paths": [
+            "Controllers/PI.mo",
+            "Controllers/PI.mo#annotation.documentation"
+          ],
+          "section_id": "repo:modelica-gateway-projected-retrieval-hit:projection:reference:symbol:repo:modelica-gateway-projected-retrieval-hit:symbol:Projectionica.Controllers.PI#overview",
+          "title": "Overview"
+        },
+        {
+          "body": "Modules:\n- `Projectionica.Controllers` (Controllers/package.mo)\n\nSymbols:\n- `Projectionica.Controllers.PI` (Controllers/PI.mo)",
+          "level": 2,
+          "paths": [
+            "Controllers/PI.mo",
+            "Controllers/package.mo"
+          ],
+          "section_id": "repo:modelica-gateway-projected-retrieval-hit:projection:reference:symbol:repo:modelica-gateway-projected-retrieval-hit:symbol:Projectionica.Controllers.PI#anchors",
+          "title": "Anchors"
+        },
+        {
+          "body": "Documentation:\n- `PI documentation` (Controllers/PI.mo#annotation.documentation)",
+          "level": 2,
+          "paths": [
+            "Controllers/PI.mo#annotation.documentation"
+          ],
+          "section_id": "repo:modelica-gateway-projected-retrieval-hit:projection:reference:symbol:repo:modelica-gateway-projected-retrieval-hit:symbol:Projectionica.Controllers.PI#sources",
+          "title": "Documentation"
+        }
+      ],
+      "symbol_ids": [
+        "repo:modelica-gateway-projected-retrieval-hit:symbol:Projectionica.Controllers.PI"
+      ],
+      "title": "Projectionica.Controllers.PI"
+    }
+  },
+  "repo_id": "modelica-gateway-projected-retrieval-hit"
+}

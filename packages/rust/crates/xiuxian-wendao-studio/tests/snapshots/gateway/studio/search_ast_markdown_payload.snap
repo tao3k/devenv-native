@@ -1,0 +1,57 @@
+---
+source: packages/rust/crates/xiuxian-wendao-studio/tests/unit/gateway/studio/support.rs
+expression: value
+---
+{
+  "hitCount": 2,
+  "hits": [
+    {
+      "crateName": "docs",
+      "language": "markdown",
+      "lineEnd": 5,
+      "lineStart": 3,
+      "name": "AST Search",
+      "navigationTarget": {
+        "category": "doc",
+        "column": null,
+        "line": 3,
+        "lineEnd": 5,
+        "path": "docs/03_features/204_gateway_api_contracts.md",
+        "projectName": "kernel",
+        "rootLabel": "docs"
+      },
+      "nodeKind": "section",
+      "ownerTitle": null,
+      "path": "docs/03_features/204_gateway_api_contracts.md",
+      "projectName": "kernel",
+      "rootLabel": "docs",
+      "score": 0.97,
+      "signature": "## AST Search"
+    },
+    {
+      "crateName": "docs",
+      "language": "markdown",
+      "lineEnd": 5,
+      "lineStart": 5,
+      "name": "Verify docs AST alignment.",
+      "navigationTarget": {
+        "category": "doc",
+        "column": null,
+        "line": 5,
+        "lineEnd": 5,
+        "path": "docs/03_features/204_gateway_api_contracts.md",
+        "projectName": "kernel",
+        "rootLabel": "docs"
+      },
+      "nodeKind": "task",
+      "ownerTitle": null,
+      "path": "docs/03_features/204_gateway_api_contracts.md",
+      "projectName": "kernel",
+      "rootLabel": "docs",
+      "score": 0.93,
+      "signature": "- [ ] Verify docs AST alignment."
+    }
+  ],
+  "query": "ast",
+  "selectedScope": "definitions"
+}

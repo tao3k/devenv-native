@@ -2,23 +2,23 @@ use std::path::Path;
 
 use tokio::runtime::Handle;
 
-use crate::gateway::studio::types::UiProjectConfig;
 use crate::search::cache::SearchPlaneFileFingerprintScope;
-#[cfg(test)]
+use crate::search::contracts::UiProjectConfig;
+#[cfg(any(test, feature = "test-support"))]
 use crate::search::reference_occurrence::build::ReferenceOccurrenceBuildError;
 use crate::search::{
     BeginBuildDecision, ProjectScannedFile, SearchCorpusKind, SearchPlaneService,
     fingerprint_source_projects_from_scanned_files,
 };
 
-#[cfg(test)]
+#[cfg(any(test, feature = "test-support"))]
 use crate::search::reference_occurrence::build::plan_reference_occurrence_build;
 use crate::search::reference_occurrence::build::{
     plan_reference_occurrence_build_with_scanned_files, write_reference_occurrence_epoch,
 };
 
-#[cfg(test)]
-pub(crate) fn ensure_reference_occurrence_index_started(
+#[cfg(any(test, feature = "test-support"))]
+pub fn ensure_reference_occurrence_index_started(
     service: &SearchPlaneService,
     project_root: &Path,
     config_root: &Path,
@@ -45,7 +45,7 @@ pub(crate) fn ensure_reference_occurrence_index_started(
     )
 }
 
-pub(crate) fn ensure_reference_occurrence_index_started_with_scanned_files(
+pub fn ensure_reference_occurrence_index_started_with_scanned_files(
     service: &SearchPlaneService,
     project_root: &Path,
     config_root: &Path,
@@ -177,8 +177,8 @@ fn ensure_reference_occurrence_index_started_with_fingerprint_and_scanned_files(
     true
 }
 
-#[cfg(test)]
-pub(crate) async fn publish_reference_occurrences_from_projects(
+#[cfg(any(test, feature = "test-support"))]
+pub async fn publish_reference_occurrences_from_projects(
     service: &SearchPlaneService,
     project_root: &Path,
     config_root: &Path,

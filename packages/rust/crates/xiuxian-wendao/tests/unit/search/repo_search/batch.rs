@@ -1,4 +1,4 @@
-use crate::gateway::studio::types::{SearchHit, StudioNavigationTarget};
+use crate::search::contracts::{SearchHit, StudioNavigationTarget};
 
 #[test]
 fn repo_search_batch_from_hits_rejects_navigation_lines_outside_i32_range() {

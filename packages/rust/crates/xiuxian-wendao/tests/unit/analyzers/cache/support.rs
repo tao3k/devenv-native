@@ -1,10 +1,10 @@
 use std::collections::{BTreeMap, HashMap};
 
 use crate::analyzers::RepositoryPluginConfig;
-pub(super) use crate::gateway::studio::search::handlers::tests::linked_parser_summary::{
+use crate::search::SearchDocumentIndex;
+pub(super) use crate::test_support::linked_parser_summary::{
     ensure_linked_modelica_parser_summary_service, ensure_linked_parser_summary_service,
 };
-use crate::search::SearchDocumentIndex;
 
 use crate::analyzers::cache::{RepositoryAnalysisCacheKey, RepositorySearchArtifacts};
 

@@ -1,0 +1,195 @@
+[package]
+name = "xiuxian-wendao-studio"
+version.workspace = true
+edition.workspace = true
+description = "Studio HTTP and gateway adapter boundary for Wendao"
+authors.workspace = true
+license.workspace = true
+publish = false
+default-run = "wendao"
+
+[features]
+default = []
+studio = [
+  "zhenfa-router",
+]
+zhenfa-router = [
+  "dep:anyhow",
+  "dep:arrow",
+  "dep:arrow-flight",
+  "dep:async-trait",
+  "dep:axum",
+  "dep:blake3",
+  "dep:chrono",
+  "dep:comrak",
+  "dep:duckdb",
+  "dep:futures",
+  "dep:globset",
+  "dep:log",
+  "dep:notify",
+  "dep:notify-debouncer-full",
+  "dep:prost",
+  "dep:reqwest",
+  "dep:schemars",
+  "dep:serde",
+  "dep:serde_json",
+  "dep:serde_yaml",
+  "dep:sha2",
+  "dep:specta",
+  "dep:specta-typescript",
+  "dep:tempfile",
+  "dep:thiserror",
+  "dep:tokio",
+  "dep:tokio-stream",
+  "dep:tokio-util",
+  "dep:toml",
+  "dep:tonic",
+  "dep:tonic-web",
+  "dep:tower",
+  "dep:uuid",
+  "dep:walkdir",
+  "dep:xiuxian-ast",
+  "dep:xiuxian-config-core",
+  "dep:xiuxian-db-store",
+  "dep:xiuxian-git-repo",
+  "dep:xiuxian-io",
+  "dep:xiuxian-wendao",
+  "dep:xiuxian-wendao-core",
+  "dep:xiuxian-wendao-parsers",
+  "dep:xiuxian-wendao-web",
+  "dep:xiuxian-zhenfa",
+  "xiuxian-wendao-web/transport",
+  "xiuxian-wendao/builtin-plugins",
+  "xiuxian-wendao/duckdb",
+  "xiuxian-wendao/repo-lexical-index",
+  "xiuxian-wendao/zhenfa-router",
+]
+duckdb = [
+  "zhenfa-router",
+  "xiuxian-wendao/duckdb",
+]
+julia = [
+  "zhenfa-router",
+  "dep:xiuxian-wendao-julia",
+  "xiuxian-wendao/julia",
+]
+performance = [
+  "studio",
+  "xiuxian-wendao/performance",
+]
+performance-stress = ["performance"]
+cli-bin-support = [
+  "studio",
+  "dep:clap",
+  "dep:xiuxian-logging",
+  "dep:xiuxian-wendao-client",
+]
+document-extract-pdf-source-range = [
+  "zhenfa-router",
+  "dep:xiuxian-wendao-attachments",
+  "xiuxian-wendao/document-extract-pdf-source-range",
+  "xiuxian-wendao-attachments/pdf-source-range",
+]
+document-extract-pdf-render = [
+  "document-extract-pdf-source-range",
+  "xiuxian-wendao/document-extract-pdf-render",
+  "xiuxian-wendao-attachments/pdf-render",
+]
+
+[[bench]]
+name = "wendao_studio_performance"
+harness = false
+required-features = ["performance"]
+
+[[bin]]
+name = "wendao"
+path = "src/bin/wendao/main.rs"
+required-features = ["cli-bin-support", "zhenfa-router"]
+
+[[bin]]
+name = "export_types"
+path = "src/bin/export_types.rs"
+required-features = ["cli-bin-support"]
+
+[[bin]]
+name = "wendao_search_flight_server"
+path = "src/bin/wendao_search_flight_server.rs"
+required-features = ["cli-bin-support", "zhenfa-router"]
+
+[[bin]]
+name = "wendao_search_flightsql_server"
+path = "src/bin/wendao_search_flightsql_server.rs"
+required-features = ["cli-bin-support", "julia"]
+
+[[bin]]
+name = "wendao_search_seed_sample"
+path = "src/bin/wendao_search_seed_sample.rs"
+required-features = ["cli-bin-support", "julia"]
+
+[dependencies]
+xiuxian-wendao = { path = "../xiuxian-wendao", default-features = false, optional = true }
+xiuxian-wendao-runtime = { path = "../xiuxian-wendao-runtime", default-features = false }
+xiuxian-wendao-core = { path = "../xiuxian-wendao-core", optional = true }
+xiuxian-wendao-attachments = { path = "../xiuxian-wendao-attachments", optional = true }
+xiuxian-wendao-julia = { path = "../xiuxian-wendao-julia", optional = true }
+xiuxian-wendao-parsers = { path = "../xiuxian-wendao-parsers", optional = true }
+xiuxian-wendao-web = { path = "../xiuxian-wendao-web", default-features = false, optional = true }
+xiuxian-logging = { path = "../xiuxian-logging", optional = true }
+xiuxian-wendao-client = { path = "../xiuxian-wendao-client", optional = true }
+xiuxian-zhenfa = { path = "../xiuxian-zhenfa", optional = true }
+xiuxian-ast = { path = "../xiuxian-ast", optional = true }
+xiuxian-config-core = { path = "../xiuxian-config-core", optional = true }
+xiuxian-db-store = { path = "../xiuxian-db-store", optional = true }
+xiuxian-git-repo = { path = "../xiuxian-git-repo", optional = true }
+xiuxian-io = { path = "../xiuxian-io", optional = true }
+
+anyhow = { workspace = true, optional = true }
+arrow = { workspace = true, optional = true }
+arrow-flight = { workspace = true, optional = true }
+async-trait = { workspace = true, optional = true }
+axum = { workspace = true, optional = true }
+blake3 = { workspace = true, optional = true }
+chrono = { workspace = true, features = ["clock", "serde"], optional = true }
+clap = { workspace = true, optional = true }
+comrak = { workspace = true, optional = true }
+duckdb = { workspace = true, optional = true }
+futures = { workspace = true, optional = true }
+globset = { workspace = true, optional = true }
+log = { workspace = true, optional = true }
+notify = { workspace = true, optional = true }
+notify-debouncer-full = { workspace = true, optional = true }
+prost = { workspace = true, optional = true }
+reqwest = { workspace = true, optional = true }
+schemars = { workspace = true, optional = true }
+serde = { workspace = true, optional = true }
+serde_json = { workspace = true, optional = true }
+serde_yaml = { workspace = true, optional = true }
+sha2 = { workspace = true, optional = true }
+specta = { workspace = true, optional = true }
+specta-typescript = { workspace = true, optional = true }
+tempfile = { workspace = true, optional = true }
+thiserror = { workspace = true, optional = true }
+tokio = { workspace = true, features = ["rt-multi-thread", "macros", "io-util", "fs"], optional = true }
+tokio-stream = { workspace = true, optional = true }
+tokio-util = { workspace = true, features = ["rt"], optional = true }
+toml = { workspace = true, optional = true }
+tonic = { workspace = true, optional = true }
+tonic-web = { workspace = true, optional = true }
+tower = { workspace = true, features = ["limit", "load-shed", "timeout", "util"], optional = true }
+uuid = { workspace = true, optional = true }
+walkdir = { workspace = true, optional = true }
+
+[dev-dependencies]
+arrow = { workspace = true }
+arrow-flight = { workspace = true }
+blake3 = { workspace = true }
+criterion = { workspace = true }
+insta = { workspace = true }
+rust-lang-project-harness = { workspace = true }
+serial_test = { workspace = true }
+xiuxian-wendao = { path = "../xiuxian-wendao", default-features = false, features = ["test-support"] }
+xiuxian-wendao-builtin = { path = "../xiuxian-wendao-builtin", default-features = false }
+xiuxian-wendao-julia = { path = "../xiuxian-wendao-julia" }
+
+[lints]
+workspace = true

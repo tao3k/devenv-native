@@ -7,9 +7,9 @@ use std::collections::HashSet;
 use std::time::Instant;
 
 use futures::TryStreamExt;
+use lance::index::DatasetIndexExt;
 use lance_index::IndexType;
 use lance_index::scalar::{BuiltinIndexType, ScalarIndexParams};
-use lance_index::traits::DatasetIndexExt;
 
 use crate::VectorStore;
 use crate::error::VectorStoreError;

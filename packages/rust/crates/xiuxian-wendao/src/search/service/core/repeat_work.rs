@@ -3,9 +3,9 @@ use std::collections::{BTreeMap, BTreeSet};
 use serde::Serialize;
 
 use super::types::SearchPlaneService;
-use crate::gateway::studio::types::UiProjectConfig;
+use crate::search::contracts::UiProjectConfig;
 use crate::search::{ProjectScanInventory, ProjectScannedFile, scan_supported_project_files};
-#[cfg(test)]
+#[cfg(any(test, feature = "test-support"))]
 use crate::search::{
     fingerprint_note_projects_with_scanned_files, fingerprint_source_projects_with_scanned_files,
     fingerprint_symbol_projects_with_scanned_files,
@@ -91,12 +91,17 @@ pub struct SearchBuildRepeatWorkFindingTelemetry {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Default)]
 #[serde(rename_all = "camelCase")]
+/// Aggregated repeat-work telemetry for search index build scans.
 pub struct SearchBuildRepeatWorkTelemetry {
+    /// Summary counters across all observed source operations.
     pub summary: SearchBuildRepeatWorkSummaryTelemetry,
+    /// Per-source operation telemetry.
     pub source_operations: Vec<SearchBuildRepeatWorkSourceTelemetry>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    /// Paths observed repeatedly across source operations.
     pub hot_paths: Vec<SearchBuildRepeatWorkHotPathTelemetry>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    /// Derived repeat-work findings sorted by severity and impact.
     pub findings: Vec<SearchBuildRepeatWorkFindingTelemetry>,
 }
 
@@ -164,7 +169,8 @@ impl SearchPlaneService {
     }
 
     #[must_use]
-    pub(crate) fn repeat_work_telemetry(&self) -> SearchBuildRepeatWorkTelemetry {
+    /// Return a compact repeat-work telemetry snapshot for diagnostics.
+    pub fn repeat_work_telemetry(&self) -> SearchBuildRepeatWorkTelemetry {
         let telemetry = self
             .repeat_work_telemetry
             .read()
@@ -229,7 +235,7 @@ impl SearchPlaneService {
     }
 
     #[must_use]
-    #[cfg(test)]
+    #[cfg(any(test, feature = "test-support"))]
     pub(crate) fn fingerprint_note_projects_with_repeat_work_details(
         &self,
         source: &'static str,
@@ -244,7 +250,7 @@ impl SearchPlaneService {
     }
 
     #[must_use]
-    #[cfg(test)]
+    #[cfg(any(test, feature = "test-support"))]
     pub(crate) fn fingerprint_source_projects_with_repeat_work_details(
         &self,
         source: &'static str,
@@ -259,7 +265,7 @@ impl SearchPlaneService {
     }
 
     #[must_use]
-    #[cfg(test)]
+    #[cfg(any(test, feature = "test-support"))]
     pub(crate) fn fingerprint_symbol_projects_with_repeat_work_details(
         &self,
         source: &'static str,
@@ -273,8 +279,9 @@ impl SearchPlaneService {
         (fingerprint, files)
     }
 
+    /// Scan supported project files and record repeat-work telemetry.
     #[must_use]
-    pub(crate) fn scan_supported_projects_with_repeat_work_details(
+    pub fn scan_supported_projects_with_repeat_work_details(
         &self,
         source: &'static str,
         project_root: &std::path::Path,

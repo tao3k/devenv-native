@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use crate::gateway::studio::types::{AstSearchHit, StudioNavigationTarget};
+use crate::search::contracts::{AstSearchHit, StudioNavigationTarget};
 use crate::search::{SearchMaintenancePolicy, SearchManifestKeyspace, SearchPlaneService};
 #[cfg(feature = "duckdb")]
 use crate::set_link_graph_wendao_config_override;

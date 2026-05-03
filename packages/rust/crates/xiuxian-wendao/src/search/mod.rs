@@ -6,6 +6,9 @@ mod attachment;
 #[cfg(feature = "search-runtime")]
 #[path = "cache/mod.rs"]
 mod cache;
+/// Shared Studio-facing search and API contracts owned by the Wendao domain.
+#[path = "contracts/mod.rs"]
+pub mod contracts;
 #[cfg(feature = "search-runtime")]
 #[path = "coordinator/mod.rs"]
 mod coordinator;
@@ -58,7 +61,7 @@ mod repo_publication_parquet;
 /// Shared repo-search execution seams above the search runtime.
 #[cfg(feature = "search-runtime")]
 #[path = "repo_search/mod.rs"]
-pub(crate) mod repo_search;
+pub mod repo_search;
 #[cfg(feature = "search-runtime")]
 #[path = "repo_staging.rs"]
 mod repo_staging;
@@ -80,15 +83,15 @@ mod status;
 pub mod tantivy;
 
 #[cfg(feature = "search-runtime")]
-pub(crate) use attachment::AttachmentSearchError;
+pub use attachment::AttachmentSearchError;
 #[cfg(all(test, feature = "search-runtime"))]
 pub(crate) use cache::SearchPlaneCache;
 #[cfg(feature = "search-runtime")]
-pub(crate) use cache::SearchPlaneCacheTtl;
+pub use cache::SearchPlaneCacheTtl;
 #[cfg(feature = "search-runtime")]
 pub(crate) use cache::SearchPlaneFileFingerprintScope;
 #[cfg(feature = "search-runtime")]
-pub(crate) use cache::resolve_search_plane_cache_connection_target;
+pub use cache::resolve_search_plane_cache_connection_target;
 #[cfg(feature = "search-runtime")]
 pub use coordinator::{BeginBuildDecision, SearchBuildLease, SearchPlaneCoordinator};
 #[cfg(feature = "search-runtime")]
@@ -98,9 +101,9 @@ pub use fuzzy::{
     levenshtein_distance, normalized_score, passes_prefix_requirement, shared_prefix_len,
 };
 #[cfg(feature = "search-runtime")]
-pub(crate) use knowledge_section::KnowledgeSectionSearchError;
+pub use knowledge_section::KnowledgeSectionSearchError;
 #[cfg(feature = "search-runtime")]
-pub(crate) use local_symbol::{LocalSymbolSearchError, restore_local_symbol_hits};
+pub use local_symbol::{LocalSymbolSearchError, restore_local_symbol_hits};
 #[cfg(feature = "search-runtime")]
 pub(crate) use manifest::SearchRepoPublicationInput;
 #[cfg(feature = "search-runtime")]
@@ -115,33 +118,38 @@ pub(crate) use markdown_snapshot::{
     markdown_snapshot_entry_cache_key,
 };
 #[cfg(feature = "search-runtime")]
-pub(crate) use project_fingerprint::{
-    ProjectScanInventory, ProjectScannedFile, fingerprint_note_projects_from_scanned_files,
-    fingerprint_source_projects_from_scanned_files, fingerprint_symbol_projects_from_scanned_files,
-    scan_supported_project_files,
-};
+pub use project_fingerprint::{ProjectScanInventory, ProjectScannedFile};
 #[cfg(all(test, feature = "search-runtime"))]
 pub(crate) use project_fingerprint::{
-    fingerprint_note_projects, fingerprint_note_projects_with_scanned_files,
-    fingerprint_source_projects, fingerprint_source_projects_with_scanned_files,
-    fingerprint_symbol_projects, fingerprint_symbol_projects_with_scanned_files,
-    scan_note_project_files, scan_source_project_files, scan_symbol_project_files,
+    fingerprint_note_projects, fingerprint_source_projects, fingerprint_symbol_projects,
 };
 #[cfg(feature = "search-runtime")]
-pub(crate) use reference_occurrence::ReferenceOccurrenceSearchError;
+pub(crate) use project_fingerprint::{
+    fingerprint_note_projects_from_scanned_files, fingerprint_source_projects_from_scanned_files,
+    fingerprint_symbol_projects_from_scanned_files, scan_supported_project_files,
+};
+#[cfg(all(any(test, feature = "test-support"), feature = "search-runtime"))]
+pub(crate) use project_fingerprint::{
+    fingerprint_note_projects_with_scanned_files, fingerprint_source_projects_with_scanned_files,
+    fingerprint_symbol_projects_with_scanned_files, scan_note_project_files,
+    scan_source_project_files,
+};
+#[cfg(feature = "search-runtime")]
+pub use reference_occurrence::ReferenceOccurrenceSearchError;
 #[cfg(all(test, feature = "search-runtime"))]
 pub(crate) use reference_occurrence::reference_occurrence_batches;
 #[cfg(feature = "search-runtime")]
 pub(crate) use repo_content_chunk::RepoContentChunkSearchFilters;
 #[cfg(any(test, feature = "performance"))]
 pub(crate) use repo_content_chunk::repo_content_chunk_file_fingerprints;
-#[cfg(all(test, feature = "search-runtime"))]
-pub(crate) use repo_entity::publish_repo_entities;
+#[cfg(feature = "search-runtime")]
+pub use repo_entity::{
+    RepoEntityOverviewSummary, RepoEntitySearchError, summarize_repo_entity_overview,
+};
 #[cfg(feature = "search-runtime")]
 pub(crate) use repo_entity::{
-    RepoEntityOverviewSummary, RepoEntitySearchError, search_repo_entity_example_results,
-    search_repo_entity_import_results, search_repo_entity_module_results,
-    search_repo_entity_symbol_results, summarize_repo_entity_overview,
+    search_repo_entity_example_results, search_repo_entity_import_results,
+    search_repo_entity_module_results, search_repo_entity_symbol_results,
 };
 #[cfg(feature = "search-runtime")]
 pub(crate) use repo_staging::{
@@ -153,13 +161,13 @@ pub(crate) use semantic_fingerprint::{
     stable_payload_fingerprint,
 };
 #[cfg(feature = "search-runtime")]
-pub(crate) use service::RepoSearchAvailability;
+pub use service::RepoSearchAvailability;
 #[cfg(feature = "search-runtime")]
-pub(crate) use service::RepoSearchPublicationState;
+pub use service::RepoSearchPublicationState;
 #[cfg(feature = "search-runtime")]
-pub(crate) use service::RepoSearchQueryCacheKeyInput;
+pub use service::RepoSearchQueryCacheKeyInput;
 #[cfg(feature = "search-runtime")]
-pub(crate) use service::SearchBuildRepeatWorkTelemetry;
+pub use service::SearchBuildRepeatWorkTelemetry;
 #[cfg(feature = "search-runtime")]
 pub use service::SearchPlaneService;
 #[cfg(feature = "search-runtime")]

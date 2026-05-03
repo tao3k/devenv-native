@@ -1,0 +1,199 @@
+---
+source: packages/rust/crates/xiuxian-wendao-studio/tests/unit/gateway/studio/support.rs
+assertion_line: 17
+expression: value
+---
+{
+  "diagnostics": [],
+  "documentHash": "b01d4730cc313732aeef6268f399162573efc3c9c8bb84ec363949b1c858276c",
+  "documentMetadata": {
+    "backlinks": [
+      {
+        "docId": "docs/guide",
+        "kind": "backlink",
+        "label": "Guide",
+        "literal": "[[deepwiki#Overview|DeepWiki Overview]]",
+        "path": "main/docs/guide.md",
+        "targetAddress": "#Overview",
+        "title": "Guide"
+      },
+      {
+        "docId": "docs/index",
+        "kind": "backlink",
+        "label": "Index",
+        "literal": "[DeepWiki Proof](deepwiki.md#^proof-anchor)",
+        "path": "main/docs/index.md",
+        "targetAddress": "#^proof-anchor",
+        "title": "Index"
+      }
+    ],
+    "docId": "docs/deepwiki",
+    "docType": null,
+    "explicitBacklinks": [
+      {
+        "docId": "docs/guide",
+        "kind": "backlink",
+        "label": "Guide",
+        "literal": "[[deepwiki#Overview|DeepWiki Overview]]",
+        "path": "main/docs/guide.md",
+        "targetAddress": "#Overview",
+        "title": "Guide"
+      },
+      {
+        "docId": "docs/index",
+        "kind": "backlink",
+        "label": "Index",
+        "literal": "[DeepWiki Proof](deepwiki.md#^proof-anchor)",
+        "path": "main/docs/index.md",
+        "targetAddress": "#^proof-anchor",
+        "title": "Index"
+      }
+    ],
+    "outgoingLinks": [
+      {
+        "docId": "docs/guide",
+        "kind": "relation",
+        "label": "Guide",
+        "literal": "[[guide]]",
+        "metadataOwner": "#DeepWikiKernel",
+        "path": "main/docs/guide.md",
+        "relationType": "RELATED_TO",
+        "targetAddress": null,
+        "title": "Guide"
+      },
+      {
+        "docId": "docs/guide",
+        "kind": "index",
+        "label": "Guide",
+        "literal": "[[guide]]",
+        "metadataOwner": "Index Relations",
+        "path": "main/docs/guide.md",
+        "relationType": null,
+        "targetAddress": null,
+        "title": "Guide"
+      },
+      {
+        "docId": "docs/index",
+        "kind": "index",
+        "label": "Index",
+        "literal": "[[index]]",
+        "metadataOwner": "Index Relations",
+        "path": "main/docs/index.md",
+        "relationType": null,
+        "targetAddress": null,
+        "title": "Index"
+      }
+    ],
+    "parent": {
+      "docId": "docs/index",
+      "kind": "parent",
+      "label": "Index",
+      "literal": "[[index]]",
+      "path": "main/docs/index.md",
+      "targetAddress": null,
+      "title": "Index"
+    },
+    "tags": [
+      "docs",
+      "feature"
+    ],
+    "title": "DeepWiki Kernel",
+    "updated": null
+  },
+  "edgeCount": 3,
+  "edges": [
+    {
+      "evidence": {
+        "confidence": 1.0,
+        "lineEnd": 1,
+        "lineStart": 1,
+        "path": "main/docs/deepwiki.md"
+      },
+      "id": "edge:1",
+      "kind": "contains",
+      "label": "contains",
+      "sourceId": "doc:0",
+      "targetId": "sec:1"
+    },
+    {
+      "evidence": {
+        "confidence": 1.0,
+        "lineEnd": 8,
+        "lineStart": 8,
+        "path": "main/docs/deepwiki.md"
+      },
+      "id": "edge:2",
+      "kind": "contains",
+      "label": "contains",
+      "sourceId": "sec:1",
+      "targetId": "sec:8"
+    },
+    {
+      "evidence": {
+        "confidence": 1.0,
+        "lineEnd": 12,
+        "lineStart": 12,
+        "path": "main/docs/deepwiki.md"
+      },
+      "id": "edge:3",
+      "kind": "contains",
+      "label": "contains",
+      "sourceId": "sec:1",
+      "targetId": "sec:12"
+    }
+  ],
+  "nodeCount": 4,
+  "nodes": [
+    {
+      "depth": 0,
+      "id": "doc:0",
+      "kind": "document",
+      "label": "main/docs/deepwiki.md",
+      "lineEnd": 23,
+      "lineStart": 1,
+      "parentId": null
+    },
+    {
+      "depth": 1,
+      "id": "sec:1",
+      "kind": "section",
+      "label": "DeepWiki Kernel",
+      "lineEnd": 7,
+      "lineStart": 1,
+      "parentId": "doc:0"
+    },
+    {
+      "depth": 2,
+      "id": "sec:8",
+      "kind": "section",
+      "label": "Overview",
+      "lineEnd": 11,
+      "lineStart": 8,
+      "parentId": "sec:1"
+    },
+    {
+      "depth": 2,
+      "id": "sec:12",
+      "kind": "section",
+      "label": "References",
+      "lineEnd": 23,
+      "lineStart": 12,
+      "parentId": "sec:1"
+    }
+  ],
+  "path": "main/docs/deepwiki.md",
+  "projections": [
+    {
+      "edgeCount": 3,
+      "kind": "outline",
+      "nodeCount": 3,
+      "source": "graph TD\n  sec_1[\"DeepWiki Kernel\"]\n  sec_8[\"Overview\"]\n  sec_12[\"References\"]\n  doc_0 --> sec_1\n  sec_1 --> sec_8\n  sec_1 --> sec_12\n"
+    },
+    {
+      "edgeCount": 0,
+      "kind": "tasks",
+      "nodeCount": 0,
+      "source": "graph LR\n"
+    }
+  ]
+}

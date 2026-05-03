@@ -23,6 +23,7 @@ pub const DISCOVER_MATCH_V1: &str =
     include_str!("../resources/xiuxian.discover.match.v1.schema.json");
 
 /// Returns a bundled schema by canonical schema name.
+#[must_use]
 pub fn get_schema(name: &str) -> Option<&'static str> {
     match name {
         "xiuxian.runtime.route_trace.v1" => Some(AGENT_ROUTE_TRACE_V1),

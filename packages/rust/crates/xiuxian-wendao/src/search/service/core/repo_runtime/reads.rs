@@ -5,6 +5,15 @@ use crate::search::service::core::types::{RepoRuntimeState, SearchPlaneService};
 use crate::search::{SearchCorpusKind, SearchRepoCorpusRecord};
 
 impl SearchPlaneService {
+    #[cfg(any(test, feature = "test-support"))]
+    #[doc(hidden)]
+    pub fn clear_all_in_memory_repo_runtime_for_test(&self) {
+        self.repo_corpus_records
+            .write()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .clear();
+    }
+
     fn merge_persisted_repo_corpus_record(
         current: &mut SearchRepoCorpusRecord,
         persisted: SearchRepoCorpusRecord,
@@ -281,7 +290,8 @@ impl SearchPlaneService {
         records
     }
 
-    pub(crate) async fn repo_corpus_record_for_reads(
+    /// Return a repository corpus record reconciled for read-side consumers.
+    pub async fn repo_corpus_record_for_reads(
         &self,
         corpus: SearchCorpusKind,
         repo_id: &str,

@@ -2,9 +2,6 @@
 
 #[path = "openapi/mod.rs"]
 mod openapi;
-#[cfg(feature = "studio")]
-#[path = "studio/mod.rs"]
-pub mod studio;
 
 pub use openapi::{
     API_DOCS_FAMILY_CLUSTER_AXUM_PATH, API_DOCS_FAMILY_CLUSTER_OPENAPI_PATH,

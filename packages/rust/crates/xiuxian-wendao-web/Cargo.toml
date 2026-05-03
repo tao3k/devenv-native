@@ -2,25 +2,44 @@
 name = "xiuxian-wendao-web"
 version.workspace = true
 edition.workspace = true
-description = "Web and gateway namespace boundary for Wendao"
+description = "Flight and gRPC transport boundary for Wendao"
 authors.workspace = true
 license.workspace = true
 publish = false
 
 [features]
 default = []
-studio = [
-  "dep:xiuxian-wendao",
-  "xiuxian-wendao/duckdb",
-  "xiuxian-wendao/studio",
-  "xiuxian-wendao/zhenfa-router",
+performance = ["transport"]
+transport = [
+  "dep:arrow-array",
+  "dep:arrow-flight",
+  "dep:arrow-schema",
+  "dep:async-trait",
+  "dep:base64",
+  "dep:futures",
+  "dep:tokio",
+  "dep:tokio-stream",
+  "dep:tonic",
 ]
 
+[[bench]]
+name = "wendao_transport_performance"
+harness = false
+required-features = ["performance"]
+
 [dependencies]
-xiuxian-wendao = { path = "../xiuxian-wendao", default-features = false, optional = true }
-xiuxian-wendao-runtime = { path = "../xiuxian-wendao-runtime", default-features = false }
+arrow-array = { workspace = true, optional = true }
+arrow-flight = { workspace = true, optional = true }
+arrow-schema = { workspace = true, optional = true }
+async-trait = { workspace = true, optional = true }
+base64 = { workspace = true, optional = true }
+futures = { workspace = true, optional = true }
+tokio = { workspace = true, optional = true }
+tokio-stream = { workspace = true, optional = true }
+tonic = { workspace = true, optional = true }
 
 [dev-dependencies]
+criterion = { workspace = true }
 rust-lang-project-harness = { workspace = true }
 
 [lints]

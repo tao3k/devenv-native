@@ -1,0 +1,43 @@
+---
+source: packages/rust/crates/xiuxian-wendao-studio/tests/unit/gateway/studio/support.rs
+assertion_line: 9
+expression: value
+---
+{
+  "center": {
+    "distance": 0,
+    "id": "kernel/docs/index.md",
+    "isCenter": true,
+    "label": "Qianji Studio DocOS Kernel: Map of Content",
+    "nodeType": "doc",
+    "path": "kernel/docs/index.md"
+  },
+  "links": [
+    {
+      "direction": "outgoing",
+      "distance": 1,
+      "source": "kernel/docs/index.md",
+      "target": "kernel/docs/chapter.md"
+    }
+  ],
+  "nodes": [
+    {
+      "distance": 0,
+      "id": "kernel/docs/index.md",
+      "isCenter": true,
+      "label": "Qianji Studio DocOS Kernel: Map of Content",
+      "nodeType": "doc",
+      "path": "kernel/docs/index.md"
+    },
+    {
+      "distance": 1,
+      "id": "kernel/docs/chapter.md",
+      "isCenter": false,
+      "label": "Kernel Chapter",
+      "nodeType": "doc",
+      "path": "kernel/docs/chapter.md"
+    }
+  ],
+  "totalLinks": 1,
+  "totalNodes": 2
+}

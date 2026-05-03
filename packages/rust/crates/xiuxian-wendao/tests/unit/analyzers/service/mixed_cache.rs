@@ -5,8 +5,8 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use crate::analyzers::PluginRegistry;
 use crate::analyzers::service::analysis::analyze_registered_repository_bundle_with_registry;
 use crate::analyzers::{RegisteredRepository, RepositoryRefreshPolicy};
-use crate::gateway::studio::search::handlers::tests::linked_parser_summary::ensure_linked_modelica_parser_summary_service;
-use crate::gateway::studio::test_support::{commit_all, init_git_repository};
+use crate::test_support::linked_parser_summary::ensure_linked_modelica_parser_summary_service;
+use crate::test_support::{commit_all, init_git_repository};
 
 use super::support::{
     CountingModelicaPlugin, CountingRustPlugin,

@@ -3,12 +3,12 @@ use std::path::Path;
 use crate::analyzers::PluginRegistry;
 use crate::analyzers::RepoIntelligenceError;
 use crate::analyzers::RepositoryAnalysisOutput;
-#[cfg(all(feature = "studio", feature = "repo-lexical-index"))]
+#[cfg(all(feature = "search-runtime", feature = "repo-lexical-index"))]
 use crate::analyzers::cache::RepositorySearchArtifacts;
 use crate::analyzers::compute_repository_saliency;
 use crate::analyzers::{ModuleSearchHit, ModuleSearchQuery, ModuleSearchResult};
 
-#[cfg(feature = "studio")]
+#[cfg(all(feature = "search-runtime", feature = "repo-lexical-index"))]
 use super::ranking::ranked_module_matches_with_artifacts;
 use super::ranking::{RankedSearchRecord, ranked_module_matches};
 use crate::analyzers::service::{
@@ -33,8 +33,8 @@ pub fn build_module_search(
 }
 
 #[must_use]
-#[cfg(all(feature = "studio", feature = "repo-lexical-index"))]
-pub(crate) fn build_module_search_with_artifacts(
+#[cfg(all(feature = "search-runtime", feature = "repo-lexical-index"))]
+pub fn build_module_search_with_artifacts(
     query: &ModuleSearchQuery,
     analysis: &RepositoryAnalysisOutput,
     artifacts: &RepositorySearchArtifacts,

@@ -1,0 +1,9 @@
+---
+source: packages/rust/crates/xiuxian-wendao-studio/tests/unit/gateway/studio/support.rs
+expression: value
+---
+{
+  "content": "---\nname: Writer\n---\n",
+  "contentType": "text/markdown",
+  "path": "skills/writer/SKILL.md"
+}

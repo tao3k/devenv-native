@@ -1,3 +1,5 @@
+//! Runtime configuration adapters for link-graph indexing and retrieval.
+
 mod api;
 #[path = "artifacts.rs"]
 mod artifacts;
@@ -6,6 +8,7 @@ mod constants;
 #[path = "models/mod.rs"]
 pub(crate) mod models;
 #[path = "resolve/mod.rs"]
+/// Runtime setting resolvers for link-graph feature families.
 pub mod resolve;
 #[path = "settings/mod.rs"]
 mod settings;

@@ -1,5 +1,5 @@
 //! Repository search functions (overview, module, symbol, example, import, doc coverage).
-#[cfg(feature = "studio")]
+#[cfg(feature = "search-runtime")]
 mod artifacts;
 mod contracts;
 mod coverage;
@@ -40,22 +40,22 @@ pub use symbol::{
     build_symbol_search, symbol_search_from_config, symbol_search_from_config_with_registry,
 };
 
-#[cfg(feature = "studio")]
-pub(crate) use artifacts::repository_search_artifacts;
 #[cfg(feature = "search-runtime")]
-pub(crate) use contracts::canonical_import_query_text;
-#[cfg(feature = "studio")]
-pub(crate) use contracts::{
+pub use artifacts::repository_search_artifacts;
+#[cfg(feature = "search-runtime")]
+pub use contracts::canonical_import_query_text;
+#[cfg(feature = "search-runtime")]
+pub use contracts::{
     RepoAnalysisFallbackContract, example_fallback_contract, import_fallback_contract,
     module_fallback_contract, symbol_fallback_contract,
 };
-#[cfg(feature = "studio")]
-pub(crate) use documents::ExampleSearchMetadata;
-#[cfg(all(feature = "studio", feature = "repo-lexical-index"))]
-pub(crate) use example::build_example_search_with_artifacts;
-#[cfg(feature = "studio")]
-pub(crate) use imports::build_import_search_with_artifacts;
-#[cfg(all(feature = "studio", feature = "repo-lexical-index"))]
-pub(crate) use module::build_module_search_with_artifacts;
-#[cfg(all(feature = "studio", feature = "repo-lexical-index"))]
-pub(crate) use symbol::build_symbol_search_with_artifacts;
+#[cfg(feature = "search-runtime")]
+pub use documents::ExampleSearchMetadata;
+#[cfg(all(feature = "search-runtime", feature = "repo-lexical-index"))]
+pub use example::build_example_search_with_artifacts;
+#[cfg(feature = "search-runtime")]
+pub use imports::build_import_search_with_artifacts;
+#[cfg(all(feature = "search-runtime", feature = "repo-lexical-index"))]
+pub use module::build_module_search_with_artifacts;
+#[cfg(all(feature = "search-runtime", feature = "repo-lexical-index"))]
+pub use symbol::build_symbol_search_with_artifacts;

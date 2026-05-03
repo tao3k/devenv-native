@@ -1,0 +1,16 @@
+---
+source: packages/rust/crates/xiuxian-wendao-studio/tests/unit/gateway/studio/support.rs
+expression: value
+---
+{
+  "incoming": [],
+  "name": "Alpha",
+  "nodeId": "kernel/alpha.md",
+  "nodeType": "doc",
+  "outgoing": [
+    "kernel/beta.md"
+  ],
+  "twoHop": [
+    "kernel/gamma.md"
+  ]
+}

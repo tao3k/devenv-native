@@ -10,5 +10,5 @@ mod tests;
 
 pub(crate) use autocomplete::autocomplete_local_symbols;
 pub(crate) use lookup::search_local_symbols;
-pub(crate) use shared::LocalSymbolSearchError;
-pub(crate) use shared::restore_local_symbol_hits;
+pub use shared::LocalSymbolSearchError;
+pub use shared::restore_local_symbol_hits;

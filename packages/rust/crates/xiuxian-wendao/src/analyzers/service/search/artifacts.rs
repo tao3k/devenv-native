@@ -15,7 +15,13 @@ use super::documents::{
     module_search_document, symbol_search_document,
 };
 
-pub(crate) fn repository_search_artifacts(
+/// Return cached or freshly built repository search artifacts for one analysis.
+///
+/// # Errors
+///
+/// Returns [`RepoIntelligenceError`] when cached artifacts cannot be loaded or
+/// freshly generated artifacts cannot be stored.
+pub fn repository_search_artifacts(
     cache_key: &RepositoryAnalysisCacheKey,
     analysis: &RepositoryAnalysisOutput,
 ) -> Result<Arc<RepositorySearchArtifacts>, RepoIntelligenceError> {

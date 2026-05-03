@@ -1,16 +1,23 @@
 use super::ParsedRepoCodeSearchQuery;
 
-pub(crate) const REPO_CODE_SEARCH_BACKEND_PREFIXES: &[&str] = &["lang", "kind", "repo"];
-pub(crate) const REPO_CODE_SEARCH_STRUCTURAL_PREFIXES: &[&str] = &["ast", "sg"];
-pub(crate) const REPO_CODE_SEARCH_KIND_FILTER_VALUES: &[&str] =
+/// Prefixes that select backend-owned filters in repository code search queries.
+pub const REPO_CODE_SEARCH_BACKEND_PREFIXES: &[&str] = &["lang", "kind", "repo"];
+/// Prefixes that select structural parser filters in repository code search queries.
+pub const REPO_CODE_SEARCH_STRUCTURAL_PREFIXES: &[&str] = &["ast", "sg"];
+/// Supported values for the `kind:` repository code search filter.
+pub const REPO_CODE_SEARCH_KIND_FILTER_VALUES: &[&str] =
     &["file", "symbol", "function", "module", "example"];
-pub(crate) const REPO_CODE_SEARCH_PREFIX_ALIASES: &[(&str, &str)] = &[("language", "lang")];
+/// Accepted aliases for canonical repository code search prefixes.
+pub const REPO_CODE_SEARCH_PREFIX_ALIASES: &[(&str, &str)] = &[("language", "lang")];
 
-pub(crate) fn parse_repo_code_search_query(query: &str) -> ParsedRepoCodeSearchQuery {
+/// Parse a user-facing repository code search query into typed filter state.
+#[must_use]
+pub fn parse_repo_code_search_query(query: &str) -> ParsedRepoCodeSearchQuery {
     parse_repo_code_search_query_with_repo_hint(query, None)
 }
 
-pub(crate) fn parse_repo_code_search_query_with_repo_hint(
+/// Parse a repository code search query while applying a default repository hint.
+pub fn parse_repo_code_search_query_with_repo_hint(
     query: &str,
     repo_hint: Option<&str>,
 ) -> ParsedRepoCodeSearchQuery {

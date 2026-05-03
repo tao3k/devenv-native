@@ -5,7 +5,7 @@ use lance::index::vector::VectorIndexParams;
 use lance_index::IndexType;
 use lance_index::scalar::inverted::tokenizer::InvertedIndexParams;
 use lance_index::scalar::{BuiltinIndexType, ScalarIndexParams};
-use lance_index::traits::DatasetIndexExt;
+use lance::index::DatasetIndexExt;
 use lance_linalg::distance::DistanceType;
 
 /// Open a dataset by URI for background tasks (Send-safe; no store state).

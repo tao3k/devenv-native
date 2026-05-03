@@ -3,8 +3,8 @@ use std::path::PathBuf;
 #[cfg(feature = "duckdb")]
 use std::fs;
 
-use crate::gateway::studio::types::{AttachmentSearchHit, StudioNavigationTarget};
 use crate::search::attachment::schema::attachment_batches;
+use crate::search::contracts::{AttachmentSearchHit, StudioNavigationTarget};
 use crate::search::{
     BeginBuildDecision, SearchCorpusKind, SearchMaintenancePolicy, SearchManifestKeyspace,
     SearchPlaneService,

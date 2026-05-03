@@ -7,10 +7,10 @@ mod options;
 mod ranking;
 mod sort;
 
-#[cfg(all(feature = "studio", feature = "repo-lexical-index"))]
-pub(crate) use indexed::build_projected_page_search_index;
-#[cfg(all(feature = "studio", feature = "repo-lexical-index"))]
-pub(crate) use ranking::build_repo_projected_page_search_with_artifacts;
+#[cfg(all(feature = "search-runtime", feature = "repo-lexical-index"))]
+pub use indexed::build_projected_page_search_index;
+#[cfg(all(feature = "search-runtime", feature = "repo-lexical-index"))]
+pub use ranking::build_repo_projected_page_search_with_artifacts;
 pub use ranking::{build_repo_projected_page_search, scored_projected_page_matches};
 
 #[allow(unused_imports)]

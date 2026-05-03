@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-#[cfg(test)]
+#[cfg(any(test, feature = "test-support"))]
 use xiuxian_db_store::VectorStoreError;
 
 use crate::search::SearchFileFingerprint;
@@ -20,9 +20,9 @@ pub(super) struct KnowledgeSectionWriteResult {
     pub(super) fragment_count: u64,
 }
 
-#[cfg(test)]
+#[cfg(any(test, feature = "test-support"))]
 #[derive(Debug, thiserror::Error)]
-pub(crate) enum KnowledgeSectionBuildError {
+pub enum KnowledgeSectionBuildError {
     #[error(transparent)]
     Storage(#[from] VectorStoreError),
 }

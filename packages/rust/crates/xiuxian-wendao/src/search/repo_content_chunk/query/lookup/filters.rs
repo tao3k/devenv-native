@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use crate::gateway::studio::types::SearchHit;
+use crate::search::contracts::SearchHit;
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub(crate) struct RepoContentChunkSearchFilters {

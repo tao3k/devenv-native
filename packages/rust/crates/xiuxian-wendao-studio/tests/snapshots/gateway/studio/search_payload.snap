@@ -1,0 +1,51 @@
+---
+source: packages/rust/crates/xiuxian-wendao-studio/tests/unit/gateway/studio/support.rs
+expression: value
+---
+{
+  "graphConfidenceScore": 1.0,
+  "hitCount": 2,
+  "hits": [
+    {
+      "auditStatus": null,
+      "bestSection": null,
+      "docType": null,
+      "hierarchicalUri": null,
+      "hierarchy": [
+        "alpha.md"
+      ],
+      "implicitBacklinks": null,
+      "matchReason": "knowledge_section_search",
+      "path": "alpha.md",
+      "saliencyScore": null,
+      "score": 0.82,
+      "stem": "alpha",
+      "tags": [],
+      "title": "Alpha",
+      "verificationState": null
+    },
+    {
+      "auditStatus": null,
+      "bestSection": null,
+      "docType": null,
+      "hierarchicalUri": null,
+      "hierarchy": [
+        "beta.md"
+      ],
+      "implicitBacklinks": null,
+      "matchReason": "knowledge_section_search",
+      "path": "beta.md",
+      "saliencyScore": null,
+      "score": 0.82,
+      "stem": "beta",
+      "tags": [],
+      "title": "Beta",
+      "verificationState": null
+    }
+  ],
+  "intent": "semantic_lookup",
+  "intentConfidence": 1.0,
+  "query": "wendao",
+  "searchMode": "graph_fts",
+  "selectedMode": "graph_fts"
+}

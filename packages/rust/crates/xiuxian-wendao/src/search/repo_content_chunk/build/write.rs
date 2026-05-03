@@ -570,12 +570,11 @@ fn normalize_repo_content_batch(
             if source_column.data_type() == field.data_type() {
                 Ok(source_column.clone())
             } else {
-                cast(source_column.as_ref(), field.data_type())
-                    .map_err(VectorStoreError::ArrowEngine)
+                cast(source_column.as_ref(), field.data_type()).map_err(VectorStoreError::Arrow)
             }
         })
         .collect::<Result<Vec<_>, _>>()?;
-    EngineRecordBatch::try_new(target_schema, columns).map_err(VectorStoreError::ArrowEngine)
+    EngineRecordBatch::try_new(target_schema, columns).map_err(VectorStoreError::Arrow)
 }
 
 fn copy_untouched_partitions(

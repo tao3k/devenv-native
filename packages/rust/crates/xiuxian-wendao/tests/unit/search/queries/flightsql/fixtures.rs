@@ -11,9 +11,9 @@ use tempfile::TempDir;
 use tokio_stream::StreamExt;
 use tonic::{Request, Status};
 
-use crate::gateway::studio::types::{AstSearchHit, StudioNavigationTarget};
 use crate::repo_index::RepoCodeDocument;
 use crate::search::SearchPlaneService;
+use crate::search::contracts::{AstSearchHit, StudioNavigationTarget};
 use crate::search::queries::flightsql::StudioFlightSqlService;
 use crate::search::queries::tests::fixtures as shared_fixtures;
 #[cfg(feature = "duckdb")]

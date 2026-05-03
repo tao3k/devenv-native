@@ -1,0 +1,57 @@
+---
+source: packages/rust/crates/xiuxian-wendao-studio/tests/unit/gateway/studio/support.rs
+expression: value
+---
+{
+  "hitCount": 2,
+  "hits": [
+    {
+      "crateName": "docs",
+      "language": "markdown",
+      "lineEnd": 6,
+      "lineStart": 1,
+      "name": "ID",
+      "navigationTarget": {
+        "category": "doc",
+        "column": null,
+        "line": 1,
+        "lineEnd": 6,
+        "path": "docs/index.md",
+        "projectName": "main",
+        "rootLabel": "docs"
+      },
+      "nodeKind": "property",
+      "ownerTitle": "Studio Functional Ledger",
+      "path": "docs/index.md",
+      "projectName": "main",
+      "rootLabel": "docs",
+      "score": 0.86,
+      "signature": ":ID: SearchBarProtocol"
+    },
+    {
+      "crateName": "docs",
+      "language": "markdown",
+      "lineEnd": 6,
+      "lineStart": 1,
+      "name": "OBSERVE",
+      "navigationTarget": {
+        "category": "doc",
+        "column": null,
+        "line": 1,
+        "lineEnd": 6,
+        "path": "docs/index.md",
+        "projectName": "main",
+        "rootLabel": "docs"
+      },
+      "nodeKind": "observation",
+      "ownerTitle": "Studio Functional Ledger",
+      "path": "docs/index.md",
+      "projectName": "main",
+      "rootLabel": "docs",
+      "score": 0.86,
+      "signature": ":OBSERVE: lang:typescript scope:\"src/components/SearchBar/**\" \"export const SearchBar: React.FC<SearchBarProps> = ({ $$$ })\""
+    }
+  ],
+  "query": "SearchBar",
+  "selectedScope": "definitions"
+}

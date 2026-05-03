@@ -160,28 +160,45 @@ pub(crate) struct RepoRuntimeState {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum RepoSearchAvailability {
+/// Availability state for repository-backed search publications.
+pub enum RepoSearchAvailability {
+    /// Repository publications are available for search.
     Searchable,
+    /// Repository publications are still being built.
     Pending,
+    /// Repository publications are unavailable for this query.
     Skipped,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) struct RepoSearchPublicationState {
-    pub(crate) entity_published: bool,
-    pub(crate) content_published: bool,
-    pub(crate) availability: RepoSearchAvailability,
+/// Publication availability for repository entity and content corpora.
+pub struct RepoSearchPublicationState {
+    /// Whether the repository entity publication is readable.
+    pub entity_published: bool,
+    /// Whether the repository content publication is readable.
+    pub content_published: bool,
+    /// Combined availability state derived from repo-backed publications.
+    pub availability: RepoSearchAvailability,
 }
 
-pub(crate) struct RepoSearchQueryCacheKeyInput<'a> {
-    pub(crate) scope: &'a str,
-    pub(crate) corpora: &'a [SearchCorpusKind],
-    pub(crate) repo_corpora: &'a [SearchCorpusKind],
-    pub(crate) repo_ids: &'a [String],
-    pub(crate) query: &'a str,
-    pub(crate) limit: usize,
-    pub(crate) intent: Option<&'a str>,
-    pub(crate) repo_hint: Option<&'a str>,
+/// Inputs used to build a repository search cache key.
+pub struct RepoSearchQueryCacheKeyInput<'a> {
+    /// Cache scope such as route or intent family.
+    pub scope: &'a str,
+    /// Local corpora participating in the cache key.
+    pub corpora: &'a [SearchCorpusKind],
+    /// Repository-backed corpora participating in the cache key.
+    pub repo_corpora: &'a [SearchCorpusKind],
+    /// Repository ids selected for the query.
+    pub repo_ids: &'a [String],
+    /// Search query text.
+    pub query: &'a str,
+    /// Requested result limit.
+    pub limit: usize,
+    /// Optional intent label included in the key.
+    pub intent: Option<&'a str>,
+    /// Optional repository hint included in the key.
+    pub repo_hint: Option<&'a str>,
 }
 
 impl RepoSearchPublicationState {

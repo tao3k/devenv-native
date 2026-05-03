@@ -1,7 +1,7 @@
 use xiuxian_db_store::VectorStoreError;
 
 use crate::duckdb::ParquetQueryEngine;
-use crate::gateway::studio::types::ReferenceSearchHit;
+use crate::search::contracts::ReferenceSearchHit;
 use crate::search::ranking::{
     RetainedWindow, StreamingRerankSource, StreamingRerankTelemetry, sort_by_rank,
 };
@@ -16,11 +16,15 @@ const MIN_RETAINED_REFERENCE_OCCURRENCES: usize = 64;
 const RETAINED_REFERENCE_OCCURRENCE_MULTIPLIER: usize = 4;
 
 #[derive(Debug, thiserror::Error)]
-pub(crate) enum ReferenceOccurrenceSearchError {
+/// Errors returned while querying reference-occurrence search data.
+pub enum ReferenceOccurrenceSearchError {
+    /// The reference-occurrence index has not published a readable epoch yet.
     #[error("reference occurrence index has no published epoch")]
     NotReady,
+    /// The vector-store or query-engine layer failed.
     #[error(transparent)]
     Storage(#[from] VectorStoreError),
+    /// Stored reference-occurrence rows could not be decoded into search hits.
     #[error("{0}")]
     Decode(String),
 }

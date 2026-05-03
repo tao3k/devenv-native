@@ -1,0 +1,52 @@
+---
+source: packages/rust/crates/xiuxian-wendao-studio/tests/unit/gateway/studio/support.rs
+assertion_line: 17
+expression: value
+---
+{
+  "repo_id": "gateway-sync",
+  "symbol_hits": [
+    {
+      "hierarchical_uri": "wendao://repo/unknown/gateway-sync/api/src:GatewaySyncPkg.jl/repo:gateway-sync:symbol:GatewaySyncPkg.solve",
+      "hierarchy": [
+        "src",
+        "GatewaySyncPkg.jl"
+      ],
+      "projection_page_ids": [
+        "repo:gateway-sync:projection:reference:symbol:repo:gateway-sync:symbol:GatewaySyncPkg.solve"
+      ],
+      "rank": 1,
+      "saliency_score": 0.0,
+      "score": 1.0,
+      "symbol": {
+        "kind": "function",
+        "line_end": null,
+        "line_start": null,
+        "module_id": "repo:gateway-sync:module:GatewaySyncPkg",
+        "name": "solve",
+        "path": "src/GatewaySyncPkg.jl",
+        "qualified_name": "GatewaySyncPkg.solve",
+        "repo_id": "gateway-sync",
+        "signature": "solve() = nothing",
+        "symbol_id": "repo:gateway-sync:symbol:GatewaySyncPkg.solve",
+        "verification_state": "unknown"
+      },
+      "verification_state": "unknown"
+    }
+  ],
+  "symbols": [
+    {
+      "kind": "function",
+      "line_end": null,
+      "line_start": null,
+      "module_id": "repo:gateway-sync:module:GatewaySyncPkg",
+      "name": "solve",
+      "path": "src/GatewaySyncPkg.jl",
+      "qualified_name": "GatewaySyncPkg.solve",
+      "repo_id": "gateway-sync",
+      "signature": "solve() = nothing",
+      "symbol_id": "repo:gateway-sync:symbol:GatewaySyncPkg.solve",
+      "verification_state": "unknown"
+    }
+  ]
+}

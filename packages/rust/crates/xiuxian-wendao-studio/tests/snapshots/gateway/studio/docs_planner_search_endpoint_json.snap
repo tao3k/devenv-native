@@ -1,0 +1,31 @@
+---
+source: packages/rust/crates/xiuxian-wendao-studio/tests/unit/gateway/studio/support.rs
+expression: value
+---
+{
+  "hits": [
+    {
+      "gap": {
+        "doc_ids": [
+          "repo:gateway-sync:doc:docs/orphan.md"
+        ],
+        "entity_id": "repo:gateway-sync:doc:docs/orphan.md",
+        "example_ids": [],
+        "format_hints": [
+          "md"
+        ],
+        "gap_id": "repo:gateway-sync:projection-gap:documentation_page_without_anchor:repo:gateway-sync:doc:docs/orphan.md",
+        "kind": "documentation_page_without_anchor",
+        "module_ids": [],
+        "page_id": "repo:gateway-sync:projection:explanation:doc:repo:gateway-sync:doc:docs/orphan.md",
+        "page_kind": "explanation",
+        "path": "docs/orphan.md",
+        "repo_id": "gateway-sync",
+        "symbol_ids": [],
+        "title": "orphan"
+      },
+      "search_score": 90
+    }
+  ],
+  "repo_id": "gateway-sync"
+}

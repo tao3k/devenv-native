@@ -1,14 +1,18 @@
 use crate::duckdb::ParquetQueryEngine;
-use crate::gateway::studio::types::AutocompleteSuggestion;
+use crate::search::contracts::AutocompleteSuggestion;
 use crate::search::ranking::{StreamingRerankSource, StreamingRerankTelemetry};
 use xiuxian_db_store::VectorStoreError;
 
 #[derive(Debug, thiserror::Error)]
-pub(crate) enum LocalSymbolSearchError {
+/// Errors returned while querying the local-symbol search index.
+pub enum LocalSymbolSearchError {
+    /// The local-symbol index has not published a readable epoch yet.
     #[error("local symbol index has no published epoch")]
     NotReady,
+    /// The vector-store or query-engine layer failed.
     #[error(transparent)]
     Storage(#[from] VectorStoreError),
+    /// Stored local-symbol rows could not be decoded into search hits.
     #[error("{0}")]
     Decode(String),
 }

@@ -27,10 +27,9 @@ lance-linalg = { workspace = true, optional = true }
 # RecordBatch utilities (extracted to xiuxian-lance)
 xiuxian-lance = { path = "../xiuxian-lance", optional = true }
 
-# Arrow IPC for search result batch (same version as lance's arrow for IPC compatibility)
+# Arrow IPC for search result batch.
 arrow = { workspace = true }
 arrow-ipc = { workspace = true }
-lance_arrow_ipc = { workspace = true }
 parquet = { workspace = true }
 datafusion = { workspace = true }
 

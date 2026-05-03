@@ -25,10 +25,10 @@ pub use self::api::parse_note;
 #[cfg(feature = "search-runtime")]
 pub(crate) use self::api::{adapt_markdown_note, adapt_org_note};
 pub use self::code_observation::{CodeObservation, extract_observations};
-#[cfg(test)]
+#[cfg(all(test, not(feature = "search-runtime")))]
 pub(crate) use self::links::ResolvedNoteReference;
-#[cfg(any(test, feature = "studio"))]
-pub(crate) use self::links::extract_resolved_note_references;
+#[cfg(feature = "search-runtime")]
+pub use self::links::{ResolvedNoteReference, extract_resolved_note_references};
 #[cfg(feature = "search-runtime")]
 pub(crate) use self::paths::is_org_note;
 pub use self::paths::{is_supported_note, normalize_alias};

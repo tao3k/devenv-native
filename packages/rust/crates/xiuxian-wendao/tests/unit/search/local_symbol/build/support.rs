@@ -2,8 +2,8 @@ use std::collections::BTreeSet;
 use std::path::Path;
 use std::time::Duration;
 
-use crate::gateway::studio::types::UiProjectConfig;
 use crate::search::cache::SearchPlaneCache;
+use crate::search::contracts::UiProjectConfig;
 use crate::search::local_symbol::build::{
     LocalSymbolBuildPlan, LocalSymbolPartitionBuildPlan, ensure_local_symbol_index_started,
 };

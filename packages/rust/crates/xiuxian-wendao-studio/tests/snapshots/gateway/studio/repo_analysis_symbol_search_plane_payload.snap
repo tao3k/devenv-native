@@ -1,0 +1,60 @@
+---
+source: packages/rust/crates/xiuxian-wendao-studio/tests/unit/gateway/studio/support.rs
+expression: value
+---
+{
+  "repo_id": "alpha/repo",
+  "symbols": [
+    {
+      "repo_id": "alpha/repo",
+      "symbol_id": "symbol:solve",
+      "module_id": "module:BaseModelica",
+      "name": "solve",
+      "qualified_name": "BaseModelica.solve",
+      "kind": "function",
+      "path": "src/BaseModelica.jl",
+      "line_start": 7,
+      "line_end": 9,
+      "signature": "solve()",
+      "audit_status": "verified",
+      "verification_state": "verified",
+      "attributes": {
+        "arity": "0"
+      }
+    }
+  ],
+  "symbol_hits": [
+    {
+      "symbol": {
+        "repo_id": "alpha/repo",
+        "symbol_id": "symbol:solve",
+        "module_id": "module:BaseModelica",
+        "name": "solve",
+        "qualified_name": "BaseModelica.solve",
+        "kind": "function",
+        "path": "src/BaseModelica.jl",
+        "line_start": 7,
+        "line_end": 9,
+        "signature": "solve()",
+        "audit_status": "verified",
+        "verification_state": "verified",
+        "attributes": {
+          "arity": "0"
+        }
+      },
+      "score": 1.0,
+      "rank": 1,
+      "saliency_score": 0.0,
+      "hierarchical_uri": "wendao://repo/unknown/alpha/repo/api/src:BaseModelica.jl/symbol:solve",
+      "hierarchy": [
+        "src",
+        "BaseModelica.jl"
+      ],
+      "projection_page_ids": [
+        "repo:alpha/repo:projection:reference:symbol:symbol:solve"
+      ],
+      "audit_status": "verified",
+      "verification_state": "verified"
+    }
+  ]
+}

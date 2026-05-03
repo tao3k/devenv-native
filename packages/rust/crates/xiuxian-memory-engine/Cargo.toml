@@ -29,7 +29,7 @@ anyhow = { workspace = true }
 xiuxian-types = { path = "../xiuxian-types" }
 
 # Vector operations for embedding similarity (using our own simple implementation)
-# lance-linalg = "2.0"  # Deferred
+# lance-linalg = { workspace = true } # Deferred
 
 # Logging
 log = { workspace = true }

@@ -1,0 +1,14 @@
+---
+source: packages/rust/crates/xiuxian-wendao-studio/tests/unit/gateway/studio/support.rs
+assertion_line: 9
+expression: value
+---
+{
+  "hitCount": 2,
+  "paths": [
+    "docs/alpha.md",
+    "docs/beta.md"
+  ],
+  "query": "wendao",
+  "selectedMode": "graph_fts"
+}

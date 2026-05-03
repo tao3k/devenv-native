@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use crate::gateway::studio::types::AttachmentSearchHit;
 use crate::search::SearchFileFingerprint;
+use crate::search::contracts::AttachmentSearchHit;
 
 #[derive(Debug, Clone)]
 pub(crate) struct AttachmentBuildPlan {
@@ -17,9 +17,9 @@ pub(crate) struct AttachmentWriteResult {
     pub(crate) fragment_count: u64,
 }
 
-#[cfg(test)]
+#[cfg(any(test, feature = "test-support"))]
 #[derive(Debug, thiserror::Error)]
-pub(crate) enum AttachmentBuildError {
+pub enum AttachmentBuildError {
     #[error(transparent)]
     Storage(#[from] xiuxian_db_store::VectorStoreError),
 }

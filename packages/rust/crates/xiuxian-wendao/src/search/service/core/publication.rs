@@ -228,7 +228,13 @@ impl SearchPlaneService {
             .await;
     }
 
-    pub(crate) async fn publish_repo_content_chunks_with_revision(
+    /// Publish repository content chunks for a source revision.
+    ///
+    /// # Errors
+    ///
+    /// Returns a vector-store error when the repository content publication
+    /// cannot be written.
+    pub async fn publish_repo_content_chunks_with_revision(
         &self,
         repo_id: &str,
         documents: &[crate::repo_index::RepoCodeDocument],
@@ -260,14 +266,20 @@ impl SearchPlaneService {
         .await
     }
 
-    pub(crate) async fn search_repo_content_chunks(
+    /// Search published repository content chunks for test support.
+    ///
+    /// # Errors
+    ///
+    /// Returns a repository content chunk search error when the published index
+    /// cannot be queried or decoded.
+    pub async fn search_repo_content_chunks(
         &self,
         repo_id: &str,
         search_term: &str,
         language_filters: &HashSet<String>,
         limit: usize,
     ) -> Result<
-        Vec<crate::gateway::studio::types::SearchHit>,
+        Vec<crate::search::contracts::SearchHit>,
         crate::search::repo_content_chunk::RepoContentChunkSearchError,
     > {
         let filters = RepoContentChunkSearchFilters::default();
@@ -289,7 +301,7 @@ impl SearchPlaneService {
         filters: &RepoContentChunkSearchFilters,
         limit: usize,
     ) -> Result<
-        Vec<crate::gateway::studio::types::SearchHit>,
+        Vec<crate::search::contracts::SearchHit>,
         crate::search::repo_content_chunk::RepoContentChunkSearchError,
     > {
         crate::search::repo_content_chunk::search_repo_content_chunks_with_filters(
@@ -303,7 +315,13 @@ impl SearchPlaneService {
         .await
     }
 
-    pub(crate) async fn publish_repo_entities_with_revision(
+    /// Publish repository entity analysis for a source revision.
+    ///
+    /// # Errors
+    ///
+    /// Returns a vector-store error when the repository entity publication
+    /// cannot be written.
+    pub async fn publish_repo_entities_with_revision(
         &self,
         repo_id: &str,
         analysis: &crate::analyzers::RepositoryAnalysisOutput,
@@ -333,7 +351,7 @@ impl SearchPlaneService {
         }
         let _ = fs::remove_file(self.repo_corpus_snapshot_json_path());
         self.clear_repo_maintenance_for_repo(repo_id);
-        #[cfg(test)]
+        #[cfg(any(test, feature = "test-support"))]
         self.cache.clear_repo_shadow_for_tests(repo_id);
         if let Ok(handle) = tokio::runtime::Handle::try_current() {
             let cache = self.cache.clone();
@@ -380,16 +398,20 @@ impl SearchPlaneService {
         }
     }
 
-    #[cfg(test)]
-    pub(crate) fn has_published_repo_corpus(
-        &self,
-        corpus: SearchCorpusKind,
-        repo_id: &str,
-    ) -> bool {
+    #[cfg(any(test, feature = "test-support"))]
+    #[doc(hidden)]
+    #[must_use]
+    pub fn has_published_repo_corpus(&self, corpus: SearchCorpusKind, repo_id: &str) -> bool {
         self.cached_repo_publication(corpus, repo_id).is_some()
     }
 
-    pub(crate) async fn search_repo_entities(
+    /// Search the published repository entity index for one repository.
+    ///
+    /// # Errors
+    ///
+    /// Returns a repository entity search error when the publication cannot be
+    /// queried or decoded.
+    pub async fn search_repo_entities(
         &self,
         repo_id: &str,
         search_term: &str,
@@ -397,7 +419,7 @@ impl SearchPlaneService {
         kind_filters: &HashSet<String>,
         limit: usize,
     ) -> Result<
-        Vec<crate::gateway::studio::types::SearchHit>,
+        Vec<crate::search::contracts::SearchHit>,
         crate::search::repo_entity::RepoEntitySearchError,
     > {
         crate::search::repo_entity::search_repo_entities(

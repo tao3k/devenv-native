@@ -16,7 +16,7 @@ use crate::analyzers::{AnalysisContext, RepositoryAnalysisOutput};
 #[derive(Clone)]
 pub struct CachedRepositoryAnalysis {
     /// Stable cache identity for the resolved repository snapshot.
-    #[cfg(feature = "studio")]
+    #[cfg(feature = "search-runtime")]
     pub cache_key: crate::analyzers::cache::RepositoryAnalysisCacheKey,
     /// Cached repository analysis output.
     pub analysis: RepositoryAnalysisOutput,
@@ -71,7 +71,7 @@ pub fn analyze_registered_repository_cached_bundle_with_registry(
     );
     if let Some(cached) = load_cached_repository_analysis(&cache_key)? {
         return Ok(CachedRepositoryAnalysis {
-            #[cfg(feature = "studio")]
+            #[cfg(feature = "search-runtime")]
             cache_key,
             analysis: cached,
         });
@@ -83,7 +83,7 @@ pub fn analyze_registered_repository_cached_bundle_with_registry(
     {
         store_cached_repository_analysis(cache_key.clone(), &cached)?;
         return Ok(CachedRepositoryAnalysis {
-            #[cfg(feature = "studio")]
+            #[cfg(feature = "search-runtime")]
             cache_key,
             analysis: cached,
         });

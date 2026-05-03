@@ -28,7 +28,7 @@ use super::types::{
     PdfPageShardManifestInput, RenderedRasterIdentity,
 };
 
-/// Environment variable that points to a dynamically loaded PDFium library.
+/// Environment variable that points to a dynamically loaded `PDFium` library.
 pub const PDFIUM_LIBRARY_PATH_ENV: &str = "WENDAO_PDFIUM_LIBRARY_PATH";
 
 #[cfg(feature = "pdf-render")]

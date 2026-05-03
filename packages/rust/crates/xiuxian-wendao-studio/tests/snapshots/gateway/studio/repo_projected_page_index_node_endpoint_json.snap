@@ -1,0 +1,26 @@
+---
+source: packages/rust/crates/xiuxian-wendao-studio/tests/unit/gateway/studio/support.rs
+expression: value
+---
+{
+  "hit": {
+    "doc_id": "reference/solve-69592caeddee",
+    "line_range": [
+      19,
+      25
+    ],
+    "node_id": "reference/solve-69592caeddee#anchors",
+    "node_title": "Anchors",
+    "page_id": "repo:gateway-sync:projection:reference:doc:repo:gateway-sync:doc:docs/solve.md",
+    "page_kind": "reference",
+    "page_title": "solve",
+    "path": "reference/solve-69592caeddee.md",
+    "repo_id": "gateway-sync",
+    "structural_path": [
+      "Overview",
+      "Anchors"
+    ],
+    "text": ":ID: anchors\n:PATHS: src/GatewaySyncPkg.jl\n\nSymbols:\n- `GatewaySyncPkg.solve` (src/GatewaySyncPkg.jl)"
+  },
+  "repo_id": "gateway-sync"
+}

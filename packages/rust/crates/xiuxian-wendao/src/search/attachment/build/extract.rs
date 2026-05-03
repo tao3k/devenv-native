@@ -1,9 +1,9 @@
 use std::path::Path;
 
-use crate::gateway::studio::types::{AttachmentSearchHit, StudioNavigationTarget};
 use crate::link_graph::LinkGraphAttachmentKind;
 use crate::parsers::markdown::ParsedNote;
 use crate::search::MarkdownSnapshotEntry;
+use crate::search::contracts::{AttachmentSearchHit, StudioNavigationTarget};
 use std::collections::HashSet;
 
 pub(crate) fn build_attachment_hits_for_entry(

@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
-use crate::gateway::studio::types::SearchHit;
 use crate::search::SearchPlaneService;
+use crate::search::contracts::SearchHit;
 use crate::search::repo_entity::query::hydrate::hydrate_repo_entity_hits;
 use crate::search::repo_entity::query::lookup::{
     RepoEntitySearchError, prepare_repo_entity_search,

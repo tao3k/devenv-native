@@ -1,0 +1,18 @@
+---
+source: packages/rust/crates/xiuxian-wendao-studio/tests/unit/gateway/studio/support.rs
+expression: value
+---
+{
+  "contentType": "text/markdown",
+  "isDir": false,
+  "name": "guide.md",
+  "path": "docs/guide.md",
+  "projectDirs": [
+    "docs",
+    "skills"
+  ],
+  "projectName": "kernel",
+  "projectRoot": ".",
+  "rootLabel": "docs",
+  "size": 16
+}

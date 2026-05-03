@@ -14,9 +14,6 @@ pub(super) use crate::analyzers::{
 };
 pub(super) use crate::analyzers::{ModuleRecord, RepoSymbolKind, RepositoryRecord, SymbolRecord};
 pub(super) use crate::analyzers::{RepoSourceKind, RepoSyncResult};
-pub(super) use crate::gateway::studio::search::handlers::tests::linked_parser_summary::ensure_linked_modelica_parser_summary_service;
-use crate::gateway::studio::search::handlers::tests::linked_parser_summary::linked_parser_summary_base_url;
-pub(super) use crate::gateway::studio::test_support::{commit_all, init_git_repository};
 pub(super) use crate::repo_index::state::coordinator::PreparedIncrementalAnalysis;
 pub(super) use crate::repo_index::state::fingerprint::timestamp_now;
 pub(super) use crate::repo_index::state::tests::{new_coordinator, new_coordinator_with_registry};
@@ -26,6 +23,9 @@ pub(super) use crate::search::{
     SearchPlaneCache, SearchPlanePhase, SearchPlaneService, SearchPublicationStorageFormat,
     SearchRepoPublicationInput,
 };
+pub(super) use crate::test_support::linked_parser_summary::ensure_linked_modelica_parser_summary_service;
+use crate::test_support::linked_parser_summary::linked_parser_summary_base_url;
+pub(super) use crate::test_support::{commit_all, init_git_repository};
 pub(super) use chrono::Utc;
 pub(super) use xiuxian_git_repo::discover_checkout_metadata;
 pub(super) struct LinkedParserSummaryTestGuard {

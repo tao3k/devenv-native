@@ -1,4 +1,4 @@
-use crate::gateway::studio::types::AstSearchHit;
+use crate::search::contracts::AstSearchHit;
 use crate::search::local_symbol::query::shared::{
     LocalSymbolSearchError, compare_candidates, decode_local_symbol_hits,
     execute_local_symbol_search, prepare_local_symbol_read_tables, retained_window,

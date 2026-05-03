@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use crate::duckdb::ParquetQueryEngine;
-use crate::gateway::studio::types::ReferenceSearchHit;
+use crate::search::contracts::ReferenceSearchHit;
 use crate::search::reference_occurrence::ReferenceOccurrenceSearchError;
 
 use super::candidates::ReferenceOccurrenceCandidate;

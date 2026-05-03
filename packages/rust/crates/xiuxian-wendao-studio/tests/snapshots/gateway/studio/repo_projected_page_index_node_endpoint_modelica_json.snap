@@ -1,0 +1,26 @@
+---
+source: packages/rust/crates/xiuxian-wendao-studio/tests/unit/gateway/studio/support.rs
+expression: value
+---
+{
+  "hit": {
+    "doc_id": "reference/projectionica-controllers-pi-bd7bd39bb23f",
+    "line_range": [
+      19,
+      28
+    ],
+    "node_id": "reference/projectionica-controllers-pi-bd7bd39bb23f#anchors",
+    "node_title": "Anchors",
+    "page_id": "repo:modelica-gateway-projected-index-node:projection:reference:symbol:repo:modelica-gateway-projected-index-node:symbol:Projectionica.Controllers.PI",
+    "page_kind": "reference",
+    "page_title": "Projectionica.Controllers.PI",
+    "path": "reference/projectionica-controllers-pi-bd7bd39bb23f.md",
+    "repo_id": "modelica-gateway-projected-index-node",
+    "structural_path": [
+      "Overview",
+      "Anchors"
+    ],
+    "text": ":ID: anchors\n:PATHS: Controllers/PI.mo, Controllers/package.mo\n\nModules:\n- `Projectionica.Controllers` (Controllers/package.mo)\n\nSymbols:\n- `Projectionica.Controllers.PI` (Controllers/PI.mo)"
+  },
+  "repo_id": "modelica-gateway-projected-index-node"
+}

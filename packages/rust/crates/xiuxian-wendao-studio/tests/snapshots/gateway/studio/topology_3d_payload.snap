@@ -1,0 +1,61 @@
+---
+source: packages/rust/crates/xiuxian-wendao-studio/tests/unit/gateway/studio/support.rs
+expression: value
+---
+{
+  "clusters": [
+    {
+      "centroid": [
+        14.0,
+        0.0,
+        -3.0
+      ],
+      "color": "#9ece6a",
+      "id": "alpha.md",
+      "name": "alpha.md",
+      "nodeCount": 1
+    },
+    {
+      "centroid": [
+        -16.5,
+        -0.0,
+        -2.0
+      ],
+      "color": "#73daca",
+      "id": "beta.md",
+      "name": "beta.md",
+      "nodeCount": 1
+    }
+  ],
+  "links": [
+    {
+      "from": "alpha.md",
+      "label": null,
+      "to": "beta.md"
+    }
+  ],
+  "nodes": [
+    {
+      "clusterId": "alpha.md",
+      "id": "alpha.md",
+      "name": "Alpha",
+      "nodeType": "doc",
+      "position": [
+        14.0,
+        0.0,
+        -3.0
+      ]
+    },
+    {
+      "clusterId": "beta.md",
+      "id": "beta.md",
+      "name": "Beta",
+      "nodeType": "doc",
+      "position": [
+        -16.5,
+        -0.0,
+        -2.0
+      ]
+    }
+  ]
+}

@@ -2,14 +2,14 @@ use std::fs;
 
 use tempfile::TempDir;
 
-use crate::gateway::studio::types::{ReferenceSearchHit, StudioNavigationTarget};
+use crate::search::contracts::{ReferenceSearchHit, StudioNavigationTarget};
 use crate::search::{
     BeginBuildDecision, SearchCorpusKind, SearchMaintenancePolicy, SearchManifestKeyspace,
     SearchPlaneService, reference_occurrence_batches,
 };
 use xiuxian_db_store::write_lance_batches_to_parquet_file;
 
-pub(crate) fn fixture_service(temp_dir: &TempDir, keyspace: &str) -> SearchPlaneService {
+pub fn fixture_service(temp_dir: &TempDir, keyspace: &str) -> SearchPlaneService {
     let project_root = temp_dir.path().join("project");
     fs::create_dir_all(&project_root).unwrap_or_else(|error| {
         panic!(
@@ -25,7 +25,7 @@ pub(crate) fn fixture_service(temp_dir: &TempDir, keyspace: &str) -> SearchPlane
     )
 }
 
-pub(crate) fn sample_hit(name: &str, path: &str, line: usize) -> ReferenceSearchHit {
+pub fn sample_hit(name: &str, path: &str, line: usize) -> ReferenceSearchHit {
     ReferenceSearchHit {
         name: name.to_string(),
         path: path.to_string(),
@@ -49,7 +49,7 @@ pub(crate) fn sample_hit(name: &str, path: &str, line: usize) -> ReferenceSearch
     }
 }
 
-pub(crate) async fn publish_reference_hits(
+pub async fn publish_reference_hits(
     service: &SearchPlaneService,
     build_id: &str,
     hits: &[ReferenceSearchHit],

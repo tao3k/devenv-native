@@ -1,13 +1,13 @@
 use std::collections::HashSet;
 use std::sync::Arc;
 
-use crate::gateway::studio::test_support::assert_wendao_json_snapshot;
 use crate::query_core::WendaoOperatorKind;
 use crate::query_core::operators::RetrievalCorpus;
 use crate::query_core::service::{RepoCodeQueryRequest, query_repo_code_relation};
 use crate::query_core::telemetry::InMemoryWendaoExplainSink;
 use crate::repo_index::RepoCodeDocument;
 use crate::search::{SearchMaintenancePolicy, SearchManifestKeyspace, SearchPlaneService};
+use crate::test_support::assert_wendao_json_snapshot;
 
 use super::support::{
     sample_repo_analysis, sample_repo_documents, snapshot_retrieval_rows, temp_project_root,

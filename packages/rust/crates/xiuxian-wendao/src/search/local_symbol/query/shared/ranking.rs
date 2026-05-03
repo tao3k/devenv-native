@@ -1,4 +1,4 @@
-use crate::gateway::studio::types::AutocompleteSuggestion;
+use crate::search::contracts::AutocompleteSuggestion;
 
 use super::types::LocalSymbolCandidate;
 

@@ -1,4 +1,5 @@
 use super::helpers::{RepoCompactionRuntimeView, RepoPrewarmRuntimeView};
+#[cfg(any(test, feature = "test-support"))]
 #[cfg(test)]
 use crate::repo_index::RepoIndexStatusResponse;
 use crate::search::service::core::types::{
@@ -16,9 +17,8 @@ impl SearchPlaneService {
         snapshot
     }
 
-    pub(crate) async fn status_with_repo_runtime(
-        &self,
-    ) -> crate::search::SearchPlaneStatusSnapshot {
+    /// Snapshot current status after synchronizing repository runtime state.
+    pub async fn status_with_repo_runtime(&self) -> crate::search::SearchPlaneStatusSnapshot {
         self.synchronize_repo_corpus_statuses_from_runtime().await;
         self.status()
     }

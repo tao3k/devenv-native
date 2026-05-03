@@ -1,7 +1,7 @@
 use std::path::Path;
 
-use crate::gateway::studio::search::build_code_ast_hits_from_content;
-use crate::gateway::studio::types::AstSearchHit;
+use crate::search::contracts::AstSearchHit;
+use crate::search::contracts::build_code_ast_hits_from_content;
 
 use super::ProjectScannedFile;
 

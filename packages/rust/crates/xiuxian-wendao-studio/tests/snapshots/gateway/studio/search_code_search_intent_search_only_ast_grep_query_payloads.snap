@@ -1,0 +1,699 @@
+---
+source: packages/rust/crates/xiuxian-wendao-studio/tests/unit/gateway/studio/support.rs
+expression: value
+---
+{
+  "placeholderRust": {
+    "graphConfidenceScore": null,
+    "hitCount": 2,
+    "hits": [
+      {
+        "auditStatus": null,
+        "bestSection": "pub struct Dataset;",
+        "docType": "ast_match",
+        "hierarchicalUri": null,
+        "hierarchy": [
+          "src",
+          "lib.rs"
+        ],
+        "implicitBacklinks": null,
+        "matchReason": "ast-grep structural analysis",
+        "navigationTarget": {
+          "category": "repo_code",
+          "column": null,
+          "line": 1,
+          "lineEnd": 1,
+          "path": "lance/src/lib.rs",
+          "projectName": "lance",
+          "rootLabel": "lance"
+        },
+        "path": "src/lib.rs",
+        "saliencyScore": null,
+        "score": 0.72,
+        "stem": "Dataset",
+        "tags": [
+          "lance",
+          "code",
+          "ast-grep",
+          "kind:ast_match",
+          "rust",
+          "lang:rust"
+        ],
+        "title": "src/lib.rs",
+        "verificationState": null
+      },
+      {
+        "auditStatus": null,
+        "bestSection": "fn scan_rows(dataset: &Dataset) {",
+        "docType": "ast_match",
+        "hierarchicalUri": null,
+        "hierarchy": [
+          "src",
+          "lib.rs"
+        ],
+        "implicitBacklinks": null,
+        "matchReason": "ast-grep structural analysis",
+        "navigationTarget": {
+          "category": "repo_code",
+          "column": null,
+          "line": 3,
+          "lineEnd": 5,
+          "path": "lance/src/lib.rs",
+          "projectName": "lance",
+          "rootLabel": "lance"
+        },
+        "path": "src/lib.rs",
+        "saliencyScore": null,
+        "score": 0.72,
+        "stem": "scan_rows",
+        "tags": [
+          "lance",
+          "code",
+          "ast-grep",
+          "kind:ast_match",
+          "rust",
+          "lang:rust"
+        ],
+        "title": "src/lib.rs",
+        "verificationState": null
+      }
+    ],
+    "indexingState": "ready",
+    "intent": "code_search",
+    "intentConfidence": 1.0,
+    "partial": false,
+    "pendingRepos": [],
+    "query": "lance ast:\"$PATTERN\" lang:rust",
+    "searchMode": "code_search",
+    "selectedMode": "code_search",
+    "skippedRepos": []
+  },
+  "placeholderToml": {
+    "graphConfidenceScore": null,
+    "hitCount": 4,
+    "hits": [
+      {
+        "auditStatus": null,
+        "bestSection": "edition = \"2021\"",
+        "docType": "ast_match",
+        "hierarchicalUri": null,
+        "hierarchy": [
+          "Cargo.toml"
+        ],
+        "implicitBacklinks": null,
+        "matchReason": "ast-grep structural analysis",
+        "navigationTarget": {
+          "category": "repo_code",
+          "column": null,
+          "line": 4,
+          "lineEnd": 4,
+          "path": "lance/Cargo.toml",
+          "projectName": "lance",
+          "rootLabel": "lance"
+        },
+        "path": "Cargo.toml",
+        "saliencyScore": null,
+        "score": 0.72,
+        "stem": "edition",
+        "tags": [
+          "lance",
+          "code",
+          "ast-grep",
+          "kind:ast_match",
+          "toml",
+          "lang:toml"
+        ],
+        "title": "Cargo.toml",
+        "verificationState": null
+      },
+      {
+        "auditStatus": null,
+        "bestSection": "name = \"searchrust\"",
+        "docType": "ast_match",
+        "hierarchicalUri": null,
+        "hierarchy": [
+          "Cargo.toml"
+        ],
+        "implicitBacklinks": null,
+        "matchReason": "ast-grep structural analysis",
+        "navigationTarget": {
+          "category": "repo_code",
+          "column": null,
+          "line": 2,
+          "lineEnd": 2,
+          "path": "lance/Cargo.toml",
+          "projectName": "lance",
+          "rootLabel": "lance"
+        },
+        "path": "Cargo.toml",
+        "saliencyScore": null,
+        "score": 0.72,
+        "stem": "name",
+        "tags": [
+          "lance",
+          "code",
+          "ast-grep",
+          "kind:ast_match",
+          "toml",
+          "lang:toml"
+        ],
+        "title": "Cargo.toml",
+        "verificationState": null
+      },
+      {
+        "auditStatus": null,
+        "bestSection": "[package]",
+        "docType": "ast_match",
+        "hierarchicalUri": null,
+        "hierarchy": [
+          "Cargo.toml"
+        ],
+        "implicitBacklinks": null,
+        "matchReason": "ast-grep structural analysis",
+        "navigationTarget": {
+          "category": "repo_code",
+          "column": null,
+          "line": 1,
+          "lineEnd": 1,
+          "path": "lance/Cargo.toml",
+          "projectName": "lance",
+          "rootLabel": "lance"
+        },
+        "path": "Cargo.toml",
+        "saliencyScore": null,
+        "score": 0.72,
+        "stem": "package",
+        "tags": [
+          "lance",
+          "code",
+          "ast-grep",
+          "kind:ast_match",
+          "toml",
+          "lang:toml"
+        ],
+        "title": "Cargo.toml",
+        "verificationState": null
+      },
+      {
+        "auditStatus": null,
+        "bestSection": "version = \"0.1.0\"",
+        "docType": "ast_match",
+        "hierarchicalUri": null,
+        "hierarchy": [
+          "Cargo.toml"
+        ],
+        "implicitBacklinks": null,
+        "matchReason": "ast-grep structural analysis",
+        "navigationTarget": {
+          "category": "repo_code",
+          "column": null,
+          "line": 3,
+          "lineEnd": 3,
+          "path": "lance/Cargo.toml",
+          "projectName": "lance",
+          "rootLabel": "lance"
+        },
+        "path": "Cargo.toml",
+        "saliencyScore": null,
+        "score": 0.72,
+        "stem": "version",
+        "tags": [
+          "lance",
+          "code",
+          "ast-grep",
+          "kind:ast_match",
+          "toml",
+          "lang:toml"
+        ],
+        "title": "Cargo.toml",
+        "verificationState": null
+      }
+    ],
+    "indexingState": "ready",
+    "intent": "code_search",
+    "intentConfidence": 1.0,
+    "partial": false,
+    "pendingRepos": [],
+    "query": "lance ast:\"$PATTERN\" lang:toml",
+    "searchMode": "code_search",
+    "selectedMode": "code_search",
+    "skippedRepos": []
+  },
+  "plainSeed": {
+    "graphConfidenceScore": null,
+    "hitCount": 6,
+    "hits": [
+      {
+        "auditStatus": null,
+        "bestSection": "edition = \"2021\"",
+        "docType": "ast_match",
+        "hierarchicalUri": null,
+        "hierarchy": [
+          "Cargo.toml"
+        ],
+        "implicitBacklinks": null,
+        "matchReason": "ast-grep structural analysis",
+        "navigationTarget": {
+          "category": "repo_code",
+          "column": null,
+          "line": 4,
+          "lineEnd": 4,
+          "path": "lance/Cargo.toml",
+          "projectName": "lance",
+          "rootLabel": "lance"
+        },
+        "path": "Cargo.toml",
+        "saliencyScore": null,
+        "score": 0.72,
+        "stem": "edition",
+        "tags": [
+          "lance",
+          "code",
+          "ast-grep",
+          "kind:ast_match",
+          "toml",
+          "lang:toml"
+        ],
+        "title": "Cargo.toml",
+        "verificationState": null
+      },
+      {
+        "auditStatus": null,
+        "bestSection": "name = \"searchrust\"",
+        "docType": "ast_match",
+        "hierarchicalUri": null,
+        "hierarchy": [
+          "Cargo.toml"
+        ],
+        "implicitBacklinks": null,
+        "matchReason": "ast-grep structural analysis",
+        "navigationTarget": {
+          "category": "repo_code",
+          "column": null,
+          "line": 2,
+          "lineEnd": 2,
+          "path": "lance/Cargo.toml",
+          "projectName": "lance",
+          "rootLabel": "lance"
+        },
+        "path": "Cargo.toml",
+        "saliencyScore": null,
+        "score": 0.72,
+        "stem": "name",
+        "tags": [
+          "lance",
+          "code",
+          "ast-grep",
+          "kind:ast_match",
+          "toml",
+          "lang:toml"
+        ],
+        "title": "Cargo.toml",
+        "verificationState": null
+      },
+      {
+        "auditStatus": null,
+        "bestSection": "[package]",
+        "docType": "ast_match",
+        "hierarchicalUri": null,
+        "hierarchy": [
+          "Cargo.toml"
+        ],
+        "implicitBacklinks": null,
+        "matchReason": "ast-grep structural analysis",
+        "navigationTarget": {
+          "category": "repo_code",
+          "column": null,
+          "line": 1,
+          "lineEnd": 1,
+          "path": "lance/Cargo.toml",
+          "projectName": "lance",
+          "rootLabel": "lance"
+        },
+        "path": "Cargo.toml",
+        "saliencyScore": null,
+        "score": 0.72,
+        "stem": "package",
+        "tags": [
+          "lance",
+          "code",
+          "ast-grep",
+          "kind:ast_match",
+          "toml",
+          "lang:toml"
+        ],
+        "title": "Cargo.toml",
+        "verificationState": null
+      },
+      {
+        "auditStatus": null,
+        "bestSection": "version = \"0.1.0\"",
+        "docType": "ast_match",
+        "hierarchicalUri": null,
+        "hierarchy": [
+          "Cargo.toml"
+        ],
+        "implicitBacklinks": null,
+        "matchReason": "ast-grep structural analysis",
+        "navigationTarget": {
+          "category": "repo_code",
+          "column": null,
+          "line": 3,
+          "lineEnd": 3,
+          "path": "lance/Cargo.toml",
+          "projectName": "lance",
+          "rootLabel": "lance"
+        },
+        "path": "Cargo.toml",
+        "saliencyScore": null,
+        "score": 0.72,
+        "stem": "version",
+        "tags": [
+          "lance",
+          "code",
+          "ast-grep",
+          "kind:ast_match",
+          "toml",
+          "lang:toml"
+        ],
+        "title": "Cargo.toml",
+        "verificationState": null
+      },
+      {
+        "auditStatus": null,
+        "bestSection": "pub struct Dataset;",
+        "docType": "ast_match",
+        "hierarchicalUri": null,
+        "hierarchy": [
+          "src",
+          "lib.rs"
+        ],
+        "implicitBacklinks": null,
+        "matchReason": "ast-grep structural analysis",
+        "navigationTarget": {
+          "category": "repo_code",
+          "column": null,
+          "line": 1,
+          "lineEnd": 1,
+          "path": "lance/src/lib.rs",
+          "projectName": "lance",
+          "rootLabel": "lance"
+        },
+        "path": "src/lib.rs",
+        "saliencyScore": null,
+        "score": 0.72,
+        "stem": "Dataset",
+        "tags": [
+          "lance",
+          "code",
+          "ast-grep",
+          "kind:ast_match",
+          "rust",
+          "lang:rust"
+        ],
+        "title": "src/lib.rs",
+        "verificationState": null
+      },
+      {
+        "auditStatus": null,
+        "bestSection": "fn scan_rows(dataset: &Dataset) {",
+        "docType": "ast_match",
+        "hierarchicalUri": null,
+        "hierarchy": [
+          "src",
+          "lib.rs"
+        ],
+        "implicitBacklinks": null,
+        "matchReason": "ast-grep structural analysis",
+        "navigationTarget": {
+          "category": "repo_code",
+          "column": null,
+          "line": 3,
+          "lineEnd": 5,
+          "path": "lance/src/lib.rs",
+          "projectName": "lance",
+          "rootLabel": "lance"
+        },
+        "path": "src/lib.rs",
+        "saliencyScore": null,
+        "score": 0.72,
+        "stem": "scan_rows",
+        "tags": [
+          "lance",
+          "code",
+          "ast-grep",
+          "kind:ast_match",
+          "rust",
+          "lang:rust"
+        ],
+        "title": "src/lib.rs",
+        "verificationState": null
+      }
+    ],
+    "indexingState": "ready",
+    "intent": "code_search",
+    "intentConfidence": 1.0,
+    "partial": false,
+    "pendingRepos": [],
+    "query": "lance",
+    "searchMode": "code_search",
+    "selectedMode": "code_search",
+    "skippedRepos": []
+  },
+  "rustFilter": {
+    "graphConfidenceScore": null,
+    "hitCount": 2,
+    "hits": [
+      {
+        "auditStatus": null,
+        "bestSection": "pub struct Dataset;",
+        "docType": "ast_match",
+        "hierarchicalUri": null,
+        "hierarchy": [
+          "src",
+          "lib.rs"
+        ],
+        "implicitBacklinks": null,
+        "matchReason": "ast-grep structural analysis",
+        "navigationTarget": {
+          "category": "repo_code",
+          "column": null,
+          "line": 1,
+          "lineEnd": 1,
+          "path": "lance/src/lib.rs",
+          "projectName": "lance",
+          "rootLabel": "lance"
+        },
+        "path": "src/lib.rs",
+        "saliencyScore": null,
+        "score": 0.72,
+        "stem": "Dataset",
+        "tags": [
+          "lance",
+          "code",
+          "ast-grep",
+          "kind:ast_match",
+          "rust",
+          "lang:rust"
+        ],
+        "title": "src/lib.rs",
+        "verificationState": null
+      },
+      {
+        "auditStatus": null,
+        "bestSection": "fn scan_rows(dataset: &Dataset) {",
+        "docType": "ast_match",
+        "hierarchicalUri": null,
+        "hierarchy": [
+          "src",
+          "lib.rs"
+        ],
+        "implicitBacklinks": null,
+        "matchReason": "ast-grep structural analysis",
+        "navigationTarget": {
+          "category": "repo_code",
+          "column": null,
+          "line": 3,
+          "lineEnd": 5,
+          "path": "lance/src/lib.rs",
+          "projectName": "lance",
+          "rootLabel": "lance"
+        },
+        "path": "src/lib.rs",
+        "saliencyScore": null,
+        "score": 0.72,
+        "stem": "scan_rows",
+        "tags": [
+          "lance",
+          "code",
+          "ast-grep",
+          "kind:ast_match",
+          "rust",
+          "lang:rust"
+        ],
+        "title": "src/lib.rs",
+        "verificationState": null
+      }
+    ],
+    "indexingState": "ready",
+    "intent": "code_search",
+    "intentConfidence": 1.0,
+    "partial": false,
+    "pendingRepos": [],
+    "query": "lance lang:rust",
+    "searchMode": "code_search",
+    "selectedMode": "code_search",
+    "skippedRepos": []
+  },
+  "tomlFilter": {
+    "graphConfidenceScore": null,
+    "hitCount": 4,
+    "hits": [
+      {
+        "auditStatus": null,
+        "bestSection": "edition = \"2021\"",
+        "docType": "ast_match",
+        "hierarchicalUri": null,
+        "hierarchy": [
+          "Cargo.toml"
+        ],
+        "implicitBacklinks": null,
+        "matchReason": "ast-grep structural analysis",
+        "navigationTarget": {
+          "category": "repo_code",
+          "column": null,
+          "line": 4,
+          "lineEnd": 4,
+          "path": "lance/Cargo.toml",
+          "projectName": "lance",
+          "rootLabel": "lance"
+        },
+        "path": "Cargo.toml",
+        "saliencyScore": null,
+        "score": 0.72,
+        "stem": "edition",
+        "tags": [
+          "lance",
+          "code",
+          "ast-grep",
+          "kind:ast_match",
+          "toml",
+          "lang:toml"
+        ],
+        "title": "Cargo.toml",
+        "verificationState": null
+      },
+      {
+        "auditStatus": null,
+        "bestSection": "name = \"searchrust\"",
+        "docType": "ast_match",
+        "hierarchicalUri": null,
+        "hierarchy": [
+          "Cargo.toml"
+        ],
+        "implicitBacklinks": null,
+        "matchReason": "ast-grep structural analysis",
+        "navigationTarget": {
+          "category": "repo_code",
+          "column": null,
+          "line": 2,
+          "lineEnd": 2,
+          "path": "lance/Cargo.toml",
+          "projectName": "lance",
+          "rootLabel": "lance"
+        },
+        "path": "Cargo.toml",
+        "saliencyScore": null,
+        "score": 0.72,
+        "stem": "name",
+        "tags": [
+          "lance",
+          "code",
+          "ast-grep",
+          "kind:ast_match",
+          "toml",
+          "lang:toml"
+        ],
+        "title": "Cargo.toml",
+        "verificationState": null
+      },
+      {
+        "auditStatus": null,
+        "bestSection": "[package]",
+        "docType": "ast_match",
+        "hierarchicalUri": null,
+        "hierarchy": [
+          "Cargo.toml"
+        ],
+        "implicitBacklinks": null,
+        "matchReason": "ast-grep structural analysis",
+        "navigationTarget": {
+          "category": "repo_code",
+          "column": null,
+          "line": 1,
+          "lineEnd": 1,
+          "path": "lance/Cargo.toml",
+          "projectName": "lance",
+          "rootLabel": "lance"
+        },
+        "path": "Cargo.toml",
+        "saliencyScore": null,
+        "score": 0.72,
+        "stem": "package",
+        "tags": [
+          "lance",
+          "code",
+          "ast-grep",
+          "kind:ast_match",
+          "toml",
+          "lang:toml"
+        ],
+        "title": "Cargo.toml",
+        "verificationState": null
+      },
+      {
+        "auditStatus": null,
+        "bestSection": "version = \"0.1.0\"",
+        "docType": "ast_match",
+        "hierarchicalUri": null,
+        "hierarchy": [
+          "Cargo.toml"
+        ],
+        "implicitBacklinks": null,
+        "matchReason": "ast-grep structural analysis",
+        "navigationTarget": {
+          "category": "repo_code",
+          "column": null,
+          "line": 3,
+          "lineEnd": 3,
+          "path": "lance/Cargo.toml",
+          "projectName": "lance",
+          "rootLabel": "lance"
+        },
+        "path": "Cargo.toml",
+        "saliencyScore": null,
+        "score": 0.72,
+        "stem": "version",
+        "tags": [
+          "lance",
+          "code",
+          "ast-grep",
+          "kind:ast_match",
+          "toml",
+          "lang:toml"
+        ],
+        "title": "Cargo.toml",
+        "verificationState": null
+      }
+    ],
+    "indexingState": "ready",
+    "intent": "code_search",
+    "intentConfidence": 1.0,
+    "partial": false,
+    "pendingRepos": [],
+    "query": "lance lang:toml",
+    "searchMode": "code_search",
+    "selectedMode": "code_search",
+    "skippedRepos": []
+  }
+}

@@ -241,10 +241,6 @@ mod repo_sync;
 mod scenarios;
 
 #[cfg(not(feature = "performance"))]
-#[path = "integration/studio_search_index_api.rs"]
-mod studio_search_index_api;
-
-#[cfg(not(feature = "performance"))]
 #[path = "integration/pybindings_feature_smoke.rs"]
 mod pybindings_feature_smoke;
 

@@ -2,12 +2,12 @@ use std::collections::BTreeMap;
 use std::path::Path;
 use std::sync::{Arc, OnceLock};
 
-use crate::gateway::studio::compile_markdown_nodes;
-use crate::gateway::studio::search::{build_markdown_ast_hits_from_sections, markdown_scope_name};
-use crate::gateway::studio::types::AstSearchHit;
 use crate::parsers::markdown::{
     ParsedNote, adapt_markdown_note, adapt_org_note, is_org_note, is_supported_note,
 };
+use crate::search::contracts::AstSearchHit;
+use crate::search::contracts::compile_markdown_nodes;
+use crate::search::contracts::{build_markdown_ast_hits_from_sections, markdown_scope_name};
 use xiuxian_wendao_parsers::{
     fingerprint_markdown_note, parse_markdown_note_artifacts, parse_org_note,
     sections::MarkdownSection,

@@ -71,8 +71,8 @@ pub(crate) fn ranked_module_matches(
     }
 }
 
-#[cfg(all(feature = "studio", feature = "repo-lexical-index"))]
-pub(crate) fn ranked_module_matches_with_artifacts(
+#[cfg(all(feature = "search-runtime", feature = "repo-lexical-index"))]
+pub fn ranked_module_matches_with_artifacts(
     query: &str,
     modules: &[ModuleRecord],
     lookup: &BTreeMap<String, ModuleRecord>,

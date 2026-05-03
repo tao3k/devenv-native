@@ -8,7 +8,8 @@ pub(crate) use execution::fixed_kind_filters;
 pub(crate) use execution::{compare_candidates, retained_window};
 pub(crate) use prepare::{prepare_repo_entity_publication, prepare_repo_entity_search};
 pub(crate) use route::search_repo_entities;
+pub use types::RepoEntitySearchError;
 pub(crate) use types::{
     HydratedRepoEntityRow, PreparedRepoEntityPublication, PreparedRepoEntitySearch,
-    RepoEntityCandidate, RepoEntitySearchError,
+    RepoEntityCandidate,
 };

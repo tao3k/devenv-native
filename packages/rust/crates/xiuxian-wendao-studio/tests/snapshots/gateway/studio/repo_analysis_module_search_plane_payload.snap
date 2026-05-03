@@ -1,0 +1,37 @@
+---
+source: packages/rust/crates/xiuxian-wendao-studio/tests/unit/gateway/studio/support.rs
+expression: value
+---
+{
+  "repo_id": "alpha/repo",
+  "modules": [
+    {
+      "repo_id": "alpha/repo",
+      "module_id": "module:BaseModelica",
+      "qualified_name": "BaseModelica",
+      "path": "src/BaseModelica.jl"
+    }
+  ],
+  "module_hits": [
+    {
+      "module": {
+        "repo_id": "alpha/repo",
+        "module_id": "module:BaseModelica",
+        "qualified_name": "BaseModelica",
+        "path": "src/BaseModelica.jl"
+      },
+      "score": 1.0,
+      "rank": 1,
+      "saliency_score": 0.0,
+      "hierarchical_uri": "wendao://repo/unknown/alpha/repo/api/src:BaseModelica.jl/module:BaseModelica",
+      "hierarchy": [
+        "src",
+        "BaseModelica.jl"
+      ],
+      "projection_page_ids": [
+        "repo:alpha/repo:projection:reference:module:module:BaseModelica",
+        "repo:alpha/repo:projection:reference:symbol:symbol:solve"
+      ]
+    }
+  ]
+}

@@ -5,8 +5,8 @@ use std::sync::atomic::{AtomicU64, Ordering};
 pub(super) use crate::analyzers::{
     ExampleRecord, ModuleRecord, RepoSymbolKind, RepositoryAnalysisOutput, SymbolRecord,
 };
-pub(super) use crate::gateway::studio::types::{AstSearchHit, StudioNavigationTarget};
 pub(super) use crate::repo_index::{RepoCodeDocument, RepoIndexEntryStatus, RepoIndexPhase};
+pub(super) use crate::search::contracts::{AstSearchHit, StudioNavigationTarget};
 pub(super) use crate::search::service::helpers::{derive_status_reason, summarize_issues};
 pub(super) use crate::search::{
     SearchCorpusIssueSummary, SearchCorpusKind, SearchCorpusStatus, SearchCorpusStatusAction,

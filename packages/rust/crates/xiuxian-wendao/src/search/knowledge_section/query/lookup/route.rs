@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, HashMap};
 
 use crate::duckdb::ParquetQueryEngine;
-use crate::gateway::studio::types::SearchHit;
+use crate::search::contracts::SearchHit;
 use crate::search::knowledge_section::schema::{hit_json_column, id_column, projected_columns};
 use crate::search::ranking::{
     RetainedWindow, StreamingRerankSource, StreamingRerankTelemetry, sort_by_rank,

@@ -3,8 +3,8 @@ use std::path::PathBuf;
 #[cfg(feature = "duckdb")]
 use std::fs;
 
-use crate::gateway::studio::types::UiProjectConfig;
 use crate::search::cache::SearchPlaneCache;
+use crate::search::contracts::UiProjectConfig;
 use crate::search::knowledge_section::build::publish_knowledge_sections_from_projects;
 use crate::search::{SearchMaintenancePolicy, SearchManifestKeyspace, SearchPlaneService};
 #[cfg(feature = "duckdb")]

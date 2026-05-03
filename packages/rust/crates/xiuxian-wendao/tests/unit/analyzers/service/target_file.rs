@@ -10,7 +10,7 @@ use crate::analyzers::service::analysis::{
 };
 use crate::analyzers::{RegisteredRepository, RepositoryRefreshPolicy};
 use crate::analyzers::{RepositoryPluginConfig, resolve_registered_repository_source};
-use crate::gateway::studio::test_support::{commit_all, init_git_repository};
+use crate::test_support::{commit_all, init_git_repository};
 use xiuxian_git_repo::SyncMode;
 
 use super::support::{CachedTargetFilePlugin, CountingJuliaPlugin};

@@ -21,8 +21,11 @@ const DEFAULT_CACHE_CONNECTION_TIMEOUT_MS: u64 = 25;
 const DEFAULT_CACHE_RESPONSE_TIMEOUT_MS: u64 = 25;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum SearchPlaneCacheTtl {
+/// Cache TTL family used by search-plane query caches.
+pub enum SearchPlaneCacheTtl {
+    /// TTL for normal search query results.
     HotQuery,
+    /// TTL for autocomplete result sets.
     Autocomplete,
 }
 
@@ -36,12 +39,18 @@ impl SearchPlaneCacheTtl {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct SearchPlaneCacheConfig {
-    pub(crate) query_ttl_seconds: u64,
-    pub(crate) autocomplete_ttl_seconds: u64,
-    pub(crate) repo_revision_retention: usize,
-    pub(crate) connection_timeout: Duration,
-    pub(crate) response_timeout: Duration,
+/// Effective cache configuration for search-plane Valkey interactions.
+pub struct SearchPlaneCacheConfig {
+    /// Hot query TTL in seconds.
+    pub query_ttl_seconds: u64,
+    /// Autocomplete TTL in seconds.
+    pub autocomplete_ttl_seconds: u64,
+    /// Number of repository revisions retained in cache metadata.
+    pub repo_revision_retention: usize,
+    /// Timeout used while opening the cache connection.
+    pub connection_timeout: Duration,
+    /// Timeout used while waiting for cache responses.
+    pub response_timeout: Duration,
 }
 
 impl Default for SearchPlaneCacheConfig {

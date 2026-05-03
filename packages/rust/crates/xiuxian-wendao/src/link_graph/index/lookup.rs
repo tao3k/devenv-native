@@ -25,8 +25,9 @@ impl LinkGraphIndex {
     }
 
     /// Iterate over all indexed documents.
-    #[cfg(feature = "studio")]
-    pub(crate) fn docs(&self) -> std::collections::hash_map::Values<'_, String, LinkGraphDocument> {
+    #[cfg(any(feature = "studio", feature = "zhenfa-router"))]
+    #[must_use]
+    pub fn docs(&self) -> std::collections::hash_map::Values<'_, String, LinkGraphDocument> {
         self.docs_by_id.values()
     }
 
@@ -81,7 +82,9 @@ impl LinkGraphIndex {
         self.docs_by_id.contains_key(doc_id)
     }
 
-    pub(crate) fn get_doc(&self, doc_id: &str) -> Option<&LinkGraphDocument> {
+    /// Return an indexed document by canonical document id.
+    #[must_use]
+    pub fn get_doc(&self, doc_id: &str) -> Option<&LinkGraphDocument> {
         self.docs_by_id.get(doc_id)
     }
 
@@ -93,7 +96,9 @@ impl LinkGraphIndex {
         &self.node_parent_map
     }
 
-    pub(crate) fn resolve_doc_id_pub(&self, stem_or_id: &str) -> Option<&str> {
+    /// Resolve a document stem or canonical id into the canonical document id.
+    #[must_use]
+    pub fn resolve_doc_id_pub(&self, stem_or_id: &str) -> Option<&str> {
         self.resolve_doc_id(stem_or_id)
     }
 

@@ -1,0 +1,37 @@
+//! Projected page-index tree route contract and metadata validation.
+
+/// Canonical projected page-index tree repository metadata header for Wendao
+/// Flight requests.
+pub const WENDAO_REPO_PROJECTED_PAGE_INDEX_TREE_REPO_HEADER: &str =
+    "x-wendao-repo-projected-page-index-tree-repo";
+/// Canonical projected page-index tree page metadata header for Wendao Flight
+/// requests.
+pub const WENDAO_REPO_PROJECTED_PAGE_INDEX_TREE_PAGE_ID_HEADER: &str =
+    "x-wendao-repo-projected-page-index-tree-page-id";
+/// Stable route for the repo projected page-index tree analysis contract.
+pub const ANALYSIS_REPO_PROJECTED_PAGE_INDEX_TREE_ROUTE: &str =
+    "/analysis/repo-projected-page-index-tree";
+
+/// Validate the stable projected page-index tree request contract.
+///
+/// # Errors
+///
+/// Returns an error when the repository identifier or page identifier is
+/// blank.
+pub fn validate_repo_projected_page_index_tree_request(
+    repo_id: &str,
+    page_id: &str,
+) -> Result<(String, String), String> {
+    let normalized_repo_id = repo_id.trim();
+    if normalized_repo_id.is_empty() {
+        return Err("repo projected page-index tree repo must not be blank".to_string());
+    }
+    let normalized_page_id = page_id.trim();
+    if normalized_page_id.is_empty() {
+        return Err("repo projected page-index tree page id must not be blank".to_string());
+    }
+    Ok((
+        normalized_repo_id.to_string(),
+        normalized_page_id.to_string(),
+    ))
+}

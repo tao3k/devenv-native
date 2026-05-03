@@ -8,14 +8,16 @@ impl SearchPlaneService {
         self.coordinator.status_for(corpus).active_epoch
     }
 
+    /// Build an autocomplete cache key for the current local-symbol epoch.
     #[must_use]
-    pub(crate) fn autocomplete_cache_key(&self, prefix: &str, limit: usize) -> Option<String> {
+    pub fn autocomplete_cache_key(&self, prefix: &str, limit: usize) -> Option<String> {
         let epoch = self.corpus_active_epoch(SearchCorpusKind::LocalSymbol)?;
         self.cache.autocomplete_cache_key(prefix, limit, epoch)
     }
 
+    /// Build a query cache key from active local corpus epochs.
     #[must_use]
-    pub(crate) fn search_query_cache_key(
+    pub fn search_query_cache_key(
         &self,
         scope: &str,
         corpora: &[SearchCorpusKind],
@@ -35,8 +37,9 @@ impl SearchPlaneService {
             .search_query_cache_key(scope, epochs.as_slice(), query, limit, intent, repo_hint)
     }
 
+    /// Build a repository search cache key from local and repo publication versions.
     #[must_use]
-    pub(crate) async fn repo_search_query_cache_key(
+    pub async fn repo_search_query_cache_key(
         &self,
         input: RepoSearchQueryCacheKeyInput<'_>,
     ) -> Option<String> {
@@ -85,14 +88,16 @@ impl SearchPlaneService {
         )
     }
 
-    pub(crate) async fn cache_get_json<T>(&self, key: &str) -> Option<T>
+    /// Read a JSON value from the search-plane cache.
+    pub async fn cache_get_json<T>(&self, key: &str) -> Option<T>
     where
         T: serde::de::DeserializeOwned,
     {
         self.cache.get_json(key).await
     }
 
-    pub(crate) async fn cache_set_json<T>(&self, key: &str, ttl: SearchPlaneCacheTtl, value: &T)
+    /// Write a JSON value into the search-plane cache.
+    pub async fn cache_set_json<T>(&self, key: &str, ttl: SearchPlaneCacheTtl, value: &T)
     where
         T: serde::Serialize,
     {

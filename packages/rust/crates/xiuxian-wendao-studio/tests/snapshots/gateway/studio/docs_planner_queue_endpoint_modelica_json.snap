@@ -1,0 +1,36 @@
+---
+source: packages/rust/crates/xiuxian-wendao-studio/tests/unit/gateway/studio/support.rs
+expression: value
+---
+{
+  "groups": [
+    {
+      "count": 1,
+      "gaps": [
+        {
+          "doc_ids": [],
+          "entity_id": "repo:modelica-gateway-queue:symbol:Projectionica.Controllers.NoDocs",
+          "example_ids": [],
+          "format_hints": [],
+          "gap_id": "repo:modelica-gateway-queue:projection-gap:symbol_reference_without_documentation:repo:modelica-gateway-queue:symbol:Projectionica.Controllers.NoDocs",
+          "kind": "symbol_reference_without_documentation",
+          "module_ids": [
+            "repo:modelica-gateway-queue:module:Projectionica.Controllers"
+          ],
+          "page_id": "repo:modelica-gateway-queue:projection:reference:symbol:repo:modelica-gateway-queue:symbol:Projectionica.Controllers.NoDocs",
+          "page_kind": "reference",
+          "path": "Controllers/NoDocs.mo",
+          "repo_id": "modelica-gateway-queue",
+          "symbol_ids": [
+            "repo:modelica-gateway-queue:symbol:Projectionica.Controllers.NoDocs"
+          ],
+          "title": "Projectionica.Controllers.NoDocs"
+        }
+      ],
+      "kind": "symbol_reference_without_documentation"
+    }
+  ],
+  "page_count": 12,
+  "repo_id": "modelica-gateway-queue",
+  "total_gap_count": 1
+}

@@ -3,4 +3,5 @@ mod decode;
 mod helpers;
 mod route;
 
-pub(crate) use route::{ReferenceOccurrenceSearchError, search_reference_occurrences};
+pub use route::ReferenceOccurrenceSearchError;
+pub(crate) use route::search_reference_occurrences;

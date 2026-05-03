@@ -1,0 +1,120 @@
+---
+source: packages/rust/crates/xiuxian-wendao-studio/tests/unit/gateway/studio/support.rs
+expression: value
+---
+{
+  "module_hits": [
+    {
+      "hierarchical_uri": "wendao://repo/msl/modelica-gateway-module-search/api/Controllers:package.mo/repo:modelica-gateway-module-search:module:Projectionica.Controllers",
+      "hierarchy": [
+        "Controllers",
+        "package.mo"
+      ],
+      "implicit_backlink_items": [
+        {
+          "id": "repo:modelica-gateway-module-search:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo",
+          "kind": "documents",
+          "path": "Controllers/UsersGuide/Tutorial/FirstSteps.mo",
+          "title": "FirstSteps"
+        },
+        {
+          "id": "repo:modelica-gateway-module-search:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation",
+          "kind": "documents",
+          "path": "Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation",
+          "title": "FirstSteps documentation"
+        },
+        {
+          "id": "repo:modelica-gateway-module-search:doc:Controllers/UsersGuide/package.mo",
+          "kind": "documents",
+          "path": "Controllers/UsersGuide/package.mo",
+          "title": "UsersGuide"
+        }
+      ],
+      "implicit_backlinks": [
+        "repo:modelica-gateway-module-search:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo",
+        "repo:modelica-gateway-module-search:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation",
+        "repo:modelica-gateway-module-search:doc:Controllers/UsersGuide/package.mo"
+      ],
+      "module": {
+        "module_id": "repo:modelica-gateway-module-search:module:Projectionica.Controllers",
+        "path": "Controllers/package.mo",
+        "qualified_name": "Projectionica.Controllers",
+        "repo_id": "modelica-gateway-module-search"
+      },
+      "projection_page_ids": [
+        "repo:modelica-gateway-module-search:projection:howto:doc:repo:modelica-gateway-module-search:doc:Controllers/UsersGuide/package.mo",
+        "repo:modelica-gateway-module-search:projection:howto:example:repo:modelica-gateway-module-search:example:Controllers/Examples/Step.mo",
+        "repo:modelica-gateway-module-search:projection:reference:module:repo:modelica-gateway-module-search:module:Projectionica.Controllers",
+        "repo:modelica-gateway-module-search:projection:reference:symbol:repo:modelica-gateway-module-search:symbol:Projectionica.Controllers.PI",
+        "repo:modelica-gateway-module-search:projection:tutorial:doc:repo:modelica-gateway-module-search:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo",
+        "repo:modelica-gateway-module-search:projection:tutorial:doc:repo:modelica-gateway-module-search:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation"
+      ],
+      "rank": 1,
+      "saliency_score": 1.0,
+      "score": 1.0
+    },
+    {
+      "hierarchical_uri": "wendao://repo/msl/modelica-gateway-module-search/api/Controllers:UsersGuide:package.mo/repo:modelica-gateway-module-search:module:Projectionica.Controllers.UsersGuide",
+      "hierarchy": [
+        "Controllers",
+        "UsersGuide",
+        "package.mo"
+      ],
+      "implicit_backlink_items": [
+        {
+          "id": "repo:modelica-gateway-module-search:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo",
+          "kind": "documents",
+          "path": "Controllers/UsersGuide/Tutorial/FirstSteps.mo",
+          "title": "FirstSteps"
+        },
+        {
+          "id": "repo:modelica-gateway-module-search:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation",
+          "kind": "documents",
+          "path": "Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation",
+          "title": "FirstSteps documentation"
+        },
+        {
+          "id": "repo:modelica-gateway-module-search:doc:Controllers/UsersGuide/package.mo",
+          "kind": "documents",
+          "path": "Controllers/UsersGuide/package.mo",
+          "title": "UsersGuide"
+        }
+      ],
+      "implicit_backlinks": [
+        "repo:modelica-gateway-module-search:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo",
+        "repo:modelica-gateway-module-search:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation",
+        "repo:modelica-gateway-module-search:doc:Controllers/UsersGuide/package.mo"
+      ],
+      "module": {
+        "module_id": "repo:modelica-gateway-module-search:module:Projectionica.Controllers.UsersGuide",
+        "path": "Controllers/UsersGuide/package.mo",
+        "qualified_name": "Projectionica.Controllers.UsersGuide",
+        "repo_id": "modelica-gateway-module-search"
+      },
+      "projection_page_ids": [
+        "repo:modelica-gateway-module-search:projection:howto:doc:repo:modelica-gateway-module-search:doc:Controllers/UsersGuide/package.mo",
+        "repo:modelica-gateway-module-search:projection:reference:module:repo:modelica-gateway-module-search:module:Projectionica.Controllers.UsersGuide",
+        "repo:modelica-gateway-module-search:projection:tutorial:doc:repo:modelica-gateway-module-search:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo",
+        "repo:modelica-gateway-module-search:projection:tutorial:doc:repo:modelica-gateway-module-search:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation"
+      ],
+      "rank": 2,
+      "saliency_score": 0.4,
+      "score": 0.75
+    }
+  ],
+  "modules": [
+    {
+      "module_id": "repo:modelica-gateway-module-search:module:Projectionica.Controllers",
+      "path": "Controllers/package.mo",
+      "qualified_name": "Projectionica.Controllers",
+      "repo_id": "modelica-gateway-module-search"
+    },
+    {
+      "module_id": "repo:modelica-gateway-module-search:module:Projectionica.Controllers.UsersGuide",
+      "path": "Controllers/UsersGuide/package.mo",
+      "qualified_name": "Projectionica.Controllers.UsersGuide",
+      "repo_id": "modelica-gateway-module-search"
+    }
+  ],
+  "repo_id": "modelica-gateway-module-search"
+}

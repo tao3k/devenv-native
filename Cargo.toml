@@ -17,6 +17,7 @@ members = [
   "packages/rust/crates/xiuxian-wendao-core",
   "packages/rust/crates/xiuxian-wendao-runtime",
   "packages/rust/crates/xiuxian-wendao-sql",
+  "packages/rust/crates/xiuxian-wendao-studio",
   "packages/rust/crates/xiuxian-wendao-web",
   "packages/rust/crates/xiuxian-lance",
   "packages/rust/crates/xiuxian-macros",
@@ -132,11 +133,11 @@ specta = { version = "2.0.0-rc.23", features = ["derive"] }
 specta-typescript = "0.0.10"
 
 # LanceDB for vector storage
-lance = { version = "3.0.1", default-features = false }
-lance-arrow = "3.0.1"
-lance-file = "3.0.1"
-lance-index = "3.0.1"
-lance-linalg = "3.0.1"
+lance = { git = "https://github.com/lancedb/lance.git", rev = "ad05eae9e33eee8ef4f40b06f2843a907b6d6eb3", default-features = false }
+lance-arrow = { git = "https://github.com/lancedb/lance.git", rev = "ad05eae9e33eee8ef4f40b06f2843a907b6d6eb3" }
+lance-file = { git = "https://github.com/lancedb/lance.git", rev = "ad05eae9e33eee8ef4f40b06f2843a907b6d6eb3" }
+lance-index = { git = "https://github.com/lancedb/lance.git", rev = "ad05eae9e33eee8ef4f40b06f2843a907b6d6eb3" }
+lance-linalg = { git = "https://github.com/lancedb/lance.git", rev = "ad05eae9e33eee8ef4f40b06f2843a907b6d6eb3" }
 
 # Arrow IPC for analytics and DataFusion execution
 arrow = { version = "58.1.0", features = ["ffi"] }
@@ -145,7 +146,6 @@ arrow-flight = "58.1.0"
 arrow-ipc = "58.1.0"
 arrow-schema = { version = "58.1.0", features = ["ffi"] }
 arrow-string = "58.1.0"
-lance_arrow_ipc = { package = "arrow-ipc", version = "57.3.0" }
 parquet = "58.1.0"
 datafusion = "53.0.0"
 
@@ -176,7 +176,7 @@ insta = { version = "1.46.3", features = ["json", "redactions"] }
 serial_test = { version = "3", features = ["file_locks"] }
 criterion = { version = "0.5", features = ["html_reports"] }
 hdrhistogram = "7.5"
-rust-lang-project-harness = { git = "https://github.com/tao3k/rust-lang-project-harness", rev = "4bb9fb73517c3d19418202a33f9d91b25d15fb3d" }
+rust-lang-project-harness = { git = "https://github.com/tao3k/rust-lang-project-harness", rev = "fec8679d05a97bd8f1d5bc2831bf609b8e8e19b9" }
 
 
 # Performance optimization - Thin LTO for reduced memory

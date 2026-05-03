@@ -1,0 +1,7 @@
+---
+source: packages/rust/crates/xiuxian-wendao-studio/tests/unit/gateway/studio/support.rs
+expression: value
+---
+{
+  "error": "VFS path not found: docs/analysis.md"
+}

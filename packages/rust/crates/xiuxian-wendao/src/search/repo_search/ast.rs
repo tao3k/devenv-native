@@ -7,8 +7,8 @@ use xiuxian_git_repo::SyncMode;
 
 use crate::analyzers::resolve_registered_repository_source;
 use crate::analyzers::{RegisteredRepository, RepositoryPluginConfig};
-use crate::gateway::studio::types::{SearchHit, StudioNavigationTarget};
 use crate::search::SearchPlaneService;
+use crate::search::contracts::{SearchHit, StudioNavigationTarget};
 
 enum RepoAstSearchMode {
     Pattern { pattern: String },
@@ -104,14 +104,18 @@ fn normalize_analysis_search_term(repo_id: &str, search_term: Option<&str>) -> O
     Some(normalized.to_string())
 }
 
-pub(crate) fn repository_supports_generic_ast_analysis(repository: &RegisteredRepository) -> bool {
+/// Return whether a repository is configured for generic AST analysis.
+#[must_use]
+pub fn repository_supports_generic_ast_analysis(repository: &RegisteredRepository) -> bool {
     repository
         .plugins
         .iter()
         .any(|plugin| plugin.id().eq_ignore_ascii_case("ast-grep"))
 }
 
-pub(crate) fn repository_generic_ast_lang_for_path(
+/// Resolve the generic AST language for a path in the given repository.
+#[must_use]
+pub fn repository_generic_ast_lang_for_path(
     repository: &RegisteredRepository,
     path: &Path,
 ) -> Option<Lang> {

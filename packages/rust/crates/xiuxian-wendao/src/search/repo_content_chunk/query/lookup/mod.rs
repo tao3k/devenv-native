@@ -7,7 +7,7 @@ mod route;
 mod scan;
 
 pub(crate) use candidates::RepoContentChunkCandidate;
-pub(crate) use error::RepoContentChunkSearchError;
+pub use error::RepoContentChunkSearchError;
 pub(crate) use filters::RepoContentChunkSearchFilters;
 #[cfg(test)]
 pub(crate) use helpers::{candidate_path_key, compare_candidates};

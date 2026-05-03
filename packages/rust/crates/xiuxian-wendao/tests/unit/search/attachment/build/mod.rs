@@ -2,11 +2,11 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 use std::time::Duration;
 
-use crate::gateway::studio::types::UiProjectConfig;
 use crate::link_graph::LinkGraphAttachmentKind;
 use crate::search::attachment::build::plan_attachment_build;
 use crate::search::attachment::search_attachment_hits;
 use crate::search::cache::SearchPlaneCache;
+use crate::search::contracts::UiProjectConfig;
 use crate::search::{
     SearchCorpusKind, SearchMaintenancePolicy, SearchManifestKeyspace, SearchPlanePhase,
     SearchPlaneService,

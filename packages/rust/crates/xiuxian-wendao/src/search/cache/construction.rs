@@ -4,10 +4,10 @@ use crate::search::SearchManifestKeyspace;
 
 use super::config::SearchPlaneCacheConfig;
 use super::runtime::resolve_search_plane_cache_runtime;
-#[cfg(test)]
-use super::tests::TestCacheShadow;
 use super::types::SearchPlaneCache;
-#[cfg(test)]
+#[cfg(any(test, feature = "test-support"))]
+use super::types::TestCacheShadow;
+#[cfg(any(test, feature = "test-support"))]
 use std::sync::{Arc, RwLock};
 
 impl SearchPlaneCache {
@@ -20,13 +20,13 @@ impl SearchPlaneCache {
         Self::new(None, SearchPlaneCacheConfig::default(), keyspace)
     }
 
-    #[cfg(test)]
-    pub(crate) fn for_tests(keyspace: SearchManifestKeyspace) -> Self {
+    #[cfg(any(test, feature = "test-support"))]
+    pub fn for_tests(keyspace: SearchManifestKeyspace) -> Self {
         Self::for_tests_with_config(keyspace, SearchPlaneCacheConfig::default())
     }
 
-    #[cfg(test)]
-    pub(crate) fn for_tests_with_config(
+    #[cfg(any(test, feature = "test-support"))]
+    pub fn for_tests_with_config(
         keyspace: SearchManifestKeyspace,
         config: SearchPlaneCacheConfig,
     ) -> Self {
@@ -49,7 +49,7 @@ impl SearchPlaneCache {
             client,
             config,
             keyspace,
-            #[cfg(test)]
+            #[cfg(any(test, feature = "test-support"))]
             shadow: Arc::new(RwLock::new(TestCacheShadow::default())),
         }
     }
@@ -58,5 +58,31 @@ impl SearchPlaneCache {
         AsyncConnectionConfig::new()
             .set_connection_timeout(Some(self.config.connection_timeout))
             .set_response_timeout(Some(self.config.response_timeout))
+    }
+
+    #[cfg(any(test, feature = "test-support"))]
+    pub(crate) fn clear_repo_shadow_for_tests(&self, repo_id: &str) {
+        let mut shadow = self
+            .shadow
+            .write()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        shadow
+            .repo_corpus_records
+            .retain(|(_, candidate_repo_id), _| candidate_repo_id != repo_id);
+        if let Some(snapshot) = shadow.repo_corpus_snapshot.as_mut() {
+            snapshot.records.retain(|record| record.repo_id != repo_id);
+            if snapshot.records.is_empty() {
+                shadow.repo_corpus_snapshot = None;
+            }
+        }
+        shadow
+            .repo_corpus_file_fingerprints
+            .retain(|(_, candidate_repo_id), _| candidate_repo_id != repo_id);
+        shadow
+            .repo_publications_by_revision
+            .retain(|(_, candidate_repo_id, _), _| candidate_repo_id != repo_id);
+        shadow
+            .repo_publication_revision_indexes
+            .retain(|(_, candidate_repo_id), _| candidate_repo_id != repo_id);
     }
 }

@@ -1,0 +1,8 @@
+---
+source: packages/rust/crates/xiuxian-wendao-studio/tests/unit/gateway/studio/support.rs
+expression: value
+---
+{
+  "code": "NOT_FOUND",
+  "message": "repo `gateway-sync` does not contain projected page-index node `reference/solve-69592caeddee#missing` in page `repo:gateway-sync:projection:reference:doc:repo:gateway-sync:doc:docs/solve.md`"
+}

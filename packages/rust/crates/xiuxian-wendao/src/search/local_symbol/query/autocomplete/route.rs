@@ -1,4 +1,4 @@
-use crate::gateway::studio::types::AutocompleteSuggestion;
+use crate::search::contracts::AutocompleteSuggestion;
 use crate::search::local_symbol::query::shared::{
     LocalSymbolSearchError, compare_suggestions, execute_local_symbol_autocomplete,
     prepare_local_symbol_read_tables, suggestion_window,

@@ -20,8 +20,9 @@ mod page_index;
 pub mod perf_support;
 #[path = "ppr_hybrid.rs"]
 pub mod ppr_hybrid;
+/// Runtime configuration resolution for link-graph retrieval and cache behavior.
 #[path = "runtime_config/mod.rs"]
-pub(crate) mod runtime_config;
+pub mod runtime_config;
 /// `GraphMem` saliency models, scoring, and Valkey persistence adapters.
 #[path = "saliency/mod.rs"]
 pub mod saliency;

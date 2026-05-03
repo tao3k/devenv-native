@@ -1,9 +1,9 @@
 use std::path::Path;
 use std::sync::Arc;
 
-#[cfg(feature = "studio")]
+#[cfg(feature = "search-runtime")]
 use std::collections::BTreeSet;
-#[cfg(feature = "studio")]
+#[cfg(feature = "search-runtime")]
 use std::fs;
 
 use xiuxian_git_repo::{MaterializedRepo, RepoSourceKind, SyncMode, discover_checkout_metadata};
@@ -11,7 +11,7 @@ use xiuxian_git_repo::{MaterializedRepo, RepoSourceKind, SyncMode, discover_chec
 use crate::analyzers::PluginRegistry;
 use crate::analyzers::RegisteredRepository;
 use crate::analyzers::RepoIntelligenceError;
-#[cfg(feature = "studio")]
+#[cfg(feature = "search-runtime")]
 use crate::analyzers::RepoSourceFile;
 use crate::analyzers::cache::{
     RepositoryAnalysisCacheKey, RepositoryAnalysisValkeyScope, ValkeyAnalysisCache,
@@ -23,12 +23,12 @@ use crate::analyzers::skeptic;
 use crate::analyzers::{
     AnalysisContext, PluginLinkContext, RepoIntelligencePlugin, RepositoryAnalysisOutput,
 };
-#[cfg(feature = "studio")]
+#[cfg(feature = "search-runtime")]
 use crate::analyzers::{RelationKind, RelationRecord};
 
 use super::bootstrap::bootstrap_builtin_registry;
 use super::cached::CachedRepositoryAnalysis;
-#[cfg(feature = "studio")]
+#[cfg(feature = "search-runtime")]
 use super::cached::analyze_registered_repository_cached_bundle_with_registry;
 use super::merge::{hydrate_repository_record, merge_repository_analysis};
 use super::registry::load_registered_repository;
@@ -79,7 +79,7 @@ pub fn analyze_registered_repository_with_registry(
         .map(|cached| cached.analysis)
 }
 
-#[cfg(feature = "studio")]
+#[cfg(feature = "search-runtime")]
 /// Analyze one repository-relative file through configured plugins without
 /// traversing the entire repository.
 ///
@@ -88,7 +88,7 @@ pub fn analyze_registered_repository_with_registry(
 /// Returns [`RepoIntelligenceError`] when the repository source cannot be
 /// resolved, the target file cannot be read, or a plugin file-analysis step
 /// fails.
-pub(crate) fn analyze_registered_repository_target_file_with_registry(
+pub fn analyze_registered_repository_target_file_with_registry(
     repository: &RegisteredRepository,
     cwd: &Path,
     registry: &PluginRegistry,
@@ -210,7 +210,7 @@ pub fn analyze_registered_repository_bundle_with_registry(
     );
     if let Some(cached) = load_cached_repository_analysis(&cache_key)? {
         return Ok(CachedRepositoryAnalysis {
-            #[cfg(feature = "studio")]
+            #[cfg(feature = "search-runtime")]
             cache_key,
             analysis: cached,
         });
@@ -226,7 +226,7 @@ pub fn analyze_registered_repository_bundle_with_registry(
     let valkey_cache = ValkeyAnalysisCache::new()?;
     if let Some(cached) = load_cached_analysis_from_valkey(&cache_key, valkey_cache.as_ref())? {
         return Ok(CachedRepositoryAnalysis {
-            #[cfg(feature = "studio")]
+            #[cfg(feature = "search-runtime")]
             cache_key,
             analysis: cached,
         });
@@ -275,7 +275,7 @@ pub fn analyze_registered_repository_bundle_with_registry(
     store_cached_repository_analysis(cache_key.clone(), &output)?;
 
     Ok(CachedRepositoryAnalysis {
-        #[cfg(feature = "studio")]
+        #[cfg(feature = "search-runtime")]
         cache_key,
         analysis: output,
     })
@@ -308,7 +308,7 @@ fn resolve_analysis_source(
     }
 }
 
-#[cfg(feature = "studio")]
+#[cfg(feature = "search-runtime")]
 fn resolve_target_file_analysis_source(
     repository: &RegisteredRepository,
     cwd: &Path,
@@ -321,7 +321,7 @@ fn resolve_target_file_analysis_source(
     }
 }
 
-#[cfg(feature = "studio")]
+#[cfg(feature = "search-runtime")]
 fn load_cached_target_file_analysis(
     repository: &RegisteredRepository,
     cwd: &Path,
@@ -343,7 +343,7 @@ fn load_cached_target_file_analysis(
     }
 }
 
-#[cfg(feature = "studio")]
+#[cfg(feature = "search-runtime")]
 fn filter_repository_analysis_to_target_path(
     analysis: RepositoryAnalysisOutput,
     repo_relative_path: &str,
@@ -429,7 +429,7 @@ fn filter_repository_analysis_to_target_path(
     }
 }
 
-#[cfg(feature = "studio")]
+#[cfg(feature = "search-runtime")]
 fn target_file_analysis_has_records(analysis: &RepositoryAnalysisOutput) -> bool {
     !(analysis.modules.is_empty()
         && analysis.symbols.is_empty()
@@ -439,7 +439,7 @@ fn target_file_analysis_has_records(analysis: &RepositoryAnalysisOutput) -> bool
         && analysis.diagnostics.is_empty())
 }
 
-#[cfg(feature = "studio")]
+#[cfg(feature = "search-runtime")]
 fn finalize_target_file_analysis_output(
     repository: &RegisteredRepository,
     repository_root: &Path,
@@ -535,7 +535,7 @@ fn enrich_repository_relations(
     Ok(())
 }
 
-#[cfg(feature = "studio")]
+#[cfg(feature = "search-runtime")]
 fn build_target_file_structural_relations(
     repo_id: &str,
     link_context: &PluginLinkContext,

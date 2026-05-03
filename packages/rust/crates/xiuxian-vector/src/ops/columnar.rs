@@ -8,11 +8,11 @@ use futures::TryStreamExt;
 use lance::dataset::{MergeInsertBuilder, WhenMatched, WhenNotMatched, WriteParams};
 use lance::deps::arrow_array::{RecordBatch, RecordBatchIterator};
 use lance::deps::arrow_schema::{ArrowError, Schema};
+use lance::index::DatasetIndexExt;
 use lance_file::version::LanceFileVersion;
 use lance_index::IndexType;
 use lance_index::scalar::inverted::tokenizer::InvertedIndexParams;
 use lance_index::scalar::{BuiltinIndexType, ScalarIndexParams};
-use lance_index::traits::DatasetIndexExt;
 
 use crate::{VectorStore, VectorStoreError};
 

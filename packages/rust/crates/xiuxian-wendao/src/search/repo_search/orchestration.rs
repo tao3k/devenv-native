@@ -1,7 +1,7 @@
 use crate::analyzers::RegisteredRepository;
-use crate::gateway::studio::types::SearchHit;
 use crate::parsers::search::repo_code_query::ParsedRepoCodeSearchQuery;
 use crate::search::SearchPlaneService;
+use crate::search::contracts::SearchHit;
 
 use super::ast::{
     ast_pattern_requests_generic_analysis, has_generic_ast_language_filters,
@@ -15,38 +15,56 @@ use super::dispatch::{RepoSearchDispatch, collect_repo_search_targets, repo_sear
 use std::time::Duration;
 
 #[derive(Debug, Default)]
-pub(crate) struct RepoIntentSearchOutcome {
-    pub(crate) hits: Vec<SearchHit>,
-    pub(crate) pending_repos: Vec<String>,
-    pub(crate) skipped_repos: Vec<String>,
-    #[cfg(test)]
-    pub(crate) repo_content_available: bool,
+/// Repository intent-search result plus repositories that were not searchable yet.
+pub struct RepoIntentSearchOutcome {
+    /// Search hits produced by searchable repositories.
+    pub hits: Vec<SearchHit>,
+    /// Repository ids whose publications are still pending.
+    pub pending_repos: Vec<String>,
+    /// Repository ids skipped because they are unsupported or unavailable.
+    pub skipped_repos: Vec<String>,
+    #[cfg(any(test, feature = "test-support"))]
+    /// Whether at least one repository content publication was available.
+    pub repo_content_available: bool,
 }
 
 #[derive(Debug, Default)]
-pub(crate) struct RepoCodeSearchOutcome {
-    pub(crate) hits: Vec<SearchHit>,
-    pub(crate) pending_repos: Vec<String>,
-    pub(crate) skipped_repos: Vec<String>,
-    pub(crate) partial_timeout: bool,
+/// Repository code-search result plus dispatch state for unavailable repositories.
+pub struct RepoCodeSearchOutcome {
+    /// Search hits produced by searchable repositories.
+    pub hits: Vec<SearchHit>,
+    /// Repository ids whose publications are still pending.
+    pub pending_repos: Vec<String>,
+    /// Repository ids skipped because they are unsupported or unavailable.
+    pub skipped_repos: Vec<String>,
+    /// Whether buffered repository search stopped after a partial timeout.
+    pub partial_timeout: bool,
 }
 
 #[derive(Debug, thiserror::Error)]
-pub(crate) enum RepoCodeSearchExecutionError {
+/// Errors returned while executing repository code search.
+pub enum RepoCodeSearchExecutionError {
+    /// Ast-grep search was requested without exactly one repository scope.
     #[error("ast-grep code search requires one explicit repository scope")]
     MissingRepositoryScopeForAstGrep,
+    /// Repository search failed after dispatching to the selected backend.
     #[error("{0}")]
     Search(String),
 }
 
-pub(crate) async fn search_repo_intent_outcome(
+/// Search repository intent across selected repositories and report dispatch gaps.
+///
+/// # Errors
+///
+/// Returns a search error string when one of the repository search workers fails.
+pub async fn search_repo_intent_outcome(
     search_plane: &SearchPlaneService,
     repo_ids: Vec<String>,
     raw_query: &str,
     limit: usize,
 ) -> Result<RepoIntentSearchOutcome, String> {
     let dispatch = prepare_repo_search_dispatch(search_plane, repo_ids).await;
-    #[cfg(test)]
+    #[cfg(any(test, feature = "test-support"))]
     let repo_content_available = dispatch
         .searchable
         .iter()
@@ -63,7 +81,7 @@ pub(crate) async fn search_repo_intent_outcome(
         hits,
         pending_repos: dispatch.pending,
         skipped_repos: dispatch.skipped,
-        #[cfg(test)]
+        #[cfg(any(test, feature = "test-support"))]
         repo_content_available,
     })
 }
@@ -93,7 +111,13 @@ pub(crate) async fn search_repo_code_outcome(
     })
 }
 
-pub(crate) async fn search_repo_code_outcome_for_query(
+/// Search repository code with parsed filters and report dispatch gaps.
+///
+/// # Errors
+///
+/// Returns a typed execution error when the selected AST or content backend
+/// cannot satisfy the query.
+pub async fn search_repo_code_outcome_for_query(
     search_plane: &SearchPlaneService,
     selected_repository: Option<&RegisteredRepository>,
     repo_ids: Vec<String>,

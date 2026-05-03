@@ -1,0 +1,2028 @@
+---
+source: packages/rust/crates/xiuxian-wendao-studio/tests/unit/gateway/studio/support.rs
+expression: value
+---
+{
+  "balance": {
+    "family_balanced": true,
+    "family_distribution": [
+      {
+        "kind": "reference",
+        "selected_count": 1,
+        "within_target_band": true
+      }
+    ],
+    "family_group_count": 1,
+    "family_spread": 0,
+    "family_target_ceiling_count": 1,
+    "family_target_floor_count": 1,
+    "gap_kind_balanced": true,
+    "gap_kind_distribution": [
+      {
+        "kind": "symbol_reference_without_documentation",
+        "selected_count": 1,
+        "within_target_band": true
+      }
+    ],
+    "gap_kind_group_count": 1,
+    "gap_kind_spread": 0,
+    "gap_kind_target_ceiling_count": 1,
+    "gap_kind_target_floor_count": 1,
+    "selection_count": 1
+  },
+  "groups": [
+    {
+      "families": [
+        {
+          "items": [
+            {
+              "gap": {
+                "doc_ids": [],
+                "entity_id": "repo:modelica-gateway-workset:symbol:Projectionica.Controllers.NoDocs",
+                "example_ids": [],
+                "format_hints": [],
+                "gap_id": "repo:modelica-gateway-workset:projection-gap:symbol_reference_without_documentation:repo:modelica-gateway-workset:symbol:Projectionica.Controllers.NoDocs",
+                "kind": "symbol_reference_without_documentation",
+                "module_ids": [
+                  "repo:modelica-gateway-workset:module:Projectionica.Controllers"
+                ],
+                "page_id": "repo:modelica-gateway-workset:projection:reference:symbol:repo:modelica-gateway-workset:symbol:Projectionica.Controllers.NoDocs",
+                "page_kind": "reference",
+                "path": "Controllers/NoDocs.mo",
+                "repo_id": "modelica-gateway-workset",
+                "symbol_ids": [
+                  "repo:modelica-gateway-workset:symbol:Projectionica.Controllers.NoDocs"
+                ],
+                "title": "Projectionica.Controllers.NoDocs"
+              },
+              "hit": {
+                "kind": "page",
+                "node": null,
+                "page": {
+                  "doc_id": "",
+                  "doc_ids": [],
+                  "example_ids": [],
+                  "format_hints": [],
+                  "keywords": [
+                    "",
+                    "Controllers/NoDocs.mo",
+                    "Projectionica.Controllers.NoDocs"
+                  ],
+                  "kind": "reference",
+                  "module_ids": [
+                    "repo:modelica-gateway-workset:module:Projectionica.Controllers"
+                  ],
+                  "page_id": "repo:modelica-gateway-workset:projection:reference:symbol:repo:modelica-gateway-workset:symbol:Projectionica.Controllers.NoDocs",
+                  "path": "Controllers/NoDocs.mo",
+                  "paths": [
+                    "Controllers/NoDocs.mo"
+                  ],
+                  "repo_id": "modelica-gateway-workset",
+                  "sections": [
+                    {
+                      "body": "Projected reference page for `Projectionica.Controllers.NoDocs`.\nSource paths:\n- `Controllers/NoDocs.mo`",
+                      "level": 1,
+                      "paths": [
+                        "Controllers/NoDocs.mo"
+                      ],
+                      "section_id": "repo:modelica-gateway-workset:projection:reference:symbol:repo:modelica-gateway-workset:symbol:Projectionica.Controllers.NoDocs#overview",
+                      "title": "Overview"
+                    },
+                    {
+                      "body": "Modules:\n- `Projectionica.Controllers` (Controllers/package.mo)\n\nSymbols:\n- `Projectionica.Controllers.NoDocs` (Controllers/NoDocs.mo)",
+                      "level": 2,
+                      "paths": [
+                        "Controllers/NoDocs.mo",
+                        "Controllers/package.mo"
+                      ],
+                      "section_id": "repo:modelica-gateway-workset:projection:reference:symbol:repo:modelica-gateway-workset:symbol:Projectionica.Controllers.NoDocs#anchors",
+                      "title": "Anchors"
+                    }
+                  ],
+                  "symbol_ids": [
+                    "repo:modelica-gateway-workset:symbol:Projectionica.Controllers.NoDocs"
+                  ],
+                  "title": "Projectionica.Controllers.NoDocs"
+                }
+              },
+              "navigation": {
+                "center": {
+                  "kind": "page",
+                  "node": null,
+                  "page": {
+                    "doc_id": "",
+                    "doc_ids": [],
+                    "example_ids": [],
+                    "format_hints": [],
+                    "keywords": [
+                      "",
+                      "Controllers/NoDocs.mo",
+                      "Projectionica.Controllers.NoDocs"
+                    ],
+                    "kind": "reference",
+                    "module_ids": [
+                      "repo:modelica-gateway-workset:module:Projectionica.Controllers"
+                    ],
+                    "page_id": "repo:modelica-gateway-workset:projection:reference:symbol:repo:modelica-gateway-workset:symbol:Projectionica.Controllers.NoDocs",
+                    "path": "Controllers/NoDocs.mo",
+                    "paths": [
+                      "Controllers/NoDocs.mo"
+                    ],
+                    "repo_id": "modelica-gateway-workset",
+                    "sections": [
+                      {
+                        "body": "Projected reference page for `Projectionica.Controllers.NoDocs`.\nSource paths:\n- `Controllers/NoDocs.mo`",
+                        "level": 1,
+                        "paths": [
+                          "Controllers/NoDocs.mo"
+                        ],
+                        "section_id": "repo:modelica-gateway-workset:projection:reference:symbol:repo:modelica-gateway-workset:symbol:Projectionica.Controllers.NoDocs#overview",
+                        "title": "Overview"
+                      },
+                      {
+                        "body": "Modules:\n- `Projectionica.Controllers` (Controllers/package.mo)\n\nSymbols:\n- `Projectionica.Controllers.NoDocs` (Controllers/NoDocs.mo)",
+                        "level": 2,
+                        "paths": [
+                          "Controllers/NoDocs.mo",
+                          "Controllers/package.mo"
+                        ],
+                        "section_id": "repo:modelica-gateway-workset:projection:reference:symbol:repo:modelica-gateway-workset:symbol:Projectionica.Controllers.NoDocs#anchors",
+                        "title": "Anchors"
+                      }
+                    ],
+                    "symbol_ids": [
+                      "repo:modelica-gateway-workset:symbol:Projectionica.Controllers.NoDocs"
+                    ],
+                    "title": "Projectionica.Controllers.NoDocs"
+                  }
+                },
+                "family_cluster": {
+                  "kind": "how_to",
+                  "pages": [
+                    {
+                      "page": {
+                        "doc_id": "repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo",
+                        "doc_ids": [
+                          "repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo",
+                          "repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation",
+                          "repo:modelica-gateway-workset:doc:Controllers/UsersGuide/package.mo"
+                        ],
+                        "example_ids": [
+                          "repo:modelica-gateway-workset:example:Controllers/Examples/Step.mo"
+                        ],
+                        "format_hints": [
+                          "modelica_users_guide_page",
+                          "modelica_users_guide_tutorial",
+                          "modelica_users_guide_tutorial_annotation"
+                        ],
+                        "keywords": [
+                          "Controllers/Examples/Step.mo",
+                          "Step",
+                          "modelica_users_guide_page",
+                          "modelica_users_guide_tutorial",
+                          "modelica_users_guide_tutorial_annotation",
+                          "repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo"
+                        ],
+                        "kind": "how_to",
+                        "module_ids": [
+                          "repo:modelica-gateway-workset:module:Projectionica.Controllers"
+                        ],
+                        "page_id": "repo:modelica-gateway-workset:projection:howto:example:repo:modelica-gateway-workset:example:Controllers/Examples/Step.mo",
+                        "path": "Controllers/Examples/Step.mo",
+                        "paths": [
+                          "Controllers/Examples/Step.mo",
+                          "Controllers/UsersGuide/Tutorial/FirstSteps.mo",
+                          "Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation",
+                          "Controllers/UsersGuide/package.mo"
+                        ],
+                        "repo_id": "modelica-gateway-workset",
+                        "sections": [
+                          {
+                            "body": "Projected how-to page for `Step`.\nFormat hints:\n- `modelica_users_guide_page`\n- `modelica_users_guide_tutorial`\n- `modelica_users_guide_tutorial_annotation`\nSource paths:\n- `Controllers/Examples/Step.mo`\n- `Controllers/UsersGuide/Tutorial/FirstSteps.mo`\n- `Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation`\n- `Controllers/UsersGuide/package.mo`",
+                            "level": 1,
+                            "paths": [
+                              "Controllers/Examples/Step.mo",
+                              "Controllers/UsersGuide/Tutorial/FirstSteps.mo",
+                              "Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation",
+                              "Controllers/UsersGuide/package.mo"
+                            ],
+                            "section_id": "repo:modelica-gateway-workset:projection:howto:example:repo:modelica-gateway-workset:example:Controllers/Examples/Step.mo#overview",
+                            "title": "Overview"
+                          },
+                          {
+                            "body": "Modules:\n- `Projectionica.Controllers` (Controllers/package.mo)",
+                            "level": 2,
+                            "paths": [
+                              "Controllers/package.mo"
+                            ],
+                            "section_id": "repo:modelica-gateway-workset:projection:howto:example:repo:modelica-gateway-workset:example:Controllers/Examples/Step.mo#anchors",
+                            "title": "Anchors"
+                          },
+                          {
+                            "body": "Documentation:\n- `FirstSteps` (Controllers/UsersGuide/Tutorial/FirstSteps.mo)\n- `FirstSteps documentation` (Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation)\n- `UsersGuide` (Controllers/UsersGuide/package.mo)",
+                            "level": 2,
+                            "paths": [
+                              "Controllers/UsersGuide/Tutorial/FirstSteps.mo",
+                              "Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation",
+                              "Controllers/UsersGuide/package.mo"
+                            ],
+                            "section_id": "repo:modelica-gateway-workset:projection:howto:example:repo:modelica-gateway-workset:example:Controllers/Examples/Step.mo#sources",
+                            "title": "Supporting Docs"
+                          },
+                          {
+                            "body": "Examples:\n- `Step` (Controllers/Examples/Step.mo)",
+                            "level": 2,
+                            "paths": [
+                              "Controllers/Examples/Step.mo"
+                            ],
+                            "section_id": "repo:modelica-gateway-workset:projection:howto:example:repo:modelica-gateway-workset:example:Controllers/Examples/Step.mo#examples",
+                            "title": "Examples"
+                          }
+                        ],
+                        "symbol_ids": [],
+                        "title": "Step"
+                      },
+                      "shared_anchor_score": 1
+                    },
+                    {
+                      "page": {
+                        "doc_id": "repo:modelica-gateway-workset:doc:Controllers/UsersGuide/package.mo",
+                        "doc_ids": [
+                          "repo:modelica-gateway-workset:doc:Controllers/UsersGuide/package.mo"
+                        ],
+                        "example_ids": [
+                          "repo:modelica-gateway-workset:example:Controllers/Examples/Step.mo"
+                        ],
+                        "format_hints": [
+                          "modelica_users_guide_page"
+                        ],
+                        "keywords": [
+                          "Controllers/Examples/Step.mo",
+                          "UsersGuide",
+                          "modelica_users_guide_page",
+                          "repo:modelica-gateway-workset:doc:Controllers/UsersGuide/package.mo"
+                        ],
+                        "kind": "how_to",
+                        "module_ids": [
+                          "repo:modelica-gateway-workset:module:Projectionica.Controllers",
+                          "repo:modelica-gateway-workset:module:Projectionica.Controllers.UsersGuide"
+                        ],
+                        "page_id": "repo:modelica-gateway-workset:projection:howto:doc:repo:modelica-gateway-workset:doc:Controllers/UsersGuide/package.mo",
+                        "path": "Controllers/Examples/Step.mo",
+                        "paths": [
+                          "Controllers/Examples/Step.mo",
+                          "Controllers/UsersGuide/package.mo"
+                        ],
+                        "repo_id": "modelica-gateway-workset",
+                        "sections": [
+                          {
+                            "body": "Projected how-to page for `UsersGuide`.\nFormat hints:\n- `modelica_users_guide_page`\nSource paths:\n- `Controllers/Examples/Step.mo`\n- `Controllers/UsersGuide/package.mo`",
+                            "level": 1,
+                            "paths": [
+                              "Controllers/Examples/Step.mo",
+                              "Controllers/UsersGuide/package.mo"
+                            ],
+                            "section_id": "repo:modelica-gateway-workset:projection:howto:doc:repo:modelica-gateway-workset:doc:Controllers/UsersGuide/package.mo#overview",
+                            "title": "Overview"
+                          },
+                          {
+                            "body": "Modules:\n- `Projectionica.Controllers` (Controllers/package.mo)\n- `Projectionica.Controllers.UsersGuide` (Controllers/UsersGuide/package.mo)",
+                            "level": 2,
+                            "paths": [
+                              "Controllers/UsersGuide/package.mo",
+                              "Controllers/package.mo"
+                            ],
+                            "section_id": "repo:modelica-gateway-workset:projection:howto:doc:repo:modelica-gateway-workset:doc:Controllers/UsersGuide/package.mo#anchors",
+                            "title": "Anchors"
+                          },
+                          {
+                            "body": "Documentation:\n- `UsersGuide` (Controllers/UsersGuide/package.mo)",
+                            "level": 2,
+                            "paths": [
+                              "Controllers/UsersGuide/package.mo"
+                            ],
+                            "section_id": "repo:modelica-gateway-workset:projection:howto:doc:repo:modelica-gateway-workset:doc:Controllers/UsersGuide/package.mo#sources",
+                            "title": "Supporting Docs"
+                          },
+                          {
+                            "body": "Examples:\n- `Step` (Controllers/Examples/Step.mo)",
+                            "level": 2,
+                            "paths": [
+                              "Controllers/Examples/Step.mo"
+                            ],
+                            "section_id": "repo:modelica-gateway-workset:projection:howto:doc:repo:modelica-gateway-workset:doc:Controllers/UsersGuide/package.mo#examples",
+                            "title": "Examples"
+                          }
+                        ],
+                        "symbol_ids": [],
+                        "title": "UsersGuide"
+                      },
+                      "shared_anchor_score": 1
+                    }
+                  ]
+                },
+                "node_context": null,
+                "related_pages": [
+                  {
+                    "doc_id": "repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo",
+                    "doc_ids": [
+                      "repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo"
+                    ],
+                    "example_ids": [
+                      "repo:modelica-gateway-workset:example:Controllers/Examples/Step.mo"
+                    ],
+                    "format_hints": [
+                      "modelica_users_guide_tutorial"
+                    ],
+                    "keywords": [
+                      "Controllers/Examples/Step.mo",
+                      "FirstSteps",
+                      "modelica_users_guide_tutorial",
+                      "repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo"
+                    ],
+                    "kind": "tutorial",
+                    "module_ids": [
+                      "repo:modelica-gateway-workset:module:Projectionica.Controllers",
+                      "repo:modelica-gateway-workset:module:Projectionica.Controllers.UsersGuide"
+                    ],
+                    "page_id": "repo:modelica-gateway-workset:projection:tutorial:doc:repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo",
+                    "path": "Controllers/Examples/Step.mo",
+                    "paths": [
+                      "Controllers/Examples/Step.mo",
+                      "Controllers/UsersGuide/Tutorial/FirstSteps.mo"
+                    ],
+                    "repo_id": "modelica-gateway-workset",
+                    "sections": [
+                      {
+                        "body": "Projected tutorial page for `FirstSteps`.\nFormat hints:\n- `modelica_users_guide_tutorial`\nSource paths:\n- `Controllers/Examples/Step.mo`\n- `Controllers/UsersGuide/Tutorial/FirstSteps.mo`",
+                        "level": 1,
+                        "paths": [
+                          "Controllers/Examples/Step.mo",
+                          "Controllers/UsersGuide/Tutorial/FirstSteps.mo"
+                        ],
+                        "section_id": "repo:modelica-gateway-workset:projection:tutorial:doc:repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo#overview",
+                        "title": "Overview"
+                      },
+                      {
+                        "body": "Modules:\n- `Projectionica.Controllers` (Controllers/package.mo)\n- `Projectionica.Controllers.UsersGuide` (Controllers/UsersGuide/package.mo)",
+                        "level": 2,
+                        "paths": [
+                          "Controllers/UsersGuide/package.mo",
+                          "Controllers/package.mo"
+                        ],
+                        "section_id": "repo:modelica-gateway-workset:projection:tutorial:doc:repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo#anchors",
+                        "title": "Anchors"
+                      },
+                      {
+                        "body": "Documentation:\n- `FirstSteps` (Controllers/UsersGuide/Tutorial/FirstSteps.mo)",
+                        "level": 2,
+                        "paths": [
+                          "Controllers/UsersGuide/Tutorial/FirstSteps.mo"
+                        ],
+                        "section_id": "repo:modelica-gateway-workset:projection:tutorial:doc:repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo#sources",
+                        "title": "Sources"
+                      },
+                      {
+                        "body": "Examples:\n- `Step` (Controllers/Examples/Step.mo)",
+                        "level": 2,
+                        "paths": [
+                          "Controllers/Examples/Step.mo"
+                        ],
+                        "section_id": "repo:modelica-gateway-workset:projection:tutorial:doc:repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo#examples",
+                        "title": "Examples"
+                      }
+                    ],
+                    "symbol_ids": [],
+                    "title": "FirstSteps"
+                  },
+                  {
+                    "doc_id": "repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation",
+                    "doc_ids": [
+                      "repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation"
+                    ],
+                    "example_ids": [
+                      "repo:modelica-gateway-workset:example:Controllers/Examples/Step.mo"
+                    ],
+                    "format_hints": [
+                      "modelica_users_guide_tutorial_annotation"
+                    ],
+                    "keywords": [
+                      "Controllers/Examples/Step.mo",
+                      "FirstSteps documentation",
+                      "modelica_users_guide_tutorial_annotation",
+                      "repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation"
+                    ],
+                    "kind": "tutorial",
+                    "module_ids": [
+                      "repo:modelica-gateway-workset:module:Projectionica.Controllers",
+                      "repo:modelica-gateway-workset:module:Projectionica.Controllers.UsersGuide"
+                    ],
+                    "page_id": "repo:modelica-gateway-workset:projection:tutorial:doc:repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation",
+                    "path": "Controllers/Examples/Step.mo",
+                    "paths": [
+                      "Controllers/Examples/Step.mo",
+                      "Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation"
+                    ],
+                    "repo_id": "modelica-gateway-workset",
+                    "sections": [
+                      {
+                        "body": "Projected tutorial page for `FirstSteps documentation`.\nFormat hints:\n- `modelica_users_guide_tutorial_annotation`\nSource paths:\n- `Controllers/Examples/Step.mo`\n- `Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation`",
+                        "level": 1,
+                        "paths": [
+                          "Controllers/Examples/Step.mo",
+                          "Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation"
+                        ],
+                        "section_id": "repo:modelica-gateway-workset:projection:tutorial:doc:repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation#overview",
+                        "title": "Overview"
+                      },
+                      {
+                        "body": "Modules:\n- `Projectionica.Controllers` (Controllers/package.mo)\n- `Projectionica.Controllers.UsersGuide` (Controllers/UsersGuide/package.mo)",
+                        "level": 2,
+                        "paths": [
+                          "Controllers/UsersGuide/package.mo",
+                          "Controllers/package.mo"
+                        ],
+                        "section_id": "repo:modelica-gateway-workset:projection:tutorial:doc:repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation#anchors",
+                        "title": "Anchors"
+                      },
+                      {
+                        "body": "Documentation:\n- `FirstSteps documentation` (Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation)",
+                        "level": 2,
+                        "paths": [
+                          "Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation"
+                        ],
+                        "section_id": "repo:modelica-gateway-workset:projection:tutorial:doc:repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation#sources",
+                        "title": "Sources"
+                      },
+                      {
+                        "body": "Examples:\n- `Step` (Controllers/Examples/Step.mo)",
+                        "level": 2,
+                        "paths": [
+                          "Controllers/Examples/Step.mo"
+                        ],
+                        "section_id": "repo:modelica-gateway-workset:projection:tutorial:doc:repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation#examples",
+                        "title": "Examples"
+                      }
+                    ],
+                    "symbol_ids": [],
+                    "title": "FirstSteps documentation"
+                  },
+                  {
+                    "doc_id": "repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo",
+                    "doc_ids": [
+                      "repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo",
+                      "repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation",
+                      "repo:modelica-gateway-workset:doc:Controllers/UsersGuide/package.mo",
+                      "repo:modelica-gateway-workset:doc:Controllers/PI.mo#annotation.documentation"
+                    ],
+                    "example_ids": [
+                      "repo:modelica-gateway-workset:example:Controllers/Examples/Step.mo"
+                    ],
+                    "format_hints": [
+                      "modelica_annotation",
+                      "modelica_users_guide_page",
+                      "modelica_users_guide_tutorial",
+                      "modelica_users_guide_tutorial_annotation"
+                    ],
+                    "keywords": [
+                      "Controllers/Examples/Step.mo",
+                      "Projectionica.Controllers",
+                      "modelica_annotation",
+                      "modelica_users_guide_page",
+                      "modelica_users_guide_tutorial",
+                      "modelica_users_guide_tutorial_annotation",
+                      "repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo"
+                    ],
+                    "kind": "reference",
+                    "module_ids": [
+                      "repo:modelica-gateway-workset:module:Projectionica.Controllers"
+                    ],
+                    "page_id": "repo:modelica-gateway-workset:projection:reference:module:repo:modelica-gateway-workset:module:Projectionica.Controllers",
+                    "path": "Controllers/Examples/Step.mo",
+                    "paths": [
+                      "Controllers/Examples/Step.mo",
+                      "Controllers/PI.mo#annotation.documentation",
+                      "Controllers/UsersGuide/Tutorial/FirstSteps.mo",
+                      "Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation",
+                      "Controllers/UsersGuide/package.mo",
+                      "Controllers/package.mo"
+                    ],
+                    "repo_id": "modelica-gateway-workset",
+                    "sections": [
+                      {
+                        "body": "Projected reference page for `Projectionica.Controllers`.\nFormat hints:\n- `modelica_annotation`\n- `modelica_users_guide_page`\n- `modelica_users_guide_tutorial`\n- `modelica_users_guide_tutorial_annotation`\nSource paths:\n- `Controllers/Examples/Step.mo`\n- `Controllers/PI.mo#annotation.documentation`\n- `Controllers/UsersGuide/Tutorial/FirstSteps.mo`\n- `Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation`\n- `Controllers/UsersGuide/package.mo`\n- `Controllers/package.mo`",
+                        "level": 1,
+                        "paths": [
+                          "Controllers/Examples/Step.mo",
+                          "Controllers/PI.mo#annotation.documentation",
+                          "Controllers/UsersGuide/Tutorial/FirstSteps.mo",
+                          "Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation",
+                          "Controllers/UsersGuide/package.mo",
+                          "Controllers/package.mo"
+                        ],
+                        "section_id": "repo:modelica-gateway-workset:projection:reference:module:repo:modelica-gateway-workset:module:Projectionica.Controllers#overview",
+                        "title": "Overview"
+                      },
+                      {
+                        "body": "Modules:\n- `Projectionica.Controllers` (Controllers/package.mo)",
+                        "level": 2,
+                        "paths": [
+                          "Controllers/package.mo"
+                        ],
+                        "section_id": "repo:modelica-gateway-workset:projection:reference:module:repo:modelica-gateway-workset:module:Projectionica.Controllers#anchors",
+                        "title": "Anchors"
+                      },
+                      {
+                        "body": "Documentation:\n- `FirstSteps` (Controllers/UsersGuide/Tutorial/FirstSteps.mo)\n- `FirstSteps documentation` (Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation)\n- `PI documentation` (Controllers/PI.mo#annotation.documentation)\n- `UsersGuide` (Controllers/UsersGuide/package.mo)",
+                        "level": 2,
+                        "paths": [
+                          "Controllers/UsersGuide/Tutorial/FirstSteps.mo",
+                          "Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation",
+                          "Controllers/PI.mo#annotation.documentation",
+                          "Controllers/UsersGuide/package.mo"
+                        ],
+                        "section_id": "repo:modelica-gateway-workset:projection:reference:module:repo:modelica-gateway-workset:module:Projectionica.Controllers#sources",
+                        "title": "Documentation"
+                      },
+                      {
+                        "body": "Examples:\n- `Step` (Controllers/Examples/Step.mo)",
+                        "level": 2,
+                        "paths": [
+                          "Controllers/Examples/Step.mo"
+                        ],
+                        "section_id": "repo:modelica-gateway-workset:projection:reference:module:repo:modelica-gateway-workset:module:Projectionica.Controllers#examples",
+                        "title": "Examples"
+                      }
+                    ],
+                    "symbol_ids": [],
+                    "title": "Projectionica.Controllers"
+                  }
+                ],
+                "repo_id": "modelica-gateway-workset",
+                "tree": {
+                  "doc_id": "reference/projectionica-controllers-nodocs-6af5b2a8e468",
+                  "kind": "reference",
+                  "page_id": "repo:modelica-gateway-workset:projection:reference:symbol:repo:modelica-gateway-workset:symbol:Projectionica.Controllers.NoDocs",
+                  "path": "reference/projectionica-controllers-nodocs-6af5b2a8e468.md",
+                  "repo_id": "modelica-gateway-workset",
+                  "root_count": 2,
+                  "roots": [
+                    {
+                      "children": [],
+                      "is_thinned": false,
+                      "level": 1,
+                      "line_range": [
+                        1,
+                        6
+                      ],
+                      "node_id": "reference/projectionica-controllers-nodocs-6af5b2a8e468#projectionica-controllers-nodocs",
+                      "structural_path": [
+                        "Projectionica.Controllers.NoDocs"
+                      ],
+                      "summary": ":PROPERTIES:\n:TYPE: PROJECTED_PAGE\n:KIND: reference\n:END:",
+                      "text": ":PROPERTIES:\n:TYPE: PROJECTED_PAGE\n:KIND: reference\n:END:",
+                      "title": "Projectionica.Controllers.NoDocs",
+                      "token_count": 6
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "is_thinned": false,
+                          "level": 2,
+                          "line_range": [
+                            15,
+                            23
+                          ],
+                          "node_id": "reference/projectionica-controllers-nodocs-6af5b2a8e468#anchors",
+                          "structural_path": [
+                            "Overview",
+                            "Anchors"
+                          ],
+                          "summary": ":ID: anchors\n:PATHS: Controllers/NoDocs",
+                          "text": ":ID: anchors\n:PATHS: Controllers/NoDocs.mo, Controllers/package.mo\n\nModules:\n- `Projectionica.Controllers` (Controllers/package.mo)\n\nSymbols:\n- `Projectionica.Controllers.NoDocs` (Controllers/NoDocs.mo)",
+                          "title": "Anchors",
+                          "token_count": 13
+                        }
+                      ],
+                      "is_thinned": false,
+                      "level": 1,
+                      "line_range": [
+                        7,
+                        14
+                      ],
+                      "node_id": "reference/projectionica-controllers-nodocs-6af5b2a8e468#overview",
+                      "structural_path": [
+                        "Overview"
+                      ],
+                      "summary": ":ID: overview\n:PATHS: Controllers/NoDocs",
+                      "text": ":ID: overview\n:PATHS: Controllers/NoDocs.mo\n\nProjected reference page for `Projectionica.Controllers.NoDocs`.\nSource paths:\n- `Controllers/NoDocs.mo`",
+                      "title": "Overview",
+                      "token_count": 13
+                    }
+                  ],
+                  "title": "Projectionica.Controllers.NoDocs"
+                }
+              },
+              "repo_id": "modelica-gateway-workset"
+            }
+          ],
+          "kind": "reference",
+          "quota": {
+            "target_ceiling_count": 1,
+            "target_floor_count": 1,
+            "within_target_band": true
+          },
+          "ranked_hits": [
+            {
+              "gap": {
+                "doc_ids": [],
+                "entity_id": "repo:modelica-gateway-workset:symbol:Projectionica.Controllers.NoDocs",
+                "example_ids": [],
+                "format_hints": [],
+                "gap_id": "repo:modelica-gateway-workset:projection-gap:symbol_reference_without_documentation:repo:modelica-gateway-workset:symbol:Projectionica.Controllers.NoDocs",
+                "kind": "symbol_reference_without_documentation",
+                "module_ids": [
+                  "repo:modelica-gateway-workset:module:Projectionica.Controllers"
+                ],
+                "page_id": "repo:modelica-gateway-workset:projection:reference:symbol:repo:modelica-gateway-workset:symbol:Projectionica.Controllers.NoDocs",
+                "page_kind": "reference",
+                "path": "Controllers/NoDocs.mo",
+                "repo_id": "modelica-gateway-workset",
+                "symbol_ids": [
+                  "repo:modelica-gateway-workset:symbol:Projectionica.Controllers.NoDocs"
+                ],
+                "title": "Projectionica.Controllers.NoDocs"
+              },
+              "priority_score": 96,
+              "reasons": [
+                {
+                  "code": "gap_kind_base",
+                  "detail": "base priority from projected gap kind `symbol_reference_without_documentation`",
+                  "points": 92
+                },
+                {
+                  "code": "reference_page_bonus",
+                  "detail": "reference page bonus",
+                  "points": 2
+                },
+                {
+                  "code": "module_anchor_bonus",
+                  "detail": "1 attached module anchor(s)",
+                  "points": 1
+                },
+                {
+                  "code": "symbol_anchor_bonus",
+                  "detail": "1 attached symbol anchor(s)",
+                  "points": 1
+                }
+              ]
+            }
+          ],
+          "selected_count": 1
+        }
+      ],
+      "items": [
+        {
+          "gap": {
+            "doc_ids": [],
+            "entity_id": "repo:modelica-gateway-workset:symbol:Projectionica.Controllers.NoDocs",
+            "example_ids": [],
+            "format_hints": [],
+            "gap_id": "repo:modelica-gateway-workset:projection-gap:symbol_reference_without_documentation:repo:modelica-gateway-workset:symbol:Projectionica.Controllers.NoDocs",
+            "kind": "symbol_reference_without_documentation",
+            "module_ids": [
+              "repo:modelica-gateway-workset:module:Projectionica.Controllers"
+            ],
+            "page_id": "repo:modelica-gateway-workset:projection:reference:symbol:repo:modelica-gateway-workset:symbol:Projectionica.Controllers.NoDocs",
+            "page_kind": "reference",
+            "path": "Controllers/NoDocs.mo",
+            "repo_id": "modelica-gateway-workset",
+            "symbol_ids": [
+              "repo:modelica-gateway-workset:symbol:Projectionica.Controllers.NoDocs"
+            ],
+            "title": "Projectionica.Controllers.NoDocs"
+          },
+          "hit": {
+            "kind": "page",
+            "node": null,
+            "page": {
+              "doc_id": "",
+              "doc_ids": [],
+              "example_ids": [],
+              "format_hints": [],
+              "keywords": [
+                "",
+                "Controllers/NoDocs.mo",
+                "Projectionica.Controllers.NoDocs"
+              ],
+              "kind": "reference",
+              "module_ids": [
+                "repo:modelica-gateway-workset:module:Projectionica.Controllers"
+              ],
+              "page_id": "repo:modelica-gateway-workset:projection:reference:symbol:repo:modelica-gateway-workset:symbol:Projectionica.Controllers.NoDocs",
+              "path": "Controllers/NoDocs.mo",
+              "paths": [
+                "Controllers/NoDocs.mo"
+              ],
+              "repo_id": "modelica-gateway-workset",
+              "sections": [
+                {
+                  "body": "Projected reference page for `Projectionica.Controllers.NoDocs`.\nSource paths:\n- `Controllers/NoDocs.mo`",
+                  "level": 1,
+                  "paths": [
+                    "Controllers/NoDocs.mo"
+                  ],
+                  "section_id": "repo:modelica-gateway-workset:projection:reference:symbol:repo:modelica-gateway-workset:symbol:Projectionica.Controllers.NoDocs#overview",
+                  "title": "Overview"
+                },
+                {
+                  "body": "Modules:\n- `Projectionica.Controllers` (Controllers/package.mo)\n\nSymbols:\n- `Projectionica.Controllers.NoDocs` (Controllers/NoDocs.mo)",
+                  "level": 2,
+                  "paths": [
+                    "Controllers/NoDocs.mo",
+                    "Controllers/package.mo"
+                  ],
+                  "section_id": "repo:modelica-gateway-workset:projection:reference:symbol:repo:modelica-gateway-workset:symbol:Projectionica.Controllers.NoDocs#anchors",
+                  "title": "Anchors"
+                }
+              ],
+              "symbol_ids": [
+                "repo:modelica-gateway-workset:symbol:Projectionica.Controllers.NoDocs"
+              ],
+              "title": "Projectionica.Controllers.NoDocs"
+            }
+          },
+          "navigation": {
+            "center": {
+              "kind": "page",
+              "node": null,
+              "page": {
+                "doc_id": "",
+                "doc_ids": [],
+                "example_ids": [],
+                "format_hints": [],
+                "keywords": [
+                  "",
+                  "Controllers/NoDocs.mo",
+                  "Projectionica.Controllers.NoDocs"
+                ],
+                "kind": "reference",
+                "module_ids": [
+                  "repo:modelica-gateway-workset:module:Projectionica.Controllers"
+                ],
+                "page_id": "repo:modelica-gateway-workset:projection:reference:symbol:repo:modelica-gateway-workset:symbol:Projectionica.Controllers.NoDocs",
+                "path": "Controllers/NoDocs.mo",
+                "paths": [
+                  "Controllers/NoDocs.mo"
+                ],
+                "repo_id": "modelica-gateway-workset",
+                "sections": [
+                  {
+                    "body": "Projected reference page for `Projectionica.Controllers.NoDocs`.\nSource paths:\n- `Controllers/NoDocs.mo`",
+                    "level": 1,
+                    "paths": [
+                      "Controllers/NoDocs.mo"
+                    ],
+                    "section_id": "repo:modelica-gateway-workset:projection:reference:symbol:repo:modelica-gateway-workset:symbol:Projectionica.Controllers.NoDocs#overview",
+                    "title": "Overview"
+                  },
+                  {
+                    "body": "Modules:\n- `Projectionica.Controllers` (Controllers/package.mo)\n\nSymbols:\n- `Projectionica.Controllers.NoDocs` (Controllers/NoDocs.mo)",
+                    "level": 2,
+                    "paths": [
+                      "Controllers/NoDocs.mo",
+                      "Controllers/package.mo"
+                    ],
+                    "section_id": "repo:modelica-gateway-workset:projection:reference:symbol:repo:modelica-gateway-workset:symbol:Projectionica.Controllers.NoDocs#anchors",
+                    "title": "Anchors"
+                  }
+                ],
+                "symbol_ids": [
+                  "repo:modelica-gateway-workset:symbol:Projectionica.Controllers.NoDocs"
+                ],
+                "title": "Projectionica.Controllers.NoDocs"
+              }
+            },
+            "family_cluster": {
+              "kind": "how_to",
+              "pages": [
+                {
+                  "page": {
+                    "doc_id": "repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo",
+                    "doc_ids": [
+                      "repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo",
+                      "repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation",
+                      "repo:modelica-gateway-workset:doc:Controllers/UsersGuide/package.mo"
+                    ],
+                    "example_ids": [
+                      "repo:modelica-gateway-workset:example:Controllers/Examples/Step.mo"
+                    ],
+                    "format_hints": [
+                      "modelica_users_guide_page",
+                      "modelica_users_guide_tutorial",
+                      "modelica_users_guide_tutorial_annotation"
+                    ],
+                    "keywords": [
+                      "Controllers/Examples/Step.mo",
+                      "Step",
+                      "modelica_users_guide_page",
+                      "modelica_users_guide_tutorial",
+                      "modelica_users_guide_tutorial_annotation",
+                      "repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo"
+                    ],
+                    "kind": "how_to",
+                    "module_ids": [
+                      "repo:modelica-gateway-workset:module:Projectionica.Controllers"
+                    ],
+                    "page_id": "repo:modelica-gateway-workset:projection:howto:example:repo:modelica-gateway-workset:example:Controllers/Examples/Step.mo",
+                    "path": "Controllers/Examples/Step.mo",
+                    "paths": [
+                      "Controllers/Examples/Step.mo",
+                      "Controllers/UsersGuide/Tutorial/FirstSteps.mo",
+                      "Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation",
+                      "Controllers/UsersGuide/package.mo"
+                    ],
+                    "repo_id": "modelica-gateway-workset",
+                    "sections": [
+                      {
+                        "body": "Projected how-to page for `Step`.\nFormat hints:\n- `modelica_users_guide_page`\n- `modelica_users_guide_tutorial`\n- `modelica_users_guide_tutorial_annotation`\nSource paths:\n- `Controllers/Examples/Step.mo`\n- `Controllers/UsersGuide/Tutorial/FirstSteps.mo`\n- `Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation`\n- `Controllers/UsersGuide/package.mo`",
+                        "level": 1,
+                        "paths": [
+                          "Controllers/Examples/Step.mo",
+                          "Controllers/UsersGuide/Tutorial/FirstSteps.mo",
+                          "Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation",
+                          "Controllers/UsersGuide/package.mo"
+                        ],
+                        "section_id": "repo:modelica-gateway-workset:projection:howto:example:repo:modelica-gateway-workset:example:Controllers/Examples/Step.mo#overview",
+                        "title": "Overview"
+                      },
+                      {
+                        "body": "Modules:\n- `Projectionica.Controllers` (Controllers/package.mo)",
+                        "level": 2,
+                        "paths": [
+                          "Controllers/package.mo"
+                        ],
+                        "section_id": "repo:modelica-gateway-workset:projection:howto:example:repo:modelica-gateway-workset:example:Controllers/Examples/Step.mo#anchors",
+                        "title": "Anchors"
+                      },
+                      {
+                        "body": "Documentation:\n- `FirstSteps` (Controllers/UsersGuide/Tutorial/FirstSteps.mo)\n- `FirstSteps documentation` (Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation)\n- `UsersGuide` (Controllers/UsersGuide/package.mo)",
+                        "level": 2,
+                        "paths": [
+                          "Controllers/UsersGuide/Tutorial/FirstSteps.mo",
+                          "Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation",
+                          "Controllers/UsersGuide/package.mo"
+                        ],
+                        "section_id": "repo:modelica-gateway-workset:projection:howto:example:repo:modelica-gateway-workset:example:Controllers/Examples/Step.mo#sources",
+                        "title": "Supporting Docs"
+                      },
+                      {
+                        "body": "Examples:\n- `Step` (Controllers/Examples/Step.mo)",
+                        "level": 2,
+                        "paths": [
+                          "Controllers/Examples/Step.mo"
+                        ],
+                        "section_id": "repo:modelica-gateway-workset:projection:howto:example:repo:modelica-gateway-workset:example:Controllers/Examples/Step.mo#examples",
+                        "title": "Examples"
+                      }
+                    ],
+                    "symbol_ids": [],
+                    "title": "Step"
+                  },
+                  "shared_anchor_score": 1
+                },
+                {
+                  "page": {
+                    "doc_id": "repo:modelica-gateway-workset:doc:Controllers/UsersGuide/package.mo",
+                    "doc_ids": [
+                      "repo:modelica-gateway-workset:doc:Controllers/UsersGuide/package.mo"
+                    ],
+                    "example_ids": [
+                      "repo:modelica-gateway-workset:example:Controllers/Examples/Step.mo"
+                    ],
+                    "format_hints": [
+                      "modelica_users_guide_page"
+                    ],
+                    "keywords": [
+                      "Controllers/Examples/Step.mo",
+                      "UsersGuide",
+                      "modelica_users_guide_page",
+                      "repo:modelica-gateway-workset:doc:Controllers/UsersGuide/package.mo"
+                    ],
+                    "kind": "how_to",
+                    "module_ids": [
+                      "repo:modelica-gateway-workset:module:Projectionica.Controllers",
+                      "repo:modelica-gateway-workset:module:Projectionica.Controllers.UsersGuide"
+                    ],
+                    "page_id": "repo:modelica-gateway-workset:projection:howto:doc:repo:modelica-gateway-workset:doc:Controllers/UsersGuide/package.mo",
+                    "path": "Controllers/Examples/Step.mo",
+                    "paths": [
+                      "Controllers/Examples/Step.mo",
+                      "Controllers/UsersGuide/package.mo"
+                    ],
+                    "repo_id": "modelica-gateway-workset",
+                    "sections": [
+                      {
+                        "body": "Projected how-to page for `UsersGuide`.\nFormat hints:\n- `modelica_users_guide_page`\nSource paths:\n- `Controllers/Examples/Step.mo`\n- `Controllers/UsersGuide/package.mo`",
+                        "level": 1,
+                        "paths": [
+                          "Controllers/Examples/Step.mo",
+                          "Controllers/UsersGuide/package.mo"
+                        ],
+                        "section_id": "repo:modelica-gateway-workset:projection:howto:doc:repo:modelica-gateway-workset:doc:Controllers/UsersGuide/package.mo#overview",
+                        "title": "Overview"
+                      },
+                      {
+                        "body": "Modules:\n- `Projectionica.Controllers` (Controllers/package.mo)\n- `Projectionica.Controllers.UsersGuide` (Controllers/UsersGuide/package.mo)",
+                        "level": 2,
+                        "paths": [
+                          "Controllers/UsersGuide/package.mo",
+                          "Controllers/package.mo"
+                        ],
+                        "section_id": "repo:modelica-gateway-workset:projection:howto:doc:repo:modelica-gateway-workset:doc:Controllers/UsersGuide/package.mo#anchors",
+                        "title": "Anchors"
+                      },
+                      {
+                        "body": "Documentation:\n- `UsersGuide` (Controllers/UsersGuide/package.mo)",
+                        "level": 2,
+                        "paths": [
+                          "Controllers/UsersGuide/package.mo"
+                        ],
+                        "section_id": "repo:modelica-gateway-workset:projection:howto:doc:repo:modelica-gateway-workset:doc:Controllers/UsersGuide/package.mo#sources",
+                        "title": "Supporting Docs"
+                      },
+                      {
+                        "body": "Examples:\n- `Step` (Controllers/Examples/Step.mo)",
+                        "level": 2,
+                        "paths": [
+                          "Controllers/Examples/Step.mo"
+                        ],
+                        "section_id": "repo:modelica-gateway-workset:projection:howto:doc:repo:modelica-gateway-workset:doc:Controllers/UsersGuide/package.mo#examples",
+                        "title": "Examples"
+                      }
+                    ],
+                    "symbol_ids": [],
+                    "title": "UsersGuide"
+                  },
+                  "shared_anchor_score": 1
+                }
+              ]
+            },
+            "node_context": null,
+            "related_pages": [
+              {
+                "doc_id": "repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo",
+                "doc_ids": [
+                  "repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo"
+                ],
+                "example_ids": [
+                  "repo:modelica-gateway-workset:example:Controllers/Examples/Step.mo"
+                ],
+                "format_hints": [
+                  "modelica_users_guide_tutorial"
+                ],
+                "keywords": [
+                  "Controllers/Examples/Step.mo",
+                  "FirstSteps",
+                  "modelica_users_guide_tutorial",
+                  "repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo"
+                ],
+                "kind": "tutorial",
+                "module_ids": [
+                  "repo:modelica-gateway-workset:module:Projectionica.Controllers",
+                  "repo:modelica-gateway-workset:module:Projectionica.Controllers.UsersGuide"
+                ],
+                "page_id": "repo:modelica-gateway-workset:projection:tutorial:doc:repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo",
+                "path": "Controllers/Examples/Step.mo",
+                "paths": [
+                  "Controllers/Examples/Step.mo",
+                  "Controllers/UsersGuide/Tutorial/FirstSteps.mo"
+                ],
+                "repo_id": "modelica-gateway-workset",
+                "sections": [
+                  {
+                    "body": "Projected tutorial page for `FirstSteps`.\nFormat hints:\n- `modelica_users_guide_tutorial`\nSource paths:\n- `Controllers/Examples/Step.mo`\n- `Controllers/UsersGuide/Tutorial/FirstSteps.mo`",
+                    "level": 1,
+                    "paths": [
+                      "Controllers/Examples/Step.mo",
+                      "Controllers/UsersGuide/Tutorial/FirstSteps.mo"
+                    ],
+                    "section_id": "repo:modelica-gateway-workset:projection:tutorial:doc:repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo#overview",
+                    "title": "Overview"
+                  },
+                  {
+                    "body": "Modules:\n- `Projectionica.Controllers` (Controllers/package.mo)\n- `Projectionica.Controllers.UsersGuide` (Controllers/UsersGuide/package.mo)",
+                    "level": 2,
+                    "paths": [
+                      "Controllers/UsersGuide/package.mo",
+                      "Controllers/package.mo"
+                    ],
+                    "section_id": "repo:modelica-gateway-workset:projection:tutorial:doc:repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo#anchors",
+                    "title": "Anchors"
+                  },
+                  {
+                    "body": "Documentation:\n- `FirstSteps` (Controllers/UsersGuide/Tutorial/FirstSteps.mo)",
+                    "level": 2,
+                    "paths": [
+                      "Controllers/UsersGuide/Tutorial/FirstSteps.mo"
+                    ],
+                    "section_id": "repo:modelica-gateway-workset:projection:tutorial:doc:repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo#sources",
+                    "title": "Sources"
+                  },
+                  {
+                    "body": "Examples:\n- `Step` (Controllers/Examples/Step.mo)",
+                    "level": 2,
+                    "paths": [
+                      "Controllers/Examples/Step.mo"
+                    ],
+                    "section_id": "repo:modelica-gateway-workset:projection:tutorial:doc:repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo#examples",
+                    "title": "Examples"
+                  }
+                ],
+                "symbol_ids": [],
+                "title": "FirstSteps"
+              },
+              {
+                "doc_id": "repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation",
+                "doc_ids": [
+                  "repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation"
+                ],
+                "example_ids": [
+                  "repo:modelica-gateway-workset:example:Controllers/Examples/Step.mo"
+                ],
+                "format_hints": [
+                  "modelica_users_guide_tutorial_annotation"
+                ],
+                "keywords": [
+                  "Controllers/Examples/Step.mo",
+                  "FirstSteps documentation",
+                  "modelica_users_guide_tutorial_annotation",
+                  "repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation"
+                ],
+                "kind": "tutorial",
+                "module_ids": [
+                  "repo:modelica-gateway-workset:module:Projectionica.Controllers",
+                  "repo:modelica-gateway-workset:module:Projectionica.Controllers.UsersGuide"
+                ],
+                "page_id": "repo:modelica-gateway-workset:projection:tutorial:doc:repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation",
+                "path": "Controllers/Examples/Step.mo",
+                "paths": [
+                  "Controllers/Examples/Step.mo",
+                  "Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation"
+                ],
+                "repo_id": "modelica-gateway-workset",
+                "sections": [
+                  {
+                    "body": "Projected tutorial page for `FirstSteps documentation`.\nFormat hints:\n- `modelica_users_guide_tutorial_annotation`\nSource paths:\n- `Controllers/Examples/Step.mo`\n- `Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation`",
+                    "level": 1,
+                    "paths": [
+                      "Controllers/Examples/Step.mo",
+                      "Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation"
+                    ],
+                    "section_id": "repo:modelica-gateway-workset:projection:tutorial:doc:repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation#overview",
+                    "title": "Overview"
+                  },
+                  {
+                    "body": "Modules:\n- `Projectionica.Controllers` (Controllers/package.mo)\n- `Projectionica.Controllers.UsersGuide` (Controllers/UsersGuide/package.mo)",
+                    "level": 2,
+                    "paths": [
+                      "Controllers/UsersGuide/package.mo",
+                      "Controllers/package.mo"
+                    ],
+                    "section_id": "repo:modelica-gateway-workset:projection:tutorial:doc:repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation#anchors",
+                    "title": "Anchors"
+                  },
+                  {
+                    "body": "Documentation:\n- `FirstSteps documentation` (Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation)",
+                    "level": 2,
+                    "paths": [
+                      "Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation"
+                    ],
+                    "section_id": "repo:modelica-gateway-workset:projection:tutorial:doc:repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation#sources",
+                    "title": "Sources"
+                  },
+                  {
+                    "body": "Examples:\n- `Step` (Controllers/Examples/Step.mo)",
+                    "level": 2,
+                    "paths": [
+                      "Controllers/Examples/Step.mo"
+                    ],
+                    "section_id": "repo:modelica-gateway-workset:projection:tutorial:doc:repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation#examples",
+                    "title": "Examples"
+                  }
+                ],
+                "symbol_ids": [],
+                "title": "FirstSteps documentation"
+              },
+              {
+                "doc_id": "repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo",
+                "doc_ids": [
+                  "repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo",
+                  "repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation",
+                  "repo:modelica-gateway-workset:doc:Controllers/UsersGuide/package.mo",
+                  "repo:modelica-gateway-workset:doc:Controllers/PI.mo#annotation.documentation"
+                ],
+                "example_ids": [
+                  "repo:modelica-gateway-workset:example:Controllers/Examples/Step.mo"
+                ],
+                "format_hints": [
+                  "modelica_annotation",
+                  "modelica_users_guide_page",
+                  "modelica_users_guide_tutorial",
+                  "modelica_users_guide_tutorial_annotation"
+                ],
+                "keywords": [
+                  "Controllers/Examples/Step.mo",
+                  "Projectionica.Controllers",
+                  "modelica_annotation",
+                  "modelica_users_guide_page",
+                  "modelica_users_guide_tutorial",
+                  "modelica_users_guide_tutorial_annotation",
+                  "repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo"
+                ],
+                "kind": "reference",
+                "module_ids": [
+                  "repo:modelica-gateway-workset:module:Projectionica.Controllers"
+                ],
+                "page_id": "repo:modelica-gateway-workset:projection:reference:module:repo:modelica-gateway-workset:module:Projectionica.Controllers",
+                "path": "Controllers/Examples/Step.mo",
+                "paths": [
+                  "Controllers/Examples/Step.mo",
+                  "Controllers/PI.mo#annotation.documentation",
+                  "Controllers/UsersGuide/Tutorial/FirstSteps.mo",
+                  "Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation",
+                  "Controllers/UsersGuide/package.mo",
+                  "Controllers/package.mo"
+                ],
+                "repo_id": "modelica-gateway-workset",
+                "sections": [
+                  {
+                    "body": "Projected reference page for `Projectionica.Controllers`.\nFormat hints:\n- `modelica_annotation`\n- `modelica_users_guide_page`\n- `modelica_users_guide_tutorial`\n- `modelica_users_guide_tutorial_annotation`\nSource paths:\n- `Controllers/Examples/Step.mo`\n- `Controllers/PI.mo#annotation.documentation`\n- `Controllers/UsersGuide/Tutorial/FirstSteps.mo`\n- `Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation`\n- `Controllers/UsersGuide/package.mo`\n- `Controllers/package.mo`",
+                    "level": 1,
+                    "paths": [
+                      "Controllers/Examples/Step.mo",
+                      "Controllers/PI.mo#annotation.documentation",
+                      "Controllers/UsersGuide/Tutorial/FirstSteps.mo",
+                      "Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation",
+                      "Controllers/UsersGuide/package.mo",
+                      "Controllers/package.mo"
+                    ],
+                    "section_id": "repo:modelica-gateway-workset:projection:reference:module:repo:modelica-gateway-workset:module:Projectionica.Controllers#overview",
+                    "title": "Overview"
+                  },
+                  {
+                    "body": "Modules:\n- `Projectionica.Controllers` (Controllers/package.mo)",
+                    "level": 2,
+                    "paths": [
+                      "Controllers/package.mo"
+                    ],
+                    "section_id": "repo:modelica-gateway-workset:projection:reference:module:repo:modelica-gateway-workset:module:Projectionica.Controllers#anchors",
+                    "title": "Anchors"
+                  },
+                  {
+                    "body": "Documentation:\n- `FirstSteps` (Controllers/UsersGuide/Tutorial/FirstSteps.mo)\n- `FirstSteps documentation` (Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation)\n- `PI documentation` (Controllers/PI.mo#annotation.documentation)\n- `UsersGuide` (Controllers/UsersGuide/package.mo)",
+                    "level": 2,
+                    "paths": [
+                      "Controllers/UsersGuide/Tutorial/FirstSteps.mo",
+                      "Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation",
+                      "Controllers/PI.mo#annotation.documentation",
+                      "Controllers/UsersGuide/package.mo"
+                    ],
+                    "section_id": "repo:modelica-gateway-workset:projection:reference:module:repo:modelica-gateway-workset:module:Projectionica.Controllers#sources",
+                    "title": "Documentation"
+                  },
+                  {
+                    "body": "Examples:\n- `Step` (Controllers/Examples/Step.mo)",
+                    "level": 2,
+                    "paths": [
+                      "Controllers/Examples/Step.mo"
+                    ],
+                    "section_id": "repo:modelica-gateway-workset:projection:reference:module:repo:modelica-gateway-workset:module:Projectionica.Controllers#examples",
+                    "title": "Examples"
+                  }
+                ],
+                "symbol_ids": [],
+                "title": "Projectionica.Controllers"
+              }
+            ],
+            "repo_id": "modelica-gateway-workset",
+            "tree": {
+              "doc_id": "reference/projectionica-controllers-nodocs-6af5b2a8e468",
+              "kind": "reference",
+              "page_id": "repo:modelica-gateway-workset:projection:reference:symbol:repo:modelica-gateway-workset:symbol:Projectionica.Controllers.NoDocs",
+              "path": "reference/projectionica-controllers-nodocs-6af5b2a8e468.md",
+              "repo_id": "modelica-gateway-workset",
+              "root_count": 2,
+              "roots": [
+                {
+                  "children": [],
+                  "is_thinned": false,
+                  "level": 1,
+                  "line_range": [
+                    1,
+                    6
+                  ],
+                  "node_id": "reference/projectionica-controllers-nodocs-6af5b2a8e468#projectionica-controllers-nodocs",
+                  "structural_path": [
+                    "Projectionica.Controllers.NoDocs"
+                  ],
+                  "summary": ":PROPERTIES:\n:TYPE: PROJECTED_PAGE\n:KIND: reference\n:END:",
+                  "text": ":PROPERTIES:\n:TYPE: PROJECTED_PAGE\n:KIND: reference\n:END:",
+                  "title": "Projectionica.Controllers.NoDocs",
+                  "token_count": 6
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "is_thinned": false,
+                      "level": 2,
+                      "line_range": [
+                        15,
+                        23
+                      ],
+                      "node_id": "reference/projectionica-controllers-nodocs-6af5b2a8e468#anchors",
+                      "structural_path": [
+                        "Overview",
+                        "Anchors"
+                      ],
+                      "summary": ":ID: anchors\n:PATHS: Controllers/NoDocs",
+                      "text": ":ID: anchors\n:PATHS: Controllers/NoDocs.mo, Controllers/package.mo\n\nModules:\n- `Projectionica.Controllers` (Controllers/package.mo)\n\nSymbols:\n- `Projectionica.Controllers.NoDocs` (Controllers/NoDocs.mo)",
+                      "title": "Anchors",
+                      "token_count": 13
+                    }
+                  ],
+                  "is_thinned": false,
+                  "level": 1,
+                  "line_range": [
+                    7,
+                    14
+                  ],
+                  "node_id": "reference/projectionica-controllers-nodocs-6af5b2a8e468#overview",
+                  "structural_path": [
+                    "Overview"
+                  ],
+                  "summary": ":ID: overview\n:PATHS: Controllers/NoDocs",
+                  "text": ":ID: overview\n:PATHS: Controllers/NoDocs.mo\n\nProjected reference page for `Projectionica.Controllers.NoDocs`.\nSource paths:\n- `Controllers/NoDocs.mo`",
+                  "title": "Overview",
+                  "token_count": 13
+                }
+              ],
+              "title": "Projectionica.Controllers.NoDocs"
+            }
+          },
+          "repo_id": "modelica-gateway-workset"
+        }
+      ],
+      "kind": "symbol_reference_without_documentation",
+      "quota": {
+        "target_ceiling_count": 1,
+        "target_floor_count": 1,
+        "within_target_band": true
+      },
+      "ranked_hits": [
+        {
+          "gap": {
+            "doc_ids": [],
+            "entity_id": "repo:modelica-gateway-workset:symbol:Projectionica.Controllers.NoDocs",
+            "example_ids": [],
+            "format_hints": [],
+            "gap_id": "repo:modelica-gateway-workset:projection-gap:symbol_reference_without_documentation:repo:modelica-gateway-workset:symbol:Projectionica.Controllers.NoDocs",
+            "kind": "symbol_reference_without_documentation",
+            "module_ids": [
+              "repo:modelica-gateway-workset:module:Projectionica.Controllers"
+            ],
+            "page_id": "repo:modelica-gateway-workset:projection:reference:symbol:repo:modelica-gateway-workset:symbol:Projectionica.Controllers.NoDocs",
+            "page_kind": "reference",
+            "path": "Controllers/NoDocs.mo",
+            "repo_id": "modelica-gateway-workset",
+            "symbol_ids": [
+              "repo:modelica-gateway-workset:symbol:Projectionica.Controllers.NoDocs"
+            ],
+            "title": "Projectionica.Controllers.NoDocs"
+          },
+          "priority_score": 96,
+          "reasons": [
+            {
+              "code": "gap_kind_base",
+              "detail": "base priority from projected gap kind `symbol_reference_without_documentation`",
+              "points": 92
+            },
+            {
+              "code": "reference_page_bonus",
+              "detail": "reference page bonus",
+              "points": 2
+            },
+            {
+              "code": "module_anchor_bonus",
+              "detail": "1 attached module anchor(s)",
+              "points": 1
+            },
+            {
+              "code": "symbol_anchor_bonus",
+              "detail": "1 attached symbol anchor(s)",
+              "points": 1
+            }
+          ]
+        }
+      ],
+      "selected_count": 1
+    }
+  ],
+  "items": [
+    {
+      "gap": {
+        "doc_ids": [],
+        "entity_id": "repo:modelica-gateway-workset:symbol:Projectionica.Controllers.NoDocs",
+        "example_ids": [],
+        "format_hints": [],
+        "gap_id": "repo:modelica-gateway-workset:projection-gap:symbol_reference_without_documentation:repo:modelica-gateway-workset:symbol:Projectionica.Controllers.NoDocs",
+        "kind": "symbol_reference_without_documentation",
+        "module_ids": [
+          "repo:modelica-gateway-workset:module:Projectionica.Controllers"
+        ],
+        "page_id": "repo:modelica-gateway-workset:projection:reference:symbol:repo:modelica-gateway-workset:symbol:Projectionica.Controllers.NoDocs",
+        "page_kind": "reference",
+        "path": "Controllers/NoDocs.mo",
+        "repo_id": "modelica-gateway-workset",
+        "symbol_ids": [
+          "repo:modelica-gateway-workset:symbol:Projectionica.Controllers.NoDocs"
+        ],
+        "title": "Projectionica.Controllers.NoDocs"
+      },
+      "hit": {
+        "kind": "page",
+        "node": null,
+        "page": {
+          "doc_id": "",
+          "doc_ids": [],
+          "example_ids": [],
+          "format_hints": [],
+          "keywords": [
+            "",
+            "Controllers/NoDocs.mo",
+            "Projectionica.Controllers.NoDocs"
+          ],
+          "kind": "reference",
+          "module_ids": [
+            "repo:modelica-gateway-workset:module:Projectionica.Controllers"
+          ],
+          "page_id": "repo:modelica-gateway-workset:projection:reference:symbol:repo:modelica-gateway-workset:symbol:Projectionica.Controllers.NoDocs",
+          "path": "Controllers/NoDocs.mo",
+          "paths": [
+            "Controllers/NoDocs.mo"
+          ],
+          "repo_id": "modelica-gateway-workset",
+          "sections": [
+            {
+              "body": "Projected reference page for `Projectionica.Controllers.NoDocs`.\nSource paths:\n- `Controllers/NoDocs.mo`",
+              "level": 1,
+              "paths": [
+                "Controllers/NoDocs.mo"
+              ],
+              "section_id": "repo:modelica-gateway-workset:projection:reference:symbol:repo:modelica-gateway-workset:symbol:Projectionica.Controllers.NoDocs#overview",
+              "title": "Overview"
+            },
+            {
+              "body": "Modules:\n- `Projectionica.Controllers` (Controllers/package.mo)\n\nSymbols:\n- `Projectionica.Controllers.NoDocs` (Controllers/NoDocs.mo)",
+              "level": 2,
+              "paths": [
+                "Controllers/NoDocs.mo",
+                "Controllers/package.mo"
+              ],
+              "section_id": "repo:modelica-gateway-workset:projection:reference:symbol:repo:modelica-gateway-workset:symbol:Projectionica.Controllers.NoDocs#anchors",
+              "title": "Anchors"
+            }
+          ],
+          "symbol_ids": [
+            "repo:modelica-gateway-workset:symbol:Projectionica.Controllers.NoDocs"
+          ],
+          "title": "Projectionica.Controllers.NoDocs"
+        }
+      },
+      "navigation": {
+        "center": {
+          "kind": "page",
+          "node": null,
+          "page": {
+            "doc_id": "",
+            "doc_ids": [],
+            "example_ids": [],
+            "format_hints": [],
+            "keywords": [
+              "",
+              "Controllers/NoDocs.mo",
+              "Projectionica.Controllers.NoDocs"
+            ],
+            "kind": "reference",
+            "module_ids": [
+              "repo:modelica-gateway-workset:module:Projectionica.Controllers"
+            ],
+            "page_id": "repo:modelica-gateway-workset:projection:reference:symbol:repo:modelica-gateway-workset:symbol:Projectionica.Controllers.NoDocs",
+            "path": "Controllers/NoDocs.mo",
+            "paths": [
+              "Controllers/NoDocs.mo"
+            ],
+            "repo_id": "modelica-gateway-workset",
+            "sections": [
+              {
+                "body": "Projected reference page for `Projectionica.Controllers.NoDocs`.\nSource paths:\n- `Controllers/NoDocs.mo`",
+                "level": 1,
+                "paths": [
+                  "Controllers/NoDocs.mo"
+                ],
+                "section_id": "repo:modelica-gateway-workset:projection:reference:symbol:repo:modelica-gateway-workset:symbol:Projectionica.Controllers.NoDocs#overview",
+                "title": "Overview"
+              },
+              {
+                "body": "Modules:\n- `Projectionica.Controllers` (Controllers/package.mo)\n\nSymbols:\n- `Projectionica.Controllers.NoDocs` (Controllers/NoDocs.mo)",
+                "level": 2,
+                "paths": [
+                  "Controllers/NoDocs.mo",
+                  "Controllers/package.mo"
+                ],
+                "section_id": "repo:modelica-gateway-workset:projection:reference:symbol:repo:modelica-gateway-workset:symbol:Projectionica.Controllers.NoDocs#anchors",
+                "title": "Anchors"
+              }
+            ],
+            "symbol_ids": [
+              "repo:modelica-gateway-workset:symbol:Projectionica.Controllers.NoDocs"
+            ],
+            "title": "Projectionica.Controllers.NoDocs"
+          }
+        },
+        "family_cluster": {
+          "kind": "how_to",
+          "pages": [
+            {
+              "page": {
+                "doc_id": "repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo",
+                "doc_ids": [
+                  "repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo",
+                  "repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation",
+                  "repo:modelica-gateway-workset:doc:Controllers/UsersGuide/package.mo"
+                ],
+                "example_ids": [
+                  "repo:modelica-gateway-workset:example:Controllers/Examples/Step.mo"
+                ],
+                "format_hints": [
+                  "modelica_users_guide_page",
+                  "modelica_users_guide_tutorial",
+                  "modelica_users_guide_tutorial_annotation"
+                ],
+                "keywords": [
+                  "Controllers/Examples/Step.mo",
+                  "Step",
+                  "modelica_users_guide_page",
+                  "modelica_users_guide_tutorial",
+                  "modelica_users_guide_tutorial_annotation",
+                  "repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo"
+                ],
+                "kind": "how_to",
+                "module_ids": [
+                  "repo:modelica-gateway-workset:module:Projectionica.Controllers"
+                ],
+                "page_id": "repo:modelica-gateway-workset:projection:howto:example:repo:modelica-gateway-workset:example:Controllers/Examples/Step.mo",
+                "path": "Controllers/Examples/Step.mo",
+                "paths": [
+                  "Controllers/Examples/Step.mo",
+                  "Controllers/UsersGuide/Tutorial/FirstSteps.mo",
+                  "Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation",
+                  "Controllers/UsersGuide/package.mo"
+                ],
+                "repo_id": "modelica-gateway-workset",
+                "sections": [
+                  {
+                    "body": "Projected how-to page for `Step`.\nFormat hints:\n- `modelica_users_guide_page`\n- `modelica_users_guide_tutorial`\n- `modelica_users_guide_tutorial_annotation`\nSource paths:\n- `Controllers/Examples/Step.mo`\n- `Controllers/UsersGuide/Tutorial/FirstSteps.mo`\n- `Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation`\n- `Controllers/UsersGuide/package.mo`",
+                    "level": 1,
+                    "paths": [
+                      "Controllers/Examples/Step.mo",
+                      "Controllers/UsersGuide/Tutorial/FirstSteps.mo",
+                      "Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation",
+                      "Controllers/UsersGuide/package.mo"
+                    ],
+                    "section_id": "repo:modelica-gateway-workset:projection:howto:example:repo:modelica-gateway-workset:example:Controllers/Examples/Step.mo#overview",
+                    "title": "Overview"
+                  },
+                  {
+                    "body": "Modules:\n- `Projectionica.Controllers` (Controllers/package.mo)",
+                    "level": 2,
+                    "paths": [
+                      "Controllers/package.mo"
+                    ],
+                    "section_id": "repo:modelica-gateway-workset:projection:howto:example:repo:modelica-gateway-workset:example:Controllers/Examples/Step.mo#anchors",
+                    "title": "Anchors"
+                  },
+                  {
+                    "body": "Documentation:\n- `FirstSteps` (Controllers/UsersGuide/Tutorial/FirstSteps.mo)\n- `FirstSteps documentation` (Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation)\n- `UsersGuide` (Controllers/UsersGuide/package.mo)",
+                    "level": 2,
+                    "paths": [
+                      "Controllers/UsersGuide/Tutorial/FirstSteps.mo",
+                      "Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation",
+                      "Controllers/UsersGuide/package.mo"
+                    ],
+                    "section_id": "repo:modelica-gateway-workset:projection:howto:example:repo:modelica-gateway-workset:example:Controllers/Examples/Step.mo#sources",
+                    "title": "Supporting Docs"
+                  },
+                  {
+                    "body": "Examples:\n- `Step` (Controllers/Examples/Step.mo)",
+                    "level": 2,
+                    "paths": [
+                      "Controllers/Examples/Step.mo"
+                    ],
+                    "section_id": "repo:modelica-gateway-workset:projection:howto:example:repo:modelica-gateway-workset:example:Controllers/Examples/Step.mo#examples",
+                    "title": "Examples"
+                  }
+                ],
+                "symbol_ids": [],
+                "title": "Step"
+              },
+              "shared_anchor_score": 1
+            },
+            {
+              "page": {
+                "doc_id": "repo:modelica-gateway-workset:doc:Controllers/UsersGuide/package.mo",
+                "doc_ids": [
+                  "repo:modelica-gateway-workset:doc:Controllers/UsersGuide/package.mo"
+                ],
+                "example_ids": [
+                  "repo:modelica-gateway-workset:example:Controllers/Examples/Step.mo"
+                ],
+                "format_hints": [
+                  "modelica_users_guide_page"
+                ],
+                "keywords": [
+                  "Controllers/Examples/Step.mo",
+                  "UsersGuide",
+                  "modelica_users_guide_page",
+                  "repo:modelica-gateway-workset:doc:Controllers/UsersGuide/package.mo"
+                ],
+                "kind": "how_to",
+                "module_ids": [
+                  "repo:modelica-gateway-workset:module:Projectionica.Controllers",
+                  "repo:modelica-gateway-workset:module:Projectionica.Controllers.UsersGuide"
+                ],
+                "page_id": "repo:modelica-gateway-workset:projection:howto:doc:repo:modelica-gateway-workset:doc:Controllers/UsersGuide/package.mo",
+                "path": "Controllers/Examples/Step.mo",
+                "paths": [
+                  "Controllers/Examples/Step.mo",
+                  "Controllers/UsersGuide/package.mo"
+                ],
+                "repo_id": "modelica-gateway-workset",
+                "sections": [
+                  {
+                    "body": "Projected how-to page for `UsersGuide`.\nFormat hints:\n- `modelica_users_guide_page`\nSource paths:\n- `Controllers/Examples/Step.mo`\n- `Controllers/UsersGuide/package.mo`",
+                    "level": 1,
+                    "paths": [
+                      "Controllers/Examples/Step.mo",
+                      "Controllers/UsersGuide/package.mo"
+                    ],
+                    "section_id": "repo:modelica-gateway-workset:projection:howto:doc:repo:modelica-gateway-workset:doc:Controllers/UsersGuide/package.mo#overview",
+                    "title": "Overview"
+                  },
+                  {
+                    "body": "Modules:\n- `Projectionica.Controllers` (Controllers/package.mo)\n- `Projectionica.Controllers.UsersGuide` (Controllers/UsersGuide/package.mo)",
+                    "level": 2,
+                    "paths": [
+                      "Controllers/UsersGuide/package.mo",
+                      "Controllers/package.mo"
+                    ],
+                    "section_id": "repo:modelica-gateway-workset:projection:howto:doc:repo:modelica-gateway-workset:doc:Controllers/UsersGuide/package.mo#anchors",
+                    "title": "Anchors"
+                  },
+                  {
+                    "body": "Documentation:\n- `UsersGuide` (Controllers/UsersGuide/package.mo)",
+                    "level": 2,
+                    "paths": [
+                      "Controllers/UsersGuide/package.mo"
+                    ],
+                    "section_id": "repo:modelica-gateway-workset:projection:howto:doc:repo:modelica-gateway-workset:doc:Controllers/UsersGuide/package.mo#sources",
+                    "title": "Supporting Docs"
+                  },
+                  {
+                    "body": "Examples:\n- `Step` (Controllers/Examples/Step.mo)",
+                    "level": 2,
+                    "paths": [
+                      "Controllers/Examples/Step.mo"
+                    ],
+                    "section_id": "repo:modelica-gateway-workset:projection:howto:doc:repo:modelica-gateway-workset:doc:Controllers/UsersGuide/package.mo#examples",
+                    "title": "Examples"
+                  }
+                ],
+                "symbol_ids": [],
+                "title": "UsersGuide"
+              },
+              "shared_anchor_score": 1
+            }
+          ]
+        },
+        "node_context": null,
+        "related_pages": [
+          {
+            "doc_id": "repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo",
+            "doc_ids": [
+              "repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo"
+            ],
+            "example_ids": [
+              "repo:modelica-gateway-workset:example:Controllers/Examples/Step.mo"
+            ],
+            "format_hints": [
+              "modelica_users_guide_tutorial"
+            ],
+            "keywords": [
+              "Controllers/Examples/Step.mo",
+              "FirstSteps",
+              "modelica_users_guide_tutorial",
+              "repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo"
+            ],
+            "kind": "tutorial",
+            "module_ids": [
+              "repo:modelica-gateway-workset:module:Projectionica.Controllers",
+              "repo:modelica-gateway-workset:module:Projectionica.Controllers.UsersGuide"
+            ],
+            "page_id": "repo:modelica-gateway-workset:projection:tutorial:doc:repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo",
+            "path": "Controllers/Examples/Step.mo",
+            "paths": [
+              "Controllers/Examples/Step.mo",
+              "Controllers/UsersGuide/Tutorial/FirstSteps.mo"
+            ],
+            "repo_id": "modelica-gateway-workset",
+            "sections": [
+              {
+                "body": "Projected tutorial page for `FirstSteps`.\nFormat hints:\n- `modelica_users_guide_tutorial`\nSource paths:\n- `Controllers/Examples/Step.mo`\n- `Controllers/UsersGuide/Tutorial/FirstSteps.mo`",
+                "level": 1,
+                "paths": [
+                  "Controllers/Examples/Step.mo",
+                  "Controllers/UsersGuide/Tutorial/FirstSteps.mo"
+                ],
+                "section_id": "repo:modelica-gateway-workset:projection:tutorial:doc:repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo#overview",
+                "title": "Overview"
+              },
+              {
+                "body": "Modules:\n- `Projectionica.Controllers` (Controllers/package.mo)\n- `Projectionica.Controllers.UsersGuide` (Controllers/UsersGuide/package.mo)",
+                "level": 2,
+                "paths": [
+                  "Controllers/UsersGuide/package.mo",
+                  "Controllers/package.mo"
+                ],
+                "section_id": "repo:modelica-gateway-workset:projection:tutorial:doc:repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo#anchors",
+                "title": "Anchors"
+              },
+              {
+                "body": "Documentation:\n- `FirstSteps` (Controllers/UsersGuide/Tutorial/FirstSteps.mo)",
+                "level": 2,
+                "paths": [
+                  "Controllers/UsersGuide/Tutorial/FirstSteps.mo"
+                ],
+                "section_id": "repo:modelica-gateway-workset:projection:tutorial:doc:repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo#sources",
+                "title": "Sources"
+              },
+              {
+                "body": "Examples:\n- `Step` (Controllers/Examples/Step.mo)",
+                "level": 2,
+                "paths": [
+                  "Controllers/Examples/Step.mo"
+                ],
+                "section_id": "repo:modelica-gateway-workset:projection:tutorial:doc:repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo#examples",
+                "title": "Examples"
+              }
+            ],
+            "symbol_ids": [],
+            "title": "FirstSteps"
+          },
+          {
+            "doc_id": "repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation",
+            "doc_ids": [
+              "repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation"
+            ],
+            "example_ids": [
+              "repo:modelica-gateway-workset:example:Controllers/Examples/Step.mo"
+            ],
+            "format_hints": [
+              "modelica_users_guide_tutorial_annotation"
+            ],
+            "keywords": [
+              "Controllers/Examples/Step.mo",
+              "FirstSteps documentation",
+              "modelica_users_guide_tutorial_annotation",
+              "repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation"
+            ],
+            "kind": "tutorial",
+            "module_ids": [
+              "repo:modelica-gateway-workset:module:Projectionica.Controllers",
+              "repo:modelica-gateway-workset:module:Projectionica.Controllers.UsersGuide"
+            ],
+            "page_id": "repo:modelica-gateway-workset:projection:tutorial:doc:repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation",
+            "path": "Controllers/Examples/Step.mo",
+            "paths": [
+              "Controllers/Examples/Step.mo",
+              "Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation"
+            ],
+            "repo_id": "modelica-gateway-workset",
+            "sections": [
+              {
+                "body": "Projected tutorial page for `FirstSteps documentation`.\nFormat hints:\n- `modelica_users_guide_tutorial_annotation`\nSource paths:\n- `Controllers/Examples/Step.mo`\n- `Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation`",
+                "level": 1,
+                "paths": [
+                  "Controllers/Examples/Step.mo",
+                  "Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation"
+                ],
+                "section_id": "repo:modelica-gateway-workset:projection:tutorial:doc:repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation#overview",
+                "title": "Overview"
+              },
+              {
+                "body": "Modules:\n- `Projectionica.Controllers` (Controllers/package.mo)\n- `Projectionica.Controllers.UsersGuide` (Controllers/UsersGuide/package.mo)",
+                "level": 2,
+                "paths": [
+                  "Controllers/UsersGuide/package.mo",
+                  "Controllers/package.mo"
+                ],
+                "section_id": "repo:modelica-gateway-workset:projection:tutorial:doc:repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation#anchors",
+                "title": "Anchors"
+              },
+              {
+                "body": "Documentation:\n- `FirstSteps documentation` (Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation)",
+                "level": 2,
+                "paths": [
+                  "Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation"
+                ],
+                "section_id": "repo:modelica-gateway-workset:projection:tutorial:doc:repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation#sources",
+                "title": "Sources"
+              },
+              {
+                "body": "Examples:\n- `Step` (Controllers/Examples/Step.mo)",
+                "level": 2,
+                "paths": [
+                  "Controllers/Examples/Step.mo"
+                ],
+                "section_id": "repo:modelica-gateway-workset:projection:tutorial:doc:repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation#examples",
+                "title": "Examples"
+              }
+            ],
+            "symbol_ids": [],
+            "title": "FirstSteps documentation"
+          },
+          {
+            "doc_id": "repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo",
+            "doc_ids": [
+              "repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo",
+              "repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation",
+              "repo:modelica-gateway-workset:doc:Controllers/UsersGuide/package.mo",
+              "repo:modelica-gateway-workset:doc:Controllers/PI.mo#annotation.documentation"
+            ],
+            "example_ids": [
+              "repo:modelica-gateway-workset:example:Controllers/Examples/Step.mo"
+            ],
+            "format_hints": [
+              "modelica_annotation",
+              "modelica_users_guide_page",
+              "modelica_users_guide_tutorial",
+              "modelica_users_guide_tutorial_annotation"
+            ],
+            "keywords": [
+              "Controllers/Examples/Step.mo",
+              "Projectionica.Controllers",
+              "modelica_annotation",
+              "modelica_users_guide_page",
+              "modelica_users_guide_tutorial",
+              "modelica_users_guide_tutorial_annotation",
+              "repo:modelica-gateway-workset:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo"
+            ],
+            "kind": "reference",
+            "module_ids": [
+              "repo:modelica-gateway-workset:module:Projectionica.Controllers"
+            ],
+            "page_id": "repo:modelica-gateway-workset:projection:reference:module:repo:modelica-gateway-workset:module:Projectionica.Controllers",
+            "path": "Controllers/Examples/Step.mo",
+            "paths": [
+              "Controllers/Examples/Step.mo",
+              "Controllers/PI.mo#annotation.documentation",
+              "Controllers/UsersGuide/Tutorial/FirstSteps.mo",
+              "Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation",
+              "Controllers/UsersGuide/package.mo",
+              "Controllers/package.mo"
+            ],
+            "repo_id": "modelica-gateway-workset",
+            "sections": [
+              {
+                "body": "Projected reference page for `Projectionica.Controllers`.\nFormat hints:\n- `modelica_annotation`\n- `modelica_users_guide_page`\n- `modelica_users_guide_tutorial`\n- `modelica_users_guide_tutorial_annotation`\nSource paths:\n- `Controllers/Examples/Step.mo`\n- `Controllers/PI.mo#annotation.documentation`\n- `Controllers/UsersGuide/Tutorial/FirstSteps.mo`\n- `Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation`\n- `Controllers/UsersGuide/package.mo`\n- `Controllers/package.mo`",
+                "level": 1,
+                "paths": [
+                  "Controllers/Examples/Step.mo",
+                  "Controllers/PI.mo#annotation.documentation",
+                  "Controllers/UsersGuide/Tutorial/FirstSteps.mo",
+                  "Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation",
+                  "Controllers/UsersGuide/package.mo",
+                  "Controllers/package.mo"
+                ],
+                "section_id": "repo:modelica-gateway-workset:projection:reference:module:repo:modelica-gateway-workset:module:Projectionica.Controllers#overview",
+                "title": "Overview"
+              },
+              {
+                "body": "Modules:\n- `Projectionica.Controllers` (Controllers/package.mo)",
+                "level": 2,
+                "paths": [
+                  "Controllers/package.mo"
+                ],
+                "section_id": "repo:modelica-gateway-workset:projection:reference:module:repo:modelica-gateway-workset:module:Projectionica.Controllers#anchors",
+                "title": "Anchors"
+              },
+              {
+                "body": "Documentation:\n- `FirstSteps` (Controllers/UsersGuide/Tutorial/FirstSteps.mo)\n- `FirstSteps documentation` (Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation)\n- `PI documentation` (Controllers/PI.mo#annotation.documentation)\n- `UsersGuide` (Controllers/UsersGuide/package.mo)",
+                "level": 2,
+                "paths": [
+                  "Controllers/UsersGuide/Tutorial/FirstSteps.mo",
+                  "Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation",
+                  "Controllers/PI.mo#annotation.documentation",
+                  "Controllers/UsersGuide/package.mo"
+                ],
+                "section_id": "repo:modelica-gateway-workset:projection:reference:module:repo:modelica-gateway-workset:module:Projectionica.Controllers#sources",
+                "title": "Documentation"
+              },
+              {
+                "body": "Examples:\n- `Step` (Controllers/Examples/Step.mo)",
+                "level": 2,
+                "paths": [
+                  "Controllers/Examples/Step.mo"
+                ],
+                "section_id": "repo:modelica-gateway-workset:projection:reference:module:repo:modelica-gateway-workset:module:Projectionica.Controllers#examples",
+                "title": "Examples"
+              }
+            ],
+            "symbol_ids": [],
+            "title": "Projectionica.Controllers"
+          }
+        ],
+        "repo_id": "modelica-gateway-workset",
+        "tree": {
+          "doc_id": "reference/projectionica-controllers-nodocs-6af5b2a8e468",
+          "kind": "reference",
+          "page_id": "repo:modelica-gateway-workset:projection:reference:symbol:repo:modelica-gateway-workset:symbol:Projectionica.Controllers.NoDocs",
+          "path": "reference/projectionica-controllers-nodocs-6af5b2a8e468.md",
+          "repo_id": "modelica-gateway-workset",
+          "root_count": 2,
+          "roots": [
+            {
+              "children": [],
+              "is_thinned": false,
+              "level": 1,
+              "line_range": [
+                1,
+                6
+              ],
+              "node_id": "reference/projectionica-controllers-nodocs-6af5b2a8e468#projectionica-controllers-nodocs",
+              "structural_path": [
+                "Projectionica.Controllers.NoDocs"
+              ],
+              "summary": ":PROPERTIES:\n:TYPE: PROJECTED_PAGE\n:KIND: reference\n:END:",
+              "text": ":PROPERTIES:\n:TYPE: PROJECTED_PAGE\n:KIND: reference\n:END:",
+              "title": "Projectionica.Controllers.NoDocs",
+              "token_count": 6
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "is_thinned": false,
+                  "level": 2,
+                  "line_range": [
+                    15,
+                    23
+                  ],
+                  "node_id": "reference/projectionica-controllers-nodocs-6af5b2a8e468#anchors",
+                  "structural_path": [
+                    "Overview",
+                    "Anchors"
+                  ],
+                  "summary": ":ID: anchors\n:PATHS: Controllers/NoDocs",
+                  "text": ":ID: anchors\n:PATHS: Controllers/NoDocs.mo, Controllers/package.mo\n\nModules:\n- `Projectionica.Controllers` (Controllers/package.mo)\n\nSymbols:\n- `Projectionica.Controllers.NoDocs` (Controllers/NoDocs.mo)",
+                  "title": "Anchors",
+                  "token_count": 13
+                }
+              ],
+              "is_thinned": false,
+              "level": 1,
+              "line_range": [
+                7,
+                14
+              ],
+              "node_id": "reference/projectionica-controllers-nodocs-6af5b2a8e468#overview",
+              "structural_path": [
+                "Overview"
+              ],
+              "summary": ":ID: overview\n:PATHS: Controllers/NoDocs",
+              "text": ":ID: overview\n:PATHS: Controllers/NoDocs.mo\n\nProjected reference page for `Projectionica.Controllers.NoDocs`.\nSource paths:\n- `Controllers/NoDocs.mo`",
+              "title": "Overview",
+              "token_count": 13
+            }
+          ],
+          "title": "Projectionica.Controllers.NoDocs"
+        }
+      },
+      "repo_id": "modelica-gateway-workset"
+    }
+  ],
+  "queue": {
+    "groups": [
+      {
+        "count": 1,
+        "gaps": [
+          {
+            "doc_ids": [],
+            "entity_id": "repo:modelica-gateway-workset:symbol:Projectionica.Controllers.NoDocs",
+            "example_ids": [],
+            "format_hints": [],
+            "gap_id": "repo:modelica-gateway-workset:projection-gap:symbol_reference_without_documentation:repo:modelica-gateway-workset:symbol:Projectionica.Controllers.NoDocs",
+            "kind": "symbol_reference_without_documentation",
+            "module_ids": [
+              "repo:modelica-gateway-workset:module:Projectionica.Controllers"
+            ],
+            "page_id": "repo:modelica-gateway-workset:projection:reference:symbol:repo:modelica-gateway-workset:symbol:Projectionica.Controllers.NoDocs",
+            "page_kind": "reference",
+            "path": "Controllers/NoDocs.mo",
+            "repo_id": "modelica-gateway-workset",
+            "symbol_ids": [
+              "repo:modelica-gateway-workset:symbol:Projectionica.Controllers.NoDocs"
+            ],
+            "title": "Projectionica.Controllers.NoDocs"
+          }
+        ],
+        "kind": "symbol_reference_without_documentation"
+      }
+    ],
+    "page_count": 12,
+    "repo_id": "modelica-gateway-workset",
+    "total_gap_count": 1
+  },
+  "ranked_hits": [
+    {
+      "gap": {
+        "doc_ids": [],
+        "entity_id": "repo:modelica-gateway-workset:symbol:Projectionica.Controllers.NoDocs",
+        "example_ids": [],
+        "format_hints": [],
+        "gap_id": "repo:modelica-gateway-workset:projection-gap:symbol_reference_without_documentation:repo:modelica-gateway-workset:symbol:Projectionica.Controllers.NoDocs",
+        "kind": "symbol_reference_without_documentation",
+        "module_ids": [
+          "repo:modelica-gateway-workset:module:Projectionica.Controllers"
+        ],
+        "page_id": "repo:modelica-gateway-workset:projection:reference:symbol:repo:modelica-gateway-workset:symbol:Projectionica.Controllers.NoDocs",
+        "page_kind": "reference",
+        "path": "Controllers/NoDocs.mo",
+        "repo_id": "modelica-gateway-workset",
+        "symbol_ids": [
+          "repo:modelica-gateway-workset:symbol:Projectionica.Controllers.NoDocs"
+        ],
+        "title": "Projectionica.Controllers.NoDocs"
+      },
+      "priority_score": 96,
+      "reasons": [
+        {
+          "code": "gap_kind_base",
+          "detail": "base priority from projected gap kind `symbol_reference_without_documentation`",
+          "points": 92
+        },
+        {
+          "code": "reference_page_bonus",
+          "detail": "reference page bonus",
+          "points": 2
+        },
+        {
+          "code": "module_anchor_bonus",
+          "detail": "1 attached module anchor(s)",
+          "points": 1
+        },
+        {
+          "code": "symbol_anchor_bonus",
+          "detail": "1 attached symbol anchor(s)",
+          "points": 1
+        }
+      ]
+    }
+  ],
+  "repo_id": "modelica-gateway-workset",
+  "strategy": {
+    "code": "single_lane_focus",
+    "family_group_count": 1,
+    "gap_kind_group_count": 1,
+    "reasons": [
+      {
+        "code": "single_gap_kind",
+        "detail": "1 populated gap-kind group(s) contribute to the workset"
+      },
+      {
+        "code": "single_family",
+        "detail": "1 populated page-family group(s) contribute to the workset"
+      },
+      {
+        "code": "gap_kind_balanced",
+        "detail": "gap-kind groups stay within the deterministic balance band"
+      },
+      {
+        "code": "family_balanced",
+        "detail": "page-family groups stay within the deterministic balance band"
+      }
+    ]
+  }
+}

@@ -10,4 +10,4 @@ pub(crate) use route::search_attachment_hits;
 pub(crate) use scoring::{compare_candidates, retained_window};
 #[cfg(test)]
 pub(crate) use types::AttachmentCandidate;
-pub(crate) use types::AttachmentSearchError;
+pub use types::AttachmentSearchError;

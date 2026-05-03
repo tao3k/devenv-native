@@ -12,7 +12,7 @@ use crate::analyzers::service::{
 };
 
 #[derive(Debug, Clone, Default)]
-pub(crate) struct ExampleSearchMetadata {
+pub struct ExampleSearchMetadata {
     pub(super) related_symbols: Vec<String>,
     pub(super) related_modules: Vec<String>,
 }

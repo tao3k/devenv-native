@@ -1,0 +1,27 @@
+---
+source: packages/rust/crates/xiuxian-wendao-studio/tests/unit/gateway/studio/support.rs
+expression: value
+---
+{
+  "center": {
+    "distance": 0,
+    "id": "beta/docs/index.md",
+    "isCenter": true,
+    "label": "Beta",
+    "nodeType": "doc",
+    "path": "beta/docs/index.md"
+  },
+  "links": [],
+  "nodes": [
+    {
+      "distance": 0,
+      "id": "beta/docs/index.md",
+      "isCenter": true,
+      "label": "Beta",
+      "nodeType": "doc",
+      "path": "beta/docs/index.md"
+    }
+  ],
+  "totalLinks": 0,
+  "totalNodes": 1
+}

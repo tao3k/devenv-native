@@ -1,0 +1,1001 @@
+---
+source: packages/rust/crates/xiuxian-wendao-studio/tests/unit/gateway/studio/support.rs
+expression: value
+---
+{
+  "repo_id": "modelica-gateway-projected-index-trees",
+  "trees": [
+    {
+      "doc_id": "explanation/readme-268d1ce38c15",
+      "kind": "explanation",
+      "page_id": "repo:modelica-gateway-projected-index-trees:projection:explanation:doc:repo:modelica-gateway-projected-index-trees:doc:README.md",
+      "path": "explanation/readme-268d1ce38c15.md",
+      "repo_id": "modelica-gateway-projected-index-trees",
+      "root_count": 2,
+      "roots": [
+        {
+          "children": [],
+          "is_thinned": false,
+          "level": 1,
+          "line_range": [
+            1,
+            7
+          ],
+          "node_id": "explanation/readme-268d1ce38c15#readme",
+          "structural_path": [
+            "README"
+          ],
+          "summary": ":PROPERTIES:\n:TYPE: PROJECTED_PAGE\n:KIND: explanation\n:FORMATS: md\n:END:",
+          "text": ":PROPERTIES:\n:TYPE: PROJECTED_PAGE\n:KIND: explanation\n:FORMATS: md\n:END:",
+          "title": "README",
+          "token_count": 8
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "is_thinned": false,
+              "level": 2,
+              "line_range": [
+                18,
+                24
+              ],
+              "node_id": "explanation/readme-268d1ce38c15#anchors",
+              "structural_path": [
+                "Overview",
+                "Anchors"
+              ],
+              "summary": ":ID: anchors\n:PATHS: package",
+              "text": ":ID: anchors\n:PATHS: package.mo\n\nModules:\n- `Projectionica` (package.mo)",
+              "title": "Anchors",
+              "token_count": 8
+            },
+            {
+              "children": [],
+              "is_thinned": false,
+              "level": 2,
+              "line_range": [
+                25,
+                30
+              ],
+              "node_id": "explanation/readme-268d1ce38c15#sources",
+              "structural_path": [
+                "Overview",
+                "Sources"
+              ],
+              "summary": ":ID: sources\n:PATHS: README",
+              "text": ":ID: sources\n:PATHS: README.md\n\nDocumentation:\n- `README` (README.md)",
+              "title": "Sources",
+              "token_count": 8
+            }
+          ],
+          "is_thinned": false,
+          "level": 1,
+          "line_range": [
+            8,
+            17
+          ],
+          "node_id": "explanation/readme-268d1ce38c15#overview",
+          "structural_path": [
+            "Overview"
+          ],
+          "summary": ":ID: overview\n:PATHS: README",
+          "text": ":ID: overview\n:PATHS: README.md\n\nProjected explanation page for `README`.\nFormat hints:\n- `md`\nSource paths:\n- `README.md`",
+          "title": "Overview",
+          "token_count": 17
+        }
+      ],
+      "title": "README"
+    },
+    {
+      "doc_id": "explanation/package-documentation-2f4dfefde7e7",
+      "kind": "explanation",
+      "page_id": "repo:modelica-gateway-projected-index-trees:projection:explanation:doc:repo:modelica-gateway-projected-index-trees:doc:package.mo#annotation.documentation",
+      "path": "explanation/package-documentation-2f4dfefde7e7.md",
+      "repo_id": "modelica-gateway-projected-index-trees",
+      "root_count": 2,
+      "roots": [
+        {
+          "children": [],
+          "is_thinned": false,
+          "level": 1,
+          "line_range": [
+            1,
+            7
+          ],
+          "node_id": "explanation/package-documentation-2f4dfefde7e7#package-documentation",
+          "structural_path": [
+            "package documentation"
+          ],
+          "summary": ":PROPERTIES:\n:TYPE: PROJECTED_PAGE\n:KIND: explanation\n:FORMATS: modelica_annotation\n:END:",
+          "text": ":PROPERTIES:\n:TYPE: PROJECTED_PAGE\n:KIND: explanation\n:FORMATS: modelica_annotation\n:END:",
+          "title": "package documentation",
+          "token_count": 8
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "is_thinned": false,
+              "level": 2,
+              "line_range": [
+                18,
+                24
+              ],
+              "node_id": "explanation/package-documentation-2f4dfefde7e7#anchors",
+              "structural_path": [
+                "Overview",
+                "Anchors"
+              ],
+              "summary": ":ID: anchors\n:PATHS: package",
+              "text": ":ID: anchors\n:PATHS: package.mo\n\nModules:\n- `Projectionica` (package.mo)",
+              "title": "Anchors",
+              "token_count": 8
+            },
+            {
+              "children": [],
+              "is_thinned": false,
+              "level": 2,
+              "line_range": [
+                25,
+                30
+              ],
+              "node_id": "explanation/package-documentation-2f4dfefde7e7#sources",
+              "structural_path": [
+                "Overview",
+                "Sources"
+              ],
+              "summary": ":ID: sources\n:PATHS: package",
+              "text": ":ID: sources\n:PATHS: package.mo#annotation.documentation\n\nDocumentation:\n- `package documentation` (package.mo#annotation.documentation)",
+              "title": "Sources",
+              "token_count": 9
+            }
+          ],
+          "is_thinned": false,
+          "level": 1,
+          "line_range": [
+            8,
+            17
+          ],
+          "node_id": "explanation/package-documentation-2f4dfefde7e7#overview",
+          "structural_path": [
+            "Overview"
+          ],
+          "summary": ":ID: overview\n:PATHS: package",
+          "text": ":ID: overview\n:PATHS: package.mo#annotation.documentation\n\nProjected explanation page for `package documentation`.\nFormat hints:\n- `modelica_annotation`\nSource paths:\n- `package.mo#annotation.documentation`",
+          "title": "Overview",
+          "token_count": 18
+        }
+      ],
+      "title": "package documentation"
+    },
+    {
+      "doc_id": "howto/step-d4487a32b857",
+      "kind": "how_to",
+      "page_id": "repo:modelica-gateway-projected-index-trees:projection:howto:example:repo:modelica-gateway-projected-index-trees:example:Controllers/Examples/Step.mo",
+      "path": "howto/step-d4487a32b857.md",
+      "repo_id": "modelica-gateway-projected-index-trees",
+      "root_count": 2,
+      "roots": [
+        {
+          "children": [],
+          "is_thinned": false,
+          "level": 1,
+          "line_range": [
+            1,
+            7
+          ],
+          "node_id": "howto/step-d4487a32b857#step",
+          "structural_path": [
+            "Step"
+          ],
+          "summary": ":PROPERTIES:\n:TYPE: PROJECTED_PAGE\n:KIND: howto\n:FORMATS: modelica_users_guide_page, modelica_users_guide_tutorial, m...",
+          "text": ":PROPERTIES:\n:TYPE: PROJECTED_PAGE\n:KIND: howto\n:FORMATS: modelica_users_guide_page, modelica_users_guide_tutorial, modelica_users_guide_tutorial_annotation\n:END:",
+          "title": "Step",
+          "token_count": 10
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "is_thinned": false,
+              "level": 2,
+              "line_range": [
+                23,
+                29
+              ],
+              "node_id": "howto/step-d4487a32b857#anchors",
+              "structural_path": [
+                "Overview",
+                "Anchors"
+              ],
+              "summary": ":ID: anchors\n:PATHS: Controllers/package",
+              "text": ":ID: anchors\n:PATHS: Controllers/package.mo\n\nModules:\n- `Projectionica.Controllers` (Controllers/package.mo)",
+              "title": "Anchors",
+              "token_count": 8
+            },
+            {
+              "children": [],
+              "is_thinned": false,
+              "level": 2,
+              "line_range": [
+                30,
+                38
+              ],
+              "node_id": "howto/step-d4487a32b857#sources",
+              "structural_path": [
+                "Overview",
+                "Supporting Docs"
+              ],
+              "summary": ":ID: sources\n:PATHS: Controllers/UsersGuide/Tutorial/FirstSteps",
+              "text": ":ID: sources\n:PATHS: Controllers/UsersGuide/Tutorial/FirstSteps.mo, Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation, Controllers/UsersGuide/package.mo\n\nDocumentation:\n- `FirstSteps` (Controllers/UsersGuide/Tutorial/FirstSteps.mo)\n- `FirstSteps documentation` (Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation)\n- `UsersGuide` (Controllers/UsersGuide/package.mo)",
+              "title": "Supporting Docs",
+              "token_count": 17
+            },
+            {
+              "children": [],
+              "is_thinned": false,
+              "level": 2,
+              "line_range": [
+                39,
+                44
+              ],
+              "node_id": "howto/step-d4487a32b857#examples",
+              "structural_path": [
+                "Overview",
+                "Examples"
+              ],
+              "summary": ":ID: examples\n:PATHS: Controllers/Examples/Step",
+              "text": ":ID: examples\n:PATHS: Controllers/Examples/Step.mo\n\nExamples:\n- `Step` (Controllers/Examples/Step.mo)",
+              "title": "Examples",
+              "token_count": 8
+            }
+          ],
+          "is_thinned": false,
+          "level": 1,
+          "line_range": [
+            8,
+            22
+          ],
+          "node_id": "howto/step-d4487a32b857#overview",
+          "structural_path": [
+            "Overview"
+          ],
+          "summary": ":ID: overview\n:PATHS: Controllers/Examples/Step",
+          "text": ":ID: overview\n:PATHS: Controllers/Examples/Step.mo, Controllers/UsersGuide/Tutorial/FirstSteps.mo, Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation, Controllers/UsersGuide/package.mo\n\nProjected how-to page for `Step`.\nFormat hints:\n- `modelica_users_guide_page`\n- `modelica_users_guide_tutorial`\n- `modelica_users_guide_tutorial_annotation`\nSource paths:\n- `Controllers/Examples/Step.mo`\n- `Controllers/UsersGuide/Tutorial/FirstSteps.mo`\n- `Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation`\n- `Controllers/UsersGuide/package.mo`",
+          "title": "Overview",
+          "token_count": 30
+        }
+      ],
+      "title": "Step"
+    },
+    {
+      "doc_id": "howto/usersguide-16f596ff3f36",
+      "kind": "how_to",
+      "page_id": "repo:modelica-gateway-projected-index-trees:projection:howto:doc:repo:modelica-gateway-projected-index-trees:doc:Controllers/UsersGuide/package.mo",
+      "path": "howto/usersguide-16f596ff3f36.md",
+      "repo_id": "modelica-gateway-projected-index-trees",
+      "root_count": 2,
+      "roots": [
+        {
+          "children": [],
+          "is_thinned": false,
+          "level": 1,
+          "line_range": [
+            1,
+            7
+          ],
+          "node_id": "howto/usersguide-16f596ff3f36#usersguide",
+          "structural_path": [
+            "UsersGuide"
+          ],
+          "summary": ":PROPERTIES:\n:TYPE: PROJECTED_PAGE\n:KIND: howto\n:FORMATS: modelica_users_guide_page\n:END:",
+          "text": ":PROPERTIES:\n:TYPE: PROJECTED_PAGE\n:KIND: howto\n:FORMATS: modelica_users_guide_page\n:END:",
+          "title": "UsersGuide",
+          "token_count": 8
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "is_thinned": false,
+              "level": 2,
+              "line_range": [
+                19,
+                26
+              ],
+              "node_id": "howto/usersguide-16f596ff3f36#anchors",
+              "structural_path": [
+                "Overview",
+                "Anchors"
+              ],
+              "summary": ":ID: anchors\n:PATHS: Controllers/UsersGuide/package",
+              "text": ":ID: anchors\n:PATHS: Controllers/UsersGuide/package.mo, Controllers/package.mo\n\nModules:\n- `Projectionica.Controllers` (Controllers/package.mo)\n- `Projectionica.Controllers.UsersGuide` (Controllers/UsersGuide/package.mo)",
+              "title": "Anchors",
+              "token_count": 12
+            },
+            {
+              "children": [],
+              "is_thinned": false,
+              "level": 2,
+              "line_range": [
+                27,
+                33
+              ],
+              "node_id": "howto/usersguide-16f596ff3f36#sources",
+              "structural_path": [
+                "Overview",
+                "Supporting Docs"
+              ],
+              "summary": ":ID: sources\n:PATHS: Controllers/UsersGuide/package",
+              "text": ":ID: sources\n:PATHS: Controllers/UsersGuide/package.mo\n\nDocumentation:\n- `UsersGuide` (Controllers/UsersGuide/package.mo)",
+              "title": "Supporting Docs",
+              "token_count": 8
+            },
+            {
+              "children": [],
+              "is_thinned": false,
+              "level": 2,
+              "line_range": [
+                34,
+                39
+              ],
+              "node_id": "howto/usersguide-16f596ff3f36#examples",
+              "structural_path": [
+                "Overview",
+                "Examples"
+              ],
+              "summary": ":ID: examples\n:PATHS: Controllers/Examples/Step",
+              "text": ":ID: examples\n:PATHS: Controllers/Examples/Step.mo\n\nExamples:\n- `Step` (Controllers/Examples/Step.mo)",
+              "title": "Examples",
+              "token_count": 8
+            }
+          ],
+          "is_thinned": false,
+          "level": 1,
+          "line_range": [
+            8,
+            18
+          ],
+          "node_id": "howto/usersguide-16f596ff3f36#overview",
+          "structural_path": [
+            "Overview"
+          ],
+          "summary": ":ID: overview\n:PATHS: Controllers/Examples/Step",
+          "text": ":ID: overview\n:PATHS: Controllers/Examples/Step.mo, Controllers/UsersGuide/package.mo\n\nProjected how-to page for `UsersGuide`.\nFormat hints:\n- `modelica_users_guide_page`\nSource paths:\n- `Controllers/Examples/Step.mo`\n- `Controllers/UsersGuide/package.mo`",
+          "title": "Overview",
+          "token_count": 20
+        }
+      ],
+      "title": "UsersGuide"
+    },
+    {
+      "doc_id": "reference/pi-documentation-781da9012cef",
+      "kind": "reference",
+      "page_id": "repo:modelica-gateway-projected-index-trees:projection:reference:doc:repo:modelica-gateway-projected-index-trees:doc:Controllers/PI.mo#annotation.documentation",
+      "path": "reference/pi-documentation-781da9012cef.md",
+      "repo_id": "modelica-gateway-projected-index-trees",
+      "root_count": 2,
+      "roots": [
+        {
+          "children": [],
+          "is_thinned": false,
+          "level": 1,
+          "line_range": [
+            1,
+            7
+          ],
+          "node_id": "reference/pi-documentation-781da9012cef#pi-documentation",
+          "structural_path": [
+            "PI documentation"
+          ],
+          "summary": ":PROPERTIES:\n:TYPE: PROJECTED_PAGE\n:KIND: reference\n:FORMATS: modelica_annotation\n:END:",
+          "text": ":PROPERTIES:\n:TYPE: PROJECTED_PAGE\n:KIND: reference\n:FORMATS: modelica_annotation\n:END:",
+          "title": "PI documentation",
+          "token_count": 8
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "is_thinned": false,
+              "level": 2,
+              "line_range": [
+                18,
+                24
+              ],
+              "node_id": "reference/pi-documentation-781da9012cef#anchors",
+              "structural_path": [
+                "Overview",
+                "Anchors"
+              ],
+              "summary": ":ID: anchors\n:PATHS: Controllers/PI",
+              "text": ":ID: anchors\n:PATHS: Controllers/PI.mo\n\nSymbols:\n- `Projectionica.Controllers.PI` (Controllers/PI.mo)",
+              "title": "Anchors",
+              "token_count": 8
+            },
+            {
+              "children": [],
+              "is_thinned": false,
+              "level": 2,
+              "line_range": [
+                25,
+                30
+              ],
+              "node_id": "reference/pi-documentation-781da9012cef#sources",
+              "structural_path": [
+                "Overview",
+                "Documentation"
+              ],
+              "summary": ":ID: sources\n:PATHS: Controllers/PI",
+              "text": ":ID: sources\n:PATHS: Controllers/PI.mo#annotation.documentation\n\nDocumentation:\n- `PI documentation` (Controllers/PI.mo#annotation.documentation)",
+              "title": "Documentation",
+              "token_count": 9
+            }
+          ],
+          "is_thinned": false,
+          "level": 1,
+          "line_range": [
+            8,
+            17
+          ],
+          "node_id": "reference/pi-documentation-781da9012cef#overview",
+          "structural_path": [
+            "Overview"
+          ],
+          "summary": ":ID: overview\n:PATHS: Controllers/PI",
+          "text": ":ID: overview\n:PATHS: Controllers/PI.mo#annotation.documentation\n\nProjected reference page for `PI documentation`.\nFormat hints:\n- `modelica_annotation`\nSource paths:\n- `Controllers/PI.mo#annotation.documentation`",
+          "title": "Overview",
+          "token_count": 18
+        }
+      ],
+      "title": "PI documentation"
+    },
+    {
+      "doc_id": "reference/projectionica-fa64a9b2a51b",
+      "kind": "reference",
+      "page_id": "repo:modelica-gateway-projected-index-trees:projection:reference:module:repo:modelica-gateway-projected-index-trees:module:Projectionica",
+      "path": "reference/projectionica-fa64a9b2a51b.md",
+      "repo_id": "modelica-gateway-projected-index-trees",
+      "root_count": 2,
+      "roots": [
+        {
+          "children": [],
+          "is_thinned": false,
+          "level": 1,
+          "line_range": [
+            1,
+            7
+          ],
+          "node_id": "reference/projectionica-fa64a9b2a51b#projectionica",
+          "structural_path": [
+            "Projectionica"
+          ],
+          "summary": ":PROPERTIES:\n:TYPE: PROJECTED_PAGE\n:KIND: reference\n:FORMATS: md, modelica_annotation\n:END:",
+          "text": ":PROPERTIES:\n:TYPE: PROJECTED_PAGE\n:KIND: reference\n:FORMATS: md, modelica_annotation\n:END:",
+          "title": "Projectionica",
+          "token_count": 9
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "is_thinned": false,
+              "level": 2,
+              "line_range": [
+                21,
+                27
+              ],
+              "node_id": "reference/projectionica-fa64a9b2a51b#anchors",
+              "structural_path": [
+                "Overview",
+                "Anchors"
+              ],
+              "summary": ":ID: anchors\n:PATHS: package",
+              "text": ":ID: anchors\n:PATHS: package.mo\n\nModules:\n- `Projectionica` (package.mo)",
+              "title": "Anchors",
+              "token_count": 8
+            },
+            {
+              "children": [],
+              "is_thinned": false,
+              "level": 2,
+              "line_range": [
+                28,
+                34
+              ],
+              "node_id": "reference/projectionica-fa64a9b2a51b#sources",
+              "structural_path": [
+                "Overview",
+                "Documentation"
+              ],
+              "summary": ":ID: sources\n:PATHS: README",
+              "text": ":ID: sources\n:PATHS: README.md, package.mo#annotation.documentation\n\nDocumentation:\n- `README` (README.md)\n- `package documentation` (package.mo#annotation.documentation)",
+              "title": "Documentation",
+              "token_count": 13
+            }
+          ],
+          "is_thinned": false,
+          "level": 1,
+          "line_range": [
+            8,
+            20
+          ],
+          "node_id": "reference/projectionica-fa64a9b2a51b#overview",
+          "structural_path": [
+            "Overview"
+          ],
+          "summary": ":ID: overview\n:PATHS: README",
+          "text": ":ID: overview\n:PATHS: README.md, package.mo, package.mo#annotation.documentation\n\nProjected reference page for `Projectionica`.\nFormat hints:\n- `md`\n- `modelica_annotation`\nSource paths:\n- `README.md`\n- `package.mo`\n- `package.mo#annotation.documentation`",
+          "title": "Overview",
+          "token_count": 25
+        }
+      ],
+      "title": "Projectionica"
+    },
+    {
+      "doc_id": "reference/projectionica-controllers-d0c66b5c78b4",
+      "kind": "reference",
+      "page_id": "repo:modelica-gateway-projected-index-trees:projection:reference:module:repo:modelica-gateway-projected-index-trees:module:Projectionica.Controllers",
+      "path": "reference/projectionica-controllers-d0c66b5c78b4.md",
+      "repo_id": "modelica-gateway-projected-index-trees",
+      "root_count": 2,
+      "roots": [
+        {
+          "children": [],
+          "is_thinned": false,
+          "level": 1,
+          "line_range": [
+            1,
+            7
+          ],
+          "node_id": "reference/projectionica-controllers-d0c66b5c78b4#projectionica-controllers",
+          "structural_path": [
+            "Projectionica.Controllers"
+          ],
+          "summary": ":PROPERTIES:\n:TYPE: PROJECTED_PAGE\n:KIND: reference\n:FORMATS: modelica_annotation, modelica_users_guide_page, modelic...",
+          "text": ":PROPERTIES:\n:TYPE: PROJECTED_PAGE\n:KIND: reference\n:FORMATS: modelica_annotation, modelica_users_guide_page, modelica_users_guide_tutorial, modelica_users_guide_tutorial_annotation\n:END:",
+          "title": "Projectionica.Controllers",
+          "token_count": 11
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "is_thinned": false,
+              "level": 2,
+              "line_range": [
+                26,
+                32
+              ],
+              "node_id": "reference/projectionica-controllers-d0c66b5c78b4#anchors",
+              "structural_path": [
+                "Overview",
+                "Anchors"
+              ],
+              "summary": ":ID: anchors\n:PATHS: Controllers/package",
+              "text": ":ID: anchors\n:PATHS: Controllers/package.mo\n\nModules:\n- `Projectionica.Controllers` (Controllers/package.mo)",
+              "title": "Anchors",
+              "token_count": 8
+            },
+            {
+              "children": [],
+              "is_thinned": false,
+              "level": 2,
+              "line_range": [
+                33,
+                42
+              ],
+              "node_id": "reference/projectionica-controllers-d0c66b5c78b4#sources",
+              "structural_path": [
+                "Overview",
+                "Documentation"
+              ],
+              "summary": ":ID: sources\n:PATHS: Controllers/UsersGuide/Tutorial/FirstSteps",
+              "text": ":ID: sources\n:PATHS: Controllers/UsersGuide/Tutorial/FirstSteps.mo, Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation, Controllers/PI.mo#annotation.documentation, Controllers/UsersGuide/package.mo\n\nDocumentation:\n- `FirstSteps` (Controllers/UsersGuide/Tutorial/FirstSteps.mo)\n- `FirstSteps documentation` (Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation)\n- `PI documentation` (Controllers/PI.mo#annotation.documentation)\n- `UsersGuide` (Controllers/UsersGuide/package.mo)",
+              "title": "Documentation",
+              "token_count": 22
+            },
+            {
+              "children": [],
+              "is_thinned": false,
+              "level": 2,
+              "line_range": [
+                43,
+                48
+              ],
+              "node_id": "reference/projectionica-controllers-d0c66b5c78b4#examples",
+              "structural_path": [
+                "Overview",
+                "Examples"
+              ],
+              "summary": ":ID: examples\n:PATHS: Controllers/Examples/Step",
+              "text": ":ID: examples\n:PATHS: Controllers/Examples/Step.mo\n\nExamples:\n- `Step` (Controllers/Examples/Step.mo)",
+              "title": "Examples",
+              "token_count": 8
+            }
+          ],
+          "is_thinned": false,
+          "level": 1,
+          "line_range": [
+            8,
+            25
+          ],
+          "node_id": "reference/projectionica-controllers-d0c66b5c78b4#overview",
+          "structural_path": [
+            "Overview"
+          ],
+          "summary": ":ID: overview\n:PATHS: Controllers/Examples/Step",
+          "text": ":ID: overview\n:PATHS: Controllers/Examples/Step.mo, Controllers/PI.mo#annotation.documentation, Controllers/UsersGuide/Tutorial/FirstSteps.mo, Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation, Controllers/UsersGuide/package.mo, Controllers/package.mo\n\nProjected reference page for `Projectionica.Controllers`.\nFormat hints:\n- `modelica_annotation`\n- `modelica_users_guide_page`\n- `modelica_users_guide_tutorial`\n- `modelica_users_guide_tutorial_annotation`\nSource paths:\n- `Controllers/Examples/Step.mo`\n- `Controllers/PI.mo#annotation.documentation`\n- `Controllers/UsersGuide/Tutorial/FirstSteps.mo`\n- `Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation`\n- `Controllers/UsersGuide/package.mo`\n- `Controllers/package.mo`",
+          "title": "Overview",
+          "token_count": 38
+        }
+      ],
+      "title": "Projectionica.Controllers"
+    },
+    {
+      "doc_id": "reference/projectionica-controllers-pi-0c60796d0587",
+      "kind": "reference",
+      "page_id": "repo:modelica-gateway-projected-index-trees:projection:reference:symbol:repo:modelica-gateway-projected-index-trees:symbol:Projectionica.Controllers.PI",
+      "path": "reference/projectionica-controllers-pi-0c60796d0587.md",
+      "repo_id": "modelica-gateway-projected-index-trees",
+      "root_count": 2,
+      "roots": [
+        {
+          "children": [],
+          "is_thinned": false,
+          "level": 1,
+          "line_range": [
+            1,
+            7
+          ],
+          "node_id": "reference/projectionica-controllers-pi-0c60796d0587#projectionica-controllers-pi",
+          "structural_path": [
+            "Projectionica.Controllers.PI"
+          ],
+          "summary": ":PROPERTIES:\n:TYPE: PROJECTED_PAGE\n:KIND: reference\n:FORMATS: modelica_annotation\n:END:",
+          "text": ":PROPERTIES:\n:TYPE: PROJECTED_PAGE\n:KIND: reference\n:FORMATS: modelica_annotation\n:END:",
+          "title": "Projectionica.Controllers.PI",
+          "token_count": 8
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "is_thinned": false,
+              "level": 2,
+              "line_range": [
+                19,
+                28
+              ],
+              "node_id": "reference/projectionica-controllers-pi-0c60796d0587#anchors",
+              "structural_path": [
+                "Overview",
+                "Anchors"
+              ],
+              "summary": ":ID: anchors\n:PATHS: Controllers/PI",
+              "text": ":ID: anchors\n:PATHS: Controllers/PI.mo, Controllers/package.mo\n\nModules:\n- `Projectionica.Controllers` (Controllers/package.mo)\n\nSymbols:\n- `Projectionica.Controllers.PI` (Controllers/PI.mo)",
+              "title": "Anchors",
+              "token_count": 13
+            },
+            {
+              "children": [],
+              "is_thinned": false,
+              "level": 2,
+              "line_range": [
+                29,
+                34
+              ],
+              "node_id": "reference/projectionica-controllers-pi-0c60796d0587#sources",
+              "structural_path": [
+                "Overview",
+                "Documentation"
+              ],
+              "summary": ":ID: sources\n:PATHS: Controllers/PI",
+              "text": ":ID: sources\n:PATHS: Controllers/PI.mo#annotation.documentation\n\nDocumentation:\n- `PI documentation` (Controllers/PI.mo#annotation.documentation)",
+              "title": "Documentation",
+              "token_count": 9
+            }
+          ],
+          "is_thinned": false,
+          "level": 1,
+          "line_range": [
+            8,
+            18
+          ],
+          "node_id": "reference/projectionica-controllers-pi-0c60796d0587#overview",
+          "structural_path": [
+            "Overview"
+          ],
+          "summary": ":ID: overview\n:PATHS: Controllers/PI",
+          "text": ":ID: overview\n:PATHS: Controllers/PI.mo, Controllers/PI.mo#annotation.documentation\n\nProjected reference page for `Projectionica.Controllers.PI`.\nFormat hints:\n- `modelica_annotation`\nSource paths:\n- `Controllers/PI.mo`\n- `Controllers/PI.mo#annotation.documentation`",
+          "title": "Overview",
+          "token_count": 20
+        }
+      ],
+      "title": "Projectionica.Controllers.PI"
+    },
+    {
+      "doc_id": "reference/projectionica-controllers-usersguide-bb9574ce5ca3",
+      "kind": "reference",
+      "page_id": "repo:modelica-gateway-projected-index-trees:projection:reference:module:repo:modelica-gateway-projected-index-trees:module:Projectionica.Controllers.UsersGuide",
+      "path": "reference/projectionica-controllers-usersguide-bb9574ce5ca3.md",
+      "repo_id": "modelica-gateway-projected-index-trees",
+      "root_count": 2,
+      "roots": [
+        {
+          "children": [],
+          "is_thinned": false,
+          "level": 1,
+          "line_range": [
+            1,
+            7
+          ],
+          "node_id": "reference/projectionica-controllers-usersguide-bb9574ce5ca3#projectionica-controllers-usersguide",
+          "structural_path": [
+            "Projectionica.Controllers.UsersGuide"
+          ],
+          "summary": ":PROPERTIES:\n:TYPE: PROJECTED_PAGE\n:KIND: reference\n:FORMATS: modelica_users_guide_page, modelica_users_guide_tutoria...",
+          "text": ":PROPERTIES:\n:TYPE: PROJECTED_PAGE\n:KIND: reference\n:FORMATS: modelica_users_guide_page, modelica_users_guide_tutorial, modelica_users_guide_tutorial_annotation\n:END:",
+          "title": "Projectionica.Controllers.UsersGuide",
+          "token_count": 10
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "is_thinned": false,
+              "level": 2,
+              "line_range": [
+                22,
+                28
+              ],
+              "node_id": "reference/projectionica-controllers-usersguide-bb9574ce5ca3#anchors",
+              "structural_path": [
+                "Overview",
+                "Anchors"
+              ],
+              "summary": ":ID: anchors\n:PATHS: Controllers/UsersGuide/package",
+              "text": ":ID: anchors\n:PATHS: Controllers/UsersGuide/package.mo\n\nModules:\n- `Projectionica.Controllers.UsersGuide` (Controllers/UsersGuide/package.mo)",
+              "title": "Anchors",
+              "token_count": 8
+            },
+            {
+              "children": [],
+              "is_thinned": false,
+              "level": 2,
+              "line_range": [
+                29,
+                36
+              ],
+              "node_id": "reference/projectionica-controllers-usersguide-bb9574ce5ca3#sources",
+              "structural_path": [
+                "Overview",
+                "Documentation"
+              ],
+              "summary": ":ID: sources\n:PATHS: Controllers/UsersGuide/Tutorial/FirstSteps",
+              "text": ":ID: sources\n:PATHS: Controllers/UsersGuide/Tutorial/FirstSteps.mo, Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation, Controllers/UsersGuide/package.mo\n\nDocumentation:\n- `FirstSteps` (Controllers/UsersGuide/Tutorial/FirstSteps.mo)\n- `FirstSteps documentation` (Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation)\n- `UsersGuide` (Controllers/UsersGuide/package.mo)",
+              "title": "Documentation",
+              "token_count": 17
+            }
+          ],
+          "is_thinned": false,
+          "level": 1,
+          "line_range": [
+            8,
+            21
+          ],
+          "node_id": "reference/projectionica-controllers-usersguide-bb9574ce5ca3#overview",
+          "structural_path": [
+            "Overview"
+          ],
+          "summary": ":ID: overview\n:PATHS: Controllers/UsersGuide/Tutorial/FirstSteps",
+          "text": ":ID: overview\n:PATHS: Controllers/UsersGuide/Tutorial/FirstSteps.mo, Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation, Controllers/UsersGuide/package.mo\n\nProjected reference page for `Projectionica.Controllers.UsersGuide`.\nFormat hints:\n- `modelica_users_guide_page`\n- `modelica_users_guide_tutorial`\n- `modelica_users_guide_tutorial_annotation`\nSource paths:\n- `Controllers/UsersGuide/Tutorial/FirstSteps.mo`\n- `Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation`\n- `Controllers/UsersGuide/package.mo`",
+          "title": "Overview",
+          "token_count": 27
+        }
+      ],
+      "title": "Projectionica.Controllers.UsersGuide"
+    },
+    {
+      "doc_id": "tutorial/firststeps-538b14826b31",
+      "kind": "tutorial",
+      "page_id": "repo:modelica-gateway-projected-index-trees:projection:tutorial:doc:repo:modelica-gateway-projected-index-trees:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo",
+      "path": "tutorial/firststeps-538b14826b31.md",
+      "repo_id": "modelica-gateway-projected-index-trees",
+      "root_count": 2,
+      "roots": [
+        {
+          "children": [],
+          "is_thinned": false,
+          "level": 1,
+          "line_range": [
+            1,
+            7
+          ],
+          "node_id": "tutorial/firststeps-538b14826b31#firststeps",
+          "structural_path": [
+            "FirstSteps"
+          ],
+          "summary": ":PROPERTIES:\n:TYPE: PROJECTED_PAGE\n:KIND: tutorial\n:FORMATS: modelica_users_guide_tutorial\n:END:",
+          "text": ":PROPERTIES:\n:TYPE: PROJECTED_PAGE\n:KIND: tutorial\n:FORMATS: modelica_users_guide_tutorial\n:END:",
+          "title": "FirstSteps",
+          "token_count": 8
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "is_thinned": false,
+              "level": 2,
+              "line_range": [
+                19,
+                26
+              ],
+              "node_id": "tutorial/firststeps-538b14826b31#anchors",
+              "structural_path": [
+                "Overview",
+                "Anchors"
+              ],
+              "summary": ":ID: anchors\n:PATHS: Controllers/UsersGuide/package",
+              "text": ":ID: anchors\n:PATHS: Controllers/UsersGuide/package.mo, Controllers/package.mo\n\nModules:\n- `Projectionica.Controllers` (Controllers/package.mo)\n- `Projectionica.Controllers.UsersGuide` (Controllers/UsersGuide/package.mo)",
+              "title": "Anchors",
+              "token_count": 12
+            },
+            {
+              "children": [],
+              "is_thinned": false,
+              "level": 2,
+              "line_range": [
+                27,
+                33
+              ],
+              "node_id": "tutorial/firststeps-538b14826b31#sources",
+              "structural_path": [
+                "Overview",
+                "Sources"
+              ],
+              "summary": ":ID: sources\n:PATHS: Controllers/UsersGuide/Tutorial/FirstSteps",
+              "text": ":ID: sources\n:PATHS: Controllers/UsersGuide/Tutorial/FirstSteps.mo\n\nDocumentation:\n- `FirstSteps` (Controllers/UsersGuide/Tutorial/FirstSteps.mo)",
+              "title": "Sources",
+              "token_count": 8
+            },
+            {
+              "children": [],
+              "is_thinned": false,
+              "level": 2,
+              "line_range": [
+                34,
+                39
+              ],
+              "node_id": "tutorial/firststeps-538b14826b31#examples",
+              "structural_path": [
+                "Overview",
+                "Examples"
+              ],
+              "summary": ":ID: examples\n:PATHS: Controllers/Examples/Step",
+              "text": ":ID: examples\n:PATHS: Controllers/Examples/Step.mo\n\nExamples:\n- `Step` (Controllers/Examples/Step.mo)",
+              "title": "Examples",
+              "token_count": 8
+            }
+          ],
+          "is_thinned": false,
+          "level": 1,
+          "line_range": [
+            8,
+            18
+          ],
+          "node_id": "tutorial/firststeps-538b14826b31#overview",
+          "structural_path": [
+            "Overview"
+          ],
+          "summary": ":ID: overview\n:PATHS: Controllers/Examples/Step",
+          "text": ":ID: overview\n:PATHS: Controllers/Examples/Step.mo, Controllers/UsersGuide/Tutorial/FirstSteps.mo\n\nProjected tutorial page for `FirstSteps`.\nFormat hints:\n- `modelica_users_guide_tutorial`\nSource paths:\n- `Controllers/Examples/Step.mo`\n- `Controllers/UsersGuide/Tutorial/FirstSteps.mo`",
+          "title": "Overview",
+          "token_count": 20
+        }
+      ],
+      "title": "FirstSteps"
+    },
+    {
+      "doc_id": "tutorial/firststeps-documentation-a0505ae9a66a",
+      "kind": "tutorial",
+      "page_id": "repo:modelica-gateway-projected-index-trees:projection:tutorial:doc:repo:modelica-gateway-projected-index-trees:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation",
+      "path": "tutorial/firststeps-documentation-a0505ae9a66a.md",
+      "repo_id": "modelica-gateway-projected-index-trees",
+      "root_count": 2,
+      "roots": [
+        {
+          "children": [],
+          "is_thinned": false,
+          "level": 1,
+          "line_range": [
+            1,
+            7
+          ],
+          "node_id": "tutorial/firststeps-documentation-a0505ae9a66a#firststeps-documentation",
+          "structural_path": [
+            "FirstSteps documentation"
+          ],
+          "summary": ":PROPERTIES:\n:TYPE: PROJECTED_PAGE\n:KIND: tutorial\n:FORMATS: modelica_users_guide_tutorial_annotation\n:END:",
+          "text": ":PROPERTIES:\n:TYPE: PROJECTED_PAGE\n:KIND: tutorial\n:FORMATS: modelica_users_guide_tutorial_annotation\n:END:",
+          "title": "FirstSteps documentation",
+          "token_count": 8
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "is_thinned": false,
+              "level": 2,
+              "line_range": [
+                19,
+                26
+              ],
+              "node_id": "tutorial/firststeps-documentation-a0505ae9a66a#anchors",
+              "structural_path": [
+                "Overview",
+                "Anchors"
+              ],
+              "summary": ":ID: anchors\n:PATHS: Controllers/UsersGuide/package",
+              "text": ":ID: anchors\n:PATHS: Controllers/UsersGuide/package.mo, Controllers/package.mo\n\nModules:\n- `Projectionica.Controllers` (Controllers/package.mo)\n- `Projectionica.Controllers.UsersGuide` (Controllers/UsersGuide/package.mo)",
+              "title": "Anchors",
+              "token_count": 12
+            },
+            {
+              "children": [],
+              "is_thinned": false,
+              "level": 2,
+              "line_range": [
+                27,
+                33
+              ],
+              "node_id": "tutorial/firststeps-documentation-a0505ae9a66a#sources",
+              "structural_path": [
+                "Overview",
+                "Sources"
+              ],
+              "summary": ":ID: sources\n:PATHS: Controllers/UsersGuide/Tutorial/FirstSteps",
+              "text": ":ID: sources\n:PATHS: Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation\n\nDocumentation:\n- `FirstSteps documentation` (Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation)",
+              "title": "Sources",
+              "token_count": 9
+            },
+            {
+              "children": [],
+              "is_thinned": false,
+              "level": 2,
+              "line_range": [
+                34,
+                39
+              ],
+              "node_id": "tutorial/firststeps-documentation-a0505ae9a66a#examples",
+              "structural_path": [
+                "Overview",
+                "Examples"
+              ],
+              "summary": ":ID: examples\n:PATHS: Controllers/Examples/Step",
+              "text": ":ID: examples\n:PATHS: Controllers/Examples/Step.mo\n\nExamples:\n- `Step` (Controllers/Examples/Step.mo)",
+              "title": "Examples",
+              "token_count": 8
+            }
+          ],
+          "is_thinned": false,
+          "level": 1,
+          "line_range": [
+            8,
+            18
+          ],
+          "node_id": "tutorial/firststeps-documentation-a0505ae9a66a#overview",
+          "structural_path": [
+            "Overview"
+          ],
+          "summary": ":ID: overview\n:PATHS: Controllers/Examples/Step",
+          "text": ":ID: overview\n:PATHS: Controllers/Examples/Step.mo, Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation\n\nProjected tutorial page for `FirstSteps documentation`.\nFormat hints:\n- `modelica_users_guide_tutorial_annotation`\nSource paths:\n- `Controllers/Examples/Step.mo`\n- `Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation`",
+          "title": "Overview",
+          "token_count": 21
+        }
+      ],
+      "title": "FirstSteps documentation"
+    }
+  ]
+}

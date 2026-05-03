@@ -42,7 +42,7 @@ mod service;
 mod skeptic;
 
 #[cfg(feature = "zhenfa-router")]
-pub(crate) use cache::build_repository_analysis_cache_key;
+pub use cache::build_repository_analysis_cache_key;
 #[cfg(feature = "zhenfa-router")]
 pub use cache::load_cached_repository_analysis_for_revision;
 #[cfg(feature = "zhenfa-router")]
@@ -56,7 +56,7 @@ pub use cache::{
     load_cached_repository_search_result, store_cached_repository_analysis,
     store_cached_repository_search_result,
 };
-#[cfg(feature = "studio")]
+#[cfg(feature = "search-runtime")]
 pub use cache::{
     RepositorySearchArtifacts, load_cached_repository_search_artifacts,
     store_cached_repository_search_artifacts,
@@ -133,14 +133,14 @@ pub use records::{
     ModuleRecord, RelationKind, RelationRecord, RepoSymbolKind, RepositoryRecord, SymbolRecord,
 };
 pub use registry::PluginRegistry;
-pub(crate) use repo_source::resolve_registered_repository_source;
+pub use repo_source::resolve_registered_repository_source;
 pub use saliency::compute_repository_saliency;
 #[cfg(all(feature = "zhenfa-router", test))]
 pub(crate) use service::DocsDocumentSegmentResult;
 #[cfg(feature = "search-runtime")]
-pub(crate) use service::canonical_import_query_text;
-#[cfg(feature = "studio")]
-pub(crate) use service::{
+pub use service::canonical_import_query_text;
+#[cfg(feature = "search-runtime")]
+pub use service::{
     CachedRepositoryAnalysis, RepoAnalysisFallbackContract,
     analyze_registered_repository_cached_bundle_with_registry,
     analyze_registered_repository_target_file_with_registry,

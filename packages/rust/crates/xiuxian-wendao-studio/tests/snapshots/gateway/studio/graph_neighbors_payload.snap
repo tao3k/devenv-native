@@ -1,0 +1,49 @@
+---
+source: packages/rust/crates/xiuxian-wendao-studio/tests/unit/gateway/studio/support.rs
+assertion_line: 9
+expression: value
+---
+{
+  "center": {
+    "distance": 0,
+    "id": "kernel/alpha.md",
+    "isCenter": true,
+    "label": "Alpha",
+    "navigationTarget": {
+      "category": "doc",
+      "path": "kernel/alpha.md",
+      "projectName": "kernel",
+      "rootLabel": "kernel"
+    },
+    "nodeType": "doc",
+    "path": "kernel/alpha.md"
+  },
+  "links": [
+    {
+      "direction": "outgoing",
+      "distance": 1,
+      "source": "kernel/alpha.md",
+      "target": "kernel/beta.md"
+    }
+  ],
+  "nodes": [
+    {
+      "distance": 0,
+      "id": "kernel/alpha.md",
+      "isCenter": true,
+      "label": "Alpha",
+      "nodeType": "doc",
+      "path": "kernel/alpha.md"
+    },
+    {
+      "distance": 1,
+      "id": "kernel/beta.md",
+      "isCenter": false,
+      "label": "Beta",
+      "nodeType": "doc",
+      "path": "kernel/beta.md"
+    }
+  ],
+  "totalLinks": 1,
+  "totalNodes": 2
+}

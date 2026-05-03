@@ -16,7 +16,7 @@ fn rounded_f64_to_u64(value: f64) -> u64 {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum AdaptiveConcurrencyAdjustment {
+pub enum AdaptiveConcurrencyAdjustment {
     Initialized,
     Expanded,
     Stable,
@@ -29,7 +29,7 @@ pub(crate) enum AdaptiveConcurrencyAdjustment {
 
 impl AdaptiveConcurrencyAdjustment {
     #[cfg(feature = "performance")]
-    pub(crate) const fn as_str(self) -> &'static str {
+    pub const fn as_str(self) -> &'static str {
         match self {
             Self::Initialized => "initialized",
             Self::Expanded => "expanded",
@@ -66,17 +66,17 @@ pub(crate) struct AdaptiveConcurrencySnapshot {
 
 #[cfg(feature = "performance")]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) struct AdaptiveConcurrencyDebugSnapshot {
-    pub(crate) current_limit: usize,
-    pub(crate) max_limit: usize,
-    pub(crate) success_streak: usize,
-    pub(crate) reference_limit: usize,
-    pub(crate) io_pressure_streak: usize,
-    pub(crate) ema_elapsed_ms: Option<u64>,
-    pub(crate) baseline_elapsed_ms: Option<u64>,
-    pub(crate) last_elapsed_ms: Option<u64>,
-    pub(crate) last_efficiency_ratio_pct: Option<u64>,
-    pub(crate) last_adjustment: AdaptiveConcurrencyAdjustment,
+pub struct AdaptiveConcurrencyDebugSnapshot {
+    pub current_limit: usize,
+    pub max_limit: usize,
+    pub success_streak: usize,
+    pub reference_limit: usize,
+    pub io_pressure_streak: usize,
+    pub ema_elapsed_ms: Option<u64>,
+    pub baseline_elapsed_ms: Option<u64>,
+    pub last_elapsed_ms: Option<u64>,
+    pub last_efficiency_ratio_pct: Option<u64>,
+    pub last_adjustment: AdaptiveConcurrencyAdjustment,
 }
 
 impl AdaptiveConcurrencyController {

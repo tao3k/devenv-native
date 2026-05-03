@@ -3,7 +3,7 @@ use std::path::Path;
 use crate::analyzers::PluginRegistry;
 use crate::analyzers::RepoIntelligenceError;
 use crate::analyzers::RepositoryAnalysisOutput;
-#[cfg(feature = "studio")]
+#[cfg(feature = "search-runtime")]
 use crate::analyzers::cache::RepositorySearchArtifacts;
 use crate::analyzers::service::{
     analyze_repository_from_config_with_registry, bootstrap_builtin_registry, import_match_score,
@@ -61,8 +61,8 @@ pub fn build_import_search(
 }
 
 #[must_use]
-#[cfg(feature = "studio")]
-pub(crate) fn build_import_search_with_artifacts(
+#[cfg(feature = "search-runtime")]
+pub fn build_import_search_with_artifacts(
     query: &ImportSearchQuery,
     analysis: &RepositoryAnalysisOutput,
     _artifacts: &RepositorySearchArtifacts,

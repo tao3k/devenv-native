@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use crate::duckdb::ParquetQueryEngine;
-use crate::gateway::studio::types::AstSearchHit;
+use crate::search::contracts::AstSearchHit;
 
 use super::types::{LocalSymbolCandidate, LocalSymbolSearchError};
 

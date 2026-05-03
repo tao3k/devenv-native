@@ -19,16 +19,16 @@ mod relation_dedupe;
 mod search;
 mod sync;
 
-#[cfg(feature = "studio")]
-pub(crate) use analysis::analyze_registered_repository_target_file_with_registry;
+#[cfg(feature = "search-runtime")]
+pub use analysis::analyze_registered_repository_target_file_with_registry;
 pub use analysis::{
     analyze_registered_repository, analyze_registered_repository_with_registry,
     analyze_repository_from_config, analyze_repository_from_config_with_registry,
 };
 pub use bootstrap::bootstrap_builtin_registry;
 pub use cached::analyze_registered_repository_cached_with_registry;
-#[cfg(feature = "studio")]
-pub(crate) use cached::{
+#[cfg(feature = "search-runtime")]
+pub use cached::{
     CachedRepositoryAnalysis, analyze_registered_repository_cached_bundle_with_registry,
 };
 #[cfg(test)]
@@ -54,8 +54,8 @@ pub use julia_transport::{
 
 #[cfg(all(feature = "zhenfa-router", test))]
 pub use projection::DocsDocumentSegmentResult;
-#[cfg(feature = "studio")]
-pub(crate) use projection::build_repo_projected_page_search_with_artifacts;
+#[cfg(feature = "search-runtime")]
+pub use projection::build_repo_projected_page_search_with_artifacts;
 pub use projection::{
     DOCS_CONTRACT_IDS, DOCS_DOCUMENT_CONTRACT_ID, DOCS_NAVIGATION_CONTRACT_ID,
     DOCS_PAGE_INDEX_TREE_CONTRACT_ID, DOCS_RETRIEVAL_CONTEXT_CONTRACT_ID, DOCS_SEARCH_CONTRACT_ID,
@@ -133,12 +133,12 @@ pub use projection::{
 #[cfg(feature = "zhenfa-router")]
 pub(crate) use projection::{DocsToolRuntime, DocsToolRuntimeHandle};
 pub use registry::load_registered_repository;
-#[cfg(feature = "studio")]
-pub(crate) use search::ExampleSearchMetadata;
 #[cfg(feature = "search-runtime")]
-pub(crate) use search::canonical_import_query_text;
-#[cfg(feature = "studio")]
-pub(crate) use search::{
+pub use search::ExampleSearchMetadata;
+#[cfg(feature = "search-runtime")]
+pub use search::canonical_import_query_text;
+#[cfg(feature = "search-runtime")]
+pub use search::{
     RepoAnalysisFallbackContract, example_fallback_contract, import_fallback_contract,
     module_fallback_contract, repository_search_artifacts, symbol_fallback_contract,
 };

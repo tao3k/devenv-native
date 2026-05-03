@@ -1,22 +1,24 @@
 use std::collections::BTreeMap;
 use std::path::Path;
 
-use crate::gateway::studio::search::is_markdown_path;
-use crate::gateway::studio::types::UiProjectConfig;
+use crate::search::contracts::UiProjectConfig;
+use crate::search::contracts::is_markdown_path;
+#[cfg(test)]
+use crate::search::fingerprint_symbol_projects;
 use crate::search::local_symbol::build::LocalSymbolBuildPlan;
 use crate::search::local_symbol::build::partitions::{
     build_hits_for_file, build_partition_plans_from_file_hits,
 };
+#[cfg(test)]
+use crate::search::project_fingerprint::scan_symbol_project_files;
 use crate::search::{
     MarkdownProjectSnapshot, ProjectScannedFile, SearchCorpusKind, SearchFileFingerprint,
     SearchPlaneService, ast_hits_fingerprint,
 };
-#[cfg(test)]
-use crate::search::{fingerprint_symbol_projects, scan_symbol_project_files};
 
 const LOCAL_SYMBOL_EXTRACTOR_VERSION: u32 = 2;
 
-type LocalSymbolFileHits = Vec<crate::gateway::studio::types::AstSearchHit>;
+type LocalSymbolFileHits = Vec<crate::search::contracts::AstSearchHit>;
 
 struct LocalSymbolFileEvaluation {
     fingerprint: SearchFileFingerprint,

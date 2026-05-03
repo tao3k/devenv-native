@@ -1,0 +1,45 @@
+---
+source: packages/rust/crates/xiuxian-wendao-studio/tests/unit/gateway/studio/support.rs
+expression: value
+---
+{
+  "covered_symbols": 1,
+  "docs": [
+    {
+      "doc_id": "repo:modelica-gateway-doc-coverage:doc:Controllers/PI.mo#annotation.documentation",
+      "format": "modelica_annotation",
+      "path": "Controllers/PI.mo#annotation.documentation",
+      "repo_id": "modelica-gateway-doc-coverage",
+      "title": "PI documentation"
+    },
+    {
+      "doc_id": "repo:modelica-gateway-doc-coverage:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo",
+      "format": "modelica_users_guide_tutorial",
+      "path": "Controllers/UsersGuide/Tutorial/FirstSteps.mo",
+      "repo_id": "modelica-gateway-doc-coverage",
+      "title": "FirstSteps"
+    },
+    {
+      "doc_id": "repo:modelica-gateway-doc-coverage:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation",
+      "format": "modelica_users_guide_tutorial_annotation",
+      "path": "Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation",
+      "repo_id": "modelica-gateway-doc-coverage",
+      "title": "FirstSteps documentation"
+    },
+    {
+      "doc_id": "repo:modelica-gateway-doc-coverage:doc:Controllers/UsersGuide/package.mo",
+      "format": "modelica_users_guide_page",
+      "path": "Controllers/UsersGuide/package.mo",
+      "repo_id": "modelica-gateway-doc-coverage",
+      "title": "UsersGuide"
+    }
+  ],
+  "hierarchical_uri": "repo://modelica-gateway-doc-coverage",
+  "hierarchy": [
+    "repo",
+    "modelica-gateway-doc-coverage"
+  ],
+  "module_id": "repo:modelica-gateway-doc-coverage:module:Projectionica.Controllers",
+  "repo_id": "modelica-gateway-doc-coverage",
+  "uncovered_symbols": 0
+}

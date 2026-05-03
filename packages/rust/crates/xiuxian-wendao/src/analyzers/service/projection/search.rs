@@ -3,10 +3,10 @@ use std::path::Path;
 use crate::analyzers::PluginRegistry;
 use crate::analyzers::RepoIntelligenceError;
 use crate::analyzers::RepositoryAnalysisOutput;
-#[cfg(feature = "studio")]
+#[cfg(feature = "search-runtime")]
 use crate::analyzers::cache::RepositorySearchArtifacts;
 use crate::analyzers::projection::build_projected_page_search;
-#[cfg(feature = "studio")]
+#[cfg(feature = "search-runtime")]
 use crate::analyzers::projection::build_repo_projected_page_search_with_artifacts as build_projected_page_search_with_artifacts;
 use crate::analyzers::{
     DocsSearchQuery, DocsSearchResult, RepoProjectedPageSearchQuery, RepoProjectedPageSearchResult,
@@ -72,8 +72,9 @@ pub fn build_repo_projected_page_search(
 }
 
 #[must_use]
-#[cfg(feature = "studio")]
-pub(crate) fn build_repo_projected_page_search_with_artifacts(
+#[cfg(feature = "search-runtime")]
+/// Build deterministic projected-page search results with precomputed artifacts.
+pub fn build_repo_projected_page_search_with_artifacts(
     query: &RepoProjectedPageSearchQuery,
     analysis: &RepositoryAnalysisOutput,
     artifacts: &RepositorySearchArtifacts,

@@ -23,7 +23,7 @@ use crate::analyzers::{
     DocRecord, ExampleRecord, ModuleRecord, RelationKind, RelationRecord, RepoSymbolKind,
     RepositoryRecord, SymbolRecord,
 };
-use crate::gateway::studio::types::{SearchBacklinkItem, SearchHit};
+use crate::search::contracts::{SearchBacklinkItem, SearchHit};
 
 #[test]
 fn projected_columns_and_accessors_match_the_schema_layout() {

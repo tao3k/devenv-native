@@ -1,0 +1,34 @@
+---
+source: packages/rust/crates/xiuxian-wendao-studio/tests/unit/gateway/studio/support.rs
+assertion_line: 9
+expression: value
+---
+{
+  "graphConfidenceScore": 1.0,
+  "hitCount": 2,
+  "hits": [
+    {
+      "bestSection": "pub fn alpha_handler() {}",
+      "docType": "symbol",
+      "matchReason": "local_symbol_search",
+      "path": "packages/rust/crates/demo/src/lib.rs",
+      "score": 1.0,
+      "stem": "alpha_handler",
+      "title": "alpha_handler"
+    },
+    {
+      "bestSection": null,
+      "docType": null,
+      "matchReason": "knowledge_section_search",
+      "path": "alpha.md",
+      "score": 0.82,
+      "stem": "alpha",
+      "title": "Alpha"
+    }
+  ],
+  "intent": "debug_lookup",
+  "intentConfidence": 1.0,
+  "query": "alpha_handler",
+  "searchMode": "intent_hybrid",
+  "selectedMode": "intent_hybrid"
+}

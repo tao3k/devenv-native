@@ -4,8 +4,9 @@ pub mod bounded_work_markdown;
 #[path = "execution/mod.rs"]
 pub(crate) mod execution;
 #[cfg(feature = "runtime-transport")]
+/// Runtime transport provider for SQL Flight route integration.
 #[path = "provider/mod.rs"]
-pub(crate) mod provider;
+pub mod provider;
 #[cfg(feature = "search-runtime")]
 #[path = "registration/mod.rs"]
 pub(crate) mod registration;

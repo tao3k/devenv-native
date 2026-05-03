@@ -6,19 +6,12 @@ use rust_lang_project_harness::{
     RustVerificationReportWriteConfig, RustVerificationRequirement, RustVerificationSkillBinding,
     RustVerificationSkillDescriptor, RustVerificationTaskContract, RustVerificationTaskKind,
     default_rust_harness_config, plan_rust_project_verification_with_config,
-    render_rust_verification_skill_contracts, run_rust_project_harness_with_config,
-    write_rust_verification_reports,
+    render_rust_verification_skill_contracts, write_rust_verification_reports,
 };
 
-#[test]
-fn enforce_rust_project_harness_gate() {
-    let manifest_dir = wendao_manifest_dir();
-    let config = wendao_rust_harness_config();
-    let report = run_rust_project_harness_with_config(&manifest_dir, &config)
-        .unwrap_or_else(|error| panic!("{error}"));
-
-    report.assert_clean();
-}
+rust_lang_project_harness::rust_project_harness_cargo_test_gate!(
+    config = wendao_rust_harness_config()
+);
 
 #[test]
 fn wendao_verification_profile_hints_bind_active_skill_tasks() {
@@ -77,7 +70,7 @@ fn wendao_manifest_dir() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
 }
 
-fn wendao_rust_harness_config() -> RustHarnessConfig {
+pub(super) fn wendao_rust_harness_config() -> RustHarnessConfig {
     default_rust_harness_config()
         .with_verification_profile_hint(
             RustVerificationProfileHint::new(

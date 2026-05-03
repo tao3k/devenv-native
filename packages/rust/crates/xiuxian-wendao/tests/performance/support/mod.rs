@@ -1,8 +1,6 @@
 pub(crate) mod document_extract_artifacts;
-pub(crate) mod gateway;
 mod link_graph;
 mod perf;
-pub(crate) mod repo_index_audit;
 
 pub(crate) use link_graph::{
     RELATED_LIMIT, RELATED_MAX_DISTANCE, build_index, build_link_graph_fixture,

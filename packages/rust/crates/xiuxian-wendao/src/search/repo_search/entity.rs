@@ -3,17 +3,22 @@ use std::sync::Arc;
 
 use chrono::Utc;
 
-use crate::gateway::studio::types::{SearchHit, StudioNavigationTarget};
 use crate::parsers::search::repo_code_query::parse_repo_code_search_query;
 use crate::query_core::{
     InMemoryWendaoExplainSink, RepoRetrievalQuery, WendaoExplainEvent, WendaoOperatorKind,
     WendaoRelation, query_repo_entity_relation,
 };
+use crate::search::contracts::{SearchHit, StudioNavigationTarget};
 use crate::search::{
     SearchCorpusKind, SearchPlaneService, SearchQueryTelemetry, SearchQueryTelemetrySource,
 };
 
-pub(crate) async fn search_repo_entity_hits_for_query(
+/// Search repository entity rows using a raw code-search query.
+///
+/// # Errors
+///
+/// Returns a string error when the repository entity query or hit decode fails.
+pub async fn search_repo_entity_hits_for_query(
     search_plane: &SearchPlaneService,
     repo_id: &str,
     raw_query: &str,

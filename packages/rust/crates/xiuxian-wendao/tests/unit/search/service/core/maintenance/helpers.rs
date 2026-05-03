@@ -6,7 +6,7 @@ use crate::search::service::core::{
 };
 use crate::search::{SearchCorpusKind, SearchMaintenancePolicy, SearchManifestKeyspace};
 
-pub(crate) fn make_service(temp_dir: &tempfile::TempDir, keyspace: &str) -> SearchPlaneService {
+pub fn make_service(temp_dir: &tempfile::TempDir, keyspace: &str) -> SearchPlaneService {
     SearchPlaneService::with_paths(
         PathBuf::from("/tmp/project"),
         temp_dir.path().join("search_plane"),
@@ -15,7 +15,7 @@ pub(crate) fn make_service(temp_dir: &tempfile::TempDir, keyspace: &str) -> Sear
     )
 }
 
-pub(crate) fn make_prewarm_task(
+pub fn make_prewarm_task(
     corpus: SearchCorpusKind,
     repo_id: &str,
     table_name: &str,
@@ -32,7 +32,7 @@ pub(crate) fn make_prewarm_task(
     })
 }
 
-pub(crate) fn make_compaction_task(
+pub fn make_compaction_task(
     corpus: SearchCorpusKind,
     repo_id: &str,
     publication_id: &str,

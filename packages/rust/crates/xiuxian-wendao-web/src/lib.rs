@@ -1,17 +1,19 @@
-//! Web-facing Wendao gateway namespace.
+//! Wendao Flight and gRPC transport boundary.
 //!
-//! This crate is the migration boundary for HTTP, `OpenAPI`, Studio router, and
-//! web DTO surfaces. The first slice re-exports the existing
-//! `xiuxian_wendao::gateway` implementation so callers can adopt the clearer
-//! package name before implementation modules move.
+//! This crate intentionally stays small: it exposes only transport contracts
+//! and service wiring for high-throughput Flight/gRPC callers. Studio, HTTP,
+//! `OpenAPI`, parser, analyzer, and repository-domain behavior live outside this
+//! package boundary.
 
 #[cfg(test)]
-rust_lang_project_harness::rust_project_harness_cargo_test_gate!();
+#[path = "../tests/unit/lib_policy.rs"]
+mod rust_project_harness_gate;
 
-/// Stable OpenAPI contract exports for the Wendao gateway.
-pub mod openapi;
+#[cfg(test)]
+rust_lang_project_harness::rust_project_harness_cargo_test_gate!(
+    config = rust_project_harness_gate::wendao_web_harness_config()
+);
 
-#[cfg(feature = "studio")]
-pub use xiuxian_wendao::gateway;
-#[cfg(feature = "studio")]
-pub use xiuxian_wendao::gateway::studio;
+/// Flight and gRPC transport contracts for Wendao.
+#[cfg(feature = "transport")]
+pub mod transport;

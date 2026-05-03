@@ -6,7 +6,9 @@ use crate::search::SearchPlaneService;
 
 use super::state::RepoIndexCoordinator;
 
-pub(crate) fn start_repo_index_coordinator(
+/// Start the background repository index coordinator for the configured project.
+#[must_use]
+pub fn start_repo_index_coordinator(
     project_root: PathBuf,
     plugin_registry: Arc<PluginRegistry>,
     search_plane: SearchPlaneService,

@@ -109,8 +109,8 @@ pub use retrieval::{
     repo_projected_retrieval_hit_from_config,
     repo_projected_retrieval_hit_from_config_with_registry,
 };
-#[cfg(feature = "studio")]
-pub(crate) use search::build_repo_projected_page_search_with_artifacts;
+#[cfg(feature = "search-runtime")]
+pub use search::build_repo_projected_page_search_with_artifacts;
 pub use search::{
     build_docs_search, build_repo_projected_page_search, docs_search_from_config,
     docs_search_from_config_with_registry, repo_projected_page_search_from_config,

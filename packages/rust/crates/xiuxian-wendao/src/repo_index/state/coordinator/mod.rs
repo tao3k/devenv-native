@@ -11,4 +11,4 @@ mod types;
 
 #[cfg(test)]
 pub(crate) use runtime::PreparedIncrementalAnalysis;
-pub(crate) use types::RepoIndexCoordinator;
+pub use types::RepoIndexCoordinator;

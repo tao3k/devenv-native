@@ -5,4 +5,4 @@ pub(crate) mod metadata;
 mod route;
 
 #[cfg(feature = "runtime-transport")]
-pub(crate) use self::route::StudioSqlFlightRouteProvider;
+pub use self::route::StudioSqlFlightRouteProvider;

@@ -1,0 +1,66 @@
+---
+source: packages/rust/crates/xiuxian-wendao-studio/tests/unit/gateway/studio/support.rs
+expression: value
+---
+{
+  "hits": [
+    {
+      "doc_id": "reference/pi-documentation-01b57f0d6273",
+      "line_range": [
+        18,
+        24
+      ],
+      "node_id": "reference/pi-documentation-01b57f0d6273#anchors",
+      "node_title": "Anchors",
+      "page_id": "repo:modelica-gateway-projected-index-tree-search:projection:reference:doc:repo:modelica-gateway-projected-index-tree-search:doc:Controllers/PI.mo#annotation.documentation",
+      "page_kind": "reference",
+      "page_title": "PI documentation",
+      "path": "reference/pi-documentation-01b57f0d6273.md",
+      "repo_id": "modelica-gateway-projected-index-tree-search",
+      "structural_path": [
+        "Overview",
+        "Anchors"
+      ],
+      "text": ":ID: anchors\n:PATHS: Controllers/PI.mo\n\nSymbols:\n- `Projectionica.Controllers.PI` (Controllers/PI.mo)"
+    },
+    {
+      "doc_id": "reference/projectionica-d8a8340813b7",
+      "line_range": [
+        21,
+        27
+      ],
+      "node_id": "reference/projectionica-d8a8340813b7#anchors",
+      "node_title": "Anchors",
+      "page_id": "repo:modelica-gateway-projected-index-tree-search:projection:reference:module:repo:modelica-gateway-projected-index-tree-search:module:Projectionica",
+      "page_kind": "reference",
+      "page_title": "Projectionica",
+      "path": "reference/projectionica-d8a8340813b7.md",
+      "repo_id": "modelica-gateway-projected-index-tree-search",
+      "structural_path": [
+        "Overview",
+        "Anchors"
+      ],
+      "text": ":ID: anchors\n:PATHS: package.mo\n\nModules:\n- `Projectionica` (package.mo)"
+    },
+    {
+      "doc_id": "reference/projectionica-controllers-0104bb9526d3",
+      "line_range": [
+        26,
+        32
+      ],
+      "node_id": "reference/projectionica-controllers-0104bb9526d3#anchors",
+      "node_title": "Anchors",
+      "page_id": "repo:modelica-gateway-projected-index-tree-search:projection:reference:module:repo:modelica-gateway-projected-index-tree-search:module:Projectionica.Controllers",
+      "page_kind": "reference",
+      "page_title": "Projectionica.Controllers",
+      "path": "reference/projectionica-controllers-0104bb9526d3.md",
+      "repo_id": "modelica-gateway-projected-index-tree-search",
+      "structural_path": [
+        "Overview",
+        "Anchors"
+      ],
+      "text": ":ID: anchors\n:PATHS: Controllers/package.mo\n\nModules:\n- `Projectionica.Controllers` (Controllers/package.mo)"
+    }
+  ],
+  "repo_id": "modelica-gateway-projected-index-tree-search"
+}

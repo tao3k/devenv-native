@@ -11,9 +11,12 @@ pub(crate) const MIN_RECALL_CANDIDATES: usize = 256;
 pub(crate) const RECALL_TRIM_MULTIPLIER: usize = 8;
 
 #[derive(Debug, thiserror::Error)]
-pub(crate) enum RepoEntitySearchError {
+/// Errors returned while querying repository entity search data.
+pub enum RepoEntitySearchError {
+    /// The vector-store or query-engine layer failed.
     #[error(transparent)]
     Storage(#[from] xiuxian_db_store::VectorStoreError),
+    /// Stored repository entity rows could not be decoded into search hits.
     #[error("{0}")]
     Decode(String),
 }

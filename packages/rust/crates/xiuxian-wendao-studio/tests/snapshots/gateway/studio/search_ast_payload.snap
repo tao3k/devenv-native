@@ -1,0 +1,103 @@
+---
+source: packages/rust/crates/xiuxian-wendao-studio/tests/unit/gateway/studio/support.rs
+expression: value
+---
+{
+  "hitCount": 4,
+  "hits": [
+    {
+      "crateName": "demo",
+      "language": "python",
+      "lineEnd": 2,
+      "lineStart": 1,
+      "name": "AlphaClient",
+      "navigationTarget": {
+        "category": "doc",
+        "column": null,
+        "line": 1,
+        "lineEnd": 2,
+        "path": "packages/python/demo/tool.py",
+        "projectName": "kernel",
+        "rootLabel": "packages"
+      },
+      "nodeKind": null,
+      "ownerTitle": null,
+      "path": "packages/python/demo/tool.py",
+      "projectName": "kernel",
+      "rootLabel": "packages",
+      "score": 0.97,
+      "signature": "class AlphaClient:"
+    },
+    {
+      "crateName": "demo",
+      "language": "rust",
+      "lineEnd": 3,
+      "lineStart": 1,
+      "name": "AlphaService",
+      "navigationTarget": {
+        "category": "doc",
+        "column": null,
+        "line": 1,
+        "lineEnd": 3,
+        "path": "packages/rust/crates/demo/src/lib.rs",
+        "projectName": "kernel",
+        "rootLabel": "packages"
+      },
+      "nodeKind": null,
+      "ownerTitle": null,
+      "path": "packages/rust/crates/demo/src/lib.rs",
+      "projectName": "kernel",
+      "rootLabel": "packages",
+      "score": 0.97,
+      "signature": "pub struct AlphaService {"
+    },
+    {
+      "crateName": "demo",
+      "language": "rust",
+      "lineEnd": 5,
+      "lineStart": 5,
+      "name": "alpha_handler",
+      "navigationTarget": {
+        "category": "doc",
+        "column": null,
+        "line": 5,
+        "lineEnd": 5,
+        "path": "packages/rust/crates/demo/src/lib.rs",
+        "projectName": "kernel",
+        "rootLabel": "packages"
+      },
+      "nodeKind": null,
+      "ownerTitle": null,
+      "path": "packages/rust/crates/demo/src/lib.rs",
+      "projectName": "kernel",
+      "rootLabel": "packages",
+      "score": 0.97,
+      "signature": "pub fn alpha_handler() {}"
+    },
+    {
+      "crateName": "demo",
+      "language": "python",
+      "lineEnd": 5,
+      "lineStart": 4,
+      "name": "alpha_helper",
+      "navigationTarget": {
+        "category": "doc",
+        "column": null,
+        "line": 4,
+        "lineEnd": 5,
+        "path": "packages/python/demo/tool.py",
+        "projectName": "kernel",
+        "rootLabel": "packages"
+      },
+      "nodeKind": null,
+      "ownerTitle": null,
+      "path": "packages/python/demo/tool.py",
+      "projectName": "kernel",
+      "rootLabel": "packages",
+      "score": 0.97,
+      "signature": "def alpha_helper():"
+    }
+  ],
+  "query": "alpha",
+  "selectedScope": "definitions"
+}

@@ -1,5 +1,5 @@
 use super::{fingerprint_note_projects, fingerprint_source_projects};
-use crate::gateway::studio::types::UiProjectConfig;
+use crate::search::contracts::UiProjectConfig;
 
 #[test]
 fn fingerprint_source_projects_ignores_skipped_directories() {

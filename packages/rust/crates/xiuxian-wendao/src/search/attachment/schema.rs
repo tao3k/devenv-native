@@ -4,7 +4,7 @@ use xiuxian_db_store::{
     LanceDataType, LanceField, LanceRecordBatch, LanceSchema, LanceStringArray, VectorStoreError,
 };
 
-use crate::gateway::studio::types::AttachmentSearchHit;
+use crate::search::contracts::AttachmentSearchHit;
 
 const CHUNK_SIZE: usize = 1_000;
 

@@ -1,4 +1,3 @@
-use crate::gateway::studio::test_support::assert_wendao_json_snapshot;
 use crate::search::SearchCorpusKind;
 use crate::search::SearchPublicationStorageFormat;
 use crate::search::repo_entity::query::tests::fixtures::published_repo_entity_fixture;
@@ -7,6 +6,7 @@ use crate::search::repo_entity::query::{
     search_repo_entity_module_results, search_repo_entity_symbol_results,
     summarize_repo_entity_overview,
 };
+use crate::test_support::assert_wendao_json_snapshot;
 
 #[tokio::test]
 async fn typed_repo_entity_search_reconstructs_module_symbol_and_example_results() {

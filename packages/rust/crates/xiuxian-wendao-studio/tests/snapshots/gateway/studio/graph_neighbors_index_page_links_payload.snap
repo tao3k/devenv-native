@@ -1,0 +1,42 @@
+---
+source: packages/rust/crates/xiuxian-wendao-studio/tests/unit/gateway/studio/support.rs
+expression: value
+---
+{
+  "center": {
+    "distance": 0,
+    "id": "kernel/docs/index.md",
+    "isCenter": true,
+    "label": "Documentation Index",
+    "nodeType": "doc",
+    "path": "kernel/docs/index.md"
+  },
+  "links": [
+    {
+      "direction": "outgoing",
+      "distance": 1,
+      "source": "kernel/docs/index.md",
+      "target": "kernel/docs/testing/README.md"
+    }
+  ],
+  "nodes": [
+    {
+      "distance": 0,
+      "id": "kernel/docs/index.md",
+      "isCenter": true,
+      "label": "Documentation Index",
+      "nodeType": "doc",
+      "path": "kernel/docs/index.md"
+    },
+    {
+      "distance": 1,
+      "id": "kernel/docs/testing/README.md",
+      "isCenter": false,
+      "label": "Testing Documentation",
+      "nodeType": "doc",
+      "path": "kernel/docs/testing/README.md"
+    }
+  ],
+  "totalLinks": 1,
+  "totalNodes": 2
+}

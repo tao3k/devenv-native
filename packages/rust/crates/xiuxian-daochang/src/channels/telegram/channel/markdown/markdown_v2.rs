@@ -1,4 +1,4 @@
-//! MarkdownV2 escaping and formatting helpers for Telegram messages.
+//! `MarkdownV2` escaping and formatting helpers for Telegram messages.
 
 use std::fmt::Write as _;
 

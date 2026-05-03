@@ -7,7 +7,7 @@ mod helpers;
 mod tests;
 
 pub use core::SearchPlaneService;
-pub(crate) use core::{
+pub use core::{
     RepoSearchAvailability, RepoSearchPublicationState, RepoSearchQueryCacheKeyInput,
     SearchBuildRepeatWorkTelemetry,
 };

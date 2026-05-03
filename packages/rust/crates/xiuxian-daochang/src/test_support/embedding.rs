@@ -22,7 +22,7 @@ pub fn normalize_openai_compatible_base_url(api_base: &str) -> String {
 
 #[cfg(feature = "agent-provider-litellm")]
 #[must_use]
-/// Normalizes a LiteLLM embedding target tuple.
+/// Normalizes a `LiteLLM` embedding target tuple.
 pub fn normalize_litellm_embedding_target(
     model: &str,
     api_base: &str,

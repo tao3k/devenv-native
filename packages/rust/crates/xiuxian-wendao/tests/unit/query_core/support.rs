@@ -109,7 +109,7 @@ pub(super) fn snapshot_retrieval_rows(relation: &WendaoRelation) -> Vec<serde_js
                         "path": row.path,
                         "repo": row.repo,
                         "title": row.title,
-                        "score": row.score.map(crate::gateway::studio::test_support::round_f64),
+                        "score": row.score.map(crate::test_support::round_f64),
                         "source": row.source,
                         "snippet": row.snippet,
                         "doc_type": row.doc_type,

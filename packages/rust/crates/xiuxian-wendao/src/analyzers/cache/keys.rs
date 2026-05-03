@@ -121,7 +121,7 @@ impl RepositorySearchQueryCacheKey {
 
 /// Builds a cache key from repository configuration and resolved source.
 #[must_use]
-pub(crate) fn build_repository_analysis_cache_key(
+pub fn build_repository_analysis_cache_key(
     repository: &RegisteredRepository,
     source: &MaterializedRepo,
     metadata: Option<&LocalCheckoutMetadata>,

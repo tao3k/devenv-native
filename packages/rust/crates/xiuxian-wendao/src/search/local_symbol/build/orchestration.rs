@@ -2,9 +2,9 @@ use std::path::Path;
 
 use tokio::runtime::Handle;
 
-use crate::gateway::studio::types::UiProjectConfig;
 use crate::search::cache::SearchPlaneFileFingerprintScope;
-#[cfg(test)]
+use crate::search::contracts::UiProjectConfig;
+#[cfg(any(test, feature = "test-support"))]
 use crate::search::local_symbol::build::LocalSymbolBuildError;
 use crate::search::local_symbol::build::{
     plan_local_symbol_build_with_scanned_files, write_local_symbol_epoch,
@@ -14,8 +14,8 @@ use crate::search::{
     fingerprint_symbol_projects_from_scanned_files,
 };
 
-#[cfg(test)]
-pub(crate) fn ensure_local_symbol_index_started(
+#[cfg(any(test, feature = "test-support"))]
+pub fn ensure_local_symbol_index_started(
     service: &SearchPlaneService,
     project_root: &Path,
     config_root: &Path,
@@ -42,7 +42,7 @@ pub(crate) fn ensure_local_symbol_index_started(
     )
 }
 
-pub(crate) fn ensure_local_symbol_index_started_with_scanned_files(
+pub fn ensure_local_symbol_index_started_with_scanned_files(
     service: &SearchPlaneService,
     project_root: &Path,
     config_root: &Path,
@@ -176,11 +176,11 @@ fn ensure_local_symbol_index_started_with_fingerprint_and_scanned_files(
     true
 }
 
-#[cfg(test)]
-pub(crate) async fn publish_local_symbol_hits(
+#[cfg(any(test, feature = "test-support"))]
+pub async fn publish_local_symbol_hits(
     service: &SearchPlaneService,
     fingerprint: &str,
-    hits: &[crate::gateway::studio::types::AstSearchHit],
+    hits: &[crate::search::contracts::AstSearchHit],
 ) -> Result<(), LocalSymbolBuildError> {
     let lease = match service.coordinator().begin_build(
         SearchCorpusKind::LocalSymbol,

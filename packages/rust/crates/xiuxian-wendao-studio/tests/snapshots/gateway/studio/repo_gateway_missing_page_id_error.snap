@@ -1,0 +1,8 @@
+---
+source: packages/rust/crates/xiuxian-wendao-studio/tests/unit/gateway/studio/support.rs
+expression: value
+---
+{
+  "code": "MISSING_PAGE_ID",
+  "message": "`page_id` is required"
+}

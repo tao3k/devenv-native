@@ -3,7 +3,7 @@ use std::sync::Arc;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
-#[cfg(test)]
+#[cfg(any(test, feature = "test-support"))]
 use crate::analyzers::RepositoryAnalysisOutput;
 use crate::search::SearchFileFingerprint;
 
@@ -104,12 +104,18 @@ pub struct RepoIndexRequest {
     pub refresh: bool,
 }
 
+/// Indexed source document captured from a configured repository.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct RepoCodeDocument {
+pub struct RepoCodeDocument {
+    /// Repository-relative source path.
     pub path: String,
+    /// Optional language label inferred for the source path.
     pub language: Option<String>,
+    /// Full UTF-8 source contents.
     pub contents: Arc<str>,
+    /// File size in bytes at scan time.
     pub size_bytes: u64,
+    /// Last-modified timestamp in Unix milliseconds.
     pub modified_unix_ms: u64,
 }
 
@@ -132,10 +138,11 @@ impl RepoCodeDocument {
     }
 }
 
-#[cfg(test)]
+#[cfg(any(test, feature = "test-support"))]
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
-pub(crate) struct RepoIndexSnapshot {
+#[doc(hidden)]
+pub struct RepoIndexSnapshot {
     #[allow(dead_code)]
     pub repo_id: String,
     #[allow(dead_code)]

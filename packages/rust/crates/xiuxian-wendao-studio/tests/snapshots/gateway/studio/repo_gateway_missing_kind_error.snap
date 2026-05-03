@@ -1,0 +1,8 @@
+---
+source: packages/rust/crates/xiuxian-wendao-studio/tests/unit/gateway/studio/support.rs
+expression: value
+---
+{
+  "code": "MISSING_KIND",
+  "message": "`kind` is required"
+}

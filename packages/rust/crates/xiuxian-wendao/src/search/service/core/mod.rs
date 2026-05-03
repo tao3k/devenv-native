@@ -19,7 +19,7 @@ mod status;
 mod telemetry;
 mod types;
 
-pub(crate) use repeat_work::SearchBuildRepeatWorkTelemetry;
+pub use repeat_work::SearchBuildRepeatWorkTelemetry;
 #[cfg(test)]
 pub(crate) use types::RepoMaintenanceTaskKind;
 #[cfg(test)]
@@ -28,6 +28,4 @@ pub(crate) use types::RepoRuntimeState;
 pub use types::SearchPlaneService;
 #[cfg(test)]
 pub(crate) use types::{QueuedRepoMaintenanceTask, RepoCompactionTask, RepoMaintenanceTask};
-pub(crate) use types::{
-    RepoSearchAvailability, RepoSearchPublicationState, RepoSearchQueryCacheKeyInput,
-};
+pub use types::{RepoSearchAvailability, RepoSearchPublicationState, RepoSearchQueryCacheKeyInput};

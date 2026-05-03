@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
-#[cfg(test)]
+#[cfg(any(test, feature = "test-support"))]
 use crate::repo_index::types::RepoIndexSnapshot;
 use crate::repo_index::types::{RepoIndexEntryStatus, RepoIndexPhase, RepoIndexStatusResponse};
-#[cfg(test)]
+#[cfg(any(test, feature = "test-support"))]
 use std::sync::Arc;
 
 use crate::repo_index::state::coordinator::RepoIndexCoordinator;
@@ -14,7 +14,8 @@ use crate::repo_index::state::task::AdaptiveConcurrencyController;
 use crate::repo_index::state::task::RepoIndexTask;
 
 impl RepoIndexCoordinator {
-    pub(crate) fn status_response(&self, repo_id: Option<&str>) -> RepoIndexStatusResponse {
+    /// Return the latest coordinator status, optionally filtered to one repository.
+    pub fn status_response(&self, repo_id: Option<&str>) -> RepoIndexStatusResponse {
         let snapshot = self
             .status_snapshot
             .lock()
@@ -41,13 +42,15 @@ impl RepoIndexCoordinator {
             .map_or(1, |status| status.attempt_count.saturating_add(1))
     }
 
-    #[cfg(test)]
-    pub(crate) fn set_snapshot_for_test(&self, _snapshot: &Arc<RepoIndexSnapshot>) {
+    #[cfg(any(test, feature = "test-support"))]
+    #[doc(hidden)]
+    pub fn set_snapshot_for_test(&self, _snapshot: &Arc<RepoIndexSnapshot>) {
         let _ = &self.status_snapshot;
     }
 
-    #[cfg(test)]
-    pub(crate) fn set_status_for_test(&self, status: RepoIndexEntryStatus) {
+    #[cfg(any(test, feature = "test-support"))]
+    #[doc(hidden)]
+    pub fn set_status_for_test(&self, status: RepoIndexEntryStatus) {
         self.statuses
             .write()
             .unwrap_or_else(std::sync::PoisonError::into_inner)
@@ -69,8 +72,9 @@ impl RepoIndexCoordinator {
         self.mark_active(repo_id);
     }
 
-    #[cfg(test)]
-    pub(crate) fn pending_repo_ids_for_test(&self) -> Vec<String> {
+    #[cfg(any(test, feature = "test-support"))]
+    #[doc(hidden)]
+    pub fn pending_repo_ids_for_test(&self) -> Vec<String> {
         self.pending
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner)

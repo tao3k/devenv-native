@@ -4,7 +4,7 @@ use std::path::Path;
 use xiuxian_db_store::VectorStoreError;
 
 use crate::analyzers::{ImportKind, RepoBacklinkItem, RepoSymbolKind};
-use crate::gateway::studio::types::{SearchBacklinkItem, SearchHit, StudioNavigationTarget};
+use crate::search::contracts::{SearchBacklinkItem, SearchHit, StudioNavigationTarget};
 
 pub(crate) fn serialize_hit_json(hit: &SearchHit) -> Result<String, VectorStoreError> {
     serde_json::to_string(hit)

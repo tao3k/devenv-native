@@ -3,7 +3,7 @@
 /// Docs-governance parser helpers.
 #[cfg(any(test, feature = "zhenfa-router"))]
 #[path = "docs_governance/mod.rs"]
-pub(crate) mod docs_governance;
+pub mod docs_governance;
 /// Graph persistence parsing.
 #[path = "graph/mod.rs"]
 pub mod graph;
@@ -20,6 +20,6 @@ pub mod search;
 /// Semantic-check grammar helpers.
 #[cfg(any(test, feature = "zhenfa-router"))]
 #[path = "semantic_check/mod.rs"]
-pub(crate) mod semantic_check;
+pub mod semantic_check;
 #[path = "zhixing/mod.rs"]
 pub mod zhixing;

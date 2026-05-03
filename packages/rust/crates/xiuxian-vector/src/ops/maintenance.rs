@@ -8,7 +8,7 @@ use std::time::Instant;
 
 use lance::dataset::cleanup::CleanupPolicyBuilder;
 use lance::dataset::optimize::{CompactionOptions, compact_files};
-use lance_index::traits::DatasetIndexExt;
+use lance::index::DatasetIndexExt;
 
 use crate::error::VectorStoreError;
 use crate::ops::types::{CompactionStats, IndexStats, IndexThresholds};

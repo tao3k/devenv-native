@@ -1,4 +1,4 @@
-//! LiteLLM compatibility maps provider payloads, tool calls, and response metadata into the local chat contract.
+//! `LiteLLM` compatibility maps provider payloads, tool calls, and response metadata into the local chat contract.
 
 use anyhow::Result;
 use futures::StreamExt;

@@ -8,7 +8,8 @@ use crate::repo_index::state::fingerprint::{fingerprint, fingerprint_id, timesta
 use crate::repo_index::state::task::{RepoIndexTask, RepoIndexTaskPriority};
 
 impl RepoIndexCoordinator {
-    pub(crate) fn sync_repositories(&self, repositories: Vec<RegisteredRepository>) -> Vec<String> {
+    /// Synchronize the coordinator queue with the latest configured repositories.
+    pub fn sync_repositories(&self, repositories: Vec<RegisteredRepository>) -> Vec<String> {
         self.hydrate_repositories_from_search_plane(repositories.as_slice());
         let active_ids = repositories
             .iter()
@@ -41,7 +42,8 @@ impl RepoIndexCoordinator {
         enqueued
     }
 
-    pub(crate) fn ensure_repositories_enqueued(
+    /// Enqueue repositories for interactive indexing and return enqueued fingerprint ids.
+    pub fn ensure_repositories_enqueued(
         &self,
         repositories: Vec<RegisteredRepository>,
         refresh: bool,

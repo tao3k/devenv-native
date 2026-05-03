@@ -10,19 +10,19 @@ use crate::search::local_publication_parquet::{
 use crate::search::{SearchBuildLease, SearchCorpusKind, SearchPlaneService};
 use xiuxian_db_store::VectorStoreError;
 
-#[cfg(test)]
-use crate::gateway::studio::types::UiProjectConfig;
-#[cfg(test)]
+#[cfg(any(test, feature = "test-support"))]
 use crate::search::BeginBuildDecision;
-#[cfg(test)]
+#[cfg(any(test, feature = "test-support"))]
+use crate::search::contracts::UiProjectConfig;
+#[cfg(any(test, feature = "test-support"))]
 use crate::search::knowledge_section::build::orchestration::plan_knowledge_section_build;
-#[cfg(test)]
+#[cfg(any(test, feature = "test-support"))]
 use crate::search::knowledge_section::build::types::KnowledgeSectionBuildError;
-#[cfg(test)]
+#[cfg(any(test, feature = "test-support"))]
 use crate::search::knowledge_section::schema::projected_columns;
-#[cfg(test)]
+#[cfg(any(test, feature = "test-support"))]
 use std::collections::BTreeMap;
-#[cfg(test)]
+#[cfg(any(test, feature = "test-support"))]
 use std::path::Path;
 
 pub(super) async fn write_knowledge_section_epoch(
@@ -59,8 +59,8 @@ pub(super) async fn write_knowledge_section_epoch(
     })
 }
 
-#[cfg(test)]
-pub(crate) async fn publish_knowledge_sections_from_projects(
+#[cfg(any(test, feature = "test-support"))]
+pub async fn publish_knowledge_sections_from_projects(
     service: &SearchPlaneService,
     project_root: &Path,
     config_root: &Path,
