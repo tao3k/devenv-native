@@ -1,6 +1,5 @@
 use xiuxian_wendao_web::openapi::{
-    WENDAO_GATEWAY_ROUTE_CONTRACTS, bundled_wendao_gateway_openapi_path,
-    load_bundled_wendao_gateway_openapi_document,
+    bundled_wendao_gateway_openapi_path, load_bundled_wendao_gateway_openapi_document,
 };
 
 #[test]
@@ -14,8 +13,11 @@ fn exposes_openapi_document_namespace() {
     assert!(path.is_file(), "bundled OpenAPI path should exist");
 }
 
+#[cfg(feature = "studio")]
 #[test]
 fn exposes_gateway_route_contract_namespace() {
+    use xiuxian_wendao_web::openapi::WENDAO_GATEWAY_ROUTE_CONTRACTS;
+
     assert!(
         WENDAO_GATEWAY_ROUTE_CONTRACTS
             .iter()

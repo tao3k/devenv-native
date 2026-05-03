@@ -10,13 +10,15 @@ publish = false
 [features]
 default = []
 studio = [
+  "dep:xiuxian-wendao",
   "xiuxian-wendao/duckdb",
   "xiuxian-wendao/studio",
   "xiuxian-wendao/zhenfa-router",
 ]
 
 [dependencies]
-xiuxian-wendao = { path = "../xiuxian-wendao", default-features = false }
+xiuxian-wendao = { path = "../xiuxian-wendao", default-features = false, optional = true }
+xiuxian-wendao-runtime = { path = "../xiuxian-wendao-runtime", default-features = false }
 
 [dev-dependencies]
 rust-lang-project-harness = { workspace = true }

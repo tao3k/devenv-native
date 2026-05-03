@@ -4,8 +4,9 @@
 surfaces.
 
 The crate currently provides compatibility exports backed by
-`xiuxian-wendao::gateway`. This lets callers adopt the clearer package boundary
-before the gateway implementation is physically moved.
+runtime-owned OpenAPI artifacts by default and `xiuxian-wendao::gateway` when
+the `studio` feature is enabled. This lets callers adopt the clearer package
+boundary before the gateway implementation is physically moved.
 
 ## Ownership
 
@@ -27,6 +28,7 @@ New web and gateway callers should prefer `xiuxian_wendao_web`. Existing
 `xiuxian_wendao::gateway` callers remain supported while implementation modules
 are migrated in later slices.
 
-The default feature set stays light and exposes the gateway/OpenAPI contract
-surface. Enable `studio` when a caller needs the full Studio router, gateway
-state, and service-boundary handlers.
+The default feature set stays light and exposes the OpenAPI document surface
+without depending on `xiuxian-wendao`. Enable `studio` when a caller needs the
+full Studio router, gateway state, route contracts, and service-boundary
+handlers.

@@ -11,6 +11,7 @@ rust_lang_project_harness::rust_project_harness_cargo_test_gate!();
 /// Stable OpenAPI contract exports for the Wendao gateway.
 pub mod openapi;
 
+#[cfg(feature = "studio")]
 pub use xiuxian_wendao::gateway;
 #[cfg(feature = "studio")]
 pub use xiuxian_wendao::gateway::studio;
