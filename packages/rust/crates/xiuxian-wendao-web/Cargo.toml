@@ -1,0 +1,25 @@
+[package]
+name = "xiuxian-wendao-web"
+version.workspace = true
+edition.workspace = true
+description = "Web and gateway namespace boundary for Wendao"
+authors.workspace = true
+license.workspace = true
+publish = false
+
+[features]
+default = ["studio"]
+studio = [
+  "xiuxian-wendao/duckdb",
+  "xiuxian-wendao/studio",
+  "xiuxian-wendao/zhenfa-router",
+]
+
+[dependencies]
+xiuxian-wendao = { path = "../xiuxian-wendao", default-features = false }
+
+[dev-dependencies]
+rust-lang-project-harness = { workspace = true }
+
+[lints]
+workspace = true

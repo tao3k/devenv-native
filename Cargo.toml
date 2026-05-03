@@ -17,6 +17,7 @@ members = [
   "packages/rust/crates/xiuxian-wendao-core",
   "packages/rust/crates/xiuxian-wendao-runtime",
   "packages/rust/crates/xiuxian-wendao-sql",
+  "packages/rust/crates/xiuxian-wendao-web",
   "packages/rust/crates/xiuxian-lance",
   "packages/rust/crates/xiuxian-macros",
   "packages/rust/crates/xiuxian-memory-engine",

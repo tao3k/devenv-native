@@ -12841,6 +12841,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "xiuxian-wendao-web"
+version = "0.1.1"
+dependencies = [
+ "rust-lang-project-harness",
+ "xiuxian-wendao",
+]
+
+[[package]]
 name = "xiuxian-window"
 version = "0.1.1"
 dependencies = [
