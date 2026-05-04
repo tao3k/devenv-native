@@ -1,5 +1,5 @@
+use crate::contracts::{UiProjectConfig, UiRepoProjectConfig};
 use crate::studio::router::{sanitize_projects, sanitize_repo_projects};
-use xiuxian_wendao::search::contracts::{UiProjectConfig, UiRepoProjectConfig};
 
 #[test]
 fn sanitize_projects_removes_empty_names() {

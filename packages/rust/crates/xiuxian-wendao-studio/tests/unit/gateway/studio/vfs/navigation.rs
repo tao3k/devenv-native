@@ -3,12 +3,12 @@ use std::path::Path;
 
 use uuid::Uuid;
 
+use crate::contracts::{UiConfig, UiProjectConfig, UiRepoProjectConfig};
 use crate::studio::test_support::commit_all;
 use crate::studio::vfs::navigation::resolve_navigation_target;
 use crate::studio::{StudioState, configured_repositories};
 use xiuxian_git_repo::SyncMode;
 use xiuxian_wendao::analyzers::resolve_registered_repository_source;
-use xiuxian_wendao::search::contracts::{UiConfig, UiProjectConfig, UiRepoProjectConfig};
 
 fn init_git_repository(root: &Path) {
     crate::studio::test_support::init_git_repository(root);

@@ -5,6 +5,7 @@ use super::{
     load_attachment_search_response_from_studio, load_intent_search_response_with_metadata,
     load_reference_search_response, load_symbol_search_response, search_ast,
 };
+use crate::contracts::{UiConfig, UiProjectConfig, UiRepoProjectConfig};
 use crate::studio::build_ast_index;
 use crate::studio::search::handlers::code_search::{
     CODE_CONTENT_EXCLUDE_GLOBS, is_supported_code_extension, parse_content_search_line,
@@ -29,7 +30,6 @@ use xiuxian_wendao::repo_index::{
     RepoIndexStatusResponse,
 };
 use xiuxian_wendao::search::SearchPlaneService;
-use xiuxian_wendao::search::contracts::{UiConfig, UiProjectConfig, UiRepoProjectConfig};
 
 mod ast;
 mod attachments;

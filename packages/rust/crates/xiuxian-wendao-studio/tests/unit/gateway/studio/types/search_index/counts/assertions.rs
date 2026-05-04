@@ -1,10 +1,10 @@
-use xiuxian_wendao::search::contracts::search_index::{
+use crate::contracts::search_index::{
     SearchIndexIssueCode, SearchIndexIssueFamily, SearchIndexPhase,
     SearchIndexQueryTelemetrySource, SearchIndexStatusAction, SearchIndexStatusReasonCode,
     SearchIndexStatusResponse, SearchIndexStatusSeverity,
 };
 
-use xiuxian_wendao::search::contracts::search_index::tests::helpers::{
+use crate::contracts::search_index::tests::helpers::{
     corpus_issue_summary, corpus_status_reason, status_reason,
 };
 

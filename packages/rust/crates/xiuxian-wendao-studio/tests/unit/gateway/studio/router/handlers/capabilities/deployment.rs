@@ -10,12 +10,12 @@ use xiuxian_wendao_builtin::{
     linked_builtin_julia_gateway_artifact_schema_version,
 };
 
+use crate::contracts::UiPluginArtifact;
 use crate::studio::router::handlers::capabilities::deployment::get_plugin_artifact;
 use crate::studio::router::handlers::capabilities::types::{
     PluginArtifactPath, PluginArtifactQuery,
 };
 use crate::studio::router::{GatewayState, StudioState};
-use xiuxian_wendao::search::contracts::UiPluginArtifact;
 use xiuxian_wendao::set_link_graph_wendao_config_override;
 use xiuxian_wendao::zhenfa_router::native::WendaoPluginArtifactOutputFormat;
 

@@ -1,9 +1,9 @@
 use std::fs;
 use std::path::Path;
 
+use crate::contracts::{UiConfig, UiProjectConfig};
 use crate::studio::StudioState;
 use crate::studio::vfs::content::{read_content, read_raw_content, resolve_vfs_file_path};
-use xiuxian_wendao::search::contracts::{UiConfig, UiProjectConfig};
 
 struct NestedFrontendFixture {
     _temp_dir: tempfile::TempDir,

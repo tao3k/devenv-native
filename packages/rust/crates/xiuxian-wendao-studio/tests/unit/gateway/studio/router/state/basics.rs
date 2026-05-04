@@ -1,3 +1,4 @@
+use crate::contracts::UiProjectConfig;
 use crate::studio::router::state::helpers::graph_include_dirs;
 use crate::studio::router::state::lifecycle::{
     gateway_bootstrap_background_indexing_with_lookup,
@@ -5,7 +6,6 @@ use crate::studio::router::state::lifecycle::{
 };
 use crate::studio::router::state::{GatewayState, StudioState, supported_code_kinds};
 use std::sync::Arc;
-use xiuxian_wendao::search::contracts::UiProjectConfig;
 
 #[test]
 fn supported_code_kinds_contains_reference_and_doc() {

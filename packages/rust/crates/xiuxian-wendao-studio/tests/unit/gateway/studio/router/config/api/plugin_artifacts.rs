@@ -3,7 +3,7 @@ use axum::extract::{Path, Query, State};
 use chrono::DateTime;
 use serial_test::serial;
 
-use xiuxian_wendao::search::contracts::UiPluginArtifact;
+use crate::contracts::UiPluginArtifact;
 use xiuxian_wendao_builtin::{
     linked_builtin_julia_gateway_artifact_base_url,
     linked_builtin_julia_gateway_artifact_expected_toml_fragments,
@@ -58,7 +58,7 @@ async fn plugin_artifact_handler_returns_resolved_artifact() {
     );
     assert_eq!(
         artifact.selected_transport,
-        Some(xiuxian_wendao::search::contracts::UiPluginTransportKind::ArrowFlight)
+        Some(crate::contracts::UiPluginTransportKind::ArrowFlight)
     );
     assert_eq!(artifact.fallback_from, None);
     assert_eq!(artifact.fallback_reason, None);

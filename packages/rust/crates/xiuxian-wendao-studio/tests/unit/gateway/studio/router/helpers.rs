@@ -1,5 +1,5 @@
+use crate::contracts::{UiConfig, UiRepoProjectConfig};
 use crate::studio::router::StudioState;
-use xiuxian_wendao::search::contracts::{UiConfig, UiRepoProjectConfig};
 
 pub(crate) fn studio_with_repo_projects(repo_projects: Vec<UiRepoProjectConfig>) -> StudioState {
     let studio = StudioState::new();

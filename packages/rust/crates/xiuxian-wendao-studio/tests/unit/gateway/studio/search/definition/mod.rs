@@ -1,10 +1,10 @@
 use std::path::Path;
 
+use crate::contracts::StudioNavigationTarget;
 use crate::studio::search::{DefinitionResolveOptions, resolve_best_definition};
-use xiuxian_wendao::search::contracts::StudioNavigationTarget;
 
-fn ast_hit(name: &str) -> xiuxian_wendao::search::contracts::AstSearchHit {
-    xiuxian_wendao::search::contracts::AstSearchHit {
+fn ast_hit(name: &str) -> crate::contracts::AstSearchHit {
+    crate::contracts::AstSearchHit {
         name: name.to_string(),
         signature: format!("fn {name}()"),
         path: "src/lib.rs".to_string(),

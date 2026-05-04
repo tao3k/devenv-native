@@ -2,11 +2,11 @@ use std::sync::Arc;
 
 use tempfile::TempDir;
 
+use crate::contracts::{UiConfig, UiProjectConfig};
 use crate::studio::router::{
     GatewayState, GraphIndexCacheEntry, GraphSourceSignature, StudioState,
 };
 use xiuxian_wendao::link_graph::LinkGraphIndex;
-use xiuxian_wendao::search::contracts::{UiConfig, UiProjectConfig};
 
 pub(crate) struct Fixture {
     pub(crate) state: Arc<GatewayState>,

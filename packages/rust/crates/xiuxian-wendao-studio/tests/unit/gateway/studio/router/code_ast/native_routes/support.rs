@@ -2,10 +2,10 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
+use crate::contracts::{UiConfig, UiRepoProjectConfig};
 use crate::studio::router::{GatewayState, StudioState};
 use crate::studio::test_support::{commit_all, init_git_repository};
 use xiuxian_wendao::analyzers::RegisteredRepository;
-use xiuxian_wendao::search::contracts::{UiConfig, UiRepoProjectConfig};
 
 pub(super) struct GatewayFixture {
     pub(super) state: Arc<GatewayState>,

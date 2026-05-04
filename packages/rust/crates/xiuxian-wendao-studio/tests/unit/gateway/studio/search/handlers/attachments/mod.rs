@@ -23,8 +23,8 @@ async fn studio_attachment_search_flight_provider_uses_attachment_contract() {
     let mut studio = crate::studio::search::handlers::tests::test_studio_state();
     studio.project_root = project_root.path().to_path_buf();
     studio.config_root = project_root.path().to_path_buf();
-    studio.seed_eager_configured_owners_for_tests(xiuxian_wendao::search::contracts::UiConfig {
-        projects: vec![xiuxian_wendao::search::contracts::UiProjectConfig {
+    studio.seed_eager_configured_owners_for_tests(crate::contracts::UiConfig {
+        projects: vec![crate::contracts::UiProjectConfig {
             name: "kernel".to_string(),
             root: ".".to_string(),
             dirs: vec!["docs".to_string()],

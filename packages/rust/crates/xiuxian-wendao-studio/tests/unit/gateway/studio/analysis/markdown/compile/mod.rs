@@ -1,5 +1,5 @@
+use crate::contracts::AnalysisNodeKind;
 use crate::studio::analysis::markdown::compile_markdown_ir;
-use xiuxian_wendao::search::contracts::AnalysisNodeKind;
 
 #[test]
 fn compile_markdown_ir_emits_sections_code_blocks_and_atoms() {
@@ -67,7 +67,6 @@ fn compile_markdown_ir_emits_observation_atoms() {
     assert!(compiled.retrieval_atoms.iter().any(|atom| {
         atom.owner_id.starts_with("obs:")
             && atom.semantic_type == "observation"
-            && atom.surface
-                == Some(xiuxian_wendao::search::contracts::RetrievalChunkSurface::Observation)
+            && atom.surface == Some(crate::contracts::RetrievalChunkSurface::Observation)
     }));
 }

@@ -3,10 +3,10 @@ use std::sync::Arc;
 
 use axum::extract::State;
 
+use crate::contracts::{UiConfig, UiProjectConfig};
 use crate::studio::router::handlers::graph::neighbors::graph_neighbors;
 use crate::studio::router::handlers::graph::shared::GraphNeighborsQuery;
 use crate::studio::router::{GatewayState, StudioState};
-use xiuxian_wendao::search::contracts::{UiConfig, UiProjectConfig};
 
 #[tokio::test]
 async fn graph_index_refreshes_after_document_title_changes() {

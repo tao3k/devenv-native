@@ -1,6 +1,6 @@
+use crate::contracts::UiProjectConfig;
 use crate::studio::router::state::StudioState;
 use std::path::Path;
-use xiuxian_wendao::search::contracts::UiProjectConfig;
 use xiuxian_wendao::search::{
     SearchCorpusKind, SearchMaintenancePolicy, SearchManifestKeyspace, SearchPlanePhase,
     SearchPlaneService,

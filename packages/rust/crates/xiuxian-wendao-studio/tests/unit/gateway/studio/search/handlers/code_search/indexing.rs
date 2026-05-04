@@ -103,7 +103,7 @@ fn configure_all_repo_code_search_projects(
     studio: &crate::studio::StudioState,
     repos: &AllRepoCodeSearchRepos,
 ) {
-    studio.seed_eager_configured_owners_for_tests(xiuxian_wendao::search::contracts::UiConfig {
+    studio.seed_eager_configured_owners_for_tests(crate::contracts::UiConfig {
         projects: Vec::new(),
         repo_projects: vec![
             repo_project_config("valid", repos.valid.as_path()),
@@ -112,11 +112,8 @@ fn configure_all_repo_code_search_projects(
     });
 }
 
-fn repo_project_config(
-    repo_id: &str,
-    root: &Path,
-) -> xiuxian_wendao::search::contracts::UiRepoProjectConfig {
-    xiuxian_wendao::search::contracts::UiRepoProjectConfig {
+fn repo_project_config(repo_id: &str, root: &Path) -> crate::contracts::UiRepoProjectConfig {
+    crate::contracts::UiRepoProjectConfig {
         id: repo_id.to_string(),
         root: Some(root.display().to_string()),
         url: None,
@@ -201,9 +198,9 @@ fn repo_status(
 #[tokio::test]
 async fn build_code_search_response_returns_pending_payload_for_explicit_repo_without_snapshot() {
     let studio = test_studio_state();
-    studio.seed_eager_configured_owners_for_tests(xiuxian_wendao::search::contracts::UiConfig {
+    studio.seed_eager_configured_owners_for_tests(crate::contracts::UiConfig {
         projects: Vec::new(),
-        repo_projects: vec![xiuxian_wendao::search::contracts::UiRepoProjectConfig {
+        repo_projects: vec![crate::contracts::UiRepoProjectConfig {
             id: "DifferentialEquations.jl".to_string(),
             root: Some(".".to_string()),
             url: None,
@@ -244,10 +241,10 @@ async fn build_code_search_response_returns_pending_payload_for_explicit_repo_wi
 #[tokio::test]
 async fn build_code_search_response_infers_repo_seed_for_exact_repo_name_query() {
     let studio = test_studio_state();
-    studio.seed_eager_configured_owners_for_tests(xiuxian_wendao::search::contracts::UiConfig {
+    studio.seed_eager_configured_owners_for_tests(crate::contracts::UiConfig {
         projects: Vec::new(),
         repo_projects: vec![
-            xiuxian_wendao::search::contracts::UiRepoProjectConfig {
+            crate::contracts::UiRepoProjectConfig {
                 id: "SciMLBase.jl".to_string(),
                 root: Some(".".to_string()),
                 url: None,
@@ -255,7 +252,7 @@ async fn build_code_search_response_infers_repo_seed_for_exact_repo_name_query()
                 refresh: None,
                 plugins: vec!["julia".to_string()],
             },
-            xiuxian_wendao::search::contracts::UiRepoProjectConfig {
+            crate::contracts::UiRepoProjectConfig {
                 id: "QueuedRepo.jl".to_string(),
                 root: Some(".".to_string()),
                 url: None,
@@ -324,9 +321,9 @@ async fn build_code_search_response_infers_repo_seed_for_exact_repo_name_query()
 #[tokio::test]
 async fn build_code_search_response_uses_published_repo_tables_while_repo_refreshes() {
     let studio = test_studio_state();
-    studio.seed_eager_configured_owners_for_tests(xiuxian_wendao::search::contracts::UiConfig {
+    studio.seed_eager_configured_owners_for_tests(crate::contracts::UiConfig {
         projects: Vec::new(),
-        repo_projects: vec![xiuxian_wendao::search::contracts::UiRepoProjectConfig {
+        repo_projects: vec![crate::contracts::UiRepoProjectConfig {
             id: "valid".to_string(),
             root: Some(".".to_string()),
             url: None,
@@ -385,9 +382,9 @@ async fn build_code_search_response_uses_published_repo_tables_while_repo_refres
 #[tokio::test]
 async fn build_code_search_response_falls_back_to_repo_content_when_repo_entity_is_unpublished() {
     let studio = test_studio_state();
-    studio.seed_eager_configured_owners_for_tests(xiuxian_wendao::search::contracts::UiConfig {
+    studio.seed_eager_configured_owners_for_tests(crate::contracts::UiConfig {
         projects: Vec::new(),
-        repo_projects: vec![xiuxian_wendao::search::contracts::UiRepoProjectConfig {
+        repo_projects: vec![crate::contracts::UiRepoProjectConfig {
             id: "valid".to_string(),
             root: Some(".".to_string()),
             url: None,

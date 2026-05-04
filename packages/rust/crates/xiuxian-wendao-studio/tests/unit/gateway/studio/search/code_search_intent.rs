@@ -358,7 +358,7 @@ async fn search_intent_snapshots_search_only_ast_grep_query_payloads()
 async fn load_code_search_intent_response(
     studio: &StudioState,
     query: &str,
-) -> xiuxian_wendao::search::contracts::SearchResponse {
+) -> crate::contracts::SearchResponse {
     let (response, _metadata) = load_intent_search_response_with_metadata(
         studio,
         SearchQuery {

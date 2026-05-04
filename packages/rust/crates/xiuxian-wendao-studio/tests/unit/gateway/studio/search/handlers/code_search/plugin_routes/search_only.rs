@@ -11,9 +11,9 @@ async fn build_code_search_response_treats_search_only_repo_seed_as_generic_anal
     let repo_dir = create_sample_rust_repo(temp.path(), "SearchRust")?;
 
     let studio = test_studio_state();
-    studio.seed_eager_configured_owners_for_tests(xiuxian_wendao::search::contracts::UiConfig {
+    studio.seed_eager_configured_owners_for_tests(crate::contracts::UiConfig {
         projects: Vec::new(),
-        repo_projects: vec![xiuxian_wendao::search::contracts::UiRepoProjectConfig {
+        repo_projects: vec![crate::contracts::UiRepoProjectConfig {
             id: "lance".to_string(),
             root: Some(repo_dir.display().to_string()),
             url: Some("https://github.com/lance-format/lance".to_string()),
@@ -51,9 +51,9 @@ async fn build_code_search_response_returns_rust_hits_for_search_only_repo_seed_
     let repo_dir = create_sample_rust_repo(temp.path(), "SearchRust")?;
 
     let studio = test_studio_state();
-    studio.seed_eager_configured_owners_for_tests(xiuxian_wendao::search::contracts::UiConfig {
+    studio.seed_eager_configured_owners_for_tests(crate::contracts::UiConfig {
         projects: Vec::new(),
-        repo_projects: vec![xiuxian_wendao::search::contracts::UiRepoProjectConfig {
+        repo_projects: vec![crate::contracts::UiRepoProjectConfig {
             id: "lance".to_string(),
             root: Some(repo_dir.display().to_string()),
             url: Some("https://github.com/lance-format/lance".to_string()),
@@ -91,9 +91,9 @@ async fn build_code_search_response_returns_toml_hits_for_search_only_repo_seed_
     let repo_dir = create_sample_rust_repo(temp.path(), "SearchRust")?;
 
     let studio = test_studio_state();
-    studio.seed_eager_configured_owners_for_tests(xiuxian_wendao::search::contracts::UiConfig {
+    studio.seed_eager_configured_owners_for_tests(crate::contracts::UiConfig {
         projects: Vec::new(),
-        repo_projects: vec![xiuxian_wendao::search::contracts::UiRepoProjectConfig {
+        repo_projects: vec![crate::contracts::UiRepoProjectConfig {
             id: "lance".to_string(),
             root: Some(repo_dir.display().to_string()),
             url: Some("https://github.com/lance-format/lance".to_string()),
@@ -131,9 +131,9 @@ async fn build_code_search_response_snapshots_search_only_ast_grep_query_payload
     let repo_dir = create_sample_rust_repo(temp.path(), "SearchRust")?;
 
     let studio = test_studio_state();
-    studio.seed_eager_configured_owners_for_tests(xiuxian_wendao::search::contracts::UiConfig {
+    studio.seed_eager_configured_owners_for_tests(crate::contracts::UiConfig {
         projects: Vec::new(),
-        repo_projects: vec![xiuxian_wendao::search::contracts::UiRepoProjectConfig {
+        repo_projects: vec![crate::contracts::UiRepoProjectConfig {
             id: "lance".to_string(),
             root: Some(repo_dir.display().to_string()),
             url: Some("https://github.com/lance-format/lance".to_string()),

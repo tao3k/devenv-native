@@ -1,4 +1,5 @@
 use super::analyze_markdown;
+use crate::contracts::{UiConfig, UiProjectConfig};
 use crate::studio::StudioState;
 use crate::studio::analysis::service::AnalysisError;
 use crate::studio::router::{GraphIndexCacheEntry, GraphSourceSignature};
@@ -7,16 +8,13 @@ use serde_json::json;
 use std::sync::Arc;
 use tempfile::tempdir;
 use xiuxian_wendao::link_graph::LinkGraphIndex;
-use xiuxian_wendao::search::contracts::{UiConfig, UiProjectConfig};
 
 struct AnalysisFixture {
     state: StudioState,
     temp_dir: tempfile::TempDir,
 }
 
-fn analysis_node_snapshot(
-    node: &xiuxian_wendao::search::contracts::AnalysisNode,
-) -> serde_json::Value {
+fn analysis_node_snapshot(node: &crate::contracts::AnalysisNode) -> serde_json::Value {
     json!({
         "id": node.id,
         "kind": node.kind,
@@ -28,9 +26,7 @@ fn analysis_node_snapshot(
     })
 }
 
-fn analysis_edge_snapshot(
-    edge: &xiuxian_wendao::search::contracts::AnalysisEdge,
-) -> serde_json::Value {
+fn analysis_edge_snapshot(edge: &crate::contracts::AnalysisEdge) -> serde_json::Value {
     json!({
         "id": edge.id,
         "kind": edge.kind,
@@ -47,7 +43,7 @@ fn analysis_edge_snapshot(
 }
 
 fn analysis_projection_snapshot(
-    projection: &xiuxian_wendao::search::contracts::MermaidProjection,
+    projection: &crate::contracts::MermaidProjection,
 ) -> serde_json::Value {
     json!({
         "kind": projection.kind,
@@ -58,7 +54,7 @@ fn analysis_projection_snapshot(
 }
 
 fn analysis_document_link_snapshot(
-    link: &xiuxian_wendao::search::contracts::MarkdownAnalysisDocumentLink,
+    link: &crate::contracts::MarkdownAnalysisDocumentLink,
 ) -> serde_json::Value {
     json!({
         "label": link.label,
@@ -72,7 +68,7 @@ fn analysis_document_link_snapshot(
 }
 
 fn analysis_relation_link_snapshot(
-    link: &xiuxian_wendao::search::contracts::MarkdownAnalysisDocumentLink,
+    link: &crate::contracts::MarkdownAnalysisDocumentLink,
 ) -> serde_json::Value {
     json!({
         "label": link.label,
@@ -88,7 +84,7 @@ fn analysis_relation_link_snapshot(
 }
 
 fn analysis_document_metadata_snapshot(
-    metadata: &xiuxian_wendao::search::contracts::MarkdownAnalysisDocumentMetadata,
+    metadata: &crate::contracts::MarkdownAnalysisDocumentMetadata,
 ) -> serde_json::Value {
     json!({
         "docId": metadata.doc_id,
@@ -116,9 +112,9 @@ fn analysis_document_metadata_snapshot(
 }
 
 fn markdown_analysis_payload_snapshot(
-    payload: xiuxian_wendao::search::contracts::MarkdownAnalysisResponse,
+    payload: crate::contracts::MarkdownAnalysisResponse,
 ) -> serde_json::Value {
-    let xiuxian_wendao::search::contracts::MarkdownAnalysisResponse {
+    let crate::contracts::MarkdownAnalysisResponse {
         path,
         document_hash,
         node_count,
@@ -283,16 +279,13 @@ async fn analyze_markdown_emits_document_metadata_from_parser_and_graph_index() 
     );
     assert_eq!(
         metadata.parent.as_ref().map(|row| row.kind),
-        Some(xiuxian_wendao::search::contracts::MarkdownAnalysisDocumentLinkKind::Parent)
+        Some(crate::contracts::MarkdownAnalysisDocumentLinkKind::Parent)
     );
 
     let relation_row = metadata
         .outgoing_links
         .iter()
-        .find(|row| {
-            row.kind
-                == xiuxian_wendao::search::contracts::MarkdownAnalysisDocumentLinkKind::Relation
-        })
+        .find(|row| row.kind == crate::contracts::MarkdownAnalysisDocumentLinkKind::Relation)
         .unwrap_or_else(|| panic!("expected explicit relation row"));
     assert_eq!(relation_row.relation_type.as_deref(), Some("RELATED_TO"));
     assert_eq!(relation_row.doc_id.as_deref(), Some("docs/guide"));
@@ -300,9 +293,7 @@ async fn analyze_markdown_emits_document_metadata_from_parser_and_graph_index() 
     let index_row = metadata
         .outgoing_links
         .iter()
-        .find(|row| {
-            row.kind == xiuxian_wendao::search::contracts::MarkdownAnalysisDocumentLinkKind::Index
-        })
+        .find(|row| row.kind == crate::contracts::MarkdownAnalysisDocumentLinkKind::Index)
         .unwrap_or_else(|| panic!("expected index relation row"));
     assert_eq!(index_row.doc_id.as_deref(), Some("docs/guide"));
 

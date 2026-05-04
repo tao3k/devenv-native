@@ -1,4 +1,4 @@
-use xiuxian_wendao::search::contracts::search_index::{
+use crate::contracts::search_index::{
     SearchIndexQueryTelemetrySource, SearchIndexStatusResponse,
 };
 use xiuxian_wendao::search::{

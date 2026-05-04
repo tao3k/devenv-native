@@ -15,6 +15,7 @@ use super::{
     build_repo_search_flight_service, build_studio_flight_service,
     build_studio_flight_service_for_roots,
 };
+use crate::contracts::{UiConfig, UiProjectConfig, UiRepoProjectConfig};
 use crate::studio::search::build_symbol_index;
 use crate::studio::test_support::commit_all;
 use crate::studio::{GatewayState, StudioState, configured_repositories};
@@ -30,7 +31,6 @@ use xiuxian_git_repo::SyncMode;
 use xiuxian_wendao::analyzers::bootstrap_builtin_registry;
 use xiuxian_wendao::analyzers::resolve_registered_repository_source;
 use xiuxian_wendao::repo_index::RepoCodeDocument;
-use xiuxian_wendao::search::contracts::{UiConfig, UiProjectConfig, UiRepoProjectConfig};
 use xiuxian_wendao::search::{SearchMaintenancePolicy, SearchManifestKeyspace, SearchPlaneService};
 
 mod bootstrap;

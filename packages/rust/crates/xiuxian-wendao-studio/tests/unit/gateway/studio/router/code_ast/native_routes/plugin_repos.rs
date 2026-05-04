@@ -1,12 +1,12 @@
 use serde_json::json;
 use serial_test::serial;
 
+use crate::contracts::CodeAstAnalysisResponse;
 use crate::studio::router::handlers::analysis::load_code_ast_analysis_response;
 use crate::studio::test_support::assert_studio_json_snapshot;
 use xiuxian_wendao::analyzers::{
     RegisteredRepository, RepositoryPluginConfig, RepositoryRefreshPolicy,
 };
-use xiuxian_wendao::search::contracts::CodeAstAnalysisResponse;
 
 use super::support::{
     configure_repo_project, create_import_backed_modelica_repo, create_sample_julia_repo,
@@ -47,10 +47,7 @@ async fn load_code_ast_analysis_response_supports_plain_julia_plugin_repository(
     assert_eq!(response.path, "src/CodeAstJulia.jl");
     assert!(
         response.nodes.iter().any(|node| node.label == "solve"
-            && matches!(
-                node.kind,
-                xiuxian_wendao::search::contracts::CodeAstNodeKind::Function
-            )
+            && matches!(node.kind, crate::contracts::CodeAstNodeKind::Function)
             && node.path.as_deref() == Some("src/CodeAstJulia.jl")),
         "expected Julia function node in code-AST response: {:?}",
         response
@@ -65,7 +62,7 @@ async fn load_code_ast_analysis_response_supports_plain_julia_plugin_repository(
                 && atom.owner_id.contains(":symbol:")
                 && matches!(
                     atom.surface,
-                    Some(xiuxian_wendao::search::contracts::CodeAstRetrievalAtomScope::Declaration)
+                    Some(crate::contracts::CodeAstRetrievalAtomScope::Declaration)
                 )
         }),
         "expected Julia declaration retrieval atoms: {:?}",
@@ -179,7 +176,7 @@ async fn load_code_ast_analysis_response_supports_import_backed_modelica_package
         "import_nodes": response
             .nodes
             .iter()
-            .filter(|node| matches!(node.kind, xiuxian_wendao::search::contracts::CodeAstNodeKind::ExternalSymbol))
+            .filter(|node| matches!(node.kind, crate::contracts::CodeAstNodeKind::ExternalSymbol))
             .map(|node| json!({
                 "id": node.id,
                 "label": node.label,
@@ -191,7 +188,7 @@ async fn load_code_ast_analysis_response_supports_import_backed_modelica_package
         "import_edges": response
             .edges
             .iter()
-            .filter(|edge| matches!(edge.kind, xiuxian_wendao::search::contracts::CodeAstEdgeKind::Imports))
+            .filter(|edge| matches!(edge.kind, crate::contracts::CodeAstEdgeKind::Imports))
             .map(|edge| json!({
                 "source_id": edge.source_id,
                 "target_id": edge.target_id,

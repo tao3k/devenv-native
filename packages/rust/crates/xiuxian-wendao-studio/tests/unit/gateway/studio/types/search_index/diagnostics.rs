@@ -1,8 +1,8 @@
 #[cfg(feature = "duckdb")]
 use xiuxian_wendao::duckdb::LocalRelationEngineKind;
-use xiuxian_wendao::search::contracts::search_index::SearchIndexStatusResponse;
+use crate::contracts::search_index::SearchIndexStatusResponse;
 #[cfg(feature = "duckdb")]
-use xiuxian_wendao::search::contracts::search_index::configured_status_diagnostics_engine_kind;
+use crate::contracts::search_index::configured_status_diagnostics_engine_kind;
 use xiuxian_wendao::search::SearchPlaneStatusSnapshot;
 #[cfg(feature = "duckdb")]
 use xiuxian_wendao::set_link_graph_wendao_config_override;

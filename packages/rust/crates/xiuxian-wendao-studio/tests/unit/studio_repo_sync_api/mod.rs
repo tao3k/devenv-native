@@ -4,6 +4,7 @@ use std::fs;
 
 use axum::http::StatusCode;
 
+use crate::contracts::{UiConfig, UiRepoProjectConfig};
 use crate::studio::studio_router;
 use crate::studio::test_support::assert_studio_json_snapshot;
 use xiuxian_wendao::analyzers::{
@@ -14,7 +15,6 @@ use xiuxian_wendao::analyzers::{
     repo_projected_pages_from_config,
 };
 use xiuxian_wendao::repo_index::RepoIndexRequest;
-use xiuxian_wendao::search::contracts::{UiConfig, UiRepoProjectConfig};
 
 type TestResult = Result<(), Box<dyn std::error::Error>>;
 type LocalProjectMetadata = (Option<String>, Option<String>, Option<String>);

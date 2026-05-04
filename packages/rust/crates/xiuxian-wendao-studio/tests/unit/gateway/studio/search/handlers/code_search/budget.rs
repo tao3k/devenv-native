@@ -9,9 +9,9 @@ use xiuxian_wendao::repo_index::{RepoIndexEntryStatus, RepoIndexPhase};
 #[tokio::test]
 async fn build_code_search_response_marks_partial_when_repo_wide_budget_expires() {
     let studio = test_studio_state();
-    studio.seed_eager_configured_owners_for_tests(xiuxian_wendao::search::contracts::UiConfig {
+    studio.seed_eager_configured_owners_for_tests(crate::contracts::UiConfig {
         projects: Vec::new(),
-        repo_projects: vec![xiuxian_wendao::search::contracts::UiRepoProjectConfig {
+        repo_projects: vec![crate::contracts::UiRepoProjectConfig {
             id: "valid".to_string(),
             root: Some(".".to_string()),
             url: None,

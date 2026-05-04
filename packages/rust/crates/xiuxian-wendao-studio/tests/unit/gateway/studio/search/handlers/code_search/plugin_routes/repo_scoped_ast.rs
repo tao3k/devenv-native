@@ -10,9 +10,9 @@ async fn build_code_search_response_supports_repo_scoped_ast_grep_without_publis
     let repo_dir = create_sample_rust_repo(temp.path(), "SearchRust")?;
 
     let studio = test_studio_state();
-    studio.seed_eager_configured_owners_for_tests(xiuxian_wendao::search::contracts::UiConfig {
+    studio.seed_eager_configured_owners_for_tests(crate::contracts::UiConfig {
         projects: Vec::new(),
-        repo_projects: vec![xiuxian_wendao::search::contracts::UiRepoProjectConfig {
+        repo_projects: vec![crate::contracts::UiRepoProjectConfig {
             id: "rust-live".to_string(),
             root: Some(repo_dir.display().to_string()),
             url: None,
@@ -54,9 +54,9 @@ async fn build_code_search_response_supports_repo_scoped_generic_ast_analysis_wi
     let repo_dir = create_sample_rust_repo(temp.path(), "SearchRust")?;
 
     let studio = test_studio_state();
-    studio.seed_eager_configured_owners_for_tests(xiuxian_wendao::search::contracts::UiConfig {
+    studio.seed_eager_configured_owners_for_tests(crate::contracts::UiConfig {
         projects: Vec::new(),
-        repo_projects: vec![xiuxian_wendao::search::contracts::UiRepoProjectConfig {
+        repo_projects: vec![crate::contracts::UiRepoProjectConfig {
             id: "rust-live".to_string(),
             root: Some(repo_dir.display().to_string()),
             url: None,
@@ -95,9 +95,9 @@ async fn build_code_search_response_treats_placeholder_ast_pattern_as_generic_an
     let repo_dir = create_sample_rust_repo(temp.path(), "SearchRust")?;
 
     let studio = test_studio_state();
-    studio.seed_eager_configured_owners_for_tests(xiuxian_wendao::search::contracts::UiConfig {
+    studio.seed_eager_configured_owners_for_tests(crate::contracts::UiConfig {
         projects: Vec::new(),
-        repo_projects: vec![xiuxian_wendao::search::contracts::UiRepoProjectConfig {
+        repo_projects: vec![crate::contracts::UiRepoProjectConfig {
             id: "rust-live".to_string(),
             root: Some(repo_dir.display().to_string()),
             url: None,
@@ -139,9 +139,9 @@ async fn build_code_search_response_supports_repo_scoped_ast_grep_for_html_witho
     let repo_dir = create_sample_html_repo(temp.path(), "SearchHtml")?;
 
     let studio = test_studio_state();
-    studio.seed_eager_configured_owners_for_tests(xiuxian_wendao::search::contracts::UiConfig {
+    studio.seed_eager_configured_owners_for_tests(crate::contracts::UiConfig {
         projects: Vec::new(),
-        repo_projects: vec![xiuxian_wendao::search::contracts::UiRepoProjectConfig {
+        repo_projects: vec![crate::contracts::UiRepoProjectConfig {
             id: "html-live".to_string(),
             root: Some(repo_dir.display().to_string()),
             url: None,

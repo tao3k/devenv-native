@@ -15,9 +15,9 @@ use xiuxian_wendao::search::{SearchCorpusKind, SearchQueryTelemetrySource};
 #[tokio::test]
 async fn build_code_search_response_returns_repo_entity_hits_from_search_plane() {
     let studio = test_studio_state();
-    studio.seed_eager_configured_owners_for_tests(xiuxian_wendao::search::contracts::UiConfig {
+    studio.seed_eager_configured_owners_for_tests(crate::contracts::UiConfig {
         projects: Vec::new(),
-        repo_projects: vec![xiuxian_wendao::search::contracts::UiRepoProjectConfig {
+        repo_projects: vec![crate::contracts::UiRepoProjectConfig {
             id: "valid".to_string(),
             root: Some(".".to_string()),
             url: None,
@@ -82,9 +82,9 @@ async fn build_code_search_response_returns_repo_entity_hits_from_search_plane()
 #[tokio::test]
 async fn build_code_search_response_prefers_repo_entity_hits_before_repo_content_fallback() {
     let studio = test_studio_state();
-    studio.seed_eager_configured_owners_for_tests(xiuxian_wendao::search::contracts::UiConfig {
+    studio.seed_eager_configured_owners_for_tests(crate::contracts::UiConfig {
         projects: Vec::new(),
-        repo_projects: vec![xiuxian_wendao::search::contracts::UiRepoProjectConfig {
+        repo_projects: vec![crate::contracts::UiRepoProjectConfig {
             id: "valid".to_string(),
             root: Some(".".to_string()),
             url: None,
@@ -159,9 +159,9 @@ async fn build_code_search_response_prefers_repo_entity_hits_before_repo_content
 #[tokio::test]
 async fn repo_entity_search_hits_record_query_core_telemetry_into_search_plane_status() {
     let studio = test_studio_state();
-    studio.seed_eager_configured_owners_for_tests(xiuxian_wendao::search::contracts::UiConfig {
+    studio.seed_eager_configured_owners_for_tests(crate::contracts::UiConfig {
         projects: Vec::new(),
-        repo_projects: vec![xiuxian_wendao::search::contracts::UiRepoProjectConfig {
+        repo_projects: vec![crate::contracts::UiRepoProjectConfig {
             id: "valid".to_string(),
             root: Some(".".to_string()),
             url: None,

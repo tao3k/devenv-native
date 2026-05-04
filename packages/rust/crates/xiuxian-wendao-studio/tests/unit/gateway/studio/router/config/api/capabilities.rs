@@ -3,12 +3,12 @@ use std::sync::Arc;
 use axum::extract::State;
 use chrono::DateTime;
 
+use crate::contracts::{UiConfig, UiProjectConfig};
 use crate::studio::router::tests::repo_project;
 use crate::studio::router::{GatewayState, StudioState};
 use crate::studio::test_support::assert_studio_json_snapshot;
 use xiuxian_wendao::analyzers::bootstrap_builtin_registry;
 use xiuxian_wendao::repo_index::RepoIndexPhase;
-use xiuxian_wendao::search::contracts::{UiConfig, UiProjectConfig};
 
 use super::support::{assert_repo_discovery_contract, expected_builtin_languages};
 

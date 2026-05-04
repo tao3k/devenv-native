@@ -5,10 +5,10 @@ use crate::studio::search::handlers::tests::test_studio_state_with_cache;
 async fn build_code_search_cache_key_is_stable_for_reordered_repo_config() {
     let studio = test_studio_state_with_cache();
     studio.seed_configured_owners_for_tests(
-        xiuxian_wendao::search::contracts::UiConfig {
+        crate::contracts::UiConfig {
             projects: Vec::new(),
             repo_projects: vec![
-                xiuxian_wendao::search::contracts::UiRepoProjectConfig {
+                crate::contracts::UiRepoProjectConfig {
                     id: "alpha".to_string(),
                     root: Some(".".to_string()),
                     url: None,
@@ -16,7 +16,7 @@ async fn build_code_search_cache_key_is_stable_for_reordered_repo_config() {
                     refresh: None,
                     plugins: vec!["julia".to_string()],
                 },
-                xiuxian_wendao::search::contracts::UiRepoProjectConfig {
+                crate::contracts::UiRepoProjectConfig {
                     id: "beta".to_string(),
                     root: Some(".".to_string()),
                     url: None,
@@ -33,10 +33,10 @@ async fn build_code_search_cache_key_is_stable_for_reordered_repo_config() {
         .unwrap_or_else(|error| panic!("left code-search cache key: {error:?}"));
 
     studio.seed_configured_owners_for_tests(
-        xiuxian_wendao::search::contracts::UiConfig {
+        crate::contracts::UiConfig {
             projects: Vec::new(),
             repo_projects: vec![
-                xiuxian_wendao::search::contracts::UiRepoProjectConfig {
+                crate::contracts::UiRepoProjectConfig {
                     id: "beta".to_string(),
                     root: Some(".".to_string()),
                     url: None,
@@ -44,7 +44,7 @@ async fn build_code_search_cache_key_is_stable_for_reordered_repo_config() {
                     refresh: None,
                     plugins: vec!["modelica".to_string()],
                 },
-                xiuxian_wendao::search::contracts::UiRepoProjectConfig {
+                crate::contracts::UiRepoProjectConfig {
                     id: "alpha".to_string(),
                     root: Some(".".to_string()),
                     url: None,

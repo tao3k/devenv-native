@@ -3,8 +3,8 @@ use std::io::Cursor;
 use arrow::array::{Array, StringArray, UInt64Array};
 use arrow::ipc::reader::StreamReader;
 
+use crate::contracts::{RetrievalChunk, RetrievalChunkSurface};
 use crate::studio::router::retrieval_arrow::encode_retrieval_chunks_ipc;
-use xiuxian_wendao::search::contracts::{RetrievalChunk, RetrievalChunkSurface};
 
 #[test]
 fn retrieval_arrow_roundtrip_preserves_chunk_fields() {

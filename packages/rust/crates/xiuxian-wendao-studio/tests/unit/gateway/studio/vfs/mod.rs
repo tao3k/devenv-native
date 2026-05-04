@@ -7,11 +7,11 @@ use super::content::resolve_vfs_path;
 use super::roots::resolve_all_vfs_roots;
 use super::scan::scan_all_roots;
 use super::scan_roots;
+use crate::contracts::{UiConfig, UiRepoProjectConfig};
 use crate::studio::test_support::commit_all;
 use crate::studio::{StudioState, configured_repositories};
 use xiuxian_git_repo::SyncMode;
 use xiuxian_wendao::analyzers::resolve_registered_repository_source;
-use xiuxian_wendao::search::contracts::{UiConfig, UiRepoProjectConfig};
 
 fn init_git_repository(root: &Path) {
     crate::studio::test_support::init_git_repository(root);
@@ -118,7 +118,7 @@ fn scan_roots_reuses_cached_entries_until_ui_config_changes() {
 
     let state = StudioState::new();
     state.seed_eager_configured_owners_for_tests(UiConfig {
-        projects: vec![xiuxian_wendao::search::contracts::UiProjectConfig {
+        projects: vec![crate::contracts::UiProjectConfig {
             name: "kernel".to_string(),
             root: project_root.display().to_string(),
             dirs: vec!["docs".to_string()],
@@ -144,7 +144,7 @@ fn scan_roots_reuses_cached_entries_until_ui_config_changes() {
         .unwrap_or_else(|error| panic!("write note: {error}"));
 
     state.seed_eager_configured_owners_for_tests(UiConfig {
-        projects: vec![xiuxian_wendao::search::contracts::UiProjectConfig {
+        projects: vec![crate::contracts::UiProjectConfig {
             name: "kernel".to_string(),
             root: project_root.display().to_string(),
             dirs: vec!["docs".to_string(), "notes".to_string()],

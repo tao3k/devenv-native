@@ -1,9 +1,9 @@
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
 
+use crate::contracts::{AstSearchHit, StudioNavigationTarget, UiProjectConfig};
 use crate::studio::symbol_index::state::{SymbolIndexCoordinator, fingerprint_projects};
 use crate::studio::symbol_index::{SymbolIndexPhase, SymbolIndexStatus};
-use xiuxian_wendao::search::contracts::{AstSearchHit, StudioNavigationTarget, UiProjectConfig};
 use xiuxian_wendao::search::{SearchMaintenancePolicy, SearchManifestKeyspace, SearchPlaneService};
 use xiuxian_wendao::unified_symbol::UnifiedSymbolIndex;
 

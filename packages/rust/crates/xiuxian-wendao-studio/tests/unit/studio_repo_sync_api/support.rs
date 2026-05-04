@@ -11,6 +11,7 @@ use axum::http::{Request, StatusCode};
 use serde_json::Value;
 use tower::util::ServiceExt;
 
+use crate::contracts::UiConfig;
 use crate::studio::search::handlers::tests::linked_parser_summary::ensure_linked_modelica_parser_summary_service;
 use crate::studio::symbol_index::SymbolIndexCoordinator;
 use crate::studio::test_support::{add_git_remote, commit_all, init_git_repository};
@@ -28,7 +29,6 @@ use xiuxian_wendao::analyzers::{
 use xiuxian_wendao::repo_index::RepoCodeDocument;
 use xiuxian_wendao::repo_index::RepoIndexCoordinator;
 use xiuxian_wendao::search::SearchPlaneService;
-use xiuxian_wendao::search::contracts::UiConfig;
 
 use super::LocalProjectMetadata;
 

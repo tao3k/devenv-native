@@ -31,9 +31,9 @@ async fn studio_intent_flight_provider_reads_repo_backed_hits() {
     .unwrap_or_else(|error| panic!("write project: {error}"));
 
     let studio = Arc::new(test_studio_state());
-    studio.seed_eager_configured_owners_for_tests(xiuxian_wendao::search::contracts::UiConfig {
+    studio.seed_eager_configured_owners_for_tests(crate::contracts::UiConfig {
         projects: Vec::new(),
-        repo_projects: vec![xiuxian_wendao::search::contracts::UiRepoProjectConfig {
+        repo_projects: vec![crate::contracts::UiRepoProjectConfig {
             id: "valid".to_string(),
             root: Some(valid_repo.display().to_string()),
             url: None,

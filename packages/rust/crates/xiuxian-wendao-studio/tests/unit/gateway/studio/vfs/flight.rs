@@ -1,6 +1,6 @@
+use crate::contracts::{StudioNavigationTarget, UiConfig, UiProjectConfig};
 use crate::studio::StudioState;
 use crate::studio::vfs::flight::{build_vfs_resolve_response, vfs_navigation_target_batch};
-use xiuxian_wendao::search::contracts::{StudioNavigationTarget, UiConfig, UiProjectConfig};
 
 fn workspace_local_alias(state: &StudioState, relative_path: &str) -> String {
     state

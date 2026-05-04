@@ -26,10 +26,10 @@ use xiuxian_wendao::repo_index::{
 async fn build_intent_cache_key_is_stable_for_reordered_repo_config() {
     let studio = test_studio_state_with_cache();
     studio.seed_configured_owners_for_tests(
-        xiuxian_wendao::search::contracts::UiConfig {
+        crate::contracts::UiConfig {
             projects: Vec::new(),
             repo_projects: vec![
-                xiuxian_wendao::search::contracts::UiRepoProjectConfig {
+                crate::contracts::UiRepoProjectConfig {
                     id: "alpha".to_string(),
                     root: Some(".".to_string()),
                     url: None,
@@ -37,7 +37,7 @@ async fn build_intent_cache_key_is_stable_for_reordered_repo_config() {
                     refresh: None,
                     plugins: vec!["julia".to_string()],
                 },
-                xiuxian_wendao::search::contracts::UiRepoProjectConfig {
+                crate::contracts::UiRepoProjectConfig {
                     id: "beta".to_string(),
                     root: Some(".".to_string()),
                     url: None,
@@ -61,10 +61,10 @@ async fn build_intent_cache_key_is_stable_for_reordered_repo_config() {
     .await
     .unwrap_or_else(|error| panic!("left intent cache key: {error:?}"));
     studio.seed_configured_owners_for_tests(
-        xiuxian_wendao::search::contracts::UiConfig {
+        crate::contracts::UiConfig {
             projects: Vec::new(),
             repo_projects: vec![
-                xiuxian_wendao::search::contracts::UiRepoProjectConfig {
+                crate::contracts::UiRepoProjectConfig {
                     id: "beta".to_string(),
                     root: Some(".".to_string()),
                     url: None,
@@ -72,7 +72,7 @@ async fn build_intent_cache_key_is_stable_for_reordered_repo_config() {
                     refresh: None,
                     plugins: vec!["modelica".to_string()],
                 },
-                xiuxian_wendao::search::contracts::UiRepoProjectConfig {
+                crate::contracts::UiRepoProjectConfig {
                     id: "alpha".to_string(),
                     root: Some(".".to_string()),
                     url: None,
@@ -116,9 +116,9 @@ async fn build_intent_search_response_includes_repo_content_hits_for_debug_looku
     .unwrap_or_else(|error| panic!("write project: {error}"));
 
     let studio = test_studio_state();
-    studio.seed_eager_configured_owners_for_tests(xiuxian_wendao::search::contracts::UiConfig {
+    studio.seed_eager_configured_owners_for_tests(crate::contracts::UiConfig {
         projects: Vec::new(),
-        repo_projects: vec![xiuxian_wendao::search::contracts::UiRepoProjectConfig {
+        repo_projects: vec![crate::contracts::UiRepoProjectConfig {
             id: "valid".to_string(),
             root: Some(valid_repo.display().to_string()),
             url: None,
@@ -201,9 +201,9 @@ async fn load_intent_search_response_reports_repo_content_flight_transport_metad
     .unwrap_or_else(|error| panic!("write project: {error}"));
 
     let studio = test_studio_state();
-    studio.seed_eager_configured_owners_for_tests(xiuxian_wendao::search::contracts::UiConfig {
+    studio.seed_eager_configured_owners_for_tests(crate::contracts::UiConfig {
         projects: Vec::new(),
-        repo_projects: vec![xiuxian_wendao::search::contracts::UiRepoProjectConfig {
+        repo_projects: vec![crate::contracts::UiRepoProjectConfig {
             id: "valid".to_string(),
             root: Some(valid_repo.display().to_string()),
             url: None,
@@ -354,9 +354,9 @@ threads = 2
     .unwrap_or_else(|error| panic!("write project: {error}"));
 
     let studio = test_studio_state();
-    studio.seed_eager_configured_owners_for_tests(xiuxian_wendao::search::contracts::UiConfig {
+    studio.seed_eager_configured_owners_for_tests(crate::contracts::UiConfig {
         projects: Vec::new(),
-        repo_projects: vec![xiuxian_wendao::search::contracts::UiRepoProjectConfig {
+        repo_projects: vec![crate::contracts::UiRepoProjectConfig {
             id: "valid".to_string(),
             root: Some(valid_repo.display().to_string()),
             url: None,
@@ -413,9 +413,9 @@ threads = 2
 #[tokio::test]
 async fn build_intent_search_response_includes_repo_entity_hits_for_debug_lookup() {
     let studio = test_studio_state();
-    studio.seed_eager_configured_owners_for_tests(xiuxian_wendao::search::contracts::UiConfig {
+    studio.seed_eager_configured_owners_for_tests(crate::contracts::UiConfig {
         projects: Vec::new(),
-        repo_projects: vec![xiuxian_wendao::search::contracts::UiRepoProjectConfig {
+        repo_projects: vec![crate::contracts::UiRepoProjectConfig {
             id: "valid".to_string(),
             root: Some(".".to_string()),
             url: None,

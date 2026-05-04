@@ -5,9 +5,9 @@ use std::path::Path;
 use std::sync::Arc;
 
 #[cfg(feature = "duckdb")]
-use crate::studio::build_ast_index;
+use crate::contracts::{UiConfig, UiProjectConfig};
 #[cfg(feature = "duckdb")]
-use xiuxian_wendao::search::contracts::{UiConfig, UiProjectConfig};
+use crate::studio::build_ast_index;
 #[cfg(feature = "duckdb")]
 use xiuxian_wendao::set_link_graph_wendao_config_override;
 

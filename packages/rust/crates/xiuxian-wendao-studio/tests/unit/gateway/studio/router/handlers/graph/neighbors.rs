@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use crate::contracts::UiProjectConfig;
 use crate::studio::router::handlers::graph::neighbors::graph_neighbors;
 use crate::studio::router::handlers::graph::shared::GraphNeighborsQuery;
 use crate::studio::router::handlers::graph::tests::{
@@ -9,7 +10,6 @@ use crate::studio::router::handlers::graph::tests::{
 use crate::studio::test_support::assert_studio_json_snapshot;
 use axum::extract::{Path as AxumPath, Query, State};
 use axum::http::StatusCode;
-use xiuxian_wendao::search::contracts::UiProjectConfig;
 
 #[tokio::test]
 async fn graph_neighbors_returns_center_nodes_and_links() {

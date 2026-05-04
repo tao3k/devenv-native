@@ -1,15 +1,13 @@
 use std::fs;
 use std::sync::Arc;
 
+use crate::contracts::{UiConfig, UiProjectConfig, UiRepoProjectConfig, VfsScanResult};
 use crate::studio::router::StudioState;
 use crate::studio::router::tests::repo_project;
 use crate::studio::symbol_index::SymbolIndexPhase;
 use xiuxian_wendao::analyzers::PluginRegistry;
 use xiuxian_wendao::repo_index::RepoIndexPhase;
 use xiuxian_wendao::search::SearchPlaneService;
-use xiuxian_wendao::search::contracts::{
-    UiConfig, UiProjectConfig, UiRepoProjectConfig, VfsScanResult,
-};
 use xiuxian_wendao::unified_symbol::UnifiedSymbolIndex;
 
 #[test]

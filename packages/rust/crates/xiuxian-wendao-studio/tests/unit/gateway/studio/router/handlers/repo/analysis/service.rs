@@ -2,6 +2,7 @@ use std::collections::BTreeMap;
 use std::fs;
 use std::sync::Arc;
 
+use crate::contracts::{UiConfig, UiRepoProjectConfig};
 use crate::studio::router::handlers::repo::analysis::service::overview::run_repo_overview;
 use crate::studio::router::{GatewayState, StudioState};
 use xiuxian_wendao::analyzers::{
@@ -9,7 +10,6 @@ use xiuxian_wendao::analyzers::{
     bootstrap_builtin_registry,
 };
 use xiuxian_wendao::repo_index::RepoCodeDocument;
-use xiuxian_wendao::search::contracts::{UiConfig, UiRepoProjectConfig};
 
 #[tokio::test]
 async fn run_repo_overview_returns_zero_summary_for_search_only_repository() {

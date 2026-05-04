@@ -10,9 +10,9 @@ async fn build_code_search_response_excludes_language_owned_by_non_ast_plugin_fr
     let repo_dir = create_sample_toml_repo(temp.path(), "OwnedToml")?;
 
     let studio = test_studio_state();
-    studio.seed_eager_configured_owners_for_tests(xiuxian_wendao::search::contracts::UiConfig {
+    studio.seed_eager_configured_owners_for_tests(crate::contracts::UiConfig {
         projects: Vec::new(),
-        repo_projects: vec![xiuxian_wendao::search::contracts::UiRepoProjectConfig {
+        repo_projects: vec![crate::contracts::UiRepoProjectConfig {
             id: "toml-owned".to_string(),
             root: Some(repo_dir.display().to_string()),
             url: None,
@@ -51,9 +51,9 @@ async fn build_code_search_response_rejects_ast_grep_without_explicit_repository
     let repo_dir = create_sample_rust_repo(temp.path(), "SearchRust")?;
 
     let studio = test_studio_state();
-    studio.seed_eager_configured_owners_for_tests(xiuxian_wendao::search::contracts::UiConfig {
+    studio.seed_eager_configured_owners_for_tests(crate::contracts::UiConfig {
         projects: Vec::new(),
-        repo_projects: vec![xiuxian_wendao::search::contracts::UiRepoProjectConfig {
+        repo_projects: vec![crate::contracts::UiRepoProjectConfig {
             id: "rust-live".to_string(),
             root: Some(repo_dir.display().to_string()),
             url: None,

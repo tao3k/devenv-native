@@ -18,10 +18,10 @@ use tempfile::{TempDir, tempdir};
 use tonic::Status;
 
 use super::build_studio_search_flight_service_with_repo_provider;
+use crate::contracts::{UiConfig, UiProjectConfig};
 use crate::studio::search::handlers::tests::test_studio_state;
 use crate::studio::{GatewayState, StudioState};
 use crate::studio::{build_ast_index, search::build_symbol_index};
-use xiuxian_wendao::search::contracts::{UiConfig, UiProjectConfig};
 
 pub(super) struct GatewayStateFixture {
     _temp_dir: TempDir,

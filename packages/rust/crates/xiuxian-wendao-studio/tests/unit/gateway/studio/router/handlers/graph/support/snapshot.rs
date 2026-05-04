@@ -1,6 +1,6 @@
 use serde_json::json;
 
-use xiuxian_wendao::search::contracts::GraphNeighborsResponse;
+use crate::contracts::GraphNeighborsResponse;
 
 pub(crate) fn graph_neighbors_snapshot_payload(
     response: GraphNeighborsResponse,

@@ -1,7 +1,7 @@
+use crate::contracts::{UiConfig, UiProjectConfig};
 use crate::studio::router::state::StudioState;
 use std::sync::Arc;
 use xiuxian_wendao::search::SearchCorpusKind;
-use xiuxian_wendao::search::contracts::{UiConfig, UiProjectConfig};
 
 use super::support::{search_plane_with_paths, wait_for_local_corpus_ready};
 

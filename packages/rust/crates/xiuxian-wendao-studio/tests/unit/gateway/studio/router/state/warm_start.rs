@@ -1,8 +1,6 @@
+use crate::contracts::{AstSearchHit, StudioNavigationTarget, UiConfig, UiProjectConfig};
 use crate::studio::router::state::StudioState;
 use std::sync::Arc;
-use xiuxian_wendao::search::contracts::{
-    AstSearchHit, StudioNavigationTarget, UiConfig, UiProjectConfig,
-};
 use xiuxian_wendao::search::{SearchCorpusKind, SearchMaintenancePolicy, SearchManifestKeyspace};
 
 use super::support::{

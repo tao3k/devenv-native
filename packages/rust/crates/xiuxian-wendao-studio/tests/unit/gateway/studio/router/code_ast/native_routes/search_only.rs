@@ -41,10 +41,7 @@ async fn load_code_ast_analysis_response_supports_search_only_ast_grep_rust_repo
     assert!(
         response.nodes.iter().any(|node| {
             node.label == "scan_rows"
-                && matches!(
-                    node.kind,
-                    xiuxian_wendao::search::contracts::CodeAstNodeKind::Function
-                )
+                && matches!(node.kind, crate::contracts::CodeAstNodeKind::Function)
                 && node.path.as_deref() == Some("src/lib.rs")
         }),
         "expected generic Rust function node in code-AST response: {:?}",
@@ -143,10 +140,7 @@ async fn load_code_ast_analysis_response_supports_search_only_ast_grep_toml_repo
     assert!(
         response.nodes.iter().any(|node| {
             node.label == "package"
-                && matches!(
-                    node.kind,
-                    xiuxian_wendao::search::contracts::CodeAstNodeKind::Module
-                )
+                && matches!(node.kind, crate::contracts::CodeAstNodeKind::Module)
                 && node.path.as_deref() == Some("Cargo.toml")
         }),
         "expected generic TOML table node in code-AST response: {:?}",

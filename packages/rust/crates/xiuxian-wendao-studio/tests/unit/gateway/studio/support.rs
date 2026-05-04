@@ -22,9 +22,7 @@ pub(crate) fn round_f64(value: f64) -> f64 {
     (value * 10_000.0).round() / 10_000.0
 }
 
-pub(crate) fn search_response_snapshot(
-    response: &xiuxian_wendao::search::contracts::SearchResponse,
-) -> Value {
+pub(crate) fn search_response_snapshot(response: &crate::contracts::SearchResponse) -> Value {
     json!({
         "query": response.query,
         "hitCount": response.hit_count,

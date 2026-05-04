@@ -1,6 +1,6 @@
+use crate::contracts::{UiConfig, UiRepoProjectConfig};
 use crate::studio::router::{StudioState, configured_repository, resolve_registered_repository_id};
 use xiuxian_wendao::analyzers::RegisteredRepository;
-use xiuxian_wendao::search::contracts::{UiConfig, UiRepoProjectConfig};
 
 #[test]
 fn resolve_registered_repository_id_prefers_toml_repository_id() {

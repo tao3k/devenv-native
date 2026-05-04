@@ -6,10 +6,10 @@ use serde_json::Value;
 use tempfile::tempdir;
 
 use super::provider::StudioAstSearchFlightRouteProvider;
+use crate::contracts::{UiConfig, UiProjectConfig};
 use crate::studio::GatewayState;
 use crate::studio::build_ast_index;
 use crate::studio::search::handlers::tests::test_studio_state;
-use xiuxian_wendao::search::contracts::{UiConfig, UiProjectConfig};
 
 #[tokio::test]
 async fn studio_ast_flight_provider_materializes_ast_batches() {

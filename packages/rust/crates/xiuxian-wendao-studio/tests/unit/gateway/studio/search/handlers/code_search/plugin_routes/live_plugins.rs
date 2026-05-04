@@ -26,9 +26,9 @@ async fn build_code_search_response_returns_hits_for_plain_julia_plugin_reposito
         analyze_registered_repository_with_registry(&repository, temp.path(), &registry)?;
 
     let studio = test_studio_state();
-    studio.seed_eager_configured_owners_for_tests(xiuxian_wendao::search::contracts::UiConfig {
+    studio.seed_eager_configured_owners_for_tests(crate::contracts::UiConfig {
         projects: Vec::new(),
-        repo_projects: vec![xiuxian_wendao::search::contracts::UiRepoProjectConfig {
+        repo_projects: vec![crate::contracts::UiRepoProjectConfig {
             id: repository.id.clone(),
             root: Some(repo_dir.display().to_string()),
             url: None,
@@ -87,9 +87,9 @@ async fn build_code_search_response_returns_hits_for_plain_modelica_plugin_repos
         analyze_registered_repository_with_registry(&repository, temp.path(), &registry)?;
 
     let studio = test_studio_state();
-    studio.seed_eager_configured_owners_for_tests(xiuxian_wendao::search::contracts::UiConfig {
+    studio.seed_eager_configured_owners_for_tests(crate::contracts::UiConfig {
         projects: Vec::new(),
-        repo_projects: vec![xiuxian_wendao::search::contracts::UiRepoProjectConfig {
+        repo_projects: vec![crate::contracts::UiRepoProjectConfig {
             id: repository.id.clone(),
             root: Some(repo_dir.display().to_string()),
             url: None,

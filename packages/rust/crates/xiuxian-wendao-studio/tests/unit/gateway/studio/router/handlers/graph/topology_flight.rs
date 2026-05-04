@@ -1,7 +1,5 @@
+use crate::contracts::{Topology3dPayload, TopologyCluster, TopologyLink, TopologyNode};
 use crate::studio::router::handlers::graph::topology_flight::topology_3d_response_batch;
-use xiuxian_wendao::search::contracts::{
-    Topology3dPayload, TopologyCluster, TopologyLink, TopologyNode,
-};
 
 #[test]
 fn topology_3d_response_batch_preserves_row_kinds() {

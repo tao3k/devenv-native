@@ -1,5 +1,5 @@
+use crate::contracts::UiProjectConfig;
 use crate::studio::search::project_metadata_for_path;
-use xiuxian_wendao::search::contracts::UiProjectConfig;
 
 #[test]
 fn project_metadata_prefers_more_specific_scope_root_label() {

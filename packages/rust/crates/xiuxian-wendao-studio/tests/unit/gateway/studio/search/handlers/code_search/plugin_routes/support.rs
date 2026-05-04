@@ -167,7 +167,7 @@ pub(super) fn create_sample_toml_repo(
 pub(super) async fn load_code_search_response(
     studio: &crate::studio::StudioState,
     query: &str,
-) -> xiuxian_wendao::search::contracts::SearchResponse {
+) -> crate::contracts::SearchResponse {
     build_code_search_response(studio, query.to_string(), None, 10)
         .await
         .unwrap_or_else(|error| panic!("code search response for `{query}`: {error:?}"))

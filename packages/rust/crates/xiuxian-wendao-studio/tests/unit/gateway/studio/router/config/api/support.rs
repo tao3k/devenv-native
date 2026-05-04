@@ -23,7 +23,7 @@ pub(super) fn expected_builtin_languages(registry: &PluginRegistry) -> Vec<Strin
 }
 
 pub(super) fn assert_repo_discovery_contract(
-    repo_discovery: &xiuxian_wendao::search::contracts::UiRepoDiscoveryContract,
+    repo_discovery: &crate::contracts::UiRepoDiscoveryContract,
 ) {
     assert_eq!(repo_discovery.suggest.source, "repo_index_status");
     assert_eq!(repo_discovery.suggest.default_limit, 6);

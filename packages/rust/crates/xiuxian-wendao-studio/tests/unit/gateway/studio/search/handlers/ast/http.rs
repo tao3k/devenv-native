@@ -4,8 +4,8 @@ use axum::Json;
 use axum::extract::{Query, State};
 
 use super::response::load_ast_search_response;
+use crate::contracts::AstSearchResponse;
 use crate::studio::{GatewayState, StudioApiError};
-use xiuxian_wendao::search::contracts::AstSearchResponse;
 
 #[cfg(test)]
 use crate::studio::search::handlers::queries::AstSearchQuery;

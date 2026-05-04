@@ -1,4 +1,4 @@
-use xiuxian_wendao::search::contracts::{UiPluginArtifact, UiPluginLaunchSpec};
+use crate::contracts::{UiPluginArtifact, UiPluginLaunchSpec};
 use xiuxian_wendao_builtin::linked_builtin_julia_gateway_artifact_ui_payload_fixture;
 
 #[test]

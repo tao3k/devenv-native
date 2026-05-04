@@ -6,9 +6,9 @@ use axum::Json;
 use axum::extract::{Path as AxumPath, Query, State};
 
 use super::shared::{GraphNeighborsQuery, normalize_hops, normalize_limit, parse_direction};
+use crate::contracts::GraphNeighborsResponse;
 use crate::studio::router::handlers::graph::service::run_graph_neighbors;
 use crate::studio::router::{GatewayState, StudioApiError};
-use xiuxian_wendao::search::contracts::GraphNeighborsResponse;
 
 pub(crate) async fn graph_neighbors(
     State(state): State<Arc<GatewayState>>,

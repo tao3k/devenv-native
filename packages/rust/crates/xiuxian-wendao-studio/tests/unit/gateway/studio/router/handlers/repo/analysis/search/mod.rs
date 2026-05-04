@@ -5,6 +5,7 @@ use std::sync::{
     atomic::{AtomicUsize, Ordering},
 };
 
+use crate::contracts::{UiConfig, UiRepoProjectConfig};
 use crate::studio::router::StudioApiError;
 use crate::studio::router::configured_repository;
 use crate::studio::router::handlers::repo::analysis::search::cache::{
@@ -31,7 +32,6 @@ use xiuxian_wendao::query_core::{
     query_repo_entity_module_results_if_published, query_repo_entity_symbol_results_if_published,
 };
 use xiuxian_wendao::repo_index::RepoCodeDocument;
-use xiuxian_wendao::search::contracts::{UiConfig, UiRepoProjectConfig};
 use xiuxian_wendao::search::{
     FuzzySearchOptions, SearchMaintenancePolicy, SearchManifestKeyspace, SearchPlaneService,
 };

@@ -1,4 +1,4 @@
-use xiuxian_wendao::search::contracts::GraphNeighborsResponse;
+use crate::contracts::GraphNeighborsResponse;
 
 pub(crate) fn assert_graph_neighbors_include_path(response: &GraphNeighborsResponse, suffix: &str) {
     assert!(

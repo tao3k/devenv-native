@@ -1,13 +1,13 @@
 use std::collections::BTreeMap;
 
+use crate::contracts::{
+    CodeAstAnalysisResponse, CodeAstEdgeKind, CodeAstNodeKind, CodeAstProjectionKind,
+    CodeAstRetrievalAtomScope,
+};
 use crate::studio::router::build_code_ast_analysis_response;
 use xiuxian_wendao::analyzers::{
     ImportKind, ImportRecord, ModuleRecord, RelationKind, RelationRecord, RepoSymbolKind,
     RepositoryAnalysisOutput, SymbolRecord,
-};
-use xiuxian_wendao::search::contracts::{
-    CodeAstAnalysisResponse, CodeAstEdgeKind, CodeAstNodeKind, CodeAstProjectionKind,
-    CodeAstRetrievalAtomScope,
 };
 
 #[test]

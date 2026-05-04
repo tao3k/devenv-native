@@ -2,13 +2,11 @@ use std::sync::Arc;
 
 use crate::studio::arrow_types::LanceStringArray;
 
+use crate::contracts::{GraphLink, GraphNeighborsResponse, GraphNode, StudioNavigationTarget};
 use crate::studio::router::handlers::graph::flight::{
     graph_neighbors_response_batch, load_graph_neighbors_flight_response,
 };
 use crate::studio::router::handlers::graph::tests::build_fixture;
-use xiuxian_wendao::search::contracts::{
-    GraphLink, GraphNeighborsResponse, GraphNode, StudioNavigationTarget,
-};
 
 #[tokio::test]
 async fn load_graph_neighbors_flight_response_materializes_node_and_link_rows() {

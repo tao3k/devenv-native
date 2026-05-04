@@ -1,4 +1,4 @@
-use xiuxian_wendao::search::contracts::search_index::SearchIndexStatusResponse;
+use crate::contracts::search_index::SearchIndexStatusResponse;
 use xiuxian_wendao::search::{
     SearchCorpusKind, SearchCorpusStatus, SearchMaintenanceStatus, SearchPlanePhase,
     SearchPlaneStatusSnapshot,
