@@ -9,6 +9,7 @@
 , python3
 , protobuf
 , runCommand
+, fetchzip
 , workspaceRoot
 , cargoDeps
 , version
@@ -17,6 +18,24 @@
 
 let
   pname = "xiuxian-core-rs";
+  cargoLockText = builtins.readFile (workspaceRoot + "/Cargo.lock");
+  cargoLockLines = lib.splitString "\n" cargoLockText;
+  cargoLockGitRev =
+    repoUrl:
+    let
+      prefix = "source = \"git+${repoUrl}?rev=";
+      matches = lib.filter (line: lib.hasPrefix prefix line) cargoLockLines;
+    in
+    if matches == [ ] then
+      throw "failed to resolve git rev for ${repoUrl} from Cargo.lock"
+    else
+      builtins.elemAt (lib.splitString "#" (lib.removePrefix prefix (builtins.head matches))) 0;
+  lanceRev = cargoLockGitRev "https://github.com/lancedb/lance.git";
+  lanceSrc = fetchzip {
+    url = "https://github.com/lancedb/lance/archive/${lanceRev}.tar.gz";
+    hash = "sha256-Cp93QTsTrTkXizWYoZtFz88R3lX7+MmYN4E9JYBsyps=";
+  };
+  lanceVendorFixup = import ../lib/lance-vendor-fixup.nix { inherit lanceSrc; };
   # Use Nix native lib.fileset for filtering (no nix-filter dependency)
   filteredSrc = lib.fileset.toSource {
     root = workspaceRoot;
@@ -31,6 +50,8 @@ let
     mkdir -p "$out"
     cp -R ${cargoDeps}/. "$out"/
     cp ${workspaceRoot}/Cargo.lock "$out/Cargo.lock"
+    ${lanceVendorFixup}
+    fix_lance_vendor_dir "$out"
   '';
 in
 python3Packages.buildPythonPackage {
