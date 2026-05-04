@@ -6,6 +6,12 @@ pub mod routes;
 pub use routes::{RouteContract, WENDAO_GATEWAY_ROUTE_CONTRACTS};
 
 #[cfg(feature = "local-runtime")]
+mod plugin_artifact;
+
+#[cfg(feature = "local-runtime")]
+pub use plugin_artifact::{UiPluginArtifact, UiPluginLaunchSpec, UiPluginTransportKind};
+
+#[cfg(feature = "local-runtime")]
 mod types;
 
 #[cfg(feature = "local-runtime")]
@@ -26,8 +32,7 @@ pub use types::{
     SearchIndexStatusResponse, SearchResponse, StudioNavigationTarget, SymbolSearchHit,
     SymbolSearchResponse, Topology3dPayload, TopologyCluster, TopologyLink, TopologyNode,
     UiCapabilities, UiCodeSearchContract, UiCodeSearchContractExample, UiCodeSearchRoutes,
-    UiConfig, UiPluginArtifact, UiPluginLaunchSpec, UiPluginTransportKind, UiProjectConfig,
-    UiRepoDiscoveryContract, UiRepoDiscoverySurfaceContract, UiRepoProjectConfig, UiSearchContract,
-    UiSearchContractAlias, VfsCategory, VfsContentResponse, VfsEntry, VfsScanEntry, VfsScanResult,
-    studio_frontend_type_collection, studio_type_collection,
+    UiConfig, UiProjectConfig, UiRepoDiscoveryContract, UiRepoDiscoverySurfaceContract,
+    UiRepoProjectConfig, UiSearchContract, UiSearchContractAlias, VfsCategory, VfsContentResponse,
+    VfsEntry, VfsScanEntry, VfsScanResult, studio_frontend_type_collection, studio_type_collection,
 };

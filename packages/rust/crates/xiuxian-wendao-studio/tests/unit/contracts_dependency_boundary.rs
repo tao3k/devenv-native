@@ -21,6 +21,11 @@ const DOMAIN_CONTRACT_IMPORT_HEAD: &str = "xiuxian_wendao::search";
 const DOMAIN_CONTRACT_IMPORT_TAIL: &str = "::contracts";
 const STUDIO_TYPE_COLLECTION_SYMBOLS: &[&str] =
     &["studio_type_collection", "studio_frontend_type_collection"];
+const STUDIO_PLUGIN_ARTIFACT_SYMBOLS: &[&str] = &[
+    "UiPluginArtifact",
+    "UiPluginLaunchSpec",
+    "UiPluginTransportKind",
+];
 
 #[test]
 fn contracts_feature_keeps_runtime_dependencies_out_of_normal_tree() {
@@ -127,6 +132,24 @@ fn wendao_domain_contracts_do_not_export_studio_type_collections() {
     assert!(
         offenders.is_empty(),
         "Studio TypeScript schema collection helpers belong to xiuxian-wendao-studio contracts, not xiuxian-wendao search contracts:\n{}",
+        offenders.join("\n")
+    );
+}
+
+#[test]
+fn wendao_domain_contracts_do_not_export_studio_plugin_artifact_dtos() {
+    let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let domain_contracts_root = workspace_root(manifest_dir.as_path())
+        .join("packages/rust/crates/xiuxian-wendao/src/search/contracts");
+    let mut offenders = Vec::new();
+
+    for symbol in STUDIO_PLUGIN_ARTIFACT_SYMBOLS {
+        collect_rust_source_occurrences(domain_contracts_root.as_path(), symbol, &mut offenders);
+    }
+
+    assert!(
+        offenders.is_empty(),
+        "Studio plugin artifact DTOs belong to xiuxian-wendao-studio contracts, not xiuxian-wendao search contracts:\n{}",
         offenders.join("\n")
     );
 }
