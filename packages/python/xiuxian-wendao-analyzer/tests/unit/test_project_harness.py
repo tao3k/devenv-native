@@ -12,6 +12,7 @@ from python_lang_project_harness import (
     default_python_harness_config,
     python_agent_policy_rules,
     python_modularity_rules,
+    python_project_harness_test,
     python_project_policy_rules,
     python_reasoning_tree_facts,
     run_python_lang_harness,
@@ -26,6 +27,10 @@ EXPECTED_DEFAULT_RULE_PACKS = {
     "python.syntax",
     "python.test_layout",
 }
+
+test_python_project_harness_policy = python_project_harness_test(
+    Path(__file__).resolve().parents[2],
+)
 
 
 def test_python_project_harness_uses_all_default_rule_packs() -> None:
@@ -144,7 +149,9 @@ def python_harness_summary(report: PythonHarnessReport) -> dict[str, object]:
     )
     return {
         "blocking_rule_ids": sorted(config.blocking_rule_ids),
-        "blocking_severities": sorted(severity.value for severity in config.blocking_severities),
+        "blocking_severities": sorted(
+            severity.value for severity in config.blocking_severities
+        ),
         "disabled_rule_ids": sorted(config.disabled_rule_ids),
         "finding_counts": {
             "advisory": len(report.advisory_findings()),
@@ -157,7 +164,9 @@ def python_harness_summary(report: PythonHarnessReport) -> dict[str, object]:
             "import_names": (
                 []
                 if project_metadata is None
-                else sorted(import_name.name for import_name in project_metadata.import_names)
+                else sorted(
+                    import_name.name for import_name in project_metadata.import_names
+                )
             ),
             "name": None if project_metadata is None else project_metadata.project_name,
             "package_roots": (

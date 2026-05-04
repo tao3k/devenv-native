@@ -48,7 +48,7 @@ source = "vcs"
 
 
 [tool.uv.sources]
-python-lang-project-harness = { git = "https://github.com/tao3k/python-lang-project-harness", rev = "7013e9c2dea26c44baf8a1eef7fdd292d4349527" }
+python-lang-project-harness = { git = "https://github.com/tao3k/python-lang-project-harness", rev = "5c4b0769524dfc694719ec1901b135f975c2470f" }
 qianji-workflow-contracts = { workspace = true }
 wendao-core-lib = { workspace = true }
 wendao-arrow-interface = { workspace = true }
