@@ -9,6 +9,10 @@ const FORBIDDEN_CONTRACT_DEPENDENCIES: &[&str] = &[
     "datafusion",
     "notify",
     "xiuxian-db-store",
+    "xiuxian-wendao-core",
+    "chrono",
+    "inventory",
+    "toml",
 ];
 const FORBIDDEN_LOCAL_RUNTIME_ZHENFA_FEATURES: &[&str] =
     &["gateway", "client", "contract-validation", "xml-transform"];

@@ -22,10 +22,12 @@ parser, analyzer, and domain-runtime behavior.
 
 ## Feature Boundaries
 
-The lightweight `contracts` feature owns route contracts, OpenAPI route
-inventory, and frontend-facing schema/type collection surfaces. It must remain
-free of runtime gateway dependencies such as Axum, Tonic, Arrow Flight, DuckDB,
-DataFusion, notify, and `xiuxian-db-store`.
+The lightweight `contracts` feature owns route contracts and OpenAPI route
+inventory. It must remain free of runtime gateway dependencies such as Axum,
+Tonic, Arrow Flight, DuckDB, DataFusion, notify, `xiuxian-db-store`, and
+`xiuxian-wendao-core`. Frontend-facing DTO and Specta type collection ownership
+is the next convergence target and must not be treated as complete while it
+still depends on the full local runtime.
 
 Runtime concerns are layered behind explicit features:
 

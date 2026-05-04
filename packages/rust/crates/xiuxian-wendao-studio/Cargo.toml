@@ -28,7 +28,6 @@ contracts = [
   "dep:serde_json",
   "dep:specta",
   "dep:specta-typescript",
-  "dep:xiuxian-wendao-core",
 ]
 openapi-artifacts = [
   "dep:xiuxian-wendao-runtime",
