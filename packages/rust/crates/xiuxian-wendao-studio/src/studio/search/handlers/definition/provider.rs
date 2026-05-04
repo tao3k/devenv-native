@@ -2,7 +2,9 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use tonic::Status;
-use xiuxian_wendao_web::transport::{DefinitionFlightRouteProvider, DefinitionFlightRouteResponse};
+use xiuxian_wendao_server::transport::{
+    DefinitionFlightRouteProvider, DefinitionFlightRouteResponse,
+};
 
 use super::response::load_definition_flight_response;
 use crate::studio::{StudioApiError, StudioState};

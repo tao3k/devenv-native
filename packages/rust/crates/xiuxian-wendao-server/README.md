@@ -1,6 +1,6 @@
-# xiuxian-wendao-web
+# xiuxian-wendao-server
 
-`xiuxian-wendao-web` is the narrow Flight and gRPC transport boundary for
+`xiuxian-wendao-server` is the narrow Flight and gRPC transport boundary for
 Wendao.
 
 This crate does not own Studio HTTP routes, OpenAPI contracts, repository
@@ -23,5 +23,5 @@ Arrow schema/array types, Tokio streams, Futures, Base64, Async Trait, and
 Tonic. A full dependency tree can still show `axum` because `arrow-flight`
 depends on Tonic's generated Flight service support, and Tonic currently routes
 that support through its internal router feature. That transitive implementation
-detail must not become a direct `xiuxian-wendao-web` dependency or a reason to
+detail must not become a direct `xiuxian-wendao-server` dependency or a reason to
 move Studio HTTP ownership back into this crate.

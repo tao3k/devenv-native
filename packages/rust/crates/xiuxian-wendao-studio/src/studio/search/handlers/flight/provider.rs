@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use xiuxian_wendao_web::transport::{
+use xiuxian_wendao_server::transport::{
     SEARCH_INTENT_ROUTE, SEARCH_KNOWLEDGE_ROUTE, SEARCH_REFERENCES_ROUTE, SEARCH_SYMBOLS_ROUTE,
     SearchFlightRouteProvider, SearchFlightRouteResponse,
 };

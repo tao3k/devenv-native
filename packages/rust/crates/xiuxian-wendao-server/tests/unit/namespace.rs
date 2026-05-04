@@ -1,10 +1,10 @@
-const WEB_MANIFEST: &str = include_str!("../../Cargo.toml");
+const SERVER_MANIFEST: &str = include_str!("../../Cargo.toml");
 
 #[test]
-fn web_manifest_owns_only_transport_dependencies() -> Result<(), Box<dyn std::error::Error>> {
-    let manifest = WEB_MANIFEST.parse::<toml::Value>()?;
+fn server_manifest_owns_only_transport_dependencies() -> Result<(), Box<dyn std::error::Error>> {
+    let manifest = SERVER_MANIFEST.parse::<toml::Value>()?;
     let Some(dependencies) = manifest.get("dependencies").and_then(toml::Value::as_table) else {
-        return Err(std::io::Error::other("web Cargo.toml should define dependencies").into());
+        return Err(std::io::Error::other("server Cargo.toml should define dependencies").into());
     };
     let actual = dependencies.keys().map(String::as_str).collect::<Vec<_>>();
     let expected = [
@@ -21,7 +21,7 @@ fn web_manifest_owns_only_transport_dependencies() -> Result<(), Box<dyn std::er
 
     assert!(
         actual == expected,
-        "xiuxian-wendao-web must own only transport dependencies; expected {expected:?}, got {actual:?}"
+        "xiuxian-wendao-server must own only transport dependencies; expected {expected:?}, got {actual:?}"
     );
 
     Ok(())

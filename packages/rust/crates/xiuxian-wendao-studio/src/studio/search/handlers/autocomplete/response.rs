@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use xiuxian_wendao_web::transport::AutocompleteFlightRouteResponse;
+use xiuxian_wendao_server::transport::AutocompleteFlightRouteResponse;
 
 use super::batch::{autocomplete_response_flight_app_metadata, autocomplete_suggestion_batch};
 use crate::studio::types::{AutocompleteResponse, AutocompleteSuggestion};

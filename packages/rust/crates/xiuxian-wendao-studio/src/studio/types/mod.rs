@@ -1,4 +1,4 @@
-//! Studio API types exposed through the web crate.
+//! Studio API types exposed through the server crate.
 
 pub use xiuxian_wendao::search::contracts::{
     AnalysisEdge, AnalysisEdgeKind, AnalysisEvidence, AnalysisNode, AnalysisNodeKind, ApiError,

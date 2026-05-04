@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use tonic::Status;
-use xiuxian_wendao_web::transport::{
+use xiuxian_wendao_server::transport::{
     AutocompleteFlightRouteProvider, AutocompleteFlightRouteResponse,
 };
 

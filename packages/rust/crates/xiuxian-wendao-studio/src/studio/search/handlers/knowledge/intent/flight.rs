@@ -6,9 +6,9 @@ use crate::studio::arrow_types::{
 };
 #[cfg(test)]
 use async_trait::async_trait;
-use xiuxian_wendao_web::transport::SearchFlightRouteResponse;
+use xiuxian_wendao_server::transport::SearchFlightRouteResponse;
 #[cfg(test)]
-use xiuxian_wendao_web::transport::{SEARCH_INTENT_ROUTE, SearchFlightRouteProvider};
+use xiuxian_wendao_server::transport::{SEARCH_INTENT_ROUTE, SearchFlightRouteProvider};
 
 use super::entry::build_intent_search_response_with_metadata;
 use crate::studio::types::{SearchHit, SearchResponse};

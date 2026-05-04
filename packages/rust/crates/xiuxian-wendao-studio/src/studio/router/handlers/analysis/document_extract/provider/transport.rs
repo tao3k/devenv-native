@@ -7,7 +7,7 @@ use arrow_flight::client::FlightClient;
 use arrow_flight::flight_service_client::FlightServiceClient as TonicFlightServiceClient;
 use futures::TryStreamExt;
 use tonic::transport::{Channel, Endpoint};
-use xiuxian_wendao_web::transport::{
+use xiuxian_wendao_server::transport::{
     ANALYSIS_DOCUMENT_EXTRACT_ROUTE, WENDAO_DOCUMENT_EXTRACT_ERROR_ROW_HEADER,
     WENDAO_DOCUMENT_EXTRACT_FORCE_HEADER, WENDAO_DOCUMENT_EXTRACT_OUTPUT_DIR_HEADER,
     WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_HEADER, WENDAO_SCHEMA_VERSION_HEADER,

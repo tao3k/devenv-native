@@ -1,4 +1,4 @@
-//! Cargo entry point for `xiuxian-wendao-web` unit tests.
+//! Cargo entry point for `xiuxian-wendao-server` unit tests.
 
 #[path = "unit/lib_policy.rs"]
 mod lib_policy;

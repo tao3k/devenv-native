@@ -11,7 +11,7 @@ mod rust_project_harness_gate;
 
 #[cfg(test)]
 rust_lang_project_harness::rust_project_harness_cargo_test_gate!(
-    config = rust_project_harness_gate::wendao_web_harness_config()
+    config = rust_project_harness_gate::wendao_server_harness_config()
 );
 
 /// Flight and gRPC transport contracts for Wendao.

@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::studio::arrow_types::LanceRecordBatch;
 use async_trait::async_trait;
-use xiuxian_wendao_web::transport::{
+use xiuxian_wendao_server::transport::{
     RepoSearchFlightRequest, RepoSearchFlightRouteProvider, RerankScoreWeights, WendaoFlightService,
 };
 

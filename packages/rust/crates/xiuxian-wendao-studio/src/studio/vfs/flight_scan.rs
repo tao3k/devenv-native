@@ -6,7 +6,7 @@ use crate::studio::arrow_types::{
 };
 use async_trait::async_trait;
 use tonic::Status;
-use xiuxian_wendao_web::transport::{VfsScanFlightRouteProvider, VfsScanFlightRouteResponse};
+use xiuxian_wendao_server::transport::{VfsScanFlightRouteProvider, VfsScanFlightRouteResponse};
 
 use crate::studio::StudioState;
 use crate::studio::types::{VfsCategory, VfsScanEntry, VfsScanResult};

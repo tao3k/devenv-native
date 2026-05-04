@@ -2,7 +2,7 @@
 //!
 //! This crate owns Studio-facing HTTP routes, `OpenAPI` exports, and adapters
 //! that connect UI/API requests to Wendao domain services. Low-level Flight and
-//! gRPC transport contracts are provided by `xiuxian-wendao-web`.
+//! gRPC transport contracts are provided by `xiuxian-wendao-server`.
 
 #[cfg(test)]
 #[path = "../tests/unit/lib_policy.rs"]
@@ -23,7 +23,7 @@ pub mod bin_support;
 
 /// Flight and gRPC transport facade used by Studio adapters.
 #[cfg(feature = "zhenfa-router")]
-pub use xiuxian_wendao_web::transport;
+pub use xiuxian_wendao_server::transport;
 
 /// Studio HTTP, Flight, and gateway route surfaces.
 #[cfg(feature = "studio")]

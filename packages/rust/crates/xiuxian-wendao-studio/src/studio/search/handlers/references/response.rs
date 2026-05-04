@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use xiuxian_wendao_web::transport::SearchFlightRouteResponse;
+use xiuxian_wendao_server::transport::SearchFlightRouteResponse;
 
 use super::batch::build_reference_hits_flight_batch;
 use crate::studio::search::handlers::queries::ReferenceSearchQuery;

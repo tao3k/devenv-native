@@ -9,7 +9,7 @@ use xiuxian_wendao_attachments::pdf::ocr::{
     PdfOcrShardInput, PdfOcrShardResult, build_ocr_result_resource_batch,
     build_ocr_shard_input_batch, decode_ocr_shard_result_batches,
 };
-use xiuxian_wendao_web::transport::{
+use xiuxian_wendao_server::transport::{
     ANALYSIS_PDF_OCR_SHARDS_ROUTE, WENDAO_PDF_OCR_WORKERS_HEADER, WENDAO_SCHEMA_VERSION_HEADER,
 };
 

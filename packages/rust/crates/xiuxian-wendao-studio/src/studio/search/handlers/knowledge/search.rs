@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 
-use xiuxian_wendao_web::transport::SearchFlightRouteResponse;
+use xiuxian_wendao_server::transport::SearchFlightRouteResponse;
 
 use super::{search_hit_batch_from_hits, search_response_flight_app_metadata};
 use crate::studio::types::SearchResponse;

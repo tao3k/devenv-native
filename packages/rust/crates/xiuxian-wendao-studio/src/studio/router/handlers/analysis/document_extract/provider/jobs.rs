@@ -4,7 +4,7 @@ use std::time::{Duration, Instant};
 
 use arrow::array::{Array, StringArray};
 use arrow::record_batch::RecordBatch;
-use xiuxian_wendao_web::transport::{
+use xiuxian_wendao_server::transport::{
     DocumentExtractFlightRequest, DocumentExtractFlightRouteResponse,
 };
 

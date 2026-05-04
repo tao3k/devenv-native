@@ -56,9 +56,9 @@ zhenfa-router = [
   "dep:xiuxian-wendao",
   "dep:xiuxian-wendao-core",
   "dep:xiuxian-wendao-parsers",
-  "dep:xiuxian-wendao-web",
+  "dep:xiuxian-wendao-server",
   "dep:xiuxian-zhenfa",
-  "xiuxian-wendao-web/transport",
+  "xiuxian-wendao-server/transport",
   "xiuxian-wendao/builtin-plugins",
   "xiuxian-wendao/duckdb",
   "xiuxian-wendao/repo-lexical-index",
@@ -133,7 +133,7 @@ xiuxian-wendao-core = { path = "../xiuxian-wendao-core", optional = true }
 xiuxian-wendao-attachments = { path = "../xiuxian-wendao-attachments", optional = true }
 xiuxian-wendao-julia = { path = "../xiuxian-wendao-julia", optional = true }
 xiuxian-wendao-parsers = { path = "../xiuxian-wendao-parsers", optional = true }
-xiuxian-wendao-web = { path = "../xiuxian-wendao-web", default-features = false, optional = true }
+xiuxian-wendao-server = { path = "../xiuxian-wendao-server", default-features = false, optional = true }
 xiuxian-logging = { path = "../xiuxian-logging", optional = true }
 xiuxian-wendao-client = { path = "../xiuxian-wendao-client", optional = true }
 xiuxian-zhenfa = { path = "../xiuxian-zhenfa", optional = true }

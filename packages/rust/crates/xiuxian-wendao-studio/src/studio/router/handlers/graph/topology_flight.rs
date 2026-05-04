@@ -6,7 +6,9 @@ use crate::studio::arrow_types::{
 };
 use async_trait::async_trait;
 use tonic::Status;
-use xiuxian_wendao_web::transport::{Topology3dFlightRouteProvider, Topology3dFlightRouteResponse};
+use xiuxian_wendao_server::transport::{
+    Topology3dFlightRouteProvider, Topology3dFlightRouteResponse,
+};
 
 use crate::studio::router::{GatewayState, StudioApiError};
 use crate::studio::types::{Topology3dPayload, TopologyCluster, TopologyLink, TopologyNode};

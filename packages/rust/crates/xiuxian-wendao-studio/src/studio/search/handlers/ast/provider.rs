@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use xiuxian_wendao_web::transport::{AstSearchFlightRouteProvider, SearchFlightRouteResponse};
+use xiuxian_wendao_server::transport::{AstSearchFlightRouteProvider, SearchFlightRouteResponse};
 
 use super::batch::build_ast_hits_flight_batch;
 use super::response::load_ast_search_response;

@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use xiuxian_wendao_web::transport::{
+use xiuxian_wendao_server::transport::{
     RepoSearchFlightRouteProvider, RerankScoreWeights, SqlFlightRouteProvider,
     SqlFlightRouteResponse, WendaoFlightRouteProviders, WendaoFlightService,
 };

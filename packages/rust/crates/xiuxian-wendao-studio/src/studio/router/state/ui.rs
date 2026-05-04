@@ -2,7 +2,7 @@ use std::collections::{BTreeSet, HashSet};
 use std::sync::Arc;
 
 use xiuxian_ast::Lang;
-use xiuxian_wendao_web::transport::{
+use xiuxian_wendao_server::transport::{
     SEARCH_AUTOCOMPLETE_ROUTE, SEARCH_INTENT_ROUTE, SEARCH_KNOWLEDGE_ROUTE,
 };
 

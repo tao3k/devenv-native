@@ -1,4 +1,4 @@
-pub(super) fn wendao_web_harness_config() -> rust_lang_project_harness::RustHarnessConfig {
+pub(super) fn wendao_server_harness_config() -> rust_lang_project_harness::RustHarnessConfig {
     use rust_lang_project_harness::{
         RustOwnerResponsibility, RustVerificationPhase, RustVerificationProfileHint,
         RustVerificationRequirement, RustVerificationSkillBinding, RustVerificationSkillDescriptor,
@@ -30,7 +30,7 @@ pub(super) fn wendao_web_harness_config() -> rust_lang_project_harness::RustHarn
                     [
                         RustVerificationRequirement::new(
                             "benchmark_command",
-                            "cargo bench -p xiuxian-wendao-web --features performance --bench wendao_transport_performance",
+                            "cargo bench -p xiuxian-wendao-server --features performance --bench wendao_transport_performance",
                         ),
                         RustVerificationRequirement::new(
                             "baseline",
@@ -47,7 +47,7 @@ pub(super) fn wendao_web_harness_config() -> rust_lang_project_harness::RustHarn
                     ],
                 ),
             )
-            .with_rationale("web owns only the high-throughput Flight/gRPC transport boundary"),
+            .with_rationale("server owns only the high-throughput Flight/gRPC transport boundary"),
         )
         .with_verification_responsibility_task_kinds(
             RustOwnerResponsibility::LatencySensitive,
@@ -81,5 +81,5 @@ pub(super) fn wendao_web_harness_config() -> rust_lang_project_harness::RustHarn
 }
 
 rust_lang_project_harness::rust_project_harness_cargo_test_gate!(
-    config = wendao_web_harness_config()
+    config = wendao_server_harness_config()
 );

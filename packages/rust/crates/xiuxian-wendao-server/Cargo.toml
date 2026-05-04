@@ -1,5 +1,5 @@
 [package]
-name = "xiuxian-wendao-web"
+name = "xiuxian-wendao-server"
 version.workspace = true
 edition.workspace = true
 description = "Flight and gRPC transport boundary for Wendao"

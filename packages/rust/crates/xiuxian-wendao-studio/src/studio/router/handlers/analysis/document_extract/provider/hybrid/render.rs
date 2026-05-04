@@ -7,7 +7,7 @@ use xiuxian_wendao_attachments::pdf::render::{
     PdfPageRenderShardReport, PdfRenderRoutingDecision, PdfRenderStatus,
     prepare_pdf_source_page_range_ocr_shards_with_selection,
 };
-use xiuxian_wendao_web::transport::DocumentExtractFlightRequest;
+use xiuxian_wendao_server::transport::DocumentExtractFlightRequest;
 
 use super::types::{
     DOCUMENT_EXTRACT_PDF_RENDER_REGIONS_ENV, DOCUMENT_EXTRACT_PDF_RENDER_SELECTION_ENV,

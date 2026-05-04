@@ -5,7 +5,7 @@ use crate::studio::arrow_types::{
 };
 use async_trait::async_trait;
 use tonic::Status;
-use xiuxian_wendao_web::transport::{AnalysisFlightRouteResponse, RefineDocFlightRouteProvider};
+use xiuxian_wendao_server::transport::{AnalysisFlightRouteResponse, RefineDocFlightRouteProvider};
 
 use crate::studio::router::handlers::repo::command_service::run_refine_entity_doc;
 use crate::studio::router::{GatewayState, StudioApiError};

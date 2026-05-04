@@ -1,7 +1,7 @@
 //! Criterion benchmarks for Wendao Flight/gRPC transport helpers.
 
 use criterion::{Criterion, black_box};
-use xiuxian_wendao_web::transport::{
+use xiuxian_wendao_server::transport::{
     SEARCH_SYMBOLS_ROUTE, WENDAO_SCHEMA_VERSION_HEADER, flight_descriptor_path,
     normalize_flight_route,
 };

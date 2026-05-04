@@ -5,7 +5,9 @@ use crate::studio::arrow_types::{
 };
 use async_trait::async_trait;
 use tonic::Status;
-use xiuxian_wendao_web::transport::{VfsContentFlightRouteProvider, VfsContentFlightRouteResponse};
+use xiuxian_wendao_server::transport::{
+    VfsContentFlightRouteProvider, VfsContentFlightRouteResponse,
+};
 
 use crate::studio::types::VfsContentResponse;
 use crate::studio::{StudioApiError, StudioState};

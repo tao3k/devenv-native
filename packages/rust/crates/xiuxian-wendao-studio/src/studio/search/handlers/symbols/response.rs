@@ -1,4 +1,4 @@
-use xiuxian_wendao_web::transport::SearchFlightRouteResponse;
+use xiuxian_wendao_server::transport::SearchFlightRouteResponse;
 
 use super::batch::build_symbol_hits_flight_batch;
 use super::hit::symbol_search_hit;

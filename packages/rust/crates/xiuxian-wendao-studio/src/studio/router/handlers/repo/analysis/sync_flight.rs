@@ -4,7 +4,7 @@ use crate::studio::arrow_types::{
     LanceDataType, LanceField, LanceRecordBatch, LanceSchema, LanceStringArray,
 };
 use async_trait::async_trait;
-use xiuxian_wendao_web::transport::{AnalysisFlightRouteResponse, RepoSyncFlightRouteProvider};
+use xiuxian_wendao_server::transport::{AnalysisFlightRouteResponse, RepoSyncFlightRouteProvider};
 
 use crate::studio::router::GatewayState;
 use crate::studio::router::handlers::repo::command_service::run_repo_sync;

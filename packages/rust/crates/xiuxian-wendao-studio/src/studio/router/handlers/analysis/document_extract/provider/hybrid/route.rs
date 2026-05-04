@@ -4,7 +4,7 @@ use std::time::Instant;
 use xiuxian_wendao_attachments::pdf::metrics::PdfOcrShardMetric;
 use xiuxian_wendao_attachments::pdf::ocr::{PdfOcrShardInput, decode_ocr_shard_input_batches};
 use xiuxian_wendao_attachments::pdf::render::PdfPageRenderShardReport;
-use xiuxian_wendao_web::transport::{
+use xiuxian_wendao_server::transport::{
     DocumentExtractFlightRequest, DocumentExtractFlightRouteProvider,
     DocumentExtractFlightRouteResponse,
 };

@@ -11818,6 +11818,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "xiuxian-wendao-server"
+version = "0.1.1"
+dependencies = [
+ "arrow-array",
+ "arrow-flight",
+ "arrow-schema",
+ "async-trait",
+ "base64",
+ "criterion",
+ "futures",
+ "rust-lang-project-harness",
+ "tokio",
+ "tokio-stream",
+ "toml 0.8.23",
+ "tonic",
+]
+
+[[package]]
 name = "xiuxian-wendao-sql"
 version = "0.1.1"
 dependencies = [
@@ -11890,26 +11908,8 @@ dependencies = [
  "xiuxian-wendao-julia",
  "xiuxian-wendao-parsers",
  "xiuxian-wendao-runtime",
- "xiuxian-wendao-web",
+ "xiuxian-wendao-server",
  "xiuxian-zhenfa",
-]
-
-[[package]]
-name = "xiuxian-wendao-web"
-version = "0.1.1"
-dependencies = [
- "arrow-array",
- "arrow-flight",
- "arrow-schema",
- "async-trait",
- "base64",
- "criterion",
- "futures",
- "rust-lang-project-harness",
- "tokio",
- "tokio-stream",
- "toml 0.8.23",
- "tonic",
 ]
 
 [[package]]

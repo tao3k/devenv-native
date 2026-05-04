@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use xiuxian_wendao_web::transport::DefinitionFlightRouteResponse;
+use xiuxian_wendao_server::transport::DefinitionFlightRouteResponse;
 
 use super::batch::{definition_hit_batch, definition_response_flight_app_metadata};
 use super::path::normalize_source_path;

@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use xiuxian_wendao_web::transport::{AnalysisFlightRouteResponse, RepoIndexFlightRouteProvider};
+use xiuxian_wendao_server::transport::{AnalysisFlightRouteResponse, RepoIndexFlightRouteProvider};
 
 use crate::studio::router::GatewayState;
 use crate::studio::router::handlers::repo::analysis::index_status_flight::{
