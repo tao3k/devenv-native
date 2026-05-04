@@ -8,8 +8,6 @@ mod attachments;
 mod code_ast;
 mod config;
 mod definitions;
-mod document_extract;
-mod error;
 mod graph;
 #[cfg(feature = "search-runtime")]
 mod helpers;
@@ -20,7 +18,6 @@ mod search;
 #[path = "search_index/mod.rs"]
 mod search_index;
 mod symbols;
-mod vfs;
 
 pub use analysis::{
     AnalysisEdge, AnalysisEdgeKind, AnalysisEvidence, AnalysisNode, AnalysisNodeKind,
@@ -40,11 +37,6 @@ pub use definitions::{
     AstSearchHit, AstSearchResponse, DefinitionResolveResponse, DefinitionSearchHit,
     ObservationHint, ReferenceSearchHit, ReferenceSearchResponse,
 };
-pub use document_extract::{
-    DocumentExtractJobStatus, DocumentExtractJobSubmitRequest, DocumentExtractJobsStatus,
-    DocumentExtractResource, DocumentExtractResult,
-};
-pub use error::ApiError;
 pub use graph::{
     GraphLink, GraphNeighborsResponse, GraphNode, Topology3dPayload, TopologyCluster, TopologyLink,
     TopologyNode,
@@ -70,4 +62,3 @@ pub use symbols::{
     AutocompleteHit, AutocompleteResponse, AutocompleteSuggestion, SymbolSearchHit,
     SymbolSearchResponse,
 };
-pub use vfs::{VfsCategory, VfsContentResponse, VfsEntry, VfsScanEntry, VfsScanResult};

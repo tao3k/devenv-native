@@ -11,4 +11,10 @@ fn contracts_feature_exports_plugin_artifact_type_collection() {
     assert!(exported.contains("UiPluginArtifact"));
     assert!(exported.contains("UiPluginLaunchSpec"));
     assert!(exported.contains("UiPluginTransportKind"));
+    assert!(exported.contains("ApiError"));
+    assert!(exported.contains("VfsScanResult"));
+    assert!(exported.contains("DocumentExtractResult"));
+    assert!(exported.contains("DocumentExtractJobsStatus"));
+    assert!(exported.contains("maxRunningConversions"));
+    assert!(exported.contains("pdfOcrLatencyP95Ms"));
 }

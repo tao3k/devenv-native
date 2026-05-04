@@ -3,7 +3,7 @@ use specta_typescript::{BigIntExportBehavior, Typescript};
 use super::{studio_frontend_type_collection, studio_type_collection};
 
 #[test]
-fn studio_type_collection_exports_generic_plugin_artifact_types_only() {
+fn studio_type_collection_exports_lightweight_contract_types() {
     let exported = Typescript::new()
         .bigint(BigIntExportBehavior::Number)
         .export(&studio_type_collection())
@@ -11,6 +11,10 @@ fn studio_type_collection_exports_generic_plugin_artifact_types_only() {
 
     assert!(exported.contains("UiPluginArtifact"));
     assert!(exported.contains("UiPluginLaunchSpec"));
+    assert!(exported.contains("ApiError"));
+    assert!(exported.contains("VfsScanResult"));
+    assert!(exported.contains("DocumentExtractResult"));
+    assert!(exported.contains("DocumentExtractJobsStatus"));
     assert!(!exported.contains("UiCompatDeploymentArtifact"));
     assert!(!exported.contains("UiJuliaDeploymentArtifact"));
 }

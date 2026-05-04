@@ -5,11 +5,20 @@ pub mod routes;
 
 pub use routes::{RouteContract, WENDAO_GATEWAY_ROUTE_CONTRACTS};
 
+mod document_extract;
+mod error;
 mod plugin_artifact;
+mod type_collection;
+mod vfs;
 
-pub use plugin_artifact::{
-    UiPluginArtifact, UiPluginLaunchSpec, UiPluginTransportKind, studio_type_collection,
+pub use document_extract::{
+    DocumentExtractJobStatus, DocumentExtractJobSubmitRequest, DocumentExtractJobsStatus,
+    DocumentExtractResource, DocumentExtractResult,
 };
+pub use error::ApiError;
+pub use plugin_artifact::{UiPluginArtifact, UiPluginLaunchSpec, UiPluginTransportKind};
+pub use type_collection::studio_type_collection;
+pub use vfs::{VfsCategory, VfsContentResponse, VfsEntry, VfsScanEntry, VfsScanResult};
 
 mod search_manifest;
 
@@ -24,14 +33,12 @@ mod types;
 
 #[cfg(feature = "local-runtime")]
 pub use types::{
-    AnalysisEdge, AnalysisEdgeKind, AnalysisEvidence, AnalysisNode, AnalysisNodeKind, ApiError,
-    AstSearchHit, AstSearchResponse, AttachmentSearchHit, AttachmentSearchResponse,
-    AutocompleteHit, AutocompleteResponse, AutocompleteSuggestion, CodeAstAnalysisResponse,
-    CodeAstEdge, CodeAstEdgeKind, CodeAstNode, CodeAstNodeKind, CodeAstProjection,
-    CodeAstProjectionKind, CodeAstRetrievalAtom, CodeAstRetrievalAtomScope,
-    DefinitionResolveResponse, DefinitionSearchHit, DocumentExtractJobStatus,
-    DocumentExtractJobSubmitRequest, DocumentExtractJobsStatus, DocumentExtractResource,
-    DocumentExtractResult, GraphLink, GraphNeighborsResponse, GraphNode, IntentSearchHit,
+    AnalysisEdge, AnalysisEdgeKind, AnalysisEvidence, AnalysisNode, AnalysisNodeKind, AstSearchHit,
+    AstSearchResponse, AttachmentSearchHit, AttachmentSearchResponse, AutocompleteHit,
+    AutocompleteResponse, AutocompleteSuggestion, CodeAstAnalysisResponse, CodeAstEdge,
+    CodeAstEdgeKind, CodeAstNode, CodeAstNodeKind, CodeAstProjection, CodeAstProjectionKind,
+    CodeAstRetrievalAtom, CodeAstRetrievalAtomScope, DefinitionResolveResponse,
+    DefinitionSearchHit, GraphLink, GraphNeighborsResponse, GraphNode, IntentSearchHit,
     KnowledgeSearchHit, MarkdownAnalysisDocumentLink, MarkdownAnalysisDocumentLinkKind,
     MarkdownAnalysisDocumentMetadata, MarkdownAnalysisResponse, MarkdownRetrievalAtom,
     MermaidProjection, MermaidViewKind, ObservationHint, ReferenceSearchHit,
@@ -39,6 +46,5 @@ pub use types::{
     SearchCorpusIndexStatus, SearchHit, SearchIndexMaintenanceStatus, SearchIndexPhase,
     SearchIndexStatusResponse, SearchResponse, StudioNavigationTarget, SymbolSearchHit,
     SymbolSearchResponse, Topology3dPayload, TopologyCluster, TopologyLink, TopologyNode,
-    VfsCategory, VfsContentResponse, VfsEntry, VfsScanEntry, VfsScanResult,
     studio_frontend_type_collection,
 };

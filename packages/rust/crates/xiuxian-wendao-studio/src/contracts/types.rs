@@ -2,17 +2,19 @@
 
 use specta::TypeCollection;
 
-use super::{UiCapabilities, UiConfig};
+use super::{
+    ApiError, DocumentExtractJobStatus, DocumentExtractJobSubmitRequest, DocumentExtractJobsStatus,
+    DocumentExtractResult, UiCapabilities, UiConfig, VfsContentResponse, VfsEntry, VfsScanEntry,
+    VfsScanResult,
+};
 
 pub use xiuxian_wendao::search::contracts::{
-    AnalysisEdge, AnalysisEdgeKind, AnalysisEvidence, AnalysisNode, AnalysisNodeKind, ApiError,
-    AstSearchHit, AstSearchResponse, AttachmentSearchHit, AttachmentSearchResponse,
-    AutocompleteHit, AutocompleteResponse, AutocompleteSuggestion, CodeAstAnalysisResponse,
-    CodeAstEdge, CodeAstEdgeKind, CodeAstNode, CodeAstNodeKind, CodeAstProjection,
-    CodeAstProjectionKind, CodeAstRetrievalAtom, CodeAstRetrievalAtomScope,
-    DefinitionResolveResponse, DefinitionSearchHit, DocumentExtractJobStatus,
-    DocumentExtractJobSubmitRequest, DocumentExtractJobsStatus, DocumentExtractResource,
-    DocumentExtractResult, GraphLink, GraphNeighborsResponse, GraphNode, IntentSearchHit,
+    AnalysisEdge, AnalysisEdgeKind, AnalysisEvidence, AnalysisNode, AnalysisNodeKind, AstSearchHit,
+    AstSearchResponse, AttachmentSearchHit, AttachmentSearchResponse, AutocompleteHit,
+    AutocompleteResponse, AutocompleteSuggestion, CodeAstAnalysisResponse, CodeAstEdge,
+    CodeAstEdgeKind, CodeAstNode, CodeAstNodeKind, CodeAstProjection, CodeAstProjectionKind,
+    CodeAstRetrievalAtom, CodeAstRetrievalAtomScope, DefinitionResolveResponse,
+    DefinitionSearchHit, GraphLink, GraphNeighborsResponse, GraphNode, IntentSearchHit,
     KnowledgeSearchHit, MarkdownAnalysisDocumentLink, MarkdownAnalysisDocumentLinkKind,
     MarkdownAnalysisDocumentMetadata, MarkdownAnalysisResponse, MarkdownRetrievalAtom,
     MermaidProjection, MermaidViewKind, ObservationHint, ReferenceSearchHit,
@@ -20,7 +22,6 @@ pub use xiuxian_wendao::search::contracts::{
     SearchCorpusIndexStatus, SearchHit, SearchIndexMaintenanceStatus, SearchIndexPhase,
     SearchIndexStatusResponse, SearchResponse, StudioNavigationTarget, SymbolSearchHit,
     SymbolSearchResponse, Topology3dPayload, TopologyCluster, TopologyLink, TopologyNode,
-    VfsCategory, VfsContentResponse, VfsEntry, VfsScanEntry, VfsScanResult,
 };
 
 /// Build the frontend-facing Studio Specta type collection.

@@ -26,6 +26,19 @@ const STUDIO_PLUGIN_ARTIFACT_SYMBOLS: &[&str] = &[
     "UiPluginLaunchSpec",
     "UiPluginTransportKind",
 ];
+const STUDIO_HTTP_API_SYMBOLS: &[&str] = &[
+    "ApiError",
+    "VfsEntry",
+    "VfsCategory",
+    "VfsScanEntry",
+    "VfsScanResult",
+    "VfsContentResponse",
+    "DocumentExtractResult",
+    "DocumentExtractResource",
+    "DocumentExtractJobSubmitRequest",
+    "DocumentExtractJobStatus",
+    "DocumentExtractJobsStatus",
+];
 const STUDIO_SEARCH_MANIFEST_SYMBOLS: &[&str] = &[
     "UiConfig",
     "UiProjectConfig",
@@ -181,6 +194,24 @@ fn wendao_domain_contracts_do_not_export_studio_plugin_artifact_dtos() {
     assert!(
         offenders.is_empty(),
         "Studio plugin artifact DTOs belong to xiuxian-wendao-studio contracts, not xiuxian-wendao search contracts:\n{}",
+        offenders.join("\n")
+    );
+}
+
+#[test]
+fn wendao_domain_contracts_do_not_export_studio_http_api_dtos() {
+    let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let domain_contracts_root = workspace_root(manifest_dir.as_path())
+        .join("packages/rust/crates/xiuxian-wendao/src/search/contracts");
+    let mut offenders = Vec::new();
+
+    for symbol in STUDIO_HTTP_API_SYMBOLS {
+        collect_rust_source_occurrences(domain_contracts_root.as_path(), symbol, &mut offenders);
+    }
+
+    assert!(
+        offenders.is_empty(),
+        "Studio HTTP API DTOs belong to xiuxian-wendao-studio contracts, not xiuxian-wendao search contracts:\n{}",
         offenders.join("\n")
     );
 }

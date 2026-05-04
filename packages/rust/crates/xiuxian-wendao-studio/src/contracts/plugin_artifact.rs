@@ -1,7 +1,7 @@
 //! Studio-owned plugin artifact inspection contracts.
 
 use serde::{Deserialize, Serialize};
-use specta::{Type, TypeCollection};
+use specta::Type;
 #[cfg(feature = "local-runtime")]
 use xiuxian_wendao_core::{
     artifacts::{PluginArtifactPayload, PluginLaunchSpec},
@@ -103,12 +103,4 @@ impl From<PluginArtifactPayload> for UiPluginArtifact {
             fallback_reason: value.fallback_reason,
         }
     }
-}
-
-/// Build the plugin-only Studio Specta type collection.
-#[must_use]
-pub fn studio_type_collection() -> TypeCollection {
-    TypeCollection::default()
-        .register::<UiPluginArtifact>()
-        .register::<UiPluginLaunchSpec>()
 }
