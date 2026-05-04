@@ -18,7 +18,24 @@ fn load_flowhub_module_manifest_reads_real_plan_graph_topology_contract() {
         manifest.graph[0].topology,
         FlowhubGraphTopology::BoundedLoop
     );
-    assert_eq!(manifest.graph[0].workdir.as_ref(), None);
+    let workdir = manifest.graph[0]
+        .workdir
+        .as_ref()
+        .unwrap_or_else(|| panic!("plan graph should declare localized workdir contract"));
+    assert_eq!(workdir.root, "<plan-workdir>");
+    assert!(
+        workdir
+            .note
+            .as_deref()
+            .is_some_and(|note| note.contains("localized plan work surface"))
+    );
+    assert!(
+        workdir
+            .check
+            .require
+            .iter()
+            .any(|path| path == "flowchart.mmd")
+    );
     assert!(
         manifest.graph[0]
             .resolved_workdir_name()
@@ -68,19 +85,18 @@ fn load_flowhub_module_manifest_reads_real_research_graph_node_contracts() {
     assert_eq!(manifest.graph[1].path, "paper-deep-read.mmd");
     assert_eq!(manifest.graph[1].name.as_deref(), Some("PAPER_DEEP_READ"));
     assert!(
-        manifest.graph[1]
-            .node
-            .iter()
-            .any(|node| node.label == "methods_extract")
-    );
-    assert!(
-        manifest.graph[1]
-            .node
-            .iter()
-            .any(|node| node.label == "materialize_syntheses")
+        manifest.graph[1].node.is_empty(),
+        "deep-read node annotations live in paper-deep-read.mmd, not in the module manifest"
     );
     assert_eq!(manifest.graph[2].path, "paper-compare.mmd");
-    assert_eq!(manifest.graph[0].workdir.as_ref(), None);
+    assert!(manifest.graph[0].workdir.as_ref().is_some_and(|workdir| {
+        workdir.root == "runs/<run_id>"
+            && workdir
+                .check
+                .require
+                .iter()
+                .any(|path| path == "refs/paper.json")
+    }));
     assert!(
         manifest.graph[0]
             .node
