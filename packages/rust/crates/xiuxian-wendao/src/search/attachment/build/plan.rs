@@ -3,7 +3,7 @@ use std::path::Path;
 
 use crate::search::attachment::build::AttachmentBuildPlan;
 use crate::search::attachment::build::extract::build_attachment_hits_for_entry;
-use crate::search::contracts::UiProjectConfig;
+use crate::search::contracts::SearchProjectConfig;
 #[cfg(any(test, feature = "test-support"))]
 use crate::search::scan_note_project_files;
 use crate::search::{
@@ -18,7 +18,7 @@ pub(crate) fn plan_attachment_build(
     service: &SearchPlaneService,
     project_root: &Path,
     config_root: &Path,
-    projects: &[UiProjectConfig],
+    projects: &[SearchProjectConfig],
     active_epoch: Option<u64>,
     previous_fingerprints: &BTreeMap<String, SearchFileFingerprint>,
 ) -> AttachmentBuildPlan {
@@ -43,7 +43,7 @@ pub(crate) fn plan_attachment_build_with_scanned_files(
     service: &SearchPlaneService,
     project_root: &Path,
     _config_root: &Path,
-    _projects: &[UiProjectConfig],
+    _projects: &[SearchProjectConfig],
     scanned_files: &[ProjectScannedFile],
     active_epoch: Option<u64>,
     previous_fingerprints: &BTreeMap<String, SearchFileFingerprint>,

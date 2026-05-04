@@ -11,10 +11,8 @@ mod plugin_artifact;
 #[cfg(feature = "local-runtime")]
 pub use plugin_artifact::{UiPluginArtifact, UiPluginLaunchSpec, UiPluginTransportKind};
 
-#[cfg(feature = "local-runtime")]
 mod search_manifest;
 
-#[cfg(feature = "local-runtime")]
 pub use search_manifest::{
     UiCapabilities, UiCodeSearchContract, UiCodeSearchContractExample, UiCodeSearchRoutes,
     UiConfig, UiProjectConfig, UiRepoDiscoveryContract, UiRepoDiscoverySurfaceContract,

@@ -1,7 +1,7 @@
 //! Coordinates search-plane query methods across repository, symbol, attachment, and vector owners.
 
 use super::types::SearchPlaneService;
-use crate::search::contracts::UiProjectConfig;
+use crate::search::contracts::{ProjectConfigView, materialize_project_configs};
 use crate::search::{
     AttachmentSearchError, KnowledgeSectionSearchError, LocalSymbolSearchError, ProjectScannedFile,
     ReferenceOccurrenceSearchError,
@@ -43,13 +43,14 @@ impl SearchPlaneService {
         &self,
         project_root: &std::path::Path,
         config_root: &std::path::Path,
-        projects: &[UiProjectConfig],
+        projects: &[impl ProjectConfigView],
     ) -> bool {
+        let projects = materialize_project_configs(projects);
         crate::search::local_symbol::ensure_local_symbol_index_started(
             self,
             project_root,
             config_root,
-            projects,
+            projects.as_slice(),
         )
     }
 
@@ -59,14 +60,15 @@ impl SearchPlaneService {
         &self,
         project_root: &std::path::Path,
         config_root: &std::path::Path,
-        projects: &[UiProjectConfig],
+        projects: &[impl ProjectConfigView],
         scanned_files: &[ProjectScannedFile],
     ) -> bool {
+        let projects = materialize_project_configs(projects);
         crate::search::local_symbol::ensure_local_symbol_index_started_with_scanned_files(
             self,
             project_root,
             config_root,
-            projects,
+            projects.as_slice(),
             scanned_files,
         )
     }
@@ -92,13 +94,14 @@ impl SearchPlaneService {
         &self,
         project_root: &std::path::Path,
         config_root: &std::path::Path,
-        projects: &[UiProjectConfig],
+        projects: &[impl ProjectConfigView],
     ) -> bool {
+        let projects = materialize_project_configs(projects);
         crate::search::knowledge_section::ensure_knowledge_section_index_started(
             self,
             project_root,
             config_root,
-            projects,
+            projects.as_slice(),
         )
     }
 
@@ -108,14 +111,15 @@ impl SearchPlaneService {
         &self,
         project_root: &std::path::Path,
         config_root: &std::path::Path,
-        projects: &[UiProjectConfig],
+        projects: &[impl ProjectConfigView],
         scanned_files: &[ProjectScannedFile],
     ) -> bool {
+        let projects = materialize_project_configs(projects);
         crate::search::knowledge_section::ensure_knowledge_section_index_started_with_scanned_files(
             self,
             project_root,
             config_root,
-            projects,
+            projects.as_slice(),
             scanned_files,
         )
     }
@@ -141,13 +145,14 @@ impl SearchPlaneService {
         &self,
         project_root: &std::path::Path,
         config_root: &std::path::Path,
-        projects: &[UiProjectConfig],
+        projects: &[impl ProjectConfigView],
     ) -> bool {
+        let projects = materialize_project_configs(projects);
         crate::search::attachment::ensure_attachment_index_started(
             self,
             project_root,
             config_root,
-            projects,
+            projects.as_slice(),
         )
     }
 
@@ -157,14 +162,15 @@ impl SearchPlaneService {
         &self,
         project_root: &std::path::Path,
         config_root: &std::path::Path,
-        projects: &[UiProjectConfig],
+        projects: &[impl ProjectConfigView],
         scanned_files: &[ProjectScannedFile],
     ) -> bool {
+        let projects = materialize_project_configs(projects);
         crate::search::attachment::ensure_attachment_index_started_with_scanned_files(
             self,
             project_root,
             config_root,
-            projects,
+            projects.as_slice(),
             scanned_files,
         )
     }
@@ -215,13 +221,14 @@ impl SearchPlaneService {
         &self,
         project_root: &std::path::Path,
         config_root: &std::path::Path,
-        projects: &[UiProjectConfig],
+        projects: &[impl ProjectConfigView],
     ) -> bool {
+        let projects = materialize_project_configs(projects);
         crate::search::reference_occurrence::ensure_reference_occurrence_index_started(
             self,
             project_root,
             config_root,
-            projects,
+            projects.as_slice(),
         )
     }
 
@@ -231,14 +238,15 @@ impl SearchPlaneService {
         &self,
         project_root: &std::path::Path,
         config_root: &std::path::Path,
-        projects: &[UiProjectConfig],
+        projects: &[impl ProjectConfigView],
         scanned_files: &[ProjectScannedFile],
     ) -> bool {
+        let projects = materialize_project_configs(projects);
         crate::search::reference_occurrence::ensure_reference_occurrence_index_started_with_scanned_files(
             self,
             project_root,
             config_root,
-            projects,
+            projects.as_slice(),
             scanned_files,
         )
     }

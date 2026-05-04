@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 use std::path::Path;
 
-use crate::search::contracts::UiProjectConfig;
+use crate::search::contracts::SearchProjectConfig;
 use crate::search::contracts::is_markdown_path;
 #[cfg(test)]
 use crate::search::fingerprint_symbol_projects;
@@ -31,7 +31,7 @@ pub(crate) fn plan_local_symbol_build(
     service: &SearchPlaneService,
     project_root: &Path,
     config_root: &Path,
-    projects: &[UiProjectConfig],
+    projects: &[SearchProjectConfig],
     active_epoch: Option<u64>,
     previous_fingerprints: &BTreeMap<String, SearchFileFingerprint>,
 ) -> LocalSymbolBuildPlan {
@@ -56,7 +56,7 @@ pub(crate) fn plan_local_symbol_build_with_scanned_files(
     service: &SearchPlaneService,
     project_root: &Path,
     _config_root: &Path,
-    _projects: &[UiProjectConfig],
+    _projects: &[SearchProjectConfig],
     scanned_files: &[ProjectScannedFile],
     active_epoch: Option<u64>,
     previous_fingerprints: &BTreeMap<String, SearchFileFingerprint>,
@@ -320,7 +320,7 @@ fn mark_deleted_or_repartitioned_local_symbol_paths(
 pub(crate) fn fingerprint_projects(
     project_root: &Path,
     config_root: &Path,
-    projects: &[UiProjectConfig],
+    projects: &[SearchProjectConfig],
 ) -> String {
     fingerprint_symbol_projects(project_root, config_root, projects)
 }

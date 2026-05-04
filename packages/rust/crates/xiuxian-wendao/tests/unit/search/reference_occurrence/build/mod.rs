@@ -3,7 +3,7 @@ use std::path::Path;
 use std::time::Duration;
 
 use crate::search::cache::SearchPlaneCache;
-use crate::search::contracts::UiProjectConfig;
+use crate::search::contracts::SearchProjectConfig;
 use crate::search::local_symbol::plan_local_symbol_build;
 use crate::search::reference_occurrence::build::{
     ensure_reference_occurrence_index_started, fingerprint_projects,
@@ -46,7 +46,7 @@ async fn wait_for_reference_occurrence_ready(
 fn repeat_work_demo_fixture() -> (
     tempfile::TempDir,
     std::path::PathBuf,
-    Vec<UiProjectConfig>,
+    Vec<SearchProjectConfig>,
     SearchPlaneService,
 ) {
     let temp_dir = tempfile::tempdir().unwrap_or_else(|error| panic!("temp dir: {error}"));
@@ -58,7 +58,7 @@ fn repeat_work_demo_fixture() -> (
         "fn alpha() {}\nfn use_alpha() { alpha(); }\n",
     )
     .unwrap_or_else(|error| panic!("write lib: {error}"));
-    let projects = vec![UiProjectConfig {
+    let projects = vec![SearchProjectConfig {
         name: "demo".to_string(),
         root: ".".to_string(),
         dirs: vec![".".to_string()],
@@ -83,7 +83,7 @@ fn plan_reference_occurrence_build_only_reparses_changed_files() {
         "fn gamma() {}\nfn use_gamma() { gamma(); }\n",
     )
     .unwrap_or_else(|error| panic!("write extra: {error}"));
-    let projects = vec![UiProjectConfig {
+    let projects = vec![SearchProjectConfig {
         name: "demo".to_string(),
         root: ".".to_string(),
         dirs: vec![".".to_string()],
@@ -159,7 +159,7 @@ fn plan_reference_occurrence_build_ignores_metadata_only_edits_when_hits_are_unc
         "fn alpha() {}\nfn use_alpha() { alpha(); }\n",
     )
     .unwrap_or_else(|error| panic!("write lib: {error}"));
-    let projects = vec![UiProjectConfig {
+    let projects = vec![SearchProjectConfig {
         name: "demo".to_string(),
         root: ".".to_string(),
         dirs: vec![".".to_string()],
@@ -223,7 +223,7 @@ async fn reference_occurrence_incremental_refresh_reuses_unchanged_rows() {
         "fn gamma() {}\nfn use_gamma() { gamma(); }\n",
     )
     .unwrap_or_else(|error| panic!("write extra: {error}"));
-    let projects = vec![UiProjectConfig {
+    let projects = vec![SearchProjectConfig {
         name: "demo".to_string(),
         root: ".".to_string(),
         dirs: vec![".".to_string()],
@@ -314,7 +314,7 @@ fn fingerprint_projects_changes_when_scanned_file_metadata_changes() {
     )
     .unwrap_or_else(|error| panic!("write skipped file: {error}"));
 
-    let projects = vec![UiProjectConfig {
+    let projects = vec![SearchProjectConfig {
         name: "demo".to_string(),
         root: ".".to_string(),
         dirs: vec![".".to_string()],
@@ -443,7 +443,7 @@ fn local_symbol_and_reference_occurrence_share_source_snapshot_entries() {
         "fn alpha() {}\nfn use_alpha() { alpha(); }\n",
     )
     .unwrap_or_else(|error| panic!("write lib: {error}"));
-    let projects = vec![UiProjectConfig {
+    let projects = vec![SearchProjectConfig {
         name: "demo".to_string(),
         root: ".".to_string(),
         dirs: vec![".".to_string()],
@@ -483,7 +483,7 @@ async fn reference_occurrence_runtime_build_reuses_fingerprint_scan_inventory() 
         "fn alpha() {}\nfn use_alpha() { alpha(); }\n",
     )
     .unwrap_or_else(|error| panic!("write lib: {error}"));
-    let projects = vec![UiProjectConfig {
+    let projects = vec![SearchProjectConfig {
         name: "demo".to_string(),
         root: ".".to_string(),
         dirs: vec![".".to_string()],

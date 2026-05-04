@@ -33,7 +33,9 @@ pub use code_ast::{
     CodeAstAnalysisResponse, CodeAstEdge, CodeAstEdgeKind, CodeAstNode, CodeAstNodeKind,
     CodeAstProjection, CodeAstProjectionKind, CodeAstRetrievalAtom, CodeAstRetrievalAtomScope,
 };
-pub use config::{UiProjectConfig, UiRepoProjectConfig};
+#[cfg(feature = "search-runtime")]
+pub(crate) use config::materialize_project_configs;
+pub use config::{ProjectConfigView, SearchProjectConfig};
 pub use definitions::{
     AstSearchHit, AstSearchResponse, DefinitionResolveResponse, DefinitionSearchHit,
     ObservationHint, ReferenceSearchHit, ReferenceSearchResponse,

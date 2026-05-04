@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
-use crate::search::contracts::UiProjectConfig;
+use crate::search::contracts::SearchProjectConfig;
 #[cfg(test)]
 use crate::search::fingerprint_source_projects;
 use crate::search::reference_occurrence::build::ReferenceOccurrenceBuildPlan;
@@ -20,7 +20,7 @@ pub(crate) fn plan_reference_occurrence_build(
     service: &SearchPlaneService,
     project_root: &Path,
     config_root: &Path,
-    projects: &[UiProjectConfig],
+    projects: &[SearchProjectConfig],
     active_epoch: Option<u64>,
     previous_fingerprints: &BTreeMap<String, SearchFileFingerprint>,
 ) -> ReferenceOccurrenceBuildPlan {
@@ -45,7 +45,7 @@ pub(crate) fn plan_reference_occurrence_build_with_scanned_files(
     service: &SearchPlaneService,
     project_root: &Path,
     config_root: &Path,
-    projects: &[UiProjectConfig],
+    projects: &[SearchProjectConfig],
     scanned_files: &[ProjectScannedFile],
     active_epoch: Option<u64>,
     previous_fingerprints: &BTreeMap<String, SearchFileFingerprint>,
@@ -140,7 +140,7 @@ pub(crate) fn plan_reference_occurrence_build_with_scanned_files(
 pub(crate) fn fingerprint_projects(
     project_root: &Path,
     config_root: &Path,
-    projects: &[UiProjectConfig],
+    projects: &[SearchProjectConfig],
 ) -> String {
     fingerprint_source_projects(project_root, config_root, projects)
 }

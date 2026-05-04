@@ -7,7 +7,7 @@ use walkdir::WalkDir;
 
 use crate::parsers::markdown::is_supported_note;
 use crate::search::SearchFileFingerprint;
-use crate::search::contracts::UiProjectConfig;
+use crate::search::contracts::SearchProjectConfig;
 use crate::search::contracts::{
     ast_search_lang, configured_project_scopes, index_path_for_entry, is_markdown_path,
     should_skip_entry,
@@ -115,7 +115,7 @@ struct ProjectFileMetadata {
 pub(crate) fn fingerprint_symbol_projects(
     project_root: &Path,
     config_root: &Path,
-    projects: &[UiProjectConfig],
+    projects: &[SearchProjectConfig],
 ) -> String {
     fingerprint_symbol_projects_with_scanned_files(project_root, config_root, projects).0
 }
@@ -124,7 +124,7 @@ pub(crate) fn fingerprint_symbol_projects(
 pub(crate) fn fingerprint_source_projects(
     project_root: &Path,
     config_root: &Path,
-    projects: &[UiProjectConfig],
+    projects: &[SearchProjectConfig],
 ) -> String {
     fingerprint_source_projects_with_scanned_files(project_root, config_root, projects).0
 }
@@ -133,7 +133,7 @@ pub(crate) fn fingerprint_source_projects(
 pub(crate) fn fingerprint_note_projects(
     project_root: &Path,
     config_root: &Path,
-    projects: &[UiProjectConfig],
+    projects: &[SearchProjectConfig],
 ) -> String {
     fingerprint_note_projects_with_scanned_files(project_root, config_root, projects).0
 }
@@ -142,7 +142,7 @@ pub(crate) fn fingerprint_note_projects(
 pub(crate) fn fingerprint_symbol_projects_with_scanned_files(
     project_root: &Path,
     config_root: &Path,
-    projects: &[UiProjectConfig],
+    projects: &[SearchProjectConfig],
 ) -> (String, Vec<ProjectScannedFile>) {
     let files = scan_symbol_project_files(project_root, config_root, projects);
     let fingerprint = fingerprint_projects(
@@ -158,7 +158,7 @@ pub(crate) fn fingerprint_symbol_projects_with_scanned_files(
 pub(crate) fn fingerprint_symbol_projects_from_scanned_files(
     project_root: &Path,
     config_root: &Path,
-    projects: &[UiProjectConfig],
+    projects: &[SearchProjectConfig],
     files: &[ProjectScannedFile],
 ) -> String {
     fingerprint_projects(
@@ -174,7 +174,7 @@ pub(crate) fn fingerprint_symbol_projects_from_scanned_files(
 pub(crate) fn fingerprint_source_projects_with_scanned_files(
     project_root: &Path,
     config_root: &Path,
-    projects: &[UiProjectConfig],
+    projects: &[SearchProjectConfig],
 ) -> (String, Vec<ProjectScannedFile>) {
     let files = scan_source_project_files(project_root, config_root, projects);
     let fingerprint = fingerprint_projects(
@@ -190,7 +190,7 @@ pub(crate) fn fingerprint_source_projects_with_scanned_files(
 pub(crate) fn fingerprint_source_projects_from_scanned_files(
     project_root: &Path,
     config_root: &Path,
-    projects: &[UiProjectConfig],
+    projects: &[SearchProjectConfig],
     files: &[ProjectScannedFile],
 ) -> String {
     fingerprint_projects(
@@ -206,7 +206,7 @@ pub(crate) fn fingerprint_source_projects_from_scanned_files(
 pub(crate) fn fingerprint_note_projects_with_scanned_files(
     project_root: &Path,
     config_root: &Path,
-    projects: &[UiProjectConfig],
+    projects: &[SearchProjectConfig],
 ) -> (String, Vec<ProjectScannedFile>) {
     let files = scan_note_project_files(project_root, config_root, projects);
     let fingerprint = fingerprint_projects(
@@ -222,7 +222,7 @@ pub(crate) fn fingerprint_note_projects_with_scanned_files(
 pub(crate) fn fingerprint_note_projects_from_scanned_files(
     project_root: &Path,
     config_root: &Path,
-    projects: &[UiProjectConfig],
+    projects: &[SearchProjectConfig],
     files: &[ProjectScannedFile],
 ) -> String {
     fingerprint_projects(
@@ -237,7 +237,7 @@ pub(crate) fn fingerprint_note_projects_from_scanned_files(
 pub(crate) fn scan_supported_project_files(
     project_root: &Path,
     config_root: &Path,
-    projects: &[UiProjectConfig],
+    projects: &[SearchProjectConfig],
 ) -> ProjectScanInventory {
     ProjectScanInventory::new(project_files(
         project_root,
@@ -251,7 +251,7 @@ pub(crate) fn scan_supported_project_files(
 pub(crate) fn scan_symbol_project_files(
     project_root: &Path,
     config_root: &Path,
-    projects: &[UiProjectConfig],
+    projects: &[SearchProjectConfig],
 ) -> Vec<ProjectScannedFile> {
     project_files(
         project_root,
@@ -265,7 +265,7 @@ pub(crate) fn scan_symbol_project_files(
 pub(crate) fn scan_source_project_files(
     project_root: &Path,
     config_root: &Path,
-    projects: &[UiProjectConfig],
+    projects: &[SearchProjectConfig],
 ) -> Vec<ProjectScannedFile> {
     project_files(
         project_root,
@@ -279,7 +279,7 @@ pub(crate) fn scan_source_project_files(
 pub(crate) fn scan_note_project_files(
     project_root: &Path,
     config_root: &Path,
-    projects: &[UiProjectConfig],
+    projects: &[SearchProjectConfig],
 ) -> Vec<ProjectScannedFile> {
     project_files(
         project_root,
@@ -292,7 +292,7 @@ pub(crate) fn scan_note_project_files(
 fn fingerprint_projects(
     project_root: &Path,
     config_root: &Path,
-    projects: &[UiProjectConfig],
+    projects: &[SearchProjectConfig],
     mode: ProjectFingerprintMode,
     files: &[ProjectScannedFile],
 ) -> String {
@@ -346,7 +346,7 @@ fn filter_scanned_files_for_mode(
 fn project_files(
     project_root: &Path,
     config_root: &Path,
-    projects: &[UiProjectConfig],
+    projects: &[SearchProjectConfig],
     mode: ProjectFingerprintMode,
 ) -> Vec<ProjectScannedFile> {
     let mut files = BTreeMap::<String, ProjectScannedFile>::new();

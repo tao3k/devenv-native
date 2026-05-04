@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use crate::search::contracts::UiProjectConfig;
+use crate::search::contracts::SearchProjectConfig;
 use crate::search::contracts::{SearchProjectMetadata, resolve_project_root_path};
 #[cfg(test)]
 use crate::search::fingerprint_note_projects;
@@ -8,7 +8,7 @@ use crate::search::fingerprint_note_projects;
 pub(super) fn studio_display_path(
     project_root: &Path,
     config_root: &Path,
-    projects: &[UiProjectConfig],
+    projects: &[SearchProjectConfig],
     metadata: &SearchProjectMetadata,
     path: &str,
 ) -> String {
@@ -46,7 +46,7 @@ pub(super) fn studio_display_path(
 pub(super) fn fingerprint_projects(
     project_root: &Path,
     config_root: &Path,
-    projects: &[UiProjectConfig],
+    projects: &[SearchProjectConfig],
 ) -> String {
     fingerprint_note_projects(project_root, config_root, projects)
 }

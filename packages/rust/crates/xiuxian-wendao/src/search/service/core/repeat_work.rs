@@ -3,7 +3,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use serde::Serialize;
 
 use super::types::SearchPlaneService;
-use crate::search::contracts::UiProjectConfig;
+use crate::search::contracts::{ProjectConfigView, materialize_project_configs};
 use crate::search::{ProjectScanInventory, ProjectScannedFile, scan_supported_project_files};
 #[cfg(any(test, feature = "test-support"))]
 use crate::search::{
@@ -241,10 +241,14 @@ impl SearchPlaneService {
         source: &'static str,
         project_root: &std::path::Path,
         config_root: &std::path::Path,
-        projects: &[UiProjectConfig],
+        projects: &[impl ProjectConfigView],
     ) -> (String, Vec<ProjectScannedFile>) {
-        let (fingerprint, files) =
-            fingerprint_note_projects_with_scanned_files(project_root, config_root, projects);
+        let projects = materialize_project_configs(projects);
+        let (fingerprint, files) = fingerprint_note_projects_with_scanned_files(
+            project_root,
+            config_root,
+            projects.as_slice(),
+        );
         self.record_repeat_work_scanned_files(source, "scan_note_project_files", &files);
         (fingerprint, files)
     }
@@ -256,10 +260,14 @@ impl SearchPlaneService {
         source: &'static str,
         project_root: &std::path::Path,
         config_root: &std::path::Path,
-        projects: &[UiProjectConfig],
+        projects: &[impl ProjectConfigView],
     ) -> (String, Vec<ProjectScannedFile>) {
-        let (fingerprint, files) =
-            fingerprint_source_projects_with_scanned_files(project_root, config_root, projects);
+        let projects = materialize_project_configs(projects);
+        let (fingerprint, files) = fingerprint_source_projects_with_scanned_files(
+            project_root,
+            config_root,
+            projects.as_slice(),
+        );
         self.record_repeat_work_scanned_files(source, "scan_source_project_files", &files);
         (fingerprint, files)
     }
@@ -271,10 +279,14 @@ impl SearchPlaneService {
         source: &'static str,
         project_root: &std::path::Path,
         config_root: &std::path::Path,
-        projects: &[UiProjectConfig],
+        projects: &[impl ProjectConfigView],
     ) -> (String, Vec<ProjectScannedFile>) {
-        let (fingerprint, files) =
-            fingerprint_symbol_projects_with_scanned_files(project_root, config_root, projects);
+        let projects = materialize_project_configs(projects);
+        let (fingerprint, files) = fingerprint_symbol_projects_with_scanned_files(
+            project_root,
+            config_root,
+            projects.as_slice(),
+        );
         self.record_repeat_work_scanned_files(source, "scan_symbol_project_files", &files);
         (fingerprint, files)
     }
@@ -286,9 +298,11 @@ impl SearchPlaneService {
         source: &'static str,
         project_root: &std::path::Path,
         config_root: &std::path::Path,
-        projects: &[UiProjectConfig],
+        projects: &[impl ProjectConfigView],
     ) -> ProjectScanInventory {
-        let inventory = scan_supported_project_files(project_root, config_root, projects);
+        let projects = materialize_project_configs(projects);
+        let inventory =
+            scan_supported_project_files(project_root, config_root, projects.as_slice());
         self.record_repeat_work_scanned_files(
             source,
             "scan_supported_project_files",

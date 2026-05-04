@@ -3,7 +3,7 @@ use std::path::Path;
 use tokio::runtime::Handle;
 
 use crate::search::cache::SearchPlaneFileFingerprintScope;
-use crate::search::contracts::UiProjectConfig;
+use crate::search::contracts::SearchProjectConfig;
 #[cfg(any(test, feature = "test-support"))]
 use crate::search::local_symbol::build::LocalSymbolBuildError;
 use crate::search::local_symbol::build::{
@@ -19,7 +19,7 @@ pub fn ensure_local_symbol_index_started(
     service: &SearchPlaneService,
     project_root: &Path,
     config_root: &Path,
-    projects: &[UiProjectConfig],
+    projects: &[SearchProjectConfig],
 ) -> bool {
     if projects.is_empty() {
         return false;
@@ -46,7 +46,7 @@ pub fn ensure_local_symbol_index_started_with_scanned_files(
     service: &SearchPlaneService,
     project_root: &Path,
     config_root: &Path,
-    projects: &[UiProjectConfig],
+    projects: &[SearchProjectConfig],
     scanned_files: &[ProjectScannedFile],
 ) -> bool {
     if projects.is_empty() {
@@ -73,7 +73,7 @@ fn ensure_local_symbol_index_started_with_fingerprint_and_scanned_files(
     service: &SearchPlaneService,
     project_root: &Path,
     config_root: &Path,
-    projects: &[UiProjectConfig],
+    projects: &[SearchProjectConfig],
     fingerprint: String,
     scanned_files: Vec<ProjectScannedFile>,
 ) -> bool {

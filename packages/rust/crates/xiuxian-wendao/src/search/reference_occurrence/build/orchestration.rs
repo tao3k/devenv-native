@@ -3,7 +3,7 @@ use std::path::Path;
 use tokio::runtime::Handle;
 
 use crate::search::cache::SearchPlaneFileFingerprintScope;
-use crate::search::contracts::UiProjectConfig;
+use crate::search::contracts::SearchProjectConfig;
 #[cfg(any(test, feature = "test-support"))]
 use crate::search::reference_occurrence::build::ReferenceOccurrenceBuildError;
 use crate::search::{
@@ -22,7 +22,7 @@ pub fn ensure_reference_occurrence_index_started(
     service: &SearchPlaneService,
     project_root: &Path,
     config_root: &Path,
-    projects: &[UiProjectConfig],
+    projects: &[SearchProjectConfig],
 ) -> bool {
     if projects.is_empty() {
         return false;
@@ -49,7 +49,7 @@ pub fn ensure_reference_occurrence_index_started_with_scanned_files(
     service: &SearchPlaneService,
     project_root: &Path,
     config_root: &Path,
-    projects: &[UiProjectConfig],
+    projects: &[SearchProjectConfig],
     scanned_files: &[ProjectScannedFile],
 ) -> bool {
     if projects.is_empty() {
@@ -76,7 +76,7 @@ fn ensure_reference_occurrence_index_started_with_fingerprint_and_scanned_files(
     service: &SearchPlaneService,
     project_root: &Path,
     config_root: &Path,
-    projects: &[UiProjectConfig],
+    projects: &[SearchProjectConfig],
     fingerprint: String,
     scanned_files: Vec<ProjectScannedFile>,
 ) -> bool {
@@ -182,7 +182,7 @@ pub async fn publish_reference_occurrences_from_projects(
     service: &SearchPlaneService,
     project_root: &Path,
     config_root: &Path,
-    projects: &[UiProjectConfig],
+    projects: &[SearchProjectConfig],
     fingerprint: &str,
 ) -> Result<(), ReferenceOccurrenceBuildError> {
     let lease = match service.coordinator().begin_build(

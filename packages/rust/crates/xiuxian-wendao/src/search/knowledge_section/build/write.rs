@@ -13,7 +13,7 @@ use xiuxian_db_store::VectorStoreError;
 #[cfg(any(test, feature = "test-support"))]
 use crate::search::BeginBuildDecision;
 #[cfg(any(test, feature = "test-support"))]
-use crate::search::contracts::UiProjectConfig;
+use crate::search::contracts::SearchProjectConfig;
 #[cfg(any(test, feature = "test-support"))]
 use crate::search::knowledge_section::build::orchestration::plan_knowledge_section_build;
 #[cfg(any(test, feature = "test-support"))]
@@ -64,7 +64,7 @@ pub async fn publish_knowledge_sections_from_projects(
     service: &SearchPlaneService,
     project_root: &Path,
     config_root: &Path,
-    projects: &[UiProjectConfig],
+    projects: &[SearchProjectConfig],
     fingerprint: &str,
 ) -> Result<(), KnowledgeSectionBuildError> {
     let lease = match service.coordinator().begin_build(

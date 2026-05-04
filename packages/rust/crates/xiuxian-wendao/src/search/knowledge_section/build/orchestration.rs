@@ -2,7 +2,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
 use crate::search::cache::SearchPlaneFileFingerprintScope;
-use crate::search::contracts::UiProjectConfig;
+use crate::search::contracts::SearchProjectConfig;
 use crate::search::knowledge_section::build::rows::build_knowledge_section_rows_for_entry;
 use crate::search::knowledge_section::build::types::KnowledgeSectionBuildPlan;
 use crate::search::knowledge_section::build::write::write_knowledge_section_epoch;
@@ -22,7 +22,7 @@ pub fn ensure_knowledge_section_index_started(
     service: &SearchPlaneService,
     project_root: &Path,
     config_root: &Path,
-    projects: &[UiProjectConfig],
+    projects: &[SearchProjectConfig],
 ) -> bool {
     if projects.is_empty() {
         return false;
@@ -48,7 +48,7 @@ pub fn ensure_knowledge_section_index_started_with_scanned_files(
     service: &SearchPlaneService,
     project_root: &Path,
     config_root: &Path,
-    projects: &[UiProjectConfig],
+    projects: &[SearchProjectConfig],
     scanned_files: &[ProjectScannedFile],
 ) -> bool {
     if projects.is_empty() {
@@ -75,7 +75,7 @@ fn ensure_knowledge_section_index_started_with_fingerprint_and_scanned_files(
     service: &SearchPlaneService,
     project_root: &Path,
     config_root: &Path,
-    projects: &[UiProjectConfig],
+    projects: &[SearchProjectConfig],
     fingerprint: String,
     scanned_files: Vec<ProjectScannedFile>,
 ) -> bool {
@@ -180,7 +180,7 @@ pub(super) fn plan_knowledge_section_build(
     service: &SearchPlaneService,
     project_root: &Path,
     config_root: &Path,
-    projects: &[UiProjectConfig],
+    projects: &[SearchProjectConfig],
     active_epoch: Option<u64>,
     previous_fingerprints: &BTreeMap<String, SearchFileFingerprint>,
 ) -> KnowledgeSectionBuildPlan {
@@ -205,7 +205,7 @@ fn plan_knowledge_section_build_with_scanned_files(
     service: &SearchPlaneService,
     project_root: &Path,
     config_root: &Path,
-    projects: &[UiProjectConfig],
+    projects: &[SearchProjectConfig],
     scanned_files: &[ProjectScannedFile],
     active_epoch: Option<u64>,
     previous_fingerprints: &BTreeMap<String, SearchFileFingerprint>,

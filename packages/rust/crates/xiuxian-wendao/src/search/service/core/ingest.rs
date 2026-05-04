@@ -6,7 +6,7 @@ use super::types::SearchPlaneService;
 #[cfg(any(test, feature = "test-support"))]
 use crate::search::attachment::AttachmentBuildError;
 #[cfg(any(test, feature = "test-support"))]
-use crate::search::contracts::{AstSearchHit, UiProjectConfig};
+use crate::search::contracts::{AstSearchHit, ProjectConfigView, materialize_project_configs};
 #[cfg(any(test, feature = "test-support"))]
 use crate::search::knowledge_section::KnowledgeSectionBuildError;
 #[cfg(any(test, feature = "test-support"))]
@@ -40,14 +40,15 @@ impl SearchPlaneService {
         &self,
         project_root: &Path,
         config_root: &Path,
-        projects: &[UiProjectConfig],
+        projects: &[impl ProjectConfigView],
         fingerprint: &str,
     ) -> Result<(), ReferenceOccurrenceBuildError> {
+        let projects = materialize_project_configs(projects);
         crate::search::reference_occurrence::publish_reference_occurrences_from_projects(
             self,
             project_root,
             config_root,
-            projects,
+            projects.as_slice(),
             fingerprint,
         )
         .await
@@ -63,14 +64,15 @@ impl SearchPlaneService {
         &self,
         project_root: &Path,
         config_root: &Path,
-        projects: &[UiProjectConfig],
+        projects: &[impl ProjectConfigView],
         fingerprint: &str,
     ) -> Result<(), AttachmentBuildError> {
+        let projects = materialize_project_configs(projects);
         crate::search::attachment::publish_attachments_from_projects(
             self,
             project_root,
             config_root,
-            projects,
+            projects.as_slice(),
             fingerprint,
         )
         .await
@@ -86,14 +88,15 @@ impl SearchPlaneService {
         &self,
         project_root: &Path,
         config_root: &Path,
-        projects: &[UiProjectConfig],
+        projects: &[impl ProjectConfigView],
         fingerprint: &str,
     ) -> Result<(), KnowledgeSectionBuildError> {
+        let projects = materialize_project_configs(projects);
         crate::search::knowledge_section::publish_knowledge_sections_from_projects(
             self,
             project_root,
             config_root,
-            projects,
+            projects.as_slice(),
             fingerprint,
         )
         .await

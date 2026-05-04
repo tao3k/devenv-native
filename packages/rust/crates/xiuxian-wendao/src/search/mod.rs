@@ -6,7 +6,7 @@ mod attachment;
 #[cfg(feature = "search-runtime")]
 #[path = "cache/mod.rs"]
 mod cache;
-/// Shared Studio-facing search and API contracts owned by the Wendao domain.
+/// Shared search payload contracts owned by the Wendao domain.
 #[path = "contracts/mod.rs"]
 pub mod contracts;
 #[cfg(feature = "search-runtime")]
@@ -92,6 +92,7 @@ pub use cache::SearchPlaneCacheTtl;
 pub(crate) use cache::SearchPlaneFileFingerprintScope;
 #[cfg(feature = "search-runtime")]
 pub use cache::resolve_search_plane_cache_connection_target;
+pub use contracts::ProjectConfigView;
 #[cfg(feature = "search-runtime")]
 pub use coordinator::{BeginBuildDecision, SearchBuildLease, SearchPlaneCoordinator};
 #[cfg(feature = "search-runtime")]

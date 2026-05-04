@@ -3,7 +3,54 @@
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
-pub use xiuxian_wendao::search::contracts::{UiProjectConfig, UiRepoProjectConfig};
+/// Configuration for a local project root.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct UiProjectConfig {
+    /// Unique name.
+    pub name: String,
+    /// Relative path to project root.
+    pub root: String,
+    /// Explicit subdirectories to index.
+    pub dirs: Vec<String>,
+}
+
+#[cfg(feature = "local-runtime")]
+impl xiuxian_wendao::search::ProjectConfigView for UiProjectConfig {
+    fn project_name(&self) -> &str {
+        self.name.as_str()
+    }
+
+    fn project_root(&self) -> &str {
+        self.root.as_str()
+    }
+
+    fn project_dirs(&self) -> &[String] {
+        self.dirs.as_slice()
+    }
+}
+
+/// Configuration for an external analyzed repository.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct UiRepoProjectConfig {
+    /// Unique identifier.
+    pub id: String,
+    /// Optional local path.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub root: Option<String>,
+    /// Optional upstream URL.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub url: Option<String>,
+    /// Optional git reference.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub git_ref: Option<String>,
+    /// Refresh policy.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub refresh: Option<String>,
+    /// Enabled analysis plugins.
+    pub plugins: Vec<String>,
+}
 
 /// Global UI configuration for Studio.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type, Default)]

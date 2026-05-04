@@ -5,7 +5,7 @@ use std::sync::LazyLock;
 use regex::Regex;
 use xiuxian_ast::Lang;
 
-use crate::search::contracts::{ReferenceSearchHit, StudioNavigationTarget, UiProjectConfig};
+use crate::search::contracts::{ReferenceSearchHit, SearchProjectConfig, StudioNavigationTarget};
 use crate::search::contracts::{infer_crate_name, project_metadata_for_path};
 use crate::search::{ProjectScannedFile, SearchPlaneService};
 
@@ -19,7 +19,7 @@ pub(crate) fn build_reference_occurrences_for_file(
     service: &SearchPlaneService,
     project_root: &Path,
     config_root: &Path,
-    projects: &[UiProjectConfig],
+    projects: &[SearchProjectConfig],
     file: &ProjectScannedFile,
 ) -> Vec<ReferenceSearchHit> {
     let normalized_path_ref = Path::new(file.normalized_path.as_str());

@@ -28,6 +28,8 @@ const STUDIO_PLUGIN_ARTIFACT_SYMBOLS: &[&str] = &[
 ];
 const STUDIO_SEARCH_MANIFEST_SYMBOLS: &[&str] = &[
     "UiConfig",
+    "UiProjectConfig",
+    "UiRepoProjectConfig",
     "UiCapabilities",
     "UiSearchContract",
     "UiCodeSearchContract",
@@ -109,10 +111,7 @@ fn local_runtime_keeps_zhenfa_gateway_features_out_of_feature_tree() {
 #[test]
 fn studio_code_uses_studio_contract_import_path() {
     let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let allowed_reexports = [
-        manifest_dir.join("src/contracts/types.rs"),
-        manifest_dir.join("src/contracts/search_manifest.rs"),
-    ];
+    let allowed_reexports = [manifest_dir.join("src/contracts/types.rs")];
     let needle = format!("{DOMAIN_CONTRACT_IMPORT_HEAD}{DOMAIN_CONTRACT_IMPORT_TAIL}");
     let mut offenders = Vec::new();
 

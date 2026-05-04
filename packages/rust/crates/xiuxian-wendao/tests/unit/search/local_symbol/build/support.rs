@@ -3,7 +3,7 @@ use std::path::Path;
 use std::time::Duration;
 
 use crate::search::cache::SearchPlaneCache;
-use crate::search::contracts::UiProjectConfig;
+use crate::search::contracts::SearchProjectConfig;
 use crate::search::local_symbol::build::{
     LocalSymbolBuildPlan, LocalSymbolPartitionBuildPlan, ensure_local_symbol_index_started,
 };
@@ -12,8 +12,8 @@ use crate::search::{
     SearchPlaneService,
 };
 
-pub(super) fn demo_projects() -> Vec<UiProjectConfig> {
-    vec![UiProjectConfig {
+pub(super) fn demo_projects() -> Vec<SearchProjectConfig> {
+    vec![SearchProjectConfig {
         name: "demo".to_string(),
         root: ".".to_string(),
         dirs: vec![".".to_string()],
@@ -111,7 +111,7 @@ pub(super) fn singleton_replaced_path(path: &str) -> BTreeSet<String> {
 pub(super) async fn start_local_symbol_index(
     service: &SearchPlaneService,
     project_root: &Path,
-    projects: &[UiProjectConfig],
+    projects: &[SearchProjectConfig],
 ) {
     ensure_local_symbol_index_started(service, project_root, project_root, projects);
     wait_for_local_symbol_ready(service, None).await;

@@ -92,7 +92,7 @@ async fn local_symbol_build_writes_partitioned_epoch_tables_for_multiple_scopes(
         "packages/beta/src/lib.rs",
         "fn beta() {}\n",
     );
-    let projects = vec![crate::search::contracts::UiProjectConfig {
+    let projects = vec![crate::search::contracts::SearchProjectConfig {
         name: "demo".to_string(),
         root: ".".to_string(),
         dirs: vec!["packages/alpha".to_string(), "packages/beta".to_string()],

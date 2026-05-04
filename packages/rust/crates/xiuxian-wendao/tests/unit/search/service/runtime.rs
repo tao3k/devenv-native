@@ -285,7 +285,7 @@ async fn local_corpus_ready_status_bootstraps_from_persisted_manifest_after_rest
         "# Warm Start\n\nRestart should reuse the local publication.\n",
     )
     .unwrap_or_else(|error| panic!("write note: {error}"));
-    let projects = vec![crate::search::contracts::UiProjectConfig {
+    let projects = vec![crate::search::contracts::SearchProjectConfig {
         name: "docs".to_string(),
         root: ".".to_string(),
         dirs: vec!["docs".to_string()],

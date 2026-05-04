@@ -7,7 +7,7 @@ use xiuxian_wendao_parsers::sections::MarkdownSection;
 use crate::parsers::markdown::extract_observations;
 
 use super::{
-    AnalysisNode, AnalysisNodeKind, AstSearchHit, StudioNavigationTarget, UiProjectConfig,
+    AnalysisNode, AnalysisNodeKind, AstSearchHit, SearchProjectConfig, StudioNavigationTarget,
 };
 
 #[derive(Debug, Clone, Default)]
@@ -42,7 +42,7 @@ impl ConfiguredProjectScope {
 
 pub(crate) fn configured_project_scopes(
     config_root: &Path,
-    projects: &[UiProjectConfig],
+    projects: &[SearchProjectConfig],
 ) -> Vec<ConfiguredProjectScope> {
     let mut roots = Vec::new();
     let mut seen = std::collections::HashSet::new();
@@ -109,7 +109,7 @@ pub(crate) fn should_skip_entry(entry: &DirEntry) -> bool {
 pub(crate) fn project_metadata_for_path(
     project_root: &Path,
     config_root: &Path,
-    projects: &[UiProjectConfig],
+    projects: &[SearchProjectConfig],
     hit_path: &str,
 ) -> SearchProjectMetadata {
     let absolute_hit = if Path::new(hit_path).is_absolute() {
