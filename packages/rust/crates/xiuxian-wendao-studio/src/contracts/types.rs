@@ -3,18 +3,16 @@
 use specta::TypeCollection;
 
 use super::{
-    ApiError, DocumentExtractJobStatus, DocumentExtractJobSubmitRequest, DocumentExtractJobsStatus,
-    DocumentExtractResult, GraphNeighborsResponse, Topology3dPayload, UiCapabilities, UiConfig,
-    VfsContentResponse, VfsEntry, VfsScanEntry, VfsScanResult,
+    ApiError, CodeAstAnalysisResponse, DocumentExtractJobStatus, DocumentExtractJobSubmitRequest,
+    DocumentExtractJobsStatus, DocumentExtractResult, GraphNeighborsResponse, Topology3dPayload,
+    UiCapabilities, UiConfig, VfsContentResponse, VfsEntry, VfsScanEntry, VfsScanResult,
 };
 
 pub use xiuxian_wendao::search::contracts::{
     AnalysisEdge, AnalysisEdgeKind, AnalysisEvidence, AnalysisNode, AnalysisNodeKind, AstSearchHit,
     AstSearchResponse, AttachmentSearchHit, AttachmentSearchResponse, AutocompleteHit,
-    AutocompleteResponse, AutocompleteSuggestion, CodeAstAnalysisResponse, CodeAstEdge,
-    CodeAstEdgeKind, CodeAstNode, CodeAstNodeKind, CodeAstProjection, CodeAstProjectionKind,
-    CodeAstRetrievalAtom, CodeAstRetrievalAtomScope, DefinitionResolveResponse,
-    DefinitionSearchHit, IntentSearchHit, KnowledgeSearchHit, MarkdownAnalysisDocumentLink,
+    AutocompleteResponse, AutocompleteSuggestion, DefinitionResolveResponse, DefinitionSearchHit,
+    IntentSearchHit, KnowledgeSearchHit, MarkdownAnalysisDocumentLink,
     MarkdownAnalysisDocumentLinkKind, MarkdownAnalysisDocumentMetadata, MarkdownAnalysisResponse,
     MarkdownRetrievalAtom, MermaidProjection, MermaidViewKind, ObservationHint, ReferenceSearchHit,
     ReferenceSearchResponse, RetrievalChunk, RetrievalChunkSurface, SearchBacklinkItem,

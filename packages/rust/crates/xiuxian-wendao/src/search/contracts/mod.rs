@@ -5,7 +5,6 @@
 
 mod analysis;
 mod attachments;
-mod code_ast;
 mod config;
 mod definitions;
 #[cfg(feature = "search-runtime")]
@@ -25,10 +24,6 @@ pub use analysis::{
     MermaidProjection, MermaidViewKind,
 };
 pub use attachments::{AttachmentSearchHit, AttachmentSearchResponse};
-pub use code_ast::{
-    CodeAstAnalysisResponse, CodeAstEdge, CodeAstEdgeKind, CodeAstNode, CodeAstNodeKind,
-    CodeAstProjection, CodeAstProjectionKind, CodeAstRetrievalAtom, CodeAstRetrievalAtomScope,
-};
 #[cfg(feature = "search-runtime")]
 pub(crate) use config::materialize_project_configs;
 pub use config::{ProjectConfigView, SearchProjectConfig};

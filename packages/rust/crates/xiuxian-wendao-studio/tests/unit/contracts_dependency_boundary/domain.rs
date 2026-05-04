@@ -31,6 +31,17 @@ const STUDIO_GRAPH_API_SYMBOLS: &[&str] = &[
     "TopologyLink",
     "TopologyCluster",
 ];
+const STUDIO_CODE_AST_API_SYMBOLS: &[&str] = &[
+    "CodeAstAnalysisResponse",
+    "CodeAstNode",
+    "CodeAstNodeKind",
+    "CodeAstEdge",
+    "CodeAstEdgeKind",
+    "CodeAstProjection",
+    "CodeAstProjectionKind",
+    "CodeAstRetrievalAtom",
+    "CodeAstRetrievalAtomScope",
+];
 const STUDIO_SEARCH_MANIFEST_SYMBOLS: &[&str] = &[
     "UiConfig",
     "UiProjectConfig",
@@ -82,6 +93,14 @@ fn wendao_domain_contracts_do_not_export_studio_graph_api_dtos() {
     assert_domain_contracts_do_not_contain_symbols(
         STUDIO_GRAPH_API_SYMBOLS,
         "Studio graph/topology API DTOs belong to xiuxian-wendao-studio contracts, not xiuxian-wendao search contracts",
+    );
+}
+
+#[test]
+fn wendao_domain_contracts_do_not_export_studio_code_ast_api_dtos() {
+    assert_domain_contracts_do_not_contain_symbols(
+        STUDIO_CODE_AST_API_SYMBOLS,
+        "Studio code-AST API DTOs belong to xiuxian-wendao-studio contracts, not xiuxian-wendao search contracts",
     );
 }
 

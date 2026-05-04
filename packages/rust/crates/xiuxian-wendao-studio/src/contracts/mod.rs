@@ -29,9 +29,17 @@ pub use search_manifest::{
 };
 
 #[cfg(feature = "local-runtime")]
+mod code_ast;
+#[cfg(feature = "local-runtime")]
 mod graph;
 #[cfg(feature = "local-runtime")]
 mod types;
+
+#[cfg(feature = "local-runtime")]
+pub use code_ast::{
+    CodeAstAnalysisResponse, CodeAstEdge, CodeAstEdgeKind, CodeAstNode, CodeAstNodeKind,
+    CodeAstProjection, CodeAstProjectionKind, CodeAstRetrievalAtom, CodeAstRetrievalAtomScope,
+};
 
 #[cfg(feature = "local-runtime")]
 pub use graph::{
@@ -43,10 +51,8 @@ pub use graph::{
 pub use types::{
     AnalysisEdge, AnalysisEdgeKind, AnalysisEvidence, AnalysisNode, AnalysisNodeKind, AstSearchHit,
     AstSearchResponse, AttachmentSearchHit, AttachmentSearchResponse, AutocompleteHit,
-    AutocompleteResponse, AutocompleteSuggestion, CodeAstAnalysisResponse, CodeAstEdge,
-    CodeAstEdgeKind, CodeAstNode, CodeAstNodeKind, CodeAstProjection, CodeAstProjectionKind,
-    CodeAstRetrievalAtom, CodeAstRetrievalAtomScope, DefinitionResolveResponse,
-    DefinitionSearchHit, IntentSearchHit, KnowledgeSearchHit, MarkdownAnalysisDocumentLink,
+    AutocompleteResponse, AutocompleteSuggestion, DefinitionResolveResponse, DefinitionSearchHit,
+    IntentSearchHit, KnowledgeSearchHit, MarkdownAnalysisDocumentLink,
     MarkdownAnalysisDocumentLinkKind, MarkdownAnalysisDocumentMetadata, MarkdownAnalysisResponse,
     MarkdownRetrievalAtom, MermaidProjection, MermaidViewKind, ObservationHint, ReferenceSearchHit,
     ReferenceSearchResponse, RetrievalChunk, RetrievalChunkSurface, SearchBacklinkItem,

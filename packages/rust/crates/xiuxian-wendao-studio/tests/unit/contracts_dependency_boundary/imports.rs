@@ -10,6 +10,7 @@ fn studio_code_uses_studio_contract_import_path() {
     let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
     let allowed_reexports = [
         manifest_dir.join("src/contracts/types.rs"),
+        manifest_dir.join("src/contracts/code_ast.rs"),
         manifest_dir.join("src/contracts/graph.rs"),
     ];
     let needle = format!("{DOMAIN_CONTRACT_IMPORT_HEAD}{DOMAIN_CONTRACT_IMPORT_TAIL}");

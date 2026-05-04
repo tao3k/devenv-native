@@ -1,7 +1,9 @@
+//! Studio-owned Code AST analysis response contracts.
+
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
-use super::retrieval::{RetrievalChunk, RetrievalChunkSurface};
+use xiuxian_wendao::search::contracts::{RetrievalChunk, RetrievalChunkSurface};
 
 /// Kind of a code-AST node.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Type, PartialEq, Eq)]
