@@ -14,19 +14,19 @@ def test_lance_vendor_fixup_removes_workspace_lints_and_restores_protos() -> Non
 
     assert "fix_lance_vendor_dir()" in fixup
     assert "materialize_lance_vendor_crate()" in fixup
+    assert "restore_lance_vendor_protos()" in fixup
     assert 'realpath "$crate_dir"' in fixup
     assert '$0 == "[lints]"' in fixup
     assert '$0 == "workspace = true"' in fixup
+    assert (
+        '[ -e "$crate_dir/protos" ] || [ -L "$crate_dir/protos" ] || return 0' in fixup
+    )
+    assert 'chmod -R u+w "$crate_dir/protos"' in fixup
+    assert 'rm -rf "$crate_dir/protos"' in fixup
     assert "cp -R ${lanceSrc}/protos" in fixup
-    for crate_name in [
-        "lance",
-        "lance-datafusion",
-        "lance-encoding",
-        "lance-file",
-        "lance-index",
-        "lance-table",
-    ]:
-        assert crate_name in fixup
+    assert '"$vendor_dir"/fsst-* "$vendor_dir"/lance-*' in fixup
+    assert "for crate_name in" not in fixup
+    assert "\"''${crate_name}\"-*" not in fixup
 
 
 def test_nci_deps_drv_applies_lance_vendor_fixup_from_cargo_lock_rev() -> None:

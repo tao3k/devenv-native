@@ -1,11 +1,11 @@
 //! Integration tests for Repo Intelligence documentation coverage flow.
 
 use std::fs;
-use std::process::Command;
 
 use crate::support::repo_intelligence::{
     assert_repo_json_snapshot, create_sample_julia_repo, write_repo_config,
 };
+use crate::support::wendao_command;
 use serde_json::json;
 use xiuxian_wendao::analyzers::{
     DocCoverageQuery, analyze_repository_from_config, doc_coverage_from_config,
@@ -47,7 +47,7 @@ fn cli_repo_doc_coverage_returns_serialized_result() -> TestResult {
     fs::write(repo_dir.join("docs").join("Problem.md"), "# Problem\n")?;
     let config_path = write_repo_config(temp.path(), &repo_dir, "cli-coverage")?;
 
-    let output = Command::new(env!("CARGO_BIN_EXE_wendao"))
+    let output = wendao_command()
         .arg("--conf")
         .arg(&config_path)
         .arg("--output")

@@ -15,7 +15,8 @@ pub(crate) fn write_file(path: &Path, content: &str) -> Result<(), Box<dyn std::
 }
 
 pub(crate) fn wendao_cmd() -> Command {
-    let mut cmd = Command::new(env!("CARGO_BIN_EXE_wendao"));
+    let mut cmd =
+        Command::new(std::env::var_os("CARGO_BIN_EXE_wendao").unwrap_or_else(|| "wendao".into()));
     cmd.env("VALKEY_URL", "redis://127.0.0.1:6379/0");
     cmd
 }

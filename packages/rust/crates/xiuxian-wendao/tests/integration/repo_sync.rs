@@ -2,13 +2,13 @@
 
 use std::fs;
 use std::path::Path;
-use std::process::Command;
 use std::time::{Duration, SystemTime};
 
 use crate::support::repo_fixture::refresh_remote;
 use crate::support::repo_intelligence::{
     assert_repo_json_snapshot, create_sample_julia_repo, write_repo_config,
 };
+use crate::support::wendao_command;
 use serde_json::json;
 use uuid::Uuid;
 use xiuxian_io::PrjDirs;
@@ -320,7 +320,7 @@ fn cli_repo_sync_returns_serialized_result() -> TestResult {
     let repo_dir = create_sample_julia_repo(temp.path(), "CliSyncPkg", true)?;
     let config_path = write_repo_config(temp.path(), &repo_dir, "cli-sync")?;
 
-    let output = Command::new(env!("CARGO_BIN_EXE_wendao"))
+    let output = wendao_command()
         .arg("--conf")
         .arg(&config_path)
         .arg("--output")

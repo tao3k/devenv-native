@@ -42,6 +42,15 @@
     chmod -R u+w "$crate_dir" 2>/dev/null || true
   }
 
+  restore_lance_vendor_protos() {
+    crate_dir="$1"
+    [ -e "$crate_dir/protos" ] || [ -L "$crate_dir/protos" ] || return 0
+    chmod -R u+w "$crate_dir/protos" 2>/dev/null || true
+    rm -rf "$crate_dir/protos"
+    cp -R ${lanceSrc}/protos "$crate_dir/protos"
+    chmod -R u+w "$crate_dir/protos" 2>/dev/null || true
+  }
+
   fix_lance_vendor_dir() {
     vendor_dir="$1"
     if [ ! -d "$vendor_dir" ]; then
@@ -50,29 +59,14 @@
     fi
 
     for crate_dir in "$vendor_dir"/fsst-* "$vendor_dir"/lance-*; do
-      [ -e "$crate_dir" ] || continue
+      [ -e "$crate_dir" ] || [ -L "$crate_dir" ] || continue
       materialize_lance_vendor_crate "$crate_dir"
       if [ -f "$crate_dir/Cargo.toml" ] \
         && grep -q '^\[lints\]$' "$crate_dir/Cargo.toml" \
         && grep -q '^workspace = true$' "$crate_dir/Cargo.toml"; then
         fix_lance_vendor_manifest_lints "$crate_dir/Cargo.toml"
       fi
-    done
-
-    for crate_name in \
-      lance \
-      lance-datafusion \
-      lance-encoding \
-      lance-file \
-      lance-index \
-      lance-table
-    do
-      for crate_dir in "$vendor_dir"/"''${crate_name}"-*; do
-        [ -e "$crate_dir" ] || continue
-        materialize_lance_vendor_crate "$crate_dir"
-        rm -rf "$crate_dir/protos"
-        cp -R ${lanceSrc}/protos "$crate_dir/protos"
-      done
+      restore_lance_vendor_protos "$crate_dir"
     done
   }
 ''
