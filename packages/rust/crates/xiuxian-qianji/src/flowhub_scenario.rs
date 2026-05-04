@@ -4,7 +4,7 @@
 mod check;
 #[path = "flowhub_scenario_detect.rs"]
 mod detect;
-#[path = "flowhub_scenario_show.rs"]
+#[path = "flowhub_scenario_show/mod.rs"]
 mod show;
 
 pub use check::{

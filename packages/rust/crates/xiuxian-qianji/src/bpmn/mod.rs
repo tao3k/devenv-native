@@ -5,7 +5,7 @@
 #[path = "../bpmn_adapter_error.rs"]
 mod adapter_error;
 mod api;
-#[path = "../bpmn_runtime_backend.rs"]
+#[path = "../bpmn_runtime_backend/mod.rs"]
 mod backend;
 #[path = "../bpmn_adapter_bridge.rs"]
 mod bridge;
@@ -15,7 +15,7 @@ mod control;
 mod control_service;
 #[path = "../bpmn_adapter_dispatch.rs"]
 mod dispatch;
-#[path = "../bpmn_runtime_driver.rs"]
+#[path = "../bpmn_runtime_driver/mod.rs"]
 mod driver;
 #[path = "../bpmn_runtime_error.rs"]
 mod error;

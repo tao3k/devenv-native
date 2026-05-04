@@ -3,9 +3,10 @@
 use anyhow::{Context, Result};
 
 use super::{
-    DocsPageIndexDocumentsResult, DocsPageIndexTreesResult, OutputFormat, ProjectedPageIndexLink,
+    DocsPageIndexDocumentsResult, DocsPageIndexTreesResult, ProjectedPageIndexLink,
     ProjectedPageIndexNode, effective_section_level,
 };
+use crate::OutputFormat;
 
 pub(super) fn emit_toc_output(
     result: &DocsPageIndexDocumentsResult,

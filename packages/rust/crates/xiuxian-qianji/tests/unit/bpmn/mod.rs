@@ -1,5 +1,4 @@
-#[path = "../../integration/support/valkey.rs"]
-mod valkey_support;
+use crate::qianji_test_valkey_support as valkey_support;
 
 mod adapter;
 mod control;

@@ -211,4 +211,14 @@ pub use workdir::{
 };
 
 #[cfg(test)]
-rust_lang_project_harness::rust_project_harness_cargo_test_gate!();
+#[path = "../tests/unit/lib_policy.rs"]
+mod rust_project_harness_gate;
+
+#[cfg(test)]
+#[path = "../tests/unit/support/valkey.rs"]
+pub(crate) mod qianji_test_valkey_support;
+
+#[cfg(test)]
+rust_lang_project_harness::rust_project_harness_cargo_test_gate!(
+    config = rust_project_harness_gate::qianji_rust_harness_config()
+);

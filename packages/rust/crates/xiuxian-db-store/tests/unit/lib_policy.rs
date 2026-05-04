@@ -82,105 +82,11 @@ fn db_store_manifest_dir() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
 }
 
-fn db_store_rust_harness_config() -> RustHarnessConfig {
+pub(super) fn db_store_rust_harness_config() -> RustHarnessConfig {
     default_rust_harness_config()
-        .with_verification_profile_hint(
-            RustVerificationProfileHint::new(
-                "src/duckdb/sql.rs",
-                [
-                    RustOwnerResponsibility::PublicApi,
-                    RustOwnerResponsibility::SecurityBoundary,
-                ],
-            )
-            .with_task_kinds([RustVerificationTaskKind::Security])
-            .with_task_contract(
-                RustVerificationTaskKind::Security,
-                RustVerificationTaskContract::new(
-                    RustVerificationPhase::BeforeRelease,
-                    "security skill must report DuckDB identifier and SQL-fragment boundary probes",
-                    [
-                        RustVerificationRequirement::new(
-                            "identifier_escape_matrix",
-                            "DuckDB identifier escape and rejection matrix",
-                        ),
-                        RustVerificationRequirement::new(
-                            "sql_fragment_surface",
-                            "SQL-fragment construction surface under verification",
-                        ),
-                    ],
-                ),
-            )
-            .with_rationale("DuckDB SQL helpers guard the local storage SQL boundary"),
-        )
-        .with_verification_profile_hint(
-            RustVerificationProfileHint::new(
-                "src/qianji_bpmn/store.rs",
-                [
-                    RustOwnerResponsibility::AvailabilityCritical,
-                    RustOwnerResponsibility::ExternalDependency,
-                    RustOwnerResponsibility::LatencySensitive,
-                ],
-            )
-            .with_task_kinds([RustVerificationTaskKind::Performance])
-            .with_task_contract(
-                RustVerificationTaskKind::Performance,
-                RustVerificationTaskContract::new(
-                    RustVerificationPhase::AfterUnitTestsPass,
-                    "performance skill must report BPMN DuckDB store latency evidence from cargo bench -p xiuxian-db-store --features qianji-bpmn-workflow-state --bench db_store_performance",
-                    [
-                        RustVerificationRequirement::new(
-                            "benchmark_command",
-                            "cargo bench -p xiuxian-db-store --features qianji-bpmn-workflow-state --bench db_store_performance",
-                        ),
-                        RustVerificationRequirement::new(
-                            "baseline",
-                            "storage latency baseline name or commit",
-                        ),
-                        RustVerificationRequirement::new(
-                            "regression_threshold",
-                            "accepted storage latency regression threshold",
-                        ),
-                        RustVerificationRequirement::new(
-                            "latency_or_throughput",
-                            "DuckDB save/load latency or throughput result",
-                        ),
-                        RustVerificationRequirement::new(
-                            "profile_artifact",
-                            "test output or benchmark artifact path",
-                        ),
-                    ],
-                ),
-            )
-            .with_rationale("BPMN DuckDB store owns workflow-state persistence latency"),
-        )
-        .with_verification_profile_hint(
-            RustVerificationProfileHint::new(
-                "src/qianji_bpmn/state_log.rs",
-                [
-                    RustOwnerResponsibility::AvailabilityCritical,
-                    RustOwnerResponsibility::PublicApi,
-                ],
-            )
-            .with_task_kinds([RustVerificationTaskKind::Regression])
-            .with_task_contract(
-                RustVerificationTaskKind::Regression,
-                RustVerificationTaskContract::new(
-                    RustVerificationPhase::ScheduledRegression,
-                    "regression skill must report workflow-state latest/event-log parity",
-                    [
-                        RustVerificationRequirement::new(
-                            "snapshot_command",
-                            "workflow-state regression command",
-                        ),
-                        RustVerificationRequirement::new(
-                            "contract_parity",
-                            "latest-state and event-log parity result",
-                        ),
-                    ],
-                ),
-            )
-            .with_rationale("workflow-state log owns replay and latest-state consistency"),
-        )
+        .with_verification_profile_hint(duckdb_sql_security_hint())
+        .with_verification_profile_hint(bpmn_store_performance_hint())
+        .with_verification_profile_hint(state_log_regression_hint())
         .with_verification_responsibility_task_kinds(
             RustOwnerResponsibility::LatencySensitive,
             [RustVerificationTaskKind::Performance],
@@ -212,6 +118,106 @@ fn db_store_rust_harness_config() -> RustHarnessConfig {
                 .with_adapter("insta"),
         )
         .with_verification_skill_descriptor(regression_skill_descriptor())
+}
+
+fn duckdb_sql_security_hint() -> RustVerificationProfileHint {
+    RustVerificationProfileHint::new(
+        "src/duckdb/sql.rs",
+        [
+            RustOwnerResponsibility::PublicApi,
+            RustOwnerResponsibility::SecurityBoundary,
+        ],
+    )
+    .with_task_kinds([RustVerificationTaskKind::Security])
+    .with_task_contract(
+        RustVerificationTaskKind::Security,
+        RustVerificationTaskContract::new(
+            RustVerificationPhase::BeforeRelease,
+            "security skill must report DuckDB identifier and SQL-fragment boundary probes",
+            [
+                RustVerificationRequirement::new(
+                    "identifier_escape_matrix",
+                    "DuckDB identifier escape and rejection matrix",
+                ),
+                RustVerificationRequirement::new(
+                    "sql_fragment_surface",
+                    "SQL-fragment construction surface under verification",
+                ),
+            ],
+        ),
+    )
+    .with_rationale("DuckDB SQL helpers guard the local storage SQL boundary")
+}
+
+fn bpmn_store_performance_hint() -> RustVerificationProfileHint {
+    RustVerificationProfileHint::new(
+        "src/qianji_bpmn/store.rs",
+        [
+            RustOwnerResponsibility::AvailabilityCritical,
+            RustOwnerResponsibility::ExternalDependency,
+            RustOwnerResponsibility::LatencySensitive,
+        ],
+    )
+    .with_task_kinds([RustVerificationTaskKind::Performance])
+    .with_task_contract(
+        RustVerificationTaskKind::Performance,
+        RustVerificationTaskContract::new(
+            RustVerificationPhase::AfterUnitTestsPass,
+            "performance skill must report BPMN DuckDB store latency evidence from cargo bench -p xiuxian-db-store --features qianji-bpmn-workflow-state --bench db_store_performance",
+            [
+                RustVerificationRequirement::new(
+                    "benchmark_command",
+                    "cargo bench -p xiuxian-db-store --features qianji-bpmn-workflow-state --bench db_store_performance",
+                ),
+                RustVerificationRequirement::new(
+                    "baseline",
+                    "storage latency baseline name or commit",
+                ),
+                RustVerificationRequirement::new(
+                    "regression_threshold",
+                    "accepted storage latency regression threshold",
+                ),
+                RustVerificationRequirement::new(
+                    "latency_or_throughput",
+                    "DuckDB save/load latency or throughput result",
+                ),
+                RustVerificationRequirement::new(
+                    "profile_artifact",
+                    "test output or benchmark artifact path",
+                ),
+            ],
+        ),
+    )
+    .with_rationale("BPMN DuckDB store owns workflow-state persistence latency")
+}
+
+fn state_log_regression_hint() -> RustVerificationProfileHint {
+    RustVerificationProfileHint::new(
+        "src/qianji_bpmn/state_log.rs",
+        [
+            RustOwnerResponsibility::AvailabilityCritical,
+            RustOwnerResponsibility::PublicApi,
+        ],
+    )
+    .with_task_kinds([RustVerificationTaskKind::Regression])
+    .with_task_contract(
+        RustVerificationTaskKind::Regression,
+        RustVerificationTaskContract::new(
+            RustVerificationPhase::ScheduledRegression,
+            "regression skill must report workflow-state latest/event-log parity",
+            [
+                RustVerificationRequirement::new(
+                    "snapshot_command",
+                    "workflow-state regression command",
+                ),
+                RustVerificationRequirement::new(
+                    "contract_parity",
+                    "latest-state and event-log parity result",
+                ),
+            ],
+        ),
+    )
+    .with_rationale("workflow-state log owns replay and latest-state consistency")
 }
 
 fn security_skill_descriptor() -> RustVerificationSkillDescriptor {
@@ -281,7 +287,7 @@ fn write_verification_reports_when_requested(
         plan,
         &RustVerificationReportWriteConfig::new(manifest_dir, source_dir, cache_dir),
     )
-    .expect("write verification reports");
+    .unwrap_or_else(|error| panic!("write verification reports: {error}"));
 }
 
 fn verification_source_report_output_dir(manifest_dir: &Path) -> PathBuf {
@@ -293,17 +299,9 @@ fn verification_source_report_output_dir(manifest_dir: &Path) -> PathBuf {
 
 fn verification_cache_report_output_dir(manifest_dir: &Path) -> PathBuf {
     let project_root = env::var_os("PRJ_ROOT")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| {
-            manifest_dir
-                .ancestors()
-                .nth(4)
-                .expect("workspace root")
-                .to_path_buf()
-        });
-    let cache_home = env::var_os("PRJ_CACHE_HOME")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| PathBuf::from(".cache"));
+        .map_or_else(|| workspace_root_for_manifest(manifest_dir), PathBuf::from);
+    let cache_home =
+        env::var_os("PRJ_CACHE_HOME").map_or_else(|| PathBuf::from(".cache"), PathBuf::from);
     let cache_home = if cache_home.is_absolute() {
         cache_home
     } else {
@@ -313,4 +311,11 @@ fn verification_cache_report_output_dir(manifest_dir: &Path) -> PathBuf {
         .join("agent")
         .join("verification")
         .join("xiuxian-db-store")
+}
+
+fn workspace_root_for_manifest(manifest_dir: &Path) -> PathBuf {
+    manifest_dir
+        .ancestors()
+        .nth(4)
+        .map_or_else(|| manifest_dir.to_path_buf(), Path::to_path_buf)
 }

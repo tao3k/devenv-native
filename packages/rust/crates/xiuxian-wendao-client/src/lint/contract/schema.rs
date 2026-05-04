@@ -1,8 +1,11 @@
 #![cfg(test)]
 
+use super::assets::MarkdownLintDiagnosticContractId;
 use super::manifest::parse_manifest;
 
-pub(super) fn generate_schema_json(contract_id: &str) -> anyhow::Result<String> {
+pub(super) fn generate_schema_json(
+    contract_id: MarkdownLintDiagnosticContractId,
+) -> anyhow::Result<String> {
     use schemars::schema_for;
 
     let manifest = parse_manifest(contract_id)?;

@@ -67,7 +67,7 @@ pub(crate) async fn write_replaced_table(
 ) -> Result<ParquetPublicationStats, VectorStoreError> {
     let rows = rows_from_documents(documents);
     let changed_batches = repo_content_chunk_batches(&rows)?;
-    let output_batches = lance_batches_to_engine_batches(changed_batches.as_slice())?;
+    let output_batches = lance_batches_to_engine_batches(changed_batches.as_slice());
     write_partitioned_repo_content_output(
         service,
         table_name,
@@ -253,7 +253,7 @@ fn rewrite_touched_partitions(
             let changed_started = Instant::now();
             let changed_rows = rows_from_documents(changed_documents.as_slice());
             let changed_batches = repo_content_chunk_batches(&changed_rows)?;
-            output_batches.extend(lance_batches_to_engine_batches(changed_batches.as_slice())?);
+            output_batches.extend(lance_batches_to_engine_batches(changed_batches.as_slice()));
             profile.changed_payload_elapsed += changed_started.elapsed();
         }
         if output_batches.is_empty() {
@@ -301,7 +301,7 @@ fn rewrite_legacy_repo_content_publication_as_partitioned(
         }
         output_batches = filtered_batches;
     }
-    output_batches.extend(lance_batches_to_engine_batches(changed_batches.as_slice())?);
+    output_batches.extend(lance_batches_to_engine_batches(changed_batches.as_slice()));
     write_partitioned_repo_content_output(
         service,
         target_table_name,
@@ -652,7 +652,7 @@ fn write_empty_partitioned_repo_content_output(
 ) -> Result<RepoContentChunkPartitionStats, VectorStoreError> {
     std::fs::create_dir_all(target_root)?;
     let empty_batch = LanceRecordBatch::new_empty(repo_content_chunk_schema());
-    let empty_batches = lance_batches_to_engine_batches(&[empty_batch])?;
+    let empty_batches = lance_batches_to_engine_batches(&[empty_batch]);
     write_normalized_repo_content_batches(
         repo_content_chunk_partition_path(target_root, "00").as_path(),
         &empty_batches,

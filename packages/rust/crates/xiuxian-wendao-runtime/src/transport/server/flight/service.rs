@@ -168,8 +168,7 @@ impl FlightService for WendaoFlightService {
             .rerank_handler
             .handle_exchange_batches(&request_batches, top_k, min_final_score)
             .map_err(Status::invalid_argument)?;
-        let exchange_response_batch = lance_batch_to_engine_batch(&exchange_response_batch)
-            .map_err(|error| Status::internal(error.to_string()))?;
+        let exchange_response_batch = lance_batch_to_engine_batch(&exchange_response_batch);
         validate_rerank_response_batch(&exchange_response_batch).map_err(Status::internal)?;
 
         let response_stream = FlightDataEncoderBuilder::new()

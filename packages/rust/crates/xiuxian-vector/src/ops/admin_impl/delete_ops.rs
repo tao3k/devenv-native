@@ -1,3 +1,5 @@
+use super::{ID_COLUMN, METADATA_COLUMN, Result, TryStreamExt, VectorStore, VectorStoreError};
+
 impl VectorStore {
     /// Delete records by IDs.
     ///
@@ -214,7 +216,7 @@ impl VectorStore {
     }
 
     /// Remove only LanceDB-specific artifacts from a directory.
-    fn remove_lance_artifacts(dir: &std::path::Path) -> Result<(), VectorStoreError> {
+    pub(crate) fn remove_lance_artifacts(dir: &std::path::Path) -> Result<(), VectorStoreError> {
         static LANCE_DIRS: &[&str] = &[
             "_versions",
             "data",

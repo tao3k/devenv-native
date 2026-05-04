@@ -1,3 +1,5 @@
+use super::{Dataset, Result, VectorStore, VectorStoreError};
+
 impl VectorStore {
     pub(crate) async fn invalidate_cached_table(&self, table_name: &str) {
         let mut cache = self.datasets.write().await;
@@ -30,7 +32,7 @@ impl VectorStore {
         Ok(dataset)
     }
 
-    fn ensure_non_reserved_column(column: &str) -> Result<(), VectorStoreError> {
+    pub(crate) fn ensure_non_reserved_column(column: &str) -> Result<(), VectorStoreError> {
         if Self::is_reserved_column(column) {
             return Err(VectorStoreError::General(format!(
                 "Column '{column}' is reserved and cannot be altered or dropped"

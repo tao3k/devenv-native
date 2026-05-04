@@ -95,28 +95,47 @@ pub trait ScenarioRunner: Send + Sync {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ScenarioSnapshotPolicy {
     sort_maps: bool,
-    include_description: bool,
-    include_info: bool,
-    include_input_file: bool,
+    include: ScenarioSnapshotInclusions,
     redactions: Vec<ScenarioSnapshotRedaction>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct ScenarioSnapshotInclusions {
+    description: bool,
+    info: bool,
+    input_file: bool,
+}
+
+impl ScenarioSnapshotInclusions {
+    fn none() -> Self {
+        Self {
+            description: false,
+            info: false,
+            input_file: false,
+        }
+    }
+
+    fn all() -> Self {
+        Self {
+            description: true,
+            info: true,
+            input_file: true,
+        }
+    }
 }
 
 impl ScenarioSnapshotPolicy {
     pub fn new() -> Self {
         Self {
             sort_maps: true,
-            include_description: false,
-            include_info: false,
-            include_input_file: false,
+            include: ScenarioSnapshotInclusions::none(),
             redactions: Vec::new(),
         }
     }
 
     pub fn recommended() -> Self {
         let mut policy = Self {
-            include_description: true,
-            include_info: true,
-            include_input_file: true,
+            include: ScenarioSnapshotInclusions::all(),
             ..Self::new()
         };
         policy
@@ -136,7 +155,7 @@ impl ScenarioSnapshotPolicy {
         settings.set_prepend_module_to_snapshot(false);
         settings.set_sort_maps(self.sort_maps);
 
-        if self.include_description {
+        if self.include.description {
             settings.set_description(format!(
                 "Scenario {} [{}]: {}",
                 scenario.id(),
@@ -147,7 +166,7 @@ impl ScenarioSnapshotPolicy {
             settings.remove_description();
         }
 
-        if self.include_input_file {
+        if self.include.input_file {
             settings.set_input_file(scenario.dir.join("scenario.toml"));
         } else {
             settings.remove_input_file();
@@ -157,7 +176,7 @@ impl ScenarioSnapshotPolicy {
             redaction.apply(&mut settings);
         }
 
-        if self.include_info {
+        if self.include.info {
             settings.set_info(&ScenarioSnapshotInfo {
                 id: scenario.id(),
                 name: scenario.name(),

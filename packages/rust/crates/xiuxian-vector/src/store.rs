@@ -9,13 +9,8 @@ use anyhow::Result;
 use lance::dataset::Dataset;
 use tokio::sync::RwLock;
 
-use crate::ops::{
-    DatasetCache, DatasetCacheConfig, FragmentInfo, MergeInsertStats, TableColumnAlteration,
-    TableColumnType, TableInfo, TableNewColumn, TableVersionInfo,
-};
-use crate::{
-    CONTENT_COLUMN, DEFAULT_DIMENSION, ID_COLUMN, METADATA_COLUMN, VECTOR_COLUMN, VectorStoreError,
-};
+use crate::ops::{DatasetCache, DatasetCacheConfig};
+use crate::{CONTENT_COLUMN, DEFAULT_DIMENSION, ID_COLUMN, VECTOR_COLUMN, VectorStoreError};
 
 /// Per-table query metrics (in-process; not persisted). Used by [`crate::ops::observability::get_query_metrics`].
 pub type QueryMetricsCell = Arc<(AtomicU64, AtomicU64)>; // (query_count, last_query_ms; 0 means None)
@@ -40,8 +35,13 @@ pub struct VectorStore {
 }
 
 include!("ops/core.rs");
-include!("ops/writer_impl.rs");
-include!("ops/admin_impl.rs");
+
+#[path = "ops/admin_impl/mod.rs"]
+mod admin_impl;
+#[path = "ops/writer_impl/mod.rs"]
+mod writer_impl;
+
+pub use admin_impl::ScalarIndexType;
 
 impl VectorStore {
     /// Check if a metadata value matches the filter conditions.

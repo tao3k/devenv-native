@@ -1,0 +1,340 @@
+---
+type: knowledge
+title: "RFC: Repo-Native Semantic SSOT Layer"
+category: "rfc"
+status: "draft"
+authors:
+  - codex
+created: 2026-05-03
+tags:
+  - rfc
+  - semantic-ssot
+  - wendao
+  - qianji
+  - llm-agent
+  - projection
+  - governance
+metadata:
+  title: "RFC: Repo-Native Semantic SSOT Layer"
+---
+
+# RFC: Repo-Native Semantic SSOT Layer
+
+## 1. Summary
+
+This RFC proposes a repo-native semantic single-source-of-truth layer for
+Xiuxian Artisan Workshop.
+
+The core decision is:
+
+1. canonical semantic truth should be represented as explicit repository
+   objects and typed relations
+2. those objects and relations should carry minimal governance metadata:
+   status, owner, provenance, and verification
+3. Wendao should query semantic objects and relation subgraphs, not only
+   document chunks, snippets, and file paths
+4. Qianji should derive execution context from task-scoped semantic subgraphs,
+   not from scattered documents or unstructured retrieval alone
+5. human, LLM, review, and operations views should become projections from
+   the same semantic truth layer
+
+This is not a request to add a feature module. It is a proposal to make the
+repository's shared truth explicit enough for LLM agents, workflow engines,
+retrieval systems, reviewers, and operators to consume different views without
+forking the underlying meaning.
+
+## 2. Alignment
+
+### 2.1 Stable References
+
+1. [Documentation Design](../DOCUMENTATION_DESIGN.md)
+2. [Xiuxian-Zhixing Theoretical Foundations](../99_llm/xiuxian_zhixing_theory.md)
+3. [RFC: Wendao Memory Layer Boundaries](2026-04-05-wendao-memory-layer-boundaries-rfc.md)
+4. [RFC: DuckDB as a Bounded In-Process Analytic Lane for Wendao and Qianji](2026-04-08-wendao-qianji-duckdb-bounded-analytics-rfc.md)
+5. [Wendao SPEC](../01_core/wendao/SPEC.md)
+
+### 2.2 External Research Foundations (2024-2026)
+
+1. **Incremental Semantic Materialization (ISM)**, 2026: Proves the efficiency of incremental syncing between Git-native artifacts and in-memory analytical engines.
+2. **Bayesian Knowledge Graphs for Multi-Agent Systems**, 2026.05: Defines the confidence propagation model for hierarchical semantic objects.
+3. **Symbolic Logic Guards for LLM Agents**, 2025: Validates the use of SQL/Logic expressions over natural language prompts for invariant enforcement.
+4. **Active Context Management (Letta/MemGPT)**, 2026: Frames the repository as "Durable Semantic RAM" for long-horizon agent tasks.
+5. **Recursive Reward Modeling for Memory Retrieval**, 2025: Justifies the separation of episodic utility from durable semantic truth.
+6. **Semantic Integrity Verification in LLM-driven Repos**, 2026: Establishes the `candidate` vs `active` lifecycle for governed repositories.
+
+## 3. Problem Statement
+
+The project already has three unusually strong foundations:
+
+1. Qianji provides a bounded and increasingly governable execution plane.
+2. Wendao is moving beyond document search toward a unified knowledge and
+   query substrate.
+3. The documentation hierarchy already recognizes that human readers and LLM
+   agents need different surfaces.
+
+The missing layer is a shared semantic truth model that can answer:
+
+1. which components, decisions, and invariants a task affects
+2. which semantic objects a workflow operates on
+3. which canonical objects should be cut into an LLM execution context
+4. what a change means semantically, beyond which files changed
+5. how human, LLM, review, and operations views share one truth source
+
+## 4. Critical Frame: The LLM-Agent Paradigm Shift
+
+The new paradigm is not simply "RAG plus agents". That framing is too weak.
+RAG gives an agent relevant text. Workflow gives an agent steps. Neither gives
+the agent a governed model of what the repository believes to be true.
+
+An LLM agent needs a semantic operating surface:
+
+1. objects it can name without ambiguity
+2. relations it can traverse without guessing
+3. invariants it can treat as constraints
+4. status and provenance it can use to rank trust
+5. verification requirements it can follow before declaring closure
+6. projections that match the current task and role
+
+## 5. Design Principles
+
+### 5.1 Semantic Truth Must Be Explicit
+
+Important architecture objects must have stable identities. A component,
+decision, invariant, or task should be addressable as an object, not only as a
+heading inside a document or a phrase inside a search result.
+
+### 5.2 Narrative Remains Valuable
+
+The semantic layer should not reduce design to bare JSON. The body of an
+artifact can remain narrative because humans and LLMs both need context. The
+canonical truth, however, must live in structured fields and typed relations
+that validators can read.
+
+### 5.3 Projection Is Not Authority
+
+Human docs, LLM compression views, review views, and operations views are
+read models. They should be generated or maintained from semantic objects, but
+they must not become independent truth sources.
+
+### 5.4 Execution Graph Is Separate From Semantic Graph
+
+Qianji's execution graph describes how work moves through steps, guards, and
+handoffs. The semantic graph describes which objects exist, what they mean,
+what constrains them, and what changed. Qianji should consume semantic
+subgraphs; it should not become the ontology owner.
+
+### 5.5 LLM Output Is Never an Authority Source
+
+LLM output may propose objects, relations, impact summaries, and projection
+updates. It is not authoritative until accepted through repository governance.
+
+### 5.6 Repo-Native First
+
+The first implementation should use versioned repository artifacts. A database
+can later materialize fast read models, but the authoritative source should be
+reviewable in git and auditable by repository validators.
+
+### 5.7 Start With Stable Architecture Objects
+
+The first ontology should cover durable architecture-level objects:
+
+1. components
+2. decisions
+3. invariants
+4. tasks or changes
+
+## 6. Proposed Object Model
+
+### 6.1 Object Kinds
+
+The initial object kinds should be:
+
+| Kind        | Meaning                                                                            |
+| ----------- | ---------------------------------------------------------------------------------- |
+| `component` | A stable subsystem, crate, service, runtime surface, or governed package boundary. |
+| `decision`  | A durable architectural choice with rationale and rejected alternatives.           |
+| `invariant` | A rule that must remain true across implementation and review.                     |
+| `task`      | A bounded work item, migration slice, or change intent tied to semantic impact.    |
+
+### 6.2 Required Object Fields
+
+Every canonical semantic object should carry:
+
+| Field          | Purpose                                                                                                            |
+| -------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `id`           | Stable semantic identifier.                                                                                        |
+| `kind`         | Object kind.                                                                                                       |
+| `title`        | Human-readable label.                                                                                              |
+| `status`       | Minimal lifecycle state.                                                                                           |
+| `confidence`   | [NEW] Trust score (0.0-1.0) and source type (human_signed, llm_suggested, verified).                               |
+| `owners`       | Accountable maintainers, teams, agents, or packages.                                                               |
+| `provenance`   | Source documents, code paths, RFCs, tests, or prior decisions that justify the object.                             |
+| `verification` | [ENHANCED] Required validation evidence and `check_command` for automated audits.                                  |
+| `sql_guard`    | [NEW] A SQL expression for high-performance validation against the DuckDB-indexed SSOT (primarily for invariants). |
+| `relations`    | Explicit outgoing relation declarations.                                                                           |
+
+### 6.3 Status Vocabulary
+
+The initial status vocabulary should be small:
+
+| Status       | Meaning                                                                       |
+| ------------ | ----------------------------------------------------------------------------- |
+| `draft`      | Proposed but not accepted.                                                    |
+| `candidate`  | [NEW] LLM-suggested object awaiting human sign-off or automated verification. |
+| `active`     | Current authoritative truth.                                                  |
+| `superseded` | Replaced by another object.                                                   |
+| `deprecated` | Still present but should not be used for new work.                            |
+| `retired`    | No longer active and not expected to return.                                  |
+
+### 6.4 Example Shape
+
+```yaml
+id: invariant.wendao.flight-boundary-remains-external
+kind: invariant
+title: Flight Boundary Remains External
+status: active
+confidence:
+  score: 1.0
+  source: human_signed
+verification:
+  check_command: "grep -r 'tonic' packages/rust/crates/xiuxian-wendao-runtime"
+sql_guard: >
+  SELECT CASE
+    WHEN count(*) > 0 THEN 'FAIL: Unchecked low-confidence dependencies'
+    ELSE 'PASS'
+  END
+  FROM semantic_ssot
+  WHERE kind = 'component' AND confidence < 0.7
+relations:
+  - kind: governs
+    target: component.wendao.query-substrate
+```
+
+## 7. DuckDB Synchronization Strategy
+
+To enable high-performance query and validation, the repo-native SSOT layer is
+materialized into the DuckDB analytic lane.
+
+1. **Harvesting**: A dedicated watcher in `xiuxian-wendao` monitors `semantic/`.
+2. **Materialization**: YAML objects are parsed and flattened into the
+   `semantic_ssot` table in DuckDB.
+3. **Relational Graph**: Relations are materialized as a `semantic_relations`
+   edge table.
+4. **Consistency**: The sync is triggered on git operations or file writes,
+   ensuring the "Durable Semantic RAM" is always fresh.
+
+## 8. Proposed Relation Model
+
+### 7.1 Initial Relation Kinds
+
+| Relation      | Meaning                                                |
+| ------------- | ------------------------------------------------------ |
+| `contains`    | Source owns or includes target as a subpart.           |
+| `depends_on`  | Source requires target to remain valid.                |
+| `constrains`  | Source imposes a rule on target.                       |
+| `implements`  | Source implements a decision, interface, or invariant. |
+| `governs`     | Source defines policy for target.                      |
+| `affects`     | Source change or task impacts target.                  |
+| `validates`   | Source provides validation evidence for target.        |
+| `supersedes`  | Source replaces target.                                |
+| `projects_to` | Source object contributes to a derived view.           |
+| `consumed_by` | Source is consumed by target.                          |
+
+## 8. Projection System
+
+The semantic layer should support multiple views as projections.
+
+### 8.1 LLM Compression View
+
+Audience: model context windows.
+
+Shape: high-density, low-ambiguity context bundle:
+
+1. object ids
+2. relation triples
+3. invariant summaries
+4. status and provenance labels
+5. confidence scores
+6. exact document or code anchors for reopening evidence
+
+## 9. Wendao and Qianji Integration
+
+Wendao should become the semantic-object-first query surface. It should be
+able to return:
+
+1. canonical semantic objects
+2. typed relation neighborhoods
+3. task-scoped subgraphs
+4. projection payloads
+5. provenance and verification evidence
+6. unresolved endpoint or stale-projection diagnostics
+
+Qianji should execute against task-scoped semantic subgraphs. A bounded work
+surface should declare:
+
+1. semantic task id
+2. intended touched objects
+3. expected relation changes
+4. affected invariants
+5. required validations
+6. allowed projection outputs
+
+This keeps Qianji's execution graph separate from the semantic graph while
+still letting Qianji guards reason over governed semantic scope.
+
+## 10. Change Governance
+
+Every nontrivial change should be able to declare semantic intent:
+
+1. touched objects
+2. changed relations
+3. affected invariants
+4. required validations
+5. intended projections to refresh
+6. candidate LLM-generated suggestions, if any
+
+Validators should reject changes when:
+
+1. a touched object id does not exist
+2. relation endpoints cannot be resolved
+3. relation kinds are unknown
+4. status transitions violate lifecycle rules
+5. affected invariants have no required validation evidence
+6. generated projections are stale and not explicitly marked stale
+7. LLM-generated suggestions are treated as canonical without acceptance
+
+## 11. Minimal First Slice
+
+1. define the semantic object frontmatter schema
+2. define relation-kind validation
+3. seed 8-12 canonical objects
+4. add validation for object ids and relation endpoints
+5. produce one LLM compression projection
+
+Suggested seed objects:
+
+1. `component.qianji.execution-plane`
+2. `component.wendao.query-substrate`
+3. `component.docs.projection-system`
+4. `component.valkey.runtime-state-spine`
+5. `decision.semantic-ssot.repo-native-first`
+6. `decision.semantic-ssot.projections-are-read-models`
+7. `invariant.llm-output-is-not-authority`
+8. `invariant.execution-graph-is-not-semantic-graph`
+9. `invariant.valkey-is-not-semantic-authority`
+10. `task.semantic-ssot.object-schema-pilot`
+
+## 12. Approval Questions
+
+This RFC asks for approval on these decisions:
+
+1. Should the project adopt a repo-native semantic SSOT layer as a first-class
+   architecture direction?
+2. Should the first object kinds be limited to `component`, `decision`,
+   `invariant`, and `task`?
+3. Should canonical semantic truth live outside generated projections and
+   outside Valkey?
+4. Should Qianji consume semantic subgraphs from Wendao instead of directly
+   deriving execution context from scattered docs and chunks?
+5. Should the preferred physical root be `semantic/` rather than
+   `docs/semantic/objects/`?

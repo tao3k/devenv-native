@@ -28,7 +28,7 @@ fn canonicalize_json(value: Value) -> Value {
 
 #[test]
 fn markdown_lint_contract_assets_cover_the_checked_in_snapshot() {
-    for contract_id in MARKDOWN_LINT_DIAGNOSTIC_CONTRACT_IDS {
+    for &contract_id in MARKDOWN_LINT_DIAGNOSTIC_CONTRACT_IDS {
         let assets = markdown_lint_diagnostic_contract_assets(contract_id)
             .unwrap_or_else(|| panic!("missing assets for `{contract_id}`"));
         let snapshot: MarkdownLintDiagnosticContractSnapshot = toml::from_str(assets.contract_toml)
@@ -36,7 +36,7 @@ fn markdown_lint_contract_assets_cover_the_checked_in_snapshot() {
         let schema: Value = serde_json::from_str(assets.schema_json)
             .unwrap_or_else(|error| panic!("invalid schema.json for `{contract_id}`: {error}"));
 
-        assert_eq!(snapshot.id, *contract_id);
+        assert_eq!(snapshot.id, contract_id.as_str());
         assert_eq!(snapshot.version, 1);
         assert_eq!(snapshot.task_types, vec!["cli_call", "diagnostic_render"]);
         assert_eq!(snapshot.cli.argv, vec!["wendao", "lint", "markdown"]);
@@ -58,7 +58,7 @@ fn markdown_lint_contract_assets_cover_the_checked_in_snapshot() {
 
 #[test]
 fn markdown_lint_contract_snapshots_match_generated_contracts() -> Result<()> {
-    for contract_id in MARKDOWN_LINT_DIAGNOSTIC_CONTRACT_IDS {
+    for &contract_id in MARKDOWN_LINT_DIAGNOSTIC_CONTRACT_IDS {
         let assets = markdown_lint_diagnostic_contract_assets(contract_id)
             .unwrap_or_else(|| panic!("missing assets"));
         assert_eq!(
@@ -77,7 +77,7 @@ fn markdown_lint_contract_snapshots_match_generated_contracts() -> Result<()> {
 
 #[test]
 fn markdown_lint_manifest_aligns_with_report_schema() -> Result<()> {
-    for contract_id in MARKDOWN_LINT_DIAGNOSTIC_CONTRACT_IDS {
+    for &contract_id in MARKDOWN_LINT_DIAGNOSTIC_CONTRACT_IDS {
         let manifest = parse_manifest(contract_id)?;
         let schema: Value = serde_json::from_str(&generate_schema_json(contract_id)?)?;
         let properties = schema["properties"]
@@ -109,7 +109,7 @@ fn markdown_lint_manifest_aligns_with_report_schema() -> Result<()> {
 
 #[test]
 fn markdown_lint_manifest_exposes_cli_contract() -> Result<()> {
-    for contract_id in MARKDOWN_LINT_DIAGNOSTIC_CONTRACT_IDS {
+    for &contract_id in MARKDOWN_LINT_DIAGNOSTIC_CONTRACT_IDS {
         let manifest = parse_manifest(contract_id)?;
         assert_eq!(manifest.task_types, vec!["cli_call", "diagnostic_render"]);
         assert_eq!(manifest.cli.argv, vec!["wendao", "lint", "markdown"]);
@@ -151,7 +151,7 @@ fn markdown_lint_contract_snapshot_directory_has_no_orphans() -> Result<()> {
 
 #[test]
 fn markdown_lint_contract_paths_exist_on_disk() {
-    for contract_id in MARKDOWN_LINT_DIAGNOSTIC_CONTRACT_IDS {
+    for &contract_id in MARKDOWN_LINT_DIAGNOSTIC_CONTRACT_IDS {
         assert!(
             Path::new(&super::contract_snapshot_path(contract_id)).exists(),
             "missing contract snapshot path for `{contract_id}`",

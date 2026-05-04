@@ -77,6 +77,7 @@ pub mod index;
 pub mod ops;
 /// Arrow-native retrieval batch helpers used by Wendao query-core adapters.
 pub mod query_support;
+/// Lance search execution helpers for vector-store retrieval.
 #[cfg(feature = "vector-store")]
 pub mod search;
 /// Search cache utilities for deterministic retrieval tests and runtime reuse.
@@ -96,4 +97,10 @@ mod search_impl;
 mod store;
 
 #[cfg(test)]
-rust_lang_project_harness::rust_project_harness_cargo_test_gate!();
+#[path = "../tests/unit/lib_policy.rs"]
+mod rust_project_harness_gate;
+
+#[cfg(test)]
+rust_lang_project_harness::rust_project_harness_cargo_test_gate!(
+    config = rust_project_harness_gate::vector_rust_harness_config()
+);

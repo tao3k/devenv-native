@@ -62,4 +62,10 @@ pub use transport::{PluginTransportEndpoint, PluginTransportKind};
 pub use xiuxian_types::KnowledgeCategory;
 
 #[cfg(test)]
-rust_lang_project_harness::rust_project_harness_cargo_test_gate!();
+#[path = "../tests/unit/lib_policy.rs"]
+mod rust_project_harness_gate;
+
+#[cfg(test)]
+rust_lang_project_harness::rust_project_harness_cargo_test_gate!(
+    config = rust_project_harness_gate::wendao_core_rust_harness_config()
+);

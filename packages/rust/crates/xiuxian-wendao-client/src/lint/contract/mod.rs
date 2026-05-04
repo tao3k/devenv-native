@@ -11,8 +11,9 @@ mod validation;
 
 pub use assets::{
     MARKDOWN_LINT_DIAGNOSTIC_CONTRACT_IDS, MARKDOWN_LINT_DIAGNOSTICS_CONTRACT_ID,
-    MarkdownLintDiagnosticContractAssets, markdown_lint_diagnostic_contract_assets,
-    markdown_lint_diagnostic_contract_snapshot, markdown_lint_diagnostic_schema_snapshot,
+    MarkdownLintDiagnosticContractAssets, MarkdownLintDiagnosticContractId,
+    markdown_lint_diagnostic_contract_assets, markdown_lint_diagnostic_contract_snapshot,
+    markdown_lint_diagnostic_schema_snapshot,
 };
 pub(in crate::lint) use loader::diagnostic_contract;
 

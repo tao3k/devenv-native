@@ -82,104 +82,11 @@ fn vector_manifest_dir() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
 }
 
-fn vector_rust_harness_config() -> RustHarnessConfig {
+pub(super) fn vector_rust_harness_config() -> RustHarnessConfig {
     default_rust_harness_config()
-        .with_verification_profile_hint(
-            RustVerificationProfileHint::new(
-                "src/search/search_impl/filter.rs",
-                [
-                    RustOwnerResponsibility::PublicApi,
-                    RustOwnerResponsibility::SecurityBoundary,
-                ],
-            )
-            .with_task_kinds([RustVerificationTaskKind::Security])
-            .with_task_contract(
-                RustVerificationTaskKind::Security,
-                RustVerificationTaskContract::new(
-                    RustVerificationPhase::BeforeRelease,
-                    "security skill must report JSON-to-Lance filter escaping and predicate-surface probes",
-                    [
-                        RustVerificationRequirement::new(
-                            "filter_escape_matrix",
-                            "JSON string, identifier, and comparator escaping matrix",
-                        ),
-                        RustVerificationRequirement::new(
-                            "metadata_predicate_surface",
-                            "metadata predicate conversion surface under verification",
-                        ),
-                    ],
-                ),
-            )
-            .with_rationale("JSON filter conversion builds Lance SQL-like predicates"),
-        )
-        .with_verification_profile_hint(
-            RustVerificationProfileHint::new(
-                "src/search/search_impl/mod.rs",
-                [
-                    RustOwnerResponsibility::LatencySensitive,
-                    RustOwnerResponsibility::PublicApi,
-                ],
-            )
-            .with_task_kinds([RustVerificationTaskKind::Performance])
-            .with_task_contract(
-                RustVerificationTaskKind::Performance,
-                RustVerificationTaskContract::new(
-                    RustVerificationPhase::AfterUnitTestsPass,
-                    "performance skill must report vector search latency evidence from cargo test -p xiuxian-vector --test performance_test -- --nocapture",
-                    [
-                        RustVerificationRequirement::new(
-                            "benchmark_command",
-                            "cargo test -p xiuxian-vector --test performance_test -- --nocapture",
-                        ),
-                        RustVerificationRequirement::new(
-                            "baseline",
-                            "vector search latency baseline name or commit",
-                        ),
-                        RustVerificationRequirement::new(
-                            "regression_threshold",
-                            "accepted vector search latency regression threshold",
-                        ),
-                        RustVerificationRequirement::new(
-                            "latency_or_throughput",
-                            "search_optimized p50, p95, average latency, or throughput result",
-                        ),
-                        RustVerificationRequirement::new(
-                            "profile_artifact",
-                            "test output or benchmark artifact path",
-                        ),
-                    ],
-                ),
-            )
-            .with_rationale("search execution owns vector retrieval latency"),
-        )
-        .with_verification_profile_hint(
-            RustVerificationProfileHint::new(
-                "src/ops/migration.rs",
-                [
-                    RustOwnerResponsibility::AvailabilityCritical,
-                    RustOwnerResponsibility::ExternalDependency,
-                ],
-            )
-            .with_task_kinds([RustVerificationTaskKind::Regression])
-            .with_task_contract(
-                RustVerificationTaskKind::Regression,
-                RustVerificationTaskContract::new(
-                    RustVerificationPhase::ScheduledRegression,
-                    "regression skill must report Lance schema migration and table compatibility evidence",
-                    [
-                        RustVerificationRequirement::new(
-                            "snapshot_command",
-                            "schema migration regression command",
-                        ),
-                        RustVerificationRequirement::new(
-                            "contract_parity",
-                            "schema version and migrated-row parity result",
-                        ),
-                    ],
-                ),
-            )
-            .with_rationale("Lance schema migration preserves persisted vector tables"),
-        )
+        .with_verification_profile_hint(filter_security_hint())
+        .with_verification_profile_hint(search_performance_hint())
+        .with_verification_profile_hint(migration_regression_hint())
         .with_verification_responsibility_task_kinds(
             RustOwnerResponsibility::LatencySensitive,
             [RustVerificationTaskKind::Performance],
@@ -210,6 +117,105 @@ fn vector_rust_harness_config() -> RustHarnessConfig {
                 .with_adapter("cargo-test"),
         )
         .with_verification_skill_descriptor(regression_skill_descriptor())
+}
+
+fn filter_security_hint() -> RustVerificationProfileHint {
+    RustVerificationProfileHint::new(
+        "src/search/search_impl/filter.rs",
+        [
+            RustOwnerResponsibility::PublicApi,
+            RustOwnerResponsibility::SecurityBoundary,
+        ],
+    )
+    .with_task_kinds([RustVerificationTaskKind::Security])
+    .with_task_contract(
+        RustVerificationTaskKind::Security,
+        RustVerificationTaskContract::new(
+            RustVerificationPhase::BeforeRelease,
+            "security skill must report JSON-to-Lance filter escaping and predicate-surface probes",
+            [
+                RustVerificationRequirement::new(
+                    "filter_escape_matrix",
+                    "JSON string, identifier, and comparator escaping matrix",
+                ),
+                RustVerificationRequirement::new(
+                    "metadata_predicate_surface",
+                    "metadata predicate conversion surface under verification",
+                ),
+            ],
+        ),
+    )
+    .with_rationale("JSON filter conversion builds Lance SQL-like predicates")
+}
+
+fn search_performance_hint() -> RustVerificationProfileHint {
+    RustVerificationProfileHint::new(
+        "src/search/search_impl/mod.rs",
+        [
+            RustOwnerResponsibility::LatencySensitive,
+            RustOwnerResponsibility::PublicApi,
+        ],
+    )
+    .with_task_kinds([RustVerificationTaskKind::Performance])
+    .with_task_contract(
+        RustVerificationTaskKind::Performance,
+        RustVerificationTaskContract::new(
+            RustVerificationPhase::AfterUnitTestsPass,
+            "performance skill must report vector search latency evidence from cargo test -p xiuxian-vector --test performance_test -- --nocapture",
+            [
+                RustVerificationRequirement::new(
+                    "benchmark_command",
+                    "cargo test -p xiuxian-vector --test performance_test -- --nocapture",
+                ),
+                RustVerificationRequirement::new(
+                    "baseline",
+                    "vector search latency baseline name or commit",
+                ),
+                RustVerificationRequirement::new(
+                    "regression_threshold",
+                    "accepted vector search latency regression threshold",
+                ),
+                RustVerificationRequirement::new(
+                    "latency_or_throughput",
+                    "search_optimized p50, p95, average latency, or throughput result",
+                ),
+                RustVerificationRequirement::new(
+                    "profile_artifact",
+                    "test output or benchmark artifact path",
+                ),
+            ],
+        ),
+    )
+    .with_rationale("search execution owns vector retrieval latency")
+}
+
+fn migration_regression_hint() -> RustVerificationProfileHint {
+    RustVerificationProfileHint::new(
+        "src/ops/migration.rs",
+        [
+            RustOwnerResponsibility::AvailabilityCritical,
+            RustOwnerResponsibility::ExternalDependency,
+        ],
+    )
+    .with_task_kinds([RustVerificationTaskKind::Regression])
+    .with_task_contract(
+        RustVerificationTaskKind::Regression,
+        RustVerificationTaskContract::new(
+            RustVerificationPhase::ScheduledRegression,
+            "regression skill must report Lance schema migration and table compatibility evidence",
+            [
+                RustVerificationRequirement::new(
+                    "snapshot_command",
+                    "schema migration regression command",
+                ),
+                RustVerificationRequirement::new(
+                    "contract_parity",
+                    "schema version and migrated-row parity result",
+                ),
+            ],
+        ),
+    )
+    .with_rationale("Lance schema migration preserves persisted vector tables")
 }
 
 fn security_skill_descriptor() -> RustVerificationSkillDescriptor {
@@ -298,7 +304,7 @@ fn write_verification_reports_when_requested(
         plan,
         &RustVerificationReportWriteConfig::new(manifest_dir, source_dir, cache_dir),
     )
-    .expect("write verification reports");
+    .unwrap_or_else(|error| panic!("write verification reports: {error}"));
 }
 
 fn verification_source_report_output_dir(manifest_dir: &Path) -> PathBuf {
@@ -310,17 +316,9 @@ fn verification_source_report_output_dir(manifest_dir: &Path) -> PathBuf {
 
 fn verification_cache_report_output_dir(manifest_dir: &Path) -> PathBuf {
     let project_root = env::var_os("PRJ_ROOT")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| {
-            manifest_dir
-                .ancestors()
-                .nth(4)
-                .expect("workspace root")
-                .to_path_buf()
-        });
-    let cache_home = env::var_os("PRJ_CACHE_HOME")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| PathBuf::from(".cache"));
+        .map_or_else(|| workspace_root_for_manifest(manifest_dir), PathBuf::from);
+    let cache_home =
+        env::var_os("PRJ_CACHE_HOME").map_or_else(|| PathBuf::from(".cache"), PathBuf::from);
     let cache_home = if cache_home.is_absolute() {
         cache_home
     } else {
@@ -330,4 +328,11 @@ fn verification_cache_report_output_dir(manifest_dir: &Path) -> PathBuf {
         .join("agent")
         .join("verification")
         .join("xiuxian-vector")
+}
+
+fn workspace_root_for_manifest(manifest_dir: &Path) -> PathBuf {
+    manifest_dir
+        .ancestors()
+        .nth(4)
+        .map_or_else(|| manifest_dir.to_path_buf(), Path::to_path_buf)
 }

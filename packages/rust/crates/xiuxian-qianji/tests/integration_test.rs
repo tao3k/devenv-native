@@ -65,5 +65,5 @@ mod test_wendao_refresh_mechanism;
 mod test_wendao_sql_mechanism;
 #[path = "integration/test_write_file_mechanism.rs"]
 mod test_write_file_mechanism;
-#[path = "integration/support/valkey.rs"]
+#[path = "unit/support/valkey.rs"]
 mod valkey_support;

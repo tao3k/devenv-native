@@ -1,15 +1,9 @@
-// Administrative method context shared by table, index, and guard operations.
+//! Administrative method context shared by table, index, and guard operations.
 
-use futures::TryStreamExt;
-use lance::index::vector::VectorIndexParams;
-use lance_index::IndexType;
-use lance_index::scalar::inverted::tokenizer::InvertedIndexParams;
-use lance_index::scalar::{BuiltinIndexType, ScalarIndexParams};
-use lance::index::DatasetIndexExt;
-use lance_linalg::distance::DistanceType;
+use super::{Dataset, Result};
 
 /// Open a dataset by URI for background tasks (Send-safe; no store state).
-async fn open_uri_for_background(
+pub(crate) async fn open_uri_for_background(
     uri: &str,
     index_cache_size_bytes: Option<usize>,
 ) -> Result<Dataset, crate::error::VectorStoreError> {
@@ -25,7 +19,7 @@ async fn open_uri_for_background(
 
 /// True if the error indicates the dataset path exists but is not a valid Lance dataset
 /// (e.g. after `drop_table` removed `_versions` / `data`).
-fn is_dataset_not_found_or_invalid(e: &crate::error::VectorStoreError) -> bool {
+pub(crate) fn is_dataset_not_found_or_invalid(e: &crate::error::VectorStoreError) -> bool {
     match e {
         crate::error::VectorStoreError::LanceDB(inner) => {
             let s = inner.to_string();
@@ -46,7 +40,7 @@ pub enum ScalarIndexType {
     Inverted,
 }
 
-fn index_type_name(t: ScalarIndexType) -> &'static str {
+pub(crate) fn index_type_name(t: ScalarIndexType) -> &'static str {
     match t {
         ScalarIndexType::BTree => "btree",
         ScalarIndexType::Bitmap => "bitmap",

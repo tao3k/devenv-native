@@ -1,3 +1,10 @@
+use super::{
+    BuiltinIndexType, DistanceType, IndexType, InvertedIndexParams, Result, ScalarIndexParams,
+    ScalarIndexType, VECTOR_COLUMN, VectorIndexParams, VectorStore, VectorStoreError,
+    index_type_name, open_uri_for_background,
+};
+use lance::index::DatasetIndexExt;
+
 impl VectorStore {
     /// Create a vector index for a table to optimize search performance.
     ///

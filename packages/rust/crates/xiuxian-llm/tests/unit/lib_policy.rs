@@ -41,7 +41,7 @@ fn llm_verification_profile_hints_bind_active_skill_tasks() {
     );
     assert_bound_task(
         &plan,
-        "src/llm/providers/openai_like.rs",
+        "src/llm/providers/openai_like/facade.rs",
         RustVerificationTaskKind::Security,
         "rust-verification-security@http-transport",
     );
@@ -82,126 +82,11 @@ fn llm_manifest_dir() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
 }
 
-fn llm_rust_harness_config() -> RustHarnessConfig {
+pub(super) fn llm_rust_harness_config() -> RustHarnessConfig {
     default_rust_harness_config()
-        .with_verification_profile_hint(
-            RustVerificationProfileHint::new(
-                "src/llm/providers/openai_like.rs",
-                [
-                    RustOwnerResponsibility::AvailabilityCritical,
-                    RustOwnerResponsibility::ExternalDependency,
-                    RustOwnerResponsibility::PublicApi,
-                    RustOwnerResponsibility::SecurityBoundary,
-                ],
-            )
-            .with_task_kinds([
-                RustVerificationTaskKind::Security,
-                RustVerificationTaskKind::Stress,
-            ])
-            .with_task_contract(
-                RustVerificationTaskKind::Security,
-                RustVerificationTaskContract::new(
-                    RustVerificationPhase::BeforeRelease,
-                    "security skill must report OpenAI-compatible transport auth, payload, and log-sanitization probes",
-                    [
-                        RustVerificationRequirement::new(
-                            "auth_header_matrix",
-                            "API-key header and skip-key behavior matrix",
-                        ),
-                        RustVerificationRequirement::new(
-                            "payload_sanitization",
-                            "request, response, and error log sanitization result",
-                        ),
-                    ],
-                ),
-            )
-            .with_task_contract(
-                RustVerificationTaskKind::Stress,
-                RustVerificationTaskContract::new(
-                    RustVerificationPhase::BeforeRelease,
-                    "stress skill must report transient upstream retry and timeout behavior",
-                    [
-                        RustVerificationRequirement::new(
-                            "retry_matrix",
-                            "network, header-timeout, and retryable status matrix",
-                        ),
-                        RustVerificationRequirement::new(
-                            "timeout_budget",
-                            "configured timeout and retry backoff budget",
-                        ),
-                    ],
-                ),
-            )
-            .with_rationale("OpenAI-compatible transport crosses external API and secret-bearing boundaries"),
-        )
-        .with_verification_profile_hint(
-            RustVerificationProfileHint::new(
-                "src/runtime/bus.rs",
-                [
-                    RustOwnerResponsibility::AvailabilityCritical,
-                    RustOwnerResponsibility::LatencySensitive,
-                ],
-            )
-            .with_task_kinds([RustVerificationTaskKind::Performance])
-            .with_task_contract(
-                RustVerificationTaskKind::Performance,
-                RustVerificationTaskContract::new(
-                    RustVerificationPhase::AfterUnitTestsPass,
-                    "performance skill must report ModelBus activation and executor lifecycle evidence from cargo test -p xiuxian-llm --test unit_test -- --nocapture",
-                    [
-                        RustVerificationRequirement::new(
-                            "benchmark_command",
-                            "cargo test -p xiuxian-llm --test unit_test -- --nocapture",
-                        ),
-                        RustVerificationRequirement::new(
-                            "baseline",
-                            "ModelBus lifecycle baseline name or commit",
-                        ),
-                        RustVerificationRequirement::new(
-                            "regression_threshold",
-                            "accepted activation and memory accounting regression threshold",
-                        ),
-                        RustVerificationRequirement::new(
-                            "latency_or_throughput",
-                            "activation, execution, or memory-accounting result",
-                        ),
-                        RustVerificationRequirement::new(
-                            "profile_artifact",
-                            "unit test output or future benchmark artifact path",
-                        ),
-                    ],
-                ),
-            )
-            .with_rationale("ModelBus owns activation, hibernation, and memory pressure behavior"),
-        )
-        .with_verification_profile_hint(
-            RustVerificationProfileHint::new(
-                "src/embedding/runtime.rs",
-                [
-                    RustOwnerResponsibility::AvailabilityCritical,
-                    RustOwnerResponsibility::PublicApi,
-                ],
-            )
-            .with_task_kinds([RustVerificationTaskKind::Regression])
-            .with_task_contract(
-                RustVerificationTaskKind::Regression,
-                RustVerificationTaskContract::new(
-                    RustVerificationPhase::ScheduledRegression,
-                    "regression skill must report embedding timeout, cooldown, unavailable, and dimension-repair parity",
-                    [
-                        RustVerificationRequirement::new(
-                            "snapshot_command",
-                            "embedding runtime regression command",
-                        ),
-                        RustVerificationRequirement::new(
-                            "contract_parity",
-                            "timeout, cooldown, unavailable, and repaired-vector parity result",
-                        ),
-                    ],
-                ),
-            )
-            .with_rationale("embedding runtime guards semantic memory availability and vector shape"),
-        )
+        .with_verification_profile_hint(openai_transport_hint())
+        .with_verification_profile_hint(model_bus_performance_hint())
+        .with_verification_profile_hint(embedding_runtime_regression_hint())
         .with_verification_responsibility_task_kinds(
             RustOwnerResponsibility::LatencySensitive,
             [RustVerificationTaskKind::Performance],
@@ -226,7 +111,8 @@ fn llm_rust_harness_config() -> RustHarnessConfig {
         .with_verification_skill_descriptor(security_skill_descriptor())
         .with_verification_skill_binding(
             RustVerificationTaskKind::Stress,
-            RustVerificationSkillBinding::new("rust-verification-stress").with_adapter("cargo-test"),
+            RustVerificationSkillBinding::new("rust-verification-stress")
+                .with_adapter("cargo-test"),
         )
         .with_verification_skill_descriptor(stress_skill_descriptor())
         .with_verification_skill_binding(
@@ -241,6 +127,127 @@ fn llm_rust_harness_config() -> RustHarnessConfig {
                 .with_adapter("cargo-test"),
         )
         .with_verification_skill_descriptor(regression_skill_descriptor())
+}
+
+fn openai_transport_hint() -> RustVerificationProfileHint {
+    RustVerificationProfileHint::new(
+        "src/llm/providers/openai_like/facade.rs",
+        [
+            RustOwnerResponsibility::AvailabilityCritical,
+            RustOwnerResponsibility::ExternalDependency,
+            RustOwnerResponsibility::PublicApi,
+            RustOwnerResponsibility::SecurityBoundary,
+        ],
+    )
+    .with_task_kinds([
+        RustVerificationTaskKind::Security,
+        RustVerificationTaskKind::Stress,
+    ])
+    .with_task_contract(
+        RustVerificationTaskKind::Security,
+        RustVerificationTaskContract::new(
+            RustVerificationPhase::BeforeRelease,
+            "security skill must report OpenAI-compatible transport auth, payload, and log-sanitization probes",
+            [
+                RustVerificationRequirement::new(
+                    "auth_header_matrix",
+                    "API-key header and skip-key behavior matrix",
+                ),
+                RustVerificationRequirement::new(
+                    "payload_sanitization",
+                    "request, response, and error log sanitization result",
+                ),
+            ],
+        ),
+    )
+    .with_task_contract(
+        RustVerificationTaskKind::Stress,
+        RustVerificationTaskContract::new(
+            RustVerificationPhase::BeforeRelease,
+            "stress skill must report transient upstream retry and timeout behavior",
+            [
+                RustVerificationRequirement::new(
+                    "retry_matrix",
+                    "network, header-timeout, and retryable status matrix",
+                ),
+                RustVerificationRequirement::new(
+                    "timeout_budget",
+                    "configured timeout and retry backoff budget",
+                ),
+            ],
+        ),
+    )
+    .with_rationale("OpenAI-compatible transport crosses external API and secret-bearing boundaries")
+}
+
+fn model_bus_performance_hint() -> RustVerificationProfileHint {
+    RustVerificationProfileHint::new(
+        "src/runtime/bus.rs",
+        [
+            RustOwnerResponsibility::AvailabilityCritical,
+            RustOwnerResponsibility::LatencySensitive,
+        ],
+    )
+    .with_task_kinds([RustVerificationTaskKind::Performance])
+    .with_task_contract(
+        RustVerificationTaskKind::Performance,
+        RustVerificationTaskContract::new(
+            RustVerificationPhase::AfterUnitTestsPass,
+            "performance skill must report ModelBus activation and executor lifecycle evidence from cargo test -p xiuxian-llm --test unit_test -- --nocapture",
+            [
+                RustVerificationRequirement::new(
+                    "benchmark_command",
+                    "cargo test -p xiuxian-llm --test unit_test -- --nocapture",
+                ),
+                RustVerificationRequirement::new(
+                    "baseline",
+                    "ModelBus lifecycle baseline name or commit",
+                ),
+                RustVerificationRequirement::new(
+                    "regression_threshold",
+                    "accepted activation and memory accounting regression threshold",
+                ),
+                RustVerificationRequirement::new(
+                    "latency_or_throughput",
+                    "activation, execution, or memory-accounting result",
+                ),
+                RustVerificationRequirement::new(
+                    "profile_artifact",
+                    "unit test output or future benchmark artifact path",
+                ),
+            ],
+        ),
+    )
+    .with_rationale("ModelBus owns activation, hibernation, and memory pressure behavior")
+}
+
+fn embedding_runtime_regression_hint() -> RustVerificationProfileHint {
+    RustVerificationProfileHint::new(
+        "src/embedding/runtime.rs",
+        [
+            RustOwnerResponsibility::AvailabilityCritical,
+            RustOwnerResponsibility::PublicApi,
+        ],
+    )
+    .with_task_kinds([RustVerificationTaskKind::Regression])
+    .with_task_contract(
+        RustVerificationTaskKind::Regression,
+        RustVerificationTaskContract::new(
+            RustVerificationPhase::ScheduledRegression,
+            "regression skill must report embedding timeout, cooldown, unavailable, and dimension-repair parity",
+            [
+                RustVerificationRequirement::new(
+                    "snapshot_command",
+                    "embedding runtime regression command",
+                ),
+                RustVerificationRequirement::new(
+                    "contract_parity",
+                    "timeout, cooldown, unavailable, and repaired-vector parity result",
+                ),
+            ],
+        ),
+    )
+    .with_rationale("embedding runtime guards semantic memory availability and vector shape")
 }
 
 fn security_skill_descriptor() -> RustVerificationSkillDescriptor {
@@ -342,7 +349,7 @@ fn write_verification_reports_when_requested(
         plan,
         &RustVerificationReportWriteConfig::new(manifest_dir, source_dir, cache_dir),
     )
-    .expect("write verification reports");
+    .unwrap_or_else(|error| panic!("write verification reports: {error}"));
 }
 
 fn verification_source_report_output_dir(manifest_dir: &Path) -> PathBuf {
@@ -354,17 +361,9 @@ fn verification_source_report_output_dir(manifest_dir: &Path) -> PathBuf {
 
 fn verification_cache_report_output_dir(manifest_dir: &Path) -> PathBuf {
     let project_root = env::var_os("PRJ_ROOT")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| {
-            manifest_dir
-                .ancestors()
-                .nth(4)
-                .expect("workspace root")
-                .to_path_buf()
-        });
-    let cache_home = env::var_os("PRJ_CACHE_HOME")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| PathBuf::from(".cache"));
+        .map_or_else(|| workspace_root_for_manifest(manifest_dir), PathBuf::from);
+    let cache_home =
+        env::var_os("PRJ_CACHE_HOME").map_or_else(|| PathBuf::from(".cache"), PathBuf::from);
     let cache_home = if cache_home.is_absolute() {
         cache_home
     } else {
@@ -374,4 +373,11 @@ fn verification_cache_report_output_dir(manifest_dir: &Path) -> PathBuf {
         .join("agent")
         .join("verification")
         .join("xiuxian-llm")
+}
+
+fn workspace_root_for_manifest(manifest_dir: &Path) -> PathBuf {
+    manifest_dir
+        .ancestors()
+        .nth(4)
+        .map_or_else(|| manifest_dir.to_path_buf(), Path::to_path_buf)
 }

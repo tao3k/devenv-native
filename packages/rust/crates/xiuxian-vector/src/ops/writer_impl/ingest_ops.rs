@@ -1,3 +1,5 @@
+use super::{Result, VectorStore, VectorStoreError, default_write_params, parse_metadata_value};
+
 impl VectorStore {
     /// Batch add documents with vectors to a table.
     ///

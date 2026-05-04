@@ -32,6 +32,8 @@ mod bpmn_engine_dependency;
 mod bpmn_tests;
 #[path = "unit/lib_policy.rs"]
 mod lib_policy;
+#[path = "unit/support/valkey.rs"]
+mod qianji_test_valkey_support;
 #[cfg(feature = "qianji-full")]
 #[path = "unit/unit_adversarial_loop.rs"]
 mod unit_adversarial_loop;

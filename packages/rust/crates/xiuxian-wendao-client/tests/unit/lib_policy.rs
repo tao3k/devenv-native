@@ -36,7 +36,7 @@ fn client_verification_profile_hints_bind_active_skill_tasks() {
     );
     assert_bound_task(
         &plan,
-        "src/get/run.rs",
+        "src/get/run/facade.rs",
         RustVerificationTaskKind::Performance,
         "rust-verification-performance@criterion",
     );
@@ -75,104 +75,11 @@ fn client_manifest_dir() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
 }
 
-fn client_rust_harness_config() -> RustHarnessConfig {
+pub(super) fn client_rust_harness_config() -> RustHarnessConfig {
     default_rust_harness_config()
-        .with_verification_profile_hint(
-            RustVerificationProfileHint::new(
-                "src/cli.rs",
-                [
-                    RustOwnerResponsibility::PublicApi,
-                    RustOwnerResponsibility::SecurityBoundary,
-                ],
-            )
-            .with_task_kinds([RustVerificationTaskKind::Security])
-            .with_task_contract(
-                RustVerificationTaskKind::Security,
-                RustVerificationTaskContract::new(
-                    RustVerificationPhase::BeforeRelease,
-                    "security skill must report CLI argument and output-boundary probes",
-                    [
-                        RustVerificationRequirement::new(
-                            "cli_surface",
-                            "client CLI command surface under verification",
-                        ),
-                        RustVerificationRequirement::new(
-                            "output_boundary",
-                            "client output boundary review result",
-                        ),
-                    ],
-                ),
-            )
-            .with_rationale("client CLI exposes user-facing command and output boundaries"),
-        )
-        .with_verification_profile_hint(
-            RustVerificationProfileHint::new(
-                "src/get/run.rs",
-                [
-                    RustOwnerResponsibility::ExternalDependency,
-                    RustOwnerResponsibility::LatencySensitive,
-                ],
-            )
-            .with_task_kinds([RustVerificationTaskKind::Performance])
-            .with_task_contract(
-                RustVerificationTaskKind::Performance,
-                RustVerificationTaskContract::new(
-                    RustVerificationPhase::AfterUnitTestsPass,
-                    "performance skill must report get-runtime latency evidence from cargo bench -p xiuxian-wendao-client --features performance --bench wendao_client_get",
-                    [
-                        RustVerificationRequirement::new(
-                            "benchmark_command",
-                            "cargo bench -p xiuxian-wendao-client --features performance --bench wendao_client_get",
-                        ),
-                        RustVerificationRequirement::new(
-                            "baseline",
-                            "Criterion baseline name or commit",
-                        ),
-                        RustVerificationRequirement::new(
-                            "regression_threshold",
-                            "accepted latency regression threshold",
-                        ),
-                        RustVerificationRequirement::new(
-                            "latency_or_throughput",
-                            "Criterion latency or throughput result",
-                        ),
-                        RustVerificationRequirement::new(
-                            "profile_artifact",
-                            "target/criterion artifact path for the relevant benchmark group",
-                        ),
-                    ],
-                ),
-            )
-            .with_rationale("get command execution crosses runtime and document-fetch boundaries"),
-        )
-        .with_verification_profile_hint(
-            RustVerificationProfileHint::new(
-                "src/lint/contract/validation.rs",
-                [
-                    RustOwnerResponsibility::ExternalDependency,
-                    RustOwnerResponsibility::PublicApi,
-                ],
-            )
-            .with_task_kinds([RustVerificationTaskKind::Regression])
-            .with_task_contract(
-                RustVerificationTaskKind::Regression,
-                RustVerificationTaskContract::new(
-                    RustVerificationPhase::ScheduledRegression,
-                    "regression skill must report markdown-lint contract snapshot parity",
-                    [
-                        RustVerificationRequirement::new(
-                            "snapshot_command",
-                            "markdown-lint contract snapshot command",
-                        ),
-                        RustVerificationRequirement::new(
-                            "contract_parity",
-                            "contract snapshot parity result",
-                        ),
-                    ],
-                ),
-            )
-            .with_rationale("lint contract validation owns stable client-facing diagnostics"),
-        )
+        .with_verification_profile_hint(cli_security_hint())
+        .with_verification_profile_hint(get_runtime_performance_hint())
+        .with_verification_profile_hint(lint_contract_regression_hint())
         .with_verification_responsibility_task_kinds(
             RustOwnerResponsibility::LatencySensitive,
             [RustVerificationTaskKind::Performance],
@@ -200,6 +107,102 @@ fn client_rust_harness_config() -> RustHarnessConfig {
                 .with_adapter("insta"),
         )
         .with_verification_skill_descriptor(regression_skill_descriptor())
+}
+
+fn cli_security_hint() -> RustVerificationProfileHint {
+    RustVerificationProfileHint::new(
+        "src/cli.rs",
+        [
+            RustOwnerResponsibility::PublicApi,
+            RustOwnerResponsibility::SecurityBoundary,
+        ],
+    )
+    .with_task_kinds([RustVerificationTaskKind::Security])
+    .with_task_contract(
+        RustVerificationTaskKind::Security,
+        RustVerificationTaskContract::new(
+            RustVerificationPhase::BeforeRelease,
+            "security skill must report CLI argument and output-boundary probes",
+            [
+                RustVerificationRequirement::new(
+                    "cli_surface",
+                    "client CLI command surface under verification",
+                ),
+                RustVerificationRequirement::new(
+                    "output_boundary",
+                    "client output boundary review result",
+                ),
+            ],
+        ),
+    )
+    .with_rationale("client CLI exposes user-facing command and output boundaries")
+}
+
+fn get_runtime_performance_hint() -> RustVerificationProfileHint {
+    RustVerificationProfileHint::new(
+        "src/get/run/facade.rs",
+        [
+            RustOwnerResponsibility::ExternalDependency,
+            RustOwnerResponsibility::LatencySensitive,
+        ],
+    )
+    .with_task_kinds([RustVerificationTaskKind::Performance])
+    .with_task_contract(
+        RustVerificationTaskKind::Performance,
+        RustVerificationTaskContract::new(
+            RustVerificationPhase::AfterUnitTestsPass,
+            "performance skill must report get-runtime latency evidence from cargo bench -p xiuxian-wendao-client --features performance --bench wendao_client_get",
+            [
+                RustVerificationRequirement::new(
+                    "benchmark_command",
+                    "cargo bench -p xiuxian-wendao-client --features performance --bench wendao_client_get",
+                ),
+                RustVerificationRequirement::new("baseline", "Criterion baseline name or commit"),
+                RustVerificationRequirement::new(
+                    "regression_threshold",
+                    "accepted latency regression threshold",
+                ),
+                RustVerificationRequirement::new(
+                    "latency_or_throughput",
+                    "Criterion latency or throughput result",
+                ),
+                RustVerificationRequirement::new(
+                    "profile_artifact",
+                    "target/criterion artifact path for the relevant benchmark group",
+                ),
+            ],
+        ),
+    )
+    .with_rationale("get command execution crosses runtime and document-fetch boundaries")
+}
+
+fn lint_contract_regression_hint() -> RustVerificationProfileHint {
+    RustVerificationProfileHint::new(
+        "src/lint/contract/validation.rs",
+        [
+            RustOwnerResponsibility::ExternalDependency,
+            RustOwnerResponsibility::PublicApi,
+        ],
+    )
+    .with_task_kinds([RustVerificationTaskKind::Regression])
+    .with_task_contract(
+        RustVerificationTaskKind::Regression,
+        RustVerificationTaskContract::new(
+            RustVerificationPhase::ScheduledRegression,
+            "regression skill must report markdown-lint contract snapshot parity",
+            [
+                RustVerificationRequirement::new(
+                    "snapshot_command",
+                    "markdown-lint contract snapshot command",
+                ),
+                RustVerificationRequirement::new(
+                    "contract_parity",
+                    "contract snapshot parity result",
+                ),
+            ],
+        ),
+    )
+    .with_rationale("lint contract validation owns stable client-facing diagnostics")
 }
 
 fn security_skill_descriptor() -> RustVerificationSkillDescriptor {
@@ -267,7 +270,7 @@ fn write_verification_reports_when_requested(
         plan,
         &RustVerificationReportWriteConfig::new(manifest_dir, source_dir, cache_dir),
     )
-    .expect("write verification reports");
+    .unwrap_or_else(|error| panic!("write verification reports: {error}"));
 }
 
 fn verification_source_report_output_dir(manifest_dir: &Path) -> PathBuf {
@@ -279,17 +282,9 @@ fn verification_source_report_output_dir(manifest_dir: &Path) -> PathBuf {
 
 fn verification_cache_report_output_dir(manifest_dir: &Path) -> PathBuf {
     let project_root = env::var_os("PRJ_ROOT")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| {
-            manifest_dir
-                .ancestors()
-                .nth(4)
-                .expect("workspace root")
-                .to_path_buf()
-        });
-    let cache_home = env::var_os("PRJ_CACHE_HOME")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| PathBuf::from(".cache"));
+        .map_or_else(|| workspace_root_for_manifest(manifest_dir), PathBuf::from);
+    let cache_home =
+        env::var_os("PRJ_CACHE_HOME").map_or_else(|| PathBuf::from(".cache"), PathBuf::from);
     let cache_home = if cache_home.is_absolute() {
         cache_home
     } else {
@@ -299,4 +294,11 @@ fn verification_cache_report_output_dir(manifest_dir: &Path) -> PathBuf {
         .join("agent")
         .join("verification")
         .join("xiuxian-wendao-client")
+}
+
+fn workspace_root_for_manifest(manifest_dir: &Path) -> PathBuf {
+    manifest_dir
+        .ancestors()
+        .nth(4)
+        .map_or_else(|| manifest_dir.to_path_buf(), Path::to_path_buf)
 }

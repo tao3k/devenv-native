@@ -51,7 +51,7 @@ pub(crate) async fn rewrite_repo_publication_parquet(
         output_batches = filtered_batches;
     }
 
-    output_batches.extend(lance_batches_to_engine_batches(request.changed_batches)?);
+    output_batches.extend(lance_batches_to_engine_batches(request.changed_batches));
 
     let parquet_path =
         service.repo_publication_parquet_path(request.corpus, request.target_table_name);
@@ -87,7 +87,7 @@ fn write_empty_repo_publication_parquet(
     schema: Arc<LanceSchema>,
 ) -> Result<(), VectorStoreError> {
     let empty_batch = LanceRecordBatch::new_empty(schema);
-    let engine_batches = lance_batches_to_engine_batches(&[empty_batch])?;
+    let engine_batches = lance_batches_to_engine_batches(&[empty_batch]);
     write_engine_batches_to_parquet_file(output_path, &engine_batches)
 }
 

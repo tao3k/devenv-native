@@ -5,7 +5,7 @@ use std::io;
 
 #[path = "service_api/api.rs"]
 mod service;
-#[path = "types/api.rs"]
+#[path = "types/api/mod.rs"]
 mod types;
 
 pub use types::{

@@ -83,9 +83,7 @@ impl RepoSearchFlightRouteProvider for StudioRepoSearchFlightRouteProvider {
         };
         let batch =
             result.map_err(|error| format!("repo-search Flight provider failed: {error}"))?;
-        lance_batch_to_engine_batch(&batch).map_err(|error| {
-            format!("repo-search Flight provider batch conversion failed: {error}")
-        })
+        Ok(lance_batch_to_engine_batch(&batch))
     }
 }
 

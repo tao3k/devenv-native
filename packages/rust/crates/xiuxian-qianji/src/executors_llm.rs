@@ -2,7 +2,7 @@
 
 #[path = "executors_llm_mechanism.rs"]
 mod mechanism;
-#[path = "executors_llm_streaming.rs"]
+#[path = "executors_llm_streaming/mod.rs"]
 mod streaming;
 
 pub use mechanism::LlmAnalyzer;

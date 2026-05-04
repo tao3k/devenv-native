@@ -82,106 +82,11 @@ fn memory_engine_manifest_dir() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
 }
 
-fn memory_engine_rust_harness_config() -> RustHarnessConfig {
+pub(super) fn memory_engine_rust_harness_config() -> RustHarnessConfig {
     default_rust_harness_config()
-        .with_verification_profile_hint(
-            RustVerificationProfileHint::new(
-                "src/store.rs",
-                [
-                    RustOwnerResponsibility::AvailabilityCritical,
-                    RustOwnerResponsibility::LatencySensitive,
-                    RustOwnerResponsibility::PublicApi,
-                ],
-            )
-            .with_task_kinds([RustVerificationTaskKind::Performance])
-            .with_task_contract(
-                RustVerificationTaskKind::Performance,
-                RustVerificationTaskContract::new(
-                    RustVerificationPhase::AfterUnitTestsPass,
-                    "performance skill must report episodic recall, projection, and persistence evidence from cargo test -p xiuxian-memory-engine --test unit_test complex_scenarios::performance -- --nocapture",
-                    [
-                        RustVerificationRequirement::new(
-                            "benchmark_command",
-                            "cargo test -p xiuxian-memory-engine --test unit_test complex_scenarios::performance -- --nocapture",
-                        ),
-                        RustVerificationRequirement::new(
-                            "baseline",
-                            "memory recall performance baseline name or commit",
-                        ),
-                        RustVerificationRequirement::new(
-                            "regression_threshold",
-                            "accepted recall and persistence regression threshold",
-                        ),
-                        RustVerificationRequirement::new(
-                            "latency_or_throughput",
-                            "recall, projection, or persistence latency result",
-                        ),
-                        RustVerificationRequirement::new(
-                            "profile_artifact",
-                            "unit test output or future benchmark artifact path",
-                        ),
-                    ],
-                ),
-            )
-            .with_rationale("EpisodeStore owns hot-path recall, projection, and memory state persistence"),
-        )
-        .with_verification_profile_hint(
-            RustVerificationProfileHint::new(
-                "src/gate.rs",
-                [
-                    RustOwnerResponsibility::AvailabilityCritical,
-                    RustOwnerResponsibility::PublicApi,
-                    RustOwnerResponsibility::SecurityBoundary,
-                ],
-            )
-            .with_task_kinds([RustVerificationTaskKind::Security])
-            .with_task_contract(
-                RustVerificationTaskKind::Security,
-                RustVerificationTaskContract::new(
-                    RustVerificationPhase::BeforeRelease,
-                    "security skill must report memory promotion, purge, and evidence-boundary probes",
-                    [
-                        RustVerificationRequirement::new(
-                            "gate_decision_matrix",
-                            "retain, obsolete, promote, confidence, and evidence matrix",
-                        ),
-                        RustVerificationRequirement::new(
-                            "authority_boundary",
-                            "memory promotion target and evidence-reference boundary result",
-                        ),
-                    ],
-                ),
-            )
-            .with_rationale("MemoryGate controls promotion and purge decisions for retained knowledge"),
-        )
-        .with_verification_profile_hint(
-            RustVerificationProfileHint::new(
-                "src/two_phase.rs",
-                [
-                    RustOwnerResponsibility::AvailabilityCritical,
-                    RustOwnerResponsibility::PublicApi,
-                ],
-            )
-            .with_task_kinds([RustVerificationTaskKind::Regression])
-            .with_task_contract(
-                RustVerificationTaskKind::Regression,
-                RustVerificationTaskContract::new(
-                    RustVerificationPhase::ScheduledRegression,
-                    "regression skill must report two-phase semantic recall and Q-rerank parity",
-                    [
-                        RustVerificationRequirement::new(
-                            "snapshot_command",
-                            "two-phase recall regression command",
-                        ),
-                        RustVerificationRequirement::new(
-                            "contract_parity",
-                            "semantic candidate, Q-value, lambda, and ordering parity result",
-                        ),
-                    ],
-                ),
-            )
-            .with_rationale("TwoPhaseSearch determines memory recall ordering from semantic and Q signals"),
-        )
+        .with_verification_profile_hint(store_performance_hint())
+        .with_verification_profile_hint(gate_security_hint())
+        .with_verification_profile_hint(two_phase_regression_hint())
         .with_verification_responsibility_task_kinds(
             RustOwnerResponsibility::LatencySensitive,
             [RustVerificationTaskKind::Performance],
@@ -212,6 +117,107 @@ fn memory_engine_rust_harness_config() -> RustHarnessConfig {
                 .with_adapter("cargo-test"),
         )
         .with_verification_skill_descriptor(regression_skill_descriptor())
+}
+
+fn store_performance_hint() -> RustVerificationProfileHint {
+    RustVerificationProfileHint::new(
+        "src/store.rs",
+        [
+            RustOwnerResponsibility::AvailabilityCritical,
+            RustOwnerResponsibility::LatencySensitive,
+            RustOwnerResponsibility::PublicApi,
+        ],
+    )
+    .with_task_kinds([RustVerificationTaskKind::Performance])
+    .with_task_contract(
+        RustVerificationTaskKind::Performance,
+        RustVerificationTaskContract::new(
+            RustVerificationPhase::AfterUnitTestsPass,
+            "performance skill must report episodic recall, projection, and persistence evidence from cargo test -p xiuxian-memory-engine --test unit_test complex_scenarios::performance -- --nocapture",
+            [
+                RustVerificationRequirement::new(
+                    "benchmark_command",
+                    "cargo test -p xiuxian-memory-engine --test unit_test complex_scenarios::performance -- --nocapture",
+                ),
+                RustVerificationRequirement::new(
+                    "baseline",
+                    "memory recall performance baseline name or commit",
+                ),
+                RustVerificationRequirement::new(
+                    "regression_threshold",
+                    "accepted recall and persistence regression threshold",
+                ),
+                RustVerificationRequirement::new(
+                    "latency_or_throughput",
+                    "recall, projection, or persistence latency result",
+                ),
+                RustVerificationRequirement::new(
+                    "profile_artifact",
+                    "unit test output or future benchmark artifact path",
+                ),
+            ],
+        ),
+    )
+    .with_rationale("EpisodeStore owns hot-path recall, projection, and memory state persistence")
+}
+
+fn gate_security_hint() -> RustVerificationProfileHint {
+    RustVerificationProfileHint::new(
+        "src/gate.rs",
+        [
+            RustOwnerResponsibility::AvailabilityCritical,
+            RustOwnerResponsibility::PublicApi,
+            RustOwnerResponsibility::SecurityBoundary,
+        ],
+    )
+    .with_task_kinds([RustVerificationTaskKind::Security])
+    .with_task_contract(
+        RustVerificationTaskKind::Security,
+        RustVerificationTaskContract::new(
+            RustVerificationPhase::BeforeRelease,
+            "security skill must report memory promotion, purge, and evidence-boundary probes",
+            [
+                RustVerificationRequirement::new(
+                    "gate_decision_matrix",
+                    "retain, obsolete, promote, confidence, and evidence matrix",
+                ),
+                RustVerificationRequirement::new(
+                    "authority_boundary",
+                    "memory promotion target and evidence-reference boundary result",
+                ),
+            ],
+        ),
+    )
+    .with_rationale("MemoryGate controls promotion and purge decisions for retained knowledge")
+}
+
+fn two_phase_regression_hint() -> RustVerificationProfileHint {
+    RustVerificationProfileHint::new(
+        "src/two_phase.rs",
+        [
+            RustOwnerResponsibility::AvailabilityCritical,
+            RustOwnerResponsibility::PublicApi,
+        ],
+    )
+    .with_task_kinds([RustVerificationTaskKind::Regression])
+    .with_task_contract(
+        RustVerificationTaskKind::Regression,
+        RustVerificationTaskContract::new(
+            RustVerificationPhase::ScheduledRegression,
+            "regression skill must report two-phase semantic recall and Q-rerank parity",
+            [
+                RustVerificationRequirement::new(
+                    "snapshot_command",
+                    "two-phase recall regression command",
+                ),
+                RustVerificationRequirement::new(
+                    "contract_parity",
+                    "semantic candidate, Q-value, lambda, and ordering parity result",
+                ),
+            ],
+        ),
+    )
+    .with_rationale("TwoPhaseSearch determines memory recall ordering from semantic and Q signals")
 }
 
 fn performance_skill_descriptor() -> RustVerificationSkillDescriptor {
@@ -300,7 +306,7 @@ fn write_verification_reports_when_requested(
         plan,
         &RustVerificationReportWriteConfig::new(manifest_dir, source_dir, cache_dir),
     )
-    .expect("write verification reports");
+    .unwrap_or_else(|error| panic!("write verification reports: {error}"));
 }
 
 fn verification_source_report_output_dir(manifest_dir: &Path) -> PathBuf {
@@ -312,17 +318,9 @@ fn verification_source_report_output_dir(manifest_dir: &Path) -> PathBuf {
 
 fn verification_cache_report_output_dir(manifest_dir: &Path) -> PathBuf {
     let project_root = env::var_os("PRJ_ROOT")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| {
-            manifest_dir
-                .ancestors()
-                .nth(4)
-                .expect("workspace root")
-                .to_path_buf()
-        });
-    let cache_home = env::var_os("PRJ_CACHE_HOME")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| PathBuf::from(".cache"));
+        .map_or_else(|| workspace_root_for_manifest(manifest_dir), PathBuf::from);
+    let cache_home =
+        env::var_os("PRJ_CACHE_HOME").map_or_else(|| PathBuf::from(".cache"), PathBuf::from);
     let cache_home = if cache_home.is_absolute() {
         cache_home
     } else {
@@ -332,4 +330,11 @@ fn verification_cache_report_output_dir(manifest_dir: &Path) -> PathBuf {
         .join("agent")
         .join("verification")
         .join("xiuxian-memory-engine")
+}
+
+fn workspace_root_for_manifest(manifest_dir: &Path) -> PathBuf {
+    manifest_dir
+        .ancestors()
+        .nth(4)
+        .map_or_else(|| manifest_dir.to_path_buf(), Path::to_path_buf)
 }

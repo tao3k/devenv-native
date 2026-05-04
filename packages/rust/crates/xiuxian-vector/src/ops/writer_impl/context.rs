@@ -1,10 +1,12 @@
-// Writer method context shared by ingest and dataset lifecycle operations.
+//! Writer method context shared by ingest and dataset lifecycle operations.
+
+use super::{Arc, Result, VectorStoreError};
 
 use lance::dataset::WriteParams;
 use lance::deps::arrow_array::types::Int32Type;
 
 /// Write params for new tables and appends: `V2_1` storage for better encoding/compression.
-fn default_write_params() -> WriteParams {
+pub(crate) fn default_write_params() -> WriteParams {
     WriteParams {
         data_storage_version: Some(lance_file::version::LanceFileVersion::V2_1),
         ..WriteParams::default()
@@ -123,7 +125,7 @@ fn parse_metadata_extract(s: &str) -> MetadataExtract {
 
 /// Parse JSON to `Value`.
 #[inline]
-fn parse_metadata_value(s: &str) -> Option<serde_json::Value> {
+pub(crate) fn parse_metadata_value(s: &str) -> Option<serde_json::Value> {
     serde_json::from_str(s).ok()
 }
 
@@ -146,23 +148,23 @@ struct MetadataExtract {
     intents: Vec<String>,
 }
 
-fn has_lance_data(path: &std::path::Path) -> bool {
+pub(crate) fn has_lance_data(path: &std::path::Path) -> bool {
     if !path.exists() {
         return false;
     }
     path.join("_versions").exists() || path.join("data").exists()
 }
 
-struct ParsedMetadataColumns {
-    skill_name: lance::deps::arrow_array::DictionaryArray<Int32Type>,
-    category: lance::deps::arrow_array::DictionaryArray<Int32Type>,
-    tool_name: lance::deps::arrow_array::DictionaryArray<Int32Type>,
-    file_path: lance::deps::arrow_array::StringArray,
-    routing_keywords: lance::deps::arrow_array::ListArray,
-    intents: lance::deps::arrow_array::ListArray,
+pub(crate) struct ParsedMetadataColumns {
+    pub(crate) skill_name: lance::deps::arrow_array::DictionaryArray<Int32Type>,
+    pub(crate) category: lance::deps::arrow_array::DictionaryArray<Int32Type>,
+    pub(crate) tool_name: lance::deps::arrow_array::DictionaryArray<Int32Type>,
+    pub(crate) file_path: lance::deps::arrow_array::StringArray,
+    pub(crate) routing_keywords: lance::deps::arrow_array::ListArray,
+    pub(crate) intents: lance::deps::arrow_array::ListArray,
 }
 
-fn validate_document_batch_inputs(
+pub(crate) fn validate_document_batch_inputs(
     ids_len: usize,
     vectors: &[Vec<f32>],
     contents_len: usize,
@@ -195,7 +197,7 @@ fn validate_document_batch_inputs(
     })
 }
 
-fn build_vector_list_array(
+pub(crate) fn build_vector_list_array(
     vectors: Vec<Vec<f32>>,
     list_dimension: i32,
 ) -> Result<lance::deps::arrow_array::FixedSizeListArray, VectorStoreError> {
@@ -215,7 +217,7 @@ fn build_vector_list_array(
     .map_err(VectorStoreError::Arrow)
 }
 
-fn parse_document_metadata_columns(
+pub(crate) fn parse_document_metadata_columns(
     metadatas: &[String],
     ids: &[String],
 ) -> Result<ParsedMetadataColumns, VectorStoreError> {

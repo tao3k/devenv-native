@@ -113,46 +113,34 @@ impl VectorStore {
 
 /// Convert a legacy Lance-named batch into an engine batch.
 ///
-/// # Errors
-///
-/// Returns an error if Arrow rejects the reconstructed batch.
-pub fn lance_batch_to_engine_batch(
-    batch: &LanceRecordBatch,
-) -> Result<EngineRecordBatch, VectorStoreError> {
-    EngineRecordBatch::try_new(batch.schema(), batch.columns().to_vec()).map_err(Into::into)
+/// The engine-only build uses the same Arrow batch type behind both names.
+#[must_use]
+pub fn lance_batch_to_engine_batch(batch: &LanceRecordBatch) -> EngineRecordBatch {
+    batch.clone()
 }
 
 /// Convert legacy Lance-named batches into engine batches.
 ///
-/// # Errors
-///
-/// Returns an error if Arrow rejects any reconstructed batch.
-pub fn lance_batches_to_engine_batches(
-    batches: &[LanceRecordBatch],
-) -> Result<Vec<EngineRecordBatch>, VectorStoreError> {
-    batches.iter().map(lance_batch_to_engine_batch).collect()
+/// The engine-only build uses the same Arrow batch type behind both names.
+#[must_use]
+pub fn lance_batches_to_engine_batches(batches: &[LanceRecordBatch]) -> Vec<EngineRecordBatch> {
+    batches.to_vec()
 }
 
 /// Convert an engine batch into a legacy Lance-named batch.
 ///
-/// # Errors
-///
-/// Returns an error if Arrow rejects the reconstructed batch.
-pub fn engine_batch_to_lance_batch(
-    batch: &EngineRecordBatch,
-) -> Result<LanceRecordBatch, VectorStoreError> {
-    LanceRecordBatch::try_new(batch.schema(), batch.columns().to_vec()).map_err(Into::into)
+/// The engine-only build uses the same Arrow batch type behind both names.
+#[must_use]
+pub fn engine_batch_to_lance_batch(batch: &EngineRecordBatch) -> LanceRecordBatch {
+    batch.clone()
 }
 
 /// Convert engine batches into legacy Lance-named batches.
 ///
-/// # Errors
-///
-/// Returns an error if Arrow rejects any reconstructed batch.
-pub fn engine_batches_to_lance_batches(
-    batches: &[EngineRecordBatch],
-) -> Result<Vec<LanceRecordBatch>, VectorStoreError> {
-    batches.iter().map(engine_batch_to_lance_batch).collect()
+/// The engine-only build uses the same Arrow batch type behind both names.
+#[must_use]
+pub fn engine_batches_to_lance_batches(batches: &[EngineRecordBatch]) -> Vec<LanceRecordBatch> {
+    batches.to_vec()
 }
 
 async fn vector_store_stub_checkpoint() {

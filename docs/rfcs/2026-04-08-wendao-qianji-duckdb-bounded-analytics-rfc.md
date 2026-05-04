@@ -894,6 +894,21 @@ statement surface:
 5. the slice stays bounded to performance evidence only: it does not widen
    FlightSQL planning, discovery ownership, or the published Parquet surface
 
+### 10.20 Wendao Semantic SSOT Synchronization Lane
+
+The next bounded pilot is the **Semantic SSOT Synchronization Lane**:
+
+1. DuckDB acts as the high-performance "Active Semantic Index" for the
+   repo-native SSOT layer (defined in `2026-05-03-repo-native-semantic-ssot-layer-rfc.md`).
+2. YAML objects from `semantic/` are harvested and materialized into a
+   `semantic_ssot` table.
+3. Relations are materialized as a `semantic_relations` edge table.
+4. This lane enables **SQL-based Invariants**, allowing Qianji guards to
+   perform complex relational checks (e.g., recursive dependency trust
+   validation) using standard SQL instead of script-based row traversal.
+5. The synchronization is managed by a dedicated in-process watcher to ensure
+   low-latency updates between Git writes and DuckDB availability.
+
 ## 11. Telemetry and Explain
 
 The DuckDB lane must participate in the same explain discipline as the rest of

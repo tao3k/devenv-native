@@ -17,9 +17,6 @@ pub(super) use crate::SchedulerAgentIdentity;
 pub(super) use serde_json::json;
 pub(super) use tempfile::TempDir;
 
-#[path = "../../../../integration/support/valkey.rs"]
-mod valkey_support;
-
 mod checkpoint;
 mod event;
 mod parse;
@@ -28,6 +25,7 @@ mod start;
 mod start_at;
 mod support;
 
+pub(super) use crate::qianji_test_valkey_support::TestValkey;
 pub(super) use support::write_waiting_bundle;
 pub(super) use support::{
     boxed_future, write_business_rule_bundle, write_event_race_bundle, write_event_wait_bundle,
@@ -35,4 +33,3 @@ pub(super) use support::{
 };
 #[cfg(feature = "duckdb")]
 pub(super) use support::{write_interactive_user_task_bundle, write_user_task_bundle};
-pub(super) use valkey_support::TestValkey;

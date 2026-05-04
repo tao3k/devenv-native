@@ -1,15 +1,15 @@
 //! Skeptic node: performs formal audit on Analyzer output.
 
-#[path = "executors_formal_audit_advisory.rs"]
+#[path = "executors_formal_audit_advisory/mod.rs"]
 mod advisory;
 #[path = "executors_formal_audit_native.rs"]
 mod native;
 
 #[cfg(feature = "llm")]
-#[path = "executors_formal_audit_live_advisory.rs"]
+#[path = "executors_formal_audit_live_advisory/mod.rs"]
 mod live_advisory;
 #[cfg(feature = "llm")]
-#[path = "executors_formal_audit_llm.rs"]
+#[path = "executors_formal_audit_llm/mod.rs"]
 mod llm;
 
 pub use advisory::{

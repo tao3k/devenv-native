@@ -6,10 +6,9 @@ use anyhow::{Context, Result, bail};
 use redis::Commands;
 
 use super::{
-    EpisodeStore, MemoryStateStore, default_valkey_recall_feedback_hash_key,
-    default_valkey_state_hash_keys,
+    MemoryStateStore, default_valkey_recall_feedback_hash_key, default_valkey_state_hash_keys,
 };
-use crate::{Episode, MemoryStateSnapshot, normalize_feedback_bias};
+use crate::{Episode, EpisodeStore, MemoryStateSnapshot, normalize_feedback_bias};
 
 /// Valkey-backed memory state store using hash-based persistence.
 ///

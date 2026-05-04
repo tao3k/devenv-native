@@ -80,97 +80,10 @@ fn qianji_manifest_dir() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
 }
 
-fn qianji_rust_harness_config() -> RustHarnessConfig {
+pub(super) fn qianji_rust_harness_config() -> RustHarnessConfig {
     default_rust_harness_config()
-        .with_verification_profile_hint(
-            RustVerificationProfileHint::new(
-                "src/bpmn/api.rs",
-                [
-                    RustOwnerResponsibility::PublicApi,
-                    RustOwnerResponsibility::SecurityBoundary,
-                ],
-            )
-            .with_task_kinds([RustVerificationTaskKind::Security])
-            .with_task_contract(
-                RustVerificationTaskKind::Security,
-                RustVerificationTaskContract::new(
-                    RustVerificationPhase::BeforeRelease,
-                    "security skill must report BPMN workflow-control authorization probes",
-                    [
-                        RustVerificationRequirement::new(
-                            "workflow_authz_matrix",
-                            "workflow-control authorization matrix",
-                        ),
-                        RustVerificationRequirement::new(
-                            "route_surface",
-                            "BPMN API route surface under verification",
-                        ),
-                    ],
-                ),
-            )
-            .with_rationale("BPMN control routes cross workflow authorization boundaries"),
-        )
-        .with_verification_profile_hint(
-            RustVerificationProfileHint::new(
-                "src/bpmn_runtime_execution.rs",
-                [
-                    RustOwnerResponsibility::AvailabilityCritical,
-                    RustOwnerResponsibility::ExternalDependency,
-                    RustOwnerResponsibility::LatencySensitive,
-                ],
-            )
-            .with_task_kinds([
-                RustVerificationTaskKind::Performance,
-                RustVerificationTaskKind::Stress,
-            ])
-            .with_task_contract(
-                RustVerificationTaskKind::Performance,
-                RustVerificationTaskContract::new(
-                    RustVerificationPhase::AfterUnitTestsPass,
-                    "performance skill must report BPMN runtime scheduler latency evidence from cargo bench -p xiuxian-qianji --no-default-features --features performance --bench qianji_bpmn_runtime",
-                    [
-                        RustVerificationRequirement::new(
-                            "benchmark_command",
-                            "cargo bench -p xiuxian-qianji --no-default-features --features performance --bench qianji_bpmn_runtime",
-                        ),
-                        RustVerificationRequirement::new(
-                            "baseline",
-                            "Criterion baseline name or commit",
-                        ),
-                        RustVerificationRequirement::new(
-                            "regression_threshold",
-                            "accepted latency regression threshold",
-                        ),
-                        RustVerificationRequirement::new(
-                            "latency_or_throughput",
-                            "Criterion latency or throughput result",
-                        ),
-                        RustVerificationRequirement::new(
-                            "profile_artifact",
-                            "target/criterion artifact path for the relevant benchmark group",
-                        ),
-                    ],
-                ),
-            )
-            .with_task_contract(
-                RustVerificationTaskKind::Stress,
-                RustVerificationTaskContract::new(
-                    RustVerificationPhase::BeforeRelease,
-                    "stress skill must report BPMN runtime pressure and SLA evidence",
-                    [
-                        RustVerificationRequirement::new(
-                            "sla_result",
-                            "runtime pressure SLA result",
-                        ),
-                        RustVerificationRequirement::new(
-                            "load_steps",
-                            "service-boundary load steps",
-                        ),
-                    ],
-                ),
-            )
-            .with_rationale("BPMN runtime execution owns scheduler latency and pressure behavior"),
-        )
+        .with_verification_profile_hint(bpmn_api_security_hint())
+        .with_verification_profile_hint(bpmn_runtime_execution_hint())
         .with_verification_responsibility_task_kinds(
             RustOwnerResponsibility::LatencySensitive,
             [RustVerificationTaskKind::Performance],
@@ -201,6 +114,88 @@ fn qianji_rust_harness_config() -> RustHarnessConfig {
             RustVerificationSkillBinding::new("rust-verification-security").with_adapter("semgrep"),
         )
         .with_verification_skill_descriptor(security_skill_descriptor())
+}
+
+fn bpmn_api_security_hint() -> RustVerificationProfileHint {
+    RustVerificationProfileHint::new(
+        "src/bpmn/api.rs",
+        [
+            RustOwnerResponsibility::PublicApi,
+            RustOwnerResponsibility::SecurityBoundary,
+        ],
+    )
+    .with_task_kinds([RustVerificationTaskKind::Security])
+    .with_task_contract(
+        RustVerificationTaskKind::Security,
+        RustVerificationTaskContract::new(
+            RustVerificationPhase::BeforeRelease,
+            "security skill must report BPMN workflow-control authorization probes",
+            [
+                RustVerificationRequirement::new(
+                    "workflow_authz_matrix",
+                    "workflow-control authorization matrix",
+                ),
+                RustVerificationRequirement::new(
+                    "route_surface",
+                    "BPMN API route surface under verification",
+                ),
+            ],
+        ),
+    )
+    .with_rationale("BPMN control routes cross workflow authorization boundaries")
+}
+
+fn bpmn_runtime_execution_hint() -> RustVerificationProfileHint {
+    RustVerificationProfileHint::new(
+        "src/bpmn_runtime_execution.rs",
+        [
+            RustOwnerResponsibility::AvailabilityCritical,
+            RustOwnerResponsibility::ExternalDependency,
+            RustOwnerResponsibility::LatencySensitive,
+        ],
+    )
+    .with_task_kinds([
+        RustVerificationTaskKind::Performance,
+        RustVerificationTaskKind::Stress,
+    ])
+    .with_task_contract(
+        RustVerificationTaskKind::Performance,
+        RustVerificationTaskContract::new(
+            RustVerificationPhase::AfterUnitTestsPass,
+            "performance skill must report BPMN runtime scheduler latency evidence from cargo bench -p xiuxian-qianji --no-default-features --features performance --bench qianji_bpmn_runtime",
+            [
+                RustVerificationRequirement::new(
+                    "benchmark_command",
+                    "cargo bench -p xiuxian-qianji --no-default-features --features performance --bench qianji_bpmn_runtime",
+                ),
+                RustVerificationRequirement::new("baseline", "Criterion baseline name or commit"),
+                RustVerificationRequirement::new(
+                    "regression_threshold",
+                    "accepted latency regression threshold",
+                ),
+                RustVerificationRequirement::new(
+                    "latency_or_throughput",
+                    "Criterion latency or throughput result",
+                ),
+                RustVerificationRequirement::new(
+                    "profile_artifact",
+                    "target/criterion artifact path for the relevant benchmark group",
+                ),
+            ],
+        ),
+    )
+    .with_task_contract(
+        RustVerificationTaskKind::Stress,
+        RustVerificationTaskContract::new(
+            RustVerificationPhase::BeforeRelease,
+            "stress skill must report BPMN runtime pressure and SLA evidence",
+            [
+                RustVerificationRequirement::new("sla_result", "runtime pressure SLA result"),
+                RustVerificationRequirement::new("load_steps", "service-boundary load steps"),
+            ],
+        ),
+    )
+    .with_rationale("BPMN runtime execution owns scheduler latency and pressure behavior")
 }
 
 fn security_skill_descriptor() -> RustVerificationSkillDescriptor {
@@ -257,7 +252,7 @@ fn write_verification_reports_when_requested(
         plan,
         &RustVerificationReportWriteConfig::new(manifest_dir, source_dir, cache_dir),
     )
-    .expect("write verification reports");
+    .unwrap_or_else(|error| panic!("write verification reports: {error}"));
 }
 
 fn verification_source_report_output_dir(manifest_dir: &Path) -> PathBuf {
@@ -269,17 +264,9 @@ fn verification_source_report_output_dir(manifest_dir: &Path) -> PathBuf {
 
 fn verification_cache_report_output_dir(manifest_dir: &Path) -> PathBuf {
     let project_root = env::var_os("PRJ_ROOT")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| {
-            manifest_dir
-                .ancestors()
-                .nth(4)
-                .expect("workspace root")
-                .to_path_buf()
-        });
-    let cache_home = env::var_os("PRJ_CACHE_HOME")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| PathBuf::from(".cache"));
+        .map_or_else(|| workspace_root_for_manifest(manifest_dir), PathBuf::from);
+    let cache_home =
+        env::var_os("PRJ_CACHE_HOME").map_or_else(|| PathBuf::from(".cache"), PathBuf::from);
     let cache_home = if cache_home.is_absolute() {
         cache_home
     } else {
@@ -289,4 +276,11 @@ fn verification_cache_report_output_dir(manifest_dir: &Path) -> PathBuf {
         .join("agent")
         .join("verification")
         .join("xiuxian-qianji")
+}
+
+fn workspace_root_for_manifest(manifest_dir: &Path) -> PathBuf {
+    manifest_dir
+        .ancestors()
+        .nth(4)
+        .map_or_else(|| manifest_dir.to_path_buf(), Path::to_path_buf)
 }
