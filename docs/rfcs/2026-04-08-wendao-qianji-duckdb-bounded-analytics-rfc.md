@@ -590,15 +590,15 @@ Example configuration shape:
 [search.duckdb]
 enabled = true
 database_path = ":memory:"
-temp_directory = "$PRJ_CACHE_HOME/duckdb/tmp"
+temp_directory_policy = "project_temp"
 threads = 4
 materialize_threshold_rows = 200000
 prefer_virtual_arrow = true
 
 [qianji.duckdb]
 enabled = true
-database_path = "$PRJ_DATA_HOME/qianji/duckdb/workflow.db"
-temp_directory = "$PRJ_CACHE_HOME/qianji/duckdb/tmp"
+database_path_policy = "stage_local"
+temp_directory_policy = "project_temp"
 ```
 
 These keys are architectural placeholders in this RFC. Exact naming and
@@ -1030,9 +1030,9 @@ Revisit this direction if:
    reuse the same bounded Parquet query-engine seam, again with engine-safe
    SQL generation for both DataFusion and DuckDB
 9. `/search/intent` now has a bounded composition proof that records internal
-   source-lane query-engine metadata and proves the route composes DuckDB-fed
-   `knowledge_section`, `local_symbol`, and repo-intent lanes without widening
-   the public contract
+   source-lane query-engine metadata and demonstrates that the route composes
+   DuckDB-fed `knowledge_section`, `local_symbol`, and repo-intent lanes without
+   widening the public contract
 10. `/search/symbols` now reuses the published `local_symbol` lane instead of
     the in-memory `UnifiedSymbolIndex`, while preserving the existing route
     contract and pending/indexing behavior
