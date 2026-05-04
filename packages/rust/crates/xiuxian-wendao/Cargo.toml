@@ -115,7 +115,6 @@ toml = { workspace = true }
 chrono = { workspace = true, features = ["clock", "serde"] }
 uuid = { workspace = true }
 specta = { workspace = true }
-specta-typescript = { workspace = true }
 prost = { workspace = true }
 
 walkdir = { workspace = true }

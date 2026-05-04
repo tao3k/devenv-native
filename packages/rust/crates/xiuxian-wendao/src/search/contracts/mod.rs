@@ -1,12 +1,11 @@
-//! Studio API types for TypeScript bindings and HTTP endpoints.
+//! Search contract types shared by Wendao domain search and Studio adapters.
 //!
-//! This module defines all types used by the Qianji Studio frontend API,
-//! including VFS operations, graph queries, search, and UI configuration.
+//! Studio owns HTTP route inventory and TypeScript schema export. Wendao keeps
+//! the search payload records that are still used by domain search runtime.
 
 mod analysis;
 mod attachments;
 mod code_ast;
-mod collection;
 mod config;
 mod definitions;
 mod document_extract;
@@ -34,7 +33,6 @@ pub use code_ast::{
     CodeAstAnalysisResponse, CodeAstEdge, CodeAstEdgeKind, CodeAstNode, CodeAstNodeKind,
     CodeAstProjection, CodeAstProjectionKind, CodeAstRetrievalAtom, CodeAstRetrievalAtomScope,
 };
-pub use collection::{studio_frontend_type_collection, studio_type_collection};
 pub use config::{
     UiCapabilities, UiCodeSearchContract, UiCodeSearchContractExample, UiCodeSearchRoutes,
     UiConfig, UiPluginArtifact, UiPluginLaunchSpec, UiPluginTransportKind, UiProjectConfig,

@@ -19,6 +19,8 @@ const FORBIDDEN_LOCAL_RUNTIME_ZHENFA_FEATURES: &[&str] =
     &["gateway", "client", "contract-validation", "xml-transform"];
 const DOMAIN_CONTRACT_IMPORT_HEAD: &str = "xiuxian_wendao::search";
 const DOMAIN_CONTRACT_IMPORT_TAIL: &str = "::contracts";
+const STUDIO_TYPE_COLLECTION_SYMBOLS: &[&str] =
+    &["studio_type_collection", "studio_frontend_type_collection"];
 
 #[test]
 fn contracts_feature_keeps_runtime_dependencies_out_of_normal_tree() {
@@ -111,6 +113,24 @@ fn studio_code_uses_studio_contract_import_path() {
     );
 }
 
+#[test]
+fn wendao_domain_contracts_do_not_export_studio_type_collections() {
+    let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let domain_contracts_root = workspace_root(manifest_dir.as_path())
+        .join("packages/rust/crates/xiuxian-wendao/src/search/contracts");
+    let mut offenders = Vec::new();
+
+    for symbol in STUDIO_TYPE_COLLECTION_SYMBOLS {
+        collect_rust_source_occurrences(domain_contracts_root.as_path(), symbol, &mut offenders);
+    }
+
+    assert!(
+        offenders.is_empty(),
+        "Studio TypeScript schema collection helpers belong to xiuxian-wendao-studio contracts, not xiuxian-wendao search contracts:\n{}",
+        offenders.join("\n")
+    );
+}
+
 fn cargo_tree<const N: usize>(workspace_root: &Path, args: [&str; N]) -> std::process::Output {
     let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".to_string());
     Command::new(cargo)
@@ -148,6 +168,29 @@ fn collect_domain_contract_imports(
             .unwrap_or_else(|error| panic!("failed to read {}: {error}", path.display()));
         if source.contains(needle) {
             offenders.push(path.display().to_string());
+        }
+    }
+}
+
+fn collect_rust_source_occurrences(root: &Path, needle: &str, offenders: &mut Vec<String>) {
+    let entries = fs::read_dir(root)
+        .unwrap_or_else(|error| panic!("failed to read {}: {error}", root.display()));
+
+    for entry in entries {
+        let entry = entry
+            .unwrap_or_else(|error| panic!("failed to read entry in {}: {error}", root.display()));
+        let path = entry.path();
+        if path.is_dir() {
+            collect_rust_source_occurrences(path.as_path(), needle, offenders);
+            continue;
+        }
+        if path.extension().and_then(|extension| extension.to_str()) != Some("rs") {
+            continue;
+        }
+        let source = fs::read_to_string(path.as_path())
+            .unwrap_or_else(|error| panic!("failed to read {}: {error}", path.display()));
+        if source.contains(needle) {
+            offenders.push(format!("{} contains {needle}", path.display()));
         }
     }
 }

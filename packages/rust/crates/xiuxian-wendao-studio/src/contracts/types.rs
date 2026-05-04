@@ -1,5 +1,7 @@
 //! Studio API DTO and Specta type collection exports for the full local runtime.
 
+use specta::TypeCollection;
+
 pub use xiuxian_wendao::search::contracts::{
     AnalysisEdge, AnalysisEdgeKind, AnalysisEvidence, AnalysisNode, AnalysisNodeKind, ApiError,
     AstSearchHit, AstSearchResponse, AttachmentSearchHit, AttachmentSearchResponse,
@@ -20,5 +22,40 @@ pub use xiuxian_wendao::search::contracts::{
     UiConfig, UiPluginArtifact, UiPluginLaunchSpec, UiPluginTransportKind, UiProjectConfig,
     UiRepoDiscoveryContract, UiRepoDiscoverySurfaceContract, UiRepoProjectConfig, UiSearchContract,
     UiSearchContractAlias, VfsCategory, VfsContentResponse, VfsEntry, VfsScanEntry, VfsScanResult,
-    studio_frontend_type_collection, studio_type_collection,
 };
+
+/// Build the plugin-only Studio Specta type collection.
+#[must_use]
+pub fn studio_type_collection() -> TypeCollection {
+    TypeCollection::default()
+        .register::<UiPluginArtifact>()
+        .register::<UiPluginLaunchSpec>()
+}
+
+/// Build the frontend-facing Studio Specta type collection.
+#[must_use]
+pub fn studio_frontend_type_collection() -> TypeCollection {
+    TypeCollection::default()
+        .register::<ApiError>()
+        .register::<VfsEntry>()
+        .register::<VfsScanEntry>()
+        .register::<VfsScanResult>()
+        .register::<VfsContentResponse>()
+        .register::<UiCapabilities>()
+        .register::<UiConfig>()
+        .register::<GraphNeighborsResponse>()
+        .register::<Topology3dPayload>()
+        .register::<SearchResponse>()
+        .register::<AttachmentSearchResponse>()
+        .register::<AstSearchResponse>()
+        .register::<DefinitionResolveResponse>()
+        .register::<ReferenceSearchResponse>()
+        .register::<SymbolSearchResponse>()
+        .register::<AutocompleteResponse>()
+        .register::<MarkdownAnalysisResponse>()
+        .register::<CodeAstAnalysisResponse>()
+        .register::<DocumentExtractResult>()
+        .register::<DocumentExtractJobSubmitRequest>()
+        .register::<DocumentExtractJobStatus>()
+        .register::<DocumentExtractJobsStatus>()
+}
