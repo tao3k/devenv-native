@@ -337,7 +337,8 @@ fn graph_structural_explicit_rerank_repository(base_url: &str) -> RegisteredRepo
                     "base_url": base_url,
                     "structural_rerank": {
                         "route": "/graph/structural/rerank",
-                        "schema_version": "v0-draft"
+                        "schema_version": "v0-draft",
+                        "timeout_secs": LIVE_REQUEST_TIMEOUT_SECS
                     }
                 }
             }),
@@ -409,7 +410,8 @@ fn graph_structural_manifest_repository(base_url: &str) -> RegisteredRepository 
                 "capability_manifest_transport": {
                     "base_url": base_url,
                     "route": "/plugin/capabilities",
-                    "schema_version": "v0-draft"
+                    "schema_version": "v0-draft",
+                    "timeout_secs": LIVE_REQUEST_TIMEOUT_SECS
                 }
             }),
         }],
@@ -505,7 +507,8 @@ fn graph_structural_explicit_filter_repository(base_url: &str) -> RegisteredRepo
                     "base_url": base_url,
                     "constraint_filter": {
                         "route": "/graph/structural/filter",
-                        "schema_version": "v0-draft"
+                        "schema_version": "v0-draft",
+                        "timeout_secs": LIVE_REQUEST_TIMEOUT_SECS
                     }
                 }
             }),

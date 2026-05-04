@@ -103,7 +103,8 @@ fn graph_structural_generic_topology_explicit_rerank_repository(
                     "base_url": base_url,
                     "structural_rerank": {
                         "route": "/graph/structural/rerank",
-                        "schema_version": "v0-draft"
+                        "schema_version": "v0-draft",
+                        "timeout_secs": LIVE_REQUEST_TIMEOUT_SECS
                     }
                 }
             }),
@@ -173,7 +174,8 @@ fn graph_structural_generic_topology_manifest_repository(base_url: &str) -> Regi
                 "capability_manifest_transport": {
                     "base_url": base_url,
                     "route": "/plugin/capabilities",
-                    "schema_version": "v0-draft"
+                    "schema_version": "v0-draft",
+                    "timeout_secs": LIVE_REQUEST_TIMEOUT_SECS
                 }
             }),
         }],
