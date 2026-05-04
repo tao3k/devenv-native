@@ -17,12 +17,7 @@ mod search;
 mod search_index;
 mod symbols;
 
-pub use analysis::{
-    AnalysisEdge, AnalysisEdgeKind, AnalysisEvidence, AnalysisNode, AnalysisNodeKind,
-    MarkdownAnalysisDocumentLink, MarkdownAnalysisDocumentLinkKind,
-    MarkdownAnalysisDocumentMetadata, MarkdownAnalysisResponse, MarkdownRetrievalAtom,
-    MermaidProjection, MermaidViewKind,
-};
+pub use analysis::{AnalysisNode, AnalysisNodeKind};
 pub use attachments::AttachmentSearchHit;
 #[cfg(feature = "search-runtime")]
 pub(crate) use config::materialize_project_configs;

@@ -6,18 +6,15 @@ use super::{
     ApiError, AstSearchResponse, AttachmentSearchResponse, AutocompleteResponse,
     CodeAstAnalysisResponse, DefinitionResolveResponse, DocumentExtractJobStatus,
     DocumentExtractJobSubmitRequest, DocumentExtractJobsStatus, DocumentExtractResult,
-    GraphNeighborsResponse, ReferenceSearchResponse, SearchResponse, SymbolSearchResponse,
-    Topology3dPayload, UiCapabilities, UiConfig, VfsContentResponse, VfsEntry, VfsScanEntry,
-    VfsScanResult,
+    GraphNeighborsResponse, MarkdownAnalysisResponse, ReferenceSearchResponse, SearchResponse,
+    SymbolSearchResponse, Topology3dPayload, UiCapabilities, UiConfig, VfsContentResponse,
+    VfsEntry, VfsScanEntry, VfsScanResult,
 };
 
 pub use xiuxian_wendao::search::contracts::{
-    AnalysisEdge, AnalysisEdgeKind, AnalysisEvidence, AnalysisNode, AnalysisNodeKind, AstSearchHit,
-    AttachmentSearchHit, AutocompleteSuggestion, DefinitionSearchHit, IntentSearchHit,
-    KnowledgeSearchHit, MarkdownAnalysisDocumentLink, MarkdownAnalysisDocumentLinkKind,
-    MarkdownAnalysisDocumentMetadata, MarkdownAnalysisResponse, MarkdownRetrievalAtom,
-    MermaidProjection, MermaidViewKind, ObservationHint, ReferenceSearchHit, RetrievalChunk,
-    RetrievalChunkSurface, SearchBacklinkItem, SearchCorpusIndexStatus, SearchHit,
+    AnalysisNode, AnalysisNodeKind, AstSearchHit, AttachmentSearchHit, AutocompleteSuggestion,
+    DefinitionSearchHit, IntentSearchHit, KnowledgeSearchHit, ObservationHint, ReferenceSearchHit,
+    RetrievalChunk, RetrievalChunkSurface, SearchBacklinkItem, SearchCorpusIndexStatus, SearchHit,
     SearchIndexMaintenanceStatus, SearchIndexPhase, SearchIndexStatusResponse,
     StudioNavigationTarget,
 };

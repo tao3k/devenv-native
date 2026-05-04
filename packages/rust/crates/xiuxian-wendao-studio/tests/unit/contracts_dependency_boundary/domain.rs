@@ -55,6 +55,18 @@ const STUDIO_SEARCH_RESPONSE_SYMBOLS: &[&str] = &[
     "ReferenceSearchResponse",
     "SearchResponse",
 ];
+const STUDIO_MARKDOWN_ANALYSIS_API_SYMBOLS: &[&str] = &[
+    "AnalysisEdge",
+    "AnalysisEdgeKind",
+    "AnalysisEvidence",
+    "MarkdownRetrievalAtom",
+    "MarkdownAnalysisDocumentLink",
+    "MarkdownAnalysisDocumentLinkKind",
+    "MarkdownAnalysisDocumentMetadata",
+    "MarkdownAnalysisResponse",
+    "MermaidProjection",
+    "MermaidViewKind",
+];
 const STUDIO_SEARCH_MANIFEST_SYMBOLS: &[&str] = &[
     "UiConfig",
     "UiProjectConfig",
@@ -130,6 +142,14 @@ fn wendao_domain_contracts_do_not_export_studio_search_response_dtos() {
     assert_domain_contracts_do_not_contain_symbols(
         STUDIO_SEARCH_RESPONSE_SYMBOLS,
         "Studio search response wrapper DTOs belong to xiuxian-wendao-studio contracts, not xiuxian-wendao search contracts",
+    );
+}
+
+#[test]
+fn wendao_domain_contracts_do_not_export_studio_markdown_analysis_dtos() {
+    assert_domain_contracts_do_not_contain_symbols(
+        STUDIO_MARKDOWN_ANALYSIS_API_SYMBOLS,
+        "Studio Markdown analysis edge, projection, and response DTOs belong to xiuxian-wendao-studio contracts, not xiuxian-wendao search contracts",
     );
 }
 

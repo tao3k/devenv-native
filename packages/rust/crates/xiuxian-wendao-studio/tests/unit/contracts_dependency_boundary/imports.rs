@@ -12,6 +12,7 @@ fn studio_code_uses_studio_contract_import_path() {
         manifest_dir.join("src/contracts/types.rs"),
         manifest_dir.join("src/contracts/code_ast.rs"),
         manifest_dir.join("src/contracts/graph.rs"),
+        manifest_dir.join("src/contracts/markdown_analysis.rs"),
         manifest_dir.join("src/contracts/search_responses.rs"),
         manifest_dir.join("src/contracts/symbols.rs"),
     ];

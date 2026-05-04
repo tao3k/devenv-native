@@ -33,6 +33,8 @@ mod code_ast;
 #[cfg(feature = "local-runtime")]
 mod graph;
 #[cfg(feature = "local-runtime")]
+mod markdown_analysis;
+#[cfg(feature = "local-runtime")]
 mod search_responses;
 #[cfg(feature = "local-runtime")]
 mod symbols;
@@ -52,6 +54,13 @@ pub use graph::{
 };
 
 #[cfg(feature = "local-runtime")]
+pub use markdown_analysis::{
+    AnalysisEdge, AnalysisEdgeKind, AnalysisEvidence, MarkdownAnalysisDocumentLink,
+    MarkdownAnalysisDocumentLinkKind, MarkdownAnalysisDocumentMetadata, MarkdownAnalysisResponse,
+    MarkdownRetrievalAtom, MermaidProjection, MermaidViewKind,
+};
+
+#[cfg(feature = "local-runtime")]
 pub use search_responses::{
     AstSearchResponse, AttachmentSearchResponse, DefinitionResolveResponse,
     ReferenceSearchResponse, SearchResponse,
@@ -62,12 +71,9 @@ pub use symbols::{AutocompleteHit, AutocompleteResponse, SymbolSearchHit, Symbol
 
 #[cfg(feature = "local-runtime")]
 pub use types::{
-    AnalysisEdge, AnalysisEdgeKind, AnalysisEvidence, AnalysisNode, AnalysisNodeKind, AstSearchHit,
-    AttachmentSearchHit, AutocompleteSuggestion, DefinitionSearchHit, IntentSearchHit,
-    KnowledgeSearchHit, MarkdownAnalysisDocumentLink, MarkdownAnalysisDocumentLinkKind,
-    MarkdownAnalysisDocumentMetadata, MarkdownAnalysisResponse, MarkdownRetrievalAtom,
-    MermaidProjection, MermaidViewKind, ObservationHint, ReferenceSearchHit, RetrievalChunk,
-    RetrievalChunkSurface, SearchBacklinkItem, SearchCorpusIndexStatus, SearchHit,
+    AnalysisNode, AnalysisNodeKind, AstSearchHit, AttachmentSearchHit, AutocompleteSuggestion,
+    DefinitionSearchHit, IntentSearchHit, KnowledgeSearchHit, ObservationHint, ReferenceSearchHit,
+    RetrievalChunk, RetrievalChunkSurface, SearchBacklinkItem, SearchCorpusIndexStatus, SearchHit,
     SearchIndexMaintenanceStatus, SearchIndexPhase, SearchIndexStatusResponse,
     StudioNavigationTarget, studio_frontend_type_collection,
 };
