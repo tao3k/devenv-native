@@ -5,11 +5,11 @@ pub mod routes;
 
 pub use routes::{RouteContract, WENDAO_GATEWAY_ROUTE_CONTRACTS};
 
-#[cfg(feature = "local-runtime")]
 mod plugin_artifact;
 
-#[cfg(feature = "local-runtime")]
-pub use plugin_artifact::{UiPluginArtifact, UiPluginLaunchSpec, UiPluginTransportKind};
+pub use plugin_artifact::{
+    UiPluginArtifact, UiPluginLaunchSpec, UiPluginTransportKind, studio_type_collection,
+};
 
 mod search_manifest;
 
@@ -40,5 +40,5 @@ pub use types::{
     SearchIndexStatusResponse, SearchResponse, StudioNavigationTarget, SymbolSearchHit,
     SymbolSearchResponse, Topology3dPayload, TopologyCluster, TopologyLink, TopologyNode,
     VfsCategory, VfsContentResponse, VfsEntry, VfsScanEntry, VfsScanResult,
-    studio_frontend_type_collection, studio_type_collection,
+    studio_frontend_type_collection,
 };

@@ -13,6 +13,9 @@ mod contracts_dependency_boundary;
 #[cfg(feature = "contracts")]
 #[path = "unit/contracts_routes.rs"]
 mod contracts_routes;
+#[cfg(feature = "contracts")]
+#[path = "unit/contracts_types.rs"]
+mod contracts_types;
 #[path = "unit/namespace.rs"]
 mod namespace;
 #[cfg(feature = "studio")]

@@ -1,7 +1,8 @@
 //! Studio-owned plugin artifact inspection contracts.
 
 use serde::{Deserialize, Serialize};
-use specta::Type;
+use specta::{Type, TypeCollection};
+#[cfg(feature = "local-runtime")]
 use xiuxian_wendao_core::{
     artifacts::{PluginArtifactPayload, PluginLaunchSpec},
     transport::PluginTransportKind,
@@ -17,6 +18,7 @@ pub struct UiPluginLaunchSpec {
     pub args: Vec<String>,
 }
 
+#[cfg(feature = "local-runtime")]
 impl From<PluginLaunchSpec> for UiPluginLaunchSpec {
     fn from(value: PluginLaunchSpec) -> Self {
         Self {
@@ -34,6 +36,7 @@ pub enum UiPluginTransportKind {
     ArrowFlight,
 }
 
+#[cfg(feature = "local-runtime")]
 impl From<PluginTransportKind> for UiPluginTransportKind {
     fn from(value: PluginTransportKind) -> Self {
         match value {
@@ -74,6 +77,7 @@ pub struct UiPluginArtifact {
     pub fallback_reason: Option<String>,
 }
 
+#[cfg(feature = "local-runtime")]
 impl From<PluginArtifactPayload> for UiPluginArtifact {
     fn from(value: PluginArtifactPayload) -> Self {
         let endpoint = value.endpoint;
@@ -99,4 +103,12 @@ impl From<PluginArtifactPayload> for UiPluginArtifact {
             fallback_reason: value.fallback_reason,
         }
     }
+}
+
+/// Build the plugin-only Studio Specta type collection.
+#[must_use]
+pub fn studio_type_collection() -> TypeCollection {
+    TypeCollection::default()
+        .register::<UiPluginArtifact>()
+        .register::<UiPluginLaunchSpec>()
 }

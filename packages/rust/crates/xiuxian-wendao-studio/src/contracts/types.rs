@@ -2,7 +2,7 @@
 
 use specta::TypeCollection;
 
-use super::{UiCapabilities, UiConfig, UiPluginArtifact, UiPluginLaunchSpec};
+use super::{UiCapabilities, UiConfig};
 
 pub use xiuxian_wendao::search::contracts::{
     AnalysisEdge, AnalysisEdgeKind, AnalysisEvidence, AnalysisNode, AnalysisNodeKind, ApiError,
@@ -22,14 +22,6 @@ pub use xiuxian_wendao::search::contracts::{
     SymbolSearchResponse, Topology3dPayload, TopologyCluster, TopologyLink, TopologyNode,
     VfsCategory, VfsContentResponse, VfsEntry, VfsScanEntry, VfsScanResult,
 };
-
-/// Build the plugin-only Studio Specta type collection.
-#[must_use]
-pub fn studio_type_collection() -> TypeCollection {
-    TypeCollection::default()
-        .register::<UiPluginArtifact>()
-        .register::<UiPluginLaunchSpec>()
-}
 
 /// Build the frontend-facing Studio Specta type collection.
 #[must_use]
