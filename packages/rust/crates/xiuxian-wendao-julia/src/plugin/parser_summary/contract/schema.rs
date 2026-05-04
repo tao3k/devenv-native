@@ -138,18 +138,3 @@ pub(crate) struct JuliaParserSummaryResponseRow {
     pub(crate) item_function_where_params: Option<String>,
     pub(crate) item_function_return_type: Option<String>,
 }
-
-mod batch;
-mod columns;
-mod summary;
-mod values;
-
-pub(crate) use batch::{
-    build_julia_parser_summary_request_batch, decode_julia_parser_summary_response_rows,
-    validate_julia_parser_summary_request_batches, validate_julia_parser_summary_response_batches,
-};
-pub(crate) use summary::{decode_julia_parser_file_summary, decode_julia_parser_root_summary};
-
-#[cfg(test)]
-#[path = "../../../tests/unit/plugin/parser_summary/contract.rs"]
-mod tests;

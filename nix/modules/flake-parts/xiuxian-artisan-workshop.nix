@@ -60,10 +60,18 @@
         env = commonProjectEnv;
       };
       commonProjectDepsDrvConfig = lib.recursiveUpdate commonProjectDrvConfig {
-        mkDerivation.preBuild = ''
-          ${lanceVendorFixup}
-          fix_lance_vendor_dir "''${cargoVendorDir:-$TMPDIR/nix-vendor}"
-        '';
+        mkDerivation =
+          let
+            runLanceVendorFixup = ''
+              ${lanceVendorFixup}
+              echo "patching Lance cargo vendor manifests"
+              fix_lance_vendor_dir "''${cargoVendorDir:-$TMPDIR/nix-vendor}"
+            '';
+          in
+          {
+            postConfigure = runLanceVendorFixup;
+            preBuild = runLanceVendorFixup;
+          };
       };
     in
     {
@@ -152,8 +160,9 @@
         "xiuxian-lance" = {
           drvConfig.mkDerivation.nativeBuildInputs = [ pkgs.protobuf ];
           drvConfig.env.PROTOC = "${pkgs.protobuf}/bin/protoc";
-          depsDrvConfig.mkDerivation.nativeBuildInputs = [ pkgs.protobuf ];
-          depsDrvConfig.env.PROTOC = "${pkgs.protobuf}/bin/protoc";
+          depsDrvConfig = lib.recursiveUpdate commonProjectDepsDrvConfig {
+            env.PROTOC = "${pkgs.protobuf}/bin/protoc";
+          };
         };
         "xiuxian-io" = {
           profiles.release.runTests = false;
@@ -164,8 +173,7 @@
         "xiuxian-vector" = {
           drvConfig.mkDerivation.nativeBuildInputs = [ pkgs.protobuf ];
           drvConfig.env.PROTOC = "${pkgs.protobuf}/bin/protoc";
-          depsDrvConfig = {
-            mkDerivation.nativeBuildInputs = [ pkgs.protobuf ];
+          depsDrvConfig = lib.recursiveUpdate commonProjectDepsDrvConfig {
             env.PROTOC = "${pkgs.protobuf}/bin/protoc";
           };
         };

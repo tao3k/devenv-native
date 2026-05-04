@@ -11348,6 +11348,7 @@ dependencies = [
 name = "xiuxian-lance"
 version = "0.1.1"
 dependencies = [
+ "arrow",
  "lance",
  "rust-lang-project-harness",
 ]

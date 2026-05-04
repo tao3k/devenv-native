@@ -23,9 +23,15 @@ fn wendao_verification_profile_hints_bind_active_skill_tasks() {
 
     assert_bound_task(
         &plan,
-        "src/gateway/studio/mod.rs",
+        "src/zhenfa_router/rpc.rs",
         RustVerificationTaskKind::Security,
         "rust-verification-security@semgrep",
+    );
+    assert_bound_task(
+        &plan,
+        "src/zhenfa_router/rpc.rs",
+        RustVerificationTaskKind::Stress,
+        "rust-verification-stress@k6",
     );
     assert_bound_task(
         &plan,
@@ -38,12 +44,6 @@ fn wendao_verification_profile_hints_bind_active_skill_tasks() {
         "src/search/perf_support.rs",
         RustVerificationTaskKind::Performance,
         "rust-verification-performance@criterion",
-    );
-    assert_bound_task(
-        &plan,
-        "src/gateway/studio/mod.rs",
-        RustVerificationTaskKind::Stress,
-        "rust-verification-stress@k6",
     );
     assert!(
         plan.tasks
@@ -72,7 +72,7 @@ fn wendao_manifest_dir() -> PathBuf {
 
 pub(super) fn wendao_rust_harness_config() -> RustHarnessConfig {
     default_rust_harness_config()
-        .with_verification_profile_hint(studio_gateway_hint())
+        .with_verification_profile_hint(zhenfa_rpc_boundary_hint())
         .with_verification_profile_hint(query_service_performance_hint())
         .with_verification_profile_hint(search_perf_support_hint())
         .with_verification_responsibility_task_kinds(
@@ -107,9 +107,9 @@ pub(super) fn wendao_rust_harness_config() -> RustHarnessConfig {
         .with_verification_skill_descriptor(security_skill_descriptor())
 }
 
-fn studio_gateway_hint() -> RustVerificationProfileHint {
+fn zhenfa_rpc_boundary_hint() -> RustVerificationProfileHint {
     RustVerificationProfileHint::new(
-        "src/gateway/studio/mod.rs",
+        "src/zhenfa_router/rpc.rs",
         [
             RustOwnerResponsibility::PublicApi,
             RustOwnerResponsibility::SecurityBoundary,
@@ -124,15 +124,15 @@ fn studio_gateway_hint() -> RustVerificationProfileHint {
         RustVerificationTaskKind::Security,
         RustVerificationTaskContract::new(
             RustVerificationPhase::BeforeRelease,
-            "security skill must report Studio gateway authorization and route probes",
+            "security skill must report JSON-RPC parameter and trust-boundary probes",
             [
                 RustVerificationRequirement::new(
-                    "gateway_authz_matrix",
-                    "Studio gateway authorization matrix",
+                    "rpc_param_matrix",
+                    "JSON-RPC parameter validation matrix",
                 ),
                 RustVerificationRequirement::new(
                     "route_surface",
-                    "Studio gateway route surface under verification",
+                    "Zhenfa RPC route surface under verification",
                 ),
             ],
         ),
@@ -141,14 +141,14 @@ fn studio_gateway_hint() -> RustVerificationProfileHint {
         RustVerificationTaskKind::Stress,
         RustVerificationTaskContract::new(
             RustVerificationPhase::BeforeRelease,
-            "stress skill must report Studio gateway pressure and SLA evidence",
+            "stress skill must report JSON-RPC search boundary pressure evidence",
             [
-                RustVerificationRequirement::new("sla_result", "gateway pressure SLA result"),
-                RustVerificationRequirement::new("load_steps", "gateway load steps"),
+                RustVerificationRequirement::new("sla_result", "RPC search pressure SLA result"),
+                RustVerificationRequirement::new("load_steps", "RPC boundary load steps"),
             ],
         ),
     )
-    .with_rationale("Studio gateway owns public route and service-boundary behavior")
+    .with_rationale("Zhenfa RPC remains a domain-owned public search and artifact boundary")
 }
 
 fn query_service_performance_hint() -> RustVerificationProfileHint {
@@ -232,12 +232,7 @@ fn security_skill_descriptor() -> RustVerificationSkillDescriptor {
         .with_standard("authorization and trust-boundary findings must be triaged before release")
         .with_required_inputs(["owner", "policy", "route_surface"])
         .with_pass_criteria(["exit=0", "findings=triaged"])
-        .with_receipt_fields([
-            "gateway_authz_matrix",
-            "route_surface",
-            "finding_summary",
-            "artifact",
-        ])
+        .with_receipt_fields(["route_surface", "finding_summary", "artifact"])
 }
 
 fn assert_bound_task(

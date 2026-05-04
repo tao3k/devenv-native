@@ -127,10 +127,11 @@ fn spawn_in_process_linked_parser_summary_service()
         )
     })
     .join()
-    .map_err(|_| "linked parser-summary service thread panicked".to_string())?
     {
-        Ok((base_url, guard)) => Ok((base_url, LinkedParserSummaryGuard::Real { _guard: guard })),
-        Err(_) => spawn_fake_julia_parser_summary_service()
+        Ok(Ok((base_url, guard))) => {
+            Ok((base_url, LinkedParserSummaryGuard::Real { _guard: guard }))
+        }
+        Ok(Err(_)) | Err(_) => spawn_fake_julia_parser_summary_service()
             .map(|(base_url, guard)| (base_url, LinkedParserSummaryGuard::Fake { _guard: guard })),
     }
 }
@@ -139,7 +140,6 @@ fn real_parser_summary_service_is_available() -> bool {
     std::env::var_os(WENDAOSEARCH_PACKAGE_DIR_ENV)
         .filter(|value| !value.is_empty())
         .is_some_and(|path| Path::new(&path).exists())
-        || repo_root().join(".data").join("WendaoSearch.jl").is_dir()
 }
 
 fn configure_linked_parser_summary_base_url(base_url: &str) -> Result<(), String> {
@@ -259,7 +259,7 @@ fn process_managed_parser_summary_config_path() -> PathBuf {
     }
     repo_root()
         .join(".data")
-        .join("WendaoSearch.jl")
+        .join("WendaoCodeParser.jl")
         .join("config")
         .join("live")
         .join("parser_summary.toml")

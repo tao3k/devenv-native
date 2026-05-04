@@ -1,0 +1,24 @@
+---
+source: packages/rust/crates/xiuxian-wendao/src/../tests/unit/support/mod.rs
+assertion_line: 26
+expression: value
+---
+{
+  "corpus": "RepoContent",
+  "rows": [
+    {
+      "best_section": "3: @reexport using ModelingToolkit",
+      "doc_type": "file",
+      "id": "BaseModelica.jl",
+      "language": "julia",
+      "line": 3,
+      "match_reason": "repo_content_search",
+      "path": "src/BaseModelica.jl",
+      "repo": "alpha/repo",
+      "score": 0.73,
+      "snippet": "3: @reexport using ModelingToolkit",
+      "source": "legacy-search-plane",
+      "title": "src/BaseModelica.jl"
+    }
+  ]
+}

@@ -26,5 +26,5 @@ pub(crate) use sorting::{doc_sort_key, example_sort_key, module_sort_key};
 pub(crate) use surface::{RepositorySurface, repository_surface};
 
 #[cfg(test)]
-#[path = "../../tests/unit/plugin/discovery.rs"]
+#[path = "../../../tests/unit/plugin/discovery.rs"]
 mod tests;

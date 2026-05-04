@@ -11,6 +11,7 @@ use tokio::net::TcpStream;
 use tokio::time::sleep;
 
 const WENDAOSEARCH_WORKSPACE_PREFIX: &str = ".data/WendaoSearch.jl/";
+const WENDAO_CODE_PARSER_WORKSPACE_PREFIX: &str = ".data/WendaoCodeParser.jl/";
 
 /// Guard for a spawned Julia integration-support service process.
 pub struct JuliaExampleServiceGuard {
@@ -124,6 +125,35 @@ pub(crate) fn wendaosearch_julia_project() -> PathBuf {
         .unwrap_or_else(|error| panic!("resolve WendaoSearch Julia project dir: {error}"))
 }
 
+pub(crate) fn wendaocodeparser_package_dir() -> PathBuf {
+    if let Some(configured) = env::var_os("WENDAO_CODE_PARSER_PACKAGE_DIR") {
+        return resolve_existing_path("WendaoCodeParser package dir", configured);
+    }
+
+    let candidate = repo_root().join(".data/WendaoCodeParser.jl");
+    if candidate.is_dir() {
+        return candidate
+            .canonicalize()
+            .unwrap_or_else(|error| panic!("resolve WendaoCodeParser package dir: {error}"));
+    }
+
+    wendaosearch_package_dir()
+}
+
+pub(crate) fn wendaocodeparser_julia_project() -> PathBuf {
+    if let Some(configured) = env::var_os("WENDAO_CODE_PARSER_JULIA_PROJECT") {
+        return resolve_existing_path("WendaoCodeParser Julia project dir", configured);
+    }
+
+    if env::var_os("WENDAO_CODE_PARSER_PACKAGE_DIR").is_some()
+        || repo_root().join(".data/WendaoCodeParser.jl").is_dir()
+    {
+        return wendaocodeparser_package_dir();
+    }
+
+    wendaosearch_julia_project()
+}
+
 fn resolve_existing_path(label: &str, configured: impl Into<PathBuf>) -> PathBuf {
     let candidate = configured.into();
     let candidate = if candidate.is_absolute() {
@@ -136,7 +166,6 @@ fn resolve_existing_path(label: &str, configured: impl Into<PathBuf>) -> PathBuf
         .unwrap_or_else(|error| panic!("resolve {label} `{}`: {error}", candidate.display()))
 }
 
-#[cfg(test)]
 pub(crate) fn wendaosearch_config(name: &str) -> PathBuf {
     wendaosearch_package_dir()
         .join("config")
@@ -146,12 +175,40 @@ pub(crate) fn wendaosearch_config(name: &str) -> PathBuf {
         .unwrap_or_else(|error| panic!("resolve WendaoSearch config `{name}`: {error}"))
 }
 
+pub(crate) fn wendaocodeparser_config(name: &str) -> PathBuf {
+    let candidate = wendaocodeparser_package_dir()
+        .join("config")
+        .join("live")
+        .join(name);
+    if candidate.is_file() {
+        return candidate
+            .canonicalize()
+            .unwrap_or_else(|error| panic!("resolve WendaoCodeParser config `{name}`: {error}"));
+    }
+    wendaosearch_config(name)
+}
+
 pub(crate) fn wendaosearch_script(name: &str) -> PathBuf {
     wendaosearch_package_dir()
         .join("scripts")
         .join(name)
         .canonicalize()
         .unwrap_or_else(|error| panic!("resolve WendaoSearch script `{name}`: {error}"))
+}
+
+pub(crate) fn wendaocodeparser_script(name: &str) -> PathBuf {
+    let candidate = wendaocodeparser_package_dir().join("scripts").join(name);
+    if candidate.is_file() {
+        return candidate
+            .canonicalize()
+            .unwrap_or_else(|error| panic!("resolve WendaoCodeParser script `{name}`: {error}"));
+    }
+    if name == "run_service.jl" {
+        return wendaosearch_script("run_parser_summary_service.jl");
+    }
+    candidate
+        .canonicalize()
+        .unwrap_or_else(|error| panic!("resolve WendaoCodeParser script `{name}`: {error}"))
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
@@ -197,6 +254,20 @@ impl WendaoSearchParserSummaryContract {
 }
 
 fn resolve_wendaosearch_contract_path(configured: &str, label: &str) -> PathBuf {
+    if let Some(package_relative) = configured.strip_prefix(WENDAO_CODE_PARSER_WORKSPACE_PREFIX) {
+        if label == "script" && package_relative == "scripts/run_service.jl" {
+            return wendaocodeparser_script("run_service.jl");
+        }
+        if label == "config" && package_relative == "config/live/parser_summary.toml" {
+            return wendaocodeparser_config("parser_summary.toml");
+        }
+        return wendaocodeparser_package_dir()
+            .join(package_relative)
+            .canonicalize()
+            .unwrap_or_else(|error| {
+                panic!("resolve WendaoCodeParser contract {label} `{configured}`: {error}")
+            });
+    }
     if let Some(package_relative) = configured.strip_prefix(WENDAOSEARCH_WORKSPACE_PREFIX) {
         return wendaosearch_package_dir()
             .join(package_relative)

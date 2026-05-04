@@ -112,6 +112,7 @@ python3Packages.buildPythonPackage {
     export ORGIZE_REV="$(cargo_lock_git_rev "https://github.com/tao3k/orgize")"
     export PDF_INSPECTOR_REV="$(cargo_lock_git_rev_or_default "https://github.com/firecrawl/pdf-inspector" "63b55731337c18baf23319b73cc9780bb23ac61b")"
     export RUST_LANG_PROJECT_HARNESS_REV="$(cargo_lock_git_rev "https://github.com/tao3k/rust-lang-project-harness")"
+    export LANCE_REV="$(cargo_lock_git_rev "https://github.com/lancedb/lance.git")"
 
     cat > .cargo/git-sources.toml <<EOF
     [source."git+https://github.com/tao3k/litellm-rs?branch=xiuxian"]
@@ -137,6 +138,11 @@ python3Packages.buildPythonPackage {
     [source."git+https://github.com/tao3k/rust-lang-project-harness?rev=''${RUST_LANG_PROJECT_HARNESS_REV}"]
     git = "https://github.com/tao3k/rust-lang-project-harness"
     rev = "''${RUST_LANG_PROJECT_HARNESS_REV}"
+    replace-with = "vendored-sources"
+
+    [source."git+https://github.com/lancedb/lance.git?rev=''${LANCE_REV}"]
+    git = "https://github.com/lancedb/lance.git"
+    rev = "''${LANCE_REV}"
     replace-with = "vendored-sources"
     EOF
 

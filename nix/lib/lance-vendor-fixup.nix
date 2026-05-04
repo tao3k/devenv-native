@@ -28,6 +28,25 @@
     mv "$tmp_manifest" "$manifest"
   }
 
+  ensure_lance_arrow_ffi_dependency() {
+    manifest="$1"
+    dependency="$2"
+    tmp_manifest="''${manifest}.tmp"
+    awk -v dependency="$dependency" '
+      $0 ~ "^[[:space:]]*" dependency "[[:space:]]*=" && $0 ~ /\{.*\}/ {
+        compact = $0
+        gsub(/[[:space:]]/, "", compact)
+        if (compact !~ /features=\[/) {
+          sub(/\}[[:space:]]*$/, ", features = [\"ffi\"] }")
+        } else if (compact !~ /features=\[[^]]*"ffi"/) {
+          sub(/features[[:space:]]*=[[:space:]]*\[/, "features = [\"ffi\", ")
+        }
+      }
+      { print }
+    ' "$manifest" > "$tmp_manifest"
+    mv "$tmp_manifest" "$manifest"
+  }
+
   materialize_lance_vendor_crate() {
     crate_dir="$1"
     if [ -L "$crate_dir" ]; then
@@ -66,6 +85,12 @@
         && grep -q '^workspace = true$' "$crate_dir/Cargo.toml"; then
         fix_lance_vendor_manifest_lints "$crate_dir/Cargo.toml"
       fi
+      case "$(basename "$crate_dir")" in
+        lance-io-*|lance-datafusion-*)
+          ensure_lance_arrow_ffi_dependency "$crate_dir/Cargo.toml" arrow
+          ensure_lance_arrow_ffi_dependency "$crate_dir/Cargo.toml" arrow-array
+          ;;
+      esac
       restore_lance_vendor_protos "$crate_dir"
     done
   }

@@ -8,8 +8,8 @@ use xiuxian_wendao_core::repo_intelligence::{RegisteredRepository, RepositoryPlu
 
 use super::service_runtime::{
     JuliaExampleServiceGuard, repo_root, reserve_service_port,
-    wait_for_service_ready_with_attempts, wendaosearch_julia_project,
-    wendaosearch_parser_summary_contract, wendaosearch_script,
+    wait_for_service_ready_with_attempts, wendaocodeparser_julia_project,
+    wendaosearch_julia_project, wendaosearch_parser_summary_contract, wendaosearch_script,
 };
 use crate::{
     fetch_modelica_ast_query_analysis_blocking_for_repository,
@@ -223,7 +223,7 @@ async fn spawn_wendaosearch_parser_summary_service(
     let child = project_julia_command()
         .arg(format!(
             "--project={}",
-            wendaosearch_julia_project().display()
+            wendaocodeparser_julia_project().display()
         ))
         .arg(script)
         .arg("--host")

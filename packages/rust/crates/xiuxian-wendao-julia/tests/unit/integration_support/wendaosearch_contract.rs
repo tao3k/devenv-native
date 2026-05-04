@@ -1,6 +1,6 @@
 use super::{
-    expected_wendaosearch_modelica_transport_contract, wendaosearch_config,
-    wendaosearch_parser_summary_contract, wendaosearch_script,
+    expected_wendaosearch_modelica_transport_contract, wendaocodeparser_config,
+    wendaocodeparser_script, wendaosearch_parser_summary_contract,
 };
 
 #[test]
@@ -11,11 +11,11 @@ fn wendaosearch_parser_summary_contract_matches_rust_transport_constants() {
     assert_eq!(contract.contract_version, 1);
     assert_eq!(
         contract.script_path(),
-        wendaosearch_script("run_parser_summary_service.jl")
+        wendaocodeparser_script("run_service.jl")
     );
     assert_eq!(
         contract.config_path(),
-        wendaosearch_config("parser_summary.toml")
+        wendaocodeparser_config("parser_summary.toml")
     );
     assert_eq!(contract.base_url(), "http://127.0.0.1:41081");
     assert_eq!(

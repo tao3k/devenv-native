@@ -90,19 +90,3 @@ pub(crate) struct ModelicaParserSummaryResponseRow {
     pub(crate) item_is_final: Option<bool>,
     pub(crate) item_is_encapsulated: Option<bool>,
 }
-
-mod batch;
-mod columns;
-mod file_summary;
-mod values;
-
-pub(crate) use batch::{
-    build_modelica_parser_summary_request_batch, decode_modelica_parser_summary_response_rows,
-    validate_modelica_parser_summary_request_batches,
-    validate_modelica_parser_summary_response_batches,
-};
-pub(crate) use file_summary::decode_modelica_parser_file_summary;
-
-#[cfg(test)]
-#[path = "../../../tests/unit/modelica_plugin/parser_summary_contract.rs"]
-mod tests;

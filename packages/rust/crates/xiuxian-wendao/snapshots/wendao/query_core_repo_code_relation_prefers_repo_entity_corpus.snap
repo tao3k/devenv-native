@@ -1,0 +1,38 @@
+---
+source: packages/rust/crates/xiuxian-wendao/src/../tests/unit/support/mod.rs
+assertion_line: 26
+expression: value
+---
+{
+  "corpus": "RepoEntity",
+  "rows": [
+    {
+      "best_section": "reexport()",
+      "doc_type": "symbol",
+      "id": "reexport",
+      "language": "julia",
+      "line": 7,
+      "match_reason": "repo_symbol_search",
+      "path": "src/BaseModelica.jl",
+      "repo": "alpha/repo",
+      "score": 1.0,
+      "snippet": "reexport()",
+      "source": "legacy-search-plane",
+      "title": "BaseModelica.reexport"
+    },
+    {
+      "best_section": "Shows how to reexport ModelingToolkit",
+      "doc_type": "example",
+      "id": "Reexport example",
+      "language": "julia",
+      "line": 1,
+      "match_reason": "repo_example_search",
+      "path": "examples/reexport.jl",
+      "repo": "alpha/repo",
+      "score": 0.9091,
+      "snippet": "Shows how to reexport ModelingToolkit",
+      "source": "legacy-search-plane",
+      "title": "Reexport example"
+    }
+  ]
+}

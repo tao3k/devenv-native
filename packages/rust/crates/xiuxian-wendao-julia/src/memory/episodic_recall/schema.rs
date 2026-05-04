@@ -1,19 +1,5 @@
 //! Julia episodic-recall transport columns and row types.
 
-mod contract;
-
-pub use contract::{
-    build_memory_julia_episodic_recall_request_batch,
-    decode_memory_julia_episodic_recall_score_rows, memory_julia_episodic_recall_request_schema,
-    memory_julia_episodic_recall_response_schema,
-    validate_memory_julia_episodic_recall_request_batch,
-    validate_memory_julia_episodic_recall_request_batches,
-    validate_memory_julia_episodic_recall_request_schema,
-    validate_memory_julia_episodic_recall_response_batch,
-    validate_memory_julia_episodic_recall_response_batches,
-    validate_memory_julia_episodic_recall_response_schema,
-};
-
 /// Request column carrying the host query id.
 pub const MEMORY_JULIA_EPISODIC_RECALL_QUERY_ID_COLUMN: &str = "query_id";
 /// Request column carrying the scenario pack.

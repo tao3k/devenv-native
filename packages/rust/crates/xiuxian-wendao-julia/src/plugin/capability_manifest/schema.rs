@@ -1,22 +1,5 @@
 //! Julia plugin capability manifest request and response contract.
 
-mod contract;
-
-pub use contract::{
-    build_julia_capability_manifest_flight_transport_client,
-    build_julia_plugin_capability_manifest_request_batch,
-    decode_julia_plugin_capability_manifest_rows,
-    fetch_julia_plugin_capability_manifest_rows_for_repository,
-    process_julia_capability_manifest_flight_batches,
-    process_julia_capability_manifest_flight_batches_for_repository,
-    validate_julia_plugin_capability_manifest_request_batches,
-    validate_julia_plugin_capability_manifest_response_batches,
-};
-pub(crate) use contract::{
-    discover_julia_graph_structural_binding_from_manifest_for_repository,
-    validate_julia_capability_manifest_preflight_for_repository,
-};
-
 use xiuxian_wendao_core::{
     capabilities::{ContractVersion, PluginCapabilityBinding, PluginProviderSelector},
     ids::{CapabilityId, PluginId},
@@ -27,12 +10,12 @@ use xiuxian_wendao_runtime::transport::{
     normalize_flight_route, validate_flight_schema_version, validate_flight_timeout_secs,
 };
 
-use contract::parse_transport_kind;
+use super::contract::parse_transport_kind;
 
-pub(super) const JULIA_PLUGIN_CONFIG_ID: &str = "julia";
-pub(super) const CAPABILITY_MANIFEST_TRANSPORT_KEY: &str = "capability_manifest_transport";
-pub(super) const DEFAULT_JULIA_HEALTH_ROUTE: &str = "/healthz";
-pub(super) const ARROW_FLIGHT_TRANSPORT_KIND: &str = "arrow_flight";
+pub(crate) const JULIA_PLUGIN_CONFIG_ID: &str = "julia";
+pub(crate) const CAPABILITY_MANIFEST_TRANSPORT_KEY: &str = "capability_manifest_transport";
+pub(crate) const DEFAULT_JULIA_HEALTH_ROUTE: &str = "/healthz";
+pub(crate) const ARROW_FLIGHT_TRANSPORT_KIND: &str = "arrow_flight";
 
 /// Canonical Arrow Flight route for Julia capability discovery.
 pub const JULIA_PLUGIN_CAPABILITY_MANIFEST_ROUTE: &str = "/plugin/capabilities";
