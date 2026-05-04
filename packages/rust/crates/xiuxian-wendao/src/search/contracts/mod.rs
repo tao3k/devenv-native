@@ -48,7 +48,4 @@ pub use search_index::{
     SearchCorpusIndexStatus, SearchIndexMaintenanceStatus, SearchIndexPhase,
     SearchIndexStatusResponse,
 };
-pub use symbols::{
-    AutocompleteHit, AutocompleteResponse, AutocompleteSuggestion, SymbolSearchHit,
-    SymbolSearchResponse,
-};
+pub use symbols::AutocompleteSuggestion;

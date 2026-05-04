@@ -3,22 +3,22 @@
 use specta::TypeCollection;
 
 use super::{
-    ApiError, CodeAstAnalysisResponse, DocumentExtractJobStatus, DocumentExtractJobSubmitRequest,
-    DocumentExtractJobsStatus, DocumentExtractResult, GraphNeighborsResponse, Topology3dPayload,
-    UiCapabilities, UiConfig, VfsContentResponse, VfsEntry, VfsScanEntry, VfsScanResult,
+    ApiError, AutocompleteResponse, CodeAstAnalysisResponse, DocumentExtractJobStatus,
+    DocumentExtractJobSubmitRequest, DocumentExtractJobsStatus, DocumentExtractResult,
+    GraphNeighborsResponse, SymbolSearchResponse, Topology3dPayload, UiCapabilities, UiConfig,
+    VfsContentResponse, VfsEntry, VfsScanEntry, VfsScanResult,
 };
 
 pub use xiuxian_wendao::search::contracts::{
     AnalysisEdge, AnalysisEdgeKind, AnalysisEvidence, AnalysisNode, AnalysisNodeKind, AstSearchHit,
-    AstSearchResponse, AttachmentSearchHit, AttachmentSearchResponse, AutocompleteHit,
-    AutocompleteResponse, AutocompleteSuggestion, DefinitionResolveResponse, DefinitionSearchHit,
-    IntentSearchHit, KnowledgeSearchHit, MarkdownAnalysisDocumentLink,
-    MarkdownAnalysisDocumentLinkKind, MarkdownAnalysisDocumentMetadata, MarkdownAnalysisResponse,
-    MarkdownRetrievalAtom, MermaidProjection, MermaidViewKind, ObservationHint, ReferenceSearchHit,
+    AstSearchResponse, AttachmentSearchHit, AttachmentSearchResponse, AutocompleteSuggestion,
+    DefinitionResolveResponse, DefinitionSearchHit, IntentSearchHit, KnowledgeSearchHit,
+    MarkdownAnalysisDocumentLink, MarkdownAnalysisDocumentLinkKind,
+    MarkdownAnalysisDocumentMetadata, MarkdownAnalysisResponse, MarkdownRetrievalAtom,
+    MermaidProjection, MermaidViewKind, ObservationHint, ReferenceSearchHit,
     ReferenceSearchResponse, RetrievalChunk, RetrievalChunkSurface, SearchBacklinkItem,
     SearchCorpusIndexStatus, SearchHit, SearchIndexMaintenanceStatus, SearchIndexPhase,
-    SearchIndexStatusResponse, SearchResponse, StudioNavigationTarget, SymbolSearchHit,
-    SymbolSearchResponse,
+    SearchIndexStatusResponse, SearchResponse, StudioNavigationTarget,
 };
 
 /// Build the frontend-facing Studio Specta type collection.
