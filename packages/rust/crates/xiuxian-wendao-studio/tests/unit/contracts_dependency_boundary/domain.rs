@@ -48,6 +48,13 @@ const STUDIO_SYMBOL_API_SYMBOLS: &[&str] = &[
     "AutocompleteHit",
     "AutocompleteResponse",
 ];
+const STUDIO_SEARCH_RESPONSE_SYMBOLS: &[&str] = &[
+    "AttachmentSearchResponse",
+    "AstSearchResponse",
+    "DefinitionResolveResponse",
+    "ReferenceSearchResponse",
+    "SearchResponse",
+];
 const STUDIO_SEARCH_MANIFEST_SYMBOLS: &[&str] = &[
     "UiConfig",
     "UiProjectConfig",
@@ -115,6 +122,14 @@ fn wendao_domain_contracts_do_not_export_studio_symbol_api_dtos() {
     assert_domain_contracts_do_not_contain_symbols(
         STUDIO_SYMBOL_API_SYMBOLS,
         "Studio symbol and autocomplete API wrapper DTOs belong to xiuxian-wendao-studio contracts, not xiuxian-wendao search contracts",
+    );
+}
+
+#[test]
+fn wendao_domain_contracts_do_not_export_studio_search_response_dtos() {
+    assert_domain_contracts_do_not_contain_symbols(
+        STUDIO_SEARCH_RESPONSE_SYMBOLS,
+        "Studio search response wrapper DTOs belong to xiuxian-wendao-studio contracts, not xiuxian-wendao search contracts",
     );
 }
 

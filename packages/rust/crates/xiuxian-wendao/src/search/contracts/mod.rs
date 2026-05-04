@@ -23,14 +23,11 @@ pub use analysis::{
     MarkdownAnalysisDocumentMetadata, MarkdownAnalysisResponse, MarkdownRetrievalAtom,
     MermaidProjection, MermaidViewKind,
 };
-pub use attachments::{AttachmentSearchHit, AttachmentSearchResponse};
+pub use attachments::AttachmentSearchHit;
 #[cfg(feature = "search-runtime")]
 pub(crate) use config::materialize_project_configs;
 pub use config::{ProjectConfigView, SearchProjectConfig};
-pub use definitions::{
-    AstSearchHit, AstSearchResponse, DefinitionResolveResponse, DefinitionSearchHit,
-    ObservationHint, ReferenceSearchHit, ReferenceSearchResponse,
-};
+pub use definitions::{AstSearchHit, DefinitionSearchHit, ObservationHint, ReferenceSearchHit};
 #[cfg(feature = "search-runtime")]
 pub(crate) use helpers::{
     SearchProjectMetadata, ast_search_lang, build_code_ast_hits_from_content,
@@ -40,9 +37,7 @@ pub(crate) use helpers::{
 };
 pub use navigation::StudioNavigationTarget;
 pub use retrieval::{RetrievalChunk, RetrievalChunkSurface};
-pub use search::{
-    IntentSearchHit, KnowledgeSearchHit, SearchBacklinkItem, SearchHit, SearchResponse,
-};
+pub use search::{IntentSearchHit, KnowledgeSearchHit, SearchBacklinkItem, SearchHit};
 #[cfg(feature = "search-runtime")]
 pub use search_index::{
     SearchCorpusIndexStatus, SearchIndexMaintenanceStatus, SearchIndexPhase,

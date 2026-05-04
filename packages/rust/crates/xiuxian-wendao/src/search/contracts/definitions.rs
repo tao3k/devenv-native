@@ -89,57 +89,6 @@ pub struct ObservationHint {
     pub pattern: String,
 }
 
-/// Response for studio AST definition search queries.
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
-#[serde(rename_all = "camelCase")]
-pub struct AstSearchResponse {
-    /// Original query string.
-    pub query: String,
-    /// Matching AST hits.
-    pub hits: Vec<AstSearchHit>,
-    /// Total number of hits returned.
-    pub hit_count: usize,
-    /// Selected AST scope.
-    pub selected_scope: String,
-    /// Whether the response is partial because the AST index is still warming.
-    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
-    pub partial: bool,
-    /// Current AST-index lifecycle state.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub indexing_state: Option<String>,
-    /// Optional AST-index error surfaced without blocking the request path.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub index_error: Option<String>,
-}
-
-/// Response for native studio definition resolution.
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
-#[serde(rename_all = "camelCase")]
-pub struct DefinitionResolveResponse {
-    /// Original query string.
-    pub query: String,
-    /// Optional source path used to bias resolution.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub source_path: Option<String>,
-    /// Optional source line used by the caller.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub source_line: Option<usize>,
-    /// Number of candidate definitions considered for this resolution.
-    pub candidate_count: usize,
-    /// The selected scope used to resolve the definition.
-    pub selected_scope: String,
-    /// Display-ready navigation target for the resolved definition.
-    pub navigation_target: StudioNavigationTarget,
-    /// The resolved definition hit.
-    pub definition: DefinitionSearchHit,
-    /// Display-ready navigation target for the resolved definition.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub resolved_target: Option<StudioNavigationTarget>,
-    /// The actual hit that was resolved.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub resolved_hit: Option<DefinitionSearchHit>,
-}
-
 /// A hit indicating where a symbol is referenced or used.
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
@@ -168,27 +117,4 @@ pub struct ReferenceSearchHit {
     pub line_text: String,
     /// Scoring weight.
     pub score: f64,
-}
-
-/// Response for Studio reference search queries.
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
-#[serde(rename_all = "camelCase")]
-pub struct ReferenceSearchResponse {
-    /// Original query string.
-    pub query: String,
-    /// Matching reference hits.
-    pub hits: Vec<ReferenceSearchHit>,
-    /// Total number of hits returned.
-    pub hit_count: usize,
-    /// Selected reference scope label.
-    pub selected_scope: String,
-    /// Whether the response is partial because the reference index is still warming.
-    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
-    pub partial: bool,
-    /// Current reference-index lifecycle state.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub indexing_state: Option<String>,
-    /// Optional reference-index error surfaced without blocking the request path.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub index_error: Option<String>,
 }

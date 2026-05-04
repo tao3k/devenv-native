@@ -88,46 +88,6 @@ pub struct SearchHit {
     pub navigation_target: Option<StudioNavigationTarget>,
 }
 
-/// Unified search response consumed by the frontend search shell.
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
-#[serde(rename_all = "camelCase")]
-pub struct SearchResponse {
-    /// Original query string.
-    pub query: String,
-    /// Matching hits.
-    pub hits: Vec<SearchHit>,
-    /// Total number of hits returned.
-    pub hit_count: usize,
-    /// Optional graph confidence score.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub graph_confidence_score: Option<f64>,
-    /// Optional selected mode label.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub selected_mode: Option<String>,
-    /// Optional resolved intent label.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub intent: Option<String>,
-    /// Optional resolved intent confidence.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub intent_confidence: Option<f64>,
-    /// Optional backend search mode.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub search_mode: Option<String>,
-    /// Whether the backend returned partial results because repo indexes are still warming or
-    /// because a repo-wide search exhausted its bounded server-side budget.
-    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
-    pub partial: bool,
-    /// Optional aggregate indexing state for code search.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub indexing_state: Option<String>,
-    /// Repo ids that are still queued or indexing.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub pending_repos: Vec<String>,
-    /// Repo ids skipped because their repo index is unsupported or failed.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub skipped_repos: Vec<String>,
-}
-
 /// A hit derived from search intent hints (e.g., task-oriented).
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]

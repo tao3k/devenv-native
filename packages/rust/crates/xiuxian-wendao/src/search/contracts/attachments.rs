@@ -37,26 +37,3 @@ pub struct AttachmentSearchHit {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub vision_snippet: Option<String>,
 }
-
-/// Response for Studio attachment search queries.
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
-#[serde(rename_all = "camelCase")]
-pub struct AttachmentSearchResponse {
-    /// Original query string.
-    pub query: String,
-    /// Matching attachment hits.
-    pub hits: Vec<AttachmentSearchHit>,
-    /// Total number of hits returned.
-    pub hit_count: usize,
-    /// Selected attachment scope label.
-    pub selected_scope: String,
-    /// Whether the response is partial because the attachment index is still warming.
-    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
-    pub partial: bool,
-    /// Current attachment-index lifecycle state.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub indexing_state: Option<String>,
-    /// Optional attachment-index error surfaced without blocking the request path.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub index_error: Option<String>,
-}
