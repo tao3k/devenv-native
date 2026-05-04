@@ -1,16 +1,3 @@
-/// One declared route contract in the Wendao gateway surface.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct RouteContract {
-    /// The Axum runtime path pattern.
-    pub axum_path: &'static str,
-    /// The normalized `OpenAPI` path pattern.
-    pub openapi_path: &'static str,
-    /// Supported lowercase HTTP methods.
-    pub methods: &'static [&'static str],
-    /// Required `OpenAPI` path parameter names for this route.
-    pub path_params: &'static [&'static str],
-}
-
 /// Axum runtime path for the health endpoint.
 pub const API_HEALTH_AXUM_PATH: &str = "/api/health";
 /// `OpenAPI` path for the health endpoint.

@@ -19,3 +19,20 @@ This crate owns:
 `xiuxian-wendao-server` owns only the high-throughput Flight/gRPC transport
 boundary. `xiuxian-wendao` continues to own graph, search, repository indexing,
 parser, analyzer, and domain-runtime behavior.
+
+## Feature Boundaries
+
+The lightweight `contracts` feature owns route contracts, OpenAPI route
+inventory, and frontend-facing schema/type collection surfaces. It must remain
+free of runtime gateway dependencies such as Axum, Tonic, Arrow Flight, DuckDB,
+DataFusion, notify, and `xiuxian-db-store`.
+
+Runtime concerns are layered behind explicit features:
+
+- `http-router`: Axum/Tower router and handler composition.
+- `flight-transport`: Arrow Flight and gRPC provider adapters.
+- `local-runtime`: repository indexing, search-plane, DuckDB/DataFusion,
+  watcher, parser, and local project integration.
+- `studio`: full Studio composition.
+- `cli-bin-support`: binary-only support for commands that require the full
+  Studio runtime.

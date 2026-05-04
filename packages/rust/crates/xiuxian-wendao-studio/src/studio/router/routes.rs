@@ -5,8 +5,8 @@ use axum::{
     routing::{get, post},
 };
 
+use crate::contracts::routes as openapi_paths;
 use crate::studio::search;
-use xiuxian_wendao::gateway as openapi_paths;
 
 use super::handlers;
 use super::state::GatewayState;

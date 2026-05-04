@@ -8,6 +8,7 @@ mod helpers;
 #[cfg(all(feature = "zhenfa-router", feature = "julia"))]
 #[path = "incremental/mod.rs"]
 mod incremental;
+#[cfg(feature = "runtime-transport")]
 #[path = "julia_transport/mod.rs"]
 mod julia_transport;
 mod merge;
@@ -31,7 +32,7 @@ pub use cached::analyze_registered_repository_cached_with_registry;
 pub use cached::{
     CachedRepositoryAnalysis, analyze_registered_repository_cached_bundle_with_registry,
 };
-#[cfg(test)]
+#[cfg(all(test, feature = "search-runtime"))]
 pub(crate) use helpers::relation_kind_label;
 pub(crate) use helpers::{
     backlinks_for, docs_in_scope, documented_symbol_ids, documents_backlink_lookup,
@@ -45,6 +46,7 @@ pub(crate) use helpers::{import_match_score, normalized_rank_score};
 pub(crate) use incremental::{
     IncrementalApplyContext, analyze_changed_files, apply_incremental_plugin_outputs,
 };
+#[cfg(feature = "runtime-transport")]
 pub use julia_transport::{
     JULIA_ARROW_ANALYZER_SCORE_COLUMN, JULIA_ARROW_DOC_ID_COLUMN, JULIA_ARROW_EMBEDDING_COLUMN,
     JULIA_ARROW_FINAL_SCORE_COLUMN, JULIA_ARROW_QUERY_EMBEDDING_COLUMN,
@@ -153,6 +155,13 @@ pub use search::{
     symbol_search_from_config_with_registry,
 };
 pub use sync::{repo_sync_for_registered_repository, repo_sync_from_config};
-#[cfg(test)]
+#[cfg(all(
+    test,
+    feature = "julia",
+    feature = "repo-lexical-index",
+    feature = "runtime-transport",
+    feature = "search-runtime",
+    feature = "zhenfa-router"
+))]
 #[path = "../../../tests/unit/analyzers/service/mod.rs"]
 mod tests;

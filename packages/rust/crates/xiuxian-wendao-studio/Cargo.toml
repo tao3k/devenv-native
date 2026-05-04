@@ -11,14 +11,51 @@ default-run = "wendao"
 [features]
 default = []
 studio = [
-  "zhenfa-router",
+  "contracts",
+  "openapi-artifacts",
+  "http-router",
+  "flight-transport",
+  "local-runtime",
 ]
 zhenfa-router = [
-  "dep:anyhow",
+  "studio",
+]
+contracts = [
+  "dep:schemars",
+  "dep:serde",
+  "dep:serde_json",
+  "dep:specta",
+  "dep:specta-typescript",
+  "dep:xiuxian-wendao-core",
+]
+openapi-artifacts = [
+  "dep:xiuxian-wendao-runtime",
+]
+http-router = [
+  "contracts",
+  "dep:axum",
+  "dep:tower",
+]
+flight-transport = [
+  "contracts",
   "dep:arrow",
   "dep:arrow-flight",
   "dep:async-trait",
-  "dep:axum",
+  "dep:prost",
+  "dep:tokio",
+  "dep:tokio-stream",
+  "dep:tokio-util",
+  "dep:tonic",
+  "dep:tonic-web",
+  "dep:xiuxian-wendao-server",
+  "xiuxian-wendao-runtime/transport",
+  "xiuxian-wendao-server/transport",
+]
+local-runtime = [
+  "contracts",
+  "http-router",
+  "flight-transport",
+  "dep:anyhow",
   "dep:blake3",
   "dep:chrono",
   "dep:comrak",
@@ -28,24 +65,12 @@ zhenfa-router = [
   "dep:log",
   "dep:notify",
   "dep:notify-debouncer-full",
-  "dep:prost",
   "dep:reqwest",
-  "dep:schemars",
-  "dep:serde",
-  "dep:serde_json",
   "dep:serde_yaml",
   "dep:sha2",
-  "dep:specta",
-  "dep:specta-typescript",
   "dep:tempfile",
   "dep:thiserror",
-  "dep:tokio",
-  "dep:tokio-stream",
-  "dep:tokio-util",
   "dep:toml",
-  "dep:tonic",
-  "dep:tonic-web",
-  "dep:tower",
   "dep:uuid",
   "dep:walkdir",
   "dep:xiuxian-ast",
@@ -54,30 +79,35 @@ zhenfa-router = [
   "dep:xiuxian-git-repo",
   "dep:xiuxian-io",
   "dep:xiuxian-wendao",
+  "dep:xiuxian-wendao-builtin",
   "dep:xiuxian-wendao-core",
   "dep:xiuxian-wendao-parsers",
-  "dep:xiuxian-wendao-server",
   "dep:xiuxian-zhenfa",
-  "xiuxian-wendao-server/transport",
   "xiuxian-wendao/builtin-plugins",
   "xiuxian-wendao/duckdb",
   "xiuxian-wendao/repo-lexical-index",
   "xiuxian-wendao/zhenfa-router",
+  "xiuxian-wendao-core/arrow-transport",
 ]
 duckdb = [
-  "zhenfa-router",
+  "local-runtime",
   "xiuxian-wendao/duckdb",
 ]
 julia = [
-  "zhenfa-router",
+  "local-runtime",
   "dep:xiuxian-wendao-julia",
   "xiuxian-wendao/julia",
 ]
 performance = [
   "studio",
+  "dep:criterion",
   "xiuxian-wendao/performance",
 ]
 performance-stress = ["performance"]
+test-support = [
+  "local-runtime",
+  "xiuxian-wendao/test-support",
+]
 cli-bin-support = [
   "studio",
   "dep:clap",
@@ -85,7 +115,7 @@ cli-bin-support = [
   "dep:xiuxian-wendao-client",
 ]
 document-extract-pdf-source-range = [
-  "zhenfa-router",
+  "local-runtime",
   "dep:xiuxian-wendao-attachments",
   "xiuxian-wendao/document-extract-pdf-source-range",
   "xiuxian-wendao-attachments/pdf-source-range",
@@ -109,7 +139,7 @@ required-features = ["cli-bin-support", "zhenfa-router"]
 [[bin]]
 name = "export_types"
 path = "src/bin/export_types.rs"
-required-features = ["cli-bin-support"]
+required-features = ["local-runtime"]
 
 [[bin]]
 name = "wendao_search_flight_server"
@@ -128,7 +158,8 @@ required-features = ["cli-bin-support", "julia"]
 
 [dependencies]
 xiuxian-wendao = { path = "../xiuxian-wendao", default-features = false, optional = true }
-xiuxian-wendao-runtime = { path = "../xiuxian-wendao-runtime", default-features = false }
+xiuxian-wendao-builtin = { path = "../xiuxian-wendao-builtin", default-features = false, optional = true }
+xiuxian-wendao-runtime = { path = "../xiuxian-wendao-runtime", default-features = false, optional = true }
 xiuxian-wendao-core = { path = "../xiuxian-wendao-core", optional = true }
 xiuxian-wendao-attachments = { path = "../xiuxian-wendao-attachments", optional = true }
 xiuxian-wendao-julia = { path = "../xiuxian-wendao-julia", optional = true }
@@ -139,7 +170,7 @@ xiuxian-wendao-client = { path = "../xiuxian-wendao-client", optional = true }
 xiuxian-zhenfa = { path = "../xiuxian-zhenfa", optional = true }
 xiuxian-ast = { path = "../xiuxian-ast", optional = true }
 xiuxian-config-core = { path = "../xiuxian-config-core", optional = true }
-xiuxian-db-store = { path = "../xiuxian-db-store", optional = true }
+xiuxian-db-store = { path = "../xiuxian-db-store", default-features = false, optional = true }
 xiuxian-git-repo = { path = "../xiuxian-git-repo", optional = true }
 xiuxian-io = { path = "../xiuxian-io", optional = true }
 
@@ -152,6 +183,7 @@ blake3 = { workspace = true, optional = true }
 chrono = { workspace = true, features = ["clock", "serde"], optional = true }
 clap = { workspace = true, optional = true }
 comrak = { workspace = true, optional = true }
+criterion = { workspace = true, optional = true }
 duckdb = { workspace = true, optional = true }
 futures = { workspace = true, optional = true }
 globset = { workspace = true, optional = true }
@@ -180,16 +212,9 @@ uuid = { workspace = true, optional = true }
 walkdir = { workspace = true, optional = true }
 
 [dev-dependencies]
-arrow = { workspace = true }
-arrow-flight = { workspace = true }
-blake3 = { workspace = true }
-criterion = { workspace = true }
 insta = { workspace = true }
 rust-lang-project-harness = { workspace = true }
 serial_test = { workspace = true }
-xiuxian-wendao = { path = "../xiuxian-wendao", default-features = false, features = ["test-support"] }
-xiuxian-wendao-builtin = { path = "../xiuxian-wendao-builtin", default-features = false }
-xiuxian-wendao-julia = { path = "../xiuxian-wendao-julia" }
 
 [lints]
 workspace = true

@@ -7,6 +7,7 @@ use anyhow::{Context, Result, anyhow};
 const GIT_AUTHOR_NAME: &str = "Gateway Perf";
 const GIT_AUTHOR_EMAIL: &str = "gateway-perf@example.invalid";
 
+#[cfg(not(feature = "julia"))]
 pub(crate) fn write_default_repo_config(base: &Path, repo_dir: &Path, repo_id: &str) -> Result<()> {
     write_repo_config(base, repo_dir, repo_id, None)
 }

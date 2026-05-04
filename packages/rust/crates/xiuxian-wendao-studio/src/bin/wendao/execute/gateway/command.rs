@@ -36,6 +36,7 @@ use crate::bin_support::wendao::execute::gateway::{
     status::{notify_status, stats},
 };
 use crate::bin_support::wendao::types::{Cli, GatewayArgs, GatewayCommand, GatewayStartArgs};
+use crate::contracts::routes as openapi_paths;
 #[cfg(feature = "zhenfa-router")]
 use crate::studio::build_studio_flight_service_with_weights;
 use crate::studio::{
@@ -49,7 +50,6 @@ use crate::transport::{
 };
 use xiuxian_config_core::{lookup_bool_flag, lookup_positive_parsed};
 use xiuxian_wendao::LinkGraphIndex;
-use xiuxian_wendao::gateway as openapi_paths;
 #[cfg(feature = "zhenfa-router")]
 use xiuxian_wendao::link_graph::resolve_link_graph_rerank_flight_runtime_settings;
 use xiuxian_zhenfa::{NotificationService, ZhenfaSignal, notification_worker};

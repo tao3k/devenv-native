@@ -38,6 +38,6 @@ pub use settings::{
     set_link_graph_config_home_override, set_link_graph_wendao_config_override,
 };
 
-#[cfg(test)]
+#[cfg(all(test, feature = "runtime-transport"))]
 #[path = "../../../tests/unit/link_graph/runtime_config/mod.rs"]
 mod tests;

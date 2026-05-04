@@ -85,7 +85,16 @@ pub mod search;
 pub(crate) mod settings;
 pub mod storage;
 pub mod sync;
-#[cfg(test)]
+#[cfg(all(
+    test,
+    any(
+        feature = "julia",
+        feature = "repo-lexical-index",
+        feature = "search-runtime",
+        feature = "test-support",
+        feature = "zhenfa-router"
+    )
+))]
 #[path = "../tests/unit/support/mod.rs"]
 pub(crate) mod test_support;
 pub mod types;

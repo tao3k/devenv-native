@@ -22,7 +22,7 @@ pub(super) struct ValkeyAnalysisCacheRuntime {
 }
 
 impl ValkeyAnalysisCacheRuntime {
-    #[cfg(test)]
+    #[cfg(all(test, feature = "zhenfa-router"))]
     pub(super) fn for_tests(key_prefix: &str, ttl_seconds: Option<u64>) -> Self {
         Self {
             client: None,
@@ -40,14 +40,14 @@ pub(super) fn resolve_valkey_analysis_cache_runtime()
     })
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "zhenfa-router"))]
 pub(super) fn resolve_valkey_analysis_cache_runtime_with_lookup(
     lookup: &dyn Fn(&str) -> Option<String>,
 ) -> Result<Option<ValkeyAnalysisCacheRuntime>, RepoIntelligenceError> {
     resolve_valkey_analysis_cache_runtime_with_settings_and_lookup(&Value::Null, lookup)
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "zhenfa-router"))]
 pub(super) fn resolve_valkey_analysis_cache_runtime_with_settings_and_lookup_for_tests(
     settings: &Value,
     lookup: &dyn Fn(&str) -> Option<String>,

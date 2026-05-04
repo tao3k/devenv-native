@@ -140,7 +140,7 @@ pub use reference_occurrence::ReferenceOccurrenceSearchError;
 pub(crate) use reference_occurrence::reference_occurrence_batches;
 #[cfg(feature = "search-runtime")]
 pub(crate) use repo_content_chunk::RepoContentChunkSearchFilters;
-#[cfg(any(test, feature = "performance"))]
+#[cfg(all(any(test, feature = "performance"), feature = "search-runtime"))]
 pub(crate) use repo_content_chunk::repo_content_chunk_file_fingerprints;
 #[cfg(feature = "search-runtime")]
 pub use repo_entity::{

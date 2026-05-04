@@ -9,9 +9,11 @@ use xiuxian_wendao_julia::integration_support::{
     JuliaExampleServiceGuard, spawn_wendaosearch_julia_parser_summary_service_with_attempts,
 };
 
+use crate::studio::perf_support::git::create_local_git_repo;
+#[cfg(not(feature = "julia"))]
+use crate::studio::perf_support::git::write_default_repo_config;
 #[cfg(feature = "julia")]
 use crate::studio::perf_support::git::write_repo_config_with_julia_parser_summary_transport;
-use crate::studio::perf_support::git::{create_local_git_repo, write_default_repo_config};
 use crate::studio::perf_support::root::{
     DEFAULT_REAL_WORKSPACE_ROOT, GatewayPerfRoot, REAL_WORKSPACE_ROOT_ENV, create_perf_root,
     resolve_real_workspace_root,
@@ -149,17 +151,25 @@ impl Drop for GatewayPerfFixture {
 /// Returns an error if the temporary project cannot be created, initialized as
 /// a Git repository, analyzed, or published into the search plane.
 pub async fn prepare_gateway_perf_fixture() -> Result<GatewayPerfFixture> {
-    let root = create_perf_root()?;
-    let repo_dir = create_local_git_repo(root.as_path(), "GatewaySyncPkg")?;
-    write_default_repo_config(root.as_path(), repo_dir.as_path(), "gateway-sync")?;
-    let state = gateway_state_for_project(root.as_path())?;
-    publish_code_search_snapshot(&state, "gateway-sync").await?;
-    Ok(GatewayPerfFixture {
-        root: GatewayPerfRoot::Owned(root),
-        state,
-        #[cfg(feature = "julia")]
-        _julia_parser_summary_guard: None,
-    })
+    #[cfg(feature = "julia")]
+    {
+        prepare_gateway_perf_fixture_with_julia_parser_summary_transport().await
+    }
+
+    #[cfg(not(feature = "julia"))]
+    {
+        let root = create_perf_root()?;
+        let repo_dir = create_local_git_repo(root.as_path(), "GatewaySyncPkg")?;
+        write_default_repo_config(root.as_path(), repo_dir.as_path(), "gateway-sync")?;
+        let state = gateway_state_for_project(root.as_path())?;
+        publish_code_search_snapshot(&state, "gateway-sync").await?;
+        Ok(GatewayPerfFixture {
+            root: GatewayPerfRoot::Owned(root),
+            state,
+            #[cfg(feature = "julia")]
+            _julia_parser_summary_guard: None,
+        })
+    }
 }
 
 /// Build a warm-cache gateway fixture with one Julia repository and an active

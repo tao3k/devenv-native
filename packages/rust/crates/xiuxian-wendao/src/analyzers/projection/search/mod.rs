@@ -16,6 +16,6 @@ pub use ranking::{build_repo_projected_page_search, scored_projected_page_matche
 #[allow(unused_imports)]
 pub use ranking::build_repo_projected_page_search_with_options;
 
-#[cfg(test)]
+#[cfg(all(test, feature = "repo-lexical-index", feature = "search-runtime"))]
 #[path = "../../../../tests/unit/analyzers/projection/search/mod.rs"]
 mod tests;

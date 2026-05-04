@@ -10,7 +10,13 @@ mod query;
 #[path = "valkey/mod.rs"]
 mod valkey;
 
-#[cfg(test)]
+#[cfg(all(
+    test,
+    feature = "julia",
+    feature = "repo-lexical-index",
+    feature = "search-runtime",
+    feature = "zhenfa-router"
+))]
 #[path = "../../../tests/unit/analyzers/cache/mod.rs"]
 mod tests;
 

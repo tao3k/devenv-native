@@ -14,7 +14,7 @@ mod registry;
 mod retrieval;
 mod search;
 
-#[cfg(test)]
+#[cfg(all(test, feature = "repo-lexical-index", feature = "search-runtime"))]
 #[path = "../../../../tests/unit/analyzers/service/projection/mod.rs"]
 mod tests;
 

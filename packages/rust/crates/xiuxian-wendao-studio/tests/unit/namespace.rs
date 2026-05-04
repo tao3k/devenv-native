@@ -1,7 +1,9 @@
+#[cfg(feature = "openapi-artifacts")]
 use xiuxian_wendao_studio::openapi::{
     bundled_wendao_gateway_openapi_path, load_bundled_wendao_gateway_openapi_document,
 };
 
+#[cfg(feature = "openapi-artifacts")]
 #[test]
 fn exposes_openapi_document_namespace() {
     let document = load_bundled_wendao_gateway_openapi_document().unwrap_or_else(|error| {
@@ -13,7 +15,7 @@ fn exposes_openapi_document_namespace() {
     assert!(path.is_file(), "bundled OpenAPI path should exist");
 }
 
-#[cfg(feature = "studio")]
+#[cfg(feature = "contracts")]
 #[test]
 fn exposes_gateway_route_contract_namespace() {
     use xiuxian_wendao_studio::openapi::WENDAO_GATEWAY_ROUTE_CONTRACTS;

@@ -32,7 +32,10 @@ julia = [
   "dep:xiuxian-wendao-julia",
 ]
 builtin-plugins = ["dep:xiuxian-wendao-builtin"]
-runtime-transport = ["xiuxian-wendao-runtime/transport"]
+runtime-transport = [
+  "xiuxian-wendao-core/arrow-transport",
+  "xiuxian-wendao-runtime/transport",
+]
 vector-store = [
   "dep:reqwest",
   "dep:xiuxian-db-store",
@@ -45,6 +48,8 @@ search-runtime = [
   "dep:xiuxian-db-store",
   "xiuxian-db-store/engine",
   "runtime-transport",
+  "xiuxian-wendao-core/arrow-transport",
+  "xiuxian-wendao-runtime/duckdb-config",
   "dep:arrow-flight",
   "dep:datafusion",
   "dep:parquet",

@@ -1,4 +1,4 @@
-#[cfg(test)]
+#[cfg(all(test, feature = "zhenfa-router"))]
 use std::collections::BTreeMap;
 
 use crate::analyzers::RepositoryAnalysisOutput;
@@ -13,7 +13,7 @@ use super::storage::{
 #[derive(Debug, Clone)]
 pub struct ValkeyAnalysisCache {
     runtime: ValkeyAnalysisCacheRuntime,
-    #[cfg(test)]
+    #[cfg(all(test, feature = "zhenfa-router"))]
     shadow: std::sync::Arc<std::sync::RwLock<BTreeMap<String, String>>>,
 }
 
@@ -27,7 +27,7 @@ impl ValkeyAnalysisCache {
         Ok(resolve_valkey_analysis_cache_runtime()?.map(Self::from_runtime))
     }
 
-    #[cfg(test)]
+    #[cfg(all(test, feature = "zhenfa-router"))]
     pub(crate) fn for_tests(key_prefix: &str, ttl_seconds: Option<u64>) -> Self {
         Self::from_runtime(ValkeyAnalysisCacheRuntime::for_tests(
             key_prefix,
@@ -104,13 +104,13 @@ impl ValkeyAnalysisCache {
     fn from_runtime(runtime: ValkeyAnalysisCacheRuntime) -> Self {
         Self {
             runtime,
-            #[cfg(test)]
+            #[cfg(all(test, feature = "zhenfa-router"))]
             shadow: std::sync::Arc::new(std::sync::RwLock::new(BTreeMap::new())),
         }
     }
 
     fn load_payload(&self, storage_key: &str) -> Option<String> {
-        #[cfg(test)]
+        #[cfg(all(test, feature = "zhenfa-router"))]
         if self.runtime.client.is_none() {
             return self
                 .shadow
@@ -128,7 +128,7 @@ impl ValkeyAnalysisCache {
     }
 
     fn store_payload(&self, storage_key: &str, payload: &str) {
-        #[cfg(test)]
+        #[cfg(all(test, feature = "zhenfa-router"))]
         if self.runtime.client.is_none() {
             self.shadow
                 .write()

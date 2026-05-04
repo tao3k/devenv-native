@@ -2,6 +2,17 @@
 
 #[path = "unit/lib_policy.rs"]
 mod lib_policy;
+
+rust_lang_project_harness::rust_project_harness_cargo_test_gate!(
+    config = lib_policy::wendao_studio_harness_config()
+);
+
+#[cfg(feature = "contracts")]
+#[path = "unit/contracts_dependency_boundary.rs"]
+mod contracts_dependency_boundary;
+#[cfg(feature = "contracts")]
+#[path = "unit/contracts_routes.rs"]
+mod contracts_routes;
 #[path = "unit/namespace.rs"]
 mod namespace;
 #[cfg(feature = "studio")]

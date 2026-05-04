@@ -1,6 +1,6 @@
-//! Studio API types exposed through the server crate.
+//! Studio API DTO and Specta type collection exports for the full local runtime.
 
-pub use crate::contracts::{
+pub use xiuxian_wendao::search::contracts::{
     AnalysisEdge, AnalysisEdgeKind, AnalysisEvidence, AnalysisNode, AnalysisNodeKind, ApiError,
     AstSearchHit, AstSearchResponse, AttachmentSearchHit, AttachmentSearchResponse,
     AutocompleteHit, AutocompleteResponse, AutocompleteSuggestion, CodeAstAnalysisResponse,

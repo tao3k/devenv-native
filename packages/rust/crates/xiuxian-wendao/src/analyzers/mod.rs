@@ -155,18 +155,21 @@ pub use service::{
     DocsContractDefaultValue, DocsContractParamSnapshot, DocsDocumentToolArgs,
     DocsHttpContractSnapshot, DocsNavigationOptions, DocsNavigationToolArgs,
     DocsPageIndexTreeToolArgs, DocsRetrievalContextOptions, DocsRetrievalContextToolArgs,
-    DocsSearchToolArgs, DocsToolContractSnapshot, DocsToolService,
-    JULIA_ARROW_ANALYZER_SCORE_COLUMN, JULIA_ARROW_DOC_ID_COLUMN, JULIA_ARROW_EMBEDDING_COLUMN,
-    JULIA_ARROW_FINAL_SCORE_COLUMN, JULIA_ARROW_QUERY_EMBEDDING_COLUMN,
-    JULIA_ARROW_TRACE_ID_COLUMN, JULIA_ARROW_VECTOR_SCORE_COLUMN, docs_capability_contract_assets,
-    docs_capability_contract_snapshot, docs_capability_schema_snapshot, julia_arrow_request_schema,
-    julia_arrow_response_schema,
+    DocsSearchToolArgs, DocsToolContractSnapshot, DocsToolService, docs_capability_contract_assets,
+    docs_capability_contract_snapshot, docs_capability_schema_snapshot,
 };
 #[cfg(feature = "zhenfa-router")]
 pub(crate) use service::{DocsToolRuntime, DocsToolRuntimeHandle};
 #[cfg(all(feature = "zhenfa-router", feature = "julia"))]
 pub(crate) use service::{
     IncrementalApplyContext, analyze_changed_files, apply_incremental_plugin_outputs,
+};
+#[cfg(feature = "runtime-transport")]
+pub use service::{
+    JULIA_ARROW_ANALYZER_SCORE_COLUMN, JULIA_ARROW_DOC_ID_COLUMN, JULIA_ARROW_EMBEDDING_COLUMN,
+    JULIA_ARROW_FINAL_SCORE_COLUMN, JULIA_ARROW_QUERY_EMBEDDING_COLUMN,
+    JULIA_ARROW_TRACE_ID_COLUMN, JULIA_ARROW_VECTOR_SCORE_COLUMN, julia_arrow_request_schema,
+    julia_arrow_response_schema,
 };
 pub use service::{
     analyze_registered_repository, analyze_registered_repository_cached_with_registry,

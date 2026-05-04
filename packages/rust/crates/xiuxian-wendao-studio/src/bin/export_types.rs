@@ -4,16 +4,16 @@
 //! ensuring type safety between the Rust backend and TypeScript frontend.
 //!
 //! Usage:
-//!   `cargo run --bin export_types --features studio`
+//!   `cargo run --bin export_types --features local-runtime`
 
 use specta_typescript::{BigIntExportBehavior, Typescript};
-use xiuxian_wendao::search::contracts::studio_frontend_type_collection;
+use xiuxian_wendao_studio::contracts::studio_frontend_type_collection;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let types = studio_frontend_type_collection();
     let ts = Typescript::new()
         .bigint(BigIntExportBehavior::Number)
-        .header("// Auto-generated from xiuxian-wendao\n// Run: cargo run --bin export_types --features studio\n\n")
+        .header("// Auto-generated from xiuxian-wendao-studio\n// Run: cargo run --bin export_types --features local-runtime\n\n")
         .export(&types)?;
 
     let output_path =

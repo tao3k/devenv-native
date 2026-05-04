@@ -1,9 +1,9 @@
-#[cfg(test)]
+#[cfg(all(test, feature = "search-runtime"))]
 use crate::analyzers::RelationKind;
 
 /// Returns a human-readable label for a relation kind.
 #[must_use]
-#[cfg(test)]
+#[cfg(all(test, feature = "search-runtime"))]
 pub(crate) fn relation_kind_label(kind: RelationKind) -> &'static str {
     match kind {
         RelationKind::Contains => "contains",

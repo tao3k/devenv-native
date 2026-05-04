@@ -131,6 +131,6 @@ pub fn import_fallback_contract(
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "search-runtime"))]
 #[path = "../../../../tests/unit/analyzers/service/search/contracts.rs"]
 mod tests;

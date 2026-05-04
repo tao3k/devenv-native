@@ -8,7 +8,12 @@ const STUDIO_BENCH_COMMAND: &str =
     "cargo bench -p xiuxian-wendao-studio --features performance --bench wendao_studio_performance";
 
 pub(super) fn wendao_studio_harness_config() -> RustHarnessConfig {
+    if contracts_only_surface() {
+        return contracts_harness_config();
+    }
+
     default_rust_harness_config()
+        .with_verification_profile_hint(studio_contracts_hint())
         .with_verification_profile_hint(studio_gateway_hint())
         .with_verification_profile_hint(studio_router_hint())
         .with_verification_profile_hint(studio_perf_support_hint())
@@ -43,6 +48,41 @@ pub(super) fn wendao_studio_harness_config() -> RustHarnessConfig {
             RustVerificationSkillBinding::new("rust-verification-security").with_adapter("semgrep"),
         )
         .with_verification_skill_descriptor(security_skill_descriptor())
+}
+
+fn contracts_only_surface() -> bool {
+    cfg!(all(
+        feature = "contracts",
+        not(any(
+            feature = "studio",
+            feature = "http-router",
+            feature = "flight-transport",
+            feature = "local-runtime",
+            feature = "cli-bin-support"
+        ))
+    ))
+}
+
+fn contracts_harness_config() -> RustHarnessConfig {
+    let mut config =
+        default_rust_harness_config().with_verification_profile_hint(studio_contracts_hint());
+    config.include_tests = false;
+    config.source_dir_names = vec!["src".to_string()];
+    config.ignored_dir_names.insert("benches".to_string());
+    config.ignored_dir_names.insert("bin".to_string());
+    config.ignored_dir_names.insert("bin_support".to_string());
+    config.ignored_dir_names.insert("examples".to_string());
+    config.ignored_dir_names.insert("studio".to_string());
+    config
+}
+
+fn studio_contracts_hint() -> RustVerificationProfileHint {
+    RustVerificationProfileHint::new(
+        "src/contracts/routes.rs",
+        [RustOwnerResponsibility::PublicApi],
+    )
+    .with_task_kinds([RustVerificationTaskKind::Regression])
+    .with_rationale("Studio contracts own the lightweight HTTP route inventory")
 }
 
 fn studio_gateway_hint() -> RustVerificationProfileHint {

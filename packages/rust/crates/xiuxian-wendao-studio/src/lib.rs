@@ -13,7 +13,12 @@ rust_lang_project_harness::rust_project_harness_cargo_test_gate!(
     config = rust_project_harness_gate::wendao_studio_harness_config()
 );
 
+/// Lightweight Studio route, schema, and `OpenAPI` contracts.
+#[cfg(feature = "contracts")]
+pub mod contracts;
+
 /// Stable `OpenAPI` contract exports for the Studio gateway.
+#[cfg(feature = "contracts")]
 pub mod openapi;
 
 /// Runtime support for the Studio-owned command-line and service binaries.
@@ -22,7 +27,7 @@ pub mod openapi;
 pub mod bin_support;
 
 /// Flight and gRPC transport facade used by Studio adapters.
-#[cfg(feature = "zhenfa-router")]
+#[cfg(feature = "flight-transport")]
 pub use xiuxian_wendao_server::transport;
 
 /// Studio HTTP, Flight, and gateway route surfaces.

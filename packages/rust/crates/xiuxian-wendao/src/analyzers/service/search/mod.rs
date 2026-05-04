@@ -17,7 +17,7 @@ mod overview;
 mod ranking;
 mod symbol;
 
-#[cfg(test)]
+#[cfg(all(test, feature = "repo-lexical-index", feature = "search-runtime"))]
 #[path = "../../../../tests/unit/analyzers/service/search/mod.rs"]
 mod tests;
 

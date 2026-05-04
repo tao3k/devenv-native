@@ -3,7 +3,7 @@ mod runtime;
 mod scope;
 mod storage;
 
-#[cfg(test)]
+#[cfg(all(test, feature = "zhenfa-router"))]
 #[path = "../../../../tests/unit/analyzers/cache/valkey/mod.rs"]
 mod tests;
 

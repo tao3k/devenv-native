@@ -1,6 +1,15 @@
-//! Studio API types exposed through the server crate.
+//! Lightweight Studio contracts that compile without router or local runtime dependencies.
 
-pub use crate::contracts::{
+/// Studio-owned HTTP route contracts and route inventory.
+pub mod routes;
+
+pub use routes::{RouteContract, WENDAO_GATEWAY_ROUTE_CONTRACTS};
+
+#[cfg(feature = "local-runtime")]
+mod types;
+
+#[cfg(feature = "local-runtime")]
+pub use types::{
     AnalysisEdge, AnalysisEdgeKind, AnalysisEvidence, AnalysisNode, AnalysisNodeKind, ApiError,
     AstSearchHit, AstSearchResponse, AttachmentSearchHit, AttachmentSearchResponse,
     AutocompleteHit, AutocompleteResponse, AutocompleteSuggestion, CodeAstAnalysisResponse,
