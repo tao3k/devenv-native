@@ -84,65 +84,113 @@ without extra data copying and can use pushdown behavior across Arrow scans:
 1. [DuckDB Quacks Arrow](https://duckdb.org/2021/12/03/duck-arrow)
 2. [Apache Arrow cross-post](https://arrow.apache.org/blog/2021/12/03/arrow-duckdb/)
 
-### 2.4 Bayesian Uncertainty Propagation (2026.05 Research)
+### 2.4 Confidence Propagation as a Local Hypothesis
 
-Latest studies on "Multi-Agent Knowledge Graphs" (e.g., _Bayesian Knowledge
-Graphs, 2026_) emphasize that confidence is not static; it propagates through
-dependencies. If a `component` has low confidence, its dependent `invariants`
-must be treated as conditionally valid.
+This audit did not verify a primary source for the second-round Bayesian
+knowledge-graph claim. Confidence propagation should therefore be treated as a
+local design hypothesis.
 
-Design implication: The `semantic_ssot` table in DuckDB should support views that
-calculate `inherited_confidence` based on the relation graph, triggering
-automatic `candidate` status for high-risk dependencies.
+Design implication: a DuckDB read model may compute advisory
+`derived_confidence` from relation context, but that value must not
+automatically rewrite canonical `status`, promote candidate objects, or retire
+accepted objects. State transitions still need repository governance.
+
+### 2.5 Physical Code Evidence
+
+The third-round code review strengthens the implementation feasibility claim:
+
+1. `DuckDbLocalRelationEngine` already supports virtual Arrow and materialized
+   appender registration strategies.
+2. The current row-count strategy chooses virtual Arrow when
+   `prefer_virtual_arrow` is enabled and row count is below
+   `materialize_threshold_rows`; otherwise it chooses materialized appender.
+3. `query_batches` prepares bounded DuckDB SQL and returns Arrow batches,
+   making SQL-backed validation evidence physically plausible.
+4. `register_materialized_relation` is a useful implementation anchor for a
+   future semantic read-model pilot, but it is currently an internal method and
+   should not be treated as the public SSOT contract.
+5. `QTable` implements smoothing updates over episode utility, and the memory
+   engine exposes read-only projection rows for host compute lanes. This is
+   aligned with the read-model direction, but does not itself define semantic
+   SSOT authority.
 
 ## 3. Artisan Audit Verdict
 
-### 3.1 Breakthroughs & Pass Conditions
+### 3.1 Pass Conditions
 
-1. **[SEMANTIC-RELATIONAL-SYNC]**: The decision to sync Git-native YAML to
-   DuckDB solves the "latency vs. authority" trade-off.
-2. **[SQL-GUARD-ABSTRACTION]**: Elevating invariants to executable SQL
-   expressions provides a far more expressive and robust governance model than
-   script-based commands.
-3. **Pass Recommendation**: The RFC is recommended for approval review if the
-   `inherited_confidence` logic and atomic-swap sync mechanism are included in
-   the implementation plan.
+The RFC is recommended for approval review if these conditions hold:
+
+1. semantic truth remains repo-native and reviewable
+2. DuckDB remains a read model, not authority
+3. SQL guards remain optional validation evidence until proven locally
+4. derived confidence remains advisory and does not mutate canonical status
+5. physical initialization of `semantic/` waits for Sovereign approval
 
 ### 3.2 Violations and Risks
 
 1. **Identity collision**: object ids need a physical validator before seed
    objects can be authoritative.
-2. **LIFETIME-PINNING**: The synchronization process must be atomic to prevent
-   agents from reading a partially updated semantic graph (Potential Race
-   Condition).
+2. **Read-model race**: any DuckDB projection refresh must prevent readers
+   from observing partially refreshed semantic objects or relations.
 3. **Orphaned relation endpoints**: relation targets must resolve to existing
    object ids.
 4. **Projection drift**: LLM compression and review views need revision or
    staleness metadata.
+5. **False precision**: confidence propagation can create a false sense of
+   mathematical authority if no local calibration data exists.
+6. **Poisoned-lock opacity**: the DuckDB local relation engine reports poisoned
+   mutexes as string errors. This is better than panic propagation, but a later
+   operational hardening pass should preserve richer panic context.
+7. **Feature-gate density**: the DuckDB implementation is isolated under a
+   dedicated module, but `cfg(feature = "duckdb")` remains dense inside the
+   relation-engine implementation.
+8. **Registration replacement race**: one Wendao `DataFusionLocalRelationEngine`
+   implementation deregisters a table before re-registering it. The semantic
+   read-model pilot should avoid exposing readers to a partially replaced
+   relation.
 
 ### 3.3 Refinement Path
 
 1. **Schema validator**: validate `id`, `kind`, `status`, `confidence`,
-   `owners`, `provenance`, `verification`, `sql_guard`, and `relations`.
-2. **Phase 1 (Watcher)**: Implement an atomic-swap mechanism for the DuckDB
-   `semantic_ssot` table during synchronization.
-3. **Phase 2 (SQL Schema)**: Define the standard view for `inherited_confidence`
-   to enable Bayesian risk assessment in real-time.
-4. **Phase 3 (Qianji Integration)**: Update the `guard_step` implementation to
-   support direct DuckDB SQL execution as its primary validation engine.
+   `owners`, `provenance`, `verification`, and `relations`.
+2. **Read-model pilot**: materialize accepted objects and relations into
+   DuckDB with explicit source revision and projection revision metadata.
+3. **Derived-confidence pilot**: define one advisory `derived_confidence` view
+   and compare it against human review outcomes before using it in guards.
+4. **SQL-guard pilot**: let one invariant emit SQL-backed validation evidence
+   while retaining the repository `check_command` as the required gate.
+5. **Qianji integration**: let one guard consume a bounded semantic-scope
+   bundle after validator and read-model contracts are stable.
+6. **Hot-path clone audit**: consider replacing repeated Q-table episode-id
+   clones with shared identifiers such as `Arc<str>` only after profiling
+   confirms the clone pressure is material.
 
-## 4. Final Verdict: Pass Recommendation With Distinction
+## 4. Second-Round Calibration
 
-The "Semantic-Relational Fusion" strategy is recognized as an industry-leading pattern for autonomous repository governance. The RFC is ready for Sovereign approval review.
+The second-round additions are directionally useful but require downgrade:
 
-## 5. Formal Research References
+1. unverified paper titles must not appear as formal research foundations
+2. DuckDB synchronization must be presented as a read-model pilot
+3. SQL guards must complement, not replace, repository validation commands
+4. confidence propagation must be advisory until local calibration exists
+5. watcher or latency claims must wait for implementation evidence
+6. physical DuckDB support raises feasibility, but does not waive the approval
+   gate for `semantic/`, validators, or runtime hooks
+
+## 5. Final Verdict: Pass Recommendation With Conditions
+
+The RFC is ready for Sovereign approval review after the second-round
+calibration above. It is not yet approved for physical `semantic/`
+initialization, DuckDB read-model implementation, SQL-guard enforcement, or
+Qianji runtime hook integration.
+
+## 6. Formal Research References
 
 1. **Active Context Compression** (2026.01): [arXiv:2601.07190](https://arxiv.org/abs/2601.07190).
 2. **LLM Agent Memory: A Survey** (2025): [OpenReview:KPs1EgGKcT](https://openreview.net/forum?id=KPs1EgGKcT).
 3. **Mem0: Memory Layer for AI Agents** (2025.04): [arXiv:2504.19413](https://arxiv.org/abs/2504.19413).
 4. **Semantic Commit: Detected Conflict Resolution** (2025.04): [arXiv:2504.09283](https://arxiv.org/html/2504.09283v1).
-5. **Incremental Semantic Materialization (ISM)** (2026): Internal industry standard for Git-to-OLAP synchronization.
-6. **Bayesian Knowledge Graphs for Multi-Agent Systems** (2026.05): Standard for cascading confidence in autonomous swarms.
-7. **Symbolic Logic Guards for LLM Agents** (2025): Research on formal verification of LLM task parameters.
-8. **DuckDB: In-Process Analytical Substrate** (2021-2026): [duckdb.org](https://duckdb.org/2021/12/03/duck-arrow).
-9. **Recursive Reward Modeling for Memory Retrieval** (2025): Cognitive architecture study on long-term value estimation.
+5. **AI Agents Need Memory Control Over More Context** (2026.01): [arXiv:2601.11653](https://arxiv.org/abs/2601.11653).
+6. **MemGPT: Towards LLMs as Operating Systems** (2023.10): [arXiv:2310.08560](https://arxiv.org/abs/2310.08560).
+7. **DuckDB Arrow Integration** (2021): [duckdb.org](https://duckdb.org/2021/12/03/duck-arrow).
+8. **DuckDB Transactions**: [duckdb.org](https://duckdb.org/docs/current/sql/statements/transactions.html).

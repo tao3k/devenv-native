@@ -53,14 +53,28 @@ forking the underlying meaning.
 4. [RFC: DuckDB as a Bounded In-Process Analytic Lane for Wendao and Qianji](2026-04-08-wendao-qianji-duckdb-bounded-analytics-rfc.md)
 5. [Wendao SPEC](../01_core/wendao/SPEC.md)
 
-### 2.2 External Research Foundations (2024-2026)
+### 2.2 External Evidence and Research Constraints
 
-1. **Incremental Semantic Materialization (ISM)**, 2026: Proves the efficiency of incremental syncing between Git-native artifacts and in-memory analytical engines.
-2. **Bayesian Knowledge Graphs for Multi-Agent Systems**, 2026.05: Defines the confidence propagation model for hierarchical semantic objects.
-3. **Symbolic Logic Guards for LLM Agents**, 2025: Validates the use of SQL/Logic expressions over natural language prompts for invariant enforcement.
-4. **Active Context Management (Letta/MemGPT)**, 2026: Frames the repository as "Durable Semantic RAM" for long-horizon agent tasks.
-5. **Recursive Reward Modeling for Memory Retrieval**, 2025: Justifies the separation of episodic utility from durable semantic truth.
-6. **Semantic Integrity Verification in LLM-driven Repos**, 2026: Establishes the `candidate` vs `active` lifecycle for governed repositories.
+The external literature supports the direction only as design evidence, not as
+approval authority:
+
+1. [Active Context Compression](https://arxiv.org/abs/2601.07190) and
+   [AI Agents Need Memory Control Over More Context](https://arxiv.org/abs/2601.11653)
+   both argue that long-running agents need bounded, actively managed context
+   rather than unbounded transcript replay.
+2. [Mem0](https://arxiv.org/abs/2504.19413) supports structured long-term
+   memory and graph-backed retrieval as useful agent memory patterns.
+3. [Semantic Commit](https://arxiv.org/abs/2504.09283) supports impact
+   analysis, semantic conflict detection, and human acceptance when updating
+   AI memory or intent specifications.
+4. [DuckDB Arrow integration](https://duckdb.org/2021/12/03/duck-arrow) and
+   [DuckDB transaction semantics](https://duckdb.org/docs/current/sql/statements/transactions.html)
+   support DuckDB as a plausible read-model substrate, but do not make DuckDB
+   the authority source.
+
+Any claim about repo-specific latency, confidence propagation, SQL-guard
+coverage, or synchronization semantics must be proven by local implementation
+evidence before it becomes canonical.
 
 ## 3. Problem Statement
 
@@ -160,18 +174,24 @@ The initial object kinds should be:
 
 Every canonical semantic object should carry:
 
-| Field          | Purpose                                                                                                            |
-| -------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `id`           | Stable semantic identifier.                                                                                        |
-| `kind`         | Object kind.                                                                                                       |
-| `title`        | Human-readable label.                                                                                              |
-| `status`       | Minimal lifecycle state.                                                                                           |
-| `confidence`   | [NEW] Trust score (0.0-1.0) and source type (human_signed, llm_suggested, verified).                               |
-| `owners`       | Accountable maintainers, teams, agents, or packages.                                                               |
-| `provenance`   | Source documents, code paths, RFCs, tests, or prior decisions that justify the object.                             |
-| `verification` | [ENHANCED] Required validation evidence and `check_command` for automated audits.                                  |
-| `sql_guard`    | [NEW] A SQL expression for high-performance validation against the DuckDB-indexed SSOT (primarily for invariants). |
-| `relations`    | Explicit outgoing relation declarations.                                                                           |
+| Field          | Purpose                                                                                |
+| -------------- | -------------------------------------------------------------------------------------- |
+| `id`           | Stable semantic identifier.                                                            |
+| `kind`         | Object kind.                                                                           |
+| `title`        | Human-readable label.                                                                  |
+| `status`       | Minimal lifecycle state.                                                               |
+| `confidence`   | [NEW] Trust score (0.0-1.0) and source type (human_signed, llm_suggested, verified).   |
+| `owners`       | Accountable maintainers, teams, agents, or packages.                                   |
+| `provenance`   | Source documents, code paths, RFCs, tests, or prior decisions that justify the object. |
+| `verification` | Required validation evidence and optional `check_command` for automated audits.        |
+| `relations`    | Explicit outgoing relation declarations.                                               |
+
+Optional pilot fields may be introduced only after schema approval:
+
+| Field                | Purpose                                                                                                               |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `derived_confidence` | Read-model confidence computed from relation context. It is advisory and must not overwrite canonical `status`.       |
+| `sql_guard`          | Optional query-backed validation evidence against a DuckDB read model. It complements required repository validation. |
 
 ### 6.3 Status Vocabulary
 
@@ -189,43 +209,82 @@ The initial status vocabulary should be small:
 ### 6.4 Example Shape
 
 ```yaml
-id: invariant.wendao.flight-boundary-remains-external
-kind: invariant
-title: Flight Boundary Remains External
+id: component.wendao.query-substrate
+kind: component
+title: Wendao Query Substrate
 status: active
 confidence:
   score: 1.0
   source: human_signed
+  last_audit: 2026-05-03
+owners:
+  - package: packages/rust/crates/xiuxian-wendao
+provenance:
+  - docs/rfcs/2026-03-26-wendao-query-engine-rfc.md
+  - docs/rfcs/2026-04-08-wendao-qianji-duckdb-bounded-analytics-rfc.md
 verification:
-  check_command: "grep -r 'tonic' packages/rust/crates/xiuxian-wendao-runtime"
-sql_guard: >
-  SELECT CASE
-    WHEN count(*) > 0 THEN 'FAIL: Unchecked low-confidence dependencies'
-    ELSE 'PASS'
-  END
-  FROM semantic_ssot
-  WHERE kind = 'component' AND confidence < 0.7
+  required:
+    - cargo test -p xiuxian-wendao
+  check_command: "direnv exec . cargo test -p xiuxian-wendao --lib"
 relations:
-  - kind: governs
-    target: component.wendao.query-substrate
+  - kind: constrains
+    target: invariant.wendao.flight-boundary-remains-external
+  - kind: consumed_by
+    target: component.qianji.execution-plane
 ```
 
-## 7. DuckDB Synchronization Strategy
+## 7. DuckDB Read-Model Pilot
 
-To enable high-performance query and validation, the repo-native SSOT layer is
-materialized into the DuckDB analytic lane.
+DuckDB can become a high-performance read model for semantic objects only after
+the repository-native object schema is accepted. It must not become the write
+authority for semantic truth.
 
-1. **Harvesting**: A dedicated watcher in `xiuxian-wendao` monitors `semantic/`.
-2. **Materialization**: YAML objects are parsed and flattened into the
-   `semantic_ssot` table in DuckDB.
-3. **Relational Graph**: Relations are materialized as a `semantic_relations`
-   edge table.
-4. **Consistency**: The sync is triggered on git operations or file writes,
-   ensuring the "Durable Semantic RAM" is always fresh.
+### 7.2 Code-Backed Feasibility
+
+The current codebase makes this pilot materially more feasible than a purely
+speculative design:
+
+1. `DuckDbLocalRelationEngine` already supports two request-scoped relation
+   registration strategies: virtual Arrow views and materialized Arrow
+   appender tables.
+2. The strategy selection already uses row-count-aware routing through
+   `prefer_virtual_arrow` and `materialize_threshold_rows`.
+3. `query_batches` already prepares bounded DuckDB SQL and returns Arrow record
+   batches, which is sufficient for a SQL-backed validation evidence pilot.
+4. The memory engine already contains a Q-table smoothing loop and read-only
+   projection rows, which supports the broader pattern of separating durable
+   state from query/read surfaces.
+
+This does not make SQL guards authoritative. It means the first pilot can reuse
+existing relation-engine capabilities instead of introducing a new database
+subsystem.
+
+### 7.3 Pilot Contract
+
+1. materializing accepted semantic objects into a provisional
+   `semantic_objects` table
+2. materializing accepted relations into a provisional `semantic_relations`
+   edge table
+3. attaching source revision, projection revision, and staleness metadata to
+   every read-model row
+4. running bounded SQL queries that produce validation evidence for invariants
+5. refreshing the read model through a transaction or snapshot-swap discipline
+   so readers never observe a partially refreshed graph
+
+The first pilot should also observe these constraints:
+
+1. treat `register_materialized_relation` as an implementation anchor, not as
+   the public SSOT contract, unless a dedicated public API is approved
+2. avoid promising a dedicated watcher, refresh latency, or recursive
+   confidence propagation until local evidence exists
+3. audit repeated registration behavior before reusing table names across
+   concurrent query windows
+4. keep repository `check_command` validation as the required gate while SQL
+   guards remain evidence-producing read-model queries
 
 ## 8. Proposed Relation Model
 
-### 7.1 Initial Relation Kinds
+### 8.1 Initial Relation Kinds
 
 | Relation      | Meaning                                                |
 | ------------- | ------------------------------------------------------ |
@@ -240,11 +299,11 @@ materialized into the DuckDB analytic lane.
 | `projects_to` | Source object contributes to a derived view.           |
 | `consumed_by` | Source is consumed by target.                          |
 
-## 8. Projection System
+## 9. Projection System
 
 The semantic layer should support multiple views as projections.
 
-### 8.1 LLM Compression View
+### 9.1 LLM Compression View
 
 Audience: model context windows.
 
@@ -257,7 +316,7 @@ Shape: high-density, low-ambiguity context bundle:
 5. confidence scores
 6. exact document or code anchors for reopening evidence
 
-## 9. Wendao and Qianji Integration
+## 10. Wendao and Qianji Integration
 
 Wendao should become the semantic-object-first query surface. It should be
 able to return:
@@ -282,7 +341,7 @@ surface should declare:
 This keeps Qianji's execution graph separate from the semantic graph while
 still letting Qianji guards reason over governed semantic scope.
 
-## 10. Change Governance
+## 11. Change Governance
 
 Every nontrivial change should be able to declare semantic intent:
 
@@ -303,7 +362,7 @@ Validators should reject changes when:
 6. generated projections are stale and not explicitly marked stale
 7. LLM-generated suggestions are treated as canonical without acceptance
 
-## 11. Minimal First Slice
+## 12. Minimal First Slice
 
 1. define the semantic object frontmatter schema
 2. define relation-kind validation
@@ -324,7 +383,7 @@ Suggested seed objects:
 9. `invariant.valkey-is-not-semantic-authority`
 10. `task.semantic-ssot.object-schema-pilot`
 
-## 12. Approval Questions
+## 13. Approval Questions
 
 This RFC asks for approval on these decisions:
 
@@ -338,3 +397,7 @@ This RFC asks for approval on these decisions:
    deriving execution context from scattered docs and chunks?
 5. Should the preferred physical root be `semantic/` rather than
    `docs/semantic/objects/`?
+6. Should DuckDB be treated as a read-model pilot only, with repo-native
+   artifacts remaining authoritative?
+7. Should SQL guards remain optional validation evidence until the first local
+   pilot establishes the contract?

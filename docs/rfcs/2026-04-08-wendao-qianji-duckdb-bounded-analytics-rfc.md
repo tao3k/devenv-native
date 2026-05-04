@@ -894,20 +894,26 @@ statement surface:
 5. the slice stays bounded to performance evidence only: it does not widen
    FlightSQL planning, discovery ownership, or the published Parquet surface
 
-### 10.20 Wendao Semantic SSOT Synchronization Lane
+### 10.20 Wendao Semantic SSOT Read-Model Lane
 
-The next bounded pilot is the **Semantic SSOT Synchronization Lane**:
+The next bounded pilot is the **Semantic SSOT Read-Model Lane**:
 
-1. DuckDB acts as the high-performance "Active Semantic Index" for the
-   repo-native SSOT layer (defined in `2026-05-03-repo-native-semantic-ssot-layer-rfc.md`).
-2. YAML objects from `semantic/` are harvested and materialized into a
-   `semantic_ssot` table.
-3. Relations are materialized as a `semantic_relations` edge table.
-4. This lane enables **SQL-based Invariants**, allowing Qianji guards to
-   perform complex relational checks (e.g., recursive dependency trust
-   validation) using standard SQL instead of script-based row traversal.
-5. The synchronization is managed by a dedicated in-process watcher to ensure
-   low-latency updates between Git writes and DuckDB availability.
+1. DuckDB acts as a high-performance read model for the repo-native SSOT layer
+   defined in `2026-05-03-repo-native-semantic-ssot-layer-rfc.md`; it does not
+   own canonical semantic truth.
+2. Accepted objects from the approved semantic artifact root are materialized
+   into a provisional `semantic_objects` table.
+3. Accepted relations are materialized into a provisional `semantic_relations`
+   edge table.
+4. SQL-backed invariant checks may emit validation evidence for Qianji guards,
+   but they do not replace required repository validation commands.
+5. Refresh behavior must carry source revision and projection revision
+   metadata, and must use a transaction or snapshot-swap discipline before any
+   watcher or refresh-latency claim is made.
+6. The current `DuckDbLocalRelationEngine` already provides the physical
+   feasibility anchor through virtual Arrow registration, materialized appender
+   registration, and bounded `query_batches` execution. The pilot should reuse
+   that relation-engine seam rather than introducing a separate database owner.
 
 ## 11. Telemetry and Explain
 
