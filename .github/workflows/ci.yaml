@@ -365,10 +365,89 @@ jobs:
           command -v julia
           julia --version
 
-      - name: Bootstrap WendaoSearch parser-summary runtime dependencies
+      - name: Bootstrap WendaoCodeParser parser-summary runtime dependencies
         run: |
           set -euo pipefail
           export JULIA_PKG_PRECOMPILE_AUTO=0
+          export WENDAO_CODE_PARSER_PACKAGE_DIR="${RUNNER_TEMP}/WendaoCodeParser.jl"
+          export WENDAO_CODE_PARSER_JULIA_PROJECT="${WENDAO_CODE_PARSER_PACKAGE_DIR}"
+          export WENDAO_CODE_PARSER_PACKAGE_DIR_FILE="${RUNNER_TEMP}/wendaocodeparser-package-dir.txt"
+          git clone --depth 1 --branch main https://github.com/tao3k/WendaoCodeParser.jl.git "${WENDAO_CODE_PARSER_PACKAGE_DIR}"
+          git -C "${WENDAO_CODE_PARSER_PACKAGE_DIR}" rev-parse HEAD
+          julia --project="${WENDAO_CODE_PARSER_JULIA_PROJECT}" -e '
+            using Pkg
+            Pkg.activate(ENV["WENDAO_CODE_PARSER_JULIA_PROJECT"])
+            Pkg.instantiate()
+            Pkg.precompile()
+            using WendaoCodeParser
+            package_dir = dirname(dirname(pathof(WendaoCodeParser)))
+            write(ENV["WENDAO_CODE_PARSER_PACKAGE_DIR_FILE"], package_dir)
+          '
+          WENDAO_CODE_PARSER_PACKAGE_DIR="$(cat "${WENDAO_CODE_PARSER_PACKAGE_DIR_FILE}")"
+          test -f "${WENDAO_CODE_PARSER_PACKAGE_DIR}/scripts/run_service.jl"
+          test -f "${WENDAO_CODE_PARSER_PACKAGE_DIR}/config/live/parser_summary.toml"
+          {
+            echo "JULIA_PKG_PRECOMPILE_AUTO=0"
+            echo "WENDAO_CODE_PARSER_JULIA_PROJECT=${WENDAO_CODE_PARSER_JULIA_PROJECT}"
+            echo "WENDAO_CODE_PARSER_PACKAGE_DIR=${WENDAO_CODE_PARSER_PACKAGE_DIR}"
+            echo "WENDAO_CODE_PARSER_CONFIG=${WENDAO_CODE_PARSER_PACKAGE_DIR}/config/live/parser_summary.toml"
+            echo "WENDAO_PARSER_SUMMARY_BASE_URL=http://127.0.0.1:41081"
+            echo "WENDAOSEARCH_CONFIG=${WENDAO_CODE_PARSER_PACKAGE_DIR}/config/live/parser_summary.toml"
+            echo "RUN_PROCESS_MANAGED_WENDAOSEARCH_TEST=1"
+          } >> "${GITHUB_ENV}"
+
+      - name: Start WendaoCodeParser parser-summary service for Rust tests
+        run: |
+          set -euo pipefail
+          source scripts/channel/process-runtime.sh
+          export WENDAO_CODE_PARSER_SERVICE_NAME=wendaocodeparser-parser-summary
+          export WENDAO_CODE_PARSER_RUNTIME_DIR=.run/wendaocodeparser
+          export WENDAO_CODE_PARSER_PORT=41081
+          : "${WENDAO_CODE_PARSER_JULIA_PROJECT:?missing WendaoCodeParser Julia project}"
+          : "${WENDAO_CODE_PARSER_PACKAGE_DIR:?missing WendaoCodeParser package dir}"
+          export WENDAO_CODE_PARSER_CONFIG="${WENDAO_CODE_PARSER_PACKAGE_DIR}/config/live/parser_summary.toml"
+          export WENDAO_CODE_PARSER_SCRIPT="${WENDAO_CODE_PARSER_PACKAGE_DIR}/scripts/run_service.jl"
+          export WENDAO_CODE_PARSER_PIDFILE="${WENDAO_CODE_PARSER_RUNTIME_DIR}/${WENDAO_CODE_PARSER_SERVICE_NAME}.pid"
+          export WENDAOCODEPARSER_CONFIG="${WENDAO_CODE_PARSER_CONFIG}"
+          mkdir -p "${WENDAO_CODE_PARSER_RUNTIME_DIR}" .run/logs
+          managed_cleanup_pidfile_process \
+            "${WENDAO_CODE_PARSER_PIDFILE}" \
+            "${WENDAO_CODE_PARSER_SERVICE_NAME}" \
+            julia \
+            "${WENDAO_CODE_PARSER_SCRIPT}"
+          managed_cleanup_listener \
+            "${WENDAO_CODE_PARSER_PORT}" \
+            "${WENDAO_CODE_PARSER_SERVICE_NAME}" \
+            julia \
+            "${WENDAO_CODE_PARSER_SCRIPT}"
+          julia "--project=${WENDAO_CODE_PARSER_JULIA_PROJECT}" \
+            "${WENDAO_CODE_PARSER_SCRIPT}" \
+            "--config" "${WENDAO_CODE_PARSER_CONFIG}" \
+            "--host" "127.0.0.1" \
+            "--port" "${WENDAO_CODE_PARSER_PORT}" \
+            > .run/logs/wendaocodeparser-parser-summary.stdout.log \
+            2> .run/logs/wendaocodeparser-parser-summary.stderr.log &
+          service_pid=$!
+          managed_write_pidfile "${WENDAO_CODE_PARSER_PIDFILE}" "${service_pid}"
+          for _ in {1..120}; do
+            if managed_listener_matches_pidfile "${WENDAO_CODE_PARSER_PIDFILE}" "${WENDAO_CODE_PARSER_PORT}"; then
+              exit 0
+            fi
+            if ! kill -0 "${service_pid}" 2>/dev/null; then
+              echo "WendaoCodeParser parser-summary service exited before readiness." >&2
+              cat .run/logs/wendaocodeparser-parser-summary.stdout.log >&2 || true
+              cat .run/logs/wendaocodeparser-parser-summary.stderr.log >&2 || true
+              exit 1
+            fi
+            sleep 1
+          done
+          cat .run/logs/wendaocodeparser-parser-summary.stdout.log >&2 || true
+          cat .run/logs/wendaocodeparser-parser-summary.stderr.log >&2 || true
+          managed_listener_matches_pidfile "${WENDAO_CODE_PARSER_PIDFILE}" "${WENDAO_CODE_PARSER_PORT}"
+
+      - name: Bootstrap WendaoSearch solver-demo runtime dependencies
+        run: |
+          set -euo pipefail
           export WENDAOSEARCH_PACKAGE_DIR="${RUNNER_TEMP}/WendaoSearch.jl"
           export WENDAOSEARCH_JULIA_PROJECT="${WENDAOSEARCH_PACKAGE_DIR}"
           export WENDAOSEARCH_PACKAGE_DIR_FILE="${RUNNER_TEMP}/wendaosearch-package-dir.txt"
@@ -393,75 +472,19 @@ jobs:
             end
 
             ensure_registry("General")
-            ensure_registry(
-              "OpenModelica";
-              spec=Pkg.RegistrySpec(url="https://github.com/JKRT/OpenModelicaRegistry.git"),
-            )
             Pkg.instantiate()
-            Pkg.update("Absyn")
             Pkg.precompile()
             using WendaoSearch
             package_dir = dirname(dirname(pathof(WendaoSearch)))
             write(ENV["WENDAOSEARCH_PACKAGE_DIR_FILE"], package_dir)
           '
           WENDAOSEARCH_PACKAGE_DIR="$(cat "${WENDAOSEARCH_PACKAGE_DIR_FILE}")"
-          test -f "${WENDAOSEARCH_PACKAGE_DIR}/scripts/run_parser_summary_service.jl"
-          test -f "${WENDAOSEARCH_PACKAGE_DIR}/config/live/parser_summary.toml"
+          test -f "${WENDAOSEARCH_PACKAGE_DIR}/scripts/run_search_service.jl"
           {
-            echo "JULIA_PKG_PRECOMPILE_AUTO=0"
             echo "WENDAO_SEARCH_USE_ACTIVE_PROJECT=1"
             echo "WENDAOSEARCH_JULIA_PROJECT=${WENDAOSEARCH_JULIA_PROJECT}"
             echo "WENDAOSEARCH_PACKAGE_DIR=${WENDAOSEARCH_PACKAGE_DIR}"
-            echo "WENDAOSEARCH_CONFIG=${WENDAOSEARCH_PACKAGE_DIR}/config/live/parser_summary.toml"
-            echo "RUN_PROCESS_MANAGED_WENDAOSEARCH_TEST=1"
           } >> "${GITHUB_ENV}"
-
-      - name: Start WendaoSearch parser-summary service for Rust tests
-        run: |
-          set -euo pipefail
-          source scripts/channel/process-runtime.sh
-          export WENDAOSEARCH_SERVICE_NAME=wendaosearch-parser-summary
-          export WENDAOSEARCH_RUNTIME_DIR=.run/wendaosearch
-          export WENDAOSEARCH_PORT=41081
-          : "${WENDAOSEARCH_JULIA_PROJECT:?missing WendaoSearch Julia project}"
-          : "${WENDAOSEARCH_PACKAGE_DIR:?missing WendaoSearch package dir}"
-          export WENDAOSEARCH_CONFIG="${WENDAOSEARCH_PACKAGE_DIR}/config/live/parser_summary.toml"
-          export WENDAOSEARCH_SCRIPT="${WENDAOSEARCH_PACKAGE_DIR}/scripts/run_parser_summary_service.jl"
-          export WENDAOSEARCH_PIDFILE="${WENDAOSEARCH_RUNTIME_DIR}/${WENDAOSEARCH_SERVICE_NAME}.pid"
-          export WENDAO_SEARCH_USE_ACTIVE_PROJECT=1
-          mkdir -p "${WENDAOSEARCH_RUNTIME_DIR}" .run/logs
-          managed_cleanup_pidfile_process \
-            "${WENDAOSEARCH_PIDFILE}" \
-            "${WENDAOSEARCH_SERVICE_NAME}" \
-            julia \
-            "${WENDAOSEARCH_SCRIPT}"
-          managed_cleanup_listener \
-            "${WENDAOSEARCH_PORT}" \
-            "${WENDAOSEARCH_SERVICE_NAME}" \
-            julia \
-            "${WENDAOSEARCH_SCRIPT}"
-          julia "--project=${WENDAOSEARCH_JULIA_PROJECT}" \
-            "${WENDAOSEARCH_SCRIPT}" \
-            "--config" "${WENDAOSEARCH_CONFIG}" \
-            > .run/logs/wendaosearch-parser-summary.stdout.log \
-            2> .run/logs/wendaosearch-parser-summary.stderr.log &
-          service_pid=$!
-          managed_write_pidfile "${WENDAOSEARCH_PIDFILE}" "${service_pid}"
-          for _ in {1..120}; do
-            if managed_listener_matches_pidfile "${WENDAOSEARCH_PIDFILE}" "${WENDAOSEARCH_PORT}"; then
-              exit 0
-            fi
-            if ! kill -0 "${service_pid}" 2>/dev/null; then
-              echo "WendaoSearch parser-summary service exited before readiness." >&2
-              cat .run/logs/wendaosearch-parser-summary.stdout.log >&2 || true
-              cat .run/logs/wendaosearch-parser-summary.stderr.log >&2 || true
-              exit 1
-            fi
-            sleep 1
-          done
-          cat .run/logs/wendaosearch-parser-summary.stdout.log >&2 || true
-          cat .run/logs/wendaosearch-parser-summary.stderr.log >&2 || true
-          managed_listener_matches_pidfile "${WENDAOSEARCH_PIDFILE}" "${WENDAOSEARCH_PORT}"
 
       - name: Start WendaoSearch solver-demo service for Rust tests
         run: |
@@ -549,10 +572,10 @@ jobs:
           set +e
           source scripts/channel/process-runtime.sh
           managed_cleanup_pidfile_process \
-            .run/wendaosearch/wendaosearch-parser-summary.pid \
-            wendaosearch-parser-summary \
+            .run/wendaocodeparser/wendaocodeparser-parser-summary.pid \
+            wendaocodeparser-parser-summary \
             julia \
-            run_parser_summary_service.jl
+            run_service.jl
           managed_cleanup_pidfile_process \
             .run/wendaosearch/wendaosearch-solver-demo.pid \
             wendaosearch-solver-demo \
