@@ -8,6 +8,9 @@ use super::role_aliases::normalize_role_aliases;
 use super::slash::slash_overrides;
 use crate::channels::discord::channel::DiscordCommandAdminRule;
 
+/// Result surface for Discord ACL override construction.
+pub type DiscordAclOverridesResult<T> = anyhow::Result<T>;
+
 /// Runtime ACL overrides derived from the Discord configuration surface.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct DiscordAclOverrides {
@@ -49,7 +52,7 @@ pub struct DiscordAclOverrides {
 /// Returns an error when ACL command-rule parsing fails.
 pub fn build_discord_acl_overrides(
     settings: &RuntimeSettings,
-) -> anyhow::Result<DiscordAclOverrides> {
+) -> DiscordAclOverridesResult<DiscordAclOverrides> {
     let acl = &settings.discord.acl;
     let role_aliases = normalize_role_aliases(acl);
 

@@ -1,5 +1,7 @@
 //! Repository index route contract and metadata validation.
 
+use crate::transport::query_contract::{RepoIdRef, RequestIdRef};
+
 /// Canonical repo-index repository metadata header for Wendao Flight requests.
 pub const WENDAO_REPO_INDEX_REPO_HEADER: &str = "x-wendao-repo-index-repo";
 /// Canonical repo-index refresh metadata header for Wendao Flight requests.
@@ -16,9 +18,9 @@ pub const ANALYSIS_REPO_INDEX_ROUTE: &str = "/analysis/repo-index";
 /// Returns an error when the optional refresh flag is not a canonical boolean
 /// or when the request identifier is blank.
 pub fn validate_repo_index_request(
-    repo_id: Option<&str>,
+    repo_id: Option<RepoIdRef<'_>>,
     refresh: Option<&str>,
-    request_id: &str,
+    request_id: RequestIdRef<'_>,
 ) -> Result<(Option<String>, bool, String), String> {
     let normalized_repo_id = repo_id
         .map(str::trim)

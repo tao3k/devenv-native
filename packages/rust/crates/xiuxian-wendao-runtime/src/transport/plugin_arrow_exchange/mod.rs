@@ -1,6 +1,7 @@
 //! Plugin Arrow exchange boundary for negotiated scoring roundtrips.
 
 mod errors;
+mod identifiers;
 mod metadata;
 #[cfg(feature = "vector-store")]
 mod prepare;
@@ -11,6 +12,7 @@ mod roundtrip;
 #[path = "../../../tests/unit/transport/plugin_arrow_exchange/mod.rs"]
 mod tests;
 
+pub use identifiers::{PluginArrowProviderIdRef, PluginArrowTraceIdRef};
 pub use metadata::{attach_plugin_arrow_request_metadata, plugin_arrow_request_trace_id};
 #[cfg(feature = "vector-store")]
 pub use prepare::{

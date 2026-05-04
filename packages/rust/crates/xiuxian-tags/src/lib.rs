@@ -16,7 +16,7 @@
 //! ├── lib.rs      # Re-exports (this file)
 //! ├── error.rs    # TagError, SearchError
 //! ├── types.rs    # SymbolKind, Symbol, SearchMatch, SearchConfig
-//! ├── patterns.rs # ast-grep pattern constants
+//! ├── patterns/   # ast-grep pattern constants
 //! └── extractor.rs # TagExtractor with all methods
 //! ```
 //!

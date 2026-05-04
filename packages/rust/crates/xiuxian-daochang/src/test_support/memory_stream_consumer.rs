@@ -5,6 +5,8 @@ use std::time::Duration;
 
 use crate::agent::{logging, memory_stream_consumer};
 
+use super::TestSupportResult;
+
 /// Test-facing stream event parsed from valkey stream payload.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MemoryStreamEvent {
@@ -56,7 +58,7 @@ pub enum StreamReadErrorKind {
 /// # Errors
 ///
 /// Returns an error when the reply payload has unsupported structure.
-pub fn parse_xreadgroup_reply(reply: redis::Value) -> anyhow::Result<Vec<MemoryStreamEvent>> {
+pub fn parse_xreadgroup_reply(reply: redis::Value) -> TestSupportResult<Vec<MemoryStreamEvent>> {
     memory_stream_consumer::test_parse_xreadgroup_reply(reply).map(|events| {
         events
             .into_iter()
@@ -123,7 +125,7 @@ pub fn should_surface_repeated_failure(failure_streak: u32) -> bool {
 pub async fn ensure_consumer_group(
     connection: &mut redis::aio::MultiplexedConnection,
     config: &MemoryStreamConsumerRuntimeConfig,
-) -> anyhow::Result<()> {
+) -> TestSupportResult<()> {
     memory_stream_consumer::test_ensure_consumer_group(connection, &to_internal_config(config))
         .await
 }
@@ -136,12 +138,13 @@ pub async fn ensure_consumer_group(
 pub async fn read_stream_events(
     connection: &mut redis::aio::MultiplexedConnection,
     config: &MemoryStreamConsumerRuntimeConfig,
-    stream_id: &str,
-) -> anyhow::Result<Vec<MemoryStreamEvent>> {
+    stream_id: impl AsRef<str>,
+) -> TestSupportResult<Vec<MemoryStreamEvent>> {
+    let stream_id = stream_id.as_ref().to_string();
     memory_stream_consumer::test_read_stream_events(
         connection,
         &to_internal_config(config),
-        stream_id,
+        &stream_id,
     )
     .await
     .map(|events| {
@@ -160,16 +163,19 @@ pub async fn read_stream_events(
 pub async fn ack_and_record_metrics(
     connection: &mut redis::aio::MultiplexedConnection,
     config: &MemoryStreamConsumerRuntimeConfig,
-    event_id: &str,
-    kind: &str,
-    session_id: Option<&str>,
-) -> anyhow::Result<u64> {
+    event_id: impl AsRef<str>,
+    kind: impl AsRef<str>,
+    session_id: Option<impl AsRef<str>>,
+) -> TestSupportResult<u64> {
+    let event_id = event_id.as_ref().to_string();
+    let kind = kind.as_ref().to_string();
+    let session_id = session_id.map(|value| value.as_ref().to_string());
     memory_stream_consumer::test_ack_and_record_metrics(
         connection,
         &to_internal_config(config),
-        event_id,
-        kind,
-        session_id,
+        &event_id,
+        &kind,
+        session_id.as_deref(),
     )
     .await
 }
@@ -183,7 +189,7 @@ pub async fn queue_promoted_candidate(
     connection: &mut redis::aio::MultiplexedConnection,
     config: &MemoryStreamConsumerRuntimeConfig,
     event: &MemoryStreamEvent,
-) -> anyhow::Result<bool> {
+) -> TestSupportResult<bool> {
     memory_stream_consumer::test_queue_promoted_candidate(
         connection,
         &to_internal_config(config),

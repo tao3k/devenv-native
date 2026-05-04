@@ -1,5 +1,7 @@
 //! Repository sync route contract and metadata validation.
 
+use crate::transport::query_contract::RepoIdRef;
+
 /// Canonical repo-sync repository metadata header for Wendao Flight requests.
 pub const WENDAO_REPO_SYNC_REPO_HEADER: &str = "x-wendao-repo-sync-repo";
 /// Canonical repo-sync mode metadata header for Wendao Flight requests.
@@ -14,7 +16,7 @@ pub const ANALYSIS_REPO_SYNC_ROUTE: &str = "/analysis/repo-sync";
 /// Returns an error when the repository identifier is blank or when the sync
 /// mode is unsupported.
 pub fn validate_repo_sync_request(
-    repo_id: &str,
+    repo_id: RepoIdRef<'_>,
     mode: Option<&str>,
 ) -> Result<(String, String), String> {
     let normalized_repo_id = repo_id.trim();

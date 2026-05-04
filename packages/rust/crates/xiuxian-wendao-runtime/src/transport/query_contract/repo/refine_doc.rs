@@ -2,6 +2,8 @@
 
 use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64_STANDARD};
 
+use crate::transport::query_contract::{EntityIdRef, RepoIdRef};
+
 /// Canonical refine-doc repository metadata header for Wendao Flight requests.
 pub const WENDAO_REFINE_DOC_REPO_HEADER: &str = "x-wendao-refine-doc-repo";
 /// Canonical refine-doc entity identifier metadata header for Wendao Flight requests.
@@ -19,8 +21,8 @@ pub const ANALYSIS_REFINE_DOC_ROUTE: &str = "/analysis/refine-doc";
 /// blank, or when the optional Base64-encoded user hints cannot be decoded
 /// into valid UTF-8.
 pub fn validate_refine_doc_request(
-    repo_id: &str,
-    entity_id: &str,
+    repo_id: RepoIdRef<'_>,
+    entity_id: EntityIdRef<'_>,
     user_hints_base64: Option<&str>,
 ) -> Result<(String, String, Option<String>), String> {
     let normalized_repo_id = repo_id.trim();

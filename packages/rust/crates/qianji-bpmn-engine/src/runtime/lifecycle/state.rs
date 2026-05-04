@@ -4,7 +4,7 @@
 mod join;
 #[path = "state_lookup.rs"]
 mod lookup;
-#[path = "state_token.rs"]
+#[path = "state_token/mod.rs"]
 mod token;
 #[path = "state_token_cursor.rs"]
 mod token_cursor;

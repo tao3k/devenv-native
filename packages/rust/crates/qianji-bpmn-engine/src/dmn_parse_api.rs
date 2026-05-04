@@ -1,6 +1,6 @@
 //! Public dmn parse api contracts for BPMN/DMN engine integration.
 
-#[path = "dmn/parse.rs"]
+#[path = "dmn/parse/mod.rs"]
 mod parser;
 
 use crate::{BpmnEngineError, DmnDecisionDefinition, DmnSourceFile};

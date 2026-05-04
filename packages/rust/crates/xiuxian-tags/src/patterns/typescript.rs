@@ -3,4 +3,4 @@
 use super::TS_INTERFACE;
 
 /// TypeScript symbol extraction patterns.
-pub const PATTERNS: &[(&str, &str)] = &[("INTERFACE", TS_INTERFACE)];
+pub const TYPESCRIPT_PATTERNS: &[(&str, &str)] = &[("INTERFACE", TS_INTERFACE)];

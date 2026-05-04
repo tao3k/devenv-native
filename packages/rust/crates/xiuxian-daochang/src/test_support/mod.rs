@@ -18,6 +18,7 @@ mod memory_recall_metrics;
 mod memory_recall_state;
 mod memory_stream_consumer;
 mod reflection;
+mod result;
 mod runtime_agent_factory;
 mod session_context;
 mod session_redis;
@@ -108,6 +109,7 @@ pub use reflection::{
     TestReflectiveRuntimeStage, TestTurnReflection, test_build_turn_reflection,
     test_derive_policy_hint,
 };
+pub use result::TestSupportResult;
 pub use runtime_agent_factory::{
     RuntimeMemoryResolution, parse_embedding_backend_mode, resolve_inference_url,
     resolve_runtime_embedding_backend_mode, resolve_runtime_embedding_base_url,

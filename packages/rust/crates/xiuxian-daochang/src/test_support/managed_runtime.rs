@@ -5,6 +5,8 @@ use std::path::Path;
 use crate::RuntimeSettings;
 use crate::channels::managed_runtime::{session_partition_persistence, turn};
 
+use super::TestSupportResult;
+
 /// Test-facing partition-persistence target.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SessionPartitionPersistenceTarget {
@@ -20,7 +22,7 @@ pub enum SessionPartitionPersistenceTarget {
 pub fn persist_session_partition_mode_if_enabled(
     target: SessionPartitionPersistenceTarget,
     mode: &str,
-) -> anyhow::Result<bool> {
+) -> TestSupportResult<bool> {
     session_partition_persistence::persist_session_partition_mode_if_enabled(
         to_internal_target(target),
         mode,
@@ -53,7 +55,7 @@ pub fn persist_session_partition_mode_to_path(
     user_settings_path: &Path,
     target: SessionPartitionPersistenceTarget,
     mode: &str,
-) -> anyhow::Result<()> {
+) -> TestSupportResult<()> {
     session_partition_persistence::persist_session_partition_mode_to_path(
         user_settings_path,
         to_internal_target(target),

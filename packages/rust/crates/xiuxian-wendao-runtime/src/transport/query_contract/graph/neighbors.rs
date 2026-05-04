@@ -1,5 +1,7 @@
 //! Graph-neighbors route contract and metadata validation.
 
+use crate::transport::query_contract::NodeIdRef;
+
 /// Canonical graph-neighbors node identifier metadata header for Wendao Flight
 /// requests.
 pub const WENDAO_GRAPH_NODE_ID_HEADER: &str = "x-wendao-graph-node-id";
@@ -27,7 +29,7 @@ const GRAPH_NEIGHBORS_MAX_LIMIT: usize = 300;
 ///
 /// Returns an error when the requested node identifier is blank.
 pub fn validate_graph_neighbors_request(
-    node_id: &str,
+    node_id: NodeIdRef<'_>,
     direction: Option<&str>,
     hops: Option<usize>,
     limit: Option<usize>,

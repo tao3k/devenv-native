@@ -24,6 +24,9 @@ use crate::transport::{
 
 use super::WendaoFlightService;
 
+/// Result surface for the sample Flight host application boundary.
+pub type SampleFlightHostResult<T> = Result<T, Box<dyn std::error::Error>>;
+
 /// Run the sample Wendao Flight server from binary argument values.
 ///
 /// # Errors
@@ -32,7 +35,7 @@ use super::WendaoFlightService;
 /// binding, or server execution fails.
 pub async fn run_wendao_flight_server_from_args(
     args: impl IntoIterator<Item = String>,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> SampleFlightHostResult<()> {
     let mut args = args.into_iter();
     let bind_addr = args.next().unwrap_or_else(|| "127.0.0.1:0".to_string());
     let parsed_overrides = split_rerank_flight_host_overrides(args)

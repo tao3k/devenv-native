@@ -10,12 +10,15 @@ use crate::nodes::{
 };
 use crate::{RuntimeSettings, load_runtime_settings, set_config_home_override};
 
+/// Result surface for the CLI application boundary.
+pub type CliRuntimeResult<T> = anyhow::Result<T>;
+
 /// Run the command-line application.
 ///
 /// # Errors
 ///
 /// Returns an error when the selected runtime mode fails to initialize or run.
-pub async fn run() -> anyhow::Result<()> {
+pub async fn run() -> CliRuntimeResult<()> {
     let cli = Cli::parse();
     if let Some(conf_dir) = cli.conf.clone() {
         set_config_home_override(conf_dir);

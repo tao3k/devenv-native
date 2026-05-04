@@ -6,6 +6,7 @@ use arrow_array::{FixedSizeListArray, Float32Array, Float64Array, RecordBatch, S
 use arrow_schema::{DataType, Field};
 use xiuxian_wendao_core::repo_intelligence::{RepoIntelligenceError, julia_arrow_request_schema};
 
+use super::PluginArrowProviderIdRef;
 use super::errors::contract_request_error;
 use super::metadata::{attach_plugin_arrow_request_metadata, plugin_arrow_request_trace_id};
 
@@ -231,7 +232,7 @@ pub fn build_plugin_arrow_request_batch_from_embeddings_with_metadata(
     candidates: &[PluginArrowScoredCandidate<'_>],
     embeddings_by_doc_id: &BTreeMap<String, Vec<f32>>,
     query_vector: &[f32],
-    provider_id: &str,
+    provider_id: PluginArrowProviderIdRef<'_>,
     query_text: &str,
     schema_version: &str,
 ) -> Result<RecordBatch, PluginArrowRequestBatchBuildError> {

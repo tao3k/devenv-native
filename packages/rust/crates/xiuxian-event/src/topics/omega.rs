@@ -6,7 +6,7 @@ use super::{
 };
 
 /// Core omega execution topics.
-pub const TOPICS: &[(&str, &str)] = &[
+pub const OMEGA_TOPICS: &[(&str, &str)] = &[
     ("MISSION_START", OMEGA_MISSION_START),
     ("MISSION_COMPLETE", OMEGA_MISSION_COMPLETE),
     ("MISSION_FAIL", OMEGA_MISSION_FAIL),

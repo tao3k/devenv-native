@@ -10,6 +10,8 @@ use xiuxian_zhenfa::{ZhenfaOrchestratorHooks, ZhenfaSignalSink};
 use crate::agent::zhenfa as internal;
 use crate::config::XiuxianConfig;
 
+use super::TestSupportResult;
+
 /// Runtime dependencies used to build the zhenfa native tool bridge.
 #[derive(Clone, Default)]
 pub struct ZhenfaRuntimeDeps {
@@ -134,7 +136,7 @@ pub fn memory_reward_signal_sink_with_valkey_backend(
     redis_url: &str,
     state_key: String,
     strict_startup: bool,
-) -> anyhow::Result<Arc<dyn ZhenfaSignalSink>> {
+) -> TestSupportResult<Arc<dyn ZhenfaSignalSink>> {
     internal::test_memory_reward_signal_sink_with_valkey_backend(
         memory_store,
         redis_url,

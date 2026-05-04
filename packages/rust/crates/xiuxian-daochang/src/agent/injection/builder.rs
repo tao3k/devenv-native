@@ -16,7 +16,7 @@ pub struct ExtractionResult {
 }
 
 /// Extract injection blocks from chat messages.
-pub fn extract_blocks(
+pub(crate) fn extract_blocks(
     _session_id: &str,
     _turn_id: u64,
     messages: Vec<ChatMessage>,

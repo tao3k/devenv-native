@@ -125,8 +125,9 @@ pub fn test_build_turn_reflection(
 #[must_use]
 pub fn test_derive_policy_hint(
     reflection: &TestTurnReflection,
-    source_turn_id: u64,
+    source_turn: u64,
 ) -> Option<TestPolicyHintDirective> {
+    let source_turn_id = source_turn;
     reflection::derive_policy_hint(&reflection.inner, source_turn_id).map(|hint| {
         TestPolicyHintDirective {
             source_turn_id: hint.source_turn_id,

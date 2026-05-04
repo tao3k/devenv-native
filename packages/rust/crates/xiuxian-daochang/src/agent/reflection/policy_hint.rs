@@ -20,7 +20,7 @@ pub struct PolicyHintDirective {
 
 /// Derive a one-shot policy hint for the next turn.
 #[must_use]
-pub fn derive_policy_hint(
+pub(crate) fn derive_policy_hint(
     reflection: &TurnReflection,
     source_turn_id: u64,
 ) -> Option<PolicyHintDirective> {

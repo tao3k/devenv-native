@@ -6,6 +6,7 @@ use arrow_array::RecordBatch;
 use xiuxian_db_store::{VectorStore, VectorStoreError};
 use xiuxian_wendao_core::repo_intelligence::RepoIntelligenceError;
 
+use super::PluginArrowProviderIdRef;
 use super::metadata::{attach_plugin_arrow_request_metadata, plugin_arrow_request_trace_id};
 use super::request::{PluginArrowRequestRow, build_plugin_arrow_request_batch};
 
@@ -129,7 +130,7 @@ pub async fn build_plugin_arrow_request_batch_from_vector_store_with_metadata<I>
     table_name: &str,
     rows: I,
     query_vector: &[f32],
-    provider_id: &str,
+    provider_id: PluginArrowProviderIdRef<'_>,
     query_text: &str,
     schema_version: &str,
 ) -> Result<RecordBatch, PluginArrowVectorStoreRequestBuildError>
