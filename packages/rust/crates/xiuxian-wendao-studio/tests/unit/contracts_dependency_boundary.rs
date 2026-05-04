@@ -10,16 +10,16 @@ const FORBIDDEN_CONTRACT_DEPENDENCIES: &[&str] = &[
     "notify",
     "xiuxian-db-store",
 ];
+const FORBIDDEN_LOCAL_RUNTIME_ZHENFA_FEATURES: &[&str] =
+    &["gateway", "client", "contract-validation", "xml-transform"];
 
 #[test]
 fn contracts_feature_keeps_runtime_dependencies_out_of_normal_tree() {
     let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let workspace_root = workspace_root(&manifest_dir);
-    let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".to_string());
-    let output = match Command::new(cargo)
-        .current_dir(workspace_root)
-        .args([
-            "tree",
+    let output = cargo_tree(
+        workspace_root,
+        [
             "-p",
             "xiuxian-wendao-studio",
             "--no-default-features",
@@ -27,14 +27,8 @@ fn contracts_feature_keeps_runtime_dependencies_out_of_normal_tree() {
             "contracts",
             "-e",
             "normal",
-        ])
-        .output()
-    {
-        Ok(output) => output,
-        Err(error) => {
-            panic!("failed to run cargo tree for xiuxian-wendao-studio contracts feature: {error}")
-        }
-    };
+        ],
+    );
 
     assert!(
         output.status.success(),
@@ -51,6 +45,50 @@ fn contracts_feature_keeps_runtime_dependencies_out_of_normal_tree() {
             "contracts feature must not pull `{dependency}` into the normal dependency tree:\n{tree}"
         );
     }
+}
+
+#[test]
+fn local_runtime_keeps_zhenfa_gateway_features_out_of_feature_tree() {
+    let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let workspace_root = workspace_root(&manifest_dir);
+    let output = cargo_tree(
+        workspace_root,
+        [
+            "-p",
+            "xiuxian-wendao-studio",
+            "--no-default-features",
+            "--features",
+            "local-runtime",
+            "-e",
+            "features",
+        ],
+    );
+
+    assert!(
+        output.status.success(),
+        "cargo tree failed for local-runtime feature:\nstdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let tree = String::from_utf8_lossy(&output.stdout);
+    for feature in FORBIDDEN_LOCAL_RUNTIME_ZHENFA_FEATURES {
+        let marker = format!("xiuxian-zhenfa feature \"{feature}\"");
+        assert!(
+            !tree.lines().any(|line| line.contains(marker.as_str())),
+            "local-runtime feature must not enable xiuxian-zhenfa `{feature}`:\n{tree}"
+        );
+    }
+}
+
+fn cargo_tree<const N: usize>(workspace_root: &Path, args: [&str; N]) -> std::process::Output {
+    let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".to_string());
+    Command::new(cargo)
+        .current_dir(workspace_root)
+        .arg("tree")
+        .args(args)
+        .output()
+        .unwrap_or_else(|error| panic!("failed to run cargo tree: {error}"))
 }
 
 fn workspace_root(manifest_dir: &Path) -> &Path {

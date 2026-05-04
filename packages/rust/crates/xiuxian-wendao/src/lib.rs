@@ -77,7 +77,7 @@ pub mod pybindings;
 #[cfg(feature = "search-runtime")]
 pub mod query_core;
 /// Repo-intelligence ingestion runtime and status coordination.
-#[cfg(feature = "zhenfa-router")]
+#[cfg(feature = "search-runtime")]
 pub mod repo_index;
 pub mod schemas;
 /// Wendao search infrastructure, corpora, query adapters, and shared primitives.

@@ -26,6 +26,7 @@ zhenfa-router = [
   "dep:tower",
   "dep:xiuxian-ast",
   "dep:xiuxian-zhenfa",
+  "xiuxian-zhenfa/gateway",
   "search-runtime",
 ]
 julia = [
@@ -43,6 +44,7 @@ vector-store = [
   "xiuxian-wendao-runtime/vector-store",
 ]
 search-runtime = [
+  "repo-lexical-index",
   "dep:graphql-parser",
   "dep:xiuxian-ast",
   "dep:xiuxian-db-store",
@@ -61,6 +63,7 @@ studio = [
   "repo-lexical-index",
   "dep:xiuxian-ast",
   "dep:xiuxian-zhenfa",
+  "xiuxian-zhenfa/native",
 ]
 performance = []
 performance-stress = ["performance"]
@@ -182,7 +185,7 @@ clap = { workspace = true }
 redis = { workspace = true, features = ["tokio-comp"] }
 axum = { workspace = true, optional = true }
 tower = { workspace = true, features = ["limit", "load-shed", "timeout", "util"], optional = true }
-xiuxian-zhenfa = { path = "../xiuxian-zhenfa", optional = true }
+xiuxian-zhenfa = { path = "../xiuxian-zhenfa", default-features = false, optional = true }
 url = { workspace = true }
 
 # Real-time observation (Project Sentinel Phase 2)

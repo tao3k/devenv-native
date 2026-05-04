@@ -41,11 +41,11 @@ mod service;
 /// Verification auditing (skeptic) for documentation coverage.
 mod skeptic;
 
-#[cfg(feature = "zhenfa-router")]
+#[cfg(feature = "search-runtime")]
 pub use cache::build_repository_analysis_cache_key;
-#[cfg(feature = "zhenfa-router")]
+#[cfg(feature = "search-runtime")]
 pub use cache::load_cached_repository_analysis_for_revision;
-#[cfg(feature = "zhenfa-router")]
+#[cfg(feature = "search-runtime")]
 pub(crate) use cache::{
     FingerprintMode, RepositoryAnalysisValkeyScope, ValkeyAnalysisCache, analysis_fingerprint_mode,
     change_affects_analysis_identity, plugin_ids_support_semantic_owner_reuse,

@@ -2,6 +2,7 @@
 
 mod errors;
 mod types;
+#[cfg(feature = "contract-validation")]
 mod validation;
 
 pub use errors::{
@@ -9,6 +10,7 @@ pub use errors::{
     METHOD_NOT_FOUND_CODE, PARSE_ERROR_CODE,
 };
 pub use types::{JsonRpcErrorObject, JsonRpcId, JsonRpcMeta, JsonRpcRequest, JsonRpcResponse};
+#[cfg(feature = "contract-validation")]
 pub use validation::{
     ZhenfaContractError, resolve_contract_path, validate_contract, validate_contract_reference,
 };

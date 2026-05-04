@@ -19,6 +19,8 @@ studio = [
 ]
 zhenfa-router = [
   "studio",
+  "xiuxian-wendao/zhenfa-router",
+  "xiuxian-zhenfa/gateway",
 ]
 contracts = [
   "dep:schemars",
@@ -83,10 +85,11 @@ local-runtime = [
   "dep:xiuxian-wendao-core",
   "dep:xiuxian-wendao-parsers",
   "dep:xiuxian-zhenfa",
+  "xiuxian-zhenfa/native",
   "xiuxian-wendao/builtin-plugins",
   "xiuxian-wendao/duckdb",
   "xiuxian-wendao/repo-lexical-index",
-  "xiuxian-wendao/zhenfa-router",
+  "xiuxian-wendao/search-runtime",
   "xiuxian-wendao-core/arrow-transport",
 ]
 duckdb = [
@@ -113,6 +116,7 @@ cli-bin-support = [
   "dep:clap",
   "dep:xiuxian-logging",
   "dep:xiuxian-wendao-client",
+  "xiuxian-zhenfa/gateway",
 ]
 document-extract-pdf-source-range = [
   "local-runtime",
@@ -167,7 +171,7 @@ xiuxian-wendao-parsers = { path = "../xiuxian-wendao-parsers", optional = true }
 xiuxian-wendao-server = { path = "../xiuxian-wendao-server", default-features = false, optional = true }
 xiuxian-logging = { path = "../xiuxian-logging", optional = true }
 xiuxian-wendao-client = { path = "../xiuxian-wendao-client", optional = true }
-xiuxian-zhenfa = { path = "../xiuxian-zhenfa", optional = true }
+xiuxian-zhenfa = { path = "../xiuxian-zhenfa", default-features = false, optional = true }
 xiuxian-ast = { path = "../xiuxian-ast", optional = true }
 xiuxian-config-core = { path = "../xiuxian-config-core", optional = true }
 xiuxian-db-store = { path = "../xiuxian-db-store", default-features = false, optional = true }

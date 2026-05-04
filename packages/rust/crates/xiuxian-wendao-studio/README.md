@@ -36,3 +36,8 @@ Runtime concerns are layered behind explicit features:
 - `studio`: full Studio composition.
 - `cli-bin-support`: binary-only support for commands that require the full
   Studio runtime.
+
+`local-runtime` uses `xiuxian-zhenfa` only through its native registry surface.
+The HTTP gateway/client features remain opt-in through `zhenfa-router` or
+`cli-bin-support`, so Studio's local runtime does not inherit Zhenfa HTTP
+composition by accident.

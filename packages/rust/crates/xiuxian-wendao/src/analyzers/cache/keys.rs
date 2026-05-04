@@ -39,7 +39,7 @@ impl RepositoryAnalysisCacheKey {
             .or(self.tracking_revision.as_deref())
     }
 
-    #[cfg(feature = "zhenfa-router")]
+    #[cfg(feature = "search-runtime")]
     pub(crate) fn matches_revision_lookup(
         &self,
         repo_id: &str,

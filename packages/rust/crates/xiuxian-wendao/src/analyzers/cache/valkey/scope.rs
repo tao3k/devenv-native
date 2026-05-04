@@ -1,9 +1,9 @@
 use crate::analyzers::RepositoryAnalysisOutput;
 use crate::analyzers::cache::{RepositoryAnalysisCacheKey, RepositorySearchQueryCacheKey};
 
-#[cfg(feature = "zhenfa-router")]
+#[cfg(feature = "search-runtime")]
 use super::storage::decode_analysis_payload_for_revision;
-#[cfg(feature = "zhenfa-router")]
+#[cfg(feature = "search-runtime")]
 use super::storage::valkey_analysis_revision_key;
 use super::storage::{
     decode_analysis_payload, decode_search_query_payload, valkey_analysis_key,
@@ -13,7 +13,7 @@ use super::storage::{
 #[derive(Debug, Clone, Copy)]
 pub(crate) enum RepositoryAnalysisValkeyScope<'a> {
     Current(&'a RepositoryAnalysisCacheKey),
-    #[cfg(feature = "zhenfa-router")]
+    #[cfg(feature = "search-runtime")]
     Revision {
         repo_id: &'a str,
         checkout_root: &'a str,
@@ -27,7 +27,7 @@ impl<'a> RepositoryAnalysisValkeyScope<'a> {
         Self::Current(cache_key)
     }
 
-    #[cfg(feature = "zhenfa-router")]
+    #[cfg(feature = "search-runtime")]
     pub(crate) fn revision(
         repo_id: &'a str,
         checkout_root: &'a str,
@@ -45,7 +45,7 @@ impl<'a> RepositoryAnalysisValkeyScope<'a> {
     pub(super) fn storage_key(self, key_prefix: &str) -> String {
         match self {
             Self::Current(cache_key) => valkey_analysis_key(cache_key, key_prefix),
-            #[cfg(feature = "zhenfa-router")]
+            #[cfg(feature = "search-runtime")]
             Self::Revision {
                 repo_id,
                 checkout_root,
@@ -64,7 +64,7 @@ impl<'a> RepositoryAnalysisValkeyScope<'a> {
     pub(super) fn decode(self, payload: &str) -> Option<RepositoryAnalysisOutput> {
         match self {
             Self::Current(cache_key) => decode_analysis_payload(cache_key, payload),
-            #[cfg(feature = "zhenfa-router")]
+            #[cfg(feature = "search-runtime")]
             Self::Revision {
                 repo_id,
                 checkout_root,

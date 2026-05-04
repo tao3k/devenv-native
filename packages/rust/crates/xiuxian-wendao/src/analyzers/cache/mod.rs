@@ -14,14 +14,13 @@ mod valkey;
     test,
     feature = "julia",
     feature = "repo-lexical-index",
-    feature = "search-runtime",
-    feature = "zhenfa-router"
+    feature = "search-runtime"
 ))]
 #[path = "../../../tests/unit/analyzers/cache/mod.rs"]
 mod tests;
 
 pub use analysis::load_cached_repository_analysis;
-#[cfg(feature = "zhenfa-router")]
+#[cfg(feature = "search-runtime")]
 pub use analysis::load_cached_repository_analysis_for_revision;
 pub use analysis::store_cached_repository_analysis;
 #[cfg(feature = "search-runtime")]
@@ -29,7 +28,7 @@ pub use artifacts::{
     RepositorySearchArtifacts, load_cached_repository_search_artifacts,
     store_cached_repository_search_artifacts,
 };
-#[cfg(feature = "zhenfa-router")]
+#[cfg(feature = "search-runtime")]
 pub(crate) use identity::{
     FingerprintMode, analysis_fingerprint_mode, change_affects_analysis_identity,
     plugin_ids_support_semantic_owner_reuse, semantic_fingerprint_for_file,

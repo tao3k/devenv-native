@@ -7,21 +7,44 @@ authors.workspace = true
 license.workspace = true
 publish = false
 
+[features]
+default = [
+  "client",
+  "contract-validation",
+  "gateway",
+  "streaming",
+  "xml-transform",
+]
+native = []
+client = [
+  "dep:reqwest",
+]
+gateway = [
+  "dep:axum",
+  "dep:reqwest",
+]
+contract-validation = [
+  "dep:quick-xml",
+  "dep:tempfile",
+]
+streaming = []
+xml-transform = ["dep:pulldown-cmark"]
+
 [dependencies]
 async-trait = { workspace = true }
-axum = { workspace = true }
-reqwest = { workspace = true }
+axum = { workspace = true, optional = true }
+reqwest = { workspace = true, optional = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 schemars = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
-tempfile = { workspace = true }
+tempfile = { workspace = true, optional = true }
 uuid = { workspace = true }
 xiuxian-macros = { path = "../xiuxian-macros" }
-pulldown-cmark = { workspace = true }
-quick-xml = { workspace = true }
+pulldown-cmark = { workspace = true, optional = true }
+quick-xml = { workspace = true, optional = true }
 
 [dev-dependencies]
 rust-lang-project-harness = { workspace = true }

@@ -9,7 +9,13 @@ publish = false
 
 [features]
 default = []
-zhenfa-router = ["dep:axum", "dep:xiuxian-zhenfa", "dep:xiuxian-wendao", "dep:xiuxian-wendao-core"]
+zhenfa-router = [
+  "dep:axum",
+  "dep:xiuxian-zhenfa",
+  "dep:xiuxian-wendao",
+  "dep:xiuxian-wendao-core",
+  "xiuxian-zhenfa/gateway",
+]
 
 [dependencies]
 async-trait = { workspace = true }
@@ -27,7 +33,7 @@ tokio = { workspace = true, features = ["sync", "time", "rt"] }
 axum = { workspace = true, optional = true }
 xiuxian-io = { path = "../xiuxian-io", features = ["notify"] }
 redis = { workspace = true }
-xiuxian-zhenfa = { path = "../xiuxian-zhenfa", optional = true }
+xiuxian-zhenfa = { path = "../xiuxian-zhenfa", default-features = false, optional = true }
 xiuxian-wendao = { path = "../xiuxian-wendao", optional = true }
 xiuxian-wendao-core = { path = "../xiuxian-wendao-core", optional = true }
 
