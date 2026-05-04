@@ -8,7 +8,6 @@ mod attachments;
 mod code_ast;
 mod config;
 mod definitions;
-mod graph;
 #[cfg(feature = "search-runtime")]
 mod helpers;
 mod navigation;
@@ -36,10 +35,6 @@ pub use config::{ProjectConfigView, SearchProjectConfig};
 pub use definitions::{
     AstSearchHit, AstSearchResponse, DefinitionResolveResponse, DefinitionSearchHit,
     ObservationHint, ReferenceSearchHit, ReferenceSearchResponse,
-};
-pub use graph::{
-    GraphLink, GraphNeighborsResponse, GraphNode, Topology3dPayload, TopologyCluster, TopologyLink,
-    TopologyNode,
 };
 #[cfg(feature = "search-runtime")]
 pub(crate) use helpers::{

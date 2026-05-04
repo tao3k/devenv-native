@@ -1,3 +1,5 @@
+//! `Specta` type collection assembly for lightweight Studio contracts.
+
 use specta::TypeCollection;
 
 use super::{

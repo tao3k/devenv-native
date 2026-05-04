@@ -1,3 +1,5 @@
+//! Studio virtual-file-system API DTOs for browser-facing file views.
+
 use serde::{Deserialize, Serialize};
 use specta::Type;
 

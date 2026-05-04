@@ -1,3 +1,5 @@
+//! Shared Studio API error payload for HTTP and transport adapters.
+
 use serde::{Deserialize, Serialize};
 use specta::Type;
 

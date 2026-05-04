@@ -1,7 +1,9 @@
+//! Studio graph and topology API DTOs for browser-facing projections.
+
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
-use super::StudioNavigationTarget;
+use xiuxian_wendao::search::contracts::StudioNavigationTarget;
 
 /// A single node in the link-graph visualization.
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]

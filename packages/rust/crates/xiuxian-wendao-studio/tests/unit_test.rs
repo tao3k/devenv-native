@@ -8,7 +8,7 @@ rust_lang_project_harness::rust_project_harness_cargo_test_gate!(
 );
 
 #[cfg(feature = "contracts")]
-#[path = "unit/contracts_dependency_boundary.rs"]
+#[path = "unit/contracts_dependency_boundary/mod.rs"]
 mod contracts_dependency_boundary;
 #[cfg(feature = "contracts")]
 #[path = "unit/contracts_routes.rs"]

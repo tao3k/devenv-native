@@ -1,3 +1,5 @@
+//! Studio document-extraction API DTOs for browser-facing job state.
+
 use serde::{Deserialize, Serialize};
 use specta::Type;
 

@@ -4,8 +4,8 @@ use specta::TypeCollection;
 
 use super::{
     ApiError, DocumentExtractJobStatus, DocumentExtractJobSubmitRequest, DocumentExtractJobsStatus,
-    DocumentExtractResult, UiCapabilities, UiConfig, VfsContentResponse, VfsEntry, VfsScanEntry,
-    VfsScanResult,
+    DocumentExtractResult, GraphNeighborsResponse, Topology3dPayload, UiCapabilities, UiConfig,
+    VfsContentResponse, VfsEntry, VfsScanEntry, VfsScanResult,
 };
 
 pub use xiuxian_wendao::search::contracts::{
@@ -14,14 +14,13 @@ pub use xiuxian_wendao::search::contracts::{
     AutocompleteResponse, AutocompleteSuggestion, CodeAstAnalysisResponse, CodeAstEdge,
     CodeAstEdgeKind, CodeAstNode, CodeAstNodeKind, CodeAstProjection, CodeAstProjectionKind,
     CodeAstRetrievalAtom, CodeAstRetrievalAtomScope, DefinitionResolveResponse,
-    DefinitionSearchHit, GraphLink, GraphNeighborsResponse, GraphNode, IntentSearchHit,
-    KnowledgeSearchHit, MarkdownAnalysisDocumentLink, MarkdownAnalysisDocumentLinkKind,
-    MarkdownAnalysisDocumentMetadata, MarkdownAnalysisResponse, MarkdownRetrievalAtom,
-    MermaidProjection, MermaidViewKind, ObservationHint, ReferenceSearchHit,
+    DefinitionSearchHit, IntentSearchHit, KnowledgeSearchHit, MarkdownAnalysisDocumentLink,
+    MarkdownAnalysisDocumentLinkKind, MarkdownAnalysisDocumentMetadata, MarkdownAnalysisResponse,
+    MarkdownRetrievalAtom, MermaidProjection, MermaidViewKind, ObservationHint, ReferenceSearchHit,
     ReferenceSearchResponse, RetrievalChunk, RetrievalChunkSurface, SearchBacklinkItem,
     SearchCorpusIndexStatus, SearchHit, SearchIndexMaintenanceStatus, SearchIndexPhase,
     SearchIndexStatusResponse, SearchResponse, StudioNavigationTarget, SymbolSearchHit,
-    SymbolSearchResponse, Topology3dPayload, TopologyCluster, TopologyLink, TopologyNode,
+    SymbolSearchResponse,
 };
 
 /// Build the frontend-facing Studio Specta type collection.

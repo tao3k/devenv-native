@@ -29,7 +29,15 @@ pub use search_manifest::{
 };
 
 #[cfg(feature = "local-runtime")]
+mod graph;
+#[cfg(feature = "local-runtime")]
 mod types;
+
+#[cfg(feature = "local-runtime")]
+pub use graph::{
+    GraphLink, GraphNeighborsResponse, GraphNode, Topology3dPayload, TopologyCluster, TopologyLink,
+    TopologyNode,
+};
 
 #[cfg(feature = "local-runtime")]
 pub use types::{
@@ -38,13 +46,11 @@ pub use types::{
     AutocompleteResponse, AutocompleteSuggestion, CodeAstAnalysisResponse, CodeAstEdge,
     CodeAstEdgeKind, CodeAstNode, CodeAstNodeKind, CodeAstProjection, CodeAstProjectionKind,
     CodeAstRetrievalAtom, CodeAstRetrievalAtomScope, DefinitionResolveResponse,
-    DefinitionSearchHit, GraphLink, GraphNeighborsResponse, GraphNode, IntentSearchHit,
-    KnowledgeSearchHit, MarkdownAnalysisDocumentLink, MarkdownAnalysisDocumentLinkKind,
-    MarkdownAnalysisDocumentMetadata, MarkdownAnalysisResponse, MarkdownRetrievalAtom,
-    MermaidProjection, MermaidViewKind, ObservationHint, ReferenceSearchHit,
+    DefinitionSearchHit, IntentSearchHit, KnowledgeSearchHit, MarkdownAnalysisDocumentLink,
+    MarkdownAnalysisDocumentLinkKind, MarkdownAnalysisDocumentMetadata, MarkdownAnalysisResponse,
+    MarkdownRetrievalAtom, MermaidProjection, MermaidViewKind, ObservationHint, ReferenceSearchHit,
     ReferenceSearchResponse, RetrievalChunk, RetrievalChunkSurface, SearchBacklinkItem,
     SearchCorpusIndexStatus, SearchHit, SearchIndexMaintenanceStatus, SearchIndexPhase,
     SearchIndexStatusResponse, SearchResponse, StudioNavigationTarget, SymbolSearchHit,
-    SymbolSearchResponse, Topology3dPayload, TopologyCluster, TopologyLink, TopologyNode,
-    studio_frontend_type_collection,
+    SymbolSearchResponse, studio_frontend_type_collection,
 };
