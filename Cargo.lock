@@ -11908,6 +11908,7 @@ dependencies = [
  "rust-lang-project-harness",
  "tokio",
  "tokio-stream",
+ "toml 0.8.23",
  "tonic",
 ]
 

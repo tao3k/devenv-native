@@ -41,6 +41,7 @@ tonic = { workspace = true, optional = true }
 [dev-dependencies]
 criterion = { workspace = true }
 rust-lang-project-harness = { workspace = true }
+toml = { workspace = true }
 
 [lints]
 workspace = true
