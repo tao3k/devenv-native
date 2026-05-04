@@ -26,6 +26,16 @@ const STUDIO_PLUGIN_ARTIFACT_SYMBOLS: &[&str] = &[
     "UiPluginLaunchSpec",
     "UiPluginTransportKind",
 ];
+const STUDIO_SEARCH_MANIFEST_SYMBOLS: &[&str] = &[
+    "UiCapabilities",
+    "UiSearchContract",
+    "UiCodeSearchContract",
+    "UiCodeSearchContractExample",
+    "UiCodeSearchRoutes",
+    "UiSearchContractAlias",
+    "UiRepoDiscoveryContract",
+    "UiRepoDiscoverySurfaceContract",
+];
 
 #[test]
 fn contracts_feature_keeps_runtime_dependencies_out_of_normal_tree() {
@@ -98,14 +108,17 @@ fn local_runtime_keeps_zhenfa_gateway_features_out_of_feature_tree() {
 #[test]
 fn studio_code_uses_studio_contract_import_path() {
     let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let allowed_reexport = manifest_dir.join("src/contracts/types.rs");
+    let allowed_reexports = [
+        manifest_dir.join("src/contracts/types.rs"),
+        manifest_dir.join("src/contracts/search_manifest.rs"),
+    ];
     let needle = format!("{DOMAIN_CONTRACT_IMPORT_HEAD}{DOMAIN_CONTRACT_IMPORT_TAIL}");
     let mut offenders = Vec::new();
 
     for relative_root in ["src", "tests"] {
         collect_domain_contract_imports(
             manifest_dir.join(relative_root).as_path(),
-            allowed_reexport.as_path(),
+            &allowed_reexports,
             needle.as_str(),
             &mut offenders,
         );
@@ -113,7 +126,25 @@ fn studio_code_uses_studio_contract_import_path() {
 
     assert!(
         offenders.is_empty(),
-        "Studio code should import Studio API contracts through crate::contracts or xiuxian_wendao_studio::contracts; only src/contracts/types.rs may re-export the domain transition path:\n{}",
+        "Studio code should import Studio API contracts through crate::contracts or xiuxian_wendao_studio::contracts; only src/contracts transition modules may re-export the domain transition path:\n{}",
+        offenders.join("\n")
+    );
+}
+
+#[test]
+fn wendao_domain_contracts_do_not_export_studio_search_manifest_dtos() {
+    let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let domain_contracts_root = workspace_root(manifest_dir.as_path())
+        .join("packages/rust/crates/xiuxian-wendao/src/search/contracts");
+    let mut offenders = Vec::new();
+
+    for symbol in STUDIO_SEARCH_MANIFEST_SYMBOLS {
+        collect_rust_source_occurrences(domain_contracts_root.as_path(), symbol, &mut offenders);
+    }
+
+    assert!(
+        offenders.is_empty(),
+        "Studio capability and search-manifest DTOs belong to xiuxian-wendao-studio contracts, not xiuxian-wendao search contracts:\n{}",
         offenders.join("\n")
     );
 }
@@ -166,7 +197,7 @@ fn cargo_tree<const N: usize>(workspace_root: &Path, args: [&str; N]) -> std::pr
 
 fn collect_domain_contract_imports(
     root: &Path,
-    allowed_reexport: &Path,
+    allowed_reexports: &[PathBuf],
     needle: &str,
     offenders: &mut Vec<String>,
 ) {
@@ -178,13 +209,16 @@ fn collect_domain_contract_imports(
             .unwrap_or_else(|error| panic!("failed to read entry in {}: {error}", root.display()));
         let path = entry.path();
         if path.is_dir() {
-            collect_domain_contract_imports(path.as_path(), allowed_reexport, needle, offenders);
+            collect_domain_contract_imports(path.as_path(), allowed_reexports, needle, offenders);
             continue;
         }
         if path.extension().and_then(|extension| extension.to_str()) != Some("rs") {
             continue;
         }
-        if path == allowed_reexport {
+        if allowed_reexports
+            .iter()
+            .any(|allowed| path.as_path() == allowed.as_path())
+        {
             continue;
         }
         let source = fs::read_to_string(path.as_path())

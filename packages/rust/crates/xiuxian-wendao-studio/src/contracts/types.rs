@@ -2,7 +2,7 @@
 
 use specta::TypeCollection;
 
-use super::{UiPluginArtifact, UiPluginLaunchSpec};
+use super::{UiCapabilities, UiPluginArtifact, UiPluginLaunchSpec};
 
 pub use xiuxian_wendao::search::contracts::{
     AnalysisEdge, AnalysisEdgeKind, AnalysisEvidence, AnalysisNode, AnalysisNodeKind, ApiError,
@@ -19,11 +19,8 @@ pub use xiuxian_wendao::search::contracts::{
     ReferenceSearchResponse, RetrievalChunk, RetrievalChunkSurface, SearchBacklinkItem,
     SearchCorpusIndexStatus, SearchHit, SearchIndexMaintenanceStatus, SearchIndexPhase,
     SearchIndexStatusResponse, SearchResponse, StudioNavigationTarget, SymbolSearchHit,
-    SymbolSearchResponse, Topology3dPayload, TopologyCluster, TopologyLink, TopologyNode,
-    UiCapabilities, UiCodeSearchContract, UiCodeSearchContractExample, UiCodeSearchRoutes,
-    UiConfig, UiProjectConfig, UiRepoDiscoveryContract, UiRepoDiscoverySurfaceContract,
-    UiRepoProjectConfig, UiSearchContract, UiSearchContractAlias, VfsCategory, VfsContentResponse,
-    VfsEntry, VfsScanEntry, VfsScanResult,
+    SymbolSearchResponse, Topology3dPayload, TopologyCluster, TopologyLink, TopologyNode, UiConfig,
+    VfsCategory, VfsContentResponse, VfsEntry, VfsScanEntry, VfsScanResult,
 };
 
 /// Build the plugin-only Studio Specta type collection.

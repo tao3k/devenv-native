@@ -12,6 +12,16 @@ mod plugin_artifact;
 pub use plugin_artifact::{UiPluginArtifact, UiPluginLaunchSpec, UiPluginTransportKind};
 
 #[cfg(feature = "local-runtime")]
+mod search_manifest;
+
+#[cfg(feature = "local-runtime")]
+pub use search_manifest::{
+    UiCapabilities, UiCodeSearchContract, UiCodeSearchContractExample, UiCodeSearchRoutes,
+    UiProjectConfig, UiRepoDiscoveryContract, UiRepoDiscoverySurfaceContract, UiRepoProjectConfig,
+    UiSearchContract, UiSearchContractAlias,
+};
+
+#[cfg(feature = "local-runtime")]
 mod types;
 
 #[cfg(feature = "local-runtime")]
@@ -30,9 +40,7 @@ pub use types::{
     ReferenceSearchResponse, RetrievalChunk, RetrievalChunkSurface, SearchBacklinkItem,
     SearchCorpusIndexStatus, SearchHit, SearchIndexMaintenanceStatus, SearchIndexPhase,
     SearchIndexStatusResponse, SearchResponse, StudioNavigationTarget, SymbolSearchHit,
-    SymbolSearchResponse, Topology3dPayload, TopologyCluster, TopologyLink, TopologyNode,
-    UiCapabilities, UiCodeSearchContract, UiCodeSearchContractExample, UiCodeSearchRoutes,
-    UiConfig, UiProjectConfig, UiRepoDiscoveryContract, UiRepoDiscoverySurfaceContract,
-    UiRepoProjectConfig, UiSearchContract, UiSearchContractAlias, VfsCategory, VfsContentResponse,
-    VfsEntry, VfsScanEntry, VfsScanResult, studio_frontend_type_collection, studio_type_collection,
+    SymbolSearchResponse, Topology3dPayload, TopologyCluster, TopologyLink, TopologyNode, UiConfig,
+    VfsCategory, VfsContentResponse, VfsEntry, VfsScanEntry, VfsScanResult,
+    studio_frontend_type_collection, studio_type_collection,
 };

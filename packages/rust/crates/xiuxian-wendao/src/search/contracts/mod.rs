@@ -33,11 +33,7 @@ pub use code_ast::{
     CodeAstAnalysisResponse, CodeAstEdge, CodeAstEdgeKind, CodeAstNode, CodeAstNodeKind,
     CodeAstProjection, CodeAstProjectionKind, CodeAstRetrievalAtom, CodeAstRetrievalAtomScope,
 };
-pub use config::{
-    UiCapabilities, UiCodeSearchContract, UiCodeSearchContractExample, UiCodeSearchRoutes,
-    UiConfig, UiProjectConfig, UiRepoDiscoveryContract, UiRepoDiscoverySurfaceContract,
-    UiRepoProjectConfig, UiSearchContract, UiSearchContractAlias,
-};
+pub use config::{UiConfig, UiProjectConfig, UiRepoProjectConfig};
 pub use definitions::{
     AstSearchHit, AstSearchResponse, DefinitionResolveResponse, DefinitionSearchHit,
     ObservationHint, ReferenceSearchHit, ReferenceSearchResponse,
