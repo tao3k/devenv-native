@@ -34,7 +34,6 @@ runs:
     # - uses: DeterminateSystems/magic-nix-cache-action@main
     - name: Setup cachix
       uses: cachix/cachix-action@master
-      continue-on-error: true
       with:
         name: tao3k
         authToken:

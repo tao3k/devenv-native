@@ -35,18 +35,6 @@ def test_common_setup_exports_non_secret_mimo_availability_flag() -> None:
     assert "MIMO_API_KEY_AVAILABLE=false" in action
 
 
-def test_common_setup_treats_cachix_as_non_blocking_cache() -> None:
-    action = COMMON_SETUP.read_text(encoding="utf-8")
-    setup_step = action.split("    - name: Setup cachix", maxsplit=1)[1].split(
-        "\n    - name:",
-        maxsplit=1,
-    )[0]
-
-    assert "uses: cachix/cachix-action@master" in setup_step
-    assert "continue-on-error: true" in setup_step
-    assert "authToken:" in setup_step
-
-
 def test_valkey_live_skips_when_mimo_secret_is_unavailable() -> None:
     workflow = VALKEY_LIVE.read_text(encoding="utf-8")
 
