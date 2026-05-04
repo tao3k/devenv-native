@@ -2,7 +2,7 @@
 
 use specta::TypeCollection;
 
-use super::{UiCapabilities, UiPluginArtifact, UiPluginLaunchSpec};
+use super::{UiCapabilities, UiConfig, UiPluginArtifact, UiPluginLaunchSpec};
 
 pub use xiuxian_wendao::search::contracts::{
     AnalysisEdge, AnalysisEdgeKind, AnalysisEvidence, AnalysisNode, AnalysisNodeKind, ApiError,
@@ -19,7 +19,7 @@ pub use xiuxian_wendao::search::contracts::{
     ReferenceSearchResponse, RetrievalChunk, RetrievalChunkSurface, SearchBacklinkItem,
     SearchCorpusIndexStatus, SearchHit, SearchIndexMaintenanceStatus, SearchIndexPhase,
     SearchIndexStatusResponse, SearchResponse, StudioNavigationTarget, SymbolSearchHit,
-    SymbolSearchResponse, Topology3dPayload, TopologyCluster, TopologyLink, TopologyNode, UiConfig,
+    SymbolSearchResponse, Topology3dPayload, TopologyCluster, TopologyLink, TopologyNode,
     VfsCategory, VfsContentResponse, VfsEntry, VfsScanEntry, VfsScanResult,
 };
 

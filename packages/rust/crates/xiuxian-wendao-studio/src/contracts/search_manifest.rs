@@ -5,6 +5,16 @@ use specta::Type;
 
 pub use xiuxian_wendao::search::contracts::{UiProjectConfig, UiRepoProjectConfig};
 
+/// Global UI configuration for Studio.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct UiConfig {
+    /// Local project roots to scan.
+    pub projects: Vec<UiProjectConfig>,
+    /// External repository projects.
+    pub repo_projects: Vec<UiRepoProjectConfig>,
+}
+
 /// Gateway-reported studio capabilities.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type, Default)]
 #[serde(rename_all = "camelCase")]

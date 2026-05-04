@@ -28,9 +28,9 @@ Tonic, Arrow Flight, DuckDB, DataFusion, notify, `xiuxian-db-store`, and
 `xiuxian-wendao-core`. Studio owns the frontend Specta type collection,
 capability/search-manifest DTOs, and plugin artifact inspection DTOs. Plugin
 artifact DTO conversion is compiled only with `local-runtime` because it
-depends on runtime plugin payload records. The remaining DTO definitions still
-depend on the full local runtime through the domain transition re-export and
-remain the next convergence target.
+depends on runtime plugin payload records. Domain project configuration records
+remain in `xiuxian-wendao` because they are still search-runtime inputs; Studio
+re-exports them through the local-runtime contract boundary.
 
 Runtime concerns are layered behind explicit features:
 

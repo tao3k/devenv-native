@@ -1,16 +1,6 @@
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
-/// Global UI configuration for Studio.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type, Default)]
-#[serde(rename_all = "camelCase")]
-pub struct UiConfig {
-    /// Local project roots to scan.
-    pub projects: Vec<UiProjectConfig>,
-    /// External repository projects.
-    pub repo_projects: Vec<UiRepoProjectConfig>,
-}
-
 /// Configuration for a local project root.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]

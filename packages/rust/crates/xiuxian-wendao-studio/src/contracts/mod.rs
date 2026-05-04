@@ -17,8 +17,8 @@ mod search_manifest;
 #[cfg(feature = "local-runtime")]
 pub use search_manifest::{
     UiCapabilities, UiCodeSearchContract, UiCodeSearchContractExample, UiCodeSearchRoutes,
-    UiProjectConfig, UiRepoDiscoveryContract, UiRepoDiscoverySurfaceContract, UiRepoProjectConfig,
-    UiSearchContract, UiSearchContractAlias,
+    UiConfig, UiProjectConfig, UiRepoDiscoveryContract, UiRepoDiscoverySurfaceContract,
+    UiRepoProjectConfig, UiSearchContract, UiSearchContractAlias,
 };
 
 #[cfg(feature = "local-runtime")]
@@ -40,7 +40,7 @@ pub use types::{
     ReferenceSearchResponse, RetrievalChunk, RetrievalChunkSurface, SearchBacklinkItem,
     SearchCorpusIndexStatus, SearchHit, SearchIndexMaintenanceStatus, SearchIndexPhase,
     SearchIndexStatusResponse, SearchResponse, StudioNavigationTarget, SymbolSearchHit,
-    SymbolSearchResponse, Topology3dPayload, TopologyCluster, TopologyLink, TopologyNode, UiConfig,
+    SymbolSearchResponse, Topology3dPayload, TopologyCluster, TopologyLink, TopologyNode,
     VfsCategory, VfsContentResponse, VfsEntry, VfsScanEntry, VfsScanResult,
     studio_frontend_type_collection, studio_type_collection,
 };

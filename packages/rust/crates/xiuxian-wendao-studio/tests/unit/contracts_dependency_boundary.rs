@@ -27,6 +27,7 @@ const STUDIO_PLUGIN_ARTIFACT_SYMBOLS: &[&str] = &[
     "UiPluginTransportKind",
 ];
 const STUDIO_SEARCH_MANIFEST_SYMBOLS: &[&str] = &[
+    "UiConfig",
     "UiCapabilities",
     "UiSearchContract",
     "UiCodeSearchContract",
