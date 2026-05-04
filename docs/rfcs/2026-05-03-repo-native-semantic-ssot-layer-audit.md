@@ -114,6 +114,28 @@ The third-round code review strengthens the implementation feasibility claim:
    aligned with the read-model direction, but does not itself define semantic
    SSOT authority.
 
+### 2.6 Julia Compute Augmentation Evidence
+
+The fourth-round correction is that DuckDB is not the only feasible
+augmentation lane. The existing code already has Julia compute surfaces that
+fit the semantic SSOT direction:
+
+1. Rust memory projection rows are explicitly read-only host-compute inputs.
+2. `xiuxian-wendao-julia` defines staged memory compute profiles for episodic
+   recall, memory gate scoring, memory plan tuning, and memory calibration.
+3. The episodic-recall downcall composes Rust projection staging with Julia
+   Arrow Flight transport and decoded score rows.
+4. The graph-structural plugin surface owns Julia-specific semantic projection
+   DTOs, route names, request and response helpers, and Arrow batch validation.
+5. The existing package boundary states that `WendaoSearch.jl` augments Wendao
+   graph search and is not a replacement for Wendao or the main graph store.
+
+Design implication: Rust should own semantic authority, validators, and exact
+provenance. DuckDB should own relational read-model queries. Julia should own
+advisory compute evidence for graph diffusion, structural rerank, solver
+experiments, calibration, and other numerically dense surfaces where Rust would
+be slower to evolve.
+
 ## 3. Artisan Audit Verdict
 
 ### 3.1 Pass Conditions
@@ -124,7 +146,8 @@ The RFC is recommended for approval review if these conditions hold:
 2. DuckDB remains a read model, not authority
 3. SQL guards remain optional validation evidence until proven locally
 4. derived confidence remains advisory and does not mutate canonical status
-5. physical initialization of `semantic/` waits for Sovereign approval
+5. Julia compute outputs remain advisory evidence rows, not canonical truth
+6. physical initialization of `semantic/` waits for Sovereign approval
 
 ### 3.2 Violations and Risks
 
@@ -148,6 +171,11 @@ The RFC is recommended for approval review if these conditions hold:
    implementation deregisters a table before re-registering it. The semantic
    read-model pilot should avoid exposing readers to a partially replaced
    relation.
+9. **Julia authority creep**: Julia is the right place for numerical and graph
+   compute, but its outputs must not mutate canonical semantic objects without
+   Rust-side validation and repository governance.
+10. **Schema drift**: every Julia compute profile must keep request and response
+    schema versions explicit so advisory evidence can be replayed and audited.
 
 ### 3.3 Refinement Path
 
@@ -159,9 +187,12 @@ The RFC is recommended for approval review if these conditions hold:
    and compare it against human review outcomes before using it in guards.
 4. **SQL-guard pilot**: let one invariant emit SQL-backed validation evidence
    while retaining the repository `check_command` as the required gate.
-5. **Qianji integration**: let one guard consume a bounded semantic-scope
+5. **Julia compute pilot**: export one bounded semantic subgraph or
+   derived-confidence input batch to a staged Julia compute profile and import
+   advisory evidence rows through versioned Arrow contracts.
+6. **Qianji integration**: let one guard consume a bounded semantic-scope
    bundle after validator and read-model contracts are stable.
-6. **Hot-path clone audit**: consider replacing repeated Q-table episode-id
+7. **Hot-path clone audit**: consider replacing repeated Q-table episode-id
    clones with shared identifiers such as `Arc<str>` only after profiling
    confirms the clone pressure is material.
 
@@ -176,13 +207,15 @@ The second-round additions are directionally useful but require downgrade:
 5. watcher or latency claims must wait for implementation evidence
 6. physical DuckDB support raises feasibility, but does not waive the approval
    gate for `semantic/`, validators, or runtime hooks
+7. Julia compute support raises feasibility for the weak Rust compute surfaces,
+   but it must stay behind explicit Arrow schemas and advisory evidence rules
 
 ## 5. Final Verdict: Pass Recommendation With Conditions
 
 The RFC is ready for Sovereign approval review after the second-round
 calibration above. It is not yet approved for physical `semantic/`
-initialization, DuckDB read-model implementation, SQL-guard enforcement, or
-Qianji runtime hook integration.
+initialization, DuckDB read-model implementation, Julia compute integration,
+SQL-guard enforcement, or Qianji runtime hook integration.
 
 ## 6. Formal Research References
 

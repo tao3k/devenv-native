@@ -233,16 +233,32 @@ relations:
     target: component.qianji.execution-plane
 ```
 
-## 7. DuckDB Read-Model Pilot
+## 7. Read-Model and Compute Pilots
 
-DuckDB can become a high-performance read model for semantic objects only after
-the repository-native object schema is accepted. It must not become the write
+DuckDB can become a high-performance read model for semantic objects, and Julia
+can become a high-performance compute augmentation lane, only after the
+repository-native object schema is accepted. Neither should become the write
 authority for semantic truth.
 
-### 7.2 Code-Backed Feasibility
+### 7.2 Responsibility Split
 
-The current codebase makes this pilot materially more feasible than a purely
-speculative design:
+The physical split should be:
+
+1. Rust owns canonical artifacts, schema validation, provenance, status
+   transitions, repository validation commands, and final authority decisions.
+2. DuckDB owns bounded relational read models and SQL-backed validation
+   evidence over accepted semantic projections.
+3. Julia owns advisory compute over compact Arrow-shaped projections when the
+   computation benefits from graph, numerical, solver, or calibration
+   libraries.
+4. Wendao owns query/projection orchestration and evidence disclosure.
+5. Qianji consumes bounded semantic scope and validation evidence, but does not
+   own ontology truth.
+
+### 7.3 DuckDB Code-Backed Feasibility
+
+The current DuckDB codebase makes the read-model pilot materially more feasible
+than a purely speculative design:
 
 1. `DuckDbLocalRelationEngine` already supports two request-scoped relation
    registration strategies: virtual Arrow views and materialized Arrow
@@ -251,15 +267,31 @@ speculative design:
    `prefer_virtual_arrow` and `materialize_threshold_rows`.
 3. `query_batches` already prepares bounded DuckDB SQL and returns Arrow record
    batches, which is sufficient for a SQL-backed validation evidence pilot.
-4. The memory engine already contains a Q-table smoothing loop and read-only
-   projection rows, which supports the broader pattern of separating durable
-   state from query/read surfaces.
 
 This does not make SQL guards authoritative. It means the first pilot can reuse
 existing relation-engine capabilities instead of introducing a new database
 subsystem.
 
-### 7.3 Pilot Contract
+### 7.4 Julia Code-Backed Feasibility
+
+The current Julia-facing codebase makes compute augmentation feasible without
+making Julia a second SSOT:
+
+1. The memory engine already exports read-only projection rows for host compute
+   lanes, including current `q_value` and recall counters.
+2. `xiuxian-wendao-julia` already defines staged memory compute profiles for
+   episodic recall, memory gate scoring, plan tuning, and calibration.
+3. The Julia memory downcall path already composes Rust projection staging with
+   Arrow Flight request/response contracts.
+4. The graph-structural plugin surface already owns Julia-specific semantic
+   projection DTOs, route names, request-row helpers, response-row helpers, and
+   Arrow batch validation for mixed-graph structural routes.
+
+This keeps Rust responsible for ownership, schema validation, and provenance
+while allowing Julia to provide advisory numerical, solver, graph-diffusion,
+reranking, and calibration evidence through bounded contracts.
+
+### 7.5 Pilot Contract
 
 1. materializing accepted semantic objects into a provisional
    `semantic_objects` table
@@ -270,6 +302,10 @@ subsystem.
 4. running bounded SQL queries that produce validation evidence for invariants
 5. refreshing the read model through a transaction or snapshot-swap discipline
    so readers never observe a partially refreshed graph
+6. exporting bounded semantic subgraphs or derived read-model rows to Julia
+   compute lanes only through versioned Arrow contracts
+7. accepting Julia outputs only as advisory evidence rows, never as canonical
+   object state
 
 The first pilot should also observe these constraints:
 
@@ -281,6 +317,8 @@ The first pilot should also observe these constraints:
    concurrent query windows
 4. keep repository `check_command` validation as the required gate while SQL
    guards remain evidence-producing read-model queries
+5. keep Julia compute outputs subordinate to Rust-owned schema validation,
+   provenance, and Sovereign approval
 
 ## 8. Proposed Relation Model
 

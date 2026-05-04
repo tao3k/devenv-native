@@ -894,9 +894,9 @@ statement surface:
 5. the slice stays bounded to performance evidence only: it does not widen
    FlightSQL planning, discovery ownership, or the published Parquet surface
 
-### 10.20 Wendao Semantic SSOT Read-Model Lane
+### 10.20 Wendao Semantic SSOT Read-Model and Compute Lane
 
-The next bounded pilot is the **Semantic SSOT Read-Model Lane**:
+The next bounded pilot is the **Semantic SSOT Read-Model and Compute Lane**:
 
 1. DuckDB acts as a high-performance read model for the repo-native SSOT layer
    defined in `2026-05-03-repo-native-semantic-ssot-layer-rfc.md`; it does not
@@ -914,6 +914,14 @@ The next bounded pilot is the **Semantic SSOT Read-Model Lane**:
    feasibility anchor through virtual Arrow registration, materialized appender
    registration, and bounded `query_batches` execution. The pilot should reuse
    that relation-engine seam rather than introducing a separate database owner.
+7. Julia acts as an optional compute augmentation lane for graph-structural
+   rerank, calibration, and numerically dense advisory evidence. It consumes
+   bounded Arrow-shaped projections and returns versioned evidence rows; it
+   does not own semantic object state.
+8. The existing `xiuxian-wendao-julia` graph-structural and memory-compute
+   contracts should be reused before adding new Rust-local compute contracts
+   for surfaces where Rust is mainly acting as orchestration and validation
+   glue.
 
 ## 11. Telemetry and Explain
 
