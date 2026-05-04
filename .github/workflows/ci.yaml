@@ -371,7 +371,6 @@ jobs:
           export JULIA_PKG_PRECOMPILE_AUTO=0
           export WENDAO_CODE_PARSER_PACKAGE_DIR="${RUNNER_TEMP}/WendaoCodeParser.jl"
           export WENDAO_CODE_PARSER_JULIA_PROJECT="${WENDAO_CODE_PARSER_PACKAGE_DIR}"
-          export WENDAO_CODE_PARSER_PACKAGE_DIR_FILE="${RUNNER_TEMP}/wendaocodeparser-package-dir.txt"
           git clone --depth 1 --branch main https://github.com/tao3k/WendaoCodeParser.jl.git "${WENDAO_CODE_PARSER_PACKAGE_DIR}"
           git -C "${WENDAO_CODE_PARSER_PACKAGE_DIR}" rev-parse HEAD
           julia --project="${WENDAO_CODE_PARSER_JULIA_PROJECT}" -e '
@@ -380,10 +379,7 @@ jobs:
             Pkg.instantiate()
             Pkg.precompile()
             using WendaoCodeParser
-            package_dir = dirname(dirname(pathof(WendaoCodeParser)))
-            write(ENV["WENDAO_CODE_PARSER_PACKAGE_DIR_FILE"], package_dir)
           '
-          WENDAO_CODE_PARSER_PACKAGE_DIR="$(cat "${WENDAO_CODE_PARSER_PACKAGE_DIR_FILE}")"
           test -f "${WENDAO_CODE_PARSER_PACKAGE_DIR}/scripts/run_service.jl"
           test -f "${WENDAO_CODE_PARSER_PACKAGE_DIR}/config/live/parser_summary.toml"
           {
@@ -423,8 +419,6 @@ jobs:
           julia "--project=${WENDAO_CODE_PARSER_JULIA_PROJECT}" \
             "${WENDAO_CODE_PARSER_SCRIPT}" \
             "--config" "${WENDAO_CODE_PARSER_CONFIG}" \
-            "--host" "127.0.0.1" \
-            "--port" "${WENDAO_CODE_PARSER_PORT}" \
             > .run/logs/wendaocodeparser-parser-summary.stdout.log \
             2> .run/logs/wendaocodeparser-parser-summary.stderr.log &
           service_pid=$!
@@ -450,40 +444,22 @@ jobs:
           set -euo pipefail
           export WENDAOSEARCH_PACKAGE_DIR="${RUNNER_TEMP}/WendaoSearch.jl"
           export WENDAOSEARCH_JULIA_PROJECT="${WENDAOSEARCH_PACKAGE_DIR}"
-          export WENDAOSEARCH_PACKAGE_DIR_FILE="${RUNNER_TEMP}/wendaosearch-package-dir.txt"
           git clone --depth 1 --branch main https://github.com/tao3k/WendaoSearch.jl.git "${WENDAOSEARCH_PACKAGE_DIR}"
           git -C "${WENDAOSEARCH_PACKAGE_DIR}" rev-parse HEAD
           julia --project="${WENDAOSEARCH_JULIA_PROJECT}" -e '
             using Pkg
-            using TOML
             Pkg.activate(ENV["WENDAOSEARCH_JULIA_PROJECT"])
-            project = TOML.parsefile(joinpath(ENV["WENDAOSEARCH_JULIA_PROJECT"], "Project.toml"))
-            deps = get(project, "deps", Dict{String,Any}())
-            haskey(deps, "HiGHS") ||
-              error("WendaoSearch main Project.toml must declare HiGHS for solver_demo runtime")
-            function ensure_registry(name::String; spec=nothing)
-              registries = Pkg.Registry.reachable_registries()
-              any(registry -> registry.name == name, registries) && return
-              if isnothing(spec)
-                Pkg.Registry.add(name)
-              else
-                Pkg.Registry.add(spec)
-              end
-            end
-
-            ensure_registry("General")
             Pkg.instantiate()
             Pkg.precompile()
             using WendaoSearch
-            package_dir = dirname(dirname(pathof(WendaoSearch)))
-            write(ENV["WENDAOSEARCH_PACKAGE_DIR_FILE"], package_dir)
           '
-          WENDAOSEARCH_PACKAGE_DIR="$(cat "${WENDAOSEARCH_PACKAGE_DIR_FILE}")"
           test -f "${WENDAOSEARCH_PACKAGE_DIR}/scripts/run_search_service.jl"
+          test -f "${WENDAOSEARCH_PACKAGE_DIR}/config/live/solver_demo.toml"
           {
             echo "WENDAO_SEARCH_USE_ACTIVE_PROJECT=1"
             echo "WENDAOSEARCH_JULIA_PROJECT=${WENDAOSEARCH_JULIA_PROJECT}"
             echo "WENDAOSEARCH_PACKAGE_DIR=${WENDAOSEARCH_PACKAGE_DIR}"
+            echo "WENDAOSEARCH_SOLVER_DEMO_CONFIG=${WENDAOSEARCH_PACKAGE_DIR}/config/live/solver_demo.toml"
           } >> "${GITHUB_ENV}"
 
       - name: Start WendaoSearch solver-demo service for Rust tests
@@ -492,9 +468,10 @@ jobs:
           source scripts/channel/process-runtime.sh
           export WENDAOSEARCH_SERVICE_NAME=wendaosearch-solver-demo
           export WENDAOSEARCH_RUNTIME_DIR=.run/wendaosearch
-          export WENDAOSEARCH_PORT=41082
+          export WENDAOSEARCH_PORT=41080
           : "${WENDAOSEARCH_JULIA_PROJECT:?missing WendaoSearch Julia project}"
           : "${WENDAOSEARCH_PACKAGE_DIR:?missing WendaoSearch package dir}"
+          : "${WENDAOSEARCH_SOLVER_DEMO_CONFIG:?missing WendaoSearch solver-demo config}"
           export WENDAOSEARCH_SCRIPT="${WENDAOSEARCH_PACKAGE_DIR}/scripts/run_search_service.jl"
           export WENDAOSEARCH_PIDFILE="${WENDAOSEARCH_RUNTIME_DIR}/${WENDAOSEARCH_SERVICE_NAME}.pid"
           export WENDAO_SEARCH_USE_ACTIVE_PROJECT=1
@@ -511,10 +488,7 @@ jobs:
             "${WENDAOSEARCH_SCRIPT}"
           julia "--project=${WENDAOSEARCH_JULIA_PROJECT}" \
             "${WENDAOSEARCH_SCRIPT}" \
-            "--route-names" "capability_manifest,structural_rerank,constraint_filter" \
-            "--mode" "solver_demo" \
-            "--host" "127.0.0.1" \
-            "--port" "${WENDAOSEARCH_PORT}" \
+            "--config" "${WENDAOSEARCH_SOLVER_DEMO_CONFIG}" \
             > .run/logs/wendaosearch-solver-demo.stdout.log \
             2> .run/logs/wendaosearch-solver-demo.stderr.log &
           service_pid=$!

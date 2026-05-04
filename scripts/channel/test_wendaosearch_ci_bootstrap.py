@@ -48,14 +48,26 @@ def test_ci_bootstraps_wendaosearch_solver_demo_with_julia_pkg() -> None:
         in workflow
     )
     assert 'git -C "${WENDAOSEARCH_PACKAGE_DIR}" rev-parse HEAD' in workflow
-    assert "WendaoSearch main Project.toml must declare HiGHS" in workflow
+    assert "WendaoSearch main Project.toml must declare HiGHS" not in workflow
+    assert "ensure_registry" not in workflow
     assert 'WENDAOSEARCH_JULIA_PROJECT="${WENDAOSEARCH_PACKAGE_DIR}"' in workflow
     assert "WendaoArrow" not in workflow
     assert "Pkg.instantiate()" in workflow
     assert "WENDAOSEARCH_PACKAGE_DIR" in workflow
     assert "wendaosearch-solver-demo" in workflow
     assert "run_search_service.jl" in workflow
-    assert "WENDAOSEARCH_SOLVER_DEMO_BASE_URL=http://127.0.0.1:" in workflow
+    assert "config/live/solver_demo.toml" in workflow
+    assert "WENDAOSEARCH_SOLVER_DEMO_CONFIG" in workflow
+    assert (
+        '"--route-names" "capability_manifest,structural_rerank,constraint_filter"'
+        not in workflow
+    )
+    assert '"--mode" "solver_demo"' not in workflow
+    assert '"--config" "${WENDAOSEARCH_SOLVER_DEMO_CONFIG}"' in workflow
+    assert (
+        "WENDAOSEARCH_SOLVER_DEMO_BASE_URL=http://127.0.0.1:${WENDAOSEARCH_PORT}"
+        in workflow
+    )
 
 
 def test_ci_no_longer_uses_workspace_julia_checkouts() -> None:
