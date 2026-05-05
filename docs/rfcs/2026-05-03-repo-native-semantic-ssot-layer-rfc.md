@@ -130,11 +130,16 @@ As of 2026-05-05, the first physical slice is implemented:
     an operator-facing TOML template. The command is authoring support only:
     Qianji still reads semantic guard-route context at runtime and does not
     own canonical semantic artifacts.
+24. `wendao-client lint semantic --read-model-summary` now renders an
+    advisory row/table summary for the provisional semantic read model,
+    including `semantic_objects`, `semantic_relations`, and
+    `semantic_projection_state` counts. The summary is read-only and keeps
+    repo-native semantic artifacts as the authority source.
 
 The full RFC is not complete. Remaining work includes wider rollout of
-semantic guard route-aware real workflows and any future Julia or DuckDB-backed
-compute/read-model expansion. Those remain advisory or derived lanes; they do
-not change repo-native authority.
+semantic guard route-aware real workflows, DuckDB-backed materialized read
+model expansion, and future Julia compute expansion. Those remain advisory or
+derived lanes; they do not change repo-native authority.
 
 ## 2. Alignment
 
@@ -422,6 +427,12 @@ The first pilot should also observe these constraints:
    guards remain evidence-producing read-model queries
 5. keep Julia compute outputs subordinate to Rust-owned schema validation,
    provenance, and Sovereign approval
+
+Current implementation evidence: `xiuxian-wendao-sql` already projects
+validated semantic repositories into `semantic_objects`, `semantic_relations`,
+and `semantic_projection_state`, and `wendao-client lint semantic
+--read-model-summary` exposes those row counts as advisory operator context.
+This is not yet a DuckDB materialization or Julia compute slice.
 
 ## 8. Proposed Relation Model
 

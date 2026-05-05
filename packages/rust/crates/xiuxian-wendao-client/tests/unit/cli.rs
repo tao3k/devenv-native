@@ -19,6 +19,7 @@ fn parses_semantic_lint_command() {
     };
     match command {
         LintCommand::Semantic(args) => {
+            assert!(!args.validation.read_model_summary);
             assert!(!args.validation.semantic_sql_guard);
             assert!(args.paths.is_empty());
         }
@@ -49,6 +50,21 @@ fn parses_semantic_lint_sql_guard_flag() {
     match command {
         LintCommand::Semantic(args) => {
             assert!(args.validation.semantic_sql_guard);
+            assert!(args.paths.is_empty());
+        }
+        LintCommand::Markdown(_) => panic!("expected semantic lint command"),
+    }
+}
+
+#[test]
+fn parses_semantic_lint_read_model_summary_flag() {
+    let cli = ClientCli::parse_from(["wendao", "lint", "semantic", "--read-model-summary"]);
+    let ClientCommand::Lint { command } = cli.command else {
+        panic!("expected lint command");
+    };
+    match command {
+        LintCommand::Semantic(args) => {
+            assert!(args.validation.read_model_summary);
             assert!(args.paths.is_empty());
         }
         LintCommand::Markdown(_) => panic!("expected semantic lint command"),

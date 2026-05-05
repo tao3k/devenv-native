@@ -19,9 +19,11 @@ verification:
   required:
     - direnv exec . cargo test -p xiuxian-wendao-parsers semantic -- --nocapture
     - direnv exec . cargo test -p xiuxian-wendao-client semantic -- --nocapture
+    - direnv exec . cargo test -p xiuxian-wendao-client read_model_summary -- --nocapture
     - direnv exec . cargo test -p xiuxian-wendao-server semantic_scope -- --nocapture
     - direnv exec . cargo test -p xiuxian-wendao-studio --features zhenfa-router --test semantic_scope_provider semantic_scope -- --nocapture
     - direnv exec . cargo test -p xiuxian-wendao-sql bounded_work_markdown -- --nocapture
+    - direnv exec . cargo test -p xiuxian-wendao-sql semantic_read_model -- --nocapture
     - direnv exec . cargo test -p xiuxian-qianji workdir_semantic -- --nocapture
     - direnv exec . cargo test -p xiuxian-qianji scheduler_preflight -- --nocapture
     - direnv exec . cargo test -p xiuxian-qianji router -- --nocapture
@@ -63,4 +65,7 @@ usable by ordinary workflow templates. The Qianji resource fixture
 now proves that stale semantic scope selects the review-required path through
 ordinary manifest compilation and scheduler branch labels. The Qianji template
 CLI now renders the same workflow shape with
-`qianji template --semantic-guard-route`.
+`qianji template --semantic-guard-route`. The client also exposes
+`wendao-client lint semantic --read-model-summary` so operators can inspect
+the advisory semantic read-model row counts without changing repo-native
+semantic authority.

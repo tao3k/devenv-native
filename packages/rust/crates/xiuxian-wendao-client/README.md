@@ -14,8 +14,8 @@ The currently landed commands are:
 
 ```text
 wendao-client lint markdown [PATH]...
-wendao-client lint semantic [--semantic-sql-guard] [--projection-refresh-plan] [--require-fresh-projections] [--refresh-projections] [--lifecycle-plan] [--apply-lifecycle-plan]
-wendao-client lint semantic [--semantic-sql-guard] [--projection-refresh-plan] [--require-fresh-projections] [--refresh-projections] [--lifecycle-plan] [--apply-lifecycle-plan] [PATH]...
+wendao-client lint semantic [--read-model-summary] [--semantic-sql-guard] [--projection-refresh-plan] [--require-fresh-projections] [--refresh-projections] [--lifecycle-plan] [--apply-lifecycle-plan]
+wendao-client lint semantic [--read-model-summary] [--semantic-sql-guard] [--projection-refresh-plan] [--require-fresh-projections] [--refresh-projections] [--lifecycle-plan] [--apply-lifecycle-plan] [PATH]...
 wendao-client semantic refresh-projections [--interval-secs SECONDS] [--max-runs RUNS] [--require-clean-worktree] [PATH]...
 wendao-client get toc [TARGET] [--ignore DIR]...
 wendao-client get page-index [TARGET] [--ignore DIR]...
@@ -117,6 +117,11 @@ Behavior:
     `wendao-semantic-refresh`, with managed pid/log state and
     `WENDAO_SEMANTIC_REFRESH_INTERVAL_SECS` /
     `WENDAO_SEMANTIC_REFRESH_MAX_RUNS` operator controls
+30. renders an advisory semantic read-model summary when
+    `lint semantic --read-model-summary` is passed, showing row counts for
+    `semantic_objects`, `semantic_relations`, and
+    `semantic_projection_state` while leaving repo-native semantic artifacts
+    authoritative
 
 Diagnostic rendering is split deliberately:
 

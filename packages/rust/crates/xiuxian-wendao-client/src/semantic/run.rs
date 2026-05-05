@@ -57,6 +57,7 @@ fn run_refresh_projections_worker_pass(
 ) -> Result<CommandOutcome> {
     let lint_args = SemanticLintArgs {
         validation: SemanticLintValidationArgs {
+            read_model_summary: false,
             semantic_sql_guard: false,
             lifecycle_plan: false,
             projection: SemanticLintProjectionValidationArgs {

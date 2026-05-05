@@ -46,6 +46,10 @@ pub struct SemanticLintArgs {
 /// Validation-only semantic lint options.
 #[derive(Args, Debug)]
 pub struct SemanticLintValidationArgs {
+    /// Render advisory semantic read-model row and table counts.
+    #[arg(long = "read-model-summary")]
+    pub read_model_summary: bool,
+
     /// Also run advisory semantic SQL guard evidence after schema validation succeeds.
     #[arg(long = "semantic-sql-guard")]
     pub semantic_sql_guard: bool,

@@ -79,6 +79,39 @@ fn semantic_lint_sql_guard_reports_stale_projection() -> Result<()> {
 }
 
 #[test]
+fn semantic_lint_renders_read_model_summary() -> Result<()> {
+    let temp = TempDir::new()?;
+    write_semantic_fixture(
+        &temp,
+        "decision.fixture",
+        "decision",
+        "Decision Fixture",
+        "active",
+    )?;
+
+    let (status, stdout) = run_semantic_lint_with_args(&temp, None, &["--read-model-summary"])?;
+
+    assert_eq!(status, Some(0), "{stdout}");
+    assert!(
+        stdout.contains("Read-model summary projected"),
+        "read-model status should be rendered: {stdout}"
+    );
+    assert!(
+        stdout.contains("semantic_objects 1 row(s)"),
+        "object row count should be rendered: {stdout}"
+    );
+    assert!(
+        stdout.contains("semantic_projection_state 1 row(s)"),
+        "projection-state row count should be rendered: {stdout}"
+    );
+    assert!(
+        stdout.contains("repo-native semantic artifacts remain authoritative"),
+        "authority boundary should be rendered: {stdout}"
+    );
+    Ok(())
+}
+
+#[test]
 fn semantic_lint_refreshes_projection_source_revision() -> Result<()> {
     let temp = TempDir::new()?;
     write_semantic_fixture(

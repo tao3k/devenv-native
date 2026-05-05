@@ -25,7 +25,9 @@ use xiuxian_wendao_parsers::{
 };
 use xiuxian_wendao_sql::DataFusionLocalRelationEngine;
 use xiuxian_wendao_sql::semantic_read_model::{
-    SemanticSqlGuardEvidence, run_semantic_sql_projection_freshness_guard_with_engine,
+    SEMANTIC_OBJECTS_TABLE_NAME, SEMANTIC_PROJECTION_STATE_TABLE_NAME,
+    SEMANTIC_RELATIONS_TABLE_NAME, SemanticReadModelRows, SemanticSqlGuardEvidence,
+    build_semantic_read_model_rows, run_semantic_sql_projection_freshness_guard_with_engine,
 };
 
 #[derive(serde::Serialize)]
@@ -40,6 +42,7 @@ struct SemanticLintRootReport {
     lifecycle_plan: Option<SemanticLifecyclePlanReport>,
     projection_refresh_plan: Option<SemanticProjectionRefreshPlanReport>,
     projection_policy: Option<SemanticProjectionFreshnessPolicyReport>,
+    read_model_summary: Option<SemanticReadModelSummaryReport>,
     sql_guard: Option<SemanticLintSqlGuardReport>,
 }
 
@@ -52,6 +55,7 @@ struct SemanticLintReport {
     refreshed_projection_count: usize,
     applied_lifecycle_count: usize,
     projection_refresh_plan_count: usize,
+    read_model_summary_count: usize,
     issue_count: usize,
     projection_policy_issue_count: usize,
     sql_guard_issue_count: usize,
@@ -67,6 +71,21 @@ struct SemanticLintSqlGuardReport {
     failing_row_count: usize,
     message: String,
     local_relation_engine: Option<String>,
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct SemanticReadModelSummaryReport {
+    status: String,
+    advisory: bool,
+    authority: String,
+    object_row_count: usize,
+    relation_row_count: usize,
+    projection_state_row_count: usize,
+    stale_projection_count: usize,
+    registered_table_count: usize,
+    registered_tables: Vec<String>,
+    message: String,
 }
 
 pub(crate) fn run_markdown_lint(
@@ -173,6 +192,10 @@ pub(crate) fn run_semantic_lint(
             .filter_map(|root| root.projection_refresh_plan.as_ref())
             .map(|plan| plan.refreshable_projection_count)
             .sum(),
+        read_model_summary_count: root_reports
+            .iter()
+            .filter(|root| root.read_model_summary.is_some())
+            .count(),
         issue_count: root_reports.iter().map(|root| root.issues.len()).sum(),
         projection_policy_issue_count: root_reports
             .iter()
@@ -221,6 +244,8 @@ fn semantic_lint_root_report(
     let projection_refresh_plan = semantic_projection_refresh_plan_for_lint(args, &repository);
     let projection_policy =
         semantic_projection_policy_for_lint(args, &repository, semantic_issue_count);
+    let read_model_summary =
+        semantic_read_model_summary_for_lint(args, &repository, semantic_issue_count)?;
     let sql_guard = semantic_sql_guard_for_lint(args, &repository, semantic_issue_count)?;
     Ok(SemanticLintRootReport {
         root: display_semantic_root(root, context_root),
@@ -233,6 +258,7 @@ fn semantic_lint_root_report(
         lifecycle_plan,
         projection_refresh_plan,
         projection_policy,
+        read_model_summary,
         sql_guard,
     })
 }
@@ -272,6 +298,17 @@ fn semantic_sql_guard_for_lint(
 ) -> Result<Option<SemanticLintSqlGuardReport>> {
     if args.validation.semantic_sql_guard && semantic_issue_count == 0 {
         return semantic_sql_guard_report(repository).map(Some);
+    }
+    Ok(None)
+}
+
+fn semantic_read_model_summary_for_lint(
+    args: &SemanticLintArgs,
+    repository: &xiuxian_wendao_parsers::semantic_ssot::SemanticRepository,
+    semantic_issue_count: usize,
+) -> Result<Option<SemanticReadModelSummaryReport>> {
+    if args.validation.read_model_summary && semantic_issue_count == 0 {
+        return semantic_read_model_summary_report(repository).map(Some);
     }
     Ok(None)
 }
@@ -429,6 +466,46 @@ fn semantic_sql_guard_report(
     Ok(semantic_sql_guard_report_from_evidence(&evidence))
 }
 
+fn semantic_read_model_summary_report(
+    repository: &xiuxian_wendao_parsers::semantic_ssot::SemanticRepository,
+) -> Result<SemanticReadModelSummaryReport> {
+    let rows = build_semantic_read_model_rows(repository)
+        .map_err(anyhow::Error::msg)
+        .context("failed to build advisory semantic read-model rows")?;
+    Ok(semantic_read_model_summary_report_from_rows(&rows))
+}
+
+fn semantic_read_model_summary_report_from_rows(
+    rows: &SemanticReadModelRows,
+) -> SemanticReadModelSummaryReport {
+    let registered_tables = semantic_read_model_table_names();
+    SemanticReadModelSummaryReport {
+        status: "projected".to_string(),
+        advisory: true,
+        authority: "repo_native_semantic_artifacts".to_string(),
+        object_row_count: rows.objects.len(),
+        relation_row_count: rows.relations.len(),
+        projection_state_row_count: rows.projection_state.len(),
+        stale_projection_count: rows
+            .projection_state
+            .iter()
+            .filter(|row| row.staleness == "stale")
+            .count(),
+        registered_table_count: registered_tables.len(),
+        registered_tables,
+        message: "semantic read-model rows are advisory; repo-native semantic artifacts remain authoritative"
+            .to_string(),
+    }
+}
+
+fn semantic_read_model_table_names() -> Vec<String> {
+    vec![
+        SEMANTIC_OBJECTS_TABLE_NAME.to_string(),
+        SEMANTIC_RELATIONS_TABLE_NAME.to_string(),
+        SEMANTIC_PROJECTION_STATE_TABLE_NAME.to_string(),
+    ]
+}
+
 fn semantic_sql_guard_report_from_evidence(
     evidence: &SemanticSqlGuardEvidence,
 ) -> SemanticLintSqlGuardReport {
@@ -545,6 +622,7 @@ fn render_semantic_text_report(report: &SemanticLintReport) -> String {
         render_semantic_lifecycle_plan_text(report, &mut rendered);
         render_semantic_projection_refresh_plan_text(report, &mut rendered);
         render_semantic_projection_policy_text(report, &mut rendered);
+        render_semantic_read_model_summary_text(report, &mut rendered);
         render_semantic_sql_guard_text(report, &mut rendered);
         return rendered;
     }
@@ -564,6 +642,7 @@ fn render_semantic_text_report(report: &SemanticLintReport) -> String {
     render_semantic_lifecycle_plan_text(report, &mut rendered);
     render_semantic_projection_refresh_plan_text(report, &mut rendered);
     render_semantic_projection_policy_text(report, &mut rendered);
+    render_semantic_read_model_summary_text(report, &mut rendered);
     for root in &report.roots {
         for issue in &root.issues {
             let path = issue.path.as_ref().map_or_else(
@@ -719,6 +798,38 @@ fn render_semantic_sql_guard_text(report: &SemanticLintReport, rendered: &mut St
         if !guard.message.is_empty() {
             rendered.push_str(": ");
             rendered.push_str(guard.message.as_str());
+        }
+        rendered.push('\n');
+    }
+}
+
+fn render_semantic_read_model_summary_text(report: &SemanticLintReport, rendered: &mut String) {
+    for root in &report.roots {
+        let Some(summary) = &root.read_model_summary else {
+            continue;
+        };
+        rendered.push_str("- ");
+        rendered.push_str(root.root.display().to_string().as_str());
+        rendered.push_str(": Read-model summary ");
+        rendered.push_str(summary.status.as_str());
+        rendered.push_str(" (");
+        rendered.push_str(SEMANTIC_OBJECTS_TABLE_NAME);
+        rendered.push(' ');
+        rendered.push_str(summary.object_row_count.to_string().as_str());
+        rendered.push_str(" row(s), ");
+        rendered.push_str(SEMANTIC_RELATIONS_TABLE_NAME);
+        rendered.push(' ');
+        rendered.push_str(summary.relation_row_count.to_string().as_str());
+        rendered.push_str(" row(s), ");
+        rendered.push_str(SEMANTIC_PROJECTION_STATE_TABLE_NAME);
+        rendered.push(' ');
+        rendered.push_str(summary.projection_state_row_count.to_string().as_str());
+        rendered.push_str(" row(s), ");
+        rendered.push_str(summary.stale_projection_count.to_string().as_str());
+        rendered.push_str(" stale projection row(s))");
+        if !summary.message.is_empty() {
+            rendered.push_str(": ");
+            rendered.push_str(summary.message.as_str());
         }
         rendered.push('\n');
     }

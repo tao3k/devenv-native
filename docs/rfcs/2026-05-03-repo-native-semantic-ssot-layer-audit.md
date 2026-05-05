@@ -93,10 +93,13 @@ inactive.
 The same shape is now exposed through
 `qianji template --semantic-guard-route`, giving workflow authors a reusable
 operator template while leaving semantic authority in repo-native artifacts.
+`wendao-client lint semantic --read-model-summary` now exposes the provisional
+semantic read-model row and table counts for operator review while keeping the
+projection advisory and read-only.
 
 The RFC is still not fully complete. Wider rollout of guard route-aware
-real workflows and future Julia or DuckDB-backed derived lanes remain outside
-the completed slice.
+real workflows, DuckDB-backed materialized read-model expansion, and future
+Julia compute lanes remain outside the completed slice.
 
 ## 2. Evidence Map
 
@@ -234,8 +237,10 @@ The RFC is recommended for approval review if these conditions hold:
 
 1. **Schema validator**: validate `id`, `kind`, `status`, `confidence`,
    `owners`, `provenance`, `verification`, and `relations`.
-2. **Read-model pilot**: materialize accepted objects and relations into
-   DuckDB with explicit source revision and projection revision metadata.
+2. **Read-model pilot**: expose and query accepted objects and relations with
+   explicit source revision and projection revision metadata. The
+   engine-neutral row contract and client summary are landed; DuckDB-backed
+   materialization remains the next derived expansion.
 3. **Derived-confidence pilot**: define one advisory `derived_confidence` view
    and compare it against human review outcomes before using it in guards.
 4. **SQL-guard pilot**: let one invariant emit SQL-backed validation evidence
@@ -298,6 +303,10 @@ require a clean startup worktree with `--require-clean-worktree`.
 `wendao-semantic-refresh` without adding another projection mutation path.
 Qianji now has a checked-in semantic guard route fixture plus integration
 coverage for `review_required` branch selection from stale semantic scope.
+`wendao-client lint semantic --read-model-summary` now renders the advisory
+read-model table counts so operators can inspect the projected
+`semantic_objects`, `semantic_relations`, and `semantic_projection_state`
+surface without making SQL the authority path.
 The template CLI now also renders that manifest shape through
 `qianji template --semantic-guard-route`.
 

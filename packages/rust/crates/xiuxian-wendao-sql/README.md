@@ -9,6 +9,8 @@ Current ownership in this crate:
 1. bounded-work markdown SQL discovery and row building
 2. a request-scoped DataFusion local relation engine for that bounded lane
 3. stable SQL payload rendering over `xiuxian-wendao-core` DTOs
+4. advisory repo-native semantic read-model rows for `semantic_objects`,
+   `semantic_relations`, and `semantic_projection_state`
 
 This crate does not own the full shared-query architecture. Broader shared
 query semantics, gateway adapters, and DuckDB-backed business behavior remain
