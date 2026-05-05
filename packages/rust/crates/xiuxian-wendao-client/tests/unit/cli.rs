@@ -48,6 +48,27 @@ fn parses_semantic_lint_sql_guard_flag() {
 }
 
 #[test]
+fn parses_semantic_lint_refresh_projections_flag() {
+    let cli = ClientCli::parse_from([
+        "wendao",
+        "lint",
+        "semantic",
+        "--refresh-projections",
+        "semantic",
+    ]);
+    let ClientCommand::Lint { command } = cli.command else {
+        panic!("expected lint command");
+    };
+    match command {
+        LintCommand::Semantic(args) => {
+            assert!(args.refresh_projections);
+            assert_eq!(args.paths, vec![PathBuf::from("semantic")]);
+        }
+        LintCommand::Markdown(_) => panic!("expected semantic lint command"),
+    }
+}
+
+#[test]
 fn parses_get_toc_command() {
     let cli = ClientCli::parse_from(["wendao", "get", "toc", "docs/guides"]);
     let ClientCommand::Get { command } = cli.command else {

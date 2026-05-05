@@ -33,6 +33,10 @@ pub struct SemanticLintArgs {
     #[arg(long = "semantic-sql-guard")]
     pub semantic_sql_guard: bool,
 
+    /// Refresh semantic projection source revisions before reporting lint results.
+    #[arg(long = "refresh-projections")]
+    pub refresh_projections: bool,
+
     /// Semantic artifact roots to inspect. When omitted, lint checks
     /// `$PRJ_ROOT/semantic` through the active client root.
     #[arg(value_name = "PATH")]

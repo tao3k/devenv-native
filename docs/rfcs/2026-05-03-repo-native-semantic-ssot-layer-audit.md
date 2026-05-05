@@ -44,9 +44,10 @@ The strongest refinements are:
 This audit began as advisory review. The implementation approval was later
 used to land the first physical slice: repo-native `semantic/` artifacts,
 parser validation, CLI linting, the Wendao semantic-scope route, Studio
-runtime serving, and Qianji advisory consumption.
+runtime serving, Qianji advisory consumption, and explicit projection metadata
+refresh through `wendao-client lint semantic --refresh-projections`.
 
-The RFC is still not fully complete. Projection refresh automation,
+The RFC is still not fully complete. Background projection refresh policy,
 candidate-state transition governance, broader Qianji workflow consumption,
 and future Julia or DuckDB-backed derived lanes remain outside the completed
 slice.

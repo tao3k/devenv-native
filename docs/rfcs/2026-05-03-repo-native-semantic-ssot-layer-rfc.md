@@ -57,12 +57,14 @@ As of 2026-05-05, the first physical slice is implemented:
    and returning Arrow rows plus full bundle metadata
 6. Qianji consumes semantic scope, change-intent, and SQL-guard evidence as
    advisory planning context without owning semantic truth
+7. projection source revisions can be refreshed explicitly with
+   `wendao-client lint semantic --refresh-projections`
 
-The full RFC is not complete. Remaining work includes automated projection
-refresh policy, lifecycle transition governance for candidate objects, broader
-workflow-level Qianji consumption, and any future Julia or DuckDB-backed
-compute/read-model expansion. Those remain advisory or derived lanes; they do
-not change repo-native authority.
+The full RFC is not complete. Remaining work includes background or
+policy-driven projection refresh, lifecycle transition governance for
+candidate objects, broader workflow-level Qianji consumption, and any future
+Julia or DuckDB-backed compute/read-model expansion. Those remain advisory or
+derived lanes; they do not change repo-native authority.
 
 ## 2. Alignment
 

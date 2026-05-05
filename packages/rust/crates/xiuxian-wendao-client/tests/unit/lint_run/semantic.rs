@@ -74,6 +74,45 @@ fn semantic_lint_sql_guard_reports_stale_projection() -> Result<()> {
     Ok(())
 }
 
+#[test]
+fn semantic_lint_refreshes_projection_source_revision() -> Result<()> {
+    let temp = TempDir::new()?;
+    write_semantic_fixture(
+        &temp,
+        "decision.fixture",
+        "decision",
+        "Decision Fixture",
+        "active",
+    )?;
+
+    let (status, stdout) =
+        run_semantic_lint_with_args(&temp, Some("semantic"), &["--refresh-projections"])?;
+
+    assert_eq!(status, Some(0));
+    assert!(
+        stdout.contains("Refreshed 1 semantic projection source revision(s)."),
+        "refresh count should be rendered: {stdout}"
+    );
+    let projection =
+        std::fs::read_to_string(temp.path().join("semantic/projections/llm-compression.md"))?;
+    assert!(
+        !projection.contains("source_revision: stale-fixture"),
+        "stale source revision should be replaced: {projection}"
+    );
+    assert!(
+        projection.contains("staleness: fresh"),
+        "staleness should be marked fresh: {projection}"
+    );
+    assert!(
+        projection.contains("projection_revision: test.v1"),
+        "projection revision should remain unchanged: {projection}"
+    );
+
+    let (status, stdout) = run_semantic_lint(&temp, Some("semantic"))?;
+    assert_eq!(status, Some(0), "{stdout}");
+    Ok(())
+}
+
 fn write_semantic_fixture(
     temp: &TempDir,
     id: &str,

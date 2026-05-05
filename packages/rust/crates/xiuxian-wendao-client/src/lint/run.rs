@@ -8,11 +8,12 @@ use super::policy::{
 use super::text_output::render_markdown_lint_text_report;
 use super::{MarkdownLintArgs, MarkdownLintFileReport, MarkdownLintReport, SemanticLintArgs};
 use crate::{ClientContext, CommandOutcome, OutputFormat};
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, bail};
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use xiuxian_wendao_parsers::{
-    SemanticValidationIssue, lint_markdown_syntax_with_path, load_semantic_repository,
+    SemanticProjectionStaleness, SemanticValidationIssue, lint_markdown_syntax_with_path,
+    load_semantic_repository, semantic_projection_source_revision, split_frontmatter_raw,
 };
 use xiuxian_wendao_sql::DataFusionLocalRelationEngine;
 use xiuxian_wendao_sql::semantic_read_model::{
@@ -25,6 +26,7 @@ struct SemanticLintRootReport {
     object_count: usize,
     projection_count: usize,
     change_intent_count: usize,
+    refreshed_projection_count: usize,
     issues: Vec<SemanticValidationIssue>,
     sql_guard: Option<SemanticLintSqlGuardReport>,
 }
@@ -35,6 +37,7 @@ struct SemanticLintReport {
     object_count: usize,
     projection_count: usize,
     change_intent_count: usize,
+    refreshed_projection_count: usize,
     issue_count: usize,
     sql_guard_issue_count: usize,
     roots: Vec<SemanticLintRootReport>,
@@ -133,6 +136,11 @@ pub(crate) fn run_semantic_lint(
     let root_reports = roots
         .iter()
         .map(|root| {
+            let refreshed_projection_count = if args.refresh_projections {
+                refresh_semantic_projection_sources(root)?
+            } else {
+                0
+            };
             let repository = load_semantic_repository(root);
             let semantic_issue_count = repository.report.issues.len();
             let sql_guard = if args.semantic_sql_guard && semantic_issue_count == 0 {
@@ -145,6 +153,7 @@ pub(crate) fn run_semantic_lint(
                 object_count: repository.objects.len(),
                 projection_count: repository.projections.len(),
                 change_intent_count: repository.change_intents.len(),
+                refreshed_projection_count,
                 issues: repository.report.issues,
                 sql_guard,
             })
@@ -157,6 +166,10 @@ pub(crate) fn run_semantic_lint(
         change_intent_count: root_reports
             .iter()
             .map(|root| root.change_intent_count)
+            .sum(),
+        refreshed_projection_count: root_reports
+            .iter()
+            .map(|root| root.refreshed_projection_count)
             .sum(),
         issue_count: root_reports.iter().map(|root| root.issues.len()).sum(),
         sql_guard_issue_count: root_reports
@@ -175,6 +188,116 @@ pub(crate) fn run_semantic_lint(
             CommandOutcome::failure(1)
         },
     )
+}
+
+fn refresh_semantic_projection_sources(root: &Path) -> Result<usize> {
+    let repository = load_semantic_repository(root);
+    ensure_projection_refreshable(&repository.report.issues).with_context(|| {
+        format!(
+            "cannot refresh semantic projections under `{}`",
+            root.display()
+        )
+    })?;
+
+    let mut refreshed_count = 0usize;
+    for projection in &repository.projections {
+        let Some(current_revision) = semantic_projection_source_revision(&repository, projection)
+        else {
+            continue;
+        };
+        if projection.source_revision.as_str() == current_revision.as_str()
+            && projection.staleness == SemanticProjectionStaleness::Fresh
+        {
+            continue;
+        }
+        let projection_path = root.join(&projection.source_path);
+        refresh_projection_file(projection_path.as_path(), current_revision.as_str())?;
+        refreshed_count += 1;
+    }
+    Ok(refreshed_count)
+}
+
+fn ensure_projection_refreshable(issues: &[SemanticValidationIssue]) -> Result<()> {
+    let blocking_issues = issues
+        .iter()
+        .filter(|issue| {
+            !issue
+                .message
+                .starts_with("semantic projection source revision is stale:")
+        })
+        .collect::<Vec<_>>();
+    if blocking_issues.is_empty() {
+        return Ok(());
+    }
+
+    let rendered = blocking_issues
+        .iter()
+        .map(|issue| match &issue.path {
+            Some(path) => format!("{}: {}", path.display(), issue.message),
+            None => issue.message.clone(),
+        })
+        .collect::<Vec<_>>()
+        .join("; ");
+    bail!("semantic repository has non-refreshable issue(s): {rendered}")
+}
+
+fn refresh_projection_file(path: &Path, current_revision: &str) -> Result<()> {
+    let content = std::fs::read_to_string(path)
+        .with_context(|| format!("failed to read semantic projection `{}`", path.display()))?;
+    let parts = split_frontmatter_raw(&content).with_context(|| {
+        format!(
+            "semantic projection `{}` is missing frontmatter",
+            path.display()
+        )
+    })?;
+    let mut frontmatter =
+        serde_yaml::from_str::<serde_yaml::Value>(parts.yaml).with_context(|| {
+            format!(
+                "failed to parse semantic projection frontmatter `{}`",
+                path.display()
+            )
+        })?;
+    update_projection_frontmatter(
+        &mut frontmatter,
+        current_revision,
+        &SemanticProjectionStaleness::Fresh,
+    )?;
+    let rendered = render_projection_document(&frontmatter, parts.body)?;
+    std::fs::write(path, rendered)
+        .with_context(|| format!("failed to write semantic projection `{}`", path.display()))?;
+    Ok(())
+}
+
+fn update_projection_frontmatter(
+    frontmatter: &mut serde_yaml::Value,
+    current_revision: &str,
+    staleness: &SemanticProjectionStaleness,
+) -> Result<()> {
+    let Some(mapping) = frontmatter.as_mapping_mut() else {
+        bail!("semantic projection frontmatter must be a YAML mapping");
+    };
+    mapping.insert(
+        serde_yaml::Value::String("source_revision".to_string()),
+        serde_yaml::Value::String(current_revision.to_string()),
+    );
+    mapping.insert(
+        serde_yaml::Value::String("staleness".to_string()),
+        serde_yaml::Value::String(semantic_projection_staleness_token(staleness).to_string()),
+    );
+    Ok(())
+}
+
+fn semantic_projection_staleness_token(staleness: &SemanticProjectionStaleness) -> &'static str {
+    match staleness {
+        SemanticProjectionStaleness::Fresh => "fresh",
+        SemanticProjectionStaleness::Stale => "stale",
+    }
+}
+
+fn render_projection_document(frontmatter: &serde_yaml::Value, body: &str) -> Result<String> {
+    let yaml = serde_yaml::to_string(frontmatter)
+        .context("failed to render semantic projection frontmatter")?;
+    Ok(format!("---\n{}---\n\n{}", yaml.trim_start(), body.trim()))
 }
 
 fn semantic_sql_guard_report(
@@ -303,6 +426,7 @@ fn render_semantic_text_report(report: &SemanticLintReport) -> String {
             report.projection_count,
             report.change_intent_count
         );
+        render_semantic_refresh_text(report, &mut rendered);
         render_semantic_sql_guard_text(report, &mut rendered);
         return rendered;
     }
@@ -316,6 +440,7 @@ fn render_semantic_text_report(report: &SemanticLintReport) -> String {
         report.projection_count,
         report.change_intent_count
     );
+    render_semantic_refresh_text(report, &mut rendered);
     for root in &report.roots {
         for issue in &root.issues {
             let path = issue.path.as_ref().map_or_else(
@@ -331,6 +456,15 @@ fn render_semantic_text_report(report: &SemanticLintReport) -> String {
     }
     render_semantic_sql_guard_text(report, &mut rendered);
     rendered
+}
+
+fn render_semantic_refresh_text(report: &SemanticLintReport, rendered: &mut String) {
+    if report.refreshed_projection_count == 0 {
+        return;
+    }
+    rendered.push_str("- Refreshed ");
+    rendered.push_str(report.refreshed_projection_count.to_string().as_str());
+    rendered.push_str(" semantic projection source revision(s).\n");
 }
 
 fn render_semantic_sql_guard_text(report: &SemanticLintReport, rendered: &mut String) {

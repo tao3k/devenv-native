@@ -22,6 +22,7 @@ clap = { workspace = true }
 schemars = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
+serde_yaml = { workspace = true }
 toml = { workspace = true }
 tokio = { workspace = true, features = ["rt"] }
 walkdir = { workspace = true }
