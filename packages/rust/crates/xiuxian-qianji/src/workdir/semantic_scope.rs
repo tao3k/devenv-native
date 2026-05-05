@@ -1,6 +1,7 @@
 use std::fmt::Write as _;
 
 use xiuxian_wendao_parsers::semantic_ssot::{
+    SEMANTIC_PROJECTION_POLICY_EVIDENCE_METADATA_KEY, SEMANTIC_SCOPE_BUNDLE_METADATA_KEY,
     SemanticObjectKind, SemanticProjectionStaleness, SemanticScopeBundle, SemanticStatus,
 };
 
@@ -228,7 +229,10 @@ pub fn trace_workdir_semantic_scope_json(
     })?;
     let sql_guard_evidence = semantic_sql_guard_summaries_from_metadata(&value)?;
     let projection_policy_evidence = semantic_projection_policy_summaries_from_metadata(&value)?;
-    let bundle_value = value.get("semanticScopeBundle").cloned().unwrap_or(value);
+    let bundle_value = value
+        .get(SEMANTIC_SCOPE_BUNDLE_METADATA_KEY)
+        .cloned()
+        .unwrap_or(value);
     let bundle = serde_json::from_value::<SemanticScopeBundle>(bundle_value).map_err(|error| {
         QianjiError::Topology(format!("failed to decode semantic-scope bundle: {error}"))
     })?;
@@ -392,7 +396,7 @@ fn semantic_projection_policy_summaries_from_metadata(
     value: &serde_json::Value,
 ) -> Result<Vec<WorkdirSemanticProjectionPolicySummary>, QianjiError> {
     let Some(evidence_value) = value
-        .get("semanticProjectionPolicyEvidence")
+        .get(SEMANTIC_PROJECTION_POLICY_EVIDENCE_METADATA_KEY)
         .or_else(|| value.get("semantic_projection_policy_evidence"))
     else {
         return Ok(Vec::new());

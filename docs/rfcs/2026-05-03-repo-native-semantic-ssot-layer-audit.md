@@ -53,7 +53,9 @@ closure-level projection freshness policy through
 `wendao-client lint semantic --require-fresh-projections`. Studio now also
 emits the same projection freshness policy evidence as
 `semanticProjectionPolicyEvidence` in semantic-scope Flight metadata for
-Qianji advisory consumption.
+Qianji advisory consumption. The policy report type, policy id, metadata key,
+and report construction now live in `xiuxian-wendao-parsers` so client lint and
+Studio runtime metadata share the same semantic contract.
 
 The RFC is still not fully complete. Background projection refresh, broader
 Qianji workflow consumption, and future Julia or DuckDB-backed derived lanes

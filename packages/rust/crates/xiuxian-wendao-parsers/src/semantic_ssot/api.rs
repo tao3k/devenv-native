@@ -2,7 +2,8 @@
 
 use super::types::{
     SemanticBundleProvenance, SemanticChangeIntent, SemanticConfidenceSource, SemanticObject,
-    SemanticObjectKind, SemanticProjection, SemanticProjectionStaleness, SemanticRelationEdge,
+    SemanticObjectKind, SemanticProjection, SemanticProjectionFreshnessPolicyEntry,
+    SemanticProjectionFreshnessPolicyReport, SemanticProjectionStaleness, SemanticRelationEdge,
     SemanticRelationKind, SemanticRepository, SemanticScopeBundle, SemanticScopeRequest,
     SemanticStatus, SemanticStatusTransition, SemanticValidationReport,
 };
@@ -12,6 +13,17 @@ use std::fmt;
 use std::fs;
 use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
+
+/// App metadata key carrying the full semantic-scope bundle.
+pub const SEMANTIC_SCOPE_BUNDLE_METADATA_KEY: &str = "semanticScopeBundle";
+
+/// App metadata key carrying semantic projection freshness policy evidence.
+pub const SEMANTIC_PROJECTION_POLICY_EVIDENCE_METADATA_KEY: &str =
+    "semanticProjectionPolicyEvidence";
+
+/// Stable semantic projection freshness policy identifier.
+pub const SEMANTIC_PROJECTION_FRESHNESS_POLICY_ID: &str =
+    "semantic_projection.required_refresh_targets";
 
 /// Error returned when parsing one semantic artifact fails.
 #[derive(Debug)]
@@ -138,6 +150,61 @@ pub fn semantic_projection_source_revision(
     semantic_projection_source_revision_from_map(projection, &object_by_id)
 }
 
+/// Build the shared projection freshness policy report for one semantic repository.
+#[must_use]
+pub fn semantic_projection_freshness_policy_report(
+    repository: &SemanticRepository,
+) -> SemanticProjectionFreshnessPolicyReport {
+    let required_projection_names = repository
+        .change_intents
+        .iter()
+        .filter(|intent| intent.status == SemanticStatus::Active)
+        .flat_map(|intent| intent.projections_to_refresh.iter().map(String::as_str))
+        .collect::<BTreeSet<_>>();
+    let mut projections = repository
+        .projections
+        .iter()
+        .filter(|projection| required_projection_names.contains(projection.projection.as_str()))
+        .filter_map(|projection| {
+            let current_source_revision =
+                semantic_projection_source_revision(repository, projection);
+            let reason = semantic_projection_policy_failure_reason(
+                projection.source_revision.as_str(),
+                &projection.staleness,
+                current_source_revision.as_deref(),
+            )?;
+            Some(SemanticProjectionFreshnessPolicyEntry {
+                projection: projection.projection.clone(),
+                source_revision: projection.source_revision.clone(),
+                current_source_revision,
+                staleness: semantic_projection_staleness_token(&projection.staleness).to_string(),
+                reason: reason.to_string(),
+                source_path: semantic_projection_policy_source_path(projection),
+            })
+        })
+        .collect::<Vec<_>>();
+    projections.sort_by(|left, right| left.projection.cmp(&right.projection));
+    let failing_projection_count = projections.len();
+    let (status, message) = if failing_projection_count == 0 {
+        (
+            "passed",
+            "all active change-intent projection refresh targets are fresh",
+        )
+    } else {
+        (
+            "review_required",
+            "active change-intent projection refresh target(s) are stale; run `wendao-client lint semantic --refresh-projections --require-fresh-projections`",
+        )
+    };
+    SemanticProjectionFreshnessPolicyReport {
+        policy_id: SEMANTIC_PROJECTION_FRESHNESS_POLICY_ID.to_string(),
+        status: status.to_string(),
+        failing_projection_count,
+        message: message.to_string(),
+        projections,
+    }
+}
+
 /// Build a deterministic semantic scope bundle from a loaded repository.
 #[must_use]
 pub fn semantic_scope_bundle(
@@ -171,6 +238,33 @@ pub fn semantic_scope_bundle(
         }),
         projection_staleness: active_projection.map(|projection| projection.staleness.clone()),
         unresolved_ids: unresolved.into_iter().collect(),
+    }
+}
+
+fn semantic_projection_policy_failure_reason(
+    source_revision: &str,
+    staleness: &SemanticProjectionStaleness,
+    current_source_revision: Option<&str>,
+) -> Option<&'static str> {
+    if *staleness != SemanticProjectionStaleness::Fresh {
+        return Some("stale");
+    }
+    match current_source_revision {
+        Some(current) if current == source_revision.trim() => None,
+        Some(_) => Some("source_revision_mismatch"),
+        None => Some("unresolved_source_revision"),
+    }
+}
+
+fn semantic_projection_policy_source_path(projection: &SemanticProjection) -> Option<String> {
+    (!projection.source_path.as_os_str().is_empty())
+        .then(|| projection.source_path.display().to_string())
+}
+
+fn semantic_projection_staleness_token(staleness: &SemanticProjectionStaleness) -> &'static str {
+    match staleness {
+        SemanticProjectionStaleness::Fresh => "fresh",
+        SemanticProjectionStaleness::Stale => "stale",
     }
 }
 

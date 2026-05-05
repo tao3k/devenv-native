@@ -73,10 +73,11 @@ As of 2026-05-05, the first physical slice is implemented:
     lifecycle transitions explicitly, including candidate promotion metadata
     writeback, before re-validating the repo-native semantic surface
 13. `wendao-client lint semantic --require-fresh-projections` enforces a
-    closure-level policy that active change-intent projection refresh targets
-    are fresh
+    parser-owned closure-level policy that active change-intent projection
+    refresh targets are fresh
 14. Studio emits the same projection freshness policy evidence through
-    semantic-scope Flight metadata as `semanticProjectionPolicyEvidence`
+    semantic-scope Flight metadata as `semanticProjectionPolicyEvidence`,
+    using the shared parser-owned policy report contract
 
 The full RFC is not complete. Remaining work includes background projection
 refresh, broader workflow-level Qianji consumption, and any future Julia or

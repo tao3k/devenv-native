@@ -235,6 +235,41 @@ pub struct SemanticProjection {
     pub source_path: PathBuf,
 }
 
+/// Projection freshness policy report shared by semantic SSOT producers and clients.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SemanticProjectionFreshnessPolicyReport {
+    /// Stable projection policy identifier.
+    pub policy_id: String,
+    /// Policy status token.
+    pub status: String,
+    /// Count of projections that require review.
+    pub failing_projection_count: usize,
+    /// Human-readable policy message.
+    pub message: String,
+    /// Per-projection policy findings.
+    pub projections: Vec<SemanticProjectionFreshnessPolicyEntry>,
+}
+
+/// Per-projection finding for the semantic projection freshness policy.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SemanticProjectionFreshnessPolicyEntry {
+    /// Projection name.
+    pub projection: String,
+    /// Source revision declared by the projection artifact.
+    pub source_revision: String,
+    /// Source revision computed from current source objects, when resolvable.
+    pub current_source_revision: Option<String>,
+    /// Projection staleness token.
+    pub staleness: String,
+    /// Policy failure reason token.
+    pub reason: String,
+    /// Projection source path relative to the semantic root, when available.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_path: Option<String>,
+}
+
 /// Governance declaration for one semantic change.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SemanticChangeIntent {
