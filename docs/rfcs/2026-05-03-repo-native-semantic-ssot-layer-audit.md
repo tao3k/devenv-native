@@ -61,10 +61,13 @@ by Studio producers and Qianji consumers, while SQL guard evidence remains
 advisory JSON outside parser authority.
 Qianji scheduler preflight now consumes that metadata at workflow runtime by
 injecting a read-only `semanticScopeGuardTrace` into node context.
+Workflow authors can also opt into explicit scheduler preflight blocking with
+`semanticScopeGuardPolicy` values for blocked or review-required semantic
+scope; the default remains advisory.
 
 The RFC is still not fully complete. Background projection refresh, deeper
-workflow policy actions based on semantic-scope traces, and future Julia or
-DuckDB-backed derived lanes remain outside the completed slice.
+workflow policy routing beyond scheduler preflight blocking, and future Julia
+or DuckDB-backed derived lanes remain outside the completed slice.
 
 ## 2. Evidence Map
 

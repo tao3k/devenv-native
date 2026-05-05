@@ -86,11 +86,16 @@ As of 2026-05-05, the first physical slice is implemented:
     `semanticScopeGuardTrace` into workflow context when the run context
     carries Wendao semantic-scope metadata, giving mechanisms advisory
     semantic status, issues, validations, and projection evidence
+17. Qianji scheduler preflight supports explicit `semanticScopeGuardPolicy`
+    values: `advisory`, `block_on_blocked`, and
+    `block_on_review_required`. The default remains advisory, while
+    workflow authors can opt into preflight blocking for unresolved or
+    review-required semantic scope.
 
 The full RFC is not complete. Remaining work includes background projection
-refresh, deeper workflow policy actions based on semantic-scope traces, and
-any future Julia or DuckDB-backed compute/read-model expansion. Those remain
-advisory or derived lanes; they do not change repo-native authority.
+refresh, richer workflow policy routing beyond scheduler preflight blocking,
+and any future Julia or DuckDB-backed compute/read-model expansion. Those
+remain advisory or derived lanes; they do not change repo-native authority.
 
 ## 2. Alignment
 

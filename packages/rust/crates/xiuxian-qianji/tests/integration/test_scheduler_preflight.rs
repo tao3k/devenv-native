@@ -211,6 +211,66 @@ async fn scheduler_preflight_injects_semantic_scope_guard_trace_into_context() {
     );
 }
 
+#[tokio::test]
+async fn scheduler_preflight_blocks_review_required_semantic_scope_when_policy_requires_it() {
+    let mut engine = QianjiEngine::new();
+    let _ = engine.add_mechanism("semantic-trace", Arc::new(EchoSemanticScopeTraceMechanism));
+    let scheduler = QianjiScheduler::new(engine);
+
+    let error = scheduler
+        .run(json!({
+            "semanticScopeGuardPolicy": "block_on_review_required",
+            "semanticScopeMetadata": semantic_scope_metadata_value("stale", &[])
+        }))
+        .await
+        .err()
+        .unwrap_or_else(|| panic!("review-required semantic scope should block by policy"));
+
+    let rendered = error.to_string();
+    assert!(
+        rendered.contains("block_on_review_required"),
+        "policy id should be reported: {rendered}"
+    );
+    assert!(
+        rendered.contains("review_required"),
+        "semantic scope status should be reported: {rendered}"
+    );
+    assert!(
+        rendered.contains("semantic projection is stale"),
+        "semantic scope issue should be reported: {rendered}"
+    );
+}
+
+#[tokio::test]
+async fn scheduler_preflight_blocks_unresolved_semantic_scope_when_policy_requires_blocked() {
+    let mut engine = QianjiEngine::new();
+    let _ = engine.add_mechanism("semantic-trace", Arc::new(EchoSemanticScopeTraceMechanism));
+    let scheduler = QianjiScheduler::new(engine);
+
+    let error = scheduler
+        .run(json!({
+            "semanticScopeGuardPolicy": "block_on_blocked",
+            "semanticScopeMetadata": semantic_scope_metadata_value("fresh", &["decision.missing"])
+        }))
+        .await
+        .err()
+        .unwrap_or_else(|| panic!("blocked semantic scope should block by policy"));
+
+    let rendered = error.to_string();
+    assert!(
+        rendered.contains("block_on_blocked"),
+        "policy id should be reported: {rendered}"
+    );
+    assert!(
+        rendered.contains("blocked"),
+        "semantic scope status should be reported: {rendered}"
+    );
+    assert!(
+        rendered.contains("decision.missing"),
+        "unresolved semantic id should be reported: {rendered}"
+    );
+}
+
 fn semantic_scope_metadata_value(projection_staleness: &str, unresolved_ids: &[&str]) -> Value {
     json!({
         "semanticScopeBundle": {

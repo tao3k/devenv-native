@@ -30,4 +30,6 @@ relations:
 
 Qianji owns workflow execution and consumes semantic scope as advisory context.
 Scheduler preflight may inject a read-only semantic-scope guard trace into
-workflow context, but Qianji does not own canonical semantic ontology truth.
+workflow context. Workflow contexts may opt into `semanticScopeGuardPolicy`
+blocking for blocked or review-required semantic scope, but Qianji does not
+own canonical semantic ontology truth.

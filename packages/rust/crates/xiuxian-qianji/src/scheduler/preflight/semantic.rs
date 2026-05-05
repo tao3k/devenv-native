@@ -1,11 +1,16 @@
 use super::context_path::{context_value_to_text, lookup_context_path};
 use super::query::resolve_dynamic_query_with_uri_expansion;
 use super::wendao_uri::resolve_wendao_uri_with_zhenfa;
-use crate::workdir::{trace_workdir_semantic_scope_json, workdir_semantic_scope_guard_trace_json};
+use crate::workdir::{
+    WorkdirSemanticScopeGuardStatus, WorkdirSemanticScopeGuardTrace,
+    trace_workdir_semantic_scope_json, workdir_semantic_scope_guard_trace_json,
+};
 use serde_json::{Map, Value};
 
 const SEMANTIC_SCOPE_METADATA_KEYS: &[&str] = &["semanticScopeMetadata", "semantic_scope_metadata"];
 const SEMANTIC_SCOPE_GUARD_TRACE_KEY: &str = "semanticScopeGuardTrace";
+const SEMANTIC_SCOPE_GUARD_POLICY_KEYS: &[&str] =
+    &["semanticScopeGuardPolicy", "semantic_scope_guard_policy"];
 
 /// Resolves `$wendao://...` placeholders recursively before node execution.
 ///
@@ -22,6 +27,23 @@ pub(crate) fn resolve_wendao_placeholders_in_context(context: &Value) -> Result<
 enum SemanticResolutionMode {
     Content,
     Reference,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum SemanticScopeGuardPolicy {
+    Advisory,
+    BlockOnBlocked,
+    BlockOnReviewRequired,
+}
+
+impl SemanticScopeGuardPolicy {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Advisory => "advisory",
+            Self::BlockOnBlocked => "block_on_blocked",
+            Self::BlockOnReviewRequired => "block_on_review_required",
+        }
+    }
 }
 
 fn resolve_value(value: &Value, context: &Value) -> Result<Value, String> {
@@ -120,11 +142,19 @@ fn inject_semantic_scope_guard_trace(value: Value) -> Result<Value, String> {
     let Value::Object(mut object) = value else {
         return Ok(value);
     };
+    let policy = semantic_scope_guard_policy(&object)?;
     let Some(raw_metadata_json) = semantic_scope_metadata_json(&object)? else {
+        if policy != SemanticScopeGuardPolicy::Advisory {
+            return Err(format!(
+                "`semanticScopeGuardPolicy` `{}` requires `semanticScopeMetadata`",
+                policy.as_str()
+            ));
+        }
         return Ok(Value::Object(object));
     };
     let trace = trace_workdir_semantic_scope_json(raw_metadata_json.as_str())
         .map_err(|error| format!("semantic-scope guard preflight failed: {error}"))?;
+    enforce_semantic_scope_guard_policy(policy, &trace)?;
     object.insert(
         SEMANTIC_SCOPE_GUARD_TRACE_KEY.to_string(),
         workdir_semantic_scope_guard_trace_json(&trace),
@@ -147,5 +177,82 @@ fn semantic_scope_metadata_json(object: &Map<String, Value>) -> Result<Option<St
             .map(Some)
             .map_err(|error| format!("failed to encode `{key}` semantic-scope metadata: {error}")),
         _ => Err(format!("`{key}` must be a JSON object or JSON string")),
+    }
+}
+
+fn semantic_scope_guard_policy(
+    object: &Map<String, Value>,
+) -> Result<SemanticScopeGuardPolicy, String> {
+    let Some((key, value)) = SEMANTIC_SCOPE_GUARD_POLICY_KEYS
+        .iter()
+        .find_map(|key| object.get(*key).map(|value| (*key, value)))
+    else {
+        return Ok(SemanticScopeGuardPolicy::Advisory);
+    };
+
+    match value {
+        Value::Null => Ok(SemanticScopeGuardPolicy::Advisory),
+        Value::String(raw) => semantic_scope_guard_policy_from_str(raw).ok_or_else(|| {
+            format!(
+                "`{key}` must be one of `advisory`, `block_on_blocked`, or `block_on_review_required`"
+            )
+        }),
+        _ => Err(format!("`{key}` must be a string")),
+    }
+}
+
+fn semantic_scope_guard_policy_from_str(raw: &str) -> Option<SemanticScopeGuardPolicy> {
+    let normalized = raw.trim().replace('-', "_").to_ascii_lowercase();
+    match normalized.as_str() {
+        "" | "advisory" => Some(SemanticScopeGuardPolicy::Advisory),
+        "block_on_blocked" | "blockonblocked" => Some(SemanticScopeGuardPolicy::BlockOnBlocked),
+        "block_on_review_required" | "blockonreviewrequired" => {
+            Some(SemanticScopeGuardPolicy::BlockOnReviewRequired)
+        }
+        _ => None,
+    }
+}
+
+fn enforce_semantic_scope_guard_policy(
+    policy: SemanticScopeGuardPolicy,
+    trace: &WorkdirSemanticScopeGuardTrace,
+) -> Result<(), String> {
+    match (policy, trace.status) {
+        (SemanticScopeGuardPolicy::Advisory, _)
+        | (
+            SemanticScopeGuardPolicy::BlockOnBlocked
+            | SemanticScopeGuardPolicy::BlockOnReviewRequired,
+            WorkdirSemanticScopeGuardStatus::Ready,
+        )
+        | (
+            SemanticScopeGuardPolicy::BlockOnBlocked,
+            WorkdirSemanticScopeGuardStatus::ReviewRequired,
+        ) => Ok(()),
+        _ => Err(semantic_scope_guard_policy_error(policy, trace)),
+    }
+}
+
+fn semantic_scope_guard_policy_error(
+    policy: SemanticScopeGuardPolicy,
+    trace: &WorkdirSemanticScopeGuardTrace,
+) -> String {
+    let issues = if trace.issues.is_empty() {
+        "no semantic-scope issues reported".to_string()
+    } else {
+        trace.issues.join("; ")
+    };
+    format!(
+        "semantic-scope guard policy `{}` blocked execution with status `{}`: {}",
+        policy.as_str(),
+        semantic_scope_guard_status_token(trace.status),
+        issues
+    )
+}
+
+fn semantic_scope_guard_status_token(status: WorkdirSemanticScopeGuardStatus) -> &'static str {
+    match status {
+        WorkdirSemanticScopeGuardStatus::Ready => "ready",
+        WorkdirSemanticScopeGuardStatus::ReviewRequired => "review_required",
+        WorkdirSemanticScopeGuardStatus::Blocked => "blocked",
     }
 }
