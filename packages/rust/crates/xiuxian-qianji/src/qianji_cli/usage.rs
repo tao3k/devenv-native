@@ -63,6 +63,7 @@ pub(crate) fn print_qianji_usage() {
     eprintln!("             compatibility alias: same flags also parse under 'linter'");
     eprintln!("  Template:  qianji [-v|--log-verbose] template --bpmn");
     eprintln!("             qianji [-v|--log-verbose] template --dmn");
+    eprintln!("             qianji [-v|--log-verbose] template --semantic-guard-route");
     eprintln!("  Construct: qianji [-v|--log-verbose] construct index [--json]");
     eprintln!("             qianji [-v|--log-verbose] construct show <id> [--json]");
     eprintln!(

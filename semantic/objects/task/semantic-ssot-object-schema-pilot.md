@@ -26,6 +26,7 @@ verification:
     - direnv exec . cargo test -p xiuxian-qianji scheduler_preflight -- --nocapture
     - direnv exec . cargo test -p xiuxian-qianji router -- --nocapture
     - direnv exec . cargo test -p xiuxian-qianji semantic_guard_route -- --nocapture
+    - direnv exec . cargo test -p xiuxian-qianji template_command -- --nocapture
     - direnv exec . uv run pytest tests/test_wendao_semantic_refresh_process_nix.py -q
     - direnv exec . wendao-client lint semantic
   evidence:
@@ -60,4 +61,6 @@ opt into semantic guard route branch selection, making the advisory route
 usable by ordinary workflow templates. The Qianji resource fixture
 `packages/rust/crates/xiuxian-qianji/resources/tests/semantic_guard_route_branch.toml`
 now proves that stale semantic scope selects the review-required path through
-ordinary manifest compilation and scheduler branch labels.
+ordinary manifest compilation and scheduler branch labels. The Qianji template
+CLI now renders the same workflow shape with
+`qianji template --semantic-guard-route`.

@@ -90,6 +90,9 @@ Qianji now also carries a checked-in guard route-aware workflow fixture that
 compiles through the normal TOML manifest path and proves stale semantic scope
 routes to the `review_required` branch while leaving non-selected branches
 inactive.
+The same shape is now exposed through
+`qianji template --semantic-guard-route`, giving workflow authors a reusable
+operator template while leaving semantic authority in repo-native artifacts.
 
 The RFC is still not fully complete. Wider rollout of guard route-aware
 real workflows and future Julia or DuckDB-backed derived lanes remain outside
@@ -241,7 +244,8 @@ The RFC is recommended for approval review if these conditions hold:
    derived-confidence input batch to a staged Julia compute profile and import
    advisory evidence rows through versioned Arrow contracts.
 6. **Qianji integration**: extend guard route-aware real workflows after the
-   router-level opt-in path and checked-in fixture evidence are stable.
+   router-level opt-in path, checked-in fixture, and template CLI evidence are
+   stable.
 7. **Hot-path clone audit**: consider replacing repeated Q-table episode-id
    clones with shared identifiers such as `Arc<str>` only after profiling
    confirms the clone pressure is material.
@@ -294,6 +298,8 @@ require a clean startup worktree with `--require-clean-worktree`.
 `wendao-semantic-refresh` without adding another projection mutation path.
 Qianji now has a checked-in semantic guard route fixture plus integration
 coverage for `review_required` branch selection from stale semantic scope.
+The template CLI now also renders that manifest shape through
+`qianji template --semantic-guard-route`.
 
 ## 6. Formal Research References
 

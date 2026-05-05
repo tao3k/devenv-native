@@ -19,6 +19,7 @@ verification:
     - direnv exec . cargo test -p xiuxian-qianji scheduler_preflight -- --nocapture
     - direnv exec . cargo test -p xiuxian-qianji router -- --nocapture
     - direnv exec . cargo test -p xiuxian-qianji semantic_guard_route -- --nocapture
+    - direnv exec . cargo test -p xiuxian-qianji template_command -- --nocapture
   evidence:
     - docs/rfcs/2026-05-03-repo-native-semantic-ssot-layer-audit.md
 relations:
@@ -40,4 +41,6 @@ canonical semantic ontology truth. Router nodes may also opt into
 templates can handle continue, review-required, or blocked paths explicitly.
 The checked-in resource fixture
 `packages/rust/crates/xiuxian-qianji/resources/tests/semantic_guard_route_branch.toml`
-exercises that shape through normal manifest compilation.
+exercises that shape through normal manifest compilation, and
+`qianji template --semantic-guard-route` exposes the same workflow for
+operator authoring.

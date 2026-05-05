@@ -1,10 +1,14 @@
 use super::{
     TemplateCliCommand, must_ok, must_some, parse_template_command, run_template_command, to_args,
 };
+use crate::QianjiCompiler;
 use qianji_bpmn_engine::{
     BpmnParseOptions, BpmnSourceFile, DmnSourceFile, lint_bpmn_source, lint_dmn_source,
     parse_bpmn_package, snapshot_bpmn_source,
 };
+use std::sync::Arc;
+use xiuxian_qianhuan::{PersonaRegistry, ThousandFacesOrchestrator};
+use xiuxian_wendao::LinkGraphIndex;
 
 #[test]
 fn parse_template_command_accepts_bpmn_target() {
@@ -33,10 +37,28 @@ fn parse_template_command_accepts_dmn_target() {
 }
 
 #[test]
+fn parse_template_command_accepts_semantic_guard_route_target() {
+    let command = must_some(
+        must_ok(
+            parse_template_command(&to_args(&["qianji", "template", "--semantic-guard-route"])),
+            "template parse should succeed",
+        ),
+        "template command should be detected",
+    );
+
+    assert_eq!(command, TemplateCliCommand::SemanticGuardRoute);
+}
+
+#[test]
 fn parse_template_command_rejects_ambiguous_target() {
-    let error = parse_template_command(&to_args(&["qianji", "template", "--bpmn", "--dmn"]))
-        .err()
-        .unwrap_or_else(|| panic!("ambiguous template target should fail"));
+    let error = parse_template_command(&to_args(&[
+        "qianji",
+        "template",
+        "--bpmn",
+        "--semantic-guard-route",
+    ]))
+    .err()
+    .unwrap_or_else(|| panic!("ambiguous template target should fail"));
 
     assert!(error.to_string().contains("exactly one"));
 }
@@ -86,4 +108,31 @@ fn run_template_command_renders_lint_clean_dmn() {
     assert!(output.rendered.contains("<decisionTable"));
     assert!(output.rendered.contains("https://qianji.dev/dmn"));
     assert!(report.ok, "DMN template should lint clean: {report:?}");
+}
+
+#[test]
+fn run_template_command_renders_semantic_guard_route_manifest() {
+    let output = run_template_command(&TemplateCliCommand::SemanticGuardRoute);
+
+    assert!(output.rendered.contains("Semantic_Guard_Route_Branch_Test"));
+    assert!(output.rendered.contains("semantic_guard_route = true"));
+    assert!(output.rendered.contains("review_required"));
+}
+
+#[test]
+fn run_template_command_renders_compilable_semantic_guard_route_manifest() {
+    let output = run_template_command(&TemplateCliCommand::SemanticGuardRoute);
+    let temp = tempfile::tempdir().unwrap_or_else(|error| {
+        panic!("temporary index root should be created: {error}");
+    });
+    let index = Arc::new(LinkGraphIndex::build(temp.path()).unwrap_or_else(|error| {
+        panic!("link graph index should build: {error}");
+    }));
+    let orchestrator = Arc::new(ThousandFacesOrchestrator::new("Rules".to_string(), None));
+    let registry = Arc::new(PersonaRegistry::with_builtins());
+    let compiler = QianjiCompiler::new(index, orchestrator, registry, None);
+
+    compiler
+        .compile(&output.rendered)
+        .unwrap_or_else(|error| panic!("semantic guard route template should compile: {error}"));
 }

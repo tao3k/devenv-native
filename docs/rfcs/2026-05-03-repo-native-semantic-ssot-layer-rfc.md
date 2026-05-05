@@ -126,6 +126,10 @@ As of 2026-05-05, the first physical slice is implemented:
     The integration test compiles that ordinary TOML manifest and proves stale
     semantic scope selects the `review_required` branch while leaving
     `continue` and `blocked` branches inactive.
+23. `qianji template --semantic-guard-route` now renders that workflow shape as
+    an operator-facing TOML template. The command is authoring support only:
+    Qianji still reads semantic guard-route context at runtime and does not
+    own canonical semantic artifacts.
 
 The full RFC is not complete. Remaining work includes wider rollout of
 semantic guard route-aware real workflows and any future Julia or DuckDB-backed
