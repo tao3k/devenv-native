@@ -91,6 +91,17 @@ live dispatch local to this crate.
 The current source-range auto policy targets seven source PDF pages per worker
 before clamping to the adaptive budget, machine cap, remaining permits, and
 shard count; diagnostic worker overrides remain benchmark-only.
+Studio also owns the opt-in source-range OCR profile planner exposed through
+`WENDAO_DOCUMENT_EXTRACT_PDF_OCR_PROFILE_PLANNER=fast-risk-window` and the
+benchmark flag `--rust-pdf-ocr-profile-planner fast-risk-window`. That planner
+uses attachment-owned source-page structure facts to keep table-risk pages on
+the default Docling-compatible profile while assigning `docling-fast-text-ocr`
+only to non-risk source-page ranges. The planner remains opt-in for broader
+corpus rollout, but the arXiv `2604.17337` milestone guard now proves the
+accepted precision envelope on this machine profile: 12,856.546 ms
+force-refresh latency, 92.084 ms shard-cache reuse latency, 2.309 ms cache p95,
+zero error rows, 21 OCR page blocks, 21 bbox blocks, 21 metrics rows, 103,985
+OCR result characters, and stable structure order.
 
 The active Studio `rust-lang-project-harness` lib-policy profile marks the OCR
 capacity-control file as the polyglot Docling scheduler adoption point. That

@@ -38,9 +38,12 @@ use super::arrow_cache::{read_arrow_file, write_arrow_file};
 use super::registry::DocumentExtractJobRegistry;
 #[cfg(all(test, feature = "document-extract-pdf-source-range"))]
 use hybrid::{
-    DOCUMENT_EXTRACT_PDF_RENDER_REGIONS_ENV, DOCUMENT_EXTRACT_PDF_RENDER_SELECTION_ENV,
-    HybridDocumentResourceBatch, hybrid_document_structure_blocks,
-    hybrid_page_ocr_input_arrow_path, hybrid_page_ocr_region_requests_for_source_with_lookup,
+    DOCUMENT_EXTRACT_PDF_OCR_PROFILE_PLANNER_ENV, DOCUMENT_EXTRACT_PDF_RENDER_REGIONS_ENV,
+    DOCUMENT_EXTRACT_PDF_RENDER_SELECTION_ENV, HybridDocumentResourceBatch,
+    HybridPdfOcrProfilePlanner, apply_hybrid_page_ocr_profile_plan_for_profiles,
+    hybrid_document_structure_blocks, hybrid_page_ocr_input_arrow_path,
+    hybrid_page_ocr_profile_planner_with_lookup,
+    hybrid_page_ocr_region_requests_for_source_with_lookup,
     hybrid_page_ocr_render_selection_with_lookup, validate_hybrid_page_coverage,
     validate_hybrid_precision_gate, validate_hybrid_shard_coverage,
     validate_ocr_results_match_inputs, validate_successful_ocr_results,

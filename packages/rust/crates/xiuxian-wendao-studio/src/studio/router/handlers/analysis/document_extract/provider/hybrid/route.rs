@@ -13,6 +13,7 @@ use super::precision_gate::{
     validate_hybrid_page_coverage, validate_ocr_results_match_inputs,
     validate_successful_ocr_results,
 };
+use super::profile::apply_hybrid_page_ocr_profile_plan;
 use super::render::{
     hybrid_page_ocr_input_arrow_path, hybrid_page_ocr_request_paths, render_hybrid_page_ocr_shards,
 };
@@ -89,7 +90,7 @@ impl StudioDocumentExtractFlightRouteProvider {
 
             match materialize_hybrid_page_ocr_resource_batch(
                 &render_report,
-                inputs,
+                apply_hybrid_page_ocr_profile_plan(inputs),
                 &self.runtime.pdf_ocr_scheduler,
             )
             .await

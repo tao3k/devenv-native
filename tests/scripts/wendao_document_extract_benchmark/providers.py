@@ -38,6 +38,29 @@ def rust_document_extract_endpoint_pool(args: argparse.Namespace) -> str | None:
     return ",".join(dict.fromkeys(endpoints))
 
 
+def apply_rust_pdf_ocr_env(args: argparse.Namespace, env: dict[str, str]) -> None:
+    rust_pdf_ocr_workers = getattr(args, "rust_pdf_ocr_workers", None)
+    if rust_pdf_ocr_workers:
+        env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_WORKERS"] = str(rust_pdf_ocr_workers)
+    rust_pdf_ocr_source_range_workers = getattr(
+        args,
+        "rust_pdf_ocr_source_range_workers",
+        None,
+    )
+    if rust_pdf_ocr_source_range_workers:
+        env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS"] = str(
+            rust_pdf_ocr_source_range_workers
+        )
+    rust_pdf_ocr_profile_planner = getattr(args, "rust_pdf_ocr_profile_planner", None)
+    if rust_pdf_ocr_profile_planner and rust_pdf_ocr_profile_planner != "disabled":
+        env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_PROFILE_PLANNER"] = str(
+            rust_pdf_ocr_profile_planner
+        )
+    ocr_endpoint_pool = rust_pdf_ocr_endpoint_pool(args)
+    if ocr_endpoint_pool:
+        env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_ENDPOINTS"] = ocr_endpoint_pool
+
+
 def start_rust_provider_server(
     args: argparse.Namespace,
     *,
@@ -75,21 +98,7 @@ def start_rust_provider_server(
     env.update(build_hybrid_pdf_render_region_env(args))
     if pdfium_library_path is not None:
         env["WENDAO_PDFIUM_LIBRARY_PATH"] = str(pdfium_library_path)
-    rust_pdf_ocr_workers = getattr(args, "rust_pdf_ocr_workers", None)
-    if rust_pdf_ocr_workers:
-        env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_WORKERS"] = str(rust_pdf_ocr_workers)
-    rust_pdf_ocr_source_range_workers = getattr(
-        args,
-        "rust_pdf_ocr_source_range_workers",
-        None,
-    )
-    if rust_pdf_ocr_source_range_workers:
-        env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS"] = str(
-            rust_pdf_ocr_source_range_workers
-        )
-    ocr_endpoint_pool = rust_pdf_ocr_endpoint_pool(args)
-    if ocr_endpoint_pool:
-        env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_ENDPOINTS"] = ocr_endpoint_pool
+    apply_rust_pdf_ocr_env(args, env)
     command = [
         args.cargo,
         "run",
@@ -188,21 +197,7 @@ def start_gateway_server(
     env.update(build_hybrid_pdf_render_region_env(args))
     if pdfium_library_path is not None:
         env["WENDAO_PDFIUM_LIBRARY_PATH"] = str(pdfium_library_path)
-    rust_pdf_ocr_workers = getattr(args, "rust_pdf_ocr_workers", None)
-    if rust_pdf_ocr_workers:
-        env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_WORKERS"] = str(rust_pdf_ocr_workers)
-    rust_pdf_ocr_source_range_workers = getattr(
-        args,
-        "rust_pdf_ocr_source_range_workers",
-        None,
-    )
-    if rust_pdf_ocr_source_range_workers:
-        env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS"] = str(
-            rust_pdf_ocr_source_range_workers
-        )
-    ocr_endpoint_pool = rust_pdf_ocr_endpoint_pool(args)
-    if ocr_endpoint_pool:
-        env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_ENDPOINTS"] = ocr_endpoint_pool
+    apply_rust_pdf_ocr_env(args, env)
     command = [
         args.cargo,
         "run",

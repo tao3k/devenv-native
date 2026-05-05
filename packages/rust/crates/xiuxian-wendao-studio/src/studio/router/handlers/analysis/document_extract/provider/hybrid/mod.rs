@@ -2,6 +2,7 @@
 
 #[path = "precision_gate/mod.rs"]
 mod precision_gate;
+mod profile;
 mod render;
 mod route;
 mod structure;
@@ -17,6 +18,11 @@ pub(super) use types::{
 pub(super) use precision_gate::{
     validate_hybrid_page_coverage, validate_hybrid_precision_gate, validate_hybrid_shard_coverage,
     validate_ocr_results_match_inputs, validate_successful_ocr_results,
+};
+#[cfg(test)]
+pub(super) use profile::{
+    DOCUMENT_EXTRACT_PDF_OCR_PROFILE_PLANNER_ENV, HybridPdfOcrProfilePlanner,
+    apply_hybrid_page_ocr_profile_plan_for_profiles, hybrid_page_ocr_profile_planner_with_lookup,
 };
 #[cfg(test)]
 pub(super) use render::{

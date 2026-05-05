@@ -367,11 +367,19 @@ Docling over original PDF page ranges rather than lower-precision raster or
 table-fast shortcuts.
 Python also recognizes the existing `docling-fast-text-ocr` OCR profile as a
 separate Docling converter profile. Rows with different `ocrProfile` values are
-not merged into one source-PDF page range, so a future Rust risk-window planner
-can mix fast and accurate Docling ranges without changing the Arrow schema.
-That fast profile is not selected by default because table-fast extraction may
-lose text unless an accurate recovery window proves the accepted character and
-order envelope.
+not merged into one source-PDF page range, so Rust can mix fast and accurate
+Docling ranges without changing the Arrow schema. The benchmark exposes this as
+`--rust-pdf-ocr-profile-planner fast-risk-window`, which forwards
+`WENDAO_DOCUMENT_EXTRACT_PDF_OCR_PROFILE_PLANNER=fast-risk-window` to the Rust
+provider. The local real-Docling benchmark server passes `ocrProfile` through
+its converter factory, so `docling-fast-text-ocr` uses Docling's FAST table
+mode even when benchmark fixture options also configure other formats. The fast
+profile is still not the global default because broader corpus promotion needs
+separate evidence, but the arXiv `2604.17337` guard proves this opt-in
+risk-window profile on the current machine: 12,856.546 ms force-refresh
+latency, 92.084 ms shard-cache reuse latency, 2.309 ms cache p95, zero error
+rows, 21 OCR page blocks, 21 bbox blocks, 21 metrics rows, 103,985 OCR result
+characters, and stable structure order.
 Production deployments can set
 `WENDAO_DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS` directly when local
 evidence shows a fixed override is appropriate for that machine profile, but
@@ -394,7 +402,12 @@ latency, 92.843 ms shard-cache rebuild latency, 2.261 ms cache p95 latency,
 zero error rows, 21 OCR page blocks, 21 bbox blocks, 21 metrics rows, 103,984
 OCR result characters, and stable structure order. That run is still above the
 sub-15 target, but it preserves the precision envelope while improving the
-accepted default fanout baseline.
+accepted default fanout baseline. The follow-up profile-aware fast-risk-window
+run stayed on automatic endpoint fanout, kept the Rust source-range worker
+override unset, and passed the stored milestone guard with 12,856.546 ms force
+latency, 92.084 ms shard-cache reuse latency, 2.309 ms cache p95 latency, zero
+error rows, 21 OCR page blocks, 21 bbox blocks, 21 metrics rows, 103,985 OCR
+result characters, and stable structure order.
 Use `--local-python-ocr-endpoint-count N` when a local benchmark should start
 `N` Python Flight executors, including the primary document worker, and expose
 that pool to the Rust scheduler for both full-document conversion and PDF OCR

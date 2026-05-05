@@ -83,6 +83,11 @@ Full-page OCR shards use direct source-PDF page-range manifests before falling
 back to raster input. `lopdf` reads the page tree, Rust writes stable OCR shard
 v1 rows with whole-page provenance, and Python/Docling performs OCR against the
 original source PDF page range.
+The crate also owns the lightweight source-page complexity profile used by
+Studio's source-range scheduler and profile planner. The cached profile helper
+keys entries by canonical path, file length, and modification timestamp so one
+provider process can reuse page facts across force-refresh, shard-cache reuse,
+and cache-hit probes without persisting transient profile state in Python.
 
 `PdfPageRenderSelection::ShardFallbackPages` is intentionally high-recall in
 the current source-range path. When no narrower safe region signal exists, it
@@ -236,6 +241,11 @@ clamping that recommendation to live owner facts. Within that requested chunk
 budget, Rust can profile the source PDF's decoded page content streams and
 balance contiguous subranges by lightweight page complexity while preserving
 reading order and cache-miss gaps.
+Those same page structure facts may be consumed by Studio's opt-in OCR profile
+planner to choose fast versus accurate Docling source-page ranges, but
+attachments remains the fact/shard contract owner only. Live worker dispatch,
+cache reuse, and precision fallback decisions stay in Studio and the Python
+Docling worker.
 `WENDAO_DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS` remains an explicit
 benchmark override for source-range chunk count experiments, not a production
 default.

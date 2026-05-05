@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import threading
 from concurrent.futures import ThreadPoolExecutor
+from inspect import signature
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -52,13 +53,20 @@ class DoclingPdfOcrShardWorker:
         self,
         converter: DocumentConverterProtocol | None = None,
         *,
-        converter_factory: Callable[[], DocumentConverterProtocol] | None = None,
+        converter_factory: (
+            Callable[[], DocumentConverterProtocol]
+            | Callable[[str], DocumentConverterProtocol]
+            | None
+        ) = None,
         max_workers: int | str | None = None,
     ) -> None:
         if converter is not None and converter_factory is not None:
             raise ValueError("converter and converter_factory are mutually exclusive")
         self._converter = converter
         self._converter_factory = converter_factory
+        self._converter_factory_accepts_profile = _factory_accepts_ocr_profile(
+            converter_factory
+        )
         self._max_workers = max_workers
         self._thread_local = threading.local()
 
@@ -248,7 +256,10 @@ class DoclingPdfOcrShardWorker:
         converter = converters.get(ocr_profile)
         if converter is None:
             if self._converter_factory is not None:
-                converter = self._converter_factory()
+                if self._converter_factory_accepts_profile:
+                    converter = self._converter_factory(ocr_profile)
+                else:
+                    converter = self._converter_factory()
             else:
                 converter = _new_docling_converter(ocr_profile)
             converters[ocr_profile] = converter
@@ -278,6 +289,16 @@ def _try_export_source_page_batch_markdown(
 def _ocr_profile(input_row: Mapping[str, Any]) -> str:
     profile = str(input_row.get("ocrProfile", "")).strip()
     return profile or PDF_OCR_DEFAULT_PROFILE
+
+
+def _factory_accepts_ocr_profile(factory: Callable[..., Any] | None) -> bool:
+    if factory is None:
+        return False
+    try:
+        signature(factory).bind(PDF_OCR_DEFAULT_PROFILE)
+    except (TypeError, ValueError):
+        return False
+    return True
 
 
 def _new_docling_converter(

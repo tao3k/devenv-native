@@ -38,7 +38,9 @@ def test_real_docling_server_code_can_record_converter_count(tmp_path: Path) -> 
 
     assert "class CountingConverter" in code
     assert "return CountingConverter(converter)" in code
-    assert "def make_converter()" in code
+    assert "def make_converter(ocr_profile=None)" in code
+    assert "PDF_OCR_FAST_TEXT_PROFILE" in code
+    assert "TableFormerMode.FAST" in code
     assert "DoclingPdfOcrShardWorker(" in code
     assert "converter_factory=make_converter" in code
     assert "max_workers='auto'" in code

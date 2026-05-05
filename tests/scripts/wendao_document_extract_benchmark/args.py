@@ -96,6 +96,16 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--rust-pdf-ocr-profile-planner",
+        choices=("disabled", "fast-all", "fast-risk-window"),
+        help=(
+            "Optional Rust provider override for "
+            "WENDAO_DOCUMENT_EXTRACT_PDF_OCR_PROFILE_PLANNER. Use "
+            "`fast-all` or `fast-risk-window` only when profiling "
+            "mixed fast/accurate Docling source-range OCR."
+        ),
+    )
+    parser.add_argument(
         "--rust-pdf-ocr-endpoint",
         action="append",
         default=[],

@@ -217,6 +217,29 @@ fn source_pdf_page_range_chunks_with_weights_do_not_cross_cache_miss_gaps() {
 }
 
 #[test]
+fn source_pdf_page_range_chunks_do_not_cross_ocr_profile_boundaries() {
+    let mut inputs = (0..6)
+        .map(|page_index| sample_ocr_input("/tmp/source.pdf", page_index, "page"))
+        .collect::<Vec<_>>();
+    for input in &mut inputs[2..4] {
+        input.ocr_profile = "docling-fast-text-ocr".to_string();
+    }
+
+    let chunks = source_pdf_page_range_chunks(inputs.as_slice(), 2);
+    let page_runs = chunks
+        .iter()
+        .map(|chunk| {
+            chunk
+                .iter()
+                .map(|input| input.page_index)
+                .collect::<Vec<_>>()
+        })
+        .collect::<Vec<_>>();
+
+    assert_eq!(page_runs, vec![vec![0, 1], vec![2, 3], vec![4, 5]]);
+}
+
+#[test]
 fn endpoint_index_for_request_round_robins_endpoint_pool() -> Result<(), String> {
     assert_eq!(endpoint_index_for_request(0, 3)?, 0);
     assert_eq!(endpoint_index_for_request(1, 3)?, 1);

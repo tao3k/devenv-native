@@ -134,6 +134,32 @@ def test_docling_pdf_ocr_worker_uses_fast_converter_for_fast_profile(
     assert table.to_pylist()[0]["text"] == f"OCR {PDF_OCR_FAST_TEXT_PROFILE}\n"
 
 
+def test_docling_pdf_ocr_worker_passes_profile_to_converter_factory(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "source.pdf"
+    source.write_bytes(b"%PDF fixture")
+    requested_profiles: list[str] = []
+
+    def fake_converter_factory(profile: str) -> FakeDoclingConverter:
+        requested_profiles.append(profile)
+        return FakeDoclingConverter(f"OCR {profile}\n")
+
+    table = build_pdf_ocr_shard_result_table(
+        _sample_pdf_ocr_input_table(
+            source_path=str(source),
+            ocr_profile=PDF_OCR_FAST_TEXT_PROFILE,
+        ),
+        worker=DoclingPdfOcrShardWorker(
+            converter_factory=fake_converter_factory,
+            max_workers=1,
+        ),
+    )
+
+    assert requested_profiles == [PDF_OCR_FAST_TEXT_PROFILE]
+    assert table.to_pylist()[0]["text"] == f"OCR {PDF_OCR_FAST_TEXT_PROFILE}\n"
+
+
 def test_docling_pdf_ocr_worker_preserves_order_with_concurrent_shards(
     tmp_path: Path,
 ) -> None:

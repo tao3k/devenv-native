@@ -1,6 +1,9 @@
 //! Lightweight PDF page complexity profile for source-range OCR planning.
 
-use std::path::Path;
+use std::collections::BTreeMap;
+use std::path::{Path, PathBuf};
+use std::sync::{Mutex, OnceLock};
+use std::time::UNIX_EPOCH;
 
 use lopdf::{Document as LopdfDocument, ObjectId, content::Operation};
 
@@ -46,6 +49,26 @@ pub fn source_pdf_page_profiles(path: &Path) -> Result<Vec<PdfSourcePageProfile>
             )
         })
         .collect()
+}
+
+/// Return cached page-level source PDF complexity profiles for one file state.
+///
+/// # Errors
+///
+/// Returns an error if the PDF cannot be loaded or page content streams cannot
+/// be decoded.
+pub fn source_pdf_page_profiles_cached(path: &Path) -> Result<Vec<PdfSourcePageProfile>, String> {
+    let Some(key) = source_pdf_page_profile_cache_key(path) else {
+        return source_pdf_page_profiles(path);
+    };
+    let cache = source_pdf_page_profile_cache();
+    if let Some(profiles) = lock_profile_cache(cache).get(&key).cloned() {
+        return Ok(profiles);
+    }
+
+    let profiles = source_pdf_page_profiles(path)?;
+    lock_profile_cache(cache).insert(key, profiles.clone());
+    Ok(profiles)
 }
 
 fn source_pdf_page_profile(
@@ -103,6 +126,46 @@ fn estimated_weight(profile: &PdfSourcePageProfile) -> u32 {
         .saturating_add(profile.path_ops.div_ceil(4))
         .saturating_add(profile.rectangle_ops.saturating_mul(4))
         .saturating_add(profile.draw_object_ops.saturating_mul(6))
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+struct SourcePdfPageProfileCacheKey {
+    path: PathBuf,
+    len: u64,
+    modified_secs: u64,
+    modified_nanos: u32,
+}
+
+type SourcePdfPageProfileCache =
+    Mutex<BTreeMap<SourcePdfPageProfileCacheKey, Vec<PdfSourcePageProfile>>>;
+
+fn source_pdf_page_profile_cache_key(path: &Path) -> Option<SourcePdfPageProfileCacheKey> {
+    let path = path.canonicalize().ok()?;
+    let metadata = std::fs::metadata(path.as_path()).ok()?;
+    let modified = metadata
+        .modified()
+        .ok()
+        .and_then(|modified| modified.duration_since(UNIX_EPOCH).ok());
+    Some(SourcePdfPageProfileCacheKey {
+        path,
+        len: metadata.len(),
+        modified_secs: modified.map_or(0, |duration| duration.as_secs()),
+        modified_nanos: modified.map_or(0, |duration| duration.subsec_nanos()),
+    })
+}
+
+fn source_pdf_page_profile_cache() -> &'static SourcePdfPageProfileCache {
+    static CACHE: OnceLock<SourcePdfPageProfileCache> = OnceLock::new();
+    CACHE.get_or_init(|| Mutex::new(BTreeMap::new()))
+}
+
+fn lock_profile_cache(
+    cache: &SourcePdfPageProfileCache,
+) -> std::sync::MutexGuard<'_, BTreeMap<SourcePdfPageProfileCacheKey, Vec<PdfSourcePageProfile>>> {
+    match cache.lock() {
+        Ok(guard) => guard,
+        Err(poisoned) => poisoned.into_inner(),
+    }
 }
 
 #[cfg(test)]

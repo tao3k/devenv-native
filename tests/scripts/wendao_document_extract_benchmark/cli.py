@@ -282,6 +282,7 @@ def build_report_payload(
         "localPythonOcrEndpointCount": args.local_python_ocr_endpoint_count,
         "rustPdfOcrWorkers": args.rust_pdf_ocr_workers,
         "rustPdfOcrSourceRangeWorkers": args.rust_pdf_ocr_source_range_workers,
+        "rustPdfOcrProfilePlanner": getattr(args, "rust_pdf_ocr_profile_planner", None),
         "rustDocumentExtractEndpoints": args.rust_document_extract_endpoint,
         "rustPdfOcrEndpoints": args.rust_pdf_ocr_endpoint,
         "structureBaselineRoot": (

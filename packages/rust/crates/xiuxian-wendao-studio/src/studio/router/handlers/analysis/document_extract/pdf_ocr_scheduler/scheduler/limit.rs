@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use xiuxian_wendao_attachments::pdf::ocr::PdfOcrShardInput;
-use xiuxian_wendao_attachments::pdf::profile::source_pdf_page_profiles;
+use xiuxian_wendao_attachments::pdf::profile::source_pdf_page_profiles_cached;
 
 pub(crate) const DOCUMENT_EXTRACT_PDF_OCR_WORKERS_ENV: &str =
     "WENDAO_DOCUMENT_EXTRACT_PDF_OCR_WORKERS";
@@ -216,12 +216,13 @@ fn source_pdf_page_range_weights(inputs: &[PdfOcrShardInput]) -> Option<Vec<u32>
     {
         return None;
     }
-    let profiles = source_pdf_page_profiles(std::path::Path::new(first.source_path.as_str()))
-        .map_err(|error| {
-            log::debug!("source PDF page profile unavailable for OCR scheduler: {error}");
-            error
-        })
-        .ok()?;
+    let profiles =
+        source_pdf_page_profiles_cached(std::path::Path::new(first.source_path.as_str()))
+            .map_err(|error| {
+                log::debug!("source PDF page profile unavailable for OCR scheduler: {error}");
+                error
+            })
+            .ok()?;
     Some(
         inputs
             .iter()
@@ -260,6 +261,7 @@ fn extends_source_pdf_page_range_run(
     current: &PdfOcrShardInput,
 ) -> bool {
     current.source_path == previous.source_path
+        && current.ocr_profile == previous.ocr_profile
         && current.shard_type == "page"
         && previous.shard_type == "page"
         && current.page_index == previous.page_index.saturating_add(1)

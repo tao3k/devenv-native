@@ -28,9 +28,13 @@ def real_docling_server_code(
 
         from docling.datamodel.backend_options import XBRLBackendOptions
         from docling.datamodel.base_models import InputFormat
-        from docling.document_converter import DocumentConverter, XBRLFormatOption
+        from docling.datamodel.pipeline_options import PdfPipelineOptions, TableFormerMode
+        from docling.document_converter import DocumentConverter, PdfFormatOption, XBRLFormatOption
         from xiuxian_wendao_analyzer.document_service import DocumentExtractFlightServer
-        from xiuxian_wendao_analyzer.pdf_ocr import DoclingPdfOcrShardWorker
+        from xiuxian_wendao_analyzer.pdf_ocr import (
+            DoclingPdfOcrShardWorker,
+            PDF_OCR_FAST_TEXT_PROFILE,
+        )
 
         fixture_root = Path({fixture_root_text!r}) if {bool(fixture_root_text)!r} else None
         CONVERTER_COUNT_PATH = Path({count_path_text!r}) if {bool(count_path_text)!r} else None
@@ -98,8 +102,15 @@ def real_docling_server_code(
                 pipeline_options=audio_options,
             )
 
-        def make_converter():
-            converter = DocumentConverter(format_options=format_options)
+        def make_converter(ocr_profile=None):
+            effective_format_options = dict(format_options)
+            if ocr_profile == PDF_OCR_FAST_TEXT_PROFILE:
+                pdf_options = PdfPipelineOptions()
+                pdf_options.table_structure_options.mode = TableFormerMode.FAST
+                effective_format_options[InputFormat.PDF] = PdfFormatOption(
+                    pipeline_options=pdf_options
+                )
+            converter = DocumentConverter(format_options=effective_format_options)
             if CONVERTER_COUNT_PATH is not None:
                 return CountingConverter(converter)
             return converter
