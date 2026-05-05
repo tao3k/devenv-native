@@ -112,6 +112,15 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--rust-pdf-ocr2-render-dpi",
+        type=int,
+        help=(
+            "OCR2 rendered-page DPI forwarded to "
+            "WENDAO_DOCUMENT_EXTRACT_PDF_OCR2_RENDER_DPI for Rust provider "
+            "page-image payload experiments."
+        ),
+    )
+    parser.add_argument(
         "--deepseek-ocr2-base-url",
         help=(
             "OpenAI-compatible DeepSeek-OCR-2 base URL forwarded to "
@@ -148,6 +157,14 @@ def parse_args() -> argparse.Namespace:
         "--deepseek-ocr2-timeout-seconds",
         type=float,
         help="Request timeout forwarded to WENDAO_DEEPSEEK_OCR2_TIMEOUT_SECONDS.",
+    )
+    parser.add_argument(
+        "--deepseek-ocr2-request-concurrency",
+        type=int,
+        help=(
+            "Direct OCR2 request concurrency forwarded to "
+            "WENDAO_DEEPSEEK_OCR2_REQUEST_CONCURRENCY."
+        ),
     )
     parser.add_argument(
         "--openrouter-model",
@@ -490,6 +507,14 @@ def parse_args() -> argparse.Namespace:
         help=(
             "Fail when force, shard-cache rebuild, and cache-hit runs produce "
             "different structure order signatures."
+        ),
+    )
+    parser.add_argument(
+        "--fail-on-missing-ocr-metrics",
+        action="store_true",
+        help=(
+            "Fail when any measured run expected to exercise OCR shards "
+            "produces no OCR metrics sidecar rows."
         ),
     )
     parser.add_argument(

@@ -289,6 +289,7 @@ def build_report_payload(
         "rustPdfOcrWorkers": args.rust_pdf_ocr_workers,
         "rustPdfOcrSourceRangeWorkers": args.rust_pdf_ocr_source_range_workers,
         "rustPdfOcrProfilePlanner": getattr(args, "rust_pdf_ocr_profile_planner", None),
+        "rustPdfOcr2RenderDpi": getattr(args, "rust_pdf_ocr2_render_dpi", None),
         "rustDocumentExtractEndpoints": args.rust_document_extract_endpoint,
         "rustPdfOcrEndpoints": args.rust_pdf_ocr_endpoint,
         "structureBaselineRoot": (
@@ -307,6 +308,9 @@ def build_report_payload(
             "prompt": getattr(args, "deepseek_ocr2_prompt", None),
             "maxTokens": getattr(args, "deepseek_ocr2_max_tokens", None),
             "timeoutSeconds": getattr(args, "deepseek_ocr2_timeout_seconds", None),
+            "requestConcurrency": getattr(
+                args, "deepseek_ocr2_request_concurrency", None
+            ),
         },
         "shardCacheReuseProbe": args.shard_cache_reuse_probe,
         "artifactRegistryReuseProbe": args.artifact_registry_reuse_probe,

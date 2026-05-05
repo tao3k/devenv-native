@@ -22,6 +22,7 @@ from .pdf_ocr_contracts import (
     DEEPSEEK_OCR2_DEFAULT_MAX_TOKENS,
     DEEPSEEK_OCR2_DEFAULT_MODEL,
     DEEPSEEK_OCR2_DEFAULT_PROMPT,
+    DEEPSEEK_OCR2_DEFAULT_REQUEST_CONCURRENCY,
     DEEPSEEK_OCR2_DEFAULT_TIMEOUT_SECONDS,
     DEEPSEEK_OCR2_MAX_TOKENS_ENV,
     DEEPSEEK_OCR2_MODEL_ENV,
@@ -36,6 +37,7 @@ from .pdf_ocr_contracts import (
     DEEPSEEK_OCR2_OPENROUTER_TITLE_ENV,
     DEEPSEEK_OCR2_PROMPT_ENV,
     DEEPSEEK_OCR2_PROVIDER_ENV,
+    DEEPSEEK_OCR2_REQUEST_CONCURRENCY_ENV,
     DEEPSEEK_OCR2_TIMEOUT_SECONDS_ENV,
     PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE,
     PDF_OCR_DEFAULT_PROFILE,
@@ -402,7 +404,7 @@ def _recognize_deepseek_ocr2_many(
             failed_pdf_ocr_shard_result(input_row, f"DeepSeek-OCR-2 OCR failed: {exc}")
             for input_row in input_rows
         ]
-    return [client.recognize(input_row) for input_row in input_rows]
+    return client.recognize_many(input_rows)
 
 
 class _DeepSeekOcr2OpenAiClient:
@@ -415,6 +417,7 @@ class _DeepSeekOcr2OpenAiClient:
         prompt: str,
         max_tokens: int,
         timeout_seconds: float,
+        request_concurrency: int,
         extra_headers: Mapping[str, str] | None = None,
     ) -> None:
         self._completion_url = _chat_completion_url(base_url)
@@ -423,6 +426,7 @@ class _DeepSeekOcr2OpenAiClient:
         self._prompt = prompt
         self._max_tokens = max_tokens
         self._timeout_seconds = timeout_seconds
+        self._request_concurrency = request_concurrency
         self._extra_headers = dict(extra_headers or {})
 
     @classmethod
@@ -452,6 +456,10 @@ class _DeepSeekOcr2OpenAiClient:
                 timeout_seconds=_positive_float_env(
                     DEEPSEEK_OCR2_TIMEOUT_SECONDS_ENV,
                     DEEPSEEK_OCR2_DEFAULT_TIMEOUT_SECONDS,
+                ),
+                request_concurrency=_positive_int_env(
+                    DEEPSEEK_OCR2_REQUEST_CONCURRENCY_ENV,
+                    DEEPSEEK_OCR2_DEFAULT_REQUEST_CONCURRENCY,
                 ),
                 extra_headers=_openrouter_headers(),
             )
@@ -485,7 +493,23 @@ class _DeepSeekOcr2OpenAiClient:
                 DEEPSEEK_OCR2_TIMEOUT_SECONDS_ENV,
                 DEEPSEEK_OCR2_DEFAULT_TIMEOUT_SECONDS,
             ),
+            request_concurrency=_positive_int_env(
+                DEEPSEEK_OCR2_REQUEST_CONCURRENCY_ENV,
+                DEEPSEEK_OCR2_DEFAULT_REQUEST_CONCURRENCY,
+            ),
         )
+
+    def recognize_many(
+        self,
+        input_rows: Sequence[Mapping[str, Any]],
+    ) -> list[Mapping[str, Any]]:
+        rows = list(input_rows)
+        if self._request_concurrency <= 1 or len(rows) <= 1:
+            return [self.recognize(input_row) for input_row in rows]
+        worker_count = min(self._request_concurrency, len(rows))
+        with ThreadPoolExecutor(max_workers=worker_count) as executor:
+            futures = [executor.submit(self.recognize, input_row) for input_row in rows]
+            return [future.result() for future in futures]
 
     def recognize(self, input_row: Mapping[str, Any]) -> Mapping[str, Any]:
         image_path = Path(str(input_row["imagePath"]))

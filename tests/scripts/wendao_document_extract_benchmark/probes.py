@@ -284,6 +284,20 @@ def run_fixture_probe(
     artifact_summary = summarize_artifact_reports(
         cached_report.get("artifactReports", [])
     )
+    metrics_rows_by_run = {
+        "force": summarize_artifact_reports(force_report.get("artifactReports", []))[
+            "metricsRows"
+        ],
+        "cache": artifact_summary["metricsRows"],
+    }
+    if shard_cache_reuse_report:
+        metrics_rows_by_run["shard_cache_reuse"] = summarize_artifact_reports(
+            shard_cache_reuse_report.get("artifactReports", [])
+        )["metricsRows"]
+    if artifact_registry_reuse_report:
+        metrics_rows_by_run["artifact_registry_reuse"] = summarize_artifact_reports(
+            artifact_registry_reuse_report.get("artifactReports", [])
+        )["metricsRows"]
     structure_order_consistency = fixture_structure_order_consistency(
         force_report,
         cached_report,
@@ -303,6 +317,17 @@ def run_fixture_probe(
             f"artifact_registry_reuse={artifact_registry_reuse_error_rows}, "
             f"cache={cache_error_rows}"
         )
+    if getattr(args, "fail_on_missing_ocr_metrics", False):
+        missing_metrics_runs = [
+            name
+            for name, metrics_rows in metrics_rows_by_run.items()
+            if metrics_rows <= 0
+        ]
+        if missing_metrics_runs:
+            raise SystemExit(
+                f"fixture `{fixture_name}` produced no OCR metrics rows for: "
+                f"{', '.join(missing_metrics_runs)}"
+            )
     if (
         getattr(args, "fail_on_structure_order_mismatch", False)
         and structure_order_consistency["structureOrderStable"] is False

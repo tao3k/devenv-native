@@ -13,8 +13,8 @@ use xiuxian_wendao_server::transport::DocumentExtractFlightRequest;
 
 use super::profile::hybrid_page_ocr_profile_planner;
 use super::types::{
-    DOCUMENT_EXTRACT_PDF_RENDER_REGIONS_ENV, DOCUMENT_EXTRACT_PDF_RENDER_SELECTION_ENV,
-    HybridPdfRegionInput,
+    DOCUMENT_EXTRACT_PDF_OCR2_RENDER_DPI_ENV, DOCUMENT_EXTRACT_PDF_RENDER_REGIONS_ENV,
+    DOCUMENT_EXTRACT_PDF_RENDER_SELECTION_ENV, HybridPdfRegionInput,
 };
 use crate::studio::router::handlers::analysis::document_extract::registry::default_output_dir;
 
@@ -30,6 +30,7 @@ pub(crate) async fn render_hybrid_page_ocr_shards(
     };
     let requires_rendered_page_images =
         hybrid_page_ocr_profile_planner().requires_rendered_page_images();
+    let render_profile = hybrid_page_ocr_render_profile(requires_rendered_page_images);
     let source_for_render = source.to_path_buf();
     let output_for_render = output.to_path_buf();
     tokio::task::spawn_blocking(move || {
@@ -38,7 +39,7 @@ pub(crate) async fn render_hybrid_page_ocr_shards(
             return render_pdf_region_shards(
                 source_for_render.as_path(),
                 output_for_render.as_path(),
-                &PdfPageRenderProfile::ocr_default(),
+                &render_profile,
                 regions.as_slice(),
             );
             #[cfg(not(feature = "document-extract-pdf-render"))]
@@ -54,7 +55,7 @@ pub(crate) async fn render_hybrid_page_ocr_shards(
             return render_pdf_page_shards_with_selection(
                 source_for_render.as_path(),
                 output_for_render.as_path(),
-                &PdfPageRenderProfile::ocr_default(),
+                &render_profile,
                 selection,
             );
             #[cfg(not(feature = "document-extract-pdf-render"))]
@@ -66,12 +67,36 @@ pub(crate) async fn render_hybrid_page_ocr_shards(
         prepare_pdf_source_page_range_ocr_shards_with_selection(
             source_for_render.as_path(),
             output_for_render.as_path(),
-            &PdfPageRenderProfile::ocr_default(),
+            &render_profile,
             selection,
         )
     })
     .await
     .map_err(|error| format!("join hybrid PDF OCR render task: {error}"))?
+}
+
+fn hybrid_page_ocr_render_profile(ocr2_rendered_page_images: bool) -> PdfPageRenderProfile {
+    hybrid_page_ocr_render_profile_with_lookup(ocr2_rendered_page_images, &|key| {
+        std::env::var(key).ok()
+    })
+}
+
+pub(crate) fn hybrid_page_ocr_render_profile_with_lookup(
+    ocr2_rendered_page_images: bool,
+    lookup: &dyn Fn(&str) -> Option<String>,
+) -> PdfPageRenderProfile {
+    let mut profile = PdfPageRenderProfile::ocr_default();
+    if !ocr2_rendered_page_images {
+        return profile;
+    }
+    let Some(dpi) = lookup(DOCUMENT_EXTRACT_PDF_OCR2_RENDER_DPI_ENV)
+        .and_then(|value| value.trim().parse::<u32>().ok())
+        .filter(|value| *value > 0)
+    else {
+        return profile;
+    };
+    profile.dpi = dpi;
+    profile
 }
 
 fn hybrid_page_ocr_render_selection() -> PdfPageRenderSelection {

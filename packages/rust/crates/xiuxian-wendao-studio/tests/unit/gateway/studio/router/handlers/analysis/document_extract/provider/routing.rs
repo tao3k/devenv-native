@@ -3,14 +3,16 @@ use std::path::{Path, PathBuf};
 
 #[cfg(feature = "document-extract-pdf-source-range")]
 use super::{
-    DOCUMENT_EXTRACT_PDF_OCR_PROFILE_PLANNER_ENV, DOCUMENT_EXTRACT_PDF_RENDER_REGIONS_ENV,
-    DOCUMENT_EXTRACT_PDF_RENDER_SELECTION_ENV, HybridPdfOcrProfilePlanner, PdfPageRenderSelection,
-    PdfRenderRoutingDecision, PdfRenderStatus, apply_hybrid_page_ocr_profile_plan_for_profiles,
+    DOCUMENT_EXTRACT_PDF_OCR_PROFILE_PLANNER_ENV, DOCUMENT_EXTRACT_PDF_OCR2_RENDER_DPI_ENV,
+    DOCUMENT_EXTRACT_PDF_RENDER_REGIONS_ENV, DOCUMENT_EXTRACT_PDF_RENDER_SELECTION_ENV,
+    HybridPdfOcrProfilePlanner, PdfPageRenderSelection, PdfRenderRoutingDecision, PdfRenderStatus,
+    apply_hybrid_page_ocr_profile_plan_for_profiles,
     apply_hybrid_page_ocr2_profile_plan_for_profiles, hybrid_page_ocr_input_arrow_path,
     hybrid_page_ocr_profile_planner_with_lookup,
     hybrid_page_ocr_region_requests_for_source_with_lookup,
-    hybrid_page_ocr_render_selection_with_lookup, sample_hybrid_page_ocr_report, sample_ocr_input,
-    sample_ocr_result, validate_hybrid_page_coverage, validate_hybrid_shard_coverage,
+    hybrid_page_ocr_render_profile_with_lookup, hybrid_page_ocr_render_selection_with_lookup,
+    sample_hybrid_page_ocr_report, sample_ocr_input, sample_ocr_result,
+    validate_hybrid_page_coverage, validate_hybrid_shard_coverage,
     validate_ocr_results_match_inputs, validate_successful_ocr_results,
 };
 
@@ -85,6 +87,22 @@ fn hybrid_page_ocr_render_selection_accepts_region_shards_override() {
     });
 
     assert_eq!(selection, PdfPageRenderSelection::RegionShards);
+}
+
+#[cfg(feature = "document-extract-pdf-source-range")]
+#[test]
+fn hybrid_page_ocr_render_profile_applies_ocr2_dpi_override_only_to_ocr2_pages() {
+    let profile = hybrid_page_ocr_render_profile_with_lookup(true, &|key| {
+        (key == DOCUMENT_EXTRACT_PDF_OCR2_RENDER_DPI_ENV).then(|| "180".to_string())
+    });
+
+    assert_eq!(profile.dpi, 180);
+
+    let compatible_profile = hybrid_page_ocr_render_profile_with_lookup(false, &|key| {
+        (key == DOCUMENT_EXTRACT_PDF_OCR2_RENDER_DPI_ENV).then(|| "180".to_string())
+    });
+
+    assert_eq!(compatible_profile.dpi, 300);
 }
 
 #[cfg(feature = "document-extract-pdf-source-range")]

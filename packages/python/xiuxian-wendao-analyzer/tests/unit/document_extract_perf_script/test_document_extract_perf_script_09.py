@@ -37,6 +37,7 @@ def test_start_rust_provider_forwards_hybrid_region_env(
         rust_pdf_ocr_workers="6",
         rust_pdf_ocr_source_range_workers="2",
         rust_pdf_ocr_profile_planner="fast-risk-window",
+        rust_pdf_ocr2_render_dpi=180,
         rust_pdf_ocr_endpoint=["http://127.0.0.1:52051"],
         rust_document_extract_endpoint=["http://127.0.0.1:53051"],
     )
@@ -66,6 +67,7 @@ def test_start_rust_provider_forwards_hybrid_region_env(
     assert env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_WORKERS"] == "6"
     assert env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS"] == "2"
     assert env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_PROFILE_PLANNER"] == "fast-risk-window"
+    assert env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR2_RENDER_DPI"] == "180"
     assert env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_ENDPOINTS"] == (
         "http://127.0.0.1:52051"
     )

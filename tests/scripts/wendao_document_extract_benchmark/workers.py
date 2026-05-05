@@ -197,6 +197,9 @@ def deepseek_ocr2_process_env(args: object) -> dict[str, str]:
         "deepseek_ocr2_prompt": "WENDAO_DEEPSEEK_OCR2_PROMPT",
         "deepseek_ocr2_max_tokens": "WENDAO_DEEPSEEK_OCR2_MAX_TOKENS",
         "deepseek_ocr2_timeout_seconds": "WENDAO_DEEPSEEK_OCR2_TIMEOUT_SECONDS",
+        "deepseek_ocr2_request_concurrency": (
+            "WENDAO_DEEPSEEK_OCR2_REQUEST_CONCURRENCY"
+        ),
         "openrouter_model": "WENDAO_OPENROUTER_MODEL",
         "openrouter_http_referer": "WENDAO_OPENROUTER_HTTP_REFERER",
         "openrouter_title": "WENDAO_OPENROUTER_TITLE",
