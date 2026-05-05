@@ -476,7 +476,7 @@ mod tests {
         fs::create_dir_all(semantic_root.join("projections")).expect("create projections");
         fs::write(
             semantic_root.join("objects/component/demo.md"),
-            r#"---
+            r"---
 id: component.demo
 kind: component
 title: Demo Component
@@ -498,12 +498,12 @@ relations: []
 ---
 
 # Demo Component
-"#,
+",
         )
         .expect("write component object");
         fs::write(
             semantic_root.join("objects/invariant/authority.md"),
-            r#"---
+            r"---
 id: invariant.demo-authority
 kind: invariant
 title: Demo Authority Invariant
@@ -525,19 +525,19 @@ relations: []
 ---
 
 # Demo Authority Invariant
-"#,
+",
         )
         .expect("write invariant object");
         fs::write(
             semantic_root.join("objects/task/pilot.md"),
-            r#"---
+            r"---
 id: task.semantic-scope-pilot
 kind: task
 title: Semantic Scope Pilot
 status: candidate
 confidence:
   score: 0.8
-  source: human_signed
+  source: llm_suggested
 owners:
   - scope: packages/rust/crates/xiuxian-wendao-studio
     role: route-adapter
@@ -554,12 +554,12 @@ relations:
 ---
 
 # Semantic Scope Pilot
-"#,
+",
         )
         .expect("write task object");
         fs::write(
             semantic_root.join("projections/llm-compression.md"),
-            r#"---
+            r"---
 type: semantic_projection
 projection: llm_compression
 source_objects:
@@ -572,12 +572,12 @@ status: active
 ---
 
 # LLM Compression
-"#,
+",
         )
         .expect("write projection");
         fs::write(
             semantic_root.join("change-intents/semantic-scope-pilot.md"),
-            r#"---
+            r"---
 type: semantic_change_intent
 id: change.semantic-scope-pilot
 title: Semantic Scope Pilot
@@ -595,11 +595,12 @@ required_validations:
   - cargo test -p xiuxian-wendao-studio --features zhenfa-router --test semantic_scope_provider semantic_scope
 projections_to_refresh:
   - llm_compression
-candidate_suggestions: []
+candidate_suggestions:
+  - task.semantic-scope-pilot
 ---
 
 # Semantic Scope Pilot Change
-"#,
+",
         )
         .expect("write change intent");
 

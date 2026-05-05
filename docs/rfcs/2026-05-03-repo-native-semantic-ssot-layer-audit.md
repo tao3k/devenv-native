@@ -48,9 +48,9 @@ runtime serving, Qianji advisory consumption, and explicit projection metadata
 refresh through `wendao-client lint semantic --refresh-projections`.
 
 The RFC is still not fully complete. Background projection refresh policy,
-candidate-state transition governance, broader Qianji workflow consumption,
-and future Julia or DuckDB-backed derived lanes remain outside the completed
-slice.
+candidate promotion and retirement workflow, broader Qianji workflow
+consumption, and future Julia or DuckDB-backed derived lanes remain outside
+the completed slice.
 
 ## 2. Evidence Map
 
@@ -224,9 +224,11 @@ semantic objects are now the authority surface; Wendao validates and serves a
 scoped bundle; Qianji consumes the semantic surface as advisory context.
 
 This does not close the full RFC. DuckDB and Julia remain derived or advisory
-lanes, SQL guard evidence is not authority, and candidate-object lifecycle
-governance still needs a separate closure pass before the semantic layer can
-be considered fully landed.
+lanes, SQL guard evidence is not authority, and candidate promotion or
+retirement workflow still needs a separate closure pass before the semantic
+layer can be considered fully landed. Minimal parser governance now prevents
+free-floating candidate objects by requiring `llm_suggested` confidence and an
+active change-intent `candidate_suggestions` reference.
 
 ## 6. Formal Research References
 

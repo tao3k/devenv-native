@@ -341,6 +341,10 @@ fn change_intent_intersects_scope(
             selected_ids.contains(relation.source.as_str())
                 || selected_ids.contains(relation.target.as_str())
         })
+        || intent
+            .candidate_suggestions
+            .iter()
+            .any(|object_id| selected_ids.contains(object_id.as_str()))
 }
 
 fn load_objects(root: &Path, repository: &mut SemanticRepository) {
@@ -502,6 +506,11 @@ fn validate_repository(repository: &mut SemanticRepository) {
             &mut repository.report,
         );
     }
+    validate_candidate_object_lifecycle(
+        &repository.objects,
+        &repository.change_intents,
+        &mut repository.report,
+    );
 }
 
 fn validate_object(
@@ -924,6 +933,43 @@ fn validate_candidate_suggestions(
                 clone_path(path),
                 format!(
                     "semantic change candidate suggestion `{object_id}` must reference a candidate object"
+                ),
+            );
+        }
+    }
+}
+
+fn validate_candidate_object_lifecycle(
+    objects: &[SemanticObject],
+    change_intents: &[SemanticChangeIntent],
+    report: &mut SemanticValidationReport,
+) {
+    let governed_candidates = change_intents
+        .iter()
+        .filter(|intent| intent.status == SemanticStatus::Active)
+        .flat_map(|intent| intent.candidate_suggestions.iter().map(String::as_str))
+        .collect::<BTreeSet<_>>();
+
+    for object in objects {
+        if object.status != SemanticStatus::Candidate {
+            continue;
+        }
+        let path = Some(object.source_path.clone());
+        if object.confidence.source != SemanticConfidenceSource::LlmSuggested {
+            report.push(
+                path.clone(),
+                format!(
+                    "candidate semantic object `{}` must use `llm_suggested` confidence source until accepted",
+                    object.id
+                ),
+            );
+        }
+        if !governed_candidates.contains(object.id.as_str()) {
+            report.push(
+                path,
+                format!(
+                    "candidate semantic object `{}` must be referenced by an active change intent candidate_suggestions entry",
+                    object.id
                 ),
             );
         }

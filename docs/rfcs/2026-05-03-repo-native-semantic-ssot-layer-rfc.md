@@ -59,12 +59,14 @@ As of 2026-05-05, the first physical slice is implemented:
    advisory planning context without owning semantic truth
 7. projection source revisions can be refreshed explicitly with
    `wendao-client lint semantic --refresh-projections`
+8. candidate semantic objects must remain `llm_suggested` and be governed by
+   active change-intent `candidate_suggestions` entries
 
 The full RFC is not complete. Remaining work includes background or
-policy-driven projection refresh, lifecycle transition governance for
-candidate objects, broader workflow-level Qianji consumption, and any future
-Julia or DuckDB-backed compute/read-model expansion. Those remain advisory or
-derived lanes; they do not change repo-native authority.
+policy-driven projection refresh, candidate promotion and retirement workflow,
+broader workflow-level Qianji consumption, and any future Julia or
+DuckDB-backed compute/read-model expansion. Those remain advisory or derived
+lanes; they do not change repo-native authority.
 
 ## 2. Alignment
 
@@ -228,6 +230,11 @@ The initial status vocabulary should be small:
 | `superseded` | Replaced by another object.                                                   |
 | `deprecated` | Still present but should not be used for new work.                            |
 | `retired`    | No longer active and not expected to return.                                  |
+
+Current parser governance requires each `candidate` object to use
+`confidence.source: llm_suggested` and to be named by an active semantic
+change intent `candidate_suggestions` entry. Promotion from `candidate` to
+`active` remains a separate repository-governed workflow.
 
 ### 6.4 Example Shape
 
@@ -422,6 +429,7 @@ Validators should reject changes when:
 5. affected invariants have no required validation evidence
 6. generated projections are stale and not explicitly marked stale
 7. LLM-generated suggestions are treated as canonical without acceptance
+8. candidate objects are not governed by active change-intent suggestions
 
 ## 12. Minimal First Slice
 

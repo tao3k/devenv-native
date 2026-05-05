@@ -110,6 +110,16 @@ fn bundle_object_status<'a>(bundle: &'a Value, object_id: &str) -> Option<&'a st
 }
 
 fn seed_project_semantic_fixture(project_root: &Path) {
+    create_semantic_fixture_dirs(project_root);
+    write_semantic_fixture_wendao_config(project_root);
+    write_semantic_fixture_component(project_root);
+    write_semantic_fixture_invariant(project_root);
+    write_semantic_fixture_candidate_task(project_root);
+    write_semantic_fixture_projection(project_root);
+    write_semantic_fixture_change_intent(project_root);
+}
+
+fn create_semantic_fixture_dirs(project_root: &Path) {
     create_dir_all_or_panic(
         project_root.join("semantic/objects/component"),
         "create component object directory",
@@ -130,6 +140,9 @@ fn seed_project_semantic_fixture(project_root: &Path) {
         project_root.join("semantic/projections"),
         "create projection directory",
     );
+}
+
+fn write_semantic_fixture_wendao_config(project_root: &Path) {
     write_file_or_panic(
         project_root.join("wendao.toml"),
         r#"
@@ -139,9 +152,12 @@ dirs = ["semantic"]
 "#,
         "write wendao.toml",
     );
+}
+
+fn write_semantic_fixture_component(project_root: &Path) {
     write_file_or_panic(
         project_root.join("semantic/objects/component/demo.md"),
-        r#"---
+        r"---
 id: component.demo
 kind: component
 title: Demo Component
@@ -163,12 +179,15 @@ relations: []
 ---
 
 # Demo Component
-"#,
+",
         "write component object",
     );
+}
+
+fn write_semantic_fixture_invariant(project_root: &Path) {
     write_file_or_panic(
         project_root.join("semantic/objects/invariant/authority.md"),
-        r#"---
+        r"---
 id: invariant.demo-authority
 kind: invariant
 title: Demo Authority Invariant
@@ -190,19 +209,22 @@ relations: []
 ---
 
 # Demo Authority Invariant
-"#,
+",
         "write invariant object",
     );
+}
+
+fn write_semantic_fixture_candidate_task(project_root: &Path) {
     write_file_or_panic(
         project_root.join("semantic/objects/task/pilot.md"),
-        r#"---
+        r"---
 id: task.semantic-scope-pilot
 kind: task
 title: Semantic Scope Pilot
 status: candidate
 confidence:
   score: 0.8
-  source: human_signed
+  source: llm_suggested
 owners:
   - scope: packages/rust/crates/xiuxian-wendao-studio
     role: route-adapter
@@ -219,12 +241,15 @@ relations:
 ---
 
 # Semantic Scope Pilot
-"#,
+",
         "write task object",
     );
+}
+
+fn write_semantic_fixture_projection(project_root: &Path) {
     write_file_or_panic(
         project_root.join("semantic/projections/llm-compression.md"),
-        r#"---
+        r"---
 type: semantic_projection
 projection: llm_compression
 source_objects:
@@ -237,12 +262,15 @@ status: active
 ---
 
 # LLM Compression
-"#,
+",
         "write projection",
     );
+}
+
+fn write_semantic_fixture_change_intent(project_root: &Path) {
     write_file_or_panic(
         project_root.join("semantic/change-intents/semantic-scope-pilot.md"),
-        r#"---
+        r"---
 type: semantic_change_intent
 id: change.semantic-scope-pilot
 title: Semantic Scope Pilot
@@ -260,11 +288,12 @@ required_validations:
   - cargo test -p xiuxian-wendao-studio --features zhenfa-router --test semantic_scope_provider semantic_scope
 projections_to_refresh:
   - llm_compression
-candidate_suggestions: []
+candidate_suggestions:
+  - task.semantic-scope-pilot
 ---
 
 # Semantic Scope Pilot Change
-"#,
+",
         "write change intent",
     );
 }

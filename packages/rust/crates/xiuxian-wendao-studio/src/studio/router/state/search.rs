@@ -142,44 +142,44 @@ impl StudioState {
             SearchCorpusKind::ReferenceOccurrence,
         ];
         let bundle_indexing = self.local_corpus_bundle_indexing(&corpora);
-        if !bundle_indexing {
-            if !self.should_coalesce_local_corpus_scan(LocalCorpusScanBundle::Code, &corpora) {
-                let scan_inventory = self
-                    .search_plane
-                    .scan_supported_projects_with_repeat_work_details(
-                        CODE_SEARCH_BUNDLE_SOURCE,
-                        self.project_root.as_path(),
-                        self.config_root.as_path(),
-                        configured_projects,
-                    );
-                let source_files = scan_inventory.source_files();
-                if self
-                    .search_plane
-                    .ensure_local_symbol_index_started_with_scanned_files(
-                        self.project_root.as_path(),
-                        self.config_root.as_path(),
-                        configured_projects,
-                        scan_inventory.symbol_files(),
-                    )
-                {
-                    self.record_local_corpus_index_started(SearchCorpusKind::LocalSymbol, source);
-                }
-                if self
-                    .search_plane
-                    .ensure_reference_occurrence_index_started_with_scanned_files(
-                        self.project_root.as_path(),
-                        self.config_root.as_path(),
-                        configured_projects,
-                        source_files.as_slice(),
-                    )
-                {
-                    self.record_local_corpus_index_started(
-                        SearchCorpusKind::ReferenceOccurrence,
-                        source,
-                    );
-                }
-                self.record_local_corpus_scan(LocalCorpusScanBundle::Code);
+        if !bundle_indexing
+            && !self.should_coalesce_local_corpus_scan(LocalCorpusScanBundle::Code, &corpora)
+        {
+            let scan_inventory = self
+                .search_plane
+                .scan_supported_projects_with_repeat_work_details(
+                    CODE_SEARCH_BUNDLE_SOURCE,
+                    self.project_root.as_path(),
+                    self.config_root.as_path(),
+                    configured_projects,
+                );
+            let source_files = scan_inventory.source_files();
+            if self
+                .search_plane
+                .ensure_local_symbol_index_started_with_scanned_files(
+                    self.project_root.as_path(),
+                    self.config_root.as_path(),
+                    configured_projects,
+                    scan_inventory.symbol_files(),
+                )
+            {
+                self.record_local_corpus_index_started(SearchCorpusKind::LocalSymbol, source);
             }
+            if self
+                .search_plane
+                .ensure_reference_occurrence_index_started_with_scanned_files(
+                    self.project_root.as_path(),
+                    self.config_root.as_path(),
+                    configured_projects,
+                    source_files.as_slice(),
+                )
+            {
+                self.record_local_corpus_index_started(
+                    SearchCorpusKind::ReferenceOccurrence,
+                    source,
+                );
+            }
+            self.record_local_corpus_scan(LocalCorpusScanBundle::Code);
         }
         self.symbol_index_coordinator
             .sync_projects(configured_projects.to_vec(), Arc::clone(&self.symbol_index));
