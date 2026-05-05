@@ -73,7 +73,10 @@ Behavior:
     unresolved relation targets, unresolved projection source objects, empty
     owner/provenance/verification fields, and invalid active confidence
     sources; fresh projection artifacts must also declare the current source
-    revision, while stale projections must be explicitly marked stale
+    revision, while stale projections must be explicitly marked stale; optional
+    `semantic/change-intents/` artifacts must resolve touched objects,
+    relation endpoints, affected invariants, projection refresh targets, and
+    candidate suggestion IDs
 
 Diagnostic rendering is split deliberately:
 

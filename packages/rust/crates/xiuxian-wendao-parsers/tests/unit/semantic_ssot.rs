@@ -203,6 +203,111 @@ fn semantic_repository_accepts_explicitly_stale_projection_source_revision() {
     );
 }
 
+#[test]
+fn semantic_repository_accepts_valid_change_intent() {
+    let temp = tempdir().unwrap_or_else(|error| panic!("tempdir should exist: {error}"));
+    write_file(
+        temp.path().join("objects/component/test.md"),
+        semantic_object_fixture(
+            "component.test",
+            "component",
+            "Component Test",
+            "active",
+            "  - kind: validates\n    target: invariant.test\n",
+        ),
+    );
+    write_file(
+        temp.path().join("objects/invariant/test.md"),
+        semantic_object_fixture(
+            "invariant.test",
+            "invariant",
+            "Invariant Test",
+            "active",
+            "",
+        ),
+    );
+    write_file(
+        temp.path().join("projections/llm-compression.md"),
+        semantic_projection_fixture(&["component.test", "invariant.test"], "outdated", "stale"),
+    );
+    refresh_projection_as_fresh(temp.path(), &["component.test", "invariant.test"]);
+    write_file(
+        temp.path().join("change-intents/semantic-pilot.md"),
+        semantic_change_intent_fixture(
+            "component.test",
+            "invariant.test",
+            "component.test",
+            "invariant.test",
+            "llm_compression",
+        ),
+    );
+
+    let repository = load_semantic_repository(temp.path());
+
+    assert!(
+        repository.report.is_success(),
+        "valid change intent should pass: {:?}",
+        repository.report.issues
+    );
+    assert_eq!(repository.change_intents.len(), 1);
+}
+
+#[test]
+fn semantic_repository_reports_invalid_change_intent_references() {
+    let temp = tempdir().unwrap_or_else(|error| panic!("tempdir should exist: {error}"));
+    write_file(
+        temp.path().join("objects/component/test.md"),
+        semantic_object_fixture(
+            "component.test",
+            "component",
+            "Component Test",
+            "active",
+            "",
+        ),
+    );
+    write_file(
+        temp.path().join("projections/llm-compression.md"),
+        semantic_projection_fixture(&["component.test"], "outdated", "stale"),
+    );
+    write_file(
+        temp.path().join("change-intents/semantic-pilot.md"),
+        semantic_change_intent_fixture(
+            "component.missing",
+            "component.test",
+            "component.test",
+            "component.missing",
+            "missing_projection",
+        ),
+    );
+
+    let repository = load_semantic_repository(temp.path());
+    let messages = repository
+        .report
+        .issues
+        .iter()
+        .map(|issue| issue.message.as_str())
+        .collect::<Vec<_>>();
+
+    assert!(
+        messages
+            .iter()
+            .any(|message| message.contains("component.missing")),
+        "missing touched object or relation target should be reported: {messages:?}"
+    );
+    assert!(
+        messages
+            .iter()
+            .any(|message| message.contains("must reference an invariant object")),
+        "non-invariant affected invariant should be reported: {messages:?}"
+    );
+    assert!(
+        messages
+            .iter()
+            .any(|message| message.contains("missing_projection")),
+        "missing projection should be reported: {messages:?}"
+    );
+}
+
 fn semantic_object_fixture<'a>(
     id: &str,
     kind: &str,
@@ -300,4 +405,43 @@ fn refresh_projection_as_fresh(root: &Path, source_objects: &[&str]) {
         root.join("projections/llm-compression.md"),
         semantic_projection_fixture(source_objects, &source_revision, "fresh"),
     );
+}
+
+fn semantic_change_intent_fixture(
+    touched_object: &str,
+    affected_invariant: &str,
+    relation_source: &str,
+    relation_target: &str,
+    projection: &str,
+) -> String {
+    format!(
+        concat!(
+            "---\n",
+            "type: semantic_change_intent\n",
+            "id: change.semantic-ssot.test\n",
+            "title: Semantic SSOT Test Change\n",
+            "status: active\n",
+            "touched_objects:\n",
+            "  - {touched_object}\n",
+            "changed_relations:\n",
+            "  - source: {relation_source}\n",
+            "    kind: validates\n",
+            "    target: {relation_target}\n",
+            "    action: add\n",
+            "affected_invariants:\n",
+            "  - {affected_invariant}\n",
+            "required_validations:\n",
+            "  - direnv exec . cargo test -p xiuxian-wendao-parsers semantic -- --nocapture\n",
+            "projections_to_refresh:\n",
+            "  - {projection}\n",
+            "candidate_suggestions: []\n",
+            "---\n",
+            "# Semantic SSOT Test Change\n",
+        ),
+        touched_object = touched_object,
+        affected_invariant = affected_invariant,
+        relation_source = relation_source,
+        relation_target = relation_target,
+        projection = projection,
+    )
 }

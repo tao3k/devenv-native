@@ -20,6 +20,7 @@ struct SemanticLintRootReport {
     root: PathBuf,
     object_count: usize,
     projection_count: usize,
+    change_intent_count: usize,
     issues: Vec<SemanticValidationIssue>,
 }
 
@@ -28,6 +29,7 @@ struct SemanticLintReport {
     checked_roots: usize,
     object_count: usize,
     projection_count: usize,
+    change_intent_count: usize,
     issue_count: usize,
     roots: Vec<SemanticLintRootReport>,
 }
@@ -119,6 +121,7 @@ pub(crate) fn run_semantic_lint(
                 root: display_semantic_root(root, context.root()),
                 object_count: repository.objects.len(),
                 projection_count: repository.projections.len(),
+                change_intent_count: repository.change_intents.len(),
                 issues: repository.report.issues,
             }
         })
@@ -127,6 +130,10 @@ pub(crate) fn run_semantic_lint(
         checked_roots: root_reports.len(),
         object_count: root_reports.iter().map(|root| root.object_count).sum(),
         projection_count: root_reports.iter().map(|root| root.projection_count).sum(),
+        change_intent_count: root_reports
+            .iter()
+            .map(|root| root.change_intent_count)
+            .sum(),
         issue_count: root_reports.iter().map(|root| root.issues.len()).sum(),
         roots: root_reports,
     };
@@ -228,14 +235,21 @@ fn emit_semantic_report(report: &SemanticLintReport, output: OutputFormat) -> Re
 fn render_semantic_text_report(report: &SemanticLintReport) -> String {
     if report.issue_count == 0 {
         return format!(
-            "Semantic lint passed: checked {} root(s), {} object(s), {} projection(s), 0 issue(s).\n",
-            report.checked_roots, report.object_count, report.projection_count
+            "Semantic lint passed: checked {} root(s), {} object(s), {} projection(s), {} change intent(s), 0 issue(s).\n",
+            report.checked_roots,
+            report.object_count,
+            report.projection_count,
+            report.change_intent_count
         );
     }
 
     let mut rendered = format!(
-        "Semantic lint found {} issue(s) across {} root(s), {} object(s), and {} projection(s).\n",
-        report.issue_count, report.checked_roots, report.object_count, report.projection_count
+        "Semantic lint found {} issue(s) across {} root(s), {} object(s), {} projection(s), and {} change intent(s).\n",
+        report.issue_count,
+        report.checked_roots,
+        report.object_count,
+        report.projection_count,
+        report.change_intent_count
     );
     for root in &report.roots {
         for issue in &root.issues {

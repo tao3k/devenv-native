@@ -19,7 +19,7 @@ fn semantic_lint_accepts_valid_semantic_root() -> Result<()> {
     assert_eq!(status, Some(0));
     assert!(
         stdout.contains(
-            "Semantic lint passed: checked 1 root(s), 1 object(s), 1 projection(s), 0 issue(s)."
+            "Semantic lint passed: checked 1 root(s), 1 object(s), 1 projection(s), 0 change intent(s), 0 issue(s)."
         ),
         "{stdout}"
     );

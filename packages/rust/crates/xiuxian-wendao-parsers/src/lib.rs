@@ -81,12 +81,13 @@ pub use sections::{
     LogbookEntry, MarkdownSection, SectionCore, SectionMetadata, SectionScope, extract_sections,
 };
 pub use semantic_ssot::{
-    SemanticBundleProvenance, SemanticConfidence, SemanticConfidenceSource, SemanticObject,
-    SemanticObjectKind, SemanticOwner, SemanticProjection, SemanticProjectionStaleness,
-    SemanticProvenance, SemanticRelation, SemanticRelationEdge, SemanticRelationKind,
-    SemanticRepository, SemanticScopeBundle, SemanticScopeRequest, SemanticStatus,
-    SemanticValidationIssue, SemanticValidationReport, SemanticVerification,
-    load_semantic_repository, parse_semantic_object, parse_semantic_projection,
+    SemanticBundleProvenance, SemanticChangeIntent, SemanticConfidence, SemanticConfidenceSource,
+    SemanticObject, SemanticObjectKind, SemanticOwner, SemanticProjection,
+    SemanticProjectionStaleness, SemanticProvenance, SemanticRelation, SemanticRelationChange,
+    SemanticRelationChangeAction, SemanticRelationEdge, SemanticRelationKind, SemanticRepository,
+    SemanticScopeBundle, SemanticScopeRequest, SemanticStatus, SemanticValidationIssue,
+    SemanticValidationReport, SemanticVerification, load_semantic_repository,
+    parse_semantic_change_intent, parse_semantic_object, parse_semantic_projection,
     semantic_projection_source_revision, semantic_scope_bundle,
 };
 pub use sourcepos::line_col_to_byte_range;

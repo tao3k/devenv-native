@@ -1,10 +1,10 @@
 //! Repo-native semantic SSOT loading, validation, and scope APIs.
 
 use super::types::{
-    SemanticBundleProvenance, SemanticConfidenceSource, SemanticObject, SemanticObjectKind,
-    SemanticProjection, SemanticProjectionStaleness, SemanticRelationEdge, SemanticRelationKind,
-    SemanticRepository, SemanticScopeBundle, SemanticScopeRequest, SemanticStatus,
-    SemanticValidationReport,
+    SemanticBundleProvenance, SemanticChangeIntent, SemanticConfidenceSource, SemanticObject,
+    SemanticObjectKind, SemanticProjection, SemanticProjectionStaleness, SemanticRelationEdge,
+    SemanticRelationKind, SemanticRepository, SemanticScopeBundle, SemanticScopeRequest,
+    SemanticStatus, SemanticValidationReport,
 };
 use crate::frontmatter::split_frontmatter_raw;
 use std::collections::{BTreeMap, BTreeSet};
@@ -80,6 +80,27 @@ pub fn parse_semantic_projection(
     Ok(projection)
 }
 
+/// Parse one semantic change-intent artifact from Markdown content.
+///
+/// # Errors
+///
+/// Returns [`SemanticArtifactParseError`] when the document has no leading
+/// YAML frontmatter or the frontmatter does not match the semantic
+/// change-intent schema.
+pub fn parse_semantic_change_intent(
+    path: impl AsRef<Path>,
+    content: &str,
+) -> Result<SemanticChangeIntent, SemanticArtifactParseError> {
+    let Some(frontmatter) = split_frontmatter_raw(content) else {
+        return Err(SemanticArtifactParseError::MissingFrontmatter);
+    };
+    let mut intent = serde_yaml::from_str::<SemanticChangeIntent>(frontmatter.yaml)
+        .map_err(SemanticArtifactParseError::InvalidYaml)?;
+    intent.body = frontmatter.body.trim().to_string();
+    intent.source_path = path.as_ref().to_path_buf();
+    Ok(intent)
+}
+
 /// Load and validate one semantic repository root.
 #[must_use]
 pub fn load_semantic_repository(root: impl AsRef<Path>) -> SemanticRepository {
@@ -88,6 +109,7 @@ pub fn load_semantic_repository(root: impl AsRef<Path>) -> SemanticRepository {
         root: root.clone(),
         objects: Vec::new(),
         projections: Vec::new(),
+        change_intents: Vec::new(),
         report: SemanticValidationReport::default(),
     };
 
@@ -101,6 +123,7 @@ pub fn load_semantic_repository(root: impl AsRef<Path>) -> SemanticRepository {
 
     load_objects(&root, &mut repository);
     load_projections(&root, &mut repository);
+    load_change_intents(&root, &mut repository);
     validate_repository(&mut repository);
     repository
 }
@@ -323,6 +346,42 @@ fn load_projections(root: &Path, repository: &mut SemanticRepository) {
     }
 }
 
+fn load_change_intents(root: &Path, repository: &mut SemanticRepository) {
+    let intents_root = root.join("change-intents");
+    if !intents_root.exists() {
+        return;
+    }
+
+    for entry in WalkDir::new(&intents_root) {
+        let Ok(entry) = entry else {
+            repository.report.push(
+                Some(PathBuf::from("change-intents")),
+                "failed to read semantic change-intent entry",
+            );
+            continue;
+        };
+        if !entry.file_type().is_file()
+            || entry.path().extension().and_then(|value| value.to_str()) != Some("md")
+        {
+            continue;
+        }
+        let relative_path = relative_path(root, entry.path());
+        match fs::read_to_string(entry.path()) {
+            Ok(content) => match parse_semantic_change_intent(&relative_path, &content) {
+                Ok(intent) => repository.change_intents.push(intent),
+                Err(error) => repository.report.push(
+                    Some(relative_path),
+                    format!("failed to parse semantic change intent: {error}"),
+                ),
+            },
+            Err(error) => repository.report.push(
+                Some(relative_path),
+                format!("failed to read semantic change intent: {error}"),
+            ),
+        }
+    }
+}
+
 fn validate_repository(repository: &mut SemanticRepository) {
     let mut seen_ids = BTreeSet::new();
     let object_ids = repository
@@ -340,12 +399,29 @@ fn validate_repository(repository: &mut SemanticRepository) {
         .iter()
         .map(|object| (object.id.as_str(), object))
         .collect::<BTreeMap<_, _>>();
+    let projection_names = repository
+        .projections
+        .iter()
+        .map(|projection| projection.projection.as_str())
+        .collect::<BTreeSet<_>>();
 
     for projection in &repository.projections {
         validate_projection(
             projection,
             &object_ids,
             &object_by_id,
+            &mut repository.report,
+        );
+    }
+
+    let mut seen_change_ids = BTreeSet::new();
+    for intent in &repository.change_intents {
+        validate_change_intent(
+            intent,
+            &mut seen_change_ids,
+            &object_ids,
+            &object_by_id,
+            &projection_names,
             &mut repository.report,
         );
     }
@@ -556,6 +632,170 @@ fn validate_projection(
                 ),
             );
         }
+    }
+}
+
+fn validate_change_intent(
+    intent: &SemanticChangeIntent,
+    seen_ids: &mut BTreeSet<String>,
+    object_ids: &BTreeSet<String>,
+    object_by_id: &BTreeMap<&str, &SemanticObject>,
+    projection_names: &BTreeSet<&str>,
+    report: &mut SemanticValidationReport,
+) {
+    let path = Some(intent.source_path.clone());
+    if intent.intent_type != "semantic_change_intent" {
+        report.push(
+            path.clone(),
+            "semantic change intent `type` must be `semantic_change_intent`",
+        );
+    }
+    validate_non_empty(
+        &intent.id,
+        "semantic change intent `id` must be non-empty",
+        path.clone(),
+        report,
+    );
+    if !intent.id.starts_with("change.") {
+        report.push(
+            path.clone(),
+            format!(
+                "semantic change intent id `{}` must start with `change.`",
+                intent.id
+            ),
+        );
+    }
+    if !seen_ids.insert(intent.id.clone()) {
+        report.push(
+            path.clone(),
+            format!("duplicate semantic change intent id `{}`", intent.id),
+        );
+    }
+    validate_non_empty(
+        &intent.title,
+        "semantic change intent `title` must be non-empty",
+        path.clone(),
+        report,
+    );
+    if intent.touched_objects.is_empty() {
+        report.push(
+            path.clone(),
+            "semantic change intent `touched_objects` must be non-empty",
+        );
+    }
+    for object_id in &intent.touched_objects {
+        validate_object_reference(
+            object_id,
+            object_ids,
+            "semantic change intent touched object",
+            path.clone(),
+            report,
+        );
+    }
+    for relation in &intent.changed_relations {
+        validate_object_reference(
+            &relation.source,
+            object_ids,
+            "semantic change relation source",
+            path.clone(),
+            report,
+        );
+        validate_object_reference(
+            &relation.target,
+            object_ids,
+            "semantic change relation target",
+            path.clone(),
+            report,
+        );
+    }
+    if intent.affected_invariants.is_empty() {
+        report.push(
+            path.clone(),
+            "semantic change intent `affected_invariants` must be non-empty",
+        );
+    }
+    for object_id in &intent.affected_invariants {
+        validate_object_reference(
+            object_id,
+            object_ids,
+            "semantic change affected invariant",
+            path.clone(),
+            report,
+        );
+        if let Some(object) = object_by_id.get(object_id.as_str()) {
+            if object.kind != SemanticObjectKind::Invariant {
+                report.push(
+                    path.clone(),
+                    format!(
+                        "semantic change affected invariant `{object_id}` must reference an invariant object"
+                    ),
+                );
+            }
+        }
+    }
+    if intent.required_validations.is_empty() {
+        report.push(
+            path.clone(),
+            "semantic change intent `required_validations` must be non-empty",
+        );
+    }
+    for command in &intent.required_validations {
+        validate_non_empty(
+            command,
+            "semantic change required validation must be non-empty",
+            path.clone(),
+            report,
+        );
+    }
+    if intent.projections_to_refresh.is_empty() {
+        report.push(
+            path.clone(),
+            "semantic change intent `projections_to_refresh` must be non-empty",
+        );
+    }
+    for projection in &intent.projections_to_refresh {
+        if !projection_names.contains(projection.as_str()) {
+            report.push(
+                path.clone(),
+                format!("semantic change projection `{projection}` does not resolve"),
+            );
+        }
+    }
+    for object_id in &intent.candidate_suggestions {
+        validate_object_reference(
+            object_id,
+            object_ids,
+            "semantic change candidate suggestion",
+            path.clone(),
+            report,
+        );
+        if let Some(object) = object_by_id.get(object_id.as_str()) {
+            if object.status != SemanticStatus::Candidate {
+                report.push(
+                    path.clone(),
+                    format!(
+                        "semantic change candidate suggestion `{object_id}` must reference a candidate object"
+                    ),
+                );
+            }
+        }
+    }
+}
+
+fn validate_object_reference(
+    object_id: &str,
+    object_ids: &BTreeSet<String>,
+    label: &str,
+    path: Option<PathBuf>,
+    report: &mut SemanticValidationReport,
+) {
+    if object_id.trim().is_empty() {
+        report.push(path, format!("{label} must be non-empty"));
+    } else if !object_ids.contains(object_id) {
+        report.push(
+            path,
+            format!("{label} `{object_id}` does not resolve to a known object"),
+        );
     }
 }
 

@@ -134,6 +134,31 @@ pub struct SemanticRelation {
     pub target: String,
 }
 
+/// Operation declared for a semantic relation delta.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SemanticRelationChangeAction {
+    /// Add the relation.
+    Add,
+    /// Remove the relation.
+    Remove,
+    /// Update the relation semantics.
+    Update,
+}
+
+/// Relation delta declared by a semantic change intent.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SemanticRelationChange {
+    /// Source semantic object ID.
+    pub source: String,
+    /// Relation kind.
+    pub kind: SemanticRelationKind,
+    /// Target semantic object ID.
+    pub target: String,
+    /// Intended relation operation.
+    pub action: SemanticRelationChangeAction,
+}
+
 /// Freshness state declared by a semantic projection artifact.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -199,6 +224,40 @@ pub struct SemanticProjection {
     pub source_path: PathBuf,
 }
 
+/// Governance declaration for one semantic change.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SemanticChangeIntent {
+    /// Change-intent artifact type. The pilot expects `semantic_change_intent`.
+    #[serde(rename = "type")]
+    pub intent_type: String,
+    /// Stable semantic change identifier.
+    pub id: String,
+    /// Human-readable title.
+    pub title: String,
+    /// Lifecycle status for this change declaration.
+    pub status: SemanticStatus,
+    /// Existing semantic objects touched by the change.
+    pub touched_objects: Vec<String>,
+    /// Intended relation deltas.
+    #[serde(default)]
+    pub changed_relations: Vec<SemanticRelationChange>,
+    /// Existing invariant objects affected by the change.
+    pub affected_invariants: Vec<String>,
+    /// Required validation commands for closing the change.
+    pub required_validations: Vec<String>,
+    /// Projection names that must be refreshed or reviewed.
+    pub projections_to_refresh: Vec<String>,
+    /// Candidate semantic object IDs proposed by LLM or advisory processes.
+    #[serde(default)]
+    pub candidate_suggestions: Vec<String>,
+    /// Markdown body after frontmatter.
+    #[serde(default, skip_deserializing)]
+    pub body: String,
+    /// Path relative to the semantic root.
+    #[serde(default, skip_deserializing)]
+    pub source_path: PathBuf,
+}
+
 /// One validation issue for a semantic repository.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SemanticValidationIssue {
@@ -239,6 +298,8 @@ pub struct SemanticRepository {
     pub objects: Vec<SemanticObject>,
     /// Loaded projection artifacts.
     pub projections: Vec<SemanticProjection>,
+    /// Loaded change-intent artifacts.
+    pub change_intents: Vec<SemanticChangeIntent>,
     /// Validation report for objects, projections, and relations.
     pub report: SemanticValidationReport,
 }
