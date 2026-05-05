@@ -147,6 +147,9 @@ Router nodes may opt into that route with `semantic_guard_route = true`, or
 with `semantic_guard_route_key` for a custom context key. When enabled,
 `semanticScopeGuardRoute.recommendedAction` selects a matching branch such as
 `continue`, `review_required`, or `blocked` before probabilistic fallback.
+`resources/tests/semantic_guard_route_branch.toml` is the checked-in resource
+fixture for that workflow shape and is covered by the
+`semantic_guard_route` integration test filter.
 That RFC now also treats scenarios as guard graphs over the bounded work
 surface, with explicit done-gate semantics and blocked-vs-failed diagnostics
 for `qianji check`.

@@ -1,0 +1,43 @@
+name = "Semantic_Guard_Route_Branch_Test"
+
+[[nodes]]
+id = "SemanticGuardRouter"
+task_type = "router"
+weight = 1.0
+params = { branches = [["continue", 1.0], ["review_required", 1.0], ["blocked", 1.0]], semantic_guard_route = true }
+
+[[nodes]]
+id = "ContinuePath"
+task_type = "mock"
+weight = 1.0
+params = {}
+
+[[nodes]]
+id = "ReviewPath"
+task_type = "mock"
+weight = 1.0
+params = {}
+
+[[nodes]]
+id = "BlockedPath"
+task_type = "mock"
+weight = 1.0
+params = {}
+
+[[edges]]
+from = "SemanticGuardRouter"
+to = "ContinuePath"
+label = "continue"
+weight = 1.0
+
+[[edges]]
+from = "SemanticGuardRouter"
+to = "ReviewPath"
+label = "review_required"
+weight = 1.0
+
+[[edges]]
+from = "SemanticGuardRouter"
+to = "BlockedPath"
+label = "blocked"
+weight = 1.0

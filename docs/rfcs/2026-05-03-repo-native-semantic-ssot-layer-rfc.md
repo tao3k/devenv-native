@@ -121,11 +121,16 @@ As of 2026-05-05, the first physical slice is implemented:
     `semanticScopeGuardRoute.recommendedAction` value matching a configured
     branch selects that branch before probabilistic fallback. The default
     router path remains unchanged and semantic truth remains read-only context.
+22. Qianji now has a checked-in guard route-aware workflow fixture at
+    `packages/rust/crates/xiuxian-qianji/resources/tests/semantic_guard_route_branch.toml`.
+    The integration test compiles that ordinary TOML manifest and proves stale
+    semantic scope selects the `review_required` branch while leaving
+    `continue` and `blocked` branches inactive.
 
 The full RFC is not complete. Remaining work includes wider rollout of
-semantic guard route-aware workflow templates and any future Julia or
-DuckDB-backed compute/read-model expansion. Those remain advisory or derived
-lanes; they do not change repo-native authority.
+semantic guard route-aware real workflows and any future Julia or DuckDB-backed
+compute/read-model expansion. Those remain advisory or derived lanes; they do
+not change repo-native authority.
 
 ## 2. Alignment
 
