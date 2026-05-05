@@ -11565,7 +11565,6 @@ dependencies = [
 name = "xiuxian-types"
 version = "0.1.1"
 dependencies = [
- "insta",
  "rust-lang-project-harness",
  "schemars",
  "serde",

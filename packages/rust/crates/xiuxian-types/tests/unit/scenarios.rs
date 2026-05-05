@@ -1,9 +1,9 @@
-//! Scenario-based snapshot tests for xiuxian-types.
+//! Scenario-based contract tests for xiuxian-types.
 
 use std::error::Error;
 use std::path::PathBuf;
 
-use serde_json::Value;
+use serde_json::{Value, json};
 use xiuxian_types::SkillDefinition;
 
 fn manifest_dir() -> PathBuf {
@@ -23,9 +23,17 @@ fn test_skill_definition_scenarios() {
 
     let output = run_skill_definition_fixture(&input_path)
         .unwrap_or_else(|error| panic!("skill definition scenario should pass: {error}"));
-    insta::with_settings!({ snapshot_path => "../snapshots" }, {
-        insta::assert_json_snapshot!("001_routing_keywords_merge", output);
-    });
+
+    assert_eq!(
+        output,
+        json!({
+            "description": "desc",
+            "metadata": {
+                "routing_keywords": ["alpha", "beta", "gamma"],
+            },
+            "name": "git",
+        })
+    );
 }
 
 fn run_skill_definition_fixture(input_path: &std::path::Path) -> Result<Value, Box<dyn Error>> {

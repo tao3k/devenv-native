@@ -11,4 +11,4 @@ category = "skill_definition"
 type = "json"
 paths = ["input"]
 
-# Snapshot output managed by insta at tests/snapshots/scenarios/
+# Expected output is asserted directly by the scenario contract test.

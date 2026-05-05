@@ -13,5 +13,4 @@ thiserror = { workspace = true }
 schemars = { workspace = true }
 
 [dev-dependencies]
-insta = { workspace = true }
 rust-lang-project-harness = { workspace = true }
