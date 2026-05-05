@@ -1,4 +1,3 @@
-use std::collections::HashSet;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
@@ -9,9 +8,7 @@ use xiuxian_wendao_attachments::pdf::ocr::{
 };
 
 use super::core::PdfOcrWorkerScheduler;
-use super::limit::{
-    duration_to_ms, source_pdf_page_range_bridge_inputs, source_pdf_page_range_chunks,
-};
+use super::limit::{duration_to_ms, source_pdf_page_range_chunks};
 use crate::studio::document_extract_pdf_ocr_client::{
     PdfOcrShardFlightClient, PdfOcrShardFlightResponse,
 };
@@ -58,7 +55,7 @@ impl PdfOcrWorkerScheduler {
         let live_results = if misses.is_empty() {
             Vec::new()
         } else {
-            self.request_missed_shards(endpoint_urls, inputs, misses.as_slice())
+            self.request_missed_shards(endpoint_urls, misses.as_slice())
                 .await?
         };
 
@@ -73,7 +70,6 @@ impl PdfOcrWorkerScheduler {
     async fn request_missed_shards(
         &self,
         endpoint_urls: &[String],
-        all_inputs: &[PdfOcrShardInput],
         inputs: &[PdfOcrShardInput],
     ) -> Result<Vec<PdfOcrShardResult>, String> {
         let mut slots = vec![None; inputs.len()];
@@ -98,14 +94,8 @@ impl PdfOcrWorkerScheduler {
         }
 
         if !owner_requests.is_empty() {
-            self.handle_owned_shard_requests(
-                endpoint_urls,
-                all_inputs,
-                inputs,
-                &mut slots,
-                owner_requests,
-            )
-            .await?;
+            self.handle_owned_shard_requests(endpoint_urls, &mut slots, owner_requests)
+                .await?;
         }
 
         for (position, entry) in waiters {
@@ -126,8 +116,6 @@ impl PdfOcrWorkerScheduler {
     async fn handle_owned_shard_requests(
         &self,
         endpoint_urls: &[String],
-        all_inputs: &[PdfOcrShardInput],
-        missing_inputs: &[PdfOcrShardInput],
         slots: &mut [Option<PdfOcrShardResult>],
         owner_requests: Vec<OwnedShardRequest>,
     ) -> Result<(), String> {
@@ -136,29 +124,19 @@ impl PdfOcrWorkerScheduler {
             .iter()
             .map(|request| request.input.clone())
             .collect::<Vec<_>>();
-        let live_request_inputs = source_pdf_page_range_bridge_inputs(
-            all_inputs,
-            missing_inputs,
-            owner_inputs.as_slice(),
-        );
         let live_results = match self
-            .request_uncached_shards(clients.as_slice(), live_request_inputs.as_slice())
+            .request_uncached_shards(clients.as_slice(), owner_inputs.as_slice())
             .await
         {
-            Ok(results) => order_ocr_results_by_inputs(live_request_inputs.as_slice(), results)
-                .and_then(|results| select_owner_ocr_results(owner_inputs.as_slice(), results)),
-            Err(error) => Err(error),
-        };
-        let live_results = match live_results {
-            Ok(results) => results,
+            Ok(results) => order_ocr_results_by_inputs(owner_inputs.as_slice(), results),
             Err(error) => {
-                for request in &owner_requests {
+                for request in owner_requests {
                     self.inflight
                         .publish(request.key.as_str(), &request.entry, Err(error.clone()));
                 }
                 return Err(error);
             }
-        };
+        }?;
 
         for (request, result) in owner_requests.iter().zip(live_results) {
             if let Err(error) = self.cache.store_successful(&request.input, &result) {
@@ -307,21 +285,6 @@ impl PdfOcrWorkerScheduler {
         }
         Ok((permits, queue_wait))
     }
-}
-
-pub(crate) fn select_owner_ocr_results(
-    owner_inputs: &[PdfOcrShardInput],
-    live_results: Vec<PdfOcrShardResult>,
-) -> Result<Vec<PdfOcrShardResult>, String> {
-    let owner_shard_ids = owner_inputs
-        .iter()
-        .map(|input| input.shard_element_id.as_str())
-        .collect::<HashSet<_>>();
-    let owner_results = live_results
-        .into_iter()
-        .filter(|result| owner_shard_ids.contains(result.shard_element_id.as_str()))
-        .collect::<Vec<_>>();
-    order_ocr_results_by_inputs(owner_inputs, owner_results)
 }
 
 async fn connect_pdf_ocr_clients(
