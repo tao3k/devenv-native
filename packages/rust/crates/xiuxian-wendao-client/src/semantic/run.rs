@@ -2,7 +2,7 @@
 
 use super::{
     SemanticCommand, SemanticDescribeReadModelArgs, SemanticReadModelQueryArgs,
-    SemanticRefreshProjectionsArgs,
+    SemanticRefreshProjectionsArgs, SemanticSnapshotReadModelArgs,
 };
 use crate::lint::{
     self, SemanticLintArgs, SemanticLintProjectionValidationArgs, SemanticLintValidationArgs,
@@ -17,8 +17,8 @@ use std::process::Command;
 use std::thread;
 use std::time::Duration;
 use xiuxian_wendao_sql::semantic_read_model::{
-    SemanticReadModelCatalog, query_semantic_read_model_payload,
-    semantic_read_model_catalog_from_root,
+    SemanticReadModelCatalog, SemanticReadModelSnapshot, query_semantic_read_model_payload,
+    semantic_read_model_catalog_from_root, semantic_read_model_snapshot_from_root,
 };
 use xiuxian_wendao_sql::{SqlBatchPayload, SqlQueryPayload};
 
@@ -39,6 +39,13 @@ struct SemanticReadModelQueryReport {
     payload: SqlQueryPayload,
 }
 
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct SemanticReadModelSnapshotReport {
+    root: PathBuf,
+    snapshot: SemanticReadModelSnapshot,
+}
+
 pub(crate) fn run_command(
     command: &SemanticCommand,
     context: &ClientContext,
@@ -47,6 +54,7 @@ pub(crate) fn run_command(
         SemanticCommand::DescribeReadModel(args) => run_describe_read_model(args, context),
         SemanticCommand::QueryReadModel(args) => run_query_read_model(args, context),
         SemanticCommand::RefreshProjections(args) => run_refresh_projections_worker(args, context),
+        SemanticCommand::SnapshotReadModel(args) => run_snapshot_read_model(args, context),
     }
 }
 
@@ -100,6 +108,27 @@ fn run_query_read_model(
         payload,
     };
     emit_read_model_query_report(&report, context.output())?;
+    Ok(CommandOutcome::success())
+}
+
+fn run_snapshot_read_model(
+    args: &SemanticSnapshotReadModelArgs,
+    context: &ClientContext,
+) -> Result<CommandOutcome> {
+    let root = semantic_root(args.path.as_ref(), context.root());
+    let snapshot = semantic_read_model_snapshot_from_root(root.as_path())
+        .map_err(anyhow::Error::msg)
+        .with_context(|| {
+            format!(
+                "failed to snapshot semantic read model under `{}`",
+                root.display()
+            )
+        })?;
+    let report = SemanticReadModelSnapshotReport {
+        root: display_semantic_root(root.as_path(), context.root()),
+        snapshot,
+    };
+    emit_read_model_snapshot_report(&report, context.output())?;
     Ok(CommandOutcome::success())
 }
 
@@ -200,6 +229,19 @@ fn emit_read_model_query_report(
     Ok(())
 }
 
+fn emit_read_model_snapshot_report(
+    report: &SemanticReadModelSnapshotReport,
+    output: OutputFormat,
+) -> Result<()> {
+    let rendered = match output {
+        OutputFormat::Text => render_read_model_snapshot_text_report(report),
+        OutputFormat::Json => render_json_report(report, false)?,
+        OutputFormat::Pretty => render_json_report(report, true)?,
+    };
+    print!("{rendered}");
+    Ok(())
+}
+
 fn render_read_model_catalog_text_report(report: &SemanticReadModelCatalogReport) -> String {
     let mut rendered = format!(
         "Semantic read-model catalog: {} table(s), {} row(s) from {}.\n",
@@ -231,6 +273,33 @@ fn render_read_model_catalog_text_report(report: &SemanticReadModelCatalogReport
             });
             rendered.push('\n');
         }
+    }
+    rendered
+}
+
+fn render_read_model_snapshot_text_report(report: &SemanticReadModelSnapshotReport) -> String {
+    let mut rendered = format!(
+        "Semantic read-model snapshot: {} from {}.\n",
+        report.snapshot.snapshot_revision,
+        report.root.display()
+    );
+    rendered.push_str("- authority: ");
+    rendered.push_str(report.snapshot.authority.as_str());
+    rendered.push_str("\n- tables: ");
+    rendered.push_str(report.snapshot.catalog.table_count.to_string().as_str());
+    rendered.push_str(" table(s), ");
+    rendered.push_str(report.snapshot.catalog.total_row_count.to_string().as_str());
+    rendered.push_str(" row(s)\n");
+    for table in &report.snapshot.tables {
+        rendered.push_str("- ");
+        rendered.push_str(table.name.as_str());
+        rendered.push_str(": ");
+        rendered.push_str(table.row_count.to_string().as_str());
+        rendered.push_str(" row(s), ");
+        rendered.push_str(table.column_count.to_string().as_str());
+        rendered.push_str(" column(s), revision ");
+        rendered.push_str(table.row_revision.as_str());
+        rendered.push('\n');
     }
     rendered
 }

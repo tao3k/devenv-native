@@ -6,6 +6,7 @@ mod query;
 mod register;
 mod rows;
 mod schema;
+mod snapshot;
 
 pub use catalog::{
     SemanticReadModelCatalog, SemanticReadModelColumnCatalog, SemanticReadModelTableCatalog,
@@ -29,6 +30,10 @@ pub use register::{
 pub use rows::{
     SemanticObjectReadModelRow, SemanticProjectionStateReadModelRow, SemanticReadModelRows,
     SemanticRelationReadModelRow,
+};
+pub use snapshot::{
+    SemanticReadModelSnapshot, SemanticReadModelTableSnapshot, semantic_read_model_snapshot,
+    semantic_read_model_snapshot_from_root,
 };
 
 #[cfg(test)]

@@ -146,6 +146,10 @@ As of 2026-05-05, the first physical slice is implemented:
     read-model surface as a stable advisory catalog. Operators can inspect
     table names, column names, Arrow data types, nullability, and row counts
     before choosing a bounded read-only SQL query.
+28. `wendao-client semantic snapshot-read-model` now renders deterministic
+    advisory revisions for the same table schemas and projected rows. This
+    gives future DuckDB snapshot-swap work a stable comparison contract without
+    making snapshot hashes semantic authority.
 
 The full RFC is not complete. Remaining work includes wider rollout of
 semantic guard route-aware real workflows, DuckDB-backed materialized read
@@ -445,6 +449,8 @@ and `semantic_projection_state`, and `wendao-client lint semantic
 --read-model-summary` exposes those row counts as advisory operator context.
 `wendao-client semantic describe-read-model` exposes the stable table and
 column catalog for the same advisory surface.
+`wendao-client semantic snapshot-read-model` exposes deterministic table and
+aggregate revisions over the same advisory rows.
 `wendao-client semantic query-read-model --query SQL` also exposes bounded
 read-only SQL queries over those tables, with SQL admission requiring exactly
 one read-only query statement. This is not yet a DuckDB materialization or

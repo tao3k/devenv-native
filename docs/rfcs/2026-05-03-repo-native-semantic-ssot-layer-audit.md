@@ -98,6 +98,8 @@ semantic read-model row and table counts for operator review while keeping the
 projection advisory and read-only.
 `wendao-client semantic describe-read-model` now exposes the same advisory
 surface as a stable table and column catalog before SQL query selection.
+`wendao-client semantic snapshot-read-model` now renders deterministic
+advisory row and schema revisions for future read-model snapshot comparison.
 `wendao-client semantic query-read-model --query SQL` now exposes the same
 provisional tables as a bounded read-only SQL evidence surface.
 `xiuxian-wendao-sql` now rejects blank, multi-statement, and mutation SQL for
@@ -315,6 +317,9 @@ read-model table counts so operators can inspect the projected
 surface without making SQL the authority path.
 `wendao-client semantic describe-read-model` now renders that surface as a
 stable catalog with table, column, nullability, and row-count metadata.
+`wendao-client semantic snapshot-read-model` now renders deterministic
+advisory table revisions and one aggregate snapshot revision for future
+snapshot-swap verification work.
 `wendao-client semantic query-read-model --query SQL` now lets operators run
 bounded read-only SQL against that surface while keeping query output as
 evidence only. The query path now admits exactly one read-only SQL statement,

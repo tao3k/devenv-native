@@ -6,7 +6,7 @@ use super::{
     run_semantic_describe_read_model, run_semantic_lint, run_semantic_lint_with_args,
     run_semantic_query_read_model_with_args, run_semantic_query_read_model_with_args_and_stderr,
     run_semantic_refresh_projections, run_semantic_refresh_projections_with_args,
-    run_semantic_refresh_projections_with_args_and_stderr,
+    run_semantic_refresh_projections_with_args_and_stderr, run_semantic_snapshot_read_model,
 };
 
 #[test]
@@ -141,6 +141,43 @@ fn semantic_describe_read_model_renders_catalog() -> Result<()> {
     assert!(
         stdout.contains("semantic_projection_state: 1 row(s), 9 column(s)"),
         "projection-state table should be rendered: {stdout}"
+    );
+    assert!(
+        stdout.contains("repo_native_semantic_artifacts"),
+        "authority boundary should be rendered: {stdout}"
+    );
+    Ok(())
+}
+
+#[test]
+fn semantic_snapshot_read_model_renders_revisions() -> Result<()> {
+    let temp = TempDir::new()?;
+    write_semantic_fixture(
+        &temp,
+        "decision.fixture",
+        "decision",
+        "Decision Fixture",
+        "active",
+    )?;
+
+    let (status, stdout) = run_semantic_snapshot_read_model(&temp, None)?;
+
+    assert_eq!(status, Some(0), "{stdout}");
+    assert!(
+        stdout.contains("Semantic read-model snapshot: blake3:"),
+        "snapshot revision should be rendered: {stdout}"
+    );
+    assert!(
+        stdout.contains("tables: 3 table(s), 2 row(s)"),
+        "snapshot summary should be rendered: {stdout}"
+    );
+    assert!(
+        stdout.contains("semantic_objects: 1 row(s), 18 column(s), revision blake3:"),
+        "object table revision should be rendered: {stdout}"
+    );
+    assert!(
+        stdout.contains("semantic_projection_state: 1 row(s), 9 column(s), revision blake3:"),
+        "projection-state table revision should be rendered: {stdout}"
     );
     assert!(
         stdout.contains("repo_native_semantic_artifacts"),

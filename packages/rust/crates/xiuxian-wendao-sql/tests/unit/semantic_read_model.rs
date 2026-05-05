@@ -11,7 +11,8 @@ use crate::semantic_read_model::{
     SEMANTIC_OBJECTS_TABLE_NAME, SEMANTIC_PROJECTION_STATE_TABLE_NAME,
     SEMANTIC_RELATIONS_TABLE_NAME, SemanticSqlGuardStatus, build_semantic_read_model_rows,
     query_semantic_read_model_payload, run_semantic_sql_projection_freshness_guard,
-    semantic_read_model_catalog, validate_semantic_read_model_query_text,
+    semantic_read_model_catalog, semantic_read_model_snapshot,
+    validate_semantic_read_model_query_text,
 };
 
 type TestResult = Result<(), Box<dyn std::error::Error>>;
@@ -274,6 +275,47 @@ fn semantic_read_model_catalog_reports_tables_columns_and_rows() -> TestResult {
         })?;
     assert_eq!(projection_state.row_count, 1);
     assert_eq!(projection_state.column_count, 9);
+    Ok(())
+}
+
+#[test]
+fn semantic_read_model_snapshot_reports_deterministic_revisions() -> TestResult {
+    let temp_dir = tempdir()?;
+    let root = temp_dir.path();
+    write_semantic_read_model_fixture(root)?;
+
+    let repository = load_semantic_repository(root);
+    let snapshot = semantic_read_model_snapshot(&repository).map_err(std::io::Error::other)?;
+    let repeated_snapshot =
+        semantic_read_model_snapshot(&repository).map_err(std::io::Error::other)?;
+
+    assert!(snapshot.advisory);
+    assert_eq!(snapshot.authority, "repo_native_semantic_artifacts");
+    assert_eq!(snapshot.catalog.table_count, 3);
+    assert_eq!(snapshot.catalog.total_row_count, 4);
+    assert_eq!(
+        snapshot.snapshot_revision,
+        repeated_snapshot.snapshot_revision
+    );
+    assert!(snapshot.snapshot_revision.starts_with("blake3:"));
+    assert_eq!(snapshot.snapshot_revision.len(), "blake3:".len() + 64);
+    let relations = snapshot
+        .tables
+        .iter()
+        .find(|table| table.name == SEMANTIC_RELATIONS_TABLE_NAME)
+        .ok_or_else(|| std::io::Error::other("semantic_relations table should be snapshotted"))?;
+    assert_eq!(relations.row_count, 1);
+    assert_eq!(relations.column_count, 7);
+    assert!(relations.row_revision.starts_with("blake3:"));
+    let projection_state = snapshot
+        .tables
+        .iter()
+        .find(|table| table.name == SEMANTIC_PROJECTION_STATE_TABLE_NAME)
+        .ok_or_else(|| {
+            std::io::Error::other("semantic_projection_state table should be snapshotted")
+        })?;
+    assert_eq!(projection_state.row_count, 1);
+    assert_ne!(relations.row_revision, projection_state.row_revision);
     Ok(())
 }
 

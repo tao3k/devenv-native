@@ -13,6 +13,8 @@ pub enum SemanticCommand {
     QueryReadModel(SemanticReadModelQueryArgs),
     /// Run the semantic projection metadata refresh worker.
     RefreshProjections(SemanticRefreshProjectionsArgs),
+    /// Render deterministic advisory semantic read-model snapshot revisions.
+    SnapshotReadModel(SemanticSnapshotReadModelArgs),
 }
 
 /// CLI arguments for advisory semantic read-model catalog inspection.
@@ -33,6 +35,15 @@ pub struct SemanticReadModelQueryArgs {
     pub query_text: String,
 
     /// Semantic artifact root to query. When omitted, checks
+    /// `$PRJ_ROOT/semantic` through the active client root.
+    #[arg(value_name = "PATH")]
+    pub path: Option<PathBuf>,
+}
+
+/// CLI arguments for advisory semantic read-model snapshot inspection.
+#[derive(Args, Debug)]
+pub struct SemanticSnapshotReadModelArgs {
+    /// Semantic artifact root to snapshot. When omitted, checks
     /// `$PRJ_ROOT/semantic` through the active client root.
     #[arg(value_name = "PATH")]
     pub path: Option<PathBuf>,

@@ -9,8 +9,8 @@ Current ownership in this crate:
 1. bounded-work markdown SQL discovery and row building
 2. a request-scoped DataFusion local relation engine for that bounded lane
 3. stable SQL payload rendering over `xiuxian-wendao-core` DTOs
-4. advisory repo-native semantic read-model rows, catalogs, and query payloads for
-   `semantic_objects`, `semantic_relations`, and
+4. advisory repo-native semantic read-model rows, catalogs, deterministic
+   snapshots, and query payloads for `semantic_objects`, `semantic_relations`, and
    `semantic_projection_state`
 5. single-statement read-only SQL admission for semantic read-model queries
 

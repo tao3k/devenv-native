@@ -81,7 +81,9 @@ pub fn semantic_read_model_catalog(
     Ok(semantic_read_model_catalog_from_rows(&rows))
 }
 
-fn semantic_read_model_catalog_from_rows(rows: &SemanticReadModelRows) -> SemanticReadModelCatalog {
+pub(super) fn semantic_read_model_catalog_from_rows(
+    rows: &SemanticReadModelRows,
+) -> SemanticReadModelCatalog {
     let tables = vec![
         table_catalog(
             SEMANTIC_OBJECTS_TABLE_NAME,
