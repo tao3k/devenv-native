@@ -407,6 +407,14 @@ def parse_args() -> argparse.Namespace:
         help=("Fail --pdf-render-shard-audit when no PDF pages are actually rendered."),
     )
     parser.add_argument("--cargo", default="cargo")
+    parser.add_argument(
+        "--rust-provider-bin",
+        type=Path,
+        help=(
+            "Run a prebuilt wendao_search_flight_server binary instead of "
+            "starting the Rust provider through cargo run."
+        ),
+    )
     parser.add_argument("--real-docling", action="store_true")
     parser.add_argument(
         "--fixture-suite",

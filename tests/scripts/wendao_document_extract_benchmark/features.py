@@ -28,6 +28,11 @@ def cargo_features_for_provider_mode(features: str, args: argparse.Namespace) ->
     flight_mode = getattr(args, "flight_mode", "sync")
     if flight_mode != "hybrid-page-ocr":
         return features
+    profile_planner = str(getattr(args, "rust_pdf_ocr_profile_planner", "")).replace(
+        "_", "-"
+    )
+    if profile_planner in {"ocr2-all", "ocr2-risk-window"}:
+        return cargo_features_with_pdf_render(features)
     selection = normalize_render_selection(
         getattr(args, "hybrid_pdf_render_selection", "shard-fallback-pages")
     )

@@ -26,6 +26,7 @@ def test_start_rust_provider_forwards_hybrid_region_env(
     monkeypatch.setenv("PRJ_ROOT", str(tmp_path / "repo"))
     args = benchmark.argparse.Namespace(
         cargo="cargo",
+        rust_provider_bin=None,
         rust_provider_features="cli-bin-support,zhenfa-router,duckdb",
         flight_mode="hybrid-page-ocr",
         hybrid_pdf_render_selection="region-shards",
@@ -97,6 +98,7 @@ def test_start_rust_provider_defaults_document_extract_pool_to_local_worker(
     monkeypatch.setenv("PRJ_ROOT", str(tmp_path / "repo"))
     args = benchmark.argparse.Namespace(
         cargo="cargo",
+        rust_provider_bin=None,
         rust_provider_features="cli-bin-support,zhenfa-router,duckdb",
         flight_mode="async",
         hybrid_pdf_render_selection="shard-fallback-pages",
@@ -106,6 +108,7 @@ def test_start_rust_provider_defaults_document_extract_pool_to_local_worker(
         prepare_pdfium_runtime=False,
         rust_pdf_ocr_workers=None,
         rust_pdf_ocr_source_range_workers=None,
+        rust_pdf_ocr_profile_planner="disabled",
         rust_pdf_ocr_endpoint=[],
         rust_document_extract_endpoint=[],
     )
@@ -121,6 +124,103 @@ def test_start_rust_provider_defaults_document_extract_pool_to_local_worker(
 
     env = calls[0][1]["env"]
     assert env["WENDAO_DOCUMENT_EXTRACT_ENDPOINTS"] == "http://127.0.0.1:51051"
+
+
+def test_start_rust_provider_ocr2_planner_enables_pdf_render_feature(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    benchmark = _load_benchmark_module()
+    calls = []
+
+    class FakePopen:
+        def __init__(self, command, **kwargs):
+            calls.append((command, kwargs))
+
+    monkeypatch.setattr(benchmark.subprocess, "Popen", FakePopen)
+    monkeypatch.setenv("SDKROOT", "/tmp/macos-sdk")
+    monkeypatch.setenv("LIBRARY_PATH", "/tmp/macos-sdk/usr/lib")
+    monkeypatch.setenv("PRJ_ROOT", str(tmp_path / "repo"))
+    args = benchmark.argparse.Namespace(
+        cargo="cargo",
+        rust_provider_bin=None,
+        rust_provider_features="cli-bin-support,zhenfa-router,duckdb",
+        flight_mode="hybrid-page-ocr",
+        hybrid_pdf_render_selection="shard-fallback-pages",
+        pdf_render_region=[],
+        benchmark_fixtures={},
+        pdfium_library_path=None,
+        prepare_pdfium_runtime=False,
+        rust_pdf_ocr_workers=None,
+        rust_pdf_ocr_source_range_workers=None,
+        rust_pdf_ocr_profile_planner="ocr2-all",
+        rust_pdf_ocr_endpoint=[],
+        rust_document_extract_endpoint=[],
+    )
+
+    benchmark.start_rust_provider_server(
+        args,
+        rust_host="127.0.0.1",
+        rust_port=51052,
+        python_host="127.0.0.1",
+        python_port=51051,
+        temp_root=tmp_path,
+    )
+
+    command, _kwargs = calls[0]
+    assert "document-extract-pdf-render" in command[6].split(",")
+
+
+def test_start_rust_provider_can_use_prebuilt_binary(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    benchmark = _load_benchmark_module()
+    calls = []
+
+    class FakePopen:
+        def __init__(self, command, **kwargs):
+            calls.append((command, kwargs))
+
+    monkeypatch.setattr(benchmark.subprocess, "Popen", FakePopen)
+    monkeypatch.setenv("SDKROOT", "/tmp/macos-sdk")
+    monkeypatch.setenv("LIBRARY_PATH", "/tmp/macos-sdk/usr/lib")
+    monkeypatch.setenv("PRJ_ROOT", str(tmp_path / "repo"))
+    provider_bin = tmp_path / "wendao_search_flight_server"
+    args = benchmark.argparse.Namespace(
+        cargo="cargo",
+        rust_provider_bin=provider_bin,
+        rust_provider_features="cli-bin-support,zhenfa-router,duckdb",
+        flight_mode="hybrid-page-ocr",
+        hybrid_pdf_render_selection="shard-fallback-pages",
+        pdf_render_region=[],
+        benchmark_fixtures={},
+        pdfium_library_path=None,
+        prepare_pdfium_runtime=False,
+        rust_pdf_ocr_workers=None,
+        rust_pdf_ocr_source_range_workers=None,
+        rust_pdf_ocr_profile_planner="disabled",
+        rust_pdf_ocr_endpoint=[],
+        rust_document_extract_endpoint=[],
+    )
+
+    benchmark.start_rust_provider_server(
+        args,
+        rust_host="127.0.0.1",
+        rust_port=51052,
+        python_host="127.0.0.1",
+        python_port=51051,
+        temp_root=tmp_path,
+    )
+
+    command, _kwargs = calls[0]
+    assert command == [
+        str(provider_bin),
+        "127.0.0.1:51052",
+        "alpha/repo",
+        str(tmp_path / "repo"),
+        "--schema-version=v2",
+    ]
 
 
 def test_start_valkey_server_uses_temp_runtime_flags(

@@ -99,22 +99,29 @@ def start_rust_provider_server(
     if pdfium_library_path is not None:
         env["WENDAO_PDFIUM_LIBRARY_PATH"] = str(pdfium_library_path)
     apply_rust_pdf_ocr_env(args, env)
-    command = [
-        args.cargo,
-        "run",
-        "-p",
-        "xiuxian-wendao-studio",
-        "--no-default-features",
-        "--features",
-        cargo_features_for_provider_mode(args.rust_provider_features, args),
-        "--bin",
-        "wendao_search_flight_server",
-        "--",
+    rust_provider_bin = getattr(args, "rust_provider_bin", None)
+    provider_args = [
         f"{rust_host}:{rust_port}",
         "alpha/repo",
         str(resolve_project_root()),
         "--schema-version=v2",
     ]
+    if rust_provider_bin is not None:
+        command = [str(rust_provider_bin), *provider_args]
+    else:
+        command = [
+            args.cargo,
+            "run",
+            "-p",
+            "xiuxian-wendao-studio",
+            "--no-default-features",
+            "--features",
+            cargo_features_for_provider_mode(args.rust_provider_features, args),
+            "--bin",
+            "wendao_search_flight_server",
+            "--",
+            *provider_args,
+        ]
     return start_logged_process(
         command,
         log_dir=log_dir or temp_root / "process-logs",

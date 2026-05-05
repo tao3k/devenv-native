@@ -1,14 +1,17 @@
 use std::path::{Path, PathBuf};
 
-#[cfg(feature = "document-extract-pdf-render")]
-use xiuxian_wendao_attachments::pdf::render::render_pdf_region_shards;
 use xiuxian_wendao_attachments::pdf::render::{
     PdfPageRegionRenderRequest, PdfPageRenderProfile, PdfPageRenderSelection,
     PdfPageRenderShardReport, PdfRenderRoutingDecision, PdfRenderStatus,
     prepare_pdf_source_page_range_ocr_shards_with_selection,
 };
+#[cfg(feature = "document-extract-pdf-render")]
+use xiuxian_wendao_attachments::pdf::render::{
+    render_pdf_page_shards_with_selection, render_pdf_region_shards,
+};
 use xiuxian_wendao_server::transport::DocumentExtractFlightRequest;
 
+use super::profile::hybrid_page_ocr_profile_planner;
 use super::types::{
     DOCUMENT_EXTRACT_PDF_RENDER_REGIONS_ENV, DOCUMENT_EXTRACT_PDF_RENDER_SELECTION_ENV,
     HybridPdfRegionInput,
@@ -25,6 +28,8 @@ pub(crate) async fn render_hybrid_page_ocr_shards(
     } else {
         None
     };
+    let requires_rendered_page_images =
+        hybrid_page_ocr_profile_planner().requires_rendered_page_images();
     let source_for_render = source.to_path_buf();
     let output_for_render = output.to_path_buf();
     tokio::task::spawn_blocking(move || {
@@ -41,6 +46,20 @@ pub(crate) async fn render_hybrid_page_ocr_shards(
             #[cfg(not(feature = "document-extract-pdf-render"))]
             return Err(format!(
                 "hybrid PDF region shards for `{}` require the `document-extract-pdf-render` feature",
+                source_for_render.display()
+            ));
+        }
+        if requires_rendered_page_images {
+            #[cfg(feature = "document-extract-pdf-render")]
+            return render_pdf_page_shards_with_selection(
+                source_for_render.as_path(),
+                output_for_render.as_path(),
+                &PdfPageRenderProfile::ocr_default(),
+                selection,
+            );
+            #[cfg(not(feature = "document-extract-pdf-render"))]
+            return Err(format!(
+                "OCR2 direct VLM planner for `{}` requires the `document-extract-pdf-render` feature",
                 source_for_render.display()
             ));
         }

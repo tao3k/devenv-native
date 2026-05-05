@@ -85,8 +85,14 @@ pub(crate) fn apply_hybrid_page_ocr_profile_plan(
     }
 }
 
-fn hybrid_page_ocr_profile_planner() -> HybridPdfOcrProfilePlanner {
+pub(crate) fn hybrid_page_ocr_profile_planner() -> HybridPdfOcrProfilePlanner {
     hybrid_page_ocr_profile_planner_with_lookup(&|key| std::env::var(key).ok())
+}
+
+impl HybridPdfOcrProfilePlanner {
+    pub(crate) fn requires_rendered_page_images(self) -> bool {
+        matches!(self, Self::Ocr2All | Self::Ocr2RiskWindow)
+    }
 }
 
 pub(crate) fn hybrid_page_ocr_profile_planner_with_lookup(
