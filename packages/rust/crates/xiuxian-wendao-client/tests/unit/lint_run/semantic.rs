@@ -14,7 +14,7 @@ fn semantic_lint_accepts_valid_semantic_root() -> Result<()> {
         "active",
     )?;
 
-    let (status, stdout) = run_semantic_lint(&temp, Some("semantic"))?;
+    let (status, stdout) = run_semantic_lint(&temp, None)?;
 
     assert_eq!(status, Some(0));
     assert!(
@@ -38,7 +38,7 @@ fn semantic_lint_reports_unresolved_relations() -> Result<()> {
         "  - kind: depends_on\n    target: component.missing\n",
     )?;
 
-    let (status, stdout) = run_semantic_lint(&temp, Some("semantic"))?;
+    let (status, stdout) = run_semantic_lint(&temp, None)?;
 
     assert_eq!(status, Some(1));
     assert!(
@@ -59,8 +59,7 @@ fn semantic_lint_sql_guard_reports_stale_projection() -> Result<()> {
         "active",
     )?;
 
-    let (status, stdout) =
-        run_semantic_lint_with_args(&temp, Some("semantic"), &["--semantic-sql-guard"])?;
+    let (status, stdout) = run_semantic_lint_with_args(&temp, None, &["--semantic-sql-guard"])?;
 
     assert_eq!(status, Some(1));
     assert!(
@@ -85,8 +84,7 @@ fn semantic_lint_refreshes_projection_source_revision() -> Result<()> {
         "active",
     )?;
 
-    let (status, stdout) =
-        run_semantic_lint_with_args(&temp, Some("semantic"), &["--refresh-projections"])?;
+    let (status, stdout) = run_semantic_lint_with_args(&temp, None, &["--refresh-projections"])?;
 
     assert_eq!(status, Some(0));
     assert!(
@@ -108,7 +106,7 @@ fn semantic_lint_refreshes_projection_source_revision() -> Result<()> {
         "projection revision should remain unchanged: {projection}"
     );
 
-    let (status, stdout) = run_semantic_lint(&temp, Some("semantic"))?;
+    let (status, stdout) = run_semantic_lint(&temp, None)?;
     assert_eq!(status, Some(0), "{stdout}");
     Ok(())
 }
@@ -155,7 +153,7 @@ fn write_semantic_fixture_with_relation(
                 "  recorded_at: \"2026-05-05\"\n",
                 "verification:\n",
                 "  required:\n",
-                "    - direnv exec . wendao-client lint semantic semantic\n",
+                "    - direnv exec . wendao-client lint semantic\n",
                 "relations:\n",
                 "{relations}",
                 "---\n",

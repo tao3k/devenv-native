@@ -13,13 +13,27 @@ fn parses_markdown_lint_command() {
 
 #[test]
 fn parses_semantic_lint_command() {
-    let cli = ClientCli::parse_from(["wendao", "lint", "semantic", "semantic"]);
+    let cli = ClientCli::parse_from(["wendao", "lint", "semantic"]);
     let ClientCommand::Lint { command } = cli.command else {
         panic!("expected lint command");
     };
     match command {
         LintCommand::Semantic(args) => {
             assert!(!args.semantic_sql_guard);
+            assert!(args.paths.is_empty());
+        }
+        LintCommand::Markdown(_) => panic!("expected semantic lint command"),
+    }
+}
+
+#[test]
+fn parses_semantic_lint_explicit_path() {
+    let cli = ClientCli::parse_from(["wendao", "lint", "semantic", "semantic"]);
+    let ClientCommand::Lint { command } = cli.command else {
+        panic!("expected lint command");
+    };
+    match command {
+        LintCommand::Semantic(args) => {
             assert_eq!(args.paths, vec![PathBuf::from("semantic")]);
         }
         LintCommand::Markdown(_) => panic!("expected semantic lint command"),
@@ -28,20 +42,14 @@ fn parses_semantic_lint_command() {
 
 #[test]
 fn parses_semantic_lint_sql_guard_flag() {
-    let cli = ClientCli::parse_from([
-        "wendao",
-        "lint",
-        "semantic",
-        "--semantic-sql-guard",
-        "semantic",
-    ]);
+    let cli = ClientCli::parse_from(["wendao", "lint", "semantic", "--semantic-sql-guard"]);
     let ClientCommand::Lint { command } = cli.command else {
         panic!("expected lint command");
     };
     match command {
         LintCommand::Semantic(args) => {
             assert!(args.semantic_sql_guard);
-            assert_eq!(args.paths, vec![PathBuf::from("semantic")]);
+            assert!(args.paths.is_empty());
         }
         LintCommand::Markdown(_) => panic!("expected semantic lint command"),
     }
@@ -49,20 +57,14 @@ fn parses_semantic_lint_sql_guard_flag() {
 
 #[test]
 fn parses_semantic_lint_refresh_projections_flag() {
-    let cli = ClientCli::parse_from([
-        "wendao",
-        "lint",
-        "semantic",
-        "--refresh-projections",
-        "semantic",
-    ]);
+    let cli = ClientCli::parse_from(["wendao", "lint", "semantic", "--refresh-projections"]);
     let ClientCommand::Lint { command } = cli.command else {
         panic!("expected lint command");
     };
     match command {
         LintCommand::Semantic(args) => {
             assert!(args.refresh_projections);
-            assert_eq!(args.paths, vec![PathBuf::from("semantic")]);
+            assert!(args.paths.is_empty());
         }
         LintCommand::Markdown(_) => panic!("expected semantic lint command"),
     }

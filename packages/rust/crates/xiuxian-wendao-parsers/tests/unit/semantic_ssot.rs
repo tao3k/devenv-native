@@ -600,7 +600,7 @@ fn semantic_object_fixture_with_confidence(
             "  recorded_at: \"2026-05-05\"\n",
             "verification:\n",
             "  required:\n",
-            "    - direnv exec . wendao-client lint semantic semantic\n",
+            "    - direnv exec . wendao-client lint semantic\n",
             "relations:\n",
             "{relations}",
             "---\n",

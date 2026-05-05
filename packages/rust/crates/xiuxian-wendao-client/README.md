@@ -14,6 +14,7 @@ The currently landed commands are:
 
 ```text
 wendao-client lint markdown [PATH]...
+wendao-client lint semantic [--semantic-sql-guard] [--refresh-projections]
 wendao-client lint semantic [--semantic-sql-guard] [--refresh-projections] [PATH]...
 wendao-client get toc [TARGET] [--ignore DIR]...
 wendao-client get page-index [TARGET] [--ignore DIR]...
@@ -69,7 +70,9 @@ Behavior:
 22. when a directory style mismatch is found, emits a precise rewrite for the
     offending link instead of a style-only hint
 23. validates repo-native semantic SSOT roots with `lint semantic`, defaulting
-    to `semantic/`, and fails on invalid object frontmatter, duplicate IDs,
+    to `semantic/` when no path is supplied. Explicit `[PATH]...` arguments are
+    only needed for custom semantic roots. The command fails on invalid object
+    frontmatter, duplicate IDs,
     unresolved relation targets, unresolved projection source objects, empty
     owner/provenance/verification fields, and invalid active confidence
     sources; fresh projection artifacts must also declare the current source

@@ -15,7 +15,7 @@ provenance:
   recorded_at: "2026-05-05"
 verification:
   required:
-    - direnv exec . wendao-client lint semantic semantic
+    - direnv exec . wendao-client lint semantic
   evidence:
     - docs/rfcs/2026-05-03-repo-native-semantic-ssot-layer-rfc.md
 relations:
