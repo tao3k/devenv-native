@@ -2,10 +2,13 @@ use std::sync::Arc;
 
 use super::{
     DOCUMENT_EXTRACT_PDF_OCR_WORKERS_ENV, PdfOcrWorkerScheduler, endpoint_index_for_request,
-    pdf_ocr_worker_limit_with_lookup, source_pdf_page_range_chunks,
+    pdf_ocr_worker_limit_with_lookup, select_owner_ocr_results,
+    source_pdf_page_range_bridge_inputs, source_pdf_page_range_chunks,
 };
 use crate::studio::router::handlers::analysis::document_extract::pdf_ocr_cache::PdfOcrShardCache;
-use xiuxian_wendao_attachments::pdf::ocr::{PDF_OCR_SHARD_INPUT_SCHEMA_VERSION, PdfOcrShardInput};
+use xiuxian_wendao_attachments::pdf::ocr::{
+    PDF_OCR_SHARD_INPUT_SCHEMA_VERSION, PdfOcrShardInput, PdfOcrShardResult,
+};
 
 #[test]
 fn pdf_ocr_worker_limit_defaults_to_available_parallelism() {
@@ -173,6 +176,112 @@ fn source_pdf_page_range_chunks_split_long_runs_without_crossing_gaps() {
 }
 
 #[test]
+fn source_pdf_page_range_bridge_inputs_pack_small_cached_gap() {
+    let all_inputs = (0..5)
+        .map(|page_index| sample_ocr_input("/tmp/source.pdf", page_index, "page"))
+        .collect::<Vec<_>>();
+    let missing_inputs = vec![all_inputs[1].clone(), all_inputs[3].clone()];
+    let required_inputs = missing_inputs.clone();
+
+    let bridged = source_pdf_page_range_bridge_inputs(
+        all_inputs.as_slice(),
+        missing_inputs.as_slice(),
+        required_inputs.as_slice(),
+    );
+
+    assert_eq!(page_indexes(bridged.as_slice()), vec![1, 2, 3]);
+    let chunks = source_pdf_page_range_chunks(bridged.as_slice(), 1);
+    assert_eq!(chunks.len(), 1);
+    assert_eq!(page_indexes(chunks[0]), vec![1, 2, 3]);
+}
+
+#[test]
+fn source_pdf_page_range_bridge_inputs_respect_gap_limit() {
+    let all_inputs = (0..7)
+        .map(|page_index| sample_ocr_input("/tmp/source.pdf", page_index, "page"))
+        .collect::<Vec<_>>();
+    let missing_inputs = vec![all_inputs[1].clone(), all_inputs[5].clone()];
+    let required_inputs = missing_inputs.clone();
+
+    let bridged = source_pdf_page_range_bridge_inputs(
+        all_inputs.as_slice(),
+        missing_inputs.as_slice(),
+        required_inputs.as_slice(),
+    );
+
+    assert_eq!(page_indexes(bridged.as_slice()), vec![1, 5]);
+    let chunks = source_pdf_page_range_chunks(bridged.as_slice(), 1);
+    assert_eq!(chunks.len(), 2);
+    assert_eq!(page_indexes(chunks[0]), vec![1]);
+    assert_eq!(page_indexes(chunks[1]), vec![5]);
+}
+
+#[test]
+fn source_pdf_page_range_bridge_inputs_do_not_cross_missing_waiter_gap() {
+    let all_inputs = (0..5)
+        .map(|page_index| sample_ocr_input("/tmp/source.pdf", page_index, "page"))
+        .collect::<Vec<_>>();
+    let missing_inputs = vec![
+        all_inputs[1].clone(),
+        all_inputs[2].clone(),
+        all_inputs[3].clone(),
+    ];
+    let required_inputs = vec![all_inputs[1].clone(), all_inputs[3].clone()];
+
+    let bridged = source_pdf_page_range_bridge_inputs(
+        all_inputs.as_slice(),
+        missing_inputs.as_slice(),
+        required_inputs.as_slice(),
+    );
+
+    assert_eq!(page_indexes(bridged.as_slice()), vec![1, 3]);
+    let chunks = source_pdf_page_range_chunks(bridged.as_slice(), 1);
+    assert_eq!(chunks.len(), 2);
+    assert_eq!(page_indexes(chunks[0]), vec![1]);
+    assert_eq!(page_indexes(chunks[1]), vec![3]);
+}
+
+#[test]
+fn source_pdf_page_range_bridge_inputs_sort_required_pages_for_live_range() {
+    let all_inputs = (0..5)
+        .map(|page_index| sample_ocr_input("/tmp/source.pdf", page_index, "page"))
+        .collect::<Vec<_>>();
+    let missing_inputs = vec![all_inputs[3].clone(), all_inputs[1].clone()];
+    let required_inputs = missing_inputs.clone();
+
+    let bridged = source_pdf_page_range_bridge_inputs(
+        all_inputs.as_slice(),
+        missing_inputs.as_slice(),
+        required_inputs.as_slice(),
+    );
+
+    assert_eq!(page_indexes(bridged.as_slice()), vec![1, 2, 3]);
+}
+
+#[test]
+fn source_pdf_page_range_bridge_results_filter_back_to_owner_inputs() -> Result<(), String> {
+    let owner_inputs = vec![
+        sample_ocr_input("/tmp/source.pdf", 1, "page"),
+        sample_ocr_input("/tmp/source.pdf", 3, "page"),
+    ];
+    let bridge_input = sample_ocr_input("/tmp/source.pdf", 2, "page");
+    let live_results = vec![
+        PdfOcrShardResult::succeeded(&owner_inputs[1], "live page 3", 1.0),
+        PdfOcrShardResult::succeeded(&bridge_input, "cached bridge page 2", 1.0),
+        PdfOcrShardResult::succeeded(&owner_inputs[0], "live page 1", 1.0),
+    ];
+
+    let owner_results = select_owner_ocr_results(owner_inputs.as_slice(), live_results)?;
+
+    assert_eq!(owner_results.len(), 2);
+    assert_eq!(owner_results[0].page_index, 1);
+    assert_eq!(owner_results[0].text.as_deref(), Some("live page 1"));
+    assert_eq!(owner_results[1].page_index, 3);
+    assert_eq!(owner_results[1].text.as_deref(), Some("live page 3"));
+    Ok(())
+}
+
+#[test]
 fn endpoint_index_for_request_round_robins_endpoint_pool() -> Result<(), String> {
     assert_eq!(endpoint_index_for_request(0, 3)?, 0);
     assert_eq!(endpoint_index_for_request(1, 3)?, 1);
@@ -180,6 +289,10 @@ fn endpoint_index_for_request_round_robins_endpoint_pool() -> Result<(), String>
     assert_eq!(endpoint_index_for_request(3, 3)?, 0);
     assert!(endpoint_index_for_request(0, 0).is_err());
     Ok(())
+}
+
+fn page_indexes(inputs: &[PdfOcrShardInput]) -> Vec<u32> {
+    inputs.iter().map(|input| input.page_index).collect()
 }
 
 fn sample_ocr_input(source_path: &str, page_index: u32, shard_type: &str) -> PdfOcrShardInput {
