@@ -7,10 +7,21 @@ use std::path::PathBuf;
 /// Semantic-oriented client subcommands.
 #[derive(Subcommand, Debug)]
 pub enum SemanticCommand {
+    /// Describe advisory semantic read-model tables and columns.
+    DescribeReadModel(SemanticDescribeReadModelArgs),
     /// Execute a read-only SQL query over advisory semantic read-model tables.
     QueryReadModel(SemanticReadModelQueryArgs),
     /// Run the semantic projection metadata refresh worker.
     RefreshProjections(SemanticRefreshProjectionsArgs),
+}
+
+/// CLI arguments for advisory semantic read-model catalog inspection.
+#[derive(Args, Debug)]
+pub struct SemanticDescribeReadModelArgs {
+    /// Semantic artifact root to describe. When omitted, checks
+    /// `$PRJ_ROOT/semantic` through the active client root.
+    #[arg(value_name = "PATH")]
+    pub path: Option<PathBuf>,
 }
 
 /// CLI arguments for advisory semantic read-model SQL queries.

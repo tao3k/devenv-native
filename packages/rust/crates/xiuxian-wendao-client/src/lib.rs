@@ -36,4 +36,7 @@ pub use lint::{
     markdown_lint_diagnostic_schema_snapshot,
 };
 pub use output::OutputFormat;
-pub use semantic::{SemanticCommand, SemanticReadModelQueryArgs, SemanticRefreshProjectionsArgs};
+pub use semantic::{
+    SemanticCommand, SemanticDescribeReadModelArgs, SemanticReadModelQueryArgs,
+    SemanticRefreshProjectionsArgs,
+};

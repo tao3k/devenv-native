@@ -142,6 +142,10 @@ As of 2026-05-05, the first physical slice is implemented:
 26. Semantic read-model query admission now lives in `xiuxian-wendao-sql`.
     Blank SQL, multi-statement SQL, and mutation SQL are rejected before table
     registration; accepted queries must parse as one read-only query statement.
+27. `wendao-client semantic describe-read-model` now exposes the same
+    read-model surface as a stable advisory catalog. Operators can inspect
+    table names, column names, Arrow data types, nullability, and row counts
+    before choosing a bounded read-only SQL query.
 
 The full RFC is not complete. Remaining work includes wider rollout of
 semantic guard route-aware real workflows, DuckDB-backed materialized read
@@ -439,6 +443,8 @@ Current implementation evidence: `xiuxian-wendao-sql` already projects
 validated semantic repositories into `semantic_objects`, `semantic_relations`,
 and `semantic_projection_state`, and `wendao-client lint semantic
 --read-model-summary` exposes those row counts as advisory operator context.
+`wendao-client semantic describe-read-model` exposes the stable table and
+column catalog for the same advisory surface.
 `wendao-client semantic query-read-model --query SQL` also exposes bounded
 read-only SQL queries over those tables, with SQL admission requiring exactly
 one read-only query statement. This is not yet a DuckDB materialization or

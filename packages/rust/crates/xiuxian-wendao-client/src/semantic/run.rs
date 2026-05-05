@@ -1,6 +1,9 @@
 //! Runtime dispatch for semantic SSOT commands.
 
-use super::{SemanticCommand, SemanticReadModelQueryArgs, SemanticRefreshProjectionsArgs};
+use super::{
+    SemanticCommand, SemanticDescribeReadModelArgs, SemanticReadModelQueryArgs,
+    SemanticRefreshProjectionsArgs,
+};
 use crate::lint::{
     self, SemanticLintArgs, SemanticLintProjectionValidationArgs, SemanticLintValidationArgs,
     SemanticLintWritebackArgs,
@@ -13,8 +16,18 @@ use std::path::PathBuf;
 use std::process::Command;
 use std::thread;
 use std::time::Duration;
-use xiuxian_wendao_sql::semantic_read_model::query_semantic_read_model_payload;
+use xiuxian_wendao_sql::semantic_read_model::{
+    SemanticReadModelCatalog, query_semantic_read_model_payload,
+    semantic_read_model_catalog_from_root,
+};
 use xiuxian_wendao_sql::{SqlBatchPayload, SqlQueryPayload};
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct SemanticReadModelCatalogReport {
+    root: PathBuf,
+    catalog: SemanticReadModelCatalog,
+}
 
 #[derive(serde::Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -31,16 +44,38 @@ pub(crate) fn run_command(
     context: &ClientContext,
 ) -> Result<CommandOutcome> {
     match command {
+        SemanticCommand::DescribeReadModel(args) => run_describe_read_model(args, context),
         SemanticCommand::QueryReadModel(args) => run_query_read_model(args, context),
         SemanticCommand::RefreshProjections(args) => run_refresh_projections_worker(args, context),
     }
+}
+
+fn run_describe_read_model(
+    args: &SemanticDescribeReadModelArgs,
+    context: &ClientContext,
+) -> Result<CommandOutcome> {
+    let root = semantic_root(args.path.as_ref(), context.root());
+    let catalog = semantic_read_model_catalog_from_root(root.as_path())
+        .map_err(anyhow::Error::msg)
+        .with_context(|| {
+            format!(
+                "failed to describe semantic read model under `{}`",
+                root.display()
+            )
+        })?;
+    let report = SemanticReadModelCatalogReport {
+        root: display_semantic_root(root.as_path(), context.root()),
+        catalog,
+    };
+    emit_read_model_catalog_report(&report, context.output())?;
+    Ok(CommandOutcome::success())
 }
 
 fn run_query_read_model(
     args: &SemanticReadModelQueryArgs,
     context: &ClientContext,
 ) -> Result<CommandOutcome> {
-    let root = semantic_read_model_root(args, context.root());
+    let root = semantic_root(args.path.as_ref(), context.root());
     let runtime = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
@@ -121,8 +156,8 @@ fn run_refresh_projections_worker_pass(
     lint::run_semantic_lint(&lint_args, context)
 }
 
-fn semantic_read_model_root(args: &SemanticReadModelQueryArgs, context_root: &Path) -> PathBuf {
-    args.path.as_ref().map_or_else(
+fn semantic_root(path: Option<&PathBuf>, context_root: &Path) -> PathBuf {
+    path.map_or_else(
         || context_root.join("semantic"),
         |path| {
             if path.is_absolute() {
@@ -139,6 +174,19 @@ fn display_semantic_root(root: &Path, context_root: &Path) -> PathBuf {
         .map_or_else(|_| root.to_path_buf(), std::path::Path::to_path_buf)
 }
 
+fn emit_read_model_catalog_report(
+    report: &SemanticReadModelCatalogReport,
+    output: OutputFormat,
+) -> Result<()> {
+    let rendered = match output {
+        OutputFormat::Text => render_read_model_catalog_text_report(report),
+        OutputFormat::Json => render_json_report(report, false)?,
+        OutputFormat::Pretty => render_json_report(report, true)?,
+    };
+    print!("{rendered}");
+    Ok(())
+}
+
 fn emit_read_model_query_report(
     report: &SemanticReadModelQueryReport,
     output: OutputFormat,
@@ -150,6 +198,41 @@ fn emit_read_model_query_report(
     };
     print!("{rendered}");
     Ok(())
+}
+
+fn render_read_model_catalog_text_report(report: &SemanticReadModelCatalogReport) -> String {
+    let mut rendered = format!(
+        "Semantic read-model catalog: {} table(s), {} row(s) from {}.\n",
+        report.catalog.table_count,
+        report.catalog.total_row_count,
+        report.root.display()
+    );
+    rendered.push_str("- authority: ");
+    rendered.push_str(report.catalog.authority.as_str());
+    rendered.push('\n');
+    for table in &report.catalog.tables {
+        rendered.push_str("- ");
+        rendered.push_str(table.name.as_str());
+        rendered.push_str(": ");
+        rendered.push_str(table.row_count.to_string().as_str());
+        rendered.push_str(" row(s), ");
+        rendered.push_str(table.column_count.to_string().as_str());
+        rendered.push_str(" column(s)\n");
+        for column in &table.columns {
+            rendered.push_str("  - ");
+            rendered.push_str(column.name.as_str());
+            rendered.push_str(": ");
+            rendered.push_str(column.data_type.as_str());
+            rendered.push(' ');
+            rendered.push_str(if column.nullable {
+                "nullable"
+            } else {
+                "not null"
+            });
+            rendered.push('\n');
+        }
+    }
+    rendered
 }
 
 fn render_read_model_query_text_report(report: &SemanticReadModelQueryReport) -> String {
@@ -224,7 +307,7 @@ fn render_json_report<T: serde::Serialize>(report: &T, pretty: bool) -> Result<S
     } else {
         serde_json::to_string(report)
     }
-    .context("failed to serialize semantic read-model query report")?;
+    .context("failed to serialize semantic report")?;
     Ok(format!("{rendered}\n"))
 }
 

@@ -1,11 +1,16 @@
 //! Provisional semantic SSOT read-model tables for bounded SQL evidence.
 
+mod catalog;
 mod guard;
 mod query;
 mod register;
 mod rows;
 mod schema;
 
+pub use catalog::{
+    SemanticReadModelCatalog, SemanticReadModelColumnCatalog, SemanticReadModelTableCatalog,
+    semantic_read_model_catalog, semantic_read_model_catalog_from_root,
+};
 pub use guard::{
     SEMANTIC_SQL_PROJECTION_FRESHNESS_GUARD_ID, SEMANTIC_SQL_PROJECTION_FRESHNESS_OBJECT_ID,
     SEMANTIC_SQL_PROJECTION_FRESHNESS_QUERY, SemanticProjectionFreshnessFinding,

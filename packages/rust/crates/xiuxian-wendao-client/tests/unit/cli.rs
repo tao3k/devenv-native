@@ -147,6 +147,27 @@ fn parses_semantic_lint_apply_lifecycle_plan_flag() {
 }
 
 #[test]
+fn parses_semantic_describe_read_model_command() {
+    let cli = ClientCli::parse_from([
+        "wendao",
+        "semantic",
+        "describe-read-model",
+        "semantic/custom",
+    ]);
+    let ClientCommand::Semantic { command } = cli.command else {
+        panic!("expected semantic command");
+    };
+    match command {
+        SemanticCommand::DescribeReadModel(args) => {
+            assert_eq!(args.path, Some(PathBuf::from("semantic/custom")));
+        }
+        SemanticCommand::QueryReadModel(_) | SemanticCommand::RefreshProjections(_) => {
+            panic!("expected describe read-model command")
+        }
+    }
+}
+
+#[test]
 fn parses_semantic_refresh_projections_command() {
     let cli = ClientCli::parse_from([
         "wendao",
@@ -158,7 +179,9 @@ fn parses_semantic_refresh_projections_command() {
         panic!("expected semantic command");
     };
     match command {
-        SemanticCommand::QueryReadModel(_) => panic!("expected refresh projections command"),
+        SemanticCommand::DescribeReadModel(_) | SemanticCommand::QueryReadModel(_) => {
+            panic!("expected refresh projections command")
+        }
         SemanticCommand::RefreshProjections(args) => {
             assert_eq!(args.paths, vec![PathBuf::from("semantic/custom")]);
             assert_eq!(args.interval_secs, 0);
@@ -186,7 +209,9 @@ fn parses_semantic_query_read_model_command() {
             assert_eq!(args.query_text, "select id from semantic_objects");
             assert_eq!(args.path, Some(PathBuf::from("semantic/custom")));
         }
-        SemanticCommand::RefreshProjections(_) => panic!("expected query read-model command"),
+        SemanticCommand::DescribeReadModel(_) | SemanticCommand::RefreshProjections(_) => {
+            panic!("expected query read-model command")
+        }
     }
 }
 
@@ -207,7 +232,9 @@ fn parses_semantic_refresh_projections_runner_options() {
         panic!("expected semantic command");
     };
     match command {
-        SemanticCommand::QueryReadModel(_) => panic!("expected refresh projections command"),
+        SemanticCommand::DescribeReadModel(_) | SemanticCommand::QueryReadModel(_) => {
+            panic!("expected refresh projections command")
+        }
         SemanticCommand::RefreshProjections(args) => {
             assert_eq!(args.paths, vec![PathBuf::from("semantic/custom")]);
             assert_eq!(args.interval_secs, 300);

@@ -11888,6 +11888,7 @@ dependencies = [
  "async-trait",
  "datafusion",
  "rust-lang-project-harness",
+ "serde",
  "serde_json",
  "tempfile",
  "tokio",

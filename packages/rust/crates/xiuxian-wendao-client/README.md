@@ -16,6 +16,7 @@ The currently landed commands are:
 wendao-client lint markdown [PATH]...
 wendao-client lint semantic [--read-model-summary] [--semantic-sql-guard] [--projection-refresh-plan] [--require-fresh-projections] [--refresh-projections] [--lifecycle-plan] [--apply-lifecycle-plan]
 wendao-client lint semantic [--read-model-summary] [--semantic-sql-guard] [--projection-refresh-plan] [--require-fresh-projections] [--refresh-projections] [--lifecycle-plan] [--apply-lifecycle-plan] [PATH]...
+wendao-client semantic describe-read-model [PATH]
 wendao-client semantic query-read-model --query SQL [PATH]
 wendao-client semantic refresh-projections [--interval-secs SECONDS] [--max-runs RUNS] [--require-clean-worktree] [PATH]...
 wendao-client get toc [TARGET] [--ignore DIR]...
@@ -123,7 +124,13 @@ Behavior:
     `semantic_objects`, `semantic_relations`, and
     `semantic_projection_state` while leaving repo-native semantic artifacts
     authoritative
-31. executes read-only SQL over advisory semantic read-model tables with
+31. describes the advisory semantic read-model catalog with
+    `semantic describe-read-model`, defaulting to the active `semantic/` root
+    and rendering stable table, column, nullability, and row-count metadata
+    for `semantic_objects`, `semantic_relations`, and
+    `semantic_projection_state` without registering a query or mutating
+    semantic artifacts
+32. executes read-only SQL over advisory semantic read-model tables with
     `semantic query-read-model --query SQL`, defaulting to the active
     `semantic/` root and rendering text, JSON, or pretty JSON through the
     global output option. The registered tables are `semantic_objects`,

@@ -3,9 +3,9 @@ use std::process::Command;
 use tempfile::TempDir;
 
 use super::{
-    run_semantic_lint, run_semantic_lint_with_args, run_semantic_query_read_model_with_args,
-    run_semantic_query_read_model_with_args_and_stderr, run_semantic_refresh_projections,
-    run_semantic_refresh_projections_with_args,
+    run_semantic_describe_read_model, run_semantic_lint, run_semantic_lint_with_args,
+    run_semantic_query_read_model_with_args, run_semantic_query_read_model_with_args_and_stderr,
+    run_semantic_refresh_projections, run_semantic_refresh_projections_with_args,
     run_semantic_refresh_projections_with_args_and_stderr,
 };
 
@@ -107,6 +107,43 @@ fn semantic_lint_renders_read_model_summary() -> Result<()> {
     );
     assert!(
         stdout.contains("repo-native semantic artifacts remain authoritative"),
+        "authority boundary should be rendered: {stdout}"
+    );
+    Ok(())
+}
+
+#[test]
+fn semantic_describe_read_model_renders_catalog() -> Result<()> {
+    let temp = TempDir::new()?;
+    write_semantic_fixture(
+        &temp,
+        "decision.fixture",
+        "decision",
+        "Decision Fixture",
+        "active",
+    )?;
+
+    let (status, stdout) = run_semantic_describe_read_model(&temp, None)?;
+
+    assert_eq!(status, Some(0), "{stdout}");
+    assert!(
+        stdout.contains("Semantic read-model catalog: 3 table(s), 2 row(s)"),
+        "catalog summary should be rendered: {stdout}"
+    );
+    assert!(
+        stdout.contains("semantic_objects: 1 row(s), 18 column(s)"),
+        "semantic object table should be rendered: {stdout}"
+    );
+    assert!(
+        stdout.contains("  - id: Utf8 not null"),
+        "column metadata should be rendered: {stdout}"
+    );
+    assert!(
+        stdout.contains("semantic_projection_state: 1 row(s), 9 column(s)"),
+        "projection-state table should be rendered: {stdout}"
+    );
+    assert!(
+        stdout.contains("repo_native_semantic_artifacts"),
         "authority boundary should be rendered: {stdout}"
     );
     Ok(())
