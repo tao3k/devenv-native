@@ -104,6 +104,6 @@ mod tests {
         let schema = Arc::new(Schema::empty());
         let batch = RecordBatch::new_empty(schema);
         FlightRoutePayload::from_batches_with_app_metadata(&[batch], Vec::new())
-            .expect("test payload")
+            .unwrap_or_else(|error| panic!("test payload: {error}"))
     }
 }
