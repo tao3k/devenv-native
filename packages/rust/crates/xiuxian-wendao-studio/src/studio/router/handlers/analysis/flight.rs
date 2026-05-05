@@ -493,7 +493,7 @@ provenance:
   recorded_at: 2026-05-05
 verification:
   required:
-    - cargo test -p xiuxian-wendao-studio semantic_scope
+    - cargo test -p xiuxian-wendao-studio --features zhenfa-router --test semantic_scope_provider semantic_scope
 relations: []
 ---
 
@@ -520,7 +520,7 @@ provenance:
   recorded_at: 2026-05-05
 verification:
   required:
-    - cargo test -p xiuxian-wendao-studio semantic_scope
+    - cargo test -p xiuxian-wendao-studio --features zhenfa-router --test semantic_scope_provider semantic_scope
 relations: []
 ---
 
@@ -547,7 +547,7 @@ provenance:
   recorded_at: 2026-05-05
 verification:
   required:
-    - cargo test -p xiuxian-wendao-studio semantic_scope
+    - cargo test -p xiuxian-wendao-studio --features zhenfa-router --test semantic_scope_provider semantic_scope
 relations:
   - kind: implements
     target: component.demo
@@ -592,7 +592,7 @@ changed_relations:
 affected_invariants:
   - invariant.demo-authority
 required_validations:
-  - cargo test -p xiuxian-wendao-studio semantic_scope
+  - cargo test -p xiuxian-wendao-studio --features zhenfa-router --test semantic_scope_provider semantic_scope
 projections_to_refresh:
   - llm_compression
 candidate_suggestions: []

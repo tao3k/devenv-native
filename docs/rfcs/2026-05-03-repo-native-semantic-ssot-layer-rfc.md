@@ -2,7 +2,7 @@
 type: knowledge
 title: "RFC: Repo-Native Semantic SSOT Layer"
 category: "rfc"
-status: "draft"
+status: "implemented-first-slice"
 authors:
   - codex
 created: 2026-05-03
@@ -42,6 +42,27 @@ This is not a request to add a feature module. It is a proposal to make the
 repository's shared truth explicit enough for LLM agents, workflow engines,
 retrieval systems, reviewers, and operators to consume different views without
 forking the underlying meaning.
+
+### 1.1 Implementation Status
+
+As of 2026-05-05, the first physical slice is implemented:
+
+1. canonical semantic artifacts live under `semantic/`
+2. `xiuxian-wendao-parsers` validates semantic objects, projections, and
+   change intents
+3. `wendao-client lint semantic` validates the repository-native semantic
+   surface
+4. Wendao Flight exposes the transport-only `/analysis/semantic-scope` route
+5. Studio provides the real route provider by loading repo semantic artifacts
+   and returning Arrow rows plus full bundle metadata
+6. Qianji consumes semantic scope, change-intent, and SQL-guard evidence as
+   advisory planning context without owning semantic truth
+
+The full RFC is not complete. Remaining work includes automated projection
+refresh policy, lifecycle transition governance for candidate objects, broader
+workflow-level Qianji consumption, and any future Julia or DuckDB-backed
+compute/read-model expansion. Those remain advisory or derived lanes; they do
+not change repo-native authority.
 
 ## 2. Alignment
 

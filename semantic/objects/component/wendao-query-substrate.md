@@ -18,7 +18,7 @@ provenance:
 verification:
   required:
     - direnv exec . cargo test -p xiuxian-wendao-server semantic_scope -- --nocapture
-    - direnv exec . cargo test -p xiuxian-wendao-studio semantic_scope -- --nocapture
+    - direnv exec . cargo test -p xiuxian-wendao-studio --features zhenfa-router --test semantic_scope_provider semantic_scope -- --nocapture
   evidence:
     - docs/rfcs/2026-05-03-repo-native-semantic-ssot-layer-rfc.md
 relations:

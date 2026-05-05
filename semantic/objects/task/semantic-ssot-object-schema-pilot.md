@@ -20,7 +20,7 @@ verification:
     - direnv exec . cargo test -p xiuxian-wendao-parsers semantic -- --nocapture
     - direnv exec . cargo test -p xiuxian-wendao-client semantic -- --nocapture
     - direnv exec . cargo test -p xiuxian-wendao-server semantic_scope -- --nocapture
-    - direnv exec . cargo test -p xiuxian-wendao-studio semantic_scope -- --nocapture
+    - direnv exec . cargo test -p xiuxian-wendao-studio --features zhenfa-router --test semantic_scope_provider semantic_scope -- --nocapture
     - direnv exec . cargo test -p xiuxian-wendao-sql bounded_work_markdown -- --nocapture
     - direnv exec . cargo test -p xiuxian-qianji workdir_semantic -- --nocapture
     - direnv exec . wendao-client lint semantic semantic

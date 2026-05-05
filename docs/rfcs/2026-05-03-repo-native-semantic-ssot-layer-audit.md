@@ -2,7 +2,7 @@
 type: knowledge
 title: "Audit: Repo-Native Semantic SSOT Layer"
 category: "audit"
-status: "draft"
+status: "implemented-first-slice"
 authors:
   - codex
 created: 2026-05-03
@@ -22,8 +22,7 @@ metadata:
 - **RFC Reference**:
   [2026-05-03-repo-native-semantic-ssot-layer-rfc.md](./2026-05-03-repo-native-semantic-ssot-layer-rfc.md)
 - **Auditor**: Codex architecture audit pass
-- **Status**: Recommended for Sovereign approval review; physical landing is
-  still gated.
+- **Status**: First physical slice implemented; full RFC remains open.
 - **Advisory Confidence**: 0.78/1.0
 
 ## 1. Executive Summary
@@ -42,9 +41,15 @@ The strongest refinements are:
 3. `candidate`, which keeps LLM-suggested objects and relations out of
    authoritative truth until accepted
 
-This audit is advisory. It does not approve physical initialization of
-`semantic/`, seed objects, validators, or Qianji hooks. Approval must come from
-the Sovereign or another repository-governed authority path.
+This audit began as advisory review. The implementation approval was later
+used to land the first physical slice: repo-native `semantic/` artifacts,
+parser validation, CLI linting, the Wendao semantic-scope route, Studio
+runtime serving, and Qianji advisory consumption.
+
+The RFC is still not fully complete. Projection refresh automation,
+candidate-state transition governance, broader Qianji workflow consumption,
+and future Julia or DuckDB-backed derived lanes remain outside the completed
+slice.
 
 ## 2. Evidence Map
 
@@ -147,7 +152,8 @@ The RFC is recommended for approval review if these conditions hold:
 3. SQL guards remain optional validation evidence until proven locally
 4. derived confidence remains advisory and does not mutate canonical status
 5. Julia compute outputs remain advisory evidence rows, not canonical truth
-6. physical initialization of `semantic/` waits for Sovereign approval
+6. physical initialization of `semantic/` is governed by explicit approval and
+   repository validation
 
 ### 3.2 Violations and Risks
 
@@ -205,17 +211,21 @@ The second-round additions are directionally useful but require downgrade:
 3. SQL guards must complement, not replace, repository validation commands
 4. confidence propagation must be advisory until local calibration exists
 5. watcher or latency claims must wait for implementation evidence
-6. physical DuckDB support raises feasibility, but does not waive the approval
-   gate for `semantic/`, validators, or runtime hooks
+6. physical DuckDB support raises feasibility, but does not become semantic
+   authority
 7. Julia compute support raises feasibility for the weak Rust compute surfaces,
    but it must stay behind explicit Arrow schemas and advisory evidence rules
 
-## 5. Final Verdict: Pass Recommendation With Conditions
+## 5. Current Verdict: First Slice Landed With Conditions
 
-The RFC is ready for Sovereign approval review after the second-round
-calibration above. It is not yet approved for physical `semantic/`
-initialization, DuckDB read-model implementation, Julia compute integration,
-SQL-guard enforcement, or Qianji runtime hook integration.
+The RFC has passed the first physical implementation slice. Repo-native
+semantic objects are now the authority surface; Wendao validates and serves a
+scoped bundle; Qianji consumes the semantic surface as advisory context.
+
+This does not close the full RFC. DuckDB and Julia remain derived or advisory
+lanes, SQL guard evidence is not authority, and candidate-object lifecycle
+governance still needs a separate closure pass before the semantic layer can
+be considered fully landed.
 
 ## 6. Formal Research References
 
