@@ -12,5 +12,6 @@ pub(crate) use document_extract::{
 };
 pub(crate) use flight::{
     StudioCodeAstAnalysisFlightRouteProvider, StudioMarkdownAnalysisFlightRouteProvider,
+    StudioSemanticScopeFlightRouteProvider,
 };
 pub(crate) use service::{load_code_ast_analysis_response, load_markdown_analysis_response};

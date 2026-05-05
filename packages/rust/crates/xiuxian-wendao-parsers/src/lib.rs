@@ -29,6 +29,8 @@ pub mod references;
 pub mod section_create;
 /// Shared Markdown section parsing and parser-owned section contracts.
 pub mod sections;
+/// Parser-owned repo-native semantic SSOT artifact contracts.
+pub mod semantic_ssot;
 /// Shared source-position helpers used by parser-owned Markdown scans.
 pub mod sourcepos;
 /// Parser-owned raw Markdown target-occurrence extraction.
@@ -77,6 +79,15 @@ pub use section_create::{
 };
 pub use sections::{
     LogbookEntry, MarkdownSection, SectionCore, SectionMetadata, SectionScope, extract_sections,
+};
+pub use semantic_ssot::{
+    SemanticBundleProvenance, SemanticConfidence, SemanticConfidenceSource, SemanticObject,
+    SemanticObjectKind, SemanticOwner, SemanticProjection, SemanticProjectionStaleness,
+    SemanticProvenance, SemanticRelation, SemanticRelationEdge, SemanticRelationKind,
+    SemanticRepository, SemanticScopeBundle, SemanticScopeRequest, SemanticStatus,
+    SemanticValidationIssue, SemanticValidationReport, SemanticVerification,
+    load_semantic_repository, parse_semantic_object, parse_semantic_projection,
+    semantic_projection_source_revision, semantic_scope_bundle,
 };
 pub use sourcepos::line_col_to_byte_range;
 pub use targets::{

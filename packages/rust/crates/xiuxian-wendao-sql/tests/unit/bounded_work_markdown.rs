@@ -145,6 +145,51 @@ async fn bootstraps_bounded_work_markdown_query_engine() -> TestResult {
 }
 
 #[tokio::test]
+async fn discovers_semantic_markdown_surface() -> TestResult {
+    let temp_dir = tempdir()?;
+    let root = temp_dir.path();
+    write_bounded_work_fixture(
+        root,
+        "blueprint/overview.md",
+        "# Blueprint\n\n## Scope\n- [ ] Keep aligned\n",
+        "plan/steps.md",
+        "# Plan\n\n## Validate\n- [ ] Query markdown\n",
+    )?;
+    fs::create_dir_all(root.join("semantic/objects/component"))?;
+    fs::write(
+        root.join("semantic/objects/component/demo.md"),
+        "# Demo Component\n\n## Authority\n- Repo-native semantic object\n",
+    )?;
+
+    let payload = query_bounded_work_markdown_payload(
+        root,
+        "select path, surface, heading_path from markdown where surface = 'semantic' order by path, heading_path",
+    )
+    .await
+    .map_err(std::io::Error::other)?;
+
+    assert!(
+        payload
+            .batches
+            .iter()
+            .flat_map(|batch| batch.rows.iter())
+            .any(|row| row.get("path").and_then(serde_json::Value::as_str)
+                == Some("semantic/objects/component/demo.md"))
+    );
+    assert!(
+        payload
+            .batches
+            .iter()
+            .flat_map(|batch| batch.rows.iter())
+            .any(
+                |row| row.get("heading_path").and_then(serde_json::Value::as_str)
+                    == Some("Demo Component/Authority")
+            )
+    );
+    Ok(())
+}
+
+#[tokio::test]
 async fn queries_bounded_work_markdown_payload() -> TestResult {
     let temp_dir = tempdir()?;
     let root = temp_dir.path();

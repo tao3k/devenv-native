@@ -44,5 +44,6 @@ pub fn run_command(command: &ClientCommand, context: &ClientContext) -> Result<C
 fn run_lint_command(command: &LintCommand, context: &ClientContext) -> Result<CommandOutcome> {
     match command {
         LintCommand::Markdown(args) => lint::run_markdown_lint(args, context),
+        LintCommand::Semantic(args) => lint::run_semantic_lint(args, context),
     }
 }

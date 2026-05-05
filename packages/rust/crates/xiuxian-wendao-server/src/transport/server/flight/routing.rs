@@ -9,9 +9,10 @@ use crate::transport::query_contract::{
     ANALYSIS_DOCUMENT_EXTRACT_STATUS_ROUTE, ANALYSIS_MARKDOWN_ROUTE, ANALYSIS_REFINE_DOC_ROUTE,
     ANALYSIS_REPO_DOC_COVERAGE_ROUTE, ANALYSIS_REPO_INDEX_ROUTE, ANALYSIS_REPO_INDEX_STATUS_ROUTE,
     ANALYSIS_REPO_OVERVIEW_ROUTE, ANALYSIS_REPO_PROJECTED_PAGE_INDEX_TREE_ROUTE,
-    ANALYSIS_REPO_SYNC_ROUTE, GRAPH_NEIGHBORS_ROUTE, QUERY_SQL_ROUTE, REPO_SEARCH_ROUTE,
-    SEARCH_AST_ROUTE, SEARCH_ATTACHMENTS_ROUTE, SEARCH_AUTOCOMPLETE_ROUTE, SEARCH_DEFINITION_ROUTE,
-    TOPOLOGY_3D_ROUTE, VFS_CONTENT_ROUTE, VFS_RESOLVE_ROUTE, VFS_SCAN_ROUTE,
+    ANALYSIS_REPO_SYNC_ROUTE, ANALYSIS_SEMANTIC_SCOPE_ROUTE, GRAPH_NEIGHBORS_ROUTE,
+    QUERY_SQL_ROUTE, REPO_SEARCH_ROUTE, SEARCH_AST_ROUTE, SEARCH_ATTACHMENTS_ROUTE,
+    SEARCH_AUTOCOMPLETE_ROUTE, SEARCH_DEFINITION_ROUTE, TOPOLOGY_3D_ROUTE, VFS_CONTENT_ROUTE,
+    VFS_RESOLVE_ROUTE, VFS_SCAN_ROUTE,
 };
 
 use crate::transport::server::{
@@ -24,8 +25,9 @@ use crate::transport::server::{
     validate_repo_index_status_request_metadata, validate_repo_overview_request_metadata,
     validate_repo_projected_page_index_tree_request_metadata,
     validate_repo_search_request_metadata, validate_repo_sync_request_metadata,
-    validate_search_request_metadata, validate_sql_request_metadata,
-    validate_vfs_content_request_metadata, validate_vfs_resolve_request_metadata,
+    validate_search_request_metadata, validate_semantic_scope_request_metadata,
+    validate_sql_request_metadata, validate_vfs_content_request_metadata,
+    validate_vfs_resolve_request_metadata,
 };
 
 use super::ServiceCore as WendaoFlightService;
@@ -119,6 +121,15 @@ impl WendaoFlightService {
         } else if route == ANALYSIS_CODE_AST_ROUTE {
             let (path, repo_id, line_hint) = validate_code_ast_analysis_request_metadata(metadata)?;
             Ok(format!("{route}|{path:?}|{repo_id:?}|{line_hint:?}"))
+        } else if route == ANALYSIS_SEMANTIC_SCOPE_ROUTE {
+            let request = validate_semantic_scope_request_metadata(metadata)?;
+            let mut object_ids = request.object_ids;
+            object_ids.sort();
+            Ok(format!(
+                "{route}|{:?}|{}",
+                request.task_id,
+                object_ids.join(",")
+            ))
         } else if route == ANALYSIS_REPO_OVERVIEW_ROUTE {
             let repo_id = validate_repo_overview_request_metadata(metadata)?;
             Ok(format!("{route}|{repo_id:?}"))
@@ -189,6 +200,8 @@ impl WendaoFlightService {
             self.read_markdown_analysis_payload(route, metadata).await
         } else if route == ANALYSIS_CODE_AST_ROUTE {
             self.read_code_ast_analysis_payload(route, metadata).await
+        } else if route == ANALYSIS_SEMANTIC_SCOPE_ROUTE {
+            self.read_semantic_scope_payload(route, metadata).await
         } else if route == ANALYSIS_REPO_OVERVIEW_ROUTE {
             self.read_repo_overview_payload(route, metadata).await
         } else if route == ANALYSIS_REPO_INDEX_ROUTE {
@@ -450,6 +463,26 @@ impl WendaoFlightService {
         })?;
         provider
             .code_ast_analysis_batch(path.as_str(), repo_id.as_str(), line_hint)
+            .await
+            .map_err(Status::internal)
+            .and_then(|response| {
+                FlightRoutePayload::try_with_app_metadata(response.batch, response.app_metadata)
+            })
+    }
+
+    async fn read_semantic_scope_payload(
+        &self,
+        route: &str,
+        metadata: &tonic::metadata::MetadataMap,
+    ) -> Result<FlightRoutePayload, Status> {
+        let request = validate_semantic_scope_request_metadata(metadata)?;
+        let provider = self.semantic_scope_provider.as_ref().ok_or_else(|| {
+            Status::unimplemented(format!(
+                "semantic-scope Flight route `{route}` is not configured for this transport host"
+            ))
+        })?;
+        provider
+            .semantic_scope_batch(&request)
             .await
             .map_err(Status::internal)
             .and_then(|response| {

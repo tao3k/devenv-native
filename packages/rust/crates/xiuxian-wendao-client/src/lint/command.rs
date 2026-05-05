@@ -8,6 +8,8 @@ use std::path::PathBuf;
 pub enum LintCommand {
     /// Lint Markdown files for syntax-oriented failures.
     Markdown(MarkdownLintArgs),
+    /// Lint repo-native semantic SSOT artifacts.
+    Semantic(SemanticLintArgs),
 }
 
 /// CLI arguments for repo-local Markdown linting.
@@ -22,4 +24,13 @@ pub struct MarkdownLintArgs {
     /// Extra directory names to skip while walking recursive paths.
     #[arg(long = "skip-dir", value_name = "NAME")]
     pub skip_dirs: Vec<String>,
+}
+
+/// CLI arguments for repo-native semantic SSOT linting.
+#[derive(Args, Debug)]
+pub struct SemanticLintArgs {
+    /// Semantic artifact roots to inspect. When omitted, lint checks
+    /// `$PRJ_ROOT/semantic` through the active client root.
+    #[arg(value_name = "PATH")]
+    pub paths: Vec<PathBuf>,
 }

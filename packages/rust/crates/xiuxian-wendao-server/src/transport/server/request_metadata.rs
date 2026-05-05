@@ -29,7 +29,8 @@ use crate::transport::query_contract::{
     WENDAO_REPO_SYNC_REPO_HEADER, WENDAO_RERANK_DIMENSION_HEADER,
     WENDAO_RERANK_MIN_FINAL_SCORE_HEADER, WENDAO_RERANK_TOP_K_HEADER, WENDAO_SCHEMA_VERSION_HEADER,
     WENDAO_SEARCH_INTENT_HEADER, WENDAO_SEARCH_LIMIT_HEADER, WENDAO_SEARCH_QUERY_HEADER,
-    WENDAO_SEARCH_REPO_HEADER, WENDAO_SQL_QUERY_HEADER, WENDAO_VFS_PATH_HEADER,
+    WENDAO_SEARCH_REPO_HEADER, WENDAO_SEMANTIC_SCOPE_OBJECT_IDS_HEADER,
+    WENDAO_SEMANTIC_SCOPE_TASK_ID_HEADER, WENDAO_SQL_QUERY_HEADER, WENDAO_VFS_PATH_HEADER,
     normalize_flight_route, validate_attachment_search_request, validate_autocomplete_request,
     validate_code_ast_analysis_request, validate_definition_request,
     validate_document_extract_request, validate_graph_neighbors_request,
@@ -37,7 +38,8 @@ use crate::transport::query_contract::{
     validate_repo_doc_coverage_request, validate_repo_index_request,
     validate_repo_index_status_request, validate_repo_overview_request,
     validate_repo_projected_page_index_tree_request, validate_repo_search_request,
-    validate_repo_sync_request, validate_vfs_content_request, validate_vfs_resolve_request,
+    validate_repo_sync_request, validate_semantic_scope_request, validate_vfs_content_request,
+    validate_vfs_resolve_request,
 };
 
 type AttachmentSearchMetadata = (String, usize, HashSet<String>, HashSet<String>, bool);
@@ -567,6 +569,20 @@ pub(crate) fn validate_code_ast_analysis_request_metadata(
     validate_code_ast_analysis_request(path.as_str(), repo_id.as_str(), line_hint)
         .map_err(Status::invalid_argument)?;
     Ok((path, repo_id, line_hint))
+}
+
+pub(crate) fn validate_semantic_scope_request_metadata(
+    metadata: &MetadataMap,
+) -> Result<crate::transport::query_contract::SemanticScopeFlightRequest, Status> {
+    let task_id = metadata
+        .get(WENDAO_SEMANTIC_SCOPE_TASK_ID_HEADER)
+        .and_then(|value| value.to_str().ok());
+    let object_ids =
+        split_non_empty_header_values(metadata, WENDAO_SEMANTIC_SCOPE_OBJECT_IDS_HEADER)
+            .into_iter()
+            .map(|value| value.trim().to_string())
+            .collect::<Vec<_>>();
+    validate_semantic_scope_request(task_id, &object_ids).map_err(Status::invalid_argument)
 }
 
 pub(crate) fn validate_repo_doc_coverage_request_metadata(

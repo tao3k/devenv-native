@@ -6,11 +6,31 @@ use super::policy::{
     lint_local_target_fragments,
 };
 use super::text_output::render_markdown_lint_text_report;
-use super::{MarkdownLintArgs, MarkdownLintFileReport, MarkdownLintReport};
+use super::{MarkdownLintArgs, MarkdownLintFileReport, MarkdownLintReport, SemanticLintArgs};
 use crate::{ClientContext, CommandOutcome, OutputFormat};
 use anyhow::{Context, Result};
 use std::collections::BTreeMap;
-use xiuxian_wendao_parsers::lint_markdown_syntax_with_path;
+use std::path::{Path, PathBuf};
+use xiuxian_wendao_parsers::{
+    SemanticValidationIssue, lint_markdown_syntax_with_path, load_semantic_repository,
+};
+
+#[derive(serde::Serialize)]
+struct SemanticLintRootReport {
+    root: PathBuf,
+    object_count: usize,
+    projection_count: usize,
+    issues: Vec<SemanticValidationIssue>,
+}
+
+#[derive(serde::Serialize)]
+struct SemanticLintReport {
+    checked_roots: usize,
+    object_count: usize,
+    projection_count: usize,
+    issue_count: usize,
+    roots: Vec<SemanticLintRootReport>,
+}
 
 pub(crate) fn run_markdown_lint(
     args: &MarkdownLintArgs,
@@ -86,6 +106,39 @@ pub(crate) fn run_markdown_lint(
     })
 }
 
+pub(crate) fn run_semantic_lint(
+    args: &SemanticLintArgs,
+    context: &ClientContext,
+) -> Result<CommandOutcome> {
+    let roots = semantic_lint_roots(args, context.root());
+    let root_reports = roots
+        .iter()
+        .map(|root| {
+            let repository = load_semantic_repository(root);
+            SemanticLintRootReport {
+                root: display_semantic_root(root, context.root()),
+                object_count: repository.objects.len(),
+                projection_count: repository.projections.len(),
+                issues: repository.report.issues,
+            }
+        })
+        .collect::<Vec<_>>();
+    let report = SemanticLintReport {
+        checked_roots: root_reports.len(),
+        object_count: root_reports.iter().map(|root| root.object_count).sum(),
+        projection_count: root_reports.iter().map(|root| root.projection_count).sum(),
+        issue_count: root_reports.iter().map(|root| root.issues.len()).sum(),
+        roots: root_reports,
+    };
+
+    emit_semantic_report(&report, context.output())?;
+    Ok(if report.issue_count == 0 {
+        CommandOutcome::success()
+    } else {
+        CommandOutcome::failure(1)
+    })
+}
+
 fn build_file_report(
     path: String,
     source_path: &std::path::Path,
@@ -138,5 +191,74 @@ fn render_json_report(report: &MarkdownLintReport, pretty: bool) -> Result<Strin
         serde_json::to_string(report)
     }
     .context("failed to serialize markdown lint report")?;
+    Ok(format!("{rendered}\n"))
+}
+
+fn semantic_lint_roots(args: &SemanticLintArgs, context_root: &Path) -> Vec<PathBuf> {
+    if args.paths.is_empty() {
+        return vec![context_root.join("semantic")];
+    }
+    args.paths
+        .iter()
+        .map(|path| {
+            if path.is_absolute() {
+                path.clone()
+            } else {
+                context_root.join(path)
+            }
+        })
+        .collect()
+}
+
+fn display_semantic_root(root: &Path, context_root: &Path) -> PathBuf {
+    root.strip_prefix(context_root)
+        .map_or_else(|_| root.to_path_buf(), std::path::Path::to_path_buf)
+}
+
+fn emit_semantic_report(report: &SemanticLintReport, output: OutputFormat) -> Result<()> {
+    let rendered = match output {
+        OutputFormat::Text => render_semantic_text_report(report),
+        OutputFormat::Json => render_semantic_json_report(report, false)?,
+        OutputFormat::Pretty => render_semantic_json_report(report, true)?,
+    };
+    print!("{rendered}");
+    Ok(())
+}
+
+fn render_semantic_text_report(report: &SemanticLintReport) -> String {
+    if report.issue_count == 0 {
+        return format!(
+            "Semantic lint passed: checked {} root(s), {} object(s), {} projection(s), 0 issue(s).\n",
+            report.checked_roots, report.object_count, report.projection_count
+        );
+    }
+
+    let mut rendered = format!(
+        "Semantic lint found {} issue(s) across {} root(s), {} object(s), and {} projection(s).\n",
+        report.issue_count, report.checked_roots, report.object_count, report.projection_count
+    );
+    for root in &report.roots {
+        for issue in &root.issues {
+            let path = issue.path.as_ref().map_or_else(
+                || root.root.display().to_string(),
+                |path| root.root.join(path).display().to_string(),
+            );
+            rendered.push_str("- ");
+            rendered.push_str(path.as_str());
+            rendered.push_str(": ");
+            rendered.push_str(issue.message.as_str());
+            rendered.push('\n');
+        }
+    }
+    rendered
+}
+
+fn render_semantic_json_report(report: &SemanticLintReport, pretty: bool) -> Result<String> {
+    let rendered = if pretty {
+        serde_json::to_string_pretty(report)
+    } else {
+        serde_json::to_string(report)
+    }
+    .context("failed to serialize semantic lint report")?;
     Ok(format!("{rendered}\n"))
 }

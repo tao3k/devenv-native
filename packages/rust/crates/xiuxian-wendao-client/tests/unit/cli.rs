@@ -12,6 +12,18 @@ fn parses_markdown_lint_command() {
 }
 
 #[test]
+fn parses_semantic_lint_command() {
+    let cli = ClientCli::parse_from(["wendao", "lint", "semantic", "semantic"]);
+    let ClientCommand::Lint { command } = cli.command else {
+        panic!("expected lint command");
+    };
+    match command {
+        LintCommand::Semantic(args) => assert_eq!(args.paths, vec![PathBuf::from("semantic")]),
+        LintCommand::Markdown(_) => panic!("expected semantic lint command"),
+    }
+}
+
+#[test]
 fn parses_get_toc_command() {
     let cli = ClientCli::parse_from(["wendao", "get", "toc", "docs/guides"]);
     let ClientCommand::Get { command } = cli.command else {

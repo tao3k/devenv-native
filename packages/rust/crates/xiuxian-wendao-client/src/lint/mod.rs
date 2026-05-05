@@ -9,7 +9,7 @@ mod report;
 mod run;
 mod text_output;
 
-pub use command::{LintCommand, MarkdownLintArgs};
+pub use command::{LintCommand, MarkdownLintArgs, SemanticLintArgs};
 pub use contract::{
     MARKDOWN_LINT_DIAGNOSTIC_CONTRACT_IDS, MARKDOWN_LINT_DIAGNOSTICS_CONTRACT_ID,
     MarkdownLintDiagnosticContractAssets, MarkdownLintDiagnosticContractId,
@@ -17,4 +17,4 @@ pub use contract::{
     markdown_lint_diagnostic_schema_snapshot,
 };
 pub use report::{MarkdownLintFileReport, MarkdownLintIssue, MarkdownLintReport};
-pub(crate) use run::run_markdown_lint;
+pub(crate) use run::{run_markdown_lint, run_semantic_lint};

@@ -18,11 +18,11 @@ pub use types::{
     RepoIndexStatusFlightRouteProvider, RepoOverviewFlightRouteProvider,
     RepoProjectedPageIndexTreeFlightRouteProvider, RepoSearchFlightRequest,
     RepoSearchFlightRouteProvider, RepoSyncFlightRouteProvider, RerankFlightRouteHandler,
-    SearchFlightRouteProvider, SearchFlightRouteResponse, SqlFlightRouteProvider,
-    SqlFlightRouteResponse, Topology3dFlightRouteProvider, Topology3dFlightRouteResponse,
-    VfsContentFlightRouteProvider, VfsContentFlightRouteResponse, VfsResolveFlightRouteProvider,
-    VfsResolveFlightRouteResponse, VfsScanFlightRouteProvider, VfsScanFlightRouteResponse,
-    WendaoFlightRouteProviders,
+    SearchFlightRouteProvider, SearchFlightRouteResponse, SemanticScopeFlightRouteProvider,
+    SqlFlightRouteProvider, SqlFlightRouteResponse, Topology3dFlightRouteProvider,
+    Topology3dFlightRouteResponse, VfsContentFlightRouteProvider, VfsContentFlightRouteResponse,
+    VfsResolveFlightRouteProvider, VfsResolveFlightRouteResponse, VfsScanFlightRouteProvider,
+    VfsScanFlightRouteResponse, WendaoFlightRouteProviders,
 };
 
 pub(crate) use request_metadata::{
@@ -38,8 +38,8 @@ pub(crate) use request_metadata::{
     validate_repo_search_request_metadata, validate_repo_sync_request_metadata,
     validate_rerank_dimension_header, validate_rerank_min_final_score_header,
     validate_rerank_top_k_header, validate_schema_version, validate_search_request_metadata,
-    validate_sql_request_metadata, validate_vfs_content_request_metadata,
-    validate_vfs_resolve_request_metadata,
+    validate_semantic_scope_request_metadata, validate_sql_request_metadata,
+    validate_vfs_content_request_metadata, validate_vfs_resolve_request_metadata,
 };
 
 pub(crate) use types::{
