@@ -1,10 +1,11 @@
-use std::{path::PathBuf, sync::Arc};
+use std::{collections::BTreeSet, path::PathBuf, sync::Arc};
 
 use async_trait::async_trait;
 use xiuxian_wendao_parsers::{
     SemanticChangeIntent, SemanticConfidenceSource, SemanticObjectKind,
     SemanticProjectionStaleness, SemanticRepository, SemanticScopeBundle, SemanticScopeRequest,
-    SemanticStatus, SemanticValidationReport, load_semantic_repository, semantic_scope_bundle,
+    SemanticStatus, SemanticValidationReport, load_semantic_repository,
+    semantic_projection_source_revision, semantic_scope_bundle,
 };
 use xiuxian_wendao_server::transport::{
     AnalysisFlightRouteResponse, CodeAstAnalysisFlightRouteProvider,
@@ -172,10 +173,32 @@ impl SemanticScopeFlightRouteProvider for StudioSemanticScopeFlightRouteProvider
             },
         );
         let sql_guard_evidence = semantic_sql_guard_evidence(&repository).await?;
+        let projection_policy_evidence = semantic_projection_policy_evidence(&repository);
         let batch = semantic_scope_bundle_batch(&bundle)?;
-        let metadata = semantic_scope_bundle_metadata(&bundle, &sql_guard_evidence)?;
+        let metadata = semantic_scope_bundle_metadata(
+            &bundle,
+            &sql_guard_evidence,
+            &projection_policy_evidence,
+        )?;
         Ok(AnalysisFlightRouteResponse::new(batch).with_app_metadata(metadata))
     }
+}
+
+struct SemanticProjectionPolicyEvidence {
+    policy_id: &'static str,
+    status: &'static str,
+    failing_projection_count: usize,
+    message: &'static str,
+    projections: Vec<SemanticProjectionPolicyFinding>,
+}
+
+struct SemanticProjectionPolicyFinding {
+    projection: String,
+    source_revision: String,
+    current_source_revision: Option<String>,
+    staleness: &'static str,
+    reason: &'static str,
+    source_path: String,
 }
 
 struct SemanticScopeBatchColumns<'a> {
@@ -343,10 +366,12 @@ async fn semantic_sql_guard_evidence(
 fn semantic_scope_bundle_metadata(
     bundle: &SemanticScopeBundle,
     sql_guard_evidence: &SemanticSqlGuardEvidence,
+    projection_policy_evidence: &SemanticProjectionPolicyEvidence,
 ) -> Result<Vec<u8>, String> {
     serde_json::to_vec(&serde_json::json!({
         "semanticScopeBundle": bundle,
         "semanticSqlGuardEvidence": semantic_sql_guard_evidence_json(sql_guard_evidence),
+        "semanticProjectionPolicyEvidence": semantic_projection_policy_evidence_json(projection_policy_evidence),
     }))
     .map_err(|error| format!("failed to encode semantic-scope metadata: {error}"))
 }
@@ -373,6 +398,99 @@ fn semantic_sql_guard_finding_json(
         "currentSourceRevision": finding.current_source_revision.as_str(),
         "projectionRevision": finding.projection_revision.as_str(),
         "staleness": finding.staleness.as_str(),
+        "sourcePath": finding.source_path.as_str(),
+    })
+}
+
+fn semantic_projection_policy_evidence(
+    repository: &SemanticRepository,
+) -> SemanticProjectionPolicyEvidence {
+    let required_projection_names = repository
+        .change_intents
+        .iter()
+        .filter(|intent| intent.status == SemanticStatus::Active)
+        .flat_map(|intent| intent.projections_to_refresh.iter().map(String::as_str))
+        .collect::<BTreeSet<_>>();
+    let mut projections = repository
+        .projections
+        .iter()
+        .filter(|projection| required_projection_names.contains(projection.projection.as_str()))
+        .filter_map(|projection| {
+            let current_source_revision =
+                semantic_projection_source_revision(repository, projection);
+            let reason = semantic_projection_policy_failure_reason(
+                projection.source_revision.as_str(),
+                &projection.staleness,
+                current_source_revision.as_deref(),
+            )?;
+            Some(SemanticProjectionPolicyFinding {
+                projection: projection.projection.clone(),
+                source_revision: projection.source_revision.clone(),
+                current_source_revision,
+                staleness: semantic_projection_staleness_token(&projection.staleness),
+                reason,
+                source_path: projection.source_path.display().to_string(),
+            })
+        })
+        .collect::<Vec<_>>();
+    projections.sort_by(|left, right| left.projection.cmp(&right.projection));
+    let failing_projection_count = projections.len();
+    let (status, message) = if failing_projection_count == 0 {
+        (
+            "passed",
+            "all active change-intent projection refresh targets are fresh",
+        )
+    } else {
+        (
+            "review_required",
+            "active change-intent projection refresh target(s) are stale; run `wendao-client lint semantic --refresh-projections --require-fresh-projections`",
+        )
+    };
+    SemanticProjectionPolicyEvidence {
+        policy_id: "semantic_projection.required_refresh_targets",
+        status,
+        failing_projection_count,
+        message,
+        projections,
+    }
+}
+
+fn semantic_projection_policy_failure_reason(
+    source_revision: &str,
+    staleness: &SemanticProjectionStaleness,
+    current_source_revision: Option<&str>,
+) -> Option<&'static str> {
+    if *staleness != SemanticProjectionStaleness::Fresh {
+        return Some("stale");
+    }
+    match current_source_revision {
+        Some(current) if current == source_revision.trim() => None,
+        Some(_) => Some("source_revision_mismatch"),
+        None => Some("unresolved_source_revision"),
+    }
+}
+
+fn semantic_projection_policy_evidence_json(
+    evidence: &SemanticProjectionPolicyEvidence,
+) -> serde_json::Value {
+    serde_json::json!({
+        "policyId": evidence.policy_id,
+        "status": evidence.status,
+        "failingProjectionCount": evidence.failing_projection_count,
+        "message": evidence.message,
+        "projections": evidence.projections.iter().map(semantic_projection_policy_finding_json).collect::<Vec<_>>(),
+    })
+}
+
+fn semantic_projection_policy_finding_json(
+    finding: &SemanticProjectionPolicyFinding,
+) -> serde_json::Value {
+    serde_json::json!({
+        "projection": finding.projection.as_str(),
+        "sourceRevision": finding.source_revision.as_str(),
+        "currentSourceRevision": finding.current_source_revision.as_deref(),
+        "staleness": finding.staleness,
+        "reason": finding.reason,
         "sourcePath": finding.source_path.as_str(),
     })
 }
@@ -676,6 +794,25 @@ candidate_suggestions:
             metadata["semanticSqlGuardEvidence"]["findings"]
                 .as_array()
                 .expect("semantic SQL guard findings metadata")
+                .len(),
+            1
+        );
+        assert_eq!(
+            metadata["semanticProjectionPolicyEvidence"]["policyId"],
+            "semantic_projection.required_refresh_targets"
+        );
+        assert_eq!(
+            metadata["semanticProjectionPolicyEvidence"]["status"],
+            "review_required"
+        );
+        assert_eq!(
+            metadata["semanticProjectionPolicyEvidence"]["failingProjectionCount"],
+            1
+        );
+        assert_eq!(
+            metadata["semanticProjectionPolicyEvidence"]["projections"]
+                .as_array()
+                .expect("semantic projection policy finding metadata")
                 .len(),
             1
         );

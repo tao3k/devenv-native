@@ -55,8 +55,8 @@ As of 2026-05-05, the first physical slice is implemented:
 4. Wendao Flight exposes the transport-only `/analysis/semantic-scope` route
 5. Studio provides the real route provider by loading repo semantic artifacts
    and returning Arrow rows plus full bundle metadata
-6. Qianji consumes semantic scope, change-intent, and SQL-guard evidence as
-   advisory planning context without owning semantic truth
+6. Qianji consumes semantic scope, change-intent, SQL-guard, and projection
+   policy evidence as advisory planning context without owning semantic truth
 7. projection source revisions can be refreshed explicitly with
    `wendao-client lint semantic --refresh-projections`
 8. candidate semantic objects must remain `llm_suggested` and be governed by
@@ -75,6 +75,8 @@ As of 2026-05-05, the first physical slice is implemented:
 13. `wendao-client lint semantic --require-fresh-projections` enforces a
     closure-level policy that active change-intent projection refresh targets
     are fresh
+14. Studio emits the same projection freshness policy evidence through
+    semantic-scope Flight metadata as `semanticProjectionPolicyEvidence`
 
 The full RFC is not complete. Remaining work includes background projection
 refresh, broader workflow-level Qianji consumption, and any future Julia or

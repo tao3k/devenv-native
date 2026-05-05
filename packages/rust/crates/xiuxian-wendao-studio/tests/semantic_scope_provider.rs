@@ -88,6 +88,20 @@ async fn semantic_scope_provider_serves_repo_native_bundle_through_studio_flight
     assert_eq!(sql_guard["guardId"], "semantic_sql.projection_freshness");
     assert_eq!(sql_guard["status"], "review_required");
     assert_eq!(sql_guard["failingRowCount"], 1);
+
+    let projection_policy = &metadata["semanticProjectionPolicyEvidence"];
+    assert_eq!(
+        projection_policy["policyId"],
+        "semantic_projection.required_refresh_targets"
+    );
+    assert_eq!(projection_policy["status"], "review_required");
+    assert_eq!(projection_policy["failingProjectionCount"], 1);
+    assert_eq!(
+        projection_policy["projections"]
+            .as_array()
+            .map(std::vec::Vec::len),
+        Some(1)
+    );
 }
 
 fn first_ticket(flight_info: &FlightInfo) -> String {

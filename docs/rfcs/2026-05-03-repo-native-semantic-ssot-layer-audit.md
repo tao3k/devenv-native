@@ -50,7 +50,10 @@ read-only lifecycle writeback preview through
 `wendao-client lint semantic --lifecycle-plan`, plus explicit lifecycle apply
 tooling through `wendao-client lint semantic --apply-lifecycle-plan`, and
 closure-level projection freshness policy through
-`wendao-client lint semantic --require-fresh-projections`.
+`wendao-client lint semantic --require-fresh-projections`. Studio now also
+emits the same projection freshness policy evidence as
+`semanticProjectionPolicyEvidence` in semantic-scope Flight metadata for
+Qianji advisory consumption.
 
 The RFC is still not fully complete. Background projection refresh, broader
 Qianji workflow consumption, and future Julia or DuckDB-backed derived lanes
@@ -201,8 +204,9 @@ The RFC is recommended for approval review if these conditions hold:
 5. **Julia compute pilot**: export one bounded semantic subgraph or
    derived-confidence input batch to a staged Julia compute profile and import
    advisory evidence rows through versioned Arrow contracts.
-6. **Qianji integration**: let one guard consume a bounded semantic-scope
-   bundle after validator and read-model contracts are stable.
+6. **Qianji integration**: extend the current guard from semantic-scope and
+   policy-evidence consumption toward workflow-level planning decisions after
+   validator and read-model contracts are stable.
 7. **Hot-path clone audit**: consider replacing repeated Q-table episode-id
    clones with shared identifiers such as `Arc<str>` only after profiling
    confirms the clone pressure is material.
